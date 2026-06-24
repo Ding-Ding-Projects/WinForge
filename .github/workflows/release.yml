@@ -1,0 +1,88 @@
+name: Build & Release · 建置同發佈
+
+# Builds WinTune (self-contained x64) and publishes a NEW GitHub Release with a
+# portable zip + an Inno Setup installer on every push to main (or manual run).
+# 每次推送到 main（或手動執行）都會建置 WinTune（自包含 x64）並發佈一個新版本，
+# 連同可攜 zip 同 Inno Setup 安裝程式。
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout · 取出原始碼
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 11 · 安裝 .NET 11
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '11.0.x'
+
+      - name: Restore · 還原相依性
+        run: dotnet restore
+
+      - name: Publish self-contained x64 (trimming OFF) · 發佈自包含 x64（關閉裁剪）
+        shell: pwsh
+        run: |
+          dotnet publish WinTune.csproj `
+            -c Release -p:Platform=x64 -r win-x64 --self-contained true `
+            -p:WindowsAppSDKSelfContained=true `
+            -p:WindowsPackageType=None `
+            -p:PublishTrimmed=false `
+            -p:PublishReadyToRun=true
+          if ($LASTEXITCODE -ne 0) { throw "publish failed" }
+
+      - name: Locate publish folder · 找出發佈資料夾
+        id: pub
+        shell: pwsh
+        run: |
+          $pub = Get-ChildItem -Path bin -Recurse -Directory -Filter publish |
+            Where-Object { $_.FullName -match 'Release' -and $_.FullName -match 'win-x64' } |
+            Select-Object -First 1 -ExpandProperty FullName
+          if (-not $pub -or -not (Test-Path "$pub\WinTune.exe")) { throw "publish folder / WinTune.exe not found" }
+          Write-Host "publish = $pub"
+          "dir=$pub" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Portable zip · 可攜 zip
+        shell: pwsh
+        run: |
+          $ver = "1.0.${{ github.run_number }}"
+          Compress-Archive -Path "${{ steps.pub.outputs.dir }}\*" -DestinationPath "WinTune-portable-x64-$ver.zip" -Force
+          "WINTUNE_VERSION=$ver"               | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "WINTUNE_PUBLISH=${{ steps.pub.outputs.dir }}" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Build Inno Setup installer · 建置 Inno Setup 安裝程式
+        shell: pwsh
+        run: |
+          choco install innosetup --no-progress -y
+          if ($LASTEXITCODE -ne 0) { throw "innosetup install failed" }
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          & $iscc "/DMyAppVersion=$env:WINTUNE_VERSION" "/DMyPublishDir=$env:WINTUNE_PUBLISH" "installer\WinTune.iss"
+          if ($LASTEXITCODE -ne 0) { throw "ISCC failed" }
+
+      - name: Create GitHub Release · 建立 GitHub 版本
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ver = "v1.0.${{ github.run_number }}"
+          $notes = "Automated build from commit ${{ github.sha }}.`n由 commit ${{ github.sha }} 自動建置。`n`n- WinTune-Setup.exe — installer / 安裝程式`n- WinTune-portable-x64-*.zip — portable / 免安裝可攜版"
+          $setup = Get-ChildItem -Recurse -Filter WinTune-Setup.exe | Select-Object -First 1 -ExpandProperty FullName
+          $zip   = Get-ChildItem -Recurse -Filter "WinTune-portable-x64-*.zip" | Select-Object -First 1 -ExpandProperty FullName
+          if (-not $setup) { throw "WinTune-Setup.exe not found" }
+          if (-not $zip)   { throw "portable zip not found" }
+          Write-Host "setup = $setup"
+          Write-Host "zip   = $zip"
+          gh release create $ver $setup $zip --title "WinTune $ver" --notes $notes
