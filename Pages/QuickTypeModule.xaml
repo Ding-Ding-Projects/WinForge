@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.QuickTypeModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid Padding="24,16,24,16" RowSpacing="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="12">
+            <FontIcon FontSize="22" Glyph="&#xE943;" VerticalAlignment="Center" />
+            <StackPanel>
+                <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
+                <TextBlock x:Name="HeaderBlurb" FontSize="12" TextWrapping="Wrap"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            </StackPanel>
+        </StackPanel>
+
+        <!-- Node not found banner -->
+        <InfoBar x:Name="NodeBar" Grid.Row="1" IsClosable="False" IsOpen="False" Severity="Warning" />
+
+        <!-- quicktype CLI not found banner -->
+        <InfoBar x:Name="CliBar" Grid.Row="2" IsClosable="False" IsOpen="False" Severity="Warning">
+            <InfoBar.ActionButton>
+                <Button x:Name="InstallCliBtn" Click="InstallCli_Click" />
+            </InfoBar.ActionButton>
+        </InfoBar>
+
+        <!-- Main two-pane area -->
+        <Grid Grid.Row="3" ColumnSpacing="12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- INPUT pane -->
+            <Border Grid.Column="0"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1" CornerRadius="8" Padding="12">
+                <Grid RowSpacing="8">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="InputTitle" Grid.Column="0" VerticalAlignment="Center"
+                                   Style="{StaticResource BodyStrongTextBlockStyle}" />
+                        <Button x:Name="LoadFileBtn" Grid.Column="1" Click="LoadFile_Click" />
+                        <Button x:Name="ClearInputBtn" Grid.Column="2" Click="ClearInput_Click" />
+                    </Grid>
+
+                    <Grid Grid.Row="1" ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="InputKindLabel" Grid.Column="0" VerticalAlignment="Center"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <ComboBox x:Name="InputKindPicker" Grid.Column="1" HorizontalAlignment="Stretch" />
+                    </Grid>
+
+                    <TextBox x:Name="InputBox" Grid.Row="2"
+                             AcceptsReturn="True" TextWrapping="NoWrap"
+                             FontFamily="Consolas" FontSize="13"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                             ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                             VerticalAlignment="Stretch" VerticalContentAlignment="Top" />
+                </Grid>
+            </Border>
+
+            <!-- OPTIONS + OUTPUT pane -->
+            <Grid Grid.Column="1" RowSpacing="12">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!-- OPTIONS -->
+                <Border Grid.Row="0"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1" CornerRadius="8" Padding="12">
+                    <StackPanel Spacing="8">
+                        <TextBlock x:Name="OptionsTitle" Style="{StaticResource BodyStrongTextBlockStyle}" />
+
+                        <Grid ColumnSpacing="8" RowSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <TextBlock x:Name="TargetLabel" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <ComboBox x:Name="TargetPicker" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Stretch"
+                                      SelectionChanged="Target_SelectionChanged" />
+
+                            <TextBlock x:Name="TopLevelLabel" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBox x:Name="TopLevelBox" Grid.Row="1" Grid.Column="1" Text="Root" />
+                        </Grid>
+
+                        <CheckBox x:Name="JustTypesCheck" />
+
+                        <!-- C#-specific options (shown only when C# is the target) -->
+                        <StackPanel x:Name="CSharpOptions" Spacing="8" Visibility="Collapsed">
+                            <Grid ColumnSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock x:Name="NamespaceLabel" Grid.Column="0" VerticalAlignment="Center"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <TextBox x:Name="NamespaceBox" Grid.Column="1" PlaceholderText="QuickType" />
+                            </Grid>
+                            <Grid ColumnSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock x:Name="FrameworkLabel" Grid.Column="0" VerticalAlignment="Center"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <ComboBox x:Name="FrameworkPicker" Grid.Column="1" HorizontalAlignment="Stretch" />
+                            </Grid>
+                            <CheckBox x:Name="ListArrayCheck" />
+                        </StackPanel>
+
+                        <Button x:Name="GenerateBtn" Click="Generate_Click" Style="{StaticResource AccentButtonStyle}"
+                                HorizontalAlignment="Stretch" />
+                    </StackPanel>
+                </Border>
+
+                <!-- OUTPUT -->
+                <Border Grid.Row="1"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1" CornerRadius="8" Padding="12">
+                    <Grid RowSpacing="8">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <Grid Grid.Row="0" ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <TextBlock x:Name="OutputTitle" VerticalAlignment="Center"
+                                           Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                <ProgressRing x:Name="Busy" Width="18" Height="18" IsActive="False" />
+                            </StackPanel>
+                            <Button x:Name="CopyBtn" Grid.Column="1" Click="Copy_Click" IsEnabled="False" />
+                            <Button x:Name="SaveBtn" Grid.Column="2" Click="Save_Click" IsEnabled="False" />
+                        </Grid>
+
+                        <TextBox x:Name="OutputBox" Grid.Row="1"
+                                 IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
+                                 FontFamily="Consolas" FontSize="13"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                 VerticalAlignment="Stretch" VerticalContentAlignment="Top" />
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <InfoBar x:Name="ResultBar" Grid.Row="4" IsClosable="True" IsOpen="False" />
+    </Grid>
+</Page>
