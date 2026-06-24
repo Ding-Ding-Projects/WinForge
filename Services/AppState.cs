@@ -62,6 +62,15 @@ public static class AppState
 
     public static event EventHandler? MediaChanged;
 
+    private static string _peekPath = string.Empty;
+
+    /// <summary>Peek 模組目前預覽緊嘅檔案 · The file the Peek (quick preview) module is showing.</summary>
+    public static string CurrentPeekPath
+    {
+        get => _peekPath;
+        set { _peekPath = value ?? string.Empty; SettingsStore.Set("peek.path", _peekPath); }
+    }
+
     private static string _audioClip = string.Empty;
 
     /// <summary>
