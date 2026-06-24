@@ -73,6 +73,7 @@ public static class ModuleRegistry
         new() { Tag = "module.settingshub", En = "Settings & Control Panel", Zh = "設定與控制台", Glyph = ((char)0xE713).ToString(), Keywords = "settings control panel ms-settings applet cpl launcher open page 設定 控制台 啟動器 面板" },
         new() { Tag = "module.imaging", En = "Imaging & Game Tools", Zh = "燒錄與遊戲工具", Glyph = ((char)0xE7F4).ToString(), Keywords = "raspberry pi imager sd card flash image write boot ssh wifi minecraft world downloader proxy jar 樹莓派 燒錄 映像 我的世界 下載" },
         new() { Tag = "module.voice", En = "Voice & Read-Aloud", Zh = "語音朗讀", Glyph = ((char)0xE767).ToString(), Keywords = "voice tts text to speech read aloud speak narrator wav export sapi 語音 朗讀 文字轉語音 讀出" },
+        new() { Tag = "module.viaproxy", En = "ViaProxy", Zh = "Minecraft 版本代理", Glyph = ((char)0xE990).ToString(), Keywords = "viaproxy minecraft version proxy viaversion viabackwards viarewind protocol translate bridge server jar java cli bind target auth offline online mc 我的世界 版本 代理 協定 轉換 伺服器" },
         new() { Tag = "module.aiagents", En = "AI Agents", Zh = "AI 代理", Glyph = ((char)0xE99A).ToString(), Keywords = "ai agent claude code codex opencode pi openclaw hermes coding agent terminal cli install launch api key 代理 編程 安裝 啟動" },
         new() { Tag = "module.cloudflare", En = "Cloudflare & Tunnel", Zh = "Cloudflare 與 Tunnel", Glyph = ((char)0xE753).ToString(), Keywords = "cloudflare cloudflared tunnel quick tunnel trycloudflare access warp dns over https doh zero trust route ingress 隧道 加密 連線" },
     };

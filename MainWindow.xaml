@@ -126,6 +126,7 @@
                         <NavigationViewItem Content="WSL &amp; VM Launcher · WSL 與 VM 啟動器" Tag="module.wslvm"><NavigationViewItem.Icon><FontIcon Glyph="&#xEC7A;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="App Uninstaller · 應用程式解除安裝" Tag="module.uninstall"><NavigationViewItem.Icon><FontIcon Glyph="&#xE74D;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Imaging &amp; Game Tools · 燒錄與遊戲工具" Tag="module.imaging"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7F4;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="ViaProxy · Minecraft 版本代理" Tag="module.viaproxy"><NavigationViewItem.Icon><FontIcon Glyph="&#xE990;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Git &amp; GitHub · Git 與 GitHub" Tag="module.git"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8AB;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="AI Agents · AI 代理" Tag="module.aiagents"><NavigationViewItem.Icon><FontIcon Glyph="&#xE99A;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Cloudflare &amp; Tunnel · Cloudflare 與 Tunnel" Tag="module.cloudflare"><NavigationViewItem.Icon><FontIcon Glyph="&#xE753;" /></NavigationViewItem.Icon></NavigationViewItem>

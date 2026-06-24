@@ -477,6 +477,7 @@ public sealed partial class MainWindow : Window
         "module.timeunit" => typeof(TimeUnitModule),
         "module.settingshub" => typeof(SettingsHubModule),
         "module.imaging" => typeof(ImagingGameModule),
+        "module.viaproxy" => typeof(ViaProxyModule),
         "module.voice" => typeof(VoiceModule),
         _ => typeof(DashboardPage),
     };
