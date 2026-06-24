@@ -66,6 +66,12 @@
     <PackageReference Include="QRCoder" Version="1.6.0" />
     <!-- System.Speech: built-in Windows SAPI TTS (read aloud / export WAV) for the Voice module. -->
     <PackageReference Include="System.Speech" Version="9.0.0" />
+    <!-- 內嵌 VLC 引擎（libVLC）· Embedded VLC engine (libVLC) for the in-app Media Player module.
+         LibVLCSharp = managed bindings; LibVLCSharp.WinUI = SwapChainPanel-backed VideoView;
+         VideoLAN.LibVLC.Windows = bundled native libvlc.dll + plugins (LGPL build, no separate install). -->
+    <PackageReference Include="LibVLCSharp" Version="3.10.0" />
+    <PackageReference Include="LibVLCSharp.WinUI" Version="3.10.0" />
+    <PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.23.1" />
   </ItemGroup>
 
   <!--
