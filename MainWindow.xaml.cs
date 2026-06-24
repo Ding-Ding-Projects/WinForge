@@ -319,6 +319,12 @@ public sealed partial class MainWindow : Window
             case "color":
                 Navigator.GoToModule?.Invoke("module.colorpicker");
                 break;
+            case "pixeleditor":
+            case "pixel":
+            case "aseprite":
+            case "sprite":
+                Navigator.GoToModule?.Invoke("module.pixeleditor");
+                break;
             case "envvars":
             case "env":
                 Navigator.GoToModule?.Invoke("module.envvars");
@@ -592,6 +598,7 @@ public sealed partial class MainWindow : Window
         "module.nilesoftshell" => typeof(NilesoftShellModule),
         "module.awake" => typeof(AwakeModule),
         "module.colorpicker" => typeof(ColorPickerModule),
+        "module.pixeleditor" => typeof(PixelEditorModule),
         "module.envvars" => typeof(EnvVarsModule),
         "module.clipboard" => typeof(ClipboardModule),
         "module.packages" => typeof(PackageManagerModule),
