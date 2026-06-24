@@ -306,6 +306,13 @@ public sealed partial class MainWindow : Window
             case "tcp":
                 Navigator.GoToModule?.Invoke("module.connections");
                 break;
+            case "wireshark":
+            case "packetcapture":
+            case "pcap":
+            case "tshark":
+            case "dumpcap":
+                Navigator.GoToModule?.Invoke("module.wireshark");
+                break;
             case "events":
             case "eventlog":
             case "eventviewer":
@@ -601,6 +608,7 @@ public sealed partial class MainWindow : Window
         "module.winfetch" => typeof(WinfetchModule),
         "module.battery" => typeof(BatteryThermalModule),
         "module.connections" => typeof(ConnectionsModule),
+        "module.wireshark" => typeof(WiresharkModule),
         "module.events" => typeof(EventViewerModule),
         "module.mixer" => typeof(VolumeMixerModule),
         "module.contextmenu" => typeof(ContextMenuModule),

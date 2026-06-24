@@ -58,6 +58,7 @@ public static class ModuleRegistry
         new() { Tag = "module.monitor", En = "System Monitor", Zh = "系統監察", Glyph = "", Keywords = "cpu ram memory network task manager priority affinity btop btop4win resource monitor per-core swap sparkline efficiency 監察 工作管理員 資源監控 每核心" },
         new() { Tag = "module.battery", En = "Battery & Thermal", Zh = "電池與散熱", Glyph = ((char)0xE83E).ToString(), Keywords = "battery thermal temperature wear health cpu gpu fan powercfg batteryreport energy 電池 溫度 散熱 風扇 耗損 健康" },
         new() { Tag = "module.connections", En = "Connections", Zh = "連線", Glyph = "", Keywords = "tcp udp connections netstat tcpview port 連線" },
+        new() { Tag = "module.wireshark", En = "Packet Capture", Zh = "封包擷取", Glyph = ((char)0xEDA3).ToString(), Keywords = "wireshark packet capture tshark dumpcap pcap pcapng sniff npcap interface bpf capture filter display filter protocol tcp udp http dns follow stream conversation endpoint statistics 封包 擷取 抓包 嗅探 過濾 協定 統計" },
         new() { Tag = "module.events", En = "Event Viewer", Zh = "事件檢視器", Glyph = "", Keywords = "event log viewer system application 事件 記錄" },
         new() { Tag = "module.mixer", En = "Volume Mixer", Zh = "音量混合器", Glyph = "", Keywords = "volume mixer audio per-app mute 音量 靜音" },
         new() { Tag = "module.contextmenu", En = "Context Menu", Zh = "右鍵選單", Glyph = "", Keywords = "context menu right click verb 右鍵 選單" },
