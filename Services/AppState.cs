@@ -62,6 +62,30 @@ public static class AppState
 
     public static event EventHandler? MediaChanged;
 
+    private static string _audioClip = string.Empty;
+
+    /// <summary>
+    /// 音訊編輯器目前嘅工作 clip（每次效果之後會換成新嘅暫存檔）·
+    /// The Audio Editor's current working clip; each applied effect swaps in a new scratch file.
+    /// </summary>
+    public static string CurrentAudioClip
+    {
+        get => _audioClip;
+        set
+        {
+            if (_audioClip == value) return;
+            _audioClip = value ?? string.Empty;
+            AudioClipChanged?.Invoke(null, EventArgs.Empty);
+        }
+    }
+
+    /// <summary>音訊編輯器選取範圍（秒）· The editor's selection range in seconds (start, end).</summary>
+    public static double AudioSelStart { get; set; }
+    public static double AudioSelEnd { get; set; }
+
+    /// <summary>當 clip 換咗（效果套用後等 UI 重畫波形）· Raised when the working clip changes.</summary>
+    public static event EventHandler? AudioClipChanged;
+
     static AppState()
     {
         _currentRepoPath = SettingsStore.Get("git.repo", string.Empty);
