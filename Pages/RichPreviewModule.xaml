@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.RichPreviewModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:Microsoft.UI.Xaml.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid Padding="24,16,24,16" RowSpacing="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="12">
+            <FontIcon FontSize="22" Glyph="&#xE8A1;" VerticalAlignment="Center" />
+            <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
+        </StackPanel>
+        <TextBlock x:Name="HeaderBlurb" Grid.Row="1" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+        <!-- Toolbar -->
+        <Grid Grid.Row="2" ColumnSpacing="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <Button Grid.Column="0" x:Name="PickBtn" Click="Pick_Click" Style="{StaticResource AccentButtonStyle}">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon FontSize="14" Glyph="&#xE8E5;" />
+                    <TextBlock x:Name="PickLabel" />
+                </StackPanel>
+            </Button>
+            <Button Grid.Column="1" x:Name="PrevBtn" Click="Prev_Click" ToolTipService.ToolTip="Previous · 上一個" IsEnabled="False">
+                <FontIcon FontSize="14" Glyph="&#xE76B;" />
+            </Button>
+            <Button Grid.Column="2" x:Name="NextBtn" Click="Next_Click" ToolTipService.ToolTip="Next · 下一個" IsEnabled="False">
+                <FontIcon FontSize="14" Glyph="&#xE76C;" />
+            </Button>
+            <TextBlock Grid.Column="3" x:Name="PositionText" VerticalAlignment="Center"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" />
+
+            <Button Grid.Column="5" x:Name="OpenBtn" Click="Open_Click" IsEnabled="False" ToolTipService.ToolTip="Open file · 開啟檔案">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon FontSize="14" Glyph="&#xE8E5;" />
+                    <TextBlock x:Name="OpenLabel" />
+                </StackPanel>
+            </Button>
+            <Button Grid.Column="6" x:Name="OpenFolderBtn" Click="OpenFolder_Click" IsEnabled="False" ToolTipService.ToolTip="Show in folder · 喺資料夾顯示">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon FontSize="14" Glyph="&#xE8B7;" />
+                    <TextBlock x:Name="OpenFolderLabel" />
+                </StackPanel>
+            </Button>
+            <Button Grid.Column="7" x:Name="SettingsBtn" Click="ToggleSettings_Click" ToolTipService.ToolTip="Settings · 設定">
+                <FontIcon FontSize="14" Glyph="&#xE713;" />
+            </Button>
+        </Grid>
+
+        <!-- Settings panel (collapsible) -->
+        <Border Grid.Row="3" x:Name="SettingsPanel" Visibility="Collapsed"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1" CornerRadius="8" Padding="18" VerticalAlignment="Stretch">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel Spacing="14">
+                    <TextBlock x:Name="SettingsTitle" Style="{StaticResource SubtitleTextBlockStyle}" />
+                    <TextBlock x:Name="SettingsIntro" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+
+                    <ItemsControl x:Name="ToggleList">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnSpacing="12" Padding="0,4,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="{Binding Title}" />
+                                        <TextBlock Text="{Binding ExtList}" FontSize="11" FontFamily="Consolas"
+                                                   Foreground="{ThemeResource TextFillColorTertiaryBrush}" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                    <ToggleSwitch Grid.Column="1" IsOn="{Binding Enabled, Mode=TwoWay}" Tag="{Binding Id}" Toggled="TypeToggle_Toggled" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- System-wide preview pane explainer -->
+                    <Border Background="{ThemeResource SubtleFillColorSecondaryBrush}" CornerRadius="8" Padding="14">
+                        <StackPanel Spacing="8">
+                            <TextBlock x:Name="SystemTitle" FontWeight="SemiBold" />
+                            <TextBlock x:Name="SystemBlurb" TextWrapping="Wrap" FontSize="13"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button x:Name="OpenPreviewSettingsBtn" Click="OpenPreviewSettings_Click" />
+                                <Button x:Name="OpenFolderOptionsBtn" Click="OpenFolderOptions_Click" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <!-- Main preview area -->
+        <Grid Grid.Row="3" x:Name="PreviewArea" ColumnSpacing="12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Preview host (drop target) -->
+            <Border Grid.Column="0"
+                    x:Name="DropHost"
+                    AllowDrop="True"
+                    DragOver="DropHost_DragOver"
+                    Drop="DropHost_Drop"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1" CornerRadius="8">
+                <Grid>
+                    <!-- Empty / drop hint -->
+                    <StackPanel x:Name="EmptyHint" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="10" MaxWidth="460">
+                        <FontIcon FontSize="42" Glyph="&#xE8A1;" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                        <TextBlock x:Name="EmptyTitle" HorizontalAlignment="Center" Style="{StaticResource SubtitleTextBlockStyle}" />
+                        <TextBlock x:Name="EmptyBlurb" HorizontalAlignment="Center" TextAlignment="Center"
+                                   TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+
+                    <!-- WebView2 (SVG / Markdown / PDF / code) -->
+                    <controls:WebView2 x:Name="Web" Visibility="Collapsed"
+                                       CoreWebView2Initialized="Web_CoreWebView2Initialized" />
+
+                    <!-- Image / QOI viewer -->
+                    <ScrollViewer x:Name="ImageScroll" Visibility="Collapsed"
+                                  ZoomMode="Enabled" MinZoomFactor="0.1" MaxZoomFactor="8"
+                                  HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollMode="Enabled" VerticalScrollMode="Enabled">
+                        <Image x:Name="ImageView" Stretch="None" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </ScrollViewer>
+
+                    <!-- Loading -->
+                    <StackPanel x:Name="LoadingPanel" Visibility="Collapsed" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="10">
+                        <ProgressRing IsActive="True" Width="36" Height="36" />
+                        <TextBlock x:Name="LoadingText" HorizontalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+
+                    <!-- Drag overlay -->
+                    <Border x:Name="DragOverlay" Visibility="Collapsed" Background="{ThemeResource AccentFillColorDefaultBrush}" Opacity="0.18" />
+                </Grid>
+            </Border>
+
+            <!-- Metadata sidebar -->
+            <Border Grid.Column="1" x:Name="MetaPanel" Width="280" Visibility="Collapsed"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1" CornerRadius="8" Padding="16">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Spacing="10">
+                        <TextBlock x:Name="MetaName" FontWeight="SemiBold" TextWrapping="Wrap" />
+                        <Image x:Name="MetaThumb" Visibility="Collapsed" MaxHeight="180" Stretch="Uniform"
+                               HorizontalAlignment="Left" />
+                        <TextBlock x:Name="MetaTypeBadge" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <controls:ItemsRepeater x:Name="MetaRows">
+                            <controls:ItemsRepeater.Layout>
+                                <controls:StackLayout Spacing="6" />
+                            </controls:ItemsRepeater.Layout>
+                            <controls:ItemsRepeater.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid ColumnSpacing="8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" MinWidth="92" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="{Binding Key}" FontSize="12"
+                                                   Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                                        <TextBlock Grid.Column="1" Text="{Binding Value}" FontSize="12" TextWrapping="Wrap"
+                                                   IsTextSelectionEnabled="True" />
+                                    </Grid>
+                                </DataTemplate>
+                            </controls:ItemsRepeater.ItemTemplate>
+                        </controls:ItemsRepeater>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+
+        <InfoBar x:Name="ResultBar" Grid.Row="4" IsClosable="True" IsOpen="False" />
+    </Grid>
+</Page>

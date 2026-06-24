@@ -65,6 +65,7 @@
                         <NavigationViewItem Content="Drives · 磁碟機" Tag="module.drives"><NavigationViewItem.Icon><FontIcon Glyph="&#xEDA2;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="TestDisk / PhotoRec · 資料救援" Tag="module.testdisk"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7BA;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="OneDrive · OneDrive" Tag="module.onedrive"><NavigationViewItem.Icon><FontIcon Glyph="&#xE753;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Rich Preview · 豐富預覽" Tag="module.richpreview"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A1;" /></NavigationViewItem.Icon></NavigationViewItem>
                     </NavigationViewItem.MenuItems>
                 </NavigationViewItem>
 

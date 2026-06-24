@@ -543,6 +543,11 @@ public sealed partial class MainWindow : Window
             case "onedrive":
                 Navigator.GoToModule?.Invoke("module.onedrive");
                 break;
+            case "richpreview":
+            case "previewpane":
+            case "filepreview":
+                Navigator.GoToModule?.Invoke("module.richpreview");
+                break;
             case "time":
             case "timezone":
             case "clock":
@@ -813,6 +818,7 @@ public sealed partial class MainWindow : Window
         "module.terminal" => typeof(TerminalModule),
         "module.fonts" => typeof(FontManagerModule),
         "module.onedrive" => typeof(OneDriveModule),
+        "module.richpreview" => typeof(RichPreviewModule),
         "module.timeunit" => typeof(TimeUnitModule),
         "module.settingshub" => typeof(SettingsHubModule),
         "module.imaging" => typeof(ImagingGameModule),
