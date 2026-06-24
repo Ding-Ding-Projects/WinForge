@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinTune.Pages.BatteryThermalModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid Padding="24,16,24,16" RowSpacing="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- header -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="12">
+            <FontIcon FontSize="22" Glyph="&#xE83E;" VerticalAlignment="Center" />
+            <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
+        </StackPanel>
+        <TextBlock x:Name="HeaderBlurb" Grid.Row="1" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+        <!-- live cards row -->
+        <ItemsControl Grid.Row="2">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <!-- battery charge -->
+                <Border x:Name="BattCard" Width="260" Padding="16,12,16,12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                    <StackPanel Spacing="6">
+                        <TextBlock x:Name="BattLabel" FontWeight="SemiBold" />
+                        <TextBlock x:Name="BattValue" FontSize="26" FontWeight="Bold" Text="—" />
+                        <Grid>
+                            <Border Width="228" Height="6" CornerRadius="3" HorizontalAlignment="Left" Background="{ThemeResource ControlStrongFillColorDefaultBrush}" Opacity="0.25" />
+                            <Border x:Name="BattBar" Width="0" Height="6" CornerRadius="3" HorizontalAlignment="Left" Background="{ThemeResource AccentFillColorDefaultBrush}" />
+                        </Grid>
+                        <TextBlock x:Name="BattStatus" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock x:Name="BattRuntime" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+                </Border>
+
+                <!-- battery health / wear -->
+                <Border x:Name="WearCard" Width="300" Padding="16,12,16,12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                    <StackPanel Spacing="6">
+                        <TextBlock x:Name="WearLabel" FontWeight="SemiBold" />
+                        <TextBlock x:Name="WearValue" FontSize="26" FontWeight="Bold" Text="—" />
+                        <TextBlock x:Name="WearCaps" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                        <TextBlock x:Name="WearCycles" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+                </Border>
+
+                <!-- top temperature -->
+                <Border x:Name="TempCard" Width="220" Padding="16,12,16,12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                    <StackPanel Spacing="6">
+                        <TextBlock x:Name="TempLabel" FontWeight="SemiBold" />
+                        <TextBlock x:Name="TempValue" FontSize="26" FontWeight="Bold" Text="—" />
+                        <TextBlock x:Name="TempSub" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ItemsControl>
+
+        <!-- sensor list + actions -->
+        <Grid Grid.Row="3" RowSpacing="10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- actions -->
+            <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8">
+                <Button x:Name="HealthBtn" Click="HealthReport_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <FontIcon FontSize="14" Glyph="&#xE9D9;" />
+                        <TextBlock x:Name="HealthBtnText" />
+                    </StackPanel>
+                </Button>
+                <Button x:Name="EnergyBtn" Click="EnergyReport_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <FontIcon FontSize="14" Glyph="&#xE945;" />
+                        <TextBlock x:Name="EnergyBtnText" />
+                    </StackPanel>
+                </Button>
+                <ProgressRing x:Name="Busy" IsActive="False" Width="20" Height="20" VerticalAlignment="Center" />
+                <TextBlock x:Name="ActionStatus" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+            </StackPanel>
+
+            <!-- sensor table header -->
+            <Grid Grid.Row="1" Padding="8,0,8,0" ColumnSpacing="10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="2*" />
+                    <ColumnDefinition Width="100" />
+                    <ColumnDefinition Width="110" />
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Name="ColHw" Grid.Column="0" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                <TextBlock x:Name="ColSensor" Grid.Column="1" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                <TextBlock x:Name="ColType" Grid.Column="2" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                <TextBlock x:Name="ColReading" Grid.Column="3" FontSize="12" FontWeight="SemiBold" HorizontalTextAlignment="Right" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            </Grid>
+
+            <Border
+                Grid.Row="2"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <Grid>
+                    <ListView x:Name="SensorList" SelectionMode="None">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Padding="8,5,8,5" ColumnSpacing="10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="2*" />
+                                        <ColumnDefinition Width="100" />
+                                        <ColumnDefinition Width="110" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="{Binding Hardware}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Grid.Column="2" Text="{Binding TypeText}" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock Grid.Column="3" Text="{Binding ValueText}" VerticalAlignment="Center" HorizontalTextAlignment="Right" FontWeight="SemiBold" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+
+                    <StackPanel x:Name="EmptyState" Visibility="Collapsed" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8" Padding="24" MaxWidth="460">
+                        <FontIcon FontSize="32" Glyph="&#xE9CA;" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock x:Name="EmptyTitle" HorizontalTextAlignment="Center" FontWeight="SemiBold" />
+                        <TextBlock x:Name="EmptyBody" HorizontalTextAlignment="Center" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</Page>
