@@ -407,6 +407,11 @@ public sealed partial class MainWindow : Window
             case "clip":
                 Navigator.GoToModule?.Invoke("module.clipboard");
                 break;
+            case "advancedpaste":
+            case "pastetransform":
+            case "smartpaste":
+                Navigator.GoToModule?.Invoke("module.advancedpaste");
+                break;
             case "packages":
             case "winget":
             case "install":
@@ -710,6 +715,7 @@ public sealed partial class MainWindow : Window
         "module.pixeleditor" => typeof(PixelEditorModule),
         "module.envvars" => typeof(EnvVarsModule),
         "module.clipboard" => typeof(ClipboardModule),
+        "module.advancedpaste" => typeof(AdvancedPasteModule),
         "module.packages" => typeof(PackageManagerModule),
         "module.adb" => typeof(AndroidAdbModule),
         "module.fastboot" => typeof(FastbootModule),
