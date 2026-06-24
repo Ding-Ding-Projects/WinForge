@@ -23,7 +23,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!-- Vendored upstream sources under external/ (git submodules) must NEVER be compiled into WinForge;
          exclude them from all default item globs so a 'git submodule update' can't break the build. -->
-    <DefaultItemExcludes>$(DefaultItemExcludes);external\**</DefaultItemExcludes>
+    <DefaultItemExcludes>$(DefaultItemExcludes);external\**;launcher\**</DefaultItemExcludes>
   </PropertyGroup>
 
   <!-- 未封裝執行時，ms-appx:/// 未必靠得住，所以所有資產 PNG 都要複製到輸出目錄，

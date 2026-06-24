@@ -16,12 +16,15 @@ public sealed partial class MainWindow : Window
 {
     public MainWindow()
     {
+        CrashLogger.Mark("MW: ctor start");
         InitializeComponent();
+        CrashLogger.Mark("MW: after InitializeComponent");
 
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(AppTitleBar);
         AppWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Tall;
         AppWindow.SetIcon("Assets/AppIcon.ico");
+        CrashLogger.Mark("MW: after titlebar+icon");
 
         // 視窗模式（預設，約 82% 螢幕）＋ F11 切換全螢幕，會記住。
         // Windowed by default (~82% of the screen); F11 toggles full screen and the choice is remembered.
@@ -31,11 +34,15 @@ public sealed partial class MainWindow : Window
         RootGrid.KeyboardAccelerators.Add(f11);
 
         BuildCategoryMenu();
+        CrashLogger.Mark("MW: after BuildCategoryMenu");
         BuildTitleMap();
         WireNavigator();
+        CrashLogger.Mark("MW: after WireNavigator");
 
         RestoreSessionOrDefault();
+        CrashLogger.Mark("MW: after RestoreSessionOrDefault");
         ApplyStartPage();
+        CrashLogger.Mark("MW: after ApplyStartPage");
 
         // Ctrl+T 開新分頁、Ctrl+W 關閉分頁 · Ctrl+T new tab, Ctrl+W close tab.
         AddAccel(Windows.System.VirtualKey.T, () => AddTab("dashboard"));
@@ -59,15 +66,17 @@ public sealed partial class MainWindow : Window
         if (_bgStarted) return;
         _bgStarted = true;
         RootGrid.Loaded -= StartBackgroundServicesOnce;
+        CrashLogger.Mark("MW: RootGrid.Loaded fired");
         DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
         {
-            CrashLogger.Guard("startup:clipboard",     () => ClipboardService.Start(DispatcherQueue));
-            CrashLogger.Guard("startup:hotkeys",       () => HotkeyMacroService.StartHotkeys());
-            CrashLogger.Guard("startup:zoomit",        () => ZoomItService.StartHotkeys());
-            CrashLogger.Guard("startup:quickaccent",   () => QuickAccentService.Apply());
-            CrashLogger.Guard("startup:shortcutguide", () => ShortcutGuideService.Init(DispatcherQueue));
-            CrashLogger.Guard("startup:cmdpalette",    () => CommandPaletteService.Start(DispatcherQueue));
-            CrashLogger.Guard("startup:tray",          () => TrayService.Install(ShowFromTray, QuitFromTray, "WinForge · 視窗調校"));
+            CrashLogger.Mark("svc: clipboard");     CrashLogger.Guard("startup:clipboard",     () => ClipboardService.Start(DispatcherQueue));
+            CrashLogger.Mark("svc: hotkeys");       CrashLogger.Guard("startup:hotkeys",       () => HotkeyMacroService.StartHotkeys());
+            CrashLogger.Mark("svc: zoomit");        CrashLogger.Guard("startup:zoomit",        () => ZoomItService.StartHotkeys());
+            CrashLogger.Mark("svc: quickaccent");   CrashLogger.Guard("startup:quickaccent",   () => QuickAccentService.Apply());
+            CrashLogger.Mark("svc: shortcutguide"); CrashLogger.Guard("startup:shortcutguide", () => ShortcutGuideService.Init(DispatcherQueue));
+            CrashLogger.Mark("svc: cmdpalette");    CrashLogger.Guard("startup:cmdpalette",    () => CommandPaletteService.Start(DispatcherQueue));
+            CrashLogger.Mark("svc: tray");          CrashLogger.Guard("startup:tray",          () => TrayService.Install(ShowFromTray, QuitFromTray, "WinForge · 視窗調校"));
+            CrashLogger.Mark("svc: all started");
         });
     }
 

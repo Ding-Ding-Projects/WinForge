@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    WinForge 啟動器 · WinForge launcher.
+    一個唔依賴 WinUI／Windows App SDK 嘅極輕量主控程序：佢淨係負責啟動 WinForge.exe，
+    如果 WinForge 喺開機頭幾秒就以 0xC000027B（WinUI 框架偶發 stowed exception）閃退，就自動重試。
+    因為呢個程序唔會載入 WinForge 嘅 WinUI 組件，所以佢自己永遠唔會中嗰個開機閃退，可以可靠地重試。
+
+    A tiny supervisor that does NOT reference WinUI / Windows App SDK. It launches WinForge.exe and, if
+    WinForge fail-fasts at startup with 0xC000027B (the intermittent WinUI framework crash), relaunches it.
+    Because this process never loads WinForge's WinUI assembly, it is itself immune to that startup crash
+    and can retry reliably.
+  -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net11.0-windows</TargetFramework>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <UseWindowsForms>false</UseWindowsForms>
+    <UseWPF>false</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>WinForgeLauncher</AssemblyName>
+    <RootNamespace>WinForgeLauncher</RootNamespace>
+  </PropertyGroup>
+</Project>

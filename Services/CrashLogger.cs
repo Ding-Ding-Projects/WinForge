@@ -36,6 +36,25 @@ public static class CrashLogger
         };
     }
 
+    private static bool _traceStarted;
+    private static readonly string TracePath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WinForge", "startup-trace.log");
+
+    /// <summary>啟動追蹤標記 · Append a startup-step marker (truncates on the first call of the process).</summary>
+    public static void Mark(string step)
+    {
+        try
+        {
+            lock (Gate)
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(TracePath)!);
+                if (!_traceStarted) { File.WriteAllText(TracePath, "=== launch ===\n"); _traceStarted = true; }
+                File.AppendAllText(TracePath, $"{DateTime.Now:HH:mm:ss.fff} {step}\n");
+            }
+        }
+        catch { }
+    }
+
     /// <summary>記錄一個例外 · Append one exception to the crash log (best effort).</summary>
     public static void Log(string source, Exception? ex)
     {

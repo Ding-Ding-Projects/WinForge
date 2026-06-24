@@ -55,6 +55,15 @@ jobs:
           Write-Host "publish = $pub"
           "dir=$pub" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
+      - name: Publish launcher into publish folder · 建置可靠啟動器
+        shell: pwsh
+        run: |
+          dotnet publish launcher/WinForgeLauncher.csproj -c Release -r win-x64 --self-contained `
+            -p:PublishSingleFile=true -o "${{ steps.pub.outputs.dir }}"
+          if ($LASTEXITCODE -ne 0) { throw "launcher publish failed" }
+          if (-not (Test-Path "${{ steps.pub.outputs.dir }}\WinForgeLauncher.exe")) { throw "WinForgeLauncher.exe not produced" }
+          Write-Host "launcher published next to WinForge.exe"
+
       - name: Portable zip · 可攜 zip
         shell: pwsh
         run: |

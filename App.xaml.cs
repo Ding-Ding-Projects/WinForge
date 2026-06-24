@@ -30,6 +30,7 @@ public partial class App : Application
     {
         // 全域例外處理：任何模組出錯都唔會冧 app · Install global crash handling first of all.
         CrashLogger.Install(this);
+        CrashLogger.Mark("App: OnLaunched start");
 
         ParseArgs();
 
@@ -66,13 +67,17 @@ public partial class App : Application
             return;
         }
 
+        CrashLogger.Mark("App: before new MainWindow");
         Shell = new MainWindow();
+        CrashLogger.Mark("App: after new MainWindow");
         ApplyThemeFromSettings();
+        CrashLogger.Mark("App: after ApplyTheme");
 
         if (StartMinimized && Shell is MainWindow mw)
             mw.StartHiddenInTray();      // login startup → stay in the tray, background services still run
         else
             Shell.Activate();
+        CrashLogger.Mark("App: after Activate");
 
         // 其餘背景服務（進階貼上熱鍵、活動追蹤、滑鼠工具覆蓋層）延後到視窗顯示之後先啟動，每個都包住，
         // 避免喺 XAML 初始化嘅脆弱時段同全域掛鈎／覆蓋層競爭而間歇性閃退（stowed exception）。
