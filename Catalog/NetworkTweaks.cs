@@ -63,11 +63,13 @@ public static class NetworkTweaks
             "列出呢部機儲存咗嘅所有 Wi-Fi 網絡設定檔。",
             "Show", "顯示", "netsh wlan show profiles", keywords: "wifi,wlan,profile,wireless,無線"),
 
-        Tweak.Powershell("network.active-connections", "Show active connections", "顯示使用中連線",
+        // 物件輸出 pipeline 直接交畀 Table 工廠，渲染成原生網格（無 Format-Table/Out-String）。
+        // Object-emitting pipeline handed to the Table factory so the result renders as a native grid.
+        Tweak.Table("network.active-connections", "Show active connections", "顯示使用中連線",
             "Lists up to 30 established TCP connections with their endpoints.",
             "列出最多 30 條已建立嘅 TCP 連線同佢哋嘅位址。",
             "Show", "顯示",
-            "Get-NetTCPConnection -State Established | Select-Object -First 30 LocalAddress,LocalPort,RemoteAddress,RemotePort | Format-Table -Auto | Out-String",
+            "Get-NetTCPConnection -State Established | Select-Object -First 30 LocalAddress,LocalPort,RemoteAddress,RemotePort",
             keywords: "tcp,connection,netstat,連線"),
 
         Tweak.Powershell("network.dns-cloudflare", "Set DNS to Cloudflare (1.1.1.1)", "設 DNS 為 Cloudflare",
