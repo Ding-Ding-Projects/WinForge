@@ -94,7 +94,10 @@ public sealed partial class ClipboardModule : Page
         var content = new StackPanel { Spacing = 4 };
         if (item.Kind == ClipKind.Image && File.Exists(item.ImagePath))
         {
-            content.Children.Add(new Image { Source = new BitmapImage(new Uri(item.ImagePath)), MaxHeight = 90, HorizontalAlignment = HorizontalAlignment.Left, Stretch = Stretch.Uniform });
+            // 用 UriSource（而唔係 new BitmapImage(uri)）避免 WinUI 靜靜吞咗載入錯誤，PNG 先顯示得到。
+            // Assign UriSource instead of the (uri) constructor so WinUI doesn't swallow load errors silently.
+            var bmp = new BitmapImage { DecodePixelWidth = 180, UriSource = new Uri(item.ImagePath) };
+            content.Children.Add(new Image { Source = bmp, MaxHeight = 90, HorizontalAlignment = HorizontalAlignment.Left, Stretch = Stretch.Uniform });
         }
         else
         {

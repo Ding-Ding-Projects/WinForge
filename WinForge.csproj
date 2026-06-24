@@ -23,16 +23,14 @@
     <DefaultItemExcludes>$(DefaultItemExcludes);external\**</DefaultItemExcludes>
   </PropertyGroup>
 
+  <!-- 未封裝執行時，ms-appx:/// 未必靠得住，所以所有資產 PNG 都要複製到輸出目錄，
+       等 UriToImageConverter 可以用 file:/// 由 AppContext.BaseDirectory 載入。
+       Unpackaged runs can't rely on ms-appx:///, so every asset PNG (including loose ones not in the
+       original explicit list) is copied to the output dir via a wildcard, letting the converter load
+       them as file:/// from AppContext.BaseDirectory. -->
   <ItemGroup>
-    <Content Include="Assets\SplashScreen.scale-200.png" />
-    <Content Include="Assets\LockScreenLogo.scale-200.png" />
-    <Content Include="Assets\Square150x150Logo.scale-200.png" />
-    <Content Include="Assets\Square44x44Logo.scale-200.png" />
-    <Content Include="Assets\Square44x44Logo.targetsize-24_altform-unplated.png" />
-    <Content Include="Assets\Square44x44Logo.targetsize-48_altform-lightunplated.png" />
-    <Content Include="Assets\StoreLogo.png" />
-    <Content Include="Assets\AppIcon.ico" />
-    <Content Include="Assets\Wide310x150Logo.scale-200.png" />
+    <Content Include="Assets\**\*.png" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\AppIcon.ico" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
