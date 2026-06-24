@@ -31,17 +31,52 @@ public static class InfoTweaks
             "Total physical RAM.", "實體記憶體總量。",
             () => SystemInfo.RamTotal),
 
-        Tweak.Info("info.ram-usage", "Memory in use", "記憶體用量",
-            "Current memory load.", "目前記憶體負載。",
-            () => SystemInfo.RamUsage),
+        // 帶彩色狀態藥丸：綠／黃／紅反映即時記憶體負載（廉價同步讀取）。
+        // Adds a green/amber/red pill reflecting live memory load (cheap synchronous read).
+        new TweakDefinition
+        {
+            Id = "info.ram-usage",
+            Title = new("Memory in use", "記憶體用量"),
+            Description = new("Current memory load.", "目前記憶體負載。"),
+            Kind = TweakKind.Info,
+            GetInfo = () => SystemInfo.RamUsage,
+            ColoredStatus = () =>
+            {
+                double load = SystemInfo.RamLoadPercent;
+                return load switch
+                {
+                    < 70 => ("Healthy", "充裕", StatusColor.Good),
+                    < 90 => ("Busy", "繁忙", StatusColor.Warn),
+                    _ => ("Critical", "緊絀", StatusColor.Bad),
+                };
+            },
+        },
 
         Tweak.Info("info.gpu", "Graphics adapter", "顯示卡",
             "Primary display adapter.", "主要顯示卡。",
             () => SystemInfo.GpuName),
 
-        Tweak.Info("info.disk", "System drive", "系統磁碟",
-            "Free and total space on the Windows drive.", "Windows 磁碟嘅可用同總空間。",
-            () => SystemInfo.SystemDrive),
+        // 帶彩色狀態藥丸：綠／黃／紅反映系統磁碟已用百分比（廉價同步讀取）。
+        // Adds a green/amber/red pill reflecting system-drive used space (cheap synchronous read).
+        new TweakDefinition
+        {
+            Id = "info.disk",
+            Title = new("System drive", "系統磁碟"),
+            Description = new("Free and total space on the Windows drive.", "Windows 磁碟嘅可用同總空間。"),
+            Kind = TweakKind.Info,
+            GetInfo = () => SystemInfo.SystemDrive,
+            ColoredStatus = () =>
+            {
+                int used = SystemInfo.SystemDriveUsedPercent;
+                return used switch
+                {
+                    < 0 => ("Unknown", "未知", StatusColor.Neutral),
+                    < 75 => ("Roomy", "充足", StatusColor.Good),
+                    < 90 => ("Filling up", "漸滿", StatusColor.Warn),
+                    _ => ("Nearly full", "近乎爆滿", StatusColor.Bad),
+                };
+            },
+        },
 
         Tweak.Info("info.uptime", "Uptime", "運行時間",
             "Time since the last boot.", "由上次開機到而家嘅時間。",

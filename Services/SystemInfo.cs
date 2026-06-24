@@ -133,6 +133,23 @@ public static class SystemInfo
         }
     }
 
+    /// <summary>系統磁碟已用百分比（廉價同步）· System drive used-space percent (cheap, synchronous); -1 on failure.</summary>
+    public static int SystemDriveUsedPercent
+    {
+        get
+        {
+            try
+            {
+                var root = Path.GetPathRoot(Environment.SystemDirectory) ?? "C:\\";
+                var d = new DriveInfo(root);
+                var total = (double)d.TotalSize;
+                if (total <= 0) return -1;
+                return (int)Math.Round((total - d.AvailableFreeSpace) / total * 100);
+            }
+            catch { return -1; }
+        }
+    }
+
     public static string DotNetRuntime => $".NET {Environment.Version}";
 
     public static string TimeZone => TimeZoneInfo.Local.DisplayName;
