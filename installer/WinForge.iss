@@ -10,9 +10,9 @@
 #endif
 
 #define MyAppName "WinForge"
-#define MyAppPublisher "cafepromenade"
+#define MyAppPublisher "codingmachineedge"
 #define MyAppExe "WinForge.exe"
-#define MyAppUrl "https://github.com/cafepromenade/WinForge"
+#define MyAppUrl "https://github.com/codingmachineedge/WinForge"
 
 [Setup]
 AppId={{B7A1C0E2-7C2E-4E8A-9C7E-0F1A2B3C4D5E}
