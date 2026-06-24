@@ -122,10 +122,6 @@
 	path = external/altsnap
 	url = https://github.com/RamonUnch/AltSnap
 	shallow = true
-[submodule "external/powertoys"]
-	path = external/powertoys
-	url = https://github.com/microsoft/PowerToys
-	shallow = true
 [submodule "external/komorebi"]
 	path = external/komorebi
 	url = https://github.com/LGUG2Z/komorebi
@@ -150,11 +146,15 @@
 	path = external/thunderbird
 	url = https://github.com/mozilla/releases-comm-central
 	shallow = true
-[submodule "external/veracrypt"]
-	path = external/veracrypt
-	url = https://github.com/veracrypt/VeraCrypt
-	shallow = true
 [submodule "external/paper"]
 	path = external/paper
 	url = https://github.com/PaperMC/Paper
+	shallow = true
+[submodule "external/powertoys"]
+	path = external/powertoys
+	url = https://github.com/microsoft/PowerToys
+	shallow = true
+[submodule "external/veracrypt"]
+	path = external/veracrypt
+	url = https://github.com/veracrypt/VeraCrypt
 	shallow = true

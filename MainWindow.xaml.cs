@@ -332,6 +332,15 @@ public sealed partial class MainWindow : Window
             case "speak":
                 Navigator.GoToModule?.Invoke("module.voice");
                 break;
+            case "fonts":
+            case "font":
+                Navigator.GoToModule?.Invoke("module.fonts");
+                break;
+            case "homeassistant":
+            case "ha":
+            case "smarthome":
+                Navigator.GoToModule?.Invoke("module.homeassistant");
+                break;
             case null:
             case "":
             case "dashboard":

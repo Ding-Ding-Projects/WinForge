@@ -16,9 +16,9 @@ public sealed class Loc
 
     private Loc()
     {
-        _language = SettingsStore.Get("language", "Cantonese") == "English"
-            ? AppLanguage.English
-            : AppLanguage.Cantonese;
+        _language = SettingsStore.Get("language", "English") == "Cantonese"
+            ? AppLanguage.Cantonese
+            : AppLanguage.English;
     }
 
     /// <summary>主要語言 · The primary language.</summary>
