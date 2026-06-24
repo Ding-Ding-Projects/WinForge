@@ -1,5 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Win32;
 using WinForge.Models;
 using WinForge.Services;
@@ -76,9 +80,9 @@ public static class DevTerminalTweaks
             "List Pins", "列出釘選", "winget pin list",
             keywords: "winget,pin,list,釘選"),
         
-        Tweak.Cmd("dev.winget.self-check", "Check winget version", "檢查 winget 版本",
+        CmdProbe("dev.winget.self-check", "Check winget version", "檢查 winget 版本",
             "Show the installed winget client version to confirm it is present.", "顯示已安裝嘅 winget 用戶端版本，確認佢存在。",
-            "Version", "版本", "winget --version",
+            "Version", "版本", "winget --version", "winget",
             keywords: "winget,version,self,版本"),
         
         Tweak.Cmd("dev.winget.repair", "Repair a package", "修復套件",
@@ -117,24 +121,24 @@ public static class DevTerminalTweaks
             keywords: "winget,configure,dsc,組態"),
 
         // --- docker (20) ---
-        Tweak.Cmd("dev.docker.ps", "List running containers", "列出執行緊嘅容器",
+        CmdProbe("dev.docker.ps", "List running containers", "列出執行緊嘅容器",
             "Show all currently running Docker containers.", "顯示所有而家執行緊嘅 Docker 容器。",
-            "List", "列出", "docker ps",
+            "List", "列出", "docker ps", "docker",
             keywords: "docker,ps,containers,容器"),
-        
-        Tweak.Cmd("dev.docker.ps-all", "List all containers", "列出所有容器",
+
+        CmdProbe("dev.docker.ps-all", "List all containers", "列出所有容器",
             "Show every container including stopped ones.", "顯示所有容器，包括停咗嘅。",
-            "List all", "全部列出", "docker ps -a",
+            "List all", "全部列出", "docker ps -a", "docker",
             keywords: "docker,ps,all,stopped,容器"),
-        
-        Tweak.Cmd("dev.docker.images", "List images", "列出映像檔",
+
+        CmdProbe("dev.docker.images", "List images", "列出映像檔",
             "Show all locally stored Docker images.", "顯示所有本機儲存嘅 Docker 映像檔。",
-            "List", "列出", "docker images",
+            "List", "列出", "docker images", "docker",
             keywords: "docker,images,映像,鏡像"),
-        
-        Tweak.Cmd("dev.docker.system-df", "Disk usage", "磁碟用量",
+
+        CmdProbe("dev.docker.system-df", "Disk usage", "磁碟用量",
             "Show how much disk space Docker is using for images, containers and volumes.", "顯示 Docker 喺映像檔、容器同卷度用咗幾多磁碟空間。",
-            "Show usage", "睇用量", "docker system df",
+            "Show usage", "睇用量", "docker system df", "docker",
             keywords: "docker,disk,df,usage,磁碟"),
         
         Tweak.Cmd("dev.docker.system-prune", "Prune system", "清理系統",
@@ -152,34 +156,34 @@ public static class DevTerminalTweaks
             "Prune", "清理", "docker image prune -f",
             destructive: true, keywords: "docker,image,prune,清理,映像"),
         
-        Tweak.Cmd("dev.docker.volume-ls", "List volumes", "列出卷",
+        CmdProbe("dev.docker.volume-ls", "List volumes", "列出卷",
             "Show all Docker volumes on this host.", "顯示呢部主機上面所有嘅 Docker 卷。",
-            "List", "列出", "docker volume ls",
+            "List", "列出", "docker volume ls", "docker",
             keywords: "docker,volume,ls,卷"),
-        
-        Tweak.Cmd("dev.docker.network-ls", "List networks", "列出網路",
+
+        CmdProbe("dev.docker.network-ls", "List networks", "列出網路",
             "Show all Docker networks.", "顯示所有 Docker 網路。",
-            "List", "列出", "docker network ls",
+            "List", "列出", "docker network ls", "docker",
             keywords: "docker,network,ls,網路"),
-        
-        Tweak.Cmd("dev.docker.stats", "Container stats", "容器統計",
+
+        CmdProbe("dev.docker.stats", "Container stats", "容器統計",
             "Show a one-shot snapshot of CPU, memory and I/O usage per container.", "顯示每個容器嘅 CPU、記憶體同 I/O 用量一次性快照。",
-            "Show stats", "睇統計", "docker stats --no-stream",
+            "Show stats", "睇統計", "docker stats --no-stream", "docker",
             keywords: "docker,stats,cpu,memory,統計"),
-        
-        Tweak.Cmd("dev.docker.version", "Docker version", "Docker 版本",
+
+        CmdProbe("dev.docker.version", "Docker version", "Docker 版本",
             "Show the Docker client and server version details.", "顯示 Docker 客戶端同伺服器嘅版本資料。",
-            "Version", "版本", "docker version",
+            "Version", "版本", "docker version", "docker",
             keywords: "docker,version,版本"),
-        
-        Tweak.Cmd("dev.docker.info", "Docker info", "Docker 資訊",
+
+        CmdProbe("dev.docker.info", "Docker info", "Docker 資訊",
             "Show system-wide Docker information including driver, root dir and container counts.", "顯示全系統嘅 Docker 資訊，包括驅動程式、根目錄同容器數目。",
-            "Info", "資訊", "docker info",
+            "Info", "資訊", "docker info", "docker",
             keywords: "docker,info,system,資訊"),
-        
-        Tweak.Cmd("dev.docker.compose-ps", "Compose services", "Compose 服務",
+
+        CmdProbe("dev.docker.compose-ps", "Compose services", "Compose 服務",
             "List the services and their status for the Compose project in the current directory.", "列出目前目錄下 Compose 專案嘅服務同佢哋嘅狀態。",
-            "List", "列出", "docker compose ps",
+            "List", "列出", "docker compose ps", "docker",
             keywords: "docker,compose,ps,services,服務"),
         
         Tweak.Cmd("dev.docker.logs-note", "Container logs help", "容器日誌說明",
@@ -202,9 +206,9 @@ public static class DevTerminalTweaks
             "Prune", "清理", "docker builder prune -f",
             destructive: true, keywords: "docker,builder,prune,cache,快取"),
         
-        Tweak.Cmd("dev.docker.context-ls", "List contexts", "列出 context",
+        CmdProbe("dev.docker.context-ls", "List contexts", "列出 context",
             "Show all Docker contexts and which one is currently active.", "顯示所有 Docker context，同埋而家用緊邊個。",
-            "List", "列出", "docker context ls",
+            "List", "列出", "docker context ls", "docker",
             keywords: "docker,context,ls,情境"),
         
         Tweak.Cmd("dev.docker.volume-prune", "Prune volumes", "清理卷",
@@ -218,14 +222,14 @@ public static class DevTerminalTweaks
             keywords: "docker,history,layers,映像,層"),
 
         // --- runtimes (20) ---
-        Tweak.Cmd("dev.runtimes.node-version", "Node.js version", "Node.js 版本",
+        CmdProbe("dev.runtimes.node-version", "Node.js version", "Node.js 版本",
             "Show the installed Node.js runtime version.", "顯示已安裝嘅 Node.js 執行階段版本。",
-            "Check", "查看", "node --version",
+            "Check", "查看", "node --version", "node",
             keywords: "node,nodejs,version,版本"),
         
-        Tweak.Cmd("dev.runtimes.npm-version", "npm version", "npm 版本",
+        CmdProbe("dev.runtimes.npm-version", "npm version", "npm 版本",
             "Show the installed npm package manager version.", "顯示已安裝嘅 npm 套件管理員版本。",
-            "Check", "查看", "npm --version",
+            "Check", "查看", "npm --version", "npm",
             keywords: "npm,version,版本"),
         
         Tweak.Cmd("dev.runtimes.npm-list-global", "Global npm packages", "全域 npm 套件",
@@ -248,14 +252,14 @@ public static class DevTerminalTweaks
             "Clear", "清除", "npm cache clean --force",
             destructive: true, keywords: "npm,cache,clean,清除,快取"),
         
-        Tweak.Cmd("dev.runtimes.python-version", "Python version", "Python 版本",
+        CmdProbe("dev.runtimes.python-version", "Python version", "Python 版本",
             "Show the version of the default Python interpreter.", "顯示預設 Python 直譯器嘅版本。",
-            "Check", "查看", "python --version",
+            "Check", "查看", "python --version", "python;py",
             keywords: "python,version,版本"),
         
-        Tweak.Cmd("dev.runtimes.pip-version", "pip version", "pip 版本",
+        CmdProbe("dev.runtimes.pip-version", "pip version", "pip 版本",
             "Show the installed pip package manager version.", "顯示已安裝嘅 pip 套件管理員版本。",
-            "Check", "查看", "pip --version",
+            "Check", "查看", "pip --version", "pip",
             keywords: "pip,python,version,版本"),
         
         Tweak.Cmd("dev.runtimes.pip-list", "Installed pip packages", "已安裝嘅 pip 套件",
@@ -268,49 +272,49 @@ public static class DevTerminalTweaks
             "Check", "查看", "pip list --outdated",
             keywords: "pip,python,outdated,過時"),
         
-        Tweak.Cmd("dev.runtimes.py-list", "List Python installs", "列出 Python 安裝",
+        CmdProbe("dev.runtimes.py-list", "List Python installs", "列出 Python 安裝",
             "Use the py launcher to list all installed Python versions.", "用 py 啟動器列出所有已安裝嘅 Python 版本。",
-            "List", "列出", "py -0",
+            "List", "列出", "py -0", "py",
             keywords: "python,py,launcher,version,版本"),
         
-        Tweak.Cmd("dev.runtimes.dotnet-info", ".NET info", ".NET 資訊",
+        CmdProbe("dev.runtimes.dotnet-info", ".NET info", ".NET 資訊",
             "Show detailed information about the installed .NET SDK and environment.", "顯示已安裝 .NET SDK 同環境嘅詳細資訊。",
-            "Show", "顯示", "dotnet --info",
+            "Show", "顯示", "dotnet --info", "dotnet",
             keywords: "dotnet,.net,info,資訊"),
-        
-        Tweak.Cmd("dev.runtimes.dotnet-list-sdks", ".NET SDKs", ".NET SDK 清單",
+
+        CmdProbe("dev.runtimes.dotnet-list-sdks", ".NET SDKs", ".NET SDK 清單",
             "List all installed .NET SDK versions.", "列出所有已安裝嘅 .NET SDK 版本。",
-            "List", "列出", "dotnet --list-sdks",
+            "List", "列出", "dotnet --list-sdks", "dotnet",
             keywords: "dotnet,.net,sdk,list"),
-        
-        Tweak.Cmd("dev.runtimes.dotnet-list-runtimes", ".NET runtimes", ".NET 執行階段",
+
+        CmdProbe("dev.runtimes.dotnet-list-runtimes", ".NET runtimes", ".NET 執行階段",
             "List all installed .NET runtime versions.", "列出所有已安裝嘅 .NET 執行階段版本。",
-            "List", "列出", "dotnet --list-runtimes",
+            "List", "列出", "dotnet --list-runtimes", "dotnet",
             keywords: "dotnet,.net,runtime,執行階段"),
-        
-        Tweak.Cmd("dev.runtimes.dotnet-nuget-locals", "NuGet cache folders", "NuGet 快取資料夾",
+
+        CmdProbe("dev.runtimes.dotnet-nuget-locals", "NuGet cache folders", "NuGet 快取資料夾",
             "List the local NuGet cache folders for all caches.", "列出所有 NuGet 本機快取資料夾。",
-            "List", "列出", "dotnet nuget locals all --list",
+            "List", "列出", "dotnet nuget locals all --list", "dotnet",
             keywords: "dotnet,nuget,cache,快取"),
         
-        Tweak.Cmd("dev.runtimes.java-version", "Java version", "Java 版本",
+        CmdProbe("dev.runtimes.java-version", "Java version", "Java 版本",
             "Show the installed Java runtime version.", "顯示已安裝嘅 Java 執行階段版本。",
-            "Check", "查看", "java -version",
+            "Check", "查看", "java -version", "java",
             keywords: "java,jdk,jre,version,版本"),
-        
-        Tweak.Cmd("dev.runtimes.go-version", "Go version", "Go 版本",
+
+        CmdProbe("dev.runtimes.go-version", "Go version", "Go 版本",
             "Show the installed Go toolchain version (reports not found if Go is absent).", "顯示已安裝嘅 Go 工具鏈版本（如未安裝會顯示搵唔到）。",
-            "Check", "查看", "go version",
+            "Check", "查看", "go version", "go",
             keywords: "go,golang,version,版本"),
-        
-        Tweak.Cmd("dev.runtimes.rustc-version", "Rust compiler version", "Rust 編譯器版本",
+
+        CmdProbe("dev.runtimes.rustc-version", "Rust compiler version", "Rust 編譯器版本",
             "Show the installed Rust compiler version (reports not found if Rust is absent).", "顯示已安裝嘅 Rust 編譯器版本（如未安裝會顯示搵唔到）。",
-            "Check", "查看", "rustc --version",
+            "Check", "查看", "rustc --version", "rustc",
             keywords: "rust,rustc,cargo,version,版本"),
-        
-        Tweak.Cmd("dev.runtimes.deno-version", "Deno version", "Deno 版本",
+
+        CmdProbe("dev.runtimes.deno-version", "Deno version", "Deno 版本",
             "Show the installed Deno runtime version (reports not found if Deno is absent).", "顯示已安裝嘅 Deno 執行階段版本（如未安裝會顯示搵唔到）。",
-            "Check", "查看", "deno --version",
+            "Check", "查看", "deno --version", "deno",
             keywords: "deno,javascript,typescript,version,版本"),
         
         Tweak.Cmd("dev.runtimes.where-node-python", "Locate node and python", "搵 node 同 python",
@@ -420,29 +424,29 @@ public static class DevTerminalTweaks
             keywords: "tcp,connections,established,連線,網絡"),
 
         // --- clis (20) ---
-        Tweak.Cmd("dev.clis.claude-version", "Claude CLI version", "Claude CLI 版本",
+        CmdProbe("dev.clis.claude-version", "Claude CLI version", "Claude CLI 版本",
             "Print the installed Claude Code CLI version.", "顯示已安裝嘅 Claude Code CLI 版本。",
-            "Check", "查版本", "claude --version", keywords: "claude,version,版本,cli"),
-        
-        Tweak.Cmd("dev.clis.codex-version", "Codex CLI version", "Codex CLI 版本",
+            "Check", "查版本", "claude --version", "claude", keywords: "claude,version,版本,cli"),
+
+        CmdProbe("dev.clis.codex-version", "Codex CLI version", "Codex CLI 版本",
             "Print the installed Codex CLI version.", "顯示已安裝嘅 Codex CLI 版本。",
-            "Check", "查版本", "codex --version", keywords: "codex,version,版本,cli"),
-        
-        Tweak.Cmd("dev.clis.opencode-version", "OpenCode CLI version", "OpenCode CLI 版本",
+            "Check", "查版本", "codex --version", "codex", keywords: "codex,version,版本,cli"),
+
+        CmdProbe("dev.clis.opencode-version", "OpenCode CLI version", "OpenCode CLI 版本",
             "Print the installed OpenCode CLI version.", "顯示已安裝嘅 OpenCode CLI 版本。",
-            "Check", "查版本", "opencode --version", keywords: "opencode,version,版本,cli"),
-        
-        Tweak.Cmd("dev.clis.gh-version", "GitHub CLI version", "GitHub CLI 版本",
+            "Check", "查版本", "opencode --version", "opencode", keywords: "opencode,version,版本,cli"),
+
+        CmdProbe("dev.clis.gh-version", "GitHub CLI version", "GitHub CLI 版本",
             "Print the installed GitHub CLI (gh) version.", "顯示已安裝嘅 GitHub CLI（gh）版本。",
-            "Check", "查版本", "gh --version", keywords: "gh,github,version,版本,cli"),
+            "Check", "查版本", "gh --version", "gh", keywords: "gh,github,version,版本,cli"),
         
         Tweak.Cmd("dev.clis.gh-auth-status", "GitHub auth status", "GitHub 登入狀態",
             "Show your current GitHub CLI authentication status and logged-in account.", "顯示你而家 GitHub CLI 嘅登入狀態同帳戶。",
             "Check", "查登入", "gh auth status", keywords: "gh,github,auth,login,登入,狀態"),
         
-        Tweak.Cmd("dev.clis.git-version", "Git version", "Git 版本",
+        CmdProbe("dev.clis.git-version", "Git version", "Git 版本",
             "Print the installed Git version.", "顯示已安裝嘅 Git 版本。",
-            "Check", "查版本", "git --version", keywords: "git,version,版本,cli"),
+            "Check", "查版本", "git --version", "git", keywords: "git,version,版本,cli"),
         
         Tweak.Cmd("dev.clis.git-config-list", "List global Git config", "列出全域 Git 設定",
             "Show every entry in your global Git configuration.", "顯示你全域 Git 設定入面嘅每一項。",
@@ -464,21 +468,21 @@ public static class DevTerminalTweaks
             "Compute the SHA256 hash of whatever text is on your clipboard.", "計算你剪貼簿入面文字嘅 SHA256 雜湊值。",
             "Hash", "計算", "$t=Get-Clipboard -Raw; $s=[IO.MemoryStream]::new([Text.Encoding]::UTF8.GetBytes($t)); (Get-FileHash -InputStream $s -Algorithm SHA256).Hash", keywords: "sha256,hash,clipboard,剪貼簿,雜湊"),
         
-        Tweak.Cmd("dev.clis.open-vscode", "Open VS Code here", "喺呢度開 VS Code",
+        CmdProbe("dev.clis.open-vscode", "Open VS Code here", "喺呢度開 VS Code",
             "Launch Visual Studio Code in your user profile folder.", "喺你嘅使用者資料夾度開 Visual Studio Code。",
-            "Open", "開啟", "code \"%USERPROFILE%\"", keywords: "vscode,code,editor,編輯器,開啟"),
+            "Open", "開啟", "code \"%USERPROFILE%\"", "code", keywords: "vscode,code,editor,編輯器,開啟"),
         
         Tweak.Cmd("dev.clis.open-terminal", "Open Windows Terminal", "開 Windows Terminal",
             "Launch a new Windows Terminal window.", "開一個新嘅 Windows Terminal 視窗。",
             "Open", "開啟", "start \"\" wt", keywords: "wt,terminal,windows terminal,終端機,開啟"),
         
-        Tweak.Cmd("dev.clis.wsl-list-verbose", "List WSL distros", "列出 WSL 發行版",
+        CmdProbe("dev.clis.wsl-list-verbose", "List WSL distros", "列出 WSL 發行版",
             "Show all installed WSL distributions with their version and running state.", "顯示所有已安裝嘅 WSL 發行版、版本同運行狀態。",
-            "List", "列出", "wsl --list --verbose", keywords: "wsl,linux,distro,發行版,列出"),
-        
-        Tweak.Cmd("dev.clis.wsl-status", "WSL status", "WSL 狀態",
+            "List", "列出", "wsl --list --verbose", "wsl", keywords: "wsl,linux,distro,發行版,列出"),
+
+        CmdProbe("dev.clis.wsl-status", "WSL status", "WSL 狀態",
             "Show the current WSL configuration, default distro and kernel version.", "顯示而家 WSL 嘅設定、預設發行版同核心版本。",
-            "Check", "查狀態", "wsl --status", keywords: "wsl,status,狀態,linux"),
+            "Check", "查狀態", "wsl --status", "wsl", keywords: "wsl,status,狀態,linux"),
         
         Tweak.Cmd("dev.clis.open-git-bash", "Open Git Bash", "開 Git Bash",
             "Launch the Git Bash shell from your Git installation.", "由你嘅 Git 安裝度開啟 Git Bash 殼層。",
@@ -488,16 +492,163 @@ public static class DevTerminalTweaks
             "Show all configured global Git aliases.", "顯示所有已設定嘅全域 Git 別名。",
             "List", "列出", "git config --global --get-regexp \"^alias\\.\"", keywords: "git,alias,別名,config,設定"),
         
-        Tweak.Cmd("dev.clis.curl-url", "Curl a URL", "用 curl 抓網址",
+        CmdProbe("dev.clis.curl-url", "Curl a URL", "用 curl 抓網址",
             "Fetch response headers from example.com to test connectivity with curl.", "用 curl 由 example.com 攞返回標頭，測試連線。",
-            "Fetch", "抓取", "curl -sI https://example.com", keywords: "curl,http,url,網址,fetch,抓取"),
-        
-        Tweak.Cmd("dev.clis.jq-version", "jq version", "jq 版本",
+            "Fetch", "抓取", "curl -sI https://example.com", "curl", keywords: "curl,http,url,網址,fetch,抓取"),
+
+        CmdProbe("dev.clis.jq-version", "jq version", "jq 版本",
             "Print the installed jq JSON processor version.", "顯示已安裝嘅 jq JSON 處理器版本。",
-            "Check", "查版本", "jq --version", keywords: "jq,json,version,版本,cli"),
-        
-        Tweak.Cmd("dev.clis.openssl-version", "OpenSSL version", "OpenSSL 版本",
+            "Check", "查版本", "jq --version", "jq", keywords: "jq,json,version,版本,cli"),
+
+        CmdProbe("dev.clis.openssl-version", "OpenSSL version", "OpenSSL 版本",
             "Print the installed OpenSSL version.", "顯示已安裝嘅 OpenSSL 版本。",
-            "Check", "查版本", "openssl version", keywords: "openssl,ssl,version,版本,crypto"),
+            "Check", "查版本", "openssl version", "openssl", keywords: "openssl,ssl,version,版本,crypto"),
+
+        // --- guided setup (1) ---
+        DevEnvironmentWizard(),
     };
+
+    // ======================================================================
+    //  Presentation helpers (PRESENTATION + WIRING ONLY — behaviour unchanged)
+    //  顯示輔助（只改顯示同接線，行為完全不變）
+    // ======================================================================
+
+    /// <summary>
+    /// 同 <see cref="Tweak.Cmd"/> 行為完全一樣嘅 cmd 動作，但額外掛一個「已裝／搵唔到」彩色狀態藥丸。
+    /// A cmd action identical in behaviour to <see cref="Tweak.Cmd"/>, plus an "installed / not found"
+    /// coloured status pill driven by probing the given executable(s) on PATH. The command that runs
+    /// on click is byte-for-byte the same as the original — only the card gains a status pill.
+    /// </summary>
+    private static TweakDefinition CmdProbe(
+        string id, string enT, string zhT, string enD, string zhD,
+        string enBtn, string zhBtn, string command, string probeExe,
+        bool requiresAdmin = false, bool destructive = false, string? keywords = null)
+        => new()
+        {
+            Id = id,
+            Title = new(enT, zhT),
+            Description = new(enD, zhD),
+            Kind = TweakKind.Action,
+            RequiresAdmin = requiresAdmin,
+            Destructive = destructive,
+            Keywords = (keywords ?? "").Split(new[] { ',', ';' },
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+            ActionLabel = new(enBtn, zhBtn),
+            RunAsync = ct => ShellRunner.RunCmd(command, requiresAdmin, ct),
+            ColoredStatus = () => OnPath(probeExe)
+                ? ("Installed", "已安裝", StatusColor.Good)
+                : ("Not found", "搵唔到", StatusColor.Bad),
+        };
+
+    /// <summary>
+    /// 喺 PATH 度搵可執行檔（任何一個提供嘅名稱命中即算有）· Resolve any of the given executable
+    /// names on PATH (semicolon-separated). Tries each PATHEXT-style extension; pure read-only probe.
+    /// </summary>
+    private static bool OnPath(string exeNames)
+    {
+        try
+        {
+            var names = exeNames.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var dirs = (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator);
+            var exts = new[] { ".exe", ".cmd", ".bat", ".com" };
+            foreach (var name in names)
+                foreach (var dir in dirs)
+                {
+                    if (string.IsNullOrWhiteSpace(dir)) continue;
+                    var d = dir.Trim();
+                    // Name verbatim (covers names that already carry an extension).
+                    try { if (File.Exists(Path.Combine(d, name))) return true; }
+                    catch { /* skip bad PATH entry */ }
+                    // Otherwise append each common executable extension.
+                    if (!Path.HasExtension(name))
+                        foreach (var ext in exts)
+                        {
+                            try { if (File.Exists(Path.Combine(d, name + ext))) return true; }
+                            catch { /* skip */ }
+                        }
+                }
+        }
+        catch { /* treat as not found */ }
+        return false;
+    }
+
+    /// <summary>
+    /// 引導式開發環境檢查精靈 · A guided dev-environment check wizard.
+    /// 揀想驗證邊啲工具鏈，精靈會逐一喺 PATH 度檢查係咪已安裝，並一次過報告。
+    /// Lets the user pick which toolchains to verify, then probes each on PATH and reports a
+    /// bilingual summary. Read-only — it only inspects PATH, it never installs or changes anything.
+    /// </summary>
+    private static TweakDefinition DevEnvironmentWizard()
+    {
+        // key → (label en, label zh, executable names on PATH)
+        var tools = new (string key, string en, string zh, string exe)[]
+        {
+            ("git",    "Git",            "Git",            "git"),
+            ("node",   "Node.js + npm",  "Node.js + npm",  "node;npm"),
+            ("python", "Python + pip",   "Python + pip",   "python;py;pip"),
+            ("dotnet", ".NET SDK",       ".NET SDK",       "dotnet"),
+            ("docker", "Docker",         "Docker",         "docker"),
+            ("gh",     "GitHub CLI",     "GitHub CLI",     "gh"),
+            ("wsl",    "WSL",            "WSL",            "wsl"),
+        };
+
+        var steps = new List<WizardStep>
+        {
+            new()
+            {
+                Title = new("Pick your stack", "揀你嘅技術棧"),
+                Description = new(
+                    "Toggle on each toolchain you expect to have installed. The next steps check them.",
+                    "將你預期已安裝嘅工具鏈逐個開啟，跟住嘅步驟會逐一檢查。"),
+                Input = WizardInputKind.None,
+            },
+        };
+        foreach (var t in tools)
+            steps.Add(new WizardStep
+            {
+                Title = new(t.en, t.zh),
+                Description = new($"Check whether {t.en} is on PATH?", $"檢查 {t.zh} 係咪喺 PATH 度？"),
+                Input = WizardInputKind.Toggle,
+                Key = t.key,
+                Default = "true",
+            });
+
+        return Tweak.Wizard(
+            "dev.setup.environment-check",
+            "Guided dev environment check", "引導式開發環境檢查",
+            "Walk through your toolchains and get a one-shot installed/missing report. Read-only — nothing is installed or changed.",
+            "逐步行勻你嘅工具鏈，一次過攞返已裝／欠缺報告。唯讀 — 唔會安裝或更改任何嘢。",
+            "Start", "開始",
+            steps,
+            (values, ct) =>
+            {
+                var lines = new List<string>();
+                int want = 0, ok = 0;
+                foreach (var t in tools)
+                {
+                    bool selected = values.TryGetValue(t.key, out var v)
+                        && string.Equals(v, "true", StringComparison.OrdinalIgnoreCase);
+                    if (!selected) continue;
+                    want++;
+                    bool present = OnPath(t.exe);
+                    if (present) ok++;
+                    lines.Add($"{(present ? "[OK]" : "[--]")} {t.en} · {t.zh} — {(present ? "installed 已安裝" : "not found 搵唔到")}");
+                }
+
+                if (want == 0)
+                    return Task.FromResult(TweakResult.Ok(
+                        "No toolchains selected.", "未揀任何工具鏈。",
+                        "Select at least one toolchain to check.\n請至少揀一個工具鏈嚟檢查。"));
+
+                var report = string.Join("\n", lines);
+                bool allOk = ok == want;
+                return Task.FromResult(new TweakResult(
+                    allOk,
+                    new LocalizedText(
+                        $"{ok}/{want} toolchains found.",
+                        $"搵到 {ok}/{want} 個工具鏈。"),
+                    report));
+            },
+            keywords: "wizard,setup,environment,check,dev,精靈,引導,開發環境,檢查");
+    }
 }
