@@ -504,6 +504,10 @@ public sealed partial class MainWindow : Window
             case "skins":
             case "widgets":
                 Navigator.GoToModule?.Invoke("module.rainmeter");
+            case "rustdesk":
+            case "remote":
+            case "remotedesktop":
+                Navigator.GoToModule?.Invoke("module.rustdesk");
                 break;
             case null:
             case "":
@@ -646,6 +650,7 @@ public sealed partial class MainWindow : Window
         "module.fastboot" => typeof(FastbootModule),
         "module.emulator" => typeof(EmulatorModule),
         "module.vpn" => typeof(VpnMeshModule),
+        "module.rustdesk" => typeof(RustDeskModule),
         "module.homeassistant" => typeof(HomeAssistantModule),
         "module.qbittorrent" => typeof(QBittorrentModule),
         "module.comms" => typeof(CommunicationsModule),
