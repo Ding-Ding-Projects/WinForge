@@ -158,3 +158,6 @@
 	path = external/veracrypt
 	url = https://github.com/veracrypt/VeraCrypt
 	shallow = true
+[submodule "external/unigetui"]
+	path = external/unigetui
+	url = https://github.com/marticliment/UniGetUI
