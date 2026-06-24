@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.BlenderModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid Padding="24,16,24,16" RowSpacing="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="12">
+            <FontIcon FontSize="22" Glyph="&#xE7F4;" VerticalAlignment="Center" />
+            <StackPanel>
+                <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
+                <TextBlock x:Name="VersionText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            </StackPanel>
+        </StackPanel>
+        <TextBlock x:Name="HeaderBlurb" Grid.Row="1" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+        <!-- Engine bar (install / found) -->
+        <InfoBar x:Name="EngineBar" Grid.Row="2" IsClosable="False" IsOpen="False" Margin="0,2,0,0" />
+
+        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" VerticalScrollMode="Auto">
+            <StackPanel Spacing="14">
+
+                <!-- Quick operations (TweakCards) -->
+                <TextBlock x:Name="QuickHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
+                <StackPanel x:Name="OpsPanel" Spacing="8" />
+
+                <!-- Open a .blend in the GUI -->
+                <Border BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                    <StackPanel Spacing="8">
+                        <TextBlock x:Name="OpenHeader" FontWeight="SemiBold" />
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button x:Name="OpenBlendBtn" Click="OpenBlend_Click" Style="{StaticResource AccentButtonStyle}" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Render-job form -->
+                <Border BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                    <StackPanel Spacing="12">
+                        <TextBlock x:Name="RenderHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
+
+                        <!-- Input .blend -->
+                        <StackPanel Spacing="4">
+                            <TextBlock x:Name="InputLabel" FontWeight="SemiBold" />
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBox x:Name="InputBox" Width="420" IsReadOnly="True" />
+                                <Button x:Name="PickInputBtn" Click="PickInput_Click" />
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- Output folder + name template -->
+                        <StackPanel Spacing="4">
+                            <TextBlock x:Name="OutputLabel" FontWeight="SemiBold" />
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBox x:Name="OutputBox" Width="420" IsReadOnly="True" />
+                                <Button x:Name="PickOutputBtn" Click="PickOutput_Click" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBox x:Name="NameBox" Width="240" Text="frame_####" />
+                                <TextBlock x:Name="NameHint" VerticalAlignment="Center" FontSize="12"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- Frame / range -->
+                        <StackPanel Spacing="6">
+                            <RadioButton x:Name="SingleRadio" GroupName="frames" IsChecked="True" Checked="FrameMode_Changed" />
+                            <StackPanel Orientation="Horizontal" Spacing="8" Margin="28,0,0,0">
+                                <TextBlock x:Name="FrameLabel" VerticalAlignment="Center" />
+                                <NumberBox x:Name="FrameBox" Value="1" Minimum="0" SpinButtonPlacementMode="Inline" Width="120" />
+                            </StackPanel>
+                            <RadioButton x:Name="AnimRadio" GroupName="frames" Checked="FrameMode_Changed" />
+                            <StackPanel Orientation="Horizontal" Spacing="8" Margin="28,0,0,0">
+                                <TextBlock x:Name="StartLabel" VerticalAlignment="Center" />
+                                <NumberBox x:Name="StartBox" Value="1" Minimum="0" SpinButtonPlacementMode="Inline" Width="110" />
+                                <TextBlock x:Name="EndLabel" VerticalAlignment="Center" />
+                                <NumberBox x:Name="EndBox" Value="250" Minimum="0" SpinButtonPlacementMode="Inline" Width="110" />
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- Engine / format / samples / device -->
+                        <StackPanel Orientation="Horizontal" Spacing="16">
+                            <StackPanel Spacing="4">
+                                <TextBlock x:Name="EngineLabel" FontWeight="SemiBold" />
+                                <ComboBox x:Name="EngineCombo" Width="180" />
+                            </StackPanel>
+                            <StackPanel Spacing="4">
+                                <TextBlock x:Name="FormatLabel" FontWeight="SemiBold" />
+                                <ComboBox x:Name="FormatCombo" Width="160" />
+                            </StackPanel>
+                            <StackPanel Spacing="4">
+                                <TextBlock x:Name="DeviceLabel" FontWeight="SemiBold" />
+                                <ComboBox x:Name="DeviceCombo" Width="140" />
+                            </StackPanel>
+                            <StackPanel Spacing="4">
+                                <TextBlock x:Name="SamplesLabel" FontWeight="SemiBold" />
+                                <NumberBox x:Name="SamplesBox" Value="0" Minimum="0" SpinButtonPlacementMode="Inline" Width="120" />
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- Actions -->
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button x:Name="RenderBtn" Click="Render_Click" Style="{StaticResource AccentButtonStyle}" />
+                            <Button x:Name="QueueBtn" Click="Queue_Click" />
+                            <Button x:Name="CancelBtn" Click="Cancel_Click" IsEnabled="False" />
+                            <Button x:Name="OpenOutBtn" Click="OpenOut_Click" />
+                            <ProgressRing x:Name="Busy" IsActive="False" Width="20" Height="20" VerticalAlignment="Center" />
+                        </StackPanel>
+
+                        <!-- Progress -->
+                        <StackPanel Spacing="4">
+                            <ProgressBar x:Name="Progress" Minimum="0" Maximum="1" Value="0" />
+                            <TextBlock x:Name="ProgressText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Batch queue -->
+                <Border BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                    <StackPanel Spacing="8">
+                        <Grid>
+                            <TextBlock x:Name="QueueHeader" Style="{StaticResource SubtitleTextBlockStyle}" VerticalAlignment="Center" />
+                            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                                <Button x:Name="RunQueueBtn" Click="RunQueue_Click" Style="{StaticResource AccentButtonStyle}" />
+                                <Button x:Name="ClearQueueBtn" Click="ClearQueue_Click" />
+                            </StackPanel>
+                        </Grid>
+                        <ListView x:Name="QueueList" MaxHeight="180"
+                                  BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="6">
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Title}" Padding="0,4" />
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                        <TextBlock x:Name="QueueEmpty" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Python script runner -->
+                <Border BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                    <StackPanel Spacing="10">
+                        <TextBlock x:Name="ScriptHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
+                        <TextBlock x:Name="ScriptBlurb" FontSize="12" TextWrapping="Wrap"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <ComboBox x:Name="ScriptCombo" Width="320" />
+                            <Button x:Name="RunScriptBtn" Click="RunScript_Click" Style="{StaticResource AccentButtonStyle}" />
+                            <Button x:Name="RunCustomScriptBtn" Click="RunCustomScript_Click" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Log tail -->
+                <Border BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="0">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid Grid.Row="0" Padding="12,8">
+                            <TextBlock x:Name="LogHeader" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            <Button x:Name="ClearLogBtn" Click="ClearLog_Click" HorizontalAlignment="Right" />
+                        </Grid>
+                        <ScrollViewer x:Name="LogScroller" Grid.Row="1" Height="200" VerticalScrollBarVisibility="Auto" Padding="12,0,12,12">
+                            <TextBlock x:Name="LogText" FontFamily="Consolas" FontSize="12" IsTextSelectionEnabled="True" TextWrapping="Wrap" />
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Page>

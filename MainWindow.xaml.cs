@@ -144,6 +144,11 @@ public sealed partial class MainWindow : Window
             case "media":
                 Navigator.GoToModule?.Invoke("module.media");
                 break;
+            case "blender":
+            case "render":
+            case "3d":
+                Navigator.GoToModule?.Invoke("module.blender");
+                break;
             case "regedit":
             case "registry":
                 Navigator.GoToModule?.Invoke("module.regedit");
@@ -431,6 +436,7 @@ public sealed partial class MainWindow : Window
         "module.cloudflare" => typeof(CloudflareModule),
         "module.archives" => typeof(ArchivesModule),
         "module.media" => typeof(MediaModule),
+        "module.blender" => typeof(BlenderModule),
         "module.regedit" => typeof(RegistryEditor),
         "module.doctors" => typeof(SystemDoctorsModule),
         "module.services" => typeof(ServicesModule),
