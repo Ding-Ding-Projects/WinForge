@@ -8,6 +8,7 @@ using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Windows.ApplicationModel.DataTransfer;
 using WinForge.Catalog;
 using WinForge.Controls;
 using WinForge.Models;
@@ -30,10 +31,12 @@ public sealed partial class GitHubModule : Page
         InitializeComponent();
         Loc.I.LanguageChanged += OnLang;
         RepoStore.Changed += OnReposChanged;
+        GitAliasStore.Changed += OnAliasesChanged;
         Unloaded += (_, _) =>
         {
             Loc.I.LanguageChanged -= OnLang;
             RepoStore.Changed -= OnReposChanged;
+            GitAliasStore.Changed -= OnAliasesChanged;
         };
         Loaded += async (_, _) =>
         {
@@ -41,8 +44,10 @@ public sealed partial class GitHubModule : Page
             BuildScopeCombo();
             BuildQuickActions();
             BuildRepoList();
+            BuildAliasButtons();
             PopulateOps(string.Empty);
             await Refresh();
+            await CheckGh();
         };
     }
 
@@ -52,11 +57,15 @@ public sealed partial class GitHubModule : Page
         BuildScopeCombo();
         BuildQuickActions();
         BuildRepoList();
+        BuildAliasButtons();
         PopulateOps(OpsFilter.Text ?? string.Empty);
     }
 
     private void OnReposChanged(object? sender, EventArgs e) =>
         DispatcherQueue.TryEnqueue(BuildRepoList);
+
+    private void OnAliasesChanged(object? sender, EventArgs e) =>
+        DispatcherQueue.TryEnqueue(BuildAliasButtons);
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
@@ -97,6 +106,42 @@ public sealed partial class GitHubModule : Page
 
         OpsFilter.PlaceholderText = P("Filter operations…", "篩選操作…");
         AdvancedHeader.Text = P($"Operation library ({GitCatalog.Count})", $"操作庫（{GitCatalog.Count}）");
+
+        // ===== Workflows (Gitty) =====
+        WorkflowsHeader.Text = P("Workflows (Gitty)", "工作流程（Gitty）");
+        WorkflowsBlurb.Text = P(
+            "One-click git/GitHub shortcuts ported from the Gitty CLI: Up, Undo, Checkpoint/Restore, Push & share, plus a per-repo alias store.",
+            "由 Gitty CLI 移植過嚟嘅一鍵 git/GitHub 捷徑：Up、撤回、檢查點／還原、推送並分享，仲有每個儲存庫嘅別名儲存。");
+        GhEngineLabel.Text = P(
+            "GitHub CLI (gh) is not detected. Share links and PR features need it.",
+            "搵唔到 GitHub CLI（gh）。分享連結同 PR 功能需要佢。");
+
+        UpLabel.Text = P("Up — stage all, commit & push", "Up — 暫存全部、提交並推送");
+        UpMessageBox.PlaceholderText = P("Commit message (optional)…", "提交訊息（可選）…");
+        UpBtn.Content = P("Up", "Up");
+
+        UndoBtn.Content = P("Undo last commit", "撤回上次提交");
+        ShareBtn.Content = P("Push & share (copy URL)", "推送並分享（複製網址）");
+        PrShareBtn.Content = P("Copy PR link", "複製 PR 連結");
+
+        CheckpointLabel.Text = P("Checkpoint — tag a branch & push", "檢查點 — 為分支開 tag 並推送");
+        CheckpointNameBox.PlaceholderText = P("Checkpoint name…", "檢查點名稱…");
+        CheckpointBtn.Content = P("Checkpoint", "建立檢查點");
+        RestoreBtn.Content = P("Restore…", "還原…");
+        RestoreWarn.Text = P(
+            "Restore checks out the named tag and leaves a detached HEAD — create a branch to keep working.",
+            "「還原」會 checkout 嗰個 tag 並進入 detached HEAD — 想繼續開發請開新分支。");
+
+        AliasLabel.Text = P("Aliases — saved one-click sequences", "別名 — 已儲存嘅一鍵序列");
+        AliasBlurb.Text = P(
+            "Each alias runs its steps in order (stops on first failure). One step per line, e.g. 'add -A', 'commit -m \"wip\"', 'push'. Prefix with 'gh ' to run a gh command.",
+            "每個別名會順序執行步驟（第一步失敗就停）。每行一步，例如 'add -A'、'commit -m \"wip\"'、'push'。想跑 gh 指令就喺前面加 'gh '。");
+        AliasEditorLabel.Text = P("New / edit alias", "新增／編輯別名");
+        AliasNameLabel.Text = P("Name", "名稱");
+        AliasNameBox.PlaceholderText = P("e.g. save", "例如 save");
+        AliasStepsBox.PlaceholderText = P("add -A\ncommit -m \"wip\"\npush", "add -A\ncommit -m \"wip\"\npush");
+        AliasSaveBtn.Content = P("Save alias", "儲存別名");
+        AliasClearBtn.Content = P("Clear", "清除");
     }
 
     private void BuildScopeCombo()
@@ -274,6 +319,7 @@ public sealed partial class GitHubModule : Page
     private async Task Refresh()
     {
         RepoPathBox.Text = AppState.CurrentRepoPath;
+        BuildAliasButtons();
         if (!GitService.HasRepo)
         {
             RepoStatus.Text = P("No repository selected — add or pick one on the left.",
@@ -302,6 +348,7 @@ public sealed partial class GitHubModule : Page
     private async Task LoadBranches(string current)
     {
         BranchCombo.Items.Clear();
+        CheckpointBranchCombo.Items.Clear();
         var r = await GitService.RunRaw("branch --format=%(refname:short)");
         if (!r.Success) return;
         foreach (var raw in (r.Output ?? string.Empty).Split('\n', StringSplitOptions.RemoveEmptyEntries))
@@ -309,7 +356,12 @@ public sealed partial class GitHubModule : Page
             var b = raw.Trim();
             if (b.Length == 0) continue;
             BranchCombo.Items.Add(b);
-            if (b == current) BranchCombo.SelectedIndex = BranchCombo.Items.Count - 1;
+            CheckpointBranchCombo.Items.Add(b);
+            if (b == current)
+            {
+                BranchCombo.SelectedIndex = BranchCombo.Items.Count - 1;
+                CheckpointBranchCombo.SelectedIndex = CheckpointBranchCombo.Items.Count - 1;
+            }
         }
     }
 
@@ -469,6 +521,315 @@ public sealed partial class GitHubModule : Page
             ChunkUploadBtn.IsEnabled = true;
         }
     }
+
+    // ===== Workflows (Gitty) =====
+
+    private async Task CheckGh()
+    {
+        try
+        {
+            var r = await ShellRunner.Run("gh", "--version", elevated: false, CancellationToken.None);
+            GhEngineBar.Visibility = r.Success ? Visibility.Collapsed : Visibility.Visible;
+            if (!r.Success) ShowGhInstall();
+        }
+        catch
+        {
+            GhEngineBar.Visibility = Visibility.Visible;
+            ShowGhInstall();
+        }
+    }
+
+    private void ShowGhInstall()
+    {
+        // Only add the install button once.
+        if (GhEngineBar.Children.Count > 2) return;
+        var install = EngineBars.AutoInstallButton("GitHub.cli",
+            "Install gh", "安裝 gh",
+            recheck: CheckGh);
+        GhEngineBar.Children.Add(install);
+    }
+
+    private bool EnsureRepo()
+    {
+        if (GitService.HasRepo) return true;
+        RepoStatus.Text = P("Pick a repository first.", "請先揀儲存庫。");
+        return false;
+    }
+
+    private async void Up_Click(object sender, RoutedEventArgs e)
+    {
+        if (!EnsureRepo()) return;
+        UpBtn.IsEnabled = false;
+        var progress = new Progress<string>(AppendConsole);
+        try
+        {
+            var r = await GitWorkflows.Up(UpMessageBox.Text ?? string.Empty, progress, CancellationToken.None);
+            AppendConsole("\n" + Msg(r) + "\n");
+            if (r.Success) UpMessageBox.Text = string.Empty;
+            await Refresh();
+        }
+        catch (Exception ex) { AppendConsole(ex.Message + "\n"); }
+        finally { UpBtn.IsEnabled = true; }
+    }
+
+    private async void Undo_Click(object sender, RoutedEventArgs e)
+    {
+        if (!EnsureRepo()) return;
+        var ok = await ConfirmAsync(
+            P("Undo last commit?", "撤回上次提交？"),
+            P("This runs a soft reset (reset --soft HEAD~1). Your changes are kept and re-staged.",
+              "呢個會做軟重置（reset --soft HEAD~1）。改動會保留並重新暫存。"));
+        if (!ok) return;
+        UndoBtn.IsEnabled = false;
+        var progress = new Progress<string>(AppendConsole);
+        try
+        {
+            var r = await GitWorkflows.Undo(progress, CancellationToken.None);
+            AppendConsole("\n" + Msg(r) + "\n");
+            await Refresh();
+        }
+        finally { UndoBtn.IsEnabled = true; }
+    }
+
+    private async void Share_Click(object sender, RoutedEventArgs e)
+    {
+        if (!EnsureRepo()) return;
+        ShareBtn.IsEnabled = false;
+        var progress = new Progress<string>(AppendConsole);
+        try
+        {
+            var r = await GitWorkflows.PushAndShare(progress, CancellationToken.None);
+            if (r.Success && !string.IsNullOrWhiteSpace(r.Output)) CopyToClipboard(r.Output!);
+            AppendConsole("\n" + Msg(r) + "\n");
+            await Refresh();
+        }
+        catch (Exception ex) { AppendConsole(ex.Message + "\n"); }
+        finally { ShareBtn.IsEnabled = true; }
+    }
+
+    private async void PrShare_Click(object sender, RoutedEventArgs e)
+    {
+        if (!EnsureRepo()) return;
+        PrShareBtn.IsEnabled = false;
+        try
+        {
+            var r = await GitWorkflows.PrUrl(CancellationToken.None);
+            if (r.Success && !string.IsNullOrWhiteSpace(r.Output)) CopyToClipboard(r.Output!);
+            AppendConsole(Msg(r) + "\n");
+        }
+        finally { PrShareBtn.IsEnabled = true; }
+    }
+
+    private async void Checkpoint_Click(object sender, RoutedEventArgs e)
+    {
+        if (!EnsureRepo()) return;
+        var name = CheckpointNameBox.Text?.Trim();
+        if (string.IsNullOrEmpty(name))
+        {
+            RepoStatus.Text = P("Enter a checkpoint name first.", "請先輸入檢查點名稱。");
+            return;
+        }
+        var branch = CheckpointBranchCombo.SelectedItem as string ?? string.Empty;
+        CheckpointBtn.IsEnabled = false;
+        var progress = new Progress<string>(AppendConsole);
+        try
+        {
+            var r = await GitWorkflows.Checkpoint(name, branch, progress, CancellationToken.None);
+            AppendConsole("\n" + Msg(r) + "\n");
+            if (r.Success) CheckpointNameBox.Text = string.Empty;
+            await Refresh();
+        }
+        catch (Exception ex) { AppendConsole(ex.Message + "\n"); }
+        finally { CheckpointBtn.IsEnabled = true; }
+    }
+
+    private async void Restore_Click(object sender, RoutedEventArgs e)
+    {
+        if (!EnsureRepo()) return;
+        var name = CheckpointNameBox.Text?.Trim();
+        if (string.IsNullOrEmpty(name))
+        {
+            RepoStatus.Text = P("Enter the checkpoint (tag) name to restore.", "請輸入要還原嘅檢查點（tag）名稱。");
+            return;
+        }
+        var ok = await ConfirmAsync(
+            P($"Restore checkpoint '{name}'?", $"還原檢查點「{name}」？"),
+            P("This checks out the tag and leaves a DETACHED HEAD. Uncommitted work could be affected. Create a branch afterwards to keep working.",
+              "呢個會 checkout 個 tag 並進入 DETACHED HEAD。未提交嘅嘢可能受影響。完成後請開新分支先繼續。"));
+        if (!ok) return;
+        RestoreBtn.IsEnabled = false;
+        var progress = new Progress<string>(AppendConsole);
+        try
+        {
+            var r = await GitWorkflows.Restore(name, progress, CancellationToken.None);
+            AppendConsole("\n" + Msg(r) + "\n");
+            await Refresh();
+        }
+        finally { RestoreBtn.IsEnabled = true; }
+    }
+
+    // ----- Alias store -----
+
+    private void BuildAliasButtons()
+    {
+        AliasButtonsPanel.Children.Clear();
+        if (!GitService.HasRepo)
+        {
+            AliasButtonsPanel.Children.Add(new TextBlock
+            {
+                Text = P("Pick a repository to see its saved aliases.", "揀一個儲存庫先睇到佢嘅已儲存別名。"),
+                FontSize = 12,
+                Foreground = (Brush)Application.Current.Resources["TextFillColorTertiaryBrush"],
+                TextWrapping = TextWrapping.Wrap,
+            });
+            return;
+        }
+
+        var aliases = GitAliasStore.Load(GitService.Repo);
+        if (aliases.Count == 0)
+        {
+            AliasButtonsPanel.Children.Add(new TextBlock
+            {
+                Text = P("No aliases yet — create one below.", "未有別名 — 喺下面整一個。"),
+                FontSize = 12,
+                Foreground = (Brush)Application.Current.Resources["TextFillColorTertiaryBrush"],
+                TextWrapping = TextWrapping.Wrap,
+            });
+            return;
+        }
+
+        foreach (var alias in aliases)
+        {
+            var grid = new Grid { ColumnSpacing = 6 };
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            GitAlias captured = alias;
+            var run = new Button
+            {
+                Content = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    Spacing = 6,
+                    Children =
+                    {
+                        new FontIcon { Glyph = "", FontSize = 12 },
+                        new TextBlock { Text = alias.Name, VerticalAlignment = VerticalAlignment.Center },
+                    },
+                },
+            };
+            run.Click += async (_, _) =>
+            {
+                run.IsEnabled = false;
+                var progress = new Progress<string>(AppendConsole);
+                try
+                {
+                    AppendConsole($"$ alias {captured.Name}\n");
+                    var r = await GitAliasStore.Run(captured, progress, CancellationToken.None);
+                    AppendConsole("\n" + Msg(r) + "\n");
+                    await Refresh();
+                }
+                catch (Exception ex) { AppendConsole(ex.Message + "\n"); }
+                finally { run.IsEnabled = true; }
+            };
+            Grid.SetColumn(run, 0);
+            grid.Children.Add(run);
+
+            var steps = new TextBlock
+            {
+                Text = string.Join("  ·  ", alias.Steps),
+                FontSize = 11,
+                VerticalAlignment = VerticalAlignment.Center,
+                Foreground = (Brush)Application.Current.Resources["TextFillColorTertiaryBrush"],
+                TextTrimming = TextTrimming.CharacterEllipsis,
+            };
+            Grid.SetColumn(steps, 1);
+            grid.Children.Add(steps);
+
+            var edit = new Button
+            {
+                Content = new FontIcon { Glyph = "", FontSize = 12 },
+                Padding = new Thickness(8, 4, 8, 4),
+            };
+            ToolTipService.SetToolTip(edit, P("Edit", "編輯"));
+            edit.Click += (_, _) =>
+            {
+                AliasNameBox.Text = captured.Name;
+                AliasStepsBox.Text = string.Join("\n", captured.Steps);
+            };
+            Grid.SetColumn(edit, 2);
+            grid.Children.Add(edit);
+
+            var del = new Button
+            {
+                Content = new FontIcon { Glyph = "", FontSize = 12 },
+                Padding = new Thickness(8, 4, 8, 4),
+            };
+            ToolTipService.SetToolTip(del, P("Delete", "刪除"));
+            del.Click += (_, _) => GitAliasStore.Remove(GitService.Repo, captured.Name);
+            Grid.SetColumn(del, 3);
+            grid.Children.Add(del);
+
+            AliasButtonsPanel.Children.Add(grid);
+        }
+    }
+
+    private void AliasSave_Click(object sender, RoutedEventArgs e)
+    {
+        if (!EnsureRepo()) return;
+        var name = AliasNameBox.Text?.Trim();
+        if (string.IsNullOrEmpty(name))
+        {
+            RepoStatus.Text = P("Enter an alias name first.", "請先輸入別名名稱。");
+            return;
+        }
+        var steps = GitAliasStore.ParseSteps(AliasStepsBox.Text ?? string.Empty);
+        if (steps.Count == 0)
+        {
+            RepoStatus.Text = P("Add at least one step (one per line).", "至少加一個步驟（每行一個）。");
+            return;
+        }
+        GitAliasStore.Save(GitService.Repo, new GitAlias { Name = name, Steps = steps });
+        AliasNameBox.Text = string.Empty;
+        AliasStepsBox.Text = string.Empty;
+        RepoStatus.Text = P($"Alias '{name}' saved.", $"別名「{name}」已儲存。");
+    }
+
+    private void AliasClear_Click(object sender, RoutedEventArgs e)
+    {
+        AliasNameBox.Text = string.Empty;
+        AliasStepsBox.Text = string.Empty;
+    }
+
+    private async Task<bool> ConfirmAsync(string title, string body)
+    {
+        var dialog = new ContentDialog
+        {
+            Title = title,
+            Content = new TextBlock { Text = body, TextWrapping = TextWrapping.Wrap },
+            PrimaryButtonText = P("Continue", "繼續"),
+            CloseButtonText = P("Cancel", "取消"),
+            DefaultButton = ContentDialogButton.Close,
+            XamlRoot = this.XamlRoot,
+        };
+        var result = await dialog.ShowAsync();
+        return result == ContentDialogResult.Primary;
+    }
+
+    private void CopyToClipboard(string text)
+    {
+        try
+        {
+            var dp = new DataPackage();
+            dp.SetText(text);
+            Clipboard.SetContent(dp);
+        }
+        catch { /* clipboard unavailable — link is still shown in console */ }
+    }
+
+    private string Msg(TweakResult r) => Loc.I.IsCantonesePrimary ? (r.Message?.Zh ?? "") : (r.Message?.En ?? "");
 
     // ===== Operation library =====
 
