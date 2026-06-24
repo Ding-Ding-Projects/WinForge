@@ -232,6 +232,13 @@ public sealed partial class MainWindow : Window
             case "drives":
                 Navigator.GoToModule?.Invoke("module.drives");
                 break;
+            case "testdisk":
+            case "photorec":
+            case "recovery":
+            case "recover":
+            case "undelete":
+                Navigator.GoToModule?.Invoke("module.testdisk");
+                break;
             case "uninstall":
             case "apps":
                 Navigator.GoToModule?.Invoke("module.uninstall");
@@ -553,6 +560,7 @@ public sealed partial class MainWindow : Window
         "module.duplicates" => typeof(DuplicatesModule),
         "module.disk" => typeof(DiskAnalyzerModule),
         "module.drives" => typeof(DrivesModule),
+        "module.testdisk" => typeof(TestDiskModule),
         "module.uninstall" => typeof(AppUninstallerModule),
         "module.windows" => typeof(WindowManagerModule),
         "module.keyboard" => typeof(KeyboardModule),
