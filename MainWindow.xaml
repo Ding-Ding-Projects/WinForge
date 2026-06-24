@@ -22,7 +22,7 @@
             x:Name="AppTitleBar"
             Title="WinForge · 視窗調校"
             BackRequested="TitleBar_BackRequested"
-            IsBackButtonVisible="{x:Bind NavFrame.CanGoBack, Mode=OneWay}"
+            IsBackButtonVisible="False"
             IsPaneToggleButtonVisible="True"
             PaneToggleRequested="TitleBar_PaneToggleRequested">
             <TitleBar.IconSource>
@@ -47,7 +47,7 @@
             </NavigationView.AutoSuggestBox>
             <NavigationView.MenuItems>
                 <NavigationViewItemHeader Content="Suite · 套件" />
-                <NavigationViewItem Content="Dashboard · 概覽" IsSelected="True" Tag="dashboard">
+                <NavigationViewItem Content="Dashboard · 概覽" Tag="dashboard">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE80F;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
 
@@ -118,6 +118,8 @@
                     <NavigationViewItem.MenuItems>
                         <NavigationViewItem Content="Package Manager · 套件管理" Tag="module.packages"><NavigationViewItem.Icon><FontIcon Glyph="&#xECAA;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Android (ADB) · Android（ADB）" Tag="module.adb"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8EA;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Fastboot / Flasher · Fastboot／刷機" Tag="module.fastboot"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7BA;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Android Emulator · Android 模擬器" Tag="module.emulator"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8EA;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="VPN &amp; Mesh · VPN 與網狀網" Tag="module.vpn"><NavigationViewItem.Icon><FontIcon Glyph="&#xE945;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Home Assistant · 家居助理" Tag="module.homeassistant"><NavigationViewItem.Icon><FontIcon Glyph="&#xE80F;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Communications · 通訊" Tag="module.comms"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8BD;" /></NavigationViewItem.Icon></NavigationViewItem>
@@ -147,7 +149,45 @@
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE946;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
             </NavigationView.FooterMenuItems>
-            <Frame x:Name="NavFrame" />
+            <TabView
+                x:Name="Tabs"
+                IsAddTabButtonVisible="True"
+                AddTabButtonClick="Tabs_AddTabButtonClick"
+                CanReorderTabs="True"
+                SelectionChanged="Tabs_SelectionChanged"
+                TabCloseRequested="Tabs_TabCloseRequested">
+                <TabView.TabStripFooter>
+                    <Button
+                        x:Name="SessionBtn"
+                        Margin="6,0"
+                        Padding="9,5"
+                        VerticalAlignment="Center"
+                        ToolTipService.ToolTip="Tab session · 分頁工作階段（匯出／匯入／還原）">
+                        <FontIcon FontSize="15" Glyph="&#xE74E;" />
+                        <Button.Flyout>
+                            <MenuFlyout>
+                                <MenuFlyoutItem Click="Session_NewTab" Text="New tab · 新分頁">
+                                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE710;" /></MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                                <MenuFlyoutSeparator />
+                                <MenuFlyoutItem Click="Session_Export" Text="Export session… · 匯出工作階段…">
+                                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xEDE1;" /></MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                                <MenuFlyoutItem Click="Session_Import" Text="Import session… · 匯入工作階段…">
+                                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8E5;" /></MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                                <MenuFlyoutItem Click="Session_Restore" Text="Restore last saved · 還原上次">
+                                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE777;" /></MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                                <MenuFlyoutSeparator />
+                                <MenuFlyoutItem Click="Session_OpenFolder" Text="Open session repo · 開啟工作階段倉">
+                                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE838;" /></MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                            </MenuFlyout>
+                        </Button.Flyout>
+                    </Button>
+                </TabView.TabStripFooter>
+            </TabView>
         </NavigationView>
     </Grid>
 </Window>

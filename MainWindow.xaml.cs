@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using WinForge.Catalog;
+using WinForge.Models;
 using WinForge.Pages;
 using WinForge.Services;
 
@@ -29,10 +31,15 @@ public sealed partial class MainWindow : Window
         RootGrid.KeyboardAccelerators.Add(f11);
 
         BuildCategoryMenu();
+        BuildTitleMap();
         WireNavigator();
 
-        NavFrame.Navigate(typeof(DashboardPage));
+        RestoreSessionOrDefault();
         ApplyStartPage();
+
+        // Ctrl+T 開新分頁、Ctrl+W 關閉分頁 · Ctrl+T new tab, Ctrl+W close tab.
+        AddAccel(Windows.System.VirtualKey.T, () => AddTab("dashboard"));
+        AddAccel(Windows.System.VirtualKey.W, CloseActiveTab);
 
         // 背景運行：關窗收入系統匣，剪貼簿監察繼續運行。
         // Keep running when closed: close hides to the tray; the clipboard monitor keeps going.
@@ -108,7 +115,7 @@ public sealed partial class MainWindow : Window
             NavView.Loaded += (_, _) => DispatcherQueue.TryEnqueue(() =>
             {
                 NavView.SelectedItem = null;
-                NavFrame.Navigate(typeof(SearchResultsPage), query);
+                NavigateActive("search:" + query);
             });
             return;
         }
@@ -346,10 +353,10 @@ public sealed partial class MainWindow : Window
             case "dashboard":
                 break;
             case "about":
-                NavFrame.Navigate(typeof(AboutPage));
+                NavigateActive("about");
                 break;
             case "settings":
-                NavFrame.Navigate(typeof(SettingsPage));
+                NavigateActive("settings");
                 break;
             default:
                 var cat = Categories.All.FirstOrDefault(c => c.Id == App.StartPage);
@@ -388,13 +395,14 @@ public sealed partial class MainWindow : Window
             if (item is not null) NavView.SelectedItem = item;
         };
 
-        Navigator.GoToSettings = () => NavFrame.Navigate(typeof(SettingsPage));
+        Navigator.GoToSettings = () => NavigateActive("settings");
 
         Navigator.GoToModule = key =>
         {
             var item = FindByTag(key);
-            if (item is not null) NavView.SelectedItem = item;
-            else NavFrame.Navigate(MapType(key)); // fall back to direct navigation if not in the pane
+            if (item is not null && ReferenceEquals(NavView.SelectedItem, item)) NavigateActive(key); // already selected → re-navigate active tab
+            else if (item is not null) NavView.SelectedItem = item;
+            else NavigateActive(key); // fall back to direct navigation if not in the pane
         };
     }
 
@@ -487,7 +495,7 @@ public sealed partial class MainWindow : Window
     private void SearchBox_QuerySubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
     {
         var q = args.QueryText;
-        if (!string.IsNullOrWhiteSpace(q)) NavFrame.Navigate(typeof(SearchResultsPage), q);
+        if (!string.IsNullOrWhiteSpace(q)) NavigateActive("search:" + q);
     }
 
     private void TitleBar_PaneToggleRequested(TitleBar sender, object args)
@@ -497,189 +505,201 @@ public sealed partial class MainWindow : Window
 
     private void TitleBar_BackRequested(TitleBar sender, object args)
     {
-        if (NavFrame.CanGoBack) NavFrame.GoBack();
+        if (ActiveFrame is { CanGoBack: true } f) { f.GoBack(); UpdateBackButton(); }
     }
 
     private void NavView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
     {
-        if (args.IsSettingsSelected)
-        {
-            NavFrame.Navigate(typeof(SettingsPage));
-            return;
-        }
+        if (_syncingTabs) return;
+        if (args.IsSettingsSelected) { NavigateActive("settings"); return; }
+        if (args.SelectedItem is NavigationViewItem item && item.Tag is string tag) NavigateActive(tag);
+    }
 
-        if (args.SelectedItem is not NavigationViewItem item) return;
-        var tag = item.Tag as string;
+    // ===================== Browser-style tabs · 瀏覽器式分頁 =====================
+    // Each tab owns its own navigation Frame. The tab title is the page you're on,
+    // a new tab opens the Dashboard, and the open tabs are mirrored to a local git
+    // repo (TabSessionService) so the whole session can be exported / restored.
 
-        switch (tag)
+    private bool _syncingTabs;
+    private bool _restoring;
+    private readonly Dictionary<Type, string> _titles = new();
+
+    private Frame? ActiveFrame => (Tabs?.SelectedItem as TabViewItem)?.Content as Frame;
+
+    private void AddAccel(Windows.System.VirtualKey key, Action action)
+    {
+        var a = new Microsoft.UI.Xaml.Input.KeyboardAccelerator
         {
-            case "dashboard":
-                NavFrame.Navigate(typeof(DashboardPage));
-                break;
-            case "about":
-                NavFrame.Navigate(typeof(AboutPage));
-                break;
-            case "module.git":
-                NavFrame.Navigate(typeof(GitHubModule));
-                break;
-            case "module.aiagents":
-                NavFrame.Navigate(typeof(AiAgentsModule));
-                break;
-            case "module.cloudflare":
-                NavFrame.Navigate(typeof(CloudflareModule));
-                break;
-            case "module.archives":
-                NavFrame.Navigate(typeof(ArchivesModule));
-                break;
-            case "module.media":
-                NavFrame.Navigate(typeof(MediaModule));
-                break;
-            case "module.regedit":
-                NavFrame.Navigate(typeof(RegistryEditor));
-                break;
-            case "module.doctors":
-                NavFrame.Navigate(typeof(SystemDoctorsModule));
-                break;
-            case "module.services":
-                NavFrame.Navigate(typeof(ServicesModule));
-                break;
-            case "module.tasks":
-                NavFrame.Navigate(typeof(ScheduledTasksModule));
-                break;
-            case "module.devices":
-                NavFrame.Navigate(typeof(DevicesModule));
-                break;
-            case "module.vivetool":
-                NavFrame.Navigate(typeof(ViveToolModule));
-                break;
-            case "module.startup":
-                NavFrame.Navigate(typeof(StartupModule));
-                break;
-            case "module.rename":
-                NavFrame.Navigate(typeof(RenameModule));
-                break;
-            case "module.bulkops":
-                NavFrame.Navigate(typeof(BulkOpsModule));
-                break;
-            case "module.duplicates":
-                NavFrame.Navigate(typeof(DuplicatesModule));
-                break;
-            case "module.disk":
-                NavFrame.Navigate(typeof(DiskAnalyzerModule));
-                break;
-            case "module.drives":
-                NavFrame.Navigate(typeof(DrivesModule));
-                break;
-            case "module.uninstall":
-                NavFrame.Navigate(typeof(AppUninstallerModule));
-                break;
-            case "module.windows":
-                NavFrame.Navigate(typeof(WindowManagerModule));
-                break;
-            case "module.keyboard":
-                NavFrame.Navigate(typeof(KeyboardModule));
-                break;
-            case "module.hotkeys":
-                NavFrame.Navigate(typeof(HotkeyMacroModule));
-                break;
-            case "module.hosts":
-                NavFrame.Navigate(typeof(HostsEditorModule));
-                break;
-            case "module.mouse":
-                NavFrame.Navigate(typeof(MouseModule));
-                break;
-            case "module.recorder":
-                NavFrame.Navigate(typeof(ScreenRecorderModule));
-                break;
-            case "module.capture":
-                NavFrame.Navigate(typeof(CaptureStudioModule));
-                break;
-            case "module.monitor":
-                NavFrame.Navigate(typeof(SystemMonitorModule));
-                break;
-            case "module.battery":
-                NavFrame.Navigate(typeof(BatteryThermalModule));
-                break;
-            case "module.connections":
-                NavFrame.Navigate(typeof(ConnectionsModule));
-                break;
-            case "module.events":
-                NavFrame.Navigate(typeof(EventViewerModule));
-                break;
-            case "module.mixer":
-                NavFrame.Navigate(typeof(VolumeMixerModule));
-                break;
-            case "module.contextmenu":
-                NavFrame.Navigate(typeof(ContextMenuModule));
-                break;
-            case "module.awake":
-                NavFrame.Navigate(typeof(AwakeModule));
-                break;
-            case "module.colorpicker":
-                NavFrame.Navigate(typeof(ColorPickerModule));
-                break;
-            case "module.envvars":
-                NavFrame.Navigate(typeof(EnvVarsModule));
-                break;
-            case "module.clipboard":
-                NavFrame.Navigate(typeof(ClipboardModule));
-                break;
-            case "module.packages":
-                NavFrame.Navigate(typeof(PackageManagerModule));
-                break;
-            case "module.adb":
-                NavFrame.Navigate(typeof(AndroidAdbModule));
-                break;
-            case "module.fastboot":
-                NavFrame.Navigate(typeof(FastbootModule));
-                break;
-            case "module.emulator":
-                NavFrame.Navigate(typeof(EmulatorModule));
-                break;
-            case "module.vpn":
-                NavFrame.Navigate(typeof(VpnMeshModule));
-                break;
-            case "module.homeassistant":
-                NavFrame.Navigate(typeof(HomeAssistantModule));
-                break;
-            case "module.comms":
-                NavFrame.Navigate(typeof(CommunicationsModule));
-                break;
-            case "module.configbackup":
-                NavFrame.Navigate(typeof(ConfigBackupModule));
-                break;
-            case "module.native":
-                NavFrame.Navigate(typeof(NativeUtilitiesModule));
-                break;
-            case "module.powertoys":
-                NavFrame.Navigate(typeof(PowerToysExtrasModule));
-                break;
-            case "module.wslvm":
-                NavFrame.Navigate(typeof(WslVmModule));
-                break;
-            case "module.fonts":
-                NavFrame.Navigate(typeof(FontManagerModule));
-                break;
-            case "module.onedrive":
-                NavFrame.Navigate(typeof(OneDriveModule));
-                break;
-            case "module.timeunit":
-                NavFrame.Navigate(typeof(TimeUnitModule));
-                break;
-            case "module.settingshub":
-                NavFrame.Navigate(typeof(SettingsHubModule));
-                break;
-            case "module.imaging":
-                NavFrame.Navigate(typeof(ImagingGameModule));
-                break;
-            case "module.voice":
-                NavFrame.Navigate(typeof(VoiceModule));
-                break;
-            default:
-                var cat = Categories.All.FirstOrDefault(c => c.Id == tag);
-                if (cat is not null)
-                    NavFrame.Navigate(typeof(CategoryPage), cat);
-                break;
+            Key = key,
+            Modifiers = Windows.System.VirtualKeyModifiers.Control,
+        };
+        a.Invoked += (_, e) => { action(); e.Handled = true; };
+        RootGrid.KeyboardAccelerators.Add(a);
+    }
+
+    private void BuildTitleMap()
+    {
+        _titles[typeof(DashboardPage)] = "Dashboard · 概覽";
+        _titles[typeof(AboutPage)] = "About · 關於";
+        _titles[typeof(SettingsPage)] = "Settings · 設定";
+        _titles[typeof(SearchResultsPage)] = "Search · 搜尋";
+        foreach (var m in ModuleRegistry.All)
+            _titles[MapType(m.Tag)] = $"{m.En} · {m.Zh}";
+    }
+
+    /// <summary>Resolve a tab/nav key into a page type + parameter.</summary>
+    private (Type type, object? param) Resolve(string key)
+    {
+        switch (key)
+        {
+            case "dashboard": return (typeof(DashboardPage), null);
+            case "about": return (typeof(AboutPage), null);
+            case "settings": return (typeof(SettingsPage), null);
         }
+        if (key.StartsWith("search:", StringComparison.OrdinalIgnoreCase))
+            return (typeof(SearchResultsPage), key.Substring("search:".Length));
+        if (key.StartsWith("module.", StringComparison.Ordinal))
+            return (MapType(key), null);
+        var cat = Categories.All.FirstOrDefault(c => c.Id == key);
+        if (cat is not null) return (typeof(CategoryPage), cat);
+        return (typeof(DashboardPage), null);
+    }
+
+    private string TitleFor(string key, Type type, object? param)
+    {
+        if (type == typeof(CategoryPage) && param is AppCategory c) return $"{c.Name.En} · {c.Name.Zh}";
+        if (type == typeof(SearchResultsPage)) return param is string q && q.Length > 0 ? $"Search: {q}" : "Search · 搜尋";
+        return _titles.TryGetValue(type, out var t) ? t : "WinForge";
+    }
+
+    /// <summary>Navigate the active tab to a key; opens a tab if none exist.</summary>
+    private void NavigateActive(string key)
+    {
+        if (Tabs.TabItems.Count == 0) { AddTab(key); return; }
+        if (Tabs.SelectedItem is not TabViewItem tab || tab.Content is not Frame frame) { AddTab(key); return; }
+        var (type, param) = Resolve(key);
+        frame.Navigate(type, param);
+        tab.Tag = key;
+        tab.Header = TitleFor(key, type, param);
+        UpdateBackButton();
+        SaveSession();
+    }
+
+    private TabViewItem AddTab(string key = "dashboard", bool select = true)
+    {
+        var (type, param) = Resolve(key);
+        var frame = new Frame();
+        frame.Navigated += (_, _) => UpdateBackButton();
+        var tab = new TabViewItem
+        {
+            Tag = key,
+            Header = TitleFor(key, type, param),
+            Content = frame,
+            IconSource = new Microsoft.UI.Xaml.Controls.SymbolIconSource { Symbol = Symbol.Document },
+        };
+        Tabs.TabItems.Add(tab);
+        if (select) Tabs.SelectedItem = tab;
+        frame.Navigate(type, param);
+        UpdateBackButton();
+        SaveSession();
+        return tab;
+    }
+
+    private void CloseActiveTab()
+    {
+        if (Tabs.SelectedItem is TabViewItem tab) CloseTab(tab);
+    }
+
+    private void CloseTab(TabViewItem tab)
+    {
+        Tabs.TabItems.Remove(tab);
+        if (Tabs.TabItems.Count == 0) AddTab("dashboard");
+        SaveSession();
+    }
+
+    private void UpdateBackButton()
+    {
+        try { AppTitleBar.IsBackButtonVisible = ActiveFrame?.CanGoBack == true; } catch { }
+    }
+
+    private void Tabs_AddTabButtonClick(TabView sender, object args) => AddTab("dashboard");
+
+    private void Tabs_TabCloseRequested(TabView sender, TabViewTabCloseRequestedEventArgs args)
+    {
+        if (args.Tab is TabViewItem tab) CloseTab(tab);
+    }
+
+    private void Tabs_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (Tabs.SelectedItem is not TabViewItem tab) return;
+        UpdateBackButton();
+        var key = tab.Tag as string;
+        if (string.IsNullOrEmpty(key)) return;
+        var item = FindByTag(key);
+        if (item is not null && !ReferenceEquals(NavView.SelectedItem, item))
+        {
+            _syncingTabs = true;
+            try { NavView.SelectedItem = item; } finally { _syncingTabs = false; }
+        }
+        SaveSession();
+    }
+
+    // ===================== Session: persist / export / import =====================
+
+    private void SaveSession()
+    {
+        if (Tabs is null || _restoring) return;
+        var keys = Tabs.TabItems.OfType<TabViewItem>().Select(t => (t.Tag as string) ?? "dashboard");
+        TabSessionService.Save(keys, Tabs.SelectedIndex < 0 ? 0 : Tabs.SelectedIndex);
+    }
+
+    private void RestoreSessionOrDefault()
+    {
+        var data = TabSessionService.Load();
+        if (data is null || data.Tabs.Count == 0) { AddTab("dashboard"); return; }
+        ReloadTabs(data);
+    }
+
+    private void ReloadTabs(TabSessionService.SessionData data)
+    {
+        _restoring = true;
+        try
+        {
+            Tabs.TabItems.Clear();
+            foreach (var key in data.Tabs) AddTab(key, select: false);
+            if (Tabs.TabItems.Count == 0) AddTab("dashboard", select: false);
+            var active = (data.Active >= 0 && data.Active < Tabs.TabItems.Count) ? data.Active : 0;
+            Tabs.SelectedItem = Tabs.TabItems[active];
+        }
+        finally { _restoring = false; }
+        SaveSession();
+    }
+
+    private void Session_NewTab(object sender, RoutedEventArgs e) => AddTab("dashboard");
+
+    private async void Session_Export(object sender, RoutedEventArgs e)
+    {
+        SaveSession();
+        var path = await FileDialogs.SaveFileAsync($"winforge-tabs-{DateTime.Now:yyyyMMdd-HHmm}", ".json");
+        if (!string.IsNullOrEmpty(path)) { try { TabSessionService.ExportTo(path); } catch { } }
+    }
+
+    private async void Session_Import(object sender, RoutedEventArgs e)
+    {
+        var path = await FileDialogs.OpenFileAsync(".json");
+        if (string.IsNullOrEmpty(path)) return;
+        var data = TabSessionService.ImportFrom(path);
+        if (data is not null) ReloadTabs(data);
+    }
+
+    private void Session_Restore(object sender, RoutedEventArgs e)
+    {
+        var data = TabSessionService.Load();
+        if (data is not null) ReloadTabs(data);
+    }
+
+    private void Session_OpenFolder(object sender, RoutedEventArgs e)
+    {
+        try { Process.Start(new ProcessStartInfo("explorer.exe", $"\"{TabSessionService.Folder}\"") { UseShellExecute = true }); } catch { }
     }
 }
