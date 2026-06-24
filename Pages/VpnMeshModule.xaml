@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinTune.Pages.VpnMeshModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="900" Spacing="14">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <FontIcon FontSize="22" Glyph="&#xE945;" VerticalAlignment="Center" />
+                <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
+            </StackPanel>
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <!-- NordVPN -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="NordTitle" FontWeight="SemiBold" FontSize="16" />
+                    <InfoBar x:Name="NordEngineBar" IsClosable="False" IsOpen="False" />
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ComboBox x:Name="NordCountryBox" Grid.Column="0" SelectedIndex="0" HorizontalAlignment="Stretch" />
+                        <Button x:Name="NordConnectBtn" Grid.Column="1" Click="NordConnect_Click" Style="{StaticResource AccentButtonStyle}" />
+                        <Button x:Name="NordDisconnectBtn" Grid.Column="2" Click="NordDisconnect_Click" />
+                    </Grid>
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ComboBox x:Name="NordGroupBox" Grid.Column="0" SelectedIndex="0" HorizontalAlignment="Stretch" />
+                        <Button x:Name="NordGroupBtn" Grid.Column="1" Click="NordGroup_Click" />
+                    </Grid>
+
+                    <!-- NordVPN Meshnet -->
+                    <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="6" Padding="12">
+                        <StackPanel Spacing="8">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock x:Name="NordMeshTitle" Grid.Column="0" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                <ToggleSwitch x:Name="NordMeshToggle" Grid.Column="1" Toggled="NordMeshToggle_Toggled" />
+                            </Grid>
+                            <Button x:Name="NordMeshPeersBtn" Click="NordMeshPeers_Click" />
+                        </StackPanel>
+                    </Border>
+
+                    <InfoBar x:Name="NordResult" IsClosable="True" IsOpen="False" />
+                </StackPanel>
+            </Border>
+
+            <!-- Tailscale -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="TsTitle" FontWeight="SemiBold" FontSize="16" />
+                    <InfoBar x:Name="TsEngineBar" IsClosable="False" IsOpen="False" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="TsUpBtn" Click="TsUp_Click" Style="{StaticResource AccentButtonStyle}" />
+                        <Button x:Name="TsDownBtn" Click="TsDown_Click" />
+                        <Button x:Name="TsStatusBtn" Click="TsStatus_Click" />
+                        <Button x:Name="TsIpBtn" Click="TsIp_Click" />
+                        <ProgressRing x:Name="TsBusy" IsActive="False" Width="20" Height="20" VerticalAlignment="Center" />
+                    </StackPanel>
+
+                    <!-- Tailscale exit-node picker -->
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ComboBox x:Name="TsExitNodeBox" Grid.Column="0" HorizontalAlignment="Stretch" />
+                        <Button x:Name="TsExitNodeBtn" Grid.Column="1" Click="TsSetExitNode_Click" />
+                        <Button x:Name="TsClearExitNodeBtn" Grid.Column="2" Click="TsClearExitNode_Click" />
+                    </Grid>
+                    <CheckBox x:Name="TsAdvertiseExit" Click="TsAdvertiseExit_Click" />
+
+                    <!-- Tailscale Serve / Funnel -->
+                    <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="6" Padding="12">
+                        <StackPanel Spacing="8">
+                            <TextBlock x:Name="TsShareTitle" FontWeight="SemiBold" />
+                            <TextBlock x:Name="TsShareBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" FontSize="12" />
+                            <Grid ColumnSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <NumberBox x:Name="TsPortBox" Grid.Column="0" Value="8080" Minimum="1" Maximum="65535" SpinButtonPlacementMode="Compact" />
+                                <Button x:Name="TsServeBtn" Grid.Column="1" Click="TsServe_Click" />
+                                <Button x:Name="TsFunnelBtn" Grid.Column="2" Click="TsFunnel_Click" />
+                            </Grid>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button x:Name="TsServeStatusBtn" Click="TsServeStatus_Click" />
+                                <Button x:Name="TsServeResetBtn" Click="TsServeReset_Click" />
+                                <Button x:Name="TsFunnelResetBtn" Click="TsFunnelReset_Click" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="TsPingBox" Grid.Column="0" PlaceholderText="host / 100.x.x.x" FontFamily="Consolas" />
+                        <Button x:Name="TsPingBtn" Grid.Column="1" Click="TsPing_Click" />
+                    </Grid>
+                    <TextBlock x:Name="TsPeersHeader" FontWeight="SemiBold" FontSize="13" />
+                    <ListView x:Name="TsPeers" SelectionMode="None" MaxHeight="200">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Padding="6,3,6,3" ColumnSpacing="10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="12" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="160" />
+                                    </Grid.ColumnDefinitions>
+                                    <Ellipse Grid.Column="0" Width="9" Height="9" VerticalAlignment="Center" Fill="{Binding Dot}" />
+                                    <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Grid.Column="2" Text="{Binding Ip}" VerticalAlignment="Center" FontFamily="Consolas" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                    <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="6" Padding="10">
+                        <TextBox x:Name="TsConsole" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap" FontFamily="Consolas" FontSize="12" BorderThickness="0" Background="Transparent" MinHeight="80" />
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <!-- Windows built-in VPN -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="WinVpnTitle" FontWeight="SemiBold" FontSize="16" />
+                    <TextBlock x:Name="WinVpnBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" FontSize="12" />
+
+                    <!-- Add profile -->
+                    <Grid ColumnSpacing="8" RowSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="WinVpnName" Grid.Column="0" />
+                        <TextBox x:Name="WinVpnServer" Grid.Column="1" />
+                        <ComboBox x:Name="WinVpnTunnel" Grid.Column="2" SelectedIndex="0" MinWidth="120" />
+                        <Button x:Name="WinVpnAddBtn" Grid.Column="3" Click="WinVpnAdd_Click" Style="{StaticResource AccentButtonStyle}" />
+                    </Grid>
+
+                    <TextBlock x:Name="WinVpnListHeader" FontWeight="SemiBold" FontSize="13" />
+                    <InfoBar x:Name="WinVpnEmpty" IsClosable="False" IsOpen="False" Severity="Informational" />
+                    <ListView x:Name="WinVpnList" SelectionMode="None" MaxHeight="240">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Padding="6,4,6,4" ColumnSpacing="10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="12" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Ellipse Grid.Column="0" Width="9" Height="9" VerticalAlignment="Center" Fill="{Binding Dot}" />
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding Detail}" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                    <Button Grid.Column="2" Content="{Binding ActionsLabel}" Tag="{Binding Name}">
+                                        <Button.Flyout>
+                                            <MenuFlyout>
+                                                <MenuFlyoutItem Text="{Binding ConnectLabel}" Tag="{Binding Name}" Click="WinVpnConnect_Click" />
+                                                <MenuFlyoutItem Text="{Binding DisconnectLabel}" Tag="{Binding Name}" Click="WinVpnDisconnect_Click" />
+                                                <MenuFlyoutSeparator />
+                                                <MenuFlyoutItem Text="{Binding RemoveLabel}" Tag="{Binding Name}" Click="WinVpnRemove_Click" />
+                                            </MenuFlyout>
+                                        </Button.Flyout>
+                                    </Button>
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                    <InfoBar x:Name="WinVpnResult" IsClosable="True" IsOpen="False" />
+                </StackPanel>
+            </Border>
+
+            <!-- WireGuard -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="WgTitle" FontWeight="SemiBold" FontSize="16" />
+                    <InfoBar x:Name="WgEngineBar" IsClosable="False" IsOpen="False" />
+                    <TextBlock x:Name="WgBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" FontSize="12" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="WgImportBtn" Click="WgImport_Click" Style="{StaticResource AccentButtonStyle}" />
+                        <Button x:Name="WgRefreshBtn" Click="WgRefresh_Click" />
+                        <ProgressRing x:Name="WgBusy" IsActive="False" Width="20" Height="20" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <TextBlock x:Name="WgListHeader" FontWeight="SemiBold" FontSize="13" />
+                    <InfoBar x:Name="WgEmpty" IsClosable="False" IsOpen="False" Severity="Informational" />
+                    <ListView x:Name="WgList" SelectionMode="None" MaxHeight="200">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Padding="6,4,6,4" ColumnSpacing="10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="12" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Ellipse Grid.Column="0" Width="9" Height="9" VerticalAlignment="Center" Fill="{Binding Dot}" />
+                                    <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                    <Button Grid.Column="2" Content="{Binding RemoveLabel}" Tag="{Binding Name}" Click="WgRemove_Click" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                    <InfoBar x:Name="WgResult" IsClosable="True" IsOpen="False" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinTune.Pages.CloudflareModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="1000" Spacing="14">
+
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <FontIcon FontSize="24" Glyph="&#xE753;" VerticalAlignment="Center" />
+                <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
+            </StackPanel>
+            <TextBlock
+                x:Name="HeaderBlurb"
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                TextWrapping="Wrap" />
+
+            <InfoBar x:Name="EngineBar" IsClosable="False" IsOpen="False" Severity="Warning" />
+
+            <!-- Quick actions -->
+            <StackPanel x:Name="QuickActions" Orientation="Horizontal" Spacing="8" />
+
+            <Border
+                x:Name="OutBorder"
+                Padding="12"
+                Background="{ThemeResource LayerFillColorDefaultBrush}"
+                CornerRadius="6"
+                Visibility="Collapsed">
+                <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
+                    <TextBlock
+                        x:Name="OutText"
+                        FontFamily="Consolas"
+                        FontSize="12"
+                        IsTextSelectionEnabled="True"
+                        TextWrapping="Wrap" />
+                </ScrollViewer>
+            </Border>
+
+            <TextBlock x:Name="AdvancedHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
+            <TextBlock
+                x:Name="PlaceholderHint"
+                FontSize="13"
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                TextWrapping="Wrap" />
+            <AutoSuggestBox
+                x:Name="OpsFilter"
+                MaxWidth="420"
+                HorizontalAlignment="Left"
+                QueryIcon="Find"
+                TextChanged="OpsFilter_TextChanged" />
+            <StackPanel x:Name="OpsPanel" Spacing="2" />
+        </StackPanel>
+    </ScrollViewer>
+</Page>
