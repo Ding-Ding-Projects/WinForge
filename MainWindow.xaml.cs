@@ -137,6 +137,12 @@ public sealed partial class MainWindow : Window
             case "warp":
                 Navigator.GoToModule?.Invoke("module.cloudflare");
                 break;
+            case "bitwarden":
+            case "bw":
+            case "vault":
+            case "passwords":
+                Navigator.GoToModule?.Invoke("module.bitwarden");
+                break;
             case "archives":
             case "archive":
                 Navigator.GoToModule?.Invoke("module.archives");
@@ -429,6 +435,7 @@ public sealed partial class MainWindow : Window
         "module.git" => typeof(GitHubModule),
         "module.aiagents" => typeof(AiAgentsModule),
         "module.cloudflare" => typeof(CloudflareModule),
+        "module.bitwarden" => typeof(BitwardenModule),
         "module.archives" => typeof(ArchivesModule),
         "module.media" => typeof(MediaModule),
         "module.regedit" => typeof(RegistryEditor),
