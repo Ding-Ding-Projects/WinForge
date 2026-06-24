@@ -81,6 +81,7 @@
                         <NavigationViewItem Content="Battery &amp; Thermal · 電池與散熱" Tag="module.battery"><NavigationViewItem.Icon><FontIcon Glyph="&#xE83E;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Connections · 連線" Tag="module.connections"><NavigationViewItem.Icon><FontIcon Glyph="&#xE968;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Packet Capture · 封包擷取" Tag="module.wireshark"><NavigationViewItem.Icon><FontIcon Glyph="&#xEDA3;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Nmap Scanner · 網絡掃描" Tag="module.nmap"><NavigationViewItem.Icon><FontIcon Glyph="&#xE9D2;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Native Utilities · 原生工具" Tag="module.native"><NavigationViewItem.Icon><FontIcon Glyph="&#xE950;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Environment Variables · 環境變數" Tag="module.envvars"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Clipboard · 剪貼簿" Tag="module.clipboard"><NavigationViewItem.Icon><FontIcon Glyph="&#xE77F;" /></NavigationViewItem.Icon></NavigationViewItem>
