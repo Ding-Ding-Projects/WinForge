@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.KomorebiModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:muxc="using:Microsoft.UI.Xaml.Controls"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="1040" Spacing="14">
+
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <FontIcon FontSize="24" Glyph="&#xE737;" VerticalAlignment="Center" />
+                <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
+            </StackPanel>
+            <TextBlock
+                x:Name="HeaderBlurb"
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                TextWrapping="Wrap" />
+
+            <!-- install / engine -->
+            <InfoBar x:Name="EngineBar" IsClosable="False" IsOpen="False" Severity="Warning" />
+
+            <!-- first-run warning -->
+            <InfoBar
+                x:Name="WarnBar"
+                IsClosable="True"
+                IsOpen="False"
+                Severity="Warning" />
+
+            <!-- daemon status + lifecycle -->
+            <Border
+                Padding="16"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Ellipse x:Name="StatusDot" Width="12" Height="12" VerticalAlignment="Center" Fill="Gray" />
+                        <TextBlock x:Name="StatusText" VerticalAlignment="Center" FontWeight="SemiBold" />
+                        <ProgressRing x:Name="BusyRing" Width="18" Height="18" IsActive="False" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="StartBtn" Click="Start_Click" Style="{StaticResource AccentButtonStyle}" />
+                        <Button x:Name="StopBtn" Click="Stop_Click" />
+                        <Button x:Name="RestartBtn" Click="Restart_Click" />
+                        <Button x:Name="RefreshBtn" Click="Refresh_Click" />
+                    </StackPanel>
+                    <CheckBox x:Name="WithBarCheck" />
+                </StackPanel>
+            </Border>
+
+            <!-- layout switcher -->
+            <Border
+                Padding="16"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="LayoutHeader" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                    <TextBlock x:Name="LayoutHint" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <ComboBox x:Name="LayoutCombo" MinWidth="240" />
+                        <Button x:Name="ApplyLayoutBtn" Click="ApplyLayout_Click" />
+                        <Button x:Name="CycleNextBtn" Click="CycleNext_Click" />
+                        <Button x:Name="CyclePrevBtn" Click="CyclePrev_Click" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- state tree: monitors → workspaces → windows -->
+            <Border
+                Padding="16"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="TreeHeader" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                    <TextBlock x:Name="TreeHint" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    <muxc:TreeView
+                        x:Name="StateTree"
+                        SelectionMode="None" />
+                    <TextBlock x:Name="TreeEmpty" Foreground="{ThemeResource TextFillColorTertiaryBrush}" TextWrapping="Wrap" Visibility="Collapsed" />
+                </StackPanel>
+            </Border>
+
+            <!-- workspace navigation + padding -->
+            <Border
+                Padding="16"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <TextBlock x:Name="WsHeader" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock x:Name="WsLabel" VerticalAlignment="Center" />
+                        <NumberBox x:Name="WsIndex" Minimum="0" Maximum="20" Value="0" SpinButtonPlacementMode="Inline" MinWidth="120" />
+                        <Button x:Name="FocusWsBtn" Click="FocusWs_Click" />
+                        <Button x:Name="MoveWsBtn" Click="MoveWs_Click" />
+                        <Button x:Name="SendWsBtn" Click="SendWs_Click" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <StackPanel Spacing="4">
+                            <TextBlock x:Name="WsPadLabel" FontSize="12" />
+                            <NumberBox x:Name="WsPad" Minimum="0" Maximum="200" Value="20" SpinButtonPlacementMode="Inline" MinWidth="130" />
+                        </StackPanel>
+                        <StackPanel Spacing="4">
+                            <TextBlock x:Name="ContPadLabel" FontSize="12" />
+                            <NumberBox x:Name="ContPad" Minimum="0" Maximum="200" Value="20" SpinButtonPlacementMode="Inline" MinWidth="130" />
+                        </StackPanel>
+                        <Button x:Name="ApplyPadBtn" Click="ApplyPad_Click" VerticalAlignment="Bottom" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- rules manager -->
+            <Border
+                Padding="16"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="RulesHeader" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                    <TextBlock x:Name="RulesHint" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <ComboBox x:Name="RuleKind" MinWidth="150" />
+                        <ComboBox x:Name="RuleId" MinWidth="130" />
+                        <TextBox x:Name="RuleValue" MinWidth="220" PlaceholderText="firefox.exe" />
+                    </StackPanel>
+                    <StackPanel x:Name="RuleWsRow" Orientation="Horizontal" Spacing="8">
+                        <TextBlock x:Name="RuleMonLabel" VerticalAlignment="Center" FontSize="12" />
+                        <NumberBox x:Name="RuleMon" Minimum="0" Maximum="20" Value="0" SpinButtonPlacementMode="Inline" MinWidth="100" />
+                        <TextBlock x:Name="RuleWsLabel" VerticalAlignment="Center" FontSize="12" />
+                        <NumberBox x:Name="RuleWs" Minimum="0" Maximum="20" Value="0" SpinButtonPlacementMode="Inline" MinWidth="100" />
+                    </StackPanel>
+                    <Button x:Name="AddRuleBtn" Click="AddRule_Click" />
+                </StackPanel>
+            </Border>
+
+            <!-- config editor -->
+            <Border
+                Padding="16"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="ConfigHeader" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                    <TextBlock x:Name="ConfigPathText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="OpenConfigBtn" Click="OpenConfig_Click" />
+                        <Button x:Name="PickConfigBtn" Click="PickConfig_Click" />
+                        <Button x:Name="ReloadConfigBtn" Click="ReloadConfig_Click" />
+                        <Button x:Name="QuickstartBtn" Click="Quickstart_Click" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- raw state inspector -->
+            <StackPanel Spacing="8">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button x:Name="RawStateBtn" Click="RawState_Click" />
+                    <Button x:Name="GlobalStateBtn" Click="GlobalState_Click" />
+                    <Button x:Name="CheckBtn" Click="Check_Click" />
+                </StackPanel>
+                <Border
+                    x:Name="OutBorder"
+                    Padding="12"
+                    Background="{ThemeResource LayerFillColorDefaultBrush}"
+                    CornerRadius="6"
+                    Visibility="Collapsed">
+                    <ScrollViewer MaxHeight="260" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                        <TextBlock
+                            x:Name="OutText"
+                            FontFamily="Consolas"
+                            FontSize="12"
+                            IsTextSelectionEnabled="True"
+                            TextWrapping="NoWrap" />
+                    </ScrollViewer>
+                </Border>
+            </StackPanel>
+
+            <!-- operations (TweakCards) -->
+            <TextBlock x:Name="OpsHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
+            <AutoSuggestBox
+                x:Name="OpsFilter"
+                MaxWidth="420"
+                HorizontalAlignment="Left"
+                QueryIcon="Find"
+                TextChanged="OpsFilter_TextChanged" />
+            <StackPanel x:Name="OpsPanel" Spacing="2" />
+
+            <!-- hotkeys note -->
+            <InfoBar x:Name="HotkeyBar" IsClosable="False" IsOpen="True" Severity="Informational" />
+
+            <InfoBar x:Name="ResultBar" IsClosable="True" IsOpen="False" />
+        </StackPanel>
+    </ScrollViewer>
+</Page>

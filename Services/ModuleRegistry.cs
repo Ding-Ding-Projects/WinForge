@@ -40,6 +40,7 @@ public static class ModuleRegistry
         new() { Tag = "module.drives", En = "Drives", Zh = "磁碟機", Glyph = "", Keywords = "drive volume format bitlocker 磁碟機" },
         new() { Tag = "module.uninstall", En = "App Uninstaller", Zh = "應用程式解除安裝", Glyph = "", Keywords = "uninstall remove app program winget 解除安裝" },
         new() { Tag = "module.windows", En = "Window Manager", Zh = "視窗管理", Glyph = "", Keywords = "window tile cascade always on top 視窗" },
+        new() { Tag = "module.komorebi", En = "Komorebi (Tiling WM)", Zh = "Komorebi 平鋪視窗管理", Glyph = ((char)0xE80A).ToString(), Keywords = "komorebi komorebic tiling window manager tile bsp columns rows stack grid monocle float workspace monitor layout daemon wm whkd gaps padding 平鋪 視窗管理 排版 工作區 守護程序 間距" },
         new() { Tag = "module.keyboard", En = "Keyboard Remapper", Zh = "鍵盤重新對應", Glyph = "", Keywords = "keyboard remap key sharpkeys 鍵盤" },
         new() { Tag = "module.hotkeys", En = "Hotkey & Macro Runner", Zh = "熱鍵與巨集", Glyph = ((char)0xE765).ToString(), Keywords = "hotkey macro shortcut chord registerhotkey send keys autohotkey text expander snippet trigger expand abbreviation 熱鍵 巨集 快捷鍵 文字展開 片語 縮寫" },
         new() { Tag = "module.hosts", En = "Hosts Editor", Zh = "hosts 編輯器", Glyph = "", Keywords = "hosts block domain dns 封鎖" },
