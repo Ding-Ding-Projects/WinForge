@@ -1,0 +1,5 @@
+# Additive files across feature branches: keep both sides' added lines on merge.
+MainWindow.xaml            merge=union
+MainWindow.xaml.cs         merge=union
+Services/ModuleRegistry.cs merge=union
+WinForge.csproj            merge=union
