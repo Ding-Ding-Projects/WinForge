@@ -79,6 +79,11 @@ public partial class App : Application
             Shell.Activate();
         CrashLogger.Mark("App: after Activate");
 
+        // 啟動成功 → 解除最早期載入器診斷，免得正常運作時嘅良性 first-chance 例外洗版 crash.log。
+        // Startup succeeded → detach the early loader diagnostics so benign first-chance loader exceptions
+        // during normal operation don't spam crash.log.
+        StartupDiagnostics.Disarm();
+
         // 其餘背景服務（進階貼上熱鍵、活動追蹤、滑鼠工具覆蓋層）延後到視窗顯示之後先啟動，每個都包住，
         // 避免喺 XAML 初始化嘅脆弱時段同全域掛鈎／覆蓋層競爭而間歇性閃退（stowed exception）。
         // Defer the remaining background services (Advanced Paste hotkey, activity tracking, Mouse Utilities

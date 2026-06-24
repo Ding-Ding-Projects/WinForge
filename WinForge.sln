@@ -1,0 +1,51 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.11.0.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WinForge", "WinForge.csproj", "{9AB01677-DDD1-4B58-B9AA-AAF426EF6C2C}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WinForgeLauncher", "launcher\WinForgeLauncher.csproj", "{BE368CF8-55BE-4C9F-9487-C28E752E2A2D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Debug|ARM64 = Debug|ARM64
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+		Release|ARM64 = Release|ARM64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9AB01677-DDD1-4B58-B9AA-AAF426EF6C2C}.Debug|x64.ActiveCfg = Debug|x64
+		{9AB01677-DDD1-4B58-B9AA-AAF426EF6C2C}.Debug|x64.Build.0 = Debug|x64
+		{9AB01677-DDD1-4B58-B9AA-AAF426EF6C2C}.Debug|x86.ActiveCfg = Debug|x86
+		{9AB01677-DDD1-4B58-B9AA-AAF426EF6C2C}.Debug|x86.Build.0 = Debug|x86
+		{9AB01677-DDD1-4B58-B9AA-AAF426EF6C2C}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{9AB01677-DDD1-4B58-B9AA-AAF426EF6C2C}.Debug|ARM64.Build.0 = Debug|ARM64
+		{9AB01677-DDD1-4B58-B9AA-AAF426EF6C2C}.Release|x64.ActiveCfg = Release|x64
+		{9AB01677-DDD1-4B58-B9AA-AAF426EF6C2C}.Release|x64.Build.0 = Release|x64
+		{9AB01677-DDD1-4B58-B9AA-AAF426EF6C2C}.Release|x86.ActiveCfg = Release|x86
+		{9AB01677-DDD1-4B58-B9AA-AAF426EF6C2C}.Release|x86.Build.0 = Release|x86
+		{9AB01677-DDD1-4B58-B9AA-AAF426EF6C2C}.Release|ARM64.ActiveCfg = Release|ARM64
+		{9AB01677-DDD1-4B58-B9AA-AAF426EF6C2C}.Release|ARM64.Build.0 = Release|ARM64
+		{BE368CF8-55BE-4C9F-9487-C28E752E2A2D}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{BE368CF8-55BE-4C9F-9487-C28E752E2A2D}.Debug|x64.Build.0 = Debug|Any CPU
+		{BE368CF8-55BE-4C9F-9487-C28E752E2A2D}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{BE368CF8-55BE-4C9F-9487-C28E752E2A2D}.Debug|x86.Build.0 = Debug|Any CPU
+		{BE368CF8-55BE-4C9F-9487-C28E752E2A2D}.Debug|ARM64.ActiveCfg = Debug|Any CPU
+		{BE368CF8-55BE-4C9F-9487-C28E752E2A2D}.Debug|ARM64.Build.0 = Debug|Any CPU
+		{BE368CF8-55BE-4C9F-9487-C28E752E2A2D}.Release|x64.ActiveCfg = Release|Any CPU
+		{BE368CF8-55BE-4C9F-9487-C28E752E2A2D}.Release|x64.Build.0 = Release|Any CPU
+		{BE368CF8-55BE-4C9F-9487-C28E752E2A2D}.Release|x86.ActiveCfg = Release|Any CPU
+		{BE368CF8-55BE-4C9F-9487-C28E752E2A2D}.Release|x86.Build.0 = Release|Any CPU
+		{BE368CF8-55BE-4C9F-9487-C28E752E2A2D}.Release|ARM64.ActiveCfg = Release|Any CPU
+		{BE368CF8-55BE-4C9F-9487-C28E752E2A2D}.Release|ARM64.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {0D9F1E3A-2C7B-4A56-9E8D-7F1A4B6C2D90}
+	EndGlobalSection
+EndGlobal

@@ -77,9 +77,14 @@
          SshClient (exec + ShellStream), SftpClient, key handling, all in-process. -->
     <PackageReference Include="SSH.NET" Version="2025.1.0" />
     <!-- 內嵌 VLC 引擎（libVLC）· Embedded VLC engine (libVLC) for the in-app Media Player module.
-         LibVLCSharp = managed bindings; LibVLCSharp.WinUI = SwapChainPanel-backed VideoView;
-         VideoLAN.LibVLC.Windows = bundled native libvlc.dll + plugins (LGPL build, no separate install). -->
-    <PackageReference Include="LibVLCSharp" Version="3.10.0" />
+         LibVLCSharp.WinUI = SwapChainPanel-backed VideoView; VideoLAN.LibVLC.Windows = bundled native
+         libvlc.dll + plugins (LGPL build, no separate install).
+         IMPORTANT: do NOT also reference the base "LibVLCSharp" package. Both packages ship an assembly
+         literally named LibVLCSharp.dll (same name + version); MSBuild would copy only one to the output,
+         and the base package's cross-platform build (no LibVLCSharp.Platforms.Windows.VideoView) won the
+         conflict — so VideoView was missing at runtime and WinUI's eager XamlTypeInfo init fail-fasted with
+         a 0xC000027B stowed exception (TypeLoad) before any window opened. The .WinUI build is a superset
+         (core types + VideoView), so it alone is sufficient. See Services/StartupDiagnostics.cs. -->
     <PackageReference Include="LibVLCSharp.WinUI" Version="3.10.0" />
     <PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.23.1" />
     <!-- MailKit / MimeKit (MIT): IMAP/SMTP protocols + MIME parsing for the native Mail module. -->
