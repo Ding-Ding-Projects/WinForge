@@ -100,6 +100,7 @@
                         <NavigationViewItem Content="Document Converter · 文件轉換器" Tag="module.libreoffice"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Screen Recorder · 螢幕錄影" Tag="module.recorder"><NavigationViewItem.Icon><FontIcon Glyph="&#xE714;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Capture Studio · 擷取工作室" Tag="module.capture"><NavigationViewItem.Icon><FontIcon Glyph="&#xE722;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Crop And Lock · 裁切與鎖定" Tag="module.cropandlock"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7A8;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="GIF Studio · 螢幕轉 GIF" Tag="module.giflab"><NavigationViewItem.Icon><FontIcon Glyph="&#xE786;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Volume Mixer · 音量混合器" Tag="module.mixer"><NavigationViewItem.Icon><FontIcon Glyph="&#xE767;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Color Picker · 螢幕取色" Tag="module.colorpicker"><NavigationViewItem.Icon><FontIcon Glyph="&#xE790;" /></NavigationViewItem.Icon></NavigationViewItem>
