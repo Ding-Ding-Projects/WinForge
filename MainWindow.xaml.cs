@@ -348,6 +348,13 @@ public sealed partial class MainWindow : Window
             case "smarthome":
                 Navigator.GoToModule?.Invoke("module.homeassistant");
                 break;
+            case "worldmonitor":
+            case "world":
+            case "wm":
+            case "news":
+            case "geopolitics":
+                Navigator.GoToModule?.Invoke("module.worldmonitor");
+                break;
             case null:
             case "":
             case "dashboard":
@@ -478,6 +485,7 @@ public sealed partial class MainWindow : Window
         "module.settingshub" => typeof(SettingsHubModule),
         "module.imaging" => typeof(ImagingGameModule),
         "module.voice" => typeof(VoiceModule),
+        "module.worldmonitor" => typeof(WorldMonitorModule),
         _ => typeof(DashboardPage),
     };
 
