@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.AmuletModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid Padding="24,16,24,16" RowSpacing="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="12">
+            <FontIcon FontSize="22" Glyph="&#xE7FC;" VerticalAlignment="Center" />
+            <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
+        </StackPanel>
+        <TextBlock x:Name="HeaderBlurb" Grid.Row="1"
+                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+        <!-- Engine / status bars -->
+        <StackPanel Grid.Row="2" Spacing="6">
+            <InfoBar x:Name="AmuletBar" IsClosable="False" IsOpen="False" />
+            <StackPanel x:Name="AmuletActionRow" Orientation="Horizontal" Spacing="8" />
+            <InfoBar x:Name="PythonBar" IsClosable="False" IsOpen="False" />
+            <StackPanel x:Name="PythonActionRow" Orientation="Horizontal" Spacing="8" />
+            <InfoBar x:Name="StatusBar" IsClosable="True" IsOpen="False" />
+        </StackPanel>
+
+        <!-- Main scroll body -->
+        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" VerticalScrollMode="Auto">
+            <StackPanel Spacing="14">
+
+                <!-- World picker + metadata card -->
+                <Border BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                        CornerRadius="8" Padding="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                    <StackPanel Spacing="12">
+                        <TextBlock x:Name="WorldHeader" FontWeight="SemiBold" FontSize="16" />
+
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button x:Name="PickWorldBtn" Click="PickWorld_Click" Style="{StaticResource AccentButtonStyle}" />
+                            <Button x:Name="OpenSavesBtn" Click="OpenSaves_Click" />
+                            <Button x:Name="ClearWorldBtn" Click="ClearWorld_Click" />
+                        </StackPanel>
+
+                        <TextBlock x:Name="WorldPathText" FontSize="12" TextWrapping="Wrap"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+
+                        <!-- level.dat metadata grid -->
+                        <Border x:Name="MetaCard" Visibility="Collapsed"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                                CornerRadius="6" Padding="12">
+                            <Grid ColumnSpacing="18" RowSpacing="6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <TextBlock x:Name="MetaNameLbl" Grid.Row="0" Grid.Column="0" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <TextBlock x:Name="MetaNameVal" Grid.Row="0" Grid.Column="1" FontWeight="SemiBold" TextWrapping="Wrap" />
+
+                                <TextBlock x:Name="MetaVersionLbl" Grid.Row="1" Grid.Column="0" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <TextBlock x:Name="MetaVersionVal" Grid.Row="1" Grid.Column="1" TextWrapping="Wrap" />
+
+                                <TextBlock x:Name="MetaEditionLbl" Grid.Row="2" Grid.Column="0" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <TextBlock x:Name="MetaEditionVal" Grid.Row="2" Grid.Column="1" TextWrapping="Wrap" />
+
+                                <TextBlock x:Name="MetaDimsLbl" Grid.Row="3" Grid.Column="0" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <TextBlock x:Name="MetaDimsVal" Grid.Row="3" Grid.Column="1" TextWrapping="Wrap" />
+
+                                <TextBlock x:Name="MetaSizeLbl" Grid.Row="4" Grid.Column="0" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <TextBlock x:Name="MetaSizeVal" Grid.Row="4" Grid.Column="1" TextWrapping="Wrap" />
+
+                                <TextBlock x:Name="MetaPlayedLbl" Grid.Row="5" Grid.Column="0" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <TextBlock x:Name="MetaPlayedVal" Grid.Row="5" Grid.Column="1" TextWrapping="Wrap" />
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+                <!-- Launch controls -->
+                <Border BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                        CornerRadius="8" Padding="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                    <StackPanel Spacing="12">
+                        <TextBlock x:Name="LaunchHeader" FontWeight="SemiBold" FontSize="16" />
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button x:Name="LaunchBtn" Click="Launch_Click" Style="{StaticResource AccentButtonStyle}" />
+                            <Button x:Name="StopBtn" Click="Stop_Click" />
+                            <Button x:Name="BackupBtn" Click="Backup_Click" />
+                            <ProgressRing x:Name="Busy" IsActive="False" Width="20" Height="20" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Setup / maintenance operations -->
+                <Border BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                        CornerRadius="8" Padding="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                    <StackPanel Spacing="12">
+                        <TextBlock x:Name="SetupHeader" FontWeight="SemiBold" FontSize="16" />
+                        <StackPanel x:Name="OpsList" Spacing="8" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Live log -->
+                <Border BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                        CornerRadius="8" Padding="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                    <StackPanel Spacing="8">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="LogHeader" FontWeight="SemiBold" FontSize="16" VerticalAlignment="Center" />
+                            <Button x:Name="ClearLogBtn" Grid.Column="1" Click="ClearLog_Click" />
+                        </Grid>
+                        <TextBox x:Name="LogBox" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
+                                 Height="200" FontFamily="Consolas"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Auto" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Page>
