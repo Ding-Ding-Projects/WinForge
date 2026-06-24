@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | Not started |
-| **Source** | Local zip: `C:\Users\cntow\Downloads\amulet_map_editor.zip` · upstream: https://github.com/Amulet-Team/Amulet-Map-Editor |
+| **Source** | Local zip: `C:\Users\<USER>\Downloads\amulet_map_editor.zip` · upstream: https://github.com/Amulet-Team/Amulet-Map-Editor |
 | **License** | Open source. Amulet-Map-Editor is GPLv3 (core libs `amulet-core`/`PyMCTranslate` are MIT). Bundling the zip and launching it as a separate process is fine; do not statically link GPL code into WinForge. |
 | **Proposed module** | "Minecraft World Editor (Amulet)" · Gaming / Emulation group · Tag `module.amulet` |
 | **Effort** | L — wrapping + Python bootstrap + launcher/state plumbing is moderate; the native world-tools slice adds risk. |

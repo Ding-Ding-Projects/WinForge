@@ -34,8 +34,16 @@ git push
 
 ## Pages · 頁
 
-- `Home.md` — module index landing page · 模組索引首頁
+- `Home.md` — **categorized index of all 112 modules** (landing page) · **全部 112 個模組嘅分類索引**（首頁）
 - `Screenshots.md` — image inventory + capture status · 圖檔清單同擷取狀態
-- One page per major module · 每個主要模組一頁: Dashboard, Git-and-GitHub, Package-Manager,
+- One deeper page per headline module · 每個重點模組一頁: Dashboard, Git-and-GitHub, Package-Manager,
   Cloudflare-and-Tunnel, AI-Agents, Media, Settings-and-Control-Panel, Clipboard, Connections,
   System-Monitor.
+
+> **Adding a module page · 新增模組頁:** name the file after the module (e.g. `SSH-Toolset.md`), embed its
+> `docs/screenshot-<key>.png` via an absolute `raw.githubusercontent.com/.../main/docs/...` URL, write a
+> bilingual description, then add a link to it from `Home.md`. Keep the module list aligned with
+> [`Services/ModuleRegistry.cs`](https://github.com/codingmachineedge/WinForge/blob/main/Services/ModuleRegistry.cs).
+> 新增模組頁時，用模組名做檔名（例如 `SSH-Toolset.md`），用絕對 `raw.githubusercontent.com/.../main/docs/...`
+> 連結嵌入 `docs/screenshot-<key>.png`，寫雙語說明，再喺 `Home.md` 加連結。模組清單請同
+> [`Services/ModuleRegistry.cs`](https://github.com/codingmachineedge/WinForge/blob/main/Services/ModuleRegistry.cs) 對齊。

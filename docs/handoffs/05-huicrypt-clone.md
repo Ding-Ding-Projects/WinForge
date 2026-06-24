@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | Not started |
-| **Source** | Local fork: `C:\Users\cntow\Documents\GitHub\SecureVault` (VeraCrypt → TrueCrypt 7.1a derived, C/C++) |
+| **Source** | Local fork: `C:\Users\<USER>\Documents\GitHub\SecureVault` (VeraCrypt → TrueCrypt 7.1a derived, C/C++) |
 | **License** | Apache License 2.0 (VeraCrypt portions) + TrueCrypt License 3.0 (legacy parts). Source-available; **derived works must NOT use the "TrueCrypt" / "VeraCrypt" names or logos** — de-brand mandatory. |
 | **Proposed module** | "WinForge Vault" (粵語: WinForge 保險庫) · left-nav group **Security & Privacy** · Tag `module.vault-volumes` |
 | **Effort** | **L** — no native crypto to write, but a rich create/mount/dismount front-end over a CLI, plus elevation, progress parsing and bundling the de-branded binary. |
