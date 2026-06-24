@@ -583,6 +583,15 @@ public sealed partial class MainWindow : Window
             case "ruler":
             case "measure":
                 Navigator.GoToModule?.Invoke("module.screenruler");
+            case "mouseutils":
+            case "mouseutilities":
+            case "findmymouse":
+            case "crosshairs":
+            case "highlighter":
+            case "mousehighlighter":
+            case "mousejump":
+            case "mousecrosshairs":
+                Navigator.GoToModule?.Invoke("module.mouseutils");
                 break;
             case null:
             case "":
@@ -710,6 +719,7 @@ public sealed partial class MainWindow : Window
         "module.hotkeys" => typeof(HotkeyMacroModule),
         "module.hosts" => typeof(HostsEditorModule),
         "module.mouse" => typeof(MouseModule),
+        "module.mouseutils" => typeof(MouseUtilsModule),
         "module.recorder" => typeof(ScreenRecorderModule),
         "module.capture" => typeof(CaptureStudioModule),
         "module.giflab" => typeof(GifLabModule),
