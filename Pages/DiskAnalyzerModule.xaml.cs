@@ -67,6 +67,18 @@ public sealed partial class DiskAnalyzerModule : Page
         if (folder is not null) { _folder = folder; FolderBox.Text = _folder; await DoScan(); }
     }
 
+    /// <summary>喺目前資料夾開內嵌終端機 · Open the embedded ConPTY terminal at the current folder.</summary>
+    private async void Terminal_Click(object sender, RoutedEventArgs e)
+    {
+        var dir = string.IsNullOrWhiteSpace(_folder) || !Directory.Exists(_folder)
+            ? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
+            : _folder;
+        await TerminalLauncher.OpenEmbeddedAsync(this.XamlRoot,
+            P($"Terminal · {System.IO.Path.GetFileName(dir.TrimEnd('\\', '/'))}",
+              $"終端機 · {System.IO.Path.GetFileName(dir.TrimEnd('\\', '/'))}"),
+            commandLine: null, workingDir: dir);
+    }
+
     private async void Scan_Click(object sender, RoutedEventArgs e) => await DoScan();
     private async void Mode_Changed(object sender, SelectionChangedEventArgs e) { if (IsLoaded) await DoScan(); }
 

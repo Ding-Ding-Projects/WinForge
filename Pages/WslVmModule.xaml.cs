@@ -145,6 +145,18 @@ public sealed partial class WslVmModule : Page
         Notify(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error, P("Launch terminal", "開終端機"), Msg(r));
     }
 
+    /// <summary>喺內嵌 ConPTY 終端機開呢個發行版嘅 shell · Open the selected distro's shell inside the embedded ConPTY terminal.</summary>
+    private async void DistroEmbeddedTerminal_Click(object sender, RoutedEventArgs e)
+    {
+        var name = Tag(sender);
+        if (name.Length == 0) return;
+        var wsl = TerminalLauncher.ResolveOnPath("wsl.exe") ?? "wsl.exe";
+        await TerminalLauncher.OpenEmbeddedAsync(this.XamlRoot,
+            P($"WSL · {name}", $"WSL · {name}"),
+            commandLine: $"\"{wsl}\" -d \"{name}\"",
+            workingDir: null);
+    }
+
     private async void DistroSetDefault_Click(object sender, RoutedEventArgs e)
     {
         var name = Tag(sender);

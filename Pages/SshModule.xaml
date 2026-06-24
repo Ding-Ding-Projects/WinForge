@@ -176,6 +176,30 @@
                 </Grid>
             </PivotItem>
 
+            <!-- ============ Live terminal (real ConPTY PTY over ssh.exe) ============ -->
+            <PivotItem x:Name="TabLiveTerminal">
+                <Grid RowSpacing="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock
+                        x:Name="LiveTermBlurb"
+                        Grid.Row="0"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        TextWrapping="Wrap" />
+
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="10">
+                        <TextBlock x:Name="LiveTermProfileLabel" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <Button x:Name="LiveTermConnectBtn" Style="{StaticResource AccentButtonStyle}" Click="LiveTermConnect_Click" />
+                    </StackPanel>
+
+                    <controls:EmbeddedTerminalPanel x:Name="LiveTerminal" Grid.Row="2" />
+                </Grid>
+            </PivotItem>
+
             <!-- ===================== Keys ===================== -->
             <PivotItem x:Name="TabKeys">
                 <Grid RowSpacing="10">

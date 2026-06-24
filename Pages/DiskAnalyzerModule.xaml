@@ -27,15 +27,17 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <Button x:Name="UpBtn" Grid.Column="0" Click="Up_Click" ToolTipService.ToolTip="Up · 上一層"><FontIcon Glyph="&#xE74A;" FontSize="14" /></Button>
-            <Button x:Name="BrowseBtn" Grid.Column="1" Click="Browse_Click" />
-            <TextBox x:Name="FolderBox" Grid.Column="2" IsReadOnly="True" />
-            <ComboBox x:Name="ModeBox" Grid.Column="3" MinWidth="150" SelectionChanged="Mode_Changed" />
-            <Button x:Name="ScanBtn" Grid.Column="4" Click="Scan_Click" Style="{StaticResource AccentButtonStyle}" />
+            <Button x:Name="TerminalBtn" Grid.Column="1" Click="Terminal_Click" ToolTipService.ToolTip="Open terminal here · 喺呢度開終端機"><FontIcon Glyph="&#xE756;" FontSize="14" /></Button>
+            <Button x:Name="BrowseBtn" Grid.Column="2" Click="Browse_Click" />
+            <TextBox x:Name="FolderBox" Grid.Column="3" IsReadOnly="True" />
+            <ComboBox x:Name="ModeBox" Grid.Column="4" MinWidth="150" SelectionChanged="Mode_Changed" />
+            <Button x:Name="ScanBtn" Grid.Column="5" Click="Scan_Click" Style="{StaticResource AccentButtonStyle}" />
         </Grid>
 
         <Border

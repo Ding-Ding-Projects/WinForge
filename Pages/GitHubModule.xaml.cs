@@ -467,18 +467,19 @@ public sealed partial class GitHubModule : Page
         QuickActions.Children.Add(btn);
     }
 
-    private void Terminal_Click(object sender, RoutedEventArgs e)
+    private async void Terminal_Click(object sender, RoutedEventArgs e)
     {
-        if (!GitDeskService.HasRepo) return;
-        try
+        if (!GitDeskService.HasRepo)
         {
-            Process.Start(new ProcessStartInfo { FileName = "wt.exe", Arguments = $"-d \"{GitDeskService.Repo}\"", UseShellExecute = true });
+            Notify(InfoBarSeverity.Warning, P("Pick a repository first.", "請先揀儲存庫。"), "");
+            return;
         }
-        catch
-        {
-            try { Process.Start(new ProcessStartInfo { FileName = "cmd.exe", Arguments = $"/K cd /d \"{GitDeskService.Repo}\"", UseShellExecute = true }); }
-            catch { /* ignore */ }
-        }
+        // Open the embedded ConPTY terminal rooted at the selected repo folder — a real shell in-app
+        // (vim, git rebase -i, etc. all work) instead of spawning an external window.
+        var repoName = System.IO.Path.GetFileName(GitDeskService.Repo.TrimEnd('\\', '/'));
+        await TerminalLauncher.OpenEmbeddedAsync(this.XamlRoot,
+            P($"Terminal · {repoName}", $"終端機 · {repoName}"),
+            commandLine: null, workingDir: GitDeskService.Repo);
     }
 
     private async void Browser_Click(object sender, RoutedEventArgs e)

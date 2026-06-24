@@ -35,6 +35,7 @@ public sealed partial class SshModule : Page
             Loc.I.LanguageChanged -= OnLang;
             SshProfileStore.Changed -= OnStoreChanged;
             Terminal.Stop();
+            LiveTerminal.Stop();
         };
         Loaded += async (_, _) =>
         {
@@ -61,7 +62,8 @@ public sealed partial class SshModule : Page
             "已儲存嘅連線設定檔（秘密用 DPAPI 加密存放）、應用程式內終端機、產生金鑰、一鍵免密碼部署，同 SFTP 瀏覽器 — 全部經 SSH.NET 喺進程內完成。");
 
         TabProfiles.Header = P("Profiles", "設定檔");
-        TabTerminal.Header = P("Terminal", "終端機");
+        TabTerminal.Header = P("Terminal (line)", "終端機（行）");
+        TabLiveTerminal.Header = P("Live terminal", "真實終端機");
         TabKeys.Header = P("Keys", "金鑰");
         TabSftp.Header = P("SFTP", "SFTP");
 
@@ -79,6 +81,12 @@ public sealed partial class SshModule : Page
 
         TermConnectBtn.Content = P("Connect", "連線");
         TermDisconnectBtn.Content = P("Disconnect", "斷線");
+
+        LiveTermBlurb.Text = P(
+            "A real interactive terminal: runs ssh.exe inside an embedded ConPTY, so full-screen TUIs (vim, htop, tmux) render correctly — the upgrade over the line-oriented tab. Reuses the connected profile's host / user / port / identity.",
+            "真正嘅互動式終端機：喺內嵌 ConPTY 入面跑 ssh.exe，所以全螢幕 TUI（vim、htop、tmux）都正常顯示 — 係「行」終端機分頁嘅升級版。會沿用已連線設定檔嘅主機／使用者／連接埠／私鑰。");
+        LiveTermConnectBtn.Content = P("Connect (ConPTY ssh)", "連線（ConPTY ssh）");
+
         OpsHeader.Text = P("Quick remote commands", "快速遠端指令");
         OpsFilter.PlaceholderText = P("Filter commands…", "篩選指令…");
 
@@ -106,6 +114,10 @@ public sealed partial class SshModule : Page
         TermProfileLabel.Text = disp is null
             ? P("Pick a profile on the Profiles tab, then Connect.", "喺「設定檔」分頁揀一個，再連線。")
             : P($"Active: {disp}", $"使用中：{disp}");
+        if (LiveTermProfileLabel is not null)
+            LiveTermProfileLabel.Text = disp is null
+                ? P("Pick a profile on the Profiles tab, then Connect.", "喺「設定檔」分頁揀一個，再連線。")
+                : P($"Active: {disp}", $"使用中：{disp}");
         SftpProfileLabel.Text = disp is null
             ? P("Pick a profile on the Profiles tab.", "喺「設定檔」分頁揀一個。")
             : P($"Active: {disp}", $"使用中：{disp}");
@@ -338,6 +350,40 @@ public sealed partial class SshModule : Page
         bool conn = Terminal.IsConnected;
         TermConnectBtn.IsEnabled = !conn;
         TermDisconnectBtn.IsEnabled = conn;
+    }
+
+    // ================= live terminal (real ConPTY over ssh.exe) =================
+
+    private void LiveTermConnect_Click(object sender, RoutedEventArgs e)
+    {
+        if (_connected is null)
+        {
+            if (ProfileList.SelectedItem is SshProfile sel) { _connected = sel; UpdateProfileLabels(); }
+            else { Tabs.SelectedItem = TabProfiles; return; }
+        }
+
+        if (TerminalLauncher.ResolveSshExe() is null)
+        {
+            ShowProfileBar(false, P(
+                "OpenSSH client (ssh.exe) not found — enable it on the Keys tab, then retry.",
+                "搵唔到 OpenSSH 客戶端（ssh.exe）— 喺「金鑰」分頁啟用後再試。"));
+            Tabs.SelectedItem = TabKeys;
+            return;
+        }
+
+        var cmd = TerminalLauncher.BuildSshCommandLine(_connected);
+        if (cmd is null)
+        {
+            ShowProfileBar(false, P("Fill in host and user first.", "先填主機同使用者。"));
+            Tabs.SelectedItem = TabProfiles;
+            return;
+        }
+
+        // Run ssh.exe inside the embedded ConPTY at the user profile dir. Key auth is silent;
+        // password auth will prompt interactively in the terminal itself (no secret is passed).
+        LiveTerminal.Configure(cmd,
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), autoStart: false);
+        LiveTerminal.StartTerminal();
     }
 
     // ================= quick ops =================
