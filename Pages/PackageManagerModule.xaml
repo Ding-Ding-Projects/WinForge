@@ -67,6 +67,7 @@
         <Grid Grid.Row="3" RowSpacing="8">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
             <TextBlock
@@ -74,7 +75,28 @@
                 Grid.Row="0"
                 FontWeight="SemiBold"
                 Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+
+            <!-- Batch (multi-select) action bar — UniGetUI-style bulk operations -->
+            <Border
+                x:Name="BatchBar"
+                Grid.Row="1"
+                Padding="12,8,12,8"
+                Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Visibility="Collapsed">
+                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <TextBlock x:Name="BatchLabel" VerticalAlignment="Center" FontWeight="SemiBold" />
+                    <Button x:Name="BatchInstallBtn" Click="BatchInstall_Click" />
+                    <Button x:Name="BatchUpdateBtn" Click="BatchUpdate_Click" />
+                    <Button x:Name="BatchUninstallBtn" Click="BatchUninstall_Click" />
+                    <Button x:Name="BatchExportBtn" Click="BatchExport_Click" />
+                    <Button x:Name="BatchClearBtn" Click="BatchClear_Click" />
+                </StackPanel>
+            </Border>
+
+            <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
                 <StackPanel x:Name="ResultsPanel" Spacing="6" />
             </ScrollViewer>
         </Grid>

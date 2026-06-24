@@ -1111,6 +1111,190 @@ public sealed class VcpkgManager : IPackageManager
     }
 }
 
+/// <summary>Bun（JavaScript 全域）· Bun global package manager (UniGetUI parity).</summary>
+public sealed class BunManager : IPackageManager
+{
+    public string Key => "bun";
+    public string NameEn => "Bun (global)";
+    public string NameZh => "Bun（全域）";
+    public string Cli => "bun";
+
+    public async Task<bool> IsAvailableAsync(CancellationToken ct)
+    {
+        try { var o = await ShellRunner.Capture("bun", "--version", ct); return !string.IsNullOrWhiteSpace(o); }
+        catch { return false; }
+    }
+
+    /// <summary>用 npm registry 搜尋（同 Bun 一樣食 npm 套件）· Search the npm registry (Bun installs npm packages).</summary>
+    public async Task<List<PackageItem>> SearchAsync(string query, CancellationToken ct)
+    {
+        var res = new List<PackageItem>();
+        try
+        {
+            // bun 冇 search，借 npm 嘅 registry 結果 · Bun has no search; reuse npm's registry results.
+            var json = await ShellRunner.Capture("npm", $"search {PkgParse.Q(query)} --json", ct);
+            json = NpmJson(json, '[', ']');
+            using var doc = JsonDocument.Parse(json);
+            if (doc.RootElement.ValueKind == JsonValueKind.Array)
+                foreach (var el in doc.RootElement.EnumerateArray())
+                {
+                    var name = PkgParse.Str(el, "name");
+                    if (name.Length == 0) continue;
+                    res.Add(new PackageItem { Name = name, Id = name, Version = PkgParse.Str(el, "version"), Source = "npmjs.org", ManagerKey = Key });
+                }
+        }
+        catch { return new List<PackageItem>(); }
+        return res;
+    }
+
+    public async Task<List<PackageItem>> ListInstalledAsync(CancellationToken ct)
+    {
+        var res = new List<PackageItem>();
+        try
+        {
+            // "bun pm ls -g" 列出全域套件 · "bun pm ls -g" lists global packages ("name@version" lines).
+            var o = await ShellRunner.Capture("bun", "pm ls -g", ct);
+            foreach (var raw in PkgParse.Lines(o))
+            {
+                var ln = raw.Trim().TrimStart('├', '└', '─', '│', ' ');
+                if (ln.Length == 0 || ln.StartsWith("/") || ln.Contains("node_modules")) continue;
+                int at = ln.LastIndexOf('@');
+                string name, ver;
+                if (at > 0) { name = ln.Substring(0, at).Trim(); ver = ln.Substring(at + 1).Trim(); }
+                else { name = ln; ver = ""; }
+                if (name.Length == 0 || name.Contains(' ')) continue;
+                res.Add(new PackageItem { Name = name, Id = name, Version = ver, ManagerKey = Key });
+            }
+        }
+        catch { }
+        return res;
+    }
+
+    /// <summary>Bun 冇方便嘅全域 outdated -> 回空 · No convenient global outdated; return empty.</summary>
+    public Task<List<PackageItem>> ListUpdatesAsync(CancellationToken ct)
+        => Task.FromResult(new List<PackageItem>());
+
+    public Task<TweakResult> InstallAsync(string id, CancellationToken ct)
+        => SafeRun($"bun add -g {PkgParse.Q(id)}", ct);
+
+    public Task<TweakResult> UninstallAsync(string id, CancellationToken ct)
+        => SafeRun($"bun remove -g {PkgParse.Q(id)}", ct);
+
+    public Task<TweakResult> UpdateAsync(string id, CancellationToken ct)
+        => SafeRun($"bun add -g {PkgParse.Q(id)}@latest", ct);
+
+    private static async Task<TweakResult> SafeRun(string cmd, CancellationToken ct)
+    {
+        try { return await ShellRunner.RunCmd(cmd, false, ct); }
+        catch (Exception ex) { return TweakResult.Fail(ex.Message, $"出錯：{ex.Message}"); }
+    }
+
+    private static string NpmJson(string raw, char open, char close)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return open == '[' ? "[]" : "{}";
+        raw = raw.Trim().TrimStart('﻿');
+        int a = raw.IndexOf(open), b = raw.LastIndexOf(close);
+        if (a >= 0 && b > a) return raw.Substring(a, b - a + 1);
+        return open == '[' ? "[]" : "{}";
+    }
+}
+
+/// <summary>PowerShell 7（pwsh）資源庫管理器 · PowerShell 7 (pwsh) PSResource manager (UniGetUI parity).</summary>
+public sealed class PowerShell7Manager : IPackageManager
+{
+    public string Key => "pwsh7";
+    public string NameEn => "PowerShell 7 (PSResource)";
+    public string NameZh => "PowerShell 7（PSResource）";
+    public string Cli => "pwsh";
+
+    public async Task<bool> IsAvailableAsync(CancellationToken ct)
+    {
+        try { var o = await ShellRunner.Capture("pwsh", "-NoProfile -Command \"$PSVersionTable.PSVersion.Major\"", ct); return !string.IsNullOrWhiteSpace(o); }
+        catch { return false; }
+    }
+
+    public async Task<List<PackageItem>> SearchAsync(string query, CancellationToken ct)
+    {
+        try
+        {
+            var q = PkgParse.Q(query);
+            var json = await CapturePwshJson($"Find-PSResource -Name *{q}* -ErrorAction SilentlyContinue | Select-Object Name,Version | ConvertTo-Json", ct);
+            return FromNameVersionJson(json);
+        }
+        catch { return new List<PackageItem>(); }
+    }
+
+    public async Task<List<PackageItem>> ListInstalledAsync(CancellationToken ct)
+    {
+        try
+        {
+            var json = await CapturePwshJson("Get-InstalledPSResource -ErrorAction SilentlyContinue | Select-Object Name,Version | ConvertTo-Json", ct);
+            return FromNameVersionJson(json);
+        }
+        catch { return new List<PackageItem>(); }
+    }
+
+    public Task<List<PackageItem>> ListUpdatesAsync(CancellationToken ct)
+        => Task.FromResult(new List<PackageItem>());
+
+    public Task<TweakResult> InstallAsync(string id, CancellationToken ct)
+        => SafePwsh($"Install-PSResource -Name {PkgParse.Q(id)} -TrustRepository -Scope CurrentUser", ct);
+
+    public Task<TweakResult> UninstallAsync(string id, CancellationToken ct)
+        => SafePwsh($"Uninstall-PSResource -Name {PkgParse.Q(id)}", ct);
+
+    public Task<TweakResult> UpdateAsync(string id, CancellationToken ct)
+        => SafePwsh($"Update-PSResource -Name {PkgParse.Q(id)} -TrustRepository", ct);
+
+    private static async Task<string> CapturePwshJson(string script, CancellationToken ct)
+    {
+        var bytes = System.Text.Encoding.Unicode.GetBytes(script);
+        var encoded = Convert.ToBase64String(bytes);
+        var r = await ShellRunner.Run("pwsh", $"-NoProfile -NonInteractive -EncodedCommand {encoded}", false, ct);
+        var raw = (r.Output ?? "").Trim().TrimStart('﻿');
+        if (string.IsNullOrEmpty(raw)) return "[]";
+        int a = raw.IndexOf('['), b = raw.LastIndexOf(']');
+        if (a >= 0 && b > a) return raw.Substring(a, b - a + 1);
+        int c = raw.IndexOf('{'), d = raw.LastIndexOf('}');
+        if (c >= 0 && d > c) return raw.Substring(c, d - c + 1);
+        return "[]";
+    }
+
+    private static async Task<TweakResult> SafePwsh(string script, CancellationToken ct)
+    {
+        try
+        {
+            var bytes = System.Text.Encoding.Unicode.GetBytes(script);
+            var encoded = Convert.ToBase64String(bytes);
+            return await ShellRunner.Run("pwsh", $"-NoProfile -NonInteractive -ExecutionPolicy Bypass -EncodedCommand {encoded}", false, ct);
+        }
+        catch (Exception ex) { return TweakResult.Fail(ex.Message, $"出錯：{ex.Message}"); }
+    }
+
+    private List<PackageItem> FromNameVersionJson(string json)
+    {
+        var res = new List<PackageItem>();
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            if (root.ValueKind == JsonValueKind.Array)
+                foreach (var el in root.EnumerateArray()) AddOne(res, el);
+            else if (root.ValueKind == JsonValueKind.Object)
+                AddOne(res, root);
+        }
+        catch { }
+        return res;
+    }
+
+    private void AddOne(List<PackageItem> res, JsonElement el)
+    {
+        var name = PkgParse.Str(el, "Name");
+        if (name.Length == 0) return;
+        res.Add(new PackageItem { Name = name, Id = name, Version = PkgParse.Str(el, "Version"), ManagerKey = Key });
+    }
+}
+
 /// <summary>
 /// 套件管理器登記處 · Registry of all package managers + cross-manager helpers.
 /// 一處集齊所有引擎，畀 UI 一鍵跨管理器搜尋／更新。
@@ -1128,7 +1312,9 @@ public static class PackageManagerRegistry
         new NpmManager(),
         new DotnetToolManager(),
         new PsGalleryManager(),
+        new PowerShell7Manager(),
         new CargoManager(),
+        new BunManager(),
         new VcpkgManager(),
     };
 
@@ -1219,8 +1405,10 @@ public static class PackageManagerRegistry
                 "npm" => await ShellRunner.Capture("npm", $"view \"{id}\"", ct),
                 "dotnet" => await ShellRunner.Capture("dotnet", $"tool search \"{id}\" --detail", ct),
                 "cargo" => await ShellRunner.Capture("cargo", $"search \"{id}\"", ct),
+                "bun" => await ShellRunner.Capture("npm", $"view \"{id}\"", ct),
                 "vcpkg" => await ShellRunner.Capture("vcpkg", $"search \"{id}\"", ct),
                 "psgallery" => await ShellRunner.CapturePowershell($"Find-Module -Name \"{id}\" | Format-List Name,Version,Author,ProjectUri,Description | Out-String -Width 200", ct),
+                "pwsh7" => await ShellRunner.Capture("pwsh", $"-NoProfile -Command \"Find-PSResource -Name '{id}' | Format-List Name,Version,Author,Repository,Description | Out-String -Width 200\"", ct),
                 _ => "",
             };
         }
@@ -1241,7 +1429,9 @@ public static class PackageManagerRegistry
                 "npm" => await ShellRunner.Capture("npm", "config get registry", ct),
                 "dotnet" => await ShellRunner.Capture("dotnet", "nuget list source", ct),
                 "psgallery" => await ShellRunner.CapturePowershell("Get-PSRepository | Format-Table Name,InstallationPolicy,SourceLocation | Out-String -Width 200", ct),
+                "pwsh7" => await ShellRunner.Capture("pwsh", "-NoProfile -Command \"Get-PSResourceRepository | Format-Table Name,Trusted,Uri | Out-String -Width 200\"", ct),
                 "cargo" => "crates.io (default registry)",
+                "bun" => "registry.npmjs.org (default registry)",
                 "vcpkg" => await ShellRunner.Capture("vcpkg", "x-update-baseline --dry-run", ct),
                 _ => "",
             };
@@ -1298,11 +1488,21 @@ public static class PackageManagerRegistry
                 }
                 case "vcpkg":
                     return await ShellRunner.RunCmd($"vcpkg install {id}{extra}", false, ct);
+                case "bun":
+                    return await ShellRunner.RunCmd($"bun add -g {id}{(string.IsNullOrWhiteSpace(version) ? "" : "@" + version)}{extra}", false, ct);
                 case "psgallery":
                 {
                     var ps = $"Install-Module -Name {q} -Force -Scope CurrentUser";
                     if (!string.IsNullOrWhiteSpace(version)) ps += $" -RequiredVersion {version}";
                     return await ShellRunner.RunPowershell(ps, false, ct);
+                }
+                case "pwsh7":
+                {
+                    var ps = $"Install-PSResource -Name {q} -TrustRepository -Scope CurrentUser";
+                    if (!string.IsNullOrWhiteSpace(version)) ps += $" -Version {version}";
+                    var bytes = System.Text.Encoding.Unicode.GetBytes(ps);
+                    var enc = Convert.ToBase64String(bytes);
+                    return await ShellRunner.Run("pwsh", $"-NoProfile -NonInteractive -ExecutionPolicy Bypass -EncodedCommand {enc}", false, ct);
                 }
                 default:
                 {
@@ -1311,6 +1511,52 @@ public static class PackageManagerRegistry
                                          : TweakResult.Fail("Unknown manager.", "未知管理器。");
                 }
             }
+        }
+        catch (Exception ex) { return TweakResult.Fail(ex.Message, $"出錯：{ex.Message}"); }
+    }
+
+    /// <summary>
+    /// 一個管理器嘅「全部更新」· "Update all" for ONE manager: enumerate its updates and update each.
+    /// 回傳 (成功數, 總數) · Returns (succeeded, total).
+    /// </summary>
+    public static async Task<(int done, int total)> UpdateAllForManagerAsync(
+        string key, IProgress<PackageItem>? progress = null, CancellationToken ct = default)
+    {
+        var m = ByKey(key);
+        if (m is null) return (0, 0);
+        List<PackageItem> ups;
+        try { ups = await m.ListUpdatesAsync(ct); } catch { ups = new(); }
+        int done = 0;
+        foreach (var item in ups)
+        {
+            progress?.Report(item);
+            try { var r = await m.UpdateAsync(item.Id, ct); if (r.Success) done++; } catch { }
+        }
+        return (done, ups.Count);
+    }
+
+    /// <summary>
+    /// 啟動 UniGetUI（裝咗就開，否則經 winget 裝）· Launch UniGetUI for power features; install it via winget first
+    /// if it is not present. Provides the "fallback to UniGetUI" escape hatch the native wrapper can't cover.
+    /// </summary>
+    public static async Task<TweakResult> LaunchUniGetUIAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            // 嘗試直接啟動已安裝嘅 UniGetUI · Try to start an already-installed UniGetUI.
+            var start = await ShellRunner.RunCmd("start \"\" \"UniGetUI\"", false, ct);
+            if (start.Success) return TweakResult.Ok("Launched UniGetUI.", "已啟動 UniGetUI。");
+
+            // 否則經 winget 安裝（兩個常見 id）· Otherwise install via winget (two known ids).
+            var r = await ShellRunner.RunCmd(
+                "winget install --id MartiCliment.UniGetUI -e --accept-source-agreements --accept-package-agreements --silent --disable-interactivity", false, ct);
+            if (!r.Success)
+                r = await ShellRunner.RunCmd(
+                    "winget install --id SomePythonThings.WingetUIStore -e --accept-source-agreements --accept-package-agreements --silent --disable-interactivity", false, ct);
+            PackageService.RefreshProcessPath();
+            return r.Success
+                ? TweakResult.Ok("UniGetUI installed — relaunch it from Start.", "已安裝 UniGetUI — 由開始功能表啟動。")
+                : TweakResult.Fail("Could not install UniGetUI.", "無法安裝 UniGetUI。");
         }
         catch (Exception ex) { return TweakResult.Fail(ex.Message, $"出錯：{ex.Message}"); }
     }
