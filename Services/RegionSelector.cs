@@ -125,14 +125,14 @@ public static class RegionSelector
             hInstance = inst,
             hCursor = LoadCursor(IntPtr.Zero, IDC_CROSS),
             hbrBackground = IntPtr.Zero,
-            lpszClassName = "WinTuneRegionSelector",
+            lpszClassName = "WinForgeRegionSelector",
         };
         RegisterClassEx(ref cls); // safe to call again across invocations
 
         _dimBrush = CreateSolidBrush(0x00000000); // black; window alpha provides the dim
         _hwnd = CreateWindowEx(
             WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TOOLWINDOW,
-            "WinTuneRegionSelector", null, WS_POPUP,
+            "WinForgeRegionSelector", null, WS_POPUP,
             _vx, _vy, vw, vh, IntPtr.Zero, IntPtr.Zero, inst, IntPtr.Zero);
 
         if (_hwnd == IntPtr.Zero) { Cleanup(); return null; }

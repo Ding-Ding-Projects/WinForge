@@ -65,7 +65,7 @@ public sealed partial class PowerToysExtrasModule : Page
         PresetBox.SelectedIndex = 2; // Large 1920x1080
         ShrinkOnlyChk.IsChecked = true;
         OutFolderBox.Text = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "WinTune Resized");
+            Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "WinForge Resized");
 
         // OCR languages
         var langs = TextExtractorService.AvailableLanguages();
@@ -135,8 +135,8 @@ public sealed partial class PowerToysExtrasModule : Page
             "一次過：將而家剪貼簿嘅內容換成純文字版本。");
         PasteStripBtn.Content = P("Strip formatting now", "立即移除格式");
         PasteHotkeyTitle.Text = P($"Global hotkey ({PlainTextPasteService.HotkeyText})", $"全域熱鍵（{PlainTextPasteService.HotkeyText}）");
-        PasteHotkeyBlurb.Text = P("When on, pressing Ctrl+Shift+V anywhere strips the clipboard then pastes it as plain text. Works while WinTune is running.",
-            "開咗之後，喺任何地方撳 Ctrl+Shift+V 都會先淨化剪貼簿，再以純文字貼上。WinTune 開住就生效。");
+        PasteHotkeyBlurb.Text = P("When on, pressing Ctrl+Shift+V anywhere strips the clipboard then pastes it as plain text. Works while WinForge is running.",
+            "開咗之後，喺任何地方撳 Ctrl+Shift+V 都會先淨化剪貼簿，再以純文字貼上。WinForge 開住就生效。");
         PasteHotkeySwitch.OnContent = P("Enabled", "已啟用");
         PasteHotkeySwitch.OffContent = P("Disabled", "已停用");
     }

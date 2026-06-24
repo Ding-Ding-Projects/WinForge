@@ -35,8 +35,8 @@ public sealed partial class CloudflareModule : Page
     {
         HeaderTitle.Text = "Cloudflare & Tunnel · Cloudflare 與 Tunnel";
         HeaderBlurb.Text = P(
-            "Run cloudflared from inside WinTune: named tunnels, free quick tunnels, route DNS, Cloudflare Access, DNS-over-HTTPS and WARP.",
-            "喺 WinTune 直接用 cloudflared：具名 tunnel、免費快速 tunnel、DNS 路由、Cloudflare Access、DNS-over-HTTPS 同 WARP。");
+            "Run cloudflared from inside WinForge: named tunnels, free quick tunnels, route DNS, Cloudflare Access, DNS-over-HTTPS and WARP.",
+            "喺 WinForge 直接用 cloudflared：具名 tunnel、免費快速 tunnel、DNS 路由、Cloudflare Access、DNS-over-HTTPS 同 WARP。");
         _ops ??= CloudflareOperations.All().ToList();
         AdvancedHeader.Text = P($"Operations ({_ops.Count})", $"操作（{_ops.Count}）");
         PlaceholderHint.Text = P(

@@ -37,8 +37,8 @@ public sealed partial class DevicesModule : Page
         {
             ResultBar.Severity = InfoBarSeverity.Informational;
             ResultBar.Title = P("Tip", "提示");
-            ResultBar.Message = P("Relaunch WinTune as administrator to enable/disable devices.",
-                "以管理員身分重開 WinTune 先可以啟用／停用裝置。");
+            ResultBar.Message = P("Relaunch WinForge as administrator to enable/disable devices.",
+                "以管理員身分重開 WinForge 先可以啟用／停用裝置。");
             ResultBar.IsOpen = true;
         }
     }

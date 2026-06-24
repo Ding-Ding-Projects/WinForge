@@ -120,7 +120,7 @@ public sealed class BatteryThermal : IDisposable
     {
         try
         {
-            string path = Path.Combine(Path.GetTempPath(), $"wintune-batteryreport-{Guid.NewGuid():N}.html");
+            string path = Path.Combine(Path.GetTempPath(), $"winforge-batteryreport-{Guid.NewGuid():N}.html");
             var res = await ShellRunner.Run("powercfg.exe", $"/batteryreport /output \"{path}\"", elevated: false, ct);
 
             if (!File.Exists(path))
@@ -215,7 +215,7 @@ public sealed class BatteryThermal : IDisposable
     {
         try
         {
-            string path = Path.Combine(Path.GetTempPath(), $"wintune-energy-{Guid.NewGuid():N}.html");
+            string path = Path.Combine(Path.GetTempPath(), $"winforge-energy-{Guid.NewGuid():N}.html");
             // /energy traces system behaviour; a short 10s window keeps the UI responsive.
             var res = await ShellRunner.Run("powercfg.exe", $"/energy /output \"{path}\" /duration 10", elevated: false, ct);
             string raw = res.Output ?? "";

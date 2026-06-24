@@ -13,9 +13,9 @@ namespace WinForge.Catalog;
 /// </summary>
 public static class LauncherTweaks
 {
-    private const string TaskName = "WinTuneSuiteElevated";
+    private const string TaskName = "WinForgeSuiteElevated";
 
-    private static string ExePath => Environment.ProcessPath ?? "WinTune.exe";
+    private static string ExePath => Environment.ProcessPath ?? "WinForge.exe";
 
     public static IEnumerable<TweakDefinition> All()
     {
@@ -24,45 +24,45 @@ public static class LauncherTweaks
         // PowerShell: register the highest-privilege task + a desktop & Start-menu shortcut to run it.
         var createScript =
             $"$exe = '{exe}';" +
-            "$tn = 'WinTuneSuiteElevated';" +
+            "$tn = 'WinForgeSuiteElevated';" +
             "$action = New-ScheduledTaskAction -Execute $exe;" +
             "$principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive -RunLevel Highest;" +
             "$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit ([TimeSpan]::Zero);" +
             "Register-ScheduledTask -TaskName $tn -Action $action -Principal $principal -Settings $settings -Force | Out-Null;" +
             "$ws = New-Object -ComObject WScript.Shell;" +
             "foreach ($dir in @([Environment]::GetFolderPath('Desktop'), (Join-Path $env:AppData 'Microsoft\\Windows\\Start Menu\\Programs'))) {" +
-            "  $lnk = $ws.CreateShortcut((Join-Path $dir 'WinTune (Admin).lnk'));" +
+            "  $lnk = $ws.CreateShortcut((Join-Path $dir 'WinForge (Admin).lnk'));" +
             "  $lnk.TargetPath = \"$env:SystemRoot\\System32\\schtasks.exe\";" +
             "  $lnk.Arguments = \"/run /tn $tn\";" +
             "  $lnk.IconLocation = $exe;" +
-            "  $lnk.Description = 'Launch WinTune Suite elevated without a UAC prompt';" +
+            "  $lnk.Description = 'Launch WinForge Suite elevated without a UAC prompt';" +
             "  $lnk.Save();" +
             "}" +
-            "Write-Output 'Created task WinTuneSuiteElevated and shortcuts (Desktop + Start menu).'";
+            "Write-Output 'Created task WinForgeSuiteElevated and shortcuts (Desktop + Start menu).'";
 
         var removeScript =
-            "Unregister-ScheduledTask -TaskName 'WinTuneSuiteElevated' -Confirm:$false -ErrorAction SilentlyContinue;" +
-            "Remove-Item (Join-Path ([Environment]::GetFolderPath('Desktop')) 'WinTune (Admin).lnk') -ErrorAction SilentlyContinue;" +
-            "Remove-Item (Join-Path (Join-Path $env:AppData 'Microsoft\\Windows\\Start Menu\\Programs') 'WinTune (Admin).lnk') -ErrorAction SilentlyContinue;" +
+            "Unregister-ScheduledTask -TaskName 'WinForgeSuiteElevated' -Confirm:$false -ErrorAction SilentlyContinue;" +
+            "Remove-Item (Join-Path ([Environment]::GetFolderPath('Desktop')) 'WinForge (Admin).lnk') -ErrorAction SilentlyContinue;" +
+            "Remove-Item (Join-Path (Join-Path $env:AppData 'Microsoft\\Windows\\Start Menu\\Programs') 'WinForge (Admin).lnk') -ErrorAction SilentlyContinue;" +
             "Write-Output 'Removed the elevated launcher task and shortcuts.'";
 
         return new List<TweakDefinition>
         {
             Tweak.Powershell("launcher.create", "Create no-UAC elevated launcher", "建立免 UAC 提權啟動器",
-                "Register a Task Scheduler task (highest privileges) and a 'WinTune (Admin)' shortcut on the Desktop and Start menu that launches the suite elevated with NO UAC prompt.",
-                "註冊一個工作排程器工作（最高權限），同埋喺桌面同開始功能表整一個「WinTune (Admin)」捷徑，撳一下就以管理員身分啟動，唔會彈 UAC。",
+                "Register a Task Scheduler task (highest privileges) and a 'WinForge (Admin)' shortcut on the Desktop and Start menu that launches the suite elevated with NO UAC prompt.",
+                "註冊一個工作排程器工作（最高權限），同埋喺桌面同開始功能表整一個「WinForge (Admin)」捷徑，撳一下就以管理員身分啟動，唔會彈 UAC。",
                 "Set up", "設定", createScript,
                 requiresAdmin: true, keywords: "uac,task scheduler,elevate,shortcut,排程,提權,捷徑"),
 
-            Tweak.Shell("launcher.run-now", "Run WinTune elevated now", "立即以管理員運行",
+            Tweak.Shell("launcher.run-now", "Run WinForge elevated now", "立即以管理員運行",
                 "Trigger the scheduled task to start a fresh elevated instance — no UAC prompt (requires the launcher to be set up first).",
                 "觸發排程工作，開一個全新嘅管理員實例 — 唔彈 UAC（要先設定咗啟動器）。",
-                "Run", "運行", "schtasks.exe", "/run /tn WinTuneSuiteElevated",
+                "Run", "運行", "schtasks.exe", "/run /tn WinForgeSuiteElevated",
                 keywords: "run,elevated,task,運行,管理員"),
 
             Tweak.Powershell("launcher.remove", "Remove the elevated launcher", "移除提權啟動器",
-                "Delete the scheduled task and the 'WinTune (Admin)' shortcuts.",
-                "刪除排程工作同「WinTune (Admin)」捷徑。",
+                "Delete the scheduled task and the 'WinForge (Admin)' shortcuts.",
+                "刪除排程工作同「WinForge (Admin)」捷徑。",
                 "Remove", "移除", removeScript,
                 requiresAdmin: true, destructive: true, keywords: "remove,uninstall,task,移除"),
 
@@ -73,8 +73,8 @@ public static class LauncherTweaks
                 keywords: "task scheduler,排程器"),
 
             Tweak.Info("launcher.status", "Elevation status", "提權狀態",
-                "Whether this WinTune instance is currently running as administrator.",
-                "而家呢個 WinTune 實例係咪以管理員身分運行。",
+                "Whether this WinForge instance is currently running as administrator.",
+                "而家呢個 WinForge 實例係咪以管理員身分運行。",
                 () => AdminHelper.IsElevated ? "Elevated · 已提權" : "Standard user · 標準使用者"),
         };
     }

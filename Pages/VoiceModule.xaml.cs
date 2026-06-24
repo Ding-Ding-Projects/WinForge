@@ -114,7 +114,7 @@ public sealed partial class VoiceModule : Page
             return;
         }
 
-        var path = await FileDialogs.SaveFileAsync($"WinTune-speech-{DateTime.Now:yyyyMMdd-HHmmss}", ".wav");
+        var path = await FileDialogs.SaveFileAsync($"WinForge-speech-{DateTime.Now:yyyyMMdd-HHmmss}", ".wav");
         if (path is null) return;
 
         ResultBar.IsOpen = false;

@@ -1,8 +1,8 @@
 name: Build & Release · 建置同發佈
 
-# Builds WinTune (self-contained x64) and publishes a NEW GitHub Release with a
+# Builds WinForge (self-contained x64) and publishes a NEW GitHub Release with a
 # portable zip + an Inno Setup installer on every push to main (or manual run).
-# 每次推送到 main（或手動執行）都會建置 WinTune（自包含 x64）並發佈一個新版本，
+# 每次推送到 main（或手動執行）都會建置 WinForge（自包含 x64）並發佈一個新版本，
 # 連同可攜 zip 同 Inno Setup 安裝程式。
 
 on:
@@ -36,7 +36,7 @@ jobs:
       - name: Publish self-contained x64 (trimming OFF) · 發佈自包含 x64（關閉裁剪）
         shell: pwsh
         run: |
-          dotnet publish WinTune.csproj `
+          dotnet publish WinForge.csproj `
             -c Release -p:Platform=x64 -r win-x64 --self-contained true `
             -p:WindowsAppSDKSelfContained=true `
             -p:WindowsPackageType=None `
@@ -51,7 +51,7 @@ jobs:
           $pub = Get-ChildItem -Path bin -Recurse -Directory -Filter publish |
             Where-Object { $_.FullName -match 'Release' -and $_.FullName -match 'win-x64' } |
             Select-Object -First 1 -ExpandProperty FullName
-          if (-not $pub -or -not (Test-Path "$pub\WinTune.exe")) { throw "publish folder / WinTune.exe not found" }
+          if (-not $pub -or -not (Test-Path "$pub\WinForge.exe")) { throw "publish folder / WinForge.exe not found" }
           Write-Host "publish = $pub"
           "dir=$pub" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
@@ -59,9 +59,9 @@ jobs:
         shell: pwsh
         run: |
           $ver = "1.0.${{ github.run_number }}"
-          Compress-Archive -Path "${{ steps.pub.outputs.dir }}\*" -DestinationPath "WinTune-portable-x64-$ver.zip" -Force
-          "WINTUNE_VERSION=$ver"               | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-          "WINTUNE_PUBLISH=${{ steps.pub.outputs.dir }}" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Compress-Archive -Path "${{ steps.pub.outputs.dir }}\*" -DestinationPath "WinForge-portable-x64-$ver.zip" -Force
+          "WINFORGE_VERSION=$ver"               | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "WINFORGE_PUBLISH=${{ steps.pub.outputs.dir }}" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Build Inno Setup installer · 建置 Inno Setup 安裝程式
         shell: pwsh
@@ -69,7 +69,7 @@ jobs:
           choco install innosetup --no-progress -y
           if ($LASTEXITCODE -ne 0) { throw "innosetup install failed" }
           $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-          & $iscc "/DMyAppVersion=$env:WINTUNE_VERSION" "/DMyPublishDir=$env:WINTUNE_PUBLISH" "installer\WinTune.iss"
+          & $iscc "/DMyAppVersion=$env:WINFORGE_VERSION" "/DMyPublishDir=$env:WINFORGE_PUBLISH" "installer\WinForge.iss"
           if ($LASTEXITCODE -ne 0) { throw "ISCC failed" }
 
       - name: Create GitHub Release · 建立 GitHub 版本
@@ -78,11 +78,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $ver = "v1.0.${{ github.run_number }}"
-          $notes = "Automated build from commit ${{ github.sha }}.`n由 commit ${{ github.sha }} 自動建置。`n`n- WinTune-Setup.exe — installer / 安裝程式`n- WinTune-portable-x64-*.zip — portable / 免安裝可攜版"
-          $setup = Get-ChildItem -Recurse -Filter WinTune-Setup.exe | Select-Object -First 1 -ExpandProperty FullName
-          $zip   = Get-ChildItem -Recurse -Filter "WinTune-portable-x64-*.zip" | Select-Object -First 1 -ExpandProperty FullName
-          if (-not $setup) { throw "WinTune-Setup.exe not found" }
+          $notes = "Automated build from commit ${{ github.sha }}.`n由 commit ${{ github.sha }} 自動建置。`n`n- WinForge-Setup.exe — installer / 安裝程式`n- WinForge-portable-x64-*.zip — portable / 免安裝可攜版"
+          $setup = Get-ChildItem -Recurse -Filter WinForge-Setup.exe | Select-Object -First 1 -ExpandProperty FullName
+          $zip   = Get-ChildItem -Recurse -Filter "WinForge-portable-x64-*.zip" | Select-Object -First 1 -ExpandProperty FullName
+          if (-not $setup) { throw "WinForge-Setup.exe not found" }
           if (-not $zip)   { throw "portable zip not found" }
           Write-Host "setup = $setup"
           Write-Host "zip   = $zip"
-          gh release create $ver $setup $zip --title "WinTune $ver" --notes $notes
+          gh release create $ver $setup $zip --title "WinForge $ver" --notes $notes

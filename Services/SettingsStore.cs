@@ -7,13 +7,13 @@ namespace WinForge.Services;
 
 /// <summary>
 /// 簡單嘅 JSON 設定儲存（適用於未封裝嘅 app）。
-/// Lightweight JSON settings store written to %LOCALAPPDATA%\WinTune\settings.json,
+/// Lightweight JSON settings store written to %LOCALAPPDATA%\WinForge\settings.json,
 /// so it works for unpackaged WinUI apps (no package identity required).
 /// </summary>
 public static class SettingsStore
 {
     private static readonly string Dir =
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WinTune");
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WinForge");
 
     private static readonly string FilePath = Path.Combine(Dir, "settings.json");
 

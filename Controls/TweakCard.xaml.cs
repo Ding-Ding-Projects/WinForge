@@ -372,7 +372,7 @@ public sealed partial class TweakCard : UserControl
             // Win32 COM save dialog (FileDialogs) — works whether or not the app is elevated;
             // the old WinRT FileSavePicker failed silently under admin.
             // Win32 COM 儲存對話框，無論係咪管理員身分都用得；舊嘅 WinRT picker 喺管理員模式會默默失敗。
-            var path = await FileDialogs.SaveFileAsync("wintune-output", ".txt");
+            var path = await FileDialogs.SaveFileAsync("winforge-output", ".txt");
             if (path is not null) await File.WriteAllTextAsync(path, _lastOutput);
         }
         catch { }

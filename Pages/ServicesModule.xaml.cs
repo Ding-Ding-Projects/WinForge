@@ -11,7 +11,7 @@ namespace WinForge.Pages;
 
 /// <summary>
 /// 應用程式內服務管理員 · In-app Services Manager — list, search, start/stop/restart and set startup type,
-/// all without leaving WinTune (no services.msc redirect). Bilingual.
+/// all without leaving WinForge (no services.msc redirect). Bilingual.
 /// </summary>
 public sealed partial class ServicesModule : Page
 {
@@ -36,8 +36,8 @@ public sealed partial class ServicesModule : Page
         {
             ResultBar.Severity = InfoBarSeverity.Informational;
             ResultBar.Title = P("Tip", "提示");
-            ResultBar.Message = P("Relaunch WinTune as administrator to start/stop services.",
-                "以管理員身分重開 WinTune 先可以啟動／停止服務。");
+            ResultBar.Message = P("Relaunch WinForge as administrator to start/stop services.",
+                "以管理員身分重開 WinForge 先可以啟動／停止服務。");
             ResultBar.IsOpen = true;
         }
     }

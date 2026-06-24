@@ -8,7 +8,7 @@ using WinForge.Catalog;
 using WinForge.Pages;
 using WinForge.Services;
 
-namespace WinTune;
+namespace WinForge;
 
 public sealed partial class MainWindow : Window
 {
@@ -38,9 +38,9 @@ public sealed partial class MainWindow : Window
         // Keep running when closed: close hides to the tray; the clipboard monitor keeps going.
         ClipboardService.Start(DispatcherQueue);
         // 全域熱鍵泵：開機就跑，收入系統匣都繼續響。
-        // Global hotkey pump: starts now so registered chords fire even while WinTune sits in the tray.
+        // Global hotkey pump: starts now so registered chords fire even while WinForge sits in the tray.
         HotkeyMacroService.StartHotkeys();
-        TrayService.Install(ShowFromTray, QuitFromTray, "WinTune · 視窗調校");
+        TrayService.Install(ShowFromTray, QuitFromTray, "WinForge · 視窗調校");
         AppWindow.Closing += OnAppWindowClosing;
     }
 

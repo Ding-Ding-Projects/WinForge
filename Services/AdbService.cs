@@ -105,7 +105,7 @@ public static class AdbService
     /// <summary>Capture a device screenshot to a local PNG (screencap on the device, then pull).</summary>
     public static async Task<TweakResult> Screenshot(string serial, string localPath, CancellationToken ct = default)
     {
-        const string remote = "/sdcard/wintune_screen.png";
+        const string remote = "/sdcard/winforge_screen.png";
         var cap = await ShellRunner.RunCmd($"adb -s {serial} shell screencap -p {remote}", false, ct);
         if (!cap.Success) return cap;
         return await ShellRunner.RunCmd($"adb -s {serial} pull {remote} \"{localPath}\"", false, ct);

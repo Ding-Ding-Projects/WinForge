@@ -34,8 +34,8 @@ public sealed class ClipItem
 
 /// <summary>
 /// 背景剪貼簿監察 + 歷史（PowerToys/Win+V 式，包圖片同檔案）· Background clipboard monitor + history.
-/// Captures text, images (saved as PNG) and copied files; survives while WinTune runs in the tray.
-/// Persists to %LocalAppData%\WinTune\clipboard. No redirect.
+/// Captures text, images (saved as PNG) and copied files; survives while WinForge runs in the tray.
+/// Persists to %LocalAppData%\WinForge\clipboard. No redirect.
 /// </summary>
 public static class ClipboardService
 {
@@ -53,7 +53,7 @@ public static class ClipboardService
     {
         get
         {
-            var d = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WinTune", "clipboard");
+            var d = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WinForge", "clipboard");
             Directory.CreateDirectory(d);
             return d;
         }
@@ -100,7 +100,7 @@ public static class ClipboardService
             {
                 RunGit("add -A");
                 var msg = AiCommitMessage(message);
-                RunGit($"-c user.name=WinTune -c user.email=clipboard@wintune.local commit -q --allow-empty -m \"{msg.Replace("\"", "'")}\"");
+                RunGit($"-c user.name=WinForge -c user.email=clipboard@winforge.local commit -q --allow-empty -m \"{msg.Replace("\"", "'")}\"");
             }
             catch { }
         }
@@ -298,7 +298,7 @@ public static class ClipboardService
     public static string SaveQrPng(string text)
     {
         var bytes = GenerateQrPng(text);
-        var outPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), $"WinTune-QR-{Stamp()}.png");
+        var outPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), $"WinForge-QR-{Stamp()}.png");
         File.WriteAllBytes(outPath, bytes);
         return outPath;
     }
@@ -353,7 +353,7 @@ public static class ClipboardService
             ".tif" or ".tiff" => BitmapEncoder.TiffEncoderId,
             _ => BitmapEncoder.PngEncoderId,
         };
-        var outPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), $"WinTune-{Stamp()}{ext}");
+        var outPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), $"WinForge-{Stamp()}{ext}");
 
         using var inFs = File.OpenRead(item.ImagePath);
         using var inRas = inFs.AsRandomAccessStream();

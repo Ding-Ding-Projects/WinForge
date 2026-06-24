@@ -111,8 +111,8 @@ public sealed partial class KeyboardModule : Page
     {
         ResultBar.Severity = InfoBarSeverity.Error;
         ResultBar.Title = P("Failed", "失敗");
-        ResultBar.Message = P("Writing the Scancode Map needs administrator rights — relaunch WinTune as admin.",
-            "寫入 Scancode Map 需要管理員權限 — 請以管理員身分重開 WinTune。");
+        ResultBar.Message = P("Writing the Scancode Map needs administrator rights — relaunch WinForge as admin.",
+            "寫入 Scancode Map 需要管理員權限 — 請以管理員身分重開 WinForge。");
         ResultBar.IsOpen = true;
     }
 

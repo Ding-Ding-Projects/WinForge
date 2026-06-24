@@ -5,7 +5,7 @@ namespace WinForge.Services;
 
 /// <summary>
 /// 系統匣圖示（純 P/Invoke，唔使第三方）· System-tray icon via Shell_NotifyIcon + a message-only window
-/// whose WndProc runs on the UI thread (it created the window). Lets WinTune keep running when closed.
+/// whose WndProc runs on the UI thread (it created the window). Lets WinForge keep running when closed.
 /// </summary>
 public static class TrayService
 {
@@ -70,7 +70,7 @@ public static class TrayService
     [DllImport("user32.dll")] private static extern bool PostMessage(IntPtr h, uint m, IntPtr w, IntPtr l);
 
     private static readonly IntPtr HWND_MESSAGE = new(-3);
-    private const string ClassName = "WinTuneTrayWnd";
+    private const string ClassName = "WinForgeTrayWnd";
 
     private static WndProc? _proc;           // kept alive (or the CLR GCs it -> crash)
     private static IntPtr _hwnd = IntPtr.Zero;
@@ -100,7 +100,7 @@ public static class TrayService
             _registered = true;
         }
 
-        _hwnd = CreateWindowEx(0, ClassName, "WinTuneTray", 0, 0, 0, 0, 0, HWND_MESSAGE, IntPtr.Zero, hInst, IntPtr.Zero);
+        _hwnd = CreateWindowEx(0, ClassName, "WinForgeTray", 0, 0, 0, 0, 0, HWND_MESSAGE, IntPtr.Zero, hInst, IntPtr.Zero);
         if (_hwnd == IntPtr.Zero) return;
 
         IntPtr hIcon = IntPtr.Zero;
@@ -144,7 +144,7 @@ public static class TrayService
     private static void ShowMenu(IntPtr hWnd)
     {
         var menu = CreatePopupMenu();
-        AppendMenu(menu, MF_STRING, IDM_OPEN, "Open WinTune · 開啟 WinTune");
+        AppendMenu(menu, MF_STRING, IDM_OPEN, "Open WinForge · 開啟 WinForge");
         AppendMenu(menu, MF_STRING, IDM_QUIT, "Quit · 結束");
         GetCursorPos(out var pt);
         SetForegroundWindow(hWnd);

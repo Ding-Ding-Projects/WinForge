@@ -48,7 +48,7 @@ public sealed partial class SettingsPage : Page
         var panel = new StackPanel { Spacing = 10 };
         panel.Children.Add(Heading(
             Loc.I.Pick("Import / export settings", "匯入／匯出設定"),
-            Loc.I.Pick("Save WinTune's settings to a file, or load them back.", "將 WinTune 嘅設定存做檔案，或者載返入嚟。")));
+            Loc.I.Pick("Save WinForge's settings to a file, or load them back.", "將 WinForge 嘅設定存做檔案，或者載返入嚟。")));
 
         var bar = new InfoBar { IsClosable = true, IsOpen = false };
         var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
@@ -58,7 +58,7 @@ public sealed partial class SettingsPage : Page
         {
             try
             {
-                var path = await FileDialogs.SaveFileAsync("wintune-settings", ".json");
+                var path = await FileDialogs.SaveFileAsync("winforge-settings", ".json");
                 if (path is not null)
                 {
                     SettingsStore.ExportTo(path);
@@ -80,7 +80,7 @@ public sealed partial class SettingsPage : Page
                     App.ApplyThemeFromSettings();
                     Show(bar, InfoBarSeverity.Success,
                         Loc.I.Pick($"Imported {n} setting(s).", $"已匯入 {n} 項設定。"),
-                        Loc.I.Pick("Restart WinTune to fully apply.", "重啟 WinTune 完全生效。"));
+                        Loc.I.Pick("Restart WinForge to fully apply.", "重啟 WinForge 完全生效。"));
                 }
             }
             catch (Exception ex) { Show(bar, InfoBarSeverity.Error, Loc.I.Pick("Import failed", "匯入失敗"), ex.Message); }
@@ -180,7 +180,7 @@ public sealed partial class SettingsPage : Page
     private Border BuildAboutCard()
     {
         var panel = new StackPanel { Spacing = 4 };
-        panel.Children.Add(Heading("WinTune · 視窗調校", null));
+        panel.Children.Add(Heading("WinForge · 視窗調校", null));
         panel.Children.Add(Muted(Loc.I.Pick(
             $"{TweakCatalog.Count} bilingual features for Windows 11.",
             $"{TweakCatalog.Count} 項 Windows 11 雙語功能。")));

@@ -82,7 +82,7 @@ public static class SystemTweaks
         Tweak.Powershell("system.restore-point", "Create a restore point", "建立還原點",
             "Create a System Restore point right now.", "即刻建立一個系統還原點。",
             "Create", "建立",
-            "Checkpoint-Computer -Description 'WinTune' -RestorePointType MODIFY_SETTINGS",
+            "Checkpoint-Computer -Description 'WinForge' -RestorePointType MODIFY_SETTINGS",
             requiresAdmin: true,
             keywords: "restore,checkpoint,還原點"),
 

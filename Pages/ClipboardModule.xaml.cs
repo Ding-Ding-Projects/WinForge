@@ -49,7 +49,7 @@ public sealed partial class ClipboardModule : Page
         BgBar.Message = P("The monitor keeps capturing even when the window is closed to the tray. Right-click the tray icon to Quit.",
             "就算關窗收入系統匣，監察都會繼續捕捉。右鍵系統匣圖示就可以結束。");
 
-        // Run-on-startup toggle (launches WinTune minimized to the tray at login).
+        // Run-on-startup toggle (launches WinForge minimized to the tray at login).
         var startup = new ToggleSwitch
         {
             OnContent = P("Run on startup", "開機自動執行"),

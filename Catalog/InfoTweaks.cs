@@ -64,7 +64,7 @@ public static class InfoTweaks
             () => SystemInfo.TimeZone),
 
         Tweak.Info("info.runtime", "App runtime", "應用程式執行階段",
-            ".NET runtime hosting WinTune.", "運行 WinTune 嘅 .NET 執行階段。",
+            ".NET runtime hosting WinForge.", "運行 WinForge 嘅 .NET 執行階段。",
             () => SystemInfo.DotNetRuntime),
     };
 }

@@ -1,5 +1,5 @@
-; WinTune installer · WinTune 安裝程式 (Inno Setup)
-; Packages the self-contained publish output into WinTune-Setup.exe.
+; WinForge installer · WinForge 安裝程式 (Inno Setup)
+; Packages the self-contained publish output into WinForge-Setup.exe.
 ; Version and publish folder are passed in by CI: iscc /DMyAppVersion=.. /DMyPublishDir=..
 
 #ifndef MyAppVersion
@@ -9,10 +9,10 @@
   #define MyPublishDir "..\bin\x64\Release\net11.0-windows10.0.26100.0\win-x64\publish"
 #endif
 
-#define MyAppName "WinTune"
+#define MyAppName "WinForge"
 #define MyAppPublisher "cafepromenade"
-#define MyAppExe "WinTune.exe"
-#define MyAppUrl "https://github.com/cafepromenade/WinTune"
+#define MyAppExe "WinForge.exe"
+#define MyAppUrl "https://github.com/cafepromenade/WinForge"
 
 [Setup]
 AppId={{B7A1C0E2-7C2E-4E8A-9C7E-0F1A2B3C4D5E}
@@ -21,12 +21,12 @@ AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppUrl}
 AppSupportURL={#MyAppUrl}
-DefaultDirName={autopf}\WinTune
-DefaultGroupName=WinTune
+DefaultDirName={autopf}\WinForge
+DefaultGroupName=WinForge
 DisableProgramGroupPage=yes
 ; OutputDir is relative to this script's folder (installer/), so "out" => installer\out
 OutputDir=out
-OutputBaseFilename=WinTune-Setup
+OutputBaseFilename=WinForge-Setup
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
@@ -46,9 +46,9 @@ Name: "desktopicon"; Description: "Create a desktop shortcut · 建立桌面捷�
 Source: "{#MyPublishDir}\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion
 
 [Icons]
-Name: "{group}\WinTune"; Filename: "{app}\{#MyAppExe}"
-Name: "{group}\Uninstall WinTune · 解除安裝 WinTune"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\WinTune"; Filename: "{app}\{#MyAppExe}"; Tasks: desktopicon
+Name: "{group}\WinForge"; Filename: "{app}\{#MyAppExe}"
+Name: "{group}\Uninstall WinForge · 解除安裝 WinForge"; Filename: "{uninstallexe}"
+Name: "{autodesktop}\WinForge"; Filename: "{app}\{#MyAppExe}"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\{#MyAppExe}"; Description: "Launch WinTune · 啟動 WinTune"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#MyAppExe}"; Description: "Launch WinForge · 啟動 WinForge"; Flags: nowait postinstall skipifsilent

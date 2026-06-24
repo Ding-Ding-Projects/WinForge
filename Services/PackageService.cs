@@ -32,7 +32,7 @@ public static class PackageService
     /// <summary>winget ships with Windows 11; assume present and surface any real error from the command.</summary>
     public static bool WingetAvailable => true;
 
-    /// <summary>Engines WinTune itself uses, plus common dev tools — exact winget IDs (reliable).</summary>
+    /// <summary>Engines WinForge itself uses, plus common dev tools — exact winget IDs (reliable).</summary>
     public static readonly DepInfo[] Deps =
     {
         new() { En = "FFmpeg (media engine)", Zh = "FFmpeg（媒體引擎）", Id = "Gyan.FFmpeg" },

@@ -30,12 +30,12 @@ public sealed partial class ConfigBackupModule : Page
     {
         HeaderTitle.Text = "Config & Backup · 設定與備份";
         HeaderBlurb.Text = P(
-            "Snapshot, back up and restore your whole WinTune configuration — all in-app.",
-            "影快照、備份同還原成個 WinTune 設定 — 全程喺 app 內。");
+            "Snapshot, back up and restore your whole WinForge configuration — all in-app.",
+            "影快照、備份同還原成個 WinForge 設定 — 全程喺 app 內。");
 
         BundleTitle.Text = P("Portable settings bundle", "可攜設定檔案");
-        BundleDesc.Text = P("Export every WinTune setting to a single .zip (with a version manifest + SHA-256 checksums), or import one back and re-apply it.",
-            "將每項 WinTune 設定匯出成一個 .zip（連版本資料同 SHA-256 雜湊），或者匯入返再套用。");
+        BundleDesc.Text = P("Export every WinForge setting to a single .zip (with a version manifest + SHA-256 checksums), or import one back and re-apply it.",
+            "將每項 WinForge 設定匯出成一個 .zip（連版本資料同 SHA-256 雜湊），或者匯入返再套用。");
         ExportBundleBtn.Content = P("Export bundle…", "匯出檔案…");
         ImportBundleBtn.Content = P("Import bundle…", "匯入檔案…");
 
@@ -50,8 +50,8 @@ public sealed partial class ConfigBackupModule : Page
         BundleFileBtn.Content = P("Save as .bundle…", "存做 .bundle…");
 
         CaptureTitle.Text = P("Capture & export", "擷取與匯出");
-        CaptureDesc.Text = P("Export the registry keys WinTune touches to a .reg file, capture the installed-app list via winget, and back up taskbar pins + the Start layout.",
-            "將 WinTune 改過嘅登錄機碼匯出做 .reg、用 winget 擷取裝咗嘅程式清單，並備份工作列固定捷徑同開始選單排版。");
+        CaptureDesc.Text = P("Export the registry keys WinForge touches to a .reg file, capture the installed-app list via winget, and back up taskbar pins + the Start layout.",
+            "將 WinForge 改過嘅登錄機碼匯出做 .reg、用 winget 擷取裝咗嘅程式清單，並備份工作列固定捷徑同開始選單排版。");
         ExportRegBtn.Content = P("Export registry (.reg)…", "匯出登錄檔（.reg）…");
         ExportWingetBtn.Content = P("Capture app list…", "擷取程式清單…");
         BackupTaskbarBtn.Content = P("Back up taskbar / Start…", "備份工作列／開始選單…");
@@ -106,7 +106,7 @@ public sealed partial class ConfigBackupModule : Page
 
     private async void ExportBundle_Click(object sender, RoutedEventArgs e)
     {
-        var path = await FileDialogs.SaveFileAsync($"WinTune-config-{DateTime.Now:yyyyMMdd-HHmm}", ".zip");
+        var path = await FileDialogs.SaveFileAsync($"WinForge-config-{DateTime.Now:yyyyMMdd-HHmm}", ".zip");
         if (path is null) return;
         await Run(() => ConfigBackupService.ExportBundle(path), P("Export bundle", "匯出檔案"));
     }
@@ -173,7 +173,7 @@ public sealed partial class ConfigBackupModule : Page
 
     private async void BundleFile_Click(object sender, RoutedEventArgs e)
     {
-        var path = await FileDialogs.SaveFileAsync($"wintune-config-{DateTime.Now:yyyyMMdd}", ".bundle");
+        var path = await FileDialogs.SaveFileAsync($"winforge-config-{DateTime.Now:yyyyMMdd}", ".bundle");
         if (path is null) return;
         await Run(() => ConfigBackupService.CreateBundle(path), P("Create bundle", "建立 bundle"));
     }
@@ -182,7 +182,7 @@ public sealed partial class ConfigBackupModule : Page
 
     private async void ExportReg_Click(object sender, RoutedEventArgs e)
     {
-        var path = await FileDialogs.SaveFileAsync($"wintune-registry-{DateTime.Now:yyyyMMdd}", ".reg");
+        var path = await FileDialogs.SaveFileAsync($"winforge-registry-{DateTime.Now:yyyyMMdd}", ".reg");
         if (path is null) return;
         await Run(() => ConfigBackupService.ExportRegistry(path), P("Export registry", "匯出登錄檔"));
     }

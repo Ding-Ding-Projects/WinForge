@@ -7,7 +7,7 @@ namespace WinForge.Pages;
 
 /// <summary>
 /// 保持喚醒（PowerToys Awake 式）· Keep-awake module — stop the PC sleeping/dimming, optionally for a set
-/// time. Persists across pages while WinTune runs (SetThreadExecutionState). No redirect. Bilingual.
+/// time. Persists across pages while WinForge runs (SetThreadExecutionState). No redirect. Bilingual.
 /// </summary>
 public sealed partial class AwakeModule : Page
 {
@@ -28,8 +28,8 @@ public sealed partial class AwakeModule : Page
     private void Render()
     {
         HeaderTitle.Text = "Awake · 保持喚醒";
-        HeaderBlurb.Text = P("Keep this PC awake — no sleep, no screen timeout — while WinTune is running. Great for downloads, installs or presentations.",
-            "WinTune 開住嘅時候令電腦保持清醒 — 唔瞓、螢幕唔熄。下載、安裝或者做簡報啱用。");
+        HeaderBlurb.Text = P("Keep this PC awake — no sleep, no screen timeout — while WinForge is running. Great for downloads, installs or presentations.",
+            "WinForge 開住嘅時候令電腦保持清醒 — 唔瞓、螢幕唔熄。下載、安裝或者做簡報啱用。");
         ToggleTitle.Text = P("Keep the PC awake", "保持電腦清醒");
         DisplayChk.Content = P("Keep the screen on too", "連螢幕都唔好熄");
         MinutesLabel.Text = P("Auto-off after (minutes, 0 = never)", "幾耐後自動關（分鐘，0 = 唔關）");

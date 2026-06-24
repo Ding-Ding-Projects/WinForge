@@ -287,7 +287,7 @@ public sealed partial class RegistryEditor : Page
     private void ShowErr(Exception ex)
     {
         var hint = ex is UnauthorizedAccessException
-            ? P("Access denied — relaunch WinTune as administrator to edit this key.", "存取被拒 — 以管理員身分重開 WinTune 先可以改呢個機碼。")
+            ? P("Access denied — relaunch WinForge as administrator to edit this key.", "存取被拒 — 以管理員身分重開 WinForge 先可以改呢個機碼。")
             : ex.Message;
         ShowErr(hint);
     }

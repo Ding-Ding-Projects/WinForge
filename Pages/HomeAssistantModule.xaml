@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <Page
-    x:Class="WinTune.Pages.HomeAssistantModule"
+    x:Class="WinForge.Pages.HomeAssistantModule"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -138,8 +138,8 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <TextBox x:Name="EventTypeBox" Grid.Column="0" PlaceholderText="wintune_pc_locked" FontFamily="Consolas" />
-                            <TextBox x:Name="EventDataBox" Grid.Column="1" PlaceholderText="{}{&quot;source&quot;:&quot;wintune&quot;} (optional JSON)" FontFamily="Consolas" />
+                            <TextBox x:Name="EventTypeBox" Grid.Column="0" PlaceholderText="winforge_pc_locked" FontFamily="Consolas" />
+                            <TextBox x:Name="EventDataBox" Grid.Column="1" PlaceholderText="{}{&quot;source&quot;:&quot;winforge&quot;} (optional JSON)" FontFamily="Consolas" />
                             <Button x:Name="EventBtn" Grid.Column="2" Click="Event_Click" />
                         </Grid>
 

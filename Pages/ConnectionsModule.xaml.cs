@@ -156,7 +156,7 @@ public sealed partial class ConnectionsModule : Page
             ResultBar.Title = P("Could not drop it", "切唔到");
             ResultBar.Message = AdminHelper.IsElevated
                 ? P($"iphlpapi returned {r}; the socket may have already closed.", $"iphlpapi 回傳 {r}；條連線可能已經閂咗。")
-                : P("Dropping a connection needs administrator rights — relaunch WinTune as admin.", "切斷連線要管理員權限 — 請以管理員身分重開 WinTune。");
+                : P("Dropping a connection needs administrator rights — relaunch WinForge as admin.", "切斷連線要管理員權限 — 請以管理員身分重開 WinForge。");
         }
         ResultBar.IsOpen = true;
         Refresh();
@@ -169,7 +169,7 @@ public sealed partial class ConnectionsModule : Page
         bool ok = SystemMonitor.Kill(v.Row.Pid);
         ResultBar.Severity = ok ? InfoBarSeverity.Success : InfoBarSeverity.Warning;
         ResultBar.Title = ok ? P("Process ended", "已結束程序") : P("Could not end it", "結束唔到");
-        ResultBar.Message = ok ? v.ProcPid : P("Access denied — try running WinTune as admin.", "拒絕存取 — 試吓以管理員身分執行。");
+        ResultBar.Message = ok ? v.ProcPid : P("Access denied — try running WinForge as admin.", "拒絕存取 — 試吓以管理員身分執行。");
         ResultBar.IsOpen = true;
         Refresh();
     }

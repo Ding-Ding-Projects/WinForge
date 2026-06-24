@@ -13,7 +13,7 @@ namespace WinForge.Pages;
 /// boot a patched image once, flash a factory zip, and sideload an OTA.
 ///
 /// ⚠ DANGEROUS · 危險：every mutating action is guarded by a dry-run preview (default ON) AND a typed
-/// confirmation dialog. No redirect; WinTune drives the real fastboot/adb binaries.
+/// confirmation dialog. No redirect; WinForge drives the real fastboot/adb binaries.
 /// </summary>
 public sealed partial class FastbootModule : Page
 {

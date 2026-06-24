@@ -446,7 +446,7 @@ public sealed partial class GitHubModule : Page
             return;
         }
         long maxBytes = (long)(Math.Max(1, ChunkSizeBox.Value) * 1024 * 1024);
-        var message = string.IsNullOrWhiteSpace(ChunkMessageBox.Text) ? "WinTune chunked upload" : ChunkMessageBox.Text.Trim();
+        var message = string.IsNullOrWhiteSpace(ChunkMessageBox.Text) ? "WinForge chunked upload" : ChunkMessageBox.Text.Trim();
 
         ChunkUploadBtn.IsEnabled = false;
         var label = ChunkUploadBtn.Content;

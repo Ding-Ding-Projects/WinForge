@@ -2,7 +2,7 @@ using System;
 using Microsoft.UI.Xaml;
 using WinForge.Services;
 
-namespace WinTune;
+namespace WinForge;
 
 /// <summary>
 /// 應用程式進入點 · Application entry point and global theme handling.
@@ -37,7 +37,7 @@ public partial class App : Application
         {
             try
             {
-                int n = WinTune.Services.DocsExporter.Export(_exportDocsDir);
+                int n = WinForge.Services.DocsExporter.Export(_exportDocsDir);
                 System.IO.File.WriteAllText(System.IO.Path.Combine(_exportDocsDir, "_export_count.txt"), n.ToString());
             }
             catch { /* best effort */ }
@@ -49,7 +49,7 @@ public partial class App : Application
         // Headless mode: take one config snapshot then exit (used by the daily scheduled backup).
         if (_takeSnapshot)
         {
-            try { WinTune.Services.ConfigBackupService.TakeSnapshot("scheduled").GetAwaiter().GetResult(); }
+            try { WinForge.Services.ConfigBackupService.TakeSnapshot("scheduled").GetAwaiter().GetResult(); }
             catch { /* best effort */ }
             Exit();
             return;

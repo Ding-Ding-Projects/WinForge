@@ -90,13 +90,13 @@ public sealed partial class CaptureStudioModule : Page
     private void DefaultOutput()
     {
         var dir = Environment.GetFolderPath(Environment.SpecialFolder.MyVideos);
-        _output = Path.Combine(dir, $"WinTune-{DateTime.Now:yyyyMMdd-HHmmss}.mp4");
+        _output = Path.Combine(dir, $"WinForge-{DateTime.Now:yyyyMMdd-HHmmss}.mp4");
         OutputBox.Text = _output;
     }
 
     private async void Change_Click(object sender, RoutedEventArgs e)
     {
-        var path = await FileDialogs.SaveFileAsync($"WinTune-{DateTime.Now:yyyyMMdd-HHmmss}", ".mp4");
+        var path = await FileDialogs.SaveFileAsync($"WinForge-{DateTime.Now:yyyyMMdd-HHmmss}", ".mp4");
         if (path is not null) { _output = path; OutputBox.Text = _output; }
     }
 
@@ -185,7 +185,7 @@ public sealed partial class CaptureStudioModule : Page
     private async void SaveSnip_Click(object sender, RoutedEventArgs e)
     {
         if (_lastSnip is null) return;
-        var path = await FileDialogs.SaveFileAsync($"WinTune-snip-{DateTime.Now:yyyyMMdd-HHmmss}", ".png");
+        var path = await FileDialogs.SaveFileAsync($"WinForge-snip-{DateTime.Now:yyyyMMdd-HHmmss}", ".png");
         if (path is null) return;
         var r = await CaptureService.SavePng(_lastSnip, path);
         ShowBar(SnipBar, r.Success, r.Success ? P("Saved", "已儲存") : P("Failed", "失敗"),

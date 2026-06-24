@@ -1,9 +1,9 @@
 {
   "profiles": {
-    "WinTune (Package)": {
+    "WinForge (Package)": {
       "commandName": "MsixPackage"
     },
-    "WinTune (Unpackaged)": {
+    "WinForge (Unpackaged)": {
       "commandName": "Project"
     }
   }
