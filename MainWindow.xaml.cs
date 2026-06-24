@@ -231,6 +231,11 @@ public sealed partial class MainWindow : Window
             case "tcp":
                 Navigator.GoToModule?.Invoke("module.connections");
                 break;
+            case "nmap":
+            case "portscan":
+            case "scan":
+                Navigator.GoToModule?.Invoke("module.nmap");
+                break;
             case "events":
             case "eventlog":
             case "eventviewer":
@@ -454,6 +459,7 @@ public sealed partial class MainWindow : Window
         "module.monitor" => typeof(SystemMonitorModule),
         "module.battery" => typeof(BatteryThermalModule),
         "module.connections" => typeof(ConnectionsModule),
+        "module.nmap" => typeof(NmapModule),
         "module.events" => typeof(EventViewerModule),
         "module.mixer" => typeof(VolumeMixerModule),
         "module.contextmenu" => typeof(ContextMenuModule),
