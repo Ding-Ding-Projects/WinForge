@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<UserControl
+    x:Class="WinForge.Controls.TerminalView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid RowSpacing="8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border
+            Grid.Row="0"
+            Background="#FF101418"
+            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            CornerRadius="6">
+            <ScrollViewer
+                x:Name="OutScroller"
+                Padding="10,8"
+                HorizontalScrollBarVisibility="Auto"
+                VerticalScrollBarVisibility="Auto">
+                <RichTextBlock
+                    x:Name="OutBlock"
+                    FontFamily="Cascadia Mono, Consolas"
+                    FontSize="13"
+                    Foreground="#FFE6E6E6"
+                    IsTextSelectionEnabled="True" />
+            </ScrollViewer>
+        </Border>
+
+        <Grid Grid.Row="1" ColumnSpacing="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <FontIcon
+                Grid.Column="0"
+                VerticalAlignment="Center"
+                FontSize="14"
+                Glyph="&#xE756;" />
+            <TextBox
+                x:Name="InputBox"
+                Grid.Column="1"
+                VerticalAlignment="Center"
+                FontFamily="Cascadia Mono, Consolas"
+                IsEnabled="False"
+                KeyDown="InputBox_KeyDown"
+                PlaceholderText="Type a command and press Enter · 打指令再撳 Enter" />
+            <Button
+                x:Name="CtrlCBtn"
+                Grid.Column="2"
+                Click="CtrlC_Click"
+                IsEnabled="False"
+                ToolTipService.ToolTip="Send Ctrl+C · 送出 Ctrl+C">
+                <TextBlock Text="^C" />
+            </Button>
+            <Button
+                x:Name="ClearBtn"
+                Grid.Column="3"
+                Click="Clear_Click"
+                Content="Clear · 清除" />
+        </Grid>
+    </Grid>
+</UserControl>

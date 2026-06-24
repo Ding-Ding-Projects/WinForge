@@ -442,6 +442,7 @@ public sealed partial class MainWindow : Window
         "module.aiagents" => typeof(AiAgentsModule),
         "module.cloudflare" => typeof(CloudflareModule),
         "module.weblogin" => typeof(WebLoginModule),
+        "module.ssh" => typeof(SshModule),
         "module.archives" => typeof(ArchivesModule),
         "module.media" => typeof(MediaModule),
         "module.regedit" => typeof(RegistryEditor),
