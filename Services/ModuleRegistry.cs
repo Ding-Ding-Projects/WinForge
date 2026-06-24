@@ -75,6 +75,7 @@ public static class ModuleRegistry
         new() { Tag = "module.voice", En = "Voice & Read-Aloud", Zh = "語音朗讀", Glyph = ((char)0xE767).ToString(), Keywords = "voice tts text to speech read aloud speak narrator wav export sapi 語音 朗讀 文字轉語音 讀出" },
         new() { Tag = "module.aiagents", En = "AI Agents", Zh = "AI 代理", Glyph = ((char)0xE99A).ToString(), Keywords = "ai agent claude code codex opencode pi openclaw hermes coding agent terminal cli install launch api key 代理 編程 安裝 啟動" },
         new() { Tag = "module.cloudflare", En = "Cloudflare & Tunnel", Zh = "Cloudflare 與 Tunnel", Glyph = ((char)0xE753).ToString(), Keywords = "cloudflare cloudflared tunnel quick tunnel trycloudflare access warp dns over https doh zero trust route ingress 隧道 加密 連線" },
+        new() { Tag = "module.timelens", En = "Activity Timeline", Zh = "活動時間軸", Glyph = ((char)0xE81C).ToString(), Keywords = "timelens activity timeline time tracking tracker foreground window app usage productivity insights idle per-app totals stacked bar export csv 活動 時間軸 時間追蹤 前景 視窗 應用程式 使用量 生產力 閒置 匯出" },
     };
 
     public static IEnumerable<ModuleInfo> Search(string query)

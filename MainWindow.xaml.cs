@@ -339,6 +339,11 @@ public sealed partial class MainWindow : Window
             case "speak":
                 Navigator.GoToModule?.Invoke("module.voice");
                 break;
+            case "timelens":
+            case "activity":
+            case "timeline":
+                Navigator.GoToModule?.Invoke("module.timelens");
+                break;
             case "fonts":
             case "font":
                 Navigator.GoToModule?.Invoke("module.fonts");
@@ -478,6 +483,7 @@ public sealed partial class MainWindow : Window
         "module.settingshub" => typeof(SettingsHubModule),
         "module.imaging" => typeof(ImagingGameModule),
         "module.voice" => typeof(VoiceModule),
+        "module.timelens" => typeof(TimeLensModule),
         _ => typeof(DashboardPage),
     };
 
