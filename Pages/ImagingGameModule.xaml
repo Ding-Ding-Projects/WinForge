@@ -105,6 +105,76 @@
                 </ScrollViewer>
             </PivotItem>
 
+            <!-- ════════════ USB imager (Rufus) ════════════ -->
+            <PivotItem x:Name="UsbTab">
+                <ScrollViewer>
+                    <StackPanel Spacing="12" Padding="0,4,8,4">
+
+                        <InfoBar
+                            x:Name="UsbDangerBar"
+                            IsOpen="True"
+                            IsClosable="False"
+                            Severity="Warning" />
+
+                        <!-- Engine bar: is Rufus installed? install / launch -->
+                        <InfoBar x:Name="RufusEngineBar" IsClosable="False" IsOpen="True" />
+
+                        <!-- Step 1: pick the ISO/IMG -->
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                            <StackPanel Spacing="10">
+                                <TextBlock x:Name="UsbStep1" FontWeight="SemiBold" />
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBox x:Name="UsbImagePathBox" Width="460" IsReadOnly="True" />
+                                    <Button x:Name="UsbPickImageBtn" Click="UsbPickImage_Click" />
+                                </StackPanel>
+                                <TextBlock x:Name="UsbImageSizeText" Foreground="{ThemeResource TextFillColorTertiaryBrush}" FontSize="12" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Step 2: pick the removable USB drive -->
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                            <StackPanel Spacing="10">
+                                <TextBlock x:Name="UsbStep2" FontWeight="SemiBold" />
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <ComboBox x:Name="UsbDiskBox" Width="560" />
+                                    <Button x:Name="UsbRefreshDisksBtn" Click="UsbRefreshDisks_Click" />
+                                </StackPanel>
+                                <CheckBox x:Name="UsbShowAllDisksChk" Click="UsbShowAllDisks_Click" />
+                                <TextBlock x:Name="UsbDiskWarnText" Foreground="{ThemeResource SystemFillColorCriticalBrush}" FontSize="12" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Step 3: options + write + verify -->
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                            <StackPanel Spacing="10">
+                                <TextBlock x:Name="UsbStep3" FontWeight="SemiBold" />
+                                <CheckBox x:Name="UsbVerifyChk" IsChecked="True" />
+                                <TextBlock x:Name="UsbModeHint" Foreground="{ThemeResource TextFillColorTertiaryBrush}" FontSize="12" TextWrapping="Wrap" />
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Button x:Name="UsbWriteBtn" Click="UsbWrite_Click" Style="{StaticResource AccentButtonStyle}" />
+                                    <Button x:Name="UsbCancelBtn" Click="UsbCancel_Click" IsEnabled="False" />
+                                </StackPanel>
+                                <ProgressBar x:Name="UsbProgress" Minimum="0" Maximum="100" Value="0" Visibility="Collapsed" />
+                                <TextBlock x:Name="UsbProgressText" FontSize="12" Foreground="{ThemeResource TextFillColorTertiaryBrush}" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Advanced: Rufus launch for bootable media -->
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                            <StackPanel Spacing="10">
+                                <TextBlock x:Name="UsbAdvancedLbl" FontWeight="SemiBold" />
+                                <TextBlock x:Name="UsbAdvancedBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" TextWrapping="Wrap" />
+                                <StackPanel x:Name="UsbRufusButtons" Orientation="Horizontal" Spacing="8">
+                                    <Button x:Name="UsbLaunchRufusBtn" Click="UsbLaunchRufus_Click" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <InfoBar x:Name="UsbResultBar" IsClosable="True" IsOpen="False" />
+                    </StackPanel>
+                </ScrollViewer>
+            </PivotItem>
+
             <!-- ════════════ Minecraft world downloader ════════════ -->
             <PivotItem x:Name="McTab">
                 <ScrollViewer>
