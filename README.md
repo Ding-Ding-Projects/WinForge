@@ -102,19 +102,23 @@ workload (Visual Studio 2022 with *.NET Desktop* + *Windows App SDK*, or the SDK
 git clone https://github.com/codingmachineedge/WinForge.git
 cd WinForge
 
-# Restore + build (Release, x64) · 還原同編譯（Release、x64）
-dotnet build -c Release -p:Platform=x64
+# Restore + build the whole solution — app + launcher (Release, x64) · 還原同編譯成個方案
+dotnet build WinForge.sln -c Release -p:Platform=x64
 
-# Run · 執行
-dotnet run -c Release -p:Platform=x64
+# Run the app · 執行
+dotnet run --project WinForge.csproj -c Release -p:Platform=x64
 ```
 
-**EN —** Or open `WinForge.csproj` in **Visual Studio 2022** and press **F5**. To reproduce a release build
-exactly, the CI publishes self-contained: `dotnet publish WinForge.csproj -c Release -p:Platform=x64
--r win-x64 --self-contained true -p:WindowsAppSDKSelfContained=true -p:WindowsPackageType=None`.
+**EN —** `WinForge.sln` bundles two projects: the main **`WinForge`** app and **`WinForgeLauncher`** — a tiny
+non-WinUI supervisor that relaunches the app if it ever fail-fasts in the first seconds of startup (see
+*How it works*). Open the **solution** in **Visual Studio 2022** and press **F5**, or open `WinForge.csproj`
+for the app alone. To reproduce a release build exactly, CI publishes self-contained: `dotnet publish
+WinForge.csproj -c Release -p:Platform=x64 -r win-x64 --self-contained true
+-p:WindowsAppSDKSelfContained=true -p:WindowsPackageType=None`.
 
-**粵語 —** 或者喺 **Visual Studio 2022** 打開 `WinForge.csproj`，撳 **F5**。要完全重現發佈版本，
-CI 會用自包含方式 publish（指令見上）。
+**粵語 —** `WinForge.sln` 包住兩個專案：主程式 **`WinForge`** 同 **`WinForgeLauncher`**（一個唔依賴 WinUI 嘅輕量
+啟動器，喺開機頭幾秒萬一閃退就自動重開 app，詳見*運作原理*）。喺 **Visual Studio 2022** 打開**方案**撳 **F5**，
+或者淨係打開 `WinForge.csproj` 編譯 app。要完全重現發佈版本，CI 會用自包含方式 publish（指令見上）。
 
 > **Launch a single page directly · 直接開單一頁面:** `WinForge.exe --page <id>` (every id is in
 > [`docs/CLI.md`](docs/CLI.md)); master-search from the CLI with `--page search:<query>`.
@@ -399,6 +403,18 @@ Pages/       Dashboard, CategoryPage, every module page, Settings, About
 或者一句 shell／PowerShell 指令）同雙語文字；一個可重用嘅 `TweakCard` 負責顯示。每個**模組**都係一個真實頁面，
 透過專注嘅服務（例如 `GitService`、`MediaService`、`ConnectionsService`）包住真實引擎或原生 API。
 [`Services/ModuleRegistry.cs`](Services/ModuleRegistry.cs) 登記每個模組，等總搜尋搵到佢哋。
+
+**Resilient startup · 穩健啟動 —** Startup is guarded end-to-end. `CrashLogger` installs global exception
+handlers and writes `%LOCALAPPDATA%\WinForge\crash.log` + `startup-trace.log`; a `[ModuleInitializer]` in
+[`Services/StartupDiagnostics.cs`](Services/StartupDiagnostics.cs) logs early loader faults (the kind that
+otherwise surface only as an opaque native `0xC000027B`) *before* `Main` even runs. And the standalone
+[`WinForgeLauncher`](launcher/) supervises `WinForge.exe`, relaunching it if it ever fail-fasts in the first
+few seconds — so a transient framework hiccup never leaves you staring at a window that didn't open.
+
+**粵語 —** 開機全程都有保護：`CrashLogger` 裝好全域例外處理，寫低 `%LOCALAPPDATA%\WinForge\crash.log` 同
+`startup-trace.log`；[`Services/StartupDiagnostics.cs`](Services/StartupDiagnostics.cs) 嘅 `[ModuleInitializer]`
+喺 `Main` 之前就記錄早期載入器錯誤（嗰種淨係化身做神秘 `0xC000027B` 嘅錯誤）。再加上獨立嘅
+[`WinForgeLauncher`](launcher/) 會睇住 `WinForge.exe`，萬一頭幾秒閃退就自動重開 — 偶發嘅框架問題唔會再令你對住一個開唔到嘅視窗。
 
 ---
 
