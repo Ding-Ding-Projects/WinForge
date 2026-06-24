@@ -139,6 +139,10 @@ public sealed partial class AiAgentsModule : Page
         actions.Children.Add(docs);
         panel.Children.Add(actions);
 
+        // Config editor expander
+        if (agent.ConfigFiles.Count > 0)
+            panel.Children.Add(BuildConfigExpander(agent));
+
         // API key row
         if (!string.IsNullOrEmpty(agent.EnvKey))
         {
@@ -168,6 +172,204 @@ public sealed partial class AiAgentsModule : Page
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(8),
             Child = panel,
+        };
+    }
+
+    /// <summary>
+    /// 為一個代理建立「設定」展開區 · Build the per-agent "Config" expander.
+    /// 每個已知設定檔一個分段；提供 Load／Save／Open folder／Browse 同 JSON 驗證。
+    /// One segment per known config file; Load / Save / Open folder / Browse plus JSON validation.
+    /// </summary>
+    private Expander BuildConfigExpander(AiAgent agent)
+    {
+        var body = new StackPanel { Spacing = 10 };
+
+        // 編輯緊時警告 · Info note: editing while the agent runs.
+        var note = new InfoBar
+        {
+            IsOpen = true,
+            IsClosable = false,
+            Severity = InfoBarSeverity.Informational,
+            Title = P("Heads up", "提提你"),
+            Message = P(
+                "Edits are saved verbatim. If the agent is running it may overwrite this file. Text is the source of truth — fields are convenience helpers only.",
+                "改動會原樣儲存。如果代理正在執行，佢可能會覆寫呢個檔案。文字先係準則 — 欄位只係方便用嘅輔助。"),
+        };
+        body.Children.Add(note);
+
+        // 檔案選擇分段 · File picker segment.
+        var picker = new ComboBox { MinWidth = 220 };
+        foreach (var f in agent.ConfigFiles)
+            picker.Items.Add(new ComboBoxItem { Content = f.Label, Tag = f });
+        picker.SelectedIndex = 0;
+
+        var pathText = new TextBlock
+        {
+            FontSize = 11, FontFamily = new FontFamily("Consolas"), TextWrapping = TextWrapping.Wrap,
+            Foreground = (Brush)Application.Current.Resources["TextFillColorTertiaryBrush"],
+        };
+
+        var pickerRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Center };
+        pickerRow.Children.Add(new TextBlock { Text = P("File", "檔案"), VerticalAlignment = VerticalAlignment.Center, FontWeight = FontWeights.SemiBold });
+        pickerRow.Children.Add(picker);
+        body.Children.Add(pickerRow);
+        body.Children.Add(pathText);
+
+        // 編輯器 · The monospace editor.
+        var editor = new TextBox
+        {
+            AcceptsReturn = true,
+            TextWrapping = TextWrapping.NoWrap,
+            FontFamily = new FontFamily("Consolas"),
+            FontSize = 13,
+            MinHeight = 220,
+            MaxHeight = 380,
+            Height = 260,
+            IsSpellCheckEnabled = false,
+            PlaceholderText = P("Load a file or start typing to create it…", "載入檔案或者開始打字嚟建立佢…"),
+        };
+        ScrollViewer.SetHorizontalScrollBarVisibility(editor, ScrollBarVisibility.Auto);
+        ScrollViewer.SetVerticalScrollBarVisibility(editor, ScrollBarVisibility.Auto);
+        body.Children.Add(editor);
+
+        // 狀態 · Status bar for this editor.
+        var statusBar = new InfoBar { IsOpen = false, IsClosable = true };
+        body.Children.Add(statusBar);
+
+        // 動作按鈕 · Action buttons.
+        var loadBtn = new Button { Content = P("Load current", "載入目前") };
+        var saveBtn = new Button { Content = P("Save", "儲存"), Style = (Style)Application.Current.Resources["AccentButtonStyle"] };
+        var openBtn = new Button { Content = P("Open folder", "開啟資料夾") };
+        var browseBtn = new Button { Content = P("Browse…", "瀏覽…") };
+
+        var btnRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        btnRow.Children.Add(loadBtn);
+        btnRow.Children.Add(saveBtn);
+        btnRow.Children.Add(openBtn);
+        btnRow.Children.Add(browseBtn);
+        body.Children.Add(btnRow);
+
+        // 目前選中嘅檔案同覆寫路徑（Browse 後）· Currently selected file + optional browsed override path.
+        AiConfigFile Current() => (AiConfigFile)((ComboBoxItem)picker.SelectedItem).Tag;
+        string? browsedPath = null; // 若使用者用 Browse 揀咗檔，覆寫解析路徑 · overrides resolved path if set
+
+        string? EffectivePath()
+        {
+            return browsedPath ?? AiAgentConfigService.Resolve(Current());
+        }
+
+        void RefreshPathText()
+        {
+            var p = EffectivePath();
+            if (p is null)
+            {
+                pathText.Text = P("Path could not be resolved — use Browse…", "無法解析路徑 — 請用瀏覽…");
+                return;
+            }
+            bool exists = false;
+            try { exists = System.IO.File.Exists(p); } catch { }
+            var tag = exists ? P("(exists)", "（已存在）") : P("(not created yet)", "（尚未建立）");
+            pathText.Text = $"{p}  {tag}";
+        }
+
+        void ShowEditorStatus(bool ok, string title, string msg)
+        {
+            statusBar.IsOpen = true;
+            statusBar.Severity = ok ? InfoBarSeverity.Success : InfoBarSeverity.Error;
+            statusBar.Title = title;
+            statusBar.Message = msg;
+        }
+
+        void DoLoad()
+        {
+            var p = EffectivePath();
+            var res = browsedPath is not null
+                ? AiAgentConfigService.ReadPath(browsedPath)
+                : AiAgentConfigService.Read(Current());
+            if (res.ok)
+            {
+                editor.Text = res.text;
+                ShowEditorStatus(true, P("Loaded", "已載入"), p ?? "");
+            }
+            else
+            {
+                editor.Text = "";
+                ShowEditorStatus(false, P("Not created yet", "尚未建立"),
+                    P("This file does not exist yet. Type contents and Save to create it.",
+                      "呢個檔案仲未存在。打入內容然後撳儲存就會建立佢。"));
+            }
+            RefreshPathText();
+        }
+
+        void DoSave()
+        {
+            var file = Current();
+            // JSON 驗證（儲存前提示，非阻擋）· Validate JSON before overwrite (warn, non-blocking is N/A — we block on confirm).
+            if (file.Kind == AiConfigKind.Json)
+            {
+                var (valid, err) = AiAgentConfigService.ValidateJson(editor.Text);
+                if (!valid)
+                {
+                    ShowEditorStatus(false, P("Invalid JSON — not saved", "JSON 無效 — 未儲存"),
+                        P($"Fix the JSON and try again. {err}", $"修正 JSON 再試。{err}"));
+                    return;
+                }
+            }
+            var r = browsedPath is not null
+                ? AiAgentConfigService.SavePath(browsedPath, editor.Text)
+                : AiAgentConfigService.Save(file, editor.Text);
+            ShowEditorStatus(r.Success,
+                r.Success ? P("Saved", "已儲存") : P("Failed", "失敗"),
+                (Loc.I.IsCantonesePrimary ? r.Message?.Zh : r.Message?.En) ?? "");
+            RefreshPathText();
+        }
+
+        loadBtn.Click += (_, _) => DoLoad();
+        saveBtn.Click += (_, _) => DoSave();
+        openBtn.Click += (_, _) =>
+        {
+            var r = browsedPath is not null
+                ? AiAgentConfigService.OpenFolderPath(browsedPath)
+                : AiAgentConfigService.OpenFolder(Current());
+            if (!r.Success)
+                ShowEditorStatus(false, P("Failed", "失敗"),
+                    (Loc.I.IsCantonesePrimary ? r.Message?.Zh : r.Message?.En) ?? "");
+        };
+        browseBtn.Click += async (_, _) =>
+        {
+            var file = Current();
+            var ext = file.Kind switch
+            {
+                AiConfigKind.Json => ".json",
+                AiConfigKind.Toml => ".toml",
+                AiConfigKind.Markdown => ".md",
+                _ => ".txt",
+            };
+            var picked = await FileDialogs.OpenFileAsync(ext);
+            if (picked is not null)
+            {
+                browsedPath = picked;
+                RefreshPathText();
+                DoLoad();
+            }
+        };
+
+        picker.SelectionChanged += (_, _) =>
+        {
+            browsedPath = null; // 換檔就清除 Browse 覆寫 · clear any browse override on file change
+            editor.Text = "";
+            statusBar.IsOpen = false;
+            RefreshPathText();
+        };
+
+        RefreshPathText();
+
+        return new Expander
+        {
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            HorizontalContentAlignment = HorizontalAlignment.Stretch,
+            Header = P("Config · 設定", "設定 · Config"),
+            Content = body,
         };
     }
 
