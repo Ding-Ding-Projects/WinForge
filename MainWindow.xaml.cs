@@ -47,6 +47,9 @@ public sealed partial class MainWindow : Window
         // 全域熱鍵泵：開機就跑，收入系統匣都繼續響。
         // Global hotkey pump: starts now so registered chords fire even while WinForge sits in the tray.
         HotkeyMacroService.StartHotkeys();
+        // ZoomIt 全域熱鍵（放大／畫筆／小休）：開機就跑，背景都用得。
+        // ZoomIt global hotkeys (zoom / draw / break): start now so they work even from the tray.
+        ZoomItService.StartHotkeys();
         TrayService.Install(ShowFromTray, QuitFromTray, "WinForge · 視窗調校");
         AppWindow.Closing += OnAppWindowClosing;
     }
@@ -348,6 +351,11 @@ public sealed partial class MainWindow : Window
             case "gif":
             case "screentogif":
                 Navigator.GoToModule?.Invoke("module.giflab");
+                break;
+            case "zoomit":
+            case "zoom":
+            case "annotate":
+                Navigator.GoToModule?.Invoke("module.zoomit");
                 break;
             case "monitor":
             case "sysmon":
@@ -705,6 +713,7 @@ public sealed partial class MainWindow : Window
         "module.recorder" => typeof(ScreenRecorderModule),
         "module.capture" => typeof(CaptureStudioModule),
         "module.giflab" => typeof(GifLabModule),
+        "module.zoomit" => typeof(ZoomItModule),
         "module.monitor" => typeof(SystemMonitorModule),
         "module.winfetch" => typeof(WinfetchModule),
         "module.battery" => typeof(BatteryThermalModule),
