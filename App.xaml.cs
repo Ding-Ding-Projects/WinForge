@@ -69,27 +69,31 @@ public partial class App : Application
         Shell = new MainWindow();
         ApplyThemeFromSettings();
 
-        // 進階貼上：全域熱鍵 → 喺滑鼠附近彈出置頂面板 · Advanced Paste: hotkey opens the topmost palette.
-        try
-        {
-            var dq = Shell.DispatcherQueue;
-            AdvancedPasteService.PaletteRequested += () => AdvancedPastePalette.Show(dq);
-            if (AdvancedPasteService.HotkeyEnabledSetting)
-                AdvancedPasteService.EnableHotkey(dq);
-        }
-        catch { /* best effort — never block startup */ }
-
-        // 若用戶上次開咗活動追蹤，喺啟動時自動恢復。
-        // Resume activity tracking on startup if the user had it enabled (privacy default: off).
-        try { Services.ActivityTrackerService.I.InitFromPrefs(); } catch { }
-        // 若用戶開咗任何滑鼠工具，喺啟動時即刻裝返全域掛鈎同覆蓋層（即使未開過頁面）。
-        // Restore Mouse Utilities (Find My Mouse / Highlighter / Crosshairs / Jump) on startup so the
-        // global hooks + overlays run as long as the toggle is on — even before the page is opened.
-        try { Services.MouseUtilsService.LoadSettings(); Services.MouseUtilsService.Sync(); } catch { }
         if (StartMinimized && Shell is MainWindow mw)
             mw.StartHiddenInTray();      // login startup → stay in the tray, background services still run
         else
             Shell.Activate();
+
+        // 其餘背景服務（進階貼上熱鍵、活動追蹤、滑鼠工具覆蓋層）延後到視窗顯示之後先啟動，每個都包住，
+        // 避免喺 XAML 初始化嘅脆弱時段同全域掛鈎／覆蓋層競爭而間歇性閃退（stowed exception）。
+        // Defer the remaining background services (Advanced Paste hotkey, activity tracking, Mouse Utilities
+        // overlays) until after the window is shown — each guarded — so they never race the fragile XAML
+        // init, which was causing intermittent stowed-exception crashes at launch.
+        var dq = Shell.DispatcherQueue;
+        dq.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
+        {
+            try
+            {
+                AdvancedPasteService.PaletteRequested += () => AdvancedPastePalette.Show(dq);
+                if (AdvancedPasteService.HotkeyEnabledSetting)
+                    AdvancedPasteService.EnableHotkey(dq);
+            }
+            catch { /* best effort — never block startup */ }
+            // Resume activity tracking if the user had it enabled (privacy default: off).
+            try { Services.ActivityTrackerService.I.InitFromPrefs(); } catch { }
+            // Restore Mouse Utilities (Find My Mouse / Highlighter / Crosshairs / Jump) if enabled.
+            try { Services.MouseUtilsService.LoadSettings(); Services.MouseUtilsService.Sync(); } catch { }
+        });
     }
 
     private static void ParseArgs()

@@ -41,27 +41,34 @@ public sealed partial class MainWindow : Window
         AddAccel(Windows.System.VirtualKey.T, () => AddTab("dashboard"));
         AddAccel(Windows.System.VirtualKey.W, CloseActiveTab);
 
-        // 背景運行：關窗收入系統匣，剪貼簿監察繼續運行。
-        // Keep running when closed: close hides to the tray; the clipboard monitor keeps going.
-        ClipboardService.Start(DispatcherQueue);
-        // 全域熱鍵泵：開機就跑，收入系統匣都繼續響。
-        // Global hotkey pump: starts now so registered chords fire even while WinForge sits in the tray.
-        HotkeyMacroService.StartHotkeys();
-        // ZoomIt 全域熱鍵（放大／畫筆／小休）：開機就跑，背景都用得。
-        // ZoomIt global hotkeys (zoom / draw / break): start now so they work even from the tray.
-        ZoomItService.StartHotkeys();
-        // 快速重音符：如之前已啟用，開機就掛鈎，收入系統匣都繼續生效。
-        // Quick Accent: if previously enabled, hook now so it works from the tray too.
-        QuickAccentService.Apply();
-        // 快捷鍵指南：記住 UI dispatcher；若用戶開咗就裝「揿住 Win 顯示」掛鈎，收入系統匣都繼續運作。
-        // Shortcut Guide: capture the UI dispatcher; if the user enabled it, install the hold-Win-to-show
-        // hook now so the overlay pops up even while WinForge sits in the tray.
-        ShortcutGuideService.Init(DispatcherQueue);
-        // 指令面板全域熱鍵（預設 Alt+Space）· Command Palette global hotkey (default Alt+Space),
-        // so the quick-launcher opens from anywhere even while WinForge sits in the tray.
-        CommandPaletteService.Start(DispatcherQueue);
-        TrayService.Install(ShowFromTray, QuitFromTray, "WinForge · 視窗調校");
         AppWindow.Closing += OnAppWindowClosing;
+
+        // 背景服務（剪貼簿、全域熱鍵泵、ZoomIt、快速重音、快捷鍵指南、指令面板、系統匣）延後到首次版面完成
+        // 先啟動，而且每個都用 CrashLogger.Guard 包住——避免喺 XAML 初始化嘅脆弱時段同全域掛鈎／覆蓋層競爭，
+        // 以免間歇性 stowed-exception 閃退；亦確保任何單一服務出錯都唔會拖冧開機。
+        // Defer background services (clipboard monitor, global hotkey pump, ZoomIt/Command-Palette hotkeys,
+        // Quick Accent, Shortcut Guide, tray) until AFTER first layout, each wrapped in CrashLogger.Guard —
+        // so global hooks/overlays never race the fragile XAML init (the cause of intermittent
+        // stowed-exception crashes at launch) and one faulty service can never abort startup.
+        RootGrid.Loaded += StartBackgroundServicesOnce;
+    }
+
+    private bool _bgStarted;
+    private void StartBackgroundServicesOnce(object sender, RoutedEventArgs e)
+    {
+        if (_bgStarted) return;
+        _bgStarted = true;
+        RootGrid.Loaded -= StartBackgroundServicesOnce;
+        DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
+        {
+            CrashLogger.Guard("startup:clipboard",     () => ClipboardService.Start(DispatcherQueue));
+            CrashLogger.Guard("startup:hotkeys",       () => HotkeyMacroService.StartHotkeys());
+            CrashLogger.Guard("startup:zoomit",        () => ZoomItService.StartHotkeys());
+            CrashLogger.Guard("startup:quickaccent",   () => QuickAccentService.Apply());
+            CrashLogger.Guard("startup:shortcutguide", () => ShortcutGuideService.Init(DispatcherQueue));
+            CrashLogger.Guard("startup:cmdpalette",    () => CommandPaletteService.Start(DispatcherQueue));
+            CrashLogger.Guard("startup:tray",          () => TrayService.Install(ShowFromTray, QuitFromTray, "WinForge · 視窗調校"));
+        });
     }
 
     private bool _reallyQuit;
