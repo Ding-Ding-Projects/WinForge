@@ -145,6 +145,11 @@ public sealed partial class MainWindow : Window
             case "code":
             case "vs":
                 Navigator.GoToModule?.Invoke("module.vscode");
+            case "aichat":
+            case "chat":
+            case "llm":
+            case "ollama":
+                Navigator.GoToModule?.Invoke("module.aichat");
                 break;
             case "cloudflare":
             case "tunnel":
@@ -615,6 +620,7 @@ public sealed partial class MainWindow : Window
         "module.aiagents" => typeof(AiAgentsModule),
         "module.resume" => typeof(ResumeWriterModule),
         "module.ollama" => typeof(OllamaModule),
+        "module.aichat" => typeof(AiChatModule),
         "module.cloudflare" => typeof(CloudflareModule),
         "module.weblogin" => typeof(WebLoginModule),
         "module.ssh" => typeof(SshModule),

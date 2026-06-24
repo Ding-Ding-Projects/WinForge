@@ -64,6 +64,7 @@
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools.WinApp" Version="0.3.2" />
     <PackageReference Include="System.Management" Version="9.0.0" />
     <!-- DPAPI (CurrentUser) at-rest protection for the Bitwarden session key held in memory. -->
+    <!-- DPAPI（ProtectedData）為 AI 聊天供應商加密儲存 API 金鑰 · DPAPI to encrypt AI Chat provider API keys at rest. -->
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="9.0.0" />
     <!-- 本地 QR 碼產生（純離線，唔上網）· Local QR-code generation (fully offline, no network). -->
     <PackageReference Include="QRCoder" Version="1.6.0" />
