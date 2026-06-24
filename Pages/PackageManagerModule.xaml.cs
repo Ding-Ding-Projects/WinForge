@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.UI.Text;
@@ -33,14 +31,6 @@ public sealed partial class PackageManagerModule : Page
     private const string IgnoreNotApplicableKey = "pkg.ignore.notapplicable";
     private static bool IgnoreNotApplicable =>
         SettingsStore.Get(IgnoreNotApplicableKey, "false") == "true";
-
-    private sealed class BundleEntry
-    {
-        public string Manager { get; set; } = "";
-        public string Id { get; set; } = "";
-        public string Name { get; set; } = "";
-        public string Version { get; set; } = "";
-    }
 
     public PackageManagerModule()
     {
@@ -521,6 +511,11 @@ public sealed partial class PackageManagerModule : Page
 
     // ===== Bundles =====
 
+    /// <summary>
+    /// 開套件清單工作區（以已安裝套件作種子）· Gather installed packages, then open the editable
+    /// bundle workspace (BundleWorkspaceDialog) where the user can save in JSON/YAML/XML/.ubundle,
+    /// export a .ps1, and install. 由「匯出…」按鈕觸發。
+    /// </summary>
     private async Task ExportBundle()
     {
         var keys = SelectedAvailable();
@@ -529,50 +524,105 @@ public sealed partial class PackageManagerModule : Page
         try { items = await PackageManagerRegistry.AllInstalledAsync(keys, CancellationToken.None); }
         catch { items = new(); }
         Busy.IsActive = false;
-        await ExportEntries(items);
+        await BundleWorkspaceDialog.ShowAsync(this.XamlRoot, items);
     }
 
-    /// <summary>將一組套件寫做 JSON 清單（已安裝或所選共用）· Write a set of packages to a JSON bundle (shared by export-all and export-selected).</summary>
+    /// <summary>
+    /// 將一組套件直接寫做清單（四種格式）· Write a set of packages to a bundle file, with the format
+    /// chosen by the file extension (.json/.ubundle → JSON, .yaml/.yml → YAML, .xml → XML). Used by the
+    /// batch "Export selected…" bar. Routes via BundleService.ToBundle + SaveAsync.
+    /// </summary>
     private async Task ExportEntries(List<PackageItem> items)
     {
         if (items.Count == 0) { ResultsHeader.Text = P("Nothing to export.", "冇嘢可以匯出。"); return; }
-        var entries = items.Select(i => new BundleEntry { Manager = i.ManagerKey, Id = i.Id, Name = i.Name, Version = i.Version }).ToList();
         try
         {
-            var path = await FileDialogs.SaveFileAsync("winforge-packages", ".json");
+            var path = await FileDialogs.SaveFileAsync("winforge-bundle",
+                new[]
+                {
+                    new FileDialogs.Filter("JSON / UniGetUI bundle (*.json;*.ubundle)", "*.json;*.ubundle"),
+                    new FileDialogs.Filter("YAML (*.yaml;*.yml)", "*.yaml;*.yml"),
+                    new FileDialogs.Filter("XML (*.xml)", "*.xml"),
+                },
+                "json",
+                P("Export bundle as…", "匯出清單…"));
             if (path is null) return;
-            var json = JsonSerializer.Serialize(entries, new JsonSerializerOptions { WriteIndented = true });
-            await File.WriteAllTextAsync(path, json);
-            ResultsHeader.Text = P($"Exported {entries.Count} package(s).", $"匯出咗 {entries.Count} 個套件。");
+            var bundle = BundleService.ToBundle(items);
+            await BundleService.SaveAsync(bundle, path);
+            int comp = bundle.packages.Count, inc = bundle.incompatible_packages.Count;
+            ResultsHeader.Text = inc > 0
+                ? P($"Exported {comp} package(s) ({inc} incompatible logged).", $"匯出咗 {comp} 個套件（記錄咗 {inc} 個不相容）。")
+                : P($"Exported {comp} package(s).", $"匯出咗 {comp} 個套件。");
         }
         catch (Exception ex) { ResultsHeader.Text = ex.Message; }
     }
 
+    /// <summary>
+    /// 匯入清單並安裝（先做安全檢查）· Load a bundle in any of the four formats via BundleService.LoadAsync,
+    /// show version-mismatch + a security report dialog (custom commands/args/kill-lists) before installing
+    /// each compatible package; incompatibles are skipped. 由「匯入…」按鈕觸發。
+    /// </summary>
     private async Task ImportBundle()
     {
-        List<BundleEntry>? entries = null;
-        try
-        {
-            var path = await FileDialogs.OpenFileAsync(".json");
-            if (path is null) return;
-            var json = await File.ReadAllTextAsync(path);
-            entries = JsonSerializer.Deserialize<List<BundleEntry>>(json);
-        }
+        string? path;
+        try { path = await FileDialogs.OpenFileAsync(".json", ".yaml", ".yml", ".xml", ".ubundle"); }
         catch (Exception ex) { ResultsHeader.Text = ex.Message; return; }
-        if (entries is null || entries.Count == 0) { ResultsHeader.Text = P("Bundle is empty.", "清單係空嘅。"); return; }
+        if (path is null) return;
+
+        Busy.IsActive = true;
+        BundleLoadResult res;
+        try { res = await BundleService.LoadAsync(path); }
+        catch (Exception ex) { Busy.IsActive = false; ResultsHeader.Text = ex.Message; return; }
+        Busy.IsActive = false;
+
+        var bundle = res.Bundle;
+        if (bundle.packages.Count == 0 && bundle.incompatible_packages.Count == 0)
+        {
+            ResultsHeader.Text = P("Bundle is empty.", "清單係空嘅。");
+            return;
+        }
+
+        // 版本不符 + 安全檢查確認對話框 · version-mismatch + security review before installing.
+        var lines = new List<string>();
+        if (res.VersionMismatch)
+            lines.Add(P($"Bundle export_version is {res.FoundVersion}, expected 3 — import may be imperfect.",
+                        $"清單 export_version 係 {res.FoundVersion}，預期係 3 — 匯入可能唔完全正確。"));
+        var report = BundleService.Inspect(bundle);
+        if (report.HasWarnings)
+        {
+            lines.Add(P($"Security — {report.Warnings.Count} package(s) run custom commands/args/kill-lists:",
+                        $"安全 — {report.Warnings.Count} 個套件會執行自訂指令／參數／kill-list："));
+            foreach (var w in report.Warnings.Take(10)) lines.Add("• " + w.Primary + "  ·  " + w.Secondary);
+        }
+        lines.Add(P($"Install {bundle.packages.Count} compatible package(s)?{(bundle.incompatible_packages.Count > 0 ? $" ({bundle.incompatible_packages.Count} incompatible skipped)" : "")}",
+                    $"安裝 {bundle.packages.Count} 個相容套件？{(bundle.incompatible_packages.Count > 0 ? $"（略過 {bundle.incompatible_packages.Count} 個不相容）" : "")}"));
+
+        var body = new TextBlock { TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true, Text = string.Join("\n", lines) };
+        var confirm = new ContentDialog
+        {
+            Title = report.HasWarnings ? P("Security review", "安全檢查") : P("Import bundle", "匯入清單"),
+            Content = new ScrollViewer { MaxHeight = 340, MinWidth = 480, Content = body },
+            PrimaryButtonText = P("Install", "安裝"),
+            CloseButtonText = P("Cancel", "取消"),
+            DefaultButton = report.HasWarnings ? ContentDialogButton.Close : ContentDialogButton.Primary,
+            XamlRoot = this.XamlRoot,
+        };
+        if (await confirm.ShowAsync() != ContentDialogResult.Primary) return;
 
         ResultsPanel.Children.Clear();
         int done = 0;
+        var pkgs = bundle.packages;
         Busy.IsActive = true;
-        foreach (var en in entries)
+        foreach (var en in pkgs)
         {
-            var mgr = PackageManagerRegistry.ByKey(en.Manager);
-            if (mgr is null || !(_available.TryGetValue(en.Manager, out var a) && a)) continue;
-            ResultsHeader.Text = P($"Installing {en.Name}… ({done + 1}/{entries.Count})", $"安裝緊 {en.Name}…（{done + 1}/{entries.Count}）");
+            var mgr = PackageManagerRegistry.ByKey(en.ManagerName);
+            if (mgr is null || !(_available.TryGetValue(en.ManagerName, out var a) && a)) continue;
+            var label = string.IsNullOrEmpty(en.Name) ? en.Id : en.Name;
+            ResultsHeader.Text = P($"Installing {label}… ({done + 1}/{pkgs.Count})", $"安裝緊 {label}…（{done + 1}/{pkgs.Count}）");
             try { var r = await mgr.InstallAsync(en.Id, CancellationToken.None); if (r.Success) done++; } catch { }
         }
         Busy.IsActive = false;
-        ResultsHeader.Text = P($"Installed {done}/{entries.Count} from bundle.", $"由清單安裝咗 {done}/{entries.Count}。");
+        ResultsHeader.Text = P($"Installed {done}/{pkgs.Count} from bundle.", $"由清單安裝咗 {done}/{pkgs.Count}。");
     }
 
     // ===== Setup =====

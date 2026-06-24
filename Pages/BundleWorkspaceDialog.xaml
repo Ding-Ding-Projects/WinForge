@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentDialog
+    x:Class="WinForge.Pages.BundleWorkspaceDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid Width="640" RowSpacing="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Toolbar: New / Open / Save / Add / Export .ps1 / Install all -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="6">
+            <Button x:Name="NewBtn" Click="New_Click" />
+            <Button x:Name="OpenBtn" Click="Open_Click" />
+            <Button x:Name="SaveBtn" Click="Save_Click" />
+            <Button x:Name="AddBtn" Click="AddSelected_Click" />
+            <Button x:Name="ScriptBtn" Click="ExportScript_Click" />
+            <Button x:Name="InstallAllBtn" Click="InstallAll_Click" Style="{StaticResource AccentButtonStyle}" />
+        </StackPanel>
+
+        <!-- Dirty / status line -->
+        <TextBlock Grid.Row="1" x:Name="StatusText" FontSize="12"
+                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+        <!-- Warnings (version mismatch + security) -->
+        <InfoBar Grid.Row="2" x:Name="WarnBar" IsClosable="True" IsOpen="False" Severity="Warning" />
+
+        <!-- Package rows -->
+        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" MinHeight="220" MaxHeight="380">
+            <StackPanel x:Name="RowsPanel" Spacing="6" />
+        </ScrollViewer>
+
+        <ProgressRing Grid.Row="4" x:Name="Busy" IsActive="False" Width="22" Height="22" HorizontalAlignment="Left" />
+    </Grid>
+</ContentDialog>
