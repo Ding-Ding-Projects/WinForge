@@ -85,6 +85,7 @@ public static class ModuleRegistry
         new() { Tag = "module.ssh", En = "SSH Toolset", Zh = "SSH 工具", Glyph = ((char)0xE756).ToString(), Keywords = "ssh sftp scp terminal shell remote profile key keygen ed25519 rsa passwordless deploy authorized_keys known hosts openssh dpapi 終端機 遠端 金鑰 免密碼 部署 連線 上載 下載" },
         new() { Tag = "module.vault-volumes", En = "WinForge Vault", Zh = "WinForge 保險庫", Glyph = ((char)0xE72E).ToString(), Keywords = "vault volume container encrypt encrypted disk encryption mount dismount unmount drive letter password keyfile pim benchmark aes serpent twofish on the fly cryptography 保險庫 加密 容器 磁碟 掛載 卸載 密碼 鎖匙檔 磁碟區" },
         new() { Tag = "module.mail", En = "Mail", Zh = "電郵", Glyph = ((char)0xE715).ToString(), Keywords = "mail email imap smtp thunderbird inbox compose reply forward attachment oauth gmail outlook icloud yahoo account folder message read send 電郵 郵件 收件匣 撰寫 回覆 轉寄 附件 帳戶 資料夾 訊息" },
+        new() { Tag = "module.packer", En = "Packer (Image Builder)", Zh = "Packer（映像建置器）", Glyph = ((char)0xE7B8).ToString(), Keywords = "packer hashicorp image builder template hcl pkr.hcl json init validate fmt format build inspect plugin plugins var var-file variables provisioner builder source qemu docker aws azure vsphere amazon ami vm machine devops 映像 範本 建置 變數 插件" },
     };
 
     public static IEnumerable<ModuleInfo> Search(string query)

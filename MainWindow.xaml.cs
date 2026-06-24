@@ -153,6 +153,10 @@ public sealed partial class MainWindow : Window
             case "webview":
             case "signin":
                 Navigator.GoToModule?.Invoke("module.weblogin");
+            case "packer":
+            case "image":
+            case "imagebuilder":
+                Navigator.GoToModule?.Invoke("module.packer");
                 break;
             case "archives":
             case "archive":
@@ -477,6 +481,7 @@ public sealed partial class MainWindow : Window
         "module.cloudflare" => typeof(CloudflareModule),
         "module.weblogin" => typeof(WebLoginModule),
         "module.ssh" => typeof(SshModule),
+        "module.packer" => typeof(PackerModule),
         "module.archives" => typeof(ArchivesModule),
         "module.media" => typeof(MediaModule),
         "module.audioeditor" => typeof(AudioEditorModule),
