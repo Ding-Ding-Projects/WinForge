@@ -144,6 +144,12 @@ public sealed partial class MainWindow : Window
             case "media":
                 Navigator.GoToModule?.Invoke("module.media");
                 break;
+            case "ytdlp":
+            case "youtube":
+            case "download":
+            case "downloader":
+                Navigator.GoToModule?.Invoke("module.ytdlp");
+                break;
             case "regedit":
             case "registry":
                 Navigator.GoToModule?.Invoke("module.regedit");
@@ -431,6 +437,7 @@ public sealed partial class MainWindow : Window
         "module.cloudflare" => typeof(CloudflareModule),
         "module.archives" => typeof(ArchivesModule),
         "module.media" => typeof(MediaModule),
+        "module.ytdlp" => typeof(YtDlpModule),
         "module.regedit" => typeof(RegistryEditor),
         "module.doctors" => typeof(SystemDoctorsModule),
         "module.services" => typeof(ServicesModule),

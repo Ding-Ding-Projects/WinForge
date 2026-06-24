@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.YtDlpModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="1040" Spacing="14">
+
+            <!-- Header -->
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <FontIcon FontSize="24" Glyph="&#xE896;" VerticalAlignment="Center" />
+                <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
+            </StackPanel>
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <!-- Engine install bars -->
+            <InfoBar x:Name="EngineBar" IsClosable="False" IsOpen="False" Severity="Warning" />
+            <InfoBar x:Name="FfmpegBar" IsClosable="False" IsOpen="False" Severity="Warning" />
+
+            <!-- URL input -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="UrlLabel" FontWeight="SemiBold" />
+                    <TextBox x:Name="UrlBox" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="76" MaxHeight="160"
+                             FontFamily="Consolas" PlaceholderText="https://www.youtube.com/watch?v=…" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="PasteBtn" Click="Paste_Click" />
+                        <Button x:Name="ListFormatsBtn" Click="ListFormats_Click" Style="{StaticResource AccentButtonStyle}" />
+                        <ProgressRing x:Name="ProbeBusy" IsActive="False" Width="20" Height="20" VerticalAlignment="Center" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Format list -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="FormatsLabel" FontWeight="SemiBold" />
+                    <TextBlock x:Name="FormatsHint" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" FontSize="12" />
+                    <ListView x:Name="FormatList" SelectionMode="Single" MaxHeight="220"
+                              BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="6"
+                              SelectionChanged="FormatList_SelectionChanged">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Display}" FontFamily="Consolas" FontSize="12" TextWrapping="NoWrap" />
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </StackPanel>
+            </Border>
+
+            <!-- Quality / options -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <TextBlock x:Name="OptionsLabel" FontWeight="SemiBold" />
+
+                    <Grid ColumnSpacing="16" RowSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock x:Name="PresetCap" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" />
+                        <ComboBox x:Name="PresetBox" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Left" MinWidth="320"
+                                  SelectionChanged="PresetBox_SelectionChanged" />
+
+                        <TextBlock x:Name="AudioFmtCap" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" />
+                        <ComboBox x:Name="AudioFmtBox" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Left" MinWidth="200" />
+
+                        <TextBlock x:Name="SelectedFmtCap" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" />
+                        <TextBox x:Name="SelectedFmtBox" Grid.Row="2" Grid.Column="1" FontFamily="Consolas"
+                                 PlaceholderText="bv*+ba/b  ·  137+140  ·  (from preset)" />
+
+                        <TextBlock x:Name="CookiesCap" Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" />
+                        <ComboBox x:Name="CookiesBox" Grid.Row="3" Grid.Column="1" HorizontalAlignment="Left" MinWidth="200" />
+                    </Grid>
+
+                    <StackPanel Orientation="Horizontal" Spacing="20">
+                        <CheckBox x:Name="SubsCheck" />
+                        <TextBox x:Name="SubLangsBox" Width="160" FontFamily="Consolas" Text="en,zh" PlaceholderText="en,zh" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="20">
+                        <CheckBox x:Name="ThumbCheck" />
+                        <CheckBox x:Name="MetaCheck" />
+                        <CheckBox x:Name="SponsorCheck" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="20">
+                        <CheckBox x:Name="ArchiveCheck" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <TextBlock x:Name="PlaylistCap" VerticalAlignment="Center" />
+                        <TextBox x:Name="PlaylistBox" Width="200" FontFamily="Consolas" PlaceholderText="1-5,8,10-12" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Output folder + template -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="OutputLabel" FontWeight="SemiBold" />
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="FolderCap" Grid.Column="0" VerticalAlignment="Center" Width="80" />
+                        <TextBox x:Name="FolderBox" Grid.Column="1" IsReadOnly="True" />
+                        <Button x:Name="FolderBtn" Grid.Column="2" Click="PickFolder_Click" />
+                        <Button x:Name="OpenFolderBtn" Grid.Column="3" Click="OpenFolder_Click"><FontIcon Glyph="&#xE838;" FontSize="14" /></Button>
+                    </Grid>
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="TemplateCap" Grid.Column="0" VerticalAlignment="Center" Width="80" />
+                        <TextBox x:Name="TemplateBox" Grid.Column="1" FontFamily="Consolas" Text="%(title)s [%(id)s].%(ext)s" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Download controls + progress -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="DownloadBtn" Click="Download_Click" Style="{StaticResource AccentButtonStyle}" />
+                        <Button x:Name="CancelBtn" Click="Cancel_Click" IsEnabled="False" />
+                        <Button x:Name="UpdateBtn" Click="Update_Click" />
+                        <Button x:Name="ClearCacheBtn" Click="ClearCache_Click" />
+                    </StackPanel>
+                    <ProgressBar x:Name="Progress" Minimum="0" Maximum="100" Value="0" Height="8" />
+                    <TextBlock x:Name="StatusText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" />
+                </StackPanel>
+            </Border>
+
+            <InfoBar x:Name="ResultBar" IsClosable="True" IsOpen="False" />
+
+            <!-- Log pane -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="8">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="LogLabel" Grid.Column="0" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <Button x:Name="LogClearBtn" Grid.Column="1" Click="LogClear_Click" />
+                    </Grid>
+                    <TextBox x:Name="LogBox" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
+                             FontFamily="Consolas" FontSize="12" MinHeight="160" MaxHeight="320"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Auto" />
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</Page>

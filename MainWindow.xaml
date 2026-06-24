@@ -89,6 +89,7 @@
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE714;" /></NavigationViewItem.Icon>
                     <NavigationViewItem.MenuItems>
                         <NavigationViewItem Content="Media · 媒體" Tag="module.media"><NavigationViewItem.Icon><FontIcon Glyph="&#xE714;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Media Downloader · 媒體下載器" Tag="module.ytdlp"><NavigationViewItem.Icon><FontIcon Glyph="&#xE896;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Screen Recorder · 螢幕錄影" Tag="module.recorder"><NavigationViewItem.Icon><FontIcon Glyph="&#xE714;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Capture Studio · 擷取工作室" Tag="module.capture"><NavigationViewItem.Icon><FontIcon Glyph="&#xE722;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Volume Mixer · 音量混合器" Tag="module.mixer"><NavigationViewItem.Icon><FontIcon Glyph="&#xE767;" /></NavigationViewItem.Icon></NavigationViewItem>
