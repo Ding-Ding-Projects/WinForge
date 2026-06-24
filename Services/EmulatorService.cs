@@ -24,6 +24,21 @@ public sealed class AvdImage
     public string Display => Package;
 }
 
+/// <summary>一個 SDK 套件（sdkmanager）· One Android SDK package row from sdkmanager --list / --list_installed.</summary>
+public sealed class SdkPackage
+{
+    public string Path { get; set; } = "";       // e.g. platforms;android-34
+    public string Version { get; set; } = "";     // e.g. 34
+    public string Description { get; set; } = ""; // human-readable
+    public bool Installed { get; set; }
+    public string Category { get; set; } = "";    // grouping bucket key (platforms, build-tools, …)
+
+    /// <summary>套件分類嘅顯示字串 · Friendly group label, derived from the first path segment.</summary>
+    public string Group => Category;
+    public string Status => Installed ? "✓" : "";
+    public string Display => Path + (Description.Length > 0 ? $"  —  {Description}" : "");
+}
+
 /// <summary>
 /// 應用程式內 Android 模擬器控制 · In-app Android emulator control wrapping the SDK's emulator + avdmanager +
 /// sdkmanager. Lists/creates/launches/stops/wipes AVDs. Locates the SDK from ANDROID_SDK_ROOT /
@@ -94,6 +109,164 @@ public static class EmulatorService
             return (false, $"SDK at {root} has no cmdline-tools (avdmanager). Install 'cmdline-tools;latest'.",
                 $"SDK（{root}）冇 cmdline-tools（avdmanager）。請安裝「cmdline-tools;latest」。");
         return (true, $"Android SDK: {root}", $"Android SDK：{root}");
+    }
+
+    /// <summary>更新頻道（0=stable 1=beta 2=dev 3=canary）· Release channel passed to sdkmanager via --channel.</summary>
+    public static int Channel { get; set; } = 0;
+
+    /// <summary>JDK 偵測（sdkmanager.bat 需要 Java）· true if a JDK/JRE is reachable (JAVA_HOME or java on PATH).</summary>
+    public static bool HasJava()
+    {
+        var jh = Environment.GetEnvironmentVariable("JAVA_HOME");
+        if (!string.IsNullOrEmpty(jh) && File.Exists(Path.Combine(jh, "bin", "java.exe"))) return true;
+        // The Android SDK ships its own JBR under jbr/ or jre/ for some tool versions.
+        var root = SdkRoot();
+        if (root.Length > 0)
+        {
+            foreach (var sub in new[] { "jbr", "jre" })
+                if (File.Exists(Path.Combine(root, sub, "bin", "java.exe"))) return true;
+        }
+        var pathVar = Environment.GetEnvironmentVariable("PATH") ?? "";
+        foreach (var dir in pathVar.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
+        {
+            try { if (File.Exists(Path.Combine(dir.Trim(), "java.exe"))) return true; } catch { }
+        }
+        return false;
+    }
+
+    /// <summary>開啟 SDK 資料夾（Explorer）· Open the SDK root folder in Explorer. Returns false if no SDK.</summary>
+    public static bool OpenSdkFolder()
+    {
+        var root = SdkRoot();
+        if (root.Length == 0) return false;
+        try { Process.Start(new ProcessStartInfo { FileName = root, UseShellExecute = true }); return true; }
+        catch { return false; }
+    }
+
+    private static string ChannelArg => Channel is >= 0 and <= 3 ? $" --channel={Channel}" : "";
+
+    /// <summary>由套件 id 推斷分類 · Map a package path to its category bucket (first segment, normalised).</summary>
+    private static string CategoryOf(string path)
+    {
+        var head = path.Split(';')[0].Trim();
+        return head switch
+        {
+            "platforms" => "platforms",
+            "build-tools" => "build-tools",
+            "platform-tools" => "platform-tools",
+            "cmdline-tools" => "cmdline-tools",
+            "ndk" or "ndk-bundle" => "ndk",
+            "system-images" => "system-images",
+            "emulator" => "emulator",
+            "sources" => "sources",
+            "extras" => "extras",
+            _ => head.Length > 0 ? head : "other",
+        };
+    }
+
+    /// <summary>解析 sdkmanager 表格輸出（以 | 分隔）· Parse a sdkmanager --list / --list_installed table block.</summary>
+    private static List<SdkPackage> ParseList(string output, bool installed)
+    {
+        var res = new List<SdkPackage>();
+        if (string.IsNullOrEmpty(output)) return res;
+        bool inTable = false;
+        foreach (var raw in output.Replace("\r", "").Split('\n'))
+        {
+            var line = raw.TrimEnd();
+            var trimmed = line.Trim();
+            if (trimmed.Length == 0) continue;
+            // Section headers / separators we skip.
+            if (trimmed.StartsWith("Installed packages:", StringComparison.OrdinalIgnoreCase)) { inTable = true; continue; }
+            if (trimmed.StartsWith("Available Packages:", StringComparison.OrdinalIgnoreCase) ||
+                trimmed.StartsWith("Available Updates:", StringComparison.OrdinalIgnoreCase)) { inTable = false; continue; }
+            if (trimmed.StartsWith("---") || trimmed.StartsWith("===")) continue;
+            if (trimmed.StartsWith("Path", StringComparison.OrdinalIgnoreCase) && trimmed.Contains("Version")) { inTable = true; continue; }
+            if (trimmed.StartsWith("ID", StringComparison.OrdinalIgnoreCase) && trimmed.Contains("Installed")) { inTable = true; continue; }
+            // Pipe-delimited data rows.
+            if (!line.Contains('|')) continue;
+            if (!inTable && installed) inTable = true; // --list_installed has no "Installed packages:" preamble in some versions
+            var cols = line.Split('|');
+            var path = cols[0].Trim();
+            if (path.Length == 0 || path.StartsWith("Path", StringComparison.OrdinalIgnoreCase) ||
+                path.StartsWith("ID", StringComparison.OrdinalIgnoreCase)) continue;
+            // A valid package id has no spaces in its first token (e.g. "platforms;android-34").
+            if (path.Contains(' ')) continue;
+            var pkg = new SdkPackage
+            {
+                Path = path,
+                Version = cols.Length > 1 ? cols[1].Trim() : "",
+                Description = cols.Length > 2 ? cols[2].Trim() : "",
+                Installed = installed,
+                Category = CategoryOf(path),
+            };
+            res.Add(pkg);
+        }
+        return res;
+    }
+
+    /// <summary>列出已安裝套件 · List installed SDK packages (sdkmanager --list_installed).</summary>
+    public static async Task<List<SdkPackage>> ListInstalledPackages(CancellationToken ct = default)
+    {
+        if (SdkManager.Length == 0) return new();
+        var r = await ShellRunner.Run(SdkManager, "--list_installed", false, ct);
+        return ParseList(r.Output ?? "", installed: true);
+    }
+
+    /// <summary>列出所有可用套件（含已安裝）· List all available SDK packages (sdkmanager --list).
+    /// Merges in the installed set so the UI can show a ✓ on installed rows.</summary>
+    public static async Task<List<SdkPackage>> ListAvailablePackages(CancellationToken ct = default)
+    {
+        if (SdkManager.Length == 0) return new();
+        var installed = await ListInstalledPackages(ct);
+        var installedIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var p in installed) installedIds.Add(p.Path);
+
+        var r = await ShellRunner.Run(SdkManager, "--list" + ChannelArg, false, ct);
+        var avail = ParseList(r.Output ?? "", installed: false);
+        // De-dup by path, prefer marking installed.
+        var byPath = new Dictionary<string, SdkPackage>(StringComparer.OrdinalIgnoreCase);
+        foreach (var p in avail)
+        {
+            p.Installed = installedIds.Contains(p.Path);
+            byPath[p.Path] = p;
+        }
+        // Ensure every installed package is present even if --list omitted it.
+        foreach (var p in installed)
+            if (!byPath.ContainsKey(p.Path)) byPath[p.Path] = p;
+        return new List<SdkPackage>(byPath.Values);
+    }
+
+    /// <summary>安裝一個套件 · Install a package by id (sdkmanager "&lt;pkg&gt;"), auto-accepting prompts.</summary>
+    public static Task<TweakResult> InstallPackage(string id, CancellationToken ct = default)
+    {
+        if (SdkManager.Length == 0) return Task.FromResult(TweakResult.Fail("sdkmanager not found.", "搵唔到 sdkmanager。"));
+        if (string.IsNullOrWhiteSpace(id)) return Task.FromResult(TweakResult.Fail("No package id.", "冇套件 id。"));
+        // yes | feeds the license/confirm prompt; quote the id (it contains ; and is cmd-safe inside quotes).
+        return ShellRunner.RunCmd($"(echo y & echo y & echo y) | \"{SdkManager}\"{ChannelArg} \"{id}\"", false, ct);
+    }
+
+    /// <summary>更新所有套件 · Update all installed packages (sdkmanager --update).</summary>
+    public static Task<TweakResult> UpdatePackages(CancellationToken ct = default)
+    {
+        if (SdkManager.Length == 0) return Task.FromResult(TweakResult.Fail("sdkmanager not found.", "搵唔到 sdkmanager。"));
+        return ShellRunner.RunCmd($"(echo y & echo y & echo y) | \"{SdkManager}\"{ChannelArg} --update", false, ct);
+    }
+
+    /// <summary>移除一個套件 · Uninstall a package by id (sdkmanager --uninstall "&lt;pkg&gt;").</summary>
+    public static Task<TweakResult> Uninstall(string id, CancellationToken ct = default)
+    {
+        if (SdkManager.Length == 0) return Task.FromResult(TweakResult.Fail("sdkmanager not found.", "搵唔到 sdkmanager。"));
+        if (string.IsNullOrWhiteSpace(id)) return Task.FromResult(TweakResult.Fail("No package id.", "冇套件 id。"));
+        return ShellRunner.RunCmd($"\"{SdkManager}\"{ChannelArg} --uninstall \"{id}\"", false, ct);
+    }
+
+    /// <summary>接受所有 SDK 授權 · Accept all SDK licenses (sdkmanager --licenses, auto-answering y).</summary>
+    public static Task<TweakResult> AcceptLicenses(CancellationToken ct = default)
+    {
+        if (SdkManager.Length == 0) return Task.FromResult(TweakResult.Fail("sdkmanager not found.", "搵唔到 sdkmanager。"));
+        // The licenses flow asks several y/n questions; pipe a stream of y's.
+        return ShellRunner.RunCmd(
+            $"(for /L %i in (1,1,50) do @echo y) | \"{SdkManager}\" --licenses", false, ct);
     }
 
     public static async Task<List<Avd>> ListAvds(CancellationToken ct = default)
