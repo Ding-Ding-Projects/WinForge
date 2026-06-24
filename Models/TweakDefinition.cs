@@ -53,6 +53,67 @@ public sealed class TweakDefinition
     // ---- Info behaviour ----
     public Func<string>? GetInfo { get; init; }
 
+    // ======================================================================
+    //  Rich interactive members (foundation upgrade) · 進階互動成員（基礎升級）
+    //  全部 nullable 兼可選，現有 call-site 唔使改 · all nullable & optional so existing call-sites compile unchanged.
+    // ======================================================================
+
+    // ---- Slider / Number shared range · 滑桿／數字共用範圍 ----
+    /// <summary>數值下限 · Minimum numeric value (Slider/Number).</summary>
+    public double Min { get; init; }
+    /// <summary>數值上限 · Maximum numeric value (Slider/Number).</summary>
+    public double Max { get; init; } = 100;
+    /// <summary>每格步進 · Step increment (Slider/Number).</summary>
+    public double Step { get; init; } = 1;
+    /// <summary>單位後綴，例如 "ms"、"%"（可選）· Optional unit suffix shown after the value, e.g. "ms", "%".</summary>
+    public LocalizedText? Unit { get; init; }
+    /// <summary>讀取目前數值 · Reads the current numeric value (Slider/Number).</summary>
+    public Func<double>? GetNumber { get; init; }
+    /// <summary>寫入新數值 · Writes a new numeric value (Slider/Number).</summary>
+    public Action<double>? SetNumber { get; init; }
+
+    // ---- MultiCheck · 多重勾選 ----
+    /// <summary>多重勾選子項清單 · The sub-options rendered as a column of CheckBoxes.</summary>
+    public IReadOnlyList<TweakToggleItem>? CheckItems { get; init; }
+
+    // ---- Color · 顏色 ----
+    /// <summary>讀取顏色（#RRGGBB 十六進位）· Reads the colour as a #RRGGBB hex string.</summary>
+    public Func<string>? GetHex { get; init; }
+    /// <summary>寫入顏色（#RRGGBB 十六進位）· Writes the colour as a #RRGGBB hex string.</summary>
+    public Action<string>? SetHex { get; init; }
+
+    // ---- Date / Time · 日期／時間 ----
+    /// <summary>讀取日期（null 表示未設定）· Reads the date (null when unset).</summary>
+    public Func<DateTimeOffset?>? GetDate { get; init; }
+    /// <summary>寫入日期 · Writes the date.</summary>
+    public Action<DateTimeOffset?>? SetDate { get; init; }
+    /// <summary>除咗日期亦顯示時間揀選器 · When true, also show a TimePicker beside the DatePicker.</summary>
+    public bool IncludeTime { get; init; }
+
+    // ---- Wizard · 精靈 ----
+    /// <summary>精靈步驟 · The ordered steps the wizard walks the user through.</summary>
+    public IReadOnlyList<WizardStep>? WizardSteps { get; init; }
+    /// <summary>
+    /// 精靈完成時嘅處理（收到每步收集到嘅值）· Runs when the wizard finishes,
+    /// receiving the values collected from each step keyed by <see cref="WizardStep.Key"/>.
+    /// </summary>
+    public Func<IReadOnlyDictionary<string, string>, CancellationToken, Task<TweakResult>>? WizardFinish { get; init; }
+
+    // ---- Rich display extras (any kind) · 任何種類都可用嘅顯示加料 ----
+    /// <summary>
+    /// 可選彩色狀態藥丸 · Optional coloured status pill shown on the card,
+    /// returning bilingual text plus a colour bucket.
+    /// </summary>
+    public Func<(string textEn, string textZh, StatusColor color)>? ColoredStatus { get; init; }
+    /// <summary>
+    /// Action 執行時顯示進度條 · Show a ProgressBar while an Action runs.
+    /// 提供 <see cref="ActionProgress"/> 為確定進度，否則為不確定。
+    /// Provide <see cref="ActionProgress"/> for a determinate bar; otherwise it is indeterminate.
+    /// </summary>
+    public bool ShowProgressBar { get; init; }
+    /// <summary>確定進度回呼（0–1）· Determinate progress callback returning 0–1; null ⇒ indeterminate.</summary>
+    public Func<double>? ActionProgress { get; init; }
+
     /// <summary>用嚟做搜尋比對嘅合併文字 · Concatenated haystack used for search.</summary>
     public string SearchHaystack =>
         $"{Title.En} {Title.Zh} {Description.En} {Description.Zh} {string.Join(' ', Keywords)}".ToLowerInvariant();

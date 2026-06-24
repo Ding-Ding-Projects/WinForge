@@ -229,4 +229,145 @@ public static class Tweak
             Keywords = Keys(keywords),
             GetInfo = getter,
         };
+
+    // ======================================================================
+    //  Rich interactive factories (foundation upgrade) · 進階互動工廠
+    // ======================================================================
+
+    /// <summary>數值滑桿 · A numeric Slider with min/max/step and optional unit.</summary>
+    public static TweakDefinition Slider(
+        string id, string enT, string zhT, string enD, string zhD,
+        double min, double max, double step, Func<double> get, Action<double> set,
+        string? unitEn = null, string? unitZh = null,
+        bool requiresAdmin = false, RestartScope restart = RestartScope.None, string? keywords = null)
+        => new()
+        {
+            Id = id,
+            Title = new(enT, zhT),
+            Description = new(enD, zhD),
+            Kind = TweakKind.Slider,
+            RequiresAdmin = requiresAdmin,
+            Restart = restart,
+            Keywords = Keys(keywords),
+            Min = min, Max = max, Step = step,
+            Unit = unitEn is null ? null : new LocalizedText(unitEn, unitZh ?? unitEn),
+            GetNumber = get, SetNumber = set,
+        };
+
+    /// <summary>數字輸入框 · A NumberBox numeric entry with min/max/step.</summary>
+    public static TweakDefinition Number(
+        string id, string enT, string zhT, string enD, string zhD,
+        double min, double max, double step, Func<double> get, Action<double> set,
+        bool requiresAdmin = false, RestartScope restart = RestartScope.None, string? keywords = null)
+        => new()
+        {
+            Id = id,
+            Title = new(enT, zhT),
+            Description = new(enD, zhD),
+            Kind = TweakKind.Number,
+            RequiresAdmin = requiresAdmin,
+            Restart = restart,
+            Keywords = Keys(keywords),
+            Min = min, Max = max, Step = step,
+            GetNumber = get, SetNumber = set,
+        };
+
+    /// <summary>單選按鈕組 · A RadioButtons group backed by the same choice plumbing as a Choice.</summary>
+    public static TweakDefinition RadioGroup(
+        string id, string enT, string zhT, string enD, string zhD,
+        (string en, string zh, string value)[] options,
+        Func<string?> getCurrent, Action<string> setChoice,
+        bool requiresAdmin = false, RestartScope restart = RestartScope.None, string? keywords = null)
+    {
+        var choices = new List<TweakChoice>();
+        foreach (var o in options)
+            choices.Add(new TweakChoice(new LocalizedText(o.en, o.zh), o.value));
+        return new TweakDefinition
+        {
+            Id = id,
+            Title = new(enT, zhT),
+            Description = new(enD, zhD),
+            Kind = TweakKind.RadioGroup,
+            RequiresAdmin = requiresAdmin,
+            Restart = restart,
+            Keywords = Keys(keywords),
+            Choices = choices,
+            GetCurrentChoice = getCurrent,
+            SetChoice = setChoice,
+        };
+    }
+
+    /// <summary>多重勾選清單 · A vertical list of independent CheckBoxes.</summary>
+    public static TweakDefinition MultiCheck(
+        string id, string enT, string zhT, string enD, string zhD,
+        IReadOnlyList<TweakToggleItem> items,
+        bool requiresAdmin = false, RestartScope restart = RestartScope.None, string? keywords = null)
+        => new()
+        {
+            Id = id,
+            Title = new(enT, zhT),
+            Description = new(enD, zhD),
+            Kind = TweakKind.MultiCheck,
+            RequiresAdmin = requiresAdmin,
+            Restart = restart,
+            Keywords = Keys(keywords),
+            CheckItems = items,
+        };
+
+    /// <summary>顏色揀選 · A colour swatch + ColorPicker flyout + hex box (#RRGGBB).</summary>
+    public static TweakDefinition Color(
+        string id, string enT, string zhT, string enD, string zhD,
+        Func<string> getHex, Action<string> setHex,
+        bool requiresAdmin = false, RestartScope restart = RestartScope.None, string? keywords = null)
+        => new()
+        {
+            Id = id,
+            Title = new(enT, zhT),
+            Description = new(enD, zhD),
+            Kind = TweakKind.Color,
+            RequiresAdmin = requiresAdmin,
+            Restart = restart,
+            Keywords = Keys(keywords),
+            GetHex = getHex, SetHex = setHex,
+        };
+
+    /// <summary>日期（可選時間）揀選 · A DatePicker, optionally with a TimePicker.</summary>
+    public static TweakDefinition Date(
+        string id, string enT, string zhT, string enD, string zhD,
+        Func<DateTimeOffset?> get, Action<DateTimeOffset?> set, bool includeTime = false,
+        bool requiresAdmin = false, RestartScope restart = RestartScope.None, string? keywords = null)
+        => new()
+        {
+            Id = id,
+            Title = new(enT, zhT),
+            Description = new(enD, zhD),
+            Kind = TweakKind.DateKind,
+            RequiresAdmin = requiresAdmin,
+            Restart = restart,
+            Keywords = Keys(keywords),
+            GetDate = get, SetDate = set, IncludeTime = includeTime,
+        };
+
+    /// <summary>多步驟精靈 · A multi-step ContentDialog wizard; values collected per step feed the finish handler.</summary>
+    public static TweakDefinition Wizard(
+        string id, string enT, string zhT, string enD, string zhD,
+        string enBtn, string zhBtn,
+        IReadOnlyList<WizardStep> steps,
+        Func<IReadOnlyDictionary<string, string>, CancellationToken, Task<TweakResult>> finish,
+        bool requiresAdmin = false, bool destructive = false,
+        RestartScope restart = RestartScope.None, string? keywords = null)
+        => new()
+        {
+            Id = id,
+            Title = new(enT, zhT),
+            Description = new(enD, zhD),
+            Kind = TweakKind.Wizard,
+            RequiresAdmin = requiresAdmin,
+            Destructive = destructive,
+            Restart = restart,
+            Keywords = Keys(keywords),
+            ActionLabel = new(enBtn, zhBtn),
+            WizardSteps = steps,
+            WizardFinish = finish,
+        };
 }

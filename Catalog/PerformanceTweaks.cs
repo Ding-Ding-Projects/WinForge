@@ -44,17 +44,11 @@ public static class PerformanceTweaks
             onValue: 1, offValue: 0, requiresAdmin: true, restart: RestartScope.Reboot,
             keywords: "pagefile,shutdown,分頁檔,關機"),
 
-        Tweak.RegChoice("performance.menu-show-delay", "Menu show delay", "選單顯示延遲",
-            "How long menus wait before popping open, in milliseconds.", "選單彈出之前要等幾耐（毫秒）。",
-            RegRoot.HKCU, @"Control Panel\Desktop", "MenuShowDelay",
-            RegistryValueKind.String,
-            new (string en, string zh, object value)[]
-            {
-                ("Instant", "即時", "0"),
-                ("Fast", "快", "100"),
-                ("Default", "預設", "400"),
-            },
-            restart: RestartScope.SignOut, keywords: "menu,delay,選單,延遲"),
+        // 示範新 Slider 種類 · Demonstrates the new Slider kind (was a 3-option RegChoice).
+        // 毫秒值本質上係連續嘅，用滑桿比「即時／快／預設」三揀一更直觀，並加上彩色狀態。
+        // The millisecond value is inherently continuous, so a slider (with a coloured status pill)
+        // is clearer than picking one of three preset options.
+        MenuShowDelaySlider(),
 
         Tweak.RegToggle("performance.game-mode", "Game Mode", "遊戲模式",
             "Prioritise system resources for games when one is running.", "開咗遊戲嗰陣優先分配系統資源畀佢。",
@@ -104,4 +98,47 @@ public static class PerformanceTweaks
             "powercfg /hibernate on",
             requiresAdmin: true, keywords: "hibernate,休眠"),
     };
+
+    /// <summary>
+    /// 選單顯示延遲（毫秒）滑桿 · The MenuShowDelay millisecond slider.
+    /// 直接讀寫 HKCU\Control Panel\Desktop\MenuShowDelay（字串值），並用彩色狀態藥丸顯示反應感。
+    /// Reads/writes the string registry value directly and exposes a coloured status pill.
+    /// </summary>
+    private static TweakDefinition MenuShowDelaySlider()
+    {
+        const string Path = @"Control Panel\Desktop";
+        const string Name = "MenuShowDelay";
+
+        double Read()
+        {
+            var raw = RegistryHelper.GetValue(RegRoot.HKCU, Path, Name)?.ToString();
+            return int.TryParse(raw, out var ms) ? ms : 400; // Windows default
+        }
+
+        return new TweakDefinition
+        {
+            Id = "performance.menu-show-delay",
+            Title = new("Menu show delay", "選單顯示延遲"),
+            Description = new("How long menus wait before popping open, in milliseconds.",
+                "選單彈出之前要等幾耐（毫秒）。"),
+            Kind = TweakKind.Slider,
+            Restart = RestartScope.SignOut,
+            Keywords = new[] { "menu", "delay", "選單", "延遲", "slider", "滑桿" },
+            Min = 0, Max = 600, Step = 50,
+            Unit = new LocalizedText("ms", "毫秒"),
+            GetNumber = Read,
+            SetNumber = v => RegistryHelper.SetValue(RegRoot.HKCU, Path, Name,
+                ((int)Math.Round(v)).ToString(), RegistryValueKind.String),
+            ColoredStatus = () =>
+            {
+                int ms = (int)Math.Round(Read());
+                return ms switch
+                {
+                    <= 100 => ("Snappy", "爽快", StatusColor.Good),
+                    <= 400 => ("Normal", "正常", StatusColor.Neutral),
+                    _ => ("Sluggish", "偏慢", StatusColor.Warn),
+                };
+            },
+        };
+    }
 }
