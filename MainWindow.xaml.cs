@@ -50,6 +50,9 @@ public sealed partial class MainWindow : Window
         // ZoomIt 全域熱鍵（放大／畫筆／小休）：開機就跑，背景都用得。
         // ZoomIt global hotkeys (zoom / draw / break): start now so they work even from the tray.
         ZoomItService.StartHotkeys();
+        // 快速重音符：如之前已啟用，開機就掛鈎，收入系統匣都繼續生效。
+        // Quick Accent: if previously enabled, hook now so it works from the tray too.
+        QuickAccentService.Apply();
         TrayService.Install(ShowFromTray, QuitFromTray, "WinForge · 視窗調校");
         AppWindow.Closing += OnAppWindowClosing;
     }
@@ -342,6 +345,11 @@ public sealed partial class MainWindow : Window
             case "macro":
             case "expander":
                 Navigator.GoToModule?.Invoke("module.hotkeys");
+                break;
+            case "quickaccent":
+            case "accent":
+            case "diacritics":
+                Navigator.GoToModule?.Invoke("module.quickaccent");
                 break;
             case "hosts":
                 Navigator.GoToModule?.Invoke("module.hosts");
@@ -730,6 +738,7 @@ public sealed partial class MainWindow : Window
         "module.glazewm" => typeof(GlazeWmModule),
         "module.keyboard" => typeof(KeyboardModule),
         "module.hotkeys" => typeof(HotkeyMacroModule),
+        "module.quickaccent" => typeof(QuickAccentModule),
         "module.hosts" => typeof(HostsEditorModule),
         "module.mouse" => typeof(MouseModule),
         "module.mouseutils" => typeof(MouseUtilsModule),

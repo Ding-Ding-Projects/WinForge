@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.QuickAccentModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:muxc="using:Microsoft.UI.Xaml.Controls"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="980" Spacing="14">
+
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <FontIcon FontSize="22" Glyph="&#xE8D3;" VerticalAlignment="Center" />
+                <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
+            </StackPanel>
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <InfoBar x:Name="StatusBar" IsClosable="True" IsOpen="False" />
+
+            <!-- ===================== Enable + how-to ===================== -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <Grid>
+                        <StackPanel>
+                            <TextBlock x:Name="EnableLabel" FontWeight="SemiBold" />
+                            <TextBlock x:Name="EnableHint" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" FontSize="12" />
+                        </StackPanel>
+                        <ToggleSwitch x:Name="EnableToggle" HorizontalAlignment="Right" Toggled="EnableToggle_Toggled" />
+                    </Grid>
+                    <TextBlock x:Name="HowToText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <!-- ===================== Behaviour ===================== -->
+            <TextBlock x:Name="BehaviourHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="14">
+
+                    <StackPanel Orientation="Horizontal" Spacing="14">
+                        <TextBlock x:Name="ActivationLabel" VerticalAlignment="Center" FontWeight="SemiBold" MinWidth="170" />
+                        <ComboBox x:Name="ActivationBox" MinWidth="240" SelectionChanged="Setting_Changed" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="14">
+                        <TextBlock x:Name="PositionLabel" VerticalAlignment="Center" FontWeight="SemiBold" MinWidth="170" />
+                        <ComboBox x:Name="PositionBox" MinWidth="240" SelectionChanged="Setting_Changed" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="14">
+                        <TextBlock x:Name="DelayLabel" VerticalAlignment="Center" FontWeight="SemiBold" MinWidth="170" />
+                        <NumberBox x:Name="DelayBox" MinWidth="160" Minimum="0" Maximum="2000" SpinButtonPlacementMode="Inline" SmallChange="50" LargeChange="100" ValueChanged="Delay_Changed" />
+                        <TextBlock x:Name="DelayUnit" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+
+                    <CheckBox x:Name="LeftStartChk" Checked="Setting_Changed" Unchecked="Setting_Changed" />
+                </StackPanel>
+            </Border>
+
+            <!-- ===================== Character sets ===================== -->
+            <TextBlock x:Name="SetsHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="SetsHint" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" FontSize="12" />
+                    <CheckBox x:Name="AllChk" FontWeight="SemiBold" Checked="AllChk_Changed" Unchecked="AllChk_Changed" />
+                    <muxc:ItemsRepeater x:Name="SetsList">
+                        <muxc:ItemsRepeater.Layout>
+                            <muxc:UniformGridLayout MinItemWidth="220" MinColumnSpacing="8" MinRowSpacing="2" ItemsStretch="Fill" />
+                        </muxc:ItemsRepeater.Layout>
+                    </muxc:ItemsRepeater>
+                </StackPanel>
+            </Border>
+
+            <!-- ===================== Live preview ===================== -->
+            <TextBlock x:Name="PreviewHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <TextBlock x:Name="PreviewLabel" VerticalAlignment="Center" FontWeight="SemiBold" />
+                        <TextBox x:Name="PreviewInput" MaxLength="1" Width="60" TextAlignment="Center" FontSize="18" TextChanged="Preview_Changed" />
+                    </StackPanel>
+                    <TextBlock x:Name="PreviewResult" FontSize="22" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</Page>
