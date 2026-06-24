@@ -137,6 +137,12 @@ public sealed partial class MainWindow : Window
             case "warp":
                 Navigator.GoToModule?.Invoke("module.cloudflare");
                 break;
+            case "pgadmin":
+            case "postgres":
+            case "postgresql":
+            case "psql":
+                Navigator.GoToModule?.Invoke("module.pgadmin");
+                break;
             case "archives":
             case "archive":
                 Navigator.GoToModule?.Invoke("module.archives");
@@ -429,6 +435,7 @@ public sealed partial class MainWindow : Window
         "module.git" => typeof(GitHubModule),
         "module.aiagents" => typeof(AiAgentsModule),
         "module.cloudflare" => typeof(CloudflareModule),
+        "module.pgadmin" => typeof(PgAdminModule),
         "module.archives" => typeof(ArchivesModule),
         "module.media" => typeof(MediaModule),
         "module.regedit" => typeof(RegistryEditor),

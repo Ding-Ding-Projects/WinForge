@@ -66,6 +66,13 @@
     <PackageReference Include="QRCoder" Version="1.6.0" />
     <!-- System.Speech: built-in Windows SAPI TTS (read aloud / export WAV) for the Voice module. -->
     <PackageReference Include="System.Speech" Version="9.0.0" />
+    <!-- Npgsql：純 C# PostgreSQL 驅動程式，畀 Postgres 工具模組原生連線／查詢用（無外部二進位）。
+         Npgsql: the managed C# PostgreSQL driver powering the native Postgres Tool module
+         (connect / browse / query) — no external binary required. -->
+    <PackageReference Include="Npgsql" Version="9.0.4" />
+    <!-- System.Security.Cryptography.ProtectedData：DPAPI 加密儲存連線密碼。
+         DPAPI (ProtectedData) for encrypting saved Postgres connection passwords at rest. -->
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="9.0.0" />
   </ItemGroup>
 
   <!--
