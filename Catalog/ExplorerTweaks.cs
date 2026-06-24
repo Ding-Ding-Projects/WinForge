@@ -38,11 +38,10 @@ public static class ExplorerTweaks
             RegRoot.HKCU, CABINET, "FullPath",
             onValue: 1, offValue: 0, restart: RestartScope.Explorer, keywords: "path,路徑,title"),
 
-        Tweak.RegChoice("explorer.launch-to", "Open File Explorer to", "檔案總管開啟到",
-            "Choose what File Explorer opens to by default.", "揀檔案總管預設開啟邊度。",
-            RegRoot.HKCU, ADV, "LaunchTo", RegistryValueKind.DWord,
-            new (string en, string zh, object value)[] { ("This PC", "本機", 1), ("Home", "首頁", 2) },
-            restart: RestartScope.Explorer, keywords: "launchto,首頁,thispc"),
+        // 由 Choice（下拉）升級為 RadioGroup（單選按鈕）＋彩色狀態藥丸 · Upgraded from a Choice (ComboBox)
+        // to a RadioGroup so the two mutually-exclusive landing pages are visible at a glance, plus a
+        // coloured status pill. Registry behaviour is identical: HKCU ADV "LaunchTo" DWord, This PC=1 / Home=2.
+        LaunchToRadio(),
 
         Tweak.RegToggle("explorer.show-recent", "Show recent files in Quick Access", "快速存取顯示最近檔案",
             "List recently used files under Quick Access / Home.", "喺快速存取／首頁列出最近用過嘅檔案。",
@@ -96,4 +95,46 @@ public static class ExplorerTweaks
             "Open", "開啟", "rundll32.exe shell32.dll,Options_RunDLL 0",
             keywords: "folder,options,資料夾,選項"),
     };
+
+    /// <summary>
+    /// 「檔案總管開啟到」單選按鈕 · The "Open File Explorer to" RadioGroup.
+    /// 直接讀寫 HKCU\…\Advanced\LaunchTo（DWord），1 = 本機 / This PC，2 = 首頁 / Home，
+    /// 與原本嘅 RegChoice 完全一致，只係把下拉換成單選按鈕並加上彩色狀態藥丸。
+    /// Reads/writes the same DWord exactly as the original Choice did; only the presentation changes.
+    /// </summary>
+    private static TweakDefinition LaunchToRadio()
+    {
+        const string ThisPc = "1";
+        const string Home = "2";
+
+        return new TweakDefinition
+        {
+            Id = "explorer.launch-to",
+            Title = new("Open File Explorer to", "檔案總管開啟到"),
+            Description = new("Choose what File Explorer opens to by default.", "揀檔案總管預設開啟邊度。"),
+            Kind = TweakKind.RadioGroup,
+            Restart = RestartScope.Explorer,
+            Keywords = new[] { "launchto", "首頁", "thispc" },
+            Choices = new List<TweakChoice>
+            {
+                new(new LocalizedText("This PC", "本機"), ThisPc),
+                new(new LocalizedText("Home", "首頁"), Home),
+            },
+            GetCurrentChoice = () =>
+            {
+                if (RegistryHelper.ValueEquals(RegRoot.HKCU, ADV, "LaunchTo", 1)) return ThisPc;
+                if (RegistryHelper.ValueEquals(RegRoot.HKCU, ADV, "LaunchTo", 2)) return Home;
+                return null;
+            },
+            SetChoice = val =>
+            {
+                int v = string.Equals(val, Home, StringComparison.Ordinal) ? 2 : 1;
+                RegistryHelper.SetValue(RegRoot.HKCU, ADV, "LaunchTo", v, RegistryValueKind.DWord);
+            },
+            ColoredStatus = () =>
+                RegistryHelper.ValueEquals(RegRoot.HKCU, ADV, "LaunchTo", 2)
+                    ? ("Home", "首頁", StatusColor.Neutral)
+                    : ("This PC", "本機", StatusColor.Good),
+        };
+    }
 }
