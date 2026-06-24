@@ -52,6 +52,7 @@ public static class ModuleRegistry
         new() { Tag = "module.events", En = "Event Viewer", Zh = "事件檢視器", Glyph = "", Keywords = "event log viewer system application 事件 記錄" },
         new() { Tag = "module.mixer", En = "Volume Mixer", Zh = "音量混合器", Glyph = "", Keywords = "volume mixer audio per-app mute 音量 靜音" },
         new() { Tag = "module.contextmenu", En = "Context Menu", Zh = "右鍵選單", Glyph = "", Keywords = "context menu right click verb 右鍵 選單" },
+        new() { Tag = "module.nilesoftshell", En = "Nilesoft Shell", Zh = "Nilesoft 右鍵選單", Glyph = ((char)0xE7BA).ToString(), Keywords = "nilesoft shell context menu nss shell.nss register unregister reload theme modern dark snippet template explorer customize right click 右鍵 選單 主題 註冊 設定 範本 片語 客製化" },
         new() { Tag = "module.awake", En = "Awake", Zh = "保持喚醒", Glyph = "", Keywords = "awake keep awake no sleep caffeine 唔瞓 喚醒" },
         new() { Tag = "module.colorpicker", En = "Color Picker", Zh = "螢幕取色", Glyph = "", Keywords = "color picker hex rgb hsl eyedropper 取色 顏色" },
         new() { Tag = "module.envvars", En = "Environment Variables", Zh = "環境變數", Glyph = "", Keywords = "environment variables path user system env 環境變數" },
