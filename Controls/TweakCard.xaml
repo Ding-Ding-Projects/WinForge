@@ -62,6 +62,21 @@
                         FontSize="12"
                         Foreground="{ThemeResource TextFillColorTertiaryBrush}"
                         TextWrapping="Wrap" />
+
+                    <!--  彩色狀態藥丸 · optional coloured status pill  -->
+                    <Border
+                        x:Name="StatusPill"
+                        Margin="0,6,0,0"
+                        Padding="8,2,8,2"
+                        HorizontalAlignment="Left"
+                        CornerRadius="10"
+                        Visibility="Collapsed">
+                        <TextBlock
+                            x:Name="StatusPillText"
+                            FontSize="12"
+                            FontWeight="SemiBold"
+                            TextWrapping="Wrap" />
+                    </Border>
                 </StackPanel>
 
                 <Grid
@@ -70,6 +85,11 @@
                     MinWidth="120"
                     VerticalAlignment="Center" />
             </Grid>
+
+            <ProgressBar
+                x:Name="ActionProgressBar"
+                Margin="0,2,0,0"
+                Visibility="Collapsed" />
 
             <InfoBar
                 x:Name="ResultBar"
