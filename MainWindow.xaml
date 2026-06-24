@@ -60,6 +60,7 @@
                         <NavigationViewItem Content="Duplicate Finder · 重複檔案搜尋" Tag="module.duplicates"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8C8;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Disk Analyser · 磁碟分析" Tag="module.disk"><NavigationViewItem.Icon><FontIcon Glyph="&#xEDA2;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Drives · 磁碟機" Tag="module.drives"><NavigationViewItem.Icon><FontIcon Glyph="&#xEDA2;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="TestDisk / PhotoRec · 資料救援" Tag="module.testdisk"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7BA;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="OneDrive · OneDrive" Tag="module.onedrive"><NavigationViewItem.Icon><FontIcon Glyph="&#xE753;" /></NavigationViewItem.Icon></NavigationViewItem>
                     </NavigationViewItem.MenuItems>
                 </NavigationViewItem>
