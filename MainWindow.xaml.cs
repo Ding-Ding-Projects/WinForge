@@ -314,6 +314,12 @@ public sealed partial class MainWindow : Window
             case "sandbox":
                 Navigator.GoToModule?.Invoke("module.wslvm");
                 break;
+            case "terminal":
+            case "wt":
+            case "windowsterminal":
+            case "conpty":
+                Navigator.GoToModule?.Invoke("module.terminal");
+                break;
             case "onedrive":
                 Navigator.GoToModule?.Invoke("module.onedrive");
                 break;
@@ -472,6 +478,7 @@ public sealed partial class MainWindow : Window
         "module.native" => typeof(NativeUtilitiesModule),
         "module.powertoys" => typeof(PowerToysExtrasModule),
         "module.wslvm" => typeof(WslVmModule),
+        "module.terminal" => typeof(TerminalModule),
         "module.fonts" => typeof(FontManagerModule),
         "module.onedrive" => typeof(OneDriveModule),
         "module.timeunit" => typeof(TimeUnitModule),

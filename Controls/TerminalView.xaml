@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<UserControl
+    x:Class="WinForge.Controls.TerminalView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    IsTabStop="True"
+    mc:Ignorable="d">
+
+    <Border
+        x:Name="RootBorder"
+        Background="#0C0C0C"
+        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+        BorderThickness="1"
+        CornerRadius="8">
+        <Grid>
+            <ScrollViewer
+                x:Name="Scroller"
+                Padding="8"
+                HorizontalScrollMode="Disabled"
+                HorizontalScrollBarVisibility="Disabled"
+                VerticalScrollBarVisibility="Auto">
+                <!-- The terminal grid is rendered as a single RichTextBlock of coloured runs. -->
+                <RichTextBlock
+                    x:Name="Surface"
+                    FontFamily="Cascadia Mono, Consolas"
+                    FontSize="13"
+                    Foreground="#CCCCCC"
+                    IsTextSelectionEnabled="True"
+                    LineHeight="17"
+                    TextWrapping="NoWrap" />
+            </ScrollViewer>
+
+            <!-- Click target / focus surface so the control can take keyboard input. -->
+            <Grid
+                x:Name="InputCatcher"
+                Background="Transparent"
+                Tag="catcher" />
+        </Grid>
+    </Border>
+</UserControl>
