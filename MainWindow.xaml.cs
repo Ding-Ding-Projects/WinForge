@@ -119,6 +119,12 @@ public sealed partial class MainWindow : Window
             });
             return;
         }
+        // Deep-link form: --page "weblogin?url=https://…" opens the in-app login on that URL.
+        if (App.StartPage is string wl && wl.StartsWith("weblogin?", StringComparison.OrdinalIgnoreCase))
+        {
+            Navigator.GoToModule?.Invoke("module.weblogin");
+            return;
+        }
         switch (App.StartPage)
         {
             case "git":
@@ -136,6 +142,12 @@ public sealed partial class MainWindow : Window
             case "cloudflared":
             case "warp":
                 Navigator.GoToModule?.Invoke("module.cloudflare");
+                break;
+            case "weblogin":
+            case "login":
+            case "webview":
+            case "signin":
+                Navigator.GoToModule?.Invoke("module.weblogin");
                 break;
             case "archives":
             case "archive":
@@ -429,6 +441,7 @@ public sealed partial class MainWindow : Window
         "module.git" => typeof(GitHubModule),
         "module.aiagents" => typeof(AiAgentsModule),
         "module.cloudflare" => typeof(CloudflareModule),
+        "module.weblogin" => typeof(WebLoginModule),
         "module.archives" => typeof(ArchivesModule),
         "module.media" => typeof(MediaModule),
         "module.regedit" => typeof(RegistryEditor),
