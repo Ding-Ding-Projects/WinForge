@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinTune.Pages.DashboardPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="980" Spacing="18">
+
+            <!-- Hero -->
+            <Border
+                Padding="24,20,24,20"
+                Background="{ThemeResource AccentControlElevationBorderBrush}"
+                CornerRadius="12">
+                <StackPanel Spacing="4">
+                    <TextBlock
+                        x:Name="HeroTitle"
+                        FontSize="30"
+                        FontWeight="Bold" />
+                    <TextBlock
+                        x:Name="HeroSubtitle"
+                        FontSize="15"
+                        Opacity="0.9"
+                        TextWrapping="Wrap" />
+                    <StackPanel
+                        Margin="0,8,0,0"
+                        Orientation="Horizontal"
+                        Spacing="8">
+                        <Border
+                            Padding="12,4,12,4"
+                            Background="{ThemeResource SystemControlBackgroundAltHighBrush}"
+                            CornerRadius="14">
+                            <TextBlock
+                                x:Name="CountBadge"
+                                FontWeight="SemiBold" />
+                        </Border>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <InfoBar
+                x:Name="AdminBar"
+                IsClosable="False"
+                IsOpen="True" />
+
+            <AutoSuggestBox
+                x:Name="SearchBox"
+                QueryIcon="Find"
+                TextChanged="SearchBox_TextChanged" />
+
+            <StackPanel x:Name="SearchResults" Visibility="Collapsed" />
+
+            <StackPanel x:Name="BrowseSection" Spacing="10">
+                <TextBlock
+                    x:Name="ModulesHeader"
+                    Style="{StaticResource SubtitleTextBlockStyle}" />
+                <ItemsRepeater x:Name="ModuleRepeater" />
+
+                <TextBlock
+                    x:Name="StatsHeader"
+                    Margin="0,8,0,0"
+                    Style="{StaticResource SubtitleTextBlockStyle}" />
+                <StackPanel x:Name="StatsPanel" Spacing="6" />
+
+                <TextBlock
+                    x:Name="BrowseHeader"
+                    Margin="0,8,0,0"
+                    Style="{StaticResource SubtitleTextBlockStyle}" />
+                <ItemsRepeater x:Name="CategoryRepeater" />
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</Page>
