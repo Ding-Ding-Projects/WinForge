@@ -46,6 +46,7 @@ public static class ModuleRegistry
         new() { Tag = "module.mouse", En = "Mouse & Pointer", Zh = "滑鼠與指標", Glyph = "", Keywords = "mouse pointer acceleration speed 滑鼠 指標" },
         new() { Tag = "module.recorder", En = "Screen Recorder", Zh = "螢幕錄影", Glyph = "", Keywords = "record screen capture gdigrab 錄影" },
         new() { Tag = "module.capture", En = "Capture Studio", Zh = "擷取工作室", Glyph = ((char)0xE722).ToString(), Keywords = "capture snip screenshot region gif ocr text recognize clipboard 截圖 擷取 區域 文字辨識 認字" },
+        new() { Tag = "module.giflab", En = "GIF Studio", Zh = "螢幕轉 GIF", Glyph = ((char)0xE786).ToString(), Keywords = "gif studio screentogif screen to gif record region window fullscreen frames frame editor delete reorder crop export mp4 apng palette animation 螢幕轉 動畫 畫面格 刪格 調次序 裁切 匯出 錄影 區域 視窗 全螢幕" },
         new() { Tag = "module.monitor", En = "System Monitor", Zh = "系統監察", Glyph = "", Keywords = "cpu ram memory network task manager priority affinity 監察 工作管理員" },
         new() { Tag = "module.battery", En = "Battery & Thermal", Zh = "電池與散熱", Glyph = ((char)0xE83E).ToString(), Keywords = "battery thermal temperature wear health cpu gpu fan powercfg batteryreport energy 電池 溫度 散熱 風扇 耗損 健康" },
         new() { Tag = "module.connections", En = "Connections", Zh = "連線", Glyph = "", Keywords = "tcp udp connections netstat tcpview port 連線" },

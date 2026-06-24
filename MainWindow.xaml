@@ -91,6 +91,7 @@
                         <NavigationViewItem Content="Media · 媒體" Tag="module.media"><NavigationViewItem.Icon><FontIcon Glyph="&#xE714;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Screen Recorder · 螢幕錄影" Tag="module.recorder"><NavigationViewItem.Icon><FontIcon Glyph="&#xE714;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Capture Studio · 擷取工作室" Tag="module.capture"><NavigationViewItem.Icon><FontIcon Glyph="&#xE722;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="GIF Studio · 螢幕轉 GIF" Tag="module.giflab"><NavigationViewItem.Icon><FontIcon Glyph="&#xE786;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Volume Mixer · 音量混合器" Tag="module.mixer"><NavigationViewItem.Icon><FontIcon Glyph="&#xE767;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Color Picker · 螢幕取色" Tag="module.colorpicker"><NavigationViewItem.Icon><FontIcon Glyph="&#xE790;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Time &amp; Unit Tools · 時間與單位工具" Tag="module.timeunit"><NavigationViewItem.Icon><FontIcon Glyph="&#xE823;" /></NavigationViewItem.Icon></NavigationViewItem>

@@ -222,6 +222,11 @@ public sealed partial class MainWindow : Window
             case "screenshot":
                 Navigator.GoToModule?.Invoke("module.capture");
                 break;
+            case "giflab":
+            case "gif":
+            case "screentogif":
+                Navigator.GoToModule?.Invoke("module.giflab");
+                break;
             case "monitor":
             case "sysmon":
                 Navigator.GoToModule?.Invoke("module.monitor");
@@ -451,6 +456,7 @@ public sealed partial class MainWindow : Window
         "module.mouse" => typeof(MouseModule),
         "module.recorder" => typeof(ScreenRecorderModule),
         "module.capture" => typeof(CaptureStudioModule),
+        "module.giflab" => typeof(GifLabModule),
         "module.monitor" => typeof(SystemMonitorModule),
         "module.battery" => typeof(BatteryThermalModule),
         "module.connections" => typeof(ConnectionsModule),
