@@ -190,6 +190,10 @@ public sealed partial class MainWindow : Window
             case "vault":
             case "passwords":
                 Navigator.GoToModule?.Invoke("module.bitwarden");
+            case "quicktype":
+            case "jsontotype":
+            case "codegen":
+                Navigator.GoToModule?.Invoke("module.quicktype");
                 break;
             case "archives":
             case "archive":
@@ -630,6 +634,7 @@ public sealed partial class MainWindow : Window
         "module.pgadmin" => typeof(PgAdminModule),
         "module.filezilla" => typeof(FileZillaModule),
         "module.bitwarden" => typeof(BitwardenModule),
+        "module.quicktype" => typeof(QuickTypeModule),
         "module.archives" => typeof(ArchivesModule),
         "module.media" => typeof(MediaModule),
         "module.audioeditor" => typeof(AudioEditorModule),
