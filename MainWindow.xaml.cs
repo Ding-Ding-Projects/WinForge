@@ -348,6 +348,11 @@ public sealed partial class MainWindow : Window
             case "smarthome":
                 Navigator.GoToModule?.Invoke("module.homeassistant");
                 break;
+            case "rainmeter":
+            case "skins":
+            case "widgets":
+                Navigator.GoToModule?.Invoke("module.rainmeter");
+                break;
             case null:
             case "":
             case "dashboard":
@@ -429,6 +434,7 @@ public sealed partial class MainWindow : Window
         "module.git" => typeof(GitHubModule),
         "module.aiagents" => typeof(AiAgentsModule),
         "module.cloudflare" => typeof(CloudflareModule),
+        "module.rainmeter" => typeof(RainmeterModule),
         "module.archives" => typeof(ArchivesModule),
         "module.media" => typeof(MediaModule),
         "module.regedit" => typeof(RegistryEditor),

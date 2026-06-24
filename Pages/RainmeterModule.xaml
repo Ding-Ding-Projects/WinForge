@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.RainmeterModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:conv="using:WinForge.Converters"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <conv:ActiveGlyphConverter x:Key="ActiveGlyphConverter" />
+        <conv:ActiveBrushConverter x:Key="ActiveBrushConverter" />
+    </Page.Resources>
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="1000" Spacing="14">
+
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <FontIcon FontSize="24" Glyph="&#xE7F4;" VerticalAlignment="Center" />
+                <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
+            </StackPanel>
+            <TextBlock
+                x:Name="HeaderBlurb"
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                TextWrapping="Wrap" />
+
+            <InfoBar x:Name="EngineBar" IsClosable="False" IsOpen="False" Severity="Warning" />
+            <InfoBar x:Name="StatusBar" IsClosable="True" IsOpen="False" />
+
+            <Pivot x:Name="Tabs">
+
+                <!-- ===== Skins ===== -->
+                <PivotItem x:Name="TabSkins">
+                    <StackPanel Spacing="12" Margin="0,12,0,0">
+                        <TextBlock x:Name="SkinsBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button x:Name="RescanBtn" Click="Rescan_Click" Style="{StaticResource AccentButtonStyle}" />
+                            <Button x:Name="RefreshAllBtn" Click="RefreshAll_Click" />
+                            <Button x:Name="InstallRmskinBtn" Click="InstallRmskin_Click" />
+                            <ToggleSwitch x:Name="OnlyActiveToggle" Toggled="OnlyActive_Toggled" Margin="8,0,0,0" />
+                            <ProgressRing x:Name="SkinsBusy" IsActive="False" Width="20" Height="20" VerticalAlignment="Center" />
+                        </StackPanel>
+
+                        <AutoSuggestBox
+                            x:Name="SkinFilter"
+                            MaxWidth="420"
+                            HorizontalAlignment="Left"
+                            QueryIcon="Find"
+                            TextChanged="SkinFilter_TextChanged" />
+
+                        <TextBlock x:Name="SkinsCount" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+
+                        <ListView
+                            x:Name="SkinList"
+                            SelectionMode="None"
+                            MaxHeight="520"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8">
+                            <ListView.ItemContainerStyle>
+                                <Style TargetType="ListViewItem">
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                    <Setter Property="Padding" Value="4" />
+                                </Style>
+                            </ListView.ItemContainerStyle>
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Padding="12,10,12,10" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="6">
+                                        <Grid ColumnSpacing="10" RowSpacing="6">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+
+                                            <FontIcon
+                                                Grid.Row="0" Grid.Column="0"
+                                                FontSize="16"
+                                                VerticalAlignment="Center"
+                                                Glyph="{Binding Active, Converter={StaticResource ActiveGlyphConverter}}"
+                                                Foreground="{Binding Active, Converter={StaticResource ActiveBrushConverter}}" />
+
+                                            <StackPanel Grid.Row="0" Grid.Column="1" Spacing="1" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Display}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Text="{Binding File}" FontSize="11" FontFamily="Consolas" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                            </StackPanel>
+
+                                            <!-- Load / unload toggle -->
+                                            <ToggleSwitch
+                                                Grid.Row="0" Grid.Column="2"
+                                                IsOn="{Binding Active, Mode=OneWay}"
+                                                Tag="{Binding}"
+                                                Toggled="SkinToggle_Toggled"
+                                                MinWidth="0"
+                                                VerticalAlignment="Center" />
+
+                                            <!-- Per-skin actions -->
+                                            <StackPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right">
+                                                <Button Tag="{Binding}" Click="SkinShow_Click" ToolTipService.ToolTip="Show · 顯示">
+                                                    <FontIcon FontSize="14" Glyph="&#xE7B3;" />
+                                                </Button>
+                                                <Button Tag="{Binding}" Click="SkinHide_Click" ToolTipService.ToolTip="Hide · 隱藏">
+                                                    <FontIcon FontSize="14" Glyph="&#xED1A;" />
+                                                </Button>
+                                                <Button Tag="{Binding}" Click="SkinRefresh_Click" ToolTipService.ToolTip="Refresh · 重新整理">
+                                                    <FontIcon FontSize="14" Glyph="&#xE72C;" />
+                                                </Button>
+                                                <Button Tag="{Binding}" Click="SkinEdit_Click" ToolTipService.ToolTip="Edit ini · 編輯 ini">
+                                                    <FontIcon FontSize="14" Glyph="&#xE70F;" />
+                                                </Button>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </StackPanel>
+                </PivotItem>
+
+                <!-- ===== Layouts ===== -->
+                <PivotItem x:Name="TabLayouts">
+                    <StackPanel Spacing="12" Margin="0,12,0,0">
+                        <TextBlock x:Name="LayoutsBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <ComboBox x:Name="LayoutBox" Grid.Column="0" HorizontalAlignment="Stretch" />
+                            <Button x:Name="LoadLayoutBtn" Grid.Column="1" Click="LoadLayout_Click" Style="{StaticResource AccentButtonStyle}" />
+                            <Button x:Name="ReloadLayoutsBtn" Grid.Column="2" Click="ReloadLayouts_Click" />
+                        </Grid>
+                        <InfoBar x:Name="LayoutResult" IsClosable="True" IsOpen="False" />
+                    </StackPanel>
+                </PivotItem>
+
+                <!-- ===== Skin packs (curated) ===== -->
+                <PivotItem x:Name="TabPacks">
+                    <StackPanel Spacing="12" Margin="0,12,0,0">
+                        <TextBlock x:Name="PacksBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                        <Button x:Name="InstallRmskin2Btn" Click="InstallRmskin_Click" Style="{StaticResource AccentButtonStyle}" />
+                        <StackPanel x:Name="PacksPanel" Spacing="8" />
+                    </StackPanel>
+                </PivotItem>
+
+                <!-- ===== Operations ===== -->
+                <PivotItem x:Name="TabOps">
+                    <StackPanel Spacing="10" Margin="0,12,0,0">
+                        <TextBlock x:Name="OpsBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                        <AutoSuggestBox
+                            x:Name="OpsFilter"
+                            MaxWidth="420"
+                            HorizontalAlignment="Left"
+                            QueryIcon="Find"
+                            TextChanged="OpsFilter_TextChanged" />
+                        <StackPanel x:Name="OpsPanel" Spacing="2" />
+                    </StackPanel>
+                </PivotItem>
+            </Pivot>
+        </StackPanel>
+    </ScrollViewer>
+</Page>
