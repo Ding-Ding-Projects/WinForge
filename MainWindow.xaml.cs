@@ -274,6 +274,11 @@ public sealed partial class MainWindow : Window
             case "bulk":
                 Navigator.GoToModule?.Invoke("module.bulkops");
                 break;
+            case "newplus":
+            case "templates":
+            case "newfile":
+                Navigator.GoToModule?.Invoke("module.newplus");
+                break;
             case "duplicates":
             case "dupes":
                 Navigator.GoToModule?.Invoke("module.duplicates");
@@ -677,6 +682,7 @@ public sealed partial class MainWindow : Window
         "module.startup" => typeof(StartupModule),
         "module.rename" => typeof(RenameModule),
         "module.bulkops" => typeof(BulkOpsModule),
+        "module.newplus" => typeof(NewPlusModule),
         "module.duplicates" => typeof(DuplicatesModule),
         "module.disk" => typeof(DiskAnalyzerModule),
         "module.drives" => typeof(DrivesModule),
