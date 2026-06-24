@@ -20,10 +20,35 @@ public static class PackerOperations
         => Tweak.Action(id, enT, zhT, enD, zhD, enBtn, zhBtn,
             ct => PackerService.RunRaw(args, PackerService.WorkingDir, ct), keywords: keywords);
 
+    /// <summary>
+    /// 同 <see cref="InDir"/>，但額外掛上一個「Packer 搵唔搵到」嘅彩色狀態藥丸 ·
+    /// Same as <see cref="InDir"/> but also attaches a coloured status pill reporting whether the
+    /// <c>packer</c> binary resolves on PATH. The probe is a synchronous filesystem check
+    /// (<see cref="PackerService.IsOnPath"/>) — no shell, safe in the card's status getter.
+    /// </summary>
+    private static TweakDefinition InDirWithFoundPill(string id, string enT, string zhT, string enD, string zhD,
+        string enBtn, string zhBtn, string args, string? keywords = null)
+    {
+        var baseDef = InDir(id, enT, zhT, enD, zhD, enBtn, zhBtn, args, keywords);
+        return new TweakDefinition
+        {
+            Id = baseDef.Id,
+            Title = baseDef.Title,
+            Description = baseDef.Description,
+            Kind = baseDef.Kind,
+            Keywords = baseDef.Keywords,
+            ActionLabel = baseDef.ActionLabel,
+            RunAsync = baseDef.RunAsync,
+            ColoredStatus = () => PackerService.IsOnPath()
+                ? ("Packer found", "搵到 Packer", StatusColor.Good)
+                : ("Not on PATH", "唔喺 PATH", StatusColor.Warn),
+        };
+    }
+
     public static IEnumerable<TweakDefinition> All() => new List<TweakDefinition>
     {
         // ===== basics · 基本 =====
-        InDir("pk.version", "Packer version", "Packer 版本",
+        InDirWithFoundPill("pk.version", "Packer version", "Packer 版本",
             "Show the installed Packer version.", "顯示已安裝嘅 Packer 版本。",
             "Check", "查睇", "version", "version 版本"),
         InDir("pk.help", "Packer help", "Packer 說明",
