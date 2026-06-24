@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinTune.Pages.AiAgentsModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="1000" Spacing="14">
+
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <FontIcon FontSize="24" Glyph="&#xE99A;" VerticalAlignment="Center" />
+                <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
+            </StackPanel>
+            <TextBlock
+                x:Name="HeaderBlurb"
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                TextWrapping="Wrap" />
+
+            <InfoBar x:Name="NodeBar" IsClosable="False" IsOpen="False" Severity="Informational" />
+
+            <!-- Launch working folder -->
+            <Border
+                Padding="14,10,14,10"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <Grid ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock x:Name="WorkDirLabel" Grid.Column="0" VerticalAlignment="Center" FontWeight="SemiBold" />
+                    <TextBox x:Name="WorkDirBox" Grid.Column="1" IsReadOnly="True" />
+                    <Button x:Name="WorkDirBtn" Grid.Column="2" Click="WorkDir_Click" />
+                </Grid>
+            </Border>
+
+            <InfoBar x:Name="ResultBar" IsClosable="True" IsOpen="False" />
+
+            <StackPanel x:Name="Cards" Spacing="10" />
+        </StackPanel>
+    </ScrollViewer>
+</Page>

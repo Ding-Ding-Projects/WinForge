@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinTune.Pages.ViveToolModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid Padding="24,16,24,16" RowSpacing="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="12">
+            <FontIcon FontSize="22" Glyph="&#xE9D5;" VerticalAlignment="Center" />
+            <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
+        </StackPanel>
+
+        <!-- Not-installed banner -->
+        <InfoBar x:Name="InstallBar" Grid.Row="1" IsClosable="False" IsOpen="False" Severity="Warning">
+            <InfoBar.ActionButton>
+                <Button x:Name="InstallBtn" Click="Install_Click" />
+            </InfoBar.ActionButton>
+        </InfoBar>
+
+        <!-- Named toggles + global actions -->
+        <Grid Grid.Row="2" RowSpacing="8">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <TextBlock x:Name="TogglesTitle" Grid.Row="0" Style="{StaticResource BodyStrongTextBlockStyle}" />
+            <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" HorizontalScrollMode="Auto">
+                <StackPanel x:Name="TogglesPanel" Orientation="Horizontal" Spacing="8" />
+            </ScrollViewer>
+        </Grid>
+
+        <!-- Toolbar: filter + global verbs -->
+        <Grid Grid.Row="3" ColumnSpacing="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <AutoSuggestBox x:Name="FilterBox" Grid.Column="0" MaxWidth="420" HorizontalAlignment="Left" QueryIcon="Find" TextChanged="Filter_TextChanged" />
+            <TextBlock x:Name="CountText" Grid.Column="1" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            <Button x:Name="MoreBtn" Grid.Column="2">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <TextBlock x:Name="MoreText" FontSize="12" />
+                    <FontIcon Glyph="&#xE70D;" FontSize="10" />
+                </StackPanel>
+                <Button.Flyout>
+                    <MenuFlyout x:Name="MoreFlyout">
+                        <MenuFlyoutItem x:Name="ScanItem" Click="Scan_Click"><MenuFlyoutItem.Icon><FontIcon Glyph="&#xE721;" /></MenuFlyoutItem.Icon></MenuFlyoutItem>
+                        <MenuFlyoutItem x:Name="LkgItem" Click="Lkg_Click"><MenuFlyoutItem.Icon><FontIcon Glyph="&#xE9A9;" /></MenuFlyoutItem.Icon></MenuFlyoutItem>
+                        <MenuFlyoutSeparator />
+                        <MenuFlyoutItem x:Name="ExportItem" Click="Export_Click"><MenuFlyoutItem.Icon><FontIcon Glyph="&#xEDE1;" /></MenuFlyoutItem.Icon></MenuFlyoutItem>
+                        <MenuFlyoutItem x:Name="ImportItem" Click="Import_Click"><MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8B5;" /></MenuFlyoutItem.Icon></MenuFlyoutItem>
+                        <MenuFlyoutSeparator />
+                        <MenuFlyoutItem x:Name="RestartExplorerItem" Click="RestartExplorer_Click"><MenuFlyoutItem.Icon><FontIcon Glyph="&#xE72C;" /></MenuFlyoutItem.Icon></MenuFlyoutItem>
+                        <MenuFlyoutItem x:Name="RebootItem" Click="Reboot_Click"><MenuFlyoutItem.Icon><FontIcon Glyph="&#xE777;" /></MenuFlyoutItem.Icon></MenuFlyoutItem>
+                        <MenuFlyoutSeparator />
+                        <MenuFlyoutItem x:Name="FullResetItem" Click="FullReset_Click"><MenuFlyoutItem.Icon><FontIcon Glyph="&#xE894;" /></MenuFlyoutItem.Icon></MenuFlyoutItem>
+                    </MenuFlyout>
+                </Button.Flyout>
+            </Button>
+            <Button x:Name="RefreshBtn" Grid.Column="3" Click="Refresh_Click" />
+        </Grid>
+
+        <!-- Feature Store list -->
+        <Border
+            Grid.Row="4"
+            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            CornerRadius="8">
+            <Grid>
+                <ListView x:Name="List" SelectionMode="None">
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Padding="6,6,6,6" ColumnSpacing="10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="100" />
+                                    <ColumnDefinition Width="110" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="{Binding FriendlyEn}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding Id}" FontSize="11" FontFamily="Consolas" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                                </StackPanel>
+                                <TextBlock Grid.Column="1" Text="{Binding State}" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Grid.Column="2" Text="{Binding Type}" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <Button Grid.Column="3" Click="Actions_Click" Padding="12,5,12,5" VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <TextBlock Text="Actions · 操作" FontSize="12" />
+                                        <FontIcon Glyph="&#xE70D;" FontSize="10" />
+                                    </StackPanel>
+                                </Button>
+                            </Grid>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+                <TextBlock x:Name="EmptyText" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="13" TextAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Visibility="Collapsed" />
+            </Grid>
+        </Border>
+
+        <InfoBar x:Name="ResultBar" Grid.Row="5" IsClosable="True" IsOpen="False" />
+    </Grid>
+</Page>
