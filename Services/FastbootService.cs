@@ -20,7 +20,7 @@ public sealed class FastbootDevice
 ///
 /// ⚠ DANGEROUS · 危險：flashing/unlocking can wipe data or brick the device. Every mutating call accepts a
 /// <c>dryRun</c> flag that returns the exact command WITHOUT running it, and the UI guards each op behind an
-/// explicit, typed confirmation. No redirect — WinTune drives the real binary.
+/// explicit, typed confirmation. No redirect — WinForge drives the real binary.
 /// </summary>
 public static class FastbootService
 {

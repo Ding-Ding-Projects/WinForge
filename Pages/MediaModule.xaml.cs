@@ -14,7 +14,7 @@ namespace WinForge.Pages;
 
 /// <summary>
 /// 媒體模組 · In-app Media module: wraps ffmpeg/ffprobe — convert, trim, GIF, grab frames, inspect, plus ~60 ops.
-/// Browse uses the Win32 file dialogs so it works whether or not WinTune runs elevated.
+/// Browse uses the Win32 file dialogs so it works whether or not WinForge runs elevated.
 /// </summary>
 public sealed partial class MediaModule : Page
 {

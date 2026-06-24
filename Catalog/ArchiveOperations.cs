@@ -324,7 +324,7 @@ ArchiveTweak.Op("arc.benchmark", "Benchmark", "效能測試",
 
         // ===== RAR repair (unrar) =====
     ArchiveTweak.Rar("arc.rar-repair", "Repair RAR (recovery record)", "修復 RAR（復原記錄）",
-        "Repair the selected .rar using its embedded recovery record / recovery volumes (.rev) via the RARLAB unrar CLI. 7-Zip cannot repair RAR, so this needs unrar.exe (WinRAR or bundled next to WinTune). Writes a fixed.<name>.rar beside the original.", "用 RARLAB unrar CLI，靠 RAR 內嵌嘅復原記錄／復原卷（.rev）修復揀咗嗰個 .rar。7-Zip 修唔到 RAR，所以要 unrar.exe（WinRAR 或者放喺 WinTune 旁邊）。會喺原檔旁邊整一個 fixed.<名>.rar。",
+        "Repair the selected .rar using its embedded recovery record / recovery volumes (.rev) via the RARLAB unrar CLI. 7-Zip cannot repair RAR, so this needs unrar.exe (WinRAR or bundled next to WinForge). Writes a fixed.<name>.rar beside the original.", "用 RARLAB unrar CLI，靠 RAR 內嵌嘅復原記錄／復原卷（.rev）修復揀咗嗰個 .rar。7-Zip 修唔到 RAR，所以要 unrar.exe（WinRAR 或者放喺 WinForge 旁邊）。會喺原檔旁邊整一個 fixed.<名>.rar。",
         "Repair", "修復", "r {archive}", keywords: "rar,repair,recovery,record,修復,復原,unrar"),
     ArchiveTweak.Rar("arc.rar-extract-keepbroken", "Extract RAR (keep broken)", "解壓 RAR（保留壞檔）",
         "Extract the selected .rar with -kb (keep broken) so partially-recovered files are written out instead of deleted — handy after a repair. Uses the RARLAB unrar CLI; extracts into a sibling _extracted folder.", "用 -kb（保留壞檔）解壓揀咗嗰個 .rar，部分救返嘅檔案會寫出嚟而唔係刪走 — 修復之後好用。用 RARLAB unrar CLI；解壓到旁邊嘅 _extracted 資料夾。",

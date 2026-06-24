@@ -26,7 +26,7 @@ public sealed partial class DashboardPage : Page
 
     private void Render()
     {
-        HeroTitle.Text = "WinTune · 視窗調校";
+        HeroTitle.Text = "WinForge · 視窗調校";
         HeroSubtitle.Text = "An all-in-one, fully bilingual control center that really tunes Windows 11.\n全方位、全雙語嘅控制中心，真係會幫你調校 Windows 11。";
         CountBadge.Text = $"{TweakCatalog.Count} features · {Categories.All.Length} categories  ·  {TweakCatalog.Count} 項功能 · {Categories.All.Length} 個分類";
 

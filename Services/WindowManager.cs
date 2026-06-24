@@ -72,7 +72,7 @@ public static class WindowManager
 
                 string proc = "";
                 try { GetWindowThreadProcessId(h, out var pid); proc = Process.GetProcessById((int)pid).ProcessName; } catch { }
-                if (proc.Equals("WinTune", StringComparison.OrdinalIgnoreCase)) return true; // skip ourselves
+                if (proc.Equals("WinForge", StringComparison.OrdinalIgnoreCase)) return true; // skip ourselves
 
                 list.Add(new WinInfo { Handle = h, Title = title, Process = proc });
             }

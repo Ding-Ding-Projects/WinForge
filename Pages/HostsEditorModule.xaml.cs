@@ -50,7 +50,7 @@ public sealed partial class HostsEditorModule : Page
         }
         catch (UnauthorizedAccessException)
         {
-            Info(InfoBarSeverity.Error, P("Failed", "失敗"), P("Saving the hosts file needs administrator rights — relaunch WinTune as admin.", "儲存 hosts 檔需要管理員權限 — 請以管理員身分重開 WinTune。"));
+            Info(InfoBarSeverity.Error, P("Failed", "失敗"), P("Saving the hosts file needs administrator rights — relaunch WinForge as admin.", "儲存 hosts 檔需要管理員權限 — 請以管理員身分重開 WinForge。"));
         }
         catch (Exception ex) { Info(InfoBarSeverity.Error, P("Failed", "失敗"), ex.Message); }
     }

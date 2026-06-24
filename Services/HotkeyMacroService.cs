@@ -179,7 +179,7 @@ public static class HotkeyMacroService
         Load();
         if (_hotkeysRunning) { RestartHotkeys(); return; }
         _hotkeysRunning = true;
-        _hotkeyThread = new Thread(HotkeyLoop) { IsBackground = true, Name = "WinTune-Hotkeys" };
+        _hotkeyThread = new Thread(HotkeyLoop) { IsBackground = true, Name = "WinForge-Hotkeys" };
         _hotkeyThread.SetApartmentState(ApartmentState.STA);
         _hotkeyThread.Start();
     }
@@ -403,7 +403,7 @@ public static class HotkeyMacroService
         Load();
         if (_expanderRunning) return;
         _expanderRunning = true;
-        _hookThread = new Thread(HookLoop) { IsBackground = true, Name = "WinTune-Expander" };
+        _hookThread = new Thread(HookLoop) { IsBackground = true, Name = "WinForge-Expander" };
         _hookThread.Start();
     }
 

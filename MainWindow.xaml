@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <Window
-    x:Class="WinTune.MainWindow"
+    x:Class="WinForge.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:local="using:WinTune"
+    xmlns:local="using:WinForge"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    Title="WinTune · 視窗調校"
+    Title="WinForge · 視窗調校"
     mc:Ignorable="d">
     <Window.SystemBackdrop>
         <MicaBackdrop />
@@ -20,7 +20,7 @@
 
         <TitleBar
             x:Name="AppTitleBar"
-            Title="WinTune · 視窗調校"
+            Title="WinForge · 視窗調校"
             BackRequested="TitleBar_BackRequested"
             IsBackButtonVisible="{x:Bind NavFrame.CanGoBack, Mode=OneWay}"
             IsPaneToggleButtonVisible="True"

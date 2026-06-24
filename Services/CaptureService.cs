@@ -121,7 +121,7 @@ public static class CaptureService
             sb.Dispose();
 
             // clipboard image via a temp PNG so any app (incl. classic) can paste it
-            var tmp = Path.Combine(Path.GetTempPath(), $"WinTune-snip-{DateTime.Now:yyyyMMdd-HHmmss}.png");
+            var tmp = Path.Combine(Path.GetTempPath(), $"WinForge-snip-{DateTime.Now:yyyyMMdd-HHmmss}.png");
             await File.WriteAllBytesAsync(tmp, png);
 
             var dp = new DataPackage();
@@ -314,7 +314,7 @@ public static class CaptureService
         if (!File.Exists(inputVideo)) return TweakResult.Fail("Source video not found.", "搵唔到來源影片。");
 
         fps = Math.Clamp(fps, 5, 50);
-        var pal = Path.Combine(Path.GetTempPath(), $"WinTune-pal-{Guid.NewGuid():N}.png");
+        var pal = Path.Combine(Path.GetTempPath(), $"WinForge-pal-{Guid.NewGuid():N}.png");
         try
         {
             // pass 1: generate an optimised palette

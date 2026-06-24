@@ -228,7 +228,7 @@ public static class WslVmService
             return TweakResult.Fail("Windows Sandbox is not enabled.", "未啟用 Windows 沙盒。");
         try
         {
-            var path = Path.Combine(Path.GetTempPath(), $"wintune-{DateTime.Now:yyyyMMdd-HHmmss}.wsb");
+            var path = Path.Combine(Path.GetTempPath(), $"winforge-{DateTime.Now:yyyyMMdd-HHmmss}.wsb");
             await File.WriteAllTextAsync(path, wsbXml, ct);
             var psi = new System.Diagnostics.ProcessStartInfo
             {

@@ -253,8 +253,8 @@ public sealed partial class ImagingGameModule : Page
         {
             XamlRoot = XamlRoot,
             Title = P("Administrator required", "需要管理員權限"),
-            Content = P("Writing to a raw disk needs administrator rights. Relaunch WinTune as administrator?",
-                "原始寫入磁碟需要管理員權限。要唔要以管理員身分重新啟動 WinTune？"),
+            Content = P("Writing to a raw disk needs administrator rights. Relaunch WinForge as administrator?",
+                "原始寫入磁碟需要管理員權限。要唔要以管理員身分重新啟動 WinForge？"),
             PrimaryButtonText = P("Relaunch as admin", "以管理員重新啟動"),
             CloseButtonText = P("Cancel", "取消"),
             DefaultButton = ContentDialogButton.Primary,

@@ -7,14 +7,14 @@ namespace WinForge.Services;
 
 /// <summary>
 /// 全域例外處理 · Global last-resort exception handling. Logs every unhandled exception to
-/// %LOCALAPPDATA%\WinTune\crash.log and (where possible) keeps the app alive instead of letting it die.
+/// %LOCALAPPDATA%\WinForge\crash.log and (where possible) keeps the app alive instead of letting it die.
 /// 一個模組出錯唔應該拖冧成個 app。A single module's error should never take the whole app down.
 /// </summary>
 public static class CrashLogger
 {
     private static readonly object Gate = new();
     private static readonly string LogPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WinTune", "crash.log");
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WinForge", "crash.log");
 
     /// <summary>掛上所有例外來源 · Hook every unhandled-exception source. Call once at startup.</summary>
     public static void Install(Microsoft.UI.Xaml.Application app)

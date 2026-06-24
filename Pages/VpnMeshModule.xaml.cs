@@ -544,7 +544,7 @@ public sealed partial class VpnMeshModule : Page
     }
 
     // ---- helpers ----
-    private static string Msg(WinTune.Models.TweakResult r)
+    private static string Msg(WinForge.Models.TweakResult r)
         => (Loc.I.IsCantonesePrimary ? r.Message?.Zh : r.Message?.En) ?? "";
 
     private void NordNotify(InfoBarSeverity sev, string title, string msg)

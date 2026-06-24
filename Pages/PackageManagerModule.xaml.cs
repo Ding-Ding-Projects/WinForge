@@ -334,7 +334,7 @@ public sealed partial class PackageManagerModule : Page
         var entries = items.Select(i => new BundleEntry { Manager = i.ManagerKey, Id = i.Id, Name = i.Name, Version = i.Version }).ToList();
         try
         {
-            var path = await FileDialogs.SaveFileAsync("wintune-packages", ".json");
+            var path = await FileDialogs.SaveFileAsync("winforge-packages", ".json");
             if (path is null) return;
             var json = JsonSerializer.Serialize(entries, new JsonSerializerOptions { WriteIndented = true });
             await File.WriteAllTextAsync(path, json);

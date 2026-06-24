@@ -282,7 +282,7 @@ public sealed partial class WslVmModule : Page
 
     private async void SaveWsb_Click(object sender, RoutedEventArgs e)
     {
-        var path = await FileDialogs.SaveFileAsync("wintune-sandbox", ".wsb");
+        var path = await FileDialogs.SaveFileAsync("winforge-sandbox", ".wsb");
         if (path is null) return;
         await File.WriteAllTextAsync(path, BuildWsb());
         Notify(InfoBarSeverity.Success, P("Saved .wsb", "已儲存 .wsb"), path);
@@ -298,7 +298,7 @@ public sealed partial class WslVmModule : Page
 
     // ── helpers ──────────────────────────────────────────────────────────────
 
-    private static string Msg(WinTune.Models.TweakResult r)
+    private static string Msg(WinForge.Models.TweakResult r)
         => (Loc.I.IsCantonesePrimary ? r.Message?.Zh : r.Message?.En) ?? "";
 
     private void Notify(InfoBarSeverity sev, string title, string msg)

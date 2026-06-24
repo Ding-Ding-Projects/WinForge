@@ -38,8 +38,8 @@ public sealed partial class EnvVarsModule : Page
     private void Render()
     {
         HeaderTitle.Text = "Environment Variables · 環境變數";
-        HeaderBlurb.Text = P("View, add, edit and delete environment variables. User variables apply without admin; System variables need WinTune running as administrator.",
-            "檢視、新增、編輯同刪除環境變數。使用者變數唔使管理員；系統變數要 WinTune 以管理員身分執行。");
+        HeaderBlurb.Text = P("View, add, edit and delete environment variables. User variables apply without admin; System variables need WinForge running as administrator.",
+            "檢視、新增、編輯同刪除環境變數。使用者變數唔使管理員；系統變數要 WinForge 以管理員身分執行。");
         NameBox.PlaceholderText = P("Variable name", "變數名稱");
         ValueBox.PlaceholderText = P("Value", "值");
         AddBtn.Content = P("Set", "設定");
@@ -79,7 +79,7 @@ public sealed partial class EnvVarsModule : Page
         catch (Exception ex)
         {
             Show(InfoBarSeverity.Error, P("Could not save", "儲存唔到"),
-                Machine ? P("System variables need administrator rights — relaunch WinTune as admin.", "系統變數要管理員權限 — 請以管理員身分重開 WinTune。") : ex.Message);
+                Machine ? P("System variables need administrator rights — relaunch WinForge as admin.", "系統變數要管理員權限 — 請以管理員身分重開 WinForge。") : ex.Message);
         }
     }
 

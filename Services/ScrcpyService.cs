@@ -35,7 +35,7 @@ public sealed class ScrcpyOptions
 /// <summary>
 /// 應用程式內螢幕鏡像（包 scrcpy.exe）· In-app screen mirroring wrapping Genymobile's scrcpy — launches a
 /// tracked scrcpy process so mirroring can be started/stopped from the UI. scrcpy installs via winget
-/// (Genymobile.scrcpy). No redirect — WinTune drives the real binary.
+/// (Genymobile.scrcpy). No redirect — WinForge drives the real binary.
 /// </summary>
 public static class ScrcpyService
 {

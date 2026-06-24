@@ -36,8 +36,8 @@ public sealed partial class ScheduledTasksModule : Page
         {
             ResultBar.Severity = InfoBarSeverity.Informational;
             ResultBar.Title = P("Tip", "提示");
-            ResultBar.Message = P("Relaunch WinTune as administrator to change protected tasks.",
-                "以管理員身分重開 WinTune 先可以改受保護嘅工作。");
+            ResultBar.Message = P("Relaunch WinForge as administrator to change protected tasks.",
+                "以管理員身分重開 WinForge 先可以改受保護嘅工作。");
             ResultBar.IsOpen = true;
         }
     }

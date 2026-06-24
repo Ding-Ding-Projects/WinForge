@@ -10,8 +10,8 @@ namespace WinForge.Services;
 
 /// <summary>
 /// 為每一個功能寫一個 Markdown 檔 · Writes one Markdown file per feature.
-/// 透過 `WinTune.exe --export-docs &lt;dir&gt;` 觸發（無視窗，寫完即退出）。
-/// Triggered by `WinTune.exe --export-docs &lt;dir&gt;` (headless; exits when done).
+/// 透過 `WinForge.exe --export-docs &lt;dir&gt;` 觸發（無視窗，寫完即退出）。
+/// Triggered by `WinForge.exe --export-docs &lt;dir&gt;` (headless; exits when done).
 /// </summary>
 public static class DocsExporter
 {
@@ -81,14 +81,14 @@ public static class DocsExporter
             sb.AppendLine($"_Keywords · 關鍵字: {string.Join(", ", t.Keywords)}_");
         }
         sb.AppendLine();
-        sb.AppendLine("_Part of WinTune · WinTune 套件嘅一部分_");
+        sb.AppendLine("_Part of WinForge · WinForge 套件嘅一部分_");
         return sb.ToString();
     }
 
     private static void WriteIndex(string dir, List<(TweakDefinition t, string module)> all)
     {
         var sb = new StringBuilder();
-        sb.AppendLine("# WinTune — Feature Reference · 功能總覽");
+        sb.AppendLine("# WinForge — Feature Reference · 功能總覽");
         sb.AppendLine();
         sb.AppendLine($"**{all.Count}** features, each with its own page. · **{all.Count}** 項功能，每項一頁。");
         sb.AppendLine();

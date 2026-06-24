@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using Microsoft.Win32;
 using WinForge.Models;
 using WinForge.Services;
-using static WinTune.Catalog.Recipe;
+using static WinForge.Catalog.Recipe;
 
 namespace WinForge.Catalog;
 
@@ -154,9 +154,9 @@ public static class Recipes
             Ps("Disable telemetry tasks", "$ts=@('Microsoft Compatibility Appraiser','ProgramDataUpdater','Consolidator','UsbCeip','Proxy'); foreach($n in $ts){ Get-ScheduledTask -TaskName $n -ErrorAction SilentlyContinue | Disable-ScheduledTask -ErrorAction SilentlyContinue | Out-Null }; 'Done.'", admin: true)),
 
         Make("recipe.restore-point", "Create a restore point", "建立還原點",
-            "Snapshot the system with a restore point named WinTune before you make changes.",
-            "改嘢之前，幫系統影一個叫 WinTune 嘅還原點。",
+            "Snapshot the system with a restore point named WinForge before you make changes.",
+            "改嘢之前，幫系統影一個叫 WinForge 嘅還原點。",
             "Create", "建立", admin: true, destructive: false,
-            Ps("Checkpoint", "Checkpoint-Computer -Description 'WinTune' -RestorePointType MODIFY_SETTINGS; 'Restore point requested.'", admin: true)),
+            Ps("Checkpoint", "Checkpoint-Computer -Description 'WinForge' -RestorePointType MODIFY_SETTINGS; 'Restore point requested.'", admin: true)),
     };
 }

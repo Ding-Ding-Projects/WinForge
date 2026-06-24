@@ -100,7 +100,7 @@ public sealed partial class EventViewerModule : Page
             HintBar.Severity = InfoBarSeverity.Informational;
             HintBar.Title = P("No matching events", "冇符合嘅事件");
             HintBar.Message = log == "Security" && !AdminHelper.IsElevated
-                ? P("The Security log needs administrator rights — relaunch WinTune as admin.", "安全記錄要管理員權限 — 請以管理員身分重開 WinTune。")
+                ? P("The Security log needs administrator rights — relaunch WinForge as admin.", "安全記錄要管理員權限 — 請以管理員身分重開 WinForge。")
                 : P("Nothing at this level in this log.", "呢個記錄喺呢個層級冇嘢。");
             HintBar.IsOpen = true;
         }

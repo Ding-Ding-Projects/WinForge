@@ -24,7 +24,7 @@ public sealed class SnapshotInfo
 /// <summary>
 /// 設定與備份引擎 · Config &amp; Backup engine — exports the whole suite's settings into a portable
 /// .zip bundle (with a version manifest + SHA-256 checksums), imports/re-applies them, keeps a local
-/// git snapshot repo of config history under %LOCALAPPDATA%\WinTune\snapshots, and wraps real CLIs
+/// git snapshot repo of config history under %LOCALAPPDATA%\WinForge\snapshots, and wraps real CLIs
 /// (git, schtasks, reg, winget, robocopy) for scheduling, registry/app capture, mirroring,
 /// bundling, pruning and integrity checks. Reuses <see cref="SettingsStore"/> export/import and the
 /// raw <see cref="ShellRunner"/>/git plumbing.
@@ -34,7 +34,7 @@ public static class ConfigBackupService
     public const string ManifestVersion = "1";
 
     private static readonly string AppDir =
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WinTune");
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WinForge");
 
     /// <summary>本地快照 git 倉庫 · The local git snapshot repository folder.</summary>
     public static string SnapshotsDir => Path.Combine(AppDir, "snapshots");
@@ -75,7 +75,7 @@ public static class ConfigBackupService
             // Persist the live settings so the on-disk file is current.
             SettingsStore.ExportTo(SettingsFile);
 
-            var staging = Path.Combine(Path.GetTempPath(), "wintune_export_" + Guid.NewGuid().ToString("N"));
+            var staging = Path.Combine(Path.GetTempPath(), "winforge_export_" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(staging);
             try
             {
@@ -86,7 +86,7 @@ public static class ConfigBackupService
 
                 var manifest = new
                 {
-                    app = "WinTune",
+                    app = "WinForge",
                     bundleVersion = ManifestVersion,
                     created = DateTimeOffset.Now.ToString("o"),
                     machine = Environment.MachineName,
@@ -123,7 +123,7 @@ public static class ConfigBackupService
             if (!File.Exists(zipPath))
                 return TweakResult.Fail("Bundle not found.", "搵唔到設定檔案。");
 
-            var staging = Path.Combine(Path.GetTempPath(), "wintune_import_" + Guid.NewGuid().ToString("N"));
+            var staging = Path.Combine(Path.GetTempPath(), "winforge_import_" + Guid.NewGuid().ToString("N"));
             try
             {
                 ZipFile.ExtractToDirectory(zipPath, staging);
@@ -145,8 +145,8 @@ public static class ConfigBackupService
 
                 int n = SettingsStore.ImportFrom(settings);
                 return TweakResult.Ok(
-                    $"Imported & re-applied {n} setting(s). Restart WinTune for all of them to take effect.",
-                    $"已匯入並套用 {n} 項設定。重開 WinTune 全部即生效。");
+                    $"Imported & re-applied {n} setting(s). Restart WinForge for all of them to take effect.",
+                    $"已匯入並套用 {n} 項設定。重開 WinForge 全部即生效。");
             }
             finally { TryDeleteDir(staging); }
         }
@@ -178,8 +178,8 @@ public static class ConfigBackupService
                 var (ok, outp) = await Git("init", ct);
                 if (!ok) return TweakResult.Fail("git init failed.", "git init 失敗。", outp);
                 // Local identity so commits work even without a global git config.
-                await Git("config user.name WinTune", ct);
-                await Git("config user.email wintune@localhost", ct);
+                await Git("config user.name WinForge", ct);
+                await Git("config user.email winforge@localhost", ct);
             }
             return TweakResult.Ok($"Snapshot repo ready at {SnapshotsDir}.",
                 $"快照倉庫已就緒：{SnapshotsDir}。", SnapshotsDir);
@@ -334,12 +334,12 @@ public static class ConfigBackupService
 
     // ───────────────────────── scheduled daily backup (schtasks) ─────────────────────────
 
-    public const string DailyTaskName = "WinTune Daily Backup";
+    public const string DailyTaskName = "WinForge Daily Backup";
 
-    /// <summary>排好每日自動備份 · Register a daily backup task that runs WinTune --snapshot.</summary>
+    /// <summary>排好每日自動備份 · Register a daily backup task that runs WinForge --snapshot.</summary>
     public static async Task<TweakResult> ScheduleDailyBackup(string time = "03:00", CancellationToken ct = default)
     {
-        var exe = Environment.ProcessPath ?? Path.Combine(AppContext.BaseDirectory, "WinTune.exe");
+        var exe = Environment.ProcessPath ?? Path.Combine(AppContext.BaseDirectory, "WinForge.exe");
         var tr = $"\\\"{exe}\\\" --snapshot";
         var args = $"/Create /SC DAILY /TN \"{DailyTaskName}\" /TR \"{tr}\" /ST {time} /RL LIMITED /F";
         var r = await ShellRunner.Run("schtasks.exe", args, elevated: false, ct);
@@ -377,7 +377,7 @@ public static class ConfigBackupService
             foreach (var (key, label) in TouchedRegistryKeys)
             {
                 ct.ThrowIfCancellationRequested();
-                var tmp = Path.Combine(Path.GetTempPath(), $"wintune_reg_{Guid.NewGuid():N}.reg");
+                var tmp = Path.Combine(Path.GetTempPath(), $"winforge_reg_{Guid.NewGuid():N}.reg");
                 var r = await ShellRunner.Run("reg.exe", $"export \"{key}\" \"{tmp}\" /y", elevated: false, ct);
                 if (r.Success && File.Exists(tmp))
                 {

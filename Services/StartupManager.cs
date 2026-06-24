@@ -110,16 +110,16 @@ public static class StartupManager
         RegistryHelper.SetValue(item.ApprovedRoot, item.ApprovedKey, item.ApprovedName, blob, RegistryValueKind.Binary);
     }
 
-    // ===== WinTune self-startup (run on login, minimized to the tray) =====
+    // ===== WinForge self-startup (run on login, minimized to the tray) =====
 
-    private const string SelfStartupName = "WinTune";
+    private const string SelfStartupName = "WinForge";
 
     private static string SelfExePath()
     {
         try { return Environment.ProcessPath ?? ""; } catch { return ""; }
     }
 
-    /// <summary>WinTune 開機自啟動係咪開咗 · Whether WinTune is set to run at login.</summary>
+    /// <summary>WinForge 開機自啟動係咪開咗 · Whether WinForge is set to run at login.</summary>
     public static bool IsSelfStartupEnabled()
     {
         var v = RegistryHelper.GetValue(RegRoot.HKCU, RunKey, SelfStartupName) as string;
@@ -127,8 +127,8 @@ public static class StartupManager
     }
 
     /// <summary>
-    /// 設定 WinTune 開機自啟動（HKCU Run，加 --minimized 收入系統匣）。
-    /// Enable/disable launching WinTune at login via HKCU\...\Run, started minimized to the tray.
+    /// 設定 WinForge 開機自啟動（HKCU Run，加 --minimized 收入系統匣）。
+    /// Enable/disable launching WinForge at login via HKCU\...\Run, started minimized to the tray.
     /// </summary>
     public static void SetSelfStartup(bool enabled)
     {

@@ -61,8 +61,8 @@ public sealed partial class FontManagerModule : Page
         if (machineWide && !AdminHelper.IsElevated)
         {
             Info(InfoBarSeverity.Error, P("Admin required", "需要管理員"),
-                P("Machine-wide install writes to the Windows Fonts folder and HKLM — relaunch WinTune as administrator, or uncheck 'Machine-wide' to install just for you.",
-                  "全機安裝要寫入 Windows 字型資料夾同 HKLM — 請以管理員身分重開 WinTune，或者唔好剔「全機安裝」改成淨係裝畀自己。"));
+                P("Machine-wide install writes to the Windows Fonts folder and HKLM — relaunch WinForge as administrator, or uncheck 'Machine-wide' to install just for you.",
+                  "全機安裝要寫入 Windows 字型資料夾同 HKLM — 請以管理員身分重開 WinForge，或者唔好剔「全機安裝」改成淨係裝畀自己。"));
             return;
         }
 

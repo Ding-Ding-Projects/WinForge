@@ -53,13 +53,13 @@ public sealed partial class ScreenRecorderModule : Page
     private void DefaultOutput()
     {
         var dir = Environment.GetFolderPath(Environment.SpecialFolder.MyVideos);
-        _output = Path.Combine(dir, $"WinTune-{DateTime.Now:yyyyMMdd-HHmmss}.mp4");
+        _output = Path.Combine(dir, $"WinForge-{DateTime.Now:yyyyMMdd-HHmmss}.mp4");
         OutputBox.Text = _output;
     }
 
     private async void Change_Click(object sender, RoutedEventArgs e)
     {
-        var path = await FileDialogs.SaveFileAsync($"WinTune-{DateTime.Now:yyyyMMdd-HHmmss}", ".mp4");
+        var path = await FileDialogs.SaveFileAsync($"WinForge-{DateTime.Now:yyyyMMdd-HHmmss}", ".mp4");
         if (path is not null) { _output = path; OutputBox.Text = _output; }
     }
 

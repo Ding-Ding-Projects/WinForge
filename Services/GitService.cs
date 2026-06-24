@@ -133,7 +133,7 @@ public static class GitService
             var bucket = buckets[i];
 
             // Stage this bucket via a pathspec file (handles many/long paths safely).
-            var listFile = Path.Combine(Path.GetTempPath(), $"wintune_add_{i}.txt");
+            var listFile = Path.Combine(Path.GetTempPath(), $"winforge_add_{i}.txt");
             await File.WriteAllLinesAsync(listFile, bucket, ct);
             var (addOk, addOut) = await Exec($"add --pathspec-from-file=\"{listFile}\"", ct);
             try { File.Delete(listFile); } catch { /* ignore */ }

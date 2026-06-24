@@ -87,7 +87,7 @@ public static class ContextMenuService
         foreach (char c in label)
             if (char.IsLetterOrDigit(c) || c is '_' or '-' or ' ') chars.Add(c);
         string k = new string(chars.ToArray()).Trim().Replace(' ', '_');
-        if (string.IsNullOrEmpty(k)) k = "WinTuneVerb";
+        if (string.IsNullOrEmpty(k)) k = "WinForgeVerb";
         return "WT_" + k;
     }
 }

@@ -93,7 +93,7 @@ public static class ArchiveService
             var name = Path.GetFileNameWithoutExtension(Archive);
             return Path.Combine(dir, name + "_extracted");
         }
-        catch { return Path.Combine(Path.GetTempPath(), "wintune_extracted"); }
+        catch { return Path.Combine(Path.GetTempPath(), "winforge_extracted"); }
     }
 
     /// <summary>
@@ -131,8 +131,8 @@ public static class ArchiveService
             return Task.FromResult(TweakResult.Fail("No archive selected.", "未揀壓縮檔。"));
         if (!HasUnRar)
             return Task.FromResult(TweakResult.Fail(
-                "unrar.exe not found. Install WinRAR or place unrar.exe next to WinTune (7-Zip cannot repair RAR).",
-                "搵唔到 unrar.exe。請安裝 WinRAR 或者將 unrar.exe 放喺 WinTune 旁邊（7-Zip 修唔到 RAR）。"));
+                "unrar.exe not found. Install WinRAR or place unrar.exe next to WinForge (7-Zip cannot repair RAR).",
+                "搵唔到 unrar.exe。請安裝 WinRAR 或者將 unrar.exe 放喺 WinForge 旁邊（7-Zip 修唔到 RAR）。"));
 
         var resolved = args
             .Replace("{archive}", Quote(Archive))

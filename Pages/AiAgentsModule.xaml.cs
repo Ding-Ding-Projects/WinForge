@@ -12,7 +12,7 @@ namespace WinForge.Pages;
 
 /// <summary>
 /// AI 代理 · Terminal AI coding agents — install, configure and launch Claude Code, OpenAI Codex,
-/// opencode, Pi, OpenClaw and Hermes Agent, all from inside WinTune. Bilingual.
+/// opencode, Pi, OpenClaw and Hermes Agent, all from inside WinForge. Bilingual.
 /// </summary>
 public sealed partial class AiAgentsModule : Page
 {

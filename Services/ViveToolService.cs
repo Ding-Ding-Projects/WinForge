@@ -76,7 +76,7 @@ public static class ViveToolService
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             Environment.GetEnvironmentVariable("ProgramFiles") ?? @"C:\Program Files",
             Environment.GetEnvironmentVariable("ProgramData") ?? @"C:\ProgramData",
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WinTune", "tools"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WinForge", "tools"),
         };
         foreach (var root in roots.Distinct())
         {

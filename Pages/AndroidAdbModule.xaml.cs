@@ -478,7 +478,7 @@ public sealed partial class AndroidAdbModule : Page
         return true;
     }
 
-    private static string Msg(WinTune.Models.TweakResult r)
+    private static string Msg(WinForge.Models.TweakResult r)
         => (Loc.I.IsCantonesePrimary ? r.Message?.Zh : r.Message?.En) ?? "";
 
     private void Notify(InfoBarSeverity sev, string title, string msg)

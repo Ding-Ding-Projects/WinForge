@@ -280,7 +280,7 @@ public sealed partial class ViveToolModule : Page
     private async void Export_Click(object sender, RoutedEventArgs e)
     {
         if (!await EnsureInstalled()) return;
-        var path = await FileDialogs.SaveFileAsync("WinTune-vivetool-profile", ".json", ".vto", ".bin");
+        var path = await FileDialogs.SaveFileAsync("WinForge-vivetool-profile", ".json", ".vto", ".bin");
         if (path is null) return;
         await RunGlobal(() => ViveToolService.Export(path), P("Export profile", "匯出設定檔"), null);
     }
