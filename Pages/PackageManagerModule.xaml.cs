@@ -44,6 +44,8 @@ public sealed partial class PackageManagerModule : Page
             BuildViewCombo();
             UpdateBatchBar();
             ViewCombo.SelectedIndex = 0;
+            // 啟動背景更新排程器（按設定行；冇開 AutoCheck 就閒置）· start the background update scheduler.
+            try { PackageUpdateScheduler.Start(); } catch { }
             await CheckAvailability();
         };
     }
@@ -84,6 +86,7 @@ public sealed partial class PackageManagerModule : Page
         ViewCombo.Items.Add(P("Sources", "來源"));
         ViewCombo.Items.Add(P("Ignored", "已忽略"));
         ViewCombo.Items.Add(P("Setup", "設定引擎"));
+        ViewCombo.Items.Add(P("Settings", "設定")); // 背景／通知／系統匣設定（index 7）· background/notify/tray settings.
         ViewCombo.SelectedIndex = sel < 0 ? 0 : sel;
     }
 
@@ -197,7 +200,28 @@ public sealed partial class PackageManagerModule : Page
                 SecondaryActionBtn.Visibility = Visibility.Collapsed;
                 await LoadSetup();
                 break;
+            case 7: // Settings · 設定（背景更新／通知／代理／備份）
+                SearchBox.IsEnabled = false;
+                PrimaryActionBtn.Content = P("Open settings", "開啟設定");
+                PrimaryActionBtn.Visibility = Visibility.Visible;
+                SecondaryActionBtn.Visibility = Visibility.Collapsed;
+                LoadSettingsView();
+                break;
         }
+    }
+
+    /// <summary>背景更新／通知／系統匣設定簡介 · Blurb for the scheduler/notify/tray settings view.</summary>
+    private void LoadSettingsView()
+    {
+        ResultsPanel.Children.Clear();
+        ResultsHeader.Text = P("Background updates, notifications, tray & backup", "背景更新、通知、系統匣同備份");
+        ResultsPanel.Children.Add(Card(new TextBlock
+        {
+            Text = P(
+                "Open settings to configure scheduled background update checks, auto-install gates (metered / battery / battery saver), update-age & installer-host security, parallel operations, notifications (including per-manager mute), per-manager executable paths & arguments, proxy, vcpkg, and the daily local backup. App settings can be exported / imported / reset here too.",
+                "開啟設定可以配置排程背景檢查更新、自動安裝閘（流量／電池／慳電）、更新年齡同安裝來源安全、同時操作數、通知（含每個管理器靜音）、各管理器可執行檔路徑同參數、代理、vcpkg，以及每日本地備份。亦可以喺度匯出／匯入／重設 App 設定。"),
+            TextWrapping = TextWrapping.Wrap, FontSize = 13,
+        }));
     }
 
     private async void Search_Submitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
@@ -216,6 +240,7 @@ public sealed partial class PackageManagerModule : Page
             case 4: await LoadSources(); break;
             case 5: LoadIgnoredView(); break;
             case 6: await InstallAllDeps(); break;
+            case 7: await PackageSettingsDialog.ShowAsync(this.XamlRoot); break;
         }
     }
 

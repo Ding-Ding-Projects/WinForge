@@ -18,8 +18,10 @@ public static class TrayService
     private const uint NIM_ADD = 0, NIM_MODIFY = 1, NIM_DELETE = 2;
     private const uint NIF_MESSAGE = 0x1, NIF_ICON = 0x2, NIF_TIP = 0x4;
     private const int IDM_OPEN = 1, IDM_QUIT = 2;
+    // 套件管理導覽（ADDITIVE — 唔影響既有 Open/Quit）· Package-manager navigation entries (additive).
+    private const int IDM_DISCOVER = 10, IDM_UPDATES = 11, IDM_INSTALLED = 12;
     private const uint TPM_RIGHTBUTTON = 0x0002, TPM_RETURNCMD = 0x0100;
-    private const uint MF_STRING = 0x0;
+    private const uint MF_STRING = 0x0, MF_SEPARATOR = 0x800;
 
     private delegate IntPtr WndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
 
@@ -78,12 +80,17 @@ public static class TrayService
     private static Action? _onOpen, _onQuit;
     private static bool _installed;
 
+    // 系統匣更新計數（ADDITIVE）· Package-manager update count surfaced in the tooltip (additive).
+    private static int _updateCount;
+    private static string _baseTooltip = "WinForge";
+
     public static bool IsInstalled => _installed;
 
     public static void Install(Action onOpen, Action onQuit, string tooltip)
     {
         if (_installed) return;
         _onOpen = onOpen; _onQuit = onQuit;
+        _baseTooltip = string.IsNullOrWhiteSpace(tooltip) ? "WinForge" : tooltip;
         var hInst = GetModuleHandle(null);
 
         if (!_registered)
@@ -129,6 +136,41 @@ public static class TrayService
         _installed = false;
     }
 
+    /// <summary>
+    /// 設定系統匣可更新數量（ADDITIVE）· Set the package-manager update count shown in the tray tooltip.
+    /// n &gt; 0 顯示「N updates are available」；n == 0 顯示原本嘅閒置提示。雙語。永遠唔擲例外。
+    /// When n &gt; 0 the tooltip reads "N updates are available" (bilingual); when 0 it reverts to the idle text.
+    /// Safe to call from any thread / before Install — guarded throughout.
+    /// </summary>
+    public static void SetUpdateCount(int n)
+    {
+        try
+        {
+            _updateCount = n < 0 ? 0 : n;
+            if (!_installed || _hwnd == IntPtr.Zero) return;
+
+            string tip = _updateCount > 0
+                ? (_updateCount == 1
+                    ? Loc.I.Pick("1 update is available · 有 1 個更新可用",
+                                 "有 1 個更新可用 · 1 update is available")
+                    : Loc.I.Pick($"{_updateCount} updates are available · 有 {_updateCount} 個更新可用",
+                                 $"有 {_updateCount} 個更新可用 · {_updateCount} updates are available"))
+                : _baseTooltip;
+
+            if (tip.Length > 127) tip = tip.Substring(0, 127);
+            var nid = new NOTIFYICONDATA
+            {
+                cbSize = (uint)Marshal.SizeOf<NOTIFYICONDATA>(),
+                hWnd = _hwnd,
+                uID = 1,
+                uFlags = NIF_TIP,
+                szTip = tip,
+            };
+            Shell_NotifyIcon(NIM_MODIFY, ref nid);
+        }
+        catch { /* tray tooltip is best-effort */ }
+    }
+
     private static IntPtr WndProcImpl(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
     {
         if (msg == TRAY_CALLBACK)
@@ -145,13 +187,41 @@ public static class TrayService
     {
         var menu = CreatePopupMenu();
         AppendMenu(menu, MF_STRING, IDM_OPEN, "Open WinForge · 開啟 WinForge");
+
+        // 套件管理捷徑（ADDITIVE）· Package-manager shortcuts (additive). 標示可更新數量。
+        AppendMenu(menu, MF_SEPARATOR, 0, "");
+        string upLabel = _updateCount > 0
+            ? Loc.I.Pick($"Updates ({_updateCount}) · 可更新（{_updateCount}）", $"可更新（{_updateCount}） · Updates ({_updateCount})")
+            : Loc.I.Pick("Updates · 可更新", "可更新 · Updates");
+        AppendMenu(menu, MF_STRING, IDM_DISCOVER, Loc.I.Pick("Discover packages · 搜尋安裝", "搜尋安裝 · Discover packages"));
+        AppendMenu(menu, MF_STRING, IDM_UPDATES, upLabel);
+        AppendMenu(menu, MF_STRING, IDM_INSTALLED, Loc.I.Pick("Installed packages · 已安裝", "已安裝 · Installed packages"));
+        AppendMenu(menu, MF_SEPARATOR, 0, "");
+
         AppendMenu(menu, MF_STRING, IDM_QUIT, "Quit · 結束");
         GetCursorPos(out var pt);
         SetForegroundWindow(hWnd);
         int cmd = TrackPopupMenu(menu, TPM_RIGHTBUTTON | TPM_RETURNCMD, pt.x, pt.y, 0, hWnd, IntPtr.Zero);
         PostMessage(hWnd, 0, IntPtr.Zero, IntPtr.Zero);
         DestroyMenu(menu);
-        if (cmd == IDM_OPEN) _onOpen?.Invoke();
-        else if (cmd == IDM_QUIT) _onQuit?.Invoke();
+        switch (cmd)
+        {
+            case IDM_OPEN: _onOpen?.Invoke(); break;
+            case IDM_QUIT: _onQuit?.Invoke(); break;
+            case IDM_DISCOVER: NavigateToPackages(); break;
+            case IDM_UPDATES: NavigateToPackages(); break;
+            case IDM_INSTALLED: NavigateToPackages(); break;
+        }
+    }
+
+    /// <summary>顯示視窗並導覽去套件管理模組（ADDITIVE）· Show the window then navigate to the package-manager module.</summary>
+    private static void NavigateToPackages()
+    {
+        try
+        {
+            _onOpen?.Invoke();
+            Navigator.GoToModule?.Invoke("module.packages");
+        }
+        catch { /* navigation is best-effort */ }
     }
 }
