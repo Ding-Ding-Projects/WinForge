@@ -137,6 +137,12 @@ public sealed partial class MainWindow : Window
             case "warp":
                 Navigator.GoToModule?.Invoke("module.cloudflare");
                 break;
+            case "aws":
+            case "awscli":
+            case "s3":
+            case "ec2":
+                Navigator.GoToModule?.Invoke("module.aws");
+                break;
             case "archives":
             case "archive":
                 Navigator.GoToModule?.Invoke("module.archives");
@@ -429,6 +435,7 @@ public sealed partial class MainWindow : Window
         "module.git" => typeof(GitHubModule),
         "module.aiagents" => typeof(AiAgentsModule),
         "module.cloudflare" => typeof(CloudflareModule),
+        "module.aws" => typeof(AwsCliModule),
         "module.archives" => typeof(ArchivesModule),
         "module.media" => typeof(MediaModule),
         "module.regedit" => typeof(RegistryEditor),
