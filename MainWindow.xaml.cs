@@ -141,14 +141,14 @@ public sealed partial class MainWindow : Window
             case "cv":
             case "coverletter":
                 Navigator.GoToModule?.Invoke("module.resume");
+                break;
             case "vscode":
             case "code":
             case "vs":
                 Navigator.GoToModule?.Invoke("module.vscode");
+                break;
             case "aichat":
             case "chat":
-            case "llm":
-            case "ollama":
                 Navigator.GoToModule?.Invoke("module.aichat");
                 break;
             case "cloudflare":
@@ -162,38 +162,45 @@ public sealed partial class MainWindow : Window
             case "webview":
             case "signin":
                 Navigator.GoToModule?.Invoke("module.weblogin");
+                break;
             case "packer":
             case "image":
             case "imagebuilder":
                 Navigator.GoToModule?.Invoke("module.packer");
+                break;
             case "webcloner":
             case "clone":
             case "website":
             case "sitecloner":
                 Navigator.GoToModule?.Invoke("module.webcloner");
+                break;
             case "pgadmin":
             case "postgres":
             case "postgresql":
             case "psql":
                 Navigator.GoToModule?.Invoke("module.pgadmin");
+                break;
             case "filezilla":
             case "ftp":
             case "sftp":
             case "ftps":
                 Navigator.GoToModule?.Invoke("module.filezilla");
+                break;
             case "ollama":
             case "llm":
             case "llama":
                 Navigator.GoToModule?.Invoke("module.ollama");
+                break;
             case "bitwarden":
             case "bw":
-            case "vault":
             case "passwords":
                 Navigator.GoToModule?.Invoke("module.bitwarden");
+                break;
             case "quicktype":
             case "jsontotype":
             case "codegen":
                 Navigator.GoToModule?.Invoke("module.quicktype");
+                break;
             case "aws":
             case "awscli":
             case "s3":
@@ -210,19 +217,23 @@ public sealed partial class MainWindow : Window
             case "audioeditor":
             case "audacity":
                 Navigator.GoToModule?.Invoke("module.audioeditor");
+                break;
             case "mediaplayer":
             case "player":
             case "vlc":
                 Navigator.GoToModule?.Invoke("module.mediaplayer");
+                break;
             case "ytdlp":
             case "youtube":
             case "download":
             case "downloader":
                 Navigator.GoToModule?.Invoke("module.ytdlp");
+                break;
             case "blender":
             case "render":
             case "3d":
                 Navigator.GoToModule?.Invoke("module.blender");
+                break;
             case "libreoffice":
             case "soffice":
             case "convert":
@@ -293,13 +304,14 @@ public sealed partial class MainWindow : Window
             case "zones":
             case "powertoys-zones":
                 Navigator.GoToModule?.Invoke("module.fancyzones");
+                break;
             case "komorebi":
             case "tiling":
             case "komorebic":
                 Navigator.GoToModule?.Invoke("module.komorebi");
+                break;
             case "glazewm":
             case "glaze":
-            case "tiling":
                 Navigator.GoToModule?.Invoke("module.glazewm");
                 break;
             case "keyboard":
@@ -354,6 +366,7 @@ public sealed partial class MainWindow : Window
             case "tshark":
             case "dumpcap":
                 Navigator.GoToModule?.Invoke("module.wireshark");
+                break;
             case "nmap":
             case "portscan":
             case "scan":
@@ -461,6 +474,7 @@ public sealed partial class MainWindow : Window
             case "vbox":
             case "vboxmanage":
                 Navigator.GoToModule?.Invoke("module.virtualbox");
+                break;
             case "terminal":
             case "wt":
             case "windowsterminal":
@@ -491,6 +505,7 @@ public sealed partial class MainWindow : Window
             case "worldeditor":
             case "mapeditor":
                 Navigator.GoToModule?.Invoke("module.amulet");
+                break;
             case "minecraftserver":
             case "mcserver":
             case "paper":
@@ -521,26 +536,31 @@ public sealed partial class MainWindow : Window
             case "vaultvolumes":
             case "encrypt":
                 Navigator.GoToModule?.Invoke("module.vault-volumes");
+                break;
             case "qbittorrent":
             case "qbit":
             case "torrent":
             case "torrents":
                 Navigator.GoToModule?.Invoke("module.qbittorrent");
+                break;
             case "worldmonitor":
             case "world":
             case "wm":
             case "news":
             case "geopolitics":
                 Navigator.GoToModule?.Invoke("module.worldmonitor");
+                break;
             case "taskbar":
             case "taskbartweaker":
             case "taskbar-tweaker":
             case "module.taskbar-tweaker":
                 Navigator.GoToModule?.Invoke("module.taskbar-tweaker");
+                break;
             case "rainmeter":
             case "skins":
             case "widgets":
                 Navigator.GoToModule?.Invoke("module.rainmeter");
+                break;
             case "rustdesk":
             case "remote":
             case "remotedesktop":

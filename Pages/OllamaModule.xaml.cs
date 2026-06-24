@@ -26,7 +26,7 @@ namespace WinForge.Pages;
 public sealed partial class OllamaModule : Page
 {
     private readonly OllamaService _svc = new();
-    private readonly ObservableCollection<OllamaModel> _models = new();
+    private readonly ObservableCollection<WinForge.Services.OllamaModel> _models = new();
     private readonly ObservableCollection<OllamaRunningModel> _running = new();
     private readonly List<OllamaChatMessage> _history = new();
     private List<TweakDefinition>? _ops;

@@ -76,8 +76,6 @@
     <!-- SSH.NET (Renci.SshNet, MIT): pure-managed SSH/SFTP engine for the SSH Toolset module —
          SshClient (exec + ShellStream), SftpClient, key handling, all in-process. -->
     <PackageReference Include="SSH.NET" Version="2025.1.0" />
-    <!-- DPAPI ProtectedData: encrypt SSH profile secrets (passwords / key passphrases) at rest. -->
-    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="9.0.0" />
     <!-- 內嵌 VLC 引擎（libVLC）· Embedded VLC engine (libVLC) for the in-app Media Player module.
          LibVLCSharp = managed bindings; LibVLCSharp.WinUI = SwapChainPanel-backed VideoView;
          VideoLAN.LibVLC.Windows = bundled native libvlc.dll + plugins (LGPL build, no separate install). -->
@@ -87,10 +85,6 @@
     <!-- MailKit / MimeKit (MIT): IMAP/SMTP protocols + MIME parsing for the native Mail module. -->
     <PackageReference Include="MailKit" Version="4.17.0" />
     <PackageReference Include="MimeKit" Version="4.17.0" />
-    <!-- WebView2 (Edge/Chromium) for sandboxed HTML-email rendering and the OAuth2 sign-in flow.
-         Version pinned >= the one WindowsAppSDK pulls in transitively to avoid a NU1605 downgrade. -->
-    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3719.77" />
-    <!-- DPAPI for encrypting mail credentials at rest (ProtectedData isn't in the default BCL on .NET). -->
     <!-- Npgsql：純 C# PostgreSQL 驅動程式，畀 Postgres 工具模組原生連線／查詢用（無外部二進位）。
          Npgsql: the managed C# PostgreSQL driver powering the native Postgres Tool module
          (connect / browse / query) — no external binary required. -->
@@ -99,10 +93,6 @@
          DPAPI (ProtectedData) for encrypting saved Postgres connection passwords at rest. -->
     <!-- FTP／FTPS 客戶端（MIT）· FluentFTP: managed FTP/FTPS client for the FTP/SFTP module. -->
     <PackageReference Include="FluentFTP" Version="52.1.0" />
-    <!-- SFTP／SSH 客戶端（MIT）· SSH.NET: managed SFTP/SSH client for the FTP/SFTP module. -->
-    <PackageReference Include="SSH.NET" Version="2024.2.0" />
-    <!-- DPAPI 秘密加密 · ProtectedData (DPAPI) to encrypt saved-site passwords at rest. -->
-    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="9.0.0" />
   </ItemGroup>
 
   <!--

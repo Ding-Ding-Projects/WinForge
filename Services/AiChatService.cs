@@ -205,9 +205,9 @@ public sealed class AiChatService
     }
 
     /// <summary>列出本機 Ollama 模型（GET /api/tags）· List installed Ollama models.</summary>
-    public async Task<List<OllamaModel>> ListOllamaModelsAsync(string baseUrl, CancellationToken ct = default)
+    public async Task<List<OllamaModelInfo>> ListOllamaModelsAsync(string baseUrl, CancellationToken ct = default)
     {
-        var result = new List<OllamaModel>();
+        var result = new List<OllamaModelInfo>();
         try
         {
             using var r = await Http.GetAsync(Norm(baseUrl) + "/api/tags", ct);
@@ -217,7 +217,7 @@ public sealed class AiChatService
             {
                 foreach (var m in models.EnumerateArray())
                 {
-                    var om = new OllamaModel
+                    var om = new OllamaModelInfo
                     {
                         Name = m.TryGetProperty("name", out var n) ? n.GetString() ?? "" : "",
                         Size = m.TryGetProperty("size", out var s) && s.TryGetInt64(out var sv) ? sv : 0,

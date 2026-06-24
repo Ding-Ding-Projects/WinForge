@@ -84,7 +84,7 @@ public sealed class ChatConversation
 }
 
 /// <summary>一個本機 Ollama 模型 · One locally-installed Ollama model row.</summary>
-public sealed class OllamaModel
+public sealed class OllamaModelInfo
 {
     public string Name { get; set; } = "";
     public long Size { get; set; }
