@@ -180,6 +180,11 @@ public sealed partial class MainWindow : Window
             case "llm":
             case "llama":
                 Navigator.GoToModule?.Invoke("module.ollama");
+            case "bitwarden":
+            case "bw":
+            case "vault":
+            case "passwords":
+                Navigator.GoToModule?.Invoke("module.bitwarden");
                 break;
             case "archives":
             case "archive":
@@ -586,6 +591,7 @@ public sealed partial class MainWindow : Window
         "module.rainmeter" => typeof(RainmeterModule),
         "module.pgadmin" => typeof(PgAdminModule),
         "module.filezilla" => typeof(FileZillaModule),
+        "module.bitwarden" => typeof(BitwardenModule),
         "module.archives" => typeof(ArchivesModule),
         "module.media" => typeof(MediaModule),
         "module.audioeditor" => typeof(AudioEditorModule),

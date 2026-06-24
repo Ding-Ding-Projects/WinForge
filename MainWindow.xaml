@@ -159,6 +159,7 @@
                         <NavigationViewItem Content="Website Cloner · 網站複製器" Tag="module.webcloner"><NavigationViewItem.Icon><FontIcon Glyph="&#xE774;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Postgres Tool · Postgres 工具 / pgAdmin" Tag="module.pgadmin"><NavigationViewItem.Icon><FontIcon Glyph="&#xE94D;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="FTP / SFTP · FTP／SFTP 檔案傳輸" Tag="module.filezilla"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8B7;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Bitwarden Vault · Bitwarden 密碼庫" Tag="module.bitwarden"><NavigationViewItem.Icon><FontIcon Glyph="&#xE72E;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Config &amp; Backup · 設定與備份" Tag="module.configbackup"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8F7;" /></NavigationViewItem.Icon></NavigationViewItem>
                     </NavigationViewItem.MenuItems>
                 </NavigationViewItem>
