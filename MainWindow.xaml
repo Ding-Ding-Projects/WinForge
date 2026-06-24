@@ -121,6 +121,7 @@
                         <NavigationViewItem Content="Nilesoft Shell · Nilesoft 右鍵選單" Tag="module.nilesoftshell"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7BA;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Window Manager · 視窗管理" Tag="module.windows"><NavigationViewItem.Icon><FontIcon Glyph="&#xE737;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="AltSnap · Alt 拖曳視窗" Tag="module.altsnap"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7C4;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="FancyZones · 視窗分區" Tag="module.fancyzones"><NavigationViewItem.Icon><FontIcon Glyph="&#xE80A;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Font Manager · 字型管理" Tag="module.fonts"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8D2;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Awake · 保持喚醒" Tag="module.awake"><NavigationViewItem.Icon><FontIcon Glyph="&#xE708;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="PowerToys Extras · PowerToys 額外工具" Tag="module.powertoys"><NavigationViewItem.Icon><FontIcon Glyph="&#xE945;" /></NavigationViewItem.Icon></NavigationViewItem>
