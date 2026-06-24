@@ -1,0 +1,302 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.MinecraftServerModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid Padding="24,16,24,16" RowSpacing="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="12">
+            <FontIcon FontSize="22" Glyph="&#xE7FC;" VerticalAlignment="Center" />
+            <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
+        </StackPanel>
+        <TextBlock x:Name="HeaderBlurb" Grid.Row="1" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+        <Pivot Grid.Row="2" x:Name="Pivot" Margin="0,4,0,0">
+
+            <!-- ════════════ Server (engine / Paper / Spigot / EULA) ════════════ -->
+            <PivotItem x:Name="ServerTab">
+                <ScrollViewer>
+                    <StackPanel Spacing="12" Padding="0,4,8,4">
+
+                        <InfoBar x:Name="JavaBar" IsClosable="False" IsOpen="False" Severity="Warning" />
+
+                        <!-- Server folder -->
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                            <StackPanel Spacing="10">
+                                <TextBlock x:Name="FolderLbl" FontWeight="SemiBold" />
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBox x:Name="FolderBox" Width="460" IsReadOnly="True" />
+                                    <Button x:Name="PickFolderBtn" Click="PickFolder_Click" />
+                                    <Button x:Name="OpenFolderBtn" Click="OpenFolder_Click" />
+                                </StackPanel>
+                                <TextBlock x:Name="EngineStatus" FontSize="12" Foreground="{ThemeResource TextFillColorTertiaryBrush}" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Paper -->
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                            <StackPanel Spacing="10">
+                                <TextBlock x:Name="PaperLbl" FontWeight="SemiBold" />
+                                <TextBlock x:Name="PaperBlurb" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <ComboBox x:Name="PaperVersionBox" Width="200" PlaceholderText="—" />
+                                    <Button x:Name="PaperRefreshBtn" Click="PaperRefresh_Click" />
+                                    <Button x:Name="PaperDownloadBtn" Click="PaperDownload_Click" Style="{StaticResource AccentButtonStyle}" />
+                                    <ProgressRing x:Name="PaperRing" IsActive="False" Width="20" Height="20" VerticalAlignment="Center" />
+                                </StackPanel>
+                                <ProgressBar x:Name="PaperProgress" Minimum="0" Maximum="100" Value="0" Visibility="Collapsed" />
+                                <TextBlock x:Name="PaperProgressText" FontSize="12" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Spigot (BuildTools) -->
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                            <StackPanel Spacing="10">
+                                <TextBlock x:Name="SpigotLbl" FontWeight="SemiBold" />
+                                <TextBlock x:Name="SpigotBlurb" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBox x:Name="SpigotVersionBox" Width="160" Text="latest" />
+                                    <Button x:Name="BuildToolsBtn" Click="DownloadBuildTools_Click" />
+                                    <Button x:Name="SpigotBuildBtn" Click="SpigotBuild_Click" />
+                                    <Button x:Name="SpigotCancelBtn" Click="SpigotCancel_Click" IsEnabled="False" />
+                                    <ProgressRing x:Name="SpigotRing" IsActive="False" Width="20" Height="20" VerticalAlignment="Center" />
+                                </StackPanel>
+                                <TextBox x:Name="SpigotLog" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
+                                         FontFamily="Consolas" Height="130" IsSpellCheckEnabled="False"
+                                         ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Auto" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- EULA -->
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                            <StackPanel Spacing="10">
+                                <TextBlock x:Name="EulaLbl" FontWeight="SemiBold" />
+                                <TextBlock x:Name="EulaBlurb" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                                <ToggleSwitch x:Name="EulaToggle" Toggled="Eula_Toggled" />
+                            </StackPanel>
+                        </Border>
+
+                        <InfoBar x:Name="ServerResultBar" IsClosable="True" IsOpen="False" />
+                    </StackPanel>
+                </ScrollViewer>
+            </PivotItem>
+
+            <!-- ════════════ Properties ════════════ -->
+            <PivotItem x:Name="PropsTab">
+                <ScrollViewer>
+                    <StackPanel Spacing="12" Padding="0,4,8,4">
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                            <StackPanel Spacing="10">
+                                <TextBlock x:Name="PropsLbl" FontWeight="SemiBold" />
+                                <Grid ColumnSpacing="12" RowSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <TextBlock x:Name="PortLbl" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" />
+                                    <NumberBox x:Name="PortBox" Grid.Row="0" Grid.Column="1" Value="25565" Minimum="1" Maximum="65535" SpinButtonPlacementMode="Inline" HorizontalAlignment="Left" Width="200" />
+                                    <TextBlock x:Name="MotdLbl" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" />
+                                    <TextBox x:Name="MotdBox" Grid.Row="1" Grid.Column="1" />
+                                    <TextBlock x:Name="GamemodeLbl" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" />
+                                    <ComboBox x:Name="GamemodeBox" Grid.Row="2" Grid.Column="1" Width="200" HorizontalAlignment="Left">
+                                        <ComboBoxItem Content="survival" />
+                                        <ComboBoxItem Content="creative" />
+                                        <ComboBoxItem Content="adventure" />
+                                        <ComboBoxItem Content="spectator" />
+                                    </ComboBox>
+                                    <TextBlock x:Name="DifficultyLbl" Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" />
+                                    <ComboBox x:Name="DifficultyBox" Grid.Row="3" Grid.Column="1" Width="200" HorizontalAlignment="Left">
+                                        <ComboBoxItem Content="peaceful" />
+                                        <ComboBoxItem Content="easy" />
+                                        <ComboBoxItem Content="normal" />
+                                        <ComboBoxItem Content="hard" />
+                                    </ComboBox>
+                                    <TextBlock x:Name="MaxLbl" Grid.Row="4" Grid.Column="0" VerticalAlignment="Center" />
+                                    <NumberBox x:Name="MaxBox" Grid.Row="4" Grid.Column="1" Value="20" Minimum="1" Maximum="1000" SpinButtonPlacementMode="Inline" HorizontalAlignment="Left" Width="200" />
+                                    <TextBlock x:Name="OnlineLbl" Grid.Row="5" Grid.Column="0" VerticalAlignment="Center" />
+                                    <ToggleSwitch x:Name="OnlineToggle" Grid.Row="5" Grid.Column="1" IsOn="True" />
+                                    <TextBlock x:Name="SeedLbl" Grid.Row="6" Grid.Column="0" VerticalAlignment="Center" />
+                                    <TextBox x:Name="SeedBox" Grid.Row="6" Grid.Column="1" />
+                                </Grid>
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Button x:Name="PropsReloadBtn" Click="PropsReload_Click" />
+                                    <Button x:Name="PropsSaveBtn" Click="PropsSave_Click" Style="{StaticResource AccentButtonStyle}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Memory + start script -->
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                            <StackPanel Spacing="10">
+                                <TextBlock x:Name="MemLbl" FontWeight="SemiBold" />
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <TextBlock x:Name="XmsLbl" VerticalAlignment="Center" />
+                                    <NumberBox x:Name="XmsBox" Value="1024" Minimum="256" Maximum="65536" SmallChange="256" SpinButtonPlacementMode="Inline" Width="180" />
+                                    <TextBlock x:Name="XmxLbl" VerticalAlignment="Center" />
+                                    <NumberBox x:Name="XmxBox" Value="2048" Minimum="512" Maximum="65536" SmallChange="256" SpinButtonPlacementMode="Inline" Width="180" />
+                                </StackPanel>
+                                <CheckBox x:Name="AikarChk" />
+                                <Button x:Name="StartScriptBtn" Click="StartScript_Click" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Raw editor -->
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                            <StackPanel Spacing="10">
+                                <TextBlock x:Name="RawLbl" FontWeight="SemiBold" />
+                                <TextBox x:Name="RawBox" AcceptsReturn="True" TextWrapping="NoWrap" FontFamily="Consolas"
+                                         Height="180" IsSpellCheckEnabled="False"
+                                         ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Auto" />
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Button x:Name="RawReloadBtn" Click="RawReload_Click" />
+                                    <Button x:Name="RawSaveBtn" Click="RawSave_Click" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <InfoBar x:Name="PropsResultBar" IsClosable="True" IsOpen="False" />
+                    </StackPanel>
+                </ScrollViewer>
+            </PivotItem>
+
+            <!-- ════════════ Console ════════════ -->
+            <PivotItem x:Name="ConsoleTab">
+                <Grid RowSpacing="10" Padding="0,4,8,4">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="StartBtn" Click="Start_Click" Style="{StaticResource AccentButtonStyle}" />
+                        <Button x:Name="StopBtn" Click="Stop_Click" IsEnabled="False" />
+                        <Button x:Name="KillBtn" Click="Kill_Click" IsEnabled="False" />
+                        <ProgressRing x:Name="RunRing" IsActive="False" Width="20" Height="20" VerticalAlignment="Center" />
+                        <TextBlock x:Name="RunState" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                    </StackPanel>
+
+                    <TextBox x:Name="ConsoleLog" Grid.Row="1" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
+                             FontFamily="Consolas" IsSpellCheckEnabled="False" MinHeight="240"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Auto" />
+
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8">
+                        <TextBox x:Name="CmdBox" Width="520" PlaceholderText="say hello / op &lt;name&gt; / stop" KeyDown="Cmd_KeyDown" />
+                        <Button x:Name="SendBtn" Click="Send_Click" />
+                    </StackPanel>
+                    <TextBlock x:Name="ConsoleHint" Grid.Row="3" FontSize="12" Foreground="{ThemeResource TextFillColorTertiaryBrush}" TextWrapping="Wrap" />
+                </Grid>
+            </PivotItem>
+
+            <!-- ════════════ Plugins ════════════ -->
+            <PivotItem x:Name="PluginsTab">
+                <ScrollViewer>
+                    <StackPanel Spacing="12" Padding="0,4,8,4">
+
+                        <InfoBar x:Name="PluginWarnBar" IsClosable="False" IsOpen="True" Severity="Warning" />
+
+                        <!-- Presets -->
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                            <StackPanel Spacing="10">
+                                <TextBlock x:Name="PresetLbl" FontWeight="SemiBold" />
+                                <ItemsControl x:Name="PresetList">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,0,0,8" ColumnSpacing="12">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel Grid.Column="0">
+                                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                                                    <TextBlock Text="{Binding Subtitle}" FontSize="12" Foreground="{ThemeResource TextFillColorTertiaryBrush}" TextWrapping="Wrap" />
+                                                </StackPanel>
+                                                <Button Grid.Column="1" Content="{Binding BuildLabel}" Tag="{Binding Index}" Click="PresetBuild_Click" VerticalAlignment="Center" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Custom git plugin -->
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                            <StackPanel Spacing="10">
+                                <TextBlock x:Name="CustomLbl" FontWeight="SemiBold" />
+                                <Grid ColumnSpacing="8" RowSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <TextBlock x:Name="CustomNameLbl" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" />
+                                    <TextBox x:Name="CustomNameBox" Grid.Row="0" Grid.Column="1" />
+                                    <TextBlock x:Name="CustomUrlLbl" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" />
+                                    <TextBox x:Name="CustomUrlBox" Grid.Row="1" Grid.Column="1" PlaceholderText="https://github.com/owner/repo.git" />
+                                    <TextBlock x:Name="CustomSysLbl" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" />
+                                    <ComboBox x:Name="CustomSysBox" Grid.Row="2" Grid.Column="1" Width="220" HorizontalAlignment="Left" SelectedIndex="0">
+                                        <ComboBoxItem Content="Auto-detect" />
+                                        <ComboBoxItem Content="Maven" />
+                                        <ComboBoxItem Content="Gradle" />
+                                    </ComboBox>
+                                </Grid>
+                                <Button x:Name="CustomBuildBtn" Click="CustomBuild_Click" Style="{StaticResource AccentButtonStyle}" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Installed plugins -->
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                            <StackPanel Spacing="10">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBlock x:Name="InstalledLbl" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                    <Button x:Name="InstalledRefreshBtn" Click="InstalledRefresh_Click" />
+                                    <Button x:Name="InstalledOpenBtn" Click="InstalledOpen_Click" />
+                                </StackPanel>
+                                <TextBlock x:Name="InstalledText" FontSize="12" Foreground="{ThemeResource TextFillColorTertiaryBrush}" TextWrapping="Wrap" FontFamily="Consolas" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Build log -->
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                            <StackPanel Spacing="8">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBlock x:Name="PluginLogLbl" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                    <Button x:Name="PluginCancelBtn" Click="PluginCancel_Click" IsEnabled="False" />
+                                    <ProgressRing x:Name="PluginRing" IsActive="False" Width="20" Height="20" VerticalAlignment="Center" />
+                                </StackPanel>
+                                <TextBox x:Name="PluginLog" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
+                                         FontFamily="Consolas" Height="160" IsSpellCheckEnabled="False"
+                                         ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Auto" />
+                            </StackPanel>
+                        </Border>
+
+                        <InfoBar x:Name="PluginResultBar" IsClosable="True" IsOpen="False" />
+                    </StackPanel>
+                </ScrollViewer>
+            </PivotItem>
+        </Pivot>
+    </Grid>
+</Page>

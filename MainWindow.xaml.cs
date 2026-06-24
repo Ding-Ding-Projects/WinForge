@@ -390,6 +390,11 @@ public sealed partial class MainWindow : Window
             case "worldeditor":
             case "mapeditor":
                 Navigator.GoToModule?.Invoke("module.amulet");
+            case "minecraftserver":
+            case "mcserver":
+            case "paper":
+            case "spigot":
+                Navigator.GoToModule?.Invoke("module.minecraftserver");
                 break;
             case "voice":
             case "tts":
@@ -565,6 +570,7 @@ public sealed partial class MainWindow : Window
         "module.imaging" => typeof(ImagingGameModule),
         "module.amulet" => typeof(AmuletModule),
         "module.viaproxy" => typeof(ViaProxyModule),
+        "module.minecraftserver" => typeof(MinecraftServerModule),
         "module.voice" => typeof(VoiceModule),
         "module.vault-volumes" => typeof(VaultVolumesModule),
         "module.worldmonitor" => typeof(WorldMonitorModule),
