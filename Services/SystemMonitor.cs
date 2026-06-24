@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
+using LHM = LibreHardwareMonitor.Hardware;
 
 namespace WinForge.Services;
 
@@ -38,9 +39,10 @@ public static class SystemMonitor
         _pIdle = idle; _pKernel = kernel; _pUser = user;
 
         long total = dKernel + dUser; // kernel already includes idle
-        if (total <= 0) return 0;
+        if (total <= 0) return _lastCpu;
         double busy = total - dIdle;
-        return Math.Clamp(busy * 100.0 / total, 0, 100);
+        _lastCpu = Math.Clamp(busy * 100.0 / total, 0, 100);
+        return _lastCpu;
     }
 
     // ---- Memory ----
@@ -61,6 +63,23 @@ public static class SystemMonitor
         GlobalMemoryStatusEx(ref m);
         long total = (long)m.ullTotalPhys, used = (long)(m.ullTotalPhys - m.ullAvailPhys);
         return (m.dwMemoryLoad, used, total);
+    }
+
+    /// <summary>頁面檔（虛擬記憶體 / swap）用量 · Page-file (commit / swap) usage. The commit charge
+    /// beyond physical RAM is the page-file portion; total minus phys gives the configured swap size.</summary>
+    public static (double percent, long usedBytes, long totalBytes) Swap()
+    {
+        var m = new MemStatus { dwLength = (uint)Marshal.SizeOf<MemStatus>() };
+        GlobalMemoryStatusEx(ref m);
+        // ullTotalPageFile / ullAvailPageFile are commit limits; subtract physical RAM to isolate the
+        // page-file (swap) backing store, mirroring how btop reports "swp".
+        long totalPf = (long)m.ullTotalPageFile, availPf = (long)m.ullAvailPageFile;
+        long phys = (long)m.ullTotalPhys, availPhys = (long)m.ullAvailPhys;
+        long swapTotal = Math.Max(0, totalPf - phys);
+        long swapAvail = Math.Max(0, availPf - availPhys);
+        long swapUsed = Math.Max(0, swapTotal - swapAvail);
+        double pct = swapTotal > 0 ? Math.Clamp(swapUsed * 100.0 / swapTotal, 0, 100) : 0;
+        return (pct, swapUsed, swapTotal);
     }
 
     // ---- Network rates ----
@@ -200,6 +219,100 @@ public static class SystemMonitor
         }
         catch { return false; }
         finally { CloseHandle(h); }
+    }
+
+    // ---- Per-core load + CPU temperature via LibreHardwareMonitor ----
+    // Per-core %CPU is not exposed by GetSystemTimes, so we lean on LHM's "CPU Core #n" Load sensors.
+    // When no driver/elevation is available LHM still reports total + per-thread load on most CPUs;
+    // if even that is missing we degrade to spreading the overall CPU% evenly across cores.
+    private static LHM.Computer? _lhm;
+    private static bool _lhmTried;
+    private static readonly object _lhmGate = new();
+
+    private static LHM.Computer? Lhm()
+    {
+        lock (_lhmGate)
+        {
+            if (_lhmTried) return _lhm;
+            _lhmTried = true;
+            try
+            {
+                var c = new LHM.Computer { IsCpuEnabled = true };
+                c.Open();
+                _lhm = c;
+            }
+            catch { _lhm = null; }
+            return _lhm;
+        }
+    }
+
+    /// <summary>每個邏輯核心嘅負載百分比 · Per-logical-core load (0–100). Falls back to an even spread of the
+    /// overall CPU% when LHM core sensors are unavailable (no admin driver).</summary>
+    public static double[] PerCoreLoad()
+    {
+        int n = CoreCount;
+        var result = new double[n];
+        var c = Lhm();
+        if (c is not null)
+        {
+            lock (_lhmGate)
+            {
+                try
+                {
+                    foreach (var hw in c.Hardware)
+                    {
+                        if (hw.HardwareType != LHM.HardwareType.Cpu) continue;
+                        hw.Update();
+                        int idx = 0;
+                        foreach (var s in hw.Sensors)
+                        {
+                            if (s.SensorType != LHM.SensorType.Load) continue;
+                            // "CPU Total" carries no '#'; per-core sensors are named "CPU Core #1" etc.
+                            if (s.Name is null || s.Name.IndexOf('#') < 0) continue;
+                            if (s.Value is null) continue;
+                            if (idx < n) result[idx++] = Math.Clamp(s.Value.Value, 0, 100);
+                        }
+                        if (idx > 0) return result;
+                    }
+                }
+                catch { }
+            }
+        }
+
+        // Fallback: even spread of the most recent overall CPU reading.
+        double overall = _lastCpu;
+        for (int i = 0; i < n; i++) result[i] = overall;
+        return result;
+    }
+
+    private static double _lastCpu;
+
+    /// <summary>CPU 套件溫度（°C），冇感測器時回傳 null · CPU package temperature in °C, or null when unavailable.</summary>
+    public static double? CpuTemperature()
+    {
+        var c = Lhm();
+        if (c is null) return null;
+        lock (_lhmGate)
+        {
+            try
+            {
+                double? pkg = null, anyCore = null;
+                foreach (var hw in c.Hardware)
+                {
+                    if (hw.HardwareType != LHM.HardwareType.Cpu) continue;
+                    hw.Update();
+                    foreach (var s in hw.Sensors)
+                    {
+                        if (s.SensorType != LHM.SensorType.Temperature || s.Value is null or <= 0) continue;
+                        if (s.Name is not null && s.Name.Contains("Package", StringComparison.OrdinalIgnoreCase))
+                            pkg = s.Value.Value;
+                        anyCore ??= s.Value.Value;
+                    }
+                }
+                return pkg ?? anyCore;
+            }
+            catch { return null; }
+        }
     }
 
     public static string Bytes(double b)
