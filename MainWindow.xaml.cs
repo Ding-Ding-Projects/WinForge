@@ -279,6 +279,10 @@ public sealed partial class MainWindow : Window
             case "zones":
             case "powertoys-zones":
                 Navigator.GoToModule?.Invoke("module.fancyzones");
+            case "komorebi":
+            case "tiling":
+            case "komorebic":
+                Navigator.GoToModule?.Invoke("module.komorebi");
                 break;
             case "keyboard":
             case "remap":
@@ -640,6 +644,7 @@ public sealed partial class MainWindow : Window
         "module.windows" => typeof(WindowManagerModule),
         "module.altsnap" => typeof(AltSnapModule),
         "module.fancyzones" => typeof(FancyZonesModule),
+        "module.komorebi" => typeof(KomorebiModule),
         "module.keyboard" => typeof(KeyboardModule),
         "module.hotkeys" => typeof(HotkeyMacroModule),
         "module.hosts" => typeof(HostsEditorModule),
