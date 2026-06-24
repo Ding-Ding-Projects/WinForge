@@ -566,6 +566,11 @@ public sealed partial class MainWindow : Window
             case "remotedesktop":
                 Navigator.GoToModule?.Invoke("module.rustdesk");
                 break;
+            case "screenruler":
+            case "ruler":
+            case "measure":
+                Navigator.GoToModule?.Invoke("module.screenruler");
+                break;
             case null:
             case "":
             case "dashboard":
@@ -707,6 +712,7 @@ public sealed partial class MainWindow : Window
         "module.nilesoftshell" => typeof(NilesoftShellModule),
         "module.awake" => typeof(AwakeModule),
         "module.colorpicker" => typeof(ColorPickerModule),
+        "module.screenruler" => typeof(ScreenRulerModule),
         "module.pixeleditor" => typeof(PixelEditorModule),
         "module.envvars" => typeof(EnvVarsModule),
         "module.clipboard" => typeof(ClipboardModule),
