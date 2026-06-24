@@ -334,6 +334,12 @@ public sealed partial class MainWindow : Window
             case "minecraft":
                 Navigator.GoToModule?.Invoke("module.imaging");
                 break;
+            case "minecraftserver":
+            case "mcserver":
+            case "paper":
+            case "spigot":
+                Navigator.GoToModule?.Invoke("module.minecraftserver");
+                break;
             case "voice":
             case "tts":
             case "speak":
@@ -477,6 +483,7 @@ public sealed partial class MainWindow : Window
         "module.timeunit" => typeof(TimeUnitModule),
         "module.settingshub" => typeof(SettingsHubModule),
         "module.imaging" => typeof(ImagingGameModule),
+        "module.minecraftserver" => typeof(MinecraftServerModule),
         "module.voice" => typeof(VoiceModule),
         _ => typeof(DashboardPage),
     };
