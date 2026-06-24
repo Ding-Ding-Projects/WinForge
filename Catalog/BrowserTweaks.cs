@@ -228,14 +228,10 @@ public static class BrowserTweaks
             RegRoot.HKLM, "SOFTWARE\\Policies\\Google\\Chrome", "BookmarkBarEnabled", 1, null,
             RegistryValueKind.DWord, requiresAdmin: true, keywords: "chrome,bookmark,bar,書籤,政策"),
         
-        Tweak.RegChoice("br.policies.chrome-incognito", "Chrome: incognito availability", "Chrome：無痕模式可用性",
+        IncognitoPolicy("br.policies.chrome-incognito", "Chrome: incognito availability", "Chrome：無痕模式可用性",
             "Control whether Chrome incognito mode is available (0 enabled, 1 disabled, 2 forced).", "控制 Chrome 無痕模式可唔可以用（0 啟用、1 停用、2 強制）。",
-            RegRoot.HKLM, "SOFTWARE\\Policies\\Google\\Chrome", "IncognitoModeAvailability", RegistryValueKind.DWord,
-            new (string en, string zh, object value)[] {
-                ("Enabled", "啟用", 0),
-                ("Disabled", "停用", 1),
-                ("Forced", "強制", 2)
-            }, requiresAdmin: true, keywords: "chrome,incognito,無痕,政策"),
+            "SOFTWARE\\Policies\\Google\\Chrome", "IncognitoModeAvailability",
+            keywords: "chrome,incognito,無痕,政策"),
         
         Tweak.RegToggle("br.policies.chrome-password-manager", "Chrome: password manager", "Chrome：密碼管理員",
             "Enable (1) or disable (0) the Chrome built-in password manager via policy.", "用政策啟用（1）或停用（0）Chrome 內置密碼管理員。",
@@ -272,14 +268,10 @@ public static class BrowserTweaks
             RegRoot.HKLM, "SOFTWARE\\Policies\\Microsoft\\Edge", "HomepageLocation", "https://www.bing.com", null,
             RegistryValueKind.String, requiresAdmin: true, keywords: "edge,homepage,policy,主頁,政策"),
         
-        Tweak.RegChoice("br.policies.edge-inprivate", "Edge: InPrivate availability", "Edge：InPrivate 可用性",
+        IncognitoPolicy("br.policies.edge-inprivate", "Edge: InPrivate availability", "Edge：InPrivate 可用性",
             "Control whether Edge InPrivate mode is available (0 enabled, 1 disabled, 2 forced).", "控制 Edge InPrivate 模式可唔可以用（0 啟用、1 停用、2 強制）。",
-            RegRoot.HKLM, "SOFTWARE\\Policies\\Microsoft\\Edge", "InPrivateModeAvailability", RegistryValueKind.DWord,
-            new (string en, string zh, object value)[] {
-                ("Enabled", "啟用", 0),
-                ("Disabled", "停用", 1),
-                ("Forced", "強制", 2)
-            }, requiresAdmin: true, keywords: "edge,inprivate,private,私密,政策"),
+            "SOFTWARE\\Policies\\Microsoft\\Edge", "InPrivateModeAvailability",
+            keywords: "edge,inprivate,private,私密,政策"),
         
         Tweak.RegToggle("br.policies.edge-background-mode", "Edge: background mode", "Edge：背景執行模式",
             "Disable (0) Edge continuing to run in the background after windows close, or enable (1).", "用政策停用（0）Edge 喺所有視窗關咗之後仲繼續喺背景跑，或者啟用（1）。",
@@ -518,14 +510,101 @@ public static class BrowserTweaks
             RegRoot.HKCU, @"Software\Policies\Microsoft\Edge", "EfficiencyMode", 1, null,
             keywords: "edge,efficiency,performance,效率模式,省電"),
         
-        Tweak.RegChoice("br.webtools.edge-startup-behavior", "Edge startup behavior policy", "Edge 啟動行為政策",
+        EdgeStartupBehavior("br.webtools.edge-startup-behavior", "Edge startup behavior policy", "Edge 啟動行為政策",
             "Choose the Edge RestoreOnStartup policy: new tab page, restore last session, or open set pages.", "揀 Edge 嘅 RestoreOnStartup 政策：開新分頁頁面、還原上次工作階段，或者開指定頁面。",
-            RegRoot.HKCU, @"Software\Policies\Microsoft\Edge", "RestoreOnStartup", RegistryValueKind.DWord,
-            new (string en, string zh, object value)[] {
-                ("Open new tab page", "開新分頁頁面", 5),
-                ("Restore last session", "還原上次工作階段", 1),
-                ("Open a set of pages", "開一組指定頁面", 4)
-            },
             keywords: "edge,startup,restore,啟動,頁面"),
     };
+
+    // ======================================================================
+    //  Local builders · 本地建構器
+    //  Presentation-only helpers: same Id / registry value / RequiresAdmin /
+    //  restart scope as the original RegChoice, rendered as a RadioGroup with a
+    //  coloured state pill. 只改顯示，行為、登錄檔值、權限同重啟範圍完全一樣。
+    // ======================================================================
+
+    /// <summary>
+    /// 無痕／InPrivate 可用性政策 · Incognito/InPrivate availability policy (0 enabled, 1 disabled, 2 forced)
+    /// under HKLM, requires admin — rendered as a RadioGroup with a coloured status pill.
+    /// </summary>
+    private static TweakDefinition IncognitoPolicy(
+        string id, string enT, string zhT, string enD, string zhD,
+        string path, string name, string keywords)
+        => new()
+        {
+            Id = id,
+            Title = new(enT, zhT),
+            Description = new(enD, zhD),
+            Kind = TweakKind.RadioGroup,
+            RequiresAdmin = true,
+            Keywords = keywords.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+            Choices = new List<TweakChoice>
+            {
+                new(new LocalizedText("Enabled", "啟用"), "0"),
+                new(new LocalizedText("Disabled", "停用"), "1"),
+                new(new LocalizedText("Forced", "強制"), "2"),
+            },
+            GetCurrentChoice = () =>
+            {
+                if (RegistryHelper.ValueEquals(RegRoot.HKLM, path, name, 0)) return "0";
+                if (RegistryHelper.ValueEquals(RegRoot.HKLM, path, name, 1)) return "1";
+                if (RegistryHelper.ValueEquals(RegRoot.HKLM, path, name, 2)) return "2";
+                return null;
+            },
+            SetChoice = val =>
+            {
+                if (int.TryParse(val, out var v))
+                    RegistryHelper.SetValue(RegRoot.HKLM, path, name, v, RegistryValueKind.DWord);
+            },
+            ColoredStatus = () => RegistryHelper.ValueEquals(RegRoot.HKLM, path, name, 1)
+                    ? ("Disabled", "停用", StatusColor.Bad)
+                : RegistryHelper.ValueEquals(RegRoot.HKLM, path, name, 2)
+                    ? ("Forced", "強制", StatusColor.Warn)
+                : RegistryHelper.ValueEquals(RegRoot.HKLM, path, name, 0)
+                    ? ("Enabled", "啟用", StatusColor.Good)
+                    : ("Not set", "未設定", StatusColor.Neutral),
+        };
+
+    /// <summary>
+    /// Edge RestoreOnStartup 政策 · Edge startup behaviour (5 new tab, 1 restore session, 4 set pages)
+    /// under HKCU, no admin — rendered as a RadioGroup with a coloured status pill.
+    /// </summary>
+    private static TweakDefinition EdgeStartupBehavior(
+        string id, string enT, string zhT, string enD, string zhD, string keywords)
+    {
+        const string path = @"Software\Policies\Microsoft\Edge";
+        const string name = "RestoreOnStartup";
+        return new()
+        {
+            Id = id,
+            Title = new(enT, zhT),
+            Description = new(enD, zhD),
+            Kind = TweakKind.RadioGroup,
+            Keywords = keywords.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+            Choices = new List<TweakChoice>
+            {
+                new(new LocalizedText("Open new tab page", "開新分頁頁面"), "5"),
+                new(new LocalizedText("Restore last session", "還原上次工作階段"), "1"),
+                new(new LocalizedText("Open a set of pages", "開一組指定頁面"), "4"),
+            },
+            GetCurrentChoice = () =>
+            {
+                if (RegistryHelper.ValueEquals(RegRoot.HKCU, path, name, 5)) return "5";
+                if (RegistryHelper.ValueEquals(RegRoot.HKCU, path, name, 1)) return "1";
+                if (RegistryHelper.ValueEquals(RegRoot.HKCU, path, name, 4)) return "4";
+                return null;
+            },
+            SetChoice = val =>
+            {
+                if (int.TryParse(val, out var v))
+                    RegistryHelper.SetValue(RegRoot.HKCU, path, name, v, RegistryValueKind.DWord);
+            },
+            ColoredStatus = () => RegistryHelper.ValueEquals(RegRoot.HKCU, path, name, 1)
+                    ? ("Restore session", "還原工作階段", StatusColor.Good)
+                : RegistryHelper.ValueEquals(RegRoot.HKCU, path, name, 4)
+                    ? ("Set pages", "指定頁面", StatusColor.Neutral)
+                : RegistryHelper.ValueEquals(RegRoot.HKCU, path, name, 5)
+                    ? ("New tab page", "新分頁頁面", StatusColor.Neutral)
+                    : ("Not set", "未設定", StatusColor.Neutral),
+        };
+    }
 }
