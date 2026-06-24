@@ -156,121 +156,119 @@ $AsrNames = @{
                 "Change", "更改", "manage-bde -changepassword D:",
                 requiresAdmin: true, keywords: "bitlocker,changepassword,password,密碼,更改,manage-bde"),
 
-        // --- veracrypt (20) ---
-        Tweak.Shell("vault.veracrypt.gui", "Launch VeraCrypt", "啟動 VeraCrypt",
-            "Open the VeraCrypt main window.", "打開 VeraCrypt 主視窗。",
-            "Open", "打開", "%ProgramFiles%\\VeraCrypt\\VeraCrypt.exe", "",
-            keywords: "veracrypt,launch,啟動,加密"),
-        
-        Tweak.Shell("vault.veracrypt.dismount-all", "Dismount all volumes", "卸載所有磁碟區",
-            "Dismount every mounted VeraCrypt volume quietly.", "靜默卸載所有已掛載嘅 VeraCrypt 磁碟區。",
-            "Dismount all", "全部卸載", "%ProgramFiles%\\VeraCrypt\\VeraCrypt.exe", "/q /d",
-            keywords: "veracrypt,dismount,卸載,unmount"),
-        
-        Tweak.Shell("vault.veracrypt.mount-favorites", "Mount favorites", "掛載最愛磁碟區",
-            "Auto-mount all favorite volumes quietly.", "靜默自動掛載所有最愛磁碟區。",
-            "Mount", "掛載", "%ProgramFiles%\\VeraCrypt\\VeraCrypt.exe", "/q /a favorites",
-            keywords: "veracrypt,favorites,最愛,mount"),
-        
-        Tweak.Shell("vault.veracrypt.auto-mount-devices", "Auto-mount devices", "自動掛載裝置",
+        // --- WinForge Vault (de-branded encrypted-volume engine; quick-actions that drive the bundled binary) ---
+        VaultShell("vault.veracrypt.gui", "Launch WinForge Vault", "啟動 WinForge 保險庫",
+            "Open the WinForge Vault main window (mount, settings and benchmark live here).", "打開 WinForge 保險庫主視窗（掛載、設定同效能測試都喺度）。",
+            "Open", "打開", mount: true, args: "",
+            keywords: "vault,launch,啟動,加密,保險庫"),
+
+        VaultShell("vault.veracrypt.dismount-all", "Dismount all volumes", "卸載所有磁碟區",
+            "Dismount every mounted vault volume quietly.", "靜默卸載所有已掛載嘅保險庫磁碟區。",
+            "Dismount all", "全部卸載", mount: true, args: "/q /d", elevated: true,
+            keywords: "vault,dismount,卸載,unmount,保險庫"),
+
+        VaultShell("vault.veracrypt.mount-favorites", "Mount favorites", "掛載最愛磁碟區",
+            "Auto-mount all favourite volumes quietly.", "靜默自動掛載所有最愛磁碟區。",
+            "Mount", "掛載", mount: true, args: "/q /a favorites", elevated: true,
+            keywords: "vault,favorites,最愛,mount,保險庫"),
+
+        VaultShell("vault.veracrypt.auto-mount-devices", "Auto-mount devices", "自動掛載裝置",
             "Scan and auto-mount all encrypted device partitions.", "掃描並自動掛載所有加密裝置分割區。",
-            "Auto-mount", "自動掛載", "%ProgramFiles%\\VeraCrypt\\VeraCrypt.exe", "/q /a devices",
-            keywords: "veracrypt,devices,裝置,mount"),
-        
-        Tweak.Shell("vault.veracrypt.mount-dialog", "Open mount dialog", "打開掛載對話框",
-            "Open VeraCrypt where you can pick a file and mount a volume.", "打開 VeraCrypt，可以揀檔案再掛載磁碟區。",
-            "Mount", "掛載", "%ProgramFiles%\\VeraCrypt\\VeraCrypt.exe", "",
-            keywords: "veracrypt,mount,掛載,dialog"),
-        
-        Tweak.Shell("vault.veracrypt.create-volume", "Create new volume", "建立新磁碟區",
+            "Auto-mount", "自動掛載", mount: true, args: "/q /a devices", elevated: true,
+            keywords: "vault,devices,裝置,mount,保險庫"),
+
+        VaultShell("vault.veracrypt.mount-dialog", "Open mount dialog", "打開掛載對話框",
+            "Open WinForge Vault where you can pick a file and mount a volume.", "打開 WinForge 保險庫，可以揀檔案再掛載磁碟區。",
+            "Mount", "掛載", mount: true, args: "",
+            keywords: "vault,mount,掛載,dialog,保險庫"),
+
+        VaultShell("vault.veracrypt.create-volume", "Create new volume", "建立新磁碟區",
             "Launch the Volume Creation Wizard.", "啟動磁碟區建立精靈。",
-            "Create", "建立", "%ProgramFiles%\\VeraCrypt\\VeraCrypt Format.exe", "",
-            keywords: "veracrypt,create,建立,volume"),
-        
-        Tweak.Shell("vault.veracrypt.volume-wizard", "Volume Creation Wizard", "磁碟區建立精靈",
-            "Open the VeraCrypt Format wizard executable directly.", "直接打開 VeraCrypt Format 精靈程式。",
-            "Open wizard", "打開精靈", "%ProgramFiles%\\VeraCrypt\\VeraCrypt Format.exe", "",
-            keywords: "veracrypt,wizard,精靈,format"),
-        
-        Tweak.Shell("vault.veracrypt.keyfile-generator", "Keyfile generator", "金鑰檔產生器",
-            "Open VeraCrypt where the Keyfile Generator is under the Tools menu.", "打開 VeraCrypt，金鑰檔產生器喺工具選單度。",
-            "Open", "打開", "%ProgramFiles%\\VeraCrypt\\VeraCrypt.exe", "",
-            keywords: "veracrypt,keyfile,金鑰檔,generator"),
-        
-        Tweak.Shell("vault.veracrypt.wipe-cache", "Wipe password cache", "清除密碼快取",
+            "Create", "建立", mount: false, args: "",
+            keywords: "vault,create,建立,volume,保險庫"),
+
+        VaultShell("vault.veracrypt.volume-wizard", "Volume Creation Wizard", "磁碟區建立精靈",
+            "Open the volume-creation wizard executable directly.", "直接打開磁碟區建立精靈程式。",
+            "Open wizard", "打開精靈", mount: false, args: "",
+            keywords: "vault,wizard,精靈,format,保險庫"),
+
+        VaultShell("vault.veracrypt.keyfile-generator", "Keyfile generator", "金鑰檔產生器",
+            "Open WinForge Vault where the Keyfile Generator is under the Tools menu.", "打開 WinForge 保險庫，金鑰檔產生器喺工具選單度。",
+            "Open", "打開", mount: true, args: "",
+            keywords: "vault,keyfile,金鑰檔,generator,保險庫"),
+
+        VaultShell("vault.veracrypt.wipe-cache", "Wipe password cache", "清除密碼快取",
             "Clear cached passwords held in memory quietly.", "靜默清除記憶體中快取嘅密碼。",
-            "Wipe cache", "清除快取", "%ProgramFiles%\\VeraCrypt\\VeraCrypt.exe", "/q /w",
-            keywords: "veracrypt,cache,快取,wipe,password"),
-        
-        Tweak.Shell("vault.veracrypt.force-dismount", "Force dismount all", "強制卸載全部",
+            "Wipe cache", "清除快取", mount: true, args: "/q /w", elevated: true,
+            keywords: "vault,cache,快取,wipe,password,保險庫"),
+
+        VaultShell("vault.veracrypt.force-dismount", "Force dismount all", "強制卸載全部",
             "Force-dismount every volume even if files are open.", "即使有檔案開住都強制卸載所有磁碟區。",
-            "Force dismount", "強制卸載", "%ProgramFiles%\\VeraCrypt\\VeraCrypt.exe", "/q /d /f",
-            destructive: true, keywords: "veracrypt,force,強制,dismount,unmount"),
-        
-        Tweak.Shell("vault.veracrypt.background-task", "Start background task", "啟動背景工作",
-            "Run VeraCrypt silently so the system-tray background task stays active.", "靜默執行 VeraCrypt，等系統匣背景工作保持啟用。",
-            "Start", "啟動", "%ProgramFiles%\\VeraCrypt\\VeraCrypt.exe", "/q /silent",
-            keywords: "veracrypt,background,背景,tray"),
-        
-        Tweak.Cmd("vault.veracrypt.version", "Show version", "顯示版本",
-            "Print the installed VeraCrypt executable version info.", "顯示已安裝 VeraCrypt 執行檔嘅版本資訊。",
-            "Show version", "顯示版本", "wmic datafile where name=\"C:\\\\Program Files\\\\VeraCrypt\\\\VeraCrypt.exe\" get Version",
-            keywords: "veracrypt,version,版本"),
-        
+            "Force dismount", "強制卸載", mount: true, args: "/q /d /f", elevated: true,
+            destructive: true, keywords: "vault,force,強制,dismount,unmount,保險庫"),
+
+        VaultShell("vault.veracrypt.background-task", "Start background task", "啟動背景工作",
+            "Run WinForge Vault silently so the system-tray background task stays active.", "靜默執行 WinForge 保險庫，等系統匣背景工作保持啟用。",
+            "Start", "啟動", mount: true, args: "/q /silent",
+            keywords: "vault,background,背景,tray,保險庫"),
+
+        Tweak.Action("vault.veracrypt.version", "Show engine path", "顯示引擎路徑",
+            "Show the resolved WinForge Vault engine executable path and whether the bundled de-branded build is in use.", "顯示已解析嘅 WinForge 保險庫引擎執行檔路徑，同係咪用緊隨附嘅去品牌版本。",
+            "Show", "顯示", ct => System.Threading.Tasks.Task.FromResult(
+                Models.TweakResult.Ok("Engine path", "引擎路徑",
+                    (VaultVolumeService.FindMountBinary() ?? "(not found / 搵唔到)")
+                    + (VaultVolumeService.IsBundledPresent() ? "  [bundled]" : "  [fallback]"))),
+            keywords: "vault,version,版本,path,路徑,保險庫"),
+
         Tweak.Cmd("vault.veracrypt.list-mounted", "List mounted drives", "列出已掛載磁碟",
             "List current drive letters to see mounted volumes.", "列出目前磁碟機代號睇下掛載咗咩磁碟區。",
             "List", "列出", "wmic logicaldisk get DeviceID,VolumeName,Description,Size",
-            keywords: "veracrypt,list,列出,mounted,drives"),
-        
-        Tweak.Shell("vault.veracrypt.dismount-letter", "Dismount drive letter", "卸載指定磁碟機",
+            keywords: "vault,list,列出,mounted,drives,保險庫"),
+
+        VaultShell("vault.veracrypt.dismount-letter", "Dismount drive letter", "卸載指定磁碟機",
             "Dismount the volume on drive X (edit the letter as needed).", "卸載 X 磁碟機上嘅磁碟區（按需要改代號）。",
-            "Dismount X", "卸載 X", "%ProgramFiles%\\VeraCrypt\\VeraCrypt.exe", "/q /d X",
-            keywords: "veracrypt,dismount,磁碟機,letter,X"),
-        
-        Tweak.Shell("vault.veracrypt.mount-readonly", "Mount read-only", "唯讀掛載",
-            "Open VeraCrypt and use Mount Options to mount as read-only.", "打開 VeraCrypt，喺掛載選項度以唯讀方式掛載。",
-            "Mount RO", "唯讀掛載", "%ProgramFiles%\\VeraCrypt\\VeraCrypt.exe", "",
-            keywords: "veracrypt,readonly,唯讀,mount"),
-        
-        Tweak.Shell("vault.veracrypt.set-pim", "Mount with PIM", "以 PIM 掛載",
-            "Open VeraCrypt where the PIM field is available in the password prompt.", "打開 VeraCrypt，密碼提示度可以輸入 PIM。",
-            "Mount PIM", "PIM 掛載", "%ProgramFiles%\\VeraCrypt\\VeraCrypt.exe", "",
-            keywords: "veracrypt,pim,掛載,iterations"),
-        
-        Tweak.Shell("vault.veracrypt.benchmark", "Open settings / benchmark", "打開設定／效能測試",
-            "Open VeraCrypt where you can run the algorithm benchmark from Settings.", "打開 VeraCrypt，喺設定度可以做演算法效能測試。",
-            "Open", "打開", "%ProgramFiles%\\VeraCrypt\\VeraCrypt.exe", "",
-            keywords: "veracrypt,benchmark,效能,settings,設定"),
-        
-        Tweak.Shell("vault.veracrypt.traveler-disk", "Traveler disk setup", "隨身碟設定",
-            "Open VeraCrypt to set up a portable Traveler Disk from the Tools menu.", "打開 VeraCrypt，喺工具選單度設定可攜式隨身碟。",
-            "Open", "打開", "%ProgramFiles%\\VeraCrypt\\VeraCrypt.exe", "",
-            keywords: "veracrypt,traveler,隨身碟,portable"),
-        
+            "Dismount X", "卸載 X", mount: true, args: "/q /d X", elevated: true,
+            keywords: "vault,dismount,磁碟機,letter,X,保險庫"),
+
+        VaultShell("vault.veracrypt.mount-readonly", "Mount read-only", "唯讀掛載",
+            "Open WinForge Vault and use Mount Options to mount as read-only.", "打開 WinForge 保險庫，喺掛載選項度以唯讀方式掛載。",
+            "Mount RO", "唯讀掛載", mount: true, args: "",
+            keywords: "vault,readonly,唯讀,mount,保險庫"),
+
+        VaultShell("vault.veracrypt.set-pim", "Mount with PIM", "以 PIM 掛載",
+            "Open WinForge Vault where the PIM field is available in the password prompt.", "打開 WinForge 保險庫，密碼提示度可以輸入 PIM。",
+            "Mount PIM", "PIM 掛載", mount: true, args: "",
+            keywords: "vault,pim,掛載,iterations,保險庫"),
+
+        VaultShell("vault.veracrypt.benchmark", "Open settings / benchmark", "打開設定／效能測試",
+            "Open WinForge Vault where you can run the algorithm benchmark from Settings.", "打開 WinForge 保險庫，喺設定度可以做演算法效能測試。",
+            "Open", "打開", mount: true, args: "",
+            keywords: "vault,benchmark,效能,settings,設定,保險庫"),
+
+        VaultShell("vault.veracrypt.traveler-disk", "Traveler disk setup", "隨身碟設定",
+            "Open WinForge Vault to set up a portable Traveler Disk from the Tools menu.", "打開 WinForge 保險庫，喺工具選單度設定可攜式隨身碟。",
+            "Open", "打開", mount: true, args: "",
+            keywords: "vault,traveler,隨身碟,portable,保險庫"),
+
         Tweak.Shell("vault.veracrypt.explore-volume", "Explore mounted volume", "瀏覽已掛載磁碟區",
             "Open File Explorer to browse a mounted volume (edit drive letter).", "打開檔案總管瀏覽已掛載磁碟區（改磁碟機代號）。",
             "Explore", "瀏覽", "explorer.exe", "X:\\",
-            keywords: "veracrypt,explore,瀏覽,explorer,volume"),
-        
-        Tweak.Shell("vault.veracrypt.documentation", "Open documentation", "打開說明文件",
-            "Open the bundled VeraCrypt User Guide PDF documentation.", "打開隨附嘅 VeraCrypt 使用者指南 PDF 文件。",
-            "Open docs", "打開文件", "%ProgramFiles%\\VeraCrypt\\VeraCrypt User Guide.pdf", "",
-            keywords: "veracrypt,docs,文件,documentation,guide"),
+            keywords: "vault,explore,瀏覽,explorer,volume,保險庫"),
 
-        Tweak.Shell("vault.veracrypt.mount-keyfile-pim", "Mount with keyfile + PIM", "用鎖匙檔加 PIM 掛載",
-            "Mount a VeraCrypt container to drive X using a keyfile and a PIM, quietly and silently. Edit the volume path, drive letter, keyfile path and PIM number first.", "用鎖匙檔同 PIM 靜默掛載一個 VeraCrypt 容器到 X 磁碟機。先改容器路徑、磁碟機代號、鎖匙檔路徑同 PIM 數值。",
-            "Mount", "掛載", "%ProgramFiles%\\VeraCrypt\\VeraCrypt.exe", "/v \"C:\\path\\to\\volume.hc\" /l X /k \"C:\\path\\to\\keyfile\" /pim 0 /q /silent",
-            keywords: "veracrypt,keyfile,pim,鎖匙檔,掛載,mount,silent"),
+        VaultShell("vault.veracrypt.mount-keyfile-pim", "Mount with keyfile + PIM", "用鎖匙檔加 PIM 掛載",
+            "Mount a vault container to drive X using a keyfile and a PIM, quietly and silently. Edit the volume path, drive letter, keyfile path and PIM number first.", "用鎖匙檔同 PIM 靜默掛載一個保險庫容器到 X 磁碟機。先改容器路徑、磁碟機代號、鎖匙檔路徑同 PIM 數值。",
+            "Mount", "掛載", mount: true, args: "/v \"C:\\path\\to\\volume.wfv\" /l X /k \"C:\\path\\to\\keyfile\" /pim 0 /q /silent", elevated: true,
+            keywords: "vault,keyfile,pim,鎖匙檔,掛載,mount,silent,保險庫"),
 
-        Tweak.Shell("vault.veracrypt.backup-header-gui", "Backup volume header (VeraCrypt)", "備份磁碟區檔頭（VeraCrypt）",
-            "Open VeraCrypt so you can use Tools > Backup Volume Header — VeraCrypt's official, GUI-only way to save a volume header backup (both primary and embedded backup headers).", "打開 VeraCrypt，用工具 > 備份磁碟區檔頭 — 呢個係 VeraCrypt 官方、淨係喺圖形介面先做到嘅檔頭備份方法（連主檔頭同內嵌備份檔頭）。",
-            "Open", "打開", "%ProgramFiles%\\VeraCrypt\\VeraCrypt.exe", "",
-            keywords: "veracrypt,backup,header,檔頭,備份,tools,工具"),
+        VaultShell("vault.veracrypt.backup-header-gui", "Backup volume header", "備份磁碟區檔頭",
+            "Open WinForge Vault so you can use Tools ▸ Backup Volume Header — the official, GUI-only way to save a volume header backup (both primary and embedded backup headers).", "打開 WinForge 保險庫，用工具 ▸ 備份磁碟區檔頭 — 官方、淨係喺圖形介面先做到嘅檔頭備份方法（連主檔頭同內嵌備份檔頭）。",
+            "Open", "打開", mount: true, args: "",
+            keywords: "vault,backup,header,檔頭,備份,tools,工具,保險庫"),
 
         Tweak.Powershell("vault.veracrypt.backup-header-raw", "Snapshot raw header (first 131072 bytes)", "快照原始檔頭（首 131072 位元組）",
-            "CLI fallback: copy the first 131072 bytes of a VeraCrypt container to a .hdrbak file next to it. This captures the embedded primary header as a RAW copy — it is NOT VeraCrypt's official backup-header format. Edit the volume path first.", "命令列備援：將 VeraCrypt 容器嘅首 131072 位元組複製去旁邊嘅 .hdrbak 檔。呢個係抓內嵌主檔頭嘅原始複本 — 唔係 VeraCrypt 官方嘅備份檔頭格式。先改容器路徑。",
-            "Snapshot", "快照", "$src='C:\\path\\to\\volume.hc'; if (-not (Test-Path $src)) { Write-Host 'Volume not found. Edit the path in this op.'; return }; $dst=$src + '.hdrbak'; $fs=[IO.File]::OpenRead($src); try { $buf=New-Object byte[] 131072; $read=$fs.Read($buf,0,131072); [IO.File]::WriteAllBytes($dst,$buf[0..($read-1)]); Write-Host (\"Wrote raw header snapshot ($read bytes) to: \" + $dst); Write-Host 'NOTE: raw copy only, not VeraCrypt official backup-header format.' } finally { $fs.Dispose() }",
-            keywords: "veracrypt,header,raw,131072,檔頭,快照,backup,備份"),
+            "CLI fallback: copy the first 131072 bytes of a vault container to a .hdrbak file next to it. This captures the embedded primary header as a RAW copy — it is NOT the official backup-header format. Edit the volume path first.", "命令列備援：將保險庫容器嘅首 131072 位元組複製去旁邊嘅 .hdrbak 檔。呢個係抓內嵌主檔頭嘅原始複本 — 唔係官方嘅備份檔頭格式。先改容器路徑。",
+            "Snapshot", "快照", "$src='C:\\path\\to\\volume.wfv'; if (-not (Test-Path $src)) { Write-Host 'Volume not found. Edit the path in this op.'; return }; $dst=$src + '.hdrbak'; $fs=[IO.File]::OpenRead($src); try { $buf=New-Object byte[] 131072; $read=$fs.Read($buf,0,131072); [IO.File]::WriteAllBytes($dst,$buf[0..($read-1)]); Write-Host (\"Wrote raw header snapshot ($read bytes) to: \" + $dst); Write-Host 'NOTE: raw copy only, not the official backup-header format.' } finally { $fs.Dispose() }",
+            keywords: "vault,header,raw,131072,檔頭,快照,backup,備份,保險庫"),
 
         // --- efs (20) ---
         Tweak.Cmd("vault.efs.show-file-encryption", "Show file encryption state", "顯示檔案加密狀態",
@@ -618,4 +616,23 @@ Write-Host (""Set "" + $AsrNames.Count + "" ASR rules to AuditMode. Use 'List AS
             },
             requiresAdmin: true, keywords: "defender,cloud,protection,level,雲端,保護,等級"),
     };
+
+    /// <summary>
+    /// 驅動已綁定去品牌引擎嘅快速動作 · A quick-action that resolves the bundled de-branded vault engine
+    /// at runtime (mount binary or format binary) and shells out to it — never hardcodes a "VeraCrypt" path.
+    /// </summary>
+    private static TweakDefinition VaultShell(
+        string id, string enT, string zhT, string enD, string zhD,
+        string enBtn, string zhBtn, bool mount, string args,
+        bool elevated = false, bool destructive = false, string? keywords = null)
+        => Tweak.Action(id, enT, zhT, enD, zhD, enBtn, zhBtn,
+            async ct =>
+            {
+                var exe = mount ? VaultVolumeService.FindMountBinary() : VaultVolumeService.FindFormatBinary();
+                if (exe is null)
+                    return TweakResult.Fail("WinForge Vault engine not found — install it from the Vault module.",
+                        "搵唔到 WinForge 保險庫引擎 — 喺保險庫模組度安裝。");
+                return await ShellRunner.Run(exe, args, elevated, ct);
+            },
+            requiresAdmin: elevated, destructive: destructive, keywords: keywords);
 }
