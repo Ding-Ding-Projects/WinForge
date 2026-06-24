@@ -161,6 +161,11 @@ public sealed partial class MainWindow : Window
             case "image":
             case "imagebuilder":
                 Navigator.GoToModule?.Invoke("module.packer");
+            case "webcloner":
+            case "clone":
+            case "website":
+            case "sitecloner":
+                Navigator.GoToModule?.Invoke("module.webcloner");
                 break;
             case "archives":
             case "archive":
@@ -503,6 +508,7 @@ public sealed partial class MainWindow : Window
         "module.weblogin" => typeof(WebLoginModule),
         "module.ssh" => typeof(SshModule),
         "module.packer" => typeof(PackerModule),
+        "module.webcloner" => typeof(WebClonerModule),
         "module.archives" => typeof(ArchivesModule),
         "module.media" => typeof(MediaModule),
         "module.audioeditor" => typeof(AudioEditorModule),
