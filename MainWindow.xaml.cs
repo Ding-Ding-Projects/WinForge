@@ -204,6 +204,11 @@ public sealed partial class MainWindow : Window
             case "render":
             case "3d":
                 Navigator.GoToModule?.Invoke("module.blender");
+            case "libreoffice":
+            case "soffice":
+            case "convert":
+            case "documents":
+                Navigator.GoToModule?.Invoke("module.libreoffice");
                 break;
             case "regedit":
             case "registry":
@@ -587,6 +592,7 @@ public sealed partial class MainWindow : Window
         "module.mediaplayer" => typeof(MediaPlayerModule),
         "module.ytdlp" => typeof(YtDlpModule),
         "module.blender" => typeof(BlenderModule),
+        "module.libreoffice" => typeof(LibreOfficeModule),
         "module.regedit" => typeof(RegistryEditor),
         "module.doctors" => typeof(SystemDoctorsModule),
         "module.services" => typeof(ServicesModule),

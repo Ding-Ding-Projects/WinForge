@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.LibreOfficeModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="1100" Spacing="14">
+
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <FontIcon FontSize="24" Glyph="&#xE8A5;" VerticalAlignment="Center" />
+                <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
+            </StackPanel>
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <InfoBar x:Name="EngineBar" IsClosable="False" IsOpen="False" />
+
+            <!-- Files -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="FilesLabel" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                            <Button x:Name="AddFilesBtn" Click="AddFiles_Click" />
+                            <Button x:Name="AddFolderBtn" Click="AddFolder_Click" />
+                            <Button x:Name="ClearBtn" Click="Clear_Click" />
+                        </StackPanel>
+                    </Grid>
+
+                    <Border BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="6"
+                            MinHeight="160" MaxHeight="320" Background="{ThemeResource LayerFillColorDefaultBrush}">
+                        <Grid>
+                            <TextBlock x:Name="EmptyHint" Margin="14" VerticalAlignment="Center" HorizontalAlignment="Center"
+                                       TextAlignment="Center" TextWrapping="Wrap"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <ListView x:Name="FileList" SelectionMode="None" Padding="4">
+                                <ListView.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Padding="6,4,6,4" ColumnSpacing="10">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <FontIcon Grid.Column="0" FontSize="16" Glyph="{Binding StateGlyph}"
+                                                      Foreground="{Binding StateBrush}" VerticalAlignment="Center" />
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding FileName}" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Text="{Binding SubText}" FontSize="11"
+                                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                           TextTrimming="CharacterEllipsis" />
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="2" Text="{Binding StateText}" VerticalAlignment="Center"
+                                                       FontSize="12" Foreground="{Binding StateBrush}" />
+                                            <Button Grid.Column="3" Tag="{Binding SourcePath}" Click="RemoveItem_Click"
+                                                    Padding="6" VerticalAlignment="Center">
+                                                <FontIcon FontSize="12" Glyph="&#xE711;" />
+                                            </Button>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <!-- Convert options -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="ConvertLabel" FontWeight="SemiBold" />
+                    <Grid ColumnSpacing="8" RowSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock x:Name="FmtCap" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Width="120" />
+                        <ComboBox x:Name="FormatBox" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Stretch"
+                                  SelectedIndex="0" SelectionChanged="FormatBox_SelectionChanged" />
+
+                        <TextBlock x:Name="FilterCap" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Width="120" />
+                        <TextBox x:Name="FilterBox" Grid.Row="1" Grid.Column="1" />
+
+                        <TextBlock x:Name="OutCap" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Width="120" />
+                        <Grid Grid.Row="2" Grid.Column="1" ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="OutDirBox" Grid.Column="0" IsReadOnly="True" />
+                            <Button x:Name="OutDirBtn" Grid.Column="1" Click="PickOutDir_Click" />
+                            <Button x:Name="OutDirResetBtn" Grid.Column="2" Click="ResetOutDir_Click" />
+                        </Grid>
+                    </Grid>
+
+                    <CheckBox x:Name="RecurseCheck" />
+
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Button x:Name="ConvertBtn" Grid.Column="0" Click="Convert_Click" Style="{StaticResource AccentButtonStyle}" />
+                        <Button x:Name="CancelBtn" Grid.Column="1" Click="Cancel_Click" IsEnabled="False" />
+                        <ProgressBar x:Name="Progress" Grid.Column="2" VerticalAlignment="Center" Margin="6,0,6,0"
+                                     Minimum="0" Value="0" />
+                        <TextBlock x:Name="ProgressText" Grid.Column="3" VerticalAlignment="Center" MinWidth="70"
+                                   TextAlignment="Right" />
+                    </Grid>
+
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Button x:Name="OpenSelectedBtn" Grid.Column="0" Click="OpenSelected_Click" />
+                        <Button x:Name="OpenOutDirBtn" Grid.Column="1" Click="OpenOutFolder_Click" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Log -->
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Name="LogLabel" Style="{StaticResource SubtitleTextBlockStyle}" VerticalAlignment="Center" />
+                <Button x:Name="ClearLogBtn" Grid.Column="1" Click="ClearLog_Click" />
+            </Grid>
+            <Border x:Name="LogBorder" Padding="12" Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="6">
+                <ScrollViewer x:Name="LogScroller" MaxHeight="240" VerticalScrollBarVisibility="Auto">
+                    <TextBlock x:Name="LogText" FontFamily="Consolas" FontSize="12" IsTextSelectionEnabled="True" TextWrapping="Wrap" />
+                </ScrollViewer>
+            </Border>
+
+            <!-- Operations -->
+            <TextBlock x:Name="OpsHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
+            <AutoSuggestBox x:Name="OpsFilter" MaxWidth="420" HorizontalAlignment="Left" QueryIcon="Find" TextChanged="OpsFilter_TextChanged" />
+            <StackPanel x:Name="OpsPanel" />
+        </StackPanel>
+    </ScrollViewer>
+</Page>

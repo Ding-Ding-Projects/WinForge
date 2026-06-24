@@ -97,6 +97,7 @@
                         <NavigationViewItem Content="Media Player · 媒體播放器" Tag="module.mediaplayer"><NavigationViewItem.Icon><FontIcon Glyph="&#xE714;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Media Downloader · 媒體下載器" Tag="module.ytdlp"><NavigationViewItem.Icon><FontIcon Glyph="&#xE896;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Blender (3D / Render) · Blender（3D／算圖）" Tag="module.blender"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7F4;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Document Converter · 文件轉換器" Tag="module.libreoffice"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Screen Recorder · 螢幕錄影" Tag="module.recorder"><NavigationViewItem.Icon><FontIcon Glyph="&#xE714;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Capture Studio · 擷取工作室" Tag="module.capture"><NavigationViewItem.Icon><FontIcon Glyph="&#xE722;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Volume Mixer · 音量混合器" Tag="module.mixer"><NavigationViewItem.Icon><FontIcon Glyph="&#xE767;" /></NavigationViewItem.Icon></NavigationViewItem>
