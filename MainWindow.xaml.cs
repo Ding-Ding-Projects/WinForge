@@ -314,6 +314,11 @@ public sealed partial class MainWindow : Window
             case "sandbox":
                 Navigator.GoToModule?.Invoke("module.wslvm");
                 break;
+            case "virtualbox":
+            case "vbox":
+            case "vboxmanage":
+                Navigator.GoToModule?.Invoke("module.virtualbox");
+                break;
             case "onedrive":
                 Navigator.GoToModule?.Invoke("module.onedrive");
                 break;
@@ -472,6 +477,7 @@ public sealed partial class MainWindow : Window
         "module.native" => typeof(NativeUtilitiesModule),
         "module.powertoys" => typeof(PowerToysExtrasModule),
         "module.wslvm" => typeof(WslVmModule),
+        "module.virtualbox" => typeof(VirtualBoxModule),
         "module.fonts" => typeof(FontManagerModule),
         "module.onedrive" => typeof(OneDriveModule),
         "module.timeunit" => typeof(TimeUnitModule),
