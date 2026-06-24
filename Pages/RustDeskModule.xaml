@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.RustDeskModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="980" Spacing="14">
+            <!-- Header -->
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <FontIcon FontSize="22" Glyph="&#xE8AF;" VerticalAlignment="Center" />
+                <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
+            </StackPanel>
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <!-- Install / status bar -->
+            <InfoBar x:Name="InstallBar" IsClosable="False" IsOpen="False" Severity="Warning">
+                <InfoBar.Content>
+                    <StackPanel x:Name="InstallButtonHost" Orientation="Horizontal" Spacing="8" Margin="0,8,0,12" />
+                </InfoBar.Content>
+            </InfoBar>
+            <InfoBar x:Name="StatusBar" IsClosable="False" IsOpen="True" Severity="Informational" />
+
+            <!-- This PC: ID + permanent password -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <TextBlock x:Name="ThisPcTitle" FontWeight="SemiBold" FontSize="16" />
+
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="IdLbl" Grid.Column="0" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBox x:Name="IdValue" Grid.Column="1" IsReadOnly="True" FontFamily="Consolas" FontSize="18" Text="—" />
+                        <Button x:Name="CopyIdBtn" Grid.Column="2" Click="CopyId_Click">
+                            <FontIcon FontSize="15" Glyph="&#xE8C8;" />
+                        </Button>
+                        <Button x:Name="RefreshIdBtn" Grid.Column="3" Click="RefreshId_Click">
+                            <FontIcon FontSize="15" Glyph="&#xE72C;" />
+                        </Button>
+                    </Grid>
+
+                    <TextBlock x:Name="PwLbl" FontWeight="SemiBold" FontSize="13" Margin="0,4,0,0" />
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <PasswordBox x:Name="PwBox" Grid.Column="0" PlaceholderText="New permanent password · 新永久密碼" />
+                        <Button x:Name="GenPwBtn" Grid.Column="1" Click="GenPw_Click">
+                            <FontIcon FontSize="15" Glyph="&#xE8D7;" />
+                        </Button>
+                        <Button x:Name="SetPwBtn" Grid.Column="2" Click="SetPw_Click" Style="{StaticResource AccentButtonStyle}" />
+                    </Grid>
+                    <TextBlock x:Name="PwHint" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    <InfoBar x:Name="PwResult" IsClosable="True" IsOpen="False" />
+                </StackPanel>
+            </Border>
+
+            <!-- Quick connect -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="ConnectTitle" FontWeight="SemiBold" FontSize="16" />
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="PeerIdBox" Grid.Column="0" PlaceholderText="Remote ID · 遠端 ID（例如 123 456 789）" FontFamily="Consolas" />
+                        <CheckBox x:Name="ViewOnlyChk" Grid.Column="1" VerticalAlignment="Center" />
+                        <Button x:Name="ConnectBtn" Grid.Column="2" Click="Connect_Click" Style="{StaticResource AccentButtonStyle}" />
+                    </Grid>
+                    <Button x:Name="SavePeerBtn" Click="SavePeer_Click" HorizontalAlignment="Left" />
+                    <InfoBar x:Name="ConnectResult" IsClosable="True" IsOpen="False" />
+                </StackPanel>
+            </Border>
+
+            <!-- Saved peers / address book -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="PeersTitle" FontWeight="SemiBold" FontSize="16" />
+                    <TextBlock x:Name="PeersEmpty" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="13" Visibility="Collapsed" />
+                    <ListView x:Name="PeerList" SelectionMode="None" MaxHeight="240">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Padding="4,6,4,6" ColumnSpacing="10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Display}" FontWeight="SemiBold" />
+                                        <TextBlock Text="{Binding Id}" FontFamily="Consolas" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <Button Grid.Column="1" Click="PeerConnect_Click" Tag="{Binding Id}">
+                                        <FontIcon FontSize="14" Glyph="&#xE8AF;" />
+                                    </Button>
+                                    <Button Grid.Column="2" Click="PeerDelete_Click" Tag="{Binding Id}">
+                                        <FontIcon FontSize="14" Glyph="&#xE74D;" />
+                                    </Button>
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </StackPanel>
+            </Border>
+
+            <!-- Server settings -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="ServerTitle" FontWeight="SemiBold" FontSize="16" />
+                    <TextBlock x:Name="ServerBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="13" TextWrapping="Wrap" />
+
+                    <TextBlock x:Name="IdServerLbl" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBox x:Name="IdServerBox" PlaceholderText="id.example.com" FontFamily="Consolas" />
+
+                    <TextBlock x:Name="RelayServerLbl" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBox x:Name="RelayServerBox" PlaceholderText="relay.example.com" FontFamily="Consolas" />
+
+                    <TextBlock x:Name="ApiServerLbl" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBox x:Name="ApiServerBox" PlaceholderText="https://api.example.com" FontFamily="Consolas" />
+
+                    <TextBlock x:Name="KeyLbl" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBox x:Name="KeyBox" PlaceholderText="Public key · 公開金鑰" FontFamily="Consolas" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="44" />
+
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="SaveServerBtn" Click="SaveServer_Click" Style="{StaticResource AccentButtonStyle}" />
+                        <Button x:Name="ReloadServerBtn" Click="ReloadServer_Click" />
+                        <Button x:Name="ImportServerBtn" Click="ImportServer_Click" />
+                        <Button x:Name="ClearServerBtn" Click="ClearServer_Click" />
+                    </StackPanel>
+                    <InfoBar x:Name="ServerResult" IsClosable="True" IsOpen="False" />
+                </StackPanel>
+            </Border>
+
+            <!-- Service + launch footer -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="ServiceTitle" FontWeight="SemiBold" FontSize="16" />
+                    <TextBlock x:Name="ServiceBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="13" TextWrapping="Wrap" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="LaunchBtn" Click="Launch_Click" Style="{StaticResource AccentButtonStyle}" />
+                        <Button x:Name="InstallSvcBtn" Click="InstallSvc_Click" />
+                        <Button x:Name="UninstallSvcBtn" Click="UninstallSvc_Click" />
+                        <Button x:Name="OpenConfigBtn" Click="OpenConfig_Click" />
+                        <ProgressRing x:Name="SvcBusy" IsActive="False" Width="20" Height="20" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <InfoBar x:Name="ServiceResult" IsClosable="True" IsOpen="False" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

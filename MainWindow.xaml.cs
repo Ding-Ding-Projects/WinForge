@@ -348,6 +348,11 @@ public sealed partial class MainWindow : Window
             case "smarthome":
                 Navigator.GoToModule?.Invoke("module.homeassistant");
                 break;
+            case "rustdesk":
+            case "remote":
+            case "remotedesktop":
+                Navigator.GoToModule?.Invoke("module.rustdesk");
+                break;
             case null:
             case "":
             case "dashboard":
@@ -466,6 +471,7 @@ public sealed partial class MainWindow : Window
         "module.fastboot" => typeof(FastbootModule),
         "module.emulator" => typeof(EmulatorModule),
         "module.vpn" => typeof(VpnMeshModule),
+        "module.rustdesk" => typeof(RustDeskModule),
         "module.homeassistant" => typeof(HomeAssistantModule),
         "module.comms" => typeof(CommunicationsModule),
         "module.configbackup" => typeof(ConfigBackupModule),
