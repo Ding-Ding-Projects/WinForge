@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.GifLabModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:local="using:WinForge.Pages"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="940" Spacing="14">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <FontIcon FontSize="22" Glyph="&#xE786;" VerticalAlignment="Center" />
+                <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
+            </StackPanel>
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <InfoBar x:Name="EngineBar" IsClosable="False" IsOpen="False" />
+
+            <!-- ============ 1. Capture ============ -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <TextBlock x:Name="CapLabel" FontWeight="SemiBold" />
+                    <TextBlock x:Name="CapBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <TextBlock x:Name="SourceCap" VerticalAlignment="Center" />
+                        <ComboBox x:Name="SourceBox" MinWidth="220" SelectedIndex="0">
+                            <ComboBoxItem x:Name="SrcRegion" />
+                            <ComboBoxItem x:Name="SrcWindow" />
+                            <ComboBoxItem x:Name="SrcFull" />
+                        </ComboBox>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="18" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                            <TextBlock x:Name="FpsCap" VerticalAlignment="Center" />
+                            <NumberBox x:Name="FpsBox" Value="15" Minimum="1" Maximum="60" SpinButtonPlacementMode="Inline" MinWidth="120" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                            <TextBlock x:Name="DurCap" VerticalAlignment="Center" />
+                            <NumberBox x:Name="DurBox" Value="0" Minimum="0" Maximum="600" SpinButtonPlacementMode="Inline" MinWidth="120" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                        <Button x:Name="CaptureBtn" Click="Capture_Click" Style="{StaticResource AccentButtonStyle}" />
+                        <Button x:Name="StopBtn" Click="Stop_Click" IsEnabled="False" />
+                        <Ellipse x:Name="Dot" Width="12" Height="12" Fill="Red" Visibility="Collapsed" />
+                        <TextBlock x:Name="StatusText" VerticalAlignment="Center" FontFamily="Consolas" />
+                    </StackPanel>
+
+                    <ProgressRing x:Name="BusyRing" IsActive="False" Width="22" Height="22" HorizontalAlignment="Left" />
+                    <InfoBar x:Name="CapBar" IsClosable="True" IsOpen="False" />
+                </StackPanel>
+            </Border>
+
+            <!-- ============ 2. Frame editor ============ -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <Grid>
+                        <TextBlock x:Name="FramesLabel" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <TextBlock x:Name="FrameCountText" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </Grid>
+                    <TextBlock x:Name="FramesBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+                    <!-- frame toolbar -->
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="MoveLeftBtn" Click="MoveLeft_Click">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon FontSize="14" Glyph="&#xE76B;" />
+                                <TextBlock x:Name="MoveLeftText" />
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="MoveRightBtn" Click="MoveRight_Click">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock x:Name="MoveRightText" />
+                                <FontIcon FontSize="14" Glyph="&#xE76C;" />
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="DeleteBtn" Click="Delete_Click">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon FontSize="14" Glyph="&#xE74D;" />
+                                <TextBlock x:Name="DeleteText" />
+                            </StackPanel>
+                        </Button>
+                        <AppBarSeparator />
+                        <Button x:Name="CropBtn" Click="Crop_Click">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon FontSize="14" Glyph="&#xE7A8;" />
+                                <TextBlock x:Name="CropText" />
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="ReloadBtn" Click="Reload_Click">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon FontSize="14" Glyph="&#xE72C;" />
+                                <TextBlock x:Name="ReloadText" />
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="ClearBtn" Click="Clear_Click">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon FontSize="14" Glyph="&#xE894;" />
+                                <TextBlock x:Name="ClearText" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+
+                    <Border Background="{ThemeResource SubtleFillColorSecondaryBrush}" CornerRadius="6" Padding="6" MinHeight="130">
+                        <GridView x:Name="FrameStrip"
+                                  SelectionMode="Extended"
+                                  CanReorderItems="True"
+                                  CanDragItems="True"
+                                  AllowDrop="True"
+                                  IsItemClickEnabled="False"
+                                  SelectionChanged="FrameStrip_SelectionChanged"
+                                  ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                  ScrollViewer.HorizontalScrollMode="Enabled"
+                                  ScrollViewer.VerticalScrollBarVisibility="Disabled">
+                            <GridView.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <ItemsStackPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </GridView.ItemsPanel>
+                            <GridView.ItemTemplate>
+                                <DataTemplate x:DataType="local:FrameItem">
+                                    <Grid Width="120" Height="110" Margin="2">
+                                        <Border BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="4">
+                                            <Image Source="{x:Bind Thumb}" Stretch="Uniform" />
+                                        </Border>
+                                        <Border VerticalAlignment="Bottom" HorizontalAlignment="Stretch"
+                                                Background="#99000000" CornerRadius="0,0,4,4" Padding="4,2">
+                                            <TextBlock Text="{x:Bind Index}" Foreground="White" FontSize="11" HorizontalAlignment="Center" />
+                                        </Border>
+                                    </Grid>
+                                </DataTemplate>
+                            </GridView.ItemTemplate>
+                        </GridView>
+                    </Border>
+                    <TextBlock x:Name="EmptyHint" Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               TextWrapping="Wrap" Visibility="Visible" />
+                    <InfoBar x:Name="EditBar" IsClosable="True" IsOpen="False" />
+                </StackPanel>
+            </Border>
+
+            <!-- ============ 3. Preview ============ -->
+            <Border x:Name="PreviewCard" Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8"
+                    Visibility="Collapsed">
+                <StackPanel Spacing="12">
+                    <TextBlock x:Name="PreviewLabel" FontWeight="SemiBold" />
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <Button x:Name="PlayBtn" Click="Play_Click">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon x:Name="PlayIcon" FontSize="14" Glyph="&#xE768;" />
+                                <TextBlock x:Name="PlayText" />
+                            </StackPanel>
+                        </Button>
+                        <TextBlock x:Name="PreviewPos" VerticalAlignment="Center" FontFamily="Consolas"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+                    <Border Background="{ThemeResource SubtleFillColorSecondaryBrush}" CornerRadius="6" Padding="6"
+                            HorizontalAlignment="Left">
+                        <Image x:Name="PreviewImage" MaxHeight="320" MaxWidth="560" Stretch="Uniform" />
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <!-- ============ 4. Export ============ -->
+            <Border x:Name="ExportCard" Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8"
+                    Visibility="Collapsed">
+                <StackPanel Spacing="12">
+                    <TextBlock x:Name="ExportLabel" FontWeight="SemiBold" />
+
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <TextBlock x:Name="FormatCap" VerticalAlignment="Center" />
+                        <ComboBox x:Name="FormatBox" MinWidth="160" SelectedIndex="0" SelectionChanged="Format_Changed">
+                            <ComboBoxItem Content="GIF" />
+                            <ComboBoxItem Content="MP4 (H.264)" />
+                            <ComboBoxItem Content="APNG" />
+                        </ComboBox>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="18" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                            <TextBlock x:Name="OutFpsCap" VerticalAlignment="Center" />
+                            <NumberBox x:Name="OutFpsBox" Value="15" Minimum="1" Maximum="60" SpinButtonPlacementMode="Inline" MinWidth="120" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                            <TextBlock x:Name="ScaleCap" VerticalAlignment="Center" />
+                            <ComboBox x:Name="ScaleBox" MinWidth="170" SelectedIndex="0">
+                                <ComboBoxItem x:Name="ScaleOrig" Tag="0" />
+                                <ComboBoxItem Content="320 px" Tag="320" />
+                                <ComboBoxItem Content="480 px" Tag="480" />
+                                <ComboBoxItem Content="640 px" Tag="640" />
+                                <ComboBoxItem Content="720 px" Tag="720" />
+                                <ComboBoxItem Content="1280 px" Tag="1280" />
+                            </ComboBox>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <StackPanel x:Name="LoopRow" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <TextBlock x:Name="LoopCap" VerticalAlignment="Center" />
+                        <ComboBox x:Name="LoopBox" MinWidth="200" SelectedIndex="0">
+                            <ComboBoxItem x:Name="LoopForever" Tag="0" />
+                            <ComboBoxItem x:Name="LoopOnce" Tag="1" />
+                            <ComboBoxItem x:Name="LoopThree" Tag="3" />
+                        </ComboBox>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                        <Button x:Name="ExportBtn" Click="Export_Click" Style="{StaticResource AccentButtonStyle}" />
+                        <ProgressRing x:Name="ExportRing" IsActive="False" Width="22" Height="22" />
+                    </StackPanel>
+                    <InfoBar x:Name="ExportBar" IsClosable="True" IsOpen="False" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>
