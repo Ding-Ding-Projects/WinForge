@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.ZoomItModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="900" Spacing="14">
+
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <FontIcon FontSize="22" Glyph="&#xE71E;" VerticalAlignment="Center" />
+                <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
+            </StackPanel>
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <InfoBar x:Name="ResultBar" IsClosable="True" IsOpen="False" />
+
+            <!-- ===================== Start buttons ===================== -->
+            <TextBlock x:Name="StartHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <TextBlock x:Name="StartBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <Button x:Name="ZoomBtn" Click="ZoomBtn_Click" Style="{StaticResource AccentButtonStyle}" />
+                        <Button x:Name="DrawBtn" Click="DrawBtn_Click" />
+                        <Button x:Name="BreakBtn" Click="BreakBtn_Click" />
+                    </StackPanel>
+                    <TextBlock x:Name="StatusText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </StackPanel>
+            </Border>
+
+            <!-- ===================== Hotkeys ===================== -->
+            <TextBlock x:Name="HotkeyHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="14">
+
+                    <!-- Zoom hotkey -->
+                    <StackPanel Spacing="6">
+                        <TextBlock x:Name="ZoomHkLabel" FontWeight="SemiBold" />
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <CheckBox x:Name="ZoomCtrl" Content="Ctrl" />
+                            <CheckBox x:Name="ZoomAlt" Content="Alt" />
+                            <CheckBox x:Name="ZoomShift" Content="Shift" />
+                            <CheckBox x:Name="ZoomWin" Content="Win" />
+                            <ComboBox x:Name="ZoomKey" MinWidth="120" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Draw hotkey -->
+                    <StackPanel Spacing="6">
+                        <TextBlock x:Name="DrawHkLabel" FontWeight="SemiBold" />
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <CheckBox x:Name="DrawCtrl" Content="Ctrl" />
+                            <CheckBox x:Name="DrawAlt" Content="Alt" />
+                            <CheckBox x:Name="DrawShift" Content="Shift" />
+                            <CheckBox x:Name="DrawWin" Content="Win" />
+                            <ComboBox x:Name="DrawKey" MinWidth="120" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Break hotkey -->
+                    <StackPanel Spacing="6">
+                        <TextBlock x:Name="BreakHkLabel" FontWeight="SemiBold" />
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <CheckBox x:Name="BreakCtrl" Content="Ctrl" />
+                            <CheckBox x:Name="BreakAlt" Content="Alt" />
+                            <CheckBox x:Name="BreakShift" Content="Shift" />
+                            <CheckBox x:Name="BreakWin" Content="Win" />
+                            <ComboBox x:Name="BreakKey" MinWidth="120" />
+                        </StackPanel>
+                    </StackPanel>
+
+                </StackPanel>
+            </Border>
+
+            <!-- ===================== Pen + break defaults ===================== -->
+            <TextBlock x:Name="DefaultsHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="14">
+                    <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                        <TextBlock x:Name="PenColorLabel" VerticalAlignment="Center" MinWidth="160" />
+                        <ComboBox x:Name="PenColorBox" MinWidth="180" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                        <TextBlock x:Name="PenWidthLabel" VerticalAlignment="Center" MinWidth="160" />
+                        <NumberBox x:Name="PenWidthBox" Value="6" Minimum="1" Maximum="60" SpinButtonPlacementMode="Inline" MinWidth="140" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                        <TextBlock x:Name="BreakMinLabel" VerticalAlignment="Center" MinWidth="160" />
+                        <NumberBox x:Name="BreakMinBox" Value="10" Minimum="1" Maximum="240" SpinButtonPlacementMode="Inline" MinWidth="140" />
+                    </StackPanel>
+                    <Button x:Name="SaveBtn" Click="SaveBtn_Click" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Left" />
+                </StackPanel>
+            </Border>
+
+            <!-- ===================== Instructions ===================== -->
+            <TextBlock x:Name="HelpHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="6">
+                    <TextBlock x:Name="HelpZoom" TextWrapping="Wrap" />
+                    <TextBlock x:Name="HelpDraw" TextWrapping="Wrap" />
+                    <TextBlock x:Name="HelpBreak" TextWrapping="Wrap" />
+                    <TextBlock x:Name="HelpKeys" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</Page>
