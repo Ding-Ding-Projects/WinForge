@@ -26,16 +26,20 @@ public static class Win11ProTweaks
             RegRoot.HKCU, "Control Panel\\Mouse", "MouseThreshold2", "0", "10",
             RegistryValueKind.String, keywords: "mouse,threshold,滑鼠,閾值"),
         
-        Tweak.RegChoice("w11p.inputintl.keyboard-delay", "Keyboard repeat delay", "鍵盤重複延遲",
-            "How long to hold a key before it repeats (0 = shortest).", "撳住一個鍵幾耐先開始重複（0 = 最短）。",
-            RegRoot.HKCU, "Control Panel\\Keyboard", "KeyboardDelay", RegistryValueKind.String,
-            new (string en, string zh, object value)[] { ("Short (0)", "短 (0)", "0"), ("Medium-short (1)", "中短 (1)", "1"), ("Medium-long (2)", "中長 (2)", "2"), ("Long (3)", "長 (3)", "3") },
+        // Slider 0–3 over the same HKCU\Control Panel\Keyboard\KeyboardDelay string value (was a 4-step Choice).
+        Tweak.Slider("w11p.inputintl.keyboard-delay", "Keyboard repeat delay", "鍵盤重複延遲",
+            "How long to hold a key before it repeats (0 = shortest, 3 = longest).", "撳住一個鍵幾耐先開始重複（0 = 最短，3 = 最長）。",
+            0, 3, 1,
+            () => double.TryParse(RegistryHelper.GetValue(RegRoot.HKCU, "Control Panel\\Keyboard", "KeyboardDelay")?.ToString(), out var v) ? v : 1,
+            v => RegistryHelper.SetValue(RegRoot.HKCU, "Control Panel\\Keyboard", "KeyboardDelay", ((int)Math.Round(v)).ToString(), RegistryValueKind.String),
             keywords: "keyboard,repeat,delay,鍵盤,延遲"),
-        
-        Tweak.RegChoice("w11p.inputintl.keyboard-speed", "Keyboard repeat rate", "鍵盤重複速度",
+
+        // Slider 0–31 over the same HKCU\Control Panel\Keyboard\KeyboardSpeed string value (was a 4-preset Choice).
+        Tweak.Slider("w11p.inputintl.keyboard-speed", "Keyboard repeat rate", "鍵盤重複速度",
             "How fast a held key repeats (0 = slowest, 31 = fastest).", "撳住一個鍵重複嘅速度（0 = 最慢，31 = 最快）。",
-            RegRoot.HKCU, "Control Panel\\Keyboard", "KeyboardSpeed", RegistryValueKind.String,
-            new (string en, string zh, object value)[] { ("Slowest (0)", "最慢 (0)", "0"), ("Medium (16)", "中等 (16)", "16"), ("Fast (24)", "快 (24)", "24"), ("Fastest (31)", "最快 (31)", "31") },
+            0, 31, 1,
+            () => double.TryParse(RegistryHelper.GetValue(RegRoot.HKCU, "Control Panel\\Keyboard", "KeyboardSpeed")?.ToString(), out var v) ? v : 31,
+            v => RegistryHelper.SetValue(RegRoot.HKCU, "Control Panel\\Keyboard", "KeyboardSpeed", ((int)Math.Round(v)).ToString(), RegistryValueKind.String),
             keywords: "keyboard,repeat,rate,speed,鍵盤,速度"),
         
         Tweak.RegToggle("w11p.inputintl.filter-keys", "Filter Keys", "篩選鍵",
@@ -65,10 +69,17 @@ public static class Win11ProTweaks
             new (string en, string zh, object value)[] { ("yyyy-MM-dd", "yyyy-MM-dd", "yyyy-MM-dd"), ("dd/MM/yyyy", "dd/MM/yyyy", "dd/MM/yyyy"), ("MM/dd/yyyy", "MM/dd/yyyy", "MM/dd/yyyy"), ("d/M/yyyy", "d/M/yyyy", "d/M/yyyy") },
             keywords: "short,date,format,日期,格式"),
         
-        Tweak.RegChoice("w11p.inputintl.short-time", "Time format (24h / 12h)", "時間格式（24 / 12 小時）",
+        // RadioGroup over the same HKCU\Control Panel\International\sShortTime string value (two mutually-exclusive presets).
+        Tweak.RadioGroup("w11p.inputintl.short-time", "Time format (24h / 12h)", "時間格式（24 / 12 小時）",
             "Switch the clock between 24-hour and 12-hour display.", "將時鐘喺 24 小時同 12 小時之間切換。",
-            RegRoot.HKCU, "Control Panel\\International", "sShortTime", RegistryValueKind.String,
-            new (string en, string zh, object value)[] { ("24-hour (HH:mm)", "24 小時 (HH:mm)", "HH:mm"), ("12-hour (h:mm tt)", "12 小時 (h:mm tt)", "h:mm tt") },
+            new (string en, string zh, string value)[] { ("24-hour (HH:mm)", "24 小時 (HH:mm)", "HH:mm"), ("12-hour (h:mm tt)", "12 小時 (h:mm tt)", "h:mm tt") },
+            getCurrent: () =>
+            {
+                if (RegistryHelper.ValueEquals(RegRoot.HKCU, "Control Panel\\International", "sShortTime", "HH:mm")) return "HH:mm";
+                if (RegistryHelper.ValueEquals(RegRoot.HKCU, "Control Panel\\International", "sShortTime", "h:mm tt")) return "h:mm tt";
+                return null;
+            },
+            setChoice: val => RegistryHelper.SetValue(RegRoot.HKCU, "Control Panel\\International", "sShortTime", val, RegistryValueKind.String),
             keywords: "time,format,24h,12h,時間,格式"),
         
         Tweak.RegChoice("w11p.inputintl.caret-blink", "Cursor blink rate", "游標閃爍速度",
@@ -77,10 +88,13 @@ public static class Win11ProTweaks
             new (string en, string zh, object value)[] { ("Fast (200ms)", "快 (200ms)", "200"), ("Default (530ms)", "預設 (530ms)", "530"), ("Slow (1200ms)", "慢 (1200ms)", "1200"), ("No blink", "唔閃爍", "-1") },
             keywords: "cursor,caret,blink,游標,閃爍"),
         
-        Tweak.RegChoice("w11p.inputintl.double-click-speed", "Double-click speed", "連按速度",
+        // Slider 100–900 ms over the same HKCU\Control Panel\Mouse\DoubleClickSpeed string value (was a 3-preset Choice).
+        Tweak.Slider("w11p.inputintl.double-click-speed", "Double-click speed", "連按速度",
             "Maximum time between two clicks to count as a double-click (ms).", "兩下撳之間算作連按嘅最長時間（毫秒）。",
-            RegRoot.HKCU, "Control Panel\\Mouse", "DoubleClickSpeed", RegistryValueKind.String,
-            new (string en, string zh, object value)[] { ("Fast (200ms)", "快 (200ms)", "200"), ("Default (500ms)", "預設 (500ms)", "500"), ("Slow (900ms)", "慢 (900ms)", "900") },
+            100, 900, 50,
+            () => double.TryParse(RegistryHelper.GetValue(RegRoot.HKCU, "Control Panel\\Mouse", "DoubleClickSpeed")?.ToString(), out var v) ? v : 500,
+            v => RegistryHelper.SetValue(RegRoot.HKCU, "Control Panel\\Mouse", "DoubleClickSpeed", ((int)Math.Round(v)).ToString(), RegistryValueKind.String),
+            unitEn: "ms", unitZh: "毫秒",
             keywords: "double,click,speed,連按,雙擊,速度"),
         
         Tweak.RegToggle("w11p.inputintl.swap-mouse-buttons", "Swap mouse buttons", "對調滑鼠按鍵",
@@ -94,10 +108,13 @@ public static class Win11ProTweaks
             new (string en, string zh, object value)[] { ("1 line", "1 行", "1"), ("3 lines (default)", "3 行（預設）", "3"), ("5 lines", "5 行", "5"), ("One screen", "一個畫面", "-1") },
             keywords: "wheel,scroll,lines,滾輪,捲動,行數"),
         
-        Tweak.RegChoice("w11p.inputintl.caret-width", "Caret (cursor) width", "游標闊度",
+        // Slider 1–5 px over the same HKCU\Control Panel\Desktop\CaretWidth DWord value (was a 3-preset Choice).
+        Tweak.Slider("w11p.inputintl.caret-width", "Caret (cursor) width", "游標闊度",
             "Width in pixels of the blinking text caret.", "閃爍文字游標嘅闊度（像素）。",
-            RegRoot.HKCU, "Control Panel\\Desktop", "CaretWidth", RegistryValueKind.DWord,
-            new (string en, string zh, object value)[] { ("Thin (1px)", "幼 (1px)", 1), ("Medium (2px)", "中 (2px)", 2), ("Thick (5px)", "粗 (5px)", 5) },
+            1, 5, 1,
+            () => RegistryHelper.GetValue(RegRoot.HKCU, "Control Panel\\Desktop", "CaretWidth") is { } o && double.TryParse(o.ToString(), out var v) ? v : 1,
+            v => RegistryHelper.SetValue(RegRoot.HKCU, "Control Panel\\Desktop", "CaretWidth", (int)Math.Round(v), RegistryValueKind.DWord),
+            unitEn: "px", unitZh: "像素",
             keywords: "caret,width,cursor,游標,闊度"),
         
         Tweak.Shell("w11p.inputintl.open-mouse-touchpad", "Open Mouse & touchpad settings", "開啟滑鼠同觸控板設定",
@@ -121,10 +138,20 @@ public static class Win11ProTweaks
             keywords: "typing,autocorrect,suggestions,輸入,打字,設定"),
 
         // --- storagenotif (20) ---
-        Tweak.RegToggle("w11p.storagenotif.storage-sense", "Storage Sense", "儲存空間感知功能",
-            "Automatically free up space by deleting temporary files and emptying the recycle bin.", "自動刪除暫存檔同清空回收筒嚟釋放空間。",
-            RegRoot.HKCU, @"Software\Microsoft\Windows\CurrentVersion\StorageSense\Parameters\StoragePolicy", "01", 1, 0,
-            keywords: "storage,sense,cleanup,儲存,清理"),
+        // Same Storage Sense toggle (HKCU\...\StoragePolicy "01" DWord 1/0) with a coloured On/Off status pill.
+        new TweakDefinition
+        {
+            Id = "w11p.storagenotif.storage-sense",
+            Title = new("Storage Sense", "儲存空間感知功能"),
+            Description = new("Automatically free up space by deleting temporary files and emptying the recycle bin.", "自動刪除暫存檔同清空回收筒嚟釋放空間。"),
+            Kind = TweakKind.Toggle,
+            Keywords = new[] { "storage", "sense", "cleanup", "儲存", "清理" },
+            GetIsOn = () => RegistryHelper.ValueEquals(RegRoot.HKCU, @"Software\Microsoft\Windows\CurrentVersion\StorageSense\Parameters\StoragePolicy", "01", 1),
+            SetIsOn = on => RegistryHelper.SetValue(RegRoot.HKCU, @"Software\Microsoft\Windows\CurrentVersion\StorageSense\Parameters\StoragePolicy", "01", on ? 1 : 0, RegistryValueKind.DWord),
+            ColoredStatus = () => RegistryHelper.ValueEquals(RegRoot.HKCU, @"Software\Microsoft\Windows\CurrentVersion\StorageSense\Parameters\StoragePolicy", "01", 1)
+                ? ("Auto-cleanup on", "自動清理開啟", StatusColor.Good)
+                : ("Off", "關閉", StatusColor.Neutral),
+        },
         
         Tweak.RegChoice("w11p.storagenotif.recyclebin-retention", "Recycle Bin retention", "回收筒保留期",
             "Choose how long files stay in the Recycle Bin before Storage Sense deletes them.", "揀回收筒入面嘅檔案幾耐之後俾儲存空間感知功能刪除。",
@@ -240,13 +267,20 @@ public static class Win11ProTweaks
             "Disable", "停用", "DISM /Online /Set-ReservedStorageState /State:Disabled",
             requiresAdmin: true, keywords: "dism,reserved,storage,保留,儲存,空間"),
         
-        Tweak.RegChoice("w11p.perfboot.processor-scheduling", "Processor scheduling", "處理器排程",
+        // RadioGroup over the same HKLM\...\PriorityControl\Win32PrioritySeparation DWord (two mutually-exclusive presets).
+        Tweak.RadioGroup("w11p.perfboot.processor-scheduling", "Processor scheduling", "處理器排程",
             "Optimise CPU scheduling for foreground programs or background services.", "為前景程式定後台服務優化 CPU 排程。",
-            RegRoot.HKLM, @"SYSTEM\CurrentControlSet\Control\PriorityControl", "Win32PrioritySeparation", RegistryValueKind.DWord,
-            new (string en, string zh, object value)[] {
-                ("Programs (foreground)", "程式（前景）", 0x26),
-                ("Background services", "後台服務", 0x18)
+            new (string en, string zh, string value)[] {
+                ("Programs (foreground)", "程式（前景）", "38"),
+                ("Background services", "後台服務", "24")
             },
+            getCurrent: () =>
+            {
+                if (RegistryHelper.ValueEquals(RegRoot.HKLM, @"SYSTEM\CurrentControlSet\Control\PriorityControl", "Win32PrioritySeparation", 0x26)) return "38";
+                if (RegistryHelper.ValueEquals(RegRoot.HKLM, @"SYSTEM\CurrentControlSet\Control\PriorityControl", "Win32PrioritySeparation", 0x18)) return "24";
+                return null;
+            },
+            setChoice: val => RegistryHelper.SetValue(RegRoot.HKLM, @"SYSTEM\CurrentControlSet\Control\PriorityControl", "Win32PrioritySeparation", int.Parse(val), RegistryValueKind.DWord),
             requiresAdmin: true, keywords: "processor,scheduling,priority,排程,優先,前景,後台"),
         
         Tweak.Cmd("w11p.perfboot.usb-selective-suspend", "Disable USB selective suspend", "停用 USB 選擇性暫停",
@@ -441,23 +475,41 @@ public static class Win11ProTweaks
             RegRoot.HKCU, @"Software\Microsoft\Windows\CurrentVersion\Explorer", "ShowFrequent", 0, 1,
             RegistryValueKind.DWord, restart: RestartScope.Explorer, keywords: "frequent,quick,access,常用,快速存取"),
         
-        Tweak.RegChoice("w11p.explorermore.mm-taskbar-mode", "Taskbar on multiple displays", "多顯示器工作列模式",
+        // RadioGroup over the same HKCU\...\Advanced\MMTaskbarMode DWord (three mutually-exclusive presets).
+        Tweak.RadioGroup("w11p.explorermore.mm-taskbar-mode", "Taskbar on multiple displays", "多顯示器工作列模式",
             "Choose where taskbar buttons appear when you use more than one monitor.", "揀用多過一部顯示器時，工作列按鈕喺邊度出現。",
-            RegRoot.HKCU, @"Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced", "MMTaskbarMode", RegistryValueKind.DWord,
-            new (string en, string zh, object value)[] {
-                ("All taskbars", "所有工作列", 0),
-                ("Main taskbar + where window is open", "主工作列加視窗所在", 1),
-                ("Taskbar where window is open", "視窗所在嗰個工作列", 2)
-            }, restart: RestartScope.Explorer, keywords: "taskbar,multiple,displays,工作列,多顯示器,mmtaskbar"),
+            new (string en, string zh, string value)[] {
+                ("All taskbars", "所有工作列", "0"),
+                ("Main taskbar + where window is open", "主工作列加視窗所在", "1"),
+                ("Taskbar where window is open", "視窗所在嗰個工作列", "2")
+            },
+            getCurrent: () =>
+            {
+                for (int i = 0; i <= 2; i++)
+                    if (RegistryHelper.ValueEquals(RegRoot.HKCU, @"Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced", "MMTaskbarMode", i))
+                        return i.ToString();
+                return null;
+            },
+            setChoice: val => RegistryHelper.SetValue(RegRoot.HKCU, @"Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced", "MMTaskbarMode", int.Parse(val), RegistryValueKind.DWord),
+            restart: RestartScope.Explorer, keywords: "taskbar,multiple,displays,工作列,多顯示器,mmtaskbar"),
         
-        Tweak.RegChoice("w11p.explorermore.taskbar-labels", "Combine taskbar buttons / show labels", "合併工作列按鈕／顯示標籤",
+        // RadioGroup over the same HKCU\...\Advanced\TaskbarGlomLevel DWord (three mutually-exclusive presets).
+        Tweak.RadioGroup("w11p.explorermore.taskbar-labels", "Combine taskbar buttons / show labels", "合併工作列按鈕／顯示標籤",
             "Note: Win11 22H2+ controls labels via TaskbarGlomLevel; pick when buttons combine and labels show.", "注意：Win11 22H2+ 用 TaskbarGlomLevel 控制標籤；揀幾時合併按鈕同顯示標籤。",
-            RegRoot.HKCU, @"Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced", "TaskbarGlomLevel", RegistryValueKind.DWord,
-            new (string en, string zh, object value)[] {
-                ("Always combine, hide labels", "永遠合併，隱藏標籤", 0),
-                ("Combine when taskbar is full", "工作列滿時先合併", 1),
-                ("Never combine, show labels", "永不合併，顯示標籤", 2)
-            }, restart: RestartScope.Explorer, keywords: "labels,combine,taskbar,標籤,合併,glom"),
+            new (string en, string zh, string value)[] {
+                ("Always combine, hide labels", "永遠合併，隱藏標籤", "0"),
+                ("Combine when taskbar is full", "工作列滿時先合併", "1"),
+                ("Never combine, show labels", "永不合併，顯示標籤", "2")
+            },
+            getCurrent: () =>
+            {
+                for (int i = 0; i <= 2; i++)
+                    if (RegistryHelper.ValueEquals(RegRoot.HKCU, @"Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced", "TaskbarGlomLevel", i))
+                        return i.ToString();
+                return null;
+            },
+            setChoice: val => RegistryHelper.SetValue(RegRoot.HKCU, @"Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced", "TaskbarGlomLevel", int.Parse(val), RegistryValueKind.DWord),
+            restart: RestartScope.Explorer, keywords: "labels,combine,taskbar,標籤,合併,glom"),
 
         // --- settingslinks (20) ---
         Tweak.Cmd("w11p.settingslinks.bluetooth", "Open Bluetooth & devices", "開啟藍牙同裝置",
