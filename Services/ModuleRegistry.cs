@@ -51,6 +51,7 @@ public static class ModuleRegistry
         new() { Tag = "module.recorder", En = "Screen Recorder", Zh = "螢幕錄影", Glyph = "", Keywords = "record screen capture gdigrab 錄影" },
         new() { Tag = "module.capture", En = "Capture Studio", Zh = "擷取工作室", Glyph = ((char)0xE722).ToString(), Keywords = "capture snip screenshot region gif ocr text recognize clipboard 截圖 擷取 區域 文字辨識 認字" },
         new() { Tag = "module.monitor", En = "System Monitor", Zh = "系統監察", Glyph = "", Keywords = "cpu ram memory network task manager priority affinity 監察 工作管理員" },
+        new() { Tag = "module.winfetch", En = "System Info (Winfetch)", Zh = "系統資訊", Glyph = ((char)0xE7F4).ToString(), Keywords = "winfetch neofetch fetch system info os host kernel uptime packages shell resolution gpu cpu memory disk ascii logo specs about machine 系統資訊 規格 開機時間 解像度 記憶體 磁碟 顯示卡 標誌" },
         new() { Tag = "module.battery", En = "Battery & Thermal", Zh = "電池與散熱", Glyph = ((char)0xE83E).ToString(), Keywords = "battery thermal temperature wear health cpu gpu fan powercfg batteryreport energy 電池 溫度 散熱 風扇 耗損 健康" },
         new() { Tag = "module.connections", En = "Connections", Zh = "連線", Glyph = "", Keywords = "tcp udp connections netstat tcpview port 連線" },
         new() { Tag = "module.events", En = "Event Viewer", Zh = "事件檢視器", Glyph = "", Keywords = "event log viewer system application 事件 記錄" },
