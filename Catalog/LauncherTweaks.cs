@@ -72,10 +72,27 @@ public static class LauncherTweaks
                 "Open", "開啟", "mmc.exe", "taskschd.msc",
                 keywords: "task scheduler,排程器"),
 
-            Tweak.Info("launcher.status", "Elevation status", "提權狀態",
-                "Whether this WinForge instance is currently running as administrator.",
-                "而家呢個 WinForge 實例係咪以管理員身分運行。",
-                () => AdminHelper.IsElevated ? "Elevated · 已提權" : "Standard user · 標準使用者"),
+            Status(),
         };
     }
+
+    /// <summary>
+    /// 提權狀態（唯讀資訊 + 彩色狀態藥丸）· Elevation status as a read-only Info row with a coloured pill.
+    /// 行為唔變：Id、種類（Info）同 GetInfo 文字一模一樣，淨係加埋一粒綠／灰色狀態藥丸。
+    /// Behaviour is unchanged — same Id, same Info kind, same GetInfo text — we only add a green/grey
+    /// status pill so the elevation state reads at a glance.
+    /// </summary>
+    private static TweakDefinition Status() => new()
+    {
+        Id = "launcher.status",
+        Title = new("Elevation status", "提權狀態"),
+        Description = new(
+            "Whether this WinForge instance is currently running as administrator.",
+            "而家呢個 WinForge 實例係咪以管理員身分運行。"),
+        Kind = TweakKind.Info,
+        GetInfo = () => AdminHelper.IsElevated ? "Elevated · 已提權" : "Standard user · 標準使用者",
+        ColoredStatus = () => AdminHelper.IsElevated
+            ? ("Elevated", "已提權", StatusColor.Good)
+            : ("Standard user", "標準使用者", StatusColor.Neutral),
+    };
 }
