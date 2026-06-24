@@ -535,6 +535,7 @@ public sealed partial class MainWindow : Window
         "module.settingshub" => typeof(SettingsHubModule),
         "module.imaging" => typeof(ImagingGameModule),
         "module.amulet" => typeof(AmuletModule),
+        "module.viaproxy" => typeof(ViaProxyModule),
         "module.voice" => typeof(VoiceModule),
         "module.vault-volumes" => typeof(VaultVolumesModule),
         _ => typeof(DashboardPage),
