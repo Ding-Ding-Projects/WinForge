@@ -615,21 +615,153 @@ public sealed partial class PackageManagerModule : Page
         var keys = SelectedAvailable();
         ResultsPanel.Children.Clear();
         if (keys.Count == 0) { ResultsHeader.Text = P("No managers selected/available.", "未揀／冇可用嘅管理器。"); return; }
-        ResultsHeader.Text = P("Sources / buckets / feeds per manager", "各管理器嘅來源／bucket／feed");
+        ResultsHeader.Text = P("Sources / buckets / feeds per manager — add, remove or refresh", "各管理器嘅來源／bucket／feed — 可加、移除或重新整理");
         Busy.IsActive = true;
         foreach (var key in keys)
         {
             var m = PackageManagerRegistry.ByKey(key);
-            string text;
-            try { text = await PackageManagerRegistry.SourcesAsync(key); } catch (Exception ex) { text = ex.Message; }
             ResultsPanel.Children.Add(SectionLabel($"{m?.NameEn} · {m?.NameZh}"));
-            ResultsPanel.Children.Add(Card(new TextBlock
+
+            // 每個管理器嘅工具列：加來源… / 重新整理 · per-manager toolbar: Add source… / Refresh.
+            bool canAdd = SourceManager.CanAddRemove(key);
+            bool canRefresh = SourceManager.CanRefresh(key);
+            if (canAdd || canRefresh)
             {
-                Text = string.IsNullOrWhiteSpace(text) ? P("(none)", "（無）") : text.Trim(),
-                FontFamily = new FontFamily("Consolas"), FontSize = 11, TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true,
-            }));
+                var bar = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Margin = new Thickness(0, 0, 0, 2) };
+                if (canAdd)
+                {
+                    var addBtn = new Button { Content = P("Add source…", "加來源…"), Padding = new Thickness(12, 4, 12, 4) };
+                    addBtn.Click += async (_, _) => await AddSourceFor(key);
+                    bar.Children.Add(addBtn);
+                }
+                if (canRefresh)
+                {
+                    var refreshBtn = new Button { Content = P("Refresh", "重新整理"), Padding = new Thickness(12, 4, 12, 4) };
+                    refreshBtn.Click += async (_, _) => await RefreshSourcesFor(key, refreshBtn);
+                    bar.Children.Add(refreshBtn);
+                }
+                if (SourceManager.RequiresAdmin(key))
+                    bar.Children.Add(new TextBlock
+                    {
+                        Text = P("(needs admin)", "（需要管理員）"),
+                        VerticalAlignment = VerticalAlignment.Center, FontSize = 11,
+                        Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+                    });
+                ResultsPanel.Children.Add(bar);
+            }
+
+            // 列出結構化來源 · list structured sources.
+            List<SourceManager.SourceInfo> sources;
+            try { sources = await SourceManager.ListAsync(key, CancellationToken.None); }
+            catch { sources = new(); }
+
+            if (sources.Count == 0)
+            {
+                ResultsPanel.Children.Add(Card(new TextBlock
+                {
+                    Text = P("(no sources)", "（冇來源）"),
+                    Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+                    FontSize = 12,
+                }));
+                continue;
+            }
+
+            foreach (var src in sources)
+                ResultsPanel.Children.Add(SourceCard(key, src, canAdd));
         }
         Busy.IsActive = false;
+    }
+
+    /// <summary>一張來源卡：名、URL、套件數／更新日期，連「移除」掣 · One source card: name, URL, count/date and a Remove button.</summary>
+    private Border SourceCard(string managerKey, SourceManager.SourceInfo src, bool canRemove)
+    {
+        var grid = new Grid { ColumnSpacing = 10 };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        var texts = new StackPanel { Spacing = 1, VerticalAlignment = VerticalAlignment.Center };
+        texts.Children.Add(new TextBlock
+        {
+            Text = src.Name, FontWeight = FontWeights.SemiBold, FontSize = 13,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+        });
+        if (!string.IsNullOrWhiteSpace(src.Url))
+            texts.Children.Add(new TextBlock
+            {
+                Text = src.Url, FontSize = 11, FontFamily = new FontFamily("Consolas"),
+                Foreground = (Brush)Application.Current.Resources["TextFillColorTertiaryBrush"],
+                TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true,
+            });
+
+        // 套件數／更新日期（有先顯示）· package count / updated date when present.
+        var meta = new List<string>();
+        if (!string.IsNullOrWhiteSpace(src.PackageCount)) meta.Add(P($"{src.PackageCount} packages", $"{src.PackageCount} 個套件"));
+        if (!string.IsNullOrWhiteSpace(src.UpdatedDate)) meta.Add(P($"updated {src.UpdatedDate}", $"更新於 {src.UpdatedDate}"));
+        if (meta.Count > 0)
+            texts.Children.Add(new TextBlock
+            {
+                Text = string.Join("  ·  ", meta), FontSize = 11,
+                Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+            });
+        Grid.SetColumn(texts, 0);
+        grid.Children.Add(texts);
+
+        if (canRemove)
+        {
+            var removeBtn = new Button { Content = P("Remove", "移除"), Padding = new Thickness(12, 4, 12, 4), VerticalAlignment = VerticalAlignment.Center };
+            removeBtn.Click += async (_, _) =>
+            {
+                removeBtn.IsEnabled = false; removeBtn.Content = P("Removing…", "移除緊…");
+                ResultsHeader.Text = P($"Removing {src.Name}…", $"移除緊 {src.Name}…");
+                TweakResult r;
+                try { r = await SourceManager.RemoveAsync(managerKey, src.Name, CancellationToken.None); }
+                catch (Exception ex) { r = TweakResult.Fail(ex.Message, ex.Message); }
+                ResultsHeader.Text = r.Success
+                    ? P($"Removed {src.Name}.", $"已移除 {src.Name}。")
+                    : P($"Could not remove {src.Name}.", $"無法移除 {src.Name}。");
+                await LoadSources();
+            };
+            Grid.SetColumn(removeBtn, 1);
+            grid.Children.Add(removeBtn);
+        }
+
+        return Card(grid);
+    }
+
+    /// <summary>開「加來源」對話框並執行 · Open the Add-source dialog and run the add.</summary>
+    private async Task AddSourceFor(string managerKey)
+    {
+        var picked = await AddSourceDialog.ShowAsync(this.XamlRoot, managerKey);
+        if (picked is null) return;
+        var (name, url) = picked.Value;
+        ResultsHeader.Text = P($"Adding {name}…", $"加入緊 {name}…");
+        Busy.IsActive = true;
+        try
+        {
+            var r = await SourceManager.AddAsync(managerKey, name, url, CancellationToken.None);
+            ResultsHeader.Text = r.Success
+                ? P($"Added {name}.", $"已加入 {name}。")
+                : P($"Could not add {name}.", $"無法加入 {name}。");
+        }
+        catch (Exception ex) { ResultsHeader.Text = ex.Message; }
+        finally { Busy.IsActive = false; }
+        await LoadSources();
+    }
+
+    /// <summary>重新整理一個管理器嘅來源索引 · Refresh one manager's source indexes.</summary>
+    private async Task RefreshSourcesFor(string managerKey, Button btn)
+    {
+        btn.IsEnabled = false; btn.Content = P("Refreshing…", "整理緊…");
+        ResultsHeader.Text = P("Refreshing sources…", "重新整理來源緊…");
+        try
+        {
+            var r = await SourceManager.RefreshAsync(managerKey, CancellationToken.None);
+            ResultsHeader.Text = r.Success
+                ? P("Sources refreshed.", "來源已重新整理。")
+                : P("Refresh failed.", "重新整理失敗。");
+        }
+        catch (Exception ex) { ResultsHeader.Text = ex.Message; }
+        await LoadSources();
     }
 
     // ===== Ignored updates =====
