@@ -176,6 +176,11 @@ public sealed partial class MainWindow : Window
             case "player":
             case "vlc":
                 Navigator.GoToModule?.Invoke("module.mediaplayer");
+            case "ytdlp":
+            case "youtube":
+            case "download":
+            case "downloader":
+                Navigator.GoToModule?.Invoke("module.ytdlp");
                 break;
             case "regedit":
             case "registry":
@@ -496,6 +501,7 @@ public sealed partial class MainWindow : Window
         "module.media" => typeof(MediaModule),
         "module.audioeditor" => typeof(AudioEditorModule),
         "module.mediaplayer" => typeof(MediaPlayerModule),
+        "module.ytdlp" => typeof(YtDlpModule),
         "module.regedit" => typeof(RegistryEditor),
         "module.doctors" => typeof(SystemDoctorsModule),
         "module.services" => typeof(ServicesModule),
