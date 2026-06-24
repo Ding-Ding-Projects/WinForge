@@ -131,6 +131,11 @@ public sealed partial class MainWindow : Window
             case "codex":
                 Navigator.GoToModule?.Invoke("module.aiagents");
                 break;
+            case "vscode":
+            case "code":
+            case "vs":
+                Navigator.GoToModule?.Invoke("module.vscode");
+                break;
             case "cloudflare":
             case "tunnel":
             case "cloudflared":
@@ -427,6 +432,7 @@ public sealed partial class MainWindow : Window
     private static Type MapType(string key) => key switch
     {
         "module.git" => typeof(GitHubModule),
+        "module.vscode" => typeof(VsCodeModule),
         "module.aiagents" => typeof(AiAgentsModule),
         "module.cloudflare" => typeof(CloudflareModule),
         "module.archives" => typeof(ArchivesModule),

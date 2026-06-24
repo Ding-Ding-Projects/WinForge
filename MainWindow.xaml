@@ -127,6 +127,7 @@
                         <NavigationViewItem Content="App Uninstaller · 應用程式解除安裝" Tag="module.uninstall"><NavigationViewItem.Icon><FontIcon Glyph="&#xE74D;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Imaging &amp; Game Tools · 燒錄與遊戲工具" Tag="module.imaging"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7F4;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Git &amp; GitHub · Git 與 GitHub" Tag="module.git"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8AB;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="VS Code · VS Code 編輯器" Tag="module.vscode"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="AI Agents · AI 代理" Tag="module.aiagents"><NavigationViewItem.Icon><FontIcon Glyph="&#xE99A;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Cloudflare &amp; Tunnel · Cloudflare 與 Tunnel" Tag="module.cloudflare"><NavigationViewItem.Icon><FontIcon Glyph="&#xE753;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Config &amp; Backup · 設定與備份" Tag="module.configbackup"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8F7;" /></NavigationViewItem.Icon></NavigationViewItem>

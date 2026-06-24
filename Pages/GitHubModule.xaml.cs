@@ -73,6 +73,7 @@ public sealed partial class GitHubModule : Page
         CloneUrlBox.PlaceholderText = P("Clone URL…", "複製網址…");
         CloneRepoBtn.Content = P("Clone", "複製");
 
+        VsCodeBtn.Content = P("Open in VS Code", "喺 VS Code 開");
         TerminalBtn.Content = P("Terminal", "終端機");
         BrowserBtn.Content = P("Open on GitHub", "開 GitHub");
         CommitLabel.Text = P("Stage all & commit", "暫存全部並提交");
@@ -347,6 +348,19 @@ public sealed partial class GitHubModule : Page
             finally { btn.IsEnabled = true; }
         };
         QuickActions.Children.Add(btn);
+    }
+
+    private async void VsCode_Click(object sender, RoutedEventArgs e)
+    {
+        if (!GitService.HasRepo) return;
+        if (!VsCodeService.IsInstalled)
+        {
+            AppendConsole(P("VS Code (code) not found — install it from the VS Code module.\n",
+                "搵唔到 VS Code（code） — 喺 VS Code 模組安裝。\n"));
+            return;
+        }
+        var r = await VsCodeService.OpenFolder(GitService.Repo);
+        if (!r.Success && !string.IsNullOrWhiteSpace(r.Output)) AppendConsole(r.Output! + "\n");
     }
 
     private void Terminal_Click(object sender, RoutedEventArgs e)
