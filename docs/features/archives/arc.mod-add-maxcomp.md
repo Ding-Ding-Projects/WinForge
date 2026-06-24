@@ -1,0 +1,22 @@
+# Add with max compression · 加入並用最大壓縮
+
+| Field · 欄位 | Value · 值 |
+|---|---|
+| **ID** | `arc.mod-add-maxcomp` |
+| **Module · 模組** | Archives · 壓縮檔 |
+| **Type · 種類** | Action |
+| **Administrator · 管理員** | No · 唔使 |
+| **Destructive · 具破壞性** | No · 唔係 |
+| **Restart · 重啟** | None |
+| **Action · 動作** | Add · 加入 |
+
+## English
+Add the source overriding compression to the maximum level.
+
+## 粵語
+加入來源嘅時候將壓縮等級設到最高。
+
+---
+_Keywords · 關鍵字: add, max, compression, 加入, 壓縮_
+
+_Part of WinForge · WinForge 套件嘅一部分_

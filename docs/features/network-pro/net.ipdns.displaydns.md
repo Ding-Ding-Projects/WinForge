@@ -1,0 +1,22 @@
+# Show DNS cache · 顯示 DNS 快取
+
+| Field · 欄位 | Value · 值 |
+|---|---|
+| **ID** | `net.ipdns.displaydns` |
+| **Module · 模組** | Network Pro · 網絡進階 |
+| **Type · 種類** | Action |
+| **Administrator · 管理員** | No · 唔使 |
+| **Destructive · 具破壞性** | No · 唔係 |
+| **Restart · 重啟** | None |
+| **Action · 動作** | Show · 顯示 |
+
+## English
+Display the contents of the local DNS resolver cache.
+
+## 粵語
+顯示本機 DNS 解析快取入面有咩記錄。
+
+---
+_Keywords · 關鍵字: ipconfig, displaydns, dns, 快取, 顯示_
+
+_Part of WinForge · WinForge 套件嘅一部分_
