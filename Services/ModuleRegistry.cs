@@ -74,6 +74,7 @@ public static class ModuleRegistry
         new() { Tag = "module.imaging", En = "Imaging & Game Tools", Zh = "燒錄與遊戲工具", Glyph = ((char)0xE7F4).ToString(), Keywords = "raspberry pi imager sd card flash image write boot ssh wifi minecraft world downloader proxy jar 樹莓派 燒錄 映像 我的世界 下載" },
         new() { Tag = "module.voice", En = "Voice & Read-Aloud", Zh = "語音朗讀", Glyph = ((char)0xE767).ToString(), Keywords = "voice tts text to speech read aloud speak narrator wav export sapi 語音 朗讀 文字轉語音 讀出" },
         new() { Tag = "module.aiagents", En = "AI Agents", Zh = "AI 代理", Glyph = ((char)0xE99A).ToString(), Keywords = "ai agent claude code codex opencode pi openclaw hermes coding agent terminal cli install launch api key 代理 編程 安裝 啟動" },
+        new() { Tag = "module.resume", En = "Resume Writer", Zh = "履歷與求職信寫手", Glyph = ((char)0xE8A5).ToString(), Keywords = "resume cv cover letter job application tailor ai writer generate export base history docx pdf markdown 履歷 求職信 應徵 工作 職位 自我推薦 度身 生成 匯出" },
         new() { Tag = "module.cloudflare", En = "Cloudflare & Tunnel", Zh = "Cloudflare 與 Tunnel", Glyph = ((char)0xE753).ToString(), Keywords = "cloudflare cloudflared tunnel quick tunnel trycloudflare access warp dns over https doh zero trust route ingress 隧道 加密 連線" },
     };
 

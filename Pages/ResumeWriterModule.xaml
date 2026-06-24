@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.ResumeWriterModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid Padding="24,16,24,16" RowSpacing="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Spacing="6">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <FontIcon FontSize="22" Glyph="&#xE8A5;" VerticalAlignment="Center" />
+                <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
+            </StackPanel>
+            <TextBlock
+                x:Name="HeaderBlurb"
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                TextWrapping="Wrap" />
+        </StackPanel>
+
+        <!-- Agent / tone status InfoBar -->
+        <InfoBar x:Name="AgentBar" Grid.Row="1" IsClosable="False" IsOpen="False" />
+
+        <!-- Controls row: base library + agent + tone + generate -->
+        <Border
+            Grid.Row="2"
+            Padding="14"
+            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            CornerRadius="8">
+            <StackPanel Spacing="12">
+
+                <!-- Base resume library -->
+                <Grid ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock x:Name="BaseLabel" Grid.Column="0" VerticalAlignment="Center" FontWeight="SemiBold" />
+                    <ComboBox x:Name="BaseCombo" Grid.Column="1" HorizontalAlignment="Stretch" SelectionChanged="BaseCombo_SelectionChanged" />
+                    <Button x:Name="BaseNewBtn" Grid.Column="2" Click="BaseNew_Click" />
+                    <Button x:Name="BaseImportBtn" Grid.Column="3" Click="BaseImport_Click" />
+                    <Button x:Name="BaseRenameBtn" Grid.Column="4" Click="BaseRename_Click" />
+                    <Button x:Name="BaseSaveBtn" Grid.Column="5" Click="BaseSave_Click" />
+                    <Button x:Name="BaseDeleteBtn" Grid.Column="6" Click="BaseDelete_Click" />
+                </Grid>
+
+                <!-- Base resume editor -->
+                <TextBlock x:Name="BaseEditorLabel" FontWeight="SemiBold" />
+                <Border
+                    Height="130"
+                    Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="6">
+                    <TextBox
+                        x:Name="BaseEditor"
+                        AcceptsReturn="True"
+                        BorderThickness="0"
+                        FontFamily="Consolas"
+                        FontSize="13"
+                        TextWrapping="Wrap"
+                        ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                </Border>
+
+                <!-- Job description -->
+                <TextBlock x:Name="JdLabel" FontWeight="SemiBold" />
+                <Border
+                    Height="130"
+                    Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="6">
+                    <TextBox
+                        x:Name="JdBox"
+                        AcceptsReturn="True"
+                        BorderThickness="0"
+                        FontSize="13"
+                        TextWrapping="Wrap"
+                        ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                </Border>
+
+                <!-- Agent + tone + generate -->
+                <Grid ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock x:Name="AgentLabel" Grid.Column="0" VerticalAlignment="Center" FontWeight="SemiBold" />
+                    <ComboBox x:Name="AgentCombo" Grid.Column="1" MinWidth="150" />
+                    <TextBlock x:Name="ToneLabel" Grid.Column="2" VerticalAlignment="Center" FontWeight="SemiBold" Margin="8,0,0,0" />
+                    <ComboBox x:Name="ToneCombo" Grid.Column="3" MinWidth="150" />
+                    <ProgressRing x:Name="Busy" Grid.Column="4" Width="20" Height="20" IsActive="False" HorizontalAlignment="Left" Margin="8,0,0,0" />
+                    <Button x:Name="GenerateBtn" Grid.Column="5" Click="Generate_Click" Style="{StaticResource AccentButtonStyle}" />
+                    <Button x:Name="CancelBtn" Grid.Column="6" Click="Cancel_Click" IsEnabled="False" />
+                    <Button x:Name="RegenCoverBtn" Grid.Column="7" Click="RegenCover_Click" />
+                </Grid>
+
+                <InfoBar x:Name="ResultBar" IsClosable="True" IsOpen="False" />
+            </StackPanel>
+        </Border>
+
+        <!-- Output editors + actions toolbar -->
+        <Grid Grid.Row="3" ColumnSpacing="8" Margin="0,2,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Name="OutputLabel" Grid.Column="0" VerticalAlignment="Center" FontWeight="SemiBold" />
+            <TextBox x:Name="OutputTitleBox" Grid.Column="1" Margin="8,0,0,0" />
+            <Button x:Name="SaveHistoryBtn" Grid.Column="2" Click="SaveHistory_Click" />
+            <Button x:Name="ExportResumeBtn" Grid.Column="3" Click="ExportResume_Click" />
+            <Button x:Name="ExportCoverBtn" Grid.Column="4" Click="ExportCover_Click" />
+            <Button x:Name="HistoryBtn" Grid.Column="5" Click="History_Click" />
+        </Grid>
+
+        <!-- Side-by-side editors -->
+        <Grid Grid.Row="4" ColumnSpacing="12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Grid Grid.Column="0" RowSpacing="6">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <TextBlock x:Name="ResumePaneLabel" Grid.Row="0" FontWeight="SemiBold" />
+                <Border
+                    Grid.Row="1"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8">
+                    <TextBox
+                        x:Name="ResumeEditor"
+                        AcceptsReturn="True"
+                        BorderThickness="0"
+                        FontFamily="Consolas"
+                        FontSize="13"
+                        TextWrapping="Wrap"
+                        ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                </Border>
+            </Grid>
+
+            <Grid Grid.Column="1" RowSpacing="6">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <TextBlock x:Name="CoverPaneLabel" Grid.Row="0" FontWeight="SemiBold" />
+                <Border
+                    Grid.Row="1"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8">
+                    <TextBox
+                        x:Name="CoverEditor"
+                        AcceptsReturn="True"
+                        BorderThickness="0"
+                        FontSize="13"
+                        TextWrapping="Wrap"
+                        ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                </Border>
+            </Grid>
+        </Grid>
+    </Grid>
+</Page>
