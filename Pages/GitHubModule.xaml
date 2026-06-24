@@ -10,6 +10,7 @@
     <Grid Padding="24,16,24,16" RowSpacing="12">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
@@ -25,8 +26,16 @@
                 TextWrapping="Wrap" />
         </StackPanel>
 
+        <!-- Engine bars: git / gh / GitHub Desktop fallback -->
+        <StackPanel Grid.Row="1" Spacing="6">
+            <InfoBar x:Name="GitBar" IsClosable="False" IsOpen="False" />
+            <InfoBar x:Name="GhBar" IsClosable="False" IsOpen="False" />
+            <InfoBar x:Name="DesktopBar" IsClosable="False" IsOpen="False" Severity="Informational" />
+            <InfoBar x:Name="ResultBar" IsClosable="True" IsOpen="False" />
+        </StackPanel>
+
         <!-- Body: repo list (left) + content (right) -->
-        <Grid Grid.Row="1" ColumnSpacing="14">
+        <Grid Grid.Row="2" ColumnSpacing="14">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="320" />
                 <ColumnDefinition Width="*" />
@@ -53,6 +62,7 @@
                     <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="6">
                         <Button x:Name="AddRepoBtn" Click="AddRepo_Click" />
                         <Button x:Name="ScanReposBtn" Click="ScanRepos_Click" />
+                        <Button x:Name="CloneDialogBtn" Click="CloneDialog_Click" />
                     </StackPanel>
 
                     <Grid Grid.Row="2" ColumnSpacing="6">
@@ -70,175 +80,405 @@
                 </Grid>
             </Border>
 
-            <!-- RIGHT: scrollable content -->
-            <ScrollViewer Grid.Column="1" Padding="0,0,8,0" VerticalScrollBarVisibility="Auto">
-                <StackPanel MaxWidth="1000" Spacing="14">
+            <!-- RIGHT: active repo + tabbed workbench + ops library -->
+            <Grid Grid.Column="1" RowSpacing="12">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
 
-                    <!-- Active repo status -->
-                    <Border
-                        Padding="16,12,16,12"
-                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                        BorderThickness="1"
-                        CornerRadius="8">
-                        <StackPanel Spacing="10">
-                            <Grid ColumnSpacing="8">
+                <!-- Active repo status + quick actions -->
+                <Border
+                    Grid.Row="0"
+                    Padding="16,12,16,12"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8">
+                    <StackPanel Spacing="10">
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="RepoPathBox" Grid.Column="0" IsReadOnly="True" />
+                            <Button x:Name="TerminalBtn" Grid.Column="1" Click="Terminal_Click" />
+                            <Button x:Name="BrowserBtn" Grid.Column="2" Click="Browser_Click" />
+                        </Grid>
+                        <TextBlock
+                            x:Name="RepoStatus"
+                            FontSize="13"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            TextWrapping="Wrap" />
+                        <StackPanel
+                            x:Name="QuickActions"
+                            Orientation="Horizontal"
+                            Spacing="8" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Tabbed workbench -->
+                <TabView
+                    x:Name="WorkTabs"
+                    Grid.Row="1"
+                    IsAddTabButtonVisible="False"
+                    CanReorderTabs="False"
+                    CanDragTabs="False"
+                    VerticalAlignment="Stretch">
+                    <TabView.TabItems>
+
+                        <!-- ===== CHANGES ===== -->
+                        <TabViewItem x:Name="ChangesTab" IsClosable="False">
+                            <Grid ColumnSpacing="12" Padding="0,8,0,0">
                                 <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="320" />
                                     <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <TextBox x:Name="RepoPathBox" Grid.Column="0" IsReadOnly="True" />
-                                <Button x:Name="TerminalBtn" Grid.Column="1" Click="Terminal_Click" />
-                                <Button x:Name="BrowserBtn" Grid.Column="2" Click="Browser_Click" />
-                            </Grid>
-                            <TextBlock
-                                x:Name="RepoStatus"
-                                FontSize="13"
-                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                TextWrapping="Wrap" />
-                            <StackPanel
-                                x:Name="QuickActions"
-                                Orientation="Horizontal"
-                                Spacing="8" />
-                        </StackPanel>
-                    </Border>
 
-                    <!-- Commit -->
-                    <Border
-                        Padding="16,14,16,14"
-                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                        BorderThickness="1"
-                        CornerRadius="8">
-                        <StackPanel Spacing="10">
-                            <TextBlock x:Name="CommitLabel" FontWeight="SemiBold" />
-                            <Grid ColumnSpacing="8">
+                                <!-- left: changes list + commit box -->
+                                <Grid Grid.Column="0" RowSpacing="10">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="*" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+
+                                    <Grid Grid.Row="0" ColumnSpacing="6">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock x:Name="ChangesLabel" Grid.Column="0" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                        <Button x:Name="StageAllBtn" Grid.Column="1" Click="StageAll_Click" Padding="8,4,8,4" />
+                                        <Button x:Name="RefreshChangesBtn" Grid.Column="2" Click="RefreshChanges_Click" Padding="8,4,8,4" />
+                                    </Grid>
+
+                                    <Border
+                                        Grid.Row="1"
+                                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="6">
+                                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                            <StackPanel x:Name="ChangesList" Spacing="0" Padding="2" />
+                                        </ScrollViewer>
+                                    </Border>
+
+                                    <Border
+                                        Grid.Row="2"
+                                        Padding="12"
+                                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="6">
+                                        <StackPanel Spacing="8">
+                                            <TextBlock x:Name="CommitBoxLabel" FontWeight="SemiBold" />
+                                            <TextBox x:Name="CommitSummaryBox" />
+                                            <TextBox
+                                                x:Name="CommitDescBox"
+                                                AcceptsReturn="True"
+                                                TextWrapping="Wrap"
+                                                Height="64" />
+                                            <Grid ColumnSpacing="8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <Button
+                                                    x:Name="CommitBtn"
+                                                    Grid.Column="0"
+                                                    HorizontalAlignment="Stretch"
+                                                    Click="Commit_Click"
+                                                    Style="{StaticResource AccentButtonStyle}" />
+                                                <Button x:Name="CommitPushBtn" Grid.Column="1" Click="CommitPush_Click" />
+                                            </Grid>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+
+                                <!-- right: diff viewer -->
+                                <Border
+                                    Grid.Column="1"
+                                    Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="6">
+                                    <Grid RowSpacing="0">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="*" />
+                                        </Grid.RowDefinitions>
+                                        <Grid Grid.Row="0" Padding="12,8,12,8" ColumnSpacing="8"
+                                              Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock x:Name="DiffPathLabel" Grid.Column="0" FontWeight="SemiBold"
+                                                       TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                            <Button x:Name="StageHunkBtn" Grid.Column="1" Click="StageSelected_Click"
+                                                    Padding="8,4,8,4" Visibility="Collapsed" />
+                                        </Grid>
+                                        <ScrollViewer Grid.Row="1" x:Name="DiffScroller"
+                                                      HorizontalScrollBarVisibility="Auto"
+                                                      VerticalScrollBarVisibility="Auto"
+                                                      HorizontalScrollMode="Auto">
+                                            <ItemsRepeater x:Name="DiffRepeater" Margin="0,4,0,4" />
+                                        </ScrollViewer>
+                                    </Grid>
+                                </Border>
+                            </Grid>
+                        </TabViewItem>
+
+                        <!-- ===== HISTORY ===== -->
+                        <TabViewItem x:Name="HistoryTab" IsClosable="False">
+                            <Grid ColumnSpacing="12" Padding="0,8,0,0">
                                 <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="360" />
                                     <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <TextBox x:Name="CommitMessageBox" Grid.Column="0" />
-                                <Button x:Name="CommitBtn" Grid.Column="1" Click="Commit_Click" Style="{StaticResource AccentButtonStyle}" />
-                            </Grid>
-                        </StackPanel>
-                    </Border>
 
-                    <!-- Branch bar -->
-                    <Border
-                        Padding="16,14,16,14"
-                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                        BorderThickness="1"
-                        CornerRadius="8">
-                        <StackPanel Spacing="10">
-                            <TextBlock x:Name="BranchLabel" FontWeight="SemiBold" />
-                            <Grid ColumnSpacing="8">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <ComboBox x:Name="BranchCombo" Grid.Column="0" HorizontalAlignment="Stretch" />
-                                <Button x:Name="SwitchBtn" Grid.Column="1" Click="Switch_Click" />
-                                <TextBox x:Name="NewBranchBox" Grid.Column="2" />
-                                <Button x:Name="CreateBranchBtn" Grid.Column="3" Click="CreateBranch_Click" />
-                            </Grid>
-                        </StackPanel>
-                    </Border>
+                                <Grid Grid.Column="0" RowSpacing="8">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="*" />
+                                    </Grid.RowDefinitions>
+                                    <Grid Grid.Row="0" ColumnSpacing="6">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock x:Name="HistoryLabel" Grid.Column="0" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                        <Button x:Name="RefreshHistoryBtn" Grid.Column="1" Click="RefreshHistory_Click" Padding="8,4,8,4" />
+                                    </Grid>
+                                    <Border
+                                        Grid.Row="1"
+                                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="6">
+                                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                            <StackPanel x:Name="HistoryListPanel" Spacing="0" Padding="2" />
+                                        </ScrollViewer>
+                                    </Border>
+                                </Grid>
 
-                    <!-- Chunked uploader -->
-                    <Border
-                        Padding="16,14,16,14"
-                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                        BorderThickness="1"
-                        CornerRadius="8">
-                        <StackPanel Spacing="10">
-                            <TextBlock x:Name="ChunkLabel" FontWeight="SemiBold" />
-                            <TextBlock
-                                x:Name="ChunkBlurb"
-                                FontSize="13"
-                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                TextWrapping="Wrap" />
-                            <Grid ColumnSpacing="8">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <NumberBox
-                                    x:Name="ChunkSizeBox"
-                                    Grid.Column="0"
-                                    MinWidth="140"
-                                    Maximum="9000"
-                                    Minimum="1"
-                                    SpinButtonPlacementMode="Inline"
-                                    Value="25" />
-                                <TextBox x:Name="ChunkMessageBox" Grid.Column="1" />
-                                <Button x:Name="ChunkUploadBtn" Grid.Column="2" Click="ChunkUpload_Click" Style="{StaticResource AccentButtonStyle}" />
+                                <Border
+                                    Grid.Column="1"
+                                    Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="6">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="*" />
+                                        </Grid.RowDefinitions>
+                                        <Border Grid.Row="0" Padding="12,8,12,4"
+                                                Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}">
+                                            <TextBlock x:Name="CommitMetaLabel" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                        </Border>
+                                        <StackPanel x:Name="CommitFilesPanel" Grid.Row="1" Padding="8,4,8,4" Spacing="0" />
+                                        <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                                            <ItemsRepeater x:Name="HistoryDiffRepeater" Margin="0,4,0,4" />
+                                        </ScrollViewer>
+                                    </Grid>
+                                </Border>
                             </Grid>
-                        </StackPanel>
-                    </Border>
+                        </TabViewItem>
 
-                    <!-- Command runner -->
-                    <Border
-                        Padding="16,14,16,14"
-                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                        BorderThickness="1"
-                        CornerRadius="8">
-                        <StackPanel Spacing="10">
-                            <TextBlock x:Name="RunnerLabel" FontWeight="SemiBold" />
-                            <Grid ColumnSpacing="8">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <ComboBox x:Name="RunnerTool" Grid.Column="0" SelectedIndex="0">
-                                    <ComboBoxItem Content="git" />
-                                    <ComboBoxItem Content="gh" />
-                                </ComboBox>
-                                <TextBox x:Name="RunnerArgs" Grid.Column="1" PlaceholderText="status --short" />
-                                <Button x:Name="RunnerBtn" Grid.Column="2" Click="Runner_Click" />
-                            </Grid>
-                            <Border
-                                x:Name="ConsoleBorder"
-                                Padding="12"
-                                Background="{ThemeResource LayerFillColorDefaultBrush}"
-                                CornerRadius="6"
-                                Visibility="Collapsed">
-                                <ScrollViewer MaxHeight="240" VerticalScrollBarVisibility="Auto">
-                                    <TextBlock
-                                        x:Name="ConsoleLog"
-                                        FontFamily="Consolas"
-                                        FontSize="12"
-                                        IsTextSelectionEnabled="True"
-                                        TextWrapping="Wrap" />
-                                </ScrollViewer>
-                            </Border>
-                        </StackPanel>
-                    </Border>
+                        <!-- ===== BRANCHES ===== -->
+                        <TabViewItem x:Name="BranchesTab" IsClosable="False">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,8,8,0">
+                                <StackPanel Spacing="14" MaxWidth="900">
 
-                    <!-- Operations library -->
-                    <TextBlock x:Name="AdvancedHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
-                    <Grid ColumnSpacing="8">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <ComboBox x:Name="ScopeCombo" Grid.Column="0" SelectionChanged="Scope_Changed" />
-                        <AutoSuggestBox
-                            x:Name="OpsFilter"
-                            Grid.Column="1"
-                            QueryIcon="Find"
-                            TextChanged="OpsFilter_TextChanged" />
-                    </Grid>
-                    <StackPanel x:Name="OpsPanel" Spacing="2" />
-                </StackPanel>
-            </ScrollViewer>
+                                    <!-- branch controls -->
+                                    <Border
+                                        Padding="16,14,16,14"
+                                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8">
+                                        <StackPanel Spacing="10">
+                                            <TextBlock x:Name="BranchLabel" FontWeight="SemiBold" />
+                                            <Grid ColumnSpacing="8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <ComboBox x:Name="BranchCombo" Grid.Column="0" HorizontalAlignment="Stretch" />
+                                                <Button x:Name="SwitchBtn" Grid.Column="1" Click="Switch_Click" />
+                                                <Button x:Name="MergeBtn" Grid.Column="2" Click="Merge_Click" />
+                                                <Button x:Name="DeleteBranchBtn" Grid.Column="3" Click="DeleteBranch_Click" />
+                                            </Grid>
+                                            <Grid ColumnSpacing="8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBox x:Name="NewBranchBox" Grid.Column="0" />
+                                                <Button x:Name="CreateBranchBtn" Grid.Column="1" Click="CreateBranch_Click" />
+                                            </Grid>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- pull request -->
+                                    <Border
+                                        Padding="16,14,16,14"
+                                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8">
+                                        <StackPanel Spacing="10">
+                                            <TextBlock x:Name="PrLabel" FontWeight="SemiBold" />
+                                            <TextBlock x:Name="PrBlurb" FontSize="13"
+                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                       TextWrapping="Wrap" />
+                                            <TextBox x:Name="PrTitleBox" />
+                                            <TextBox x:Name="PrBodyBox" AcceptsReturn="True" TextWrapping="Wrap" Height="60" />
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <CheckBox x:Name="PrDraftCheck" />
+                                                <CheckBox x:Name="PrFillCheck" />
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <Button x:Name="PrCreateBtn" Click="CreatePr_Click" Style="{StaticResource AccentButtonStyle}" />
+                                                <Button x:Name="PrViewBtn" Click="ViewPr_Click" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- branch graph -->
+                                    <Border
+                                        Padding="16,14,16,14"
+                                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8">
+                                        <StackPanel Spacing="10">
+                                            <TextBlock x:Name="GraphLabel" FontWeight="SemiBold" />
+                                            <Border
+                                                Padding="12"
+                                                Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                                CornerRadius="6">
+                                                <ScrollViewer MaxHeight="320" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                                                    <TextBlock
+                                                        x:Name="GraphText"
+                                                        FontFamily="Consolas"
+                                                        FontSize="12"
+                                                        IsTextSelectionEnabled="True" />
+                                                </ScrollViewer>
+                                            </Border>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </TabViewItem>
+
+                        <!-- ===== TOOLS (command runner, chunk upload, ops library) ===== -->
+                        <TabViewItem x:Name="ToolsTab" IsClosable="False">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,8,8,0">
+                                <StackPanel MaxWidth="1000" Spacing="14">
+
+                                    <!-- Chunked uploader -->
+                                    <Border
+                                        Padding="16,14,16,14"
+                                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8">
+                                        <StackPanel Spacing="10">
+                                            <TextBlock x:Name="ChunkLabel" FontWeight="SemiBold" />
+                                            <TextBlock
+                                                x:Name="ChunkBlurb"
+                                                FontSize="13"
+                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                TextWrapping="Wrap" />
+                                            <Grid ColumnSpacing="8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <NumberBox
+                                                    x:Name="ChunkSizeBox"
+                                                    Grid.Column="0"
+                                                    MinWidth="140"
+                                                    Maximum="9000"
+                                                    Minimum="1"
+                                                    SpinButtonPlacementMode="Inline"
+                                                    Value="25" />
+                                                <TextBox x:Name="ChunkMessageBox" Grid.Column="1" />
+                                                <Button x:Name="ChunkUploadBtn" Grid.Column="2" Click="ChunkUpload_Click" Style="{StaticResource AccentButtonStyle}" />
+                                            </Grid>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Command runner -->
+                                    <Border
+                                        Padding="16,14,16,14"
+                                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8">
+                                        <StackPanel Spacing="10">
+                                            <TextBlock x:Name="RunnerLabel" FontWeight="SemiBold" />
+                                            <Grid ColumnSpacing="8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <ComboBox x:Name="RunnerTool" Grid.Column="0" SelectedIndex="0">
+                                                    <ComboBoxItem Content="git" />
+                                                    <ComboBoxItem Content="gh" />
+                                                </ComboBox>
+                                                <TextBox x:Name="RunnerArgs" Grid.Column="1" PlaceholderText="status --short" />
+                                                <Button x:Name="RunnerBtn" Grid.Column="2" Click="Runner_Click" />
+                                            </Grid>
+                                            <Border
+                                                x:Name="ConsoleBorder"
+                                                Padding="12"
+                                                Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                                CornerRadius="6"
+                                                Visibility="Collapsed">
+                                                <ScrollViewer MaxHeight="240" VerticalScrollBarVisibility="Auto">
+                                                    <TextBlock
+                                                        x:Name="ConsoleLog"
+                                                        FontFamily="Consolas"
+                                                        FontSize="12"
+                                                        IsTextSelectionEnabled="True"
+                                                        TextWrapping="Wrap" />
+                                                </ScrollViewer>
+                                            </Border>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Operations library -->
+                                    <TextBlock x:Name="AdvancedHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
+                                    <Grid ColumnSpacing="8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <ComboBox x:Name="ScopeCombo" Grid.Column="0" SelectionChanged="Scope_Changed" />
+                                        <AutoSuggestBox
+                                            x:Name="OpsFilter"
+                                            Grid.Column="1"
+                                            QueryIcon="Find"
+                                            TextChanged="OpsFilter_TextChanged" />
+                                    </Grid>
+                                    <StackPanel x:Name="OpsPanel" Spacing="2" />
+                                </StackPanel>
+                            </ScrollViewer>
+                        </TabViewItem>
+                    </TabView.TabItems>
+                </TabView>
+            </Grid>
         </Grid>
     </Grid>
 </Page>
