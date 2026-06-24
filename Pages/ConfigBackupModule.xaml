@@ -139,6 +139,38 @@
                     </StackPanel>
                 </Border>
 
+                <!-- Auto-sync schedule (interval timer + git + optional remote) -->
+                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16,14,16,14">
+                    <StackPanel Spacing="10">
+                        <TextBlock x:Name="SyncTitle" FontWeight="SemiBold" />
+                        <TextBlock x:Name="SyncDesc" FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+
+                        <InfoBar x:Name="GitMissingBar" Severity="Warning" IsClosable="False" IsOpen="False" />
+
+                        <!-- interval row: every [count] [unit] + enable toggle -->
+                        <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                            <TextBlock x:Name="EveryLabel" VerticalAlignment="Center" FontSize="13" />
+                            <NumberBox x:Name="IntervalCount" Value="15" Minimum="1" Maximum="9999" SpinButtonPlacementMode="Compact" Width="120" />
+                            <ComboBox x:Name="IntervalUnit" MinWidth="130" SelectedIndex="0" />
+                            <ToggleSwitch x:Name="AutoSyncToggle" Toggled="AutoSyncToggle_Toggled" />
+                        </StackPanel>
+
+                        <!-- optional remote URL -->
+                        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                            <TextBlock x:Name="RemoteLabel" VerticalAlignment="Center" FontSize="13" Width="150" TextWrapping="Wrap" />
+                            <TextBox x:Name="RemoteUrlBox" MinWidth="320" />
+                            <Button x:Name="PushNowBtn" Click="PushNow_Click" />
+                        </StackPanel>
+
+                        <!-- actions + status -->
+                        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                            <Button x:Name="SyncNowBtn" Style="{StaticResource AccentButtonStyle}" Click="SyncNow_Click" />
+                            <CheckBox x:Name="BackgroundTaskCheck" Checked="BackgroundTask_Changed" Unchecked="BackgroundTask_Changed" />
+                        </StackPanel>
+                        <TextBlock x:Name="LastSyncStatus" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
                 <!-- Schedule & mirror -->
                 <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16,14,16,14">
                     <StackPanel Spacing="10">

@@ -618,6 +618,132 @@ public static class ConfigBackupService
         return r.Success;
     }
 
+    // ───────────────────────── interval auto-sync (timer + schtasks + remote push) ─────────────────────────
+
+    public const string AutoSyncTaskName = "WinForge Auto-Sync";
+
+    /// <summary>
+    /// 偵測 git 喺唔喺 PATH · Is the git CLI available on PATH (cheap "--version" probe)?
+    /// </summary>
+    public static async Task<bool> IsGitAvailable(CancellationToken ct = default)
+    {
+        try
+        {
+            var o = await ShellRunner.Capture("git", "--version", ct);
+            return !string.IsNullOrWhiteSpace(o)
+                && o.Contains("git", StringComparison.OrdinalIgnoreCase)
+                && !o.Contains("not recognized", StringComparison.OrdinalIgnoreCase);
+        }
+        catch { return false; }
+    }
+
+    /// <summary>
+    /// 即刻同步一次：影快照，如有設定遠端就 push · Sync now — take a snapshot and (if a remote URL is
+    /// given) push to it. Push failure is surfaced as a warning, never as a sync failure (the local
+    /// commit already succeeded).
+    /// </summary>
+    public static async Task<TweakResult> SyncNow(string? remoteUrl = null, CancellationToken ct = default)
+    {
+        var snap = await TakeSnapshot("auto-sync", ct);
+        if (!snap.Success) return snap;
+
+        if (!string.IsNullOrWhiteSpace(remoteUrl))
+        {
+            var push = await PushToRemote(remoteUrl!.Trim(), ct);
+            if (!push.Success)
+                return TweakResult.Ok(
+                    $"{snap.Message?.Primary} (remote push failed: {push.Message?.Primary})",
+                    $"{snap.Message?.Secondary}（遠端推送失敗：{push.Message?.Secondary}）",
+                    push.Output ?? snap.Output);
+            return TweakResult.Ok(
+                $"{snap.Message?.Primary} Pushed to remote.",
+                $"{snap.Message?.Secondary} 已推送到遠端。",
+                push.Output ?? snap.Output);
+        }
+        return snap;
+    }
+
+    /// <summary>
+    /// 推去遠端 git 倉庫 · Add/update the "origin" remote and push HEAD to it. Requires git credentials
+    /// to be configured (e.g. via Git Credential Manager); auth failures are returned as a Fail.
+    /// </summary>
+    public static async Task<TweakResult> PushToRemote(string url, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+            return TweakResult.Fail("No remote URL set.", "未設定遠端網址。");
+        var init = await InitSnapshotRepo(ct);
+        if (!init.Success) return init;
+        try
+        {
+            // Idempotently ensure an "origin" remote pointing at url.
+            var (hasOrigin, _) = await Git("remote get-url origin", ct);
+            var (rOk, rOut) = hasOrigin
+                ? await Git($"remote set-url origin {url}", ct)
+                : await Git($"remote add origin {url}", ct);
+            if (!rOk) return TweakResult.Fail("Could not set the git remote.", "設定 git 遠端失敗。", rOut);
+
+            var (pOk, pOut) = await Git("push -u origin HEAD", ct);
+            return pOk
+                ? TweakResult.Ok("Pushed to remote.", "已推送到遠端。", pOut)
+                : TweakResult.Fail("git push failed (check the URL and credentials).",
+                    "git push 失敗（檢查網址同憑證）。", pOut);
+        }
+        catch (Exception ex)
+        {
+            return TweakResult.Fail(ex.Message, $"出錯：{ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// 排定固定間隔自動同步（背景）· Register a background schtasks job that runs WinForge --snapshot every
+    /// N minutes / hours / days. Rewrites a single task so re-scheduling is idempotent.
+    /// unit ∈ { "minute", "hour", "day" }; count clamped to ≥1.
+    /// </summary>
+    public static async Task<TweakResult> ScheduleAutoSync(string unit, int count, CancellationToken ct = default)
+    {
+        if (count < 1) count = 1;
+        var exe = Environment.ProcessPath ?? Path.Combine(AppContext.BaseDirectory, "WinForge.exe");
+        var tr = $"\\\"{exe}\\\" --snapshot";
+
+        // schtasks schedule flags per unit. /MO is the interval; DAILY uses /MO for "every N days".
+        string sched = unit.ToLowerInvariant() switch
+        {
+            "minute" => $"/SC MINUTE /MO {count}",
+            "hour" => $"/SC HOURLY /MO {count}",
+            _ => $"/SC DAILY /MO {count}",
+        };
+
+        var args = $"/Create {sched} /TN \"{AutoSyncTaskName}\" /TR \"{tr}\" /RL LIMITED /F";
+        var r = await ShellRunner.Run("schtasks.exe", args, elevated: false, ct);
+        return r.Success
+            ? TweakResult.Ok($"Background auto-sync scheduled every {count} {unit}(s).",
+                $"已排定每 {count} {UnitZh(unit)} 背景自動同步。", r.Output)
+            : TweakResult.Fail("Could not schedule the background task.", "背景排程失敗。", r.Output);
+    }
+
+    /// <summary>取消背景自動同步工作 · Remove the background auto-sync scheduled task.</summary>
+    public static async Task<TweakResult> UnscheduleAutoSync(CancellationToken ct = default)
+    {
+        var r = await ShellRunner.Run("schtasks.exe", $"/Delete /TN \"{AutoSyncTaskName}\" /F", elevated: false, ct);
+        return r.Success
+            ? TweakResult.Ok("Background auto-sync task removed.", "已移除背景自動同步工作。", r.Output)
+            : TweakResult.Fail("No background task to remove (or it failed).",
+                "冇背景工作可以移除（或者失敗）。", r.Output);
+    }
+
+    public static async Task<bool> IsAutoSyncScheduled(CancellationToken ct = default)
+    {
+        var r = await ShellRunner.Run("schtasks.exe", $"/Query /TN \"{AutoSyncTaskName}\"", elevated: false, ct);
+        return r.Success;
+    }
+
+    private static string UnitZh(string unit) => unit.ToLowerInvariant() switch
+    {
+        "minute" => "分鐘",
+        "hour" => "小時",
+        _ => "日",
+    };
+
     // ───────────────────────── registry / winget / start layout capture ─────────────────────────
 
     /// <summary>匯出改過嘅登錄機碼做 .reg 檔 · Export the suite's touched HKCU keys to one .reg file.</summary>
