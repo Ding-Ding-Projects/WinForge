@@ -47,6 +47,10 @@ public sealed partial class MainWindow : Window
         // 全域熱鍵泵：開機就跑，收入系統匣都繼續響。
         // Global hotkey pump: starts now so registered chords fire even while WinForge sits in the tray.
         HotkeyMacroService.StartHotkeys();
+        // 快捷鍵指南：記住 UI dispatcher；若用戶開咗就裝「揿住 Win 顯示」掛鈎，收入系統匣都繼續運作。
+        // Shortcut Guide: capture the UI dispatcher; if the user enabled it, install the hold-Win-to-show
+        // hook now so the overlay pops up even while WinForge sits in the tray.
+        ShortcutGuideService.Init(DispatcherQueue);
         TrayService.Install(ShowFromTray, QuitFromTray, "WinForge · 視窗調校");
         AppWindow.Closing += OnAppWindowClosing;
     }
@@ -323,6 +327,11 @@ public sealed partial class MainWindow : Window
             case "macro":
             case "expander":
                 Navigator.GoToModule?.Invoke("module.hotkeys");
+                break;
+            case "shortcutguide":
+            case "shortcuts":
+            case "winkey":
+                Navigator.GoToModule?.Invoke("module.shortcutguide");
                 break;
             case "hosts":
                 Navigator.GoToModule?.Invoke("module.hosts");
@@ -689,6 +698,7 @@ public sealed partial class MainWindow : Window
         "module.glazewm" => typeof(GlazeWmModule),
         "module.keyboard" => typeof(KeyboardModule),
         "module.hotkeys" => typeof(HotkeyMacroModule),
+        "module.shortcutguide" => typeof(ShortcutGuideModule),
         "module.hosts" => typeof(HostsEditorModule),
         "module.mouse" => typeof(MouseModule),
         "module.recorder" => typeof(ScreenRecorderModule),

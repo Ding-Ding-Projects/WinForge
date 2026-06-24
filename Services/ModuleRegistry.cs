@@ -53,6 +53,7 @@ public static class ModuleRegistry
         new() { Tag = "module.glazewm", En = "GlazeWM Tiling", Zh = "GlazeWM 平鋪視窗", Glyph = ((char)0xE737).ToString(), Keywords = "glazewm glaze tiling window manager tile workspace keybinding gaps config yaml komorebi reload daemon 平鋪 視窗 管理 工作區 鍵盤 綁定 邊距 設定" },
         new() { Tag = "module.keyboard", En = "Keyboard Remapper", Zh = "鍵盤重新對應", Glyph = "", Keywords = "keyboard remap key sharpkeys 鍵盤" },
         new() { Tag = "module.hotkeys", En = "Hotkey & Macro Runner", Zh = "熱鍵與巨集", Glyph = ((char)0xE765).ToString(), Keywords = "hotkey macro shortcut chord registerhotkey send keys autohotkey text expander snippet trigger expand abbreviation 熱鍵 巨集 快捷鍵 文字展開 片語 縮寫" },
+        new() { Tag = "module.shortcutguide", En = "Shortcut Guide", Zh = "快捷鍵指南", Glyph = ((char)0xE765).ToString(), Keywords = "shortcut guide powertoys windows key win hold overlay cheat sheet keyboard shortcuts reference table win+e win+d win+l win+tab snap emoji clipboard snip search hotkey list winkey 快捷鍵 指南 揿住 視窗鍵 覆蓋層 鍵盤 速查表 參考 貼齊 表情符號 剪貼簿" },
         new() { Tag = "module.hosts", En = "Hosts Editor", Zh = "hosts 編輯器", Glyph = "", Keywords = "hosts block domain dns 封鎖" },
         new() { Tag = "module.mouse", En = "Mouse & Pointer", Zh = "滑鼠與指標", Glyph = "", Keywords = "mouse pointer acceleration speed 滑鼠 指標" },
         new() { Tag = "module.recorder", En = "Screen Recorder", Zh = "螢幕錄影", Glyph = "", Keywords = "record screen capture gdigrab 錄影" },
