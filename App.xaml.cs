@@ -60,6 +60,10 @@ public partial class App : Application
         // 若用戶上次開咗活動追蹤，喺啟動時自動恢復。
         // Resume activity tracking on startup if the user had it enabled (privacy default: off).
         try { Services.ActivityTrackerService.I.InitFromPrefs(); } catch { }
+        // 若用戶開咗任何滑鼠工具，喺啟動時即刻裝返全域掛鈎同覆蓋層（即使未開過頁面）。
+        // Restore Mouse Utilities (Find My Mouse / Highlighter / Crosshairs / Jump) on startup so the
+        // global hooks + overlays run as long as the toggle is on — even before the page is opened.
+        try { Services.MouseUtilsService.LoadSettings(); Services.MouseUtilsService.Sync(); } catch { }
         if (StartMinimized && Shell is MainWindow mw)
             mw.StartHiddenInTray();      // login startup → stay in the tray, background services still run
         else
