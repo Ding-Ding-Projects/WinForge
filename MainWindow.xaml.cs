@@ -278,6 +278,11 @@ public sealed partial class MainWindow : Window
             case "dupes":
                 Navigator.GoToModule?.Invoke("module.duplicates");
                 break;
+            case "filelocksmith":
+            case "lockedfile":
+            case "whatslocking":
+                Navigator.GoToModule?.Invoke("module.filelocksmith");
+                break;
             case "disk":
             case "diskanalyzer":
                 Navigator.GoToModule?.Invoke("module.disk");
@@ -678,6 +683,7 @@ public sealed partial class MainWindow : Window
         "module.rename" => typeof(RenameModule),
         "module.bulkops" => typeof(BulkOpsModule),
         "module.duplicates" => typeof(DuplicatesModule),
+        "module.filelocksmith" => typeof(FileLocksmithModule),
         "module.disk" => typeof(DiskAnalyzerModule),
         "module.drives" => typeof(DrivesModule),
         "module.testdisk" => typeof(TestDiskModule),
