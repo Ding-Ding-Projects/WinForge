@@ -396,6 +396,11 @@ public sealed partial class MainWindow : Window
             case "vaultvolumes":
             case "encrypt":
                 Navigator.GoToModule?.Invoke("module.vault-volumes");
+            case "qbittorrent":
+            case "qbit":
+            case "torrent":
+            case "torrents":
+                Navigator.GoToModule?.Invoke("module.qbittorrent");
                 break;
             case null:
             case "":
@@ -522,6 +527,7 @@ public sealed partial class MainWindow : Window
         "module.emulator" => typeof(EmulatorModule),
         "module.vpn" => typeof(VpnMeshModule),
         "module.homeassistant" => typeof(HomeAssistantModule),
+        "module.qbittorrent" => typeof(QBittorrentModule),
         "module.comms" => typeof(CommunicationsModule),
         "module.mail" => typeof(MailModule),
         "module.configbackup" => typeof(ConfigBackupModule),
