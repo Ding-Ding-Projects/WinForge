@@ -283,6 +283,10 @@ public sealed partial class MainWindow : Window
             case "tiling":
             case "komorebic":
                 Navigator.GoToModule?.Invoke("module.komorebi");
+            case "glazewm":
+            case "glaze":
+            case "tiling":
+                Navigator.GoToModule?.Invoke("module.glazewm");
                 break;
             case "keyboard":
             case "remap":
@@ -645,6 +649,7 @@ public sealed partial class MainWindow : Window
         "module.altsnap" => typeof(AltSnapModule),
         "module.fancyzones" => typeof(FancyZonesModule),
         "module.komorebi" => typeof(KomorebiModule),
+        "module.glazewm" => typeof(GlazeWmModule),
         "module.keyboard" => typeof(KeyboardModule),
         "module.hotkeys" => typeof(HotkeyMacroModule),
         "module.hosts" => typeof(HostsEditorModule),
