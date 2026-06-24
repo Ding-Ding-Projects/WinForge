@@ -360,6 +360,12 @@ public sealed partial class MainWindow : Window
             case "smarthome":
                 Navigator.GoToModule?.Invoke("module.homeassistant");
                 break;
+            case "vault":
+            case "vault-volumes":
+            case "vaultvolumes":
+            case "encrypt":
+                Navigator.GoToModule?.Invoke("module.vault-volumes");
+                break;
             case null:
             case "":
             case "dashboard":
@@ -492,6 +498,7 @@ public sealed partial class MainWindow : Window
         "module.settingshub" => typeof(SettingsHubModule),
         "module.imaging" => typeof(ImagingGameModule),
         "module.voice" => typeof(VoiceModule),
+        "module.vault-volumes" => typeof(VaultVolumesModule),
         _ => typeof(DashboardPage),
     };
 
