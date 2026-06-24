@@ -465,6 +465,11 @@ public sealed partial class MainWindow : Window
             case "speak":
                 Navigator.GoToModule?.Invoke("module.voice");
                 break;
+            case "timelens":
+            case "activity":
+            case "timeline":
+                Navigator.GoToModule?.Invoke("module.timelens");
+                break;
             case "fonts":
             case "font":
                 Navigator.GoToModule?.Invoke("module.fonts");
@@ -662,6 +667,7 @@ public sealed partial class MainWindow : Window
         "module.voice" => typeof(VoiceModule),
         "module.vault-volumes" => typeof(VaultVolumesModule),
         "module.worldmonitor" => typeof(WorldMonitorModule),
+        "module.timelens" => typeof(TimeLensModule),
         _ => typeof(DashboardPage),
     };
 

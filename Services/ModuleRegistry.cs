@@ -111,6 +111,7 @@ public static class ModuleRegistry
         new() { Tag = "module.filezilla", En = "FTP / SFTP", Zh = "FTP／SFTP 檔案傳輸", Glyph = ((char)0xE8B7).ToString(), Keywords = "ftp sftp ftps filezilla file transfer client site manager upload download dual pane transfer queue resume tls ssh private key dpapi 檔案傳輸 上載 下載 站台 佇列 續傳 私鑰" },
         new() { Tag = "module.ollama", En = "Ollama", Zh = "本地大模型", Glyph = ((char)0xE99A).ToString(), Keywords = "ollama llm local ai model chat gguf llama mistral qwen gemma phi deepseek pull serve tags running ps temperature top_p num_ctx streaming 本地 模型 聊天 人工智能 下載 大模型" },
         new() { Tag = "module.bitwarden", En = "Bitwarden Vault", Zh = "Bitwarden 密碼庫", Glyph = ((char)0xE72E).ToString(), Keywords = "bitwarden bw vault password manager login unlock master password totp 2fa two factor generate generator passphrase secret sync clipboard self-hosted vaultwarden 密碼庫 密碼 管理 解鎖 主密碼 驗證碼 產生 同步 機密" },
+        new() { Tag = "module.timelens", En = "Activity Timeline", Zh = "活動時間軸", Glyph = ((char)0xE81C).ToString(), Keywords = "timelens activity timeline time tracking tracker foreground window app usage productivity insights idle per-app totals stacked bar export csv 活動 時間軸 時間追蹤 前景 視窗 應用程式 使用量 生產力 閒置 匯出" },
     };
 
     public static IEnumerable<ModuleInfo> Search(string query)

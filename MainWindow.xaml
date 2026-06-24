@@ -104,6 +104,7 @@
                         <NavigationViewItem Content="Color Picker · 螢幕取色" Tag="module.colorpicker"><NavigationViewItem.Icon><FontIcon Glyph="&#xE790;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Pixel Editor · 像素畫編輯器" Tag="module.pixeleditor"><NavigationViewItem.Icon><FontIcon Glyph="&#xE790;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Time &amp; Unit Tools · 時間與單位工具" Tag="module.timeunit"><NavigationViewItem.Icon><FontIcon Glyph="&#xE823;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Activity Timeline · 活動時間軸" Tag="module.timelens"><NavigationViewItem.Icon><FontIcon Glyph="&#xE81C;" /></NavigationViewItem.Icon></NavigationViewItem>
                     </NavigationViewItem.MenuItems>
                 </NavigationViewItem>
 

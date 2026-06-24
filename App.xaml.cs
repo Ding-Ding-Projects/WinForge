@@ -57,6 +57,9 @@ public partial class App : Application
 
         Shell = new MainWindow();
         ApplyThemeFromSettings();
+        // 若用戶上次開咗活動追蹤，喺啟動時自動恢復。
+        // Resume activity tracking on startup if the user had it enabled (privacy default: off).
+        try { Services.ActivityTrackerService.I.InitFromPrefs(); } catch { }
         if (StartMinimized && Shell is MainWindow mw)
             mw.StartHiddenInTray();      // login startup → stay in the tray, background services still run
         else
