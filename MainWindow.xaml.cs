@@ -653,6 +653,10 @@ public sealed partial class MainWindow : Window
             case "mousejump":
             case "mousecrosshairs":
                 Navigator.GoToModule?.Invoke("module.mouseutils");
+            case "cmdnotfound":
+            case "commandnotfound":
+            case "winget-suggest":
+                Navigator.GoToModule?.Invoke("module.cmdnotfound");
                 break;
             case null:
             case "":
@@ -750,6 +754,7 @@ public sealed partial class MainWindow : Window
         "module.quicktype" => typeof(QuickTypeModule),
         "module.aws" => typeof(AwsCliModule),
         "module.peek" => typeof(PeekModule),
+        "module.cmdnotfound" => typeof(CmdNotFoundModule),
         "module.archives" => typeof(ArchivesModule),
         "module.media" => typeof(MediaModule),
         "module.audioeditor" => typeof(AudioEditorModule),
