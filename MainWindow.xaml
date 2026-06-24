@@ -55,6 +55,7 @@
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE8B7;" /></NavigationViewItem.Icon>
                     <NavigationViewItem.MenuItems>
                         <NavigationViewItem Content="Peek · 快速預覽" Tag="module.peek"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7B3;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="New+ · 範本新增" Tag="module.newplus"><NavigationViewItem.Icon><FontIcon Glyph="&#xE710;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Archives · 壓縮檔" Tag="module.archives"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7B8;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Bulk File Ops · 批次檔案操作" Tag="module.bulkops"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8B7;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Batch Rename · 批次改名" Tag="module.rename"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8AC;" /></NavigationViewItem.Icon></NavigationViewItem>
