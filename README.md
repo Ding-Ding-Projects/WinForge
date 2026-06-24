@@ -27,9 +27,23 @@
 <div align="center">
 
 ![Dashboard](docs/screenshot-dashboard.png)
-![Git module](docs/screenshot-git.png)
 
 </div>
+
+### 🖼️ Module gallery · 模組畫廊
+
+<!-- Canonical screenshot set lives in docs/. Keep this gallery in sync with docs/wiki/. -->
+
+| | |
+|---|---|
+| ![Dashboard](docs/screenshot-dashboard.png) <br> **Dashboard · 儀表板** — master search across every module; everything runs in-app. <br> 跨所有模組嘅總搜尋；一切喺 app 內運行。 | ![Git & GitHub](docs/screenshot-git.png) <br> **Git & GitHub · Git 與 GitHub** — multi-repo list, chunked uploader, 553-op git/gh library. <br> 多儲存庫清單、分批上載、553 個 git/gh 操作庫。 |
+| ![Package Manager](docs/screenshot-packages.png) <br> **Package Manager · 套件管理** — one front-end over 8 package managers; batch update & bundles. <br> 一個介面統管 8 個套件管理器；批次更新同清單。 | ![Cloudflare & Tunnel](docs/screenshot-cloudflare.png) <br> **Cloudflare & Tunnel · Cloudflare 與 Tunnel** — named/quick tunnels, DNS routing, Access, DoH, WARP via cloudflared. <br> 具名／快速 tunnel、DNS 路由、Access、DoH、WARP（cloudflared）。 |
+| ![AI Agents](docs/screenshot-aiagents.png) <br> **AI Agents · AI 代理** — install, configure & launch terminal AI coding agents, one click each. <br> 一鍵安裝、設定同啟動終端機 AI 編程代理。 | ![Media](docs/screenshot-media.png) <br> **Media · 媒體** — ffmpeg-powered video/audio convert, trim and GIF export. <br> 用 ffmpeg 嘅影片／音訊轉檔、剪裁同 GIF 匯出。 |
+| ![Settings & Control Panel](docs/screenshot-settingshub.png) <br> **Settings & Control Panel · 設定與控制台** — change Windows settings in-app, or open any Settings page / CPL applet, grouped & searchable. <br> 喺 app 內改 Windows 設定，或打開任何設定頁／控制台 applet，已分類同可搜尋。 | ![Clipboard](docs/screenshot-clipboard.png) <br> **Clipboard · 剪貼簿** — history of text, images & files; QR, plain-text and format conversions. <br> 文字、圖片同檔案歷史；QR、純文字同格式轉換。 |
+| ![Connections](docs/screenshot-connections.png) <br> **Connections (SSH / network) · 連線** — every live TCP/UDP socket and the app that owns it; drop a connection or end the process. <br> 每一條即時 TCP/UDP 連線同擁有佢嘅程式；可切斷連線或結束程序。 | ![System Monitor](docs/screenshot-monitor.png) <br> **System Monitor · 系統監察** — live CPU / RAM / network, process priority & affinity. <br> 即時 CPU／RAM／網絡、程序優先順序同親和性。 |
+
+> **EN —** The canonical screenshot set lives in [`docs/`](docs/). The matching wiki pages are in [`docs/wiki/`](docs/wiki/) and on the [GitHub wiki](https://github.com/codingmachineedge/WinForge/wiki). Some shots are labelled placeholders pending a fresh capture run — see [`docs/wiki/Screenshots.md`](docs/wiki/Screenshots.md).
+> **粵語 —** 正式截圖放喺 [`docs/`](docs/)，對應嘅 wiki 頁喺 [`docs/wiki/`](docs/wiki/) 同 [GitHub wiki](https://github.com/codingmachineedge/WinForge/wiki)。部分截圖係標明咗嘅佔位符，等緊重新擷取 — 詳見 [`docs/wiki/Screenshots.md`](docs/wiki/Screenshots.md)。
 
 ---
 
