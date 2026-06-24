@@ -383,6 +383,11 @@ public sealed partial class MainWindow : Window
             case "screenshot":
                 Navigator.GoToModule?.Invoke("module.capture");
                 break;
+            case "cropandlock":
+            case "croplock":
+            case "windowcrop":
+                Navigator.GoToModule?.Invoke("module.cropandlock");
+                break;
             case "giflab":
             case "gif":
             case "screentogif":
@@ -763,6 +768,7 @@ public sealed partial class MainWindow : Window
         "module.mouseutils" => typeof(MouseUtilsModule),
         "module.recorder" => typeof(ScreenRecorderModule),
         "module.capture" => typeof(CaptureStudioModule),
+        "module.cropandlock" => typeof(CropAndLockModule),
         "module.giflab" => typeof(GifLabModule),
         "module.zoomit" => typeof(ZoomItModule),
         "module.monitor" => typeof(SystemMonitorModule),
