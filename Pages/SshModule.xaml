@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.SshModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid Padding="24,16,24,16" RowSpacing="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Spacing="6">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <FontIcon FontSize="24" Glyph="&#xE756;" VerticalAlignment="Center" />
+                <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
+            </StackPanel>
+            <TextBlock
+                x:Name="HeaderBlurb"
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                TextWrapping="Wrap" />
+        </StackPanel>
+
+        <InfoBar
+            x:Name="EngineBar"
+            Grid.Row="1"
+            IsClosable="False"
+            IsOpen="False"
+            Severity="Warning" />
+
+        <!-- Tabs -->
+        <Pivot Grid.Row="2" x:Name="Tabs">
+
+            <!-- ===================== Profiles ===================== -->
+            <PivotItem x:Name="TabProfiles">
+                <Grid ColumnSpacing="14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="320" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- profile list -->
+                    <Grid Grid.Column="0" RowSpacing="8">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <TextBlock x:Name="ProfilesHeader" Grid.Row="0" Style="{StaticResource SubtitleTextBlockStyle}" />
+                        <ListView
+                            x:Name="ProfileList"
+                            Grid.Row="1"
+                            Background="{ThemeResource LayerFillColorDefaultBrush}"
+                            CornerRadius="6"
+                            SelectionChanged="ProfileList_SelectionChanged"
+                            SelectionMode="Single">
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Spacing="1" Padding="2,6">
+                                        <TextBlock FontWeight="SemiBold" Text="{Binding Name}" />
+                                        <TextBlock
+                                            FontSize="12"
+                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                            Text="{Binding Display}" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                        <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8">
+                            <Button x:Name="NewProfileBtn" Click="NewProfile_Click" />
+                            <Button x:Name="DeleteProfileBtn" Click="DeleteProfile_Click" IsEnabled="False" />
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- editor -->
+                    <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
+                        <StackPanel x:Name="EditorPanel" MaxWidth="540" HorizontalAlignment="Left" Spacing="10">
+                            <TextBlock x:Name="EditorHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
+                            <TextBox x:Name="NameBox" Header="Name · 名稱" />
+                            <Grid ColumnSpacing="10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="120" />
+                                </Grid.ColumnDefinitions>
+                                <TextBox x:Name="HostBox" Grid.Column="0" Header="Host · 主機" />
+                                <NumberBox
+                                    x:Name="PortBox"
+                                    Grid.Column="1"
+                                    Header="Port · 連接埠"
+                                    Minimum="1"
+                                    Maximum="65535"
+                                    Value="22" />
+                            </Grid>
+                            <TextBox x:Name="UserBox" Header="User · 使用者" />
+                            <ComboBox x:Name="AuthCombo" Header="Auth · 認證" SelectionChanged="AuthCombo_SelectionChanged">
+                                <ComboBoxItem Content="Password · 密碼" />
+                                <ComboBoxItem Content="Private key · 私鑰" />
+                            </ComboBox>
+
+                            <PasswordBox x:Name="PasswordBox" Header="Password · 密碼" />
+
+                            <StackPanel x:Name="KeyRow" Spacing="6" Visibility="Collapsed">
+                                <Grid ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="KeyPathBox" Grid.Column="0" Header="Private key file · 私鑰檔" IsReadOnly="True" />
+                                    <Button x:Name="BrowseKeyBtn" Grid.Column="1" VerticalAlignment="Bottom" Click="BrowseKey_Click" Content="Browse… · 瀏覽…" />
+                                </Grid>
+                                <PasswordBox x:Name="PassphraseBox" Header="Key passphrase (optional) · 私鑰密碼短語（可選）" />
+                            </StackPanel>
+
+                            <TextBlock
+                                FontSize="12"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                TextWrapping="Wrap"
+                                x:Name="SecretHint" />
+
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button x:Name="SaveProfileBtn" Click="SaveProfile_Click" Style="{StaticResource AccentButtonStyle}" />
+                                <Button x:Name="ConnectBtn" Click="Connect_Click" />
+                                <Button x:Name="DeployBtn" Click="Deploy_Click" />
+                            </StackPanel>
+
+                            <InfoBar x:Name="ProfileBar" IsClosable="True" IsOpen="False" />
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </PivotItem>
+
+            <!-- ===================== Terminal ===================== -->
+            <PivotItem x:Name="TabTerminal">
+                <Grid RowSpacing="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="10">
+                        <TextBlock x:Name="TermProfileLabel" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <Button x:Name="TermConnectBtn" Click="TermConnect_Click" />
+                        <Button x:Name="TermDisconnectBtn" Click="TermDisconnect_Click" IsEnabled="False" />
+                    </StackPanel>
+
+                    <controls:TerminalView x:Name="Terminal" Grid.Row="1" />
+
+                    <!-- Quick remote-command operations -->
+                    <Expander Grid.Row="2" x:Name="OpsExpander" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                        <Expander.Header>
+                            <TextBlock x:Name="OpsHeader" />
+                        </Expander.Header>
+                        <StackPanel Spacing="8">
+                            <AutoSuggestBox
+                                x:Name="OpsFilter"
+                                MaxWidth="420"
+                                HorizontalAlignment="Left"
+                                QueryIcon="Find"
+                                TextChanged="OpsFilter_TextChanged" />
+                            <ItemsControl x:Name="OpsPanel">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Vertical" Spacing="2" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Expander>
+                </Grid>
+            </PivotItem>
+
+            <!-- ===================== Keys ===================== -->
+            <PivotItem x:Name="TabKeys">
+                <Grid RowSpacing="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Spacing="6">
+                        <TextBlock x:Name="KeysHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
+                        <TextBlock
+                            x:Name="KeysBlurb"
+                            FontSize="13"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <!-- generate -->
+                    <Border
+                        Grid.Row="1"
+                        Padding="14"
+                        Background="{ThemeResource LayerFillColorDefaultBrush}"
+                        CornerRadius="6">
+                        <StackPanel Spacing="10">
+                            <TextBlock x:Name="GenHeader" FontWeight="SemiBold" />
+                            <Grid ColumnSpacing="10" RowSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="160" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <ComboBox x:Name="KeyTypeCombo" Grid.Column="0" Header="Type · 類型" SelectedIndex="0">
+                                    <ComboBoxItem Content="ed25519" />
+                                    <ComboBoxItem Content="rsa (4096)" />
+                                </ComboBox>
+                                <TextBox x:Name="KeyFileBox" Grid.Column="1" Header="File name · 檔名" Text="id_ed25519" />
+                                <TextBox x:Name="KeyCommentBox" Grid.Column="2" Header="Comment · 註解" />
+                            </Grid>
+                            <PasswordBox x:Name="KeyPassphraseBox" Header="Passphrase (optional) · 密碼短語（可選）" MaxWidth="320" HorizontalAlignment="Left" />
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button x:Name="GenerateBtn" Click="Generate_Click" Style="{StaticResource AccentButtonStyle}" />
+                                <Button x:Name="OpenSshFolderBtn" Click="OpenSshFolder_Click" />
+                                <Button x:Name="RefreshKeysBtn" Click="RefreshKeys_Click" />
+                            </StackPanel>
+                            <InfoBar x:Name="KeysBar" IsClosable="True" IsOpen="False" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- key list -->
+                    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                        <StackPanel x:Name="KeyListPanel" Spacing="8" />
+                    </ScrollViewer>
+                </Grid>
+            </PivotItem>
+
+            <!-- ===================== SFTP ===================== -->
+            <PivotItem x:Name="TabSftp">
+                <Grid RowSpacing="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="10">
+                        <TextBlock x:Name="SftpProfileLabel" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <Button x:Name="SftpConnectBtn" Click="SftpConnect_Click" />
+                    </StackPanel>
+
+                    <Grid Grid.Row="1" ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Button x:Name="SftpUpBtn" Grid.Column="0" Click="SftpUp_Click" IsEnabled="False" ToolTipService.ToolTip="Up · 向上">
+                            <FontIcon FontSize="14" Glyph="&#xE74A;" />
+                        </Button>
+                        <TextBox x:Name="SftpPathBox" Grid.Column="1" KeyDown="SftpPath_KeyDown" PlaceholderText="/remote/path" />
+                        <Button x:Name="SftpGoBtn" Grid.Column="2" Click="SftpGo_Click" Content="Go · 前往" />
+                    </Grid>
+
+                    <ListView
+                        x:Name="SftpList"
+                        Grid.Row="2"
+                        Background="{ThemeResource LayerFillColorDefaultBrush}"
+                        CornerRadius="6"
+                        DoubleTapped="SftpList_DoubleTapped"
+                        SelectionChanged="SftpList_SelectionChanged"
+                        SelectionMode="Single">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnSpacing="10" Padding="2,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="100" />
+                                        <ColumnDefinition Width="160" />
+                                    </Grid.ColumnDefinitions>
+                                    <FontIcon Grid.Column="0" FontSize="15" Glyph="{Binding Glyph}" />
+                                    <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="{Binding Name}" />
+                                    <TextBlock Grid.Column="2" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{Binding DisplaySize}" />
+                                    <TextBlock Grid.Column="3" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{Binding ModifiedText}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+
+                    <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="UploadBtn" Click="Upload_Click" IsEnabled="False" />
+                        <Button x:Name="DownloadBtn" Click="Download_Click" IsEnabled="False" />
+                        <Button x:Name="MkdirBtn" Click="Mkdir_Click" IsEnabled="False" />
+                        <Button x:Name="DeleteRemoteBtn" Click="DeleteRemote_Click" IsEnabled="False" />
+                    </StackPanel>
+
+                    <InfoBar x:Name="SftpBar" Grid.Row="3" HorizontalAlignment="Right" IsClosable="True" IsOpen="False" />
+                </Grid>
+            </PivotItem>
+        </Pivot>
+    </Grid>
+</Page>

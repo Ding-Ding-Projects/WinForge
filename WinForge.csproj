@@ -66,6 +66,11 @@
     <PackageReference Include="QRCoder" Version="1.6.0" />
     <!-- System.Speech: built-in Windows SAPI TTS (read aloud / export WAV) for the Voice module. -->
     <PackageReference Include="System.Speech" Version="9.0.0" />
+    <!-- SSH.NET (Renci.SshNet, MIT): pure-managed SSH/SFTP engine for the SSH Toolset module —
+         SshClient (exec + ShellStream), SftpClient, key handling, all in-process. -->
+    <PackageReference Include="SSH.NET" Version="2025.1.0" />
+    <!-- DPAPI ProtectedData: encrypt SSH profile secrets (passwords / key passphrases) at rest. -->
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="9.0.0" />
   </ItemGroup>
 
   <!--
