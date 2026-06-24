@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.TerminalModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid Padding="24,16,24,16" RowSpacing="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="12">
+            <FontIcon FontSize="22" Glyph="&#xE756;" VerticalAlignment="Center" />
+            <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
+        </StackPanel>
+        <TextBlock
+            x:Name="HeaderBlurb"
+            Grid.Row="1"
+            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+            TextWrapping="Wrap" />
+
+        <!-- Install / status bar -->
+        <InfoBar
+            x:Name="InstallBar"
+            Grid.Row="2"
+            IsClosable="False"
+            IsOpen="False"
+            Severity="Warning" />
+
+        <Pivot x:Name="Tabs" Grid.Row="3">
+            <!-- ============ PROFILES TAB ============ -->
+            <PivotItem x:Name="ProfilesTab">
+                <Grid ColumnSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="320" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Left: profile list + toolbar -->
+                    <Grid Grid.Column="0" RowSpacing="8">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <Grid Grid.Row="0" ColumnSpacing="6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Button x:Name="ReloadBtn" Grid.Column="0" HorizontalAlignment="Stretch" Click="Reload_Click" />
+                            <Button x:Name="AddBtn" Grid.Column="1" Click="Add_Click" />
+                            <Button x:Name="SaveBtn" Grid.Column="2" Style="{StaticResource AccentButtonStyle}" Click="Save_Click" />
+                        </Grid>
+
+                        <TextBlock
+                            x:Name="PathText"
+                            Grid.Row="1"
+                            FontSize="11"
+                            Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                            TextTrimming="CharacterEllipsis"
+                            TextWrapping="NoWrap" />
+
+                        <Border
+                            Grid.Row="2"
+                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8">
+                            <ListView
+                                x:Name="ProfileList"
+                                SelectionChanged="ProfileList_SelectionChanged"
+                                SelectionMode="Single">
+                                <ListView.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Padding="4,6" ColumnSpacing="8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock
+                                                    FontSize="11"
+                                                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                                    Text="{Binding SubText}"
+                                                    TextTrimming="CharacterEllipsis" />
+                                            </StackPanel>
+                                            <FontIcon
+                                                Grid.Column="1"
+                                                FontSize="12"
+                                                Foreground="{ThemeResource SystemAccentColor}"
+                                                Glyph="&#xE735;"
+                                                Visibility="{Binding DefaultStar}" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+                        </Border>
+                    </Grid>
+
+                    <!-- Right: editor for the selected profile -->
+                    <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
+                        <StackPanel x:Name="EditorPanel" Spacing="10">
+                            <TextBlock
+                                x:Name="EditorHint"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                TextWrapping="Wrap" />
+
+                            <StackPanel x:Name="FieldsPanel" Spacing="10" Visibility="Collapsed">
+                                <TextBox x:Name="NameBox" Header="Name · 名稱" TextChanged="Field_Changed" />
+
+                                <Grid ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="CmdBox" Grid.Column="0" Header="Command line · 命令列" TextChanged="Field_Changed" />
+                                    <Button x:Name="CmdPickBtn" Grid.Column="1" VerticalAlignment="Bottom" Click="PickCmd_Click" />
+                                </Grid>
+
+                                <Grid ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="DirBox" Grid.Column="0" Header="Starting directory · 起始目錄" TextChanged="Field_Changed" />
+                                    <Button x:Name="DirPickBtn" Grid.Column="1" VerticalAlignment="Bottom" Click="PickDir_Click" />
+                                </Grid>
+
+                                <Grid ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="IconBox" Grid.Column="0" Header="Icon (path or emoji) · 圖示（路徑或表情符號）" TextChanged="Field_Changed" />
+                                    <Button x:Name="IconPickBtn" Grid.Column="1" VerticalAlignment="Bottom" Click="PickIcon_Click" />
+                                </Grid>
+
+                                <ComboBox x:Name="SchemeBox" Header="Color scheme · 色彩配置" HorizontalAlignment="Stretch" SelectionChanged="Field_Changed" />
+                                <TextBox x:Name="FontBox" Header="Font face · 字型" TextChanged="Field_Changed" />
+
+                                <ToggleSwitch x:Name="HiddenToggle" Header="Hidden · 隱藏" Toggled="Field_Changed" />
+
+                                <TextBlock
+                                    x:Name="GeneratedNote"
+                                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                    TextWrapping="Wrap"
+                                    Visibility="Collapsed" />
+
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Button x:Name="SetDefaultBtn" Click="SetDefault_Click" />
+                                    <Button x:Name="DuplicateBtn" Click="Duplicate_Click" />
+                                    <Button x:Name="DeleteBtn" Click="Delete_Click" />
+                                    <Button x:Name="LaunchProfileBtn" Click="LaunchProfile_Click" />
+                                </StackPanel>
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </PivotItem>
+
+            <!-- ============ EMBEDDED TERMINAL TAB ============ -->
+            <PivotItem x:Name="TerminalTab">
+                <Grid RowSpacing="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8">
+                        <ComboBox x:Name="ShellBox" MinWidth="200" />
+                        <Button x:Name="StartTermBtn" Style="{StaticResource AccentButtonStyle}" Click="StartTerm_Click" />
+                        <Button x:Name="StopTermBtn" Click="StopTerm_Click" IsEnabled="False" />
+                        <Button x:Name="ClearTermBtn" Click="ClearTerm_Click" />
+                        <TextBlock x:Name="TermStatus" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+
+                    <controls:TerminalView x:Name="Term" Grid.Row="1" />
+                </Grid>
+            </PivotItem>
+
+            <!-- ============ QUICK LAUNCH TAB ============ -->
+            <PivotItem x:Name="LaunchTab">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel x:Name="OpsPanel" Spacing="8" />
+                </ScrollViewer>
+            </PivotItem>
+        </Pivot>
+
+        <InfoBar x:Name="ResultBar" Grid.Row="4" IsClosable="True" IsOpen="False" />
+    </Grid>
+</Page>

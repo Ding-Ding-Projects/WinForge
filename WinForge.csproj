@@ -18,6 +18,9 @@
     <EnableMsixTooling>true</EnableMsixTooling>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!-- ConPtySession 用 P/Invoke 嘅 STARTUPINFOEX／指標操作需要 unsafe ·
+         The embedded ConPTY terminal (Services/ConPtySession.cs) needs unsafe pointer code. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!-- Vendored upstream sources under external/ (git submodules) must NEVER be compiled into WinForge;
          exclude them from all default item globs so a 'git submodule update' can't break the build. -->
     <DefaultItemExcludes>$(DefaultItemExcludes);external\**</DefaultItemExcludes>

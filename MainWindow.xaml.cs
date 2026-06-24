@@ -429,6 +429,11 @@ public sealed partial class MainWindow : Window
             case "vbox":
             case "vboxmanage":
                 Navigator.GoToModule?.Invoke("module.virtualbox");
+            case "terminal":
+            case "wt":
+            case "windowsterminal":
+            case "conpty":
+                Navigator.GoToModule?.Invoke("module.terminal");
                 break;
             case "onedrive":
                 Navigator.GoToModule?.Invoke("module.onedrive");
@@ -661,6 +666,7 @@ public sealed partial class MainWindow : Window
         "module.windhawk" => typeof(WindhawkModule),
         "module.wslvm" => typeof(WslVmModule),
         "module.virtualbox" => typeof(VirtualBoxModule),
+        "module.terminal" => typeof(TerminalModule),
         "module.fonts" => typeof(FontManagerModule),
         "module.onedrive" => typeof(OneDriveModule),
         "module.timeunit" => typeof(TimeUnitModule),

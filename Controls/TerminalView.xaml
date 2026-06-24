@@ -5,68 +5,38 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    IsTabStop="True"
     mc:Ignorable="d">
 
-    <Grid RowSpacing="8">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
-
-        <Border
-            Grid.Row="0"
-            Background="#FF101418"
-            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-            BorderThickness="1"
-            CornerRadius="6">
+    <Border
+        x:Name="RootBorder"
+        Background="#0C0C0C"
+        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+        BorderThickness="1"
+        CornerRadius="8">
+        <Grid>
             <ScrollViewer
-                x:Name="OutScroller"
-                Padding="10,8"
-                HorizontalScrollBarVisibility="Auto"
+                x:Name="Scroller"
+                Padding="8"
+                HorizontalScrollMode="Disabled"
+                HorizontalScrollBarVisibility="Disabled"
                 VerticalScrollBarVisibility="Auto">
+                <!-- The terminal grid is rendered as a single RichTextBlock of coloured runs. -->
                 <RichTextBlock
-                    x:Name="OutBlock"
+                    x:Name="Surface"
                     FontFamily="Cascadia Mono, Consolas"
                     FontSize="13"
-                    Foreground="#FFE6E6E6"
-                    IsTextSelectionEnabled="True" />
+                    Foreground="#CCCCCC"
+                    IsTextSelectionEnabled="True"
+                    LineHeight="17"
+                    TextWrapping="NoWrap" />
             </ScrollViewer>
-        </Border>
 
-        <Grid Grid.Row="1" ColumnSpacing="8">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-
-            <FontIcon
-                Grid.Column="0"
-                VerticalAlignment="Center"
-                FontSize="14"
-                Glyph="&#xE756;" />
-            <TextBox
-                x:Name="InputBox"
-                Grid.Column="1"
-                VerticalAlignment="Center"
-                FontFamily="Cascadia Mono, Consolas"
-                IsEnabled="False"
-                KeyDown="InputBox_KeyDown"
-                PlaceholderText="Type a command and press Enter · 打指令再撳 Enter" />
-            <Button
-                x:Name="CtrlCBtn"
-                Grid.Column="2"
-                Click="CtrlC_Click"
-                IsEnabled="False"
-                ToolTipService.ToolTip="Send Ctrl+C · 送出 Ctrl+C">
-                <TextBlock Text="^C" />
-            </Button>
-            <Button
-                x:Name="ClearBtn"
-                Grid.Column="3"
-                Click="Clear_Click"
-                Content="Clear · 清除" />
+            <!-- Click target / focus surface so the control can take keyboard input. -->
+            <Grid
+                x:Name="InputCatcher"
+                Background="Transparent"
+                Tag="catcher" />
         </Grid>
-    </Grid>
+    </Border>
 </UserControl>

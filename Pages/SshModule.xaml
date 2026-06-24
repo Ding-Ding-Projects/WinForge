@@ -150,7 +150,7 @@
                         <Button x:Name="TermDisconnectBtn" Click="TermDisconnect_Click" IsEnabled="False" />
                     </StackPanel>
 
-                    <controls:TerminalView x:Name="Terminal" Grid.Row="1" />
+                    <controls:SshTerminalView x:Name="Terminal" Grid.Row="1" />
 
                     <!-- Quick remote-command operations -->
                     <Expander Grid.Row="2" x:Name="OpsExpander" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
