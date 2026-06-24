@@ -54,6 +54,7 @@ public static class ModuleRegistry
         new() { Tag = "module.contextmenu", En = "Context Menu", Zh = "右鍵選單", Glyph = "", Keywords = "context menu right click verb 右鍵 選單" },
         new() { Tag = "module.awake", En = "Awake", Zh = "保持喚醒", Glyph = "", Keywords = "awake keep awake no sleep caffeine 唔瞓 喚醒" },
         new() { Tag = "module.colorpicker", En = "Color Picker", Zh = "螢幕取色", Glyph = "", Keywords = "color picker hex rgb hsl eyedropper 取色 顏色" },
+        new() { Tag = "module.pixeleditor", En = "Pixel Editor", Zh = "像素畫編輯器", Glyph = ((char)0xE790).ToString(), Keywords = "pixel editor aseprite sprite pixel art draw paint canvas palette layers frames animation gif png pencil eraser fill bucket eyedropper undo redo 像素 像素畫 精靈 繪圖 畫布 調色盤 圖層 影格 動畫 鉛筆 橡皮 填色 吸色" },
         new() { Tag = "module.envvars", En = "Environment Variables", Zh = "環境變數", Glyph = "", Keywords = "environment variables path user system env 環境變數" },
         new() { Tag = "module.clipboard", En = "Clipboard", Zh = "剪貼簿", Glyph = ((char)0xE77F).ToString(), Keywords = "clipboard history text image file convert win+v qr qrcode qr code plain text paste 剪貼簿 歷史 二維碼 純文字" },
         new() { Tag = "module.packages", En = "Package Manager", Zh = "套件管理", Glyph = ((char)0xECAA).ToString(), Keywords = "winget package install uninstall upgrade update scoop choco chocolatey pip python npm node dotnet tool powershell gallery psgallery cargo rust dependencies unigetui discover bundle export import 套件 安裝 更新 解除安裝 相依 清單" },

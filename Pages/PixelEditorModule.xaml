@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.PixelEditorModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid RowSpacing="0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Header + toolbar -->
+        <StackPanel Grid.Row="0" Padding="20,14,20,8" Spacing="8">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <FontIcon FontSize="22" Glyph="&#xE790;" VerticalAlignment="Center" />
+                <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" VerticalAlignment="Center" />
+            </StackPanel>
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <InfoBar x:Name="SubsetNote" IsOpen="True" IsClosable="True" Severity="Informational" />
+        </StackPanel>
+
+        <!-- Command bar -->
+        <Border Grid.Row="1" Padding="20,0,20,8">
+            <StackPanel Orientation="Horizontal" Spacing="8" >
+                <Button x:Name="NewBtn" Click="New_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="6"><FontIcon FontSize="14" Glyph="&#xE710;" /><TextBlock x:Name="NewBtnText" /></StackPanel>
+                </Button>
+                <Button x:Name="ImportBtn" Click="Import_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="6"><FontIcon FontSize="14" Glyph="&#xE8E5;" /><TextBlock x:Name="ImportBtnText" /></StackPanel>
+                </Button>
+                <AppBarSeparator />
+                <Button x:Name="UndoBtn" Click="Undo_Click" IsEnabled="False">
+                    <StackPanel Orientation="Horizontal" Spacing="6"><FontIcon FontSize="14" Glyph="&#xE7A7;" /><TextBlock x:Name="UndoBtnText" /></StackPanel>
+                </Button>
+                <Button x:Name="RedoBtn" Click="Redo_Click" IsEnabled="False">
+                    <StackPanel Orientation="Horizontal" Spacing="6"><FontIcon FontSize="14" Glyph="&#xE7A6;" /><TextBlock x:Name="RedoBtnText" /></StackPanel>
+                </Button>
+                <AppBarSeparator />
+                <TextBlock x:Name="ZoomLabel" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                <Slider x:Name="ZoomSlider" Width="140" Minimum="1" Maximum="32" Value="12" VerticalAlignment="Center" ValueChanged="Zoom_Changed" />
+                <CheckBox x:Name="GridCheck" IsChecked="True" Click="Grid_Click" VerticalAlignment="Center" />
+                <AppBarSeparator />
+                <Button x:Name="ExportPngBtn" Click="ExportPng_Click" Style="{StaticResource AccentButtonStyle}">
+                    <StackPanel Orientation="Horizontal" Spacing="6"><FontIcon FontSize="14" Glyph="&#xE8B9;" /><TextBlock x:Name="ExportPngText" /></StackPanel>
+                </Button>
+                <Button x:Name="ExportGifBtn" Click="ExportGif_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="6"><FontIcon FontSize="14" Glyph="&#xE786;" /><TextBlock x:Name="ExportGifText" /></StackPanel>
+                </Button>
+                <Button x:Name="AsepriteBtn" Click="Aseprite_Click" Visibility="Collapsed">
+                    <StackPanel Orientation="Horizontal" Spacing="6"><FontIcon FontSize="14" Glyph="&#xE8A7;" /><TextBlock x:Name="AsepriteText" /></StackPanel>
+                </Button>
+            </StackPanel>
+        </Border>
+
+        <!-- Main editor: tools | canvas | side panels -->
+        <Grid Grid.Row="2" Padding="20,0,20,16" ColumnSpacing="12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="260" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Tool column -->
+            <Border Grid.Column="0" Padding="6" CornerRadius="8"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                    VerticalAlignment="Top">
+                <StackPanel x:Name="ToolStack" Spacing="6" />
+            </Border>
+
+            <!-- Canvas host -->
+            <Border Grid.Column="1" CornerRadius="8"
+                    Background="{ThemeResource LayerFillColorAltBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                <ScrollViewer x:Name="CanvasScroll" ZoomMode="Disabled"
+                              HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollMode="Auto" VerticalScrollMode="Auto"
+                              Padding="20">
+                    <Grid x:Name="CanvasWrap" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <!-- Checkerboard transparency background sits behind the pixel image -->
+                        <Image x:Name="CheckerImage" Stretch="Fill"
+                               HorizontalAlignment="Left" VerticalAlignment="Top" />
+                        <Image x:Name="PixelImage" Stretch="Fill"
+                               HorizontalAlignment="Left" VerticalAlignment="Top"
+                               PointerPressed="Canvas_PointerPressed"
+                               PointerMoved="Canvas_PointerMoved"
+                               PointerReleased="Canvas_PointerReleased"
+                               PointerExited="Canvas_PointerExited" />
+                        <!-- Grid + selection overlay -->
+                        <Canvas x:Name="OverlayCanvas" IsHitTestVisible="False" />
+                    </Grid>
+                </ScrollViewer>
+            </Border>
+
+            <!-- Side panel: colour / palette / layers / frames -->
+            <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
+                <StackPanel Spacing="12">
+
+                    <!-- Active colour + palette -->
+                    <Border Padding="12" CornerRadius="8"
+                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                        <StackPanel Spacing="10">
+                            <TextBlock x:Name="ColorHeader" FontWeight="SemiBold" />
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <Border x:Name="PrimarySwatch" Width="44" Height="44" CornerRadius="6"
+                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" />
+                                <StackPanel Spacing="4" VerticalAlignment="Center">
+                                    <TextBox x:Name="HexInput" Width="120" FontFamily="Consolas" PlaceholderText="#RRGGBB"
+                                             KeyDown="Hex_KeyDown" />
+                                    <Button x:Name="AddSwatchBtn" Click="AddSwatch_Click" Padding="8,2,8,2" />
+                                </StackPanel>
+                            </StackPanel>
+                            <TextBlock x:Name="PaletteLabel" FontWeight="SemiBold" />
+                            <GridView x:Name="PaletteGrid" SelectionMode="None" IsItemClickEnabled="True"
+                                      ItemClick="Palette_ItemClick" Padding="0">
+                                <GridView.ItemContainerStyle>
+                                    <Style TargetType="GridViewItem">
+                                        <Setter Property="Margin" Value="1" />
+                                        <Setter Property="Padding" Value="0" />
+                                        <Setter Property="MinWidth" Value="0" />
+                                        <Setter Property="MinHeight" Value="0" />
+                                    </Style>
+                                </GridView.ItemContainerStyle>
+                            </GridView>
+                            <TextBlock x:Name="RecentLabel" FontWeight="SemiBold" />
+                            <ItemsControl x:Name="RecentColors">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="3" /></ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Layers -->
+                    <Border Padding="12" CornerRadius="8"
+                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                        <StackPanel Spacing="8">
+                            <Grid>
+                                <TextBlock x:Name="LayersHeader" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                <StackPanel Orientation="Horizontal" Spacing="2" HorizontalAlignment="Right">
+                                    <Button x:Name="LayerAddBtn" Click="LayerAdd_Click" Padding="6,2,6,2"><FontIcon FontSize="12" Glyph="&#xE710;" /></Button>
+                                    <Button x:Name="LayerUpBtn" Click="LayerUp_Click" Padding="6,2,6,2"><FontIcon FontSize="12" Glyph="&#xE70E;" /></Button>
+                                    <Button x:Name="LayerDownBtn" Click="LayerDown_Click" Padding="6,2,6,2"><FontIcon FontSize="12" Glyph="&#xE70D;" /></Button>
+                                    <Button x:Name="LayerDelBtn" Click="LayerDel_Click" Padding="6,2,6,2"><FontIcon FontSize="12" Glyph="&#xE74D;" /></Button>
+                                </StackPanel>
+                            </Grid>
+                            <ListView x:Name="LayersList" SelectionMode="Single" MaxHeight="180"
+                                      SelectionChanged="Layers_SelectionChanged" />
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock x:Name="OpacityLabel" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <Slider x:Name="OpacitySlider" Width="120" Minimum="0" Maximum="100" Value="100"
+                                        ValueChanged="Opacity_Changed" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Frames -->
+                    <Border Padding="12" CornerRadius="8"
+                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                        <StackPanel Spacing="8">
+                            <Grid>
+                                <TextBlock x:Name="FramesHeader" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                <StackPanel Orientation="Horizontal" Spacing="2" HorizontalAlignment="Right">
+                                    <Button x:Name="FrameAddBtn" Click="FrameAdd_Click" Padding="6,2,6,2"><FontIcon FontSize="12" Glyph="&#xE710;" /></Button>
+                                    <Button x:Name="FrameDupBtn" Click="FrameDup_Click" Padding="6,2,6,2"><FontIcon FontSize="12" Glyph="&#xE8C8;" /></Button>
+                                    <Button x:Name="FrameLeftBtn" Click="FrameLeft_Click" Padding="6,2,6,2"><FontIcon FontSize="12" Glyph="&#xE76B;" /></Button>
+                                    <Button x:Name="FrameRightBtn" Click="FrameRight_Click" Padding="6,2,6,2"><FontIcon FontSize="12" Glyph="&#xE76C;" /></Button>
+                                    <Button x:Name="FrameDelBtn" Click="FrameDel_Click" Padding="6,2,6,2"><FontIcon FontSize="12" Glyph="&#xE74D;" /></Button>
+                                </StackPanel>
+                            </Grid>
+                            <ListView x:Name="FramesList" SelectionMode="Single" MaxHeight="150"
+                                      SelectionChanged="Frames_SelectionChanged" />
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock x:Name="DelayLabel" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <NumberBox x:Name="DelayBox" Width="90" Minimum="10" Maximum="10000" SmallChange="10"
+                                           SpinButtonPlacementMode="Compact" ValueChanged="Delay_Changed" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button x:Name="PlayBtn" Click="Play_Click">
+                                    <StackPanel Orientation="Horizontal" Spacing="6"><FontIcon FontSize="12" Glyph="&#xE768;" /><TextBlock x:Name="PlayText" /></StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</Page>
