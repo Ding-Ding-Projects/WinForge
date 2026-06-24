@@ -45,6 +45,37 @@ public static class PackerService
         get { lock (_gate) { return _proc is { HasExited: false }; } }
     }
 
+    /// <summary>
+    /// packer 喺唔喺 PATH（純檔案系統探測，唔會開 process）·
+    /// Whether the <c>packer</c> binary resolves on PATH — a cheap synchronous probe that walks PATH
+    /// with PATHEXT-aware extensions and never spawns a process, so it is safe to call from a UI getter.
+    /// 防禦式，永不丟出例外。Defensive — never throws.
+    /// </summary>
+    public static bool IsOnPath()
+    {
+        try
+        {
+            // Try the bare name plus each executable extension PATHEXT advertises (defaults cover .exe).
+            var exts = (Environment.GetEnvironmentVariable("PATHEXT") ?? ".COM;.EXE;.BAT;.CMD")
+                .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var names = new List<string> { Exe };
+            foreach (var e in exts) names.Add(Exe + e);
+
+            var pathVar = Environment.GetEnvironmentVariable("PATH") ?? "";
+            foreach (var dir in pathVar.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
+            {
+                if (string.IsNullOrWhiteSpace(dir)) continue;
+                foreach (var name in names)
+                {
+                    try { if (File.Exists(Path.Combine(dir.Trim(), name))) return true; }
+                    catch { /* ignore malformed PATH entry */ }
+                }
+            }
+        }
+        catch { /* ignore */ }
+        return false;
+    }
+
     /// <summary>packer 裝咗未（行 "packer version"，有輸出就當有）· True if "packer version" produced output.</summary>
     public static async Task<bool> IsInstalledAsync(CancellationToken ct = default)
     {
