@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.AwsCliModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="1100" Spacing="14">
+
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <FontIcon FontSize="24" Glyph="&#xE753;" VerticalAlignment="Center" />
+                <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
+            </StackPanel>
+            <TextBlock
+                x:Name="HeaderBlurb"
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                TextWrapping="Wrap" />
+
+            <InfoBar x:Name="EngineBar" IsClosable="False" IsOpen="False" Severity="Warning" />
+            <InfoBar x:Name="ResultBar" IsClosable="True" IsOpen="False" />
+
+            <!-- ===== A) Auth & context ===== -->
+            <Border
+                Padding="14"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="ContextHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
+                    <Grid ColumnSpacing="10" RowSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock x:Name="ProfileLabel" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" />
+                        <ComboBox x:Name="ProfileBox" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Stretch" SelectionChanged="ProfileBox_Changed" />
+
+                        <TextBlock x:Name="RegionLabel" Grid.Row="0" Grid.Column="2" VerticalAlignment="Center" />
+                        <ComboBox x:Name="RegionBox" Grid.Row="0" Grid.Column="3" HorizontalAlignment="Stretch" SelectionChanged="RegionBox_Changed" />
+
+                        <TextBlock x:Name="OutputLabel" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" />
+                        <ComboBox x:Name="OutputBox" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch" SelectionChanged="OutputBox_Changed" />
+
+                        <StackPanel Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                            <Button x:Name="WhoAmIBtn" Click="WhoAmI_Click" />
+                            <Button x:Name="SsoBtn" Click="Sso_Click" />
+                            <Button x:Name="ConfigureBtn" Click="Configure_Click" />
+                            <Button x:Name="RefreshProfilesBtn" Click="RefreshProfiles_Click" />
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- ===== B) Generic command browser ===== -->
+            <Border
+                Padding="14"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="BrowserHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
+                    <TextBlock x:Name="BrowserHint" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Spacing="4">
+                            <TextBlock x:Name="ServiceLabel" />
+                            <AutoSuggestBox x:Name="ServiceFilter" QueryIcon="Find" TextChanged="ServiceFilter_TextChanged" />
+                            <ListView x:Name="ServiceList" Height="200" SelectionMode="Single"
+                                      SelectionChanged="ServiceList_SelectionChanged"
+                                      BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Spacing="4">
+                            <TextBlock x:Name="OperationLabel" />
+                            <AutoSuggestBox x:Name="OperationFilter" QueryIcon="Find" TextChanged="OperationFilter_TextChanged" />
+                            <ListView x:Name="OperationList" Height="200" SelectionMode="Single"
+                                      SelectionChanged="OperationList_SelectionChanged"
+                                      BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" />
+                        </StackPanel>
+                    </Grid>
+
+                    <TextBlock x:Name="ParamLabel" FontWeight="SemiBold" />
+                    <ProgressRing x:Name="SkeletonRing" IsActive="False" Width="22" Height="22" HorizontalAlignment="Left" />
+                    <StackPanel x:Name="ParamFields" Spacing="6" />
+                    <TextBlock x:Name="RawJsonLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBox x:Name="ParamJsonBox" AcceptsReturn="True" TextWrapping="Wrap" FontFamily="Consolas" FontSize="12"
+                             Height="120" Visibility="Collapsed" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="ToggleJsonBtn" Click="ToggleJson_Click" />
+                        <Button x:Name="BuildRunBtn" Click="BuildRun_Click" Style="{StaticResource AccentButtonStyle}" />
+                        <Button x:Name="ShowHelpBtn" Click="ShowHelp_Click" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- ===== B2) Raw command box (streamed) ===== -->
+            <Border
+                Padding="14"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="RawHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
+                    <TextBlock x:Name="RawHint" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="aws" VerticalAlignment="Center" FontFamily="Consolas" FontWeight="SemiBold" />
+                        <TextBox x:Name="RawBox" Grid.Column="1" FontFamily="Consolas" KeyDown="RawBox_KeyDown" />
+                    </Grid>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="RawRunBtn" Click="RawRun_Click" Style="{StaticResource AccentButtonStyle}" />
+                        <Button x:Name="RawStopBtn" Click="RawStop_Click" IsEnabled="False" />
+                        <Button x:Name="RawCopyBtn" Click="RawCopy_Click" />
+                        <Button x:Name="RawSaveBtn" Click="RawSave_Click" />
+                        <Button x:Name="RawClearBtn" Click="RawClear_Click" />
+                        <Button x:Name="RawFavBtn" Click="RawFav_Click" />
+                    </StackPanel>
+                    <Border Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="6" Padding="10">
+                        <ScrollViewer x:Name="OutScroller" MaxHeight="320" VerticalScrollBarVisibility="Auto">
+                            <TextBlock x:Name="OutText" FontFamily="Consolas" FontSize="12" IsTextSelectionEnabled="True" TextWrapping="Wrap" />
+                        </ScrollViewer>
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <!-- ===== History & favorites ===== -->
+            <Border
+                Padding="14"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <StackPanel Spacing="8">
+                    <Grid>
+                        <TextBlock x:Name="HistHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
+                        <Button x:Name="ClearHistBtn" Click="ClearHist_Click" HorizontalAlignment="Right" />
+                    </Grid>
+                    <Pivot x:Name="HistPivot">
+                        <PivotItem x:Name="HistTab">
+                            <ListView x:Name="HistoryList" Height="160" SelectionMode="Single"
+                                      DoubleTapped="HistoryList_DoubleTapped"
+                                      BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" />
+                        </PivotItem>
+                        <PivotItem x:Name="FavTab">
+                            <ListView x:Name="FavoritesList" Height="160" SelectionMode="Single"
+                                      DoubleTapped="FavoritesList_DoubleTapped"
+                                      BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" />
+                        </PivotItem>
+                    </Pivot>
+                </StackPanel>
+            </Border>
+
+            <!-- ===== C) Rich service panels ===== -->
+            <TextBlock x:Name="ServicePanelsHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
+            <TextBlock x:Name="ServicePanelsHint" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+            <StackPanel x:Name="ServicePanels" Spacing="8" />
+
+        </StackPanel>
+    </ScrollViewer>
+</Page>

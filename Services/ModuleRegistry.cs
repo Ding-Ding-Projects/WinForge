@@ -122,6 +122,7 @@ public static class ModuleRegistry
         new() { Tag = "module.bitwarden", En = "Bitwarden Vault", Zh = "Bitwarden 密碼庫", Glyph = ((char)0xE72E).ToString(), Keywords = "bitwarden bw vault password manager login unlock master password totp 2fa two factor generate generator passphrase secret sync clipboard self-hosted vaultwarden 密碼庫 密碼 管理 解鎖 主密碼 驗證碼 產生 同步 機密" },
         new() { Tag = "module.timelens", En = "Activity Timeline", Zh = "活動時間軸", Glyph = ((char)0xE81C).ToString(), Keywords = "timelens activity timeline time tracking tracker foreground window app usage productivity insights idle per-app totals stacked bar export csv 活動 時間軸 時間追蹤 前景 視窗 應用程式 使用量 生產力 閒置 匯出" },
         new() { Tag = "module.quicktype", En = "quicktype", Zh = "JSON 轉型別", Glyph = ((char)0xE943).ToString(), Keywords = "quicktype json schema typescript graphql postman code generator type csharp c# python go rust java kotlin swift objective-c c++ dart ruby elm php scala types just-types namespace newtonsoft system.text.json npm node jsontotype codegen 程式碼產生 型別 產生 轉換 結構" },
+        new() { Tag = "module.aws", En = "AWS CLI", Zh = "AWS 命令列", Glyph = ((char)0xE753).ToString(), Keywords = "aws amazon web services cli s3 ec2 iam lambda cloudwatch logs sts profile credentials region sso configure bucket instance describe generic command browser skeleton dynamodb sns sqs ssm cloudformation route53 rds 雲端 命令列 設定檔 憑證 區域 儲存桶 執行個體" },
     };
 
     public static IEnumerable<ModuleInfo> Search(string query)

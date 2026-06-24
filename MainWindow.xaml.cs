@@ -194,6 +194,11 @@ public sealed partial class MainWindow : Window
             case "jsontotype":
             case "codegen":
                 Navigator.GoToModule?.Invoke("module.quicktype");
+            case "aws":
+            case "awscli":
+            case "s3":
+            case "ec2":
+                Navigator.GoToModule?.Invoke("module.aws");
                 break;
             case "archives":
             case "archive":
@@ -635,6 +640,7 @@ public sealed partial class MainWindow : Window
         "module.filezilla" => typeof(FileZillaModule),
         "module.bitwarden" => typeof(BitwardenModule),
         "module.quicktype" => typeof(QuickTypeModule),
+        "module.aws" => typeof(AwsCliModule),
         "module.archives" => typeof(ArchivesModule),
         "module.media" => typeof(MediaModule),
         "module.audioeditor" => typeof(AudioEditorModule),
