@@ -12,6 +12,7 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
@@ -33,9 +34,28 @@
         </Grid>
         <TextBlock x:Name="HeaderBlurb" Grid.Row="1" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
 
-        <InfoBar x:Name="HintBar" Grid.Row="2" IsClosable="True" IsOpen="False" Margin="0,2,0,0" />
+        <!-- Device picker row: choose which playback device the mixer shows + make it system default. -->
+        <Grid Grid.Row="2" ColumnSpacing="12" Margin="0,2,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Name="DeviceLabel" Grid.Column="0" VerticalAlignment="Center"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            <ComboBox x:Name="DevicePicker" Grid.Column="1" HorizontalAlignment="Stretch"
+                      SelectionChanged="DevicePicker_SelectionChanged" />
+            <Button x:Name="SetDefaultBtn" Grid.Column="2" Click="SetDefault_Click" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE73E;" FontSize="14" />
+                    <TextBlock x:Name="SetDefaultText" />
+                </StackPanel>
+            </Button>
+        </Grid>
 
-        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto">
+        <InfoBar x:Name="HintBar" Grid.Row="3" IsClosable="True" IsOpen="False" Margin="0,2,0,0" />
+
+        <ScrollViewer Grid.Row="4" VerticalScrollBarVisibility="Auto">
             <StackPanel x:Name="Root" Spacing="10" />
         </ScrollViewer>
     </Grid>
