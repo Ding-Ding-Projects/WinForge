@@ -23,6 +23,40 @@ public sealed class AiInstallMethod
 }
 
 /// <summary>
+/// 設定檔嘅種類，決定點樣驗證／提示 · Kind of config file, drives validation/hints.
+/// </summary>
+public enum AiConfigKind
+{
+    Json,
+    Toml,
+    Markdown,
+    Text,
+}
+
+/// <summary>
+/// 一個代理嘅設定檔 · One config file belonging to an agent.
+/// RelativePath 係相對於使用者主目錄（~）嘅路徑，例如 ".claude/settings.json"。
+/// RelativePath is relative to the user's home (~), e.g. ".claude/settings.json".
+/// 如果 UseXdgConfig 為真，路徑會以 XDG_CONFIG_HOME（或 ~/.config）為基底。
+/// When UseXdgConfig is true, the path is rooted at XDG_CONFIG_HOME (or ~/.config).
+/// </summary>
+public sealed class AiConfigFile
+{
+    public string LabelEn { get; init; } = "";
+    public string LabelZh { get; init; } = "";
+
+    /// <summary>相對路徑（用「/」分隔）· Relative path, "/"-separated.</summary>
+    public string RelativePath { get; init; } = "";
+
+    public AiConfigKind Kind { get; init; } = AiConfigKind.Text;
+
+    /// <summary>true = 以 XDG_CONFIG_HOME／~/.config 為基底，否則以 ~ 為基底。</summary>
+    public bool UseXdgConfig { get; init; }
+
+    public string Label => Loc.I.Pick(LabelEn, LabelZh);
+}
+
+/// <summary>
 /// 一個終端機 AI 編程代理 · One terminal AI coding agent (Claude Code, Codex, opencode…).
 /// 包含偵測／啟動用嘅 CLI、文件連結、API key 環境變數，同一系列安裝方法。
 /// Carries the CLI used to detect/launch it, docs link, API-key env var, and install methods.
@@ -44,6 +78,9 @@ public sealed class AiAgent
     public string? EnvKey { get; init; }
 
     public IReadOnlyList<AiInstallMethod> InstallMethods { get; init; } = Array.Empty<AiInstallMethod>();
+
+    /// <summary>已知設定檔（路徑相對於 ~ 或 XDG）· Known config files for this agent.</summary>
+    public IReadOnlyList<AiConfigFile> ConfigFiles { get; init; } = Array.Empty<AiConfigFile>();
 
     /// <summary>主要語言名 · Name in the primary language.</summary>
     public string Name => Loc.I.Pick(NameEn, NameZh);
@@ -98,6 +135,11 @@ public static class AiAgentService
                 Npm("@anthropic-ai/claude-code"),
                 Official("irm https://claude.ai/install.ps1 | iex"),
             },
+            ConfigFiles = new[]
+            {
+                new AiConfigFile { LabelEn = "settings.json", LabelZh = "settings.json", RelativePath = ".claude/settings.json", Kind = AiConfigKind.Json },
+                new AiConfigFile { LabelEn = "CLAUDE.md", LabelZh = "CLAUDE.md", RelativePath = ".claude/CLAUDE.md", Kind = AiConfigKind.Markdown },
+            },
         },
         new AiAgent
         {
@@ -112,6 +154,11 @@ public static class AiAgentService
             InstallMethods = new[]
             {
                 Npm("@openai/codex"),
+            },
+            ConfigFiles = new[]
+            {
+                new AiConfigFile { LabelEn = "config.toml", LabelZh = "config.toml", RelativePath = ".codex/config.toml", Kind = AiConfigKind.Toml },
+                new AiConfigFile { LabelEn = "AGENTS.md", LabelZh = "AGENTS.md", RelativePath = ".codex/AGENTS.md", Kind = AiConfigKind.Markdown },
             },
         },
         new AiAgent
@@ -129,6 +176,11 @@ public static class AiAgentService
                 Npm("opencode-ai"),
                 Official("irm https://opencode.ai/install.ps1 | iex"),
             },
+            ConfigFiles = new[]
+            {
+                new AiConfigFile { LabelEn = "opencode.json", LabelZh = "opencode.json", RelativePath = "opencode/opencode.json", Kind = AiConfigKind.Json, UseXdgConfig = true },
+                new AiConfigFile { LabelEn = "AGENTS.md", LabelZh = "AGENTS.md", RelativePath = ".config/opencode/AGENTS.md", Kind = AiConfigKind.Markdown },
+            },
         },
         new AiAgent
         {
@@ -143,6 +195,10 @@ public static class AiAgentService
             InstallMethods = new[]
             {
                 Npm("@mariozechner/pi-coding-agent"),
+            },
+            ConfigFiles = new[]
+            {
+                new AiConfigFile { LabelEn = "config.json", LabelZh = "config.json", RelativePath = ".pi/config.json", Kind = AiConfigKind.Json },
             },
         },
         new AiAgent
@@ -159,6 +215,11 @@ public static class AiAgentService
             {
                 Npm("openclaw"),
             },
+            // 路徑未經官方文件證實，提供 Browse 後備 · Path not authoritatively documented; Browse fallback provided.
+            ConfigFiles = new[]
+            {
+                new AiConfigFile { LabelEn = "config.json", LabelZh = "config.json", RelativePath = ".openclaw/config.json", Kind = AiConfigKind.Json },
+            },
         },
         new AiAgent
         {
@@ -173,6 +234,11 @@ public static class AiAgentService
             InstallMethods = new[]
             {
                 Official("irm https://hermes-agent.nousresearch.com/install.ps1 | iex"),
+            },
+            // 路徑未經官方文件證實，提供 Browse 後備 · Path not authoritatively documented; Browse fallback provided.
+            ConfigFiles = new[]
+            {
+                new AiConfigFile { LabelEn = "config.json", LabelZh = "config.json", RelativePath = ".hermes/config.json", Kind = AiConfigKind.Json },
             },
         },
     };
