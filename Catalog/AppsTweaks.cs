@@ -60,10 +60,10 @@ public static class AppsTweaks
             "Restart", "重啟", "net stop spooler & net start spooler",
             requiresAdmin: true, keywords: "print,spooler,列印,service"),
 
-        Tweak.Powershell("apps.top-memory", "Top processes by memory", "記憶體用量最高嘅程序",
+        Tweak.Table("apps.top-memory", "Top processes by memory", "記憶體用量最高嘅程序",
             "List the 15 processes using the most memory right now.", "列出而家食記憶體最多嘅 15 個程序。",
             "Show", "顯示",
-            "Get-Process | Sort-Object WorkingSet -Descending | Select-Object -First 15 Name,@{n='MB';e={[int]($_.WorkingSet/1MB)}} | Format-Table -Auto | Out-String",
+            "Get-Process | Sort-Object WorkingSet -Descending | Select-Object -First 15 Name,@{n='MB';e={[int]($_.WorkingSet/1MB)}},Id",
             keywords: "memory,記憶體,process,程序,ram"),
 
         Tweak.Cmd("apps.kill-not-responding", "Kill 'Not Responding' apps", "結束無回應嘅應用程式",
@@ -71,10 +71,10 @@ public static class AppsTweaks
             "Kill", "結束", "taskkill /F /FI \"STATUS eq NOT RESPONDING\"",
             destructive: true, keywords: "not responding,無回應,hang,kill,當機"),
 
-        Tweak.Powershell("apps.list-autostart", "List auto-start programs", "列出自動啟動程式",
+        Tweak.Table("apps.list-autostart", "List auto-start programs", "列出自動啟動程式",
             "List programs that launch automatically at startup (Run keys).", "列出開機時經 Run 機碼自動啟動嘅程式。",
             "List", "列出",
-            "Get-CimInstance Win32_StartupCommand | Select-Object Name,Command,Location | Format-Table -Auto | Out-String",
+            "Get-CimInstance Win32_StartupCommand | Select-Object Name,Command,Location",
             keywords: "startup,autostart,自動啟動,run"),
 
         Tweak.Cmd("apps.analyze-component-store", "Analyze component store", "分析元件存放區",
