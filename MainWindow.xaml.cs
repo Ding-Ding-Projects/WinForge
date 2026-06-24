@@ -196,6 +196,10 @@ public sealed partial class MainWindow : Window
             case "download":
             case "downloader":
                 Navigator.GoToModule?.Invoke("module.ytdlp");
+            case "blender":
+            case "render":
+            case "3d":
+                Navigator.GoToModule?.Invoke("module.blender");
                 break;
             case "regedit":
             case "registry":
@@ -566,6 +570,7 @@ public sealed partial class MainWindow : Window
         "module.audioeditor" => typeof(AudioEditorModule),
         "module.mediaplayer" => typeof(MediaPlayerModule),
         "module.ytdlp" => typeof(YtDlpModule),
+        "module.blender" => typeof(BlenderModule),
         "module.regedit" => typeof(RegistryEditor),
         "module.doctors" => typeof(SystemDoctorsModule),
         "module.services" => typeof(ServicesModule),
