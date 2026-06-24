@@ -21,6 +21,7 @@ public partial class App : Application
 
     private static string? _exportDocsDir;
     private static bool _takeSnapshot;
+    private static bool _applyTheme;
 
     /// <summary>由命令列 "--minimized" 設定：開機自啟動時收入系統匣 · Start hidden in the tray (login startup).</summary>
     public static bool StartMinimized { get; private set; }
@@ -55,6 +56,16 @@ public partial class App : Application
             return;
         }
 
+        // 無頭模式：按 LightSwitch 排程套用主題然後退出（畀每分鐘背景排程工作用）。
+        // Headless mode: evaluate the LightSwitch schedule, apply the theme, then exit
+        // (used by the per-minute background scheduled task so switching works when the app is closed).
+        if (_applyTheme)
+        {
+            WinForge.Services.LightSwitchService.RunHeadlessApply();
+            Exit();
+            return;
+        }
+
         Shell = new MainWindow();
         ApplyThemeFromSettings();
         // 若用戶上次開咗活動追蹤，喺啟動時自動恢復。
@@ -75,6 +86,11 @@ public partial class App : Application
             if (string.Equals(argv[i], "--snapshot", StringComparison.OrdinalIgnoreCase))
             {
                 _takeSnapshot = true;
+                continue;
+            }
+            if (string.Equals(argv[i], "--apply-theme", StringComparison.OrdinalIgnoreCase))
+            {
+                _applyTheme = true;
                 continue;
             }
             if (string.Equals(argv[i], "--minimized", StringComparison.OrdinalIgnoreCase))
