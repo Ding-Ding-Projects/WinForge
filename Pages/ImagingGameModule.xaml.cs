@@ -32,6 +32,7 @@ public sealed partial class ImagingGameModule : Page
         {
             Render();
             await RefreshDisks();
+            await RefreshUsbDisks();
             await RefreshBoot();
             RefreshMcEngine();
             RefreshMcRunState();
@@ -48,6 +49,7 @@ public sealed partial class ImagingGameModule : Page
             "用強力保護將 OS 映像燒落 SD 卡（樹莓派式），同埋執行 Minecraft 世界下載器。");
 
         PiTab.Header = P("Raspberry Pi Imager", "樹莓派燒錄");
+        UsbTab.Header = P("USB imager (Rufus)", "USB 燒錄（Rufus）");
         McTab.Header = P("Minecraft world downloader", "Minecraft 世界下載");
 
         // ── Pi tab ──
@@ -73,6 +75,29 @@ public sealed partial class ImagingGameModule : Page
         UserLbl.Text = P("First user", "第一個使用者");
         UserPwLbl.Text = P("User password", "使用者密碼");
         SeedBtn.Content = P("Write boot config", "寫入啟動設定");
+
+        // ── USB imager (Rufus) tab ──
+        UsbDangerBar.Title = P("DANGER — raw disk write", "危險 — 原始磁碟寫入");
+        UsbDangerBar.Message = P("Writing an image ERASES the entire selected USB drive. Only removable USB drives are listed; the system/boot disk is never offered. You must type the disk number to confirm.",
+            "燒錄會抹掉成個所選 USB 手指。清單只列出可移除嘅 USB 手指；系統／開機磁碟永遠唔會出現。你要輸入磁碟編號先可以確認。");
+
+        UsbStep1.Text = P("1. Choose an ISO / IMG to flash (.iso / .img / .bin)", "1. 揀要燒嘅 ISO／IMG（.iso／.img／.bin）");
+        UsbPickImageBtn.Content = P("Choose image…", "揀映像…");
+        UsbStep2.Text = P("2. Choose the target USB drive", "2. 揀目標 USB 手指");
+        UsbRefreshDisksBtn.Content = P("Refresh", "重新整理");
+        UsbShowAllDisksChk.Content = P("Show all disks (including fixed) — advanced & risky", "顯示全部磁碟（包括固定碟）— 進階兼危險");
+        UsbStep3.Text = P("3. Write (and verify) the image", "3. 燒錄（並校驗）映像");
+        UsbVerifyChk.Content = P("Verify after writing (read back & compare, computes SHA-256)", "燒完之後校驗（讀回比對，計 SHA-256）");
+        UsbModeHint.Text = P("DD-mode raw write: the bytes of the file are written 1:1 to the drive — works for already-bootable ISO/IMG images (most Linux & Raspberry Pi images). For Windows install media, persistence, or ISO→USB filesystem builds, use 'Launch Rufus' below.",
+            "DD 模式原始寫入：檔案嘅位元組原封不動 1:1 寫入手指 — 適用於已可開機嘅 ISO／IMG（大部分 Linux 同樹莓派映像）。如果要 Windows 安裝媒體、持久化分割區，或者 ISO→USB 檔案系統建置，請用下面嘅「啟動 Rufus」。");
+        UsbWriteBtn.Content = P("Write image…", "燒錄映像…");
+        UsbCancelBtn.Content = P("Cancel", "取消");
+
+        UsbAdvancedLbl.Text = P("Advanced boot options — Rufus", "進階開機選項 — Rufus");
+        UsbAdvancedBlurb.Text = P("For UEFI/MBR partition scheme & target system selection, FAT32/NTFS bootloaders, Windows install.wim splitting, Windows-To-Go and persistence, launch Rufus. Rufus is a GUI tool with no automation flags, so it opens without preselecting your drive/ISO — pick them inside Rufus.",
+            "如要 UEFI／MBR 分割區配置同目標系統選擇、FAT32／NTFS 啟動載入器、Windows install.wim 分割、Windows-To-Go 同持久化，請啟動 Rufus。Rufus 係 GUI 工具冇自動化參數，所以開啟時唔會預先揀好磁碟／ISO — 請喺 Rufus 入面自己揀。");
+        UsbLaunchRufusBtn.Content = P("Launch Rufus", "啟動 Rufus");
+        RefreshRufusEngine();
 
         // ── Minecraft tab ──
         McEngineLbl.Text = P("Engine — repo + JDK", "引擎 — repo + JDK");
@@ -306,6 +331,191 @@ public sealed partial class ImagingGameModule : Page
     private void PiNotify(InfoBarSeverity sev, string title, string msg)
     {
         PiResultBar.Severity = sev; PiResultBar.Title = title; PiResultBar.Message = msg; PiResultBar.IsOpen = true;
+    }
+
+    // ════════════════════ USB imager (Rufus) ════════════════════
+
+    private List<PhysicalDisk> _usbDisks = new();
+    private CancellationTokenSource? _usbCts;
+
+    private void RefreshRufusEngine()
+    {
+        bool installed = RufusService.IsInstalled();
+        UsbLaunchRufusBtn.IsEnabled = installed;
+
+        if (installed)
+        {
+            RufusEngineBar.Severity = InfoBarSeverity.Success;
+            RufusEngineBar.Title = P("Rufus is installed", "已安裝 Rufus");
+            RufusEngineBar.Message = P("The native write/verify below needs no binary. Use 'Launch Rufus' for advanced boot options.",
+                "下面嘅原生燒錄／校驗唔需要任何程式。要進階開機選項就撳「啟動 Rufus」。");
+            RufusEngineBar.ActionButton = null;
+        }
+        else
+        {
+            RufusEngineBar.Severity = InfoBarSeverity.Informational;
+            RufusEngineBar.Title = P("Rufus not installed (optional)", "未安裝 Rufus（選用）");
+            RufusEngineBar.Message = P("Native write/verify works without it. Install Rufus only for advanced bootable-media options.",
+                "原生燒錄／校驗唔使佢都用得。淨係要進階可開機媒體選項先需要安裝 Rufus。");
+            RufusEngineBar.ActionButton = EngineBars.AutoInstallButton(
+                RufusService.WingetId, "Install Rufus", "安裝 Rufus",
+                async () => { await Task.Yield(); RefreshRufusEngine(); },
+                () => PackageService.RefreshProcessPath());
+        }
+    }
+
+    private async void UsbPickImage_Click(object sender, RoutedEventArgs e)
+    {
+        var path = await FileDialogs.OpenFileAsync(".iso", ".img", ".bin", ".raw");
+        if (path is null) return;
+        UsbImagePathBox.Text = path;
+        UpdateUsbImageSizeText();
+    }
+
+    private void UpdateUsbImageSizeText()
+    {
+        var path = UsbImagePathBox.Text;
+        if (!string.IsNullOrWhiteSpace(path) && File.Exists(path))
+            UsbImageSizeText.Text = $"{P("Size", "大細")}: {ImagingService.HumanSize(new FileInfo(path).Length)}";
+        else UsbImageSizeText.Text = "";
+    }
+
+    private async void UsbRefreshDisks_Click(object sender, RoutedEventArgs e) => await RefreshUsbDisks();
+    private async void UsbShowAllDisks_Click(object sender, RoutedEventArgs e) => await RefreshUsbDisks();
+
+    private async Task RefreshUsbDisks()
+    {
+        _usbDisks = await ImagingService.ListDisks();
+        bool showAll = UsbShowAllDisksChk.IsChecked == true;
+        var shown = showAll ? _usbDisks : _usbDisks.Where(d => d.LooksSafeTarget).ToList();
+
+        UsbDiskBox.Items.Clear();
+        foreach (var d in shown)
+            UsbDiskBox.Items.Add(new ComboBoxItem { Content = d.Display, Tag = d });
+        if (UsbDiskBox.Items.Count > 0) UsbDiskBox.SelectedIndex = 0;
+
+        UsbDiskWarnText.Text = shown.Count == 0
+            ? P("No removable USB drives found. Insert a USB stick and Refresh. (Tick 'Show all disks' only if you know what you're doing.)",
+                "搵唔到可移除 USB 手指。請插入 USB 手指再重新整理。（除非你好清楚自己做緊乜，否則唔好剔「顯示全部磁碟」。）")
+            : (showAll
+                ? P("All disks shown. Disks marked ⚠SYSTEM cannot be written to.", "已顯示全部磁碟。標咗 ⚠SYSTEM 嘅磁碟唔可以寫入。")
+                : "");
+    }
+
+    private PhysicalDisk? SelectedUsbDisk => (UsbDiskBox.SelectedItem as ComboBoxItem)?.Tag as PhysicalDisk;
+
+    private async void UsbWrite_Click(object sender, RoutedEventArgs e)
+    {
+        if (_busy) return;
+
+        var imagePath = UsbImagePathBox.Text;
+        if (string.IsNullOrWhiteSpace(imagePath) || !File.Exists(imagePath))
+        {
+            UsbNotify(InfoBarSeverity.Warning, P("Pick an image first", "請先揀映像"), "");
+            return;
+        }
+        var disk = SelectedUsbDisk;
+        if (disk is null)
+        {
+            UsbNotify(InfoBarSeverity.Warning, P("Pick a target USB drive first", "請先揀目標 USB 手指"), "");
+            return;
+        }
+        if (disk.IsSystem || disk.IsBoot)
+        {
+            UsbNotify(InfoBarSeverity.Error, P("Refused", "拒絕"), P("That is the system/boot disk.", "嗰個係系統／開機磁碟。"));
+            return;
+        }
+        if (!AdminHelper.IsElevated)
+        {
+            await ShowAdminDialog();
+            return;
+        }
+
+        var imageSize = new FileInfo(imagePath).Length;
+        if (imageSize > disk.Size)
+        {
+            UsbNotify(InfoBarSeverity.Error, P("Image too big", "映像太大"),
+                $"{ImagingService.HumanSize(imageSize)} > {ImagingService.HumanSize(disk.Size)}");
+            return;
+        }
+
+        if (!await ConfirmWrite(disk, imagePath, imageSize)) return;
+
+        bool doVerify = UsbVerifyChk.IsChecked == true;
+        _busy = true;
+        _usbCts = new CancellationTokenSource();
+        UsbWriteBtn.IsEnabled = false;
+        UsbCancelBtn.IsEnabled = true;
+        UsbProgress.Visibility = Visibility.Visible;
+        UsbProgress.Value = 0;
+        UsbProgressText.Text = P("Writing…", "燒錄緊…");
+
+        var wr = await ImagingService.WriteImage(disk, imagePath, (written, total) =>
+        {
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                double pct = total > 0 ? written * 100.0 / total : 0;
+                UsbProgress.Value = pct;
+                UsbProgressText.Text = $"{P("Writing", "燒錄")}: {ImagingService.HumanSize(written)} / {ImagingService.HumanSize(total)} ({pct:0.0}%)";
+            });
+        }, _usbCts.Token);
+
+        if (!wr.Success)
+        {
+            FinishUsb();
+            UsbNotify(InfoBarSeverity.Error, P("Write failed", "燒錄失敗"), Msg(wr));
+            return;
+        }
+
+        if (doVerify && !_usbCts.IsCancellationRequested)
+        {
+            UsbProgress.Value = 0;
+            UsbProgressText.Text = P("Verifying…", "校驗緊…");
+            var vr = await ImagingService.VerifyImage(disk, imagePath, (read, total) =>
+            {
+                DispatcherQueue.TryEnqueue(() =>
+                {
+                    double pct = total > 0 ? read * 100.0 / total : 0;
+                    UsbProgress.Value = pct;
+                    UsbProgressText.Text = $"{P("Verifying", "校驗")}: {ImagingService.HumanSize(read)} / {ImagingService.HumanSize(total)} ({pct:0.0}%)";
+                });
+            }, _usbCts.Token);
+
+            FinishUsb();
+            UsbNotify(vr.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error,
+                vr.Success ? P("Write + verify complete", "燒錄＋校驗完成") : P("Verify failed", "校驗失敗"), Msg(vr));
+            UsbProgressText.Text = vr.Success
+                ? P("Done — the USB drive matches the image. You can safely remove it.", "完成 — USB 手指同映像一致。你可以安全移除佢。")
+                : Msg(vr);
+        }
+        else
+        {
+            FinishUsb();
+            UsbNotify(InfoBarSeverity.Success, P("Write complete", "燒錄完成"), Msg(wr));
+            UsbProgressText.Text = P("Done (no verify). You can safely remove the USB drive.", "完成（冇校驗）。你可以安全移除 USB 手指。");
+        }
+    }
+
+    private void FinishUsb()
+    {
+        _busy = false;
+        UsbWriteBtn.IsEnabled = true;
+        UsbCancelBtn.IsEnabled = false;
+        UsbProgress.Visibility = Visibility.Collapsed;
+    }
+
+    private void UsbCancel_Click(object sender, RoutedEventArgs e) => _usbCts?.Cancel();
+
+    private async void UsbLaunchRufus_Click(object sender, RoutedEventArgs e)
+    {
+        var r = await RufusService.Launch();
+        UsbNotify(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error,
+            r.Success ? P("Rufus launched", "已啟動 Rufus") : P("Could not launch Rufus", "啟動唔到 Rufus"), Msg(r));
+    }
+
+    private void UsbNotify(InfoBarSeverity sev, string title, string msg)
+    {
+        UsbResultBar.Severity = sev; UsbResultBar.Title = title; UsbResultBar.Message = msg; UsbResultBar.IsOpen = true;
     }
 
     // ════════════════════ Minecraft world downloader ════════════════════

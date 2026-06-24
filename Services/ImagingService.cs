@@ -278,6 +278,113 @@ $disks | ConvertTo-Json -Depth 4";
         return 0;
     }
 
+    /// <summary>
+    /// 寫入後讀回校驗 · After a write, read the disk back and compare it byte-for-byte against the source
+    /// image (only the image's length is compared; trailing disk bytes are ignored). Streams in 4 MiB
+    /// blocks with live progress and cancellation. Also computes the SHA-256 of the image bytes read back
+    /// from the device, returned in the result's Output. MUST be elevated (raw read of the device).
+    /// </summary>
+    public static Task<TweakResult> VerifyImage(PhysicalDisk disk, string imagePath, ProgressHandler? progress,
+        CancellationToken ct = default)
+        => Task.Run(() => VerifyImageCore(disk, imagePath, progress, ct), ct);
+
+    private static TweakResult VerifyImageCore(PhysicalDisk disk, string imagePath, ProgressHandler? progress, CancellationToken ct)
+    {
+        if (!AdminHelper.IsElevated)
+            return TweakResult.Fail("Reading back a raw disk needs administrator rights.", "讀回原始磁碟需要管理員權限。");
+        if (!File.Exists(imagePath))
+            return TweakResult.Fail("Image file not found.", "搵唔到映像檔。");
+
+        long imageSize = new FileInfo(imagePath).Length;
+        if (imageSize <= 0)
+            return TweakResult.Fail("Image file is empty.", "映像檔係空嘅。");
+
+        try
+        {
+            using var diskHandle = CreateFile(disk.DevicePath, GENERIC_READ,
+                FILE_SHARE_READ | FILE_SHARE_WRITE, IntPtr.Zero, OPEN_EXISTING,
+                FILE_FLAG_NO_BUFFERING, IntPtr.Zero);
+            if (diskHandle.IsInvalid)
+            {
+                int err = Marshal.GetLastWin32Error();
+                return TweakResult.Fail($"Could not open {disk.DevicePath} for verify (error {err}). Run as administrator.",
+                    $"開唔到 {disk.DevicePath} 做校驗（錯誤 {err}）。請以管理員身分執行。");
+            }
+
+            const int block = 4 * 1024 * 1024;
+            const int sector = 512;
+            var diskBuf = new byte[block];
+            var imgBuf = new byte[block];
+            long compared = 0;
+
+            using var sha = System.Security.Cryptography.SHA256.Create();
+            using var diskStream = new FileStream(diskHandle, FileAccess.Read, block);
+            using var src = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read, block);
+
+            while (compared < imageSize)
+            {
+                ct.ThrowIfCancellationRequested();
+
+                long remaining = imageSize - compared;
+                // No-buffering reads must be sector-aligned in size; read a full (padded) block.
+                int want = (int)Math.Min(block, ((remaining + sector - 1) / sector) * sector);
+
+                int diskRead = ReadFull(diskStream, diskBuf, want);
+                int imgRead = ReadFull(src, imgBuf, (int)Math.Min(block, remaining));
+
+                if (imgRead <= 0) break;
+                int cmp = (int)Math.Min(imgRead, remaining);
+
+                for (int i = 0; i < cmp; i++)
+                {
+                    if (i >= diskRead || diskBuf[i] != imgBuf[i])
+                        return TweakResult.Fail(
+                            $"Verify FAILED at byte {compared + i:N0}: the disk does not match the image. Re-write the disk.",
+                            $"校驗失敗，喺第 {compared + i:N0} 個位元組：磁碟同映像唔一致。請重新燒錄。");
+                }
+
+                sha.TransformBlock(imgBuf, 0, cmp, null, 0);
+                compared += cmp;
+                progress?.Invoke(Math.Min(compared, imageSize), imageSize);
+            }
+
+            if (compared < imageSize)
+                return TweakResult.Fail(
+                    $"Verify incomplete: only {HumanSize(compared)} of {HumanSize(imageSize)} could be read back.",
+                    $"校驗未完成：只讀返到 {HumanSize(compared)}／{HumanSize(imageSize)}。");
+
+            sha.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+            var hash = sha.Hash is { } h ? Convert.ToHexString(h).ToLowerInvariant() : "";
+            progress?.Invoke(imageSize, imageSize);
+
+            return TweakResult.Ok(
+                $"Verify PASSED — {HumanSize(imageSize)} on {disk.DevicePath} matches the image. SHA-256: {hash}",
+                $"校驗通過 — {disk.DevicePath} 上嘅 {HumanSize(imageSize)} 同映像一致。SHA-256：{hash}",
+                hash);
+        }
+        catch (OperationCanceledException)
+        {
+            return TweakResult.Fail("Verify cancelled.", "已取消校驗。");
+        }
+        catch (Exception ex)
+        {
+            return TweakResult.Fail(ex.Message, $"出錯：{ex.Message}");
+        }
+    }
+
+    /// <summary>Read exactly <paramref name="count"/> bytes (or until EOF) into the buffer.</summary>
+    private static int ReadFull(Stream s, byte[] buf, int count)
+    {
+        int total = 0;
+        while (total < count)
+        {
+            int n = s.Read(buf, total, count - total);
+            if (n <= 0) break;
+            total += n;
+        }
+        return total;
+    }
+
     // ── Boot-partition pre-seed (ssh / wifi / user) ──────────────────────────
 
     /// <summary>
