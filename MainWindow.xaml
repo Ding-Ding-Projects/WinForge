@@ -129,6 +129,7 @@
                         <NavigationViewItem Content="Git &amp; GitHub · Git 與 GitHub" Tag="module.git"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8AB;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="AI Agents · AI 代理" Tag="module.aiagents"><NavigationViewItem.Icon><FontIcon Glyph="&#xE99A;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Cloudflare &amp; Tunnel · Cloudflare 與 Tunnel" Tag="module.cloudflare"><NavigationViewItem.Icon><FontIcon Glyph="&#xE753;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Packer (Image Builder) · Packer（映像建置器）" Tag="module.packer"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7B8;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Config &amp; Backup · 設定與備份" Tag="module.configbackup"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8F7;" /></NavigationViewItem.Icon></NavigationViewItem>
                     </NavigationViewItem.MenuItems>
                 </NavigationViewItem>
