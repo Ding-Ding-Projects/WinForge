@@ -433,6 +433,11 @@ public sealed partial class MainWindow : Window
             case "news":
             case "geopolitics":
                 Navigator.GoToModule?.Invoke("module.worldmonitor");
+            case "taskbar":
+            case "taskbartweaker":
+            case "taskbar-tweaker":
+            case "module.taskbar-tweaker":
+                Navigator.GoToModule?.Invoke("module.taskbar-tweaker");
                 break;
             case null:
             case "":
@@ -553,6 +558,7 @@ public sealed partial class MainWindow : Window
         "module.events" => typeof(EventViewerModule),
         "module.mixer" => typeof(VolumeMixerModule),
         "module.contextmenu" => typeof(ContextMenuModule),
+        "module.taskbar-tweaker" => typeof(TaskbarTweakerModule),
         "module.awake" => typeof(AwakeModule),
         "module.colorpicker" => typeof(ColorPickerModule),
         "module.envvars" => typeof(EnvVarsModule),
