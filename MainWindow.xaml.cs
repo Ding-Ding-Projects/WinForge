@@ -566,6 +566,11 @@ public sealed partial class MainWindow : Window
             case "remotedesktop":
                 Navigator.GoToModule?.Invoke("module.rustdesk");
                 break;
+            case "cmdnotfound":
+            case "commandnotfound":
+            case "winget-suggest":
+                Navigator.GoToModule?.Invoke("module.cmdnotfound");
+                break;
             case null:
             case "":
             case "dashboard":
@@ -661,6 +666,7 @@ public sealed partial class MainWindow : Window
         "module.bitwarden" => typeof(BitwardenModule),
         "module.quicktype" => typeof(QuickTypeModule),
         "module.aws" => typeof(AwsCliModule),
+        "module.cmdnotfound" => typeof(CmdNotFoundModule),
         "module.archives" => typeof(ArchivesModule),
         "module.media" => typeof(MediaModule),
         "module.audioeditor" => typeof(AudioEditorModule),

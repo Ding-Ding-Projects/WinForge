@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.CmdNotFoundModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="1100" Spacing="14">
+
+            <!-- Header -->
+            <Grid ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12">
+                    <FontIcon FontSize="24" Glyph="&#xE756;" VerticalAlignment="Center" />
+                    <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" VerticalAlignment="Center" />
+                </StackPanel>
+                <Button Grid.Column="1" x:Name="RefreshBtn" Click="Refresh_Click" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <FontIcon FontSize="14" Glyph="&#xE72C;" />
+                        <TextBlock x:Name="RefreshLabel" />
+                    </StackPanel>
+                </Button>
+            </Grid>
+
+            <TextBlock
+                x:Name="HeaderBlurb"
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                TextWrapping="Wrap" />
+
+            <InfoBar x:Name="ResultBar" IsClosable="True" IsOpen="False" />
+            <ProgressBar x:Name="Busy" IsIndeterminate="True" Visibility="Collapsed" />
+
+            <!-- ===== A) Status card ===== -->
+            <Border
+                Padding="16"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <TextBlock x:Name="StatusHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
+
+                    <!-- pwsh -->
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <FontIcon x:Name="PwshIcon" Grid.Column="0" FontSize="18" Glyph="&#xE9CE;" VerticalAlignment="Center" />
+                        <StackPanel Grid.Column="1" Spacing="1">
+                            <TextBlock x:Name="PwshTitle" FontWeight="SemiBold" />
+                            <TextBlock x:Name="PwshDetail" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <Button x:Name="PwshActionBtn" Grid.Column="2" VerticalAlignment="Center" Click="PwshAction_Click" Visibility="Collapsed" />
+                    </Grid>
+
+                    <!-- CNF module -->
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <FontIcon x:Name="ModuleIcon" Grid.Column="0" FontSize="18" Glyph="&#xE9CE;" VerticalAlignment="Center" />
+                        <StackPanel Grid.Column="1" Spacing="1">
+                            <TextBlock x:Name="ModuleTitle" FontWeight="SemiBold" />
+                            <TextBlock x:Name="ModuleDetail" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                            <Button x:Name="InstallModuleBtn" Click="InstallModule_Click" Visibility="Collapsed" />
+                            <Button x:Name="UpdateModuleBtn" Click="UpdateModule_Click" Visibility="Collapsed" />
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Profile hook -->
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <FontIcon x:Name="HookIcon" Grid.Column="0" FontSize="18" Glyph="&#xE9CE;" VerticalAlignment="Center" />
+                        <StackPanel Grid.Column="1" Spacing="1">
+                            <TextBlock x:Name="HookTitle" FontWeight="SemiBold" />
+                            <TextBlock x:Name="HookDetail" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                            <Button x:Name="EnableBtn" Style="{StaticResource AccentButtonStyle}" Click="Enable_Click" Visibility="Collapsed" />
+                            <Button x:Name="DisableBtn" Click="Disable_Click" Visibility="Collapsed" />
+                            <Button x:Name="ViewProfileBtn" Click="ViewProfile_Click" />
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- ===== B) Test ===== -->
+            <Border
+                Padding="16"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="TestHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
+                    <TextBlock x:Name="TestBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" TextWrapping="Wrap" />
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="TestInput" Grid.Column="0" Text="pyton" />
+                        <Button x:Name="TestBtn" Grid.Column="1" Click="Test_Click">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon FontSize="14" Glyph="&#xE768;" />
+                                <TextBlock x:Name="TestBtnLabel" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                    <Border
+                        x:Name="TestOutputPanel"
+                        Visibility="Collapsed"
+                        Background="#FF0C0C0C"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="6">
+                        <ScrollViewer MaxHeight="220" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Padding="12">
+                            <TextBox
+                                x:Name="TestOutput"
+                                IsReadOnly="True"
+                                AcceptsReturn="True"
+                                TextWrapping="NoWrap"
+                                BorderThickness="0"
+                                Background="Transparent"
+                                Foreground="#FFE6E6E6"
+                                FontFamily="Consolas"
+                                FontSize="13"
+                                IsSpellCheckEnabled="False" />
+                        </ScrollViewer>
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <!-- ===== C) In-app winget lookup ===== -->
+            <Border
+                Padding="16"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="LookupHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
+                    <TextBlock x:Name="LookupBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" TextWrapping="Wrap" />
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="LookupInput" Grid.Column="0" KeyDown="Lookup_KeyDown" />
+                        <Button x:Name="LookupBtn" Grid.Column="1" Click="Lookup_Click">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon FontSize="14" Glyph="&#xE721;" />
+                                <TextBlock x:Name="LookupBtnLabel" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                    <Border
+                        x:Name="LookupOutputPanel"
+                        Visibility="Collapsed"
+                        Background="#FF0C0C0C"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="6">
+                        <ScrollViewer MaxHeight="280" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Padding="12">
+                            <TextBox
+                                x:Name="LookupOutput"
+                                IsReadOnly="True"
+                                AcceptsReturn="True"
+                                TextWrapping="NoWrap"
+                                BorderThickness="0"
+                                Background="Transparent"
+                                Foreground="#FFE6E6E6"
+                                FontFamily="Consolas"
+                                FontSize="13"
+                                IsSpellCheckEnabled="False" />
+                        </ScrollViewer>
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <!-- ===== D) Profile viewer (collapsible) ===== -->
+            <Border
+                Padding="16"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="ProfileHeader" Grid.Column="0" Style="{StaticResource SubtitleTextBlockStyle}" VerticalAlignment="Center" />
+                        <Button x:Name="OpenEditorBtn" Grid.Column="1" Click="OpenEditor_Click">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon FontSize="14" Glyph="&#xE8A7;" />
+                                <TextBlock x:Name="OpenEditorLabel" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                    <TextBlock x:Name="ProfilePathText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" FontFamily="Consolas" IsTextSelectionEnabled="True" TextWrapping="Wrap" />
+                    <Border
+                        Background="{ThemeResource ControlFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="6">
+                        <ScrollViewer MaxHeight="240" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Padding="12">
+                            <TextBox
+                                x:Name="ProfileText"
+                                IsReadOnly="True"
+                                AcceptsReturn="True"
+                                TextWrapping="NoWrap"
+                                BorderThickness="0"
+                                Background="Transparent"
+                                FontFamily="Consolas"
+                                FontSize="13"
+                                IsSpellCheckEnabled="False" />
+                        </ScrollViewer>
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <!-- ===== E) Bilingual explainer ===== -->
+            <Border
+                Padding="16"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <StackPanel Spacing="8">
+                    <TextBlock x:Name="ExplainHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
+                    <TextBlock x:Name="ExplainEn" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBlock x:Name="ExplainZh" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <HyperlinkButton x:Name="LearnMoreLink" NavigateUri="https://learn.microsoft.com/windows/package-manager/winget/" Padding="0,4,0,0" />
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</Page>
