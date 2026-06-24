@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.OllamaModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid Padding="24,16,24,16" RowSpacing="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Spacing="6">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <FontIcon FontSize="22" Glyph="&#xE99A;" VerticalAlignment="Center" />
+                <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
+                <Border x:Name="VersionPill" Background="{ThemeResource SystemFillColorSuccessBackgroundBrush}" CornerRadius="10" Padding="10,2" VerticalAlignment="Center" Visibility="Collapsed">
+                    <TextBlock x:Name="VersionText" FontSize="12" Foreground="{ThemeResource SystemFillColorSuccessBrush}" />
+                </Border>
+            </StackPanel>
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+        </StackPanel>
+
+        <!-- Engine bar (install / start serve) -->
+        <InfoBar Grid.Row="1" x:Name="EngineBar" IsClosable="False" IsOpen="False" Severity="Warning" />
+
+        <!-- Connection / base URL -->
+        <Border Grid.Row="2" Padding="16,12,16,12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+            <Grid ColumnSpacing="8" RowSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Name="UrlLabel" Grid.Column="0" VerticalAlignment="Center" FontWeight="SemiBold" />
+                <TextBox x:Name="UrlBox" Grid.Column="1" FontFamily="Consolas" PlaceholderText="http://localhost:11434" />
+                <Button x:Name="SaveUrlBtn" Grid.Column="2" Click="SaveUrl_Click" />
+                <Button x:Name="RefreshBtn" Grid.Column="3" Click="Refresh_Click" Style="{StaticResource AccentButtonStyle}" />
+                <ProgressRing x:Name="ProbeBusy" Grid.Column="4" IsActive="False" Width="20" Height="20" VerticalAlignment="Center" />
+            </Grid>
+        </Border>
+
+        <!-- Tabs -->
+        <Pivot Grid.Row="3" x:Name="Tabs">
+
+            <!-- Installed models -->
+            <PivotItem x:Name="TabModels">
+                <Grid RowSpacing="10" Margin="0,12,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="ReloadModelsBtn" Click="ReloadModels_Click" />
+                        <TextBlock x:Name="ModelsCount" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <ProgressRing x:Name="ModelsBusy" IsActive="False" Width="18" Height="18" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <InfoBar x:Name="ModelsEmpty" Grid.Row="1" VerticalAlignment="Top" IsClosable="False" IsOpen="False" Severity="Informational" />
+                    <ListView x:Name="ModelsList" Grid.Row="1" SelectionMode="None">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Padding="4,8,4,8" ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Spacing="2">
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding Detail}" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="1" Text="{Binding SizeText}" VerticalAlignment="Center" FontFamily="Consolas" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock Grid.Column="2" Text="{Binding ModifiedText}" VerticalAlignment="Center" FontSize="12" Margin="6,0,0,0" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                                    <Button Grid.Column="3" Tag="{Binding Name}" Click="DeleteModel_Click" Background="Transparent" BorderThickness="0" ToolTipService.ToolTip="Delete · 刪除">
+                                        <FontIcon FontSize="15" Glyph="&#xE74D;" Foreground="{ThemeResource SystemFillColorCriticalBrush}" />
+                                    </Button>
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </Grid>
+            </PivotItem>
+
+            <!-- Pull a model -->
+            <PivotItem x:Name="TabPull">
+                <StackPanel Spacing="12" Margin="0,12,0,0">
+                    <TextBlock x:Name="PullBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <AutoSuggestBox x:Name="PullNameBox" Grid.Column="0" FontFamily="Consolas" PlaceholderText="llama3.2  ·  mistral  ·  qwen2.5:7b  ·  gemma2:2b" />
+                        <Button x:Name="PullBtn" Grid.Column="1" Click="Pull_Click" Style="{StaticResource AccentButtonStyle}" />
+                        <Button x:Name="CancelPullBtn" Grid.Column="2" Click="CancelPull_Click" IsEnabled="False" />
+                    </Grid>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock x:Name="PullSuggestLabel" VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <ItemsControl x:Name="PullSuggestions">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="6" /></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                    </StackPanel>
+                    <Border x:Name="PullProgressCard" Visibility="Collapsed" Padding="14,12,14,12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                        <StackPanel Spacing="8">
+                            <TextBlock x:Name="PullStatusText" FontWeight="SemiBold" />
+                            <ProgressBar x:Name="PullBar" Minimum="0" Maximum="1" Value="0" />
+                            <TextBlock x:Name="PullBytesText" FontSize="12" FontFamily="Consolas" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+                    </Border>
+                    <InfoBar x:Name="PullResult" IsClosable="True" IsOpen="False" />
+                </StackPanel>
+            </PivotItem>
+
+            <!-- Running models -->
+            <PivotItem x:Name="TabRunning">
+                <Grid RowSpacing="10" Margin="0,12,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="ReloadRunningBtn" Click="ReloadRunning_Click" />
+                        <TextBlock x:Name="RunningCount" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <ProgressRing x:Name="RunningBusy" IsActive="False" Width="18" Height="18" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <InfoBar x:Name="RunningEmpty" Grid.Row="1" VerticalAlignment="Top" IsClosable="False" IsOpen="False" Severity="Informational" />
+                    <ListView x:Name="RunningList" Grid.Row="1" SelectionMode="None">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Padding="4,8,4,8" ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Spacing="2">
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding Detail}" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Processor}" FontSize="12" HorizontalAlignment="Right" />
+                                        <TextBlock Text="{Binding SizeText}" FontSize="12" FontFamily="Consolas" HorizontalAlignment="Right" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <Button Grid.Column="2" Tag="{Binding Name}" Click="StopModel_Click" Background="Transparent" BorderThickness="0" ToolTipService.ToolTip="Unload · 卸載">
+                                        <FontIcon FontSize="15" Glyph="&#xE71A;" />
+                                    </Button>
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </Grid>
+            </PivotItem>
+
+            <!-- Chat -->
+            <PivotItem x:Name="TabChat">
+                <Grid ColumnSpacing="14" Margin="0,12,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="280" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- conversation -->
+                    <Grid Grid.Column="0" RowSpacing="10">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid Grid.Row="0" ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <ComboBox x:Name="ChatModelBox" Grid.Column="0" HorizontalAlignment="Stretch" PlaceholderText="Pick a model · 揀模型" />
+                            <Button x:Name="ChatReloadModelsBtn" Grid.Column="1" Click="ChatReloadModels_Click" ToolTipService.ToolTip="Reload models · 重載模型">
+                                <FontIcon FontSize="15" Glyph="&#xE72C;" />
+                            </Button>
+                            <Button x:Name="ChatClearBtn" Grid.Column="2" Click="ChatClear_Click" ToolTipService.ToolTip="Clear chat · 清除對話">
+                                <FontIcon FontSize="15" Glyph="&#xE74D;" />
+                            </Button>
+                        </Grid>
+                        <Border Grid.Row="1" Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" MinHeight="240">
+                            <ScrollViewer x:Name="ChatScroll" Padding="12" VerticalScrollBarVisibility="Auto">
+                                <StackPanel x:Name="ChatLog" Spacing="10" />
+                            </ScrollViewer>
+                        </Border>
+                        <Grid Grid.Row="2" ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="ChatInput" Grid.Column="0" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="56" MaxHeight="120" PlaceholderText="Type a message · 輸入訊息  (Ctrl+Enter)" />
+                            <Button x:Name="ChatSendBtn" Grid.Column="1" Click="ChatSend_Click" Style="{StaticResource AccentButtonStyle}" VerticalAlignment="Bottom" />
+                            <Button x:Name="ChatStopBtn" Grid.Column="2" Click="ChatStop_Click" VerticalAlignment="Bottom" IsEnabled="False" />
+                        </Grid>
+                    </Grid>
+
+                    <!-- parameters -->
+                    <Border Grid.Column="1" Padding="14,12,14,12" VerticalAlignment="Top" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                        <StackPanel Spacing="10">
+                            <TextBlock x:Name="ParamTitle" FontWeight="SemiBold" FontSize="15" />
+                            <TextBlock x:Name="SysLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBox x:Name="SysPromptBox" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="60" PlaceholderText="You are a helpful assistant. · 你係一個樂於助人嘅助手。" />
+
+                            <StackPanel Spacing="2">
+                                <TextBlock x:Name="TempLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <Slider x:Name="TempSlider" Minimum="0" Maximum="2" StepFrequency="0.05" Value="0.8" />
+                            </StackPanel>
+                            <StackPanel Spacing="2">
+                                <TextBlock x:Name="TopPLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <Slider x:Name="TopPSlider" Minimum="0" Maximum="1" StepFrequency="0.05" Value="0.9" />
+                            </StackPanel>
+                            <StackPanel Spacing="2">
+                                <TextBlock x:Name="TopKLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <Slider x:Name="TopKSlider" Minimum="0" Maximum="100" StepFrequency="1" Value="40" />
+                            </StackPanel>
+                            <StackPanel Spacing="2">
+                                <TextBlock x:Name="CtxLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <NumberBox x:Name="CtxBox" Value="4096" Minimum="0" SpinButtonPlacementMode="Compact" SmallChange="512" />
+                            </StackPanel>
+                            <StackPanel Spacing="2">
+                                <TextBlock x:Name="SeedLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <NumberBox x:Name="SeedBox" PlaceholderText="(random)" SpinButtonPlacementMode="Hidden" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </PivotItem>
+
+            <!-- Operations -->
+            <PivotItem x:Name="TabOps">
+                <ScrollViewer Margin="0,12,0,0" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Spacing="8">
+                        <TextBlock x:Name="OpsBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                        <StackPanel x:Name="OpsPanel" Spacing="2" />
+                    </StackPanel>
+                </ScrollViewer>
+            </PivotItem>
+        </Pivot>
+    </Grid>
+</Page>

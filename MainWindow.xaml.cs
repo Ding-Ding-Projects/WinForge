@@ -176,6 +176,10 @@ public sealed partial class MainWindow : Window
             case "sftp":
             case "ftps":
                 Navigator.GoToModule?.Invoke("module.filezilla");
+            case "ollama":
+            case "llm":
+            case "llama":
+                Navigator.GoToModule?.Invoke("module.ollama");
                 break;
             case "archives":
             case "archive":
@@ -557,6 +561,7 @@ public sealed partial class MainWindow : Window
         "module.vscode" => typeof(VsCodeModule),
         "module.aiagents" => typeof(AiAgentsModule),
         "module.resume" => typeof(ResumeWriterModule),
+        "module.ollama" => typeof(OllamaModule),
         "module.cloudflare" => typeof(CloudflareModule),
         "module.weblogin" => typeof(WebLoginModule),
         "module.ssh" => typeof(SshModule),

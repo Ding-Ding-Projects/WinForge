@@ -147,6 +147,7 @@
                         <NavigationViewItem Content="VS Code · VS Code 編輯器" Tag="module.vscode"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="AI Agents · AI 代理" Tag="module.aiagents"><NavigationViewItem.Icon><FontIcon Glyph="&#xE99A;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Resume Writer · 履歷與求職信寫手" Tag="module.resume"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Ollama · 本地大模型" Tag="module.ollama"><NavigationViewItem.Icon><FontIcon Glyph="&#xE99A;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Cloudflare &amp; Tunnel · Cloudflare 與 Tunnel" Tag="module.cloudflare"><NavigationViewItem.Icon><FontIcon Glyph="&#xE753;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="In-App Login · 內置登入" Tag="module.weblogin"><NavigationViewItem.Icon><FontIcon Glyph="&#xE77B;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="SSH Toolset · SSH 工具" Tag="module.ssh"><NavigationViewItem.Icon><FontIcon Glyph="&#xE756;" /></NavigationViewItem.Icon></NavigationViewItem>

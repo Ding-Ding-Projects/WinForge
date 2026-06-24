@@ -106,6 +106,7 @@ public static class ModuleRegistry
         new() { Tag = "module.rainmeter", En = "Rainmeter Widgets", Zh = "Rainmeter 桌面小工具", Glyph = ((char)0xE7F4).ToString(), Keywords = "rainmeter skin skins widget widgets desktop gadget bang activate deactivate toggle refresh hide show rmskin skininstaller layout illustro clock cpu monitor personalization 桌面 小工具 皮膚 桌面美化 個人化 時鐘 監察" },
         new() { Tag = "module.pgadmin", En = "Postgres Tool", Zh = "Postgres 工具 / pgAdmin", Glyph = ((char)0xE94D).ToString(), Keywords = "postgres postgresql pgadmin sql database query npgsql connection schema table view server psql 資料庫 數據庫 查詢 表 檢視 結構描述 連線" },
         new() { Tag = "module.filezilla", En = "FTP / SFTP", Zh = "FTP／SFTP 檔案傳輸", Glyph = ((char)0xE8B7).ToString(), Keywords = "ftp sftp ftps filezilla file transfer client site manager upload download dual pane transfer queue resume tls ssh private key dpapi 檔案傳輸 上載 下載 站台 佇列 續傳 私鑰" },
+        new() { Tag = "module.ollama", En = "Ollama", Zh = "本地大模型", Glyph = ((char)0xE99A).ToString(), Keywords = "ollama llm local ai model chat gguf llama mistral qwen gemma phi deepseek pull serve tags running ps temperature top_p num_ctx streaming 本地 模型 聊天 人工智能 下載 大模型" },
     };
 
     public static IEnumerable<ModuleInfo> Search(string query)
