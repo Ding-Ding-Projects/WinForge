@@ -164,6 +164,10 @@ public sealed partial class MainWindow : Window
             case "audioeditor":
             case "audacity":
                 Navigator.GoToModule?.Invoke("module.audioeditor");
+            case "mediaplayer":
+            case "player":
+            case "vlc":
+                Navigator.GoToModule?.Invoke("module.mediaplayer");
                 break;
             case "regedit":
             case "registry":
@@ -467,6 +471,7 @@ public sealed partial class MainWindow : Window
         "module.archives" => typeof(ArchivesModule),
         "module.media" => typeof(MediaModule),
         "module.audioeditor" => typeof(AudioEditorModule),
+        "module.mediaplayer" => typeof(MediaPlayerModule),
         "module.regedit" => typeof(RegistryEditor),
         "module.doctors" => typeof(SystemDoctorsModule),
         "module.services" => typeof(ServicesModule),
