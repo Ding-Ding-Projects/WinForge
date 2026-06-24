@@ -559,6 +559,7 @@ public sealed partial class MainWindow : Window
         "module.mixer" => typeof(VolumeMixerModule),
         "module.contextmenu" => typeof(ContextMenuModule),
         "module.taskbar-tweaker" => typeof(TaskbarTweakerModule),
+        "module.nilesoftshell" => typeof(NilesoftShellModule),
         "module.awake" => typeof(AwakeModule),
         "module.colorpicker" => typeof(ColorPickerModule),
         "module.envvars" => typeof(EnvVarsModule),

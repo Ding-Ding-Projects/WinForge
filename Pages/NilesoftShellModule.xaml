@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.NilesoftShellModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="1040" Spacing="14">
+
+            <!-- Header -->
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <FontIcon FontSize="24" Glyph="&#xEDE3;" VerticalAlignment="Center" />
+                <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
+            </StackPanel>
+            <TextBlock
+                x:Name="HeaderBlurb"
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                TextWrapping="Wrap" />
+
+            <!-- Engine / install bar -->
+            <InfoBar x:Name="EngineBar" IsClosable="False" IsOpen="False" Severity="Warning" />
+
+            <!-- Status + elevation + Explorer-restart warnings -->
+            <InfoBar x:Name="ElevationBar" IsClosable="True" IsOpen="False" Severity="Informational" />
+            <InfoBar x:Name="ResultBar" IsClosable="True" IsOpen="False" />
+
+            <!-- Lifecycle quick actions -->
+            <Border
+                Padding="16,14,16,14"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="LifecycleHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
+                    <TextBlock
+                        x:Name="StatusLine"
+                        FontSize="13"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        TextWrapping="Wrap" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="RegisterBtn" Style="{StaticResource AccentButtonStyle}" Click="Register_Click" />
+                        <Button x:Name="UnregisterBtn" Click="Unregister_Click" />
+                        <Button x:Name="ReloadBtn" Click="Reload_Click" />
+                        <Button x:Name="RestartExplorerBtn" Click="RestartExplorer_Click" />
+                        <Button x:Name="RecheckBtn" Click="Recheck_Click" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Config editor -->
+            <Border
+                Padding="16,14,16,14"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <Grid>
+                        <TextBlock x:Name="EditorHeader" Style="{StaticResource SubtitleTextBlockStyle}" VerticalAlignment="Center" />
+                        <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                            <Button x:Name="OpenFileBtn" Click="OpenFile_Click" />
+                            <Button x:Name="ReloadFileBtn" Click="ReloadFile_Click" />
+                        </StackPanel>
+                    </Grid>
+                    <TextBlock
+                        x:Name="ConfigPathLine"
+                        FontFamily="Consolas"
+                        FontSize="12"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        IsTextSelectionEnabled="True"
+                        TextWrapping="Wrap" />
+
+                    <TextBox
+                        x:Name="ConfigBox"
+                        MinHeight="280"
+                        MaxHeight="460"
+                        AcceptsReturn="True"
+                        FontFamily="Consolas"
+                        FontSize="13"
+                        IsSpellCheckEnabled="False"
+                        ScrollViewer.VerticalScrollBarVisibility="Auto"
+                        ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                        TextWrapping="NoWrap" />
+
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="SaveBtn" Style="{StaticResource AccentButtonStyle}" Click="Save_Click" />
+                        <Button x:Name="SaveReloadBtn" Click="SaveReload_Click" />
+                        <Button x:Name="BackupBtn" Click="Backup_Click" />
+                        <Button x:Name="RestoreBackupBtn" Click="RestoreBackup_Click" />
+                        <Button x:Name="RestoreDefaultBtn" Click="RestoreDefault_Click" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Snippet gallery -->
+            <Border
+                Padding="16,14,16,14"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="SnippetsHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
+                    <TextBlock
+                        x:Name="SnippetsHint"
+                        FontSize="13"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        TextWrapping="Wrap" />
+                    <ItemsControl x:Name="SnippetsList">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border
+                                    Margin="0,3,0,3"
+                                    Padding="12,10,12,10"
+                                    Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                    CornerRadius="6">
+                                    <Grid ColumnSpacing="10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Spacing="2">
+                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                            <TextBlock
+                                                Text="{Binding Desc}"
+                                                FontSize="12"
+                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                TextWrapping="Wrap" />
+                                        </StackPanel>
+                                        <Button
+                                            Grid.Column="1"
+                                            VerticalAlignment="Center"
+                                            Content="{Binding InsertLabel}"
+                                            Tag="{Binding Code}"
+                                            Click="InsertSnippet_Click" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <!-- Operations (TweakCards) -->
+            <TextBlock x:Name="OpsHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
+            <AutoSuggestBox
+                x:Name="OpsFilter"
+                MaxWidth="420"
+                HorizontalAlignment="Left"
+                QueryIcon="Find"
+                TextChanged="OpsFilter_TextChanged" />
+            <StackPanel x:Name="OpsPanel" Spacing="2" />
+
+        </StackPanel>
+    </ScrollViewer>
+</Page>
