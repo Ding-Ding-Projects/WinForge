@@ -53,6 +53,10 @@ public sealed partial class MainWindow : Window
         // 快速重音符：如之前已啟用，開機就掛鈎，收入系統匣都繼續生效。
         // Quick Accent: if previously enabled, hook now so it works from the tray too.
         QuickAccentService.Apply();
+        // 快捷鍵指南：記住 UI dispatcher；若用戶開咗就裝「揿住 Win 顯示」掛鈎，收入系統匣都繼續運作。
+        // Shortcut Guide: capture the UI dispatcher; if the user enabled it, install the hold-Win-to-show
+        // hook now so the overlay pops up even while WinForge sits in the tray.
+        ShortcutGuideService.Init(DispatcherQueue);
         TrayService.Install(ShowFromTray, QuitFromTray, "WinForge · 視窗調校");
         AppWindow.Closing += OnAppWindowClosing;
     }
@@ -350,6 +354,10 @@ public sealed partial class MainWindow : Window
             case "accent":
             case "diacritics":
                 Navigator.GoToModule?.Invoke("module.quickaccent");
+            case "shortcutguide":
+            case "shortcuts":
+            case "winkey":
+                Navigator.GoToModule?.Invoke("module.shortcutguide");
                 break;
             case "hosts":
                 Navigator.GoToModule?.Invoke("module.hosts");
@@ -739,6 +747,7 @@ public sealed partial class MainWindow : Window
         "module.keyboard" => typeof(KeyboardModule),
         "module.hotkeys" => typeof(HotkeyMacroModule),
         "module.quickaccent" => typeof(QuickAccentModule),
+        "module.shortcutguide" => typeof(ShortcutGuideModule),
         "module.hosts" => typeof(HostsEditorModule),
         "module.mouse" => typeof(MouseModule),
         "module.mouseutils" => typeof(MouseUtilsModule),

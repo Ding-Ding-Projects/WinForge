@@ -122,6 +122,7 @@
                         <NavigationViewItem Content="Keyboard Remapper · 鍵盤重新對應" Tag="module.keyboard"><NavigationViewItem.Icon><FontIcon Glyph="&#xE765;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Hotkey &amp; Macro Runner · 熱鍵與巨集" Tag="module.hotkeys"><NavigationViewItem.Icon><FontIcon Glyph="&#xEDA7;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Quick Accent · 快速重音符" Tag="module.quickaccent"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8D3;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Shortcut Guide · 快捷鍵指南" Tag="module.shortcutguide"><NavigationViewItem.Icon><FontIcon Glyph="&#xE765;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Context Menu · 右鍵選單" Tag="module.contextmenu"><NavigationViewItem.Icon><FontIcon Glyph="&#xEDE3;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Taskbar Tweaker · 工作列調校" Tag="module.taskbar-tweaker"><NavigationViewItem.Icon><FontIcon Glyph="&#xE71D;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Nilesoft Shell · Nilesoft 右鍵選單" Tag="module.nilesoftshell"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7BA;" /></NavigationViewItem.Icon></NavigationViewItem>

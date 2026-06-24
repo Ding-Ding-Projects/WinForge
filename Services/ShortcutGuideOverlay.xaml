@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Window
+    x:Class="WinForge.Services.ShortcutGuideOverlay"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid x:Name="RootBackdrop" Background="#CC101014">
+        <Border x:Name="Card"
+                MaxWidth="1180"
+                MaxHeight="900"
+                Margin="40"
+                Padding="28,24,28,24"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Background="{ThemeResource LayerFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="14">
+            <StackPanel Spacing="16">
+
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <FontIcon FontSize="22" Glyph="&#xE765;" VerticalAlignment="Center" />
+                    <TextBlock x:Name="OverlayTitle"
+                               VerticalAlignment="Center"
+                               Style="{StaticResource TitleTextBlockStyle}" />
+                    <TextBlock x:Name="OverlayHint"
+                               VerticalAlignment="Bottom"
+                               Margin="6,0,0,3"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               FontSize="13" />
+                </StackPanel>
+
+                <!-- Columns of grouped shortcuts are generated in code-behind into ColumnsHost. -->
+                <Grid x:Name="ColumnsHost" ColumnSpacing="34" />
+
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>
