@@ -177,15 +177,143 @@ $AsrNames = @{
             "Auto-mount", "自動掛載", mount: true, args: "/q /a devices", elevated: true,
             keywords: "vault,devices,裝置,mount,保險庫"),
 
-        VaultShell("vault.veracrypt.mount-dialog", "Open mount dialog", "打開掛載對話框",
-            "Open WinForge Vault where you can pick a file and mount a volume.", "打開 WinForge 保險庫，可以揀檔案再掛載磁碟區。",
-            "Mount", "掛載", mount: true, args: "",
-            keywords: "vault,mount,掛載,dialog,保險庫"),
+        // Guided mount: collects container, drive letter, password, PIM and read-only,
+        // then runs the SAME MountAsync flow (elevates internally, confirms by re-listing).
+        // 引導式掛載：收集容器、磁碟機代號、密碼、PIM 同唯讀，
+        // 完成時行返同一個 MountAsync 流程（內部自動提權，靠重新列出確認）。
+        Tweak.Wizard("vault.veracrypt.mount-dialog", "Open mount dialog", "打開掛載對話框",
+            "Guided mount of a vault container — pick the file, a free drive letter, password, optional PIM and read-only; the same engine mount runs at the end.", "引導式掛載保險庫容器 — 揀檔案、未用嘅磁碟機代號、密碼、可選 PIM 同唯讀；最後行返同一個引擎掛載流程。",
+            "Mount", "掛載",
+            new[]
+            {
+                new WizardStep
+                {
+                    Title = new("Container path", "容器路徑"),
+                    Description = new("Full path of the encrypted container file to mount.",
+                                      "要掛載嘅加密容器檔案完整路徑。"),
+                    Input = WizardInputKind.Text, Key = "path",
+                },
+                new WizardStep
+                {
+                    Title = new("Drive letter", "磁碟機代號"),
+                    Description = new("Free drive letter to mount the volume to.", "用嚟掛載磁碟區嘅未用磁碟機代號。"),
+                    Input = WizardInputKind.Choice, Key = "letter",
+                    Choices = FreeLetterChoices(),
+                },
+                new WizardStep
+                {
+                    Title = new("Password", "密碼"),
+                    Description = new("Volume password.", "磁碟區密碼。"),
+                    Input = WizardInputKind.Text, Key = "password",
+                },
+                new WizardStep
+                {
+                    Title = new("PIM (optional)", "PIM（可選）"),
+                    Description = new("Personal Iterations Multiplier; leave 0 if you did not set one.",
+                                      "個人迭代倍數；如果冇設定就留 0。"),
+                    Input = WizardInputKind.Number, Key = "pim", Default = "0",
+                },
+                new WizardStep
+                {
+                    Title = new("Read-only", "唯讀"),
+                    Description = new("Mount the volume read-only (no writes).", "以唯讀方式掛載磁碟區（唔可以寫入）。"),
+                    Input = WizardInputKind.Toggle, Key = "readonly", Default = "false",
+                },
+            },
+            async (values, ct) =>
+            {
+                var path = Get(values, "path");
+                if (string.IsNullOrWhiteSpace(path))
+                    return TweakResult.Fail("A container path is required.", "必須輸入容器路徑。");
+                var letterStr = Get(values, "letter");
+                if (string.IsNullOrWhiteSpace(letterStr))
+                    return TweakResult.Fail("Pick a free drive letter.", "請揀一個未用嘅磁碟機代號。");
+                var password = Get(values, "password");
+                if (string.IsNullOrWhiteSpace(password))
+                    return TweakResult.Fail("A password is required.", "必須輸入密碼。");
+                int pim = int.TryParse(Get(values, "pim"),
+                    System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var p) ? p : 0;
+                bool ro = string.Equals(Get(values, "readonly"), "true", StringComparison.OrdinalIgnoreCase);
+                return await VaultVolumeService.MountAsync(
+                    path, letterStr[0], password, pim: pim, readOnly: ro, ct: ct);
+            },
+            keywords: "vault,mount,掛載,dialog,wizard,精靈,保險庫"),
 
-        VaultShell("vault.veracrypt.create-volume", "Create new volume", "建立新磁碟區",
-            "Launch the Volume Creation Wizard.", "啟動磁碟區建立精靈。",
-            "Create", "建立", mount: false, args: "",
-            keywords: "vault,create,建立,volume,保險庫"),
+        // Guided create: walks path → size → algorithm → hash → filesystem → password,
+        // then runs the SAME silent CreateContainerAsync flow the engine used before.
+        // 引導式建立：路徑 → 大小 → 演算法 → 雜湊 → 檔案系統 → 密碼，
+        // 完成時行返同一個無聲 CreateContainerAsync 流程。
+        Tweak.Wizard("vault.veracrypt.create-volume", "Create new volume", "建立新磁碟區",
+            "Guided creation of a new encrypted container — pick path, size, algorithm, hash, file system and password; the same silent engine create runs at the end.", "引導式建立新嘅加密容器 — 揀路徑、大小、演算法、雜湊、檔案系統同密碼；最後行返同一個無聲引擎建立流程。",
+            "Create", "建立",
+            new[]
+            {
+                new WizardStep
+                {
+                    Title = new("Container path", "容器路徑"),
+                    Description = new("Full path of the container file to create (e.g. C:\\Users\\me\\secret.wfv).",
+                                      "要建立嘅容器檔案完整路徑（例如 C:\\Users\\me\\secret.wfv）。"),
+                    Input = WizardInputKind.Text, Key = "path",
+                    Default = System.IO.Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "secret" + VaultVolumeService.ContainerExtension),
+                },
+                new WizardStep
+                {
+                    Title = new("Size (MB)", "大小（MB）"),
+                    Description = new("Container size in megabytes (minimum about 1 MB).",
+                                      "容器大小（MB），最少大約 1 MB。"),
+                    Input = WizardInputKind.Number, Key = "sizeMb", Default = "256",
+                },
+                new WizardStep
+                {
+                    Title = new("Encryption algorithm", "加密演算法"),
+                    Description = new("Cipher used to encrypt the volume.", "用嚟加密磁碟區嘅密碼演算法。"),
+                    Input = WizardInputKind.Choice, Key = "algorithm", Default = "AES",
+                    Choices = AlgorithmChoices(),
+                },
+                new WizardStep
+                {
+                    Title = new("Hash (key derivation)", "雜湊（金鑰衍生）"),
+                    Description = new("Hash / PRF used for header key derivation.", "用嚟做檔頭金鑰衍生嘅雜湊／PRF。"),
+                    Input = WizardInputKind.Choice, Key = "hash", Default = "sha512",
+                    Choices = HashChoices(),
+                },
+                new WizardStep
+                {
+                    Title = new("File system", "檔案系統"),
+                    Description = new("File system to format the new volume with.", "用嚟格式化新磁碟區嘅檔案系統。"),
+                    Input = WizardInputKind.Choice, Key = "filesystem", Default = "FAT",
+                    Choices = FileSystemChoices(),
+                },
+                new WizardStep
+                {
+                    Title = new("Password", "密碼"),
+                    Description = new("Volume password. Choose a strong one — there is no recovery if you forget it.",
+                                      "磁碟區密碼。揀個夠強嘅 — 唔記得就冇得還原。"),
+                    Input = WizardInputKind.Text, Key = "password",
+                },
+            },
+            async (values, ct) =>
+            {
+                var path = Get(values, "path");
+                if (string.IsNullOrWhiteSpace(path))
+                    return TweakResult.Fail("A container path is required.", "必須輸入容器路徑。");
+                var password = Get(values, "password");
+                if (string.IsNullOrWhiteSpace(password))
+                    return TweakResult.Fail("A password is required.", "必須輸入密碼。");
+                double sizeMb = double.TryParse(Get(values, "sizeMb"),
+                    System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var mb) ? mb : 0;
+                if (sizeMb <= 0)
+                    return TweakResult.Fail("Enter a valid size in MB.", "請輸入有效嘅大小（MB）。");
+                long sizeBytes = (long)Math.Round(sizeMb * 1024 * 1024);
+                return await VaultVolumeService.CreateContainerAsync(
+                    path, sizeBytes, password,
+                    algorithm: Get(values, "algorithm", "AES"),
+                    hash: Get(values, "hash", "sha512"),
+                    fileSystem: Get(values, "filesystem", "FAT"),
+                    ct: ct);
+            },
+            keywords: "vault,create,建立,volume,wizard,精靈,保險庫"),
 
         VaultShell("vault.veracrypt.volume-wizard", "Volume Creation Wizard", "磁碟區建立精靈",
             "Open the volume-creation wizard executable directly.", "直接打開磁碟區建立精靈程式。",
@@ -212,23 +340,83 @@ $AsrNames = @{
             "Start", "啟動", mount: true, args: "/q /silent",
             keywords: "vault,background,背景,tray,保險庫"),
 
-        Tweak.Action("vault.veracrypt.version", "Show engine path", "顯示引擎路徑",
-            "Show the resolved WinForge Vault engine executable path and whether the bundled de-branded build is in use.", "顯示已解析嘅 WinForge 保險庫引擎執行檔路徑，同係咪用緊隨附嘅去品牌版本。",
-            "Show", "顯示", ct => System.Threading.Tasks.Task.FromResult(
-                Models.TweakResult.Ok("Engine path", "引擎路徑",
+        // Same Action body as before, plus a cheap synchronous status pill
+        // (FindMountBinary / IsBundledPresent are pure file-existence reads).
+        // 同之前一模一樣嘅 Action，加埋一個平嘅同步狀態藥丸（純粹係檔案存在性讀取）。
+        new TweakDefinition
+        {
+            Id = "vault.veracrypt.version",
+            Title = new("Show engine path", "顯示引擎路徑"),
+            Description = new("Show the resolved WinForge Vault engine executable path and whether the bundled de-branded build is in use.", "顯示已解析嘅 WinForge 保險庫引擎執行檔路徑，同係咪用緊隨附嘅去品牌版本。"),
+            Kind = TweakKind.Action,
+            Keywords = new[] { "vault", "version", "版本", "path", "路徑", "保險庫" },
+            ActionLabel = new("Show", "顯示"),
+            RunAsync = ct => System.Threading.Tasks.Task.FromResult(
+                TweakResult.Ok("Engine path", "引擎路徑",
                     (VaultVolumeService.FindMountBinary() ?? "(not found / 搵唔到)")
                     + (VaultVolumeService.IsBundledPresent() ? "  [bundled]" : "  [fallback]"))),
-            keywords: "vault,version,版本,path,路徑,保險庫"),
+            ColoredStatus = () =>
+                VaultVolumeService.FindMountBinary() is null
+                    ? ("Engine: not found", "引擎：搵唔到", StatusColor.Bad)
+                    : VaultVolumeService.IsBundledPresent()
+                        ? ("Engine: bundled", "引擎：已隨附", StatusColor.Good)
+                        : ("Engine: fallback", "引擎：退路", StatusColor.Warn),
+        },
 
-        Tweak.Cmd("vault.veracrypt.list-mounted", "List mounted drives", "列出已掛載磁碟",
-            "List current drive letters to see mounted volumes.", "列出目前磁碟機代號睇下掛載咗咩磁碟區。",
-            "List", "列出", "wmic logicaldisk get DeviceID,VolumeName,Description,Size",
-            keywords: "vault,list,列出,mounted,drives,保險庫"),
+        // Same cmd as before, plus a cheap synchronous pill counting likely vault mounts.
+        // 同之前一樣嘅 cmd，加埋一個平嘅同步藥丸，數下可能係保險庫掛載出嚟嘅磁碟。
+        new TweakDefinition
+        {
+            Id = "vault.veracrypt.list-mounted",
+            Title = new("List mounted drives", "列出已掛載磁碟"),
+            Description = new("List current drive letters to see mounted volumes.", "列出目前磁碟機代號睇下掛載咗咩磁碟區。"),
+            Kind = TweakKind.Action,
+            Keywords = new[] { "vault", "list", "列出", "mounted", "drives", "保險庫" },
+            ActionLabel = new("List", "列出"),
+            RunAsync = ct => Services.ShellRunner.RunCmd("wmic logicaldisk get DeviceID,VolumeName,Description,Size", false, ct),
+            ColoredStatus = () =>
+            {
+                int n = VaultVolumeService.ListMounted().Count;
+                return n > 0
+                    ? ($"{n} mountable drive(s)", $"{n} 個可掛載磁碟", StatusColor.Good)
+                    : ("No extra drives", "冇額外磁碟", StatusColor.Neutral);
+            },
+        },
 
-        VaultShell("vault.veracrypt.dismount-letter", "Dismount drive letter", "卸載指定磁碟機",
-            "Dismount the volume on drive X (edit the letter as needed).", "卸載 X 磁碟機上嘅磁碟區（按需要改代號）。",
-            "Dismount X", "卸載 X", mount: true, args: "/q /d X", elevated: true,
-            keywords: "vault,dismount,磁碟機,letter,X,保險庫"),
+        // Guided dismount: pick a currently-mounted drive letter, optionally force,
+        // then run the SAME elevated DismountAsync flow (confirms by re-listing).
+        // 引導式卸載：揀一個已掛載嘅磁碟機代號、可選強制，
+        // 完成時行返同一個提權 DismountAsync 流程（靠重新列出確認）。
+        Tweak.Wizard("vault.veracrypt.dismount-letter", "Dismount drive letter", "卸載指定磁碟機",
+            "Guided dismount — pick a currently-mounted drive letter and optionally force it even if files are open; the same engine dismount runs at the end.", "引導式卸載 — 揀一個已掛載嘅磁碟機代號，可選即使有檔案開住都強制卸載；最後行返同一個引擎卸載流程。",
+            "Dismount", "卸載",
+            new[]
+            {
+                new WizardStep
+                {
+                    Title = new("Drive letter", "磁碟機代號"),
+                    Description = new("Which mounted drive to dismount.", "要卸載邊個已掛載嘅磁碟機。"),
+                    Input = WizardInputKind.Choice, Key = "letter",
+                    Choices = MountedLetterChoices(),
+                },
+                new WizardStep
+                {
+                    Title = new("Force", "強制"),
+                    Description = new("Force-dismount even if files are still open (may lose unsaved data).",
+                                      "即使仲有檔案開住都強制卸載（可能會失去未儲存嘅資料）。"),
+                    Input = WizardInputKind.Toggle, Key = "force", Default = "false",
+                },
+            },
+            async (values, ct) =>
+            {
+                var letterStr = Get(values, "letter");
+                if (string.IsNullOrWhiteSpace(letterStr))
+                    return TweakResult.Fail("No mounted drive selected.", "未揀已掛載嘅磁碟機。");
+                bool force = string.Equals(Get(values, "force"), "true", StringComparison.OrdinalIgnoreCase);
+                return await VaultVolumeService.DismountAsync(letterStr[0], force: force, ct: ct);
+            },
+            requiresAdmin: true, destructive: true,
+            keywords: "vault,dismount,磁碟機,letter,wizard,精靈,保險庫"),
 
         VaultShell("vault.veracrypt.mount-readonly", "Mount read-only", "唯讀掛載",
             "Open WinForge Vault and use Mount Options to mount as read-only.", "打開 WinForge 保險庫，喺掛載選項度以唯讀方式掛載。",
@@ -635,4 +823,60 @@ Write-Host (""Set "" + $AsrNames.Count + "" ASR rules to AuditMode. Use 'List AS
                 return await ShellRunner.Run(exe, args, elevated, ct);
             },
             requiresAdmin: elevated, destructive: destructive, keywords: keywords);
+
+    // ===================== wizard helpers · 精靈輔助 =====================
+
+    /// <summary>由完成字典安全取值（缺失或空白時用後備）· Safely read a wizard value (with optional fallback).</summary>
+    private static string Get(IReadOnlyDictionary<string, string> values, string key, string fallback = "")
+        => values.TryGetValue(key, out var v) && !string.IsNullOrWhiteSpace(v) ? v.Trim() : fallback;
+
+    /// <summary>加密演算法選項（由服務嘅去品牌清單衍生）· Algorithm choices from the de-branded service list.</summary>
+    private static List<TweakChoice> AlgorithmChoices()
+    {
+        var list = new List<TweakChoice>();
+        foreach (var a in VaultVolumeService.Algorithms)
+            list.Add(new TweakChoice(new LocalizedText(a.En, a.Zh), a.Cli));
+        return list;
+    }
+
+    /// <summary>雜湊／PRF 選項 · Hash / PRF choices.</summary>
+    private static List<TweakChoice> HashChoices()
+    {
+        var list = new List<TweakChoice>();
+        foreach (var h in VaultVolumeService.Hashes)
+            list.Add(new TweakChoice(new LocalizedText(h.En, h.Zh), h.Cli));
+        return list;
+    }
+
+    /// <summary>檔案系統選項 · File-system choices.</summary>
+    private static List<TweakChoice> FileSystemChoices()
+    {
+        var list = new List<TweakChoice>();
+        foreach (var f in VaultVolumeService.FileSystems)
+            list.Add(new TweakChoice(new LocalizedText(f.En, f.Zh), f.Cli));
+        return list;
+    }
+
+    /// <summary>未用磁碟機代號選項（精靈評估時動態列出）· Free drive-letter choices, evaluated when the wizard runs.</summary>
+    private static List<TweakChoice> FreeLetterChoices()
+    {
+        var list = new List<TweakChoice>();
+        foreach (var c in VaultVolumeService.FreeDriveLetters())
+            list.Add(new TweakChoice(new LocalizedText(c + ":", c + ":"), c.ToString()));
+        return list;
+    }
+
+    /// <summary>已掛載磁碟機代號選項（連標籤）· Mounted drive-letter choices, with the volume label when present.</summary>
+    private static List<TweakChoice> MountedLetterChoices()
+    {
+        var list = new List<TweakChoice>();
+        foreach (var m in VaultVolumeService.ListMounted())
+        {
+            var letter = m.Letter.TrimEnd(':');
+            if (string.IsNullOrEmpty(letter)) continue;
+            var label = string.IsNullOrWhiteSpace(m.Label) ? m.Letter : $"{m.Letter} ({m.Label})";
+            list.Add(new TweakChoice(new LocalizedText(label, label), letter.Substring(0, 1)));
+        }
+        return list;
+    }
 }
