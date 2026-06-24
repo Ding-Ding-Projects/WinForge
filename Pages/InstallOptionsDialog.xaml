@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<UserControl
+    x:Class="WinForge.Pages.InstallOptionsDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <!--
+        即時安裝選項對話框（UniGetUI 式）· Live install-options dialog (UniGetUI-style).
+        實際 UI 由 code-behind 嘅靜態 ShowAsync 砌（同 PackageManagerModule 嘅 in-code dialog 風格一致）。
+        The full tabbed dialog is built in code by the static ShowAsync, matching the in-code dialog
+        style used elsewhere in PackageManagerModule. This host element is intentionally empty.
+    -->
+    <Grid x:Name="Host" />
+</UserControl>

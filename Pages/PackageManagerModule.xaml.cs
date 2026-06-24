@@ -683,44 +683,20 @@ public sealed partial class PackageManagerModule : Page
 
     private async Task ShowOptionsDialog(PackageItem item)
     {
-        var version = new TextBox { Header = P("Version (optional)", "版本（可選）"), PlaceholderText = "1.2.3" };
-        var scope = new ComboBox { Header = P("Scope", "範圍"), HorizontalAlignment = HorizontalAlignment.Stretch };
-        foreach (var s in new[] { "default", "user", "machine" }) scope.Items.Add(s);
-        scope.SelectedIndex = 0;
-        var arch = new ComboBox { Header = P("Architecture", "架構"), HorizontalAlignment = HorizontalAlignment.Stretch };
-        foreach (var a in new[] { "default", "x64", "x86", "arm64" }) arch.Items.Add(a);
-        arch.SelectedIndex = 0;
-        var interactive = new CheckBox { Content = P("Interactive installer", "互動式安裝") };
-        var custom = new TextBox { Header = P("Custom args", "自訂參數"), PlaceholderText = "--extra --flags" };
-        var note = new TextBlock
-        {
-            Text = P("Scope / architecture apply to winget; version & custom args apply where the manager supports them.",
-                "範圍／架構只適用於 winget；版本同自訂參數視乎管理器是否支援。"),
-            FontSize = 11, TextWrapping = TextWrapping.Wrap,
-            Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
-        };
-        var panel = new StackPanel { Spacing = 10 };
-        foreach (var c in new UIElement[] { version, scope, arch, interactive, custom, note }) panel.Children.Add(c);
+        // 載入每個套件嘅選項（無覆寫就跟全域）· Load per-package options (follows global if no override).
+        var opts = InstallOptions.Load(item.ManagerKey, item.Id);
+        var confirmed = await InstallOptionsDialog.ShowAsync(
+            this.XamlRoot, item, opts, PackageOperations.Op.Install);
+        if (!confirmed) return;
 
-        var dlg = new ContentDialog
-        {
-            Title = $"{P("Install", "安裝")} {item.Name}",
-            Content = panel,
-            PrimaryButtonText = P("Install", "安裝"),
-            CloseButtonText = P("Cancel", "取消"),
-            XamlRoot = this.XamlRoot,
-        };
-        if (await dlg.ShowAsync() != ContentDialogResult.Primary) return;
-
-        static string? V(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
-        string? sc = scope.SelectedIndex <= 0 ? null : (string)scope.SelectedItem;
-        string? ar = arch.SelectedIndex <= 0 ? null : (string)arch.SelectedItem;
+        // 確認後重新載入（對話框已經寫咗覆寫或重設）· Reload after confirm; dialog persisted the choice.
+        var effective = InstallOptions.Load(item.ManagerKey, item.Id);
         ResultsHeader.Text = P($"Installing {item.Name}…", $"安裝緊 {item.Name}…");
         Busy.IsActive = true;
         try
         {
-            var r = await PackageManagerRegistry.InstallAdvancedAsync(
-                item.ManagerKey, item.Id, V(version.Text), sc, ar, interactive.IsChecked == true, V(custom.Text));
+            var r = await PackageOperations.RunAsync(
+                item.ManagerKey, item.Id, PackageOperations.Op.Install, effective, CancellationToken.None);
             ResultsHeader.Text = r.Success
                 ? P($"Installed {item.Name}.", $"已安裝 {item.Name}。")
                 : P($"Install failed for {item.Name}.", $"{item.Name} 安裝失敗。");
