@@ -443,6 +443,10 @@ public sealed partial class MainWindow : Window
             case "taskbar-tweaker":
             case "module.taskbar-tweaker":
                 Navigator.GoToModule?.Invoke("module.taskbar-tweaker");
+            case "rainmeter":
+            case "skins":
+            case "widgets":
+                Navigator.GoToModule?.Invoke("module.rainmeter");
                 break;
             case null:
             case "":
@@ -531,6 +535,7 @@ public sealed partial class MainWindow : Window
         "module.ssh" => typeof(SshModule),
         "module.packer" => typeof(PackerModule),
         "module.webcloner" => typeof(WebClonerModule),
+        "module.rainmeter" => typeof(RainmeterModule),
         "module.archives" => typeof(ArchivesModule),
         "module.media" => typeof(MediaModule),
         "module.audioeditor" => typeof(AudioEditorModule),
