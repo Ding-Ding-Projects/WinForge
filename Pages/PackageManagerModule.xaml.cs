@@ -25,18 +25,14 @@ public sealed partial class PackageManagerModule : Page
     private readonly Dictionary<string, bool> _available = new(StringComparer.OrdinalIgnoreCase);
     private int _view; // 0 Discover, 1 Updates, 2 Installed, 3 Bundles, 4 Sources, 5 Ignored, 6 Setup
     private HashSet<string> _wingetInstalled = new(StringComparer.OrdinalIgnoreCase);
-    private readonly HashSet<string> _ignored = LoadIgnored();   // "key|id" of updates the user chose to ignore
     private readonly Dictionary<string, PackageItem> _selectedPkgs = new(StringComparer.OrdinalIgnoreCase); // 已勾選套件 · checked packages keyed by "manager|id"
 
     private static string PkgKey(PackageItem i) => $"{i.ManagerKey}|{i.Id}";
 
-    private static HashSet<string> LoadIgnored()
-    {
-        var raw = SettingsStore.Get("pkg.ignored", "");
-        return new HashSet<string>(raw.Split('\n', StringSplitOptions.RemoveEmptyEntries), StringComparer.OrdinalIgnoreCase);
-    }
-    private void SaveIgnored() => SettingsStore.Set("pkg.ignored", string.Join('\n', _ignored));
-    private static string IgnKey(PackageItem i) => $"{i.ManagerKey}|{i.Id}";
+    // 更新忽略／釘版改由 IgnoredUpdates 服務（UniGetUI 式釘版）處理 · ignore/pin now delegated to IgnoredUpdates.
+    private const string IgnoreNotApplicableKey = "pkg.ignore.notapplicable";
+    private static bool IgnoreNotApplicable =>
+        SettingsStore.Get(IgnoreNotApplicableKey, "false") == "true";
 
     private sealed class BundleEntry
     {
@@ -285,7 +281,9 @@ public sealed partial class PackageManagerModule : Page
         try { ups = await PackageManagerRegistry.AllUpdatesAsync(keys, CancellationToken.None); }
         catch { ups = new(); }
         Busy.IsActive = false;
-        var shown = ups.Where(u => !_ignored.Contains(IgnKey(u))).ToList();
+        bool hideNotApplicable = IgnoreNotApplicable;
+        var shown = ups.Where(u => !IgnoredUpdates.IsIgnored(u)
+            && !(hideNotApplicable && string.IsNullOrWhiteSpace(u.AvailableVersion))).ToList();
         int hidden = ups.Count - shown.Count;
         ResultsHeader.Text = hidden > 0
             ? P($"Updatable — {shown.Count} ({hidden} ignored)", $"可更新 — {shown.Count}（已忽略 {hidden}）")
@@ -317,12 +315,47 @@ public sealed partial class PackageManagerModule : Page
         foreach (var item in shown)
         {
             var label = string.IsNullOrEmpty(item.AvailableVersion) ? P("Update", "更新") : $"{P("Update", "更新")} → {item.AvailableVersion}";
+            var pkg = item;
             var extras = new List<(string, Func<Button, Task>)>
             {
-                (P("Ignore", "忽略"), _ => { _ignored.Add(IgnKey(item)); SaveIgnored(); return LoadUpdates(); }),
+                // 「忽略 ▾」彈出選單：跳過此版本／忽略所有版本／暫停更新…
+                // "Ignore ▾" opens a flyout: skip this version / ignore all versions / pause for…
+                (P("Ignore ▾", "忽略 ▾"), btn => { ShowIgnoreFlyout(btn, pkg); return Task.CompletedTask; }),
             };
             ResultsPanel.Children.Add(RowFor(item, label, async btn => await ActionUpdate(item, btn), extras));
         }
+    }
+
+    /// <summary>
+    /// 「忽略 ▾」嘅彈出選單 · The "Ignore ▾" flyout offering UniGetUI-style pin choices:
+    /// skip this version, ignore all versions, or pause updates for a chosen duration.
+    /// </summary>
+    private void ShowIgnoreFlyout(Button anchor, PackageItem item)
+    {
+        var flyout = new MenuFlyout();
+
+        var skip = new MenuFlyoutItem { Text = P("Skip this version", "跳過此版本") };
+        skip.Click += async (_, _) => { IgnoredUpdates.PinThisVersion(item); await LoadUpdates(); };
+        flyout.Items.Add(skip);
+
+        var all = new MenuFlyoutItem { Text = P("Ignore all versions", "忽略所有版本") };
+        all.Click += async (_, _) => { IgnoredUpdates.PinAllVersions(item); await LoadUpdates(); };
+        flyout.Items.Add(all);
+
+        var pause = new MenuFlyoutSubItem { Text = P("Pause updates for…", "暫停更新…") };
+        void AddPause(string en, string zh, TimeSpan d)
+        {
+            var mi = new MenuFlyoutItem { Text = P(en, zh) };
+            mi.Click += async (_, _) => { IgnoredUpdates.Snooze(item, d); await LoadUpdates(); };
+            pause.Items.Add(mi);
+        }
+        AddPause("1 day", "1 日", TimeSpan.FromDays(1));
+        AddPause("1 week", "1 個星期", TimeSpan.FromDays(7));
+        AddPause("1 month", "1 個月", TimeSpan.FromDays(30));
+        AddPause("3 months", "3 個月", TimeSpan.FromDays(90));
+        flyout.Items.Add(pause);
+
+        flyout.ShowAt(anchor);
     }
 
     private async Task UpdateAll()
@@ -637,22 +670,56 @@ public sealed partial class PackageManagerModule : Page
     private void LoadIgnoredView()
     {
         ResultsPanel.Children.Clear();
-        ResultsHeader.Text = P($"Ignored updates — {_ignored.Count}", $"已忽略更新 — {_ignored.Count}");
-        if (_ignored.Count == 0)
+        var pins = IgnoredUpdates.All();
+        ResultsHeader.Text = P($"Ignored updates — {pins.Count}", $"已忽略更新 — {pins.Count}");
+
+        // 頂部控制：自動忽略「不適用」更新嘅切換 + 全部重設。
+        // Top controls: "auto-ignore not-applicable" toggle + "Reset all".
+        var controls = new StackPanel { Spacing = 8 };
+
+        var naCheck = new CheckBox
+        {
+            Content = P("Automatically ignore updates that are not applicable",
+                "自動忽略不適用嘅更新"),
+            IsChecked = IgnoreNotApplicable,
+        };
+        naCheck.Checked += (_, _) => SettingsStore.Set(IgnoreNotApplicableKey, "true");
+        naCheck.Unchecked += (_, _) => SettingsStore.Set(IgnoreNotApplicableKey, "false");
+        controls.Children.Add(naCheck);
+
+        var resetBtn = new Button { Content = P("Reset all", "全部重設"), Padding = new Thickness(12, 4, 12, 4) };
+        resetBtn.Click += (_, _) => { IgnoredUpdates.ResetAll(); LoadIgnoredView(); };
+        controls.Children.Add(resetBtn);
+
+        ResultsPanel.Children.Add(Card(controls));
+
+        if (pins.Count == 0)
         {
             ResultsPanel.Children.Add(new TextBlock
             {
-                Text = P("Nothing ignored. Use “Ignore” on an update to hide it here.", "冇忽略項目。喺更新撳「忽略」就會收喺呢度。"),
+                Text = P("Nothing ignored. Use “Ignore ▾” on an update to skip a version, ignore all versions, or pause updates.",
+                    "冇忽略項目。喺更新撳「忽略 ▾」就可以跳過某版本、忽略所有版本，或者暫停更新。"),
                 Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"], Margin = new Thickness(4, 8, 0, 0),
             });
             return;
         }
-        foreach (var key in _ignored.ToList())
+
+        foreach (var pin in pins)
         {
-            var parts = key.Split('|', 2);
-            var item = new PackageItem { ManagerKey = parts.Length > 0 ? parts[0] : "", Id = parts.Length > 1 ? parts[1] : key, Name = parts.Length > 1 ? parts[1] : key };
+            var p = pin;
+            var item = new PackageItem { ManagerKey = p.Manager, Id = p.Id, Name = p.Id, Source = "" };
+            // 釘版種類說明 · describe the pin kind.
+            string kind;
+            if (!string.IsNullOrWhiteSpace(p.PauseUntil))
+                kind = P($"paused until {p.PauseUntil}", $"暫停至 {p.PauseUntil}");
+            else if (p.Version == "*")
+                kind = P("all versions", "所有版本");
+            else
+                kind = P($"this version {p.Version}", $"此版本 {p.Version}");
+            item.Version = kind;
+
             ResultsPanel.Children.Add(RowFor(item, P("Un-ignore", "取消忽略"),
-                _ => { _ignored.Remove(key); SaveIgnored(); LoadIgnoredView(); return Task.CompletedTask; }));
+                _ => { IgnoredUpdates.RemoveKey(p.Manager, p.Id, p.Version); LoadIgnoredView(); return Task.CompletedTask; }));
         }
     }
 
