@@ -58,26 +58,17 @@ public static class SystemTweaks
             onValue: 1, offValue: 0, requiresAdmin: true, restart: RestartScope.Reboot,
             keywords: "bsod,crash,reboot,藍畫面,當機"),
 
-        Tweak.RegChoice("system.numlock-startup", "NumLock at startup", "開機 NumLock",
-            "Set whether NumLock is on when Windows starts.", "設定 Windows 開機時 NumLock 開唔開。",
-            RegRoot.HKU, @".DEFAULT\Control Panel\Keyboard", "InitialKeyboardIndicators",
-            RegistryValueKind.String,
-            new (string en, string zh, object value)[] { ("On", "開", "2"), ("Off", "熄", "0") },
-            requiresAdmin: true, restart: RestartScope.Reboot,
-            keywords: "numlock,keyboard,數字鎖,鍵盤"),
+        // 開機 NumLock 係「開／熄」二揀一，用單選按鈕組比下拉式更清晰。
+        // NumLock-at-startup is a two-way mutually-exclusive choice, so a RadioGroup reads
+        // more clearly than a ComboBox. Registry value/path/kind/scope kept identical to the
+        // original RegChoice (HKU .DEFAULT\…\InitialKeyboardIndicators, String "2"/"0").
+        NumLockStartupRadio(),
 
-        Tweak.RegChoice("system.hung-app-timeout", "Hung app close timeout", "無回應程式關閉等候",
-            "How long Windows waits before offering to close a frozen app.", "Windows 等幾耐先提出關閉當咗機嘅程式。",
-            RegRoot.HKCU, @"Control Panel\Desktop", "HungAppTimeout",
-            RegistryValueKind.String,
-            new (string en, string zh, object value)[]
-            {
-                ("1s", "1秒", "1000"),
-                ("3s", "3秒", "3000"),
-                ("5s (default)", "5秒(預設)", "5000"),
-            },
-            restart: RestartScope.SignOut,
-            keywords: "hung,timeout,frozen,無回應,當機"),
+        // 無回應程式關閉等候本質上係連續嘅毫秒值，用滑桿＋彩色狀態藥丸
+        // 比「1秒／3秒/5秒」三揀一更直觀。registry 值／路徑／kind／scope 全部照舊。
+        // The hung-app timeout is an inherently continuous millisecond value, so a slider with a
+        // coloured status pill is clearer than three presets. Same registry value/path/kind/scope.
+        HungAppTimeoutSlider(),
 
         Tweak.Powershell("system.restore-point", "Create a restore point", "建立還原點",
             "Create a System Restore point right now.", "即刻建立一個系統還原點。",
@@ -116,4 +107,75 @@ public static class SystemTweaks
             "Open", "開啟", "rundll32.exe sysdm.cpl,EditEnvironmentVariables",
             keywords: "environment,path,variables,環境變數"),
     };
+
+    /// <summary>
+    /// 開機 NumLock 單選按鈕組 · The NumLock-at-startup RadioGroup.
+    /// 直接讀寫 HKU\.DEFAULT\Control Panel\Keyboard\InitialKeyboardIndicators（字串值 "2"=開／"0"=熄），
+    /// 行為、權限同重啟範圍同原本嘅 RegChoice 完全一致。
+    /// Reads/writes the same string registry value ("2"=On / "0"=Off) as the original RegChoice;
+    /// id, behaviour, admin and restart scope are unchanged — only the control surface differs.
+    /// </summary>
+    private static TweakDefinition NumLockStartupRadio()
+    {
+        const string Path = @".DEFAULT\Control Panel\Keyboard";
+        const string Name = "InitialKeyboardIndicators";
+
+        return Tweak.RadioGroup("system.numlock-startup", "NumLock at startup", "開機 NumLock",
+            "Set whether NumLock is on when Windows starts.", "設定 Windows 開機時 NumLock 開唔開。",
+            new (string en, string zh, string value)[] { ("On", "開", "2"), ("Off", "熄", "0") },
+            getCurrent: () =>
+            {
+                if (RegistryHelper.ValueEquals(RegRoot.HKU, Path, Name, "2")) return "2";
+                if (RegistryHelper.ValueEquals(RegRoot.HKU, Path, Name, "0")) return "0";
+                return null;
+            },
+            setChoice: val => RegistryHelper.SetValue(RegRoot.HKU, Path, Name, val, RegistryValueKind.String),
+            requiresAdmin: true, restart: RestartScope.Reboot,
+            keywords: "numlock,keyboard,數字鎖,鍵盤");
+    }
+
+    /// <summary>
+    /// 無回應程式關閉等候滑桿 · The hung-app close-timeout slider.
+    /// 直接讀寫 HKCU\Control Panel\Desktop\HungAppTimeout（毫秒，字串值），並用彩色狀態藥丸顯示反應感。
+    /// id、registry 值／路徑／kind、登出範圍同原本嘅 RegChoice 一致。
+    /// Reads/writes the same string millisecond value as the original RegChoice and adds a coloured
+    /// status pill; id, registry value/path/kind and SignOut scope are unchanged.
+    /// </summary>
+    private static TweakDefinition HungAppTimeoutSlider()
+    {
+        const string Path = @"Control Panel\Desktop";
+        const string Name = "HungAppTimeout";
+
+        double Read()
+        {
+            var raw = RegistryHelper.GetValue(RegRoot.HKCU, Path, Name)?.ToString();
+            return int.TryParse(raw, out var ms) ? ms : 5000; // Windows default
+        }
+
+        return new TweakDefinition
+        {
+            Id = "system.hung-app-timeout",
+            Title = new("Hung app close timeout", "無回應程式關閉等候"),
+            Description = new("How long Windows waits before offering to close a frozen app.",
+                "Windows 等幾耐先提出關閉當咗機嘅程式。"),
+            Kind = TweakKind.Slider,
+            Restart = RestartScope.SignOut,
+            Keywords = new[] { "hung", "timeout", "frozen", "無回應", "當機", "slider", "滑桿" },
+            Min = 1000, Max = 5000, Step = 500,
+            Unit = new LocalizedText("ms", "毫秒"),
+            GetNumber = Read,
+            SetNumber = v => RegistryHelper.SetValue(RegRoot.HKCU, Path, Name,
+                ((int)Math.Round(v)).ToString(), RegistryValueKind.String),
+            ColoredStatus = () =>
+            {
+                int ms = (int)Math.Round(Read());
+                return ms switch
+                {
+                    <= 1000 => ("Snappy", "爽快", StatusColor.Good),
+                    <= 3000 => ("Normal", "正常", StatusColor.Neutral),
+                    _ => ("Patient", "偏慢", StatusColor.Warn),
+                };
+            },
+        };
+    }
 }
