@@ -43,9 +43,12 @@
 
 ## Full image inventory · 完整圖檔清單
 
-**EN —** Beyond the gallery above, `docs/` also holds shots for many more modules (ADB, Archives, Awake, Bulk Ops, Color Picker, Context Menu, Devices, Disk Analyzer, Drives, Duplicates, Env Vars, Event Viewer, Hosts, Keyboard, Maintenance, Mixer, Mouse, Net Pro, Recipes, Recorder, RegEdit, Rename, Search, Services, Startup, Scheduled Tasks, Uninstaller, VPN Mesh, Winaero, Window Manager, and more). The full list is the set of `docs/screenshot-*.png` files.
+**EN —** Beyond the gallery above, `docs/` holds shots for many more modules. The current `docs/screenshot-*.png` set covers: **adb, aiagents, annoyances, archives, awake, bulkops, clipboard, cloudflare, colorpicker, connections, contextmenu, dashboard, devices, devterminal, disk, drives, duplicates, envvars, events, git, hosts, keyboard, maintenance, media, mixer, monitor, mouse, netpro-table, packages, recipes, recorder, regedit, rename, search, services, settingshub, startup, tasks, uninstall/uninstaller, vpn, winaero, windows**. The full list is simply the set of `docs/screenshot-*.png` files.
 
-**粵語 —** 除咗上面嘅畫廊，`docs/` 仲有好多其他模組嘅截圖（ADB、Archives、Awake、批量操作、取色器、右鍵選單、裝置、磁碟分析、磁碟機、重複檔、環境變數、事件檢視器、Hosts、鍵盤、維護、混音器、滑鼠、Net Pro、食譜、錄製、登錄編輯、重新命名、搜尋、服務、啟動、排程工作、解除安裝、VPN Mesh、Winaero、視窗管理等等）。完整清單就係所有 `docs/screenshot-*.png` 檔。
+**粵語 —** 除咗上面嘅畫廊，`docs/` 仲有好多其他模組嘅截圖。目前嘅 `docs/screenshot-*.png` 涵蓋：**adb、aiagents、annoyances、archives、awake、bulkops、clipboard、cloudflare、colorpicker、connections、contextmenu、dashboard、devices、devterminal、disk、drives、duplicates、envvars、events、git、hosts、keyboard、maintenance、media、mixer、monitor、mouse、netpro-table、packages、recipes、recorder、regedit、rename、search、services、settingshub、startup、tasks、uninstall／uninstaller、vpn、winaero、windows**。完整清單就係所有 `docs/screenshot-*.png` 檔。
+
+> **EN —** The suite now ships **112 modules** (see [Home](Home) for the full categorized index). Most modules — especially the registry-driven ones (Services, Devices, ViVeTool, Env Vars, etc.) and the many newer wrapped/native tools (SSH, Mail, VLC, qBittorrent, VS Code, yt-dlp, VirtualBox, AI Chat, Ollama, the PowerToys-gap utilities, and more) — do **not** yet have a dedicated `screenshot-*.png`. They are fully documented in [Home](Home) and the README; capture new shots with the steps above and drop them in `docs/` as `screenshot-<key>.png`.
+> **粵語 —** 套件而家有 **112 個模組**（完整分類索引見 [Home](Home)）。大部分模組 — 尤其係登錄驅動嗰啲（服務、裝置、ViVeTool、環境變數等）同好多較新嘅包裝／原生工具（SSH、電郵、VLC、qBittorrent、VS Code、yt-dlp、VirtualBox、AI 聊天、Ollama、各個 PowerToys 補完工具等）— 暫時**未有**專屬 `screenshot-*.png`。佢哋喺 [Home](Home) 同 README 都有完整文件記載；可按上面步驟擷取新截圖，再以 `screenshot-<key>.png` 放入 `docs/`。
 
 ---
 [← Module index · 模組索引](Home) · [README](https://github.com/codingmachineedge/WinForge/blob/main/README.md)
