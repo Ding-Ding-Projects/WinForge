@@ -72,7 +72,20 @@ public sealed partial class PackageManagerModule : Page
             "UniGetUI 式總管，統一 winget、Scoop、Chocolatey、pip、npm、.NET 工具、PowerShell Gallery、PowerShell 7、Cargo、Bun 同 vcpkg — 搜尋、多選、批次安裝／更新／解除安裝，仲可以匯出／匯入清單，全部喺 app 內。");
         ManagersLabel.Text = P("Package managers", "套件管理器");
         SearchBox.PlaceholderText = P("Search packages (e.g. vscode, vlc, obs)…", "搜尋套件（例如 vscode、vlc、obs）…");
+        TerminalBtnText.Text = P("Terminal", "終端機");
+        ToolTipService.SetToolTip(TerminalBtn, P("Open a shell for manual winget / scoop / choco / pip / npm",
+            "開一個 shell 手動執行 winget／scoop／choco／pip／npm"));
     }
+
+    /// <summary>
+    /// 開一個內嵌 shell · Open an embedded ConPTY shell so the user can drive winget / scoop / choco /
+    /// pip / npm etc. by hand — a real terminal in-app, no external window. 喺呢度開終端機。
+    /// </summary>
+    private async void Terminal_Click(object sender, RoutedEventArgs e)
+        => await TerminalLauncher.OpenEmbeddedAsync(this.XamlRoot,
+            P("Package shell · 套件 shell", "套件 shell · Package shell"),
+            commandLine: null,
+            workingDir: Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
 
     private void BuildViewCombo()
     {

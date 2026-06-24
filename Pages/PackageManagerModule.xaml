@@ -51,6 +51,7 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <ComboBox x:Name="ViewCombo" Grid.Column="0" MinWidth="160" SelectionChanged="View_Changed" />
             <AutoSuggestBox
@@ -60,7 +61,13 @@
                 QuerySubmitted="Search_Submitted" />
             <Button x:Name="PrimaryActionBtn" Grid.Column="2" Click="PrimaryAction_Click" />
             <Button x:Name="SecondaryActionBtn" Grid.Column="3" Click="SecondaryAction_Click" />
-            <ProgressRing x:Name="Busy" Grid.Column="4" Width="22" Height="22" IsActive="False" VerticalAlignment="Center" />
+            <Button x:Name="TerminalBtn" Grid.Column="4" Click="Terminal_Click">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <FontIcon FontSize="14" Glyph="&#xE756;" />
+                    <TextBlock x:Name="TerminalBtnText" />
+                </StackPanel>
+            </Button>
+            <ProgressRing x:Name="Busy" Grid.Column="5" Width="22" Height="22" IsActive="False" VerticalAlignment="Center" />
         </Grid>
 
         <!-- Results -->

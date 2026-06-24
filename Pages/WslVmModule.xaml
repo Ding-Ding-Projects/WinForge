@@ -59,7 +59,8 @@
                                         <Button Grid.Column="1" Content="&#xE712;" FontFamily="Segoe Fluent Icons,Segoe MDL2 Assets" Tag="{Binding Name}" Click="DistroActions_Click">
                                             <Button.Flyout>
                                                 <MenuFlyout>
-                                                    <MenuFlyoutItem Text="Launch terminal · 開終端機" Tag="{Binding Name}" Click="DistroLaunch_Click" />
+                                                    <MenuFlyoutItem Text="Open terminal here (embedded) · 喺呢度開終端機（內嵌）" Tag="{Binding Name}" Click="DistroEmbeddedTerminal_Click" />
+                                                    <MenuFlyoutItem Text="Launch terminal (window) · 開終端機（視窗）" Tag="{Binding Name}" Click="DistroLaunch_Click" />
                                                     <MenuFlyoutItem Text="Set as default · 設為預設" Tag="{Binding Name}" Click="DistroSetDefault_Click" />
                                                     <MenuFlyoutItem Text="Export (back up) · 匯出（備份）" Tag="{Binding Name}" Click="DistroExport_Click" />
                                                     <MenuFlyoutItem Text="Terminate (stop) · 終止（停止）" Tag="{Binding Name}" Click="DistroTerminate_Click" />
