@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.MailModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid Padding="16,12,16,12" RowSpacing="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- ===== Header ===== -->
+        <StackPanel Grid.Row="0" Spacing="6">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <FontIcon FontSize="22" Glyph="&#xE715;" VerticalAlignment="Center" />
+                <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
+            </StackPanel>
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+        </StackPanel>
+
+        <!-- ===== Toolbar ===== -->
+        <Grid Grid.Row="1" ColumnSpacing="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <ComboBox x:Name="AccountBox" Grid.Column="0" MinWidth="220" SelectionChanged="Account_Changed" />
+            <Button x:Name="AddAccountBtn" Grid.Column="1" Click="AddAccount_Click">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <FontIcon FontSize="14" Glyph="&#xE710;" />
+                    <TextBlock x:Name="AddAccountLabel" />
+                </StackPanel>
+            </Button>
+            <Button x:Name="ComposeBtn" Grid.Column="2" Style="{StaticResource AccentButtonStyle}" Click="Compose_Click">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <FontIcon FontSize="14" Glyph="&#xE8BD;" />
+                    <TextBlock x:Name="ComposeLabel" />
+                </StackPanel>
+            </Button>
+            <Button x:Name="RefreshBtn" Grid.Column="3" Click="Refresh_Click">
+                <FontIcon FontSize="14" Glyph="&#xE72C;" />
+            </Button>
+            <AutoSuggestBox x:Name="SearchBox" Grid.Column="4" QueryIcon="Find"
+                            QuerySubmitted="Search_Submitted" />
+            <Button x:Name="ThunderbirdBtn" Grid.Column="5" Click="Thunderbird_Click"
+                    ToolTipService.ToolTip="Launch / install Thunderbird · 啟動／安裝 Thunderbird">
+                <FontIcon FontFamily="Segoe UI" FontSize="14" Glyph="&#xE8A7;" />
+            </Button>
+        </Grid>
+
+        <InfoBar x:Name="ResultBar" Grid.Row="1" Margin="0,44,0,0" IsClosable="True" IsOpen="False" />
+
+        <!-- ===== Empty state (no accounts) ===== -->
+        <StackPanel x:Name="EmptyState" Grid.Row="2" VerticalAlignment="Center" HorizontalAlignment="Center"
+                    Spacing="12" MaxWidth="520" Visibility="Collapsed">
+            <FontIcon FontSize="44" Glyph="&#xE715;" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            <TextBlock x:Name="EmptyTitle" HorizontalAlignment="Center" FontSize="18" FontWeight="SemiBold" />
+            <TextBlock x:Name="EmptyBlurb" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            <Button x:Name="EmptyAddBtn" HorizontalAlignment="Center" Style="{StaticResource AccentButtonStyle}"
+                    Click="AddAccount_Click" />
+        </StackPanel>
+
+        <!-- ===== Three-pane ===== -->
+        <Grid x:Name="ThreePane" Grid.Row="2" ColumnSpacing="10" Visibility="Collapsed">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="210" MinWidth="160" />
+                <ColumnDefinition Width="340" MinWidth="260" />
+                <ColumnDefinition Width="*" MinWidth="320" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Folder tree -->
+            <Border Grid.Column="0" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <TextBlock x:Name="FoldersHeader" Grid.Row="0" Margin="12,10,12,6" FontWeight="SemiBold" />
+                    <ListView x:Name="FolderList" Grid.Row="1" SelectionChanged="Folder_Changed"
+                              Padding="4,0,4,8">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnSpacing="8" Padding="4,2">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <FontIcon Grid.Column="0" FontSize="14" Glyph="&#xE8B7;" VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Grid.Column="2" Text="{Binding UnreadText}" VerticalAlignment="Center"
+                                               Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" FontSize="12" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </Grid>
+            </Border>
+
+            <!-- Message list -->
+            <Border Grid.Column="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <TextBlock x:Name="MessagesHeader" Grid.Row="0" Margin="12,10,12,6" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                    <ProgressRing x:Name="ListProgress" Grid.Row="1" IsActive="False" Width="28" Height="28" />
+                    <ListView x:Name="MessageList" Grid.Row="1" SelectionChanged="Message_Changed" Padding="0,0,0,4">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Padding="8,6" ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Ellipse Grid.Column="0" Width="8" Height="8" VerticalAlignment="Top" Margin="0,6,0,0"
+                                             Fill="{ThemeResource AccentFillColorDefaultBrush}"
+                                             Visibility="{Binding UnreadDot}" />
+                                    <StackPanel Grid.Column="1" Spacing="2">
+                                        <Grid ColumnSpacing="6">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="{Binding From}" FontWeight="{Binding Weight}"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <FontIcon Grid.Column="1" FontSize="11" Glyph="&#xE723;" Visibility="{Binding AttachVis}"
+                                                      Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                            <TextBlock Grid.Column="2" Text="{Binding DateText}" FontSize="11"
+                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        </Grid>
+                                        <TextBlock Text="{Binding Subject}" FontWeight="{Binding Weight}" FontSize="13"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                    <Button x:Name="LoadMoreBtn" Grid.Row="2" Margin="8,4,8,8" HorizontalAlignment="Stretch"
+                            Click="LoadMore_Click" Visibility="Collapsed" />
+                </Grid>
+            </Border>
+
+            <!-- Reader -->
+            <Border Grid.Column="2" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <!-- Reader header -->
+                    <StackPanel x:Name="ReaderHeader" Grid.Row="0" Margin="14,12,14,8" Spacing="4" Visibility="Collapsed">
+                        <TextBlock x:Name="ReaderSubject" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap" />
+                        <TextBlock x:Name="ReaderFrom" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" FontSize="13" />
+                        <TextBlock x:Name="ReaderTo" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" FontSize="12" />
+                        <TextBlock x:Name="ReaderDate" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" />
+                    </StackPanel>
+
+                    <!-- Reader actions -->
+                    <StackPanel x:Name="ReaderActions" Grid.Row="1" Orientation="Horizontal" Spacing="6"
+                                Margin="14,0,14,6" Visibility="Collapsed">
+                        <Button x:Name="ReplyBtn" Click="Reply_Click"><StackPanel Orientation="Horizontal" Spacing="6"><FontIcon FontSize="13" Glyph="&#xE8CA;" /><TextBlock x:Name="ReplyLabel" /></StackPanel></Button>
+                        <Button x:Name="ReplyAllBtn" Click="ReplyAll_Click"><StackPanel Orientation="Horizontal" Spacing="6"><FontIcon FontSize="13" Glyph="&#xEE35;" /><TextBlock x:Name="ReplyAllLabel" /></StackPanel></Button>
+                        <Button x:Name="ForwardBtn" Click="Forward_Click"><StackPanel Orientation="Horizontal" Spacing="6"><FontIcon FontSize="13" Glyph="&#xE72D;" /><TextBlock x:Name="ForwardLabel" /></StackPanel></Button>
+                        <Button x:Name="ReadToggleBtn" Click="ReadToggle_Click"><FontIcon FontSize="13" Glyph="&#xE8C3;" /></Button>
+                        <Button x:Name="DeleteBtn" Click="Delete_Click"><FontIcon FontSize="13" Glyph="&#xE74D;" /></Button>
+                        <ToggleButton x:Name="RemoteToggle" Click="RemoteToggle_Click"><StackPanel Orientation="Horizontal" Spacing="6"><FontIcon FontSize="13" Glyph="&#xE12B;" /><TextBlock x:Name="RemoteLabel" /></StackPanel></ToggleButton>
+                    </StackPanel>
+
+                    <!-- Attachments -->
+                    <ItemsControl x:Name="AttachmentsPanel" Grid.Row="2" Margin="14,0,14,6">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                    </ItemsControl>
+
+                    <!-- Body: WebView2 (HTML) + text fallback -->
+                    <Grid Grid.Row="3" Margin="2,0,2,2">
+                        <WebView2 x:Name="BodyWeb" Visibility="Collapsed" />
+                        <ScrollViewer x:Name="TextScroller" VerticalScrollBarVisibility="Auto" Padding="14,0,14,12">
+                            <TextBlock x:Name="BodyText" IsTextSelectionEnabled="True" TextWrapping="Wrap" FontFamily="Consolas" />
+                        </ScrollViewer>
+                        <TextBlock x:Name="ReaderEmpty" VerticalAlignment="Center" HorizontalAlignment="Center"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</Page>

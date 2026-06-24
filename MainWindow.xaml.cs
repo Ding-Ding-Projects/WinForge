@@ -284,14 +284,18 @@ public sealed partial class MainWindow : Window
                 break;
             case "comms":
             case "communications":
-            case "mail":
-            case "email":
-            case "outlook":
             case "teams":
             case "discord":
             case "telegram":
             case "slack":
                 Navigator.GoToModule?.Invoke("module.comms");
+                break;
+            case "mail":
+            case "email":
+            case "imap":
+            case "thunderbird":
+            case "mailclient":
+                Navigator.GoToModule?.Invoke("module.mail");
                 break;
             case "configbackup":
             case "backup":
@@ -468,6 +472,7 @@ public sealed partial class MainWindow : Window
         "module.vpn" => typeof(VpnMeshModule),
         "module.homeassistant" => typeof(HomeAssistantModule),
         "module.comms" => typeof(CommunicationsModule),
+        "module.mail" => typeof(MailModule),
         "module.configbackup" => typeof(ConfigBackupModule),
         "module.native" => typeof(NativeUtilitiesModule),
         "module.powertoys" => typeof(PowerToysExtrasModule),

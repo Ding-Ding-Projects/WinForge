@@ -123,6 +123,7 @@
                         <NavigationViewItem Content="VPN &amp; Mesh · VPN 與網狀網" Tag="module.vpn"><NavigationViewItem.Icon><FontIcon Glyph="&#xE945;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Home Assistant · 家居助理" Tag="module.homeassistant"><NavigationViewItem.Icon><FontIcon Glyph="&#xE80F;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Communications · 通訊" Tag="module.comms"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8BD;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Mail · 電郵" Tag="module.mail"><NavigationViewItem.Icon><FontIcon Glyph="&#xE715;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="WSL &amp; VM Launcher · WSL 與 VM 啟動器" Tag="module.wslvm"><NavigationViewItem.Icon><FontIcon Glyph="&#xEC7A;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="App Uninstaller · 應用程式解除安裝" Tag="module.uninstall"><NavigationViewItem.Icon><FontIcon Glyph="&#xE74D;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Imaging &amp; Game Tools · 燒錄與遊戲工具" Tag="module.imaging"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7F4;" /></NavigationViewItem.Icon></NavigationViewItem>

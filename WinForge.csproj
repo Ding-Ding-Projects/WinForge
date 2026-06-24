@@ -66,6 +66,14 @@
     <PackageReference Include="QRCoder" Version="1.6.0" />
     <!-- System.Speech: built-in Windows SAPI TTS (read aloud / export WAV) for the Voice module. -->
     <PackageReference Include="System.Speech" Version="9.0.0" />
+    <!-- MailKit / MimeKit (MIT): IMAP/SMTP protocols + MIME parsing for the native Mail module. -->
+    <PackageReference Include="MailKit" Version="4.17.0" />
+    <PackageReference Include="MimeKit" Version="4.17.0" />
+    <!-- WebView2 (Edge/Chromium) for sandboxed HTML-email rendering and the OAuth2 sign-in flow.
+         Version pinned >= the one WindowsAppSDK pulls in transitively to avoid a NU1605 downgrade. -->
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3719.77" />
+    <!-- DPAPI for encrypting mail credentials at rest (ProtectedData isn't in the default BCL on .NET). -->
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="9.0.0" />
   </ItemGroup>
 
   <!--
