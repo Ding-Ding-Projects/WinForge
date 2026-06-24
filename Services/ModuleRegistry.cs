@@ -99,6 +99,7 @@ public static class ModuleRegistry
         new() { Tag = "module.mail", En = "Mail", Zh = "電郵", Glyph = ((char)0xE715).ToString(), Keywords = "mail email imap smtp thunderbird inbox compose reply forward attachment oauth gmail outlook icloud yahoo account folder message read send 電郵 郵件 收件匣 撰寫 回覆 轉寄 附件 帳戶 資料夾 訊息" },
         new() { Tag = "module.packer", En = "Packer (Image Builder)", Zh = "Packer（映像建置器）", Glyph = ((char)0xE7B8).ToString(), Keywords = "packer hashicorp image builder template hcl pkr.hcl json init validate fmt format build inspect plugin plugins var var-file variables provisioner builder source qemu docker aws azure vsphere amazon ami vm machine devops 映像 範本 建置 變數 插件" },
         new() { Tag = "module.webcloner", En = "Website Cloner", Zh = "網站複製器", Glyph = ((char)0xE774).ToString(), Keywords = "website cloner clone copy site web page scrape download fetch assets html css js mirror rebuild reverse engineer ai agent webview2 design tokens 網站 複製 抓取 下載 鏡像 重建 設計符記" },
+        new() { Tag = "module.windhawk", En = "Windhawk Mods", Zh = "Windhawk 模組", Glyph = ((char)0xE945).ToString(), Keywords = "windhawk mod mods customize taskbar height icon size clock start menu styler explorer rounded corners classic taskbar aero tray injection ramensoftware 模組 自訂 工作列 時鐘 開始功能表 圓角 注入" },
     };
 
     public static IEnumerable<ModuleInfo> Search(string query)

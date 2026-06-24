@@ -363,6 +363,11 @@ public sealed partial class MainWindow : Window
             case "imageresizer":
                 Navigator.GoToModule?.Invoke("module.powertoys");
                 break;
+            case "windhawk":
+            case "mods":
+            case "mod":
+                Navigator.GoToModule?.Invoke("module.windhawk");
+                break;
             case "wsl":
             case "vm":
             case "sandbox":
@@ -576,6 +581,7 @@ public sealed partial class MainWindow : Window
         "module.configbackup" => typeof(ConfigBackupModule),
         "module.native" => typeof(NativeUtilitiesModule),
         "module.powertoys" => typeof(PowerToysExtrasModule),
+        "module.windhawk" => typeof(WindhawkModule),
         "module.wslvm" => typeof(WslVmModule),
         "module.virtualbox" => typeof(VirtualBoxModule),
         "module.fonts" => typeof(FontManagerModule),
