@@ -3,3 +3,5 @@ MainWindow.xaml            merge=union
 MainWindow.xaml.cs         merge=union
 Services/ModuleRegistry.cs merge=union
 WinForge.csproj            merge=union
+App.xaml.cs                merge=union
+Services/AppState.cs        merge=union
