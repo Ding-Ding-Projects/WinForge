@@ -102,6 +102,7 @@ public static class ModuleRegistry
         new() { Tag = "module.webcloner", En = "Website Cloner", Zh = "網站複製器", Glyph = ((char)0xE774).ToString(), Keywords = "website cloner clone copy site web page scrape download fetch assets html css js mirror rebuild reverse engineer ai agent webview2 design tokens 網站 複製 抓取 下載 鏡像 重建 設計符記" },
         new() { Tag = "module.windhawk", En = "Windhawk Mods", Zh = "Windhawk 模組", Glyph = ((char)0xE945).ToString(), Keywords = "windhawk mod mods customize taskbar height icon size clock start menu styler explorer rounded corners classic taskbar aero tray injection ramensoftware 模組 自訂 工作列 時鐘 開始功能表 圓角 注入" },
         new() { Tag = "module.rainmeter", En = "Rainmeter Widgets", Zh = "Rainmeter 桌面小工具", Glyph = ((char)0xE7F4).ToString(), Keywords = "rainmeter skin skins widget widgets desktop gadget bang activate deactivate toggle refresh hide show rmskin skininstaller layout illustro clock cpu monitor personalization 桌面 小工具 皮膚 桌面美化 個人化 時鐘 監察" },
+        new() { Tag = "module.pgadmin", En = "Postgres Tool", Zh = "Postgres 工具 / pgAdmin", Glyph = ((char)0xE94D).ToString(), Keywords = "postgres postgresql pgadmin sql database query npgsql connection schema table view server psql 資料庫 數據庫 查詢 表 檢視 結構描述 連線" },
     };
 
     public static IEnumerable<ModuleInfo> Search(string query)

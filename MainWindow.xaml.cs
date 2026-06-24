@@ -166,6 +166,11 @@ public sealed partial class MainWindow : Window
             case "website":
             case "sitecloner":
                 Navigator.GoToModule?.Invoke("module.webcloner");
+            case "pgadmin":
+            case "postgres":
+            case "postgresql":
+            case "psql":
+                Navigator.GoToModule?.Invoke("module.pgadmin");
                 break;
             case "archives":
             case "archive":
@@ -543,6 +548,7 @@ public sealed partial class MainWindow : Window
         "module.packer" => typeof(PackerModule),
         "module.webcloner" => typeof(WebClonerModule),
         "module.rainmeter" => typeof(RainmeterModule),
+        "module.pgadmin" => typeof(PgAdminModule),
         "module.archives" => typeof(ArchivesModule),
         "module.media" => typeof(MediaModule),
         "module.audioeditor" => typeof(AudioEditorModule),
