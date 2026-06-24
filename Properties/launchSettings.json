@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "WinTune (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "WinTune (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
