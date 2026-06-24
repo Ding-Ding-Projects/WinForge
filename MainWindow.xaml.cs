@@ -330,6 +330,11 @@ public sealed partial class MainWindow : Window
             case "mouse":
                 Navigator.GoToModule?.Invoke("module.mouse");
                 break;
+            case "mwb":
+            case "mousewithoutborders":
+            case "kvm":
+                Navigator.GoToModule?.Invoke("module.mwb");
+                break;
             case "recorder":
             case "record":
                 Navigator.GoToModule?.Invoke("module.recorder");
@@ -691,6 +696,7 @@ public sealed partial class MainWindow : Window
         "module.hotkeys" => typeof(HotkeyMacroModule),
         "module.hosts" => typeof(HostsEditorModule),
         "module.mouse" => typeof(MouseModule),
+        "module.mwb" => typeof(MouseWithoutBordersModule),
         "module.recorder" => typeof(ScreenRecorderModule),
         "module.capture" => typeof(CaptureStudioModule),
         "module.giflab" => typeof(GifLabModule),
