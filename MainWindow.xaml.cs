@@ -445,6 +445,7 @@ public sealed partial class MainWindow : Window
         "module.drives" => typeof(DrivesModule),
         "module.uninstall" => typeof(AppUninstallerModule),
         "module.windows" => typeof(WindowManagerModule),
+        "module.altsnap" => typeof(AltSnapModule),
         "module.keyboard" => typeof(KeyboardModule),
         "module.hotkeys" => typeof(HotkeyMacroModule),
         "module.hosts" => typeof(HostsEditorModule),

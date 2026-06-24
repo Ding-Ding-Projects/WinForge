@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.AltSnapModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="820" Spacing="14">
+
+            <!-- Header -->
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <FontIcon FontSize="22" Glyph="&#xE737;" VerticalAlignment="Center" />
+                <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
+            </StackPanel>
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <!-- Install bar (shown when AltSnap is missing) -->
+            <InfoBar x:Name="InstallBar" IsClosable="False" IsOpen="False" Severity="Warning">
+                <InfoBar.ActionButton>
+                    <Button x:Name="InstallBtn" Click="Install_Click" />
+                </InfoBar.ActionButton>
+            </InfoBar>
+
+            <!-- Conflict warning (legacy AltDrag etc.) -->
+            <InfoBar x:Name="ConflictBar" IsClosable="True" IsOpen="False" Severity="Warning" />
+
+            <!-- UAC / elevation hint -->
+            <InfoBar x:Name="ElevationBar" IsClosable="True" IsOpen="False" Severity="Informational" />
+
+            <!-- Result feedback -->
+            <InfoBar x:Name="ResultBar" IsClosable="True" IsOpen="False" />
+
+            <!-- ===== Lifecycle ===== -->
+            <Border x:Name="LifecycleCard" Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Spacing="1" VerticalAlignment="Center">
+                            <TextBlock x:Name="LifecycleTitle" FontWeight="SemiBold" FontSize="15" />
+                            <TextBlock x:Name="StatusText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock x:Name="VersionText" FontSize="12" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                        </StackPanel>
+                        <Button x:Name="RefreshBtn" Grid.Column="1" Click="Refresh_Click" VerticalAlignment="Center" />
+                    </Grid>
+
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="LaunchBtn" Click="Launch_Click" Style="{StaticResource AccentButtonStyle}" />
+                        <Button x:Name="LaunchElevatedBtn" Click="LaunchElevated_Click" />
+                        <Button x:Name="QuitBtn" Click="Quit_Click" />
+                        <Button x:Name="RestartBtn" Click="Restart_Click" />
+                        <Button x:Name="AdvancedBtn" Click="Advanced_Click" />
+                    </StackPanel>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Spacing="1" VerticalAlignment="Center">
+                            <TextBlock x:Name="StartupTitle" FontWeight="SemiBold" />
+                            <TextBlock x:Name="StartupBlurb" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <ToggleSwitch x:Name="StartupSwitch" Grid.Column="1" Toggled="Startup_Toggled" VerticalAlignment="Center" />
+                    </Grid>
+
+                    <CheckBox x:Name="ReloadOnSaveChk" />
+                </StackPanel>
+            </Border>
+
+            <!-- ===== Curated config ===== -->
+            <TextBlock x:Name="ConfigHeader" FontWeight="SemiBold" FontSize="15" Margin="2,4,0,0" />
+            <TextBlock x:Name="ConfigBlurb" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" Margin="2,0,0,0" />
+
+            <StackPanel x:Name="OptionsHost" Spacing="10" />
+
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button x:Name="ImportBtn" Click="Import_Click" />
+                <Button x:Name="ExportBtn" Click="Export_Click" />
+            </StackPanel>
+
+            <!-- ===== Raw edit fallback ===== -->
+            <Expander x:Name="RawExpander" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                <Expander.Header>
+                    <TextBlock x:Name="RawHeader" />
+                </Expander.Header>
+                <StackPanel Spacing="8">
+                    <TextBlock x:Name="RawBlurb" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    <TextBlock x:Name="RawPathText" FontSize="11" Foreground="{ThemeResource TextFillColorTertiaryBrush}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Height="240">
+                        <TextBox x:Name="RawBox" AcceptsReturn="True" TextWrapping="NoWrap"
+                                 IsSpellCheckEnabled="False" FontFamily="Consolas"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                 BorderThickness="0" Background="Transparent" />
+                    </Border>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="RawReloadBtn" Click="RawReload_Click" />
+                        <Button x:Name="RawSaveBtn" Click="RawSave_Click" Style="{StaticResource AccentButtonStyle}" />
+                    </StackPanel>
+                </StackPanel>
+            </Expander>
+
+        </StackPanel>
+    </ScrollViewer>
+</Page>
