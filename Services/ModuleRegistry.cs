@@ -83,6 +83,7 @@ public static class ModuleRegistry
         new() { Tag = "module.weblogin", En = "In-App Login", Zh = "內置登入", Glyph = ((char)0xE77B).ToString(), Keywords = "login sign in signin oauth webview2 web view browser embedded auth authentication token cookie session redirect callback github cloudflare openai anthropic bitwarden account credentials 登入 登錄 內置 瀏覽器 認證 帳戶 憑證 權杖 重新導向" },
         new() { Tag = "module.ssh", En = "SSH Toolset", Zh = "SSH 工具", Glyph = ((char)0xE756).ToString(), Keywords = "ssh sftp scp terminal shell remote profile key keygen ed25519 rsa passwordless deploy authorized_keys known hosts openssh dpapi 終端機 遠端 金鑰 免密碼 部署 連線 上載 下載" },
         new() { Tag = "module.vault-volumes", En = "WinForge Vault", Zh = "WinForge 保險庫", Glyph = ((char)0xE72E).ToString(), Keywords = "vault volume container encrypt encrypted disk encryption mount dismount unmount drive letter password keyfile pim benchmark aes serpent twofish on the fly cryptography 保險庫 加密 容器 磁碟 掛載 卸載 密碼 鎖匙檔 磁碟區" },
+        new() { Tag = "module.mail", En = "Mail", Zh = "電郵", Glyph = ((char)0xE715).ToString(), Keywords = "mail email imap smtp thunderbird inbox compose reply forward attachment oauth gmail outlook icloud yahoo account folder message read send 電郵 郵件 收件匣 撰寫 回覆 轉寄 附件 帳戶 資料夾 訊息" },
     };
 
     public static IEnumerable<ModuleInfo> Search(string query)

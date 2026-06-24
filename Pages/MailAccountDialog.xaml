@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentDialog
+    x:Class="WinForge.Pages.MailAccountDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    PrimaryButtonClick="Primary_Click">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="560">
+        <StackPanel Spacing="12" Width="440">
+            <InfoBar x:Name="Bar" IsClosable="True" IsOpen="False" />
+
+            <TextBox x:Name="DisplayNameBox" />
+            <TextBox x:Name="EmailBox" TextChanged="Email_Changed" />
+
+            <InfoBar x:Name="ProviderBar" IsClosable="False" IsOpen="False" Severity="Informational" />
+
+            <!-- Auth method -->
+            <StackPanel Spacing="4">
+                <TextBlock x:Name="AuthLabel" FontWeight="SemiBold" FontSize="13" />
+                <RadioButtons x:Name="AuthRadios" SelectionChanged="Auth_Changed">
+                    <RadioButton x:Name="AuthOAuthRadio" />
+                    <RadioButton x:Name="AuthPwdRadio" IsChecked="True" />
+                </RadioButtons>
+            </StackPanel>
+
+            <!-- OAuth panel -->
+            <StackPanel x:Name="OAuthPanel" Spacing="8" Visibility="Collapsed">
+                <Button x:Name="OAuthBtn" Click="OAuth_Click" Style="{StaticResource AccentButtonStyle}" />
+                <TextBlock x:Name="OAuthStatus" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" TextWrapping="Wrap" />
+            </StackPanel>
+
+            <!-- Password panel -->
+            <StackPanel x:Name="PwdPanel" Spacing="8">
+                <PasswordBox x:Name="PasswordBox" />
+                <TextBlock x:Name="PwdHint" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" TextWrapping="Wrap" />
+            </StackPanel>
+
+            <!-- Advanced server settings -->
+            <Expander x:Name="AdvancedExpander" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="ImapHeader" FontWeight="SemiBold" FontSize="13" />
+                    <TextBox x:Name="ImapHostBox" />
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <NumberBox x:Name="ImapPortBox" Grid.Column="0" Width="110" Value="993" SpinButtonPlacementMode="Compact" />
+                        <ComboBox x:Name="ImapSecBox" Grid.Column="1" HorizontalAlignment="Stretch" SelectedIndex="0">
+                            <ComboBoxItem Content="SSL/TLS" />
+                            <ComboBoxItem Content="STARTTLS" />
+                        </ComboBox>
+                    </Grid>
+                    <TextBox x:Name="ImapUserBox" />
+
+                    <TextBlock x:Name="SmtpHeader" FontWeight="SemiBold" FontSize="13" Margin="0,4,0,0" />
+                    <TextBox x:Name="SmtpHostBox" />
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <NumberBox x:Name="SmtpPortBox" Grid.Column="0" Width="110" Value="587" SpinButtonPlacementMode="Compact" />
+                        <ComboBox x:Name="SmtpSecBox" Grid.Column="1" HorizontalAlignment="Stretch" SelectedIndex="1">
+                            <ComboBoxItem Content="SSL/TLS" />
+                            <ComboBoxItem Content="STARTTLS" />
+                        </ComboBox>
+                    </Grid>
+                    <TextBox x:Name="SmtpUserBox" />
+                </StackPanel>
+            </Expander>
+
+            <Button x:Name="TestBtn" Click="Test_Click" HorizontalAlignment="Left" />
+            <ProgressRing x:Name="Busy" IsActive="False" Width="22" Height="22" HorizontalAlignment="Left" />
+        </StackPanel>
+    </ScrollViewer>
+</ContentDialog>
