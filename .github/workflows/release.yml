@@ -41,7 +41,7 @@ jobs:
             -p:WindowsAppSDKSelfContained=true `
             -p:WindowsPackageType=None `
             -p:PublishTrimmed=false `
-            -p:PublishReadyToRun=true
+            -p:PublishReadyToRun=false
           if ($LASTEXITCODE -ne 0) { throw "publish failed" }
 
       - name: Locate publish folder · 找出發佈資料夾

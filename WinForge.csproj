@@ -106,9 +106,10 @@
 
   <!-- Publish Properties -->
   <PropertyGroup>
-    <PublishReadyToRun Condition="'$(Configuration)' == 'Debug'">False</PublishReadyToRun>
-    <PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">True</PublishReadyToRun>
-    <PublishTrimmed Condition="'$(Configuration)' == 'Debug'">False</PublishTrimmed>
-    <PublishTrimmed Condition="'$(Configuration)' != 'Debug'">True</PublishTrimmed>
+    <!-- R2R 同 trimming 都關閉：兩者都係 WinUI 3 + CsWinRT 開機 0xC000027B fail-fast 嘅已知風險面
+         （trimming 會剝走反射／WinRT activation factory；R2R native-init 喺 runtime 版本不符時會 fail-fast）。
+         R2R and trimming OFF: both are known startup-fail-fast risk surfaces for WinUI 3 + CsWinRT. -->
+    <PublishReadyToRun>False</PublishReadyToRun>
+    <PublishTrimmed>False</PublishTrimmed>
   </PropertyGroup>
 </Project>
