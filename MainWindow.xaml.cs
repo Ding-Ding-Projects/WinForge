@@ -410,6 +410,12 @@ public sealed partial class MainWindow : Window
             case "torrent":
             case "torrents":
                 Navigator.GoToModule?.Invoke("module.qbittorrent");
+            case "worldmonitor":
+            case "world":
+            case "wm":
+            case "news":
+            case "geopolitics":
+                Navigator.GoToModule?.Invoke("module.worldmonitor");
                 break;
             case null:
             case "":
@@ -555,6 +561,7 @@ public sealed partial class MainWindow : Window
         "module.viaproxy" => typeof(ViaProxyModule),
         "module.voice" => typeof(VoiceModule),
         "module.vault-volumes" => typeof(VaultVolumesModule),
+        "module.worldmonitor" => typeof(WorldMonitorModule),
         _ => typeof(DashboardPage),
     };
 

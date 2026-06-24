@@ -142,6 +142,7 @@
                         <NavigationViewItem Content="In-App Login · 內置登入" Tag="module.weblogin"><NavigationViewItem.Icon><FontIcon Glyph="&#xE77B;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="SSH Toolset · SSH 工具" Tag="module.ssh"><NavigationViewItem.Icon><FontIcon Glyph="&#xE756;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Packer (Image Builder) · Packer（映像建置器）" Tag="module.packer"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7B8;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="World Monitor · 世界監察" Tag="module.worldmonitor"><NavigationViewItem.Icon><FontIcon Glyph="&#xE909;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Config &amp; Backup · 設定與備份" Tag="module.configbackup"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8F7;" /></NavigationViewItem.Icon></NavigationViewItem>
                     </NavigationViewItem.MenuItems>
                 </NavigationViewItem>
