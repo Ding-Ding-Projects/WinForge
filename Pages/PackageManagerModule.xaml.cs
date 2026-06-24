@@ -337,7 +337,6 @@ public sealed partial class PackageManagerModule : Page
                 // 「忽略 ▾」彈出選單：跳過此版本／忽略所有版本／暫停更新…
                 // "Ignore ▾" opens a flyout: skip this version / ignore all versions / pause for…
                 (P("Ignore ▾", "忽略 ▾"), btn => { ShowIgnoreFlyout(btn, pkg); return Task.CompletedTask; }),
-                (P("Ignore", "忽略"), _ => { _ignored.Add(IgnKey(item)); SaveIgnored(); return LoadUpdates(); }),
                 (P("More ▾", "更多 ▾"), btn => { ShowMoreFlyout(btn, item, RowExtraScope.Updates); return Task.CompletedTask; }),
             };
             ResultsPanel.Children.Add(RowFor(item, label, async btn => await ActionUpdate(item, btn), extras));
