@@ -39,6 +39,26 @@ public sealed partial class ConfigBackupModule : Page
         ExportBundleBtn.Content = P("Export bundle…", "匯出檔案…");
         ImportBundleBtn.Content = P("Import bundle…", "匯入檔案…");
 
+        SecretsToggleLabel.Text = P("Include secrets (encrypted)", "夾帶機密（加密）");
+        SecretsToggleDesc.Text = P("Add your API keys, environment variables and other secrets to the bundle, encrypted with a password.",
+            "將你嘅 API key、環境變數同其他機密加入檔案，並用密碼加密。");
+        SecretsWarnBar.Title = P("Danger — this bundle will contain your real secrets",
+            "危險 — 呢個檔案會載有你真正嘅機密");
+        SecretsWarnBar.Message = P(
+            "Anyone with this file AND the password can read your API keys and credentials. Never share it. If you lose the password, the secrets are unrecoverable (by design). A \"-with-secrets\" suffix is added to the filename.",
+            "任何人有呢個檔案同密碼就睇到你嘅 API key 同憑證。千祈唔好分享。唔記得密碼就永久解唔返（設計如此）。檔名會加上「-with-secrets」。");
+        SecretApiKeysCheck.Content = P("AI Agent API keys (ANTHROPIC_API_KEY, OPENAI_API_KEY…)",
+            "AI 代理 API key（ANTHROPIC_API_KEY、OPENAI_API_KEY…）");
+        SecretSettingsCheck.Content = P("WinForge settings.json (may contain tokens)",
+            "WinForge settings.json（可能含權杖）");
+        SecretEnvCheck.Content = P("User environment variables (HKCU\\Environment)",
+            "使用者環境變數（HKCU\\Environment）");
+        SecretSshCheck.Content = P("SSH folder (%USERPROFILE%\\.ssh — config, known_hosts, private keys)",
+            "SSH 資料夾（%USERPROFILE%\\.ssh — config、known_hosts、私鑰）");
+        SecretPwdBox.PlaceholderText = P("Encryption password", "加密密碼");
+        SecretPwdConfirmBox.PlaceholderText = P("Confirm password", "再次輸入密碼");
+        UpdateSecretPwdHint();
+
         SnapTitle.Text = P("Config snapshots (local git history)", "設定快照（本地 git 歷史）");
         SnapDesc.Text = P("Each snapshot commits your settings (plus a winget app list) to a local git repo so you can browse, diff and restore any point in time.",
             "每個快照會將設定（連 winget 程式清單）commit 入本地 git 倉庫，可以瀏覽、比較同還原任何時間點。");
@@ -102,20 +122,135 @@ public sealed partial class ConfigBackupModule : Page
         finally { _busy = false; }
     }
 
-    // ───────────────────────── bundle ─────────────────────────
+    // ───────────────────────── bundle (with optional encrypted secrets) ─────────────────────────
+
+    private void SecretsToggle_Toggled(object sender, RoutedEventArgs e)
+    {
+        bool on = SecretsToggle.IsOn;
+        SecretsPanel.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
+        if (!on)
+        {
+            SecretPwdBox.Password = "";
+            SecretPwdConfirmBox.Password = "";
+        }
+        UpdateSecretPwdHint();
+    }
+
+    private void SecretPwd_Changed(object sender, RoutedEventArgs e) => UpdateSecretPwdHint();
+
+    /// <summary>密碼狀態提示 · Live bilingual hint about password validity / mismatch.</summary>
+    private bool SecretsPasswordValid =>
+        SecretPwdBox.Password.Length >= SecretsCrypto.MinPasswordLength &&
+        SecretPwdBox.Password == SecretPwdConfirmBox.Password;
+
+    private void UpdateSecretPwdHint()
+    {
+        if (SecretPwdHint is null) return;
+        var pwd = SecretPwdBox.Password;
+        if (pwd.Length == 0 && SecretPwdConfirmBox.Password.Length == 0)
+            SecretPwdHint.Text = P($"Use a strong password (at least {SecretsCrypto.MinPasswordLength} characters). It is not stored anywhere.",
+                $"用一個強密碼（最少 {SecretsCrypto.MinPasswordLength} 個字元）。密碼唔會儲存喺任何地方。");
+        else if (pwd.Length < SecretsCrypto.MinPasswordLength)
+            SecretPwdHint.Text = P($"Password too short — at least {SecretsCrypto.MinPasswordLength} characters.",
+                $"密碼太短 — 最少 {SecretsCrypto.MinPasswordLength} 個字元。");
+        else if (pwd != SecretPwdConfirmBox.Password)
+            SecretPwdHint.Text = P("Passwords do not match.", "兩次輸入嘅密碼唔一致。");
+        else
+            SecretPwdHint.Text = P("✓ Passwords match.", "✓ 密碼一致。");
+    }
 
     private async void ExportBundle_Click(object sender, RoutedEventArgs e)
     {
-        var path = await FileDialogs.SaveFileAsync($"WinForge-config-{DateTime.Now:yyyyMMdd-HHmm}", ".zip");
+        bool includeSecrets = SecretsToggle.IsOn;
+        string? password = null;
+        var categories = new ConfigBackupService.SecretCategories(
+            ApiKeys: SecretApiKeysCheck.IsChecked == true,
+            Settings: SecretSettingsCheck.IsChecked == true,
+            UserEnv: SecretEnvCheck.IsChecked == true,
+            Ssh: SecretSshCheck.IsChecked == true);
+
+        if (includeSecrets)
+        {
+            if (!SecretsPasswordValid)
+            {
+                ResultBar.Severity = InfoBarSeverity.Warning;
+                ResultBar.Title = P("Check the password", "請檢查密碼");
+                ResultBar.Message = P(
+                    $"Enter a matching password (at least {SecretsCrypto.MinPasswordLength} characters) before exporting secrets.",
+                    $"匯出機密之前，請輸入一致嘅密碼（最少 {SecretsCrypto.MinPasswordLength} 個字元）。");
+                ResultBar.IsOpen = true;
+                return;
+            }
+            // At least one category must be selected.
+            if (!(SecretApiKeysCheck.IsChecked == true || SecretSettingsCheck.IsChecked == true
+                  || SecretEnvCheck.IsChecked == true || SecretSshCheck.IsChecked == true))
+            {
+                ResultBar.Severity = InfoBarSeverity.Warning;
+                ResultBar.Title = P("Nothing selected", "未揀任何類別");
+                ResultBar.Message = P("Pick at least one secret category to include.",
+                    "請至少揀一個機密類別。");
+                ResultBar.IsOpen = true;
+                return;
+            }
+            password = SecretPwdBox.Password;
+        }
+
+        var suggested = includeSecrets
+            ? $"WinForge-config-{DateTime.Now:yyyyMMdd-HHmm}-with-secrets"
+            : $"WinForge-config-{DateTime.Now:yyyyMMdd-HHmm}";
+        var path = await FileDialogs.SaveFileAsync(suggested, ".zip");
         if (path is null) return;
-        await Run(() => ConfigBackupService.ExportBundle(path), P("Export bundle", "匯出檔案"));
+
+        await Run(() => ConfigBackupService.ExportBundle(path, includeSecrets, password, categories),
+            P("Export bundle", "匯出檔案"));
     }
 
     private async void ImportBundle_Click(object sender, RoutedEventArgs e)
     {
         var path = await FileDialogs.OpenFileAsync(".zip");
         if (path is null) return;
-        await Run(() => ConfigBackupService.ImportBundle(path), P("Import bundle", "匯入檔案"));
+
+        string? password = null;
+        if (ConfigBackupService.BundleHasSecrets(path))
+        {
+            password = await PromptForPasswordAsync();
+            if (password is null) return; // user cancelled the secrets prompt
+        }
+
+        await Run(() => ConfigBackupService.ImportBundle(path, password), P("Import bundle", "匯入檔案"));
+    }
+
+    /// <summary>匯入時彈密碼框 · Prompt for the decryption password on import (null = cancelled).</summary>
+    private async Task<string?> PromptForPasswordAsync()
+    {
+        var pwd = new PasswordBox
+        {
+            PlaceholderText = P("Bundle password", "檔案密碼"),
+            MinWidth = 320,
+        };
+        var warn = new TextBlock
+        {
+            Text = P("This bundle contains encrypted secrets. Importing will overwrite matching environment variables and .ssh files.",
+                "呢個檔案有加密機密。匯入會覆寫相符嘅環境變數同 .ssh 檔案。"),
+            TextWrapping = TextWrapping.Wrap,
+            FontSize = 12,
+            Margin = new Thickness(0, 0, 0, 8),
+        };
+        var panel = new StackPanel { Spacing = 8 };
+        panel.Children.Add(warn);
+        panel.Children.Add(pwd);
+
+        var dlg = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = P("Enter bundle password", "輸入檔案密碼"),
+            Content = panel,
+            PrimaryButtonText = P("Import secrets", "匯入機密"),
+            CloseButtonText = P("Cancel", "取消"),
+            DefaultButton = ContentDialogButton.Primary,
+        };
+
+        return await dlg.ShowAsync() == ContentDialogResult.Primary ? pwd.Password : null;
     }
 
     // ───────────────────────── snapshots ─────────────────────────

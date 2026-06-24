@@ -62,16 +62,46 @@ public static class ConfigBackupService
         (@"HKCU\Environment", "User environment variables"),
     };
 
+    /// <summary>機密 blob 喺 .zip 入面嘅檔名 · Filename of the encrypted secrets blob inside a bundle.</summary>
+    public const string SecretsEntryName = "secrets.enc";
+
     // ───────────────────────── ZIP bundle export / import ─────────────────────────
 
     /// <summary>
     /// 匯出成個套件嘅設定做一個 .zip · Export all suite settings into a single portable .zip bundle
     /// (settings.json + a version manifest + a SHA-256 checksums manifest).
     /// </summary>
-    public static async Task<TweakResult> ExportBundle(string zipPath, CancellationToken ct = default)
+    public static Task<TweakResult> ExportBundle(string zipPath, CancellationToken ct = default)
+        => ExportBundle(zipPath, includeSecrets: false, password: null, includeSsh: false, ct);
+
+    /// <summary>
+    /// 匯出設定，可選擇加密夾帶機密 · Export the settings bundle, optionally folding the user's secrets
+    /// (AI Agent API keys, the whole settings.json, HKCU\Environment, and optionally the .ssh folder)
+    /// into an AES-256-GCM-encrypted <c>secrets.enc</c> protected by <paramref name="password"/>.
+    /// When <paramref name="includeSecrets"/> is false the bundle is byte-for-byte secret-free, so
+    /// existing/default exports are unaffected. Secrets are encrypted in memory and only the ciphertext
+    /// ever touches the staging folder — no plaintext secrets are written to disk.
+    /// </summary>
+    public static Task<TweakResult> ExportBundle(string zipPath, bool includeSecrets, string? password,
+        bool includeSsh, CancellationToken ct)
+        => ExportBundle(zipPath, includeSecrets, password,
+            new SecretCategories(ApiKeys: true, Settings: true, UserEnv: true, Ssh: includeSsh), ct);
+
+    /// <summary>揀邊啲機密類別匯出 · Which secret categories to fold into the encrypted blob.</summary>
+    public readonly record struct SecretCategories(bool ApiKeys, bool Settings, bool UserEnv, bool Ssh);
+
+    /// <summary>
+    /// 匯出設定，逐類揀機密 · Export the bundle, choosing exactly which secret categories to include.
+    /// </summary>
+    public static async Task<TweakResult> ExportBundle(string zipPath, bool includeSecrets, string? password,
+        SecretCategories categories, CancellationToken ct = default)
     {
         try
         {
+            if (includeSecrets && string.IsNullOrEmpty(password))
+                return TweakResult.Fail("A password is required to include secrets.",
+                    "夾帶機密需要一個密碼。");
+
             // Persist the live settings so the on-disk file is current.
             SettingsStore.ExportTo(SettingsFile);
 
@@ -84,6 +114,16 @@ public static class ConfigBackupService
                 else
                     await File.WriteAllTextAsync(Path.Combine(staging, "settings.json"), "{}", ct);
 
+                int secretCount = 0;
+                if (includeSecrets)
+                {
+                    // Gather → JSON → encrypt in memory → write ONLY the ciphertext to staging.
+                    var (json, count) = GatherSecrets(categories);
+                    secretCount = count;
+                    var blob = SecretsCrypto.Encrypt(json, password!);
+                    await File.WriteAllBytesAsync(Path.Combine(staging, SecretsEntryName), blob, ct);
+                }
+
                 var manifest = new
                 {
                     app = "WinForge",
@@ -91,6 +131,9 @@ public static class ConfigBackupService
                     created = DateTimeOffset.Now.ToString("o"),
                     machine = Environment.MachineName,
                     user = Environment.UserName,
+                    hasSecrets = includeSecrets,
+                    secretCount,
+                    secretsEncryption = includeSecrets ? "AES-256-GCM / PBKDF2-SHA256" : null,
                 };
                 await File.WriteAllTextAsync(Path.Combine(staging, "manifest.json"),
                     JsonSerializer.Serialize(manifest, JsonOpts), ct);
@@ -103,8 +146,12 @@ public static class ConfigBackupService
             }
             finally { TryDeleteDir(staging); }
 
-            return TweakResult.Ok($"Exported settings bundle to {zipPath}.",
-                $"已將設定匯出到 {zipPath}。", zipPath);
+            return includeSecrets
+                ? TweakResult.Ok(
+                    $"Exported settings + encrypted secrets to {zipPath}. Keep this file safe — anyone with the password can read your secrets.",
+                    $"已將設定連加密機密匯出到 {zipPath}。保管好呢個檔案 — 有密碼嘅人就睇到你嘅機密。", zipPath)
+                : TweakResult.Ok($"Exported settings bundle to {zipPath}.",
+                    $"已將設定匯出到 {zipPath}。", zipPath);
         }
         catch (Exception ex)
         {
@@ -113,10 +160,121 @@ public static class ConfigBackupService
     }
 
     /// <summary>
-    /// 匯入設定檔案再套返 · Import a .zip bundle, validate its manifest version, then merge/re-apply
-    /// the settings through the existing <see cref="SettingsStore"/> import pipeline.
+    /// 收集機密成 JSON · Gather known secret sources into one JSON document (returned as a string,
+    /// never written to disk in plaintext). Covers AI Agent API-key env vars, the full settings.json,
+    /// all of <c>HKCU\Environment</c>, and — only when <paramref name="includeSsh"/> is set — the
+    /// contents of <c>%USERPROFILE%\.ssh</c> (base64-encoded files). Returns the JSON and a rough
+    /// count of secret items captured for the manifest/UI.
     /// </summary>
-    public static async Task<TweakResult> ImportBundle(string zipPath, CancellationToken ct = default)
+    public static (string json, int count) GatherSecrets(bool includeSsh)
+        => GatherSecrets(new SecretCategories(ApiKeys: true, Settings: true, UserEnv: true, Ssh: includeSsh));
+
+    /// <summary>收集機密成 JSON（逐類）· Gather the chosen secret categories into one JSON document.</summary>
+    public static (string json, int count) GatherSecrets(SecretCategories categories)
+    {
+        int count = 0;
+
+        // 1) AI Agent API keys (User-scope env vars enumerated from the agent catalog).
+        Dictionary<string, string>? apiKeys = null;
+        if (categories.ApiKeys)
+        {
+            apiKeys = new Dictionary<string, string>();
+            foreach (var agent in AiAgentService.All)
+            {
+                if (string.IsNullOrEmpty(agent.EnvKey) || apiKeys.ContainsKey(agent.EnvKey!)) continue;
+                var val = AiAgentService.GetEnvKey(agent);
+                if (!string.IsNullOrEmpty(val)) { apiKeys[agent.EnvKey!] = val!; count++; }
+            }
+        }
+
+        // 2) Full settings.json (may contain tokens — treated as sensitive when secrets are included).
+        Dictionary<string, JsonElement>? settings = null;
+        if (categories.Settings)
+        {
+            try
+            {
+                if (File.Exists(SettingsFile))
+                {
+                    var doc = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(File.ReadAllText(SettingsFile));
+                    if (doc is { Count: > 0 }) { settings = doc; count += doc.Count; }
+                }
+            }
+            catch { /* settings folded in best-effort */ }
+        }
+
+        // 3) All HKCU\Environment user environment variables.
+        Dictionary<string, string>? userEnv = null;
+        if (categories.UserEnv)
+        {
+            userEnv = new Dictionary<string, string>();
+            try
+            {
+                foreach (System.Collections.DictionaryEntry kv in
+                         Environment.GetEnvironmentVariables(EnvironmentVariableTarget.User))
+                {
+                    var name = kv.Key?.ToString();
+                    if (string.IsNullOrEmpty(name)) continue;
+                    userEnv[name] = kv.Value?.ToString() ?? "";
+                }
+                count += userEnv.Count;
+            }
+            catch { /* env capture best-effort */ }
+        }
+
+        // 4) Optional: %USERPROFILE%\.ssh contents (config, known_hosts, id_* keys), base64-encoded.
+        Dictionary<string, string>? ssh = null;
+        if (categories.Ssh)
+        {
+            try
+            {
+                var sshDir = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".ssh");
+                if (Directory.Exists(sshDir))
+                {
+                    ssh = new Dictionary<string, string>();
+                    foreach (var file in Directory.EnumerateFiles(sshDir, "*", SearchOption.AllDirectories))
+                    {
+                        var rel = Path.GetRelativePath(sshDir, file).Replace('\\', '/');
+                        ssh[rel] = Convert.ToBase64String(File.ReadAllBytes(file));
+                        count++;
+                    }
+                }
+            }
+            catch { /* ssh capture best-effort */ }
+        }
+
+        var payload = new
+        {
+            schema = "winforge.secrets/1",
+            captured = DateTimeOffset.Now.ToString("o"),
+            apiKeys,
+            settings,
+            userEnv,
+            ssh,
+        };
+        return (JsonSerializer.Serialize(payload, JsonOpts), count);
+    }
+
+    /// <summary>個 .zip 入面有冇加密機密 · Does the bundle contain an encrypted secrets blob?</summary>
+    public static bool BundleHasSecrets(string zipPath)
+    {
+        try
+        {
+            if (!File.Exists(zipPath)) return false;
+            using var zip = ZipFile.OpenRead(zipPath);
+            return zip.GetEntry(SecretsEntryName) is not null;
+        }
+        catch { return false; }
+    }
+
+    /// <summary>
+    /// 匯入設定檔案再套返 · Import a .zip bundle, validate its manifest version, then merge/re-apply
+    /// the settings through the existing <see cref="SettingsStore"/> import pipeline. If the bundle
+    /// carries an encrypted <c>secrets.enc</c>, supply <paramref name="password"/> to decrypt and
+    /// re-apply the secrets too (a wrong password fails gracefully with a clear bilingual error).
+    /// </summary>
+    public static async Task<TweakResult> ImportBundle(string zipPath, string? password = null,
+        CancellationToken ct = default)
     {
         try
         {
@@ -144,6 +302,41 @@ public static class ConfigBackupService
                     return TweakResult.Fail("Bundle has no settings.json.", "設定檔案入面冇 settings.json。");
 
                 int n = SettingsStore.ImportFrom(settings);
+
+                // Decrypt + re-apply secrets when present and a password was provided.
+                var secretsPath = Path.Combine(staging, SecretsEntryName);
+                if (File.Exists(secretsPath))
+                {
+                    if (string.IsNullOrEmpty(password))
+                        return TweakResult.Fail(
+                            "This bundle contains encrypted secrets — a password is required to import them.",
+                            "呢個檔案有加密機密 — 匯入機密需要密碼。");
+
+                    string json;
+                    try
+                    {
+                        var blob = await File.ReadAllBytesAsync(secretsPath, ct);
+                        json = SecretsCrypto.Decrypt(blob, password);
+                    }
+                    catch (AuthenticationTagMismatchException)
+                    {
+                        return TweakResult.Fail(
+                            "Wrong password — could not decrypt the secrets. Your other settings were imported.",
+                            "密碼錯誤 — 解唔到機密。其他設定已經匯入。");
+                    }
+                    catch (FormatException fe)
+                    {
+                        return TweakResult.Fail(
+                            $"The secrets blob is invalid: {fe.Message} Your other settings were imported.",
+                            $"機密資料無效：{fe.Message} 其他設定已經匯入。");
+                    }
+
+                    int s = ApplySecrets(json);
+                    return TweakResult.Ok(
+                        $"Imported {n} setting(s) and restored {s} secret(s). Restart WinForge for all of them to take effect.",
+                        $"已匯入 {n} 項設定並還原 {s} 項機密。重開 WinForge 全部即生效。");
+                }
+
                 return TweakResult.Ok(
                     $"Imported & re-applied {n} setting(s). Restart WinForge for all of them to take effect.",
                     $"已匯入並套用 {n} 項設定。重開 WinForge 全部即生效。");
@@ -154,6 +347,68 @@ public static class ConfigBackupService
         {
             return TweakResult.Fail(ex.Message, $"匯入失敗：{ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// 套返解密出嚟嘅機密 · Re-apply a decrypted secrets JSON document: writes the AI Agent API-key
+    /// env vars + every captured User env var back to <c>HKCU\Environment</c>, and restores any
+    /// bundled <c>.ssh</c> files. Returns a rough count of secrets restored. Defensive — best-effort
+    /// per item so one bad value never aborts the whole restore.
+    /// </summary>
+    public static int ApplySecrets(string json)
+    {
+        int restored = 0;
+        using var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement;
+
+        // API keys → User env (these overlap with userEnv but we apply both for robustness).
+        if (root.TryGetProperty("apiKeys", out var keys) && keys.ValueKind == JsonValueKind.Object)
+            foreach (var p in keys.EnumerateObject())
+                if (TrySetUserEnv(p.Name, p.Value.GetString())) restored++;
+
+        // All captured user env vars.
+        if (root.TryGetProperty("userEnv", out var env) && env.ValueKind == JsonValueKind.Object)
+            foreach (var p in env.EnumerateObject())
+                if (TrySetUserEnv(p.Name, p.Value.GetString())) restored++;
+
+        // Restore .ssh files (base64-encoded).
+        if (root.TryGetProperty("ssh", out var ssh) && ssh.ValueKind == JsonValueKind.Object)
+        {
+            try
+            {
+                var sshDir = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".ssh");
+                Directory.CreateDirectory(sshDir);
+                foreach (var p in ssh.EnumerateObject())
+                {
+                    try
+                    {
+                        var dest = Path.GetFullPath(Path.Combine(sshDir, p.Name));
+                        // Guard against path traversal outside the .ssh folder.
+                        if (!dest.StartsWith(Path.GetFullPath(sshDir), StringComparison.OrdinalIgnoreCase)) continue;
+                        var bytes = Convert.FromBase64String(p.Value.GetString() ?? "");
+                        Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
+                        File.WriteAllBytes(dest, bytes);
+                        restored++;
+                    }
+                    catch { /* skip a bad ssh entry */ }
+                }
+            }
+            catch { /* ssh restore best-effort */ }
+        }
+
+        return restored;
+    }
+
+    private static bool TrySetUserEnv(string name, string? value)
+    {
+        if (string.IsNullOrEmpty(name)) return false;
+        try
+        {
+            Environment.SetEnvironmentVariable(name, value ?? "", EnvironmentVariableTarget.User);
+            return true;
+        }
+        catch { return false; }
     }
 
     // ───────────────────────── git snapshot repo ─────────────────────────
