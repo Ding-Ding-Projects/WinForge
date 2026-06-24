@@ -362,10 +362,12 @@ public sealed partial class MainWindow : Window
             case "accent":
             case "diacritics":
                 Navigator.GoToModule?.Invoke("module.quickaccent");
+                break;
             case "shortcutguide":
             case "shortcuts":
             case "winkey":
                 Navigator.GoToModule?.Invoke("module.shortcutguide");
+                break;
             case "cmdpalette":
             case "commandpalette":
             case "run":
@@ -649,6 +651,7 @@ public sealed partial class MainWindow : Window
             case "ruler":
             case "measure":
                 Navigator.GoToModule?.Invoke("module.screenruler");
+                break;
             case "mouseutils":
             case "mouseutilities":
             case "findmymouse":
@@ -658,6 +661,7 @@ public sealed partial class MainWindow : Window
             case "mousejump":
             case "mousecrosshairs":
                 Navigator.GoToModule?.Invoke("module.mouseutils");
+                break;
             case "cmdnotfound":
             case "commandnotfound":
             case "winget-suggest":
