@@ -453,6 +453,11 @@ public sealed partial class MainWindow : Window
             case "awake":
                 Navigator.GoToModule?.Invoke("module.awake");
                 break;
+            case "lightswitch":
+            case "autotheme":
+            case "darkmode":
+                Navigator.GoToModule?.Invoke("module.lightswitch");
+                break;
             case "colorpicker":
             case "color":
                 Navigator.GoToModule?.Invoke("module.colorpicker");
@@ -798,6 +803,7 @@ public sealed partial class MainWindow : Window
         "module.mixer" => typeof(VolumeMixerModule),
         "module.contextmenu" => typeof(ContextMenuModule),
         "module.taskbar-tweaker" => typeof(TaskbarTweakerModule),
+        "module.lightswitch" => typeof(LightSwitchModule),
         "module.nilesoftshell" => typeof(NilesoftShellModule),
         "module.awake" => typeof(AwakeModule),
         "module.colorpicker" => typeof(ColorPickerModule),
