@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinTune.Pages.ImagingGameModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid Padding="24,16,24,16" RowSpacing="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="12">
+            <FontIcon FontSize="22" Glyph="&#xE7F4;" VerticalAlignment="Center" />
+            <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
+        </StackPanel>
+        <TextBlock x:Name="HeaderBlurb" Grid.Row="1" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+        <Pivot Grid.Row="2" x:Name="Pivot" Margin="0,4,0,0">
+
+            <!-- ════════════ Raspberry Pi Imager ════════════ -->
+            <PivotItem x:Name="PiTab">
+                <ScrollViewer>
+                    <StackPanel Spacing="12" Padding="0,4,8,4">
+
+                        <InfoBar
+                            x:Name="PiDangerBar"
+                            IsOpen="True"
+                            IsClosable="False"
+                            Severity="Warning" />
+
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                            <StackPanel Spacing="10">
+                                <TextBlock x:Name="PiStep1" FontWeight="SemiBold" />
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBox x:Name="ImagePathBox" Width="460" IsReadOnly="True" />
+                                    <Button x:Name="PickImageBtn" Click="PickImage_Click" />
+                                </StackPanel>
+                                <TextBlock x:Name="ImageSizeText" Foreground="{ThemeResource TextFillColorTertiaryBrush}" FontSize="12" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                            <StackPanel Spacing="10">
+                                <TextBlock x:Name="PiStep2" FontWeight="SemiBold" />
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <ComboBox x:Name="DiskBox" Width="560" />
+                                    <Button x:Name="RefreshDisksBtn" Click="RefreshDisks_Click" />
+                                </StackPanel>
+                                <CheckBox x:Name="ShowAllDisksChk" Click="ShowAllDisks_Click" />
+                                <TextBlock x:Name="DiskWarnText" Foreground="{ThemeResource SystemFillColorCriticalBrush}" FontSize="12" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                            <StackPanel Spacing="8">
+                                <Button x:Name="WriteBtn" Click="Write_Click" Style="{StaticResource AccentButtonStyle}" />
+                                <ProgressBar x:Name="WriteProgress" Minimum="0" Maximum="100" Value="0" Visibility="Collapsed" />
+                                <TextBlock x:Name="WriteProgressText" FontSize="12" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                            <StackPanel Spacing="10">
+                                <TextBlock x:Name="PiStep3" FontWeight="SemiBold" />
+                                <TextBlock x:Name="PiSeedBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" TextWrapping="Wrap" />
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <ComboBox x:Name="BootDriveBox" Width="200" />
+                                    <Button x:Name="RefreshBootBtn" Click="RefreshBoot_Click" />
+                                </StackPanel>
+                                <CheckBox x:Name="EnableSshChk" IsChecked="True" />
+                                <Grid ColumnSpacing="8" RowSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <TextBlock x:Name="WifiSsidLbl" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" />
+                                    <TextBox x:Name="WifiSsidBox" Grid.Row="0" Grid.Column="1" />
+                                    <TextBlock x:Name="WifiPwLbl" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" />
+                                    <PasswordBox x:Name="WifiPwBox" Grid.Row="1" Grid.Column="1" />
+                                    <TextBlock x:Name="WifiCountryLbl" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" />
+                                    <TextBox x:Name="WifiCountryBox" Grid.Row="2" Grid.Column="1" Text="GB" MaxLength="2" Width="80" HorizontalAlignment="Left" />
+                                    <TextBlock x:Name="UserLbl" Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" />
+                                    <TextBox x:Name="UserBox" Grid.Row="3" Grid.Column="1" Text="pi" />
+                                    <TextBlock x:Name="UserPwLbl" Grid.Row="4" Grid.Column="0" VerticalAlignment="Center" />
+                                    <PasswordBox x:Name="UserPwBox" Grid.Row="4" Grid.Column="1" />
+                                </Grid>
+                                <Button x:Name="SeedBtn" Click="Seed_Click" />
+                            </StackPanel>
+                        </Border>
+
+                        <InfoBar x:Name="PiResultBar" IsClosable="True" IsOpen="False" />
+                    </StackPanel>
+                </ScrollViewer>
+            </PivotItem>
+
+            <!-- ════════════ Minecraft world downloader ════════════ -->
+            <PivotItem x:Name="McTab">
+                <ScrollViewer>
+                    <StackPanel Spacing="12" Padding="0,4,8,4">
+
+                        <InfoBar x:Name="McRepoBar" IsClosable="False" IsOpen="False" />
+
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                            <StackPanel Spacing="10">
+                                <TextBlock x:Name="McEngineLbl" FontWeight="SemiBold" />
+                                <TextBlock x:Name="McEngineStatus" FontSize="12" Foreground="{ThemeResource TextFillColorTertiaryBrush}" TextWrapping="Wrap" />
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Button x:Name="LocateRepoBtn" Click="LocateRepo_Click" />
+                                    <Button x:Name="BuildJarBtn" Click="BuildJar_Click" />
+                                    <Button x:Name="InstallJdkBtn" Click="InstallJdk_Click" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                            <StackPanel Spacing="8">
+                                <TextBlock x:Name="McRunLbl" FontWeight="SemiBold" />
+                                <Grid ColumnSpacing="8" RowSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <TextBlock x:Name="McServerLbl" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" />
+                                    <TextBox x:Name="McServerBox" Grid.Row="0" Grid.Column="1" />
+                                    <TextBlock x:Name="McPortLbl" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" />
+                                    <NumberBox x:Name="McPortBox" Grid.Row="1" Grid.Column="1" Value="25565" Minimum="1" Maximum="65535" SpinButtonPlacementMode="Inline" HorizontalAlignment="Left" Width="160" />
+                                    <TextBlock x:Name="McOutLbl" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" />
+                                    <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                                        <TextBox x:Name="McOutBox" Width="380" IsReadOnly="True" />
+                                        <Button x:Name="McOutPickBtn" Click="McPickOut_Click" />
+                                        <Button x:Name="McOutOpenBtn" Click="McOpenOut_Click" />
+                                    </StackPanel>
+                                    <TextBlock x:Name="McRenderLbl" Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" />
+                                    <NumberBox x:Name="McRenderBox" Grid.Row="3" Grid.Column="1" Value="0" Minimum="0" Maximum="48" SpinButtonPlacementMode="Inline" HorizontalAlignment="Left" Width="160" />
+                                </Grid>
+                                <CheckBox x:Name="McAutoOpenChk" />
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Button x:Name="McStartBtn" Click="McStart_Click" Style="{StaticResource AccentButtonStyle}" />
+                                    <Button x:Name="McStopBtn" Click="McStop_Click" IsEnabled="False" />
+                                    <ProgressRing x:Name="McRunning" IsActive="False" Width="20" Height="20" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                            <StackPanel Spacing="8">
+                                <TextBlock x:Name="McLogLbl" FontWeight="SemiBold" />
+                                <TextBox x:Name="McLog" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap"
+                                         FontFamily="Consolas" Height="220" IsSpellCheckEnabled="False"
+                                         ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                            </StackPanel>
+                        </Border>
+
+                        <InfoBar x:Name="McResultBar" IsClosable="True" IsOpen="False" />
+                    </StackPanel>
+                </ScrollViewer>
+            </PivotItem>
+        </Pivot>
+    </Grid>
+</Page>

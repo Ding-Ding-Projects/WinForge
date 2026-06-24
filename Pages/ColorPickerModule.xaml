@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinTune.Pages.ColorPickerModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="760" Spacing="14">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <FontIcon FontSize="22" Glyph="&#xE790;" VerticalAlignment="Center" />
+                <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
+            </StackPanel>
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                <Button x:Name="PickBtn" Click="Pick_Click" Style="{StaticResource AccentButtonStyle}" />
+                <Border x:Name="LivePreview" Width="32" Height="32" CornerRadius="6" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" />
+                <TextBlock x:Name="LiveHint" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            </StackPanel>
+
+            <Border x:Name="Swatch" Height="90" CornerRadius="8" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" />
+
+            <Border Padding="16,12,16,12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="60" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="HEX" VerticalAlignment="Center" FontWeight="SemiBold" />
+                        <TextBlock x:Name="HexText" Grid.Column="1" VerticalAlignment="Center" FontFamily="Consolas" IsTextSelectionEnabled="True" />
+                        <Button Grid.Column="2" Click="CopyHex_Click" Padding="8,3,8,3"><FontIcon Glyph="&#xE8C8;" FontSize="12" /></Button>
+                    </Grid>
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="60" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="RGB" VerticalAlignment="Center" FontWeight="SemiBold" />
+                        <TextBlock x:Name="RgbText" Grid.Column="1" VerticalAlignment="Center" FontFamily="Consolas" IsTextSelectionEnabled="True" />
+                        <Button Grid.Column="2" Click="CopyRgb_Click" Padding="8,3,8,3"><FontIcon Glyph="&#xE8C8;" FontSize="12" /></Button>
+                    </Grid>
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="60" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="HSL" VerticalAlignment="Center" FontWeight="SemiBold" />
+                        <TextBlock x:Name="HslText" Grid.Column="1" VerticalAlignment="Center" FontFamily="Consolas" IsTextSelectionEnabled="True" />
+                        <Button Grid.Column="2" Click="CopyHsl_Click" Padding="8,3,8,3"><FontIcon Glyph="&#xE8C8;" FontSize="12" /></Button>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <TextBox x:Name="HexInput" PlaceholderText="#RRGGBB" Width="160" FontFamily="Consolas" />
+                <Button x:Name="ApplyHexBtn" Click="ApplyHex_Click" />
+            </StackPanel>
+
+            <TextBlock x:Name="HistoryLabel" FontWeight="SemiBold" Margin="0,4,0,0" />
+            <ItemsControl x:Name="History">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal" Spacing="6" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+            </ItemsControl>
+        </StackPanel>
+    </ScrollViewer>
+</Page>
