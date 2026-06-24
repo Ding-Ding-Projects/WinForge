@@ -28,9 +28,51 @@
 
                 <!-- Portable bundle -->
                 <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16,14,16,14">
-                    <StackPanel Spacing="8">
+                    <StackPanel Spacing="10">
                         <TextBlock x:Name="BundleTitle" FontWeight="SemiBold" />
                         <TextBlock x:Name="BundleDesc" FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+
+                        <!-- Include secrets (encrypted) -->
+                        <Border Background="{ThemeResource LayerFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="6" Padding="12,10,12,10">
+                            <StackPanel Spacing="10">
+                                <Grid ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                        <TextBlock x:Name="SecretsToggleLabel" FontWeight="SemiBold" FontSize="13" TextWrapping="Wrap" />
+                                        <TextBlock x:Name="SecretsToggleDesc" FontSize="11" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <ToggleSwitch x:Name="SecretsToggle" Grid.Column="1" VerticalAlignment="Center" Toggled="SecretsToggle_Toggled" />
+                                </Grid>
+
+                                <StackPanel x:Name="SecretsPanel" Spacing="10" Visibility="Collapsed">
+                                    <InfoBar x:Name="SecretsWarnBar" Severity="Error" IsOpen="True" IsClosable="False" />
+
+                                    <StackPanel Spacing="8">
+                                        <CheckBox x:Name="SecretApiKeysCheck" IsChecked="True" />
+                                        <CheckBox x:Name="SecretSettingsCheck" IsChecked="True" />
+                                        <CheckBox x:Name="SecretEnvCheck" IsChecked="True" />
+                                        <CheckBox x:Name="SecretSshCheck" IsChecked="False" />
+                                    </StackPanel>
+
+                                    <Grid ColumnSpacing="10" RowSpacing="8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <PasswordBox x:Name="SecretPwdBox" Grid.Column="0" PasswordChanged="SecretPwd_Changed" />
+                                        <PasswordBox x:Name="SecretPwdConfirmBox" Grid.Column="1" PasswordChanged="SecretPwd_Changed" />
+                                    </Grid>
+                                    <TextBlock x:Name="SecretPwdHint" FontSize="11" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <Button x:Name="ExportBundleBtn" Style="{StaticResource AccentButtonStyle}" Click="ExportBundle_Click" />
                             <Button x:Name="ImportBundleBtn" Click="ImportBundle_Click" />
