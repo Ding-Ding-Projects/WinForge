@@ -9,6 +9,7 @@ using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using WinForge.Models;
 using WinForge.Services;
 
 namespace WinForge.Pages;
@@ -25,6 +26,9 @@ public sealed partial class PackageManagerModule : Page
     private int _view; // 0 Discover, 1 Updates, 2 Installed, 3 Bundles, 4 Sources, 5 Ignored, 6 Setup
     private HashSet<string> _wingetInstalled = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _ignored = LoadIgnored();   // "key|id" of updates the user chose to ignore
+    private readonly Dictionary<string, PackageItem> _selectedPkgs = new(StringComparer.OrdinalIgnoreCase); // 已勾選套件 · checked packages keyed by "manager|id"
+
+    private static string PkgKey(PackageItem i) => $"{i.ManagerKey}|{i.Id}";
 
     private static HashSet<string> LoadIgnored()
     {
@@ -46,12 +50,13 @@ public sealed partial class PackageManagerModule : Page
     {
         InitializeComponent();
         foreach (var m in PackageManagerRegistry.All) _selected.Add(m.Key);
-        Loc.I.LanguageChanged += (_, _) => { Render(); BuildManagerFilters(); BuildViewCombo(); };
+        Loc.I.LanguageChanged += (_, _) => { Render(); BuildManagerFilters(); BuildViewCombo(); UpdateBatchBar(); };
         Loaded += async (_, _) =>
         {
             Render();
             BuildManagerFilters();
             BuildViewCombo();
+            UpdateBatchBar();
             ViewCombo.SelectedIndex = 0;
             await CheckAvailability();
         };
@@ -63,8 +68,8 @@ public sealed partial class PackageManagerModule : Page
     {
         HeaderTitle.Text = "Package Manager · 套件管理";
         HeaderBlurb.Text = P(
-            "A UniGetUI-style hub over winget, Scoop, Chocolatey, pip, npm, .NET tools, PowerShell Gallery and Cargo — discover, update, uninstall and bundle, all in-app.",
-            "UniGetUI 式總管，統一 winget、Scoop、Chocolatey、pip、npm、.NET 工具、PowerShell Gallery 同 Cargo — 搜尋、更新、解除安裝同打包，全部喺 app 內。");
+            "A UniGetUI-style hub over winget, Scoop, Chocolatey, pip, npm, .NET tools, PowerShell Gallery, PowerShell 7, Cargo, Bun and vcpkg — discover, multi-select, batch install/update/uninstall, and export/import bundles, all in-app.",
+            "UniGetUI 式總管，統一 winget、Scoop、Chocolatey、pip、npm、.NET 工具、PowerShell Gallery、PowerShell 7、Cargo、Bun 同 vcpkg — 搜尋、多選、批次安裝／更新／解除安裝，仲可以匯出／匯入清單，全部喺 app 內。");
         ManagersLabel.Text = P("Package managers", "套件管理器");
         SearchBox.PlaceholderText = P("Search packages (e.g. vscode, vlc, obs)…", "搜尋套件（例如 vscode、vlc、obs）…");
     }
@@ -138,6 +143,7 @@ public sealed partial class PackageManagerModule : Page
     {
         ResultsPanel.Children.Clear();
         ResultsHeader.Text = "";
+        ClearSelection(); // 切換檢視就清空多選 · switching views clears the multi-select set
         switch (_view)
         {
             case 0: // Discover
@@ -271,6 +277,30 @@ public sealed partial class PackageManagerModule : Page
         ResultsHeader.Text = hidden > 0
             ? P($"Updatable — {shown.Count} ({hidden} ignored)", $"可更新 — {shown.Count}（已忽略 {hidden}）")
             : P($"Updatable — {shown.Count}", $"可更新 — {shown.Count}");
+
+        // 每個管理器一個「全部更新」捷徑 · per-manager "update all" shortcuts (UniGetUI parity).
+        var byMgr = shown.GroupBy(u => u.ManagerKey).Where(g => g.Count() > 1).ToList();
+        if (byMgr.Count > 0)
+        {
+            var bar = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+            bar.Children.Add(new TextBlock { Text = P("Update all:", "全部更新："), VerticalAlignment = VerticalAlignment.Center, FontSize = 12, Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"] });
+            foreach (var g in byMgr)
+            {
+                string mk = g.Key;
+                var m = PackageManagerRegistry.ByKey(mk);
+                var b = new Button { Content = $"{m?.NameEn ?? mk} ({g.Count()})", Padding = new Thickness(10, 4, 10, 4) };
+                b.Click += async (_, _) =>
+                {
+                    b.IsEnabled = false; b.Content = P("Updating…", "更新緊…");
+                    var (d, t) = await PackageManagerRegistry.UpdateAllForManagerAsync(mk, null, CancellationToken.None);
+                    ResultsHeader.Text = P($"{mk}: updated {d}/{t}.", $"{mk}：更新咗 {d}/{t}。");
+                    await LoadUpdates();
+                };
+                bar.Children.Add(b);
+            }
+            ResultsPanel.Children.Add(Card(bar));
+        }
+
         foreach (var item in shown)
         {
             var label = string.IsNullOrEmpty(item.AvailableVersion) ? P("Update", "更新") : $"{P("Update", "更新")} → {item.AvailableVersion}";
@@ -319,6 +349,121 @@ public sealed partial class PackageManagerModule : Page
             ResultsPanel.Children.Add(RowFor(item, P("Uninstall", "解除安裝"), async btn => await ActionUninstall(item, btn)));
     }
 
+    // ===== Batch (multi-select) operations — UniGetUI signature =====
+
+    /// <summary>更新批次列嘅標籤同顯示／隱藏 · Refresh the batch bar's button labels and visibility.</summary>
+    private void UpdateBatchBar()
+    {
+        int n = _selectedPkgs.Count;
+        BatchBar.Visibility = n > 0 ? Visibility.Visible : Visibility.Collapsed;
+        BatchLabel.Text = P($"{n} selected", $"已選 {n} 個");
+        BatchInstallBtn.Content = P("Install selected", "安裝所選");
+        BatchUpdateBtn.Content = P("Update selected", "更新所選");
+        BatchUninstallBtn.Content = P("Uninstall selected", "解除所選");
+        BatchExportBtn.Content = P("Export selected…", "匯出所選…");
+        BatchClearBtn.Content = P("Clear", "清除");
+    }
+
+    private void ClearSelection()
+    {
+        _selectedPkgs.Clear();
+        UpdateBatchBar();
+    }
+
+    private void BatchClear_Click(object sender, RoutedEventArgs e)
+    {
+        ClearSelection();
+        // 取消畫面上所有勾選 · uncheck every visible row
+        foreach (var cb in EnumerateCheckBoxes(ResultsPanel)) cb.IsChecked = false;
+    }
+
+    private static IEnumerable<CheckBox> EnumerateCheckBoxes(DependencyObject root)
+    {
+        int count = Microsoft.UI.Xaml.Media.VisualTreeHelper.GetChildrenCount(root);
+        for (int i = 0; i < count; i++)
+        {
+            var child = Microsoft.UI.Xaml.Media.VisualTreeHelper.GetChild(root, i);
+            if (child is CheckBox cb) yield return cb;
+            foreach (var inner in EnumerateCheckBoxes(child)) yield return inner;
+        }
+    }
+
+    private async void BatchInstall_Click(object sender, RoutedEventArgs e)
+        => await RunBatchWithLog(P("Install selected", "安裝所選"),
+            _selectedPkgs.Values.ToList(), (m, id, ct) => m.InstallAsync(id, ct));
+
+    private async void BatchUpdate_Click(object sender, RoutedEventArgs e)
+        => await RunBatchWithLog(P("Update selected", "更新所選"),
+            _selectedPkgs.Values.ToList(), (m, id, ct) => m.UpdateAsync(id, ct));
+
+    private async void BatchUninstall_Click(object sender, RoutedEventArgs e)
+        => await RunBatchWithLog(P("Uninstall selected", "解除所選"),
+            _selectedPkgs.Values.ToList(), (m, id, ct) => m.UninstallAsync(id, ct));
+
+    private async void BatchExport_Click(object sender, RoutedEventArgs e)
+        => await ExportEntries(_selectedPkgs.Values.ToList());
+
+    /// <summary>
+    /// 跑一批操作並即時顯示進度同輸出 · Run a batch op over the selected packages, streaming progress and
+    /// the CLI output into a live log dialog (UniGetUI-style operation feed). Cancellable.
+    /// </summary>
+    private async Task RunBatchWithLog(string title, List<PackageItem> items,
+        Func<IPackageManager, string, CancellationToken, Task<TweakResult>> op)
+    {
+        if (items.Count == 0) return;
+
+        var cts = new CancellationTokenSource();
+        var log = new TextBlock
+        {
+            FontFamily = new FontFamily("Consolas"), FontSize = 12,
+            TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true,
+        };
+        var scroll = new ScrollViewer { MaxHeight = 420, MinWidth = 520, Content = log };
+        var dlg = new ContentDialog
+        {
+            Title = title,
+            Content = scroll,
+            PrimaryButtonText = P("Run in background", "背景執行"),
+            CloseButtonText = P("Cancel", "取消"),
+            XamlRoot = this.XamlRoot,
+        };
+        dlg.CloseButtonClick += (_, _) => cts.Cancel();
+
+        void Append(string line)
+        {
+            log.Text += (log.Text.Length == 0 ? "" : "\n") + line;
+            scroll.ChangeView(null, scroll.ScrollableHeight + 400, null, true);
+        }
+
+        var run = Task.Run(async () =>
+        {
+            int done = 0, fail = 0, idx = 0;
+            foreach (var item in items)
+            {
+                if (cts.IsCancellationRequested) break;
+                idx++;
+                var mgr = PackageManagerRegistry.ByKey(item.ManagerKey);
+                DispatcherQueue.TryEnqueue(() => Append(P($"[{idx}/{items.Count}] {item.Name} ({item.ManagerKey})…", $"[{idx}/{items.Count}] {item.Name}（{item.ManagerKey}）…")));
+                if (mgr is null) { fail++; continue; }
+                TweakResult r;
+                try { r = await op(mgr, item.Id, cts.Token); }
+                catch (Exception ex) { r = TweakResult.Fail(ex.Message, ex.Message); }
+                if (r.Success) done++; else fail++;
+                var tail = string.IsNullOrWhiteSpace(r.Output) ? "" : "\n    " + r.Output.Replace("\n", "\n    ");
+                DispatcherQueue.TryEnqueue(() => Append((r.Success ? P("  ✓ OK", "  ✓ 完成") : P("  ✗ failed", "  ✗ 失敗")) + tail));
+            }
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                Append(P($"Done — {done} ok, {fail} failed.", $"完成 — {done} 成功、{fail} 失敗。"));
+                ResultsHeader.Text = P($"Batch: {done} ok, {fail} failed.", $"批次：{done} 成功、{fail} 失敗。");
+            });
+        }, cts.Token);
+
+        await dlg.ShowAsync();
+        // 對話框關閉後唔阻塞操作（PrimaryButton = 背景執行）· keep running after dialog closes.
+        _ = run;
+    }
+
     // ===== Bundles =====
 
     private async Task ExportBundle()
@@ -329,8 +474,13 @@ public sealed partial class PackageManagerModule : Page
         try { items = await PackageManagerRegistry.AllInstalledAsync(keys, CancellationToken.None); }
         catch { items = new(); }
         Busy.IsActive = false;
-        if (items.Count == 0) { ResultsHeader.Text = P("Nothing to export.", "冇嘢可以匯出。"); return; }
+        await ExportEntries(items);
+    }
 
+    /// <summary>將一組套件寫做 JSON 清單（已安裝或所選共用）· Write a set of packages to a JSON bundle (shared by export-all and export-selected).</summary>
+    private async Task ExportEntries(List<PackageItem> items)
+    {
+        if (items.Count == 0) { ResultsHeader.Text = P("Nothing to export.", "冇嘢可以匯出。"); return; }
         var entries = items.Select(i => new BundleEntry { Manager = i.ManagerKey, Id = i.Id, Name = i.Name, Version = i.Version }).ToList();
         try
         {
@@ -398,6 +548,17 @@ public sealed partial class PackageManagerModule : Page
                 installed ? P("Installed", "已安裝") : P("Missing", "欠缺"), installed,
                 installed ? null : (P("Install", "安裝"), async () => { await PackageService.Install(dep.Id); _wingetInstalled.Add(dep.Id); })));
         }
+
+        // UniGetUI 後備：原生包唔到嘅進階功能可以開返 UniGetUI 本體 · Fallback to UniGetUI itself for power features.
+        ResultsPanel.Children.Add(SectionLabel(P("UniGetUI (power features)", "UniGetUI（進階功能）")));
+        ResultsPanel.Children.Add(StatusRow(
+            "UniGetUI · 統一套件管理 GUI", "MartiCliment.UniGetUI",
+            P("Open or install the full UniGetUI app", "開啟或安裝完整 UniGetUI 應用程式"), false,
+            (P("Launch / Install", "啟動／安裝"), async () =>
+            {
+                var r = await PackageManagerRegistry.LaunchUniGetUIAsync(CancellationToken.None);
+                ResultsHeader.Text = r.Message?.Primary ?? (r.Success ? P("Done.", "完成。") : P("Failed.", "失敗。"));
+            })));
     }
 
     private async Task InstallAllDeps()
@@ -429,6 +590,8 @@ public sealed partial class PackageManagerModule : Page
         "npm" => (true, async () => await PackageService.Install("OpenJS.NodeJS.LTS")),
         "dotnet" => (true, async () => await PackageService.Install("Microsoft.DotNet.SDK.9")),
         "cargo" => (true, async () => await PackageService.Install("Rustlang.Rustup")),
+        "bun" => (true, async () => await PackageService.Install("Oven-sh.Bun")),
+        "pwsh7" => (true, async () => await PackageService.Install("Microsoft.PowerShell")),
         _ => (false, () => Task.CompletedTask),
     };
 
@@ -597,18 +760,34 @@ public sealed partial class PackageManagerModule : Page
         List<(string label, Func<Button, Task> run)>? extras = null)
     {
         var grid = new Grid { ColumnSpacing = 10 };
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // checkbox
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // badge
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-        grid.Children.Add(ManagerBadge(item.ManagerKey));
+        // 多選勾選框 · multi-select checkbox driving batch operations
+        var check = new CheckBox
+        {
+            MinWidth = 0,
+            Margin = new Thickness(0),
+            VerticalAlignment = VerticalAlignment.Center,
+            IsChecked = _selectedPkgs.ContainsKey(PkgKey(item)),
+        };
+        check.Checked += (_, _) => { _selectedPkgs[PkgKey(item)] = item; UpdateBatchBar(); };
+        check.Unchecked += (_, _) => { _selectedPkgs.Remove(PkgKey(item)); UpdateBatchBar(); };
+        Grid.SetColumn(check, 0);
+        grid.Children.Add(check);
+
+        var badge = ManagerBadge(item.ManagerKey);
+        Grid.SetColumn(badge, 1);
+        grid.Children.Add(badge);
 
         var texts = new StackPanel { Spacing = 1, VerticalAlignment = VerticalAlignment.Center };
         var ver = string.IsNullOrEmpty(item.Version) ? "" : $"  ({item.Version})";
         texts.Children.Add(new TextBlock { Text = $"{item.Name}{ver}", FontWeight = FontWeights.SemiBold, FontSize = 13, TextTrimming = TextTrimming.CharacterEllipsis });
         var sub = string.IsNullOrEmpty(item.Source) ? item.Id : $"{item.Id}  ·  {item.Source}";
         texts.Children.Add(new TextBlock { Text = sub, FontSize = 11, FontFamily = new FontFamily("Consolas"), Foreground = (Brush)Application.Current.Resources["TextFillColorTertiaryBrush"], TextTrimming = TextTrimming.CharacterEllipsis });
-        Grid.SetColumn(texts, 1);
+        Grid.SetColumn(texts, 2);
         grid.Children.Add(texts);
 
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, VerticalAlignment = VerticalAlignment.Center };
@@ -631,7 +810,7 @@ public sealed partial class PackageManagerModule : Page
         btn.Click += async (_, _) => await action(btn);
         buttons.Children.Add(btn);
 
-        Grid.SetColumn(buttons, 2);
+        Grid.SetColumn(buttons, 3);
         grid.Children.Add(buttons);
 
         return Card(grid);
