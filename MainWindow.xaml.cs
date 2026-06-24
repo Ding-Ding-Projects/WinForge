@@ -300,6 +300,12 @@ public sealed partial class MainWindow : Window
             case "windowmanager":
                 Navigator.GoToModule?.Invoke("module.windows");
                 break;
+            case "workspaces":
+            case "workspace":
+            case "applayout":
+            case "desktoplayout":
+                Navigator.GoToModule?.Invoke("module.workspaces");
+                break;
             case "fancyzones":
             case "zones":
             case "powertoys-zones":
@@ -683,6 +689,7 @@ public sealed partial class MainWindow : Window
         "module.testdisk" => typeof(TestDiskModule),
         "module.uninstall" => typeof(AppUninstallerModule),
         "module.windows" => typeof(WindowManagerModule),
+        "module.workspaces" => typeof(WorkspacesModule),
         "module.altsnap" => typeof(AltSnapModule),
         "module.fancyzones" => typeof(FancyZonesModule),
         "module.komorebi" => typeof(KomorebiModule),

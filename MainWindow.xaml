@@ -120,6 +120,7 @@
                         <NavigationViewItem Content="Taskbar Tweaker · 工作列調校" Tag="module.taskbar-tweaker"><NavigationViewItem.Icon><FontIcon Glyph="&#xE71D;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Nilesoft Shell · Nilesoft 右鍵選單" Tag="module.nilesoftshell"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7BA;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Window Manager · 視窗管理" Tag="module.windows"><NavigationViewItem.Icon><FontIcon Glyph="&#xE737;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Workspaces · 工作區" Tag="module.workspaces"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7C4;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="AltSnap · Alt 拖曳視窗" Tag="module.altsnap"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7C4;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="FancyZones · 視窗分區" Tag="module.fancyzones"><NavigationViewItem.Icon><FontIcon Glyph="&#xE80A;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Komorebi (Tiling) · Komorebi 平鋪" Tag="module.komorebi"><NavigationViewItem.Icon><FontIcon Glyph="&#xE80A;" /></NavigationViewItem.Icon></NavigationViewItem>
