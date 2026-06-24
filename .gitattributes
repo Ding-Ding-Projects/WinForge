@@ -5,3 +5,7 @@ Services/ModuleRegistry.cs merge=union
 WinForge.csproj            merge=union
 App.xaml.cs                merge=union
 Services/AppState.cs        merge=union
+Pages/PackageManagerModule.xaml      merge=union
+Pages/PackageManagerModule.xaml.cs   merge=union
+Services/PackageManagers.cs          merge=union
+Services/PackageService.cs           merge=union
