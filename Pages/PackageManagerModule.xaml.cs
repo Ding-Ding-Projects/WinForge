@@ -268,6 +268,7 @@ public sealed partial class PackageManagerModule : Page
             var extras = new List<(string, Func<Button, Task>)>
             {
                 (P("Options…", "選項…"), async _ => await ShowOptionsDialog(item)),
+                (P("More ▾", "更多 ▾"), btn => { ShowMoreFlyout(btn, item, RowExtraScope.Discover); return Task.CompletedTask; }),
             };
             ResultsPanel.Children.Add(RowFor(item, P("Install", "安裝"), async btn => await ActionInstall(item, btn), extras));
         }
@@ -320,6 +321,7 @@ public sealed partial class PackageManagerModule : Page
             var extras = new List<(string, Func<Button, Task>)>
             {
                 (P("Ignore", "忽略"), _ => { _ignored.Add(IgnKey(item)); SaveIgnored(); return LoadUpdates(); }),
+                (P("More ▾", "更多 ▾"), btn => { ShowMoreFlyout(btn, item, RowExtraScope.Updates); return Task.CompletedTask; }),
             };
             ResultsPanel.Children.Add(RowFor(item, label, async btn => await ActionUpdate(item, btn), extras));
         }
@@ -359,7 +361,13 @@ public sealed partial class PackageManagerModule : Page
         Busy.IsActive = false;
         ResultsHeader.Text = P($"Installed — {items.Count}", $"已安裝 — {items.Count}");
         foreach (var item in items)
-            ResultsPanel.Children.Add(RowFor(item, P("Uninstall", "解除安裝"), async btn => await ActionUninstall(item, btn)));
+        {
+            var extras = new List<(string, Func<Button, Task>)>
+            {
+                (P("More ▾", "更多 ▾"), btn => { ShowMoreFlyout(btn, item, RowExtraScope.Installed); return Task.CompletedTask; }),
+            };
+            ResultsPanel.Children.Add(RowFor(item, P("Uninstall", "解除安裝"), async btn => await ActionUninstall(item, btn), extras));
+        }
     }
 
     // ===== Batch (multi-select) operations — UniGetUI signature =====
@@ -659,26 +667,122 @@ public sealed partial class PackageManagerModule : Page
     // ===== Details / install options dialogs =====
 
     private async Task ShowDetails(PackageItem item)
+        => await PackageDetailsDialog.ShowAsync(this.XamlRoot, item);
+
+    // ===== Row "More ▾" flyout (per-package actions) =====
+
+    /// <summary>邊個鏈式操作 · which chained ops the flyout exposes, per view.</summary>
+    private enum RowExtraScope { Discover, Updates, Installed }
+
+    /// <summary>
+    /// 喺一個行內按鈕彈出「More ▾」flyout · Attach &amp; open a "More ▾" flyout on a row button: copy install
+    /// command, download installer, and the chained ops relevant to the current view
+    /// (reinstall / uninstall-then-X). Bilingual throughout.
+    /// </summary>
+    private void ShowMoreFlyout(Button btn, PackageItem item, RowExtraScope scope)
     {
-        var body = new TextBlock
+        var flyout = new MenuFlyout();
+
+        // Copy install command.
+        var copy = new MenuFlyoutItem { Text = P("Copy install command", "複製安裝指令") };
+        copy.Click += (_, _) =>
         {
-            Text = P("Loading…", "載入緊…"), FontFamily = new FontFamily("Consolas"),
-            FontSize = 12, TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true,
+            try
+            {
+                var cmd = PackageDetails.BuildInstallCommand(item);
+                var dp = new Windows.ApplicationModel.DataTransfer.DataPackage();
+                dp.SetText(cmd);
+                Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(dp);
+                ResultsHeader.Text = P($"Copied: {cmd}", $"已複製：{cmd}");
+            }
+            catch (Exception ex) { ResultsHeader.Text = ex.Message; }
         };
-        var dlg = new ContentDialog
+        flyout.Items.Add(copy);
+
+        // Download installer…
+        var download = new MenuFlyoutItem { Text = P("Download installer…", "下載安裝程式…") };
+        download.Click += async (_, _) =>
         {
-            Title = $"{item.Name} · {item.ManagerKey}",
-            Content = new ScrollViewer { MaxHeight = 460, Content = body },
-            CloseButtonText = P("Close", "關閉"),
-            XamlRoot = this.XamlRoot,
+            try
+            {
+                var dir = await FileDialogs.OpenFolderAsync(P("Choose download folder", "揀下載資料夾"));
+                if (dir is null) return;
+                ResultsHeader.Text = P($"Downloading {item.Name}…", $"下載 {item.Name} 緊…");
+                var r = await PackageDetails.DownloadInstallerAsync(item, dir, CancellationToken.None);
+                ResultsHeader.Text = r.Message?.Primary ?? (r.Success ? P("Downloaded.", "已下載。") : P("Download failed.", "下載失敗。"));
+            }
+            catch (Exception ex) { ResultsHeader.Text = ex.Message; }
         };
-        _ = dlg.ShowAsync();
+        flyout.Items.Add(download);
+
+        // Chained ops vary per view.
+        if (scope is RowExtraScope.Installed)
+        {
+            flyout.Items.Add(new MenuFlyoutSeparator());
+            var reinstall = new MenuFlyoutItem { Text = P("Reinstall", "重新安裝") };
+            reinstall.Click += async (_, _) => await RunChainedFromRow(item,
+                P("Reinstall", "重新安裝"),
+                new (string, string, Func<IPackageManager, CancellationToken, Task<TweakResult>>)[]
+                {
+                    ("Uninstall", "解除安裝", (m, c) => m.UninstallAsync(item.Id, c)),
+                    ("Install", "安裝", (m, c) => m.InstallAsync(item.Id, c)),
+                });
+            flyout.Items.Add(reinstall);
+
+            var unRe = new MenuFlyoutItem { Text = P("Uninstall then reinstall", "解除後重裝") };
+            unRe.Click += async (_, _) => await RunChainedFromRow(item,
+                P("Uninstall then reinstall", "解除後重裝"),
+                new (string, string, Func<IPackageManager, CancellationToken, Task<TweakResult>>)[]
+                {
+                    ("Uninstall", "解除安裝", (m, c) => m.UninstallAsync(item.Id, c)),
+                    ("Install", "安裝", (m, c) => m.InstallAsync(item.Id, c)),
+                });
+            flyout.Items.Add(unRe);
+        }
+        else if (scope is RowExtraScope.Updates)
+        {
+            flyout.Items.Add(new MenuFlyoutSeparator());
+            var unUp = new MenuFlyoutItem { Text = P("Uninstall then update", "解除後更新") };
+            unUp.Click += async (_, _) => await RunChainedFromRow(item,
+                P("Uninstall then update", "解除後更新"),
+                new (string, string, Func<IPackageManager, CancellationToken, Task<TweakResult>>)[]
+                {
+                    ("Uninstall", "解除安裝", (m, c) => m.UninstallAsync(item.Id, c)),
+                    ("Install", "安裝", (m, c) => m.InstallAsync(item.Id, c)),
+                    ("Update", "更新", (m, c) => m.UpdateAsync(item.Id, c)),
+                });
+            flyout.Items.Add(unUp);
+        }
+
+        flyout.ShowAt(btn);
+    }
+
+    /// <summary>由行內鏈式操作執行並更新表頭 · Run a chained sequence of manager ops from a row, surfacing progress in the header.</summary>
+    private async Task RunChainedFromRow(PackageItem item, string title,
+        (string en, string zh, Func<IPackageManager, CancellationToken, Task<TweakResult>> op)[] steps)
+    {
+        var mgr = PackageManagerRegistry.ByKey(item.ManagerKey);
+        if (mgr is null) { ResultsHeader.Text = P("Manager not available.", "管理器唔可用。"); return; }
+        Busy.IsActive = true;
         try
         {
-            var text = await PackageManagerRegistry.DetailsAsync(item);
-            body.Text = string.IsNullOrWhiteSpace(text) ? P("No details available.", "冇詳情。") : text.Trim();
+            int i = 0;
+            foreach (var step in steps)
+            {
+                i++;
+                ResultsHeader.Text = P($"{title}: [{i}/{steps.Length}] {step.en} {item.Name}…", $"{title}：[{i}/{steps.Length}] {step.zh} {item.Name}…");
+                TweakResult r;
+                try { r = await step.op(mgr, CancellationToken.None); }
+                catch (Exception ex) { r = TweakResult.Fail(ex.Message, ex.Message); }
+                if (!r.Success)
+                {
+                    ResultsHeader.Text = P($"{title}: '{step.en}' failed.", $"{title}：「{step.zh}」失敗。");
+                    return;
+                }
+            }
+            ResultsHeader.Text = P($"{title}: done for {item.Name}.", $"{title}：{item.Name} 完成。");
         }
-        catch (Exception ex) { body.Text = ex.Message; }
+        finally { Busy.IsActive = false; }
     }
 
     private async Task ShowOptionsDialog(PackageItem item)

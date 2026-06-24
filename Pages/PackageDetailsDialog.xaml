@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentDialog
+    x:Class="WinForge.Pages.PackageDetailsDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <!-- 內容喺後置碼動態建立 · Content is built programmatically in code-behind (mirrors the ShowDetails pattern). -->
+    <ScrollViewer x:Name="RootScroll" VerticalScrollBarVisibility="Auto" MaxHeight="560" MinWidth="540">
+        <StackPanel x:Name="Root" Spacing="10" />
+    </ScrollViewer>
+</ContentDialog>
