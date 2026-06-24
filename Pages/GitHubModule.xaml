@@ -150,6 +150,123 @@
                         </StackPanel>
                     </Border>
 
+                    <!-- Gitty workflows -->
+                    <Expander
+                        x:Name="WorkflowsExpander"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Stretch"
+                        IsExpanded="True">
+                        <Expander.Header>
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <FontIcon FontSize="16" Glyph="&#xE945;" />
+                                <TextBlock x:Name="WorkflowsHeader" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Expander.Header>
+                        <StackPanel Spacing="14">
+                            <TextBlock
+                                x:Name="WorkflowsBlurb"
+                                FontSize="13"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                TextWrapping="Wrap" />
+
+                            <!-- gh engine bar (shown only when gh is missing) -->
+                            <StackPanel x:Name="GhEngineBar" Orientation="Horizontal" Spacing="8" Visibility="Collapsed">
+                                <FontIcon
+                                    VerticalAlignment="Center"
+                                    FontSize="14"
+                                    Foreground="{ThemeResource SystemFillColorCautionBrush}"
+                                    Glyph="&#xE7BA;" />
+                                <TextBlock
+                                    x:Name="GhEngineLabel"
+                                    VerticalAlignment="Center"
+                                    FontSize="13"
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                    TextWrapping="Wrap" />
+                            </StackPanel>
+
+                            <!-- Up -->
+                            <StackPanel Spacing="6">
+                                <TextBlock x:Name="UpLabel" FontWeight="SemiBold" />
+                                <Grid ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="UpMessageBox" Grid.Column="0" />
+                                    <Button x:Name="UpBtn" Grid.Column="1" Click="Up_Click" Style="{StaticResource AccentButtonStyle}" />
+                                </Grid>
+                            </StackPanel>
+
+                            <!-- Undo + Share row -->
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button x:Name="UndoBtn" Click="Undo_Click" />
+                                <Button x:Name="ShareBtn" Click="Share_Click" />
+                                <Button x:Name="PrShareBtn" Click="PrShare_Click" />
+                            </StackPanel>
+
+                            <!-- Checkpoint / Restore -->
+                            <StackPanel Spacing="6">
+                                <TextBlock x:Name="CheckpointLabel" FontWeight="SemiBold" />
+                                <Grid ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="CheckpointNameBox" Grid.Column="0" />
+                                    <ComboBox x:Name="CheckpointBranchCombo" Grid.Column="1" MinWidth="120" />
+                                    <Button x:Name="CheckpointBtn" Grid.Column="2" Click="Checkpoint_Click" />
+                                    <Button x:Name="RestoreBtn" Grid.Column="3" Click="Restore_Click" />
+                                </Grid>
+                                <TextBlock
+                                    x:Name="RestoreWarn"
+                                    FontSize="12"
+                                    Foreground="{ThemeResource SystemFillColorCautionBrush}"
+                                    TextWrapping="Wrap" />
+                            </StackPanel>
+
+                            <!-- Alias store -->
+                            <StackPanel Spacing="8">
+                                <TextBlock x:Name="AliasLabel" FontWeight="SemiBold" />
+                                <TextBlock
+                                    x:Name="AliasBlurb"
+                                    FontSize="12"
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                    TextWrapping="Wrap" />
+                                <StackPanel x:Name="AliasButtonsPanel" Spacing="6" />
+
+                                <Border
+                                    Padding="12"
+                                    Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                    CornerRadius="6">
+                                    <StackPanel Spacing="8">
+                                        <TextBlock x:Name="AliasEditorLabel" FontWeight="SemiBold" FontSize="13" />
+                                        <Grid ColumnSpacing="8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock x:Name="AliasNameLabel" Grid.Column="0" VerticalAlignment="Center" FontSize="13" />
+                                            <TextBox x:Name="AliasNameBox" Grid.Column="1" />
+                                        </Grid>
+                                        <TextBox
+                                            x:Name="AliasStepsBox"
+                                            AcceptsReturn="True"
+                                            Height="92"
+                                            TextWrapping="Wrap"
+                                            FontFamily="Consolas"
+                                            FontSize="12" />
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <Button x:Name="AliasSaveBtn" Click="AliasSave_Click" Style="{StaticResource AccentButtonStyle}" />
+                                            <Button x:Name="AliasClearBtn" Click="AliasClear_Click" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </StackPanel>
+                    </Expander>
+
                     <!-- Chunked uploader -->
                     <Border
                         Padding="16,14,16,14"

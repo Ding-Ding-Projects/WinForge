@@ -356,5 +356,22 @@ GitTweak.Tool("git.gh-secret-list", "List secrets", "列出密鑰",
 GitTweak.Tool("git.gh-status", "GitHub status", "GitHub 狀態",
     "Show what is going on across GitHub for you right now.", "睇返你而家喺 GitHub 各處嘅最新狀況。",
     "Show", "顯示", "gh", "status", keywords: "status,狀態,gh"),
+
+        // ===== Gitty workflows (5) — opinionated shortcuts ported from the Gitty CLI =====
+        GitTweak.Git("git.gitty-up", "Gitty: Up — stage all (then commit & push in Workflows)", "Gitty：Up — 暫存全部（再喺工作流程提交＋推送）",
+    "Gitty 'up' first stages everything (add -A). For the full stage+commit+push one-click, use the Workflows panel.", "Gitty「up」第一步係暫存全部（add -A）。想一鍵暫存＋提交＋推送，請用「工作流程」面板。",
+    "Stage", "暫存", "add -A", keywords: "gitty,up,stage,commit,push,暫存,提交,推送,工作流程"),
+GitTweak.Git("git.gitty-undo", "Gitty: Undo last commit (soft)", "Gitty：撤回上次提交（軟）",
+    "Gitty 'undo': soft-reset the last commit, keeping its changes staged.", "Gitty「undo」：軟重置上一個提交，改動留喺暫存區。",
+    "Undo", "撤回", "reset --soft HEAD~1", destructive: true, keywords: "gitty,undo,reset,soft,撤回,軟重置,工作流程"),
+GitTweak.Git("git.gitty-log-6h", "Gitty: Log (last 6 hours)", "Gitty：歷史（近 6 小時）",
+    "Gitty time-filtered graph log of commits in the last 6 hours.", "Gitty 時間過濾圖譜歷史：睇近 6 個鐘嘅提交。",
+    "Show", "顯示", "log --oneline --graph --decorate --all --since=\"6 hours ago\"", keywords: "gitty,log,graph,time,6h,歷史,圖譜,工作流程"),
+GitTweak.Git("git.gitty-log-3d", "Gitty: Log (last 3 days)", "Gitty：歷史（近 3 日）",
+    "Gitty time-filtered graph log of commits in the last 3 days.", "Gitty 時間過濾圖譜歷史：睇近 3 日嘅提交。",
+    "Show", "顯示", "log --oneline --graph --decorate --all --since=\"3 days ago\"", keywords: "gitty,log,graph,time,3day,歷史,圖譜,工作流程"),
+GitTweak.Git("git.gitty-share", "Gitty: Share — show origin URL (push & copy in Workflows)", "Gitty：分享 — 顯示 origin 網址（喺工作流程推送並複製）",
+    "Shows the origin remote URL. For Gitty 'push --share' (push then copy the GitHub link), use the Workflows panel.", "顯示 origin 遠端網址。想用 Gitty「push --share」（推送再複製 GitHub 連結），請用「工作流程」面板。",
+    "Show", "顯示", "remote get-url origin", keywords: "gitty,share,push,url,clipboard,分享,網址,工作流程"),
     };
 }
