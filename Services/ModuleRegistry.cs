@@ -42,6 +42,7 @@ public static class ModuleRegistry
         new() { Tag = "module.rename", En = "Batch Rename", Zh = "批次改名", Glyph = "", Keywords = "rename bulk powerrename regex 改名 批次" },
         new() { Tag = "module.bulkops", En = "Bulk File Ops", Zh = "批次檔案操作", Glyph = "", Keywords = "bulk file move copy delete attributes 批次 檔案" },
         new() { Tag = "module.duplicates", En = "Duplicate Finder", Zh = "重複檔案搜尋", Glyph = "", Keywords = "duplicate hash find dedupe 重複" },
+        new() { Tag = "module.filelocksmith", En = "File Locksmith", Zh = "檔案鎖偵測", Glyph = ((char)0xE72E).ToString(), Keywords = "file locksmith locked file folder which process is locking handle open handle restart manager rstrtmgr in use cannot delete cannot move being used by another program end task unlock who is using whatslocking lockedfile powertoys 檔案鎖 鎖住 邊個程序 鎖定 控制代碼 佔用 刪唔到 移動唔到 解鎖 結束工作 開啟中" },
         new() { Tag = "module.disk", En = "Disk Analyser", Zh = "磁碟分析", Glyph = "", Keywords = "disk space treemap analyse folder size 磁碟 空間" },
         new() { Tag = "module.drives", En = "Drives", Zh = "磁碟機", Glyph = "", Keywords = "drive volume format bitlocker 磁碟機" },
         new() { Tag = "module.testdisk", En = "TestDisk / PhotoRec Recovery", Zh = "TestDisk / PhotoRec 資料救援", Glyph = ((char)0xE7BA).ToString(), Keywords = "testdisk photorec recovery carve undelete partition recover data lost deleted 資料救援 救援 復原 還原 分割區 救回 刪除 檔案" },
