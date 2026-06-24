@@ -113,11 +113,13 @@ public static class AppearanceTweaks
             restart: RestartScope.SignOut, keywords: "drag,window,拖曳,視窗"),
 
         // 12) Start menu layout (more pins vs more recommendations).
-        Tweak.RegChoice("appearance.start-layout", "Start menu layout", "開始功能表版面",
+        // Three mutually-exclusive named options read better as radio buttons than a dropdown.
+        // 三個互斥嘅命名選項用單選按鈕比下拉選單更清楚；Id／登錄檔值／重啟範圍全部不變。
+        RegRadio("appearance.start-layout", "Start menu layout", "開始功能表版面",
             "Balance pinned apps against recommended items in the Start menu.",
             "喺開始功能表平衡釘選應用程式同建議項目。",
-            RegRoot.HKCU, Advanced, "Start_Layout", RegistryValueKind.DWord,
-            new (string en, string zh, object value)[]
+            Advanced, "Start_Layout",
+            new (string en, string zh, int value)[]
             {
                 ("Default", "預設", 0),
                 ("More pins", "更多釘選", 1),
@@ -126,11 +128,13 @@ public static class AppearanceTweaks
             restart: RestartScope.Explorer, keywords: "start,layout,開始,版面,釘選"),
 
         // 13) Combine taskbar buttons & hide labels (real Win11 Advanced value).
-        Tweak.RegChoice("appearance.taskbar-glom", "Combine taskbar buttons", "合併工作列按鈕",
+        // Three mutually-exclusive named options — clearer as radio buttons.
+        // 三個互斥選項用單選按鈕更清楚；行為／登錄檔完全一樣。
+        RegRadio("appearance.taskbar-glom", "Combine taskbar buttons", "合併工作列按鈕",
             "Choose when taskbar buttons are combined and labels hidden.",
             "揀幾時合併工作列按鈕同收埋文字標籤。",
-            RegRoot.HKCU, Advanced, "TaskbarGlomLevel", RegistryValueKind.DWord,
-            new (string en, string zh, object value)[]
+            Advanced, "TaskbarGlomLevel",
+            new (string en, string zh, int value)[]
             {
                 ("Always combine, hide labels", "永遠合併、收埋標籤", 0),
                 ("Combine when taskbar is full", "工作列滿先合併", 1),
@@ -160,4 +164,35 @@ public static class AppearanceTweaks
             },
             keywords: "wallpaper,jpeg,quality,compression,桌布,壓縮,品質"),
     };
+
+    /// <summary>
+    /// 由單一 HKCU DWord 登錄檔值支援嘅單選按鈕組 · A RadioButtons group backed by a single HKCU DWord value.
+    /// 讀寫語意同 <see cref="Tweak.RegChoice"/> 一模一樣（用 ValueEquals 比對、寫入整數 DWord），
+    /// 只係改用單選按鈕呈現。Same read/write semantics as RegChoice (ValueEquals match, writes an int DWord);
+    /// only the presentation differs.
+    /// </summary>
+    private static TweakDefinition RegRadio(
+        string id, string enT, string zhT, string enD, string zhD,
+        string path, string name,
+        (string en, string zh, int value)[] options,
+        RestartScope restart = RestartScope.None, string? keywords = null)
+        => Tweak.RadioGroup(id, enT, zhT, enD, zhD,
+            Array.ConvertAll(options, o => (o.en, o.zh, o.value.ToString())),
+            getCurrent: () =>
+            {
+                foreach (var o in options)
+                    if (RegistryHelper.ValueEquals(RegRoot.HKCU, path, name, o.value))
+                        return o.value.ToString();
+                return null;
+            },
+            setChoice: val =>
+            {
+                foreach (var o in options)
+                    if (string.Equals(o.value.ToString(), val, StringComparison.OrdinalIgnoreCase))
+                    {
+                        RegistryHelper.SetValue(RegRoot.HKCU, path, name, o.value, RegistryValueKind.DWord);
+                        return;
+                    }
+            },
+            restart: restart, keywords: keywords);
 }
