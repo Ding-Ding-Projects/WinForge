@@ -57,6 +57,9 @@ public sealed partial class MainWindow : Window
         // Shortcut Guide: capture the UI dispatcher; if the user enabled it, install the hold-Win-to-show
         // hook now so the overlay pops up even while WinForge sits in the tray.
         ShortcutGuideService.Init(DispatcherQueue);
+        // 指令面板全域熱鍵（預設 Alt+Space）· Command Palette global hotkey (default Alt+Space),
+        // so the quick-launcher opens from anywhere even while WinForge sits in the tray.
+        CommandPaletteService.Start(DispatcherQueue);
         TrayService.Install(ShowFromTray, QuitFromTray, "WinForge · 視窗調校");
         AppWindow.Closing += OnAppWindowClosing;
     }
@@ -358,6 +361,12 @@ public sealed partial class MainWindow : Window
             case "shortcuts":
             case "winkey":
                 Navigator.GoToModule?.Invoke("module.shortcutguide");
+            case "cmdpalette":
+            case "commandpalette":
+            case "run":
+            case "launcher":
+            case "palette":
+                Navigator.GoToModule?.Invoke("module.cmdpalette");
                 break;
             case "hosts":
                 Navigator.GoToModule?.Invoke("module.hosts");
@@ -748,6 +757,7 @@ public sealed partial class MainWindow : Window
         "module.hotkeys" => typeof(HotkeyMacroModule),
         "module.quickaccent" => typeof(QuickAccentModule),
         "module.shortcutguide" => typeof(ShortcutGuideModule),
+        "module.cmdpalette" => typeof(CommandPaletteModule),
         "module.hosts" => typeof(HostsEditorModule),
         "module.mouse" => typeof(MouseModule),
         "module.mouseutils" => typeof(MouseUtilsModule),
