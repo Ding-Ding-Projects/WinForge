@@ -109,6 +109,7 @@
                         <NavigationViewItem Content="Font Manager · 字型管理" Tag="module.fonts"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8D2;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Awake · 保持喚醒" Tag="module.awake"><NavigationViewItem.Icon><FontIcon Glyph="&#xE708;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="PowerToys Extras · PowerToys 額外工具" Tag="module.powertoys"><NavigationViewItem.Icon><FontIcon Glyph="&#xE945;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Windhawk Mods · Windhawk 模組" Tag="module.windhawk"><NavigationViewItem.Icon><FontIcon Glyph="&#xE945;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Voice &amp; Read-Aloud · 語音朗讀" Tag="module.voice"><NavigationViewItem.Icon><FontIcon Glyph="&#xE767;" /></NavigationViewItem.Icon></NavigationViewItem>
                     </NavigationViewItem.MenuItems>
                 </NavigationViewItem>
