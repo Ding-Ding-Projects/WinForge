@@ -47,6 +47,9 @@ public sealed partial class MainWindow : Window
         // 全域熱鍵泵：開機就跑，收入系統匣都繼續響。
         // Global hotkey pump: starts now so registered chords fire even while WinForge sits in the tray.
         HotkeyMacroService.StartHotkeys();
+        // 指令面板全域熱鍵（預設 Alt+Space）· Command Palette global hotkey (default Alt+Space),
+        // so the quick-launcher opens from anywhere even while WinForge sits in the tray.
+        CommandPaletteService.Start(DispatcherQueue);
         TrayService.Install(ShowFromTray, QuitFromTray, "WinForge · 視窗調校");
         AppWindow.Closing += OnAppWindowClosing;
     }
@@ -323,6 +326,13 @@ public sealed partial class MainWindow : Window
             case "macro":
             case "expander":
                 Navigator.GoToModule?.Invoke("module.hotkeys");
+                break;
+            case "cmdpalette":
+            case "commandpalette":
+            case "run":
+            case "launcher":
+            case "palette":
+                Navigator.GoToModule?.Invoke("module.cmdpalette");
                 break;
             case "hosts":
                 Navigator.GoToModule?.Invoke("module.hosts");
@@ -689,6 +699,7 @@ public sealed partial class MainWindow : Window
         "module.glazewm" => typeof(GlazeWmModule),
         "module.keyboard" => typeof(KeyboardModule),
         "module.hotkeys" => typeof(HotkeyMacroModule),
+        "module.cmdpalette" => typeof(CommandPaletteModule),
         "module.hosts" => typeof(HostsEditorModule),
         "module.mouse" => typeof(MouseModule),
         "module.recorder" => typeof(ScreenRecorderModule),
