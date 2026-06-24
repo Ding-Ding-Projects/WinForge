@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinTune.Pages.AndroidAdbModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid Padding="24,16,24,16" RowSpacing="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="12">
+            <FontIcon FontSize="22" Glyph="&#xE8EA;" VerticalAlignment="Center" />
+            <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
+        </StackPanel>
+        <TextBlock x:Name="HeaderBlurb" Grid.Row="1" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+        <InfoBar x:Name="EngineBar" Grid.Row="2" IsClosable="False" IsOpen="False" Margin="0,2,0,0" />
+
+        <Grid Grid.Row="3" ColumnSpacing="10" Margin="0,4,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Button x:Name="RefreshBtn" Grid.Column="0" Click="Refresh_Click"><FontIcon Glyph="&#xE72C;" FontSize="14" /></Button>
+            <ComboBox x:Name="DeviceBox" Grid.Column="1" HorizontalAlignment="Stretch" SelectionChanged="DeviceBox_SelectionChanged" />
+            <TextBox x:Name="IpBox" Grid.Column="2" PlaceholderText="192.168.x.x:5555" MinWidth="160" />
+            <Button x:Name="ConnectBtn" Grid.Column="3" Click="Connect_Click" />
+            <ProgressRing x:Name="Busy" Grid.Column="4" IsActive="False" Width="20" Height="20" VerticalAlignment="Center" />
+        </Grid>
+
+        <InfoBar x:Name="ResultBar" Grid.Row="4" IsClosable="True" IsOpen="False" Margin="0,2,0,0" />
+
+        <Pivot Grid.Row="5" Margin="0,2,0,0">
+
+            <!-- Console -->
+            <PivotItem x:Name="ConsoleTab">
+                <Grid RowSpacing="8">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="InstallBtn" Click="Install_Click" />
+                        <Button x:Name="ShotBtn" Click="Shot_Click" />
+                        <Button x:Name="LogcatBtn" Click="Logcat_Click" />
+                        <Button x:Name="PackagesBtn" Click="Packages_Click" />
+                        <Button x:Name="RebootBtn">
+                            <Button.Flyout>
+                                <MenuFlyout>
+                                    <MenuFlyoutItem x:Name="RebootSystem" Click="RebootSystem_Click" />
+                                    <MenuFlyoutItem x:Name="RebootBootloader" Click="RebootBootloader_Click" />
+                                    <MenuFlyoutItem x:Name="RebootRecovery" Click="RebootRecovery_Click" />
+                                </MenuFlyout>
+                            </Button.Flyout>
+                        </Button>
+                    </StackPanel>
+
+                    <Grid Grid.Row="1" ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="ShellBox" Grid.Column="0" FontFamily="Consolas" PlaceholderText="adb shell …  (e.g. getprop ro.product.model)" KeyDown="ShellBox_KeyDown" />
+                        <Button x:Name="ShellRunBtn" Grid.Column="1" Click="ShellRun_Click" Style="{StaticResource AccentButtonStyle}" />
+                    </Grid>
+
+                    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                        <StackPanel Spacing="8">
+                            <Image x:Name="ShotImage" Visibility="Collapsed" MaxHeight="360" HorizontalAlignment="Left" Stretch="Uniform" />
+                            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12">
+                                <TextBox x:Name="Console" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap" FontFamily="Consolas" FontSize="12" BorderThickness="0" Background="Transparent" MinHeight="180" />
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </PivotItem>
+
+            <!-- Files (push / pull) -->
+            <PivotItem x:Name="FilesTab">
+                <Grid RowSpacing="8">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Button x:Name="FilesUpBtn" Grid.Column="0" Click="FilesUp_Click"><FontIcon Glyph="&#xE74A;" FontSize="14" /></Button>
+                        <TextBox x:Name="PathBox" Grid.Column="1" FontFamily="Consolas" KeyDown="PathBox_KeyDown" />
+                        <Button x:Name="FilesGoBtn" Grid.Column="2" Click="FilesGo_Click" />
+                    </Grid>
+
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="PushBtn" Click="Push_Click" />
+                        <Button x:Name="PullBtn" Click="Pull_Click" />
+                        <Button x:Name="FileDeleteBtn" Click="FileDelete_Click" />
+                    </StackPanel>
+
+                    <ListView x:Name="FileList" Grid.Row="2" DoubleTapped="FileList_DoubleTapped"
+                              BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <FontIcon FontSize="16" Glyph="{Binding Glyph}" />
+                                    <TextBlock Text="{Binding DisplayName}" FontFamily="Consolas" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </Grid>
+            </PivotItem>
+
+            <!-- APK backup -->
+            <PivotItem x:Name="ApkTab">
+                <Grid RowSpacing="8">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="ApkLoadBtn" Click="ApkLoad_Click" />
+                        <CheckBox x:Name="ApkSystemCheck" VerticalAlignment="Center" />
+                        <Button x:Name="ApkBackupBtn" Click="ApkBackup_Click" Style="{StaticResource AccentButtonStyle}" />
+                    </StackPanel>
+                    <ListView x:Name="ApkList" Grid.Row="1"
+                              BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Package}" FontFamily="Consolas" />
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </Grid>
+            </PivotItem>
+
+            <!-- Live logcat -->
+            <PivotItem x:Name="LiveTab">
+                <Grid RowSpacing="8">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Grid Grid.Row="0" ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ComboBox x:Name="LogLevelBox" Grid.Column="0" MinWidth="150" />
+                        <TextBox x:Name="LogTagBox" Grid.Column="1" FontFamily="Consolas" PlaceholderText="tag filter (e.g. ActivityManager) — optional" />
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+                            <Button x:Name="LiveStartBtn" Click="LiveStart_Click" Style="{StaticResource AccentButtonStyle}" />
+                            <Button x:Name="LiveStopBtn" Click="LiveStop_Click" />
+                            <Button x:Name="LiveClearBtn" Click="LiveClear_Click" />
+                        </StackPanel>
+                    </Grid>
+                    <Border Grid.Row="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12">
+                        <TextBox x:Name="LiveConsole" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap" FontFamily="Consolas" FontSize="12" BorderThickness="0" Background="Transparent" />
+                    </Border>
+                </Grid>
+            </PivotItem>
+
+            <!-- Screen mirror (scrcpy) -->
+            <PivotItem x:Name="MirrorTab">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Spacing="12">
+                        <InfoBar x:Name="ScrcpyBar" IsClosable="False" IsOpen="False" />
+                        <Grid ColumnSpacing="16" RowSpacing="10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <TextBlock x:Name="MaxSizeCap" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" />
+                            <ComboBox x:Name="MaxSizeBox" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Left" MinWidth="200" />
+
+                            <TextBlock x:Name="BitrateCap" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" />
+                            <ComboBox x:Name="BitrateBox" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Left" MinWidth="200" />
+
+                            <CheckBox x:Name="StayAwakeCheck" Grid.Row="2" Grid.Column="1" IsChecked="True" />
+                            <CheckBox x:Name="ScreenOffCheck" Grid.Row="3" Grid.Column="1" />
+                            <CheckBox x:Name="ShowTouchesCheck" Grid.Row="4" Grid.Column="1" />
+                        </Grid>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button x:Name="MirrorStartBtn" Click="MirrorStart_Click" Style="{StaticResource AccentButtonStyle}" />
+                            <Button x:Name="MirrorRecordBtn" Click="MirrorRecord_Click" />
+                            <Button x:Name="MirrorStopBtn" Click="MirrorStop_Click" />
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </PivotItem>
+
+        </Pivot>
+    </Grid>
+</Page>
