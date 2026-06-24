@@ -68,6 +68,17 @@ public partial class App : Application
 
         Shell = new MainWindow();
         ApplyThemeFromSettings();
+
+        // 進階貼上：全域熱鍵 → 喺滑鼠附近彈出置頂面板 · Advanced Paste: hotkey opens the topmost palette.
+        try
+        {
+            var dq = Shell.DispatcherQueue;
+            AdvancedPasteService.PaletteRequested += () => AdvancedPastePalette.Show(dq);
+            if (AdvancedPasteService.HotkeyEnabledSetting)
+                AdvancedPasteService.EnableHotkey(dq);
+        }
+        catch { /* best effort — never block startup */ }
+
         // 若用戶上次開咗活動追蹤，喺啟動時自動恢復。
         // Resume activity tracking on startup if the user had it enabled (privacy default: off).
         try { Services.ActivityTrackerService.I.InitFromPrefs(); } catch { }
