@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.WinfetchModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid Padding="24,16,24,16" RowSpacing="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Grid Grid.Row="0" ColumnSpacing="12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12">
+                <FontIcon FontSize="22" Glyph="&#xE7F4;" VerticalAlignment="Center" />
+                <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" VerticalAlignment="Center" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <Button x:Name="RefreshBtn" Click="Refresh_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <FontIcon FontSize="14" Glyph="&#xE72C;" />
+                        <TextBlock x:Name="RefreshLabel" />
+                    </StackPanel>
+                </Button>
+                <Button x:Name="CopyBtn" Click="Copy_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <FontIcon FontSize="14" Glyph="&#xE8C8;" />
+                        <TextBlock x:Name="CopyLabel" />
+                    </StackPanel>
+                </Button>
+                <Button x:Name="ExportBtn" Click="Export_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <FontIcon FontSize="14" Glyph="&#xEDE1;" />
+                        <TextBlock x:Name="ExportLabel" />
+                    </StackPanel>
+                </Button>
+                <ToggleSwitch x:Name="AsciiToggle" Toggled="Ascii_Toggled" OnContent="ASCII" OffContent="UI" MinWidth="0" />
+            </StackPanel>
+        </Grid>
+
+        <TextBlock x:Name="HeaderBlurb" Grid.Row="1" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+        <InfoBar x:Name="StatusBar" Grid.Row="2" IsOpen="False" IsClosable="True" />
+
+        <!-- ===== UI mode ===== -->
+        <ScrollViewer x:Name="UiScroller" Grid.Row="3" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <Border
+                Padding="20"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <Grid ColumnSpacing="28">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Colored Windows 11 logo (four squares) -->
+                    <Viewbox Grid.Column="0" Width="168" Height="168" VerticalAlignment="Top">
+                        <Grid Width="100" Height="100" RowSpacing="8" ColumnSpacing="8">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Rectangle x:Name="LogoTL" Grid.Row="0" Grid.Column="0" RadiusX="4" RadiusY="4" Fill="#FF0078D4" />
+                            <Rectangle x:Name="LogoTR" Grid.Row="0" Grid.Column="1" RadiusX="4" RadiusY="4" Fill="#FF0078D4" />
+                            <Rectangle x:Name="LogoBL" Grid.Row="1" Grid.Column="0" RadiusX="4" RadiusY="4" Fill="#FF0078D4" />
+                            <Rectangle x:Name="LogoBR" Grid.Row="1" Grid.Column="1" RadiusX="4" RadiusY="4" Fill="#FF0078D4" />
+                        </Grid>
+                    </Viewbox>
+
+                    <StackPanel Grid.Column="1" Spacing="2">
+                        <!-- user@host title -->
+                        <TextBlock x:Name="TitleLine" FontFamily="Consolas" FontWeight="Bold" FontSize="16" />
+                        <TextBlock x:Name="DashLine" FontFamily="Consolas" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,6" />
+                        <!-- info rows injected here -->
+                        <ItemsControl x:Name="RowsHost">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate />
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <!-- accent legend bar -->
+                        <StackPanel Orientation="Horizontal" Spacing="0" Margin="0,10,0,0" x:Name="LegendBar">
+                            <Border Width="22" Height="14" Background="#FF000000" />
+                            <Border Width="22" Height="14" Background="#FFC50F1F" />
+                            <Border Width="22" Height="14" Background="#FF13A10E" />
+                            <Border Width="22" Height="14" Background="#FFC19C00" />
+                            <Border Width="22" Height="14" Background="#FF0037DA" />
+                            <Border Width="22" Height="14" Background="#FF881798" />
+                            <Border Width="22" Height="14" Background="#FF3A96DD" />
+                            <Border Width="22" Height="14" Background="#FFCCCCCC" />
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </ScrollViewer>
+
+        <!-- ===== ASCII / console mode ===== -->
+        <Border
+            x:Name="AsciiPanel"
+            Grid.Row="3"
+            Visibility="Collapsed"
+            Background="#FF0C0C0C"
+            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            CornerRadius="8">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Padding="16">
+                <TextBox
+                    x:Name="AsciiText"
+                    IsReadOnly="True"
+                    AcceptsReturn="True"
+                    TextWrapping="NoWrap"
+                    BorderThickness="0"
+                    Background="Transparent"
+                    Foreground="#FFE6E6E6"
+                    FontFamily="Consolas"
+                    FontSize="13"
+                    IsSpellCheckEnabled="False" />
+            </ScrollViewer>
+        </Border>
+    </Grid>
+</Page>

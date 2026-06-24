@@ -226,6 +226,13 @@ public sealed partial class MainWindow : Window
             case "sysmon":
                 Navigator.GoToModule?.Invoke("module.monitor");
                 break;
+            case "winfetch":
+            case "sysinfo":
+            case "systeminfo":
+            case "neofetch":
+            case "fetch":
+                Navigator.GoToModule?.Invoke("module.winfetch");
+                break;
             case "connections":
             case "netstat":
             case "tcp":
@@ -452,6 +459,7 @@ public sealed partial class MainWindow : Window
         "module.recorder" => typeof(ScreenRecorderModule),
         "module.capture" => typeof(CaptureStudioModule),
         "module.monitor" => typeof(SystemMonitorModule),
+        "module.winfetch" => typeof(WinfetchModule),
         "module.battery" => typeof(BatteryThermalModule),
         "module.connections" => typeof(ConnectionsModule),
         "module.events" => typeof(EventViewerModule),
