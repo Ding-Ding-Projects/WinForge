@@ -197,6 +197,11 @@ public sealed partial class MainWindow : Window
             case "windowmanager":
                 Navigator.GoToModule?.Invoke("module.windows");
                 break;
+            case "fancyzones":
+            case "zones":
+            case "powertoys-zones":
+                Navigator.GoToModule?.Invoke("module.fancyzones");
+                break;
             case "keyboard":
             case "remap":
                 Navigator.GoToModule?.Invoke("module.keyboard");
@@ -445,6 +450,7 @@ public sealed partial class MainWindow : Window
         "module.drives" => typeof(DrivesModule),
         "module.uninstall" => typeof(AppUninstallerModule),
         "module.windows" => typeof(WindowManagerModule),
+        "module.fancyzones" => typeof(FancyZonesModule),
         "module.keyboard" => typeof(KeyboardModule),
         "module.hotkeys" => typeof(HotkeyMacroModule),
         "module.hosts" => typeof(HostsEditorModule),
