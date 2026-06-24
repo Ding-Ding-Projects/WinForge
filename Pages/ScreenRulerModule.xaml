@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.ScreenRulerModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="820" Spacing="16">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <FontIcon FontSize="22" Glyph="&#xE1A6;" VerticalAlignment="Center" />
+                <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
+            </StackPanel>
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <!-- Modes -->
+            <TextBlock x:Name="ModesLabel" Style="{StaticResource SubtitleTextBlockStyle}" />
+            <Grid ColumnSpacing="12" RowSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <Button x:Name="DistanceBtn" Grid.Row="0" Grid.Column="0" Click="Distance_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="14,12">
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <FontIcon FontSize="20" Glyph="&#xE1A6;" />
+                        <StackPanel>
+                            <TextBlock x:Name="DistanceTitle" FontWeight="SemiBold" />
+                            <TextBlock x:Name="DistanceSub" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </StackPanel>
+                </Button>
+
+                <Button x:Name="HorizontalBtn" Grid.Row="0" Grid.Column="1" Click="Horizontal_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="14,12">
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <FontIcon FontSize="20" Glyph="&#xE76F;" />
+                        <StackPanel>
+                            <TextBlock x:Name="HorizontalTitle" FontWeight="SemiBold" />
+                            <TextBlock x:Name="HorizontalSub" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </StackPanel>
+                </Button>
+
+                <Button x:Name="VerticalBtn" Grid.Row="0" Grid.Column="2" Click="Vertical_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="14,12">
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <FontIcon FontSize="20" Glyph="&#xE784;" />
+                        <StackPanel>
+                            <TextBlock x:Name="VerticalTitle" FontWeight="SemiBold" />
+                            <TextBlock x:Name="VerticalSub" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </StackPanel>
+                </Button>
+
+                <Button x:Name="CrossBtn" Grid.Row="1" Grid.Column="0" Click="Cross_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="14,12">
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <FontIcon FontSize="20" Glyph="&#xE8B9;" />
+                        <StackPanel>
+                            <TextBlock x:Name="CrossTitle" FontWeight="SemiBold" />
+                            <TextBlock x:Name="CrossSub" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </StackPanel>
+                </Button>
+
+                <Button x:Name="BoundsBtn" Grid.Row="1" Grid.Column="1" Click="Bounds_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="14,12">
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <FontIcon FontSize="20" Glyph="&#xE7A8;" />
+                        <StackPanel>
+                            <TextBlock x:Name="BoundsTitle" FontWeight="SemiBold" />
+                            <TextBlock x:Name="BoundsSub" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </StackPanel>
+                </Button>
+            </Grid>
+
+            <!-- Appearance -->
+            <Border Padding="16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="14">
+                    <TextBlock x:Name="AppearanceLabel" FontWeight="SemiBold" />
+
+                    <StackPanel Spacing="6">
+                        <TextBlock x:Name="ColorLabel" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" />
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <ItemsControl x:Name="Swatches">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal" Spacing="8" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                            </ItemsControl>
+                            <Border x:Name="CurrentSwatch" Width="32" Height="32" CornerRadius="6" Margin="8,0,0,0" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" />
+                            <TextBox x:Name="HexInput" Width="120" PlaceholderText="#RRGGBB" FontFamily="Consolas" VerticalAlignment="Center" />
+                            <Button x:Name="ApplyHexBtn" Click="ApplyHex_Click" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock x:Name="ThicknessLabel" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" />
+                        <Slider x:Name="ThicknessSlider" Minimum="1" Maximum="10" Value="2" StepFrequency="1" Width="280" HorizontalAlignment="Left" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon FontSize="14" Glyph="&#xE946;" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                        <TextBlock x:Name="UnitsNote" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" VerticalAlignment="Center" TextWrapping="Wrap" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- How to -->
+            <Border Padding="16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="6">
+                    <TextBlock x:Name="HowToLabel" FontWeight="SemiBold" />
+                    <TextBlock x:Name="HowToBody" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="13" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <InfoBar
+                x:Name="StatusBar"
+                IsClosable="True"
+                IsOpen="False"
+                Severity="Success" />
+        </StackPanel>
+    </ScrollViewer>
+</Page>
