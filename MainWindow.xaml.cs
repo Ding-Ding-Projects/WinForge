@@ -207,6 +207,11 @@ public sealed partial class MainWindow : Window
             case "ec2":
                 Navigator.GoToModule?.Invoke("module.aws");
                 break;
+            case "peek":
+            case "preview":
+            case "quicklook":
+                Navigator.GoToModule?.Invoke("module.peek");
+                break;
             case "archives":
             case "archive":
                 Navigator.GoToModule?.Invoke("module.archives");
@@ -661,6 +666,7 @@ public sealed partial class MainWindow : Window
         "module.bitwarden" => typeof(BitwardenModule),
         "module.quicktype" => typeof(QuickTypeModule),
         "module.aws" => typeof(AwsCliModule),
+        "module.peek" => typeof(PeekModule),
         "module.archives" => typeof(ArchivesModule),
         "module.media" => typeof(MediaModule),
         "module.audioeditor" => typeof(AudioEditorModule),
