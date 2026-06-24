@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.VirtualBoxModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:conv="using:WinForge.Converters"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <conv:BoolToRunStateBrushConverter x:Key="RunStateBrush" />
+    </Page.Resources>
+
+    <Grid Padding="24,16,24,16" RowSpacing="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="12">
+            <FontIcon FontSize="22" Glyph="&#xEC7A;" VerticalAlignment="Center" />
+            <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
+        </StackPanel>
+        <TextBlock x:Name="HeaderBlurb" Grid.Row="1" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+        <InfoBar x:Name="ResultBar" Grid.Row="2" IsClosable="True" IsOpen="False" Margin="0,2,0,0" />
+
+        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto">
+            <StackPanel Spacing="14">
+
+                <!-- ── engine bar ───────────────────────────────────────────── -->
+                <InfoBar x:Name="EngineBar" IsClosable="False" IsOpen="False" />
+
+                <!-- ── toolbar ──────────────────────────────────────────────── -->
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button x:Name="RefreshBtn" Click="Refresh_Click">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon Glyph="&#xE72C;" FontSize="14" />
+                            <TextBlock x:Name="RefreshTxt" />
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="CreateBtn" Click="Create_Click" Style="{StaticResource AccentButtonStyle}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon Glyph="&#xE710;" FontSize="14" />
+                            <TextBlock x:Name="CreateTxt" />
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="ImportBtn" Click="Import_Click" />
+                    <ProgressRing x:Name="Busy" IsActive="False" Width="20" Height="20" VerticalAlignment="Center" />
+                </StackPanel>
+
+                <!-- ── VM list ──────────────────────────────────────────────── -->
+                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                    <StackPanel Spacing="10">
+                        <TextBlock x:Name="VmSectionTitle" Style="{StaticResource SubtitleTextBlockStyle}" />
+
+                        <ListView x:Name="VmList" SelectionMode="Single" MaxHeight="420"
+                                  SelectionChanged="VmList_SelectionChanged"
+                                  BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="6">
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Padding="4,8" ColumnSpacing="10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <Border Grid.Column="0" VerticalAlignment="Center" Width="10" Height="10" CornerRadius="5"
+                                                Background="{Binding IsRunning, Converter={StaticResource RunStateBrush}}" />
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                            <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" Text="{Binding Uuid}" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,8,0">
+                                            <TextBlock Text="{Binding OsType}" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                            <TextBlock FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}">
+                                                <Run Text="{Binding Cpus}" /><Run Text=" CPU · " /><Run Text="{Binding MemoryMb}" /><Run Text=" MB" />
+                                            </TextBlock>
+                                        </StackPanel>
+                                        <Button Grid.Column="3" VerticalAlignment="Center" Content="&#xE712;" FontFamily="Segoe Fluent Icons,Segoe MDL2 Assets">
+                                            <Button.Flyout>
+                                                <MenuFlyout>
+                                                    <MenuFlyoutItem Text="Start (GUI) · 啟動（圖形介面）" Tag="{Binding Uuid}" Click="StartGui_Click">
+                                                        <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE768;" /></MenuFlyoutItem.Icon>
+                                                    </MenuFlyoutItem>
+                                                    <MenuFlyoutItem Text="Start headless · 無頭啟動" Tag="{Binding Uuid}" Click="StartHeadless_Click" />
+                                                    <MenuFlyoutItem Text="Pause · 暫停" Tag="{Binding Uuid}" Click="Pause_Click" />
+                                                    <MenuFlyoutItem Text="Resume · 繼續" Tag="{Binding Uuid}" Click="Resume_Click" />
+                                                    <MenuFlyoutItem Text="Save state · 儲存狀態" Tag="{Binding Uuid}" Click="SaveState_Click" />
+                                                    <MenuFlyoutItem Text="ACPI shutdown · ACPI 關機" Tag="{Binding Uuid}" Click="Acpi_Click" />
+                                                    <MenuFlyoutItem Text="Power off · 強制關機" Tag="{Binding Uuid}" Click="PowerOff_Click" />
+                                                    <MenuFlyoutItem Text="Reset · 重設" Tag="{Binding Uuid}" Click="Reset_Click" />
+                                                    <MenuFlyoutSeparator />
+                                                    <MenuFlyoutItem Text="Clone… · 複製…" Tag="{Binding Uuid}" Click="Clone_Click" />
+                                                    <MenuFlyoutItem Text="Export to OVA… · 匯出 OVA…" Tag="{Binding Uuid}" Click="Export_Click" />
+                                                    <MenuFlyoutSeparator />
+                                                    <MenuFlyoutItem Text="Delete VM… · 刪除虛擬機…" Tag="{Binding Uuid}" Click="Delete_Click">
+                                                        <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE74D;" /></MenuFlyoutItem.Icon>
+                                                    </MenuFlyoutItem>
+                                                </MenuFlyout>
+                                            </Button.Flyout>
+                                        </Button>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+
+                        <TextBlock x:Name="VmEmpty" Visibility="Collapsed" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <!-- ── selected VM panel: state + modify ────────────────────── -->
+                <Border x:Name="DetailCard" Visibility="Collapsed" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                    <StackPanel Spacing="12">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock x:Name="SelName" Style="{StaticResource SubtitleTextBlockStyle}" TextWrapping="Wrap" />
+                                <TextBlock x:Name="SelState" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- modify CPU / RAM -->
+                        <TextBlock x:Name="ModifyTitle" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                        <InfoBar x:Name="ModifyHint" IsClosable="False" IsOpen="False" Severity="Informational" />
+                        <Grid ColumnSpacing="12" RowSpacing="6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="CpuLbl" Grid.Column="0" VerticalAlignment="Center" />
+                            <NumberBox x:Name="CpuBox" Grid.Column="1" Width="110" Minimum="1" Maximum="64" SpinButtonPlacementMode="Inline" Value="2" />
+                            <TextBlock x:Name="RamLbl" Grid.Column="2" VerticalAlignment="Center" Margin="8,0,0,0" />
+                            <NumberBox x:Name="RamBox" Grid.Column="3" Width="140" Minimum="4" Maximum="262144" SpinButtonPlacementMode="Inline" Value="2048" />
+                            <Button x:Name="ApplyModifyBtn" Grid.Column="4" HorizontalAlignment="Left" Margin="8,0,0,0" Click="ApplyModify_Click" />
+                        </Grid>
+
+                        <!-- snapshots -->
+                        <TextBlock x:Name="SnapTitle" Style="{StaticResource BodyStrongTextBlockStyle}" Margin="0,4,0,0" />
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button x:Name="SnapTakeBtn" Click="SnapTake_Click" />
+                            <Button x:Name="SnapRestoreBtn" Click="SnapRestore_Click" />
+                            <Button x:Name="SnapDeleteBtn" Click="SnapDelete_Click" />
+                            <Button x:Name="SnapRefreshBtn" Click="SnapRefresh_Click" Content="&#xE72C;" FontFamily="Segoe Fluent Icons,Segoe MDL2 Assets" />
+                        </StackPanel>
+                        <ListView x:Name="SnapList" SelectionMode="Single" MaxHeight="200"
+                                  BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="6">
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Display}" FontFamily="Consolas" Padding="2,4" />
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                        <TextBlock x:Name="SnapEmpty" Visibility="Collapsed" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <!-- ── host info expander ───────────────────────────────────── -->
+                <Expander x:Name="HostExpander" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                    <Expander.Header>
+                        <TextBlock x:Name="HostHeader" />
+                    </Expander.Header>
+                    <StackPanel Spacing="8">
+                        <Button x:Name="HostRefreshBtn" Click="HostRefresh_Click" />
+                        <Border Background="{ThemeResource LayerFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="6" Padding="10">
+                            <TextBox x:Name="HostInfoBox" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap" FontFamily="Consolas" FontSize="12" BorderThickness="0" Background="Transparent" MinHeight="120" />
+                        </Border>
+                    </StackPanel>
+                </Expander>
+
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Page>
