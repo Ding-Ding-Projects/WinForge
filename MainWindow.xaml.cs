@@ -368,6 +368,11 @@ public sealed partial class MainWindow : Window
             case "minecraft":
                 Navigator.GoToModule?.Invoke("module.imaging");
                 break;
+            case "amulet":
+            case "worldeditor":
+            case "mapeditor":
+                Navigator.GoToModule?.Invoke("module.amulet");
+                break;
             case "voice":
             case "tts":
             case "speak":
@@ -524,6 +529,7 @@ public sealed partial class MainWindow : Window
         "module.timeunit" => typeof(TimeUnitModule),
         "module.settingshub" => typeof(SettingsHubModule),
         "module.imaging" => typeof(ImagingGameModule),
+        "module.amulet" => typeof(AmuletModule),
         "module.voice" => typeof(VoiceModule),
         "module.vault-volumes" => typeof(VaultVolumesModule),
         _ => typeof(DashboardPage),
