@@ -137,6 +137,11 @@ public sealed partial class MainWindow : Window
             case "warp":
                 Navigator.GoToModule?.Invoke("module.cloudflare");
                 break;
+            case "ollama":
+            case "llm":
+            case "llama":
+                Navigator.GoToModule?.Invoke("module.ollama");
+                break;
             case "archives":
             case "archive":
                 Navigator.GoToModule?.Invoke("module.archives");
@@ -428,6 +433,7 @@ public sealed partial class MainWindow : Window
     {
         "module.git" => typeof(GitHubModule),
         "module.aiagents" => typeof(AiAgentsModule),
+        "module.ollama" => typeof(OllamaModule),
         "module.cloudflare" => typeof(CloudflareModule),
         "module.archives" => typeof(ArchivesModule),
         "module.media" => typeof(MediaModule),
