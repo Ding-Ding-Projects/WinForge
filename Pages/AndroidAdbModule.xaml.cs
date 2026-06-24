@@ -200,7 +200,8 @@ public sealed partial class AndroidAdbModule : Page
         Busy.IsActive = false;
         if (r.Success && File.Exists(local))
         {
-            ShotImage.Source = new BitmapImage(new Uri(local));
+            // 設定 UriSource 而非 new BitmapImage(uri)，避免 WinUI 靜靜吞咗載入錯誤 · use UriSource so load errors aren't swallowed.
+            ShotImage.Source = new BitmapImage { UriSource = new Uri(local) };
             ShotImage.Visibility = Visibility.Visible;
             Notify(InfoBarSeverity.Success, P("Screenshot saved", "已儲存截圖"), local);
         }
