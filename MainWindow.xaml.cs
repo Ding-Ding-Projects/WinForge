@@ -348,6 +348,12 @@ public sealed partial class MainWindow : Window
             case "smarthome":
                 Navigator.GoToModule?.Invoke("module.homeassistant");
                 break;
+            case "qbittorrent":
+            case "qbit":
+            case "torrent":
+            case "torrents":
+                Navigator.GoToModule?.Invoke("module.qbittorrent");
+                break;
             case null:
             case "":
             case "dashboard":
@@ -467,6 +473,7 @@ public sealed partial class MainWindow : Window
         "module.emulator" => typeof(EmulatorModule),
         "module.vpn" => typeof(VpnMeshModule),
         "module.homeassistant" => typeof(HomeAssistantModule),
+        "module.qbittorrent" => typeof(QBittorrentModule),
         "module.comms" => typeof(CommunicationsModule),
         "module.configbackup" => typeof(ConfigBackupModule),
         "module.native" => typeof(NativeUtilitiesModule),
