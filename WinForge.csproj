@@ -66,6 +66,12 @@
     <PackageReference Include="QRCoder" Version="1.6.0" />
     <!-- System.Speech: built-in Windows SAPI TTS (read aloud / export WAV) for the Voice module. -->
     <PackageReference Include="System.Speech" Version="9.0.0" />
+    <!-- FTP／FTPS 客戶端（MIT）· FluentFTP: managed FTP/FTPS client for the FTP/SFTP module. -->
+    <PackageReference Include="FluentFTP" Version="52.1.0" />
+    <!-- SFTP／SSH 客戶端（MIT）· SSH.NET: managed SFTP/SSH client for the FTP/SFTP module. -->
+    <PackageReference Include="SSH.NET" Version="2024.2.0" />
+    <!-- DPAPI 秘密加密 · ProtectedData (DPAPI) to encrypt saved-site passwords at rest. -->
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="9.0.0" />
   </ItemGroup>
 
   <!--

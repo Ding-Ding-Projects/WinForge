@@ -137,6 +137,12 @@ public sealed partial class MainWindow : Window
             case "warp":
                 Navigator.GoToModule?.Invoke("module.cloudflare");
                 break;
+            case "filezilla":
+            case "ftp":
+            case "sftp":
+            case "ftps":
+                Navigator.GoToModule?.Invoke("module.filezilla");
+                break;
             case "archives":
             case "archive":
                 Navigator.GoToModule?.Invoke("module.archives");
@@ -429,6 +435,7 @@ public sealed partial class MainWindow : Window
         "module.git" => typeof(GitHubModule),
         "module.aiagents" => typeof(AiAgentsModule),
         "module.cloudflare" => typeof(CloudflareModule),
+        "module.filezilla" => typeof(FileZillaModule),
         "module.archives" => typeof(ArchivesModule),
         "module.media" => typeof(MediaModule),
         "module.regedit" => typeof(RegistryEditor),
