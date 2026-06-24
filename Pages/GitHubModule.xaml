@@ -87,10 +87,12 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
                                 <TextBox x:Name="RepoPathBox" Grid.Column="0" IsReadOnly="True" />
-                                <Button x:Name="TerminalBtn" Grid.Column="1" Click="Terminal_Click" />
-                                <Button x:Name="BrowserBtn" Grid.Column="2" Click="Browser_Click" />
+                                <Button x:Name="VsCodeBtn" Grid.Column="1" Click="VsCode_Click" />
+                                <Button x:Name="TerminalBtn" Grid.Column="2" Click="Terminal_Click" />
+                                <Button x:Name="BrowserBtn" Grid.Column="3" Click="Browser_Click" />
                             </Grid>
                             <TextBlock
                                 x:Name="RepoStatus"

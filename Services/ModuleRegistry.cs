@@ -24,6 +24,7 @@ public static class ModuleRegistry
     {
         new() { Tag = "dashboard", En = "Dashboard", Zh = "概覽", Glyph = "", Keywords = "home overview start 主頁 概覽" },
         new() { Tag = "module.git", En = "Git & GitHub", Zh = "Git 與 GitHub", Glyph = "", Keywords = "git github commit push pull fetch repo repos list clone branch tag merge rebase stash remote worktree submodule uploader issue pull request pr actions workflow release gist secret label star fork notifications gh cli 版本控制 儲存庫 分支 標籤" },
+        new() { Tag = "module.vscode", En = "VS Code", Zh = "VS Code 編輯器", Glyph = ((char)0xE943).ToString(), Keywords = "vscode vs code visual studio code editor cli open file folder workspace new window reuse diff merge goto line extension install uninstall list profile insiders tunnel remote settings keybindings code-workspace 編輯器 擴充功能 比對 合併 設定 遠端 隧道" },
         new() { Tag = "module.archives", En = "Archives", Zh = "壓縮檔", Glyph = "", Keywords = "zip 7z rar tar gzip compress extract 解壓 壓縮" },
         new() { Tag = "module.media", En = "Media", Zh = "媒體", Glyph = "", Keywords = "ffmpeg video audio convert trim gif 影片 音訊 轉檔" },
         new() { Tag = "module.audioeditor", En = "Audio Editor", Zh = "音訊編輯器", Glyph = ((char)0xE8D6).ToString(), Keywords = "audio editor audacity waveform record mic microphone play playback trim fade normalize gain volume speed tempo pitch shift noise reduction denoise reverb echo compressor eq equalizer mix concat export wav mp3 flac 音訊 編輯 波形 錄音 播放 剪裁 淡入 淡出 正規化 增益 變速 變調 降噪 混音 匯出" },

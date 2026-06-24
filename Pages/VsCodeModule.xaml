@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.VsCodeModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid Padding="24,16,24,16" RowSpacing="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Spacing="6">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <FontIcon FontSize="24" Glyph="&#xE943;" VerticalAlignment="Center" />
+                <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
+            </StackPanel>
+            <TextBlock
+                x:Name="HeaderBlurb"
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                TextWrapping="Wrap" />
+        </StackPanel>
+
+        <!-- Engine / install bar -->
+        <InfoBar
+            x:Name="EngineBar"
+            Grid.Row="1"
+            IsClosable="False"
+            IsOpen="False" />
+
+        <!-- Body: left actions/extensions, right ops library -->
+        <Grid Grid.Row="2" ColumnSpacing="14">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="380" />
+            </Grid.ColumnDefinitions>
+
+            <!-- LEFT: scrollable actions + extensions -->
+            <ScrollViewer Grid.Column="0" Padding="0,0,8,0" VerticalScrollBarVisibility="Auto">
+                <StackPanel Spacing="14">
+
+                    <!-- Status / toggles -->
+                    <Border
+                        Padding="16,12,16,12"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8">
+                        <StackPanel Spacing="10">
+                            <Grid ColumnSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock
+                                    x:Name="VersionText"
+                                    Grid.Column="0"
+                                    VerticalAlignment="Center"
+                                    TextWrapping="Wrap" />
+                                <ToggleSwitch
+                                    x:Name="InsidersToggle"
+                                    Grid.Column="1"
+                                    Toggled="Insiders_Toggled" />
+                                <Button x:Name="RefreshBtn" Grid.Column="2" Click="Refresh_Click" />
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Open actions -->
+                    <Border
+                        Padding="16,14,16,14"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8">
+                        <StackPanel Spacing="10">
+                            <TextBlock x:Name="OpenLabel" FontWeight="SemiBold" />
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <ComboBox x:Name="OpenModeCombo" SelectedIndex="0" MinWidth="200" />
+                            </StackPanel>
+                            <StackPanel x:Name="OpenActions" Orientation="Horizontal" Spacing="8" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Diff / merge / goto -->
+                    <Border
+                        Padding="16,14,16,14"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8">
+                        <StackPanel Spacing="10">
+                            <TextBlock x:Name="CompareLabel" FontWeight="SemiBold" />
+
+                            <!-- Diff -->
+                            <Grid ColumnSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBox x:Name="DiffABox" Grid.Column="0" IsReadOnly="True" />
+                                <Button x:Name="DiffAPick" Grid.Column="1" Click="DiffAPick_Click" Content="…" />
+                                <TextBox x:Name="DiffBBox" Grid.Column="2" IsReadOnly="True" />
+                                <Button x:Name="DiffBPick" Grid.Column="3" Click="DiffBPick_Click" Content="…" />
+                                <Button x:Name="DiffBtn" Grid.Column="4" Click="Diff_Click" Style="{StaticResource AccentButtonStyle}" />
+                            </Grid>
+
+                            <!-- Goto file:line -->
+                            <Grid ColumnSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBox x:Name="GotoFileBox" Grid.Column="0" IsReadOnly="True" />
+                                <Button x:Name="GotoPick" Grid.Column="1" Click="GotoPick_Click" Content="…" />
+                                <NumberBox x:Name="GotoLineBox" Grid.Column="2" MinWidth="90" Minimum="1" Value="1" SpinButtonPlacementMode="Compact" />
+                                <NumberBox x:Name="GotoColBox" Grid.Column="3" MinWidth="90" Minimum="1" Value="1" SpinButtonPlacementMode="Compact" />
+                                <Button x:Name="GotoBtn" Grid.Column="4" Click="Goto_Click" />
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Profiles / config / tunnel -->
+                    <Border
+                        Padding="16,14,16,14"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8">
+                        <StackPanel Spacing="10">
+                            <TextBlock x:Name="ConfigLabel" FontWeight="SemiBold" />
+                            <Grid ColumnSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBox x:Name="ProfileBox" Grid.Column="0" />
+                                <Button x:Name="ProfileOpenBtn" Grid.Column="1" Click="ProfileOpen_Click" />
+                            </Grid>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button x:Name="SettingsBtn" Click="OpenSettings_Click" />
+                                <Button x:Name="KeybindingsBtn" Click="OpenKeybindings_Click" />
+                                <Button x:Name="TunnelBtn" Click="Tunnel_Click" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Extensions -->
+                    <Border
+                        Padding="16,14,16,14"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8">
+                        <StackPanel Spacing="10">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock x:Name="ExtLabel" Grid.Column="0" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+                                    <Button x:Name="ExtRefreshBtn" Click="ExtRefresh_Click" />
+                                    <Button x:Name="ExtExportBtn" Click="ExtExport_Click" />
+                                    <Button x:Name="ExtImportBtn" Click="ExtImport_Click" />
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- Install by ID -->
+                            <Grid ColumnSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBox x:Name="ExtInstallBox" Grid.Column="0" />
+                                <Button x:Name="ExtInstallBtn" Grid.Column="1" Click="ExtInstall_Click" Style="{StaticResource AccentButtonStyle}" />
+                            </Grid>
+
+                            <TextBox x:Name="ExtFilterBox" TextChanged="ExtFilter_Changed" />
+
+                            <Border
+                                Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                CornerRadius="6"
+                                MinHeight="120">
+                                <ScrollViewer MaxHeight="320" VerticalScrollBarVisibility="Auto">
+                                    <StackPanel x:Name="ExtListPanel" Padding="6" Spacing="4" />
+                                </ScrollViewer>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Console -->
+                    <Border
+                        x:Name="ConsoleBorder"
+                        Padding="12"
+                        Background="{ThemeResource LayerFillColorDefaultBrush}"
+                        CornerRadius="6"
+                        Visibility="Collapsed">
+                        <ScrollViewer MaxHeight="220" VerticalScrollBarVisibility="Auto">
+                            <TextBlock
+                                x:Name="ConsoleLog"
+                                FontFamily="Consolas"
+                                FontSize="12"
+                                IsTextSelectionEnabled="True"
+                                TextWrapping="Wrap" />
+                        </ScrollViewer>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- RIGHT: operation library -->
+            <Border
+                Grid.Column="1"
+                Padding="14,12,14,12"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <Grid RowSpacing="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <TextBlock x:Name="OpsLabel" Grid.Row="0" FontWeight="SemiBold" />
+                    <AutoSuggestBox
+                        x:Name="OpsFilter"
+                        Grid.Row="1"
+                        QueryIcon="Find"
+                        TextChanged="OpsFilter_TextChanged" />
+                    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                        <StackPanel x:Name="OpsPanel" Spacing="2" />
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</Page>
