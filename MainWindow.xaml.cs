@@ -161,6 +161,10 @@ public sealed partial class MainWindow : Window
             case "media":
                 Navigator.GoToModule?.Invoke("module.media");
                 break;
+            case "audioeditor":
+            case "audacity":
+                Navigator.GoToModule?.Invoke("module.audioeditor");
+                break;
             case "regedit":
             case "registry":
                 Navigator.GoToModule?.Invoke("module.regedit");
@@ -462,6 +466,7 @@ public sealed partial class MainWindow : Window
         "module.ssh" => typeof(SshModule),
         "module.archives" => typeof(ArchivesModule),
         "module.media" => typeof(MediaModule),
+        "module.audioeditor" => typeof(AudioEditorModule),
         "module.regedit" => typeof(RegistryEditor),
         "module.doctors" => typeof(SystemDoctorsModule),
         "module.services" => typeof(ServicesModule),

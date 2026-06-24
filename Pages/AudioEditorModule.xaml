@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.AudioEditorModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="1040" Spacing="14">
+
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <FontIcon FontSize="24" Glyph="&#xE8D6;" VerticalAlignment="Center" />
+                <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
+            </StackPanel>
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <InfoBar x:Name="EngineBar" IsClosable="False" IsOpen="False" Severity="Warning" />
+            <InfoBar x:Name="ScopeBar" IsClosable="False" IsOpen="True" Severity="Informational" />
+
+            <!-- ===== Source: open / record ===== -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="SourceLabel" FontWeight="SemiBold" />
+                    <StackPanel Orientation="Horizontal" Spacing="8" >
+                        <Button x:Name="OpenBtn" Click="Open_Click" />
+                    </StackPanel>
+                    <Grid ColumnSpacing="8" RowSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="MicCap" Grid.Column="0" VerticalAlignment="Center" />
+                        <ComboBox x:Name="DeviceCombo" Grid.Column="1" HorizontalAlignment="Stretch" />
+                        <Button x:Name="RefreshDevicesBtn" Grid.Column="2" Click="RefreshDevices_Click" />
+                        <Button x:Name="RecordBtn" Grid.Column="3" Click="Record_Click" />
+                    </Grid>
+                    <TextBlock x:Name="ClipInfo" Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               FontSize="12" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <!-- ===== Waveform + transport ===== -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="WaveLabel" FontWeight="SemiBold" />
+
+                    <Grid x:Name="WaveHost" Height="180" Background="{ThemeResource LayerFillColorDefaultBrush}"
+                          CornerRadius="6" PointerPressed="Wave_PointerPressed" PointerMoved="Wave_PointerMoved"
+                          PointerReleased="Wave_PointerReleased" SizeChanged="Wave_SizeChanged">
+                        <!-- selection highlight (behind) -->
+                        <Border x:Name="SelectionRect" Background="{ThemeResource AccentFillColorDefaultBrush}"
+                                Opacity="0.22" HorizontalAlignment="Left" Width="0" Visibility="Collapsed" />
+                        <!-- waveform bars -->
+                        <Canvas x:Name="WaveCanvas" />
+                        <!-- playhead -->
+                        <Border x:Name="Playhead" Width="2" Background="{ThemeResource AccentFillColorDefaultBrush}"
+                                HorizontalAlignment="Left" Visibility="Collapsed" />
+                        <TextBlock x:Name="WavePlaceholder" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Foreground="{ThemeResource TextFillColorTertiaryBrush}" TextWrapping="Wrap"
+                                   TextAlignment="Center" />
+                    </Grid>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="TimeText" Grid.Column="0" VerticalAlignment="Center" FontFamily="Consolas" />
+                        <TextBlock x:Name="SelText" Grid.Column="1" VerticalAlignment="Center" FontFamily="Consolas"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </Grid>
+
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="PlayBtn" Click="Play_Click" />
+                        <Button x:Name="PauseBtn" Click="Pause_Click" />
+                        <Button x:Name="StopBtn" Click="Stop_Click" />
+                        <Button x:Name="PlaySelBtn" Click="PlaySel_Click" />
+                        <Button x:Name="SelectAllBtn" Click="SelectAll_Click" />
+                        <Button x:Name="ClearSelBtn" Click="ClearSel_Click" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- ===== Edit / primary effects ===== -->
+            <Grid ColumnSpacing="14" RowSpacing="14">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- Selection edits -->
+                <Border Grid.Row="0" Grid.Column="0" Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                    <StackPanel Spacing="10">
+                        <TextBlock x:Name="EditLabel" FontWeight="SemiBold" />
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button x:Name="TrimBtn" Click="Trim_Click" />
+                            <Button x:Name="DeleteBtn" Click="Delete_Click" />
+                            <Button x:Name="SilenceBtn" Click="Silence_Click" />
+                        </StackPanel>
+                        <TextBlock x:Name="EditHint" Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   FontSize="12" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Fades / normalize -->
+                <Border Grid.Row="0" Grid.Column="1" Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                    <StackPanel Spacing="10">
+                        <TextBlock x:Name="FadeLabel" FontWeight="SemiBold" />
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="FadeSecCap" Grid.Column="0" VerticalAlignment="Center" />
+                            <NumberBox x:Name="FadeSec" Grid.Column="1" Minimum="0.1" Maximum="30" Value="2"
+                                       SmallChange="0.5" SpinButtonPlacementMode="Inline" />
+                        </Grid>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button x:Name="FadeInBtn" Click="FadeIn_Click" />
+                            <Button x:Name="FadeOutBtn" Click="FadeOut_Click" />
+                            <Button x:Name="NormalizeBtn" Click="Normalize_Click" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Gain -->
+                <Border Grid.Row="1" Grid.Column="0" Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                    <StackPanel Spacing="6">
+                        <TextBlock x:Name="GainLabel" FontWeight="SemiBold" />
+                        <Slider x:Name="GainSlider" Minimum="-24" Maximum="24" Value="0" StepFrequency="1"
+                                TickFrequency="6" TickPlacement="Outside" ValueChanged="GainSlider_ValueChanged" />
+                        <Button x:Name="GainBtn" Click="Gain_Click" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Speed / pitch -->
+                <Border Grid.Row="1" Grid.Column="1" Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                    <StackPanel Spacing="6">
+                        <TextBlock x:Name="SpeedLabel" FontWeight="SemiBold" />
+                        <Slider x:Name="SpeedSlider" Minimum="0.25" Maximum="4" Value="1" StepFrequency="0.05"
+                                ValueChanged="SpeedSlider_ValueChanged" />
+                        <TextBlock x:Name="PitchLabel" FontWeight="SemiBold" />
+                        <Slider x:Name="PitchSlider" Minimum="-12" Maximum="12" Value="0" StepFrequency="1"
+                                TickFrequency="3" TickPlacement="Outside" ValueChanged="PitchSlider_ValueChanged" />
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button x:Name="SpeedBtn" Click="Speed_Click" />
+                            <Button x:Name="PitchBtn" Click="Pitch_Click" />
+                            <Button x:Name="DenoiseBtn" Click="Denoise_Click" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- ===== Mix / concat / export ===== -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="MixLabel" FontWeight="SemiBold" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="MixBtn" Click="Mix_Click" />
+                        <Button x:Name="ConcatBtn" Click="Concat_Click" />
+                        <Button x:Name="ReverseBtn" Click="Reverse_Click" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="ExportBtn" Style="{StaticResource AccentButtonStyle}" Click="Export_Click" />
+                        <Button x:Name="RevertBtn" Click="Revert_Click" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- ===== status ===== -->
+            <Border x:Name="StatusBorder" Padding="12" Background="{ThemeResource LayerFillColorDefaultBrush}"
+                    CornerRadius="6" Visibility="Collapsed">
+                <ScrollViewer MaxHeight="180" VerticalScrollBarVisibility="Auto">
+                    <TextBlock x:Name="StatusText" FontFamily="Consolas" FontSize="12"
+                               IsTextSelectionEnabled="True" TextWrapping="Wrap" />
+                </ScrollViewer>
+            </Border>
+
+            <!-- ===== full effects list ===== -->
+            <TextBlock x:Name="EffectsHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
+            <TextBlock x:Name="EffectsBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       FontSize="12" TextWrapping="Wrap" />
+            <AutoSuggestBox x:Name="FxFilter" MaxWidth="420" HorizontalAlignment="Left" QueryIcon="Find"
+                            TextChanged="FxFilter_TextChanged" />
+            <StackPanel x:Name="FxPanel" Spacing="2" />
+
+            <!-- ===== Audacity fallback ===== -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="FallbackLabel" FontWeight="SemiBold" />
+                    <TextBlock x:Name="FallbackBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               FontSize="12" TextWrapping="Wrap" />
+                    <StackPanel x:Name="AudacityActions" Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="LaunchAudacityBtn" Click="LaunchAudacity_Click" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</Page>
