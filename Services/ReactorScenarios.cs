@@ -17,6 +17,7 @@ public enum ReactorScenario
     MainSteamLineBreak,// 主蒸汽管爆裂 · main steam line break (secondary blowdown → primary overcooling)
     RcpSealLoca,       // 主泵軸封失水 · RCP seal LOCA — loss of all seal cooling → degraded seal leakoff (WOG-2000)
     RodEjection,       // 彈棒事故 · rod ejection accident (RIA/REA, FSAR Ch 15.4.8) — CRDM failure ejects an RCCA
+    BoronDilution,     // 失控硼稀釋 · uncontrolled boron dilution (FSAR Ch 15.4.6) — unborated water added to RCS → +reactivity
 }
 
 /// <summary>一條儀表限值帶 · One coloured limit band on a gauge / strip chart.</summary>
@@ -189,6 +190,13 @@ public static class ReactorScenarios
         "ltop" => (0, 2,
             Bands((0, 1, "normal"), (1, 2, "warn")),
             Sets((1, "Armed", "已致動"), (2, "Relieving", "洩放中"))),
+
+        // Boron-dilution operator-action window (minutes to loss of shutdown margin). FSAR 15.4.6 / SRP
+        // criterion: ≥15 min from the source-range alarm to total loss of SDM (Modes 1–5). Danger below
+        // 15 min, warn 15–30 min (Mode-6 refueling criterion), green beyond.
+        "dilutionWindow" => (0, 60,
+            Bands((0, 15, "danger"), (15, 30, "warn"), (30, 60, "normal")),
+            Sets((15, "15-min criterion", "15分鐘準則"), (30, "30-min (Mode 6)", "30分鐘（模式6）"))),
 
         _ => (0, 100, Array.Empty<GaugeBand>(), Array.Empty<GaugeSetpoint>()),
     };

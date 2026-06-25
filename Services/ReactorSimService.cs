@@ -90,6 +90,8 @@ public enum ReactorAlarm
     RcsDeI131SpikeLimit,    // RCS Dose-Equiv I-131 > 60 µCi/g (transient / iodine-spike limit)
     RcsDeXe133LcoExceeded,  // RCS Dose-Equiv Xe-133 > 280 µCi/g (noble-gas LCO 3.4.16)
     IodineSpikeInProgress,  // an 8-h concurrent iodine spike (RG 1.183) is active
+    BoronDilution,          // uncontrolled boron dilution (FSAR 15.4.6) — source-range count-rate rising while subcritical
+    BoronDilutionActionWindow, // dilution time-to-loss-of-SDM has fallen below the 15-min operator-action criterion
 }
 
 /// <summary>
@@ -227,6 +229,16 @@ public sealed class ReactorSimService
     private const double NominalSteamPressure = 6.9; // MPa secondary
     private const double NominalBoron = 1200.0;    // ppm at BOL hot-zero-power-ish
 
+    // Uncontrolled boron dilution accident (FSAR Ch 15.4.6, ANS Condition II). Unborated reactor-makeup
+    // water (RMW) is injected into the well-mixed RCS at a fixed charging-pump flow, so soluble boron
+    // decays exponentially: C(t)=C0·exp(−(Q/V)t). The positive reactivity erodes shutdown margin toward
+    // criticality. The licensing acceptance criterion is the operator-action time: the source-range
+    // count-rate alarm must annunciate ≥15 min (Modes 1–5) / ≥30 min (Mode 6) before total loss of SDM.
+    private const double DilutionFlowDefaultGpm  = 150.0;   // single charging/RMW pump, unborated water (gpm)
+    private const double RcsMixVolumeGal         = 80000.0; // RCS+PZR active mixing volume (gal); τ=V/Q≈533 min
+    private const double RequiredSdmPcm          = 1300.0;  // Tech-Spec minimum shutdown margin (pcm, 1.3% Δk/k)
+    private const double DilutionActionWindowSec = 900.0;   // SRP 15.4.6: ≥15 min alarm→loss of SDM (Modes 1–5)
+
     // Reactor-coolant-pump (RCP) flow dynamics. Real loop flow does NOT follow a symmetric lag: a running
     // pump spins up to rated in a couple of seconds, but a tripped pump COASTS DOWN on its flywheel/fluid
     // inertia along a HYPERBOLIC curve G(t)=G0/(1+t/τ½) — flow halves at t=τ½, then tails off slowly toward
@@ -356,6 +368,37 @@ public sealed class ReactorSimService
     public double XenonReactivityPcm { get; private set; }
     public double SamariumReactivityPcm { get; private set; }
 
+    // ---- Uncontrolled boron dilution (FSAR 15.4.6) readouts ----
+    /// <summary>稀釋流量 · Unborated reactor-makeup-water flow into the RCS during a dilution event (gpm); 0 if inactive.</summary>
+    public double DilutionFlowGpm => _dilutionActive ? _dilutionFlowGpm : 0.0;
+
+    /// <summary>停堆裕度 · Current shutdown margin (pcm) — how far subcritical; 0 once critical/supercritical.</summary>
+    public double ShutdownMarginPcm => Math.Max(0.0, -ReactivityPcm);
+
+    /// <summary>
+    /// 距臨界時間 · Closed-form seconds to criticality under the active dilution, from the LIVE reactivity
+    /// margin and exponential boron decay: t = −(1/k)·ln(1 + ρ_now/(−α_B·C)). Doppler/MTC/xenon fold in via
+    /// ReactivityPcm. +∞ if no dilution, or if the boron inventory can never reach criticality; 0 if already critical.
+    /// </summary>
+    public double TimeToCriticalitySeconds
+    {
+        get
+        {
+            if (!_dilutionActive || _dilutionFlowGpm <= 0.0) return double.PositiveInfinity;
+            double rhoNow = ReactivityPcm / 1e5;
+            if (rhoNow >= 0.0) return 0.0;
+            double k   = (_dilutionFlowGpm / RcsMixVolumeGal) / 60.0;     // 1/s
+            double arg = 1.0 + rhoNow / (-BoronWorth * BoronPpm);
+            if (arg <= 0.0) return double.PositiveInfinity;              // not enough boron worth left to ever go critical
+            return -Math.Log(arg) / k;
+        }
+    }
+    public double TimeToCriticalityMinutes => TimeToCriticalitySeconds / 60.0;
+
+    /// <summary>操作裕度時間 · Seconds of margin against the 15-min operator-action criterion (negative = violated).</summary>
+    public double DilutionActionMarginSeconds => TimeToCriticalitySeconds - DilutionActionWindowSec;
+    public bool   DilutionActionWindowViolated => _dilutionActive && DilutionActionMarginSeconds < 0.0;
+
     // Thermal-hydraulics
     public double FuelTemp { get; private set; } = ColdTemp;     // °C
     public double Tcold { get; private set; } = ColdTemp;        // °C coolant inlet
@@ -440,6 +483,12 @@ public sealed class ReactorSimService
     public double[] RodBankInsertion { get; } = { 100.0, 100.0, 100.0, 100.0 }; // % inserted per bank (A,B,C,D)
     public double BoronPpm { get; private set; } = NominalBoron;
     public double TargetBoronPpm { get; set; } = NominalBoron;
+
+    // Uncontrolled boron dilution (FSAR 15.4.6) state. While active, UpdateScenarios is the SOLE writer of
+    // BoronPpm (the normal charging/dilution ramp in UpdateBoron is gated off) so there is one author.
+    private bool   _dilutionActive;
+    private double _dilutionFlowGpm;
+    private double _dilutionCpsRef = 1.0;   // source-range count-rate datum captured at event onset (flux-doubling alarm)
     public bool PressurizerHeater { get; set; }
     public bool PressurizerSpray { get; set; }
     public bool PzrAutoPressureControl { get; set; } = true; // automatic Westinghouse pressure-control program
@@ -1266,6 +1315,7 @@ public sealed class ReactorSimService
         _riaActive = false; _ejectRamp = 0; EjectedRodWorthPcm = 0; EjectedRodReactivityPcm = 0;
         PeakFuelEnthalpyCalPerG = _hotPelletEnthalpy; PeakFuelEnthalpyRiseCalPerG = 0;
         RiaCladdingFailure = false; RiaFuelMelt = false; RiaCoolabilityViolated = false; RiaFailedRodPercent = 0;
+        _dilutionActive = false; _dilutionFlowGpm = 0;
         switch (s)
         {
             case ReactorScenario.Normal:
@@ -1313,6 +1363,15 @@ public sealed class ReactorSimService
                 EjectedRodWorthPcm = RiaHfpWorthPcm + (RiaHzpWorthPcm - RiaHfpWorthPcm) * (1.0 - Math.Clamp(_power, 0.0, 1.0));
                 _riaEnthalpyAtTrigger = _hotPelletEnthalpy;
                 PeakFuelEnthalpyCalPerG = _hotPelletEnthalpy; PeakFuelEnthalpyRiseCalPerG = 0;
+                break;
+            case ReactorScenario.BoronDilution:
+                // A CVCS makeup-control failure leaves the reactor-makeup-water path injecting unborated water
+                // at full charging-pump flow. UpdateScenarios decays BoronPpm exponentially; the positive
+                // reactivity erodes shutdown margin toward criticality over a ~hours timescale. The credited
+                // detection is the source-range high-flux/count-rate-doubling alarm — snapshot the datum now.
+                _dilutionActive = true;
+                _dilutionFlowGpm = DilutionFlowDefaultGpm;
+                _dilutionCpsRef  = Math.Max(1.0, SourceRangeCps);
                 break;
         }
     }
@@ -1563,6 +1622,7 @@ public sealed class ReactorSimService
         Array.Clear(_rcpFlow);
         PumpedFlowFraction = 0; NaturalCircFraction = 0; RcpCoasting = false; OnNaturalCirc = false;
         BoronPpm = NominalBoron; TargetBoronPpm = NominalBoron;
+        _dilutionActive = false; _dilutionFlowGpm = 0; _dilutionCpsRef = 1.0;
         PressurizerHeater = false; PressurizerSpray = false; RcpFlowDemand = 0;
         FeedwaterFlow = 0; TurbineLoadSetpoint = 0; GeneratorBreakerClosed = false;
         ReliefValveOpen = false; EccsArmed = false; EccsInjecting = false;
@@ -1877,6 +1937,15 @@ public sealed class ReactorSimService
 
     private void UpdateScenarios(double dt)
     {
+        // Uncontrolled boron dilution (FSAR 15.4.6): unborated RMW added at fixed flow into the well-mixed
+        // RCS. Boron decays by the exact solution of dC/dt = −(Q/V)·C — unconditionally stable for any dt.
+        // This is the single writer of BoronPpm while active (UpdateBoron's control ramp is gated off above).
+        if (_dilutionActive && _dilutionFlowGpm > 0.0)
+        {
+            double kPerSec = (_dilutionFlowGpm / RcsMixVolumeGal) / 60.0;   // 1/s  (gpm/gal/60 = 1/s)
+            BoronPpm = Math.Max(0.0, BoronPpm * Math.Exp(-kPerSec * dt));
+        }
+
         // LOCA: bleed primary pressure/inventory through the break.
         if (_breakArea > 0)
         {
@@ -2428,6 +2497,10 @@ public sealed class ReactorSimService
 
     private void UpdateBoron(double dt)
     {
+        // During an uncontrolled boron dilution (FSAR 15.4.6) the exponential-decay model in UpdateScenarios
+        // is the SOLE writer of BoronPpm — skip the normal control ramp so there is exactly one author.
+        if (_dilutionActive) return;
+
         // Charging/dilution moves boron toward target at a limited rate (ppm/s).
         double rate = 4.0; // ppm per second max change
         double diff = TargetBoronPpm - BoronPpm;
@@ -3423,6 +3496,12 @@ public sealed class ReactorSimService
         SetAlarm(ReactorAlarm.RcsDeI131SpikeLimit,  RcsDeI131uCiPerG > LcoDeI131SpikeLimit);
         SetAlarm(ReactorAlarm.RcsDeXe133LcoExceeded, RcsDeXe133uCiPerG > LcoDeXe133Limit);
         SetAlarm(ReactorAlarm.IodineSpikeInProgress, IodineSpikeActive);
+        // Boron dilution: the credited subcritical detection is source-range count-rate doubling (flux rising
+        // while shut down). The action-window alarm fires once time-to-loss-of-SDM drops below the 15-min SRP criterion.
+        SetAlarm(ReactorAlarm.BoronDilution,
+            _dilutionActive && SourceRangeEnergized && !IsScrammed
+            && _power < 1.0 && SourceRangeCps > 2.0 * _dilutionCpsRef);
+        SetAlarm(ReactorAlarm.BoronDilutionActionWindow, DilutionActionWindowViolated);
         SetAlarm(ReactorAlarm.SgReliefLift, SgReliefLifted);
         SetAlarm(ReactorAlarm.RodInsertionLimitLo, RilLowAlarm && !RilLowLowAlarm);
         SetAlarm(ReactorAlarm.RodInsertionLimitLoLo, RilLowLowAlarm);

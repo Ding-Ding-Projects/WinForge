@@ -538,7 +538,18 @@ public sealed partial class ReactorModule : Page
         AddGauge("Last H₂ burn peak", "上次氫燃峰值", 0, 350, () => _sim.LastBurnPeakKpa / 6.895,
             () => _sim.DeflagrationOccurred ? $"{_sim.LastBurnPeakKpa / 6.895:F0} psig · {_sim.LastBurnPeakTempC:F0}°C" : P("no burn", "未燃燒"), id: "h2Burn");
         AddGauge("RCP flow", "主泵流量", 0, 100, () => _sim.CoolantFlowFraction * 100, () => $"{_sim.CoolantFlowFraction * 100:F0}%{FlowModeTag()}", id: "flow");
-        AddGauge("Boron", "硼濃度", 0, 2500, () => _sim.BoronPpm, () => $"{_sim.BoronPpm:F0} ppm", id: "boron");
+        AddGauge("Boron", "硼濃度", 0, 2500, () => _sim.BoronPpm,
+            () => $"{_sim.BoronPpm:F0} ppm" + (_sim.DilutionFlowGpm > 0 ? $" · {P("dilute", "稀釋")} {_sim.DilutionFlowGpm:F0} gpm" : ""), id: "boron");
+        // Boron-dilution operator-action window (FSAR 15.4.6): minutes to loss of shutdown margin; the
+        // gauge bands flag the 15-min (Modes 1–5) / 30-min (Mode 6) SRP criteria. Reads 60 (off-scale clean) when idle.
+        AddGauge("Dilution window", "稀釋裕度時間", 0, 60,
+            () => _sim.DilutionFlowGpm > 0 ? Math.Min(60, _sim.TimeToCriticalityMinutes) : 60,
+            () => _sim.DilutionFlowGpm > 0
+                ? (double.IsInfinity(_sim.TimeToCriticalitySeconds)
+                    ? P("no criticality", "不會臨界")
+                    : $"{_sim.TimeToCriticalityMinutes:F1} min → {P("crit", "臨界")} · SDM {_sim.ShutdownMarginPcm:F0} pcm")
+                : P("—", "—"),
+            id: "dilutionWindow");
         AddGauge("Xenon worth", "氙毒", 0, 100, () => _sim.Xenon * 100, () => $"{-_sim.XenonReactivityPcm:F0} pcm", id: "xenon");
         AddGauge("Samarium worth", "釤毒", 0, 300, () => _sim.Samarium * 100, () => $"{-_sim.SamariumReactivityPcm:F0} pcm", id: "samarium");
         AddGauge("Axial flux diff", "軸向通量差", -30, 30, () => _sim.AxialFluxDifferencePercent, () => $"ΔI {_sim.AxialFluxDifferencePercent:+0.0;-0.0;0.0}% · AO {_sim.AxialOffsetPercent:+0.0;-0.0;0.0}%", id: "afd");
@@ -674,6 +685,8 @@ public sealed partial class ReactorModule : Page
             (ReactorAlarm.RcsDeI131SpikeLimit, "DEI-131 SPIKE > 60 µCi/g", "碘當量尖峰 >60 µCi/g"),
             (ReactorAlarm.RcsDeXe133LcoExceeded, "NOBLE GAS DEX-133 > 280", "惰性氣體氙當量 >280"),
             (ReactorAlarm.IodineSpikeInProgress, "IODINE SPIKE (RG 1.183)", "碘尖峰進行中（RG 1.183）"),
+            (ReactorAlarm.BoronDilution, "BORON DILUTION (15.4.6)", "硼稀釋偵測（15.4.6）"),
+            (ReactorAlarm.BoronDilutionActionWindow, "DILUTION < 15-MIN WINDOW", "稀釋 <15分鐘裕度"),
             (ReactorAlarm.SgReliefLift, "SG RELIEF — RELEASE", "蒸發器釋壓閥洩放"),
             (ReactorAlarm.SteamlineBreak, "STEAMLINE BREAK", "主蒸汽管爆裂"),
             (ReactorAlarm.SafetyInjection, "SAFETY INJECTION", "安全注入 SI"),
@@ -1219,6 +1232,7 @@ public sealed partial class ReactorModule : Page
         ScenarioCombo.Items.Add(P("MSLB — main steam line break", "主蒸汽管爆裂 MSLB"));
         ScenarioCombo.Items.Add(P("RCP seal LOCA — loss of seal cooling", "主泵軸封失水 — 喪失軸封冷卻"));
         ScenarioCombo.Items.Add(P("Rod ejection — RIA (Ch 15.4.8)", "彈棒事故 — RIA（15.4.8）"));
+        ScenarioCombo.Items.Add(P("Boron dilution (Ch 15.4.6)", "失控硼稀釋（15.4.6）"));
         ScenarioCombo.SelectedIndex = 0;
     }
 
@@ -1251,6 +1265,7 @@ public sealed partial class ReactorModule : Page
             7 => ReactorScenario.MainSteamLineBreak,
             8 => ReactorScenario.RcpSealLoca,
             9 => ReactorScenario.RodEjection,
+            10 => ReactorScenario.BoronDilution,
             _ => ReactorScenario.Normal,
         });
         // The isolate control is meaningful during an SGTR (isolate affected SG) or an MSLB (close MSIVs).
