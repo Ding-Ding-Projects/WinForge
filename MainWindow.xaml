@@ -61,6 +61,7 @@
                         <NavigationViewItem Content="Batch Rename · 批次改名" Tag="module.rename"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8AC;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Duplicate Finder · 重複檔案搜尋" Tag="module.duplicates"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8C8;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="File Locksmith · 檔案鎖偵測" Tag="module.filelocksmith"><NavigationViewItem.Icon><FontIcon Glyph="&#xE72E;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Diff &amp; Merge (WinMerge) · 比對與合併" Tag="module.diffmerge"><NavigationViewItem.Icon><FontIcon Glyph="&#xE1AD;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Disk Analyser · 磁碟分析" Tag="module.disk"><NavigationViewItem.Icon><FontIcon Glyph="&#xEDA2;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Drives · 磁碟機" Tag="module.drives"><NavigationViewItem.Icon><FontIcon Glyph="&#xEDA2;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="TestDisk / PhotoRec · 資料救援" Tag="module.testdisk"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7BA;" /></NavigationViewItem.Icon></NavigationViewItem>

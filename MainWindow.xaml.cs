@@ -683,6 +683,13 @@ public sealed partial class MainWindow : Window
             case "winget-suggest":
                 Navigator.GoToModule?.Invoke("module.cmdnotfound");
                 break;
+            case "diff":
+            case "merge":
+            case "winmerge":
+            case "compare":
+            case "diffmerge":
+                Navigator.GoToModule?.Invoke("module.diffmerge");
+                break;
             case null:
             case "":
             case "dashboard":
@@ -872,6 +879,7 @@ public sealed partial class MainWindow : Window
         "module.vault-volumes" => typeof(VaultVolumesModule),
         "module.worldmonitor" => typeof(WorldMonitorModule),
         "module.timelens" => typeof(TimeLensModule),
+        "module.diffmerge" => typeof(DiffMergeModule),
         _ => typeof(DashboardPage),
     };
 
