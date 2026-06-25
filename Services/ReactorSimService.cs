@@ -47,6 +47,7 @@ public enum ReactorAlarm
     RodInsertionLimitLo,
     RodInsertionLimitLoLo,
     RodDeviation,
+    AxialFluxDiffOutOfBand,
 }
 
 /// <summary>
@@ -196,6 +197,18 @@ public sealed class ReactorSimService
     public double BottomPowerFraction { get; private set; } = 0.5;  // bottom axial node power fraction (0..1)
     public double AxialFluxDifferencePercent { get; private set; }  // ΔI = P_top - P_bot, % RTP (signed)
     public double AxialOffsetPercent         { get; private set; }  // AO = (P_top-P_bot)/(P_top+P_bot)*100
+    // Constant Axial Offset Control (CAOC) Technical-Specification target band (LCO 3.2.1 surrogate). The
+    // operator keeps ΔI inside a window centred on the all-rods-out equilibrium target (≈ −5 %RTP). The
+    // window is tight (±5 %) at high power and widens trapezoidally as power is reduced (xenon control is
+    // easier at low flux); the LCO is not enforced below ~50 % RTP. Outside the band you accrue "penalty
+    // minutes" and must restore ΔI — modelled here as a simple out-of-band alarm.
+    public double AfdTargetPercent => -5.0;            // CAOC target ΔI, %RTP (all-rods-out equilibrium)
+    public double AfdBandHalfWidthPercent =>           // power-dependent half-width of the target window
+        _power >= 0.90 ? 5.0
+        : _power >= 0.50 ? 5.0 + (0.90 - _power) / 0.40 * 10.0   // widen 5 %→15 % as power 90 %→50 %
+        : double.PositiveInfinity;                     // LCO inactive below 50 % RTP
+    public bool AfdOutsideBand =>
+        _power > 0.50 && Math.Abs(AxialFluxDifferencePercent - AfdTargetPercent) > AfdBandHalfWidthPercent;
 
     // Controls
     public double[] RodBankInsertion { get; } = { 100.0, 100.0, 100.0, 100.0 }; // % inserted per bank (A,B,C,D)
@@ -393,16 +406,25 @@ public sealed class ReactorSimService
         double TavgF() => Tavg * 1.8 + 32.0;
         double Ppsig() => PrimaryPressure * 145.038 - 14.7;
         double MeasuredDeltaTF() => (Thot - Tcold) * 1.8;
-        // f₁(ΔI): the axial-flux-difference penalty on the OTΔT setpoint. Zero inside the CAOC deadband
-        // (±5 %RTP), then reduces the allowable ΔT at a fixed slope once |ΔI| leaves the band — the
-        // anti-DNB margin shrinks as the flux skews axially. Symmetric/capped here for a clean demo
-        // (real Westinghouse f₁ is asymmetric, roughly −29/+5 %ΔI, with COLR-specific slopes).
-        const double AfdDeadbandPct = 5.0;   // ±5 %RTP CAOC deadband (no penalty inside)
-        const double AfdSlope = 0.025;       // fractional ΔT0 reduction per %RTP beyond the deadband
+        // f₁(ΔI): the axial-flux-difference penalty on the OTΔT setpoint. Zero inside the protection
+        // deadband, then reduces the allowable ΔT once ΔI leaves the band — the anti-DNB margin shrinks
+        // as the flux skews axially. The real Westinghouse f₁ is ASYMMETRIC: a wide negative leg (bottom-
+        // peaked is tolerated — boiling is at the cooler core inlet) and a tight, steeper positive leg
+        // (top-peaked drives the DNB-limiting hot spot toward the saturated core outlet). Representative
+        // legacy 4-loop breakpoints/slopes (plant COLR varies): deadband −29 %ΔI … +5 %ΔI; negative slope
+        // 1.5 %ΔT₀ per %ΔI, positive slope 2.5 %ΔT₀ per %ΔI. Capped so a garbage ΔI cannot zero the trip.
+        const double AfdNegEdge  = -29.0;    // %RTP ΔI — below this the bottom-skew penalty starts
+        const double AfdPosEdge  =  +5.0;    // %RTP ΔI — above this the top-skew penalty starts
+        const double AfdNegSlope = 0.015;    // fractional ΔT₀ reduction per %ΔI on the negative leg
+        const double AfdPosSlope = 0.025;    // fractional ΔT₀ reduction per %ΔI on the positive leg
         double F1DeltaI()
         {
-            double over = Math.Max(0.0, Math.Abs(AxialFluxDifferencePercent) - AfdDeadbandPct);
-            return Math.Clamp(AfdSlope * over, 0.0, 0.40);
+            double di = AxialFluxDifferencePercent;             // signed ΔI, %RTP
+            double pen =
+                di < AfdNegEdge ? AfdNegSlope * (AfdNegEdge - di) :  // more negative → larger penalty
+                di > AfdPosEdge ? AfdPosSlope * (di - AfdPosEdge) :  // more positive → larger penalty
+                0.0;                                                 // inside the deadband: no penalty
+            return Math.Clamp(pen, 0.0, 0.40);
         }
         double OtDeltaTAllow() => FullPowerDeltaTF *
             (1.14 - 0.0166 * (TavgF() - 588.4) + 0.00091 * (Ppsig() - 2235.0) - F1DeltaI());
@@ -1340,6 +1362,7 @@ public sealed class ReactorSimService
         SetAlarm(ReactorAlarm.RodInsertionLimitLo, RilLowAlarm && !RilLowLowAlarm);
         SetAlarm(ReactorAlarm.RodInsertionLimitLoLo, RilLowLowAlarm);
         SetAlarm(ReactorAlarm.RodDeviation, RodDeviationAlarm);
+        SetAlarm(ReactorAlarm.AxialFluxDiffOutOfBand, AfdOutsideBand);
     }
 
     private void UpdateStatus()

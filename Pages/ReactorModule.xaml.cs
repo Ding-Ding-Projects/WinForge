@@ -568,6 +568,7 @@ public sealed partial class ReactorModule : Page
             (ReactorAlarm.RodInsertionLimitLo, "ROD INS LIMIT LO", "控制棒插入限值 低"),
             (ReactorAlarm.RodInsertionLimitLoLo, "ROD INS LIMIT LO-LO", "控制棒插入限值 低低"),
             (ReactorAlarm.RodDeviation, "ROD DEVIATION", "控制棒偏差"),
+            (ReactorAlarm.AxialFluxDiffOutOfBand, "AFD OUT OF BAND", "軸向通量差超限"),
             (ReactorAlarm.CoreDamage, "CORE DAMAGE", "爐心受損"),
         };
         foreach (var (a, en, zh) in defs)
