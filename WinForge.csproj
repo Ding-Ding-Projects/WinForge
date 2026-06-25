@@ -130,6 +130,11 @@
          engine (ClientEngine) — DHT, PEX, local peer discovery, UDP/HTTP trackers all run in-process.
          This is NOT a wrapper around qBittorrent or any external binary; the protocol is implemented in C#. -->
     <PackageReference Include="MonoTorrent" Version="3.0.2" />
+    <!-- Konscious.Security.Cryptography.Argon2 (MIT): pure-managed Argon2id KDF for the native
+         Bitwarden vault client (accounts that use Argon2id instead of PBKDF2 for master-key derivation).
+         All other Bitwarden crypto (PBKDF2-SHA256, HKDF, AES-256-CBC, HMAC-SHA256, TOTP) uses the
+         built-in System.Security.Cryptography. No bw CLI, no desktop app, no browser. -->
+    <PackageReference Include="Konscious.Security.Cryptography.Argon2" Version="1.3.1" />
   </ItemGroup>
 
   <!--
