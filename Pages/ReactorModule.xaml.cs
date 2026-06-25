@@ -786,7 +786,8 @@ public sealed partial class ReactorModule : Page
             () => _sim.DeflagrationOccurred ? $"{_sim.LastBurnPeakKpa / 6.895:F0} psig · {_sim.LastBurnPeakTempC:F0}°C" : P("no burn", "未燃燒"), id: "h2Burn");
         AddGauge("RCP flow", "主泵流量", 0, 100, () => _sim.CoolantFlowFraction * 100, () => $"{_sim.CoolantFlowFraction * 100:F0}%{FlowModeTag()}", id: "flow");
         AddGauge("Boron", "硼濃度", 0, 2500, () => _sim.BoronPpm,
-            () => $"{_sim.BoronPpm:F0} ppm" + (_sim.DilutionFlowGpm > 0 ? $" · {P("dilute", "稀釋")} {_sim.DilutionFlowGpm:F0} gpm" : ""), id: "boron");
+            () => $"{_sim.BoronPpm:F0} ppm · {P("DBW", "硼微分價值")} {_sim.DifferentialBoronWorthPcmPerPpm:F2} pcm/ppm"
+                + (_sim.DilutionFlowGpm > 0 ? $" · {P("dilute", "稀釋")} {_sim.DilutionFlowGpm:F0} gpm" : ""), id: "boron");
         // Boron-dilution operator-action window (FSAR 15.4.6): minutes to loss of shutdown margin; the
         // gauge bands flag the 15-min (Modes 1–5) / 30-min (Mode 6) SRP criteria. Reads 60 (off-scale clean) when idle.
         AddGauge("Dilution window", "稀釋裕度時間", 0, 60,

@@ -213,7 +213,31 @@ public sealed class ReactorSimService
     // Reactivity coefficients (delta-k/k per unit) — tuned, plausible PWR magnitudes.
     private const double DopplerCoeff = -2.8e-5;   // per °C of fuel temp (Doppler, negative)
     private const double ModTempCoeff = -2.0e-4;   // per °C of moderator (coolant) temp (negative, MTC)
-    private const double BoronWorth = -9.5e-6;     // per ppm boron (negative)
+    private const double BoronWorth = -9.5e-6;     // per ppm boron (negative) — legacy SECANT worth at NominalBoron; the live slope now comes from the DBW curve below
+
+    // ---- Differential boron worth (DBW) vs concentration (ultracode research: DOE-HDBK-1019/2-93 chemical
+    //      shim; Lamarsh & Baratta; Duderstadt & Hamilton) ----
+    // Soluble-boron worth per ppm is NOT constant. B-10 thermal self-shielding + spectral hardening make each
+    // ppm LESS effective as concentration rises, so |dρ/dC| GROWS as boron is diluted out. The physical
+    // Westinghouse-class HFP curve is well fit by a falling-magnitude line DBW(C) = −(b0 − b1·C): −10.5 pcm/ppm
+    // at 0 ppm → −7.0 pcm/ppm at 2000 ppm (a ~⅔ roll-off). Its integral ρ_B(C) = −(b0·C − ½·b1·C²) is concave
+    // (steeper at low ppm), so end-of-cycle dilution inserts more reactivity per ppm than BOL — the real
+    // chemical-shim behaviour. The engine runs a deliberately COMPRESSED boron scale, so we carry the correct
+    // SHAPE and rescale by ONE scalar (DbwScale) that preserves the total at NominalBoron EXACTLY: the
+    // constant-worth nominal balance, ExcessBaseline and burnup-defect endpoints stay byte-identical — only the
+    // slope AWAY from nominal now bends the realistic way. Moderator density-vs-temperature feedback stays in
+    // MTC ONLY (DBW is concentration-only) to avoid double-counting the same density physics. Units: Δk/ppm.
+    private const double DbwB0Phys = 1.05e-4;      // |DBW| at 0 ppm  (10.5 pcm/ppm)
+    private const double DbwB1Phys = 1.75e-8;      // roll-off slope  (Δk/ppm²) → |DBW(2000 ppm)| = 7.0 pcm/ppm
+    // Reference (uncompressed) integral boron reactivity 0→C, Δk (negative).
+    private static double DbwPhysIntegral(double c) => -(DbwB0Phys * c - 0.5 * DbwB1Phys * c * c);
+    // Single rescale so ρ_B(NominalBoron) == legacy BoronWorth·NominalBoron (nominal reactivity balance preserved).
+    private static readonly double DbwScale = (BoronWorth * NominalBoron) / DbwPhysIntegral(NominalBoron);
+    // Engine-scale total soluble-boron reactivity at concentration C (Δk, negative) — replaces BoronWorth·C.
+    private static double BoronRhoTotal(double c) => DbwScale * DbwPhysIntegral(c);
+    // Engine-scale LOCAL differential worth at C (Δk/ppm, negative) — telemetry + dilution closed form.
+    private static double BoronDiffWorth(double c) => DbwScale * -(DbwB0Phys - DbwB1Phys * c);
+
     private const double XenonWorthFull = -0.028;  // dk/k at equilibrium full-power xenon (~ -2800 pcm)
     private const double SamariumWorthFull = -0.0064; // dk/k at equilibrium full-power samarium (~ -640 pcm)
 
@@ -620,6 +644,9 @@ public sealed class ReactorSimService
     public double ModeratorReactivityPcm { get; private set; }
     public double XenonReactivityPcm { get; private set; }
     public double SamariumReactivityPcm { get; private set; }
+    // Live differential (per-ppm) soluble-boron worth at the current concentration (pcm/ppm, negative).
+    // Steepens as boron is diluted out (B-10 self-shielding relaxes); shown on the Boron gauge. Engine scale.
+    public double DifferentialBoronWorthPcmPerPpm => BoronDiffWorth(BoronPpm) * 1e5;
 
     // ---- Uncontrolled boron dilution (FSAR 15.4.6) readouts ----
     /// <summary>稀釋流量 · Unborated reactor-makeup-water flow into the RCS during a dilution event (gpm); 0 if inactive.</summary>
@@ -663,7 +690,7 @@ public sealed class ReactorSimService
             double rhoNow = ReactivityPcm / 1e5;
             if (rhoNow >= 0.0) return 0.0;
             double k   = (_dilutionFlowGpm / RcsMixVolumeGal) / 60.0;     // 1/s
-            double arg = 1.0 + rhoNow / (-BoronWorth * BoronPpm);
+            double arg = 1.0 + rhoNow / (-BoronRhoTotal(BoronPpm));
             if (arg <= 0.0) return double.PositiveInfinity;              // not enough boron worth left to ever go critical
             return -Math.Log(arg) / k;
         }
@@ -4000,7 +4027,7 @@ public sealed class ReactorSimService
         // keeps the all-out (0) and all-in (−TotalRodWorth) endpoints exactly where the baseline expects.
         double rodRho = -TotalRodWorth * SumRodWorthFrac();
 
-        double boronRho = BoronWorth * BoronPpm;
+        double boronRho = BoronRhoTotal(BoronPpm);            // concentration-dependent DBW integral (concave)
         double dopplerRho = DopplerCoeff * (FuelTemp - RefFuelTemp);   // slow lumped-fuel Doppler
         // MTC trends more negative across the cycle: as critical boron is diluted out, the positive boron
         // density component vanishes and the intrinsically negative moderator-density term is unmasked.
@@ -4013,12 +4040,12 @@ public sealed class ReactorSimService
 
         // Excess reactivity from fresh-core / fuel state baseline so that the core can be made
         // critical with rods/boron in the operating band.
-        const double ExcessBaseline = 0.080 + BoronWorth * NominalBoron * -1.0; // brings band into reach
+        double ExcessBaseline = 0.080 - BoronRhoTotal(NominalBoron); // brings band into reach (== legacy −BoronWorth·NominalBoron by DbwScale construction)
         // Fuel-depletion (burnup) reactivity defect: the core loses excess reactivity as fissile depletes.
         // The operator restores criticality by diluting boron down the CriticalBoronPpm letdown curve, which
         // returns an equal-and-opposite +ρ via boronRho. Zero at BOL (CycleFraction 0 → CriticalBoronPpm =
         // NominalBoron) so today's reactivity balance is preserved exactly; −1130 pcm at EOL.
-        double burnupDefectRho = BoronWorth * (NominalBoron - CriticalBoronPpm);
+        double burnupDefectRho = BoronRhoTotal(NominalBoron) - BoronRhoTotal(CriticalBoronPpm);
         BurnupDefectPcm = burnupDefectRho * 1e5;
         // A dropped full-length RCCA inserts its integral worth (negative) as the fall-ramp completes.
         double droppedRho = -(DroppedRodWorthPcm * 1e-5) * _dropRamp;
