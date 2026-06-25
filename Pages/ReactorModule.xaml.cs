@@ -638,6 +638,14 @@ public sealed partial class ReactorModule : Page
             id: "dilutionWindow");
         AddGauge("Xenon worth", "氙毒", 0, 100, () => _sim.Xenon * 100, () => $"{-_sim.XenonReactivityPcm:F0} pcm", id: "xenon");
         AddGauge("Samarium worth", "釤毒", 0, 300, () => _sim.Samarium * 100, () => $"{-_sim.SamariumReactivityPcm:F0} pcm", id: "samarium");
+        // ---- Fuel-cycle core depletion (burnup) ----
+        AddGauge("Core burnup", "堆芯燃耗", 0, 18, () => _sim.BurnupMwdPerTonne / 1000.0,
+            () => $"{_sim.BurnupMwdPerTonne / 1000.0:F2} GWd/tU · {_sim.CycleEfpd:F0} EFPD · {P(_sim.CoreLifePhaseEn, _sim.CoreLifePhaseZh)}",
+            warnFrac: 1.2, id: "burnup");
+        // Boron letdown target + the cycle drift of MTC and the dollar (β_eff): all anchored to today's BOL values.
+        AddGauge("Boron letdown", "降硼曲線", 0, 1400, () => _sim.CriticalBoronPpm,
+            () => $"{_sim.CriticalBoronPpm:F0} ppm tgt · MTC {_sim.EffectiveMtcPcmPerC:F0} · 1$={_sim.BetaEffectivePcm:F0} pcm",
+            warnFrac: 1.2, id: "boronLetdown");
         AddGauge("Axial flux diff", "軸向通量差", -30, 30, () => _sim.AxialFluxDifferencePercent, () => $"ΔI {_sim.AxialFluxDifferencePercent:+0.0;-0.0;0.0}% · AO {_sim.AxialOffsetPercent:+0.0;-0.0;0.0}%", id: "afd");
         // QPTR (Quadrant Power Tilt Ratio, LCO 3.2.4): ex-core N-41…44 azimuthal tilt. 1.00 flat, limit 1.02.
         AddGauge("Quad tilt (QPTR)", "象限傾斜 QPTR", 0.95, 1.15, () => _sim.Qptr,
@@ -1774,6 +1782,28 @@ public sealed partial class ReactorModule : Page
             "raise turbine load and the rods withdraw to follow. The reference rises 557°F (no-load) → 581°F (full).",
             "自動棒控將 Tavg 調節至按汽輪機負荷編程嘅 Tref（西屋 §8.1）：加大汽輪機負荷，控制棒就會抽出跟隨。" +
             "參考溫度由 557°F（零負荷）升至 581°F（滿載）。"));
+
+        // ---- Fuel-cycle core depletion (burnup) ----
+        host.Children.Add(SectionHeader("Fuel cycle / core depletion · 燃料循環／堆芯燃耗",
+                                        "燃料循環／堆芯燃耗 · Fuel cycle / core depletion"));
+        host.Children.Add(InfoNote(
+            "Burnup advances with power: the core ages BOL→EOL over ~18 GWd/tU (~528 EFPD). As fuel depletes the " +
+            "MTC trends from −20 to −40 pcm/°C, β_eff (one dollar) shrinks ~0.0065→0.00585 so transients sharpen, " +
+            "and critical boron lets down ~1200→10 ppm — dilute boron to the displayed target to stay critical. " +
+            "Real time it is glacial; the accelerator (default OFF) fast-forwards the cycle to watch it evolve.",
+            "燃耗隨功率累積：堆芯由壽期初到壽期末約經歷 18 GWd/tU（約 528 滿功率日）。燃料消耗時，慢化劑溫度係數由 " +
+            "−20 趨向 −40 pcm/°C，有效緩發中子分數（一美元）由約 0.0065 縮至 0.00585，瞬變更敏感；臨界硼濃度由約 " +
+            "1200 降至 10 ppm — 請按顯示嘅目標稀釋硼以維持臨界。實時演進極慢；加速器（預設關閉）可快進整個循環觀察。"));
+        var deplCombo = new ComboBox { MinWidth = 260 };
+        deplCombo.Items.Add(P("Real time (off) · 即時（關）", "即時（關）· Real time (off)"));
+        deplCombo.Items.Add(P("Accelerate ×1000 · 加速 ×1000", "加速 ×1000 · Accelerate ×1000"));
+        deplCombo.Items.Add(P("Accelerate ×10000 · 加速 ×10000", "加速 ×10000 · Accelerate ×10000"));
+        deplCombo.Items.Add(P("Accelerate ×50000 · 加速 ×50000", "加速 ×50000 · Accelerate ×50000"));
+        deplCombo.SelectedIndex = 0; // DEFAULT OFF (real time)
+        deplCombo.SelectionChanged += (_, _) =>
+            _sim.DepletionAccel = deplCombo.SelectedIndex switch { 1 => 1000.0, 2 => 10000.0, 3 => 50000.0, _ => 1.0 };
+        host.Children.Add(WrapLabel("Cycle depletion accelerator (demo, default OFF) · 循環燃耗加速器（演示，預設關閉）",
+                                    "循環燃耗加速器（演示，預設關閉）· Cycle depletion accelerator (demo, default OFF)", deplCombo));
 
         // ---- Startup-sequence checklist (approach to criticality) ----
         host.Children.Add(SectionHeader("Startup sequence (approach to criticality) · 啟動程序（趨近臨界）",

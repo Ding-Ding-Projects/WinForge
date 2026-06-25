@@ -185,6 +185,16 @@ public sealed class ReactorSimService
     private const double XenonWorthFull = -0.028;  // dk/k at equilibrium full-power xenon (~ -2800 pcm)
     private const double SamariumWorthFull = -0.0064; // dk/k at equilibrium full-power samarium (~ -640 pcm)
 
+    // ---- Fuel-cycle core depletion (burnup-dependent reactivity) ----
+    // The fixed coefficients above (ModTempCoeff, BetaTotal, NominalBoron) are the BEGINNING-OF-LIFE (BOL,
+    // burnup = 0) anchors. Every depletion term below is written as base + slope·f (f = cycle fraction),
+    // so at burnup 0 the model reproduces today's calibration bit-for-bit and only diverges as the core
+    // depletes. Numbers per ultracode research (Lamarsh/Baratta, Duderstadt/Hamilton, NUREG-0800, Keepin).
+    private const double CycleEndBurnupMwd = 18000.0; // MWd/tonneU ≈ 18 GWd/tU core-avg per 18-month cycle (~528 EFPD at 3411 MWth/100 tU)
+    private const double MtcEolSlope       = -2.0e-4; // /°C per unit f: MTC −2.0e-4 (BOL, high boron) → −4.0e-4 (EOL, boron diluted out)
+    private const double BetaEolDrop       = 0.10;    // β_eff fractional drop at EOL: 0.0065 (BOL, U-235) → 0.00585 (EOL, Pu-239/241 ingrowth)
+    private const double EolBoronPpm       = 10.0;    // critical-boron endpoint at EOL HFP ARO (≈0–10 ppm)
+
     // Rod worth: total worth of all banks fully inserted (dk/k). Banks share this.
     private const double TotalRodWorth = 0.080; // 8000 pcm fully inserted
 
@@ -1296,9 +1306,32 @@ public sealed class ReactorSimService
     public bool   AirEjectorLost { get; set; }   // event toggle: loss of the steam-jet air ejector / vacuum pumps
     public bool   CircWaterLost  { get; set; }   // event toggle: loss of circulating-water flow
 
-    // Burnup drift (cosmetic realism flourish).
-    public double BurnupMwdPerTonne { get; private set; }
+    // ---- Fuel-cycle burnup / core depletion ----
+    public double BurnupMwdPerTonne { get; private set; }   // core-average burnup accrued this cycle (MWd/tonneU)
     private const double CoreTonnesU = 100.0; // ~100 tonnes U in a large PWR core
+    /// <summary>循環時間加速 · Cycle-depletion time-acceleration (×). 1 = real time (default OFF, glacial accrual);
+    /// &gt;1 fast-forwards fuel burnup so a full BOL→EOL cycle is observable in one session. Pure demo aid with a
+    /// visible off switch (set back to ×1); does not touch any persistence.</summary>
+    public double DepletionAccel { get; set; } = 1.0;
+    /// <summary>循環進度 · Cycle fraction 0 (BOL) … 1 (EOL) = burnup ÷ 18 GWd/tU end-of-cycle.</summary>
+    public double CycleFraction => Math.Clamp(BurnupMwdPerTonne / CycleEndBurnupMwd, 0.0, 1.0);
+    /// <summary>滿功率天數 · Effective full-power days accrued this cycle (burnup ÷ specific power 34.1 MW/tU).</summary>
+    public double CycleEfpd => BurnupMwdPerTonne / (RatedThermalMW / CoreTonnesU);
+    /// <summary>堆芯壽期 (EN) · Core-life phase from cycle fraction (BOL &lt;15% · MOL · EOL &gt;85%).</summary>
+    public string CoreLifePhaseEn => CycleFraction < 0.15 ? "BOL" : CycleFraction > 0.85 ? "EOL" : "MOL";
+    /// <summary>堆芯壽期 (粵) · 壽期初／中／末.</summary>
+    public string CoreLifePhaseZh => CycleFraction < 0.15 ? "壽期初" : CycleFraction > 0.85 ? "壽期末" : "壽期中";
+    /// <summary>臨界硼濃度 · Estimated HFP ARO critical-boron target on the letdown curve (ppm): 1200 (BOL) → 10 (EOL).</summary>
+    public double CriticalBoronPpm => NominalBoron - (NominalBoron - EolBoronPpm) * CycleFraction;
+    /// <summary>燃耗負反應性 · Burnup (fuel-depletion) reactivity defect folded into the balance (pcm, ≤0); 0 at BOL.</summary>
+    public double BurnupDefectPcm { get; private set; }
+    /// <summary>有效緩發中子分數 (1$) · Burnup-scaled β_eff in pcm (= one dollar). Shrinks BOL→EOL as Pu builds in,
+    /// so the same pcm insertion is a larger fraction of a dollar and transients sharpen late in life.</summary>
+    public double BetaEffectivePcm => BetaTotal * BetaCycleFactor * 1e5;
+    /// <summary>有效慢化劑溫度係數 · Burnup-scaled effective MTC (pcm/°C); −20 (BOL) → −40 (EOL).</summary>
+    public double EffectiveMtcPcmPerC => (ModTempCoeff + MtcEolSlope * CycleFraction) * 1e5;
+    /// <summary>β_eff cycle scale factor 1 (BOL) → 0.90 (EOL); applied uniformly at every Beta[]/BetaTotal use.</summary>
+    private double BetaCycleFactor => 1.0 - BetaEolDrop * CycleFraction;
 
     // Accident scenario state.
     public ReactorScenario ActiveScenario { get; private set; } = ReactorScenario.Normal;
@@ -1561,9 +1594,9 @@ public sealed class ReactorSimService
 
     public ReactorSimService()
     {
-        // Initialize precursors consistent with the (very low) initial power.
+        // Initialize precursors consistent with the (very low) initial power and the current cycle β scale.
         for (int i = 0; i < 6; i++)
-            _precursor[i] = Beta[i] / (PromptLifetime * Lambda[i]) * _power;
+            _precursor[i] = BetaCycleFactor * Beta[i] / (PromptLifetime * Lambda[i]) * _power;
         Xenon = 0;
         Iodine = 0;
         _iodineTop = _iodineBot = _xenonTop = _xenonBot = 0;
@@ -2346,7 +2379,7 @@ public sealed class ReactorSimService
     public void Reset()
     {
         _power = 1e-6;
-        for (int i = 0; i < 6; i++) _precursor[i] = Beta[i] / (PromptLifetime * Lambda[i]) * _power;
+        for (int i = 0; i < 6; i++) _precursor[i] = BetaCycleFactor * Beta[i] / (PromptLifetime * Lambda[i]) * _power;
         ReactorPeriodSeconds = 1e9; ReactivityPcm = 0;
         FuelTemp = ColdTemp; Tcold = ColdTemp; Thot = ColdTemp;
         PrimaryPressure = 2.5; PressurizerLevel = NominalPzrLevel;
@@ -2415,7 +2448,7 @@ public sealed class ReactorSimService
         DecayHeatFraction = 0; SubcoolingMarginC = 0; SourceRangeCps = SourceBaselineCps;
         CoreExitTempC = ColdTemp; CetSubcoolingMarginC = 0; _cetInit = false;
         MinDnbr = DnbrRawUnfiltered = DnbrCeiling; DnbrLocalQuality = 0; RodsInDnbPercent = 0;
-        OneOverM = 1.0; StartupRateDpm = 0; BurnupMwdPerTonne = 0;
+        OneOverM = 1.0; StartupRateDpm = 0; BurnupMwdPerTonne = 0; BurnupDefectPcm = 0; DepletionAccel = 1.0;
         IntermediateRangeAmps = IrBottomAmps; IntermediateRangeDecades = 0; IntermediateRangePercent = 0;
         PowerRangePercent = 0; SourceRangeEnergized = true; _p6Latched = false;
         ActiveScenario = ReactorScenario.Normal; _breakArea = 0; _rodsFailToInsert = false;
@@ -2592,8 +2625,11 @@ public sealed class ReactorSimService
         // Each H_i is a convex combination of non-negative terms, so it stays ≥ 0; clamp the SUM only.
         DecayHeatFraction = Math.Clamp(frac, 0.0, 0.12);
 
-        // Burnup accrual + slow MTC drift across the cycle.
-        BurnupMwdPerTonne += ThermalPowerMW * dt / 86400.0 / CoreTonnesU; // MWd/tonne
+        // Burnup accrual across the fuel cycle (MWd/tonneU). Specific power = ThermalPowerMW/CoreTonnesU
+        // ≈ 34 MW/tU at full power → 34 MWd/tU per EFPD; scales with actual power so part-load accrues less.
+        // DepletionAccel (default ×1 = real time, effectively frozen for a session) fast-forwards the cycle so
+        // burnup-dependent reactivity (MTC, β_eff, boron letdown) can be watched evolve BOL→EOL on demand.
+        BurnupMwdPerTonne += ThermalPowerMW * dt / 86400.0 / CoreTonnesU * Math.Max(1.0, DepletionAccel);
     }
 
     /// <summary>1 − e^(−x) for x ≥ 0, computed without catastrophic cancellation for tiny x
@@ -3751,7 +3787,10 @@ public sealed class ReactorSimService
 
         double boronRho = BoronWorth * BoronPpm;
         double dopplerRho = DopplerCoeff * (FuelTemp - RefFuelTemp);   // slow lumped-fuel Doppler
-        double modRho = ModTempCoeff * (Tavg - RefModTemp);
+        // MTC trends more negative across the cycle: as critical boron is diluted out, the positive boron
+        // density component vanishes and the intrinsically negative moderator-density term is unmasked.
+        double effMtc = ModTempCoeff + MtcEolSlope * CycleFraction;    // −2.0e-4 (BOL) → −4.0e-4 /°C (EOL)
+        double modRho = effMtc * (Tavg - RefModTemp);
         // Xenon worth proportional to xenon concentration (normalized so equilibrium full power = 1).
         double xenonRho = XenonWorthFull * Xenon;
         // Samarium worth proportional to Sm-149 concentration (normalized so equilibrium full power = 1).
@@ -3760,10 +3799,18 @@ public sealed class ReactorSimService
         // Excess reactivity from fresh-core / fuel state baseline so that the core can be made
         // critical with rods/boron in the operating band.
         const double ExcessBaseline = 0.080 + BoronWorth * NominalBoron * -1.0; // brings band into reach
+        // Fuel-depletion (burnup) reactivity defect: the core loses excess reactivity as fissile depletes.
+        // The operator restores criticality by diluting boron down the CriticalBoronPpm letdown curve, which
+        // returns an equal-and-opposite +ρ via boronRho. Zero at BOL (CycleFraction 0 → CriticalBoronPpm =
+        // NominalBoron) so today's reactivity balance is preserved exactly; −1130 pcm at EOL.
+        double burnupDefectRho = BoronWorth * (NominalBoron - CriticalBoronPpm);
+        BurnupDefectPcm = burnupDefectRho * 1e5;
         // A dropped full-length RCCA inserts its integral worth (negative) as the fall-ramp completes.
         double droppedRho = -(DroppedRodWorthPcm * 1e-5) * _dropRamp;
         // Everything above is constant across the (possibly fine-grained) RIA micro-steps below.
-        double rhoSlow = ExcessBaseline + rodRho + boronRho + dopplerRho + modRho + xenonRho + samariumRho + droppedRho;
+        double rhoSlow = ExcessBaseline + rodRho + boronRho + dopplerRho + modRho + xenonRho + samariumRho + droppedRho + burnupDefectRho;
+        // β_eff cycle scale (1 at BOL → 0.90 at EOL); applied uniformly at every Beta[]/BetaTotal use below.
+        double bcf = BetaCycleFactor;
 
         // ---- Rod Ejection Accident (RIA / REA, Ch 15.4.8): super-prompt-critical excursion ----
         // The ejected rod adds +worth as a 0.1 s ramp. The resulting ~45 ms power pulse is turned over NOT by
@@ -3803,10 +3850,10 @@ public sealed class ReactorSimService
             {
                 double di = 1.0 + hm * Lambda[i];
                 precursorContribution += Lambda[i] * _precursor[i] / di;
-                implicitFeedback += hm * Lambda[i] * Beta[i] / (PromptLifetime * di);
+                implicitFeedback += hm * Lambda[i] * (Beta[i] * bcf) / (PromptLifetime * di);
             }
 
-            double denom = 1.0 - hm * (rho - BetaTotal) / PromptLifetime - hm * implicitFeedback;
+            double denom = 1.0 - hm * (rho - BetaTotal * bcf) / PromptLifetime - hm * implicitFeedback;
             if (denom < 1e-3) denom = 1e-3; // backstop: denom crosses zero at/above prompt-critical (ρ ≥ ~1$)
 
             newPower = (_power + hm * (precursorContribution + SourceLevel)) / denom;
@@ -3814,7 +3861,7 @@ public sealed class ReactorSimService
 
             for (int i = 0; i < 6; i++)
             {
-                _precursor[i] = (_precursor[i] + hm * (Beta[i] / PromptLifetime) * newPower) / (1.0 + hm * Lambda[i]);
+                _precursor[i] = (_precursor[i] + hm * ((Beta[i] * bcf) / PromptLifetime) * newPower) / (1.0 + hm * Lambda[i]);
                 if (_precursor[i] < 0) _precursor[i] = 0;
             }
 
