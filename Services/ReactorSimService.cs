@@ -323,7 +323,26 @@ public sealed class ReactorSimService
     // Turbine reference speed: 4-pole 60 Hz nuclear set runs at 1800 rpm.
     public const double SyncRpm = 1800.0;
     public double TurbineRatedRpm => SyncRpm;
-    private const double OverspeedTripRpm = 1980.0;
+    private const double OverspeedTripRpm = 1980.0;          // 110 % — latching mechanical/electronic trip
+
+    // --- EHC (Electro-Hydraulic Control) turbine constants ---
+    // 調速器電液控制（EHC）汽輪機常數 · governor-valve load control, droop, overspeed protection.
+    private const double GvRateUpPerMin   = 5.0;             // load-ref ramp UP,   %rated/min (routine 3–5 %/min band)
+    private const double GvRateDownPerMin = 20.0;           // load-ref ramp DOWN, %rated/min (faster asymmetric runback)
+    private const double GvActuatorTau    = 0.5;            // s, first-order governor-valve servo lag
+    private const double DroopFrac        = 0.05;          // 5 % governor droop (IEEE steady-state regulation)
+    private const double FspGain          = 1.0;          // FirstStagePressure = FspGain * GV steam flow (0..1)
+    private const double SpeedRampRpmPerS = 60.0;        // pre-sync acceleration rate (~30 s roll to 1800 rpm)
+    private const double OpcSetpointRpm   = SyncRpm * 1.03; // 1854 rpm — OPC / power-load-unbalance fast-close (non-latching)
+    private const double SteamPressDrawK  = 0.6;           // SG-pressure relief coupling per unit GV steam draw
+
+    // --- EHC state ---
+    public double LoadReference      { get; private set; } // 0..1 rate-limited internal load demand the EHC tracks
+    public double GovernorValve      { get; private set; } // 0..1 ACTUAL governor-valve position (single writer: UpdateSecondary)
+    public double FirstStagePressure { get; private set; } // 0..1 calibrated load signal = k * GV steam flow (impulse chamber)
+    public double TurbineSpeedError  { get; private set; } = SyncRpm; // rpm, (SyncRpm − TurbineRPM) — droop + display
+    public bool   TurbineTripped     { get; private set; } // latched stop-valve trip (overspeed / manual)
+    private double _gvCmd;                                  // commanded GV position (pre-actuator-lag)
 
     // Burnup drift (cosmetic realism flourish).
     public double BurnupMwdPerTonne { get; private set; }
@@ -596,6 +615,18 @@ public sealed class ReactorSimService
         if (Mode == ReactorMode.Tripped) Mode = ReactorMode.Shutdown;
     }
 
+    /// <summary>手動汽輪機跳脫 · Manually trip the turbine: latch the stop valves shut.</summary>
+    public void TripTurbine() => TurbineTripped = true;
+
+    /// <summary>
+    /// 重置汽輪機跳脫閂鎖 · Reset a latched turbine (overspeed/manual) trip so the stop valves can
+    /// reopen — permitted only once the shaft has coasted below ~90 % speed, as on a real EHC.
+    /// </summary>
+    public void ResetTurbineTrip()
+    {
+        if (TurbineRPM <= SyncRpm * 0.90) TurbineTripped = false;
+    }
+
     public void SetMode(ReactorMode m)
     {
         if (Mode == ReactorMode.Meltdown) return;
@@ -705,6 +736,8 @@ public sealed class ReactorSimService
         PrimaryPressure = 2.5; PressurizerLevel = NominalPzrLevel;
         _tpzr = ColdTemp; _prevLevel = NominalPzrLevel; _pSpike = 0; _porvAuto = false; PressurizerHeaterDuty = 0;
         SteamPressure = 0.5; SteamGenLevel = 60; ElectricPowerMW = 0; TurbineRPM = 0;
+        LoadReference = 0; GovernorValve = 0; _gvCmd = 0;
+        FirstStagePressure = 0; TurbineSpeedError = SyncRpm; TurbineTripped = false;
         IndicatedSgLevel = 60; SteamFlow = 0; FeedRegValve = 0; SgLevelSetpoint = 50;
         FeedwaterAuto = true; _iLevel = 0; _steamFlowSlow = 0; _threeElementActive = false; _fwAutoWasOn = false;
         Iodine = 0; Xenon = 0;
@@ -1204,8 +1237,9 @@ public sealed class ReactorSimService
     //   17 % low-low trip actually see.
     private void UpdateFeedwaterControl(double dt)
     {
-        // Steam-flow transmitter (lagged) — both the feedforward term and the shrink/swell driver.
-        double steamDrawRaw = GeneratorBreakerClosed ? TurbineLoadSetpoint : 0.0;
+        // Steam-flow transmitter (lagged) — both the feedforward term and the shrink/swell driver. Tracks the
+        // REAL first-stage pressure (governor-valve steam flow), not the raw demand, so feed follows the EHC.
+        double steamDrawRaw = GeneratorBreakerClosed ? FirstStagePressure : 0.0;
         SteamFlow += (steamDrawRaw - SteamFlow) * Math.Min(1, dt / 1.0);
         _steamFlowSlow += (SteamFlow - _steamFlowSlow) * Math.Min(1, dt / 12.0); // 12 s void-relaxation washout
 
@@ -1250,12 +1284,8 @@ public sealed class ReactorSimService
 
     private void UpdateSecondary(double dt)
     {
-        // Steam pressure builds from core heat into SG, relieved by turbine steam draw.
-        double heatIn = _power; // fraction
-        double steamDraw = GeneratorBreakerClosed ? TurbineLoadSetpoint : 0.0;
-        double pTarget = 0.5 + 6.5 * Math.Clamp(heatIn - 0.6 * steamDraw + 0.4, 0, 1.2);
-        pTarget = Math.Clamp(pTarget, 0.3, 8.5);
-        SteamPressure += (pTarget - SteamPressure) * Math.Min(1, dt / 5.0);
+        // NOTE: SteamPressure is updated in the EHC turbine block below (single writer), AFTER the
+        // governor valves set the real steam draw — closing the GVs must be able to RAISE header pressure.
 
         // SG inventory is an INTEGRATOR: level is the time-integral of (feedwater − steaming) mismatch.
         // SteamFlow (the lagged controlled-by feedwater-control signal) is the boil-off the feed must replace,
@@ -1283,22 +1313,85 @@ public sealed class ReactorSimService
             SgReliefLifted = false;
         }
 
-        // Turbine: RPM spins up toward 1800 (4-pole 60 Hz nuclear set) when steam available.
-        double rpmTarget;
-        if (SteamPressure > 3.0 && TurbineLoadSetpoint > 0.01)
-            rpmTarget = SyncRpm * Math.Clamp(0.5 + 0.5 * TurbineLoadSetpoint, 0, 1);
+        // ===================== EHC turbine (Electro-Hydraulic Control) · 電液調速控制 =====================
+        // The operator demand (TurbineLoadSetpoint) no longer drives load directly: it is a SETPOINT the
+        // EHC tracks through a rate-limited load reference, real governor-valve dynamics, droop speed
+        // control, OPC fast-close and a latching overspeed trip — exactly as a Westinghouse/GE DEH does.
+
+        // 1) Operator demand → rate-limited internal LOAD REFERENCE (%/min, asymmetric: faster runback).
+        double rampUp   = (GvRateUpPerMin   / 100.0) / 60.0 * dt;
+        double rampDown = (GvRateDownPerMin / 100.0) / 60.0 * dt;
+        double demand   = Math.Clamp(TurbineLoadSetpoint, 0.0, 1.0);
+        if (demand > LoadReference) LoadReference = Math.Min(demand, LoadReference + rampUp);
+        else                        LoadReference = Math.Max(demand, LoadReference - rampDown);
+
+        // 2) Speed error (drives droop post-sync; display + acceleration control pre-sync).
+        TurbineSpeedError = SyncRpm - TurbineRPM;
+
+        // 3) Commanded governor-valve position from the EHC mode logic.
+        bool steamAvail = SteamPressure > 3.0;
+        double gvCmd;
+        if (TurbineTripped || !steamAvail)
+        {
+            gvCmd = 0.0;                                       // stop valves shut / no steam to admit
+        }
+        else if (!GeneratorBreakerClosed)
+        {
+            // PRE-SYNC: SPEED control — accelerate toward 1800 rpm at a limited rate, then hold.
+            double speedDemandRpm = Math.Min(SyncRpm, TurbineRPM + SpeedRampRpmPerS * dt);
+            double spErr = (speedDemandRpm - TurbineRPM) / SyncRpm;
+            gvCmd = Math.Clamp(0.5 * TurbineRPM / SyncRpm + 4.0 * spErr, 0.0, 1.0);
+        }
         else
-            rpmTarget = GeneratorBreakerClosed && SteamPressure > 3.0 ? SyncRpm : 0;
-        if (GeneratorBreakerClosed && SteamPressure > 2.0) rpmTarget = SyncRpm; // grid-locked at synchronous speed
+        {
+            // POST-SYNC: LOAD control with 5 % droop. The grid pins the shaft at 1800 rpm so droop is ~0
+            // in steady state, but any overspeed excursion (load-rejection onset) biases the GVs closed.
+            double droopBias = -(TurbineSpeedError / SyncRpm) / DroopFrac;
+            gvCmd = Math.Clamp(LoadReference + droopBias, 0.0, 1.0);
+        }
+
+        // 4) OPC / power-load-unbalance fast-close (NON-latching): momentary overspeed slams the GVs shut.
+        if (TurbineRPM > OpcSetpointRpm) gvCmd = 0.0;
+
+        // 5) Overspeed TRIP (latching) at 110 %: stop valves shut and stay shut until a reset.
+        if (!TurbineTripped && TurbineRPM > OverspeedTripRpm) TurbineTripped = true;
+
+        // 6) Governor-valve ACTUATOR: first-order hydraulic servo toward the command.
+        _gvCmd = gvCmd;
+        GovernorValve += (_gvCmd - GovernorValve) * Math.Min(1, dt / GvActuatorTau);
+        GovernorValve  = Math.Clamp(GovernorValve, 0.0, 1.0);
+
+        // 7) Steam flow THROUGH the GV = position × (header-pressure factor).
+        double steamDraw = TurbineTripped ? 0.0
+            : GovernorValve * Math.Clamp(SteamPressure / NominalSteamPressure, 0, 1.1);
+
+        // 8) First-stage (impulse-chamber) pressure — the calibrated load signal, linear in GV steam flow.
+        FirstStagePressure = Math.Clamp(FspGain * steamDraw, 0.0, 1.0);
+
+        // --- SteamPressure (single writer, MOVED here) — closing the GVs reduces draw ⇒ header pressure rises.
+        double pTarget = 0.5 + 6.5 * Math.Clamp(_power - SteamPressDrawK * steamDraw + 0.4, 0, 1.2);
+        pTarget = Math.Clamp(pTarget, 0.3, 8.5);
+        SteamPressure += (pTarget - SteamPressure) * Math.Min(1, dt / 5.0);
+
+        // 9) TurbineRPM (single writer).
+        double rpmTarget;
+        if (GeneratorBreakerClosed && !TurbineTripped && steamAvail)
+            rpmTarget = SyncRpm;                                              // grid-locked at synchronous speed
+        else if (!GeneratorBreakerClosed && steamAvail && !TurbineTripped)
+            rpmTarget = SyncRpm * Math.Clamp(GovernorValve, 0.1, 1.0);        // GV admits steam → shaft spins up
+        else
+            rpmTarget = 0.0;                                                  // tripped / no steam → coast down
+        // Load rejection: breaker opens while the GVs still admit steam → the unloaded shaft overspeeds
+        // toward the trip (OPC at 1854 then mechanical trip at 1980 arrest it via steps 4–5).
+        if (!GeneratorBreakerClosed && steamAvail && steamDraw > 0.05)
+            rpmTarget = Math.Max(rpmTarget, SyncRpm * (1.0 + 0.12 * steamDraw)); // up to ~2016 rpm
         TurbineRPM += (rpmTarget - TurbineRPM) * Math.Min(1, dt / 4.0);
         if (TurbineRPM < 0) TurbineRPM = 0;
-        // Overspeed protection: if the breaker is open and load is dumped while steam keeps driving the
-        // shaft, an overspeed would trip the stop valves (modelled by capping just under the trip point).
-        if (!GeneratorBreakerClosed && TurbineRPM > OverspeedTripRpm) TurbineRPM = OverspeedTripRpm;
 
-        // Electrical output: only when synchronized (breaker closed, near 1800 rpm) & steam present.
-        double grossElec = Math.Min(_power * 0.33, TurbineLoadSetpoint) * RatedElectricMW;
-        if (GeneratorBreakerClosed && TurbineRPM > SyncRpm * 0.94 && SteamPressure > 3.0)
+        // 10) Electrical output (single writer). Real load follows first-stage pressure, capped by available
+        // mechanical power (≈33 % of thermal). Zero when not synchronized, tripped, or below 94 % speed.
+        double grossElec = Math.Min(_power * 0.33, FirstStagePressure) * RatedElectricMW;
+        if (GeneratorBreakerClosed && !TurbineTripped && TurbineRPM > SyncRpm * 0.94 && steamAvail)
             ElectricPowerMW += (grossElec - ElectricPowerMW) * Math.Min(1, dt / 4.0);
         else
             ElectricPowerMW += (0 - ElectricPowerMW) * Math.Min(1, dt / 2.0);
@@ -1337,7 +1430,7 @@ public sealed class ReactorSimService
         // ---- Reactor Protection System: derive permissives from power, then evaluate coincidence. ----
         // P-10 / P-7 ≈ 10 % power; P-8 ≈ 48 %; P-9 ≈ 50 % (P-13 turbine-load input folded into P-7).
         bool p10 = _power >= 0.10;
-        bool p13 = TurbineLoadSetpoint >= 0.10 && GeneratorBreakerClosed; // turbine first-stage proxy
+        bool p13 = FirstStagePressure >= 0.10 && GeneratorBreakerClosed; // turbine first-stage pressure permissive (real load)
         bool p7 = p10 || p13;
         // P-6: asserted when the intermediate-range current rises on-scale (≥ 1e-10 A), latched with a
         // ±10 % deadband so it cannot chatter. Permits blocking the Source-Range High-Flux trip and
@@ -1351,6 +1444,16 @@ public sealed class ReactorSimService
         {
             LastTripFunctionEn = _rps.ControllingFunctionEn;
             LastTripFunctionZh = _rps.ControllingFunctionZh;
+            Scram();
+        }
+
+        // P-9: anticipatory reactor-trip-on-turbine-trip, ABOVE ~50 % power. A turbine trip at high load
+        // would otherwise spike primary temperature/pressure (loss of the heat sink); the reactor is
+        // tripped first. Below P-9 the interlock is blocked — the plant rides the runback instead.
+        if (TurbineTripped && _power >= 0.50 && !IsScrammed && Mode != ReactorMode.Meltdown)
+        {
+            LastTripFunctionEn = "Turbine Trip (P-9)";
+            LastTripFunctionZh = "汽輪機跳脫（P-9）";
             Scram();
         }
 
@@ -1431,7 +1534,8 @@ public sealed class ReactorSimService
         SetAlarm(ReactorAlarm.SteamPressureHigh, SteamPressure > 7.8);
         SetAlarm(ReactorAlarm.CoreDamage, DamageAccumulation > 1.0);
         SetAlarm(ReactorAlarm.EccsActive, EccsInjecting);
-        SetAlarm(ReactorAlarm.TurbineTrip, GeneratorBreakerClosed && TurbineRPM < SyncRpm * 0.83 && SteamPressure > 3.0);
+        SetAlarm(ReactorAlarm.TurbineTrip,
+            TurbineTripped || (GeneratorBreakerClosed && TurbineRPM < SyncRpm * 0.83 && SteamPressure > 3.0));
         SetAlarm(ReactorAlarm.LowSubcooling, SubcoolingMarginC < 10.0 && (_power > 0.05 || Thot > 200));
         SetAlarm(ReactorAlarm.DecayHeatHigh, DecayHeatFraction > 0.03 && CoolantFlowFraction < 0.4 && FeedwaterFlow < 0.1);
         SetAlarm(ReactorAlarm.AtwsActive, _rodsFailToInsert && IsScrammed);

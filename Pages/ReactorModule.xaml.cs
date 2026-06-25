@@ -473,6 +473,9 @@ public sealed partial class ReactorModule : Page
         AddGauge("Xenon worth", "氙毒", 0, 100, () => _sim.Xenon * 100, () => $"{-_sim.XenonReactivityPcm:F0} pcm", id: "xenon");
         AddGauge("Axial flux diff", "軸向通量差", -30, 30, () => _sim.AxialFluxDifferencePercent, () => $"ΔI {_sim.AxialFluxDifferencePercent:+0.0;-0.0;0.0}% · AO {_sim.AxialOffsetPercent:+0.0;-0.0;0.0}%", id: "afd");
         AddGauge("Turbine speed", "汽輪機轉速", 0, 2000, () => _sim.TurbineRPM, () => $"{_sim.TurbineRPM:F0} rpm");
+        // EHC turbine — first-stage (impulse) pressure is the calibrated load signal; governor-valve position.
+        AddGauge("First-stage press", "第一級壓力", 0, 750, () => _sim.FirstStagePressure * 690.0, () => $"{_sim.FirstStagePressure * 690.0:F0} psia");
+        AddGauge("Governor valve", "調速汽門", 0, 100, () => _sim.GovernorValve * 100, () => $"{_sim.GovernorValve * 100:F0}%");
     }
 
     private string PeriodStr()
@@ -680,8 +683,8 @@ public sealed partial class ReactorModule : Page
             DrawFlowDot(c, 160, 160, 330, 160, phase, hot);
             DrawFlowDot(c, 330, 240, 234, 200, phase, cold);
         }
-        // Steam flow when steaming
-        if (_sim.SteamPressure > 3.0 && _sim.TurbineLoadSetpoint > 0.02)
+        // Steam flow when steaming — gate on the REAL governor-valve flow, not the operator demand.
+        if (_sim.SteamPressure > 3.0 && _sim.GovernorValve > 0.02 && !_sim.TurbineTripped)
             DrawFlowDot(c, 420, 110, 560, 110, phase, Color.FromArgb(255, 0xCC, 0xDD, 0xEE));
 
         // Core glow by fuel temp
@@ -1317,6 +1320,16 @@ public sealed partial class ReactorModule : Page
         var grdPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
         grdPanel.Children.Add(MakeToggle("Generator breaker · 發電機開關", "發電機開關 · Generator breaker", v => _sim.GeneratorBreakerClosed = v));
         host.Children.Add(WrapLabel("Grid synchronization · 併網", "併網 · Grid synchronization", grdPanel));
+
+        // EHC turbine trip / reset — manual stop-valve trip and a latch reset (only below ~90 % speed).
+        var turbPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        var turbTripBtn = new Button { Content = P("Manual turbine trip · 手動汽輪機跳脫", "手動汽輪機跳脫 · Manual turbine trip") };
+        turbTripBtn.Click += (_, _) => _sim.TripTurbine();
+        var turbResetBtn = new Button { Content = P("Reset turbine trip · 重置汽輪機跳脫", "重置汽輪機跳脫 · Reset turbine trip") };
+        turbResetBtn.Click += (_, _) => _sim.ResetTurbineTrip();
+        turbPanel.Children.Add(turbTripBtn);
+        turbPanel.Children.Add(turbResetBtn);
+        host.Children.Add(WrapLabel("Turbine EHC trip · 汽輪機電液跳脫", "汽輪機電液跳脫 · Turbine EHC trip", turbPanel));
 
         host.Children.Add(SectionHeader("Mode & automation · 模式與自動化", "模式與自動化 · Mode & automation"));
 
