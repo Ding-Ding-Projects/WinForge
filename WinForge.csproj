@@ -98,6 +98,12 @@
          DPAPI (ProtectedData) for encrypting saved Postgres connection passwords at rest. -->
     <!-- FTP／FTPS 客戶端（MIT）· FluentFTP: managed FTP/FTPS client for the FTP/SFTP module. -->
     <PackageReference Include="FluentFTP" Version="52.1.0" />
+    <!-- MonoTorrent (MIT)：完全受控（managed）嘅 BitTorrent 協定實作 — 喺程序內直接行 DHT／PEX／本地
+         探索／UDP+HTTP 追蹤器，並非包裝 qBittorrent 或任何外部程式。畀原生種子下載模組
+         (module.torrent / Pages/TorrentModule) 用。MonoTorrent: a fully managed BitTorrent protocol
+         engine (ClientEngine) — DHT, PEX, local peer discovery, UDP/HTTP trackers all run in-process.
+         This is NOT a wrapper around qBittorrent or any external binary; the protocol is implemented in C#. -->
+    <PackageReference Include="MonoTorrent" Version="3.0.2" />
   </ItemGroup>
 
   <!--
