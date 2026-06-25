@@ -486,6 +486,10 @@ public sealed partial class ReactorModule : Page
         // LOCA core-uncovery → Peak Cladding Temperature + 10 CFR 50.46(b) acceptance criteria.
         AddGauge("Peak clad temp (PCT)", "峰值包殼溫度", 300, 2500, () => _sim.PeakCladTempC, () => $"{_sim.PeakCladTempC:F0}°C · {_sim.PeakCladTempF:F0}°F (now {_sim.CladTempC:F0}°C)", id: "cladTemp");
         AddGauge("Core collapsed level", "堆芯塌陷水位", 0, 100, () => _sim.CollapsedLevelFrac * 100, () => $"{_sim.CollapsedLevelFrac * 100:F0}% · {_sim.CoreExposedFrac * 100:F0}% dry{(_sim.CladQuenching ? " · QUENCH" : "")}", id: "coreLevel");
+        // RVLIS — post-TMI (NUREG-0737 II.F.2) reactor-vessel level instrumentation. Validity flips with RCP state.
+        AddGauge("RVLIS full range", "RVLIS 全量程水位", 0, 100, () => _sim.RvlisFullRangePct, () => _sim.RvlisRange == RvlisValidRange.FullRange ? $"{_sim.RvlisFullRangePct:F0}% · TAF≈62%" : "— (pumps on)", id: "rvlisFull");
+        AddGauge("RVLIS dynamic head", "RVLIS 動壓頭", 0, 120, () => _sim.RvlisDynamicHeadPct, () => _sim.RvlisRange == RvlisValidRange.DynamicHead ? $"{_sim.RvlisDynamicHeadPct:F0}% ΔP" : "— (pumps off)", id: "rvlisDh");
+        AddGauge("RVLIS upper range", "RVLIS 上量程水位", 0, 100, () => _sim.RvlisUpperRangePct, () => _sim.RvlisRange == RvlisValidRange.FullRange ? $"{_sim.RvlisUpperRangePct:F0}%" : "— (pumps on)", id: "rvlisUpper");
         AddGauge("RCP seal leakoff", "主泵軸封洩漏", 0, 1920, () => _sim.SealLeakGpmTotal, () => $"{_sim.SealLeakGpmTotal:F0} gpm · {_sim.SealCavityMaxTempC:F0}°C{(_sim.SealCoolingAvailable ? "" : " · NO COOL")}", id: "sealLeak");
         AddGauge("Clad oxidation (ECR)", "包殼氧化 ECR", 0, 30, () => _sim.MaxLocalOxidationPct, () => $"{_sim.MaxLocalOxidationPct:F1}% ECR", id: "ecr");
         AddGauge("Core hydrogen", "堆芯氫氣", 0, 3, () => _sim.CoreWideHydrogenPct, () => $"{_sim.CoreWideHydrogenPct:F2}% · {_sim.HydrogenMassKg:F0} kg", id: "h2");
@@ -639,6 +643,8 @@ public sealed partial class ReactorModule : Page
             (ReactorAlarm.DnbrLowMargin, "DNBR LOW MARGIN", "DNBR 餘裕偏低"),
             (ReactorAlarm.DnbrSafetyLimit, "DNBR < 1.30 (S.L.)", "DNBR <1.30 安全限值"),
             (ReactorAlarm.RcpSealLoca, "RCP SEAL LOCA", "主泵軸封失水"),
+            (ReactorAlarm.RvlisBelowTopOfFuel, "RVLIS < TOP OF FUEL", "RVLIS 低於燃料頂"),
+            (ReactorAlarm.RvlisFullRangeLoLo, "RVLIS LEVEL LO-LO", "RVLIS 水位 低低"),
         };
         foreach (var (a, en, zh) in defs)
         {

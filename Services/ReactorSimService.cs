@@ -67,7 +67,18 @@ public enum ReactorAlarm
     DnbrSafetyLimit,   // MinDnbr < 1.30  (W-3 95/95 design limit)
     DnbrLowMargin,     // MinDnbr < 1.55  (low-margin warning)
     RcpSealLoca,       // RCP seal-cooling lost → degraded seal leakoff (WOG-2000 seal LOCA)
+    RvlisBelowTopOfFuel, // RVLIS advisory: vessel collapsed level below top of active fuel (NOT the ICC trip)
+    RvlisFullRangeLoLo,  // RVLIS full-range collapsed level < 40% (well into the uncovered-fuel band)
 }
+
+/// <summary>
+/// RVLIS（反應堆壓力容器水位儀表系統）有效量程 · Which RVLIS range is trustworthy this tick.
+/// Post-TMI (NUREG-0737 II.F.2) instrument: the reactor-coolant-pump state is the discriminator.
+/// All RCPs OFF (natural circulation) → the collapsed-level ranges (Full + Upper) read true vessel
+/// level; any RCP ON → the sensed ΔP column is dominated by pump head, so ONLY the dynamic-head
+/// (pump-ΔP) range is meaningful and the level ranges read off-scale and must be disregarded.
+/// </summary>
+public enum RvlisValidRange { FullRange, DynamicHead }
 
 /// <summary>
 /// 全模擬壓水式核反應堆引擎（純 C#）· Fully-simulated Pressurized Water Reactor engine (pure managed C#).
@@ -413,6 +424,18 @@ public sealed class ReactorSimService
     public double HydrogenMassKg { get; private set; }               // integrated H₂ generated (display)
     public bool CladQuenching { get; private set; }                  // a re-covered node is rewetting / quenching
     public bool CoolableGeometryOk => PeakCladTempC < PctLimitC && MaxLocalOxidationPct < EcrLimitPct; // (b)(4), qualitative
+
+    // ----------------------------------------------------------------- RVLIS (post-TMI II.F.2) ----
+    // 反應堆壓力容器水位儀表系統 · Reactor Vessel Level Instrumentation System (NUREG-0737 II.F.2 / Westinghouse).
+    // A ΔP-based, RTD-density-compensated indication of reactor-vessel collapsed liquid level, added after TMI-2
+    // to give operators a direct vessel-inventory readout for detecting Inadequate Core Cooling (ICC) and
+    // confirming natural circulation. Purely additive INSTRUMENTATION (same contract as the cladding model):
+    // StepRvlis reads post-tick inventory/pump/thermal state and writes ONLY the four properties below + two
+    // advisory alarms. It NEVER writes feedback state, so the meltdown/ECCS path is provably unaffected.
+    public double RvlisFullRangePct { get; private set; } = 100.0;    // % of full vessel height (bottom-of-vessel→top-of-head); ~62%=top of active fuel, ~33%=bottom. Valid RCPs OFF.
+    public double RvlisDynamicHeadPct { get; private set; }           // % of all-pumps ΔP span (0=no head/voided, 100=4-pump water-solid). NOT a level. Valid ≥1 RCP ON.
+    public double RvlisUpperRangePct { get; private set; } = 100.0;   // % hot-leg elevation→top of head (head-vent guidance). Valid RCPs OFF.
+    public RvlisValidRange RvlisRange { get; private set; } = RvlisValidRange.DynamicHead; // pump-state validity selector
     private double _w2;     // ∫ Cathcart–Pawel weight-gain² (g²/cm⁴) — the monotone oxidation state, never reported raw
     private double _wPrev;  // previous-tick weight gain w = √_w2 (g/cm²), for the per-tick oxidation increment
 
@@ -444,6 +467,18 @@ public sealed class ReactorSimService
     private const double CladSubstepDt = 0.05;       // s internal sub-step in the autocatalytic regime
     private const double BreakDeficitRate = 1.2;     // %/s per unit break area — RCS inventory the break sheds
     private const double BoiloffDeficitRate = 30.0;  // (%/s)/(decay-heat fraction) saturated boil-off the SG cannot remove
+
+    // RVLIS Full-Range geometry + dynamic-head / alarm calibration. The active fuel occupies a SUB-BAND of the
+    // full vessel: bottom of active fuel ≈ 33 %, top of active fuel ≈ 62 % of full-range span; above 62 % is the
+    // upper plenum/head. LO-LO at 40 % sits in the uncovered-fuel band (≈ the real-plant TAF setpoint band).
+    private const double RvlisFuelBottomPct     = 33.0;   // Full-Range % at bottom of active fuel
+    private const double RvlisFuelTopPct        = 62.0;   // Full-Range % at top of active fuel (fuel just covered)
+    private const double RvlisVesselEmptyDeficit = 40.0;  // deficit (%) at Full-Range floor — equals the PrimaryDeficitPct clamp ceiling
+    private const double RvlisFullRangeLoLoPct  = 40.0;   // LO-LO setpoint (uncovered-fuel band)
+    private const double RvlisDhGain            = 100.0;  // 4-pump (PumpedFlowFraction=1) → 100 % dynamic head
+    private const double RvlisDhSubcoolRef      = 10.0;   // °C subcooling at which dynamic head reads full; voiding collapses it
+    private const double RvlisHeadSubcoolRef    = 15.0;   // °C subcooling to ramp Full-Range 62→100 in the covered/head-fill region
+    private const double RvlisCoverDeadband     = 0.98;   // ICC advisory alarm: raise below this, clear only when fully covered (anti-chatter)
 
     // RCP seal package — WOG-2000 seal-LOCA constants. Cooled datum, heat-up/relax time constants, the four
     // cavity-temperature bin breakpoints, and the canonical per-pump leakoff bins (21/76/182/480 gpm/pump).
@@ -1190,6 +1225,7 @@ public sealed class ReactorSimService
             UpdateMeltdownPhysics(dt);
             UpdateNis(dt);
             StepCladding(dt); // keep PCT / 50.46 instrumentation live through a meltdown
+            StepRvlis(dt);    // keep RVLIS vessel-level indication live through a meltdown
             UpdateAlarms();
             return;
         }
@@ -1245,6 +1281,7 @@ public sealed class ReactorSimService
         UpdateNis(dt);
         UpdateProtection(dt);
         StepCladding(dt); // after protection so it reads the final post-tick inventory / ECCS / thermal state
+        StepRvlis(dt);    // RVLIS reads the post-cladding CollapsedLevelFrac; advisory alarms only
         UpdateAlarms();
         UpdateStatus();
     }
@@ -1550,6 +1587,68 @@ public sealed class ReactorSimService
         double dEcrFrac = dWtick / FullWallWeightGain;        // fraction-of-wall reacted this tick at the hot node
         HydrogenMassKg += dEcrFrac * exposed * FullCoreH2Kg;  // core-wide-average mass of H₂ liberated
         CoreWideHydrogenPct = Math.Min(100.0, HydrogenMassKg / FullCoreH2Kg * 100.0);
+    }
+
+    /// <summary>
+    /// RVLIS（反應堆壓力容器水位儀表系統）· Reactor Vessel Level Instrumentation System (NUREG-0737 II.F.2).
+    /// Purely additive INSTRUMENTATION (mirrors StepCladding, lines ~400-404): reads post-tick inventory / pump /
+    /// thermal state (CollapsedLevelFrac, PrimaryDeficitPct, RcpRunning[], PumpedFlowFraction, SubcoolingMarginC)
+    /// and writes ONLY the four Rvlis* properties + two advisory alarms. It NEVER writes CollapsedLevelFrac,
+    /// PrimaryDeficitPct, pump state, pressure or temperature, so the meltdown / ECCS path is provably unaffected.
+    /// NOTE: the two alarms are ADVISORY. The ICC trip / FR-C.1 entry is owned by the core-exit-thermocouple
+    /// 1200 °F (649 °C) criterion + subcooling monitor, NOT by RVLIS — these never command a scram.
+    /// </summary>
+    private void StepRvlis(double dt)
+    {
+        if (dt <= 0) return;
+
+        // --- validity: any RCP running ⇒ the sensed ΔP column is pump-head-dominated, so only the
+        //     dynamic-head range is trustworthy; pumps all off ⇒ the collapsed-level ranges are valid. ---
+        bool anyPump = false;
+        for (int i = 0; i < RcpRunning.Length; i++) if (RcpRunning[i]) { anyPump = true; break; }
+        RvlisRange = anyPump ? RvlisValidRange.DynamicHead : RvlisValidRange.FullRange;
+
+        // --- FULL RANGE (collapsed level over the whole vessel) ---------------------------------------
+        // CollapsedLevelFrac is normalized over the ACTIVE FUEL only: 1 ⇒ fuel top (62 %), 0 ⇒ fuel bottom (33 %).
+        double full;
+        if (CollapsedLevelFrac >= 1.0 && SubcoolingMarginC > 0.0)
+        {
+            // covered + subcooled: ramp 62 → 100 % as the upper plenum/head fills (subcooling as the proxy).
+            double headFill = Math.Clamp(SubcoolingMarginC / RvlisHeadSubcoolRef, 0.0, 1.0);
+            full = RvlisFuelTopPct + (100.0 - RvlisFuelTopPct) * headFill;
+        }
+        else if (CollapsedLevelFrac > 0.0)
+        {
+            // within the active-fuel band: 33 % (frac 0) .. 62 % (frac 1).
+            full = RvlisFuelBottomPct + CollapsedLevelFrac * (RvlisFuelTopPct - RvlisFuelBottomPct);
+        }
+        else
+        {
+            // fuel fully uncovered: drain the 0..33 % lower-plenum band off the inventory deficit past boil-dry.
+            // span is [DeficitBoildry=34 .. RvlisVesselEmptyDeficit=40] — the PrimaryDeficitPct clamp ceiling.
+            double drain = Math.Clamp(
+                1.0 - (PrimaryDeficitPct - DeficitBoildry) / (RvlisVesselEmptyDeficit - DeficitBoildry),
+                0.0, 1.0);
+            full = RvlisFuelBottomPct * drain;
+        }
+        RvlisFullRangePct = Math.Clamp(full, 0.0, 100.0);
+
+        // --- DYNAMIC HEAD (pump ΔP; valid only with pumps running). Voiding the column collapses it. ---
+        // PumpedFlowFraction is already pump-count-weighted (≈0.25/pump) — do NOT re-scale by pump count.
+        double voidFactor = Math.Clamp(SubcoolingMarginC / RvlisDhSubcoolRef, 0.0, 1.0);
+        RvlisDynamicHeadPct = anyPump
+            ? Math.Clamp(RvlisDhGain * PumpedFlowFraction * voidFactor, 0.0, 120.0)
+            : 0.0;
+
+        // --- UPPER RANGE (hot-leg elevation → top of head; pumps-off validity, same as Full Range) ----
+        RvlisUpperRangePct = Math.Clamp(100.0 * CollapsedLevelFrac, 0.0, 100.0);
+
+        // --- advisory alarms (anti-chatter deadband at the fuel-cover boundary) -----------------------
+        bool belowFuel = _alarms[(int)ReactorAlarm.RvlisBelowTopOfFuel]
+            ? CollapsedLevelFrac < 1.0                    // latched on: clear only when fully re-covered
+            : CollapsedLevelFrac < RvlisCoverDeadband;    // off: raise only below 0.98
+        SetAlarm(ReactorAlarm.RvlisBelowTopOfFuel, belowFuel);
+        SetAlarm(ReactorAlarm.RvlisFullRangeLoLo, RvlisFullRangePct < RvlisFullRangeLoLoPct);
     }
 
     /// <summary>
