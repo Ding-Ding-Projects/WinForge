@@ -32,6 +32,11 @@ public partial class App : Application
         CrashLogger.Install(this);
         CrashLogger.Mark("App: OnLaunched start");
 
+        // 防崩潰／關機自動儲存：載入已儲存狀態、掛上死亡鈎（退出／崩潰／關機）、啟動定時自動儲存。
+        // Crash/shutdown-safe persistence: load saved state, install death hooks (exit/crash/
+        // session-ending), start periodic autosave. Best-effort — never blocks startup.
+        CrashLogger.Guard("startup:persistence", () => PersistenceService.I.Initialize());
+
         ParseArgs();
 
         // 無頭模式：匯出每個功能嘅 Markdown 然後退出 · headless docs export then exit.

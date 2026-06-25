@@ -84,7 +84,12 @@ public sealed partial class MainWindow : Window
 
     private void OnAppWindowClosing(AppWindow sender, AppWindowClosingEventArgs args)
     {
-        if (_reallyQuit || !TrayService.IsInstalled) return;
+        if (_reallyQuit || !TrayService.IsInstalled)
+        {
+            // Genuinely closing → flush all volatile state before the process tears down.
+            CrashLogger.Guard("persistence:close", () => Services.PersistenceService.I.Flush());
+            return;
+        }
         args.Cancel = true;       // don't exit — hide to the tray so background work continues
         AppWindow.Hide();
     }
@@ -104,6 +109,8 @@ public sealed partial class MainWindow : Window
     private void QuitFromTray()
     {
         _reallyQuit = true;
+        // Flush volatile state before exiting from the tray (ProcessExit also flushes as a backstop).
+        CrashLogger.Guard("persistence:quit", () => Services.PersistenceService.I.Flush());
         TrayService.Remove();
         Application.Current.Exit();
     }

@@ -565,6 +565,133 @@ public sealed class ReactorSimService
         StatusEn = "Operating"; StatusZh = "運轉中";
     }
 
+    // =================================================================== PERSISTENCE ====
+    // 可序列化嘅完整模擬狀態快照（畀 PersistenceService 防崩潰自動儲存／還原用）。
+    // A fully-serializable snapshot of the simulation state, used by PersistenceService for
+    // crash/shutdown-safe autosave + restore. Every volatile quantity is captured so the reactor
+    // resumes seamlessly: power & 6-group precursors, temps, pressures, pzr/SG levels, xenon/iodine,
+    // rod positions, boron, mode, setpoints, alarms, damage and the sim clock.
+    public sealed class Snapshot
+    {
+        public int Version { get; set; } = 1;
+
+        // Kinetics
+        public double Power { get; set; }
+        public double[] Precursor { get; set; } = new double[6];
+        public double SourceLevel { get; set; }
+        public double ReactorPeriodSeconds { get; set; }
+
+        // Thermal-hydraulics
+        public double FuelTemp { get; set; }
+        public double Tcold { get; set; }
+        public double Thot { get; set; }
+        public double PrimaryPressure { get; set; }
+        public double PressurizerLevel { get; set; }
+        public double SteamPressure { get; set; }
+        public double SteamGenLevel { get; set; }
+        public double ElectricPowerMW { get; set; }
+        public double TurbineRPM { get; set; }
+        public double CoolantFlowFraction { get; set; }
+
+        // Poisons
+        public double Iodine { get; set; }
+        public double Xenon { get; set; }
+
+        // Controls
+        public double[] RodBankInsertion { get; set; } = new double[4];
+        public double BoronPpm { get; set; }
+        public double TargetBoronPpm { get; set; }
+        public bool PressurizerHeater { get; set; }
+        public bool PressurizerSpray { get; set; }
+        public double RcpFlowDemand { get; set; }
+        public bool[] RcpRunning { get; set; } = new bool[4];
+        public double FeedwaterFlow { get; set; }
+        public double TurbineLoadSetpoint { get; set; }
+        public bool GeneratorBreakerClosed { get; set; }
+        public bool ReliefValveOpen { get; set; }
+        public bool EccsArmed { get; set; }
+        public bool AutoRodControl { get; set; }
+        public double AutoPowerSetpoint { get; set; }
+
+        // Safety / state
+        public double DamageAccumulation { get; set; }
+        public bool IsScrammed { get; set; }
+        public bool MeltdownTriggered { get; set; }
+        public int Mode { get; set; }
+        public bool[] Alarms { get; set; } = Array.Empty<bool>();
+
+        // Sim clock (seconds since the page started the run); the page owns it but we persist it here.
+        public double SimClockSeconds { get; set; }
+    }
+
+    /// <summary>影一個完整狀態快照 · Capture a complete serializable snapshot of the simulation.</summary>
+    public Snapshot CaptureSnapshot(double simClockSeconds)
+    {
+        var s = new Snapshot
+        {
+            Power = _power,
+            SourceLevel = SourceLevel,
+            ReactorPeriodSeconds = ReactorPeriodSeconds,
+            FuelTemp = FuelTemp, Tcold = Tcold, Thot = Thot,
+            PrimaryPressure = PrimaryPressure, PressurizerLevel = PressurizerLevel,
+            SteamPressure = SteamPressure, SteamGenLevel = SteamGenLevel,
+            ElectricPowerMW = ElectricPowerMW, TurbineRPM = TurbineRPM,
+            CoolantFlowFraction = CoolantFlowFraction,
+            Iodine = Iodine, Xenon = Xenon,
+            BoronPpm = BoronPpm, TargetBoronPpm = TargetBoronPpm,
+            PressurizerHeater = PressurizerHeater, PressurizerSpray = PressurizerSpray,
+            RcpFlowDemand = RcpFlowDemand, FeedwaterFlow = FeedwaterFlow,
+            TurbineLoadSetpoint = TurbineLoadSetpoint, GeneratorBreakerClosed = GeneratorBreakerClosed,
+            ReliefValveOpen = ReliefValveOpen, EccsArmed = EccsArmed,
+            AutoRodControl = AutoRodControl, AutoPowerSetpoint = AutoPowerSetpoint,
+            DamageAccumulation = DamageAccumulation, IsScrammed = IsScrammed,
+            MeltdownTriggered = MeltdownTriggered, Mode = (int)Mode,
+            SimClockSeconds = simClockSeconds,
+            Precursor = (double[])_precursor.Clone(),
+            RodBankInsertion = (double[])RodBankInsertion.Clone(),
+            RcpRunning = (bool[])RcpRunning.Clone(),
+            Alarms = (bool[])_alarms.Clone(),
+        };
+        return s;
+    }
+
+    /// <summary>由快照還原整個模擬狀態 · Restore the entire simulation from a snapshot. Never throws.</summary>
+    public void RestoreSnapshot(Snapshot s)
+    {
+        if (s is null) return;
+        try
+        {
+            _power = s.Power > 0 ? s.Power : 1e-12;
+            if (s.Precursor is { Length: 6 }) Array.Copy(s.Precursor, _precursor, 6);
+            SourceLevel = s.SourceLevel > 0 ? s.SourceLevel : 1e-8;
+            ReactorPeriodSeconds = s.ReactorPeriodSeconds;
+            FuelTemp = s.FuelTemp; Tcold = s.Tcold; Thot = s.Thot;
+            PrimaryPressure = s.PrimaryPressure; PressurizerLevel = s.PressurizerLevel;
+            SteamPressure = s.SteamPressure; SteamGenLevel = s.SteamGenLevel;
+            ElectricPowerMW = s.ElectricPowerMW; TurbineRPM = s.TurbineRPM;
+            CoolantFlowFraction = s.CoolantFlowFraction;
+            Iodine = s.Iodine; Xenon = s.Xenon;
+            if (s.RodBankInsertion is { Length: 4 })
+                for (int i = 0; i < 4; i++) RodBankInsertion[i] = s.RodBankInsertion[i];
+            BoronPpm = s.BoronPpm; TargetBoronPpm = s.TargetBoronPpm;
+            PressurizerHeater = s.PressurizerHeater; PressurizerSpray = s.PressurizerSpray;
+            RcpFlowDemand = s.RcpFlowDemand;
+            if (s.RcpRunning is { Length: 4 })
+                for (int i = 0; i < 4; i++) RcpRunning[i] = s.RcpRunning[i];
+            FeedwaterFlow = s.FeedwaterFlow; TurbineLoadSetpoint = s.TurbineLoadSetpoint;
+            GeneratorBreakerClosed = s.GeneratorBreakerClosed; ReliefValveOpen = s.ReliefValveOpen;
+            EccsArmed = s.EccsArmed; AutoRodControl = s.AutoRodControl;
+            AutoPowerSetpoint = s.AutoPowerSetpoint;
+            DamageAccumulation = s.DamageAccumulation;
+            IsScrammed = s.IsScrammed; MeltdownTriggered = s.MeltdownTriggered;
+            Mode = Enum.IsDefined(typeof(ReactorMode), s.Mode) ? (ReactorMode)s.Mode : ReactorMode.Shutdown;
+            if (s.Alarms is not null && s.Alarms.Length == _alarms.Length)
+                Array.Copy(s.Alarms, _alarms, _alarms.Length);
+            UpdateStatus();
+        }
+        catch { /* never throw into the UI — leave the sim at whatever was restored */ }
+    }
+
     // =================================================================== REAL SHUTDOWN ====
     // Win32 shutdown helper. SAFE BY DEFAULT: the caller only invokes this after the user has
     // explicitly armed the toggle AND a 10-second abortable countdown elapsed. We use the Win32
