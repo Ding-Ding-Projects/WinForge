@@ -329,6 +329,13 @@ public sealed partial class MainWindow : Window
             case "drives":
                 Navigator.GoToModule?.Invoke("module.drives");
                 break;
+            case "diskbench":
+            case "benchmark":
+            case "diskbenchmark":
+            case "crystaldiskmark":
+            case "cdm":
+                Navigator.GoToModule?.Invoke("module.diskbench");
+                break;
             case "testdisk":
             case "photorec":
             case "recovery":
@@ -801,6 +808,7 @@ public sealed partial class MainWindow : Window
         "module.filelocksmith" => typeof(FileLocksmithModule),
         "module.disk" => typeof(DiskAnalyzerModule),
         "module.drives" => typeof(DrivesModule),
+        "module.diskbench" => typeof(DiskBenchmarkModule),
         "module.testdisk" => typeof(TestDiskModule),
         "module.uninstall" => typeof(AppUninstallerModule),
         "module.windows" => typeof(WindowManagerModule),
