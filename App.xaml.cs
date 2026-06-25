@@ -74,6 +74,12 @@ public partial class App : Application
         Shell = new MainWindow();
         CrashLogger.Mark("App: after new MainWindow");
 
+        // 自動啟動對外反應堆狀態 API（具名管道＋記憶體映射），令依賴反應堆嘅其他 app 永遠有得讀。
+        // Auto-start the public reactor status API (named pipe + MMF) so dependent apps always have
+        // it available even before the reactor page is opened. Default ON; toggle on the reactor page.
+        // Exception-safe and self-cleaning (AppDomain.ProcessExit) — never blocks app startup.
+        try { WinForge.Services.ReactorStatusApiService.I.Start(); } catch { }
+
         // --reactor (from the keep-alive launcher) opens the flagship reactor page on launch.
         if (StartReactor) StartPage ??= "reactor";
 

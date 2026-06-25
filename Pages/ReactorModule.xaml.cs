@@ -99,6 +99,10 @@ public sealed partial class ReactorModule : Page
     // Cached control text blocks needing re-localization.
     private readonly List<Action> _relocalizers = new();
 
+    // Public status-API card live elements.
+    private ToggleSwitch? _apiToggle;
+    private TextBlock? _apiStateText;
+
     public ReactorModule()
     {
         InitializeComponent();
@@ -121,6 +125,13 @@ public sealed partial class ReactorModule : Page
             _timer.Tick += Tick;
             _timer.Start();
 
+            // 綁定對外狀態 API 到呢個實時模擬實例，並建立狀態卡 · Bind the public status API to this live
+            // sim and build the bilingual status card. The API auto-started in App.OnLaunched; binding
+            // here makes it serve REAL data while the page is open. Publish() is called each tick.
+            try { ReactorStatusApiService.I.Bind(_sim); } catch { }
+            BuildStatusApiCard();
+            UpdateStatusApiCard();
+
             // Audio: lazily start the AudioGraph, then begin the ambient hum (respects mute).
             try
             {
@@ -142,6 +153,9 @@ public sealed partial class ReactorModule : Page
             // SAFETY: always release the keep-awake hold when leaving the page so navigating
             // away never leaves the system pinned awake. 離開頁面時務必釋放保持喚醒。
             ReleaseKeepAwake();
+            // 解除狀態 API 綁定並發佈「離線」快照 · Unbind the status API and publish an offline snapshot
+            // so dependents see isGenerating=false once the reactor page is closed. The server stays up.
+            try { ReactorStatusApiService.I.Unbind(); ReactorStatusApiService.I.PublishOffline(); } catch { }
         };
     }
 
@@ -207,6 +221,10 @@ public sealed partial class ReactorModule : Page
 
         _sim.Update(dt);
 
+        // 每個反應堆 tick 向對外 API 發佈狀態快照 · Publish a fresh status snapshot to the public API
+        // (MMF + named-pipe subscribers) every reactor tick. Exception-safe; never affects the sim.
+        try { ReactorStatusApiService.I.Publish(); } catch { }
+
         UpdateKeepAwake();
         UpdateStatusBanner();
         UpdateGauges();
@@ -218,6 +236,7 @@ public sealed partial class ReactorModule : Page
         UpdateRpsPanel();
         UpdateAudio();
         UpdateControlsLive();
+        UpdateStatusApiCard();
 
         if (_sim.Mode == ReactorMode.Meltdown)
             AnimateMeltdown(dt);
@@ -338,6 +357,92 @@ public sealed partial class ReactorModule : Page
         _keepAwakeEnabled = KeepAwakeToggle.IsOn;
         // When turned OFF mid-generation, release the real hold immediately (sim keeps running).
         if (!_keepAwakeEnabled) ReleaseKeepAwake();
+    }
+
+    // ============================================================ public status API card ====
+    // A small bilingual card on the reactor page that surfaces the public local status API: the
+    // named-pipe + memory-mapped-file names other apps connect to, an Enable/Disable toggle (persisted
+    // in SettingsStore, default ON), and a live running/offline indicator.
+    private void BuildStatusApiCard()
+    {
+        if (StatusApiHost is null) return;
+        StatusApiHost.Children.Clear();
+
+        var title = new TextBlock { FontWeight = FontWeights.SemiBold };
+        _relocalizers.Add(() => title.Text = P(
+            "Public status API · 對外狀態 API",
+            "對外狀態 API · Public status API"));
+        title.Text = P("Public status API · 對外狀態 API", "對外狀態 API · Public status API");
+
+        var blurb = new TextBlock
+        {
+            TextWrapping = TextWrapping.Wrap, FontSize = 12,
+            Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+        };
+        _relocalizers.Add(() => blurb.Text = P(
+            "Other local apps can read this reactor's power/status in real time and depend on it (e.g. run only while generating). Copy Sdk/ReactorStatusClient.cs into your app — no WinForge reference needed.",
+            "其他本機 app 可即時讀取本反應堆嘅功率／狀態並依賴佢（例如只喺發電時運行）。將 Sdk/ReactorStatusClient.cs 複製入你嘅 app 即可，無需引用 WinForge。"));
+        blurb.Text = P(
+            "Other local apps can read this reactor's power/status in real time and depend on it (e.g. run only while generating). Copy Sdk/ReactorStatusClient.cs into your app — no WinForge reference needed.",
+            "其他本機 app 可即時讀取本反應堆嘅功率／狀態並依賴佢（例如只喺發電時運行）。將 Sdk/ReactorStatusClient.cs 複製入你嘅 app 即可，無需引用 WinForge。");
+
+        var names = new TextBlock
+        {
+            FontFamily = new FontFamily("Consolas"), FontSize = 12, TextWrapping = TextWrapping.Wrap,
+            Foreground = new SolidColorBrush(Color.FromArgb(230, 0x90, 0xCA, 0xF9)),
+            Text =
+                $"Pipe   \\\\.\\pipe\\{ReactorStatusApiService.PipeName}\n" +
+                $"MMF    {ReactorStatusApiService.MmfName}\n" +
+                $"Mutex  {ReactorStatusApiService.MutexName}",
+        };
+
+        _apiStateText = new TextBlock { FontSize = 12, FontWeight = FontWeights.SemiBold };
+
+        _apiToggle = new ToggleSwitch { IsOn = ReactorStatusApiService.I.Enabled };
+        _relocalizers.Add(() =>
+        {
+            _apiToggle.Header = P("Expose status API · 開放狀態 API", "開放狀態 API · Expose status API");
+            _apiToggle.OnContent = P("On", "開");
+            _apiToggle.OffContent = P("Off", "關");
+        });
+        _apiToggle.Header = P("Expose status API · 開放狀態 API", "開放狀態 API · Expose status API");
+        _apiToggle.OnContent = P("On", "開");
+        _apiToggle.OffContent = P("Off", "關");
+        _apiToggle.Toggled += (_, _) =>
+        {
+            try { ReactorStatusApiService.I.SetEnabled(_apiToggle!.IsOn); } catch { }
+            UpdateStatusApiCard();
+        };
+
+        StatusApiHost.Children.Add(title);
+        StatusApiHost.Children.Add(blurb);
+        StatusApiHost.Children.Add(names);
+        StatusApiHost.Children.Add(_apiToggle);
+        StatusApiHost.Children.Add(_apiStateText);
+    }
+
+    private void UpdateStatusApiCard()
+    {
+        if (_apiStateText is null) return;
+        bool enabled = ReactorStatusApiService.I.Enabled;
+        bool running = ReactorStatusApiService.I.IsRunning;
+        if (!enabled)
+        {
+            _apiStateText.Text = P("● Disabled · 已停用", "● 已停用 · Disabled");
+            _apiStateText.Foreground = new SolidColorBrush(Color.FromArgb(255, 0x75, 0x75, 0x75));
+        }
+        else if (running)
+        {
+            _apiStateText.Text = P(
+                $"● Live — seq {ReactorStatusApiService.I.LastSnapshot.Sequence} · 運行中",
+                $"● 運行中 — 序號 {ReactorStatusApiService.I.LastSnapshot.Sequence} · Live");
+            _apiStateText.Foreground = new SolidColorBrush(Color.FromArgb(255, 0x4C, 0xAF, 0x50));
+        }
+        else
+        {
+            _apiStateText.Text = P("● Enabled (starting…) · 啟用中", "● 啟用中（啟動中…） · Enabled");
+            _apiStateText.Foreground = new SolidColorBrush(Color.FromArgb(255, 0xFF, 0xB3, 0x00));
+        }
     }
 
     private static string ModeEn(ReactorMode m) => m switch

@@ -26,6 +26,17 @@
     <DefaultItemExcludes>$(DefaultItemExcludes);external\**;launcher\**</DefaultItemExcludes>
   </PropertyGroup>
 
+  <!-- Sdk/** is a STANDALONE, drop-in client SDK that OTHER apps copy into their own projects.
+       It defines its own ReactorStatus DTO in the WinForge.Reactor.Sdk namespace and must NOT be
+       compiled into WinForge itself (it would duplicate types / pull a sample into the app). Keep
+       it in the repo for others to copy, but exclude every Sdk item from the app build. -->
+  <ItemGroup>
+    <Compile Remove="Sdk\**" />
+    <Content Remove="Sdk\**" />
+    <None Remove="Sdk\**" />
+    <Page Remove="Sdk\**" />
+  </ItemGroup>
+
   <!-- 未封裝執行時，ms-appx:/// 未必靠得住，所以所有資產 PNG 都要複製到輸出目錄，
        等 UriToImageConverter 可以用 file:/// 由 AppContext.BaseDirectory 載入。
        Unpackaged runs can't rely on ms-appx:///, so every asset PNG (including loose ones not in the

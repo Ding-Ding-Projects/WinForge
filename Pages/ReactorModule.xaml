@@ -23,6 +23,7 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
                 <!-- header -->
@@ -212,6 +213,13 @@
                         Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                         BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                     <StackPanel x:Name="ControlsHost" Spacing="14" />
+                </Border>
+
+                <!-- Public status API (named pipe + MMF) — for dependent apps -->
+                <Border Grid.Row="12" CornerRadius="8" Padding="16"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                    <StackPanel x:Name="StatusApiHost" Spacing="8" />
                 </Border>
             </Grid>
         </ScrollViewer>
