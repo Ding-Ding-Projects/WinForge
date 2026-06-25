@@ -156,6 +156,7 @@ public sealed partial class ReactorModule : Page
     // a tripped pump still coasting down on its flywheel, or normal forced (pumped) flow.
     private string FlowModeTag()
     {
+        if (_sim.RcpLockedRotor) return P($" · LOCKED LOOP {_sim.LockedRotorLoop + 1}", $" · 卡軸 {_sim.LockedRotorLoop + 1}號環");
         if (_sim.OnNaturalCirc) return P(" · NAT CIRC", " · 自然循環");
         if (_sim.RcpCoasting) return P(" · COASTDOWN", " · 惰轉");
         return "";
@@ -478,7 +479,10 @@ public sealed partial class ReactorModule : Page
         AddGauge("Coolant Thot", "熱腿溫度", 530, 660, () => _sim.Thot * 1.8 + 32, () => $"{_sim.Thot * 1.8 + 32:F0}°F", id: "thot");
         AddGauge("Coolant Tcold", "冷腿溫度", 520, 600, () => _sim.Tcold * 1.8 + 32, () => $"{_sim.Tcold * 1.8 + 32:F0}°F", id: "tcold");
         AddGauge("Subcooling", "過冷度", -20, 120, () => _sim.SubcoolingMarginC, () => $"{_sim.SubcoolingMarginC:F0}°C", id: "subcool");
-        AddGauge("Min DNBR (W-3)", "最小 DNBR", 1.0, 4.0, () => _sim.MinDnbr, () => _sim.MinDnbr >= 9.95 ? ">10" : $"{_sim.MinDnbr:F2}", id: "dnbr");
+        AddGauge("Min DNBR (W-3)", "最小 DNBR", 1.0, 4.0, () => _sim.MinDnbr,
+            () => (_sim.MinDnbr >= 9.95 ? ">10" : $"{_sim.MinDnbr:F2}")
+                + (_sim.RodsInDnbPercent > 0.1 ? P($" · {_sim.RodsInDnbPercent:F1}% rods DNB", $" · {_sim.RodsInDnbPercent:F1}% 棒DNB") : ""),
+            id: "dnbr");
         AddGauge("Primary pressure", "一迴路壓力", 0, 3000, () => _sim.PrimaryPressure * 145.038, () => $"{_sim.PrimaryPressure * 145.038:F0} psia", id: "pzrPress");
         // 10 CFR 50 Appendix G P/T limit + LTOP gauges (representative aged-vessel curve).
         AddGauge("P/T limit margin", "P/T 限值裕量", -2, 13, () => _sim.PtMarginMPa,
@@ -760,6 +764,8 @@ public sealed partial class ReactorModule : Page
             (ReactorAlarm.ContainmentDeflagration, "H₂ DEFLAGRATION", "氫氣爆燃"),
             (ReactorAlarm.DnbrLowMargin, "DNBR LOW MARGIN", "DNBR 餘裕偏低"),
             (ReactorAlarm.DnbrSafetyLimit, "DNBR < 1.30 (S.L.)", "DNBR <1.30 安全限值"),
+            (ReactorAlarm.RcpLockedRotor, "RCP LOCKED ROTOR (15.3.3)", "主泵卡軸（15.3.3）"),
+            (ReactorAlarm.RodsInDnbHi, "RODS IN DNB > 5%", "DNB 燃料棒 >5%"),
             (ReactorAlarm.RcpSealLoca, "RCP SEAL LOCA", "主泵軸封失水"),
             (ReactorAlarm.RvlisBelowTopOfFuel, "RVLIS < TOP OF FUEL", "RVLIS 低於燃料頂"),
             (ReactorAlarm.RvlisFullRangeLoLo, "RVLIS LEVEL LO-LO", "RVLIS 水位 低低"),
@@ -1278,6 +1284,8 @@ public sealed partial class ReactorModule : Page
         ScenarioCombo.Items.Add(P("RCP seal LOCA — loss of seal cooling", "主泵軸封失水 — 喪失軸封冷卻"));
         ScenarioCombo.Items.Add(P("Rod ejection — RIA (Ch 15.4.8)", "彈棒事故 — RIA（15.4.8）"));
         ScenarioCombo.Items.Add(P("Boron dilution (Ch 15.4.6)", "失控硼稀釋（15.4.6）"));
+        ScenarioCombo.Items.Add(P("Complete loss of flow (Ch 15.3.2)", "全喪失強制流量（15.3.2）"));
+        ScenarioCombo.Items.Add(P("RCP locked rotor (Ch 15.3.3)", "主泵卡軸（15.3.3）"));
         ScenarioCombo.SelectedIndex = 0;
     }
 
@@ -1311,6 +1319,8 @@ public sealed partial class ReactorModule : Page
             8 => ReactorScenario.RcpSealLoca,
             9 => ReactorScenario.RodEjection,
             10 => ReactorScenario.BoronDilution,
+            11 => ReactorScenario.CompleteLossOfFlow,
+            12 => ReactorScenario.LockedRotor,
             _ => ReactorScenario.Normal,
         });
         // The isolate control is meaningful during an SGTR (isolate affected SG) or an MSLB (close MSIVs).

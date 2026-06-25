@@ -99,6 +99,8 @@ public enum ReactorAlarm
     RcsPressureBoundaryLeak,   // any RCS pressure-boundary LEAKAGE (LCO 3.4.13.a) — ZERO allowed; immediate MODE 3 in 6 h / MODE 5 in 36 h
     ContainmentParticulateRadHi, // containment-atmosphere particulate (I-131) radioactivity monitor hi (RG 1.45 / LCO 3.4.15)
     ContainmentGaseousRadHi,   // containment-atmosphere gaseous (Xe-133 noble-gas) radioactivity monitor hi (RG 1.45 / LCO 3.4.15)
+    RcpLockedRotor,            // RCP rotor seizure / locked rotor (FSAR 15.3.3) — one loop flow lost instantly
+    RodsInDnbHi,               // predicted fuel rods in DNB exceeds the ~5% locked-rotor acceptance fraction
 }
 
 /// <summary>
@@ -528,6 +530,11 @@ public sealed class ReactorSimService
     public double CoolantFlowFraction { get; private set; } // 0..1 actual primary flow
     // Per-loop flow contribution (0..RcpLoopShare each) — carries the hyperbolic coastdown of a tripped pump.
     private readonly double[] _rcpFlow = new double[4];
+    // Locked-rotor (FSAR 15.3.3): index of the seized loop, pinned to ~0 flow each tick with NO flywheel
+    // coastdown (the impeller is mechanically locked). -1 = no seized loop. The other three loops are untouched.
+    private int _lockedRotorLoop = -1;
+    public bool RcpLockedRotor => _lockedRotorLoop >= 0;     // a loop is currently seized (15.3.3)
+    public int  LockedRotorLoop => _lockedRotorLoop;         // which loop (0-based), -1 if none
     public double PumpedFlowFraction { get; private set; }   // 0..1 forced (pumped) component of flow
     public double NaturalCircFraction { get; private set; }  // 0..1 buoyancy-thermosiphon floor this tick
     public bool RcpCoasting { get; private set; }            // a stopped pump is still carrying inertial flow
@@ -1403,6 +1410,7 @@ public sealed class ReactorSimService
         PeakFuelEnthalpyCalPerG = _hotPelletEnthalpy; PeakFuelEnthalpyRiseCalPerG = 0;
         RiaCladdingFailure = false; RiaFuelMelt = false; RiaCoolabilityViolated = false; RiaFailedRodPercent = 0;
         _dilutionActive = false; _dilutionFlowGpm = 0;
+        _lockedRotorLoop = -1;     // clear any prior RCP rotor seizure (15.3.3)
         // Re-arm the boric-acid precipitation monitor for the new scenario (operator must re-elect ES-1.4).
         CoreBoronPpm = BoronPpm; HotLegRecircActive = false; Precipitated = false;
         TimeToPrecipSeconds = double.PositiveInfinity; BoricConcentrationActive = false;
@@ -1463,6 +1471,21 @@ public sealed class ReactorSimService
                 _dilutionFlowGpm = DilutionFlowDefaultGpm;
                 _dilutionCpsRef  = Math.Max(1.0, SourceRangeCps);
                 break;
+            case ReactorScenario.CompleteLossOfFlow:
+                // FSAR 15.3.2: loss of power to all RCP buses (undervoltage/underfrequency) — every pump trips
+                // together and coasts down on its flywheel. The existing per-loop coastdown carries the flow
+                // (W/W0 ≈ 1/(1+t/τ): ~0.93@1s, ~0.70@5s, ~0.50@10s) down to the ~3–5% natural-circ floor. The
+                // low-RCS-flow reactor trip (P-7 permissive) fires within ~1–2 s; min DNBR stays above 1.30.
+                for (int i = 0; i < RcpRunning.Length; i++) RcpRunning[i] = false;
+                RcpFlowDemand = 0;     // _lockedRotorLoop stays -1 → all four coast via the normal else-branch
+                break;
+            case ReactorScenario.LockedRotor:
+                // FSAR 15.3.3: a single RCP rotor seizes instantaneously. Its loop flow collapses to ~0 in one
+                // tick (no flywheel coastdown); the other three pumps keep running, so core flow steps to
+                // ~3/4 rated almost at once — the fastest flow loss and the DNBR-limiting Condition-IV event.
+                // Low-flow trip + scram fire normally; this is the bounding case for min DNBR / % rods in DNB.
+                _lockedRotorLoop = 0;  // affected loop (0-based); other RCPs keep running — do NOT clear them
+                break;
         }
     }
 
@@ -1503,6 +1526,12 @@ public sealed class ReactorSimService
     public double MinDnbr { get; private set; } = 10.0;           // smoothed minimum DNBR, capped at DnbrCeiling
     public double DnbrRawUnfiltered { get; private set; } = 10.0; // pre-filter value (strip-chart / debug)
     public double DnbrLocalQuality { get; private set; }          // thermodynamic quality x at the DNB node
+    // Predicted fraction of fuel rods in DNB (%), the locked-rotor (FSAR 15.3.3) figure of merit. The
+    // licensing acceptance is < ~5–10% of rods in DNB (assumed failed for dose). This is an engineering
+    // surrogate of the hot-channel DNBR distribution, not a sub-channel census: 0% while MinDnbr ≥ the 1.30
+    // 95/95 limit, rising as MinDnbr falls below it. The 95/95 basis means ~the worst 5% of rods reach DNB
+    // exactly at MinDnbr = 1.30, so the curve is anchored to 5% at the limit and saturates toward 100%.
+    public double RodsInDnbPercent { get; private set; }
 
     private const double Fq_Total        = CladPeakingFactor; // 2.5  total heat-flux peaking (reuse existing Fq)
     private const double F_dH            = 1.65;     // enthalpy-rise hot-channel factor (drives local quality)
@@ -1580,6 +1609,12 @@ public sealed class ReactorSimService
         // 7. First-order smoothing of the final clamped value (display steadiness; this is indication, not a trip).
         double a = (dt > 1e-6) ? Math.Min(1.0, dt / DnbrFilterTau) : 1.0;
         MinDnbr += (DnbrRawUnfiltered - MinDnbr) * a;
+
+        // 8. Predicted % of rods in DNB (locked-rotor figure of merit). Monotonic surrogate of the hot-channel
+        //    DNBR distribution: zero while MinDnbr ≥ 1.30, rising linearly with the fractional deficit below it
+        //    (≈0% at 1.30, ≈8% at 1.20, ≈23% at 1.00). Compared against the < ~5–10% Condition-IV acceptance.
+        double deficit = Math.Clamp((DnbrSafetyLimit - MinDnbr) / DnbrSafetyLimit, 0.0, 1.0);
+        RodsInDnbPercent = (_power < DnbrAlarmGate) ? 0.0 : 100.0 * deficit;
     }
 
     // ===== Quadrant Power Tilt Ratio (QPTR) — Tech-Spec LCO 3.2.4, ex-core power-range NIS N-41…N-44 =====
@@ -1709,7 +1744,7 @@ public sealed class ReactorSimService
         RiaCladdingFailure = false; RiaFuelMelt = false; RiaCoolabilityViolated = false; RiaFailedRodPercent = 0;
         for (int i = 0; i < RodBankInsertion.Length; i++) RodBankInsertion[i] = 100.0;
         for (int i = 0; i < RcpRunning.Length; i++) RcpRunning[i] = false;
-        Array.Clear(_rcpFlow);
+        Array.Clear(_rcpFlow); _lockedRotorLoop = -1;
         PumpedFlowFraction = 0; NaturalCircFraction = 0; RcpCoasting = false; OnNaturalCirc = false;
         BoronPpm = NominalBoron; TargetBoronPpm = NominalBoron;
         _dilutionActive = false; _dilutionFlowGpm = 0; _dilutionCpsRef = 1.0;
@@ -1725,7 +1760,7 @@ public sealed class ReactorSimService
         Array.Clear(_decayGroup); Array.Clear(_actinide);
         DecayHeatFraction = 0; SubcoolingMarginC = 0; SourceRangeCps = SourceBaselineCps;
         CoreExitTempC = ColdTemp; CetSubcoolingMarginC = 0; _cetInit = false;
-        MinDnbr = DnbrRawUnfiltered = DnbrCeiling; DnbrLocalQuality = 0;
+        MinDnbr = DnbrRawUnfiltered = DnbrCeiling; DnbrLocalQuality = 0; RodsInDnbPercent = 0;
         OneOverM = 1.0; StartupRateDpm = 0; BurnupMwdPerTonne = 0;
         IntermediateRangeAmps = IrBottomAmps; IntermediateRangeDecades = 0; IntermediateRangePercent = 0;
         PowerRangePercent = 0; SourceRangeEnergized = true; _p6Latched = false;
@@ -2726,6 +2761,10 @@ public sealed class ReactorSimService
         double coastDen  = 1.0 + dt * (0.6931471805599453 / RcpCoastHalf); // implicit hyperbolic 1/(1+k·dt)
         for (int i = 0; i < _rcpFlow.Length; i++)
         {
+            // Locked rotor (15.3.3): a seized impeller stops its loop ~instantly — NO flywheel coastdown,
+            // NO spin-up. Pin to zero and skip both branches so this loop drops out in ~one tick while the
+            // others keep pumping (core flow steps to ~0.74–0.76 rated — the DNBR-limiting flow transient).
+            if (i == _lockedRotorLoop) { _rcpFlow[i] = 0.0; continue; }
             if (RcpRunning[i])
             {
                 // Energised: relax toward this loop's share of the commanded flow.
@@ -3666,6 +3705,10 @@ public sealed class ReactorSimService
         bool dnbrActive = _power > DnbrAlarmGate;
         SetAlarm(ReactorAlarm.DnbrSafetyLimit, dnbrActive && MinDnbr < DnbrSafetyLimit);
         SetAlarm(ReactorAlarm.DnbrLowMargin,  dnbrActive && MinDnbr >= DnbrSafetyLimit && MinDnbr < DnbrLowMargin);
+        // FSAR 15.3 loss-of-flow annunciators: the rotor-seizure status, and the locked-rotor acceptance FoM
+        // (predicted rods in DNB above the ~5% Condition-IV limit → fuel failures assumed for dose).
+        SetAlarm(ReactorAlarm.RcpLockedRotor, RcpLockedRotor);
+        SetAlarm(ReactorAlarm.RodsInDnbHi, dnbrActive && RodsInDnbPercent > 5.0);
         SetAlarm(ReactorAlarm.DecayHeatHigh, DecayHeatFraction > 0.03 && CoolantFlowFraction < 0.4 && FeedwaterFlow < 0.1);
         SetAlarm(ReactorAlarm.AtwsActive, _rodsFailToInsert && IsScrammed);
         SetAlarm(ReactorAlarm.AmsacActuated, AmsacActuated);

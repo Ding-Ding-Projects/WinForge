@@ -18,6 +18,8 @@ public enum ReactorScenario
     RcpSealLoca,       // 主泵軸封失水 · RCP seal LOCA — loss of all seal cooling → degraded seal leakoff (WOG-2000)
     RodEjection,       // 彈棒事故 · rod ejection accident (RIA/REA, FSAR Ch 15.4.8) — CRDM failure ejects an RCCA
     BoronDilution,     // 失控硼稀釋 · uncontrolled boron dilution (FSAR Ch 15.4.6) — unborated water added to RCS → +reactivity
+    CompleteLossOfFlow,// 全喪失強制流量 · complete loss of forced flow (FSAR Ch 15.3.2) — all 4 RCPs trip, coast on flywheels
+    LockedRotor,       // 主泵卡軸 · RCP rotor seizure / locked rotor (FSAR Ch 15.3.3) — one loop flow→0 instantly, no coastdown
 }
 
 /// <summary>一條儀表限值帶 · One coloured limit band on a gauge / strip chart.</summary>
