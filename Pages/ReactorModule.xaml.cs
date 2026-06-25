@@ -538,6 +538,12 @@ public sealed partial class ReactorModule : Page
                 : $"{_sim.CetSubcoolingMarginC:F0}°C " + P("subcooled", "過冷"),
             warnFrac: (15.0 + 30.0) / (120.0 + 30.0), id: "smm");
         AddGauge("RCP seal leakoff", "主泵軸封洩漏", 0, 1920, () => _sim.SealLeakGpmTotal, () => $"{_sim.SealLeakGpmTotal:F0} gpm · {_sim.SealCavityMaxTempC:F0}°C{(_sim.SealCoolingAvailable ? "" : " · NO COOL")}", id: "sealLeak");
+        // Component Cooling Water supply (cold-leg) temperature — the support-cooling chain (UHS → CCW → loads).
+        // Warns at the 46.1 °C (115 °F) header-hi annunciator; the readout shows cold/hot legs, served flow and load.
+        AddGauge("Component cooling water", "設備冷卻水 CCW", 0, 70, () => _sim.CcwColdTempC,
+            () => $"{_sim.CcwColdTempC:F0}/{_sim.CcwHotTempC:F0}°C · {_sim.CcwFlowFrac * 100:F0}% · {_sim.CcwHeatLoadMw:F0} MW"
+                  + (_sim.CcwAvailable ? "" : P(" · NO CCW", " · 喪失CCW")) + (_sim.LetdownIsolated ? P(" · LTDN ISO", " · 下泄隔離") : ""),
+            warnFrac: 46.1 / 70.0, id: "ccwTemp");
         // RCS operational LEAKAGE (LCO 3.4.13) + RG 1.45 / LCO 3.4.15 leak-detection instrumentation.
         // Unidentified LEAKAGE — limit 1 gpm; band warns at the LCO setpoint. Inferred-rate is the RG 1.45 sump channel.
         AddGauge("Unidentified leak", "未辨識洩漏", 0, 3, () => _sim.UnidentifiedLeakGpm,
@@ -806,6 +812,11 @@ public sealed partial class ReactorModule : Page
             (ReactorAlarm.RcsPressureBoundaryLeak, "PRESS BDY LEAKAGE", "壓力邊界洩漏"),
             (ReactorAlarm.ContainmentParticulateRadHi, "CTMT PART. RAD HI", "安全殼顆粒輻射高"),
             (ReactorAlarm.ContainmentGaseousRadHi, "CTMT GAS RAD HI", "安全殼氣體輻射高"),
+            (ReactorAlarm.CcwHeaderTempHi, "CCW HEADER TEMP HI", "設備冷卻水母管高溫"),
+            (ReactorAlarm.CcwLowFlow, "CCW LOW FLOW", "設備冷卻水低流量"),
+            (ReactorAlarm.CcwSurgeTankAbnormal, "CCW SURGE TANK ABNORMAL", "設備冷卻水穩壓缸水位異常"),
+            (ReactorAlarm.UhsTempHi, "UHS TEMP HI (SR 3.7.9.1)", "最終熱阱高溫（SR 3.7.9.1）"),
+            (ReactorAlarm.LetdownIsolatedCcw, "LETDOWN ISOLATED (CCW)", "淨化下泄已隔離（設備冷卻水）"),
         };
         foreach (var (a, en, zh) in defs)
         {
@@ -1319,6 +1330,7 @@ public sealed partial class ReactorModule : Page
         ScenarioCombo.Items.Add(P("Complete loss of flow (Ch 15.3.2)", "全喪失強制流量（15.3.2）"));
         ScenarioCombo.Items.Add(P("RCP locked rotor (Ch 15.3.3)", "主泵卡軸（15.3.3）"));
         ScenarioCombo.Items.Add(P("Loss of feedwater heating (Ch 15.1.1)", "喪失給水加熱（15.1.1）"));
+        ScenarioCombo.Items.Add(P("Loss of component cooling water (LCO 3.7.7)", "喪失設備冷卻水（LCO 3.7.7）"));
         ScenarioCombo.SelectedIndex = 0;
     }
 
@@ -1355,6 +1367,7 @@ public sealed partial class ReactorModule : Page
             11 => ReactorScenario.CompleteLossOfFlow,
             12 => ReactorScenario.LockedRotor,
             13 => ReactorScenario.LossOfFeedwaterHeating,
+            14 => ReactorScenario.LossOfComponentCoolingWater,
             _ => ReactorScenario.Normal,
         });
         // The isolate control is meaningful during an SGTR (isolate affected SG) or an MSLB (close MSIVs).

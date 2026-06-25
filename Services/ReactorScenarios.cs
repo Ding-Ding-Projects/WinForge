@@ -21,6 +21,7 @@ public enum ReactorScenario
     CompleteLossOfFlow,// 全喪失強制流量 · complete loss of forced flow (FSAR Ch 15.3.2) — all 4 RCPs trip, coast on flywheels
     LockedRotor,       // 主泵卡軸 · RCP rotor seizure / locked rotor (FSAR Ch 15.3.3) — one loop flow→0 instantly, no coastdown
     LossOfFeedwaterHeating, // 喪失給水加熱 · loss of feedwater heating (FSAR Ch 15.1.1) — HP heater string trips → colder feedwater → secondary overcooling → +reactivity via MTC
+    LossOfComponentCoolingWater, // 喪失設備冷卻水 · loss of component cooling water (CCW) — header heats up → letdown isolation + loss of RCP thermal-barrier cooling → seal heatup (LCO 3.7.7)
 }
 
 /// <summary>一條儀表限值帶 · One coloured limit band on a gauge / strip chart.</summary>

@@ -106,6 +106,11 @@ public enum ReactorAlarm
     RcpLockedRotor,            // RCP rotor seizure / locked rotor (FSAR 15.3.3) — one loop flow lost instantly
     RodsInDnbHi,               // predicted fuel rods in DNB exceeds the ~5% locked-rotor acceptance fraction
     LowFeedwaterTemp,          // final feedwater temperature has fallen below its load program (loss of FW heating, FSAR 15.1.1)
+    CcwHeaderTempHi,           // 設備冷卻水母管溫度高 — CCW supply/return header temp high → degraded heat removal (LCO 3.7.7)
+    CcwLowFlow,                // 設備冷卻水流量低 — CCW served flow < 50% design (pump/header loss)
+    CcwSurgeTankAbnormal,      // 設備冷卻水穩壓缸水位異常 — surge-tank level outside band (system leak / RCS in-leak via thermal barrier)
+    UhsTempHi,                 // 最終熱阱溫度高 — UHS / service-water intake above Tech-Spec max (SR 3.7.9.1, LCO 3.7.9)
+    LetdownIsolatedCcw,        // 淨化下泄已隔離 — letdown auto-isolated on high CCW (non-regen HX) outlet temperature
 }
 
 /// <summary>
@@ -894,6 +899,48 @@ public sealed class ReactorSimService
     private const double SealChargingMakeupGpm = 132.0;// one centrifugal charging pump — makes up leakoff while an AC bus lives
     private const double SealGpmToDeficitPct = 0.0004; // %/s per net gpm (calibrated: 4×480 gpm ≈ a 0.6-area SBLOCA)
     private const double SealPressBleedK     = 0.5;    // MPa/s per 1000 gpm — gentle SBLOCA depressurization
+
+    // ----------------------------------------------------------------- 設備冷卻水 / 廠用海水 / 最終熱阱 ----
+    // Component Cooling Water (CCW) closed loop ─ Essential Service Water (ESW) ─ Ultimate Heat Sink (UHS).
+    // The CCW system is the intermediate barrier that carries heat from the served reactor-auxiliary loads
+    // (RCP thermal-barrier & motor coolers, letdown/non-regenerative HX, seal-water HX, RHR HX in shutdown
+    // cooling) to the CCW heat exchangers, which reject it to ESW drawn from the UHS. A two-node lumped model:
+    // UHS supply (boundary) → CCW cold leg (HX outlet) → CCW hot leg (component return). It is the real
+    // support system behind the seal model's previously-proxied "thermal-barrier cooling available" signal:
+    // lose CCW and the RCP thermal barriers heat up exactly as in a loss-of-CCW → WOG-2000 seal-LOCA sequence.
+    private const double CcwColdNominalC      = 35.0;   // °C (95 °F) nominal CCW supply (HX outlet) temperature
+    private const double CcwColdDesignMaxC    = 48.9;   // °C (120 °F) component-qualification design ceiling
+    private const double CcwHeaderHiAlarmC    = 46.1;   // °C (115 °F) high CCW header-temperature annunciator
+    private const double LetdownIsoCcwTempC   = 58.3;   // °C (137 °F) non-regen-HX outlet hi → auto letdown isolation
+    private const double UhsDesignMaxC        = 35.0;   // °C (95 °F) UHS / service-water Tech-Spec max (SR 3.7.9.1)
+    private const double CcwLowFlowAlarmFrac  = 0.50;   // served flow below 50% of design → low-flow annunciator
+    private const double SurgeTankLoPct       = 25.0;   // % surge-tank lo-level alarm (possible system leak)
+    private const double SurgeTankHiPct       = 88.0;   // % surge-tank hi-level alarm (RCS in-leak via thermal barrier)
+    private const double CcwHxApproachC       = 4.0;    // °C HX approach: CcwCold ≈ UHS + approach at low load
+    private const double CcwHxDutyMw          = 22.6;   // MWth per-HX rated duty (≈77.2×10⁶ BTU/hr)
+    private const double CcwLoadColdRiseC     = 8.0;    // °C extra cold-leg rise at full HX duty
+    private const double CcwLoadDeltaTC       = 8.0;    // °C cold→hot ΔT across served loads at full flow
+    private const double CcwStagnationC       = 80.0;   // °C header datum a flow-isolated (stagnant) loop drifts toward
+    private const double CcwColdTau           = 30.0;   // s cold-leg thermal relaxation time constant
+    private const double CcwHotTau            = 20.0;   // s hot-leg thermal relaxation time constant
+    private const double CcwBaseLoadMw        = 3.5;    // MWth letdown + seal-water + misc — always on
+    private const double CcwLoadPerRcpMw      = 1.2;    // MWth per running RCP (motor air/oil/bearing + thermal barrier)
+    private const double CcwRhrLoadMw         = 30.0;   // MWth RHR-HX load at full decay heat (shutdown cooling only)
+    private const double RhrCutInTempC        = 177.0;  // °C (350 °F) RHR shutdown-cooling entry temperature
+    private const double CcwSurgeLeakPctPerSec= 0.30;   // %/s surge-tank drain under an injected loss-of-CCW leak
+
+    private bool   _ccwLossActive;                       // scenario latch: loss of component cooling water injected
+    private int    _ccwPumpsRunning = 2;                 // powered/running CCW pumps (2 = design; 0 collapses flow)
+    public double UhsTempC                   { get; private set; } = 21.0;  // °C UHS / ESW intake (seasonal boundary)
+    public double CcwColdTempC               { get; private set; } = CcwColdNominalC; // °C CCW supply (cold leg)
+    public double CcwHotTempC                { get; private set; } = 43.0;  // °C CCW return (hot leg, HX inlet)
+    public double CcwHeatLoadMw              { get; private set; }          // MWth total served heat load this tick
+    public double CcwFlowFrac                { get; private set; } = 1.0;   // served CCW flow / design (0..1)
+    public double CcwSurgeTankPct            { get; private set; } = 62.0;  // % CCW surge-tank level
+    public int    CcwPumpsRunning            => _ccwPumpsRunning;           // running CCW pumps (0..2)
+    public bool   CcwAvailable               { get; private set; } = true;  // pumps powered ∧ flow ∧ UHS-OK ∧ not isolated
+    public bool   CcwThermalBarrierCoolingOk { get; private set; } = true;  // feeds the RCP-seal model's barrierOk
+    public bool   LetdownIsolated            { get; private set; }          // auto letdown-isolation latch (hi CCW temp)
 
     // Axial flux difference (ΔI) / axial offset / CAOC. A lumped two-node (top/bottom) split whose
     // imbalance is driven by control-rod insertion (rods bite the top half → bottom-peaked → ΔI<0)
@@ -1716,6 +1763,10 @@ public sealed class ReactorSimService
         _sealCoolingFailed = false;
         for (int i = 0; i < _sealCavityTempC.Length; i++) { _sealCavityTempC[i] = SealCooledTempC; _sealLeakGpm[i] = 0; _sealIntegrity[i] = 1.0; }
         SealLeakGpmTotal = 0; SealCavityMaxTempC = SealCooledTempC; SealCoolingAvailable = true;
+        // Restore the component-cooling-water / service-water chain to a healthy aligned state.
+        _ccwLossActive = false; _ccwPumpsRunning = 2; LetdownIsolated = false;
+        CcwColdTempC = CcwColdNominalC; CcwHotTempC = 43.0; CcwSurgeTankPct = 62.0;
+        CcwFlowFrac = 1.0; CcwAvailable = true; CcwThermalBarrierCoolingOk = true;
         // Clear any prior rod-ejection event; re-arm the enthalpy figure of merit from the current state.
         _riaActive = false; _ejectRamp = 0; EjectedRodWorthPcm = 0; EjectedRodReactivityPcm = 0;
         PeakFuelEnthalpyCalPerG = _hotPelletEnthalpy; PeakFuelEnthalpyRiseCalPerG = 0;
@@ -1807,6 +1858,16 @@ public sealed class ReactorSimService
                 // the cooldown inserts positive reactivity → a few-percent power rise. A Condition-II event:
                 // self-limiting via Doppler + Tavg/Tref rod control, normally no reactor trip.
                 FeedwaterHeatersInService = FwLostStringFraction;
+                break;
+            case ReactorScenario.LossOfComponentCoolingWater:
+                // Loss of component cooling water: both trains' CCW pumps lost (or the supply header faulted).
+                // StepComponentCooling collapses CcwFlowFrac → the header soaks toward the stagnation datum →
+                // the high-temp annunciator and (at the non-regen-HX setpoint) auto letdown isolation arm, and
+                // CcwThermalBarrierCoolingOk drops so the RCP thermal barriers heat up. If seal injection is also
+                // unavailable the seal cavities then climb the WOG-2000 bins toward a seal LOCA — the classic
+                // loss-of-CCW pathway. Operators must trip the RCPs to protect the seals.
+                _ccwLossActive = true;
+                _ccwPumpsRunning = 0;
                 break;
         }
     }
@@ -2115,6 +2176,10 @@ public sealed class ReactorSimService
         _sealCoolingFailed = false;
         for (int i = 0; i < _sealCavityTempC.Length; i++) { _sealCavityTempC[i] = SealCooledTempC; _sealLeakGpm[i] = 0; _sealIntegrity[i] = 1.0; }
         SealLeakGpmTotal = 0; SealCavityMaxTempC = SealCooledTempC; SealCoolingAvailable = true;
+        // Component cooling water / service water / UHS back to a healthy aligned cold-shutdown state.
+        _ccwLossActive = false; _ccwPumpsRunning = 2; LetdownIsolated = false; UhsTempC = 21.0;
+        CcwColdTempC = CcwColdNominalC; CcwHotTempC = 43.0; CcwSurgeTankPct = 62.0;
+        CcwFlowFrac = 1.0; CcwAvailable = true; CcwThermalBarrierCoolingOk = true; CcwHeatLoadMw = 0;
         PrimaryDeficitPct = 0;
         // Boric-acid precipitation monitor back to a clean, well-mixed, no-recirc state.
         CoreBoronPpm = NominalBoron; HotLegRecircActive = false; Precipitated = false;
@@ -2361,6 +2426,83 @@ public sealed class ReactorSimService
     }
 
     /// <summary>
+    /// 設備冷卻水／廠用海水／最終熱阱支援冷卻 · Component Cooling Water (CCW) ─ Essential Service Water (ESW)
+    /// ─ Ultimate Heat Sink (UHS) support cooling. A lumped two-node thermal cascade: the UHS supply temperature
+    /// is a boundary input; ESW cools the CCW heat exchangers, whose outlet is the CCW <b>cold</b> leg feeding the
+    /// served loads; the components return heat to the CCW <b>hot</b> leg (HX inlet). The total served load is a
+    /// base load (letdown + seal-water + misc) plus a per-running-RCP term (motor/bearing + thermal-barrier
+    /// coolers) plus a dominant RHR-HX term that is active only in shutdown-cooling alignment and decay-scaled —
+    /// so at power the RHR term is zero and the calibrated steady state is untouched. Both nodes use the same
+    /// clamped first-order relaxation as the rest of the engine (Math.Min(1, dt/τ); no stiff exponentials).
+    ///
+    /// This is the real support system behind the RCP-seal model's thermal-barrier-cooling signal: StepSeals now
+    /// reads <see cref="CcwThermalBarrierCoolingOk"/> instead of a bare "AC bus energized" proxy. Lose CCW (the
+    /// LossOfComponentCoolingWater scenario, a containment-isolation Phase-B CCW dump, a station blackout, or a
+    /// UHS over-temperature) and the thermal barriers heat up exactly as in a loss-of-CCW → WOG-2000 seal-LOCA
+    /// sequence. A high non-regenerative-HX outlet temperature also auto-isolates letdown (protecting the
+    /// purification demineraliser resins), latched so it does not chatter. Pure instrumentation + a barrier
+    /// signal; it never writes PrimaryDeficitPct directly, so the meltdown-ARM behaviour is untouched.
+    /// </summary>
+    private void StepComponentCooling(double dt)
+    {
+        if (dt <= 0) return;
+
+        // CCW pumps ride a vital 4.16 kV ESF bus; they are also dumped on containment-isolation Phase B (Hi-3
+        // spray). The loss-of-CCW scenario forces both trains' pumps off directly.
+        bool ccwPowered = _elec.AnyAcBusEnergized && !ContainmentIsolationPhaseB && !_ccwLossActive;
+        if (!ccwPowered) _ccwPumpsRunning = 0;
+        else if (_ccwPumpsRunning < 2 && !_ccwLossActive) _ccwPumpsRunning = 2; // restored when power returns
+        CcwFlowFrac = ccwPowered ? Math.Min(1.0, _ccwPumpsRunning / 2.0) : 0.0;  // 2 running = design flow
+
+        // Served heat load. RHR is in service only once the RCS has been taken below the ~177 °C cut-in
+        // temperature (cold/cooldown), where it becomes the dominant CCW load, scaled by the decay-heat fraction.
+        int rcps = 0;
+        for (int i = 0; i < RcpRunning.Length; i++) if (RcpRunning[i]) rcps++;
+        bool rhrAligned = Tcold < RhrCutInTempC && Mode != ReactorMode.Run;
+        double baseLoad = CcwBaseLoadMw;
+        double rcpLoad  = CcwLoadPerRcpMw * rcps;
+        double rhrLoad  = rhrAligned ? CcwRhrLoadMw * Math.Clamp(DecayHeatFraction / 0.065, 0.0, 1.0) : 0.0;
+        CcwHeatLoadMw   = (CcwFlowFrac > 0.0) ? (baseLoad + rcpLoad + rhrLoad) : 0.0;
+
+        // Two-node HX cascade targets. With flow present the cold leg tracks UHS + HX approach + a load bump;
+        // the hot leg sits a served-ΔT above the cold leg (the ΔT grows as flow falls). With flow lost the
+        // stagnant header soaks toward a hot stagnation datum so the high-temp alarm and letdown isolation arm.
+        double dutyFrac = Math.Clamp(CcwHeatLoadMw / CcwHxDutyMw, 0.0, 2.0);
+        double coldTarget, hotTarget;
+        if (CcwFlowFrac > 0.0)
+        {
+            coldTarget = UhsTempC + CcwHxApproachC + CcwLoadColdRiseC * dutyFrac;
+            hotTarget  = CcwColdTempC + CcwLoadDeltaTC * dutyFrac / Math.Max(CcwFlowFrac, 0.05);
+        }
+        else
+        {
+            coldTarget = Math.Max(CcwStagnationC, CcwColdTempC);
+            hotTarget  = Math.Max(CcwStagnationC, CcwHotTempC);
+        }
+
+        CcwColdTempC += (coldTarget - CcwColdTempC) * Math.Min(1.0, dt / CcwColdTau);
+        CcwHotTempC  += (hotTarget  - CcwHotTempC ) * Math.Min(1.0, dt / CcwHotTau);
+
+        // Surge tank: stable in normal operation; drains under an injected loss-of-CCW leak (set-only floor at 0).
+        if (_ccwLossActive) CcwSurgeTankPct = Math.Max(0.0, CcwSurgeTankPct - CcwSurgeLeakPctPerSec * dt);
+
+        // Availability + the thermal-barrier-cooling signal consumed by StepSeals.
+        bool uhsOk   = UhsTempC <= UhsDesignMaxC + 2.0;   // small margin over the Tech-Spec ceiling
+        bool ccwFlow = CcwFlowFrac >= CcwLowFlowAlarmFrac && _ccwPumpsRunning > 0;
+        CcwAvailable = ccwPowered && ccwFlow && uhsOk;
+        CcwThermalBarrierCoolingOk = CcwAvailable && CcwColdTempC <= CcwColdDesignMaxC;
+
+        // Auto letdown isolation on high non-regen-HX outlet temperature (latched; clears only on Reset/Trigger).
+        if (CcwHotTempC >= LetdownIsoCcwTempC) LetdownIsolated = true;
+
+        SetAlarm(ReactorAlarm.CcwHeaderTempHi, CcwHotTempC >= CcwHeaderHiAlarmC || CcwColdTempC >= CcwHeaderHiAlarmC);
+        SetAlarm(ReactorAlarm.CcwLowFlow, CcwFlowFrac < CcwLowFlowAlarmFrac);
+        SetAlarm(ReactorAlarm.CcwSurgeTankAbnormal, CcwSurgeTankPct < SurgeTankLoPct || CcwSurgeTankPct > SurgeTankHiPct);
+        SetAlarm(ReactorAlarm.UhsTempHi, UhsTempC > UhsDesignMaxC);
+        SetAlarm(ReactorAlarm.LetdownIsolatedCcw, LetdownIsolated);
+    }
+
+    /// <summary>
     /// RCP 軸封冷卻喪失 → WOG-2000 軸封失水事故 · Reactor-coolant-pump seal-cooling-loss → WOG-2000 seal LOCA.
     /// Each pump's lumped seal cavity heats toward the hot-leg (first-order, τ=900 s) when BOTH seal-cooling
     /// paths are lost — CCW thermal-barrier cooling (needs a live AC bus) and charging seal-injection (needs a
@@ -2373,11 +2515,11 @@ public sealed class ReactorSimService
     {
         if (dt <= 0) return;
 
-        // Either seal-cooling path removes seal heat. CCW thermal-barrier and charging seal-injection both ride a
-        // vital AC bus, so losing both is exactly "no AC bus energized" — the station-blackout condition. The
-        // scenario latch forces the loss directly (loss of CCW + seal-injection alignment) with AC still up.
+        // Either seal-cooling path removes seal heat: CCW thermal-barrier cooling (the real signal from
+        // StepComponentCooling — lost on loss of CCW, a Phase-B CCW dump, an SBO, or a UHS over-temperature) or
+        // charging seal-injection (a live AC bus). The RcpSealLoca scenario latch forces the loss of both directly.
         bool sealInjOk = _elec.MotorEccsSiAvailable;          // charging/HHSI seal injection
-        bool barrierOk = _elec.AnyAcBusEnergized;             // CCW thermal-barrier HX pump on a vital AC bus
+        bool barrierOk = CcwThermalBarrierCoolingOk;          // real CCW thermal-barrier cooling (StepComponentCooling)
         bool sealCoolOk = !_sealCoolingFailed && (sealInjOk || barrierOk);
         SealCoolingAvailable = sealCoolOk;
 
@@ -2537,6 +2679,7 @@ public sealed class ReactorSimService
         // capacity — is replaced, so only the NET leak drains inventory (no deficit creeps in during normal
         // operation, where 4×3=12 gpm is fully made up). A pressure-driven √(P/Pnom) factor self-limits the leak
         // as the RCS depressurizes (like the SGTR dP term), so the seal LOCA cannot run away below ~atmospheric.
+        StepComponentCooling(dt); // refresh CcwThermalBarrierCoolingOk before the seals read it
         StepSeals(dt);
         double sealMakeupGpm = _elec.MotorEccsSiAvailable ? SealChargingMakeupGpm : 0.0;
         double sealPressFactor = Math.Clamp(Math.Sqrt(Math.Max(PrimaryPressure, 0.0) / PzrProgramPressure), 0.0, 1.1);
