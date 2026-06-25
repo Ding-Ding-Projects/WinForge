@@ -640,6 +640,12 @@ public sealed partial class MainWindow : Window
             case "torrents":
                 Navigator.GoToModule?.Invoke("module.qbittorrent");
                 break;
+            case "tags":
+            case "audiotags":
+            case "mp3tag":
+            case "tagging":
+                Navigator.GoToModule?.Invoke("module.audiotagger");
+                break;
             case "worldmonitor":
             case "world":
             case "wm":
@@ -783,6 +789,7 @@ public sealed partial class MainWindow : Window
         "module.archives" => typeof(ArchivesModule),
         "module.media" => typeof(MediaModule),
         "module.audioeditor" => typeof(AudioEditorModule),
+        "module.audiotagger" => typeof(AudioTaggerModule),
         "module.mediaplayer" => typeof(MediaPlayerModule),
         "module.ytdlp" => typeof(YtDlpModule),
         "module.blender" => typeof(BlenderModule),

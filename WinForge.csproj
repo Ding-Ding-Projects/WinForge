@@ -98,6 +98,11 @@
          DPAPI (ProtectedData) for encrypting saved Postgres connection passwords at rest. -->
     <!-- FTP／FTPS 客戶端（MIT）· FluentFTP: managed FTP/FTPS client for the FTP/SFTP module. -->
     <PackageReference Include="FluentFTP" Version="52.1.0" />
+    <!-- TagLib#（TagLibSharp，LGPL-2.1）：純託管音訊中繼資料讀寫引擎，畀「音訊標籤編輯器」模組用 —
+         讀寫 ID3v1/v2、APE、Xiph（FLAC/OGG）、MP4/iTunes 標籤同封面圖，全部喺程序內，唔使外部工具。
+         TagLib# (TagLibSharp): fully-managed audio tag read/write engine for the Audio Tagger module
+         (ID3v1/v2, APE, Xiph for FLAC/OGG, MP4/iTunes tags + cover art) — all in-process, no external tool. -->
+    <PackageReference Include="TagLibSharp" Version="2.3.0" />
   </ItemGroup>
 
   <!--
