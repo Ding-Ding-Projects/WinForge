@@ -200,7 +200,7 @@ public sealed partial class ReactorModule : Page
                 restore: el =>
                 {
                     // Deserialize on whatever thread Register runs on (the UI thread here, during Loaded).
-                    var snap = System.Text.Json.JsonSerializer.Deserialize<ReactorSimService.Snapshot>(el.GetRawText());
+                    var snap = System.Text.Json.JsonSerializer.Deserialize<ReactorSimService.PersistSnapshot>(el.GetRawText());
                     if (snap is null) return;
                     _sim.RestoreSnapshot(snap);
                     _simClock = snap.SimClockSeconds;

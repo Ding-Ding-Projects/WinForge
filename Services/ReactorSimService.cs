@@ -1206,13 +1206,15 @@ public sealed class ReactorSimService
     {
         double s = 0; foreach (var p in RodBankInsertion) s += p;
         return s / RodBankInsertion.Length;
+    }
+
     // =================================================================== PERSISTENCE ====
     // 可序列化嘅完整模擬狀態快照（畀 PersistenceService 防崩潰自動儲存／還原用）。
     // A fully-serializable snapshot of the simulation state, used by PersistenceService for
     // crash/shutdown-safe autosave + restore. Every volatile quantity is captured so the reactor
     // resumes seamlessly: power & 6-group precursors, temps, pressures, pzr/SG levels, xenon/iodine,
     // rod positions, boron, mode, setpoints, alarms, damage and the sim clock.
-    public sealed class Snapshot
+    public sealed class PersistSnapshot
     {
         public int Version { get; set; } = 1;
 
@@ -1266,9 +1268,9 @@ public sealed class ReactorSimService
     }
 
     /// <summary>影一個完整狀態快照 · Capture a complete serializable snapshot of the simulation.</summary>
-    public Snapshot CaptureSnapshot(double simClockSeconds)
+    public PersistSnapshot CaptureSnapshot(double simClockSeconds)
     {
-        var s = new Snapshot
+        var s = new PersistSnapshot
         {
             Power = _power,
             SourceLevel = SourceLevel,
@@ -1297,7 +1299,7 @@ public sealed class ReactorSimService
     }
 
     /// <summary>由快照還原整個模擬狀態 · Restore the entire simulation from a snapshot. Never throws.</summary>
-    public void RestoreSnapshot(Snapshot s)
+    public void RestoreSnapshot(PersistSnapshot s)
     {
         if (s is null) return;
         try
