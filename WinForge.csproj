@@ -37,6 +37,18 @@
     <Page Remove="Sdk\**" />
   </ItemGroup>
 
+  <!-- tests/** is a STANDALONE net8.0 console test harness (ReactorSim.Tests) that links the pure
+       engine source files itself. It has its own Main() and must NOT be compiled into the WinUI app
+       (the recursive **/*.cs glob would otherwise pull in a second entry point). Exclude every test
+       item from the app build; the harness is built and run on its own with the standalone
+       dotnet run command against tests/ReactorSim.Tests. -->
+  <ItemGroup>
+    <Compile Remove="tests\**" />
+    <Content Remove="tests\**" />
+    <None Remove="tests\**" />
+    <Page Remove="tests\**" />
+  </ItemGroup>
+
   <!-- 未封裝執行時，ms-appx:/// 未必靠得住，所以所有資產 PNG 都要複製到輸出目錄，
        等 UriToImageConverter 可以用 file:/// 由 AppContext.BaseDirectory 載入。
        Unpackaged runs can't rely on ms-appx:///, so every asset PNG (including loose ones not in the
