@@ -54,7 +54,15 @@
                         </StackPanel>
                         <TextBlock x:Name="BannerWarn" Grid.Column="1" VerticalAlignment="Center" TextWrapping="Wrap"
                                    Foreground="#FFB300" FontWeight="SemiBold" />
-                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                            <!-- Crash/shutdown-safe autosave indicator + toggle -->
+                            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                <Border x:Name="SaveDot" Width="10" Height="10" CornerRadius="5" Background="#4CAF50" VerticalAlignment="Center" />
+                                <TextBlock x:Name="SaveStatusText" FontSize="12" VerticalAlignment="Center"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <ToggleSwitch x:Name="AutosaveToggle" MinWidth="0" VerticalAlignment="Center"
+                                              Toggled="AutosaveToggle_Toggled" />
+                            </StackPanel>
                             <TextBlock x:Name="ClockText" FontFamily="Consolas" FontSize="13" VerticalAlignment="Center"
                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                         </StackPanel>

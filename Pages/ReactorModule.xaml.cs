@@ -102,6 +102,10 @@ public sealed partial class ReactorModule : Page
     // Public status-API card live elements.
     private ToggleSwitch? _apiToggle;
     private TextBlock? _apiStateText;
+    // 防崩潰自動儲存：本反應堆喺 PersistenceService 嘅提供者 id。
+    // Persistence: this reactor's provider id in PersistenceService.
+    private const string PersistId = "reactor";
+    private bool _persistenceRegistered;
 
     public ReactorModule()
     {
@@ -111,6 +115,9 @@ public sealed partial class ReactorModule : Page
 
         Loaded += async (_, _) =>
         {
+            // 還原已儲存狀態（如有）· Restore saved reactor state (if any) BEFORE building the UI so
+            // gauges/controls reflect the resumed state. The provider's restore Action runs here.
+            RegisterPersistence();
             BuildControls();
             BuildGauges();
             BuildAlarmTiles();
@@ -121,6 +128,8 @@ public sealed partial class ReactorModule : Page
             DrawMimicStatic();
             InitFx();
             Render();
+            UpdateSaveIndicator(PersistenceService.I.LastSaved);
+            PersistenceService.I.Saved += OnStateSaved;
             _last = DateTime.UtcNow;
             _timer.Tick += Tick;
             _timer.Start();
@@ -147,6 +156,10 @@ public sealed partial class ReactorModule : Page
             _timer.Tick -= Tick;
             _countdownTimer?.Stop();
             _renderClock.Stop();
+            // Persist current reactor state one last time, then stop listening. We keep the provider
+            // registered so a final app-exit/crash flush still captures the latest snapshot.
+            PersistenceService.I.Saved -= OnStateSaved;
+            CrashLogger.Guard("reactor:unload-flush", () => PersistenceService.I.Flush());
             Loc.I.LanguageChanged -= OnLanguageChanged;
             // Stop the synthesized voices but keep the graph alive (singleton, reused by the windows).
             try { ReactorAudioEngine.I.StopVoices(); } catch { }
@@ -165,6 +178,76 @@ public sealed partial class ReactorModule : Page
     {
         Render();
         foreach (var r in _relocalizers) r();
+        UpdateSaveIndicator(PersistenceService.I.LastSaved);
+    }
+
+    // ============================================================ persistence ====
+    /// <summary>
+    /// 登記反應堆做 PersistenceService 嘅狀態提供者，並還原已儲存狀態（如有）。
+    /// Register the reactor as a PersistenceService provider and restore saved state if present.
+    /// The snapshot Func captures the full sim state + sim clock; the restore Action deserializes the
+    /// saved JSON back into the engine. Auto-resumes (no prompt) — the saved run simply continues.
+    /// </summary>
+    private void RegisterPersistence()
+    {
+        if (_persistenceRegistered) return;
+        _persistenceRegistered = true;
+        try
+        {
+            PersistenceService.I.Register(
+                PersistId,
+                snapshot: () => _sim.CaptureSnapshot(_simClock),
+                restore: el =>
+                {
+                    // Deserialize on whatever thread Register runs on (the UI thread here, during Loaded).
+                    var snap = System.Text.Json.JsonSerializer.Deserialize<ReactorSimService.Snapshot>(el.GetRawText());
+                    if (snap is null) return;
+                    _sim.RestoreSnapshot(snap);
+                    _simClock = snap.SimClockSeconds;
+                    // If we restored straight into a meltdown, surface the overlay (simulated only).
+                    if (_sim.Mode == ReactorMode.Meltdown) { _meltdownHandled = false; OnMeltdown(); }
+                });
+        }
+        catch (Exception ex) { CrashLogger.Log("reactor:register-persistence", ex); }
+    }
+
+    private void OnStateSaved(DateTime when)
+    {
+        // Saved fires on a background timer thread — marshal to the UI.
+        DispatcherQueue.TryEnqueue(() => UpdateSaveIndicator(when));
+    }
+
+    private void UpdateSaveIndicator(DateTime? when)
+    {
+        bool on = PersistenceService.I.AutosaveEnabled;
+        AutosaveToggle.IsOn = on;
+        AutosaveToggle.OnContent = P("On", "開");
+        AutosaveToggle.OffContent = P("Off", "關");
+
+        if (!on)
+        {
+            SaveStatusText.Text = P("Autosave off · 自動儲存關閉", "自動儲存關閉 · Autosave off");
+            SaveDot.Background = new SolidColorBrush(Color.FromArgb(255, 0x75, 0x75, 0x75));
+            return;
+        }
+        if (when is DateTime t)
+        {
+            SaveStatusText.Text = P($"State saved · 狀態已儲存 ({t:HH:mm:ss})",
+                                    $"狀態已儲存 · State saved ({t:HH:mm:ss})");
+            SaveDot.Background = new SolidColorBrush(Color.FromArgb(255, 0x4C, 0xAF, 0x50));
+        }
+        else
+        {
+            SaveStatusText.Text = P("Autosave on · 自動儲存開啟", "自動儲存開啟 · Autosave on");
+            SaveDot.Background = new SolidColorBrush(Color.FromArgb(255, 0x4C, 0xAF, 0x50));
+        }
+    }
+
+    private void AutosaveToggle_Toggled(object sender, RoutedEventArgs e)
+    {
+        PersistenceService.I.AutosaveEnabled = AutosaveToggle.IsOn;
+        if (AutosaveToggle.IsOn) PersistenceService.I.Flush(); // capture immediately when re-enabled
+        UpdateSaveIndicator(PersistenceService.I.LastSaved);
     }
 
     // ============================================================ static labels ====
@@ -1362,6 +1445,7 @@ public sealed partial class ReactorModule : Page
         modeCombo.SelectionChanged += (_, _) =>
         {
             _sim.SetMode(modeCombo.SelectedIndex switch { 1 => ReactorMode.Startup, 2 => ReactorMode.Run, _ => ReactorMode.Shutdown });
+            PersistenceService.I.NoteChanged();
         };
         host.Children.Add(WrapLabel("Reactor mode · 反應堆模式", "反應堆模式 · Reactor mode", modeCombo));
 
@@ -1555,17 +1639,23 @@ public sealed partial class ReactorModule : Page
     }
 
     // ================================================================ buttons ====
-    private void Scram_Click(object sender, RoutedEventArgs e) => _sim.Scram();
+    private void Scram_Click(object sender, RoutedEventArgs e)
+    {
+        _sim.Scram();
+        PersistenceService.I.NoteChanged(); // capture this deliberate safety action promptly
+    }
 
     private void ResetTrip_Click(object sender, RoutedEventArgs e)
     {
         if (_sim.Mode == ReactorMode.Meltdown) return;
         _sim.ResetTrip();
+        PersistenceService.I.NoteChanged();
     }
 
     private void AutoRun_Toggled(object sender, RoutedEventArgs e)
     {
         _sim.AutoRodControl = AutoRunToggle.IsOn;
+        PersistenceService.I.NoteChanged();
     }
 
     // ================================================================ MELTDOWN ====
@@ -1621,6 +1711,9 @@ public sealed partial class ReactorModule : Page
                 if (!_aborted && !_shutdownIssued)
                 {
                     _shutdownIssued = true;
+                    // CRITICAL: flush ALL persisted state to disk SYNCHRONOUSLY before we power the
+                    // PC off, so nothing is lost when the machine shuts down. 關機前先同步保存全部狀態。
+                    CrashLogger.Guard("reactor:pre-shutdown-flush", () => PersistenceService.I.Flush());
                     string msg = "WinForge nuclear reactor simulation: meltdown — initiating shutdown.";
                     bool ok = ReactorSimService.InitiateRealShutdown(msg);
                     CountdownText.Text = ok
@@ -1683,5 +1776,7 @@ public sealed partial class ReactorModule : Page
         BuildControls();
         AutoRunToggle.IsOn = false;
         Render();
+        // Persist the clean cold-shutdown state immediately so a restart doesn't resume a meltdown.
+        PersistenceService.I.Flush();
     }
 }
