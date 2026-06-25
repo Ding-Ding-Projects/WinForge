@@ -86,6 +86,10 @@ public enum ReactorAlarm
     RodEjectionAccident,    // RIA/REA (Ch 15.4.8) in progress — a CRDM has failed and ejected an RCCA
     FuelEnthalpyLimit,      // peak radial-average fuel enthalpy ≥ the RG 1.236 coolability limit (230 cal/g)
     RiaCladFailure,         // RIA fuel-rod failure (PCMI enthalpy-rise threshold, or DNB at power)
+    RcsDeI131LcoExceeded,   // RCS Dose-Equiv I-131 > 1.0 µCi/g (LCO 3.4.16 steady-state)
+    RcsDeI131SpikeLimit,    // RCS Dose-Equiv I-131 > 60 µCi/g (transient / iodine-spike limit)
+    RcsDeXe133LcoExceeded,  // RCS Dose-Equiv Xe-133 > 280 µCi/g (noble-gas LCO 3.4.16)
+    IodineSpikeInProgress,  // an 8-h concurrent iodine spike (RG 1.183) is active
 }
 
 /// <summary>
@@ -856,6 +860,57 @@ public sealed class ReactorSimService
     private const double SgtrLeakScale = 0.11;   // leak gain (1/MPa·severity) — dP-driven choked-flow surrogate
     private const double SgtrActivityGain = 2.5; // primary→secondary activity transport gain
 
+    // ===== RCS radiochemistry · 放射化學源項 (StepRadiochemistry) ==============================
+    // Real first-order coolant-activity ODEs in µCi/g:  dA/dt = appearance − (λ_decay + k_removal)·A.
+    // A single "fuel-defect" knob (driven by DamageAccumulation) scales every source term, so a clean
+    // core sits at a benign equilibrium ~14× below the Tech-Spec limit and a damaged core climbs toward
+    // it. The model is purely ADDITIVE — at clean steady state it tracks a small constant and trips
+    // nothing. It REPLACES the old crude CoolantActivity heuristic and feeds the SAME normalized
+    // CoolantActivity that the existing SGTR/MSLB transport reads, so secondary dose now scales with the
+    // real Dose-Equivalent I-131. Sources: STS LCO 3.4.16 (NUREG-1431), ANSI/ANS-18.1, RG 1.183 App E/F.
+    public double RcsDeI131uCiPerG  { get; private set; } = 0.05;   // Dose-Equiv I-131 (LCO: 1.0 steady / 60 spike)
+    public double RcsDeXe133uCiPerG { get; private set; } = 30.0;   // Dose-Equiv Xe-133 noble gas (LCO: 280)
+    public double N16MonitorUSvPerH { get; private set; }           // main-steam-line N-16 monitor (power-proportional)
+    public double LetdownMonitorUSvPerH { get; private set; }       // CVCS letdown / process radiation monitor
+    public bool   IodineSpikeActive => _spikeTimerSec > 0.0;        // an 8-h iodine spike transient is in progress
+    public double IodineSpikeFactor => _spikeFactor;               // active appearance-rate multiplier (1 = none)
+
+    private double _aI131, _aI132, _aI133, _aI134, _aI135;          // per-isotope iodine activity (µCi/g)
+    private double _aXe133, _aXe135;                                // lumped noble-gas activity (µCi/g)
+    private double _spikeFactor = 1.0;                              // iodine-appearance multiplier during a spike
+    private double _spikeTimerSec;                                  // remaining spike duration (s)
+    private double _prevPrimaryPressureMpa = 15.5;                  // for depressurization-rate spike trigger
+    private bool   _prevScrammed;                                   // for reactor-trip rising-edge spike trigger
+    private double _baseI131, _baseI132, _baseI133, _baseI134, _baseI135, _baseXe133, _baseXe135; // clean appearance rates
+
+    // decay constants λ = ln2 / half-life (per second)
+    private const double LamI131 = 1.0007e-6;  // 8.02 d
+    private const double LamI132 = 8.371e-5;   // 2.30 h
+    private const double LamI133 = 9.256e-6;   // 20.8 h
+    private const double LamI134 = 2.201e-4;   // 52.5 min
+    private const double LamI135 = 2.930e-5;   // 6.57 h
+    private const double LamXe133 = 1.531e-6;  // 5.24 d
+    private const double LamXe135 = 2.106e-5;  // 9.14 h
+    // DEI-131 thyroid-CDE dose-conversion-factor ratios (relative to I-131 = 1.0)
+    private const double DcfI131 = 1.00, DcfI132 = 0.029, DcfI133 = 0.21, DcfI134 = 0.0073, DcfI135 = 0.044;
+    // Dose-Equiv Xe-133 noble-gas dose ratios (relative to Xe-133 = 1.0)
+    private const double DcfXe133 = 1.00, DcfXe135 = 11.0;
+    // letdown/purification (iodine) + degasifier (noble gas) removal (per second)
+    private const double KLetdownIodine = 8.0e-6;   // ~1/(35 h) purification removal
+    private const double KDegasNoble    = 4.0e-5;   // ~1/(7 h)  degasifier + letdown
+    // fuel-defect source scaling: clean → design-basis 1% failed fuel
+    private const double DefectClean = 1.0, DefectFailed = 20.0;
+    // iodine-spike factors + Tech-Spec limits
+    private const double SpikeFactorSgtr = 335.0;   // RG 1.183 App E concurrent SGTR spike
+    private const double SpikeFactorMslb = 500.0;   // RG 1.183 App F concurrent MSLB spike
+    private const double SpikeFactorTrip = 335.0;   // generic reactor-trip iodine spike
+    private const double SpikeDurationSec = 8.0 * 3600.0;        // 8 h sustained
+    private const double DepressSpikeRateMpaPerS = 0.10;         // |dP/dt| above this ⇒ depressurization spike
+    public  const double LcoDeI131SteadyLimit = 1.0;    // µCi/g  LCO 3.4.16 steady-state
+    public  const double LcoDeI131SpikeLimit  = 60.0;   // µCi/g  transient/spiking limit
+    public  const double LcoDeXe133Limit      = 280.0;  // µCi/g  noble-gas LCO 3.4.16
+    private const double N16FullPowerUSvPerH  = 4.0e4;  // MSL N-16 monitor reading at 100% power
+
     // MSLB — main steam line break. The inverse of SGTR: a rupture downstream of the SG vents the
     // secondary to atmosphere, crashing steam pressure. The saturation temperature collapses with it, so
     // the SG pulls heat from the primary far faster than the turbine ever did — the RCS OVERCOOLS. With a
@@ -969,6 +1024,7 @@ public sealed class ReactorSimService
         Iodine = 0;
         _iodineTop = _iodineBot = _xenonTop = _xenonBot = 0;
         _pm = 0; _sm = 0;
+        InitRadiochemistry(); // seed RCS DEI-131/Xe-133 activity states to clean-fuel equilibrium on first launch
         BuildRps();
     }
 
@@ -1528,6 +1584,7 @@ public sealed class ReactorSimService
         AmsacActuated = false; AmsacArmed = false; AmsacDefeated = false; _amsacTimer = 0; PeakPrimaryPressureMpa = PrimaryPressure;
         _elec.Reset();
         _sgtrSeverity = 0; SgtrLeakRate = 0; CoolantActivity = 0.02;
+        InitRadiochemistry(); // reseed RCS DEI-131/Xe-133 activity states to clean-fuel equilibrium
         SecondaryActivity = 0; AtmosphericRelease = 0; SgReliefLifted = false; SgtrIsolated = false;
         _mslbSeverity = 0; MslbIsolated = false; SiActuated = false; MslbBreakFlow = 0;
         _sealCoolingFailed = false;
@@ -1559,6 +1616,7 @@ public sealed class ReactorSimService
         {
             UpdateDecayHeat(dt);
             UpdateMeltdownPhysics(dt);
+            StepRadiochemistry(dt); // keep coolant-activity / DEI-131 / dose climbing with core damage through a meltdown
             UpdateNis(dt);
             StepCladding(dt); // keep PCT / 50.46 instrumentation live through a meltdown
             StepRvlis(dt);    // keep RVLIS vessel-level indication live through a meltdown
@@ -1577,6 +1635,7 @@ public sealed class ReactorSimService
         UpdateFlow(dt);
         UpdateDecayHeat(dt);
         UpdateScenarios(dt);
+        StepRadiochemistry(dt); // RCS DEI-131/Xe-133 source term + iodine spike + N-16 monitor; drives CoolantActivity
         UpdateContainment(dt);
         // --- QPTR / dropped-rod tilt: advance the fall-ramp + quadrant detectors BEFORE the kinetics sub-step
         //     so the inserted single-rod reactivity (read from _dropRamp) is current this tick ---
@@ -1669,6 +1728,101 @@ public sealed class ReactorSimService
         return 1.0 - Math.Exp(-x);
     }
 
+    /// <summary>Seed the radiochemistry activity states to their analytic clean-fuel equilibrium so the sim
+    /// starts at steady state (no cold-start transient). Equilibrium A_eq = S/(λ+k) is inverted to recover the
+    /// per-isotope clean appearance rates from the chosen clean-fuel µCi/g values, giving DEI-131 ≈ 0.07 and
+    /// Dose-Equiv Xe-133 ≈ 30 µCi/g — both well below the LCO 3.4.16 limits.</summary>
+    private void InitRadiochemistry()
+    {
+        // Chosen clean-fuel per-isotope equilibria (µCi/g). Their DEI-131-weighted sum ≈ 0.07 (≈14× below the
+        // 1.0 µCi/g LCO); the noble-gas sum ≈ 30 (≈9× below the 280 µCi/g LCO).
+        double eqI131 = 0.041, eqI132 = 0.18, eqI133 = 0.085, eqI134 = 0.35, eqI135 = 0.10;
+        double eqXe133 = 28.0, eqXe135 = 0.18;
+        // Invert S = A_eq·(λ+k) to get clean appearance rates (DefectClean = 1).
+        _baseI131 = eqI131 * (LamI131 + KLetdownIodine);
+        _baseI132 = eqI132 * (LamI132 + KLetdownIodine);
+        _baseI133 = eqI133 * (LamI133 + KLetdownIodine);
+        _baseI134 = eqI134 * (LamI134 + KLetdownIodine);
+        _baseI135 = eqI135 * (LamI135 + KLetdownIodine);
+        _baseXe133 = eqXe133 * (LamXe133 + KDegasNoble);
+        _baseXe135 = eqXe135 * (LamXe135 + KDegasNoble);
+        // Start AT equilibrium.
+        _aI131 = eqI131; _aI132 = eqI132; _aI133 = eqI133; _aI134 = eqI134; _aI135 = eqI135;
+        _aXe133 = eqXe133; _aXe135 = eqXe135;
+        _spikeFactor = 1.0; _spikeTimerSec = 0.0;
+        _prevPrimaryPressureMpa = PrimaryPressure; _prevScrammed = IsScrammed;
+        RcsDeI131uCiPerG = DcfI131*eqI131 + DcfI132*eqI132 + DcfI133*eqI133 + DcfI134*eqI134 + DcfI135*eqI135;
+        RcsDeXe133uCiPerG = DcfXe133*eqXe133 + DcfXe135*eqXe135;
+    }
+
+    /// <summary>
+    /// 反應堆冷卻劑放射化學源項 · RCS coolant radiochemistry source term (LCO 3.4.16 / ANS-18.1 / RG 1.183).
+    /// Tracks five iodine isotopes (I-131…I-135) and two noble-gas groups (Xe-133/Xe-135) as first-order
+    /// activity ODEs in µCi/g:  A ← A + (S·defect·spike − (λ + k)·A)·dt. A single fuel-defect multiplier
+    /// (driven by DamageAccumulation, clean → design-basis 1% failed fuel) scales every source term. On a
+    /// reactor-trip rising edge OR a rapid RCS depressurization the iodine appearance rate is multiplied by an
+    /// 8-hour spike factor (335× generic/SGTR, 500× MSLB), reproducing the licensing concurrent iodine spike.
+    /// The DEI-131-weighted sum drives the SAME normalized CoolantActivity the SGTR/MSLB transport already
+    /// reads, so secondary dose now scales with real coolant activity. Purely additive — clean steady state
+    /// holds a benign constant and trips nothing.
+    /// </summary>
+    private void StepRadiochemistry(double dt)
+    {
+        if (dt <= 0) return;
+
+        // 1 — fuel-defect fraction: clean baseline, raised toward the 1%-failed multiplier by core damage.
+        double defect = DefectClean + (DefectFailed - DefectClean) * Math.Clamp(DamageAccumulation / 50.0, 0.0, 1.0);
+
+        // 2 — iodine-spike triggers (rising edges only): reactor trip, or fast depressurization.
+        double dPdt = (_prevPrimaryPressureMpa - PrimaryPressure) / dt;   // +ve ⇒ depressurizing
+        bool tripEdge    = IsScrammed && !_prevScrammed;
+        bool depressEdge = dPdt > DepressSpikeRateMpaPerS;
+        if ((tripEdge || depressEdge) && _spikeTimerSec <= 0.0)
+        {
+            _spikeFactor = _mslbSeverity > 0 ? SpikeFactorMslb
+                         : _sgtrSeverity > 0 ? SpikeFactorSgtr
+                         :                     SpikeFactorTrip;
+            _spikeTimerSec = SpikeDurationSec;
+        }
+        if (_spikeTimerSec > 0.0)
+        {
+            _spikeTimerSec -= dt;
+            if (_spikeTimerSec <= 0.0) { _spikeTimerSec = 0.0; _spikeFactor = 1.0; }
+        }
+        double iodineSpike = _spikeTimerSec > 0.0 ? _spikeFactor : 1.0;
+
+        // 3 — first-order activity ODEs (explicit Euler; λ·dt ≪ 1 even for the fastest group, I-134).
+        _aI131 += (_baseI131 * defect * iodineSpike - (LamI131 + KLetdownIodine) * _aI131) * dt;
+        _aI132 += (_baseI132 * defect * iodineSpike - (LamI132 + KLetdownIodine) * _aI132) * dt;
+        _aI133 += (_baseI133 * defect * iodineSpike - (LamI133 + KLetdownIodine) * _aI133) * dt;
+        _aI134 += (_baseI134 * defect * iodineSpike - (LamI134 + KLetdownIodine) * _aI134) * dt;
+        _aI135 += (_baseI135 * defect * iodineSpike - (LamI135 + KLetdownIodine) * _aI135) * dt;
+        // Noble gases: not iodine-spiked, but scale with defect; Xe-135 is also fed by I-135 decay.
+        _aXe133 += (_baseXe133 * defect - (LamXe133 + KDegasNoble) * _aXe133) * dt;
+        _aXe135 += (_baseXe135 * defect + LamI135 * _aI135 - (LamXe135 + KDegasNoble) * _aXe135) * dt;
+
+        _aI131 = Math.Max(0, _aI131); _aI132 = Math.Max(0, _aI132); _aI133 = Math.Max(0, _aI133);
+        _aI134 = Math.Max(0, _aI134); _aI135 = Math.Max(0, _aI135);
+        _aXe133 = Math.Max(0, _aXe133); _aXe135 = Math.Max(0, _aXe135);
+
+        // 4 — dose-equivalent rollups (weighted sums of the isotope activities).
+        RcsDeI131uCiPerG  = DcfI131*_aI131 + DcfI132*_aI132 + DcfI133*_aI133 + DcfI134*_aI134 + DcfI135*_aI135;
+        RcsDeXe133uCiPerG = DcfXe133*_aXe133 + DcfXe135*_aXe135;
+
+        // 5 — radiation monitors. MSL N-16 (7.13 s, power-proportional, near-instant) reads only with the
+        //     primary at power; the CVCS letdown/process monitor tracks total RCS specific activity.
+        N16MonitorUSvPerH = N16FullPowerUSvPerH * Math.Clamp(_power, 0.0, 1.2);
+        LetdownMonitorUSvPerH = 0.5 + 8.0 * RcsDeI131uCiPerG + 0.1 * RcsDeXe133uCiPerG;
+
+        // 6 — feed the EXISTING normalized CoolantActivity (1.0 == LCO 3.4.16 limit): the single coupling
+        //     line the SGTR/MSLB secondary-transport reads.
+        CoolantActivity = RcsDeI131uCiPerG / LcoDeI131SteadyLimit;
+
+        // 7 — edge-detector memory.
+        _prevPrimaryPressureMpa = PrimaryPressure;
+        _prevScrammed = IsScrammed;
+    }
+
     /// <summary>
     /// RCP 軸封冷卻喪失 → WOG-2000 軸封失水事故 · Reactor-coolant-pump seal-cooling-loss → WOG-2000 seal LOCA.
     /// Each pump's lumped seal cavity heats toward the hot-leg (first-order, τ=900 s) when BOTH seal-cooling
@@ -1748,8 +1902,9 @@ public sealed class ReactorSimService
             PrimaryDeficitPct += 1.5 * SgtrLeakRate * dt;
             EccsArmed = true;
 
-            // Failed fuel ⇒ dirtier coolant ⇒ a worse radiological consequence for the same leak.
-            CoolantActivity = 0.02 + 0.02 * Math.Min(DamageAccumulation, 50.0);
+            // Coolant specific activity (CoolantActivity, normalized 1.0 == LCO 3.4.16 limit) is now set by
+            // StepRadiochemistry from the real Dose-Equivalent I-131 ODE — including the failed-fuel rise and
+            // the iodine spike a depressurizing SGTR itself triggers — so the transport below scales with it.
 
             // Secondary radiation accumulator: rises with leak × activity, slow washout (τ ≈ 1800 s).
             SecondaryActivity += SgtrActivityGain * SgtrLeakRate * CoolantActivity * dt;
@@ -3264,6 +3419,10 @@ public sealed class ReactorSimService
         SetAlarm(ReactorAlarm.SafetyInjection, SiActuated);
         SetAlarm(ReactorAlarm.PzrCodeSafetyOpen, AnyPzrCodeSafetyOpen);
         SetAlarm(ReactorAlarm.SecondaryRadiationHi, SecondaryActivity > 1.0);
+        SetAlarm(ReactorAlarm.RcsDeI131LcoExceeded, RcsDeI131uCiPerG > LcoDeI131SteadyLimit);
+        SetAlarm(ReactorAlarm.RcsDeI131SpikeLimit,  RcsDeI131uCiPerG > LcoDeI131SpikeLimit);
+        SetAlarm(ReactorAlarm.RcsDeXe133LcoExceeded, RcsDeXe133uCiPerG > LcoDeXe133Limit);
+        SetAlarm(ReactorAlarm.IodineSpikeInProgress, IodineSpikeActive);
         SetAlarm(ReactorAlarm.SgReliefLift, SgReliefLifted);
         SetAlarm(ReactorAlarm.RodInsertionLimitLo, RilLowAlarm && !RilLowLowAlarm);
         SetAlarm(ReactorAlarm.RodInsertionLimitLoLo, RilLowLowAlarm);

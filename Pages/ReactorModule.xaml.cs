@@ -495,6 +495,16 @@ public sealed partial class ReactorModule : Page
         AddGauge("SG level", "蒸發器水位", 0, 100, () => _sim.IndicatedSgLevel, () => $"{_sim.IndicatedSgLevel:F0}%", id: "sgLevel");
         AddGauge("Secondary radiation", "二次側輻射", 0, 300, () => _sim.SecondaryRadiation, () => $"{_sim.SecondaryRadiation:F0} µSv/h", warnFrac: 100.0 / 300.0, id: "secRad");
         AddGauge("Atmospheric release", "累計大氣排放", 0, 100, () => _sim.AtmosphericRelease * 10, () => $"{_sim.AtmosphericRelease:F2}", id: "atmRel");
+        // RCS coolant radiochemistry (LCO 3.4.16 / ANS-18.1 / RG 1.183): Dose-Equivalent I-131 & Xe-133 + rad monitors.
+        AddGauge("RCS Dose-Equiv I-131", "一次側碘-131當量", 0, 70, () => _sim.RcsDeI131uCiPerG,
+            () => $"{_sim.RcsDeI131uCiPerG:F2} µCi/g (LCO 1.0)" + (_sim.IodineSpikeActive ? $" · {P("SPIKE", "尖峰")} ×{_sim.IodineSpikeFactor:F0}" : ""),
+            warnFrac: 1.0 / 70.0, id: "deI131");
+        AddGauge("RCS Dose-Equiv Xe-133", "一次側氙-133當量", 0, 320, () => _sim.RcsDeXe133uCiPerG,
+            () => $"{_sim.RcsDeXe133uCiPerG:F0} µCi/g (LCO 280)", warnFrac: 280.0 / 320.0, id: "deXe133");
+        AddGauge("Main steam N-16 monitor", "主蒸汽管 N-16 監測", 0, 50000, () => _sim.N16MonitorUSvPerH,
+            () => $"{_sim.N16MonitorUSvPerH / 1000.0:F1} mSv/h", id: "n16mon");
+        AddGauge("Letdown rad monitor", "淨化排水輻射監測", 0, 600, () => _sim.LetdownMonitorUSvPerH,
+            () => $"{_sim.LetdownMonitorUSvPerH:F1} µSv/h", warnFrac: 10.0 / 600.0, id: "letdownMon");
         // LOCA core-uncovery → Peak Cladding Temperature + 10 CFR 50.46(b) acceptance criteria.
         AddGauge("Peak clad temp (PCT)", "峰值包殼溫度", 300, 2500, () => _sim.PeakCladTempC, () => $"{_sim.PeakCladTempC:F0}°C · {_sim.PeakCladTempF:F0}°F (now {_sim.CladTempC:F0}°C)", id: "cladTemp");
         AddGauge("Core collapsed level", "堆芯塌陷水位", 0, 100, () => _sim.CollapsedLevelFrac * 100, () => $"{_sim.CollapsedLevelFrac * 100:F0}% · {_sim.CoreExposedFrac * 100:F0}% dry{(_sim.CladQuenching ? " · QUENCH" : "")}", id: "coreLevel");
@@ -660,6 +670,10 @@ public sealed partial class ReactorModule : Page
             (ReactorAlarm.NaturalCirc, "NATURAL CIRC", "自然循環"),
             (ReactorAlarm.SgtrLeak, "SGTR LEAK", "蒸發器爆管洩漏"),
             (ReactorAlarm.SecondaryRadiationHi, "2NDARY RAD HI", "二次側輻射高"),
+            (ReactorAlarm.RcsDeI131LcoExceeded, "RCS DEI-131 > 1.0 (LCO 3.4.16)", "一次側碘-131當量 >1.0（LCO 3.4.16）"),
+            (ReactorAlarm.RcsDeI131SpikeLimit, "DEI-131 SPIKE > 60 µCi/g", "碘當量尖峰 >60 µCi/g"),
+            (ReactorAlarm.RcsDeXe133LcoExceeded, "NOBLE GAS DEX-133 > 280", "惰性氣體氙當量 >280"),
+            (ReactorAlarm.IodineSpikeInProgress, "IODINE SPIKE (RG 1.183)", "碘尖峰進行中（RG 1.183）"),
             (ReactorAlarm.SgReliefLift, "SG RELIEF — RELEASE", "蒸發器釋壓閥洩放"),
             (ReactorAlarm.SteamlineBreak, "STEAMLINE BREAK", "主蒸汽管爆裂"),
             (ReactorAlarm.SafetyInjection, "SAFETY INJECTION", "安全注入 SI"),
