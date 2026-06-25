@@ -713,6 +713,9 @@ public sealed partial class MainWindow : Window
             case "nativetorrent":
             case "downloads":
                 Navigator.GoToModule?.Invoke("module.torrent");
+            case "docker":
+            case "containers":
+                Navigator.GoToModule?.Invoke("module.docker");
                 break;
             case "worldmonitor":
             case "world":
@@ -939,6 +942,7 @@ public sealed partial class MainWindow : Window
         "module.qbittorrent" => typeof(QBittorrentModule),
         "module.torrent" => typeof(TorrentModule),
         "module.dockerssh" => typeof(DockerSshModule),
+        "module.docker" => typeof(DockerModule),
         "module.comms" => typeof(CommunicationsModule),
         "module.mail" => typeof(MailModule),
         "module.configbackup" => typeof(ConfigBackupModule),

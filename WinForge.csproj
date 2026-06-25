@@ -138,6 +138,15 @@
          for the native KDBX password-vault module (module.keepass). Argon2 is not in the BCL; this is a
          compiled-in NuGet package, never a native exe. AES/ChaCha20/SHA/HMAC come from the BCL. -->
     <PackageReference Include="Konscious.Security.Cryptography.Argon2" Version="1.3.1" />
+    <!-- Docker.DotNet (MIT)：純 managed Docker Engine REST API 客戶端，畀原生 Docker 容器管理模組用
+         （行 Windows 具名管道 npipe://./pipe/docker_engine 或 tcp://localhost:2375）。同 qBittorrent 一樣
+         係「原生客戶端對本機 API」嘅做法 — 絕對唔會 shell out 去 docker / docker compose CLI。
+         Docker.DotNet: managed Docker Engine REST API client for the native Docker module — talks to the
+         local engine over the named pipe (or TCP), never shelling out to the docker CLI. -->
+    <PackageReference Include="Docker.DotNet" Version="3.125.15" />
+    <!-- YamlDotNet (MIT)：純 C# 解析 docker-compose.yml，再經 Docker.DotNet API 起服務（唔行 docker compose）。
+         YamlDotNet: managed C# parser for docker-compose.yml; the stack is created via the Docker.DotNet API. -->
+    <PackageReference Include="YamlDotNet" Version="16.3.0" />
   </ItemGroup>
 
   <!--
