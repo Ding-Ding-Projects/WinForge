@@ -87,6 +87,7 @@
                         <NavigationViewItem Content="Startup Apps · 開機程式" Tag="module.startup"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7B5;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Event Viewer · 事件檢視器" Tag="module.events"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7C3;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="System Monitor · 系統監察" Tag="module.monitor"><NavigationViewItem.Icon><FontIcon Glyph="&#xE9D9;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Process Explorer · 程序總管" Tag="module.procexp"><NavigationViewItem.Icon><FontIcon Glyph="&#xEC4A;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="System Info (Winfetch) · 系統資訊" Tag="module.winfetch"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7F4;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Battery &amp; Thermal · 電池與散熱" Tag="module.battery"><NavigationViewItem.Icon><FontIcon Glyph="&#xE83E;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Connections · 連線" Tag="module.connections"><NavigationViewItem.Icon><FontIcon Glyph="&#xE968;" /></NavigationViewItem.Icon></NavigationViewItem>

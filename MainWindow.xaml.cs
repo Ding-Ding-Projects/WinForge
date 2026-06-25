@@ -474,6 +474,14 @@ public sealed partial class MainWindow : Window
             case "sysmon":
                 Navigator.GoToModule?.Invoke("module.monitor");
                 break;
+            case "procexp":
+            case "processexplorer":
+            case "processes":
+            case "process":
+            case "taskmgr":
+            case "systeminformer":
+                Navigator.GoToModule?.Invoke("module.procexp");
+                break;
             case "winfetch":
             case "sysinfo":
             case "systeminfo":
@@ -901,6 +909,7 @@ public sealed partial class MainWindow : Window
         "module.giflab" => typeof(GifLabModule),
         "module.zoomit" => typeof(ZoomItModule),
         "module.monitor" => typeof(SystemMonitorModule),
+        "module.procexp" => typeof(ProcessExplorerModule),
         "module.winfetch" => typeof(WinfetchModule),
         "module.battery" => typeof(BatteryThermalModule),
         "module.connections" => typeof(ConnectionsModule),
