@@ -576,22 +576,36 @@ public sealed class ReactorSimService
         XenonReactivityPcm = xenonRho * 1e5;
         ReactivityPcm = rho * 1e5;
 
-        // ---- point kinetics (6 groups) ----
-        double precursorSum = 0;
-        for (int i = 0; i < 6; i++) precursorSum += Lambda[i] * _precursor[i];
+        // ---- point kinetics (6 groups), unconditionally-stable backward (implicit) Euler ----
+        // The prompt mode is stiff: near critical its eigenvalue is ~ -BetaTotal/PromptLifetime
+        // (~-325/s for these constants), so explicit forward-Euler needs h < ~6 ms. We step at
+        // h = SubDt = 0.02 s, ~3x over that limit, where forward-Euler oscillates sign-to-sign and
+        // diverges on ANY reactivity insertion. Backward Euler is stable for all h below prompt-
+        // critical. We collapse the full 7-state implicit system into one scalar solve: substitute
+        // each C_i^{n+1} = (C_i + h*(beta_i/Lambda)*P^{n+1})/(1 + h*lambda_i) into the power balance.
+        double precursorContribution = 0; // A: lagged-but-corrected precursor source
+        double implicitFeedback = 0;      // B: implicit precursor feedback into power
+        for (int i = 0; i < 6; i++)
+        {
+            double di = 1.0 + h * Lambda[i];
+            precursorContribution += Lambda[i] * _precursor[i] / di;
+            implicitFeedback += h * Lambda[i] * Beta[i] / (PromptLifetime * di);
+        }
 
-        double dP = ((rho - BetaTotal) / PromptLifetime) * _power + precursorSum + SourceLevel;
-        double newPower = _power + dP * h;
+        double denom = 1.0 - h * (rho - BetaTotal) / PromptLifetime - h * implicitFeedback;
+        if (denom < 1e-3) denom = 1e-3; // guard: denom crosses zero at/above prompt-critical (rho >= ~1$)
+
+        double newPower = (_power + h * (precursorContribution + SourceLevel)) / denom;
+        if (newPower < 1e-12) newPower = 1e-12; // floor, never zero/negative (would poison precursors+source)
 
         for (int i = 0; i < 6; i++)
         {
-            double dC = (Beta[i] / PromptLifetime) * _power - Lambda[i] * _precursor[i];
-            _precursor[i] += dC * h;
+            // Implicit precursor update uses the new power; unconditionally stable, no overshoot.
+            _precursor[i] = (_precursor[i] + h * (Beta[i] / PromptLifetime) * newPower) / (1.0 + h * Lambda[i]);
             if (_precursor[i] < 0) _precursor[i] = 0;
         }
 
-        if (newPower < 1e-12) newPower = 1e-12;
-        // Reactor period from rate of change.
+        // Reactor period from rate of change (computed before _power is overwritten).
         double rate = (newPower - _power) / (Math.Max(_power, 1e-12) * h);
         ReactorPeriodSeconds = Math.Abs(rate) < 1e-9 ? 1e9 : 1.0 / rate;
         _power = newPower;
