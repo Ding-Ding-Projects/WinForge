@@ -469,6 +469,7 @@ public sealed partial class ReactorModule : Page
         AddGauge("Reactivity", "反應性", -2000, 2000, () => _sim.ReactivityPcm, () => $"{_sim.ReactivityPcm:F0} pcm");
         AddGauge("Fuel temp", "燃料溫度", 0, 3000, () => _sim.FuelTemp, () => $"{_sim.FuelTemp:F0}°C", warnFrac: ReactorSimService.FuelDamageTemp / 3000.0, id: "fuelTemp");
         AddGauge("Coolant Tavg", "冷卻劑平均溫", 530, 620, () => _sim.Tavg * 1.8 + 32, () => $"{_sim.Tavg * 1.8 + 32:F0}°F", id: "tavg");
+        AddGauge("Reference Tref", "參考溫度 Tref", 530, 620, () => _sim.Tref * 1.8 + 32, () => $"{_sim.Tref * 1.8 + 32:F0}°F", id: "tref");
         AddGauge("Coolant Thot", "熱腿溫度", 530, 660, () => _sim.Thot * 1.8 + 32, () => $"{_sim.Thot * 1.8 + 32:F0}°F", id: "thot");
         AddGauge("Coolant Tcold", "冷腿溫度", 520, 600, () => _sim.Tcold * 1.8 + 32, () => $"{_sim.Tcold * 1.8 + 32:F0}°F", id: "tcold");
         AddGauge("Subcooling", "過冷度", -20, 120, () => _sim.SubcoolingMarginC, () => $"{_sim.SubcoolingMarginC:F0}°C", id: "subcool");
@@ -1389,10 +1390,11 @@ public sealed partial class ReactorModule : Page
         };
         host.Children.Add(WrapLabel("Reactor mode · 反應堆模式", "反應堆模式 · Reactor mode", modeCombo));
 
-        host.Children.Add(LabeledSlider(
-            "Auto power setpoint (%)", "自動功率設定（%）",
-            0, 110, _sim.AutoPowerSetpoint * 100, 1,
-            v => _sim.AutoPowerSetpoint = v / 100.0, () => _sim.AutoPowerSetpoint * 100, "%"));
+        host.Children.Add(InfoNote(
+            "AUTO rod control regulates Tavg to the turbine-load-programmed Tref (Westinghouse §8.1): " +
+            "raise turbine load and the rods withdraw to follow. The reference rises 557°F (no-load) → 581°F (full).",
+            "自動棒控將 Tavg 調節至按汽輪機負荷編程嘅 Tref（西屋 §8.1）：加大汽輪機負荷，控制棒就會抽出跟隨。" +
+            "參考溫度由 557°F（零負荷）升至 581°F（滿載）。"));
 
         // ---- Startup-sequence checklist (approach to criticality) ----
         host.Children.Add(SectionHeader("Startup sequence (approach to criticality) · 啟動程序（趨近臨界）",
@@ -1455,10 +1457,27 @@ public sealed partial class ReactorModule : Page
                 : _sim.RilLowAlarm
                     ? P("LO — bank D below limit", "低 — D 棒低於限值")
                     : P("within limit", "在限值內");
+            string autoLine;
+            if (_sim.AutoRodControl)
+            {
+                double speed = _sim.RodSpeedDemandSpm;
+                string motion = Math.Abs(speed) < 0.5
+                    ? P("hold (in deadband)", "保持（死區內）")
+                    : (speed > 0 ? P($"withdraw {Math.Abs(speed):F0} spm", $"抽出 {Math.Abs(speed):F0} 步/分")
+                                 : P($"insert {Math.Abs(speed):F0} spm", $"插入 {Math.Abs(speed):F0} 步/分"));
+                autoLine = "\n" + P(
+                    $"AUTO Tavg/Tref:  Tref {_sim.Tref * 1.8 + 32:F1}°F · ΔT {_sim.TavgTrefError * 1.8:+0.0;-0.0}°F · {motion}",
+                    $"自動 Tavg/Tref：  Tref {_sim.Tref * 1.8 + 32:F1}°F · ΔT {_sim.TavgTrefError * 1.8:+0.0;-0.0}°F · {motion}");
+            }
+            else
+            {
+                autoLine = "\n" + P("AUTO rod control off (manual rod positioning)", "自動棒控關閉（手動定位）");
+            }
             _rodStatusText.Text =
                 P($"Rod steps withdrawn (0–228):  {steps}", $"控制棒抽出步數（0–228）：  {steps}") + "\n" +
                 P($"Lead-bank D limit @ {_sim.NeutronPowerFraction * 100:F0}% pwr: {lowLim:F0} steps · {lim}",
-                  $"領先 D 棒插入限值 @ {_sim.NeutronPowerFraction * 100:F0}% 功率：{lowLim:F0} 步 · {lim}");
+                  $"領先 D 棒插入限值 @ {_sim.NeutronPowerFraction * 100:F0}% 功率：{lowLim:F0} 步 · {lim}") +
+                autoLine;
             _rodStatusText.Foreground = new SolidColorBrush(
                 _sim.RilLowLowAlarm ? Color.FromArgb(255, 0xFF, 0x52, 0x52)
                 : _sim.RilLowAlarm ? Color.FromArgb(255, 0xFF, 0xB3, 0x00)
@@ -1566,6 +1585,20 @@ public sealed partial class ReactorModule : Page
     private TextBlock SectionHeader(string en, string zh)
     {
         var tb = new TextBlock { FontWeight = FontWeights.Bold, FontSize = 15, Margin = new Thickness(0, 6, 0, 0) };
+        _relocalizers.Add(() => tb.Text = P(en, zh));
+        tb.Text = P(en, zh);
+        return tb;
+    }
+
+    private TextBlock InfoNote(string en, string zh)
+    {
+        var tb = new TextBlock
+        {
+            FontSize = 11,
+            TextWrapping = TextWrapping.Wrap,
+            Opacity = 0.75,
+            Margin = new Thickness(0, 2, 0, 4),
+        };
         _relocalizers.Add(() => tb.Text = P(en, zh));
         tb.Text = P(en, zh);
         return tb;

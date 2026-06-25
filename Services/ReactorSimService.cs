@@ -115,6 +115,27 @@ public sealed class ReactorSimService
     private const int RilLowLowBias        = 15; // steps the Low-Low insertion limit sits below Low
     private const int RodDeviationBandSteps = 12; // LCO 3.1.4 rod-alignment / deviation band (steps)
 
+    // --- Westinghouse automatic rod-control: Tavg/Tref program (NRC Tech Manual §8.1, ML11223A252) ---
+    // AUTO rods regulate Tavg to a turbine-load-programmed reference Tref, NOT to a power setpoint. Tref is
+    // linear in turbine first-stage (impulse) pressure between a no-load and a full-load endpoint; the
+    // canonical span is 557→584.7 °F = 15.4 °C. We anchor full load at the existing 305 °C datum so the
+    // OTΔT/OPΔT and criticality baselines are undisturbed, and back off the 15.4 °C span for no-load.
+    private const double NoLoadTavg       = 289.6;  // °C — 0 % load Tref endpoint (305 − 15.4 span)
+    private const double FullLoadTavg     = 305.0;  // °C — 100 % load Tref endpoint (= NominalTavg)
+    // Temperature-error deadband: ±1.5 °F held about Tref. This is a ΔT-span conversion (1.5/1.8), not
+    // an absolute-temperature conversion → ±0.833 °C. No rod motion inside.
+    private const double RodDeadbandC     = 0.833;  // °C
+    private const double RodRampStartC    = 1.667;  // °C — 3 °F, end of min-speed / start of proportional ramp
+    private const double RodRampEndC      = 2.778;  // °C — 5 °F, max-speed error
+    private const double RodSpeedMinSpm   = 8.0;    // steps/min — lockup/minimum
+    private const double RodSpeedMaxSpm   = 72.0;   // steps/min — maximum (drive-mechanism limit)
+    // Proportional-region slope: (72−8)/(2.778−1.667) = 57.6 spm per °C.
+    private const double RodSpeedSlopeSpm = 57.6;   // steps/min per °C
+    // Power-mismatch anticipatory gain: equivalent °C per unit (turbine load − nuclear power). A full
+    // 100 % load/power mismatch reads as 3 °C of error (max speed). Lumped approximation of the manual's
+    // nonlinear ~0.3 °F/% rate-comparator gain; self-decays as _power re-tracks the turbine load.
+    private const double PowerMismatchGainC = 3.0;  // °C per unit mismatch
+
     // Reference / nominal operating points.
     public const double RatedThermalMW = 3411.0;  // MWth (typical 4-loop PWR core)
     public const double RatedElectricMW = 1150.0; // MWe gross
@@ -303,7 +324,11 @@ public sealed class ReactorSimService
 
     // Auto-control
     public bool AutoRodControl { get; set; }
-    public double AutoPowerSetpoint { get; set; } = 1.0;  // fraction of rated thermal power
+    public double AutoPowerSetpoint { get; set; } = 1.0;  // fraction of rated thermal power (manual/legacy target)
+    // Westinghouse Tavg/Tref auto rod-control telemetry (read-only display)
+    public double Tref { get; private set; } = NoLoadTavg;     // °C, load-programmed reference temperature
+    public double TavgTrefError { get; private set; }          // °C, Tavg − Tref (positive = too hot)
+    public double RodSpeedDemandSpm { get; private set; }      // steps/min commanded by the speed program (signed: + = withdraw)
 
     // Derived flow
     public double CoolantFlowFraction { get; private set; } // 0..1 actual primary flow
@@ -921,6 +946,7 @@ public sealed class ReactorSimService
         ReliefValveOpen = false; EccsArmed = false; EccsInjecting = false;
         CoolantFlowFraction = 0; DamageAccumulation = 0;
         IsScrammed = false; MeltdownTriggered = false; AutoRodControl = false;
+        _autoRodWasOn = false; Tref = NoLoadTavg; TavgTrefError = 0; RodSpeedDemandSpm = 0;
         _rps.ClearLatch(); LastTripFunctionEn = ""; LastTripFunctionZh = ""; _powerRate = 0;
         Mode = ReactorMode.Shutdown;
         for (int i = 0; i < _alarms.Length; i++) _alarms[i] = false;
@@ -996,7 +1022,7 @@ public sealed class ReactorSimService
 
         // --- auto rod control ---
         if (AutoRodControl && !IsScrammed) UpdateAutoRods(dt);
-        else _autoRodWasOn = false; // reset bumpless-transfer latch when AUTO is dropped
+        else { _autoRodWasOn = false; RodSpeedDemandSpm = 0.0; } // reset bumpless-transfer latch when AUTO is dropped
 
         // --- nuclear instrumentation BEFORE protection: the SR/IR/PR readings and the IR-derived P-6
         //     permissive must be current when the protection system evaluates the NIS trips this tick. ---
@@ -1870,11 +1896,34 @@ public sealed class ReactorSimService
         if (!_autoRodWasOn) _rodDemandCounter = InferRodDemandFromBanks();
         _autoRodWasOn = true;
 
-        // Proportional controller drives the single group-demand counter (0..528); banks then follow
-        // it with 128-step overlap — never all moving uniformly, exactly like a Westinghouse rod-control.
-        double err  = AutoPowerSetpoint - _power;          // err>0 (need power) -> withdraw -> raise counter
-        double gain = 6.0 * (RodTotalSpan / 100.0);        // steps/s per unit power error
-        _rodDemandCounter = Math.Clamp(_rodDemandCounter + err * gain * dt, 0, RodTotalSpan);
+        // --- Westinghouse Tavg/Tref rod control (NRC Tech Manual §8.1). The controller regulates Tavg to a
+        //     turbine-load-programmed reference Tref — NOT to a power setpoint — summed with a power-mismatch
+        //     anticipatory term, then mapped through a deadband + variable-speed program onto the group-demand
+        //     counter. Power emerges as whatever satisfies the steam load at Tavg = Tref. ---
+        double load = Math.Clamp(FirstStagePressure, 0.0, 1.0);     // impulse-pressure load proxy (0..1)
+        Tref = NoLoadTavg + (FullLoadTavg - NoLoadTavg) * load;     // linear Tref program
+        TavgTrefError = Tavg - Tref;                                // °C, + = too hot
+
+        // Anticipatory power mismatch: turbine load minus nuclear power, as an equivalent-temperature signal.
+        // Acts the instant load diverges from power (before Tavg measurably shifts) and self-decays as _power
+        // re-tracks the load — reproducing the rate comparator's decay-to-zero behaviour.
+        double mismatch = load - _power;                           // −1..1
+        double combinedError = TavgTrefError + PowerMismatchGainC * mismatch;
+        double e = Math.Abs(combinedError);
+
+        // Variable-speed program: deadband → 8 spm (min/lockup) → linear ramp → 72 spm (max).
+        double speedSpm;
+        if (e <= RodDeadbandC)        speedSpm = 0.0;
+        else if (e <= RodRampStartC)  speedSpm = RodSpeedMinSpm;
+        else                          speedSpm = Math.Clamp(
+                                          RodSpeedMinSpm + RodSpeedSlopeSpm * (e - RodRampStartC),
+                                          RodSpeedMinSpm, RodSpeedMaxSpm);
+
+        // Direction: too hot (combinedError>0) → insert rods → lower the counter; too cold → withdraw.
+        double dir = combinedError > 0 ? -1.0 : +1.0;
+        RodSpeedDemandSpm = dir * speedSpm;                        // signed telemetry (+ = withdraw)
+        // Accumulate the counter as a double (carry the fractional step remainder across ticks).
+        _rodDemandCounter = Math.Clamp(_rodDemandCounter + dir * (speedSpm / 60.0) * dt, 0, RodTotalSpan);
         ApplyOverlapToBanks(_rodDemandCounter);
     }
 
