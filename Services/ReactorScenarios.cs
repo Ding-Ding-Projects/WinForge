@@ -15,6 +15,7 @@ public enum ReactorScenario
     XenonRestart,      // 氙毒重啟 · post-trip xenon transient / iodine pit
     SgTubeRupture,     // 蒸發器爆管 · steam-generator tube rupture (primary→secondary leak)
     MainSteamLineBreak,// 主蒸汽管爆裂 · main steam line break (secondary blowdown → primary overcooling)
+    RcpSealLoca,       // 主泵軸封失水 · RCP seal LOCA — loss of all seal cooling → degraded seal leakoff (WOG-2000)
 }
 
 /// <summary>一條儀表限值帶 · One coloured limit band on a gauge / strip chart.</summary>
@@ -152,6 +153,13 @@ public static class ReactorScenarios
         "h2" => (0, 3,
             Bands((0, 0.5, "normal"), (0.5, 1.0, "warn"), (1.0, 3, "danger")),
             Sets((1.0, "1% H₂ limit", "1% 氫氣限值"))),
+
+        // RCP seal leakoff (total, gpm). 4-loop WOG-2000 bins: normal ~12 gpm, intact-hot 84, popped 728,
+        // gross seal failure 1920 gpm (≈2-inch SBLOCA). Setpoints mark the per-pump-bin 4-loop totals.
+        "sealLeak" => (0, 1920,
+            Bands((0, 84, "normal"), (84, 728, "warn"), (728, 1920, "danger")),
+            Sets((84, "21 gpm/pump (intact)", "每泵21加侖（完好）"), (728, "182 gpm/pump (popped)", "每泵182加侖（彈出）"),
+                 (1920, "480 gpm/pump (gross)", "每泵480加侖（全失效）"))),
 
         _ => (0, 100, Array.Empty<GaugeBand>(), Array.Empty<GaugeSetpoint>()),
     };

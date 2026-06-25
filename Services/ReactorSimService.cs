@@ -66,6 +66,7 @@ public enum ReactorAlarm
     HydrogenGenerationLimit,
     DnbrSafetyLimit,   // MinDnbr < 1.30  (W-3 95/95 design limit)
     DnbrLowMargin,     // MinDnbr < 1.55  (low-margin warning)
+    RcpSealLoca,       // RCP seal-cooling lost → degraded seal leakoff (WOG-2000 seal LOCA)
 }
 
 /// <summary>
@@ -342,6 +343,24 @@ public sealed class ReactorSimService
     public bool RcpCoasting { get; private set; }            // a stopped pump is still carrying inertial flow
     public bool OnNaturalCirc { get; private set; }          // buoyancy floor is governing core flow (pumps gone)
 
+    // --- RCP seal package (WOG-2000 seal-LOCA on loss of all seal cooling) ---
+    // Each of the 4 reactor-coolant-pump shafts has a 3-stage film-riding face-seal package. Normally the
+    // No.1 seal takes the full ~2235 psia drop with a small controlled bleed-off (~3 gpm/pump) that charging
+    // makes up. Cooling is removed two ways: CCW to the thermal-barrier heat exchanger, and high-head charging
+    // seal-injection down the shaft. Lose BOTH (the defining station-blackout condition — no AC bus) and the
+    // stagnant seal water heats toward the hot-leg, the elastomer O-rings degrade, and per-pump leakoff escalates
+    // through the canonical WOG-2000 bins (21→76→182→480 gpm/pump). At the gross-failure bin a 4-loop plant sheds
+    // ~1920 gpm — a ~2-inch small-break LOCA that the existing PrimaryDeficitPct path turns into core uncovery.
+    // Degradation is monotonically latched: extruded O-rings do NOT reseat when cooling is restored, so restoring
+    // cooling before the cavity reaches a higher bin is the only thing that arrests the climb.
+    private readonly double[] _sealCavityTempC = { SealCooledTempC, SealCooledTempC, SealCooledTempC, SealCooledTempC };
+    private readonly double[] _sealLeakGpm     = new double[4];
+    private readonly double[] _sealIntegrity   = { 1.0, 1.0, 1.0, 1.0 }; // 1 = intact; only ever decreases (latched)
+    private bool _sealCoolingFailed;                          // scenario latch: loss of all seal cooling injected directly
+    public double SealLeakGpmTotal   { get; private set; }   // Σ per-pump leakoff, gpm (display + deficit driver)
+    public double SealCavityMaxTempC { get; private set; } = SealCooledTempC; // hottest seal cavity, °C (display)
+    public bool   SealCoolingAvailable { get; private set; } = true; // either seal-cooling path alive (display)
+
     // Failure accumulation
     public double DamageAccumulation { get; private set; }  // 0..100+ ; >=100 => meltdown
     public bool IsScrammed { get; private set; }
@@ -425,6 +444,25 @@ public sealed class ReactorSimService
     private const double CladSubstepDt = 0.05;       // s internal sub-step in the autocatalytic regime
     private const double BreakDeficitRate = 1.2;     // %/s per unit break area — RCS inventory the break sheds
     private const double BoiloffDeficitRate = 30.0;  // (%/s)/(decay-heat fraction) saturated boil-off the SG cannot remove
+
+    // RCP seal package — WOG-2000 seal-LOCA constants. Cooled datum, heat-up/relax time constants, the four
+    // cavity-temperature bin breakpoints, and the canonical per-pump leakoff bins (21/76/182/480 gpm/pump).
+    // τ=900 s heating 50→Thot(~320 °C) crosses 200 °C (the 76 gpm bin) at ≈13 min — the WOG-2000 time-to-onset.
+    private const double SealCooledTempC     = 50.0;   // °C cooled-seal datum (charging/CCW removing seal heat)
+    private const double SealHeatupTau       = 900.0;  // s  heat-up τ toward Thot when both cooling paths are lost
+    private const double SealCooldownTau     = 120.0;  // s  faster relax back to the cooled datum once cooling returns
+    private const double SealBin1TempC       = 93.0;   // 200 °F — intact-but-hot floor begins (→21 gpm)
+    private const double SealBin2TempC       = 200.0;  // 392 °F — →76 gpm (WOG-2000 onset, ≈13 min)
+    private const double SealBin3TempC       = 260.0;  // 500 °F — popped O-ring (→182 gpm)
+    private const double SealBin4TempC       = 320.0;  // ≈hot-leg — gross seal failure (→480 gpm)
+    private const double SealLeakNormalGpm   = 3.0;    // controlled #1-seal bleed-off per pump (cold/cooled)
+    private const double SealLeakDegradedGpm = 21.0;   // intact-but-hot floor per pump
+    private const double SealLeakBin2Gpm     = 76.0;   // WOG-2000 second bin per pump
+    private const double SealLeakPoppedGpm   = 182.0;  // WOG-2000 third bin per pump
+    private const double SealLeakGrossGpm    = 480.0;  // gross seal LOCA per pump (~2-inch SBLOCA, bounding)
+    private const double SealChargingMakeupGpm = 132.0;// one centrifugal charging pump — makes up leakoff while an AC bus lives
+    private const double SealGpmToDeficitPct = 0.0004; // %/s per net gpm (calibrated: 4×480 gpm ≈ a 0.6-area SBLOCA)
+    private const double SealPressBleedK     = 0.5;    // MPa/s per 1000 gpm — gentle SBLOCA depressurization
 
     // Axial flux difference (ΔI) / axial offset / CAOC. A lumped two-node (top/bottom) split whose
     // imbalance is driven by control-rod insertion (rods bite the top half → bottom-peaked → ΔI<0)
@@ -908,6 +946,9 @@ public sealed class ReactorSimService
         MslbIsolated = false;
         SiActuated = false;
         MslbBreakFlow = 0;
+        _sealCoolingFailed = false;
+        for (int i = 0; i < _sealCavityTempC.Length; i++) { _sealCavityTempC[i] = SealCooledTempC; _sealLeakGpm[i] = 0; _sealIntegrity[i] = 1.0; }
+        SealLeakGpmTotal = 0; SealCavityMaxTempC = SealCooledTempC; SealCoolingAvailable = true;
         switch (s)
         {
             case ReactorScenario.Normal:
@@ -941,6 +982,10 @@ public sealed class ReactorSimService
                 _mslbSeverity = 0.7;   // large un-isolable break (0.3 small … 1.0 full double-ended rupture)
                 MslbIsolated = false;
                 EccsArmed = true;      // SI armed; the borated-injection path is driven off SiActuated, not EccsInjecting
+                break;
+            case ReactorScenario.RcpSealLoca:
+                _sealCoolingFailed = true; // loss of all seal cooling (CCW thermal barrier + seal injection) with AC up
+                EccsArmed = true;          // charging/HHSI available to make up — but cannot match a gross seal failure
                 break;
         }
     }
@@ -1120,6 +1165,9 @@ public sealed class ReactorSimService
         _sgtrSeverity = 0; SgtrLeakRate = 0; CoolantActivity = 0.02;
         SecondaryActivity = 0; AtmosphericRelease = 0; SgReliefLifted = false; SgtrIsolated = false;
         _mslbSeverity = 0; MslbIsolated = false; SiActuated = false; MslbBreakFlow = 0;
+        _sealCoolingFailed = false;
+        for (int i = 0; i < _sealCavityTempC.Length; i++) { _sealCavityTempC[i] = SealCooledTempC; _sealLeakGpm[i] = 0; _sealIntegrity[i] = 1.0; }
+        SealLeakGpmTotal = 0; SealCavityMaxTempC = SealCooledTempC; SealCoolingAvailable = true;
         PrimaryDeficitPct = 0;
         ContainmentPressureKpa = 0; ContainmentTempC = ContainmentAmbientC;
         ContainmentSprayActive = false; ContainmentIsolationPhaseA = false;
@@ -1239,6 +1287,58 @@ public sealed class ReactorSimService
         return 1.0 - Math.Exp(-x);
     }
 
+    /// <summary>
+    /// RCP 軸封冷卻喪失 → WOG-2000 軸封失水事故 · Reactor-coolant-pump seal-cooling-loss → WOG-2000 seal LOCA.
+    /// Each pump's lumped seal cavity heats toward the hot-leg (first-order, τ=900 s) when BOTH seal-cooling
+    /// paths are lost — CCW thermal-barrier cooling (needs a live AC bus) and charging seal-injection (needs a
+    /// live AC bus). Either path keeps the cavity at the cooled datum. Per-pump leakoff steps through the
+    /// canonical WOG-2000 bins by cavity temperature; degradation is Math.Min-latched so extruded O-rings never
+    /// reseat. Pure instrumentation here: it only writes the seal telemetry — UpdateScenarios folds the total
+    /// leak into the shared PrimaryDeficitPct accumulator (see below), so the meltdown-ARM behaviour is untouched.
+    /// </summary>
+    private void StepSeals(double dt)
+    {
+        if (dt <= 0) return;
+
+        // Either seal-cooling path removes seal heat. CCW thermal-barrier and charging seal-injection both ride a
+        // vital AC bus, so losing both is exactly "no AC bus energized" — the station-blackout condition. The
+        // scenario latch forces the loss directly (loss of CCW + seal-injection alignment) with AC still up.
+        bool sealInjOk = _elec.MotorEccsSiAvailable;          // charging/HHSI seal injection
+        bool barrierOk = _elec.AnyAcBusEnergized;             // CCW thermal-barrier HX pump on a vital AC bus
+        bool sealCoolOk = !_sealCoolingFailed && (sealInjOk || barrierOk);
+        SealCoolingAvailable = sealCoolOk;
+
+        double total = 0.0, maxT = SealCooledTempC;
+        for (int i = 0; i < _sealCavityTempC.Length; i++)
+        {
+            // First-order relaxation (clamped factor ≤ 1 ⇒ no overshoot, no stiff exp): heat toward the hot-leg
+            // when cooling is lost, relax to the cooled datum when restored. Below ~100 °C (cold/depressurized
+            // plant) the cavity can never reach a failure bin, so a cold shutdown carries no seal-LOCA risk.
+            double target = sealCoolOk ? SealCooledTempC : Math.Max(Thot, SealCooledTempC);
+            double tau    = sealCoolOk ? SealCooldownTau : SealHeatupTau;
+            _sealCavityTempC[i] += (target - _sealCavityTempC[i]) * Math.Min(1.0, dt / tau);
+
+            double t = _sealCavityTempC[i];
+            double binLeak = t >= SealBin4TempC ? SealLeakGrossGpm
+                           : t >= SealBin3TempC ? SealLeakPoppedGpm
+                           : t >= SealBin2TempC ? SealLeakBin2Gpm
+                           : t >= SealBin1TempC ? SealLeakDegradedGpm
+                           :                      SealLeakNormalGpm;
+
+            // Monotonic degradation latch (mirrors the W² oxidation monotonicity): integrity only ever falls,
+            // so once an O-ring pops the leak stays at its worst-reached level even after the cavity cools.
+            double degFrac = (binLeak - SealLeakNormalGpm) / (SealLeakGrossGpm - SealLeakNormalGpm);
+            _sealIntegrity[i] = Math.Min(_sealIntegrity[i], 1.0 - degFrac);
+            double effLeak = SealLeakNormalGpm + (1.0 - _sealIntegrity[i]) * (SealLeakGrossGpm - SealLeakNormalGpm);
+
+            _sealLeakGpm[i] = Math.Max(binLeak, effLeak); // current bin OR latched floor, whichever is higher
+            total += _sealLeakGpm[i];
+            if (_sealCavityTempC[i] > maxT) maxT = _sealCavityTempC[i];
+        }
+        SealLeakGpmTotal = total;
+        SealCavityMaxTempC = maxT;
+    }
+
     private void UpdateScenarios(double dt)
     {
         // LOCA: bleed primary pressure/inventory through the break.
@@ -1314,6 +1414,24 @@ public sealed class ReactorSimService
         if (SubcoolingMarginC <= 1.0 && DecayHeatFraction > 0.005
             && CoolantFlowFraction < 0.30 && FeedwaterFlow < 0.05 && !EccsInjecting)
             PrimaryDeficitPct += BoiloffDeficitRate * DecayHeatFraction * dt;
+
+        // RCP seal LOCA: advance the seal cavities, then fold the leakoff into the shared deficit. The normal
+        // controlled bleed-off — and, while an AC bus is alive to run a charging pump, up to one pump's makeup
+        // capacity — is replaced, so only the NET leak drains inventory (no deficit creeps in during normal
+        // operation, where 4×3=12 gpm is fully made up). A pressure-driven √(P/Pnom) factor self-limits the leak
+        // as the RCS depressurizes (like the SGTR dP term), so the seal LOCA cannot run away below ~atmospheric.
+        StepSeals(dt);
+        double sealMakeupGpm = _elec.MotorEccsSiAvailable ? SealChargingMakeupGpm : 0.0;
+        double sealPressFactor = Math.Clamp(Math.Sqrt(Math.Max(PrimaryPressure, 0.0) / PzrProgramPressure), 0.0, 1.1);
+        double sealNetGpm = Math.Max(0.0, SealLeakGpmTotal * sealPressFactor - sealMakeupGpm);
+        if (sealNetGpm > 0.0)
+        {
+            PrimaryDeficitPct += SealGpmToDeficitPct * sealNetGpm * dt;     // joins break/SGTR/boil-off
+            PrimaryPressure   -= SealPressBleedK * (sealNetGpm / 1000.0) * dt; // gentle SBLOCA depressurization
+            if (PrimaryPressure < 0.2) PrimaryPressure = 0.2;
+            if (sealNetGpm > 2.0 * SealLeakPoppedGpm) EccsArmed = true;     // >364 gpm net arms SI like the break path
+        }
+
         PrimaryDeficitPct = Math.Clamp(PrimaryDeficitPct, 0.0, 40.0);
 
         // Passive accumulators discharge once primary pressure falls below ~4.5 MPa.
@@ -2351,6 +2469,8 @@ public sealed class ReactorSimService
         bool natCirc = CoolantFlowFraction > 0.005 && CoolantFlowFraction < 0.1 && Thot > 150;
         SetAlarm(ReactorAlarm.NaturalCirc, natCirc);
         SetAlarm(ReactorAlarm.SgtrLeak, _sgtrSeverity > 0 && SgtrLeakRate > 0.01);
+        // RCP seal LOCA: cooling lost and the cavity has heated into a degraded leakoff bin (total > 4×normal).
+        SetAlarm(ReactorAlarm.RcpSealLoca, !SealCoolingAvailable && SealLeakGpmTotal > 4.0 * SealLeakNormalGpm);
         SetAlarm(ReactorAlarm.SteamlineBreak, _mslbSeverity > 0 && !MslbIsolated);
         SetAlarm(ReactorAlarm.SafetyInjection, SiActuated);
         SetAlarm(ReactorAlarm.PzrCodeSafetyOpen, AnyPzrCodeSafetyOpen);

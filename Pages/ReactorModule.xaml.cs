@@ -486,6 +486,7 @@ public sealed partial class ReactorModule : Page
         // LOCA core-uncovery → Peak Cladding Temperature + 10 CFR 50.46(b) acceptance criteria.
         AddGauge("Peak clad temp (PCT)", "峰值包殼溫度", 300, 2500, () => _sim.PeakCladTempC, () => $"{_sim.PeakCladTempC:F0}°C · {_sim.PeakCladTempF:F0}°F (now {_sim.CladTempC:F0}°C)", id: "cladTemp");
         AddGauge("Core collapsed level", "堆芯塌陷水位", 0, 100, () => _sim.CollapsedLevelFrac * 100, () => $"{_sim.CollapsedLevelFrac * 100:F0}% · {_sim.CoreExposedFrac * 100:F0}% dry{(_sim.CladQuenching ? " · QUENCH" : "")}", id: "coreLevel");
+        AddGauge("RCP seal leakoff", "主泵軸封洩漏", 0, 1920, () => _sim.SealLeakGpmTotal, () => $"{_sim.SealLeakGpmTotal:F0} gpm · {_sim.SealCavityMaxTempC:F0}°C{(_sim.SealCoolingAvailable ? "" : " · NO COOL")}", id: "sealLeak");
         AddGauge("Clad oxidation (ECR)", "包殼氧化 ECR", 0, 30, () => _sim.MaxLocalOxidationPct, () => $"{_sim.MaxLocalOxidationPct:F1}% ECR", id: "ecr");
         AddGauge("Core hydrogen", "堆芯氫氣", 0, 3, () => _sim.CoreWideHydrogenPct, () => $"{_sim.CoreWideHydrogenPct:F2}% · {_sim.HydrogenMassKg:F0} kg", id: "h2");
         AddGauge("RCP flow", "主泵流量", 0, 100, () => _sim.CoolantFlowFraction * 100, () => $"{_sim.CoolantFlowFraction * 100:F0}%{FlowModeTag()}", id: "flow");
@@ -637,6 +638,7 @@ public sealed partial class ReactorModule : Page
             (ReactorAlarm.HydrogenGenerationLimit, "CORE H₂ > 1%", "堆芯氫氣 >1%"),
             (ReactorAlarm.DnbrLowMargin, "DNBR LOW MARGIN", "DNBR 餘裕偏低"),
             (ReactorAlarm.DnbrSafetyLimit, "DNBR < 1.30 (S.L.)", "DNBR <1.30 安全限值"),
+            (ReactorAlarm.RcpSealLoca, "RCP SEAL LOCA", "主泵軸封失水"),
         };
         foreach (var (a, en, zh) in defs)
         {
@@ -1136,6 +1138,7 @@ public sealed partial class ReactorModule : Page
         ScenarioCombo.Items.Add(P("Xenon restart", "氙毒重啟"));
         ScenarioCombo.Items.Add(P("SGTR — tube rupture", "蒸發器爆管 SGTR"));
         ScenarioCombo.Items.Add(P("MSLB — main steam line break", "主蒸汽管爆裂 MSLB"));
+        ScenarioCombo.Items.Add(P("RCP seal LOCA — loss of seal cooling", "主泵軸封失水 — 喪失軸封冷卻"));
         ScenarioCombo.SelectedIndex = 0;
     }
 
@@ -1159,6 +1162,7 @@ public sealed partial class ReactorModule : Page
             5 => ReactorScenario.XenonRestart,
             6 => ReactorScenario.SgTubeRupture,
             7 => ReactorScenario.MainSteamLineBreak,
+            8 => ReactorScenario.RcpSealLoca,
             _ => ReactorScenario.Normal,
         });
         // The isolate control is meaningful during an SGTR (isolate affected SG) or an MSLB (close MSIVs).
