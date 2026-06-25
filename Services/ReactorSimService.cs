@@ -94,6 +94,11 @@ public enum ReactorAlarm
     BoronDilutionActionWindow, // dilution time-to-loss-of-SDM has fallen below the 15-min operator-action criterion
     BoricAcidPrecipApproach,   // post-LOCA core boric-acid conc within 90% of the solubility limit — establish hot-leg recirc (ES-1.4)
     BoricAcidPrecipitated,     // core boric acid has reached the solubility limit — crystals deposit on fuel (latched; long-term-cooling failure)
+    RcsUnidentifiedLeakHi,     // RCS unidentified LEAKAGE > 1 gpm (LCO 3.4.13.b) — restore ≤ limit in 4 h, else MODE 3 in 6 h / MODE 5 in 36 h
+    RcsIdentifiedLeakHi,       // RCS identified LEAKAGE > 10 gpm (LCO 3.4.13.c) — restore ≤ limit in 4 h, else MODE 3 in 6 h / MODE 5 in 36 h
+    RcsPressureBoundaryLeak,   // any RCS pressure-boundary LEAKAGE (LCO 3.4.13.a) — ZERO allowed; immediate MODE 3 in 6 h / MODE 5 in 36 h
+    ContainmentParticulateRadHi, // containment-atmosphere particulate (I-131) radioactivity monitor hi (RG 1.45 / LCO 3.4.15)
+    ContainmentGaseousRadHi,   // containment-atmosphere gaseous (Xe-133 noble-gas) radioactivity monitor hi (RG 1.45 / LCO 3.4.15)
 }
 
 /// <summary>
@@ -1043,6 +1048,55 @@ public sealed class ReactorSimService
     private const double CtmtHi3Kpa = 186.0;  // ~27   psig — Containment Spray + Phase B isolation
     private const double CtmtHystKpa = 7.0;   // ~1 psi reset deadband (anti-chatter)
 
+    // ===== RCS Leakage Detection · 反應堆冷卻劑系統洩漏偵測 (StepLeakDetection) =================
+    // Operational LEAKAGE accounting + RG 1.45 leak-detection instrumentation, per STS LCO 3.4.13
+    // ("RCS Operational LEAKAGE", NUREG-1431) and LCO 3.4.15 ("RCS Leakage Detection Instrumentation").
+    // Three Tech-Spec categories are tracked: PRESSURE-BOUNDARY LEAKAGE (a non-isolable RCPB fault —
+    // NONE allowed), UNIDENTIFIED LEAKAGE (uncollected, reaches the containment floor/sump — 1 gpm limit),
+    // and IDENTIFIED LEAKAGE (a known, collected source — 10 gpm limit). RG 1.45 requires DIVERSE
+    // detection: a containment-sump level/flow channel (must sense 1 gpm within 1 h) plus containment-
+    // atmosphere PARTICULATE (I-131) and GASEOUS (Xe-133 noble-gas) radioactivity monitors whose response
+    // scales with the live RCS specific activity (the DEI-131/Xe-133 source term already modelled). A slow
+    // RCS water-inventory balance reproduces the SR 3.4.13.1 surveillance estimate. Identified LEAKAGE here
+    // is the RCP-seal leakoff ABOVE the normal recovered #1-seal bleed-off (so a degraded/failed seal feeds
+    // it); primary-to-secondary leakage is a separate TS category detected by the existing N-16/secondary
+    // monitors and is intentionally excluded. The feature is QUIESCENT by default (all inputs zero/off).
+    private const double UnidLeakLimitGpm   = 1.0;     // LCO 3.4.13.b — unidentified LEAKAGE limit (gpm)
+    private const double IdentLeakLimitGpm  = 10.0;    // LCO 3.4.13.c — identified LEAKAGE limit (gpm)
+    private const double PbLeakLimitGpm     = 0.0;     // LCO 3.4.13.a — pressure-boundary LEAKAGE: NONE allowed
+    private const double PbLeakGpm          = 0.5;     // injected pressure-boundary leak when the demo toggle is on
+    private const double SumpCapacityGal    = 5000.0;  // containment normal-sump hard ceiling (gal)
+    private const double SumpHiSetpointGal  = 1000.0;  // sump-pump start setpoint
+    private const double SumpLoSetpointGal  = 200.0;   // sump-pump stop setpoint (hysteresis, anti-chatter)
+    private const double SumpPumpGpm        = 50.0;    // sump pump-down rate (gpm)
+    private const double TauSumpSec         = 120.0;   // sump-level inferred-rate filter time constant (2 min)
+    private const double TauInvBalanceSec   = 600.0;   // RCS water-inventory-balance filter time constant (10 min)
+    private const double ParticulateGain    = 200.0;   // ratio 1.0 = setpoint: 200·0.1 gpm·0.05 µCi/g = 1.0 (on-scale at 0.1 gpm nominal)
+    private const double GaseousGain        = 0.5;     // ratio 1.0 = setpoint: 0.5·0.07 gpm·30 µCi/g ≈ 1.0 (noble-gas backup channel)
+
+    /// <summary>未辨識洩漏 · Unidentified RCS LEAKAGE (gpm) — uncollected, reaches the sump. LCO limit 1 gpm.</summary>
+    public double UnidentifiedLeakGpm { get; private set; }
+    /// <summary>已辨識洩漏 · Identified RCS LEAKAGE (gpm) — known/collected (degraded RCP-seal leakoff). LCO limit 10 gpm.</summary>
+    public double IdentifiedLeakGpm { get; private set; }
+    /// <summary>壓力邊界洩漏 · RCS pressure-boundary LEAKAGE (gpm). LCO 3.4.13.a: NONE allowed.</summary>
+    public double PressureBoundaryLeakGpm { get; private set; }
+    /// <summary>安全殼集水坑存量 · Integrated containment normal-sump inventory (gal).</summary>
+    public double ContainmentSumpGal { get; private set; }
+    /// <summary>集水坑推算洩漏率 · Leak rate inferred from the sump level-rise rate (RG 1.45 sump channel, gpm).</summary>
+    public double SumpInferredLeakGpm { get; private set; }
+    /// <summary>顆粒物輻射監測比 · Containment particulate (I-131) monitor (ratio; 1.0 = alarm setpoint).</summary>
+    public double ParticulateMonitorRatio { get; private set; }
+    /// <summary>氣體輻射監測比 · Containment gaseous (Xe-133 noble-gas) monitor (ratio; 1.0 = alarm setpoint).</summary>
+    public double GaseousMonitorRatio { get; private set; }
+    /// <summary>冷卻劑存量平衡推算 · SR 3.4.13.1 RCS water-inventory-balance leak-rate estimate (gpm).</summary>
+    public double RcsInventoryBalanceLeakGpm { get; private set; }
+    /// <summary>示範未辨識洩漏量 · Operator demo input — injected unidentified LEAKAGE (gpm). Default 0.</summary>
+    public double DemoUnidentifiedLeakGpm { get; set; }
+    /// <summary>壓力邊界洩漏開關 · Operator demo input — inject pressure-boundary LEAKAGE. Default off.</summary>
+    public bool PressureBoundaryLeak { get; set; }
+    private double _sumpPrevGal;   // previous-tick sump inventory (for the level-rate channel)
+    private bool   _sumpPumpOn;    // sump-pump hysteresis latch
+
     // ===== Containment combustible-gas control (10 CFR 50.44) constants =====
     // Atmosphere / geometry — same large-dry containment as the pressure model above.
     private const double CtmtFreeVolM3 = 73624.0;   // 2.6×10⁶ ft³ net free volume (WTSM 5.3) — large-dry PWR
@@ -1682,6 +1736,11 @@ public sealed class ReactorSimService
         _sgtrSeverity = 0; SgtrLeakRate = 0; CoolantActivity = 0.02;
         InitRadiochemistry(); // reseed RCS DEI-131/Xe-133 activity states to clean-fuel equilibrium
         SecondaryActivity = 0; AtmosphericRelease = 0; SgReliefLifted = false; SgtrIsolated = false;
+        // RCS leakage detection (LCO 3.4.13 / RG 1.45): zero all state + demo inputs (feature quiescent on reset).
+        UnidentifiedLeakGpm = 0; IdentifiedLeakGpm = 0; PressureBoundaryLeakGpm = 0;
+        ContainmentSumpGal = 0; SumpInferredLeakGpm = 0; ParticulateMonitorRatio = 0; GaseousMonitorRatio = 0;
+        RcsInventoryBalanceLeakGpm = 0; _sumpPrevGal = 0; _sumpPumpOn = false;
+        DemoUnidentifiedLeakGpm = 0; PressureBoundaryLeak = false;
         _mslbSeverity = 0; MslbIsolated = false; SiActuated = false; MslbBreakFlow = 0;
         _sealCoolingFailed = false;
         for (int i = 0; i < _sealCavityTempC.Length; i++) { _sealCavityTempC[i] = SealCooledTempC; _sealLeakGpm[i] = 0; _sealIntegrity[i] = 1.0; }
@@ -1717,6 +1776,7 @@ public sealed class ReactorSimService
             UpdateDecayHeat(dt);
             UpdateMeltdownPhysics(dt);
             StepRadiochemistry(dt); // keep coolant-activity / DEI-131 / dose climbing with core damage through a meltdown
+            StepLeakDetection(dt);  // keep RCS-leakage detection / sump / atmosphere monitors live through a meltdown
             UpdateNis(dt);
             StepCladding(dt); // keep PCT / 50.46 instrumentation live through a meltdown
             StepRvlis(dt);    // keep RVLIS vessel-level indication live through a meltdown
@@ -1737,6 +1797,7 @@ public sealed class ReactorSimService
         UpdateDecayHeat(dt);
         UpdateScenarios(dt);
         StepRadiochemistry(dt); // RCS DEI-131/Xe-133 source term + iodine spike + N-16 monitor; drives CoolantActivity
+        StepLeakDetection(dt);  // RCS operational LEAKAGE accounting + RG 1.45 sump/particulate/gaseous detection (reads seal leak + source term)
         UpdateContainment(dt);
         // --- QPTR / dropped-rod tilt: advance the fall-ramp + quadrant detectors BEFORE the kinetics sub-step
         //     so the inserted single-rod reactivity (read from _dropRamp) is current this tick ---
@@ -3615,6 +3676,12 @@ public sealed class ReactorSimService
         SetAlarm(ReactorAlarm.SgtrLeak, _sgtrSeverity > 0 && SgtrLeakRate > 0.01);
         // RCP seal LOCA: cooling lost and the cavity has heated into a degraded leakoff bin (total > 4×normal).
         SetAlarm(ReactorAlarm.RcpSealLoca, !SealCoolingAvailable && SealLeakGpmTotal > 4.0 * SealLeakNormalGpm);
+        // RCS operational LEAKAGE (LCO 3.4.13) + RG 1.45 detection-instrument annunciators (LCO 3.4.15).
+        SetAlarm(ReactorAlarm.RcsUnidentifiedLeakHi,       UnidentifiedLeakGpm     > UnidLeakLimitGpm);   // > 1 gpm
+        SetAlarm(ReactorAlarm.RcsIdentifiedLeakHi,         IdentifiedLeakGpm       > IdentLeakLimitGpm);  // > 10 gpm
+        SetAlarm(ReactorAlarm.RcsPressureBoundaryLeak,     PressureBoundaryLeakGpm > PbLeakLimitGpm);     // NONE allowed
+        SetAlarm(ReactorAlarm.ContainmentParticulateRadHi, ParticulateMonitorRatio >= 1.0);
+        SetAlarm(ReactorAlarm.ContainmentGaseousRadHi,     GaseousMonitorRatio     >= 1.0);
         SetAlarm(ReactorAlarm.SteamlineBreak, _mslbSeverity > 0 && !MslbIsolated);
         SetAlarm(ReactorAlarm.SafetyInjection, SiActuated);
         SetAlarm(ReactorAlarm.PzrCodeSafetyOpen, AnyPzrCodeSafetyOpen);
@@ -3655,6 +3722,48 @@ public sealed class ReactorSimService
         SetAlarm(ReactorAlarm.ContainmentH2Detonable, ContainmentDetonable);
         SetAlarm(ReactorAlarm.IgnitersEnergized, IgnitersEnergized);
         SetAlarm(ReactorAlarm.ContainmentDeflagration, DeflagrationOccurred);
+    }
+
+    // RCS Leakage Detection (LCO 3.4.13 / RG 1.45). Pure instrumentation: categorizes operational LEAKAGE,
+    // integrates the containment normal-sump, infers the leak rate from the sump level-rate, drives the
+    // particulate/gaseous atmosphere radiation monitors from the live coolant source term, and produces the
+    // SR 3.4.13.1 inventory-balance estimate. Alarm latching is done centrally in UpdateAlarms (codebase
+    // contract). Every dynamic state uses a clamped first-order relaxation, stable for any dt > 0.
+    private void StepLeakDetection(double dt)
+    {
+        if (dt <= 0) return;
+
+        // (1) Categorize leaks (gpm). Identified = RCP-seal leakoff above the normal recovered #1-seal
+        //     bleed-off (4 pumps × 3 gpm, returned to the VCT — not LEAKAGE); the degraded excess is a known,
+        //     collected source. Primary-to-secondary (SGTR) is a separate TS category and is excluded here.
+        double pb = PressureBoundaryLeak ? PbLeakGpm : 0.0;
+        PressureBoundaryLeakGpm = pb;
+        UnidentifiedLeakGpm     = Math.Max(0.0, DemoUnidentifiedLeakGpm) + pb;
+        IdentifiedLeakGpm       = Math.Max(0.0, SealLeakGpmTotal - 4.0 * SealLeakNormalGpm);
+
+        // (2) Fill the containment normal sump from unidentified LEAKAGE (gpm → gal over dt).
+        double dtMin = dt / 60.0;
+        ContainmentSumpGal = Math.Clamp(ContainmentSumpGal + UnidentifiedLeakGpm * dtMin, 0.0, SumpCapacityGal);
+
+        // (3) RG 1.45 sump channel — infer the leak rate from the level-rise rate BEFORE pumping down.
+        double rawSumpRateGpm = (ContainmentSumpGal - _sumpPrevGal) / dtMin;   // gal/min
+        _sumpPrevGal = ContainmentSumpGal;
+        SumpInferredLeakGpm += (rawSumpRateGpm - SumpInferredLeakGpm) * Math.Min(1.0, dt / TauSumpSec);
+        SumpInferredLeakGpm = Math.Max(0.0, SumpInferredLeakGpm);   // a pump-down cycle is not a negative leak
+
+        // (4) Pump the sump out at the hi setpoint (hysteresis latch, anti-chatter).
+        if (ContainmentSumpGal >= SumpHiSetpointGal)      _sumpPumpOn = true;
+        else if (ContainmentSumpGal <= SumpLoSetpointGal) _sumpPumpOn = false;
+        if (_sumpPumpOn)
+            ContainmentSumpGal = Math.Max(0.0, ContainmentSumpGal - SumpPumpGpm * dtMin);
+
+        // (5,6) Atmosphere radiation monitors — scale with the leak rate AND the live RCS specific activity.
+        ParticulateMonitorRatio = ParticulateGain * UnidentifiedLeakGpm * RcsDeI131uCiPerG;   // I-131 particulate
+        GaseousMonitorRatio     = GaseousGain     * UnidentifiedLeakGpm * RcsDeXe133uCiPerG;  // Xe-133 noble gas
+
+        // (7) SR 3.4.13.1 RCS water-inventory balance — a slow filter of the TOTAL operational LEAKAGE.
+        double totalLeak = UnidentifiedLeakGpm + IdentifiedLeakGpm;
+        RcsInventoryBalanceLeakGpm += (totalLeak - RcsInventoryBalanceLeakGpm) * Math.Min(1.0, dt / TauInvBalanceSec);
     }
 
     private void UpdateStatus()

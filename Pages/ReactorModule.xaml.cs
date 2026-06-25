@@ -523,6 +523,24 @@ public sealed partial class ReactorModule : Page
                 : $"{_sim.CetSubcoolingMarginC:F0}°C " + P("subcooled", "過冷"),
             warnFrac: (15.0 + 30.0) / (120.0 + 30.0), id: "smm");
         AddGauge("RCP seal leakoff", "主泵軸封洩漏", 0, 1920, () => _sim.SealLeakGpmTotal, () => $"{_sim.SealLeakGpmTotal:F0} gpm · {_sim.SealCavityMaxTempC:F0}°C{(_sim.SealCoolingAvailable ? "" : " · NO COOL")}", id: "sealLeak");
+        // RCS operational LEAKAGE (LCO 3.4.13) + RG 1.45 / LCO 3.4.15 leak-detection instrumentation.
+        // Unidentified LEAKAGE — limit 1 gpm; band warns at the LCO setpoint. Inferred-rate is the RG 1.45 sump channel.
+        AddGauge("Unidentified leak", "未辨識洩漏", 0, 3, () => _sim.UnidentifiedLeakGpm,
+            () => $"{_sim.UnidentifiedLeakGpm:F2} gpm (LCO 1.0) · " + P($"sump {_sim.SumpInferredLeakGpm:F2}", $"集水坑 {_sim.SumpInferredLeakGpm:F2}"),
+            warnFrac: 1.0 / 3.0, id: "unidLeak");
+        // Identified LEAKAGE — limit 10 gpm; degraded RCP-seal leakoff above the recovered #1-seal bleed-off.
+        AddGauge("Identified leak", "已辨識洩漏", 0, 20, () => _sim.IdentifiedLeakGpm,
+            () => $"{_sim.IdentifiedLeakGpm:F1} gpm (LCO 10)" + (_sim.PressureBoundaryLeakGpm > 0 ? P(" · PB LEAK!", " · 邊界洩漏！") : ""),
+            warnFrac: 10.0 / 20.0, id: "identLeak");
+        // Containment normal sump — integrated unidentified-leak inventory; auto-pumps at the hi setpoint.
+        AddGauge("Containment sump", "安全殼集水坑", 0, 1200, () => _sim.ContainmentSumpGal,
+            () => $"{_sim.ContainmentSumpGal:F0} gal · " + P($"bal {_sim.RcsInventoryBalanceLeakGpm:F2} gpm", $"平衡 {_sim.RcsInventoryBalanceLeakGpm:F2} gpm"),
+            warnFrac: 1000.0 / 1200.0, id: "ctmtSump");
+        // RG 1.45 containment-atmosphere radiation monitors (ratio; 1.0 = alarm setpoint), driven by live coolant activity.
+        AddGauge("Particulate monitor", "顆粒物輻射監測", 0, 5, () => _sim.ParticulateMonitorRatio,
+            () => $"×{_sim.ParticulateMonitorRatio:F2} " + P("(I-131)", "（碘-131）"), warnFrac: 1.0 / 5.0, id: "partMon");
+        AddGauge("Gaseous monitor", "氣體輻射監測", 0, 5, () => _sim.GaseousMonitorRatio,
+            () => $"×{_sim.GaseousMonitorRatio:F2} " + P("(Xe-133)", "（氙-133）"), warnFrac: 1.0 / 5.0, id: "gasMon");
         AddGauge("Clad oxidation (ECR)", "包殼氧化 ECR", 0, 30, () => _sim.MaxLocalOxidationPct, () => $"{_sim.MaxLocalOxidationPct:F1}% ECR", id: "ecr");
         AddGauge("Core hydrogen", "堆芯氫氣", 0, 3, () => _sim.CoreWideHydrogenPct, () => $"{_sim.CoreWideHydrogenPct:F2}% · {_sim.HydrogenMassKg:F0} kg", id: "h2");
         // Post-LOCA boric-acid precipitation (long-term core cooling, 10 CFR 50.46(b)(5)): core-mixing-region
@@ -751,6 +769,11 @@ public sealed partial class ReactorModule : Page
             (ReactorAlarm.PtViolation, "APP G P/T VIOLATION", "附錄G P/T 越限"),
             (ReactorAlarm.RcsRateExceeded, "RCS HEAT/COOL RATE HI", "RCS 升降溫率過高"),
             (ReactorAlarm.LtopActive, "LTOP/COMS RELIEVING", "低溫超壓保護洩放"),
+            (ReactorAlarm.RcsUnidentifiedLeakHi, "UNID LEAK > 1 GPM", "未辨識洩漏 >1 GPM"),
+            (ReactorAlarm.RcsIdentifiedLeakHi, "IDENT LEAK > 10 GPM", "已辨識洩漏 >10 GPM"),
+            (ReactorAlarm.RcsPressureBoundaryLeak, "PRESS BDY LEAKAGE", "壓力邊界洩漏"),
+            (ReactorAlarm.ContainmentParticulateRadHi, "CTMT PART. RAD HI", "安全殼顆粒輻射高"),
+            (ReactorAlarm.ContainmentGaseousRadHi, "CTMT GAS RAD HI", "安全殼氣體輻射高"),
         };
         foreach (var (a, en, zh) in defs)
         {
@@ -1526,6 +1549,19 @@ public sealed partial class ReactorModule : Page
         h2Panel.Children.Add(MakeToggle("Arm H₂ igniters · 啟用氫氣點火器", "啟用氫氣點火器 · Arm H₂ igniters", v => _sim.IgniterSystemArmed = v));
         host.Children.Add(WrapLabel("Combustible-gas control · 可燃氣體控制", "可燃氣體控制 · Combustible-gas control", h2Panel));
 
+        // RCS Leakage Detection (LCO 3.4.13 / RG 1.45) — demo inputs. Both default OFF/zero so the subsystem is
+        // quiescent at startup; inject an unidentified leak to watch the sump + atmosphere monitors respond.
+        host.Children.Add(InfoNote(
+            "RCS leakage detection (LCO 3.4.13 / RG 1.45): unid limit 1 gpm, ident limit 10 gpm, pressure-boundary leakage NONE allowed.",
+            "反應堆冷卻劑洩漏偵測（LCO 3.4.13／RG 1.45）：未辨識上限 1 gpm，已辨識上限 10 gpm，壓力邊界洩漏一律不容許。"));
+        host.Children.Add(LeakSlider(
+            "Unidentified leak — demo (gpm)", "未辨識洩漏－示範（gpm）",
+            0, 3, _sim.DemoUnidentifiedLeakGpm, 0.05,
+            v => _sim.DemoUnidentifiedLeakGpm = v, () => _sim.DemoUnidentifiedLeakGpm));
+        var leakPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        leakPanel.Children.Add(MakeToggle("Pressure-boundary leak · 壓力邊界洩漏", "壓力邊界洩漏 · Pressure-boundary leak", v => _sim.PressureBoundaryLeak = v));
+        host.Children.Add(WrapLabel("RCS pressure boundary · 一次側壓力邊界", "一次側壓力邊界 · RCS pressure boundary", leakPanel));
+
         host.Children.Add(SectionHeader("Secondary & turbine · 二迴路與汽輪機", "二迴路與汽輪機 · Secondary & turbine"));
 
         var fwPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
@@ -1800,6 +1836,19 @@ public sealed partial class ReactorModule : Page
         var label = new TextBlock { FontSize = 12 };
         var slider = new Slider { Minimum = min, Maximum = max, Value = init, StepFrequency = step, Width = 380 };
         void Upd() => label.Text = P(en, zh) + $"  ·  {read():F0}{unit}";
+        slider.ValueChanged += (_, ev) => { set(ev.NewValue); Upd(); };
+        _relocalizers.Add(Upd);
+        Upd();
+        return new StackPanel { Spacing = 2, Children = { label, slider } };
+    }
+
+    // Like LabeledSlider but formats the value with 2 decimals (for small gpm leak rates).
+    private FrameworkElement LeakSlider(string en, string zh, double min, double max, double init, double step,
+        Action<double> set, Func<double> read)
+    {
+        var label = new TextBlock { FontSize = 12 };
+        var slider = new Slider { Minimum = min, Maximum = max, Value = init, StepFrequency = step, Width = 380 };
+        void Upd() => label.Text = P(en, zh) + $"  ·  {read():F2} gpm";
         slider.ValueChanged += (_, ev) => { set(ev.NewValue); Upd(); };
         _relocalizers.Add(Upd);
         Upd();
