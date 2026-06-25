@@ -133,6 +133,26 @@ public static class ReactorScenarios
             Bands((-30, -15, "danger"), (-15, -5, "warn"), (-5, 5, "normal"), (5, 15, "warn"), (15, 30, "danger")),
             Sets((-5, "CAOC lo", "目標帶下限"), (5, "CAOC hi", "目標帶上限"))),
 
+        // Peak cladding temperature (°C). 10 CFR 50.46(b)(1) acceptance limit = 1204.4 °C (2200 °F).
+        "cladTemp" => (300, 2500,
+            Bands((300, 800, "normal"), (800, 1204.4, "warn"), (1204.4, 2500, "danger")),
+            Sets((1204.4, "PCT limit 2200°F", "PCT 限值 2200°F"), (800, "Zr-steam onset", "鋯水反應起始"))),
+
+        // Collapsed core liquid level over the active fuel (%). Below ~5 % the core is fully uncovered.
+        "coreLevel" => (0, 100,
+            Bands((0, 5, "danger"), (5, 95, "warn"), (95, 100, "normal")),
+            Sets((5, "Top of active fuel", "燃料活性段頂"))),
+
+        // Local cladding oxidation — Equivalent Cladding Reacted (%). 50.46(b)(2) limit = 17 %.
+        "ecr" => (0, 30,
+            Bands((0, 10, "normal"), (10, 17, "warn"), (17, 30, "danger")),
+            Sets((17, "17% ECR limit", "17% ECR 限值"))),
+
+        // Core-wide hydrogen generation (% of the all-clad-reacted inventory). 50.46(b)(3) limit = 1 %.
+        "h2" => (0, 3,
+            Bands((0, 0.5, "normal"), (0.5, 1.0, "warn"), (1.0, 3, "danger")),
+            Sets((1.0, "1% H₂ limit", "1% 氫氣限值"))),
+
         _ => (0, 100, Array.Empty<GaugeBand>(), Array.Empty<GaugeSetpoint>()),
     };
 

@@ -59,6 +59,10 @@ public enum ReactorAlarm
     EdgSupplyingBus,
     TurbineDrivenAfw,
     DcBusDepleted,
+    CoreUncovered,
+    PeakCladTempLimit,
+    CladOxidationLimit,
+    HydrogenGenerationLimit,
 }
 
 /// <summary>
@@ -331,6 +335,56 @@ public sealed class ReactorSimService
     private readonly double[] _decayGroup = new double[23];
     private readonly double[] _actinide = new double[2];
     public double DecayHeatFraction { get; private set; }
+
+    // ----------------------------------------------------------------- LOCA cladding / 50.46 ----
+    // 堆芯裸露 → 峰值包殼溫度（PCT）連 10 CFR 50.46 驗收準則 · Core-uncovery Peak-Cladding-Temperature model
+    // with Zircaloy–steam oxidation, scored against the three QUANTITATIVE 10 CFR 50.46(b) ECCS acceptance
+    // criteria: (b)(1) PCT ≤ 1204.4 °C (2200 °F), (b)(2) max local clad oxidation ≤ 17 % ECR, (b)(3)
+    // core-wide H₂ ≤ 1 % of the all-clad-reacted inventory. Purely additive INSTRUMENTATION: it reads
+    // post-tick inventory/thermal state and writes ONLY the properties below + four alarms. It never writes
+    // FuelTemp, DamageAccumulation or MeltdownTriggered, so the meltdown-ARM path is provably unaffected.
+    public double CladTempC { get; private set; } = CladColdC;       // live hottest-exposed-node clad temp (°C)
+    public double PeakCladTempC { get; private set; } = CladColdC;   // max-hold PCT — the 50.46(b)(1) figure of merit
+    public double PeakCladTempF => PeakCladTempC * 1.8 + 32.0;       // °F, compare against the 2200 °F limit
+    public double CollapsedLevelFrac { get; private set; } = 1.0;    // collapsed mixture level over active fuel (1 = covered)
+    public double CoreExposedFrac { get; private set; }              // dry fraction of the hot channel (1 − level)
+    public double MaxLocalOxidationPct { get; private set; }         // local ECR — 50.46(b)(2), limit 17 %
+    public double CoreWideHydrogenPct { get; private set; }          // core-wide H₂ — 50.46(b)(3), limit 1 %
+    public double CladOxidationHeatMW { get; private set; }          // instantaneous Zr–steam exothermic power (display)
+    public double HydrogenMassKg { get; private set; }               // integrated H₂ generated (display)
+    public bool CladQuenching { get; private set; }                  // a re-covered node is rewetting / quenching
+    public bool CoolableGeometryOk => PeakCladTempC < PctLimitC && MaxLocalOxidationPct < EcrLimitPct; // (b)(4), qualitative
+    private double _w2;     // ∫ Cathcart–Pawel weight-gain² (g²/cm⁴) — the monotone oxidation state, never reported raw
+    private double _wPrev;  // previous-tick weight gain w = √_w2 (g/cm²), for the per-tick oxidation increment
+
+    private const double CladColdC = 300.0;          // °C clad datum at power / when covered
+    private const double DeficitReserve = 8.0;       // % RCS inventory deficit at which top of active fuel just uncovers
+    private const double DeficitBoildry = 34.0;      // % RCS inventory deficit at which the core is fully uncovered
+    private const double PctLimitC = 1204.4;         // 50.46(b)(1) — 2200 °F = (2200−32)/1.8
+    private const double EcrLimitPct = 17.0;         // 50.46(b)(2)
+    private const double H2LimitPct = 1.0;           // 50.46(b)(3)
+    private const double CladPeakingFactor = 2.5;    // Fq total hot-channel factor, applied to the hot node only
+    private const double CladHeatCapMWsPerC = 0.9;   // MW·s/°C lumped hot-clad-node heat capacity
+    private const double CladSteamCoolTau = 12.0;    // s steam/radiation cooling relaxation for a dry clad node
+    private const double CladQuenchTau = 0.8;        // s fast quench relaxation once the node is re-covered
+    private const double QuenchCoverThresh = 0.05;   // exposed below this ⇒ node covered ⇒ quench branch
+    private const double ZrOxStartTempC = 800.0;     // °C oxidation onset floor (Kp treated as 0 below)
+    private const double CpRateA = 0.1811;           // Cathcart–Pawel weight-gain² pre-exponential (g²/cm⁴/s)
+    private const double CpRateB = 39940.0;          // Cathcart–Pawel activation term (K): Kp = A·e^(−B/T)
+    private const double BjRateA = 33.3e6;           // Baker–Just oxide-thickness² pre-exponential (cm²/s)
+    private const double BjEoverR = 22897.0;         // Baker–Just E/R = 45500/1.987 (K)
+    private const double BjToWg2 = 0.0444;           // BJ cm²/s → CP weight-gain² g²/cm⁴/s basis conversion
+    private const double OxCrossoverTk = 1853.0;     // K Cathcart–Pawel ↔ Baker–Just blend centre (±25 K band)
+    private const double ZrHeatGain = 1.30;          // °C per (g/cm² weight-gain rate) lumped exothermic gain
+    private const double FullWallWeightGain = 0.063; // g/cm² O uptake to consume the full clad wall ⇒ ECR 100 %
+    private const double CoreCladMassKg = 26000.0;   // total Zircaloy clad inventory (kg)
+    private const double FullCoreH2Kg = CoreCladMassKg * 0.0439; // kg H₂ if every clad reacted (≈ 1141 kg)
+    private const double CladTempFloorC = 140.0;     // °C clad sink floor at primary pressure
+    private const double CladCeilingC = 2500.0;      // °C hard backstop clamp (above ZrO₂ melt) — never the stability mechanism
+    private const double CladSubstepTriggerC = 1200.0;// °C above which StepCladding sub-steps internally
+    private const double CladSubstepDt = 0.05;       // s internal sub-step in the autocatalytic regime
+    private const double BreakDeficitRate = 1.2;     // %/s per unit break area — RCS inventory the break sheds
+    private const double BoiloffDeficitRate = 30.0;  // (%/s)/(decay-heat fraction) saturated boil-off the SG cannot remove
 
     // Axial flux difference (ΔI) / axial offset / CAOC. A lumped two-node (top/bottom) split whose
     // imbalance is driven by control-rod insertion (rods bite the top half → bottom-peaked → ΔI<0)
@@ -740,6 +794,7 @@ public sealed class ReactorSimService
     {
         ActiveScenario = s;
         // Clear scenario-specific latches first.
+        ResetCladding(); // re-arm the PCT / 50.46 tally for the new scenario
         _breakArea = 0;
         _rodsFailToInsert = false;
         _lofwTimer = 0;
@@ -870,6 +925,7 @@ public sealed class ReactorSimService
         ContainmentSprayActive = false; ContainmentIsolationPhaseA = false;
         ContainmentIsolationPhaseB = false; ContainmentFanCoolers = false;
         _ctmtHi1 = _ctmtHi2 = _ctmtHi3 = false; _spraySetupTimer = 0;
+        ResetCladding();
         StatusEn = "Cold shutdown"; StatusZh = "冷停機";
     }
 
@@ -885,6 +941,7 @@ public sealed class ReactorSimService
             UpdateDecayHeat(dt);
             UpdateMeltdownPhysics(dt);
             UpdateNis(dt);
+            StepCladding(dt); // keep PCT / 50.46 instrumentation live through a meltdown
             UpdateAlarms();
             return;
         }
@@ -930,6 +987,7 @@ public sealed class ReactorSimService
         //     permissive must be current when the protection system evaluates the NIS trips this tick. ---
         UpdateNis(dt);
         UpdateProtection(dt);
+        StepCladding(dt); // after protection so it reads the final post-tick inventory / ECCS / thermal state
         UpdateAlarms();
         UpdateStatus();
     }
@@ -979,6 +1037,7 @@ public sealed class ReactorSimService
         {
             PrimaryPressure -= 0.9 * _breakArea * dt;
             PressurizerLevel -= 6.0 * _breakArea * dt;
+            PrimaryDeficitPct += BreakDeficitRate * _breakArea * dt; // the break sheds RCS inventory → collapsed level falls
             if (PrimaryPressure < 0.2) PrimaryPressure = 0.2;
             if (PressurizerLevel < 0) PressurizerLevel = 0;
             EccsArmed = true;
@@ -1038,6 +1097,14 @@ public sealed class ReactorSimService
 
         // Safety injection / charging make up lost inventory; otherwise the deficit holds (latched leak).
         if (EccsInjecting) PrimaryDeficitPct -= 2.5 * dt;
+        // Saturated inadequate-core-cooling boil-off: with the SG heat sink gone and the RCS at saturation,
+        // decay heat boils the inventory away → the deficit climbs even with no pipe break. This is the
+        // SBO / loss-of-all-feedwater path to core uncovery (e.g. after the TDAFW battery depletes). It is
+        // gated tightly (saturated + low flow + no feedwater + ECCS not making up) so normal operation,
+        // ordinary trips and mitigated transients — which stay subcooled with a heat sink — never trigger it.
+        if (SubcoolingMarginC <= 1.0 && DecayHeatFraction > 0.005
+            && CoolantFlowFraction < 0.30 && FeedwaterFlow < 0.05 && !EccsInjecting)
+            PrimaryDeficitPct += BoiloffDeficitRate * DecayHeatFraction * dt;
         PrimaryDeficitPct = Math.Clamp(PrimaryDeficitPct, 0.0, 40.0);
 
         // Passive accumulators discharge once primary pressure falls below ~4.5 MPa.
@@ -1057,6 +1124,105 @@ public sealed class ReactorSimService
         if (feedLost) _lofwTimer += dt; else _lofwTimer = 0;
         AuxFeedwaterRunning = _lofwTimer > 60.0 && (_elec.MdafwAvailable || _elec.TdafwAvailable);
         if (AuxFeedwaterRunning) FeedwaterFlow = Math.Max(FeedwaterFlow, 0.15); // small AFW flow
+    }
+
+    /// <summary>清零包殼／50.46 計量 · Clear the cladding / 50.46 tally back to a covered, cold-clad core.</summary>
+    private void ResetCladding()
+    {
+        CladTempC = CladColdC; PeakCladTempC = CladColdC;
+        CollapsedLevelFrac = 1.0; CoreExposedFrac = 0.0;
+        MaxLocalOxidationPct = 0.0; CoreWideHydrogenPct = 0.0;
+        CladOxidationHeatMW = 0.0; HydrogenMassKg = 0.0; CladQuenching = false;
+        _w2 = 0.0; _wPrev = 0.0;
+    }
+
+    /// <summary>
+    /// LOCA 堆芯裸露 → 峰值包殼溫度（PCT）連 10 CFR 50.46 驗收準則 · Core-uncovery Peak-Cladding-Temperature
+    /// model with Zircaloy–steam oxidation, scored against the three quantitative 50.46(b) limits. Runs once
+    /// per tick after the inventory/ECCS/thermal state is final. INSTRUMENTATION ONLY — it writes none of the
+    /// core-damage / meltdown state, so the meltdown-ARM behaviour is untouched.
+    /// Numerical robustness: the collapsed level is ALGEBRAIC in PrimaryDeficitPct (cannot drift, recovers
+    /// the instant ECCS pulls the deficit back); the clad node uses the codebase's clamped-relaxation idiom
+    /// (factor capped at 1, τ ≫ sub-step ⇒ cannot overshoot, no stiff exp ever evaluated); oxidation
+    /// integrates W² so W is monotone; an internal sub-step engages only above 1200 °C to tame the
+    /// autocatalytic term; hard clamps backstop every output.
+    /// </summary>
+    private void StepCladding(double dt)
+    {
+        if (dt <= 0) return;
+
+        // --- collapsed mixture level over the active fuel: algebraic in the RCS inventory deficit ---
+        double levelFrac = Math.Clamp(
+            1.0 - (PrimaryDeficitPct - DeficitReserve) / (DeficitBoildry - DeficitReserve), 0.0, 1.0);
+        if (AccumulatorInjecting || EccsInjecting)
+            levelFrac += (1.0 - levelFrac) * Math.Min(1.0, dt / 2.0); // reflood swell brings the level back up
+        levelFrac = Math.Clamp(levelFrac, 0.0, 1.0);
+        CollapsedLevelFrac = levelFrac;
+        double exposed = 1.0 - levelFrac;
+        CoreExposedFrac = exposed;
+
+        // --- coolant / steam sink temperature for the clad node ---
+        double tCool = Math.Max(Thot, SatTempAt(PrimaryPressure));
+        tCool = Math.Max(tCool, CladTempFloorC);
+
+        // --- internal sub-step only in the autocatalytic regime (>1200 °C); normal ticks run nSub = 1 ---
+        int nSub = CladTempC > CladSubstepTriggerC
+            ? Math.Max(1, (int)Math.Ceiling(dt / CladSubstepDt)) : 1;
+        double hc = dt / nSub;
+
+        double oxHeatSum = 0.0; // Σ instantaneous Zr–steam power samples over the sub-steps
+        double dWtick = 0.0;    // total weight-gain increment this tick (g/cm²)
+        for (int s = 0; s < nSub; s++)
+        {
+            if (exposed < QuenchCoverThresh)
+            {
+                // Re-covered: rewet and quench rapidly toward the coolant temperature.
+                CladQuenching = CladTempC > tCool + 1.0;
+                CladTempC += (tCool - CladTempC) * Math.Min(1.0, hc / CladQuenchTau);
+            }
+            else
+            {
+                CladQuenching = false;
+                // Decay-heat drive on the dry hot channel (peaking on the hot node only).
+                double qDecay = DecayHeatFraction * RatedThermalMW * CladPeakingFactor * exposed
+                                / CladHeatCapMWsPerC;
+
+                // Zircaloy–steam parabolic oxidation, monotone via ∫ d(W²) = Kp·dt; blended CP↔BJ correlation.
+                double qZr = 0.0;
+                if (CladTempC > ZrOxStartTempC)
+                {
+                    double tk = CladTempC + 273.15;
+                    double kpCp = CpRateA * Math.Exp(-CpRateB / tk);
+                    double kpBj = BjRateA * Math.Exp(-BjEoverR / tk) * BjToWg2;
+                    double f = Math.Clamp((tk - (OxCrossoverTk - 25.0)) / 50.0, 0.0, 1.0);
+                    double kp = (1.0 - f) * kpCp + f * kpBj;
+                    _w2 += kp * hc;
+                    double w = Math.Sqrt(_w2);
+                    double dW = w - _wPrev;        // ≥ 0 (monotone)
+                    if (dW < 0) dW = 0;
+                    _wPrev = w;
+                    dWtick += dW;
+                    qZr = ZrHeatGain * (dW / hc);  // exothermic kick (°C/s)
+                    oxHeatSum += qZr * CladHeatCapMWsPerC;
+                }
+
+                // Clamped-relaxation toward the steady drive target — unconditionally bounded, no overshoot.
+                double tDrive = tCool + (qDecay + qZr) * CladSteamCoolTau;
+                CladTempC += (tDrive - CladTempC) * Math.Min(1.0, hc / CladSteamCoolTau);
+            }
+
+            CladTempC = Math.Clamp(CladTempC, ColdTemp, CladCeilingC);
+            if (CladTempC > PeakCladTempC) PeakCladTempC = CladTempC;
+        }
+
+        CladOxidationHeatMW = oxHeatSum / nSub; // representative power over the tick
+
+        // --- 50.46(b)(2) local ECR + (b)(3) core-wide H₂, both monotone from the weight gain ---
+        double wNow = Math.Sqrt(_w2);
+        MaxLocalOxidationPct = Math.Min(100.0, wNow / FullWallWeightGain * 100.0);
+        double dEcrFrac = dWtick / FullWallWeightGain;        // fraction-of-wall reacted this tick at the hot node
+        HydrogenMassKg += dEcrFrac * exposed * FullCoreH2Kg;  // core-wide-average mass of H₂ liberated
+        CoreWideHydrogenPct = Math.Min(100.0, HydrogenMassKg / FullCoreH2Kg * 100.0);
     }
 
     /// <summary>
@@ -1828,6 +1994,11 @@ public sealed class ReactorSimService
         SetAlarm(ReactorAlarm.EdgSupplyingBus, _elec.OnEdgPower);
         SetAlarm(ReactorAlarm.TurbineDrivenAfw, _elec.TdafwRunning);
         SetAlarm(ReactorAlarm.DcBusDepleted, !_elec.DcAvailable);
+        // LOCA core-uncovery / 10 CFR 50.46(b) acceptance-criteria alarms (instrumentation only).
+        SetAlarm(ReactorAlarm.CoreUncovered, CoreExposedFrac > 0.05);
+        SetAlarm(ReactorAlarm.PeakCladTempLimit, PeakCladTempC >= PctLimitC);
+        SetAlarm(ReactorAlarm.CladOxidationLimit, MaxLocalOxidationPct >= EcrLimitPct);
+        SetAlarm(ReactorAlarm.HydrogenGenerationLimit, CoreWideHydrogenPct >= H2LimitPct);
     }
 
     private void UpdateStatus()

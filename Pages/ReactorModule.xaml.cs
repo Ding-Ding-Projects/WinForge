@@ -481,6 +481,11 @@ public sealed partial class ReactorModule : Page
         AddGauge("SG level", "蒸發器水位", 0, 100, () => _sim.IndicatedSgLevel, () => $"{_sim.IndicatedSgLevel:F0}%", id: "sgLevel");
         AddGauge("Secondary radiation", "二次側輻射", 0, 300, () => _sim.SecondaryRadiation, () => $"{_sim.SecondaryRadiation:F0} µSv/h", warnFrac: 100.0 / 300.0, id: "secRad");
         AddGauge("Atmospheric release", "累計大氣排放", 0, 100, () => _sim.AtmosphericRelease * 10, () => $"{_sim.AtmosphericRelease:F2}", id: "atmRel");
+        // LOCA core-uncovery → Peak Cladding Temperature + 10 CFR 50.46(b) acceptance criteria.
+        AddGauge("Peak clad temp (PCT)", "峰值包殼溫度", 300, 2500, () => _sim.PeakCladTempC, () => $"{_sim.PeakCladTempC:F0}°C · {_sim.PeakCladTempF:F0}°F (now {_sim.CladTempC:F0}°C)", id: "cladTemp");
+        AddGauge("Core collapsed level", "堆芯塌陷水位", 0, 100, () => _sim.CollapsedLevelFrac * 100, () => $"{_sim.CollapsedLevelFrac * 100:F0}% · {_sim.CoreExposedFrac * 100:F0}% dry{(_sim.CladQuenching ? " · QUENCH" : "")}", id: "coreLevel");
+        AddGauge("Clad oxidation (ECR)", "包殼氧化 ECR", 0, 30, () => _sim.MaxLocalOxidationPct, () => $"{_sim.MaxLocalOxidationPct:F1}% ECR", id: "ecr");
+        AddGauge("Core hydrogen", "堆芯氫氣", 0, 3, () => _sim.CoreWideHydrogenPct, () => $"{_sim.CoreWideHydrogenPct:F2}% · {_sim.HydrogenMassKg:F0} kg", id: "h2");
         AddGauge("RCP flow", "主泵流量", 0, 100, () => _sim.CoolantFlowFraction * 100, () => $"{_sim.CoolantFlowFraction * 100:F0}%{FlowModeTag()}", id: "flow");
         AddGauge("Boron", "硼濃度", 0, 2500, () => _sim.BoronPpm, () => $"{_sim.BoronPpm:F0} ppm", id: "boron");
         AddGauge("Xenon worth", "氙毒", 0, 100, () => _sim.Xenon * 100, () => $"{-_sim.XenonReactivityPcm:F0} pcm", id: "xenon");
@@ -603,6 +608,10 @@ public sealed partial class ReactorModule : Page
             (ReactorAlarm.EdgSupplyingBus, "EDG ON BUS", "應急柴油發電機供電"),
             (ReactorAlarm.TurbineDrivenAfw, "TURBINE-DRIVEN AFW", "汽動輔助給水"),
             (ReactorAlarm.DcBusDepleted, "DC BUS DEPLETED", "直流電源耗盡"),
+            (ReactorAlarm.CoreUncovered, "CORE UNCOVERY", "堆芯裸露"),
+            (ReactorAlarm.PeakCladTempLimit, "PCT > 2200°F (50.46)", "峰值包殼溫度超限 50.46"),
+            (ReactorAlarm.CladOxidationLimit, "CLAD OXID > 17% ECR", "包殼氧化 >17% ECR"),
+            (ReactorAlarm.HydrogenGenerationLimit, "CORE H₂ > 1%", "堆芯氫氣 >1%"),
         };
         foreach (var (a, en, zh) in defs)
         {
