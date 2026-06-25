@@ -166,6 +166,7 @@ public enum ReactorAlarm
     VctLowLevelMakeup,         // 容積控制缸液位低 → 自動補水 — VCT level below the makeup band; auto reactor-makeup actuated (CVCS)
     VctHighLevelDivert,        // 容積控制缸液位高 → 分流持留缸 — VCT level above the band; letdown diverted to the holdup tank (CVCS)
     ChargingSuctionRwst,       // 上充泵吸入已切換至換料水缸 — VCT very-low; charging-pump suction swapped VCT→RWST (CVCS interlock)
+    NisCalorimetricDeviation,  // 功率量程核儀表偏離熱平衡 — PR NIS deviates > 2% RTP from the secondary calorimetric (SR 3.3.1.2 — recalibrate)
 }
 
 /// <summary>
@@ -1394,6 +1395,41 @@ public sealed class ReactorSimService
     private const double IrBottomAmps = 1.0e-11;         // IR detector floor (de-energized / off-scale low)
     private const double P6CurrentThresholdA = 1.0e-10;  // IR current that asserts the P-6 permissive
     private bool _p6Latched;                             // P-6 latch (IR on-scale), 10 % deadband
+
+    // ── Secondary calorimetric heat balance + Power-Range NIS calibration ─────────────────────────
+    // A Westinghouse plant determines reactor thermal power from a SECONDARY-side heat balance and
+    // calibrates the linear Power-Range NIS channels to it daily (Tech-Spec SR 3.3.1.2 — adjust the
+    // channel when it deviates from the calorimetric by > 2 % RTP). The heat balance is
+    //   Q_SG = Σ_loops ṁ_fw·(h_steam − h_feedwater);  Q_fission = Q_SG − Q_RCP_pump + Q_losses
+    // Below ~15 % RTP the balance is unreliable (small flow, small Δh, RCP/ambient terms dominate) so it
+    // is gated invalid there. Over a cycle the uncompensated-ion-chamber PR detectors lose sensitivity and
+    // the flux shape shifts, so the INDICATED power-range reading drifts progressively LOW versus the true
+    // fission power and must be re-normalized to the calorimetric — modelled here as a deterministic gain
+    // error proportional to core burnup accrued since the last calibration (NO RNG / wall-clock, so it is
+    // identical under the concurrent scheduled-reactor runs). DISPLAY/indication only: the protection
+    // trips read NeutronPowerFraction (true flux), never this drifted indication.
+    public double CalorimetricPowerPct { get; private set; }       // %RTP from the secondary heat balance (valid ≥15%)
+    public bool   CalorimetricValid    { get; private set; }       // true once power ≥ the validity floor
+    public double NisCalibrationGain   { get; private set; } = 1.0; // PR indicated = true·gain; drifts ≤1 with burnup
+    public double NisCalorimetricDeviationPct { get; private set; } // indicated PR − calorimetric, %RTP (signed)
+    public bool   NisCalorimetricDeviationOob { get; private set; } // |deviation| > 2 % RTP while valid → recalibrate
+    public double BurnupSinceNisCalMwd { get; private set; }       // MWd/tU accrued since last PR calibration (drift driver)
+    public bool   UseLefm { get; set; }                            // LEFM (ultrasonic FW flow) in service → MUR uprate, tighter band
+    public double CalorimetricUncertaintyPct => UseLefm ? 0.6 : 2.0; // 1σ %RTP — venturi ~2.0 (fouling-biased high) vs LEFM ~0.6
+    public double LicensedPowerPct => UseLefm ? 101.7 : 100.0;      // MUR: LEFM recaptures the App-K 2% FW margin (~+1.7%)
+    private const double CalValidFloorPct  = 15.0;    // %RTP — calorimetric/secondary heat balance validity floor
+    private const double CalDeviationBand  = 2.0;     // %RTP — SR 3.3.1.2 NIS-vs-calorimetric adjust threshold
+    private const double NisDriftPerMwd    = 2.0e-6;  // PR gain error per MWd/tU since cal (~4% over an 18–20 GWd/t cycle)
+    private const double NisDriftClamp     = 0.05;    // ±5% gain clamp (detector depletion bound)
+    private const double NetCalBiasPct     = 0.20;    // %RTP — net (RCP pump heat − letdown/ambient losses), subtracted
+    private double _burnupAtLastNisCal;               // BurnupMwdPerTonne snapshot at the last PR calibration
+    private double _sinceNisCalSec;                   // sim-seconds since last calibration (24-h auto-cal cadence)
+    private static readonly double CalDhRated =        // Δh at the rated point (6.9 MPa, 226.7 °C) — closes to 100%
+        CalHgSteam(NominalSteamPressure) - CalHfWater(FinalFwTempFullC);
+    // Saturated-steam enthalpy h_g(P), P in MPa, valid 4–8 MPa (≤0.55 kJ/kg vs IAPWS-IF97), Horner form.
+    private static double CalHgSteam(double pMpa) => (-1.41515 * pMpa + 6.17848) * pMpa + 2798.7442;
+    // Saturated-liquid / feedwater enthalpy h_f(T), T in °C, valid 150–260 °C (≤0.57 kJ/kg), Horner form.
+    private static double CalHfWater(double tC) => (0.00273551 * tC + 3.433719) * tC + 56.04283;
 
     // Turbine reference speed: 4-pole 60 Hz nuclear set runs at 1800 rpm.
     public const double SyncRpm = 1800.0;
@@ -2747,6 +2783,9 @@ public sealed class ReactorSimService
         OneOverM = 1.0; StartupRateDpm = 0; BurnupMwdPerTonne = 0; BurnupDefectPcm = 0; DepletionAccel = 1.0;
         IntermediateRangeAmps = IrBottomAmps; IntermediateRangeDecades = 0; IntermediateRangePercent = 0;
         PowerRangePercent = 0; SourceRangeEnergized = true; _p6Latched = false;
+        NisCalibrationGain = 1.0; CalorimetricPowerPct = 0; CalorimetricValid = false;
+        NisCalorimetricDeviationPct = 0; NisCalorimetricDeviationOob = false;
+        BurnupSinceNisCalMwd = 0; _burnupAtLastNisCal = 0; _sinceNisCalSec = 0;
         ActiveScenario = ReactorScenario.Normal; _breakArea = 0; _rodsFailToInsert = false;
         AccumulatorInjecting = false; AuxFeedwaterRunning = false; _lofwTimer = 0;
         AmsacActuated = false; AmsacArmed = false; AmsacDefeated = false; _amsacTimer = 0; PeakPrimaryPressureMpa = PrimaryPressure;
@@ -3926,14 +3965,63 @@ public sealed class ReactorSimService
         IntermediateRangeAmps = Math.Clamp(Math.Max(_power, 0) * IrFullScaleAmps, IrBottomAmps, IrFullScaleAmps);
         IntermediateRangeDecades = Math.Log10(IntermediateRangeAmps / IrBottomAmps); // 0..8, always finite
         IntermediateRangePercent = Math.Max(_power, 0) * 100.0;
-        // Power range — uncompensated ion chambers, linear 0..120 % rated power.
-        PowerRangePercent = Math.Clamp(_power * 100.0, 0, 120);
+        // Power range — uncompensated ion chambers, linear 0..120 % rated power. The INDICATED reading
+        // carries the slow calibration gain error (UpdateCalorimetric); protection reads NeutronPowerFraction.
+        UpdateCalorimetric(dt);
+        PowerRangePercent = Math.Clamp(_power * 100.0 * NisCalibrationGain, 0, 120);
 
         // Sub-cooling margin: positive = sub-cooled liquid; negative = saturation / void risk.
         SubcoolingMarginC = SatTempAt(PrimaryPressure) - Thot;
 
         // Minimum DNBR (W-3) — display-only anti-DNB margin; not read by UpdateProtection.
         ComputeDnbr(dt);
+    }
+
+    // Secondary calorimetric heat balance + Power-Range NIS calibration drift. Pure read-mostly: owns only
+    // the PR gain error and the calorimetric readouts; never writes _power, protection, or BoronPpm. The PR
+    // indication carries NisCalibrationGain; the calorimetric is the independent secondary-side reference.
+    private void UpdateCalorimetric(double dt)
+    {
+        // PR gain error grows with core burnup accrued since the last calibration (detector depletion +
+        // flux-shape drift) — deterministic, reads progressively LOW, clamped to ±5 %.
+        BurnupSinceNisCalMwd = Math.Max(0.0, BurnupMwdPerTonne - _burnupAtLastNisCal);
+        double g = 1.0 - NisDriftPerMwd * BurnupSinceNisCalMwd;
+        NisCalibrationGain = Math.Clamp(g, 1.0 - NisDriftClamp, 1.0 + NisDriftClamp);
+
+        // Secondary heat balance, normalized to %RTP. Δh / Δh_rated closes the rated point to 100 %; the net
+        // (RCP pump heat − letdown/ambient losses) is subtracted to isolate fission power. FeedwaterFlow is
+        // the 0..1 mass-flow fraction; at steady state it tracks load, so the calorimetric lags fast neutron
+        // transients exactly as the real (slow, thermally-lagged) heat balance does.
+        double dh = CalHgSteam(SteamPressure) - CalHfWater(FinalFeedwaterTempC);
+        double grossPct = 100.0 * Math.Max(0.0, FeedwaterFlow) * dh / CalDhRated;
+        CalorimetricPowerPct = grossPct - NetCalBiasPct;
+
+        // Indicated PR (drifted) vs calorimetric reference; valid only above the secondary-balance floor.
+        double indicatedPct = _power * 100.0 * NisCalibrationGain;
+        CalorimetricValid = _power * 100.0 >= CalValidFloorPct;
+        NisCalorimetricDeviationPct = CalorimetricValid ? indicatedPct - CalorimetricPowerPct : 0.0;
+        NisCalorimetricDeviationOob = CalorimetricValid && Math.Abs(NisCalorimetricDeviationPct) > CalDeviationBand;
+
+        SetAlarm(ReactorAlarm.NisCalorimetricDeviation, NisCalorimetricDeviationOob);
+
+        // Daily (24-h sim) calorimetric calibration cadence (SR 3.3.1.2), plus the operator-demand path.
+        _sinceNisCalSec += dt;
+        if (CalorimetricValid && _sinceNisCalSec >= 86400.0) CalibratePowerRangeToCalorimetric();
+    }
+
+    /// <summary>
+    /// 將功率量程核儀表校準至二次側熱平衡（每 24 小時或按操作員要求）· Normalize the Power-Range NIS to the
+    /// secondary calorimetric — snapshots the current burnup so the gain error returns to 1.0. No-op below the
+    /// 15 % RTP validity floor (the heat balance is too noisy to calibrate against there).
+    /// </summary>
+    public void CalibratePowerRangeToCalorimetric()
+    {
+        if (_power * 100.0 < CalValidFloorPct) return;
+        _burnupAtLastNisCal = BurnupMwdPerTonne;
+        _sinceNisCalSec = 0.0;
+        BurnupSinceNisCalMwd = 0.0;
+        NisCalibrationGain = 1.0;
+        NisCalorimetricDeviationOob = false;
     }
 
     private void UpdateBoron(double dt)

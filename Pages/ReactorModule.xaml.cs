@@ -222,6 +222,11 @@ public sealed partial class ReactorModule : Page
         RevMeterTitle.Text = P("Reactivity computer · 反應性計算機", "反應性計算機 · Reactivity computer");
         RevMeterMarkButton.Content = P("Mark", "標記");
         RevMeterClearButton.Content = P("Clear", "清除");
+        CalMeterTitle.Text = P("Secondary calorimetric · NIS calibration", "二次側熱平衡 · 核儀表校準");
+        CalMeterCalibrateButton.Content = P("Calibrate PR", "校準功率量程");
+        CalMeterLefmToggle.OnContent = P("LEFM", "超聲流量計");
+        CalMeterLefmToggle.OffContent = P("Venturi", "文丘里");
+        CalMeterLefmToggle.IsOn = _sim.UseLefm;
         AckButton.Content = P("ACK", "確認");
         SilenceButton.Content = P("SILENCE", "靜音警報");
         ResetAlarmButton.Content = P("RESET", "重置");
@@ -1024,6 +1029,7 @@ public sealed partial class ReactorModule : Page
             (ReactorAlarm.VctLowLevelMakeup, "VCT LO LVL · MAKEUP", "容積控制缸低液位·補水"),
             (ReactorAlarm.VctHighLevelDivert, "VCT HI LVL · DIVERT", "容積控制缸高液位·分流"),
             (ReactorAlarm.ChargingSuctionRwst, "CHG SUCTION → RWST", "上充吸入切換換料水缸"),
+            (ReactorAlarm.NisCalorimetricDeviation, "PR NIS vs CALORIMETRIC > 2%", "功率量程偏離熱平衡 >2%"),
         };
         foreach (var (a, en, zh) in defs)
         {
@@ -1368,6 +1374,7 @@ public sealed partial class ReactorModule : Page
             oc.Children.Add(new Polyline { Points = pts, Stroke = new SolidColorBrush(Color.FromArgb(255, 0x4C, 0xAF, 0x50)), StrokeThickness = 2 });
 
         UpdateReactimeter();
+        UpdateCalorimetricPanel();
     }
 
     // Digital reactivity computer (reactimeter) readout — the INDEPENDENT inverse-kinetics ρ reconstructed
@@ -1403,6 +1410,34 @@ public sealed partial class ReactorModule : Page
 
     private void OnReactimeterMark(object sender, RoutedEventArgs e) => _sim.MarkReactimeter();
     private void OnReactimeterClearMark(object sender, RoutedEventArgs e) => _sim.ClearReactimeterMark();
+
+    private void OnCalibratePowerRange(object sender, RoutedEventArgs e) => _sim.CalibratePowerRangeToCalorimetric();
+    private void OnLefmToggled(object sender, RoutedEventArgs e) => _sim.UseLefm = CalMeterLefmToggle.IsOn;
+
+    // Secondary calorimetric heat-balance power + Power-Range NIS calibration deviation.
+    private void UpdateCalorimetricPanel()
+    {
+        if (_sim.CalorimetricValid)
+            CalMeterCal.Text = $"CAL {_sim.CalorimetricPowerPct,6:F1} % ±{_sim.CalorimetricUncertaintyPct:F1}";
+        else
+            CalMeterCal.Text = P($"CAL  — < 15 % RTP", $"熱平衡  — < 15 % 額定");
+        CalMeterCal.Foreground = new SolidColorBrush(_sim.CalorimetricValid
+            ? Color.FromArgb(255, 0x90, 0xCA, 0xF9) : Color.FromArgb(150, 0xB0, 0xBE, 0xC5));
+        CalMeterPr.Text = $"PR  {_sim.PowerRangePercent,6:F1} %   gain {_sim.NisCalibrationGain:F3}";
+        double dev = _sim.NisCalorimetricDeviationPct;
+        CalMeterDev.Text = _sim.CalorimetricValid
+            ? P($"Δ  {dev,6:+0.0;-0.0;0.0} % RTP{(_sim.NisCalorimetricDeviationOob ? "  ⚠ RECAL" : "")}",
+                $"偏差  {dev,6:+0.0;-0.0;0.0} % 額定{(_sim.NisCalorimetricDeviationOob ? "  ⚠ 需校準" : "")}")
+            : P("Δ  — (invalid)", "偏差  — （無效）");
+        CalMeterDev.Foreground = new SolidColorBrush(
+            _sim.NisCalorimetricDeviationOob ? Color.FromArgb(255, 0xFF, 0x52, 0x52)
+            : Color.FromArgb(255, 0x4C, 0xAF, 0x50));
+        CalMeterUncert.Text = _sim.UseLefm
+            ? P($"LEFM ultrasonic FW flow · licensed {_sim.LicensedPowerPct:F1}% (MUR)",
+                $"超聲波給水流量 · 許可 {_sim.LicensedPowerPct:F1}%（MUR 提升）")
+            : P($"FW venturi · licensed {_sim.LicensedPowerPct:F0}% RTP",
+                $"給水文丘里 · 許可 {_sim.LicensedPowerPct:F0}% 額定");
+    }
 
     private static void DrawNisBar(Canvas c, double x, string label, double frac, Color color)
     {
