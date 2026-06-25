@@ -209,6 +209,12 @@ public sealed partial class MainWindow : Window
             case "psql":
                 Navigator.GoToModule?.Invoke("module.pgadmin");
                 break;
+            case "sqlite":
+            case "db":
+            case "sqlitebrowser":
+            case "database":
+                Navigator.GoToModule?.Invoke("module.sqlitebrowser");
+                break;
             case "filezilla":
             case "ftp":
             case "sftp":
@@ -774,6 +780,7 @@ public sealed partial class MainWindow : Window
         "module.webcloner" => typeof(WebClonerModule),
         "module.rainmeter" => typeof(RainmeterModule),
         "module.pgadmin" => typeof(PgAdminModule),
+        "module.sqlitebrowser" => typeof(SqliteBrowserModule),
         "module.filezilla" => typeof(FileZillaModule),
         "module.bitwarden" => typeof(BitwardenModule),
         "module.quicktype" => typeof(QuickTypeModule),

@@ -98,6 +98,11 @@
          DPAPI (ProtectedData) for encrypting saved Postgres connection passwords at rest. -->
     <!-- FTP／FTPS 客戶端（MIT）· FluentFTP: managed FTP/FTPS client for the FTP/SFTP module. -->
     <PackageReference Include="FluentFTP" Version="52.1.0" />
+    <!-- Microsoft.Data.Sqlite：純託管 SQLite 用戶端（透過 SQLitePCLRaw 內附 SQLite 原生引擎）。
+         畀原生 SQLite 資料庫瀏覽器模組（開檔／結構／瀏覽編輯／跑 SQL／CSV）用 — 唔啟動任何外部程式。
+         Microsoft.Data.Sqlite: managed SQLite client bundling the SQLite native engine via SQLitePCLRaw.
+         Powers the native SQLite Browser module — no external tool (DB Browser, sqlite3.exe) is launched. -->
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.0" />
   </ItemGroup>
 
   <!--
