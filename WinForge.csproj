@@ -98,6 +98,12 @@
          DPAPI (ProtectedData) for encrypting saved Postgres connection passwords at rest. -->
     <!-- FTP／FTPS 客戶端（MIT）· FluentFTP: managed FTP/FTPS client for the FTP/SFTP module. -->
     <PackageReference Include="FluentFTP" Version="52.1.0" />
+    <!-- ICSharpCode.Decompiler (MIT)：ILSpy 自己嘅完全受控 .NET 反編譯引擎，畀原生 .NET 組件
+         反編譯器模組（module.decompiler）做 IL→C# 反編譯同 IL 反組譯。純受控、無外部工具
+         （唔會 shell／bundle ILSpy／ildasm）。ICSharpCode.Decompiler: ILSpy's own fully-managed
+         decompiler engine powering the native .NET assembly decompiler module — IL→C# decompilation
+         and IL disassembly entirely in-process. Pure managed, no external tool launched/bundled. -->
+    <PackageReference Include="ICSharpCode.Decompiler" Version="10.1.0.8386" />
   </ItemGroup>
 
   <!--
