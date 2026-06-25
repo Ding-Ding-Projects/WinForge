@@ -98,6 +98,13 @@
          DPAPI (ProtectedData) for encrypting saved Postgres connection passwords at rest. -->
     <!-- FTP／FTPS 客戶端（MIT）· FluentFTP: managed FTP/FTPS client for the FTP/SFTP module. -->
     <PackageReference Include="FluentFTP" Version="52.1.0" />
+    <!-- SixLabors.ImageSharp（純託管，Apache-2.0 OSS 授權）：點陣圖影像編輯器模組嘅引擎 —
+         解碼／編碼 PNG/JPG/BMP/GIF/WebP、亮度／對比／飽和度／色相／伽瑪調整、灰階／反相／棕褐／高斯模糊／銳化／邊緣偵測濾鏡、縮放／旋轉／翻轉。完全 in-process，唔 shell 任何外部工具。
+         SixLabors.ImageSharp (pure-managed, OSS): the engine for the raster Image Editor module —
+         decode/encode PNG/JPG/BMP/GIF/WebP, adjustments, filters and transforms, all in-process.
+         ImageSharp.Drawing adds managed glyph rendering for the text tool (DrawText). -->
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" />
+    <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.7" />
   </ItemGroup>
 
   <!--

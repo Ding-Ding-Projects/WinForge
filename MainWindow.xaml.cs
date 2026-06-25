@@ -486,6 +486,12 @@ public sealed partial class MainWindow : Window
             case "sprite":
                 Navigator.GoToModule?.Invoke("module.pixeleditor");
                 break;
+            case "imageeditor":
+            case "paint":
+            case "photo":
+            case "gimp":
+                Navigator.GoToModule?.Invoke("module.imageeditor");
+                break;
             case "envvars":
             case "env":
                 Navigator.GoToModule?.Invoke("module.envvars");
@@ -839,6 +845,7 @@ public sealed partial class MainWindow : Window
         "module.colorpicker" => typeof(ColorPickerModule),
         "module.screenruler" => typeof(ScreenRulerModule),
         "module.pixeleditor" => typeof(PixelEditorModule),
+        "module.imageeditor" => typeof(ImageEditorModule),
         "module.envvars" => typeof(EnvVarsModule),
         "module.clipboard" => typeof(ClipboardModule),
         "module.advancedpaste" => typeof(AdvancedPasteModule),
