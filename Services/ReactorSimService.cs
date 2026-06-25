@@ -64,6 +64,7 @@ public enum ReactorAlarm
     SgtrLeak,
     SecondaryRadiationHi,
     SgReliefLift,
+    SteamSafetyValveOpen, // 主蒸汽安全閥起跳 — one or more Main Steam Safety Valves lifted (secondary overpressure, ASME Sec III)
     RodInsertionLimitLo,
     RodInsertionLimitLoLo,
     RodDeviation,
@@ -129,7 +130,17 @@ public enum ReactorAlarm
     CcwSurgeTankAbnormal,      // 設備冷卻水穩壓缸水位異常 — surge-tank level outside band (system leak / RCS in-leak via thermal barrier)
     UhsTempHi,                 // 最終熱阱溫度高 — UHS / service-water intake above Tech-Spec max (SR 3.7.9.1, LCO 3.7.9)
     LetdownIsolatedCcw,        // 淨化下泄已隔離 — letdown auto-isolated on high CCW (non-regen HX) outlet temperature
+    VctLowLevelMakeup,         // 容積控制缸液位低 → 自動補水 — VCT level below the makeup band; auto reactor-makeup actuated (CVCS)
+    VctHighLevelDivert,        // 容積控制缸液位高 → 分流持留缸 — VCT level above the band; letdown diverted to the holdup tank (CVCS)
+    ChargingSuctionRwst,       // 上充泵吸入已切換至換料水缸 — VCT very-low; charging-pump suction swapped VCT→RWST (CVCS interlock)
 }
+
+/// <summary>
+/// CVCS 補水混合器模式 · Boric-acid / reactor-makeup-water blender mode (Westinghouse CVCS).
+/// Only AUTOMATIC is auto-driven by the VCT level controller; the others are operator-intent
+/// display selections. NONE of them writes BoronPpm — UpdateBoron stays the sole boron author.
+/// </summary>
+public enum CvcsBlenderMode { Automatic = 0, Borate = 1, Dilute = 2, AlternateDilute = 3 }
 
 /// <summary>
 /// RVLIS（反應堆壓力容器水位儀表系統）有效量程 · Which RVLIS range is trustworthy this tick.
@@ -615,6 +626,36 @@ public sealed class ReactorSimService
     private double _pSpike;                          // transient adiabatic bubble-compression pressure (MPa)
     private bool _porvAuto;                          // automatic PORV currently lifted
     private readonly bool[] _pzrSafetyOpen = new bool[3]; // latched per-valve lift state of the 3 code safeties
+
+    // ---- Main Steam Safety Valves (MSSV) — discrete spring safeties on the lumped steam header ----
+    // 主蒸汽安全閥 · The secondary-side ASME Section III overpressure protection, the steam-line analog of
+    // the pressurizer code safeties. A real Westinghouse 4-loop plant carries 5 MSSVs per steam generator
+    // (20 total) with STAGGERED lift setpoints (Tech-Spec Table 3.7.1-2: ≈1185/1195/1207.5/1218.5/1230 psig)
+    // so they pop one stage at a time rather than all at once; total bank capacity is ≈109% of full-power
+    // steam flow (16.47e6 lbm/hr vs 15.1e6), sized to relieve the worst secondary overpressure (turbine trip
+    // without steam dump, loss of load, ATWS) within the 110%-design ASME limit. This sim lumps all 4 SGs
+    // into one header, so the bank is modelled as 5 lumped stages (each = the 4 same-setpoint valves combined).
+    // The setpoint ladder is shifted into the sim's existing 0.5+6.5× pTarget band (clamp raised 8.5→9.0) so the
+    // VALVES — not a hard clamp — cap the header. Latched-open with a blowdown/reseat band ⇒ chatter-free at the
+    // fixed timestep, mirroring _pzrSafetyOpen. Cooling/relief ONLY: it can only SUBTRACT from the steam balance
+    // (additive relief into pTarget, like the condenser dump), so the meltdown-arm path is untouched.
+    private struct Mssv
+    {
+        public double LiftSetMpa;   // spring lift setpoint (MPa abs)
+        public double BlowdownMpa;  // reseat band: the valve closes only at LiftSet − Blowdown (hysteresis)
+        public double CapacityFrac; // relief capacity at full lift, as a fraction of nominal steam flow
+        public bool   Open;         // latched lift state
+    }
+    private const double MssvAccumMpa = 8.6;  // header pressure at full lift of the highest stage (just under the 9.0 clamp)
+    private readonly Mssv[] _mssv =
+    {
+        new() { LiftSetMpa = 7.60, BlowdownMpa = 0.30, CapacityFrac = 0.16 }, // stage 1 (lead) — 1185 psig analog
+        new() { LiftSetMpa = 7.80, BlowdownMpa = 0.30, CapacityFrac = 0.20 }, // stage 2          — 1195 psig analog
+        new() { LiftSetMpa = 8.00, BlowdownMpa = 0.30, CapacityFrac = 0.22 }, // stage 3          — 1207.5 psig analog
+        new() { LiftSetMpa = 8.20, BlowdownMpa = 0.30, CapacityFrac = 0.22 }, // stage 4          — 1218.5 psig analog
+        new() { LiftSetMpa = 8.40, BlowdownMpa = 0.30, CapacityFrac = 0.20 }, // stage 5 (highest) — 1230 psig analog
+    };
+
     public double PressurizerLiquidTemp => _tpzr;    // °C (display)
     public double PressurizerHeaterDuty { get; private set; } // 0..1 effective heater duty (display)
     public bool PorvAutoOpen => _porvAuto;           // automatic relief valve currently cycling
@@ -642,6 +683,15 @@ public sealed class ReactorSimService
     public bool AnyPzrCodeSafetyOpen => PzrCodeSafetiesOpen > 0;
     /// <summary>規範安全閥每次起跳的上升沿事件 · Rising-edge event each time a code safety valve pops (for annunciation/audio).</summary>
     public event Action? PzrCodeSafetyLifted;
+
+    /// <summary>有幾多個主蒸汽安全閥正在開啟（0–5）· How many Main Steam Safety Valves are currently lifted.</summary>
+    public int MssvOpenCount { get { int n = 0; for (int i = 0; i < _mssv.Length; i++) if (_mssv[i].Open) n++; return n; } }
+    /// <summary>有任何主蒸汽安全閥起跳 · Any MSSV currently relieving.</summary>
+    public bool MssvLifted => MssvOpenCount > 0;
+    /// <summary>主蒸汽安全閥總釋放流量（標么，占額定蒸汽流）· Total MSSV relief flow this step, normalized to nominal steam flow.</summary>
+    public double MssvReliefFlow { get; private set; }
+    /// <summary>主蒸汽安全閥每次起跳的上升沿事件 · Rising-edge event each time an MSSV pops (for annunciation/audio).</summary>
+    public event Action? MssvValveLifted;
 
     // ---- Pressurizer Relief Tank (PRT) state — set by UpdatePrt; one-way coupled, never writes RCS pressure ----
     private double _prtWaterKg   = PrtWaterMass0Kg;  // pool mass (kg)
@@ -983,6 +1033,74 @@ public sealed class ReactorSimService
     private const double SealChargingMakeupGpm = 132.0;// one centrifugal charging pump — makes up leakoff while an AC bus lives
     private const double SealGpmToDeficitPct = 0.0004; // %/s per net gpm (calibrated: 4×480 gpm ≈ a 0.6-area SBLOCA)
     private const double SealPressBleedK     = 0.5;    // MPa/s per 1000 gpm — gentle SBLOCA depressurization
+
+    // ------------------------------------------------------------ 化學及容積控制系統 CVCS / 容積控制缸 VCT ----
+    // Chemical & Volume Control System (CVCS): the auxiliary that maintains RCS inventory, controls pressurizer
+    // level via charging flow, purifies the coolant through letdown, supplies RCP seal injection, and adjusts
+    // soluble boron through the boric-acid / reactor-makeup-water (RMW) blender. Modelled here as an ADDITIVE,
+    // read-mostly inventory/flow layer: charging and letdown flow are DERIVED from the existing pressurizer
+    // level loop (so charging is the revealed mechanism behind the level control, never a second author of
+    // PressurizerLevel), and the makeup blender controls the ONE genuinely new integrated state — the Volume
+    // Control Tank (VCT) level — WITHOUT ever writing BoronPpm (UpdateBoron stays the sole boron author).
+    //
+    // Steady-state mass balance (closes to net-zero by construction):
+    //   RCS:  normal charging (55) + seal-injection-to-RCS (20)  =  letdown (75)
+    //   VCT:  letdown (75) + #1-seal leakoff return (12)         =  total charging suction (87)
+    //   total charging = normal charging (55) + seal injection (32) = 87 gpm
+    private const double CvcsCcpRatedFlowGpm      = 150.0; // gpm — one centrifugal charging pump rated flow (headroom datum)
+    private const double CvcsSealInjectionTotalGpm = 32.0; // gpm — 4 RCP packages × 8 gpm/pump seal injection
+    private const double CvcsSealInjToRcsGpm       = 20.0; // gpm — 4 × 5 gpm down-shaft into the RCS cold leg
+    private const double CvcsSealLeakoffReturnNomGpm = 12.0;// gpm — 4 × 3 gpm controlled #1-seal bleed-off back to VCT
+    private const double CvcsNormalChargingNomGpm  = 55.0; // gpm — charging-line component (regen HX → cold leg) at nominal
+    private const double CvcsLetdownNominalGpm     = 75.0; // gpm — one large orifice; forced 0 when LetdownIsolated
+    private const double CvcsChargingMinGpm        = 40.0; // gpm — lower clamp on derived total charging flow
+    private const double CvcsChargingMaxGpm        = 140.0;// gpm — upper clamp (≈ one CCP at full flow)
+    private const double CvcsChargingLevelGainGpmPerPct = 3.5; // gpm per % of (NominalPzrLevel − PressurizerLevel) error
+    private const double CvcsChargingSurgeGainGpmPerPctPerSec = 0.8; // gpm per (−d(level)/dt) — charging resists an outsurge
+    private const double CvcsVctNominalLevelPct    = 55.0; // % — VCT control setpoint / initial level
+    private const double CvcsVctLevelDeadbandPct   = 5.0;  // % — half-band: makeup below 50%, divert above 60%
+    private const double CvcsVctLevelLowMakeupPct  = 18.0; // % — low-level reactor-makeup actuation annunciator
+    private const double CvcsVctLevelLowLowSwapPct = 8.0;  // % — very-low: swap charging suction VCT→RWST (interlock)
+    // Level integration gain: usable VCT volume ≈ 300 ft³ = 2244 gal; 1 gpm for 1 s moves 100/(2244·60) ≈ 7.43e-4 %.
+    private const double CvcsVctGainPctPerGpmSec   = 7.43e-4; // %/(gpm·s) — physical, recomputed from usable volume
+    private const double CvcsMakeupGainGpmPerPct   = 4.0;  // gpm per % VCT deficit below the makeup band
+    private const double CvcsDivertGainGpmPerPct   = 4.0;  // gpm per % VCT excess above the divert band
+    private const double CvcsBlenderMakeupMaxGpm   = 120.0;// gpm — auto-makeup / blend flow ceiling
+    private const double CvcsBoricAcidTankPpm      = 7000.0;// ppm B — boric-acid storage tank (≈4 wt% boric acid)
+    private const double CvcsVctPressureNominalKpa = 253.0;// kPa abs (~22 psig) — H₂ cover-gas operating pressure
+    private const double CvcsVctPressureMinKpa     = 205.0;// kPa abs (~15 psig) — low end of the H₂ band
+    private const double CvcsVctPressureMaxKpa     = 618.0;// kPa abs (~75 psig) — relief/high end of the H₂ band
+    private const double CvcsVctPressKpaPerPct     = 3.0;  // kPa per % VCT level — cover-gas compression coupling
+    private const double CvcsVctPressRelaxPerSec   = 0.05; // 1/s — first-order relax of VctPressure toward its target
+
+    /// <summary>上充總流量 · Total CVCS charging flow (gpm) = normal-charging + seal injection + level/surge terms. Read-only consequence of the existing pressurizer-level loop — never writes PressurizerLevel.</summary>
+    public double ChargingFlowGpm        { get; private set; } = CvcsNormalChargingNomGpm + CvcsSealInjectionTotalGpm;
+    /// <summary>下泄流量 · Letdown flow out of the RCS (gpm); nominal 75, forced 0 when LetdownIsolated.</summary>
+    public double LetdownFlowGpm         { get; private set; } = CvcsLetdownNominalGpm;
+    /// <summary>正常上充流量 · Charging-line component to the regen HX / cold leg (gpm) = charging − seal injection.</summary>
+    public double NormalChargingFlowGpm  { get; private set; } = CvcsNormalChargingNomGpm;
+    /// <summary>軸封注入總流量 · Total seal injection delivered to the 4 RCP packages (gpm).</summary>
+    public double SealInjectionFlowGpm   { get; private set; } = CvcsSealInjectionTotalGpm;
+    /// <summary>軸封洩漏回流 · #1-seal controlled leakoff returning to the VCT this tick (gpm); capped at the controlled bleed (excess seal-LOCA flow is lost to containment, not the VCT).</summary>
+    public double SealLeakoffReturnGpm   { get; private set; } = CvcsSealLeakoffReturnNomGpm;
+    /// <summary>容積控制缸液位 · Volume Control Tank level (%). THE one genuinely new integrated CVCS state.</summary>
+    public double VctLevelPct            { get; private set; } = CvcsVctNominalLevelPct;
+    /// <summary>容積控制缸壓力 · VCT H₂ cover-gas pressure (kPa abs), derived from level + relaxation.</summary>
+    public double VctPressureKpa         { get; private set; } = CvcsVctPressureNominalKpa;
+    /// <summary>補水混合流量 · Total blended makeup demanded to hold VCT level in band (gpm); 0 at steady state.</summary>
+    public double MakeupBlendFlowGpm     { get; private set; }
+    /// <summary>硼酸流量 · Boric-acid leg of the blend (gpm) — display split of the makeup by the current boron ratio.</summary>
+    public double BoricAcidFlowGpm       { get; private set; }
+    /// <summary>反應堆補水（淡水）流量 · Reactor-makeup-water (unborated) leg of the blend (gpm).</summary>
+    public double ReactorMakeupWaterFlowGpm { get; private set; }
+    /// <summary>混合補水硼濃度 · Boron concentration of the makeup blend (ppm B). Informational only — never writes BoronPpm.</summary>
+    public double MakeupBlendBoronPpm    { get; private set; } = NominalBoron;
+    /// <summary>分流至持留缸流量 · Letdown diverted to the holdup tank when VCT level is above the band (gpm).</summary>
+    public double VctDivertFlowGpm       { get; private set; }
+    /// <summary>混合器模式 · Boric-acid/RMW blender mode (operator-selectable; only AUTOMATIC is auto-driven).</summary>
+    public CvcsBlenderMode BlenderMode   { get; set; } = CvcsBlenderMode.Automatic;
+    /// <summary>上充泵吸入已切換至RWST · Charging-pump suction swapped VCT→RWST on very-low VCT level (interlock/display).</summary>
+    public bool ChargingSuctionOnRwst    { get; private set; }
 
     // ----------------------------------------------------------------- 設備冷卻水 / 廠用海水 / 最終熱阱 ----
     // Component Cooling Water (CCW) closed loop ─ Essential Service Water (ESW) ─ Ultimate Heat Sink (UHS).
@@ -2234,6 +2352,8 @@ public sealed class ReactorSimService
         PrimaryPressure = 2.5; PressurizerLevel = NominalPzrLevel;
         _tpzr = ColdTemp; _prevLevel = NominalPzrLevel; _pSpike = 0; _porvAuto = false; PressurizerHeaterDuty = 0;
         Array.Clear(_pzrSafetyOpen, 0, 3); // re-seat all code safety valves on reset
+        for (int i = 0; i < _mssv.Length; i++) _mssv[i].Open = false; // re-seat all main steam safety valves
+        MssvReliefFlow = 0.0;
         // Pressurizer relief tank back to normal cold standby (water/temp/level), disc intact, no venting.
         _prtWaterKg = PrtWaterMass0Kg; _prtWaterTempK = PrtWaterTemp0K; _prtReliefAccumMPa = 0.0;
         _prtN2Kg = 0.0; // forces UpdatePrt to re-derive the fixed cover-gas mass on its next call
@@ -3714,6 +3834,11 @@ public sealed class ReactorSimService
         double dLevelDt = Math.Clamp((PressurizerLevel - _prevLevel) / Math.Max(h, 1e-6), -20.0, 20.0);
         _prevLevel = PressurizerLevel;
 
+        // CVCS inventory/flow layer — called HERE so it sees this sub-step's final PressurizerLevel and surge
+        // rate. It only DERIVES charging/letdown and integrates the VCT; it never writes PressurizerLevel,
+        // PrimaryPressure or BoronPpm (the single-author invariant for those three is preserved).
+        ComputeCvcs(h, dLevelDt);
+
         // Automatic Westinghouse pressure-control program → heater duty + spray fraction from pressure.
         double heaterDuty, sprayFrac;
         if (PzrAutoPressureControl)
@@ -4062,9 +4187,45 @@ public sealed class ReactorSimService
         // pressure in the dump-controlled band below the safety valves. SdPressReliefK (0.40) < SteamPressDrawK
         // (0.6) so the bypass is correctly weaker than full turbine draw.
         double dumpFlow = SteamDumpDemand * SteamDumpCapacityFrac;
+
+        // --- MSSV bank: discrete pop-action safety valves replacing the old hard 8.5 MPa clamp. Each lumped
+        // stage latches OPEN at its own staggered setpoint and reseats only after a full blowdown band, so the
+        // header walks UP the ladder (7.60→8.40) as relief demand grows and walks back DOWN through the reseat
+        // band as it falls — chatter-free at the fixed timestep (blowdown 0.30 MPa > worst single-step swing).
+        // This mirrors the pressurizer code-safety loop in StepThermal. Relief per open stage scales with the
+        // overpressure above the LOWEST open seat (a choked-flow surrogate via liftFrac), so the header
+        // equilibrates just above the highest open stage instead of being pinned at a clamp. Indexed for-loops,
+        // NOT foreach — Mssv is a value type and foreach would copy, losing the latch. Cooling/relief ONLY: it
+        // can only subtract from the steam balance (never adds heat), so the meltdown-arm path is preserved.
+        double lowestOpenSet = double.MaxValue;
+        for (int i = 0; i < _mssv.Length; i++)
+        {
+            if (!_mssv[i].Open && SteamPressure >= _mssv[i].LiftSetMpa)
+            {
+                _mssv[i].Open = true;                 // rising edge — annunciate once per individual pop
+                MssvValveLifted?.Invoke();
+            }
+            else if (_mssv[i].Open && SteamPressure <= _mssv[i].LiftSetMpa - _mssv[i].BlowdownMpa)
+            {
+                _mssv[i].Open = false;                // reseat only after a full blowdown band
+            }
+            if (_mssv[i].Open && _mssv[i].LiftSetMpa < lowestOpenSet) lowestOpenSet = _mssv[i].LiftSetMpa;
+        }
+        double mssvRelief = 0.0;
+        if (lowestOpenSet < double.MaxValue)          // at least one stage open
+        {
+            double liftFrac = Math.Clamp((SteamPressure - lowestOpenSet) / (MssvAccumMpa - lowestOpenSet), 0.0, 1.0);
+            for (int i = 0; i < _mssv.Length; i++)
+                if (_mssv[i].Open) mssvRelief += _mssv[i].CapacityFrac * liftFrac;
+        }
+        MssvReliefFlow = mssvRelief;                  // telemetry
+
+        // Fold MSSV relief into pTarget as an additive relief term, exactly like the condenser dump above
+        // (SdPressReliefK per unit normalized flow). The 8.5 clamp is raised to 9.0 so the VALVES, not the clamp,
+        // cap the header — peak stays under MssvAccumMpa (8.6) with the full bank open; 9.0 is only a backstop.
         double pTarget = 0.5 + 6.5 * Math.Clamp(
-            _power - SteamPressDrawK * steamDraw - SdPressReliefK * dumpFlow + 0.4, 0, 1.2);
-        pTarget = Math.Clamp(pTarget, 0.3, 8.5);
+            _power - SteamPressDrawK * steamDraw - SdPressReliefK * dumpFlow - SdPressReliefK * mssvRelief + 0.4, 0, 1.2);
+        pTarget = Math.Clamp(pTarget, 0.3, 9.0);
         SteamPressure += (pTarget - SteamPressure) * Math.Min(1, dt / 5.0);
 
         // 9) TurbineRPM (single writer).
@@ -4480,6 +4641,7 @@ public sealed class ReactorSimService
             && _power < 1.0 && SourceRangeCps > 2.0 * _dilutionCpsRef);
         SetAlarm(ReactorAlarm.BoronDilutionActionWindow, DilutionActionWindowViolated);
         SetAlarm(ReactorAlarm.SgReliefLift, SgReliefLifted);
+        SetAlarm(ReactorAlarm.SteamSafetyValveOpen, MssvLifted);
         SetAlarm(ReactorAlarm.RodInsertionLimitLo, RilLowAlarm && !RilLowLowAlarm);
         SetAlarm(ReactorAlarm.RodInsertionLimitLoLo, RilLowLowAlarm);
         SetAlarm(ReactorAlarm.RodDeviation, RodDeviationAlarm);

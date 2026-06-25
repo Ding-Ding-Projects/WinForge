@@ -105,6 +105,8 @@ public sealed partial class ReactorModule : Page
         _sim.MeltdownOccurred += OnMeltdown;
         // Audible "pop" cue each time a pressurizer code safety valve lifts (uses the existing relay-click voice).
         _sim.PzrCodeSafetyLifted += () => ReactorAudioEngine.I.RelayClick();
+        // Same audible pop each time a Main Steam Safety Valve lifts on the secondary side.
+        _sim.MssvValveLifted += () => ReactorAudioEngine.I.RelayClick();
         Loc.I.LanguageChanged += OnLanguageChanged;
 
         Loaded += async (_, _) =>
@@ -741,6 +743,7 @@ public sealed partial class ReactorModule : Page
             (ReactorAlarm.LowPzrLevel, "LOW PZR LEVEL", "穩壓器低水位"),
             (ReactorAlarm.HighPzrLevel, "HIGH PZR LEVEL", "穩壓器高水位"),
             (ReactorAlarm.SteamPressureHigh, "HIGH STEAM P", "蒸汽高壓"),
+            (ReactorAlarm.SteamSafetyValveOpen, "MAIN STEAM SAFETY OPEN", "主蒸汽安全閥起跳"),
             (ReactorAlarm.EccsActive, "ECCS ACTIVE", "應急堆芯冷卻"),
             (ReactorAlarm.TurbineTrip, "TURBINE TRIP", "汽輪機跳機"),
             (ReactorAlarm.CondenserVacuumLow, "CONDENSER VACUUM LOW", "凝汽器真空低"),
