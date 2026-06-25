@@ -34,6 +34,9 @@
   <ItemGroup>
     <Content Include="Assets\**\*.png" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Assets\AppIcon.ico" CopyToOutputDirectory="PreserveNewest" />
+    <!-- 反應堆 HTML5/WebView2 控制室資產（自包含，無 CDN）· Self-contained HTML5 reactor control-room
+         assets served via SetVirtualHostNameToFolderMapping at https://reactor.assets/. -->
+    <Content Include="SimAssets\**\*.*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

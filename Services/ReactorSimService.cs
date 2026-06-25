@@ -866,6 +866,186 @@ public sealed class ReactorSimService
         StatusEn = "Operating"; StatusZh = "運轉中";
     }
 
+    // =================================================================== HTML5 BRIDGE ====
+    // Additive-only surface for the WebView2/HTML5 control room. NO physics here — these are a
+    // read-only snapshot exporter and a clamped write dispatcher that funnels every JS action
+    // through the EXISTING public setters/methods above. JS therefore cannot reach the model
+    // directly; the held-cold-shutdown and meltdown branches in Update() are untouched.
+
+    /// <summary>
+    /// 燃料可用性閘 · Fuel-availability gate. The window sets this each tick from the
+    /// FuelFactoryService. When false, rod withdrawal and Startup/Run mode changes are ignored in
+    /// <see cref="ApplyControl"/> (pure input gating — no physics edit), so an empty core cannot
+    /// be taken critical.
+    /// </summary>
+    public bool FuelAvailable { get; set; } = true;
+
+    /// <summary>燃料阻擋備註 · Last reason a control was refused due to no fuel (bilingual).</summary>
+    public string FuelGateNoteEn { get; private set; } = "";
+    public string FuelGateNoteZh { get; private set; } = "";
+
+    /// <summary>
+    /// 匯出整個反應堆狀態為 JSON · Export the full reactor state as a flat JSON snapshot for the
+    /// HTML5 client (one object posted per 10 Hz tick).
+    /// </summary>
+    public string ExportStateJson(double clock, bool zhPrimary)
+    {
+        var alarms = new System.Collections.Generic.List<int>();
+        foreach (ReactorAlarm a in Enum.GetValues(typeof(ReactorAlarm)))
+            if (_alarms[(int)a]) alarms.Add((int)a);
+
+        var funcs = new System.Collections.Generic.List<object>();
+        foreach (var f in _rps.Functions)
+        {
+            funcs.Add(new
+            {
+                nameEn = f.NameEn,
+                nameZh = f.NameZh,
+                tripped = f.FunctionTrip,
+                partial = f.PartialTrip,
+                blocked = f.Blocked,
+                setpoint = f.Setpoint,
+                channelTrips = f.ChannelTripped,
+            });
+        }
+
+        var dto = new
+        {
+            type = "state",
+            clock,
+            zhPrimary,
+            mode = (int)Mode,
+            statusEn = StatusEn,
+            statusZh = StatusZh,
+            // power / kinetics
+            power = NeutronPowerFraction,
+            thermalMW = ThermalPowerMW,
+            electricMW = ElectricPowerMW,
+            periodS = ReactorPeriodSeconds,
+            reactivityPcm = ReactivityPcm,
+            rodPcm = RodReactivityPcm,
+            boronPcm = BoronReactivityPcm,
+            dopplerPcm = DopplerReactivityPcm,
+            modPcm = ModeratorReactivityPcm,
+            xenonPcm = XenonReactivityPcm,
+            // thermal-hydraulics
+            fuelTemp = FuelTemp,
+            tcold = Tcold,
+            thot = Thot,
+            tavg = Tavg,
+            primaryPressureMPa = PrimaryPressure,
+            pzrLevel = PressurizerLevel,
+            steamPressureMPa = SteamPressure,
+            sgLevel = SteamGenLevel,
+            // poisons
+            iodine = Iodine,
+            xenon = Xenon,
+            // controls (echo back so JS sliders track the model)
+            rodBank = RodBankInsertion,
+            boronPpm = BoronPpm,
+            targetBoronPpm = TargetBoronPpm,
+            pzrHeater = PressurizerHeater,
+            pzrSpray = PressurizerSpray,
+            rcpFlowDemand = RcpFlowDemand,
+            rcpRunning = RcpRunning,
+            feedwaterFlow = FeedwaterFlow,
+            turbineLoad = TurbineLoadSetpoint,
+            genBreaker = GeneratorBreakerClosed,
+            reliefValve = ReliefValveOpen,
+            eccsArmed = EccsArmed,
+            eccsInjecting = EccsInjecting,
+            autoRods = AutoRodControl,
+            autoSetpoint = AutoPowerSetpoint,
+            // turbine / flow / decay
+            turbineRpm = TurbineRPM,
+            syncRpm = SyncRpm,
+            flowFraction = CoolantFlowFraction,
+            decayHeat = DecayHeatFraction,
+            subcoolingC = SubcoolingMarginC,
+            // NIS
+            sourceCps = SourceRangeCps,
+            oneOverM = OneOverM,
+            startupRateDpm = StartupRateDpm,
+            burnup = BurnupMwdPerTonne,
+            // safety / failure
+            scrammed = IsScrammed,
+            damage = DamageAccumulation,
+            meltdown = MeltdownTriggered,
+            scenario = (int)ActiveScenario,
+            accumInject = AccumulatorInjecting,
+            auxFeed = AuxFeedwaterRunning,
+            lastTripEn = LastTripFunctionEn,
+            lastTripZh = LastTripFunctionZh,
+            alarms,
+            rps = new
+            {
+                trip = _rps.ReactorTrip,
+                latched = _rps.TripLatched,
+                funcs,
+                perms = new { p6 = _rps.P6, p7 = _rps.P7, p8 = _rps.P8, p9 = _rps.P9, p10 = _rps.P10 },
+            },
+            // fuel gate (window injects FuelAvailable before serialize)
+            fuelLoaded = FuelAvailable,
+            fuelCanRun = FuelAvailable,
+            fuelGateEn = FuelGateNoteEn,
+            fuelGateZh = FuelGateNoteZh,
+        };
+        return System.Text.Json.JsonSerializer.Serialize(dto);
+    }
+
+    /// <summary>
+    /// 由 HTML5 客戶端套用一個控制動作 · Apply one control action from the HTML5 client. Every value is
+    /// clamped / routed through an existing public setter — this is the WHOLE write surface JS has.
+    /// </summary>
+    public void ApplyControl(string? action, int index, double value, bool flag)
+    {
+        if (string.IsNullOrEmpty(action)) return;
+
+        // Fuel gate: with no loaded fuel, refuse rod withdrawal and Run/Startup so an empty core
+        // cannot be taken critical. (Pure input gating — physics untouched.)
+        bool wantsWithdraw =
+            (action == "setRod" || action == "setAllRods") && value < AverageRodInsertion();
+        bool wantsRun = action == "setMode" && (index == (int)ReactorMode.Startup || index == (int)ReactorMode.Run);
+        if (!FuelAvailable && (wantsWithdraw || wantsRun))
+        {
+            FuelGateNoteEn = "No fuel loaded — load a valid assembly before startup.";
+            FuelGateNoteZh = "未裝燃料 — 啟動前請先裝入有效燃料組件。";
+            return;
+        }
+
+        switch (action)
+        {
+            case "setRod": SetRodBank(index, value); break;
+            case "setAllRods":
+                for (int i = 0; i < RodBankInsertion.Length; i++) SetRodBank(i, value);
+                break;
+            case "setBoronTarget": TargetBoronPpm = Math.Clamp(value, 0, 3000); break;
+            case "pzrHeater": PressurizerHeater = flag; break;
+            case "pzrSpray": PressurizerSpray = flag; break;
+            case "reliefValve": ReliefValveOpen = flag; break;
+            case "rcpStart": StartRcp(index); break;
+            case "rcpStop": StopRcp(index); break;
+            case "rcpFlow": RcpFlowDemand = Math.Clamp(value, 0, 1); break;
+            case "feedwater": FeedwaterFlow = Math.Clamp(value, 0, 1); break;
+            case "turbineLoad": TurbineLoadSetpoint = Math.Clamp(value, 0, 1); break;
+            case "genBreaker": GeneratorBreakerClosed = flag; break;
+            case "eccsArm": EccsArmed = flag; break;
+            case "autoRods": AutoRodControl = flag; break;
+            case "autoSetpoint": AutoPowerSetpoint = Math.Clamp(value, 0, 1.2); break;
+            case "setMode": SetMode((ReactorMode)index); break;
+            case "scram": Scram(); break;
+            case "resetTrip": ResetTrip(); break;
+            case "reset": Reset(); break;
+            case "scenario": TriggerScenario((ReactorScenario)index); break;
+        }
+    }
+
+    private double AverageRodInsertion()
+    {
+        double s = 0; foreach (var p in RodBankInsertion) s += p;
+        return s / RodBankInsertion.Length;
+    }
+
     // =================================================================== REAL SHUTDOWN ====
     // Win32 shutdown helper. SAFE BY DEFAULT: the caller only invokes this after the user has
     // explicitly armed the toggle AND a 10-second abortable countdown elapsed. We use the Win32

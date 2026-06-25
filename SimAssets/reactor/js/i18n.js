@@ -1,0 +1,151 @@
+// 雙語字串表 · Bilingual string table (EN + 繁體中文/粵語). t(key) returns the primary-language
+// string; the C# side pushes the primary language each tick via state.zhPrimary.
+
+let zhPrimary = false;
+
+const S = {
+  appTitle:   ["Reactor Control Room", "反應堆控制室"],
+  appSub:     ["OPEN100-class PWR · full-scope simulation", "OPEN100 級壓水堆 · 全範圍模擬"],
+  offline:    ["Self-contained · no network", "自包含 · 無網絡"],
+
+  // rooms
+  roomControl:    ["Control Room", "控制室"],
+  roomContain:    ["Reactor / Containment", "反應堆 / 安全殼"],
+  roomTurbine:    ["Turbine Hall", "汽輪機房"],
+  roomFuel:       ["Fuel Handling", "燃料處理"],
+  roomCvcs:       ["CVCS / Aux", "化容 / 輔助"],
+  roomElec:       ["Electrical", "電氣"],
+  roomCooling:    ["Cooling", "冷卻"],
+  roomRad:        ["Rad Monitoring", "輻射監測"],
+
+  // common
+  power:      ["Power", "功率"],
+  thermal:    ["Thermal", "熱功率"],
+  electric:   ["Electric", "電功率"],
+  period:     ["Period", "週期"],
+  reactivity: ["Reactivity", "反應性"],
+  fuelTemp:   ["Fuel temp", "燃料溫度"],
+  tavg:       ["Tavg", "平均溫"],
+  thot:       ["Thot", "熱腿溫"],
+  tcold:      ["Tcold", "冷腿溫"],
+  pressure:   ["Primary press", "一迴路壓力"],
+  pzrLevel:   ["PZR level", "穩壓器水位"],
+  steamPress: ["Steam press", "蒸汽壓力"],
+  sgLevel:    ["SG level", "蒸發器水位"],
+  subcool:    ["Subcooling", "過冷裕度"],
+  decay:      ["Decay heat", "衰變熱"],
+  flow:       ["RCS flow", "冷卻劑流量"],
+  turbine:    ["Turbine", "汽輪機"],
+  rpm:        ["Turbine RPM", "汽輪機轉速"],
+  boron:      ["Boron", "硼濃度"],
+  xenon:      ["Xenon", "氙毒"],
+  startupRate:["Startup rate", "啟動率"],
+  burnup:     ["Burnup", "燃耗"],
+  damage:     ["Core damage", "堆芯損傷"],
+  srm:        ["Source range", "起動範圍"],
+
+  // controls
+  mode:       ["Mode", "模式"],
+  shutdown:   ["Shutdown", "停機"],
+  startup:    ["Startup", "啟動"],
+  run:        ["Run", "運轉"],
+  rods:       ["Control rods", "控制棒"],
+  rodBank:    ["Bank", "棒組"],
+  allRods:    ["All banks", "全部棒組"],
+  rodsOut:    ["WITHDRAW", "提棒"],
+  rodsIn:     ["INSERT", "插棒"],
+  hold:       ["HOLD", "保持"],
+  autoRods:   ["Auto rods", "自動控棒"],
+  setpoint:   ["Power setpoint", "功率設定"],
+  borate:     ["Borate", "加硼"],
+  dilute:     ["Dilute", "稀釋"],
+  boronTarget:["Boron target", "硼目標"],
+  resetTrip:  ["Reset trip", "復位跳脫"],
+  resetAll:   ["Reset plant", "重置全廠"],
+  ack:        ["ACK", "確認"],
+  silence:    ["SILENCE", "消聲"],
+  lamptest:   ["LAMP TEST", "燈測"],
+  scenario:   ["Scenario", "事故情景"],
+  pzrHeater:  ["PZR heater", "穩壓器加熱"],
+  pzrSpray:   ["PZR spray", "穩壓器噴淋"],
+  porv:       ["Relief valve (PORV)", "釋壓閥"],
+  eccs:       ["ECCS arm", "應急堆芯冷卻"],
+  rcp:        ["RCP", "主泵"],
+  rcpFlow:    ["RCP flow demand", "主泵流量需求"],
+  start:      ["START", "啟動"],
+  stop:       ["STOP", "停止"],
+  feedwater:  ["Feedwater", "給水"],
+  turbineLoad:["Turbine load", "汽輪機負荷"],
+  genBreaker: ["Generator breaker", "發電機開關"],
+  closed:     ["CLOSED", "合閘"],
+  open:       ["OPEN", "分閘"],
+
+  // scenarios
+  scNormal:   ["Normal", "正常"],
+  scLoca:     ["LOCA", "失水事故"],
+  scSbo:      ["Blackout", "全廠斷電"],
+  scLofw:     ["Loss of feed", "喪失給水"],
+  scAtws:     ["ATWS", "未停堆暫態"],
+  scXenon:    ["Xenon restart", "氙毒重啟"],
+
+  // panels
+  nis:        ["Nuclear instrumentation", "核儀表"],
+  annun:      ["Annunciators", "報警盤"],
+  csf:        ["Critical safety functions", "關鍵安全功能"],
+  rps:        ["Reactor protection system", "反應堆保護系統"],
+  thx:        ["Primary loop", "一迴路"],
+  rodCtl:     ["Rod & reactivity control", "控棒及反應性控制"],
+  alarmCtl:   ["Alarm control", "報警控制"],
+  mimic:      ["Plant mimic", "系統模擬圖"],
+  coreView:   ["Core", "堆芯"],
+  turbView:   ["Turbine & generator", "汽輪發電機"],
+  sync:       ["Synchroscope", "同步指示器"],
+  oneline:    ["One-line diagram", "單線圖"],
+  radmon:     ["Radiation monitors", "輻射監測儀"],
+
+  // fuel
+  fuelFresh:  ["Fresh", "新燃料"],
+  fuelLoaded: ["In core", "在堆"],
+  fuelSpent:  ["Spent", "乏燃料"],
+  fabricate:  ["Fabricate assembly", "製造組件"],
+  enrichment: ["Enrichment U-235", "鈾-235 濃度"],
+  mass:       ["Mass (kg HM)", "質量（公斤重金屬）"],
+  validate:   ["Validate file", "驗證檔案"],
+  loadCore:   ["Load into core", "裝入堆芯"],
+  unload:     ["Unload", "卸料"],
+  discharge:  ["Discharge all", "全部退役"],
+  canRun:     ["REACTOR CAN RUN — fuel loaded", "反應堆可運轉 — 已裝燃料"],
+  noRun:      ["NO FUEL LOADED — reactor cannot start", "未裝燃料 — 反應堆無法啟動"],
+  signValid:  ["signature", "簽章"],
+  selectFile: ["Select an assembly to validate", "選擇要驗證的組件"],
+  fuelExplain:["HMAC-SHA256 signed · forged / tampered / depleted fuel is rejected",
+               "HMAC-SHA256 簽章 · 偽造／竄改／耗盡燃料會被拒絕"],
+
+  // rad
+  area:       ["Area monitor", "區域監測"],
+  process:    ["Process monitor", "工藝監測"],
+  effluent:   ["Effluent monitor", "排放監測"],
+  containIso: ["Containment isolation", "安全殼隔離"],
+  doseRate:   ["Dose-rate trend", "劑量率趨勢"],
+
+  on:  ["ON", "開"],
+  off: ["OFF", "關"],
+  yes: ["YES", "是"],
+  no:  ["NO", "否"],
+};
+
+export function setLang(zh) { zhPrimary = !!zh; }
+export function isZh() { return zhPrimary; }
+export function t(key) {
+  const e = S[key];
+  if (!e) return key;
+  return zhPrimary ? e[1] : e[0];
+}
+// pick(en, zh) for ad-hoc strings (e.g. server-provided status)
+export function pick(en, zh) { return zhPrimary ? zh : en; }
+
+export function applyLang(root = document) {
+  root.querySelectorAll("[data-i18n]").forEach(el => {
+    el.textContent = t(el.getAttribute("data-i18n"));
+  });
+}

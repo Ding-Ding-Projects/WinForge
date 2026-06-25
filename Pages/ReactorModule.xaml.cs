@@ -31,6 +31,8 @@ namespace WinForge.Pages;
 public sealed partial class ReactorModule : Page
 {
     private readonly ReactorSimService _sim = new();
+    // Shared fuel factory so the HTML control room and this page see one fuel inventory.
+    private readonly FuelFactoryService _fuel = new();
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(100) }; // 10 Hz
     private DateTime _last = DateTime.UtcNow;
     private double _simClock; // seconds since start
@@ -1108,7 +1110,8 @@ public sealed partial class ReactorModule : Page
     // ================================================================ TOOLBAR ====
     private void OpenControlRoom_Click(object sender, RoutedEventArgs e)
     {
-        try { var w = new ReactorControlRoomWindow(_sim); w.Activate(); } catch { }
+        // Repointed to the HTML5/WebView2 room-tabbed control room, sharing this page's sim + fuel.
+        try { var w = new ReactorHtmlWindow(_sim, _fuel); w.Activate(); } catch { }
     }
 
     private void OpenWidgets_Click(object sender, RoutedEventArgs e)
