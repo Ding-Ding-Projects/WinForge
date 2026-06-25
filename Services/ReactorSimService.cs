@@ -482,6 +482,21 @@ public sealed class ReactorSimService
     private const double OpcSetpointRpm   = SyncRpm * 1.03; // 1854 rpm — OPC / power-load-unbalance fast-close (non-latching)
     private const double SteamPressDrawK  = 0.6;           // SG-pressure relief coupling per unit GV steam draw
 
+    // --- Steam dump (turbine bypass / condenser dump) — Westinghouse 4-loop, 40% design capacity ---
+    // Dual-mode condenser steam dump: on a load rejection or turbine/reactor trip the governor valves
+    // shut and the NSSS power has nowhere to go; the dump valves bypass up to 40% of full main-steam flow
+    // directly to the condenser, absorbing the power-load mismatch so the plant rides out the upset WITHOUT
+    // a reactor trip and below the MSSV liftpoint. Two controllers (Tavg load-rejection mode toward Tref;
+    // trip-open mode toward no-load Tavg), with a P-12 low-Tavg block that cuts dumps on real overcooling.
+    private const double SteamDumpCapacityFrac = 0.40;            // 40% of full main-steam flow to condenser
+    private const double SdLoadRejGainC        = 0.20;            // demand per °C of (Tavg−Tref): ~5 °C → full open
+    private const double SdTripOpenGainC       = 0.05;            // demand per °C of (Tavg−NoLoadTavg) in trip-open mode
+    private const double SdLoTavgBlockC        = NoLoadTavg - 5.0;// 284.6 °C — P-12 low-Tavg block centre
+    private const double SdLoTavgBandC         = 6.0;             // °C — smooth block band width
+    private const double SdSinkGainK           = 70.0;            // sgRemoval coupling gain for the dump heat path
+    private const double SdPressReliefK        = 0.40;            // pTarget relief per unit dumpFlow (< SteamPressDrawK 0.6)
+    private const double SdValveTau            = 3.0;             // s — air-operated dump-valve stroke lag (~2–5 s band)
+
     // --- EHC state ---
     public double LoadReference      { get; private set; } // 0..1 rate-limited internal load demand the EHC tracks
     public double GovernorValve      { get; private set; } // 0..1 ACTUAL governor-valve position (single writer: UpdateSecondary)
@@ -489,6 +504,13 @@ public sealed class ReactorSimService
     public double TurbineSpeedError  { get; private set; } = SyncRpm; // rpm, (SyncRpm − TurbineRPM) — droop + display
     public bool   TurbineTripped     { get; private set; } // latched stop-valve trip (overspeed / manual)
     private double _gvCmd;                                  // commanded GV position (pre-actuator-lag)
+
+    // --- Steam dump state (read-only telemetry; single writer = UpdateSteamDump) ---
+    public double SteamDumpDemand   { get; private set; }             // 0..1 fraction of the 40% dump capacity
+    public bool   SteamDumpArmed    { get; private set; }             // arming permissive satisfied
+    public string SteamDumpModeEn   { get; private set; } = "Off";    // Off|Armed|LoadReject|TripOpen|Blocked
+    public bool   SteamDumpValvesOpen => SteamDumpDemand > 0.001;     // any dump flow
+    public double SteamDumpPercent  => SteamDumpDemand * 100.0;       // % of capacity, for display
 
     // Burnup drift (cosmetic realism flourish).
     public double BurnupMwdPerTonne { get; private set; }
@@ -928,6 +950,7 @@ public sealed class ReactorSimService
         Array.Clear(_pzrSafetyOpen, 0, 3); // re-seat all code safety valves on reset
         SteamPressure = 0.5; SteamGenLevel = 60; ElectricPowerMW = 0; TurbineRPM = 0;
         LoadReference = 0; GovernorValve = 0; _gvCmd = 0;
+        SteamDumpDemand = 0; SteamDumpArmed = false; SteamDumpModeEn = "Off";
         FirstStagePressure = 0; TurbineSpeedError = SyncRpm; TurbineTripped = false;
         IndicatedSgLevel = 60; SteamFlow = 0; FeedRegValve = 0; SgLevelSetpoint = 50;
         FeedwaterAuto = true; _iLevel = 0; _steamFlowSlow = 0; _threeElementActive = false; _fwAutoWasOn = false;
@@ -1016,6 +1039,10 @@ public sealed class ReactorSimService
         // --- three-element feedwater regulating control (runs before the secondary so the valve
         //     demand and shrink/swell indication are current when level integrates this tick) ---
         UpdateFeedwaterControl(dt);
+
+        // --- steam dump / turbine bypass (40% condenser dump): cache the dump demand BEFORE the secondary
+        //     so a load rejection / turbine-or-reactor trip is ridden out without an RPS trip ---
+        UpdateSteamDump(dt);
 
         // --- secondary plant + turbine ---
         UpdateSecondary(dt);
@@ -1541,6 +1568,13 @@ public sealed class ReactorSimService
         // Coolant: receives fuelToCoolant, rejects heat to SG proportional to flow & secondary delta.
         double sgRemoval = (8.0 + 90.0 * CoolantFlowFraction) * Math.Max(0, Tavg - SecondarySatTemp()) * 0.01;
         sgRemoval *= (0.3 + 0.7 * FeedwaterFlow); // feedwater enables heat sink
+        // Steam dump heat sink: up to 40% main-steam bypass to the condenser. Reuses the primary-to-secondary
+        // head and the condenser-feed gate; reads the per-tick cached demand. This is what keeps removing
+        // core + decay heat after the GVs shut on a load rejection, holding Tavg below the OTΔT / Hi-Thot
+        // trips so the plant rides out the upset without a reactor trip.
+        sgRemoval += SdSinkGainK * SteamDumpDemand * SteamDumpCapacityFrac
+                   * Math.Max(0.0, Tavg - SecondarySatTemp()) * 0.01
+                   * (0.3 + 0.7 * FeedwaterFlow);
         // MSLB direct overcooling: the break itself flashes SG inventory and pulls primary heat even when
         // feedwater is gone (the 0.3+0.7·FW factor above throttles the base term). Scales with break flow
         // and the primary-to-secondary temperature head; clamped ≥0 so it can never heat the primary.
@@ -1858,8 +1892,14 @@ public sealed class ReactorSimService
         // 8) First-stage (impulse-chamber) pressure — the calibrated load signal, linear in GV steam flow.
         FirstStagePressure = Math.Clamp(FspGain * steamDraw, 0.0, 1.0);
 
-        // --- SteamPressure (single writer, MOVED here) — closing the GVs reduces draw ⇒ header pressure rises.
-        double pTarget = 0.5 + 6.5 * Math.Clamp(_power - SteamPressDrawK * steamDraw + 0.4, 0, 1.2);
+        // --- SteamPressure (single writer, MOVED here) — closing the GVs reduces draw ⇒ header pressure rises;
+        // the 40% condenser dump relieves it. On a load rejection steamDraw→0 would drive pTarget toward the
+        // MSSV liftpoint; the dump term subtracts up to 0.40·0.40 = 0.16 of normalized power, holding header
+        // pressure in the dump-controlled band below the safety valves. SdPressReliefK (0.40) < SteamPressDrawK
+        // (0.6) so the bypass is correctly weaker than full turbine draw.
+        double dumpFlow = SteamDumpDemand * SteamDumpCapacityFrac;
+        double pTarget = 0.5 + 6.5 * Math.Clamp(
+            _power - SteamPressDrawK * steamDraw - SdPressReliefK * dumpFlow + 0.4, 0, 1.2);
         pTarget = Math.Clamp(pTarget, 0.3, 8.5);
         SteamPressure += (pTarget - SteamPressure) * Math.Min(1, dt / 5.0);
 
@@ -1886,6 +1926,46 @@ public sealed class ReactorSimService
         else
             ElectricPowerMW += (0 - ElectricPowerMW) * Math.Min(1, dt / 2.0);
         if (ElectricPowerMW < 0) ElectricPowerMW = 0;
+    }
+
+    // ===================== Steam dump / turbine bypass · 汽輪機旁路（凝汽器排汽） =====================
+    // Single writer of SteamDumpDemand. Runs once per tick AFTER the kinetics/thermal substeps (so Tavg is
+    // current) and BEFORE UpdateSecondary (so the cached demand is ready for the pTarget relief term). Tref
+    // is from the prior tick's UpdateAutoRods. Both controller terms are Max(0,…) → dump is cooling-only and
+    // can never add heat to the primary, preserving the meltdown-arm path.
+    private void UpdateSteamDump(double dt)
+    {
+        // Arming permissive: turbine tripped, OR generator breaker open while at power, OR reactor scrammed.
+        bool armed = TurbineTripped || !GeneratorBreakerClosed || IsScrammed;
+
+        // P-12 low-Tavg block: smooth 0..1 gate — 0 at/below SdLoTavgBlockC, 1 a band above it. Cuts dumps
+        // on real overcooling (e.g. an MSLB) so the bypass cannot drive an excessive cooldown.
+        double loBlock = Math.Clamp((Tavg - SdLoTavgBlockC) / SdLoTavgBandC, 0.0, 1.0);
+
+        double raw = 0.0;
+        string mode;
+        if (armed)
+        {
+            // Mode 1 — load rejection: modulate on (Tavg − Tref). Mode 2 — trip-open: dump toward no-load Tavg.
+            double loadRej  = SdLoadRejGainC  * Math.Max(0.0, Tavg - Tref);
+            double tripOpen = SdTripOpenGainC * Math.Max(0.0, Tavg - NoLoadTavg);
+            raw  = Math.Max(loadRej, tripOpen) * loBlock;   // the more demanding controller wins (W mode-select)
+            mode = loBlock <= 0.0           ? "Blocked"
+                 : tripOpen >= loadRej      ? "TripOpen"
+                 :                            "LoadReject";
+        }
+        else
+        {
+            mode = "Off";
+        }
+
+        double target = Math.Clamp(raw, 0.0, 1.0);
+        // First-order air-operated valve stroke lag.
+        SteamDumpDemand += (target - SteamDumpDemand) * Math.Min(1.0, dt / SdValveTau);
+        SteamDumpDemand  = Math.Clamp(SteamDumpDemand, 0.0, 1.0);
+
+        SteamDumpArmed  = armed;
+        SteamDumpModeEn = SteamDumpValvesOpen ? mode : (armed ? "Armed" : "Off");
     }
 
     private bool _autoRodWasOn;

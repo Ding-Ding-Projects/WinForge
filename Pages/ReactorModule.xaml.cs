@@ -496,6 +496,10 @@ public sealed partial class ReactorModule : Page
         // EHC turbine — first-stage (impulse) pressure is the calibrated load signal; governor-valve position.
         AddGauge("First-stage press", "第一級壓力", 0, 750, () => _sim.FirstStagePressure * 690.0, () => $"{_sim.FirstStagePressure * 690.0:F0} psia");
         AddGauge("Governor valve", "調速汽門", 0, 100, () => _sim.GovernorValve * 100, () => $"{_sim.GovernorValve * 100:F0}%");
+        // Steam dump (turbine bypass) — 40% condenser dump that rides out a load rejection / turbine trip
+        // without a reactor trip. Shows % of dump capacity and the active controller mode.
+        AddGauge("Steam dump", "蒸汽旁路", 0, 100, () => _sim.SteamDumpPercent,
+            () => $"{_sim.SteamDumpPercent:F0}% · {SteamDumpModeStr()}", id: "steamDump");
         // Class 1E 125 VDC station battery — only depletes during a station blackout (no AC source).
         AddGauge("Vital DC battery", "1E 直流電池", 0, 100, () => _sim.Electrical.BatterySoc * 100,
             () => $"{_sim.Electrical.BatterySoc * 100:F0}% · {_sim.Electrical.BatteryVoltage:F0} VDC", id: "battery");
@@ -507,6 +511,16 @@ public sealed partial class ReactorModule : Page
         if (Math.Abs(p) >= 999) return "∞";
         return $"{p:F0}s";
     }
+
+    // Bilingual label for the steam-dump controller mode (sim emits a fixed English token).
+    private string SteamDumpModeStr() => _sim.SteamDumpModeEn switch
+    {
+        "LoadReject" => P("Load Reject", "甩負荷"),
+        "TripOpen"   => P("Trip Open", "跳機全開"),
+        "Blocked"    => P("Lo-Tavg Block", "低溫閉鎖"),
+        "Armed"      => P("Armed", "待命"),
+        _            => P("Off", "關"),
+    };
 
     private void UpdateGauges()
     {
