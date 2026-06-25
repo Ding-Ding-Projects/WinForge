@@ -215,6 +215,25 @@ public sealed class ReactorSimService
     private const int RilLowLowBias        = 15; // steps the Low-Low insertion limit sits below Low
     private const int RodDeviationBandSteps = 12; // LCO 3.1.4 rod-alignment / deviation band (steps)
 
+    // --- Reactor-trip rod-drop dynamics (gravity insertion after the trip breakers open) ---
+    // On a scram the rods are NOT inserted instantly: the reactor trip breakers (RTA/RTB) open, AC to the
+    // CRDM rod-power cabinets is removed, the stationary/movable gripper-coil flux decays (L/R) and the
+    // latches release, then the RCCAs fall under gravity. The de-energize-to-release chain is fail-safe.
+    //   ROD_RELEASE_DELAY_S lumps sensor+2-of-4-coincidence logic (~0.1 s) + breaker mechanical open
+    //   (~0.05 s, 2–5 cycles) + gripper-coil flux decay & latch release (~0.10–0.15 s) ≈ 0.30 s before any
+    //   rod motion (FSAR Ch.15 commonly credits ≤0.5 s; ~0.3 s is a defensible mid-range value).
+    //   Then each bank's insertion fraction integrates toward 1.0: drag-limited (terminal-velocity) free
+    //   fall through the active core, then strong hydraulic snubbing in the bottom ~15 % dashpot region.
+    //   FreeFallVel = 0.85 / 2.20 s ⇒ ~2.2 s from rod motion to dashpot entry (the Tech-Spec rod-drop-time
+    //   basis), full seating ~2.8 s after motion (~3.1 s after the trip latch). Because the existing RodS
+    //   integral-worth S-curve peaks at the high-worth core mid-plane, ~87 % of the trip reactivity is in
+    //   by 2.0 s after motion even though the rod is only ~85 % inserted — the canonical Chapter-15 scram
+    //   curve (≈2 %/19 %/54 %/87 % of trip worth at 0.5/1.0/1.5/2.0 s from start of rod motion).
+    private const double ROD_RELEASE_DELAY_S    = 0.30;  // s — trip-breaker + gripper-coil release dead-time
+    private const double RodDropFreeFallVel     = 0.386; // fraction-of-stroke / s — drag-limited terminal velocity
+    private const double RodDropDashpotEntry    = 0.85;  // fraction inserted where the dashpot snubbing begins
+    private const double RodDropDashpotVelFac   = 0.40;  // velocity multiplier at the dashpot bottom (snubbing)
+
     // --- Westinghouse automatic rod-control: Tavg/Tref program (NRC Tech Manual §8.1, ML11223A252) ---
     // AUTO rods regulate Tavg to a turbine-load-programmed reference Tref, NOT to a power setpoint. Tref is
     // linear in turbine first-stage (impulse) pressure between a no-load and a full-load endpoint; the
@@ -625,6 +644,17 @@ public sealed class ReactorSimService
 
     // Controls
     public double[] RodBankInsertion { get; } = { 100.0, 100.0, 100.0, 100.0 }; // % inserted per bank (A,B,C,D)
+
+    // Reactor-trip rod-drop state/telemetry (gravity insertion after the breakers open).
+    private double _rodReleaseTimer;                                  // s remaining of breaker+gripper release dead-time
+    public bool   RodsDropping     { get; private set; }             // true between release-delay expiry and full seating
+    public double RodDropElapsedS  { get; private set; }             // s since the scram latched (incl. release delay)
+    public double RodReleaseRemainingS => _rodReleaseTimer;          // s left before the rods break free and fall
+    /// <summary>Trip negative reactivity currently inserted by the dropping rods, 0 → ~8000 pcm as they seat.</summary>
+    public double ScramReactivityInsertedPcm => IsScrammed ? TotalRodWorth * 1e5 * SumRodWorthFrac() : 0.0;
+    /// <summary>Fraction (0–1) of total trip rod worth currently inserted — for plotting the scram curve.</summary>
+    public double ScramReactivityFraction    => IsScrammed ? SumRodWorthFrac() : 0.0;
+
     public double BoronPpm { get; private set; } = NominalBoron;
     public double TargetBoronPpm { get; set; } = NominalBoron;
 
@@ -1485,6 +1515,16 @@ public sealed class ReactorSimService
         return x - Math.Sin(2.0 * Math.PI * x) / (2.0 * Math.PI);
     }
 
+    // Total inserted rod worth as a fraction (0–1): Σ RodWorthFrac[b]·RodS(insertion_b). Shared by the
+    // reactivity sum and the scram-curve telemetry so the dropping-rod worth is computed once, consistently.
+    private double SumRodWorthFrac()
+    {
+        double s = 0.0;
+        for (int b = 0; b < RodBankInsertion.Length; b++)
+            s += RodWorthFrac[b] * RodS(RodBankInsertion[b] / 100.0);
+        return s;
+    }
+
     // Step position shown on the rod-position indication: 0 = fully in, 228 = fully out.
     public int RodStepsWithdrawn(int bank)
     {
@@ -1541,11 +1581,53 @@ public sealed class ReactorSimService
     public void Scram()
     {
         IsScrammed = true;
-        // ATWS: the trip signal latches but the rods physically fail to insert.
+        // The reactor trip breakers open and the rods are released to fall under gravity — they no longer
+        // snap fully in instantly. Arm the breaker+gripper release dead-time; StepRodDrop then drives each
+        // bank's insertion from its present position to fully seated over the ~2.2 s rod-drop time.
+        // ATWS: the trip signal latches but the rods physically fail to insert — leave them where they are.
         if (!_rodsFailToInsert)
-            for (int i = 0; i < RodBankInsertion.Length; i++) RodBankInsertion[i] = 100.0;
+        {
+            _rodReleaseTimer = ROD_RELEASE_DELAY_S;
+            RodDropElapsedS  = 0.0;
+            RodsDropping     = false;   // becomes true once the release delay expires
+        }
         AutoRodControl = false;
         if (Mode != ReactorMode.Meltdown) Mode = ReactorMode.Tripped;
+    }
+
+    // Effective per-bank gravity-drop velocity at insertion fraction p: drag-limited free fall through the
+    // active core, then hydraulic dashpot snubbing over the bottom ~15 % of the stroke. Advances p toward 1.0.
+    private static double AdvanceRodDrop(double p, double h)
+    {
+        double v;
+        if (p < RodDropDashpotEntry)
+            v = RodDropFreeFallVel;                                   // drag-limited terminal velocity
+        else
+        {
+            double f = (p - RodDropDashpotEntry) / (1.0 - RodDropDashpotEntry); // 0 at entry → 1 at bottom
+            v = RodDropFreeFallVel * (RodDropDashpotVelFac + (1.0 - RodDropDashpotVelFac) * (1.0 - f));
+            if (v < 0.02) v = 0.02;                                   // floor so the rod still finishes seating
+        }
+        return Math.Min(1.0, p + v * h);
+    }
+
+    // Per-substep reactor-trip rod-drop integrator: hold for the release dead-time, then gravity-insert each
+    // withdrawn bank. Gated on !_rodsFailToInsert so an ATWS (even mid-drop) freezes the rods in place.
+    private void StepRodDrop(double h)
+    {
+        if (!IsScrammed || _rodsFailToInsert) { RodsDropping = false; return; }
+        RodDropElapsedS += h;
+        if (_rodReleaseTimer > 0.0) { _rodReleaseTimer = Math.Max(0.0, _rodReleaseTimer - h); RodsDropping = false; return; }
+        bool anyMoving = false;
+        for (int b = 0; b < RodBankInsertion.Length; b++)
+        {
+            double p = RodBankInsertion[b] / 100.0;
+            if (p >= 1.0) continue;                                   // bank already fully seated
+            double np = AdvanceRodDrop(p, h);
+            RodBankInsertion[b] = np * 100.0;
+            if (np < 1.0) anyMoving = true;
+        }
+        RodsDropping = anyMoving;
     }
 
     /// <summary>Reset a trip so the operator can restart (only if conditions are safe).</summary>
@@ -1554,6 +1636,7 @@ public sealed class ReactorSimService
         if (Mode == ReactorMode.Meltdown) return;
         _rps.ClearLatch();          // clear the sealed-in RPS trip so the breakers can re-close
         LastTripFunctionEn = ""; LastTripFunctionZh = "";
+        _rodReleaseTimer = 0.0; RodDropElapsedS = 0.0; RodsDropping = false; // clear any in-progress rod drop
         IsScrammed = false;
         AmsacActuated = false; _amsacTimer = 0; PeakPrimaryPressureMpa = PrimaryPressure; // re-arm AMSAC / peak tally
         if (Mode == ReactorMode.Tripped) Mode = ReactorMode.Shutdown;
@@ -2134,6 +2217,7 @@ public sealed class ReactorSimService
         RiaPcmiRiseLimitCalPerG = RiaPcmiRiseFreshCalG;
         RiaCladdingFailure = false; RiaFuelMelt = false; RiaCoolabilityViolated = false; RiaFailedRodPercent = 0;
         for (int i = 0; i < RodBankInsertion.Length; i++) RodBankInsertion[i] = 100.0;
+        _rodReleaseTimer = 0.0; RodDropElapsedS = 0.0; RodsDropping = false; // no rod drop in progress on a cold reset
         for (int i = 0; i < RcpRunning.Length; i++) RcpRunning[i] = false;
         Array.Clear(_rcpFlow); _lockedRotorLoop = -1;
         PumpedFlowFraction = 0; NaturalCircFraction = 0; RcpCoasting = false; OnNaturalCirc = false;
@@ -2248,7 +2332,10 @@ public sealed class ReactorSimService
         int steps = Math.Max(1, (int)Math.Round(dt / subDt));
         double h = dt / steps;
         for (int s = 0; s < steps; s++)
-            StepKineticsAndThermal(h);
+        {
+            StepRodDrop(h);              // gravity rod insertion after a trip (release delay + dashpot), per substep
+            StepKineticsAndThermal(h);   // so this substep's reactivity sees the rods' current dropping position
+        }
 
         // Power rate-of-change (fraction/s) for the power-range rate trip — lightly smoothed.
         if (dt > 1e-6)
@@ -3385,10 +3472,7 @@ public sealed class ReactorSimService
         // differential worth dS/dx ∝ (1 − cos 2πx) is bell-shaped — ~zero at the core top/bottom and
         // peaking at mid-plane — the classic control-rod worth curve. Σ frac_b = 1 with S(0)=0, S(1)=1
         // keeps the all-out (0) and all-in (−TotalRodWorth) endpoints exactly where the baseline expects.
-        double rodWorthSum = 0;
-        for (int b = 0; b < RodBankInsertion.Length; b++)
-            rodWorthSum += RodWorthFrac[b] * RodS(RodBankInsertion[b] / 100.0);
-        double rodRho = -TotalRodWorth * rodWorthSum;
+        double rodRho = -TotalRodWorth * SumRodWorthFrac();
 
         double boronRho = BoronWorth * BoronPpm;
         double dopplerRho = DopplerCoeff * (FuelTemp - RefFuelTemp);   // slow lumped-fuel Doppler
@@ -4412,8 +4496,12 @@ public sealed class ReactorSimService
         if (Mode == ReactorMode.Meltdown) { StatusEn = "CORE MELTDOWN"; StatusZh = "爐心熔毀"; return; }
         if (IsScrammed)
         {
-            StatusEn = LastTripFunctionEn.Length > 0 ? $"SCRAM — {LastTripFunctionEn}" : "SCRAM — reactor tripped";
-            StatusZh = LastTripFunctionZh.Length > 0 ? $"緊急停堆 — {LastTripFunctionZh}" : "緊急停堆（SCRAM）";
+            string scEn = LastTripFunctionEn.Length > 0 ? $"SCRAM — {LastTripFunctionEn}" : "SCRAM — reactor tripped";
+            string scZh = LastTripFunctionZh.Length > 0 ? $"緊急停堆 — {LastTripFunctionZh}" : "緊急停堆（SCRAM）";
+            if (_rodsFailToInsert)      { scEn += " · ATWS: rods failed to insert"; scZh += " · ATWS：控制棒未能插入"; }
+            else if (RodsDropping)      { scEn += " · rods dropping";               scZh += " · 控制棒重力下插中"; }
+            else if (_rodReleaseTimer > 0.0) { scEn += " · trip breakers open";      scZh += " · 跳脫斷路器已開"; }
+            StatusEn = scEn; StatusZh = scZh;
             return;
         }
         if (DamageAccumulation > 1.0) { StatusEn = "WARNING — core damage accruing"; StatusZh = "警告 — 爐心受損中"; return; }
