@@ -313,6 +313,12 @@ public sealed partial class MainWindow : Window
             case "documents":
                 Navigator.GoToModule?.Invoke("module.libreoffice");
                 break;
+            case "pdf":
+            case "pdftoolkit":
+            case "stirling":
+            case "mergepdf":
+                Navigator.GoToModule?.Invoke("module.pdftoolkit");
+                break;
             case "regedit":
             case "registry":
                 Navigator.GoToModule?.Invoke("module.regedit");
@@ -897,6 +903,7 @@ public sealed partial class MainWindow : Window
         "module.ytdlp" => typeof(YtDlpModule),
         "module.blender" => typeof(BlenderModule),
         "module.libreoffice" => typeof(LibreOfficeModule),
+        "module.pdftoolkit" => typeof(PdfToolkitModule),
         "module.regedit" => typeof(RegistryEditor),
         "module.doctors" => typeof(SystemDoctorsModule),
         "module.services" => typeof(ServicesModule),
