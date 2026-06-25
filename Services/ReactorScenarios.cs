@@ -108,6 +108,20 @@ public static class ReactorScenarios
             Bands((0, 2500, "normal")),
             Array.Empty<GaugeSetpoint>()),
 
+        // Core-mixing-region boric-acid concentration (ppm B) for post-LOCA long-term cooling. The danger band's
+        // lower edge tracks the temperature-dependent solubility limit Cs(T) ≈ 48,000 ppm B at 100 °C; the warn
+        // band opens at 90% of Cs (the ES-1.4 hot-leg-recirc action window). Reads ~1200 ppm (well-mixed RCS)
+        // until a LOCA boil-off concentrates it. 10 CFR 50.46(b)(5) long-term cooling.
+        "coreBoron" => (0, 60000,
+            Bands((0, 34000, "normal"), (34000, 43300, "warn"), (43300, 60000, "danger")),
+            Sets((43300, "ES-1.4 hot-leg recirc", "ES-1.4 熱段再循環"), (48125, "Solubility Cs(100°C)", "溶解度極限 Cs(100°C)"))),
+
+        // Hours to boric-acid precipitation (the ES-1.4 hot-leg-recirc operator-action window). Danger < 2 h,
+        // warn 2–4 h, green beyond. Reads 8 (off-scale) when the precipitation model is idle.
+        "timeToPrecip" => (0, 8,
+            Bands((0, 2, "danger"), (2, 4, "warn"), (4, 8, "normal")),
+            Sets((2, "2 h action", "2 小時行動"))),
+
         // Peak radial-average fuel enthalpy (cal/g) — the rod-ejection (RIA) figure of merit. Green below
         // the RG 1.236 230 cal/g coolability/no-melt limit; warn into the 230–280 band; danger past the
         // legacy RG 1.77 280 cal/g (incipient fuel-melt) line.

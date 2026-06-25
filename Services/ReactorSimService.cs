@@ -92,6 +92,8 @@ public enum ReactorAlarm
     IodineSpikeInProgress,  // an 8-h concurrent iodine spike (RG 1.183) is active
     BoronDilution,          // uncontrolled boron dilution (FSAR 15.4.6) — source-range count-rate rising while subcritical
     BoronDilutionActionWindow, // dilution time-to-loss-of-SDM has fallen below the 15-min operator-action criterion
+    BoricAcidPrecipApproach,   // post-LOCA core boric-acid conc within 90% of the solubility limit — establish hot-leg recirc (ES-1.4)
+    BoricAcidPrecipitated,     // core boric acid has reached the solubility limit — crystals deposit on fuel (latched; long-term-cooling failure)
 }
 
 /// <summary>
@@ -633,6 +635,25 @@ public sealed class ReactorSimService
     public double RvlisDynamicHeadPct { get; private set; }           // % of all-pumps ΔP span (0=no head/voided, 100=4-pump water-solid). NOT a level. Valid ≥1 RCP ON.
     public double RvlisUpperRangePct { get; private set; } = 100.0;   // % hot-leg elevation→top of head (head-vent guidance). Valid RCPs OFF.
     public RvlisValidRange RvlisRange { get; private set; } = RvlisValidRange.DynamicHead; // pump-state validity selector
+
+    // --- Post-LOCA boric-acid precipitation + hot-leg-recirculation switchover (long-term core cooling) ---
+    //     硼酸析出與熱段再循環切換 · After a LOCA the ECCS injects borated water (RWST/sump), decay heat boils
+    //     it off in the core, and the non-volatile boric acid concentrates in the core mixing region. If it
+    //     reaches the temperature-dependent solubility limit it precipitates on the fuel, blocking core flow —
+    //     the long-term-cooling concern of 10 CFR 50.46(b)(5)/GDC 35. The operator prevents it by transferring
+    //     to HOT-leg recirculation (Westinghouse ERG ES-1.4), establishing a through-core flush that sweeps the
+    //     concentrated borate out the hot legs. StepBoricAcidPrecip reads post-tick state and writes ONLY the
+    //     properties below + its own two advisory alarms — never FuelTemp/PrimaryDeficitPct/MeltdownTriggered,
+    //     so it is instrumentation-only and the meltdown-ARM/ECCS consequence path is provably unaffected.
+    public double CoreBoronPpm { get; private set; } = NominalBoron;          // core mixing-region boric-acid conc (ppm B); distinct from the well-mixed RCS BoronPpm
+    public bool   HotLegRecircActive { get; set; }                            // OPERATOR action (ES-1.4) — establish the hot-leg/simultaneous recirc flush; default OFF
+    public double BoricSolubilityLimitPpm { get; private set; } = SolubFloorPpm; // Cs at the current core temperature (ppm B) — the precipitation threshold
+    public double PrecipMarginPpm => BoricSolubilityLimitPpm - CoreBoronPpm;  // ppm B headroom to precipitation (negative = past the limit)
+    public double TimeToPrecipSeconds { get; private set; } = double.PositiveInfinity; // closed-form s to reach Cs; +∞ if recirc winning / ceiling below limit; 0 if past
+    public double TimeToPrecipHours => TimeToPrecipSeconds / 3600.0;
+    public bool   Precipitated { get; private set; }                         // LATCHED — crystals deposited on fuel; reseats only on a full Reset / new scenario
+    public bool   BoricConcentrationActive { get; private set; }             // true ONLY in a real LOCA long-term-cooling boil-off state (gating result, for UI dimming)
+
     private double _w2;     // ∫ Cathcart–Pawel weight-gain² (g²/cm⁴) — the monotone oxidation state, never reported raw
     private double _wPrev;  // previous-tick weight gain w = √_w2 (g/cm²), for the per-tick oxidation increment
 
@@ -664,6 +685,18 @@ public sealed class ReactorSimService
     private const double CladSubstepDt = 0.05;       // s internal sub-step in the autocatalytic regime
     private const double BreakDeficitRate = 1.2;     // %/s per unit break area — RCS inventory the break sheds
     private const double BoiloffDeficitRate = 30.0;  // (%/s)/(decay-heat fraction) saturated boil-off the SG cannot remove
+
+    // --- Boric-acid precipitation model constants (post-LOCA long-term cooling) ---
+    private const double SolubGperL25        = 50.0;      // g H₃BO₃/L at 25 °C (handbook saturation anchor)
+    private const double SolubSlopeGperLperC = 3.0;       // (g/L)/°C — linear-in-T fit → ~275 g/L near 100 °C (steep solubility rise)
+    private const double SolubilityClampHiC  = 150.0;     // °C — upper clamp on the linear extrapolation (data tabulated only to ~100 °C)
+    private const double BoronWtFracH3BO3    = 0.175;     // B is 17.48 wt% of H₃BO₃ (10.81/61.83) — converts g/L H₃BO₃ → ppm B
+    private const double SolubFloorPpm       = 20000.0;   // ppm B — floor so a cold core has a finite limit (no divide-by-near-zero in band/clock)
+    private const double CoreBoronEquilibTau = 30.0;      // s — when inactive, CoreBoronPpm relaxes back to the well-mixed BoronPpm in ~30 s
+    private const double CoreMixFloor        = 1.0 / 600.0;  // 1/s — baseline core↔RCS turnover (V/Q ~10 min) that caps concentration even without recirc
+    private const double HotLegFlushRate     = 1.0 / 300.0; // 1/s — hot-leg recirc sweep: ~5-min e-folding flush of the core mixing region
+    private const double HotLegSwitchoverTimeSec = 19800.0; // s — typical ~5.5 h plant-specific BAP-derived HLSO action time (W generic ~7 h)
+    private const double PrecipWarnFracOfLimit   = 0.90;  // raise the action-window alarm at 90% of Cs (analog of the 0.9 rate-alarm fraction)
 
     // Core Exit Thermocouples (CET) + Subcooling Margin Monitor (SMM) — post-TMI Inadequate Core Cooling
     // instrumentation (NUREG-0737 II.F.2, Reg Guide 1.97 Category 1). Type-K (Chromel-Alumel) incore TCs,
@@ -1316,6 +1349,9 @@ public sealed class ReactorSimService
         PeakFuelEnthalpyCalPerG = _hotPelletEnthalpy; PeakFuelEnthalpyRiseCalPerG = 0;
         RiaCladdingFailure = false; RiaFuelMelt = false; RiaCoolabilityViolated = false; RiaFailedRodPercent = 0;
         _dilutionActive = false; _dilutionFlowGpm = 0;
+        // Re-arm the boric-acid precipitation monitor for the new scenario (operator must re-elect ES-1.4).
+        CoreBoronPpm = BoronPpm; HotLegRecircActive = false; Precipitated = false;
+        TimeToPrecipSeconds = double.PositiveInfinity; BoricConcentrationActive = false;
         switch (s)
         {
             case ReactorScenario.Normal:
@@ -1651,6 +1687,10 @@ public sealed class ReactorSimService
         for (int i = 0; i < _sealCavityTempC.Length; i++) { _sealCavityTempC[i] = SealCooledTempC; _sealLeakGpm[i] = 0; _sealIntegrity[i] = 1.0; }
         SealLeakGpmTotal = 0; SealCavityMaxTempC = SealCooledTempC; SealCoolingAvailable = true;
         PrimaryDeficitPct = 0;
+        // Boric-acid precipitation monitor back to a clean, well-mixed, no-recirc state.
+        CoreBoronPpm = NominalBoron; HotLegRecircActive = false; Precipitated = false;
+        BoricSolubilityLimitPpm = BoricSolubilityPpm(Thot); TimeToPrecipSeconds = double.PositiveInfinity;
+        BoricConcentrationActive = false;
         ContainmentPressureKpa = 0; ContainmentTempC = ContainmentAmbientC;
         ContainmentSprayActive = false; ContainmentIsolationPhaseA = false;
         ContainmentIsolationPhaseB = false; ContainmentFanCoolers = false;
@@ -1681,6 +1721,7 @@ public sealed class ReactorSimService
             StepCladding(dt); // keep PCT / 50.46 instrumentation live through a meltdown
             StepRvlis(dt);    // keep RVLIS vessel-level indication live through a meltdown
             StepCet(dt);      // keep CET / subcooling-margin (ICC) indication live through a meltdown
+            StepBoricAcidPrecip(dt); // keep boric-acid precipitation / hot-leg-recirc indication live through a meltdown
             StepContainmentH2(dt); // keep H₂ atmosphere / PAR / igniter / burn model live through a meltdown
             UpdateAlarms();
             return;
@@ -1743,6 +1784,7 @@ public sealed class ReactorSimService
         StepCladding(dt); // after protection so it reads the final post-tick inventory / ECCS / thermal state
         StepRvlis(dt);    // RVLIS reads the post-cladding CollapsedLevelFrac; advisory alarms only
         StepCet(dt);      // CET + subcooling-margin monitor reads the post-cladding clad/level state; advisory ICC alarms only
+        StepBoricAcidPrecip(dt); // boric-acid precipitation monitor reads post-tick Thot/boron/saturation/SI; advisory alarms only
         StepContainmentH2(dt); // containment H₂ atmosphere / PAR / igniter / deflagration — reads the post-cladding HydrogenMassKg
         UpdatePtLimits(dt); // App G P/T brittle-fracture limit + LTOP arming (reads the final post-tick Tcold/pressure)
         UpdateRiaConsequences(); // RIA fuel-enthalpy acceptance evaluation (reads the post-tick DNBR / enthalpy peak)
@@ -2389,6 +2431,91 @@ public sealed class ReactorSimService
         // Advisory ICC status flags (FR-C). Never command a scram (see method contract).
         SetAlarm(ReactorAlarm.IccRed,    CoreExitTempC >= IccRedTempC);
         SetAlarm(ReactorAlarm.IccOrange, CoreExitTempC >= IccOrangeTempC || CetSubcoolingMarginC <= 0.0);
+    }
+
+    /// <summary>
+    /// 硼酸溶解度極限 · Boric-acid (H₃BO₃) solubility limit, expressed as ppm boron, at coolant temperature
+    /// <paramref name="tC"/> (°C). Linear-in-T fit anchored to the handbook saturation curve (~50 g/L at 25 °C,
+    /// ~275 g/L near 100 °C — the steep negative-heat-of-solution rise). Clamped to [25, 150] °C to stay
+    /// monotone within/just beyond the tabulated range; floored so a cold core still has a finite limit.
+    /// </summary>
+    private static double BoricSolubilityPpm(double tC)
+    {
+        double gPerL = SolubGperL25 + SolubSlopeGperLperC * (Math.Clamp(tC, 25.0, SolubilityClampHiC) - 25.0);
+        return Math.Max(SolubFloorPpm, gPerL * BoronWtFracH3BO3 * 1000.0); // g/L H₃BO₃ → ppm B (1 g/L ≈ 1 ppm at sump density)
+    }
+
+    /// <summary>
+    /// 堆芯硼酸析出與熱段再循環 · Post-LOCA boric-acid precipitation + hot-leg-recirculation (ES-1.4) monitor.
+    /// Models the core-mixing-region boric-acid concentration that builds as decay heat boils off the borated
+    /// ECCS makeup (non-volatile boron stays behind). The closed-form exp-relaxation update is unconditionally
+    /// stable — it relaxes toward a quasi-steady ceiling and can never overshoot or diverge at any dt. The
+    /// operator's hot-leg-recirc transfer collapses the ceiling to the injection concentration, flushing the
+    /// core. INSTRUMENTATION-ONLY: writes only its own readouts + two advisory alarms; no feedback/consequence
+    /// path, so the meltdown-ARM / ECCS logic is provably unaffected (same contract as StepRvlis/StepCet).
+    /// </summary>
+    private void StepBoricAcidPrecip(double dt)
+    {
+        if (dt <= 0) return;
+
+        // The solubility ceiling tracks the hottest covered-liquid temperature (Thot is the core-mixing proxy).
+        BoricSolubilityLimitPpm = BoricSolubilityPpm(Thot);
+
+        // Gate: only a genuine LOCA long-term-cooling boil-off state concentrates boron — an actual break OR a
+        // latched inventory deficit past the uncovery reserve, with borated injection actually feeding the core
+        // (SI actuated or ECCS injecting) and the core at/near saturation (boiling) with meaningful decay heat.
+        // All four must hold, so normal operation, ordinary trips, and still-subcooled transients never trigger it.
+        BoricConcentrationActive =
+            (_breakArea > 0 || PrimaryDeficitPct > DeficitReserve)
+            && (SiActuated || EccsInjecting)
+            && SubcoolingMarginC <= 2.0
+            && DecayHeatFraction > 0.005;
+
+        // INACTIVE (and not yet precipitated): relax the core concentration back toward the well-mixed RCS and
+        // stop the clock. Precipitated stays latched until a full Reset / new scenario.
+        if (!BoricConcentrationActive && !Precipitated)
+        {
+            CoreBoronPpm += (BoronPpm - CoreBoronPpm) * Math.Min(1.0, dt / CoreBoronEquilibTau);
+            TimeToPrecipSeconds = double.PositiveInfinity;
+            SetAlarm(ReactorAlarm.BoricAcidPrecipApproach, false);
+            SetAlarm(ReactorAlarm.BoricAcidPrecipitated, Precipitated);
+            return;
+        }
+
+        // ACTIVE concentration physics. Fractional core-water boil-off rate reuses the engine's boil-off basis
+        // (BoiloffDeficitRate is %/s per decay-heat fraction → /100 gives a fractional 1/s). That fraction of the
+        // core water leaves as steam each second, carrying ~no boron, so boron concentrates.
+        double kConc  = BoiloffDeficitRate * DecayHeatFraction / 100.0;   // 1/s
+        double cInj   = BoronPpm;                                         // injected makeup concentration (RWST/sump → live RCS boron)
+        double kFlush = HotLegRecircActive ? HotLegFlushRate : 0.0;       // operator ES-1.4 through-core flush
+
+        // Quasi-steady ceiling: with recirc the core flushes toward the injected conc; without it, boil-off
+        // concentrates toward a boil-off/mixing ceiling set by the turnover floor.
+        double target = HotLegRecircActive ? cInj : cInj * (kConc + CoreMixFloor) / CoreMixFloor;
+        double kNet   = Math.Max(1e-9, kConc + kFlush + CoreMixFloor);    // net relaxation rate
+
+        // Closed-form, unconditionally-stable relaxation toward the ceiling (mirrors the dilution exp solution).
+        CoreBoronPpm = target + (CoreBoronPpm - target) * Math.Exp(-kNet * dt);
+
+        // Latch + operator-action-window clock (closed-form from the same exp law, like TimeToCriticalitySeconds).
+        if (CoreBoronPpm >= BoricSolubilityLimitPpm)
+        {
+            Precipitated = true;
+            TimeToPrecipSeconds = 0;
+        }
+        else if (target <= BoricSolubilityLimitPpm || target <= CoreBoronPpm)
+        {
+            TimeToPrecipSeconds = double.PositiveInfinity;               // ceiling below the limit, or falling (recirc winning) → never precipitates
+        }
+        else
+        {
+            double arg = (target - BoricSolubilityLimitPpm) / (target - CoreBoronPpm);
+            TimeToPrecipSeconds = (arg > 0 && arg < 1) ? -Math.Log(arg) / kNet : double.PositiveInfinity;
+        }
+
+        SetAlarm(ReactorAlarm.BoricAcidPrecipApproach,
+            BoricConcentrationActive && !Precipitated && CoreBoronPpm > PrecipWarnFracOfLimit * BoricSolubilityLimitPpm);
+        SetAlarm(ReactorAlarm.BoricAcidPrecipitated, Precipitated);
     }
 
     /// <summary>

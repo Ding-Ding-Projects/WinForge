@@ -525,6 +525,26 @@ public sealed partial class ReactorModule : Page
         AddGauge("RCP seal leakoff", "主泵軸封洩漏", 0, 1920, () => _sim.SealLeakGpmTotal, () => $"{_sim.SealLeakGpmTotal:F0} gpm · {_sim.SealCavityMaxTempC:F0}°C{(_sim.SealCoolingAvailable ? "" : " · NO COOL")}", id: "sealLeak");
         AddGauge("Clad oxidation (ECR)", "包殼氧化 ECR", 0, 30, () => _sim.MaxLocalOxidationPct, () => $"{_sim.MaxLocalOxidationPct:F1}% ECR", id: "ecr");
         AddGauge("Core hydrogen", "堆芯氫氣", 0, 3, () => _sim.CoreWideHydrogenPct, () => $"{_sim.CoreWideHydrogenPct:F2}% · {_sim.HydrogenMassKg:F0} kg", id: "h2");
+        // Post-LOCA boric-acid precipitation (long-term core cooling, 10 CFR 50.46(b)(5)): core-mixing-region
+        // boron concentrates by decay-heat boil-off of borated ECCS makeup; the danger band tracks the live
+        // solubility limit Cs(T). Hot-leg recirc (ES-1.4) flushes the core. Idle ≈ well-mixed RCS boron.
+        AddGauge("Core boron (precip)", "堆芯硼濃度（析出）", 0, 60000, () => _sim.CoreBoronPpm,
+            () => _sim.Precipitated
+                ? P($"PRECIPITATED · {_sim.CoreBoronPpm:F0} ppm B", $"已析出 · {_sim.CoreBoronPpm:F0} ppm B")
+                : _sim.BoricConcentrationActive
+                    ? $"{_sim.CoreBoronPpm:F0} ppm B · Cs {_sim.BoricSolubilityLimitPpm:F0}" + (_sim.HotLegRecircActive ? P(" · HL recirc", " · 熱段再循環") : "")
+                    : $"{_sim.CoreBoronPpm:F0} ppm B", id: "coreBoron");
+        // Operator-action window: hours to boric-acid precipitation (drives the ES-1.4 hot-leg-recirc decision).
+        AddGauge("Time to precip", "距析出時間", 0, 8,
+            () => _sim.BoricConcentrationActive && !_sim.Precipitated ? Math.Min(8, _sim.TimeToPrecipHours) : 8,
+            () => _sim.Precipitated
+                ? P("precipitated", "已析出")
+                : _sim.BoricConcentrationActive
+                    ? (double.IsInfinity(_sim.TimeToPrecipSeconds)
+                        ? P("stable (recirc)", "穩定（再循環）")
+                        : $"{_sim.TimeToPrecipHours:F1} h → {P("precip", "析出")}")
+                    : P("—", "—"),
+            warnFrac: 2.0 / 8.0, id: "timeToPrecip");
         // Containment combustible-gas control (10 CFR 50.44): wide-range H₂ monitor 0–10 vol% (RG 1.97 Cat 1),
         // O₂ for inerting/depletion, the passive-recombiner bank rate, and the igniter-system state.
         AddGauge("Containment H₂", "安全殼氫氣", 0, 10, () => _sim.ContainmentH2Pct,
@@ -687,6 +707,8 @@ public sealed partial class ReactorModule : Page
             (ReactorAlarm.IodineSpikeInProgress, "IODINE SPIKE (RG 1.183)", "碘尖峰進行中（RG 1.183）"),
             (ReactorAlarm.BoronDilution, "BORON DILUTION (15.4.6)", "硼稀釋偵測（15.4.6）"),
             (ReactorAlarm.BoronDilutionActionWindow, "DILUTION < 15-MIN WINDOW", "稀釋 <15分鐘裕度"),
+            (ReactorAlarm.BoricAcidPrecipApproach, "BORIC ACID PRECIP — GO ES-1.4", "硼酸即將析出 — 轉熱段再循環"),
+            (ReactorAlarm.BoricAcidPrecipitated, "BORIC ACID PRECIPITATED", "硼酸已析出 堆芯流道阻塞"),
             (ReactorAlarm.SgReliefLift, "SG RELIEF — RELEASE", "蒸發器釋壓閥洩放"),
             (ReactorAlarm.SteamlineBreak, "STEAMLINE BREAK", "主蒸汽管爆裂"),
             (ReactorAlarm.SafetyInjection, "SAFETY INJECTION", "安全注入 SI"),
@@ -1492,6 +1514,9 @@ public sealed partial class ReactorModule : Page
         injBtn.Click += (_, _) => { _sim.EccsArmed = true; };
         _relocalizers.Add(() => injBtn.Content = P("Force ECCS inject · 強制注入", "強制注入 · Force ECCS inject"));
         safetyPanel.Children.Add(injBtn);
+        // ES-1.4 hot-leg recirculation switchover (post-LOCA boric-acid-precipitation prevention, ~5.5 h credited
+        // time). Defaults OFF — the operator elects the transfer to establish the through-core flush.
+        safetyPanel.Children.Add(MakeToggle("ES-1.4 hot-leg recirc · 熱段再循環", "熱段再循環 · ES-1.4 hot-leg recirc", v => _sim.HotLegRecircActive = v));
         host.Children.Add(WrapLabel("Safety injection · 安全注入", "安全注入 · Safety injection", safetyPanel));
 
         // Containment combustible-gas control (10 CFR 50.44): PARs are passive (always on, no control); the
