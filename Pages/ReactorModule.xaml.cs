@@ -54,6 +54,8 @@ public sealed partial class ReactorModule : Page
     private readonly List<GaugeView> _gauges = new();
     // Alarm tile registry.
     private readonly Dictionary<ReactorAlarm, AlarmTile> _alarmTiles = new();
+    // Live rod-position / insertion-limit readout under the rod-bank sliders.
+    private TextBlock? _rodStatusText;
     // CSF (critical safety function) cells: S,C,H,P,Z,I.
     private readonly List<(Border border, TextBlock label, string en, string zh, Func<int> sev)> _csfCells = new();
     // RPS function tiles: one per protection function, each owning its border, status text + channel LEDs.
@@ -562,6 +564,9 @@ public sealed partial class ReactorModule : Page
             (ReactorAlarm.SgtrLeak, "SGTR LEAK", "蒸發器爆管洩漏"),
             (ReactorAlarm.SecondaryRadiationHi, "2NDARY RAD HI", "二次側輻射高"),
             (ReactorAlarm.SgReliefLift, "SG RELIEF — RELEASE", "蒸發器釋壓閥洩放"),
+            (ReactorAlarm.RodInsertionLimitLo, "ROD INS LIMIT LO", "控制棒插入限值 低"),
+            (ReactorAlarm.RodInsertionLimitLoLo, "ROD INS LIMIT LO-LO", "控制棒插入限值 低低"),
+            (ReactorAlarm.RodDeviation, "ROD DEVIATION", "控制棒偏差"),
             (ReactorAlarm.CoreDamage, "CORE DAMAGE", "爐心受損"),
         };
         foreach (var (a, en, zh) in defs)
@@ -1222,6 +1227,17 @@ public sealed partial class ReactorModule : Page
                 () => _sim.RodBankInsertion[bank], "%"));
         }
 
+        // Live rod-position indication (steps withdrawn, 0–228) + lead-bank insertion-limit status.
+        _rodStatusText = new TextBlock
+        {
+            FontSize = 12,
+            FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Consolas"),
+            TextWrapping = TextWrapping.Wrap,
+            Foreground = new SolidColorBrush(Color.FromArgb(200, 0xCF, 0xD8, 0xDC)),
+            Margin = new Thickness(2, -4, 2, 6),
+        };
+        host.Children.Add(_rodStatusText);
+
         // Boron
         host.Children.Add(LabeledSlider(
             "Soluble boron target (ppm) — charging ↑ / dilution ↓", "硼濃度目標（ppm）— 加硼 ↑／稀釋 ↓",
@@ -1349,6 +1365,28 @@ public sealed partial class ReactorModule : Page
 
     private void UpdateControlsLive()
     {
+        // Live rod-position indication: per-bank steps withdrawn (0–228) + lead-bank insertion limit.
+        if (_rodStatusText is not null)
+        {
+            string steps = "";
+            for (int b = 0; b < 4; b++)
+                steps += $"{(char)('A' + b)}:{_sim.RodStepsWithdrawn(b),3}  ";
+            double lowLim = _sim.RilLowLimitSteps(_sim.NeutronPowerFraction);
+            string lim = _sim.RilLowLowAlarm
+                ? P("LO-LO — bank D too deep", "低低 — D 棒插得太深")
+                : _sim.RilLowAlarm
+                    ? P("LO — bank D below limit", "低 — D 棒低於限值")
+                    : P("within limit", "在限值內");
+            _rodStatusText.Text =
+                P($"Rod steps withdrawn (0–228):  {steps}", $"控制棒抽出步數（0–228）：  {steps}") + "\n" +
+                P($"Lead-bank D limit @ {_sim.NeutronPowerFraction * 100:F0}% pwr: {lowLim:F0} steps · {lim}",
+                  $"領先 D 棒插入限值 @ {_sim.NeutronPowerFraction * 100:F0}% 功率：{lowLim:F0} 步 · {lim}");
+            _rodStatusText.Foreground = new SolidColorBrush(
+                _sim.RilLowLowAlarm ? Color.FromArgb(255, 0xFF, 0x52, 0x52)
+                : _sim.RilLowAlarm ? Color.FromArgb(255, 0xFF, 0xB3, 0x00)
+                : Color.FromArgb(200, 0xCF, 0xD8, 0xDC));
+        }
+
         // Live-update the startup checklist marks.
         foreach (var (step, check) in _startupSteps)
         {

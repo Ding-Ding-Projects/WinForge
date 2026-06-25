@@ -44,6 +44,9 @@ public enum ReactorAlarm
     SgtrLeak,
     SecondaryRadiationHi,
     SgReliefLift,
+    RodInsertionLimitLo,
+    RodInsertionLimitLoLo,
+    RodDeviation,
 }
 
 /// <summary>
@@ -81,6 +84,19 @@ public sealed class ReactorSimService
 
     // Rod worth: total worth of all banks fully inserted (dk/k). Banks share this.
     private const double TotalRodWorth = 0.080; // 8000 pcm fully inserted
+
+    // --- Westinghouse rod-control geometry / sequencing ---
+    // Each control bank spans 228 steps (0 = fully inserted, 228 = fully withdrawn); banks withdraw
+    // in sequence A→B→C→D with a 128-step overlap, so the demand counter spans 4·228 − 3·128 = 528.
+    private const int RodStepsPerBank = 228;
+    private const int RodOverlap      = 128;
+    private const int RodStride       = RodStepsPerBank - RodOverlap;          // 100
+    private const int RodTotalSpan    = 4 * RodStepsPerBank - 3 * RodOverlap;  // 528
+    // Per-bank integral-worth fractions (A,B,C,D). MUST sum to 1.0 so the all-in / all-out endpoints
+    // that the criticality baseline is tuned to are preserved exactly. Lead (regulating) bank D smallest.
+    private static readonly double[] RodWorthFrac = { 0.30, 0.27, 0.23, 0.20 };
+    private const int RilLowLowBias        = 15; // steps the Low-Low insertion limit sits below Low
+    private const int RodDeviationBandSteps = 12; // LCO 3.1.4 rod-alignment / deviation band (steps)
 
     // Reference / nominal operating points.
     public const double RatedThermalMW = 3411.0;  // MWth (typical 4-loop PWR core)
@@ -396,6 +412,70 @@ public sealed class ReactorSimService
         RodBankInsertion[bank] = Math.Clamp(percentInserted, 0, 100);
     }
 
+    // ---- rod-control instrumentation / sequencing (Westinghouse 4-loop) ----
+    private double _rodDemandCounter; // 0..528, drives the overlap sequence in AUTO
+
+    // S-shaped normalized integral rod-worth curve. S(0)=0, S(1)=1, S(0.5)=0.5.
+    private static double RodS(double x)
+    {
+        if (x <= 0.0) return 0.0;
+        if (x >= 1.0) return 1.0;
+        return x - Math.Sin(2.0 * Math.PI * x) / (2.0 * Math.PI);
+    }
+
+    // Step position shown on the rod-position indication: 0 = fully in, 228 = fully out.
+    public int RodStepsWithdrawn(int bank)
+    {
+        if (bank < 0 || bank >= RodBankInsertion.Length) return 0;
+        return (int)Math.Round((1.0 - RodBankInsertion[bank] / 100.0) * RodStepsPerBank);
+    }
+
+    public double RodDemandCounter => _rodDemandCounter;          // 0..528 group-demand counter (AUTO)
+
+    // Control-bank insertion limit (LCO 3.1.6): the lead bank (D) must stay withdrawn ABOVE a
+    // power-dependent minimum to preserve shutdown margin / ejected-rod worth. Low = 4·%RTP − 40 steps.
+    public double RilLowLimitSteps(double powerFrac)
+    {
+        double pct = Math.Clamp(powerFrac, 0, 1) * 100.0;
+        return Math.Clamp(4.0 * pct - 40.0, 0, RodStepsPerBank);
+    }
+    public double RilLowLowLimitSteps(double powerFrac) =>
+        Math.Clamp(RilLowLimitSteps(powerFrac) - RilLowLowBias, 0, RodStepsPerBank);
+
+    // Lead bank D = index 3. Below the limit line = inserted too deep for the current power.
+    public bool RilLowAlarm    => !IsScrammed && RodStepsWithdrawn(3) < RilLowLimitSteps(_power);
+    public bool RilLowLowAlarm => !IsScrammed && RodStepsWithdrawn(3) < RilLowLowLimitSteps(_power);
+
+    // Rod-deviation: in AUTO, any bank whose actual step position departs from its overlap-demanded
+    // position by more than the alignment band flags a stuck/dropped rod (e.g. ATWS).
+    public bool RodDeviationAlarm
+    {
+        get
+        {
+            if (!AutoRodControl) return false; // manual: operator owns positioning
+            for (int k = 0; k < RodBankInsertion.Length; k++)
+            {
+                int demanded = (int)Math.Round(Math.Clamp(_rodDemandCounter - k * RodStride, 0, RodStepsPerBank));
+                if (Math.Abs(RodStepsWithdrawn(k) - demanded) > RodDeviationBandSteps) return true;
+            }
+            return false;
+        }
+    }
+
+    // Reconstruct the demand counter from the present bank stack (used when AUTO is engaged).
+    private double InferRodDemandFromBanks()
+    {
+        double c = 0;
+        for (int k = 0; k < RodBankInsertion.Length; k++)
+        {
+            double w = (1.0 - RodBankInsertion[k] / 100.0) * RodStepsPerBank;
+            if (w <= 0.0) break;
+            c = k * RodStride + w;        // last contributing bank sets the counter
+            if (w < RodStepsPerBank) break; // partial bank = the lead bank
+        }
+        return Math.Clamp(c, 0, RodTotalSpan);
+    }
+
     public void Scram()
     {
         IsScrammed = true;
@@ -583,6 +663,7 @@ public sealed class ReactorSimService
 
         // --- auto rod control ---
         if (AutoRodControl && !IsScrammed) UpdateAutoRods(dt);
+        else _autoRodWasOn = false; // reset bumpless-transfer latch when AUTO is dropped
 
         // --- nuclear instrumentation BEFORE protection: the SR/IR/PR readings and the IR-derived P-6
         //     permissive must be current when the protection system evaluates the NIS trips this tick. ---
@@ -737,11 +818,14 @@ public sealed class ReactorSimService
     private void StepKineticsAndThermal(double h)
     {
         // ---- compute reactivity ----
-        double rodInsertAvg = 0;
-        foreach (var p in RodBankInsertion) rodInsertAvg += p;
-        rodInsertAvg /= RodBankInsertion.Length; // 0..100
-        // Rods worth: fully inserted (100%) = -TotalRodWorth; withdrawn (0%) = 0.
-        double rodRho = -TotalRodWorth * (rodInsertAvg / 100.0);
+        // Per-bank S-curve integral worth: S(x)=x − sin(2πx)/(2π), x = fraction inserted. The
+        // differential worth dS/dx ∝ (1 − cos 2πx) is bell-shaped — ~zero at the core top/bottom and
+        // peaking at mid-plane — the classic control-rod worth curve. Σ frac_b = 1 with S(0)=0, S(1)=1
+        // keeps the all-out (0) and all-in (−TotalRodWorth) endpoints exactly where the baseline expects.
+        double rodWorthSum = 0;
+        for (int b = 0; b < RodBankInsertion.Length; b++)
+            rodWorthSum += RodWorthFrac[b] * RodS(RodBankInsertion[b] / 100.0);
+        double rodRho = -TotalRodWorth * rodWorthSum;
 
         double boronRho = BoronWorth * BoronPpm;
         double dopplerRho = DopplerCoeff * (FuelTemp - RefFuelTemp);
@@ -980,14 +1064,31 @@ public sealed class ReactorSimService
         if (ElectricPowerMW < 0) ElectricPowerMW = 0;
     }
 
+    private bool _autoRodWasOn;
+
     private void UpdateAutoRods(double dt)
     {
-        // Simple proportional controller: move average rod position to hold power at setpoint.
-        double err = AutoPowerSetpoint - _power; // want power up -> withdraw rods (decrease insertion)
-        double gain = 6.0; // %/s per unit error
-        double delta = -err * gain * dt; // err>0 (need more power) -> negative delta -> less insertion
-        for (int i = 0; i < RodBankInsertion.Length; i++)
-            RodBankInsertion[i] = Math.Clamp(RodBankInsertion[i] + delta, 0, 100);
+        // On engaging AUTO, sync the group-demand counter to the current bank stack so control is bumpless.
+        if (!_autoRodWasOn) _rodDemandCounter = InferRodDemandFromBanks();
+        _autoRodWasOn = true;
+
+        // Proportional controller drives the single group-demand counter (0..528); banks then follow
+        // it with 128-step overlap — never all moving uniformly, exactly like a Westinghouse rod-control.
+        double err  = AutoPowerSetpoint - _power;          // err>0 (need power) -> withdraw -> raise counter
+        double gain = 6.0 * (RodTotalSpan / 100.0);        // steps/s per unit power error
+        _rodDemandCounter = Math.Clamp(_rodDemandCounter + err * gain * dt, 0, RodTotalSpan);
+        ApplyOverlapToBanks(_rodDemandCounter);
+    }
+
+    // Map the group-demand counter to per-bank insertion %. Bank k begins withdrawing at k·stride and
+    // is fully out after a further 228 steps; the 128-step overlap means two banks move together.
+    private void ApplyOverlapToBanks(double counter)
+    {
+        for (int k = 0; k < RodBankInsertion.Length; k++)
+        {
+            double stepsWithdrawn = Math.Clamp(counter - k * RodStride, 0.0, RodStepsPerBank);
+            RodBankInsertion[k] = (1.0 - stepsWithdrawn / RodStepsPerBank) * 100.0;
+        }
     }
 
     private void UpdateProtection(double dt)
@@ -1085,6 +1186,9 @@ public sealed class ReactorSimService
         SetAlarm(ReactorAlarm.SgtrLeak, _sgtrSeverity > 0 && SgtrLeakRate > 0.01);
         SetAlarm(ReactorAlarm.SecondaryRadiationHi, SecondaryActivity > 1.0);
         SetAlarm(ReactorAlarm.SgReliefLift, SgReliefLifted);
+        SetAlarm(ReactorAlarm.RodInsertionLimitLo, RilLowAlarm && !RilLowLowAlarm);
+        SetAlarm(ReactorAlarm.RodInsertionLimitLoLo, RilLowLowAlarm);
+        SetAlarm(ReactorAlarm.RodDeviation, RodDeviationAlarm);
     }
 
     private void UpdateStatus()
