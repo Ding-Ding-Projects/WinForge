@@ -246,6 +246,11 @@ public sealed partial class MainWindow : Window
             case "passwords":
                 Navigator.GoToModule?.Invoke("module.bitwarden");
                 break;
+            case "keepass":
+            case "kdbx":
+            case "pwvault":
+                Navigator.GoToModule?.Invoke("module.keepass");
+                break;
             case "quicktype":
             case "jsontotype":
             case "codegen":
@@ -826,6 +831,7 @@ public sealed partial class MainWindow : Window
         "module.pgadmin" => typeof(PgAdminModule),
         "module.filezilla" => typeof(FileZillaModule),
         "module.bitwarden" => typeof(BitwardenModule),
+        "module.keepass" => typeof(KeePassModule),
         "module.quicktype" => typeof(QuickTypeModule),
         "module.aws" => typeof(AwsCliModule),
         "module.peek" => typeof(PeekModule),
