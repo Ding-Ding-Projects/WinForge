@@ -90,6 +90,7 @@
                         <TextBlock x:Name="ScenarioLabel" VerticalAlignment="Center" Margin="8,0,0,0"
                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                         <ComboBox x:Name="ScenarioCombo" MinWidth="220" SelectionChanged="Scenario_Changed" />
+                        <ToggleButton x:Name="IsolateSgToggle" Click="IsolateSg_Click" Visibility="Collapsed" />
                     </StackPanel>
                 </Border>
 

@@ -13,6 +13,7 @@ public enum ReactorScenario
     LossOfFeedwater,   // 喪失給水 · loss of feedwater (LOFW)
     Atws,              // 未能緊急停堆之預期暫態 · anticipated transient without scram
     XenonRestart,      // 氙毒重啟 · post-trip xenon transient / iodine pit
+    SgTubeRupture,     // 蒸發器爆管 · steam-generator tube rupture (primary→secondary leak)
 }
 
 /// <summary>一條儀表限值帶 · One coloured limit band on a gauge / strip chart.</summary>

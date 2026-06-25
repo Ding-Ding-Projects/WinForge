@@ -164,6 +164,7 @@ public sealed partial class ReactorModule : Page
         MuteToggle.Content = P("Mute audio", "靜音");
         MuteToggle.IsChecked = !ReactorAudioEngine.I.Enabled;
         ScenarioLabel.Text = P("Scenario:", "情景：");
+        IsolateSgToggle.Content = P("Isolate affected SG", "隔離受影響蒸發器");
         NisTitle.Text = P("Nuclear instrumentation (NIS) & critical safety functions (SPDS)", "核儀表（NIS）與關鍵安全功能（SPDS）");
         NisLabel.Text = P("NIS — source / intermediate / power range", "核儀表 — 起動／中間／功率量程");
         OneOverMLabel.Text = P("1/M — approach to criticality", "1/M — 趨近臨界");
@@ -459,6 +460,8 @@ public sealed partial class ReactorModule : Page
         AddGauge("Pressurizer level", "穩壓器水位", 0, 100, () => _sim.PressurizerLevel, () => $"{_sim.PressurizerLevel:F0}%", id: "pzrLevel");
         AddGauge("Steam pressure", "蒸汽壓力", 0, 1300, () => _sim.SteamPressure * 145.038, () => $"{_sim.SteamPressure * 145.038:F0} psia", id: "sgPress");
         AddGauge("SG level", "蒸發器水位", 0, 100, () => _sim.SteamGenLevel, () => $"{_sim.SteamGenLevel:F0}%", id: "sgLevel");
+        AddGauge("Secondary radiation", "二次側輻射", 0, 300, () => _sim.SecondaryRadiation, () => $"{_sim.SecondaryRadiation:F0} µSv/h", warnFrac: 100.0 / 300.0, id: "secRad");
+        AddGauge("Atmospheric release", "累計大氣排放", 0, 100, () => _sim.AtmosphericRelease * 10, () => $"{_sim.AtmosphericRelease:F2}", id: "atmRel");
         AddGauge("RCP flow", "主泵流量", 0, 100, () => _sim.CoolantFlowFraction * 100, () => $"{_sim.CoolantFlowFraction * 100:F0}%", id: "flow");
         AddGauge("Boron", "硼濃度", 0, 2500, () => _sim.BoronPpm, () => $"{_sim.BoronPpm:F0} ppm", id: "boron");
         AddGauge("Xenon worth", "氙毒", 0, 100, () => _sim.Xenon * 100, () => $"{-_sim.XenonReactivityPcm:F0} pcm", id: "xenon");
@@ -555,6 +558,9 @@ public sealed partial class ReactorModule : Page
             (ReactorAlarm.AccumulatorInject, "ACCUM INJECT", "蓄壓器注入"),
             (ReactorAlarm.AuxFeedwater, "AUX FEEDWATER", "輔助給水"),
             (ReactorAlarm.NaturalCirc, "NATURAL CIRC", "自然循環"),
+            (ReactorAlarm.SgtrLeak, "SGTR LEAK", "蒸發器爆管洩漏"),
+            (ReactorAlarm.SecondaryRadiationHi, "2NDARY RAD HI", "二次側輻射高"),
+            (ReactorAlarm.SgReliefLift, "SG RELIEF — RELEASE", "蒸發器釋壓閥洩放"),
             (ReactorAlarm.CoreDamage, "CORE DAMAGE", "爐心受損"),
         };
         foreach (var (a, en, zh) in defs)
@@ -1055,7 +1061,13 @@ public sealed partial class ReactorModule : Page
         ScenarioCombo.Items.Add(P("Loss of feedwater", "喪失給水"));
         ScenarioCombo.Items.Add(P("ATWS (no scram)", "ATWS（未能停堆）"));
         ScenarioCombo.Items.Add(P("Xenon restart", "氙毒重啟"));
+        ScenarioCombo.Items.Add(P("SGTR — tube rupture", "蒸發器爆管 SGTR"));
         ScenarioCombo.SelectedIndex = 0;
+    }
+
+    private void IsolateSg_Click(object sender, RoutedEventArgs e)
+    {
+        _sim.SgtrIsolated = IsolateSgToggle.IsChecked == true;
     }
 
     private void Scenario_Changed(object sender, SelectionChangedEventArgs e)
@@ -1067,8 +1079,15 @@ public sealed partial class ReactorModule : Page
             3 => ReactorScenario.LossOfFeedwater,
             4 => ReactorScenario.Atws,
             5 => ReactorScenario.XenonRestart,
+            6 => ReactorScenario.SgTubeRupture,
             _ => ReactorScenario.Normal,
         });
+        // The isolate-SG control is only meaningful during an SGTR.
+        if (IsolateSgToggle is not null)
+        {
+            IsolateSgToggle.IsChecked = false;
+            IsolateSgToggle.Visibility = ScenarioCombo.SelectedIndex == 6 ? Visibility.Visible : Visibility.Collapsed;
+        }
     }
 
     // ================================================================ COMPOSITION FX ====

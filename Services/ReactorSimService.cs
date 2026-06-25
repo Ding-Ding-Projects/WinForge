@@ -41,6 +41,9 @@ public enum ReactorAlarm
     AccumulatorInject,
     AuxFeedwater,
     NaturalCirc,
+    SgtrLeak,
+    SecondaryRadiationHi,
+    SgReliefLift,
 }
 
 /// <summary>
@@ -242,6 +245,23 @@ public sealed class ReactorSimService
     public bool AuxFeedwaterRunning { get; private set; }
     private double _lofwTimer;        // counts up after feedwater lost (aux start at 60 s)
 
+    // SGTR — steam-generator tube rupture. A primary→secondary leak driven by the primary-to-
+    // secondary pressure difference: leaked RCS water floods the affected SG and carries activity
+    // (N-16, fission products) into the secondary, which the SG-blowdown / air-ejector radiation
+    // monitors see. Depressurising the RCS toward SG pressure (the E-3 procedure) collapses the
+    // dP and stops the leak; that self-limiting behaviour is what makes it physical, not scripted.
+    private double _sgtrSeverity;                                    // 0..1 rupture severity latch (0 = tubes intact)
+    public double SgtrLeakRate { get; private set; }                // dP-driven leak magnitude (display/diagnostic)
+    public double CoolantActivity { get; private set; } = 0.02;     // normalized RCS specific activity (1.0 = tech-spec limit)
+    public double SecondaryActivity { get; private set; }           // normalized secondary accumulator; 1.0 == monitor alarm setpoint
+    public double SecondaryRadiation => SecondaryActivity * 100.0;  // SG-blowdown / air-ejector monitor reading (µSv/h-ish)
+    public double AtmosphericRelease { get; private set; }          // integrated activity vented to atmosphere (permanent)
+    public bool SgReliefLifted { get; private set; }                // affected-SG safety/relief valve venting contaminated steam
+    public bool SgtrIsolated { get; set; }                          // operator latch: affected SG isolated (MSIV + feedwater)
+    public double PrimaryDeficitPct { get; private set; }           // integrated RCS inventory deficit (%) — biases pzr level/pressure targets
+    private const double SgtrLeakScale = 0.11;   // leak gain (1/MPa·severity) — dP-driven choked-flow surrogate
+    private const double SgtrActivityGain = 2.5; // primary→secondary activity transport gain
+
     // Alarms
     private readonly bool[] _alarms = new bool[Enum.GetValues(typeof(ReactorAlarm)).Length];
     public bool Alarm(ReactorAlarm a) => _alarms[(int)a];
@@ -387,6 +407,9 @@ public sealed class ReactorSimService
         _breakArea = 0;
         _rodsFailToInsert = false;
         _lofwTimer = 0;
+        _sgtrSeverity = 0;
+        SgtrIsolated = false;
+        PrimaryDeficitPct = 0;
         switch (s)
         {
             case ReactorScenario.Normal:
@@ -409,6 +432,10 @@ public sealed class ReactorSimService
                 break;
             case ReactorScenario.XenonRestart:
                 Xenon = Math.Max(Xenon, 2.6); // jump to a post-trip xenon peak (iodine pit)
+                break;
+            case ReactorScenario.SgTubeRupture:
+                _sgtrSeverity = 0.45;  // ~one ruptured tube; a minutes-scale transient (0.3 gentle … 0.8 multi-tube)
+                EccsArmed = true;      // armed; ECCS auto-injects on low pressurizer pressure as the RCS drains
                 break;
         }
     }
@@ -461,6 +488,9 @@ public sealed class ReactorSimService
         PowerRangePercent = 0; SourceRangeEnergized = true; _p6Latched = false;
         ActiveScenario = ReactorScenario.Normal; _breakArea = 0; _rodsFailToInsert = false;
         AccumulatorInjecting = false; AuxFeedwaterRunning = false; _lofwTimer = 0;
+        _sgtrSeverity = 0; SgtrLeakRate = 0; CoolantActivity = 0.02;
+        SecondaryActivity = 0; AtmosphericRelease = 0; SgReliefLifted = false; SgtrIsolated = false;
+        PrimaryDeficitPct = 0;
         StatusEn = "Cold shutdown"; StatusZh = "冷停機";
     }
 
@@ -564,6 +594,37 @@ public sealed class ReactorSimService
             if (PressurizerLevel < 0) PressurizerLevel = 0;
             EccsArmed = true;
         }
+
+        // SGTR: primary→secondary leak, driven by the primary-to-secondary pressure difference.
+        // Drains the primary like a slow LOCA, but the inventory goes INTO the affected steam
+        // generator (handled in UpdateSecondary) and carries activity across with it. The leak is
+        // self-limiting: as the operator depressurises the RCS toward SG pressure, dP → 0 → leak → 0.
+        if (_sgtrSeverity > 0)
+        {
+            double dP = Math.Max(0.0, PrimaryPressure - SteamPressure);   // MPa
+            SgtrLeakRate = SgtrLeakScale * _sgtrSeverity * dP;
+
+            // Lost RCS mass accrues as an inventory deficit that biases the pressurizer level/pressure
+            // targets down in StepThermal (see lvlTarget/pTarget). Safety injection (ECCS) makes it up.
+            PrimaryDeficitPct += 1.5 * SgtrLeakRate * dt;
+            EccsArmed = true;
+
+            // Failed fuel ⇒ dirtier coolant ⇒ a worse radiological consequence for the same leak.
+            CoolantActivity = 0.02 + 0.02 * Math.Min(DamageAccumulation, 50.0);
+
+            // Secondary radiation accumulator: rises with leak × activity, slow washout (τ ≈ 1800 s).
+            SecondaryActivity += SgtrActivityGain * SgtrLeakRate * CoolantActivity * dt;
+            SecondaryActivity -= SecondaryActivity / 1800.0 * dt;
+            if (SecondaryActivity < 0) SecondaryActivity = 0;
+        }
+        else
+        {
+            SgtrLeakRate = 0;
+            SgReliefLifted = false;
+        }
+        // Safety injection / charging make up lost inventory; otherwise the deficit holds (latched leak).
+        if (EccsInjecting) PrimaryDeficitPct -= 2.5 * dt;
+        PrimaryDeficitPct = Math.Clamp(PrimaryDeficitPct, 0.0, 40.0);
 
         // Passive accumulators discharge once primary pressure falls below ~4.5 MPa.
         AccumulatorInjecting = PrimaryPressure < 4.5 && (FuelTemp > 200 || _breakArea > 0);
@@ -722,6 +783,8 @@ public sealed class ReactorSimService
         double pTarget = 2.5 + (avg - ColdTemp) * 0.052; // ~15.5 MPa near 305 °C
         if (PressurizerHeater) pTarget += 1.2;
         if (PressurizerSpray) pTarget -= 1.6;
+        pTarget -= 0.11 * PrimaryDeficitPct; // lost RCS inventory (SGTR/leak) cannot hold pressure
+        if (pTarget < 0.5) pTarget = 0.5;
         double pTau = 6.0;
         PrimaryPressure += (pTarget - PrimaryPressure) * Math.Min(1, h / pTau);
         if (ReliefValveOpen && PrimaryPressure > 2.0)
@@ -734,6 +797,7 @@ public sealed class ReactorSimService
         double lvlTarget = NominalPzrLevel + (avg - NominalTavg) * 0.30;
         if (EccsInjecting) lvlTarget += 25;
         if (ReliefValveOpen) lvlTarget -= 10;
+        lvlTarget -= PrimaryDeficitPct; // pressurizer level falls as the leak drains the RCS
         PressurizerLevel += (lvlTarget - PressurizerLevel) * Math.Min(1, h / 8.0);
         PressurizerLevel = Math.Clamp(PressurizerLevel, 0, 100);
     }
@@ -779,8 +843,28 @@ public sealed class ReactorSimService
 
         // SG level from feedwater vs steaming.
         double sgTarget = 50 + 20 * (FeedwaterFlow - steamDraw);
+        // SGTR: leaked primary water floods the affected SG, biasing its level toward "solid" (overfill)
+        // until the operator isolates it (MSIV + feedwater). UpdateSecondary is the sole writer of
+        // SteamGenLevel, so biasing the target here drives the fill without a tug-of-war.
+        if (_sgtrSeverity > 0 && SgtrLeakRate > 0 && !SgtrIsolated)
+            sgTarget = Math.Max(sgTarget, 60 + 130 * SgtrLeakRate);
         SteamGenLevel += (Math.Clamp(sgTarget, 0, 100) - SteamGenLevel) * Math.Min(1, dt / 6.0);
         SteamGenLevel = Math.Clamp(SteamGenLevel, 0, 100);
+
+        // SGTR: once the affected SG goes solid (or oversteams) its safety/relief valve lifts and vents
+        // contaminated steam to atmosphere — the radiological release the whole event hinges on.
+        if (_sgtrSeverity > 0 && !SgtrIsolated && (SteamGenLevel > 95.0 || SteamPressure > 8.0))
+        {
+            SgReliefLifted = true;
+            double released = 0.25 * SecondaryActivity * dt;
+            AtmosphericRelease += released;
+            SecondaryActivity = Math.Max(0, SecondaryActivity - released);
+            SteamPressure = Math.Max(SteamPressure - 0.4 * dt, 0.3); // relief blowdown holds pressure in check
+        }
+        else if (_sgtrSeverity > 0)
+        {
+            SgReliefLifted = false;
+        }
 
         // Turbine: RPM spins up toward 1800 (4-pole 60 Hz nuclear set) when steam available.
         double rpmTarget;
@@ -906,6 +990,9 @@ public sealed class ReactorSimService
         SetAlarm(ReactorAlarm.AuxFeedwater, AuxFeedwaterRunning);
         bool natCirc = CoolantFlowFraction > 0.005 && CoolantFlowFraction < 0.1 && Thot > 150;
         SetAlarm(ReactorAlarm.NaturalCirc, natCirc);
+        SetAlarm(ReactorAlarm.SgtrLeak, _sgtrSeverity > 0 && SgtrLeakRate > 0.01);
+        SetAlarm(ReactorAlarm.SecondaryRadiationHi, SecondaryActivity > 1.0);
+        SetAlarm(ReactorAlarm.SgReliefLift, SgReliefLifted);
     }
 
     private void UpdateStatus()
@@ -918,6 +1005,12 @@ public sealed class ReactorSimService
             return;
         }
         if (DamageAccumulation > 1.0) { StatusEn = "WARNING — core damage accruing"; StatusZh = "警告 — 爐心受損中"; return; }
+        if (_sgtrSeverity > 0)
+        {
+            if (SgReliefLifted) { StatusEn = "SGTR — atmospheric release in progress"; StatusZh = "爆管事故 — 放射性正排入大氣"; return; }
+            if (SgtrIsolated) { StatusEn = "SGTR isolated — depressurize RCS to equalize (dP→0)"; StatusZh = "已隔離爆管 — 降低一次側壓力使壓差歸零止漏"; return; }
+            StatusEn = "SGTR — identify & isolate affected SG"; StatusZh = "爆管事故 — 辨識並隔離受影響蒸發器"; return;
+        }
         if (_power < 1e-4) { StatusEn = "Shut down / subcritical"; StatusZh = "停機／次臨界"; Mode = Mode == ReactorMode.Run ? ReactorMode.Startup : Mode; return; }
         if (Math.Abs(_power - 1.0) < 0.03 && Math.Abs(ReactorPeriodSeconds) > 200)
         { StatusEn = "Stable at power"; StatusZh = "穩定運轉"; return; }
