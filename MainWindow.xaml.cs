@@ -765,6 +765,12 @@ public sealed partial class MainWindow : Window
             case "npp":
             case "meltdown":
                 Navigator.GoToModule?.Invoke("module.reactor");
+            case "diff":
+            case "merge":
+            case "winmerge":
+            case "compare":
+            case "diffmerge":
+                Navigator.GoToModule?.Invoke("module.diffmerge");
                 break;
             case null:
             case "":
@@ -967,6 +973,7 @@ public sealed partial class MainWindow : Window
         "module.vault-volumes" => typeof(VaultVolumesModule),
         "module.worldmonitor" => typeof(WorldMonitorModule),
         "module.timelens" => typeof(TimeLensModule),
+        "module.diffmerge" => typeof(DiffMergeModule),
         _ => typeof(DashboardPage),
     };
 
