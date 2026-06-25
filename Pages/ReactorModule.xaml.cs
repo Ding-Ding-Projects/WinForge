@@ -515,6 +515,12 @@ public sealed partial class ReactorModule : Page
         AddGauge("Xenon worth", "氙毒", 0, 100, () => _sim.Xenon * 100, () => $"{-_sim.XenonReactivityPcm:F0} pcm", id: "xenon");
         AddGauge("Samarium worth", "釤毒", 0, 300, () => _sim.Samarium * 100, () => $"{-_sim.SamariumReactivityPcm:F0} pcm", id: "samarium");
         AddGauge("Axial flux diff", "軸向通量差", -30, 30, () => _sim.AxialFluxDifferencePercent, () => $"ΔI {_sim.AxialFluxDifferencePercent:+0.0;-0.0;0.0}% · AO {_sim.AxialOffsetPercent:+0.0;-0.0;0.0}%", id: "afd");
+        // QPTR (Quadrant Power Tilt Ratio, LCO 3.2.4): ex-core N-41…44 azimuthal tilt. 1.00 flat, limit 1.02.
+        AddGauge("Quad tilt (QPTR)", "象限傾斜 QPTR", 0.95, 1.15, () => _sim.Qptr,
+            () => _sim.QptrOutOfLimit
+                ? $"{_sim.Qptr:F3} · " + P($"REDUCE −{_sim.QptrRequiredPowerReductionPct:F0}%", $"降功率 −{_sim.QptrRequiredPowerReductionPct:F0}%")
+                : $"{_sim.Qptr:F3}" + (_sim.DroppedRodActive ? " · " + P($"Q{_sim.DroppedRodQuadrant + 1} rod", $"Q{_sim.DroppedRodQuadrant + 1} 落棒") : ""),
+            warnFrac: (1.02 - 0.95) / (1.15 - 0.95), id: "qptr");
         AddGauge("Turbine speed", "汽輪機轉速", 0, 2000, () => _sim.TurbineRPM, () => $"{_sim.TurbineRPM:F0} rpm");
         // EHC turbine — first-stage (impulse) pressure is the calibrated load signal; governor-valve position.
         AddGauge("First-stage press", "第一級壓力", 0, 750, () => _sim.FirstStagePressure * 690.0, () => $"{_sim.FirstStagePressure * 690.0:F0} psia");
@@ -648,6 +654,8 @@ public sealed partial class ReactorModule : Page
             (ReactorAlarm.RodInsertionLimitLoLo, "ROD INS LIMIT LO-LO", "控制棒插入限值 低低"),
             (ReactorAlarm.RodDeviation, "ROD DEVIATION", "控制棒偏差"),
             (ReactorAlarm.AxialFluxDiffOutOfBand, "AFD OUT OF BAND", "軸向通量差超限"),
+            (ReactorAlarm.QuadrantPowerTiltHi, "QPTR > 1.02 (LCO 3.2.4)", "象限傾斜 >1.02"),
+            (ReactorAlarm.DroppedRcca, "DROPPED RCCA — ROD BOTTOM", "落棒 — 控制棒到底"),
             (ReactorAlarm.CoreDamage, "CORE DAMAGE", "爐心受損"),
             (ReactorAlarm.LossOfOffsitePower, "LOSS OF OFFSITE PWR", "喪失廠外電源"),
             (ReactorAlarm.StationBlackout, "STATION BLACKOUT", "全廠斷電 SBO"),
@@ -1366,6 +1374,25 @@ public sealed partial class ReactorModule : Page
             Margin = new Thickness(2, -4, 2, 6),
         };
         host.Children.Add(_rodStatusText);
+
+        // Dropped-RCCA fault → quadrant power tilt (QPTR, LCO 3.2.4). Drop a single full-length rod into one of
+        // the four core quadrants: that quadrant's ex-core detector reads LOW, the other three read HIGH, QPTR
+        // climbs to ~1.08, ~−200 pcm is inserted and DNBR margin erodes. "Retrieve" re-latches the rod (reversible).
+        var dropPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        for (int q = 0; q < 4; q++)
+        {
+            int quad = q;
+            var db = new Button { Content = P($"Drop Q{quad + 1}", $"落棒 Q{quad + 1}") };
+            db.Click += (_, _) => _sim.DropRod(quad);
+            _relocalizers.Add(() => db.Content = P($"Drop Q{quad + 1}", $"落棒 Q{quad + 1}"));
+            dropPanel.Children.Add(db);
+        }
+        var retrieveBtn = new Button { Content = P("Retrieve rod", "復位落棒") };
+        retrieveBtn.Click += (_, _) => _sim.RecoverDroppedRod();
+        _relocalizers.Add(() => retrieveBtn.Content = P("Retrieve rod", "復位落棒"));
+        dropPanel.Children.Add(retrieveBtn);
+        host.Children.Add(WrapLabel("Dropped RCCA → quadrant tilt (QPTR) · 落棒→象限傾斜",
+            "落棒→象限傾斜（QPTR）· Dropped RCCA → quadrant tilt", dropPanel));
 
         // Boron
         host.Children.Add(LabeledSlider(

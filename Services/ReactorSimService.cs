@@ -50,6 +50,8 @@ public enum ReactorAlarm
     RodInsertionLimitLoLo,
     RodDeviation,
     AxialFluxDiffOutOfBand,
+    QuadrantPowerTiltHi, // QPTR > 1.02 above 50% RTP — azimuthal radial power tilt (LCO 3.2.4)
+    DroppedRcca,         // a single full-length RCCA has dropped to the bottom of the core (rod-bottom)
     SteamlineBreak,
     SafetyInjection,
     PzrCodeSafetyOpen,
@@ -1222,12 +1224,16 @@ public sealed class ReactorSimService
             double tSatC  = SatTempAt(PrimaryPressure);
             double hIn    = hf - CpBtu * Math.Max(0.0, (tSatC - Tcold) * CToFspan);     // subcooled inlet
             double dhCore = CpBtu * Math.Max(0.0, (Thot - Tcold) * CToFspan);           // lumped core Δh = q/ṁ
-            double hLocal = hIn + AxialDnbFrac * F_dH * dhCore;                          // hot-channel local Δh
+            // A quadrant power tilt (QPTR ≥ 1) is a radial peaking augmentation: it raises both the enthalpy-rise
+            // hot-channel factor F_ΔH and the heat-flux factor Fq in the high-power quadrant, eroding DNBR margin.
+            // No-op at QPTR = 1.00, so a symmetric core leaves the W-3 baseline exactly unchanged.
+            double qptrPeak = Qptr;
+            double hLocal = hIn + AxialDnbFrac * (F_dH * qptrPeak) * dhCore;              // hot-channel local Δh
             double x      = Math.Clamp((hLocal - hf) / Math.Max(hfg, 1.0), -0.15, 0.45);
             DnbrLocalQuality = x;
 
             // 4. Local heat flux (peaked) and hot-channel mass flux, English units.
-            double qLocal = _power * Fq_Total * QavgRatedBtu;   // Btu/hr-ft²
+            double qLocal = _power * (Fq_Total * qptrPeak) * QavgRatedBtu;   // Btu/hr-ft²
             double gLoc   = g * GRatedBtu;                       // lb/hr-ft²
 
             // 5. Tong-1967 W-3 critical heat flux (Btu/hr-ft²). exp argument clamped against overflow.
@@ -1248,6 +1254,60 @@ public sealed class ReactorSimService
         // 7. First-order smoothing of the final clamped value (display steadiness; this is indication, not a trip).
         double a = (dt > 1e-6) ? Math.Min(1.0, dt / DnbrFilterTau) : 1.0;
         MinDnbr += (DnbrRawUnfiltered - MinDnbr) * a;
+    }
+
+    // ===== Quadrant Power Tilt Ratio (QPTR) — Tech-Spec LCO 3.2.4, ex-core power-range NIS N-41…N-44 =====
+    // 象限功率傾斜比（QPTR，LCO 3.2.4）· Four ex-core power-range channels (one per core quadrant, NI-41…44),
+    // each an upper+lower uncompensated ion chamber, also feed AFD/ΔI. QPTR = (max quadrant signal) / (average
+    // of the four). A symmetric core reads 1.00; the LCO limit is 1.02 (≤2% azimuthal tilt) in MODE 1 > 50% RTP.
+    // The dominant abnormal cause is a DROPPED full-length RCCA: that quadrant is locally power-DEPRESSED (the
+    // rod is a strong local absorber, its detector reads LOW), so flux redistributes to the other three quadrants
+    // (they read HIGH) → QPTR rises to ~1.03–1.10. The radial peaking augmentation raises F_ΔH, eroding DNBR
+    // margin — which is exactly why QPTR is a safety-limit-protecting LCO. Pure instrumentation + one small
+    // reactivity term; a no-op (QPTR=1.0) preserves the existing kinetics/thermal/DNBR baselines exactly.
+    public double[] QuadrantPower => _qpd;                     // 4 normalized ex-core quadrant signals (avg ≡ 1)
+    public double Qptr => Math.Max(Math.Max(_qpd[0], _qpd[1]), Math.Max(_qpd[2], _qpd[3])); // max/avg, avg held at 1
+    public int DroppedRodQuadrant => _droppedRodQuad;         // 0..3 depressed quadrant index, −1 = none dropped
+    public bool DroppedRodActive => _droppedRodQuad >= 0;
+    public double DroppedRodReactivityPcm { get; private set; } // negative pcm currently inserted by the dropped rod
+    // LCO 3.2.4 Required Action A.1 advisory: reduce THERMAL POWER ≥3% RTP for each 1% QPTR exceeds 1.00 (CT 2 h).
+    public double QptrRequiredPowerReductionPct =>
+        (_power > QptrApplicabilityPower && Qptr > QptrAlarmLimit) ? 3.0 * (Qptr - 1.0) * 100.0 : 0.0;
+    public bool QptrOutOfLimit => _power > QptrApplicabilityPower && Qptr > QptrAlarmLimit;
+
+    private readonly double[] _qpd = { 1.0, 1.0, 1.0, 1.0 }; // NW, NE, SE, SW quadrant detector signals
+    private int _droppedRodQuad = -1;                        // which quadrant holds the dropped rod (−1 = none)
+    private double _dropRamp;                                // 0 = withdrawn … 1 = fully dropped (free-fall ramp)
+    private const double QptrAlarmLimit         = 1.02; // LCO 3.2.4 limit (≤2% azimuthal tilt)
+    private const double QptrApplicabilityPower = 0.50; // MODE 1 > 50% RTP applicability (reuse the AFD/CAOC gate)
+    private const double QptrTiltCoeff          = 0.08; // depressed = 1−3k·r, others = 1+k·r → QPTR = 1+k·r (1.08 @ r=1)
+    private const double DroppedRodWorthPcm     = 200.0; // single full-length RCCA integral worth (HFP; range 100–800)
+    private const double DropFallTau            = 1.5;  // s — rod free-fall to dashpot (realistic 1–2 s)
+    private const double TiltSettleTau          = 3.0;  // s — flux-redistribution + ex-core detector settle
+
+    /// <summary>落棒 · Command a single full-length RCCA to drop into the given core quadrant (0..3).</summary>
+    public void DropRod(int quadrant) => _droppedRodQuad = Math.Clamp(quadrant, 0, 3);
+    /// <summary>復位落棒 · Retrieve/re-latch the dropped rod; QPTR, tilt and the inserted reactivity decay back to nominal.</summary>
+    public void RecoverDroppedRod() => _droppedRodQuad = -1;
+
+    /// <summary>QPTR 儀表步進 · Advance the four ex-core quadrant detectors + the dropped-rod fall-ramp once per tick.
+    /// Average is conserved algebraically (every target set sums to 4); a final renormalize kills round-off drift so
+    /// Qptr = max/avg is exactly max(_qpd). The inserted reactivity is read from _dropRamp inside the kinetics sub-step.</summary>
+    private void StepQptr(double dt)
+    {
+        double cmd = DroppedRodActive ? 1.0 : 0.0;
+        _dropRamp += (cmd - _dropRamp) * Math.Min(1.0, dt / DropFallTau);
+        _dropRamp = Math.Clamp(_dropRamp, 0.0, 1.0);
+        for (int i = 0; i < 4; i++)
+        {
+            double target = 1.0;
+            if (_droppedRodQuad >= 0)
+                target = (i == _droppedRodQuad) ? 1.0 - 3.0 * QptrTiltCoeff * _dropRamp
+                                                : 1.0 + QptrTiltCoeff * _dropRamp;
+            _qpd[i] += (target - _qpd[i]) * Math.Min(1.0, dt / TiltSettleTau);
+        }
+        double sum = _qpd[0] + _qpd[1] + _qpd[2] + _qpd[3];
+        if (sum > 1e-6) for (int i = 0; i < 4; i++) _qpd[i] *= 4.0 / sum; // hold avg ≡ 1 exactly
     }
 
     /// <summary>渲染快照（不可變）· Immutable snapshot for the 60 fps render clock (no live state mid-frame).</summary>
@@ -1291,6 +1351,8 @@ public sealed class ReactorSimService
         _axialSplit = _axialSplitTarget = 0;
         TopPowerFraction = BottomPowerFraction = 0.5;
         AxialOffsetPercent = 0; AxialFluxDifferencePercent = 0;
+        for (int i = 0; i < _qpd.Length; i++) _qpd[i] = 1.0;
+        _droppedRodQuad = -1; _dropRamp = 0; DroppedRodReactivityPcm = 0;
         for (int i = 0; i < RodBankInsertion.Length; i++) RodBankInsertion[i] = 100.0;
         for (int i = 0; i < RcpRunning.Length; i++) RcpRunning[i] = false;
         Array.Clear(_rcpFlow);
@@ -1360,6 +1422,9 @@ public sealed class ReactorSimService
         UpdateDecayHeat(dt);
         UpdateScenarios(dt);
         UpdateContainment(dt);
+        // --- QPTR / dropped-rod tilt: advance the fall-ramp + quadrant detectors BEFORE the kinetics sub-step
+        //     so the inserted single-rod reactivity (read from _dropRamp) is current this tick ---
+        StepQptr(dt);
 
         // --- sub-step the kinetics + thermal coupling ---
         double powerBefore = _power;
@@ -2020,9 +2085,12 @@ public sealed class ReactorSimService
         // Excess reactivity from fresh-core / fuel state baseline so that the core can be made
         // critical with rods/boron in the operating band.
         const double ExcessBaseline = 0.080 + BoronWorth * NominalBoron * -1.0; // brings band into reach
-        double rho = ExcessBaseline + rodRho + boronRho + dopplerRho + modRho + xenonRho + samariumRho;
+        // A dropped full-length RCCA inserts its integral worth (negative) as the fall-ramp completes.
+        double droppedRho = -(DroppedRodWorthPcm * 1e-5) * _dropRamp;
+        double rho = ExcessBaseline + rodRho + boronRho + dopplerRho + modRho + xenonRho + samariumRho + droppedRho;
 
-        RodReactivityPcm = rodRho * 1e5;
+        RodReactivityPcm = (rodRho + droppedRho) * 1e5;       // fold the dropped-rod worth into the rod line
+        DroppedRodReactivityPcm = droppedRho * 1e5;
         BoronReactivityPcm = (boronRho + ExcessBaseline) * 1e5; // fold baseline into boron line for display
         DopplerReactivityPcm = dopplerRho * 1e5;
         ModeratorReactivityPcm = modRho * 1e5;
@@ -2847,6 +2915,8 @@ public sealed class ReactorSimService
         SetAlarm(ReactorAlarm.RodInsertionLimitLoLo, RilLowLowAlarm);
         SetAlarm(ReactorAlarm.RodDeviation, RodDeviationAlarm);
         SetAlarm(ReactorAlarm.AxialFluxDiffOutOfBand, AfdOutsideBand);
+        SetAlarm(ReactorAlarm.QuadrantPowerTiltHi, QptrOutOfLimit);          // LCO 3.2.4: QPTR > 1.02 above 50% RTP
+        SetAlarm(ReactorAlarm.DroppedRcca, DroppedRodActive && _dropRamp > 0.5); // rod has reached the core bottom
         SetAlarm(ReactorAlarm.ContainmentPressureHi, _ctmtHi1);
         SetAlarm(ReactorAlarm.ContainmentIsolation, ContainmentIsolationPhaseA || ContainmentIsolationPhaseB);
         SetAlarm(ReactorAlarm.ContainmentSpray, ContainmentSprayActive);

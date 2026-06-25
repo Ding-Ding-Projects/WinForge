@@ -106,6 +106,11 @@ public static class ReactorScenarios
             Bands((0, 2500, "normal")),
             Array.Empty<GaugeSetpoint>()),
 
+        // Quadrant Power Tilt Ratio (LCO 3.2.4): 1.00 = flat radial power, ≤1.02 within limit, >1.02 = action.
+        "qptr" => (0.95, 1.15,
+            Bands((0.95, 1.02, "normal"), (1.02, 1.06, "warn"), (1.06, 1.15, "danger")),
+            Sets((1.02, "QPTR limit (LCO 3.2.4)", "QPTR 限值 LCO 3.2.4"))),
+
         // 125 VDC vital station battery state-of-charge (%). Below ~20 % the end-of-discharge floor and
         // loss of vital instrumentation / TDAFW control loom — the battery-death endgame of an SBO.
         "battery" => (0, 100,
