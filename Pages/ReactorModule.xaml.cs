@@ -152,6 +152,15 @@ public sealed partial class ReactorModule : Page
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
+    // RCP flow-mode annotation: shows whether the indicated flow is buoyancy-driven natural circulation,
+    // a tripped pump still coasting down on its flywheel, or normal forced (pumped) flow.
+    private string FlowModeTag()
+    {
+        if (_sim.OnNaturalCirc) return P(" · NAT CIRC", " · 自然循環");
+        if (_sim.RcpCoasting) return P(" · COASTDOWN", " · 惰轉");
+        return "";
+    }
+
     private void OnLanguageChanged(object? s, EventArgs e)
     {
         Render();
@@ -470,7 +479,7 @@ public sealed partial class ReactorModule : Page
         AddGauge("SG level", "蒸發器水位", 0, 100, () => _sim.IndicatedSgLevel, () => $"{_sim.IndicatedSgLevel:F0}%", id: "sgLevel");
         AddGauge("Secondary radiation", "二次側輻射", 0, 300, () => _sim.SecondaryRadiation, () => $"{_sim.SecondaryRadiation:F0} µSv/h", warnFrac: 100.0 / 300.0, id: "secRad");
         AddGauge("Atmospheric release", "累計大氣排放", 0, 100, () => _sim.AtmosphericRelease * 10, () => $"{_sim.AtmosphericRelease:F2}", id: "atmRel");
-        AddGauge("RCP flow", "主泵流量", 0, 100, () => _sim.CoolantFlowFraction * 100, () => $"{_sim.CoolantFlowFraction * 100:F0}%", id: "flow");
+        AddGauge("RCP flow", "主泵流量", 0, 100, () => _sim.CoolantFlowFraction * 100, () => $"{_sim.CoolantFlowFraction * 100:F0}%{FlowModeTag()}", id: "flow");
         AddGauge("Boron", "硼濃度", 0, 2500, () => _sim.BoronPpm, () => $"{_sim.BoronPpm:F0} ppm", id: "boron");
         AddGauge("Xenon worth", "氙毒", 0, 100, () => _sim.Xenon * 100, () => $"{-_sim.XenonReactivityPcm:F0} pcm", id: "xenon");
         AddGauge("Axial flux diff", "軸向通量差", -30, 30, () => _sim.AxialFluxDifferencePercent, () => $"ΔI {_sim.AxialFluxDifferencePercent:+0.0;-0.0;0.0}% · AO {_sim.AxialOffsetPercent:+0.0;-0.0;0.0}%", id: "afd");

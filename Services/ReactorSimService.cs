@@ -114,6 +114,25 @@ public sealed class ReactorSimService
     private const double NominalSteamPressure = 6.9; // MPa secondary
     private const double NominalBoron = 1200.0;    // ppm at BOL hot-zero-power-ish
 
+    // Reactor-coolant-pump (RCP) flow dynamics. Real loop flow does NOT follow a symmetric lag: a running
+    // pump spins up to rated in a couple of seconds, but a tripped pump COASTS DOWN on its flywheel/fluid
+    // inertia along a HYPERBOLIC curve G(t)=G0/(1+t/τ½) — flow halves at t=τ½, then tails off slowly toward
+    // the single-phase natural-circulation floor. The flywheel (high WR²) deliberately stretches τ½ to hold
+    // DNBR margin through the first seconds of a loss-of-flow. Each of the 4 loops carries 1/4 of rated flow.
+    private const double RcpSpinUpTau   = 1.5;   // s    per-pump first-order spin-up lag (energised pump)
+    private const double RcpCoastHalf   = 8.0;   // s    flow-halving time of a tripped pump's coastdown (W 4-loop w/ flywheel)
+    private const double RcpLoopShare    = 0.25;  // -    rated flow fraction carried by one of the 4 loops
+    // Single-phase natural circulation: buoyancy thermosiphon once pumps are gone. Driving head ∝ ρ·g·β·ΔT·H
+    // with ΔT = Q/(W·cp) and turbulent loop resistance ∝ W² ⇒ W ∝ Q^(1/3) (cube-root law). Calibrated so the
+    // post-trip iodine-pit decay level (~1.5 % core power) gives ~4 % rated flow, rising to ~6 % right after a
+    // from-power trip; capped at a physical single-phase ceiling. Gated on a real hot/cold ΔT head and an
+    // intact SG heat sink — lose the secondary inventory and the thermosiphon stalls.
+    private const double NatCircCoef    = 0.16;  // -    W∝Q^(1/3) coefficient (cube-root natural-circ scaling)
+    private const double NatCircMax     = 0.08;  // -    physical single-phase natural-circ ceiling (8 % rated)
+    private const double NatCircDtMin   = 8.0;   // °C   min hot-cold ΔT before a thermosiphon establishes
+    private const double NatCircHeadSpan = 20.0; // °C   ΔT span over which the buoyancy head ramps in
+    private const double NatCircSinkSpan = 15.0; // °C   primary-to-secondary head span gating the SG heat sink
+
     // Pressurizer pressure-control program (Westinghouse 4-loop), converted from psig to MPa absolute.
     private const double PzrProgramPressure = 15.51; // 2235 psig — nominal program pressure
     private const double PzrPropHeaterFull  = 15.41; // 2220 psig — proportional heaters full-on
@@ -264,6 +283,12 @@ public sealed class ReactorSimService
 
     // Derived flow
     public double CoolantFlowFraction { get; private set; } // 0..1 actual primary flow
+    // Per-loop flow contribution (0..RcpLoopShare each) — carries the hyperbolic coastdown of a tripped pump.
+    private readonly double[] _rcpFlow = new double[4];
+    public double PumpedFlowFraction { get; private set; }   // 0..1 forced (pumped) component of flow
+    public double NaturalCircFraction { get; private set; }  // 0..1 buoyancy-thermosiphon floor this tick
+    public bool RcpCoasting { get; private set; }            // a stopped pump is still carrying inertial flow
+    public bool OnNaturalCirc { get; private set; }          // buoyancy floor is governing core flow (pumps gone)
 
     // Failure accumulation
     public double DamageAccumulation { get; private set; }  // 0..100+ ; >=100 => meltdown
@@ -770,6 +795,8 @@ public sealed class ReactorSimService
         AxialOffsetPercent = 0; AxialFluxDifferencePercent = 0;
         for (int i = 0; i < RodBankInsertion.Length; i++) RodBankInsertion[i] = 100.0;
         for (int i = 0; i < RcpRunning.Length; i++) RcpRunning[i] = false;
+        Array.Clear(_rcpFlow);
+        PumpedFlowFraction = 0; NaturalCircFraction = 0; RcpCoasting = false; OnNaturalCirc = false;
         BoronPpm = NominalBoron; TargetBoronPpm = NominalBoron;
         PressurizerHeater = false; PressurizerSpray = false; RcpFlowDemand = 0;
         FeedwaterFlow = 0; TurbineLoadSetpoint = 0; GeneratorBreakerClosed = false;
@@ -1003,17 +1030,42 @@ public sealed class ReactorSimService
 
     private void UpdateFlow(double dt)
     {
-        int running = 0;
-        foreach (var r in RcpRunning) if (r) running++;
-        double pumpFraction = running / (double)RcpRunning.Length;
-        double target = pumpFraction * Math.Clamp(RcpFlowDemand, 0, 1);
-        // Natural circulation floor when hot and pumps off.
-        double natural = (Thot > 100 && running == 0) ? 0.04 : 0.0;
-        target = Math.Max(target, natural);
-        // First-order lag toward target flow.
-        double tau = 3.0;
-        CoolantFlowFraction += (target - CoolantFlowFraction) * Math.Min(1, dt / tau);
-        CoolantFlowFraction = Math.Clamp(CoolantFlowFraction, 0, 1);
+        // ---- forced flow: per-loop, asymmetric (fast spin-up, inertial coastdown) ----
+        double demand = Math.Clamp(RcpFlowDemand, 0, 1);
+        double pumped = 0.0;
+        bool coasting = false;
+        double spinAlpha = 1.0 - Math.Exp(-dt / RcpSpinUpTau);     // exact first-order lag factor
+        double coastDen  = 1.0 + dt * (0.6931471805599453 / RcpCoastHalf); // implicit hyperbolic 1/(1+k·dt)
+        for (int i = 0; i < _rcpFlow.Length; i++)
+        {
+            if (RcpRunning[i])
+            {
+                // Energised: relax toward this loop's share of the commanded flow.
+                _rcpFlow[i] += (RcpLoopShare * demand - _rcpFlow[i]) * spinAlpha;
+            }
+            else
+            {
+                // Tripped: hyperbolic coastdown on flywheel/fluid inertia — flow halves every RcpCoastHalf.
+                _rcpFlow[i] /= coastDen;
+                if (_rcpFlow[i] > 0.01) coasting = true;
+            }
+            if (_rcpFlow[i] < 0) _rcpFlow[i] = 0;
+            pumped += _rcpFlow[i];
+        }
+
+        // ---- natural-circulation floor: buoyancy thermosiphon, W ∝ Q^(1/3) ----
+        double powerFrac = Math.Max(_power, 0.0) + DecayHeatFraction;     // core heat driving the head
+        double headGate  = Math.Clamp((Thot - Tcold - NatCircDtMin) / NatCircHeadSpan, 0, 1);
+        double sinkGate  = Math.Clamp((Tavg - SecondarySatTemp()) / NatCircSinkSpan, 0, 1);
+        double hot       = Thot > 100.0 ? 1.0 : 0.0;                       // no phantom floor on a cold core
+        double natural   = Math.Min(NatCircMax, NatCircCoef * Math.Cbrt(powerFrac) * headGate * sinkGate * hot);
+
+        PumpedFlowFraction = Math.Clamp(pumped, 0, 1);
+        NaturalCircFraction = natural;
+        RcpCoasting = coasting;
+        OnNaturalCirc = natural > 0 && natural >= pumped;
+        // Take whichever path moves more coolant — never sum (the buoyancy loop IS the pump loop).
+        CoolantFlowFraction = Math.Clamp(Math.Max(pumped, natural), 0, 1);
     }
 
     private void StepKineticsAndThermal(double h)
