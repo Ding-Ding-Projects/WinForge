@@ -56,6 +56,18 @@ public sealed partial class ReactorModule : Page
     private readonly Dictionary<ReactorAlarm, AlarmTile> _alarmTiles = new();
     // CSF (critical safety function) cells: S,C,H,P,Z,I.
     private readonly List<(Border border, TextBlock label, string en, string zh, Func<int> sev)> _csfCells = new();
+    // RPS function tiles: one per protection function, each owning its border, status text + channel LEDs.
+    private sealed class RpsTile
+    {
+        public RpsFunction Fn = null!;
+        public Border Border = null!;
+        public TextBlock Name = null!;
+        public TextBlock Status = null!;
+        public Microsoft.UI.Xaml.Shapes.Ellipse[] Leds = Array.Empty<Microsoft.UI.Xaml.Shapes.Ellipse>();
+    }
+    private readonly List<RpsTile> _rpsTiles = new();
+    // Permissive indicator pills P-6…P-10.
+    private readonly List<(Border border, TextBlock label, Func<bool> on)> _permPills = new();
 
     // Klaxon flash phase.
     private double _flashPhase;
@@ -98,6 +110,7 @@ public sealed partial class ReactorModule : Page
             BuildAlarmTiles();
             BuildStripCharts();
             BuildCsfPanel();
+            BuildRpsPanel();
             BuildScenarioCombo();
             DrawMimicStatic();
             InitFx();
@@ -163,6 +176,10 @@ public sealed partial class ReactorModule : Page
         KeepAwakeToggle.OnContent = P("On", "開");
         KeepAwakeToggle.OffContent = P("Off", "關");
         MimicTitle.Text = P("Plant Mimic Diagram · 機組流程圖", "機組流程圖 · Plant Mimic Diagram");
+        RpsTitle.Text = P("Reactor Protection System · 反應堆保護系統", "反應堆保護系統 · Reactor Protection System");
+        RpsSubtitle.Text = P(
+            "4-channel 2-of-4 coincidence logic with Westinghouse trip setpoints. A single tripped channel is a partial trip (amber) — the reactor trips only when ≥2 of 4 channels of a function trip. Permissives P-6/P-7/P-8/P-9/P-10 block low-power trips.",
+            "四通道四取二符合邏輯，採用西屋跳脫定值。單一通道跳脫只屬部分跳脫（琥珀色）— 須同一功能四取二（≥2 通道）方會觸發停堆。允許訊號 P-6／P-7／P-8／P-9／P-10 會封鎖低功率跳脫。");
         GaugesTitle.Text = P("Instrument Gauges · 儀表", "儀表 · Instrument Gauges");
         TrendTitle.Text = P("Strip-Chart Recorders · 趨勢記錄儀", "趨勢記錄儀 · Strip-Chart Recorders");
         AlarmTitle.Text = P("Annunciator Panel · 警報盤", "警報盤 · Annunciator Panel");
@@ -196,6 +213,7 @@ public sealed partial class ReactorModule : Page
         UpdateStripCharts();
         UpdateNisPanels();
         UpdateCsfPanel();
+        UpdateRpsPanel();
         UpdateAudio();
         UpdateControlsLive();
 
@@ -873,6 +891,141 @@ public sealed partial class ReactorModule : Page
                 _ => Color.FromArgb(255, 0x2E, 0x7D, 0x32),
             };
             border.Background = new SolidColorBrush(c);
+        }
+    }
+
+    // ================================================================ RPS PANEL ====
+    private void BuildRpsPanel()
+    {
+        RpsPanel.Children.Clear();
+        _rpsTiles.Clear();
+        foreach (var fn in _sim.Rps.Functions)
+        {
+            var name = new TextBlock
+            {
+                FontSize = 12, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.NoWrap,
+                Foreground = new SolidColorBrush(Colors.White),
+            };
+            var status = new TextBlock
+            {
+                FontFamily = new FontFamily("Consolas"), FontSize = 11,
+                Foreground = new SolidColorBrush(Color.FromArgb(220, 0xCC, 0xCC, 0xCC)),
+            };
+            // One LED per instrument channel (3 or 4).
+            var leds = new Microsoft.UI.Xaml.Shapes.Ellipse[fn.ChannelCount];
+            var ledRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 5, VerticalAlignment = VerticalAlignment.Center };
+            for (int i = 0; i < fn.ChannelCount; i++)
+            {
+                var led = new Microsoft.UI.Xaml.Shapes.Ellipse
+                {
+                    Width = 13, Height = 13,
+                    Stroke = new SolidColorBrush(Color.FromArgb(160, 0x88, 0x88, 0x88)), StrokeThickness = 1,
+                    Fill = new SolidColorBrush(Color.FromArgb(255, 0x2E, 0x7D, 0x32)),
+                };
+                ToolTipService.SetToolTip(led, P($"Channel {(char)('I' + i)}", $"通道 {(char)('I' + i)}"));
+                leds[i] = led;
+                ledRow.Children.Add(led);
+            }
+            var fnLocal = fn; // capture
+            var topRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+            topRow.Children.Add(new Viewbox { Child = name, MaxHeight = 16, HorizontalAlignment = HorizontalAlignment.Left });
+            var inner = new StackPanel { Spacing = 4, Margin = new Thickness(8, 6, 8, 6) };
+            inner.Children.Add(name);
+            var midRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+            midRow.Children.Add(ledRow);
+            midRow.Children.Add(status);
+            inner.Children.Add(midRow);
+            var border = new Border
+            {
+                Width = 224, Height = 62, CornerRadius = new CornerRadius(6),
+                Background = new SolidColorBrush(Color.FromArgb(40, 0x88, 0x88, 0x88)),
+                BorderBrush = new SolidColorBrush(Color.FromArgb(60, 0xAA, 0xAA, 0xAA)),
+                BorderThickness = new Thickness(1),
+                Child = inner,
+            };
+            _relocalizers.Add(() => name.Text = P(fnLocal.NameEn, fnLocal.NameZh));
+            name.Text = P(fnLocal.NameEn, fnLocal.NameZh);
+            _rpsTiles.Add(new RpsTile { Fn = fnLocal, Border = border, Name = name, Status = status, Leds = leds });
+            RpsPanel.Children.Add(border);
+        }
+
+        // Permissive interlock pills.
+        PermissivePanel.Children.Clear();
+        _permPills.Clear();
+        (string label, Func<bool> on)[] perms =
+        {
+            ("P-6", () => _sim.Rps.P6),
+            ("P-7", () => _sim.Rps.P7),
+            ("P-8", () => _sim.Rps.P8),
+            ("P-9", () => _sim.Rps.P9),
+            ("P-10", () => _sim.Rps.P10),
+        };
+        foreach (var (label, on) in perms)
+        {
+            var tb = new TextBlock { Text = label, FontFamily = new FontFamily("Consolas"), FontSize = 11, Foreground = new SolidColorBrush(Colors.White) };
+            var b = new Border
+            {
+                CornerRadius = new CornerRadius(4), Padding = new Thickness(7, 2, 7, 2),
+                Background = new SolidColorBrush(Color.FromArgb(40, 0x88, 0x88, 0x88)), Child = tb,
+            };
+            _permPills.Add((b, tb, on));
+            PermissivePanel.Children.Add(b);
+        }
+    }
+
+    private void UpdateRpsPanel()
+    {
+        var green = Color.FromArgb(255, 0x2E, 0x7D, 0x32);
+        var amber = Color.FromArgb(255, 0xF5, 0x7C, 0x00);
+        var red = Color.FromArgb(255, 0xD3, 0x2F, 0x2F);
+        var grey = Color.FromArgb(255, 0x55, 0x5B, 0x62);
+        bool flashOn = (int)(_flashPhase * 2) % 2 == 0;
+
+        foreach (var t in _rpsTiles)
+        {
+            var fn = t.Fn;
+            for (int i = 0; i < t.Leds.Length; i++)
+            {
+                Color c;
+                if (fn.Bypass[i]) c = grey;
+                else if (fn.ChannelTripped[i]) c = fn.FunctionTrip ? red : amber;
+                else c = green;
+                t.Leds[i].Fill = new SolidColorBrush(c);
+            }
+
+            Color border;
+            string en, zh;
+            if (fn.Blocked)
+            {
+                border = grey;
+                en = "BLOCKED (permissive)"; zh = "已封鎖（允許訊號）";
+            }
+            else if (fn.FunctionTrip)
+            {
+                border = flashOn ? red : Color.FromArgb(120, 0xD3, 0x2F, 0x2F);
+                en = $"TRIP {fn.TrippedCount}/{fn.ChannelCount}"; zh = $"跳脫 {fn.TrippedCount}/{fn.ChannelCount}";
+            }
+            else if (fn.PartialTrip)
+            {
+                border = amber;
+                en = $"PARTIAL 1/{fn.ChannelCount}"; zh = $"部分 1/{fn.ChannelCount}";
+            }
+            else
+            {
+                border = green;
+                en = "NORMAL"; zh = "正常";
+            }
+            t.Border.BorderBrush = new SolidColorBrush(border);
+            t.Border.BorderThickness = new Thickness(fn.FunctionTrip || fn.PartialTrip ? 2 : 1);
+            t.Status.Text = P(en, zh);
+        }
+
+        foreach (var (b, _, on) in _permPills)
+        {
+            bool active = on();
+            b.Background = new SolidColorBrush(active
+                ? Color.FromArgb(255, 0x2E, 0x7D, 0x32)
+                : Color.FromArgb(40, 0x88, 0x88, 0x88));
         }
     }
 

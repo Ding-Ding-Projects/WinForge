@@ -22,6 +22,7 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
                 <!-- header -->
@@ -146,8 +147,26 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Gauges -->
+                <!-- Reactor Protection System: 4-channel 2-of-4 coincidence logic -->
                 <Border Grid.Row="7" CornerRadius="8" Padding="12"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                    <StackPanel Spacing="8">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="RpsTitle" Grid.Column="0" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            <StackPanel x:Name="PermissivePanel" Grid.Column="1" Orientation="Horizontal" Spacing="6" />
+                        </Grid>
+                        <TextBlock x:Name="RpsSubtitle" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                        <VariableSizedWrapGrid x:Name="RpsPanel" Orientation="Horizontal" ItemWidth="232" ItemHeight="70" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Gauges -->
+                <Border Grid.Row="8" CornerRadius="8" Padding="12"
                         Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                         BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                     <StackPanel Spacing="6">
@@ -157,7 +176,7 @@
                 </Border>
 
                 <!-- Trend charts -->
-                <Border Grid.Row="8" CornerRadius="8" Padding="12"
+                <Border Grid.Row="9" CornerRadius="8" Padding="12"
                         Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                         BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                     <StackPanel Spacing="8">
@@ -167,7 +186,7 @@
                 </Border>
 
                 <!-- Alarm panel -->
-                <Border Grid.Row="9" CornerRadius="8" Padding="12"
+                <Border Grid.Row="10" CornerRadius="8" Padding="12"
                         Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                         BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                     <StackPanel Spacing="6">
@@ -189,7 +208,7 @@
                 </Border>
 
                 <!-- Controls -->
-                <Border Grid.Row="10" CornerRadius="8" Padding="16"
+                <Border Grid.Row="11" CornerRadius="8" Padding="16"
                         Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                         BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                     <StackPanel x:Name="ControlsHost" Spacing="14" />

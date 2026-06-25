@@ -212,6 +212,21 @@ public sealed class ReactorSimService
     public string StatusEn { get; private set; } = "Cold shutdown";
     public string StatusZh { get; private set; } = "冷停機";
 
+    // Reactor Protection System — 4-channel 2-of-4 coincidence logic with Westinghouse trip
+    // setpoints and P-6/P-7/P-8/P-9/P-10 permissive interlocks. Replaces the old single-channel
+    // boolean trip OR. Built once and re-evaluated every protection tick.
+    private readonly ReactorRps _rps = new();
+    public ReactorRps Rps => _rps;
+    public string LastTripFunctionEn { get; private set; } = "";
+    public string LastTripFunctionZh { get; private set; } = "";
+
+    // Power rate-of-change (per second), for the power-range positive/negative rate trip.
+    private double _powerRate;
+    public double PowerRatePerSec => _powerRate;
+
+    // Reference full-power primary coolant ΔT (Thot−Tcold) in °F — datum for OTΔT/OPΔT.
+    private const double FullPowerDeltaTF = 60.0;
+
     public ReactorSimService()
     {
         // Initialize precursors consistent with the (very low) initial power.
@@ -219,6 +234,62 @@ public sealed class ReactorSimService
             _precursor[i] = Beta[i] / (PromptLifetime * Lambda[i]) * _power;
         Xenon = 0;
         Iodine = 0;
+        BuildRps();
+    }
+
+    /// <summary>
+    /// 建立反應堆保護系統的保護功能 · Build the RPS protection functions with Westinghouse nominal trip
+    /// setpoints (expressed in the sim's native units) and their permissive gating. Pressure
+    /// conversions: psia = psig + 14.7, MPa = psia / 145.038.
+    /// </summary>
+    private void BuildRps()
+    {
+        // Permissive interlocks are derived from reactor power each tick in UpdateProtection();
+        // these lambdas read the latched permissive states the RPS holds.
+        Func<bool> aboveP7 = () => _rps.P7;
+        Func<bool> belowP10 = () => !_rps.P10;
+
+        // Variable OTΔT / OPΔT allowable-ΔT setpoints (Westinghouse functional form, in °F).
+        double TavgF() => Tavg * 1.8 + 32.0;
+        double Ppsig() => PrimaryPressure * 145.038 - 14.7;
+        double MeasuredDeltaTF() => (Thot - Tcold) * 1.8;
+        double OtDeltaTAllow() => FullPowerDeltaTF *
+            (1.14 - 0.0166 * (TavgF() - 588.4) + 0.00091 * (Ppsig() - 2235.0));
+        double OpDeltaTAllow() => FullPowerDeltaTF *
+            (1.08 - 0.00072 * Math.Max(0.0, TavgF() - 588.4));
+
+        _rps.Functions.Clear();
+        // 1 — Power Range Neutron Flux High (high setpoint). Always active. 2/4.
+        _rps.Functions.Add(new RpsFunction("Power Range Flux Hi", "高量程中子通量－高",
+            RpsTripDir.High, 1.09, () => NeutronPowerFraction));
+        // 2 — Power Range Neutron Flux Low setpoint. Active below P-10 (startup protection). 2/4.
+        _rps.Functions.Add(new RpsFunction("Power Range Flux Lo", "高量程中子通量－低",
+            RpsTripDir.High, 0.25, () => NeutronPowerFraction, permissive: belowP10));
+        // 3 — Power Range positive rate (rod-ejection). +5% / 2 s ≈ +0.025 /s. Always active. 2/4.
+        _rps.Functions.Add(new RpsFunction("Power Range +Rate", "高量程中子通量－正變化率",
+            RpsTripDir.High, 0.025, () => _powerRate, biasSpan: 0.02));
+        // 4 — Pressurizer Pressure High: 2385 psig → 16.55 MPa. Always active. 2/4.
+        _rps.Functions.Add(new RpsFunction("Pzr Pressure Hi", "穩壓器壓力－高",
+            RpsTripDir.High, 16.55, () => PrimaryPressure));
+        // 5 — Pressurizer Pressure Low: 1865 psig → 12.96 MPa. Blocked below P-7. 2/4.
+        _rps.Functions.Add(new RpsFunction("Pzr Pressure Lo", "穩壓器壓力－低",
+            RpsTripDir.Low, 12.96, () => PrimaryPressure, permissive: aboveP7));
+        // 6 — Overtemperature ΔT (anti-DNB). Variable setpoint. Always active. 2/4.
+        _rps.Functions.Add(new RpsFunction("Overtemp ΔT", "超溫 ΔT",
+            RpsTripDir.High, 0.0, MeasuredDeltaTF, setpointFunc: OtDeltaTAllow));
+        // 7 — Overpower ΔT (fuel kW/ft limit). Variable setpoint. Always active. 2/4.
+        _rps.Functions.Add(new RpsFunction("Overpower ΔT", "超功率 ΔT",
+            RpsTripDir.High, 0.0, MeasuredDeltaTF, setpointFunc: OpDeltaTAllow));
+        // 8 — Low Reactor Coolant Flow: 90% rated. Blocked below P-7. 2/4.
+        _rps.Functions.Add(new RpsFunction("Low RCS Flow", "冷卻劑流量－低",
+            RpsTripDir.Low, 0.90, () => CoolantFlowFraction, permissive: aboveP7));
+        // 9 — Pressurizer Water Level High: 92%. Blocked below P-7. 2/3.
+        _rps.Functions.Add(new RpsFunction("Pzr Level Hi", "穩壓器水位－高",
+            RpsTripDir.High, 92.0, () => PressurizerLevel, permissive: aboveP7,
+            channelCount: 3));
+        // 10 — Steam Generator Level Low-Low: 17%. Always active (initiates AFW). 2/3.
+        _rps.Functions.Add(new RpsFunction("SG Level Lo-Lo", "蒸發器水位－低低",
+            RpsTripDir.Low, 17.0, () => SteamGenLevel, channelCount: 3));
     }
 
     // ----------------------------------------------------------------- controls ----
@@ -242,6 +313,8 @@ public sealed class ReactorSimService
     public void ResetTrip()
     {
         if (Mode == ReactorMode.Meltdown) return;
+        _rps.ClearLatch();          // clear the sealed-in RPS trip so the breakers can re-close
+        LastTripFunctionEn = ""; LastTripFunctionZh = "";
         IsScrammed = false;
         if (Mode == ReactorMode.Tripped) Mode = ReactorMode.Shutdown;
     }
@@ -331,6 +404,7 @@ public sealed class ReactorSimService
         ReliefValveOpen = false; EccsArmed = false; EccsInjecting = false;
         CoolantFlowFraction = 0; DamageAccumulation = 0;
         IsScrammed = false; MeltdownTriggered = false; AutoRodControl = false;
+        _rps.ClearLatch(); LastTripFunctionEn = ""; LastTripFunctionZh = ""; _powerRate = 0;
         Mode = ReactorMode.Shutdown;
         for (int i = 0; i < _alarms.Length; i++) _alarms[i] = false;
         for (int i = 0; i < _decayGroup.Length; i++) _decayGroup[i] = 0;
@@ -364,11 +438,16 @@ public sealed class ReactorSimService
         UpdateScenarios(dt);
 
         // --- sub-step the kinetics + thermal coupling ---
+        double powerBefore = _power;
         const double subDt = 0.02; // 50 Hz internal integration
         int steps = Math.Max(1, (int)Math.Round(dt / subDt));
         double h = dt / steps;
         for (int s = 0; s < steps; s++)
             StepKineticsAndThermal(h);
+
+        // Power rate-of-change (fraction/s) for the power-range rate trip — lightly smoothed.
+        if (dt > 1e-6)
+            _powerRate += ((_power - powerBefore) / dt - _powerRate) * Math.Min(1.0, dt / 0.5);
 
         // --- xenon/iodine evolve slowly; once per tick is fine ---
         UpdateXenon(dt);
@@ -646,16 +725,19 @@ public sealed class ReactorSimService
 
     private void UpdateProtection(double dt)
     {
-        // Auto-SCRAM on protective trips (always active unless already scrammed).
-        bool trip = false;
-        if (_power > HighPowerTrip) trip = true;
-        if (ReactorPeriodSeconds > 0 && ReactorPeriodSeconds < ShortPeriodTrip && _power > 0.01) trip = true;
-        if (Thot > HighThotTrip) trip = true;
-        if (PrimaryPressure > VesselPressureLimit) trip = true;
-        if (PrimaryPressure < 12.0 && _power > 0.05) trip = true; // low-pressure trip at power
-        if (CoolantFlowFraction < LowFlowTrip && _power > 0.10) trip = true;
-        if (trip && !IsScrammed && Mode != ReactorMode.Meltdown)
+        // ---- Reactor Protection System: derive permissives from power, then evaluate coincidence. ----
+        // P-10 / P-7 ≈ 10 % power; P-8 ≈ 48 %; P-9 ≈ 50 % (P-13 turbine-load input folded into P-7).
+        bool p10 = _power >= 0.10;
+        bool p13 = TurbineLoadSetpoint >= 0.10 && GeneratorBreakerClosed; // turbine first-stage proxy
+        bool p7 = p10 || p13;
+        _rps.SetPermissives(p6: _power < 1e-4, p7: p7, p8: _power >= 0.48, p9: _power >= 0.50, p10: p10);
+        _rps.Evaluate();
+        if (_rps.ReactorTrip && !IsScrammed && Mode != ReactorMode.Meltdown)
+        {
+            LastTripFunctionEn = _rps.ControllingFunctionEn;
+            LastTripFunctionZh = _rps.ControllingFunctionZh;
             Scram();
+        }
 
         // ECCS auto-inject on low pressure if armed.
         EccsInjecting = EccsArmed && PrimaryPressure < 11.0;
@@ -732,7 +814,12 @@ public sealed class ReactorSimService
     private void UpdateStatus()
     {
         if (Mode == ReactorMode.Meltdown) { StatusEn = "CORE MELTDOWN"; StatusZh = "爐心熔毀"; return; }
-        if (IsScrammed) { StatusEn = "SCRAM — reactor tripped"; StatusZh = "緊急停堆（SCRAM）"; return; }
+        if (IsScrammed)
+        {
+            StatusEn = LastTripFunctionEn.Length > 0 ? $"SCRAM — {LastTripFunctionEn}" : "SCRAM — reactor tripped";
+            StatusZh = LastTripFunctionZh.Length > 0 ? $"緊急停堆 — {LastTripFunctionZh}" : "緊急停堆（SCRAM）";
+            return;
+        }
         if (DamageAccumulation > 1.0) { StatusEn = "WARNING — core damage accruing"; StatusZh = "警告 — 爐心受損中"; return; }
         if (_power < 1e-4) { StatusEn = "Shut down / subcritical"; StatusZh = "停機／次臨界"; Mode = Mode == ReactorMode.Run ? ReactorMode.Startup : Mode; return; }
         if (Math.Abs(_power - 1.0) < 0.03 && Math.Abs(ReactorPeriodSeconds) > 200)
