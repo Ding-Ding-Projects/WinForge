@@ -605,6 +605,16 @@ public sealed partial class ReactorModule : Page
         // EHC turbine — first-stage (impulse) pressure is the calibrated load signal; governor-valve position.
         AddGauge("First-stage press", "第一級壓力", 0, 750, () => _sim.FirstStagePressure * 690.0, () => $"{_sim.FirstStagePressure * 690.0:F0} psia");
         AddGauge("Governor valve", "調速汽門", 0, 100, () => _sim.GovernorValve * 100, () => $"{_sim.GovernorValve * 100:F0}%");
+        // Main generator electrical — excitation/AVR reactive side. Governor sets MW; the AVR sets MVAR/voltage.
+        // At 1150 MWe / 0.90 PF the machine puts ~557 MVAR lagging onto the grid at 24 kV, 60.0 Hz.
+        AddGauge("Reactive power", "無功功率", -400, 600, () => _sim.ReactiveMVAR,
+            () => $"{_sim.ReactiveMVAR:F0} MVAR {(_sim.PowerFactorLeading ? P("lead", "超前") : P("lag", "滯後"))}", id: "genMvar");
+        AddGauge("Terminal voltage", "機端電壓", 20, 27, () => _sim.TerminalKV, () => $"{_sim.TerminalKV:F1} kV", id: "genKv");
+        AddGauge("Power factor", "功率因數", 0.80, 1.00, () => _sim.PowerFactor,
+            () => $"{_sim.PowerFactor:F3} {(_sim.PowerFactorLeading ? P("lead", "超前") : P("lag", "滯後"))}", id: "genPf");
+        AddGauge("Grid frequency", "電網頻率", 57, 63, () => _sim.GridFrequencyHz,
+            () => _sim.GeneratorBreakerClosed ? $"{_sim.GridFrequencyHz:F2} Hz" : $"{_sim.GridFrequencyHz:F2} Hz · {_sim.SyncPhaseAngleDeg:F0}°", id: "genHz");
+        AddGauge("Field current", "勵磁電流", 0, 2.6, () => _sim.FieldCurrentPu, () => $"{_sim.FieldCurrentPu:F2} pu", id: "genIfd");
         // Steam dump (turbine bypass) — 40% condenser dump that rides out a load rejection / turbine trip
         // without a reactor trip. Shows % of dump capacity and the active controller mode.
         AddGauge("Steam dump", "蒸汽旁路", 0, 100, () => _sim.SteamDumpPercent,
@@ -914,6 +924,12 @@ public sealed partial class ReactorModule : Page
         AddDynLabel(c, 330, 285, $"{_sim.SteamPressure:F1} MPa");
         AddDynLabel(c, 560, 165, $"{_sim.TurbineRPM:F0} rpm");
         AddDynLabel(c, 715, 160, $"{_sim.ElectricPowerMW:F0} MWe");
+        // Generator electrical (reactive side + synchroscope) under the MWe readout.
+        AddDynLabel(c, 715, 180, $"{_sim.ReactiveMVAR:F0} MVAR · {_sim.PowerFactor:F2} PF");
+        AddDynLabel(c, 715, 200, $"{_sim.TerminalKV:F1} kV · {_sim.GridFrequencyHz:F1} Hz");
+        AddDynLabel(c, 560, 185, _sim.GeneratorLockout86 ? "86 LOCKOUT"
+            : _sim.GeneratorBreakerClosed ? "SYNCED"
+            : $"{_sim.SyncPhaseAngleDeg:F0}° · {_sim.SlipHz:+0.00;-0.00} Hz");
     }
 
     private static Color TempColor(double t)
@@ -1590,8 +1606,54 @@ public sealed partial class ReactorModule : Page
             v => _sim.TurbineLoadSetpoint = v / 100.0, () => _sim.TurbineLoadSetpoint * 100, "%"));
 
         var grdPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        grdPanel.Children.Add(MakeToggle("Generator breaker · 發電機開關", "發電機開關 · Generator breaker", v => _sim.GeneratorBreakerClosed = v));
+        // Generator breaker: with the sync interlock OFF (default) the toggle closes unconditionally, exactly
+        // as before; with it ON, the ANSI-25 sync-check window must be satisfied to close onto the grid.
+        grdPanel.Children.Add(MakeToggle("Generator breaker · 發電機開關", "發電機開關 · Generator breaker",
+            v => { if (v && _sim.SyncInterlock && !_sim.SyncCheckPermissive) return; _sim.GeneratorBreakerClosed = v; }));
+        grdPanel.Children.Add(MakeToggle("Sync interlock (25) · 同步聯鎖", "同步聯鎖 · Sync interlock (25)",
+            v => _sim.SyncInterlock = v)); // DEFAULT OFF
         host.Children.Add(WrapLabel("Grid synchronization · 併網", "併網 · Grid synchronization", grdPanel));
+
+        // ---- Main generator excitation / AVR (reactive-power control) ----
+        var avrCombo = new ComboBox { MinWidth = 220 };
+        avrCombo.Items.Add(P("AVR Auto-voltage · 自動電壓", "自動電壓 · AVR Auto-voltage"));
+        avrCombo.Items.Add(P("Constant PF · 固定功率因數", "固定功率因數 · Constant PF"));
+        avrCombo.Items.Add(P("Constant MVAR · 固定無功", "固定無功 · Constant MVAR"));
+        avrCombo.Items.Add(P("Manual field · 手動勵磁", "手動勵磁 · Manual field"));
+        avrCombo.SelectedIndex = 1; // Constant PF — matches the sim default (rated 0.90 lagging)
+        avrCombo.SelectionChanged += (_, _) => _sim.GenAvrMode = avrCombo.SelectedIndex switch
+        {
+            1 => ReactorSimService.AvrMode.ConstantPf,
+            2 => ReactorSimService.AvrMode.ConstantMvar,
+            3 => ReactorSimService.AvrMode.Manual,
+            _ => ReactorSimService.AvrMode.AutoVoltage,
+        };
+        host.Children.Add(WrapLabel("Excitation / AVR mode · 勵磁／自動電壓調節模式",
+            "勵磁／自動電壓調節模式 · Excitation / AVR mode", avrCombo));
+        host.Children.Add(LabeledSlider("AVR voltage setpoint (%)", "自動電壓設定（%）",
+            95, 105, _sim.VoltageSetpointPu * 100, 1,
+            v => _sim.VoltageSetpointPu = v / 100.0, () => _sim.VoltageSetpointPu * 100, "%"));
+        host.Children.Add(LabeledSlider("Constant-PF setpoint (%)", "固定功率因數設定（%）",
+            80, 100, _sim.PfSetpoint * 100, 1,
+            v => _sim.PfSetpoint = v / 100.0, () => _sim.PfSetpoint * 100, "%"));
+        host.Children.Add(LabeledSlider("Constant-MVAR setpoint", "固定無功設定",
+            -350, 567, _sim.MvarSetpoint, 5,
+            v => _sim.MvarSetpoint = v, () => _sim.MvarSetpoint, " MVAR"));
+        host.Children.Add(LabeledSlider("Manual field current (%)", "手動勵磁電流（%）",
+            0, 260, _sim.ManualFieldPu * 100, 5,
+            v => _sim.ManualFieldPu = v / 100.0, () => _sim.ManualFieldPu * 100, "%"));
+
+        // Generator protection (ANSI 32/40/24/27/59/81) + hand-reset of the 86 lockout.
+        var genProtPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        var genProtToggle = MakeToggle("Gen protection armed · 發電機保護啟用",
+            "發電機保護啟用 · Gen protection armed", v => _sim.GenProtectionArmed = v);
+        genProtToggle.IsChecked = true; // relays armed by default (act only on genuine abnormal conditions)
+        genProtPanel.Children.Add(genProtToggle);
+        var genResetBtn = new Button { Content = P("Reset gen lockout (86) · 重置發電機閉鎖", "重置發電機閉鎖 · Reset gen lockout (86)") };
+        genResetBtn.Click += (_, _) => _sim.ResetGeneratorTrip();
+        genProtPanel.Children.Add(genResetBtn);
+        host.Children.Add(WrapLabel("Generator protection · 發電機保護繼電器",
+            "發電機保護繼電器 · Generator protection", genProtPanel));
 
         // EHC turbine trip / reset — manual stop-valve trip and a latch reset (only below ~90 % speed).
         var turbPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };

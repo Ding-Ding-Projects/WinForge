@@ -229,6 +229,46 @@ public sealed class ReactorSimService
     // Reference / nominal operating points.
     public const double RatedThermalMW = 3411.0;  // MWth (typical 4-loop PWR core)
     public const double RatedElectricMW = 1150.0; // MWe gross
+
+    // ---- Main generator nameplate (4-pole, 60 Hz, H₂-cooled synchronous machine) · 主發電機銘牌 ----
+    // 1150 MWe gross on a 1300 MVA / 0.90-PF-lagging / 24 kV set. Governor sets real power (P, via the EHC);
+    // excitation/AVR sets reactive power (Q). At the 1150 MW / 0.90 PF operating point: S = 1150/0.90 =
+    // 1277.8 MVA, Q = √(S²−P²) ≈ 557 MVAR lagging. Capability (reactive "D-") curve: overexcited limited by
+    // rotor/field heating (~+567 MVAR), underexcited limited by stator end-core heating / steady-state
+    // stability (~−350 MVAR, the much tighter limit). SCR ≈ 0.5 → Xd(sat) ≈ 2.0 p.u.
+    public  const double RatedMVA          = 1300.0;   // MVA nameplate apparent power
+    public  const double RatedTerminalKV   = 24.0;     // kV line-to-line rms
+    public  const double RatedPowerFactor  = 0.90;     // lagging (overexcited)
+    public  const double GenRatedFreqHz    = 60.0;     // Hz electrical
+    private const double RatedMVARLag      = 556.97;   // MVAR at 1150 MW / 0.90 PF (display datum)
+    private const double QMaxOverexcMVAR   = 567.0;    // rotor/field-heating limit (lagging, +Q)
+    private const double QMinUnderexcMVAR  = -350.0;   // stator end-core / stability limit (leading, −Q)
+    private const double AvrTimeConstS     = 0.5;      // s lumped exciter/AVR first-order lag
+    private const double AvrDroopFrac      = 0.05;     // 5 % reactive (voltage) droop
+    // Sync-check (ANSI 25) window for closing the 24 kV generator breaker onto the grid:
+    private const double SyncMaxSlipHz     = 0.067;    // Hz   max slip frequency
+    private const double SyncMaxAngleDeg   = 10.0;     // ±deg max phase angle
+    private const double SyncMaxVoltPct    = 5.0;      // ±%   max voltage mismatch
+    // Generator protective-relay pickups + definite-time delays (ANSI/IEEE device numbers):
+    private const double R32PickupFrac     = -0.01;    // 32  reverse power: P < −1 % rated MW (motoring)
+    private const double R32DelayS         = 30.0;     // s   sequential anti-motoring path
+    private const double R40Z1QpuPickup    = -1.00;    // 40  loss-of-field zone 1: Q/MVA < −1.00 p.u.
+    private const double R40Z1DelayS       = 0.20;
+    private const double R40Z2QpuPickup    = -0.60;    // 40  loss-of-field zone 2: Q/MVA < −0.60 p.u.
+    private const double R40Z2DelayS       = 0.75;
+    private const double R24VHzPickup      = 1.20;     // 24  volts-per-hertz hi-set (p.u. V/Hz)
+    private const double R24DelayS         = 2.0;
+    private const double R27Pickup         = 0.80;     // 27  undervoltage (p.u.)
+    private const double R27DelayS         = 2.0;
+    private const double R59S1Pickup       = 1.10;     // 59  overvoltage stage 1 (p.u.)
+    private const double R59S1DelayS       = 5.0;
+    private const double R59S2Pickup       = 1.30;     // 59  overvoltage stage 2 (p.u.)
+    private const double R59S2DelayS       = 0.20;
+    private const double R81OPickup        = 62.0;     // 81O overfrequency (Hz)
+    private const double R81ODelayS        = 2.0;
+    private const double R81UPickup        = 57.5;     // 81U underfrequency (Hz)
+    private const double R81UDelayS        = 10.0;
+
     private const double RefFuelTemp = 600.0;      // °C reference fuel temp for Doppler datum
     private const double RefModTemp = 305.0;       // °C reference Tavg datum
     private const double ColdTemp = 35.0;          // °C cold shutdown coolant temp
@@ -418,8 +458,45 @@ public sealed class ReactorSimService
     public double SteamPressure { get; private set; } = 0.5;     // MPa secondary
     public double SteamGenLevel { get; private set; } = 60.0;    // %
     public double ThermalPowerMW => _power * RatedThermalMW;
-    public double ElectricPowerMW { get; private set; }          // MWe actual
+    public double ElectricPowerMW { get; private set; }          // MWe actual real power (single writer: UpdateSecondary)
     public double TurbineRPM { get; private set; }               // rpm
+
+    // ---- Main generator electrical state (single writer: UpdateGenerator) · 主發電機電氣狀態 ----
+    // Real power P = ElectricPowerMW (set by the turbine/EHC); the generator model adds the reactive/voltage
+    // side: excitation/AVR → terminal voltage, MVAR, power factor, field current, plus grid-frequency,
+    // synchroscope (slip/phase + 25 sync-check), and the protective relays that trip the unit.
+    public double ReactiveMVAR        { get; private set; }            // MVAR  (+lag/overexcited, −lead/underexcited)
+    public double ApparentMVA         { get; private set; }            // MVA   √(P²+Q²)
+    public double PowerFactor         { get; private set; } = 0.90;    // cos φ  (0..1)
+    public bool   PowerFactorLeading  { get; private set; }           // true ⇒ leading (underexcited), false ⇒ lagging
+    public double TerminalKV          { get; private set; } = RatedTerminalKV; // kV line-to-line
+    public double FieldCurrentPu      { get; private set; } = 1.0;    // p.u. excitation (display + overexcitation cue)
+    public double GridFrequencyHz     { get; private set; } = GenRatedFreqHz;  // Hz  (= 60 when synchronized)
+    public double StatorCurrentA      { get; private set; }            // A   armature-ammeter readout
+    public double SlipHz              { get; private set; }            // Hz  generator-vs-grid beat (0 when synced)
+    public double SyncPhaseAngleDeg   { get; private set; }            // deg synchroscope, signed (−180,180]
+    public bool   SyncCheckPermissive { get; private set; }           // ANSI 25 — close-breaker window satisfied
+    public bool   GeneratorLockout86  { get; private set; }           // latched electrical lockout (hand-reset)
+    // Per-relay tripped lamps (display):
+    public bool R32Tripped { get; private set; }   // 32  reverse power (anti-motoring)
+    public bool R40Tripped { get; private set; }   // 40  loss of field
+    public bool R24Tripped { get; private set; }   // 24  volts-per-hertz overexcitation
+    public bool R27Tripped { get; private set; }   // 27  undervoltage
+    public bool R59Tripped { get; private set; }   // 59  overvoltage
+    public bool R81Tripped { get; private set; }   // 81  over/under frequency
+
+    // ---- Operator-settable generator controls (benign defaults: at-power plant stays nominal) ----
+    public enum AvrMode { AutoVoltage, ConstantPf, ConstantMvar, Manual }
+    // Default constant-PF at 0.90 lagging — the textbook rated operating point: at 1150 MW it schedules
+    // Q = 1150·tan(acos 0.90) ≈ 557 MVAR and scales reactive with load. (AutoVoltage on a stiff bus at exactly
+    // rated voltage would float at ~0 MVAR.)
+    public AvrMode GenAvrMode        { get; set; } = AvrMode.ConstantPf;
+    public double  VoltageSetpointPu { get; set; } = 1.00;   // AVR-Auto terminal-voltage target (0.95..1.05)
+    public double  PfSetpoint        { get; set; } = 0.90;   // constant-PF target (lagging)
+    public double  MvarSetpoint      { get; set; } = RatedMVARLag; // constant-MVAR target
+    public double  ManualFieldPu     { get; set; } = 1.00;   // Manual-mode open-loop field current (0.0..2.6)
+    public bool    SyncInterlock     { get; set; }           // DEFAULT OFF — breaker toggle stays unconditional
+    public bool    GenProtectionArmed { get; set; } = true;  // relays armed; act only on genuine abnormal conditions
 
     // Pressurizer saturated-volume model — primary pressure tracks the saturation pressure of _tpzr.
     private double _tpzr = ColdTemp;                 // pressurizer liquid temperature (°C) — sets primary pressure
@@ -1372,6 +1449,165 @@ public sealed class ReactorSimService
         if (TurbineRPM <= SyncRpm * 0.90) TurbineTripped = false;
     }
 
+    // ===================== Main generator electrical model · 主發電機電氣模型 =====================
+    // Generic protective-relay element: definite-time accumulated-time-above-pickup. Each substep, if the
+    // measured quantity is past pickup, integrate dt; when the accumulator reaches Delay the relay operates.
+    // Dropping back below pickup resets the accumulator (definite-time characteristic).
+    private sealed class RelayTimer
+    {
+        public double Delay;            // s to operate
+        private double _acc;            // accumulated time above pickup
+        public bool Operated { get; private set; }
+        public bool Step(bool above, double dt)
+        {
+            if (above) { _acc += dt; if (_acc >= Delay) Operated = true; }
+            else _acc = 0;
+            return Operated;
+        }
+        public void Reset() { _acc = 0; Operated = false; }
+    }
+    private readonly RelayTimer _r32   = new() { Delay = R32DelayS };
+    private readonly RelayTimer _r40z1 = new() { Delay = R40Z1DelayS };
+    private readonly RelayTimer _r40z2 = new() { Delay = R40Z2DelayS };
+    private readonly RelayTimer _r24   = new() { Delay = R24DelayS };
+    private readonly RelayTimer _r27   = new() { Delay = R27DelayS };
+    private readonly RelayTimer _r59s1 = new() { Delay = R59S1DelayS };
+    private readonly RelayTimer _r59s2 = new() { Delay = R59S2DelayS };
+    private readonly RelayTimer _r81o  = new() { Delay = R81ODelayS };
+    private readonly RelayTimer _r81u  = new() { Delay = R81UDelayS };
+
+    /// <summary>
+    /// 發電機跳脫（86 閉鎖）· Generator trip — the ANSI 86 lockout. Opens the 24 kV generator breaker and
+    /// trips the turbine (the existing, non-destructive stop-valve latch). The reactor scram that may follow
+    /// is the PRE-EXISTING anticipatory permissive that arms on an open generator breaker / turbine trip at
+    /// power — this method never touches the meltdown-arm path or calls Scram() directly. Hand-reset.
+    /// </summary>
+    public void GeneratorTrip(string en, string zh)
+    {
+        if (GeneratorLockout86) return;                  // already locked out (seal-in until reset)
+        GeneratorLockout86 = true;
+        LastTripFunctionEn = "Generator: " + en;
+        LastTripFunctionZh = "發電機：" + zh;
+        GeneratorBreakerClosed = false;                  // open the 24 kV breaker (anticipatory permissive sees this)
+        TripTurbine();                                   // existing stop-valve latch
+    }
+
+    /// <summary>
+    /// 重置發電機閉鎖 · Reset the latched generator (86) lockout — permitted only once the machine is dead
+    /// (shaft coasted below ~90 % speed), mirroring ResetTurbineTrip().
+    /// </summary>
+    public void ResetGeneratorTrip()
+    {
+        if (TurbineRPM > SyncRpm * 0.90) return;
+        GeneratorLockout86 = false;
+        _r32.Reset(); _r40z1.Reset(); _r40z2.Reset(); _r24.Reset();
+        _r27.Reset(); _r59s1.Reset(); _r59s2.Reset(); _r81o.Reset(); _r81u.Reset();
+        R32Tripped = R40Tripped = R24Tripped = R27Tripped = R59Tripped = R81Tripped = false;
+    }
+
+    /// <summary>
+    /// 主發電機電氣每子步更新 · Per-substep generator electrical update. Real power P is already set by the
+    /// turbine block; here the excitation/AVR drives reactive power Q toward the active setpoint (clamped to
+    /// the reactive-capability curve), derives terminal voltage / power factor / field current / stator
+    /// current, computes grid frequency and the synchroscope (slip + phase + 25 sync-check) while unsynced,
+    /// and evaluates the generator protective relays. Called from UpdateSecondary after ElectricPowerMW.
+    /// </summary>
+    private void UpdateGenerator(double dt)
+    {
+        bool synced = GeneratorBreakerClosed && !TurbineTripped;
+        double P = ElectricPowerMW;                                  // MW real power (single writer upstream)
+
+        // --- grid/generator frequency: locked to the grid when synchronized, else from shaft speed ---
+        GridFrequencyHz = synced ? GenRatedFreqHz : TurbineRPM / SyncRpm * GenRatedFreqHz;
+
+        // --- synchroscope: slip + rotating phase angle + 25 sync-check (only while the breaker is open) ---
+        if (!GeneratorBreakerClosed)
+        {
+            SlipHz = GridFrequencyHz - GenRatedFreqHz;
+            double ang = SyncPhaseAngleDeg + SlipHz * 360.0 * dt;    // ∫ slip dt = relative phase
+            ang = ((ang % 360.0) + 360.0) % 360.0;
+            if (ang > 180.0) ang -= 360.0;                          // signed (−180,180]
+            SyncPhaseAngleDeg = ang;
+            double voltMismatchPct = Math.Abs(TerminalKV - RatedTerminalKV) / RatedTerminalKV * 100.0;
+            SyncCheckPermissive = Math.Abs(SlipHz) <= SyncMaxSlipHz
+                               && Math.Abs(ang) <= SyncMaxAngleDeg
+                               && voltMismatchPct <= SyncMaxVoltPct
+                               && TurbineRPM > SyncRpm * 0.5;        // generator actually spinning ("hot" bus)
+        }
+        else { SlipHz = 0.0; SyncPhaseAngleDeg = 0.0; SyncCheckPermissive = true; }
+
+        // --- AVR / reactive power: demand by mode, first-order tracked, clamped to the capability curve ---
+        double qDemand;
+        if (!synced) qDemand = 0.0;                                  // floating offline ⇒ ~0 MVAR
+        else switch (GenAvrMode)
+        {
+            case AvrMode.ConstantPf:
+            {
+                double phi = Math.Acos(Math.Clamp(PfSetpoint, 0.01, 1.0));
+                qDemand = P * Math.Tan(phi);                        // Q scheduled ∝ MW at the set PF
+                break;
+            }
+            case AvrMode.ConstantMvar:
+                qDemand = MvarSetpoint;
+                break;
+            case AvrMode.Manual:
+                qDemand = (ManualFieldPu - 0.5) / 0.5 * RatedMVARLag; // open-loop field → VARs (0.5 pu ⇒ 0 MVAR)
+                break;
+            default: // AutoVoltage — droop-compensated terminal-voltage regulator
+            {
+                double vtPu = TerminalKV / RatedTerminalKV;
+                double qPu  = ReactiveMVAR / RatedMVA;
+                double vErr = VoltageSetpointPu - (vtPu + AvrDroopFrac * qPu);
+                qDemand = ReactiveMVAR + (vErr / AvrDroopFrac) * RatedMVA;
+                break;
+            }
+        }
+        qDemand = Math.Clamp(qDemand, QMinUnderexcMVAR, QMaxOverexcMVAR);
+        ReactiveMVAR += (qDemand - ReactiveMVAR) * Math.Min(1.0, dt / AvrTimeConstS); // exciter lag
+
+        // --- algebraic electrical readouts ---
+        ApparentMVA       = Math.Sqrt(P * P + ReactiveMVAR * ReactiveMVAR);
+        PowerFactor       = ApparentMVA > 1e-6 ? Math.Abs(P) / ApparentMVA : 1.0;
+        PowerFactorLeading = ReactiveMVAR < 0.0;                    // leading ⇒ underexcited (absorbing VARs)
+        StatorCurrentA    = ApparentMVA * 1e6 / (Math.Sqrt(3.0) * RatedTerminalKV * 1e3);
+        // Field-current proxy calibrated so the rated point (P=1150 MW, Q≈557 MVAR) reads ≈1.0 p.u.; no-load
+        // no-VAR ≈0.40 p.u. (near the air-gap line); rises with both real and reactive (overexcited) loading.
+        FieldCurrentPu    = 0.40 + 0.30 * (P / RatedElectricMW) + 0.30 * (ReactiveMVAR / RatedMVARLag);
+        // terminal voltage tracks the AVR voltage setpoint (AutoVoltage) with the same exciter lag, else 1.0 pu
+        double vTarget    = (GenAvrMode == AvrMode.AutoVoltage ? VoltageSetpointPu : 1.0) * RatedTerminalKV;
+        TerminalKV       += (vTarget - TerminalKV) * Math.Min(1.0, dt / AvrTimeConstS);
+
+        // --- protective relays (armed, breaker closed, not already locked out) ---
+        if (!GenProtectionArmed || !GeneratorBreakerClosed || GeneratorLockout86)
+        {
+            if (!GeneratorBreakerClosed)
+            {
+                _r32.Reset(); _r40z1.Reset(); _r40z2.Reset(); _r24.Reset();
+                _r27.Reset(); _r59s1.Reset(); _r59s2.Reset(); _r81o.Reset(); _r81u.Reset();
+            }
+            return;
+        }
+        double Qpu  = ReactiveMVAR / RatedMVA;
+        double Vpu  = TerminalKV / RatedTerminalKV;
+        double VpHz = Vpu / (GridFrequencyHz / GenRatedFreqHz);
+
+        // 32 reverse power — SEQUENTIAL: only counts once steam is gone (turbine tripped) and the machine motors
+        bool motoring = P < R32PickupFrac * RatedElectricMW;        // P < −11.5 MW (into the generator)
+        if (_r32.Step(motoring && TurbineTripped, dt)) { R32Tripped = true; GeneratorTrip("32 Reverse Power", "逆功率"); return; }
+        // 40 loss of field (scalar MVAR proxy for the two offset-mho zones)
+        if (_r40z1.Step(Qpu < R40Z1QpuPickup, dt) || _r40z2.Step(Qpu < R40Z2QpuPickup, dt))
+        { R40Tripped = true; GeneratorTrip("40 Loss of Field", "失磁"); return; }
+        // 24 volts-per-hertz overexcitation (hi-set)
+        if (_r24.Step(VpHz > R24VHzPickup, dt)) { R24Tripped = true; GeneratorTrip("24 Volts-per-Hertz", "過勵磁 V/Hz"); return; }
+        // 27 / 59 voltage
+        if (_r27.Step(Vpu < R27Pickup, dt)) { R27Tripped = true; GeneratorTrip("27 Undervoltage", "低電壓"); return; }
+        if (_r59s1.Step(Vpu > R59S1Pickup, dt) || _r59s2.Step(Vpu > R59S2Pickup, dt))
+        { R59Tripped = true; GeneratorTrip("59 Overvoltage", "過電壓"); return; }
+        // 81 over/under frequency
+        if (_r81o.Step(GridFrequencyHz > R81OPickup, dt)) { R81Tripped = true; GeneratorTrip("81O Overfrequency", "過頻"); return; }
+        if (_r81u.Step(GridFrequencyHz < R81UPickup, dt)) { R81Tripped = true; GeneratorTrip("81U Underfrequency", "低頻"); return; }
+    }
+
     public void SetMode(ReactorMode m)
     {
         if (Mode == ReactorMode.Meltdown) return;
@@ -1750,6 +1986,11 @@ public sealed class ReactorSimService
         _dilutionActive = false; _dilutionFlowGpm = 0; _dilutionCpsRef = 1.0;
         PressurizerHeater = false; PressurizerSpray = false; RcpFlowDemand = 0;
         FeedwaterFlow = 0; TurbineLoadSetpoint = 0; GeneratorBreakerClosed = false;
+        // Generator electrical: back to a de-excited, offline machine.
+        ReactiveMVAR = 0; ApparentMVA = 0; PowerFactor = 0.90; PowerFactorLeading = false;
+        TerminalKV = RatedTerminalKV; FieldCurrentPu = 1.0; GridFrequencyHz = GenRatedFreqHz;
+        StatorCurrentA = 0; SlipHz = 0; SyncPhaseAngleDeg = 0; SyncCheckPermissive = false;
+        ResetGeneratorTrip();
         ReliefValveOpen = false; EccsArmed = false; EccsInjecting = false;
         CoolantFlowFraction = 0; DamageAccumulation = 0;
         IsScrammed = false; MeltdownTriggered = false; AutoRodControl = false;
@@ -3359,6 +3600,9 @@ public sealed class ReactorSimService
         else
             ElectricPowerMW += (0 - ElectricPowerMW) * Math.Min(1, dt / 2.0);
         if (ElectricPowerMW < 0) ElectricPowerMW = 0;
+
+        // 11) Main generator electrical (reactive/voltage side, synchroscope, protective relays).
+        UpdateGenerator(dt);
     }
 
     // ===================== Main condenser vacuum / backpressure · 主凝汽器真空／背壓 =====================

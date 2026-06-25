@@ -214,6 +214,33 @@ public static class ReactorScenarios
             Bands((0, 15, "danger"), (15, 30, "warn"), (30, 60, "normal")),
             Sets((15, "15-min criterion", "15分鐘準則"), (30, "30-min (Mode 6)", "30分鐘（模式6）"))),
 
+        // ---- Main generator electrical (4-pole, 60 Hz, 1300 MVA / 0.90 PF / 24 kV synchronous machine) ----
+        // Reactive power (MVAR). Capability curve: overexcited (lagging) +567 MVAR rotor/field-heating limit;
+        // underexcited (leading) −350 MVAR end-core/stability limit. Rated operating point ≈ +557 MVAR.
+        "genMvar" => (-400, 600,
+            Bands((-400, -350, "danger"), (-350, 0, "warn"), (0, 567, "normal"), (567, 600, "danger")),
+            Sets((-350, "Underexc limit", "欠勵限值"), (567, "Overexc limit", "過勵限值"))),
+
+        // Terminal voltage (kV). AVR holds 24 kV (1.0 p.u.); 27 trips at 0.80 p.u. (19.2 kV), 59 at 1.10 p.u.
+        "genKv" => (20, 27,
+            Bands((20, 22.8, "danger"), (22.8, 23.5, "warn"), (23.5, 24.5, "normal"), (24.5, 26.4, "warn"), (26.4, 27, "danger")),
+            Sets((19.2, "27 UV", "低壓"), (26.4, "59 OV", "過壓"))),
+
+        // Power factor (cos φ). 0.90 lagging is the rated overexcited limit; green near unity / lagging.
+        "genPf" => (0.80, 1.00,
+            Bands((0.80, 0.88, "warn"), (0.88, 1.00, "normal")),
+            Sets((0.90, "Rated PF", "額定功率因數"))),
+
+        // Grid frequency (Hz). 60 ± 0.05 normal; 81U trips 57.5 Hz, 81O trips 62.0 Hz (turbine-blade fatigue).
+        "genHz" => (57, 63,
+            Bands((57, 57.5, "danger"), (57.5, 59.5, "warn"), (59.5, 60.5, "normal"), (60.5, 62, "warn"), (62, 63, "danger")),
+            Sets((57.5, "81U", "低頻"), (62.0, "81O", "過頻"))),
+
+        // Field (excitation) current (p.u.). 1.0 at rated; ceiling ~2.6 on forcing; overexcitation cue >1.1.
+        "genIfd" => (0, 2.6,
+            Bands((0, 0.4, "warn"), (0.4, 1.1, "normal"), (1.1, 2.6, "warn")),
+            Sets((1.0, "Rated field", "額定勵磁"))),
+
         _ => (0, 100, Array.Empty<GaugeBand>(), Array.Empty<GaugeSetpoint>()),
     };
 
