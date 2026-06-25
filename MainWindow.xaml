@@ -178,6 +178,7 @@
                         <NavigationViewItem Content="Cloudflare &amp; Tunnel · Cloudflare 與 Tunnel" Tag="module.cloudflare"><NavigationViewItem.Icon><FontIcon Glyph="&#xE753;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="In-App Login · 內置登入" Tag="module.weblogin"><NavigationViewItem.Icon><FontIcon Glyph="&#xE77B;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="SSH Toolset · SSH 工具" Tag="module.ssh"><NavigationViewItem.Icon><FontIcon Glyph="&#xE756;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="API Client · REST API 用戶端" Tag="module.apiclient"><NavigationViewItem.Icon><FontIcon Glyph="&#xEB41;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Packer (Image Builder) · Packer（映像建置器）" Tag="module.packer"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7B8;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="World Monitor · 世界監察" Tag="module.worldmonitor"><NavigationViewItem.Icon><FontIcon Glyph="&#xE909;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Website Cloner · 網站複製器" Tag="module.webcloner"><NavigationViewItem.Icon><FontIcon Glyph="&#xE774;" /></NavigationViewItem.Icon></NavigationViewItem>

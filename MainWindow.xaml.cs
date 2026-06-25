@@ -220,6 +220,13 @@ public sealed partial class MainWindow : Window
             case "llama":
                 Navigator.GoToModule?.Invoke("module.ollama");
                 break;
+            case "api":
+            case "apiclient":
+            case "postman":
+            case "rest":
+            case "http":
+                Navigator.GoToModule?.Invoke("module.apiclient");
+                break;
             case "bitwarden":
             case "bw":
             case "passwords":
@@ -872,6 +879,7 @@ public sealed partial class MainWindow : Window
         "module.vault-volumes" => typeof(VaultVolumesModule),
         "module.worldmonitor" => typeof(WorldMonitorModule),
         "module.timelens" => typeof(TimeLensModule),
+        "module.apiclient" => typeof(ApiClientModule),
         _ => typeof(DashboardPage),
     };
 
