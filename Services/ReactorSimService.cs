@@ -2439,6 +2439,14 @@ public sealed class ReactorSimService
         CcwColdTempC = CcwColdNominalC; CcwHotTempC = 43.0; CcwSurgeTankPct = 62.0;
         CcwFlowFrac = 1.0; CcwAvailable = true; CcwThermalBarrierCoolingOk = true; CcwHeatLoadMw = 0;
         PrimaryDeficitPct = 0;
+        // CVCS / Volume Control Tank back to its balanced cold-shutdown alignment (net-zero VCT inventory).
+        VctLevelPct = CvcsVctNominalLevelPct; VctPressureKpa = CvcsVctPressureNominalKpa;
+        BlenderMode = CvcsBlenderMode.Automatic; MakeupBlendBoronPpm = NominalBoron;
+        ChargingFlowGpm = CvcsNormalChargingNomGpm + CvcsSealInjectionTotalGpm;
+        NormalChargingFlowGpm = CvcsNormalChargingNomGpm; SealInjectionFlowGpm = CvcsSealInjectionTotalGpm;
+        SealLeakoffReturnGpm = CvcsSealLeakoffReturnNomGpm; LetdownFlowGpm = CvcsLetdownNominalGpm;
+        MakeupBlendFlowGpm = 0; BoricAcidFlowGpm = 0; ReactorMakeupWaterFlowGpm = 0;
+        VctDivertFlowGpm = 0; ChargingSuctionOnRwst = false;
         // Boric-acid precipitation monitor back to a clean, well-mixed, no-recirc state.
         CoreBoronPpm = NominalBoron; HotLegRecircActive = false; Precipitated = false;
         BoricSolubilityLimitPpm = BoricSolubilityPpm(Thot); TimeToPrecipSeconds = double.PositiveInfinity;
@@ -3581,6 +3589,94 @@ public sealed class ReactorSimService
     }
 
     /// <summary>
+    /// 化學及容積控制系統存量／流量層 · CVCS inventory/flow layer (charging, letdown, seal injection, the
+    /// Volume Control Tank and the boric-acid/RMW makeup blender). Runs inside the kinetics sub-step so it
+    /// reads this step's final pressurizer level + surge rate. STRICTLY read-mostly: the only integrated
+    /// state it owns is the VCT level (and the derived VCT cover-gas pressure). It never writes
+    /// PressurizerLevel, PrimaryPressure or BoronPpm — those keep their existing single authors.
+    /// Deterministic: pure function of current state + h, no wall-clock and no RNG, so it is identical under
+    /// the concurrent scheduled-reactor runs.
+    /// </summary>
+    private void ComputeCvcs(double h, double pzrLevelRatePctPerSec)
+    {
+        // --- 1) letdown: a fixed orifice flow, forced to zero the instant the existing CCW-temperature
+        //        latch isolates letdown (LetdownIsolated is authored by the CCW model; we only read it). ---
+        LetdownFlowGpm = LetdownIsolated ? 0.0 : CvcsLetdownNominalGpm;
+
+        // --- 2) seal injection: fixed demand to the 4 RCP packages. The #1-seal leakoff RETURN to the VCT is
+        //        capped at the controlled bleed-off — under a seal LOCA the runaway flow goes out the failed
+        //        seal to the containment floor (already driving PrimaryDeficitPct elsewhere), NOT back to the
+        //        VCT, so the tank correctly DRAINS rather than spuriously filling. ---
+        SealInjectionFlowGpm = CvcsSealInjectionTotalGpm;
+        SealLeakoffReturnGpm = Math.Min(SealLeakGpmTotal, CvcsSealLeakoffReturnNomGpm);
+
+        // --- 3) charging: the REVEALED mechanism behind the existing pressurizer-level loop. It is the sum of
+        //        the steady normal-charging line, seal injection, a proportional response to level error
+        //        (below program → charge harder) and a response to an outsurge (−d(level)/dt), clamped to the
+        //        physical pump band. This NEVER writes PressurizerLevel — it is purely diagnostic flow. ---
+        double levelError = NominalPzrLevel - PressurizerLevel; // + when below program → charge harder
+        ChargingFlowGpm = Math.Clamp(
+            CvcsNormalChargingNomGpm + SealInjectionFlowGpm
+              + CvcsChargingLevelGainGpmPerPct * levelError
+              + CvcsChargingSurgeGainGpmPerPctPerSec * (-pzrLevelRatePctPerSec),
+            CvcsChargingMinGpm, CvcsChargingMaxGpm);
+        NormalChargingFlowGpm = Math.Max(0.0, ChargingFlowGpm - SealInjectionFlowGpm);
+
+        // --- 4) integrate the VCT level (the one new state). Charging pumps take suction FROM the VCT; letdown
+        //        and the #1 leakoff return TO it; auto-makeup adds, divert removes. Net is ~0 at the calibrated
+        //        steady state (75 + 12 − 87 = 0). Use the PREVIOUS sub-step's makeup/divert to avoid an
+        //        algebraic loop, then re-evaluate the controller below. ---
+        double netVctGpm = LetdownFlowGpm + SealLeakoffReturnGpm + MakeupBlendFlowGpm
+                           - ChargingFlowGpm - VctDivertFlowGpm;
+        VctLevelPct = Math.Clamp(VctLevelPct + netVctGpm * CvcsVctGainPctPerGpmSec * h, 0.0, 100.0);
+
+        // --- 5) makeup blender / divert controller (mutually exclusive — the bands do not overlap). In the
+        //        low band, demand blended makeup proportional to the deficit; in the high band, divert letdown
+        //        to the holdup tank. The blend MATCHES current RCS boron in AUTOMATIC (zero net reactivity);
+        //        none of this writes BoronPpm. ---
+        double makeupBand = CvcsVctNominalLevelPct - CvcsVctLevelDeadbandPct; // 50%
+        double divertBand = CvcsVctNominalLevelPct + CvcsVctLevelDeadbandPct; // 60%
+        if (VctLevelPct < makeupBand)
+        {
+            MakeupBlendFlowGpm = Math.Clamp(CvcsMakeupGainGpmPerPct * (makeupBand - VctLevelPct),
+                                            0.0, CvcsBlenderMakeupMaxGpm);
+            VctDivertFlowGpm = 0.0;
+        }
+        else if (VctLevelPct > divertBand)
+        {
+            VctDivertFlowGpm = Math.Clamp(CvcsDivertGainGpmPerPct * (VctLevelPct - divertBand),
+                                          0.0, CvcsBlenderMakeupMaxGpm);
+            MakeupBlendFlowGpm = 0.0;
+        }
+        else { MakeupBlendFlowGpm = 0.0; VctDivertFlowGpm = 0.0; }
+
+        // Blend boron concentration by mode (display intent only — UpdateBoron remains the sole boron author).
+        MakeupBlendBoronPpm = BlenderMode switch
+        {
+            CvcsBlenderMode.Borate => CvcsBoricAcidTankPpm,  // boric-acid only
+            CvcsBlenderMode.Dilute => 0.0,                   // RMW only
+            CvcsBlenderMode.AlternateDilute => 0.0,          // RMW in, equal letdown to holdup
+            _ => BoronPpm,                                    // AUTOMATIC: match RCS boron (no net reactivity)
+        };
+        // Split the blend into its boric-acid and RMW legs so the operator sees the mix that holds boron.
+        double baFrac = CvcsBoricAcidTankPpm > 1e-6 ? Math.Clamp(MakeupBlendBoronPpm / CvcsBoricAcidTankPpm, 0.0, 1.0) : 0.0;
+        BoricAcidFlowGpm = MakeupBlendFlowGpm * baFrac;
+        ReactorMakeupWaterFlowGpm = MakeupBlendFlowGpm - BoricAcidFlowGpm;
+
+        // Very-low VCT level swaps the charging-pump suction to the RWST (display/interlock latch).
+        ChargingSuctionOnRwst = VctLevelPct < CvcsVctLevelLowLowSwapPct;
+
+        // --- 6) VCT cover-gas pressure: relax toward a level-coupled target (higher level compresses the H₂
+        //        cushion), clamped to the operating band. ---
+        double pTarget = Math.Clamp(
+            CvcsVctPressureNominalKpa + (VctLevelPct - CvcsVctNominalLevelPct) * CvcsVctPressKpaPerPct,
+            CvcsVctPressureMinKpa, CvcsVctPressureMaxKpa);
+        VctPressureKpa = Math.Clamp(
+            VctPressureKpa + (pTarget - VctPressureKpa) * Math.Min(1.0, CvcsVctPressRelaxPerSec * h),
+            CvcsVctPressureMinKpa, CvcsVctPressureMaxKpa);
+    }
+
+    /// <summary>
     /// 推進 1E 級配電並施加其供電閘 · Advance the Class 1E electrical model and apply its availability gates.
     /// SBO is LOOP (offsite lost) coincident with both EDGs failing — exactly the design-basis definition.
     /// </summary>
@@ -4621,6 +4717,10 @@ public sealed class ReactorSimService
         SetAlarm(ReactorAlarm.RcsPressureBoundaryLeak,     PressureBoundaryLeakGpm > PbLeakLimitGpm);     // NONE allowed
         SetAlarm(ReactorAlarm.ContainmentParticulateRadHi, ParticulateMonitorRatio >= 1.0);
         SetAlarm(ReactorAlarm.ContainmentGaseousRadHi,     GaseousMonitorRatio     >= 1.0);
+        // CVCS / VCT inventory annunciators: auto-makeup demanded, letdown diverted, and the very-low suction swap.
+        SetAlarm(ReactorAlarm.VctLowLevelMakeup, VctLevelPct < CvcsVctLevelLowMakeupPct || MakeupBlendFlowGpm > 0.5);
+        SetAlarm(ReactorAlarm.VctHighLevelDivert, VctDivertFlowGpm > 0.5);
+        SetAlarm(ReactorAlarm.ChargingSuctionRwst, ChargingSuctionOnRwst);
         SetAlarm(ReactorAlarm.SteamlineBreak, _mslbSeverity > 0 && !MslbIsolated);
         SetAlarm(ReactorAlarm.SafetyInjection, SiActuated);
         SetAlarm(ReactorAlarm.PzrCodeSafetyOpen, AnyPzrCodeSafetyOpen);

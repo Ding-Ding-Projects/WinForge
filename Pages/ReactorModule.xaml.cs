@@ -549,6 +549,28 @@ public sealed partial class ReactorModule : Page
             () => $"{_sim.CcwColdTempC:F0}/{_sim.CcwHotTempC:F0}°C · {_sim.CcwFlowFrac * 100:F0}% · {_sim.CcwHeatLoadMw:F0} MW"
                   + (_sim.CcwAvailable ? "" : P(" · NO CCW", " · 喪失CCW")) + (_sim.LetdownIsolated ? P(" · LTDN ISO", " · 下泄隔離") : ""),
             warnFrac: 46.1 / 70.0, id: "ccwTemp");
+        // Chemical & Volume Control System (CVCS): charging / letdown inventory balance, RCP seal injection,
+        // the Volume Control Tank and the boric-acid / reactor-makeup-water blender. Charging is the revealed
+        // mechanism behind the pressurizer-level loop; letdown reads ISO when the CCW latch isolates it.
+        AddGauge("Charging flow", "上充流量", 0, 150, () => _sim.ChargingFlowGpm,
+            () => $"{_sim.ChargingFlowGpm:F0} gpm" + P($" (chg {_sim.NormalChargingFlowGpm:F0}+seal {_sim.SealInjectionFlowGpm:F0})",
+                                                       $"（充水 {_sim.NormalChargingFlowGpm:F0}＋軸封 {_sim.SealInjectionFlowGpm:F0}）"),
+            id: "charging");
+        AddGauge("Letdown flow", "下泄流量", 0, 165, () => _sim.LetdownFlowGpm,
+            () => _sim.LetdownIsolated ? P("ISOLATED", "已隔離") : $"{_sim.LetdownFlowGpm:F0} gpm"
+                  + (_sim.VctDivertFlowGpm > 0.5 ? P($" · divert {_sim.VctDivertFlowGpm:F0}", $" · 分流 {_sim.VctDivertFlowGpm:F0}") : ""),
+            id: "letdown");
+        AddGauge("VCT level", "容積控制缸液位", 0, 100, () => _sim.VctLevelPct,
+            () => $"{_sim.VctLevelPct:F0}%" + (_sim.ChargingSuctionOnRwst ? P(" · RWST", " · 換料水缸") : ""),
+            warnFrac: 0.85, id: "vctLevel");
+        AddGauge("VCT pressure", "容積控制缸壓力", 0, 700, () => _sim.VctPressureKpa,
+            () => $"{_sim.VctPressureKpa / 6.895:F0} psig · {_sim.VctPressureKpa:F0} kPa", warnFrac: 600.0 / 700.0, id: "vctPress");
+        AddGauge("Makeup / blend", "補水／混合", 0, 120, () => _sim.MakeupBlendFlowGpm,
+            () => _sim.MakeupBlendFlowGpm < 0.5 ? P("idle", "待命")
+                  : $"{_sim.MakeupBlendFlowGpm:F0} gpm @ {_sim.MakeupBlendBoronPpm:F0} ppm"
+                    + P($" (BA {_sim.BoricAcidFlowGpm:F0}/RMW {_sim.ReactorMakeupWaterFlowGpm:F0})",
+                        $"（硼酸 {_sim.BoricAcidFlowGpm:F0}／淡水 {_sim.ReactorMakeupWaterFlowGpm:F0}）"),
+            warnFrac: 0.9, id: "cvcsMakeup");
         // RCS operational LEAKAGE (LCO 3.4.13) + RG 1.45 / LCO 3.4.15 leak-detection instrumentation.
         // Unidentified LEAKAGE — limit 1 gpm; band warns at the LCO setpoint. Inferred-rate is the RG 1.45 sump channel.
         AddGauge("Unidentified leak", "未辨識洩漏", 0, 3, () => _sim.UnidentifiedLeakGpm,
@@ -823,6 +845,9 @@ public sealed partial class ReactorModule : Page
             (ReactorAlarm.CcwSurgeTankAbnormal, "CCW SURGE TANK ABNORMAL", "設備冷卻水穩壓缸水位異常"),
             (ReactorAlarm.UhsTempHi, "UHS TEMP HI (SR 3.7.9.1)", "最終熱阱高溫（SR 3.7.9.1）"),
             (ReactorAlarm.LetdownIsolatedCcw, "LETDOWN ISOLATED (CCW)", "淨化下泄已隔離（設備冷卻水）"),
+            (ReactorAlarm.VctLowLevelMakeup, "VCT LO LVL · MAKEUP", "容積控制缸低液位·補水"),
+            (ReactorAlarm.VctHighLevelDivert, "VCT HI LVL · DIVERT", "容積控制缸高液位·分流"),
+            (ReactorAlarm.ChargingSuctionRwst, "CHG SUCTION → RWST", "上充吸入切換換料水缸"),
         };
         foreach (var (a, en, zh) in defs)
         {
@@ -1593,6 +1618,25 @@ public sealed partial class ReactorModule : Page
         pzrPanel.Children.Add(MakeToggle("Spray · 噴淋", "噴淋 · Spray", v => _sim.PressurizerSpray = v));
         pzrPanel.Children.Add(MakeToggle("Relief valve · 釋壓閥", "釋壓閥 · Relief valve", v => _sim.ReliefValveOpen = v));
         host.Children.Add(WrapLabel("Pressurizer & relief · 穩壓器與釋壓", "穩壓器與釋壓 · Pressurizer & relief", pzrPanel));
+
+        // CVCS boric-acid / reactor-makeup-water blender mode. Only AUTOMATIC is auto-driven by the VCT level
+        // controller (and matches current RCS boron → zero net reactivity); the others are operator-intent
+        // selections shown in the makeup readout. None of them writes BoronPpm — boron stays single-authored.
+        var blenderCombo = new ComboBox { MinWidth = 220 };
+        blenderCombo.Items.Add(P("Auto (match RCS) · 自動（匹配一次側）", "自動（匹配一次側）· Auto (match RCS)"));
+        blenderCombo.Items.Add(P("Borate · 加硼", "加硼 · Borate"));
+        blenderCombo.Items.Add(P("Dilute · 稀釋", "稀釋 · Dilute"));
+        blenderCombo.Items.Add(P("Alternate dilute · 交替稀釋", "交替稀釋 · Alternate dilute"));
+        blenderCombo.SelectedIndex = 0; // AUTOMATIC matches the sim default
+        blenderCombo.SelectionChanged += (_, _) => _sim.BlenderMode = blenderCombo.SelectedIndex switch
+        {
+            1 => CvcsBlenderMode.Borate,
+            2 => CvcsBlenderMode.Dilute,
+            3 => CvcsBlenderMode.AlternateDilute,
+            _ => CvcsBlenderMode.Automatic,
+        };
+        host.Children.Add(WrapLabel("CVCS makeup blender mode · 化容系統補水混合器模式",
+            "化容系統補水混合器模式 · CVCS makeup blender mode", blenderCombo));
 
         var safetyPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
         safetyPanel.Children.Add(MakeToggle("Arm ECCS · 啟用應急冷卻", "啟用應急冷卻 · Arm ECCS", v => _sim.EccsArmed = v));
