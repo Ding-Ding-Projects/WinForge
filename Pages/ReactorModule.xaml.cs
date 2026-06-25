@@ -107,16 +107,19 @@ public sealed partial class ReactorModule : Page
 
         Loaded += async (_, _) =>
         {
-            BuildControls();
-            BuildGauges();
-            BuildAlarmTiles();
-            BuildStripCharts();
-            BuildCsfPanel();
-            BuildRpsPanel();
-            BuildScenarioCombo();
-            DrawMimicStatic();
-            InitFx();
-            Render();
+            // Build each section under its own guard so a single control failure can never blank the
+            // whole control room (Render + the live timer must still run). 逐段建構並各自防護，
+            // 任何一段失敗都唔會令整個控制室空白。
+            CrashLogger.Guard("Reactor.BuildControls", BuildControls);
+            CrashLogger.Guard("Reactor.BuildGauges", BuildGauges);
+            CrashLogger.Guard("Reactor.BuildAlarmTiles", BuildAlarmTiles);
+            CrashLogger.Guard("Reactor.BuildStripCharts", BuildStripCharts);
+            CrashLogger.Guard("Reactor.BuildCsfPanel", BuildCsfPanel);
+            CrashLogger.Guard("Reactor.BuildRpsPanel", BuildRpsPanel);
+            CrashLogger.Guard("Reactor.BuildScenarioCombo", BuildScenarioCombo);
+            CrashLogger.Guard("Reactor.DrawMimicStatic", DrawMimicStatic);
+            CrashLogger.Guard("Reactor.InitFx", InitFx);
+            CrashLogger.Guard("Reactor.Render", Render);
             _last = DateTime.UtcNow;
             _timer.Tick += Tick;
             _timer.Start();
@@ -565,6 +568,8 @@ public sealed partial class ReactorModule : Page
             (ReactorAlarm.SgtrLeak, "SGTR LEAK", "蒸發器爆管洩漏"),
             (ReactorAlarm.SecondaryRadiationHi, "2NDARY RAD HI", "二次側輻射高"),
             (ReactorAlarm.SgReliefLift, "SG RELIEF — RELEASE", "蒸發器釋壓閥洩放"),
+            (ReactorAlarm.SteamlineBreak, "STEAMLINE BREAK", "主蒸汽管爆裂"),
+            (ReactorAlarm.SafetyInjection, "SAFETY INJECTION", "安全注入 SI"),
             (ReactorAlarm.RodInsertionLimitLo, "ROD INS LIMIT LO", "控制棒插入限值 低"),
             (ReactorAlarm.RodInsertionLimitLoLo, "ROD INS LIMIT LO-LO", "控制棒插入限值 低低"),
             (ReactorAlarm.RodDeviation, "ROD DEVIATION", "控制棒偏差"),
@@ -957,8 +962,6 @@ public sealed partial class ReactorModule : Page
                 ledRow.Children.Add(led);
             }
             var fnLocal = fn; // capture
-            var topRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-            topRow.Children.Add(new Viewbox { Child = name, MaxHeight = 16, HorizontalAlignment = HorizontalAlignment.Left });
             var inner = new StackPanel { Spacing = 4, Margin = new Thickness(8, 6, 8, 6) };
             inner.Children.Add(name);
             var midRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
@@ -1070,12 +1073,17 @@ public sealed partial class ReactorModule : Page
         ScenarioCombo.Items.Add(P("ATWS (no scram)", "ATWS（未能停堆）"));
         ScenarioCombo.Items.Add(P("Xenon restart", "氙毒重啟"));
         ScenarioCombo.Items.Add(P("SGTR — tube rupture", "蒸發器爆管 SGTR"));
+        ScenarioCombo.Items.Add(P("MSLB — main steam line break", "主蒸汽管爆裂 MSLB"));
         ScenarioCombo.SelectedIndex = 0;
     }
 
     private void IsolateSg_Click(object sender, RoutedEventArgs e)
     {
-        _sim.SgtrIsolated = IsolateSgToggle.IsChecked == true;
+        bool on = IsolateSgToggle.IsChecked == true;
+        // The same operator action means "isolate the affected SG": MSIV + feedwater closure for an SGTR,
+        // MSIV closure (terminating the blowdown) for an MSLB. Route it to whichever transient is active.
+        if (ScenarioCombo.SelectedIndex == 7) _sim.MslbIsolated = on;
+        else _sim.SgtrIsolated = on;
     }
 
     private void Scenario_Changed(object sender, SelectionChangedEventArgs e)
@@ -1088,13 +1096,18 @@ public sealed partial class ReactorModule : Page
             4 => ReactorScenario.Atws,
             5 => ReactorScenario.XenonRestart,
             6 => ReactorScenario.SgTubeRupture,
+            7 => ReactorScenario.MainSteamLineBreak,
             _ => ReactorScenario.Normal,
         });
-        // The isolate-SG control is only meaningful during an SGTR.
+        // The isolate control is meaningful during an SGTR (isolate affected SG) or an MSLB (close MSIVs).
         if (IsolateSgToggle is not null)
         {
             IsolateSgToggle.IsChecked = false;
-            IsolateSgToggle.Visibility = ScenarioCombo.SelectedIndex == 6 ? Visibility.Visible : Visibility.Collapsed;
+            int idx = ScenarioCombo.SelectedIndex;
+            IsolateSgToggle.Visibility = idx is 6 or 7 ? Visibility.Visible : Visibility.Collapsed;
+            IsolateSgToggle.Content = idx == 7
+                ? P("Close MSIVs (isolate break)", "關閉主蒸汽隔離閥（隔離破口）")
+                : P("Isolate affected SG", "隔離受影響蒸發器");
         }
     }
 

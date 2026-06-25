@@ -48,6 +48,8 @@ public enum ReactorAlarm
     RodInsertionLimitLoLo,
     RodDeviation,
     AxialFluxDiffOutOfBand,
+    SteamlineBreak,
+    SafetyInjection,
 }
 
 /// <summary>
@@ -357,6 +359,22 @@ public sealed class ReactorSimService
     private const double SgtrLeakScale = 0.11;   // leak gain (1/MPa·severity) — dP-driven choked-flow surrogate
     private const double SgtrActivityGain = 2.5; // primary→secondary activity transport gain
 
+    // MSLB — main steam line break. The inverse of SGTR: a rupture downstream of the SG vents the
+    // secondary to atmosphere, crashing steam pressure. The saturation temperature collapses with it, so
+    // the SG pulls heat from the primary far faster than the turbine ever did — the RCS OVERCOOLS. With a
+    // strongly-negative end-of-cycle moderator coefficient, that cooldown inserts POSITIVE reactivity and
+    // can drive a tripped core back toward criticality (the design-basis "return to power"). Nothing here
+    // is scripted: the cooldown falls out of the existing sgRemoval/SecondarySatTemp coupling and the
+    // return-to-power out of the existing moderator feedback. We only model the break boundary condition,
+    // the low-steamline-pressure SI actuation, MSIV isolation, and the borated safety injection that wins.
+    private double _mslbSeverity;                                   // 0..1 break severity latch (0 = intact)
+    public bool MslbIsolated { get; set; }                          // operator MSIV button + auto-close on SI
+    public bool SiActuated { get; private set; }                    // latched on Lo-Steamline-Pressure SI coincidence
+    public double MslbBreakFlow { get; private set; }               // normalized break steam flow (display/diagnostic)
+    private int _mslbSiFnIndex = -1;                                // cached index of the Lo-Steamline-Press SI function
+    private const double MslbSiSetpointMpa = 4.14;                  // ≈600 psia Westinghouse Lo-Steamline-Press SI setpoint
+    private const double MslbSiBoronPpm = 2000.0;                   // borated-SI target concentration (shutdown margin)
+
     // Alarms
     private readonly bool[] _alarms = new bool[Enum.GetValues(typeof(ReactorAlarm)).Length];
     public bool Alarm(ReactorAlarm a) => _alarms[(int)a];
@@ -475,6 +493,16 @@ public sealed class ReactorSimService
         _rps.Functions.Add(new RpsFunction("Intermediate Range Flux Hi", "中間範圍中子通量－高",
             RpsTripDir.High, 0.25, () => NeutronPowerFraction,
             permissive: () => _rps.P6 && !_rps.P10, channelCount: 2));
+        // 13 — Low Steamline Pressure → Safety Injection (ESFAS). ~600 psia (4.14 MPa). 2/4. A steam-line
+        //      break crashes secondary pressure past this setpoint; the coincidence trips the reactor AND
+        //      (in UpdateProtection) actuates SI: automatic MSIV closure + borated injection. Blocked by a
+        //      P-11-style permissive (RCS not at operating pressure) so the naturally-low secondary
+        //      pressure during cold shutdown / heat-up does not spuriously actuate SI — exactly the manual
+        //      low-pressure SI block the operators insert below P-11 for cooldown.
+        Func<bool> rcsAtPressure = () => PrimaryPressure >= 10.0; // ≈P-11 (~1915 psig) arming
+        _mslbSiFnIndex = _rps.Functions.Count;
+        _rps.Functions.Add(new RpsFunction("Steamline Pressure Lo SI", "蒸汽管壓力－低（安全注入）",
+            RpsTripDir.Low, MslbSiSetpointMpa, () => SteamPressure, permissive: rcsAtPressure));
     }
 
     // ----------------------------------------------------------------- controls ----
@@ -592,6 +620,10 @@ public sealed class ReactorSimService
         _sgtrSeverity = 0;
         SgtrIsolated = false;
         PrimaryDeficitPct = 0;
+        _mslbSeverity = 0;
+        MslbIsolated = false;
+        SiActuated = false;
+        MslbBreakFlow = 0;
         switch (s)
         {
             case ReactorScenario.Normal:
@@ -618,6 +650,11 @@ public sealed class ReactorSimService
             case ReactorScenario.SgTubeRupture:
                 _sgtrSeverity = 0.45;  // ~one ruptured tube; a minutes-scale transient (0.3 gentle … 0.8 multi-tube)
                 EccsArmed = true;      // armed; ECCS auto-injects on low pressurizer pressure as the RCS drains
+                break;
+            case ReactorScenario.MainSteamLineBreak:
+                _mslbSeverity = 0.7;   // large un-isolable break (0.3 small … 1.0 full double-ended rupture)
+                MslbIsolated = false;
+                EccsArmed = true;      // SI armed; the borated-injection path is driven off SiActuated, not EccsInjecting
                 break;
         }
     }
@@ -695,6 +732,7 @@ public sealed class ReactorSimService
         AccumulatorInjecting = false; AuxFeedwaterRunning = false; _lofwTimer = 0;
         _sgtrSeverity = 0; SgtrLeakRate = 0; CoolantActivity = 0.02;
         SecondaryActivity = 0; AtmosphericRelease = 0; SgReliefLifted = false; SgtrIsolated = false;
+        _mslbSeverity = 0; MslbIsolated = false; SiActuated = false; MslbBreakFlow = 0;
         PrimaryDeficitPct = 0;
         StatusEn = "Cold shutdown"; StatusZh = "冷停機";
     }
@@ -832,6 +870,31 @@ public sealed class ReactorSimService
             SgtrLeakRate = 0;
             SgReliefLifted = false;
         }
+
+        // MSLB: the faulted SG vents to atmosphere through the broken steam line. Model the secondary as
+        // a vessel blowing down toward atmospheric through a choked orifice — mass flux ∝ √P, so the
+        // pressure relaxes (first-order, time-constant ∝ 1/severity) toward a near-atmospheric floor.
+        // Crashing SteamPressure drops SecondarySatTemp(), which widens the existing sgRemoval term and
+        // overcools the primary EMERGENTLY (plus a small direct break-energy term in StepThermal). The
+        // term gates off the instant the MSIVs close (operator button or auto-SI) so UpdateSecondary's
+        // lag owns the recovery — exactly the single-writer discipline the SGTR level comment relies on.
+        if (_mslbSeverity > 0 && !MslbIsolated)
+        {
+            double wBreak = Math.Clamp(
+                _mslbSeverity * Math.Sqrt(Math.Max(SteamPressure, 0.0)) / Math.Sqrt(NominalSteamPressure),
+                0.0, 1.0);                                   // choked-flow surrogate: mass flux ∝ √P
+            MslbBreakFlow = wBreak;
+            const double pBreakFloor = 0.2;                  // MPa (~29 psia) — never relax to 0
+            double tauBlow = 8.0 / _mslbSeverity;            // s; ≈11 s at severity 0.7, faster for bigger breaks
+            SteamPressure += (pBreakFloor - SteamPressure) * Math.Min(1.0, dt / tauBlow);
+            SteamPressure = Math.Max(SteamPressure, 0.3);    // stay within UpdateSecondary's [0.3, 8.5] band
+            AtmosphericRelease += 0.1 * wBreak * dt;         // steam vented to atmosphere (mostly clean for an MSLB)
+        }
+        else
+        {
+            MslbBreakFlow = 0;
+        }
+
         // Safety injection / charging make up lost inventory; otherwise the deficit holds (latched leak).
         if (EccsInjecting) PrimaryDeficitPct -= 2.5 * dt;
         PrimaryDeficitPct = Math.Clamp(PrimaryDeficitPct, 0.0, 40.0);
@@ -999,6 +1062,11 @@ public sealed class ReactorSimService
         // Coolant: receives fuelToCoolant, rejects heat to SG proportional to flow & secondary delta.
         double sgRemoval = (8.0 + 90.0 * CoolantFlowFraction) * Math.Max(0, Tavg - SecondarySatTemp()) * 0.01;
         sgRemoval *= (0.3 + 0.7 * FeedwaterFlow); // feedwater enables heat sink
+        // MSLB direct overcooling: the break itself flashes SG inventory and pulls primary heat even when
+        // feedwater is gone (the 0.3+0.7·FW factor above throttles the base term). Scales with break flow
+        // and the primary-to-secondary temperature head; clamped ≥0 so it can never heat the primary.
+        if (MslbBreakFlow > 0)
+            sgRemoval += 0.6 * MslbBreakFlow * Math.Max(0, Tavg - SecondarySatTemp());
         double coolantHeatCap = 60.0; // MW·s per °C
         double netCoolant = fuelToCoolant - sgRemoval;
         double avg = Tavg + netCoolant / coolantHeatCap * h;
@@ -1286,6 +1354,21 @@ public sealed class ReactorSimService
             Scram();
         }
 
+        // ---- ESFAS: Low Steamline Pressure → Safety Injection. Latches once the 2-of-4 coincidence is met
+        //      (the SI signal seals in). SI does two decisive things for an MSLB: it auto-closes the MSIVs
+        //      (terminating the blowdown so SteamPressure recovers and the overcooling stops) and it injects
+        //      heavily-borated water, ramping RCS boron toward ~2000 ppm so the negative boron worth swamps
+        //      the positive moderator reactivity from the cooldown — the design-basis defence against the
+        //      MSLB return-to-power. Drive the boron path off this SI flag, NOT EccsInjecting: an MSLB is a
+        //      secondary break, so the primary may never fall below the ECCS-inject pressure.
+        if (_mslbSiFnIndex >= 0 && _rps.Functions[_mslbSiFnIndex].FunctionTrip)
+        {
+            SiActuated = true;
+            MslbIsolated = true;                                       // automatic MSIV closure on SI
+            TargetBoronPpm = Math.Max(TargetBoronPpm, MslbSiBoronPpm); // borated SI; UpdateBoron ramps at 4 ppm/s
+            EccsArmed = true;
+        }
+
         // ECCS auto-inject on low pressure if armed.
         EccsInjecting = EccsArmed && PrimaryPressure < 11.0;
         if (EccsInjecting)
@@ -1357,6 +1440,8 @@ public sealed class ReactorSimService
         bool natCirc = CoolantFlowFraction > 0.005 && CoolantFlowFraction < 0.1 && Thot > 150;
         SetAlarm(ReactorAlarm.NaturalCirc, natCirc);
         SetAlarm(ReactorAlarm.SgtrLeak, _sgtrSeverity > 0 && SgtrLeakRate > 0.01);
+        SetAlarm(ReactorAlarm.SteamlineBreak, _mslbSeverity > 0 && !MslbIsolated);
+        SetAlarm(ReactorAlarm.SafetyInjection, SiActuated);
         SetAlarm(ReactorAlarm.SecondaryRadiationHi, SecondaryActivity > 1.0);
         SetAlarm(ReactorAlarm.SgReliefLift, SgReliefLifted);
         SetAlarm(ReactorAlarm.RodInsertionLimitLo, RilLowAlarm && !RilLowLowAlarm);

@@ -14,6 +14,7 @@ public enum ReactorScenario
     Atws,              // 未能緊急停堆之預期暫態 · anticipated transient without scram
     XenonRestart,      // 氙毒重啟 · post-trip xenon transient / iodine pit
     SgTubeRupture,     // 蒸發器爆管 · steam-generator tube rupture (primary→secondary leak)
+    MainSteamLineBreak,// 主蒸汽管爆裂 · main steam line break (secondary blowdown → primary overcooling)
 }
 
 /// <summary>一條儀表限值帶 · One coloured limit band on a gauge / strip chart.</summary>
