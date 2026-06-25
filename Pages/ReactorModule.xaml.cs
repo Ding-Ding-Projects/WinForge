@@ -458,6 +458,7 @@ public sealed partial class ReactorModule : Page
         AddGauge("Subcooling", "過冷度", -20, 120, () => _sim.SubcoolingMarginC, () => $"{_sim.SubcoolingMarginC:F0}°C", id: "subcool");
         AddGauge("Primary pressure", "一迴路壓力", 0, 3000, () => _sim.PrimaryPressure * 145.038, () => $"{_sim.PrimaryPressure * 145.038:F0} psia", id: "pzrPress");
         AddGauge("Pressurizer level", "穩壓器水位", 0, 100, () => _sim.PressurizerLevel, () => $"{_sim.PressurizerLevel:F0}%", id: "pzrLevel");
+        AddGauge("Pressurizer temp", "穩壓器溫度", 80, 700, () => _sim.PressurizerLiquidTemp * 1.8 + 32, () => $"{_sim.PressurizerLiquidTemp * 1.8 + 32:F0}°F", id: "pzrTemp");
         AddGauge("Steam pressure", "蒸汽壓力", 0, 1300, () => _sim.SteamPressure * 145.038, () => $"{_sim.SteamPressure * 145.038:F0} psia", id: "sgPress");
         AddGauge("SG level", "蒸發器水位", 0, 100, () => _sim.SteamGenLevel, () => $"{_sim.SteamGenLevel:F0}%", id: "sgLevel");
         AddGauge("Secondary radiation", "二次側輻射", 0, 300, () => _sim.SecondaryRadiation, () => $"{_sim.SecondaryRadiation:F0} µSv/h", warnFrac: 100.0 / 300.0, id: "secRad");
@@ -1249,6 +1250,9 @@ public sealed partial class ReactorModule : Page
 
         // Pressurizer toggles + relief + ECCS
         var pzrPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        var autoPzr = MakeToggle("Auto press ctrl · 自動壓力", "自動壓力 · Auto press ctrl", v => _sim.PzrAutoPressureControl = v);
+        autoPzr.IsChecked = true; // defaults to the automatic pressure-control program
+        pzrPanel.Children.Add(autoPzr);
         pzrPanel.Children.Add(MakeToggle("Heater · 加熱器", "加熱器 · Heater", v => _sim.PressurizerHeater = v));
         pzrPanel.Children.Add(MakeToggle("Spray · 噴淋", "噴淋 · Spray", v => _sim.PressurizerSpray = v));
         pzrPanel.Children.Add(MakeToggle("Relief valve · 釋壓閥", "釋壓閥 · Relief valve", v => _sim.ReliefValveOpen = v));

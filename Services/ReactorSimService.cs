@@ -94,6 +94,26 @@ public sealed class ReactorSimService
     private const double NominalSteamPressure = 6.9; // MPa secondary
     private const double NominalBoron = 1200.0;    // ppm at BOL hot-zero-power-ish
 
+    // Pressurizer pressure-control program (Westinghouse 4-loop), converted from psig to MPa absolute.
+    private const double PzrProgramPressure = 15.51; // 2235 psig — nominal program pressure
+    private const double PzrPropHeaterFull  = 15.41; // 2220 psig — proportional heaters full-on
+    private const double PzrBackupHeaterOn  = 15.34; // 2210 psig — backup heater banks energize
+    private const double PzrSprayOpen       = 15.68; // 2260 psig — spray valves begin to open
+    private const double PzrSprayFull       = 16.03; // 2310 psig — spray valves full open
+    private const double PorvOpenPressure   = 16.20; // 2335 psig — power-operated relief valve opens
+    private const double PorvClosePressure  = 16.06; // 2315 psig — PORV reseats
+    // Pressurizer lumped thermal-hydraulic gains (primary pressure = Psat of the pzr liquid temperature).
+    private const double PzrHeatCap     = 15.0;   // MW·s/°C   pressurizer-liquid lump heat capacity
+    private const double PzrHeaterMW    = 1.8;    // MW        full heater-bank power (~1800 kW)
+    private const double PzrSprayK      = 0.06;   // MW/°C     spray condensation gain at full spray
+    private const double PzrSurgeK      = 0.40;   // MW per (%/s) per °C  insurge enthalpy gain
+    private const double PzrLossK       = 0.003;  // MW/°C     ambient standing loss
+    private const double PzrMakeupFloor = 2.5;    // MPa       charging/makeup-held cold pressure floor
+    private const double PzrCompK       = 0.40;   // MPa per (%/s)  adiabatic bubble-compression spike gain
+    private const double PzrSpikeTau    = 8.0;    // s         compression-spike relaxation
+    private const double PzrPresTau     = 2.0;    // s         output-pressure lag (slow dynamics live in _tpzr)
+    private const double PorvReliefRate = 2.5;    // MPa/s     PORV blowdown rate while lifted
+
     // Limits / trip setpoints.
     public const double FuelMeltTemp = 2800.0;     // °C — UO2 melting point ~2865 °C
     public const double FuelDamageTemp = 1200.0;   // °C — clad/fuel damage onset (sustained)
@@ -141,6 +161,15 @@ public sealed class ReactorSimService
     public double ElectricPowerMW { get; private set; }          // MWe actual
     public double TurbineRPM { get; private set; }               // rpm
 
+    // Pressurizer saturated-volume model — primary pressure tracks the saturation pressure of _tpzr.
+    private double _tpzr = ColdTemp;                 // pressurizer liquid temperature (°C) — sets primary pressure
+    private double _prevLevel = NominalPzrLevel;     // previous-substep level, for surge rate d(level)/dt
+    private double _pSpike;                          // transient adiabatic bubble-compression pressure (MPa)
+    private bool _porvAuto;                          // automatic PORV currently lifted
+    public double PressurizerLiquidTemp => _tpzr;    // °C (display)
+    public double PressurizerHeaterDuty { get; private set; } // 0..1 effective heater duty (display)
+    public bool PorvAutoOpen => _porvAuto;           // automatic relief valve currently cycling
+
     // Poisons
     public double Iodine { get; private set; }   // I-135 concentration (normalized)
     public double Xenon { get; private set; }    // Xe-135 concentration (normalized)
@@ -151,6 +180,7 @@ public sealed class ReactorSimService
     public double TargetBoronPpm { get; set; } = NominalBoron;
     public bool PressurizerHeater { get; set; }
     public bool PressurizerSpray { get; set; }
+    public bool PzrAutoPressureControl { get; set; } = true; // automatic Westinghouse pressure-control program
     public double RcpFlowDemand { get; set; } = 0.0;     // 0..1 commanded pump flow
     public bool[] RcpRunning { get; } = { false, false, false, false };
     public double FeedwaterFlow { get; set; } = 0.0;     // 0..1
@@ -440,12 +470,28 @@ public sealed class ReactorSimService
         }
     }
 
+    // Two-parameter Clausius–Clapeyron saturation-line fit: ln(P[MPa]) = SatA − SatB/T[K].
+    // Anchored to IAPWS at (344.8 °C, 15.5 MPa) and (285 °C, 6.9 MPa); reproduces 2.5 MPa @ 224 °C
+    // and 0.1 MPa @ ~99 °C to within a few percent across the whole 80–360 °C operating band.
+    // Analytically invertible, so SatTempAt and SatPressAt are exact inverses — that keeps the
+    // sub-cooling margin (SatTempAt(P) − Thot) thermodynamically self-consistent and lets primary
+    // pressure be the saturation pressure of the pressurizer liquid surface (see StepThermal).
+    private const double SatA = 10.2958;
+    private const double SatB = 4668.6;
+
     /// <summary>飽和溫度估算 · Saturation temperature of water (°C) at a given pressure (MPa).</summary>
     private static double SatTempAt(double mpa)
     {
-        // Smooth fit anchored at ~345 °C @ 15.5 MPa; monotonic over the operating range.
-        mpa = Math.Clamp(mpa, 0.05, 22.0);
-        return 100.0 + 188.0 * Math.Pow(mpa / 15.5, 0.27);
+        mpa = Math.Clamp(mpa, 0.01, 22.0);
+        return SatB / (SatA - Math.Log(mpa)) - 273.15;
+    }
+
+    /// <summary>飽和壓力估算 · Saturation pressure of water (MPa) at a given temperature (°C).
+    /// Exact inverse of <see cref="SatTempAt"/>.</summary>
+    private static double SatPressAt(double tC)
+    {
+        tC = Math.Clamp(tC, 80.0, 373.0);            // ≥80 °C keeps the fit real; below the 373.9 °C critical point
+        return Math.Exp(SatA - SatB / (tC + 273.15));
     }
 
     /// <summary>渲染快照（不可變）· Immutable snapshot for the 60 fps render clock (no live state mid-frame).</summary>
@@ -468,6 +514,7 @@ public sealed class ReactorSimService
         ReactorPeriodSeconds = 1e9; ReactivityPcm = 0;
         FuelTemp = ColdTemp; Tcold = ColdTemp; Thot = ColdTemp;
         PrimaryPressure = 2.5; PressurizerLevel = NominalPzrLevel;
+        _tpzr = ColdTemp; _prevLevel = NominalPzrLevel; _pSpike = 0; _porvAuto = false; PressurizerHeaterDuty = 0;
         SteamPressure = 0.5; SteamGenLevel = 60; ElectricPowerMW = 0; TurbineRPM = 0;
         Iodine = 0; Xenon = 0;
         for (int i = 0; i < RodBankInsertion.Length; i++) RodBankInsertion[i] = 100.0;
@@ -778,28 +825,73 @@ public sealed class ReactorSimService
         Thot = avg + deltaT / 2.0;
         if (Tcold < ColdTemp) Tcold = ColdTemp;
 
-        // ---- primary pressure (pressurizer) ----
-        // Pressure rises with Tavg (thermal expansion / steam bubble), heaters; falls with spray/relief.
-        double pTarget = 2.5 + (avg - ColdTemp) * 0.052; // ~15.5 MPa near 305 °C
-        if (PressurizerHeater) pTarget += 1.2;
-        if (PressurizerSpray) pTarget -= 1.6;
-        pTarget -= 0.11 * PrimaryDeficitPct; // lost RCS inventory (SGTR/leak) cannot hold pressure
-        if (pTarget < 0.5) pTarget = 0.5;
-        double pTau = 6.0;
-        PrimaryPressure += (pTarget - PrimaryPressure) * Math.Min(1, h / pTau);
-        if (ReliefValveOpen && PrimaryPressure > 2.0)
-            PrimaryPressure -= 3.0 * h; // relief blows down
-        if (PrimaryPressure > VesselBurstPressure)
-            PrimaryPressure = VesselBurstPressure;
-        if (PrimaryPressure < 0.1) PrimaryPressure = 0.1;
-
-        // ---- pressurizer level tracks Tavg (insurge/outsurge) + ECCS/relief ----
+        // ---- pressurizer water level: programmed to Tavg (insurge/outsurge swell) + ECCS/relief/leak ----
+        // Level is computed first so the surge rate d(level)/dt below reflects this substep.
         double lvlTarget = NominalPzrLevel + (avg - NominalTavg) * 0.30;
         if (EccsInjecting) lvlTarget += 25;
-        if (ReliefValveOpen) lvlTarget -= 10;
-        lvlTarget -= PrimaryDeficitPct; // pressurizer level falls as the leak drains the RCS
+        if (ReliefValveOpen || _porvAuto) lvlTarget -= 10;
+        lvlTarget -= PrimaryDeficitPct; // pressurizer level falls as a leak drains the RCS
         PressurizerLevel += (lvlTarget - PressurizerLevel) * Math.Min(1, h / 8.0);
         PressurizerLevel = Math.Clamp(PressurizerLevel, 0, 100);
+
+        // ---- primary pressure via a saturated-pressurizer model ----
+        // Real PWR pressure is the saturation pressure of the one free liquid/steam surface in the plant
+        // (the pressurizer), NOT Psat(Tavg): the rest of the loop is deliberately sub-cooled. Heaters and
+        // spray therefore act on the pressurizer LIQUID temperature _tpzr (energy), and P follows Psat(_tpzr).
+        double dLevelDt = Math.Clamp((PressurizerLevel - _prevLevel) / Math.Max(h, 1e-6), -20.0, 20.0);
+        _prevLevel = PressurizerLevel;
+
+        // Automatic Westinghouse pressure-control program → heater duty + spray fraction from pressure.
+        double heaterDuty, sprayFrac;
+        if (PzrAutoPressureControl)
+        {
+            heaterDuty = Math.Clamp((PzrProgramPressure - PrimaryPressure) /
+                                    (PzrProgramPressure - PzrPropHeaterFull), 0, 1); // proportional heaters
+            if (PrimaryPressure < PzrBackupHeaterOn) heaterDuty = 1.0;               // backup banks energize
+            sprayFrac = Math.Clamp((PrimaryPressure - PzrSprayOpen) /
+                                   (PzrSprayFull - PzrSprayOpen), 0, 1);             // modulating spray
+        }
+        else
+        {
+            heaterDuty = PressurizerHeater ? 1.0 : 0.0; // manual on/off
+            sprayFrac  = PressurizerSpray ? 1.0 : 0.0;
+        }
+        PressurizerHeaterDuty = heaterDuty;
+
+        // Energy balance on the pressurizer liquid lump → its temperature.
+        double qHeater = PzrHeaterMW * heaterDuty;
+        double qSpray  = PzrSprayK * sprayFrac * Math.Max(0, _tpzr - Tcold);          // cold-leg spray condenses steam
+        double qSurge  = dLevelDt > 0 ? PzrSurgeK * dLevelDt * Math.Max(0, avg - _tpzr) : 0.0; // insurge of hot water
+        double qLoss   = PzrLossK * (_tpzr - 50.0);
+        _tpzr += (qHeater - qSpray + qSurge - qLoss) / PzrHeatCap * h;
+        _tpzr = Math.Clamp(_tpzr, 80.0, 360.0);
+
+        // Pressure = saturation pressure of the liquid surface, plus a fast adiabatic compression spike on
+        // insurge (rising level shrinks the steam bubble → +dP, recondensing over ~8 s), minus leak deficit.
+        double pSat = SatPressAt(_tpzr);
+        _pSpike += PzrCompK * dLevelDt * h;
+        _pSpike -= _pSpike * Math.Min(1, h / PzrSpikeTau);
+        _pSpike = Math.Clamp(_pSpike, -1.5, 2.0);
+        double pTarget = Math.Max(pSat, PzrMakeupFloor) + _pSpike - 0.11 * PrimaryDeficitPct;
+        if (pTarget < 0.3) pTarget = 0.3;
+
+        // During a LOCA the break owns depressurization — the saturated model may only pull pressure DOWN.
+        if (_breakArea > 0)
+        {
+            if (pTarget < PrimaryPressure)
+                PrimaryPressure += (pTarget - PrimaryPressure) * Math.Min(1, h / PzrPresTau);
+        }
+        else
+        {
+            PrimaryPressure += (pTarget - PrimaryPressure) * Math.Min(1, h / PzrPresTau);
+        }
+
+        // Automatic PORV: opens at 2335 psig, reseats at 2315 psig. Manual relief valve still blows down too.
+        if (PrimaryPressure > PorvOpenPressure) _porvAuto = true;
+        else if (PrimaryPressure < PorvClosePressure) _porvAuto = false;
+        if (_porvAuto) PrimaryPressure -= PorvReliefRate * h;
+        if (ReliefValveOpen && PrimaryPressure > 2.0) PrimaryPressure -= 3.0 * h;
+        PrimaryPressure = Math.Clamp(PrimaryPressure, 0.1, VesselBurstPressure);
     }
 
     private double SecondarySatTemp()
