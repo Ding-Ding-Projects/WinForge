@@ -14,6 +14,14 @@ public partial class App : Application
     /// <summary>由命令列 "--page &lt;id&gt;" 設定嘅起始頁 · Start page from the command line.</summary>
     public static string? StartPage { get; private set; }
 
+    /// <summary>
+    /// 由命令列 "--path &lt;file|folder&gt;" 設定嘅目標路徑 · Target path from the command line.
+    /// 由檔案總管右鍵選單嘅 verb 帶入（右鍵揀中嘅檔案／資料夾）。
+    /// Passed in by the Explorer right-click verbs (the file/folder that was right-clicked).
+    /// 模組可以喺啟動時讀呢個值嚟對住目標執行。Modules can read this at startup to act on the target.
+    /// </summary>
+    public static string? StartPath { get; private set; }
+
     public App()
     {
         InitializeComponent();
@@ -36,6 +44,23 @@ public partial class App : Application
         CrashLogger.Mark("App: OnLaunched start");
 
         ParseArgs();
+
+        // 無頭模式："Copy as path" 右鍵動作：直接複製路徑入剪貼簿然後退出，唔開視窗。
+        // Headless mode: the "Copy as path" right-click verb just copies the path to the clipboard and exits,
+        // never showing a window (matches the native shell behaviour).
+        if (string.Equals(StartPage, "copypath", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(StartPath))
+        {
+            try
+            {
+                var dp = new Windows.ApplicationModel.DataTransfer.DataPackage();
+                dp.SetText($"\"{StartPath}\"");      // Explorer's own "Copy as path" wraps in quotes
+                Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(dp);
+                Windows.ApplicationModel.DataTransfer.Clipboard.Flush();
+            }
+            catch { /* best effort */ }
+            Exit();
+            return;
+        }
 
         // 無頭模式：匯出每個功能嘅 Markdown 然後退出 · headless docs export then exit.
         if (_exportDocsDir is not null)
@@ -159,6 +184,8 @@ public partial class App : Application
             if (i >= argv.Length - 1) continue;
             if (string.Equals(argv[i], "--page", StringComparison.OrdinalIgnoreCase))
                 StartPage = argv[i + 1].Trim().ToLowerInvariant();
+            else if (string.Equals(argv[i], "--path", StringComparison.OrdinalIgnoreCase))
+                StartPath = argv[i + 1];      // keep exact case / spaces — it's a filesystem path
             else if (string.Equals(argv[i], "--export-docs", StringComparison.OrdinalIgnoreCase))
                 _exportDocsDir = argv[i + 1];
         }
