@@ -756,6 +756,11 @@ public sealed partial class MainWindow : Window
             case "flowchart":
             case "diagrams":
                 Navigator.GoToModule?.Invoke("module.diagram");
+            case "flashcards":
+            case "anki":
+            case "srs":
+            case "study":
+                Navigator.GoToModule?.Invoke("module.flashcards");
                 break;
             case "worldmonitor":
             case "world":
@@ -995,6 +1000,7 @@ public sealed partial class MainWindow : Window
         "module.docker" => typeof(DockerModule),
         "module.hexeditor" => typeof(HexEditorModule),
         "module.diagram" => typeof(DiagramEditorModule),
+        "module.flashcards" => typeof(FlashcardsModule),
         "module.comms" => typeof(CommunicationsModule),
         "module.mail" => typeof(MailModule),
         "module.configbackup" => typeof(ConfigBackupModule),
