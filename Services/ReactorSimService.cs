@@ -16,6 +16,24 @@ public enum ReactorMode
 }
 
 /// <summary>
+/// 技術規格運轉模式 · The formal Tech-Spec OPERATIONAL MODE (Westinghouse Standard Technical
+/// Specifications, NUREG-1431 Table 1.1-1). This is the licensing-basis plant condition that
+/// every LCO applicability statement keys off ("…in MODE 1 > 50% RTP", "…restore in MODE 3 within
+/// 6 h / MODE 5 within 36 h"). It is DISTINCT from <see cref="ReactorMode"/> (the UI lifecycle
+/// state machine: Shutdown/Startup/Run/Tripped/Meltdown). The numeric values match the published
+/// MODE numbers so <c>(int)</c> is the MODE number.
+/// </summary>
+public enum ReactorTechSpecMode
+{
+    PowerOperation = 1, // MODE 1 · 功率運轉 — Keff ≥ 0.99 and ≥ 5% RTP
+    Startup        = 2, // MODE 2 · 啟動   — Keff ≥ 0.99 and < 5% RTP
+    HotStandby     = 3, // MODE 3 · 熱待機 — Keff < 0.99 and Tavg ≥ 350 °F (176.7 °C)
+    HotShutdown    = 4, // MODE 4 · 熱停機 — Keff < 0.99 and 200 °F < Tavg < 350 °F
+    ColdShutdown   = 5, // MODE 5 · 冷停機 — Keff < 0.99 and Tavg ≤ 200 °F (93.3 °C)
+    Refueling      = 6, // MODE 6 · 換料   — one or more vessel head closure bolts < fully tensioned (operator latch)
+}
+
+/// <summary>
 /// 一個警報旗標 · A single annunciator alarm flag.
 /// </summary>
 public enum ReactorAlarm
@@ -307,6 +325,20 @@ public sealed class ReactorSimService
     private const double NominalSteamPressure = 6.9; // MPa secondary
     private const double NominalBoron = 1200.0;    // ppm at BOL hot-zero-power-ish
 
+    // ---- Tech-Spec OPERATIONAL MODE determination (NUREG-1431 Table 1.1-1) ----
+    // The MODE 1/2-vs-3 split is the criticality boundary Keff = 0.99. With net reactivity ρ in pcm,
+    // Keff = 1/(1 − ρ·1e-5); Keff = 0.99 ⇒ ρ = (0.99−1)/0.99 ·1e5 = −1010.1 pcm (NOT −1000). The 1/2-vs-3
+    // band sits in the wide gap between a feedback-balanced critical core (ρ≈0) and an SDM-shut-down core
+    // (ρ ≤ −1300 pcm), so a ±100 pcm Schmitt-trigger deadband cannot chatter. MODE-3/4/5 split on Tavg at
+    // the 350 °F / 200 °F breakpoints with a 3 °C half-band. MODE 1/2 split on core THERMAL power at 5% RTP.
+    private const double TsRhoEnterCriticalPcm = -900.0;   // ρ to ENTER MODE 1/2 (Keff 0.99108), harder to enter
+    private const double TsRhoExitCriticalPcm  = -1100.0;  // ρ to LEAVE MODE 1/2 (Keff 0.98912), sticky once critical
+    private const double TsHotTavgC            = 176.7;    // 350 °F — MODE 3 ↔ 4 Tavg breakpoint
+    private const double TsColdTavgC           = 93.3;     // 200 °F — MODE 4 ↔ 5 Tavg breakpoint
+    private const double TsTavgDeadbandC       = 3.0;      // °C half-band on both Tavg breakpoints
+    private const double TsPowerRtpHi          = 0.055;    // → MODE 1 (5.5% RTP), sticky power deadband
+    private const double TsPowerRtpLo          = 0.045;    // → MODE 2 (4.5% RTP)
+
     // Uncontrolled boron dilution accident (FSAR Ch 15.4.6, ANS Condition II). Unborated reactor-makeup
     // water (RMW) is injected into the well-mixed RCS at a fixed charging-pump flow, so soluble boron
     // decays exponentially: C(t)=C0·exp(−(Q/V)t). The positive reactivity erodes shutdown margin toward
@@ -480,6 +512,28 @@ public sealed class ReactorSimService
 
     /// <summary>停堆裕度 · Current shutdown margin (pcm) — how far subcritical; 0 once critical/supercritical.</summary>
     public double ShutdownMarginPcm => Math.Max(0.0, -ReactivityPcm);
+
+    /// <summary>有效增殖因數 · Core effective multiplication factor recovered from net reactivity: Keff = 1/(1 − ρ).</summary>
+    public double CoreKeff => 1.0 / (1.0 - ReactivityPcm * 1e-5);
+
+    /// <summary>堆芯熱功率比例 · Total core thermal-power fraction of rated (neutron power + decay heat).</summary>
+    public double CoreThermalPowerFraction => _power + DecayHeatFraction;
+
+    // ---- Tech-Spec OPERATIONAL MODE (NUREG-1431 Table 1.1-1) — see TsRho*/TsTavg* constants. ----
+    /// <summary>技術規格運轉模式 · The current formal Tech-Spec OPERATIONAL MODE (1–6); the LCO-applicability plant condition.</summary>
+    public ReactorTechSpecMode TsMode { get; private set; } = ReactorTechSpecMode.ColdShutdown;
+    /// <summary>運轉模式編號 · The published MODE number (1–6).</summary>
+    public int TsModeNumber => (int)TsMode;
+    /// <summary>運轉模式標籤（英）· Bilingual MODE label, English.</summary>
+    public string TsModeStatusEn { get; private set; } = "MODE 5 — Cold Shutdown";
+    /// <summary>運轉模式標籤（中）· Bilingual MODE label, 繁體中文.</summary>
+    public string TsModeStatusZh { get; private set; } = "模式 5 — 冷停機";
+    /// <summary>
+    /// 換料閂鎖 · Operator latch: vessel head closure bolts less than fully tensioned (enables MODE 6 Refueling).
+    /// Defaults OFF and is honoured only when the core is genuinely cold and subcritical, so a stale latch can
+    /// never paint "Refueling" over a hot or critical core; cleared on every reset.
+    /// </summary>
+    public bool RefuelingLatch { get; set; }
 
     /// <summary>
     /// 距臨界時間 · Closed-form seconds to criticality under the active dilution, from the LIVE reactivity
@@ -2281,6 +2335,10 @@ public sealed class ReactorSimService
         _h2AirborneKg = 0; _h2GenPrevKg = 0; _burnArmed = true;
         ResetCladding();
         StatusEn = "Cold shutdown"; StatusZh = "冷停機";
+        // Tech-Spec OPERATIONAL MODE back to MODE 5 cold shutdown; clear the refueling latch so it never
+        // survives a scenario swap (the latch is cleared ONLY here, never in the per-tick determination).
+        TsMode = ReactorTechSpecMode.ColdShutdown; RefuelingLatch = false;
+        (TsModeStatusEn, TsModeStatusZh) = TsModeLabels(TsMode);
     }
 
     // ----------------------------------------------------------------- update ----
@@ -2377,6 +2435,7 @@ public sealed class ReactorSimService
         UpdateRiaConsequences(); // RIA fuel-enthalpy acceptance evaluation (reads the post-tick DNBR / enthalpy peak)
         UpdateAlarms();
         UpdateStatus();
+        UpdateTechSpecMode(); // classify the formal Tech-Spec OPERATIONAL MODE from the final post-tick ρ / power / Tavg
     }
 
     private void UpdateDecayHeat(double dt)
@@ -4490,6 +4549,71 @@ public sealed class ReactorSimService
         double totalLeak = UnidentifiedLeakGpm + IdentifiedLeakGpm;
         RcsInventoryBalanceLeakGpm += (totalLeak - RcsInventoryBalanceLeakGpm) * Math.Min(1.0, dt / TauInvBalanceSec);
     }
+
+    // ------------------------------------------------ Tech-Spec OPERATIONAL MODE ----
+    // 技術規格運轉模式判定 · Classify the plant into one of the six NUREG-1431 Table 1.1-1 MODES from the
+    // already-solved reactivity / power / Tavg signals. Pure & deterministic (no timers, no wall-clock) so it
+    // is safe under the concurrent scheduled-reactor runs; all hysteresis is derived from the CURRENT TsMode
+    // (Schmitt triggers). Precedence: a GATED MODE-6 refueling latch first, then the Keff = 0.99 criticality
+    // split (MODE 1/2 vs 3-5), then the Tavg breakpoints subdivide the subcritical band.
+    private void UpdateTechSpecMode()
+    {
+        ReactorTechSpecMode prev = TsMode;
+
+        // (1) MODE 6 — operator latch, honoured ONLY for a genuinely cold, subcritical core. A hot or
+        //     near-critical core with a stale latch still classifies normally (the latch is gated, never
+        //     auto-set/cleared here — clearing is the operator's job, or a reset).
+        if (RefuelingLatch && ReactivityPcm < TsRhoExitCriticalPcm && Tavg < TsColdTavgC)
+        {
+            SetTsMode(ReactorTechSpecMode.Refueling, prev);
+            return;
+        }
+
+        // (2) Criticality split at Keff = 0.99 (≈ −1010 pcm), with a ±100 pcm sticky deadband.
+        bool wasCritical = prev == ReactorTechSpecMode.PowerOperation || prev == ReactorTechSpecMode.Startup;
+        bool critical = wasCritical ? ReactivityPcm >= TsRhoExitCriticalPcm   // sticky: hard to leave
+                                    : ReactivityPcm >= TsRhoEnterCriticalPcm;  // hard to enter
+        if (critical)
+        {
+            // MODE 1 vs 2 on core THERMAL power (neutron + decay heat) at 5% RTP, ±0.5% sticky deadband.
+            double thermalFrac = CoreThermalPowerFraction;
+            bool atPower = prev == ReactorTechSpecMode.PowerOperation
+                ? thermalFrac >= TsPowerRtpLo    // sticky: stay in MODE 1 until < 4.5%
+                : thermalFrac >= TsPowerRtpHi;   // enter MODE 1 only above 5.5%
+            SetTsMode(atPower ? ReactorTechSpecMode.PowerOperation : ReactorTechSpecMode.Startup, prev);
+            return;
+        }
+
+        // (3) Subcritical — split by Tavg at the 350 °F / 200 °F breakpoints, widening the band toward the
+        //     side currently occupied so the indicated MODE does not chatter on numerical Tavg jitter.
+        double hotThr  = (prev == ReactorTechSpecMode.HotStandby)   ? TsHotTavgC  - TsTavgDeadbandC : TsHotTavgC  + TsTavgDeadbandC;
+        double coldThr = (prev == ReactorTechSpecMode.ColdShutdown) ? TsColdTavgC + TsTavgDeadbandC : TsColdTavgC - TsTavgDeadbandC;
+        ReactorTechSpecMode m = Tavg >= hotThr  ? ReactorTechSpecMode.HotStandby
+                              : Tavg >  coldThr ? ReactorTechSpecMode.HotShutdown
+                              :                   ReactorTechSpecMode.ColdShutdown;
+        SetTsMode(m, prev);
+    }
+
+    private void SetTsMode(ReactorTechSpecMode m, ReactorTechSpecMode prev)
+    {
+        TsMode = m;
+        if (m != prev || TsModeStatusEn.Length == 0)
+        {
+            var (en, zh) = TsModeLabels(m);
+            TsModeStatusEn = en; TsModeStatusZh = zh;
+        }
+    }
+
+    internal static (string en, string zh) TsModeLabels(ReactorTechSpecMode m) => m switch
+    {
+        ReactorTechSpecMode.PowerOperation => ("MODE 1 — Power Operation", "模式 1 — 功率運轉"),
+        ReactorTechSpecMode.Startup        => ("MODE 2 — Startup",         "模式 2 — 啟動"),
+        ReactorTechSpecMode.HotStandby     => ("MODE 3 — Hot Standby",     "模式 3 — 熱待機"),
+        ReactorTechSpecMode.HotShutdown    => ("MODE 4 — Hot Shutdown",    "模式 4 — 熱停機"),
+        ReactorTechSpecMode.ColdShutdown   => ("MODE 5 — Cold Shutdown",   "模式 5 — 冷停機"),
+        ReactorTechSpecMode.Refueling      => ("MODE 6 — Refueling",       "模式 6 — 換料"),
+        _                                  => ("MODE — Unknown",           "模式 — 未知"),
+    };
 
     private void UpdateStatus()
     {

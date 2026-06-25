@@ -264,7 +264,10 @@ public sealed partial class ReactorModule : Page
     private void UpdateStatusBanner()
     {
         StatusText.Text = P(_sim.StatusEn, _sim.StatusZh);
+        // Lifecycle mode + the formal Tech-Spec OPERATIONAL MODE (NUREG-1431) + Keff + elapsed minutes.
         ModeText.Text = P($"Mode: {ModeEn(_sim.Mode)}", $"模式：{ModeZh(_sim.Mode)}")
+                        + "  ·  " + P(_sim.TsModeStatusEn, _sim.TsModeStatusZh)
+                        + $" (Keff {_sim.CoreKeff:F4})"
                         + $"  ·  {_simClock / 60:F1} min";
         ClockText.Text = $"T+{_simClock:000.0}s";
 
