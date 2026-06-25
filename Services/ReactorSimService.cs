@@ -172,11 +172,31 @@ public sealed class ReactorSimService
     public event Action? MeltdownOccurred;
 
     // ----------------------------------------------------------------- realism additions ----
-    // Decay-heat: ALWAYS-present residual heat source from fission-product decay. Modelled as three
-    // exponential groups that charge while at power and decay after a trip. Fraction of rated power.
-    private static readonly double[] DecayFrac = { 0.038, 0.020, 0.011 };
-    private static readonly double[] DecayTau = { 1.0, 50.0, 5000.0 }; // s
-    private readonly double[] _decayGroup = new double[3];
+    // Decay-heat: ALWAYS-present residual heat source from fission-product decay. Modelled to
+    // ANSI/ANS-5.1 fidelity as a 23-group exponential sum for U-235 thermal fission-product decay
+    // PLUS a 2-pole U-239→Np-239 actinide (capture-product) contribution. Each group charges while
+    // at power and decays after a trip; the equilibrium yield a_i = (α_i/λ_i)/Q_t (Q_t = 200 MeV)
+    // IS that group's fraction-of-rated power at infinite irradiation. Σ(a_i) = 0.065913 (fission
+    // products) + 0.0038 (actinides) → a 6.97 % plateau. Charged-then-tripped this reproduces the
+    // canonical ANS shutdown curve: 6.54 % @1 s, 5.13 % @10 s, 3.47 % @100 s, 1.48 % @1 h, 0.60 % @1 day.
+    // λ_i in 1/s. (Verified against the standard's post-shutdown decay-heat bands.)
+    private static readonly double[] DecayA = {
+        1.469351e-04, 4.968694e-03, 6.222313e-03, 6.714175e-03, 8.236273e-03,
+        9.513312e-03, 4.612211e-03, 3.338658e-03, 6.461999e-03, 5.174812e-03,
+        2.958373e-03, 1.803488e-03, 1.260340e-03, 9.817596e-04, 1.396227e-03,
+        1.082506e-03, 4.115313e-04, 9.338084e-06, 5.792887e-04, 5.069596e-07,
+        7.187277e-06, 9.154065e-06, 2.382031e-05 };
+    private static readonly double[] DecayLambda = {
+        2.2138e+01, 5.1587e-01, 1.9594e-01, 1.0314e-01, 3.3656e-02,
+        1.1681e-02, 3.5870e-03, 1.3930e-03, 6.2630e-04, 1.8906e-04,
+        5.4988e-05, 2.0958e-05, 1.0010e-05, 2.5438e-06, 6.6361e-07,
+        1.2290e-07, 2.7213e-08, 4.3714e-09, 7.5780e-10, 2.4786e-10,
+        2.2384e-13, 2.4600e-14, 1.5699e-14 };
+    // Actinide chain (U-239 t½≈23.45 min, Np-239 t½≈2.356 d) — adds ~0.38 % at equilibrium.
+    private static readonly double[] ActinideA = { 2.5e-3, 1.3e-3 };
+    private static readonly double[] ActinideLambda = { 4.902e-4, 3.448e-6 }; // 1/s
+    private readonly double[] _decayGroup = new double[23];
+    private readonly double[] _actinide = new double[2];
     public double DecayHeatFraction { get; private set; }
 
     // Sub-cooling margin (°C): SatTemp(P) - Thot. < 0 means saturation / void onset.
@@ -434,7 +454,7 @@ public sealed class ReactorSimService
         _rps.ClearLatch(); LastTripFunctionEn = ""; LastTripFunctionZh = ""; _powerRate = 0;
         Mode = ReactorMode.Shutdown;
         for (int i = 0; i < _alarms.Length; i++) _alarms[i] = false;
-        for (int i = 0; i < _decayGroup.Length; i++) _decayGroup[i] = 0;
+        Array.Clear(_decayGroup); Array.Clear(_actinide);
         DecayHeatFraction = 0; SubcoolingMarginC = 0; SourceRangeCps = SourceBaselineCps;
         OneOverM = 1.0; StartupRateDpm = 0; BurnupMwdPerTonne = 0;
         IntermediateRangeAmps = IrBottomAmps; IntermediateRangeDecades = 0; IntermediateRangePercent = 0;
@@ -497,22 +517,40 @@ public sealed class ReactorSimService
 
     private void UpdateDecayHeat(double dt)
     {
-        // Each group charges toward the current fission power and decays with its time constant.
-        double frac = 0;
-        for (int i = 0; i < 3; i++)
+        // ANS-5.1 exponential-group model. Each group holds H_i (fraction of rated) and obeys
+        //   dH_i/dt = a_i·λ_i·P − λ_i·H_i   (production ∝ instantaneous fission power P, then decay).
+        // We advance with the EXACT discrete solution over a piecewise-constant-P step:
+        //   H_i ← H_i·e^(−λ_i·dt) + a_iP·(1 − e^(−λ_i·dt))
+        // which is unconditionally stable and non-negative for ANY dt (the λ span ~15 decades is
+        // stiff, but this analytic recurrence needs no sub-stepping, unlike the kinetics loop).
+        // OneMinusExp preserves precision for the slow groups where λ·dt → 0.
+        double p = Math.Max(_power, 0.0); // fission fraction of rated drives fission-product production
+        double frac = 0.0;
+        for (int i = 0; i < DecayA.Length; i++)
         {
-            double source = DecayFrac[i] * _power; // production proportional to instantaneous power
-            _decayGroup[i] += (source - _decayGroup[i] / DecayTau[i]) * dt;
-            if (_decayGroup[i] < 0) _decayGroup[i] = 0;
-            frac += _decayGroup[i] / DecayTau[i] * DecayTau[i]; // equilibrium ≈ DecayFrac[i]*power
+            double oneMinusE = OneMinusExp(DecayLambda[i] * dt); // 1 − e^(−λ·dt), accurate near 0
+            _decayGroup[i] = _decayGroup[i] * (1.0 - oneMinusE) + DecayA[i] * p * oneMinusE;
+            frac += _decayGroup[i];
         }
-        // Simplify: equilibrium DecayHeatFraction ≈ 0.069*power at steady state; after trip it decays.
-        frac = 0;
-        for (int i = 0; i < 3; i++) frac += _decayGroup[i];
-        DecayHeatFraction = Math.Clamp(frac, 0, 0.10);
+        for (int i = 0; i < ActinideA.Length; i++)
+        {
+            double oneMinusE = OneMinusExp(ActinideLambda[i] * dt);
+            _actinide[i] = _actinide[i] * (1.0 - oneMinusE) + ActinideA[i] * p * oneMinusE;
+            frac += _actinide[i];
+        }
+        // Each H_i is a convex combination of non-negative terms, so it stays ≥ 0; clamp the SUM only.
+        DecayHeatFraction = Math.Clamp(frac, 0.0, 0.12);
 
         // Burnup accrual + slow MTC drift across the cycle.
         BurnupMwdPerTonne += ThermalPowerMW * dt / 86400.0 / CoreTonnesU; // MWd/tonne
+    }
+
+    /// <summary>1 − e^(−x) for x ≥ 0, computed without catastrophic cancellation for tiny x
+    /// (Taylor series below the threshold) — the .NET-portable stand-in for expm1.</summary>
+    private static double OneMinusExp(double x)
+    {
+        if (x < 1e-5) return x * (1.0 - 0.5 * x * (1.0 - x / 3.0)); // x − x²/2 + x³/6
+        return 1.0 - Math.Exp(-x);
     }
 
     private void UpdateScenarios(double dt)
