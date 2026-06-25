@@ -16,6 +16,7 @@ public enum ReactorScenario
     SgTubeRupture,     // 蒸發器爆管 · steam-generator tube rupture (primary→secondary leak)
     MainSteamLineBreak,// 主蒸汽管爆裂 · main steam line break (secondary blowdown → primary overcooling)
     RcpSealLoca,       // 主泵軸封失水 · RCP seal LOCA — loss of all seal cooling → degraded seal leakoff (WOG-2000)
+    RodEjection,       // 彈棒事故 · rod ejection accident (RIA/REA, FSAR Ch 15.4.8) — CRDM failure ejects an RCCA
 }
 
 /// <summary>一條儀表限值帶 · One coloured limit band on a gauge / strip chart.</summary>
@@ -105,6 +106,13 @@ public static class ReactorScenarios
         "boron" => (0, 2500,
             Bands((0, 2500, "normal")),
             Array.Empty<GaugeSetpoint>()),
+
+        // Peak radial-average fuel enthalpy (cal/g) — the rod-ejection (RIA) figure of merit. Green below
+        // the RG 1.236 230 cal/g coolability/no-melt limit; warn into the 230–280 band; danger past the
+        // legacy RG 1.77 280 cal/g (incipient fuel-melt) line.
+        "fuelEnth" => (0, 300,
+            Bands((0, 150, "normal"), (150, 230, "warn"), (230, 300, "danger")),
+            Sets((230, "Coolability (RG 1.236)", "可冷卻性 RG 1.236"), (280, "Fuel melt (RG 1.77)", "燃料熔化 RG 1.77"))),
 
         // Quadrant Power Tilt Ratio (LCO 3.2.4): 1.00 = flat radial power, ≤1.02 within limit, >1.02 = action.
         "qptr" => (0.95, 1.15,

@@ -468,6 +468,11 @@ public sealed partial class ReactorModule : Page
         AddGauge("Reactor period", "反應堆週期", 0, 100, () => Math.Min(100, Math.Abs(_sim.ReactorPeriodSeconds)), () => PeriodStr(), id: "period");
         AddGauge("Reactivity", "反應性", -2000, 2000, () => _sim.ReactivityPcm, () => $"{_sim.ReactivityPcm:F0} pcm");
         AddGauge("Fuel temp", "燃料溫度", 0, 3000, () => _sim.FuelTemp, () => $"{_sim.FuelTemp:F0}°C", warnFrac: ReactorSimService.FuelDamageTemp / 3000.0, id: "fuelTemp");
+        AddGauge("Peak fuel enthalpy", "峰值燃料焓", 0, 300, () => _sim.PeakFuelEnthalpyCalPerG,
+            () => $"{_sim.PeakFuelEnthalpyCalPerG:F0} cal/g · Δ{_sim.PeakFuelEnthalpyRiseCalPerG:F0}"
+                + (_sim.RodEjectionActive ? $" · eject {_sim.EjectedRodWorthPcm:F0} pcm" : "")
+                + (_sim.RiaFuelMelt ? $" · {P("MELT", "熔化")}" : _sim.RiaCoolabilityViolated ? $" · {P("COOLABILITY", "可冷卻性")}" : _sim.RiaCladdingFailure ? $" · {P("CLAD FAIL", "包殼失效")}" : ""),
+            warnFrac: 230.0 / 300.0, id: "fuelEnth");
         AddGauge("Coolant Tavg", "冷卻劑平均溫", 530, 620, () => _sim.Tavg * 1.8 + 32, () => $"{_sim.Tavg * 1.8 + 32:F0}°F", id: "tavg");
         AddGauge("Reference Tref", "參考溫度 Tref", 530, 620, () => _sim.Tref * 1.8 + 32, () => $"{_sim.Tref * 1.8 + 32:F0}°F", id: "tref");
         AddGauge("Coolant Thot", "熱腿溫度", 530, 660, () => _sim.Thot * 1.8 + 32, () => $"{_sim.Thot * 1.8 + 32:F0}°F", id: "thot");
@@ -668,6 +673,9 @@ public sealed partial class ReactorModule : Page
             (ReactorAlarm.AxialFluxDiffOutOfBand, "AFD OUT OF BAND", "軸向通量差超限"),
             (ReactorAlarm.QuadrantPowerTiltHi, "QPTR > 1.02 (LCO 3.2.4)", "象限傾斜 >1.02"),
             (ReactorAlarm.DroppedRcca, "DROPPED RCCA — ROD BOTTOM", "落棒 — 控制棒到底"),
+            (ReactorAlarm.RodEjectionAccident, "ROD EJECTION (RIA)", "彈棒事故 RIA"),
+            (ReactorAlarm.FuelEnthalpyLimit, "FUEL ENTHALPY > 230 cal/g", "燃料焓 >230 cal/g"),
+            (ReactorAlarm.RiaCladFailure, "RIA FUEL FAILURE", "彈棒燃料失效"),
             (ReactorAlarm.CoreDamage, "CORE DAMAGE", "爐心受損"),
             (ReactorAlarm.LossOfOffsitePower, "LOSS OF OFFSITE PWR", "喪失廠外電源"),
             (ReactorAlarm.StationBlackout, "STATION BLACKOUT", "全廠斷電 SBO"),
@@ -1196,6 +1204,7 @@ public sealed partial class ReactorModule : Page
         ScenarioCombo.Items.Add(P("SGTR — tube rupture", "蒸發器爆管 SGTR"));
         ScenarioCombo.Items.Add(P("MSLB — main steam line break", "主蒸汽管爆裂 MSLB"));
         ScenarioCombo.Items.Add(P("RCP seal LOCA — loss of seal cooling", "主泵軸封失水 — 喪失軸封冷卻"));
+        ScenarioCombo.Items.Add(P("Rod ejection — RIA (Ch 15.4.8)", "彈棒事故 — RIA（15.4.8）"));
         ScenarioCombo.SelectedIndex = 0;
     }
 
@@ -1227,6 +1236,7 @@ public sealed partial class ReactorModule : Page
             6 => ReactorScenario.SgTubeRupture,
             7 => ReactorScenario.MainSteamLineBreak,
             8 => ReactorScenario.RcpSealLoca,
+            9 => ReactorScenario.RodEjection,
             _ => ReactorScenario.Normal,
         });
         // The isolate control is meaningful during an SGTR (isolate affected SG) or an MSLB (close MSIVs).

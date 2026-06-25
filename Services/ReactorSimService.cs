@@ -83,6 +83,9 @@ public enum ReactorAlarm
     ContainmentH2Detonable, // containment H₂ in the 13–65 vol% detonable band — DDT-credible, containment threat
     IgnitersEnergized,      // Distributed Ignition System armed and powered (glow plugs hot) — status annunciator
     ContainmentDeflagration,// a containment hydrogen burn has occurred (latched event)
+    RodEjectionAccident,    // RIA/REA (Ch 15.4.8) in progress — a CRDM has failed and ejected an RCCA
+    FuelEnthalpyLimit,      // peak radial-average fuel enthalpy ≥ the RG 1.236 coolability limit (230 cal/g)
+    RiaCladFailure,         // RIA fuel-rod failure (PCMI enthalpy-rise threshold, or DNB at power)
 }
 
 /// <summary>
@@ -130,6 +133,49 @@ public sealed class ReactorSimService
 
     // Rod worth: total worth of all banks fully inserted (dk/k). Banks share this.
     private const double TotalRodWorth = 0.080; // 8000 pcm fully inserted
+
+    // ---- Rod Ejection Accident (RIA / REA, FSAR Ch 15.4.8) ----
+    // A failed CRDM housing lets RCS pressure (~2250 psia) expel one RCCA + drive shaft in ~0.1 s. The
+    // step of positive reactivity drives a super-prompt-critical excursion at HZP (worth > β); the pulse is
+    // turned over in tens of ms by PROMPT Doppler, NOT by the scram. Bounding worths per Westinghouse FSAR
+    // 15.4.8 / NRC W-6382: HZP ~0.75 %Δk/k (deepest insertion, weakest Doppler), HFP ~0.20 %Δk/k.
+    private const double RiaHzpWorthPcm   = 750.0;  // bounding hot-zero-power ejected single-RCCA worth (pcm)
+    private const double RiaHfpWorthPcm   = 225.0;  // hot-full-power ejected worth (pcm)
+    private const double RiaEjectTimeSec  = 0.10;   // mechanical ejection time (linear worth ramp, s)
+    private const double RiaMicroDt       = 0.001;  // 1 ms inner sub-step to resolve the ~45 ms prompt pulse
+    // Hot-pellet enthalpy node (the RIA figure of merit). Core-average UO₂ specific power 3411 MWth / 89 t ≈
+    // 38 W/g; total nuclear peaking F_Q ≈ 2.5 → hot-pellet ≈ 95 W/g. Pellet→coolant time constant ≈ 5.5 s
+    // (adiabatic on the pulse timescale — exactly why prompt Doppler must come from THIS node, not FuelTemp).
+    private const double FuelSpecificPowerWg = 38.0;   // W/g UO₂, core average at rated power
+    private const double RiaFqHotPellet      = 2.5;    // total nuclear hot-channel peaking factor F_Q
+    private const double FuelEnthalpyTau     = 5.5;    // s, hot-pellet → coolant thermal time constant
+    private const double CalPerJoule         = 1.0 / 4.1868; // 1 J = 0.2389 cal
+    // UO₂ enthalpy fit H[cal/g] = a·T + b·T² (Fink 2000; T °C from ~25 °C). 256 cal/g @1000 °C, 1012 @melt.
+    private const double Uo2EnthA = 0.20262;
+    private const double Uo2EnthB = 5.3665e-5;
+    // RIA acceptance limits on peak radial-average fuel enthalpy / enthalpy rise.
+    private const double RiaCoolabilityCalG       = 230.0; // RG 1.236 (2021) low-burnup coolability / no-melt
+    private const double RiaLegacyCoolabilityCalG = 280.0; // RG 1.77 (1974) fresh-fuel reference / incipient melt
+    private const double RiaPcmiRiseFreshCalG     = 150.0; // PCMI clad-failure enthalpy RISE at ~zero excess H
+    private const double RiaPcmiRiseHighBurnCalG  = 60.0;  // PCMI rise threshold near 68 GWd/MTU (high burnup)
+
+    /// <summary>UO₂ 焓擬合（cal/g，由 ~25 °C 起）· UO₂ enthalpy above cold, cal/g.</summary>
+    private static double Uo2Enthalpy(double tc)
+    {
+        if (tc < 0) tc = 0;
+        return Uo2EnthA * tc + Uo2EnthB * tc * tc;
+    }
+
+    /// <summary>焓反推溫度（°C）· Invert the UO₂ enthalpy fit (quadratic solve).</summary>
+    private static double Uo2EnthalpyToTemp(double hcal)
+    {
+        if (hcal <= 0) return 0;
+        return (-Uo2EnthA + Math.Sqrt(Uo2EnthA * Uo2EnthA + 4.0 * Uo2EnthB * hcal)) / (2.0 * Uo2EnthB);
+    }
+
+    /// <summary>熱芯塊體積發熱率（cal/g·s）· Hot-pellet volumetric heat-deposition rate, cal/(g·s).</summary>
+    private double RiaQHot(double powerFrac) =>
+        FuelSpecificPowerWg * RiaFqHotPellet * Math.Max(0.0, powerFrac) * CalPerJoule;
 
     // --- Westinghouse rod-control geometry / sequencing ---
     // Each control bank spans 228 steps (0 = fully inserted, 228 = fully withdrawn); banks withdraw
@@ -1160,6 +1206,10 @@ public sealed class ReactorSimService
         _sealCoolingFailed = false;
         for (int i = 0; i < _sealCavityTempC.Length; i++) { _sealCavityTempC[i] = SealCooledTempC; _sealLeakGpm[i] = 0; _sealIntegrity[i] = 1.0; }
         SealLeakGpmTotal = 0; SealCavityMaxTempC = SealCooledTempC; SealCoolingAvailable = true;
+        // Clear any prior rod-ejection event; re-arm the enthalpy figure of merit from the current state.
+        _riaActive = false; _ejectRamp = 0; EjectedRodWorthPcm = 0; EjectedRodReactivityPcm = 0;
+        PeakFuelEnthalpyCalPerG = _hotPelletEnthalpy; PeakFuelEnthalpyRiseCalPerG = 0;
+        RiaCladdingFailure = false; RiaFuelMelt = false; RiaCoolabilityViolated = false; RiaFailedRodPercent = 0;
         switch (s)
         {
             case ReactorScenario.Normal:
@@ -1197,6 +1247,16 @@ public sealed class ReactorSimService
             case ReactorScenario.RcpSealLoca:
                 _sealCoolingFailed = true; // loss of all seal cooling (CCW thermal barrier + seal injection) with AC up
                 EccsArmed = true;          // charging/HHSI available to make up — but cannot match a gross seal failure
+                break;
+            case ReactorScenario.RodEjection:
+                // A CRDM housing fails: RCS pressure expels one RCCA + drive shaft. Worth is power-dependent —
+                // HZP (deepest insertion, weakest Doppler) is the bounding, super-prompt-critical case; HFP is
+                // mild. The plant state is left as-is so the operator sees the bounding case by ejecting from a
+                // just-critical hot-zero-power condition. The pulse is Doppler-terminated, NOT scrammed.
+                _riaActive = true; _ejectRamp = 0;
+                EjectedRodWorthPcm = RiaHfpWorthPcm + (RiaHzpWorthPcm - RiaHfpWorthPcm) * (1.0 - Math.Clamp(_power, 0.0, 1.0));
+                _riaEnthalpyAtTrigger = _hotPelletEnthalpy;
+                PeakFuelEnthalpyCalPerG = _hotPelletEnthalpy; PeakFuelEnthalpyRiseCalPerG = 0;
                 break;
         }
     }
@@ -1336,6 +1396,27 @@ public sealed class ReactorSimService
         (_power > QptrApplicabilityPower && Qptr > QptrAlarmLimit) ? 3.0 * (Qptr - 1.0) * 100.0 : 0.0;
     public bool QptrOutOfLimit => _power > QptrApplicabilityPower && Qptr > QptrAlarmLimit;
 
+    // ---- Rod Ejection Accident (RIA / REA, FSAR Ch 15.4.8) display surface ----
+    public bool   RodEjectionActive => _riaActive;                     // a CRDM has ejected an RCCA (latched until reset)
+    public double EjectedRodWorthPcm { get; private set; }             // bounding ejected-rod worth captured at trigger (pcm)
+    public double EjectedRodReactivityPcm { get; private set; }        // current inserted ejected-rod reactivity (ramp × worth)
+    public double FuelEnthalpyCalPerG => _hotPelletEnthalpy;           // live hot-pellet radial-average enthalpy (cal/g)
+    public double PeakFuelEnthalpyCalPerG { get; private set; }        // max-hold ABSOLUTE peak fuel enthalpy — coolability metric
+    public double PeakFuelEnthalpyRiseCalPerG { get; private set; }    // max-hold enthalpy RISE since trigger — PCMI metric
+    public double RiaCoolabilityLimitCalPerG => RiaCoolabilityCalG;    // 230 cal/g (RG 1.236)
+    public double RiaLegacyLimitCalPerG => RiaLegacyCoolabilityCalG;   // 280 cal/g (RG 1.77)
+    public double RiaPcmiRiseLimitCalPerG { get; private set; } = RiaPcmiRiseFreshCalG; // burnup-dependent PCMI rise limit
+    public bool   RiaCladdingFailure { get; private set; }             // PCMI (HZP) or DNB (HFP) fuel-rod failure
+    public bool   RiaFuelMelt { get; private set; }                    // peak ≥ 280 cal/g — incipient fuel melt
+    public bool   RiaCoolabilityViolated { get; private set; }         // peak ≥ 230 cal/g — coolability limit exceeded
+    public int    RiaFailedRodPercent { get; private set; }            // qualitative failed-fuel estimate (% of core)
+
+    private bool   _riaActive;                 // ejection in progress / latched event
+    private double _ejectRamp;                 // 0 = seated … 1 = fully ejected (linear over RiaEjectTimeSec)
+    private double _hotPelletEnthalpy;         // cal/g — adiabatic-on-pulse hot-pellet enthalpy node
+    private double _hotPelletEnthalpyRef;      // cal/g — slow baseline; the prompt-Doppler term reads the excess over this
+    private double _riaEnthalpyAtTrigger;      // cal/g — node value captured at ejection (datum for the enthalpy RISE)
+
     private readonly double[] _qpd = { 1.0, 1.0, 1.0, 1.0 }; // NW, NE, SE, SW quadrant detector signals
     private int _droppedRodQuad = -1;                        // which quadrant holds the dropped rod (−1 = none)
     private double _dropRamp;                                // 0 = withdrawn … 1 = fully dropped (free-fall ramp)
@@ -1414,6 +1495,13 @@ public sealed class ReactorSimService
         AxialOffsetPercent = 0; AxialFluxDifferencePercent = 0;
         for (int i = 0; i < _qpd.Length; i++) _qpd[i] = 1.0;
         _droppedRodQuad = -1; _dropRamp = 0; DroppedRodReactivityPcm = 0;
+        // Rod ejection (RIA): clear the event and seed the hot-pellet enthalpy node at the cold datum.
+        _riaActive = false; _ejectRamp = 0;
+        EjectedRodWorthPcm = 0; EjectedRodReactivityPcm = 0;
+        _hotPelletEnthalpy = _hotPelletEnthalpyRef = _riaEnthalpyAtTrigger = Uo2Enthalpy(ColdTemp);
+        PeakFuelEnthalpyCalPerG = _hotPelletEnthalpy; PeakFuelEnthalpyRiseCalPerG = 0;
+        RiaPcmiRiseLimitCalPerG = RiaPcmiRiseFreshCalG;
+        RiaCladdingFailure = false; RiaFuelMelt = false; RiaCoolabilityViolated = false; RiaFailedRodPercent = 0;
         for (int i = 0; i < RodBankInsertion.Length; i++) RodBankInsertion[i] = 100.0;
         for (int i = 0; i < RcpRunning.Length; i++) RcpRunning[i] = false;
         Array.Clear(_rcpFlow);
@@ -1538,6 +1626,7 @@ public sealed class ReactorSimService
         StepCet(dt);      // CET + subcooling-margin monitor reads the post-cladding clad/level state; advisory ICC alarms only
         StepContainmentH2(dt); // containment H₂ atmosphere / PAR / igniter / deflagration — reads the post-cladding HydrogenMassKg
         UpdatePtLimits(dt); // App G P/T brittle-fracture limit + LTOP arming (reads the final post-tick Tcold/pressure)
+        UpdateRiaConsequences(); // RIA fuel-enthalpy acceptance evaluation (reads the post-tick DNBR / enthalpy peak)
         UpdateAlarms();
         UpdateStatus();
     }
@@ -2264,7 +2353,7 @@ public sealed class ReactorSimService
         double rodRho = -TotalRodWorth * rodWorthSum;
 
         double boronRho = BoronWorth * BoronPpm;
-        double dopplerRho = DopplerCoeff * (FuelTemp - RefFuelTemp);
+        double dopplerRho = DopplerCoeff * (FuelTemp - RefFuelTemp);   // slow lumped-fuel Doppler
         double modRho = ModTempCoeff * (Tavg - RefModTemp);
         // Xenon worth proportional to xenon concentration (normalized so equilibrium full power = 1).
         double xenonRho = XenonWorthFull * Xenon;
@@ -2276,51 +2365,92 @@ public sealed class ReactorSimService
         const double ExcessBaseline = 0.080 + BoronWorth * NominalBoron * -1.0; // brings band into reach
         // A dropped full-length RCCA inserts its integral worth (negative) as the fall-ramp completes.
         double droppedRho = -(DroppedRodWorthPcm * 1e-5) * _dropRamp;
-        double rho = ExcessBaseline + rodRho + boronRho + dopplerRho + modRho + xenonRho + samariumRho + droppedRho;
+        // Everything above is constant across the (possibly fine-grained) RIA micro-steps below.
+        double rhoSlow = ExcessBaseline + rodRho + boronRho + dopplerRho + modRho + xenonRho + samariumRho + droppedRho;
 
-        RodReactivityPcm = (rodRho + droppedRho) * 1e5;       // fold the dropped-rod worth into the rod line
+        // ---- Rod Ejection Accident (RIA / REA, Ch 15.4.8): super-prompt-critical excursion ----
+        // The ejected rod adds +worth as a 0.1 s ramp. The resulting ~45 ms power pulse is turned over NOT by
+        // the scram (orders of magnitude too slow) but by PROMPT Doppler sourced from the hot-pellet ENTHALPY
+        // node — the lumped FuelTemp (τ≈5.5 s) cannot quench it. While the pulse is energetic we resolve the
+        // stiff prompt mode with 1 ms inner steps so the deposited enthalpy (the figure of merit) is real and
+        // does not lean on the denom/power numerical backstops. Outside an RIA, micro == 1 → exact prior path.
+        bool riaPulse = _riaActive && (_ejectRamp < 0.999 || _power > 1.05 || Math.Abs(ReactorPeriodSeconds) < 25.0);
+        int micro = riaPulse ? Math.Max(1, (int)Math.Ceiling(h / RiaMicroDt)) : 1;
+        double hm = h / micro;
+        double coolantEnth = Uo2Enthalpy(Math.Max(ColdTemp, Tcold)); // hot-pellet relaxation sink
+        double ejectRho = (EjectedRodWorthPcm * 1e-5) * _ejectRamp;
+        double dopplerPromptRho = 0.0;
+        double rho = rhoSlow + ejectRho;
+        double newPower = _power;
+
+        for (int m = 0; m < micro; m++)
+        {
+            if (_riaActive && _ejectRamp < 1.0)
+                _ejectRamp = Math.Min(1.0, _ejectRamp + hm / RiaEjectTimeSec);
+            ejectRho = (EjectedRodWorthPcm * 1e-5) * _ejectRamp;
+
+            // Prompt Doppler = DopplerCoeff × (hot-pellet temp − its slow baseline). Zero in steady state
+            // (enthalpy ≈ ref), strongly negative on a ms power spike. Only active during the RIA event so the
+            // tuned normal-operation reactivity balance is untouched.
+            dopplerPromptRho = _riaActive
+                ? DopplerCoeff * (Uo2EnthalpyToTemp(_hotPelletEnthalpy) - Uo2EnthalpyToTemp(_hotPelletEnthalpyRef))
+                : 0.0;
+            rho = rhoSlow + ejectRho + dopplerPromptRho;
+
+            // ---- point kinetics (6 groups), unconditionally-stable backward (implicit) Euler ----
+            // Collapse the full 7-state implicit system into one scalar solve: substitute each
+            // C_i^{n+1} = (C_i + h·(β_i/Λ)·P^{n+1})/(1 + h·λ_i) into the power balance.
+            double precursorContribution = 0; // lagged-but-corrected precursor source
+            double implicitFeedback = 0;      // implicit precursor feedback into power
+            for (int i = 0; i < 6; i++)
+            {
+                double di = 1.0 + hm * Lambda[i];
+                precursorContribution += Lambda[i] * _precursor[i] / di;
+                implicitFeedback += hm * Lambda[i] * Beta[i] / (PromptLifetime * di);
+            }
+
+            double denom = 1.0 - hm * (rho - BetaTotal) / PromptLifetime - hm * implicitFeedback;
+            if (denom < 1e-3) denom = 1e-3; // backstop: denom crosses zero at/above prompt-critical (ρ ≥ ~1$)
+
+            newPower = (_power + hm * (precursorContribution + SourceLevel)) / denom;
+            if (newPower < 1e-12) newPower = 1e-12; // floor, never zero/negative (would poison precursors+source)
+
+            for (int i = 0; i < 6; i++)
+            {
+                _precursor[i] = (_precursor[i] + hm * (Beta[i] / PromptLifetime) * newPower) / (1.0 + hm * Lambda[i]);
+                if (_precursor[i] < 0) _precursor[i] = 0;
+            }
+
+            // Reactor period from rate of change (computed before _power is overwritten).
+            double rate = (newPower - _power) / (Math.Max(_power, 1e-12) * hm);
+            ReactorPeriodSeconds = Math.Abs(rate) < 1e-9 ? 1e9 : 1.0 / rate;
+            _power = newPower;
+            if (_power > 50) _power = 50; // numerical backstop only (proper prompt Doppler keeps it well below)
+
+            // Hot-pellet enthalpy node (cal/g): adiabatic on the pulse timescale, relaxing to coolant over τ.
+            // Updated AFTER the kinetics step so the prompt-Doppler predictor-corrector sees this tick's power.
+            double qHot = RiaQHot(_power + DecayHeatFraction);
+            _hotPelletEnthalpy += (qHot - (_hotPelletEnthalpy - coolantEnth) / FuelEnthalpyTau) * hm;
+            if (_hotPelletEnthalpy < 0) _hotPelletEnthalpy = 0;
+            _hotPelletEnthalpyRef += (_hotPelletEnthalpy - _hotPelletEnthalpyRef) * Math.Min(1.0, hm / FuelEnthalpyTau);
+
+            if (_hotPelletEnthalpy > PeakFuelEnthalpyCalPerG) PeakFuelEnthalpyCalPerG = _hotPelletEnthalpy;
+            if (_riaActive)
+            {
+                double riseNow = _hotPelletEnthalpy - _riaEnthalpyAtTrigger;
+                if (riseNow > PeakFuelEnthalpyRiseCalPerG) PeakFuelEnthalpyRiseCalPerG = riseNow;
+            }
+        }
+
+        EjectedRodReactivityPcm = ejectRho * 1e5;
+        RodReactivityPcm = (rodRho + droppedRho + ejectRho) * 1e5;  // fold dropped + ejected worth into the rod line
         DroppedRodReactivityPcm = droppedRho * 1e5;
-        BoronReactivityPcm = (boronRho + ExcessBaseline) * 1e5; // fold baseline into boron line for display
-        DopplerReactivityPcm = dopplerRho * 1e5;
+        BoronReactivityPcm = (boronRho + ExcessBaseline) * 1e5;     // fold baseline into boron line for display
+        DopplerReactivityPcm = (dopplerRho + dopplerPromptRho) * 1e5; // slow + prompt (RIA) Doppler
         ModeratorReactivityPcm = modRho * 1e5;
         XenonReactivityPcm = xenonRho * 1e5;
         SamariumReactivityPcm = samariumRho * 1e5;
         ReactivityPcm = rho * 1e5;
-
-        // ---- point kinetics (6 groups), unconditionally-stable backward (implicit) Euler ----
-        // The prompt mode is stiff: near critical its eigenvalue is ~ -BetaTotal/PromptLifetime
-        // (~-325/s for these constants), so explicit forward-Euler needs h < ~6 ms. We step at
-        // h = SubDt = 0.02 s, ~3x over that limit, where forward-Euler oscillates sign-to-sign and
-        // diverges on ANY reactivity insertion. Backward Euler is stable for all h below prompt-
-        // critical. We collapse the full 7-state implicit system into one scalar solve: substitute
-        // each C_i^{n+1} = (C_i + h*(beta_i/Lambda)*P^{n+1})/(1 + h*lambda_i) into the power balance.
-        double precursorContribution = 0; // A: lagged-but-corrected precursor source
-        double implicitFeedback = 0;      // B: implicit precursor feedback into power
-        for (int i = 0; i < 6; i++)
-        {
-            double di = 1.0 + h * Lambda[i];
-            precursorContribution += Lambda[i] * _precursor[i] / di;
-            implicitFeedback += h * Lambda[i] * Beta[i] / (PromptLifetime * di);
-        }
-
-        double denom = 1.0 - h * (rho - BetaTotal) / PromptLifetime - h * implicitFeedback;
-        if (denom < 1e-3) denom = 1e-3; // guard: denom crosses zero at/above prompt-critical (rho >= ~1$)
-
-        double newPower = (_power + h * (precursorContribution + SourceLevel)) / denom;
-        if (newPower < 1e-12) newPower = 1e-12; // floor, never zero/negative (would poison precursors+source)
-
-        for (int i = 0; i < 6; i++)
-        {
-            // Implicit precursor update uses the new power; unconditionally stable, no overshoot.
-            _precursor[i] = (_precursor[i] + h * (Beta[i] / PromptLifetime) * newPower) / (1.0 + h * Lambda[i]);
-            if (_precursor[i] < 0) _precursor[i] = 0;
-        }
-
-        // Reactor period from rate of change (computed before _power is overwritten).
-        double rate = (newPower - _power) / (Math.Max(_power, 1e-12) * h);
-        ReactorPeriodSeconds = Math.Abs(rate) < 1e-9 ? 1e9 : 1.0 / rate;
-        _power = newPower;
-        if (_power > 50) _power = 50; // numerical guard (5000 % is way past meltdown anyway)
 
         // ---- thermal-hydraulics (lumped) ----
         StepThermal(h);
@@ -3060,6 +3190,41 @@ public sealed class ReactorSimService
     }
 
     private void SetAlarm(ReactorAlarm a, bool on) => _alarms[(int)a] = on;
+
+    /// <summary>
+    /// 彈棒事故後果評定 · Rod-ejection acceptance evaluation. Compares the peak hot-pellet fuel enthalpy
+    /// (and enthalpy RISE) against the RIA limits: RG 1.236 230 cal/g coolability / RG 1.77 280 cal/g
+    /// (incipient melt) on the absolute peak, and a burnup-dependent PCMI enthalpy-rise threshold (HZP)
+    /// or the W-3 DNBR safety limit (at power) for cladding failure. Runs every tick; cheap when idle.
+    /// </summary>
+    private void UpdateRiaConsequences()
+    {
+        // PCMI cladding-failure enthalpy-RISE threshold falls with burnup (RG 1.236 Figs 2–5): ~150 cal/g
+        // rise fresh → ~60 cal/g near 68 GWd/MTU as cladding hydrides and embrittles.
+        double bf = Math.Clamp(BurnupMwdPerTonne / 68000.0, 0.0, 1.0);
+        RiaPcmiRiseLimitCalPerG = RiaPcmiRiseFreshCalG + (RiaPcmiRiseHighBurnCalG - RiaPcmiRiseFreshCalG) * bf;
+
+        RiaCoolabilityViolated = PeakFuelEnthalpyCalPerG >= RiaCoolabilityCalG;       // RG 1.236, 230 cal/g
+        RiaFuelMelt            = PeakFuelEnthalpyCalPerG >= RiaLegacyCoolabilityCalG; // RG 1.77, 280 cal/g (incipient melt)
+
+        // Two failure modes: PCMI (enthalpy rise, dominant from a low-power initial state) and DNB (assumed
+        // failure at power, preserving the RG 1.77 "DNB = failure" presumption).
+        bool pcmiFail = _riaActive && PeakFuelEnthalpyRiseCalPerG >= RiaPcmiRiseLimitCalPerG;
+        bool dnbFail  = _riaActive && _power > 0.10 && MinDnbr < DnbrSafetyLimit;
+        RiaCladdingFailure = pcmiFail || dnbFail;
+
+        int failed = 0;
+        if (RiaCladdingFailure)
+            failed = (int)Math.Clamp(
+                8.0 + (PeakFuelEnthalpyRiseCalPerG - RiaPcmiRiseLimitCalPerG) / RiaPcmiRiseLimitCalPerG * 120.0,
+                1.0, 100.0);
+        if (RiaCoolabilityViolated) failed = 100; // coolability lost → bounding failed-fuel population
+        RiaFailedRodPercent = failed;
+
+        SetAlarm(ReactorAlarm.RodEjectionAccident, _riaActive);
+        SetAlarm(ReactorAlarm.FuelEnthalpyLimit, RiaCoolabilityViolated);
+        SetAlarm(ReactorAlarm.RiaCladFailure, RiaCladdingFailure);
+    }
 
     private void UpdateAlarms()
     {
