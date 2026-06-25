@@ -2,446 +2,305 @@
 
 # WinForge · 視窗鑄造
 
-**A fully bilingual Windows convenience suite — 110+ real, working modules in one WinUI 3 control center that genuinely changes Windows 11.**
-**一個全程雙語嘅 Windows 便利套件 — 110+ 個真正用得嘅模組，集合喺一個 WinUI 3 控制中心，真係會改到 Windows 11。**
+**An all-in-one, fully bilingual Windows 11 control center — every module is real and working — crowned by a hyper-realistic flagship nuclear-reactor simulator.**
+**一個全方位、全程雙語嘅 Windows 11 控制中心 — 每個模組都係真正用得 — 仲有一個超寫實嘅旗艦核反應堆模擬器坐鎮。**
 
-`112 in-app modules` · `~1140 tweaks & ops` · `PowerToys + Winaero built in` · `kiosk / windowed` · `runs in the tray` · `WinUI 3 · .NET 11` · `English + 繁體中文／粵語`
-
-`releases on every push (v1.0.x)` · `master search` · `no redirects — everything runs in-app`
+`WinUI 3 · .NET 11` · `English + 繁體中文／粵語` · `x64` · `100+ in-app modules` · `everything runs in-app`
 
 </div>
-
-> **A multi-module suite.** WinForge began as a Windows 11 tweaker and grew into a full convenience
-> suite. Each "module" is a real, working tool that wraps a real engine or native API — no fake toggles,
-> no redirects to external windows.
-> **一個多模組套件。** WinForge 由 Windows 11 調校工具，逐步變成一個完整嘅便利套件。
-> 每個「模組」都係真正用得嘅工具，包住真實引擎或者原生 API — 冇假開關，亦唔會跳去外部視窗。
-
----
-
-## 📑 Table of contents · 目錄
-
-- [Overview · 概覽](#-overview--概覽)
-- [Download & install · 下載同安裝](#-download--install--下載同安裝)
-- [Build from source · 由原始碼建置](#-build-from-source--由原始碼建置)
-- [Screenshots gallery · 截圖畫廊](#-screenshots-gallery--截圖畫廊)
-- [Module catalog · 模組目錄](#-module-catalog--模組目錄)
-  - [System & Tweaks · 系統與調校](#system--tweaks--系統與調校)
-  - [Files & Disks · 檔案與磁碟](#files--disks--檔案與磁碟)
-  - [Media & Capture · 媒體與擷取](#media--capture--媒體與擷取)
-  - [Developer · 開發者](#developer--開發者)
-  - [Network · 網絡](#network--網絡)
-  - [Apps, Git & Packages · 應用程式、Git 與套件](#apps-git--packages--應用程式git-與套件)
-  - [AI · 人工智能](#ai--人工智能)
-  - [Window Management · 視窗管理](#window-management--視窗管理)
-  - [PowerToys-style utilities · PowerToys 式工具](#powertoys-style-utilities--powertoys-式工具)
-  - [Security & Vaults · 安全與保險庫](#security--vaults--安全與保險庫)
-  - [Productivity & Misc · 生產力與其他](#productivity--misc--生產力與其他)
-  - [Gaming & Emulation · 遊戲與模擬](#gaming--emulation--遊戲與模擬)
-- [Windows-11 tweak catalog · Windows 11 調校目錄](#-windows-11-tweak-catalog--windows-11-調校目錄)
-- [Safety first · 安全至上](#-safety-first--安全至上)
-- [How it works · 運作原理](#-how-it-works--運作原理)
-- [Bilingual by design · 雙語設計](#-bilingual-by-design--雙語設計)
-- [Documentation & wiki · 文件與 wiki](#-documentation--wiki--文件與-wiki)
-- [License · 授權條款](#-license--授權條款)
 
 ---
 
 ## 🌏 Overview · 概覽
 
-**EN —** WinForge is a modern **WinUI 3 / .NET 11** desktop app for Windows 11. Every feature is shown in
-**both English and Traditional Chinese / Cantonese (繁體中文／粵語) at the same time**, and every toggle,
-choice and action **actually changes the system** — it writes real registry keys, switches power plans,
-resets the network stack, flips privacy settings, cleans caches, and drives real engines (git, gh, ffmpeg,
-7-Zip, cloudflared, winget, and many more). Nothing is fake: each card maps to a documented Windows setting
-or a real command. The app opens **windowed by default (~82% of the screen)**, **F11** toggles full screen,
-and **closing hides it to the system tray** so background pieces (clipboard monitor, auto dark-mode, etc.)
-keep running.
+**EN —** WinForge is an all-in-one, fully bilingual control center for Windows 11. It gathers 100+ real, working modules — system tweaking, files & disks, media & capture, developer tooling, networking, package management, AI, window management, PowerToys-style utilities, security vaults, virtualization and gaming — into a single **WinUI 3 / .NET 11** app where every English label is paired with **繁體中文／粵語** and every action actually changes the system. Its flagship is a **hyper-realistic Pressurized Water Reactor (PWR) control-room simulator** with full point-kinetics physics, a fuel-and-waste fuel cycle, a water-treatment plant, and Westinghouse-style safety systems.
 
-**粵語 —** WinForge 係一個畀 Windows 11 用嘅現代化 **WinUI 3 / .NET 11** 桌面應用程式。每一項功能都會
-**同時用英文同繁體中文／粵語顯示**，而且每個開關、選項同動作都會**真正改到你部機** —
-佢會寫真實嘅登錄檔、轉電源計劃、重設網絡堆疊、改私隱設定、清快取，仲會驅動真實引擎（git、gh、ffmpeg、
-7-Zip、cloudflared、winget 等等）。冇一樣係假嘅：每張卡都對應一個有文件記載嘅 Windows 設定或者一句真實指令。
-App **預設係視窗模式（約佔螢幕 82%）**，**F11** 切換全螢幕，**關閉視窗會收埋去系統匣**，
-等背景功能（剪貼簿監察、自動深淺色等）繼續運行。
+**粵語 —** WinForge 係一個畀 Windows 11 用嘅全方位、全程雙語控制中心。佢將 100+ 個真正用得嘅模組 — 系統調校、檔案與磁碟、媒體與擷取、開發者工具、網絡、套件管理、AI、視窗管理、PowerToys 式工具、安全保險庫、虛擬化同遊戲 — 全部集合喺一個 **WinUI 3 / .NET 11** app 入面，每個英文標籤都配上**繁體中文／粵語**，而且每個動作都真正改到部機。佢嘅旗艦係一個**超寫實壓水堆（PWR）控制室模擬器**，附完整點動力學物理、燃料與廢料燃料循環、水處理廠同西屋式保護系統。
 
 ---
 
-## 📥 Download & install · 下載同安裝
+## 📑 Table of contents · 目錄
 
-**EN —** Grab the latest build from **[GitHub Releases](https://github.com/codingmachineedge/WinForge/releases)**.
-Every push to `main` publishes a fresh release (`v1.0.x`, currently **v1.0.8**) with two assets:
+- [Build & Run · 建置與執行](#-build--run--建置與執行)
+- [Highlights · 重點](#-highlights--重點)
+- [Flagship: Nuclear Reactor · 旗艦：核反應堆](#-flagship-nuclear-reactor--旗艦核反應堆)
+- [Module Catalog · 模組目錄](#-module-catalog--模組目錄)
+- [Documentation & Wiki · 文件與 Wiki](#-documentation--wiki--文件與-wiki)
+- [License · 授權條款](#-license--授權條款)
 
-| Asset · 檔案 | What it is · 內容 |
-|---|---|
-| **`WinForge-Setup.exe`** | Inno Setup installer — installs to *Program Files*, adds Start-menu & optional desktop shortcuts. <br> Inno Setup 安裝程式 — 安裝到 *Program Files*，加開始功能表同（可選）桌面捷徑。 |
-| **`WinForge-portable-x64-1.0.x.zip`** | Portable, self-contained x64 build — unzip anywhere and run `WinForge.exe`, no install needed. <br> 免安裝、自包含 x64 版本 — 解壓到任何位置，行 `WinForge.exe` 就得，唔使安裝。 |
+---
 
-**EN —** Both are **self-contained x64** (the Windows App SDK runtime is bundled — no separate runtime install).
-Windows 11 is the target; Windows 10 1809+ also runs. Some operations require **administrator rights** — the
-app offers a one-click elevated relaunch.
+## 🔨 Build & Run · 建置與執行
 
-**粵語 —** 兩個都係**自包含 x64**（已內附 Windows App SDK 執行階段 — 唔使另外安裝）。
-目標係 Windows 11；Windows 10 1809 或以上都用得。部分操作需要**管理員權限** — app 有一鍵以管理員身分重新啟動。
+**EN —** Requirements: the **.NET 11 SDK** and the **Windows App SDK** workload (Visual Studio 2022 with *.NET Desktop* + *Windows App SDK*, or the SDK on its own). Build the whole solution:
+
+**粵語 —** 需求：**.NET 11 SDK** 同 **Windows App SDK** 工作負載（Visual Studio 2022 加 *.NET 桌面* + *Windows App SDK*，或者淨係裝 SDK）。建置成個方案：
 
 ```powershell
-# Portable: download, unzip, run · 免安裝：下載、解壓、執行
-# (or just run WinForge-Setup.exe for the installer · 或者直接行 WinForge-Setup.exe 用安裝程式)
+# Build the solution (Debug, x64) · 建置方案（Debug、x64）
+dotnet build WinForge.sln -c Debug -p:Platform=x64
+```
+
+**EN —** To **run** a real, distributable build, publish self-contained — the Windows App SDK runtime is bundled, so no separate runtime install is needed:
+
+**粵語 —** 想**執行**一個可發佈嘅版本，請用自包含方式 publish — 已內附 Windows App SDK 執行階段，唔使另外安裝：
+
+```powershell
+# Self-contained publish (x64) for running · 自包含 publish（x64）以供執行
+dotnet publish WinForge.csproj -c Release -p:Platform=x64 -r win-x64 ^
+  --self-contained true -p:WindowsAppSDKSelfContained=true -p:WindowsPackageType=None
+
+# Then run the published WinForge.exe · 然後執行 publish 出嚟嘅 WinForge.exe
 .\WinForge.exe
 ```
 
----
-
-## 🔨 Build from source · 由原始碼建置
-
-**EN —** Requirements: the **[.NET 11 SDK](https://dotnet.microsoft.com/download)** and the Windows App SDK
-workload (Visual Studio 2022 with *.NET Desktop* + *Windows App SDK*, or the SDK on its own).
-
-```powershell
-# Clone · 複製
-git clone https://github.com/codingmachineedge/WinForge.git
-cd WinForge
-
-# Restore + build the whole solution — app + launcher (Release, x64) · 還原同編譯成個方案
-dotnet build WinForge.sln -c Release -p:Platform=x64
-
-# Run the app · 執行
-dotnet run --project WinForge.csproj -c Release -p:Platform=x64
-```
-
-**EN —** `WinForge.sln` bundles two projects: the main **`WinForge`** app and **`WinForgeLauncher`** — a tiny
-non-WinUI supervisor that relaunches the app if it ever fail-fasts in the first seconds of startup (see
-*How it works*). Open the **solution** in **Visual Studio 2022** and press **F5**, or open `WinForge.csproj`
-for the app alone. To reproduce a release build exactly, CI publishes self-contained: `dotnet publish
-WinForge.csproj -c Release -p:Platform=x64 -r win-x64 --self-contained true
--p:WindowsAppSDKSelfContained=true -p:WindowsPackageType=None`.
-
-**粵語 —** `WinForge.sln` 包住兩個專案：主程式 **`WinForge`** 同 **`WinForgeLauncher`**（一個唔依賴 WinUI 嘅輕量
-啟動器，喺開機頭幾秒萬一閃退就自動重開 app，詳見*運作原理*）。喺 **Visual Studio 2022** 打開**方案**撳 **F5**，
-或者淨係打開 `WinForge.csproj` 編譯 app。要完全重現發佈版本，CI 會用自包含方式 publish（指令見上）。
-
-> **Launch a single page directly · 直接開單一頁面:** `WinForge.exe --page <id>` (every id is in
-> [`docs/CLI.md`](docs/CLI.md)); master-search from the CLI with `--page search:<query>`.
+> **Open a single module directly · 直接開單一模組:** `WinForge.exe --page <alias>` (every alias is listed in the [Module Catalog](#-module-catalog--模組目錄) below). · 每個別名都喺下面嘅[模組目錄](#-module-catalog--模組目錄)。
 
 ---
 
-## 🖼️ Screenshots gallery · 截圖畫廊
+## ✨ Highlights · 重點
 
-<div align="center">
+**EN —**
+- **All-in-one control center** — 100+ modules in one app; nothing redirects to external windows, everything runs in-app. · **全方位控制中心** — 一個 app 過百模組；唔會跳去外部視窗，一切喺 app 內運行。
+- **Fully bilingual** — English and 繁體中文／粵語 appear together on every surface; choose which language leads, UI updates live. · **全程雙語** — 每個介面同時顯示英文同繁體中文／粵語；可揀邊種語言排前，介面即時更新。
+- **Real engines, real effects** — wraps git/gh, ffmpeg, 7-Zip, yt-dlp, cloudflared, winget, libVLC, Docker and more, plus native Windows APIs — no fake toggles. · **真實引擎、真實效果** — 包住 git/gh、ffmpeg、7-Zip、yt-dlp、cloudflared、winget、libVLC、Docker 等同原生 Windows API — 冇假開關。
+- **Master search** — find and launch any module from the Dashboard. · **總搜尋** — 喺概覽頁搵到同啟動任何模組。
+- **Hyper-realistic flagship** — a full PWR nuclear-reactor control-room simulator (see below). · **超寫實旗艦** — 一個完整嘅 PWR 核反應堆控制室模擬器（見下）。
+- **WinUI 3 · .NET 11 · x64** — modern, self-contained, runs windowed or full-screen and hides to the tray. · **WinUI 3 · .NET 11 · x64** — 現代化、自包含，可視窗或全螢幕，並收埋去系統匣。
 
-![Dashboard](docs/screenshot-dashboard.png)
+---
 
-</div>
+## ★ Flagship: Nuclear Reactor · 旗艦：核反應堆
 
-<!-- Canonical screenshot set lives in docs/. Keep this gallery in sync with docs/wiki/. -->
+**EN —** The headline module is a **hyper-realistic Pressurized Water Reactor (PWR) control-room simulator**, rendered in WinUI 3 with a pop-out HTML5 window. It is a simulation / training toy — it controls no real hardware. It models 6-group point kinetics, reactivity feedback (Doppler / moderator / boron / xenon), thermal-hydraulics, a steam/turbine secondary plant, a Westinghouse-style protection system (2-out-of-4 coincidence trips), synthesized control-room audio and a live plant mimic.
 
-| | |
+**粵語 —** 重點模組係一個**超寫實壓水堆（PWR）控制室模擬器**，用 WinUI 3 繪製，附可彈出嘅 HTML5 視窗。佢只係模擬／訓練玩具，唔會控制任何真實硬件。佢模擬六組點動力學、反應性回饋（都卜勒／緩和劑／硼／氙）、熱工水力、蒸汽渦輪二次側、西屋式保護系統（2-of-4 一致跳脫）、合成控制室音效同即時機組流程圖。
+
+| Feature · 功能 | What it does · 內容 |
 |---|---|
-| ![Dashboard](docs/screenshot-dashboard.png) <br> **Dashboard · 概覽** — master search across every module; everything runs in-app. <br> 跨所有模組嘅總搜尋；一切喺 app 內運行。 | ![Git & GitHub](docs/screenshot-git.png) <br> **Git & GitHub · Git 與 GitHub** — multi-repo list, chunked uploader, full git/gh op library. <br> 多儲存庫清單、分批上載、完整 git/gh 操作庫。 |
-| ![Package Manager](docs/screenshot-packages.png) <br> **Package Manager · 套件管理** — one front-end over 8+ package managers; batch update & bundles. <br> 一個介面統管 8+ 個套件管理器；批次更新同清單。 | ![AI Agents](docs/screenshot-aiagents.png) <br> **AI Agents · AI 代理** — install, configure & launch terminal AI coding agents, one click each. <br> 一鍵安裝、設定同啟動終端機 AI 編程代理。 |
-| ![Media](docs/screenshot-media.png) <br> **Media · 媒體** — ffmpeg-powered video/audio convert, trim and GIF export. <br> 用 ffmpeg 嘅影片／音訊轉檔、剪裁同 GIF 匯出。 | ![Clipboard](docs/screenshot-clipboard.png) <br> **Clipboard · 剪貼簿** — history of text, images & files; QR, plain-text & format conversions. <br> 文字、圖片同檔案歷史；QR、純文字同格式轉換。 |
-| ![Connections](docs/screenshot-connections.png) <br> **Connections · 連線** — every live TCP/UDP socket and the app that owns it. <br> 每一條即時 TCP/UDP 連線同擁有佢嘅程式。 | ![System Monitor](docs/screenshot-monitor.png) <br> **System Monitor · 系統監察** — live CPU / RAM / network, process priority & affinity. <br> 即時 CPU／RAM／網絡、程序優先順序同親和性。 |
-| ![Cloudflare & Tunnel](docs/screenshot-cloudflare.png) <br> **Cloudflare & Tunnel · Cloudflare 與 Tunnel** — named/quick tunnels, DNS routing, Access, DoH, WARP. <br> 具名／快速 tunnel、DNS 路由、Access、DoH、WARP。 | ![Settings & Control Panel](docs/screenshot-settingshub.png) <br> **Settings & Control Panel · 設定與控制台** — change Windows settings in-app, or open any Settings page / CPL applet. <br> 喺 app 內改 Windows 設定，或打開任何設定頁／控制台 applet。 |
+| **Rooms & HTML5 window** · 房間與 HTML5 視窗 | Walk through plant rooms; pop the control room out into its own dedicated HTML5 window for a full-screen view. <br> 行勻機組各個房間；將控制室彈出去自己嘅 HTML5 視窗睇全螢幕。 |
+| **Fuel factory + waste cycle** · 燃料工廠 + 廢料循環 | A full fuel cycle — fabricate fuel in the fuel factory, burn it in the core, then route spent fuel through the waste cycle. <br> 完整燃料循環 — 喺燃料工廠製造燃料、喺爐心燃燒，再將乏燃料送入廢料循環。 |
+| **Water-treatment plant** · 水處理廠 | A water-treatment plant feeds and conditions the plant's water systems. <br> 水處理廠為機組水系統供水同處理水質。 |
+| **Status API** · 狀態 API | A live status API exposes the running plant state for external readers and widgets. <br> 即時狀態 API 對外公開機組運行狀態，供外部讀取同小工具使用。 |
+| **Safety** · 安全 | **Meltdown → real PC shutdown is OFF by default** — a meltdown only shows a simulated overlay unless you explicitly arm "ARM REAL SHUTDOWN" (an abortable 10 s Windows shutdown). <br> **熔毀真實關機預設 OFF** — 熔毀只播模擬畫面，除非你明確開啟「ARM REAL SHUTDOWN」（可中止嘅 10 秒 Windows 關機）。 |
 
-> **EN —** The canonical screenshot set lives in [`docs/`](docs/) as `screenshot-<key>.png`. Matching wiki
-> pages are in [`docs/wiki/`](docs/wiki/) and on the [GitHub wiki](https://github.com/codingmachineedge/WinForge/wiki).
-> A few shots are labelled placeholders pending a fresh capture run — see [`docs/wiki/Screenshots.md`](docs/wiki/Screenshots.md).
-> Modules without a dedicated screenshot are still fully documented in the catalog below.
->
-> **粵語 —** 正式截圖放喺 [`docs/`](docs/)，命名為 `screenshot-<key>.png`。對應嘅 wiki 頁喺
-> [`docs/wiki/`](docs/wiki/) 同 [GitHub wiki](https://github.com/codingmachineedge/WinForge/wiki)。
-> 部分截圖係標明咗嘅佔位符，等緊重新擷取 — 詳見 [`docs/wiki/Screenshots.md`](docs/wiki/Screenshots.md)。
-> 未有專屬截圖嘅模組，喺下面嘅目錄一樣有完整文件記載。
+> Open it directly · 直接開啟: `WinForge.exe --page reactor`. Full procedures (startup-to-shutdown, scenarios, protection system) are in the [Nuclear Reactor Operating Manual](docs/wiki/Nuclear-Reactor-Operating-Manual.md). · 完整程序見[核反應堆操作手冊](docs/wiki/Nuclear-Reactor-Operating-Manual.md)。
 
 ---
 
-## 🧩 Module catalog · 模組目錄
+## 🧩 Module Catalog · 模組目錄
 
-**EN —** Every module is registered in [`Services/ModuleRegistry.cs`](Services/ModuleRegistry.cs) and reachable
-from the **master search** on the Dashboard. The table below lists all of them, grouped by area, with a
-one-line bilingual description. Open any one directly with `WinForge.exe --page <Tag>`.
+**EN —** Every module is reachable from the **master search** on the Dashboard, or directly with `WinForge.exe --page <alias>`. Grouped by category below, each with a one-line bilingual description.
 
-**粵語 —** 每個模組都登記喺 [`Services/ModuleRegistry.cs`](Services/ModuleRegistry.cs)，可以喺概覽頁嘅
-**總搜尋**搵到。下面嘅表按範疇分組列出全部模組，每個都有一句雙語說明。可以用 `WinForge.exe --page <Tag>` 直接打開。
+**粵語 —** 每個模組都可以喺概覽頁嘅**總搜尋**搵到，或者用 `WinForge.exe --page <alias>` 直接開啟。下面按分類分組，每個都有一句雙語說明。
 
 ### System & Tweaks · 系統與調校
 
-| Module · 模組 | `--page` | Description · 說明 |
+| Module · 模組 | Description · 說明 | `--page` |
 |---|---|---|
-| **Dashboard · 概覽** | `dashboard` | Home surface with master search across every module. <br> 主頁，總搜尋橫跨所有模組。 |
-| **Registry Editor · 登錄編輯器** | `module.regedit` | Browse and edit the live Windows registry — hives, keys, values. <br> 瀏覽同編輯實時 Windows 登錄檔 — hive、機碼、值。 |
-| **System Doctors · 系統醫生** | `module.doctors` | One-click repairs: print spooler, DNS, sleep/wake, taskbar, search index, Explorer, icon/thumbnail cache, ownership/permissions. <br> 一鍵修復：列印多工緩衝、DNS、睡眠／喚醒、工作列、搜尋索引、檔案總管、圖示／縮圖快取、擁有權／權限。 |
-| **Services · 服務** | `module.services` | List, start/stop and change startup type of Windows services. <br> 列出、啟動／停止同更改 Windows 服務嘅啟動類型。 |
-| **Scheduled Tasks · 排程工作** | `module.tasks` | View and run Task Scheduler entries. <br> 檢視同執行工作排程器項目。 |
-| **Devices · 裝置** | `module.devices` | Device Manager surface — enable/disable hardware and drivers. <br> 裝置管理員介面 — 啟用／停用硬件同驅動程式。 |
-| **ViVeTool · 功能旗標** | `module.vivetool` | Toggle hidden Windows feature flags (Explorer tabs, new Start menu, modern context menu, Snap layouts…). <br> 切換隱藏嘅 Windows 功能旗標（檔案總管分頁、新開始功能表、現代右鍵選單、Snap 版面…）。 |
-| **Startup Apps · 開機程式** | `module.startup` | Manage logon/startup items across Run keys, StartupApproved and Startup folders. <br> 管理登入／開機項目（Run 機碼、StartupApproved、開機資料夾）。 |
-| **Environment Variables · 環境變數** | `module.envvars` | Edit user/system env vars with a per-entry PATH editor. <br> 編輯使用者／系統環境變數，附逐項 PATH 編輯器。 |
-| **Event Viewer · 事件檢視器** | `module.events` | Read System/Application Windows event logs. <br> 讀取系統／應用程式 Windows 事件記錄。 |
-| **System Info (Winfetch) · 系統資訊** | `module.winfetch` | neofetch-style specs read-out: OS, kernel, uptime, CPU/GPU/RAM, ASCII logo. <br> neofetch 式規格：系統、核心、開機時間、CPU／GPU／RAM、ASCII 標誌。 |
-| **System Monitor · 系統監察** | `module.monitor` | Live CPU/RAM/network with per-process priority, affinity & EcoQoS. <br> 即時 CPU／RAM／網絡，附逐程序優先順序、親和性同 EcoQoS。 |
-| **Battery & Thermal · 電池與散熱** | `module.battery` | Battery wear/health, temperatures, fan and power-config report. <br> 電池耗損／健康、溫度、風扇同電源設定報告。 |
-| **Volume Mixer · 音量混合器** | `module.mixer` | Per-app volume and mute via Core Audio (WASAPI). <br> 透過 Core Audio（WASAPI）逐個應用程式調音量同靜音。 |
-| **Context Menu · 右鍵選單** | `module.contextmenu` | Add/remove right-click shell verbs. <br> 新增／移除右鍵 shell 動詞。 |
-| **Nilesoft Shell · 右鍵選單** | `module.nilesoftshell` | Modern customizable Explorer context menu via Nilesoft Shell — register, theme, templates. <br> 用 Nilesoft Shell 整現代化、可自訂嘅右鍵選單 — 註冊、主題、範本。 |
-| **Awake · 保持喚醒** | `module.awake` | Keep the PC awake (caffeine) via SetThreadExecutionState. <br> 用 SetThreadExecutionState 令電腦唔瞓（咖啡因）。 |
-| **Settings & Control Panel · 設定與控制台** | `module.settingshub` | Change Windows settings in-app, or open any `ms-settings:` page / `.cpl` applet, grouped & searchable. <br> 喺 app 內改 Windows 設定，或開任何 `ms-settings:` 頁／`.cpl` applet，已分類同可搜尋。 |
-| **Native Utilities · 原生工具** | `module.native` | P/Invoke grab-bag: saved Wi-Fi passwords, SMB shares/sessions, monitor brightness (DDC), certificates, Bluetooth, GPU/disk counters, users. <br> P/Invoke 雜錦：已存 Wi-Fi 密碼、SMB 共享／工作階段、螢幕亮度（DDC）、憑證、藍牙、GPU／磁碟計數器、使用者。 |
-| **PowerToys Extras · PowerToys 額外工具** | `module.powertoys` | Image Resizer, OCR text extractor, always-on-top, paste-as-plain-text. <br> 圖片縮放、OCR 文字擷取、置頂、純文字貼上。 |
-| **World Monitor · 世界監察** | `module.worldmonitor` | A news / geopolitics / finance / energy intelligence dashboard. <br> 新聞／地緣政治／金融／能源情報儀表板。 |
-| **Activity Timeline · 活動時間軸** | `module.timelens` | Foreground-window time tracking — per-app totals, idle, CSV export. <br> 前景視窗時間追蹤 — 逐個應用程式統計、閒置、CSV 匯出。 |
+| **Dashboard · 概覽** | Master search and home overview across every module. <br> 跨晒所有模組嘅總搜尋同主頁概覽。 | `dashboard` |
+| **Registry Editor · 登錄編輯器** | Browse and edit the live Windows registry (hives, keys, values). <br> 瀏覽同編輯實時 Windows 登錄檔（hive、機碼、值）。 | `regedit` |
+| **System Doctors · 系統醫生** | One-click repairs for spooler, DNS, taskbar, search, icons and more. <br> 一鍵修復列印、DNS、工作列、搜尋、圖示等問題。 | `doctors` |
+| **Services · 服務** | Start, stop and set the startup type of Windows services. <br> 啟動、停止同設定 Windows 服務嘅啟動類型。 | `services` |
+| **Scheduled Tasks · 排程工作** | View and run entries in the Windows Task Scheduler. <br> 檢視同執行 Windows 排程工作。 | `tasks` |
+| **Devices · 裝置** | Enable, disable and inspect hardware devices and drivers. <br> 啟用、停用同檢視硬件裝置同驅動程式。 | `devices` |
+| **ViVeTool · 功能旗標** | Toggle hidden Windows feature flags via ViVeTool. <br> 用 ViVeTool 切換隱藏嘅 Windows 功能旗標。 | `vivetool` |
+| **Startup Apps · 開機程式** | Manage logon and startup items that run at boot. <br> 管理開機同登入時自動執行嘅項目。 | `startup` |
+| **Environment Variables · 環境變數** | Edit user/system environment variables with a dedicated PATH editor. <br> 編輯使用者／系統環境變數，附專用 PATH 編輯器。 | `envvars` |
+| **Event Viewer · 事件檢視器** | Read Windows system and application event logs. <br> 讀取 Windows 系統同應用程式事件記錄。 | `events` |
+| **System Info (Winfetch) · 系統資訊** | neofetch-style read-out of OS, CPU, GPU, memory and specs. <br> neofetch 風格顯示作業系統、CPU、顯示卡、記憶體等規格。 | `winfetch` |
+| **System Monitor · 系統監察** | Live CPU, RAM and network monitor with priority and affinity control. <br> 即時監察 CPU、記憶體同網絡，可調優先權同核心親和性。 | `monitor` |
+| **Process Explorer · 程序總管** | Process-tree task manager with command line, threads and kill controls. <br> 程序樹工作管理員，顯示命令列、執行緒，可結束程序。 | `procexp` |
+| **Battery & Thermal · 電池與散熱** | Battery wear/health, temperatures, fan and powercfg energy report. <br> 電池耗損健康、溫度、風扇同 powercfg 能源報告。 | `battery` |
+| **Volume Mixer · 音量混合器** | Per-app volume and mute control via WASAPI. <br> 用 WASAPI 逐個應用程式調音量同靜音。 | `mixer` |
+| **Context Menu · 右鍵選單** | Add and remove shell right-click verbs. <br> 新增同移除右鍵選單動詞。 | `contextmenu` |
+| **Explorer Right-Click · 檔案總管右鍵選單** | Toggle native and PowerToys Explorer right-click integrations. <br> 切換原生同 PowerToys 嘅檔案總管右鍵整合。 | `shellmenu` |
+| **Nilesoft Shell · Nilesoft 右鍵選單** | Modern, themeable, customizable context menu via Nilesoft Shell. <br> 用 Nilesoft Shell 整現代、可換主題嘅自訂右鍵選單。 | `nilesoftshell` |
+| **Awake · 保持喚醒** | Keep the PC awake without changing power settings. <br> 唔改電源設定都令電腦保持唔瞓。 | `awake` |
+| **Settings & Control Panel · 設定與控制台** | In-app launcher for ms-settings pages and Control Panel applets. <br> app 內啟動 ms-settings 頁面同控制台小程式。 | `settingshub` |
+| **Native Utilities · 原生工具** | Wi-Fi passwords, SMB shares, brightness, certificates, Bluetooth and more. <br> Wi-Fi 密碼、SMB 共享、亮度、憑證、藍牙等原生雜錦。 | `native` |
+| **PowerToys Extras · PowerToys 額外工具** | Image Resizer, OCR text extractor and always-on-top helpers. <br> 圖片縮放、OCR 文字擷取同視窗置頂工具。 | `powertoys` |
+| **World Monitor · 世界監察** | News, geopolitics, finance and instability-index intelligence dashboard. <br> 新聞、地緣政治、金融同不穩定指數嘅情報儀表板。 | `worldmonitor` |
+| **Activity Timeline · 活動時間軸** | Foreground-window time tracking with per-app usage insights. <br> 追蹤前景視窗時間，顯示逐個應用程式使用量。 | `timelens` |
 
 ### Files & Disks · 檔案與磁碟
 
-| Module · 模組 | `--page` | Description · 說明 |
+| Module · 模組 | Description · 說明 | `--page` |
 |---|---|---|
-| **Archives · 壓縮檔** | `module.archives` | 7-Zip-backed compress/extract/test/bench for zip, 7z, rar, tar, gzip. <br> 用 7-Zip 嘅壓縮／解壓／測試／效能，支援 zip、7z、rar、tar、gzip。 |
-| **Batch Rename · 批次改名** | `module.rename` | PowerRename-style regex/sequence bulk rename. <br> PowerRename 式正則／序號批次改名。 |
-| **Bulk File Ops · 批次檔案操作** | `module.bulkops` | Mass move/copy/recycle and attribute changes via SHFileOperation. <br> 透過 SHFileOperation 批量移動／複製／回收同改屬性。 |
-| **New+ · 範本新增** | `module.newplus` | PowerToys New+ — create files/folders from templates via the New context menu, with variable substitution. <br> PowerToys New+ — 喺「新增」右鍵選單由範本建立檔案／資料夾，支援變數替換。 |
-| **Duplicate Finder · 重複檔案搜尋** | `module.duplicates` | Find duplicates by size + hash and dedupe. <br> 按大小同雜湊搵重複檔再去重複。 |
-| **File Locksmith · 檔案鎖偵測** | `module.filelocksmith` | PowerToys File Locksmith — find which process is locking a file/folder, then end it. <br> PowerToys File Locksmith — 搵出邊個程序鎖住檔案／資料夾，再結束佢。 |
-| **Disk Analyser · 磁碟分析** | `module.disk` | Folder-size treemap to find what's eating space. <br> 資料夾大小樹狀圖，搵出邊個食晒空間。 |
-| **Drives · 磁碟機** | `module.drives` | Volumes, format, BitLocker, mount ISO/VHD. <br> 磁碟區、格式化、BitLocker、掛載 ISO／VHD。 |
-| **TestDisk / PhotoRec Recovery · 資料救援** | `module.testdisk` | Recover lost partitions and carve deleted files. <br> 救回遺失分割區同雕刻已刪除檔案。 |
-| **Peek · 快速預覽** | `module.peek` | PowerToys Peek — instant Quick-Look preview of images, text, code, PDF, audio, video, archives. <br> PowerToys Peek — 即時快速預覽圖片、文字、程式碼、PDF、音訊、影片、壓縮檔。 |
-| **Rich Preview · 豐富預覽** | `module.richpreview` | File-Explorer preview-pane add-ons: SVG, Markdown, PDF, source code, JSON/XML/YAML, 3D/G-code. <br> 檔案總管預覽窗格增益：SVG、Markdown、PDF、原始碼、JSON／XML／YAML、3D／G-code。 |
-| **OneDrive · OneDrive** | `module.onedrive` | Files On-Demand: pin / free-up space / online-only, Storage Sense. <br> 隨選檔案：釘選／釋放空間／僅線上、儲存空間感知。 |
-| **Font Manager · 字型管理** | `module.fonts` | Install, preview and uninstall TTF/OTF fonts. <br> 安裝、預覽同移除 TTF／OTF 字型。 |
-| **FTP / SFTP (FileZilla) · 檔案傳輸** | `module.filezilla` | Dual-pane FTP/FTPS/SFTP transfers with a site manager and transfer queue. <br> 雙窗格 FTP／FTPS／SFTP 傳輸，附站台管理員同傳輸佇列。 |
-| **Config & Backup · 設定與備份** | `module.configbackup` | Snapshot/restore settings, reg, winget; export bundles with optional AES-encrypted secrets. <br> 快照／還原設定、登錄、winget；匯出清單，可選 AES 加密機密。 |
+| **Archives · 壓縮檔** | Compress, extract and test ZIP/7z/RAR/TAR archives. <br> 壓縮、解壓同測試 ZIP／7z／RAR／TAR 壓縮檔。 | `archives` |
+| **Batch Rename · 批次改名** | Bulk rename files with regex and sequence patterns. <br> 用正規表示式同序號樣式批次改名。 | `rename` |
+| **Bulk File Ops · 批次檔案操作** | Mass move, copy, delete and set attributes on files. <br> 批量移動、複製、刪除同設定檔案屬性。 | `bulkops` |
+| **New+ · 範本新增** | Create files and folders from templates in the New menu. <br> 由範本喺「新增」選單建立檔案同資料夾。 | `newplus` |
+| **Duplicate Finder · 重複檔案搜尋** | Find and dedupe files by size and hash. <br> 按大小同雜湊搵出同清除重複檔案。 | `duplicates` |
+| **Instant File Search · 即時檔案搜尋** | Instant filename search over the NTFS master file table (Everything). <br> 用 NTFS 主檔案表做即時檔名搜尋（Everything）。 | `everything` |
+| **File Locksmith · 檔案鎖偵測** | Find which process is locking a file or folder and unlock it. <br> 搵出邊個程序鎖住檔案或資料夾並解鎖。 | `filelocksmith` |
+| **Disk Analyser · 磁碟分析** | Visualize folder sizes with a disk-space treemap. <br> 用樹狀圖顯示資料夾佔用磁碟空間。 | `disk` |
+| **Hex Editor · 十六進位編輯器** | View and edit binary files byte-by-byte with hashing and search. <br> 逐位元組檢視同編輯二進位檔，附雜湊同搜尋。 | `hex` |
+| **Drives · 磁碟機** | Manage volumes, format drives and toggle BitLocker. <br> 管理磁碟區、格式化磁碟機同切換 BitLocker。 | `drives` |
+| **Disk Health (SMART) · 硬碟健康（SMART）** | Read SMART attributes, temperature, wear and failure prediction. <br> 讀取 SMART 屬性、溫度、耗損同故障預測。 | `diskhealth` |
+| **Disk Benchmark · 硬碟速度測試** | CrystalDiskMark-style sequential and random read/write benchmarks. <br> CrystalDiskMark 式循序同隨機讀寫速度測試。 | `diskbench` |
+| **TestDisk / PhotoRec Recovery · TestDisk / PhotoRec 資料救援** | Recover lost partitions and carve deleted files. <br> 救援遺失分割區同雕刻復原已刪除檔案。 | `testdisk` |
+| **Peek · 快速預覽** | Quick-Look style instant file preview for images, text and more. <br> Quick-Look 式即時預覽圖片、文字等檔案。 | `peek` |
+| **Rich Preview · 豐富預覽** | Explorer preview-pane add-ons for SVG, Markdown, code and more. <br> 檔案總管預覽窗格增益，支援 SVG、Markdown、程式碼等。 | `richpreview` |
+| **OneDrive · OneDrive** | Manage Files On-Demand pinning, dehydration and Storage Sense. <br> 管理隨選檔案釘選、脫水同儲存體感知。 | `onedrive` |
+| **Font Manager · 字型管理** | Install, preview and uninstall TTF/OTF fonts. <br> 安裝、預覽同移除 TTF／OTF 字型。 | `fonts` |
+| **FTP / SFTP · FTP／SFTP 檔案傳輸** | Dual-pane FTP/SFTP/FTPS file transfers with a site manager. <br> 雙窗格 FTP／SFTP／FTPS 檔案傳輸，附站台管理。 | `filezilla` |
+| **Config & Backup · 設定與備份** | Snapshot, restore and export encrypted configuration bundles. <br> 快照、還原同匯出加密設定包。 | `configbackup` |
 
 ### Media & Capture · 媒體與擷取
 
-| Module · 模組 | `--page` | Description · 說明 |
+| Module · 模組 | Description · 說明 | `--page` |
 |---|---|---|
-| **Media · 媒體** | `module.media` | ffmpeg convert / trim / GIF export with live ffprobe info. <br> ffmpeg 轉檔／剪裁／GIF 匯出，附即時 ffprobe 資訊。 |
-| **Audio Editor · 音訊編輯器** | `module.audioeditor` | Audacity-style waveform edit: record, trim, fade, normalize, denoise, mix, export. <br> Audacity 式波形編輯：錄音、剪裁、淡入淡出、正規化、降噪、混音、匯出。 |
-| **Media Player · 媒體播放器** | `module.mediaplayer` | libVLC player — video/audio, streams, playlists, subtitles, snapshots, transcode. <br> libVLC 播放器 — 影片／音訊、串流、播放清單、字幕、截圖、轉檔。 |
-| **Media Downloader · 媒體下載器** | `module.ytdlp` | yt-dlp front-end — download video/audio, playlists, subtitles; choose quality. <br> yt-dlp 介面 — 下載影片／音訊、播放清單、字幕；揀畫質。 |
-| **Document Converter · 文件轉換器** | `module.libreoffice` | LibreOffice headless batch convert: docx/xlsx/pptx ⇄ pdf/odt/csv… <br> LibreOffice 無介面批次轉換：docx／xlsx／pptx ⇄ pdf／odt／csv… |
-| **Screen Recorder · 螢幕錄影** | `module.recorder` | ffmpeg gdigrab whole-desktop screen recording. <br> 用 ffmpeg gdigrab 錄整個桌面。 |
-| **Capture Studio · 擷取工作室** | `module.capture` | Region snip, screenshot, GIF and OCR text-recognition. <br> 區域擷取、截圖、GIF 同 OCR 文字辨識。 |
-| **GIF Studio · 螢幕轉 GIF** | `module.giflab` | ScreenToGif-style screen-to-GIF with a frame editor and MP4/APNG export. <br> ScreenToGif 式螢幕轉 GIF，附畫面格編輯器同 MP4／APNG 匯出。 |
-| **Crop And Lock · 裁切與鎖定** | `module.cropandlock` | PowerToys Crop And Lock — crop a window into a floating always-on-top thumbnail. <br> PowerToys Crop And Lock — 將視窗裁切成置頂浮窗縮圖。 |
-| **Voice & Read-Aloud · 語音朗讀** | `module.voice` | SAPI text-to-speech: read aloud and export WAV. <br> SAPI 文字轉語音：朗讀同匯出 WAV。 |
-| **Pixel Editor · 像素畫編輯器** | `module.pixeleditor` | Aseprite-style pixel-art editor — canvas, palette, layers, frames, GIF/PNG export. <br> Aseprite 式像素畫編輯器 — 畫布、調色盤、圖層、影格、GIF／PNG 匯出。 |
-| **Blender (3D / Render) · Blender（3D／算圖）** | `module.blender` | Headless Blender render/animation queue with glTF/FBX/OBJ export. <br> 無介面 Blender 算圖／動畫佇列，支援 glTF／FBX／OBJ 匯出。 |
+| **Media · 媒體** | ffmpeg-powered video/audio convert, trim and GIF making. <br> 用 ffmpeg 轉檔、剪裁影音同整 GIF。 | `media` |
+| **Audio Editor · 音訊編輯器** | Audacity-style waveform recording, trimming and effects. <br> Audacity 式波形錄音、剪裁同效果處理。 | `audioeditor` |
+| **Audio Tagger · 音訊標籤編輯器** | Batch-edit ID3/audio metadata and cover art. <br> 批次編輯 ID3／音訊中繼資料同封面圖。 | `tags` |
+| **Media Player · 媒體播放器** | libVLC player with streams, subtitles and snapshots. <br> libVLC 播放器，支援串流、字幕同截圖。 | `mediaplayer` |
+| **Media Downloader · 媒體下載器** | yt-dlp video/audio downloads with quality and subtitle options. <br> yt-dlp 下載影音，可選畫質同字幕。 | `ytdlp` |
+| **Document Converter · 文件轉換器** | Headless LibreOffice batch conversion between Office and PDF formats. <br> 用無介面 LibreOffice 批次轉換 Office 同 PDF 格式。 | `libreoffice` |
+| **PDF Toolkit · PDF 工具箱** | Merge, split, rotate, watermark, encrypt and extract from PDFs. <br> 合併、分割、旋轉、加浮水印、加密同抽取 PDF。 | `pdf` |
+| **Screen Recorder · 螢幕錄影** | Record the desktop with ffmpeg gdigrab. <br> 用 ffmpeg gdigrab 錄製桌面畫面。 | `recorder` |
+| **Capture Studio · 擷取工作室** | Snip regions, screenshot, make GIFs and OCR text. <br> 擷取區域、截圖、整 GIF 同 OCR 認字。 | `capture` |
+| **Text Extractor (OCR) · 原生文字辨識** | Extract text from any screen region using the native Windows OCR engine. <br> 用原生 Windows OCR 引擎由螢幕區域抽字。 | `ocr` |
+| **GIF Studio · 螢幕轉 GIF** | Screen-to-GIF recording with a built-in frame editor. <br> 螢幕轉 GIF 錄製，附內建畫面格編輯器。 | `giflab` |
+| **Crop And Lock · 裁切與鎖定** | Crop a window into an always-on-top floating live thumbnail. <br> 將視窗裁切成置頂浮動即時縮圖。 | `cropandlock` |
+| **ZoomIt · 螢幕放大與標註** | On-screen zoom, annotation and presentation break timer. <br> 螢幕放大、標註同簡報小休倒數計時。 | `zoomit` |
+| **Voice & Read-Aloud · 語音朗讀** | SAPI text-to-speech read-aloud with WAV export. <br> SAPI 文字轉語音朗讀，可匯出 WAV。 | `voice` |
+| **PA Announcements · 喇叭語音廣播** | Public-address voice broadcasts with chimes, queue and priority. <br> 公共廣播語音播報，附叮咚、排隊同優先權。 | `announce` |
+| **Pixel Editor · 像素畫編輯器** | Aseprite-style pixel-art editor with layers and animation frames. <br> Aseprite 式像素畫編輯器，支援圖層同動畫影格。 | `pixeleditor` |
+| **Image Editor · 點陣圖影像編輯器** | Raster photo editor with filters, layers and adjustments. <br> 點陣圖相片編輯器，附濾鏡、圖層同調整功能。 | `imageeditor` |
+| **Blender (3D / Render) · Blender（3D／算圖）** | Headless Blender render and animation queue. <br> 無介面 Blender 算圖同動畫佇列。 | `blender` |
 
 ### Developer · 開發者
 
-| Module · 模組 | `--page` | Description · 說明 |
+| Module · 模組 | Description · 說明 | `--page` |
 |---|---|---|
-| **VS Code · VS Code 編輯器** | `module.vscode` | Drive the `code` CLI — open files/folders, diff/merge, manage extensions, profiles, tunnels. <br> 驅動 `code` CLI — 開檔案／資料夾、比對／合併、管理擴充功能、設定檔、隧道。 |
-| **Windows Terminal · Windows 終端機** | `module.terminal` | Edit `settings.json` profiles, color schemes, fonts; embedded ConPTY shell. <br> 編輯 `settings.json` 設定檔、色彩配置、字型；內嵌 ConPTY 殼層。 |
-| **SSH Toolset · SSH 工具** | `module.ssh` | SSH/SFTP/SCP with profiles, ed25519/RSA keygen, passwordless deploy, DPAPI-protected. <br> SSH／SFTP／SCP，附設定檔、ed25519／RSA 產生金鑰、免密碼部署，DPAPI 保護。 |
-| **quicktype · JSON 轉型別** | `module.quicktype` | Generate types/code (C#, TS, Python, Go, Rust…) from JSON/JSON-Schema/GraphQL. <br> 由 JSON／JSON-Schema／GraphQL 產生型別／程式碼（C#、TS、Python、Go、Rust…）。 |
-| **Postgres Tool / pgAdmin · Postgres 工具** | `module.pgadmin` | Connect to PostgreSQL, run SQL, browse schemas/tables/views via Npgsql. <br> 連接 PostgreSQL，行 SQL，用 Npgsql 瀏覽結構描述／表／檢視。 |
-| **Packer (Image Builder) · Packer** | `module.packer` | HashiCorp Packer — init/validate/fmt/build HCL templates with variables & plugins. <br> HashiCorp Packer — init／validate／fmt／build HCL 範本，支援變數同插件。 |
-| **AWS CLI · AWS 命令列** | `module.aws` | Drive the AWS CLI — profiles, regions, S3/EC2/IAM/Lambda and generic commands. <br> 驅動 AWS CLI — 設定檔、區域、S3／EC2／IAM／Lambda 同通用指令。 |
-| **WSL & VM Launcher · WSL 與 VM 啟動器** | `module.wslvm` | Launch WSL distros, Windows Sandbox and VMs; export/import distros. <br> 啟動 WSL 發行版、Windows 沙盒同 VM；匯出／匯入發行版。 |
-| **VirtualBox Manager · VirtualBox 管理** | `module.virtualbox` | Drive VBoxManage — start/headless, snapshots, clone, OVA import/export. <br> 驅動 VBoxManage — 啟動／無介面、快照、複製、OVA 匯入／匯出。 |
-| **Website Cloner · 網站複製器** | `module.webcloner` | Scrape and rebuild a site's HTML/CSS/JS assets locally. <br> 抓取並喺本機重建網站嘅 HTML／CSS／JS 資源。 |
-| **Resume Writer · 履歷與求職信寫手** | `module.resume` | AI-assisted resume/cover-letter tailoring; export DOCX/PDF/Markdown. <br> AI 協助度身履歷／求職信；匯出 DOCX／PDF／Markdown。 |
+| **VS Code · VS Code 編輯器** | Drive the VS Code CLI to open files, diffs and manage extensions. <br> 驅動 VS Code CLI 開檔、比對同管理擴充功能。 | `vscode` |
+| **Windows Terminal · Windows 終端機** | Edit Windows Terminal profiles and run an embedded shell. <br> 編輯 Windows 終端機設定檔同執行內嵌殼層。 | `terminal` |
+| **SSH Toolset · SSH 工具** | SSH/SFTP/SCP profiles, key generation and passwordless deploy. <br> SSH／SFTP／SCP 設定檔、金鑰產生同免密碼部署。 | `ssh` |
+| **quicktype · JSON 轉型別** | Generate types and code from JSON for many languages. <br> 由 JSON 為多種語言產生型別同程式碼。 | `quicktype` |
+| **API Client · REST API 用戶端** | Postman-style REST client with collections and environments. <br> Postman 式 REST 用戶端，支援集合同環境變數。 | `api` |
+| **Diff & Merge (WinMerge) · 比對與合併** | Side-by-side file/folder diff and merge with patch export. <br> 並排比對同合併檔案／資料夾，可匯出修補檔。 | `diff` |
+| **Diagram Editor · 圖表編輯器** | draw.io-style flowchart and diagram editor with PNG/JSON export. <br> draw.io 式流程圖同圖表編輯器，可匯出 PNG／JSON。 | `diagram` |
+| **.NET Decompiler · .NET 反編譯器** | Browse and decompile .NET assemblies to C# (ILSpy-style). <br> 瀏覽同反編譯 .NET 組件成 C#（ILSpy 式）。 | `decompiler` |
+| **Postgres Tool · Postgres 工具 / pgAdmin** | Connect to and query PostgreSQL databases. <br> 連接同查詢 PostgreSQL 資料庫。 | `pgadmin` |
+| **SQLite Browser · SQLite 資料庫瀏覽器** | Browse, query and edit SQLite databases. <br> 瀏覽、查詢同編輯 SQLite 資料庫。 | `sqlite` |
+| **Packer (Image Builder) · Packer（映像建置器）** | Build machine images from HCL templates with HashiCorp Packer. <br> 用 HashiCorp Packer 由 HCL 範本建置機器映像。 | `packer` |
+| **AWS CLI · AWS 命令列** | Drive the AWS CLI for S3, EC2, IAM, Lambda and more. <br> 驅動 AWS CLI 操作 S3、EC2、IAM、Lambda 等。 | `aws` |
+| **Website Cloner · 網站複製器** | Scrape, download assets and rebuild a website. <br> 抓取、下載資源同重建網站。 | `webcloner` |
+| **Resume Writer · 履歷與求職信寫手** | AI-assisted resume and cover-letter writer with export. <br> AI 輔助履歷同求職信寫手，可匯出。 | `resume` |
 
 ### Network · 網絡
 
-| Module · 模組 | `--page` | Description · 說明 |
+| Module · 模組 | Description · 說明 | `--page` |
 |---|---|---|
-| **Connections · 連線** | `module.connections` | Every live TCP/UDP socket and its owning process; drop a connection or end the process. <br> 每條即時 TCP/UDP 連線同擁有嘅程序；切斷連線或結束程序。 |
-| **Hosts Editor · hosts 編輯器** | `module.hosts` | Edit the hosts file in-app, block-a-domain helper, backup + flush DNS. <br> 喺 app 內編輯 hosts、封鎖網域助手、備份 + 清 DNS。 |
-| **Packet Capture (Wireshark) · 封包擷取** | `module.wireshark` | Drive tshark/dumpcap — capture, BPF/display filters, follow streams, statistics. <br> 驅動 tshark／dumpcap — 擷取、BPF／顯示過濾、追蹤串流、統計。 |
-| **Nmap Scanner · 網絡掃描** | `module.nmap` | Port/host/service/OS scanning with NSE scripts; results in a grid. <br> 端口／主機／服務／作業系統掃描，支援 NSE 腳本；結果列表顯示。 |
-| **VPN & Mesh · VPN 與網狀網** | `module.vpn` | NordVPN + Tailscale mesh — connect, exit nodes, ping; auto-install. <br> NordVPN + Tailscale 網狀網 — 連線、出口節點、ping；自動安裝。 |
-| **RustDesk · 遠端桌面** | `module.rustdesk` | Self-hostable remote desktop/control — ID/password, relay, unattended access. <br> 可自架嘅遠端桌面／控制 — ID／密碼、中繼、無人值守存取。 |
-| **Cloudflare & Tunnel · Cloudflare 與 Tunnel** | `module.cloudflare` | cloudflared named/quick tunnels, DNS routing, Access, DoH, WARP. <br> cloudflared 具名／快速 tunnel、DNS 路由、Access、DoH、WARP。 |
-| **Home Assistant · 家居助理** | `module.homeassistant` | Drive the HA REST API — scenes, scripts, lights, climate, cameras, notify. <br> 驅動 HA REST API — 場景、腳本、燈光、空調、攝影機、通知。 |
-| **In-App Login · 內置登入** | `module.weblogin` | Shared WebView2 OAuth/sign-in plumbing (GitHub, Cloudflare, AI providers, Bitwarden…). <br> 共用 WebView2 OAuth／登入機制（GitHub、Cloudflare、AI 供應商、Bitwarden…）。 |
+| **Connections · 連線** | Live TCP/UDP socket list with owning processes (netstat/TCPView). <br> 即時 TCP／UDP 連線清單同擁有程序（netstat／TCPView）。 | `connections` |
+| **Hosts Editor · hosts 編輯器** | Edit the hosts file and block domains. <br> 編輯 hosts 檔案同封鎖網域。 | `hosts` |
+| **Packet Capture · 封包擷取** | Capture and filter packets with tshark/dumpcap (pcap). <br> 用 tshark／dumpcap 擷取同過濾封包（pcap）。 | `wireshark` |
+| **Nmap Scanner · 網絡掃描** | Scan hosts, ports, services and OS with Nmap. <br> 用 Nmap 掃描主機、端口、服務同作業系統。 | `nmap` |
+| **VPN & Mesh · VPN 與網狀網** | Manage NordVPN and Tailscale mesh connections. <br> 管理 NordVPN 同 Tailscale 網狀網連線。 | `vpn` |
+| **RustDesk · 遠端桌面** | Self-hostable remote desktop control (TeamViewer alternative). <br> 可自架嘅遠端桌面控制（TeamViewer 替代品）。 | `rustdesk` |
+| **Cloudflare & Tunnel · Cloudflare 與 Tunnel** | Cloudflared tunnels, DNS routing, Access, DoH and WARP. <br> Cloudflared 隧道、DNS 路由、Access、DoH 同 WARP。 | `cloudflare` |
+| **Home Assistant · 家居助理** | Drive the Home Assistant REST API for scenes, lights and more. <br> 驅動 Home Assistant REST API 控制場景、燈光等。 | `homeassistant` |
+| **In-App Login · 內置登入** | Shared WebView2 OAuth and sign-in for connected services. <br> 共用 WebView2 OAuth 同登入連接服務。 | `weblogin` |
 
 ### Apps, Git & Packages · 應用程式、Git 與套件
 
-| Module · 模組 | `--page` | Description · 說明 |
+| Module · 模組 | Description · 說明 | `--page` |
 |---|---|---|
-| **Git & GitHub · Git 與 GitHub** | `module.git` | Multi-repo list, stage/commit/branch/sync, chunked uploader, and a large git-CLI + `gh`/`gh api` op library. <br> 多儲存庫清單、暫存／提交／分支／同步、分批上載，加埋龐大嘅 git-CLI + `gh`／`gh api` 操作庫。 |
-| **Package Manager · 套件管理** | `module.packages` | UniGetUI-style front-end over winget, Scoop, Chocolatey, pip, npm, .NET tools, PowerShell Gallery, Cargo, vcpkg — Discover/Updates/Installed/Bundles. <br> UniGetUI 式介面統管 winget、Scoop、Chocolatey、pip、npm、.NET 工具、PowerShell Gallery、Cargo、vcpkg — 搜尋／更新／已安裝／清單。 |
-| **App Uninstaller · 應用程式解除安裝** | `module.uninstall` | Remove apps and Appx packages (winget-backed). <br> 移除應用程式同 Appx 套件（winget 支援）。 |
-| **Android (ADB) · Android（ADB）** | `module.adb` | adb — devices, APK install, shell, logcat, screencap, reboot, file push/pull; auto-installs adb. <br> adb — 裝置、安裝 APK、shell、logcat、截圖、重啟、檔案推送／拉取；自動安裝 adb。 |
-| **Fastboot / Flasher · Fastboot／刷機** | `module.fastboot` | Bootloader unlock, flash boot/factory images, sideload OTA. <br> 解鎖 bootloader、刷 boot／原廠映像、側載 OTA。 |
-| **Android Emulator & SDK · Android 模擬器與 SDK** | `module.emulator` | Manage AVDs and the Android SDK (sdkmanager/avdmanager) — launch, wipe, cold boot. <br> 管理 AVD 同 Android SDK（sdkmanager／avdmanager）— 啟動、清除、冷開機。 |
-| **qBittorrent · 種子下載** | `module.qbittorrent` | Drive qBittorrent's Web API — torrents, magnets, categories, tags, speed limits. <br> 驅動 qBittorrent Web API — 種子、磁力、分類、標籤、速度限制。 |
-| **Communications · 通訊** | `module.comms` | Compose mail (mailto), Teams meetings/calls, Discord/Telegram/Slack/phone deep links. <br> 撰寫郵件（mailto）、Teams 會議／通話、Discord／Telegram／Slack／電話深層連結。 |
-| **Mail · 電郵** | `module.mail` | IMAP/SMTP mail client — inbox, compose, reply/forward, attachments, multiple accounts. <br> IMAP／SMTP 電郵客戶端 — 收件匣、撰寫、回覆／轉寄、附件、多帳戶。 |
+| **Git & GitHub · Git 與 GitHub** | Multi-repo workbench for git and gh operations with a chunked uploader. <br> 多儲存庫工作台，操作 git 同 gh，附分塊上傳器。 | `git` |
+| **Package Manager · 套件管理** | One front-end over winget, scoop, choco, pip, npm and more. <br> 統一前端操作 winget、scoop、choco、pip、npm 等。 | `packages` |
+| **App Uninstaller · 應用程式解除安裝** | Remove apps and Appx packages via winget. <br> 用 winget 移除應用程式同 Appx 套件。 | `uninstall` |
+| **Android (ADB) · Android（ADB）** | adb devices, APK install, shell, logcat and scrcpy mirroring. <br> adb 裝置、安裝 APK、shell、logcat 同 scrcpy 鏡像。 | `adb` |
+| **Fastboot / Flasher · Fastboot／刷機** | Unlock bootloaders and flash factory/boot images. <br> 解鎖 bootloader 同刷入原廠／boot 映像。 | `fastboot` |
+| **Android Emulator & SDK · Android 模擬器與 SDK** | Manage AVDs and the Android SDK manager. <br> 管理 AVD 虛擬裝置同 Android SDK 管理員。 | `emulator` |
+| **qBittorrent · 種子下載** | Drive the qBittorrent Web API for torrents. <br> 驅動 qBittorrent Web API 做種子下載。 | `vault` |
+| **Native Torrent · 原生種子下載** | In-process managed BitTorrent engine for magnets and downloads. <br> 內建受控 BitTorrent 引擎，處理磁力同下載。 | `torrent` |
+| **Communications · 通訊** | Mail, Teams, Discord and Telegram deep links and quick actions. <br> 信件、Teams、Discord、Telegram 深層連結同快速動作。 | `comms` |
+| **Mail · 電郵** | IMAP/SMTP mail client with compose, reply and attachments. <br> IMAP／SMTP 電郵客戶端，可撰寫、回覆同附件。 | `mail` |
 
 ### AI · 人工智能
 
-| Module · 模組 | `--page` | Description · 說明 |
+| Module · 模組 | Description · 說明 | `--page` |
 |---|---|---|
-| **AI Agents · AI 代理** | `module.aiagents` | Install, configure & launch terminal AI coding agents (Claude Code, Codex, opencode, Pi, OpenClaw, Hermes…), one click each. <br> 一鍵安裝、設定同啟動終端機 AI 編程代理（Claude Code、Codex、opencode、Pi、OpenClaw、Hermes…）。 |
-| **AI Chat · AI 聊天** | `module.aichat` | OpenWebUI-style chat over local & cloud LLMs (Ollama, OpenAI, OpenRouter, LM Studio, llama.cpp). <br> OpenWebUI 式聊天，支援本機同雲端 LLM（Ollama、OpenAI、OpenRouter、LM Studio、llama.cpp）。 |
-| **Ollama · 本地大模型** | `module.ollama` | Pull, serve and chat with local GGUF models (llama, mistral, qwen, gemma, phi, deepseek…). <br> 下載、提供同對話本機 GGUF 模型（llama、mistral、qwen、gemma、phi、deepseek…）。 |
+| **AI Agents · AI 代理** | Install and launch terminal AI coding agents (Claude Code, Codex and more). <br> 安裝同啟動終端機 AI 編程代理（Claude Code、Codex 等）。 | `ai` |
+| **AI Chat · AI 聊天** | OpenWebUI-style chat over local and cloud LLMs. <br> OpenWebUI 式聊天，連接本機同雲端大模型。 | `aichat` |
+| **Ollama · 本地大模型** | Pull, serve and chat with local GGUF models via Ollama. <br> 用 Ollama 下載、提供同對話本機 GGUF 模型。 | `ollama` |
 
 ### Window Management · 視窗管理
 
-| Module · 模組 | `--page` | Description · 說明 |
+| Module · 模組 | Description · 說明 | `--page` |
 |---|---|---|
-| **Window Manager · 視窗管理** | `module.windows` | Tile/cascade/always-on-top via EnumWindows + SetWindowPos zones. <br> 用 EnumWindows + SetWindowPos 分區做並排／層疊／置頂。 |
-| **Workspaces · 工作區** | `module.workspaces` | PowerToys Workspaces — capture a set of apps + window positions and relaunch them. <br> PowerToys Workspaces — 擷取一組應用程式同視窗位置，再重新啟動。 |
-| **FancyZones · 視窗分區** | `module.fancyzones` | PowerToys FancyZones — zone editor, grid layouts, snap with Shift-drag. <br> PowerToys FancyZones — 分區編輯器、格網版面、Shift 拖曳貼齊。 |
-| **AltSnap · Alt 拖曳視窗** | `module.altsnap` | Move/resize any window with a modifier-key drag (AltDrag-style). <br> 用修飾鍵拖曳移動／縮放任何視窗（AltDrag 式）。 |
-| **Komorebi (Tiling WM) · Komorebi 平鋪視窗管理** | `module.komorebi` | Drive the komorebi tiling window manager — BSP/columns/stack, workspaces, gaps. <br> 驅動 komorebi 平鋪視窗管理員 — BSP／欄／堆疊、工作區、間距。 |
-| **GlazeWM Tiling · GlazeWM 平鋪視窗** | `module.glazewm` | Drive GlazeWM — tiling workspaces, keybindings, YAML config, reload. <br> 驅動 GlazeWM — 平鋪工作區、鍵盤綁定、YAML 設定、重新載入。 |
+| **Window Manager · 視窗管理** | Tile, cascade and pin windows always-on-top. <br> 並排、層疊同置頂視窗。 | `windows` |
+| **Workspaces · 工作區** | Capture and relaunch named app layouts and window positions. <br> 擷取同還原具名應用程式佈局同視窗位置。 | `workspaces` |
+| **FancyZones · 視窗分區** | Zone editor and snap layouts for window tiling. <br> 分區編輯器同貼齊版面做視窗排版。 | `fancyzones` |
+| **AltSnap · Alt 拖曳視窗** | Move and resize windows with a modifier key from anywhere. <br> 用修飾鍵喺任何位置拖曳同縮放視窗。 | `altsnap` |
+| **Komorebi (Tiling WM) · Komorebi 平鋪視窗管理** | Drive the komorebi tiling window manager daemon. <br> 驅動 komorebi 平鋪視窗管理守護程序。 | `komorebi` |
+| **GlazeWM Tiling · GlazeWM 平鋪視窗** | Drive the GlazeWM tiling window manager. <br> 驅動 GlazeWM 平鋪視窗管理員。 | `glazewm` |
 
-### PowerToys-style utilities · PowerToys 式工具
+### PowerToys-style Utilities · PowerToys 式工具
 
-| Module · 模組 | `--page` | Description · 說明 |
+| Module · 模組 | Description · 說明 | `--page` |
 |---|---|---|
-| **Keyboard Remapper · 鍵盤重新對應** | `module.keyboard` | Remap keys via the Scancode Map registry (SharpKeys-style). <br> 透過 Scancode Map 登錄重新對應按鍵（SharpKeys 式）。 |
-| **Hotkey & Macro Runner · 熱鍵與巨集** | `module.hotkeys` | Global hotkeys, macros, text expansion/snippets (AutoHotkey-style). <br> 全域熱鍵、巨集、文字展開／片語（AutoHotkey 式）。 |
-| **Shortcut Guide · 快捷鍵指南** | `module.shortcutguide` | PowerToys Shortcut Guide — hold-Win overlay cheat sheet of shortcuts. <br> PowerToys Shortcut Guide — 揿住 Win 鍵彈出快捷鍵速查表。 |
-| **Command Palette · 指令面板** | `module.cmdpalette` | PowerToys Run / Command Palette — global launcher, calculator, run, web search, system actions. <br> PowerToys Run／指令面板 — 全域啟動器、計算機、執行、網絡搜尋、系統動作。 |
-| **Color Picker · 螢幕取色** | `module.colorpicker` | System-wide color picker (HEX/RGB/HSL) via a low-level mouse hook. <br> 系統級取色器（HEX／RGB／HSL），用低階滑鼠掛鈎。 |
-| **Screen Ruler · 螢幕間尺** | `module.screenruler` | PowerToys Screen Ruler — measure pixel distances/bounds on screen. <br> PowerToys Screen Ruler — 喺螢幕量度像素距離／邊界。 |
-| **ZoomIt · 螢幕放大與標註** | `module.zoomit` | Sysinternals ZoomIt — zoom, annotate/draw, break timer for presentations. <br> Sysinternals ZoomIt — 放大、標註／畫筆、簡報小休計時。 |
-| **Mouse Utilities · 滑鼠工具** | `module.mouseutils` | PowerToys Mouse Utils — Find My Mouse, highlighter, jump, crosshairs. <br> PowerToys Mouse Utils — 搵滑鼠、點擊標示、跳轉、十字線。 |
-| **Mouse & Pointer · 滑鼠與指標** | `module.mouse` | Pointer speed/acceleration and behaviour (live SystemParametersInfo). <br> 指標速度／加速同行為（即時 SystemParametersInfo）。 |
-| **Mouse Without Borders · 無界滑鼠** | `module.mwb` | PowerToys Mouse Without Borders — share one keyboard/mouse across PCs, clipboard sync. <br> PowerToys Mouse Without Borders — 多部電腦共享一套鍵鼠、剪貼簿同步。 |
-| **Quick Accent · 快速重音符** | `module.quickaccent` | PowerToys Quick Accent — hold a letter to insert accented/diacritic variants. <br> PowerToys Quick Accent — 揿住字母插入重音／變音字元。 |
-| **Command Not Found · 搵唔到指令** | `module.cmdnotfound` | PowerToys Command Not Found — PowerShell hook suggesting a winget package for a missing command. <br> PowerToys Command Not Found — PowerShell 掛鈎，為搵唔到嘅指令建議 winget 套件。 |
-| **Clipboard · 剪貼簿** | `module.clipboard` | Richer clipboard history (text/images/files) with QR, plain-text and conversions. <br> 更強嘅剪貼簿歷史（文字／圖片／檔案），附 QR、純文字同轉換。 |
-| **Advanced Paste · 進階貼上** | `module.advancedpaste` | PowerToys Advanced Paste — paste as plain text/Markdown/JSON, transform, OCR, AI. <br> PowerToys Advanced Paste — 貼成純文字／Markdown／JSON、轉換、OCR、AI。 |
-| **Taskbar Tweaker · 工作列調校** | `module.taskbar-tweaker` | 7+ Taskbar Tweaker / Windhawk-style taskbar tweaks — align, combine, small icons, clock seconds. <br> 7+ Taskbar Tweaker／Windhawk 式工作列調校 — 對齊、合併、細圖示、時鐘秒數。 |
-| **Windhawk Mods · Windhawk 模組** | `module.windhawk` | Manage Windhawk mods — taskbar height, icon size, Start menu styler, rounded corners. <br> 管理 Windhawk 模組 — 工作列高度、圖示大小、開始功能表樣式、圓角。 |
-| **LightSwitch (Auto Dark Mode) · 自動深淺色** | `module.lightswitch` | Auto-switch light/dark theme on a sunrise/sunset or fixed schedule. <br> 按日出／日落或固定排程自動切換淺色／深色主題。 |
-| **Rainmeter Widgets · Rainmeter 桌面小工具** | `module.rainmeter` | Install/activate/refresh Rainmeter desktop skins via its bang interface. <br> 透過 bang 介面安裝／啟用／重新整理 Rainmeter 桌面皮膚。 |
-| **Time & Unit Tools · 時間與單位工具** | `module.timeunit` | World clock / timezone and unit converters (length, mass, temperature). <br> 世界時鐘／時區同單位換算（長度、質量、溫度）。 |
+| **Keyboard Remapper · 鍵盤重新對應** | Remap keys via the Scancode Map (SharpKeys-style). <br> 用 Scancode Map 重新對應按鍵（SharpKeys 式）。 | `keyboard` |
+| **Hotkey & Macro Runner · 熱鍵與巨集** | Run hotkeys, macros and text expansion snippets. <br> 執行熱鍵、巨集同文字展開片語。 | `hotkeys` |
+| **Shortcut Guide · 快捷鍵指南** | Hold-Win overlay cheat sheet of Windows shortcuts. <br> 揿住 Win 鍵顯示快捷鍵速查覆蓋層。 | `shortcutguide` |
+| **Command Palette · 指令面板** | Global launcher and Run box for apps, calc and system actions. <br> 全域啟動器同執行框，啟動應用程式、計算同系統動作。 | `cmdpalette` |
+| **Color Picker · 螢幕取色** | System-wide color picker with hex/RGB/HSL output. <br> 全系統取色器，輸出 hex／RGB／HSL。 | `colorpicker` |
+| **Screen Ruler · 螢幕間尺** | Measure distances and pixels on screen. <br> 喺螢幕量度距離同像素。 | `screenruler` |
+| **Mouse Utilities · 滑鼠工具** | Find My Mouse, highlighter, crosshairs and pointer jump. <br> 搵滑鼠、點擊標示、十字線同指標跳轉。 | `mouseutils` |
+| **Mouse & Pointer · 滑鼠與指標** | Adjust pointer speed, acceleration and behaviour. <br> 調整指標速度、加速同行為。 | `mouse` |
+| **Mouse Without Borders · 無界滑鼠** | Share one keyboard and mouse across multiple PCs (software KVM). <br> 跨多部電腦共享一套鍵盤滑鼠（軟件 KVM）。 | `mwb` |
+| **Quick Accent · 快速重音符** | Insert accented and special characters by holding a letter. <br> 揿住字母快速插入重音同特殊字元。 | `quickaccent` |
+| **Command Not Found · 搵唔到指令** | Suggest a winget package for a missing PowerShell command. <br> 為搵唔到嘅 PowerShell 指令建議 winget 套件。 | `cmdnotfound` |
+| **Clipboard · 剪貼簿** | Richer clipboard history with QR-code generation. <br> 更豐富嘅剪貼簿歷史，附二維碼產生。 | `clipboard` |
+| **Advanced Paste · 進階貼上** | Paste-as transforms: plain text, Markdown, JSON, OCR and AI. <br> 貼上轉換：純文字、Markdown、JSON、OCR 同 AI。 | `advancedpaste` |
+| **Taskbar Tweaker · 工作列調校** | Tweak taskbar alignment, button combining, tray and clock. <br> 調校工作列對齊、合併按鈕、系統匣同時鐘。 | `taskbar-tweaker` |
+| **Windhawk Mods · Windhawk 模組** | Manage Windhawk mods that customize the taskbar, clock and shell. <br> 管理 Windhawk 模組，自訂工作列、時鐘同殼層。 | `windhawk` |
+| **LightSwitch (Auto Dark Mode) · 自動深淺色** | Automatically switch light/dark theme on a sunrise/sunset schedule. <br> 按日出日落排程自動切換深淺色主題。 | `lightswitch` |
+| **Rainmeter Widgets · Rainmeter 桌面小工具** | Install and toggle Rainmeter desktop skins and widgets. <br> 安裝同切換 Rainmeter 桌面皮膚同小工具。 | `taskbar` |
+| **Time & Unit Tools · 時間與單位工具** | World clock, time-zone converter and unit converters. <br> 世界時鐘、時區換算同單位換算。 | `time` |
+| **Flashcards · 間隔重複記憶卡** | Spaced-repetition flashcard study with SM-2 scheduling. <br> 用 SM-2 排程嘅間隔重複記憶卡學習。 | `flashcards` |
+
+### Virtualization & Containers · 虛擬化與容器
+
+| Module · 模組 | Description · 說明 | `--page` |
+|---|---|---|
+| **Docker · Docker 容器管理** | Manage Docker containers, images, volumes and networks locally. <br> 本機管理 Docker 容器、映像、磁碟區同網路。 | `docker` |
+| **Docker over SSH · 透過 SSH 控制 Docker** | Control containers on a remote Docker host over SSH. <br> 透過 SSH 控制遠端 Docker 主機上嘅容器。 | `dockerssh` |
+| **WSL & VM Launcher · WSL 與 VM 啟動器** | Launch WSL distros, Windows Sandbox and virtual machines. <br> 啟動 WSL 發行版、Windows 沙盒同虛擬機。 | `wsl` |
+| **VirtualBox Manager · VirtualBox 管理** | Drive VBoxManage for VMs, snapshots and clones. <br> 驅動 VBoxManage 管理虛擬機、快照同複製。 | `virtualbox` |
+| **Proxmox VE · Proxmox VE 虛擬化** | Manage Proxmox VE nodes, QEMU VMs and LXC containers via the REST API. <br> 用 REST API 管理 Proxmox VE 節點、QEMU 虛擬機同 LXC 容器。 | `proxmox` |
 
 ### Security & Vaults · 安全與保險庫
 
-| Module · 模組 | `--page` | Description · 說明 |
+| Module · 模組 | Description · 說明 | `--page` |
 |---|---|---|
-| **WinForge Vault · WinForge 保險庫** | `module.vault-volumes` | VeraCrypt-derived encrypted volumes/containers — create, mount/dismount, benchmark (AES/Serpent/Twofish). <br> VeraCrypt 衍生嘅加密磁碟區／容器 — 建立、掛載／卸載、效能測試（AES／Serpent／Twofish）。 |
-| **Bitwarden Vault · Bitwarden 密碼庫** | `module.bitwarden` | Drive the Bitwarden CLI — unlock, search logins, TOTP, generate, sync (self-host friendly). <br> 驅動 Bitwarden CLI — 解鎖、搵登入、TOTP、產生密碼、同步（支援自架）。 |
-
-### Productivity & Misc · 生產力與其他
-
-| Module · 模組 | `--page` | Description · 說明 |
-|---|---|---|
-| *(cross-cutting)* | — | Many modules above double as productivity tools — **Clipboard**, **Activity Timeline**, **Time & Unit Tools**, **Communications**, **Mail**, **Resume Writer** and **Config & Backup** are listed in their primary categories. <br> 上面好多模組都兼具生產力用途 — **剪貼簿**、**活動時間軸**、**時間與單位工具**、**通訊**、**電郵**、**履歷寫手**同**設定與備份**已列喺各自嘅主分類。 |
+| **WinForge Vault · WinForge 保險庫** | On-the-fly encrypted volume containers (VeraCrypt-derived). <br> 即時加密嘅磁碟區容器（源自 VeraCrypt）。 | `vault-volumes` |
+| **Bitwarden Vault · Bitwarden 密碼庫** | Drive the Bitwarden CLI for logins, TOTP and generators. <br> 驅動 Bitwarden CLI 管理登入、TOTP 同密碼產生。 | `bitwarden` |
+| **KeePass Vault · 密碼保險庫** | Local offline KeePass (kdbx) password vault, natively encrypted. <br> 本機離線 KeePass（kdbx）密碼庫，原生加密。 | `keepass` |
 
 ### Gaming & Emulation · 遊戲與模擬
 
-| Module · 模組 | `--page` | Description · 說明 |
+| Module · 模組 | Description · 說明 | `--page` |
 |---|---|---|
-| **Minecraft World Editor (Amulet) · Minecraft 世界編輯器** | `module.amulet` | Launch the Amulet world/map editor with backups of saves. <br> 啟動 Amulet 世界／地圖編輯器，附存檔備份。 |
-| **Minecraft Server · Minecraft 伺服器** | `module.minecraftserver` | Paper/Spigot server — properties, plugins, console, RCON, Aikar flags. <br> Paper／Spigot 伺服器 — 設定、外掛、主控台、RCON、Aikar 旗標。 |
-| **ViaProxy · Minecraft 版本代理** | `module.viaproxy` | ViaProxy protocol bridge — connect any client version to any server. <br> ViaProxy 協定橋接 — 任何客戶端版本連任何伺服器。 |
-| **Imaging & Game Tools · 燒錄與遊戲工具** | `module.imaging` | Raspberry Pi Imager / Rufus-style USB & SD flashing, Minecraft world downloader. <br> Raspberry Pi Imager／Rufus 式 USB 同 SD 燒錄、Minecraft 世界下載器。 |
+| **Minecraft World Editor (Amulet) · Minecraft 世界編輯器（Amulet）** | Launch the Amulet Minecraft world/map editor with backups. <br> 啟動 Amulet Minecraft 世界／地圖編輯器，附備份。 | `amulet` |
+| **Minecraft Server · Minecraft 伺服器** | Set up and run a Paper/Spigot server with plugins and console. <br> 建立同執行 Paper／Spigot 伺服器，附外掛同主控台。 | `minecraftserver` |
+| **ViaProxy · Minecraft 版本代理** | Cross-version Minecraft protocol bridge (ViaVersion-based). <br> 跨版本 Minecraft 協定橋接（基於 ViaVersion）。 | `viaproxy` |
+| **Imaging & Game Tools · 燒錄與遊戲工具** | USB/SD flashing (Rufus, Pi Imager) and Minecraft world downloader. <br> USB／SD 燒錄（Rufus、Pi Imager）同 Minecraft 世界下載器。 | `imaging` |
+
+### Nuclear Reactor · 核反應堆
+
+| Module · 模組 | Description · 說明 | `--page` |
+|---|---|---|
+| **Nuclear Reactor · 核反應堆** | Hyper-realistic PWR control-room simulator with full physics and safety systems. <br> 超寫實壓水堆控制室模擬器，附完整物理同保護系統。 | `reactor` |
 
 ---
 
-## ⚙️ Windows-11 tweak catalog · Windows 11 調校目錄
+## 📚 Documentation & Wiki · 文件與 Wiki
 
-**EN —** Alongside the modules, WinForge ships a **data-driven tweak catalog** — roughly **1,140 tweaks and
-operations across ~22 categories**, including the original Windows-11 tweak suite, **Winaero Tweaks** and
-**Debloat & Annoyances**. Each tweak reads its **live current state** before showing it, carries bilingual
-title + description, and applies a real registry change / power-plan switch / shell or PowerShell command.
+**EN —** The wiki is a categorized index of every module, with deeper pages for the headline ones — start at **[docs/wiki/Home.md](docs/wiki/Home.md)**. The flagship has its own full **[Nuclear Reactor Operating Manual](docs/wiki/Nuclear-Reactor-Operating-Manual.md)**.
 
-**粵語 —** 除咗模組，WinForge 仲有一個**資料驅動嘅調校目錄** — 大約 **1,140 項調校同操作、橫跨約 22 個分類**，
-包括原本嘅 Windows 11 調校套件、**Winaero Tweaks** 同 **Debloat 與煩擾移除**。每項調校顯示前會先讀取**即時目前狀態**，
-帶住雙語標題同說明，並執行真實嘅登錄變更／電源計劃切換／shell 或 PowerShell 指令。
-
-| Category · 分類 | What it does · 做乜 |
-|---|---|
-| 🎨 **Appearance & Personalisation · 外觀與個人化** | Dark mode, accent colour, transparency, animations, visual effects. <br> 深色模式、強調色、透明度、動畫、視覺特效。 |
-| 📁 **File Explorer · 檔案總管** | Show extensions/hidden files, classic right-click menu, Explorer behaviour. <br> 顯示副檔名／隱藏檔案、經典右鍵選單、檔案總管行為。 |
-| 📌 **Taskbar & Start · 工作列與開始功能表** | Alignment, Search, Widgets, Task View, Copilot, combine buttons, Start layout. <br> 對齊、搜尋、小工具、工作檢視、Copilot、合併按鈕、開始版面。 |
-| 🔒 **Privacy & Telemetry · 私隱與遙測** | Advertising ID, telemetry level, activity history, tailored ads, suggestions. <br> 廣告 ID、遙測等級、活動記錄、個人化廣告、建議內容。 |
-| ⚡ **Performance & Power · 效能與電源** | Visual-effects mode, fast startup, power plans, Game Mode, hibernation. <br> 視覺效果模式、快速啟動、電源計劃、遊戲模式、休眠。 |
-| 🌐 **Network & Internet · 網絡與互聯網** | Flush DNS, reset Winsock/TCP-IP, change DNS servers, inspect connections. <br> 清 DNS、重設 Winsock／TCP-IP、轉 DNS 伺服器、檢視連線。 |
-| 🧹 **Cleanup & Storage · 清理與儲存** | Temp files, caches, Recycle Bin, Update cache, thumbnails, event logs. <br> 暫存檔、快取、回收筒、更新快取、縮圖、事件記錄。 |
-| 🛡️ **Security · 安全** | UAC, SmartScreen, firewall, Remote Desktop, sign-in protections, Defender scan. <br> UAC、SmartScreen、防火牆、遠端桌面、登入保護、Defender 掃描。 |
-| 🧩 **System & Boot · 系統與開機** | Long paths, Developer Mode, restore points, clipboard history, boot options. <br> 長路徑、開發人員模式、還原點、剪貼簿記錄、開機選項。 |
-| 🔧 **Power Tools · 進階工具** | SFC, DISM, God Mode, hosts file, battery report, lock / sleep / restart. <br> SFC、DISM、上帝模式、hosts 檔、電池報告、鎖定／睡眠／重啟。 |
-| ✨ **Winaero Tweaks · Winaero 調校** | 45 classic Winaero-style Explorer/desktop tweaks. <br> 45 項經典 Winaero 式檔案總管／桌面調校。 |
-| 🧼 **Debloat & Annoyances · 移除臃腫與煩擾** | Strip preinstalled apps and silence Windows nags. <br> 移除預裝應用程式同消除 Windows 煩擾。 |
-
-> A full, browsable per-tweak reference is generated under [`docs/features/`](docs/features/)
-> (and on disk via `WinForge.exe --export-docs docs\features`).
-> 完整、可瀏覽嘅逐項調校參考喺 [`docs/features/`](docs/features/)（亦可用 `WinForge.exe --export-docs docs\features` 產生）。
-
----
-
-## ⚠️ Safety first · 安全至上
-
-**EN —** These tweaks modify **real** Windows settings and drive real engines. Most are reversible, but some
-need **administrator rights** or a **restart / sign-out** to take effect. Always read a card's description
-before applying it. Use at your own risk — see the [LICENSE](LICENSE).
-
-**粵語 —** 呢啲調校會改到**真實**嘅 Windows 設定、驅動真實引擎。大部分都可以還原，
-但有部分需要**管理員權限**，或者要**重啟／登出**先生效。套用之前請睇清楚每張卡嘅說明。
-自行承擔風險 — 詳見 [LICENSE](LICENSE)。
-
----
-
-## 🧱 How it works · 運作原理
-
-**EN —** WinForge is **data-driven**. Each tweak is a `TweakDefinition` carrying its own behaviour (a registry
-coordinate, a choice set, or a shell/PowerShell command) plus bilingual text; a reusable `TweakCard` renders
-any of them. Each **module** is a real page that wraps a real engine or native API through a focused service
-(e.g. `GitService`, `MediaService`, `ConnectionsService`). [`Services/ModuleRegistry.cs`](Services/ModuleRegistry.cs)
-registers every module so the master search can find it.
-
-```
-Models/      LocalizedText, TweakDefinition, AppCategory, module models   (the data shapes)
-Services/    Registry, ShellRunner, Admin, Loc, SystemInfo, ModuleRegistry, per-module services
-Catalog/     Categories + per-category tweak files (~1,140 TweakDefinitions)
-Controls/    TweakCard  (renders any tweak, always bilingual)
-Pages/       Dashboard, CategoryPage, every module page, Settings, About
-```
-
-**粵語 —** WinForge 係**資料驅動**嘅。每項調校都係一個 `TweakDefinition`，自己帶住行為（登錄檔位置、一組選項，
-或者一句 shell／PowerShell 指令）同雙語文字；一個可重用嘅 `TweakCard` 負責顯示。每個**模組**都係一個真實頁面，
-透過專注嘅服務（例如 `GitService`、`MediaService`、`ConnectionsService`）包住真實引擎或原生 API。
-[`Services/ModuleRegistry.cs`](Services/ModuleRegistry.cs) 登記每個模組，等總搜尋搵到佢哋。
-
-**Resilient startup · 穩健啟動 —** Startup is guarded end-to-end. `CrashLogger` installs global exception
-handlers and writes `%LOCALAPPDATA%\WinForge\crash.log` + `startup-trace.log`; a `[ModuleInitializer]` in
-[`Services/StartupDiagnostics.cs`](Services/StartupDiagnostics.cs) logs early loader faults (the kind that
-otherwise surface only as an opaque native `0xC000027B`) *before* `Main` even runs. And the standalone
-[`WinForgeLauncher`](launcher/) supervises `WinForge.exe`, relaunching it if it ever fail-fasts in the first
-few seconds — so a transient framework hiccup never leaves you staring at a window that didn't open.
-
-**粵語 —** 開機全程都有保護：`CrashLogger` 裝好全域例外處理，寫低 `%LOCALAPPDATA%\WinForge\crash.log` 同
-`startup-trace.log`；[`Services/StartupDiagnostics.cs`](Services/StartupDiagnostics.cs) 嘅 `[ModuleInitializer]`
-喺 `Main` 之前就記錄早期載入器錯誤（嗰種淨係化身做神秘 `0xC000027B` 嘅錯誤）。再加上獨立嘅
-[`WinForgeLauncher`](launcher/) 會睇住 `WinForge.exe`，萬一頭幾秒閃退就自動重開 — 偶發嘅框架問題唔會再令你對住一個開唔到嘅視窗。
-
----
-
-## 🈳 Bilingual by design · 雙語設計
-
-**EN —** Language is never hidden behind a menu: **both** English and Traditional Chinese / Cantonese appear on
-every card at once. Settings lets you pick which language *leads*, and the whole UI updates live.
-
-**粵語 —** 語言唔會收埋喺選單後面：**兩種**語言喺每張卡都會即時一齊出現。
-設定頁可以揀邊種語言*排前面*，成個介面會即時更新。
-
----
-
-## 📚 Documentation & wiki · 文件與 wiki
-
-**EN —** Browse the [GitHub wiki](https://github.com/codingmachineedge/WinForge/wiki) (source in
-[`docs/wiki/`](docs/wiki/)) for a categorized module index and per-module pages. Other references:
-
-- [`docs/wiki/Home.md`](docs/wiki/Home.md) — categorized index of **all** modules · 所有模組嘅分類索引
-- [`docs/wiki/Screenshots.md`](docs/wiki/Screenshots.md) — image inventory + capture guide · 圖檔清單同擷取指南
-- [`docs/CLI.md`](docs/CLI.md) — every `--page` id and CLI switch · 每個 `--page` id 同命令列開關
-- [`docs/HANDOFF.md`](docs/HANDOFF.md) — per-module engine/service reference · 逐模組引擎／服務參考
-- [`docs/features/`](docs/features/) — generated per-tweak documentation · 自動產生嘅逐項調校文件
-- [`CHANGELOG.md`](CHANGELOG.md) — project history · 專案歷史
-
-**粵語 —** 想睇分類模組索引同逐模組頁，可以睇 [GitHub wiki](https://github.com/codingmachineedge/WinForge/wiki)
-（原始檔喺 [`docs/wiki/`](docs/wiki/)）。其他參考見上。
+**粵語 —** Wiki 係所有模組嘅分類索引，重點模組仲有專頁 — 由 **[docs/wiki/Home.md](docs/wiki/Home.md)** 開始。旗艦有自己完整嘅**[核反應堆操作手冊](docs/wiki/Nuclear-Reactor-Operating-Manual.md)**。
 
 ---
 

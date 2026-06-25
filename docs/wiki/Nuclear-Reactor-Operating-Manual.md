@@ -5,8 +5,8 @@
 **粵語 —** 核反應堆係 WinForge 嘅旗艦模組：一個完全用 WinUI 3 繪製、超寫實嘅**壓水式反應堆（PWR）**控制室。佢模擬六組點動力學、反應性回饋（都卜勒／緩和劑／硼／氙）、熱工水力、蒸汽渦輪二次側、西屋式保護系統、合成控制室音效，同即時機組流程圖。佢只係一個**模擬／訓練玩具**，唔會控制任何真實硬件。
 
 > ⚠️ **Safety / 安全** — Two real-world side-effects are **opt-in and clearly gated**:
-> - **Meltdown → real PC shutdown** is **OFF by default**. When meltdown occurs it only shows a simulated overlay (see below). You must arm "ARM REAL SHUTDOWN" to enable an actual (abortable, 10 s countdown) Windows shutdown.
-> - **Keep PC awake while generating** holds the PC awake only while the generator is on-load; it releases the instant you SCRAM or trip.
+> - **Meltdown → real PC shutdown** is **OFF by default**. When meltdown occurs it only shows a simulated overlay (see below). You must arm "ARM REAL SHUTDOWN" to enable an actual (abortable, 10 s countdown) Windows shutdown. · **熔毀 → 真實關機**預設 **OFF**；熔毀時只播模擬畫面（見下），你要開啟「ARM REAL SHUTDOWN」先會觸發真實（可中止、10 秒倒數）嘅 Windows 關機。
+> - **Keep PC awake while generating** holds the PC awake only while the generator is on-load; it releases the instant you SCRAM or trip. · **發電時保持喚醒**只喺發電機併網時保持電腦喚醒；一 SCRAM 或跳脫即刻放開。
 > 兩個會影響真實系統嘅效果都係**預設關閉、明確開關**：熔毀真實關機**預設 OFF**（只播模擬畫面）；發電保持喚醒只喺併網時生效，SCRAM 即放開。
 
 ---
@@ -27,20 +27,20 @@ It is the **first tile on the Dashboard** (★ FLAGSHIP) and the **top entry in 
 
 | Area · 區域 | What it shows · 內容 |
 |---|---|
-| **Status banner** · 狀態橫額 | Mode (Shutdown / Startup / Run / Tripped / Meltdown), the first-out trip cause, and mission time `T+…s`. |
-| **Keep-awake pill** · 喚醒指示 | `⚡ Grid online — this PC is kept awake (N MWe)` when generating, else `Generator offline — normal sleep allowed`. |
-| **Toolbar** · 工具列 | **Open full control room** (pop-out window), **Mini widgets** (desktop gadgets), **Mute audio**, **Scenario** selector. |
-| **SCRAM bar** · 緊急停堆 | The big red **SCRAM — EMERGENCY SHUTDOWN · 緊急停堆** button + **Reset trip · 重置跳脫**. |
-| **Auto rod control** · 自動棒控制 | Hands the regulating bank to an automatic controller targeting a power setpoint. |
-| **Plant Mimic Diagram** · 機組流程圖 | Vessel → pressurizer → steam generator → turbine → generator → condenser, animated by flow and temperature. |
+| **Status banner** · 狀態橫額 | Mode (Shutdown / Startup / Run / Tripped / Meltdown), the first-out trip cause, and mission time `T+…s`. <br> 模式（停堆／起動／運行／跳脫／熔毀）、首發跳脫原因，同任務時間 `T+…s`。 |
+| **Keep-awake pill** · 喚醒指示 | `⚡ Grid online — this PC is kept awake (N MWe)` when generating, else `Generator offline — normal sleep allowed`. <br> 發電時顯示「併網 — 保持喚醒」，否則顯示「發電機離線 — 允許正常睡眠」。 |
+| **Toolbar** · 工具列 | **Open full control room** (pop-out window), **Mini widgets** (desktop gadgets), **Mute audio**, **Scenario** selector. <br> 開啟完整控制室（彈出視窗）、迷你小工具（桌面小工具）、靜音、情景選擇器。 |
+| **SCRAM bar** · 緊急停堆 | The big red **SCRAM — EMERGENCY SHUTDOWN · 緊急停堆** button + **Reset trip · 重置跳脫**. <br> 大紅色 SCRAM 緊急停堆按鈕加重置跳脫。 |
+| **Auto rod control** · 自動棒控制 | Hands the regulating bank to an automatic controller targeting a power setpoint. <br> 將調節棒組交畀自動控制器，追蹤功率設定點。 |
+| **Plant Mimic Diagram** · 機組流程圖 | Vessel → pressurizer → steam generator → turbine → generator → condenser, animated by flow and temperature. <br> 壓力槽 → 穩壓器 → 蒸汽產生器 → 渦輪 → 發電機 → 冷凝器，按流量同溫度動態顯示。 |
 
 Scroll down for the **instrument gauges**, the **Reactor Protection System** channel panel, the **annunciator** tiles, and the **strip-chart recorders**:
 
 ![Instrument gauges + RPS channel panel](images/04-reactor-gauges.png)
 
-- **Critical Safety Functions** (top): `P Integrity`, `Z Containment`, `I Inventory` status tiles (green / amber / red).
-- **Reactor Protection System · 反應堆保護系統** — one card per protection function with its **2-out-of-4 instrument channels** as LEDs. (2-of-4 coincidence with Westinghouse setpoints: a single tripped channel is a *partial* trip — amber; the reactor trips only when ≥2 of 4 channels of a function trip.)
-- **Instrument Gauges · 儀錶** — analog dials for Reactor power (%), Thermal power (MW), Electrical (MWe), Decay heat (%), Reactor period (s), Reactivity (pcm), fuel temp, Tavg / Thot / Tcold, subcooling, primary pressure.
+- **Critical Safety Functions · 關鍵安全功能** (top): `P Integrity`, `Z Containment`, `I Inventory` status tiles (green / amber / red). · 頂部嘅 `P 完整性`、`Z 圍阻`、`I 存量` 狀態磚（綠／琥珀／紅）。
+- **Reactor Protection System · 反應堆保護系統** — one card per protection function with its **2-out-of-4 instrument channels** as LEDs. (2-of-4 coincidence with Westinghouse setpoints: a single tripped channel is a *partial* trip — amber; the reactor trips only when ≥2 of 4 channels of a function trip.) · 每個保護功能一張卡，以 LED 顯示其 **四取二儀表通道**。（西屋式四取二符合邏輯：單一通道跳脫只係*部分*跳脫，顯示琥珀色；要某功能四個通道有 ≥2 個跳脫，反應堆先會跳脫。）
+- **Instrument Gauges · 儀錶** — analog dials for Reactor power (%), Thermal power (MW), Electrical (MWe), Decay heat (%), Reactor period (s), Reactivity (pcm), fuel temp, Tavg / Thot / Tcold, subcooling, primary pressure. · 模擬指針錶顯示反應堆功率（%）、熱功率（MW）、電功率（MWe）、衰變熱（%）、反應堆週期（s）、反應性（pcm）、燃料溫度、Tavg／Thot／Tcold、過冷度同一次側壓力。
 
 ---
 
@@ -102,10 +102,10 @@ Use the **Scenario** selector to inject classic transients and practice your res
 ---
 
 ## 8. Realism roadmap · 寫實度路線圖
-WinForge's first multi-agent realism review found the instrumentation is complete but the **core physics needs three foundational fixes** before scenarios behave correctly (you'll currently see the core run away to meltdown):
-1. Backward-Euler kinetics integration (the explicit step is numerically unstable).
-2. Re-calibrated reactivity baseline + split regulating/shutdown rod banks.
-3. A closed thermal energy balance + an ANS-5.1 decay-heat model.
+WinForge's first multi-agent realism review found the instrumentation is complete but the **core physics needs three foundational fixes** before scenarios behave correctly (you'll currently see the core run away to meltdown). · WinForge 首次多代理寫實度審查發現儀表已完整，但**核心物理需要三項基礎修正**，情景先會正確運作（目前你會見到爐心失控走向熔毀）：
+1. Backward-Euler kinetics integration (the explicit step is numerically unstable). · 後向歐拉動力學積分（顯式步驟數值上唔穩定）。
+2. Re-calibrated reactivity baseline + split regulating/shutdown rod banks. · 重新校準反應性基準，並分拆調節棒／停堆棒組。
+3. A closed thermal energy balance + an ANS-5.1 decay-heat model. · 封閉熱能平衡，加上 ANS-5.1 衰變熱模型。
 
 These are tracked in [reactor-realism-review-001.md](../reactor-realism-review-001.md) and are being implemented incrementally. Until they land, gauge **values** are not yet physical even though every panel renders. · 首次寫實度審查發現三項核心物理基礎修正待完成；詳見審查報告。
 
