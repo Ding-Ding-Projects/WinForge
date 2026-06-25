@@ -479,6 +479,19 @@ public sealed partial class ReactorModule : Page
                 + (_sim.RodEjectionActive ? $" · eject {_sim.EjectedRodWorthPcm:F0} pcm" : "")
                 + (_sim.RiaFuelMelt ? $" · {P("MELT", "熔化")}" : _sim.RiaCoolabilityViolated ? $" · {P("COOLABILITY", "可冷卻性")}" : _sim.RiaCladdingFailure ? $" · {P("CLAD FAIL", "包殼失效")}" : ""),
             warnFrac: 230.0 / 300.0, id: "fuelEnth");
+        AddGauge("Fuel centerline", "燃料中心溫", 0, 2800, () => _sim.FuelCenterlineTempC,
+            () => $"{_sim.FuelCenterlineTempC:F0}°C · {P("surf", "表面")} {_sim.PelletSurfaceTempC:F0}°C · {P("peak", "峰棒")} {_sim.HotRodCenterlineTempC:F0}°C",
+            warnFrac: 2000.0 / 2800.0, id: "fuelCl");
+        AddGauge("Centerline-melt margin", "中心熔化裕度", 0, 2000, () => Math.Max(0, _sim.FuelCenterlineMeltMarginC),
+            () => $"{_sim.FuelCenterlineMeltMarginC:F0}°C → {_sim.FuelMeltTempBurnupC:F0}°C ({P("melt@BU", "燃耗熔點")})"
+                + (_sim.FuelCenterlineMeltMarginC < 0 ? $" · {P("MELT", "熔化")}" : ""),
+            warnFrac: 1.0, id: "fcmMargin");
+        AddGauge("Linear heat rate", "線功率密度", 0, 24, () => _sim.PeakLinearHeatRateKwPerFt,
+            () => $"{P("avg", "均")} {_sim.LinearHeatRateKwPerFt:F1} · {P("peak", "峰")} {_sim.PeakLinearHeatRateKwPerFt:F1} kW/ft · {P("mgn", "裕")} {_sim.LhrMarginKwPerFt:+0.0;-0.0;0.0}",
+            warnFrac: 21.0 / 24.0, id: "lhr");
+        AddGauge("Gap conductance", "間隙熱導", 0, 4, () => _sim.GapConductanceWcm2K,
+            () => $"h_gap {_sim.GapConductanceWcm2K:F2} W/cm²K · ΔT_gap {_sim.DeltaTGapC:F0}°C · FGR {_sim.FissionGasReleaseFraction * 100:F0}%",
+            warnFrac: 1.1, id: "hgap");
         AddGauge("Coolant Tavg", "冷卻劑平均溫", 530, 620, () => _sim.Tavg * 1.8 + 32, () => $"{_sim.Tavg * 1.8 + 32:F0}°F", id: "tavg");
         AddGauge("Reference Tref", "參考溫度 Tref", 530, 620, () => _sim.Tref * 1.8 + 32, () => $"{_sim.Tref * 1.8 + 32:F0}°F", id: "tref");
         AddGauge("Coolant Thot", "熱腿溫度", 530, 660, () => _sim.Thot * 1.8 + 32, () => $"{_sim.Thot * 1.8 + 32:F0}°F", id: "thot");

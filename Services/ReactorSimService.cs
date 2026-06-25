@@ -533,6 +533,29 @@ public sealed class ReactorSimService
     private const double PtsRepressRateMPaPerS   = 0.05;  // MPa/s — +dP/dt above this counts as "repressurizing" for the advisory
     private const double PtsKiFloorKsi       = 1e-6;   // ksi·√in — floor on K_I to keep the margin ratio finite
 
+    // ---- Fuel pellet radial-conduction + pellet-clad gap-conductance geometry/material constants ----
+    // Westinghouse 4-loop 17×17. These reconstruct a PHYSICAL fuel temperature profile (coolant → film →
+    // clad → gap → pellet) from the linear heat rate q′; they DO NOT touch the calibrated lumped FuelTemp
+    // integration (the live energy balance is an abstract lump anchored to RefFuelTemp, so the displayed
+    // radial profile is built on a separate physical chain anchored to the real coolant temperature Tavg).
+    private const double ActiveFuelLengthM    = 186000.0; // m — 50,952 rods × 3.66 m active length (heat-transfer basis)
+    private const double GapDiameterM         = 8.2e-3;   // m — pellet-surface diameter used for the gap ΔT
+    private const double CladOuterDiaM        = 9.5e-3;   // m — clad OD (film/clad ΔT geometry)
+    private const double CladThicknessM       = 0.61e-3;  // m — Zircaloy clad wall thickness
+    private const double PelletRadiusM         = 4.1e-3;  // m — UO2 pellet outer radius (swelling datum)
+    private const double KFuelEffWmK          = 3.0;      // W/m·K — UO2 effective conductivity (ΔT_pellet = q′/4πk)
+    private const double KCladWmK             = 14.0;     // W/m·K — Zircaloy clad conductivity
+    private const double HFilmWm2K            = 38000.0;  // W/m²·K — coolant film coefficient
+    private const double HotChannelFq         = 2.56;     // — total peaking factor F_Q (hot rod ÷ core average)
+    private const double ColdRadialGapM       = 88e-6;    // m — as-fabricated radial He gap (diametral ~176 µm)
+    private const double GasJumpDistM         = 5e-6;     // m — temperature-jump distance (keeps h_gas finite at closure)
+    private const double KHeWmK               = 0.155;    // W/m·K — helium fill-gas conductivity
+    private const double KXeKrWmK             = 0.015;    // W/m·K — Xe/Kr fission-gas conductivity (~10× lower)
+    private const double GapCloseBurnupGWd    = 20.0;     // GWd/tU — burnup at effective gap closure
+    private const double Uo2MeltFreshC        = 2840.0;   // °C — fresh UO2 melting point
+    private const double Uo2MeltDerateCperGWd = 3.2;      // °C per GWd/tU — burnup derate of the melt point
+    private const double FcmLhrLimitKwPerFt   = 21.0;     // kW/ft — fuel-centerline-melt linear-heat-rate design limit
+
     // Limits / trip setpoints.
     public const double FuelMeltTemp = 2800.0;     // °C — UO2 melting point ~2865 °C
     public const double FuelDamageTemp = 1200.0;   // °C — clad/fuel damage onset (sustained)
@@ -1398,6 +1421,84 @@ public sealed class ReactorSimService
     public double EffectiveMtcPcmPerC => (ModTempCoeff + MtcEolSlope * CycleFraction) * 1e5;
     /// <summary>β_eff cycle scale factor 1 (BOL) → 0.90 (EOL); applied uniformly at every Beta[]/BetaTotal use.</summary>
     private double BetaCycleFactor => 1.0 - BetaEolDrop * CycleFraction;
+
+    // ---- Fuel pellet radial temperature profile + pellet-clad gap conductance (read-only diagnostics) ----
+    // Reconstructs the real radial temperature drop coolant→clad→gap→pellet-centre from the linear heat rate
+    // q′ and the burnup-/fission-gas-dependent gap conductance. Every member below is a pure function of
+    // existing clamped state (_power, DecayHeatFraction, Tavg, BurnupMwdPerTonne) — none writes back into
+    // FuelTemp, the reactivity balance, or the meltdown path, so the calibrated lump and the meltdown-ARM
+    // logic are provably unchanged. The hot-rod centerline + melt margin is the operator figure of merit.
+    private double BurnupGWd => BurnupMwdPerTonne / 1000.0;                  // GWd/tU from the MWd/tU accumulator
+    private double QPrimeAvgWperM  => Math.Max(0.0, _power + DecayHeatFraction) * RatedThermalMW * 1e6 / ActiveFuelLengthM;
+    private double QPrimePeakWperM => QPrimeAvgWperM * HotChannelFq;
+    /// <summary>線功率密度 · Core-average linear heat rate q′ (kW/m), fission + decay heat over total rod length.</summary>
+    public double LinearHeatRateKwPerM  => QPrimeAvgWperM / 1000.0;
+    /// <summary>線功率密度 · Core-average linear heat rate q′ (kW/ft); nominal full power ≈ 5.5 kW/ft.</summary>
+    public double LinearHeatRateKwPerFt => QPrimeAvgWperM / 1000.0 / 3.2808;
+    /// <summary>峰值線功率 · Hot-channel (F_Q≈2.56) peak linear heat rate (kW/ft); fuel-centerline-melt limit ≈ 21 kW/ft.</summary>
+    public double PeakLinearHeatRateKwPerFt => QPrimePeakWperM / 1000.0 / 3.2808;
+    /// <summary>裂變氣體釋放率 · Fission-gas-release fraction (Xe/Kr) that dilutes the He fill gas; ~1 % (BOL) → ~15 % (EOL).</summary>
+    public double FissionGasReleaseFraction => Math.Clamp(0.01 + 0.14 * CycleFraction, 0.0, 0.30);
+    // Open radial gap (m): shrinks with fuel swelling (~0.7 %ΔV/V per 10 GWd/tU → ~/3 on the radius) + clad
+    // creepdown; effectively closed (contact) by ~20 GWd/tU.
+    private double OpenGapM()
+    {
+        double swellLin  = (0.007 / 10.0) * BurnupGWd * PelletRadiusM / 3.0;
+        double creepdown = Math.Min(25e-6, 1.5e-6 * BurnupGWd);
+        return Math.Max(0.0, ColdRadialGapM - swellLin - creepdown);
+    }
+    // Fill-gas mixture conductivity (W/m·K): He diluted by the released heavy Xe/Kr, weighted by FGR fraction.
+    private double GasMixKWmK()
+    {
+        double xHeavy = Math.Clamp(FissionGasReleaseFraction, 0.0, 0.6);
+        return KHeWmK * (1.0 - xHeavy) + KXeKrWmK * xHeavy;
+    }
+    /// <summary>間隙熱導 · Pellet-clad gap conductance h_gap (W/m²·K); BOL open He gap ~6000 → closed contact ~20–40 k.</summary>
+    public double GapConductanceWm2K
+    {
+        get
+        {
+            double openGap  = OpenGapM();
+            double hGas     = GasMixKWmK() / (openGap + GasJumpDistM);
+            double hContact = openGap <= 0.0 ? 22000.0 + 18000.0 * Math.Clamp((BurnupGWd - GapCloseBurnupGWd) / 10.0, 0.0, 1.0) : 0.0;
+            return Math.Clamp(hGas + hContact, 5000.0, 40000.0);
+        }
+    }
+    /// <summary>間隙熱導 · Gap conductance in literature units (W/cm²·K) = SI ÷ 10 000; BOL ~0.6, closed ~2–4.</summary>
+    public double GapConductanceWcm2K => GapConductanceWm2K / 10000.0;
+    /// <summary>薄膜溫降 · Coolant-film temperature drop ΔT_film (°C) = q′/(π·D_clad·h_film).</summary>
+    public double DeltaTFilmC   => QPrimeAvgWperM / (Math.PI * CladOuterDiaM * HFilmWm2K);
+    /// <summary>包殼溫降 · Cladding conduction temperature drop ΔT_clad (°C).</summary>
+    public double DeltaTCladC   => QPrimeAvgWperM * CladThicknessM / (2.0 * Math.PI * KCladWmK * (CladOuterDiaM - CladThicknessM) / 2.0);
+    /// <summary>間隙溫降 · Pellet-clad gap temperature drop ΔT_gap (°C) = q′/(π·D·h_gap); BOL ~100–300 °C, falls as the gap closes.</summary>
+    public double DeltaTGapC    => QPrimeAvgWperM / (Math.PI * GapDiameterM * GapConductanceWm2K);
+    /// <summary>芯塊溫降 · Pellet centre-to-surface temperature rise ΔT_pellet (°C) = q′/(4π·k_UO2); independent of pellet radius.</summary>
+    public double DeltaTPelletC => QPrimeAvgWperM / (4.0 * Math.PI * Math.Clamp(KFuelEffWmK, 2.0, 4.5));
+    /// <summary>芯塊表面溫度 · UO2 pellet surface temperature (°C) = coolant + film + clad + gap drops.</summary>
+    public double PelletSurfaceTempC  => Tavg + DeltaTFilmC + DeltaTCladC + DeltaTGapC;
+    /// <summary>燃料中心溫度 · Average-rod fuel-pellet centerline temperature (°C); nominal full power ≈ 1000–1400 °C.</summary>
+    public double FuelCenterlineTempC => PelletSurfaceTempC + DeltaTPelletC;
+    /// <summary>峰棒中心溫度 · Hot-rod (F_Q) fuel centerline temperature (°C) used for the melt margin.</summary>
+    public double HotRodCenterlineTempC => Tavg + (DeltaTFilmC + DeltaTCladC + DeltaTGapC + DeltaTPelletC) * HotChannelFq;
+    /// <summary>燃料熔點 (隨燃耗) · UO2 melting point derated with burnup (°C) = 2840 − 3.2·GWd/tU.</summary>
+    public double FuelMeltTempBurnupC => Uo2MeltFreshC - Uo2MeltDerateCperGWd * BurnupGWd;
+    /// <summary>中心熔化裕度 · Fuel-centerline-melt margin (°C) = T_melt(burnup) − hot-rod centerline; positive = safe.</summary>
+    public double FuelCenterlineMeltMarginC => FuelMeltTempBurnupC - HotRodCenterlineTempC;
+    /// <summary>線功率裕度 · Head-room to the fuel-centerline-melt LHR design limit (kW/ft); negative = peak q′ over 21 kW/ft.</summary>
+    public double LhrMarginKwPerFt => FcmLhrLimitKwPerFt - PeakLinearHeatRateKwPerFt;
+    // Rowlands rim-weighted effective Doppler temperature (0.7·surface + 0.3·centre). Built symmetrically about
+    // the calibrated lump FuelTemp so its value equals FuelTemp minus a small physical bias and the actual
+    // Doppler reactivity term (dopplerRho) is left bit-for-bit unchanged — this is a DIAGNOSTIC only.
+    private const double DopplerSurfWeight = 0.7, DopplerCenterWeight = 0.3;
+    /// <summary>多普勒有效溫度 · Rowlands rim-weighted effective Doppler temperature (°C) = 0.7·surface + 0.3·centre (diagnostic).</summary>
+    public double DopplerEffectiveTempC
+    {
+        get
+        {
+            double gradHalf = DeltaTPelletC * 0.5;
+            return DopplerSurfWeight * (FuelTemp - gradHalf) + DopplerCenterWeight * (FuelTemp + gradHalf);
+        }
+    }
 
     // Accident scenario state.
     public ReactorScenario ActiveScenario { get; private set; } = ReactorScenario.Normal;
