@@ -90,6 +90,7 @@
                         <NavigationViewItem Content="Environment Variables · 環境變數" Tag="module.envvars"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Clipboard · 剪貼簿" Tag="module.clipboard"><NavigationViewItem.Icon><FontIcon Glyph="&#xE77F;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Settings &amp; Control Panel · 設定與控制台" Tag="module.settingshub"><NavigationViewItem.Icon><FontIcon Glyph="&#xE713;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Nuclear Reactor · 核反應堆" Tag="module.reactor"><NavigationViewItem.Icon><FontIcon Glyph="&#xEBC0;" /></NavigationViewItem.Icon></NavigationViewItem>
                     </NavigationViewItem.MenuItems>
                 </NavigationViewItem>
 

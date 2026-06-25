@@ -683,6 +683,12 @@ public sealed partial class MainWindow : Window
             case "winget-suggest":
                 Navigator.GoToModule?.Invoke("module.cmdnotfound");
                 break;
+            case "reactor":
+            case "nuclear":
+            case "npp":
+            case "meltdown":
+                Navigator.GoToModule?.Invoke("module.reactor");
+                break;
             case null:
             case "":
             case "dashboard":
@@ -761,6 +767,7 @@ public sealed partial class MainWindow : Window
 
     private static Type MapType(string key) => key switch
     {
+        "module.reactor" => typeof(ReactorModule),
         "module.git" => typeof(GitHubModule),
         "module.vscode" => typeof(VsCodeModule),
         "module.aiagents" => typeof(AiAgentsModule),
