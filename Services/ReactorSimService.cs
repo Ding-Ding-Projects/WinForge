@@ -199,7 +199,14 @@ public sealed class ReactorSimService
     public bool PzrAutoPressureControl { get; set; } = true; // automatic Westinghouse pressure-control program
     public double RcpFlowDemand { get; set; } = 0.0;     // 0..1 commanded pump flow
     public bool[] RcpRunning { get; } = { false, false, false, false };
-    public double FeedwaterFlow { get; set; } = 0.0;     // 0..1
+    public double FeedwaterFlow { get; set; } = 0.0;     // 0..1 actual main-feedwater flow (auto-driven when FeedwaterAuto)
+    // Three-element steam-generator level control (Westinghouse: level + steam flow + feed flow).
+    public bool FeedwaterAuto { get; set; } = true;      // automatic feed-reg controller (off = operator owns FeedwaterFlow)
+    public double SgLevelSetpoint { get; private set; } = 50.0; // % NR programmed setpoint (33% lo-pwr → 50% HFP)
+    public double SteamFlow { get; private set; }        // 0..1 measured steam flow (feedforward + shrink/swell driver)
+    public double FeedRegValve { get; private set; }     // 0..1 main feed-reg valve position (inner loop)
+    public double IndicatedSgLevel { get; private set; } = 60.0; // % NR shown on the gauge = inventory + shrink/swell offset
+    public bool ThreeElementActive => _threeElementActive; // true once steam/feed-flow signals are valid (>~18% power)
     public double TurbineLoadSetpoint { get; set; } = 0.0; // 0..1 (fraction of rated MWe)
     public bool GeneratorBreakerClosed { get; set; }
     public bool ReliefValveOpen { get; set; }
@@ -290,6 +297,11 @@ public sealed class ReactorSimService
     public bool AccumulatorInjecting { get; private set; }
     public bool AuxFeedwaterRunning { get; private set; }
     private double _lofwTimer;        // counts up after feedwater lost (aux start at 60 s)
+    // Three-element feedwater controller internal state.
+    private double _iLevel;           // master level-PI integrator (flow-fraction units)
+    private double _steamFlowSlow;    // slow-lagged steam flow → shrink/swell is the high-pass residual
+    private bool _threeElementActive; // single-element (level only) vs three-element latch w/ hysteresis
+    private bool _fwAutoWasOn;        // bumpless-transfer latch for AUTO engagement
 
     // SGTR — steam-generator tube rupture. A primary→secondary leak driven by the primary-to-
     // secondary pressure difference: leaked RCS water floods the affected SG and carries activity
@@ -390,9 +402,11 @@ public sealed class ReactorSimService
         _rps.Functions.Add(new RpsFunction("Pzr Level Hi", "穩壓器水位－高",
             RpsTripDir.High, 92.0, () => PressurizerLevel, permissive: aboveP7,
             channelCount: 3));
-        // 10 — Steam Generator Level Low-Low: 17%. Always active (initiates AFW). 2/3.
+        // 10 — Steam Generator Level Low-Low: 17%. Always active (initiates AFW). 2/3. Evaluated on the
+        //      INDICATED narrow-range level (inventory + shrink/swell) — exactly what the transmitters see,
+        //      so a load-rejection shrink can challenge the setpoint just as it does in the real plant.
         _rps.Functions.Add(new RpsFunction("SG Level Lo-Lo", "蒸發器水位－低低",
-            RpsTripDir.Low, 17.0, () => SteamGenLevel, channelCount: 3));
+            RpsTripDir.Low, 17.0, () => IndicatedSgLevel, channelCount: 3));
         // 11 — Source Range High Flux at Shutdown: 1e5 cps. Low-power startup protection; armed only while
         //      the SR is energized — blocked once P-6 (IR on-scale) or P-10 (>10% power) is reached. 2/2.
         _rps.Functions.Add(new RpsFunction("Source Range Flux Hi", "起動範圍中子通量－高",
@@ -596,6 +610,8 @@ public sealed class ReactorSimService
         PrimaryPressure = 2.5; PressurizerLevel = NominalPzrLevel;
         _tpzr = ColdTemp; _prevLevel = NominalPzrLevel; _pSpike = 0; _porvAuto = false; PressurizerHeaterDuty = 0;
         SteamPressure = 0.5; SteamGenLevel = 60; ElectricPowerMW = 0; TurbineRPM = 0;
+        IndicatedSgLevel = 60; SteamFlow = 0; FeedRegValve = 0; SgLevelSetpoint = 50;
+        FeedwaterAuto = true; _iLevel = 0; _steamFlowSlow = 0; _threeElementActive = false; _fwAutoWasOn = false;
         Iodine = 0; Xenon = 0;
         for (int i = 0; i < RodBankInsertion.Length; i++) RodBankInsertion[i] = 100.0;
         for (int i = 0; i < RcpRunning.Length; i++) RcpRunning[i] = false;
@@ -657,6 +673,10 @@ public sealed class ReactorSimService
 
         // --- xenon/iodine evolve slowly; once per tick is fine ---
         UpdateXenon(dt);
+
+        // --- three-element feedwater regulating control (runs before the secondary so the valve
+        //     demand and shrink/swell indication are current when level integrates this tick) ---
+        UpdateFeedwaterControl(dt);
 
         // --- secondary plant + turbine ---
         UpdateSecondary(dt);
@@ -1008,6 +1028,62 @@ public sealed class ReactorSimService
         // Normalize: at steady full power, equilibrium Xenon should approach ~1.
     }
 
+    // 三元給水水位控制 · Three-element steam-generator level control with shrink/swell.
+    //   A real SG narrow-range level tap measures the height of the *two-phase* swell, not pure liquid
+    //   inventory, so on a load increase (more steaming, falling SG pressure) the voids expand and the
+    //   indicated level momentarily SWELLS UP even as mass drains — and shrinks on a load rejection. A
+    //   level-only controller reacts backwards to that, which is precisely why the protection scheme adds
+    //   steam-flow feedforward and feed-flow trim above ~18% power. Below that, the dP-based flow signals
+    //   (∝ √dP, so ~1% of span at 10% flow) are too noisy to trust, so control falls back to level-only on
+    //   the low-load valve. Here: true inventory stays SteamGenLevel (the conserved integral of feed−steam);
+    //   the washed-out void transient is added only to IndicatedSgLevel, which is what the gauge and the
+    //   17 % low-low trip actually see.
+    private void UpdateFeedwaterControl(double dt)
+    {
+        // Steam-flow transmitter (lagged) — both the feedforward term and the shrink/swell driver.
+        double steamDrawRaw = GeneratorBreakerClosed ? TurbineLoadSetpoint : 0.0;
+        SteamFlow += (steamDrawRaw - SteamFlow) * Math.Min(1, dt / 1.0);
+        _steamFlowSlow += (SteamFlow - _steamFlowSlow) * Math.Min(1, dt / 12.0); // 12 s void-relaxation washout
+
+        // Shrink/swell = high-pass residual of steam flow (rises → swell, falls → shrink), decays to 0.
+        double shrinkSwell = Math.Clamp(45.0 * (SteamFlow - _steamFlowSlow), -15.0, 15.0);
+        IndicatedSgLevel = Math.Clamp(SteamGenLevel + shrinkSwell, 0, 100);
+
+        // Programmed (compressed) narrow-range setpoint: 33% NR at low power → 50% NR at full power.
+        SgLevelSetpoint = 33.0 + 17.0 * Math.Clamp(_power, 0, 1);
+
+        // Station blackout: no AC power to the main feed pumps — the regulating controller is dead.
+        if (ActiveScenario == ReactorScenario.StationBlackout) { _fwAutoWasOn = false; FeedRegValve = 0; return; }
+
+        // Manual: the operator's slider owns FeedwaterFlow exactly as before.
+        if (!FeedwaterAuto) { _fwAutoWasOn = false; return; }
+
+        // Bumpless transfer when AUTO is (re)engaged: preload the valve to the current flow, zero the integrator.
+        if (!_fwAutoWasOn) { FeedRegValve = FeedwaterFlow; _iLevel = 0; _fwAutoWasOn = true; }
+
+        // Single ↔ three-element transfer at ~18% power, 2% hysteresis so the boundary doesn't chatter.
+        if (_power >= 0.18) _threeElementActive = true;
+        else if (_power < 0.16) _threeElementActive = false;
+
+        double err = SgLevelSetpoint - IndicatedSgLevel;            // % NR error (controller acts on indicated)
+        _iLevel = Math.Clamp(_iLevel + 0.004 * err * dt, -0.5, 0.5); // master level-PI integral
+        double demand = _threeElementActive
+            ? SteamFlow + 0.020 * err + _iLevel                    // three-element: feedforward + level trim
+            : 0.05 + 0.020 * err + _iLevel;                        // single-element: level-only on low-load valve
+        double demandClamped = Math.Clamp(demand, 0, 1);
+        _iLevel -= demand - demandClamped;                          // back-calculation anti-windup
+        _iLevel = Math.Clamp(_iLevel, -0.5, 0.5);
+
+        // Feed-reg valve first-order lag (~4 s stroke) is the inner (flow) loop.
+        FeedRegValve += (demandClamped - FeedRegValve) * Math.Min(1, dt / 4.0);
+        FeedRegValve = Math.Clamp(FeedRegValve, 0, 1);
+
+        // Loss of feedwater: main feed-reg path unavailable — never command MFW; AFW floor (set this tick in
+        // UpdateScenarios, which runs first) is the only inventory source. Otherwise apply the valve flow.
+        double autoFlow = ActiveScenario == ReactorScenario.LossOfFeedwater ? 0.0 : FeedRegValve;
+        FeedwaterFlow = Math.Max(autoFlow, AuxFeedwaterRunning ? 0.15 : 0.0);
+    }
+
     private void UpdateSecondary(double dt)
     {
         // Steam pressure builds from core heat into SG, relieved by turbine steam draw.
@@ -1017,14 +1093,15 @@ public sealed class ReactorSimService
         pTarget = Math.Clamp(pTarget, 0.3, 8.5);
         SteamPressure += (pTarget - SteamPressure) * Math.Min(1, dt / 5.0);
 
-        // SG level from feedwater vs steaming.
-        double sgTarget = 50 + 20 * (FeedwaterFlow - steamDraw);
+        // SG inventory is an INTEGRATOR: level is the time-integral of (feedwater − steaming) mismatch.
+        // SteamFlow (the lagged controlled-by feedwater-control signal) is the boil-off the feed must replace,
+        // so inventory balance and the three-element feedforward stay consistent.
+        SteamGenLevel += 12.0 * (FeedwaterFlow - SteamFlow) * dt;
         // SGTR: leaked primary water floods the affected SG, biasing its level toward "solid" (overfill)
         // until the operator isolates it (MSIV + feedwater). UpdateSecondary is the sole writer of
-        // SteamGenLevel, so biasing the target here drives the fill without a tug-of-war.
+        // SteamGenLevel, so biasing here drives the fill without a tug-of-war with the controller.
         if (_sgtrSeverity > 0 && SgtrLeakRate > 0 && !SgtrIsolated)
-            sgTarget = Math.Max(sgTarget, 60 + 130 * SgtrLeakRate);
-        SteamGenLevel += (Math.Clamp(sgTarget, 0, 100) - SteamGenLevel) * Math.Min(1, dt / 6.0);
+            SteamGenLevel = Math.Max(SteamGenLevel, 60 + 130 * SgtrLeakRate);
         SteamGenLevel = Math.Clamp(SteamGenLevel, 0, 100);
 
         // SGTR: once the affected SG goes solid (or oversteams) its safety/relief valve lifts and vents

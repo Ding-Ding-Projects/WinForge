@@ -462,7 +462,7 @@ public sealed partial class ReactorModule : Page
         AddGauge("Pressurizer level", "穩壓器水位", 0, 100, () => _sim.PressurizerLevel, () => $"{_sim.PressurizerLevel:F0}%", id: "pzrLevel");
         AddGauge("Pressurizer temp", "穩壓器溫度", 80, 700, () => _sim.PressurizerLiquidTemp * 1.8 + 32, () => $"{_sim.PressurizerLiquidTemp * 1.8 + 32:F0}°F", id: "pzrTemp");
         AddGauge("Steam pressure", "蒸汽壓力", 0, 1300, () => _sim.SteamPressure * 145.038, () => $"{_sim.SteamPressure * 145.038:F0} psia", id: "sgPress");
-        AddGauge("SG level", "蒸發器水位", 0, 100, () => _sim.SteamGenLevel, () => $"{_sim.SteamGenLevel:F0}%", id: "sgLevel");
+        AddGauge("SG level", "蒸發器水位", 0, 100, () => _sim.IndicatedSgLevel, () => $"{_sim.IndicatedSgLevel:F0}%", id: "sgLevel");
         AddGauge("Secondary radiation", "二次側輻射", 0, 300, () => _sim.SecondaryRadiation, () => $"{_sim.SecondaryRadiation:F0} µSv/h", warnFrac: 100.0 / 300.0, id: "secRad");
         AddGauge("Atmospheric release", "累計大氣排放", 0, 100, () => _sim.AtmosphericRelease * 10, () => $"{_sim.AtmosphericRelease:F2}", id: "atmRel");
         AddGauge("RCP flow", "主泵流量", 0, 100, () => _sim.CoolantFlowFraction * 100, () => $"{_sim.CoolantFlowFraction * 100:F0}%", id: "flow");
@@ -1284,8 +1284,14 @@ public sealed partial class ReactorModule : Page
 
         host.Children.Add(SectionHeader("Secondary & turbine · 二迴路與汽輪機", "二迴路與汽輪機 · Secondary & turbine"));
 
+        var fwPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        var fwAuto = MakeToggle("Feedwater AUTO · 給水自動", "給水自動 · Feedwater AUTO", v => _sim.FeedwaterAuto = v);
+        fwAuto.IsChecked = true; // three-element controller engaged by default
+        fwPanel.Children.Add(fwAuto);
+        host.Children.Add(WrapLabel("Three-element feed control · 三元給水控制", "三元給水控制 · Three-element feed control", fwPanel));
+
         host.Children.Add(LabeledSlider(
-            "Feedwater flow (%)", "給水流量（%）",
+            "Feedwater flow — manual (%)", "給水流量－手動（%）",
             0, 100, _sim.FeedwaterFlow * 100, 1,
             v => _sim.FeedwaterFlow = v / 100.0, () => _sim.FeedwaterFlow * 100, "%"));
         host.Children.Add(LabeledSlider(
