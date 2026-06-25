@@ -4,7 +4,7 @@
 
 import { setLang } from "./i18n.js";
 
-const listeners = { state: [], fuel: [], lang: [] };
+const listeners = { state: [], fuel: [], lang: [], water: [] };
 
 // Two most-recent snapshots for interpolation, plus arrival timestamps.
 let prev = null, curr = null;
@@ -15,7 +15,13 @@ export const store = {
   latest: null,           // most-recent raw snapshot
   fuel: { fresh: [], loaded: [], spent: [], canRun: false, lastResult: null },
   waste: { files: [], totalMb: 0, totalGb: 0, count: 0, driveFreeGb: -1, safetyFloorGb: 10,
+           capGb: 50, capUsedPct: 0, capReached: false, runbackZone: false,
            storageFull: false, generating: false, progressPct: 0, genTargetMb: 0, genId: "" },
+  water: { tankLevelPct: 0, tankLevelL: 0, tankCapacityL: 200000, conductivity: 0, ph: 7,
+           o2ppb: 0, silicappb: 0, chloridesppb: 0, intakePumpOn: false, intakeRate: 0.7,
+           roOn: false, degasifierOn: false, makeupValveOpen: true, roFouling: 0, resinSaturation: 0,
+           regenerating: false, intakeLpm: 0, productLpm: 0, makeupDrawLpm: 0,
+           lowTankAlarm: false, offSpecAlarm: false, inSpec: true },
 
   ingest(data) {
     if (!data || typeof data !== "object") return;
@@ -40,6 +46,9 @@ export const store = {
       }
       this.fuel.lastResult = data;
       listeners.fuel.forEach(fn => fn(data));
+    } else if (data.type === "water") {
+      this.water = Object.assign(this.water, data);
+      listeners.water.forEach(fn => fn(this.water));
     }
   },
 
@@ -97,6 +106,17 @@ if (window.chrome?.webview) {
       accumInject: false, auxFeed: false, lastTripEn: "", lastTripZh: "",
       alarms: [], rps: { trip: false, latched: false, funcs: [], perms: { p6: true, p7: false, p8: false, p9: false, p10: false } },
       fuelLoaded: false, fuelCanRun: false, fuelGateEn: "", fuelGateZh: "",
+      spentFuelFull: false, externalPowerCap: -1, operationBlocked: false,
+      makeupAvail: 1, makeupInSpec: true, makeupDemandLpm: 0, lowMakeupAlarm: false,
+      chemistryAlarm: false, radiationLevel: 0, counterfeitAlarm: false,
+    });
+    store.ingest({
+      type: "water", tankLevelPct: 70, tankLevelL: 140000, tankCapacityL: 200000,
+      conductivity: 0.08, ph: 7, o2ppb: 5, silicappb: 3, chloridesppb: 2,
+      intakePumpOn: false, intakeRate: 0.7, roOn: false, degasifierOn: false, makeupValveOpen: true,
+      roFouling: 0, resinSaturation: 0, regenerating: false,
+      intakeLpm: 0, productLpm: 0, makeupDrawLpm: 0,
+      lowTankAlarm: false, offSpecAlarm: false, inSpec: true,
     });
   }, 100);
 }

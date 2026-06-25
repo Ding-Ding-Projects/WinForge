@@ -413,6 +413,12 @@ public sealed class ReactorSimService
         ActiveScenario = ReactorScenario.Normal; _breakArea = 0; _rodsFailToInsert = false;
         AccumulatorInjecting = false; AuxFeedwaterRunning = false; _lofwTimer = 0;
         StatusEn = "Cold shutdown"; StatusZh = "冷停機";
+        // External limitation / makeup / forged-fuel state.
+        SpentFuelStorageFull = false; ExternalPowerCap = 1e9;
+        OperationBlockEn = ""; OperationBlockZh = "";
+        MakeupWaterAvailability = 1.0; MakeupWaterInSpec = true; MakeupDemandLpm = 0;
+        LowMakeupAlarm = false; ChemistryAlarm = false;
+        _forgedTransientTimer = 0; _forgedSeverity = 0; RadiationLevel = 0; CounterfeitFuelAlarm = false;
     }
 
     // ----------------------------------------------------------------- update ----
@@ -458,6 +464,10 @@ public sealed class ReactorSimService
             PrimaryPressure += (pCold - PrimaryPressure) * Math.Min(1, dt / 8.0);
             PressurizerLevel += (NominalPzrLevel - PressurizerLevel) * Math.Min(1, dt / 10.0);
             UpdateSecondary(dt);
+            // Forged-fuel cladding-breach transient + corrosion keep evolving even after the trip,
+            // and the contamination decays slowly. (SIM-only state.)
+            UpdateForgedTransient(dt);
+            if (DamageAccumulation >= MeltdownDamageThreshold && !MeltdownTriggered) TriggerMeltdown();
             UpdateNis(dt);
             UpdateAlarms();
             UpdateStatus();
@@ -490,6 +500,11 @@ public sealed class ReactorSimService
 
         // --- auto rod control ---
         if (AutoRodControl && !IsScrammed) UpdateAutoRods(dt);
+
+        // --- external limitations (waste runback, makeup water, forged-fuel transient) ---
+        UpdateMakeupWater(dt);
+        UpdateExternalLimits(dt);
+        UpdateForgedTransient(dt);
 
         // --- protection system & failure accumulation ---
         UpdateProtection(dt);
@@ -753,7 +768,9 @@ public sealed class ReactorSimService
     private void UpdateAutoRods(double dt)
     {
         // Simple proportional controller: move average rod position to hold power at setpoint.
-        double err = AutoPowerSetpoint - _power; // want power up -> withdraw rods (decrease insertion)
+        // A mandated external cap (e.g. waste runback) takes priority over the operator setpoint.
+        double effSetpoint = Math.Min(AutoPowerSetpoint, ExternalPowerCap);
+        double err = effSetpoint - _power; // want power up -> withdraw rods (decrease insertion)
         double gain = 6.0; // %/s per unit error
         double delta = -err * gain * dt; // err>0 (need more power) -> negative delta -> less insertion
         for (int i = 0; i < RodBankInsertion.Length; i++)
@@ -884,6 +901,129 @@ public sealed class ReactorSimService
     public string FuelGateNoteEn { get; private set; } = "";
     public string FuelGateNoteZh { get; private set; } = "";
 
+    // =================================================================== EXTERNAL LIMITATIONS ====
+    // Additive, input-only couplings driven from the window tick by the waste store and the water
+    // treatment plant. They never reach into the kinetics directly — they (a) gate operator inputs,
+    // (b) impose a power CAP / runback, and (c) bias the makeup-level dynamics. The held-cold-shutdown
+    // and meltdown branches of Update() remain untouched.
+
+    /// <summary>乏燃料貯存已滿 · Spent-fuel storage is FULL (waste at/over the cap). When true the plant
+    /// must run back power and — after a grace — be forced to shutdown; startup is blocked.</summary>
+    public bool SpentFuelStorageFull { get; set; }
+
+    /// <summary>外部強加的功率上限（分數，0..1.2）· An externally-mandated power cap (e.g. waste runback).
+    /// 1e9 means "no cap". The auto-rod controller and a gentle insertion bias honour it.</summary>
+    public double ExternalPowerCap { get; set; } = 1e9;
+
+    /// <summary>運轉封鎖原因（雙語）· If non-empty, startup/run is externally blocked (waste full).</summary>
+    public string OperationBlockEn { get; set; } = "";
+    public string OperationBlockZh { get; set; } = "";
+    public bool OperationBlocked => OperationBlockEn.Length > 0;
+
+    // ----- makeup water (from the Water Treatment plant) -----
+    /// <summary>可用補水（0..1，治理水箱供應充足度）· Makeup-water availability from the treated-water
+    /// tank (0 = tank empty, 1 = ample). Below ~0.15 the plant cannot maintain pzr/SG level.</summary>
+    public double MakeupWaterAvailability { get; set; } = 1.0;
+    /// <summary>補水水質達標（電導率/溶氧/氯化物在規範內）· True when makeup chemistry is in-spec.</summary>
+    public bool MakeupWaterInSpec { get; set; } = true;
+    /// <summary>補水需求（L/min，供水處理廠按功率＋洩漏估算）· Current makeup demand for the treatment plant.</summary>
+    public double MakeupDemandLpm { get; private set; }
+    public bool LowMakeupAlarm { get; private set; }
+    public bool ChemistryAlarm { get; private set; }
+
+    // ----- forged / counterfeit fuel harm (SIM ONLY) -----
+    /// <summary>偽冒燃料破損計時 · Counts down while a counterfeit-fuel cladding-breach transient is active.</summary>
+    private double _forgedTransientTimer;
+    private double _forgedSeverity;     // 0..1 how bad the forgery is
+    /// <summary>輻射／污染水平（0..1，偽冒燃料釋放裂變產物時上升）· Radiation/contamination level.</summary>
+    public double RadiationLevel { get; private set; }
+    public bool CounterfeitFuelAlarm { get; private set; }
+
+    /// <summary>強加運轉封鎖（雙語）· Externally block startup/run (waste full). Pass empty to clear.</summary>
+    public void SetOperationBlock(string en, string zh) { OperationBlockEn = en ?? ""; OperationBlockZh = zh ?? ""; }
+
+    /// <summary>
+    /// 注入偽冒／不合格燃料的破壞性暫態（僅限模擬）· Inject a damaging transient from loading
+    /// counterfeit / off-spec fuel. SIM-ONLY: this only perturbs the simulated reactor state
+    /// (fuel-temp spike, reactivity peaking, core DamageAccumulation, radiation, auto-SCRAM). It does
+    /// NOT touch any real machine state. <paramref name="severity"/> in [0,1] scales the harm.
+    /// </summary>
+    public void InjectForgedFuelHarm(double severity)
+    {
+        if (Mode == ReactorMode.Meltdown) return;
+        severity = Math.Clamp(severity, 0.05, 1.0);
+        _forgedSeverity = Math.Max(_forgedSeverity, severity);
+        _forgedTransientTimer = Math.Max(_forgedTransientTimer, 6.0 + 10.0 * severity); // seconds of transient
+        CounterfeitFuelAlarm = true;
+
+        // Immediate cladding-breach insults (all SIMULATED quantities only):
+        // local power peaking / fuel-temperature spike, contamination, and a damage seed.
+        FuelTemp += 350.0 * severity;                       // °C local fuel-temp spike
+        _power += 0.20 * severity;                          // prompt power peaking
+        DamageAccumulation += 12.0 * severity;             // core damage toward meltdown
+        RadiationLevel = Math.Clamp(RadiationLevel + 0.5 * severity, 0, 1);
+        // Mandatory protective trip on a fuel-handling fault.
+        Scram();
+    }
+
+    private void UpdateForgedTransient(double dt)
+    {
+        if (_forgedTransientTimer > 0)
+        {
+            _forgedTransientTimer -= dt;
+            // Sustained insult while the breach evolves: continued fuel heating + damage accrual.
+            FuelTemp += 60.0 * _forgedSeverity * dt;
+            DamageAccumulation += 6.0 * _forgedSeverity * dt;
+            RadiationLevel = Math.Clamp(RadiationLevel + 0.05 * _forgedSeverity * dt, 0, 1);
+            if (_forgedTransientTimer <= 0) { _forgedSeverity = 0; }
+        }
+        else
+        {
+            CounterfeitFuelAlarm = false;
+        }
+        // Radiation/contamination decays slowly once the transient is over.
+        if (_forgedTransientTimer <= 0 && RadiationLevel > 0)
+            RadiationLevel = Math.Max(0, RadiationLevel - 0.01 * dt);
+    }
+
+    private void UpdateMakeupWater(double dt)
+    {
+        // Makeup demand scales with power plus any leakage/relief/ECCS draw. Drives the WT plant sizing.
+        double leak = (ReliefValveOpen ? 0.25 : 0) + (EccsInjecting ? 0.4 : 0)
+                      + (ActiveScenario == ReactorScenario.Loca ? 0.5 : 0);
+        MakeupDemandLpm = (40.0 + 360.0 * Math.Clamp(_power, 0, 1.2) + 600.0 * leak); // L/min, toy scale
+
+        // If the treated-water tank is depleted, the plant cannot maintain inventory: pzr & SG levels
+        // sag toward a low value, raising low-level alarms and (via the RPS) eventually a trip.
+        double avail = Math.Clamp(MakeupWaterAvailability, 0, 1);
+        LowMakeupAlarm = avail < 0.15 && (_power > 0.05 || Thot > 150);
+        if (avail < 0.5 && (_power > 0.02 || Thot > 120))
+        {
+            double deficit = (0.5 - avail) / 0.5;            // 0..1 how starved we are
+            double pull = deficit * dt;                       // % per second sag, scaled
+            PressurizerLevel = Math.Max(0, PressurizerLevel - 2.5 * pull);
+            SteamGenLevel = Math.Max(0, SteamGenLevel - 2.0 * pull);
+        }
+
+        // Off-spec chemistry (high conductivity / O2 / chlorides) -> slow corrosion damage accrual.
+        ChemistryAlarm = !MakeupWaterInSpec && (_power > 0.05 || Thot > 150);
+        if (ChemistryAlarm)
+            DamageAccumulation += 0.15 * dt; // slow corrosion (well below over-temp accrual)
+    }
+
+    private void UpdateExternalLimits(double dt)
+    {
+        // Enforce a mandated power cap by gently inserting rods when above it (a controlled runback),
+        // independent of the operator's auto/manual rod selection. Honours ATWS (rods may not move).
+        if (ExternalPowerCap < 1.1 && _power > ExternalPowerCap + 0.01 && !_rodsFailToInsert)
+        {
+            double over = _power - ExternalPowerCap;
+            double bias = Math.Clamp(over, 0, 1) * 12.0 * dt; // %/s insertion proportional to overshoot
+            for (int i = 0; i < RodBankInsertion.Length; i++)
+                RodBankInsertion[i] = Math.Clamp(RodBankInsertion[i] + bias, 0, 100);
+        }
+    }
+
     /// <summary>
     /// 匯出整個反應堆狀態為 JSON · Export the full reactor state as a flat JSON snapshot for the
     /// HTML5 client (one object posted per 10 Hz tick).
@@ -989,6 +1129,19 @@ public sealed class ReactorSimService
             fuelCanRun = FuelAvailable,
             fuelGateEn = FuelGateNoteEn,
             fuelGateZh = FuelGateNoteZh,
+            // external limitations + makeup water + forged-fuel harm (sim-only)
+            spentFuelFull = SpentFuelStorageFull,
+            externalPowerCap = ExternalPowerCap > 1.5 ? -1.0 : ExternalPowerCap,
+            operationBlocked = OperationBlocked,
+            operationBlockEn = OperationBlockEn,
+            operationBlockZh = OperationBlockZh,
+            makeupAvail = MakeupWaterAvailability,
+            makeupInSpec = MakeupWaterInSpec,
+            makeupDemandLpm = MakeupDemandLpm,
+            lowMakeupAlarm = LowMakeupAlarm,
+            chemistryAlarm = ChemistryAlarm,
+            radiationLevel = RadiationLevel,
+            counterfeitAlarm = CounterfeitFuelAlarm,
         };
         return System.Text.Json.JsonSerializer.Serialize(dto);
     }
@@ -1010,6 +1163,15 @@ public sealed class ReactorSimService
         {
             FuelGateNoteEn = "No fuel loaded — load a valid assembly before startup.";
             FuelGateNoteZh = "未裝燃料 — 啟動前請先裝入有效燃料組件。";
+            return;
+        }
+
+        // Waste-full operation block: cannot take the core critical / start up when there is nowhere
+        // left to put spent fuel. Operator must dispose waste below the cap first.
+        if (OperationBlocked && (wantsWithdraw || wantsRun))
+        {
+            FuelGateNoteEn = OperationBlockEn;
+            FuelGateNoteZh = OperationBlockZh;
             return;
         }
 

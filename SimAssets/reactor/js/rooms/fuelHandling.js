@@ -60,7 +60,15 @@ export function FuelHandling(ctx) {
   const wBanner = el("div", "fuel-banner run", "");
   const wStats = el("div", "muted", "");
   const wProg = el("div", "fuel-result", ""); wProg.style.display = "none";
+  // cap usage line + full warning
+  const wCap = el("div", "muted", "");
   const wActs = el("div", "row");
+  // TOTAL WASTE STORAGE CAP (primary limit, default 50 GB, custom-configurable)
+  const capBox = el("input"); capBox.type = "number"; capBox.value = 50; capBox.min = 1; capBox.style.width = "70px";
+  const capBtn = button(t("setCap"), "ghost", () => {
+    const gb = parseFloat(capBox.value) || 50;
+    send.fuel("setCap", { mass: gb }); // mass field carries GB
+  });
   const floorBox = el("input"); floorBox.type = "number"; floorBox.value = 10; floorBox.min = 0; floorBox.style.width = "70px";
   const floorBtn = button(t("setFloor"), "ghost", () => {
     const gb = parseFloat(floorBox.value) || 10;
@@ -70,10 +78,12 @@ export function FuelHandling(ctx) {
     if (confirm(t("confirmDisposeAll"))) send.fuel("dispose"); // no path = dispose all
   });
   wActs.appendChild(disposeAllBtn);
+  wActs.appendChild(capBox); wActs.appendChild(el("span", "muted", "GB")); wActs.appendChild(capBtn);
   wActs.appendChild(floorBox); wActs.appendChild(el("span", "muted", "GB")); wActs.appendChild(floorBtn);
   const wList = el("div", "fuel-list");
   wastePanel.appendChild(wExplain);
   wastePanel.appendChild(wBanner);
+  wastePanel.appendChild(wCap);
   wastePanel.appendChild(wStats);
   wastePanel.appendChild(wProg);
   wastePanel.appendChild(wActs);
@@ -133,9 +143,21 @@ export function FuelHandling(ctx) {
   function renderWaste(w) {
     w = w || ctx.store.waste;
     wExplain.textContent = t("wasteExplain");
-    wBanner.className = "fuel-banner " + (w.storageFull ? "norun" : "run");
-    wBanner.textContent = w.storageFull ? t("wasteFull")
-      : `${t("wasteTotal")}: ${(w.totalGb || 0).toFixed(2)} GB (${w.count || 0} ${t("wasteCount")})`;
+    // banner reflects the PRIMARY limit (the cap) first, then runback, then normal.
+    if (w.capReached) {
+      wBanner.className = "fuel-banner norun"; wBanner.textContent = t("capFull");
+    } else if (w.runbackZone) {
+      wBanner.className = "fuel-banner norun"; wBanner.textContent = t("capRunback");
+    } else if (w.storageFull) {
+      wBanner.className = "fuel-banner norun"; wBanner.textContent = t("wasteFull");
+    } else {
+      wBanner.className = "fuel-banner run";
+      wBanner.textContent = `${t("wasteTotal")}: ${(w.totalGb || 0).toFixed(2)} GB (${w.count || 0} ${t("wasteCount")})`;
+    }
+    // cap usage line
+    wCap.textContent =
+      `${t("wasteCap")}: ${(w.totalGb || 0).toFixed(2)} / ${(w.capGb || 50)} GB · ` +
+      `${t("wasteCapUsed")}: ${(w.capUsedPct || 0).toFixed(1)}%`;
     const free = (w.driveFreeGb >= 0) ? `${w.driveFreeGb} GB` : "?";
     wStats.textContent =
       `${t("wasteCount")}: ${w.count || 0} · ${t("wasteTotal")}: ${(w.totalMb || 0).toFixed(0)} MB · ` +
@@ -181,6 +203,7 @@ export function FuelHandling(ctx) {
     fabBtn.textContent = t("fabricate"); discBtn.textContent = t("discharge");
     explain.textContent = t("fuelExplain");
     disposeAllBtn.textContent = t("disposeAll"); floorBtn.textContent = t("setFloor");
+    capBtn.textContent = t("setCap");
     if (wastePanel._title) wastePanel._title.textContent = t("roomWaste");
     render(ctx.store.fuel);
     renderWaste();

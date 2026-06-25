@@ -25,9 +25,13 @@ public sealed record ValidationResult(bool Valid, string Reason, string ReasonEn
 /// <summary>
 /// 入料結果 · Result of a "send-in" / load operation. Reports whether the fuel file was consumed
 /// (deleted from disk), so the UI can confirm the physical consumption of the assembly.
+///
+/// When a FORGED / tampered / counterfeit / off-spec assembly is loaded (the unsafe "send in" path),
+/// it is consumed (deleted) and <see cref="HarmSeverity"/> &gt; 0 reports HOW BAD the forgery is so
+/// the caller can inject a proportional SIMULATED reactor transient. <see cref="Harmful"/> is the gate.
 /// </summary>
 public sealed record LoadResult(bool Loaded, bool FileDeleted, string Id,
-    string ReasonEn, string ReasonZh);
+    string ReasonEn, string ReasonZh, bool Harmful = false, double HarmSeverity = 0.0, string HarmKind = "");
 
 /// <summary>
 /// 燃料工廠服務 · The cryptographic, ULTRA-REALISTIC FUEL FACTORY.
@@ -348,6 +352,64 @@ public sealed class FuelFactoryService
                 deleted
                     ? $"組件 {p.assemblyId} 已消耗入堆芯 — 新燃料檔案已從磁碟刪除。"
                     : $"組件 {p.assemblyId} 已裝入堆芯。");
+        }
+    }
+
+    /// <summary>
+    /// 入料（不安全路徑）· UNSAFE "send in" / load. Authentic in-spec fuel loads normally (consumed,
+    /// file deleted) exactly as <see cref="LoadIntoCore"/>. But a FORGED / tampered / counterfeit /
+    /// off-spec / spent assembly is ALSO consumed (file deleted) and reported back as HARMFUL with a
+    /// severity so the caller injects a proportional SIMULATED reactor transient (cladding breach).
+    ///
+    /// Severity scale (0..1): off-spec enrichment &lt; spent/depleted &lt; tampered signature &lt;
+    /// fully forged/unreadable &lt; grossly off-spec enrichment (the worst — wrong fuel in the core).
+    /// </summary>
+    public LoadResult LoadIntoCoreUnsafe(string path)
+    {
+        lock (_lock)
+        {
+            var v = Validate(path);
+            if (v.Valid)
+                return LoadIntoCore(path); // authentic, in-spec — normal consume-on-load
+
+            // Read the payload (may be null for a truly unreadable/forged file) to grade severity.
+            var f = ReadFile(path);
+            var (severity, kind) = GradeForgery(v.Reason, f?.payload);
+            string id = f?.payload?.assemblyId ?? Path.GetFileNameWithoutExtension(path);
+
+            // CONSUME the bad assembly: it has been sent into the core and breached. Delete the file
+            // (with the same managed-dir safety as the normal path — only deletes inside the fuel dirs).
+            bool deleted = TryDelete(path);
+            // Ledger the id so the same counterfeit can't be replayed.
+            if (!string.IsNullOrEmpty(id)) AppendLedger(id);
+
+            return new LoadResult(
+                Loaded: false, FileDeleted: deleted, Id: id,
+                ReasonEn: $"COUNTERFEIT / OFF-SPEC FUEL loaded ({v.ReasonEn}) — cladding breach, reactor harmed. File consumed.",
+                ReasonZh: $"已裝入偽冒／不合格燃料（{v.ReasonZh}）— 包殼破損，反應堆受損。檔案已消耗。",
+                Harmful: true, HarmSeverity: severity, HarmKind: kind);
+        }
+    }
+
+    /// <summary>把驗證失敗原因映射成傷害嚴重度（0..1）· Map a validation failure to a harm severity.</summary>
+    private static (double severity, string kind) GradeForgery(string reason, object? payloadObj)
+    {
+        switch (reason)
+        {
+            case "enrichment":
+                // Grossly wrong enrichment is the most dangerous (wrong reactivity in the core).
+                return (1.0, "enrichment");
+            case "forged":
+                return (0.85, "forged");      // unreadable / malformed
+            case "tampered":
+                return (0.7, "tampered");     // signature invalid
+            case "already-consumed":
+                return (0.45, "replay");      // replayed assembly
+            case "spent":
+            case "depleted":
+                return (0.35, "spent");       // depleted/spent reload — low reactivity, fission-product laden
+            default:
+                return (0.5, "offspec");
         }
     }
 

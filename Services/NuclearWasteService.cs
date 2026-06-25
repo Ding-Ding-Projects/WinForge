@@ -15,7 +15,8 @@ public sealed record WasteFile(string Id, string Path, long Bytes, DateTime Crea
 public sealed record WasteStatus(
     IReadOnlyList<WasteFile> Files, long TotalBytes, int Count,
     long DriveFreeBytes, long SafetyFloorBytes, bool StorageFull,
-    bool Generating, double GenProgressPct, long GenTargetBytes, string GenId);
+    bool Generating, double GenProgressPct, long GenTargetBytes, string GenId,
+    long CapBytes, double CapUsedPct, bool CapReached, bool RunbackZone);
 
 /// <summary>
 /// 核廢料服務 · NUCLEAR WASTE service. Burning fuel MANDATORILY produces real, incompressible junk
@@ -35,6 +36,14 @@ public sealed class NuclearWasteService
     public const long MaxWasteBytes = 2000L * 1024 * 1024;  // 2000 MB
     public const long DefaultSafetyFloorBytes = 10L * 1024 * 1024 * 1024; // 10 GB
     private const string SafetyFloorKey = "reactor.waste.safetyFloorBytes";
+
+    // TOTAL WASTE STORAGE CAP — the PRIMARY limit (spent-fuel pool/dry-cask capacity). Custom-
+    // configurable. Default 50 GB. The disk free-space floor above still applies independently.
+    public const long DefaultCapBytes = 50L * 1024 * 1024 * 1024; // 50 GB
+    public const long MinCapBytes = 1L * 1024 * 1024 * 1024;      // 1 GB sane minimum
+    private const string CapKey = "reactor.waste.capBytes";
+    // Begin controlled runback once used >= this fraction of the cap; mandate shutdown at the cap.
+    public const double RunbackFraction = 0.90;
 
     private readonly string _wasteDir;
     private readonly object _lock = new();
@@ -70,6 +79,21 @@ public sealed class NuclearWasteService
         }
         set => SettingsStore.Set(SafetyFloorKey, Math.Max(0, value).ToString());
     }
+
+    public long CapBytes
+    {
+        get
+        {
+            var s = SettingsStore.Get(CapKey, DefaultCapBytes.ToString());
+            return long.TryParse(s, out var v) && v >= MinCapBytes ? v : DefaultCapBytes;
+        }
+        set => SettingsStore.Set(CapKey, Math.Max(MinCapBytes, value).ToString());
+    }
+
+    /// <summary>已達上限 · True when total on-disk waste has reached the configured cap.</summary>
+    public bool CapReached => TotalBytes() >= CapBytes;
+    /// <summary>進入功率回降區（≥90% 上限）· True in the runback zone (≥ RunbackFraction of the cap).</summary>
+    public bool RunbackZone => TotalBytes() >= (long)(CapBytes * RunbackFraction);
 
     public bool IsGenerating => _generating;
 
@@ -117,11 +141,17 @@ public sealed class NuclearWasteService
         long total = files.Sum(f => f.Bytes);
         long free = DriveFreeBytes();
         long floor = SafetyFloorBytes;
-        bool full = free - MinWasteBytes < floor; // can't even fit the smallest waste file
+        long cap = CapBytes;
+        bool diskFull = free - MinWasteBytes < floor; // can't even fit the smallest waste file (disk floor)
+        bool capReached = total >= cap;
+        bool full = diskFull || capReached; // EITHER the cap OR the disk floor counts as "full"
+        double capPct = cap > 0 ? Math.Clamp(100.0 * total / cap, 0, 999) : 0;
+        bool runback = total >= (long)(cap * RunbackFraction);
         double pct = _generating && _genTarget > 0
             ? Math.Clamp(100.0 * _genWritten / _genTarget, 0, 100) : 0;
         return new WasteStatus(files, total, files.Count, free, floor, full,
-            _generating, pct, _genTarget, _genId);
+            _generating, pct, _genTarget, _genId,
+            cap, capPct, capReached, runback);
     }
 
     // ------------------------------------------------------------------ generate ----
@@ -139,6 +169,17 @@ public sealed class NuclearWasteService
 
             long size = targetBytes ?? RandomNumberGenerator.GetInt32(0, 1901) * (1024L * 1024) + MinWasteBytes;
             size = Math.Clamp(size, MinWasteBytes, MaxWasteBytes);
+
+            // CAP: never write past the configured total-waste cap (spent-fuel storage capacity).
+            long cap = CapBytes;
+            long totalNow = TotalBytes();
+            if (totalNow + size > cap)
+            {
+                StorageWarning?.Invoke(
+                    $"Spent fuel storage FULL — waste {totalNow / (1024 * 1024 * 1024)} GB at/over cap {cap / (1024 * 1024 * 1024)} GB. Dispose waste before operating.",
+                    $"乏燃料貯存已滿 — 廢料 {totalNow / (1024 * 1024 * 1024)} GB 已達／超過上限 {cap / (1024 * 1024 * 1024)} GB。運轉前請先處置廢料。");
+                return false;
+            }
 
             long free = DriveFreeBytes();
             long floor = SafetyFloorBytes;

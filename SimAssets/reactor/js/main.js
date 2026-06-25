@@ -11,6 +11,7 @@ import { CvcsAux } from "./rooms/cvcsAux.js";
 import { Electrical } from "./rooms/electrical.js";
 import { Cooling } from "./rooms/cooling.js";
 import { RadMonitoring } from "./rooms/radMonitoring.js";
+import { WaterTreatment } from "./rooms/waterTreatment.js";
 
 const MODE_NAMES = [
   ["SHUTDOWN", "停機"], ["STARTUP", "啟動"], ["RUN", "運轉"],
@@ -25,6 +26,7 @@ const ROOMS = [
   { id: "cvcs",     key: "roomCvcs",    make: CvcsAux },
   { id: "elec",     key: "roomElec",    make: Electrical },
   { id: "cooling",  key: "roomCooling", make: Cooling },
+  { id: "water",    key: "roomWater",   make: WaterTreatment },
   { id: "rad",      key: "roomRad",     make: RadMonitoring },
 ];
 
