@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -27,10 +29,19 @@ public sealed partial class HomeAssistantModule : Page
     private readonly ObservableCollection<HaCalendarEvent> _calEvents = new();
     private byte[]? _lastSnap;
 
+    // Native toggle list state (lights + plugs/switches + input_boolean).
+    private readonly ObservableCollection<HaToggleRow> _lights = new();
+    private readonly ObservableCollection<HaToggleRow> _plugs = new();
+    private List<HaToggleRow> _allToggles = new();
+    private bool _togglesLoaded;
+    private DispatcherTimer? _autoTimer;
+
     public HomeAssistantModule()
     {
         InitializeComponent();
         CalList.ItemsSource = _calEvents;
+        LightsList.ItemsSource = _lights;
+        PlugsList.ItemsSource = _plugs;
         Loc.I.LanguageChanged += (_, _) => Render();
         Loaded += (_, _) =>
         {
@@ -39,6 +50,7 @@ public sealed partial class HomeAssistantModule : Page
             if (string.IsNullOrEmpty(TplBox.Text)) TplBox.Text = "{{ states('sun.sun') }}";
             Render();
         };
+        Unloaded += (_, _) => _autoTimer?.Stop();
     }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
@@ -97,8 +109,21 @@ public sealed partial class HomeAssistantModule : Page
         IntentLbl.Text = P("Trigger an intent · 觸發意圖", "觸發意圖");
         IntentBtn.Content = P("Handle · 觸發", "觸發");
 
-        // Devices
-        LightLbl.Text = P("Light · 燈", "燈");
+        // Devices — native toggle list
+        TogglesLbl.Text = P("Lights & plugs — toggle directly · 燈同插座 — 直接切換", "燈同插座 — 直接切換");
+        ToggleSearch.PlaceholderText = P("Search by name or entity id · 用名或 entity id 搜尋", "用名或 entity id 搜尋");
+        RefreshTogglesBtn.Content = P("Refresh · 重整", "重整");
+        AutoRefreshToggle.OnContent = P("Auto · 自動", "自動");
+        AutoRefreshToggle.OffContent = P("Auto · 自動", "自動");
+        AutoRefreshToggle.Header = P("Auto-refresh (10s) · 自動更新（10秒）", "自動更新（10秒）");
+        AllLightsOnBtn.Content = P("All lights on · 開晒燈", "開晒燈");
+        AllLightsOffBtn.Content = P("All lights off · 熄晒燈", "熄晒燈");
+        GroupLightsLbl.Text = P("Lights · 燈", "燈");
+        GroupPlugsLbl.Text = P("Plugs & switches · 插座與開關", "插座與開關");
+        foreach (var r in _allToggles) r.RefreshLabels();
+
+        // Devices — advanced single-light control
+        LightLbl.Text = P("Advanced light (colour temp / RGB) · 進階燈光（色溫／RGB）", "進階燈光（色溫／RGB）");
         BrightLbl.Text = P("Brightness % · 光暗 %", "光暗 %");
         TempLbl.Text = P("Colour temp (K) · 色溫 (K)", "色溫 (K)");
         LightOnBtn.Content = P("Apply · 套用", "套用");
@@ -346,6 +371,162 @@ public sealed partial class HomeAssistantModule : Page
         Show(AutoResult, await _ha.HandleIntent(name, data.Length > 0 ? data : null), P("Intent handled", "已處理意圖"));
     }
 
+    // ── Native toggle list (lights + plugs/switches) ─────────────────────────
+
+    private async Task LoadToggles()
+    {
+        if (!_ha.IsConfigured) return;
+        TogglesBusy.IsActive = true;
+        try
+        {
+            var entities = await _ha.Controllables();
+            // Build/refresh row VMs, preserving existing instances so bindings stay live.
+            var byId = _allToggles.ToDictionary(r => r.EntityId, StringComparer.Ordinal);
+            var rebuilt = new List<HaToggleRow>(entities.Count);
+            foreach (var ent in entities)
+            {
+                if (byId.TryGetValue(ent.EntityId, out var existing))
+                {
+                    existing.Apply(ent);
+                    rebuilt.Add(existing);
+                }
+                else
+                {
+                    rebuilt.Add(new HaToggleRow(ent, OnRowToggleRequested));
+                }
+            }
+            _allToggles = rebuilt;
+            foreach (var r in _allToggles) r.RefreshLabels();
+            _togglesLoaded = true;
+            ApplyToggleFilter();
+            if (entities.Count == 0)
+                Warn(ToggleResult, P("No lights, plugs or switches found", "搵唔到燈、插座或開關"),
+                    P("Make sure these are exposed in Home Assistant.", "確保呢啲已喺 Home Assistant 暴露。"));
+            else
+                ToggleResult.IsOpen = false;
+        }
+        catch (Exception ex)
+        {
+            Warn(ToggleResult, P("Could not load entities", "載入唔到實體"), ex.Message);
+        }
+        finally { TogglesBusy.IsActive = false; }
+    }
+
+    private void ApplyToggleFilter()
+    {
+        var q = (ToggleSearch.Text ?? "").Trim();
+        bool Match(HaToggleRow r) => q.Length == 0
+            || r.Name.Contains(q, StringComparison.OrdinalIgnoreCase)
+            || r.EntityId.Contains(q, StringComparison.OrdinalIgnoreCase);
+
+        _lights.Clear();
+        _plugs.Clear();
+        foreach (var r in _allToggles.Where(Match))
+        {
+            if (r.IsLight) _lights.Add(r);
+            else _plugs.Add(r);
+        }
+    }
+
+    /// <summary>Called by a row when its ToggleSwitch / On / Off / brightness control fires.</summary>
+    private async Task OnRowToggleRequested(HaToggleRow row, HaRowAction action)
+    {
+        if (!_ha.IsConfigured) { Warn(ToggleResult, P("Set the base URL and token first.", "請先填 base URL 同權杖。"), ""); return; }
+        HaResult r;
+        switch (action)
+        {
+            case HaRowAction.On: r = await _ha.TurnOn(row.EntityId); break;
+            case HaRowAction.Off: r = await _ha.TurnOff(row.EntityId); break;
+            case HaRowAction.Brightness: r = await _ha.SetLightBrightnessPct(row.EntityId, row.BrightnessPctValueInt); break;
+            default: r = await _ha.Toggle(row.EntityId); break;
+        }
+        if (!r.Ok)
+            Warn(ToggleResult, P($"Action failed (HTTP {r.Status})", $"操作失敗（HTTP {r.Status}）"), Trim(r.Body));
+        else
+            ToggleResult.IsOpen = false;
+        await RefreshRowState(row);
+    }
+
+    private async Task RefreshRowState(HaToggleRow row)
+    {
+        // Re-read just this entity's state so the switch/slider reflect HA's truth.
+        var all = await _ha.Controllables();
+        var match = all.FirstOrDefault(e => e.EntityId == row.EntityId);
+        if (match is not null) row.Apply(match);
+    }
+
+    private async void RefreshToggles_Click(object sender, RoutedEventArgs e)
+    {
+        if (!Guard(ToggleResult)) return;
+        await LoadToggles();
+    }
+
+    private void ToggleSearch_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
+        => ApplyToggleFilter();
+
+    private void AutoRefresh_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (AutoRefreshToggle.IsOn)
+        {
+            _autoTimer ??= new DispatcherTimer { Interval = TimeSpan.FromSeconds(10) };
+            _autoTimer.Tick -= AutoTimer_Tick;
+            _autoTimer.Tick += AutoTimer_Tick;
+            _autoTimer.Start();
+        }
+        else
+        {
+            _autoTimer?.Stop();
+        }
+    }
+
+    private async void AutoTimer_Tick(object? sender, object e)
+    {
+        if (!_ha.IsConfigured || !ReferenceEquals(Tabs.SelectedItem, TabDevices)) return;
+        await LoadToggles();
+    }
+
+    private async void AllLightsOn_Click(object sender, RoutedEventArgs e)
+    {
+        if (!Guard(ToggleResult)) return;
+        var r = await _ha.AllLightsOn();
+        if (!r.Ok) Warn(ToggleResult, P($"Failed (HTTP {r.Status})", $"失敗（HTTP {r.Status}）"), Trim(r.Body));
+        else Ok(ToggleResult, P("All lights on", "已開晒燈"), "");
+        await LoadToggles();
+    }
+
+    private async void AllLightsOff_Click(object sender, RoutedEventArgs e)
+    {
+        if (!Guard(ToggleResult)) return;
+        var r = await _ha.AllLightsOff();
+        if (!r.Ok) Warn(ToggleResult, P($"Failed (HTTP {r.Status})", $"失敗（HTTP {r.Status}）"), Trim(r.Body));
+        else Ok(ToggleResult, P("All lights off", "已熄晒燈"), "");
+        await LoadToggles();
+    }
+
+    private async void RowToggle_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (sender is ToggleSwitch ts && ts.Tag is HaToggleRow row && !row.Suppress)
+            await OnRowToggleRequested(row, row.IsOn ? HaRowAction.On : HaRowAction.Off);
+    }
+
+    private async void RowOn_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement fe && fe.Tag is HaToggleRow row)
+            await OnRowToggleRequested(row, HaRowAction.On);
+    }
+
+    private async void RowOff_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement fe && fe.Tag is HaToggleRow row)
+            await OnRowToggleRequested(row, HaRowAction.Off);
+    }
+
+    private async void RowApplyBrightness_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement fe && fe.Tag is HaToggleRow row)
+            await OnRowToggleRequested(row, HaRowAction.Brightness);
+    }
+
     // ── Lights / climate ─────────────────────────────────────────────────────
 
     private async void LightOn_Click(object sender, RoutedEventArgs e)
@@ -382,7 +563,9 @@ public sealed partial class HomeAssistantModule : Page
     private bool _devicesLoaded;
     private async Task EnsureDevices()
     {
-        if (_devicesLoaded || !_ha.IsConfigured) return;
+        if (!_ha.IsConfigured) return;
+        if (!_togglesLoaded) await LoadToggles();
+        if (_devicesLoaded) return;
         await FillDomainCombo(LightBox, "light");
         await FillDomainCombo(ClimateBox, "climate");
         _devicesLoaded = true;
@@ -497,4 +680,103 @@ public sealed partial class HomeAssistantModule : Page
         dp.SetText(LogOut.Text ?? "");
         Clipboard.SetContent(dp);
     }
+}
+
+/// <summary>切換清單一行嘅動作 · What a toggle-list row asked the page to do.</summary>
+public enum HaRowAction { Toggle, On, Off, Brightness }
+
+/// <summary>
+/// 切換清單一行嘅 view-model · One row in the native toggle list (light / plug / switch / input_boolean).
+/// 雙向綁定 ToggleSwitch、燈光度滑桿；programmatic 更新時用 <see cref="Suppress"/> 避免回呼。
+/// Two-way binds a ToggleSwitch (and, for lights, a brightness slider). When state is refreshed
+/// from HA we set <see cref="Suppress"/> so the Toggled handler does not fire a redundant call.
+/// </summary>
+public sealed class HaToggleRow : INotifyPropertyChanged
+{
+    private readonly Func<HaToggleRow, HaRowAction, Task> _onAction;
+    private bool _isOn;
+    private int _brightnessPctValue;
+    private string _applyBrightnessLabel = "Apply brightness · 套用光度";
+    private string _brightnessLabel = "";
+
+    public HaToggleRow(HaEntity ent, Func<HaToggleRow, HaRowAction, Task> onAction)
+    {
+        _onAction = onAction;
+        EntityId = ent.EntityId;
+        IsLight = ent.IsLight;
+        Apply(ent);
+    }
+
+    public string EntityId { get; }
+    public bool IsLight { get; }
+    public string Name { get; private set; } = "";
+
+    /// <summary>True while a programmatic update is in flight, so RowToggle_Toggled skips its callback.</summary>
+    public bool Suppress { get; private set; }
+
+    public Microsoft.UI.Xaml.Visibility IsLightVisibility =>
+        IsLight ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
+
+    public bool IsOn
+    {
+        get => _isOn;
+        set { if (_isOn != value) { _isOn = value; OnPropertyChanged(); } }
+    }
+
+    /// <summary>Brightness 0–100 bound to the slider (double-friendly for the Slider).</summary>
+    public double BrightnessPctValue
+    {
+        get => _brightnessPctValue;
+        set
+        {
+            int v = (int)Math.Round(value);
+            if (_brightnessPctValue != v)
+            {
+                _brightnessPctValue = v;
+                OnPropertyChanged();
+                BrightnessLabel = $"{v}%";
+            }
+        }
+    }
+
+    public int BrightnessPctValueInt => _brightnessPctValue;
+
+    public string BrightnessLabel
+    {
+        get => _brightnessLabel;
+        private set { if (_brightnessLabel != value) { _brightnessLabel = value; OnPropertyChanged(); } }
+    }
+
+    public string ApplyBrightnessLabel
+    {
+        get => _applyBrightnessLabel;
+        private set { if (_applyBrightnessLabel != value) { _applyBrightnessLabel = value; OnPropertyChanged(); } }
+    }
+
+    /// <summary>由 HA 嘅最新 state 更新呢行（唔會觸發服務呼叫）· Apply fresh HA state without firing a call.</summary>
+    public void Apply(HaEntity ent)
+    {
+        Suppress = true;
+        try
+        {
+            Name = ent.Name;
+            OnPropertyChanged(nameof(Name));
+            IsOn = ent.IsOn;
+            if (IsLight)
+            {
+                int pct = ent.BrightnessPct ?? (ent.IsOn ? 100 : 0);
+                _brightnessPctValue = pct;
+                OnPropertyChanged(nameof(BrightnessPctValue));
+                BrightnessLabel = $"{pct}%";
+            }
+        }
+        finally { Suppress = false; }
+    }
+
+    public void RefreshLabels() =>
+        ApplyBrightnessLabel = Loc.I.Pick("Apply brightness · 套用光度", "套用光度");
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+    private void OnPropertyChanged([CallerMemberName] string? name = null)
+        => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }

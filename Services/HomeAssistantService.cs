@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -25,8 +26,24 @@ public sealed class HaEntity
     public string EntityId { get; init; } = "";
     public string State { get; init; } = "";
     public string FriendlyName { get; init; } = "";
+
+    /// <summary>燈光光度 0–255（HA attributes.brightness）· Raw light brightness 0–255, or null.</summary>
+    public int? Brightness { get; init; }
+
     public string Domain => EntityId.Contains('.') ? EntityId[..EntityId.IndexOf('.')] : "";
     public string Display => string.IsNullOrWhiteSpace(FriendlyName) ? EntityId : $"{FriendlyName} ({EntityId})";
+
+    /// <summary>友善名（冇就用 entity_id）· Friendly name, falling back to entity_id.</summary>
+    public string Name => string.IsNullOrWhiteSpace(FriendlyName) ? EntityId : FriendlyName;
+
+    /// <summary>係咪開咗 · True when state == "on".</summary>
+    public bool IsOn => string.Equals(State, "on", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>係咪燈 · True for the light domain.</summary>
+    public bool IsLight => Domain == "light";
+
+    /// <summary>光度百分比 0–100（四捨五入）· Brightness as a 0–100 percentage, or null.</summary>
+    public int? BrightnessPct => Brightness is int b ? (int)Math.Round(b / 255.0 * 100.0) : null;
 }
 
 /// <summary>歷史走勢嘅一個取樣點 · One numeric sample from /api/history/period.</summary>
@@ -50,7 +67,13 @@ public sealed class HaCalendarEvent
 public sealed class HomeAssistantService
 {
     public const string KeyBaseUrl = "ha.baseUrl";
-    public const string KeyToken = "ha.token";
+    /// <summary>新格式：DPAPI 加密嘅權杖 · DPAPI-encrypted token (base64).</summary>
+    public const string KeyTokenEnc = "ha.token.enc";
+    /// <summary>舊格式：明文權杖（會自動遷移加密）· Legacy plaintext token, migrated on load.</summary>
+    public const string KeyTokenLegacy = "ha.token";
+
+    // 綁定呢個 app + 機 + 使用者嘅額外熵 · Extra DPAPI entropy tying blobs to this app/machine/user.
+    private static readonly byte[] Entropy = Encoding.UTF8.GetBytes("WinForge.HomeAssistant.v1");
 
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(30) };
 
@@ -60,18 +83,61 @@ public sealed class HomeAssistantService
     public HomeAssistantService()
     {
         BaseUrl = SettingsStore.Get(KeyBaseUrl, "");
-        Token = SettingsStore.Get(KeyToken, "");
+
+        // Prefer the DPAPI-encrypted token; fall back to (and migrate) any legacy plaintext token.
+        var enc = SettingsStore.Get(KeyTokenEnc, "");
+        if (!string.IsNullOrEmpty(enc))
+        {
+            Token = Unprotect(enc);
+        }
+        else
+        {
+            var legacy = SettingsStore.Get(KeyTokenLegacy, "");
+            if (!string.IsNullOrEmpty(legacy))
+            {
+                Token = legacy;
+                // Re-persist encrypted and scrub the plaintext copy.
+                SettingsStore.Set(KeyTokenEnc, Protect(legacy));
+                SettingsStore.Set(KeyTokenLegacy, "");
+            }
+        }
     }
 
     public bool IsConfigured => !string.IsNullOrWhiteSpace(BaseUrl) && !string.IsNullOrWhiteSpace(Token);
 
-    /// <summary>持久化 base URL + token · Persist config (URL is normalised, trailing slash trimmed).</summary>
+    /// <summary>
+    /// 持久化 base URL + token · Persist config. URL is normalised (trailing slash trimmed);
+    /// the token is stored DPAPI-encrypted (CurrentUser) — the plaintext is never written to disk.
+    /// </summary>
     public void SaveConfig(string baseUrl, string token)
     {
         BaseUrl = (baseUrl ?? "").Trim().TrimEnd('/');
         Token = (token ?? "").Trim();
         SettingsStore.Set(KeyBaseUrl, BaseUrl);
-        SettingsStore.Set(KeyToken, Token);
+        SettingsStore.Set(KeyTokenEnc, string.IsNullOrEmpty(Token) ? "" : Protect(Token));
+        SettingsStore.Set(KeyTokenLegacy, ""); // never leave a plaintext copy behind
+    }
+
+    /// <summary>DPAPI（CurrentUser）加密做 base64 · DPAPI-encrypt to base64.</summary>
+    private static string Protect(string plain)
+    {
+        try
+        {
+            var enc = ProtectedData.Protect(Encoding.UTF8.GetBytes(plain), Entropy, DataProtectionScope.CurrentUser);
+            return Convert.ToBase64String(enc);
+        }
+        catch { return ""; }
+    }
+
+    /// <summary>DPAPI 解密 base64 · DPAPI-decrypt a base64 blob back to plaintext.</summary>
+    private static string Unprotect(string blob)
+    {
+        try
+        {
+            var dec = ProtectedData.Unprotect(Convert.FromBase64String(blob), Entropy, DataProtectionScope.CurrentUser);
+            return Encoding.UTF8.GetString(dec);
+        }
+        catch { return ""; }
     }
 
     private HttpRequestMessage Build(HttpMethod method, string path, string? jsonBody = null)
@@ -118,14 +184,21 @@ public sealed class HomeAssistantService
                 if (id.Length == 0) continue;
                 if (domains is { Length: > 0 } && !domains.Any(d => id.StartsWith(d + ".", StringComparison.Ordinal))) continue;
                 string fn = "";
-                if (el.TryGetProperty("attributes", out var attrs) && attrs.ValueKind == JsonValueKind.Object
-                    && attrs.TryGetProperty("friendly_name", out var f))
-                    fn = f.GetString() ?? "";
+                int? brightness = null;
+                if (el.TryGetProperty("attributes", out var attrs) && attrs.ValueKind == JsonValueKind.Object)
+                {
+                    if (attrs.TryGetProperty("friendly_name", out var f))
+                        fn = f.GetString() ?? "";
+                    if (attrs.TryGetProperty("brightness", out var b) && b.ValueKind == JsonValueKind.Number
+                        && b.TryGetInt32(out var bi))
+                        brightness = bi;
+                }
                 list.Add(new HaEntity
                 {
                     EntityId = id,
                     State = el.TryGetProperty("state", out var s) ? s.GetString() ?? "" : "",
                     FriendlyName = fn,
+                    Brightness = brightness,
                 });
             }
         }
@@ -143,6 +216,54 @@ public sealed class HomeAssistantService
             body = $"{{\"state\":{JsonString(state)}}}";
         return SendText(HttpMethod.Post, $"/api/states/{entityId}", body, ct);
     }
+
+    // ── Toggle / switches / plugs ────────────────────────────────────────────
+
+    /// <summary>可開關嘅域 · Domains we surface as native toggles (lights, switches/plugs, helper booleans).</summary>
+    public static readonly string[] ControllableDomains = { "light", "switch", "input_boolean" };
+
+    /// <summary>
+    /// GET /api/states → 只係燈、開關/插座、input_boolean，用嚟砌切換清單。
+    /// Lights + switches/plugs + input_boolean, ready for the native toggle list.
+    /// </summary>
+    public Task<List<HaEntity>> Controllables(CancellationToken ct = default) => States(ControllableDomains, ct);
+
+    /// <summary>
+    /// POST /api/services/&lt;domain&gt;/toggle {"entity_id":..} — 翻轉開/熄。
+    /// Domain is inferred from the entity_id (light./switch./input_boolean.).
+    /// </summary>
+    public Task<HaResult> Toggle(string entityId, CancellationToken ct = default)
+        => SendText(HttpMethod.Post, $"/api/services/{DomainOf(entityId)}/toggle",
+            $"{{\"entity_id\":{JsonString(entityId)}}}", ct);
+
+    /// <summary>POST /api/services/&lt;domain&gt;/turn_on {"entity_id":..}.</summary>
+    public Task<HaResult> TurnOn(string entityId, CancellationToken ct = default)
+        => SendText(HttpMethod.Post, $"/api/services/{DomainOf(entityId)}/turn_on",
+            $"{{\"entity_id\":{JsonString(entityId)}}}", ct);
+
+    /// <summary>POST /api/services/&lt;domain&gt;/turn_off {"entity_id":..}.</summary>
+    public Task<HaResult> TurnOff(string entityId, CancellationToken ct = default)
+        => SendText(HttpMethod.Post, $"/api/services/{DomainOf(entityId)}/turn_off",
+            $"{{\"entity_id\":{JsonString(entityId)}}}", ct);
+
+    /// <summary>
+    /// POST /api/services/light/turn_on {"entity_id":..,"brightness_pct":N} — 設燈光度（同時開燈）。
+    /// Sets a light's brightness percentage (also turns it on).
+    /// </summary>
+    public Task<HaResult> SetLightBrightnessPct(string entityId, int brightnessPct, CancellationToken ct = default)
+        => SendText(HttpMethod.Post, "/api/services/light/turn_on",
+            $"{{\"entity_id\":{JsonString(entityId)},\"brightness_pct\":{Math.Clamp(brightnessPct, 0, 100).ToString(CultureInfo.InvariantCulture)}}}", ct);
+
+    /// <summary>POST /api/services/light/turn_on {"entity_id":"all"} — 開晒所有燈 · all lights on.</summary>
+    public Task<HaResult> AllLightsOn(CancellationToken ct = default)
+        => SendText(HttpMethod.Post, "/api/services/light/turn_on", "{\"entity_id\":\"all\"}", ct);
+
+    /// <summary>POST /api/services/light/turn_off {"entity_id":"all"} — 熄晒所有燈 · all lights off.</summary>
+    public Task<HaResult> AllLightsOff(CancellationToken ct = default)
+        => SendText(HttpMethod.Post, "/api/services/light/turn_off", "{\"entity_id\":\"all\"}", ct);
+
+    private static string DomainOf(string entityId)
+        => entityId.Contains('.') ? entityId[..entityId.IndexOf('.')] : "homeassistant";
 
     // ── Templates ────────────────────────────────────────────────────────────
 
