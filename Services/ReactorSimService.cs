@@ -35,6 +35,7 @@ public enum ReactorAlarm
     CoreDamage,
     EccsActive,
     TurbineTrip,
+    CondenserVacuumLow,
     LowSubcooling,
     DecayHeatHigh,
     AtwsActive,
@@ -499,6 +500,33 @@ public sealed class ReactorSimService
     private const double SdPressReliefK        = 0.40;            // pTarget relief per unit dumpFlow (< SteamPressDrawK 0.6)
     private const double SdValveTau            = 3.0;             // s — air-operated dump-valve stroke lag (~2–5 s band)
 
+    // --- Main condenser vacuum / backpressure — lumped heat-sink model · 主凝汽器真空／背壓 ---
+    // The condensing temperature tracks the circulating-water inlet plus a load-scaled CW rise and terminal
+    // temperature difference (TTD); its saturation pressure plus a non-condensable air partial pressure gives
+    // the absolute backpressure. Deeper vacuum (lower backpressure) raises the LP enthalpy drop and output;
+    // degrading vacuum penalises output, alarms, blocks the condenser steam dump, and finally trips the
+    // turbine (→ P-9 reactor trip). Heat-balance / HEI typical numbers; calibrated so full load @ 25 °C CW
+    // inlet lands at ~2.0 inHgA (6.77 kPa) with an output factor of 1.000 (present 1150 MWe unchanged).
+    private const double CwInletDesignC        = 25.0;   // °C   default circulating-water inlet (design point)
+    private const double CwRiseFullC           = 10.0;   // °C   CW rise across condenser at full load (×loadFrac)
+    private const double CondenserTtdFullC      = 4.0;    // °C   terminal ΔT (Tcond−CWout), clean tubes (×loadFrac)
+    private const double CondenserTauThermalS   = 20.0;   // s    shell/tube-metal thermal lag of sat temperature
+    private const double AirRemovalCapKpaPerS   = 0.10;   // kPa/s air-ejector / vacuum-pump removal authority
+    private const double AirLeakBaseKpaPerS     = 0.02;   // kPa/s baseline non-condensable in-leakage
+    private const double AirLeakCircLossKpaPerS = 0.08;   // kPa/s extra rise when circulating water is lost
+    private const double AirPartialMaxKpa       = 95.0;   // kPa  hard clamp (→ total asymptotes to atmospheric)
+    private const double KPaPerInHg             = 3.386;  // kPa per inHgA
+    private const double DesignBackpressureKpa  = 6.77;   // kPa abs = 2.0 inHgA → output correction = 1.000
+    private const double BackpressureK          = 0.0045; // 1/kPa exhaust-pressure correction (~-1.5 %/inHg)
+    private const double BackpressureFloorKpa   = 3.39;   // kPa abs ~1.0 inHgA LP last-stage choking floor
+    private const double OutputFactorMin        = 0.80;   // clamp — single term never knocks >20 % off MWe
+    private const double OutputFactorMax        = 1.04;   // clamp — deep-vacuum credit capped (~+4 %)
+    private const double VacAlarmInHgA          = 5.0;    // degrading-vacuum annunciator setpoint
+    private const double VacAlarmClearInHgA     = 4.5;    // annunciator clear (0.5 inHgA hysteresis)
+    private const double VacDumpInhibitInHgA    = 7.0;    // condenser-available drops out → steam dump blocked
+    private const double VacDumpRearmInHgA      = 6.0;    // condenser-available re-arm (1.0 inHgA hysteresis)
+    private const double VacTripInHgA           = 8.0;    // low-vacuum TURBINE TRIP setpoint (≥ dump inhibit)
+
     // --- EHC state ---
     public double LoadReference      { get; private set; } // 0..1 rate-limited internal load demand the EHC tracks
     public double GovernorValve      { get; private set; } // 0..1 ACTUAL governor-valve position (single writer: UpdateSecondary)
@@ -513,6 +541,19 @@ public sealed class ReactorSimService
     public string SteamDumpModeEn   { get; private set; } = "Off";    // Off|Armed|LoadReject|TripOpen|Blocked
     public bool   SteamDumpValvesOpen => SteamDumpDemand > 0.001;     // any dump flow
     public double SteamDumpPercent  => SteamDumpDemand * 100.0;       // % of capacity, for display
+
+    // --- Main condenser vacuum / backpressure state (single writer: UpdateCondenser, except the inputs) ---
+    public double CirculatingWaterInletC { get; set; } = CwInletDesignC; // °C settable boundary input (clamped [1,40])
+    public double CondenserSatTempC          { get; private set; } = 39.0; // °C condensing temperature (seed at design)
+    public double CondenserPressureKpa       { get; private set; } = DesignBackpressureKpa; // kPa abs backpressure
+    public double CondenserPressureInHg      { get; private set; } = 2.0;  // inHgA absolute backpressure
+    public double CondenserVacuumInHg        { get; private set; } = 27.9; // inHg gauge vacuum (29.92 − backpressure)
+    public double CondenserVacuumOutputFactor{ get; private set; } = 1.0;  // exhaust-pressure output correction
+    public double AirPartialKpa              { get; private set; } = 0.2;  // kPa non-condensable partial pressure
+    public bool   CondenserVacuumLow         { get; private set; }         // degrading-vacuum annunciator (hysteresis)
+    public bool   CondenserAvailable         { get; private set; } = true; // steam-dump permissive (hysteresis)
+    public bool   AirEjectorLost { get; set; }   // event toggle: loss of the steam-jet air ejector / vacuum pumps
+    public bool   CircWaterLost  { get; set; }   // event toggle: loss of circulating-water flow
 
     // Burnup drift (cosmetic realism flourish).
     public double BurnupMwdPerTonne { get; private set; }
@@ -1041,6 +1082,10 @@ public sealed class ReactorSimService
         SteamPressure = 0.5; SteamGenLevel = 60; ElectricPowerMW = 0; TurbineRPM = 0;
         LoadReference = 0; GovernorValve = 0; _gvCmd = 0;
         SteamDumpDemand = 0; SteamDumpArmed = false; SteamDumpModeEn = "Off";
+        CirculatingWaterInletC = CwInletDesignC; CondenserSatTempC = 39.0; AirPartialKpa = 0.2;
+        CondenserPressureKpa = DesignBackpressureKpa; CondenserPressureInHg = 2.0; CondenserVacuumInHg = 27.9;
+        CondenserVacuumOutputFactor = 1.0; CondenserVacuumLow = false; CondenserAvailable = true;
+        AirEjectorLost = false; CircWaterLost = false;
         FirstStagePressure = 0; TurbineSpeedError = SyncRpm; TurbineTripped = false;
         IndicatedSgLevel = 60; SteamFlow = 0; FeedRegValve = 0; SgLevelSetpoint = 50;
         FeedwaterAuto = true; _iLevel = 0; _steamFlowSlow = 0; _threeElementActive = false; _fwAutoWasOn = false;
@@ -1130,6 +1175,11 @@ public sealed class ReactorSimService
         // --- three-element feedwater regulating control (runs before the secondary so the valve
         //     demand and shrink/swell indication are current when level integrates this tick) ---
         UpdateFeedwaterControl(dt);
+
+        // --- main condenser vacuum / backpressure: compute the heat-sink condition from this tick's turbine
+        //     load BEFORE the steam dump (it gates on CondenserAvailable) and the secondary (grossElec scales
+        //     by CondenserVacuumOutputFactor). May latch a low-vacuum turbine trip → P-9 reactor trip. ---
+        UpdateCondenser(dt);
 
         // --- steam dump / turbine bypass (40% condenser dump): cache the dump demand BEFORE the secondary
         //     so a load rejection / turbine-or-reactor trip is ridden out without an RPS trip ---
@@ -2014,12 +2064,67 @@ public sealed class ReactorSimService
 
         // 10) Electrical output (single writer). Real load follows first-stage pressure, capped by available
         // mechanical power (≈33 % of thermal). Zero when not synchronized, tripped, or below 94 % speed.
-        double grossElec = Math.Min(_power * 0.33, FirstStagePressure) * RatedElectricMW;
+        // Condenser backpressure scales the gross output: deeper vacuum credits a little, degraded vacuum penalises.
+        double grossElec = Math.Min(_power * 0.33, FirstStagePressure) * RatedElectricMW * CondenserVacuumOutputFactor;
         if (GeneratorBreakerClosed && !TurbineTripped && TurbineRPM > SyncRpm * 0.94 && steamAvail)
             ElectricPowerMW += (grossElec - ElectricPowerMW) * Math.Min(1, dt / 4.0);
         else
             ElectricPowerMW += (0 - ElectricPowerMW) * Math.Min(1, dt / 2.0);
         if (ElectricPowerMW < 0) ElectricPowerMW = 0;
+    }
+
+    // ===================== Main condenser vacuum / backpressure · 主凝汽器真空／背壓 =====================
+    // Single writer of all condenser state. Runs once per tick AFTER the secondary (so FirstStagePressure is
+    // current as the turbine steam-flow / heat-rejection load proxy) and BEFORE the steam dump (which gates on
+    // CondenserAvailable) and the next UpdateSecondary's grossElec (which scales by CondenserVacuumOutputFactor,
+    // set here this tick). Pure: reads FirstStagePressure / CirculatingWaterInletC / AirEjectorLost /
+    // CircWaterLost; writes only condenser properties + may call TripTurbine(). It can only REDUCE an output
+    // term and BLOCK a cooling bypass — it never adds heat to the primary, so the meltdown-arm path is intact.
+    private void UpdateCondenser(double dt)
+    {
+        CirculatingWaterInletC = Math.Clamp(CirculatingWaterInletC, 1.0, 40.0);
+
+        // Condensing-temperature target: CW inlet + load-scaled CW rise + load-scaled terminal ΔT.
+        double loadFrac  = Math.Clamp(FirstStagePressure, 0.0, 1.0);
+        double satTarget = CirculatingWaterInletC + CwRiseFullC * loadFrac + CondenserTtdFullC * loadFrac;
+        // First-order thermal lag (shell water + tube metal). Vapor pressure is taken instantaneous off sat temp.
+        CondenserSatTempC += (satTarget - CondenserSatTempC) * Math.Min(1.0, dt / CondenserTauThermalS);
+
+        // Non-condensable (air) partial-pressure balance. The air-removal system pumps it down toward ~0.2 kPa;
+        // losing the ejector lets the in-leakage accumulate unbounded (slow), losing circ water adds a faster term.
+        double leakIn = AirLeakBaseKpaPerS + (CircWaterLost ? AirLeakCircLossKpaPerS : 0.0);
+        if (!AirEjectorLost) AirPartialKpa += (leakIn - AirRemovalCapKpaPerS * AirPartialKpa) * dt;
+        else                 AirPartialKpa += leakIn * dt;
+        AirPartialKpa = Math.Clamp(AirPartialKpa, 0.0, AirPartialMaxKpa);
+
+        // Dalton: total backpressure = water saturation (Magnus/Arden-Buck, ~1% vs steam tables) + air partial.
+        double psat = 0.6112 * Math.Exp(17.62 * CondenserSatTempC / (243.12 + CondenserSatTempC));
+        CondenserPressureKpa  = Math.Clamp(psat + AirPartialKpa, 0.5, 101.3);
+        CondenserPressureInHg = CondenserPressureKpa / KPaPerInHg;
+        CondenserVacuumInHg   = 29.92 - CondenserPressureInHg;
+
+        // Exhaust-pressure output correction, with the LP last-stage choking floor below which deeper vacuum
+        // yields no further output. Calibrated so design 6.77 kPa (2.0 inHgA) → factor 1.000.
+        double effKpa = Math.Max(CondenserPressureKpa, BackpressureFloorKpa);
+        CondenserVacuumOutputFactor = Math.Clamp(
+            1.0 - BackpressureK * (effKpa - DesignBackpressureKpa), OutputFactorMin, OutputFactorMax);
+
+        // Degrading-vacuum annunciator (hysteresis).
+        if (CondenserPressureInHg >= VacAlarmInHgA)      CondenserVacuumLow = true;
+        else if (CondenserPressureInHg < VacAlarmClearInHgA) CondenserVacuumLow = false;
+
+        // Condenser-available steam-dump permissive (hysteresis): cannot dump into a condenser that lost vacuum.
+        if (CondenserPressureInHg >= VacDumpInhibitInHgA)      CondenserAvailable = false;
+        else if (CondenserPressureInHg < VacDumpRearmInHgA)    CondenserAvailable = true;
+
+        // Low-vacuum TURBINE TRIP: latch the existing TurbineTripped flag (the P-9 cascade then trips the
+        // reactor above ~50 % power and rides the runback below it). Stays latched until an explicit reset.
+        if (CondenserPressureInHg >= VacTripInHgA && !TurbineTripped)
+        {
+            TripTurbine();
+            LastTripFunctionEn = "Low Condenser Vacuum (Turbine)";
+            LastTripFunctionZh = "凝汽器真空低（汽輪機）";
+        }
     }
 
     // ===================== Steam dump / turbine bypass · 汽輪機旁路（凝汽器排汽） =====================
@@ -2054,6 +2159,14 @@ public sealed class ReactorSimService
         }
 
         double target = Math.Clamp(raw, 0.0, 1.0);
+        // Condenser-available interlock: a condenser that has lost vacuum cannot accept the dump, so the bypass
+        // valves are blocked. The un-relieved steam then raises SG header pressure toward the atmospheric-dump /
+        // MSSV path (existing pTarget). Cooling-reducing only — never adds heat (meltdown-arm path preserved).
+        if (!CondenserAvailable)
+        {
+            target = 0.0;
+            if (armed) mode = "NoCondenser";
+        }
         // First-order air-operated valve stroke lag.
         SteamDumpDemand += (target - SteamDumpDemand) * Math.Min(1.0, dt / SdValveTau);
         SteamDumpDemand  = Math.Clamp(SteamDumpDemand, 0.0, 1.0);
@@ -2225,6 +2338,7 @@ public sealed class ReactorSimService
         SetAlarm(ReactorAlarm.EccsActive, EccsInjecting);
         SetAlarm(ReactorAlarm.TurbineTrip,
             TurbineTripped || (GeneratorBreakerClosed && TurbineRPM < SyncRpm * 0.83 && SteamPressure > 3.0));
+        SetAlarm(ReactorAlarm.CondenserVacuumLow, CondenserVacuumLow);
         SetAlarm(ReactorAlarm.LowSubcooling, SubcoolingMarginC < 10.0 && (_power > 0.05 || Thot > 200));
         // Minimum DNBR (W-3) annunciators — gated above DnbrAlarmGate so an off-scale low-power reading never trips.
         bool dnbrActive = _power > DnbrAlarmGate;

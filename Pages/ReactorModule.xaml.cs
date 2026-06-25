@@ -501,6 +501,10 @@ public sealed partial class ReactorModule : Page
         // without a reactor trip. Shows % of dump capacity and the active controller mode.
         AddGauge("Steam dump", "蒸汽旁路", 0, 100, () => _sim.SteamDumpPercent,
             () => $"{_sim.SteamDumpPercent:F0}% · {SteamDumpModeStr()}", id: "steamDump");
+        // Main condenser backpressure — absolute exhaust pressure in inHgA (lower = deeper vacuum = more output).
+        // Shows the output-correction factor; warns as vacuum degrades toward the dump-inhibit / turbine-trip band.
+        AddGauge("Condenser vacuum", "凝汽器真空", 0, 10, () => _sim.CondenserPressureInHg,
+            () => $"{_sim.CondenserPressureInHg:F1} inHgA · {_sim.CondenserPressureKpa:F1} kPa · ×{_sim.CondenserVacuumOutputFactor:F3}", id: "condvac");
         // Class 1E 125 VDC station battery — only depletes during a station blackout (no AC source).
         AddGauge("Vital DC battery", "1E 直流電池", 0, 100, () => _sim.Electrical.BatterySoc * 100,
             () => $"{_sim.Electrical.BatterySoc * 100:F0}% · {_sim.Electrical.BatteryVoltage:F0} VDC", id: "battery");
@@ -519,6 +523,7 @@ public sealed partial class ReactorModule : Page
         "LoadReject" => P("Load Reject", "甩負荷"),
         "TripOpen"   => P("Trip Open", "跳機全開"),
         "Blocked"    => P("Lo-Tavg Block", "低溫閉鎖"),
+        "NoCondenser"=> P("No Condenser", "凝汽器不可用"),
         "Armed"      => P("Armed", "待命"),
         _            => P("Off", "關"),
     };
@@ -600,6 +605,7 @@ public sealed partial class ReactorModule : Page
             (ReactorAlarm.SteamPressureHigh, "HIGH STEAM P", "蒸汽高壓"),
             (ReactorAlarm.EccsActive, "ECCS ACTIVE", "應急堆芯冷卻"),
             (ReactorAlarm.TurbineTrip, "TURBINE TRIP", "汽輪機跳機"),
+            (ReactorAlarm.CondenserVacuumLow, "CONDENSER VACUUM LOW", "凝汽器真空低"),
             (ReactorAlarm.LowSubcooling, "LOW SUBCOOLING", "過冷度不足"),
             (ReactorAlarm.DecayHeatHigh, "DECAY HEAT", "衰變熱高"),
             (ReactorAlarm.AtwsActive, "ATWS — RODS STUCK", "ATWS 控制棒卡住"),
