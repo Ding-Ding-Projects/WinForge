@@ -69,8 +69,9 @@
                     </Grid>
                 </Border>
 
-                <!-- Keep-awake pill -->
-                <Border x:Name="KeepAwakePill" Grid.Row="2" CornerRadius="8" Padding="14,9,14,9"
+                <!-- Keep-awake pill + reactor↔system-settings linkage -->
+                <StackPanel Grid.Row="2" Spacing="14">
+                <Border x:Name="KeepAwakePill" CornerRadius="8" Padding="14,9,14,9"
                         Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                         BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                     <Grid ColumnSpacing="14">
@@ -87,6 +88,29 @@
                                       IsOn="True" Toggled="KeepAwakeToggle_Toggled" />
                     </Grid>
                 </Border>
+
+                <!-- Reactor ↔ Windows settings linkage (OPT-IN, default OFF, fully reversible) -->
+                <Border x:Name="SysLinkPill" CornerRadius="8" Padding="14,9,14,9"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                    <Grid ColumnSpacing="14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Border x:Name="SysLinkDot" Grid.Column="0" Width="14" Height="14" CornerRadius="7"
+                                Background="#757575" VerticalAlignment="Center" />
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock x:Name="SysLinkText" TextWrapping="Wrap" FontWeight="SemiBold" />
+                            <TextBlock x:Name="SysLinkWarn" TextWrapping="Wrap" FontSize="12"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+                        <ToggleSwitch x:Name="SysLinkToggle" Grid.Column="2" VerticalAlignment="Center"
+                                      IsOn="False" Toggled="SysLinkToggle_Toggled" />
+                    </Grid>
+                </Border>
+                </StackPanel>
 
                 <!-- Toolbar: control room, widgets, mute, scenario -->
                 <Border Grid.Row="3" CornerRadius="8" Padding="12,8,12,8"
