@@ -366,6 +366,12 @@ public sealed partial class MainWindow : Window
             case "crystaldiskinfo":
             case "diskinfo":
                 Navigator.GoToModule?.Invoke("module.diskhealth");
+            case "diskbench":
+            case "benchmark":
+            case "diskbenchmark":
+            case "crystaldiskmark":
+            case "cdm":
+                Navigator.GoToModule?.Invoke("module.diskbench");
                 break;
             case "testdisk":
             case "photorec":
@@ -871,6 +877,7 @@ public sealed partial class MainWindow : Window
         "module.disk" => typeof(DiskAnalyzerModule),
         "module.drives" => typeof(DrivesModule),
         "module.diskhealth" => typeof(DiskHealthModule),
+        "module.diskbench" => typeof(DiskBenchmarkModule),
         "module.testdisk" => typeof(TestDiskModule),
         "module.uninstall" => typeof(AppUninstallerModule),
         "module.windows" => typeof(WindowManagerModule),
