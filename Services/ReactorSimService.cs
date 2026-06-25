@@ -97,6 +97,7 @@ public sealed class ReactorSimService
     private const double ModTempCoeff = -2.0e-4;   // per °C of moderator (coolant) temp (negative, MTC)
     private const double BoronWorth = -9.5e-6;     // per ppm boron (negative)
     private const double XenonWorthFull = -0.028;  // dk/k at equilibrium full-power xenon (~ -2800 pcm)
+    private const double SamariumWorthFull = -0.0064; // dk/k at equilibrium full-power samarium (~ -640 pcm)
 
     // Rod worth: total worth of all banks fully inserted (dk/k). Banks share this.
     private const double TotalRodWorth = 0.080; // 8000 pcm fully inserted
@@ -213,6 +214,7 @@ public sealed class ReactorSimService
     public double DopplerReactivityPcm { get; private set; }
     public double ModeratorReactivityPcm { get; private set; }
     public double XenonReactivityPcm { get; private set; }
+    public double SamariumReactivityPcm { get; private set; }
 
     // Thermal-hydraulics
     public double FuelTemp { get; private set; } = ColdTemp;     // °C
@@ -245,6 +247,16 @@ public sealed class ReactorSimService
     // Poisons
     public double Iodine { get; private set; }   // I-135 concentration (normalized)
     public double Xenon { get; private set; }    // Xe-135 concentration (normalized)
+    // 釤-149／鉕-149 第二毒物對 · Sm-149 / Pm-149 — the second fission-product poison pair after xenon.
+    // Pm-149 (t½≈53.1 h) is produced ∝ power and β-decays into Sm-149, which is STABLE and removed only by
+    // neutron burnout (∝ flux). At equilibrium full power Samarium≈1 (worth ≈ −640 pcm) and, because the
+    // production and burnout flux terms cancel, that worth is FLUX-INDEPENDENT. After a trip there is no
+    // peak-and-decay: leftover Pm-149 keeps converting to Sm with nothing to burn it out, so samarium builds
+    // monotonically to a permanent higher plateau (~2.84 normalized, ~ −1816 pcm) over ~10–13 days.
+    private double _pm;                           // Pm-149 concentration (normalized)
+    private double _sm;                           // Sm-149 concentration (normalized)
+    public double Promethium => _pm;              // display
+    public double Samarium => _sm;                // display
 
     // Axial power distribution (two-node top/bottom split). Sign convention: top minus bottom; rods
     // enter from the top so insertion drives the offset NEGATIVE (bottom-peaked).
@@ -573,6 +585,7 @@ public sealed class ReactorSimService
         Xenon = 0;
         Iodine = 0;
         _iodineTop = _iodineBot = _xenonTop = _xenonBot = 0;
+        _pm = 0; _sm = 0;
         BuildRps();
     }
 
@@ -827,6 +840,8 @@ public sealed class ReactorSimService
                 break;
             case ReactorScenario.XenonRestart:
                 Xenon = Math.Max(Xenon, 2.6); // jump to a post-trip xenon peak (iodine pit)
+                _pm = Math.Max(_pm, 1.8371);  // promethium reservoir (= full-power Pm equilibrium) from prior operation
+                _sm = Math.Max(_sm, 1.3);     // partial samarium build-in (dead-time band) atop the xenon pit
                 break;
             case ReactorScenario.SgTubeRupture:
                 _sgtrSeverity = 0.45;  // ~one ruptured tube; a minutes-scale transient (0.3 gentle … 0.8 multi-tube)
@@ -891,7 +906,7 @@ public sealed class ReactorSimService
         FirstStagePressure = 0; TurbineSpeedError = SyncRpm; TurbineTripped = false;
         IndicatedSgLevel = 60; SteamFlow = 0; FeedRegValve = 0; SgLevelSetpoint = 50;
         FeedwaterAuto = true; _iLevel = 0; _steamFlowSlow = 0; _threeElementActive = false; _fwAutoWasOn = false;
-        Iodine = 0; Xenon = 0;
+        Iodine = 0; Xenon = 0; _pm = 0; _sm = 0;
         _iodineTop = _iodineBot = _xenonTop = _xenonBot = 0;
         _axialSplit = _axialSplitTarget = 0;
         TopPowerFraction = BottomPowerFraction = 0.5;
@@ -1412,17 +1427,20 @@ public sealed class ReactorSimService
         double modRho = ModTempCoeff * (Tavg - RefModTemp);
         // Xenon worth proportional to xenon concentration (normalized so equilibrium full power = 1).
         double xenonRho = XenonWorthFull * Xenon;
+        // Samarium worth proportional to Sm-149 concentration (normalized so equilibrium full power = 1).
+        double samariumRho = SamariumWorthFull * _sm;
 
         // Excess reactivity from fresh-core / fuel state baseline so that the core can be made
         // critical with rods/boron in the operating band.
         const double ExcessBaseline = 0.080 + BoronWorth * NominalBoron * -1.0; // brings band into reach
-        double rho = ExcessBaseline + rodRho + boronRho + dopplerRho + modRho + xenonRho;
+        double rho = ExcessBaseline + rodRho + boronRho + dopplerRho + modRho + xenonRho + samariumRho;
 
         RodReactivityPcm = rodRho * 1e5;
         BoronReactivityPcm = (boronRho + ExcessBaseline) * 1e5; // fold baseline into boron line for display
         DopplerReactivityPcm = dopplerRho * 1e5;
         ModeratorReactivityPcm = modRho * 1e5;
         XenonReactivityPcm = xenonRho * 1e5;
+        SamariumReactivityPcm = samariumRho * 1e5;
         ReactivityPcm = rho * 1e5;
 
         // ---- point kinetics (6 groups), unconditionally-stable backward (implicit) Euler ----
@@ -1639,6 +1657,21 @@ public sealed class ReactorSimService
         Xenon += dX * dt;
         if (Xenon < 0) Xenon = 0;
         // Normalize: at steady full power, equilibrium Xenon should approach ~1.
+
+        // Sm-149 / Pm-149 second poison pair (Nd-149 lumped into direct Pm production). Normalized so that
+        // equilibrium full power gives Samarium≈1 (worth ≈ −640 pcm). Pm-149 is produced ∝ power and decays
+        // with λ_Pm = ln2/53.1h; Sm-149 is born from that decay and — being STABLE — is removed ONLY by
+        // neutron burnout (σφ, ∝ flux). Both evolve on a tens-of-hours scale, so plain forward Euler at the
+        // sim's dt is unconditionally stable. Equilibrium Sm = λ_Pm·γ_Pm/(σ·φ)·φ = λ_Pm·γ_Pm/σ is therefore
+        // FLUX-INDEPENDENT; after a trip (φ→0) the burnout term vanishes and Sm builds monotonically toward
+        // Sm_eq + Pm_eq ≈ 2.84 (worth ≈ −1816 pcm) over ~10–13 days — the "samarium dead time".
+        const double lamPm   = 3.6260e-6; // 1/s, Pm-149 decay (ln2 / 53.1 h)
+        const double sigmaSm = 6.6613e-6; // 1/s, Sm-149 burnout at full power (φ=1) → τ ≈ 41.7 h
+        const double gammaPm = 1.8371;    // = sigmaSm/lamPm, so equilibrium Samarium normalizes to 1
+        _pm += (gammaPm * lamPm * phi - lamPm * _pm) * dt; // promethium: production ∝ power, β-decay removal
+        if (_pm < 0) _pm = 0;
+        _sm += (lamPm * _pm - sigmaSm * phi * _sm) * dt;   // samarium: born from Pm decay, removed by burnout only
+        if (_sm < 0) _sm = 0;
 
         // Per-node (top/bottom) I-Xe split, same balance forms with production weighted by node power
         // fraction. The node mean is written back to the scalars so the global xenon reactivity is
