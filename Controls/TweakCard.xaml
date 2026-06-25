@@ -86,6 +86,19 @@
                     VerticalAlignment="Center" />
             </Grid>
 
+            <!--  生成式視覺預覽區（程式碼畫圖，無外部圖片）· Generated visual-preview pane (code-drawn, no external images)  -->
+            <Border
+                x:Name="VisualPane"
+                Margin="0,4,0,0"
+                Padding="12"
+                Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="6"
+                Visibility="Collapsed">
+                <ContentPresenter x:Name="VisualHost" HorizontalAlignment="Stretch" />
+            </Border>
+
             <ProgressBar
                 x:Name="ActionProgressBar"
                 Margin="0,2,0,0"

@@ -21,17 +21,9 @@ public static class AppearanceTweaks
     public static IEnumerable<TweakDefinition> All() => new List<TweakDefinition>
     {
         // 1) Dark mode (apps + system) — needs two values, so CustomToggle.
-        Tweak.CustomToggle("appearance.dark-mode", "Dark mode", "深色模式",
-            "Use the dark theme for both apps and the Windows shell.",
-            "應用程式同 Windows 介面都用深色主題。",
-            getIsOn: () => RegistryHelper.ValueEquals(RegRoot.HKCU, Personalize, "AppsUseLightTheme", 0),
-            setIsOn: on =>
-            {
-                int v = on ? 0 : 1; // light theme value is 1; dark is 0
-                RegistryHelper.SetValue(RegRoot.HKCU, Personalize, "AppsUseLightTheme", v, RegistryValueKind.DWord);
-                RegistryHelper.SetValue(RegRoot.HKCU, Personalize, "SystemUsesLightTheme", v, RegistryValueKind.DWord);
-            },
-            restart: RestartScope.Explorer, keywords: "dark,theme,深色,主題,黑色"),
+        //    Rich: live mini-window preview reflecting dark/light + accent-on-chrome + transparency.
+        //    豐富化：活動迷你視窗預覽，反映深淺色、主題色上框同透明設定（套用後即時重畫）。
+        DarkMode(),
 
         // 2) Transparency effects.
         Tweak.RegToggle("appearance.transparency", "Transparency effects", "透明效果",
@@ -149,6 +141,12 @@ public static class AppearanceTweaks
             "Open", "開啟", "explorer.exe", "ms-settings:colors",
             keywords: "settings,colours,personalisation,色彩,個人化"),
 
+        // 14b) Accent colour picker with a live swatch + tint/shade strip.
+        //      Writes the documented DWM AccentColor + Explorer accent palette as ABGR DWords, then
+        //      nudges Explorer so chrome picks it up. Rich: code-drawn swatch preview (live).
+        //      主題色揀選器，附活動色板同色階帶；寫入 DWM／Explorer 主題色（ABGR DWord）。
+        AccentColour(),
+
         // 15) Disable JPEG wallpaper compression (HKCU\Control Panel\Desktop\JPEGImportQuality=100).
         // Writes the value, then re-applies the current wallpaper so the new quality takes effect.
         Tweak.CustomToggle("appearance.wallpaper-quality", "Disable wallpaper JPEG compression", "停用桌布 JPEG 壓縮",
@@ -164,6 +162,91 @@ public static class AppearanceTweaks
             },
             keywords: "wallpaper,jpeg,quality,compression,桌布,壓縮,品質"),
     };
+
+    /// <summary>
+    /// 深色模式開關 · Dark-mode toggle (apps + shell), behaviour identical to the original
+    /// CustomToggle but with a live mini-window <see cref="TweakVisuals.ThemePreview"/>.
+    /// </summary>
+    private static TweakDefinition DarkMode()
+    {
+        bool IsDark() => RegistryHelper.ValueEquals(RegRoot.HKCU, Personalize, "AppsUseLightTheme", 0);
+        bool AccentChrome() => RegistryHelper.ValueEquals(RegRoot.HKCU, Personalize, "ColorPrevalence", 1);
+        bool Transparency() => RegistryHelper.ValueEquals(RegRoot.HKCU, Personalize, "EnableTransparency", 1);
+
+        return new TweakDefinition
+        {
+            Id = "appearance.dark-mode",
+            Title = new("Dark mode", "深色模式"),
+            Description = new("Use the dark theme for both apps and the Windows shell.",
+                "應用程式同 Windows 介面都用深色主題。"),
+            Kind = TweakKind.Toggle,
+            Restart = RestartScope.Explorer,
+            Keywords = new[] { "dark", "theme", "深色", "主題", "黑色" },
+            GetIsOn = IsDark,
+            SetIsOn = on =>
+            {
+                int v = on ? 0 : 1; // light theme value is 1; dark is 0
+                RegistryHelper.SetValue(RegRoot.HKCU, Personalize, "AppsUseLightTheme", v, RegistryValueKind.DWord);
+                RegistryHelper.SetValue(RegRoot.HKCU, Personalize, "SystemUsesLightTheme", v, RegistryValueKind.DWord);
+            },
+            VisualLiveUpdate = true,
+            VisualBuilder = _ => TweakVisuals.ThemePreview(IsDark, AccentChrome, Transparency),
+        };
+    }
+
+    /// <summary>
+    /// 主題色揀選器 · Accent-colour picker.
+    /// 讀寫 DWM/Explorer 主題色（以 ABGR DWord 儲存），並附活動色板預覽 ·
+    /// reads/writes the accent colour (stored as an ABGR DWord) with a live swatch preview.
+    /// </summary>
+    private static TweakDefinition AccentColour()
+    {
+        const string Dwm = @"Software\Microsoft\Windows\DWM";
+        const string Accent = @"Software\Microsoft\Windows\CurrentVersion\Explorer\Accent";
+
+        string GetHex()
+        {
+            // DWM AccentColor is an ABGR DWord (0xAABBGGRR). Fall back to a sensible default.
+            var raw = RegistryHelper.GetValue(RegRoot.HKCU, Dwm, "AccentColor");
+            if (raw is int dw)
+            {
+                byte r = (byte)(dw & 0xFF);
+                byte g = (byte)((dw >> 8) & 0xFF);
+                byte b = (byte)((dw >> 16) & 0xFF);
+                return $"#{r:X2}{g:X2}{b:X2}";
+            }
+            return "#0078D7";
+        }
+
+        void SetHex(string hex)
+        {
+            var s = hex.Trim().TrimStart('#');
+            byte r = Convert.ToByte(s.Substring(0, 2), 16);
+            byte g = Convert.ToByte(s.Substring(2, 2), 16);
+            byte b = Convert.ToByte(s.Substring(4, 2), 16);
+            int abgr = (0xFF << 24) | (b << 16) | (g << 8) | r;       // 0xAABBGGRR for DWM
+            int agbr = (0xC4 << 24) | (b << 16) | (g << 8) | r;       // Explorer accent palette entry
+            RegistryHelper.SetValue(RegRoot.HKCU, Dwm, "AccentColor", abgr, RegistryValueKind.DWord);
+            RegistryHelper.SetValue(RegRoot.HKCU, Dwm, "ColorizationColor", abgr, RegistryValueKind.DWord);
+            RegistryHelper.SetValue(RegRoot.HKCU, Dwm, "ColorizationAfterglow", abgr, RegistryValueKind.DWord);
+            RegistryHelper.SetValue(RegRoot.HKCU, Accent, "AccentColorMenu", agbr, RegistryValueKind.DWord);
+        }
+
+        return new TweakDefinition
+        {
+            Id = "appearance.accent-colour",
+            Title = new("Accent colour", "主題色"),
+            Description = new("Pick the Windows accent colour; the swatch below previews tints and shades.",
+                "揀 Windows 主題色；下面色板會預覽佢嘅深淺色階。"),
+            Kind = TweakKind.Color,
+            Restart = RestartScope.Explorer,
+            Keywords = new[] { "accent", "colour", "color", "主題色", "顏色" },
+            GetHex = GetHex,
+            SetHex = SetHex,
+            VisualLiveUpdate = true,
+            VisualBuilder = _ => TweakVisuals.ColorSwatch(GetHex),
+        };
+    }
 
     /// <summary>
     /// 由單一 HKCU DWord 登錄檔值支援嘅單選按鈕組 · A RadioButtons group backed by a single HKCU DWord value.

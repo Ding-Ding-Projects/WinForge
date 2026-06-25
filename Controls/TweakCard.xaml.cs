@@ -94,6 +94,38 @@ public sealed partial class TweakCard : UserControl
         RenderText();
         UpdateBadges();
         UpdateStatusPill();
+        BuildVisual();
+    }
+
+    /// <summary>
+    /// 渲染（或清除）程式碼生成嘅視覺預覽 · Render (or clear) the code-generated visual preview.
+    /// 工廠擲錯就靜靜收起個區，唔影響卡片其他部分 · a throwing factory just hides the pane.
+    /// </summary>
+    private void BuildVisual()
+    {
+        if (_tweak?.VisualBuilder is null)
+        {
+            VisualHost.Content = null;
+            VisualPane.Visibility = Visibility.Collapsed;
+            return;
+        }
+        try
+        {
+            var element = _tweak.VisualBuilder(_tweak);
+            VisualHost.Content = element;
+            VisualPane.Visibility = element is null ? Visibility.Collapsed : Visibility.Visible;
+        }
+        catch
+        {
+            VisualHost.Content = null;
+            VisualPane.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    /// <summary>套用後若標記咗活動更新，重建預覽 · Rebuild the preview after an apply when live-update is on.</summary>
+    private void RefreshVisualIfLive()
+    {
+        if (_tweak?.VisualBuilder is not null && _tweak.VisualLiveUpdate) BuildVisual();
     }
 
     /// <summary>清走上次 Build 嘅控件參照，避免語言切換時動到已棄用控件 · Null stale control refs before a rebuild.</summary>
@@ -305,6 +337,7 @@ public sealed partial class TweakCard : UserControl
             _actionButton.IsEnabled = true;
             _busy = false;
             RenderText();
+            RefreshVisualIfLive();
         }
     }
 
@@ -963,6 +996,7 @@ public sealed partial class TweakCard : UserControl
             _wizardButton.IsEnabled = true;
             _busy = false;
             RenderText();
+            RefreshVisualIfLive();
         }
     }
 
@@ -1036,6 +1070,7 @@ public sealed partial class TweakCard : UserControl
         ResultBar.Message = $"{en}\n{zh}";
         ResultBar.ActionButton = t.Restart == RestartScope.Explorer ? MakeRestartExplorerButton() : null;
         ResultBar.IsOpen = true;
+        RefreshVisualIfLive();
     }
 
     private void ShowError(Exception ex)

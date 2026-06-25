@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.UI.Xaml;
 
 namespace WinForge.Models;
 
@@ -113,6 +114,29 @@ public sealed class TweakDefinition
     public bool ShowProgressBar { get; init; }
     /// <summary>確定進度回呼（0–1）· Determinate progress callback returning 0–1; null ⇒ indeterminate.</summary>
     public Func<double>? ActionProgress { get; init; }
+
+    // ======================================================================
+    //  Rich visual hook (rich-tweakcards) · 豐富視覺鈎子
+    //  令任何卡都可以喺控件旁邊／下面渲染一幅用程式碼畫出嚟嘅圖（色板、量錶、長條圖、走勢線等）。
+    //  全部可選兼向後相容；現有 call-site 唔使改。
+    //  Lets ANY card render a code-drawn graphic (swatch, gauge, bar chart, sparkline…) alongside its
+    //  control. Fully optional and backward compatible — existing call-sites are unaffected.
+    // ======================================================================
+
+    /// <summary>
+    /// 可選「視覺預覽」工廠：回傳一個用程式碼生成嘅 <see cref="FrameworkElement"/>（無外部圖片）。
+    /// 卡片會喺一個橫跨全闊嘅預覽區渲染佢。null（預設）即係照舊唔顯示任何預覽。
+    /// Optional "visual preview" factory returning a code-generated <see cref="FrameworkElement"/>
+    /// (no external images). The card hosts it in a full-width preview pane. null (default) ⇒ no preview.
+    /// </summary>
+    public Func<TweakDefinition, FrameworkElement>? VisualBuilder { get; init; }
+
+    /// <summary>
+    /// 套用設定之後即時重建預覽（做到「活動預覽」效果）· Rebuild the preview after every apply so it tracks
+    /// the live setting (e.g. an accent-colour swatch or a gauge updating as you drag). Default false:
+    /// the visual is built once when the card loads.
+    /// </summary>
+    public bool VisualLiveUpdate { get; init; }
 
     /// <summary>用嚟做搜尋比對嘅合併文字 · Concatenated haystack used for search.</summary>
     public string SearchHaystack =>
