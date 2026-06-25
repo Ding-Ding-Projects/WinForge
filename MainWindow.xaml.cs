@@ -468,6 +468,12 @@ public sealed partial class MainWindow : Window
             case "rightclick":
                 Navigator.GoToModule?.Invoke("module.contextmenu");
                 break;
+            case "shellmenu":
+            case "explorermenu":
+            case "winforgemenu":
+            case "shellcontextmenu":
+                Navigator.GoToModule?.Invoke("module.shellmenu");
+                break;
             case "awake":
                 Navigator.GoToModule?.Invoke("module.awake");
                 break;
@@ -832,6 +838,7 @@ public sealed partial class MainWindow : Window
         "module.events" => typeof(EventViewerModule),
         "module.mixer" => typeof(VolumeMixerModule),
         "module.contextmenu" => typeof(ContextMenuModule),
+        "module.shellmenu" => typeof(ShellMenuModule),
         "module.taskbar-tweaker" => typeof(TaskbarTweakerModule),
         "module.lightswitch" => typeof(LightSwitchModule),
         "module.nilesoftshell" => typeof(NilesoftShellModule),
