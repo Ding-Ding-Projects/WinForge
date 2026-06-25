@@ -157,6 +157,7 @@
                         <NavigationViewItem Content="Android Emulator · Android 模擬器" Tag="module.emulator"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8EA;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="VPN &amp; Mesh · VPN 與網狀網" Tag="module.vpn"><NavigationViewItem.Icon><FontIcon Glyph="&#xE945;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="qBittorrent · 種子下載" Tag="module.qbittorrent"><NavigationViewItem.Icon><FontIcon Glyph="&#xE896;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Docker over SSH · 透過 SSH 控制 Docker" Tag="module.dockerssh"><NavigationViewItem.Icon><FontIcon Glyph="&#xEA86;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="RustDesk · 遠端桌面" Tag="module.rustdesk"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8AF;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Home Assistant · 家居助理" Tag="module.homeassistant"><NavigationViewItem.Icon><FontIcon Glyph="&#xE80F;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Communications · 通訊" Tag="module.comms"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8BD;" /></NavigationViewItem.Icon></NavigationViewItem>
