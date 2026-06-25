@@ -51,6 +51,9 @@ public enum ReactorAlarm
     SteamlineBreak,
     SafetyInjection,
     PzrCodeSafetyOpen,
+    ContainmentPressureHi,
+    ContainmentIsolation,
+    ContainmentSpray,
 }
 
 /// <summary>
@@ -441,6 +444,41 @@ public sealed class ReactorSimService
     private const double MslbSiSetpointMpa = 4.14;                  // ≈600 psia Westinghouse Lo-Steamline-Press SI setpoint
     private const double MslbSiBoronPpm = 2000.0;                   // borated-SI target concentration (shutdown margin)
 
+    // ---- Containment · 安全殼 -----------------------------------------------------------------
+    // Lumped 0-D containment-atmosphere node for a large-dry (4-loop Westinghouse class) building.
+    // A break INSIDE containment — an MSLB (the bounding temperature case) or a LOCA — dumps mass and
+    // energy into the free volume, so pressure rises toward a scenario peak with a short time constant.
+    // Passive steel/concrete heat sinks always condense steam (slow); fan coolers and — decisively —
+    // containment spray accelerate the removal. Three containment-pressure ESFAS bistables actuate, in
+    // order: Hi-1 → Safety Injection + Containment Isolation Phase A + reactor trip; Hi-2 → Main Steam
+    // Line Isolation; Hi-3 → Containment Spray + Phase B. SGTR and out-of-containment secondary breaks
+    // deliberately do NOT feed this node (they bypass containment), so spray/isolation stay quiescent.
+    public double ContainmentPressureKpa { get; private set; }       // gauge kPa (0 = atmospheric)
+    public double ContainmentPressurePsig => ContainmentPressureKpa / 6.895;
+    public double ContainmentTempC { get; private set; } = ContainmentAmbientC;
+    public bool ContainmentSprayActive { get; private set; }
+    public bool ContainmentIsolationPhaseA { get; private set; }     // Hi-1: non-essential penetrations isolated
+    public bool ContainmentIsolationPhaseB { get; private set; }     // Hi-3: full isolation (incl. CCW) on spray
+    public bool ContainmentFanCoolers { get; private set; }
+    private bool _ctmtHi1, _ctmtHi2, _ctmtHi3;                       // pressure-bistable latches (anti-chatter)
+    private double _spraySetupTimer;                                 // spray pump-start/valve-stroke delay
+    private const double ContainmentAmbientC = 49.0;        // ~120 °F normal containment atmosphere
+    private const double ContainmentPeakC = 125.0;          // ~257 °F bounding (MSLB superheat) peak
+    private const double ContainmentSprayTempC = 35.0;      // spray-quench floor
+    private const double CtmtPeakLocaKpa = 415.0;           // ~60 psig blowdown peak for a large-break LOCA
+    private const double CtmtPeakMslbKpa = 350.0;           // ~51 psig peak for an in-containment MSLB
+    private const double CtmtTauPressUp = 8.0;              // s — pressurization time constant
+    private const double CtmtTauPassive = 300.0;            // s — passive steel/concrete heat sinks
+    private const double CtmtTauFan = 120.0;                // s — fan-cooler condensation
+    private const double CtmtTauSpray = 30.0;               // s — containment-spray condensation (dominant)
+    public const double CtmtDesignPsig = 47.0;              // ~324 kPa-g design pressure (display reference)
+    // Westinghouse containment-pressure ESFAS bistable setpoints (gauge kPa).
+    private const double CtmtHi1Kpa = 28.0;   // ~4.0  psig — SI + Containment Isolation Phase A + reactor trip
+    private const double CtmtHi2Kpa = 71.0;   // ~10.3 psig — Main Steam Line Isolation
+    private const double CtmtHi3Kpa = 186.0;  // ~27   psig — Containment Spray + Phase B isolation
+    private const double CtmtHystKpa = 7.0;   // ~1 psi reset deadband (anti-chatter)
+    private const double SpraySetupSeconds = 35.0; // spray pump-start + valve-stroke actuation delay
+
     // Alarms
     private readonly bool[] _alarms = new bool[Enum.GetValues(typeof(ReactorAlarm)).Length];
     public bool Alarm(ReactorAlarm a) => _alarms[(int)a];
@@ -817,6 +855,10 @@ public sealed class ReactorSimService
         SecondaryActivity = 0; AtmosphericRelease = 0; SgReliefLifted = false; SgtrIsolated = false;
         _mslbSeverity = 0; MslbIsolated = false; SiActuated = false; MslbBreakFlow = 0;
         PrimaryDeficitPct = 0;
+        ContainmentPressureKpa = 0; ContainmentTempC = ContainmentAmbientC;
+        ContainmentSprayActive = false; ContainmentIsolationPhaseA = false;
+        ContainmentIsolationPhaseB = false; ContainmentFanCoolers = false;
+        _ctmtHi1 = _ctmtHi2 = _ctmtHi3 = false; _spraySetupTimer = 0;
         StatusEn = "Cold shutdown"; StatusZh = "冷停機";
     }
 
@@ -841,6 +883,7 @@ public sealed class ReactorSimService
         UpdateFlow(dt);
         UpdateDecayHeat(dt);
         UpdateScenarios(dt);
+        UpdateContainment(dt);
 
         // --- sub-step the kinetics + thermal coupling ---
         double powerBefore = _power;
@@ -996,6 +1039,86 @@ public sealed class ReactorSimService
         if (feedLost) _lofwTimer += dt; else _lofwTimer = 0;
         AuxFeedwaterRunning = _lofwTimer > 60.0 && ActiveScenario != ReactorScenario.StationBlackout;
         if (AuxFeedwaterRunning) FeedwaterFlow = Math.Max(FeedwaterFlow, 0.15); // small AFW flow
+    }
+
+    /// <summary>
+    /// 安全殼壓力響應與 Hi-1/Hi-2/Hi-3 ESFAS · Lumped containment-atmosphere pressure/temperature
+    /// response plus the three containment-pressure ESFAS actuations. Unconditionally stable: every
+    /// state relaxes by a Math.Min(1, dt/τ) factor toward a target, so it cannot overshoot at any dt.
+    /// </summary>
+    private void UpdateContainment(double dt)
+    {
+        // --- mass/energy source into the building ---------------------------------------------------
+        // MSLB inside containment drives off the normalized break steam flow; the LOCA blowdown drives
+        // off break area but FADES as the RCS depressurizes (the energy is the hot pressurized primary
+        // flashing — once the vessel has emptied, the source is just decay-heat boil-off). SGTR and
+        // out-of-containment breaks are intentionally absent: they bypass the containment boundary.
+        double locaDrive = _breakArea * Math.Clamp(PrimaryPressure / 6.0, 0.0, 1.0);
+        double pTarget = Math.Max(MslbBreakFlow * CtmtPeakMslbKpa, locaDrive * CtmtPeakLocaKpa);
+
+        // --- pressurize fast, depressurize via parallel heat-removal conductances -------------------
+        double tau;
+        if (pTarget > ContainmentPressureKpa + 1.0)
+        {
+            tau = CtmtTauPressUp;                         // a break is adding energy: pressure rising
+        }
+        else
+        {
+            double g = 1.0 / CtmtTauPassive;              // passive heat sinks always condensing
+            if (ContainmentFanCoolers) g += 1.0 / CtmtTauFan;
+            if (ContainmentSprayActive) g += 1.0 / CtmtTauSpray;
+            tau = 1.0 / g;
+        }
+        double fP = Math.Min(1.0, dt / tau);              // stable relaxation factor
+        ContainmentPressureKpa += (pTarget - ContainmentPressureKpa) * fP;
+        if (ContainmentPressureKpa < 0) ContainmentPressureKpa = 0;
+
+        // Atmosphere temperature loosely tracks pressure; spray quenches it toward the ~35 °C floor.
+        double pf = Math.Clamp(ContainmentPressureKpa / CtmtPeakLocaKpa, 0.0, 1.0);
+        double tTarget = ContainmentAmbientC + pf * (ContainmentPeakC - ContainmentAmbientC);
+        if (ContainmentSprayActive) tTarget = Math.Min(tTarget, ContainmentSprayTempC + 10.0);
+        ContainmentTempC += (tTarget - ContainmentTempC) * fP;
+
+        // --- containment-pressure ESFAS bistables (latch on up-crossing, reset below set − deadband) -
+        if (ContainmentPressureKpa >= CtmtHi1Kpa) _ctmtHi1 = true;
+        else if (ContainmentPressureKpa < CtmtHi1Kpa - CtmtHystKpa) _ctmtHi1 = false;
+        if (ContainmentPressureKpa >= CtmtHi2Kpa) _ctmtHi2 = true;
+        else if (ContainmentPressureKpa < CtmtHi2Kpa - CtmtHystKpa) _ctmtHi2 = false;
+        if (ContainmentPressureKpa >= CtmtHi3Kpa) _ctmtHi3 = true;
+        else if (ContainmentPressureKpa < CtmtHi3Kpa - CtmtHystKpa) _ctmtHi3 = false;
+
+        // Hi-1 (~4 psig): Safety Injection + Containment Isolation Phase A; safeguards-sequence fan
+        // coolers start; the SI signal trips the reactor (P-4) — mirrors the Lo-Steamline-Press path.
+        ContainmentIsolationPhaseA = _ctmtHi1;
+        if (_ctmtHi1)
+        {
+            SiActuated = true;
+            EccsArmed = true;
+            ContainmentFanCoolers = true;
+            if (!IsScrammed && Mode != ReactorMode.Meltdown)
+            {
+                LastTripFunctionEn = "Containment Pressure Hi-1 (SI)";
+                LastTripFunctionZh = "安全殼壓力高 Hi-1（安全注入）";
+                Scram();
+            }
+        }
+
+        // Hi-2 (~10 psig): Main Steam Line Isolation — close the MSIVs (terminates an MSLB blowdown so
+        // MslbBreakFlow → 0 next tick and the source collapses, exactly like the SI MSIV closure).
+        if (_ctmtHi2) MslbIsolated = true;
+
+        // Hi-3 (~27 psig): Containment Spray (after a ~35 s pump-start/valve-stroke delay) + Phase B.
+        ContainmentIsolationPhaseB = _ctmtHi3;
+        if (_ctmtHi3)
+        {
+            _spraySetupTimer += dt;
+            if (_spraySetupTimer >= SpraySetupSeconds) ContainmentSprayActive = true;
+        }
+        else
+        {
+            _spraySetupTimer = 0;
+            ContainmentSprayActive = false;
+        }
     }
 
     private void UpdateNis(double dt)
@@ -1657,6 +1780,9 @@ public sealed class ReactorSimService
         SetAlarm(ReactorAlarm.RodInsertionLimitLoLo, RilLowLowAlarm);
         SetAlarm(ReactorAlarm.RodDeviation, RodDeviationAlarm);
         SetAlarm(ReactorAlarm.AxialFluxDiffOutOfBand, AfdOutsideBand);
+        SetAlarm(ReactorAlarm.ContainmentPressureHi, _ctmtHi1);
+        SetAlarm(ReactorAlarm.ContainmentIsolation, ContainmentIsolationPhaseA || ContainmentIsolationPhaseB);
+        SetAlarm(ReactorAlarm.ContainmentSpray, ContainmentSprayActive);
     }
 
     private void UpdateStatus()

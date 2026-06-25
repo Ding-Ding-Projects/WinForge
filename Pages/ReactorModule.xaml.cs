@@ -476,6 +476,8 @@ public sealed partial class ReactorModule : Page
         AddGauge("Pressurizer level", "穩壓器水位", 0, 100, () => _sim.PressurizerLevel, () => $"{_sim.PressurizerLevel:F0}%", id: "pzrLevel");
         AddGauge("Pressurizer temp", "穩壓器溫度", 80, 700, () => _sim.PressurizerLiquidTemp * 1.8 + 32, () => $"{_sim.PressurizerLiquidTemp * 1.8 + 32:F0}°F", id: "pzrTemp");
         AddGauge("Steam pressure", "蒸汽壓力", 0, 1300, () => _sim.SteamPressure * 145.038, () => $"{_sim.SteamPressure * 145.038:F0} psia", id: "sgPress");
+        AddGauge("Containment press", "安全殼壓力", 0, 50, () => _sim.ContainmentPressurePsig, () => $"{_sim.ContainmentPressurePsig:F1} psig", warnFrac: 4.0 / 50.0, id: "ctmtPress");
+        AddGauge("Containment temp", "安全殼溫度", 100, 300, () => _sim.ContainmentTempC * 1.8 + 32, () => $"{_sim.ContainmentTempC * 1.8 + 32:F0}°F", warnFrac: (200.0 - 100.0) / (300.0 - 100.0), id: "ctmtTemp");
         AddGauge("SG level", "蒸發器水位", 0, 100, () => _sim.IndicatedSgLevel, () => $"{_sim.IndicatedSgLevel:F0}%", id: "sgLevel");
         AddGauge("Secondary radiation", "二次側輻射", 0, 300, () => _sim.SecondaryRadiation, () => $"{_sim.SecondaryRadiation:F0} µSv/h", warnFrac: 100.0 / 300.0, id: "secRad");
         AddGauge("Atmospheric release", "累計大氣排放", 0, 100, () => _sim.AtmosphericRelease * 10, () => $"{_sim.AtmosphericRelease:F2}", id: "atmRel");
@@ -584,6 +586,9 @@ public sealed partial class ReactorModule : Page
             (ReactorAlarm.SgReliefLift, "SG RELIEF — RELEASE", "蒸發器釋壓閥洩放"),
             (ReactorAlarm.SteamlineBreak, "STEAMLINE BREAK", "主蒸汽管爆裂"),
             (ReactorAlarm.SafetyInjection, "SAFETY INJECTION", "安全注入 SI"),
+            (ReactorAlarm.ContainmentPressureHi, "CTMT PRESS HI", "安全殼壓力高"),
+            (ReactorAlarm.ContainmentIsolation, "CTMT ISOLATION", "安全殼隔離"),
+            (ReactorAlarm.ContainmentSpray, "CTMT SPRAY", "安全殼噴淋"),
             (ReactorAlarm.PzrCodeSafetyOpen, "PZR SAFETY OPEN", "穩壓器安全閥起跳"),
             (ReactorAlarm.RodInsertionLimitLo, "ROD INS LIMIT LO", "控制棒插入限值 低"),
             (ReactorAlarm.RodInsertionLimitLoLo, "ROD INS LIMIT LO-LO", "控制棒插入限值 低低"),
