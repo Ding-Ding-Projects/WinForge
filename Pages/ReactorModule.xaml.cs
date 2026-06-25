@@ -57,7 +57,16 @@ public sealed partial class ReactorModule : Page
     // Live rod-position / insertion-limit readout under the rod-bank sliders.
     private TextBlock? _rodStatusText;
     // CSF (critical safety function) cells: S,C,H,P,Z,I.
-    private readonly List<(Border border, TextBlock label, string en, string zh, Func<int> sev)> _csfCells = new();
+    private readonly List<(Border border, TextBlock label, int idx)> _csfCells = new();
+    // Preallocated status brushes indexed by CsfStatus ordinal (0=Invalid..4=Red) — no per-frame allocation.
+    private readonly SolidColorBrush[] _csfBrush =
+    {
+        new(Color.FromArgb(255, 0x55, 0x55, 0x55)), // Invalid — grey (insufficient data)
+        new(Color.FromArgb(255, 0x2E, 0x7D, 0x32)), // Green   — satisfied
+        new(Color.FromArgb(255, 0xFB, 0xC0, 0x2D)), // Yellow  — degraded
+        new(Color.FromArgb(255, 0xF5, 0x7C, 0x00)), // Orange  — severe
+        new(Color.FromArgb(255, 0xD3, 0x2F, 0x2F)), // Red     — immediate restoration
+    };
     // RPS function tiles: one per protection function, each owning its border, status text + channel LEDs.
     private sealed class RpsTile
     {
@@ -1373,46 +1382,37 @@ public sealed partial class ReactorModule : Page
     {
         CsfPanel.Children.Clear();
         _csfCells.Clear();
-        // (id, en, zh, severity 0=green..3=red)
-        (string en, string zh, Func<int> sev)[] defs =
+        // One tile per Critical Safety Function Status Tree, built ONCE from the engine's
+        // CriticalSafetyFunctions list. The tile binds by INDEX — its colour and tooltip are refreshed
+        // each tick in UpdateCsfPanel() from _sim.CriticalSafetyFunctions[idx]; no closure over signals.
+        var fns = _sim.CriticalSafetyFunctions;
+        for (int i = 0; i < fns.Count; i++)
         {
-            ("S Subcrit", "S 次臨界", () => _sim.IsScrammed && _sim.NeutronPowerFraction > 0.02 ? 3 : (_sim.NeutronPowerFraction > 1.05 ? 2 : 0)),
-            // FR-C core-cooling tree, now driven by the CET/SMM ICC monitor: RED at CET ≥ 1200 °F (FR-C.1),
-            // ORANGE at CET ≥ 700 °F or loss of subcooling margin (FR-C.2).
-            ("C Cooling", "C 堆芯冷卻", () => _sim.IccRed ? 3 : _sim.IccOrange ? 2 : 0),
-            ("H Heat sink", "H 熱阱", () => _sim.SteamGenLevel < 17 ? 3 : _sim.SteamGenLevel < 30 ? 2 : 0),
-            ("P Integrity", "P 完整性", () => _sim.PrimaryPressure > ReactorSimService.VesselPressureLimit ? 3 : _sim.PrimaryPressure > ReactorSimService.VesselPressureLimit - 1 ? 2 : 0),
-            ("Z Containment", "Z 安全殼", () => _sim.Mode == ReactorMode.Meltdown ? 3 : _sim.DamageAccumulation > 1 ? 2 : 0),
-            ("I Inventory", "I 存量", () => _sim.PressurizerLevel < 17 ? 3 : _sim.PressurizerLevel < 30 ? 2 : 0),
-        };
-        foreach (var (en, zh, sev) in defs)
-        {
+            int idx = i; // capture
             var label = new TextBlock { FontSize = 11, FontWeight = FontWeights.SemiBold, TextAlignment = TextAlignment.Center, TextWrapping = TextWrapping.Wrap, Foreground = new SolidColorBrush(Colors.White) };
             var border = new Border
             {
                 Width = 96, Height = 52, CornerRadius = new CornerRadius(5),
-                Background = new SolidColorBrush(Color.FromArgb(255, 0x2E, 0x7D, 0x32)),
+                Background = _csfBrush[(int)CsfStatus.Green],
                 Child = new Viewbox { Child = label, MaxHeight = 40, Margin = new Thickness(3) },
             };
-            _relocalizers.Add(() => label.Text = P(en, zh));
-            label.Text = P(en, zh);
-            _csfCells.Add((border, label, en, zh, sev));
+            void SetLabel() { var f = _sim.CriticalSafetyFunctions[idx]; label.Text = $"{f.Mnemonic} {f.Name}"; }
+            _relocalizers.Add(SetLabel);
+            SetLabel();
+            _csfCells.Add((border, label, idx));
             CsfPanel.Children.Add(border);
         }
     }
 
     private void UpdateCsfPanel()
     {
-        foreach (var (border, _, _, _, sev) in _csfCells)
+        var fns = _sim.CriticalSafetyFunctions;
+        foreach (var (border, _, idx) in _csfCells)
         {
-            Color c = sev() switch
-            {
-                3 => Color.FromArgb(255, 0xD3, 0x2F, 0x2F),
-                2 => Color.FromArgb(255, 0xF5, 0x7C, 0x00),
-                1 => Color.FromArgb(255, 0xFB, 0xC0, 0x2D),
-                _ => Color.FromArgb(255, 0x2E, 0x7D, 0x32),
-            };
-            border.Background = new SolidColorBrush(c);
+            var f = fns[idx];
+            border.Background = _csfBrush[(int)f.Status];
+            // Tooltip = entry Function Restoration Guideline + one-line cause (e.g. "FR-C.1 · CET 1240°C ≥ 649°C").
+            ToolTipService.SetToolTip(border, f.IsGreen ? f.Cause : $"{f.Frg} · {f.Cause}");
         }
     }
 

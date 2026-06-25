@@ -16,6 +16,36 @@ public enum ReactorMode
 }
 
 /// <summary>
+/// 關鍵安全功能狀態 · The four-level Critical Safety Function status used by the Westinghouse
+/// Emergency Response Guidelines / SPDS status trees, plus an Invalid (insufficient-data) state.
+/// Ordinal ordering matters: the panel annunciator takes the MAX ordinal across the six trees,
+/// so Invalid (grey) ranks below Green and Red ranks highest.
+/// </summary>
+public enum CsfStatus { Invalid = 0, Green = 1, Yellow = 2, Orange = 3, Red = 4 }
+
+/// <summary>
+/// 一個關鍵安全功能狀態樹嘅評估結果 · One evaluated Critical Safety Function Status Tree (CSFST)
+/// result. Immutable value type copied into a preallocated array each tick (no per-tick heap
+/// traffic — the EN/中文 string literals are interned). The Name/Cause accessors re-Pick the
+/// language on read, so a language switch needs no re-evaluation.
+/// </summary>
+public readonly struct CsfState
+{
+    public readonly char      Mnemonic;       // 'S','C','H','P','Z','I'
+    public readonly string    NameEn, NameZh;
+    public readonly CsfStatus Status;
+    public readonly string    Frg;            // entry Function Restoration Guideline, e.g. "FR-C.1" — or "--" when satisfied/invalid
+    public readonly string    CauseEn, CauseZh;
+
+    public CsfState(char m, string nEn, string nZh, CsfStatus s, string frg, string cEn, string cZh)
+    { Mnemonic = m; NameEn = nEn; NameZh = nZh; Status = s; Frg = frg; CauseEn = cEn; CauseZh = cZh; }
+
+    public string Name    => Loc.I.Pick(NameEn, NameZh);
+    public string Cause   => Loc.I.Pick(CauseEn, CauseZh);
+    public bool   IsGreen => Status == CsfStatus.Green;
+}
+
+/// <summary>
 /// 技術規格運轉模式 · The formal Tech-Spec OPERATIONAL MODE (Westinghouse Standard Technical
 /// Specifications, NUREG-1431 Table 1.1-1). This is the licensing-basis plant condition that
 /// every LCO applicability statement keys off ("…in MODE 1 > 50% RTP", "…restore in MODE 3 within
@@ -1749,6 +1779,16 @@ public sealed class ReactorSimService
     // boolean trip OR. Built once and re-evaluated every protection tick.
     private readonly ReactorRps _rps = new();
     public ReactorRps Rps => _rps;
+
+    // ===== Critical Safety Function Status Trees (Westinghouse ERG / SPDS, F-0.1…F-0.6) =====
+    // Six functions evaluated in fixed Westinghouse priority order S > C > H > P > Z > I. Each tree
+    // maps already-computed plant signals (NIS flux, CET/ICC, SG level/feed, RCS pressure/cooldown
+    // rate, containment, pressurizer/RVLIS inventory) through Red→Orange→Yellow→Green branches and
+    // names the entry Function Restoration Guideline. Recomputed each Update(dt) tick into _csf.
+    private readonly CsfState[] _csf = new CsfState[6];
+    public IReadOnlyList<CsfState> CriticalSafetyFunctions => _csf;
+    public CsfStatus WorstCsfStatus { get; private set; } = CsfStatus.Green; // MAX ordinal across the six → single panel annunciator
+    public CsfState? HighestPriorityCsf { get; private set; }                // first non-Green in S,C,H,P,Z,I order (null = all satisfied)
     public string LastTripFunctionEn { get; private set; } = "";
     public string LastTripFunctionZh { get; private set; } = "";
 
@@ -2693,6 +2733,7 @@ public sealed class ReactorSimService
             StepCet(dt);      // keep CET / subcooling-margin (ICC) indication live through a meltdown
             StepBoricAcidPrecip(dt); // keep boric-acid precipitation / hot-leg-recirc indication live through a meltdown
             StepContainmentH2(dt); // keep H₂ atmosphere / PAR / igniter / burn model live through a meltdown
+            UpdateCriticalSafetyFunctions(dt); // keep the CSF status trees live through core damage (all six pinned red/orange)
             UpdateAlarms();
             return;
         }
@@ -2767,6 +2808,7 @@ public sealed class ReactorSimService
         UpdatePtLimits(dt); // App G P/T brittle-fracture limit + LTOP arming (reads the final post-tick Tcold/pressure)
         UpdatePtsMonitor(dt); // PTS fracture-mechanics figure of merit (reads the post-PtLimits Tcold/pressure/cooldown rate); display-only
         UpdateRiaConsequences(); // RIA fuel-enthalpy acceptance evaluation (reads the post-tick DNBR / enthalpy peak)
+        UpdateCriticalSafetyFunctions(dt); // ERG/SPDS status trees — read every post-tick signal, before alarms
         UpdateAlarms();
         UpdateStatus();
         UpdateTechSpecMode(); // classify the formal Tech-Spec OPERATIONAL MODE from the final post-tick ρ / power / Tavg
@@ -4960,6 +5002,177 @@ public sealed class ReactorSimService
         SetAlarm(ReactorAlarm.RodEjectionAccident, _riaActive);
         SetAlarm(ReactorAlarm.FuelEnthalpyLimit, RiaCoolabilityViolated);
         SetAlarm(ReactorAlarm.RiaCladFailure, RiaCladdingFailure);
+    }
+
+    // ===================================================== CRITICAL SAFETY FUNCTIONS ====
+    // Westinghouse ERG / SPDS status-tree evaluator (F-0.1…F-0.6). Pure functions of the already-
+    // computed plant signals — no physics is recomputed here; the ICC RED/ORANGE bools and the
+    // CET/subcooling/RVLIS/containment readings are consumed as-is. Each tree is ordered
+    // Red→Orange→Yellow→Green with an Invalid (insufficient-data) guard first on its driving sensor.
+    private static CsfState Mk(char m, string nEn, string nZh, CsfStatus s, string frg, string cEn, string cZh)
+        => new(m, nEn, nZh, s, frg, cEn, cZh);
+
+    private void UpdateCriticalSafetyFunctions(double dt)
+    {
+        _csf[0] = EvalSubcriticality();
+        _csf[1] = EvalCoreCooling();
+        _csf[2] = EvalHeatSink();
+        _csf[3] = EvalIntegrity();
+        _csf[4] = EvalContainment();
+        _csf[5] = EvalInventory();
+
+        var worst = CsfStatus.Green;
+        for (int i = 0; i < _csf.Length; i++)
+            if ((int)_csf[i].Status > (int)worst) worst = _csf[i].Status; // Invalid<Green<Yellow<Orange<Red
+        WorstCsfStatus = worst;
+
+        CsfState? top = null;
+        for (int i = 0; i < _csf.Length; i++)                              // array already in S,C,H,P,Z,I priority order
+            if (_csf[i].Status > CsfStatus.Green) { top = _csf[i]; break; }
+        HighestPriorityCsf = top;
+    }
+
+    // F-0.1 SUBCRITICALITY — power-range flux + startup rate. RED = trip demanded yet >5% RTP or a
+    // positive SUR (ATWS) → FR-S.1; ORANGE = un-tripped overpower >105% RTP; YELLOW = uncontrolled
+    // positive startup rate / inadequate shutdown margin → FR-S.2.
+    private CsfState EvalSubcriticality()
+    {
+        if (double.IsNaN(NeutronPowerFraction))
+            return Mk('S', "Subcriticality", "次臨界度", CsfStatus.Invalid, "--",
+                      "NIS flux invalid", "中子通量訊號失效");
+        if (IsScrammed && (NeutronPowerFraction > 0.05 || StartupRateDpm > 1.0))
+            return Mk('S', "Subcriticality", "次臨界度", CsfStatus.Red, "FR-S.1",
+                      $"Power {NeutronPowerFraction * 100:F1}% after trip — ATWS",
+                      $"跳機後功率 {NeutronPowerFraction * 100:F1}% — 未能停堆 (ATWS)");
+        if (!IsScrammed && NeutronPowerFraction > 1.05)
+            return Mk('S', "Subcriticality", "次臨界度", CsfStatus.Orange, "FR-S.1",
+                      $"Overpower {NeutronPowerFraction * 100:F0}% RTP",
+                      $"超功率 {NeutronPowerFraction * 100:F0}% RTP");
+        if (StartupRateDpm > 0.5)
+            return Mk('S', "Subcriticality", "次臨界度", CsfStatus.Yellow, "FR-S.2",
+                      $"Positive startup rate {StartupRateDpm:F1} DPM",
+                      $"正向啟動率 {StartupRateDpm:F1} DPM");
+        return Mk('S', "Subcriticality", "次臨界度", CsfStatus.Green, "--",
+                  "Reactor subcritical", "反應堆次臨界");
+    }
+
+    // F-0.2 CORE COOLING — core-exit thermocouples / ICC monitor. Reuses the engine's IccRed (CET ≥
+    // 649 °C / 1200 °F) and IccOrange (CET ≥ 371 °C / 700 °F OR subcooling lost) bools verbatim →
+    // FR-C.1 / FR-C.2. YELLOW = low subcooling margin (<11 °C ≈ 20 °F) or RVLIS below top of active
+    // fuel (62 %) → FR-C.3.
+    private CsfState EvalCoreCooling()
+    {
+        if (double.IsNaN(CoreExitTempC))
+            return Mk('C', "Core Cooling", "堆芯冷卻", CsfStatus.Invalid, "--",
+                      "Core-exit TCs invalid", "堆芯出口熱電偶失效");
+        if (IccRed)
+            return Mk('C', "Core Cooling", "堆芯冷卻", CsfStatus.Red, "FR-C.1",
+                      $"CET {CoreExitTempC:F0}°C ≥ 649°C — core damage imminent",
+                      $"堆芯出口 {CoreExitTempC:F0}°C ≥ 649°C — 堆芯損毀逼近");
+        if (IccOrange)
+            return Mk('C', "Core Cooling", "堆芯冷卻", CsfStatus.Orange, "FR-C.2",
+                      $"CET {CoreExitTempC:F0}°C / subcooling lost",
+                      $"堆芯出口 {CoreExitTempC:F0}°C / 喪失過冷裕度");
+        if (CetSubcoolingMarginC < 11.0 || RvlisFullRangePct < 62.0)
+            return Mk('C', "Core Cooling", "堆芯冷卻", CsfStatus.Yellow, "FR-C.3",
+                      $"Subcooling {CetSubcoolingMarginC:F0}°C / RVLIS {RvlisFullRangePct:F0}%",
+                      $"過冷裕度 {CetSubcoolingMarginC:F0}°C / RVLIS {RvlisFullRangePct:F0}%");
+        return Mk('C', "Core Cooling", "堆芯冷卻", CsfStatus.Green, "--",
+                  "Adequate core cooling", "堆芯冷卻充足");
+    }
+
+    // F-0.3 HEAT SINK — SG narrow-range level + feed sources. RED = level below lo-lo AND no feed
+    // (main or aux) → total loss of heat sink, FR-H.1; ORANGE = NR level below lo-lo (~17 %);
+    // YELLOW = low/recovering level or marginal feed → FR-H.5.
+    private CsfState EvalHeatSink()
+    {
+        if (double.IsNaN(SteamGenLevel))
+            return Mk('H', "Heat Sink", "熱阱", CsfStatus.Invalid, "--",
+                      "SG level invalid", "蒸汽發生器水位訊號失效");
+        if (SteamGenLevel < 17.0 && !AuxFeedwaterRunning && FeedwaterFlow < 0.02)
+            return Mk('H', "Heat Sink", "熱阱", CsfStatus.Red, "FR-H.1",
+                      "Total loss of SG feedwater", "完全喪失蒸汽發生器給水");
+        if (SteamGenLevel < 17.0)
+            return Mk('H', "Heat Sink", "熱阱", CsfStatus.Orange, "FR-H.1",
+                      $"SG level {SteamGenLevel:F0}% < lo-lo",
+                      $"蒸發器水位 {SteamGenLevel:F0}% 低於低低值");
+        if (SteamGenLevel < 30.0 || (FeedwaterFlow < 0.05 && !AuxFeedwaterRunning))
+            return Mk('H', "Heat Sink", "熱阱", CsfStatus.Yellow, "FR-H.5",
+                      $"SG level {SteamGenLevel:F0}% / feed marginal",
+                      $"蒸發器水位 {SteamGenLevel:F0}% / 給水不足");
+        return Mk('H', "Heat Sink", "熱阱", CsfStatus.Green, "--",
+                  "Heat sink available", "熱阱可用");
+    }
+
+    // F-0.4 RCS INTEGRITY (pressure boundary / PTS) — RCS pressure + cooldown rate. RED = above the
+    // 17.2 MPa design pressure (overpressure / imminent PTS), FR-P.1; ORANGE = within 1 MPa of it;
+    // YELLOW = cooldown faster than the ~100 °F/hr (−55 °C/hr) Tech-Spec App-G limit → FR-P.2.
+    private CsfState EvalIntegrity()
+    {
+        if (double.IsNaN(PrimaryPressure))
+            return Mk('P', "RCS Integrity", "一迴路完整性", CsfStatus.Invalid, "--",
+                      "RCS pressure invalid", "一迴路壓力訊號失效");
+        if (PrimaryPressure > VesselPressureLimit)
+            return Mk('P', "RCS Integrity", "一迴路完整性", CsfStatus.Red, "FR-P.1",
+                      $"RCS {PrimaryPressure:F1} MPa > {VesselPressureLimit:F1} MPa overpressure",
+                      $"一迴路 {PrimaryPressure:F1} MPa > {VesselPressureLimit:F1} MPa 超壓");
+        if (PrimaryPressure > VesselPressureLimit - 1.0)
+            return Mk('P', "RCS Integrity", "一迴路完整性", CsfStatus.Orange, "FR-P.1",
+                      $"RCS {PrimaryPressure:F1} MPa near limit",
+                      $"一迴路 {PrimaryPressure:F1} MPa 逼近上限");
+        if (RcsRateCperHr < -55.0)
+            return Mk('P', "RCS Integrity", "一迴路完整性", CsfStatus.Yellow, "FR-P.2",
+                      $"Cooldown {RcsRateCperHr:F0}°C/hr — PTS concern",
+                      $"降溫率 {RcsRateCperHr:F0}°C/hr — 加壓熱衝擊風險");
+        return Mk('P', "RCS Integrity", "一迴路完整性", CsfStatus.Green, "--",
+                  "Pressure boundary intact", "壓力邊界完整");
+    }
+
+    // F-0.5 CONTAINMENT — pressure / radiation / damage. RED = meltdown, containment-atmosphere rad
+    // monitor in alarm, or pressure at the Hi-3 spray/design setpoint (~186 kPa ≈ 27 psig), FR-Z.1;
+    // ORANGE = Hi-1 (~28 kPa ≈ 4 psig) or accumulating core damage; YELLOW = elevated rad / sump
+    // rising → FR-Z.3. All Z inputs are always-valid model state (no Invalid guard).
+    private CsfState EvalContainment()
+    {
+        if (Mode == ReactorMode.Meltdown || ParticulateMonitorRatio >= 1.0 || GaseousMonitorRatio >= 1.0
+            || ContainmentPressureKpa >= 186.0)
+            return Mk('Z', "Containment", "安全殼", CsfStatus.Red, "FR-Z.1",
+                      $"Containment {ContainmentPressureKpa:F0} kPa / rad / meltdown",
+                      $"安全殼 {ContainmentPressureKpa:F0} kPa / 輻射 / 熔毀");
+        if (ContainmentPressureKpa >= 28.0 || DamageAccumulation > 1.0)
+            return Mk('Z', "Containment", "安全殼", CsfStatus.Orange, "FR-Z.1",
+                      $"Containment {ContainmentPressureKpa:F0} kPa Hi-1",
+                      $"安全殼 {ContainmentPressureKpa:F0} kPa 高一");
+        if (ParticulateMonitorRatio > 0.5 || GaseousMonitorRatio > 0.5 || ContainmentSumpGal > 500.0)
+            return Mk('Z', "Containment", "安全殼", CsfStatus.Yellow, "FR-Z.3",
+                      "Containment rad / sump rising", "安全殼輻射 / 地坑上升");
+        return Mk('Z', "Containment", "安全殼", CsfStatus.Green, "--",
+                  "Containment intact", "安全殼完整");
+    }
+
+    // F-0.6 RCS INVENTORY — pressurizer level (+ RVLIS cross-check). RED = level off-scale-low with
+    // RVLIS below top of active fuel → inventory lost, FR-I.2; ORANGE = level below ~17 %; YELLOW =
+    // low (<30 %) or overfill (>92 %, solid-plant risk) → FR-I.1 / FR-I.3.
+    private CsfState EvalInventory()
+    {
+        if (double.IsNaN(PressurizerLevel))
+            return Mk('I', "RCS Inventory", "一迴路存量", CsfStatus.Invalid, "--",
+                      "PZR level invalid", "穩壓器水位訊號失效");
+        if (PressurizerLevel < 5.0 && RvlisFullRangePct < 62.0)
+            return Mk('I', "RCS Inventory", "一迴路存量", CsfStatus.Red, "FR-I.2",
+                      "PZR level off-scale low — inventory lost",
+                      "穩壓器水位低於量程 — 喪失存量");
+        if (PressurizerLevel < 17.0)
+            return Mk('I', "RCS Inventory", "一迴路存量", CsfStatus.Orange, "FR-I.2",
+                      $"PZR level {PressurizerLevel:F0}% low",
+                      $"穩壓器水位 {PressurizerLevel:F0}% 偏低");
+        if (PressurizerLevel < 30.0 || PressurizerLevel > 92.0)
+            return Mk('I', "RCS Inventory", "一迴路存量", CsfStatus.Yellow,
+                      PressurizerLevel > 92.0 ? "FR-I.3" : "FR-I.1",
+                      $"PZR level {PressurizerLevel:F0}%",
+                      $"穩壓器水位 {PressurizerLevel:F0}%");
+        return Mk('I', "RCS Inventory", "一迴路存量", CsfStatus.Green, "--",
+                  "RCS inventory normal", "一迴路存量正常");
     }
 
     private void UpdateAlarms()
