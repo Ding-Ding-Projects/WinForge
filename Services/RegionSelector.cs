@@ -142,12 +142,20 @@ public static class RegionSelector
         UpdateWindow(_hwnd);
         SetForegroundWindow(_hwnd);
 
-        // local modal message loop
-        while (GetMessage(out var msg, IntPtr.Zero, 0, 0) > 0)
+        // local modal message loop — wrap so an unexpected fault in a paint/pointer callback
+        // cancels the pick cleanly instead of crashing the process.
+        try
         {
-            TranslateMessage(ref msg);
-            DispatchMessage(ref msg);
-            if (_hwnd == IntPtr.Zero) break;
+            while (GetMessage(out var msg, IntPtr.Zero, 0, 0) > 0)
+            {
+                TranslateMessage(ref msg);
+                DispatchMessage(ref msg);
+                if (_hwnd == IntPtr.Zero) break;
+            }
+        }
+        catch (Exception)
+        {
+            _result = null;
         }
 
         Cleanup();
@@ -221,9 +229,12 @@ public static class RegionSelector
     {
         int x = Math.Min(_sx, _cx), y = Math.Min(_sy, _cy);
         int w = Math.Abs(_cx - _sx), h = Math.Abs(_cy - _sy);
+        // A click-without-drag (or a sub-minimum drag) must never yield a 0-size region — cancel cleanly.
         if (w < 4 || h < 4) { _result = null; PostQuitMessage(0); return; }
         // ffmpeg gdigrab needs even dimensions for yuv420p
         w -= w % 2; h -= h % 2;
+        // even-rounding must not collapse the region to zero either
+        if (w <= 0 || h <= 0) { _result = null; PostQuitMessage(0); return; }
         // translate window-local → physical virtual-screen coords
         _result = (x + _vx, y + _vy, w, h);
         PostQuitMessage(0);
@@ -237,10 +248,14 @@ public static class RegionSelector
             var full = ps.rcPaint;
             FillRect(hdc, ref full, _dimBrush); // layered alpha makes this a dimming veil
 
-            if (_have)
+            // Only draw the selection box while the overlay is live and the rect is non-degenerate;
+            // never deref drag state once the window is finishing/closed.
+            if (_have && _hwnd != IntPtr.Zero)
             {
                 int x = Math.Min(_sx, _cx), y = Math.Min(_sy, _cy);
                 int r = Math.Max(_sx, _cx), b = Math.Max(_sy, _cy);
+                if (r > x && b > y)
+                {
                 var pen = CreatePen(PS_SOLID, 2, 0x0000FFFF); // BGR: bright yellow outline
                 var oldPen = SelectObject(hdc, pen);
                 var oldBrush = SelectObject(hdc, GetStockObject(NULL_BRUSH));
@@ -248,8 +263,10 @@ public static class RegionSelector
                 SelectObject(hdc, oldPen);
                 SelectObject(hdc, oldBrush);
                 DeleteObject(pen);
+                }
             }
         }
+        catch (Exception) { /* never throw across the native DispatchMessage boundary */ }
         finally { EndPaint(hWnd, ref ps); }
     }
 

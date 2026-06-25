@@ -228,7 +228,11 @@ public static class CropAndLockService
         crop.Top = Math.Clamp(crop.Top, 0, Math.Max(0, fh));
         crop.Right = Math.Clamp(crop.Right, crop.Left + 1, Math.Max(crop.Left + 1, fw));
         crop.Bottom = Math.Clamp(crop.Bottom, crop.Top + 1, Math.Max(crop.Top + 1, fh));
-        if (crop.Width < 8 || crop.Height < 8) { Note("Region is outside the window.", "區域喺視窗範圍以外。"); return false; }
+        // Explicitly guard against an inverted / zero crop before it ever reaches DWM. A degenerate
+        // source rect (Right<=Left or Bottom<=Top) makes DwmRegisterThumbnail/UpdateThumbnailProperties crash.
+        if (crop.Right <= crop.Left || crop.Bottom <= crop.Top
+            || crop.Width < 8 || crop.Height < 8)
+        { Note("Region is outside the window.", "區域喺視窗範圍以外。"); return false; }
 
         var req = new CreateRequest { Source = source, Title = title, Crop = crop, Thumbnail = thumbnail };
         lock (_reqLock) _pending.Enqueue(req);
@@ -482,8 +486,11 @@ public static class CropAndLockService
         float scale = ww / cw;
         if (ww / wh > cw / ch) scale = wh / ch;
         float dw = cw * scale, dh = ch * scale;
-        int left = (int)((ww - dw) / 2f), top = (int)((wh - dh) / 2f);
-        return new RECT { Left = left, Top = top, Right = left + (int)dw, Bottom = top + (int)dh };
+        // Fractional scaled dims can floor to 0 → a zero-size / inverted rcDestination crashes DWM
+        // (DwmUpdateThumbnailProperties). Clamp to at least 1px and build the rect from the clamped ints.
+        int dwInt = Math.Max(1, (int)dw), dhInt = Math.Max(1, (int)dh);
+        int left = (int)((ww - dwInt) / 2f), top = (int)((wh - dhInt) / 2f);
+        return new RECT { Left = left, Top = top, Right = left + dwInt, Bottom = top + dhInt };
     }
 
     // ===================== global hotkeys =====================

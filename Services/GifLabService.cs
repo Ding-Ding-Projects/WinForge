@@ -53,6 +53,8 @@ public static class GifLabService
 
         // even dimensions keep yuv420p / scaling happy later
         w -= w % 2; h -= h % 2;
+        // a tiny (1px) region can collapse to 0 after even-rounding — never hand ffmpeg a 0×0 capture
+        if (w <= 0 || h <= 0) return TweakResult.Fail("Region is too small.", "區域太細。");
 
         var pattern = Path.Combine(_workDir, "frame%05d.png");
         var dur = durationSeconds > 0 ? $"-t {durationSeconds} " : "";
