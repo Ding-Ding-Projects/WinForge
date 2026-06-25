@@ -53,6 +53,9 @@
                 <NavigationViewItem Content="★ Nuclear Reactor · 核反應堆" Tag="module.reactor">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xEBC0;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
+                <NavigationViewItem Content="⚙ Reactor Settings · 反應堆設定" Tag="module.reactorsettings">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE713;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
 
                 <NavigationViewItem Content="Files &amp; Disks · 檔案與磁碟" SelectsOnInvoked="False">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE8B7;" /></NavigationViewItem.Icon>

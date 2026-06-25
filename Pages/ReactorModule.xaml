@@ -55,13 +55,11 @@
                         <TextBlock x:Name="BannerWarn" Grid.Column="1" VerticalAlignment="Center" TextWrapping="Wrap"
                                    Foreground="#FFB300" FontWeight="SemiBold" />
                         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-                            <!-- Crash/shutdown-safe autosave indicator + toggle -->
+                            <!-- Crash/shutdown-safe autosave LIVE INDICATOR (the configuration toggle now lives on the Reactor Settings page) -->
                             <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                                 <Border x:Name="SaveDot" Width="10" Height="10" CornerRadius="5" Background="#4CAF50" VerticalAlignment="Center" />
                                 <TextBlock x:Name="SaveStatusText" FontSize="12" VerticalAlignment="Center"
                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                <ToggleSwitch x:Name="AutosaveToggle" MinWidth="0" VerticalAlignment="Center"
-                                              Toggled="AutosaveToggle_Toggled" />
                             </StackPanel>
                             <TextBlock x:Name="ClockText" FontFamily="Consolas" FontSize="13" VerticalAlignment="Center"
                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
@@ -84,8 +82,6 @@
                                 Background="#757575" VerticalAlignment="Center" />
                         <TextBlock x:Name="KeepAwakeText" Grid.Column="1" VerticalAlignment="Center"
                                    TextWrapping="Wrap" FontWeight="SemiBold" />
-                        <ToggleSwitch x:Name="KeepAwakeToggle" Grid.Column="2" VerticalAlignment="Center"
-                                      IsOn="True" Toggled="KeepAwakeToggle_Toggled" />
                     </Grid>
                 </Border>
 
@@ -103,11 +99,7 @@
                                 Background="#757575" VerticalAlignment="Center" />
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
                             <TextBlock x:Name="SysLinkText" TextWrapping="Wrap" FontWeight="SemiBold" />
-                            <TextBlock x:Name="SysLinkWarn" TextWrapping="Wrap" FontSize="12"
-                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                         </StackPanel>
-                        <ToggleSwitch x:Name="SysLinkToggle" Grid.Column="2" VerticalAlignment="Center"
-                                      IsOn="False" Toggled="SysLinkToggle_Toggled" />
                     </Grid>
                 </Border>
                 </StackPanel>
@@ -117,6 +109,12 @@
                         Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                         BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                     <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <Button x:Name="ReactorSettingsButton" Click="ReactorSettings_Click" Background="#1F6FEB" Foreground="White">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE713;" FontSize="14" Foreground="White" />
+                                <TextBlock x:Name="ReactorSettingsButtonText" />
+                            </StackPanel>
+                        </Button>
                         <Button x:Name="OpenControlRoomButton" Click="OpenControlRoom_Click" />
                         <Button x:Name="OpenWidgetsButton" Click="OpenWidgets_Click" />
                         <ToggleButton x:Name="MuteToggle" Click="MuteToggle_Click" />

@@ -835,6 +835,10 @@ public sealed partial class MainWindow : Window
             case "meltdown":
                 Navigator.GoToModule?.Invoke("module.reactor");
                 break;
+            case "reactorsettings":
+            case "reactor-settings":
+                Navigator.GoToModule?.Invoke("module.reactorsettings");
+                break;
             case "diff":
             case "merge":
             case "winmerge":
@@ -921,6 +925,7 @@ public sealed partial class MainWindow : Window
     private static Type MapType(string key) => key switch
     {
         "module.reactor" => typeof(ReactorModule),
+        "module.reactorsettings" => typeof(ReactorSettingsModule),
         "module.git" => typeof(GitHubModule),
         "module.vscode" => typeof(VsCodeModule),
         "module.aiagents" => typeof(AiAgentsModule),

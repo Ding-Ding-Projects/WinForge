@@ -37,8 +37,8 @@ public sealed partial class ReactorModule : Page
     private DateTime _last = DateTime.UtcNow;
     private double _simClock; // seconds since start
 
-    // Real-shutdown safety state.
-    private bool _armRealShutdown; // DEFAULT OFF
+    // Real-shutdown safety state. The ARM flag now lives in ReactorRealShutdownArm (set on the Reactor
+    // Settings page; DEFAULT OFF, in-memory only). 真實關機致動旗標已搬去反應堆設定頁（預設關閉）。
     private DispatcherTimer? _countdownTimer;
     private int _countdownRemaining;
     private bool _aborted;
@@ -126,14 +126,14 @@ public sealed partial class ReactorModule : Page
     // Keep-awake (real OS) state driven by the simulated generator output.
     // 由模擬發電機輸出驅動嘅真實作業系統保持喚醒狀態。
     private bool _keepingAwake;                 // tracks the live OS hold so calls stay idempotent
-    private bool _keepAwakeEnabled = true;      // user toggle; DEFAULT ON
+    // User toggle (DEFAULT ON) now lives on the Reactor Settings page via ReactorKeepAwakeSetting.
+    private static bool _keepAwakeEnabled => ReactorKeepAwakeSetting.Enabled;
     private const double KeepAwakeMinMWe = 1.0;  // generator must deliver > 1 MWe to the grid
 
     // Cached control text blocks needing re-localization.
     private readonly List<Action> _relocalizers = new();
 
-    // Public status-API card live elements.
-    private ToggleSwitch? _apiToggle;
+    // Public status-API card live element (the enable/disable toggle moved to the Reactor Settings page).
     private TextBlock? _apiStateText;
     // 防崩潰自動儲存：本反應堆喺 PersistenceService 嘅提供者 id。
     // Persistence: this reactor's provider id in PersistenceService.
@@ -173,10 +173,10 @@ public sealed partial class ReactorModule : Page
             UpdateSaveIndicator(PersistenceService.I.LastSaved);
             PersistenceService.I.Saved += OnStateSaved;
 
-            // Reactor↔system-settings linkage: reflect the persisted toggle (DEFAULT OFF) and, if it
-            // was left on, re-arm it (which snapshots fresh originals). 反應堆連動系統設定（預設關閉）。
-            SysLinkToggle.IsOn = ReactorSystemLinkService.EnabledSetting;
-            if (SysLinkToggle.IsOn) ReactorSystemLinkService.I.Enable();
+            // Reactor↔system-settings linkage: the configuration toggle now lives on the Reactor Settings
+            // page (DEFAULT OFF). If the persisted setting was left on, re-arm it here (snapshots fresh
+            // originals) so the linkage keeps working while the main page is open. 系統連動設定已搬去設定頁。
+            if (ReactorSystemLinkService.EnabledSetting) ReactorSystemLinkService.I.Enable();
             UpdateSysLinkPill();
 
 
@@ -285,9 +285,6 @@ public sealed partial class ReactorModule : Page
     private void UpdateSaveIndicator(DateTime? when)
     {
         bool on = PersistenceService.I.AutosaveEnabled;
-        AutosaveToggle.IsOn = on;
-        AutosaveToggle.OnContent = P("On", "開");
-        AutosaveToggle.OffContent = P("Off", "關");
 
         if (!on)
         {
@@ -306,13 +303,6 @@ public sealed partial class ReactorModule : Page
             SaveStatusText.Text = P("Autosave on · 自動儲存開啟", "自動儲存開啟 · Autosave on");
             SaveDot.Background = new SolidColorBrush(Color.FromArgb(255, 0x4C, 0xAF, 0x50));
         }
-    }
-
-    private void AutosaveToggle_Toggled(object sender, RoutedEventArgs e)
-    {
-        PersistenceService.I.AutosaveEnabled = AutosaveToggle.IsOn;
-        if (AutosaveToggle.IsOn) PersistenceService.I.Flush(); // capture immediately when re-enabled
-        UpdateSaveIndicator(PersistenceService.I.LastSaved);
     }
 
     // ============================================================ static labels ====
@@ -345,15 +335,7 @@ public sealed partial class ReactorModule : Page
         SilenceButton.Content = P("SILENCE", "靜音警報");
         ResetAlarmButton.Content = P("RESET", "重置");
         LampTestButton.Content = P("LAMP TEST", "燈測");
-        KeepAwakeToggle.Header = P("Keep PC awake while generating · 發電時保持電腦喚醒", "發電時保持電腦喚醒 · Keep PC awake while generating");
-        KeepAwakeToggle.OnContent = P("On", "開");
-        KeepAwakeToggle.OffContent = P("Off", "關");
-        SysLinkToggle.Header = P("Link reactor to system settings · 將反應堆連動系統設定", "將反應堆連動系統設定 · Link reactor to system settings");
-        SysLinkToggle.OnContent = P("On", "開");
-        SysLinkToggle.OffContent = P("Off", "關");
-        SysLinkWarn.Text = P(
-            "Changes your Windows power plan, accent colour and screen brightness to match the reactor. All originals are restored when you turn this off or leave the page. Default off.",
-            "會按反應堆狀態改變你嘅 Windows 電源計劃、強調色同螢幕亮度。當你關閉此選項或離開頁面時，全部會還原為原狀。預設關閉。");
+        ReactorSettingsButtonText.Text = P("⚙ Reactor Settings · 反應堆設定", "⚙ 反應堆設定 · Reactor Settings");
         UpdateSysLinkPill();
         MimicTitle.Text = P("Plant Mimic Diagram · 機組流程圖", "機組流程圖 · Plant Mimic Diagram");
         RpsTitle.Text = P("Reactor Protection System · 反應堆保護系統", "反應堆保護系統 · Reactor Protection System");
@@ -394,6 +376,7 @@ public sealed partial class ReactorModule : Page
         UpdateAnnunciator(dt);   // ISA-18.1 R-F sequence pass — must run before tile render + audio
         UpdateKeepAwake();
         UpdateSysLink(dt);
+        DriveHomeAssistant();
         UpdateStatusBanner();
         UpdateGauges();
         UpdateAlarmTiles();
@@ -629,13 +612,6 @@ public sealed partial class ReactorModule : Page
         }
     }
 
-    private void KeepAwakeToggle_Toggled(object sender, RoutedEventArgs e)
-    {
-        _keepAwakeEnabled = KeepAwakeToggle.IsOn;
-        // When turned OFF mid-generation, release the real hold immediately (sim keeps running).
-        if (!_keepAwakeEnabled) ReleaseKeepAwake();
-    }
-
     // ============================================================ public status API card ====
     // A small bilingual card on the reactor page that surfaces the public local status API: the
     // named-pipe + memory-mapped-file names other apps connect to, an Enable/Disable toggle (persisted
@@ -675,26 +651,11 @@ public sealed partial class ReactorModule : Page
 
         _apiStateText = new TextBlock { FontSize = 12, FontWeight = FontWeights.SemiBold };
 
-        _apiToggle = new ToggleSwitch { IsOn = ReactorStatusApiService.I.Enabled };
-        _relocalizers.Add(() =>
-        {
-            _apiToggle.Header = P("Expose status API · 開放狀態 API", "開放狀態 API · Expose status API");
-            _apiToggle.OnContent = P("On", "開");
-            _apiToggle.OffContent = P("Off", "關");
-        });
-        _apiToggle.Header = P("Expose status API · 開放狀態 API", "開放狀態 API · Expose status API");
-        _apiToggle.OnContent = P("On", "開");
-        _apiToggle.OffContent = P("Off", "關");
-        _apiToggle.Toggled += (_, _) =>
-        {
-            try { ReactorStatusApiService.I.SetEnabled(_apiToggle!.IsOn); } catch { }
-            UpdateStatusApiCard();
-        };
-
+        // The Enable/Disable CONFIGURATION toggle now lives on the Reactor Settings page; this card keeps
+        // the live names + running indicator on the main reactor page. 開放狀態 API 嘅開關已搬去設定頁。
         StatusApiHost.Children.Add(title);
         StatusApiHost.Children.Add(blurb);
         StatusApiHost.Children.Add(names);
-        StatusApiHost.Children.Add(_apiToggle);
         StatusApiHost.Children.Add(_apiStateText);
     }
 
@@ -745,15 +706,6 @@ public sealed partial class ReactorModule : Page
         UpdateSysLinkPill();
     }
 
-    private void SysLinkToggle_Toggled(object sender, RoutedEventArgs e)
-    {
-        if (SysLinkToggle.IsOn)
-            ReactorSystemLinkService.I.Enable();   // snapshots originals, begins driving on next tick
-        else
-            ReactorSystemLinkService.I.Disable();  // restores all originals immediately
-        UpdateSysLinkPill();
-    }
-
     private void UpdateSysLinkPill()
     {
         bool on = ReactorSystemLinkService.I.Active;
@@ -771,6 +723,29 @@ public sealed partial class ReactorModule : Page
                 "反應堆未連動 Windows 設定 · Reactor is not linked to Windows settings");
             SysLinkDot.Background = new SolidColorBrush(Color.FromArgb(255, 0x75, 0x75, 0x75)); // grey
         }
+    }
+
+    // ============================================================ Home Assistant mirror ====
+    // Drive the optional HA mirror from the live reactor tick. OPT-IN (default OFF) and exception-safe:
+    // the mirror itself short-circuits when disabled / unconfigured and never throws into the tick.
+    // 反應堆連動 Home Assistant：由實時 tick 驅動，預設關閉、全程防護，唔會影響模擬。
+    private void DriveHomeAssistant()
+    {
+        // ALARM condition: SCRAM or meltdown → light on (red). GENERATING: on-load output to the grid.
+        bool alarmActive = _sim.IsScrammed || _sim.Mode == ReactorMode.Meltdown;
+        bool generating =
+            _sim.GeneratorBreakerClosed
+            && _sim.ElectricPowerMW > KeepAwakeMinMWe
+            && !_sim.IsScrammed
+            && _sim.Mode != ReactorMode.Meltdown
+            && _sim.Mode != ReactorMode.Tripped;
+        try { ReactorHomeAssistantMirror.I.Drive(alarmActive, generating); } catch { }
+    }
+
+    // Navigate to the dedicated Reactor Settings page (real-world / external controls).
+    private void ReactorSettings_Click(object sender, RoutedEventArgs e)
+    {
+        try { Navigator.GoToModule?.Invoke("module.reactorsettings"); } catch { }
     }
 
     private static string ModeEn(ReactorMode m) => m switch
@@ -2386,36 +2361,9 @@ public sealed partial class ReactorModule : Page
         host.Children.Add(SectionHeader("⚛ Always-on reactor · 常駐反應堆", "⚛ 常駐反應堆 · Always-on reactor"));
         BuildKeepAliveSection(host);
 
-        host.Children.Add(SectionHeader("⚠ Real shutdown on meltdown · 熔毀時真實關機", "⚠ 熔毀時真實關機 · Real shutdown on meltdown"));
-
-        var armToggle = new ToggleSwitch
-        {
-            Header = P("ARM REAL SHUTDOWN ON MELTDOWN · 啟用熔毀時真實關機", "啟用熔毀時真實關機 · ARM REAL SHUTDOWN ON MELTDOWN"),
-            IsOn = false, // DEFAULT OFF
-            OnContent = P("Armed", "已啟用"),
-            OffContent = P("Safe (off)", "安全（關）"),
-        };
-        armToggle.Toggled += (_, _) => _armRealShutdown = armToggle.IsOn;
-        _relocalizers.Add(() =>
-        {
-            armToggle.Header = P("ARM REAL SHUTDOWN ON MELTDOWN · 啟用熔毀時真實關機", "啟用熔毀時真實關機 · ARM REAL SHUTDOWN ON MELTDOWN");
-            armToggle.OnContent = P("Armed", "已啟用");
-            armToggle.OffContent = P("Safe (off)", "安全（關）");
-        });
-        host.Children.Add(armToggle);
-
-        var warn = new TextBlock
-        {
-            TextWrapping = TextWrapping.Wrap,
-            Foreground = new SolidColorBrush(Color.FromArgb(255, 0xFF, 0xB3, 0x00)),
-        };
-        _relocalizers.Add(() => warn.Text = P(
-            "⚠ WARNING: When ON, a meltdown starts a 10-second abortable countdown and then REALLY shuts down this PC (normal shutdown via Win32 API — unsaved work in other apps could be lost). Default is OFF: meltdown only shows a simulated screen and never powers off your PC.",
-            "⚠ 警告：開啟後，熔毀會開始 10 秒可中止倒數，然後真實關閉呢部電腦（用 Win32 API 嘅正常關機 — 其他程式未儲存嘅工作可能會遺失）。預設為關閉：熔毀只會顯示模擬畫面，唔會關機。"));
-        warn.Text = P(
-            "⚠ WARNING: When ON, a meltdown starts a 10-second abortable countdown and then REALLY shuts down this PC (normal shutdown via Win32 API — unsaved work in other apps could be lost). Default is OFF: meltdown only shows a simulated screen and never powers off your PC.",
-            "⚠ 警告：開啟後，熔毀會開始 10 秒可中止倒數，然後真實關閉呢部電腦（用 Win32 API 嘅正常關機 — 其他程式未儲存嘅工作可能會遺失）。預設為關閉：熔毀只會顯示模擬畫面，唔會關機。");
-        host.Children.Add(warn);
+        // NOTE: the "ARM real shutdown on meltdown" toggle (and its Windows-linkage / keep-awake / status-API /
+        // autosave / Home Assistant siblings) now live on the dedicated Reactor Settings page. The reactor still
+        // honours ReactorRealShutdownArm.Armed when a meltdown occurs. 真實關機等對外設定已搬去反應堆設定頁。
 
         ResetTripButton.IsEnabled = true;
     }
@@ -2659,7 +2607,7 @@ public sealed partial class ReactorModule : Page
                 "Fuel temperature exceeded structural limits. Fission products released. This is a SIMULATION.",
                 "燃料溫度超出結構極限，裂變產物已釋放。呢個係模擬。");
 
-            if (_armRealShutdown)
+            if (ReactorRealShutdownArm.Armed)
             {
                 // SAFETY GATE: abortable 10-second countdown before any real shutdown.
                 StartShutdownCountdown();
