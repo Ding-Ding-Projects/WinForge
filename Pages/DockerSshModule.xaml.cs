@@ -26,7 +26,7 @@ namespace WinForge.Pages;
 public sealed partial class DockerSshModule : Page
 {
     private readonly DockerSshService _docker = new();
-    private readonly ObservableCollection<ContainerVM> _rows = new();
+    private readonly ObservableCollection<SshContainerVM> _rows = new();
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromSeconds(5) };
 
     private SshProfile? _profile;       // the connection currently in use (saved or ad-hoc)
@@ -364,7 +364,7 @@ public sealed partial class DockerSshModule : Page
             }
             else
             {
-                var nv = new ContainerVM(c);
+                var nv = new SshContainerVM(c);
                 if (i < _rows.Count) _rows.Insert(i, nv); else _rows.Add(nv);
             }
         }
@@ -381,7 +381,7 @@ public sealed partial class DockerSshModule : Page
 
     // ── selection / actions ─────────────────────────────────────────────────
 
-    private ContainerVM? Selected => ContainerList.SelectedItem as ContainerVM;
+    private SshContainerVM? Selected => ContainerList.SelectedItem as SshContainerVM;
 
     private async void ContainerList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -474,7 +474,7 @@ public sealed partial class DockerSshModule : Page
         if (vm is not null) await LoadLogs(vm);
     }
 
-    private async Task LoadLogs(ContainerVM vm)
+    private async Task LoadLogs(SshContainerVM vm)
     {
         if (_profile is null) return;
         LogText.Text = P("Loading logs… · 載入日誌中…", "載入日誌中…");
@@ -530,12 +530,12 @@ public sealed partial class DockerSshModule : Page
 /// 一行容器嘅可觀察檢視模型 · Observable view-model for one container row, updated in place so the
 /// ListView keeps its selection and scroll position across refreshes.
 /// </summary>
-public sealed class ContainerVM : INotifyPropertyChanged
+public sealed class SshContainerVM : INotifyPropertyChanged
 {
     public string Id { get; }
     private DockerContainer _c;
 
-    public ContainerVM(DockerContainer c) { Id = c.Id; _c = c; }
+    public SshContainerVM(DockerContainer c) { Id = c.Id; _c = c; }
 
     public void Update(DockerContainer c)
     {
