@@ -99,6 +99,8 @@ public enum ReactorAlarm
     PtViolation,         // RCS pressure has crossed the App G P/T limit (brittle-fracture concern)
     RcsRateExceeded,     // |RCS heatup/cooldown rate| > 90% of the App G 100 °F/hr (55.6 °C/hr) limit
     LtopActive,          // LTOP/COMS armed and its low-setpoint PORV path is actively relieving
+    PtsSusceptible,      // 承壓熱衝擊敏感工況 — PTS overcooling/repressurization condition (10 CFR 50.61): downcomer cold AND (cooling fast OR repressurizing)
+    PtsFlawInitiation,   // 承壓熱衝擊裂紋起裂 — applied K_I ≥ K_IC at the embrittled RT_PTS curve for the 1/4-T reference flaw (brittle-fracture initiation predicted)
     IccOrange,           // ICC ORANGE — core-exit TC ≥ 700 °F (371 °C) OR subcooling margin lost (FR-C.2)
     IccRed,              // ICC RED — core-exit TC ≥ 1200 °F (649 °C); core damage imminent (FR-C.1)
     ContainmentH2Flammable, // containment H₂ ≥ 4 vol% (LFL) with O₂ — deflagration possible (10 CFR 50.44)
@@ -492,6 +494,45 @@ public sealed class ReactorSimService
     private const double RateFilterTauSec    = 45.0;  // s — single-pole EMA time constant for the displayed rate
     private const double RateSampleMinDt     = 0.05;  // s — guard the finite-difference divide below this dt
 
+    // ---- Pressurized Thermal Shock (PTS) — 10 CFR 50.61 / RG 1.99 Rev.2 / ASME XI App G ----
+    // The App-G P/T block above bounds *slow, quasi-static* pressurization against a fixed mid-life ART. PTS is
+    // the complementary *fast transient* threat: an overcooling event (MSLB, SGTR, stuck-open-then-reseat PORV,
+    // small LOCA) plunges the downcomer fluid temperature while the thick beltline metal lags warm, opening a
+    // steep through-wall thermal gradient. The resulting tensile inner-surface thermal stress ADDS to the
+    // pressure (membrane) stress — and if high-head SI then repressurizes the cold, embrittled vessel, the
+    // combined stress-intensity K_I at a postulated 1/4-thickness inner-surface reference flaw can reach the
+    // (now low, because cold + irradiated) fracture toughness K_IC → brittle crack initiation. This is the
+    // 10 CFR 50.61 concern that bounds vessel life. We model it as a DISPLAY-ONLY figure of merit + advisory
+    // annunciators (it never trips the plant, exactly like RVLIS/CET/PRT): an embrittlement build-up (RT_PTS),
+    // a single-pole inner-wall metal-temperature lag, the App-G K_IC curve re-anchored to RT_PTS, and the two
+    // stress-intensity terms compared against it each tick.
+    //
+    // (a) Embrittlement — RT_PTS = RT_NDT(initial) + ΔRT_NDT + Margin, ΔRT_NDT = CF · f^(0.28−0.10·log₁₀ f),
+    //     f = fast fluence in 10¹⁹ n/cm² (RG 1.99 Rev.2). Computed ONCE (ctor/Reset/EFPY-setter), not per tick.
+    private const double PtsRtNdtInitF       = 0.0;    // °F — unirradiated initial RT_NDT of the limiting beltline weld (representative generic)
+    private const double PtsChemFactorF      = 180.0;  // °F — RG 1.99 R2 chemistry factor CF (Cu≈0.30/Ni≈0.60 weld); 180 lands RT_PTS≈260 °F (just under the 270 °F screen) at the 32-EFPY default
+    private const double PtsFluenceEol1e19   = 3.0;    // 10¹⁹ n/cm² (E>1 MeV) — EOL beltline inner-wall fast fluence at 60 EFPY (representative 4-loop W vessel)
+    private const double PtsEfpyEol          = 60.0;   // EFPY corresponding to the EOL fluence above
+    private const double PtsSigmaDeltaWeldF  = 28.0;   // °F — RG 1.99 R2 σ_Δ on ΔRT_NDT for welds (capped at ½·ΔRT_NDT before squaring)
+    private const double PtsSigmaInitF       = 0.0;    // °F — σ_I on initial RT_NDT (0 when a measured value is used)
+    public  const double PtsScreeningLimitF      = 270.0; // °F — 10 CFR 50.61(b)(2) RT_PTS screening criterion: plates/forgings/axial welds
+    public  const double PtsScreeningLimitCircF  = 300.0; // °F — 10 CFR 50.61(b)(2) RT_PTS screening criterion: circumferential welds
+    // (b) Fracture toughness — reuses the exact App-G K_IC constants (KicFloorKsi/KicCoeffB/KicExpCoeff) but
+    //     re-anchored to RT_PTS instead of AppGRtndtF; shelf-capped so the exponential can't run away when hot.
+    private const double PtsKicUpperShelfKsi = 200.0;  // ksi·√in — upper-shelf cap on K_IC
+    // (c) Vessel geometry + SA-508/533B material (representative generic 4-loop RPV beltline).
+    private const double PtsVesselRinIn      = 86.0;   // in — beltline inner radius
+    private const double PtsVesselWallIn     = 8.5;    // in — base-metal wall thickness (R/t ≈ 10.1)
+    private const double PtsFlawDepthIn      = 2.125;  // in — ASME App-G postulated 1/4-thickness (a = 0.25·t) inner-surface reference flaw
+    private const double PtsThermStressPerF  = 0.3064; // ksi/°F — E·α/(1−ν) = 28 600 ksi · 7.5e-6/°F / 0.7 (precomputed thermal stress per °F gradient)
+    private const double PtsPressInfluence   = 1.10;   // — membrane SIF influence factor F_p for the a/t=0.25 surface flaw (ASME/Newman-Raju)
+    private const double PtsThermInfluence   = 0.70;   // — thermal-gradient SIF influence factor F_th at a/t=0.25
+    private const double PtsWallLagTauSec    = 30.0;   // s — single-pole lag of the near-inner-surface metal temp behind the downcomer fluid
+    private const double PtsDowncomerAdvisoryF   = 400.0; // °F — downcomer temp below which the susceptible-condition advisory can arm
+    private const double PtsCooldownRateThreshC  = 28.0;  // °C/hr (~50 °F/hr) — |cooldown| beyond this counts as "fast" for the advisory
+    private const double PtsRepressRateMPaPerS   = 0.05;  // MPa/s — +dP/dt above this counts as "repressurizing" for the advisory
+    private const double PtsKiFloorKsi       = 1e-6;   // ksi·√in — floor on K_I to keep the margin ratio finite
+
     // Limits / trip setpoints.
     public const double FuelMeltTemp = 2800.0;     // °C — UO2 melting point ~2865 °C
     public const double FuelDamageTemp = 1200.0;   // °C — clad/fuel damage onset (sustained)
@@ -687,6 +728,31 @@ public sealed class ReactorSimService
     public bool   LtopArmed { get; private set; }
     /// <summary>LTOP 低整定 PORV 正在洩放 · The LTOP-armed low-setpoint PORV path is actively relieving.</summary>
     public bool   LtopPorvOpen { get; private set; }
+
+    // ---- Pressurized Thermal Shock (PTS) monitor state + telemetry (UpdatePtsMonitor; display-only) ----
+    private bool   _ptsWallInit;          // seeds the wall-temp lag on the first sample (no startup spike)
+    private double _ptsPrevPressMPa;      // last tick's PrimaryPressure, for the repressurization-rate detector
+    private double _vesselEfpy = 32.0;    // effective full-power years of vessel irradiation (age knob), default mid-life
+    /// <summary>反應堆容器運轉壽命（EFPY，0–60）· Vessel effective full-power years; the setter re-derives RT_PTS (more fluence ⇒ more embrittled).</summary>
+    public double VesselEfpy { get => _vesselEfpy; set { _vesselEfpy = Math.Clamp(value, 0.0, 60.0); ComputeRtPts(); } }
+    /// <summary>承壓熱衝擊參考溫度 RT_PTS（°F）· Embrittled PTS reference temperature RT_PTS = RT_NDT(i)+ΔRT_NDT+Margin (°F).</summary>
+    public double RtPtsF { get; private set; }
+    /// <summary>距 10 CFR 50.61 篩選準則（270 °F）嘅裕量（負＝越篩選值）· Head-room to the 270 °F screening limit (negative = exceeds screen), °F.</summary>
+    public double PtsScreeningMarginF => PtsScreeningLimitF - RtPtsF;
+    /// <summary>滯後嘅容器內壁金屬溫度（°F）· Lagged inner-wall metal temperature (°F) behind the downcomer fluid.</summary>
+    public double VesselWallTempF { get; private set; } = ColdTemp * 1.8 + 32.0;
+    /// <summary>壓力（薄膜）應力強度因子（ksi·√in）· Pressure (membrane) stress-intensity factor K_Ip.</summary>
+    public double PtsKiPressureKsi { get; private set; }
+    /// <summary>熱梯度應力強度因子（ksi·√in，升溫時為負）· Thermal-gradient stress-intensity factor K_Ith (signed; negative on heatup).</summary>
+    public double PtsKiThermalKsi { get; private set; }
+    /// <summary>施加總應力強度因子 K_I = K_Ip + max(0,K_Ith)（ksi·√in）· Total applied SIF at the reference flaw.</summary>
+    public double PtsKiTotalKsi { get; private set; }
+    /// <summary>內壁溫度下嘅 App-G 斷裂韌性 K_IC（按 RT_PTS）· App-G fracture toughness K_IC at the wall temp, re-anchored to RT_PTS (ksi·√in).</summary>
+    public double PtsKicAtWallKsi { get; private set; } = PtsKicUpperShelfKsi;
+    /// <summary>承壓熱衝擊裕度 = K_IC/K_I（&lt;1 ⇒ 預測起裂）· PTS margin = toughness ÷ applied SIF; &lt;1 means flaw initiation is predicted.</summary>
+    public double PtsMargin { get; private set; } = 99.0;
+    /// <summary>承壓熱衝擊敏感工況旗標 · True while the PTS susceptible-condition advisory is asserted (cold + cooling/repressurizing).</summary>
+    public bool   PtsSusceptibleCondition { get; private set; }
 
     /// <summary>有幾多個穩壓器規範安全閥正在開啟（0–3）· How many of the 3 code safety valves are currently popped.</summary>
     public int PzrCodeSafetiesOpen { get { int n = 0; for (int i = 0; i < 3; i++) if (_pzrSafetyOpen[i]) n++; return n; } }
@@ -1602,6 +1668,8 @@ public sealed class ReactorSimService
         _iodineTop = _iodineBot = _xenonTop = _xenonBot = 0;
         _pm = 0; _sm = 0;
         InitRadiochemistry(); // seed RCS DEI-131/Xe-133 activity states to clean-fuel equilibrium on first launch
+        ComputeRtPts();       // derive the embrittled PTS reference temperature from the default vessel-age knob
+        _ptsPrevPressMPa = PrimaryPressure;
         BuildRps();
     }
 
@@ -2397,6 +2465,9 @@ public sealed class ReactorSimService
         _rateInit = false; RcsRateCperHr = 0; _prevTcoldForRate = ColdTemp;
         LtopArmed = false; LtopPorvOpen = false;
         MaxAllowablePressureMPa = Lerp(PtTempC, PtPmaxMPa, ColdTemp);
+        // PTS monitor: re-seed the wall-temp lag to cold so no first-tick gradient spike, refresh RT_PTS for the age knob.
+        _ptsWallInit = false; VesselWallTempF = ColdTemp * 1.8 + 32.0; _ptsPrevPressMPa = PrimaryPressure;
+        PtsSusceptibleCondition = false; PtsMargin = 99.0; ComputeRtPts();
         SteamPressure = 0.5; SteamGenLevel = 60; ElectricPowerMW = 0; TurbineRPM = 0;
         LoadReference = 0; GovernorValve = 0; _gvCmd = 0;
         SteamDumpDemand = 0; SteamDumpArmed = false; SteamDumpModeEn = "Off";
@@ -2593,6 +2664,7 @@ public sealed class ReactorSimService
         StepBoricAcidPrecip(dt); // boric-acid precipitation monitor reads post-tick Thot/boron/saturation/SI; advisory alarms only
         StepContainmentH2(dt); // containment H₂ atmosphere / PAR / igniter / deflagration — reads the post-cladding HydrogenMassKg
         UpdatePtLimits(dt); // App G P/T brittle-fracture limit + LTOP arming (reads the final post-tick Tcold/pressure)
+        UpdatePtsMonitor(dt); // PTS fracture-mechanics figure of merit (reads the post-PtLimits Tcold/pressure/cooldown rate); display-only
         UpdateRiaConsequences(); // RIA fuel-enthalpy acceptance evaluation (reads the post-tick DNBR / enthalpy peak)
         UpdateAlarms();
         UpdateStatus();
@@ -4125,6 +4197,75 @@ public sealed class ReactorSimService
         SetAlarm(ReactorAlarm.PtViolation, PtViolation);
         SetAlarm(ReactorAlarm.RcsRateExceeded, Math.Abs(RcsRateCperHr) > AppGRateLimitCperHr * RateAlarmFraction);
         SetAlarm(ReactorAlarm.LtopActive, LtopPorvOpen);
+    }
+
+    /// <summary>
+    /// 計算承壓熱衝擊參考溫度 RT_PTS · Compute the embrittled PTS reference temperature from the vessel-age
+    /// knob — called ONCE from the constructor, from <see cref="Reset"/>, and from the <see cref="VesselEfpy"/>
+    /// setter (NOT per tick). RG 1.99 Rev.2: ΔRT_NDT = CF·f^(0.28−0.10·log₁₀ f) with the fluence f scaled
+    /// linearly from the EOL value by EFPY; Margin = 2·√(σ_I² + σ_Δ²) with σ_Δ capped at ½·ΔRT_NDT.
+    /// </summary>
+    private void ComputeRtPts()
+    {
+        double fa = PtsFluenceEol1e19 * (_vesselEfpy / PtsEfpyEol);          // fast fluence in 10¹⁹ n/cm², scaled by age
+        double ff = fa <= 0.0 ? 0.0 : Math.Pow(fa, 0.28 - 0.10 * Math.Log10(fa)); // RG 1.99 R2 fluence factor (guard f>0)
+        double deltaRtNdt = PtsChemFactorF * ff;
+        double sigmaDelta = Math.Min(PtsSigmaDeltaWeldF, 0.5 * deltaRtNdt);  // RG 1.99 R2 cap, applied before squaring
+        double margin = 2.0 * Math.Sqrt(PtsSigmaInitF * PtsSigmaInitF + sigmaDelta * sigmaDelta);
+        RtPtsF = PtsRtNdtInitF + deltaRtNdt + margin;
+    }
+
+    /// <summary>
+    /// 承壓熱衝擊監測 · Pressurized Thermal Shock monitor (10 CFR 50.61 / RG 1.99 Rev.2 / ASME XI App G).
+    ///
+    /// Runs once per outer Update tick AFTER <see cref="UpdatePtLimits"/> so Tcold / PrimaryPressure /
+    /// RcsRateCperHr are final. It (1) lags a near-inner-surface metal temperature behind the downcomer
+    /// fluid (= Tcold), (2) builds the pressure (membrane) stress-intensity K_Ip from the thin-wall hoop
+    /// stress p·R/t and the thermal-gradient stress-intensity K_Ith from E·α/(1−ν)·ΔT — keeping only the
+    /// tensile (cooldown) part — (3) evaluates the App-G K_IC at the wall temperature re-anchored to the
+    /// embrittled RT_PTS, and (4) compares applied K_I against K_IC for the 1/4-T reference flaw. It is
+    /// strictly DISPLAY-ONLY — like RVLIS/CET/PRT it reads state and raises advisory annunciators but never
+    /// scrams, never opens a valve, and never writes any plant state.
+    /// </summary>
+    private void UpdatePtsMonitor(double dt)
+    {
+        // (1) Downcomer fluid temperature (°F) and the lagged near-inner-surface wall metal temperature (°F).
+        double tFluidF = Tcold * 1.8 + 32.0;
+        if (!_ptsWallInit) { VesselWallTempF = tFluidF; _ptsWallInit = true; }
+        else
+        {
+            double aW = dt / (PtsWallLagTauSec + dt); // exact discrete single-pole α (matches the file's EMA form)
+            VesselWallTempF += aW * (tFluidF - VesselWallTempF);
+        }
+
+        // (2a) Pressure (membrane) stress-intensity: thin-wall hoop σ = p·R/t (psi → ksi), K_Ip = F_p·σ·√(πa).
+        double pPsi = PrimaryPressure * MpaToPsia;
+        double sigmaHoopKsi = (pPsi * PtsVesselRinIn / PtsVesselWallIn) / 1000.0;
+        PtsKiPressureKsi = PtsPressInfluence * sigmaHoopKsi * Math.Sqrt(Math.PI * PtsFlawDepthIn);
+
+        // (2b) Thermal stress-intensity from the lag-induced gradient: σ_th = E·α/(1−ν)·(T_wall − T_fluid).
+        //      Positive (crack-opening, tensile at the inner surface) only while the wall is HOTTER than the
+        //      rapidly cooling fluid — i.e. during a cooldown. On heatup ΔT < 0 (compressive) → discard.
+        double deltaTF = VesselWallTempF - tFluidF;
+        PtsKiThermalKsi = PtsThermInfluence * (PtsThermStressPerF * deltaTF) * Math.Sqrt(Math.PI * PtsFlawDepthIn);
+        double kiThermalTensile = Math.Max(0.0, PtsKiThermalKsi);
+
+        // (3) Total applied SIF and the App-G K_IC at the wall temp, re-anchored to RT_PTS, shelf-capped.
+        PtsKiTotalKsi = PtsKiPressureKsi + kiThermalTensile;
+        PtsKicAtWallKsi = Math.Min(PtsKicUpperShelfKsi,
+                                   KicFloorKsi + KicCoeffB * Math.Exp(KicExpCoeff * (VesselWallTempF - RtPtsF)));
+
+        // (4) Margin = toughness ÷ applied SIF (< 1 ⇒ predicted initiation).
+        PtsMargin = PtsKicAtWallKsi / Math.Max(PtsKiTotalKsi, PtsKiFloorKsi);
+
+        // (5) Advisory annunciators (display-only; never a trip).
+        double dPdt = dt > 1e-9 ? (PrimaryPressure - _ptsPrevPressMPa) / dt : 0.0; // MPa/s
+        PtsSusceptibleCondition = (tFluidF < PtsDowncomerAdvisoryF)
+                                  && ((RcsRateCperHr < -PtsCooldownRateThreshC) || (dPdt > PtsRepressRateMPaPerS));
+        SetAlarm(ReactorAlarm.PtsSusceptible, PtsSusceptibleCondition);
+        SetAlarm(ReactorAlarm.PtsFlawInitiation, PtsKiTotalKsi >= PtsKicAtWallKsi);
+
+        _ptsPrevPressMPa = PrimaryPressure;
     }
 
     private void UpdateXenon(double dt)

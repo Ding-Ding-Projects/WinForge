@@ -496,6 +496,14 @@ public sealed partial class ReactorModule : Page
             () => $"{_sim.RcsRateFperHr:+0;-0;0}°F/hr · {_sim.RcsRateCperHr:+0.0;-0.0;0.0}°C/hr (lim ±100°F/hr)", warnFrac: (50.0 + 60.0) / 120.0, id: "rcsRate");
         AddGauge("LTOP / COMS", "低溫超壓保護", 0, 2, () => _sim.LtopPorvOpen ? 2 : _sim.LtopArmed ? 1 : 0,
             () => _sim.LtopPorvOpen ? P("RELIEVING", "洩放中") : _sim.LtopArmed ? P("ARMED", "已致動") : P("Disarmed", "未致動"), warnFrac: 0.5, id: "ltop");
+        // Pressurized Thermal Shock (PTS) — 10 CFR 50.61 vessel-embrittlement + transient fracture-mechanics monitor (display-only).
+        AddGauge("RT_PTS embrittlement", "承壓熱衝擊參考溫度", 0, 320, () => _sim.RtPtsF,
+            () => $"RT_PTS {_sim.RtPtsF:F0}°F · {P("screen", "篩選")} {_sim.PtsScreeningMarginF:+0;-0;0}°F @ {_sim.VesselEfpy:F0} EFPY{(_sim.PtsScreeningMarginF < 0 ? " · " + P("OVER", "越限") : "")}",
+            warnFrac: ReactorSimService.PtsScreeningLimitF / 320.0);
+        AddGauge("PTS Kᵢ / Kɪc", "承壓熱衝擊 Kᵢ/Kɪc", 0, 1.2, () => _sim.PtsKiTotalKsi / Math.Max(_sim.PtsKicAtWallKsi, 1e-6),
+            () => $"K_I {_sim.PtsKiTotalKsi:F0} / K_IC {_sim.PtsKicAtWallKsi:F0} · {P("margin", "裕度")} {_sim.PtsMargin:F2}", warnFrac: 1.0 / 1.2);
+        AddGauge("Vessel wall temp", "容器壁溫", 0, 600, () => _sim.VesselWallTempF,
+            () => $"{_sim.VesselWallTempF:F0}°F{(_sim.PtsSusceptibleCondition ? " · " + P("PTS WATCH", "承壓熱衝擊警戒") : "")}");
         AddGauge("Pressurizer level", "穩壓器水位", 0, 100, () => _sim.PressurizerLevel, () => $"{_sim.PressurizerLevel:F0}%", id: "pzrLevel");
         AddGauge("Pressurizer temp", "穩壓器溫度", 80, 700, () => _sim.PressurizerLiquidTemp * 1.8 + 32, () => $"{_sim.PressurizerLiquidTemp * 1.8 + 32:F0}°F", id: "pzrTemp");
         AddGauge("Steam pressure", "蒸汽壓力", 0, 1300, () => _sim.SteamPressure * 145.038, () => $"{_sim.SteamPressure * 145.038:F0} psia", id: "sgPress");
@@ -843,6 +851,8 @@ public sealed partial class ReactorModule : Page
             (ReactorAlarm.PtViolation, "APP G P/T VIOLATION", "附錄G P/T 越限"),
             (ReactorAlarm.RcsRateExceeded, "RCS HEAT/COOL RATE HI", "RCS 升降溫率過高"),
             (ReactorAlarm.LtopActive, "LTOP/COMS RELIEVING", "低溫超壓保護洩放"),
+            (ReactorAlarm.PtsSusceptible, "PTS SUSCEPTIBLE COND.", "承壓熱衝擊敏感工況"),
+            (ReactorAlarm.PtsFlawInitiation, "PTS FLAW INITIATION", "承壓熱衝擊裂紋起裂"),
             (ReactorAlarm.RcsUnidentifiedLeakHi, "UNID LEAK > 1 GPM", "未辨識洩漏 >1 GPM"),
             (ReactorAlarm.RcsIdentifiedLeakHi, "IDENT LEAK > 10 GPM", "已辨識洩漏 >10 GPM"),
             (ReactorAlarm.RcsPressureBoundaryLeak, "PRESS BDY LEAKAGE", "壓力邊界洩漏"),
