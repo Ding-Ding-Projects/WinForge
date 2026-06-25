@@ -391,6 +391,7 @@ public sealed partial class MainWindow : Window
             case "crystaldiskinfo":
             case "diskinfo":
                 Navigator.GoToModule?.Invoke("module.diskhealth");
+                break;
             case "diskbench":
             case "benchmark":
             case "diskbenchmark":
@@ -743,29 +744,35 @@ public sealed partial class MainWindow : Window
             case "nativetorrent":
             case "downloads":
                 Navigator.GoToModule?.Invoke("module.torrent");
+                break;
             case "docker":
             case "containers":
                 Navigator.GoToModule?.Invoke("module.docker");
+                break;
             case "hex":
             case "hexeditor":
             case "hxd":
             case "binary":
                 Navigator.GoToModule?.Invoke("module.hexeditor");
+                break;
             case "tags":
             case "audiotags":
             case "mp3tag":
             case "tagging":
                 Navigator.GoToModule?.Invoke("module.audiotagger");
+                break;
             case "diagram":
             case "drawio":
             case "flowchart":
             case "diagrams":
                 Navigator.GoToModule?.Invoke("module.diagram");
+                break;
             case "flashcards":
             case "anki":
             case "srs":
             case "study":
                 Navigator.GoToModule?.Invoke("module.flashcards");
+                break;
             case "decompiler":
             case "ilspy":
             case "dotnetdecompiler":
@@ -820,6 +827,7 @@ public sealed partial class MainWindow : Window
             case "npp":
             case "meltdown":
                 Navigator.GoToModule?.Invoke("module.reactor");
+                break;
             case "diff":
             case "merge":
             case "winmerge":
