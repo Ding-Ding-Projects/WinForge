@@ -716,6 +716,11 @@ public sealed partial class MainWindow : Window
             case "docker":
             case "containers":
                 Navigator.GoToModule?.Invoke("module.docker");
+            case "hex":
+            case "hexeditor":
+            case "hxd":
+            case "binary":
+                Navigator.GoToModule?.Invoke("module.hexeditor");
                 break;
             case "worldmonitor":
             case "world":
@@ -949,6 +954,7 @@ public sealed partial class MainWindow : Window
         "module.torrent" => typeof(TorrentModule),
         "module.dockerssh" => typeof(DockerSshModule),
         "module.docker" => typeof(DockerModule),
+        "module.hexeditor" => typeof(HexEditorModule),
         "module.comms" => typeof(CommunicationsModule),
         "module.mail" => typeof(MailModule),
         "module.configbackup" => typeof(ConfigBackupModule),
