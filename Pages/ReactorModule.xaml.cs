@@ -927,8 +927,9 @@ public sealed partial class ReactorModule : Page
                 ledRow.Children.Add(led);
             }
             var fnLocal = fn; // capture
-            var topRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-            topRow.Children.Add(new Viewbox { Child = name, MaxHeight = 16, HorizontalAlignment = HorizontalAlignment.Left });
+            // (was: a stray Viewbox that re-parented `name` — a UIElement can only have one
+            // parent, so adding it here AND to `inner` below threw COMException 0x800F1000 and
+            // broke the whole reactor render. `name` is hosted by `inner` only.)
             var inner = new StackPanel { Spacing = 4, Margin = new Thickness(8, 6, 8, 6) };
             inner.Children.Add(name);
             var midRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };

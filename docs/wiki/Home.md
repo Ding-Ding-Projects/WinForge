@@ -8,6 +8,14 @@
 > These pages mirror the *Module catalog* in [`README.md`](https://github.com/codingmachineedge/WinForge/blob/main/README.md). The source of truth for the module list is [`Services/ModuleRegistry.cs`](https://github.com/codingmachineedge/WinForge/blob/main/Services/ModuleRegistry.cs); for images it is `docs/screenshot-<key>.png`. README uses repo-relative paths; wiki pages use absolute `raw.githubusercontent.com` URLs because the wiki is a separate Git repo.
 > 呢啲頁對應 [`README.md`](https://github.com/codingmachineedge/WinForge/blob/main/README.md) 入面嘅「模組目錄」。模組清單嘅權威來源係 [`Services/ModuleRegistry.cs`](https://github.com/codingmachineedge/WinForge/blob/main/Services/ModuleRegistry.cs)；圖檔權威來源係 `docs/screenshot-<key>.png`。README 用相對路徑；wiki 因為係另一個 Git repo，所以用絕對 `raw.githubusercontent.com` 連結。
 
+## ★ Flagship: Nuclear Reactor · 旗艦：核反應堆
+
+**EN —** The headline module is a hyper-realistic PWR control room. See the full **[Nuclear Reactor — Operating Manual](Nuclear-Reactor-Operating-Manual.md)** for startup-to-shutdown procedures, scenarios (LOCA/SBO/LOFW/ATWS), the protection system, widgets, the pop-out window, and safety notes — with screenshots from the running app.
+
+**粵語 —** 重點模組係一個超寫實 PWR 控制室。詳見 **[核反應堆操作手冊](Nuclear-Reactor-Operating-Manual.md)**：由起動到停堆程序、情景演習、保護系統、小工具、彈出視窗同安全須知，附實機截圖。
+
+![Reactor control room](images/03-reactor-controlroom.png)
+
 ## Download · 下載
 
 **EN —** Get the latest **`WinForge-Setup.exe`** (installer) or **`WinForge-portable-x64-1.0.x.zip`** (portable, currently v1.0.8) from [GitHub Releases](https://github.com/codingmachineedge/WinForge/releases). Both are self-contained x64. Build from source: `dotnet build -c Release -p:Platform=x64`.
