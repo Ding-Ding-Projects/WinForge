@@ -751,6 +751,11 @@ public sealed partial class MainWindow : Window
             case "mp3tag":
             case "tagging":
                 Navigator.GoToModule?.Invoke("module.audiotagger");
+            case "diagram":
+            case "drawio":
+            case "flowchart":
+            case "diagrams":
+                Navigator.GoToModule?.Invoke("module.diagram");
                 break;
             case "worldmonitor":
             case "world":
@@ -989,6 +994,7 @@ public sealed partial class MainWindow : Window
         "module.dockerssh" => typeof(DockerSshModule),
         "module.docker" => typeof(DockerModule),
         "module.hexeditor" => typeof(HexEditorModule),
+        "module.diagram" => typeof(DiagramEditorModule),
         "module.comms" => typeof(CommunicationsModule),
         "module.mail" => typeof(MailModule),
         "module.configbackup" => typeof(ConfigBackupModule),
