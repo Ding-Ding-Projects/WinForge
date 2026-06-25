@@ -50,6 +50,7 @@ public enum ReactorAlarm
     AxialFluxDiffOutOfBand,
     SteamlineBreak,
     SafetyInjection,
+    PzrCodeSafetyOpen,
 }
 
 /// <summary>
@@ -132,6 +133,21 @@ public sealed class ReactorSimService
     private const double PzrSpikeTau    = 8.0;    // s         compression-spike relaxation
     private const double PzrPresTau     = 2.0;    // s         output-pressure lag (slow dynamics live in _tpzr)
     private const double PorvReliefRate = 2.5;    // MPa/s     PORV blowdown rate while lifted
+    // Pressurizer ASME Section III code (spring) safety valves — three self-actuated valves ABOVE the PORV,
+    // the last-ditch RCS overpressure protection. Westinghouse 4-loop standard set 2485 psig (≈2500 psia,
+    // the RCS design pressure). MPa_abs = (psig + 14.7) / 145.038. The three are staggered within ±1%
+    // as-found tolerance so they don't all pop on the same simulation step. Full lift at +3% accumulation
+    // (2560 psig) keeps peak RCS pressure under the 110%-design ASME service limit (2750 psia). Blowdown
+    // ~5% below each valve's own set gives the open-vs-reseat hysteresis that prevents chatter; every reseat
+    // point stays above PORV-close (16.06) so the safeties and PORV never fight. A stuck-open code safety
+    // would behave as a small-break LOCA (the TMI-2 analog) — they are not designed for frequent cycling.
+    private const double PzrSafety1Set      = 17.18; // 2477 psig (−0.3% tol) — code safety #1 lift
+    private const double PzrSafety2Set      = 17.24; // 2485 psig (nominal)   — code safety #2 lift
+    private const double PzrSafety3Set      = 17.30; // 2494 psig (+0.4% tol) — code safety #3 lift
+    private const double PzrSafetyAccum     = 17.75; // 2560 psig (+3% accumulation) — pressure at full lift
+    private const double PzrSafetyBlowdown  = 0.86;  // MPa (~5% of set) — open→reseat hysteresis band
+    private const double PzrSafetyReliefRate = 4.0;  // MPa/s per valve at full lift (> PORV; greater capacity)
+    private static readonly double[] PzrSafetySet = { PzrSafety1Set, PzrSafety2Set, PzrSafety3Set };
 
     // Limits / trip setpoints.
     public const double FuelMeltTemp = 2800.0;     // °C — UO2 melting point ~2865 °C
@@ -185,9 +201,15 @@ public sealed class ReactorSimService
     private double _prevLevel = NominalPzrLevel;     // previous-substep level, for surge rate d(level)/dt
     private double _pSpike;                          // transient adiabatic bubble-compression pressure (MPa)
     private bool _porvAuto;                          // automatic PORV currently lifted
+    private readonly bool[] _pzrSafetyOpen = new bool[3]; // latched per-valve lift state of the 3 code safeties
     public double PressurizerLiquidTemp => _tpzr;    // °C (display)
     public double PressurizerHeaterDuty { get; private set; } // 0..1 effective heater duty (display)
     public bool PorvAutoOpen => _porvAuto;           // automatic relief valve currently cycling
+    /// <summary>有幾多個穩壓器規範安全閥正在開啟（0–3）· How many of the 3 code safety valves are currently popped.</summary>
+    public int PzrCodeSafetiesOpen { get { int n = 0; for (int i = 0; i < 3; i++) if (_pzrSafetyOpen[i]) n++; return n; } }
+    public bool AnyPzrCodeSafetyOpen => PzrCodeSafetiesOpen > 0;
+    /// <summary>規範安全閥每次起跳的上升沿事件 · Rising-edge event each time a code safety valve pops (for annunciation/audio).</summary>
+    public event Action? PzrCodeSafetyLifted;
 
     // Poisons
     public double Iodine { get; private set; }   // I-135 concentration (normalized)
@@ -735,6 +757,7 @@ public sealed class ReactorSimService
         FuelTemp = ColdTemp; Tcold = ColdTemp; Thot = ColdTemp;
         PrimaryPressure = 2.5; PressurizerLevel = NominalPzrLevel;
         _tpzr = ColdTemp; _prevLevel = NominalPzrLevel; _pSpike = 0; _porvAuto = false; PressurizerHeaterDuty = 0;
+        Array.Clear(_pzrSafetyOpen, 0, 3); // re-seat all code safety valves on reset
         SteamPressure = 0.5; SteamGenLevel = 60; ElectricPowerMW = 0; TurbineRPM = 0;
         LoadReference = 0; GovernorValve = 0; _gvCmd = 0;
         FirstStagePressure = 0; TurbineSpeedError = SyncRpm; TurbineTripped = false;
@@ -1172,10 +1195,39 @@ public sealed class ReactorSimService
             PrimaryPressure += (pTarget - PrimaryPressure) * Math.Min(1, h / PzrPresTau);
         }
 
-        // Automatic PORV: opens at 2335 psig, reseats at 2315 psig. Manual relief valve still blows down too.
+        // Automatic PORV: opens at 2335 psig, reseats at 2315 psig. The PORV is the lower-set, reclosable
+        // first-responder, so it is evaluated and relieves BEFORE the code safeties each step.
         if (PrimaryPressure > PorvOpenPressure) _porvAuto = true;
         else if (PrimaryPressure < PorvClosePressure) _porvAuto = false;
         if (_porvAuto) PrimaryPressure -= PorvReliefRate * h;
+
+        // ASME code (spring) safety valves — the last-ditch overpressure layer above the PORV. Pop-action:
+        // each valve latches fully open when pressure exceeds its own set and only reseats once pressure has
+        // fallen a full blowdown band below that set (hysteresis → no chatter at the fixed timestep). Combined
+        // relief scales with valve count and a choked-flow surrogate (lift fraction ∝ overpressure above seat).
+        double lowestLiftedSeat = double.MaxValue;
+        for (int i = 0; i < 3; i++)
+        {
+            if (!_pzrSafetyOpen[i] && PrimaryPressure > PzrSafetySet[i])
+            {
+                _pzrSafetyOpen[i] = true;          // rising edge — fire the annunciator once per individual pop
+                PzrCodeSafetyLifted?.Invoke();
+            }
+            else if (_pzrSafetyOpen[i] && PrimaryPressure < PzrSafetySet[i] - PzrSafetyBlowdown)
+            {
+                _pzrSafetyOpen[i] = false;         // reseat only after full blowdown
+            }
+            if (_pzrSafetyOpen[i] && PzrSafetySet[i] < lowestLiftedSeat) lowestLiftedSeat = PzrSafetySet[i];
+        }
+        int safetiesOpen = PzrCodeSafetiesOpen;
+        if (safetiesOpen > 0)
+        {
+            double liftFrac = Math.Clamp((PrimaryPressure - lowestLiftedSeat) / (PzrSafetyAccum - lowestLiftedSeat), 0.0, 1.0);
+            double safetyDrop = safetiesOpen * PzrSafetyReliefRate * liftFrac * h;
+            safetyDrop = Math.Min(safetyDrop, Math.Max(0.0, PrimaryPressure - 0.1)); // never overshoot the floor in one step
+            PrimaryPressure -= safetyDrop;
+        }
+
         if (ReliefValveOpen && PrimaryPressure > 2.0) PrimaryPressure -= 3.0 * h;
         PrimaryPressure = Math.Clamp(PrimaryPressure, 0.1, VesselBurstPressure);
     }
@@ -1546,6 +1598,7 @@ public sealed class ReactorSimService
         SetAlarm(ReactorAlarm.SgtrLeak, _sgtrSeverity > 0 && SgtrLeakRate > 0.01);
         SetAlarm(ReactorAlarm.SteamlineBreak, _mslbSeverity > 0 && !MslbIsolated);
         SetAlarm(ReactorAlarm.SafetyInjection, SiActuated);
+        SetAlarm(ReactorAlarm.PzrCodeSafetyOpen, AnyPzrCodeSafetyOpen);
         SetAlarm(ReactorAlarm.SecondaryRadiationHi, SecondaryActivity > 1.0);
         SetAlarm(ReactorAlarm.SgReliefLift, SgReliefLifted);
         SetAlarm(ReactorAlarm.RodInsertionLimitLo, RilLowAlarm && !RilLowLowAlarm);
