@@ -497,6 +497,10 @@ public sealed partial class ReactorModule : Page
         AddGauge("Containment press", "安全殼壓力", 0, 50, () => _sim.ContainmentPressurePsig, () => $"{_sim.ContainmentPressurePsig:F1} psig", warnFrac: 4.0 / 50.0, id: "ctmtPress");
         AddGauge("Containment temp", "安全殼溫度", 100, 300, () => _sim.ContainmentTempC * 1.8 + 32, () => $"{_sim.ContainmentTempC * 1.8 + 32:F0}°F", warnFrac: (200.0 - 100.0) / (300.0 - 100.0), id: "ctmtTemp");
         AddGauge("SG level", "蒸發器水位", 0, 100, () => _sim.IndicatedSgLevel, () => $"{_sim.IndicatedSgLevel:F0}%", id: "sgLevel");
+        AddGauge("Final feedwater temp", "最終給水溫度", 80, 480, () => _sim.FinalFeedwaterTempC * 1.8 + 32,
+            () => $"{_sim.FinalFeedwaterTempC * 1.8 + 32:F0}°F"
+                + (_sim.FeedwaterTempDeficitC > 1.0 ? P($" · −{_sim.FeedwaterTempDeficitC * 1.8:F0}°F", $" · 低{_sim.FeedwaterTempDeficitC * 1.8:F0}°F") : ""),
+            id: "fwTemp");
         AddGauge("Secondary radiation", "二次側輻射", 0, 300, () => _sim.SecondaryRadiation, () => $"{_sim.SecondaryRadiation:F0} µSv/h", warnFrac: 100.0 / 300.0, id: "secRad");
         AddGauge("Atmospheric release", "累計大氣排放", 0, 100, () => _sim.AtmosphericRelease * 10, () => $"{_sim.AtmosphericRelease:F2}", id: "atmRel");
         // RCS coolant radiochemistry (LCO 3.4.16 / ANS-18.1 / RG 1.183): Dose-Equivalent I-131 & Xe-133 + rad monitors.
@@ -724,6 +728,7 @@ public sealed partial class ReactorModule : Page
             (ReactorAlarm.EccsActive, "ECCS ACTIVE", "應急堆芯冷卻"),
             (ReactorAlarm.TurbineTrip, "TURBINE TRIP", "汽輪機跳機"),
             (ReactorAlarm.CondenserVacuumLow, "CONDENSER VACUUM LOW", "凝汽器真空低"),
+            (ReactorAlarm.LowFeedwaterTemp, "LOW FEEDWATER TEMP (15.1.1)", "給水低溫（15.1.1）"),
             (ReactorAlarm.LowSubcooling, "LOW SUBCOOLING", "過冷度不足"),
             (ReactorAlarm.DecayHeatHigh, "DECAY HEAT", "衰變熱高"),
             (ReactorAlarm.AtwsActive, "ATWS — RODS STUCK", "ATWS 控制棒卡住"),
@@ -1302,6 +1307,7 @@ public sealed partial class ReactorModule : Page
         ScenarioCombo.Items.Add(P("Boron dilution (Ch 15.4.6)", "失控硼稀釋（15.4.6）"));
         ScenarioCombo.Items.Add(P("Complete loss of flow (Ch 15.3.2)", "全喪失強制流量（15.3.2）"));
         ScenarioCombo.Items.Add(P("RCP locked rotor (Ch 15.3.3)", "主泵卡軸（15.3.3）"));
+        ScenarioCombo.Items.Add(P("Loss of feedwater heating (Ch 15.1.1)", "喪失給水加熱（15.1.1）"));
         ScenarioCombo.SelectedIndex = 0;
     }
 
@@ -1337,6 +1343,7 @@ public sealed partial class ReactorModule : Page
             10 => ReactorScenario.BoronDilution,
             11 => ReactorScenario.CompleteLossOfFlow,
             12 => ReactorScenario.LockedRotor,
+            13 => ReactorScenario.LossOfFeedwaterHeating,
             _ => ReactorScenario.Normal,
         });
         // The isolate control is meaningful during an SGTR (isolate affected SG) or an MSLB (close MSIVs).

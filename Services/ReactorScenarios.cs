@@ -20,6 +20,7 @@ public enum ReactorScenario
     BoronDilution,     // 失控硼稀釋 · uncontrolled boron dilution (FSAR Ch 15.4.6) — unborated water added to RCS → +reactivity
     CompleteLossOfFlow,// 全喪失強制流量 · complete loss of forced flow (FSAR Ch 15.3.2) — all 4 RCPs trip, coast on flywheels
     LockedRotor,       // 主泵卡軸 · RCP rotor seizure / locked rotor (FSAR Ch 15.3.3) — one loop flow→0 instantly, no coastdown
+    LossOfFeedwaterHeating, // 喪失給水加熱 · loss of feedwater heating (FSAR Ch 15.1.1) — HP heater string trips → colder feedwater → secondary overcooling → +reactivity via MTC
 }
 
 /// <summary>一條儀表限值帶 · One coloured limit band on a gauge / strip chart.</summary>
@@ -240,6 +241,12 @@ public static class ReactorScenarios
         "genIfd" => (0, 2.6,
             Bands((0, 0.4, "warn"), (0.4, 1.1, "normal"), (1.1, 2.6, "warn")),
             Sets((1.0, "Rated field", "額定勵磁"))),
+
+        // Final feedwater temperature (°F). Full-load design ~440 °F; loss of an HP heater string (FSAR 15.1.1)
+        // drops it ~50 °F. Part-load operation is normally below 440 °F, so only flag a gross low-temperature.
+        "fwTemp" => (80, 480,
+            Bands((80, 360, "warn"), (360, 460, "normal"), (460, 480, "warn")),
+            Sets((440, "Full-load FW temp", "滿載給水溫度"), (390, "1 HP htr lost", "失一台高壓加熱器"))),
 
         _ => (0, 100, Array.Empty<GaugeBand>(), Array.Empty<GaugeSetpoint>()),
     };

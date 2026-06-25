@@ -101,6 +101,7 @@ public enum ReactorAlarm
     ContainmentGaseousRadHi,   // containment-atmosphere gaseous (Xe-133 noble-gas) radioactivity monitor hi (RG 1.45 / LCO 3.4.15)
     RcpLockedRotor,            // RCP rotor seizure / locked rotor (FSAR 15.3.3) — one loop flow lost instantly
     RodsInDnbHi,               // predicted fuel rods in DNB exceeds the ~5% locked-rotor acceptance fraction
+    LowFeedwaterTemp,          // final feedwater temperature has fallen below its load program (loss of FW heating, FSAR 15.1.1)
 }
 
 /// <summary>
@@ -588,6 +589,18 @@ public sealed class ReactorSimService
     public double FeedRegValve { get; private set; }     // 0..1 main feed-reg valve position (inner loop)
     public double IndicatedSgLevel { get; private set; } = 60.0; // % NR shown on the gauge = inventory + shrink/swell offset
     public bool ThreeElementActive => _threeElementActive; // true once steam/feed-flow signals are valid (>~18% power)
+
+    // ---- Regenerative feedwater-heating train + final feedwater temperature (FSAR Ch. 15 §10.4.7) ----
+    // A Westinghouse 4-loop heat balance raises condensate from the condenser-hotwell saturation (~38 °C)
+    // up to a final feedwater temperature of ~227 °C (~440 °F) across 6–7 regenerative heating stages
+    // (4 LP heaters + deaerator + 2 HP heaters), using turbine extraction steam. Because the extraction
+    // pressures track turbine load, the terminal feedwater temperature DROPS at part load (~210 °C @75%,
+    // ~186 °C @50%). Modelled here as a single effective heater with a load-programmed terminal temperature,
+    // a heaters-in-service fraction (a lost HP-heater string removes the final stage), and a thermal lag.
+    public double FinalFeedwaterTempC { get; private set; } = CondensateTempC; // °C delivered to the SGs
+    public double FeedwaterHeatersInService { get; set; } = 1.0; // 0..1 fraction of the heating train available
+    public double FeedwaterTempProgramC { get; private set; } = CondensateTempC; // °C scheduled value at this load (full heaters)
+    public double FeedwaterTempDeficitC { get; private set; } // °C below the programmed value (the overcooling driver)
     public double TurbineLoadSetpoint { get; set; } = 0.0; // 0..1 (fraction of rated MWe)
     public bool GeneratorBreakerClosed { get; set; }
     public bool ReliefValveOpen { get; set; }
@@ -916,6 +929,16 @@ public sealed class ReactorSimService
     private const double SdSinkGainK           = 70.0;            // sgRemoval coupling gain for the dump heat path
     private const double SdPressReliefK        = 0.40;            // pTarget relief per unit dumpFlow (< SteamPressDrawK 0.6)
     private const double SdValveTau            = 3.0;             // s — air-operated dump-valve stroke lag (~2–5 s band)
+
+    // --- Regenerative feedwater-heating train constants (nominal Westinghouse 4-loop heat balance) ---
+    private const double CondensateTempC       = 38.0;   // °C — condenser-hotwell saturation at ~2.0 inHgA (~100 °F)
+    private const double FinalFwTempFullC      = 226.7;  // °C — final feedwater temperature at 100% load (~440 °F)
+    private const double FwTempLoadExponent    = 0.35;   // terminal-temp load curve: ~210 °C @75%, ~186 °C @50%
+    private const double FwTempLagSeconds      = 30.0;   // s — heater-train + transport thermal lag
+    private const double FwLostStringFraction  = 0.85;   // heaters-in-service after one HP string trips (→ ~28 °C deficit)
+    private const double FwOvercoolGain        = 0.12;   // sgRemoval bump per (steam-flow × °C-deficit) — 0 at full heaters; keep ≤0.15
+    private const double FwDeficitClampC       = 45.0;   // °C — clamp the overcooling deficit (bounds the perturbation)
+    private const double FwLoTempAlarmDeficitC = 14.0;   // °C — annunciate low feedwater temperature (~25 °F below program)
 
     // --- Main condenser vacuum / backpressure — lumped heat-sink model · 主凝汽器真空／背壓 ---
     // The condensing temperature tracks the circulating-water inlet plus a load-scaled CW rise and terminal
@@ -1647,6 +1670,7 @@ public sealed class ReactorSimService
         RiaCladdingFailure = false; RiaFuelMelt = false; RiaCoolabilityViolated = false; RiaFailedRodPercent = 0;
         _dilutionActive = false; _dilutionFlowGpm = 0;
         _lockedRotorLoop = -1;     // clear any prior RCP rotor seizure (15.3.3)
+        FeedwaterHeatersInService = 1.0; // restore the full feedwater-heating train (clears a prior loss-of-FWH event)
         // Re-arm the boric-acid precipitation monitor for the new scenario (operator must re-elect ES-1.4).
         CoreBoronPpm = BoronPpm; HotLegRecircActive = false; Precipitated = false;
         TimeToPrecipSeconds = double.PositiveInfinity; BoricConcentrationActive = false;
@@ -1721,6 +1745,16 @@ public sealed class ReactorSimService
                 // ~3/4 rated almost at once — the fastest flow loss and the DNBR-limiting Condition-IV event.
                 // Low-flow trip + scram fire normally; this is the bounding case for min DNBR / % rods in DNB.
                 _lockedRotorLoop = 0;  // affected loop (0-based); other RCPs keep running — do NOT clear them
+                break;
+            case ReactorScenario.LossOfFeedwaterHeating:
+                // FSAR 15.1.1 "Decrease in Feedwater Temperature": one HP feedwater-heater string is isolated
+                // (feedwater- or extraction-steam-side closure, or a heater-drain malfunction), removing the
+                // final regenerative heating stage. The terminal feedwater temperature falls ~28 °C (~50 °F);
+                // UpdateFeedwaterHeating ramps FinalFeedwaterTempC down at the heater-train lag, the colder feed
+                // raises SG heat extraction, the primary cools, and (with a negative MTC — most negative at EOC)
+                // the cooldown inserts positive reactivity → a few-percent power rise. A Condition-II event:
+                // self-limiting via Doppler + Tavg/Tref rod control, normally no reactor trip.
+                FeedwaterHeatersInService = FwLostStringFraction;
                 break;
         }
     }
@@ -1964,6 +1998,8 @@ public sealed class ReactorSimService
         FirstStagePressure = 0; TurbineSpeedError = SyncRpm; TurbineTripped = false;
         IndicatedSgLevel = 60; SteamFlow = 0; FeedRegValve = 0; SgLevelSetpoint = 50;
         FeedwaterAuto = true; _iLevel = 0; _steamFlowSlow = 0; _threeElementActive = false; _fwAutoWasOn = false;
+        FinalFeedwaterTempC = CondensateTempC; FeedwaterHeatersInService = 1.0;
+        FeedwaterTempProgramC = CondensateTempC; FeedwaterTempDeficitC = 0;
         Iodine = 0; Xenon = 0; _pm = 0; _sm = 0;
         _iodineTop = _iodineBot = _xenonTop = _xenonBot = 0;
         _axialSplit = _axialSplitTarget = 0;
@@ -2075,6 +2111,9 @@ public sealed class ReactorSimService
         StepRadiochemistry(dt); // RCS DEI-131/Xe-133 source term + iodine spike + N-16 monitor; drives CoolantActivity
         StepLeakDetection(dt);  // RCS operational LEAKAGE accounting + RG 1.45 sump/particulate/gaseous detection (reads seal leak + source term)
         UpdateContainment(dt);
+        // --- regenerative feedwater-heating train: update the final feedwater temperature BEFORE the kinetics
+        //     sub-step so this tick's StepThermal sees the current FW temperature deficit (overcooling driver) ---
+        UpdateFeedwaterHeating(dt);
         // --- QPTR / dropped-rod tilt: advance the fall-ramp + quadrant detectors BEFORE the kinetics sub-step
         //     so the inserted single-rod reactivity (read from _dropRamp) is current this tick ---
         StepQptr(dt);
@@ -2312,6 +2351,40 @@ public sealed class ReactorSimService
         }
         SealLeakGpmTotal = total;
         SealCavityMaxTempC = maxT;
+    }
+
+    /// <summary>
+    /// 再生式給水加熱系統與最終給水溫度 · Regenerative feedwater-heating train + final feedwater temperature.
+    ///
+    /// Models the condensate/feedwater train (LP heaters + deaerator + HP heaters) as a single effective
+    /// regenerative heater. The terminal (final) feedwater temperature is load-programmed — it climbs from
+    /// the condenser-hotwell saturation (~38 °C) toward ~227 °C at full load because the turbine extraction
+    /// pressures that drive the heaters track turbine throttle pressure. A heaters-in-service fraction scales
+    /// the temperature rise (a tripped HP-heater string removes the final stage), and a first-order lag
+    /// represents the heater-shell + transport thermal inertia. The resulting temperature DEFICIT below the
+    /// program is consumed by StepThermal as extra SG heat extraction — the physical driver of the FSAR
+    /// 15.1.1 "decrease in feedwater temperature" overcooling transient. At full heaters the deficit is ~0,
+    /// so the calibrated at-power steady state is untouched.
+    /// </summary>
+    private void UpdateFeedwaterHeating(double dt)
+    {
+        // Load-programmed terminal feedwater temperature with a FULLY-available train. Drive it off measured
+        // steam flow (the secondary load), so the schedule tracks turbine load rather than neutron power.
+        double load = Math.Clamp(SteamFlow, 0.0, 1.0);
+        FeedwaterTempProgramC = CondensateTempC
+            + (FinalFwTempFullC - CondensateTempC) * Math.Pow(load, FwTempLoadExponent);
+
+        // Heaters-in-service scales the achievable rise above condensate; a lost HP string lowers the target.
+        double frac = Math.Clamp(FeedwaterHeatersInService, 0.0, 1.0);
+        double target = CondensateTempC + (FeedwaterTempProgramC - CondensateTempC) * frac;
+
+        // First-order lag toward the target (heater-train + feed-line transport inertia).
+        double a = (FwTempLagSeconds > 0) ? Math.Min(1.0, dt / FwTempLagSeconds) : 1.0;
+        FinalFeedwaterTempC += (target - FinalFeedwaterTempC) * a;
+
+        // The deficit below the programmed value is what overcools the primary (clamped, ≥0). Zero whenever
+        // the full train is in service (FinalFeedwaterTempC ≈ FeedwaterTempProgramC) → no steady-state effect.
+        FeedwaterTempDeficitC = Math.Clamp(FeedwaterTempProgramC - FinalFeedwaterTempC, 0.0, FwDeficitClampC);
     }
 
     private void UpdateScenarios(double dt)
@@ -3197,6 +3270,11 @@ public sealed class ReactorSimService
         // and the primary-to-secondary temperature head; clamped ≥0 so it can never heat the primary.
         if (MslbBreakFlow > 0)
             sgRemoval += 0.6 * MslbBreakFlow * Math.Max(0, Tavg - SecondarySatTemp());
+        // Loss-of-feedwater-heating overcooling (FSAR 15.1.1): feedwater colder than its load program means the
+        // SG must absorb the extra sensible enthalpy to reheat it, so primary heat extraction rises. One-sided
+        // and steam-flow-weighted — the deficit is ~0 with the full heater train in service (so the calibrated
+        // full-power steady state is untouched) and self-zeros at low/zero load (SteamFlow → 0).
+        sgRemoval += FwOvercoolGain * SteamFlow * FeedwaterTempDeficitC;
         double coolantHeatCap = 60.0; // MW·s per °C
         double netCoolant = fuelToCoolant - sgRemoval;
         double avg = Tavg + netCoolant / coolantHeatCap * h;
@@ -3990,6 +4068,7 @@ public sealed class ReactorSimService
         SetAlarm(ReactorAlarm.AxialFluxDiffOutOfBand, AfdOutsideBand);
         SetAlarm(ReactorAlarm.QuadrantPowerTiltHi, QptrOutOfLimit);          // LCO 3.2.4: QPTR > 1.02 above 50% RTP
         SetAlarm(ReactorAlarm.DroppedRcca, DroppedRodActive && _dropRamp > 0.5); // rod has reached the core bottom
+        SetAlarm(ReactorAlarm.LowFeedwaterTemp, FeedwaterTempDeficitC > FwLoTempAlarmDeficitC && SteamFlow > 0.10);
         SetAlarm(ReactorAlarm.ContainmentPressureHi, _ctmtHi1);
         SetAlarm(ReactorAlarm.ContainmentIsolation, ContainmentIsolationPhaseA || ContainmentIsolationPhaseB);
         SetAlarm(ReactorAlarm.ContainmentSpray, ContainmentSprayActive);
