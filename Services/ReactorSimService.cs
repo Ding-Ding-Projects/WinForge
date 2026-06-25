@@ -63,6 +63,8 @@ public enum ReactorAlarm
     PeakCladTempLimit,
     CladOxidationLimit,
     HydrogenGenerationLimit,
+    DnbrSafetyLimit,   // MinDnbr < 1.30  (W-3 95/95 design limit)
+    DnbrLowMargin,     // MinDnbr < 1.55  (low-margin warning)
 }
 
 /// <summary>
@@ -926,6 +928,94 @@ public sealed class ReactorSimService
         return Math.Exp(SatA - SatB / (tC + 273.15));
     }
 
+    // ===== Minimum DNBR (Departure-from-Nucleate-Boiling Ratio) — Westinghouse W-3 correlation =====
+    // 最小偏離核態沸騰比（W-3 關聯式）· The operator's direct anti-DNB margin readout. DNBR = critical
+    // heat flux / local heat flux; a value of 1.0 means the hot spot is about to enter film boiling and the
+    // clad would overheat. We evaluate the Tong-1967 W-3 CHF correlation at a REPRESENTATIVE hot-channel
+    // local point synthesised from the lumped state (power, flow, pressure, Thot/Tcold) — there is no
+    // sub-channel mesh, so this is an engineering single-point estimate, not a DNB analysis-of-record.
+    // PURE INSTRUMENTATION: ComputeDnbr writes ONLY MinDnbr/DnbrRawUnfiltered/DnbrLocalQuality + 2 alarms.
+    // It is NOT a trip — the licensed anti-DNB protection stays the variable-setpoint OverTemp ΔT / OverPower
+    // ΔT functions in the RPS. W-3 runs internally in English engineering units (psia, Btu/lbm, lb/hr-ft²),
+    // its native form, so the constants below are English; SI inputs are converted at the boundary.
+    public double MinDnbr { get; private set; } = 10.0;           // smoothed minimum DNBR, capped at DnbrCeiling
+    public double DnbrRawUnfiltered { get; private set; } = 10.0; // pre-filter value (strip-chart / debug)
+    public double DnbrLocalQuality { get; private set; }          // thermodynamic quality x at the DNB node
+
+    private const double Fq_Total        = CladPeakingFactor; // 2.5  total heat-flux peaking (reuse existing Fq)
+    private const double F_dH            = 1.65;     // enthalpy-rise hot-channel factor (drives local quality)
+    private const double AxialDnbFrac    = 0.70;     // cumulative power fraction at the DNB-limiting elevation (~2/3 h)
+    private const double QavgRatedBtu    = 0.189e6;  // Btu/hr-ft² rated core-AVERAGE surface heat flux
+    private const double GRatedBtu       = 2.5e6;    // lb/hr-ft² rated hot-channel mass flux (~3460 kg/m²·s)
+    private const double DeFt            = 0.044;    // ft equivalent hydraulic diameter (11.8 mm) for the W-3 De term
+    private const double CpBtu           = 1.30;     // Btu/lbm-°F hot pressurized-water specific heat (enthalpy rise)
+    private const double DnbrCeiling     = 10.0;     // off-scale-high cap
+    private const double DnbrFilterTau   = 2.5;      // s first-order display smoothing
+    private const double DnbrSafetyLimit = 1.30;     // W-3 95/95 design limit → safety-limit alarm
+    private const double DnbrLowMargin   = 1.55;     // low-margin warning threshold
+    private const double DnbrAlarmGate   = 0.15;     // suppress both DNBR alarms below this power fraction
+    private const double MpaToPsia       = 145.038;  // MPa → psia
+    private const double CToFspan        = 1.8;      // °C → °F span (no +32 offset; ΔT/enthalpy terms only)
+
+    /// <summary>飽和液焓擬合（Btu/lbm，1000–2300 psia）· Saturated-liquid enthalpy fit.</summary>
+    private static double HfPsia(double p)  { p = Math.Clamp(p, 1000, 2300); return 397.7 + 0.1769 * p - 2.066e-5 * p * p; }
+    /// <summary>蒸發潛熱擬合（Btu/lbm，1000–2300 psia）· Latent heat of vaporization fit.</summary>
+    private static double HfgPsia(double p) { p = Math.Clamp(p, 1000, 2300); return 730.9 - 0.2153 * p + 1.66e-5 * p * p; }
+
+    /// <summary>最小 DNBR 計算（W-3 關聯式）· Minimum-DNBR (Tong W-3 CHF) instrument. Called once per tick from
+    /// the end of UpdateNis, right after SubcoolingMarginC. Reads post-tick lumped state; writes ONLY the three
+    /// DNBR telemetry properties (the alarms are raised separately in UpdateAlarms). Display-only — never a trip,
+    /// never feeds back into kinetics/thermal/damage. Off-scale-high (10.0) when the core is not DNB-limited.</summary>
+    private void ComputeDnbr(double dt)
+    {
+        // 1. Low-power / stagnant-flow guard → off-scale-high; the W-3 correlation is meaningless there
+        //    (a cold or no-flow core is not DNB-limited), so never let it read a small/alarming DNBR.
+        double g = Math.Max(CoolantFlowFraction, 0.0);
+        if (_power < 0.05 || g < 0.02)
+        {
+            DnbrRawUnfiltered = DnbrCeiling;
+            DnbrLocalQuality  = -0.15;
+        }
+        else
+        {
+            // 2. SI → English local conditions, clamped to the W-3 validity window (1000–2300 psia).
+            double pPsia = Math.Clamp(PrimaryPressure * MpaToPsia, 1000.0, 2300.0);
+            double hf    = HfPsia(pPsia);
+            double hfg   = HfgPsia(pPsia);
+
+            // 3. Inlet subcooled-liquid enthalpy (consistent with SubcoolingMarginC), local enthalpy at the
+            //    DNB node, and the resulting thermodynamic quality x.
+            double tSatC  = SatTempAt(PrimaryPressure);
+            double hIn    = hf - CpBtu * Math.Max(0.0, (tSatC - Tcold) * CToFspan);     // subcooled inlet
+            double dhCore = CpBtu * Math.Max(0.0, (Thot - Tcold) * CToFspan);           // lumped core Δh = q/ṁ
+            double hLocal = hIn + AxialDnbFrac * F_dH * dhCore;                          // hot-channel local Δh
+            double x      = Math.Clamp((hLocal - hf) / Math.Max(hfg, 1.0), -0.15, 0.45);
+            DnbrLocalQuality = x;
+
+            // 4. Local heat flux (peaked) and hot-channel mass flux, English units.
+            double qLocal = _power * Fq_Total * QavgRatedBtu;   // Btu/hr-ft²
+            double gLoc   = g * GRatedBtu;                       // lb/hr-ft²
+
+            // 5. Tong-1967 W-3 critical heat flux (Btu/hr-ft²). exp argument clamped against overflow.
+            double expArg = Math.Clamp((18.177 - 0.004129 * pPsia) * x, -30.0, 30.0);
+            double term1  = (2.022 - 0.0004302 * pPsia)
+                          + (0.1722 - 0.0000984 * pPsia) * Math.Exp(expArg);
+            double term2  = (0.1484 - 1.596 * x + 0.1729 * x * Math.Abs(x)) * (gLoc / 1.0e6) + 1.037;
+            double term3  = 1.157 - 0.869 * x;
+            double term4  = 0.2664 + 0.8357 * Math.Exp(-3.151 * DeFt);   // De term ≈ 0.93, near-constant
+            double term5  = 0.8258 + 0.000794 * (hf - hIn);              // inlet-subcooling correction
+            double qDnb   = term1 * term2 * term3 * term4 * term5 * 1.0e6;
+
+            // 6. DNBR = CHF / local flux, guarded and clamped to the gauge range.
+            double raw = qDnb / Math.Max(qLocal, 1.0);
+            DnbrRawUnfiltered = Math.Clamp(raw, 0.0, DnbrCeiling);
+        }
+
+        // 7. First-order smoothing of the final clamped value (display steadiness; this is indication, not a trip).
+        double a = (dt > 1e-6) ? Math.Min(1.0, dt / DnbrFilterTau) : 1.0;
+        MinDnbr += (DnbrRawUnfiltered - MinDnbr) * a;
+    }
+
     /// <summary>渲染快照（不可變）· Immutable snapshot for the 60 fps render clock (no live state mid-frame).</summary>
     public readonly record struct Snapshot(
         double Power, double FuelTemp, double Thot, double Tcold,
@@ -975,6 +1065,7 @@ public sealed class ReactorSimService
         for (int i = 0; i < _alarms.Length; i++) _alarms[i] = false;
         Array.Clear(_decayGroup); Array.Clear(_actinide);
         DecayHeatFraction = 0; SubcoolingMarginC = 0; SourceRangeCps = SourceBaselineCps;
+        MinDnbr = DnbrRawUnfiltered = DnbrCeiling; DnbrLocalQuality = 0;
         OneOverM = 1.0; StartupRateDpm = 0; BurnupMwdPerTonne = 0;
         IntermediateRangeAmps = IrBottomAmps; IntermediateRangeDecades = 0; IntermediateRangePercent = 0;
         PowerRangePercent = 0; SourceRangeEnergized = true; _p6Latched = false;
@@ -1392,6 +1483,9 @@ public sealed class ReactorSimService
 
         // Sub-cooling margin: positive = sub-cooled liquid; negative = saturation / void risk.
         SubcoolingMarginC = SatTempAt(PrimaryPressure) - Thot;
+
+        // Minimum DNBR (W-3) — display-only anti-DNB margin; not read by UpdateProtection.
+        ComputeDnbr(dt);
     }
 
     private void UpdateBoron(double dt)
@@ -2132,6 +2226,10 @@ public sealed class ReactorSimService
         SetAlarm(ReactorAlarm.TurbineTrip,
             TurbineTripped || (GeneratorBreakerClosed && TurbineRPM < SyncRpm * 0.83 && SteamPressure > 3.0));
         SetAlarm(ReactorAlarm.LowSubcooling, SubcoolingMarginC < 10.0 && (_power > 0.05 || Thot > 200));
+        // Minimum DNBR (W-3) annunciators — gated above DnbrAlarmGate so an off-scale low-power reading never trips.
+        bool dnbrActive = _power > DnbrAlarmGate;
+        SetAlarm(ReactorAlarm.DnbrSafetyLimit, dnbrActive && MinDnbr < DnbrSafetyLimit);
+        SetAlarm(ReactorAlarm.DnbrLowMargin,  dnbrActive && MinDnbr >= DnbrSafetyLimit && MinDnbr < DnbrLowMargin);
         SetAlarm(ReactorAlarm.DecayHeatHigh, DecayHeatFraction > 0.03 && CoolantFlowFraction < 0.4 && FeedwaterFlow < 0.1);
         SetAlarm(ReactorAlarm.AtwsActive, _rodsFailToInsert && IsScrammed);
         SetAlarm(ReactorAlarm.AccumulatorInject, AccumulatorInjecting);

@@ -473,6 +473,7 @@ public sealed partial class ReactorModule : Page
         AddGauge("Coolant Thot", "熱腿溫度", 530, 660, () => _sim.Thot * 1.8 + 32, () => $"{_sim.Thot * 1.8 + 32:F0}°F", id: "thot");
         AddGauge("Coolant Tcold", "冷腿溫度", 520, 600, () => _sim.Tcold * 1.8 + 32, () => $"{_sim.Tcold * 1.8 + 32:F0}°F", id: "tcold");
         AddGauge("Subcooling", "過冷度", -20, 120, () => _sim.SubcoolingMarginC, () => $"{_sim.SubcoolingMarginC:F0}°C", id: "subcool");
+        AddGauge("Min DNBR (W-3)", "最小 DNBR", 1.0, 4.0, () => _sim.MinDnbr, () => _sim.MinDnbr >= 9.95 ? ">10" : $"{_sim.MinDnbr:F2}", id: "dnbr");
         AddGauge("Primary pressure", "一迴路壓力", 0, 3000, () => _sim.PrimaryPressure * 145.038, () => $"{_sim.PrimaryPressure * 145.038:F0} psia", id: "pzrPress");
         AddGauge("Pressurizer level", "穩壓器水位", 0, 100, () => _sim.PressurizerLevel, () => $"{_sim.PressurizerLevel:F0}%", id: "pzrLevel");
         AddGauge("Pressurizer temp", "穩壓器溫度", 80, 700, () => _sim.PressurizerLiquidTemp * 1.8 + 32, () => $"{_sim.PressurizerLiquidTemp * 1.8 + 32:F0}°F", id: "pzrTemp");
@@ -628,6 +629,8 @@ public sealed partial class ReactorModule : Page
             (ReactorAlarm.PeakCladTempLimit, "PCT > 2200°F (50.46)", "峰值包殼溫度超限 50.46"),
             (ReactorAlarm.CladOxidationLimit, "CLAD OXID > 17% ECR", "包殼氧化 >17% ECR"),
             (ReactorAlarm.HydrogenGenerationLimit, "CORE H₂ > 1%", "堆芯氫氣 >1%"),
+            (ReactorAlarm.DnbrLowMargin, "DNBR LOW MARGIN", "DNBR 餘裕偏低"),
+            (ReactorAlarm.DnbrSafetyLimit, "DNBR < 1.30 (S.L.)", "DNBR <1.30 安全限值"),
         };
         foreach (var (a, en, zh) in defs)
         {
