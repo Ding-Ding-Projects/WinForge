@@ -761,6 +761,11 @@ public sealed partial class MainWindow : Window
             case "srs":
             case "study":
                 Navigator.GoToModule?.Invoke("module.flashcards");
+            case "decompiler":
+            case "ilspy":
+            case "dotnetdecompiler":
+            case "disassembler":
+                Navigator.GoToModule?.Invoke("module.decompiler");
                 break;
             case "worldmonitor":
             case "world":
@@ -1001,6 +1006,7 @@ public sealed partial class MainWindow : Window
         "module.hexeditor" => typeof(HexEditorModule),
         "module.diagram" => typeof(DiagramEditorModule),
         "module.flashcards" => typeof(FlashcardsModule),
+        "module.decompiler" => typeof(DecompilerModule),
         "module.comms" => typeof(CommunicationsModule),
         "module.mail" => typeof(MailModule),
         "module.configbackup" => typeof(ConfigBackupModule),
