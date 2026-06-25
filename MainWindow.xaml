@@ -102,6 +102,7 @@
                         <NavigationViewItem Content="Media Downloader · 媒體下載器" Tag="module.ytdlp"><NavigationViewItem.Icon><FontIcon Glyph="&#xE896;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Blender (3D / Render) · Blender（3D／算圖）" Tag="module.blender"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7F4;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Document Converter · 文件轉換器" Tag="module.libreoffice"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="PDF Toolkit · PDF 工具箱" Tag="module.pdftoolkit"><NavigationViewItem.Icon><FontIcon Glyph="&#xEA90;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Screen Recorder · 螢幕錄影" Tag="module.recorder"><NavigationViewItem.Icon><FontIcon Glyph="&#xE714;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Capture Studio · 擷取工作室" Tag="module.capture"><NavigationViewItem.Icon><FontIcon Glyph="&#xE722;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Crop And Lock · 裁切與鎖定" Tag="module.cropandlock"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7A8;" /></NavigationViewItem.Icon></NavigationViewItem>
