@@ -652,9 +652,14 @@ public sealed partial class MainWindow : Window
                 break;
             case "qbittorrent":
             case "qbit":
-            case "torrent":
             case "torrents":
                 Navigator.GoToModule?.Invoke("module.qbittorrent");
+                break;
+            case "torrent":
+            case "bittorrent":
+            case "nativetorrent":
+            case "downloads":
+                Navigator.GoToModule?.Invoke("module.torrent");
                 break;
             case "worldmonitor":
             case "world":
@@ -873,6 +878,7 @@ public sealed partial class MainWindow : Window
         "module.rustdesk" => typeof(RustDeskModule),
         "module.homeassistant" => typeof(HomeAssistantModule),
         "module.qbittorrent" => typeof(QBittorrentModule),
+        "module.torrent" => typeof(TorrentModule),
         "module.comms" => typeof(CommunicationsModule),
         "module.mail" => typeof(MailModule),
         "module.configbackup" => typeof(ConfigBackupModule),
