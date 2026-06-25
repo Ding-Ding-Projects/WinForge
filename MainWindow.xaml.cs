@@ -317,6 +317,12 @@ public sealed partial class MainWindow : Window
             case "dupes":
                 Navigator.GoToModule?.Invoke("module.duplicates");
                 break;
+            case "everything":
+            case "search":
+            case "filesearch":
+            case "find":
+                Navigator.GoToModule?.Invoke("module.everything");
+                break;
             case "filelocksmith":
             case "lockedfile":
             case "whatslocking":
@@ -798,6 +804,7 @@ public sealed partial class MainWindow : Window
         "module.bulkops" => typeof(BulkOpsModule),
         "module.newplus" => typeof(NewPlusModule),
         "module.duplicates" => typeof(DuplicatesModule),
+        "module.everything" => typeof(EverythingSearchModule),
         "module.filelocksmith" => typeof(FileLocksmithModule),
         "module.disk" => typeof(DiskAnalyzerModule),
         "module.drives" => typeof(DrivesModule),
