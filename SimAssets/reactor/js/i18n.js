@@ -118,8 +118,38 @@ const S = {
   noRun:      ["NO FUEL LOADED — reactor cannot start", "未裝燃料 — 反應堆無法啟動"],
   signValid:  ["signature", "簽章"],
   selectFile: ["Select an assembly to validate", "選擇要驗證的組件"],
-  fuelExplain:["HMAC-SHA256 signed · forged / tampered / depleted fuel is rejected",
-               "HMAC-SHA256 簽章 · 偽造／竄改／耗盡燃料會被拒絕"],
+  fuelExplain:["HMAC-SHA256 signed · loading CONSUMES the fuel (file deleted) · forged / tampered / depleted fuel is rejected",
+               "HMAC-SHA256 簽章 · 入料即消耗燃料（檔案刪除）· 偽造／竄改／耗盡燃料會被拒絕"],
+
+  // ultra-realistic fabrication
+  fabChain:   ["Fabrication chain", "製造流程"],
+  lattice:    ["Lattice", "柵格"],
+  material:   ["Material", "材料"],
+  manufacturer:["Manufacturer", "製造商"],
+  lot:        ["Lot", "批號"],
+  targetBurnup:["Target burnup", "目標燃耗"],
+  fabDate:    ["Fabricated", "製造日期"],
+
+  // waste
+  roomWaste:  ["Nuclear waste management", "核廢料管理"],
+  wasteTitle: ["Nuclear waste (junk files on disk)", "核廢料（磁碟垃圾檔）"],
+  wasteExplain:["Burning fuel MANDATORILY generates real 100 MB–2000 MB incompressible waste files. " +
+                "Disposal sends them to a deep geological repository (deletes them).",
+                "燃燒燃料必定產生真實的 100 MB–2000 MB 不可壓縮廢料檔。" +
+                "處置即送往深地質處置庫（刪除檔案）。"],
+  wasteTotal: ["Total on-disk waste", "磁碟廢料總量"],
+  wasteCount: ["Waste files", "廢料檔數"],
+  driveFree:  ["Drive free", "磁碟剩餘"],
+  safetyFloor:["Safety floor", "安全下限"],
+  wasteFull:  ["WASTE STORAGE FULL — dispose of waste", "廢料倉已滿 — 請處置核廢料"],
+  wasteGen:   ["Generating waste…", "正在產生核廢料…"],
+  dispose:    ["Dispose (deep geological repository)", "處置（深地質處置庫）"],
+  disposeAll: ["Dispose ALL waste", "處置全部廢料"],
+  disposeOne: ["Dispose", "處置"],
+  noWaste:    ["No waste on disk", "磁碟無廢料"],
+  confirmDisposeAll:["Dispose ALL nuclear waste files? This permanently deletes them.",
+                     "確定處置全部核廢料檔？此操作會永久刪除。"],
+  setFloor:   ["Set floor (GB)", "設定下限 (GB)"],
 
   // rad
   area:       ["Area monitor", "區域監測"],

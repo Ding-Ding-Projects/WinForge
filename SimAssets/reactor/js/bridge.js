@@ -14,6 +14,8 @@ const TICK = 0.1; // 10 Hz nominal
 export const store = {
   latest: null,           // most-recent raw snapshot
   fuel: { fresh: [], loaded: [], spent: [], canRun: false, lastResult: null },
+  waste: { files: [], totalMb: 0, totalGb: 0, count: 0, driveFreeGb: -1, safetyFloorGb: 10,
+           storageFull: false, generating: false, progressPct: 0, genTargetMb: 0, genId: "" },
 
   ingest(data) {
     if (!data || typeof data !== "object") return;
@@ -32,6 +34,9 @@ export const store = {
         this.fuel.loaded = data.items.loaded || [];
         this.fuel.spent = data.items.spent || [];
         this.fuel.canRun = !!data.canRun;
+      }
+      if (data.op === "wasteStatus" && data.waste) {
+        this.waste = Object.assign(this.waste, data.waste);
       }
       this.fuel.lastResult = data;
       listeners.fuel.forEach(fn => fn(data));

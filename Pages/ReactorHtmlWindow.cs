@@ -24,6 +24,12 @@ public sealed class ReactorHtmlWindow : Window
 {
     private readonly ReactorSimService _sim;
     private readonly FuelFactoryService _fuel;
+    private readonly NuclearWasteService _waste = new();
+    private double _mwdSinceLastWaste;            // MWd accrued since last waste junk file
+    // Produce a waste junk file every ~10 MWd of whole-core energy: at rated power (~3411 MWth)
+    // that is roughly one waste file every ~4 minutes of operation, so burning fuel visibly
+    // accumulates real nuclear waste on disk.
+    private const double WasteEveryMwd = 10.0;
     private readonly WebView2 _web = new();
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(100) }; // 10 Hz
     private readonly OverlappedPresenter _presenter = OverlappedPresenter.Create();
@@ -42,6 +48,16 @@ public sealed class ReactorHtmlWindow : Window
     {
         _sim = sim;
         _fuel = fuel ?? new FuelFactoryService();
+
+        // Surface waste storage warnings + progress to the HTML room.
+        _waste.StorageWarning += (en, zh) =>
+        {
+            try { DispatcherQueue?.TryEnqueue(() => PostFuel("waste", false, en, zh)); } catch { }
+        };
+        _waste.Changed += () =>
+        {
+            try { DispatcherQueue?.TryEnqueue(PostWasteStatus); } catch { }
+        };
 
         Title = "Reactor Control Room · 反應堆控制室";
         try { AppWindow.SetIcon("Assets/AppIcon.ico"); } catch { }
@@ -118,8 +134,27 @@ public sealed class ReactorHtmlWindow : Window
 
         _sim.Update(dt);
 
-        // Accrue burnup onto loaded assemblies and re-sign on disk.
-        _fuel.AccrueBurnup(_sim.ThermalPowerMW, dt);
+        // Accrue burnup onto loaded assemblies and re-sign on disk; collect any newly-spent assemblies.
+        var newlySpent = _fuel.AccrueBurnup(_sim.ThermalPowerMW, dt);
+
+        // MANDATORY nuclear waste: burning fuel produces real junk files. Trigger on burnup
+        // milestones (every WasteEveryMwd of whole-core energy) and whenever an assembly becomes spent.
+        if (_sim.ThermalPowerMW > 0)
+        {
+            double mwdThisTick = _sim.ThermalPowerMW * dt / 86400.0;
+            _mwdSinceLastWaste += mwdThisTick;
+            if (_mwdSinceLastWaste >= WasteEveryMwd && !_waste.IsGenerating)
+            {
+                _mwdSinceLastWaste = 0;
+                // Scale waste size by energy produced this milestone into the [100MB, 2000MB] band.
+                long target = NuclearWasteService.MinWasteBytes
+                    + (long)(Math.Clamp(_sim.ThermalPowerMW / ReactorSimService.RatedThermalMW, 0, 1)
+                             * (NuclearWasteService.MaxWasteBytes - NuclearWasteService.MinWasteBytes));
+                _waste.GenerateWaste(target);
+            }
+        }
+        if (newlySpent.Count > 0 && !_waste.IsGenerating)
+            _waste.GenerateWaste(); // a spent assembly mandates a fresh waste file (random size)
 
         if (_webReady && _web.CoreWebView2 is not null)
         {
@@ -190,10 +225,8 @@ public sealed class ReactorHtmlWindow : Window
                 {
                     var path = _fuel.ResolvePath(msg.Path ?? "");
                     if (path is null) { PostFuel("load", false, "File not found.", "找不到檔案。"); break; }
-                    bool ok = _fuel.LoadIntoCore(path);
-                    PostFuel("load", ok,
-                        ok ? "Assembly loaded into core." : "Load refused (invalid / spent / depleted).",
-                        ok ? "燃料已裝入堆芯。" : "拒絕裝料（無效／乏燃料／已耗盡）。");
+                    var lr = _fuel.LoadIntoCore(path);
+                    PostFuel("load", lr.Loaded, lr.ReasonEn, lr.ReasonZh);
                     PostFuelList();
                     break;
                 }
@@ -211,6 +244,50 @@ public sealed class ReactorHtmlWindow : Window
                         "全部在堆燃料已退役至乏燃料池。");
                     PostFuelList();
                     break;
+
+                case "wasteStatus":
+                    PostWasteStatus();
+                    break;
+
+                case "dispose":
+                {
+                    if (string.IsNullOrWhiteSpace(msg.Path))
+                    {
+                        int n = _waste.DisposeAll();
+                        PostFuel("dispose", true,
+                            $"Disposed {n} waste file(s) to deep geological repository.",
+                            $"已將 {n} 個核廢料檔案送往深地質處置庫。");
+                    }
+                    else
+                    {
+                        bool ok = _waste.Dispose(msg.Path);
+                        PostFuel("dispose", ok,
+                            ok ? "Waste file disposed (deep geological repository)." : "Dispose failed.",
+                            ok ? "核廢料已處置（深地質處置庫）。" : "處置失敗。");
+                    }
+                    PostWasteStatus();
+                    break;
+                }
+
+                case "setSafetyFloor":
+                {
+                    // value carried as MB in msg.Mass.
+                    long mb = (long)Math.Max(0, msg.Mass);
+                    _waste.SafetyFloorBytes = mb * 1024L * 1024L;
+                    PostFuel("setSafetyFloor", true,
+                        $"Waste safety floor set to {mb} MB.", $"核廢料安全下限設為 {mb} MB。");
+                    PostWasteStatus();
+                    break;
+                }
+
+                case "generateWaste": // manual test trigger
+                {
+                    bool ok = _waste.GenerateWaste();
+                    PostFuel("generateWaste", ok,
+                        ok ? "Generating waste…" : "Busy or storage full.",
+                        ok ? "正在產生核廢料…" : "忙碌中或廢料倉已滿。");
+                    break;
+                }
             }
         }
         catch (Exception ex)
@@ -219,10 +296,17 @@ public sealed class ReactorHtmlWindow : Window
         }
     }
 
+    // camelCase so FuelAssembly records (EnrichmentPct → enrichmentPct, FabChain → fabChain, …)
+    // and all anonymous DTOs land in the shape the HTML room reads.
+    private static readonly JsonSerializerOptions PostOpts = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    };
+
     private void Post(object o)
     {
         if (_webReady && _web.CoreWebView2 is not null)
-            try { _web.CoreWebView2.PostWebMessageAsJson(JsonSerializer.Serialize(o)); } catch { }
+            try { _web.CoreWebView2.PostWebMessageAsJson(JsonSerializer.Serialize(o, PostOpts)); } catch { }
     }
 
     private void PostFuel(string op, bool ok, string en, string zh) =>
@@ -248,6 +332,37 @@ public sealed class ReactorHtmlWindow : Window
             },
             canRun = _fuel.CanReactorRun,
         });
+
+    private void PostWasteStatus()
+    {
+        var s = _waste.Status();
+        Post(new
+        {
+            type = "fuelResult", op = "wasteStatus", ok = true,
+            waste = new
+            {
+                files = s.Files.Select(f => new
+                {
+                    id = f.Id,
+                    bytes = f.Bytes,
+                    mb = Math.Round(f.Bytes / (1024.0 * 1024.0), 1),
+                    createdUtc = f.CreatedUtc.ToString("u"),
+                }),
+                totalBytes = s.TotalBytes,
+                totalMb = Math.Round(s.TotalBytes / (1024.0 * 1024.0), 1),
+                totalGb = Math.Round(s.TotalBytes / (1024.0 * 1024.0 * 1024.0), 2),
+                count = s.Count,
+                driveFreeGb = s.DriveFreeBytes == long.MaxValue ? -1
+                    : Math.Round(s.DriveFreeBytes / (1024.0 * 1024.0 * 1024.0), 1),
+                safetyFloorGb = Math.Round(s.SafetyFloorBytes / (1024.0 * 1024.0 * 1024.0), 1),
+                storageFull = s.StorageFull,
+                generating = s.Generating,
+                progressPct = Math.Round(s.GenProgressPct, 1),
+                genTargetMb = Math.Round(s.GenTargetBytes / (1024.0 * 1024.0), 0),
+                genId = s.GenId,
+            },
+        });
+    }
 
     private void ToggleFull()
     {
