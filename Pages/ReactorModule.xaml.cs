@@ -845,6 +845,17 @@ public sealed partial class ReactorModule : Page
         // Shows the output-correction factor; warns as vacuum degrades toward the dump-inhibit / turbine-trip band.
         AddGauge("Condenser vacuum", "凝汽器真空", 0, 10, () => _sim.CondenserPressureInHg,
             () => $"{_sim.CondenserPressureInHg:F1} inHgA · {_sim.CondenserPressureKpa:F1} kPa · ×{_sim.CondenserVacuumOutputFactor:F3}", id: "condvac");
+        // Moisture Separator Reheater (MSR) — the saturated-cycle wet-steam conditioner between the HP and LP
+        // turbines. Hot-reheat temperature, LP last-stage exhaust moisture (the blade-erosion / Baumann driver)
+        // and the resulting gross-output credit factor. Warn bands: low reheat and >13% LP exhaust moisture.
+        AddGauge("Hot reheat temp", "熱再熱溫度", 150, 300, () => _sim.HotReheatTempC,
+            () => $"{_sim.HotReheatTempC:F0} °C · ΔTsh {_sim.LpInletSuperheatC:F0} °C" + (_sim.MsrAvailable ? "" : P(" · BYPASS", " · 旁通")),
+            warnFrac: (245.0 - 150.0) / (300.0 - 150.0), id: "msrReheat");
+        AddGauge("LP exhaust moisture", "低壓排汽濕度", 0, 16, () => _sim.LpExhaustMoisturePct,
+            () => $"{_sim.LpExhaustMoisturePct:F1}% · HP {_sim.HpExhaustMoisturePct:F1}% → sep {_sim.SeparatorOutMoisturePct:F2}%",
+            warnFrac: 13.0 / 16.0, id: "msrLpMoist");
+        AddGauge("MSR output credit", "MSR 出力修正", 0.96, 1.02, () => _sim.MsrOutputFactor,
+            () => $"×{_sim.MsrOutputFactor:F3} · " + P("drain ", "疏水 ") + $"{_sim.ReheaterDrainPct:F0}%", id: "msrFactor");
         // Class 1E 125 VDC station battery — only depletes during a station blackout (no AC source).
         AddGauge("Vital DC battery", "1E 直流電池", 0, 100, () => _sim.Electrical.BatterySoc * 100,
             () => $"{_sim.Electrical.BatterySoc * 100:F0}% · {_sim.Electrical.BatteryVoltage:F0} VDC", id: "battery");
@@ -947,6 +958,8 @@ public sealed partial class ReactorModule : Page
             (ReactorAlarm.EccsActive, "ECCS ACTIVE", "應急堆芯冷卻"),
             (ReactorAlarm.TurbineTrip, "TURBINE TRIP", "汽輪機跳機"),
             (ReactorAlarm.CondenserVacuumLow, "CONDENSER VACUUM LOW", "凝汽器真空低"),
+            (ReactorAlarm.MsrHighLpMoisture, "HIGH LP EXHAUST MOISTURE", "低壓缸排汽濕度高"),
+            (ReactorAlarm.MsrLowReheat, "MSR LOW REHEAT", "再熱蒸汽溫度低"),
             (ReactorAlarm.LowFeedwaterTemp, "LOW FEEDWATER TEMP (15.1.1)", "給水低溫（15.1.1）"),
             (ReactorAlarm.LowSubcooling, "LOW SUBCOOLING", "過冷度不足"),
             (ReactorAlarm.DecayHeatHigh, "DECAY HEAT", "衰變熱高"),
@@ -1976,6 +1989,13 @@ public sealed partial class ReactorModule : Page
             "Turbine load setpoint (%)", "汽輪機負載設定（%）",
             0, 100, _sim.TurbineLoadSetpoint * 100, 1,
             v => _sim.TurbineLoadSetpoint = v / 100.0, () => _sim.TurbineLoadSetpoint * 100, "%"));
+
+        // MSR (汽水分離再熱器) fault demo: a reheater tube leak / bypass that degrades the reheat — hot reheat
+        // falls, LP exhaust moisture climbs toward the blade-erosion limit, and gross output drops. Default OFF.
+        var msrPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        msrPanel.Children.Add(MakeToggle("Reheater tube leak · 再熱器傳熱管洩漏", "再熱器傳熱管洩漏 · Reheater tube leak",
+            v => _sim.ReheaterTubeLeak = v));
+        host.Children.Add(WrapLabel("Moisture Separator Reheater · 汽水分離再熱器", "汽水分離再熱器 · Moisture Separator Reheater", msrPanel));
 
         var grdPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
         // Generator breaker: with the sync interlock OFF (default) the toggle closes unconditionally, exactly

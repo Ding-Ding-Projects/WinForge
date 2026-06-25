@@ -167,6 +167,8 @@ public enum ReactorAlarm
     VctHighLevelDivert,        // 容積控制缸液位高 → 分流持留缸 — VCT level above the band; letdown diverted to the holdup tank (CVCS)
     ChargingSuctionRwst,       // 上充泵吸入已切換至換料水缸 — VCT very-low; charging-pump suction swapped VCT→RWST (CVCS interlock)
     NisCalorimetricDeviation,  // 功率量程核儀表偏離熱平衡 — PR NIS deviates > 2% RTP from the secondary calorimetric (SR 3.3.1.2 — recalibrate)
+    MsrHighLpMoisture,         // 低壓缸排汽濕度高 — MSR LP last-stage exhaust moisture > 13% (approaching Baumann blade-erosion limit)
+    MsrLowReheat,              // 熱再熱蒸汽溫度低 — loss of reheat (reheater tube leak / MSR bypass) above 50% load → wet LP steam
 }
 
 /// <summary>
@@ -1527,6 +1529,43 @@ public sealed class ReactorSimService
     public bool   AirEjectorLost { get; set; }   // event toggle: loss of the steam-jet air ejector / vacuum pumps
     public bool   CircWaterLost  { get; set; }   // event toggle: loss of circulating-water flow
 
+    // ---- Moisture Separator Reheater (MSR) · 汽水分離再熱器 ----
+    // A large 4-loop PWR runs a SATURATED-steam Rankine cycle, so steam leaving the HP turbine is very wet
+    // (~11-13% moisture). Two horizontal MSR shells sit between the HP and LP turbines: chevron moisture
+    // separators strip the carryover water (down to ~0.4%), then a (typ. two-stage) reheater — heated by HP
+    // extraction steam and main throttle steam — adds ~80 °C of superheat (hot reheat ≈ 265 °C). Drying +
+    // reheating the LP-inlet steam cuts LP last-stage exhaust moisture (~13% → ~9%), which both protects the
+    // long LP blades from droplet erosion (Baumann rule, erosion above ~12-15% wetness) and recovers ~1% of
+    // gross output (Baumann factor ≈ 1% efficiency per 1% mean moisture). This block is OUTPUT-ONLY: it reads
+    // SteamPressure / FirstStagePressure / the fault toggle and writes ONLY its own telemetry + MsrOutputFactor
+    // (a peer of CondenserVacuumOutputFactor on the grossElec line). It NEVER touches primary state or adds
+    // heat, so the meltdown-arm containment guarantee is preserved. Single writer: MsrStep (in UpdateSecondary).
+    private const double LpInletSatC        = 185.0; // °C cold-reheat / LP-inlet saturation (~1.0-1.2 MPa) — superheat datum
+    private const double ReheaterTtdC       = 25.0;  // °C terminal temp difference (heating-steam sat − hot reheat); 15-30 °C band
+    private const double HpMoistAtFullLoad  = 12.0;  // % HP-turbine exhaust (cold-reheat) wetness at full load
+    private const double SepEfficiency      = 0.965; // chevron mechanical separation efficiency → ~0.42% carryover
+    private const double ReheatColdFlowFrac = 0.05;  // load below which the reheater is cold (no superheat)
+    private const double LpBaseMoisturePct  = 13.0;  // % no-reheat LP last-stage exhaust wetness
+    private const double SuperheatDryCoef   = 0.055; // % exhaust-moisture removed per °C of LP-inlet superheat
+    private const double BaumannK           = 1.3;   // efficiency credit %/% of mean LP moisture dried
+    private const double RefLpMeanMoisture  = 7.0;   // % no-reheat reference mean LP moisture (credit datum)
+    private const double MsrCreditMin       = -0.035, MsrCreditMax = 0.015; // raw Baumann credit band
+    private const double MsrFactorMin       = 0.965,  MsrFactorMax = 1.01;  // hard clamp on the output scalar
+    private const double ReheaterLeakPenC   = 35.0;  // °C hot-reheat depression on a reheater tube leak (~265→230)
+    private const double MsrHpMoistTau = 6.0, MsrReheatTau = 25.0, MsrLpMoistTau = 10.0, MsrFactorTau = 8.0, MsrDrainTau = 15.0;
+
+    public double HpExhaustMoisturePct   { get; private set; }              // % moisture at HP-turbine exhaust (cold reheat)
+    public double SeparatorOutMoisturePct{ get; private set; }              // % moisture after the chevron separator (carryover)
+    public double HotReheatTempC         { get; private set; } = LpInletSatC; // °C hot-reheat (MSR outlet) temperature
+    public double LpInletSuperheatC      { get; private set; }              // °C superheat above the LP-inlet saturation
+    public double LpExhaustMoisturePct   { get; private set; } = LpBaseMoisturePct; // % LP last-stage exhaust moisture (blade-health driver)
+    public double ReheaterDrainPct       { get; private set; }              // % MSR drain-tank level indication (0..100)
+    public double MsrOutputFactor        { get; private set; } = 1.0;       // multiplicative gross-MWe credit, clamped [0.965,1.01]
+    public bool   MsrAvailable           { get; private set; } = true;      // false on severe reheat loss (tube leak / bypass)
+    public bool   MsrLowReheatAlarm      { get; private set; }              // hot-reheat temp low (loss of reheat, >50% load)
+    public bool   MsrHighLpMoistureAlarm { get; private set; }              // LP exhaust moisture ≥ 13% (Baumann erosion approach)
+    public bool   ReheaterTubeLeak       { get; set; }                      // OPERATOR FAULT TOGGLE — default OFF (reheater tube leak / MSR bypass)
+
     // ---- Fuel-cycle burnup / core depletion ----
     public double BurnupMwdPerTonne { get; private set; }   // core-average burnup accrued this cycle (MWd/tonneU)
     private const double CoreTonnesU = 100.0; // ~100 tonnes U in a large PWR core
@@ -2734,6 +2773,11 @@ public sealed class ReactorSimService
         CondenserPressureKpa = DesignBackpressureKpa; CondenserPressureInHg = 2.0; CondenserVacuumInHg = 27.9;
         CondenserVacuumOutputFactor = 1.0; CondenserVacuumLow = false; CondenserAvailable = true;
         AirEjectorLost = false; CircWaterLost = false;
+        // MSR: re-seed cold (no reheat, wet LP steam) so a fresh start ramps up with the load.
+        HpExhaustMoisturePct = 0; SeparatorOutMoisturePct = 0; HotReheatTempC = LpInletSatC;
+        LpInletSuperheatC = 0; LpExhaustMoisturePct = LpBaseMoisturePct; ReheaterDrainPct = 0;
+        MsrOutputFactor = 1.0; MsrAvailable = true; MsrLowReheatAlarm = false; MsrHighLpMoistureAlarm = false;
+        ReheaterTubeLeak = false;
         FirstStagePressure = 0; TurbineSpeedError = SyncRpm; TurbineTripped = false;
         IndicatedSgLevel = 60; SteamFlow = 0; FeedRegValve = 0; SgLevelSetpoint = 50;
         FeedwaterAuto = true; _iLevel = 0; _steamFlowSlow = 0; _threeElementActive = false; _fwAutoWasOn = false;
@@ -4490,6 +4534,73 @@ public sealed class ReactorSimService
         return 100.0 + 26.8 * Math.Pow(Math.Max(SteamPressure, 0.05), 0.5) * 1.0 + SteamPressure * 8.0;
     }
 
+    /// <summary>
+    /// 主蒸汽飽和溫度（再熱加熱蒸汽源）· Saturation temperature of the MSR heating (main throttle) steam, °C,
+    /// as a function of header pressure (MPa). A 2nd-order Horner fit valid over ~0.1-8 MPa: 199.07 °C at 1 MPa,
+    /// 289.9 °C at 6.9 MPa (the nominal full-load point). Distinct from SecondarySatTemp(): this is the heating-
+    /// steam side that sets the reheater's achievable hot-reheat temperature via the terminal temperature difference.
+    /// </summary>
+    private static double MsrSatTempC(double pMpa)
+    {
+        double p = Math.Clamp(pMpa, 0.1, 8.0);
+        return (-2.6580 * p + 31.510) * p + 199.07;
+    }
+
+    /// <summary>
+    /// 汽水分離再熱器 · Moisture Separator Reheater step. Single writer of all MSR telemetry. OUTPUT-ONLY:
+    /// reads SteamPressure / FirstStagePressure / ReheaterTubeLeak; writes ONLY its own MSR fields and the
+    /// MsrOutputFactor gross-MWe scalar. Adds NO heat and touches NO primary state, so it is in the same
+    /// cooling/output-only containment class as UpdateCondenser. Called from UpdateSecondary BEFORE grossElec
+    /// is formed so MsrOutputFactor is current this tick (mirrors the condenser-vacuum coupling).
+    /// </summary>
+    private void MsrStep(double dt)
+    {
+        // 0) Load proxy + heating-steam saturation temperature.
+        double qn   = Math.Clamp(FirstStagePressure, 0.0, 1.1);   // normalized turbine load 0..~1.1
+        double tSat = MsrSatTempC(SteamPressure);                 // ~289.9 °C at 6.9 MPa
+
+        // 1) HP-turbine exhaust (cold-reheat) wetness rises with load (saturated cycle), first-order lag.
+        double hpTarget = HpMoistAtFullLoad * qn;                 // ~12% at full load
+        HpExhaustMoisturePct += (hpTarget - HpExhaustMoisturePct) * Math.Min(1.0, dt / MsrHpMoistTau);
+
+        // 2) Chevron moisture separator — near-instantaneous mechanical carryover = (1−η)·incoming (~0.42%).
+        SeparatorOutMoisturePct = HpExhaustMoisturePct * (1.0 - SepEfficiency);
+
+        // 3) Reheater outlet (slow shell thermal mass). Above the cold-flow fraction: hot reheat = tSat − TTD;
+        //    below it the reheater is cold so the outlet collapses to LP-inlet saturation (no superheat — the
+        //    cold-startup behaviour). A reheater tube leak / bypass depresses the achievable outlet temperature.
+        double reheatTarget = qn > ReheatColdFlowFrac ? tSat - ReheaterTtdC : LpInletSatC;
+        if (ReheaterTubeLeak) reheatTarget -= ReheaterLeakPenC;   // ~265 → ~230 °C
+        HotReheatTempC += (reheatTarget - HotReheatTempC) * Math.Min(1.0, dt / MsrReheatTau);
+
+        // 4) LP-inlet superheat above the fixed cold-reheat / LP-inlet saturation (~185 °C). ~80 °C at full load.
+        LpInletSuperheatC = Math.Max(0.0, HotReheatTempC - LpInletSatC);
+
+        // 5) LP last-stage exhaust moisture via a simple expansion-line / Baumann mapping: each °C of inlet
+        //    superheat shifts the LP expansion drier; separator carryover adds a little back. Lagged. Floor 2%.
+        double lpTarget = LpBaseMoisturePct - SuperheatDryCoef * LpInletSuperheatC + 0.5 * SeparatorOutMoisturePct;
+        lpTarget = Math.Max(2.0, lpTarget);                       // ~8.8% healthy full load
+        LpExhaustMoisturePct += (lpTarget - LpExhaustMoisturePct) * Math.Min(1.0, dt / MsrLpMoistTau);
+
+        // 6) MSR drain-tank level indication (separated water + condensed heating steam), lagged, 0..100%.
+        double drainTarget = Math.Clamp(HpExhaustMoisturePct * SepEfficiency * 8.0, 0.0, 100.0);
+        if (ReheaterTubeLeak) drainTarget = Math.Min(100.0, drainTarget + 25.0);  // a leak floods the shell
+        ReheaterDrainPct += (drainTarget - ReheaterDrainPct) * Math.Min(1.0, dt / MsrDrainTau);
+        ReheaterDrainPct = Math.Clamp(ReheaterDrainPct, 0.0, 100.0);
+
+        // 7) Baumann efficiency credit: how much drier the LP stages run vs the no-reheat reference mean moisture.
+        double lpMeanMoisture = 0.5 * (SeparatorOutMoisturePct + LpExhaustMoisturePct);
+        double dryGain        = (RefLpMeanMoisture - lpMeanMoisture) * (BaumannK / 100.0);
+        double factorTarget   = Math.Clamp(1.0 + Math.Clamp(dryGain, MsrCreditMin, MsrCreditMax), MsrFactorMin, MsrFactorMax);
+        MsrOutputFactor += (factorTarget - MsrOutputFactor) * Math.Min(1.0, dt / MsrFactorTau);
+        MsrOutputFactor  = Math.Clamp(MsrOutputFactor, MsrFactorMin, MsrFactorMax);  // belt-and-braces
+
+        // 8) Availability + annunciators.
+        MsrAvailable           = !ReheaterTubeLeak;
+        MsrLowReheatAlarm      = qn > 0.5 && HotReheatTempC < (tSat - ReheaterTtdC - 20.0);  // 20 °C deadband, >50% load
+        MsrHighLpMoistureAlarm = LpExhaustMoisturePct >= 13.0;                                // HI (14% = HI-HI runback)
+    }
+
     /// <summary>Clamped piecewise-linear interpolation of ys(xs) at x (xs strictly increasing).</summary>
     private static double Lerp(double[] xs, double[] ys, double x)
     {
@@ -4868,10 +4979,15 @@ public sealed class ReactorSimService
         TurbineRPM += (rpmTarget - TurbineRPM) * Math.Min(1, dt / 4.0);
         if (TurbineRPM < 0) TurbineRPM = 0;
 
+        // 9b) Moisture Separator Reheater — update before grossElec so its output scalar reflects this tick.
+        MsrStep(dt);
+
         // 10) Electrical output (single writer). Real load follows first-stage pressure, capped by available
         // mechanical power (≈33 % of thermal). Zero when not synchronized, tripped, or below 94 % speed.
-        // Condenser backpressure scales the gross output: deeper vacuum credits a little, degraded vacuum penalises.
-        double grossElec = Math.Min(_power * 0.33, FirstStagePressure) * RatedElectricMW * CondenserVacuumOutputFactor;
+        // Condenser backpressure AND the MSR (LP-steam drying/reheat) scale the gross output: deeper vacuum and
+        // drier LP steam credit a little, degraded vacuum / loss of reheat penalise.
+        double grossElec = Math.Min(_power * 0.33, FirstStagePressure) * RatedElectricMW
+                         * CondenserVacuumOutputFactor * MsrOutputFactor;
         if (GeneratorBreakerClosed && !TurbineTripped && TurbineRPM > SyncRpm * 0.94 && steamAvail)
             ElectricPowerMW += (grossElec - ElectricPowerMW) * Math.Min(1, dt / 4.0);
         else
@@ -5393,6 +5509,8 @@ public sealed class ReactorSimService
         SetAlarm(ReactorAlarm.TurbineTrip,
             TurbineTripped || (GeneratorBreakerClosed && TurbineRPM < SyncRpm * 0.83 && SteamPressure > 3.0));
         SetAlarm(ReactorAlarm.CondenserVacuumLow, CondenserVacuumLow);
+        SetAlarm(ReactorAlarm.MsrHighLpMoisture, MsrHighLpMoistureAlarm);
+        SetAlarm(ReactorAlarm.MsrLowReheat, MsrLowReheatAlarm);
         SetAlarm(ReactorAlarm.LowSubcooling, SubcoolingMarginC < 10.0 && (_power > 0.05 || Thot > 200));
         // Minimum DNBR (W-3) annunciators — gated above DnbrAlarmGate so an off-scale low-power reading never trips.
         bool dnbrActive = _power > DnbrAlarmGate;
