@@ -93,9 +93,72 @@ public static class NetworkTweaks
             "$a=(Get-NetAdapter -Physical | Where-Object Status -eq 'Up' | Select-Object -First 1).InterfaceIndex; Set-DnsClientServerAddress -InterfaceIndex $a -ResetServerAddresses; Write-Output 'DNS reset to automatic (DHCP)'",
             requiresAdmin: true, keywords: "dns,auto,dhcp,自動"),
 
-        Tweak.Cmd("network.ping-test", "Ping test (Cloudflare)", "Ping 測試",
-            "Sends four ICMP pings to 1.1.1.1 to check internet reachability.",
-            "Ping 1.1.1.1 四次，睇下上唔上到網。",
-            "Ping", "測試", "ping -n 4 1.1.1.1", keywords: "ping,latency,test,測試"),
+        // Rich: a real ping run whose per-reply latencies are drawn as a sparkline (rebuilt after each run).
+        // 豐富化：真實 ping，會將每次回覆嘅延遲畫成走勢線（每次執行後重畫）。
+        PingTest(),
     };
+
+    // ======================================================================
+    //  Ping 測試 + 走勢線 · Ping test with a latency sparkline
+    // ======================================================================
+
+    // 上次 ping 嘅延遲樣本（毫秒），畀走勢線讀取 · last run's latency samples (ms), read by the sparkline.
+    private static readonly List<double> _pingSamples = new();
+
+    private static TweakDefinition PingTest()
+    {
+        const int Count = 10;
+        return new TweakDefinition
+        {
+            Id = "network.ping-test",
+            Title = new("Ping test (Cloudflare)", "Ping 測試"),
+            Description = new(
+                $"Sends {Count} ICMP pings to 1.1.1.1; the chart below plots each reply's latency.",
+                $"Ping 1.1.1.1 共 {Count} 次，下面圖表會畫出每次回覆嘅延遲。"),
+            Kind = TweakKind.Action,
+            Keywords = new[] { "ping", "latency", "test", "測試", "延遲" },
+            ActionLabel = new("Ping", "測試"),
+            ShowProgressBar = true,
+            VisualLiveUpdate = true,
+            RunAsync = async ct =>
+            {
+                var result = await ShellRunner.RunCmd($"ping -n {Count} 1.1.1.1", false, ct);
+                ParseLatencies(result.Output);
+                return result;
+            },
+            VisualBuilder = _ =>
+            {
+                double avg = _pingSamples.Count > 0 ? Average(_pingSamples) : 0;
+                var color = avg <= 0 ? StatusColor.Neutral
+                          : avg < 40 ? StatusColor.Good
+                          : avg < 120 ? StatusColor.Warn
+                          : StatusColor.Bad;
+                string cap = _pingSamples.Count > 0
+                    ? $"{_pingSamples.Count} replies · avg {avg:0} ms"
+                    : "Latency over time";
+                string capZh = _pingSamples.Count > 0
+                    ? $"{_pingSamples.Count} 次回覆 · 平均 {avg:0} 毫秒"
+                    : "延遲走勢";
+                return TweakVisuals.Sparkline(() => _pingSamples.ToArray(), color, cap, capZh);
+            },
+        };
+    }
+
+    /// <summary>由 ping 輸出抽出每行 "time=NNms" 嘅毫秒值 · Extract each "time=NNms" latency from ping output.</summary>
+    private static void ParseLatencies(string? output)
+    {
+        _pingSamples.Clear();
+        if (string.IsNullOrEmpty(output)) return;
+        // Matches both English "time=12ms"/"time<1ms" and localised "時間=12ms" forms.
+        foreach (System.Text.RegularExpressions.Match m in
+                 System.Text.RegularExpressions.Regex.Matches(output, @"[=<]\s*(\d+)\s*ms"))
+            if (double.TryParse(m.Groups[1].Value, out var v)) _pingSamples.Add(v);
+    }
+
+    private static double Average(List<double> xs)
+    {
+        double s = 0;
+        foreach (var x in xs) s += x;
+        return xs.Count == 0 ? 0 : s / xs.Count;
+    }
 }

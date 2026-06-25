@@ -178,7 +178,56 @@ public static class CleanupTweaks
             RunAsync = ct => ShellRunner.RunPowershell(
                 "Clear-RecycleBin -Force -ErrorAction SilentlyContinue", false, ct),
             ColoredStatus = RecycleBinStatus,
+            // Rich: a generated stacked bar of the system drive — used vs reclaimable (bin) vs free.
+            // Rebuilds after emptying so you watch the reclaimable slice disappear.
+            // 豐富化：系統磁碟嘅堆疊長條圖（已用／可回收／可用）；清空後重畫，睇住可回收嗰格消失。
+            VisualLiveUpdate = true,
+            VisualBuilder = _ => TweakVisuals.StackedBar(SystemDriveSegments,
+                "System drive (C:)", "系統磁碟 (C:)"),
         };
+
+    /// <summary>
+    /// 砌系統磁碟嘅長條圖分段：其他已用／回收筒可回收／可用 ·
+    /// Build the C: drive bar segments: other-used / recycle-bin reclaimable / free.
+    /// </summary>
+    private static IReadOnlyList<TweakVisuals.BarSegment> SystemDriveSegments()
+    {
+        long binBytes = 0;
+        try
+        {
+            var info = new SHQUERYRBINFO { cbSize = Marshal.SizeOf<SHQUERYRBINFO>() };
+            if (SHQueryRecycleBin(null, ref info) == 0 && info.i64Size > 0) binBytes = info.i64Size;
+        }
+        catch { /* ignore */ }
+
+        long total = 0, free = 0;
+        try
+        {
+            var sys = System.IO.Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.Windows)) ?? "C:\\";
+            var d = new System.IO.DriveInfo(sys);
+            if (d.IsReady) { total = d.TotalSize; free = d.TotalFreeSpace; }
+        }
+        catch { /* ignore */ }
+
+        if (total <= 0) // fall back to a bin-only bar when drive info is unavailable
+            return new[]
+            {
+                new TweakVisuals.BarSegment(Math.Max(binBytes, 1), StatusColor.Warn,
+                    $"Reclaimable {FormatBytes(binBytes)}", $"可回收 {FormatBytes(binBytes)}"),
+            };
+
+        long used = Math.Max(0, total - free);
+        long otherUsed = Math.Max(0, used - binBytes);
+        return new[]
+        {
+            new TweakVisuals.BarSegment(otherUsed, StatusColor.Neutral,
+                $"Used {FormatBytes(otherUsed)}", $"已用 {FormatBytes(otherUsed)}"),
+            new TweakVisuals.BarSegment(binBytes, StatusColor.Warn,
+                $"Bin {FormatBytes(binBytes)}", $"回收筒 {FormatBytes(binBytes)}"),
+            new TweakVisuals.BarSegment(free, StatusColor.Good,
+                $"Free {FormatBytes(free)}", $"可用 {FormatBytes(free)}"),
+        };
+    }
 
     /// <summary>
     /// 用 SHQueryRecycleBin 即時讀取可回收空間／項目數，砌成彩色狀態藥丸 ·
