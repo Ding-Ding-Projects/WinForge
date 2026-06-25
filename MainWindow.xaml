@@ -184,6 +184,7 @@
                         <NavigationViewItem Content="Postgres Tool · Postgres 工具 / pgAdmin" Tag="module.pgadmin"><NavigationViewItem.Icon><FontIcon Glyph="&#xE94D;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="FTP / SFTP · FTP／SFTP 檔案傳輸" Tag="module.filezilla"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8B7;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Bitwarden Vault · Bitwarden 密碼庫" Tag="module.bitwarden"><NavigationViewItem.Icon><FontIcon Glyph="&#xE72E;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="KeePass Vault · 密碼保險庫" Tag="module.keepass"><NavigationViewItem.Icon><FontIcon Glyph="&#xE192;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="quicktype · JSON 轉型別" Tag="module.quicktype"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="AWS CLI · AWS 命令列" Tag="module.aws"><NavigationViewItem.Icon><FontIcon Glyph="&#xE753;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Command Not Found · 搵唔到指令" Tag="module.cmdnotfound"><NavigationViewItem.Icon><FontIcon Glyph="&#xE756;" /></NavigationViewItem.Icon></NavigationViewItem>

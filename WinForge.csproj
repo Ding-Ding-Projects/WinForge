@@ -98,6 +98,10 @@
          DPAPI (ProtectedData) for encrypting saved Postgres connection passwords at rest. -->
     <!-- FTP／FTPS 客戶端（MIT）· FluentFTP: managed FTP/FTPS client for the FTP/SFTP module. -->
     <PackageReference Include="FluentFTP" Version="52.1.0" />
+    <!-- Konscious.Security.Cryptography.Argon2（純受管理，MIT）· pure-managed Argon2 (Argon2d/Argon2id)
+         for the native KDBX password-vault module (module.keepass). Argon2 is not in the BCL; this is a
+         compiled-in NuGet package, never a native exe. AES/ChaCha20/SHA/HMAC come from the BCL. -->
+    <PackageReference Include="Konscious.Security.Cryptography.Argon2" Version="1.3.1" />
   </ItemGroup>
 
   <!--
