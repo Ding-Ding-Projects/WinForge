@@ -231,6 +231,11 @@ public sealed partial class MainWindow : Window
             case "ftps":
                 Navigator.GoToModule?.Invoke("module.filezilla");
                 break;
+            case "dockerssh":
+            case "remotedocker":
+            case "containers-ssh":
+                Navigator.GoToModule?.Invoke("module.dockerssh");
+                break;
             case "ollama":
             case "llm":
             case "llama":
@@ -891,6 +896,7 @@ public sealed partial class MainWindow : Window
         "module.homeassistant" => typeof(HomeAssistantModule),
         "module.qbittorrent" => typeof(QBittorrentModule),
         "module.torrent" => typeof(TorrentModule),
+        "module.dockerssh" => typeof(DockerSshModule),
         "module.comms" => typeof(CommunicationsModule),
         "module.mail" => typeof(MailModule),
         "module.configbackup" => typeof(ConfigBackupModule),
