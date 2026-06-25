@@ -614,6 +614,12 @@ public sealed partial class MainWindow : Window
             case "speak":
                 Navigator.GoToModule?.Invoke("module.voice");
                 break;
+            case "announce":
+            case "announcements":
+            case "pa":
+            case "tts-announce":
+                Navigator.GoToModule?.Invoke("module.announcements");
+                break;
             case "timelens":
             case "activity":
             case "timeline":
@@ -869,6 +875,7 @@ public sealed partial class MainWindow : Window
         "module.viaproxy" => typeof(ViaProxyModule),
         "module.minecraftserver" => typeof(MinecraftServerModule),
         "module.voice" => typeof(VoiceModule),
+        "module.announcements" => typeof(AnnouncementsModule),
         "module.vault-volumes" => typeof(VaultVolumesModule),
         "module.worldmonitor" => typeof(WorldMonitorModule),
         "module.timelens" => typeof(TimeLensModule),

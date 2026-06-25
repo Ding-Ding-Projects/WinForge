@@ -144,6 +144,7 @@
                         <NavigationViewItem Content="PowerToys Extras · PowerToys 額外工具" Tag="module.powertoys"><NavigationViewItem.Icon><FontIcon Glyph="&#xE945;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Windhawk Mods · Windhawk 模組" Tag="module.windhawk"><NavigationViewItem.Icon><FontIcon Glyph="&#xE945;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Voice &amp; Read-Aloud · 語音朗讀" Tag="module.voice"><NavigationViewItem.Icon><FontIcon Glyph="&#xE767;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="PA Announcements · 喇叭語音廣播" Tag="module.announcements"><NavigationViewItem.Icon><FontIcon Glyph="&#xEC42;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Rainmeter Widgets · Rainmeter 桌面小工具" Tag="module.rainmeter"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7F4;" /></NavigationViewItem.Icon></NavigationViewItem>
                     </NavigationViewItem.MenuItems>
                 </NavigationViewItem>
