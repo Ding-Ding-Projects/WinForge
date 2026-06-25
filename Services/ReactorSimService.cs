@@ -431,6 +431,39 @@ public sealed class ReactorSimService
             return;
         }
 
+        // Held cold shutdown — THE OPERATOR MUST START THE REACTOR UP.
+        // While in Shutdown the plant is held subcritical and idle (rods fully in); it does not
+        // run by itself. To begin, the operator selects Startup or Run on the Mode selector and
+        // then withdraws rods / dilutes boron (see the approach-to-criticality procedure). This
+        // also prevents an unattended boot from running the (still-being-calibrated) core up to power.
+        if (Mode == ReactorMode.Shutdown)
+        {
+            UpdateBoron(dt);
+            UpdateFlow(dt);
+            UpdateDecayHeat(dt);
+            UpdateXenon(dt);
+            // Neutron power decays to the source level; delayed-neutron precursors die away.
+            _power = SourceLevel + Math.Max(0, _power - SourceLevel) * Math.Max(0, 1 - dt / 3.0);
+            if (_power < SourceLevel) _power = SourceLevel;
+            for (int i = 0; i < 6; i++)
+                _precursor[i] = Math.Max(0, _precursor[i] * (1 - Math.Min(1, Lambda[i] * dt)));
+            _powerRate = 0;
+            ReactivityPcm = -9000; RodReactivityPcm = -8000; ReactorPeriodSeconds = 1e9;
+            // Temps & pressure relax toward cold-shutdown conditions.
+            double cool = Math.Min(1, dt / 25.0);
+            FuelTemp += (ColdTemp - FuelTemp) * cool;
+            Tcold += (ColdTemp - Tcold) * cool;
+            Thot += (ColdTemp - Thot) * cool;
+            double pCold = PressurizerHeater ? 8.0 : 2.5;
+            PrimaryPressure += (pCold - PrimaryPressure) * Math.Min(1, dt / 8.0);
+            PressurizerLevel += (NominalPzrLevel - PressurizerLevel) * Math.Min(1, dt / 10.0);
+            UpdateSecondary(dt);
+            UpdateNis(dt);
+            UpdateAlarms();
+            UpdateStatus();
+            return;
+        }
+
         // --- slow process controls that don't need sub-stepping ---
         UpdateBoron(dt);
         UpdateFlow(dt);
@@ -580,17 +613,21 @@ public sealed class ReactorSimService
         double precursorSum = 0;
         for (int i = 0; i < 6; i++) precursorSum += Lambda[i] * _precursor[i];
 
-        double dP = ((rho - BetaTotal) / PromptLifetime) * _power + precursorSum + SourceLevel;
-        double newPower = _power + dP * h;
+        // Backward (implicit) Euler — unconditionally stable for the stiff prompt mode, so a real
+        // startup (reactivity insertion) ramps smoothly instead of oscillating sign-to-sign and
+        // diverging the way explicit Euler did at this 20 ms step.
+        double denom = 1.0 - h * (rho - BetaTotal) / PromptLifetime;
+        if (denom < 1e-3) denom = 1e-3; // guard at/above prompt critical
+        double newPower = (_power + h * (precursorSum + SourceLevel)) / denom;
+        if (newPower < 1e-12) newPower = 1e-12;
 
         for (int i = 0; i < 6; i++)
         {
-            double dC = (Beta[i] / PromptLifetime) * _power - Lambda[i] * _precursor[i];
-            _precursor[i] += dC * h;
+            _precursor[i] = (_precursor[i] + h * (Beta[i] / PromptLifetime) * newPower)
+                            / (1.0 + h * Lambda[i]);
             if (_precursor[i] < 0) _precursor[i] = 0;
         }
 
-        if (newPower < 1e-12) newPower = 1e-12;
         // Reactor period from rate of change.
         double rate = (newPower - _power) / (Math.Max(_power, 1e-12) * h);
         ReactorPeriodSeconds = Math.Abs(rate) < 1e-9 ? 1e9 : 1.0 / rate;
