@@ -50,6 +50,9 @@
                 <NavigationViewItem Content="Dashboard · 概覽" Tag="dashboard">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE80F;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
+                <NavigationViewItem Content="★ Nuclear Reactor · 核反應堆" Tag="module.reactor">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xEBC0;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
 
                 <NavigationViewItem Content="Files &amp; Disks · 檔案與磁碟" SelectsOnInvoked="False">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE8B7;" /></NavigationViewItem.Icon>

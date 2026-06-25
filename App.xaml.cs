@@ -26,6 +26,9 @@ public partial class App : Application
     /// <summary>由命令列 "--minimized" 設定：開機自啟動時收入系統匣 · Start hidden in the tray (login startup).</summary>
     public static bool StartMinimized { get; private set; }
 
+    /// <summary>由命令列 "--reactor" 設定：直接開旗艦反應堆 · Open the flagship reactor directly.</summary>
+    public static bool StartReactor { get; private set; }
+
     protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
     {
         // 全域例外處理：任何模組出錯都唔會冧 app · Install global crash handling first of all.
@@ -70,6 +73,19 @@ public partial class App : Application
         CrashLogger.Mark("App: before new MainWindow");
         Shell = new MainWindow();
         CrashLogger.Mark("App: after new MainWindow");
+
+        // --reactor (from the keep-alive launcher) opens the flagship reactor page on launch.
+        if (StartReactor) StartPage ??= "reactor";
+
+        // A normal (non-quit) launch clears any stale user-quit flag the watchdog left behind.
+        try
+        {
+            var flag = System.IO.Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "WinForge", "reactor.userquit");
+            if (System.IO.File.Exists(flag)) System.IO.File.Delete(flag);
+        }
+        catch { /* best effort */ }
         ApplyThemeFromSettings();
         CrashLogger.Mark("App: after ApplyTheme");
 
@@ -125,6 +141,11 @@ public partial class App : Application
             if (string.Equals(argv[i], "--minimized", StringComparison.OrdinalIgnoreCase))
             {
                 StartMinimized = true;
+                continue;
+            }
+            if (string.Equals(argv[i], "--reactor", StringComparison.OrdinalIgnoreCase))
+            {
+                StartReactor = true;
                 continue;
             }
 

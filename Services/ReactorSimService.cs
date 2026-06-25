@@ -35,6 +35,12 @@ public enum ReactorAlarm
     CoreDamage,
     EccsActive,
     TurbineTrip,
+    LowSubcooling,
+    DecayHeatHigh,
+    AtwsActive,
+    AccumulatorInject,
+    AuxFeedwater,
+    NaturalCirc,
 }
 
 /// <summary>
@@ -165,6 +171,40 @@ public sealed class ReactorSimService
     public bool MeltdownTriggered { get; private set; }
     public event Action? MeltdownOccurred;
 
+    // ----------------------------------------------------------------- realism additions ----
+    // Decay-heat: ALWAYS-present residual heat source from fission-product decay. Modelled as three
+    // exponential groups that charge while at power and decay after a trip. Fraction of rated power.
+    private static readonly double[] DecayFrac = { 0.038, 0.020, 0.011 };
+    private static readonly double[] DecayTau = { 1.0, 50.0, 5000.0 }; // s
+    private readonly double[] _decayGroup = new double[3];
+    public double DecayHeatFraction { get; private set; }
+
+    // Sub-cooling margin (°C): SatTemp(P) - Thot. < 0 means saturation / void onset.
+    public double SubcoolingMarginC { get; private set; }
+
+    // Nuclear instrumentation (NIS): source-range count rate (cps) + 1/M for approach to criticality.
+    public double SourceRangeCps { get; private set; }
+    public double OneOverM { get; private set; } = 1.0;
+    public double StartupRateDpm { get; private set; } // decades per minute
+    private const double SourceBaselineCps = 100.0;
+
+    // Turbine reference speed: 4-pole 60 Hz nuclear set runs at 1800 rpm.
+    public const double SyncRpm = 1800.0;
+    public double TurbineRatedRpm => SyncRpm;
+    private const double OverspeedTripRpm = 1980.0;
+
+    // Burnup drift (cosmetic realism flourish).
+    public double BurnupMwdPerTonne { get; private set; }
+    private const double CoreTonnesU = 100.0; // ~100 tonnes U in a large PWR core
+
+    // Accident scenario state.
+    public ReactorScenario ActiveScenario { get; private set; } = ReactorScenario.Normal;
+    private double _breakArea;        // LOCA break "area" (0..1)
+    private bool _rodsFailToInsert;   // ATWS
+    public bool AccumulatorInjecting { get; private set; }
+    public bool AuxFeedwaterRunning { get; private set; }
+    private double _lofwTimer;        // counts up after feedwater lost (aux start at 60 s)
+
     // Alarms
     private readonly bool[] _alarms = new bool[Enum.GetValues(typeof(ReactorAlarm)).Length];
     public bool Alarm(ReactorAlarm a) => _alarms[(int)a];
@@ -191,7 +231,9 @@ public sealed class ReactorSimService
     public void Scram()
     {
         IsScrammed = true;
-        for (int i = 0; i < RodBankInsertion.Length; i++) RodBankInsertion[i] = 100.0;
+        // ATWS: the trip signal latches but the rods physically fail to insert.
+        if (!_rodsFailToInsert)
+            for (int i = 0; i < RodBankInsertion.Length; i++) RodBankInsertion[i] = 100.0;
         AutoRodControl = false;
         if (Mode != ReactorMode.Meltdown) Mode = ReactorMode.Tripped;
     }
@@ -215,6 +257,61 @@ public sealed class ReactorSimService
     public void StopRcp(int i) { if (i >= 0 && i < RcpRunning.Length) RcpRunning[i] = false; }
 
     /// <summary>
+    /// 注入一個設計基準事故情景 · Trigger an accident scenario. Emergent — driven by physics,
+    /// not scripted: the scenario just changes boundary conditions (break, lost pumps, lost feed, …).
+    /// </summary>
+    public void TriggerScenario(ReactorScenario s)
+    {
+        ActiveScenario = s;
+        // Clear scenario-specific latches first.
+        _breakArea = 0;
+        _rodsFailToInsert = false;
+        _lofwTimer = 0;
+        switch (s)
+        {
+            case ReactorScenario.Normal:
+                break;
+            case ReactorScenario.Loca:
+                _breakArea = 0.6;          // sizeable cold-leg break
+                EccsArmed = true;
+                break;
+            case ReactorScenario.StationBlackout:
+                for (int i = 0; i < RcpRunning.Length; i++) RcpRunning[i] = false;
+                RcpFlowDemand = 0;
+                FeedwaterFlow = 0;
+                EccsArmed = false;        // no AC power for ECCS pumps; passive accumulators only
+                break;
+            case ReactorScenario.LossOfFeedwater:
+                FeedwaterFlow = 0;
+                break;
+            case ReactorScenario.Atws:
+                _rodsFailToInsert = true;  // rods latched but will not move on demand
+                break;
+            case ReactorScenario.XenonRestart:
+                Xenon = Math.Max(Xenon, 2.6); // jump to a post-trip xenon peak (iodine pit)
+                break;
+        }
+    }
+
+    /// <summary>飽和溫度估算 · Saturation temperature of water (°C) at a given pressure (MPa).</summary>
+    private static double SatTempAt(double mpa)
+    {
+        // Smooth fit anchored at ~345 °C @ 15.5 MPa; monotonic over the operating range.
+        mpa = Math.Clamp(mpa, 0.05, 22.0);
+        return 100.0 + 188.0 * Math.Pow(mpa / 15.5, 0.27);
+    }
+
+    /// <summary>渲染快照（不可變）· Immutable snapshot for the 60 fps render clock (no live state mid-frame).</summary>
+    public readonly record struct Snapshot(
+        double Power, double FuelTemp, double Thot, double Tcold,
+        double PrimaryPressure, double SteamPressure, double ElectricMW, double TurbineRpm,
+        bool Scrammed, ReactorMode Mode, double DamageAccumulation, double DecayHeatFraction, double FlowFraction);
+
+    public Snapshot Capture() => new(
+        _power, FuelTemp, Thot, Tcold, PrimaryPressure, SteamPressure, ElectricPowerMW, TurbineRPM,
+        IsScrammed, Mode, DamageAccumulation, DecayHeatFraction, CoolantFlowFraction);
+
+    /// <summary>
     /// 重設整個模擬到冷停機初始狀態 · Reset the entire simulation back to cold-shutdown.
     /// </summary>
     public void Reset()
@@ -236,6 +333,11 @@ public sealed class ReactorSimService
         IsScrammed = false; MeltdownTriggered = false; AutoRodControl = false;
         Mode = ReactorMode.Shutdown;
         for (int i = 0; i < _alarms.Length; i++) _alarms[i] = false;
+        for (int i = 0; i < _decayGroup.Length; i++) _decayGroup[i] = 0;
+        DecayHeatFraction = 0; SubcoolingMarginC = 0; SourceRangeCps = SourceBaselineCps;
+        OneOverM = 1.0; StartupRateDpm = 0; BurnupMwdPerTonne = 0;
+        ActiveScenario = ReactorScenario.Normal; _breakArea = 0; _rodsFailToInsert = false;
+        AccumulatorInjecting = false; AuxFeedwaterRunning = false; _lofwTimer = 0;
         StatusEn = "Cold shutdown"; StatusZh = "冷停機";
     }
 
@@ -248,7 +350,9 @@ public sealed class ReactorSimService
     {
         if (Mode == ReactorMode.Meltdown)
         {
+            UpdateDecayHeat(dt);
             UpdateMeltdownPhysics(dt);
+            UpdateNis(dt);
             UpdateAlarms();
             return;
         }
@@ -256,6 +360,8 @@ public sealed class ReactorSimService
         // --- slow process controls that don't need sub-stepping ---
         UpdateBoron(dt);
         UpdateFlow(dt);
+        UpdateDecayHeat(dt);
+        UpdateScenarios(dt);
 
         // --- sub-step the kinetics + thermal coupling ---
         const double subDt = 0.02; // 50 Hz internal integration
@@ -275,8 +381,69 @@ public sealed class ReactorSimService
 
         // --- protection system & failure accumulation ---
         UpdateProtection(dt);
+        UpdateNis(dt);
         UpdateAlarms();
         UpdateStatus();
+    }
+
+    private void UpdateDecayHeat(double dt)
+    {
+        // Each group charges toward the current fission power and decays with its time constant.
+        double frac = 0;
+        for (int i = 0; i < 3; i++)
+        {
+            double source = DecayFrac[i] * _power; // production proportional to instantaneous power
+            _decayGroup[i] += (source - _decayGroup[i] / DecayTau[i]) * dt;
+            if (_decayGroup[i] < 0) _decayGroup[i] = 0;
+            frac += _decayGroup[i] / DecayTau[i] * DecayTau[i]; // equilibrium ≈ DecayFrac[i]*power
+        }
+        // Simplify: equilibrium DecayHeatFraction ≈ 0.069*power at steady state; after trip it decays.
+        frac = 0;
+        for (int i = 0; i < 3; i++) frac += _decayGroup[i];
+        DecayHeatFraction = Math.Clamp(frac, 0, 0.10);
+
+        // Burnup accrual + slow MTC drift across the cycle.
+        BurnupMwdPerTonne += ThermalPowerMW * dt / 86400.0 / CoreTonnesU; // MWd/tonne
+    }
+
+    private void UpdateScenarios(double dt)
+    {
+        // LOCA: bleed primary pressure/inventory through the break.
+        if (_breakArea > 0)
+        {
+            PrimaryPressure -= 0.9 * _breakArea * dt;
+            PressurizerLevel -= 6.0 * _breakArea * dt;
+            if (PrimaryPressure < 0.2) PrimaryPressure = 0.2;
+            if (PressurizerLevel < 0) PressurizerLevel = 0;
+            EccsArmed = true;
+        }
+
+        // Passive accumulators discharge once primary pressure falls below ~4.5 MPa.
+        AccumulatorInjecting = PrimaryPressure < 4.5 && (FuelTemp > 200 || _breakArea > 0);
+        if (AccumulatorInjecting)
+        {
+            FuelTemp -= 25 * dt;
+            Tcold -= 4 * dt; Thot -= 4 * dt;
+            PressurizerLevel = Math.Min(100, PressurizerLevel + 4 * dt);
+        }
+
+        // Loss of feedwater → aux feedwater auto-starts after 60 s.
+        bool feedLost = FeedwaterFlow < 0.02 && (_power > 0.05 || Thot > 150);
+        if (feedLost) _lofwTimer += dt; else _lofwTimer = 0;
+        AuxFeedwaterRunning = _lofwTimer > 60.0 && ActiveScenario != ReactorScenario.StationBlackout;
+        if (AuxFeedwaterRunning) FeedwaterFlow = Math.Max(FeedwaterFlow, 0.15); // small AFW flow
+    }
+
+    private void UpdateNis(double dt)
+    {
+        // Source-range count rate ∝ (source + power); 1/M for the approach-to-criticality plot.
+        SourceRangeCps = Math.Clamp((SourceLevel + _power) * 1e11, 1, 1e12);
+        OneOverM = Math.Clamp(SourceBaselineCps / SourceRangeCps, 0, 1);
+        StartupRateDpm = (ReactorPeriodSeconds > 0 && ReactorPeriodSeconds < 1e8)
+            ? 0.4343 * 60.0 / ReactorPeriodSeconds : 0;
+
+        // Sub-cooling margin: positive = sub-cooled liquid; negative = saturation / void risk.
+        SubcoolingMarginC = SatTempAt(PrimaryPressure) - Thot;
     }
 
     private void UpdateBoron(double dt)
@@ -357,8 +524,9 @@ public sealed class ReactorSimService
 
     private void StepThermal(double h)
     {
-        // Fuel heats from fission power, conducts to coolant.
-        double q = _power * RatedThermalMW; // MW generated in fuel
+        // Fuel heats from fission power PLUS decay heat (present even after SCRAM — this is what makes
+        // station-blackout / loss-of-feedwater emergent: the core keeps heating with no heat sink).
+        double q = (_power + DecayHeatFraction) * RatedThermalMW; // MW generated in fuel
         // Heat-transfer fuel->coolant proportional to (Tfuel - Tcoolant).
         double fuelToCoolant = 0.06 * (FuelTemp - Tavg); // MW per °C scaling (lumped)
         double fuelHeatCap = 35.0; // MW·s per °C (fuel lump)
@@ -444,20 +612,22 @@ public sealed class ReactorSimService
         SteamGenLevel += (Math.Clamp(sgTarget, 0, 100) - SteamGenLevel) * Math.Min(1, dt / 6.0);
         SteamGenLevel = Math.Clamp(SteamGenLevel, 0, 100);
 
-        // Turbine: RPM spins up toward 3600 when steam available & breaker logic.
+        // Turbine: RPM spins up toward 1800 (4-pole 60 Hz nuclear set) when steam available.
         double rpmTarget;
         if (SteamPressure > 3.0 && TurbineLoadSetpoint > 0.01)
-            rpmTarget = 3600 * Math.Clamp(0.5 + 0.5 * TurbineLoadSetpoint, 0, 1);
+            rpmTarget = SyncRpm * Math.Clamp(0.5 + 0.5 * TurbineLoadSetpoint, 0, 1);
         else
-            rpmTarget = GeneratorBreakerClosed && SteamPressure > 3.0 ? 3600 : 0;
-        if (GeneratorBreakerClosed && SteamPressure > 2.0) rpmTarget = 3600; // grid-locked at synchronous speed
+            rpmTarget = GeneratorBreakerClosed && SteamPressure > 3.0 ? SyncRpm : 0;
+        if (GeneratorBreakerClosed && SteamPressure > 2.0) rpmTarget = SyncRpm; // grid-locked at synchronous speed
         TurbineRPM += (rpmTarget - TurbineRPM) * Math.Min(1, dt / 4.0);
         if (TurbineRPM < 0) TurbineRPM = 0;
+        // Overspeed protection: if the breaker is open and load is dumped while steam keeps driving the
+        // shaft, an overspeed would trip the stop valves (modelled by capping just under the trip point).
+        if (!GeneratorBreakerClosed && TurbineRPM > OverspeedTripRpm) TurbineRPM = OverspeedTripRpm;
 
-        // Electrical output: only when synchronized (breaker closed, near 3600 rpm) & steam present.
-        double available = Math.Min(_power, TurbineLoadSetpoint) * RatedElectricMW * 0.33 / 0.33; // thermal->elec ~33%
+        // Electrical output: only when synchronized (breaker closed, near 1800 rpm) & steam present.
         double grossElec = Math.Min(_power * 0.33, TurbineLoadSetpoint) * RatedElectricMW;
-        if (GeneratorBreakerClosed && TurbineRPM > 3400 && SteamPressure > 3.0)
+        if (GeneratorBreakerClosed && TurbineRPM > SyncRpm * 0.94 && SteamPressure > 3.0)
             ElectricPowerMW += (grossElec - ElectricPowerMW) * Math.Min(1, dt / 4.0);
         else
             ElectricPowerMW += (0 - ElectricPowerMW) * Math.Min(1, dt / 2.0);
@@ -549,7 +719,14 @@ public sealed class ReactorSimService
         SetAlarm(ReactorAlarm.SteamPressureHigh, SteamPressure > 7.8);
         SetAlarm(ReactorAlarm.CoreDamage, DamageAccumulation > 1.0);
         SetAlarm(ReactorAlarm.EccsActive, EccsInjecting);
-        SetAlarm(ReactorAlarm.TurbineTrip, GeneratorBreakerClosed && TurbineRPM < 3000 && SteamPressure > 3.0);
+        SetAlarm(ReactorAlarm.TurbineTrip, GeneratorBreakerClosed && TurbineRPM < SyncRpm * 0.83 && SteamPressure > 3.0);
+        SetAlarm(ReactorAlarm.LowSubcooling, SubcoolingMarginC < 10.0 && (_power > 0.05 || Thot > 200));
+        SetAlarm(ReactorAlarm.DecayHeatHigh, DecayHeatFraction > 0.03 && CoolantFlowFraction < 0.4 && FeedwaterFlow < 0.1);
+        SetAlarm(ReactorAlarm.AtwsActive, _rodsFailToInsert && IsScrammed);
+        SetAlarm(ReactorAlarm.AccumulatorInject, AccumulatorInjecting);
+        SetAlarm(ReactorAlarm.AuxFeedwater, AuxFeedwaterRunning);
+        bool natCirc = CoolantFlowFraction > 0.005 && CoolantFlowFraction < 0.1 && Thot > 150;
+        SetAlarm(ReactorAlarm.NaturalCirc, natCirc);
     }
 
     private void UpdateStatus()

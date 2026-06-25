@@ -20,6 +20,8 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
                 <!-- header -->
@@ -76,8 +78,22 @@
                     </Grid>
                 </Border>
 
+                <!-- Toolbar: control room, widgets, mute, scenario -->
+                <Border Grid.Row="3" CornerRadius="8" Padding="12,8,12,8"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <Button x:Name="OpenControlRoomButton" Click="OpenControlRoom_Click" />
+                        <Button x:Name="OpenWidgetsButton" Click="OpenWidgets_Click" />
+                        <ToggleButton x:Name="MuteToggle" Click="MuteToggle_Click" />
+                        <TextBlock x:Name="ScenarioLabel" VerticalAlignment="Center" Margin="8,0,0,0"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <ComboBox x:Name="ScenarioCombo" MinWidth="220" SelectionChanged="Scenario_Changed" />
+                    </StackPanel>
+                </Border>
+
                 <!-- BIG SCRAM bar -->
-                <Grid Grid.Row="3" ColumnSpacing="12">
+                <Grid Grid.Row="4" ColumnSpacing="12">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
@@ -94,18 +110,44 @@
                     <ToggleSwitch Grid.Column="2" x:Name="AutoRunToggle" VerticalAlignment="Center" Toggled="AutoRun_Toggled" />
                 </Grid>
 
-                <!-- Mimic diagram -->
-                <Border Grid.Row="4" CornerRadius="8" Padding="8"
+                <!-- Mimic diagram with Composition FX layer behind -->
+                <Border Grid.Row="5" CornerRadius="8" Padding="8"
                         Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                         BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                     <StackPanel Spacing="6">
                         <TextBlock x:Name="MimicTitle" FontWeight="SemiBold" Margin="8,4,0,0" />
-                        <Canvas x:Name="MimicCanvas" Width="980" Height="340" HorizontalAlignment="Left" />
+                        <Grid Width="980" Height="340" HorizontalAlignment="Left">
+                            <Grid x:Name="FxLayer" Width="980" Height="340" IsHitTestVisible="False" />
+                            <Canvas x:Name="MimicCanvas" Width="980" Height="340" HorizontalAlignment="Left" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- NIS log meters + 1/M approach-to-criticality + SPDS critical safety functions -->
+                <Border Grid.Row="6" CornerRadius="8" Padding="12"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                    <StackPanel Spacing="8">
+                        <TextBlock x:Name="NisTitle" FontWeight="SemiBold" />
+                        <StackPanel Orientation="Horizontal" Spacing="16">
+                            <StackPanel>
+                                <TextBlock x:Name="NisLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <Canvas x:Name="NisCanvas" Width="320" Height="120" Background="#11000000" />
+                            </StackPanel>
+                            <StackPanel>
+                                <TextBlock x:Name="OneOverMLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <Canvas x:Name="OneOverMCanvas" Width="240" Height="120" Background="#11000000" />
+                            </StackPanel>
+                            <StackPanel>
+                                <TextBlock x:Name="CsfTitle" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <VariableSizedWrapGrid x:Name="CsfPanel" Orientation="Horizontal" ItemWidth="100" ItemHeight="58" Width="320" />
+                            </StackPanel>
+                        </StackPanel>
                     </StackPanel>
                 </Border>
 
                 <!-- Gauges -->
-                <Border Grid.Row="5" CornerRadius="8" Padding="12"
+                <Border Grid.Row="7" CornerRadius="8" Padding="12"
                         Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                         BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                     <StackPanel Spacing="6">
@@ -115,40 +157,39 @@
                 </Border>
 
                 <!-- Trend charts -->
-                <Border Grid.Row="6" CornerRadius="8" Padding="12"
+                <Border Grid.Row="8" CornerRadius="8" Padding="12"
                         Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                         BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                     <StackPanel Spacing="8">
                         <TextBlock x:Name="TrendTitle" FontWeight="SemiBold" />
-                        <StackPanel Orientation="Horizontal" Spacing="12">
-                            <StackPanel>
-                                <TextBlock x:Name="TrendPowerLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                <Canvas x:Name="TrendPower" Width="300" Height="120" Background="#11000000" />
-                            </StackPanel>
-                            <StackPanel>
-                                <TextBlock x:Name="TrendTempLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                <Canvas x:Name="TrendTemp" Width="300" Height="120" Background="#11000000" />
-                            </StackPanel>
-                            <StackPanel>
-                                <TextBlock x:Name="TrendPressLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                <Canvas x:Name="TrendPress" Width="300" Height="120" Background="#11000000" />
-                            </StackPanel>
-                        </StackPanel>
+                        <StackPanel x:Name="StripChartHost" Orientation="Horizontal" Spacing="12" />
                     </StackPanel>
                 </Border>
 
                 <!-- Alarm panel -->
-                <Border Grid.Row="7" CornerRadius="8" Padding="12"
+                <Border Grid.Row="9" CornerRadius="8" Padding="12"
                         Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                         BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                     <StackPanel Spacing="6">
-                        <TextBlock x:Name="AlarmTitle" FontWeight="SemiBold" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="AlarmTitle" Grid.Column="0" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+                                <Button x:Name="AckButton" Click="Ack_Click" />
+                                <Button x:Name="SilenceButton" Click="Silence_Click" />
+                                <Button x:Name="ResetAlarmButton" Click="ResetAlarms_Click" />
+                                <Button x:Name="LampTestButton" Click="LampTest_Click" />
+                            </StackPanel>
+                        </Grid>
                         <VariableSizedWrapGrid x:Name="AlarmPanel" Orientation="Horizontal" ItemWidth="190" ItemHeight="52" />
                     </StackPanel>
                 </Border>
 
                 <!-- Controls -->
-                <Border Grid.Row="8" CornerRadius="8" Padding="16"
+                <Border Grid.Row="10" CornerRadius="8" Padding="16"
                         Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                         BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                     <StackPanel x:Name="ControlsHost" Spacing="14" />
@@ -159,6 +200,7 @@
         <!-- MELTDOWN overlay (dramatic) -->
         <Grid x:Name="MeltdownOverlay" Visibility="Collapsed" Background="#E6000000">
             <Border Background="#22FF0000" />
+            <Grid x:Name="MeltdownStrobe" Background="#33FF0000" IsHitTestVisible="False" />
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="20" MaxWidth="640">
                 <FontIcon x:Name="KlaxonIcon" Glyph="&#xE7BA;" FontSize="96" Foreground="#FF1744" HorizontalAlignment="Center" />
                 <TextBlock x:Name="MeltdownTitle" FontSize="48" FontWeight="Bold" Foreground="#FF5252"

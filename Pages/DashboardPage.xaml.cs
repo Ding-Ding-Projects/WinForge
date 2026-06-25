@@ -113,6 +113,7 @@ public sealed partial class DashboardPage : Page
     {
         var tiles = new List<UIElement>
         {
+            ReactorHeroTile(),
             ModuleTile("", "Git & GitHub", "Git 與 GitHub",
                 Loc.I.Pick("Repos, commits, chunked upload, GitHub CLI", "儲存庫、提交、分批上載、GitHub CLI"),
                 () => Navigator.GoToModule?.Invoke("module.git")),
@@ -255,6 +256,49 @@ ModuleTile(((char)0xE83E).ToString(), "Battery & Thermal", "電池與散熱",
 
         ModuleRepeater.Layout = new UniformGridLayout { MinItemWidth = 320, MinItemHeight = 76, MinRowSpacing = 4, MinColumnSpacing = 4 };
         ModuleRepeater.ItemsSource = tiles;
+    }
+
+    /// <summary>旗艦反應堆英雄磚 · The flagship reactor hero tile (accented Cherenkov-blue border).</summary>
+    private Button ReactorHeroTile()
+    {
+        var content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 14 };
+        content.Children.Add(new FontIcon
+        {
+            Glyph = ((char)0xEBC0).ToString(),
+            FontSize = 30,
+            VerticalAlignment = VerticalAlignment.Center,
+            Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0x6F, 0xB8, 0xFF)),
+        });
+        var texts = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+        texts.Children.Add(new TextBlock
+        {
+            Text = "★ Nuclear Reactor · 核反應堆",
+            FontWeight = Microsoft.UI.Text.FontWeights.Bold,
+            FontSize = 16,
+            TextWrapping = TextWrapping.Wrap,
+        });
+        texts.Children.Add(new TextBlock
+        {
+            Text = Loc.I.Pick("FLAGSHIP — hyper-realistic PWR control room simulation",
+                              "旗艦 — 超寫實壓水堆控制室模擬"),
+            FontSize = 12,
+            Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0x6F, 0xB8, 0xFF)),
+            TextWrapping = TextWrapping.Wrap,
+        });
+        content.Children.Add(texts);
+        var button = new Button
+        {
+            Content = content,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            HorizontalContentAlignment = HorizontalAlignment.Left,
+            Padding = new Thickness(18, 14, 18, 14),
+            Margin = new Thickness(0, 0, 8, 8),
+            MinWidth = 300,
+            BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0x1B, 0x6C, 0xFF)),
+            BorderThickness = new Thickness(2),
+        };
+        button.Click += (_, _) => Navigator.GoToModule?.Invoke("module.reactor");
+        return button;
     }
 
     private Button ModuleTile(string glyph, string titleEn, string titleZh, string sub, Action onClick)

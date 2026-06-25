@@ -1,15 +1,19 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Numerics;
 using Microsoft.UI;
+using Microsoft.UI.Composition;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Hosting;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
 using Windows.Foundation;
 using Windows.UI;
+using WinForge.Controls;
 using WinForge.Services;
 using Path = Microsoft.UI.Xaml.Shapes.Path;
 
@@ -39,19 +43,38 @@ public sealed partial class ReactorModule : Page
     private bool _shutdownIssued;
     private bool _meltdownHandled;
 
-    // Trend buffers.
-    private readonly Queue<double> _powHist = new();
-    private readonly Queue<double> _tempHist = new();
-    private readonly Queue<double> _pressHist = new();
+    // Strip-chart recorders (replace the old static trend polylines).
+    private StripChartRecorder? _stripPower, _stripTemp, _stripPress;
+
+    // 1/M approach-to-criticality history.
+    private readonly Queue<double> _oneOverMHist = new();
     private const int HistMax = 150;
 
     // Gauge registry (built once; updated each tick).
     private readonly List<GaugeView> _gauges = new();
     // Alarm tile registry.
     private readonly Dictionary<ReactorAlarm, AlarmTile> _alarmTiles = new();
+    // CSF (critical safety function) cells: S,C,H,P,Z,I.
+    private readonly List<(Border border, TextBlock label, string en, string zh, Func<int> sev)> _csfCells = new();
 
     // Klaxon flash phase.
     private double _flashPhase;
+
+    // Composition FX state.
+    private SpriteVisual? _glow;
+    private ContainerVisual? _fxRoot;
+    private Compositor? _compositor;
+    private CompositionPropertySet? _fxProps;
+    private ReactorFx.SteamPool? _steam;
+    private readonly ReactorFx.RenderClock _renderClock = new();
+    private Visual? _scrollVisual;
+    private bool _meltdownFxStarted;
+
+    // Audio.
+    private bool _audioStarted;
+    private bool _lastScram;
+    private bool _alarmsAcked;
+    private bool _silenced;
 
     // Keep-awake (real OS) state driven by the simulated generator output.
     // 由模擬發電機輸出驅動嘅真實作業系統保持喚醒狀態。
@@ -68,23 +91,39 @@ public sealed partial class ReactorModule : Page
         _sim.MeltdownOccurred += OnMeltdown;
         Loc.I.LanguageChanged += OnLanguageChanged;
 
-        Loaded += (_, _) =>
+        Loaded += async (_, _) =>
         {
             BuildControls();
             BuildGauges();
             BuildAlarmTiles();
+            BuildStripCharts();
+            BuildCsfPanel();
+            BuildScenarioCombo();
             DrawMimicStatic();
+            InitFx();
             Render();
             _last = DateTime.UtcNow;
             _timer.Tick += Tick;
             _timer.Start();
+
+            // Audio: lazily start the AudioGraph, then begin the ambient hum (respects mute).
+            try
+            {
+                await ReactorAudioEngine.I.EnsureStartedAsync();
+                _audioStarted = true;
+                if (ReactorAudioEngine.I.Enabled) ReactorAudioEngine.I.Hum(true);
+            }
+            catch { /* degrade silently */ }
         };
         Unloaded += (_, _) =>
         {
             _timer.Stop();
             _timer.Tick -= Tick;
             _countdownTimer?.Stop();
+            _renderClock.Stop();
             Loc.I.LanguageChanged -= OnLanguageChanged;
+            // Stop the synthesized voices but keep the graph alive (singleton, reused by the windows).
+            try { ReactorAudioEngine.I.StopVoices(); } catch { }
             // SAFETY: always release the keep-awake hold when leaving the page so navigating
             // away never leaves the system pinned awake. 離開頁面時務必釋放保持喚醒。
             ReleaseKeepAwake();
@@ -102,19 +141,30 @@ public sealed partial class ReactorModule : Page
     // ============================================================ static labels ====
     private void Render()
     {
-        HeaderTitle.Text = "Nuclear Reactor · 核反應堆";
+        HeaderTitle.Text = "★ Nuclear Reactor · 核反應堆";
         HeaderBlurb.Text = P(
-            "A fully-simulated Pressurized Water Reactor: point-kinetics + thermal-hydraulics, with mimic diagram, analog gauges, trend charts, alarms and a full control surface. Educational simulation only — controls nothing real.",
-            "全模擬壓水式核反應堆：點堆動力學＋熱工水力，配流程圖、指針儀表、趨勢圖、警報同完整控制台。純教育模擬 — 唔會控制任何真實硬件。");
+            "WinForge's flagship: a hyper-realistic PWR control room — point-kinetics + thermal-hydraulics, Cherenkov core glow, synthesized control-room audio, strip-chart recorders, NIS/SPDS panels, accident scenarios, a dedicated control-room window and desktop widgets. Educational simulation only — controls nothing real.",
+            "WinForge 旗艦：超寫實壓水堆控制室 — 點堆動力學＋熱工水力、切連科夫核芯輝光、合成控制室音效、趨勢記錄儀、NIS／SPDS 面板、事故情景、獨立控制室視窗同桌面小工具。純教育模擬 — 唔會控制任何真實硬件。");
+        // toolbar
+        OpenControlRoomButton.Content = P("Open full control room ⤢", "開啟完整控制室 ⤢");
+        OpenWidgetsButton.Content = P("Mini widgets", "桌面小工具");
+        MuteToggle.Content = P("Mute audio", "靜音");
+        MuteToggle.IsChecked = !ReactorAudioEngine.I.Enabled;
+        ScenarioLabel.Text = P("Scenario:", "情景：");
+        NisTitle.Text = P("Nuclear instrumentation (NIS) & critical safety functions (SPDS)", "核儀表（NIS）與關鍵安全功能（SPDS）");
+        NisLabel.Text = P("Source-range count rate (log cps)", "起動範圍計數率（對數 cps）");
+        OneOverMLabel.Text = P("1/M — approach to criticality", "1/M — 趨近臨界");
+        CsfTitle.Text = P("Critical safety functions", "關鍵安全功能");
+        AckButton.Content = P("ACK", "確認");
+        SilenceButton.Content = P("SILENCE", "靜音警報");
+        ResetAlarmButton.Content = P("RESET", "重置");
+        LampTestButton.Content = P("LAMP TEST", "燈測");
         KeepAwakeToggle.Header = P("Keep PC awake while generating · 發電時保持電腦喚醒", "發電時保持電腦喚醒 · Keep PC awake while generating");
         KeepAwakeToggle.OnContent = P("On", "開");
         KeepAwakeToggle.OffContent = P("Off", "關");
         MimicTitle.Text = P("Plant Mimic Diagram · 機組流程圖", "機組流程圖 · Plant Mimic Diagram");
         GaugesTitle.Text = P("Instrument Gauges · 儀表", "儀表 · Instrument Gauges");
-        TrendTitle.Text = P("Trend Charts · 趨勢圖", "趨勢圖 · Trend Charts");
-        TrendPowerLabel.Text = P("Reactor power (%)", "反應堆功率（%）");
-        TrendTempLabel.Text = P("Fuel temp (°C)", "燃料溫度（°C）");
-        TrendPressLabel.Text = P("Primary pressure (MPa)", "一迴路壓力（MPa）");
+        TrendTitle.Text = P("Strip-Chart Recorders · 趨勢記錄儀", "趨勢記錄儀 · Strip-Chart Recorders");
         AlarmTitle.Text = P("Annunciator Panel · 警報盤", "警報盤 · Annunciator Panel");
         ScramText.Text = P("⚠ SCRAM — EMERGENCY SHUTDOWN ⚠ · 緊急停堆", "⚠ 緊急停堆 SCRAM ⚠ · EMERGENCY SHUTDOWN");
         ResetTripButton.Content = P("Reset trip · 重置跳機", "重置跳機 · Reset trip");
@@ -143,12 +193,35 @@ public sealed partial class ReactorModule : Page
         UpdateGauges();
         UpdateAlarmTiles();
         UpdateMimic();
-        PushTrends();
-        DrawTrends();
+        UpdateStripCharts();
+        UpdateNisPanels();
+        UpdateCsfPanel();
+        UpdateAudio();
         UpdateControlsLive();
 
         if (_sim.Mode == ReactorMode.Meltdown)
             AnimateMeltdown(dt);
+    }
+
+    // ============================================================ audio ====
+    private void UpdateAudio()
+    {
+        if (!_audioStarted) return;
+        var a = ReactorAudioEngine.I;
+        a.Power = (float)_sim.NeutronPowerFraction;
+        a.Scram = _sim.IsScrammed;
+        a.Meltdown = _sim.Mode == ReactorMode.Meltdown;
+
+        bool enabled = a.Enabled;
+        a.Hum(enabled);
+        // Klaxon while scrammed (unless silenced); annunciator buzzer while any alarm active & unacked.
+        a.Klaxon(enabled && _sim.IsScrammed && !_silenced);
+        a.Buzzer(enabled && AnyAlarm() && !_alarmsAcked && !_silenced && !_sim.IsScrammed);
+        a.EvacTone(enabled && _sim.Mode == ReactorMode.Meltdown);
+
+        // Relay click on fresh SCRAM edge.
+        if (_sim.IsScrammed && !_lastScram) { a.RelayClick(); _silenced = false; _alarmsAcked = false; }
+        _lastScram = _sim.IsScrammed;
     }
 
     // ============================================================== status banner ====
@@ -271,7 +344,7 @@ public sealed partial class ReactorModule : Page
         public double WarnFrac = 1.1;
     }
 
-    private void AddGauge(string en, string zh, double min, double max, Func<double> read, Func<string> fmt, double warnFrac = 1.1)
+    private void AddGauge(string en, string zh, double min, double max, Func<double> read, Func<string> fmt, double warnFrac = 1.1, string? id = null)
     {
         const double w = 150, h = 150, cx = 75, cy = 88, r = 56;
         var canvas = new Canvas { Width = w, Height = h };
@@ -279,6 +352,36 @@ public sealed partial class ReactorModule : Page
         // dial arc background (240° sweep from 150° to 30° going through bottom)
         var arc = MakeArc(cx, cy, r, 150, 390, Color.FromArgb(90, 0x88, 0x88, 0x88), 8);
         canvas.Children.Add(arc);
+
+        // coloured limit bands + setpoint ticks from the engineering spec.
+        if (id is not null)
+        {
+            var (sMin, sMax, bands, sets) = ReactorScenarios.Spec(id);
+            if (sMax > sMin)
+            {
+                foreach (var b in bands)
+                {
+                    double f0 = Math.Clamp((b.Lo - sMin) / (sMax - sMin), 0, 1);
+                    double f1 = Math.Clamp((b.Hi - sMin) / (sMax - sMin), 0, 1);
+                    if (f1 <= f0) continue;
+                    Color bc = b.Kind switch
+                    {
+                        "danger" => Color.FromArgb(200, 0xE5, 0x39, 0x35),
+                        "warn" => Color.FromArgb(200, 0xFB, 0xC0, 0x2D),
+                        _ => Color.FromArgb(160, 0x4C, 0xAF, 0x50),
+                    };
+                    canvas.Children.Add(MakeArc(cx, cy, r, 150 + 240 * f0, 150 + 240 * f1, bc, 4));
+                }
+                foreach (var sp in sets)
+                {
+                    double f = Math.Clamp((sp.V - sMin) / (sMax - sMin), 0, 1);
+                    double ang = (150 + 240 * f) * Math.PI / 180.0;
+                    double x1 = cx + Math.Cos(ang) * (r + 1), y1 = cy + Math.Sin(ang) * (r + 1);
+                    double x2 = cx + Math.Cos(ang) * (r + 7), y2 = cy + Math.Sin(ang) * (r + 7);
+                    canvas.Children.Add(new Line { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, StrokeThickness = 2, Stroke = new SolidColorBrush(Color.FromArgb(255, 0xFF, 0x52, 0x52)) });
+                }
+            }
+        }
 
         // tick marks
         for (int i = 0; i <= 8; i++)
@@ -323,23 +426,25 @@ public sealed partial class ReactorModule : Page
 
     private void BuildGauges()
     {
-        AddGauge("Reactor power", "反應堆功率", 0, 120, () => _sim.NeutronPowerFraction * 100, () => $"{_sim.NeutronPowerFraction * 100:F1}%");
+        AddGauge("Reactor power", "反應堆功率", 0, 120, () => _sim.NeutronPowerFraction * 100, () => $"{_sim.NeutronPowerFraction * 100:F1}%", id: "power");
         AddGauge("Thermal power", "熱功率", 0, ReactorSimService.RatedThermalMW * 1.2, () => _sim.ThermalPowerMW, () => $"{_sim.ThermalPowerMW:F0} MWt");
         AddGauge("Electrical output", "電功率", 0, ReactorSimService.RatedElectricMW * 1.1, () => _sim.ElectricPowerMW, () => $"{_sim.ElectricPowerMW:F0} MWe");
-        AddGauge("Neutron flux", "中子通量", 0, 120, () => _sim.NeutronPowerFraction * 100, () => $"{_sim.NeutronPowerFraction * 100:F1}%");
-        AddGauge("Reactor period", "反應堆週期", 0, 100, () => Math.Min(100, Math.Abs(_sim.ReactorPeriodSeconds)), () => PeriodStr());
+        AddGauge("Decay heat", "衰變熱", 0, 8, () => _sim.DecayHeatFraction * 100, () => $"{_sim.DecayHeatFraction * 100:F1}%");
+        AddGauge("Reactor period", "反應堆週期", 0, 100, () => Math.Min(100, Math.Abs(_sim.ReactorPeriodSeconds)), () => PeriodStr(), id: "period");
         AddGauge("Reactivity", "反應性", -2000, 2000, () => _sim.ReactivityPcm, () => $"{_sim.ReactivityPcm:F0} pcm");
-        AddGauge("Fuel temp", "燃料溫度", 0, 3000, () => _sim.FuelTemp, () => $"{_sim.FuelTemp:F0}°C", warnFrac: ReactorSimService.FuelDamageTemp / 3000.0);
-        AddGauge("Coolant Tavg", "冷卻劑平均溫", 0, 360, () => _sim.Tavg, () => $"{_sim.Tavg:F0}°C");
-        AddGauge("Coolant Thot", "熱腿溫度", 0, 360, () => _sim.Thot, () => $"{_sim.Thot:F0}°C", warnFrac: 345.0 / 360.0);
-        AddGauge("Coolant Tcold", "冷腿溫度", 0, 360, () => _sim.Tcold, () => $"{_sim.Tcold:F0}°C");
-        AddGauge("Primary pressure", "一迴路壓力", 0, 20, () => _sim.PrimaryPressure, () => $"{_sim.PrimaryPressure:F1} MPa", warnFrac: ReactorSimService.VesselPressureLimit / 20.0);
-        AddGauge("Pressurizer level", "穩壓器水位", 0, 100, () => _sim.PressurizerLevel, () => $"{_sim.PressurizerLevel:F0}%");
-        AddGauge("Steam pressure", "蒸汽壓力", 0, 9, () => _sim.SteamPressure, () => $"{_sim.SteamPressure:F1} MPa");
-        AddGauge("RCP flow", "主泵流量", 0, 100, () => _sim.CoolantFlowFraction * 100, () => $"{_sim.CoolantFlowFraction * 100:F0}%");
-        AddGauge("Boron", "硼濃度", 0, 2500, () => _sim.BoronPpm, () => $"{_sim.BoronPpm:F0} ppm");
-        AddGauge("Xenon worth", "氙毒", 0, 100, () => _sim.Xenon * 100, () => $"{-_sim.XenonReactivityPcm:F0} pcm");
-        AddGauge("Turbine speed", "汽輪機轉速", 0, 3800, () => _sim.TurbineRPM, () => $"{_sim.TurbineRPM:F0} rpm");
+        AddGauge("Fuel temp", "燃料溫度", 0, 3000, () => _sim.FuelTemp, () => $"{_sim.FuelTemp:F0}°C", warnFrac: ReactorSimService.FuelDamageTemp / 3000.0, id: "fuelTemp");
+        AddGauge("Coolant Tavg", "冷卻劑平均溫", 530, 620, () => _sim.Tavg * 1.8 + 32, () => $"{_sim.Tavg * 1.8 + 32:F0}°F", id: "tavg");
+        AddGauge("Coolant Thot", "熱腿溫度", 530, 660, () => _sim.Thot * 1.8 + 32, () => $"{_sim.Thot * 1.8 + 32:F0}°F", id: "thot");
+        AddGauge("Coolant Tcold", "冷腿溫度", 520, 600, () => _sim.Tcold * 1.8 + 32, () => $"{_sim.Tcold * 1.8 + 32:F0}°F", id: "tcold");
+        AddGauge("Subcooling", "過冷度", -20, 120, () => _sim.SubcoolingMarginC, () => $"{_sim.SubcoolingMarginC:F0}°C", id: "subcool");
+        AddGauge("Primary pressure", "一迴路壓力", 0, 3000, () => _sim.PrimaryPressure * 145.038, () => $"{_sim.PrimaryPressure * 145.038:F0} psia", id: "pzrPress");
+        AddGauge("Pressurizer level", "穩壓器水位", 0, 100, () => _sim.PressurizerLevel, () => $"{_sim.PressurizerLevel:F0}%", id: "pzrLevel");
+        AddGauge("Steam pressure", "蒸汽壓力", 0, 1300, () => _sim.SteamPressure * 145.038, () => $"{_sim.SteamPressure * 145.038:F0} psia", id: "sgPress");
+        AddGauge("SG level", "蒸發器水位", 0, 100, () => _sim.SteamGenLevel, () => $"{_sim.SteamGenLevel:F0}%", id: "sgLevel");
+        AddGauge("RCP flow", "主泵流量", 0, 100, () => _sim.CoolantFlowFraction * 100, () => $"{_sim.CoolantFlowFraction * 100:F0}%", id: "flow");
+        AddGauge("Boron", "硼濃度", 0, 2500, () => _sim.BoronPpm, () => $"{_sim.BoronPpm:F0} ppm", id: "boron");
+        AddGauge("Xenon worth", "氙毒", 0, 100, () => _sim.Xenon * 100, () => $"{-_sim.XenonReactivityPcm:F0} pcm", id: "xenon");
+        AddGauge("Turbine speed", "汽輪機轉速", 0, 2000, () => _sim.TurbineRPM, () => $"{_sim.TurbineRPM:F0} rpm");
     }
 
     private string PeriodStr()
@@ -426,6 +531,12 @@ public sealed partial class ReactorModule : Page
             (ReactorAlarm.SteamPressureHigh, "HIGH STEAM P", "蒸汽高壓"),
             (ReactorAlarm.EccsActive, "ECCS ACTIVE", "應急堆芯冷卻"),
             (ReactorAlarm.TurbineTrip, "TURBINE TRIP", "汽輪機跳機"),
+            (ReactorAlarm.LowSubcooling, "LOW SUBCOOLING", "過冷度不足"),
+            (ReactorAlarm.DecayHeatHigh, "DECAY HEAT", "衰變熱高"),
+            (ReactorAlarm.AtwsActive, "ATWS — RODS STUCK", "ATWS 控制棒卡住"),
+            (ReactorAlarm.AccumulatorInject, "ACCUM INJECT", "蓄壓器注入"),
+            (ReactorAlarm.AuxFeedwater, "AUX FEEDWATER", "輔助給水"),
+            (ReactorAlarm.NaturalCirc, "NATURAL CIRC", "自然循環"),
             (ReactorAlarm.CoreDamage, "CORE DAMAGE", "爐心受損"),
         };
         foreach (var (a, en, zh) in defs)
@@ -613,44 +724,293 @@ public sealed partial class ReactorModule : Page
         Canvas.SetLeft(tb, x); Canvas.SetTop(tb, y); c.Children.Add(tb); _mimicDynamic.Add(tb);
     }
 
-    // ================================================================ TRENDS ====
-    private void PushTrends()
+    // ================================================================ STRIP CHARTS ====
+    private void BuildStripCharts()
     {
-        void Push(Queue<double> q, double v) { q.Enqueue(v); while (q.Count > HistMax) q.Dequeue(); }
-        Push(_powHist, _sim.NeutronPowerFraction * 100);
-        Push(_tempHist, _sim.FuelTemp);
-        Push(_pressHist, _sim.PrimaryPressure);
+        StripChartHost.Children.Clear();
+        var (pMin, pMax, _, pSet) = ReactorScenarios.Spec("power");
+        _stripPower = new StripChartRecorder(300, 120);
+        _stripPower.SetPens(new StripChartRecorder.Pen
+        {
+            En = "Power (%)", Zh = "功率（%）",
+            Color = Color.FromArgb(255, 0x42, 0xA5, 0xF5),
+            Min = pMin, Max = pMax,
+            Redline = pSet.Length > 0 ? pSet[0].V : double.NaN,
+            Read = () => _sim.NeutronPowerFraction * 100,
+        });
+
+        var (fMin, fMax, _, fSet) = ReactorScenarios.Spec("fuelTemp");
+        _stripTemp = new StripChartRecorder(300, 120);
+        _stripTemp.SetPens(new StripChartRecorder.Pen
+        {
+            En = "Fuel T (°C)", Zh = "燃料溫（°C）",
+            Color = Color.FromArgb(255, 0xFF, 0x70, 0x43),
+            Min = 0, Max = 1500,
+            Redline = fSet.Length > 0 ? fSet[0].V : double.NaN,
+            Read = () => _sim.FuelTemp,
+        });
+
+        var (prMin, prMax, _, prSet) = ReactorScenarios.Spec("pzrPress");
+        _stripPress = new StripChartRecorder(300, 120);
+        _stripPress.SetPens(new StripChartRecorder.Pen
+        {
+            En = "Primary (psia)", Zh = "一迴路（psia）",
+            Color = Color.FromArgb(255, 0x66, 0xBB, 0x6A),
+            Min = prMin, Max = prMax,
+            Redline = 2485,
+            Read = () => _sim.PrimaryPressure * 145.038,
+        });
+
+        StripChartHost.Children.Add(_stripPower);
+        StripChartHost.Children.Add(_stripTemp);
+        StripChartHost.Children.Add(_stripPress);
+        _relocalizers.Add(() => { _stripPower?.Relocalize(); _stripTemp?.Relocalize(); _stripPress?.Relocalize(); });
     }
 
-    private void DrawTrends()
+    private void UpdateStripCharts()
     {
-        DrawTrend(TrendPower, _powHist, 0, 130, Color.FromArgb(255, 0x42, 0xA5, 0xF5));
-        DrawTrend(TrendTemp, _tempHist, 0, 1500, Color.FromArgb(255, 0xFF, 0x70, 0x43));
-        DrawTrend(TrendPress, _pressHist, 0, 20, Color.FromArgb(255, 0x66, 0xBB, 0x6A));
+        _stripPower?.Sample();
+        _stripTemp?.Sample();
+        _stripPress?.Sample();
     }
 
-    private static void DrawTrend(Canvas c, Queue<double> data, double min, double max, Color color)
+    // ================================================================ NIS / 1-over-M ====
+    private void UpdateNisPanels()
     {
+        // NIS log meter: source / intermediate / power-range bars + startup rate.
+        var c = NisCanvas;
         c.Children.Clear();
         double w = c.Width, h = c.Height;
-        // gridlines
-        for (int i = 1; i < 4; i++)
+        // log-scale flux from 1e-9 to 2 (fraction).
+        double flux = Math.Max(_sim.NeutronPowerFraction, 1e-9);
+        double logF = (Math.Log10(flux) + 9) / (Math.Log10(2) + 9); // 0..1
+        logF = Math.Clamp(logF, 0, 1);
+        DrawNisBar(c, 20, "SRM", logF < 0.45 ? logF / 0.45 : 1.0, Color.FromArgb(255, 0x42, 0xA5, 0xF5));
+        DrawNisBar(c, 70, "IRM", logF > 0.30 ? Math.Clamp((logF - 0.30) / 0.4, 0, 1) : 0, Color.FromArgb(255, 0x66, 0xBB, 0x6A));
+        DrawNisBar(c, 120, "PRM", logF > 0.65 ? Math.Clamp((logF - 0.65) / 0.35, 0, 1) : 0, Color.FromArgb(255, 0xFF, 0xB3, 0x00));
+        var dpm = new TextBlock
         {
-            double y = h * i / 4;
-            c.Children.Add(new Line { X1 = 0, Y1 = y, X2 = w, Y2 = y, Stroke = new SolidColorBrush(Color.FromArgb(30, 0xFF, 0xFF, 0xFF)), StrokeThickness = 1 });
-        }
-        if (data.Count < 2) return;
+            Text = $"SUR {_sim.StartupRateDpm:F1} DPM   T {PeriodStr()}",
+            FontFamily = new FontFamily("Consolas"), FontSize = 12,
+            Foreground = new SolidColorBrush(Color.FromArgb(230, 0x90, 0xCA, 0xF9)),
+        };
+        Canvas.SetLeft(dpm, 170); Canvas.SetTop(dpm, h - 24);
+        c.Children.Add(dpm);
+
+        // 1/M plot — pushes down toward zero as the core approaches criticality.
+        _oneOverMHist.Enqueue(_sim.OneOverM);
+        while (_oneOverMHist.Count > HistMax) _oneOverMHist.Dequeue();
+        var oc = OneOverMCanvas;
+        oc.Children.Clear();
+        double ow = oc.Width, oh = oc.Height;
+        oc.Children.Add(new Line { X1 = 0, Y1 = oh - 2, X2 = ow, Y2 = oh - 2, Stroke = new SolidColorBrush(Color.FromArgb(120, 0xFF, 0x52, 0x52)), StrokeThickness = 1 });
         var pts = new PointCollection();
-        var arr = data.ToArray();
+        var arr = _oneOverMHist.ToArray();
         for (int i = 0; i < arr.Length; i++)
         {
-            double x = w * i / (HistMax - 1);
-            double f = (arr[i] - min) / (max - min);
-            f = Math.Clamp(f, 0, 1);
-            double y = h - f * h;
+            double x = ow * i / (HistMax - 1);
+            double y = oh - Math.Clamp(arr[i], 0, 1) * oh;
             pts.Add(new Point(x, y));
         }
-        c.Children.Add(new Polyline { Points = pts, Stroke = new SolidColorBrush(color), StrokeThickness = 2 });
+        if (pts.Count >= 2)
+            oc.Children.Add(new Polyline { Points = pts, Stroke = new SolidColorBrush(Color.FromArgb(255, 0x4C, 0xAF, 0x50)), StrokeThickness = 2 });
+    }
+
+    private static void DrawNisBar(Canvas c, double x, string label, double frac, Color color)
+    {
+        double h = c.Height, barH = h - 30;
+        c.Children.Add(new Rectangle { Width = 36, Height = barH, Fill = new SolidColorBrush(Color.FromArgb(40, 0xFF, 0xFF, 0xFF)) });
+        Canvas.SetLeft(c.Children[c.Children.Count - 1], x); Canvas.SetTop(c.Children[c.Children.Count - 1], 6);
+        double fh = Math.Clamp(frac, 0, 1) * barH;
+        var fill = new Rectangle { Width = 36, Height = fh, Fill = new SolidColorBrush(color) };
+        Canvas.SetLeft(fill, x); Canvas.SetTop(fill, 6 + barH - fh);
+        c.Children.Add(fill);
+        var tb = new TextBlock { Text = label, FontSize = 10, Foreground = new SolidColorBrush(Color.FromArgb(220, 0xCC, 0xCC, 0xCC)), Width = 36, TextAlignment = TextAlignment.Center };
+        Canvas.SetLeft(tb, x); Canvas.SetTop(tb, h - 22);
+        c.Children.Add(tb);
+    }
+
+    // ================================================================ CSF / SPDS ====
+    private void BuildCsfPanel()
+    {
+        CsfPanel.Children.Clear();
+        _csfCells.Clear();
+        // (id, en, zh, severity 0=green..3=red)
+        (string en, string zh, Func<int> sev)[] defs =
+        {
+            ("S Subcrit", "S 次臨界", () => _sim.IsScrammed && _sim.NeutronPowerFraction > 0.02 ? 3 : (_sim.NeutronPowerFraction > 1.05 ? 2 : 0)),
+            ("C Cooling", "C 堆芯冷卻", () => _sim.SubcoolingMarginC < 0 ? 3 : _sim.SubcoolingMarginC < 15 ? 2 : 0),
+            ("H Heat sink", "H 熱阱", () => _sim.SteamGenLevel < 17 ? 3 : _sim.SteamGenLevel < 30 ? 2 : 0),
+            ("P Integrity", "P 完整性", () => _sim.PrimaryPressure > ReactorSimService.VesselPressureLimit ? 3 : _sim.PrimaryPressure > ReactorSimService.VesselPressureLimit - 1 ? 2 : 0),
+            ("Z Containment", "Z 安全殼", () => _sim.Mode == ReactorMode.Meltdown ? 3 : _sim.DamageAccumulation > 1 ? 2 : 0),
+            ("I Inventory", "I 存量", () => _sim.PressurizerLevel < 17 ? 3 : _sim.PressurizerLevel < 30 ? 2 : 0),
+        };
+        foreach (var (en, zh, sev) in defs)
+        {
+            var label = new TextBlock { FontSize = 11, FontWeight = FontWeights.SemiBold, TextAlignment = TextAlignment.Center, TextWrapping = TextWrapping.Wrap, Foreground = new SolidColorBrush(Colors.White) };
+            var border = new Border
+            {
+                Width = 96, Height = 52, CornerRadius = new CornerRadius(5),
+                Background = new SolidColorBrush(Color.FromArgb(255, 0x2E, 0x7D, 0x32)),
+                Child = new Viewbox { Child = label, MaxHeight = 40, Margin = new Thickness(3) },
+            };
+            _relocalizers.Add(() => label.Text = P(en, zh));
+            label.Text = P(en, zh);
+            _csfCells.Add((border, label, en, zh, sev));
+            CsfPanel.Children.Add(border);
+        }
+    }
+
+    private void UpdateCsfPanel()
+    {
+        foreach (var (border, _, _, _, sev) in _csfCells)
+        {
+            Color c = sev() switch
+            {
+                3 => Color.FromArgb(255, 0xD3, 0x2F, 0x2F),
+                2 => Color.FromArgb(255, 0xF5, 0x7C, 0x00),
+                1 => Color.FromArgb(255, 0xFB, 0xC0, 0x2D),
+                _ => Color.FromArgb(255, 0x2E, 0x7D, 0x32),
+            };
+            border.Background = new SolidColorBrush(c);
+        }
+    }
+
+    // ================================================================ SCENARIO COMBO ====
+    private void BuildScenarioCombo()
+    {
+        ScenarioCombo.Items.Clear();
+        ScenarioCombo.Items.Add(P("Normal", "正常"));
+        ScenarioCombo.Items.Add(P("LOCA (loss of coolant)", "失水事故 LOCA"));
+        ScenarioCombo.Items.Add(P("Station blackout", "全廠斷電"));
+        ScenarioCombo.Items.Add(P("Loss of feedwater", "喪失給水"));
+        ScenarioCombo.Items.Add(P("ATWS (no scram)", "ATWS（未能停堆）"));
+        ScenarioCombo.Items.Add(P("Xenon restart", "氙毒重啟"));
+        ScenarioCombo.SelectedIndex = 0;
+    }
+
+    private void Scenario_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        _sim.TriggerScenario(ScenarioCombo.SelectedIndex switch
+        {
+            1 => ReactorScenario.Loca,
+            2 => ReactorScenario.StationBlackout,
+            3 => ReactorScenario.LossOfFeedwater,
+            4 => ReactorScenario.Atws,
+            5 => ReactorScenario.XenonRestart,
+            _ => ReactorScenario.Normal,
+        });
+    }
+
+    // ================================================================ COMPOSITION FX ====
+    private void InitFx()
+    {
+        try
+        {
+            var (c, root) = ReactorFx.Bind(FxLayer);
+            _compositor = c;
+            _fxRoot = root;
+            _fxProps = c.CreatePropertySet();
+            _fxProps.InsertScalar("power", 0);
+
+            // Cherenkov glow centred over the reactor vessel in the mimic (vessel box at ~x40,y120,w120,h160).
+            _glow = ReactorFx.CherenkovGlow(c, 95);
+            _glow.Offset = new Vector3(100, 200, 0); // vessel centre
+            root.Children.InsertAtTop(_glow);
+
+            // Steam pool above the steam generator (box at ~x330,y80,w90).
+            _steam = new ReactorFx.SteamPool(c, root, 24);
+
+            // Bind the whole scroll content for screen-shake on meltdown.
+            _scrollVisual = ElementCompositionPreview.GetElementVisual(RootScroll);
+
+            _renderClock.Start(OnFxFrame);
+        }
+        catch { /* FX are optional; never break the page */ }
+    }
+
+    private void OnFxFrame(double dt)
+    {
+        if (_glow is null) return;
+        var snap = _sim.Capture();
+        float p = (float)Math.Clamp(snap.Power, 0, 1.2);
+        _glow.Opacity = Math.Clamp(p * 1.15f, 0f, 1f);
+        float scale = 0.35f + p * 1.0f;
+        _glow.Scale = new Vector3(scale, scale, 1);
+
+        // Steam rises from the SG proportionally to steam pressure (normalized to ~8.5 MPa).
+        _steam?.Spawn(Math.Clamp(snap.SteamPressure / 8.5, 0, 1) * (snap.FlowFraction > 0.05 ? 1 : 0.2), 375, 90, dt);
+
+        // Meltdown screen-shake + strobe (started once on meltdown).
+        if (snap.Mode == ReactorMode.Meltdown && !_meltdownFxStarted)
+        {
+            _meltdownFxStarted = true;
+            if (_scrollVisual is not null) ReactorFx.ScreenShake(_scrollVisual, 6f);
+            var strobeVisual = ElementCompositionPreview.GetElementVisual(MeltdownStrobe);
+            ReactorFx.RedStrobe(strobeVisual, true);
+        }
+    }
+
+    // ================================================================ TOOLBAR ====
+    private void OpenControlRoom_Click(object sender, RoutedEventArgs e)
+    {
+        try { var w = new ReactorControlRoomWindow(_sim); w.Activate(); } catch { }
+    }
+
+    private void OpenWidgets_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            new ReactorWidgetWindow(_sim, WidgetKind.CorePower).Activate();
+            new ReactorWidgetWindow(_sim, WidgetKind.Status).Activate();
+            new ReactorWidgetWindow(_sim, WidgetKind.Scram).Activate();
+            SettingsStore.Set("reactor.widgets", "CorePower,Status,Scram");
+        }
+        catch { }
+    }
+
+    private void MuteToggle_Click(object sender, RoutedEventArgs e)
+    {
+        bool muted = MuteToggle.IsChecked == true;
+        ReactorAudioEngine.I.SetEnabled(!muted);
+        if (muted) ReactorAudioEngine.I.StopVoices();
+        else if (_audioStarted) ReactorAudioEngine.I.Hum(true);
+    }
+
+    // ================================================================ ANNUNCIATOR BUTTONS ====
+    private void Ack_Click(object sender, RoutedEventArgs e)
+    {
+        _alarmsAcked = true;
+        ReactorAudioEngine.I.Beep(accept: true);
+    }
+
+    private void Silence_Click(object sender, RoutedEventArgs e)
+    {
+        _silenced = true;
+        ReactorAudioEngine.I.Klaxon(false);
+        ReactorAudioEngine.I.Buzzer(false);
+        ReactorAudioEngine.I.Beep(accept: false);
+    }
+
+    private void ResetAlarms_Click(object sender, RoutedEventArgs e)
+    {
+        _alarmsAcked = false;
+        _silenced = false;
+        ReactorAudioEngine.I.Beep(accept: true);
+    }
+
+    private void LampTest_Click(object sender, RoutedEventArgs e)
+    {
+        // Flash every annunciator tile + CSF cell amber for a moment (lamp test).
+        foreach (var kv in _alarmTiles)
+        {
+            kv.Value.Border.Background = new SolidColorBrush(Color.FromArgb(255, 0xF5, 0x7C, 0x00));
+            kv.Value.Label.Foreground = new SolidColorBrush(Colors.White);
+        }
+        ReactorAudioEngine.I.Beep(accept: true);
+        var t = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(700) };
+        t.Tick += (_, _) => { t.Stop(); UpdateAlarmTiles(); };
+        t.Start();
     }
 
     // ================================================================ CONTROLS ====
@@ -748,6 +1108,15 @@ public sealed partial class ReactorModule : Page
             0, 110, _sim.AutoPowerSetpoint * 100, 1,
             v => _sim.AutoPowerSetpoint = v / 100.0, () => _sim.AutoPowerSetpoint * 100, "%"));
 
+        // ---- Startup-sequence checklist (approach to criticality) ----
+        host.Children.Add(SectionHeader("Startup sequence (approach to criticality) · 啟動程序（趨近臨界）",
+                                        "啟動程序（趨近臨界）· Startup sequence"));
+        BuildStartupChecklist(host);
+
+        // ---- Always-on reactor persistence (opt-in, default OFF, easy off switch) ----
+        host.Children.Add(SectionHeader("⚛ Always-on reactor · 常駐反應堆", "⚛ 常駐反應堆 · Always-on reactor"));
+        BuildKeepAliveSection(host);
+
         host.Children.Add(SectionHeader("⚠ Real shutdown on meltdown · 熔毀時真實關機", "⚠ 熔毀時真實關機 · Real shutdown on meltdown"));
 
         var armToggle = new ToggleSwitch
@@ -782,10 +1151,108 @@ public sealed partial class ReactorModule : Page
         ResetTripButton.IsEnabled = true;
     }
 
+    private readonly List<(StartupStep step, TextBlock check)> _startupSteps = new();
+    private TextBlock? _keepAliveStatus;
+    private Border? _keepAliveDot;
+
     private void UpdateControlsLive()
     {
-        // Reflect auto-control rod motion back into nothing heavy; sliders are not two-way bound to
-        // avoid feedback loops. (Auto control changes engine state directly.)
+        // Live-update the startup checklist marks.
+        foreach (var (step, check) in _startupSteps)
+        {
+            bool ok = step.IsSatisfied(_sim);
+            check.Text = ok ? "✓" : "○";
+            check.Foreground = new SolidColorBrush(ok
+                ? Color.FromArgb(255, 0x4C, 0xAF, 0x50)
+                : Color.FromArgb(160, 0xAA, 0xAA, 0xAA));
+        }
+        // Live-update keep-alive status pill.
+        if (_keepAliveStatus is not null && _keepAliveDot is not null)
+        {
+            string st = ReactorPersistence.Status();
+            _keepAliveStatus.Text = P($"Status: {st}", $"狀態：{KeepAliveStatusZh(st)}");
+            Color c = ReactorPersistence.Enabled
+                ? Color.FromArgb(255, 0x4C, 0xAF, 0x50)
+                : Color.FromArgb(255, 0x75, 0x75, 0x75);
+            _keepAliveDot.Background = new SolidColorBrush(c);
+        }
+    }
+
+    private static string KeepAliveStatusZh(string en) => en switch
+    {
+        "Enabled" => "已啟用",
+        "Enabled (entry removed)" => "已啟用（項目已被移除）",
+        "Disabling…" => "停用中…",
+        _ => "已停用",
+    };
+
+    private void BuildStartupChecklist(StackPanel host)
+    {
+        _startupSteps.Clear();
+        var steps = ReactorScenarios.StartupSequence();
+        int i = 1;
+        foreach (var step in steps)
+        {
+            var check = new TextBlock { Text = "○", FontSize = 16, Width = 24, Foreground = new SolidColorBrush(Color.FromArgb(160, 0xAA, 0xAA, 0xAA)) };
+            var text = new TextBlock { FontSize = 13, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center };
+            int n = i;
+            var stp = step;
+            _relocalizers.Add(() => text.Text = $"{n}. " + P(stp.En, stp.Zh));
+            text.Text = $"{n}. " + P(stp.En, stp.Zh);
+            var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { check, text } };
+            host.Children.Add(row);
+            _startupSteps.Add((step, check));
+            i++;
+        }
+    }
+
+    private void BuildKeepAliveSection(StackPanel host)
+    {
+        var toggle = new ToggleSwitch
+        {
+            Header = P("Keep the reactor running (start at login, restart if it stops) · 保持反應堆常駐（開機自動啟動、停咗會自動重開）",
+                       "保持反應堆常駐（開機自動啟動、停咗會自動重開）· Keep the reactor running"),
+            IsOn = ReactorPersistence.Enabled, // DEFAULT OFF unless previously enabled
+            OnContent = P("On", "開"),
+            OffContent = P("Off", "關"),
+        };
+        toggle.Toggled += (_, _) => { ReactorPersistence.SetEnabled(toggle.IsOn); UpdateControlsLive(); };
+        _relocalizers.Add(() =>
+        {
+            toggle.Header = P("Keep the reactor running (start at login, restart if it stops) · 保持反應堆常駐（開機自動啟動、停咗會自動重開）",
+                              "保持反應堆常駐（開機自動啟動、停咗會自動重開）· Keep the reactor running");
+            toggle.OnContent = P("On", "開");
+            toggle.OffContent = P("Off", "關");
+        });
+        host.Children.Add(toggle);
+
+        // status pill
+        var pill = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        _keepAliveDot = new Border { Width = 12, Height = 12, CornerRadius = new CornerRadius(6), Background = new SolidColorBrush(Color.FromArgb(255, 0x75, 0x75, 0x75)), VerticalAlignment = VerticalAlignment.Center };
+        _keepAliveStatus = new TextBlock { FontSize = 12, VerticalAlignment = VerticalAlignment.Center };
+        pill.Children.Add(_keepAliveDot);
+        pill.Children.Add(_keepAliveStatus);
+        host.Children.Add(pill);
+
+        var warn = new TextBlock { TextWrapping = TextWrapping.Wrap, Foreground = new SolidColorBrush(Color.FromArgb(255, 0xFF, 0xB3, 0x00)) };
+        _relocalizers.Add(() => warn.Text = P(
+            "This adds a visible startup entry (Task Manager → Startup and the Startup Apps module) and a small watchdog that restarts the reactor if it closes. Turn it off here anytime.",
+            "呢個會加一個可見嘅開機項目（工作管理員→啟動 同 開機程式模組）同一個細小守護程式，反應堆關咗會自動重開。隨時可以喺度關閉。"));
+        warn.Text = P(
+            "This adds a visible startup entry (Task Manager → Startup and the Startup Apps module) and a small watchdog that restarts the reactor if it closes. Turn it off here anytime.",
+            "呢個會加一個可見嘅開機項目（工作管理員→啟動 同 開機程式模組）同一個細小守護程式，反應堆關咗會自動重開。隨時可以喺度關閉。");
+        host.Children.Add(warn);
+
+        var removeBtn = new Button();
+        _relocalizers.Add(() => removeBtn.Content = P("Remove all reactor persistence · 移除全部常駐設定", "移除全部常駐設定 · Remove all reactor persistence"));
+        removeBtn.Content = P("Remove all reactor persistence · 移除全部常駐設定", "移除全部常駐設定 · Remove all reactor persistence");
+        removeBtn.Click += (_, _) =>
+        {
+            ReactorPersistence.RemoveAll();
+            toggle.IsOn = false;
+            UpdateControlsLive();
+        };
+        host.Children.Add(removeBtn);
     }
 
     private TextBlock SectionHeader(string en, string zh)
@@ -935,9 +1402,20 @@ public sealed partial class ReactorModule : Page
         _shutdownIssued = false;
         _aborted = false;
         _countdownTimer?.Stop();
-        _powHist.Clear(); _tempHist.Clear(); _pressHist.Clear();
+        _oneOverMHist.Clear();
         _simClock = 0;
+        // Stop meltdown FX.
+        _meltdownFxStarted = false;
+        try
+        {
+            if (_scrollVisual is not null) ReactorFx.ScreenShake(_scrollVisual, 0);
+            var strobeVisual = ElementCompositionPreview.GetElementVisual(MeltdownStrobe);
+            ReactorFx.RedStrobe(strobeVisual, false);
+        }
+        catch { }
+        try { ReactorAudioEngine.I.EvacTone(false); } catch { }
         _sim.Reset();
+        if (ScenarioCombo is not null) ScenarioCombo.SelectedIndex = 0;
         // Rebuild the control surface so toggles/sliders reflect the reset engine state.
         _relocalizers.Clear();
         BuildControls();

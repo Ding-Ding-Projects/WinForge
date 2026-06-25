@@ -104,6 +104,22 @@ public sealed partial class MainWindow : Window
     private void QuitFromTray()
     {
         _reallyQuit = true;
+        // Reactor keep-alive sentinel: if persistence is on, tell the watchdog this was a deliberate
+        // user-quit so it never respawns the reactor. Honouring the quit is mandatory (never unkillable).
+        try
+        {
+            if (WinForge.Services.ReactorPersistence.Enabled)
+            {
+                var flag = System.IO.Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "WinForge", "reactor.userquit");
+                System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(flag)!);
+                System.IO.File.WriteAllText(flag, DateTime.UtcNow.ToString("o"));
+            }
+        }
+        catch { /* best effort */ }
+        try { WinForge.Pages.ReactorWindowManager.CloseAll(); } catch { }
+        try { WinForge.Services.ReactorAudioEngine.I.Dispose(); } catch { }
         TrayService.Remove();
         Application.Current.Exit();
     }
