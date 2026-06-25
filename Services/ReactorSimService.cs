@@ -70,6 +70,10 @@ public enum ReactorAlarm
     RcpSealLoca,       // RCP seal-cooling lost → degraded seal leakoff (WOG-2000 seal LOCA)
     RvlisBelowTopOfFuel, // RVLIS advisory: vessel collapsed level below top of active fuel (NOT the ICC trip)
     RvlisFullRangeLoLo,  // RVLIS full-range collapsed level < 40% (well into the uncovered-fuel band)
+    PtApproach,          // RCS pressure within 1.0 MPa of the 10 CFR 50 App G brittle-fracture P/T limit
+    PtViolation,         // RCS pressure has crossed the App G P/T limit (brittle-fracture concern)
+    RcsRateExceeded,     // |RCS heatup/cooldown rate| > 90% of the App G 100 °F/hr (55.6 °C/hr) limit
+    LtopActive,          // LTOP/COMS armed and its low-setpoint PORV path is actively relieving
 }
 
 /// <summary>
@@ -218,6 +222,46 @@ public sealed class ReactorSimService
     private const double PzrSafetyReliefRate = 4.0;  // MPa/s per valve at full lift (> PORV; greater capacity)
     private static readonly double[] PzrSafetySet = { PzrSafety1Set, PzrSafety2Set, PzrSafety3Set };
 
+    // ---- Reactor-vessel Pressure-Temperature (P/T) operating limits — 10 CFR 50 Appendix G ----
+    // The beltline shell of an irradiated RPV is brittle when cold: a flaw can propagate by fast fracture if
+    // pressure (membrane stress) is applied below the material's ductile-brittle transition. Appendix G (via
+    // ASME Section XI Appendix G) bounds the allowable RCS pressure as a function of the indicated coolant
+    // temperature, using the reference fracture-toughness curve
+    //     K_IC = 33.2 + 20.734·exp(0.02·(T − RT_NDT))   [ksi·√in, T & RT_NDT in °F]   (App G eq. G-2210)
+    // with a safety factor of 2.0 on the pressure (membrane) stress intensity for normal heatup/cooldown
+    // (Service Level A/B) and 1.5 for an inservice leak/hydrotest. As the vessel embrittles over life the
+    // adjusted reference temperature (ART = RT_NDT + ΔRT_NDT + margin, per Reg. Guide 1.99 Rev.2) shifts the
+    // whole curve to the right. Rather than re-evaluate the parameter-sensitive closed form every tick, we
+    // store a representative, monotone composite *heatup* limit as a (°C → MPa-abs) table and interpolate it.
+    // VALUES ARE REPRESENTATIVE / GENERIC for an aged 4-loop vessel (~82 °C / 180 °F ART) — NOT a plant PTLR.
+    // Anchor (°F,psig) points converted with the file's factor MPa_abs = (psig + 14.7) / 145.038.
+    private static readonly double[] PtTempC  = { 15.6, 37.8, 65.6, 93.3, 121.1, 148.9, 291.0 }; // °C bulk Tcold knots
+    private static readonly double[] PtPmaxMPa = { 4.38, 4.93, 6.31, 9.07, 13.90, 17.24, 17.24 }; // MPa-abs allowable (flattens at the 17.24 MPa design ceiling at/above the knee)
+    public  const double AppGRtndtF        = 60.0;    // °F  — representative mid-life adjusted RT_NDT (provenance for the table)
+    public  const double KicFloorKsi       = 33.2;    // ksi·√in — exact ASME XI App G K_IC floor (eq. G-2210)
+    public  const double KicCoeffB         = 20.734;  // ksi·√in — exact App G K_IC coefficient
+    public  const double KicExpCoeff       = 0.02;    // /°F     — exact App G K_IC exponent coefficient
+    public  const double AppGSfNormal      = 2.0;     // membrane-stress safety factor, normal heatup/cooldown (Level A/B)
+    public  const double AppGSfHydroTest   = 1.5;     // membrane-stress safety factor, inservice leak / hydrotest
+    public  const double CoreCriticalMarginC = 22.2;  // °C (= +40 °F) extra margin above the P/T-limit temp required for criticality (App G Table 1)
+    private const double MinBoltupTempC    = 18.0;    // °C (~65 °F) minimum flange-boltup / pressurization-enable temperature
+    private const double PtApproachWarnMPa = 1.0;     // MPa — warn when PrimaryPressure is within this of the App G allowable
+    // ---- Low-Temperature Overpressure Protection (LTOP) / Cold Overpressure Mitigation System (COMS) ----
+    // Below the LTOP enable temperature the App G allowable pressure is low, so a mass-input (inadvertent
+    // SI/charging) or heat-input (starting an RCP with the SG hotter than the primary) transient can breach
+    // the brittle-fracture limit in seconds. LTOP re-ranges the pressurizer PORVs to a low cold setpoint so
+    // they relieve well below the App G limit at the enable temperature. The open setpoint must satisfy
+    // P_set + overshoot + instrument uncertainty ≤ P_AppG(T_enable); here 3.10 MPa ≪ ~15.6 MPa allowable at 135 °C.
+    private const double LtopEnableTempC     = 135.0; // °C (~275 °F) bulk-Tcold arm threshold (≈ max(App G transition, RT_NDT+50 °F))
+    private const double LtopEnableHystC     = 5.0;   // °C — disarm only above enable+hyst to stop boundary chatter
+    private const double LtopOpenPressureMPa = 3.10;  // MPa-abs (~435 psig) LTOP PORV lift setpoint while armed
+    private const double LtopCloseHystMPa    = 0.21;  // MPa (~30 psi) blowdown → reseat at 2.89 MPa (strictly < open)
+    // ---- App G heatup/cooldown rate limit + signed-rate filter ----
+    private const double AppGRateLimitCperHr = 55.56; // °C/hr (= 100 °F/hr) Appendix-G heatup/cooldown rate limit
+    private const double RateAlarmFraction   = 0.9;   // alarm at 90% of the rate limit (|rate| > 50 °C/hr)
+    private const double RateFilterTauSec    = 45.0;  // s — single-pole EMA time constant for the displayed rate
+    private const double RateSampleMinDt     = 0.05;  // s — guard the finite-difference divide below this dt
+
     // Limits / trip setpoints.
     public const double FuelMeltTemp = 2800.0;     // °C — UO2 melting point ~2865 °C
     public const double FuelDamageTemp = 1200.0;   // °C — clad/fuel damage onset (sustained)
@@ -275,6 +319,25 @@ public sealed class ReactorSimService
     public double PressurizerLiquidTemp => _tpzr;    // °C (display)
     public double PressurizerHeaterDuty { get; private set; } // 0..1 effective heater duty (display)
     public bool PorvAutoOpen => _porvAuto;           // automatic relief valve currently cycling
+
+    // ---- App G P/T limits + LTOP state (set once per outer tick by UpdatePtLimits) ----
+    private double _prevTcoldForRate = ColdTemp;     // last tick's Tcold, for the heatup/cooldown finite difference
+    private bool   _rateInit;                         // seeds the rate signal on the first sample (no startup spike)
+    /// <summary>App G 容許 RCS 壓力（MPa-abs，按目前 Tcold）· App G allowable RCS pressure at the current Tcold (MPa-abs), cached per tick.</summary>
+    public double MaxAllowablePressureMPa { get; private set; } = 4.38;
+    /// <summary>距離脆性斷裂 P/T 限值嘅裕量（負值＝越限）· Signed margin to the brittle-fracture limit; negative = violation.</summary>
+    public double PtMarginMPa => MaxAllowablePressureMPa - PrimaryPressure;
+    /// <summary>RCS 壓力已越過 App G P/T 限值 · RCS pressure has crossed the App G P/T limit.</summary>
+    public bool   PtViolation => PrimaryPressure > MaxAllowablePressureMPa;
+    /// <summary>EMA 平滑後嘅 RCS 升/降溫率（°C/hr，正＝升溫）· EMA-filtered signed RCS heatup(+)/cooldown(−) rate, °C/hr.</summary>
+    public double RcsRateCperHr { get; private set; }
+    /// <summary>同一升降溫率以 °F/hr 表示 · The same rate expressed in °F/hr (US convention).</summary>
+    public double RcsRateFperHr => RcsRateCperHr * 1.8;
+    /// <summary>LTOP/COMS 已致動（Tcold 低於啟用溫度）· LTOP/COMS armed (Tcold below the enable temperature).</summary>
+    public bool   LtopArmed { get; private set; }
+    /// <summary>LTOP 低整定 PORV 正在洩放 · The LTOP-armed low-setpoint PORV path is actively relieving.</summary>
+    public bool   LtopPorvOpen { get; private set; }
+
     /// <summary>有幾多個穩壓器規範安全閥正在開啟（0–3）· How many of the 3 code safety valves are currently popped.</summary>
     public int PzrCodeSafetiesOpen { get { int n = 0; for (int i = 0; i < 3; i++) if (_pzrSafetyOpen[i]) n++; return n; } }
     public bool AnyPzrCodeSafetyOpen => PzrCodeSafetiesOpen > 0;
@@ -1182,6 +1245,10 @@ public sealed class ReactorSimService
         PrimaryPressure = 2.5; PressurizerLevel = NominalPzrLevel;
         _tpzr = ColdTemp; _prevLevel = NominalPzrLevel; _pSpike = 0; _porvAuto = false; PressurizerHeaterDuty = 0;
         Array.Clear(_pzrSafetyOpen, 0, 3); // re-seat all code safety valves on reset
+        // App G P/T limits + LTOP: clear so a fresh scenario starts clean with no first-tick rate spike.
+        _rateInit = false; RcsRateCperHr = 0; _prevTcoldForRate = ColdTemp;
+        LtopArmed = false; LtopPorvOpen = false;
+        MaxAllowablePressureMPa = Lerp(PtTempC, PtPmaxMPa, ColdTemp);
         SteamPressure = 0.5; SteamGenLevel = 60; ElectricPowerMW = 0; TurbineRPM = 0;
         LoadReference = 0; GovernorValve = 0; _gvCmd = 0;
         SteamDumpDemand = 0; SteamDumpArmed = false; SteamDumpModeEn = "Off";
@@ -1306,6 +1373,7 @@ public sealed class ReactorSimService
         UpdateProtection(dt);
         StepCladding(dt); // after protection so it reads the final post-tick inventory / ECCS / thermal state
         StepRvlis(dt);    // RVLIS reads the post-cladding CollapsedLevelFrac; advisory alarms only
+        UpdatePtLimits(dt); // App G P/T brittle-fracture limit + LTOP arming (reads the final post-tick Tcold/pressure)
         UpdateAlarms();
         UpdateStatus();
     }
@@ -2040,9 +2108,15 @@ public sealed class ReactorSimService
         }
 
         // Automatic PORV: opens at 2335 psig, reseats at 2315 psig. The PORV is the lower-set, reclosable
-        // first-responder, so it is evaluated and relieves BEFORE the code safeties each step.
-        if (PrimaryPressure > PorvOpenPressure) _porvAuto = true;
-        else if (PrimaryPressure < PorvClosePressure) _porvAuto = false;
+        // first-responder, so it is evaluated and relieves BEFORE the code safeties each step. When LTOP/COMS
+        // is armed (cold RCS, set by UpdatePtLimits) the PORVs are re-ranged to a low cold setpoint so they
+        // relieve well below the Appendix-G brittle-fracture limit on a cold mass/heat-input transient;
+        // effClose < effOpen is guaranteed by construction so the open/close latch can never thrash.
+        double effOpen  = LtopArmed ? LtopOpenPressureMPa : PorvOpenPressure;
+        double effClose = LtopArmed ? (LtopOpenPressureMPa - LtopCloseHystMPa) : PorvClosePressure;
+        if (PrimaryPressure > effOpen) _porvAuto = true;
+        else if (PrimaryPressure < effClose) _porvAuto = false;
+        LtopPorvOpen = LtopArmed && _porvAuto;
         if (_porvAuto) PrimaryPressure -= PorvReliefRate * h;
 
         // ASME code (spring) safety valves — the last-ditch overpressure layer above the PORV. Pop-action:
@@ -2080,6 +2154,56 @@ public sealed class ReactorSimService
     {
         // Saturation temperature of secondary at SteamPressure (rough): ~285 °C at 6.9 MPa.
         return 100.0 + 26.8 * Math.Pow(Math.Max(SteamPressure, 0.05), 0.5) * 1.0 + SteamPressure * 8.0;
+    }
+
+    /// <summary>Clamped piecewise-linear interpolation of ys(xs) at x (xs strictly increasing).</summary>
+    private static double Lerp(double[] xs, double[] ys, double x)
+    {
+        if (x <= xs[0]) return ys[0];
+        int n = xs.Length;
+        if (x >= xs[n - 1]) return ys[n - 1];
+        int i = 1;
+        while (i < n && x > xs[i]) i++;
+        double t = (x - xs[i - 1]) / (xs[i] - xs[i - 1]);
+        return ys[i - 1] + t * (ys[i] - ys[i - 1]);
+    }
+
+    /// <summary>
+    /// 反應堆壓力容器 P/T 操作限值（10 CFR 50 附錄 G）連低溫超壓保護 LTOP/COMS ·
+    /// Reactor-vessel Pressure-Temperature operating limits (10 CFR 50 Appendix G) + LTOP/COMS.
+    ///
+    /// Runs once per outer Update tick AFTER Tcold/PrimaryPressure are current. It (1) caches the App G
+    /// allowable pressure at the indicated Tcold from the representative heatup limit table, (2) tracks a
+    /// smoothed signed heatup/cooldown rate for the 100 °F/hr Appendix-G rate limit, (3) arms LTOP below the
+    /// enable temperature (with hysteresis) — the StepThermal PORV block reads <see cref="LtopArmed"/> next
+    /// substep and substitutes the low cold setpoint — and (4) wires the four P/T-limit annunciators. The
+    /// table values, ART (~82 °C) and LTOP setpoint are REPRESENTATIVE GENERIC values, not a plant PTLR;
+    /// the load-bearing exact numbers are the K_IC constants, the safety factors and the 100 °F/hr limit.
+    /// </summary>
+    private void UpdatePtLimits(double dt)
+    {
+        // (1) App G allowable pressure at the indicated cold-leg temperature — cached for the property reads.
+        MaxAllowablePressureMPa = Lerp(PtTempC, PtPmaxMPa, Tcold);
+
+        // (2) Smoothed signed RCS heatup(+)/cooldown(−) rate, °C/hr (single-pole EMA; first sample seeds it).
+        if (!_rateInit) { _prevTcoldForRate = Tcold; _rateInit = true; }
+        else if (dt >= RateSampleMinDt)
+        {
+            double inst = ((Tcold - _prevTcoldForRate) / dt) * 3600.0;   // instantaneous °C/hr
+            double a = dt / (RateFilterTauSec + dt);                     // exact discrete single-pole α
+            RcsRateCperHr += a * (inst - RcsRateCperHr);
+            _prevTcoldForRate = Tcold;
+        }
+
+        // (3) LTOP arm/disarm with hysteresis so the boundary doesn't chatter.
+        if (Tcold < LtopEnableTempC) LtopArmed = true;
+        else if (Tcold > LtopEnableTempC + LtopEnableHystC) LtopArmed = false;
+
+        // (4) Annunciators (existing SetAlarm pattern). LtopPorvOpen is set in the StepThermal PORV block.
+        SetAlarm(ReactorAlarm.PtApproach, PtMarginMPa < PtApproachWarnMPa && PtMarginMPa >= 0.0);
+        SetAlarm(ReactorAlarm.PtViolation, PtViolation);
+        SetAlarm(ReactorAlarm.RcsRateExceeded, Math.Abs(RcsRateCperHr) > AppGRateLimitCperHr * RateAlarmFraction);
+        SetAlarm(ReactorAlarm.LtopActive, LtopPorvOpen);
     }
 
     private void UpdateXenon(double dt)

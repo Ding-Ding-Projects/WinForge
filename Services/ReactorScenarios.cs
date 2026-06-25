@@ -161,6 +161,22 @@ public static class ReactorScenarios
             Sets((84, "21 gpm/pump (intact)", "每泵21加侖（完好）"), (728, "182 gpm/pump (popped)", "每泵182加侖（彈出）"),
                  (1920, "480 gpm/pump (gross)", "每泵480加侖（全失效）"))),
 
+        // 10 CFR 50 Appendix G P/T-limit margin (MPa): negative = brittle-fracture limit exceeded.
+        "ptMargin" => (-2, 13,
+            Bands((-2, 0, "danger"), (0, 1, "warn"), (1, 13, "normal")),
+            Sets((0, "App G limit", "附錄G 限值"))),
+
+        // RCS heatup/cooldown rate (°C/hr); App G limit ±55.6 °C/hr (= ±100 °F/hr).
+        "rcsRate" => (-60, 60,
+            Bands((-60, -55.56, "danger"), (-55.56, -50, "warn"), (-50, 50, "normal"),
+                  (50, 55.56, "warn"), (55.56, 60, "danger")),
+            Sets((-55.56, "−100 °F/hr", "−100 °F/小時"), (55.56, "+100 °F/hr", "+100 °F/小時"))),
+
+        // LTOP/COMS status: 0 disarmed · 1 armed · 2 relieving.
+        "ltop" => (0, 2,
+            Bands((0, 1, "normal"), (1, 2, "warn")),
+            Sets((1, "Armed", "已致動"), (2, "Relieving", "洩放中"))),
+
         _ => (0, 100, Array.Empty<GaugeBand>(), Array.Empty<GaugeSetpoint>()),
     };
 

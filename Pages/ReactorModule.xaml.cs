@@ -475,6 +475,13 @@ public sealed partial class ReactorModule : Page
         AddGauge("Subcooling", "過冷度", -20, 120, () => _sim.SubcoolingMarginC, () => $"{_sim.SubcoolingMarginC:F0}°C", id: "subcool");
         AddGauge("Min DNBR (W-3)", "最小 DNBR", 1.0, 4.0, () => _sim.MinDnbr, () => _sim.MinDnbr >= 9.95 ? ">10" : $"{_sim.MinDnbr:F2}", id: "dnbr");
         AddGauge("Primary pressure", "一迴路壓力", 0, 3000, () => _sim.PrimaryPressure * 145.038, () => $"{_sim.PrimaryPressure * 145.038:F0} psia", id: "pzrPress");
+        // 10 CFR 50 Appendix G P/T limit + LTOP gauges (representative aged-vessel curve).
+        AddGauge("P/T limit margin", "P/T 限值裕量", -2, 13, () => _sim.PtMarginMPa,
+            () => $"{_sim.PtMarginMPa:+0.0;-0.0;0.0} MPa · max {_sim.MaxAllowablePressureMPa * 145.038 - 14.7:F0} psig{(_sim.PtViolation ? " · VIOLATION" : "")}", id: "ptMargin");
+        AddGauge("RCS heat/cool rate", "RCS 升降溫率", -60, 60, () => _sim.RcsRateCperHr,
+            () => $"{_sim.RcsRateFperHr:+0;-0;0}°F/hr · {_sim.RcsRateCperHr:+0.0;-0.0;0.0}°C/hr (lim ±100°F/hr)", warnFrac: (50.0 + 60.0) / 120.0, id: "rcsRate");
+        AddGauge("LTOP / COMS", "低溫超壓保護", 0, 2, () => _sim.LtopPorvOpen ? 2 : _sim.LtopArmed ? 1 : 0,
+            () => _sim.LtopPorvOpen ? P("RELIEVING", "洩放中") : _sim.LtopArmed ? P("ARMED", "已致動") : P("Disarmed", "未致動"), warnFrac: 0.5, id: "ltop");
         AddGauge("Pressurizer level", "穩壓器水位", 0, 100, () => _sim.PressurizerLevel, () => $"{_sim.PressurizerLevel:F0}%", id: "pzrLevel");
         AddGauge("Pressurizer temp", "穩壓器溫度", 80, 700, () => _sim.PressurizerLiquidTemp * 1.8 + 32, () => $"{_sim.PressurizerLiquidTemp * 1.8 + 32:F0}°F", id: "pzrTemp");
         AddGauge("Steam pressure", "蒸汽壓力", 0, 1300, () => _sim.SteamPressure * 145.038, () => $"{_sim.SteamPressure * 145.038:F0} psia", id: "sgPress");
@@ -646,6 +653,10 @@ public sealed partial class ReactorModule : Page
             (ReactorAlarm.RcpSealLoca, "RCP SEAL LOCA", "主泵軸封失水"),
             (ReactorAlarm.RvlisBelowTopOfFuel, "RVLIS < TOP OF FUEL", "RVLIS 低於燃料頂"),
             (ReactorAlarm.RvlisFullRangeLoLo, "RVLIS LEVEL LO-LO", "RVLIS 水位 低低"),
+            (ReactorAlarm.PtApproach, "P/T LIMIT APPROACH", "P/T 限值接近"),
+            (ReactorAlarm.PtViolation, "APP G P/T VIOLATION", "附錄G P/T 越限"),
+            (ReactorAlarm.RcsRateExceeded, "RCS HEAT/COOL RATE HI", "RCS 升降溫率過高"),
+            (ReactorAlarm.LtopActive, "LTOP/COMS RELIEVING", "低溫超壓保護洩放"),
         };
         foreach (var (a, en, zh) in defs)
         {
