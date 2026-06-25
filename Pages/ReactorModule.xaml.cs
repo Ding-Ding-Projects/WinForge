@@ -53,6 +53,12 @@ public sealed partial class ReactorModule : Page
     // Klaxon flash phase.
     private double _flashPhase;
 
+    // Keep-awake (real OS) state driven by the simulated generator output.
+    // 由模擬發電機輸出驅動嘅真實作業系統保持喚醒狀態。
+    private bool _keepingAwake;                 // tracks the live OS hold so calls stay idempotent
+    private bool _keepAwakeEnabled = true;      // user toggle; DEFAULT ON
+    private const double KeepAwakeMinMWe = 1.0;  // generator must deliver > 1 MWe to the grid
+
     // Cached control text blocks needing re-localization.
     private readonly List<Action> _relocalizers = new();
 
@@ -79,6 +85,9 @@ public sealed partial class ReactorModule : Page
             _timer.Tick -= Tick;
             _countdownTimer?.Stop();
             Loc.I.LanguageChanged -= OnLanguageChanged;
+            // SAFETY: always release the keep-awake hold when leaving the page so navigating
+            // away never leaves the system pinned awake. 離開頁面時務必釋放保持喚醒。
+            ReleaseKeepAwake();
         };
     }
 
@@ -97,6 +106,9 @@ public sealed partial class ReactorModule : Page
         HeaderBlurb.Text = P(
             "A fully-simulated Pressurized Water Reactor: point-kinetics + thermal-hydraulics, with mimic diagram, analog gauges, trend charts, alarms and a full control surface. Educational simulation only — controls nothing real.",
             "全模擬壓水式核反應堆：點堆動力學＋熱工水力，配流程圖、指針儀表、趨勢圖、警報同完整控制台。純教育模擬 — 唔會控制任何真實硬件。");
+        KeepAwakeToggle.Header = P("Keep PC awake while generating · 發電時保持電腦喚醒", "發電時保持電腦喚醒 · Keep PC awake while generating");
+        KeepAwakeToggle.OnContent = P("On", "開");
+        KeepAwakeToggle.OffContent = P("Off", "關");
         MimicTitle.Text = P("Plant Mimic Diagram · 機組流程圖", "機組流程圖 · Plant Mimic Diagram");
         GaugesTitle.Text = P("Instrument Gauges · 儀表", "儀表 · Instrument Gauges");
         TrendTitle.Text = P("Trend Charts · 趨勢圖", "趨勢圖 · Trend Charts");
@@ -126,6 +138,7 @@ public sealed partial class ReactorModule : Page
 
         _sim.Update(dt);
 
+        UpdateKeepAwake();
         UpdateStatusBanner();
         UpdateGauges();
         UpdateAlarmTiles();
@@ -163,6 +176,75 @@ public sealed partial class ReactorModule : Page
         foreach (ReactorAlarm a in Enum.GetValues(typeof(ReactorAlarm)))
             if (_sim.Alarm(a)) return true;
         return false;
+    }
+
+    // ============================================================ keep-awake ====
+    // The SIMULATED generator output drives a REAL OS keep-awake (Win32 SetThreadExecutionState
+    // via AwakeService). When the generator breaker is CLOSED and electrical output exceeds a
+    // small threshold (the plant is actually delivering power to the grid) we tell Windows the
+    // system + display are required. Otherwise — output ~0, SCRAM, turbine trip, breaker open,
+    // reactor offline or meltdown — we release the hold so the PC may sleep normally.
+    //
+    // 模擬發電機輸出驅動真實作業系統保持喚醒：當發電機開關閉合且電功率超過細小門檻（真正向電網供電）時，
+    // 通知 Windows 需要保持系統與顯示器；否則（輸出近零、SCRAM、汽輪機跳機、開關斷開、反應堆停機或熔毀）
+    // 釋放鎖定，令電腦可正常睡眠。
+    private void UpdateKeepAwake()
+    {
+        // Generator is delivering real power to the grid only when synchronized (breaker closed),
+        // not tripped/melted down, and actually producing more than the small threshold.
+        bool generating =
+            _keepAwakeEnabled
+            && _sim.GeneratorBreakerClosed
+            && _sim.ElectricPowerMW > KeepAwakeMinMWe
+            && !_sim.IsScrammed
+            && _sim.Mode != ReactorMode.Meltdown
+            && _sim.Mode != ReactorMode.Tripped;
+
+        // Idempotent: only touch the OS state when it actually changes between ticks.
+        if (generating && !_keepingAwake)
+        {
+            if (AwakeService.KeepAwake(keepDisplay: true)) _keepingAwake = true;
+        }
+        else if (!generating && _keepingAwake)
+        {
+            ReleaseKeepAwake();
+        }
+
+        UpdateKeepAwakePill(generating);
+    }
+
+    private void ReleaseKeepAwake()
+    {
+        if (!_keepingAwake) return;
+        AwakeService.AllowSleep();
+        _keepingAwake = false;
+    }
+
+    private void UpdateKeepAwakePill(bool generating)
+    {
+        if (generating)
+        {
+            int mwe = (int)Math.Round(_sim.ElectricPowerMW);
+            KeepAwakeText.Text = P(
+                $"⚡ Grid online — this PC is kept awake ({mwe} MWe) · 電網供電中 — 正供電令此電腦保持喚醒（{mwe} MWe）",
+                $"⚡ 電網供電中 — 正供電令此電腦保持喚醒（{mwe} MWe） · Grid online — this PC is kept awake ({mwe} MWe)");
+            KeepAwakeDot.Background = new SolidColorBrush(Color.FromArgb(255, 0xFF, 0xD7, 0x00)); // gold
+        }
+        else
+        {
+            string suffix = _keepAwakeEnabled ? "" : P(" (keep-awake disabled)", "（保持喚醒已停用）");
+            KeepAwakeText.Text = P(
+                "Generator offline — normal sleep allowed · 發電機離線 — 正常允許睡眠",
+                "發電機離線 — 正常允許睡眠 · Generator offline — normal sleep allowed") + suffix;
+            KeepAwakeDot.Background = new SolidColorBrush(Color.FromArgb(255, 0x75, 0x75, 0x75)); // grey
+        }
+    }
+
+    private void KeepAwakeToggle_Toggled(object sender, RoutedEventArgs e)
+    {
+        _keepAwakeEnabled = KeepAwakeToggle.IsOn;
+        // When turned OFF mid-generation, release the real hold immediately (sim keeps running).
+        if (!_keepAwakeEnabled) ReleaseKeepAwake();
     }
 
     private static string ModeEn(ReactorMode m) => m switch
