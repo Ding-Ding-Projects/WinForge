@@ -105,6 +105,12 @@ public static class ReactorScenarios
             Bands((0, 2500, "normal")),
             Array.Empty<GaugeSetpoint>()),
 
+        // 125 VDC vital station battery state-of-charge (%). Below ~20 % the end-of-discharge floor and
+        // loss of vital instrumentation / TDAFW control loom — the battery-death endgame of an SBO.
+        "battery" => (0, 100,
+            Bands((0, 20, "danger"), (20, 50, "warn"), (50, 100, "normal")),
+            Sets((20, "EoD floor", "放電終止"))),
+
         "xenon" => (0, 100,
             Bands((0, 100, "normal")),
             Array.Empty<GaugeSetpoint>()),

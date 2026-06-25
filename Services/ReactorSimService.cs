@@ -54,6 +54,11 @@ public enum ReactorAlarm
     ContainmentPressureHi,
     ContainmentIsolation,
     ContainmentSpray,
+    LossOfOffsitePower,
+    StationBlackout,
+    EdgSupplyingBus,
+    TurbineDrivenAfw,
+    DcBusDepleted,
 }
 
 /// <summary>
@@ -405,6 +410,11 @@ public sealed class ReactorSimService
     public bool AccumulatorInjecting { get; private set; }
     public bool AuxFeedwaterRunning { get; private set; }
     private double _lofwTimer;        // counts up after feedwater lost (aux start at 60 s)
+
+    // Class 1E plant electrical distribution (offsite power, EDGs + load sequencer, 125 VDC battery,
+    // and the RCP/ECCS/AFW availability gates those buses drive). See Services/ReactorElectrical.cs.
+    private readonly ReactorElectrical _elec = new();
+    public ReactorElectrical Electrical => _elec;
     // Three-element feedwater controller internal state.
     private double _iLevel;           // master level-PI integrator (flow-fraction units)
     private double _steamFlowSlow;    // slow-lagged steam flow → shrink/swell is the high-pass residual
@@ -851,6 +861,7 @@ public sealed class ReactorSimService
         PowerRangePercent = 0; SourceRangeEnergized = true; _p6Latched = false;
         ActiveScenario = ReactorScenario.Normal; _breakArea = 0; _rodsFailToInsert = false;
         AccumulatorInjecting = false; AuxFeedwaterRunning = false; _lofwTimer = 0;
+        _elec.Reset();
         _sgtrSeverity = 0; SgtrLeakRate = 0; CoolantActivity = 0.02;
         SecondaryActivity = 0; AtmosphericRelease = 0; SgReliefLifted = false; SgtrIsolated = false;
         _mslbSeverity = 0; MslbIsolated = false; SiActuated = false; MslbBreakFlow = 0;
@@ -877,6 +888,10 @@ public sealed class ReactorSimService
             UpdateAlarms();
             return;
         }
+
+        // --- Class 1E electrical FIRST: it gates RCP availability (read by UpdateFlow), motor-driven
+        //     ECCS/SI (read by UpdateProtection) and motor- vs turbine-driven AFW (read by UpdateScenarios). ---
+        UpdateElectrical(dt);
 
         // --- slow process controls that don't need sub-stepping ---
         UpdateBoron(dt);
@@ -1034,10 +1049,13 @@ public sealed class ReactorSimService
             PressurizerLevel = Math.Min(100, PressurizerLevel + 4 * dt);
         }
 
-        // Loss of feedwater → aux feedwater auto-starts after 60 s.
+        // Loss of feedwater → aux feedwater auto-starts after 60 s. AFW now respects the electrical state:
+        // the motor-driven pumps need a live AC bus, while the turbine-driven (TDAFW) pump runs on SG steam
+        // with only 125 VDC for its governor — so it survives a station blackout and is the SBO heat-removal
+        // path until the battery depletes or steam pressure falls below the turbine's motive-steam band.
         bool feedLost = FeedwaterFlow < 0.02 && (_power > 0.05 || Thot > 150);
         if (feedLost) _lofwTimer += dt; else _lofwTimer = 0;
-        AuxFeedwaterRunning = _lofwTimer > 60.0 && ActiveScenario != ReactorScenario.StationBlackout;
+        AuxFeedwaterRunning = _lofwTimer > 60.0 && (_elec.MdafwAvailable || _elec.TdafwAvailable);
         if (AuxFeedwaterRunning) FeedwaterFlow = Math.Max(FeedwaterFlow, 0.15); // small AFW flow
     }
 
@@ -1149,6 +1167,26 @@ public sealed class ReactorSimService
         double diff = TargetBoronPpm - BoronPpm;
         double step = Math.Clamp(diff, -rate * dt, rate * dt);
         BoronPpm = Math.Clamp(BoronPpm + step, 0, 3000);
+    }
+
+    /// <summary>
+    /// 推進 1E 級配電並施加其供電閘 · Advance the Class 1E electrical model and apply its availability gates.
+    /// SBO is LOOP (offsite lost) coincident with both EDGs failing — exactly the design-basis definition.
+    /// </summary>
+    private void UpdateElectrical(double dt)
+    {
+        bool sbo = ActiveScenario == ReactorScenario.StationBlackout;
+        _elec.Step(dt, new ReactorElectrical.Inputs(
+            OffsiteAvailable: !sbo,                       // LOOP only in the SBO scenario for now
+            SiSignal: SiActuated,                         // SI also auto-starts the diesels
+            EdgAFault: sbo, EdgBFault: sbo,               // SBO ⇒ both EDGs unavailable (the definition)
+            SgSteamPressurePsig: SteamPressure * 145.038, // motive steam for the turbine-driven AFW pump
+            AfwDemand: _lofwTimer > 60.0));               // a secondary heat sink is being called for
+
+        // Reactor coolant pumps are large non-1E motors fed from offsite power — a LOOP drops them all,
+        // and they cannot be restarted on diesel power. UpdateFlow then coasts them down on their flywheels.
+        if (!_elec.RcpAvailable)
+            for (int i = 0; i < RcpRunning.Length; i++) RcpRunning[i] = false;
     }
 
     private void UpdateFlow(double dt)
@@ -1699,8 +1737,10 @@ public sealed class ReactorSimService
             EccsArmed = true;
         }
 
-        // ECCS auto-inject on low pressure if armed.
-        EccsInjecting = EccsArmed && PrimaryPressure < 11.0;
+        // ECCS auto-inject on low pressure if armed — but the SI/HHSI/charging pumps are motor-driven and
+        // need a live 4.16 kV Class 1E bus. In a station blackout (no AC) only the passive accumulators and
+        // the turbine-driven AFW pump remain; the powered injection path is unavailable.
+        EccsInjecting = EccsArmed && PrimaryPressure < 11.0 && _elec.MotorEccsSiAvailable;
         if (EccsInjecting)
         {
             PrimaryPressure += 0.4 * dt;          // restores inventory/pressure somewhat
@@ -1783,6 +1823,11 @@ public sealed class ReactorSimService
         SetAlarm(ReactorAlarm.ContainmentPressureHi, _ctmtHi1);
         SetAlarm(ReactorAlarm.ContainmentIsolation, ContainmentIsolationPhaseA || ContainmentIsolationPhaseB);
         SetAlarm(ReactorAlarm.ContainmentSpray, ContainmentSprayActive);
+        SetAlarm(ReactorAlarm.LossOfOffsitePower, !_elec.OffsitePowerAvailable);
+        SetAlarm(ReactorAlarm.StationBlackout, _elec.InSbo);
+        SetAlarm(ReactorAlarm.EdgSupplyingBus, _elec.OnEdgPower);
+        SetAlarm(ReactorAlarm.TurbineDrivenAfw, _elec.TdafwRunning);
+        SetAlarm(ReactorAlarm.DcBusDepleted, !_elec.DcAvailable);
     }
 
     private void UpdateStatus()

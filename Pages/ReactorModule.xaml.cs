@@ -489,6 +489,9 @@ public sealed partial class ReactorModule : Page
         // EHC turbine — first-stage (impulse) pressure is the calibrated load signal; governor-valve position.
         AddGauge("First-stage press", "第一級壓力", 0, 750, () => _sim.FirstStagePressure * 690.0, () => $"{_sim.FirstStagePressure * 690.0:F0} psia");
         AddGauge("Governor valve", "調速汽門", 0, 100, () => _sim.GovernorValve * 100, () => $"{_sim.GovernorValve * 100:F0}%");
+        // Class 1E 125 VDC station battery — only depletes during a station blackout (no AC source).
+        AddGauge("Vital DC battery", "1E 直流電池", 0, 100, () => _sim.Electrical.BatterySoc * 100,
+            () => $"{_sim.Electrical.BatterySoc * 100:F0}% · {_sim.Electrical.BatteryVoltage:F0} VDC", id: "battery");
     }
 
     private string PeriodStr()
@@ -595,6 +598,11 @@ public sealed partial class ReactorModule : Page
             (ReactorAlarm.RodDeviation, "ROD DEVIATION", "控制棒偏差"),
             (ReactorAlarm.AxialFluxDiffOutOfBand, "AFD OUT OF BAND", "軸向通量差超限"),
             (ReactorAlarm.CoreDamage, "CORE DAMAGE", "爐心受損"),
+            (ReactorAlarm.LossOfOffsitePower, "LOSS OF OFFSITE PWR", "喪失廠外電源"),
+            (ReactorAlarm.StationBlackout, "STATION BLACKOUT", "全廠斷電 SBO"),
+            (ReactorAlarm.EdgSupplyingBus, "EDG ON BUS", "應急柴油發電機供電"),
+            (ReactorAlarm.TurbineDrivenAfw, "TURBINE-DRIVEN AFW", "汽動輔助給水"),
+            (ReactorAlarm.DcBusDepleted, "DC BUS DEPLETED", "直流電源耗盡"),
         };
         foreach (var (a, en, zh) in defs)
         {
@@ -1347,6 +1355,15 @@ public sealed partial class ReactorModule : Page
         turbPanel.Children.Add(turbTripBtn);
         turbPanel.Children.Add(turbResetBtn);
         host.Children.Add(WrapLabel("Turbine EHC trip · 汽輪機電液跳脫", "汽輪機電液跳脫 · Turbine EHC trip", turbPanel));
+
+        host.Children.Add(SectionHeader("Class 1E electrical · 1E 級廠用電", "1E 級廠用電 · Class 1E electrical"));
+
+        // DC load shedding stretches the station-battery coping time during a blackout (×1.67 here).
+        var dcPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        dcPanel.Children.Add(MakeToggle("Shed non-vital DC loads · 卸除非必要直流負載",
+            "卸除非必要直流負載 · Shed non-vital DC loads", v => _sim.Electrical.LoadShed = v));
+        host.Children.Add(WrapLabel("Station battery (125 VDC) · 蓄電池（125 VDC）",
+            "蓄電池（125 VDC）· Station battery (125 VDC)", dcPanel));
 
         host.Children.Add(SectionHeader("Mode & automation · 模式與自動化", "模式與自動化 · Mode & automation"));
 
