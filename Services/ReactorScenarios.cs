@@ -120,6 +120,12 @@ public static class ReactorScenarios
             Bands((-20, 0, "danger"), (0, 15, "warn"), (15, 120, "normal")),
             Sets((0, "Saturation", "飽和"))),
 
+        // Axial flux difference (ΔI, %RTP). CAOC target band ±5 % is green; ±5–15 % warns; beyond ±15 %
+        // is danger (matches the OTΔT f₁(ΔI) penalty onset). Signed: negative = bottom-peaked (rods in).
+        "afd" => (-30, 30,
+            Bands((-30, -15, "danger"), (-15, -5, "warn"), (-5, 5, "normal"), (5, 15, "warn"), (15, 30, "danger")),
+            Sets((-5, "CAOC lo", "目標帶下限"), (5, "CAOC hi", "目標帶上限"))),
+
         _ => (0, 100, Array.Empty<GaugeBand>(), Array.Empty<GaugeSetpoint>()),
     };
 

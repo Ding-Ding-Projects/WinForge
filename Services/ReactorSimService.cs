@@ -190,6 +190,13 @@ public sealed class ReactorSimService
     public double Iodine { get; private set; }   // I-135 concentration (normalized)
     public double Xenon { get; private set; }    // Xe-135 concentration (normalized)
 
+    // Axial power distribution (two-node top/bottom split). Sign convention: top minus bottom; rods
+    // enter from the top so insertion drives the offset NEGATIVE (bottom-peaked).
+    public double TopPowerFraction    { get; private set; } = 0.5;  // top axial node power fraction (0..1)
+    public double BottomPowerFraction { get; private set; } = 0.5;  // bottom axial node power fraction (0..1)
+    public double AxialFluxDifferencePercent { get; private set; }  // ΔI = P_top - P_bot, % RTP (signed)
+    public double AxialOffsetPercent         { get; private set; }  // AO = (P_top-P_bot)/(P_top+P_bot)*100
+
     // Controls
     public double[] RodBankInsertion { get; } = { 100.0, 100.0, 100.0, 100.0 }; // % inserted per bank (A,B,C,D)
     public double BoronPpm { get; private set; } = NominalBoron;
@@ -254,6 +261,23 @@ public sealed class ReactorSimService
     private readonly double[] _decayGroup = new double[23];
     private readonly double[] _actinide = new double[2];
     public double DecayHeatFraction { get; private set; }
+
+    // Axial flux difference (ΔI) / axial offset / CAOC. A lumped two-node (top/bottom) split whose
+    // imbalance is driven by control-rod insertion (rods bite the top half → bottom-peaked → ΔI<0)
+    // and by a top-minus-bottom Xe-135 difference (axial xenon redistribution). The signed split is
+    // run through a stable first-order lag, then mapped to ΔI in %RTP for the OTΔT f₁(ΔI) penalty and
+    // the CAOC operating-band gauge. All coefficients are representative Westinghouse 4-loop / COLR
+    // values (plant-specific in a real cycle).
+    private double _axialSplit;          // signed top-minus-bottom share, -1..+1 (lagged)
+    private double _axialSplitTarget;    // instantaneous target for _axialSplit
+    private double _iodineTop, _iodineBot;   // per-node I-135 (mean == Iodine)
+    private double _xenonTop,  _xenonBot;    // per-node Xe-135 (mean == Xenon)
+    private const double AxialTau         = 4.0;   // s, lag on the prompt rod-driven shape response
+    private const double AxialRodWeight   = 0.55;  // unit-imbalance a fully-inserted lead bank D produces
+    private const double AxialXenonWeight = 0.30;  // share from top-minus-bottom xenon difference
+    private const double AfdFullScalePct  = 30.0;  // maps unit split → ΔI %RTP at 100 % power
+    private const double AxialEquilBias   = -0.02; // small negative bias → equilibrium AO ≈ -2 % (moderator/burnup)
+    private const double DBandHfpFrac     = 0.05;  // bank D ~5 % inserted at steady HFP (lead-bank bite)
 
     // Sub-cooling margin (°C): SatTemp(P) - Thot. < 0 means saturation / void onset.
     public double SubcoolingMarginC { get; private set; }
@@ -349,6 +373,7 @@ public sealed class ReactorSimService
             _precursor[i] = Beta[i] / (PromptLifetime * Lambda[i]) * _power;
         Xenon = 0;
         Iodine = 0;
+        _iodineTop = _iodineBot = _xenonTop = _xenonBot = 0;
         BuildRps();
     }
 
@@ -368,8 +393,19 @@ public sealed class ReactorSimService
         double TavgF() => Tavg * 1.8 + 32.0;
         double Ppsig() => PrimaryPressure * 145.038 - 14.7;
         double MeasuredDeltaTF() => (Thot - Tcold) * 1.8;
+        // f₁(ΔI): the axial-flux-difference penalty on the OTΔT setpoint. Zero inside the CAOC deadband
+        // (±5 %RTP), then reduces the allowable ΔT at a fixed slope once |ΔI| leaves the band — the
+        // anti-DNB margin shrinks as the flux skews axially. Symmetric/capped here for a clean demo
+        // (real Westinghouse f₁ is asymmetric, roughly −29/+5 %ΔI, with COLR-specific slopes).
+        const double AfdDeadbandPct = 5.0;   // ±5 %RTP CAOC deadband (no penalty inside)
+        const double AfdSlope = 0.025;       // fractional ΔT0 reduction per %RTP beyond the deadband
+        double F1DeltaI()
+        {
+            double over = Math.Max(0.0, Math.Abs(AxialFluxDifferencePercent) - AfdDeadbandPct);
+            return Math.Clamp(AfdSlope * over, 0.0, 0.40);
+        }
         double OtDeltaTAllow() => FullPowerDeltaTF *
-            (1.14 - 0.0166 * (TavgF() - 588.4) + 0.00091 * (Ppsig() - 2235.0));
+            (1.14 - 0.0166 * (TavgF() - 588.4) + 0.00091 * (Ppsig() - 2235.0) - F1DeltaI());
         double OpDeltaTAllow() => FullPowerDeltaTF *
             (1.08 - 0.00072 * Math.Max(0.0, TavgF() - 588.4));
 
@@ -613,6 +649,10 @@ public sealed class ReactorSimService
         IndicatedSgLevel = 60; SteamFlow = 0; FeedRegValve = 0; SgLevelSetpoint = 50;
         FeedwaterAuto = true; _iLevel = 0; _steamFlowSlow = 0; _threeElementActive = false; _fwAutoWasOn = false;
         Iodine = 0; Xenon = 0;
+        _iodineTop = _iodineBot = _xenonTop = _xenonBot = 0;
+        _axialSplit = _axialSplitTarget = 0;
+        TopPowerFraction = BottomPowerFraction = 0.5;
+        AxialOffsetPercent = 0; AxialFluxDifferencePercent = 0;
         for (int i = 0; i < RodBankInsertion.Length; i++) RodBankInsertion[i] = 100.0;
         for (int i = 0; i < RcpRunning.Length; i++) RcpRunning[i] = false;
         BoronPpm = NominalBoron; TargetBoronPpm = NominalBoron;
@@ -902,6 +942,25 @@ public sealed class ReactorSimService
 
         // ---- thermal-hydraulics (lumped) ----
         StepThermal(h);
+
+        // ---- two-node axial split → axial offset / axial flux difference (ΔI) ----
+        // Lead control bank D (index 3) bites the top of the core; its insertion relative to the steady
+        // HFP bite (DBandHfpFrac) swings the shape negative. A top-minus-bottom xenon difference adds a
+        // slower term. Both go through a stable first-order lag; everything is clamped so a transient
+        // cannot blow up ΔI.
+        double rodInsFrac = Math.Clamp(RodBankInsertion[3] / 100.0, 0.0, 1.0); // bank D, 1 = fully in
+        double rodTerm = -AxialRodWeight * (rodInsFrac - DBandHfpFrac) / (1.0 - DBandHfpFrac) + AxialEquilBias;
+        double xeDiff = Math.Clamp(_xenonTop - _xenonBot, -1.0, 1.0); // top-heavy Xe depresses top flux
+        double xeTerm = -AxialXenonWeight * xeDiff;
+        _axialSplitTarget = Math.Clamp(rodTerm + xeTerm, -1.0, 1.0);
+        _axialSplit += (_axialSplitTarget - _axialSplit) * Math.Min(1.0, h / AxialTau);
+
+        double half = 0.5 * Math.Clamp(_axialSplit, -1.0, 1.0);
+        TopPowerFraction = 0.5 + half;
+        BottomPowerFraction = 0.5 - half;
+        AxialOffsetPercent = (TopPowerFraction - BottomPowerFraction) * 100.0;           // AO, % (shape only)
+        AxialFluxDifferencePercent =
+            (TopPowerFraction - BottomPowerFraction) * AfdFullScalePct * Math.Clamp(_power, 0.0, 1.2); // ΔI, %RTP
     }
 
     private void StepThermal(double h)
@@ -1026,6 +1085,21 @@ public sealed class ReactorSimService
         Xenon += dX * dt;
         if (Xenon < 0) Xenon = 0;
         // Normalize: at steady full power, equilibrium Xenon should approach ~1.
+
+        // Per-node (top/bottom) I-Xe split, same balance forms with production weighted by node power
+        // fraction. The node mean is written back to the scalars so the global xenon reactivity is
+        // identical to the legacy single-node model — only the top-minus-bottom DIFFERENCE is new, and
+        // it feeds the axial-offset / ΔI shape (axial xenon oscillations after a rod/load change).
+        double phiTop = phi * 2.0 * TopPowerFraction;  // ×2: each node nominally carries half the core
+        double phiBot = phi * 2.0 * BottomPowerFraction;
+        _iodineTop += (0.95 * phiTop * lamI - lamI * _iodineTop) * dt; if (_iodineTop < 0) _iodineTop = 0;
+        _iodineBot += (0.95 * phiBot * lamI - lamI * _iodineBot) * dt; if (_iodineBot < 0) _iodineBot = 0;
+        _xenonTop += (lamI * _iodineTop + gammaX * phiTop - lamX * _xenonTop - sigmaPhi * phiTop * _xenonTop / 7.0e-5) * dt;
+        _xenonBot += (lamI * _iodineBot + gammaX * phiBot - lamX * _xenonBot - sigmaPhi * phiBot * _xenonBot / 7.0e-5) * dt;
+        if (_xenonTop < 0) _xenonTop = 0;
+        if (_xenonBot < 0) _xenonBot = 0;
+        Iodine = 0.5 * (_iodineTop + _iodineBot);  // mean == legacy scalar (identity)
+        Xenon = 0.5 * (_xenonTop + _xenonBot);
     }
 
     // 三元給水水位控制 · Three-element steam-generator level control with shrink/swell.
