@@ -91,6 +91,7 @@
                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                         <ComboBox x:Name="ScenarioCombo" MinWidth="220" SelectionChanged="Scenario_Changed" />
                         <ToggleButton x:Name="IsolateSgToggle" Click="IsolateSg_Click" Visibility="Collapsed" />
+                        <ToggleButton x:Name="AmsacDefeatToggle" Click="AmsacDefeat_Click" Visibility="Collapsed" />
                     </StackPanel>
                 </Border>
 

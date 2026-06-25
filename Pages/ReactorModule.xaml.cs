@@ -614,6 +614,7 @@ public sealed partial class ReactorModule : Page
             (ReactorAlarm.LowSubcooling, "LOW SUBCOOLING", "過冷度不足"),
             (ReactorAlarm.DecayHeatHigh, "DECAY HEAT", "衰變熱高"),
             (ReactorAlarm.AtwsActive, "ATWS — RODS STUCK", "ATWS 控制棒卡住"),
+            (ReactorAlarm.AmsacActuated, "AMSAC ACTUATED", "AMSAC 致動"),
             (ReactorAlarm.AccumulatorInject, "ACCUM INJECT", "蓄壓器注入"),
             (ReactorAlarm.AuxFeedwater, "AUX FEEDWATER", "輔助給水"),
             (ReactorAlarm.NaturalCirc, "NATURAL CIRC", "自然循環"),
@@ -1157,6 +1158,13 @@ public sealed partial class ReactorModule : Page
         else _sim.SgtrIsolated = on;
     }
 
+    private void AmsacDefeat_Click(object sender, RoutedEventArgs e)
+    {
+        // Operator demo switch: defeat AMSAC to show the UNMITIGATED ATWS (turbine stays on, AFW does not
+        // auto-start on the diverse path, peak RCS pressure climbs toward the ASME Level C limit). Default OFF.
+        _sim.AmsacDefeated = AmsacDefeatToggle.IsChecked == true;
+    }
+
     private void Scenario_Changed(object sender, SelectionChangedEventArgs e)
     {
         _sim.TriggerScenario(ScenarioCombo.SelectedIndex switch
@@ -1180,6 +1188,15 @@ public sealed partial class ReactorModule : Page
             IsolateSgToggle.Content = idx == 7
                 ? P("Close MSIVs (isolate break)", "關閉主蒸汽隔離閥（隔離破口）")
                 : P("Isolate affected SG", "隔離受影響蒸發器");
+        }
+        // The AMSAC-defeat demo switch is meaningful only during an ATWS (index 4): defeat it to compare the
+        // mitigated vs unmitigated transient. Reset it to OFF (AMSAC enabled) whenever the scenario changes.
+        if (AmsacDefeatToggle is not null)
+        {
+            AmsacDefeatToggle.IsChecked = false;
+            _sim.AmsacDefeated = false;
+            AmsacDefeatToggle.Visibility = ScenarioCombo.SelectedIndex == 4 ? Visibility.Visible : Visibility.Collapsed;
+            AmsacDefeatToggle.Content = P("Defeat AMSAC (unmitigated ATWS)", "停用 AMSAC（未緩解 ATWS）");
         }
     }
 

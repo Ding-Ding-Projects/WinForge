@@ -39,6 +39,7 @@ public enum ReactorAlarm
     LowSubcooling,
     DecayHeatHigh,
     AtwsActive,
+    AmsacActuated,     // AMSAC (ATWS Mitigating System Actuation Circuitry, 10 CFR 50.62) actuated
     AccumulatorInject,
     AuxFeedwater,
     NaturalCirc,
@@ -640,6 +641,26 @@ public sealed class ReactorSimService
     public bool AuxFeedwaterRunning { get; private set; }
     private double _lofwTimer;        // counts up after feedwater lost (aux start at 60 s)
 
+    // ---- AMSAC · ATWS Mitigating System Actuation Circuitry (10 CFR 50.62, "the ATWS rule") ----
+    // A DIVERSE, RPS-independent backup: armed above the C-20 power permissive, it watches only process
+    // signals (power + SG level + main-feedwater state) for loss of the secondary heat sink, and after a
+    // deliberate delay trips the turbine and starts auxiliary feedwater. It NEVER inserts rods (the
+    // Westinghouse negative MTC provides the inherent power reduction) and NEVER reads RPS/scram state —
+    // so it still mitigates an ATWS where the reactor trip itself fails. Keeps peak RCS pressure below
+    // the ASME Service Level C limit (~3200 psia). All setpoints are representative; validate vs UFSAR.
+    private const double AmsacArmThreshold   = 0.40;  // fraction RTP — C-20 first-stage-pressure permissive
+    private const double AmsacDisarmHyst     = 0.05;  // disarm below 0.35 to prevent permissive chatter
+    private const double AmsacSgLoLoPct      = 18.0;  // % narrow range — SG low-low level initiating signal
+    private const double AmsacDelaySeconds   = 25.0;  // s — deliberate delay so the RPS acts first on normal trips
+    public  const double AsmeLevelCLimitMPa  = 22.06; // MPa = 3200 psia — ASME Service Level C peak-pressure limit
+    public bool   AmsacArmed   { get; private set; }  // C-20 permissive satisfied (armed)
+    public bool   AmsacActuated { get; private set; } // one-way latch: turbine trip + AFW initiated
+    public bool   AmsacDefeated { get; set; }         // operator demo switch: run ATWS WITHOUT AMSAC (default OFF)
+    private double _amsacTimer;                        // counts up while the initiating condition persists
+    public double PeakPrimaryPressureMpa { get; private set; }       // running peak RCS pressure since reset
+    public double PeakPrimaryPressurePsig => PeakPrimaryPressureMpa * 145.038 - 14.7;
+    public bool   AmsacMitigationOk => PeakPrimaryPressureMpa < AsmeLevelCLimitMPa; // stayed below ASME Level C
+
     // Class 1E plant electrical distribution (offsite power, EDGs + load sequencer, 125 VDC battery,
     // and the RCP/ECCS/AFW availability gates those buses drive). See Services/ReactorElectrical.cs.
     private readonly ReactorElectrical _elec = new();
@@ -937,6 +958,7 @@ public sealed class ReactorSimService
         _rps.ClearLatch();          // clear the sealed-in RPS trip so the breakers can re-close
         LastTripFunctionEn = ""; LastTripFunctionZh = "";
         IsScrammed = false;
+        AmsacActuated = false; _amsacTimer = 0; PeakPrimaryPressureMpa = PrimaryPressure; // re-arm AMSAC / peak tally
         if (Mode == ReactorMode.Tripped) Mode = ReactorMode.Shutdown;
     }
 
@@ -974,6 +996,7 @@ public sealed class ReactorSimService
         _breakArea = 0;
         _rodsFailToInsert = false;
         _lofwTimer = 0;
+        AmsacActuated = false; AmsacArmed = false; _amsacTimer = 0; PeakPrimaryPressureMpa = PrimaryPressure; // re-arm AMSAC (keep AmsacDefeated)
         _sgtrSeverity = 0;
         SgtrIsolated = false;
         PrimaryDeficitPct = 0;
@@ -1196,6 +1219,7 @@ public sealed class ReactorSimService
         PowerRangePercent = 0; SourceRangeEnergized = true; _p6Latched = false;
         ActiveScenario = ReactorScenario.Normal; _breakArea = 0; _rodsFailToInsert = false;
         AccumulatorInjecting = false; AuxFeedwaterRunning = false; _lofwTimer = 0;
+        AmsacActuated = false; AmsacArmed = false; AmsacDefeated = false; _amsacTimer = 0; PeakPrimaryPressureMpa = PrimaryPressure;
         _elec.Reset();
         _sgtrSeverity = 0; SgtrLeakRate = 0; CoolantActivity = 0.02;
         SecondaryActivity = 0; AtmosphericRelease = 0; SgReliefLifted = false; SgtrIsolated = false;
@@ -1486,7 +1510,9 @@ public sealed class ReactorSimService
         // path until the battery depletes or steam pressure falls below the turbine's motive-steam band.
         bool feedLost = FeedwaterFlow < 0.02 && (_power > 0.05 || Thot > 150);
         if (feedLost) _lofwTimer += dt; else _lofwTimer = 0;
-        AuxFeedwaterRunning = _lofwTimer > 60.0 && (_elec.MdafwAvailable || _elec.TdafwAvailable);
+        // AFW starts on the normal 60 s loss-of-MFW timer OR immediately when AMSAC actuates (diverse path,
+        // bypassing the 60 s gate). Either way the pumps still need a live AC bus (MDAFW) or SG steam (TDAFW).
+        AuxFeedwaterRunning = (_lofwTimer > 60.0 || AmsacActuated) && (_elec.MdafwAvailable || _elec.TdafwAvailable);
         if (AuxFeedwaterRunning) FeedwaterFlow = Math.Max(FeedwaterFlow, 0.15); // small AFW flow
     }
 
@@ -2474,6 +2500,11 @@ public sealed class ReactorSimService
             Scram();
         }
 
+        // AMSAC runs here — AFTER the RPS evaluation/scram and the P-9 trip — but it is deliberately
+        // DIVERSE: it reads only process signals and ignores IsScrammed / _rps state, so it actuates
+        // regardless of whether the reactor trip succeeded (the whole point during an ATWS).
+        StepAmsac(dt);
+
         // ---- ESFAS: Low Steamline Pressure → Safety Injection. Latches once the 2-of-4 coincidence is met
         //      (the SI signal seals in). SI does two decisive things for an MSLB: it auto-closes the MSIVs
         //      (terminating the blowdown so SteamPressure recovers and the overcooling stops) and it injects
@@ -2535,6 +2566,39 @@ public sealed class ReactorSimService
         DamageAccumulation = Math.Min(DamageAccumulation + 5 * dt, 999);
     }
 
+    /// <summary>
+    /// AMSAC（ATWS 緩解系統致動電路）· ATWS Mitigating System Actuation Circuitry per 10 CFR 50.62.
+    /// Diverse, RPS-independent: trips the turbine and starts AFW on loss of the secondary heat sink once
+    /// armed above the C-20 power permissive — without ever inserting rods or reading reactor-trip state.
+    /// </summary>
+    private void StepAmsac(double dt)
+    {
+        // Track the running peak RCS pressure (figure of merit: stays below ASME Service Level C ~3200 psia).
+        PeakPrimaryPressureMpa = Math.Max(PeakPrimaryPressureMpa, PrimaryPressure);
+
+        // 1) C-20 arming permissive with hysteresis (≥40% arm, <35% disarm) — no challenge at low power.
+        if (_power >= AmsacArmThreshold) AmsacArmed = true;
+        else if (_power < AmsacArmThreshold - AmsacDisarmHyst) AmsacArmed = false;
+
+        // 2) Initiating condition — loss of the secondary heat sink: SG low-low level OR loss of all main
+        //    feedwater while at power. Process signals only; no RPS/scram coupling (diversity constraint).
+        bool condition = AmsacArmed
+            && (IndicatedSgLevel <= AmsacSgLoLoPct || (FeedwaterFlow < 0.02 && _power > 0.05));
+
+        // 3) Deliberate time delay so the RPS gets first crack during a normal trip the protection set handles.
+        if (condition) _amsacTimer += dt; else _amsacTimer = 0;
+
+        // 4) Latch actuation (cleared only by ResetTrip / scenario reset). The operator can defeat AMSAC to
+        //    demonstrate the unmitigated ATWS where the code safeties lift and peak pressure climbs to Level C.
+        if (_amsacTimer >= AmsacDelaySeconds && !AmsacDefeated && Mode != ReactorMode.Meltdown)
+            AmsacActuated = true;
+
+        // 5) Actuation output vector: turbine trip + immediate AFW (bypassing the 60 s _lofwTimer gate);
+        //    NO rod insertion. AFW flow still requires a live motor/turbine-driven pump (set in UpdateScenarios).
+        if (AmsacActuated)
+            TurbineTripped = true;
+    }
+
     private void SetAlarm(ReactorAlarm a, bool on) => _alarms[(int)a] = on;
 
     private void UpdateAlarms()
@@ -2563,6 +2627,7 @@ public sealed class ReactorSimService
         SetAlarm(ReactorAlarm.DnbrLowMargin,  dnbrActive && MinDnbr >= DnbrSafetyLimit && MinDnbr < DnbrLowMargin);
         SetAlarm(ReactorAlarm.DecayHeatHigh, DecayHeatFraction > 0.03 && CoolantFlowFraction < 0.4 && FeedwaterFlow < 0.1);
         SetAlarm(ReactorAlarm.AtwsActive, _rodsFailToInsert && IsScrammed);
+        SetAlarm(ReactorAlarm.AmsacActuated, AmsacActuated);
         SetAlarm(ReactorAlarm.AccumulatorInject, AccumulatorInjecting);
         SetAlarm(ReactorAlarm.AuxFeedwater, AuxFeedwaterRunning);
         bool natCirc = CoolantFlowFraction > 0.005 && CoolantFlowFraction < 0.1 && Thot > 150;
