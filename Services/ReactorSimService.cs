@@ -182,11 +182,28 @@ public sealed class ReactorSimService
     // Sub-cooling margin (°C): SatTemp(P) - Thot. < 0 means saturation / void onset.
     public double SubcoolingMarginC { get; private set; }
 
-    // Nuclear instrumentation (NIS): source-range count rate (cps) + 1/M for approach to criticality.
+    // Nuclear instrumentation (NIS): three overlapping ranges, exactly like a Westinghouse 4-loop NIS.
+    //   • Source Range (SR)  — BF3 proportional counters, count rate in cps, ~6 decades (1..1e6).
+    //   • Intermediate Range (IR) — compensated ion chambers, DC current in amps, ~8 decades (1e-11..1e-3),
+    //                               also the source of Startup Rate (SUR/DPM) and the P-6 permissive.
+    //   • Power Range (PR)  — uncompensated ion chambers, LINEAR % rated power (0..120 %).
+    // All three are driven from the single dimensionless neutron power fraction by linear-then-Clamp maps
+    // (no Log/Pow on the hot path), so the readings stay finite across the full 12-decade span and overlap
+    // by ≥1 decade between adjacent ranges, as the real instruments do.
     public double SourceRangeCps { get; private set; }
     public double OneOverM { get; private set; } = 1.0;
-    public double StartupRateDpm { get; private set; } // decades per minute
+    public double StartupRateDpm { get; private set; } // decades per minute (SUR), sourced from IR
+    public double IntermediateRangeAmps { get; private set; } = IrBottomAmps; // CIC current (A)
+    public double IntermediateRangeDecades { get; private set; } // 0..8, decades above IR detector floor
+    public double IntermediateRangePercent { get; private set; } // log power % indicated on the IR
+    public double PowerRangePercent { get; private set; } // linear % rated power on the PR UICs
+    public bool SourceRangeEnergized { get; private set; } = true; // SR HV present (cut by P-6 / P-10)
     private const double SourceBaselineCps = 100.0;
+    private const double SourceRangeMaxCps = 1.0e6;      // BF3 counter saturation ceiling
+    private const double IrFullScaleAmps = 1.0e-3;       // IR current at 100 % rated power
+    private const double IrBottomAmps = 1.0e-11;         // IR detector floor (de-energized / off-scale low)
+    private const double P6CurrentThresholdA = 1.0e-10;  // IR current that asserts the P-6 permissive
+    private bool _p6Latched;                             // P-6 latch (IR on-scale), 10 % deadband
 
     // Turbine reference speed: 4-pole 60 Hz nuclear set runs at 1800 rpm.
     public const double SyncRpm = 1800.0;
@@ -290,6 +307,16 @@ public sealed class ReactorSimService
         // 10 — Steam Generator Level Low-Low: 17%. Always active (initiates AFW). 2/3.
         _rps.Functions.Add(new RpsFunction("SG Level Lo-Lo", "蒸發器水位－低低",
             RpsTripDir.Low, 17.0, () => SteamGenLevel, channelCount: 3));
+        // 11 — Source Range High Flux at Shutdown: 1e5 cps. Low-power startup protection; armed only while
+        //      the SR is energized — blocked once P-6 (IR on-scale) or P-10 (>10% power) is reached. 2/2.
+        _rps.Functions.Add(new RpsFunction("Source Range Flux Hi", "起動範圍中子通量－高",
+            RpsTripDir.High, 1.0e5, () => SourceRangeCps,
+            permissive: () => !_rps.P6 && !_rps.P10, channelCount: 2));
+        // 12 — Intermediate Range High Flux: 25% rated power. Armed once the IR is on-scale (P-6) and
+        //      blocked above P-10 — the overlap-band startup trip between source and power range. 2/2.
+        _rps.Functions.Add(new RpsFunction("Intermediate Range Flux Hi", "中間範圍中子通量－高",
+            RpsTripDir.High, 0.25, () => NeutronPowerFraction,
+            permissive: () => _rps.P6 && !_rps.P10, channelCount: 2));
     }
 
     // ----------------------------------------------------------------- controls ----
@@ -410,6 +437,8 @@ public sealed class ReactorSimService
         for (int i = 0; i < _decayGroup.Length; i++) _decayGroup[i] = 0;
         DecayHeatFraction = 0; SubcoolingMarginC = 0; SourceRangeCps = SourceBaselineCps;
         OneOverM = 1.0; StartupRateDpm = 0; BurnupMwdPerTonne = 0;
+        IntermediateRangeAmps = IrBottomAmps; IntermediateRangeDecades = 0; IntermediateRangePercent = 0;
+        PowerRangePercent = 0; SourceRangeEnergized = true; _p6Latched = false;
         ActiveScenario = ReactorScenario.Normal; _breakArea = 0; _rodsFailToInsert = false;
         AccumulatorInjecting = false; AuxFeedwaterRunning = false; _lofwTimer = 0;
         StatusEn = "Cold shutdown"; StatusZh = "冷停機";
@@ -458,9 +487,10 @@ public sealed class ReactorSimService
         // --- auto rod control ---
         if (AutoRodControl && !IsScrammed) UpdateAutoRods(dt);
 
-        // --- protection system & failure accumulation ---
-        UpdateProtection(dt);
+        // --- nuclear instrumentation BEFORE protection: the SR/IR/PR readings and the IR-derived P-6
+        //     permissive must be current when the protection system evaluates the NIS trips this tick. ---
         UpdateNis(dt);
+        UpdateProtection(dt);
         UpdateAlarms();
         UpdateStatus();
     }
@@ -516,10 +546,19 @@ public sealed class ReactorSimService
     private void UpdateNis(double dt)
     {
         // Source-range count rate ∝ (source + power); 1/M for the approach-to-criticality plot.
-        SourceRangeCps = Math.Clamp((SourceLevel + _power) * 1e11, 1, 1e12);
+        // Ceiling at the BF3 saturation point (1e6 cps) so the 1e5-cps Source-Range High-Flux trip is
+        // on-scale; above P-6/P-10 the SR detectors are de-energized anyway (see SourceRangeEnergized).
+        SourceRangeCps = Math.Clamp((SourceLevel + _power) * 1e11, 1, SourceRangeMaxCps);
         OneOverM = Math.Clamp(SourceBaselineCps / SourceRangeCps, 0, 1);
         StartupRateDpm = (ReactorPeriodSeconds > 0 && ReactorPeriodSeconds < 1e8)
-            ? 0.4343 * 60.0 / ReactorPeriodSeconds : 0;
+            ? 0.4343 * 60.0 / ReactorPeriodSeconds : 0; // = 26.06 / period (decades per minute)
+
+        // Intermediate range — compensated ion chamber current, log over ~8 decades (1e-11..1e-3 A).
+        IntermediateRangeAmps = Math.Clamp(Math.Max(_power, 0) * IrFullScaleAmps, IrBottomAmps, IrFullScaleAmps);
+        IntermediateRangeDecades = Math.Log10(IntermediateRangeAmps / IrBottomAmps); // 0..8, always finite
+        IntermediateRangePercent = Math.Max(_power, 0) * 100.0;
+        // Power range — uncompensated ion chambers, linear 0..120 % rated power.
+        PowerRangePercent = Math.Clamp(_power * 100.0, 0, 120);
 
         // Sub-cooling margin: positive = sub-cooled liquid; negative = saturation / void risk.
         SubcoolingMarginC = SatTempAt(PrimaryPressure) - Thot;
@@ -744,7 +783,13 @@ public sealed class ReactorSimService
         bool p10 = _power >= 0.10;
         bool p13 = TurbineLoadSetpoint >= 0.10 && GeneratorBreakerClosed; // turbine first-stage proxy
         bool p7 = p10 || p13;
-        _rps.SetPermissives(p6: _power < 1e-4, p7: p7, p8: _power >= 0.48, p9: _power >= 0.50, p10: p10);
+        // P-6: asserted when the intermediate-range current rises on-scale (≥ 1e-10 A), latched with a
+        // ±10 % deadband so it cannot chatter. Permits blocking the Source-Range High-Flux trip and
+        // de-energizing the SR detectors. (The old `_power < 1e-4` form was power-based and inverted.)
+        if (!_p6Latched && IntermediateRangeAmps >= P6CurrentThresholdA * 1.10) _p6Latched = true;
+        else if (_p6Latched && IntermediateRangeAmps < P6CurrentThresholdA * 0.90) _p6Latched = false;
+        SourceRangeEnergized = !(_p6Latched || p10); // SR high voltage removed above P-6 or P-10
+        _rps.SetPermissives(p6: _p6Latched, p7: p7, p8: _power >= 0.48, p9: _power >= 0.50, p10: p10);
         _rps.Evaluate();
         if (_rps.ReactorTrip && !IsScrammed && Mode != ReactorMode.Meltdown)
         {

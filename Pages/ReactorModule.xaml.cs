@@ -165,7 +165,7 @@ public sealed partial class ReactorModule : Page
         MuteToggle.IsChecked = !ReactorAudioEngine.I.Enabled;
         ScenarioLabel.Text = P("Scenario:", "情景：");
         NisTitle.Text = P("Nuclear instrumentation (NIS) & critical safety functions (SPDS)", "核儀表（NIS）與關鍵安全功能（SPDS）");
-        NisLabel.Text = P("Source-range count rate (log cps)", "起動範圍計數率（對數 cps）");
+        NisLabel.Text = P("NIS — source / intermediate / power range", "核儀表 — 起動／中間／功率量程");
         OneOverMLabel.Text = P("1/M — approach to criticality", "1/M — 趨近臨界");
         CsfTitle.Text = P("Critical safety functions", "關鍵安全功能");
         AckButton.Content = P("ACK", "確認");
@@ -795,20 +795,36 @@ public sealed partial class ReactorModule : Page
     // ================================================================ NIS / 1-over-M ====
     private void UpdateNisPanels()
     {
-        // NIS log meter: source / intermediate / power-range bars + startup rate.
+        // NIS three-range meter: each bar is filled from the REAL calibrated instrument output, not a
+        // single heuristic — SRM by log count rate (1..1e6 cps), IRM by IR decades (1e-11..1e-3 A),
+        // PRM by linear % rated power (0..120 %). The three windows overlap as the real NIS does.
         var c = NisCanvas;
         c.Children.Clear();
         double w = c.Width, h = c.Height;
-        // log-scale flux from 1e-9 to 2 (fraction).
-        double flux = Math.Max(_sim.NeutronPowerFraction, 1e-9);
-        double logF = (Math.Log10(flux) + 9) / (Math.Log10(2) + 9); // 0..1
-        logF = Math.Clamp(logF, 0, 1);
-        DrawNisBar(c, 20, "SRM", logF < 0.45 ? logF / 0.45 : 1.0, Color.FromArgb(255, 0x42, 0xA5, 0xF5));
-        DrawNisBar(c, 70, "IRM", logF > 0.30 ? Math.Clamp((logF - 0.30) / 0.4, 0, 1) : 0, Color.FromArgb(255, 0x66, 0xBB, 0x6A));
-        DrawNisBar(c, 120, "PRM", logF > 0.65 ? Math.Clamp((logF - 0.65) / 0.35, 0, 1) : 0, Color.FromArgb(255, 0xFF, 0xB3, 0x00));
+        double srFrac = Math.Clamp(Math.Log10(Math.Max(_sim.SourceRangeCps, 1.0)) / 6.0, 0, 1); // 1..1e6 cps
+        double irFrac = Math.Clamp(_sim.IntermediateRangeDecades / 8.0, 0, 1);                  // 0..8 decades
+        double prFrac = Math.Clamp(_sim.PowerRangePercent / 120.0, 0, 1);                        // 0..120 %
+        // SR bar dims when its detectors are de-energized (HV removed above P-6 / P-10).
+        var srColor = _sim.SourceRangeEnergized
+            ? Color.FromArgb(255, 0x42, 0xA5, 0xF5) : Color.FromArgb(120, 0x42, 0xA5, 0xF5);
+        DrawNisBar(c, 20, "SRM", srFrac, srColor);
+        DrawNisBar(c, 70, "IRM", irFrac, Color.FromArgb(255, 0x66, 0xBB, 0x6A));
+        DrawNisBar(c, 120, "PRM", prFrac, Color.FromArgb(255, 0xFF, 0xB3, 0x00));
+
+        // Engineering readout: actual SR cps / IR amps / PR %, plus startup rate and SR HV state.
+        var readout = new TextBlock
+        {
+            Text = $"SR {_sim.SourceRangeCps:0.0E+0} cps   IR {_sim.IntermediateRangeAmps:0.0E+0} A   PR {_sim.PowerRangePercent:F1} %",
+            FontFamily = new FontFamily("Consolas"), FontSize = 12,
+            Foreground = new SolidColorBrush(Color.FromArgb(230, 0xB0, 0xBE, 0xC5)),
+        };
+        Canvas.SetLeft(readout, 170); Canvas.SetTop(readout, h - 44);
+        c.Children.Add(readout);
+        string srState = _sim.SourceRangeEnergized
+            ? P("SR energized", "起動範圍通電") : P("SR de-energized (P-6/P-10)", "起動範圍斷電（P-6／P-10）");
         var dpm = new TextBlock
         {
-            Text = $"SUR {_sim.StartupRateDpm:F1} DPM   T {PeriodStr()}",
+            Text = $"SUR {_sim.StartupRateDpm:F1} DPM   T {PeriodStr()}   {srState}",
             FontFamily = new FontFamily("Consolas"), FontSize = 12,
             Foreground = new SolidColorBrush(Color.FromArgb(230, 0x90, 0xCA, 0xF9)),
         };
