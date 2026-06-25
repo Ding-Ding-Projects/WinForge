@@ -15,26 +15,28 @@ using WinForge.Services;
 namespace WinForge.Pages;
 
 /// <summary>
-/// Bitwarden 密碼庫 · A native WinUI front-end over the official <c>bw</c> CLI.
-/// 解鎖 → 瀏覽／搜尋 → 複製用戶名／密碼（剪貼簿自動清除）→ 睇 TOTP（倒數）→ 產生密碼 → 同步 → 新增／編輯登入。
-/// Unlock → browse/search → copy username/password (clipboard auto-clears) → view TOTP (countdown) →
-/// generate passwords → sync → add/edit logins. Bilingual throughout; secrets never persisted or logged.
+/// Bitwarden 保險庫 · A REAL native Bitwarden client — pure managed C# (no bw CLI, no desktop app, no browser).
+/// 登入（API + 端對端解密）→ 解鎖 → 按資料夾瀏覽／搜尋 → 睇詳情（顯示／隱藏密碼、複製、自動清除剪貼簿、開網址）
+/// → 本機 TOTP（倒數）→ 產生密碼 → 同步 → 鎖定（清除記憶體金鑰）。雙語介面，機密只留喺記憶體。
+/// Login (API + E2E decryption) → unlock → browse/search by folder → details (show/hide password, copy with
+/// auto-clear, open URL) → local TOTP countdown → generate → sync → lock (wipe keys). Bilingual throughout.
 /// </summary>
 public sealed partial class BitwardenModule : Page
 {
+    private static bool _restored;
+
+    private readonly BitwardenService _svc = BitwardenService.Shared;
     private List<TweakDefinition>? _ops;
     private List<BitwardenService.VaultItem> _items = new();
     private BitwardenService.VaultItem? _selected;
-    private string? _revealedPassword;     // 只喺記憶體短暫保留所選項目密碼 · selected item password, memory only
+    private string? _revealedPassword;
     private bool _passwordRevealed;
 
     private CancellationTokenSource? _searchCts;
 
-    // 剪貼簿自動清除 · clipboard auto-clear
     private readonly DispatcherTimer _clipTimer = new() { Interval = TimeSpan.FromSeconds(20) };
     private string? _lastCopied;
 
-    // TOTP 倒數 · TOTP countdown
     private readonly DispatcherTimer _totpTimer = new() { Interval = TimeSpan.FromSeconds(1) };
     private string? _totpItemId;
 
@@ -45,7 +47,13 @@ public sealed partial class BitwardenModule : Page
         _clipTimer.Tick += (_, _) => ClearClipboardIfOurs();
         _totpTimer.Tick += (_, _) => TotpTick();
         Unloaded += OnUnloaded;
-        Loaded += async (_, _) => { Render(); BuildOps(); await Refresh(); };
+        Loaded += (_, _) =>
+        {
+            if (!_restored) { _restored = true; _svc.TryRestoreSession(); }
+            Render();
+            BuildOps();
+            Refresh();
+        };
     }
 
     private void OnUnloaded(object sender, RoutedEventArgs e)
@@ -53,11 +61,11 @@ public sealed partial class BitwardenModule : Page
         Loc.I.LanguageChanged -= OnLang;
         _clipTimer.Stop();
         _totpTimer.Stop();
-        // 離開頁面唔自動鎖；金鑰留喺記憶體（DPAPI 包住）直到鎖定／登出／退出。
-        // We don't auto-lock on navigation; the session key stays DPAPI-wrapped in memory until lock/logout/exit.
+        // 離開頁面唔自動鎖；金鑰留喺記憶體直到鎖定／登出／退出。
+        // We don't auto-lock on navigation; keys stay in memory until lock / logout / exit.
     }
 
-    private void OnLang(object? sender, EventArgs e) { Render(); BuildOps(); _ = Refresh(); }
+    private void OnLang(object? sender, EventArgs e) { Render(); BuildOps(); Refresh(); }
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
     private bool Zh => Loc.I.IsCantonesePrimary;
 
@@ -65,17 +73,16 @@ public sealed partial class BitwardenModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Bitwarden Vault · Bitwarden 密碼庫";
+        HeaderTitle.Text = "Bitwarden Vault · Bitwarden 保險庫";
         HeaderBlurb.Text = P(
-            "A native vault front-end over the Bitwarden CLI: unlock, search, copy username / password / TOTP, generate passwords, add & edit logins, and sync — all inside WinForge. Secrets stay in memory only and the clipboard auto-clears.",
-            "喺 WinForge 內建嘅 Bitwarden 密碼庫介面（包住 bw CLI）：解鎖、搜尋、複製用戶名／密碼／TOTP、產生密碼、新增同編輯登入、同步。機密只留喺記憶體，剪貼簿會自動清除。");
+            "A native Bitwarden client built into WinForge — it talks to the Bitwarden API and decrypts your vault end-to-end in pure managed code (no Bitwarden CLI, app, or browser). Log in, browse by folder, copy username / password / TOTP (clipboard auto-clears), generate passwords, and sync. Keys live in memory only and are wiped on lock.",
+            "WinForge 內建嘅原生 Bitwarden 用戶端 —— 直接同 Bitwarden API 對話，喺純 managed 程式碼度端對端解密你嘅保險庫（唔使 Bitwarden CLI、App 或瀏覽器）。登入、按資料夾瀏覽、複製用戶名／密碼／TOTP（剪貼簿自動清除）、產生密碼、同步。金鑰只留喺記憶體，鎖定即清除。");
 
-        ServerHeader.Text = P("Self-hosted server (optional)", "自寄存伺服器（選用）");
+        ServerBox.Header = P("Server (base URL)", "伺服器（基底網址）");
+        ServerBox.PlaceholderText = "https://vault.bitwarden.com";
         ServerHint.Text = P(
-            "If you use a self-hosted Bitwarden / Vaultwarden, set its URL before logging in. Leave blank for the official cloud.",
-            "如果你用自寄存嘅 Bitwarden／Vaultwarden，登入前設定佢嘅網址。用官方雲端就留空。");
-        ServerSetBtn.Content = P("Set server", "設定伺服器");
-        ServerClearBtn.Content = P("Use cloud", "用官方雲端");
+            "Leave the default for the official cloud, or enter your self-hosted Bitwarden / Vaultwarden URL.",
+            "用官方雲端就保留預設，或者輸入你自寄存嘅 Bitwarden／Vaultwarden 網址。");
 
         EmailBox.PlaceholderText = P("Email", "電郵");
         EmailBox.Header = P("Email", "電郵");
@@ -85,25 +92,22 @@ public sealed partial class BitwardenModule : Page
         TwoFaCode.PlaceholderText = P("2FA code", "2FA 驗證碼");
         if (TwoFaMethod.Items.Count == 0)
         {
-            TwoFaMethod.Items.Add(P("Authenticator app", "驗證器 App"));
-            TwoFaMethod.Items.Add(P("Email", "電郵"));
-            TwoFaMethod.Items.Add(P("YubiKey", "YubiKey"));
+            TwoFaMethod.Items.Add(P("Authenticator app (TOTP)", "驗證器 App（TOTP）"));
+            TwoFaMethod.Items.Add(P("Email code", "電郵驗證碼"));
             TwoFaMethod.SelectedIndex = 0;
         }
 
-        RefreshLabel.Text = P("Refresh", "重新整理");
         SyncLabel.Text = P("Sync", "同步");
-        AddLabel.Text = P("Add login", "新增登入");
         GenLabel.Text = P("Generate", "產生密碼");
         LockLabel.Text = P("Lock", "鎖定");
         LogoutLabel.Text = P("Log out", "登出");
-        EditLabel.Text = P("Edit", "編輯");
 
-        SearchBox.PlaceholderText = P("Search vault…", "搜尋密碼庫…");
+        SearchBox.PlaceholderText = P("Search vault…", "搜尋保險庫…");
         UserLabel.Text = P("Username", "用戶名");
         PassLabel.Text = P("Password", "密碼");
         TotpLabel.Text = P("Verification code (TOTP)", "驗證碼（TOTP）");
         UriLabel.Text = P("Website", "網址");
+        CardLabel.Text = P("Card", "信用卡");
         NotesLabel.Text = P("Notes", "備註");
         DetailPlaceholder.Text = P("Select an item to view its details.", "揀一個項目睇詳情。");
 
@@ -112,6 +116,7 @@ public sealed partial class BitwardenModule : Page
         ToolTipService.SetToolTip(CopyPassBtn, P("Copy password", "複製密碼"));
         ToolTipService.SetToolTip(RevealPassBtn, P("Reveal / hide password", "顯示／隱藏密碼"));
         ToolTipService.SetToolTip(CopyTotpBtn, P("Copy TOTP", "複製 TOTP"));
+        ToolTipService.SetToolTip(OpenUriBtn, P("Open website", "開網址"));
     }
 
     private void BuildOps()
@@ -126,47 +131,12 @@ public sealed partial class BitwardenModule : Page
         }
     }
 
-    // ===================== Status / engine =====================
+    // ===================== Status / surface =====================
 
-    /// <summary>重新讀取狀態，刷新成個介面 · Re-read bw status and refresh the whole surface.</summary>
-    private async Task Refresh()
+    private void Refresh()
     {
-        var status = await BitwardenService.GetStatusAsync();
-
-        // Engine bar
-        if (status.Status == BitwardenService.VaultStatus.NotInstalled)
-        {
-            EngineBar.IsOpen = true;
-            EngineBar.Severity = InfoBarSeverity.Warning;
-            EngineBar.Title = P("Bitwarden CLI not found", "搵唔到 Bitwarden CLI");
-            EngineBar.Message = P("Click to install the bw CLI automatically (winget) — no restart needed.",
-                "撳一下自動安裝 bw CLI（winget）— 唔使重開。");
-            EngineBar.ActionButton = EngineBars.AutoInstallButton(
-                BitwardenService.WingetId, "Install Bitwarden CLI", "安裝 Bitwarden CLI",
-                async () => await Refresh(), null);
-
-            DesktopBar.IsOpen = true;
-            DesktopBar.Title = P("Optional: Bitwarden desktop app", "選用：Bitwarden 桌面程式");
-            DesktopBar.Message = P("Install the full desktop app as well (optional).",
-                "亦可一併安裝完整桌面程式（選用）。");
-            DesktopBar.ActionButton = EngineBars.AutoInstallButton(
-                BitwardenService.DesktopWingetId, "Install desktop app", "安裝桌面程式",
-                async () => await Refresh(), null);
-        }
-        else
-        {
-            EngineBar.IsOpen = false;
-            EngineBar.ActionButton = null;
-            DesktopBar.IsOpen = false;
-        }
-
-        // Status banner
+        var status = _svc.GetStatus();
         UpdateStatusBanner(status);
-
-        // Panels by status
-        bool installed = status.Status != BitwardenService.VaultStatus.NotInstalled
-                         && status.Status != BitwardenService.VaultStatus.Unknown;
-        ServerExpander.Visibility = installed ? Visibility.Visible : Visibility.Collapsed;
 
         switch (status.Status)
         {
@@ -181,18 +151,8 @@ public sealed partial class BitwardenModule : Page
             case BitwardenService.VaultStatus.Unlocked:
                 AuthPanel.Visibility = Visibility.Collapsed;
                 VaultPanel.Visibility = Visibility.Visible;
-                await LoadItems(SearchBox.Text);
+                LoadItems(SearchBox.Text);
                 break;
-            default:
-                AuthPanel.Visibility = Visibility.Collapsed;
-                VaultPanel.Visibility = Visibility.Collapsed;
-                break;
-        }
-
-        if (installed && ServerBox.Text.Length == 0)
-        {
-            var server = await BitwardenService.GetServerAsync();
-            if (!string.IsNullOrWhiteSpace(server)) ServerBox.Text = server.Trim();
         }
     }
 
@@ -200,11 +160,6 @@ public sealed partial class BitwardenModule : Page
     {
         switch (status.Status)
         {
-            case BitwardenService.VaultStatus.NotInstalled:
-                StatusBar.Severity = InfoBarSeverity.Warning;
-                StatusBar.Title = P("Not installed", "未安裝");
-                StatusBar.Message = P("Install the Bitwarden CLI to begin.", "先安裝 Bitwarden CLI。");
-                break;
             case BitwardenService.VaultStatus.Unauthenticated:
                 StatusBar.Severity = InfoBarSeverity.Informational;
                 StatusBar.Title = P("Not logged in", "未登入");
@@ -222,21 +177,12 @@ public sealed partial class BitwardenModule : Page
                 StatusBar.Severity = InfoBarSeverity.Success;
                 StatusBar.Title = P("Unlocked", "已解鎖");
                 var who = status.UserEmail is { Length: > 0 } u ? u : P("your account", "你嘅帳戶");
-                var sync = string.IsNullOrWhiteSpace(status.LastSync) ? "" :
-                    P($" · last sync {FormatSync(status.LastSync)}", $"· 上次同步 {FormatSync(status.LastSync)}");
-                StatusBar.Message = P($"Vault unlocked for {who}.{sync}", $"{who} 嘅密碼庫已解鎖。{sync}");
-                break;
-            default:
-                StatusBar.Severity = InfoBarSeverity.Informational;
-                StatusBar.Title = P("Status unknown", "狀態未知");
-                StatusBar.Message = P("Could not read vault status.", "讀唔到密碼庫狀態。");
+                var sync = status.LastSync is { } ls
+                    ? P($" · last sync {ls.LocalDateTime:g}", $" · 上次同步 {ls.LocalDateTime:g}")
+                    : "";
+                StatusBar.Message = P($"Vault unlocked for {who}.{sync}", $"{who} 嘅保險庫已解鎖。{sync}");
                 break;
         }
-    }
-
-    private static string FormatSync(string iso)
-    {
-        return DateTimeOffset.TryParse(iso, out var dt) ? dt.LocalDateTime.ToString("g") : iso;
     }
 
     // ===================== Auth panel =====================
@@ -244,12 +190,25 @@ public sealed partial class BitwardenModule : Page
     private void ShowAuth(bool login)
     {
         AuthPanel.Visibility = Visibility.Visible;
+        ServerBox.Visibility = login ? Visibility.Visible : Visibility.Collapsed;
+        ServerHint.Visibility = login ? Visibility.Visible : Visibility.Collapsed;
         EmailBox.Visibility = login ? Visibility.Visible : Visibility.Collapsed;
         TwoFaToggle.Visibility = login ? Visibility.Visible : Visibility.Collapsed;
         if (!login) { TwoFaPanel.Visibility = Visibility.Collapsed; TwoFaToggle.IsChecked = false; }
-        AuthTitle.Text = login ? P("Log in", "登入") : P("Unlock vault", "解鎖密碼庫");
+        AuthTitle.Text = login ? P("Log in", "登入") : P("Unlock vault", "解鎖保險庫");
         AuthButton.Content = login ? P("Log in", "登入") : P("Unlock", "解鎖");
         MasterBox.Password = "";
+
+        if (login)
+        {
+            if (string.IsNullOrWhiteSpace(ServerBox.Text))
+            {
+                var saved = _svc.SavedBaseUrl;
+                ServerBox.Text = string.IsNullOrWhiteSpace(saved) ? BitwardenService.DefaultBase : saved;
+            }
+            if (string.IsNullOrWhiteSpace(EmailBox.Text) && _svc.SavedEmail.Length > 0)
+                EmailBox.Text = _svc.SavedEmail;
+        }
     }
 
     private void TwoFaToggle_Click(object sender, RoutedEventArgs e)
@@ -267,54 +226,38 @@ public sealed partial class BitwardenModule : Page
         AuthButton.IsEnabled = false;
         try
         {
-            TweakResult r;
             if (login)
             {
                 int? method = null; string? code = null;
                 if (TwoFaToggle.IsChecked == true && !string.IsNullOrWhiteSpace(TwoFaCode.Text))
                 {
-                    method = TwoFaMethod.SelectedIndex switch { 0 => 0, 1 => 1, 2 => 3, _ => 0 };
+                    method = TwoFaMethod.SelectedIndex switch { 0 => 0, 1 => 1, _ => 0 }; // 0=Authenticator,1=Email
                     code = TwoFaCode.Text.Trim();
                 }
-                r = await BitwardenService.LoginAsync(EmailBox.Text.Trim(), master, method, code);
+                var r = await _svc.LoginAsync(EmailBox.Text.Trim(), master, ServerBox.Text.Trim(), code, method);
+                MasterBox.Password = "";
+                if (r.TwoFactorRequired)
+                {
+                    TwoFaToggle.IsChecked = true;
+                    TwoFaPanel.Visibility = Visibility.Visible;
+                    Toast(InfoBarSeverity.Warning, Zh ? r.Message?.Zh : r.Message?.En);
+                    return;
+                }
+                if (r.Success) { Toast(InfoBarSeverity.Success, Zh ? r.Message?.Zh : r.Message?.En); Refresh(); }
+                else Toast(InfoBarSeverity.Error, Zh ? r.Message?.Zh : r.Message?.En);
             }
             else
             {
-                r = await BitwardenService.UnlockAsync(master);
-            }
-
-            MasterBox.Password = ""; // 即時清除主密碼 · clear master password immediately
-            if (r.Success)
-            {
-                Toast(InfoBarSeverity.Success, Zh ? r.Message?.Zh : r.Message?.En);
-                await Refresh();
-            }
-            else
-            {
-                Toast(InfoBarSeverity.Error, Zh ? r.Message?.Zh : r.Message?.En);
+                var r = await _svc.UnlockAsync(master);
+                MasterBox.Password = "";
+                if (r.Success) { Toast(InfoBarSeverity.Success, Zh ? r.Message?.Zh : r.Message?.En); Refresh(); }
+                else Toast(InfoBarSeverity.Error, Zh ? r.Message?.Zh : r.Message?.En);
             }
         }
         finally { AuthBusy.IsActive = false; AuthButton.IsEnabled = true; }
     }
 
-    // ===================== Server config =====================
-
-    private async void ServerSet_Click(object sender, RoutedEventArgs e)
-    {
-        var r = await BitwardenService.SetServerAsync(ServerBox.Text.Trim());
-        Toast(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error,
-            r.Success ? P("Server set.", "已設定伺服器。") : (Zh ? r.Message?.Zh : r.Message?.En));
-    }
-
-    private async void ServerClear_Click(object sender, RoutedEventArgs e)
-    {
-        ServerBox.Text = "";
-        var r = await BitwardenService.SetServerAsync("");
-        Toast(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error,
-            r.Success ? P("Using official cloud.", "已改用官方雲端。") : (Zh ? r.Message?.Zh : r.Message?.En));
-    }
-
-    // ===================== Item list =====================
+    // ===================== Item list (grouped by folder) =====================
 
     private void Search_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
     {
@@ -327,27 +270,49 @@ public sealed partial class BitwardenModule : Page
 
     private async Task DebouncedSearch(string text, CancellationToken token)
     {
-        try { await Task.Delay(280, token); } catch { return; }
+        try { await Task.Delay(220, token); } catch { return; }
         if (token.IsCancellationRequested) return;
-        await LoadItems(text);
+        LoadItems(text);
     }
 
-    private async Task LoadItems(string? search)
+    private void LoadItems(string? search)
     {
         ListBusy.IsActive = true;
         try
         {
-            _items = await BitwardenService.ListItemsAsync(search);
+            _items = _svc.ListItems(search);
             ItemsList.Items.Clear();
-            foreach (var it in _items.OrderBy(i => i.Name, StringComparer.CurrentCultureIgnoreCase))
-                ItemsList.Items.Add(BuildItemRow(it));
+
+            // Group by folder name, sorted; "No Folder" last.
+            var groups = _items
+                .GroupBy(i => _svc.FolderName(i.FolderId, Zh))
+                .OrderBy(g => g.Key == P("No Folder", "無資料夾") ? "￿" : g.Key, StringComparer.CurrentCultureIgnoreCase);
+
+            foreach (var g in groups)
+            {
+                ItemsList.Items.Add(BuildGroupHeader(g.Key));
+                foreach (var it in g.OrderBy(i => i.Name, StringComparer.CurrentCultureIgnoreCase))
+                    ItemsList.Items.Add(BuildItemRow(it));
+            }
 
             EmptyHint.Visibility = _items.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
             EmptyHint.Text = string.IsNullOrWhiteSpace(search)
-                ? P("No items in this vault.", "呢個密碼庫無項目。")
+                ? P("No items in this vault. Try Sync.", "呢個保險庫無項目。試吓同步。")
                 : P("No items match your search.", "無符合搜尋嘅項目。");
         }
         finally { ListBusy.IsActive = false; }
+    }
+
+    private ListViewItem BuildGroupHeader(string name)
+    {
+        var tb = new TextBlock
+        {
+            Text = name,
+            FontSize = 11,
+            Margin = new Thickness(6, 8, 6, 2),
+        };
+        if (TryBrush("TextFillColorSecondaryBrush") is { } sec) tb.Foreground = sec;
+        return new ListViewItem { Content = tb, IsHitTestVisible = false, Tag = null };
     }
 
     private ListViewItem BuildItemRow(BitwardenService.VaultItem it)
@@ -363,9 +328,7 @@ public sealed partial class BitwardenModule : Page
 
         var info = new StackPanel();
         info.Children.Add(new TextBlock { Text = it.Name, TextTrimming = TextTrimming.CharacterEllipsis });
-        var sub = it.Type == 1 && !string.IsNullOrWhiteSpace(it.Username)
-            ? it.Username
-            : it.TypeLabel(Zh);
+        var sub = it.Type == 1 && !string.IsNullOrWhiteSpace(it.Username) ? it.Username! : it.TypeLabel(Zh);
         var subBlock = new TextBlock { Text = sub, FontSize = 11, TextTrimming = TextTrimming.CharacterEllipsis };
         if (TryBrush("TextFillColorSecondaryBrush") is { } sec) subBlock.Foreground = sec;
         info.Children.Add(subBlock);
@@ -374,7 +337,7 @@ public sealed partial class BitwardenModule : Page
 
         if (it.HasTotp)
         {
-            var totp = new FontIcon { FontSize = 13, Glyph = "\uE916" }; // stopwatch
+            var totp = new FontIcon { FontSize = 13, Glyph = "" };
             if (TryBrush("AccentTextFillColorPrimaryBrush") is { } accent) totp.Foreground = accent;
             Grid.SetColumn(totp, 2);
             grid.Children.Add(totp);
@@ -385,21 +348,21 @@ public sealed partial class BitwardenModule : Page
 
     private static string GlyphFor(BitwardenService.VaultItem it) => it.Type switch
     {
-        1 => "\uE8D7",  // login - key
-        2 => "\uE70B",  // secure note
-        3 => "\uE8C7",  // card
-        4 => "\uE77B",  // identity / contact
-        _ => "\uE8A5",  // generic item
+        1 => "",
+        2 => "",
+        3 => "",
+        4 => "",
+        _ => "",
     };
 
-    private async void Items_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private void Items_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (ItemsList.SelectedItem is not ListViewItem lvi || lvi.Tag is not string id)
         {
             ShowDetailPlaceholder();
             return;
         }
-        await SelectItem(id);
+        SelectItem(id);
     }
 
     // ===================== Detail pane =====================
@@ -412,10 +375,10 @@ public sealed partial class BitwardenModule : Page
         DetailPlaceholder.Visibility = Visibility.Visible;
     }
 
-    private async Task SelectItem(string id)
+    private void SelectItem(string id)
     {
         StopTotp();
-        var item = await BitwardenService.GetItemAsync(id);
+        var item = _svc.GetItem(id);
         if (item is null) { ShowDetailPlaceholder(); return; }
         _selected = item;
         _revealedPassword = item.Login?.Password;
@@ -427,22 +390,20 @@ public sealed partial class BitwardenModule : Page
         DetailName.Text = item.Name;
         DetailType.Text = item.TypeLabel(Zh);
 
-        // Username
         bool hasUser = !string.IsNullOrWhiteSpace(item.Username);
         UserRow.Visibility = hasUser ? Visibility.Visible : Visibility.Collapsed;
-        UserValue.Text = item.Username;
+        UserValue.Text = item.Username ?? "";
 
-        // Password
         bool hasPass = !string.IsNullOrEmpty(item.Login?.Password);
         PassRow.Visibility = hasPass ? Visibility.Visible : Visibility.Collapsed;
         PassValue.Text = hasPass ? "••••••••••" : "";
-        RevealPassIcon.Glyph = "\uE7B3";
-        // TOTP
+        RevealPassIcon.Glyph = "";
+
         if (item.HasTotp)
         {
             TotpRow.Visibility = Visibility.Visible;
             _totpItemId = id;
-            await RefreshTotp();
+            RefreshTotp();
             StartTotp();
         }
         else
@@ -451,17 +412,17 @@ public sealed partial class BitwardenModule : Page
             _totpItemId = null;
         }
 
-        // URI
         bool hasUri = !string.IsNullOrWhiteSpace(item.PrimaryUri);
         UriRow.Visibility = hasUri ? Visibility.Visible : Visibility.Collapsed;
-        UriValue.Text = item.PrimaryUri;
+        UriValue.Text = item.PrimaryUri ?? "";
 
-        // Notes
+        bool hasCard = !string.IsNullOrWhiteSpace(item.CardSummary);
+        CardRow.Visibility = hasCard ? Visibility.Visible : Visibility.Collapsed;
+        CardValue.Text = item.CardSummary ?? "";
+
         bool hasNotes = !string.IsNullOrWhiteSpace(item.Notes);
         NotesRow.Visibility = hasNotes ? Visibility.Visible : Visibility.Collapsed;
         NotesValue.Text = item.Notes ?? "";
-
-        EditBtn.Visibility = item.Type == 1 ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void RevealPass_Click(object sender, RoutedEventArgs e)
@@ -469,22 +430,36 @@ public sealed partial class BitwardenModule : Page
         if (_selected is null) return;
         _passwordRevealed = !_passwordRevealed;
         PassValue.Text = _passwordRevealed ? (_revealedPassword ?? "") : "••••••••••";
-        RevealPassIcon.Glyph = _passwordRevealed ? "\uE890" : "\uE7B3"; // eye (reveal/hide)
+        RevealPassIcon.Glyph = _passwordRevealed ? "" : "";
+    }
+
+    private async void OpenUri_Click(object sender, RoutedEventArgs e)
+    {
+        var uri = _selected?.PrimaryUri;
+        if (string.IsNullOrWhiteSpace(uri)) return;
+        if (!uri.Contains("://")) uri = "https://" + uri;
+        try
+        {
+            if (Uri.TryCreate(uri, UriKind.Absolute, out var u) &&
+                (u.Scheme == Uri.UriSchemeHttp || u.Scheme == Uri.UriSchemeHttps))
+                await Windows.System.Launcher.LaunchUriAsync(u);
+            else
+                Toast(InfoBarSeverity.Error, P("That URL is not a valid web address.", "嗰個唔係有效嘅網址。"));
+        }
+        catch (Exception ex) { Toast(InfoBarSeverity.Error, ex.Message); }
     }
 
     // ===================== Copy (with clipboard auto-clear) =====================
 
     private void CopyUser_Click(object sender, RoutedEventArgs e)
     {
-        if (_selected is null) return;
-        CopySecret(_selected.Username, persistent: true,
-            P("Username copied.", "已複製用戶名。"));
+        if (_selected?.Username is not { Length: > 0 } u) return;
+        CopySecret(u, persistent: true, P("Username copied.", "已複製用戶名。"));
     }
 
-    private async void CopyPass_Click(object sender, RoutedEventArgs e)
+    private void CopyPass_Click(object sender, RoutedEventArgs e)
     {
-        if (_selected is null) return;
-        var pw = _revealedPassword ?? await BitwardenService.GetPasswordAsync(_selected.Id);
+        var pw = _revealedPassword;
         if (string.IsNullOrEmpty(pw)) { Toast(InfoBarSeverity.Error, P("No password to copy.", "無密碼可複製。")); return; }
         CopySecret(pw, persistent: false,
             P("Password copied — clipboard clears in 20s.", "已複製密碼 — 20 秒後自動清除剪貼簿。"));
@@ -493,12 +468,11 @@ public sealed partial class BitwardenModule : Page
     private void CopyTotp_Click(object sender, RoutedEventArgs e)
     {
         var code = TotpValue.Text;
-        if (string.IsNullOrWhiteSpace(code)) return;
+        if (string.IsNullOrWhiteSpace(code) || code.Contains('—')) return;
         CopySecret(code, persistent: false,
             P("TOTP copied — clipboard clears in 20s.", "已複製 TOTP — 20 秒後自動清除剪貼簿。"));
     }
 
-    /// <summary>複製到剪貼簿；機密項目 20 秒後自動清除 · Copy to clipboard; secrets auto-clear after 20s.</summary>
     private void CopySecret(string value, bool persistent, string toast)
     {
         try
@@ -522,8 +496,6 @@ public sealed partial class BitwardenModule : Page
         _clipTimer.Stop();
         try
         {
-            // 只喺剪貼簿仲係我哋複製嗰個值先清，避免清走使用者後來複製嘅嘢。
-            // Only clear if the clipboard still holds what we copied — don't clobber the user's later copy.
             var view = Clipboard.GetContent();
             if (view != null && view.Contains(StandardDataFormats.Text))
             {
@@ -535,48 +507,52 @@ public sealed partial class BitwardenModule : Page
         _lastCopied = null;
     }
 
-    // ===================== TOTP countdown =====================
+    // ===================== TOTP countdown (local RFC 6238) =====================
 
     private void StartTotp() { _totpTimer.Stop(); _totpTimer.Start(); }
     private void StopTotp() { _totpTimer.Stop(); _totpItemId = null; }
 
-    private void TotpTick()
-    {
-        int secs = 30 - (int)(DateTimeOffset.UtcNow.ToUnixTimeSeconds() % 30);
-        TotpCountdown.Value = secs;
-        if (secs >= 30 || secs <= 1) _ = RefreshTotp();
-    }
+    private void TotpTick() => RefreshTotp();
 
-    private async Task RefreshTotp()
+    private void RefreshTotp()
     {
         if (_totpItemId is null) return;
-        var code = await BitwardenService.GetTotpAsync(_totpItemId);
-        if (_totpItemId is null) return; // could have changed during await
-        TotpValue.Text = code ?? "——————";
+        var t = _svc.GetTotp(_totpItemId);
+        if (_totpItemId is null) return;
+        if (t is null)
+        {
+            TotpValue.Text = "——————";
+            TotpSeconds.Text = "";
+            return;
+        }
+        // Format as "123 456" for readability when 6 digits.
+        TotpValue.Text = t.Code.Length == 6 ? t.Code.Substring(0, 3) + " " + t.Code.Substring(3) : t.Code;
+        TotpCountdown.Maximum = t.Period;
+        TotpCountdown.Value = t.RemainingSeconds;
+        TotpSeconds.Text = t.RemainingSeconds + "s";
     }
 
     // ===================== Toolbar actions =====================
 
-    private async void Refresh_Click(object sender, RoutedEventArgs e) => await Refresh();
-
     private async void Sync_Click(object sender, RoutedEventArgs e)
     {
         SyncBtn.IsEnabled = false;
+        ListBusy.IsActive = true;
         try
         {
-            var r = await BitwardenService.SyncAsync();
+            var r = await _svc.SyncAsync();
             Toast(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error, Zh ? r.Message?.Zh : r.Message?.En);
-            if (r.Success) await LoadItems(SearchBox.Text);
+            if (r.Success) { UpdateStatusBanner(_svc.GetStatus()); LoadItems(SearchBox.Text); }
         }
-        finally { SyncBtn.IsEnabled = true; }
+        finally { SyncBtn.IsEnabled = true; ListBusy.IsActive = false; }
     }
 
-    private async void Lock_Click(object sender, RoutedEventArgs e)
+    private void Lock_Click(object sender, RoutedEventArgs e)
     {
-        var r = await BitwardenService.LockAsync();
-        Toast(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error, Zh ? r.Message?.Zh : r.Message?.En);
+        _svc.Lock();
+        Toast(InfoBarSeverity.Success, P("Vault locked. Keys wiped from memory.", "保險庫已鎖定，記憶體金鑰已清除。"));
         ShowDetailPlaceholder();
-        await Refresh();
+        Refresh();
     }
 
     private async void Logout_Click(object sender, RoutedEventArgs e)
@@ -592,10 +568,10 @@ public sealed partial class BitwardenModule : Page
             DefaultButton = ContentDialogButton.Close,
         };
         if (await dlg.ShowAsync() != ContentDialogResult.Primary) return;
-        var r = await BitwardenService.LogoutAsync();
-        Toast(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error, Zh ? r.Message?.Zh : r.Message?.En);
+        _svc.Logout();
+        Toast(InfoBarSeverity.Success, P("Logged out.", "已登出。"));
         ShowDetailPlaceholder();
-        await Refresh();
+        Refresh();
     }
 
     // ===================== Password generator =====================
@@ -603,7 +579,7 @@ public sealed partial class BitwardenModule : Page
     private async void Gen_Click(object sender, RoutedEventArgs e)
     {
         var (dlg, getResult, regen) = BuildGeneratorDialog();
-        await regen();
+        regen();
         var res = await dlg.ShowAsync();
         if (res == ContentDialogResult.Primary)
         {
@@ -614,7 +590,7 @@ public sealed partial class BitwardenModule : Page
         }
     }
 
-    private (ContentDialog dlg, Func<string> result, Func<Task> regenerate) BuildGeneratorDialog()
+    private (ContentDialog dlg, Func<string> result, Action regenerate) BuildGeneratorDialog()
     {
         var outBox = new TextBox
         {
@@ -665,24 +641,20 @@ public sealed partial class BitwardenModule : Page
             Separator: sepBox.Text,
             Capitalize: capitalize.IsChecked == true);
 
-        async Task Regen()
-        {
-            var pw = await BitwardenService.GenerateAsync(Opts());
-            outBox.Text = pw ?? "";
-        }
+        void Regen() => outBox.Text = BitwardenService.Generate(Opts());
 
-        regenBtn.Click += async (_, _) => await Regen();
-        typeToggle.Toggled += async (_, _) =>
+        regenBtn.Click += (_, _) => Regen();
+        typeToggle.Toggled += (_, _) =>
         {
             passwordOpts.Visibility = typeToggle.IsOn ? Visibility.Collapsed : Visibility.Visible;
             passphraseOpts.Visibility = typeToggle.IsOn ? Visibility.Visible : Visibility.Collapsed;
-            await Regen();
+            Regen();
         };
-        void OnAny(object s, RoutedEventArgs e) => _ = Regen();
+        void OnAny(object s, RoutedEventArgs e) => Regen();
         foreach (var cb in new[] { upper, lower, nums, special, capitalize })
             cb.Click += OnAny;
-        lengthSlider.ValueChanged += (_, _) => _ = Regen();
-        wordsSlider.ValueChanged += (_, _) => _ = Regen();
+        lengthSlider.ValueChanged += (_, _) => Regen();
+        wordsSlider.ValueChanged += (_, _) => Regen();
 
         var content = new StackPanel { Spacing = 10, MinWidth = 380 };
         content.Children.Add(outBox);
@@ -704,84 +676,6 @@ public sealed partial class BitwardenModule : Page
         return (dlg, () => outBox.Text, Regen);
     }
 
-    // ===================== Add / edit login =====================
-
-    private async void Add_Click(object sender, RoutedEventArgs e) => await ShowItemEditor(null);
-
-    private async void Edit_Click(object sender, RoutedEventArgs e)
-    {
-        if (_selected is null || _selected.Type != 1) return;
-        await ShowItemEditor(_selected);
-    }
-
-    private async Task ShowItemEditor(BitwardenService.VaultItem? existing)
-    {
-        var nameBox = new TextBox { Header = P("Name", "名稱"), Text = existing?.Name ?? "", Width = 360 };
-        var userBox = new TextBox { Header = P("Username", "用戶名"), Text = existing?.Username ?? "", Width = 360 };
-        var passBox = new PasswordBox { Header = P("Password", "密碼"), Password = existing?.Login?.Password ?? "", Width = 360 };
-        var totpBox = new TextBox { Header = P("TOTP secret / otpauth URI", "TOTP 密鑰／otpauth URI"), Text = existing?.Login?.Totp ?? "", Width = 360 };
-        var uriBox = new TextBox { Header = P("Website (URI)", "網址（URI）"), Text = existing?.PrimaryUri ?? "", Width = 360 };
-        var notesBox = new TextBox
-        {
-            Header = P("Notes", "備註"),
-            Text = existing?.Notes ?? "",
-            Width = 360,
-            AcceptsReturn = true,
-            TextWrapping = TextWrapping.Wrap,
-            Height = 80,
-        };
-
-        var genInline = new Button { Content = P("Generate password", "產生密碼") };
-        genInline.Click += async (_, _) =>
-        {
-            var pw = await BitwardenService.GenerateAsync(new BitwardenService.GenOptions(
-                false, 16, true, true, true, true, 4, "-", true));
-            if (!string.IsNullOrEmpty(pw)) passBox.Password = pw;
-        };
-
-        var content = new StackPanel { Spacing = 10, MinWidth = 380 };
-        content.Children.Add(nameBox);
-        content.Children.Add(userBox);
-        content.Children.Add(passBox);
-        content.Children.Add(genInline);
-        content.Children.Add(totpBox);
-        content.Children.Add(uriBox);
-        content.Children.Add(notesBox);
-
-        var dlg = new ContentDialog
-        {
-            XamlRoot = XamlRoot,
-            Title = existing is null ? P("Add login", "新增登入") : P("Edit login", "編輯登入"),
-            Content = new ScrollViewer { Content = content, MaxHeight = 460 },
-            PrimaryButtonText = P("Save", "儲存"),
-            CloseButtonText = P("Cancel", "取消"),
-            DefaultButton = ContentDialogButton.Primary,
-        };
-
-        if (await dlg.ShowAsync() != ContentDialogResult.Primary) return;
-
-        if (string.IsNullOrWhiteSpace(nameBox.Text))
-        {
-            Toast(InfoBarSeverity.Error, P("Name is required.", "需要名稱。"));
-            return;
-        }
-
-        TweakResult r;
-        if (existing is null)
-            r = await BitwardenService.CreateLoginAsync(
-                nameBox.Text.Trim(), userBox.Text, passBox.Password, totpBox.Text, uriBox.Text, notesBox.Text);
-        else
-            r = await BitwardenService.EditLoginAsync(
-                existing.Id, nameBox.Text.Trim(), userBox.Text, passBox.Password, totpBox.Text, uriBox.Text, notesBox.Text);
-
-        Toast(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error, Zh ? r.Message?.Zh : r.Message?.En);
-        if (r.Success)
-        {
-            await LoadItems(SearchBox.Text);
-            if (existing is not null) await SelectItem(existing.Id);
-        }
-    }
-
     // ===================== Toast helper =====================
 
     private void Toast(InfoBarSeverity severity, string? message)
@@ -792,7 +686,6 @@ public sealed partial class BitwardenModule : Page
         ToastBar.IsOpen = true;
     }
 
-    /// <summary>安全攞主題筆刷（搵唔到就回 null）· Safely fetch a theme brush, or null if absent.</summary>
     private static Brush? TryBrush(string key)
     {
         try { return Application.Current.Resources[key] as Brush; }
