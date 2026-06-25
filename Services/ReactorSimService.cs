@@ -55,6 +55,10 @@ public enum ReactorAlarm
     SteamlineBreak,
     SafetyInjection,
     PzrCodeSafetyOpen,
+    PrtPressureHi,        // 穩壓器釋壓缸壓力高 — PRT pressure > high-pressure annunciator (relief path discharging)
+    PrtTempHi,           // 穩壓器釋壓缸溫度高 — PRT pool temperature high (a relief valve is leaking / stuck open: the TMI-2 cue)
+    PrtLevelAbnormal,    // 穩壓器釋壓缸水位異常 — PRT level outside the normal band (hi: accumulated discharge / lo: post-burst)
+    PrtRuptureDisc,      // 穩壓器釋壓缸爆破片爆裂 — PRT rupture disc has burst → discharge to containment / sump
     ContainmentPressureHi,
     ContainmentIsolation,
     ContainmentSpray,
@@ -343,6 +347,34 @@ public sealed class ReactorSimService
     private const double PzrSafetyReliefRate = 4.0;  // MPa/s per valve at full lift (> PORV; greater capacity)
     private static readonly double[] PzrSafetySet = { PzrSafety1Set, PzrSafety2Set, PzrSafety3Set };
 
+    // ---- Pressurizer Relief Tank (PRT) / quench tank — collects PORV + code-safety discharge ----
+    // 穩壓器釋壓缸 · The PRT is the passive quench tank to which every pressurizer PORV and ASME code-safety
+    // valve discharges through a sparger. A subcooled water pool under a nitrogen cover gas condenses the
+    // discharged steam; the pool warms and the gas space compresses, so PRT temperature/pressure/level RISE
+    // whenever a relief path is open — the classic diagnostic that a PORV or safety is leaking or stuck open
+    // (the TMI-2, 1979 lesson: a valve-OPEN command light is not valve-POSITION; the rising-hot PRT was the
+    // real cue the PORV had stuck open). A rupture disc bursts at ~100 psig and vents the tank to containment,
+    // raising containment pressure and adding water to the sump. Westinghouse 4-loop figures (≈1800 ft³ tank).
+    // Lumped first-law water pool + ideal-gas N₂ partial pressure + Buck water-vapour partial pressure. The
+    // model is ONE-WAY coupled: it consumes the relief discharge the existing valve logic already produces and
+    // never feeds back into RCS pressure, so it cannot destabilise the primary loop.
+    private const double PrtTankVolumeM3   = 51.0;     // m³  (~1800 ft³) total gas+liquid control volume
+    private const double PrtWaterMass0Kg   = 33000.0;  // kg  normal water inventory (~65 % full)
+    private const double PrtWaterTemp0K    = 322.0;    // K   normal pool temperature (120 °F / 49 °C)
+    private const double PrtN2Pressure0Pa  = 1.20e5;   // Pa-abs  N₂ cover-gas blanket (~3 psig)
+    private const double PrtN2GasConst     = 296.8;    // J/(kg·K)  R for nitrogen (8314/28.0134)
+    private const double PrtWaterCp        = 4186.0;   // J/(kg·K)  liquid-water specific heat
+    private const double PrtSteamEnthalpy  = 2.595e6;  // J/kg  saturated-steam enthalpy at the relief setpoint (~16.2 MPa)
+    private const double PrtKMdotKgPerMPas  = 12.0;    // kg per (MPa/s) relief rate → ~30 kg/s for a stuck-open PORV
+    private const double PrtDiscBurstPsig  = 100.0;    // psig  rupture-disc burst setpoint (W 4-loop UFSAR)
+    private const double PrtAlarmPressPsig = 8.0;      // psig  high-pressure annunciator
+    private const double PrtAlarmTempC     = 60.0;     // °C    high-temperature annunciator (margin over 49 °C normal)
+    private const double PrtAlarmLevelHiPct = 92.0;    // %     high-level annunciator
+    private const double PrtAlarmLevelLoPct = 50.0;    // %     low-level annunciator
+    private const double PrtVentKpaPerKgs  = 0.9;      // kPa containment-pressure drive per kg/s of post-burst venting
+    private const double PrtVentKgsPerMPa  = 18.0;     // kg/s vented per MPa of PRT-over-containment Δp after burst
+    private const double PrtAtmPa          = 101325.0; // Pa  standard atmosphere (gauge↔abs conversion)
+
     // ---- Reactor-vessel Pressure-Temperature (P/T) operating limits — 10 CFR 50 Appendix G ----
     // The beltline shell of an irradiated RPV is brittle when cold: a flaw can propagate by fast fracture if
     // pressure (membrane stress) is applied below the material's ductile-brittle transition. Appendix G (via
@@ -532,6 +564,26 @@ public sealed class ReactorSimService
     public bool AnyPzrCodeSafetyOpen => PzrCodeSafetiesOpen > 0;
     /// <summary>規範安全閥每次起跳的上升沿事件 · Rising-edge event each time a code safety valve pops (for annunciation/audio).</summary>
     public event Action? PzrCodeSafetyLifted;
+
+    // ---- Pressurizer Relief Tank (PRT) state — set by UpdatePrt; one-way coupled, never writes RCS pressure ----
+    private double _prtWaterKg   = PrtWaterMass0Kg;  // pool mass (kg)
+    private double _prtWaterTempK = PrtWaterTemp0K;  // pool temperature (K)
+    private double _prtN2Kg;                          // fixed N₂ cover-gas mass (kg), derived at init
+    private double _prtReliefAccumMPa;               // primary-pressure relief decrement accumulated across this tick's sub-steps
+    private double _prtPressurePa = PrtN2Pressure0Pa; // current total tank pressure (Pa-abs)
+    private double _prtVentDriveKpa;                  // post-burst containment-pressure drive (read by UpdateContainment)
+    /// <summary>穩壓器釋壓缸壓力（psig）· PRT total pressure, psig.</summary>
+    public double PrtPressurePsig { get; private set; }
+    /// <summary>穩壓器釋壓缸水溫（°C）· PRT pool temperature, °C.</summary>
+    public double PrtWaterTempC => _prtWaterTempK - 273.15;
+    /// <summary>穩壓器釋壓缸水溫（°F）· PRT pool temperature, °F.</summary>
+    public double PrtWaterTempF => (_prtWaterTempK - 273.15) * 1.8 + 32.0;
+    /// <summary>穩壓器釋壓缸水位（%）· PRT water level as % of tank volume.</summary>
+    public double PrtWaterLevelPct { get; private set; } = 100.0 * PrtWaterMass0Kg / (1000.0 * PrtTankVolumeM3);
+    /// <summary>爆破片已爆（洩往安全殼）· PRT rupture disc has burst — venting to containment (latched).</summary>
+    public bool PrtRuptureDiscBurst { get; private set; }
+    /// <summary>有釋壓閥正向釋壓缸排放 · A pressurizer relief path is currently discharging into the PRT.</summary>
+    public bool PrtDischarging { get; private set; }
 
     // Poisons
     public double Iodine { get; private set; }   // I-135 concentration (normalized)
@@ -1984,6 +2036,12 @@ public sealed class ReactorSimService
         PrimaryPressure = 2.5; PressurizerLevel = NominalPzrLevel;
         _tpzr = ColdTemp; _prevLevel = NominalPzrLevel; _pSpike = 0; _porvAuto = false; PressurizerHeaterDuty = 0;
         Array.Clear(_pzrSafetyOpen, 0, 3); // re-seat all code safety valves on reset
+        // Pressurizer relief tank back to normal cold standby (water/temp/level), disc intact, no venting.
+        _prtWaterKg = PrtWaterMass0Kg; _prtWaterTempK = PrtWaterTemp0K; _prtReliefAccumMPa = 0.0;
+        _prtN2Kg = 0.0; // forces UpdatePrt to re-derive the fixed cover-gas mass on its next call
+        _prtPressurePa = PrtN2Pressure0Pa; PrtRuptureDiscBurst = false; PrtDischarging = false;
+        _prtVentDriveKpa = 0.0; PrtPressurePsig = 0.0;
+        PrtWaterLevelPct = 100.0 * PrtWaterMass0Kg / (1000.0 * PrtTankVolumeM3);
         // App G P/T limits + LTOP: clear so a fresh scenario starts clean with no first-tick rate spike.
         _rateInit = false; RcsRateCperHr = 0; _prevTcoldForRate = ColdTemp;
         LtopArmed = false; LtopPorvOpen = false;
@@ -2110,6 +2168,7 @@ public sealed class ReactorSimService
         UpdateScenarios(dt);
         StepRadiochemistry(dt); // RCS DEI-131/Xe-133 source term + iodine spike + N-16 monitor; drives CoolantActivity
         StepLeakDetection(dt);  // RCS operational LEAKAGE accounting + RG 1.45 sump/particulate/gaseous detection (reads seal leak + source term)
+        UpdatePrt(dt);          // pressurizer relief tank: condense the prior tick's PORV/safety discharge; burst the disc → containment vent
         UpdateContainment(dt);
         // --- regenerative feedwater-heating train: update the final feedwater temperature BEFORE the kinetics
         //     sub-step so this tick's StepThermal sees the current FW temperature deficit (overcooling driver) ---
@@ -2933,6 +2992,70 @@ public sealed class ReactorSimService
     /// response plus the three containment-pressure ESFAS actuations. Unconditionally stable: every
     /// state relaxes by a Math.Min(1, dt/τ) factor toward a target, so it cannot overshoot at any dt.
     /// </summary>
+    /// <summary>
+    /// 穩壓器釋壓缸 · Pressurizer Relief Tank lumped model. Consumes the relief discharge the PORV/code-safety
+    /// logic accumulated over the previous tick (as an equivalent primary-pressure decrement), condenses it
+    /// into the subcooled water pool, and tracks the resulting pool temperature, gas-space pressure and level.
+    /// A rupture disc bursts at ~100 psig and vents to containment. One-way coupled — it never writes RCS
+    /// pressure, so it cannot destabilise the primary loop; only an actual disc burst touches containment.
+    /// </summary>
+    private void UpdatePrt(double dt)
+    {
+        if (dt <= 0) return;
+        if (_prtN2Kg <= 0)   // one-time init of the fixed cover-gas mass from the normal cold gas-space state
+        {
+            double vg0 = Math.Max(PrtTankVolumeM3 - PrtWaterMass0Kg / 1000.0, 0.01);
+            _prtN2Kg = PrtN2Pressure0Pa * vg0 / (PrtN2GasConst * PrtWaterTemp0K);
+        }
+
+        // --- discharged-steam mass from the accumulated relief decrement (≈30 kg/s for a stuck-open PORV) ---
+        double reliefMPa = _prtReliefAccumMPa;
+        _prtReliefAccumMPa = 0.0;
+        double mdotIn = Math.Max(0.0, (reliefMPa / dt) * PrtKMdotKgPerMPas);   // kg/s
+        PrtDischarging = mdotIn > 0.05;
+
+        // --- water pool: first-law open-system mass + energy (incoming enthalpy minus the pool's own) ---
+        double tPoolC = _prtWaterTempK - 273.15;
+        _prtWaterKg += mdotIn * dt;
+        _prtWaterTempK += mdotIn * (PrtSteamEnthalpy - PrtWaterCp * tPoolC) / (_prtWaterKg * PrtWaterCp) * dt;
+        _prtWaterTempK = Math.Clamp(_prtWaterTempK, 273.15, 470.0);
+
+        // --- geometry / N₂ partial pressure (ideal gas, fixed mass, isothermal with the pool) ---
+        double rhoW = Math.Clamp(1000.0 - 0.45 * (_prtWaterTempK - 277.0), 850.0, 1000.0);
+        double vW   = _prtWaterKg / rhoW;
+        double vG   = Math.Max(PrtTankVolumeM3 - vW, 0.01 * PrtTankVolumeM3);
+        double pN2  = _prtN2Kg * PrtN2GasConst * _prtWaterTempK / vG;
+
+        // --- water-vapour partial pressure of the warming pool (Buck equation, °C) ---
+        double tc    = _prtWaterTempK - 273.15;
+        double pSat  = 611.21 * Math.Exp((18.678 - tc / 234.5) * (tc / (257.14 + tc)));
+        pSat = Math.Clamp(pSat, 0.0, 2.0e6);
+
+        _prtPressurePa = pN2 + pSat;
+        PrtPressurePsig = (_prtPressurePa - PrtAtmPa) / 6894.76;
+        PrtWaterLevelPct = Math.Clamp(100.0 * vW / PrtTankVolumeM3, 0.0, 100.0);
+
+        // --- rupture disc: latching, non-reclosing; bursts on PRT high pressure and vents to containment ---
+        if (!PrtRuptureDiscBurst && PrtPressurePsig > PrtDiscBurstPsig)
+            PrtRuptureDiscBurst = true;
+
+        if (PrtRuptureDiscBurst)
+        {
+            double pContPa = ContainmentPressureKpa * 1000.0 + PrtAtmPa;     // containment absolute
+            double dpMPa   = Math.Max(0.0, (_prtPressurePa - pContPa) / 1.0e6);
+            double mdotVent = PrtVentKgsPerMPa * dpMPa;                       // kg/s, linear in over-pressure
+            double vented   = Math.Min(mdotVent * dt, _prtWaterKg);
+            _prtWaterKg -= vented;
+            // bleed the cover gas in proportion so the tank relaxes toward the containment back-pressure
+            _prtN2Kg = Math.Max(0.0, _prtN2Kg - _prtN2Kg * (vented / (_prtWaterKg + 1.0)));
+            _prtVentDriveKpa = PrtVentKpaPerKgs * mdotVent;                   // containment-pressure drive (read in UpdateContainment)
+        }
+        else
+        {
+            _prtVentDriveKpa = 0.0;
+        }
+    }
+
     private void UpdateContainment(double dt)
     {
         // --- mass/energy source into the building ---------------------------------------------------
@@ -2942,6 +3065,9 @@ public sealed class ReactorSimService
         // out-of-containment breaks are intentionally absent: they bypass the containment boundary.
         double locaDrive = _breakArea * Math.Clamp(PrimaryPressure / 6.0, 0.0, 1.0);
         double pTarget = Math.Max(MslbBreakFlow * CtmtPeakMslbKpa, locaDrive * CtmtPeakLocaKpa);
+        // A burst PRT rupture disc adds its own (smaller) pressurization drive as it blows the quenched
+        // steam/water inventory into the building (TMI-2: this is how the stuck-open PORV flooded the sump).
+        pTarget += _prtVentDriveKpa;
 
         // --- pressurize fast, depressurize via parallel heat-removal conductances -------------------
         double tau;
@@ -3357,7 +3483,7 @@ public sealed class ReactorSimService
         if (PrimaryPressure > effOpen) _porvAuto = true;
         else if (PrimaryPressure < effClose) _porvAuto = false;
         LtopPorvOpen = LtopArmed && _porvAuto;
-        if (_porvAuto) PrimaryPressure -= PorvReliefRate * h;
+        if (_porvAuto) { PrimaryPressure -= PorvReliefRate * h; _prtReliefAccumMPa += PorvReliefRate * h; }
 
         // ASME code (spring) safety valves — the last-ditch overpressure layer above the PORV. Pop-action:
         // each valve latches fully open when pressure exceeds its own set and only reseats once pressure has
@@ -3384,9 +3510,10 @@ public sealed class ReactorSimService
             double safetyDrop = safetiesOpen * PzrSafetyReliefRate * liftFrac * h;
             safetyDrop = Math.Min(safetyDrop, Math.Max(0.0, PrimaryPressure - 0.1)); // never overshoot the floor in one step
             PrimaryPressure -= safetyDrop;
+            _prtReliefAccumMPa += safetyDrop;   // the code-safety discharge also sparges into the PRT
         }
 
-        if (ReliefValveOpen && PrimaryPressure > 2.0) PrimaryPressure -= 3.0 * h;
+        if (ReliefValveOpen && PrimaryPressure > 2.0) { PrimaryPressure -= 3.0 * h; _prtReliefAccumMPa += 3.0 * h; }
         PrimaryPressure = Math.Clamp(PrimaryPressure, 0.1, VesselBurstPressure);
     }
 
@@ -4050,6 +4177,11 @@ public sealed class ReactorSimService
         SetAlarm(ReactorAlarm.SteamlineBreak, _mslbSeverity > 0 && !MslbIsolated);
         SetAlarm(ReactorAlarm.SafetyInjection, SiActuated);
         SetAlarm(ReactorAlarm.PzrCodeSafetyOpen, AnyPzrCodeSafetyOpen);
+        // Pressurizer relief tank: rising temperature/pressure is the leaking-or-stuck-open-relief diagnostic.
+        SetAlarm(ReactorAlarm.PrtPressureHi, PrtPressurePsig > PrtAlarmPressPsig);
+        SetAlarm(ReactorAlarm.PrtTempHi,     PrtWaterTempC   > PrtAlarmTempC);
+        SetAlarm(ReactorAlarm.PrtLevelAbnormal, PrtWaterLevelPct > PrtAlarmLevelHiPct || PrtWaterLevelPct < PrtAlarmLevelLoPct);
+        SetAlarm(ReactorAlarm.PrtRuptureDisc, PrtRuptureDiscBurst);
         SetAlarm(ReactorAlarm.SecondaryRadiationHi, SecondaryActivity > 1.0);
         SetAlarm(ReactorAlarm.RcsDeI131LcoExceeded, RcsDeI131uCiPerG > LcoDeI131SteadyLimit);
         SetAlarm(ReactorAlarm.RcsDeI131SpikeLimit,  RcsDeI131uCiPerG > LcoDeI131SpikeLimit);

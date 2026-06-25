@@ -496,6 +496,13 @@ public sealed partial class ReactorModule : Page
         AddGauge("Steam pressure", "蒸汽壓力", 0, 1300, () => _sim.SteamPressure * 145.038, () => $"{_sim.SteamPressure * 145.038:F0} psia", id: "sgPress");
         AddGauge("Containment press", "安全殼壓力", 0, 50, () => _sim.ContainmentPressurePsig, () => $"{_sim.ContainmentPressurePsig:F1} psig", warnFrac: 4.0 / 50.0, id: "ctmtPress");
         AddGauge("Containment temp", "安全殼溫度", 100, 300, () => _sim.ContainmentTempC * 1.8 + 32, () => $"{_sim.ContainmentTempC * 1.8 + 32:F0}°F", warnFrac: (200.0 - 100.0) / (300.0 - 100.0), id: "ctmtTemp");
+        // Pressurizer Relief Tank (PRT / quench tank) — a hot, rising-pressure PRT is the stuck-open-relief cue (TMI-2).
+        AddGauge("PRT pressure", "釋壓缸壓力", 0, 120, () => _sim.PrtPressurePsig,
+            () => $"{_sim.PrtPressurePsig:F1} psig"
+                + (_sim.PrtRuptureDiscBurst ? P(" · DISC BURST", " · 爆破片爆") : _sim.PrtDischarging ? P(" · discharging", " · 排放中") : ""),
+            warnFrac: 8.0 / 120.0, id: "prtPress");
+        AddGauge("PRT temp", "釋壓缸溫度", 80, 360, () => _sim.PrtWaterTempF, () => $"{_sim.PrtWaterTempF:F0}°F", warnFrac: (140.0 - 80.0) / (360.0 - 80.0), id: "prtTemp");
+        AddGauge("PRT level", "釋壓缸水位", 0, 100, () => _sim.PrtWaterLevelPct, () => $"{_sim.PrtWaterLevelPct:F0}%", id: "prtLevel");
         AddGauge("SG level", "蒸發器水位", 0, 100, () => _sim.IndicatedSgLevel, () => $"{_sim.IndicatedSgLevel:F0}%", id: "sgLevel");
         AddGauge("Final feedwater temp", "最終給水溫度", 80, 480, () => _sim.FinalFeedwaterTempC * 1.8 + 32,
             () => $"{_sim.FinalFeedwaterTempC * 1.8 + 32:F0}°F"
@@ -753,6 +760,10 @@ public sealed partial class ReactorModule : Page
             (ReactorAlarm.ContainmentIsolation, "CTMT ISOLATION", "安全殼隔離"),
             (ReactorAlarm.ContainmentSpray, "CTMT SPRAY", "安全殼噴淋"),
             (ReactorAlarm.PzrCodeSafetyOpen, "PZR SAFETY OPEN", "穩壓器安全閥起跳"),
+            (ReactorAlarm.PrtPressureHi, "PRT PRESS HI", "釋壓缸壓力高"),
+            (ReactorAlarm.PrtTempHi, "PRT TEMP HI", "釋壓缸溫度高"),
+            (ReactorAlarm.PrtLevelAbnormal, "PRT LEVEL ABNORMAL", "釋壓缸水位異常"),
+            (ReactorAlarm.PrtRuptureDisc, "PRT RUPTURE DISC BURST", "釋壓缸爆破片爆裂"),
             (ReactorAlarm.RodInsertionLimitLo, "ROD INS LIMIT LO", "控制棒插入限值 低"),
             (ReactorAlarm.RodInsertionLimitLoLo, "ROD INS LIMIT LO-LO", "控制棒插入限值 低低"),
             (ReactorAlarm.RodDeviation, "ROD DEVIATION", "控制棒偏差"),
