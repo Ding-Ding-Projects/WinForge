@@ -87,8 +87,30 @@ public sealed partial class ReactorModule : Page
     // Audio.
     private bool _audioStarted;
     private bool _lastScram;
-    private bool _alarmsAcked;
-    private bool _silenced;
+    private bool _silenced;   // SCRAM-klaxon silence (legacy global silence)
+
+    // ---- ISA-18.1 sequence "R-F" annunciator state machine (Ringback + First-out) ----
+    // The reactor's alarms are a plain bool[] source (ReactorSimService.Alarm). Real control-board
+    // annunciator windows are NOT plain on/off lamps — they follow an ISA-18.1-1979 (R2004) sequence:
+    // a new point FAST-FLASHES (120 fpm / 2 Hz) with the horn, ACKNOWLEDGE converts it to STEADY and
+    // silences the horn, and when the process clears the window does NOT go dark — it SLOW-FLASHES
+    // (60 fpm / 1 Hz) in "ringback" with a soft chime until the operator presses RESET. The FIRST point
+    // to come in after a quiescent panel latches as the "first-out" so the trip initiator is identifiable
+    // in a cascade. This is a pure HMI/state-machine layer over the existing alarm booleans — it touches
+    // no physics, no reactivity, no energy balance, and the meltdown/ARM path is unaffected.
+    private enum AnnState : byte { Normal, FastFlash, FastFlashFirstOut, Acked, Ringback }
+    private readonly List<ReactorAlarm> _annKeys = new();               // stable iteration order (defs order)
+    private readonly Dictionary<ReactorAlarm, AnnState> _annState = new();
+    private readonly Dictionary<ReactorAlarm, bool> _annPrevRaw = new();// edge memory
+    private ReactorAlarm? _firstOut;                                    // single global first-out latch
+    private bool _silenceHorn;                                         // SILENCE — horn off, lamps keep flashing
+    private bool _ackPending, _resetPending;                           // operator action edges (consumed next tick)
+    private bool _lampTestHeld;                                        // TEST — render override, never mutates state
+    private double _annPhase;                                          // wall-clock-free shared flash accumulator
+    private const double AnnFastPeriod = 0.5;  // s — 2.0 Hz / 120 fpm fast (unacked) flash
+    private const double AnnSlowPeriod = 1.0;  // s — 1.0 Hz /  60 fpm slow (ringback) flash; LCM = 1.0 s
+    private bool AnnFastOn => (_annPhase % AnnFastPeriod) < AnnFastPeriod * 0.5;
+    private bool AnnSlowOn => (_annPhase % AnnSlowPeriod) < AnnSlowPeriod * 0.5;
 
     // Keep-awake (real OS) state driven by the simulated generator output.
     // 由模擬發電機輸出驅動嘅真實作業系統保持喚醒狀態。
@@ -202,7 +224,9 @@ public sealed partial class ReactorModule : Page
             "四通道四取二符合邏輯，採用西屋跳脫定值。單一通道跳脫只屬部分跳脫（琥珀色）— 須同一功能四取二（≥2 通道）方會觸發停堆。允許訊號 P-6／P-7／P-8／P-9／P-10 會封鎖低功率跳脫。");
         GaugesTitle.Text = P("Instrument Gauges · 儀表", "儀表 · Instrument Gauges");
         TrendTitle.Text = P("Strip-Chart Recorders · 趨勢記錄儀", "趨勢記錄儀 · Strip-Chart Recorders");
-        AlarmTitle.Text = P("Annunciator Panel · 警報盤", "警報盤 · Annunciator Panel");
+        AlarmTitle.Text = P(
+            "Annunciator Panel (ISA-18.1 R-F) · 警報盤 — fast-flash=new+horn · magenta=first-out · steady=ack'd · slow teal=ringback (RESET to clear)",
+            "警報盤（ISA-18.1 R-F 序列）· 快閃＋喇叭＝新警報 · 洋紅＝首發（First-out）· 長亮＝已確認 · 慢藍綠閃＝回響（Ringback，按重置清除）");
         ScramText.Text = P("⚠ SCRAM — EMERGENCY SHUTDOWN ⚠ · 緊急停堆", "⚠ 緊急停堆 SCRAM ⚠ · EMERGENCY SHUTDOWN");
         ResetTripButton.Content = P("Reset trip · 重置跳機", "重置跳機 · Reset trip");
         AutoRunToggle.Header = P("Auto rod control · 自動棒控", "自動棒控 · Auto rod control");
@@ -225,6 +249,7 @@ public sealed partial class ReactorModule : Page
 
         _sim.Update(dt);
 
+        UpdateAnnunciator(dt);   // ISA-18.1 R-F sequence pass — must run before tile render + audio
         UpdateKeepAwake();
         UpdateStatusBanner();
         UpdateGauges();
@@ -252,13 +277,16 @@ public sealed partial class ReactorModule : Page
 
         bool enabled = a.Enabled;
         a.Hum(enabled);
-        // Klaxon while scrammed (unless silenced); annunciator buzzer while any alarm active & unacked.
+        // Klaxon while scrammed (unless silenced). The annunciator HORN sounds while any window is in a
+        // fast-flash (active + unacknowledged) state and not SILENCEd — exactly the ISA-18.1 sequence. A
+        // distinct, softer RINGBACK chime sounds while any window is cleared-but-not-reset (slow flash).
         a.Klaxon(enabled && _sim.IsScrammed && !_silenced);
-        a.Buzzer(enabled && AnyAlarm() && !_alarmsAcked && !_silenced && !_sim.IsScrammed);
+        a.Buzzer(enabled && AnnHornAudible() && !_sim.IsScrammed);
+        a.Ringback(enabled && AnnAnyRingback() && !_silenceHorn);
         a.EvacTone(enabled && _sim.Mode == ReactorMode.Meltdown);
 
-        // Relay click on fresh SCRAM edge.
-        if (_sim.IsScrammed && !_lastScram) { a.RelayClick(); _silenced = false; _alarmsAcked = false; }
+        // Relay click on fresh SCRAM edge; a fresh trip re-sounds the horn/klaxon (clears any prior silence).
+        if (_sim.IsScrammed && !_lastScram) { a.RelayClick(); _silenced = false; _silenceHorn = false; }
         _lastScram = _sim.IsScrammed;
     }
 
@@ -289,6 +317,109 @@ public sealed partial class ReactorModule : Page
     {
         foreach (ReactorAlarm a in Enum.GetValues(typeof(ReactorAlarm)))
             if (_sim.Alarm(a)) return true;
+        return false;
+    }
+
+    // ====================================================== ANNUNCIATOR SEQUENCE (ISA-18.1 R-F) ====
+    // One deterministic Update(dt) is the sole mutator of the per-window state; tile render and audio
+    // are pure reads. All timing is dt-accumulated + modulo (no DateTime / frame counts), so the flash
+    // cadence is identical at any frame rate. Zero per-frame heap allocation.
+    private void UpdateAnnunciator(double dt)
+    {
+        // Shared flash phase, bounded to the LCM of the fast/slow periods (1.0 s) so it never grows.
+        _annPhase += dt;
+        if (_annPhase >= AnnSlowPeriod) _annPhase -= AnnSlowPeriod;
+
+        // Consume operator action edges latched by the ACK / RESET buttons.
+        bool ack = _ackPending; _ackPending = false;
+        bool reset = _resetPending; _resetPending = false;
+
+        // Is the panel quiescent? (no window currently active + unacknowledged) — the first-out arming gate.
+        bool quiescent = true;
+        foreach (var k in _annKeys)
+        {
+            var s = _annState[k];
+            if (s == AnnState.FastFlash || s == AnnState.FastFlashFirstOut) { quiescent = false; break; }
+        }
+
+        bool anyRising = false;
+        foreach (var k in _annKeys)
+        {
+            bool on = _sim.Alarm(k);
+            bool was = _annPrevRaw[k];
+            bool rising = on && !was;
+            bool falling = !on && was;
+            var s = _annState[k];
+
+            // RESET (global): ringback → normal; cleared-acked → normal; a still-live alarm cannot be
+            // reset away — it demotes to steady Acked so the operator can never clear a real condition.
+            if (reset)
+            {
+                if (s == AnnState.Ringback) s = AnnState.Normal;
+                else if (s == AnnState.Acked && !on) s = AnnState.Normal;
+                else if ((s == AnnState.FastFlash || s == AnnState.FastFlashFirstOut) && on) s = AnnState.Acked;
+            }
+
+            // Incoming alarm: the first point in after a quiescent panel latches as first-out.
+            if (rising)
+            {
+                anyRising = true;
+                if (s == AnnState.Normal || s == AnnState.Ringback)
+                {
+                    if (quiescent && _firstOut == null) { s = AnnState.FastFlashFirstOut; _firstOut = k; }
+                    else s = AnnState.FastFlash;
+                }
+            }
+            else if (falling)
+            {
+                // Process cleared but not yet reset → ringback slow-flash.
+                if (s == AnnState.FastFlash || s == AnnState.FastFlashFirstOut || s == AnnState.Acked)
+                    s = AnnState.Ringback;
+            }
+
+            // ACKNOWLEDGE: every active + unacked window → steady Acked (horn drops). First-out latch held.
+            if (ack && (s == AnnState.FastFlash || s == AnnState.FastFlashFirstOut))
+                s = AnnState.Acked;
+
+            _annState[k] = s;
+            _annPrevRaw[k] = on;
+        }
+
+        // First-out latch clears on RESET, or automatically once the panel returns to fully quiescent
+        // (no active-unacked window remains), re-arming for the next quiescent→alarm burst.
+        if (reset) _firstOut = null;
+        else if (_firstOut != null && _annState[_firstOut.Value] != AnnState.FastFlashFirstOut)
+        {
+            bool anyActive = false;
+            foreach (var k in _annKeys)
+            {
+                var s = _annState[k];
+                if (s == AnnState.FastFlash || s == AnnState.FastFlashFirstOut) { anyActive = true; break; }
+            }
+            if (!anyActive) _firstOut = null;
+        }
+
+        // SILENCE auto-cancels on the next NEW alarm so a fresh excursion re-sounds the horn (reflash).
+        if (anyRising) { _silenceHorn = false; _silenced = false; }
+    }
+
+    // Horn sounds while any window is active + unacknowledged and SILENCE is not engaged.
+    private bool AnnHornAudible()
+    {
+        if (_silenceHorn) return false;
+        foreach (var k in _annKeys)
+        {
+            var s = _annState[k];
+            if (s == AnnState.FastFlash || s == AnnState.FastFlashFirstOut) return true;
+        }
+        return false;
+    }
+
+    // Ringback chime sounds while any window is cleared-but-not-reset (slow flash).
+    private bool AnnAnyRingback()
+    {
+        foreach (var k in _annKeys)
+            if (_annState[k] == AnnState.Ringback) return true;
         return false;
     }
 
@@ -893,6 +1024,10 @@ public sealed partial class ReactorModule : Page
             };
             var tile = new AlarmTile { Border = border, Label = label, En = en, Zh = zh };
             _alarmTiles[a] = tile;
+            // Register the window with the ISA-18.1 sequencer (defs order = first-out priority order).
+            _annKeys.Add(a);
+            _annState[a] = AnnState.Normal;
+            _annPrevRaw[a] = false;
             _relocalizers.Add(() => label.Text = P(en, zh));
             label.Text = P(en, zh);
             AlarmPanel.Children.Add(border);
@@ -901,26 +1036,66 @@ public sealed partial class ReactorModule : Page
 
     private void UpdateAlarmTiles()
     {
-        bool flashOn = (int)(_flashPhase * 2) % 2 == 0;
+        bool fast = AnnFastOn;   // 2 Hz — new (unacknowledged) alarm
+        bool slow = AnnSlowOn;   // 1 Hz — ringback (cleared, awaiting reset)
         foreach (var kv in _alarmTiles)
         {
-            bool on = _sim.Alarm(kv.Key);
             var t = kv.Value;
-            if (on)
+            // TEST: every lamp asserted (both colors) so the operator can spot a dead tile — never alters state.
+            if (_lampTestHeld)
             {
-                bool critical = kv.Key is ReactorAlarm.CoreDamage or ReactorAlarm.Scram or ReactorAlarm.HighFuelTemp or ReactorAlarm.HighPressure;
-                Color c = critical
-                    ? (flashOn ? Color.FromArgb(255, 0xD3, 0x2F, 0x2F) : Color.FromArgb(255, 0x7F, 0x1D, 0x1D))
-                    : Color.FromArgb(255, 0xF5, 0x7C, 0x00);
-                t.Border.Background = new SolidColorBrush(c);
+                t.Border.Background = new SolidColorBrush(Color.FromArgb(255, 0xF5, 0x7C, 0x00));
                 t.Border.BorderBrush = new SolidColorBrush(Colors.White);
+                t.Border.BorderThickness = new Thickness(1);
                 t.Label.Foreground = new SolidColorBrush(Colors.White);
+                continue;
             }
-            else
+
+            var s = _annState.TryGetValue(kv.Key, out var st) ? st : AnnState.Normal;
+            bool critical = kv.Key is ReactorAlarm.CoreDamage or ReactorAlarm.Scram or ReactorAlarm.HighFuelTemp or ReactorAlarm.HighPressure;
+            Color bright = critical ? Color.FromArgb(255, 0xD3, 0x2F, 0x2F) : Color.FromArgb(255, 0xF5, 0x7C, 0x00);
+            Color dim    = critical ? Color.FromArgb(255, 0x7F, 0x1D, 0x1D) : Color.FromArgb(255, 0x8A, 0x46, 0x00);
+
+            switch (s)
             {
-                t.Border.Background = new SolidColorBrush(Color.FromArgb(40, 0x88, 0x88, 0x88));
-                t.Border.BorderBrush = new SolidColorBrush(Color.FromArgb(60, 0xAA, 0xAA, 0xAA));
-                t.Label.Foreground = new SolidColorBrush(Color.FromArgb(160, 0xCC, 0xCC, 0xCC));
+                case AnnState.FastFlashFirstOut:
+                    // First-out: distinct magenta fast-flash + thick white border marks the trip initiator.
+                    t.Border.Background = new SolidColorBrush(fast ? Color.FromArgb(255, 0xE0, 0x40, 0xFF) : Color.FromArgb(255, 0x55, 0x10, 0x66));
+                    t.Border.BorderBrush = new SolidColorBrush(Colors.White);
+                    t.Border.BorderThickness = new Thickness(3);
+                    t.Label.Foreground = new SolidColorBrush(Colors.White);
+                    break;
+
+                case AnnState.FastFlash:
+                    // New alarm: bright fast-flash + horn.
+                    t.Border.Background = new SolidColorBrush(fast ? bright : dim);
+                    t.Border.BorderBrush = new SolidColorBrush(Colors.White);
+                    t.Border.BorderThickness = new Thickness(1);
+                    t.Label.Foreground = new SolidColorBrush(Colors.White);
+                    break;
+
+                case AnnState.Acked:
+                    // Acknowledged: steady-on, horn off. First-out window keeps its white border as the initiator.
+                    t.Border.Background = new SolidColorBrush(bright);
+                    t.Border.BorderBrush = new SolidColorBrush(_firstOut == kv.Key ? Colors.White : Color.FromArgb(180, 0xDD, 0xDD, 0xDD));
+                    t.Border.BorderThickness = new Thickness(_firstOut == kv.Key ? 3 : 1);
+                    t.Label.Foreground = new SolidColorBrush(Colors.White);
+                    break;
+
+                case AnnState.Ringback:
+                    // Cleared but not reset: slow teal flash + soft ringback chime until RESET.
+                    t.Border.Background = new SolidColorBrush(slow ? Color.FromArgb(255, 0x00, 0x6B, 0x6B) : Color.FromArgb(255, 0x06, 0x24, 0x24));
+                    t.Border.BorderBrush = new SolidColorBrush(slow ? Color.FromArgb(220, 0x4D, 0xD0, 0xC8) : Color.FromArgb(120, 0x2E, 0x6E, 0x6A));
+                    t.Border.BorderThickness = new Thickness(1);
+                    t.Label.Foreground = new SolidColorBrush(Color.FromArgb(230, 0xCC, 0xF7, 0xF4));
+                    break;
+
+                default: // Normal
+                    t.Border.Background = new SolidColorBrush(Color.FromArgb(40, 0x88, 0x88, 0x88));
+                    t.Border.BorderBrush = new SolidColorBrush(Color.FromArgb(60, 0xAA, 0xAA, 0xAA));
+                    t.Border.BorderThickness = new Thickness(1);
+                    t.Label.Foreground = new SolidColorBrush(Color.FromArgb(160, 0xCC, 0xCC, 0xCC));
+                    break;
             }
         }
     }
@@ -1529,38 +1704,45 @@ public sealed partial class ReactorModule : Page
     }
 
     // ================================================================ ANNUNCIATOR BUTTONS ====
+    // ISA-18.1 pushbutton semantics. The actions are latched here and applied in the next UpdateAnnunciator
+    // tick so the sequence state machine remains the single mutator (no UI/tick races).
     private void Ack_Click(object sender, RoutedEventArgs e)
     {
-        _alarmsAcked = true;
+        // ACKNOWLEDGE: fast-flashing windows → steady; horn silenced. First-out latch is preserved.
+        _ackPending = true;
         ReactorAudioEngine.I.Beep(accept: true);
     }
 
     private void Silence_Click(object sender, RoutedEventArgs e)
     {
+        // SILENCE: horn (and SCRAM klaxon) off only — lamps keep flashing, windows stay unacknowledged.
+        _silenceHorn = true;
         _silenced = true;
         ReactorAudioEngine.I.Klaxon(false);
         ReactorAudioEngine.I.Buzzer(false);
+        ReactorAudioEngine.I.Ringback(false);
         ReactorAudioEngine.I.Beep(accept: false);
     }
 
     private void ResetAlarms_Click(object sender, RoutedEventArgs e)
     {
-        _alarmsAcked = false;
+        // RESET: ringback (cleared) windows → dark; clears the first-out latch. A still-live alarm cannot
+        // be reset away (it demotes to steady Acked inside the sequencer).
+        _resetPending = true;
         _silenced = false;
+        _silenceHorn = false;
         ReactorAudioEngine.I.Beep(accept: true);
     }
 
     private void LampTest_Click(object sender, RoutedEventArgs e)
     {
-        // Flash every annunciator tile + CSF cell amber for a moment (lamp test).
-        foreach (var kv in _alarmTiles)
-        {
-            kv.Value.Border.Background = new SolidColorBrush(Color.FromArgb(255, 0xF5, 0x7C, 0x00));
-            kv.Value.Label.Foreground = new SolidColorBrush(Colors.White);
-        }
+        // TEST: assert every lamp for ~700 ms so the operator can spot a dead tile. Pure render override —
+        // it never mutates the latched sequence/first-out state (UpdateAlarmTiles honours _lampTestHeld).
+        _lampTestHeld = true;
+        UpdateAlarmTiles();
         ReactorAudioEngine.I.Beep(accept: true);
         var t = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(700) };
-        t.Tick += (_, _) => { t.Stop(); UpdateAlarmTiles(); };
+        t.Tick += (_, _) => { t.Stop(); _lampTestHeld = false; UpdateAlarmTiles(); };
         t.Start();
     }
 
