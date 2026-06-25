@@ -975,6 +975,7 @@ public sealed partial class ReactorModule : Page
             (ReactorAlarm.QuadrantPowerTiltHi, "QPTR > 1.02 (LCO 3.2.4)", "象限傾斜 >1.02"),
             (ReactorAlarm.DroppedRcca, "DROPPED RCCA — ROD BOTTOM", "落棒 — 控制棒到底"),
             (ReactorAlarm.RodEjectionAccident, "ROD EJECTION (RIA)", "彈棒事故 RIA"),
+            (ReactorAlarm.RccaWithdrawalAccident, "RCCA WITHDRAWAL (15.4.1/2)", "失控提棒（15.4.1/2）"),
             (ReactorAlarm.FuelEnthalpyLimit, "FUEL ENTHALPY > 230 cal/g", "燃料焓 >230 cal/g"),
             (ReactorAlarm.RiaCladFailure, "RIA FUEL FAILURE", "彈棒燃料失效"),
             (ReactorAlarm.CoreDamage, "CORE DAMAGE", "爐心受損"),
@@ -1569,6 +1570,7 @@ public sealed partial class ReactorModule : Page
         ScenarioCombo.Items.Add(P("RCP locked rotor (Ch 15.3.3)", "主泵卡軸（15.3.3）"));
         ScenarioCombo.Items.Add(P("Loss of feedwater heating (Ch 15.1.1)", "喪失給水加熱（15.1.1）"));
         ScenarioCombo.Items.Add(P("Loss of component cooling water (LCO 3.7.7)", "喪失設備冷卻水（LCO 3.7.7）"));
+        ScenarioCombo.Items.Add(P("Uncontrolled RCCA withdrawal (Ch 15.4.1/2)", "失控提棒（15.4.1/2）"));
         ScenarioCombo.SelectedIndex = 0;
     }
 
@@ -1606,6 +1608,7 @@ public sealed partial class ReactorModule : Page
             12 => ReactorScenario.LockedRotor,
             13 => ReactorScenario.LossOfFeedwaterHeating,
             14 => ReactorScenario.LossOfComponentCoolingWater,
+            15 => ReactorScenario.RccaWithdrawal,
             _ => ReactorScenario.Normal,
         });
         // The isolate control is meaningful during an SGTR (isolate affected SG) or an MSLB (close MSIVs).

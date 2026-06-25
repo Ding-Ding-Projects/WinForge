@@ -18,6 +18,7 @@ public enum ReactorScenario
     RcpSealLoca,       // 主泵軸封失水 · RCP seal LOCA — loss of all seal cooling → degraded seal leakoff (WOG-2000)
     RodEjection,       // 彈棒事故 · rod ejection accident (RIA/REA, FSAR Ch 15.4.8) — CRDM failure ejects an RCCA
     BoronDilution,     // 失控硼稀釋 · uncontrolled boron dilution (FSAR Ch 15.4.6) — unborated water added to RCS → +reactivity
+    RccaWithdrawal,    // 失控提棒 · uncontrolled RCCA bank withdrawal (FSAR Ch 15.4.1 HZP / 15.4.2 at-power) — a control bank is driven out at maximum drive speed (72 spm); reactivity is inserted purely through rodRho and the event is terminated emergently by the RPS (Power-Range/IR Hi-Flux, OTΔT/OPΔT) — no scripted trip
     CompleteLossOfFlow,// 全喪失強制流量 · complete loss of forced flow (FSAR Ch 15.3.2) — all 4 RCPs trip, coast on flywheels
     LockedRotor,       // 主泵卡軸 · RCP rotor seizure / locked rotor (FSAR Ch 15.3.3) — one loop flow→0 instantly, no coastdown
     LossOfFeedwaterHeating, // 喪失給水加熱 · loss of feedwater heating (FSAR Ch 15.1.1) — HP heater string trips → colder feedwater → secondary overcooling → +reactivity via MTC

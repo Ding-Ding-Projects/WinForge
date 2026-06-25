@@ -145,6 +145,7 @@ public enum ReactorAlarm
     RcsDeI131SpikeLimit,    // RCS Dose-Equiv I-131 > 60 µCi/g (transient / iodine-spike limit)
     RcsDeXe133LcoExceeded,  // RCS Dose-Equiv Xe-133 > 280 µCi/g (noble-gas LCO 3.4.16)
     IodineSpikeInProgress,  // an 8-h concurrent iodine spike (RG 1.183) is active
+    RccaWithdrawalAccident, // 失控提棒事故 · uncontrolled RCCA bank withdrawal (FSAR 15.4.1/2) in progress — a control bank is being driven out at maximum drive speed
     BoronDilution,          // uncontrolled boron dilution (FSAR 15.4.6) — source-range count-rate rising while subcritical
     BoronDilutionActionWindow, // dilution time-to-loss-of-SDM has fallen below the 15-min operator-action criterion
     BoricAcidPrecipApproach,   // post-LOCA core boric-acid conc within 90% of the solubility limit — establish hot-leg recirc (ES-1.4)
@@ -923,6 +924,12 @@ public sealed class ReactorSimService
     private bool   _dilutionActive;
     private double _dilutionFlowGpm;
     private double _dilutionCpsRef = 1.0;   // source-range count-rate datum captured at event onset (flux-doubling alarm)
+
+    // Uncontrolled RCCA bank withdrawal (FSAR 15.4.1 HZP / 15.4.2 at-power) state. While active, UpdateScenarios
+    // is the SOLE writer of the group-demand counter (_rccaWithdrawActive forces AutoRodControl off, so the
+    // Tavg/Tref controller in UpdateAutoRods never runs) — exactly the single-author pattern used by _dilutionActive.
+    private bool   _rccaWithdrawActive;
+    private double _rccaWithdrawSpm = RodSpeedMaxSpm;   // commanded outward drive speed (steps/min); 72 spm = drive maximum
     public bool PressurizerHeater { get; set; }
     public bool PressurizerSpray { get; set; }
     public bool PzrAutoPressureControl { get; set; } = true; // automatic Westinghouse pressure-control program
@@ -962,6 +969,11 @@ public sealed class ReactorSimService
     public double Tref { get; private set; } = NoLoadTavg;     // °C, load-programmed reference temperature
     public double TavgTrefError { get; private set; }          // °C, Tavg − Tref (positive = too hot)
     public double RodSpeedDemandSpm { get; private set; }      // steps/min commanded by the speed program (signed: + = withdraw)
+
+    // ===== Uncontrolled RCCA bank withdrawal (FSAR 15.4.1/2) telemetry — all emergent, nothing scripted =====
+    public double RccaWithdrawSpm           { get; private set; }      // steps/min — commanded outward drive speed (0 when inactive)
+    public double RodInsertionRatePcmPerSec { get; private set; }      // pcm/s — live d(rodRho·1e5)/dt; the insertion-rate figure of merit (+ = positive reactivity inserted)
+    public bool   RccaWithdrawalActive => _rccaWithdrawActive;         // a control bank is being driven out under the scenario (latched until reset)
 
     // Derived flow
     public double CoolantFlowFraction { get; private set; } // 0..1 actual primary flow
@@ -2296,6 +2308,7 @@ public sealed class ReactorSimService
         PeakFuelEnthalpyCalPerG = _hotPelletEnthalpy; PeakFuelEnthalpyRiseCalPerG = 0;
         RiaCladdingFailure = false; RiaFuelMelt = false; RiaCoolabilityViolated = false; RiaFailedRodPercent = 0;
         _dilutionActive = false; _dilutionFlowGpm = 0;
+        _rccaWithdrawActive = false; RccaWithdrawSpm = 0; RodInsertionRatePcmPerSec = 0;
         _lockedRotorLoop = -1;     // clear any prior RCP rotor seizure (15.3.3)
         FeedwaterHeatersInService = 1.0; // restore the full feedwater-heating train (clears a prior loss-of-FWH event)
         // Re-arm the boric-acid precipitation monitor for the new scenario (operator must re-elect ES-1.4).
@@ -2357,6 +2370,19 @@ public sealed class ReactorSimService
                 _dilutionActive = true;
                 _dilutionFlowGpm = DilutionFlowDefaultGpm;
                 _dilutionCpsRef  = Math.Max(1.0, SourceRangeCps);
+                break;
+            case ReactorScenario.RccaWithdrawal:
+                // FSAR 15.4.1 (HZP/subcritical-startup) / 15.4.2 (at-power): a rod-control-system or CRDM
+                // failure drives a control bank continuously outward at the drive-mechanism maximum. We change
+                // ONE boundary condition — force manual rod control and let UpdateScenarios advance the group-
+                // demand counter at the commanded speed. Everything downstream is emergent: rodRho inserts the
+                // positive reactivity, Doppler turns the excursion over, and the RPS (Power-Range/IR Hi-Flux,
+                // short-period, OTΔT/OPΔT) scrams on its own — which trip fires depends only on the operator's
+                // initial power. No trip is scripted here.
+                AutoRodControl      = false;  // sole-writer guarantee: UpdateAutoRods is gated on AutoRodControl
+                _autoRodWasOn       = false;  // a later AUTO re-engage re-syncs the counter bumplessly (InferRodDemandFromBanks)
+                _rccaWithdrawActive = true;
+                _rccaWithdrawSpm    = RodSpeedMaxSpm;   // 72 spm — the bounding maximum-speed withdrawal
                 break;
             case ReactorScenario.CompleteLossOfFlow:
                 // FSAR 15.3.2: loss of power to all RCP buses (undervoltage/underfrequency) — every pump trips
@@ -2669,6 +2695,8 @@ public sealed class ReactorSimService
         PumpedFlowFraction = 0; NaturalCircFraction = 0; RcpCoasting = false; OnNaturalCirc = false;
         BoronPpm = NominalBoron; TargetBoronPpm = NominalBoron;
         _dilutionActive = false; _dilutionFlowGpm = 0; _dilutionCpsRef = 1.0;
+        _rccaWithdrawActive = false; _rccaWithdrawSpm = RodSpeedMaxSpm;
+        RccaWithdrawSpm = 0; RodInsertionRatePcmPerSec = 0;
         PressurizerHeater = false; PressurizerSpray = false; RcpFlowDemand = 0;
         FeedwaterFlow = 0; TurbineLoadSetpoint = 0; GeneratorBreakerClosed = false;
         // Generator electrical: back to a de-excited, offline machine.
@@ -3150,6 +3178,27 @@ public sealed class ReactorSimService
             double kPerSec = (_dilutionFlowGpm / RcsMixVolumeGal) / 60.0;   // 1/s  (gpm/gal/60 = 1/s)
             BoronPpm = Math.Max(0.0, BoronPpm * Math.Exp(-kPerSec * dt));
         }
+
+        // Uncontrolled RCCA bank withdrawal (FSAR 15.4.1 HZP / 15.4.2 at-power): drive the group-demand
+        // counter outward at the commanded drive speed. This runs BEFORE the AutoRodControl/UpdateAutoRods
+        // guard in the tick, and AutoRodControl was forced false at trigger, so this is the sole writer of
+        // _rodDemandCounter while active — mirroring the _dilutionActive→BoronPpm single-author pattern. The
+        // positive reactivity is purely emergent through rodRho; no trip is scripted (the RPS scrams on its
+        // own). Once a trip seats the rods we hand control back: the counter stops advancing and is NOT reset,
+        // so post-trip rod telemetry stays honest.
+        if (_rccaWithdrawActive && !IsScrammed)
+        {
+            // rodRho = −TotalRodWorth·SumRodWorthFrac(), so the bank motion's reactivity rate is
+            // −TotalRodWorth·Δ(worthFrac)/dt. Snapshot worth before and after the step → the live pcm/s
+            // figure of merit. Withdrawing lowers the inserted worth fraction, so the rate comes out positive.
+            double worthBefore = SumRodWorthFrac();
+            _rodDemandCounter = Math.Clamp(_rodDemandCounter + (_rccaWithdrawSpm / 60.0) * dt, 0, RodTotalSpan);
+            ApplyOverlapToBanks(_rodDemandCounter);
+            double worthAfter = SumRodWorthFrac();
+            RodInsertionRatePcmPerSec = dt > 0 ? -TotalRodWorth * (worthAfter - worthBefore) * 1e5 / dt : 0.0;
+            RccaWithdrawSpm = _rccaWithdrawSpm;   // + = withdrawing outward (steps/min)
+        }
+        else { RccaWithdrawSpm = 0.0; RodInsertionRatePcmPerSec = 0.0; }
 
         // LOCA: bleed primary pressure/inventory through the break.
         if (_breakArea > 0)
@@ -5027,6 +5076,7 @@ public sealed class ReactorSimService
         RiaFailedRodPercent = failed;
 
         SetAlarm(ReactorAlarm.RodEjectionAccident, _riaActive);
+        SetAlarm(ReactorAlarm.RccaWithdrawalAccident, _rccaWithdrawActive && !IsScrammed);
         SetAlarm(ReactorAlarm.FuelEnthalpyLimit, RiaCoolabilityViolated);
         SetAlarm(ReactorAlarm.RiaCladFailure, RiaCladdingFailure);
     }
