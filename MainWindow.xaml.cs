@@ -589,6 +589,11 @@ public sealed partial class MainWindow : Window
             case "vboxmanage":
                 Navigator.GoToModule?.Invoke("module.virtualbox");
                 break;
+            case "proxmox":
+            case "pve":
+            case "vmhost":
+                Navigator.GoToModule?.Invoke("module.proxmox");
+                break;
             case "terminal":
             case "wt":
             case "windowsterminal":
@@ -894,6 +899,7 @@ public sealed partial class MainWindow : Window
         "module.windhawk" => typeof(WindhawkModule),
         "module.wslvm" => typeof(WslVmModule),
         "module.virtualbox" => typeof(VirtualBoxModule),
+        "module.proxmox" => typeof(ProxmoxModule),
         "module.terminal" => typeof(TerminalModule),
         "module.fonts" => typeof(FontManagerModule),
         "module.onedrive" => typeof(OneDriveModule),

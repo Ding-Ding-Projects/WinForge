@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.ProxmoxModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid Padding="24,16,24,0" RowSpacing="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Spacing="6">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <FontIcon FontSize="22" Glyph="&#xE83B;" VerticalAlignment="Center" />
+                <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
+            </StackPanel>
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+        </StackPanel>
+
+        <!-- Connection -->
+        <Expander x:Name="ConnExpander" Grid.Row="1" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" IsExpanded="True">
+            <Expander.Header>
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <FontIcon FontSize="16" Glyph="&#xE968;" VerticalAlignment="Center" />
+                    <TextBlock x:Name="ConnHeader" VerticalAlignment="Center" FontWeight="SemiBold" />
+                    <Border x:Name="ConnPill" CornerRadius="10" Padding="8,2,8,2" Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}">
+                        <TextBlock x:Name="ConnState" FontSize="12" />
+                    </Border>
+                </StackPanel>
+            </Expander.Header>
+            <StackPanel Spacing="10" Margin="0,4,0,0">
+                <Grid ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="3*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox x:Name="HostBox" Grid.Column="0" Header="Host / IP · 主機／IP" PlaceholderText="proxmox.lan or 192.168.1.10" />
+                    <NumberBox x:Name="PortBox" Grid.Column="1" Header="Port · 連接埠" Value="8006" SpinButtonPlacementMode="Compact" Minimum="1" Maximum="65535" />
+                </Grid>
+
+                <!-- Auth mode picker -->
+                <StackPanel Orientation="Horizontal" Spacing="16">
+                    <TextBlock x:Name="AuthModeLbl" VerticalAlignment="Center" />
+                    <RadioButton x:Name="TokenModeRadio" GroupName="pveauth" Checked="AuthMode_Changed" />
+                    <RadioButton x:Name="TicketModeRadio" GroupName="pveauth" Checked="AuthMode_Changed" />
+                </StackPanel>
+
+                <!-- API token fields -->
+                <StackPanel x:Name="TokenPanel" Spacing="10">
+                    <TextBox x:Name="TokenIdBox" Header="Token ID · Token 識別碼" PlaceholderText="user@realm!tokenid" />
+                    <PasswordBox x:Name="TokenSecretBox" Header="Token secret · Token 秘密" PlaceholderText="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+                </StackPanel>
+
+                <!-- Ticket (user/pass) fields -->
+                <StackPanel x:Name="TicketPanel" Spacing="10" Visibility="Collapsed">
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="UserBox" Grid.Column="0" Header="Username · 帳號" Text="root" />
+                        <TextBox x:Name="RealmBox" Grid.Column="1" Header="Realm · 領域" Text="pam" />
+                    </Grid>
+                    <PasswordBox x:Name="PassBox" Header="Password · 密碼" PlaceholderText="account password · 帳戶密碼" />
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
+                    <ToggleSwitch x:Name="TrustCertToggle" OnContent="" OffContent="" MinWidth="0" />
+                    <TextBlock x:Name="TrustCertLbl" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="520" />
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <CheckBox x:Name="RememberChk" />
+                    <Button x:Name="ConnectBtn" Click="Connect_Click" Style="{StaticResource AccentButtonStyle}" />
+                    <Button x:Name="DisconnectBtn" Click="Disconnect_Click" />
+                    <ProgressRing x:Name="ConnBusy" IsActive="False" Width="20" Height="20" VerticalAlignment="Center" />
+                </StackPanel>
+            </StackPanel>
+        </Expander>
+
+        <!-- Connection-state InfoBar -->
+        <InfoBar x:Name="ConnResult" Grid.Row="2" IsClosable="True" IsOpen="False" />
+
+        <!-- Guests -->
+        <Grid Grid.Row="3" RowSpacing="12">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- Power toolbar -->
+            <Grid Grid.Row="0" ColumnSpacing="6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Button x:Name="StartBtn" Grid.Column="0" Click="Start_Click" Style="{StaticResource AccentButtonStyle}">
+                    <StackPanel Orientation="Horizontal" Spacing="6"><FontIcon FontSize="14" Glyph="&#xE768;" /><TextBlock x:Name="StartLbl" /></StackPanel>
+                </Button>
+                <Button x:Name="ShutdownBtn" Grid.Column="1" Click="Shutdown_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="6"><FontIcon FontSize="14" Glyph="&#xE7E8;" /><TextBlock x:Name="ShutdownLbl" /></StackPanel>
+                </Button>
+                <Button x:Name="StopBtn" Grid.Column="2" Click="Stop_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="6"><FontIcon FontSize="14" Glyph="&#xE71A;" /><TextBlock x:Name="StopLbl" /></StackPanel>
+                </Button>
+                <Button x:Name="RebootBtn" Grid.Column="3" Click="Reboot_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="6"><FontIcon FontSize="14" Glyph="&#xE72C;" /><TextBlock x:Name="RebootLbl" /></StackPanel>
+                </Button>
+                <Button x:Name="SuspendBtn" Grid.Column="4" Click="Suspend_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="6"><FontIcon FontSize="14" Glyph="&#xE769;" /><TextBlock x:Name="SuspendLbl" /></StackPanel>
+                </Button>
+                <Button x:Name="ResumeBtn" Grid.Column="5" Click="Resume_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="6"><FontIcon FontSize="14" Glyph="&#xE768;" /><TextBlock x:Name="ResumeLbl" /></StackPanel>
+                </Button>
+                <TextBlock x:Name="SelectionInfo" Grid.Column="6" VerticalAlignment="Center" Margin="8,0,0,0" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" TextTrimming="CharacterEllipsis" />
+                <ToggleSwitch x:Name="AutoRefreshToggle" Grid.Column="7" IsOn="True" OnContent="" OffContent="" MinWidth="0" VerticalAlignment="Center" Toggled="AutoRefresh_Toggled" />
+                <TextBlock x:Name="AutoRefreshLbl" Grid.Column="8" VerticalAlignment="Center" FontSize="12" Margin="0,0,8,0" />
+                <Button x:Name="RefreshBtn" Grid.Column="9" Click="Refresh_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="6"><FontIcon FontSize="14" Glyph="&#xE72C;" /><ProgressRing x:Name="Busy" IsActive="False" Width="16" Height="16" /></StackPanel>
+                </Button>
+            </Grid>
+
+            <!-- Guest list -->
+            <Grid Grid.Row="1">
+                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <!-- column header -->
+                        <Grid Grid.Row="0" Padding="14,8,14,8" ColumnSpacing="12" Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" MinWidth="200" />
+                                <ColumnDefinition Width="110" />
+                                <ColumnDefinition Width="120" />
+                                <ColumnDefinition Width="120" />
+                                <ColumnDefinition Width="160" />
+                                <ColumnDefinition Width="90" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="ColName" Grid.Column="0" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock x:Name="ColType" Grid.Column="1" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock x:Name="ColStatus" Grid.Column="2" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock x:Name="ColCpu" Grid.Column="3" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock x:Name="ColMem" Grid.Column="4" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock x:Name="ColUptime" Grid.Column="5" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </Grid>
+
+                        <ListView x:Name="GuestList" Grid.Row="1" SelectionMode="Single"
+                                  SelectionChanged="GuestList_SelectionChanged">
+                            <ListView.ItemContainerStyle>
+                                <Style TargetType="ListViewItem">
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                    <Setter Property="Padding" Value="14,8,14,8" />
+                                </Style>
+                            </ListView.ItemContainerStyle>
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid ColumnSpacing="12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" MinWidth="200" />
+                                            <ColumnDefinition Width="110" />
+                                            <ColumnDefinition Width="120" />
+                                            <ColumnDefinition Width="120" />
+                                            <ColumnDefinition Width="160" />
+                                            <ColumnDefinition Width="90" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- name + node/vmid -->
+                                        <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{Binding Name}" />
+                                            <TextBlock Text="{Binding SubLine}" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+
+                                        <!-- type -->
+                                        <TextBlock Grid.Column="1" Text="{Binding TypeText}" VerticalAlignment="Center" FontSize="12" />
+
+                                        <!-- status pill -->
+                                        <Border Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Left" CornerRadius="10" Padding="10,2,10,2" Background="{Binding StatusBackground}">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <Border Width="8" Height="8" CornerRadius="4" VerticalAlignment="Center" Background="{Binding StatusDotBrush}" />
+                                                <TextBlock Text="{Binding StatusText}" FontSize="12" Foreground="{Binding StatusForeground}" />
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- cpu -->
+                                        <TextBlock Grid.Column="3" Text="{Binding CpuText}" VerticalAlignment="Center" FontSize="12" />
+
+                                        <!-- mem -->
+                                        <TextBlock Grid.Column="4" Text="{Binding MemText}" VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+
+                                        <!-- uptime -->
+                                        <TextBlock Grid.Column="5" Text="{Binding UptimeText}" VerticalAlignment="Center" FontSize="12" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+
+                        <!-- Empty -->
+                        <StackPanel x:Name="EmptyState" Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8" Visibility="Collapsed">
+                            <FontIcon FontSize="40" Glyph="&#xE83B;" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock x:Name="EmptyText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Center" TextWrapping="Wrap" MaxWidth="420" TextAlignment="Center" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- Detail card -->
+            <Border x:Name="DetailCard" Grid.Row="2" Visibility="Collapsed" Margin="0,0,0,12"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                <StackPanel Spacing="10">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock x:Name="SelName" Style="{StaticResource SubtitleTextBlockStyle}" TextWrapping="Wrap" />
+                            <TextBlock x:Name="SelState" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <Button Grid.Column="1" x:Name="DetailRefreshBtn" Click="DetailRefresh_Click" VerticalAlignment="Top">
+                            <FontIcon FontSize="14" Glyph="&#xE72C;" />
+                        </Button>
+                    </Grid>
+                    <Border Background="{ThemeResource LayerFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="6" Padding="10">
+                        <TextBox x:Name="ConfigBox" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap" FontFamily="Consolas" FontSize="12" BorderThickness="0" Background="Transparent" MinHeight="90" MaxHeight="200" />
+                    </Border>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</Page>
