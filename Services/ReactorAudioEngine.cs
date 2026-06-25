@@ -35,6 +35,7 @@ public sealed class ReactorAudioEngine : IDisposable
     private volatile bool _klaxonOn;
     private volatile bool _buzzerOn;
     private volatile bool _evacOn;
+    private volatile bool _ringbackOn;   // ISA-18.1 ringback chime (cleared-but-not-reset windows)
 
     // One-shot triggers (consumed by the render thread).
     private long _beepRequest;       // packed: bit0 = accept(1)/reject(0); incremented each request
@@ -54,6 +55,8 @@ public sealed class ReactorAudioEngine : IDisposable
 
     // ---- persistent voice phases (render-thread only) ----
     private double _phHum1, _phHum2, _phHum3, _phHum4, _phWhine, _phKlaxon, _phLfo, _phBuzzer, _phEvac;
+    private double _phRing;                       // ringback chime oscillator phase
+    private double _ringTime;                     // seconds within the 1 s ringback gate cycle
     private double _noiseLp;
     private double _humAmp, _whineAmp;          // smoothed amplitudes
     private double _evacTime;                    // seconds within the evac pattern cycle
@@ -117,6 +120,7 @@ public sealed class ReactorAudioEngine : IDisposable
     public void Klaxon(bool on) => _klaxonOn = on;
     public void Buzzer(bool on) => _buzzerOn = on;
     public void EvacTone(bool on) => _evacOn = on;
+    public void Ringback(bool on) => _ringbackOn = on;
 
     public void Beep(bool accept)
     {
@@ -129,7 +133,7 @@ public sealed class ReactorAudioEngine : IDisposable
     /// <summary>停止所有發聲（離開頁面）· Stop all voices (page unload) — keeps the graph alive.</summary>
     public void StopVoices()
     {
-        _humOn = _klaxonOn = _buzzerOn = _evacOn = false;
+        _humOn = _klaxonOn = _buzzerOn = _evacOn = _ringbackOn = false;
     }
 
     public void SetEnabled(bool on)
@@ -235,6 +239,22 @@ public sealed class ReactorAudioEngine : IDisposable
                     double gate = (Math.Sin(TwoPi * 6.0 * _evacTimeCounter) > 0) ? 1 : 0;
                     double sq = Math.Sign(Math.Sin(IntegratePhase(ref _phEvac, 660.0, dt)));
                     s += sq * 0.18 * gate;
+                }
+
+                // ---- ISA-18.1 ringback chime: soft 988 Hz two-tone bell, gated ~1 Hz (0.45 s on) ----
+                // Tonally distinct from (and quieter than) the 660 Hz alarm horn so the operator can hear
+                // the difference between a NEW alarm and a CLEARED window awaiting RESET.
+                if (_ringbackOn)
+                {
+                    double cyc = _ringTime;
+                    _ringTime += dt;
+                    if (_ringTime >= 1.0) _ringTime -= 1.0;
+                    if (cyc < 0.45)
+                    {
+                        _phRing += TwoPi * 988.0 * dt;
+                        double env = Math.Sin(Math.PI * (cyc / 0.45)); // smooth raised-cosine within the on-window
+                        s += (Math.Sin(_phRing) * 0.7 + Math.Sin(_phRing * 2.0) * 0.2) * 0.10 * env;
+                    }
                 }
 
                 // ---- evacuation Temporal-3 (3100 Hz) only during meltdown ----
