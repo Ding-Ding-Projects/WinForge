@@ -108,6 +108,7 @@
                     <NavigationViewItem.MenuItems>
                         <NavigationViewItem Content="Media · 媒體" Tag="module.media"><NavigationViewItem.Icon><FontIcon Glyph="&#xE714;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Audio Editor · 音訊編輯器" Tag="module.audioeditor"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8D6;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Audio Tagger · 音訊標籤編輯器" Tag="module.audiotagger"><NavigationViewItem.Icon><FontIcon Glyph="&#xEC4F;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Media Player · 媒體播放器" Tag="module.mediaplayer"><NavigationViewItem.Icon><FontIcon Glyph="&#xE714;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Media Downloader · 媒體下載器" Tag="module.ytdlp"><NavigationViewItem.Icon><FontIcon Glyph="&#xE896;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Blender (3D / Render) · Blender（3D／算圖）" Tag="module.blender"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7F4;" /></NavigationViewItem.Icon></NavigationViewItem>

@@ -159,6 +159,11 @@
     <!-- PdfPig (UglyToad.PdfPig, Apache-2.0)：純 C# PDF 文字抽取，畀「抽取全部文字」用。
          PdfPig: fully-managed PDF text extraction for the "extract all text" tool. -->
     <PackageReference Include="PdfPig" Version="0.1.10" />
+    <!-- TagLib#（TagLibSharp，LGPL-2.1）：純託管音訊中繼資料讀寫引擎，畀「音訊標籤編輯器」模組用 —
+         讀寫 ID3v1/v2、APE、Xiph（FLAC/OGG）、MP4/iTunes 標籤同封面圖，全部喺程序內，唔使外部工具。
+         TagLib# (TagLibSharp): fully-managed audio tag read/write engine for the Audio Tagger module
+         (ID3v1/v2, APE, Xiph for FLAC/OGG, MP4/iTunes tags + cover art) — all in-process, no external tool. -->
+    <PackageReference Include="TagLibSharp" Version="2.3.0" />
   </ItemGroup>
 
   <!--

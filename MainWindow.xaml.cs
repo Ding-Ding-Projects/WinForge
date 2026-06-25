@@ -740,6 +740,11 @@ public sealed partial class MainWindow : Window
             case "hxd":
             case "binary":
                 Navigator.GoToModule?.Invoke("module.hexeditor");
+            case "tags":
+            case "audiotags":
+            case "mp3tag":
+            case "tagging":
+                Navigator.GoToModule?.Invoke("module.audiotagger");
                 break;
             case "worldmonitor":
             case "world":
@@ -899,6 +904,7 @@ public sealed partial class MainWindow : Window
         "module.archives" => typeof(ArchivesModule),
         "module.media" => typeof(MediaModule),
         "module.audioeditor" => typeof(AudioEditorModule),
+        "module.audiotagger" => typeof(AudioTaggerModule),
         "module.mediaplayer" => typeof(MediaPlayerModule),
         "module.ytdlp" => typeof(YtDlpModule),
         "module.blender" => typeof(BlenderModule),
