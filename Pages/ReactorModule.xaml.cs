@@ -115,6 +115,13 @@ public sealed partial class ReactorModule : Page
             DrawMimicStatic();
             InitFx();
             Render();
+
+            // Reactor↔system-settings linkage: reflect the persisted toggle (DEFAULT OFF) and, if it
+            // was left on, re-arm it (which snapshots fresh originals). 反應堆連動系統設定（預設關閉）。
+            SysLinkToggle.IsOn = ReactorSystemLinkService.EnabledSetting;
+            if (SysLinkToggle.IsOn) ReactorSystemLinkService.I.Enable();
+            UpdateSysLinkPill();
+
             _last = DateTime.UtcNow;
             _timer.Tick += Tick;
             _timer.Start();
@@ -140,6 +147,11 @@ public sealed partial class ReactorModule : Page
             // SAFETY: always release the keep-awake hold when leaving the page so navigating
             // away never leaves the system pinned awake. 離開頁面時務必釋放保持喚醒。
             ReleaseKeepAwake();
+            // SAFETY: restore all real Windows settings (power plan / accent / brightness / volume)
+            // when leaving the page so the user is never stranded on a red accent or power-saver.
+            // The persisted toggle is left as-is, so it re-arms next time the page opens.
+            // 離開頁面時務必還原所有真實 Windows 設定，免得使用者卡喺紅色強調色或省電模式。
+            try { ReactorSystemLinkService.I.RestoreAll(); } catch { }
         };
     }
 
@@ -175,6 +187,13 @@ public sealed partial class ReactorModule : Page
         KeepAwakeToggle.Header = P("Keep PC awake while generating · 發電時保持電腦喚醒", "發電時保持電腦喚醒 · Keep PC awake while generating");
         KeepAwakeToggle.OnContent = P("On", "開");
         KeepAwakeToggle.OffContent = P("Off", "關");
+        SysLinkToggle.Header = P("Link reactor to system settings · 將反應堆連動系統設定", "將反應堆連動系統設定 · Link reactor to system settings");
+        SysLinkToggle.OnContent = P("On", "開");
+        SysLinkToggle.OffContent = P("Off", "關");
+        SysLinkWarn.Text = P(
+            "Changes your Windows power plan, accent colour and screen brightness to match the reactor. All originals are restored when you turn this off or leave the page. Default off.",
+            "會按反應堆狀態改變你嘅 Windows 電源計劃、強調色同螢幕亮度。當你關閉此選項或離開頁面時，全部會還原為原狀。預設關閉。");
+        UpdateSysLinkPill();
         MimicTitle.Text = P("Plant Mimic Diagram · 機組流程圖", "機組流程圖 · Plant Mimic Diagram");
         RpsTitle.Text = P("Reactor Protection System · 反應堆保護系統", "反應堆保護系統 · Reactor Protection System");
         RpsSubtitle.Text = P(
@@ -206,6 +225,7 @@ public sealed partial class ReactorModule : Page
         _sim.Update(dt);
 
         UpdateKeepAwake();
+        UpdateSysLink(dt);
         UpdateStatusBanner();
         UpdateGauges();
         UpdateAlarmTiles();
@@ -336,6 +356,57 @@ public sealed partial class ReactorModule : Page
         _keepAwakeEnabled = KeepAwakeToggle.IsOn;
         // When turned OFF mid-generation, release the real hold immediately (sim keeps running).
         if (!_keepAwakeEnabled) ReleaseKeepAwake();
+    }
+
+    // ============================================================ system linkage ====
+    // The reactor's state drives REAL Windows settings (power plan / accent colour / brightness /
+    // volume) so the simulated plant visibly affects the PC it "powers". OPT-IN, default OFF, and
+    // fully reversible — every original is snapshotted on enable and restored on disable/unload/exit.
+    // 反應堆狀態驅動真實 Windows 設定（電源計劃／強調色／亮度／音量），令模擬機組真實影響此電腦。
+    private double _sysLinkAccum; // throttle: only push settings ~1.5 Hz, not every 100 ms tick.
+
+    private void UpdateSysLink(double dt)
+    {
+        if (!ReactorSystemLinkService.I.Active)
+        {
+            _sysLinkAccum = 0;
+            return;
+        }
+        _sysLinkAccum += dt;
+        // Meltdown wants a snappier pulse for accent/brightness; otherwise ~1.5 Hz is plenty.
+        double period = _sim.Mode == ReactorMode.Meltdown ? 0.2 : 0.66;
+        if (_sysLinkAccum < period) return;
+        ReactorSystemLinkService.I.Apply(_sim, _sysLinkAccum);
+        _sysLinkAccum = 0;
+        UpdateSysLinkPill();
+    }
+
+    private void SysLinkToggle_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (SysLinkToggle.IsOn)
+            ReactorSystemLinkService.I.Enable();   // snapshots originals, begins driving on next tick
+        else
+            ReactorSystemLinkService.I.Disable();  // restores all originals immediately
+        UpdateSysLinkPill();
+    }
+
+    private void UpdateSysLinkPill()
+    {
+        bool on = ReactorSystemLinkService.I.Active;
+        if (on)
+        {
+            SysLinkText.Text = P(
+                "⚙ Reactor is driving Windows — power plan, accent colour & brightness follow the plant · 反應堆正連動 Windows — 電源計劃、強調色同亮度跟隨機組",
+                "⚙ 反應堆正連動 Windows — 電源計劃、強調色同亮度跟隨機組 · Reactor is driving Windows — power plan, accent colour & brightness follow the plant");
+            SysLinkDot.Background = new SolidColorBrush(Color.FromArgb(255, 0x4C, 0xAF, 0x50)); // green
+        }
+        else
+        {
+            SysLinkText.Text = P(
+                "Reactor is not linked to Windows settings · 反應堆未連動 Windows 設定",
+                "反應堆未連動 Windows 設定 · Reactor is not linked to Windows settings");
+            SysLinkDot.Background = new SolidColorBrush(Color.FromArgb(255, 0x75, 0x75, 0x75)); // grey
+        }
     }
 
     private static string ModeEn(ReactorMode m) => m switch
