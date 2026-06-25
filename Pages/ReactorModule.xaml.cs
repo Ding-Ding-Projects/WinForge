@@ -219,6 +219,9 @@ public sealed partial class ReactorModule : Page
         NisLabel.Text = P("NIS — source / intermediate / power range", "核儀表 — 起動／中間／功率量程");
         OneOverMLabel.Text = P("1/M — approach to criticality", "1/M — 趨近臨界");
         CsfTitle.Text = P("Critical safety functions", "關鍵安全功能");
+        RevMeterTitle.Text = P("Reactivity computer · 反應性計算機", "反應性計算機 · Reactivity computer");
+        RevMeterMarkButton.Content = P("Mark", "標記");
+        RevMeterClearButton.Content = P("Clear", "清除");
         AckButton.Content = P("ACK", "確認");
         SilenceButton.Content = P("SILENCE", "靜音警報");
         ResetAlarmButton.Content = P("RESET", "重置");
@@ -1363,7 +1366,43 @@ public sealed partial class ReactorModule : Page
         }
         if (pts.Count >= 2)
             oc.Children.Add(new Polyline { Points = pts, Stroke = new SolidColorBrush(Color.FromArgb(255, 0x4C, 0xAF, 0x50)), StrokeThickness = 2 });
+
+        UpdateReactimeter();
     }
+
+    // Digital reactivity computer (reactimeter) readout — the INDEPENDENT inverse-kinetics ρ reconstructed
+    // from the measured flux alone, shown alongside (not derived from) the engine's true reactivity.
+    private void UpdateReactimeter()
+    {
+        double mPcm = _sim.MeasuredReactivityPcm;
+        double mDollars = _sim.MeasuredReactivityDollars;
+        RevMeterRho.Text = $"ρ {mPcm,7:+0;-0;0} pcm  ({mDollars:+0.000;-0.000;0.000} $)";
+        Color rc = mPcm > 50  ? Color.FromArgb(255, 0xFF, 0x52, 0x52)   // brisk positive — caution
+                 : mPcm > 5   ? Color.FromArgb(255, 0xFF, 0xB3, 0x00)   // slightly positive
+                 : mPcm < -50 ? Color.FromArgb(255, 0x4C, 0xAF, 0x50)   // negative / shut down
+                 :              Color.FromArgb(255, 0xB0, 0xBE, 0xC5);  // ~critical
+        RevMeterRho.Foreground = new SolidColorBrush(rc);
+        RevMeterPeriod.Text = P($"Period  {MeasuredPeriodStr()}", $"週期  {MeasuredPeriodStr()}");
+        string alarm = _sim.ReactimeterPositiveRateAlarm ? P("  ⚠ +RATE", "  ⚠ 正速率") : "";
+        RevMeterSur.Text = $"SUR  {_sim.MeasuredStartupRateDpm,6:F2} DPM{alarm}";
+        if (_sim.ReactimeterHasMark)
+            RevMeterWorth.Text = P(
+                $"Worth  {_sim.MeasuredWorthPcm:+0;-0;0} pcm ({_sim.MeasuredWorthDollars:+0.000;-0.000;0.000} $)",
+                $"量度價值  {_sim.MeasuredWorthPcm:+0;-0;0} pcm ({_sim.MeasuredWorthDollars:+0.000;-0.000;0.000} $)");
+        else
+            RevMeterWorth.Text = P("Worth  — mark a reference first", "量度價值  — 先標記參考");
+    }
+
+    private string MeasuredPeriodStr()
+    {
+        double p = _sim.MeasuredPeriodSeconds;
+        if (Math.Abs(p) >= 1e5) return "∞";
+        if (Math.Abs(p) >= 999) return $"{p:F0}s";
+        return $"{p:+0;-0;0}s";
+    }
+
+    private void OnReactimeterMark(object sender, RoutedEventArgs e) => _sim.MarkReactimeter();
+    private void OnReactimeterClearMark(object sender, RoutedEventArgs e) => _sim.ClearReactimeterMark();
 
     private static void DrawNisBar(Canvas c, double x, string label, double frac, Color color)
     {

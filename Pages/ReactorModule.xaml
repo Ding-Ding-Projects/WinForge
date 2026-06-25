@@ -145,6 +145,24 @@
                                 <TextBlock x:Name="CsfTitle" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                 <VariableSizedWrapGrid x:Name="CsfPanel" Orientation="Horizontal" ItemWidth="100" ItemHeight="58" Width="320" />
                             </StackPanel>
+                            <StackPanel Width="232" Spacing="2">
+                                <TextBlock x:Name="RevMeterTitle" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <Border CornerRadius="6" Padding="8,6" Background="#11000000">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock x:Name="RevMeterRho" FontFamily="Consolas" FontSize="15" FontWeight="Bold" />
+                                        <TextBlock x:Name="RevMeterPeriod" FontFamily="Consolas" FontSize="12"
+                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        <TextBlock x:Name="RevMeterSur" FontFamily="Consolas" FontSize="12"
+                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        <TextBlock x:Name="RevMeterWorth" FontFamily="Consolas" FontSize="12"
+                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                                        <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,4,0,0">
+                                            <Button x:Name="RevMeterMarkButton" Click="OnReactimeterMark" Padding="8,2" FontSize="12" />
+                                            <Button x:Name="RevMeterClearButton" Click="OnReactimeterClearMark" Padding="8,2" FontSize="12" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
                         </StackPanel>
                     </StackPanel>
                 </Border>

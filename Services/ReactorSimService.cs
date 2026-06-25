@@ -634,6 +634,11 @@ public sealed class ReactorSimService
     private double _power = 1e-6;          // neutron power, fraction of rated (start ~ source level)
     private readonly double[] _precursor = new double[6];
     public double NeutronPowerFraction => _power;
+
+    // Digital inverse-point-kinetics REACTIVITY COMPUTER (reactimeter). An independent instrument: it
+    // reconstructs ρ from the measured flux _power ALONE (never reads the engine's internal ReactivityPcm),
+    // exactly like the field device used for rod/boron/MTC startup-physics measurements. See ReactivityComputer.
+    private readonly ReactivityComputer _revMeter = new(Beta, Lambda, PromptLifetime);
     public double ReactorPeriodSeconds { get; private set; } = 1e9;
     public double ReactivityPcm { get; private set; }       // total reactivity in pcm
     public double SourceLevel { get; set; } = 1e-8;         // neutron source (keeps subcritical core alive)
@@ -648,6 +653,28 @@ public sealed class ReactorSimService
     // Live differential (per-ppm) soluble-boron worth at the current concentration (pcm/ppm, negative).
     // Steepens as boron is diluted out (B-10 self-shielding relaxes); shown on the Boron gauge. Engine scale.
     public double DifferentialBoronWorthPcmPerPpm => BoronDiffWorth(BoronPpm) * 1e5;
+
+    // ---- Digital reactivity computer (reactimeter) readouts: reconstructed from measured flux ONLY ----
+    /// <summary>反應性計 ρ（pcm）· Reactimeter-measured net reactivity (pcm), inverse-kinetics from flux alone.</summary>
+    public double MeasuredReactivityPcm => _revMeter.ReactivityPcm;
+    /// <summary>反應性計 ρ（元）· Reactimeter-measured reactivity in dollars (ρ / β_eff).</summary>
+    public double MeasuredReactivityDollars => _revMeter.ReactivityDollars;
+    /// <summary>量度週期（秒，帶號）· Reactimeter asymptotic reactor period; + rising, − falling power.</summary>
+    public double MeasuredPeriodSeconds => _revMeter.PeriodSeconds;
+    /// <summary>起動率（DPM，帶號）· Reactimeter startup rate, decades per minute = 60/(T·ln10).</summary>
+    public double MeasuredStartupRateDpm => _revMeter.StartupRateDpm;
+    /// <summary>正週期警報 · Reactimeter positive-rate advisory (startup rate above the alarm setpoint).</summary>
+    public bool ReactimeterPositiveRateAlarm => _revMeter.PositiveRateAlarm;
+    /// <summary>量度價值（pcm）· Integrated reactivity change since the operator marked a reference (rod/boron worth).</summary>
+    public double MeasuredWorthPcm => _revMeter.MeasuredWorthPcm;
+    /// <summary>量度價值（元）· Marked-reference reactivity change in dollars.</summary>
+    public double MeasuredWorthDollars => _revMeter.MeasuredWorthDollars;
+    /// <summary>反應性計已標記 · True once a physics-test worth-measurement reference has been captured.</summary>
+    public bool ReactimeterHasMark => _revMeter.HasMark;
+    /// <summary>標記反應性計參考 · Capture the current measured ρ as the baseline for a rod/boron worth measurement.</summary>
+    public void MarkReactimeter() => _revMeter.Mark();
+    /// <summary>清除反應性計參考 · Clear the worth-measurement reference baseline.</summary>
+    public void ClearReactimeterMark() => _revMeter.ClearMark();
 
     // ---- Uncontrolled boron dilution (FSAR 15.4.6) readouts ----
     /// <summary>稀釋流量 · Unborated reactor-makeup-water flow into the RCS during a dilution event (gpm); 0 if inactive.</summary>
@@ -1850,6 +1877,7 @@ public sealed class ReactorSimService
         InitRadiochemistry(); // seed RCS DEI-131/Xe-133 activity states to clean-fuel equilibrium on first launch
         ComputeRtPts();       // derive the embrittled PTS reference temperature from the default vessel-age knob
         _ptsPrevPressMPa = PrimaryPressure;
+        _revMeter.Reset(_power, BetaCycleFactor); // seed the reactimeter's precursors to read ρ≈0 at the initial steady state
         BuildRps();
     }
 
@@ -2643,6 +2671,7 @@ public sealed class ReactorSimService
         _power = 1e-6;
         for (int i = 0; i < 6; i++) _precursor[i] = BetaCycleFactor * Beta[i] / (PromptLifetime * Lambda[i]) * _power;
         ReactorPeriodSeconds = 1e9; ReactivityPcm = 0;
+        _revMeter.Reset(_power, BetaCycleFactor); // re-seed the reactimeter so it reads ρ≈0 from the reset steady state
         FuelTemp = ColdTemp; Tcold = ColdTemp; Thot = ColdTemp;
         PrimaryPressure = 2.5; PressurizerLevel = NominalPzrLevel;
         _tpzr = ColdTemp; _prevLevel = NominalPzrLevel; _pSpike = 0; _porvAuto = false; PressurizerHeaterDuty = 0;
@@ -2783,6 +2812,7 @@ public sealed class ReactorSimService
             StepRadiochemistry(dt); // keep coolant-activity / DEI-131 / dose climbing with core damage through a meltdown
             StepLeakDetection(dt);  // keep RCS-leakage detection / sump / atmosphere monitors live through a meltdown
             UpdateNis(dt);
+            _revMeter.Update(_power, dt, BetaCycleFactor, SourceLevel); // keep the reactimeter indicating through core damage
             StepCladding(dt); // keep PCT / 50.46 instrumentation live through a meltdown
             StepRvlis(dt);    // keep RVLIS vessel-level indication live through a meltdown
             StepCet(dt);      // keep CET / subcooling-margin (ICC) indication live through a meltdown
@@ -2827,6 +2857,10 @@ public sealed class ReactorSimService
         // Power rate-of-change (fraction/s) for the power-range rate trip — lightly smoothed.
         if (dt > 1e-6)
             _powerRate += ((_power - powerBefore) / dt - _powerRate) * Math.Min(1.0, dt / 0.5);
+
+        // --- digital reactivity computer: reconstruct ρ from the freshly-integrated flux ALONE (inverse
+        //     point kinetics). Independent of the engine's internal ρ, so it can MEASURE rod/boron worth. ---
+        _revMeter.Update(_power, dt, BetaCycleFactor, SourceLevel);
 
         // --- xenon/iodine evolve slowly; once per tick is fine ---
         UpdateXenon(dt);
