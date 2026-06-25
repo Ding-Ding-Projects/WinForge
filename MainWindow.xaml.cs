@@ -208,6 +208,12 @@ public sealed partial class MainWindow : Window
             case "signin":
                 Navigator.GoToModule?.Invoke("module.weblogin");
                 break;
+            case "ocr":
+            case "textocr":
+            case "textextractor":
+            case "normcap":
+                Navigator.GoToModule?.Invoke("module.textocr");
+                break;
             case "packer":
             case "image":
             case "imagebuilder":
@@ -631,7 +637,6 @@ public sealed partial class MainWindow : Window
                 break;
             case "powertoys":
             case "extras":
-            case "ocr":
             case "imageresizer":
                 Navigator.GoToModule?.Invoke("module.powertoys");
                 break;
@@ -967,6 +972,7 @@ public sealed partial class MainWindow : Window
         "module.mwb" => typeof(MouseWithoutBordersModule),
         "module.recorder" => typeof(ScreenRecorderModule),
         "module.capture" => typeof(CaptureStudioModule),
+        "module.textocr" => typeof(TextOcrModule),
         "module.cropandlock" => typeof(CropAndLockModule),
         "module.giflab" => typeof(GifLabModule),
         "module.zoomit" => typeof(ZoomItModule),
