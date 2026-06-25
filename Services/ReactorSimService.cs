@@ -78,6 +78,11 @@ public enum ReactorAlarm
     LtopActive,          // LTOP/COMS armed and its low-setpoint PORV path is actively relieving
     IccOrange,           // ICC ORANGE — core-exit TC ≥ 700 °F (371 °C) OR subcooling margin lost (FR-C.2)
     IccRed,              // ICC RED — core-exit TC ≥ 1200 °F (649 °C); core damage imminent (FR-C.1)
+    ContainmentH2Flammable, // containment H₂ ≥ 4 vol% (LFL) with O₂ — deflagration possible (10 CFR 50.44)
+    ContainmentH2RegLimit,  // containment H₂ ≥ 10 vol% — 10 CFR 50.44(c)(2) not-to-exceed exceeded
+    ContainmentH2Detonable, // containment H₂ in the 13–65 vol% detonable band — DDT-credible, containment threat
+    IgnitersEnergized,      // Distributed Ignition System armed and powered (glow plugs hot) — status annunciator
+    ContainmentDeflagration,// a containment hydrogen burn has occurred (latched event)
 }
 
 /// <summary>
@@ -493,6 +498,31 @@ public sealed class ReactorSimService
     public bool CladQuenching { get; private set; }                  // a re-covered node is rewetting / quenching
     public bool CoolableGeometryOk => PeakCladTempC < PctLimitC && MaxLocalOxidationPct < EcrLimitPct; // (b)(4), qualitative
 
+    // ----------------------------------------- Containment combustible-gas control (10 CFR 50.44) ----
+    // 安全殼可燃氣體控制（10 CFR 50.44）· Hydrogen released by Zr–steam oxidation (HydrogenMassKg above) is
+    // tracked into the containment ATMOSPHERE here, converted to a vol-% concentration, and acted on by the
+    // two real mitigation paths: passive auto-catalytic recombiners (PARs, always passive) and an
+    // operator-armed Distributed Ignition System (glow-plug igniters, default OFF). Flammable mixtures can
+    // deflagrate, adding a one-shot AICC pressure/temperature spike onto the containment state (the TMI-2
+    // hydrogen-burn signature: ~8 vol% → ~28 psig spike). Purely ADDITIVE: with no H₂ present every term is
+    // zero, so normal operation is provably unaffected; the only feedback writes (a burn spike onto
+    // ContainmentPressureKpa/ContainmentTempC and O₂ depletion) occur only during a severe-accident burn.
+    public double ContainmentH2Pct      { get; private set; }            // vol% H₂ in the containment atmosphere (mole fraction ×100)
+    public double ContainmentO2Pct      { get; private set; } = 20.95;   // vol% O₂; 0.5 mol consumed per mol H₂ recombined/burned
+    public double ParRemovalKgPerHr     { get; private set; }            // current passive-recombiner bank H₂ removal rate (kg/hr)
+    public double SteamInertFraction    { get; private set; }            // vol% steam in containment (≥55 % inerts the mixture)
+    public bool   ContainmentFlammable  { get; private set; }            // H₂ ≥ LFL (4 vol%), O₂ ≥ 5 %, not steam-inerted
+    public bool   ContainmentDetonable  { get; private set; }            // H₂ in the 13–65 vol% detonable band (DDT-credible)
+    public bool   DeflagrationOccurred  { get; private set; }            // latched once a hydrogen burn has happened (event)
+    public double LastBurnPeakKpa       { get; private set; }            // gauge-kPa peak of the most recent deflagration spike
+    public double LastBurnPeakTempC     { get; private set; }            // gas-temperature peak of the most recent burn (°C)
+    public bool   IgniterSystemArmed    { get; set; }                    // operator control — Distributed Ignition System; default OFF
+    public bool   IgnitersEnergized     { get; private set; }            // armed AND powered (not in SBO) — glow plugs hot
+    public double IgniterSurfaceTempC   { get; private set; } = ContainmentAmbientC; // ~930 °C energized, else ambient (display)
+    private double _h2AirborneKg;     // airborne (un-recombined, un-burned) H₂ inventory in containment (kg)
+    private double _h2GenPrevKg;      // last-seen cumulative HydrogenMassKg, to capture per-tick generation increments
+    private bool   _burnArmed = true; // re-armable one-shot latch for a spontaneous deflagration (re-arms below the LFL)
+
     // ----------------------------------------------------------------- RVLIS (post-TMI II.F.2) ----
     // 反應堆壓力容器水位儀表系統 · Reactor Vessel Level Instrumentation System (NUREG-0737 II.F.2 / Westinghouse).
     // A ΔP-based, RTD-density-compensated indication of reactor-vessel collapsed liquid level, added after TMI-2
@@ -829,6 +859,37 @@ public sealed class ReactorSimService
     private const double CtmtHi2Kpa = 71.0;   // ~10.3 psig — Main Steam Line Isolation
     private const double CtmtHi3Kpa = 186.0;  // ~27   psig — Containment Spray + Phase B isolation
     private const double CtmtHystKpa = 7.0;   // ~1 psi reset deadband (anti-chatter)
+
+    // ===== Containment combustible-gas control (10 CFR 50.44) constants =====
+    // Atmosphere / geometry — same large-dry containment as the pressure model above.
+    private const double CtmtFreeVolM3 = 73624.0;   // 2.6×10⁶ ft³ net free volume (WTSM 5.3) — large-dry PWR
+    private const double H2MolarKg     = 0.002016;  // kg/mol H₂
+    private const double RGasJmolK     = 8.314;     // J/(mol·K) — ideal-gas constant
+    // Flammability / detonation thresholds (vol% H₂ in air) — NUREG/CR-3468 FITS, Shapiro–Moffette.
+    private const double H2LflPct      = 4.0;    // lower flammability limit (upward propagation)
+    private const double H2AllDirPct   = 9.0;    // flame propagates in all directions / ~complete combustion
+    private const double H2DdtPct      = 13.0;   // deflagration-to-detonation transition onset (the "14 % rule")
+    private const double H2DetonHiPct  = 65.0;   // upper detonable-band edge
+    private const double H2RegLimitPct = 10.0;   // 10 CFR 50.44(c)(2) not-to-exceed (uniformly distributed)
+    private const double O2FloorPct    = 5.0;    // combustion impossible below ~5 vol% O₂
+    private const double SteamInertPct = 55.0;   // ≥55 vol% steam → non-flammable regardless of H₂ (FITS)
+    // AICC constant-volume burn spike — pressure/temperature rise per vol% H₂ burned.
+    private const double AiccKpaPerVolPct   = 32.0;   // ~0.32 atm rise per vol% H₂ (lean regime)
+    private const double AiccTempCPerVolPct = 78.0;   // ~78 °C gas-temp rise per vol% H₂ burned
+    private const double AiccPeakKpaCap     = 710.0;  // clamp the pressure rise to ~8 atm abs (stoichiometric ceiling)
+    private const double AiccPeakTempCCap   = 2227.0; // clamp gas temp to ~2500 K equilibrium AFT
+    private const double DetonationMult     = 2.0;    // detonation multiplies the spike (reflected CJ pressures)
+    // PAR bank (passive auto-catalytic recombiners) — AREVA FR380 class, ~5 kg/hr/unit at 4 vol%.
+    private const double ParOnsetPct   = 1.0;    // catalytic onset ~1 vol% H₂ (well below the LFL)
+    private const int    ParUnits      = 50;     // EPR-class installed bank (40–65 units typical)
+    private const double ParKgPerHrPerVolPctPerUnit = 1.25; // per-unit slope: 1.25×4 = 5 kg/hr/unit at 4 vol%
+    // (recombination enthalpy is 242 kJ/mol-H₂, water as vapour/LHV — applied via the AICC temp coefficient)
+    // Distributed Ignition System (glow-plug igniters) — ice-condenser/Mark III hardware, modelled here as an option.
+    private const double IgniteSetpointPct      = 6.0;   // deliberate-burn trigger, dry (5.5–7.5 vol% band)
+    private const double IgniteSetpointSteamPct = 8.5;   // raised toward 8–9 vol% under high steam
+    private const double IgniterSurfaceC        = 930.0; // glow-plug surface temp ~1700 °F / 1200 K
+    private const double BurnDownTargetPct      = 4.1;   // controlled burn trims H₂ down to the lean limit
+    private const double BurnTauSec             = 5.0;   // deflagration burn-down time constant (s)
     private const double SpraySetupSeconds = 35.0; // spray pump-start + valve-stroke actuation delay
 
     // Alarms
@@ -1389,6 +1450,12 @@ public sealed class ReactorSimService
         ContainmentSprayActive = false; ContainmentIsolationPhaseA = false;
         ContainmentIsolationPhaseB = false; ContainmentFanCoolers = false;
         _ctmtHi1 = _ctmtHi2 = _ctmtHi3 = false; _spraySetupTimer = 0;
+        // Containment combustible-gas control (10 CFR 50.44): clear the H₂ atmosphere back to a fresh air charge.
+        ContainmentH2Pct = 0; ContainmentO2Pct = 20.95; ParRemovalKgPerHr = 0; SteamInertFraction = 0;
+        ContainmentFlammable = false; ContainmentDetonable = false; DeflagrationOccurred = false;
+        LastBurnPeakKpa = 0; LastBurnPeakTempC = 0;
+        IgniterSystemArmed = false; IgnitersEnergized = false; IgniterSurfaceTempC = ContainmentAmbientC;
+        _h2AirborneKg = 0; _h2GenPrevKg = 0; _burnArmed = true;
         ResetCladding();
         StatusEn = "Cold shutdown"; StatusZh = "冷停機";
     }
@@ -1408,6 +1475,7 @@ public sealed class ReactorSimService
             StepCladding(dt); // keep PCT / 50.46 instrumentation live through a meltdown
             StepRvlis(dt);    // keep RVLIS vessel-level indication live through a meltdown
             StepCet(dt);      // keep CET / subcooling-margin (ICC) indication live through a meltdown
+            StepContainmentH2(dt); // keep H₂ atmosphere / PAR / igniter / burn model live through a meltdown
             UpdateAlarms();
             return;
         }
@@ -1468,6 +1536,7 @@ public sealed class ReactorSimService
         StepCladding(dt); // after protection so it reads the final post-tick inventory / ECCS / thermal state
         StepRvlis(dt);    // RVLIS reads the post-cladding CollapsedLevelFrac; advisory alarms only
         StepCet(dt);      // CET + subcooling-margin monitor reads the post-cladding clad/level state; advisory ICC alarms only
+        StepContainmentH2(dt); // containment H₂ atmosphere / PAR / igniter / deflagration — reads the post-cladding HydrogenMassKg
         UpdatePtLimits(dt); // App G P/T brittle-fracture limit + LTOP arming (reads the final post-tick Tcold/pressure)
         UpdateAlarms();
         UpdateStatus();
@@ -1687,6 +1756,126 @@ public sealed class ReactorSimService
         MaxLocalOxidationPct = 0.0; CoreWideHydrogenPct = 0.0;
         CladOxidationHeatMW = 0.0; HydrogenMassKg = 0.0; CladQuenching = false;
         _w2 = 0.0; _wPrev = 0.0;
+    }
+
+    /// <summary>
+    /// 安全殼可燃氣體控制（10 CFR 50.44）· Containment combustible-gas control. Reads the cumulative Zr–steam
+    /// hydrogen mass (HydrogenMassKg, set by StepCladding) into the containment ATMOSPHERE, converts it to a
+    /// vol-% concentration against the live atmosphere mole count, and applies the two real mitigation paths:
+    ///  • Passive Auto-catalytic Recombiners (PARs) — always passive; a slow first-order H₂ trickle removal.
+    ///  • Distributed Ignition System (glow-plug igniters) — operator-armed (IgniterSystemArmed, default OFF);
+    ///    when energized it deliberately burns H₂ down to the lean limit so it never reaches detonable levels.
+    /// A spontaneous deflagration fires when a flammable mixture finds an ignition source (the TMI-2 ~8 vol%
+    /// burn), depositing a one-shot AICC pressure/temperature spike that the existing UpdateContainment
+    /// relaxation then bleeds down — reproducing the sharp-rise / minutes-decay burn transient. Purely
+    /// ADDITIVE: with no H₂ present every term is identically zero. The only feedback it ever writes is the
+    /// burn spike onto ContainmentPressureKpa/ContainmentTempC and O₂ depletion, both severe-accident-only.
+    /// </summary>
+    private void StepContainmentH2(double dt)
+    {
+        if (dt <= 0) return;
+
+        // --- fold newly generated H₂ into the airborne (un-recombined, un-burned) inventory ---------
+        double dGen = HydrogenMassKg - _h2GenPrevKg;
+        if (dGen > 0) _h2AirborneKg += dGen;
+        _h2GenPrevKg = HydrogenMassKg;
+        if (_h2AirborneKg < 0) _h2AirborneKg = 0;
+
+        // --- live atmosphere moles at the current containment T & P (fixed free volume) -------------
+        double tK   = ContainmentTempC + 273.15;
+        double pAbs = 101325.0 + ContainmentPressureKpa * 1000.0;        // Pa absolute
+        double nAtm = pAbs * CtmtFreeVolM3 / (RGasJmolK * tK);           // mol
+        double nH2  = _h2AirborneKg / H2MolarKg;                         // mol
+        ContainmentH2Pct = (nAtm + nH2) > 0 ? 100.0 * nH2 / (nAtm + nH2) : 0.0;
+
+        // --- steam-inerting proxy: a hot, pressurized building is steam-rich (LOCA/MSLB blowdown). The
+        //     mixture is inerted during the steam phase and only becomes flammable as sprays/fans
+        //     condense it back down — exactly the TMI-2 sequencing (burn ~10 h in, after condensation). -
+        SteamInertFraction = Math.Clamp(
+            (ContainmentTempC - ContainmentAmbientC) / (ContainmentPeakC - ContainmentAmbientC) * 60.0, 0.0, 60.0);
+        bool inerted = SteamInertFraction >= SteamInertPct;
+
+        // --- PAR bank: passive catalytic recombination — first-order in H₂, ∝ pressure, O₂-limited -----
+        ParRemovalKgPerHr = 0.0;
+        if (ContainmentH2Pct > ParOnsetPct && _h2AirborneKg > 0 && ContainmentO2Pct > 0.5)
+        {
+            double ramp = Math.Clamp((ContainmentH2Pct - ParOnsetPct) / 1.0, 0.0, 1.0);  // 1→2 vol% startup
+            double perUnit = ParKgPerHrPerVolPctPerUnit * ContainmentH2Pct * (pAbs / 1000.0 / 150.0) * ramp;
+            double o2f = Math.Clamp(ContainmentO2Pct / (1.5 * ContainmentH2Pct + 1e-9), 0.4, 1.0); // O₂ starvation
+            ParRemovalKgPerHr = ParUnits * perUnit * o2f;
+            double dkg = Math.Min(ParRemovalKgPerHr / 3600.0 * dt, _h2AirborneKg);
+            _h2AirborneKg -= dkg;
+            DepleteO2(dkg, nAtm);
+            // Recombination is exothermic (242 kJ/mol-H₂) but slow — a gentle continuous warming of the building.
+            double volPctRecomb = nAtm > 0 ? 100.0 * (dkg / H2MolarKg) / (nAtm + nH2) : 0.0;
+            ContainmentTempC += AiccTempCPerVolPct * volPctRecomb;   // tiny per tick (≈ the burn coefficient, slow)
+        }
+
+        // --- Distributed Ignition System: armed by the operator AND powered (de-energized in SBO) -----
+        IgnitersEnergized   = IgniterSystemArmed && !_elec.InSbo;
+        IgniterSurfaceTempC = IgnitersEnergized ? IgniterSurfaceC : ContainmentTempC;
+
+        bool o2Ok = ContainmentO2Pct >= O2FloorPct;
+        double igniteSetpt = SteamInertFraction > 20.0 ? IgniteSetpointSteamPct : IgniteSetpointPct;
+
+        if (IgnitersEnergized && !inerted && o2Ok && ContainmentH2Pct >= igniteSetpt && _h2AirborneKg > 0)
+        {
+            // Controlled deliberate burn — fast first-order decay toward the lean limit; stays sub-detonable.
+            double targetKg = _h2AirborneKg * (BurnDownTargetPct / Math.Max(ContainmentH2Pct, 1e-6));
+            double burnKg   = (_h2AirborneKg - targetKg) * Math.Min(1.0, dt / BurnTauSec);
+            ApplyBurn(burnKg, nAtm, nH2, detonates: false);
+        }
+        else if (!inerted && o2Ok && _burnArmed && ContainmentH2Pct >= H2AllDirPct && _h2AirborneKg > 0)
+        {
+            // Spontaneous deflagration — a flammable, all-direction-propagating mixture finds a spark and
+            // burns its whole airborne inventory in one shot. If it lit already in the detonable band it is a
+            // DDT/detonation (the late-actuation hazard) and the AICC spike is doubled.
+            bool det = ContainmentH2Pct >= H2DdtPct;
+            ApplyBurn(_h2AirborneKg, nAtm, nH2, detonates: det);
+            _burnArmed = false;
+        }
+        if (ContainmentH2Pct < H2LflPct) _burnArmed = true;   // re-arm once the building is non-flammable again
+
+        ContainmentFlammable = ContainmentH2Pct >= H2LflPct && o2Ok && !inerted;
+        ContainmentDetonable = ContainmentH2Pct >= H2DdtPct && ContainmentH2Pct <= H2DetonHiPct && o2Ok && !inerted;
+    }
+
+    /// <summary>把可燃氣體燃燒轉成 AICC 壓力／溫度尖峰 · Convert a hydrogen burn into a one-shot AICC pressure +
+    /// temperature spike, O₂-limited for rich mixtures and knocked down by steam dilution.</summary>
+    private void ApplyBurn(double burnKg, double nAtm, double nH2, bool detonates)
+    {
+        if (burnKg <= 0 || _h2AirborneKg <= 0 || nAtm <= 0) return;
+        burnKg = Math.Min(burnKg, _h2AirborneKg);
+
+        // O₂-limit: 2 H₂ + O₂ → 2 H₂O, so the burnable H₂ is capped at twice the available O₂ moles.
+        double o2MolAvail = ContainmentO2Pct / 100.0 * nAtm;
+        double burnMol = Math.Min(burnKg / H2MolarKg, 2.0 * o2MolAvail);
+        if (burnMol <= 0) return;
+        burnKg = burnMol * H2MolarKg;
+
+        double volPctBurned = 100.0 * burnMol / (nAtm + nH2);
+        double g = Math.Clamp(1.0 - 1.4 * (SteamInertFraction / 100.0), 0.0, 1.0);  // steam knock-down
+
+        double dP = Math.Min(AiccKpaPerVolPct * volPctBurned * g, AiccPeakKpaCap);
+        double dT = Math.Min(AiccTempCPerVolPct * volPctBurned * g, AiccPeakTempCCap);
+        if (detonates) dP *= DetonationMult;
+
+        ContainmentPressureKpa += dP;
+        ContainmentTempC = Math.Min(ContainmentTempC + dT, AiccPeakTempCCap);
+        LastBurnPeakKpa   = ContainmentPressureKpa;
+        LastBurnPeakTempC = ContainmentTempC;
+        DeflagrationOccurred = true;
+
+        _h2AirborneKg -= burnKg;
+        DepleteO2(burnKg, nAtm);
+    }
+
+    /// <summary>消耗氧氣 · Deplete containment O₂: 0.5 mol O₂ consumed per mol H₂ recombined or burned.</summary>
+    private void DepleteO2(double h2Kg, double nAtm)
+    {
+        if (h2Kg <= 0 || nAtm <= 0) return;
+        double o2MolDrop = 0.5 * (h2Kg / H2MolarKg);
+        ContainmentO2Pct = Math.Max(0.0, ContainmentO2Pct - 100.0 * o2MolDrop / nAtm);
     }
 
     /// <summary>
@@ -2930,6 +3119,12 @@ public sealed class ReactorSimService
         SetAlarm(ReactorAlarm.PeakCladTempLimit, PeakCladTempC >= PctLimitC);
         SetAlarm(ReactorAlarm.CladOxidationLimit, MaxLocalOxidationPct >= EcrLimitPct);
         SetAlarm(ReactorAlarm.HydrogenGenerationLimit, CoreWideHydrogenPct >= H2LimitPct);
+        // Containment combustible-gas control (10 CFR 50.44).
+        SetAlarm(ReactorAlarm.ContainmentH2Flammable, ContainmentFlammable);
+        SetAlarm(ReactorAlarm.ContainmentH2RegLimit, ContainmentH2Pct >= H2RegLimitPct);
+        SetAlarm(ReactorAlarm.ContainmentH2Detonable, ContainmentDetonable);
+        SetAlarm(ReactorAlarm.IgnitersEnergized, IgnitersEnergized);
+        SetAlarm(ReactorAlarm.ContainmentDeflagration, DeflagrationOccurred);
     }
 
     private void UpdateStatus()

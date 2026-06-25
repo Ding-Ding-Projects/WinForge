@@ -510,6 +510,18 @@ public sealed partial class ReactorModule : Page
         AddGauge("RCP seal leakoff", "主泵軸封洩漏", 0, 1920, () => _sim.SealLeakGpmTotal, () => $"{_sim.SealLeakGpmTotal:F0} gpm · {_sim.SealCavityMaxTempC:F0}°C{(_sim.SealCoolingAvailable ? "" : " · NO COOL")}", id: "sealLeak");
         AddGauge("Clad oxidation (ECR)", "包殼氧化 ECR", 0, 30, () => _sim.MaxLocalOxidationPct, () => $"{_sim.MaxLocalOxidationPct:F1}% ECR", id: "ecr");
         AddGauge("Core hydrogen", "堆芯氫氣", 0, 3, () => _sim.CoreWideHydrogenPct, () => $"{_sim.CoreWideHydrogenPct:F2}% · {_sim.HydrogenMassKg:F0} kg", id: "h2");
+        // Containment combustible-gas control (10 CFR 50.44): wide-range H₂ monitor 0–10 vol% (RG 1.97 Cat 1),
+        // O₂ for inerting/depletion, the passive-recombiner bank rate, and the igniter-system state.
+        AddGauge("Containment H₂", "安全殼氫氣", 0, 10, () => _sim.ContainmentH2Pct,
+            () => $"{_sim.ContainmentH2Pct:F1} vol%" + (_sim.ContainmentDetonable ? P(" · DETONABLE", " · 可爆炸") : _sim.ContainmentFlammable ? P(" · FLAMMABLE", " · 可燃") : ""),
+            warnFrac: 4.0 / 10.0, id: "ctmtH2");
+        AddGauge("Containment O₂", "安全殼氧氣", 0, 22, () => _sim.ContainmentO2Pct, () => $"{_sim.ContainmentO2Pct:F1} vol%", id: "ctmtO2");
+        AddGauge("PAR recombiner rate", "被動複合器速率", 0, 260, () => _sim.ParRemovalKgPerHr, () => $"{_sim.ParRemovalKgPerHr:F0} kg/h" + P(" (passive)", "（被動）"), id: "parRate");
+        AddGauge("H₂ igniters", "氫氣點火器", 0, 2, () => _sim.IgnitersEnergized ? 2 : _sim.IgniterSystemArmed ? 1 : 0,
+            () => _sim.IgnitersEnergized ? $"{P("ENERGIZED", "已通電")} · {_sim.IgniterSurfaceTempC:F0}°C" : _sim.IgniterSystemArmed ? P("ARMED (no power)", "已備妥（無電）") : P("Off", "關"),
+            warnFrac: 0.5, id: "igniters");
+        AddGauge("Last H₂ burn peak", "上次氫燃峰值", 0, 350, () => _sim.LastBurnPeakKpa / 6.895,
+            () => _sim.DeflagrationOccurred ? $"{_sim.LastBurnPeakKpa / 6.895:F0} psig · {_sim.LastBurnPeakTempC:F0}°C" : P("no burn", "未燃燒"), id: "h2Burn");
         AddGauge("RCP flow", "主泵流量", 0, 100, () => _sim.CoolantFlowFraction * 100, () => $"{_sim.CoolantFlowFraction * 100:F0}%{FlowModeTag()}", id: "flow");
         AddGauge("Boron", "硼濃度", 0, 2500, () => _sim.BoronPpm, () => $"{_sim.BoronPpm:F0} ppm", id: "boron");
         AddGauge("Xenon worth", "氙毒", 0, 100, () => _sim.Xenon * 100, () => $"{-_sim.XenonReactivityPcm:F0} pcm", id: "xenon");
@@ -666,6 +678,11 @@ public sealed partial class ReactorModule : Page
             (ReactorAlarm.PeakCladTempLimit, "PCT > 2200°F (50.46)", "峰值包殼溫度超限 50.46"),
             (ReactorAlarm.CladOxidationLimit, "CLAD OXID > 17% ECR", "包殼氧化 >17% ECR"),
             (ReactorAlarm.HydrogenGenerationLimit, "CORE H₂ > 1%", "堆芯氫氣 >1%"),
+            (ReactorAlarm.ContainmentH2Flammable, "CTMT H₂ FLAMMABLE", "安全殼氫氣可燃"),
+            (ReactorAlarm.ContainmentH2RegLimit, "CTMT H₂ > 10% (50.44)", "安全殼氫氣 >10% 50.44"),
+            (ReactorAlarm.ContainmentH2Detonable, "CTMT H₂ DETONABLE", "安全殼氫氣可爆炸"),
+            (ReactorAlarm.IgnitersEnergized, "H₂ IGNITERS ON", "氫氣點火器通電"),
+            (ReactorAlarm.ContainmentDeflagration, "H₂ DEFLAGRATION", "氫氣爆燃"),
             (ReactorAlarm.DnbrLowMargin, "DNBR LOW MARGIN", "DNBR 餘裕偏低"),
             (ReactorAlarm.DnbrSafetyLimit, "DNBR < 1.30 (S.L.)", "DNBR <1.30 安全限值"),
             (ReactorAlarm.RcpSealLoca, "RCP SEAL LOCA", "主泵軸封失水"),
@@ -1437,6 +1454,13 @@ public sealed partial class ReactorModule : Page
         _relocalizers.Add(() => injBtn.Content = P("Force ECCS inject · 強制注入", "強制注入 · Force ECCS inject"));
         safetyPanel.Children.Add(injBtn);
         host.Children.Add(WrapLabel("Safety injection · 安全注入", "安全注入 · Safety injection", safetyPanel));
+
+        // Containment combustible-gas control (10 CFR 50.44): PARs are passive (always on, no control); the
+        // Distributed Ignition System is operator-armed and defaults OFF — arm it on a core-damage entry to
+        // burn H₂ off lean before it reaches the detonable band (arming late, above 13 vol%, risks a detonation).
+        var h2Panel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        h2Panel.Children.Add(MakeToggle("Arm H₂ igniters · 啟用氫氣點火器", "啟用氫氣點火器 · Arm H₂ igniters", v => _sim.IgniterSystemArmed = v));
+        host.Children.Add(WrapLabel("Combustible-gas control · 可燃氣體控制", "可燃氣體控制 · Combustible-gas control", h2Panel));
 
         host.Children.Add(SectionHeader("Secondary & turbine · 二迴路與汽輪機", "二迴路與汽輪機 · Secondary & turbine"));
 
