@@ -74,6 +74,8 @@ public enum ReactorAlarm
     PtViolation,         // RCS pressure has crossed the App G P/T limit (brittle-fracture concern)
     RcsRateExceeded,     // |RCS heatup/cooldown rate| > 90% of the App G 100 °F/hr (55.6 °C/hr) limit
     LtopActive,          // LTOP/COMS armed and its low-setpoint PORV path is actively relieving
+    IccOrange,           // ICC ORANGE — core-exit TC ≥ 700 °F (371 °C) OR subcooling margin lost (FR-C.2)
+    IccRed,              // ICC RED — core-exit TC ≥ 1200 °F (649 °C); core damage imminent (FR-C.1)
 }
 
 /// <summary>
@@ -532,6 +534,18 @@ public sealed class ReactorSimService
     private const double BreakDeficitRate = 1.2;     // %/s per unit break area — RCS inventory the break sheds
     private const double BoiloffDeficitRate = 30.0;  // (%/s)/(decay-heat fraction) saturated boil-off the SG cannot remove
 
+    // Core Exit Thermocouples (CET) + Subcooling Margin Monitor (SMM) — post-TMI Inadequate Core Cooling
+    // instrumentation (NUREG-0737 II.F.2, Reg Guide 1.97 Category 1). Type-K (Chromel-Alumel) incore TCs,
+    // ~50-65 in a Westinghouse 4-loop plant; the EOP/ERG indicator is the HIGHEST valid CET (a localized
+    // uncovered region must not be masked by an averaged reading). Display-only — see StepCet's contract.
+    private const double CetCeilingC     = 1260.0; // qualified Type-K span ceiling (~2300 °F)
+    private const double CetCoveredBiasC = 3.0;    // CET reads a few °C above Thot when covered/subcooled (hot-channel exit > loop avg)
+    private const double CetTauSec       = 6.0;    // s TC-in-thermowell response (between the 0.8 s quench and 12 s dry-clad τ)
+    private const double CetDhBase       = 0.30;   // exposure-weight floor (some superheat signal even at low decay heat)
+    private const double CetDhGain       = 14.0;   // decay-heat sharpening: effExposure→1 at ~5% DH (0.30 + 14·0.05 = 1.0)
+    private const double IccRedTempC     = 649.0;  // ICC RED / FR-C.1 — 1200 °F core-exit TC (core damage imminent)
+    private const double IccOrangeTempC  = 371.0;  // ICC ORANGE / FR-C.2 — 700 °F core-exit TC
+
     // RVLIS Full-Range geometry + dynamic-head / alarm calibration. The active fuel occupies a SUB-BAND of the
     // full vessel: bottom of active fuel ≈ 33 %, top of active fuel ≈ 62 % of full-range span; above 62 % is the
     // upper plenum/head. LO-LO at 40 % sits in the uncovered-fuel band (≈ the real-plant TAF setpoint band).
@@ -582,6 +596,19 @@ public sealed class ReactorSimService
 
     // Sub-cooling margin (°C): SatTemp(P) - Thot. < 0 means saturation / void onset.
     public double SubcoolingMarginC { get; private set; }
+
+    // Core Exit Thermocouples (CET) — representative (highest-valid) incore core-exit temperature (°C).
+    // Tracks Thot (a few °C above) when the core is covered/subcooled; superheats toward the cladding/steam
+    // temperature as the core uncovers — the post-TMI primary Inadequate-Core-Cooling diagnostic.
+    public double CoreExitTempC { get; private set; } = ColdTemp;
+    public double CoreExitTempF => CoreExitTempC * 1.8 + 32.0;
+    // Subcooling Margin Monitor (SMM): Tsat(P) − max(Thot, CET). Conservative "higher-of" reference — > 0
+    // sub-cooled, 0 saturation, < 0 superheat (an ICC indication). Diverges from SubcoolingMarginC at uncovery.
+    public double CetSubcoolingMarginC { get; private set; }
+    // ICC critical-safety-function status (WOG ERG FR-C). ADVISORY/diagnostic only — no automatic scram/ESF.
+    public bool IccRed    => CoreExitTempC >= IccRedTempC;
+    public bool IccOrange => CoreExitTempC >= IccOrangeTempC || CetSubcoolingMarginC <= 0.0;
+    private bool _cetInit;   // seed CoreExitTempC = Thot on the first sample (avoid a cold-start spike)
 
     // Nuclear instrumentation (NIS): three overlapping ranges, exactly like a Westinghouse 4-loop NIS.
     //   • Source Range (SR)  — BF3 proportional counters, count rate in cps, ~6 decades (1..1e6).
@@ -1280,6 +1307,7 @@ public sealed class ReactorSimService
         for (int i = 0; i < _alarms.Length; i++) _alarms[i] = false;
         Array.Clear(_decayGroup); Array.Clear(_actinide);
         DecayHeatFraction = 0; SubcoolingMarginC = 0; SourceRangeCps = SourceBaselineCps;
+        CoreExitTempC = ColdTemp; CetSubcoolingMarginC = 0; _cetInit = false;
         MinDnbr = DnbrRawUnfiltered = DnbrCeiling; DnbrLocalQuality = 0;
         OneOverM = 1.0; StartupRateDpm = 0; BurnupMwdPerTonne = 0;
         IntermediateRangeAmps = IrBottomAmps; IntermediateRangeDecades = 0; IntermediateRangePercent = 0;
@@ -1317,6 +1345,7 @@ public sealed class ReactorSimService
             UpdateNis(dt);
             StepCladding(dt); // keep PCT / 50.46 instrumentation live through a meltdown
             StepRvlis(dt);    // keep RVLIS vessel-level indication live through a meltdown
+            StepCet(dt);      // keep CET / subcooling-margin (ICC) indication live through a meltdown
             UpdateAlarms();
             return;
         }
@@ -1373,6 +1402,7 @@ public sealed class ReactorSimService
         UpdateProtection(dt);
         StepCladding(dt); // after protection so it reads the final post-tick inventory / ECCS / thermal state
         StepRvlis(dt);    // RVLIS reads the post-cladding CollapsedLevelFrac; advisory alarms only
+        StepCet(dt);      // CET + subcooling-margin monitor reads the post-cladding clad/level state; advisory ICC alarms only
         UpdatePtLimits(dt); // App G P/T brittle-fracture limit + LTOP arming (reads the final post-tick Tcold/pressure)
         UpdateAlarms();
         UpdateStatus();
@@ -1743,6 +1773,55 @@ public sealed class ReactorSimService
             : CollapsedLevelFrac < RvlisCoverDeadband;    // off: raise only below 0.98
         SetAlarm(ReactorAlarm.RvlisBelowTopOfFuel, belowFuel);
         SetAlarm(ReactorAlarm.RvlisFullRangeLoLo, RvlisFullRangePct < RvlisFullRangeLoLoPct);
+    }
+
+    /// <summary>
+    /// CET + 過冷度監測（堆芯出口熱電偶）· Core Exit Thermocouples + Subcooling Margin Monitor — the remaining
+    /// two-thirds of the post-TMI Inadequate Core Cooling instrumentation triad (NUREG-0737 II.F.2,
+    /// Reg Guide 1.97 Cat 1); RVLIS (StepRvlis) is the third. Type-K incore thermocouples; the displayed
+    /// indicator is the HIGHEST valid CET.
+    ///
+    /// Purely additive INSTRUMENTATION (mirrors StepRvlis / StepCladding): reads post-tick thermal/inventory
+    /// state (Thot, PrimaryPressure→SatTempAt, CladTempC, CollapsedLevelFrac, CoreExposedFrac,
+    /// DecayHeatFraction) and writes ONLY CoreExitTempC, CetSubcoolingMarginC and the two ADVISORY ICC alarms.
+    /// It NEVER writes FuelTemp / CladTempC / pressure / temperature / inventory / Damage / Mode, so the
+    /// meltdown / ECCS path is provably unaffected. The ICC RED/ORANGE status is the WOG ERG FR-C entry
+    /// criterion — operator/EOP action only; like RVLIS and MinDnbr it is never read by UpdateProtection and
+    /// commands no scram.
+    /// </summary>
+    private void StepCet(double dt)
+    {
+        if (dt <= 0) return;
+
+        // Seed to Thot on the first sample so a fresh/cold start doesn't ramp up from the ColdTemp default.
+        if (!_cetInit) { CoreExitTempC = Thot; _cetInit = true; }
+
+        // Exposure driver (0 = covered + sub-cooled, 1 = fully uncovered). Either signal can lead.
+        double e = Math.Clamp(Math.Max(CoreExposedFrac, 1.0 - CollapsedLevelFrac), 0.0, 1.0);
+
+        // Decay-heat-sharpened exposure: a barely-uncovered core with little decay heat barely superheats;
+        // a freshly-tripped core (~5–7% DH) drives the CET hard. Saturates to 1 at ~5% DH + full exposure.
+        double effExposure = Math.Clamp(e * (CetDhBase + CetDhGain * DecayHeatFraction), 0.0, 1.0);
+
+        // Steam/clad superheat target: a dry node sits in superheated steam (≥ Tsat) and cannot read hotter
+        // than the cladding it is strapped to, so the target is bounded below by Tsat and above by CladTempC.
+        double cetTarget = Math.Max(SatTempAt(PrimaryPressure), CladTempC);
+
+        // Interpolate Thot+bias → target by effective exposure; clamp to the qualified Type-K ceiling.
+        double baseC  = Thot + CetCoveredBiasC;
+        double cetRaw = Math.Min(CetCeilingC, baseC + effExposure * (cetTarget - baseC));
+
+        // First-order clamped relaxation (the file-wide unconditionally-stable pattern; τ is realism only).
+        CoreExitTempC += (cetRaw - CoreExitTempC) * Math.Min(1.0, dt / CetTauSec);
+        CoreExitTempC  = Math.Clamp(CoreExitTempC, ColdTemp, CetCeilingC);
+
+        // SMM — conservative "higher-of": max(Thot, CET) guards a CET momentarily lagging below Thot during a
+        // fast heat-up, so the margin never reads more sub-cooled than the hot leg.
+        CetSubcoolingMarginC = SatTempAt(PrimaryPressure) - Math.Max(Thot, CoreExitTempC);
+
+        // Advisory ICC status flags (FR-C). Never command a scram (see method contract).
+        SetAlarm(ReactorAlarm.IccRed,    CoreExitTempC >= IccRedTempC);
+        SetAlarm(ReactorAlarm.IccOrange, CoreExitTempC >= IccOrangeTempC || CetSubcoolingMarginC <= 0.0);
     }
 
     /// <summary>

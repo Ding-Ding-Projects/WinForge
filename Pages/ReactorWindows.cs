@@ -213,6 +213,7 @@ public sealed class ReactorControlRoomWindow : Window
             $"{P("Tavg", "平均溫")}   {_sim.Tavg,7:F0} °C\n" +
             $"{P("Primary", "一迴路")}{_sim.PrimaryPressure * 145.038,7:F0} psia\n" +
             $"{P("Subcool", "過冷度")} {_sim.SubcoolingMarginC,7:F0} °C\n" +
+            $"{P("CET", "出口熱偶")}{_sim.CoreExitTempC,7:F0} °C{(_sim.IccRed ? " R" : _sim.IccOrange ? " O" : "")}\n" +
             $"{P("Decay", "衰變熱")}  {_sim.DecayHeatFraction * 100,7:F1} %\n" +
             $"{P("Turbine", "汽輪機")} {_sim.TurbineRPM,7:F0} rpm";
     }

@@ -497,6 +497,16 @@ public sealed partial class ReactorModule : Page
         AddGauge("RVLIS full range", "RVLIS 全量程水位", 0, 100, () => _sim.RvlisFullRangePct, () => _sim.RvlisRange == RvlisValidRange.FullRange ? $"{_sim.RvlisFullRangePct:F0}% · TAF≈62%" : "— (pumps on)", id: "rvlisFull");
         AddGauge("RVLIS dynamic head", "RVLIS 動壓頭", 0, 120, () => _sim.RvlisDynamicHeadPct, () => _sim.RvlisRange == RvlisValidRange.DynamicHead ? $"{_sim.RvlisDynamicHeadPct:F0}% ΔP" : "— (pumps off)", id: "rvlisDh");
         AddGauge("RVLIS upper range", "RVLIS 上量程水位", 0, 100, () => _sim.RvlisUpperRangePct, () => _sim.RvlisRange == RvlisValidRange.FullRange ? $"{_sim.RvlisUpperRangePct:F0}%" : "— (pumps on)", id: "rvlisUpper");
+        // ICC instrumentation (NUREG-0737 II.F.2): Core Exit Thermocouples + Subcooling Margin Monitor.
+        // CET dial spans the qualified Type-K range (200–2300 °F); warnFrac marks the ICC ORANGE 700 °F entry.
+        AddGauge("Core exit TC (CET)", "堆芯出口熱電偶 CET", 200, 2300, () => _sim.CoreExitTempF,
+            () => $"{_sim.CoreExitTempF:F0}°F · {_sim.CoreExitTempC:F0}°C{(_sim.IccRed ? " · ICC RED" : _sim.IccOrange ? " · ICC ORG" : "")}",
+            warnFrac: (700.0 - 200.0) / (2300.0 - 200.0), id: "cet");
+        AddGauge("Subcooling margin (SMM)", "過冷度監測 SMM", -30, 120, () => _sim.CetSubcoolingMarginC,
+            () => _sim.CetSubcoolingMarginC <= 0
+                ? $"{-_sim.CetSubcoolingMarginC:F0}°C " + P("SUPERHEAT", "過熱")
+                : $"{_sim.CetSubcoolingMarginC:F0}°C " + P("subcooled", "過冷"),
+            warnFrac: (15.0 + 30.0) / (120.0 + 30.0), id: "smm");
         AddGauge("RCP seal leakoff", "主泵軸封洩漏", 0, 1920, () => _sim.SealLeakGpmTotal, () => $"{_sim.SealLeakGpmTotal:F0} gpm · {_sim.SealCavityMaxTempC:F0}°C{(_sim.SealCoolingAvailable ? "" : " · NO COOL")}", id: "sealLeak");
         AddGauge("Clad oxidation (ECR)", "包殼氧化 ECR", 0, 30, () => _sim.MaxLocalOxidationPct, () => $"{_sim.MaxLocalOxidationPct:F1}% ECR", id: "ecr");
         AddGauge("Core hydrogen", "堆芯氫氣", 0, 3, () => _sim.CoreWideHydrogenPct, () => $"{_sim.CoreWideHydrogenPct:F2}% · {_sim.HydrogenMassKg:F0} kg", id: "h2");
@@ -653,6 +663,8 @@ public sealed partial class ReactorModule : Page
             (ReactorAlarm.RcpSealLoca, "RCP SEAL LOCA", "主泵軸封失水"),
             (ReactorAlarm.RvlisBelowTopOfFuel, "RVLIS < TOP OF FUEL", "RVLIS 低於燃料頂"),
             (ReactorAlarm.RvlisFullRangeLoLo, "RVLIS LEVEL LO-LO", "RVLIS 水位 低低"),
+            (ReactorAlarm.IccOrange, "ICC ORANGE (FR-C.2)", "堆芯冷卻 橙 FR-C.2"),
+            (ReactorAlarm.IccRed, "ICC RED — CET >1200°F", "堆芯冷卻 紅 CET>1200°F"),
             (ReactorAlarm.PtApproach, "P/T LIMIT APPROACH", "P/T 限值接近"),
             (ReactorAlarm.PtViolation, "APP G P/T VIOLATION", "附錄G P/T 越限"),
             (ReactorAlarm.RcsRateExceeded, "RCS HEAT/COOL RATE HI", "RCS 升降溫率過高"),
@@ -974,7 +986,9 @@ public sealed partial class ReactorModule : Page
         (string en, string zh, Func<int> sev)[] defs =
         {
             ("S Subcrit", "S 次臨界", () => _sim.IsScrammed && _sim.NeutronPowerFraction > 0.02 ? 3 : (_sim.NeutronPowerFraction > 1.05 ? 2 : 0)),
-            ("C Cooling", "C 堆芯冷卻", () => _sim.SubcoolingMarginC < 0 ? 3 : _sim.SubcoolingMarginC < 15 ? 2 : 0),
+            // FR-C core-cooling tree, now driven by the CET/SMM ICC monitor: RED at CET ≥ 1200 °F (FR-C.1),
+            // ORANGE at CET ≥ 700 °F or loss of subcooling margin (FR-C.2).
+            ("C Cooling", "C 堆芯冷卻", () => _sim.IccRed ? 3 : _sim.IccOrange ? 2 : 0),
             ("H Heat sink", "H 熱阱", () => _sim.SteamGenLevel < 17 ? 3 : _sim.SteamGenLevel < 30 ? 2 : 0),
             ("P Integrity", "P 完整性", () => _sim.PrimaryPressure > ReactorSimService.VesselPressureLimit ? 3 : _sim.PrimaryPressure > ReactorSimService.VesselPressureLimit - 1 ? 2 : 0),
             ("Z Containment", "Z 安全殼", () => _sim.Mode == ReactorMode.Meltdown ? 3 : _sim.DamageAccumulation > 1 ? 2 : 0),
