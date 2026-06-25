@@ -63,6 +63,7 @@
                         <NavigationViewItem Content="Bulk File Ops · 批次檔案操作" Tag="module.bulkops"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8B7;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Batch Rename · 批次改名" Tag="module.rename"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8AC;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Duplicate Finder · 重複檔案搜尋" Tag="module.duplicates"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8C8;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Instant File Search · 即時檔案搜尋" Tag="module.everything"><NavigationViewItem.Icon><FontIcon Glyph="&#xE721;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="File Locksmith · 檔案鎖偵測" Tag="module.filelocksmith"><NavigationViewItem.Icon><FontIcon Glyph="&#xE72E;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Disk Analyser · 磁碟分析" Tag="module.disk"><NavigationViewItem.Icon><FontIcon Glyph="&#xEDA2;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Drives · 磁碟機" Tag="module.drives"><NavigationViewItem.Icon><FontIcon Glyph="&#xEDA2;" /></NavigationViewItem.Icon></NavigationViewItem>
