@@ -99,6 +99,8 @@ public static class ShortcutGuideService
     private static bool _hookRunning;
     private static Thread? _hookThread;
     private static uint _hookThreadId;
+    private static Timer? _overlayFailsafeTimer;
+    private const int OverlayFailsafeMs = 30000;
 
     /// <summary>覆蓋層而家係咪顯示緊 · Whether the overlay is currently visible.</summary>
     public static bool OverlayShowing { get; private set; }
@@ -291,12 +293,13 @@ public static class ShortcutGuideService
     private static void ShowOverlay()
     {
         OverlayShowing = true;
+        StartOverlayFailsafe();
         var ui = _ui;
         if (ui is null) return;
         ui.TryEnqueue(() =>
         {
             try { ShortcutGuideOverlay.Show(); }
-            catch { OverlayShowing = false; }
+            catch { OverlayShowing = false; CancelOverlayFailsafe(); }
             StateChanged?.Invoke();
         });
     }
@@ -305,6 +308,7 @@ public static class ShortcutGuideService
     {
         if (!OverlayShowing) return;
         OverlayShowing = false;
+        CancelOverlayFailsafe();
         var ui = _ui;
         if (ui is null) return;
         ui.TryEnqueue(() =>
@@ -320,10 +324,11 @@ public static class ShortcutGuideService
     {
         if (OverlayShowing) { HideOverlay(); return; }
         OverlayShowing = true;
+        StartOverlayFailsafe();
         _ui?.TryEnqueue(() =>
         {
             try { ShortcutGuideOverlay.Show(autoCloseOnDeactivate: true); }
-            catch { OverlayShowing = false; }
+            catch { OverlayShowing = false; CancelOverlayFailsafe(); }
             StateChanged?.Invoke();
         });
     }
@@ -332,7 +337,31 @@ public static class ShortcutGuideService
     public static void NotifyOverlayClosed()
     {
         OverlayShowing = false;
+        CancelOverlayFailsafe();
         StateChanged?.Invoke();
+    }
+
+    private static void StartOverlayFailsafe()
+    {
+        try
+        {
+            _overlayFailsafeTimer?.Dispose();
+            _overlayFailsafeTimer = new Timer(_ =>
+            {
+                if (OverlayShowing) HideOverlay();
+            }, null, OverlayFailsafeMs, Timeout.Infinite);
+        }
+        catch { }
+    }
+
+    private static void CancelOverlayFailsafe()
+    {
+        try
+        {
+            _overlayFailsafeTimer?.Dispose();
+            _overlayFailsafeTimer = null;
+        }
+        catch { }
     }
 
     // ===================== the shortcut catalogue =====================

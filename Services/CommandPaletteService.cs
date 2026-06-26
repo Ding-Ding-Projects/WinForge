@@ -307,41 +307,45 @@ public static class CommandPaletteService
     // ----- Installed apps (Start Menu .lnk + UWP) · 已安裝程式 -----
     private static List<(string name, string path)>? _appCache;
     private static DateTime _appCacheAt;
+    private static readonly object _appCacheGate = new();
 
     private static List<(string name, string path)> Apps()
     {
-        if (_appCache is not null && (DateTime.UtcNow - _appCacheAt).TotalMinutes < 5) return _appCache;
-        var apps = new List<(string, string)>();
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var root in new[]
+        lock (_appCacheGate)
         {
-            Environment.GetFolderPath(Environment.SpecialFolder.CommonStartMenu),
-            Environment.GetFolderPath(Environment.SpecialFolder.StartMenu),
-        })
-        {
-            try
+            if (_appCache is not null && (DateTime.UtcNow - _appCacheAt).TotalMinutes < 5) return _appCache;
+            var apps = new List<(string, string)>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var root in new[]
             {
-                if (string.IsNullOrEmpty(root) || !Directory.Exists(root)) continue;
-                foreach (var lnk in Directory.EnumerateFiles(root, "*.lnk", SearchOption.AllDirectories))
+                Environment.GetFolderPath(Environment.SpecialFolder.CommonStartMenu),
+                Environment.GetFolderPath(Environment.SpecialFolder.StartMenu),
+            })
+            {
+                try
                 {
-                    var name = Path.GetFileNameWithoutExtension(lnk);
-                    if (seen.Add(name)) apps.Add((name, lnk));
+                    if (string.IsNullOrEmpty(root) || !Directory.Exists(root)) continue;
+                    foreach (var lnk in Directory.EnumerateFiles(root, "*.lnk", SearchOption.AllDirectories))
+                    {
+                        var name = Path.GetFileNameWithoutExtension(lnk);
+                        if (seen.Add(name)) apps.Add((name, lnk));
+                    }
+                    foreach (var url in Directory.EnumerateFiles(root, "*.url", SearchOption.AllDirectories))
+                    {
+                        var name = Path.GetFileNameWithoutExtension(url);
+                        if (seen.Add(name)) apps.Add((name, url));
+                    }
                 }
-                foreach (var url in Directory.EnumerateFiles(root, "*.url", SearchOption.AllDirectories))
-                {
-                    var name = Path.GetFileNameWithoutExtension(url);
-                    if (seen.Add(name)) apps.Add((name, url));
-                }
+                catch { /* skip unreadable roots */ }
             }
-            catch { /* skip unreadable roots */ }
-        }
-        // UWP apps via AppsFolder shell namespace → launched by AUMID through explorer.
-        foreach (var (name, aumid) in UwpApps())
-            if (seen.Add(name)) apps.Add((name, "shell:AppsFolder\\" + aumid));
+            // UWP apps via AppsFolder shell namespace → launched by AUMID through explorer.
+            foreach (var (name, aumid) in UwpApps())
+                if (seen.Add(name)) apps.Add((name, "shell:AppsFolder\\" + aumid));
 
-        _appCache = apps;
-        _appCacheAt = DateTime.UtcNow;
-        return apps;
+            _appCache = apps;
+            _appCacheAt = DateTime.UtcNow;
+            return apps;
+        }
     }
 
     private static void AddApps(string query, List<CommandPaletteResult> list)

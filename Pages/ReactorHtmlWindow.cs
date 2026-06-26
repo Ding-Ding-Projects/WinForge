@@ -3,6 +3,7 @@ using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -534,18 +535,31 @@ public sealed class ReactorHtmlWindow : Window
             msgEn = v.ReasonEn, msgZh = v.ReasonZh,
         });
 
-    private void PostFuelList() =>
-        Post(new
+    private async void PostFuelList()
+    {
+        try
         {
-            type = "fuelResult", op = "listFuel", ok = true,
-            items = new
+            var result = await Task.Run(() => new
             {
-                fresh = _fuel.ListFresh(),
-                loaded = _fuel.ListLoaded(),
-                spent = _fuel.ListSpent(),
-            },
-            canRun = _fuel.CanReactorRun,
-        });
+                items = new
+                {
+                    fresh = _fuel.ListFresh(),
+                    loaded = _fuel.ListLoaded(),
+                    spent = _fuel.ListSpent(),
+                },
+                canRun = _fuel.CanReactorRun,
+            });
+            Post(new
+            {
+                type = "fuelResult",
+                op = "listFuel",
+                ok = true,
+                result.items,
+                result.canRun,
+            });
+        }
+        catch { }
+    }
 
     private void PostStartupChecklist()
     {
@@ -572,39 +586,43 @@ public sealed class ReactorHtmlWindow : Window
         });
     }
 
-    private void PostWasteStatus()
+    private async void PostWasteStatus()
     {
-        var s = _waste.Status();
-        Post(new
+        try
         {
-            type = "fuelResult", op = "wasteStatus", ok = true,
-            waste = new
+            var waste = await Task.Run(() =>
             {
-                files = s.Files.Select(f => new
+                var s = _waste.Status();
+                return new
                 {
-                    id = f.Id,
-                    bytes = f.Bytes,
-                    mb = Math.Round(f.Bytes / (1024.0 * 1024.0), 1),
-                    createdUtc = f.CreatedUtc.ToString("u"),
-                }),
-                totalBytes = s.TotalBytes,
-                totalMb = Math.Round(s.TotalBytes / (1024.0 * 1024.0), 1),
-                totalGb = Math.Round(s.TotalBytes / (1024.0 * 1024.0 * 1024.0), 2),
-                count = s.Count,
-                driveFreeGb = s.DriveFreeBytes == long.MaxValue ? -1
-                    : Math.Round(s.DriveFreeBytes / (1024.0 * 1024.0 * 1024.0), 1),
-                safetyFloorGb = Math.Round(s.SafetyFloorBytes / (1024.0 * 1024.0 * 1024.0), 1),
-                capGb = Math.Round(s.CapBytes / (1024.0 * 1024.0 * 1024.0), 1),
-                capUsedPct = Math.Round(s.CapUsedPct, 1),
-                capReached = s.CapReached,
-                runbackZone = s.RunbackZone,
-                storageFull = s.StorageFull,
-                generating = s.Generating,
-                progressPct = Math.Round(s.GenProgressPct, 1),
-                genTargetMb = Math.Round(s.GenTargetBytes / (1024.0 * 1024.0), 0),
-                genId = s.GenId,
-            },
-        });
+                    files = s.Files.Select(f => new
+                    {
+                        id = f.Id,
+                        bytes = f.Bytes,
+                        mb = Math.Round(f.Bytes / (1024.0 * 1024.0), 1),
+                        createdUtc = f.CreatedUtc.ToString("u"),
+                    }).ToList(),
+                    totalBytes = s.TotalBytes,
+                    totalMb = Math.Round(s.TotalBytes / (1024.0 * 1024.0), 1),
+                    totalGb = Math.Round(s.TotalBytes / (1024.0 * 1024.0 * 1024.0), 2),
+                    count = s.Count,
+                    driveFreeGb = s.DriveFreeBytes == long.MaxValue ? -1
+                        : Math.Round(s.DriveFreeBytes / (1024.0 * 1024.0 * 1024.0), 1),
+                    safetyFloorGb = Math.Round(s.SafetyFloorBytes / (1024.0 * 1024.0 * 1024.0), 1),
+                    capGb = Math.Round(s.CapBytes / (1024.0 * 1024.0 * 1024.0), 1),
+                    capUsedPct = Math.Round(s.CapUsedPct, 1),
+                    capReached = s.CapReached,
+                    runbackZone = s.RunbackZone,
+                    storageFull = s.StorageFull,
+                    generating = s.Generating,
+                    progressPct = Math.Round(s.GenProgressPct, 1),
+                    genTargetMb = Math.Round(s.GenTargetBytes / (1024.0 * 1024.0), 0),
+                    genId = s.GenId,
+                };
+            });
+            Post(new { type = "fuelResult", op = "wasteStatus", ok = true, waste });
+        }
+        catch { }
     }
 
     private void PostWaterStatus()

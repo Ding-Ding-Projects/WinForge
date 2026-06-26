@@ -67,7 +67,7 @@ public static class ClipboardService
         _started = true;
         _dq = dq;
         Load();
-        GitInit();
+        Task.Run(GitInit);
         try { Clipboard.ContentChanged += OnContentChanged; } catch { }
     }
 
@@ -90,7 +90,15 @@ public static class ClipboardService
 
     /// <summary>Commit the current history (background, serialized). Past commits are never rewritten,
     /// so "Clear all" only adds a commit — the full history stays recoverable via git log.</summary>
-    private static void GitCommitAsync(string message) => Task.Run(() => GitCommit(message));
+    private static void SaveAndGitCommitAsync(string message)
+    {
+        var snapshot = History.ToList();
+        Task.Run(() =>
+        {
+            SaveSnapshot(snapshot);
+            GitCommit(message);
+        });
+    }
 
     private static void GitCommit(string message)
     {
@@ -245,8 +253,7 @@ public static class ClipboardService
             History.RemoveAt(History.Count - 1);
             TryDeleteImage(drop);
         }
-        Save();
-        GitCommitAsync($"capture {item.Kind} {item.Time}");
+        SaveAndGitCommitAsync($"capture {item.Kind} {item.Time}");
         Changed?.Invoke();
     }
 
@@ -326,8 +333,7 @@ public static class ClipboardService
     {
         History.Remove(item);
         TryDeleteImage(item);
-        Save();
-        GitCommitAsync("remove item");
+        SaveAndGitCommitAsync("remove item");
         Changed?.Invoke();
     }
 
@@ -335,9 +341,8 @@ public static class ClipboardService
     {
         foreach (var i in History) TryDeleteImage(i);
         History.Clear();
-        Save();
         // Commit the cleared state — this does NOT touch .git, so every past entry stays in the git log.
-        GitCommitAsync("clear all (history preserved in git log)");
+        SaveAndGitCommitAsync("clear all (history preserved in git log)");
         Changed?.Invoke();
     }
 
@@ -376,9 +381,9 @@ public static class ClipboardService
             try { File.Delete(item.ImagePath); } catch { }
     }
 
-    private static void Save()
+    private static void SaveSnapshot(List<ClipItem> snapshot)
     {
-        try { File.WriteAllText(Manifest, JsonSerializer.Serialize(History.ToList(), JsonOpts)); } catch { }
+        try { File.WriteAllText(Manifest, JsonSerializer.Serialize(snapshot, JsonOpts)); } catch { }
     }
 
     private static void Load()

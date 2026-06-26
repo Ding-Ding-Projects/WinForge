@@ -153,6 +153,12 @@ public sealed partial class ReactorModule : Page
     private DateTime _lastHardSaveUtc = DateTime.MinValue;
     private int _hardSaveInFlight;
     private static readonly TimeSpan HardSaveInterval = TimeSpan.FromSeconds(1);
+    private DateTime _lastStripChartUiUtc = DateTime.MinValue;
+    private DateTime _lastInstrumentPanelUiUtc = DateTime.MinValue;
+    private DateTime _lastControlSyncUiUtc = DateTime.MinValue;
+    private static readonly TimeSpan StripChartUiInterval = TimeSpan.FromMilliseconds(250);
+    private static readonly TimeSpan InstrumentPanelUiInterval = TimeSpan.FromMilliseconds(350);
+    private static readonly TimeSpan ControlSyncUiInterval = TimeSpan.FromMilliseconds(500);
 
     public ReactorModule()
     {
@@ -461,13 +467,28 @@ public sealed partial class ReactorModule : Page
         UpdateGauges();
         UpdateAlarmTiles();
         UpdateMimic();
-        UpdateStripCharts();
-        UpdateNisPanels();
-        UpdateCsfPanel();
-        UpdateRpsPanel();
         UpdateAudio();
-        UpdateControlsLive();
-        UpdateStatusApiCard();
+
+        // The simulator still ticks at 10 Hz, but these panels rebuild/measure lots of XAML. Redrawing
+        // them every frame can starve pointer/keyboard input, especially with the full control room open.
+        if (now - _lastStripChartUiUtc >= StripChartUiInterval)
+        {
+            _lastStripChartUiUtc = now;
+            UpdateStripCharts();
+        }
+        if (now - _lastInstrumentPanelUiUtc >= InstrumentPanelUiInterval)
+        {
+            _lastInstrumentPanelUiUtc = now;
+            UpdateNisPanels();
+            UpdateCsfPanel();
+            UpdateRpsPanel();
+        }
+        if (now - _lastControlSyncUiUtc >= ControlSyncUiInterval)
+        {
+            _lastControlSyncUiUtc = now;
+            UpdateControlsLive();
+            UpdateStatusApiCard();
+        }
         MaybeHardSave(now);
 
         if (_sim.Mode == ReactorMode.Meltdown)

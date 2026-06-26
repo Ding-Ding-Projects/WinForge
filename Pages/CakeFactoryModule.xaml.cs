@@ -5,6 +5,8 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
@@ -31,6 +33,8 @@ public sealed partial class CakeFactoryModule : Page
     private DateTime _lastCakeFileUiRefresh = DateTime.MinValue;
     private IReadOnlyList<CakeFileRecord> _cachedCakeFiles = Array.Empty<CakeFileRecord>();
     private CakeValidationResult? _cachedLatestCakeValidation;
+    private int _cakeFileRefreshInFlight;
+    private int _cakeFileIssueInFlight;
 
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
@@ -218,6 +222,11 @@ public sealed partial class CakeFactoryModule : Page
             : $"{s.ResourceStatus} · {P("Missing", "缺少")}: {s.MissingIngredients}";
 
         RefreshCakeFileUiCache(forceCakeFileRefresh);
+        ApplyCakeFileUiCache();
+    }
+
+    private void ApplyCakeFileUiCache()
+    {
         var latestCake = _cachedCakeFiles.FirstOrDefault();
         BakeryKeyValue.Text = _cakeFiles.PublicKeyId;
         CakeCountValue.Text = _cachedCakeFiles.Count.ToString();
@@ -228,16 +237,40 @@ public sealed partial class CakeFactoryModule : Page
         EatCakeButton.IsEnabled = latestCake is not null;
     }
 
-    private void RefreshCakeFileUiCache(bool force = false)
+    private async void RefreshCakeFileUiCache(bool force = false)
     {
         var now = DateTime.UtcNow;
         if (!force && (now - _lastCakeFileUiRefresh).TotalSeconds < 1)
             return;
+        if (Interlocked.CompareExchange(ref _cakeFileRefreshInFlight, 1, 0) != 0)
+            return;
 
         _lastCakeFileUiRefresh = now;
-        _cachedCakeFiles = _cakeFiles.ListFresh();
-        var latestCake = _cachedCakeFiles.FirstOrDefault();
-        _cachedLatestCakeValidation = latestCake is null ? null : _cakeFiles.Validate(latestCake.Path);
+        try
+        {
+            var result = await Task.Run(() =>
+            {
+                IReadOnlyList<CakeFileRecord> files = Array.Empty<CakeFileRecord>();
+                CakeValidationResult? validation = null;
+                try
+                {
+                    files = _cakeFiles.ListFresh();
+                    var latestCake = files.FirstOrDefault();
+                    validation = latestCake is null ? null : _cakeFiles.Validate(latestCake.Path);
+                }
+                catch { }
+                return (files, validation);
+            });
+
+            _cachedCakeFiles = result.files;
+            _cachedLatestCakeValidation = result.validation;
+            ApplyCakeFileUiCache();
+        }
+        catch { }
+        finally
+        {
+            Interlocked.Exchange(ref _cakeFileRefreshInFlight, 0);
+        }
     }
 
     private async System.Threading.Tasks.Task InitWebAsync()
@@ -350,7 +383,7 @@ public sealed partial class CakeFactoryModule : Page
         HandleCakeAction(msg.Action, msg.Index, msg.Value);
     }
 
-    private void HandleCakeAction(string? action, int? index = null, double? value = null)
+    private async void HandleCakeAction(string? action, int? index = null, double? value = null)
     {
         bool forceCakeFileRefresh = false;
         switch (action)
@@ -529,7 +562,7 @@ public sealed partial class CakeFactoryModule : Page
 
             case "validateCake":
                 {
-                    var v = _cakeFiles.ValidateLatest();
+                    var v = await Task.Run(() => _cakeFiles.ValidateLatest());
                     forceCakeFileRefresh = true;
                     PostNotice(v.Valid ? "success" : "warning",
                         v.Valid ? P("Cake file authentic", "蛋糕檔可信") : P("Cake file rejected", "蛋糕檔被拒絕"),
@@ -539,7 +572,7 @@ public sealed partial class CakeFactoryModule : Page
 
             case "trustCakeKey":
                 {
-                    var latest = _cakeFiles.ListFresh().FirstOrDefault();
+                    var latest = await Task.Run(() => _cakeFiles.ListFresh().FirstOrDefault());
                     forceCakeFileRefresh = true;
                     if (latest is null)
                     {
@@ -547,7 +580,8 @@ public sealed partial class CakeFactoryModule : Page
                         break;
                     }
 
-                    string keyId = _cakeFiles.TrustPublicKeyFromCake(latest.Path, P("Imported WinForge bakery", "已匯入 WinForge 烘焙房"));
+                    string keyName = P("Imported WinForge bakery", "已匯入 WinForge 烘焙房");
+                    string keyId = await Task.Run(() => _cakeFiles.TrustPublicKeyFromCake(latest.Path, keyName));
                     PostNotice(string.IsNullOrWhiteSpace(keyId) ? "warning" : "success",
                         P("Bakery key trusted", "烘焙公鑰已信任"),
                         string.IsNullOrWhiteSpace(keyId) ? P("Could not read the cake public key.", "無法讀取蛋糕公鑰。") : keyId);
@@ -556,7 +590,7 @@ public sealed partial class CakeFactoryModule : Page
 
             case "eatCake":
                 {
-                    var r = _cakeFiles.EatLatest();
+                    var r = await Task.Run(() => _cakeFiles.EatLatest());
                     forceCakeFileRefresh = true;
                     PostNotice(r.Eaten ? "success" : "warning",
                         r.Eaten ? P("Cake eaten", "蛋糕已食用") : P("Cannot eat cake", "未能食用蛋糕"),
@@ -596,8 +630,24 @@ public sealed partial class CakeFactoryModule : Page
     {
         int pending = Math.Max(0, s.CakesPacked - _cakeFilesIssuedForPacked);
         if (pending <= 0) return;
+        if (Interlocked.CompareExchange(ref _cakeFileIssueInFlight, 1, 0) != 0) return;
 
-        var issued = _cakeFiles.IssueBatch(s.Recipe, pending, s.QualityScore, s.SanitationScore);
+        _ = IssueCakeFilesAsync(s.Recipe, pending, s.QualityScore, s.SanitationScore);
+    }
+
+    private async Task IssueCakeFilesAsync(CakeRecipe recipe, int pending, double qualityScore, double sanitationScore)
+    {
+        IReadOnlyList<CakeFileRecord> issued = Array.Empty<CakeFileRecord>();
+        try
+        {
+            issued = await Task.Run(() => _cakeFiles.IssueBatch(recipe, pending, qualityScore, sanitationScore));
+        }
+        catch { }
+        finally
+        {
+            Interlocked.Exchange(ref _cakeFileIssueInFlight, 0);
+        }
+
         _cakeFilesIssuedForPacked += issued.Count;
         if (issued.Count > 0)
         {
