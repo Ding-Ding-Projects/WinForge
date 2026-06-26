@@ -600,6 +600,7 @@
                 <button class="action" type="button" data-action="runSaltWorks">Salt works</button>
                 <button class="action" type="button" data-action="runLeaveningPlant">Leavening plant</button>
                 <button class="action" type="button" data-action="runPackagingPlant">Packaging plant</button>
+                <button class="action" type="button" data-action="prepareIcing">Prepare icing</button>
                 <button class="action guard" type="button" data-action="releaseLabLot">Release lab lot</button>
                 <button class="action guard" type="button" data-action="serviceFactories">Service plants</button>
                 <button class="action guard" type="button" data-action="haulByproducts">Haul byproducts</button>
@@ -755,6 +756,7 @@
       CanRunSaltWorks: false,
       CanRunLeaveningPlant: false,
       CanRunPackagingPlant: false,
+      CanPrepareIcing: false,
       CanReleaseLabLot: false,
       CanStageBatchKit: false,
       WheatGrowth: 64,
@@ -825,6 +827,7 @@
       SaltLotId: 'SALT-OPENING',
       LeaveningLotId: 'LEAVEN-OPENING',
       PackagingLotId: 'PACK-OPENING',
+      IcingLotId: 'ICING-OPENING',
       WheatKg: 260,
       SugarCropKg: 380,
       FlourKg: 120,
@@ -852,6 +855,7 @@
       LabelStockM: 360,
       PackagingInkL: 8.5,
       AdhesiveKg: 18,
+      IcingKg: 8,
       ResourceStatus: 'Inputs stocked',
       ProcessWaterL: 6000,
       CulinarySteamKg: 2600,
@@ -911,6 +915,8 @@
       LeaveningCalibrationPct: 96,
       PackagingConditionPct: 91,
       PackagingCalibrationPct: 94,
+      IcingConditionPct: 92,
+      IcingCalibrationPct: 95,
       MillRollGapMm: 0.32,
       FlourExtractionPct: 76,
       SugarJuiceBrix: 0,
@@ -928,6 +934,15 @@
       CartonFormerSpeedCpm: 0,
       PrintRegistrationMm: 0.18,
       GluePotTemperatureC: 24,
+      IcingPrepActive: false,
+      IcingPrepPhase: '',
+      IcingPrepProgress: 0,
+      IcingPrepPowerMW: 0,
+      IcingPrepSecondsRemaining: 0,
+      IcingPrepStatus: 'Icing kitchen idle: 8.0 kg prepared icing in lot ICING-OPENING.',
+      IcingMixerRpm: 0,
+      IcingTemperatureC: 22,
+      IcingViscosityPaS: 7.8,
       BatterKg: 0,
       CakesBaked: 0,
       CakesPacked: 0,
@@ -1087,6 +1102,7 @@
       setButton('runSaltWorks', s.CanRunSaltWorks);
       setButton('runLeaveningPlant', s.CanRunLeaveningPlant);
       setButton('runPackagingPlant', s.CanRunPackagingPlant);
+      setButton('prepareIcing', s.CanPrepareIcing);
       setButton('releaseLabLot', s.CanReleaseLabLot);
       setButton('serviceFactories', s.CanServiceFactories);
       setButton('haulByproducts', s.CanHaulByproducts);
@@ -1110,6 +1126,7 @@
         ['Vanilla', `${n(s.VanillaL, 2)} L`],
         ['Vanilla beans', `${n(s.VanillaBeansKg, 1)} kg`],
         ['Cocoa', `${n(s.CocoaKg, 1)} kg`],
+        ['Prepared icing', `${n(s.IcingKg, 1)} kg`],
         ['Baking powder', `${n(s.BakingPowderKg, 1)} kg`],
         ['Salt', `${n(s.SaltKg, 1)} kg`],
         ['Batter in system', `${n(s.BatterKg, 1)} kg`],
@@ -1177,6 +1194,9 @@
         ['Batch kit', s.BatchKitStaged ? `${s.BatchKitLotId} / ${n(s.BatchKitMassKg, 1)} kg` : (s.BatchKitStatus || 'No staged kit')],
         ['Batch lot', s.CurrentBatchLotId || 'No active batch lot'],
         ['Batch trace', s.CurrentBatchTrace || 'No batch trace'],
+        ['Icing kitchen', s.IcingPrepActive ? `${s.IcingPrepPhase || 'running'} / ${n((s.IcingPrepProgress || 0) * 100, 0)}% / ${n(s.IcingPrepSecondsRemaining, 1)}s / ${n(s.IcingPrepPowerMW, 1)} MW` : (s.IcingPrepStatus || 'Idle')],
+        ['Icing texture', `${n(s.IcingMixerRpm, 0)} rpm / ${n(s.IcingTemperatureC, 0)} degC / ${n(s.IcingViscosityPaS, 1)} Pa-s`],
+        ['Icing lot', `${s.IcingLotId || '-'} / ${n(s.IcingKg, 1)} kg`],
         ['Customer order', s.CurrentOrderId || '-'],
         ['Order status', s.OrderStatus || 'No active order'],
         ['Order ready', `${s.OrderCakesReady || 0}/${s.OrderCakesRequired || 0} cakes / ${n(s.OrderSecondsRemaining, 0)}s`],
@@ -1191,6 +1211,7 @@
         ['Salt asset', `${n(s.SaltConditionPct, 0)}% / ${n(s.SaltCalibrationPct, 0)}% cal`],
         ['Leavening asset', `${n(s.LeaveningConditionPct, 0)}% / ${n(s.LeaveningCalibrationPct, 0)}% cal`],
         ['Packaging asset', `${n(s.PackagingConditionPct, 0)}% / ${n(s.PackagingCalibrationPct, 0)}% cal`],
+        ['Icing asset', `${n(s.IcingConditionPct, 0)}% / ${n(s.IcingCalibrationPct, 0)}% cal`],
         ['Utilities', s.FactoryUtilityStatus || 'Utilities ready'],
         ['Utility status', s.UtilityPlantStatus || 'Utility plant idle'],
         ['RO / boiler / air', `${n(s.ProcessWaterConductivityUsCm, 3)} uS/cm / ${n(s.BoilerPressureBar, 1)} bar / ${n(s.AirHeaderPressureBar, 1)} bar`],

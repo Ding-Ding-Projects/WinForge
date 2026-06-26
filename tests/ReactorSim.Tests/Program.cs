@@ -1062,6 +1062,64 @@ internal static class Program
                           $"traceableUtilityRun={traceableUtilityRun}");
         });
 
+        Scenario("CAKE ICING PREP KITCHEN (decorating icing is factory-made, released and reserved)", () =>
+        {
+            var cake = new CakeFactoryService();
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            string start = cake.PrepareIcing();
+            TickCake(cake, fullBus, 1.0);
+            var running = cake.Snapshot;
+
+            TickCake(cake, fullBus, 8.0);
+            var held = cake.Snapshot;
+
+            string release = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var released = cake.Snapshot;
+
+            string kit = cake.StageBatchKit();
+            TickCake(cake, fullBus, 0.5);
+            var staged = cake.Snapshot;
+
+            bool startConsumesInputs = before.CanPrepareIcing
+                                       && running.IcingPrepActive
+                                       && running.ActiveFactoryName.Contains("Icing", StringComparison.OrdinalIgnoreCase)
+                                       && running.IcingPrepProgress > 0
+                                       && running.IcingPrepProgress < 1
+                                       && running.IcingPrepPowerMW > 0
+                                       && running.SugarKg < before.SugarKg
+                                       && running.ButterKg < before.ButterKg
+                                       && running.MilkL < before.MilkL
+                                       && running.VanillaL < before.VanillaL
+                                       && Math.Abs(running.IcingKg - before.IcingKg) < 0.001
+                                       && start.Contains("Started preparing", StringComparison.OrdinalIgnoreCase);
+            bool completionHeldForLab = !held.IcingPrepActive
+                                        && !held.FactoryRunActive
+                                        && held.IcingKg > before.IcingKg
+                                        && held.IcingLotId != before.IcingLotId
+                                        && held.PendingLabProductName.Contains("icing", StringComparison.OrdinalIgnoreCase)
+                                        && held.MissingIngredients.Contains("lab release", StringComparison.OrdinalIgnoreCase)
+                                        && held.IcingMixerRpm > 0
+                                        && held.IcingTemperatureC > 0
+                                        && held.IcingViscosityPaS > 0;
+            bool releaseClearsHold = released.PendingLabLotId.Length == 0
+                                     && released.IngredientLabStatus.Contains("released", StringComparison.OrdinalIgnoreCase)
+                                     && released.CanStageBatchKit
+                                     && released.MissingIngredients.Length == 0
+                                     && release.Contains("released", StringComparison.OrdinalIgnoreCase);
+            bool kittingReservesIcing = staged.BatchKitStaged
+                                        && staged.IcingKg < released.IcingKg
+                                        && staged.BatchKitStatus.Contains("prepared icing", StringComparison.OrdinalIgnoreCase)
+                                        && staged.TraceabilityStatus.Contains("staged", StringComparison.OrdinalIgnoreCase)
+                                        && kit.Contains("prepared icing", StringComparison.OrdinalIgnoreCase);
+            bool pass = startConsumesInputs && completionHeldForLab && releaseClearsHold && kittingReservesIcing;
+            return (pass, $"startConsumesInputs={startConsumesInputs} ('{Trim(start)}'), " +
+                          $"completionHeldForLab={completionHeldForLab} (icing {before.IcingKg:F1}->{held.IcingKg:F1} kg, lot {held.IcingLotId}), " +
+                          $"releaseClearsHold={releaseClearsHold} ('{Trim(release)}'), kittingReservesIcing={kittingReservesIcing} ('{Trim(kit)}')");
+        });
+
         Scenario("CAKE VANILLA EXTRACTION (farm grows beans, factory makes extract)", () =>
         {
             var cake = new CakeFactoryService();
@@ -1297,6 +1355,7 @@ internal static class Program
             bool kitConsumesInventory = staged.FlourKg < before.FlourKg
                                         && staged.SugarKg < before.SugarKg
                                         && staged.MilkL < before.MilkL
+                                        && staged.IcingKg < before.IcingKg
                                         && staged.PackagingUnits < before.PackagingUnits;
             bool warehouseResourcesUsed = staged.ForkliftBatteryPct < before.ForkliftBatteryPct
                                           && staged.WarehousePalletSpacePct < before.WarehousePalletSpacePct;
@@ -1374,6 +1433,7 @@ internal static class Program
                                        && batch.CurrentBatchTrace.Contains("KIT-", StringComparison.OrdinalIgnoreCase)
                                        && batch.CurrentBatchTrace.Contains("flour", StringComparison.OrdinalIgnoreCase)
                                        && batch.CurrentBatchTrace.Contains("milk", StringComparison.OrdinalIgnoreCase)
+                                       && batch.CurrentBatchTrace.Contains("prepared icing", StringComparison.OrdinalIgnoreCase)
                                        && batch.TraceabilityScorePct >= 99;
             bool pass = openingLotsPresent && receivingManifestChanged && dairyLotChanged && factoryOutputLotChanged && labReleasedLot && warehouseKitStaged && batchManifestOpened;
             return (pass, $"openingLotsPresent={openingLotsPresent}, receivingManifestChanged={receivingManifestChanged} ('{Trim(supply)}'), " +
@@ -1494,6 +1554,7 @@ internal static class Program
             var cake = new CakeFactoryService { LineSpeed = 1.0, FarmIntensity = 1.0 };
             TickCake(cake, fullBus, 0.5);
             double packagingBefore = cake.Snapshot.PackagingUnits;
+            double icingBefore = cake.Snapshot.IcingKg;
             bool canStage = cake.Snapshot.CanStageBatchKit;
             string kitMsg = cake.StageBatchKit();
             TickCake(cake, fullBus, 0.5);
@@ -1526,12 +1587,13 @@ internal static class Program
             bool sevenManualReleases = releases == 7;
             bool packedOrRejectedAll = done.CakesPacked + done.CakesRejected == done.Recipe.BatchSize;
             bool packagingConsumed = done.PackagingUnits < packagingBefore;
+            bool icingConsumed = done.IcingKg < icingBefore;
             bool pass = canStage && kitStaged && started && sevenManualReleases && done.Stage == CakeBatchStage.Idle
                         && done.CakesBaked == done.Recipe.BatchSize && packedOrRejectedAll
-                        && packagingConsumed && done.QualityScore >= 70 && done.SanitationScore > 0;
+                        && packagingConsumed && icingConsumed && done.QualityScore >= 70 && done.SanitationScore > 0;
             return (pass, $"canStage={canStage}, kitStaged={kitStaged} ('{Trim(kitMsg)}'), started={started} ('{Trim(startMsg)}'), releases={releases} [{string.Join(" > ", releasedStages)}], " +
                           $"baked={done.CakesBaked}, packed={done.CakesPacked}, rejected={done.CakesRejected}, " +
-                          $"QA={done.QualityScore:F0}%, sanitation={done.SanitationScore:F0}%, cartons {packagingBefore:F0}->{done.PackagingUnits:F0}, " +
+                          $"QA={done.QualityScore:F0}%, sanitation={done.SanitationScore:F0}%, cartons {packagingBefore:F0}->{done.PackagingUnits:F0}, icing {icingBefore:F1}->{done.IcingKg:F1} kg, " +
                           $"last='{Trim(lastMsg)}'");
         });
 

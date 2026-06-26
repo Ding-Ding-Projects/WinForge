@@ -81,6 +81,7 @@ public sealed class CakeFactorySnapshot
     public bool CanRunSaltWorks { get; init; }
     public bool CanRunLeaveningPlant { get; init; }
     public bool CanRunPackagingPlant { get; init; }
+    public bool CanPrepareIcing { get; init; }
     public bool CanReleaseLabLot { get; init; }
     public bool CanStageBatchKit { get; init; }
     public double WheatGrowth { get; init; }
@@ -151,6 +152,7 @@ public sealed class CakeFactorySnapshot
     public string SaltLotId { get; init; } = "";
     public string LeaveningLotId { get; init; } = "";
     public string PackagingLotId { get; init; } = "";
+    public string IcingLotId { get; init; } = "";
     public double WheatKg { get; init; }
     public double SugarCropKg { get; init; }
     public double FlourKg { get; init; }
@@ -178,6 +180,7 @@ public sealed class CakeFactorySnapshot
     public double LabelStockM { get; init; }
     public double PackagingInkL { get; init; }
     public double AdhesiveKg { get; init; }
+    public double IcingKg { get; init; }
     public string ResourceStatus { get; init; } = "";
     public double ProcessWaterL { get; init; }
     public double CulinarySteamKg { get; init; }
@@ -237,6 +240,8 @@ public sealed class CakeFactorySnapshot
     public double LeaveningCalibrationPct { get; init; }
     public double PackagingConditionPct { get; init; }
     public double PackagingCalibrationPct { get; init; }
+    public double IcingConditionPct { get; init; }
+    public double IcingCalibrationPct { get; init; }
     public double MillRollGapMm { get; init; }
     public double FlourExtractionPct { get; init; }
     public double SugarJuiceBrix { get; init; }
@@ -254,6 +259,15 @@ public sealed class CakeFactorySnapshot
     public double CartonFormerSpeedCpm { get; init; }
     public double PrintRegistrationMm { get; init; }
     public double GluePotTemperatureC { get; init; }
+    public bool IcingPrepActive { get; init; }
+    public string IcingPrepPhase { get; init; } = "";
+    public double IcingPrepProgress { get; init; }
+    public double IcingPrepPowerMW { get; init; }
+    public double IcingPrepSecondsRemaining { get; init; }
+    public string IcingPrepStatus { get; init; } = "";
+    public double IcingMixerRpm { get; init; }
+    public double IcingTemperatureC { get; init; }
+    public double IcingViscosityPaS { get; init; }
     public double BatterKg { get; init; }
     public int CakesBaked { get; init; }
     public int CakesPacked { get; init; }
@@ -294,6 +308,7 @@ public sealed class CakeFactoryService
         Salt,
         Leavening,
         Packaging,
+        Icing,
     }
 
     private sealed class IngredientFactoryRun
@@ -436,6 +451,7 @@ public sealed class CakeFactoryService
     private double _labelStockM = 360;
     private double _packagingInkL = 8.5;
     private double _adhesiveKg = 18;
+    private double _icingKg = 8.0;
     private int _lotSequence = 2400;
     private string _lastSupplyManifestId = "RCV-OPENING-2400";
     private bool _supplyTruckEnRoute;
@@ -453,6 +469,9 @@ public sealed class CakeFactoryService
     private string _batchKitTrace = "No batch kit staged.";
     private double _batchKitMassKg;
     private int _batchKitPackagingUnits;
+    private double _batchKitIcingKg;
+    private string _batchKitIcingLotId = "";
+    private double _activeBatchMassKg;
     private double _forkliftBatteryPct = 88;
     private double _warehousePalletSpacePct = 62;
     private string _warehouseStatus = "Warehouse ready: no staged kit on the line.";
@@ -480,6 +499,7 @@ public sealed class CakeFactoryService
     private string _mineralLotId = "MINERAL-OPENING";
     private string _leaveningLotId = "LEAVEN-OPENING";
     private string _packagingLotId = "PACK-OPENING";
+    private string _icingLotId = "ICING-OPENING";
     private string _paperboardLotId = "PAPERBOARD-OPENING";
     private string _labelStockLotId = "LABEL-OPENING";
     private string _packagingInkLotId = "INK-OPENING";
@@ -495,6 +515,7 @@ public sealed class CakeFactoryService
         "SALT-OPENING",
         "LEAVEN-OPENING",
         "PACK-OPENING",
+        "ICING-OPENING",
     };
     private string _ingredientLabStatus = "Factory QA lab released opening ingredient lots.";
     private IngredientFactoryKind _pendingLabKind = IngredientFactoryKind.Mill;
@@ -529,6 +550,7 @@ public sealed class CakeFactoryService
         [IngredientFactoryKind.Salt] = new(92, 93, 38, 1.9),
         [IngredientFactoryKind.Leavening] = new(94, 96, 33, 1.3),
         [IngredientFactoryKind.Packaging] = new(91, 94, 37, 1.7),
+        [IngredientFactoryKind.Icing] = new(92, 95, 34, 1.5),
     };
     private double _millRollGapMm = 0.32;
     private double _flourExtractionPct = 76;
@@ -547,6 +569,9 @@ public sealed class CakeFactoryService
     private double _cartonFormerSpeedCpm = 0;
     private double _printRegistrationMm = 0.18;
     private double _gluePotTemperatureC = 24;
+    private double _icingMixerRpm = 0;
+    private double _icingTemperatureC = 22;
+    private double _icingViscosityPaS = 7.8;
     private double _factoryRunQualityPct = 100;
     private IngredientFactoryRun? _factoryRun;
     private double _batterKg;
@@ -623,6 +648,7 @@ public sealed class CakeFactoryService
                && HasLot(r.SaltKg * n, _saltLotId)
                && HasLot(r.VanillaL * n, _vanillaLotId)
                && HasLot(r.CocoaKg * n, _cocoaLotId)
+               && HasLot(IcingNeedKg(r), _icingLotId)
                && HasLot(n, _packagingLotId);
     }
 
@@ -636,15 +662,62 @@ public sealed class CakeFactoryService
                && FactoryLotReleased(r.SaltKg * n, _saltLotId)
                && FactoryLotReleased(r.VanillaL * n, _vanillaLotId)
                && FactoryLotReleased(r.CocoaKg * n, _cocoaLotId)
+               && FactoryLotReleased(IcingNeedKg(r), _icingLotId)
                && FactoryLotReleased(n, _packagingLotId);
     }
 
     private bool RecipeLotsReady(CakeRecipe r) =>
         RecipeLotDataPresent(r) && RecipeFactoryLotsReleased(r);
 
+    private static double IcingNeedKg(CakeRecipe r) =>
+        r.BatchSize * (string.Equals(r.Key, "butter-pound", StringComparison.Ordinal) ? 0.075 : 0.12);
+
+    private static (double SugarKg, double ButterKg, double MilkL, double VanillaL, double CocoaKg, double ProductKg) IcingFormula(CakeRecipe r)
+    {
+        double target = Math.Max(IcingNeedKg(r) * 1.25, 1.1);
+        bool chocolate = r.CocoaKg > 0;
+        double sugar = target * (chocolate ? 0.50 : 0.56);
+        double butter = target * (string.Equals(r.Key, "butter-pound", StringComparison.Ordinal) ? 0.25 : 0.20);
+        double milk = target * (string.Equals(r.Key, "butter-pound", StringComparison.Ordinal) ? 0.10 : 0.16);
+        double vanilla = target * 0.015;
+        double cocoa = chocolate ? target * 0.12 : 0;
+        double product = (sugar + butter + milk + vanilla + cocoa) * 0.98;
+        return (sugar, butter, milk, vanilla, cocoa, product);
+    }
+
+    private bool IcingInputsAvailable(CakeRecipe r)
+    {
+        var formula = IcingFormula(r);
+        return _sugarKg >= formula.SugarKg
+               && _butterKg >= formula.ButterKg
+               && _milkL >= formula.MilkL
+               && _vanillaL >= formula.VanillaL
+               && _cocoaKg >= formula.CocoaKg
+               && HasFactoryUtilities(38, 46, 12, 0.22)
+               && MilkQaInSpec();
+    }
+
+    private bool IcingInputLotsReady(CakeRecipe r)
+    {
+        var formula = IcingFormula(r);
+        return FactoryLotReleased(formula.SugarKg, _sugarLotId)
+               && FactoryLotReleased(formula.ButterKg, _butterLotId)
+               && HasLot(formula.MilkL, _milkLotId)
+               && FactoryLotReleased(formula.VanillaL, _vanillaLotId)
+               && FactoryLotReleased(formula.CocoaKg, _cocoaLotId);
+    }
+
+    private bool CanPrepareIcing(CakeRecipe r, double power, bool labClear, bool wasteReady) =>
+        power >= 0.2
+        && _factoryRun is null
+        && labClear
+        && wasteReady
+        && IcingInputsAvailable(r)
+        && IcingInputLotsReady(r);
+
     private string BuildBatchTrace(CakeRecipe r, string batchLotId)
     {
-        return $"{batchLotId}: {r.Name} uses flour {_flourLotId}, sugar {_sugarLotId}, eggs {_eggLotId}, milk {_milkLotId}, butter {_butterLotId}, leavening {_leaveningLotId}, salt {_saltLotId}, vanilla {_vanillaLotId}, cocoa {(r.CocoaKg > 0 ? _cocoaLotId : "not required")} and packaging {_packagingLotId}.";
+        return $"{batchLotId}: {r.Name} uses flour {_flourLotId}, sugar {_sugarLotId}, eggs {_eggLotId}, milk {_milkLotId}, butter {_butterLotId}, leavening {_leaveningLotId}, salt {_saltLotId}, vanilla {_vanillaLotId}, cocoa {(r.CocoaKg > 0 ? _cocoaLotId : "not required")}, prepared icing {_icingLotId} and packaging {_packagingLotId}.";
     }
 
     private void CreateNextOrder()
@@ -1340,6 +1413,57 @@ public sealed class CakeFactoryService
         });
     }
 
+    public string PrepareIcing()
+    {
+        if (_lastPowerAvailability < 0.2)
+            return "Icing kettle, tempering jacket and depositor hopper need reactor power.";
+        if (_factoryRun is not null)
+            return $"{_factoryRun.Name} is already running; wait for the ingredient factory run to finish.";
+
+        var recipe = CurrentRecipe;
+        var formula = IcingFormula(recipe);
+        if (!IcingInputsAvailable(recipe))
+            return "Icing kitchen needs released sugar, butter, cold milk, vanilla, cocoa when required, process water, culinary steam, compressed air, filter media and milk QA in spec.";
+        if (!IcingInputLotsReady(recipe))
+            return "Icing kitchen cannot run because sugar, butter, vanilla, cocoa or milk lot release is incomplete.";
+
+        _icingMixerRpm = 0;
+        _icingTemperatureC = 24;
+        _icingViscosityPaS = 12.5;
+        string cocoaLot = formula.CocoaKg > 0 ? "/" + _cocoaLotId : "";
+        var run = new IngredientFactoryRun
+        {
+            Kind = IngredientFactoryKind.Icing,
+            Name = "Icing tempering kitchen",
+            StartedMessage = $"Started preparing {formula.ProductKg:0.0} kg icing for {recipe.Name}: sugar, butter, cow milk, vanilla{(formula.CocoaKg > 0 ? " and cocoa" : "")} are being weighed, cooked, cooled and tempered.",
+            DurationSeconds = 6.8,
+            PowerDemandMW = 0.9,
+            PrimaryInput = formula.SugarKg,
+            SecondaryInput = formula.ButterKg,
+            TertiaryInput = formula.MilkL,
+            QuaternaryInput = formula.VanillaL,
+            Product = formula.ProductKg,
+            Waste = formula.ProductKg * 0.018,
+            ProcessWaterL = 38,
+            CulinarySteamKg = 46,
+            CompressedAirNm3 = 12,
+            FilterMediaPct = 0.22,
+            WearPct = 0.95,
+            CalibrationDriftPct = 0.36,
+            InputLotId = $"{_sugarLotId}/{_butterLotId}/{_milkLotId}/{_vanillaLotId}{cocoaLot}",
+            OutputLotId = NewLotId("ICING"),
+        };
+
+        return StartFactoryRun(run, () =>
+        {
+            ConsumeTrackedStock(ref _sugarKg, formula.SugarKg, ref _sugarLotId);
+            ConsumeTrackedStock(ref _butterKg, formula.ButterKg, ref _butterLotId);
+            ConsumeTrackedStock(ref _milkL, formula.MilkL, ref _milkLotId);
+            ConsumeTrackedStock(ref _vanillaL, formula.VanillaL, ref _vanillaLotId);
+            ConsumeTrackedStock(ref _cocoaKg, formula.CocoaKg, ref _cocoaLotId);
+        });
+    }
+
     private string StartFactoryRun(IngredientFactoryRun run, Action consumeInputs)
     {
         string missingUtilities = MissingFactoryUtilities(run);
@@ -1506,8 +1630,8 @@ public sealed class CakeFactoryService
 
         _sanitationScore = Math.Min(100, _sanitationScore + 1.4);
         _factoryMaintenanceStatus = BuildFactoryMaintenanceStatus();
-        _factoryStatus = "Maintenance crew serviced roller mill, sugar house, butter room, vanilla extractor, cocoa line, salt works, leavening blender and packaging plant.";
-        return "Serviced all ingredient factories: lubricated bearings, verified guards, replaced filters, calibrated scales, extraction temperature probes, packaging registration sensors and safety interlocks, and signed the maintenance log.";
+        _factoryStatus = "Maintenance crew serviced roller mill, sugar house, butter room, vanilla extractor, cocoa line, salt works, leavening blender, packaging plant and icing tempering kitchen.";
+        return "Serviced all ingredient factories: lubricated bearings, verified guards, replaced filters, calibrated scales, extraction temperature probes, packaging registration sensors, icing viscosity probes and safety interlocks, and signed the maintenance log.";
     }
 
     public string HaulFactoryByproducts()
@@ -1641,6 +1765,13 @@ public sealed class CakeFactoryService
                 if (p > 0.45) _factoryRunQualityPct -= Math.Abs(_printRegistrationMm - 0.08) * 18.0;
                 if (p > 0.55) _factoryRunQualityPct -= Math.Abs(_gluePotTemperatureC - 150.0) * 0.035;
                 break;
+            case IngredientFactoryKind.Icing:
+                _icingMixerRpm = p < 0.16 ? 110.0 * p / 0.16 : 110.0 + Math.Sin(p * Math.PI * 5) * 18.0;
+                _icingTemperatureC = p < 0.42 ? 24.0 + p * 92.0 : 62.0 - (p - 0.42) / 0.58 * 39.0;
+                _icingViscosityPaS = Math.Clamp(12.5 - p * 5.9 + Math.Sin(p * Math.PI * 4) * 0.35, 5.8, 13.0);
+                if (p > 0.45) _factoryRunQualityPct -= Math.Abs(_icingTemperatureC - 45.0) * 0.06;
+                if (p > 0.60) _factoryRunQualityPct -= Math.Abs(_icingViscosityPaS - 6.6) * 1.2;
+                break;
         }
         _factoryRunQualityPct = Math.Clamp(_factoryRunQualityPct, 0, 100);
     }
@@ -1683,6 +1814,11 @@ public sealed class CakeFactoryService
             IngredientFactoryKind.Packaging when p < 0.64 => "label print registration",
             IngredientFactoryKind.Packaging when p < 0.84 => "glue set and code verification",
             IngredientFactoryKind.Packaging => "case count and QA sample pull",
+            IngredientFactoryKind.Icing when p < 0.18 => "micro scale weigh-up",
+            IngredientFactoryKind.Icing when p < 0.42 => "sugar syrup cook and butter emulsification",
+            IngredientFactoryKind.Icing when p < 0.70 => "tempering jacket cooldown",
+            IngredientFactoryKind.Icing when p < 0.88 => "viscosity trim and cocoa blend",
+            IngredientFactoryKind.Icing => "hopper transfer and QA sample pull",
             _ => "processing",
         };
     }
@@ -1699,6 +1835,7 @@ public sealed class CakeFactoryService
         IngredientFactoryKind.Salt => "salt works",
         IngredientFactoryKind.Leavening => "leavening plant",
         IngredientFactoryKind.Packaging => "packaging plant",
+        IngredientFactoryKind.Icing => "icing tempering kitchen",
         _ => "ingredient plant",
     };
 
@@ -1712,6 +1849,7 @@ public sealed class CakeFactoryService
         IngredientFactoryKind.Salt => "baking salt",
         IngredientFactoryKind.Leavening => "baking powder",
         IngredientFactoryKind.Packaging => "cake cartons",
+        IngredientFactoryKind.Icing => "prepared icing",
         _ => "ingredient",
     };
 
@@ -1783,6 +1921,9 @@ public sealed class CakeFactoryService
                 break;
             case IngredientFactoryKind.Packaging:
                 ConsumeTrackedStock(ref _packagingUnits, quantity, ref _packagingLotId);
+                break;
+            case IngredientFactoryKind.Icing:
+                ConsumeTrackedStock(ref _icingKg, quantity, ref _icingLotId);
                 break;
         }
     }
@@ -1922,6 +2063,11 @@ public sealed class CakeFactoryService
                 _wasteKg += trim;
                 detail = $"{trim:0.0} kg carton trim and label matrix scrap";
                 break;
+            case IngredientFactoryKind.Icing:
+                double kettleRinse = run.Product * 0.05;
+                _factoryEffluentL = Math.Min(FactoryEffluentCapacityL, _factoryEffluentL + kettleRinse * 6.0);
+                detail = $"{run.Waste:0.0} kg icing smear plus {kettleRinse * 6.0:0} L kettle rinse";
+                break;
             default:
                 detail = $"{run.Waste:0.0} kg residuals";
                 break;
@@ -2009,6 +2155,16 @@ public sealed class CakeFactoryService
                 _factoryRunQualityPct = Math.Clamp(99 - Math.Abs(_printRegistrationMm - 0.08) * 20 - Math.Abs(_gluePotTemperatureC - 152.0) * 0.08 - FactoryEquipmentPenalty(run.Kind), 0, 100);
                 _factoryStatus = $"Packaging plant completed: {Math.Floor(output):0} coded cartons, registration {_printRegistrationMm:0.00} mm, glue {_gluePotTemperatureC:0} degC, QA {_factoryRunQualityPct:0}%.";
                 break;
+            case IngredientFactoryKind.Icing:
+                _icingKg += output;
+                _icingLotId = run.OutputLotId;
+                _wasteKg += waste;
+                _icingMixerRpm = 94 + _rng.NextDouble() * 30;
+                _icingTemperatureC = 20 + _rng.NextDouble() * 4;
+                _icingViscosityPaS = 6.1 + _rng.NextDouble() * 1.0;
+                _factoryRunQualityPct = Math.Clamp(98 - Math.Abs(_icingViscosityPaS - 6.6) * 2.2 - Math.Abs(_icingTemperatureC - 22.0) * 0.25 - FactoryEquipmentPenalty(run.Kind), 0, 100);
+                _factoryStatus = $"Icing kitchen completed: {output:0.0} kg prepared icing at {_icingTemperatureC:0} degC and {_icingViscosityPaS:0.0} Pa-s viscosity, QA {_factoryRunQualityPct:0}%.";
+                break;
         }
 
         HoldFactoryLotForLab(run, output);
@@ -2049,14 +2205,18 @@ public sealed class CakeFactoryService
         _batchKitLotId = NewLotId("KIT");
         _batchKitRecipeKey = CurrentRecipe.Key;
         _batchKitTrace = BuildBatchTrace(CurrentRecipe, _batchKitLotId);
-        _batchKitMassKg = BatchIngredientMass(CurrentRecipe);
+        double icingNeed = IcingNeedKg(CurrentRecipe);
+        _batchKitMassKg = BatchIngredientMass(CurrentRecipe) + icingNeed;
         _batchKitPackagingUnits = CurrentRecipe.BatchSize;
+        _batchKitIcingKg = icingNeed;
+        _batchKitIcingLotId = _icingLotId;
         ConsumeIngredients(CurrentRecipe);
+        ConsumeTrackedStock(ref _icingKg, icingNeed, ref _icingLotId);
         ConsumeTrackedStock(ref _packagingUnits, CurrentRecipe.BatchSize, ref _packagingLotId);
         _forkliftBatteryPct = Math.Max(0, _forkliftBatteryPct - Math.Clamp(5.0 + _batchKitMassKg * 0.10, 5.0, 14.0));
         _warehousePalletSpacePct = Math.Max(0, _warehousePalletSpacePct - 8);
         _batchKitStaged = true;
-        _warehouseStatus = $"Batch kit {_batchKitLotId} staged at line scales: {_batchKitMassKg:0.0} kg ingredients plus {_batchKitPackagingUnits} cartons.";
+        _warehouseStatus = $"Batch kit {_batchKitLotId} staged at line scales: {_batchKitMassKg:0.0} kg ingredients, {_batchKitIcingKg:0.0} kg prepared icing lot {_batchKitIcingLotId} and {_batchKitPackagingUnits} cartons.";
         _traceabilityStatus = $"Warehouse staged kit {_batchKitLotId}; batch start can only use this picked kit.";
         return _warehouseStatus;
     }
@@ -2098,6 +2258,7 @@ public sealed class CakeFactoryService
         _batchInternalC = 22;
         _mixerSpecificGravity = 1.02;
         _batchQuality = Math.Clamp(86 + _sanitationScore * 0.11 + _rng.NextDouble() * 4, 70, 99);
+        _activeBatchMassKg = _batchKitMassKg;
         _batterKg += _batchKitMassKg;
         _warehousePalletSpacePct = Math.Min(100, _warehousePalletSpacePct + 6);
         _batchKitStaged = false;
@@ -2106,6 +2267,8 @@ public sealed class CakeFactoryService
         _batchKitTrace = "No batch kit staged.";
         _batchKitMassKg = 0;
         _batchKitPackagingUnits = 0;
+        _batchKitIcingKg = 0;
+        _batchKitIcingLotId = "";
         _warehouseStatus = $"Batch {_currentBatchLotId} pulled staged kit into scaling; staging lane clear.";
         message = $"Started {CurrentRecipe.Name} batch ({CurrentRecipe.BatchSize} cakes).";
         return true;
@@ -2239,6 +2402,7 @@ public sealed class CakeFactoryService
             CanRunSaltWorks = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _brineL >= 80 && HasFactoryUtilities(0, 700, 30, 0.4),
             CanRunLeaveningPlant = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _sodaAshKg >= 3 && _phosphateKg >= 3 && _starchKg >= 2 && HasFactoryUtilities(0, 0, 50, 1.0),
             CanRunPackagingPlant = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _paperboardKg >= 42 && _labelStockM >= 140 && _packagingInkL >= 2.4 && _adhesiveKg >= 6 && HasFactoryUtilities(18, 0, 42, 0.45),
+            CanPrepareIcing = CanPrepareIcing(recipe, power, labClear, wasteReady),
             CanReleaseLabLot = power >= 0.15 && _factoryRun is null && !labClear && HasFactoryUtilities(12, 0, 4, 0.1),
             CanStageBatchKit = _stage == CakeBatchStage.Idle && !CipActive && !_batchKitStaged && rawMissing.Length == 0 && power >= 0.2 && _forkliftBatteryPct >= 12 && _warehousePalletSpacePct >= 18,
             CanServiceFactories = power >= 0.2 && _factoryRun is null && NeedsFactoryService() && HasFactoryUtilities(120, 80, 35, 1.5),
@@ -2312,6 +2476,7 @@ public sealed class CakeFactoryService
             SaltLotId = _saltLotId,
             LeaveningLotId = _leaveningLotId,
             PackagingLotId = _packagingLotId,
+            IcingLotId = _icingLotId,
             WheatKg = _wheatKg,
             SugarCropKg = _sugarCropKg,
             FlourKg = _flourKg,
@@ -2339,6 +2504,7 @@ public sealed class CakeFactoryService
             LabelStockM = _labelStockM,
             PackagingInkL = _packagingInkL,
             AdhesiveKg = _adhesiveKg,
+            IcingKg = _icingKg,
             ResourceStatus = ResourceStatus(power),
             ProcessWaterL = _processWaterL,
             CulinarySteamKg = _culinarySteamKg,
@@ -2395,6 +2561,8 @@ public sealed class CakeFactoryService
             LeaveningCalibrationPct = EquipmentFor(IngredientFactoryKind.Leavening).CalibrationPct,
             PackagingConditionPct = EquipmentFor(IngredientFactoryKind.Packaging).ConditionPct,
             PackagingCalibrationPct = EquipmentFor(IngredientFactoryKind.Packaging).CalibrationPct,
+            IcingConditionPct = EquipmentFor(IngredientFactoryKind.Icing).ConditionPct,
+            IcingCalibrationPct = EquipmentFor(IngredientFactoryKind.Icing).CalibrationPct,
             MillRollGapMm = _millRollGapMm,
             FlourExtractionPct = _flourExtractionPct,
             SugarJuiceBrix = _sugarJuiceBrix,
@@ -2412,6 +2580,17 @@ public sealed class CakeFactoryService
             CartonFormerSpeedCpm = _cartonFormerSpeedCpm,
             PrintRegistrationMm = _printRegistrationMm,
             GluePotTemperatureC = _gluePotTemperatureC,
+            IcingPrepActive = _factoryRun?.Kind == IngredientFactoryKind.Icing,
+            IcingPrepPhase = _factoryRun?.Kind == IngredientFactoryKind.Icing ? FactoryPhase(_factoryRun) : "",
+            IcingPrepProgress = _factoryRun?.Kind == IngredientFactoryKind.Icing ? _factoryRun.Progress : 0,
+            IcingPrepPowerMW = _factoryRun?.Kind == IngredientFactoryKind.Icing ? _factoryRun.PowerDemandMW : 0,
+            IcingPrepSecondsRemaining = _factoryRun?.Kind == IngredientFactoryKind.Icing ? _factoryRun.RemainingSeconds : 0,
+            IcingPrepStatus = _factoryRun?.Kind == IngredientFactoryKind.Icing
+                ? _factoryStatus
+                : $"Icing kitchen idle: {_icingKg:0.0} kg prepared icing in lot {(_icingLotId.Length > 0 ? _icingLotId : "none")}.",
+            IcingMixerRpm = _icingMixerRpm,
+            IcingTemperatureC = _icingTemperatureC,
+            IcingViscosityPaS = _icingViscosityPaS,
             BatterKg = _batterKg,
             CakesBaked = _cakesBaked,
             CakesPacked = _cakesPacked,
@@ -2701,7 +2880,8 @@ public sealed class CakeFactoryService
         _cakesRejected += rejected;
         _finishedGoodsCakes += packed;
         _wasteKg += rejected * 0.42;
-        _batterKg = Math.Max(0, _batterKg - BatchIngredientMass(recipe));
+        _batterKg = Math.Max(0, _batterKg - (_activeBatchMassKg > 0 ? _activeBatchMassKg : BatchIngredientMass(recipe) + IcingNeedKg(recipe)));
+        _activeBatchMassKg = 0;
         _sanitationScore = Math.Max(0, _sanitationScore - 2.4);
         _batchInternalC = 28;
         _stageReadyForOperator = false;
@@ -2831,6 +3011,7 @@ public sealed class CakeFactoryService
         if (_labelStockM < 140) low.Add("label stock");
         if (_packagingInkL < 2.4) low.Add("packaging ink");
         if (_adhesiveKg < 6) low.Add("food-grade adhesive");
+        if (_icingKg < IcingNeedKg(CurrentRecipe)) low.Add("prepared icing");
         if (_vanillaBeansKg < 0.5 && _vanillaL < CurrentRecipe.VanillaL * CurrentRecipe.BatchSize) low.Add("vanilla beans");
         if (_cocoaBeansKg < 5 && _cocoaKg < CurrentRecipe.CocoaKg * CurrentRecipe.BatchSize) low.Add("cocoa beans");
         if (_brineL < 80 && _saltKg < CurrentRecipe.SaltKg * CurrentRecipe.BatchSize) low.Add("brine");
@@ -2889,6 +3070,7 @@ public sealed class CakeFactoryService
         Count(_packagingInkL, _packagingInkLotId);
         Count(_adhesiveKg, _adhesiveLotId);
         Count(_packagingUnits, _packagingLotId);
+        Count(_icingKg, _icingLotId);
         Count(_processWaterL + _culinarySteamKg + _compressedAirNm3 + _filterMediaPct, _utilityLotId);
         return total == 0 ? 100 : good * 100.0 / total;
     }
@@ -2906,6 +3088,7 @@ public sealed class CakeFactoryService
         if (!HasLot(_saltKg, _saltLotId)) missing.Add("salt");
         if (!HasLot(_cocoaKg, _cocoaLotId)) missing.Add("cocoa");
         if (!HasLot(_packagingUnits, _packagingLotId)) missing.Add("packaging");
+        if (!HasLot(_icingKg, _icingLotId)) missing.Add("prepared icing");
         if (missing.Count > 0) return "Traceability hold: missing lot data for " + string.Join(", ", missing);
         return _traceabilityStatus;
     }
@@ -3004,6 +3187,7 @@ public sealed class CakeFactoryService
         if (_saltKg < r.SaltKg * n) missing.Add("salt");
         if (_vanillaL < r.VanillaL * n) missing.Add("vanilla");
         if (_cocoaKg < r.CocoaKg * n) missing.Add("cocoa");
+        if (_icingKg < IcingNeedKg(r)) missing.Add("prepared icing");
         if (_packagingUnits < n) missing.Add("coded cartons");
         if (!RecipeLotDataPresent(r)) missing.Add("lot trace");
         else if (!RecipeFactoryLotsReleased(r)) missing.Add("lab release");
