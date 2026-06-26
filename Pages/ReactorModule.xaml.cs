@@ -2635,11 +2635,32 @@ public sealed partial class ReactorModule : Page
         {
             var check = new TextBlock { Text = "○", FontSize = 16, Width = 24, Foreground = new SolidColorBrush(Color.FromArgb(160, 0xAA, 0xAA, 0xAA)) };
             var text = new TextBlock { FontSize = 13, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center };
+            var controlText = new TextBlock
+            {
+                FontSize = 11,
+                TextWrapping = TextWrapping.Wrap,
+                Foreground = new SolidColorBrush(Color.FromArgb(190, 0x9E, 0xA7, 0xB0)),
+                Margin = new Thickness(0, 2, 0, 0),
+            };
             int n = i;
             var stp = step;
-            _relocalizers.Add(() => text.Text = $"{n}. " + P(stp.En, stp.Zh));
+            _relocalizers.Add(() =>
+            {
+                text.Text = $"{n}. " + P(stp.En, stp.Zh);
+                controlText.Text = P($"Use: {stp.ControlEn}", $"使用：{stp.ControlZh}");
+            });
             text.Text = $"{n}. " + P(stp.En, stp.Zh);
-            var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { check, text } };
+            controlText.Text = P($"Use: {stp.ControlEn}", $"使用：{stp.ControlZh}");
+            var copy = new StackPanel { Spacing = 0 };
+            copy.Children.Add(text);
+            copy.Children.Add(controlText);
+            var row = new Grid { ColumnSpacing = 6, Margin = new Thickness(0, 1, 0, 1) };
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            Grid.SetColumn(check, 0);
+            Grid.SetColumn(copy, 1);
+            row.Children.Add(check);
+            row.Children.Add(copy);
             host.Children.Add(row);
             _startupSteps.Add((step, check));
             i++;
