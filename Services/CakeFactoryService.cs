@@ -181,6 +181,8 @@ public sealed class CakeFactorySnapshot
     public double WheatForeignMaterialPct { get; init; }
     public double WheatProteinPct { get; init; }
     public double SugarCropKg { get; init; }
+    public double SugarCropSugarPct { get; init; }
+    public double SugarCropSoilTarePct { get; init; }
     public double FlourKg { get; init; }
     public double SugarKg { get; init; }
     public double Eggs { get; init; }
@@ -246,6 +248,7 @@ public sealed class CakeFactorySnapshot
     public string WasteHandlingStatus { get; init; } = "";
     public double BranKg { get; init; }
     public double BeetPulpKg { get; init; }
+    public double MolassesKg { get; init; }
     public double ButtermilkL { get; init; }
     public double VanillaPomaceKg { get; init; }
     public double CocoaShellKg { get; init; }
@@ -291,6 +294,13 @@ public sealed class CakeFactorySnapshot
     public double FlourProteinPct { get; init; }
     public double SugarJuiceBrix { get; init; }
     public double SugarEvaporatorTemperatureC { get; init; }
+    public double SugarJuicePurityPct { get; init; }
+    public double SugarLimePh { get; init; }
+    public double SugarPanVacuumKPa { get; init; }
+    public double SugarCentrifugeRpm { get; init; }
+    public double SugarMoisturePct { get; init; }
+    public double SugarColorIcumsa { get; init; }
+    public double SugarPolarizationPct { get; init; }
     public double MilkPasteurizerTemperatureC { get; init; }
     public double MilkHomogenizerPressureBar { get; init; }
     public double MilkPasteurizationHoldSeconds { get; init; }
@@ -529,6 +539,8 @@ public sealed class CakeFactoryService
     private double _wheatMoisturePct = 12.7;
     private double _wheatForeignMaterialPct = 0.8;
     private double _wheatProteinPct = 8.4;
+    private double _sugarCropSugarPct = 16.8;
+    private double _sugarCropSoilTarePct = 2.4;
     private double _limestoneKg = 46;
     private double _traceMineralKg = 22;
     private double _wheatSeedKg = 18;
@@ -669,6 +681,13 @@ public sealed class CakeFactoryService
     private double _flourProteinPct = 8.1;
     private double _sugarJuiceBrix = 0;
     private double _sugarEvaporatorTemperatureC = 24;
+    private double _sugarJuicePurityPct = 88.0;
+    private double _sugarLimePh = 8.3;
+    private double _sugarPanVacuumKPa = 0;
+    private double _sugarCentrifugeRpm = 0;
+    private double _sugarMoisturePct = 0.05;
+    private double _sugarColorIcumsa = 45;
+    private double _sugarPolarizationPct = 99.8;
     private double _milkPasteurizerTemperatureC = 4;
     private double _milkHomogenizerPressureBar = 0;
     private double _milkPasteurizationHoldSeconds = 0;
@@ -712,6 +731,7 @@ public sealed class CakeFactoryService
     private const double FactoryEffluentCapacityL = 3000;
     private double _branKg = 34;
     private double _beetPulpKg = 52;
+    private double _molassesKg = 12;
     private double _buttermilkL = 18;
     private double _vanillaPomaceKg = 2.0;
     private double _cocoaShellKg = 6;
@@ -870,6 +890,7 @@ public sealed class CakeFactoryService
     private double ByproductStorageLoadKg() =>
         _branKg
         + _beetPulpKg
+        + _molassesKg
         + _vanillaPomaceKg
         + _cocoaShellKg
         + _leaveningDustKg
@@ -879,6 +900,7 @@ public sealed class CakeFactoryService
     private double CompostableOrganicsKg() =>
         Math.Min(_branKg, 18.0)
         + Math.Min(_beetPulpKg, 24.0)
+        + Math.Min(_molassesKg, 10.0)
         + Math.Min(_vanillaPomaceKg, 2.0)
         + Math.Min(_cocoaShellKg, 5.0)
         + Math.Min(_buttermilkL, 12.0) * 1.03;
@@ -897,7 +919,7 @@ public sealed class CakeFactoryService
     private static double ExpectedByproductLoadKg(IngredientFactoryRun run) => run.Kind switch
     {
         IngredientFactoryKind.Mill => run.PrimaryInput * 0.22,
-        IngredientFactoryKind.Sugar => run.PrimaryInput * 0.34,
+        IngredientFactoryKind.Sugar => run.PrimaryInput * 0.39,
         IngredientFactoryKind.Milk => run.PrimaryInput * 0.012,
         IngredientFactoryKind.Butter => run.PrimaryInput * 0.78,
         IngredientFactoryKind.Vanilla => run.PrimaryInput * 0.32,
@@ -1018,6 +1040,8 @@ public sealed class CakeFactoryService
         if (beet > 0)
         {
             _sugarCropLotId = NewLotId("SUGARCROP");
+            _sugarCropSugarPct = Math.Clamp(13.4 + _beetGrowth * 0.035 + _rng.NextDouble() * 0.65, 14.0, 18.4);
+            _sugarCropSoilTarePct = Math.Clamp(4.8 - _beetGrowth * 0.026 + _rng.NextDouble() * 0.85, 1.4, 5.8);
             lots.Add($"sugar crop {_sugarCropLotId}");
         }
         if (vanillaBeans > 0)
@@ -1295,21 +1319,34 @@ public sealed class CakeFactoryService
         double crop = Math.Min(_sugarCropKg, 160);
         if (crop < 10)
             return "Not enough sugar crop is available for refining.";
+        if (string.IsNullOrWhiteSpace(_sugarCropLotId))
+            return "Sugar house cannot run because the sugar-crop lot is missing from the field ledger.";
 
-        _sugarJuiceBrix = 12.0;
-        _sugarEvaporatorTemperatureC = 45.0;
+        double washRejects = crop * Math.Clamp(_sugarCropSoilTarePct / 100.0 * 0.82, 0.012, 0.052);
+        double recoverableSugar = crop * Math.Clamp(_sugarCropSugarPct / 100.0 * 0.86 - _sugarCropSoilTarePct * 0.002, 0.105, 0.158);
+        double processWater = 260 + crop * _sugarCropSoilTarePct * 0.25;
+        double steam = 500 + Math.Max(0, 16.6 - _sugarCropSugarPct) * 34.0;
+        _sugarJuiceBrix = 0;
+        _sugarEvaporatorTemperatureC = 32.0;
+        _sugarJuicePurityPct = 0;
+        _sugarLimePh = 0;
+        _sugarPanVacuumKPa = 0;
+        _sugarCentrifugeRpm = 0;
+        _sugarMoisturePct = 0;
+        _sugarColorIcumsa = 0;
+        _sugarPolarizationPct = 0;
         var run = new IngredientFactoryRun
         {
             Kind = IngredientFactoryKind.Sugar,
-            Name = "Sugar diffuser and evaporator",
-            StartedMessage = $"Started washing, slicing, diffusing and evaporating {crop:0} kg sugar crop.",
+            Name = "Sugar house diffuser, pan and centrifuge",
+            StartedMessage = $"Started flume washing, slicing, diffusing, carbonating and crystallizing {crop:0} kg sugar-crop lot {_sugarCropLotId}: {_sugarCropSugarPct:0.0}% sugar and {_sugarCropSoilTarePct:0.0}% soil tare.",
             DurationSeconds = 10.0,
             PowerDemandMW = 2.2,
             PrimaryInput = crop,
-            Product = crop * 0.155,
-            Waste = crop * 0.025,
-            ProcessWaterL = 320,
-            CulinarySteamKg = 520,
+            Product = recoverableSugar,
+            Waste = crop * 0.018 + washRejects,
+            ProcessWaterL = processWater,
+            CulinarySteamKg = steam,
             CompressedAirNm3 = 22,
             FilterMediaPct = 1.2,
             WearPct = 2.35,
@@ -1757,10 +1794,11 @@ public sealed class CakeFactoryService
         const double poultryManure = 42.0;
         double bran = Math.Min(_branKg, 18.0);
         double beetPulp = Math.Min(_beetPulpKg, 24.0);
+        double molasses = Math.Min(_molassesKg, 10.0);
         double pomace = Math.Min(_vanillaPomaceKg, 2.0);
         double shell = Math.Min(_cocoaShellKg, 5.0);
         double buttermilk = Math.Min(_buttermilkL, 12.0);
-        double organics = bran + beetPulp + pomace + shell + buttermilk * 1.03;
+        double organics = bran + beetPulp + molasses + pomace + shell + buttermilk * 1.03;
 
         if (_manureKg < dairyManure || _poultryManureKg < poultryManure || organics < 18.0)
             return "Compost plant needs dairy manure, poultry manure and enough factory organics before it can make crop fertilizer.";
@@ -1798,6 +1836,7 @@ public sealed class CakeFactoryService
             _poultryManureKg = Math.Max(0, _poultryManureKg - poultryManure);
             _branKg = Math.Max(0, _branKg - bran);
             _beetPulpKg = Math.Max(0, _beetPulpKg - beetPulp);
+            _molassesKg = Math.Max(0, _molassesKg - molasses);
             _vanillaPomaceKg = Math.Max(0, _vanillaPomaceKg - pomace);
             _cocoaShellKg = Math.Max(0, _cocoaShellKg - shell);
             _buttermilkL = Math.Max(0, _buttermilkL - buttermilk);
@@ -2200,9 +2239,10 @@ public sealed class CakeFactoryService
         _cashBalance += revenue;
         _forkliftBatteryPct = Math.Max(0, _forkliftBatteryPct - 5.5);
         _warehousePalletSpacePct = Math.Max(0, _warehousePalletSpacePct - 3.0);
-        string detail = $"Hauled {load:0} kg-equivalent byproducts: bran {_branKg:0} kg, beet pulp {_beetPulpKg:0} kg, buttermilk {_buttermilkL:0} L, vanilla pomace {_vanillaPomaceKg:0.0} kg, cocoa shell {_cocoaShellKg:0} kg, brine blowdown {_brineBlowdownL:0} L and leavening dust {_leaveningDustKg:0.0} kg.";
+        string detail = $"Hauled {load:0} kg-equivalent byproducts: bran {_branKg:0} kg, beet pulp {_beetPulpKg:0} kg, molasses {_molassesKg:0.0} kg, buttermilk {_buttermilkL:0} L, vanilla pomace {_vanillaPomaceKg:0.0} kg, cocoa shell {_cocoaShellKg:0} kg, brine blowdown {_brineBlowdownL:0} L and leavening dust {_leaveningDustKg:0.0} kg.";
         _branKg = 0;
         _beetPulpKg = 0;
+        _molassesKg = 0;
         _buttermilkL = 0;
         _vanillaPomaceKg = 0;
         _cocoaShellKg = 0;
@@ -2287,9 +2327,26 @@ public sealed class CakeFactoryService
                 if (p > 0.70) _factoryRunQualityPct -= Math.Abs(_flourAshPct - 0.44) * 34.0 + Math.Max(0, _flourMoisturePct - 14.2) * 2.0;
                 break;
             case IngredientFactoryKind.Sugar:
-                _sugarJuiceBrix = 12.0 + p * 57.0;
-                _sugarEvaporatorTemperatureC = 45.0 + p * 61.0;
-                if (p > 0.5) _factoryRunQualityPct -= Math.Abs(_sugarEvaporatorTemperatureC - 104.0) * 0.15;
+                _sugarJuiceBrix = p < 0.30
+                    ? 9.5 + p / 0.30 * (4.5 + _sugarCropSugarPct * 0.10)
+                    : p < 0.68
+                        ? 14.5 + (p - 0.30) / 0.38 * 53.0
+                        : 67.5 + (p - 0.68) / 0.32 * 2.5;
+                _sugarEvaporatorTemperatureC = p < 0.34 ? 34.0 + p * 115.0 : 98.0 + Math.Sin(p * Math.PI * 3) * 5.0;
+                _sugarJuicePurityPct = Math.Clamp(78.0 + Math.Min(1.0, p / 0.52) * 12.0 - _sugarCropSoilTarePct * 0.55, 70, 92);
+                _sugarLimePh = p < 0.20
+                    ? 6.8 + p / 0.20 * 2.3
+                    : p < 0.52
+                        ? 9.1 + Math.Sin((p - 0.20) / 0.32 * Math.PI) * 1.8
+                        : 8.35 + Math.Sin(p * Math.PI * 2) * 0.12;
+                _sugarPanVacuumKPa = p < 0.64 ? 0 : 54.0 + (p - 0.64) / 0.36 * 10.0;
+                _sugarCentrifugeRpm = p < 0.82 ? 0 : 760.0 + (p - 0.82) / 0.18 * 520.0;
+                _sugarMoisturePct = p < 0.84 ? 0 : Math.Clamp(1.25 - (p - 0.84) / 0.16 * 1.19, 0.04, 1.3);
+                _sugarColorIcumsa = Math.Clamp(190.0 - p * 148.0 + _sugarCropSoilTarePct * 4.0, 32, 260);
+                _sugarPolarizationPct = p < 0.84 ? 0 : Math.Clamp(99.25 + (p - 0.84) / 0.16 * 0.55 - Math.Max(0, _sugarColorIcumsa - 70.0) * 0.0015, 98.8, 99.9);
+                if (p > 0.48) _factoryRunQualityPct -= Math.Max(0, 86.0 - _sugarJuicePurityPct) * 0.50 + Math.Abs(_sugarLimePh - 8.35) * 1.1;
+                if (p > 0.68) _factoryRunQualityPct -= Math.Abs(_sugarJuiceBrix - 68.5) * 0.55 + Math.Abs(_sugarEvaporatorTemperatureC - 101.0) * 0.08;
+                if (p > 0.86) _factoryRunQualityPct -= Math.Max(0, _sugarColorIcumsa - 62.0) * 0.22 + Math.Max(0, _sugarMoisturePct - 0.07) * 150.0 + Math.Max(0, 99.70 - _sugarPolarizationPct) * 20.0;
                 break;
             case IngredientFactoryKind.Milk:
                 _milkPasteurizerTemperatureC = p < 0.25 ? _bulkMilkTankC + p / 0.25 * 68.0 : 72.0 + Math.Sin(p * Math.PI * 4) * 1.4;
@@ -2390,10 +2447,12 @@ public sealed class CakeFactoryService
             IngredientFactoryKind.Mill when p < 0.56 => "break rolling and stock grading",
             IngredientFactoryKind.Mill when p < 0.78 => "plansifter separation",
             IngredientFactoryKind.Mill => "purifier, ash sample and flour-bin transfer",
-            IngredientFactoryKind.Sugar when p < 0.18 => "wash and slice",
-            IngredientFactoryKind.Sugar when p < 0.42 => "diffusion",
-            IngredientFactoryKind.Sugar when p < 0.74 => "evaporation",
-            IngredientFactoryKind.Sugar => "crystallization and drying",
+            IngredientFactoryKind.Sugar when p < 0.16 => "flume wash, stone trap and beet slicing",
+            IngredientFactoryKind.Sugar when p < 0.34 => "cossette diffusion and raw juice screen",
+            IngredientFactoryKind.Sugar when p < 0.52 => "lime defecation, carbonation and filter press",
+            IngredientFactoryKind.Sugar when p < 0.70 => "multiple-effect evaporation",
+            IngredientFactoryKind.Sugar when p < 0.86 => "vacuum pan crystallization",
+            IngredientFactoryKind.Sugar => "centrifuge, dryer, color sample and silo transfer",
             IngredientFactoryKind.Milk when p < 0.18 => "raw balance tank and filter check",
             IngredientFactoryKind.Milk when p < 0.42 => "HTST heat-up",
             IngredientFactoryKind.Milk when p < 0.68 => "72 degC holding tube",
@@ -2542,6 +2601,7 @@ public sealed class CakeFactoryService
         {
             IngredientFactoryKind.Milk => $"QA lab hold: {_pendingLabProductName} lot {_pendingLabLotId} awaiting phosphatase, micro, temperature and label checks.",
             IngredientFactoryKind.Mill => $"QA lab hold: {_pendingLabProductName} lot {_pendingLabLotId} awaiting moisture, ash, protein, sieve and micro checks.",
+            IngredientFactoryKind.Sugar => $"QA lab hold: {_pendingLabProductName} lot {_pendingLabLotId} awaiting polarization, color, moisture, insoluble solids and label checks.",
             _ => $"QA lab hold: {_pendingLabProductName} lot {_pendingLabLotId} awaiting moisture, sieve, micro and label checks.",
         };
     }
@@ -2700,8 +2760,10 @@ public sealed class CakeFactoryService
                 break;
             case IngredientFactoryKind.Sugar:
                 double pulp = run.PrimaryInput * 0.34;
+                double molasses = run.PrimaryInput * Math.Clamp(_sugarCropSugarPct / 100.0 * 0.18, 0.022, 0.038);
                 _beetPulpKg += pulp;
-                detail = $"{pulp:0.0} kg beet pulp";
+                _molassesKg += molasses;
+                detail = $"{pulp:0.0} kg beet pulp and {molasses:0.0} kg molasses";
                 break;
             case IngredientFactoryKind.Milk:
                 double milkSolids = run.PrimaryInput * 0.012;
@@ -2798,10 +2860,24 @@ public sealed class CakeFactoryService
                 _sugarKg += output;
                 _sugarLotId = run.OutputLotId;
                 _wasteKg += waste;
-                _sugarJuiceBrix = 67.0 + _rng.NextDouble() * 3.0;
-                _sugarEvaporatorTemperatureC = 103.0 + _rng.NextDouble() * 4.0;
-                _factoryRunQualityPct = Math.Clamp(98 - Math.Abs(_sugarJuiceBrix - 68.0) * 1.5 - FactoryEquipmentPenalty(run.Kind), 0, 100);
-                _factoryStatus = $"Sugar house completed: {output:0.0} kg sugar at {_sugarJuiceBrix:0.0} Brix and {_sugarEvaporatorTemperatureC:0} degC, QA {_factoryRunQualityPct:0}%.";
+                _sugarJuiceBrix = Math.Clamp(68.0 + _rng.NextDouble() * 1.8, 66.5, 70.5);
+                _sugarEvaporatorTemperatureC = 101.0 + _rng.NextDouble() * 4.0;
+                _sugarJuicePurityPct = Math.Clamp(89.5 - _sugarCropSoilTarePct * 0.42 + _rng.NextDouble() * 1.3, 82, 92);
+                _sugarLimePh = 8.25 + _rng.NextDouble() * 0.22;
+                _sugarPanVacuumKPa = 61.0 + _rng.NextDouble() * 6.0;
+                _sugarCentrifugeRpm = 1140.0 + _rng.NextDouble() * 180.0;
+                _sugarMoisturePct = 0.035 + _rng.NextDouble() * 0.035;
+                _sugarColorIcumsa = Math.Clamp(36.0 + _sugarCropSoilTarePct * 2.2 + Math.Max(0, 16.0 - _sugarCropSugarPct) * 3.0 + _rng.NextDouble() * 7.0, 30, 85);
+                _sugarPolarizationPct = Math.Clamp(99.72 + _rng.NextDouble() * 0.10 - Math.Max(0, _sugarColorIcumsa - 60.0) * 0.0015, 99.60, 99.90);
+                _factoryRunQualityPct = Math.Clamp(98
+                    - Math.Abs(_sugarJuiceBrix - 68.5) * 1.15
+                    - Math.Max(0, 88.0 - _sugarJuicePurityPct) * 0.75
+                    - Math.Abs(_sugarLimePh - 8.35) * 4.0
+                    - Math.Max(0, _sugarColorIcumsa - 62.0) * 0.25
+                    - Math.Max(0, _sugarMoisturePct - 0.07) * 180.0
+                    - Math.Max(0, 99.70 - _sugarPolarizationPct) * 22.0
+                    - FactoryEquipmentPenalty(run.Kind), 0, 100);
+                _factoryStatus = $"Sugar house completed: {output:0.0} kg crystallized sugar from purified crop lot {run.InputLotId}; juice {_sugarJuicePurityPct:0.0}% purity at {_sugarJuiceBrix:0.0} Brix, pH {_sugarLimePh:0.00}, pan vacuum {_sugarPanVacuumKPa:0} kPa, centrifuge {_sugarCentrifugeRpm:0} rpm, sugar {_sugarMoisturePct:0.000}% moisture, {_sugarColorIcumsa:0} ICUMSA and {_sugarPolarizationPct:0.00}% polarization, QA {_factoryRunQualityPct:0}%.";
                 break;
             case IngredientFactoryKind.Milk:
                 _milkL += output;
@@ -3157,7 +3233,7 @@ public sealed class CakeFactoryService
             CanWashDairyParlor = power >= 0.15 && HasFactoryUtilities(180, 60, 12, 0.5) && _barnLaborHours >= 1.4 && (_dairyParlorHygienePct < 96 || _manureKg > 80),
             CanWashPoultryHouse = power >= 0.15 && HasFactoryUtilities(90, 30, 8, 0.35) && _barnLaborHours >= 1.0 && (_henHouseHygienePct < 96 || _poultryManureKg > 80),
             CanMillWheat = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _wheatKg >= 5 && HasFactoryUtilities(50, 0, 38, 0.6),
-            CanRefineSugar = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _sugarCropKg >= 10 && HasFactoryUtilities(320, 520, 22, 1.2),
+            CanRefineSugar = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _sugarCropKg >= 10 && HasFactoryUtilities(520, 610, 22, 1.2),
             CanChurnButter = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _rawMilkL > 35 && HasFactoryUtilities(110, 140, 15, 0.8)
                              && !string.IsNullOrWhiteSpace(_rawMilkLotId) && MilkQaInSpec(),
             CanExtractVanilla = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _vanillaBeansKg >= 0.5 && HasFactoryUtilities(72, 85, 10, 0.35),
@@ -3279,6 +3355,8 @@ public sealed class CakeFactoryService
             WheatForeignMaterialPct = _wheatForeignMaterialPct,
             WheatProteinPct = _wheatProteinPct,
             SugarCropKg = _sugarCropKg,
+            SugarCropSugarPct = _sugarCropSugarPct,
+            SugarCropSoilTarePct = _sugarCropSoilTarePct,
             FlourKg = _flourKg,
             SugarKg = _sugarKg,
             Eggs = _eggs,
@@ -3341,6 +3419,7 @@ public sealed class CakeFactoryService
             WasteHandlingStatus = WasteHandlingStatus(),
             BranKg = _branKg,
             BeetPulpKg = _beetPulpKg,
+            MolassesKg = _molassesKg,
             ButtermilkL = _buttermilkL,
             VanillaPomaceKg = _vanillaPomaceKg,
             CocoaShellKg = _cocoaShellKg,
@@ -3392,6 +3471,13 @@ public sealed class CakeFactoryService
             FlourProteinPct = _flourProteinPct,
             SugarJuiceBrix = _sugarJuiceBrix,
             SugarEvaporatorTemperatureC = _sugarEvaporatorTemperatureC,
+            SugarJuicePurityPct = _sugarJuicePurityPct,
+            SugarLimePh = _sugarLimePh,
+            SugarPanVacuumKPa = _sugarPanVacuumKPa,
+            SugarCentrifugeRpm = _sugarCentrifugeRpm,
+            SugarMoisturePct = _sugarMoisturePct,
+            SugarColorIcumsa = _sugarColorIcumsa,
+            SugarPolarizationPct = _sugarPolarizationPct,
             MilkPasteurizerTemperatureC = _milkPasteurizerTemperatureC,
             MilkHomogenizerPressureBar = _milkHomogenizerPressureBar,
             MilkPasteurizationHoldSeconds = _milkPasteurizationHoldSeconds,

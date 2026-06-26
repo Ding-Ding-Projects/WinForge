@@ -1396,6 +1396,60 @@ internal static class Program
                           $"({held.FlourMoisturePct:F1}% moisture, {held.FlourAshPct:F2}% ash, {held.FlourProteinPct:F1}% protein), releaseClearsFlour={releaseClearsFlour} ('{Trim(release)}')");
         });
 
+        Scenario("CAKE SUGAR HOUSE REALISM (sugar crop is purified and crystallized before release)", () =>
+        {
+            var cake = new CakeFactoryService { FarmIntensity = 1.0 };
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            string start = cake.RefineSugar();
+            TickCake(cake, fullBus, 1.0);
+            var running = cake.Snapshot;
+
+            TickCake(cake, fullBus, 10.5);
+            var held = cake.Snapshot;
+
+            string blocked = cake.StageBatchKit();
+            string release = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var released = cake.Snapshot;
+
+            bool cropAssayed = before.SugarCropSugarPct > 0
+                               && before.SugarCropSoilTarePct > 0
+                               && before.CanRefineSugar;
+            bool purificationRunning = running.FactoryRunActive
+                                       && running.ActiveFactoryName.Contains("Sugar", StringComparison.OrdinalIgnoreCase)
+                                       && running.ActiveFactoryPhase.Length > 0
+                                       && running.SugarCropKg < before.SugarCropKg
+                                       && Math.Abs(running.SugarKg - before.SugarKg) < 0.001
+                                       && running.SugarJuiceBrix > 0
+                                       && running.SugarJuicePurityPct > 0
+                                       && running.SugarLimePh > 0
+                                       && start.Contains("crystallizing", StringComparison.OrdinalIgnoreCase);
+            bool sugarHeldForLab = !held.FactoryRunActive
+                                   && held.SugarKg > before.SugarKg
+                                   && held.SugarLotId != before.SugarLotId
+                                   && held.PendingLabLotId == held.SugarLotId
+                                   && held.IngredientLabStatus.Contains("polarization", StringComparison.OrdinalIgnoreCase)
+                                   && held.SugarJuiceBrix > 60
+                                   && held.SugarPanVacuumKPa > 0
+                                   && held.SugarCentrifugeRpm > 0
+                                   && held.SugarMoisturePct > 0
+                                   && held.SugarColorIcumsa > 0
+                                   && held.SugarPolarizationPct > 99
+                                   && held.BeetPulpKg > before.BeetPulpKg
+                                   && held.MolassesKg > before.MolassesKg
+                                   && held.FactoryStatus.Contains("crystallized", StringComparison.OrdinalIgnoreCase);
+            bool releaseClearsSugar = blocked.Contains("lab release", StringComparison.OrdinalIgnoreCase)
+                                      && release.Contains("released", StringComparison.OrdinalIgnoreCase)
+                                      && released.PendingLabLotId.Length == 0;
+            bool pass = cropAssayed && purificationRunning && sugarHeldForLab && releaseClearsSugar;
+            return (pass, $"cropAssayed={cropAssayed} ({before.SugarCropSugarPct:F1}% sugar, {before.SugarCropSoilTarePct:F1}% tare), " +
+                          $"purificationRunning={purificationRunning} ('{Trim(start)}'), sugarHeldForLab={sugarHeldForLab} " +
+                          $"({held.SugarJuiceBrix:F1} Brix, {held.SugarColorIcumsa:F0} ICUMSA, {held.SugarPolarizationPct:F2}% pol, molasses {before.MolassesKg:F1}->{held.MolassesKg:F1} kg), " +
+                          $"releaseClearsSugar={releaseClearsSugar} ('{Trim(release)}')");
+        });
+
         Scenario("CAKE INGREDIENT CHAIN (harvest, collect, mill, refine, churn and non-farm factories mutate inventory)", () =>
         {
             var cake = new CakeFactoryService();
@@ -1485,6 +1539,9 @@ internal static class Program
                                     && s3.WheatTemperMoisturePct > 0 && s3.FlourMoisturePct > 0
                                     && s3.FlourAshPct > 0 && s3.FlourProteinPct > 0
                                     && s4.SugarJuiceBrix > 0 && s4.SugarEvaporatorTemperatureC > 90
+                                    && s4.SugarJuicePurityPct > 0 && s4.SugarLimePh > 0
+                                    && s4.SugarPanVacuumKPa > 0 && s4.SugarCentrifugeRpm > 0
+                                    && s4.SugarMoisturePct > 0 && s4.SugarColorIcumsa > 0 && s4.SugarPolarizationPct > 99
                                     && s5.CreamSeparatorRpm > 0 && s5.ButterFatPct > 70
                                     && s6.VanillaExtractorTemperatureC > 70 && s6.VanillaExtractStrengthPct > 80
                                     && s7.CocoaRoasterTemperatureC > 100 && s7.CocoaGrindMicrons > 0
