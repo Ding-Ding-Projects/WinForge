@@ -821,7 +821,7 @@ internal static class Program
             var collected = cake.Snapshot;
 
             string start = cake.PasteurizeMilk();
-            TickCake(cake, fullBus, 1.0);
+            TickCake(cake, fullBus, 2.6);
             var running = cake.Snapshot;
 
             TickCake(cake, fullBus, 7.0);
@@ -1755,7 +1755,11 @@ internal static class Program
                                     && s9.LeaveningMixerRpm > 0 && s9.LeaveningHomogeneityPct > 90
                                     && s9.LeaveningBlendMoisturePct > 0 && s9.LeaveningSifterLoadPct > 0
                                     && s9.LeaveningDustCollectorPressurePa > 0
-                                    && s10.CartonFormerSpeedCpm > 0 && s10.PrintRegistrationMm > 0 && s10.GluePotTemperatureC > 100;
+                                    && s10.CartonBoardCaliperMm > 0.38 && s10.CartonBoardMoisturePct > 5.5
+                                    && s10.CartonFormerSpeedCpm > 0 && s10.CartonDieCutWastePct > 0
+                                    && s10.LabelWebTensionN > 0 && s10.PrintRegistrationMm > 0
+                                    && s10.GluePotTemperatureC > 100 && s10.GlueBeadGPerCarton > 0
+                                    && s10.CaseCodeReadRatePct > 95 && s10.PackagingTrimKg > s9.PackagingTrimKg;
             bool factoryUtilitiesConsumed = s10.ProcessWaterL < s0.ProcessWaterL
                                             && s10.CulinarySteamKg < s0.CulinarySteamKg
                                             && s10.CompressedAirNm3 < s0.CompressedAirNm3
@@ -1934,7 +1938,7 @@ internal static class Program
                           $"extractionProducesHeldLot={extractionProducesHeldLot} ('{Trim(blockedMsg)}'), releaseClearsExtract={releaseClearsExtract} ('{Trim(release)}')");
         });
 
-        Scenario("CAKE PACKAGING PLANT (cartons are made from paperboard, labels, ink and adhesive)", () =>
+        Scenario("CAKE PACKAGING PLANT REALISM (cartons are formed, glued, coded and QA-released)", () =>
         {
             var cake = new CakeFactoryService();
             TickCake(cake, fullBus, 0.5);
@@ -1964,14 +1968,30 @@ internal static class Program
                                            && running.AdhesiveKg < before.AdhesiveKg
                                            && Math.Abs(running.PackagingUnits - before.PackagingUnits) < 0.001
                                            && start.Contains("paperboard", StringComparison.OrdinalIgnoreCase);
+            bool runningTelemetry = running.ActiveFactoryPhase.Length > 0
+                                           && running.CartonBoardCaliperMm > 0
+                                           && running.CartonBoardMoisturePct > 0
+                                           && running.CartonFormerSpeedCpm > 0
+                                           && running.PrintRegistrationMm > 0
+                                           && start.Contains("die-cutting", StringComparison.OrdinalIgnoreCase)
+                                           && start.Contains("vision-verifying", StringComparison.OrdinalIgnoreCase);
             bool timedCartonOutput = !held.FactoryRunActive
                                      && held.PackagingUnits > before.PackagingUnits
                                      && held.CartonFormerSpeedCpm > 0
+                                     && held.CartonBoardCaliperMm > 0.38
+                                     && held.CartonBoardMoisturePct > 5.5
+                                     && held.CartonDieCutWastePct > 0
+                                     && held.LabelWebTensionN > 0
                                      && held.PrintRegistrationMm > 0
                                      && held.GluePotTemperatureC > 100
+                                     && held.GlueBeadGPerCarton > 0
+                                     && held.CaseCodeReadRatePct > 95
+                                     && held.PackagingTrimKg > before.PackagingTrimKg
                                      && held.FactoryStatus.Contains("Packaging plant completed", StringComparison.OrdinalIgnoreCase);
             bool labHoldsNewPackagingLot = held.PendingLabLotId.Length > 0
                                            && held.PendingLabProductName.Contains("cartons", StringComparison.OrdinalIgnoreCase)
+                                           && held.IngredientLabStatus.Contains("glue", StringComparison.OrdinalIgnoreCase)
+                                           && held.IngredientLabStatus.Contains("code", StringComparison.OrdinalIgnoreCase)
                                            && held.MissingIngredients.Contains("lab release", StringComparison.OrdinalIgnoreCase)
                                            && blockedMsg.Contains("lab release", StringComparison.OrdinalIgnoreCase);
             bool releaseClearsPackagingLot = released.PendingLabLotId.Length == 0
@@ -1981,9 +2001,9 @@ internal static class Program
             bool releaseConsumesLabUtilities = released.ProcessWaterL < waterBeforeRelease
                                                && released.CompressedAirNm3 < airBeforeRelease
                                                && released.FilterMediaPct < filterBeforeRelease;
-            bool pass = startConsumesFeedstocks && timedCartonOutput && labHoldsNewPackagingLot && releaseClearsPackagingLot && releaseConsumesLabUtilities;
-            return (pass, $"startConsumesFeedstocks={startConsumesFeedstocks} ('{Trim(start)}'), timedCartonOutput={timedCartonOutput} " +
-                          $"({before.PackagingUnits:F0}->{held.PackagingUnits:F0} cartons), labHoldsNewPackagingLot={labHoldsNewPackagingLot} ('{Trim(blockedMsg)}'), " +
+            bool pass = startConsumesFeedstocks && runningTelemetry && timedCartonOutput && labHoldsNewPackagingLot && releaseClearsPackagingLot && releaseConsumesLabUtilities;
+            return (pass, $"startConsumesFeedstocks={startConsumesFeedstocks} ('{Trim(start)}'), runningTelemetry={runningTelemetry} ({running.ActiveFactoryPhase}, former {running.CartonFormerSpeedCpm:F0} cpm, reg {running.PrintRegistrationMm:F2} mm), timedCartonOutput={timedCartonOutput} " +
+                          $"({before.PackagingUnits:F0}->{held.PackagingUnits:F0} cartons, board {held.CartonBoardCaliperMm:F3} mm/{held.CartonBoardMoisturePct:F1}%, trim {before.PackagingTrimKg:F1}->{held.PackagingTrimKg:F1} kg, code {held.CaseCodeReadRatePct:F1}%), labHoldsNewPackagingLot={labHoldsNewPackagingLot} ('{Trim(blockedMsg)}'), " +
                           $"releaseClearsPackagingLot={releaseClearsPackagingLot} ('{Trim(release)}'), releaseConsumesLabUtilities={releaseConsumesLabUtilities}");
         });
 

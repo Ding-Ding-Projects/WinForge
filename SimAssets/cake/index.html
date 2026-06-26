@@ -944,6 +944,7 @@
       CocoaButterKg: 3,
       BrineBlowdownL: 80,
       LeaveningDustKg: 1.2,
+      PackagingTrimKg: 1.5,
       FactoryEffluentL: 360,
       ByproductStoragePct: 0,
       EffluentTankPct: 0,
@@ -1036,8 +1037,14 @@
       LeaveningSifterLoadPct: 0,
       LeaveningDustCollectorPressurePa: 160,
       CartonFormerSpeedCpm: 0,
+      CartonBoardCaliperMm: 0.42,
+      CartonBoardMoisturePct: 6.4,
+      CartonDieCutWastePct: 0,
+      LabelWebTensionN: 0,
       PrintRegistrationMm: 0.18,
       GluePotTemperatureC: 24,
+      GlueBeadGPerCarton: 0,
+      CaseCodeReadRatePct: 100,
       IcingPrepActive: false,
       IcingPrepPhase: '',
       IcingPrepProgress: 0,
@@ -1328,7 +1335,7 @@
         ['Waste handling', s.WasteHandlingStatus || 'Byproducts clear'],
         ['Byproducts', `bran ${n(s.BranKg, 0)} kg / pulp ${n(s.BeetPulpKg, 0)} kg / molasses ${n(s.MolassesKg, 1)} kg / skim ${n(s.SkimMilkL, 0)} L / buttermilk ${n(s.ButtermilkL, 0)} L`],
         ['Vanilla pomace', `${n(s.VanillaPomaceKg, 1)} kg`],
-        ['Residual streams', `shell ${n(s.CocoaShellKg, 0)} kg / butter ${n(s.CocoaButterKg, 1)} kg / brine ${n(s.BrineBlowdownL, 0)} L / dust ${n(s.LeaveningDustKg, 1)} kg`],
+        ['Residual streams', `shell ${n(s.CocoaShellKg, 0)} kg / butter ${n(s.CocoaButterKg, 1)} kg / brine ${n(s.BrineBlowdownL, 0)} L / dust ${n(s.LeaveningDustKg, 1)} kg / trim ${n(s.PackagingTrimKg, 1)} kg`],
         ['QA lab', s.IngredientLabStatus || 'Factory QA lab ready'],
         ['Pending lab lot', s.PendingLabLotId ? `${s.PendingLabProductName || 'lot'} ${s.PendingLabLotId} / QA ${n(s.PendingLabQualityPct, 0)}%` : 'None'],
         ['Traceability', s.TraceabilityStatus || 'Traceability ready'],
@@ -1435,7 +1442,10 @@
         ['Leavening assay', `${n(s.SodaAshAssayPct, 1)}% soda / ${n(s.PhosphateAcidValuePct, 1)}% acid`],
         ['Leavening blend', `${n(s.LeaveningMixerRpm, 0)} rpm / ${n(s.LeaveningHomogeneityPct, 1)}% / ${n(s.LeaveningBlendMoisturePct, 1)}% moisture`],
         ['Leavening sifter', `${n(s.LeaveningSifterLoadPct, 0)}% load / ${n(s.LeaveningDustCollectorPressurePa, 0)} Pa dust`],
-        ['Packaging line', `${n(s.CartonFormerSpeedCpm, 0)} cpm / ${n(s.PrintRegistrationMm, 2)} mm / ${n(s.GluePotTemperatureC, 0)} degC`]
+        ['Packaging board', `${n(s.CartonBoardCaliperMm, 3)} mm / ${n(s.CartonBoardMoisturePct, 1)}% moisture / ${n(s.CartonDieCutWastePct, 1)}% trim`],
+        ['Packaging web', `${n(s.CartonFormerSpeedCpm, 0)} cpm / ${n(s.LabelWebTensionN, 0)} N / reg ${n(s.PrintRegistrationMm, 2)} mm`],
+        ['Packaging glue', `${n(s.GluePotTemperatureC, 0)} degC / ${n(s.GlueBeadGPerCarton, 2)} g/carton`],
+        ['Packaging code QA', `${n(s.CaseCodeReadRatePct, 1)}% vision read`]
       ];
       document.getElementById('factoryRows').innerHTML =
         factories.map(([name, value]) => `<tr><td>${name}</td><td title="${String(value).replace(/"/g, '&quot;')}">${value}</td></tr>`).join('');

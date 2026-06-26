@@ -261,6 +261,7 @@ public sealed class CakeFactorySnapshot
     public double CocoaButterKg { get; init; }
     public double BrineBlowdownL { get; init; }
     public double LeaveningDustKg { get; init; }
+    public double PackagingTrimKg { get; init; }
     public double FactoryEffluentL { get; init; }
     public double ByproductStoragePct { get; init; }
     public double EffluentTankPct { get; init; }
@@ -353,8 +354,14 @@ public sealed class CakeFactorySnapshot
     public double LeaveningSifterLoadPct { get; init; }
     public double LeaveningDustCollectorPressurePa { get; init; }
     public double CartonFormerSpeedCpm { get; init; }
+    public double CartonBoardCaliperMm { get; init; }
+    public double CartonBoardMoisturePct { get; init; }
+    public double CartonDieCutWastePct { get; init; }
+    public double LabelWebTensionN { get; init; }
     public double PrintRegistrationMm { get; init; }
     public double GluePotTemperatureC { get; init; }
+    public double GlueBeadGPerCarton { get; init; }
+    public double CaseCodeReadRatePct { get; init; }
     public bool IcingPrepActive { get; init; }
     public string IcingPrepPhase { get; init; } = "";
     public double IcingPrepProgress { get; init; }
@@ -770,8 +777,14 @@ public sealed class CakeFactoryService
     private double _leaveningSifterLoadPct = 0;
     private double _leaveningDustCollectorPressurePa = 160;
     private double _cartonFormerSpeedCpm = 0;
+    private double _cartonBoardCaliperMm = 0.42;
+    private double _cartonBoardMoisturePct = 6.4;
+    private double _cartonDieCutWastePct = 0;
+    private double _labelWebTensionN = 0;
     private double _printRegistrationMm = 0.18;
     private double _gluePotTemperatureC = 24;
+    private double _glueBeadGPerCarton = 0;
+    private double _caseCodeReadRatePct = 100;
     private double _icingMixerRpm = 0;
     private double _icingTemperatureC = 22;
     private double _icingViscosityPaS = 7.8;
@@ -803,6 +816,7 @@ public sealed class CakeFactoryService
     private double _cocoaButterKg = 3.0;
     private double _brineBlowdownL = 80;
     private double _leaveningDustKg = 1.2;
+    private double _packagingTrimKg = 1.5;
     private double _factoryEffluentL = 360;
     private string _wasteHandlingStatus = "Byproduct bins and effluent equalization tank ready.";
 
@@ -961,6 +975,7 @@ public sealed class CakeFactoryService
         + _cocoaShellKg
         + _cocoaButterKg
         + _leaveningDustKg
+        + _packagingTrimKg
         + _skimMilkL * 1.03
         + _buttermilkL * 1.03
         + _brineBlowdownL * 1.05;
@@ -996,7 +1011,7 @@ public sealed class CakeFactoryService
         IngredientFactoryKind.Salt => run.PrimaryInput * 0.16 * 1.05,
         IngredientFactoryKind.Starch => run.PrimaryInput * 0.18,
         IngredientFactoryKind.Leavening => run.Product * 0.025,
-        IngredientFactoryKind.Packaging => 0,
+        IngredientFactoryKind.Packaging => run.PrimaryInput * 0.065 + run.SecondaryInput * 0.010,
         IngredientFactoryKind.Feed => 0,
         IngredientFactoryKind.Fertilizer => -run.TertiaryInput,
         IngredientFactoryKind.MineralPremix => run.Waste,
@@ -1860,26 +1875,32 @@ public sealed class CakeFactoryService
             return "Packaging plant cannot run because a packaging feedstock lot is missing from the ledger.";
 
         _cartonFormerSpeedCpm = 0;
+        _cartonBoardCaliperMm = 0.42;
+        _cartonBoardMoisturePct = 6.4;
+        _cartonDieCutWastePct = 0;
+        _labelWebTensionN = 0;
         _printRegistrationMm = 0.65;
         _gluePotTemperatureC = 28;
+        _glueBeadGPerCarton = 0;
+        _caseCodeReadRatePct = 0;
         var run = new IngredientFactoryRun
         {
             Kind = IngredientFactoryKind.Packaging,
-            Name = "Carton former, labeler and coder",
-            StartedMessage = $"Started converting {board:0} kg paperboard, {labels:0} m labels, {ink:0.0} L ink and {adhesive:0.0} kg adhesive into coded cake cartons.",
-            DurationSeconds = 7.5,
-            PowerDemandMW = 1.3,
+            Name = "Paperboard carton former, labeler, gluer and vision coder",
+            StartedMessage = $"Started unwinding, scoring, die-cutting, forming, gluing, label-registering and vision-verifying {board:0} kg paperboard, {labels:0} m labels, {ink:0.0} L ink and {adhesive:0.0} kg adhesive into coded cake cartons.",
+            DurationSeconds = 8.6,
+            PowerDemandMW = 1.45,
             PrimaryInput = board,
             SecondaryInput = labels,
             TertiaryInput = ink,
             QuaternaryInput = adhesive,
             Product = 160,
-            Waste = board * 0.055,
-            ProcessWaterL = 18,
-            CompressedAirNm3 = 42,
-            FilterMediaPct = 0.45,
-            WearPct = 1.55,
-            CalibrationDriftPct = 0.70,
+            Waste = board * 0.018 + adhesive * 0.025,
+            ProcessWaterL = 24,
+            CompressedAirNm3 = 52,
+            FilterMediaPct = 0.60,
+            WearPct = 1.72,
+            CalibrationDriftPct = 0.82,
             InputLotId = $"{_paperboardLotId}/{_labelStockLotId}/{_packagingInkLotId}/{_adhesiveLotId}",
             OutputLotId = NewLotId("PACK"),
         };
@@ -2349,7 +2370,7 @@ public sealed class CakeFactoryService
         _cashBalance += revenue;
         _forkliftBatteryPct = Math.Max(0, _forkliftBatteryPct - 5.5);
         _warehousePalletSpacePct = Math.Max(0, _warehousePalletSpacePct - 3.0);
-        string detail = $"Hauled {load:0} kg-equivalent byproducts: bran {_branKg:0} kg, beet pulp {_beetPulpKg:0} kg, molasses {_molassesKg:0.0} kg, skim milk {_skimMilkL:0} L, buttermilk {_buttermilkL:0} L, vanilla pomace {_vanillaPomaceKg:0.0} kg, cocoa shell {_cocoaShellKg:0} kg, cocoa butter {_cocoaButterKg:0.0} kg, brine blowdown {_brineBlowdownL:0} L and leavening dust {_leaveningDustKg:0.0} kg.";
+        string detail = $"Hauled {load:0} kg-equivalent byproducts: bran {_branKg:0} kg, beet pulp {_beetPulpKg:0} kg, molasses {_molassesKg:0.0} kg, skim milk {_skimMilkL:0} L, buttermilk {_buttermilkL:0} L, vanilla pomace {_vanillaPomaceKg:0.0} kg, cocoa shell {_cocoaShellKg:0} kg, cocoa butter {_cocoaButterKg:0.0} kg, brine blowdown {_brineBlowdownL:0} L, leavening dust {_leaveningDustKg:0.0} kg and packaging trim {_packagingTrimKg:0.0} kg.";
         _branKg = 0;
         _beetPulpKg = 0;
         _molassesKg = 0;
@@ -2360,6 +2381,7 @@ public sealed class CakeFactoryService
         _cocoaButterKg = 0;
         _brineBlowdownL = 0;
         _leaveningDustKg = 0;
+        _packagingTrimKg = 0;
         _wasteHandlingStatus = $"{detail} Sold/repurposed for ${revenue:0.00} and recovered {feedMillCredit:0.0} kg feed-mill grain equivalent for the poultry feed mill.";
         _traceabilityStatus = $"Byproduct recovery logged feed-mill input lot {_grainLotId}; poultry feed still requires the feed mill and QA release.";
         return _wasteHandlingStatus;
@@ -2540,11 +2562,21 @@ public sealed class CakeFactoryService
                 if (p > 0.75) _factoryRunQualityPct -= Math.Max(0, _leaveningSifterLoadPct - 86.0) * 0.55;
                 break;
             case IngredientFactoryKind.Packaging:
-                _cartonFormerSpeedCpm = p < 0.18 ? 120.0 * p / 0.18 : 118.0 + Math.Sin(p * Math.PI * 5) * 9.0;
-                _printRegistrationMm = Math.Max(0.04, 0.62 - p * 0.52 + Math.Sin(p * Math.PI * 3) * 0.015);
-                _gluePotTemperatureC = 35.0 + p * 118.0;
-                if (p > 0.45) _factoryRunQualityPct -= Math.Abs(_printRegistrationMm - 0.08) * 18.0;
-                if (p > 0.55) _factoryRunQualityPct -= Math.Abs(_gluePotTemperatureC - 150.0) * 0.035;
+                _cartonBoardCaliperMm = Math.Clamp(0.415 + Math.Sin(p * Math.PI * 2.0) * 0.012, 0.38, 0.46);
+                _cartonBoardMoisturePct = Math.Clamp(6.7 - p * 0.45 + Math.Sin(p * Math.PI * 3) * 0.16, 5.8, 7.2);
+                _labelWebTensionN = p < 0.18 ? 0 : Math.Clamp(66.0 + Math.Sin(p * Math.PI * 4) * 5.5, 52, 78);
+                _cartonFormerSpeedCpm = p < 0.18 ? 122.0 * p / 0.18 : 120.0 + Math.Sin(p * Math.PI * 5) * 10.0;
+                _cartonDieCutWastePct = p < 0.20 ? 0 : Math.Clamp(8.6 - (p - 0.20) / 0.80 * 2.7 + Math.Sin(p * Math.PI * 5) * 0.18, 5.4, 8.8);
+                _printRegistrationMm = p < 0.36
+                    ? Math.Clamp(0.62 - p * 1.05, 0.18, 0.70)
+                    : Math.Clamp(0.14 - (p - 0.36) / 0.64 * 0.07 + Math.Sin(p * Math.PI * 4) * 0.010, 0.035, 0.16);
+                _gluePotTemperatureC = p < 0.58 ? 34.0 + p / 0.58 * 118.0 : 152.0 + Math.Sin(p * Math.PI * 4) * 3.0;
+                _glueBeadGPerCarton = p < 0.62 ? 0 : Math.Clamp(1.02 + Math.Sin(p * Math.PI * 5) * 0.08, 0.82, 1.18);
+                _caseCodeReadRatePct = p < 0.72 ? 0 : Math.Clamp(93.0 + (p - 0.72) / 0.28 * 6.5 - Math.Max(0, _printRegistrationMm - 0.10) * 20.0, 88, 99.8);
+                if (p > 0.28) _factoryRunQualityPct -= Math.Abs(_cartonBoardCaliperMm - 0.42) * 42.0 + Math.Abs(_cartonBoardMoisturePct - 6.4) * 0.55;
+                if (p > 0.45) _factoryRunQualityPct -= Math.Abs(_printRegistrationMm - 0.08) * 24.0 + Math.Abs(_labelWebTensionN - 66.0) * 0.035;
+                if (p > 0.62) _factoryRunQualityPct -= Math.Abs(_gluePotTemperatureC - 152.0) * 0.055 + Math.Abs(_glueBeadGPerCarton - 1.02) * 4.8 + Math.Max(0, _cartonDieCutWastePct - 6.3) * 0.45;
+                if (p > 0.82) _factoryRunQualityPct -= Math.Max(0, 98.0 - _caseCodeReadRatePct) * 0.75;
                 break;
             case IngredientFactoryKind.Icing:
                 _icingMixerRpm = p < 0.16 ? 110.0 * p / 0.16 : 110.0 + Math.Sin(p * Math.PI * 5) * 18.0;
@@ -2639,11 +2671,12 @@ public sealed class CakeFactoryService
             IngredientFactoryKind.Leavening when p < 0.64 => "starch carrier dosing and ribbon blend",
             IngredientFactoryKind.Leavening when p < 0.84 => "dust collection and sifter classification",
             IngredientFactoryKind.Leavening => "CO2 release assay and bin discharge",
-            IngredientFactoryKind.Packaging when p < 0.18 => "paperboard unwind and scoring",
-            IngredientFactoryKind.Packaging when p < 0.42 => "carton forming",
-            IngredientFactoryKind.Packaging when p < 0.64 => "label print registration",
-            IngredientFactoryKind.Packaging when p < 0.84 => "glue set and code verification",
-            IngredientFactoryKind.Packaging => "case count and QA sample pull",
+            IngredientFactoryKind.Packaging when p < 0.16 => "paperboard lot assay, web splice and unwind tension",
+            IngredientFactoryKind.Packaging when p < 0.34 => "scoring, die cutting and blank stripping",
+            IngredientFactoryKind.Packaging when p < 0.54 => "forming plows and compression belt",
+            IngredientFactoryKind.Packaging when p < 0.72 => "label web registration and ink cure",
+            IngredientFactoryKind.Packaging when p < 0.90 => "hot-melt glue bead, flap compression and code vision",
+            IngredientFactoryKind.Packaging => "case count, seal integrity and QA sample pull",
             IngredientFactoryKind.Icing when p < 0.18 => "micro scale weigh-up",
             IngredientFactoryKind.Icing when p < 0.42 => "sugar syrup cook and butter emulsification",
             IngredientFactoryKind.Icing when p < 0.70 => "tempering jacket cooldown",
@@ -2762,6 +2795,7 @@ public sealed class CakeFactoryService
             IngredientFactoryKind.Cocoa => $"QA lab hold: {_pendingLabProductName} lot {_pendingLabLotId} awaiting roast profile, shell, fat, moisture, grind, micro and label checks.",
             IngredientFactoryKind.Salt => $"QA lab hold: {_pendingLabProductName} lot {_pendingLabLotId} awaiting purity, moisture, insoluble matter, screen sizing, metal and label checks.",
             IngredientFactoryKind.Leavening => $"QA lab hold: {_pendingLabProductName} lot {_pendingLabLotId} awaiting CO2 release, neutralization, moisture, homogeneity, sieve and label checks.",
+            IngredientFactoryKind.Packaging => $"QA lab hold: {_pendingLabProductName} lot {_pendingLabLotId} awaiting board caliper/moisture, die-cut waste, glue bead, code vision, seal and label checks.",
             _ => $"QA lab hold: {_pendingLabProductName} lot {_pendingLabLotId} awaiting moisture, sieve, micro and label checks.",
         };
     }
@@ -2964,9 +2998,10 @@ public sealed class CakeFactoryService
                 detail = $"{dust:0.0} kg leavening dust";
                 break;
             case IngredientFactoryKind.Packaging:
-                double trim = run.PrimaryInput * 0.07;
-                _wasteKg += trim;
-                detail = $"{trim:0.0} kg carton trim and label matrix scrap";
+                double cartonTrim = run.PrimaryInput * 0.065;
+                double labelMatrix = run.SecondaryInput * 0.010;
+                _packagingTrimKg += cartonTrim + labelMatrix;
+                detail = $"{cartonTrim:0.0} kg carton trim and {labelMatrix:0.0} kg label matrix scrap";
                 break;
             case IngredientFactoryKind.Icing:
                 double kettleRinse = run.Product * 0.05;
@@ -3174,11 +3209,26 @@ public sealed class CakeFactoryService
                 _packagingUnits += Math.Floor(output);
                 _packagingLotId = run.OutputLotId;
                 _wasteKg += waste;
-                _cartonFormerSpeedCpm = 118 + _rng.NextDouble() * 16;
-                _printRegistrationMm = 0.05 + _rng.NextDouble() * 0.08;
-                _gluePotTemperatureC = 148 + _rng.NextDouble() * 8;
-                _factoryRunQualityPct = Math.Clamp(99 - Math.Abs(_printRegistrationMm - 0.08) * 20 - Math.Abs(_gluePotTemperatureC - 152.0) * 0.08 - FactoryEquipmentPenalty(run.Kind), 0, 100);
-                _factoryStatus = $"Packaging plant completed: {Math.Floor(output):0} coded cartons, registration {_printRegistrationMm:0.00} mm, glue {_gluePotTemperatureC:0} degC, QA {_factoryRunQualityPct:0}%.";
+                _cartonBoardCaliperMm = 0.410 + _rng.NextDouble() * 0.022;
+                _cartonBoardMoisturePct = 6.05 + _rng.NextDouble() * 0.70;
+                _cartonFormerSpeedCpm = 116 + _rng.NextDouble() * 18;
+                _cartonDieCutWastePct = 5.7 + _rng.NextDouble() * 0.9;
+                _labelWebTensionN = 62 + _rng.NextDouble() * 8;
+                _printRegistrationMm = 0.045 + _rng.NextDouble() * 0.075;
+                _gluePotTemperatureC = 149 + _rng.NextDouble() * 7;
+                _glueBeadGPerCarton = 0.96 + _rng.NextDouble() * 0.14;
+                _caseCodeReadRatePct = 98.1 + _rng.NextDouble() * 1.6;
+                _factoryRunQualityPct = Math.Clamp(99
+                    - Math.Abs(_cartonBoardCaliperMm - 0.42) * 45.0
+                    - Math.Abs(_cartonBoardMoisturePct - 6.4) * 0.70
+                    - Math.Max(0, _cartonDieCutWastePct - 6.3) * 0.60
+                    - Math.Abs(_printRegistrationMm - 0.08) * 28.0
+                    - Math.Abs(_labelWebTensionN - 66.0) * 0.04
+                    - Math.Abs(_gluePotTemperatureC - 152.0) * 0.08
+                    - Math.Abs(_glueBeadGPerCarton - 1.02) * 5.5
+                    - Math.Max(0, 98.0 - _caseCodeReadRatePct) * 0.80
+                    - FactoryEquipmentPenalty(run.Kind), 0, 100);
+                _factoryStatus = $"Packaging plant completed: {Math.Floor(output):0} coded cartons from feedstock lots {run.InputLotId}; board {_cartonBoardCaliperMm:0.000} mm caliper at {_cartonBoardMoisturePct:0.0}% moisture, former {_cartonFormerSpeedCpm:0} cpm, die-cut waste {_cartonDieCutWastePct:0.0}%, label tension {_labelWebTensionN:0} N, registration {_printRegistrationMm:0.00} mm, glue {_gluePotTemperatureC:0} degC at {_glueBeadGPerCarton:0.00} g/carton, code vision {_caseCodeReadRatePct:0.0}% read rate, QA {_factoryRunQualityPct:0}%.";
                 break;
             case IngredientFactoryKind.Icing:
                 _icingKg += output;
@@ -3476,7 +3526,7 @@ public sealed class CakeFactoryService
                                 && !string.IsNullOrWhiteSpace(_grainLotId),
             CanRunLeaveningPlant = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _sodaAshKg >= 3 && _phosphateKg >= 3 && _starchKg >= 2 && FactoryLotReleased(_starchKg, _starchLotId) && HasFactoryUtilities(0, 0, 58, 1.3)
                                    && !string.IsNullOrWhiteSpace(_sodaAshLotId) && !string.IsNullOrWhiteSpace(_phosphateLotId) && !string.IsNullOrWhiteSpace(_starchLotId),
-            CanRunPackagingPlant = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _paperboardKg >= 42 && _labelStockM >= 140 && _packagingInkL >= 2.4 && _adhesiveKg >= 6 && HasFactoryUtilities(18, 0, 42, 0.45),
+            CanRunPackagingPlant = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _paperboardKg >= 42 && _labelStockM >= 140 && _packagingInkL >= 2.4 && _adhesiveKg >= 6 && HasFactoryUtilities(24, 0, 52, 0.60),
             CanPrepareIcing = CanPrepareIcing(recipe, power, labClear, wasteReady),
             CanRunFeedMill = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _grainKg >= 42 && _starchKg >= 4.8 && _dairyMineralKg >= 1.6 && FactoryLotReleased(_dairyMineralKg, _dairyMineralLotId) && FactoryLotReleased(_starchKg, _starchLotId) && HasFactoryUtilities(28, 55, 18, 0.25)
                             && !string.IsNullOrWhiteSpace(_grainLotId) && !string.IsNullOrWhiteSpace(_dairyMineralLotId) && !string.IsNullOrWhiteSpace(_starchLotId),
@@ -3656,6 +3706,7 @@ public sealed class CakeFactoryService
             CocoaButterKg = _cocoaButterKg,
             BrineBlowdownL = _brineBlowdownL,
             LeaveningDustKg = _leaveningDustKg,
+            PackagingTrimKg = _packagingTrimKg,
             FactoryEffluentL = _factoryEffluentL,
             ByproductStoragePct = ByproductStoragePctValue(),
             EffluentTankPct = EffluentTankPctValue(),
@@ -3754,8 +3805,14 @@ public sealed class CakeFactoryService
             LeaveningSifterLoadPct = _leaveningSifterLoadPct,
             LeaveningDustCollectorPressurePa = _leaveningDustCollectorPressurePa,
             CartonFormerSpeedCpm = _cartonFormerSpeedCpm,
+            CartonBoardCaliperMm = _cartonBoardCaliperMm,
+            CartonBoardMoisturePct = _cartonBoardMoisturePct,
+            CartonDieCutWastePct = _cartonDieCutWastePct,
+            LabelWebTensionN = _labelWebTensionN,
             PrintRegistrationMm = _printRegistrationMm,
             GluePotTemperatureC = _gluePotTemperatureC,
+            GlueBeadGPerCarton = _glueBeadGPerCarton,
+            CaseCodeReadRatePct = _caseCodeReadRatePct,
             IcingPrepActive = _factoryRun?.Kind == IngredientFactoryKind.Icing,
             IcingPrepPhase = _factoryRun?.Kind == IngredientFactoryKind.Icing ? FactoryPhase(_factoryRun) : "",
             IcingPrepProgress = _factoryRun?.Kind == IngredientFactoryKind.Icing ? _factoryRun.Progress : 0,
