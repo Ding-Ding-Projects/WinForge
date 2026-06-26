@@ -915,6 +915,53 @@ internal static class Program
                           $"serviceConsumedUtilities={serviceConsumedUtilities} ('{Trim(service)}')");
         });
 
+        Scenario("CAKE TRACEABILITY (receiving, dairy, factory conversion and batch lots are audited)", () =>
+        {
+            var cake = new CakeFactoryService();
+            TickCake(cake, fullBus, 0.5);
+            var initial = cake.Snapshot;
+
+            string supply = cake.ReceiveSupplies();
+            TickCake(cake, fullBus, 0.5);
+            var supplied = cake.Snapshot;
+
+            string collect = cake.CollectDairyAndEggs();
+            TickCake(cake, fullBus, 0.5);
+            var dairy = cake.Snapshot;
+
+            string mill = cake.MillWheat();
+            TickCake(cake, fullBus, 9.0);
+            var milled = cake.Snapshot;
+
+            bool started = cake.TryStartBatch(out var startMsg);
+            TickCake(cake, fullBus, 0.5);
+            var batch = cake.Snapshot;
+
+            bool openingLotsPresent = initial.TraceabilityScorePct >= 99
+                                      && initial.FlourLotId.Length > 0
+                                      && initial.MilkLotId.Length > 0
+                                      && initial.PackagingLotId.Length > 0;
+            bool receivingManifestChanged = supplied.LastSupplyManifestId.Length > 0
+                                            && supplied.LastSupplyManifestId != initial.LastSupplyManifestId
+                                            && supplied.TraceabilityStatus.Contains("manifest", StringComparison.OrdinalIgnoreCase);
+            bool dairyLotChanged = dairy.MilkLotId.Length > 0
+                                   && dairy.EggLotId.Length > 0
+                                   && dairy.MilkLotId != initial.MilkLotId
+                                   && dairy.TraceabilityStatus.Contains("Dairy trace", StringComparison.OrdinalIgnoreCase);
+            bool factoryOutputLotChanged = milled.FlourLotId.Length > 0
+                                           && milled.FlourLotId != initial.FlourLotId
+                                           && milled.TraceabilityStatus.Contains("source lot", StringComparison.OrdinalIgnoreCase);
+            bool batchManifestOpened = started
+                                       && batch.CurrentBatchLotId.Length > 0
+                                       && batch.CurrentBatchTrace.Contains("flour", StringComparison.OrdinalIgnoreCase)
+                                       && batch.CurrentBatchTrace.Contains("milk", StringComparison.OrdinalIgnoreCase)
+                                       && batch.TraceabilityScorePct >= 99;
+            bool pass = openingLotsPresent && receivingManifestChanged && dairyLotChanged && factoryOutputLotChanged && batchManifestOpened;
+            return (pass, $"openingLotsPresent={openingLotsPresent}, receivingManifestChanged={receivingManifestChanged} ('{Trim(supply)}'), " +
+                          $"dairyLotChanged={dairyLotChanged} ('{Trim(collect)}'), factoryOutputLotChanged={factoryOutputLotChanged} ('{Trim(mill)}'), " +
+                          $"batchManifestOpened={batchManifestOpened} started={started} ('{Trim(startMsg)}'), batchLot={batch.CurrentBatchLotId}");
+        });
+
         Scenario("CAKE SUPPLY CHAIN INPUTS (ingredients require finite seed, water, feed, beans, factory feedstocks and cartons)", () =>
         {
             var cake = new CakeFactoryService { FarmIntensity = 1.0 };

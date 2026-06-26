@@ -87,6 +87,22 @@ public sealed class CakeFactorySnapshot
     public double MilkProteinPct { get; init; }
     public double MilkingVacuumKPa { get; init; }
     public string MilkQaStatus { get; init; } = "";
+    public string TraceabilityStatus { get; init; } = "";
+    public double TraceabilityScorePct { get; init; }
+    public string LastSupplyManifestId { get; init; } = "";
+    public string CurrentBatchLotId { get; init; } = "";
+    public string CurrentBatchTrace { get; init; } = "";
+    public string WheatLotId { get; init; } = "";
+    public string SugarCropLotId { get; init; } = "";
+    public string MilkLotId { get; init; } = "";
+    public string EggLotId { get; init; } = "";
+    public string FlourLotId { get; init; } = "";
+    public string SugarLotId { get; init; } = "";
+    public string ButterLotId { get; init; } = "";
+    public string CocoaLotId { get; init; } = "";
+    public string SaltLotId { get; init; } = "";
+    public string LeaveningLotId { get; init; } = "";
+    public string PackagingLotId { get; init; } = "";
     public double WheatKg { get; init; }
     public double SugarCropKg { get; init; }
     public double FlourKg { get; init; }
@@ -202,6 +218,8 @@ public sealed class CakeFactoryService
         public double CalibrationDriftPct { get; init; }
         public double EquipmentConditionAtStart { get; set; }
         public double EquipmentCalibrationAtStart { get; set; }
+        public string InputLotId { get; init; } = "";
+        public string OutputLotId { get; init; } = "";
         public double Progress => DurationSeconds <= 0 ? 1 : Math.Clamp(ElapsedSeconds / DurationSeconds, 0, 1);
         public double RemainingSeconds => Math.Max(0, DurationSeconds - ElapsedSeconds);
     }
@@ -296,6 +314,30 @@ public sealed class CakeFactoryService
     private double _fertilizerKg = 120;
     private double _animalFeedKg = 420;
     private double _packagingUnits = 160;
+    private int _lotSequence = 2400;
+    private string _lastSupplyManifestId = "RCV-OPENING-2400";
+    private string _currentBatchLotId = "";
+    private string _currentBatchTrace = "No batch has been started.";
+    private string _traceabilityStatus = "Opening audited lots loaded for farm, dairy, ingredient and packaging inventory.";
+    private string _wheatSeedLotId = "SEED-WHT-OPENING";
+    private string _beetSeedLotId = "SEED-BEET-OPENING";
+    private string _feedLotId = "FEED-OPENING";
+    private string _wheatLotId = "WHEAT-OPENING";
+    private string _sugarCropLotId = "SUGARCROP-OPENING";
+    private string _vanillaLotId = "VANILLA-OPENING";
+    private string _milkLotId = "MILK-OPENING";
+    private string _eggLotId = "EGG-OPENING";
+    private string _flourLotId = "FLOUR-OPENING";
+    private string _sugarLotId = "SUGAR-OPENING";
+    private string _butterLotId = "BUTTER-OPENING";
+    private string _cocoaBeansLotId = "COCOA-BEAN-OPENING";
+    private string _cocoaLotId = "COCOA-OPENING";
+    private string _brineLotId = "BRINE-OPENING";
+    private string _saltLotId = "SALT-OPENING";
+    private string _mineralLotId = "MINERAL-OPENING";
+    private string _leaveningLotId = "LEAVEN-OPENING";
+    private string _packagingLotId = "PACK-OPENING";
+    private string _utilityLotId = "UTILITY-OPENING";
     private double _processWaterL = 6000;
     private double _culinarySteamKg = 2600;
     private double _compressedAirNm3 = 900;
@@ -350,6 +392,37 @@ public sealed class CakeFactoryService
         if (index >= 0 && index < Recipes.Count) _recipeIndex = index;
     }
 
+    private string NewLotId(string prefix) => $"{prefix}-{++_lotSequence:000000}";
+
+    private static void ConsumeTrackedStock(ref double quantity, double amount, ref string lotId)
+    {
+        quantity = Math.Max(0, quantity - amount);
+        if (quantity <= 0.001) lotId = "";
+    }
+
+    private static bool HasLot(double quantity, string lotId) =>
+        quantity <= 0.001 || !string.IsNullOrWhiteSpace(lotId);
+
+    private bool RecipeLotsReady(CakeRecipe r)
+    {
+        double n = r.BatchSize;
+        return HasLot(r.FlourKg * n, _flourLotId)
+               && HasLot(r.SugarKg * n, _sugarLotId)
+               && HasLot(r.EggCount * n, _eggLotId)
+               && HasLot(r.ButterKg * n, _butterLotId)
+               && HasLot(r.MilkL * n, _milkLotId)
+               && HasLot(r.BakingPowderKg * n, _leaveningLotId)
+               && HasLot(r.SaltKg * n, _saltLotId)
+               && HasLot(r.VanillaL * n, _vanillaLotId)
+               && HasLot(r.CocoaKg * n, _cocoaLotId)
+               && HasLot(n, _packagingLotId);
+    }
+
+    private string BuildBatchTrace(CakeRecipe r, string batchLotId)
+    {
+        return $"{batchLotId}: {r.Name} uses flour {_flourLotId}, sugar {_sugarLotId}, eggs {_eggLotId}, milk {_milkLotId}, butter {_butterLotId}, leavening {_leaveningLotId}, salt {_saltLotId}, vanilla {_vanillaLotId}, cocoa {(r.CocoaKg > 0 ? _cocoaLotId : "not required")} and packaging {_packagingLotId}.";
+    }
+
     public string HarvestNow()
     {
         if (_lastPowerAvailability < 0.15)
@@ -364,10 +437,29 @@ public sealed class CakeFactoryService
         _wheatKg += wheat;
         _sugarCropKg += beet;
         _vanillaL += vanilla;
+        var lots = new List<string>();
+        if (wheat > 0)
+        {
+            _wheatLotId = NewLotId("WHEAT");
+            lots.Add($"wheat {_wheatLotId}");
+        }
+        if (beet > 0)
+        {
+            _sugarCropLotId = NewLotId("SUGARCROP");
+            lots.Add($"sugar crop {_sugarCropLotId}");
+        }
+        if (vanilla > 0)
+        {
+            _vanillaLotId = NewLotId("VANILLA");
+            lots.Add($"vanilla {_vanillaLotId}");
+        }
         if (wheat > 0) _wheatGrowth = 12 + _rng.NextDouble() * 8;
         if (beet > 0) _beetGrowth = 10 + _rng.NextDouble() * 8;
         if (vanilla > 0) _vanillaGrowth = 8 + _rng.NextDouble() * 5;
         _pastureHealth = Math.Min(100, _pastureHealth + 8);
+        _traceabilityStatus = lots.Count == 0
+            ? "Harvest completed with no new traceable lots."
+            : "Harvest trace logged: " + string.Join(", ", lots) + ".";
         return $"Harvested {wheat:0} kg wheat, {beet:0} kg sugar crop, {vanilla:0.00} L vanilla extract equivalent.";
     }
 
@@ -385,6 +477,8 @@ public sealed class CakeFactoryService
         _eggsReady -= eggs;
         _milkL += milk;
         _eggs += eggs;
+        if (milk > 0) _milkLotId = NewLotId("MILK");
+        if (eggs > 0) _eggLotId = NewLotId("EGG");
         _milkParlorThroughputLPerHour = 680 + _rng.NextDouble() * 80;
         _milkingVacuumKPa = 40.5 + _rng.NextDouble() * 3.0;
         _milkFatPct = 3.55 + _cowComfort / 100.0 * 0.55 + _rng.NextDouble() * 0.12;
@@ -393,6 +487,7 @@ public sealed class CakeFactoryService
         _milkBacteriaCfuPerMl = Math.Clamp(_milkBacteriaCfuPerMl + milk * 28 + (100 - _sanitationScore) * 35, 1200, 60000);
         _bulkMilkTankC = Math.Min(6.0, (_bulkMilkTankC * Math.Max(0, _milkL - milk) + 37.0 * milk) / Math.Max(1, _milkL));
         _milkSourceStatus = $"Transferred {milk:0.0} L raw milk from {_lactatingCowCount} lactating cows through the milking parlor to cold storage.";
+        _traceabilityStatus = $"Dairy trace logged: milk lot {_milkLotId} from {_lactatingCowCount} lactating cows, egg lot {_eggLotId} from {_layingHenCount} hens.";
         return $"Collected {milk:0.0} L cow milk and {eggs:0} graded eggs; bulk tank {_bulkMilkTankC:0.0} degC, bacteria {_milkBacteriaCfuPerMl:0} CFU/mL.";
     }
 
@@ -424,8 +519,10 @@ public sealed class CakeFactoryService
             FilterMediaPct = 0.6,
             WearPct = 1.8,
             CalibrationDriftPct = 0.55,
+            InputLotId = _wheatLotId,
+            OutputLotId = NewLotId("FLOUR"),
         };
-        return StartFactoryRun(run, () => _wheatKg -= wheat);
+        return StartFactoryRun(run, () => ConsumeTrackedStock(ref _wheatKg, wheat, ref _wheatLotId));
     }
 
     public string RefineSugar()
@@ -457,8 +554,10 @@ public sealed class CakeFactoryService
             FilterMediaPct = 1.2,
             WearPct = 2.35,
             CalibrationDriftPct = 0.75,
+            InputLotId = _sugarCropLotId,
+            OutputLotId = NewLotId("SUGAR"),
         };
-        return StartFactoryRun(run, () => _sugarCropKg -= crop);
+        return StartFactoryRun(run, () => ConsumeTrackedStock(ref _sugarCropKg, crop, ref _sugarCropLotId));
     }
 
     public string ChurnButter()
@@ -489,8 +588,10 @@ public sealed class CakeFactoryService
             FilterMediaPct = 0.8,
             WearPct = 1.45,
             CalibrationDriftPct = 0.45,
+            InputLotId = _milkLotId,
+            OutputLotId = NewLotId("BUTTER"),
         };
-        return StartFactoryRun(run, () => _milkL -= milk);
+        return StartFactoryRun(run, () => ConsumeTrackedStock(ref _milkL, milk, ref _milkLotId));
     }
 
     public string ReceiveSupplies()
@@ -513,6 +614,16 @@ public sealed class CakeFactoryService
         _culinarySteamKg += 2200;
         _compressedAirNm3 += 720;
         _filterMediaPct = Math.Min(100, _filterMediaPct + 45);
+        _lastSupplyManifestId = NewLotId("RCV");
+        _wheatSeedLotId = NewLotId("SEED-WHT");
+        _beetSeedLotId = NewLotId("SEED-BEET");
+        _feedLotId = NewLotId("FEED");
+        _cocoaBeansLotId = NewLotId("COCOABEAN");
+        _brineLotId = NewLotId("BRINE");
+        _mineralLotId = NewLotId("MINERAL");
+        _packagingLotId = NewLotId("PACK");
+        _utilityLotId = NewLotId("UTILITY");
+        _traceabilityStatus = $"Receiving manifest {_lastSupplyManifestId} logged seed, feed, cocoa, brine, mineral, packaging and utility lots.";
         return "Received audited supplies: seed, irrigation water, fertilizer, animal feed, brine, soda ash, phosphate, starch, cartons, cocoa beans, process water, culinary steam, compressed air and filter media.";
     }
 
@@ -544,8 +655,10 @@ public sealed class CakeFactoryService
             FilterMediaPct = 0.7,
             WearPct = 2.15,
             CalibrationDriftPct = 0.65,
+            InputLotId = _cocoaBeansLotId,
+            OutputLotId = NewLotId("COCOA"),
         };
-        return StartFactoryRun(run, () => _cocoaBeansKg -= beans);
+        return StartFactoryRun(run, () => ConsumeTrackedStock(ref _cocoaBeansKg, beans, ref _cocoaBeansLotId));
     }
 
     public string RunSaltWorks()
@@ -577,8 +690,10 @@ public sealed class CakeFactoryService
             FilterMediaPct = 0.4,
             WearPct = 1.95,
             CalibrationDriftPct = 0.50,
+            InputLotId = _brineLotId,
+            OutputLotId = NewLotId("SALT"),
         };
-        return StartFactoryRun(run, () => _brineL -= brine);
+        return StartFactoryRun(run, () => ConsumeTrackedStock(ref _brineL, brine, ref _brineLotId));
     }
 
     public string RunLeaveningPlant()
@@ -616,12 +731,15 @@ public sealed class CakeFactoryService
             FilterMediaPct = 1.0,
             WearPct = 1.25,
             CalibrationDriftPct = 0.85,
+            InputLotId = _mineralLotId,
+            OutputLotId = NewLotId("LEAVEN"),
         };
         return StartFactoryRun(run, () =>
         {
-            _sodaAshKg -= soda;
-            _phosphateKg -= phosphate;
-            _starchKg -= starch;
+            _sodaAshKg = Math.Max(0, _sodaAshKg - soda);
+            _phosphateKg = Math.Max(0, _phosphateKg - phosphate);
+            _starchKg = Math.Max(0, _starchKg - starch);
+            if (_sodaAshKg <= 0.001 && _phosphateKg <= 0.001 && _starchKg <= 0.001) _mineralLotId = "";
         });
     }
 
@@ -630,6 +748,8 @@ public sealed class CakeFactoryService
         string missingUtilities = MissingFactoryUtilities(run);
         if (missingUtilities.Length > 0)
             return $"{run.Name} cannot start; missing factory utilities: {missingUtilities}.";
+        if (string.IsNullOrWhiteSpace(run.InputLotId))
+            return $"{run.Name} cannot start; source ingredient lot is missing from the traceability ledger.";
 
         var equipment = EquipmentFor(run.Kind);
         if (equipment.ConditionPct < 42)
@@ -643,7 +763,8 @@ public sealed class CakeFactoryService
         ConsumeFactoryUtilities(run);
         _factoryRun = run;
         _factoryRunQualityPct = Math.Clamp(72 - FactoryEquipmentPenalty(run.Kind), 0, 100);
-        _factoryStatus = $"{run.Name} running: {FactoryPhase(run)} at 0% complete, {run.PowerDemandMW:0.0} MW load, condition {equipment.ConditionPct:0}% and calibration {equipment.CalibrationPct:0}%.";
+        _factoryStatus = $"{run.Name} running: {FactoryPhase(run)} at 0% complete, {run.PowerDemandMW:0.0} MW load, input lot {run.InputLotId}, output lot {run.OutputLotId}, condition {equipment.ConditionPct:0}% and calibration {equipment.CalibrationPct:0}%.";
+        _traceabilityStatus = $"{run.Name} is converting lot {run.InputLotId} into {run.OutputLotId}.";
         _factoryMaintenanceStatus = BuildFactoryMaintenanceStatus();
         return run.StartedMessage;
     }
@@ -907,6 +1028,7 @@ public sealed class CakeFactoryService
         {
             case IngredientFactoryKind.Mill:
                 _flourKg += output;
+                _flourLotId = run.OutputLotId;
                 _wasteKg += waste;
                 _flourExtractionPct = 75.0 + _rng.NextDouble() * 2.0;
                 _factoryRunQualityPct = Math.Clamp(96 - Math.Abs(_millRollGapMm - 0.30) * 120 - FactoryEquipmentPenalty(run.Kind), 0, 100);
@@ -914,6 +1036,7 @@ public sealed class CakeFactoryService
                 break;
             case IngredientFactoryKind.Sugar:
                 _sugarKg += output;
+                _sugarLotId = run.OutputLotId;
                 _wasteKg += waste;
                 _sugarJuiceBrix = 67.0 + _rng.NextDouble() * 3.0;
                 _sugarEvaporatorTemperatureC = 103.0 + _rng.NextDouble() * 4.0;
@@ -922,6 +1045,7 @@ public sealed class CakeFactoryService
                 break;
             case IngredientFactoryKind.Butter:
                 _butterKg += output;
+                _butterLotId = run.OutputLotId;
                 _creamSeparatorRpm = 6400 + _rng.NextDouble() * 420;
                 _butterFatPct = 81.0 + _rng.NextDouble() * 2.5;
                 _wasteKg += waste;
@@ -930,6 +1054,7 @@ public sealed class CakeFactoryService
                 break;
             case IngredientFactoryKind.Cocoa:
                 _cocoaKg += output;
+                _cocoaLotId = run.OutputLotId;
                 _wasteKg += waste;
                 _cocoaRoasterTemperatureC = 130 + _rng.NextDouble() * 12;
                 _cocoaGrindMicrons = 68 + _rng.NextDouble() * 18;
@@ -938,6 +1063,7 @@ public sealed class CakeFactoryService
                 break;
             case IngredientFactoryKind.Salt:
                 _saltKg += output;
+                _saltLotId = run.OutputLotId;
                 _wasteKg += waste;
                 _saltCrystallizerTemperatureC = 62 + _rng.NextDouble() * 8;
                 _factoryRunQualityPct = Math.Clamp(97 - Math.Abs(_brineSalinityPct - 2.7) * 5.0 - FactoryEquipmentPenalty(run.Kind), 0, 100);
@@ -945,6 +1071,7 @@ public sealed class CakeFactoryService
                 break;
             case IngredientFactoryKind.Leavening:
                 _bakingPowderKg += output;
+                _leaveningLotId = run.OutputLotId;
                 _wasteKg += waste;
                 _leaveningMixerRpm = 72 + _rng.NextDouble() * 36;
                 _leaveningHomogeneityPct = 96.5 + _rng.NextDouble() * 2.6;
@@ -956,6 +1083,7 @@ public sealed class CakeFactoryService
         ApplyFactoryWear(run);
         var equipment = EquipmentFor(run.Kind);
         _factoryMaintenanceStatus = BuildFactoryMaintenanceStatus();
+        _traceabilityStatus = $"{run.Name} completed trace: source lot {run.InputLotId} -> output lot {run.OutputLotId}.";
         _factoryStatus += $" Equipment now {equipment.ConditionPct:0}% condition, {equipment.CalibrationPct:0}% calibration, {equipment.VibrationMmS:0.0} mm/s vibration.";
     }
 
@@ -988,7 +1116,15 @@ public sealed class CakeFactoryService
             message = "Missing: " + missing;
             return false;
         }
+        if (!RecipeLotsReady(CurrentRecipe))
+        {
+            message = "Missing traceable ingredient lot data.";
+            return false;
+        }
 
+        _currentBatchLotId = NewLotId("BATCH");
+        _currentBatchTrace = BuildBatchTrace(CurrentRecipe, _currentBatchLotId);
+        _traceabilityStatus = $"Batch trace manifest {_currentBatchLotId} opened.";
         ConsumeIngredients(CurrentRecipe);
         _stage = CakeBatchStage.Scaling;
         _stageReadyForOperator = false;
@@ -1127,6 +1263,22 @@ public sealed class CakeFactoryService
             MilkProteinPct = _milkProteinPct,
             MilkingVacuumKPa = _milkingVacuumKPa,
             MilkQaStatus = MilkQaStatus(),
+            TraceabilityStatus = TraceabilityStatus(),
+            TraceabilityScorePct = TraceabilityScore(),
+            LastSupplyManifestId = _lastSupplyManifestId,
+            CurrentBatchLotId = _currentBatchLotId,
+            CurrentBatchTrace = _currentBatchTrace,
+            WheatLotId = _wheatLotId,
+            SugarCropLotId = _sugarCropLotId,
+            MilkLotId = _milkLotId,
+            EggLotId = _eggLotId,
+            FlourLotId = _flourLotId,
+            SugarLotId = _sugarLotId,
+            ButterLotId = _butterLotId,
+            CocoaLotId = _cocoaLotId,
+            SaltLotId = _saltLotId,
+            LeaveningLotId = _leaveningLotId,
+            PackagingLotId = _packagingLotId,
             WheatKg = _wheatKg,
             SugarCropKg = _sugarCropKg,
             FlourKg = _flourKg,
@@ -1364,7 +1516,7 @@ public sealed class CakeFactoryService
         _cakesBaked += recipe.BatchSize;
         _cakesPacked += packed;
         _cakesRejected += rejected;
-        _packagingUnits = Math.Max(0, _packagingUnits - recipe.BatchSize);
+        ConsumeTrackedStock(ref _packagingUnits, recipe.BatchSize, ref _packagingLotId);
         _wasteKg += rejected * 0.42;
         _batterKg = Math.Max(0, _batterKg - BatchIngredientMass(recipe));
         _sanitationScore = Math.Max(0, _sanitationScore - 2.4);
@@ -1490,6 +1642,55 @@ public sealed class CakeFactoryService
         return low.Count == 0 ? "Inputs stocked" : "Low: " + string.Join(", ", low);
     }
 
+    private double TraceabilityScore()
+    {
+        int total = 0;
+        int good = 0;
+        void Count(double quantity, string lotId)
+        {
+            if (quantity <= 0.001) return;
+            total++;
+            if (!string.IsNullOrWhiteSpace(lotId)) good++;
+        }
+
+        Count(_wheatKg, _wheatLotId);
+        Count(_sugarCropKg, _sugarCropLotId);
+        Count(_wheatSeedKg, _wheatSeedLotId);
+        Count(_beetSeedKg, _beetSeedLotId);
+        Count(_animalFeedKg, _feedLotId);
+        Count(_vanillaL, _vanillaLotId);
+        Count(_milkL, _milkLotId);
+        Count(_eggs, _eggLotId);
+        Count(_flourKg, _flourLotId);
+        Count(_sugarKg, _sugarLotId);
+        Count(_butterKg, _butterLotId);
+        Count(_cocoaBeansKg, _cocoaBeansLotId);
+        Count(_cocoaKg, _cocoaLotId);
+        Count(_brineL, _brineLotId);
+        Count(_saltKg, _saltLotId);
+        Count(_sodaAshKg + _phosphateKg + _starchKg, _mineralLotId);
+        Count(_bakingPowderKg, _leaveningLotId);
+        Count(_packagingUnits, _packagingLotId);
+        Count(_processWaterL + _culinarySteamKg + _compressedAirNm3 + _filterMediaPct, _utilityLotId);
+        return total == 0 ? 100 : good * 100.0 / total;
+    }
+
+    private string TraceabilityStatus()
+    {
+        var missing = new List<string>();
+        if (!HasLot(_flourKg, _flourLotId)) missing.Add("flour");
+        if (!HasLot(_sugarKg, _sugarLotId)) missing.Add("sugar");
+        if (!HasLot(_eggs, _eggLotId)) missing.Add("eggs");
+        if (!HasLot(_milkL, _milkLotId)) missing.Add("milk");
+        if (!HasLot(_butterKg, _butterLotId)) missing.Add("butter");
+        if (!HasLot(_bakingPowderKg, _leaveningLotId)) missing.Add("baking powder");
+        if (!HasLot(_saltKg, _saltLotId)) missing.Add("salt");
+        if (!HasLot(_cocoaKg, _cocoaLotId)) missing.Add("cocoa");
+        if (!HasLot(_packagingUnits, _packagingLotId)) missing.Add("packaging");
+        if (missing.Count > 0) return "Traceability hold: missing lot data for " + string.Join(", ", missing);
+        return _traceabilityStatus;
+    }
+
     private bool MilkQaInSpec() =>
         _milkL <= 0
         || (_bulkMilkTankC <= 7.0
@@ -1535,15 +1736,15 @@ public sealed class CakeFactoryService
     private void ConsumeIngredients(CakeRecipe r)
     {
         double n = r.BatchSize;
-        _flourKg -= r.FlourKg * n;
-        _sugarKg -= r.SugarKg * n;
-        _eggs -= r.EggCount * n;
-        _butterKg -= r.ButterKg * n;
-        _milkL -= r.MilkL * n;
-        _bakingPowderKg -= r.BakingPowderKg * n;
-        _saltKg -= r.SaltKg * n;
-        _vanillaL -= r.VanillaL * n;
-        _cocoaKg -= r.CocoaKg * n;
+        ConsumeTrackedStock(ref _flourKg, r.FlourKg * n, ref _flourLotId);
+        ConsumeTrackedStock(ref _sugarKg, r.SugarKg * n, ref _sugarLotId);
+        ConsumeTrackedStock(ref _eggs, r.EggCount * n, ref _eggLotId);
+        ConsumeTrackedStock(ref _butterKg, r.ButterKg * n, ref _butterLotId);
+        ConsumeTrackedStock(ref _milkL, r.MilkL * n, ref _milkLotId);
+        ConsumeTrackedStock(ref _bakingPowderKg, r.BakingPowderKg * n, ref _leaveningLotId);
+        ConsumeTrackedStock(ref _saltKg, r.SaltKg * n, ref _saltLotId);
+        ConsumeTrackedStock(ref _vanillaL, r.VanillaL * n, ref _vanillaLotId);
+        ConsumeTrackedStock(ref _cocoaKg, r.CocoaKg * n, ref _cocoaLotId);
     }
 
     private string MissingIngredients(CakeRecipe r)
@@ -1561,6 +1762,7 @@ public sealed class CakeFactoryService
         if (_vanillaL < r.VanillaL * n) missing.Add("vanilla");
         if (_cocoaKg < r.CocoaKg * n) missing.Add("cocoa");
         if (_packagingUnits < n) missing.Add("cartons/labels");
+        if (!RecipeLotsReady(r)) missing.Add("lot trace");
         return string.Join(", ", missing);
     }
 

@@ -744,6 +744,22 @@
       MilkProteinPct: 3.25,
       MilkingVacuumKPa: 42,
       MilkQaStatus: 'Milk QA in spec',
+      TraceabilityStatus: 'Opening audited lots loaded for farm, dairy, ingredient and packaging inventory.',
+      TraceabilityScorePct: 100,
+      LastSupplyManifestId: 'RCV-OPENING-2400',
+      CurrentBatchLotId: '',
+      CurrentBatchTrace: 'No batch has been started.',
+      WheatLotId: 'WHEAT-OPENING',
+      SugarCropLotId: 'SUGARCROP-OPENING',
+      MilkLotId: 'MILK-OPENING',
+      EggLotId: 'EGG-OPENING',
+      FlourLotId: 'FLOUR-OPENING',
+      SugarLotId: 'SUGAR-OPENING',
+      ButterLotId: 'BUTTER-OPENING',
+      CocoaLotId: 'COCOA-OPENING',
+      SaltLotId: 'SALT-OPENING',
+      LeaveningLotId: 'LEAVEN-OPENING',
+      PackagingLotId: 'PACK-OPENING',
       WheatKg: 260,
       SugarCropKg: 380,
       FlourKg: 120,
@@ -988,7 +1004,9 @@
         ['Culinary steam', `${n(s.CulinarySteamKg, 0)} kg`],
         ['Compressed air', `${n(s.CompressedAirNm3, 0)} Nm3`],
         ['Filter media', `${n(s.FilterMediaPct, 1)}%`],
-        ['Cartons + labels', `${n(s.PackagingUnits, 0)}`]
+        ['Cartons + labels', `${n(s.PackagingUnits, 0)}`],
+        ['Trace score', `${n(s.TraceabilityScorePct, 0)}%`],
+        ['Receiving manifest', s.LastSupplyManifestId || '-']
       ];
       document.getElementById('resourceRows').innerHTML =
         resources.map(([name, value]) => `<tr><td>${name}</td><td>${value}</td></tr>`).join('');
@@ -1000,6 +1018,9 @@
         ['Run load', `${n(s.FactoryRunPowerMW, 1)} MW`],
         ['Process QA', `${n(s.FactoryRunQualityPct, 0)}%`],
         ['Maintenance', s.FactoryMaintenanceStatus || 'Maintenance normal'],
+        ['Traceability', s.TraceabilityStatus || 'Traceability ready'],
+        ['Batch lot', s.CurrentBatchLotId || 'No active batch lot'],
+        ['Batch trace', s.CurrentBatchTrace || 'No batch trace'],
         ['Active condition', `${n(s.ActiveFactoryConditionPct, 0)}% / ${n(s.ActiveFactoryCalibrationPct, 0)}% cal`],
         ['Active vibration', `${n(s.ActiveFactoryVibrationMmS, 1)} mm/s / ${n(s.ActiveFactoryBearingTemperatureC, 0)} degC`],
         ['Mill asset', `${n(s.MillConditionPct, 0)}% / ${n(s.MillCalibrationPct, 0)}% cal`],
@@ -1011,6 +1032,14 @@
         ['Utilities', s.FactoryUtilityStatus || 'Utilities ready'],
         ['Milk source', s.MilkSourceStatus || 'Cow dairy idle'],
         ['Milk QA', s.MilkQaStatus || 'Milk QA in spec'],
+        ['Milk lot', s.MilkLotId || '-'],
+        ['Flour lot', s.FlourLotId || '-'],
+        ['Sugar lot', s.SugarLotId || '-'],
+        ['Butter lot', s.ButterLotId || '-'],
+        ['Cocoa lot', s.CocoaLotId || '-'],
+        ['Salt lot', s.SaltLotId || '-'],
+        ['Leavening lot', s.LeaveningLotId || '-'],
+        ['Packaging lot', s.PackagingLotId || '-'],
         ['Bulk tank', `${n(s.BulkMilkTankC, 1)} degC / ${n(s.MilkBacteriaCfuPerMl, 0)} CFU`],
         ['SCC', `${n(s.MilkSomaticCellCountKPerMl, 0)}k / mL`],
         ['Milk solids', `${n(s.MilkFatPct, 2)}% fat / ${n(s.MilkProteinPct, 2)}% protein`],
@@ -1227,11 +1256,12 @@
       drawCakes(s);
 
       if (s.FactoryRunActive) {
-        rr(930, 254, 278, 82, 8, '#1f3335', '#78c7dd');
+        rr(930, 254, 278, 98, 8, '#1f3335', '#78c7dd');
         text(s.ActiveFactoryName || 'INGREDIENT FACTORY', 948, 276, 13, '#d4f3fb', 900);
         text(s.ActiveFactoryPhase || 'processing', 948, 296, 12, '#c9beb0', 800);
         text(`${n((s.FactoryProgress || 0) * 100, 0)}% - ${n(s.FactoryRunPowerMW, 1)} MW - QA ${n(s.FactoryRunQualityPct, 0)}%`, 948, 314, 12, '#fff3d8', 800);
         text(`Cond ${n(s.ActiveFactoryConditionPct, 0)}% Cal ${n(s.ActiveFactoryCalibrationPct, 0)}% Vib ${n(s.ActiveFactoryVibrationMmS, 1)} mm/s`, 948, 330, 11, '#d4f3fb', 800);
+        text(`Trace ${n(s.TraceabilityScorePct, 0)}% - ${s.LastSupplyManifestId || 'no manifest'}`, 948, 346, 11, '#c9beb0', 800);
       }
 
       if (s.StageReadyForOperator) {

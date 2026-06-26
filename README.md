@@ -211,7 +211,7 @@ dotnet publish WinForge.csproj -c Release -p:Platform=x64 -r win-x64 ^
 | **Git & GitHub · Git 與 GitHub** | Multi-repo workbench for git and gh operations with a chunked uploader. <br> 多儲存庫工作台，操作 git 同 gh，附分塊上傳器。 | `git` |
 | **Package Manager · 套件管理** | One front-end over winget, scoop, choco, pip, npm and more. <br> 統一前端操作 winget、scoop、choco、pip、npm 等。 | `packages` |
 | **Native OSS Clones · 開源原生分頁** | Map of open-source app ideas remade as native C# WinForge tabs. <br> 將開源 app 想法重製成 WinForge 原生 C# 分頁嘅索引。 | `ossapps` |
-| **Cake Factory & Farm · 蛋糕工廠與農場** | HTML5 reactor-powered cake factory game with cow milk provenance, finite supplies/utilities, timed ingredient factories, plant condition/calibration maintenance, manual HACCP gates and signed `.cake` files. <br> HTML5 反應堆供電蛋糕工廠遊戲，附牛奶來源、有限補給／公用工程、計時原料工廠、廠房狀態／校準維修、手動 HACCP 放行關卡同已簽署 `.cake` 檔。 | `cakefactory` |
+| **Cake Factory & Farm · 蛋糕工廠與農場** | HTML5 reactor-powered cake factory game with cow milk provenance, audited ingredient lots, finite supplies/utilities, timed ingredient factories, plant maintenance, manual HACCP gates and signed `.cake` files. <br> HTML5 反應堆供電蛋糕工廠遊戲，附牛奶來源、已審核原料批號、有限補給／公用工程、計時原料工廠、廠房維修、手動 HACCP 放行關卡同已簽署 `.cake` 檔。 | `cakefactory` |
 | **Feed Reader · RSS 閱讀器** | Native RSS/Atom reader inspired by QuiteRSS and Fluent Reader. <br> 受 QuiteRSS 同 Fluent Reader 啟發嘅原生 RSS／Atom 閱讀器。 | `rss` |
 | **App Uninstaller · 應用程式解除安裝** | Remove apps and Appx packages via winget. <br> 用 winget 移除應用程式同 Appx 套件。 | `uninstall` |
 | **Android (ADB) · Android（ADB）** | adb devices, APK install, shell, logcat and scrcpy mirroring. <br> adb 裝置、安裝 APK、shell、logcat 同 scrcpy 鏡像。 | `adb` |
