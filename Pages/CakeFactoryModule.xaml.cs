@@ -251,6 +251,10 @@ public sealed partial class CakeFactoryModule : Page
                 PostNotice("info", P("Batch kit staged", "批次套件已備料"), _sim.StageBatchKit());
                 break;
 
+            case "dispatchOrder":
+                PostNotice("info", P("Order dispatch", "訂單出貨"), _sim.DispatchOrder());
+                break;
+
             case "startBatch":
                 {
                     bool ok = _sim.TryStartBatch(out var message);

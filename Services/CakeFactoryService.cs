@@ -186,6 +186,19 @@ public sealed class CakeFactorySnapshot
     public int CakesBaked { get; init; }
     public int CakesPacked { get; init; }
     public int CakesRejected { get; init; }
+    public int FinishedGoodsCakes { get; init; }
+    public int OrdersFulfilled { get; init; }
+    public string CurrentOrderId { get; init; } = "";
+    public int OrderCakesRequired { get; init; }
+    public int OrderCakesReady { get; init; }
+    public double OrderSecondsRemaining { get; init; }
+    public double OrderReward { get; init; }
+    public double CashBalance { get; init; }
+    public double ReputationPct { get; init; }
+    public string OrderStatus { get; init; } = "";
+    public bool CanDispatchOrder { get; init; }
+    public double DispatchTruckChargePct { get; init; }
+    public double DispatchColdChainC { get; init; }
     public double WasteKg { get; init; }
     public double ConveyorPhase { get; init; }
     public double MixerAngle { get; init; }
@@ -410,6 +423,18 @@ public sealed class CakeFactoryService
     private int _cakesBaked;
     private int _cakesPacked;
     private int _cakesRejected;
+    private int _finishedGoodsCakes;
+    private int _ordersFulfilled;
+    private int _orderSequence = 5100;
+    private string _currentOrderId = "ORD-005100";
+    private int _orderCakesRequired = 12;
+    private double _orderSecondsRemaining = 420;
+    private double _orderReward = 240;
+    private double _cashBalance = 500;
+    private double _reputationPct = 84;
+    private string _orderStatus = "Order ORD-005100 waiting for 12 packed cakes.";
+    private double _dispatchTruckChargePct = 76;
+    private double _dispatchColdChainC = 4.2;
 
     private double _conveyorPhase;
     private double _mixerAngle;
@@ -475,6 +500,46 @@ public sealed class CakeFactoryService
     private string BuildBatchTrace(CakeRecipe r, string batchLotId)
     {
         return $"{batchLotId}: {r.Name} uses flour {_flourLotId}, sugar {_sugarLotId}, eggs {_eggLotId}, milk {_milkLotId}, butter {_butterLotId}, leavening {_leaveningLotId}, salt {_saltLotId}, vanilla {_vanillaLotId}, cocoa {(r.CocoaKg > 0 ? _cocoaLotId : "not required")} and packaging {_packagingLotId}.";
+    }
+
+    private void CreateNextOrder()
+    {
+        _currentOrderId = $"ORD-{++_orderSequence:000000}";
+        _orderCakesRequired = CurrentRecipe.BatchSize + (_ordersFulfilled % 3) * 4;
+        _orderSecondsRemaining = 360 + _orderCakesRequired * 8;
+        _orderReward = 18.0 * _orderCakesRequired + Math.Max(0, _reputationPct - 70) * 1.5;
+        _orderStatus = $"Order {_currentOrderId} waiting for {_orderCakesRequired} packed cakes.";
+    }
+
+    private bool DispatchReady(double power) =>
+        power >= 0.15
+        && _finishedGoodsCakes >= _orderCakesRequired
+        && _dispatchTruckChargePct >= 18
+        && _dispatchColdChainC <= 8.0;
+
+    public string DispatchOrder()
+    {
+        if (_lastPowerAvailability < 0.15)
+            return "Dispatch dock, scanner and reefer truck charger need reactor bus power.";
+        if (_finishedGoodsCakes < _orderCakesRequired)
+            return $"Order {_currentOrderId} needs {_orderCakesRequired} packed cakes; finished goods has {_finishedGoodsCakes}.";
+        if (_dispatchTruckChargePct < 18)
+            return $"Dispatch truck charge is low ({_dispatchTruckChargePct:0}%).";
+        if (_dispatchColdChainC > 8.0)
+            return $"Dispatch cold chain is too warm ({_dispatchColdChainC:0.0} degC).";
+
+        double deadlineFactor = _orderSecondsRemaining >= 0 ? 1.0 : 0.72;
+        double qualityFactor = Math.Clamp(Snapshot.QualityScore / 100.0, 0.55, 1.05);
+        double paid = Math.Round(_orderReward * deadlineFactor * qualityFactor, 2);
+        _finishedGoodsCakes -= _orderCakesRequired;
+        _cashBalance += paid;
+        _dispatchTruckChargePct = Math.Max(0, _dispatchTruckChargePct - 10 - _orderCakesRequired * 0.18);
+        _reputationPct = Math.Clamp(_reputationPct + (_orderSecondsRemaining >= 0 ? 2.8 : -4.5) + (qualityFactor - 0.82) * 3.0, 0, 100);
+        _ordersFulfilled++;
+        string shipped = $"Dispatched {_currentOrderId}: {_orderCakesRequired} cakes, paid ${paid:0.00}, reputation {_reputationPct:0}%.";
+        _orderStatus = shipped;
+        CreateNextOrder();
+        return shipped + " Next " + _orderStatus;
     }
 
     public string HarvestNow()
@@ -1385,6 +1450,7 @@ public sealed class CakeFactoryService
         UpdateFarm(seconds, power);
         UpdateMilkColdChain(seconds, power);
         UpdateWarehouse(seconds, power);
+        UpdateOrders(seconds, power);
         UpdateCleaning(seconds, power);
         UpdateFactoryRun(seconds, power);
         UpdateBatch(seconds, power);
@@ -1550,6 +1616,19 @@ public sealed class CakeFactoryService
             CakesBaked = _cakesBaked,
             CakesPacked = _cakesPacked,
             CakesRejected = _cakesRejected,
+            FinishedGoodsCakes = _finishedGoodsCakes,
+            OrdersFulfilled = _ordersFulfilled,
+            CurrentOrderId = _currentOrderId,
+            OrderCakesRequired = _orderCakesRequired,
+            OrderCakesReady = _finishedGoodsCakes,
+            OrderSecondsRemaining = _orderSecondsRemaining,
+            OrderReward = _orderReward,
+            CashBalance = _cashBalance,
+            ReputationPct = _reputationPct,
+            OrderStatus = _orderStatus,
+            CanDispatchOrder = DispatchReady(power),
+            DispatchTruckChargePct = _dispatchTruckChargePct,
+            DispatchColdChainC = _dispatchColdChainC,
             WasteKg = _wasteKg,
             ConveyorPhase = _conveyorPhase,
             MixerAngle = _mixerAngle,
@@ -1672,6 +1751,38 @@ public sealed class CakeFactoryService
             _warehousePalletSpacePct += (70 - _warehousePalletSpacePct) * Math.Min(1, seconds / 90.0);
     }
 
+    private void UpdateOrders(double seconds, double power)
+    {
+        _orderSecondsRemaining -= seconds;
+        if (power >= 0.12)
+        {
+            _dispatchTruckChargePct = Math.Min(100, _dispatchTruckChargePct + seconds * 0.06 * power);
+            _dispatchColdChainC += (4.2 - _dispatchColdChainC) * Math.Min(1, seconds / 24.0);
+        }
+        else
+        {
+            _dispatchColdChainC += (13.5 - _dispatchColdChainC) * Math.Min(1, seconds / 90.0);
+        }
+
+        if (_orderSecondsRemaining < -120)
+        {
+            _reputationPct = Math.Max(0, _reputationPct - seconds * 0.006);
+        }
+
+        if (_finishedGoodsCakes >= _orderCakesRequired)
+        {
+            _orderStatus = _orderSecondsRemaining >= 0
+                ? $"Order {_currentOrderId} ready to dispatch: {_finishedGoodsCakes}/{_orderCakesRequired} cakes, {_orderSecondsRemaining:0}s due."
+                : $"Order {_currentOrderId} late but ready: {_finishedGoodsCakes}/{_orderCakesRequired} cakes.";
+        }
+        else
+        {
+            _orderStatus = _orderSecondsRemaining >= 0
+                ? $"Order {_currentOrderId}: {_finishedGoodsCakes}/{_orderCakesRequired} cakes ready, {_orderSecondsRemaining:0}s due."
+                : $"Order {_currentOrderId} late: {_finishedGoodsCakes}/{_orderCakesRequired} cakes ready.";
+        }
+    }
+
     private void UpdateBatch(double seconds, double power)
     {
         double idleTarget = power > 0 ? 82 : 24;
@@ -1726,6 +1837,7 @@ public sealed class CakeFactoryService
         _cakesBaked += recipe.BatchSize;
         _cakesPacked += packed;
         _cakesRejected += rejected;
+        _finishedGoodsCakes += packed;
         _wasteKg += rejected * 0.42;
         _batterKg = Math.Max(0, _batterKg - BatchIngredientMass(recipe));
         _sanitationScore = Math.Max(0, _sanitationScore - 2.4);
@@ -1856,6 +1968,8 @@ public sealed class CakeFactoryService
         if (_filterMediaPct < 3) low.Add("filter media");
         if (_forkliftBatteryPct < 12) low.Add("forklift battery");
         if (_warehousePalletSpacePct < 18) low.Add("staging pallet space");
+        if (_dispatchTruckChargePct < 18) low.Add("dispatch truck charge");
+        if (_dispatchColdChainC > 8.0) low.Add("dispatch cold chain");
         return low.Count == 0 ? "Inputs stocked" : "Low: " + string.Join(", ", low);
     }
 

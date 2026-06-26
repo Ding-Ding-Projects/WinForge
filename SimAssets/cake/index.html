@@ -606,6 +606,12 @@
                 <button class="action danger" type="button" data-action="clean">CIP clean</button>
               </div>
             </div>
+            <div class="control-bank">
+              <h3>Shipping</h3>
+              <div class="button-grid single">
+                <button class="action file" type="button" data-action="dispatchOrder">Dispatch order</button>
+              </div>
+            </div>
             <div id="prompt" class="prompt">Waiting for reactor bus.</div>
             <div id="notice" class="notice"></div>
           </div>
@@ -845,6 +851,19 @@
       CakesBaked: 0,
       CakesPacked: 0,
       CakesRejected: 0,
+      FinishedGoodsCakes: 0,
+      OrdersFulfilled: 0,
+      CurrentOrderId: 'ORD-005100',
+      OrderCakesRequired: 12,
+      OrderCakesReady: 0,
+      OrderSecondsRemaining: 420,
+      OrderReward: 240,
+      CashBalance: 500,
+      ReputationPct: 84,
+      OrderStatus: 'Order ORD-005100 waiting for 12 packed cakes.',
+      CanDispatchOrder: false,
+      DispatchTruckChargePct: 76,
+      DispatchColdChainC: 4.2,
       WasteKg: 0,
       ConveyorPhase: 0,
       MixerAngle: 0,
@@ -985,6 +1004,7 @@
       setButton('startBatch', s.CanStartBatch);
       setButton('advance', s.CanAdvanceStage);
       setButton('clean', s.CleanEnabled);
+      setButton('dispatchOrder', s.CanDispatchOrder);
       setButton('trustCakeKey', (s.CakeFileCount || 0) > 0);
       setButton('validateCake', (s.CakeFileCount || 0) > 0);
       setButton('eatCake', (s.CakeFileCount || 0) > 0 && !!s.LatestCakeValid);
@@ -1001,6 +1021,7 @@
         ['Baking powder', `${n(s.BakingPowderKg, 1)} kg`],
         ['Salt', `${n(s.SaltKg, 1)} kg`],
         ['Batter in system', `${n(s.BatterKg, 1)} kg`],
+        ['Finished goods', `${s.FinishedGoodsCakes || 0} cakes`],
         ['Rejects', `${s.CakesRejected || 0}`]
       ];
       document.getElementById('inventoryRows').innerHTML =
@@ -1024,6 +1045,7 @@
         ['Cartons + labels', `${n(s.PackagingUnits, 0)}`],
         ['Forklift battery', `${n(s.ForkliftBatteryPct, 0)}%`],
         ['Pallet space', `${n(s.WarehousePalletSpacePct, 0)}% free`],
+        ['Dispatch truck', `${n(s.DispatchTruckChargePct, 0)}% / ${n(s.DispatchColdChainC, 1)} degC`],
         ['Trace score', `${n(s.TraceabilityScorePct, 0)}%`],
         ['Receiving manifest', s.LastSupplyManifestId || '-']
       ];
@@ -1044,6 +1066,10 @@
         ['Batch kit', s.BatchKitStaged ? `${s.BatchKitLotId} / ${n(s.BatchKitMassKg, 1)} kg` : (s.BatchKitStatus || 'No staged kit')],
         ['Batch lot', s.CurrentBatchLotId || 'No active batch lot'],
         ['Batch trace', s.CurrentBatchTrace || 'No batch trace'],
+        ['Customer order', s.CurrentOrderId || '-'],
+        ['Order status', s.OrderStatus || 'No active order'],
+        ['Order ready', `${s.OrderCakesReady || 0}/${s.OrderCakesRequired || 0} cakes / ${n(s.OrderSecondsRemaining, 0)}s`],
+        ['Finance', `$${n(s.CashBalance, 2)} / rep ${n(s.ReputationPct, 0)}% / ${s.OrdersFulfilled || 0} shipped`],
         ['Active condition', `${n(s.ActiveFactoryConditionPct, 0)}% / ${n(s.ActiveFactoryCalibrationPct, 0)}% cal`],
         ['Active vibration', `${n(s.ActiveFactoryVibrationMmS, 1)} mm/s / ${n(s.ActiveFactoryBearingTemperatureC, 0)} degC`],
         ['Mill asset', `${n(s.MillConditionPct, 0)}% / ${n(s.MillCalibrationPct, 0)}% cal`],
@@ -1298,6 +1324,10 @@
         text(`WAREHOUSE KIT ${s.BatchKitLotId || ''}`, 948, 390, 13, '#dff3cd', 900);
         text(`${n(s.BatchKitMassKg, 1)} kg staged - forklift ${n(s.ForkliftBatteryPct, 0)}%`, 948, 404, 11, '#c9beb0', 800);
       }
+
+      rr(930, 414, 278, 52, 8, '#28231b', '#c6a15f');
+      text(`ORDER ${s.CurrentOrderId || '-'}`, 948, 438, 13, '#ffe1a1', 900);
+      text(`${s.FinishedGoodsCakes || 0}/${s.OrderCakesRequired || 0} ready - truck ${n(s.DispatchTruckChargePct, 0)}% - ${n(s.DispatchColdChainC, 1)} degC`, 948, 454, 11, '#c9beb0', 800);
     }
 
     function drawSilo(x, y, label, fill) {

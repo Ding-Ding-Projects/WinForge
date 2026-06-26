@@ -1164,6 +1164,56 @@ internal static class Program
                           $"last='{Trim(lastMsg)}'");
         });
 
+        Scenario("CAKE ORDER DISPATCH (packed cakes fulfill customer contracts)", () =>
+        {
+            var cake = new CakeFactoryService { LineSpeed = 1.0, FarmIntensity = 1.0 };
+            TickCake(cake, fullBus, 0.5);
+            var initial = cake.Snapshot;
+
+            cake.StageBatchKit();
+            TickCake(cake, fullBus, 0.5);
+            bool started = cake.TryStartBatch(out var startMsg);
+
+            for (int guard = 0; guard < 3000; guard++)
+            {
+                TickCake(cake, fullBus, 0.25);
+                var s = cake.Snapshot;
+                if (s.CanAdvanceStage)
+                {
+                    if (!cake.TryAdvanceStage(out var advanceMsg))
+                        return (false, $"release failed at {s.StageName}: {advanceMsg}");
+                    TickCake(cake, fullBus, 0.25);
+                }
+                if (cake.Snapshot.Stage == CakeBatchStage.Idle && cake.Snapshot.FinishedGoodsCakes >= initial.OrderCakesRequired)
+                    break;
+            }
+
+            var ready = cake.Snapshot;
+            double cashBefore = ready.CashBalance;
+            double reputationBefore = ready.ReputationPct;
+            double truckBefore = ready.DispatchTruckChargePct;
+            string orderBefore = ready.CurrentOrderId;
+            string dispatch = cake.DispatchOrder();
+            TickCake(cake, fullBus, 0.5);
+            var shipped = cake.Snapshot;
+
+            bool producedForOrder = started
+                                    && ready.FinishedGoodsCakes >= initial.OrderCakesRequired
+                                    && ready.CanDispatchOrder
+                                    && ready.OrderStatus.Contains("ready", StringComparison.OrdinalIgnoreCase);
+            bool dispatchConsumesGoods = shipped.FinishedGoodsCakes == ready.FinishedGoodsCakes - initial.OrderCakesRequired;
+            bool financesUpdated = shipped.CashBalance > cashBefore
+                                   && shipped.ReputationPct >= reputationBefore
+                                   && shipped.DispatchTruckChargePct < truckBefore;
+            bool nextOrderOpened = shipped.OrdersFulfilled == ready.OrdersFulfilled + 1
+                                   && shipped.CurrentOrderId != orderBefore
+                                   && shipped.OrderCakesRequired > 0;
+            bool pass = producedForOrder && dispatchConsumesGoods && financesUpdated && nextOrderOpened;
+            return (pass, $"producedForOrder={producedForOrder} started={started} ('{Trim(startMsg)}'), " +
+                          $"dispatchConsumesGoods={dispatchConsumesGoods}, financesUpdated={financesUpdated}, " +
+                          $"nextOrderOpened={nextOrderOpened}, dispatch='{Trim(dispatch)}'");
+        });
+
         Scenario("CAKE FILE CRYPTO (portable signed files reject forged cakes and delete when eaten)", () =>
         {
             string rootA = Path.Combine(Path.GetTempPath(), "cake-device-a-" + Guid.NewGuid().ToString("N"));

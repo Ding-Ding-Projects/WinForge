@@ -2,9 +2,9 @@
 
 ![Cake Factory & Farm · 蛋糕工廠與農場](images/screenshot-cakefactory.png)
 
-**EN —** The Cake Factory & Farm module is a hands-on HTML5 simulator for a reactor-powered ingredient farm and bakery line. It is not a video and it is not fully automatic: the reactor bus, supply dock, farm, audited ingredient lots, ingredient factories, QA lab release, warehouse batch kitting, plant maintenance, mixer, tunnel oven, cooling, icing, packaging, QA, signed `.cake` files and CIP cleaning all expose live controls and operator release gates.
+**EN —** The Cake Factory & Farm module is a hands-on HTML5 simulator for a reactor-powered ingredient farm and bakery line. It is not a video and it is not fully automatic: the reactor bus, supply dock, farm, audited ingredient lots, ingredient factories, QA lab release, warehouse batch kitting, plant maintenance, mixer, tunnel oven, cooling, icing, packaging, customer order dispatch, QA, signed `.cake` files and CIP cleaning all expose live controls and operator release gates.
 
-**粵語 —** 蛋糕工廠與農場模組係一個由反應堆供電嘅 HTML5 互動模擬器，包含原料農場同烘焙生產線。佢唔係影片，亦唔係全自動：反應堆供電、農場、磨粉、攪拌、隧道焗爐、冷卻、裝飾、包裝、品檢同 CIP 清潔全部都有即時控制同操作員放行關卡。
+**粵語 —** 蛋糕工廠與農場模組係一個由反應堆供電嘅 HTML5 互動模擬器，包含原料農場同烘焙生產線。佢唔係影片，亦唔係全自動：反應堆供電、收貨、農場、已審核批號、原料工廠、QA 實驗室放行、倉庫備料、廠房維修、攪拌、隧道焗爐、冷卻、裝飾、包裝、客戶訂單出貨、品檢、已簽署 `.cake` 檔同 CIP 清潔全部都有即時控制同操作員放行關卡。
 
 Open in-app: `WinForge.exe --page cakefactory`
 
@@ -31,6 +31,7 @@ Open in-app: `WinForge.exe --page cakefactory`
 | Warehouse kitting · 倉庫備料 | Batches do not pull ingredients straight from storage. The operator must stage a traceable warehouse kit first; kitting consumes ingredient inventory, reserves cartons, uses forklift battery and occupies staging pallet space before the line can start. |
 | Factory telemetry · 工廠遙測 | Ingredient factories consume raw inputs plus process water, culinary steam, compressed air and filter media at start, add reactor load, expose unit-operation phase, run progress and process QA, pause on low power, and release output only after completion. Each plant tracks equipment condition, calibration, bearing temperature and vibration; wear affects throughput, QA and yield until the operator services the factories. Readings include mill roll gap, flour extraction, sugar Brix, evaporator temperature, separator rpm, butterfat, cocoa roast temperature, grind size, brine salinity, crystallizer temperature and leavening blend homogeneity. |
 | Bakery line · 烘焙生產線 | Operator-driven scaling, mixing, depositing, tunnel baking, spiral cooling, icing/decorating and packaging/coding. |
+| Customer orders · 客戶訂單 | Packed cakes move into finished goods. Active customer orders track required cakes, due time, reward, cash and reputation. Dispatch is manual and requires reactor power, enough finished goods, truck battery charge and a cold-chain temperature below the safety limit. |
 | Signed cake files · 已簽署蛋糕檔 | Packed cakes are minted as portable `.cake` files signed with the bakery private key. Other devices validate them with the trusted public key, forged cakes are rejected, and eating a cake deletes the file. |
 | Food safety · 食物安全 | HACCP-style prompts, kill-step temperature, cooling limit, sanitation score, quality score, rejects and waste tracking. |
 | CIP sanitation · CIP 清潔 | Clean-in-place locks batching while washing mixer, depositor, oven belt, icing head and packer. |
@@ -57,6 +58,7 @@ Open in-app: `WinForge.exe --page cakefactory`
 | Stage kit · 備料套件 | Picks released ingredients and cartons into a traceable warehouse kit using forklift battery and staging pallet space. |
 | Start batch · 開批 | Starts the manual batch line from the staged warehouse kit. |
 | Release step · 放行工序 | Advances only when the current stage is complete and the safety gate is satisfied. |
+| Dispatch order · 訂單出貨 | Ships the active customer order after finished goods, reactor power, truck charge and cold-chain temperature are ready. Dispatch consumes finished goods, pays cash and updates reputation. |
 | CIP clean · CIP 清潔 | Starts a clean-in-place sanitation loop. Batching is locked until it completes. |
 | Trust key · 信任公鑰 | Imports the embedded bakery public key from a copied `.cake` file so another device can validate that bakery. |
 | Validate cake · 驗證蛋糕 | Verifies the latest `.cake` file signature and trusted public key before it can be used. |
@@ -92,11 +94,12 @@ Open in-app: `WinForge.exe --page cakefactory`
    - **Spiral cooling:** release only when product core temperature is safe for icing.
    - **Icing + decorating:** release when decorating is complete and sanitation remains acceptable.
    - **Packaging + coding:** release to finish the batch, log QA and count packed/rejected cakes.
-9. When packaging completes, the app mints one signed `.cake` file per packed cake under the cake-factory app data folder.
-10. On another device, copy the `.cake` file into the cake folder, press **Trust key** once for that bakery, then use **Validate cake**.
-11. Use **Validate cake** before another module or operator uses a cake file. A forged, tampered, untrusted, replayed or expired cake is rejected.
-12. Use **Eat + delete** when a workflow consumes a cake. The valid `.cake` file is deleted, so it cannot be eaten twice.
-13. Run **CIP clean** when sanitation drops or after production. The simulator locks batching during CIP, then restores sanitation as the wash/rinse/drain loop progresses.
+9. When packaging completes, packed cakes enter finished goods and the app mints one signed `.cake` file per packed cake under the cake-factory app data folder.
+10. Watch the customer order panel. Press **Dispatch order** only when finished goods meet the order quantity and the truck battery / cold-chain readings are ready.
+11. On another device, copy the `.cake` file into the cake folder, press **Trust key** once for that bakery, then use **Validate cake**.
+12. Use **Validate cake** before another module or operator uses a cake file. A forged, tampered, untrusted, replayed or expired cake is rejected.
+13. Use **Eat + delete** when a workflow consumes a cake. The valid `.cake` file is deleted, so it cannot be eaten twice.
+14. Run **CIP clean** when sanitation drops or after production. The simulator locks batching during CIP, then restores sanitation as the wash/rinse/drain loop progresses.
 
 ## Manual-First Behavior · 手動優先行為
 
@@ -113,6 +116,7 @@ The simulator deliberately avoids full automation:
 - Ingredient factories wear down. A run degrades the specific plant that ran, worn equipment slows throughput and reduces yield/QA, and maintenance consumes real utilities before restoring condition and calibration.
 - It does not advance stages automatically after timers complete.
 - It waits for the operator to release each HACCP gate.
+- It does not ship orders automatically. Customer dispatch waits for the operator and consumes finished goods, truck charge and cold-chain capacity.
 - It blocks release if power, temperature, sanitation or recipe requirements are not satisfied.
 - It rejects forged `.cake` files and refuses to consume them.
 
@@ -128,6 +132,7 @@ The simulator deliberately avoids full automation:
 | Lab release hold · 實驗室放行暫停 | A factory output lot is waiting for QA lab release. Press Release lab lot after restoring reactor power and lab utilities. |
 | Service plants is disabled · 無法維修廠房 | A factory run is active, reactor bus power is low, or process water/steam/compressed air/filter media is insufficient. |
 | Release step is disabled · 未能放行 | Stage timer is still running, kill-step/cooling/sanitation gate is not met, or reactor power is unavailable. |
+| Dispatch order is disabled · 無法出貨 | Finished goods are below the active order quantity, reactor bus power is low, truck battery charge is low, or the dispatch cold chain is too warm. |
 | Cake file rejected · 蛋糕檔被拒絕 | The file is forged, tampered, signed by an untrusted public key, expired or already eaten. |
 | Quality drops · 品質下降 | Low power, worn or uncalibrated ingredient plants, bad oven temperature, missed specific gravity target, or low sanitation. Service plants, slow down, clean and wait for gate conditions. |
 | CIP seems to stop production · CIP 停止生產 | Expected behavior: CIP locks batching until the sanitation loop finishes. |
@@ -138,7 +143,7 @@ The module was tested with these checks:
 
 | Evidence · 證據 | Result · 結果 |
 |---|---|
-| Headless service scenarios · 無介面服務情景 | `dotnet run --project tests/ReactorSim.Tests/ReactorSim.Tests.csproj -c Debug` passed **28/28** scenarios, including cake power gating, no-auto manual mode, cow milk provenance and cold-chain QA, audited lot traceability, QA lab release holds, warehouse batch kitting, finite supply inputs and utilities, timed non-farm ingredient factories, unit-operation phases, process QA, factory equipment maintenance, ingredient chain, full manual batch, signed `.cake` file crypto and CIP sanitation. |
+| Headless service scenarios · 無介面服務情景 | `dotnet run --project tests/ReactorSim.Tests/ReactorSim.Tests.csproj -c Debug` passed **29/29** scenarios, including cake power gating, no-auto manual mode, cow milk provenance and cold-chain QA, audited lot traceability, QA lab release holds, warehouse batch kitting, finite supply inputs and utilities, timed non-farm ingredient factories, unit-operation phases, process QA, factory equipment maintenance, ingredient chain, full manual batch, customer order dispatch, signed `.cake` file crypto and CIP sanitation. |
 | WinForge GUI screenshot · WinForge 圖形介面截圖 | `WinForge.exe --page cakefactory` was launched from a self-contained publish and captured into `docs/screenshot-cakefactory.png`. |
 | WebView asset packaging · WebView 資產封裝 | `SimAssets/cake/index.html` is included under `SimAssets/**/*.*`, copied to publish output and loaded through WebView2 virtual-host mapping. |
 | Signed cake files · 已簽署蛋糕檔 | The test suite verifies private-key signing, public-key trust on another device root, forged/tampered rejection, replay rejection and eat-delete consumption. |
