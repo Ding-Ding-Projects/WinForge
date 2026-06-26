@@ -593,6 +593,7 @@
                 <button class="action" type="button" data-action="processCocoa">Roast cocoa</button>
                 <button class="action" type="button" data-action="runSaltWorks">Salt works</button>
                 <button class="action" type="button" data-action="runLeaveningPlant">Leavening plant</button>
+                <button class="action guard" type="button" data-action="releaseLabLot">Release lab lot</button>
                 <button class="action guard" type="button" data-action="serviceFactories">Service plants</button>
               </div>
             </div>
@@ -725,6 +726,7 @@
       CanProcessCocoa: false,
       CanRunSaltWorks: false,
       CanRunLeaveningPlant: false,
+      CanReleaseLabLot: false,
       WheatGrowth: 64,
       BeetGrowth: 58,
       PastureHealth: 76,
@@ -749,6 +751,10 @@
       LastSupplyManifestId: 'RCV-OPENING-2400',
       CurrentBatchLotId: '',
       CurrentBatchTrace: 'No batch has been started.',
+      IngredientLabStatus: 'Factory QA lab released opening ingredient lots.',
+      PendingLabLotId: '',
+      PendingLabProductName: '',
+      PendingLabQualityPct: 0,
       WheatLotId: 'WHEAT-OPENING',
       SugarCropLotId: 'SUGARCROP-OPENING',
       MilkLotId: 'MILK-OPENING',
@@ -964,6 +970,7 @@
       setButton('processCocoa', s.CanProcessCocoa);
       setButton('runSaltWorks', s.CanRunSaltWorks);
       setButton('runLeaveningPlant', s.CanRunLeaveningPlant);
+      setButton('releaseLabLot', s.CanReleaseLabLot);
       setButton('serviceFactories', s.CanServiceFactories);
       setButton('startBatch', s.CanStartBatch);
       setButton('advance', s.CanAdvanceStage);
@@ -1018,6 +1025,8 @@
         ['Run load', `${n(s.FactoryRunPowerMW, 1)} MW`],
         ['Process QA', `${n(s.FactoryRunQualityPct, 0)}%`],
         ['Maintenance', s.FactoryMaintenanceStatus || 'Maintenance normal'],
+        ['QA lab', s.IngredientLabStatus || 'Factory QA lab ready'],
+        ['Pending lab lot', s.PendingLabLotId ? `${s.PendingLabProductName || 'lot'} ${s.PendingLabLotId} / QA ${n(s.PendingLabQualityPct, 0)}%` : 'None'],
         ['Traceability', s.TraceabilityStatus || 'Traceability ready'],
         ['Batch lot', s.CurrentBatchLotId || 'No active batch lot'],
         ['Batch trace', s.CurrentBatchTrace || 'No batch trace'],
@@ -1256,12 +1265,13 @@
       drawCakes(s);
 
       if (s.FactoryRunActive) {
-        rr(930, 254, 278, 98, 8, '#1f3335', '#78c7dd');
+        rr(930, 254, 278, 112, 8, '#1f3335', '#78c7dd');
         text(s.ActiveFactoryName || 'INGREDIENT FACTORY', 948, 276, 13, '#d4f3fb', 900);
         text(s.ActiveFactoryPhase || 'processing', 948, 296, 12, '#c9beb0', 800);
         text(`${n((s.FactoryProgress || 0) * 100, 0)}% - ${n(s.FactoryRunPowerMW, 1)} MW - QA ${n(s.FactoryRunQualityPct, 0)}%`, 948, 314, 12, '#fff3d8', 800);
         text(`Cond ${n(s.ActiveFactoryConditionPct, 0)}% Cal ${n(s.ActiveFactoryCalibrationPct, 0)}% Vib ${n(s.ActiveFactoryVibrationMmS, 1)} mm/s`, 948, 330, 11, '#d4f3fb', 800);
         text(`Trace ${n(s.TraceabilityScorePct, 0)}% - ${s.LastSupplyManifestId || 'no manifest'}`, 948, 346, 11, '#c9beb0', 800);
+        text(s.PendingLabLotId ? `Lab hold ${s.PendingLabLotId}` : 'Lab clear', 948, 362, 11, s.PendingLabLotId ? '#ffe1a1' : '#bce1c0', 800);
       }
 
       if (s.StageReadyForOperator) {

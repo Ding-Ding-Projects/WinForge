@@ -813,26 +813,39 @@ internal static class Program
             TickCake(cake, fullBus, 1.0);
             var millRunning = cake.Snapshot;
             TickCake(cake, fullBus, 8.5);
+            var s3Hold = cake.Snapshot;
+            string releaseFlour = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
             var s3 = cake.Snapshot;
 
             string refine = cake.RefineSugar();
             TickCake(cake, fullBus, 10.5);
+            string releaseSugar = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
             var s4 = cake.Snapshot;
 
             string churn = cake.ChurnButter();
             TickCake(cake, fullBus, 7.5);
+            string releaseButter = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
             var s5 = cake.Snapshot;
 
             string cocoa = cake.ProcessCocoa();
             TickCake(cake, fullBus, 11.5);
+            string releaseCocoa = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
             var s6 = cake.Snapshot;
 
             string salt = cake.RunSaltWorks();
             TickCake(cake, fullBus, 9.5);
+            string releaseSalt = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
             var s7 = cake.Snapshot;
 
             string leavening = cake.RunLeaveningPlant();
             TickCake(cake, fullBus, 6.5);
+            string releaseLeavening = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
             var s8 = cake.Snapshot;
 
             bool farmYield = s1.WheatKg > s0.WheatKg && s1.SugarCropKg > s0.SugarCropKg && s1.VanillaL > s0.VanillaL;
@@ -865,12 +878,21 @@ internal static class Program
                                    && millRunning.FactoryRunQualityPct > 0
                                    && Math.Abs(millRunning.FlourKg - s2.FlourKg) < 0.001
                                    && !s3.FactoryRunActive;
-            bool pass = farmYield && dairyYield && flourYield && sugarYield && butterYield && cocoaYield && saltYield && leaveningYield && processTelemetry && factoryUtilitiesConsumed && timedFactoryRun;
+            bool labReleaseWorkflow = s3Hold.PendingLabLotId.Length > 0
+                                      && releaseFlour.Contains("released", StringComparison.OrdinalIgnoreCase)
+                                      && releaseSugar.Contains("released", StringComparison.OrdinalIgnoreCase)
+                                      && releaseButter.Contains("released", StringComparison.OrdinalIgnoreCase)
+                                      && releaseCocoa.Contains("released", StringComparison.OrdinalIgnoreCase)
+                                      && releaseSalt.Contains("released", StringComparison.OrdinalIgnoreCase)
+                                      && releaseLeavening.Contains("released", StringComparison.OrdinalIgnoreCase)
+                                      && s8.PendingLabLotId.Length == 0;
+            bool pass = farmYield && dairyYield && flourYield && sugarYield && butterYield && cocoaYield && saltYield && leaveningYield && processTelemetry && factoryUtilitiesConsumed && timedFactoryRun && labReleaseWorkflow;
             return (pass, $"farmYield={farmYield} ('{Trim(harvest)}'), dairyYield={dairyYield} ('{Trim(collect)}'), " +
                           $"flourYield={flourYield} ('{Trim(mill)}'), sugarYield={sugarYield} ('{Trim(refine)}'), " +
                           $"butterYield={butterYield} ('{Trim(churn)}'), cocoaYield={cocoaYield} ('{Trim(cocoa)}'), " +
                           $"saltYield={saltYield} ('{Trim(salt)}'), leaveningYield={leaveningYield} ('{Trim(leavening)}'), " +
-                          $"processTelemetry={processTelemetry}, factoryUtilitiesConsumed={factoryUtilitiesConsumed}, timedFactoryRun={timedFactoryRun}");
+                          $"processTelemetry={processTelemetry}, factoryUtilitiesConsumed={factoryUtilitiesConsumed}, timedFactoryRun={timedFactoryRun}, " +
+                          $"labReleaseWorkflow={labReleaseWorkflow}");
         });
 
         Scenario("CAKE FACTORY MAINTENANCE (plant condition affects factories and service consumes utilities)", () =>
@@ -915,6 +937,42 @@ internal static class Program
                           $"serviceConsumedUtilities={serviceConsumedUtilities} ('{Trim(service)}')");
         });
 
+        Scenario("CAKE QA LAB RELEASE (factory output lots are held until operator release)", () =>
+        {
+            var cake = new CakeFactoryService();
+            TickCake(cake, fullBus, 0.5);
+            var initial = cake.Snapshot;
+
+            string mill = cake.MillWheat();
+            TickCake(cake, fullBus, 9.0);
+            var held = cake.Snapshot;
+
+            bool startBlocked = !cake.TryStartBatch(out var blockedMsg);
+            double waterBeforeRelease = held.ProcessWaterL;
+            double airBeforeRelease = held.CompressedAirNm3;
+            double filterBeforeRelease = held.FilterMediaPct;
+            string release = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var released = cake.Snapshot;
+
+            bool heldForLab = held.PendingLabLotId.Length > 0
+                              && held.PendingLabProductName.Contains("flour", StringComparison.OrdinalIgnoreCase)
+                              && held.IngredientLabStatus.Contains("hold", StringComparison.OrdinalIgnoreCase)
+                              && held.MissingIngredients.Contains("lab release", StringComparison.OrdinalIgnoreCase);
+            bool batchBlockedUntilRelease = startBlocked
+                                            && blockedMsg.Contains("lab release", StringComparison.OrdinalIgnoreCase);
+            bool releaseClearsHold = released.PendingLabLotId.Length == 0
+                                     && released.IngredientLabStatus.Contains("released", StringComparison.OrdinalIgnoreCase)
+                                     && released.CanStartBatch
+                                     && released.MissingIngredients.Length == 0;
+            bool releaseConsumesLabUtilities = released.ProcessWaterL < waterBeforeRelease
+                                               && released.CompressedAirNm3 < airBeforeRelease
+                                               && released.FilterMediaPct < filterBeforeRelease;
+            bool pass = initial.CanStartBatch && heldForLab && batchBlockedUntilRelease && releaseClearsHold && releaseConsumesLabUtilities;
+            return (pass, $"heldForLab={heldForLab} after '{Trim(mill)}', batchBlockedUntilRelease={batchBlockedUntilRelease} ('{Trim(blockedMsg)}'), " +
+                          $"releaseClearsHold={releaseClearsHold} ('{Trim(release)}'), releaseConsumesLabUtilities={releaseConsumesLabUtilities}");
+        });
+
         Scenario("CAKE TRACEABILITY (receiving, dairy, factory conversion and batch lots are audited)", () =>
         {
             var cake = new CakeFactoryService();
@@ -932,6 +990,10 @@ internal static class Program
             string mill = cake.MillWheat();
             TickCake(cake, fullBus, 9.0);
             var milled = cake.Snapshot;
+
+            string lab = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var labReleased = cake.Snapshot;
 
             bool started = cake.TryStartBatch(out var startMsg);
             TickCake(cake, fullBus, 0.5);
@@ -951,15 +1013,17 @@ internal static class Program
             bool factoryOutputLotChanged = milled.FlourLotId.Length > 0
                                            && milled.FlourLotId != initial.FlourLotId
                                            && milled.TraceabilityStatus.Contains("source lot", StringComparison.OrdinalIgnoreCase);
+            bool labReleasedLot = labReleased.PendingLabLotId.Length == 0
+                                  && lab.Contains("released", StringComparison.OrdinalIgnoreCase);
             bool batchManifestOpened = started
                                        && batch.CurrentBatchLotId.Length > 0
                                        && batch.CurrentBatchTrace.Contains("flour", StringComparison.OrdinalIgnoreCase)
                                        && batch.CurrentBatchTrace.Contains("milk", StringComparison.OrdinalIgnoreCase)
                                        && batch.TraceabilityScorePct >= 99;
-            bool pass = openingLotsPresent && receivingManifestChanged && dairyLotChanged && factoryOutputLotChanged && batchManifestOpened;
+            bool pass = openingLotsPresent && receivingManifestChanged && dairyLotChanged && factoryOutputLotChanged && labReleasedLot && batchManifestOpened;
             return (pass, $"openingLotsPresent={openingLotsPresent}, receivingManifestChanged={receivingManifestChanged} ('{Trim(supply)}'), " +
                           $"dairyLotChanged={dairyLotChanged} ('{Trim(collect)}'), factoryOutputLotChanged={factoryOutputLotChanged} ('{Trim(mill)}'), " +
-                          $"batchManifestOpened={batchManifestOpened} started={started} ('{Trim(startMsg)}'), batchLot={batch.CurrentBatchLotId}");
+                          $"labReleasedLot={labReleasedLot}, batchManifestOpened={batchManifestOpened} started={started} ('{Trim(startMsg)}'), batchLot={batch.CurrentBatchLotId}");
         });
 
         Scenario("CAKE SUPPLY CHAIN INPUTS (ingredients require finite seed, water, feed, beans, factory feedstocks and cartons)", () =>

@@ -68,6 +68,7 @@ public sealed class CakeFactorySnapshot
     public bool CanProcessCocoa { get; init; }
     public bool CanRunSaltWorks { get; init; }
     public bool CanRunLeaveningPlant { get; init; }
+    public bool CanReleaseLabLot { get; init; }
     public double WheatGrowth { get; init; }
     public double BeetGrowth { get; init; }
     public double PastureHealth { get; init; }
@@ -92,6 +93,10 @@ public sealed class CakeFactorySnapshot
     public string LastSupplyManifestId { get; init; } = "";
     public string CurrentBatchLotId { get; init; } = "";
     public string CurrentBatchTrace { get; init; } = "";
+    public string IngredientLabStatus { get; init; } = "";
+    public string PendingLabLotId { get; init; } = "";
+    public string PendingLabProductName { get; init; } = "";
+    public double PendingLabQualityPct { get; init; }
     public string WheatLotId { get; init; } = "";
     public string SugarCropLotId { get; init; } = "";
     public string MilkLotId { get; init; } = "";
@@ -338,6 +343,21 @@ public sealed class CakeFactoryService
     private string _leaveningLotId = "LEAVEN-OPENING";
     private string _packagingLotId = "PACK-OPENING";
     private string _utilityLotId = "UTILITY-OPENING";
+    private readonly HashSet<string> _releasedFactoryLots = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "FLOUR-OPENING",
+        "SUGAR-OPENING",
+        "BUTTER-OPENING",
+        "COCOA-OPENING",
+        "SALT-OPENING",
+        "LEAVEN-OPENING",
+    };
+    private string _ingredientLabStatus = "Factory QA lab released opening ingredient lots.";
+    private IngredientFactoryKind _pendingLabKind = IngredientFactoryKind.Mill;
+    private string _pendingLabLotId = "";
+    private string _pendingLabProductName = "";
+    private double _pendingLabQualityPct;
+    private double _pendingLabQuantity;
     private double _processWaterL = 6000;
     private double _culinarySteamKg = 2600;
     private double _compressedAirNm3 = 900;
@@ -403,7 +423,10 @@ public sealed class CakeFactoryService
     private static bool HasLot(double quantity, string lotId) =>
         quantity <= 0.001 || !string.IsNullOrWhiteSpace(lotId);
 
-    private bool RecipeLotsReady(CakeRecipe r)
+    private bool FactoryLotReleased(double quantity, string lotId) =>
+        quantity <= 0.001 || (!string.IsNullOrWhiteSpace(lotId) && _releasedFactoryLots.Contains(lotId));
+
+    private bool RecipeLotDataPresent(CakeRecipe r)
     {
         double n = r.BatchSize;
         return HasLot(r.FlourKg * n, _flourLotId)
@@ -417,6 +440,20 @@ public sealed class CakeFactoryService
                && HasLot(r.CocoaKg * n, _cocoaLotId)
                && HasLot(n, _packagingLotId);
     }
+
+    private bool RecipeFactoryLotsReleased(CakeRecipe r)
+    {
+        double n = r.BatchSize;
+        return FactoryLotReleased(r.FlourKg * n, _flourLotId)
+               && FactoryLotReleased(r.SugarKg * n, _sugarLotId)
+               && FactoryLotReleased(r.ButterKg * n, _butterLotId)
+               && FactoryLotReleased(r.BakingPowderKg * n, _leaveningLotId)
+               && FactoryLotReleased(r.SaltKg * n, _saltLotId)
+               && FactoryLotReleased(r.CocoaKg * n, _cocoaLotId);
+    }
+
+    private bool RecipeLotsReady(CakeRecipe r) =>
+        RecipeLotDataPresent(r) && RecipeFactoryLotsReleased(r);
 
     private string BuildBatchTrace(CakeRecipe r, string batchLotId)
     {
@@ -748,6 +785,8 @@ public sealed class CakeFactoryService
         string missingUtilities = MissingFactoryUtilities(run);
         if (missingUtilities.Length > 0)
             return $"{run.Name} cannot start; missing factory utilities: {missingUtilities}.";
+        if (!string.IsNullOrWhiteSpace(_pendingLabLotId))
+            return $"{run.Name} cannot start; QA lab must release {_pendingLabProductName} lot {_pendingLabLotId} first.";
         if (string.IsNullOrWhiteSpace(run.InputLotId))
             return $"{run.Name} cannot start; source ingredient lot is missing from the traceability ledger.";
 
@@ -939,6 +978,17 @@ public sealed class CakeFactoryService
         _ => "ingredient plant",
     };
 
+    private static string FactoryProductName(IngredientFactoryKind kind) => kind switch
+    {
+        IngredientFactoryKind.Mill => "cake flour",
+        IngredientFactoryKind.Sugar => "sugar",
+        IngredientFactoryKind.Butter => "butter",
+        IngredientFactoryKind.Cocoa => "cocoa",
+        IngredientFactoryKind.Salt => "baking salt",
+        IngredientFactoryKind.Leavening => "baking powder",
+        _ => "ingredient",
+    };
+
     private double FactoryThroughputFactor(IngredientFactoryKind kind)
     {
         var equipment = EquipmentFor(kind);
@@ -968,6 +1018,78 @@ public sealed class CakeFactoryService
         equipment.CalibrationPct = Math.Clamp(equipment.CalibrationPct - run.CalibrationDriftPct, 0, 100);
         equipment.BearingTemperatureC = Math.Clamp(equipment.BearingTemperatureC + run.WearPct * 0.55, 20, 90);
         equipment.VibrationMmS = Math.Clamp(equipment.VibrationMmS + run.WearPct * 0.12, 0.6, 12.0);
+    }
+
+    private void HoldFactoryLotForLab(IngredientFactoryRun run, double output)
+    {
+        _pendingLabKind = run.Kind;
+        _pendingLabLotId = run.OutputLotId;
+        _pendingLabProductName = FactoryProductName(run.Kind);
+        _pendingLabQualityPct = _factoryRunQualityPct;
+        _pendingLabQuantity = output;
+        _ingredientLabStatus = $"QA lab hold: {_pendingLabProductName} lot {_pendingLabLotId} awaiting moisture, sieve, micro and label checks.";
+    }
+
+    private void RemoveRejectedFactoryLot(IngredientFactoryKind kind, double quantity)
+    {
+        switch (kind)
+        {
+            case IngredientFactoryKind.Mill:
+                ConsumeTrackedStock(ref _flourKg, quantity, ref _flourLotId);
+                break;
+            case IngredientFactoryKind.Sugar:
+                ConsumeTrackedStock(ref _sugarKg, quantity, ref _sugarLotId);
+                break;
+            case IngredientFactoryKind.Butter:
+                ConsumeTrackedStock(ref _butterKg, quantity, ref _butterLotId);
+                break;
+            case IngredientFactoryKind.Cocoa:
+                ConsumeTrackedStock(ref _cocoaKg, quantity, ref _cocoaLotId);
+                break;
+            case IngredientFactoryKind.Salt:
+                ConsumeTrackedStock(ref _saltKg, quantity, ref _saltLotId);
+                break;
+            case IngredientFactoryKind.Leavening:
+                ConsumeTrackedStock(ref _bakingPowderKg, quantity, ref _leaveningLotId);
+                break;
+        }
+    }
+
+    public string ReleaseIngredientLabLot()
+    {
+        if (_lastPowerAvailability < 0.15)
+            return "QA lab instruments need reactor bus power before releasing an ingredient lot.";
+        if (string.IsNullOrWhiteSpace(_pendingLabLotId))
+            return "No ingredient lot is waiting in the QA lab.";
+        if (!HasFactoryUtilities(12, 0, 4, 0.1))
+            return "QA lab release needs process water, compressed instrument air and filter media.";
+
+        _processWaterL = Math.Max(0, _processWaterL - 12);
+        _compressedAirNm3 = Math.Max(0, _compressedAirNm3 - 4);
+        _filterMediaPct = Math.Max(0, _filterMediaPct - 0.1);
+
+        string lot = _pendingLabLotId;
+        string product = _pendingLabProductName;
+        double quality = _pendingLabQualityPct;
+        if (quality < 62)
+        {
+            RemoveRejectedFactoryLot(_pendingLabKind, _pendingLabQuantity);
+            _wasteKg += _pendingLabQuantity;
+            _ingredientLabStatus = $"QA lab rejected {product} lot {lot} at {quality:0}% quality; lot was diverted to waste.";
+            _traceabilityStatus = $"Lab rejected factory output lot {lot}; batch ledger cannot use it.";
+        }
+        else
+        {
+            _releasedFactoryLots.Add(lot);
+            _ingredientLabStatus = $"QA lab released {product} lot {lot} at {quality:0}% quality.";
+            _traceabilityStatus = $"Lab released factory output lot {lot} for batching.";
+        }
+
+        _pendingLabLotId = "";
+        _pendingLabProductName = "";
+        _pendingLabQualityPct = 0;
+        _pendingLabQuantity = 0;
+        return _ingredientLabStatus;
     }
 
     private bool NeedsFactoryService()
@@ -1080,11 +1202,12 @@ public sealed class CakeFactoryService
                 break;
         }
 
+        HoldFactoryLotForLab(run, output);
         ApplyFactoryWear(run);
         var equipment = EquipmentFor(run.Kind);
         _factoryMaintenanceStatus = BuildFactoryMaintenanceStatus();
-        _traceabilityStatus = $"{run.Name} completed trace: source lot {run.InputLotId} -> output lot {run.OutputLotId}.";
-        _factoryStatus += $" Equipment now {equipment.ConditionPct:0}% condition, {equipment.CalibrationPct:0}% calibration, {equipment.VibrationMmS:0.0} mm/s vibration.";
+        _traceabilityStatus = $"{run.Name} completed trace: source lot {run.InputLotId} -> output lot {run.OutputLotId}; QA lab release required.";
+        _factoryStatus += $" Equipment now {equipment.ConditionPct:0}% condition, {equipment.CalibrationPct:0}% calibration, {equipment.VibrationMmS:0.0} mm/s vibration. QA lab is holding lot {run.OutputLotId}.";
     }
 
     public void StartClean()
@@ -1207,6 +1330,7 @@ public sealed class CakeFactoryService
 
         var missing = MissingIngredients(recipe);
         var displayedEquipment = _factoryRun is null ? LowestConditionEquipment() : EquipmentFor(_factoryRun.Kind);
+        bool labClear = string.IsNullOrWhiteSpace(_pendingLabLotId);
         Snapshot = new CakeFactorySnapshot
         {
             Recipe = recipe,
@@ -1236,13 +1360,14 @@ public sealed class CakeFactoryService
             MissingIngredients = missing,
             CanHarvest = power >= 0.15 && (_wheatGrowth >= 25 || _beetGrowth >= 25 || _vanillaGrowth >= 25),
             CanCollectDairy = power >= 0.12 && (_dairyReadyL >= 1 || _eggsReady >= 1),
-            CanMillWheat = power >= 0.2 && _factoryRun is null && _wheatKg >= 5 && HasFactoryUtilities(20, 0, 38, 0.6),
-            CanRefineSugar = power >= 0.2 && _factoryRun is null && _sugarCropKg >= 10 && HasFactoryUtilities(320, 520, 22, 1.2),
-            CanChurnButter = power >= 0.2 && _factoryRun is null && _milkL > 35 && HasFactoryUtilities(110, 140, 15, 0.8),
+            CanMillWheat = power >= 0.2 && _factoryRun is null && labClear && _wheatKg >= 5 && HasFactoryUtilities(20, 0, 38, 0.6),
+            CanRefineSugar = power >= 0.2 && _factoryRun is null && labClear && _sugarCropKg >= 10 && HasFactoryUtilities(320, 520, 22, 1.2),
+            CanChurnButter = power >= 0.2 && _factoryRun is null && labClear && _milkL > 35 && HasFactoryUtilities(110, 140, 15, 0.8),
             CanReceiveSupplies = power >= 0.1,
-            CanProcessCocoa = power >= 0.2 && _factoryRun is null && _cocoaBeansKg >= 5 && HasFactoryUtilities(25, 0, 45, 0.7),
-            CanRunSaltWorks = power >= 0.2 && _factoryRun is null && _brineL >= 80 && HasFactoryUtilities(0, 700, 30, 0.4),
-            CanRunLeaveningPlant = power >= 0.2 && _factoryRun is null && _sodaAshKg >= 3 && _phosphateKg >= 3 && _starchKg >= 2 && HasFactoryUtilities(0, 0, 50, 1.0),
+            CanProcessCocoa = power >= 0.2 && _factoryRun is null && labClear && _cocoaBeansKg >= 5 && HasFactoryUtilities(25, 0, 45, 0.7),
+            CanRunSaltWorks = power >= 0.2 && _factoryRun is null && labClear && _brineL >= 80 && HasFactoryUtilities(0, 700, 30, 0.4),
+            CanRunLeaveningPlant = power >= 0.2 && _factoryRun is null && labClear && _sodaAshKg >= 3 && _phosphateKg >= 3 && _starchKg >= 2 && HasFactoryUtilities(0, 0, 50, 1.0),
+            CanReleaseLabLot = power >= 0.15 && _factoryRun is null && !labClear && HasFactoryUtilities(12, 0, 4, 0.1),
             CanServiceFactories = power >= 0.2 && _factoryRun is null && NeedsFactoryService() && HasFactoryUtilities(120, 80, 35, 1.5),
             WheatGrowth = _wheatGrowth,
             BeetGrowth = _beetGrowth,
@@ -1268,6 +1393,10 @@ public sealed class CakeFactoryService
             LastSupplyManifestId = _lastSupplyManifestId,
             CurrentBatchLotId = _currentBatchLotId,
             CurrentBatchTrace = _currentBatchTrace,
+            IngredientLabStatus = _ingredientLabStatus,
+            PendingLabLotId = _pendingLabLotId,
+            PendingLabProductName = _pendingLabProductName,
+            PendingLabQualityPct = _pendingLabQualityPct,
             WheatLotId = _wheatLotId,
             SugarCropLotId = _sugarCropLotId,
             MilkLotId = _milkLotId,
@@ -1762,7 +1891,8 @@ public sealed class CakeFactoryService
         if (_vanillaL < r.VanillaL * n) missing.Add("vanilla");
         if (_cocoaKg < r.CocoaKg * n) missing.Add("cocoa");
         if (_packagingUnits < n) missing.Add("cartons/labels");
-        if (!RecipeLotsReady(r)) missing.Add("lot trace");
+        if (!RecipeLotDataPresent(r)) missing.Add("lot trace");
+        else if (!RecipeFactoryLotsReleased(r)) missing.Add("lab release");
         return string.Join(", ", missing);
     }
 
