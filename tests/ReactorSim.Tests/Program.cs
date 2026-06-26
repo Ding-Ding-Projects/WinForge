@@ -805,6 +805,55 @@ internal static class Program
                           $"({collected.BulkMilkTankC:F1}C, {collected.MilkBacteriaCfuPerMl:F0} CFU/mL)");
         });
 
+        Scenario("CAKE POULTRY PROVENANCE (eggs come from hens consuming feed, water, bedding and labor)", () =>
+        {
+            var cake = new CakeFactoryService { FarmIntensity = 1.0 };
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            TickCake(cake, fullBus, 80);
+            var worked = cake.Snapshot;
+
+            string collect = cake.CollectDairyAndEggs();
+            TickCake(cake, fullBus, 0.5);
+            var collected = cake.Snapshot;
+
+            string wash = cake.WashPoultryHouse();
+            TickCake(cake, fullBus, 0.5);
+            var washed = cake.Snapshot;
+
+            bool henFlockModeled = worked.LayingHenCount > 0
+                                    && worked.EggProductionPerHour > 0
+                                    && worked.EggSourceStatus.Contains("hens", StringComparison.OrdinalIgnoreCase);
+            bool henInputsConsumed = worked.AnimalFeedKg < before.AnimalFeedKg
+                                     && worked.IrrigationWaterL < before.IrrigationWaterL
+                                     && worked.BeddingKg < before.BeddingKg
+                                     && worked.BarnLaborHours < before.BarnLaborHours;
+            bool eggProduction = worked.EggsReady > before.EggsReady
+                                 && worked.PoultryManureKg > before.PoultryManureKg
+                                 && worked.HenHouseHygienePct < before.HenHouseHygienePct;
+            bool eggCollection = collected.Eggs > worked.Eggs
+                                 && collected.EggsReady < worked.EggsReady
+                                 && !string.Equals(collected.EggLotId, before.EggLotId, StringComparison.Ordinal)
+                                 && collected.EggSourceStatus.Contains("hens", StringComparison.OrdinalIgnoreCase)
+                                 && collect.Contains("graded eggs", StringComparison.OrdinalIgnoreCase)
+                                 && collected.ProcessWaterL < worked.ProcessWaterL
+                                 && collected.CompressedAirNm3 < worked.CompressedAirNm3;
+            bool eggQaModeled = collected.EggShellQualityPct >= 78
+                                && collected.EggWasherTemperatureC is >= 32 and <= 49
+                                && collected.EggQaStatus.Contains("spec", StringComparison.OrdinalIgnoreCase);
+            bool washdown = washed.HenHouseHygienePct > collected.HenHouseHygienePct
+                            && washed.PoultryManureKg < collected.PoultryManureKg
+                            && washed.ProcessWaterL < collected.ProcessWaterL
+                            && washed.CulinarySteamKg < collected.CulinarySteamKg
+                            && wash.Contains("Washed", StringComparison.OrdinalIgnoreCase);
+            bool pass = henFlockModeled && henInputsConsumed && eggProduction && eggCollection && eggQaModeled && washdown;
+            return (pass, $"henFlockModeled={henFlockModeled} ({worked.LayingHenCount} hens, {worked.EggProductionPerHour:F1} eggs/h), " +
+                          $"henInputsConsumed={henInputsConsumed}, eggProduction={eggProduction} ({before.EggsReady:F0}->{worked.EggsReady:F0} ready), " +
+                          $"eggCollection={eggCollection} ('{Trim(collect)}'), eggQaModeled={eggQaModeled} " +
+                          $"({collected.EggShellQualityPct:F0}% shell, {collected.EggWasherTemperatureC:F1}C), washdown={washdown} ('{Trim(wash)}')");
+        });
+
         Scenario("CAKE DAIRY RATION AND PARLOR HYGIENE (milk depends on feed mixing and washdown)", () =>
         {
             var cake = new CakeFactoryService { FarmIntensity = 1.0 };
@@ -1143,7 +1192,8 @@ internal static class Program
             bool dairyLotChanged = dairy.MilkLotId.Length > 0
                                    && dairy.EggLotId.Length > 0
                                    && dairy.MilkLotId != initial.MilkLotId
-                                   && dairy.TraceabilityStatus.Contains("Dairy trace", StringComparison.OrdinalIgnoreCase);
+                                   && dairy.TraceabilityStatus.Contains("trace", StringComparison.OrdinalIgnoreCase)
+                                   && dairy.TraceabilityStatus.Contains("egg lot", StringComparison.OrdinalIgnoreCase);
             bool factoryOutputLotChanged = milled.FlourLotId.Length > 0
                                            && milled.FlourLotId != initial.FlourLotId
                                            && milled.TraceabilityStatus.Contains("source lot", StringComparison.OrdinalIgnoreCase);

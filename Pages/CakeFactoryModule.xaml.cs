@@ -219,6 +219,10 @@ public sealed partial class CakeFactoryModule : Page
                 PostNotice("info", P("Dairy parlor washed", "擠奶間已清洗"), _sim.WashDairyParlor());
                 break;
 
+            case "washPoultryHouse":
+                PostNotice("info", P("Poultry house washed", "禽舍已清洗"), _sim.WashPoultryHouse());
+                break;
+
             case "mill":
                 PostNotice("success", P("Mill run complete", "磨粉完成"), _sim.MillWheat());
                 break;

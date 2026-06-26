@@ -585,6 +585,7 @@
                 <button class="action" type="button" data-action="collect">Milk + eggs</button>
                 <button class="action" type="button" data-action="mixDairyRation">Mix dairy ration</button>
                 <button class="action guard" type="button" data-action="washDairyParlor">Wash parlor</button>
+                <button class="action guard" type="button" data-action="washPoultryHouse">Wash poultry</button>
               </div>
             </div>
             <div class="control-bank">
@@ -733,6 +734,7 @@
       CanCollectDairy: false,
       CanMixDairyRation: false,
       CanWashDairyParlor: false,
+      CanWashPoultryHouse: false,
       CanMillWheat: false,
       CanRefineSugar: false,
       CanChurnButter: false,
@@ -758,6 +760,7 @@
       EggsReady: 42,
       DairyCowCount: 18,
       LactatingCowCount: 14,
+      LayingHenCount: 72,
       CowComfort: 82,
       MilkProductionLPerHour: 15.5,
       MilkParlorThroughputLPerHour: 720,
@@ -769,6 +772,13 @@
       MilkProteinPct: 3.25,
       MilkingVacuumKPa: 42,
       MilkQaStatus: 'Milk QA in spec',
+      EggProductionPerHour: 2.5,
+      HenHouseHygienePct: 86,
+      PoultryManureKg: 95,
+      EggShellQualityPct: 94,
+      EggWasherTemperatureC: 41,
+      EggSourceStatus: 'Eggs come from laying hens after feed, water, bedding, nest labor and egg-room grading.',
+      EggQaStatus: 'Egg QA in spec',
       ForageKg: 260,
       GrainKg: 180,
       DairyMineralKg: 35,
@@ -1032,6 +1042,7 @@
       setButton('collect', s.CanCollectDairy);
       setButton('mixDairyRation', s.CanMixDairyRation);
       setButton('washDairyParlor', s.CanWashDairyParlor);
+      setButton('washPoultryHouse', s.CanWashPoultryHouse);
       setButton('mill', s.CanMillWheat);
       setButton('refine', s.CanRefineSugar);
       setButton('churn', s.CanChurnButter);
@@ -1138,9 +1149,12 @@
         ['Utilities', s.FactoryUtilityStatus || 'Utilities ready'],
         ['Milk source', s.MilkSourceStatus || 'Cow dairy idle'],
         ['Milk QA', s.MilkQaStatus || 'Milk QA in spec'],
+        ['Egg source', s.EggSourceStatus || 'Poultry house idle'],
+        ['Egg QA', s.EggQaStatus || 'Egg QA in spec'],
         ['Dairy ration', s.RationStatus || 'No ration mixed'],
         ['Ration quality', `${n(s.RationEnergyPct, 0)}% energy / ${n(s.RationProteinPct, 0)}% protein`],
-        ['Manure + hygiene', `${n(s.ManureKg, 0)} kg / ${n(s.DairyParlorHygienePct, 0)}%`],
+        ['Dairy manure + hygiene', `${n(s.ManureKg, 0)} kg / ${n(s.DairyParlorHygienePct, 0)}%`],
+        ['Poultry manure + hygiene', `${n(s.PoultryManureKg, 0)} kg / ${n(s.HenHouseHygienePct, 0)}%`],
         ['Milk lot', s.MilkLotId || '-'],
         ['Ration lot', s.MixedRationLotId || '-'],
         ['Flour lot', s.FlourLotId || '-'],
@@ -1158,6 +1172,8 @@
         ['Cow comfort', `${n(s.CowComfort, 0)}%`],
         ['Milk rate', `${n(s.MilkProductionLPerHour, 1)} L/h`],
         ['Parlor capacity', `${n(s.MilkParlorThroughputLPerHour, 0)} L/h`],
+        ['Hen flock', `${s.LayingHenCount || 0} hens / ${n(s.EggProductionPerHour, 1)} eggs/h`],
+        ['Egg grading', `${n(s.EggShellQualityPct, 0)}% shell / ${n(s.EggWasherTemperatureC, 1)} degC`],
         ['Mill gap', `${n(s.MillRollGapMm, 2)} mm / ${n(s.FlourExtractionPct, 1)}%`],
         ['Sugar pan', `${n(s.SugarJuiceBrix, 1)} Brix / ${n(s.SugarEvaporatorTemperatureC, 0)} degC`],
         ['Butter churn', `${n(s.CreamSeparatorRpm, 0)} rpm / ${n(s.ButterFatPct, 1)}% fat`],
@@ -1308,6 +1324,8 @@
       text(`COW MILK ${n(s.DairyReadyL, 0)} L / EGGS ${n(s.EggsReady, 0)}`, 75, 490, 13, '#effbe6', 800);
       text(`${s.LactatingCowCount || 0}/${s.DairyCowCount || 0} cows - ${n(s.MilkProductionLPerHour, 1)} L/h`, 75, 508, 11, '#cfe7c9', 800);
       text(`Bulk tank ${n(s.BulkMilkTankC, 1)} degC - ${n(s.MilkBacteriaCfuPerMl, 0)} CFU`, 75, 523, 10, '#d4f3fb', 800);
+      text(`${s.LayingHenCount || 0} hens - ${n(s.EggProductionPerHour, 1)} eggs/h`, 75, 538, 10, '#fff1bf', 800);
+      text(`Poultry house ${n(s.HenHouseHygienePct, 0)}% - manure ${n(s.PoultryManureKg, 0)} kg`, 75, 552, 10, '#ffd6aa', 800);
 
       rr(292, 354, 205, 160, 10, '#1e4645', '#80d8d8');
       line(306, 354, 395, 306, '#80d8d8', 3);
