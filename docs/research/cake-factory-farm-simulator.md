@@ -15,7 +15,7 @@ This note records the research inputs used for `Pages/CakeFactoryModule` and `Se
 - Dairy mineral premix is not treated as a finished supplier input. The simulator models limestone, trace minerals, phosphate and salt as finite feedstocks, then a mineral premix micro-dosing/blending plant that makes a QA-released premix lot before the dairy ration mixer or feed mill can consume it.
 - Starch carrier is not treated as a finished supplier input. The simulator models a starch wet mill that converts harvested or received feed grain into a QA-released starch lot before the feed mill or leavening plant can consume it.
 - Vanilla and cocoa are flavoring inputs. Vanilla is represented as a greenhouse crop because commercial vanilla requires managed flowering, pollination/curing, and a long supply chain; cocoa is modeled as a small greenhouse/import crop that must be harvested into fermented, dried bean lots before the roast/grind factory can consume it.
-- Baking powder and salt are not farm outputs, so they are represented as factory-made outputs from mineral/dry-store feedstocks.
+- Baking powder and salt are not farm outputs, so they are represented as factory-made outputs from finite mineral/dry-store feedstocks. The baking-powder plant tracks audited baking-soda, phosphate and released starch lots, baking-soda assay, phosphate acid value, dehumidified dry blending, sifter load, dust collector pressure, blend moisture, homogeneity, leavening dust, QA hold and baking-powder inventory.
 - Decorating icing is not a field crop or automatic line effect. It is represented as a prepared factory lot made from released sugar, butter, pasteurized cow milk, vanilla and cocoa when required.
 
 ## Bakery Process

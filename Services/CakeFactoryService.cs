@@ -176,6 +176,8 @@ public sealed class CakeFactorySnapshot
     public string StrawLotId { get; init; } = "";
     public string LimestoneLotId { get; init; } = "";
     public string TraceMineralLotId { get; init; } = "";
+    public string SodaAshLotId { get; init; } = "";
+    public string PhosphateLotId { get; init; } = "";
     public double WheatKg { get; init; }
     public double WheatMoisturePct { get; init; }
     public double WheatForeignMaterialPct { get; init; }
@@ -200,6 +202,8 @@ public sealed class CakeFactorySnapshot
     public double BrineL { get; init; }
     public double SodaAshKg { get; init; }
     public double PhosphateKg { get; init; }
+    public double SodaAshAssayPct { get; init; }
+    public double PhosphateAcidValuePct { get; init; }
     public double StarchKg { get; init; }
     public double StrawKg { get; init; }
     public double ForageMoisturePct { get; init; }
@@ -327,6 +331,9 @@ public sealed class CakeFactorySnapshot
     public double StarchMoisturePct { get; init; }
     public double LeaveningMixerRpm { get; init; }
     public double LeaveningHomogeneityPct { get; init; }
+    public double LeaveningBlendMoisturePct { get; init; }
+    public double LeaveningSifterLoadPct { get; init; }
+    public double LeaveningDustCollectorPressurePa { get; init; }
     public double CartonFormerSpeedCpm { get; init; }
     public double PrintRegistrationMm { get; init; }
     public double GluePotTemperatureC { get; init; }
@@ -609,11 +616,12 @@ public sealed class CakeFactoryService
     private string _brineLotId = "BRINE-OPENING";
     private string _saltLotId = "SALT-OPENING";
     private string _starchLotId = "STARCH-OPENING";
-    private string _mineralLotId = "MINERAL-OPENING";
     private string _fertilizerLotId = "FERT-OPENING";
     private string _strawLotId = "STRAW-OPENING";
     private string _limestoneLotId = "LIMESTONE-OPENING";
     private string _traceMineralLotId = "TRACE-MIN-OPENING";
+    private string _sodaAshLotId = "SODA-OPENING";
+    private string _phosphateLotId = "PHOSPHATE-OPENING";
     private string _leaveningLotId = "LEAVEN-OPENING";
     private string _packagingLotId = "PACK-OPENING";
     private string _icingLotId = "ICING-OPENING";
@@ -717,11 +725,16 @@ public sealed class CakeFactoryService
     private double _cocoaGrindMicrons = 0;
     private double _brineSalinityPct = 2.6;
     private double _saltCrystallizerTemperatureC = 24;
+    private double _sodaAshAssayPct = 99.2;
+    private double _phosphateAcidValuePct = 98.4;
     private double _starchSlurryBrix = 0;
     private double _starchDryerTemperatureC = 24;
     private double _starchMoisturePct = 12.5;
     private double _leaveningMixerRpm = 0;
     private double _leaveningHomogeneityPct = 0;
+    private double _leaveningBlendMoisturePct = 2.8;
+    private double _leaveningSifterLoadPct = 0;
+    private double _leaveningDustCollectorPressurePa = 160;
     private double _cartonFormerSpeedCpm = 0;
     private double _printRegistrationMm = 0.18;
     private double _gluePotTemperatureC = 24;
@@ -1576,6 +1589,8 @@ public sealed class CakeFactoryService
         _brineL += 1600;
         _sodaAshKg += 42;
         _phosphateKg += 48;
+        _sodaAshAssayPct = 98.9 + _rng.NextDouble() * 0.7;
+        _phosphateAcidValuePct = 97.8 + _rng.NextDouble() * 1.4;
         _paperboardKg += 130;
         _labelStockM += 520;
         _packagingInkL += 14;
@@ -1597,14 +1612,15 @@ public sealed class CakeFactoryService
         _traceMineralLotId = NewLotId("TRACE-MIN");
         _cocoaBeansLotId = NewLotId("COCOABEAN");
         _brineLotId = NewLotId("BRINE");
-        _mineralLotId = NewLotId("MINERAL");
+        _sodaAshLotId = NewLotId("SODA");
+        _phosphateLotId = NewLotId("PHOSPHATE");
         _paperboardLotId = NewLotId("PAPERBOARD");
         _labelStockLotId = NewLotId("LABEL");
         _packagingInkLotId = NewLotId("INK");
         _adhesiveLotId = NewLotId("ADHESIVE");
         _utilityLotId = NewLotId("UTILITY");
         _warehouseStatus = $"Receiving manifest {_lastSupplyManifestId} booked into warehouse; forklift battery {_forkliftBatteryPct:0}% and {_warehousePalletSpacePct:0}% pallet space free.";
-        _traceabilityStatus = $"Receiving manifest {_lastSupplyManifestId} logged seed, dairy forage, grain, limestone, trace minerals, straw-bedding feedstock, feed-mill inputs, cocoa, brine, leavening mineral feedstocks, packaging feedstocks and utility lots; starch carrier, crop fertilizer, livestock bedding and dairy mineral premix must be made on site.";
+        _traceabilityStatus = $"Receiving manifest {_lastSupplyManifestId} logged seed, dairy forage, grain, limestone, trace minerals, straw-bedding feedstock, feed-mill inputs, cocoa, brine, baking-soda lot {_sodaAshLotId}, phosphate lot {_phosphateLotId}, packaging feedstocks and utility lots; starch carrier, crop fertilizer, livestock bedding, baking powder and dairy mineral premix must be made on site.";
     }
 
     public string ProcessCocoa()
@@ -1720,14 +1736,14 @@ public sealed class CakeFactoryService
     public string RunLeaveningPlant()
     {
         if (_lastPowerAvailability < 0.2)
-            return "Leavening plant blender needs reactor power.";
+            return "Baking-powder leavening plant, dehumidifier and dust collector need reactor power.";
         if (_factoryRun is not null)
             return $"{_factoryRun.Name} is already running; wait for the ingredient factory run to finish.";
 
         if (_sodaAshKg < 3 || _phosphateKg < 3 || _starchKg < 2)
-            return "Not enough soda ash, phosphate and starch are available for baking powder.";
-        if (string.IsNullOrWhiteSpace(_mineralLotId) || string.IsNullOrWhiteSpace(_starchLotId))
-            return "Leavening plant cannot run because a mineral or starch source lot is missing from the ledger.";
+            return "Not enough baking soda, phosphate and released starch carrier are available for baking powder.";
+        if (string.IsNullOrWhiteSpace(_sodaAshLotId) || string.IsNullOrWhiteSpace(_phosphateLotId) || string.IsNullOrWhiteSpace(_starchLotId))
+            return "Leavening plant cannot run because a baking-soda, phosphate or starch source lot is missing from the ledger.";
         if (!FactoryLotReleased(_starchKg, _starchLotId))
             return $"Leavening plant cannot run; starch lot {_starchLotId} is waiting for QA lab release.";
 
@@ -1740,31 +1756,33 @@ public sealed class CakeFactoryService
 
         _leaveningMixerRpm = 0;
         _leaveningHomogeneityPct = 0;
+        _leaveningBlendMoisturePct = 3.3;
+        _leaveningSifterLoadPct = 0;
+        _leaveningDustCollectorPressurePa = 145;
         var run = new IngredientFactoryRun
         {
             Kind = IngredientFactoryKind.Leavening,
-            Name = "Leavening weigh-blend plant",
-            StartedMessage = $"Started weighing and blending {input:0.0} kg soda ash, phosphate and starch carrier.",
-            DurationSeconds = 6.0,
+            Name = "Baking-powder micro-dosing and blend line",
+            StartedMessage = $"Started micro-weighing {soda:0.0} kg baking soda lot {_sodaAshLotId}, {phosphate:0.0} kg phosphate lot {_phosphateLotId} and {starch:0.0} kg released starch carrier lot {_starchLotId} into baking powder.",
+            DurationSeconds = 6.4,
             PowerDemandMW = 1.1,
             PrimaryInput = soda,
             SecondaryInput = phosphate,
             TertiaryInput = starch,
             Product = input * 0.92,
             Waste = input * 0.02,
-            CompressedAirNm3 = 50,
-            FilterMediaPct = 1.0,
+            CompressedAirNm3 = 58,
+            FilterMediaPct = 1.3,
             WearPct = 1.25,
             CalibrationDriftPct = 0.85,
-            InputLotId = $"{_mineralLotId}/{_starchLotId}",
+            InputLotId = $"{_sodaAshLotId}/{_phosphateLotId}/{_starchLotId}",
             OutputLotId = NewLotId("LEAVEN"),
         };
         return StartFactoryRun(run, () =>
         {
-            _sodaAshKg = Math.Max(0, _sodaAshKg - soda);
-            _phosphateKg = Math.Max(0, _phosphateKg - phosphate);
+            ConsumeTrackedStock(ref _sodaAshKg, soda, ref _sodaAshLotId);
+            ConsumeTrackedStock(ref _phosphateKg, phosphate, ref _phosphateLotId);
             ConsumeTrackedStock(ref _starchKg, starch, ref _starchLotId);
-            if (_sodaAshKg <= 0.001 && _phosphateKg <= 0.001) _mineralLotId = "";
         });
     }
 
@@ -1937,7 +1955,7 @@ public sealed class CakeFactoryService
         const double salt = 4.0;
         if (_limestoneKg < limestone || _traceMineralKg < traceMineral || _phosphateKg < phosphate || _saltKg < salt)
             return "Mineral premix plant needs limestone, trace mineral concentrate, phosphate and released baking salt.";
-        if (string.IsNullOrWhiteSpace(_limestoneLotId) || string.IsNullOrWhiteSpace(_traceMineralLotId) || string.IsNullOrWhiteSpace(_mineralLotId) || string.IsNullOrWhiteSpace(_saltLotId))
+        if (string.IsNullOrWhiteSpace(_limestoneLotId) || string.IsNullOrWhiteSpace(_traceMineralLotId) || string.IsNullOrWhiteSpace(_phosphateLotId) || string.IsNullOrWhiteSpace(_saltLotId))
             return "Mineral premix plant cannot run because a mineral source lot is missing from the ledger.";
         if (!FactoryLotReleased(_saltKg, _saltLotId))
             return $"Mineral premix plant cannot run; salt lot {_saltLotId} is waiting for QA lab release.";
@@ -1964,7 +1982,7 @@ public sealed class CakeFactoryService
             FilterMediaPct = 0.30,
             WearPct = 0.88,
             CalibrationDriftPct = 0.42,
-            InputLotId = $"{_limestoneLotId}/{_traceMineralLotId}/{_mineralLotId}/{_saltLotId}",
+            InputLotId = $"{_limestoneLotId}/{_traceMineralLotId}/{_phosphateLotId}/{_saltLotId}",
             OutputLotId = NewLotId("DAIRYMIN"),
         };
 
@@ -1972,8 +1990,7 @@ public sealed class CakeFactoryService
         {
             ConsumeTrackedStock(ref _limestoneKg, limestone, ref _limestoneLotId);
             ConsumeTrackedStock(ref _traceMineralKg, traceMineral, ref _traceMineralLotId);
-            _phosphateKg = Math.Max(0, _phosphateKg - phosphate);
-            if (_sodaAshKg <= 0.001 && _phosphateKg <= 0.001) _mineralLotId = "";
+            ConsumeTrackedStock(ref _phosphateKg, phosphate, ref _phosphateLotId);
             ConsumeTrackedStock(ref _saltKg, salt, ref _saltLotId);
         });
     }
@@ -2438,8 +2455,14 @@ public sealed class CakeFactoryService
                 break;
             case IngredientFactoryKind.Leavening:
                 _leaveningMixerRpm = p < 0.12 ? 90.0 * p / 0.12 : 90.0 + Math.Sin(p * Math.PI * 4) * 12.0;
-                _leaveningHomogeneityPct = 52.0 + p * 46.0;
+                _leaveningHomogeneityPct = Math.Clamp(48.0 + p * 50.0, 0, 100);
+                _leaveningBlendMoisturePct = Math.Clamp(3.3 - p * 0.75 + Math.Sin(p * Math.PI * 4) * 0.08, 2.3, 3.4);
+                _leaveningSifterLoadPct = p < 0.48 ? 0 : Math.Clamp(58.0 + (p - 0.48) / 0.52 * 24.0 + Math.Sin(p * Math.PI * 3) * 3.0, 0, 92);
+                _leaveningDustCollectorPressurePa = Math.Clamp(145.0 + p * 90.0 + Math.Sin(p * Math.PI * 5) * 8.0, 120, 255);
                 _factoryRunQualityPct = Math.Min(_factoryRunQualityPct, _leaveningHomogeneityPct);
+                if (p > 0.24) _factoryRunQualityPct -= Math.Abs(_sodaAshAssayPct - 99.2) * 1.8 + Math.Abs(_phosphateAcidValuePct - 98.6) * 1.1;
+                if (p > 0.58) _factoryRunQualityPct -= Math.Abs(_leaveningBlendMoisturePct - 2.6) * 4.2 + Math.Max(0, _leaveningDustCollectorPressurePa - 238.0) * 0.08;
+                if (p > 0.75) _factoryRunQualityPct -= Math.Max(0, _leaveningSifterLoadPct - 86.0) * 0.55;
                 break;
             case IngredientFactoryKind.Packaging:
                 _cartonFormerSpeedCpm = p < 0.18 ? 120.0 * p / 0.18 : 118.0 + Math.Sin(p * Math.PI * 5) * 9.0;
@@ -2531,10 +2554,11 @@ public sealed class CakeFactoryService
             IngredientFactoryKind.Starch when p < 0.68 => "centrifuge wash and dewatering",
             IngredientFactoryKind.Starch when p < 0.88 => "flash drying and moisture trim",
             IngredientFactoryKind.Starch => "sieve check and starch-bin transfer",
-            IngredientFactoryKind.Leavening when p < 0.20 => "ingredient weigh-up",
-            IngredientFactoryKind.Leavening when p < 0.55 => "ribbon blending",
-            IngredientFactoryKind.Leavening when p < 0.82 => "screening",
-            IngredientFactoryKind.Leavening => "lot QA and bin discharge",
+            IngredientFactoryKind.Leavening when p < 0.16 => "barcode lot verification and dehumidified room check",
+            IngredientFactoryKind.Leavening when p < 0.36 => "baking soda and phosphate micro-weighing",
+            IngredientFactoryKind.Leavening when p < 0.64 => "starch carrier dosing and ribbon blend",
+            IngredientFactoryKind.Leavening when p < 0.84 => "dust collection and sifter classification",
+            IngredientFactoryKind.Leavening => "CO2 release assay and bin discharge",
             IngredientFactoryKind.Packaging when p < 0.18 => "paperboard unwind and scoring",
             IngredientFactoryKind.Packaging when p < 0.42 => "carton forming",
             IngredientFactoryKind.Packaging when p < 0.64 => "label print registration",
@@ -2655,6 +2679,7 @@ public sealed class CakeFactoryService
             IngredientFactoryKind.Mill => $"QA lab hold: {_pendingLabProductName} lot {_pendingLabLotId} awaiting moisture, ash, protein, sieve and micro checks.",
             IngredientFactoryKind.Sugar => $"QA lab hold: {_pendingLabProductName} lot {_pendingLabLotId} awaiting polarization, color, moisture, insoluble solids and label checks.",
             IngredientFactoryKind.Butter => $"QA lab hold: {_pendingLabProductName} lot {_pendingLabLotId} awaiting fat, moisture, salt, micro, temperature and label checks.",
+            IngredientFactoryKind.Leavening => $"QA lab hold: {_pendingLabProductName} lot {_pendingLabLotId} awaiting CO2 release, neutralization, moisture, homogeneity, sieve and label checks.",
             _ => $"QA lab hold: {_pendingLabProductName} lot {_pendingLabLotId} awaiting moisture, sieve, micro and label checks.",
         };
     }
@@ -3014,10 +3039,22 @@ public sealed class CakeFactoryService
                 _bakingPowderKg += output;
                 _leaveningLotId = run.OutputLotId;
                 _wasteKg += waste;
-                _leaveningMixerRpm = 72 + _rng.NextDouble() * 36;
-                _leaveningHomogeneityPct = 96.5 + _rng.NextDouble() * 2.6;
-                _factoryRunQualityPct = Math.Clamp(_leaveningHomogeneityPct - FactoryEquipmentPenalty(run.Kind), 0, 100);
-                _factoryStatus = $"Leavening plant completed: {output:0.0} kg baking powder at {_leaveningHomogeneityPct:0.0}% homogeneity, QA {_factoryRunQualityPct:0}%.";
+                _sodaAshAssayPct = Math.Clamp(_sodaAshAssayPct + _rng.NextDouble() * 0.12 - 0.06, 98.2, 99.8);
+                _phosphateAcidValuePct = Math.Clamp(_phosphateAcidValuePct + _rng.NextDouble() * 0.16 - 0.08, 96.8, 100.0);
+                _leaveningMixerRpm = 82 + _rng.NextDouble() * 24;
+                _leaveningHomogeneityPct = 96.6 + _rng.NextDouble() * 2.4;
+                _leaveningBlendMoisturePct = 2.45 + _rng.NextDouble() * 0.35;
+                _leaveningSifterLoadPct = 72 + _rng.NextDouble() * 14;
+                _leaveningDustCollectorPressurePa = 190 + _rng.NextDouble() * 38;
+                _factoryRunQualityPct = Math.Clamp(99
+                    - Math.Abs(_leaveningHomogeneityPct - 98.0) * 0.9
+                    - Math.Abs(_leaveningBlendMoisturePct - 2.6) * 4.8
+                    - Math.Abs(_sodaAshAssayPct - 99.2) * 1.8
+                    - Math.Abs(_phosphateAcidValuePct - 98.6) * 1.1
+                    - Math.Max(0, _leaveningSifterLoadPct - 86.0) * 0.55
+                    - Math.Max(0, _leaveningDustCollectorPressurePa - 238.0) * 0.08
+                    - FactoryEquipmentPenalty(run.Kind), 0, 100);
+                _factoryStatus = $"Leavening plant completed: {output:0.0} kg baking powder from source lots {run.InputLotId}; baking soda assay {_sodaAshAssayPct:0.0}%, phosphate acid value {_phosphateAcidValuePct:0.0}%, blend moisture {_leaveningBlendMoisturePct:0.0}%, sifter {_leaveningSifterLoadPct:0}% load, dust collector {_leaveningDustCollectorPressurePa:0} Pa, QA {_factoryRunQualityPct:0}%.";
                 break;
             case IngredientFactoryKind.Packaging:
                 _packagingUnits += Math.Floor(output);
@@ -3321,8 +3358,8 @@ public sealed class CakeFactoryService
             CanRunSaltWorks = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _brineL >= 80 && HasFactoryUtilities(0, 700, 30, 0.4),
             CanRunStarchPlant = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _grainKg >= 52 && HasFactoryUtilities(85, 140, 16, 0.45)
                                 && !string.IsNullOrWhiteSpace(_grainLotId),
-            CanRunLeaveningPlant = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _sodaAshKg >= 3 && _phosphateKg >= 3 && _starchKg >= 2 && FactoryLotReleased(_starchKg, _starchLotId) && HasFactoryUtilities(0, 0, 50, 1.0)
-                                   && !string.IsNullOrWhiteSpace(_mineralLotId) && !string.IsNullOrWhiteSpace(_starchLotId),
+            CanRunLeaveningPlant = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _sodaAshKg >= 3 && _phosphateKg >= 3 && _starchKg >= 2 && FactoryLotReleased(_starchKg, _starchLotId) && HasFactoryUtilities(0, 0, 58, 1.3)
+                                   && !string.IsNullOrWhiteSpace(_sodaAshLotId) && !string.IsNullOrWhiteSpace(_phosphateLotId) && !string.IsNullOrWhiteSpace(_starchLotId),
             CanRunPackagingPlant = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _paperboardKg >= 42 && _labelStockM >= 140 && _packagingInkL >= 2.4 && _adhesiveKg >= 6 && HasFactoryUtilities(18, 0, 42, 0.45),
             CanPrepareIcing = CanPrepareIcing(recipe, power, labClear, wasteReady),
             CanRunFeedMill = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _grainKg >= 42 && _starchKg >= 4.8 && _dairyMineralKg >= 1.6 && FactoryLotReleased(_dairyMineralKg, _dairyMineralLotId) && FactoryLotReleased(_starchKg, _starchLotId) && HasFactoryUtilities(28, 55, 18, 0.25)
@@ -3331,7 +3368,7 @@ public sealed class CakeFactoryService
             CanRunBeddingPlant = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _strawKg >= 54 && HasFactoryUtilities(18, 0, 26, 0.35)
                                  && !string.IsNullOrWhiteSpace(_strawLotId),
             CanRunMineralPlant = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _limestoneKg >= 16 && _traceMineralKg >= 5.5 && _phosphateKg >= 3 && _saltKg >= 4 && FactoryLotReleased(_saltKg, _saltLotId) && HasFactoryUtilities(12, 0, 22, 0.30)
-                                  && !string.IsNullOrWhiteSpace(_limestoneLotId) && !string.IsNullOrWhiteSpace(_traceMineralLotId) && !string.IsNullOrWhiteSpace(_mineralLotId) && !string.IsNullOrWhiteSpace(_saltLotId),
+                                  && !string.IsNullOrWhiteSpace(_limestoneLotId) && !string.IsNullOrWhiteSpace(_traceMineralLotId) && !string.IsNullOrWhiteSpace(_phosphateLotId) && !string.IsNullOrWhiteSpace(_saltLotId),
             CanReleaseLabLot = power >= 0.15 && _factoryRun is null && !labClear && HasFactoryUtilities(12, 0, 4, 0.1),
             CanStageBatchKit = _stage == CakeBatchStage.Idle && !CipActive && !_batchKitStaged && rawMissing.Length == 0 && power >= 0.2 && _forkliftBatteryPct >= 12 && _warehousePalletSpacePct >= 18,
             CanServiceFactories = power >= 0.2 && _factoryRun is null && NeedsFactoryService() && HasFactoryUtilities(120, 80, 35, 1.5),
@@ -3421,6 +3458,8 @@ public sealed class CakeFactoryService
             StrawLotId = _strawLotId,
             LimestoneLotId = _limestoneLotId,
             TraceMineralLotId = _traceMineralLotId,
+            SodaAshLotId = _sodaAshLotId,
+            PhosphateLotId = _phosphateLotId,
             WheatKg = _wheatKg,
             WheatMoisturePct = _wheatMoisturePct,
             WheatForeignMaterialPct = _wheatForeignMaterialPct,
@@ -3445,6 +3484,8 @@ public sealed class CakeFactoryService
             BrineL = _brineL,
             SodaAshKg = _sodaAshKg,
             PhosphateKg = _phosphateKg,
+            SodaAshAssayPct = _sodaAshAssayPct,
+            PhosphateAcidValuePct = _phosphateAcidValuePct,
             StarchKg = _starchKg,
             StrawKg = _strawKg,
             ForageMoisturePct = _forageMoisturePct,
@@ -3575,6 +3616,9 @@ public sealed class CakeFactoryService
             StarchMoisturePct = _starchMoisturePct,
             LeaveningMixerRpm = _leaveningMixerRpm,
             LeaveningHomogeneityPct = _leaveningHomogeneityPct,
+            LeaveningBlendMoisturePct = _leaveningBlendMoisturePct,
+            LeaveningSifterLoadPct = _leaveningSifterLoadPct,
+            LeaveningDustCollectorPressurePa = _leaveningDustCollectorPressurePa,
             CartonFormerSpeedCpm = _cartonFormerSpeedCpm,
             PrintRegistrationMm = _printRegistrationMm,
             GluePotTemperatureC = _gluePotTemperatureC,
@@ -4060,7 +4104,7 @@ public sealed class CakeFactoryService
         if (_brineL < 80 && _saltKg < CurrentRecipe.SaltKg * CurrentRecipe.BatchSize) low.Add("brine");
         if ((_sodaAshKg < 3 || _phosphateKg < 3 || _starchKg < 2)
             && _bakingPowderKg < CurrentRecipe.BakingPowderKg * CurrentRecipe.BatchSize)
-            low.Add("leavening feedstocks");
+            low.Add("baking powder feedstocks");
         if (_processWaterL < 200) low.Add("process water");
         if (_culinarySteamKg < 260) low.Add("culinary steam");
         if (_compressedAirNm3 < 60) low.Add("compressed air");
@@ -4111,7 +4155,8 @@ public sealed class CakeFactoryService
         Count(_cocoaKg, _cocoaLotId);
         Count(_brineL, _brineLotId);
         Count(_saltKg, _saltLotId);
-        Count(_sodaAshKg + _phosphateKg, _mineralLotId);
+        Count(_sodaAshKg, _sodaAshLotId);
+        Count(_phosphateKg, _phosphateLotId);
         Count(_starchKg, _starchLotId);
         Count(_bakingPowderKg, _leaveningLotId);
         Count(_paperboardKg, _paperboardLotId);
@@ -4136,6 +4181,8 @@ public sealed class CakeFactoryService
         if (!HasLot(_vanillaL, _vanillaLotId)) missing.Add("vanilla");
         if (!HasLot(_bakingPowderKg, _leaveningLotId)) missing.Add("baking powder");
         if (!HasLot(_saltKg, _saltLotId)) missing.Add("salt");
+        if (!HasLot(_sodaAshKg, _sodaAshLotId)) missing.Add("baking soda");
+        if (!HasLot(_phosphateKg, _phosphateLotId)) missing.Add("phosphate");
         if (!HasLot(_starchKg, _starchLotId)) missing.Add("starch");
         if (!HasLot(_cocoaBeansKg, _cocoaBeansLotId)) missing.Add("cocoa beans");
         if (!HasLot(_cocoaKg, _cocoaLotId)) missing.Add("cocoa");
