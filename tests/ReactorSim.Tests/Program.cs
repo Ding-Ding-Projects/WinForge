@@ -1566,6 +1566,65 @@ internal static class Program
                           $"releaseClearsSugar={releaseClearsSugar} ('{Trim(release)}')");
         });
 
+        Scenario("CAKE SALT WORKS REALISM (brine is clarified, evaporated, centrifuged and dried before salt release)", () =>
+        {
+            var cake = new CakeFactoryService();
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            string start = cake.RunSaltWorks();
+            TickCake(cake, fullBus, 1.0);
+            var running = cake.Snapshot;
+
+            TickCake(cake, fullBus, 10.5);
+            var held = cake.Snapshot;
+            string blocked = cake.StageBatchKit();
+
+            string release = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var released = cake.Snapshot;
+
+            bool brineAssayed = before.CanRunSaltWorks
+                                && before.BrineLotId.StartsWith("BRINE-", StringComparison.OrdinalIgnoreCase)
+                                && before.BrineSalinityPct > 0
+                                && before.BrineHardnessPpm > 0
+                                && before.BrineTurbidityNtu > 0;
+            bool clarificationRunning = running.FactoryRunActive
+                                        && running.ActiveFactoryName.Contains("brine", StringComparison.OrdinalIgnoreCase)
+                                        && running.ActiveFactoryPhase.Length > 0
+                                        && running.BrineL < before.BrineL
+                                        && Math.Abs(running.SaltKg - before.SaltKg) < 0.001
+                                        && running.ProcessWaterL < before.ProcessWaterL
+                                        && running.CulinarySteamKg < before.CulinarySteamKg
+                                        && running.CompressedAirNm3 < before.CompressedAirNm3
+                                        && running.FilterMediaPct < before.FilterMediaPct
+                                        && running.BrineClarifierTurbidityNtu < before.BrineTurbidityNtu
+                                        && start.Contains(before.BrineLotId, StringComparison.OrdinalIgnoreCase);
+            bool saltHeldForLab = !held.FactoryRunActive
+                                  && held.SaltKg > before.SaltKg
+                                  && held.SaltLotId != before.SaltLotId
+                                  && held.PendingLabLotId == held.SaltLotId
+                                  && held.IngredientLabStatus.Contains("purity", StringComparison.OrdinalIgnoreCase)
+                                  && held.SaltEvaporatorVacuumKPa > 0
+                                  && held.SaltCrystallizerTemperatureC > 40
+                                  && held.SaltCentrifugeRpm > 0
+                                  && held.SaltDryerTemperatureC > 40
+                                  && held.SaltMoisturePct > 0
+                                  && held.SaltPurityPct > 98
+                                  && held.SaltScreenPassingPct > 90
+                                  && held.BrineBlowdownL > before.BrineBlowdownL
+                                  && held.FactoryStatus.Contains("brine lot", StringComparison.OrdinalIgnoreCase)
+                                  && held.FactoryStatus.Contains("purity", StringComparison.OrdinalIgnoreCase);
+            bool releaseClearsSalt = blocked.Contains("lab release", StringComparison.OrdinalIgnoreCase)
+                                     && release.Contains("released", StringComparison.OrdinalIgnoreCase)
+                                     && released.PendingLabLotId.Length == 0;
+            bool pass = brineAssayed && clarificationRunning && saltHeldForLab && releaseClearsSalt;
+            return (pass, $"brineAssayed={brineAssayed} ({before.BrineLotId}, {before.BrineSalinityPct:F1}% salinity, {before.BrineHardnessPpm:F0} ppm, {before.BrineTurbidityNtu:F1} NTU), " +
+                          $"clarificationRunning={clarificationRunning} ('{Trim(start)}'), saltHeldForLab={saltHeldForLab} " +
+                          $"(vac {held.SaltEvaporatorVacuumKPa:F0} kPa, centrifuge {held.SaltCentrifugeRpm:F0} rpm, purity {held.SaltPurityPct:F2}%, moisture {held.SaltMoisturePct:F3}%), " +
+                          $"releaseClearsSalt={releaseClearsSalt} ('{Trim(release)}')");
+        });
+
         Scenario("CAKE INGREDIENT CHAIN (harvest, collect, mill, refine, churn and non-farm factories mutate inventory)", () =>
         {
             var cake = new CakeFactoryService();
@@ -1664,7 +1723,11 @@ internal static class Program
                                     && s5.ButterMoisturePct > 0 && s5.ButterWorkingPressureKPa > 0
                                     && s6.VanillaExtractorTemperatureC > 70 && s6.VanillaExtractStrengthPct > 80
                                     && s7.CocoaRoasterTemperatureC > 100 && s7.CocoaGrindMicrons > 0
-                                    && s8.BrineSalinityPct > 0 && s8.SaltCrystallizerTemperatureC > 40
+                                    && s8.BrineSalinityPct > 0 && s8.BrineHardnessPpm > 0 && s8.BrineTurbidityNtu > 0
+                                    && s8.BrineClarifierTurbidityNtu > 0 && s8.SaltEvaporatorVacuumKPa > 0
+                                    && s8.SaltCrystallizerTemperatureC > 40 && s8.SaltCentrifugeRpm > 0
+                                    && s8.SaltDryerTemperatureC > 40 && s8.SaltMoisturePct > 0
+                                    && s8.SaltPurityPct > 98 && s8.SaltScreenPassingPct > 90
                                     && s9.SodaAshAssayPct > 98 && s9.PhosphateAcidValuePct > 96
                                     && s9.LeaveningMixerRpm > 0 && s9.LeaveningHomogeneityPct > 90
                                     && s9.LeaveningBlendMoisturePct > 0 && s9.LeaveningSifterLoadPct > 0

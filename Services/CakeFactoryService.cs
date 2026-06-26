@@ -166,6 +166,7 @@ public sealed class CakeFactorySnapshot
     public string ButterLotId { get; init; } = "";
     public string CocoaBeansLotId { get; init; } = "";
     public string CocoaLotId { get; init; } = "";
+    public string BrineLotId { get; init; } = "";
     public string SaltLotId { get; init; } = "";
     public string StarchLotId { get; init; } = "";
     public string LeaveningLotId { get; init; } = "";
@@ -325,7 +326,16 @@ public sealed class CakeFactorySnapshot
     public double CocoaRoasterTemperatureC { get; init; }
     public double CocoaGrindMicrons { get; init; }
     public double BrineSalinityPct { get; init; }
+    public double BrineHardnessPpm { get; init; }
+    public double BrineTurbidityNtu { get; init; }
+    public double BrineClarifierTurbidityNtu { get; init; }
+    public double SaltEvaporatorVacuumKPa { get; init; }
     public double SaltCrystallizerTemperatureC { get; init; }
+    public double SaltCentrifugeRpm { get; init; }
+    public double SaltDryerTemperatureC { get; init; }
+    public double SaltMoisturePct { get; init; }
+    public double SaltPurityPct { get; init; }
+    public double SaltScreenPassingPct { get; init; }
     public double StarchSlurryBrix { get; init; }
     public double StarchDryerTemperatureC { get; init; }
     public double StarchMoisturePct { get; init; }
@@ -724,7 +734,16 @@ public sealed class CakeFactoryService
     private double _cocoaRoasterTemperatureC = 24;
     private double _cocoaGrindMicrons = 0;
     private double _brineSalinityPct = 2.6;
+    private double _brineHardnessPpm = 420;
+    private double _brineTurbidityNtu = 12.0;
+    private double _brineClarifierTurbidityNtu = 12.0;
+    private double _saltEvaporatorVacuumKPa = 0;
     private double _saltCrystallizerTemperatureC = 24;
+    private double _saltCentrifugeRpm = 0;
+    private double _saltDryerTemperatureC = 24;
+    private double _saltMoisturePct = 0.18;
+    private double _saltPurityPct = 99.2;
+    private double _saltScreenPassingPct = 96.0;
     private double _sodaAshAssayPct = 99.2;
     private double _phosphateAcidValuePct = 98.4;
     private double _starchSlurryBrix = 0;
@@ -1587,6 +1606,10 @@ public sealed class CakeFactoryService
         _traceMineralKg += 24;
         _barnLaborHours = Math.Min(60, _barnLaborHours + 12);
         _brineL += 1600;
+        _brineSalinityPct = 2.55 + _rng.NextDouble() * 0.45;
+        _brineHardnessPpm = 320 + _rng.NextDouble() * 260;
+        _brineTurbidityNtu = 7.0 + _rng.NextDouble() * 11.0;
+        _brineClarifierTurbidityNtu = _brineTurbidityNtu;
         _sodaAshKg += 42;
         _phosphateKg += 48;
         _sodaAshAssayPct = 98.9 + _rng.NextDouble() * 0.7;
@@ -1620,7 +1643,7 @@ public sealed class CakeFactoryService
         _adhesiveLotId = NewLotId("ADHESIVE");
         _utilityLotId = NewLotId("UTILITY");
         _warehouseStatus = $"Receiving manifest {_lastSupplyManifestId} booked into warehouse; forklift battery {_forkliftBatteryPct:0}% and {_warehousePalletSpacePct:0}% pallet space free.";
-        _traceabilityStatus = $"Receiving manifest {_lastSupplyManifestId} logged seed, dairy forage, grain, limestone, trace minerals, straw-bedding feedstock, feed-mill inputs, cocoa, brine, baking-soda lot {_sodaAshLotId}, phosphate lot {_phosphateLotId}, packaging feedstocks and utility lots; starch carrier, crop fertilizer, livestock bedding, baking powder and dairy mineral premix must be made on site.";
+        _traceabilityStatus = $"Receiving manifest {_lastSupplyManifestId} logged seed, dairy forage, grain, limestone, trace minerals, straw-bedding feedstock, feed-mill inputs, cocoa, brine lot {_brineLotId} at {_brineSalinityPct:0.0}% salinity, baking-soda lot {_sodaAshLotId}, phosphate lot {_phosphateLotId}, packaging feedstocks and utility lots; salt, starch carrier, crop fertilizer, livestock bedding, baking powder and dairy mineral premix must be made on site.";
     }
 
     public string ProcessCocoa()
@@ -1662,32 +1685,42 @@ public sealed class CakeFactoryService
     public string RunSaltWorks()
     {
         if (_lastPowerAvailability < 0.2)
-            return "Salt evaporator and crystallizer need reactor power.";
+            return "Brine clarifier, vacuum evaporator, centrifuge and salt dryer need reactor power.";
         if (_factoryRun is not null)
             return $"{_factoryRun.Name} is already running; wait for the ingredient factory run to finish.";
 
         double brine = Math.Min(_brineL, 600);
         if (brine < 80)
             return "Not enough brine is available for a salt works run.";
+        if (string.IsNullOrWhiteSpace(_brineLotId))
+            return "Salt works cannot run because the brine source lot is missing from the ledger.";
 
-        double salt = brine * 0.026;
-        _brineSalinityPct = 2.5 + _rng.NextDouble() * 0.4;
+        double dissolvedSalt = brine * (_brineSalinityPct / 100.0);
+        double salt = dissolvedSalt * 0.94;
+        _brineClarifierTurbidityNtu = _brineTurbidityNtu;
+        _saltEvaporatorVacuumKPa = 0;
         _saltCrystallizerTemperatureC = 28;
+        _saltCentrifugeRpm = 0;
+        _saltDryerTemperatureC = 28;
+        _saltMoisturePct = 0.32;
+        _saltPurityPct = 0;
+        _saltScreenPassingPct = 0;
         var run = new IngredientFactoryRun
         {
             Kind = IngredientFactoryKind.Salt,
-            Name = "Salt evaporator and crystallizer",
-            StartedMessage = $"Started evaporating {brine:0} L brine into baking-grade salt crystals.",
-            DurationSeconds = 9.0,
-            PowerDemandMW = 1.6,
+            Name = "Brine clarifier, vacuum pan and salt dryer",
+            StartedMessage = $"Started clarifying {brine:0} L brine lot {_brineLotId} at {_brineSalinityPct:0.0}% salinity, {_brineHardnessPpm:0} ppm hardness and {_brineTurbidityNtu:0.0} NTU turbidity before vacuum evaporation.",
+            DurationSeconds = 9.8,
+            PowerDemandMW = 1.75,
             PrimaryInput = brine,
             Product = salt,
-            Waste = brine * 0.001,
-            CulinarySteamKg = 700,
-            CompressedAirNm3 = 30,
-            FilterMediaPct = 0.4,
-            WearPct = 1.95,
-            CalibrationDriftPct = 0.50,
+            Waste = brine * 0.002,
+            ProcessWaterL = 18,
+            CulinarySteamKg = 780,
+            CompressedAirNm3 = 38,
+            FilterMediaPct = 0.65,
+            WearPct = 2.05,
+            CalibrationDriftPct = 0.58,
             InputLotId = _brineLotId,
             OutputLotId = NewLotId("SALT"),
         };
@@ -2443,8 +2476,17 @@ public sealed class CakeFactoryService
                 if (p > 0.55) _factoryRunQualityPct -= Math.Max(0, 86.0 - _cocoaFermentationPct) * 0.22 + Math.Abs(_cocoaBeanMoisturePct - 6.8) * 0.9;
                 break;
             case IngredientFactoryKind.Salt:
-                _saltCrystallizerTemperatureC = 28.0 + p * 38.0;
-                if (p > 0.45) _factoryRunQualityPct -= Math.Abs(_brineSalinityPct - 2.7) * 8.0;
+                _brineClarifierTurbidityNtu = Math.Clamp(_brineTurbidityNtu * (1.0 - Math.Min(p / 0.28, 1.0) * 0.82), 0.4, _brineTurbidityNtu);
+                _saltEvaporatorVacuumKPa = p < 0.22 ? 0 : Math.Clamp(34.0 + (p - 0.22) / 0.78 * 31.0 + Math.Sin(p * Math.PI * 4) * 1.8, 0, 68);
+                _saltCrystallizerTemperatureC = p < 0.28 ? 28.0 + p * 70.0 : 72.0 + Math.Sin(p * Math.PI * 3) * 4.5;
+                _saltCentrifugeRpm = p < 0.66 ? 0 : Math.Clamp(840.0 + (p - 0.66) / 0.34 * 590.0 + Math.Sin(p * Math.PI * 5) * 35.0, 0, 1500);
+                _saltDryerTemperatureC = p < 0.74 ? 28.0 + p * 78.0 : 84.0 + Math.Sin(p * Math.PI * 4) * 3.0;
+                _saltMoisturePct = Math.Clamp(0.34 - p * 0.24 + Math.Sin(p * Math.PI * 4) * 0.012, 0.055, 0.36);
+                _saltPurityPct = Math.Clamp(96.8 + p * 2.9 - _brineHardnessPpm / 4200.0 - _brineClarifierTurbidityNtu * 0.018, 96.0, 99.9);
+                _saltScreenPassingPct = p < 0.78 ? 0 : Math.Clamp(86.0 + (p - 0.78) / 0.22 * 11.5, 0, 99.5);
+                if (p > 0.32) _factoryRunQualityPct -= Math.Abs(_brineSalinityPct - 2.7) * 6.0 + Math.Max(0, _brineClarifierTurbidityNtu - 2.5) * 1.2;
+                if (p > 0.54) _factoryRunQualityPct -= Math.Abs(_saltEvaporatorVacuumKPa - 58.0) * 0.12 + Math.Max(0, _brineHardnessPpm - 520.0) * 0.018;
+                if (p > 0.78) _factoryRunQualityPct -= Math.Abs(_saltMoisturePct - 0.10) * 36.0 + Math.Max(0, 99.0 - _saltPurityPct) * 1.5 + Math.Max(0, 94.0 - _saltScreenPassingPct) * 0.35;
                 break;
             case IngredientFactoryKind.Starch:
                 _starchSlurryBrix = 8.0 + p * 22.0;
@@ -2546,9 +2588,12 @@ public sealed class CakeFactoryService
             IngredientFactoryKind.Cocoa when p < 0.48 => "roast hold",
             IngredientFactoryKind.Cocoa when p < 0.64 => "winnowing",
             IngredientFactoryKind.Cocoa => "pin milling",
-            IngredientFactoryKind.Salt when p < 0.30 => "brine preheat",
-            IngredientFactoryKind.Salt when p < 0.70 => "vacuum evaporation",
-            IngredientFactoryKind.Salt => "crystallizer and centrifuge",
+            IngredientFactoryKind.Salt when p < 0.18 => "brine source-lot assay and prefilter",
+            IngredientFactoryKind.Salt when p < 0.36 => "lime softening and clarifier settling",
+            IngredientFactoryKind.Salt when p < 0.62 => "vacuum pan evaporation",
+            IngredientFactoryKind.Salt when p < 0.78 => "crystallizer crop growth",
+            IngredientFactoryKind.Salt when p < 0.92 => "centrifuge spin and dryer bed",
+            IngredientFactoryKind.Salt => "sieve classification and metal check",
             IngredientFactoryKind.Starch when p < 0.18 => "grain steep and wet mill",
             IngredientFactoryKind.Starch when p < 0.42 => "slurry screening and germ separation",
             IngredientFactoryKind.Starch when p < 0.68 => "centrifuge wash and dewatering",
@@ -2679,6 +2724,7 @@ public sealed class CakeFactoryService
             IngredientFactoryKind.Mill => $"QA lab hold: {_pendingLabProductName} lot {_pendingLabLotId} awaiting moisture, ash, protein, sieve and micro checks.",
             IngredientFactoryKind.Sugar => $"QA lab hold: {_pendingLabProductName} lot {_pendingLabLotId} awaiting polarization, color, moisture, insoluble solids and label checks.",
             IngredientFactoryKind.Butter => $"QA lab hold: {_pendingLabProductName} lot {_pendingLabLotId} awaiting fat, moisture, salt, micro, temperature and label checks.",
+            IngredientFactoryKind.Salt => $"QA lab hold: {_pendingLabProductName} lot {_pendingLabLotId} awaiting purity, moisture, insoluble matter, screen sizing, metal and label checks.",
             IngredientFactoryKind.Leavening => $"QA lab hold: {_pendingLabProductName} lot {_pendingLabLotId} awaiting CO2 release, neutralization, moisture, homogeneity, sieve and label checks.",
             _ => $"QA lab hold: {_pendingLabProductName} lot {_pendingLabLotId} awaiting moisture, sieve, micro and label checks.",
         };
@@ -3021,9 +3067,23 @@ public sealed class CakeFactoryService
                 _saltKg += output;
                 _saltLotId = run.OutputLotId;
                 _wasteKg += waste;
-                _saltCrystallizerTemperatureC = 62 + _rng.NextDouble() * 8;
-                _factoryRunQualityPct = Math.Clamp(97 - Math.Abs(_brineSalinityPct - 2.7) * 5.0 - FactoryEquipmentPenalty(run.Kind), 0, 100);
-                _factoryStatus = $"Salt works completed: {output:0.0} kg baking-grade salt from {_brineSalinityPct:0.0}% brine, QA {_factoryRunQualityPct:0}%.";
+                _brineClarifierTurbidityNtu = Math.Clamp(0.8 + _rng.NextDouble() * 1.2, 0.6, 2.4);
+                _saltEvaporatorVacuumKPa = 55 + _rng.NextDouble() * 7;
+                _saltCrystallizerTemperatureC = 70 + _rng.NextDouble() * 8;
+                _saltCentrifugeRpm = 1320 + _rng.NextDouble() * 150;
+                _saltDryerTemperatureC = 82 + _rng.NextDouble() * 8;
+                _saltMoisturePct = 0.075 + _rng.NextDouble() * 0.055;
+                _saltPurityPct = Math.Clamp(99.55 - Math.Max(0, _brineHardnessPpm - 420.0) * 0.00045 - _brineClarifierTurbidityNtu * 0.035 + _rng.NextDouble() * 0.10, 98.7, 99.9);
+                _saltScreenPassingPct = 94.8 + _rng.NextDouble() * 3.4;
+                _factoryRunQualityPct = Math.Clamp(99
+                    - Math.Abs(_brineSalinityPct - 2.7) * 5.0
+                    - Math.Max(0, _brineClarifierTurbidityNtu - 2.2) * 1.4
+                    - Math.Abs(_saltEvaporatorVacuumKPa - 58.0) * 0.10
+                    - Math.Abs(_saltMoisturePct - 0.10) * 34.0
+                    - Math.Max(0, 99.0 - _saltPurityPct) * 1.5
+                    - Math.Max(0, 94.0 - _saltScreenPassingPct) * 0.35
+                    - FactoryEquipmentPenalty(run.Kind), 0, 100);
+                _factoryStatus = $"Salt works completed: {output:0.0} kg baking-grade salt from brine lot {run.InputLotId}; brine {_brineSalinityPct:0.0}% salinity, {_brineHardnessPpm:0} ppm hardness and {_brineClarifierTurbidityNtu:0.0} NTU after clarification, vacuum {_saltEvaporatorVacuumKPa:0} kPa, centrifuge {_saltCentrifugeRpm:0} rpm, dryer {_saltDryerTemperatureC:0} degC, salt {_saltPurityPct:0.00}% purity, {_saltMoisturePct:0.000}% moisture and {_saltScreenPassingPct:0.0}% screen pass, QA {_factoryRunQualityPct:0}%.";
                 break;
             case IngredientFactoryKind.Starch:
                 _starchKg += output;
@@ -3355,7 +3415,8 @@ public sealed class CakeFactoryService
             InboundSupplyManifestId = _inboundSupplyManifestId,
             SupplyOrderStatus = _supplyOrderStatus,
             CanProcessCocoa = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _cocoaBeansKg >= 5 && HasFactoryUtilities(25, 0, 45, 0.7),
-            CanRunSaltWorks = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _brineL >= 80 && HasFactoryUtilities(0, 700, 30, 0.4),
+            CanRunSaltWorks = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _brineL >= 80 && HasFactoryUtilities(18, 780, 38, 0.65)
+                              && !string.IsNullOrWhiteSpace(_brineLotId),
             CanRunStarchPlant = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _grainKg >= 52 && HasFactoryUtilities(85, 140, 16, 0.45)
                                 && !string.IsNullOrWhiteSpace(_grainLotId),
             CanRunLeaveningPlant = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _sodaAshKg >= 3 && _phosphateKg >= 3 && _starchKg >= 2 && FactoryLotReleased(_starchKg, _starchLotId) && HasFactoryUtilities(0, 0, 58, 1.3)
@@ -3448,6 +3509,7 @@ public sealed class CakeFactoryService
             ButterLotId = _butterLotId,
             CocoaBeansLotId = _cocoaBeansLotId,
             CocoaLotId = _cocoaLotId,
+            BrineLotId = _brineLotId,
             SaltLotId = _saltLotId,
             StarchLotId = _starchLotId,
             LeaveningLotId = _leaveningLotId,
@@ -3610,7 +3672,16 @@ public sealed class CakeFactoryService
             CocoaRoasterTemperatureC = _cocoaRoasterTemperatureC,
             CocoaGrindMicrons = _cocoaGrindMicrons,
             BrineSalinityPct = _brineSalinityPct,
+            BrineHardnessPpm = _brineHardnessPpm,
+            BrineTurbidityNtu = _brineTurbidityNtu,
+            BrineClarifierTurbidityNtu = _brineClarifierTurbidityNtu,
+            SaltEvaporatorVacuumKPa = _saltEvaporatorVacuumKPa,
             SaltCrystallizerTemperatureC = _saltCrystallizerTemperatureC,
+            SaltCentrifugeRpm = _saltCentrifugeRpm,
+            SaltDryerTemperatureC = _saltDryerTemperatureC,
+            SaltMoisturePct = _saltMoisturePct,
+            SaltPurityPct = _saltPurityPct,
+            SaltScreenPassingPct = _saltScreenPassingPct,
             StarchSlurryBrix = _starchSlurryBrix,
             StarchDryerTemperatureC = _starchDryerTemperatureC,
             StarchMoisturePct = _starchMoisturePct,
