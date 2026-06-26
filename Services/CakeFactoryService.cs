@@ -103,10 +103,17 @@ public sealed class CakeFactorySnapshot
     public int LactatingCowCount { get; init; }
     public int LayingHenCount { get; init; }
     public double CowComfort { get; init; }
+    public double AverageLactationDays { get; init; }
+    public double DryMatterIntakeKgPerCowDay { get; init; }
+    public double RumenPh { get; init; }
+    public double BodyConditionScore { get; init; }
+    public double MilkUreaNitrogenMgDl { get; init; }
     public double MilkProductionLPerHour { get; init; }
     public double MilkParlorThroughputLPerHour { get; init; }
     public string MilkSourceStatus { get; init; } = "";
     public double BulkMilkTankC { get; init; }
+    public double BulkTankAgitationRpm { get; init; }
+    public double BulkTankCoolingLoadKw { get; init; }
     public double MilkBacteriaCfuPerMl { get; init; }
     public double MilkSomaticCellCountKPerMl { get; init; }
     public double MilkFatPct { get; init; }
@@ -525,6 +532,11 @@ public sealed class CakeFactoryService
     private int _lactatingCowCount = 14;
     private int _layingHenCount = 72;
     private double _cowComfort = 82;
+    private double _averageLactationDays = 142;
+    private double _dryMatterIntakeKgPerCowDay = 21.4;
+    private double _rumenPh = 6.32;
+    private double _bodyConditionScore = 3.18;
+    private double _milkUreaNitrogenMgDl = 12.6;
     private double _eggProductionPerHour;
     private double _henHouseHygienePct = 86;
     private double _poultryManureKg = 95;
@@ -535,6 +547,8 @@ public sealed class CakeFactoryService
     private double _milkParlorThroughputLPerHour = 720;
     private string _milkSourceStatus = "Milk comes from the lactating cow herd after feed, water, pasture and powered milking.";
     private double _bulkMilkTankC = 3.6;
+    private double _bulkTankAgitationRpm = 36;
+    private double _bulkTankCoolingLoadKw = 0.8;
     private double _milkBacteriaCfuPerMl = 8500;
     private double _milkSomaticCellCountKPerMl = 145;
     private double _milkFatPct = 3.8;
@@ -1240,11 +1254,17 @@ public sealed class CakeFactoryService
         _irrigationWaterL -= water;
         _barnLaborHours -= labor;
         double output = forage + grain + mineral + water * 0.18;
+        double forageDryMatter = forage * Math.Clamp(1.0 - _forageMoisturePct / 100.0, 0.78, 0.92);
+        double grainDryMatter = grain * Math.Clamp(1.0 - _feedGrainMoisturePct / 100.0, 0.80, 0.92);
+        double dryMatterPct = Math.Clamp((forageDryMatter + grainDryMatter + mineral) / Math.Max(1, output) * 100.0, 58, 82);
         _mixedRationKg += output;
         _mixedRationLotId = NewLotId("TMR");
         _rationEnergyPct = Math.Clamp(86 + grain / 22.0 * 8 + _pastureHealth / 100.0 * 3, 70, 102);
         _rationProteinPct = Math.Clamp(84 + forage / 48.0 * 5 + mineral / 2.2 * 5, 70, 101);
-        _rationStatus = $"Mixed TMR lot {_mixedRationLotId}: {forage:0} kg forage, {grain:0} kg grain, {mineral:0.0} kg mineral premix, energy {_rationEnergyPct:0}% and protein {_rationProteinPct:0}%.";
+        _dryMatterIntakeKgPerCowDay = Math.Clamp(17.5 + _rationEnergyPct * 0.035 + _rationProteinPct * 0.022 + _pastureHealth * 0.018, 14, 25.5);
+        _rumenPh = Math.Clamp(6.58 - grain / Math.Max(1, forage + grain) * 0.58 + _forageMoisturePct * 0.004, 5.75, 6.72);
+        _milkUreaNitrogenMgDl = Math.Clamp(11.0 + (_rationProteinPct - _rationEnergyPct) * 0.12 + mineral * 0.18, 7.5, 18.5);
+        _rationStatus = $"Mixed TMR lot {_mixedRationLotId}: {forage:0} kg forage, {grain:0} kg grain, {mineral:0.0} kg mineral premix, {dryMatterPct:0}% dry matter, energy {_rationEnergyPct:0}%, protein {_rationProteinPct:0}%, rumen pH {_rumenPh:0.00} and MUN {_milkUreaNitrogenMgDl:0.0} mg/dL.";
         _traceabilityStatus = $"Dairy ration trace logged: {_mixedRationLotId} from forage {_forageLotId}, grain {_grainLotId} and mineral {_dairyMineralLotId}.";
         return _rationStatus;
     }
@@ -1336,17 +1356,20 @@ public sealed class CakeFactoryService
         if (eggs > 0) _eggLotId = NewLotId("EGG");
         _milkParlorThroughputLPerHour = 680 + _rng.NextDouble() * 80;
         _milkingVacuumKPa = 40.5 + _rng.NextDouble() * 3.0;
-        _milkFatPct = 3.55 + _cowComfort / 100.0 * 0.55 + _rng.NextDouble() * 0.12;
-        _milkProteinPct = 3.05 + _pastureHealth / 100.0 * 0.28 + _rng.NextDouble() * 0.06;
+        double rumenLowFatPenalty = Math.Max(0, 6.15 - _rumenPh) * 0.32;
+        _milkFatPct = Math.Clamp(3.45 + _cowComfort / 100.0 * 0.48 + (_bodyConditionScore - 3.0) * 0.16 - rumenLowFatPenalty + _rng.NextDouble() * 0.12, 2.4, 4.5);
+        _milkProteinPct = Math.Clamp(3.02 + _pastureHealth / 100.0 * 0.24 + (_dryMatterIntakeKgPerCowDay - 18.0) * 0.018 - Math.Abs(_milkUreaNitrogenMgDl - 12.5) * 0.010 + _rng.NextDouble() * 0.06, 2.5, 3.8);
         double hygienePenalty = Math.Max(0, 86 - _dairyParlorHygienePct);
         double manurePenalty = Math.Max(0, _manureKg - 650) * 0.025;
         _milkSomaticCellCountKPerMl = Math.Clamp(250 - _cowComfort * 1.25 + hygienePenalty * 3.0 + manurePenalty + _rng.NextDouble() * 25, 80, 520);
         _milkBacteriaCfuPerMl = Math.Clamp(_milkBacteriaCfuPerMl + milk * (24 + hygienePenalty * 1.8) + (100 - _sanitationScore) * 35, 1200, 85000);
         _bulkMilkTankC = Math.Min(6.0, (_bulkMilkTankC * Math.Max(0, _rawMilkL - milk) + 37.0 * milk) / Math.Max(1, _rawMilkL));
+        _bulkTankAgitationRpm = _rawMilkL > 0 ? Math.Max(_bulkTankAgitationRpm, 34.0) : 0;
+        _bulkTankCoolingLoadKw = Math.Clamp(0.9 + _rawMilkL * 0.032 + Math.Max(0, _bulkMilkTankC - 3.4) * 0.72, 0, 9.5);
         _dairyParlorHygienePct = Math.Max(0, _dairyParlorHygienePct - milk * 0.045);
-        _milkSourceStatus = $"Transferred {milk:0.0} L raw milk lot {_rawMilkLotId} from {_lactatingCowCount} lactating cows fed by TMR lot {_mixedRationLotId} through the milking parlor to cold storage; pasteurization is still required before batching.";
+        _milkSourceStatus = $"Transferred {milk:0.0} L raw milk lot {_rawMilkLotId} from {_lactatingCowCount} lactating cows at {_averageLactationDays:0} days in milk; cows ate {_dryMatterIntakeKgPerCowDay:0.0} kg dry matter/cow/day from TMR lot {_mixedRationLotId}, rumen pH {_rumenPh:0.00}, BCS {_bodyConditionScore:0.00}, MUN {_milkUreaNitrogenMgDl:0.0} mg/dL. Milk moved through the parlor to an agitated cold bulk tank; pasteurization is still required before batching.";
         _traceabilityStatus = $"Dairy and poultry trace logged: raw milk lot {_rawMilkLotId} from {_lactatingCowCount} lactating cows, ration {_mixedRationLotId}, egg lot {_eggLotId} from {_layingHenCount} hens using feed lot {_feedLotId}.";
-        return $"Collected {milk:0.0} L raw cow milk and {eggs:0} graded eggs; parlor hygiene {_dairyParlorHygienePct:0}%, bulk tank {_bulkMilkTankC:0.0} degC, bacteria {_milkBacteriaCfuPerMl:0} CFU/mL.";
+        return $"Collected {milk:0.0} L raw cow milk and {eggs:0} graded eggs; parlor hygiene {_dairyParlorHygienePct:0}%, bulk tank {_bulkMilkTankC:0.0} degC, agitation {_bulkTankAgitationRpm:0} rpm, bacteria {_milkBacteriaCfuPerMl:0} CFU/mL.";
     }
 
     public string MillWheat()
@@ -3551,10 +3574,17 @@ public sealed class CakeFactoryService
             LactatingCowCount = _lactatingCowCount,
             LayingHenCount = _layingHenCount,
             CowComfort = _cowComfort,
+            AverageLactationDays = _averageLactationDays,
+            DryMatterIntakeKgPerCowDay = _dryMatterIntakeKgPerCowDay,
+            RumenPh = _rumenPh,
+            BodyConditionScore = _bodyConditionScore,
+            MilkUreaNitrogenMgDl = _milkUreaNitrogenMgDl,
             MilkProductionLPerHour = _milkProductionLPerHour,
             MilkParlorThroughputLPerHour = _milkParlorThroughputLPerHour,
             MilkSourceStatus = _milkSourceStatus,
             BulkMilkTankC = _bulkMilkTankC,
+            BulkTankAgitationRpm = _bulkTankAgitationRpm,
+            BulkTankCoolingLoadKw = _bulkTankCoolingLoadKw,
             MilkBacteriaCfuPerMl = _milkBacteriaCfuPerMl,
             MilkSomaticCellCountKPerMl = _milkSomaticCellCountKPerMl,
             MilkFatPct = _milkFatPct,
@@ -3871,11 +3901,20 @@ public sealed class CakeFactoryService
 
     private void UpdateMilkColdChain(double seconds, double power)
     {
-        double targetC = power >= 0.15 ? 3.4 : 12.0;
-        _bulkMilkTankC += (targetC - _bulkMilkTankC) * Math.Min(1, seconds / (power >= 0.15 ? 18.0 : 42.0));
+        bool coolingAvailable = power >= 0.15 && _rawMilkL > 0;
+        _bulkTankAgitationRpm = coolingAvailable
+            ? Math.Clamp(31.0 + Math.Min(_rawMilkL, 180.0) * 0.045 + Math.Sin(_conveyorPhase * 0.08) * 1.6, 28, 42)
+            : 0;
+        _bulkTankCoolingLoadKw = coolingAvailable
+            ? Math.Clamp(0.65 + _rawMilkL * 0.030 + Math.Max(0, _bulkMilkTankC - 3.4) * 0.80, 0.6, 9.5)
+            : 0;
+        double targetC = coolingAvailable ? 3.4 : 12.0;
+        _bulkMilkTankC += (targetC - _bulkMilkTankC) * Math.Min(1, seconds / (coolingAvailable ? 18.0 : 42.0));
+        double agitationPenalty = _rawMilkL > 0 && _bulkTankAgitationRpm < 18 ? 0.012 : 0;
         double growthFactor = Math.Max(0, _bulkMilkTankC - 4.0) * 0.018
             + Math.Max(0, 75 - _sanitationScore) * 0.002
-            + Math.Max(0, 82 - _dairyParlorHygienePct) * 0.0009;
+            + Math.Max(0, 82 - _dairyParlorHygienePct) * 0.0009
+            + agitationPenalty;
         _milkBacteriaCfuPerMl = Math.Clamp(_milkBacteriaCfuPerMl * (1.0 + growthFactor * seconds), 1200, 250000);
     }
 
@@ -3973,22 +4012,42 @@ public sealed class CakeFactoryService
         double hygieneFactor = Math.Clamp(_dairyParlorHygienePct / 88.0, 0.35, 1.10);
         double henHygieneFactor = Math.Clamp(_henHouseHygienePct / 86.0, 0.30, 1.08);
         double rationFactor = Math.Clamp((_rationEnergyPct * 0.55 + _rationProteinPct * 0.45) / 94.0, 0.45, 1.12);
+        double targetDryMatterIntake = cowInputFactor > 0
+            ? Math.Clamp(15.8 + rationFactor * 4.0 + _cowComfort / 100.0 * 2.8 + _pastureHealth / 100.0 * 1.6, 9.0, 26.0) * Math.Clamp(cowInputFactor, 0.20, 1.0)
+            : 0;
+        _dryMatterIntakeKgPerCowDay += (targetDryMatterIntake - _dryMatterIntakeKgPerCowDay) * Math.Min(1, seconds / 30.0);
+        double targetRumenPh = cowInputFactor > 0
+            ? Math.Clamp(6.56 - Math.Max(0, _rationEnergyPct - 92.0) * 0.010 + Math.Max(0, _rationProteinPct - 90.0) * 0.002 + (_pastureHealth - 70.0) * 0.0015, 5.65, 6.75)
+            : Math.Clamp(_rumenPh - seconds * 0.004, 5.45, 6.75);
+        _rumenPh += (targetRumenPh - _rumenPh) * Math.Min(1, seconds / 22.0);
         double manurePenalty = Math.Max(0, _manureKg - 850) / 32.0;
         double targetComfort = cowInputFactor > 0
             ? Math.Clamp(44 + _pastureHealth * 0.28 + power * 15 + hygieneFactor * 12 + rationFactor * 8 - manurePenalty, 25, 98)
             : 22;
         _cowComfort += (targetComfort - _cowComfort) * Math.Min(1, seconds / 45.0);
+        double targetBodyCondition = cowInputFactor > 0
+            ? Math.Clamp(2.65 + rationFactor * 0.38 + Math.Clamp(_cowComfort / 82.0, 0.25, 1.20) * 0.18 - Math.Max(0, _dryMatterIntakeKgPerCowDay - 21.5) * 0.010, 2.35, 3.75)
+            : 2.20;
+        _bodyConditionScore += (targetBodyCondition - _bodyConditionScore) * Math.Min(1, seconds / 180.0);
+        double targetMun = cowInputFactor > 0
+            ? Math.Clamp(11.2 + (_rationProteinPct - _rationEnergyPct) * 0.13 + Math.Max(0, 6.05 - _rumenPh) * 5.0, 6.5, 20.0)
+            : Math.Max(6.5, _milkUreaNitrogenMgDl - seconds * 0.015);
+        _milkUreaNitrogenMgDl += (targetMun - _milkUreaNitrogenMgDl) * Math.Min(1, seconds / 35.0);
+        _averageLactationDays = Math.Clamp(_averageLactationDays + simHours / 24.0 * Math.Clamp(livestockPower, 0, 1), 1, 305);
 
         double comfortFactor = Math.Clamp(_cowComfort / 82.0, 0.25, 1.20);
         double pastureFactor = Math.Clamp(0.70 + _pastureHealth / 360.0, 0.60, 1.05);
-        _milkProductionLPerHour = _lactatingCowCount * 1.15 * cowInputFactor * livestockPower * comfortFactor * pastureFactor * rationFactor * hygieneFactor;
+        double rumenFactor = Math.Clamp(1.04 - Math.Abs(_rumenPh - 6.24) * 0.18, 0.68, 1.04);
+        double bodyConditionFactor = Math.Clamp(0.78 + (_bodyConditionScore - 2.45) * 0.20, 0.60, 1.08);
+        double lactationFactor = Math.Clamp(1.12 - Math.Max(0, _averageLactationDays - 65.0) / 650.0, 0.72, 1.10);
+        _milkProductionLPerHour = _lactatingCowCount * 1.15 * cowInputFactor * livestockPower * comfortFactor * pastureFactor * rationFactor * hygieneFactor * rumenFactor * bodyConditionFactor * lactationFactor;
         _milkParlorThroughputLPerHour = power >= 0.12 ? (610 + 150 * Math.Clamp(power, 0, 1)) * hygieneFactor : 0;
         _eggProductionPerHour = _layingHenCount * 0.035 * henInputFactor * livestockPower * henHygieneFactor;
 
         _dairyReadyL = Math.Min(140, _dairyReadyL + _milkProductionLPerHour * simHours);
         _eggsReady = Math.Min(420, _eggsReady + _eggProductionPerHour * simHours);
         _milkSourceStatus = cowInputFactor > 0 && livestockPower > 0
-            ? $"Milk comes from {_lactatingCowCount} lactating cows; herd consumed {rationNeed * cowInputFactor:0.0} kg TMR ration {_mixedRationLotId}, {beddingNeed * cowInputFactor:0.0} kg released bedding lot {_beddingLotId}, {barnWaterNeed * cowInputFactor:0} L water and made {_manureKg:0} kg manure. Raw bulk-tank milk still requires pasteurization before batching."
+            ? $"Milk comes from {_lactatingCowCount} lactating cows averaging {_averageLactationDays:0} days in milk; herd consumed {rationNeed * cowInputFactor:0.0} kg TMR ration {_mixedRationLotId}, {_dryMatterIntakeKgPerCowDay:0.0} kg dry matter/cow/day, {beddingNeed * cowInputFactor:0.0} kg released bedding lot {_beddingLotId}, {barnWaterNeed * cowInputFactor:0} L water and made {_manureKg:0} kg manure. Rumen pH {_rumenPh:0.00}, BCS {_bodyConditionScore:0.00}, MUN {_milkUreaNitrogenMgDl:0.0} mg/dL; raw bulk-tank milk still requires pasteurization before batching."
             : beddingLotReleased
                 ? "Milk production stalled: cow herd needs mixed ration, water, released bedding, labor, pasture health and powered milking systems."
                 : $"Milk production stalled: livestock bedding lot {_beddingLotId} is waiting for QA lab release.";
@@ -4397,6 +4456,11 @@ public sealed class CakeFactoryService
             && _milkSomaticCellCountKPerMl <= 400
             && _milkFatPct >= 3.0
             && _milkProteinPct >= 2.9
+            && _rumenPh >= 5.75
+            && _bodyConditionScore >= 2.35
+            && _milkUreaNitrogenMgDl >= 8.0
+            && _milkUreaNitrogenMgDl <= 18.0
+            && (_rawMilkL < 1 || _bulkTankAgitationRpm >= 18.0)
             && _dairyParlorHygienePct >= 45);
 
     private string MilkQaStatus()
@@ -4407,6 +4471,10 @@ public sealed class CakeFactoryService
         if (_milkSomaticCellCountKPerMl > 400) issues.Add("somatic cells high");
         if (_milkFatPct < 3.0) issues.Add("low fat");
         if (_milkProteinPct < 2.9) issues.Add("low protein");
+        if (_rumenPh < 5.75) issues.Add("rumen pH low");
+        if (_bodyConditionScore < 2.35) issues.Add("body condition low");
+        if (_milkUreaNitrogenMgDl < 8.0 || _milkUreaNitrogenMgDl > 18.0) issues.Add("milk urea nitrogen out of range");
+        if (_rawMilkL >= 1 && _bulkTankAgitationRpm < 18.0) issues.Add("bulk tank agitation stopped");
         if (_dairyParlorHygienePct < 45) issues.Add("parlor hygiene low");
         return issues.Count == 0 ? "Raw milk QA in spec" : "Raw milk QA hold: " + string.Join(", ", issues);
     }

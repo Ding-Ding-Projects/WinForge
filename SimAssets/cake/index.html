@@ -786,10 +786,17 @@
       LactatingCowCount: 14,
       LayingHenCount: 72,
       CowComfort: 82,
+      AverageLactationDays: 142,
+      DryMatterIntakeKgPerCowDay: 21.4,
+      RumenPh: 6.32,
+      BodyConditionScore: 3.18,
+      MilkUreaNitrogenMgDl: 12.6,
       MilkProductionLPerHour: 15.5,
       MilkParlorThroughputLPerHour: 720,
       MilkSourceStatus: 'Milk comes from the lactating cow herd after feed, water, pasture and powered milking.',
       BulkMilkTankC: 3.6,
+      BulkTankAgitationRpm: 36,
+      BulkTankCoolingLoadKw: 0.8,
       MilkBacteriaCfuPerMl: 8500,
       MilkSomaticCellCountKPerMl: 145,
       MilkFatPct: 3.8,
@@ -1390,6 +1397,8 @@
         ['Cocoa greenhouse', s.CocoaGreenhouseStatus || 'Cocoa greenhouse idle'],
         ['Dairy ration', s.RationStatus || 'No ration mixed'],
         ['Ration quality', `${n(s.RationEnergyPct, 0)}% energy / ${n(s.RationProteinPct, 0)}% protein`],
+        ['Cow metabolism', `${n(s.DryMatterIntakeKgPerCowDay, 1)} kg DMI / pH ${n(s.RumenPh, 2)} / MUN ${n(s.MilkUreaNitrogenMgDl, 1)}`],
+        ['Lactation + BCS', `${n(s.AverageLactationDays, 0)} DIM / BCS ${n(s.BodyConditionScore, 2)}`],
         ['Dairy manure + hygiene', `${n(s.ManureKg, 0)} kg / ${n(s.DairyParlorHygienePct, 0)}%`],
         ['Poultry manure + hygiene', `${n(s.PoultryManureKg, 0)} kg / ${n(s.HenHouseHygienePct, 0)}%`],
         ['Raw milk lot', s.RawMilkLotId || '-'],
@@ -1409,8 +1418,8 @@
         ['Leavening source lots', `soda ${s.SodaAshLotId || '-'} / phosphate ${s.PhosphateLotId || '-'} / starch ${s.StarchLotId || '-'}`],
         ['Leavening lot', s.LeaveningLotId || '-'],
         ['Packaging lot', s.PackagingLotId || '-'],
-        ['Bulk tank', `${n(s.BulkMilkTankC, 1)} degC / ${n(s.MilkBacteriaCfuPerMl, 0)} CFU`],
-        ['SCC', `${n(s.MilkSomaticCellCountKPerMl, 0)}k / mL`],
+        ['Bulk tank', `${n(s.BulkMilkTankC, 1)} degC / ${n(s.BulkTankAgitationRpm, 0)} rpm / ${n(s.BulkTankCoolingLoadKw, 1)} kW`],
+        ['Bulk tank micro', `${n(s.MilkBacteriaCfuPerMl, 0)} CFU / ${n(s.MilkSomaticCellCountKPerMl, 0)}k SCC`],
         ['Milk solids', `${n(s.MilkFatPct, 2)}% fat / ${n(s.MilkProteinPct, 2)}% protein`],
         ['Parlor vacuum', `${n(s.MilkingVacuumKPa, 1)} kPa`],
         ['Cow herd', `${s.LactatingCowCount || 0}/${s.DairyCowCount || 0} lactating`],
@@ -1588,10 +1597,11 @@
       drawHen(209, 384);
       drawHen(228, 414);
       text(`COW MILK ${n(s.DairyReadyL, 0)} L / EGGS ${n(s.EggsReady, 0)}`, 75, 490, 13, '#effbe6', 800);
-      text(`${s.LactatingCowCount || 0}/${s.DairyCowCount || 0} cows - ${n(s.MilkProductionLPerHour, 1)} L/h`, 75, 508, 11, '#cfe7c9', 800);
-      text(`Raw ${n(s.RawMilkL, 0)} L / pasteurized ${n(s.MilkL, 0)} L`, 75, 523, 10, '#d4f3fb', 800);
-      text(`${s.LayingHenCount || 0} hens - ${n(s.EggProductionPerHour, 1)} eggs/h`, 75, 538, 10, '#fff1bf', 800);
-      text(`Poultry house ${n(s.HenHouseHygienePct, 0)}% - manure ${n(s.PoultryManureKg, 0)} kg`, 75, 552, 10, '#ffd6aa', 800);
+      text(`${s.LactatingCowCount || 0}/${s.DairyCowCount || 0} cows - ${n(s.MilkProductionLPerHour, 1)} L/h - ${n(s.AverageLactationDays, 0)} DIM`, 75, 508, 11, '#cfe7c9', 800);
+      text(`${n(s.DryMatterIntakeKgPerCowDay, 1)} kg DMI - rumen pH ${n(s.RumenPh, 2)} - BCS ${n(s.BodyConditionScore, 2)}`, 75, 523, 10, '#d9edc7', 800);
+      text(`Raw ${n(s.RawMilkL, 0)} L / pasteurized ${n(s.MilkL, 0)} L / tank ${n(s.BulkMilkTankC, 1)} degC`, 75, 538, 10, '#d4f3fb', 800);
+      text(`${s.LayingHenCount || 0} hens - ${n(s.EggProductionPerHour, 1)} eggs/h`, 75, 553, 10, '#fff1bf', 800);
+      text(`Poultry house ${n(s.HenHouseHygienePct, 0)}% - manure ${n(s.PoultryManureKg, 0)} kg`, 75, 567, 10, '#ffd6aa', 800);
 
       rr(292, 354, 205, 160, 10, '#1e4645', '#80d8d8');
       line(306, 354, 395, 306, '#80d8d8', 3);

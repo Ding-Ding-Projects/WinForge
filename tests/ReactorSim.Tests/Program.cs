@@ -769,7 +769,7 @@ internal static class Program
                           $"after 30s stage={waiting.StageName}, ready={waiting.StageReadyForOperator}, canRelease={waiting.CanAdvanceStage}");
         });
 
-        Scenario("CAKE MILK PROVENANCE (milk comes from cows consuming feed and water)", () =>
+        Scenario("CAKE MILK PROVENANCE (milk comes from cow physiology, ration, water and cold-chain handling)", () =>
         {
             var cake = new CakeFactoryService { FarmIntensity = 1.0 };
             TickCake(cake, fullBus, 1.0);
@@ -792,22 +792,34 @@ internal static class Program
             bool milkProduced = after.MilkProductionLPerHour > 0
                                 && after.DairyReadyL > before.DairyReadyL
                                 && after.CowComfort > 0;
+            bool cowPhysiologyModeled = after.AverageLactationDays > 0
+                                        && after.DryMatterIntakeKgPerCowDay > 10
+                                        && after.RumenPh >= 5.75
+                                        && after.BodyConditionScore >= 2.35
+                                        && after.MilkUreaNitrogenMgDl >= 8
+                                        && after.MilkUreaNitrogenMgDl <= 18
+                                        && after.MilkSourceStatus.Contains("dry matter", StringComparison.OrdinalIgnoreCase)
+                                        && after.MilkSourceStatus.Contains("rumen", StringComparison.OrdinalIgnoreCase)
+                                        && after.MilkSourceStatus.Contains("BCS", StringComparison.OrdinalIgnoreCase);
             bool milkCollected = collected.RawMilkL > after.RawMilkL
                                  && collected.DairyReadyL < after.DairyReadyL
                                  && collected.MilkSourceStatus.Contains("cow", StringComparison.OrdinalIgnoreCase)
                                  && collected.MilkSourceStatus.Contains("pasteurization", StringComparison.OrdinalIgnoreCase);
             bool milkQaModeled = collected.BulkMilkTankC > 0
+                                 && collected.BulkTankAgitationRpm > 18
+                                 && collected.BulkTankCoolingLoadKw > 0
                                  && collected.MilkBacteriaCfuPerMl > 0
                                  && collected.MilkSomaticCellCountKPerMl > 0
                                  && collected.MilkFatPct > 3.0
                                  && collected.MilkProteinPct > 2.9
                                  && collected.MilkingVacuumKPa > 35
                                  && collected.MilkQaStatus.Contains("spec", StringComparison.OrdinalIgnoreCase);
-            bool pass = cowHerdModeled && cowInputsConsumed && milkProduced && milkCollected && milkQaModeled;
+            bool pass = cowHerdModeled && cowInputsConsumed && milkProduced && cowPhysiologyModeled && milkCollected && milkQaModeled;
             return (pass, $"cowHerdModeled={cowHerdModeled} ({after.LactatingCowCount}/{after.DairyCowCount} cows, comfort={after.CowComfort:F0}%), " +
                           $"cowInputsConsumed={cowInputsConsumed}, milkProduced={milkProduced} ({after.MilkProductionLPerHour:F1} L/h), " +
+                          $"cowPhysiologyModeled={cowPhysiologyModeled} (DIM {after.AverageLactationDays:F0}, DMI {after.DryMatterIntakeKgPerCowDay:F1}, pH {after.RumenPh:F2}, BCS {after.BodyConditionScore:F2}, MUN {after.MilkUreaNitrogenMgDl:F1}), " +
                           $"milkCollected={milkCollected} ('{Trim(collect)}'), milkQaModeled={milkQaModeled} " +
-                          $"({collected.BulkMilkTankC:F1}C, {collected.MilkBacteriaCfuPerMl:F0} CFU/mL)");
+                          $"({collected.BulkMilkTankC:F1}C, {collected.BulkTankAgitationRpm:F0} rpm, {collected.BulkTankCoolingLoadKw:F1} kW, {collected.MilkBacteriaCfuPerMl:F0} CFU/mL)");
         });
 
         Scenario("CAKE MILK PASTEURIZER (raw cow milk becomes released recipe milk)", () =>
