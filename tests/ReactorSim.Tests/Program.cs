@@ -948,6 +948,12 @@ internal static class Program
             TickCake(cake, fullBus, 0.5);
             var s8 = cake.Snapshot;
 
+            string packaging = cake.RunPackagingPlant();
+            TickCake(cake, fullBus, 8.5);
+            string releasePackaging = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var s9 = cake.Snapshot;
+
             bool farmYield = s1.WheatKg > s0.WheatKg && s1.SugarCropKg > s0.SugarCropKg && s1.VanillaL > s0.VanillaL;
             bool dairyYield = s2.MilkL > s1.MilkL && s2.Eggs > s1.Eggs;
             bool flourYield = s3.FlourKg > s2.FlourKg && s3.WheatKg < s2.WheatKg;
@@ -959,16 +965,22 @@ internal static class Program
                                    && s8.SodaAshKg < s7.SodaAshKg
                                    && s8.PhosphateKg < s7.PhosphateKg
                                    && s8.StarchKg < s7.StarchKg;
+            bool packagingYield = s9.PackagingUnits > s8.PackagingUnits
+                                   && s9.PaperboardKg < s8.PaperboardKg
+                                   && s9.LabelStockM < s8.LabelStockM
+                                   && s9.PackagingInkL < s8.PackagingInkL
+                                   && s9.AdhesiveKg < s8.AdhesiveKg;
             bool processTelemetry = s3.MillRollGapMm > 0 && s3.FlourExtractionPct > 0
                                     && s4.SugarJuiceBrix > 0 && s4.SugarEvaporatorTemperatureC > 90
                                     && s5.CreamSeparatorRpm > 0 && s5.ButterFatPct > 70
                                     && s6.CocoaRoasterTemperatureC > 100 && s6.CocoaGrindMicrons > 0
                                     && s7.BrineSalinityPct > 0 && s7.SaltCrystallizerTemperatureC > 40
-                                    && s8.LeaveningMixerRpm > 0 && s8.LeaveningHomogeneityPct > 90;
-            bool factoryUtilitiesConsumed = s8.ProcessWaterL < s0.ProcessWaterL
-                                            && s8.CulinarySteamKg < s0.CulinarySteamKg
-                                            && s8.CompressedAirNm3 < s0.CompressedAirNm3
-                                            && s8.FilterMediaPct < s0.FilterMediaPct;
+                                    && s8.LeaveningMixerRpm > 0 && s8.LeaveningHomogeneityPct > 90
+                                    && s9.CartonFormerSpeedCpm > 0 && s9.PrintRegistrationMm > 0 && s9.GluePotTemperatureC > 100;
+            bool factoryUtilitiesConsumed = s9.ProcessWaterL < s0.ProcessWaterL
+                                            && s9.CulinarySteamKg < s0.CulinarySteamKg
+                                            && s9.CompressedAirNm3 < s0.CompressedAirNm3
+                                            && s9.FilterMediaPct < s0.FilterMediaPct;
             bool timedFactoryRun = millRunning.FactoryRunActive
                                    && millRunning.ActiveFactoryName.Contains("mill", StringComparison.OrdinalIgnoreCase)
                                    && millRunning.ActiveFactoryPhase.Length > 0
@@ -985,12 +997,13 @@ internal static class Program
                                       && releaseCocoa.Contains("released", StringComparison.OrdinalIgnoreCase)
                                       && releaseSalt.Contains("released", StringComparison.OrdinalIgnoreCase)
                                       && releaseLeavening.Contains("released", StringComparison.OrdinalIgnoreCase)
-                                      && s8.PendingLabLotId.Length == 0;
-            bool pass = farmYield && dairyYield && flourYield && sugarYield && butterYield && cocoaYield && saltYield && leaveningYield && processTelemetry && factoryUtilitiesConsumed && timedFactoryRun && labReleaseWorkflow;
+                                      && releasePackaging.Contains("released", StringComparison.OrdinalIgnoreCase)
+                                      && s9.PendingLabLotId.Length == 0;
+            bool pass = farmYield && dairyYield && flourYield && sugarYield && butterYield && cocoaYield && saltYield && leaveningYield && packagingYield && processTelemetry && factoryUtilitiesConsumed && timedFactoryRun && labReleaseWorkflow;
             return (pass, $"farmYield={farmYield} ('{Trim(harvest)}'), dairyYield={dairyYield} ('{Trim(collect)}'), " +
                           $"flourYield={flourYield} ('{Trim(mill)}'), sugarYield={sugarYield} ('{Trim(refine)}'), " +
                           $"butterYield={butterYield} ('{Trim(churn)}'), cocoaYield={cocoaYield} ('{Trim(cocoa)}'), " +
-                          $"saltYield={saltYield} ('{Trim(salt)}'), leaveningYield={leaveningYield} ('{Trim(leavening)}'), " +
+                          $"saltYield={saltYield} ('{Trim(salt)}'), leaveningYield={leaveningYield} ('{Trim(leavening)}'), packagingYield={packagingYield} ('{Trim(packaging)}'), " +
                           $"processTelemetry={processTelemetry}, factoryUtilitiesConsumed={factoryUtilitiesConsumed}, timedFactoryRun={timedFactoryRun}, " +
                           $"labReleaseWorkflow={labReleaseWorkflow}");
         });
@@ -1035,6 +1048,59 @@ internal static class Program
                           $"completedProducesUtilities={completedProducesUtilities} ({running.ProcessWaterL:F0}->{finished.ProcessWaterL:F0} L water, " +
                           $"{running.CulinarySteamKg:F0}->{finished.CulinarySteamKg:F0} kg steam, {running.CompressedAirNm3:F0}->{finished.CompressedAirNm3:F0} Nm3 air), " +
                           $"traceableUtilityRun={traceableUtilityRun}");
+        });
+
+        Scenario("CAKE PACKAGING PLANT (cartons are made from paperboard, labels, ink and adhesive)", () =>
+        {
+            var cake = new CakeFactoryService();
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            string start = cake.RunPackagingPlant();
+            TickCake(cake, fullBus, 1.0);
+            var running = cake.Snapshot;
+
+            TickCake(cake, fullBus, 8.0);
+            var held = cake.Snapshot;
+
+            string blockedMsg = cake.StageBatchKit();
+            double waterBeforeRelease = held.ProcessWaterL;
+            double airBeforeRelease = held.CompressedAirNm3;
+            double filterBeforeRelease = held.FilterMediaPct;
+            string release = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var released = cake.Snapshot;
+
+            bool startConsumesFeedstocks = before.CanRunPackagingPlant
+                                           && running.FactoryRunActive
+                                           && running.ActiveFactoryName.Contains("coder", StringComparison.OrdinalIgnoreCase)
+                                           && running.PaperboardKg < before.PaperboardKg
+                                           && running.LabelStockM < before.LabelStockM
+                                           && running.PackagingInkL < before.PackagingInkL
+                                           && running.AdhesiveKg < before.AdhesiveKg
+                                           && Math.Abs(running.PackagingUnits - before.PackagingUnits) < 0.001
+                                           && start.Contains("paperboard", StringComparison.OrdinalIgnoreCase);
+            bool timedCartonOutput = !held.FactoryRunActive
+                                     && held.PackagingUnits > before.PackagingUnits
+                                     && held.CartonFormerSpeedCpm > 0
+                                     && held.PrintRegistrationMm > 0
+                                     && held.GluePotTemperatureC > 100
+                                     && held.FactoryStatus.Contains("Packaging plant completed", StringComparison.OrdinalIgnoreCase);
+            bool labHoldsNewPackagingLot = held.PendingLabLotId.Length > 0
+                                           && held.PendingLabProductName.Contains("cartons", StringComparison.OrdinalIgnoreCase)
+                                           && held.MissingIngredients.Contains("lab release", StringComparison.OrdinalIgnoreCase)
+                                           && blockedMsg.Contains("lab release", StringComparison.OrdinalIgnoreCase);
+            bool releaseClearsPackagingLot = released.PendingLabLotId.Length == 0
+                                             && released.CanStageBatchKit
+                                             && released.MissingIngredients.Length == 0
+                                             && release.Contains("released", StringComparison.OrdinalIgnoreCase);
+            bool releaseConsumesLabUtilities = released.ProcessWaterL < waterBeforeRelease
+                                               && released.CompressedAirNm3 < airBeforeRelease
+                                               && released.FilterMediaPct < filterBeforeRelease;
+            bool pass = startConsumesFeedstocks && timedCartonOutput && labHoldsNewPackagingLot && releaseClearsPackagingLot && releaseConsumesLabUtilities;
+            return (pass, $"startConsumesFeedstocks={startConsumesFeedstocks} ('{Trim(start)}'), timedCartonOutput={timedCartonOutput} " +
+                          $"({before.PackagingUnits:F0}->{held.PackagingUnits:F0} cartons), labHoldsNewPackagingLot={labHoldsNewPackagingLot} ('{Trim(blockedMsg)}'), " +
+                          $"releaseClearsPackagingLot={releaseClearsPackagingLot} ('{Trim(release)}'), releaseConsumesLabUtilities={releaseConsumesLabUtilities}");
         });
 
         Scenario("CAKE FACTORY MAINTENANCE (plant condition affects factories and service consumes utilities)", () =>
@@ -1258,7 +1324,7 @@ internal static class Program
                           $"batchManifestOpened={batchManifestOpened} started={started} ('{Trim(startMsg)}'), batchLot={batch.CurrentBatchLotId}");
         });
 
-        Scenario("CAKE SUPPLY CHAIN INPUTS (ingredients require finite seed, water, feed, beans, factory feedstocks and cartons)", () =>
+        Scenario("CAKE SUPPLY CHAIN INPUTS (ingredients require finite seed, water, feed, beans and factory feedstocks)", () =>
         {
             var cake = new CakeFactoryService { FarmIntensity = 1.0 };
             TickCake(cake, fullBus, 0.5);
@@ -1277,12 +1343,16 @@ internal static class Program
             double waterBeforeSupply = after.IrrigationWaterL;
             double bakingPowderBeforeSupply = after.BakingPowderKg;
             double saltBeforeSupply = after.SaltKg;
+            double cartonsBeforeSupply = after.PackagingUnits;
             var (supplyOrder, supplyUnload) = DeliverCakeSupplies(cake, fullBus);
             string supply = $"{supplyOrder} / {supplyUnload}";
             TickCake(cake, fullBus, 0.5);
             var supplied = cake.Snapshot;
             bool supplyTruckAddsInputs = supplied.IrrigationWaterL > waterBeforeSupply
-                                         && supplied.PackagingUnits > after.PackagingUnits
+                                         && supplied.PaperboardKg > after.PaperboardKg
+                                         && supplied.LabelStockM > after.LabelStockM
+                                         && supplied.PackagingInkL > after.PackagingInkL
+                                         && supplied.AdhesiveKg > after.AdhesiveKg
                                          && supplied.CocoaBeansKg > after.CocoaBeansKg
                                          && supplied.BrineL > after.BrineL
                                          && supplied.SodaAshKg > after.SodaAshKg
@@ -1293,7 +1363,8 @@ internal static class Program
                                          && supplied.CompressedAirNm3 > after.CompressedAirNm3
                                          && supplied.FilterMediaPct >= after.FilterMediaPct;
             bool supplyTruckDoesNotMakeFinalIngredients = Math.Abs(supplied.BakingPowderKg - bakingPowderBeforeSupply) < 0.001
-                                                          && Math.Abs(supplied.SaltKg - saltBeforeSupply) < 0.001;
+                                                          && Math.Abs(supplied.SaltKg - saltBeforeSupply) < 0.001
+                                                          && Math.Abs(supplied.PackagingUnits - cartonsBeforeSupply) < 0.001;
 
             bool pass = fieldInputsConsumed && livestockInputsConsumed && cocoaDoesNotAppear && supplyTruckAddsInputs && supplyTruckDoesNotMakeFinalIngredients;
             return (pass, $"fieldInputsConsumed={fieldInputsConsumed}, livestockInputsConsumed={livestockInputsConsumed}, " +
@@ -1316,7 +1387,11 @@ internal static class Program
             var arrived = cake.Snapshot;
 
             double waterBeforeUnload = arrived.IrrigationWaterL;
-            double packagingBeforeUnload = arrived.PackagingUnits;
+            double paperboardBeforeUnload = arrived.PaperboardKg;
+            double labelStockBeforeUnload = arrived.LabelStockM;
+            double inkBeforeUnload = arrived.PackagingInkL;
+            double adhesiveBeforeUnload = arrived.AdhesiveKg;
+            double cartonsBeforeUnload = arrived.PackagingUnits;
             double cocoaBeforeUnload = arrived.CocoaBeansKg;
             string unload = cake.UnloadSupplyDelivery();
             TickCake(cake, fullBus, 0.5);
@@ -1330,6 +1405,10 @@ internal static class Program
                                && order.Contains("ETA", StringComparison.OrdinalIgnoreCase);
             bool noAirDrop = enroute.IrrigationWaterL <= before.IrrigationWaterL
                              && Math.Abs(enroute.PackagingUnits - before.PackagingUnits) < 0.001
+                             && Math.Abs(enroute.PaperboardKg - before.PaperboardKg) < 0.001
+                             && Math.Abs(enroute.LabelStockM - before.LabelStockM) < 0.001
+                             && Math.Abs(enroute.PackagingInkL - before.PackagingInkL) < 0.001
+                             && Math.Abs(enroute.AdhesiveKg - before.AdhesiveKg) < 0.001
                              && Math.Abs(enroute.CocoaBeansKg - before.CocoaBeansKg) < 0.001
                              && earlyReceive.Contains("cannot enter inventory", StringComparison.OrdinalIgnoreCase);
             bool arrivalGate = arrived.SupplyTruckEnRoute
@@ -1338,7 +1417,11 @@ internal static class Program
                                && arrived.SupplyOrderStatus.Contains("receiving dock", StringComparison.OrdinalIgnoreCase);
             bool unloadAddsInputs = !unloaded.SupplyTruckEnRoute
                                     && unloaded.IrrigationWaterL > waterBeforeUnload
-                                    && unloaded.PackagingUnits > packagingBeforeUnload
+                                    && unloaded.PaperboardKg > paperboardBeforeUnload
+                                    && unloaded.LabelStockM > labelStockBeforeUnload
+                                    && unloaded.PackagingInkL > inkBeforeUnload
+                                    && unloaded.AdhesiveKg > adhesiveBeforeUnload
+                                    && Math.Abs(unloaded.PackagingUnits - cartonsBeforeUnload) < 0.001
                                     && unloaded.CocoaBeansKg > cocoaBeforeUnload
                                     && unloaded.LastSupplyManifestId.StartsWith("RCV-", StringComparison.OrdinalIgnoreCase)
                                     && unloaded.TraceabilityStatus.Contains("manifest", StringComparison.OrdinalIgnoreCase)

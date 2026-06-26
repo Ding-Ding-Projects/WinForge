@@ -598,6 +598,7 @@
                 <button class="action" type="button" data-action="processCocoa">Roast cocoa</button>
                 <button class="action" type="button" data-action="runSaltWorks">Salt works</button>
                 <button class="action" type="button" data-action="runLeaveningPlant">Leavening plant</button>
+                <button class="action" type="button" data-action="runPackagingPlant">Packaging plant</button>
                 <button class="action guard" type="button" data-action="releaseLabLot">Release lab lot</button>
                 <button class="action guard" type="button" data-action="serviceFactories">Service plants</button>
                 <button class="action guard" type="button" data-action="haulByproducts">Haul byproducts</button>
@@ -751,6 +752,7 @@
       CanProcessCocoa: false,
       CanRunSaltWorks: false,
       CanRunLeaveningPlant: false,
+      CanRunPackagingPlant: false,
       CanReleaseLabLot: false,
       CanStageBatchKit: false,
       WheatGrowth: 64,
@@ -841,6 +843,10 @@
       FertilizerKg: 120,
       AnimalFeedKg: 420,
       PackagingUnits: 160,
+      PaperboardKg: 96,
+      LabelStockM: 360,
+      PackagingInkL: 8.5,
+      AdhesiveKg: 18,
       ResourceStatus: 'Inputs stocked',
       ProcessWaterL: 6000,
       CulinarySteamKg: 2600,
@@ -895,6 +901,8 @@
       SaltCalibrationPct: 93,
       LeaveningConditionPct: 94,
       LeaveningCalibrationPct: 96,
+      PackagingConditionPct: 91,
+      PackagingCalibrationPct: 94,
       MillRollGapMm: 0.32,
       FlourExtractionPct: 76,
       SugarJuiceBrix: 0,
@@ -907,6 +915,9 @@
       SaltCrystallizerTemperatureC: 24,
       LeaveningMixerRpm: 0,
       LeaveningHomogeneityPct: 0,
+      CartonFormerSpeedCpm: 0,
+      PrintRegistrationMm: 0.18,
+      GluePotTemperatureC: 24,
       BatterKg: 0,
       CakesBaked: 0,
       CakesPacked: 0,
@@ -1064,6 +1075,7 @@
       setButton('processCocoa', s.CanProcessCocoa);
       setButton('runSaltWorks', s.CanRunSaltWorks);
       setButton('runLeaveningPlant', s.CanRunLeaveningPlant);
+      setButton('runPackagingPlant', s.CanRunPackagingPlant);
       setButton('releaseLabLot', s.CanReleaseLabLot);
       setButton('serviceFactories', s.CanServiceFactories);
       setButton('haulByproducts', s.CanHaulByproducts);
@@ -1118,7 +1130,11 @@
         ['Utility plant', s.UtilityPlantActive ? `${s.UtilityPlantPhase || 'running'} / ${n(s.UtilityPlantProgress * 100, 0)}% / ${n(s.UtilityPlantPowerMW, 1)} MW` : (s.UtilityPlantStatus || 'Idle')],
         ['Byproduct bins', `${n(s.ByproductStoragePct, 0)}%`],
         ['Effluent tank', `${n(s.EffluentTankPct, 0)}% / ${n(s.FactoryEffluentL, 0)} L`],
-        ['Cartons + labels', `${n(s.PackagingUnits, 0)}`],
+        ['Coded cartons', `${n(s.PackagingUnits, 0)}`],
+        ['Paperboard', `${n(s.PaperboardKg, 1)} kg`],
+        ['Label stock', `${n(s.LabelStockM, 0)} m`],
+        ['Packaging ink', `${n(s.PackagingInkL, 1)} L`],
+        ['Adhesive', `${n(s.AdhesiveKg, 1)} kg`],
         ['Forklift battery', `${n(s.ForkliftBatteryPct, 0)}%`],
         ['Pallet space', `${n(s.WarehousePalletSpacePct, 0)}% free`],
         ['Dispatch truck', `${n(s.DispatchTruckChargePct, 0)}% / ${n(s.DispatchColdChainC, 1)} degC`],
@@ -1159,6 +1175,7 @@
         ['Cocoa asset', `${n(s.CocoaConditionPct, 0)}% / ${n(s.CocoaCalibrationPct, 0)}% cal`],
         ['Salt asset', `${n(s.SaltConditionPct, 0)}% / ${n(s.SaltCalibrationPct, 0)}% cal`],
         ['Leavening asset', `${n(s.LeaveningConditionPct, 0)}% / ${n(s.LeaveningCalibrationPct, 0)}% cal`],
+        ['Packaging asset', `${n(s.PackagingConditionPct, 0)}% / ${n(s.PackagingCalibrationPct, 0)}% cal`],
         ['Utilities', s.FactoryUtilityStatus || 'Utilities ready'],
         ['Utility status', s.UtilityPlantStatus || 'Utility plant idle'],
         ['RO / boiler / air', `${n(s.ProcessWaterConductivityUsCm, 3)} uS/cm / ${n(s.BoilerPressureBar, 1)} bar / ${n(s.AirHeaderPressureBar, 1)} bar`],
@@ -1194,7 +1211,8 @@
         ['Butter churn', `${n(s.CreamSeparatorRpm, 0)} rpm / ${n(s.ButterFatPct, 1)}% fat`],
         ['Cocoa line', `${n(s.CocoaRoasterTemperatureC, 0)} degC / ${n(s.CocoaGrindMicrons, 0)} micron`],
         ['Salt works', `${n(s.BrineSalinityPct, 1)}% brine / ${n(s.SaltCrystallizerTemperatureC, 0)} degC`],
-        ['Leavening', `${n(s.LeaveningMixerRpm, 0)} rpm / ${n(s.LeaveningHomogeneityPct, 1)}%`]
+        ['Leavening', `${n(s.LeaveningMixerRpm, 0)} rpm / ${n(s.LeaveningHomogeneityPct, 1)}%`],
+        ['Packaging line', `${n(s.CartonFormerSpeedCpm, 0)} cpm / ${n(s.PrintRegistrationMm, 2)} mm / ${n(s.GluePotTemperatureC, 0)} degC`]
       ];
       document.getElementById('factoryRows').innerHTML =
         factories.map(([name, value]) => `<tr><td>${name}</td><td title="${String(value).replace(/"/g, '&quot;')}">${value}</td></tr>`).join('');
@@ -1322,7 +1340,7 @@
     function drawFarm(s) {
       const highlight = activeFocus === 'all' || activeFocus === 'farm';
       text('INGREDIENT FARM', 40, 128, 22, highlight ? '#eef7df' : '#8d877d', 800);
-      rr(36, 150, 500, 500, 14, '#243426', highlight ? '#6fb464' : '#4f5f4b');
+      rr(36, 150, 500, 530, 14, '#243426', highlight ? '#6fb464' : '#4f5f4b');
       drawField(58, 176, 205, 126, '#59402c', '#a4d26e', s.WheatGrowth, 'WHEAT');
       drawField(292, 176, 205, 126, '#533036', '#d36d72', s.BeetGrowth, 'SUGAR CROP');
 
@@ -1362,7 +1380,7 @@
       wheel(tx + 44, 330, 12);
       line(tx + 58, 316, tx + 103, 300, '#d4e7ff', 2, s.PowerAvailability);
 
-      rr(58, 520, 342, 120, 8, '#232621', '#5a6b4d');
+      rr(58, 520, 342, 150, 8, '#232621', '#5a6b4d');
       text('INPUT YARD', 76, 544, 13, '#dceecb', 900);
       text(`Water ${n(s.IrrigationWaterL, 0)} L`, 76, 566, 12, '#d9f0ff', 800);
       text(`Seed ${n((s.WheatSeedKg || 0) + (s.BeetSeedKg || 0), 1)} kg`, 76, 588, 12, '#e6ddb6', 800);
@@ -1370,9 +1388,11 @@
       text(`Fertilizer ${n(s.FertilizerKg, 0)} kg`, 198, 588, 12, '#c8efb2', 800);
       drawMiniPlant(305, 540, 'SALT', s.CanRunSaltWorks ? '#78c7dd' : '#69716f');
       drawMiniPlant(305, 588, 'LEAVEN', s.CanRunLeaveningPlant ? '#e8b75d' : '#69716f');
+      drawMiniPlant(305, 636, 'PACK', s.CanRunPackagingPlant ? '#dfbd66' : '#69716f');
       text(`Brine ${n(s.BrineL, 0)} L`, 76, 612, 12, '#d9f0ff', 800);
       text(`Minerals ${n((s.SodaAshKg || 0) + (s.PhosphateKg || 0) + (s.StarchKg || 0), 1)} kg`, 198, 612, 12, '#ffe1a1', 800);
-      text(`Parlor ${n(s.DairyParlorHygienePct, 0)}% / manure ${n(s.ManureKg, 0)} kg`, 76, 632, 11, '#d4f3fb', 800);
+      text(`Paper ${n(s.PaperboardKg, 0)} kg / cartons ${n(s.PackagingUnits, 0)}`, 76, 632, 11, '#d4f3fb', 800);
+      text(`Labels ${n(s.LabelStockM, 0)} m / ink ${n(s.PackagingInkL, 1)} L / glue ${n(s.AdhesiveKg, 1)} kg`, 76, 652, 11, '#e8ddb7', 800);
 
       drawTruck(412, 545, s.ConveyorPhase);
       line(470, 556, 610, 556, '#80bc74', 4, 0.9);
