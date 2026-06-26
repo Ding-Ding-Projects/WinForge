@@ -8,6 +8,7 @@ This note records the research inputs used for `Pages/CakeFactoryModule` and `Se
 - Sugar comes from sugar beets or sugarcane. The simulator models a sugar crop field, refining yield, sugar inventory, and crop pulp/waste.
 - Eggs are produced by laying hens and are treated as a raw-food safety risk until the bake kill step is reached.
 - Milk and butter come from dairy. The simulator models pasture health, milk collection, butter churning from milk, and separate milk/butter inventories.
+- Poultry feed is not treated as an infinite finished input. The simulator models a feed mill that converts grain, starch carrier, mineral premix and bakery byproducts into a QA-released feed lot before hens can consume it.
 - Vanilla and cocoa are flavoring inputs. Vanilla is represented as a greenhouse crop because commercial vanilla requires managed flowering, pollination/curing, and a long supply chain; cocoa is modeled as a small greenhouse/import crop inventory.
 - Baking powder and salt are not farm outputs, so they are represented as factory-made outputs from mineral/dry-store feedstocks.
 - Decorating icing is not a field crop or automatic line effect. It is represented as a prepared factory lot made from released sugar, butter, cow milk, vanilla and cocoa when required.

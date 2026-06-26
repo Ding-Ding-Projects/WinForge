@@ -271,6 +271,10 @@ public sealed partial class CakeFactoryModule : Page
                 PostNotice("success", P("Packaging plant run", "包裝廠已運行"), _sim.RunPackagingPlant());
                 break;
 
+            case "runFeedMill":
+                PostNotice("info", P("Feed mill run", "飼料廠已運行"), _sim.RunFeedMill());
+                break;
+
             case "prepareIcing":
                 PostNotice("info", P("Icing kitchen started", "糖霜廚房已啟動"), _sim.PrepareIcing());
                 break;

@@ -783,8 +783,9 @@ internal static class Program
                                   && after.LactatingCowCount > 0
                                   && after.LactatingCowCount <= after.DairyCowCount
                                   && after.MilkSourceStatus.Contains("cow", StringComparison.OrdinalIgnoreCase);
-            bool cowInputsConsumed = after.AnimalFeedKg < before.AnimalFeedKg
-                                     && after.IrrigationWaterL < before.IrrigationWaterL;
+            bool cowInputsConsumed = after.MixedRationKg < before.MixedRationKg
+                                     && after.IrrigationWaterL < before.IrrigationWaterL
+                                     && after.MilkSourceStatus.Contains("ration", StringComparison.OrdinalIgnoreCase);
             bool milkProduced = after.MilkProductionLPerHour > 0
                                 && after.DairyReadyL > before.DairyReadyL
                                 && after.CowComfort > 0;
@@ -803,6 +804,65 @@ internal static class Program
                           $"cowInputsConsumed={cowInputsConsumed}, milkProduced={milkProduced} ({after.MilkProductionLPerHour:F1} L/h), " +
                           $"milkCollected={milkCollected} ('{Trim(collect)}'), milkQaModeled={milkQaModeled} " +
                           $"({collected.BulkMilkTankC:F1}C, {collected.MilkBacteriaCfuPerMl:F0} CFU/mL)");
+        });
+
+        Scenario("CAKE FEED MILL (poultry feed is factory-made before hens consume it)", () =>
+        {
+            var cake = new CakeFactoryService { FarmIntensity = 0 };
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            string start = cake.RunFeedMill();
+            TickCake(cake, fullBus, 1.0);
+            var running = cake.Snapshot;
+
+            TickCake(cake, fullBus, 8.0);
+            var held = cake.Snapshot;
+
+            cake.FarmIntensity = 1.0;
+            TickCake(cake, fullBus, 30.0);
+            var blocked = cake.Snapshot;
+
+            string release = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var released = cake.Snapshot;
+
+            TickCake(cake, fullBus, 30.0);
+            var used = cake.Snapshot;
+
+            bool startConsumesInputs = before.CanRunFeedMill
+                                       && running.FactoryRunActive
+                                       && running.ActiveFactoryName.Contains("feed", StringComparison.OrdinalIgnoreCase)
+                                       && running.ActiveFactoryPhase.Length > 0
+                                       && running.FactoryProgress > 0
+                                       && running.FactoryProgress < 1
+                                       && running.GrainKg < before.GrainKg
+                                       && running.StarchKg < before.StarchKg
+                                       && running.DairyMineralKg < before.DairyMineralKg
+                                       && running.BranKg < before.BranKg
+                                       && running.BeetPulpKg < before.BeetPulpKg
+                                       && Math.Abs(running.AnimalFeedKg - before.AnimalFeedKg) < 0.001
+                                       && start.Contains("poultry feed", StringComparison.OrdinalIgnoreCase);
+            bool completionHeldForLab = !held.FactoryRunActive
+                                        && held.AnimalFeedKg > before.AnimalFeedKg
+                                        && held.FeedLotId != before.FeedLotId
+                                        && held.PendingLabProductName.Contains("feed", StringComparison.OrdinalIgnoreCase)
+                                        && held.FeedMillHammerRpm > 0
+                                        && held.FeedPelletTemperatureC > 0
+                                        && held.FeedMoisturePct > 0;
+            bool unreleasedFeedBlocked = Math.Abs(blocked.AnimalFeedKg - held.AnimalFeedKg) < 0.001
+                                         && blocked.EggSourceStatus.Contains("QA lab release", StringComparison.OrdinalIgnoreCase);
+            bool releaseClearsHold = released.PendingLabLotId.Length == 0
+                                     && released.IngredientLabStatus.Contains("released", StringComparison.OrdinalIgnoreCase)
+                                     && release.Contains("released", StringComparison.OrdinalIgnoreCase);
+            bool releasedFeedConsumed = used.AnimalFeedKg < released.AnimalFeedKg
+                                        && used.EggsReady > released.EggsReady
+                                        && used.EggSourceStatus.Contains(released.FeedLotId, StringComparison.OrdinalIgnoreCase);
+            bool pass = startConsumesInputs && completionHeldForLab && unreleasedFeedBlocked && releaseClearsHold && releasedFeedConsumed;
+            return (pass, $"startConsumesInputs={startConsumesInputs} ('{Trim(start)}'), completionHeldForLab={completionHeldForLab} " +
+                          $"(feed {before.AnimalFeedKg:F1}->{held.AnimalFeedKg:F1} kg, lot {held.FeedLotId}), " +
+                          $"unreleasedFeedBlocked={unreleasedFeedBlocked}, releaseClearsHold={releaseClearsHold} ('{Trim(release)}'), " +
+                          $"releasedFeedConsumed={releasedFeedConsumed} ({released.AnimalFeedKg:F1}->{used.AnimalFeedKg:F1} kg)");
         });
 
         Scenario("CAKE POULTRY PROVENANCE (eggs come from hens consuming feed, water, bedding and labor)", () =>
@@ -1271,7 +1331,7 @@ internal static class Program
             TickCake(cake, fullBus, 8.5);
             var afterRun = cake.Snapshot;
 
-            double feedBefore = afterRun.AnimalFeedKg;
+            double grainBefore = afterRun.GrainKg;
             double cashBefore = afterRun.CashBalance;
             string haul = cake.HaulFactoryByproducts();
             TickCake(cake, fullBus, 0.5);
@@ -1289,8 +1349,9 @@ internal static class Program
                                      && afterRun.WasteHandlingStatus.Contains("bran", StringComparison.OrdinalIgnoreCase);
             bool handlingAvailable = afterRun.CanHaulByproducts && afterRun.CanTreatFactoryEffluent;
             bool haulWorks = afterHaul.ByproductStoragePct < afterRun.ByproductStoragePct
-                             && afterHaul.AnimalFeedKg > feedBefore
+                             && afterHaul.GrainKg > grainBefore
                              && afterHaul.CashBalance > cashBefore
+                             && haul.Contains("feed-mill", StringComparison.OrdinalIgnoreCase)
                              && haul.Contains("Hauled", StringComparison.OrdinalIgnoreCase);
             bool treatmentWorks = afterTreat.FactoryEffluentL < effluentBefore
                                   && afterTreat.CompressedAirNm3 < airBefore
@@ -1459,6 +1520,7 @@ internal static class Program
                                       && Math.Abs(after.CocoaBeansKg - before.CocoaBeansKg) < 0.001;
 
             double waterBeforeSupply = after.IrrigationWaterL;
+            double feedBeforeSupply = after.AnimalFeedKg;
             double bakingPowderBeforeSupply = after.BakingPowderKg;
             double saltBeforeSupply = after.SaltKg;
             double cartonsBeforeSupply = after.PackagingUnits;
@@ -1482,7 +1544,8 @@ internal static class Program
                                          && supplied.FilterMediaPct >= after.FilterMediaPct;
             bool supplyTruckDoesNotMakeFinalIngredients = Math.Abs(supplied.BakingPowderKg - bakingPowderBeforeSupply) < 0.001
                                                           && Math.Abs(supplied.SaltKg - saltBeforeSupply) < 0.001
-                                                          && Math.Abs(supplied.PackagingUnits - cartonsBeforeSupply) < 0.001;
+                                                          && Math.Abs(supplied.PackagingUnits - cartonsBeforeSupply) < 0.001
+                                                          && supplied.AnimalFeedKg <= feedBeforeSupply + 0.001;
 
             bool pass = fieldInputsConsumed && livestockInputsConsumed && cocoaDoesNotAppear && supplyTruckAddsInputs && supplyTruckDoesNotMakeFinalIngredients;
             return (pass, $"fieldInputsConsumed={fieldInputsConsumed}, livestockInputsConsumed={livestockInputsConsumed}, " +

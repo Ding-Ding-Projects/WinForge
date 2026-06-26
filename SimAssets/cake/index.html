@@ -592,6 +592,7 @@
               <h3>Ingredient factories</h3>
               <div class="button-grid">
                 <button class="action" type="button" data-action="runUtilityPlant">Run utilities</button>
+                <button class="action" type="button" data-action="runFeedMill">Mill feed</button>
                 <button class="action" type="button" data-action="mill">Mill flour</button>
                 <button class="action" type="button" data-action="refine">Refine sugar</button>
                 <button class="action" type="button" data-action="churn">Churn butter</button>
@@ -757,6 +758,7 @@
       CanRunLeaveningPlant: false,
       CanRunPackagingPlant: false,
       CanPrepareIcing: false,
+      CanRunFeedMill: false,
       CanReleaseLabLot: false,
       CanStageBatchKit: false,
       WheatGrowth: 64,
@@ -828,6 +830,7 @@
       LeaveningLotId: 'LEAVEN-OPENING',
       PackagingLotId: 'PACK-OPENING',
       IcingLotId: 'ICING-OPENING',
+      FeedLotId: 'FEED-OPENING',
       WheatKg: 260,
       SugarCropKg: 380,
       FlourKg: 120,
@@ -917,6 +920,8 @@
       PackagingCalibrationPct: 94,
       IcingConditionPct: 92,
       IcingCalibrationPct: 95,
+      FeedConditionPct: 93,
+      FeedCalibrationPct: 96,
       MillRollGapMm: 0.32,
       FlourExtractionPct: 76,
       SugarJuiceBrix: 0,
@@ -943,6 +948,9 @@
       IcingMixerRpm: 0,
       IcingTemperatureC: 22,
       IcingViscosityPaS: 7.8,
+      FeedMillHammerRpm: 0,
+      FeedPelletTemperatureC: 24,
+      FeedMoisturePct: 11.5,
       BatterKg: 0,
       CakesBaked: 0,
       CakesPacked: 0,
@@ -1098,6 +1106,7 @@
       setButton('orderSupplyDelivery', s.CanOrderSupplyDelivery);
       setButton('unloadSupplyDelivery', s.CanUnloadSupplyDelivery);
       setButton('runUtilityPlant', s.CanRunUtilityPlant);
+      setButton('runFeedMill', s.CanRunFeedMill);
       setButton('processCocoa', s.CanProcessCocoa);
       setButton('runSaltWorks', s.CanRunSaltWorks);
       setButton('runLeaveningPlant', s.CanRunLeaveningPlant);
@@ -1142,6 +1151,7 @@
         ['Wheat seed', `${n(s.WheatSeedKg, 1)} kg`],
         ['Beet seed', `${n(s.BeetSeedKg, 1)} kg`],
         ['Animal feed', `${n(s.AnimalFeedKg, 1)} kg`],
+        ['Feed lot', s.FeedLotId || '-'],
         ['Dairy forage', `${n(s.ForageKg, 1)} kg`],
         ['Dairy grain', `${n(s.GrainKg, 1)} kg`],
         ['Dairy mineral', `${n(s.DairyMineralKg, 1)} kg`],
@@ -1197,6 +1207,8 @@
         ['Icing kitchen', s.IcingPrepActive ? `${s.IcingPrepPhase || 'running'} / ${n((s.IcingPrepProgress || 0) * 100, 0)}% / ${n(s.IcingPrepSecondsRemaining, 1)}s / ${n(s.IcingPrepPowerMW, 1)} MW` : (s.IcingPrepStatus || 'Idle')],
         ['Icing texture', `${n(s.IcingMixerRpm, 0)} rpm / ${n(s.IcingTemperatureC, 0)} degC / ${n(s.IcingViscosityPaS, 1)} Pa-s`],
         ['Icing lot', `${s.IcingLotId || '-'} / ${n(s.IcingKg, 1)} kg`],
+        ['Feed mill', `${n(s.FeedMillHammerRpm, 0)} rpm / ${n(s.FeedPelletTemperatureC, 0)} degC / ${n(s.FeedMoisturePct, 1)}% moisture`],
+        ['Feed lot', `${s.FeedLotId || '-'} / ${n(s.AnimalFeedKg, 1)} kg`],
         ['Customer order', s.CurrentOrderId || '-'],
         ['Order status', s.OrderStatus || 'No active order'],
         ['Order ready', `${s.OrderCakesReady || 0}/${s.OrderCakesRequired || 0} cakes / ${n(s.OrderSecondsRemaining, 0)}s`],
@@ -1212,6 +1224,7 @@
         ['Leavening asset', `${n(s.LeaveningConditionPct, 0)}% / ${n(s.LeaveningCalibrationPct, 0)}% cal`],
         ['Packaging asset', `${n(s.PackagingConditionPct, 0)}% / ${n(s.PackagingCalibrationPct, 0)}% cal`],
         ['Icing asset', `${n(s.IcingConditionPct, 0)}% / ${n(s.IcingCalibrationPct, 0)}% cal`],
+        ['Feed mill asset', `${n(s.FeedConditionPct, 0)}% / ${n(s.FeedCalibrationPct, 0)}% cal`],
         ['Utilities', s.FactoryUtilityStatus || 'Utilities ready'],
         ['Utility status', s.UtilityPlantStatus || 'Utility plant idle'],
         ['RO / boiler / air', `${n(s.ProcessWaterConductivityUsCm, 3)} uS/cm / ${n(s.BoilerPressureBar, 1)} bar / ${n(s.AirHeaderPressureBar, 1)} bar`],
@@ -1428,6 +1441,7 @@
       drawMiniPlant(305, 540, 'SALT', s.CanRunSaltWorks ? '#78c7dd' : '#69716f');
       drawMiniPlant(305, 588, 'LEAVEN', s.CanRunLeaveningPlant ? '#e8b75d' : '#69716f');
       drawMiniPlant(305, 636, 'PACK', s.CanRunPackagingPlant ? '#dfbd66' : '#69716f');
+      drawMiniPlant(410, 588, 'FEED', s.CanRunFeedMill ? '#bfde72' : '#69716f');
       drawMiniPlant(410, 636, 'VANILLA', s.CanExtractVanilla ? '#c7925b' : '#69716f');
       text(`Brine ${n(s.BrineL, 0)} L`, 76, 612, 12, '#d9f0ff', 800);
       text(`Minerals ${n((s.SodaAshKg || 0) + (s.PhosphateKg || 0) + (s.StarchKg || 0), 1)} kg`, 198, 612, 12, '#ffe1a1', 800);
