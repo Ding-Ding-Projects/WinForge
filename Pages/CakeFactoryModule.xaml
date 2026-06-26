@@ -47,11 +47,11 @@
                 <ColumnDefinition Width="360" />
             </Grid.ColumnDefinitions>
 
-            <ScrollViewer Grid.Column="0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+            <ScrollViewer x:Name="SceneViewport" Grid.Column="0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
                 <StackPanel Spacing="12" Padding="0,0,8,0">
                     <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="10">
                         <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Stretch">
-                            <Canvas x:Name="SceneCanvas" Width="1180" Height="520" />
+                            <Canvas x:Name="SceneCanvas" Width="660" Height="291" />
                         </Viewbox>
                     </Border>
 
@@ -66,11 +66,11 @@
                             <StackPanel Spacing="8">
                                 <TextBlock x:Name="FarmHeader" FontWeight="SemiBold" />
                                 <ProgressBar x:Name="WheatBar" Minimum="0" Maximum="100" />
-                                <TextBlock x:Name="WheatText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <TextBlock x:Name="WheatText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                                 <ProgressBar x:Name="BeetBar" Minimum="0" Maximum="100" />
-                                <TextBlock x:Name="BeetText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <TextBlock x:Name="BeetText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                                 <ProgressBar x:Name="VanillaBar" Minimum="0" Maximum="100" />
-                                <TextBlock x:Name="VanillaText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <TextBlock x:Name="VanillaText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                             </StackPanel>
                         </Border>
 
@@ -79,8 +79,8 @@
                                 <TextBlock x:Name="FactoryHeader" FontWeight="SemiBold" />
                                 <TextBlock x:Name="StageText" />
                                 <ProgressBar x:Name="StageBar" Minimum="0" Maximum="100" />
-                                <TextBlock x:Name="OvenText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                <TextBlock x:Name="GravityText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <TextBlock x:Name="OvenText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                                <TextBlock x:Name="GravityText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                             </StackPanel>
                         </Border>
 
@@ -108,13 +108,27 @@
                             <Slider x:Name="FarmSlider" Minimum="0" Maximum="100" Value="78" ValueChanged="FarmSlider_ValueChanged" />
                             <TextBlock x:Name="LineSliderLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                             <Slider x:Name="LineSlider" Minimum="0" Maximum="120" Value="72" ValueChanged="LineSlider_ValueChanged" />
-                            <ToggleSwitch x:Name="AutoHarvestSwitch" IsOn="True" Toggled="AutoHarvestSwitch_Toggled" />
-                            <ToggleSwitch x:Name="AutoBatchSwitch" IsOn="True" Toggled="AutoBatchSwitch_Toggled" />
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                <Button x:Name="StartBatchBtn" Click="StartBatch_Click" Style="{StaticResource AccentButtonStyle}" />
-                                <Button x:Name="CleanBtn" Click="Clean_Click" />
-                            </StackPanel>
-                            <Button x:Name="HarvestBtn" Click="Harvest_Click" />
+                            <TextBlock x:Name="OperatorPromptText" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <Grid ColumnSpacing="8" RowSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Button x:Name="HarvestBtn" Grid.Row="0" Grid.Column="0" Click="Harvest_Click" />
+                                <Button x:Name="CollectBtn" Grid.Row="0" Grid.Column="1" Click="Collect_Click" />
+                                <Button x:Name="MillBtn" Grid.Row="1" Grid.Column="0" Click="Mill_Click" />
+                                <Button x:Name="RefineBtn" Grid.Row="1" Grid.Column="1" Click="Refine_Click" />
+                                <Button x:Name="ChurnBtn" Grid.Row="2" Grid.Column="0" Click="Churn_Click" />
+                                <Button x:Name="StartBatchBtn" Grid.Row="2" Grid.Column="1" Click="StartBatch_Click" />
+                                <Button x:Name="AdvanceStageBtn" Grid.Row="3" Grid.Column="0" Click="AdvanceStage_Click" Style="{StaticResource AccentButtonStyle}" />
+                                <Button x:Name="CleanBtn" Grid.Row="3" Grid.Column="1" Click="Clean_Click" />
+                            </Grid>
                         </StackPanel>
                     </Border>
 

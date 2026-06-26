@@ -55,11 +55,21 @@ public sealed class CakeFactorySnapshot
     public bool CipActive { get; init; }
     public double CipProgress { get; init; }
     public bool CanStartBatch { get; init; }
+    public bool StageReadyForOperator { get; init; }
+    public bool CanAdvanceStage { get; init; }
+    public string OperatorPrompt { get; init; } = "";
     public string MissingIngredients { get; init; } = "";
+    public bool CanHarvest { get; init; }
+    public bool CanCollectDairy { get; init; }
+    public bool CanMillWheat { get; init; }
+    public bool CanRefineSugar { get; init; }
+    public bool CanChurnButter { get; init; }
     public double WheatGrowth { get; init; }
     public double BeetGrowth { get; init; }
     public double PastureHealth { get; init; }
     public double VanillaGrowth { get; init; }
+    public double DairyReadyL { get; init; }
+    public double EggsReady { get; init; }
     public double WheatKg { get; init; }
     public double SugarCropKg { get; init; }
     public double FlourKg { get; init; }
@@ -110,6 +120,7 @@ public sealed class CakeFactoryService
     private readonly Random _rng = new(1204);
     private int _recipeIndex;
     private CakeBatchStage _stage = CakeBatchStage.Idle;
+    private bool _stageReadyForOperator;
     private double _stageSeconds;
     private double _batchInternalC = 22;
     private double _batchQuality = 96;
@@ -123,6 +134,8 @@ public sealed class CakeFactoryService
     private double _beetGrowth = 58;
     private double _pastureHealth = 76;
     private double _vanillaGrowth = 34;
+    private double _dairyReadyL = 18;
+    private double _eggsReady = 42;
 
     private double _wheatKg = 260;
     private double _sugarCropKg = 380;
@@ -148,8 +161,8 @@ public sealed class CakeFactoryService
 
     public double FarmIntensity { get; set; } = 0.78;
     public double LineSpeed { get; set; } = 0.72;
-    public bool AutoHarvest { get; set; } = true;
-    public bool AutoBatch { get; set; } = true;
+    public bool AutoHarvest { get; set; }
+    public bool AutoBatch { get; set; }
     public bool CipActive => _cipSeconds > 0;
     public int RecipeIndex => _recipeIndex;
     public CakeRecipe CurrentRecipe => Recipes[Math.Clamp(_recipeIndex, 0, Recipes.Count - 1)];
@@ -162,17 +175,84 @@ public sealed class CakeFactoryService
 
     public string HarvestNow()
     {
-        double wheat = 3.8 * _wheatGrowth;
-        double beet = 7.2 * _beetGrowth;
-        double vanilla = 0.018 * _vanillaGrowth;
+        if (_lastPowerAvailability < 0.15)
+            return "Harvesters are locked out until the reactor bus is energized.";
+
+        if (_wheatGrowth < 25 && _beetGrowth < 25 && _vanillaGrowth < 25)
+            return "Fields are still immature; keep irrigation and lighting powered.";
+
+        double wheat = _wheatGrowth >= 25 ? 3.8 * _wheatGrowth : 0;
+        double beet = _beetGrowth >= 25 ? 7.2 * _beetGrowth : 0;
+        double vanilla = _vanillaGrowth >= 25 ? 0.018 * _vanillaGrowth : 0;
         _wheatKg += wheat;
         _sugarCropKg += beet;
         _vanillaL += vanilla;
-        _wheatGrowth = 12 + _rng.NextDouble() * 8;
-        _beetGrowth = 10 + _rng.NextDouble() * 8;
-        _vanillaGrowth = 8 + _rng.NextDouble() * 5;
+        if (wheat > 0) _wheatGrowth = 12 + _rng.NextDouble() * 8;
+        if (beet > 0) _beetGrowth = 10 + _rng.NextDouble() * 8;
+        if (vanilla > 0) _vanillaGrowth = 8 + _rng.NextDouble() * 5;
         _pastureHealth = Math.Min(100, _pastureHealth + 8);
         return $"Harvested {wheat:0} kg wheat, {beet:0} kg sugar crop, {vanilla:0.00} L vanilla extract equivalent.";
+    }
+
+    public string CollectDairyAndEggs()
+    {
+        if (_lastPowerAvailability < 0.12)
+            return "Milking parlor and egg grading line need reactor bus power.";
+
+        if (_dairyReadyL < 1 && _eggsReady < 1)
+            return "Barn and nest buffers are not ready yet.";
+
+        double milk = Math.Min(_dairyReadyL, 36);
+        double eggs = Math.Min(_eggsReady, 96);
+        _dairyReadyL -= milk;
+        _eggsReady -= eggs;
+        _milkL += milk;
+        _eggs += eggs;
+        return $"Collected {milk:0.0} L milk and {eggs:0} graded eggs.";
+    }
+
+    public string MillWheat()
+    {
+        if (_lastPowerAvailability < 0.2)
+            return "The roller mill requires reactor power before wheat can be milled.";
+
+        double wheat = Math.Min(_wheatKg, 90);
+        if (wheat < 5)
+            return "Not enough harvested wheat is available for a mill run.";
+
+        _wheatKg -= wheat;
+        _flourKg += wheat * 0.76;
+        _wasteKg += wheat * 0.04;
+        return $"Milled {wheat:0} kg wheat into {wheat * 0.76:0.0} kg cake flour.";
+    }
+
+    public string RefineSugar()
+    {
+        if (_lastPowerAvailability < 0.2)
+            return "Sugar washing, extraction and evaporation need reactor power.";
+
+        double crop = Math.Min(_sugarCropKg, 160);
+        if (crop < 10)
+            return "Not enough sugar crop is available for refining.";
+
+        _sugarCropKg -= crop;
+        _sugarKg += crop * 0.155;
+        _wasteKg += crop * 0.025;
+        return $"Refined {crop:0} kg sugar crop into {crop * 0.155:0.0} kg sugar.";
+    }
+
+    public string ChurnButter()
+    {
+        if (_lastPowerAvailability < 0.2)
+            return "Cream separator and churn need reactor power.";
+
+        double milk = Math.Min(Math.Max(0, _milkL - 30), 54);
+        if (milk < 5)
+            return "Keep at least 30 L milk in cold storage before churning butter.";
+
+        _milkL -= milk;
+        _butterKg += milk / 22.0;
+        return $"Churned {milk:0.0} L milk/cream into {milk / 22.0:0.0} kg butter.";
     }
 
     public void StartClean()
@@ -207,12 +287,60 @@ public sealed class CakeFactoryService
 
         ConsumeIngredients(CurrentRecipe);
         _stage = CakeBatchStage.Scaling;
+        _stageReadyForOperator = false;
         _stageSeconds = 0;
         _batchInternalC = 22;
         _mixerSpecificGravity = 1.02;
         _batchQuality = Math.Clamp(86 + _sanitationScore * 0.11 + _rng.NextDouble() * 4, 70, 99);
         _batterKg += BatchIngredientMass(CurrentRecipe);
         message = $"Started {CurrentRecipe.Name} batch ({CurrentRecipe.BatchSize} cakes).";
+        return true;
+    }
+
+    public bool TryAdvanceStage(out string message)
+    {
+        if (_stage == CakeBatchStage.Idle)
+        {
+            message = "No active batch is waiting for operator release.";
+            return false;
+        }
+
+        if (!_stageReadyForOperator)
+        {
+            message = $"{StageLabel(_stage)} is still running; wait for the release gate.";
+            return false;
+        }
+
+        if (_lastPowerAvailability < 0.2)
+        {
+            message = "Restore reactor bus power before releasing the next powered step.";
+            return false;
+        }
+
+        if (!StageSafetyGateMet(_stage))
+        {
+            message = OperatorPrompt(1, MissingIngredients(CurrentRecipe));
+            return false;
+        }
+
+        var finished = StageLabel(_stage);
+        _stageReadyForOperator = false;
+        _stageSeconds = 0;
+        _stage = _stage switch
+        {
+            CakeBatchStage.Scaling => CakeBatchStage.Mixing,
+            CakeBatchStage.Mixing => CakeBatchStage.Depositing,
+            CakeBatchStage.Depositing => CakeBatchStage.Baking,
+            CakeBatchStage.Baking => CakeBatchStage.Cooling,
+            CakeBatchStage.Cooling => CakeBatchStage.Icing,
+            CakeBatchStage.Icing => CakeBatchStage.Packaging,
+            CakeBatchStage.Packaging => CompleteBatch(),
+            _ => CakeBatchStage.Idle,
+        };
+
+        message = _stage == CakeBatchStage.Idle
+            ? $"{finished} released. Batch packed, coded and logged."
+            : $"{finished} released. Next step: {StageLabel(_stage)}.";
         return true;
     }
 
@@ -229,12 +357,8 @@ public sealed class CakeFactoryService
 
         UpdateAnimation(seconds, power);
         UpdateFarm(seconds, power);
-        UpdateIngredientConversion(seconds, power);
         UpdateCleaning(seconds, power);
         UpdateBatch(seconds, power);
-
-        if (AutoBatch && _stage == CakeBatchStage.Idle && !CipActive && power > 0.65)
-            _ = TryStartBatch(out _);
 
         _sanitationScore = Math.Clamp(_sanitationScore - seconds * (0.003 + (_stage == CakeBatchStage.Idle ? 0 : 0.018 * LineSpeed)), 0, 100);
 
@@ -262,11 +386,21 @@ public sealed class CakeFactoryService
             CipActive = CipActive,
             CipProgress = CipActive ? 1.0 - _cipSeconds / 24.0 : 1.0,
             CanStartBatch = _stage == CakeBatchStage.Idle && !CipActive && missing.Length == 0 && power >= 0.2,
+            StageReadyForOperator = _stageReadyForOperator,
+            CanAdvanceStage = _stage != CakeBatchStage.Idle && _stageReadyForOperator && power >= 0.2 && StageSafetyGateMet(_stage),
+            OperatorPrompt = OperatorPrompt(power, missing),
             MissingIngredients = missing,
+            CanHarvest = power >= 0.15 && (_wheatGrowth >= 25 || _beetGrowth >= 25 || _vanillaGrowth >= 25),
+            CanCollectDairy = power >= 0.12 && (_dairyReadyL >= 1 || _eggsReady >= 1),
+            CanMillWheat = power >= 0.2 && _wheatKg >= 5,
+            CanRefineSugar = power >= 0.2 && _sugarCropKg >= 10,
+            CanChurnButter = power >= 0.2 && _milkL > 35,
             WheatGrowth = _wheatGrowth,
             BeetGrowth = _beetGrowth,
             PastureHealth = _pastureHealth,
             VanillaGrowth = _vanillaGrowth,
+            DairyReadyL = _dairyReadyL,
+            EggsReady = _eggsReady,
             WheatKg = _wheatKg,
             SugarCropKg = _sugarCropKg,
             FlourKg = _flourKg,
@@ -306,17 +440,17 @@ public sealed class CakeFactoryService
         _pastureHealth = Math.Clamp(_pastureHealth + seconds * (0.09 * fieldEffect - 0.015), 10, 100);
         _vanillaGrowth = Math.Min(100, _vanillaGrowth + seconds * 0.045 * fieldEffect);
 
-        if (AutoHarvest && _wheatGrowth >= 100) _wheatKg += HarvestCrop(ref _wheatGrowth, 390);
-        if (AutoHarvest && _beetGrowth >= 100) _sugarCropKg += HarvestCrop(ref _beetGrowth, 760);
-        if (AutoHarvest && _vanillaGrowth >= 100)
+        if (AutoHarvest && _lastPowerAvailability >= 0.15 && _wheatGrowth >= 100) _wheatKg += HarvestCrop(ref _wheatGrowth, 390);
+        if (AutoHarvest && _lastPowerAvailability >= 0.15 && _beetGrowth >= 100) _sugarCropKg += HarvestCrop(ref _beetGrowth, 760);
+        if (AutoHarvest && _lastPowerAvailability >= 0.15 && _vanillaGrowth >= 100)
         {
             _vanillaL += 2.2 + _rng.NextDouble() * 0.6;
             _vanillaGrowth = 9 + _rng.NextDouble() * 6;
         }
 
         double livestockPower = FarmIntensity * power;
-        _milkL += seconds * (0.9 + _pastureHealth / 120.0) * livestockPower;
-        _eggs += seconds * (0.75 + FarmIntensity * 0.55) * power;
+        _dairyReadyL = Math.Min(140, _dairyReadyL + seconds * (0.9 + _pastureHealth / 120.0) * livestockPower);
+        _eggsReady = Math.Min(420, _eggsReady + seconds * (0.75 + FarmIntensity * 0.55) * power);
         _cocoaKg += seconds * 0.03 * fieldEffect;
     }
 
@@ -325,26 +459,6 @@ public sealed class CakeFactoryService
         double yield = baseYield * (0.92 + _rng.NextDouble() * 0.16);
         growth = 10 + _rng.NextDouble() * 7;
         return yield;
-    }
-
-    private void UpdateIngredientConversion(double seconds, double power)
-    {
-        double rate = seconds * LineSpeed * power;
-        if (rate <= 0) return;
-
-        double wheat = Math.Min(_wheatKg, rate * 22.0);
-        _wheatKg -= wheat;
-        _flourKg += wheat * 0.76;
-        _wasteKg += wheat * 0.04;
-
-        double beet = Math.Min(_sugarCropKg, rate * 34.0);
-        _sugarCropKg -= beet;
-        _sugarKg += beet * 0.155;
-        _wasteKg += beet * 0.025;
-
-        double churnMilk = Math.Min(Math.Max(0, _milkL - 40), rate * 7.5);
-        _milkL -= churnMilk;
-        _butterKg += churnMilk / 22.0;
     }
 
     private void UpdateCleaning(double seconds, double power)
@@ -386,21 +500,17 @@ public sealed class CakeFactoryService
             return;
         }
 
-        _stageSeconds += seconds * stageRate;
-        if (_stageSeconds < StageDuration(CurrentRecipe, _stage)) return;
-
-        _stageSeconds = 0;
-        _stage = _stage switch
+        if (_stageReadyForOperator)
         {
-            CakeBatchStage.Scaling => CakeBatchStage.Mixing,
-            CakeBatchStage.Mixing => CakeBatchStage.Depositing,
-            CakeBatchStage.Depositing => CakeBatchStage.Baking,
-            CakeBatchStage.Baking => CakeBatchStage.Cooling,
-            CakeBatchStage.Cooling => CakeBatchStage.Icing,
-            CakeBatchStage.Icing => CakeBatchStage.Packaging,
-            CakeBatchStage.Packaging => CompleteBatch(),
-            _ => CakeBatchStage.Idle,
-        };
+            double holdPenalty = _stage == CakeBatchStage.Baking ? 0.18 : 0.035;
+            _batchQuality = Math.Max(50, _batchQuality - seconds * holdPenalty);
+            return;
+        }
+
+        double duration = StageDuration(CurrentRecipe, _stage);
+        _stageSeconds = Math.Min(duration, _stageSeconds + seconds * stageRate);
+        if (_stageSeconds >= duration && StageSafetyGateMet(_stage))
+            _stageReadyForOperator = true;
     }
 
     private CakeBatchStage CompleteBatch()
@@ -417,6 +527,7 @@ public sealed class CakeFactoryService
         _batterKg = Math.Max(0, _batterKg - BatchIngredientMass(recipe));
         _sanitationScore = Math.Max(0, _sanitationScore - 2.4);
         _batchInternalC = 28;
+        _stageReadyForOperator = false;
         return CakeBatchStage.Idle;
     }
 
@@ -446,6 +557,64 @@ public sealed class CakeFactoryService
             ? Math.Abs(_mixerSpecificGravity - CurrentRecipe.TargetSpecificGravity) * 45
             : 0;
         return Math.Clamp(_batchQuality + power * 3.5 - ovenPenalty - sanitationPenalty - gravityPenalty, 0, 100);
+    }
+
+    private bool StageSafetyGateMet(CakeBatchStage stage) => stage switch
+    {
+        CakeBatchStage.Baking => _batchInternalC >= 71,
+        CakeBatchStage.Cooling => _batchInternalC <= 35,
+        CakeBatchStage.Icing => _sanitationScore >= 62,
+        CakeBatchStage.Packaging => _sanitationScore >= 58,
+        _ => true,
+    };
+
+    private string OperatorPrompt(double power, string missing)
+    {
+        if (CipActive)
+            return $"CIP sanitation loop active ({(1.0 - _cipSeconds / 24.0) * 100:0}%). Wait for wash, rinse and drain.";
+
+        if (power < 0.2)
+            return "Start or recover the nuclear reactor; farm equipment and bakery drives are waiting for bus power.";
+
+        if (_stage == CakeBatchStage.Idle)
+            return missing.Length == 0
+                ? "Manual mode: harvest, collect, mill/refine/churn as needed, then start a batch."
+                : "Manual mode: prep ingredients before batching. Missing: " + missing;
+
+        if (!_stageReadyForOperator)
+            return _stage switch
+            {
+                CakeBatchStage.Scaling => "Operator weighing ingredients; wait for scale verification.",
+                CakeBatchStage.Mixing => "Mixer is running. Watch batter specific gravity before release.",
+                CakeBatchStage.Depositing => "Depositor is filling pans. Release when pan weights settle.",
+                CakeBatchStage.Baking => "Tunnel oven running. Hold until core reaches the kill step.",
+                CakeBatchStage.Cooling => "Spiral cooler running. Hold until product is safe for icing.",
+                CakeBatchStage.Icing => "Decorating head running. Release after icing coverage is complete.",
+                CakeBatchStage.Packaging => "Packer is coding and sealing cartons. Release for QA count.",
+                _ => "Line is running.",
+            };
+
+        if (!StageSafetyGateMet(_stage))
+            return _stage switch
+            {
+                CakeBatchStage.Baking => $"Do not unload: core is {_batchInternalC:0} degC; wait for at least 71 degC.",
+                CakeBatchStage.Cooling => $"Do not ice: cake core is {_batchInternalC:0} degC; cool below 35 degC.",
+                CakeBatchStage.Icing => $"Clean or slow down: sanitation is {_sanitationScore:0}%.",
+                CakeBatchStage.Packaging => $"Packaging QA hold: sanitation is {_sanitationScore:0}%.",
+                _ => "Safety gate is holding the step.",
+            };
+
+        return _stage switch
+        {
+            CakeBatchStage.Scaling => "Scale check complete. Release to mixer.",
+            CakeBatchStage.Mixing => "Specific gravity in range. Release to depositor.",
+            CakeBatchStage.Depositing => "Pan weights stable. Release to tunnel oven.",
+            CakeBatchStage.Baking => "Kill step reached. Release to spiral cooler.",
+            CakeBatchStage.Cooling => "Core temperature is icing-safe. Release to decorating.",
+            CakeBatchStage.Icing => "Decorating complete. Release to packaging.",
+            CakeBatchStage.Packaging => "Cartons coded and counted. Release finished batch.",
+            _ => "Release next step.",
+        };
     }
 
     private string HaccpStatus()

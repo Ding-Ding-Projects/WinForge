@@ -16,6 +16,12 @@ namespace WinForge.Pages;
 /// </summary>
 public sealed partial class CakeFactoryModule : Page
 {
+    private const double SceneDesignWidth = 1180;
+    private const double SceneDesignHeight = 520;
+    private const double SceneDisplayWidth = 660;
+    private const double SceneScale = SceneDisplayWidth / SceneDesignWidth;
+    private const double SceneDisplayHeight = SceneDesignHeight * SceneScale;
+
     private readonly CakeFactoryService _sim = new();
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(80) };
     private DateTime _lastTick = DateTime.UtcNow;
@@ -75,11 +81,14 @@ public sealed partial class CakeFactoryModule : Page
 
         FarmSliderLabel.Text = $"{P("Farm intensity", "農場強度")}: {FarmSlider.Value:0}%";
         LineSliderLabel.Text = $"{P("Line speed", "生產速度")}: {LineSlider.Value:0}%";
-        AutoHarvestSwitch.Header = P("Auto harvest mature fields", "自動收成成熟農地");
-        AutoBatchSwitch.Header = P("Auto start batches when ready", "材料齊備時自動開批");
+        HarvestBtn.Content = P("Harvest", "收成");
+        CollectBtn.Content = P("Collect milk/eggs", "收奶蛋");
+        MillBtn.Content = P("Mill flour", "磨粉");
+        RefineBtn.Content = P("Refine sugar", "煉糖");
+        ChurnBtn.Content = P("Churn butter", "打牛油");
         StartBatchBtn.Content = P("Start batch", "開批");
+        AdvanceStageBtn.Content = P("Release step", "放行工序");
         CleanBtn.Content = P("CIP clean", "CIP 清潔");
-        HarvestBtn.Content = P("Harvest now", "即時收成");
 
         FlourLbl.Text = P("Cake flour", "蛋糕粉");
         SugarLbl.Text = P("Sugar", "糖");
@@ -121,9 +130,11 @@ public sealed partial class CakeFactoryModule : Page
         VanillaBar.Value = s.VanillaGrowth;
         WheatText.Text = P($"Wheat {s.WheatGrowth:0}% · raw wheat {s.WheatKg:0} kg", $"小麥 {s.WheatGrowth:0}% · 原麥 {s.WheatKg:0} kg");
         BeetText.Text = P($"Sugar crop {s.BeetGrowth:0}% · beet/cane {s.SugarCropKg:0} kg", $"糖料作物 {s.BeetGrowth:0}% · 甜菜/蔗 {s.SugarCropKg:0} kg");
-        VanillaText.Text = P($"Vanilla greenhouse {s.VanillaGrowth:0}% · pasture {s.PastureHealth:0}%", $"雲呢拿溫室 {s.VanillaGrowth:0}% · 牧草 {s.PastureHealth:0}%");
+        VanillaText.Text = P($"Vanilla {s.VanillaGrowth:0}% · pasture {s.PastureHealth:0}% · ready {s.DairyReadyL:0} L milk/{s.EggsReady:0} eggs", $"雲呢拿 {s.VanillaGrowth:0}% · 牧草 {s.PastureHealth:0}% · 待收 {s.DairyReadyL:0}L奶/{s.EggsReady:0}蛋");
 
-        StageText.Text = $"{s.StageName} · {s.Recipe.Name}";
+        StageText.Text = s.StageReadyForOperator
+            ? $"{s.StageName} · {P("operator release required", "需要操作員放行")}"
+            : $"{s.StageName} · {s.Recipe.Name}";
         StageBar.Value = s.StageProgress * 100;
         OvenText.Text = P($"Oven {s.OvenTemperatureC:0} degC · product core {s.ProductInternalC:0} degC", $"焗爐 {s.OvenTemperatureC:0} degC · 蛋糕中心 {s.ProductInternalC:0} degC");
         GravityText.Text = P($"Batter specific gravity {s.MixerSpecificGravity:0.00} · target {s.Recipe.TargetSpecificGravity:0.00}", $"麵糊比重 {s.MixerSpecificGravity:0.00} · 目標 {s.Recipe.TargetSpecificGravity:0.00}");
@@ -151,9 +162,16 @@ public sealed partial class CakeFactoryModule : Page
         PackedVal.Text = $"{s.CakesPacked} ({P("rejects", "退件")} {s.CakesRejected})";
         WasteVal.Text = $"{s.WasteKg:0.0} kg";
         MissingText.Text = s.MissingIngredients.Length == 0 ? "" : P("Missing: ", "缺少：") + s.MissingIngredients;
+        OperatorPromptText.Text = s.OperatorPrompt;
 
+        HarvestBtn.IsEnabled = s.CanHarvest;
+        CollectBtn.IsEnabled = s.CanCollectDairy;
+        MillBtn.IsEnabled = s.CanMillWheat;
+        RefineBtn.IsEnabled = s.CanRefineSugar;
+        ChurnBtn.IsEnabled = s.CanChurnButter;
         StartBatchBtn.IsEnabled = s.CanStartBatch;
-        CleanBtn.IsEnabled = !s.CipActive;
+        AdvanceStageBtn.IsEnabled = s.CanAdvanceStage;
+        CleanBtn.IsEnabled = !s.CipActive && s.Stage == CakeBatchStage.Idle;
     }
 
     private void RecipeBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -177,13 +195,16 @@ public sealed partial class CakeFactoryModule : Page
             LineSliderLabel.Text = $"{P("Line speed", "生產速度")}: {e.NewValue:0}%";
     }
 
-    private void AutoHarvestSwitch_Toggled(object sender, RoutedEventArgs e) => _sim.AutoHarvest = AutoHarvestSwitch.IsOn;
-    private void AutoBatchSwitch_Toggled(object sender, RoutedEventArgs e) => _sim.AutoBatch = AutoBatchSwitch.IsOn;
-
     private void StartBatch_Click(object sender, RoutedEventArgs e)
     {
         bool ok = _sim.TryStartBatch(out var message);
         Notify(ok ? InfoBarSeverity.Success : InfoBarSeverity.Warning, ok ? P("Batch started", "已開批") : P("Cannot start", "未能開批"), message);
+    }
+
+    private void AdvanceStage_Click(object sender, RoutedEventArgs e)
+    {
+        bool ok = _sim.TryAdvanceStage(out var message);
+        Notify(ok ? InfoBarSeverity.Success : InfoBarSeverity.Warning, ok ? P("Step released", "工序已放行") : P("Release blocked", "放行受阻"), message);
     }
 
     private void Clean_Click(object sender, RoutedEventArgs e)
@@ -195,6 +216,26 @@ public sealed partial class CakeFactoryModule : Page
     private void Harvest_Click(object sender, RoutedEventArgs e)
     {
         Notify(InfoBarSeverity.Success, P("Harvest complete", "收成完成"), _sim.HarvestNow());
+    }
+
+    private void Collect_Click(object sender, RoutedEventArgs e)
+    {
+        Notify(InfoBarSeverity.Success, P("Barn collected", "畜舍已收集"), _sim.CollectDairyAndEggs());
+    }
+
+    private void Mill_Click(object sender, RoutedEventArgs e)
+    {
+        Notify(InfoBarSeverity.Success, P("Mill run complete", "磨粉完成"), _sim.MillWheat());
+    }
+
+    private void Refine_Click(object sender, RoutedEventArgs e)
+    {
+        Notify(InfoBarSeverity.Success, P("Sugar refined", "煉糖完成"), _sim.RefineSugar());
+    }
+
+    private void Churn_Click(object sender, RoutedEventArgs e)
+    {
+        Notify(InfoBarSeverity.Success, P("Butter churned", "牛油製成"), _sim.ChurnButter());
     }
 
     private void OpenReactor_Click(object sender, RoutedEventArgs e) => Navigator.GoToModule?.Invoke("module.reactor");
@@ -209,10 +250,20 @@ public sealed partial class CakeFactoryModule : Page
 
     private void DrawScene(CakeFactorySnapshot s)
     {
-        var c = SceneCanvas;
-        c.Children.Clear();
+        var host = SceneCanvas;
+        host.Width = SceneDisplayWidth;
+        host.Height = SceneDisplayHeight;
+        host.Children.Clear();
 
-        AddRect(c, 0, 0, 1180, 520, C(255, 18, 24, 29));
+        var c = new Canvas
+        {
+            Width = SceneDesignWidth,
+            Height = SceneDesignHeight,
+            RenderTransform = new ScaleTransform { ScaleX = SceneScale, ScaleY = SceneScale },
+        };
+        host.Children.Add(c);
+
+        AddRect(c, 0, 0, SceneDesignWidth, SceneDesignHeight, C(255, 18, 24, 29));
         AddRect(c, 16, 16, 1148, 488, C(255, 28, 34, 39), 18, 1, C(255, 62, 70, 75));
         DrawPowerBus(c, s);
         DrawFarm(c, s);
@@ -325,6 +376,12 @@ public sealed partial class CakeFactoryModule : Page
         DrawConveyor(c, 646, 338, 398, s);
         DrawConveyor(c, 646, 430, 420, s);
         DrawCakesOnLine(c, s);
+
+        if (s.StageReadyForOperator)
+        {
+            AddRect(c, 828, 166, 252, 40, C(255, 70, 44, 24), 8, 1, C(255, 248, 176, 80));
+            AddText(c, 844, 178, "OPERATOR RELEASE REQUIRED", 13, C(255, 255, 226, 166), FontWeights.Bold);
+        }
     }
 
     private void DrawHopper(Canvas c, double x, double y, string label, Color fill)
@@ -435,7 +492,8 @@ public sealed partial class CakeFactoryModule : Page
         AddRect(c, 44, 474, 1078, 20, C(255, 18, 22, 25), 8, 1, C(255, 58, 64, 70));
         double powerW = 360 * s.PowerAvailability;
         AddRect(c, 52, 480, powerW, 8, s.PowerAvailability > 0.95 ? C(255, 75, 205, 122) : C(255, 222, 165, 72), 4);
-        AddText(c, 430, 476, $"POWER {s.PowerAvailability * 100:0}%   {s.StageName}   HACCP {s.HaccpStatus}   QA {s.QualityScore:0}%", 12, C(255, 224, 230, 235), FontWeights.SemiBold);
+        string gate = s.StageReadyForOperator ? "RELEASE HOLD" : "manual";
+        AddText(c, 430, 476, $"POWER {s.PowerAvailability * 100:0}%   {s.StageName}   {gate}   HACCP {s.HaccpStatus}   QA {s.QualityScore:0}%", 12, C(255, 224, 230, 235), FontWeights.SemiBold);
     }
 
     private void DrawCow(Canvas c, double x, double y, double power)
