@@ -859,6 +859,13 @@ public sealed partial class MainWindow : Window
             case "winget-suggest":
                 Navigator.GoToModule?.Invoke("module.cmdnotfound");
                 break;
+            case "cake":
+            case "cakefactory":
+            case "bakery":
+            case "farm":
+            case "ingredients":
+                Navigator.GoToModule?.Invoke("module.cakefactory");
+                break;
             case "reactor":
             case "nuclear":
             case "npp":
@@ -958,6 +965,7 @@ public sealed partial class MainWindow : Window
     {
         "module.reactor" => typeof(ReactorModule),
         "module.reactorsettings" => typeof(ReactorSettingsModule),
+        "module.cakefactory" => typeof(CakeFactoryModule),
         "module.git" => typeof(GitHubModule),
         "module.vscode" => typeof(VsCodeModule),
         "module.aiagents" => typeof(AiAgentsModule),
