@@ -5,16 +5,11 @@
 // this console harness exercises only the headless-safe engine code and dependent simulators.
 //
 // IMPORTANT FINDING (drives several test designs below):
-//   A fresh core taken OUT of Shutdown (Mode=Startup/Run) is PROMPT-SUPERCRITICAL on the very first
-//   tick — even with all four rod banks fully inserted. Cold-temperature feedbacks (Doppler datum
-//   600°C, MTC datum 305°C, both far above the 35°C cold core) plus the +0.0914 dk/k ExcessBaseline
-//   give rho ≈ +5300 pcm at t=0, so power slams the 50× numerical clamp and the core melts down in
-//   ~one tick. This is the known P1-P3 calibration work ("physics runs away once started"). The
-//   engine is still NUMERICALLY stable (no NaN/Inf, backward-Euler does not oscillate) — it is the
-//   reactivity CALIBRATION that is wrong. Tests that need "sustained stable at-power" therefore
-//   cannot reach it; they assert the deterministic mechanism (SCRAM action, decay-heat charge, xenon
-//   ODE) in a way that does not depend on a stable power plateau, and the runaway is reported as a
-//   first-class finding rather than hidden.
+//   Startup mode must not by itself make a cold, fully-rodded core prompt-supercritical. The reactivity
+//   baseline is calibrated so nominal boron with rods withdrawn is the hot-reference critical point,
+//   while fully inserted rods provide shutdown margin during a fresh startup. Tests that need sustained
+//   full-power operation still avoid assuming a perfect power plateau; they assert deterministic
+//   mechanisms (SCRAM action, decay-heat charge, xenon ODE) directly.
 //
 // RULES honoured here:
 //   * No multi-hundred-MB files are ever written. The waste-cap test seeds a SPARSE 1.2 GB file
@@ -110,7 +105,7 @@ internal static class Program
                           $"maxPower={maxPower:E2}, fuelT={r.FuelTemp:F1}°C, meltdown={r.MeltdownTriggered}");
         });
 
-        // ---- STARTUP STABILITY (numerical: backward-Euler) + runaway documentation ----
+        // ---- STARTUP STABILITY (numerical: backward-Euler) ----
         Scenario("STARTUP STABILITY (backward-Euler: no NaN/Inf, no sign oscillation)", () =>
         {
             var r = new ReactorSimService();
@@ -122,7 +117,7 @@ internal static class Program
             int signFlips = 0; double prevDelta = 0, prev = r.NeutronPowerFraction;
             for (int step = 0; step < 600; step++)
             {
-                double insertion = Math.Max(0, 100 - step * 0.18); // gradual rod withdrawal
+                double insertion = Math.Max(70, 100 - step * 0.05); // gradual startup-bank withdrawal
                 for (int b = 0; b < r.RodBankInsertion.Length; b++) r.SetRodBank(b, insertion);
                 r.Update(dt);
                 double p = r.NeutronPowerFraction;
@@ -133,37 +128,33 @@ internal static class Program
                     Math.Sign(delta) != Math.Sign(prevDelta) && Math.Abs(delta) > 0.01) signFlips++;
                 prevDelta = delta; prev = p;
             }
-            // The genuine backward-Euler claim: stays FINITE and does not oscillate sign-to-sign.
-            bool pass = !everNonFinite && signFlips < 20 && Finite(r.NeutronPowerFraction);
-            string note = hitClamp
-                ? "  (NOTE: power reached the 50× clamp — the EXPECTED P1-P3 runaway; numerics still stable.)"
-                : "";
-            return (pass, $"finiteOK={!everNonFinite}, signFlips={signFlips}, reachedClamp(runaway)={hitClamp}, " +
-                          $"finalPower={r.NeutronPowerFraction:E3}, rho={r.ReactivityPcm:F0}pcm.{note}");
+            // The genuine backward-Euler claim: stays finite and does not run away.
+            bool pass = !everNonFinite && !hitClamp && r.Mode != ReactorMode.Meltdown && Finite(r.NeutronPowerFraction);
+            return (pass, $"finiteOK={!everNonFinite}, signFlips={signFlips}, reachedClamp={hitClamp}, " +
+                          $"finalPower={r.NeutronPowerFraction:E3}, rho={r.ReactivityPcm:F0}pcm.");
         });
 
-        // ---- KNOWN BUG: prompt-supercritical the instant it leaves Shutdown ----
-        Scenario("KNOWN P1-P3 BUG: fresh core melts down on first tick out of Shutdown", () =>
+        // ---- STARTUP MODE ALONE DOES NOT INSERT POSITIVE REACTIVITY ----
+        Scenario("STARTUP MODE: fresh fully-rodded core stays subcritical", () =>
         {
             var r = new ReactorSimService();
-            r.SetMode(ReactorMode.Run); // rods still 100% inserted, cold, no operator action
+            r.SetMode(ReactorMode.Startup); // rods still 100% inserted, cold, no operator action
             double rhoAtStart, pAfter1; ReactorMode modeAfter;
             r.Update(0.1);
             rhoAtStart = r.ReactivityPcm; pAfter1 = r.NeutronPowerFraction; modeAfter = r.Mode;
             for (int i = 0; i < 50; i++) r.Update(0.1);
-            // This scenario DOCUMENTS the bug: with all rods IN it should be deeply subcritical, but it
-            // is supercritical and melts. We mark it PASS only in the sense "the bug is reproduced".
-            bool reproduced = rhoAtStart > 0 && (modeAfter == ReactorMode.Meltdown || r.Mode == ReactorMode.Meltdown);
-            return (reproduced, $"BUG REPRODUCED={reproduced}: rho@t=0.1 with ALL RODS IN = {rhoAtStart:F0} pcm (>0 ⇒ supercritical!), " +
-                                $"power@t=0.1={pAfter1:E2}, mode→{r.Mode}, dmg={r.DamageAccumulation:F0}. Expected: deeply subcritical, no power.");
+            bool stayedSubcritical = rhoAtStart < -1000 && pAfter1 < 1e-3
+                                     && modeAfter == ReactorMode.Startup
+                                     && r.Mode != ReactorMode.Meltdown
+                                     && !r.MeltdownTriggered;
+            return (stayedSubcritical, $"rho@t=0.1 with ALL RODS IN = {rhoAtStart:F0} pcm, " +
+                                       $"power@t=0.1={pAfter1:E2}, mode→{r.Mode}, dmg={r.DamageAccumulation:F0}, " +
+                                       $"meltdown={r.MeltdownTriggered}");
         });
 
         // ---- SCRAM (deterministic mechanism: trip latches, release delay, gravity rod drop) ----
         // NOTE: we assert the SCRAM MECHANISM. Rods no longer snap fully in synchronously; StepRodDrop
-        // models the breaker/gripper release delay and gravity insertion over the next few ticks. We deliberately do
-        // NOT require power to stay shut down over time, because the Tripped mode still runs the kinetics
-        // branch and the same cold-temperature positive-feedback calibration bug then drives a tripped,
-        // FULLY-RODDED core supercritical — a downstream symptom reported in its own finding below.
+        // models the breaker/gripper release delay and gravity insertion over the next few ticks.
         Scenario("SCRAM (mechanism: trip latch, release delay, rods start dropping)", () =>
         {
             var r = new ReactorSimService();
@@ -186,35 +177,28 @@ internal static class Program
                           $"(delayHeld={releaseDelayHeld}, motion={sawMotion}), mode→{r.Mode} (Tripped={tripped}), IsScrammed={scrammed}");
         });
 
-        // ---- DOWNSTREAM SYMPTOM: a tripped, fully-rodded core is still supercritical → meltdown ----
-        Scenario("KNOWN P1-P3 SYMPTOM: tripped fully-rodded core still melts down", () =>
+        // ---- SCRAM SHUTDOWN MARGIN ----
+        Scenario("SCRAM: tripped fully-rodded core stays subcritical", () =>
         {
             var r = new ReactorSimService();
             r.Scram(); // rods 100% in, Mode=Tripped
             bool wentMeltdown = false;
             for (int i = 0; i < 600; i++) { r.Update(0.1); if (r.Mode == ReactorMode.Meltdown) { wentMeltdown = true; break; } }
-            // Reproducing the symptom is the "pass" here (it documents the bug deterministically).
-            return (wentMeltdown, $"SYMPTOM REPRODUCED={wentMeltdown}: after Scram() (all rods IN, Tripped) the kinetics " +
-                                  $"branch still runs and the core reaches mode={r.Mode}, dmg={r.DamageAccumulation:F0}. " +
-                                  $"A real SCRAM must hold the core subcritical.");
+            bool pass = !wentMeltdown && r.IsScrammed && r.Mode == ReactorMode.Tripped && r.ReactivityPcm < -1000;
+            return (pass, $"after Scram() all rods IN: mode={r.Mode}, rho={r.ReactivityPcm:F0} pcm, " +
+                          $"dmg={r.DamageAccumulation:F0}, meltdown={wentMeltdown}");
         });
 
         // ---- DECAY HEAT (charges with power, then decays after the power source is removed) ----
         Scenario("DECAY HEAT (charges while power present, decays after trip)", () =>
         {
             var r = new ReactorSimService();
-            r.SetMode(ReactorMode.Run); // brief excursion charges the decay-heat groups
+            r.SetMode(ReactorMode.Run); // controlled low-power rise charges the decay-heat groups
+            for (int b = 0; b < r.RodBankInsertion.Length; b++) r.SetRodBank(b, 70.0);
             double dt = 0.1;
             double decayPeak = 0;
             for (int i = 0; i < 50; i++) { r.Update(dt); decayPeak = Math.Max(decayPeak, r.DecayHeatFraction); }
-            // It will have melted (per the known bug); decay heat keeps being modelled in meltdown too.
-            double decayAtPeakArea = r.DecayHeatFraction;
             r.Scram();
-            // In Meltdown the decay-heat charge continues from the molten core; to see DECAY we need the
-            // fission source gone. Use Reset→Shutdown path: charge groups manually via a short Startup
-            // excursion already done; now drive _power to source by holding Shutdown and watch groups fall.
-            // Simpler robust check: decay heat became POSITIVE (charged), and over a long window with
-            // power collapsed it does not keep rising unbounded (clamped, decaying envelope).
             double dStart = r.DecayHeatFraction;
             for (int i = 0; i < 6000; i++) r.Update(dt); // 600 s
             double dEnd = r.DecayHeatFraction;
@@ -659,9 +643,7 @@ internal static class Program
             bool valveGate = availValveShut == 0.0;
             bool pass = availDropped && lowTankAlarm && valveGate;
             return (pass, $"avail full={availFull:F2}→drained={availMid:F2} (dropped={availDropped}), lowTankAlarm={lowTankAlarm}, " +
-                          $"valveShut→avail={availValveShut:F2} (gate={valveGate}). " +
-                          $"NOTE: the REACTOR-side makeup coupling (UpdateMakeupWater: pzr/SG sag, LowMakeupAlarm) " +
-                          $"lives in the at-power Update() branch, which the P1-P3 runaway prevents from being held headlessly.");
+                          $"valveShut→avail={availValveShut:F2} (gate={valveGate}).");
         });
     }
 

@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -36,11 +37,21 @@ public sealed class ReactorHtmlWindow : Window
     // that is roughly one waste file every ~4 minutes of operation, so burning fuel visibly
     // accumulates real nuclear waste on disk.
     private const double WasteEveryMwd = 10.0;
+    private static readonly TimeSpan AuxWorkInterval = TimeSpan.FromSeconds(1);
+    private static readonly TimeSpan StatePostInterval = TimeSpan.FromMilliseconds(200);
+    private static readonly TimeSpan ChecklistPostInterval = TimeSpan.FromMilliseconds(500);
     private readonly WebView2 _web = new();
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(100) }; // 10 Hz
     private readonly OverlappedPresenter _presenter = OverlappedPresenter.Create();
     private DateTime _last = DateTime.UtcNow;
+    private DateTime _lastAuxWorkUtc = DateTime.MinValue;
+    private DateTime _lastStatePostUtc = DateTime.MinValue;
+    private DateTime _lastChecklistPostUtc = DateTime.MinValue;
     private double _simClock;
+    private bool _fuelCanRun;
+    private bool _wasteCapReached;
+    private bool _wasteRunback;
+    private int _auxWorkInFlight;
     private bool _webReady;
     private bool _initializing;
     private bool _full;
@@ -157,8 +168,9 @@ public sealed class ReactorHtmlWindow : Window
         if (dt <= 0 || dt > 1.0) dt = 0.1;
         _simClock += dt;
 
-        // Fuel-availability gate (input gating only) before advancing.
-        _sim.FuelAvailable = _fuel.CanReactorRun;
+        // Fuel/waste file-system state is refreshed asynchronously; keep the hot 10 Hz UI tick light.
+        ScheduleAuxWork(now);
+        _sim.FuelAvailable = _fuelCanRun;
 
         // ---- WASTE CAP controller: runback then mandate shutdown + block operation ----
         ApplyWasteFullControl(dt);
@@ -170,39 +182,98 @@ public sealed class ReactorHtmlWindow : Window
         _sim.MakeupWaterAvailability = _water.Availability();
         _sim.MakeupWaterInSpec = _water.InSpec();
 
-        // Accrue burnup onto loaded assemblies and re-sign on disk; collect any newly-spent assemblies.
-        // The main ReactorModule owns physics stepping. This view only applies auxiliary gates
-        // and mirrors the current snapshot, so opening the control room cannot multiply sim ticks.
-        var newlySpent = _fuel.AccrueBurnup(_sim.ThermalPowerMW, dt);
-
-        // MANDATORY nuclear waste: burning fuel produces real junk files. Trigger on burnup
-        // milestones (every WasteEveryMwd of whole-core energy) and whenever an assembly becomes spent.
-        if (_sim.ThermalPowerMW > 0)
-        {
-            double mwdThisTick = _sim.ThermalPowerMW * dt / 86400.0;
-            _mwdSinceLastWaste += mwdThisTick;
-            if (_mwdSinceLastWaste >= WasteEveryMwd && !_waste.IsGenerating)
-            {
-                _mwdSinceLastWaste = 0;
-                // Scale waste size by energy produced this milestone into the [100MB, 2000MB] band.
-                long target = NuclearWasteService.MinWasteBytes
-                    + (long)(Math.Clamp(_sim.ThermalPowerMW / ReactorSimService.RatedThermalMW, 0, 1)
-                             * (NuclearWasteService.MaxWasteBytes - NuclearWasteService.MinWasteBytes));
-                _waste.GenerateWaste(target);
-            }
-        }
-        if (newlySpent.Count > 0 && !_waste.IsGenerating)
-            _waste.GenerateWaste(); // a spent assembly mandates a fresh waste file (random size)
-
         if (_webReady && _web.CoreWebView2 is not null)
         {
-            try { _web.CoreWebView2.PostWebMessageAsJson(_sim.ExportStateJson(_simClock, Loc.I.IsCantonesePrimary)); }
-            catch { }
-            try { _web.CoreWebView2.PostWebMessageAsJson(_water.ExportStateJson()); }
-            catch { }
-            try { PostStartupChecklist(); }
-            catch { }
+            if (now - _lastStatePostUtc >= StatePostInterval)
+            {
+                _lastStatePostUtc = now;
+                try { _web.CoreWebView2.PostWebMessageAsJson(_sim.ExportStateJson(_simClock, Loc.I.IsCantonesePrimary)); }
+                catch { }
+                try { _web.CoreWebView2.PostWebMessageAsJson(_water.ExportStateJson()); }
+                catch { }
+            }
+
+            if (now - _lastChecklistPostUtc >= ChecklistPostInterval)
+            {
+                _lastChecklistPostUtc = now;
+                try { PostStartupChecklist(); }
+                catch { }
+            }
         }
+    }
+
+    private void ScheduleAuxWork(DateTime nowUtc)
+    {
+        if (nowUtc - _lastAuxWorkUtc < AuxWorkInterval) return;
+        if (Interlocked.CompareExchange(ref _auxWorkInFlight, 1, 0) != 0) return;
+
+        double dt = _lastAuxWorkUtc == DateTime.MinValue
+            ? AuxWorkInterval.TotalSeconds
+            : Math.Clamp((nowUtc - _lastAuxWorkUtc).TotalSeconds, 0.1, 5.0);
+        _lastAuxWorkUtc = nowUtc;
+
+        double thermalMW = _sim.ThermalPowerMW;
+        bool generateMilestoneWaste = false;
+        long milestoneWasteBytes = NuclearWasteService.MinWasteBytes;
+        if (thermalMW > 0)
+        {
+            _mwdSinceLastWaste += thermalMW * dt / 86400.0;
+            if (_mwdSinceLastWaste >= WasteEveryMwd)
+            {
+                _mwdSinceLastWaste = 0;
+                generateMilestoneWaste = true;
+                milestoneWasteBytes = NuclearWasteService.MinWasteBytes
+                    + (long)(Math.Clamp(thermalMW / ReactorSimService.RatedThermalMW, 0, 1)
+                             * (NuclearWasteService.MaxWasteBytes - NuclearWasteService.MinWasteBytes));
+            }
+        }
+
+        _ = System.Threading.Tasks.Task.Run(() =>
+        {
+            bool canRun = false;
+            bool capReached = false;
+            bool runback = false;
+            try
+            {
+                canRun = _fuel.CanReactorRun;
+                var newlySpent = thermalMW > 0
+                    ? _fuel.AccrueBurnup(thermalMW, dt)
+                    : Array.Empty<string>();
+
+                if (generateMilestoneWaste && !_waste.IsGenerating)
+                    _waste.GenerateWaste(milestoneWasteBytes);
+                if (newlySpent.Count > 0 && !_waste.IsGenerating)
+                    _waste.GenerateWaste();
+
+                var waste = _waste.Status();
+                capReached = waste.CapReached;
+                runback = waste.RunbackZone;
+            }
+            catch (Exception ex)
+            {
+                CrashLogger.Log("reactor-html:aux-work", ex);
+            }
+            finally
+            {
+                try
+                {
+                    if (!DispatcherQueue.TryEnqueue(() =>
+                    {
+                        _fuelCanRun = canRun;
+                        _wasteCapReached = capReached;
+                        _wasteRunback = runback;
+                        Interlocked.Exchange(ref _auxWorkInFlight, 0);
+                    }))
+                    {
+                        Interlocked.Exchange(ref _auxWorkInFlight, 0);
+                    }
+                }
+                catch
+                {
+                    Interlocked.Exchange(ref _auxWorkInFlight, 0);
+                }
+            }
+        });
     }
 
     /// <summary>
@@ -212,8 +283,8 @@ public sealed class ReactorHtmlWindow : Window
     /// </summary>
     private void ApplyWasteFullControl(double dt)
     {
-        bool capReached = _waste.CapReached;
-        bool runback = _waste.RunbackZone;
+        bool capReached = _wasteCapReached;
+        bool runback = _wasteRunback;
         _sim.SpentFuelStorageFull = capReached;
 
         if (capReached)
@@ -224,9 +295,10 @@ public sealed class ReactorHtmlWindow : Window
                 "乏燃料貯存已滿 — 運轉前請先將廢料處置至上限以下。");
             // First a hard runback (cap power low), then mandate shutdown after the grace.
             _sim.ExternalPowerCap = 0.15;
-            _wasteFullGrace += dt;
+            bool operating = _sim.Mode == ReactorMode.Startup || _sim.Mode == ReactorMode.Run;
+            _wasteFullGrace = operating ? _wasteFullGrace + dt : 0.0;
             if (_wasteFullGrace >= WasteFullGraceSeconds && !_sim.IsScrammed
-                && _sim.Mode != ReactorMode.Shutdown && _sim.Mode != ReactorMode.Meltdown)
+                && operating && _sim.Mode != ReactorMode.Meltdown)
             {
                 _sim.Scram();                 // mandatory auto-SCRAM
                 _sim.SetMode(ReactorMode.Shutdown);

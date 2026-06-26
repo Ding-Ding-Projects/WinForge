@@ -2373,6 +2373,12 @@ public sealed class ReactorSimService
     {
         if (Mode == ReactorMode.Meltdown) return;
         if (m == ReactorMode.Tripped || m == ReactorMode.Meltdown) return;
+        if ((m == ReactorMode.Startup || m == ReactorMode.Run) && OperationBlocked)
+        {
+            FuelGateNoteEn = OperationBlockEn;
+            FuelGateNoteZh = OperationBlockZh;
+            return;
+        }
         Mode = m;
     }
 
@@ -4304,9 +4310,10 @@ public sealed class ReactorSimService
         // Samarium worth proportional to Sm-149 concentration (normalized so equilibrium full power = 1).
         double samariumRho = SamariumWorthFull * _sm;
 
-        // Excess reactivity from fresh-core / fuel state baseline so that the core can be made
-        // critical with rods/boron in the operating band.
-        double ExcessBaseline = 0.080 - BoronRhoTotal(NominalBoron); // brings band into reach (== legacy −BoronWorth·NominalBoron by DbwScale construction)
+        // Excess reactivity from fresh-core / fuel state baseline. At the hot reference condition,
+        // nominal boron with rods withdrawn is near critical; inserted rods then provide shutdown
+        // margin instead of leaving an all-rods-in core critical at the first Startup tick.
+        double ExcessBaseline = -BoronRhoTotal(NominalBoron);
         // Fuel-depletion (burnup) reactivity defect: the core loses excess reactivity as fissile depletes.
         // The operator restores criticality by diluting boron down the CriticalBoronPpm letdown curve, which
         // returns an equal-and-opposite +ρ via boronRho. Zero at BOL (CycleFraction 0 → CriticalBoronPpm =
