@@ -596,6 +596,14 @@ public sealed partial class MainWindow : Window
             case "smartpaste":
                 Navigator.GoToModule?.Invoke("module.advancedpaste");
                 break;
+            case "ossapps":
+            case "opensource":
+            case "open-source":
+            case "open-source-apps":
+            case "apphub":
+            case "foss":
+                Navigator.GoToModule?.Invoke("module.ossapps");
+                break;
             case "packages":
             case "winget":
             case "install":
@@ -786,6 +794,15 @@ public sealed partial class MainWindow : Window
             case "disassembler":
                 Navigator.GoToModule?.Invoke("module.decompiler");
                 break;
+            case "rss":
+            case "feed":
+            case "feeds":
+            case "feedreader":
+            case "reader":
+            case "fluentreader":
+            case "quiterss":
+                Navigator.GoToModule?.Invoke("module.feedreader");
+                break;
             case "worldmonitor":
             case "world":
             case "wm":
@@ -943,6 +960,7 @@ public sealed partial class MainWindow : Window
         "module.filezilla" => typeof(FileZillaModule),
         "module.bitwarden" => typeof(BitwardenModule),
         "module.keepass" => typeof(KeePassModule),
+        "module.feedreader" => typeof(FeedReaderModule),
         "module.quicktype" => typeof(QuickTypeModule),
         "module.aws" => typeof(AwsCliModule),
         "module.peek" => typeof(PeekModule),
@@ -1019,6 +1037,7 @@ public sealed partial class MainWindow : Window
         "module.clipboard" => typeof(ClipboardModule),
         "module.advancedpaste" => typeof(AdvancedPasteModule),
         "module.packages" => typeof(PackageManagerModule),
+        "module.ossapps" => typeof(OpenSourceAppHubModule),
         "module.adb" => typeof(AndroidAdbModule),
         "module.fastboot" => typeof(FastbootModule),
         "module.emulator" => typeof(EmulatorModule),

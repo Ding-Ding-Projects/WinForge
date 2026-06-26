@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.FeedReaderModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:automation="using:Microsoft.UI.Xaml.Automation"
+    mc:Ignorable="d">
+
+    <Grid Padding="24,16,24,16" RowSpacing="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Spacing="6">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <FontIcon FontSize="24" Glyph="&#xE8A7;" VerticalAlignment="Center" />
+                <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
+            </StackPanel>
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+        </StackPanel>
+
+        <Grid Grid.Row="1" ColumnSpacing="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBox
+                x:Name="FeedUrlBox"
+                Grid.Column="0"
+                automation:AutomationProperties.Name="Feed URL · Feed 網址" />
+            <Button
+                x:Name="AddFeedBtn"
+                Grid.Column="1"
+                Click="AddFeed_Click"
+                Style="{StaticResource AccentButtonStyle}"
+                automation:AutomationProperties.Name="Add feed · 新增 Feed">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <FontIcon FontSize="14" Glyph="&#xE710;" />
+                    <TextBlock x:Name="AddFeedLabel" />
+                </StackPanel>
+            </Button>
+            <Button
+                x:Name="RefreshBtn"
+                Grid.Column="2"
+                Click="Refresh_Click"
+                automation:AutomationProperties.Name="Refresh feeds · 重新整理 Feed">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <FontIcon FontSize="14" Glyph="&#xE72C;" />
+                    <TextBlock x:Name="RefreshLabel" />
+                </StackPanel>
+            </Button>
+            <Button
+                x:Name="RemoveFeedBtn"
+                Grid.Column="3"
+                Click="RemoveFeed_Click"
+                automation:AutomationProperties.Name="Remove selected feed · 移除已選 Feed">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <FontIcon FontSize="14" Glyph="&#xE74D;" />
+                    <TextBlock x:Name="RemoveLabel" />
+                </StackPanel>
+            </Button>
+            <ProgressRing x:Name="Busy" Grid.Column="4" Width="24" Height="24" IsActive="False" VerticalAlignment="Center" />
+        </Grid>
+
+        <Grid Grid.Row="2" ColumnSpacing="12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="320" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Border
+                Grid.Column="0"
+                Padding="12"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <Grid RowSpacing="8">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <TextBlock x:Name="FeedsHeader" FontWeight="SemiBold" />
+                    <ListView
+                        x:Name="FeedList"
+                        Grid.Row="1"
+                        SelectionChanged="FeedList_SelectionChanged"
+                        SelectionMode="Single"
+                        automation:AutomationProperties.Name="Subscribed feeds · 已訂閱 Feed">
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="ListViewItem">
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            </Style>
+                        </ListView.ItemContainerStyle>
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Spacing="2">
+                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding Url}" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </Grid>
+            </Border>
+
+            <Grid Grid.Column="1" RowSpacing="8">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="260" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <InfoBar x:Name="StatusBar" Grid.Row="0" IsClosable="True" IsOpen="False" />
+
+                <Border
+                    Grid.Row="1"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8">
+                    <ListView
+                        x:Name="ArticleList"
+                        SelectionChanged="ArticleList_SelectionChanged"
+                        SelectionMode="Single"
+                        automation:AutomationProperties.Name="Feed articles · Feed 文章">
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="ListViewItem">
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                <Setter Property="Padding" Value="12,8,12,8" />
+                            </Style>
+                        </ListView.ItemContainerStyle>
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Spacing="2">
+                                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding FeedTitle}" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="1" Text="{Binding PublishedLabel}" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </Border>
+
+                <Border
+                    Grid.Row="2"
+                    Padding="14"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8">
+                    <Grid RowSpacing="8">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="ArticleTitle" Grid.Column="0" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" />
+                            <Button x:Name="CopyLinkBtn" Grid.Column="1" Click="CopyLink_Click">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <FontIcon FontSize="14" Glyph="&#xE8C8;" />
+                                    <TextBlock x:Name="CopyLinkLabel" />
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+                        <TextBlock x:Name="ArticleMeta" Grid.Row="1" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                            <TextBlock x:Name="ArticleSummary" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+    </Grid>
+</Page>

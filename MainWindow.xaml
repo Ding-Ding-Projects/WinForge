@@ -171,6 +171,7 @@
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE71D;" /></NavigationViewItem.Icon>
                     <NavigationViewItem.MenuItems>
                         <NavigationViewItem Content="Package Manager · 套件管理" Tag="module.packages"><NavigationViewItem.Icon><FontIcon Glyph="&#xECAA;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Native OSS Clones · 開源原生分頁" Tag="module.ossapps"><NavigationViewItem.Icon><FontIcon Glyph="&#xE71D;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Android (ADB) · Android（ADB）" Tag="module.adb"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8EA;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Fastboot / Flasher · Fastboot／刷機" Tag="module.fastboot"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7BA;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Android Emulator · Android 模擬器" Tag="module.emulator"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8EA;" /></NavigationViewItem.Icon></NavigationViewItem>
@@ -212,6 +213,7 @@
                         <NavigationViewItem Content="FTP / SFTP · FTP／SFTP 檔案傳輸" Tag="module.filezilla"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8B7;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Bitwarden Vault · Bitwarden 密碼庫" Tag="module.bitwarden"><NavigationViewItem.Icon><FontIcon Glyph="&#xE72E;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="KeePass Vault · 密碼保險庫" Tag="module.keepass"><NavigationViewItem.Icon><FontIcon Glyph="&#xE192;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Feed Reader · RSS 閱讀器" Tag="module.feedreader"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A7;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="quicktype · JSON 轉型別" Tag="module.quicktype"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content=".NET Decompiler · .NET 反編譯器" Tag="module.decompiler"><NavigationViewItem.Icon><FontIcon Glyph="&#xEC4F;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="AWS CLI · AWS 命令列" Tag="module.aws"><NavigationViewItem.Icon><FontIcon Glyph="&#xE753;" /></NavigationViewItem.Icon></NavigationViewItem>

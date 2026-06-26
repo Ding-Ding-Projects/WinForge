@@ -18,6 +18,20 @@ Open in-app: `WinForge.exe --page packages`
 
 ![Package Manager](images/screenshot-packages.png)
 
+## Native OSS Clones · 開源原生分頁
+
+A native-only index of open-source app ideas already remade as WinForge C# tabs. No installer-only entries and no external app launchers. · 只限原生嘅索引，列出已重製成 WinForge C# 分頁嘅開源 app 想法。無純安裝項目，亦無外部 app 啟動器。
+
+Open in-app: `WinForge.exe --page ossapps`
+
+Included native clone examples: API Client, Diff & Merge, Diagram Editor, .NET Decompiler, SQLite Browser, Feed Reader, Flashcards, PDF Toolkit, Audio Tagger, Image Editor, Text Extractor, KeePass Vault, Native Torrent, Docker, Process Explorer, Disk Health, Disk Benchmark and Everything Search. · 原生複製例子包括 API 用戶端、比對與合併、圖表編輯器、.NET 反編譯器、SQLite 瀏覽器、RSS 閱讀器、記憶卡、PDF 工具箱、音訊標籤、影像編輯、文字辨識、KeePass 保險庫、原生種子下載、Docker、程序總管、硬碟健康、硬碟測速同即時檔案搜尋。
+
+## Feed Reader · RSS 閱讀器
+
+Native QuiteRSS/Fluent Reader-style RSS and Atom reader with local JSON subscriptions, HttpClient refresh and in-app article summaries. · 原生 QuiteRSS／Fluent Reader 式 RSS 同 Atom 閱讀器，使用本機 JSON 訂閱、HttpClient 重新整理同 app 內文章摘要。
+
+Open in-app: `WinForge.exe --page rss`
+
 ## App Uninstaller · 應用程式解除安裝
 
 Remove apps and Appx packages via winget. · 用 winget 移除應用程式同 Appx 套件。
@@ -54,7 +68,7 @@ Open in-app: `WinForge.exe --page emulator`
 
 Drive the qBittorrent Web API for torrents. · 驅動 qBittorrent Web API 做種子下載。
 
-Open in-app: `WinForge.exe --page vault`
+Open in-app: `WinForge.exe --page qbittorrent`
 
 ![qBittorrent](images/screenshot-vault.png)
 

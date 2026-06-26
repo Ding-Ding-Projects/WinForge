@@ -5,7 +5,7 @@
 **An all-in-one, fully bilingual Windows 11 control center — every module is real and working — crowned by a hyper-realistic flagship nuclear-reactor simulator.**
 **一個全方位、全程雙語嘅 Windows 11 控制中心 — 每個模組都係真正用得 — 仲有一個超寫實嘅旗艦核反應堆模擬器坐鎮。**
 
-`WinUI 3 · .NET 11` · `English + 繁體中文／粵語` · `x64` · `100+ in-app modules` · `everything runs in-app`
+`WinUI 3 · .NET 11` · `English + 繁體中文／粵語` · `x64` · `137 in-app modules` · `everything runs in-app`
 
 </div>
 
@@ -13,9 +13,9 @@
 
 ## 🌏 Overview · 概覽
 
-**EN —** WinForge is an all-in-one, fully bilingual control center for Windows 11. It gathers 100+ real, working modules — system tweaking, files & disks, media & capture, developer tooling, networking, package management, AI, window management, PowerToys-style utilities, security vaults, virtualization and gaming — into a single **WinUI 3 / .NET 11** app where every English label is paired with **繁體中文／粵語** and every action actually changes the system. Its flagship is a **hyper-realistic Pressurized Water Reactor (PWR) control-room simulator** with full point-kinetics physics, a fuel-and-waste fuel cycle, a water-treatment plant, and Westinghouse-style safety systems.
+**EN —** WinForge is an all-in-one, fully bilingual control center for Windows 11. It gathers 137 real, working modules — system tweaking, files & disks, media & capture, developer tooling, networking, package management, AI, window management, PowerToys-style utilities, security vaults, virtualization and gaming — into a single **WinUI 3 / .NET 11** app where every English label is paired with **繁體中文／粵語** and every action actually changes the system. Its flagship is a **hyper-realistic Pressurized Water Reactor (PWR) control-room simulator** with full point-kinetics physics, a fuel-and-waste fuel cycle, a water-treatment plant, and Westinghouse-style safety systems.
 
-**粵語 —** WinForge 係一個畀 Windows 11 用嘅全方位、全程雙語控制中心。佢將 100+ 個真正用得嘅模組 — 系統調校、檔案與磁碟、媒體與擷取、開發者工具、網絡、套件管理、AI、視窗管理、PowerToys 式工具、安全保險庫、虛擬化同遊戲 — 全部集合喺一個 **WinUI 3 / .NET 11** app 入面，每個英文標籤都配上**繁體中文／粵語**，而且每個動作都真正改到部機。佢嘅旗艦係一個**超寫實壓水堆（PWR）控制室模擬器**，附完整點動力學物理、燃料與廢料燃料循環、水處理廠同西屋式保護系統。
+**粵語 —** WinForge 係一個畀 Windows 11 用嘅全方位、全程雙語控制中心。佢將 137 個真正用得嘅模組 — 系統調校、檔案與磁碟、媒體與擷取、開發者工具、網絡、套件管理、AI、視窗管理、PowerToys 式工具、安全保險庫、虛擬化同遊戲 — 全部集合喺一個 **WinUI 3 / .NET 11** app 入面，每個英文標籤都配上**繁體中文／粵語**，而且每個動作都真正改到部機。佢嘅旗艦係一個**超寫實壓水堆（PWR）控制室模擬器**，附完整點動力學物理、燃料與廢料燃料循環、水處理廠同西屋式保護系統。
 
 ---
 
@@ -61,7 +61,7 @@ dotnet publish WinForge.csproj -c Release -p:Platform=x64 -r win-x64 ^
 ## ✨ Highlights · 重點
 
 **EN —**
-- **All-in-one control center** — 100+ modules in one app; nothing redirects to external windows, everything runs in-app. · **全方位控制中心** — 一個 app 過百模組；唔會跳去外部視窗，一切喺 app 內運行。
+- **All-in-one control center** — 137 modules in one app; OSS-inspired additions are remade as native WinForge tabs instead of installer-only launchers. · **全方位控制中心** — 一個 app 有 137 個模組；受開源 app 啟發嘅新增功能會重製成 WinForge 原生分頁，而唔係只做安裝／啟動器。
 - **Fully bilingual** — English and 繁體中文／粵語 appear together on every surface; choose which language leads, UI updates live. · **全程雙語** — 每個介面同時顯示英文同繁體中文／粵語；可揀邊種語言排前，介面即時更新。
 - **Real engines, real effects** — wraps git/gh, ffmpeg, 7-Zip, yt-dlp, cloudflared, winget, libVLC, Docker and more, plus native Windows APIs — no fake toggles. · **真實引擎、真實效果** — 包住 git/gh、ffmpeg、7-Zip、yt-dlp、cloudflared、winget、libVLC、Docker 等同原生 Windows API — 冇假開關。
 - **Master search** — find and launch any module from the Dashboard. · **總搜尋** — 喺概覽頁搵到同啟動任何模組。
@@ -209,11 +209,13 @@ dotnet publish WinForge.csproj -c Release -p:Platform=x64 -r win-x64 ^
 |---|---|---|
 | **Git & GitHub · Git 與 GitHub** | Multi-repo workbench for git and gh operations with a chunked uploader. <br> 多儲存庫工作台，操作 git 同 gh，附分塊上傳器。 | `git` |
 | **Package Manager · 套件管理** | One front-end over winget, scoop, choco, pip, npm and more. <br> 統一前端操作 winget、scoop、choco、pip、npm 等。 | `packages` |
+| **Native OSS Clones · 開源原生分頁** | Map of open-source app ideas remade as native C# WinForge tabs. <br> 將開源 app 想法重製成 WinForge 原生 C# 分頁嘅索引。 | `ossapps` |
+| **Feed Reader · RSS 閱讀器** | Native RSS/Atom reader inspired by QuiteRSS and Fluent Reader. <br> 受 QuiteRSS 同 Fluent Reader 啟發嘅原生 RSS／Atom 閱讀器。 | `rss` |
 | **App Uninstaller · 應用程式解除安裝** | Remove apps and Appx packages via winget. <br> 用 winget 移除應用程式同 Appx 套件。 | `uninstall` |
 | **Android (ADB) · Android（ADB）** | adb devices, APK install, shell, logcat and scrcpy mirroring. <br> adb 裝置、安裝 APK、shell、logcat 同 scrcpy 鏡像。 | `adb` |
 | **Fastboot / Flasher · Fastboot／刷機** | Unlock bootloaders and flash factory/boot images. <br> 解鎖 bootloader 同刷入原廠／boot 映像。 | `fastboot` |
 | **Android Emulator & SDK · Android 模擬器與 SDK** | Manage AVDs and the Android SDK manager. <br> 管理 AVD 虛擬裝置同 Android SDK 管理員。 | `emulator` |
-| **qBittorrent · 種子下載** | Drive the qBittorrent Web API for torrents. <br> 驅動 qBittorrent Web API 做種子下載。 | `vault` |
+| **qBittorrent · 種子下載** | Drive the qBittorrent Web API for torrents. <br> 驅動 qBittorrent Web API 做種子下載。 | `qbittorrent` |
 | **Native Torrent · 原生種子下載** | In-process managed BitTorrent engine for magnets and downloads. <br> 內建受控 BitTorrent 引擎，處理磁力同下載。 | `torrent` |
 | **Communications · 通訊** | Mail, Teams, Discord and Telegram deep links and quick actions. <br> 信件、Teams、Discord、Telegram 深層連結同快速動作。 | `comms` |
 | **Mail · 電郵** | IMAP/SMTP mail client with compose, reply and attachments. <br> IMAP／SMTP 電郵客戶端，可撰寫、回覆同附件。 | `mail` |
