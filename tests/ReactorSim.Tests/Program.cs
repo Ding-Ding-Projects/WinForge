@@ -792,9 +792,10 @@ internal static class Program
             bool milkProduced = after.MilkProductionLPerHour > 0
                                 && after.DairyReadyL > before.DairyReadyL
                                 && after.CowComfort > 0;
-            bool milkCollected = collected.MilkL > after.MilkL
+            bool milkCollected = collected.RawMilkL > after.RawMilkL
                                  && collected.DairyReadyL < after.DairyReadyL
-                                 && collected.MilkSourceStatus.Contains("cow", StringComparison.OrdinalIgnoreCase);
+                                 && collected.MilkSourceStatus.Contains("cow", StringComparison.OrdinalIgnoreCase)
+                                 && collected.MilkSourceStatus.Contains("pasteurization", StringComparison.OrdinalIgnoreCase);
             bool milkQaModeled = collected.BulkMilkTankC > 0
                                  && collected.MilkBacteriaCfuPerMl > 0
                                  && collected.MilkSomaticCellCountKPerMl > 0
@@ -807,6 +808,64 @@ internal static class Program
                           $"cowInputsConsumed={cowInputsConsumed}, milkProduced={milkProduced} ({after.MilkProductionLPerHour:F1} L/h), " +
                           $"milkCollected={milkCollected} ('{Trim(collect)}'), milkQaModeled={milkQaModeled} " +
                           $"({collected.BulkMilkTankC:F1}C, {collected.MilkBacteriaCfuPerMl:F0} CFU/mL)");
+        });
+
+        Scenario("CAKE MILK PASTEURIZER (raw cow milk becomes released recipe milk)", () =>
+        {
+            var cake = new CakeFactoryService { FarmIntensity = 1.0 };
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            string collect = cake.CollectDairyAndEggs();
+            TickCake(cake, fullBus, 0.5);
+            var collected = cake.Snapshot;
+
+            string start = cake.PasteurizeMilk();
+            TickCake(cake, fullBus, 1.0);
+            var running = cake.Snapshot;
+
+            TickCake(cake, fullBus, 7.0);
+            var held = cake.Snapshot;
+
+            string blockedKit = cake.StageBatchKit();
+            string release = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var released = cake.Snapshot;
+
+            bool collectionIsRawOnly = collected.RawMilkL > before.RawMilkL
+                                       && Math.Abs(collected.MilkL - before.MilkL) < 0.001
+                                       && collected.RawMilkLotId.StartsWith("RAWMILK-", StringComparison.OrdinalIgnoreCase)
+                                       && collected.RawMilkLotId != before.RawMilkLotId
+                                       && collected.TraceabilityStatus.Contains(collected.RawMilkLotId, StringComparison.OrdinalIgnoreCase);
+            bool startConsumesRaw = collected.CanPasteurizeMilk
+                                    && running.FactoryRunActive
+                                    && running.ActiveFactoryName.Contains("pasteurizer", StringComparison.OrdinalIgnoreCase)
+                                    && running.RawMilkL < collected.RawMilkL
+                                    && Math.Abs(running.MilkL - collected.MilkL) < 0.001
+                                    && start.Contains("HTST", StringComparison.OrdinalIgnoreCase);
+            bool heldForLab = !held.FactoryRunActive
+                              && held.MilkL > collected.MilkL
+                              && held.MilkLotId.StartsWith("MILK-", StringComparison.OrdinalIgnoreCase)
+                              && held.MilkLotId != collected.MilkLotId
+                              && held.PendingLabLotId == held.MilkLotId
+                              && held.PendingLabProductName.Contains("milk", StringComparison.OrdinalIgnoreCase)
+                              && held.MissingIngredients.Contains("lab release", StringComparison.OrdinalIgnoreCase)
+                              && blockedKit.Contains("lab release", StringComparison.OrdinalIgnoreCase);
+            bool telemetryModeled = held.MilkPasteurizerTemperatureC > 70
+                                    && held.MilkPasteurizationHoldSeconds >= 15
+                                    && held.MilkHomogenizerPressureBar > 100
+                                    && held.MilkMicroLogReduction >= 4.8
+                                    && held.FactoryStatus.Contains("pasteurized milk", StringComparison.OrdinalIgnoreCase);
+            bool releaseClearsHold = released.PendingLabLotId.Length == 0
+                                     && released.CanStageBatchKit
+                                     && released.MissingIngredients.Length == 0
+                                     && release.Contains("released", StringComparison.OrdinalIgnoreCase);
+            bool pass = collectionIsRawOnly && startConsumesRaw && heldForLab && telemetryModeled && releaseClearsHold;
+            return (pass, $"collectionIsRawOnly={collectionIsRawOnly} ('{Trim(collect)}'), " +
+                          $"startConsumesRaw={startConsumesRaw} ('{Trim(start)}'), heldForLab={heldForLab} " +
+                          $"(raw {collected.RawMilkL:F1}->{running.RawMilkL:F1} L, milk {collected.MilkL:F1}->{held.MilkL:F1} L, lot {held.MilkLotId}), " +
+                          $"telemetryModeled={telemetryModeled} ({held.MilkPasteurizerTemperatureC:F1}C/{held.MilkPasteurizationHoldSeconds:F1}s/{held.MilkMicroLogReduction:F1} log), " +
+                          $"releaseClearsHold={releaseClearsHold} ('{Trim(release)}')");
         });
 
         Scenario("CAKE FEED CROP HARVEST (forage and feed grain come from farm lots)", () =>
@@ -1358,10 +1417,10 @@ internal static class Program
                              && s1.SugarCropKg > s0.SugarCropKg
                              && s1.VanillaBeansKg > s0.VanillaBeansKg
                              && Math.Abs(s1.VanillaL - s0.VanillaL) < 0.001;
-            bool dairyYield = s2.MilkL > s1.MilkL && s2.Eggs > s1.Eggs;
+            bool dairyYield = s2.RawMilkL > s1.RawMilkL && s2.Eggs > s1.Eggs;
             bool flourYield = s3.FlourKg > s2.FlourKg && s3.WheatKg < s2.WheatKg;
             bool sugarYield = s4.SugarKg > s3.SugarKg && s4.SugarCropKg < s3.SugarCropKg;
-            bool butterYield = s5.ButterKg > s4.ButterKg && s5.MilkL < s4.MilkL;
+            bool butterYield = s5.ButterKg > s4.ButterKg && s5.RawMilkL < s4.RawMilkL;
             bool vanillaYield = s6.VanillaL > s5.VanillaL && s6.VanillaBeansKg < s5.VanillaBeansKg;
             bool cocoaYield = s7.CocoaKg > s6.CocoaKg && s7.CocoaBeansKg < s6.CocoaBeansKg;
             bool saltYield = s8.SaltKg > s7.SaltKg && s8.BrineL < s7.BrineL;
@@ -1804,14 +1863,16 @@ internal static class Program
 
             bool openingLotsPresent = initial.TraceabilityScorePct >= 99
                                       && initial.FlourLotId.Length > 0
+                                      && initial.RawMilkLotId.Length > 0
                                       && initial.MilkLotId.Length > 0
                                       && initial.PackagingLotId.Length > 0;
             bool receivingManifestChanged = supplied.LastSupplyManifestId.Length > 0
                                             && supplied.LastSupplyManifestId != initial.LastSupplyManifestId
                                             && supplied.TraceabilityStatus.Contains("manifest", StringComparison.OrdinalIgnoreCase);
-            bool dairyLotChanged = dairy.MilkLotId.Length > 0
+            bool dairyLotChanged = dairy.RawMilkLotId.Length > 0
                                    && dairy.EggLotId.Length > 0
-                                   && dairy.MilkLotId != initial.MilkLotId
+                                   && dairy.RawMilkLotId != initial.RawMilkLotId
+                                   && dairy.MilkLotId == initial.MilkLotId
                                    && dairy.TraceabilityStatus.Contains("trace", StringComparison.OrdinalIgnoreCase)
                                    && dairy.TraceabilityStatus.Contains("egg lot", StringComparison.OrdinalIgnoreCase);
             bool factoryOutputLotChanged = milled.FlourLotId.Length > 0

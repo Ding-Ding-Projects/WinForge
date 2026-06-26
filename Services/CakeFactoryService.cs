@@ -63,6 +63,7 @@ public sealed class CakeFactorySnapshot
     public bool CanHarvestFeedCrops { get; init; }
     public bool CanHarvestCocoa { get; init; }
     public bool CanCollectDairy { get; init; }
+    public bool CanPasteurizeMilk { get; init; }
     public bool CanMixDairyRation { get; init; }
     public bool CanWashDairyParlor { get; init; }
     public bool CanWashPoultryHouse { get; init; }
@@ -157,6 +158,7 @@ public sealed class CakeFactorySnapshot
     public string SugarCropLotId { get; init; } = "";
     public string VanillaBeanLotId { get; init; } = "";
     public string VanillaLotId { get; init; } = "";
+    public string RawMilkLotId { get; init; } = "";
     public string MilkLotId { get; init; } = "";
     public string EggLotId { get; init; } = "";
     public string FlourLotId { get; init; } = "";
@@ -179,6 +181,7 @@ public sealed class CakeFactorySnapshot
     public double FlourKg { get; init; }
     public double SugarKg { get; init; }
     public double Eggs { get; init; }
+    public double RawMilkL { get; init; }
     public double MilkL { get; init; }
     public double ButterKg { get; init; }
     public double BakingPowderKg { get; init; }
@@ -258,6 +261,8 @@ public sealed class CakeFactorySnapshot
     public double SugarCalibrationPct { get; init; }
     public double ButterConditionPct { get; init; }
     public double ButterCalibrationPct { get; init; }
+    public double MilkConditionPct { get; init; }
+    public double MilkCalibrationPct { get; init; }
     public double VanillaConditionPct { get; init; }
     public double VanillaCalibrationPct { get; init; }
     public double CocoaConditionPct { get; init; }
@@ -278,6 +283,10 @@ public sealed class CakeFactorySnapshot
     public double FlourExtractionPct { get; init; }
     public double SugarJuiceBrix { get; init; }
     public double SugarEvaporatorTemperatureC { get; init; }
+    public double MilkPasteurizerTemperatureC { get; init; }
+    public double MilkHomogenizerPressureBar { get; init; }
+    public double MilkPasteurizationHoldSeconds { get; init; }
+    public double MilkMicroLogReduction { get; init; }
     public double CreamSeparatorRpm { get; init; }
     public double ButterFatPct { get; init; }
     public double VanillaExtractorTemperatureC { get; init; }
@@ -355,6 +364,7 @@ public sealed class CakeFactoryService
     {
         Mill,
         Sugar,
+        Milk,
         Butter,
         Vanilla,
         Cocoa,
@@ -490,6 +500,7 @@ public sealed class CakeFactoryService
     private double _flourKg = 120;
     private double _sugarKg = 92;
     private double _eggs = 240;
+    private double _rawMilkL = 90;
     private double _milkL = 140;
     private double _butterKg = 28;
     private double _bakingPowderKg = 14;
@@ -550,6 +561,7 @@ public sealed class CakeFactoryService
     private string _sugarCropLotId = "SUGARCROP-OPENING";
     private string _vanillaBeanLotId = "VANILLABEAN-OPENING";
     private string _vanillaLotId = "VANILLA-OPENING";
+    private string _rawMilkLotId = "RAWMILK-OPENING";
     private string _milkLotId = "MILK-OPENING";
     private string _eggLotId = "EGG-OPENING";
     private string _forageLotId = "FORAGE-OPENING";
@@ -582,6 +594,7 @@ public sealed class CakeFactoryService
     {
         "FLOUR-OPENING",
         "SUGAR-OPENING",
+        "MILK-OPENING",
         "BUTTER-OPENING",
         "VANILLA-OPENING",
         "COCOA-OPENING",
@@ -622,6 +635,7 @@ public sealed class CakeFactoryService
     {
         [IngredientFactoryKind.Mill] = new(93, 96, 36, 1.8),
         [IngredientFactoryKind.Sugar] = new(91, 94, 39, 2.0),
+        [IngredientFactoryKind.Milk] = new(94, 96, 34, 1.2),
         [IngredientFactoryKind.Butter] = new(95, 97, 34, 1.4),
         [IngredientFactoryKind.Vanilla] = new(92, 95, 35, 1.5),
         [IngredientFactoryKind.Cocoa] = new(90, 95, 41, 2.1),
@@ -639,6 +653,10 @@ public sealed class CakeFactoryService
     private double _flourExtractionPct = 76;
     private double _sugarJuiceBrix = 0;
     private double _sugarEvaporatorTemperatureC = 24;
+    private double _milkPasteurizerTemperatureC = 4;
+    private double _milkHomogenizerPressureBar = 0;
+    private double _milkPasteurizationHoldSeconds = 0;
+    private double _milkMicroLogReduction = 0;
     private double _creamSeparatorRpm = 0;
     private double _butterFatPct = 0;
     private double _vanillaExtractorTemperatureC = 24;
@@ -755,6 +773,7 @@ public sealed class CakeFactoryService
         double n = r.BatchSize;
         return FactoryLotReleased(r.FlourKg * n, _flourLotId)
                && FactoryLotReleased(r.SugarKg * n, _sugarLotId)
+               && FactoryLotReleased(r.MilkL * n, _milkLotId)
                && FactoryLotReleased(r.ButterKg * n, _butterLotId)
                && FactoryLotReleased(r.BakingPowderKg * n, _leaveningLotId)
                && FactoryLotReleased(r.SaltKg * n, _saltLotId)
@@ -791,8 +810,7 @@ public sealed class CakeFactoryService
                && _milkL >= formula.MilkL
                && _vanillaL >= formula.VanillaL
                && _cocoaKg >= formula.CocoaKg
-               && HasFactoryUtilities(38, 46, 12, 0.22)
-               && MilkQaInSpec();
+               && HasFactoryUtilities(38, 46, 12, 0.22);
     }
 
     private bool IcingInputLotsReady(CakeRecipe r)
@@ -800,7 +818,7 @@ public sealed class CakeFactoryService
         var formula = IcingFormula(r);
         return FactoryLotReleased(formula.SugarKg, _sugarLotId)
                && FactoryLotReleased(formula.ButterKg, _butterLotId)
-               && HasLot(formula.MilkL, _milkLotId)
+               && FactoryLotReleased(formula.MilkL, _milkLotId)
                && FactoryLotReleased(formula.VanillaL, _vanillaLotId)
                && FactoryLotReleased(formula.CocoaKg, _cocoaLotId);
     }
@@ -815,7 +833,7 @@ public sealed class CakeFactoryService
 
     private string BuildBatchTrace(CakeRecipe r, string batchLotId)
     {
-        return $"{batchLotId}: {r.Name} uses flour {_flourLotId}, sugar {_sugarLotId}, eggs {_eggLotId}, milk {_milkLotId}, butter {_butterLotId}, leavening {_leaveningLotId}, salt {_saltLotId}, vanilla {_vanillaLotId}, cocoa {(r.CocoaKg > 0 ? _cocoaLotId : "not required")}, prepared icing {_icingLotId} and packaging {_packagingLotId}.";
+        return $"{batchLotId}: {r.Name} uses flour {_flourLotId}, sugar {_sugarLotId}, eggs {_eggLotId}, pasteurized milk {_milkLotId}, butter {_butterLotId}, leavening {_leaveningLotId}, salt {_saltLotId}, vanilla {_vanillaLotId}, cocoa {(r.CocoaKg > 0 ? _cocoaLotId : "not required")}, prepared icing {_icingLotId} and packaging {_packagingLotId}.";
     }
 
     private void CreateNextOrder()
@@ -864,6 +882,7 @@ public sealed class CakeFactoryService
     {
         IngredientFactoryKind.Mill => run.PrimaryInput * 0.22,
         IngredientFactoryKind.Sugar => run.PrimaryInput * 0.34,
+        IngredientFactoryKind.Milk => run.PrimaryInput * 0.012,
         IngredientFactoryKind.Butter => run.PrimaryInput * 0.78,
         IngredientFactoryKind.Vanilla => run.PrimaryInput * 0.32,
         IngredientFactoryKind.Cocoa => run.PrimaryInput * 0.14,
@@ -880,6 +899,7 @@ public sealed class CakeFactoryService
     private static double ExpectedEffluentL(IngredientFactoryRun run) => run.Kind switch
     {
         IngredientFactoryKind.Sugar => run.ProcessWaterL * 0.72 + run.CulinarySteamKg * 0.08,
+        IngredientFactoryKind.Milk => run.ProcessWaterL * 0.50 + run.PrimaryInput * 0.03,
         IngredientFactoryKind.Butter => run.ProcessWaterL * 0.55 + run.PrimaryInput * 0.08,
         IngredientFactoryKind.Vanilla => run.ProcessWaterL * 0.62,
         IngredientFactoryKind.Salt => run.PrimaryInput * 0.14,
@@ -1172,7 +1192,7 @@ public sealed class CakeFactoryService
 
         _dairyReadyL -= milk;
         _eggsReady -= eggs;
-        _milkL += milk;
+        _rawMilkL += milk;
         _eggs += eggs;
         if (eggs > 0)
         {
@@ -1185,7 +1205,7 @@ public sealed class CakeFactoryService
             _henHouseHygienePct = Math.Max(0, _henHouseHygienePct - eggs * 0.018);
             _eggSourceStatus = $"Graded {eggs:0} eggs from {_layingHenCount} laying hens fed by lot {_feedLotId}; shell QA {_eggShellQualityPct:0}% and washer {_eggWasherTemperatureC:0.0} degC.";
         }
-        if (milk > 0) _milkLotId = NewLotId("MILK");
+        if (milk > 0) _rawMilkLotId = NewLotId("RAWMILK");
         if (eggs > 0) _eggLotId = NewLotId("EGG");
         _milkParlorThroughputLPerHour = 680 + _rng.NextDouble() * 80;
         _milkingVacuumKPa = 40.5 + _rng.NextDouble() * 3.0;
@@ -1195,11 +1215,11 @@ public sealed class CakeFactoryService
         double manurePenalty = Math.Max(0, _manureKg - 650) * 0.025;
         _milkSomaticCellCountKPerMl = Math.Clamp(250 - _cowComfort * 1.25 + hygienePenalty * 3.0 + manurePenalty + _rng.NextDouble() * 25, 80, 520);
         _milkBacteriaCfuPerMl = Math.Clamp(_milkBacteriaCfuPerMl + milk * (24 + hygienePenalty * 1.8) + (100 - _sanitationScore) * 35, 1200, 85000);
-        _bulkMilkTankC = Math.Min(6.0, (_bulkMilkTankC * Math.Max(0, _milkL - milk) + 37.0 * milk) / Math.Max(1, _milkL));
+        _bulkMilkTankC = Math.Min(6.0, (_bulkMilkTankC * Math.Max(0, _rawMilkL - milk) + 37.0 * milk) / Math.Max(1, _rawMilkL));
         _dairyParlorHygienePct = Math.Max(0, _dairyParlorHygienePct - milk * 0.045);
-        _milkSourceStatus = $"Transferred {milk:0.0} L raw milk from {_lactatingCowCount} lactating cows fed by TMR lot {_mixedRationLotId} through the milking parlor to cold storage.";
-        _traceabilityStatus = $"Dairy and poultry trace logged: milk lot {_milkLotId} from {_lactatingCowCount} lactating cows, ration {_mixedRationLotId}, egg lot {_eggLotId} from {_layingHenCount} hens using feed lot {_feedLotId}.";
-        return $"Collected {milk:0.0} L cow milk and {eggs:0} graded eggs; parlor hygiene {_dairyParlorHygienePct:0}%, bulk tank {_bulkMilkTankC:0.0} degC, bacteria {_milkBacteriaCfuPerMl:0} CFU/mL.";
+        _milkSourceStatus = $"Transferred {milk:0.0} L raw milk lot {_rawMilkLotId} from {_lactatingCowCount} lactating cows fed by TMR lot {_mixedRationLotId} through the milking parlor to cold storage; pasteurization is still required before batching.";
+        _traceabilityStatus = $"Dairy and poultry trace logged: raw milk lot {_rawMilkLotId} from {_lactatingCowCount} lactating cows, ration {_mixedRationLotId}, egg lot {_eggLotId} from {_layingHenCount} hens using feed lot {_feedLotId}.";
+        return $"Collected {milk:0.0} L raw cow milk and {eggs:0} graded eggs; parlor hygiene {_dairyParlorHygienePct:0}%, bulk tank {_bulkMilkTankC:0.0} degC, bacteria {_milkBacteriaCfuPerMl:0} CFU/mL.";
     }
 
     public string MillWheat()
@@ -1271,6 +1291,47 @@ public sealed class CakeFactoryService
         return StartFactoryRun(run, () => ConsumeTrackedStock(ref _sugarCropKg, crop, ref _sugarCropLotId));
     }
 
+    public string PasteurizeMilk()
+    {
+        if (_lastPowerAvailability < 0.2)
+            return "Milk pasteurizer, balance tank and homogenizer need reactor power.";
+        if (_factoryRun is not null)
+            return $"{_factoryRun.Name} is already running; wait for the ingredient factory run to finish.";
+
+        double milk = Math.Min(_rawMilkL, 60);
+        if (milk < 5)
+            return "Not enough raw bulk-tank milk is available for pasteurization.";
+        if (string.IsNullOrWhiteSpace(_rawMilkLotId))
+            return "Milk pasteurizer cannot run because the raw milk lot is missing from the dairy ledger.";
+        if (!MilkQaInSpec())
+            return "Milk pasteurizer cannot run; raw milk QA is on hold. Wash the parlor, restore cooling and wait for in-spec milk.";
+
+        _milkPasteurizerTemperatureC = _bulkMilkTankC;
+        _milkHomogenizerPressureBar = 0;
+        _milkPasteurizationHoldSeconds = 0;
+        _milkMicroLogReduction = 0;
+        var run = new IngredientFactoryRun
+        {
+            Kind = IngredientFactoryKind.Milk,
+            Name = "Milk pasteurizer and homogenizer",
+            StartedMessage = $"Started HTST pasteurizing and homogenizing {milk:0.0} L raw cow milk from lot {_rawMilkLotId}.",
+            DurationSeconds = 6.5,
+            PowerDemandMW = 1.2,
+            PrimaryInput = milk,
+            Product = milk * 0.985,
+            Waste = milk * 0.005,
+            ProcessWaterL = 80,
+            CulinarySteamKg = 160,
+            CompressedAirNm3 = 14,
+            FilterMediaPct = 0.45,
+            WearPct = 1.10,
+            CalibrationDriftPct = 0.38,
+            InputLotId = _rawMilkLotId,
+            OutputLotId = NewLotId("MILK"),
+        };
+        return StartFactoryRun(run, () => ConsumeTrackedStock(ref _rawMilkL, milk, ref _rawMilkLotId));
+    }
+
     public string ChurnButter()
     {
         if (_lastPowerAvailability < 0.2)
@@ -1278,9 +1339,13 @@ public sealed class CakeFactoryService
         if (_factoryRun is not null)
             return $"{_factoryRun.Name} is already running; wait for the ingredient factory run to finish.";
 
-        double milk = Math.Min(Math.Max(0, _milkL - 30), 54);
+        double milk = Math.Min(Math.Max(0, _rawMilkL - 30), 54);
         if (milk < 5)
-            return "Keep at least 30 L milk in cold storage before churning butter.";
+            return "Keep at least 30 L raw milk in cold storage before churning butter.";
+        if (string.IsNullOrWhiteSpace(_rawMilkLotId))
+            return "Butter room cannot run because the raw milk lot is missing from the dairy ledger.";
+        if (!MilkQaInSpec())
+            return "Butter room cannot run; raw milk QA is on hold. Wash the parlor, restore cooling and wait for in-spec milk.";
 
         _creamSeparatorRpm = 0;
         _butterFatPct = 0;
@@ -1288,7 +1353,7 @@ public sealed class CakeFactoryService
         {
             Kind = IngredientFactoryKind.Butter,
             Name = "Cream separator and butter churn",
-            StartedMessage = $"Started separating cream and churning {milk:0.0} L cow milk.",
+            StartedMessage = $"Started separating cream, pasteurizing cream and churning {milk:0.0} L raw cow milk.",
             DurationSeconds = 7.0,
             PowerDemandMW = 1.4,
             PrimaryInput = milk,
@@ -1299,10 +1364,10 @@ public sealed class CakeFactoryService
             FilterMediaPct = 0.8,
             WearPct = 1.45,
             CalibrationDriftPct = 0.45,
-            InputLotId = _milkLotId,
+            InputLotId = _rawMilkLotId,
             OutputLotId = NewLotId("BUTTER"),
         };
-        return StartFactoryRun(run, () => ConsumeTrackedStock(ref _milkL, milk, ref _milkLotId));
+        return StartFactoryRun(run, () => ConsumeTrackedStock(ref _rawMilkL, milk, ref _rawMilkLotId));
     }
 
     public string ExtractVanilla()
@@ -1670,8 +1735,8 @@ public sealed class CakeFactoryService
 
         if (_manureKg < dairyManure || _poultryManureKg < poultryManure || organics < 18.0)
             return "Compost plant needs dairy manure, poultry manure and enough factory organics before it can make crop fertilizer.";
-        if (string.IsNullOrWhiteSpace(_milkLotId) || string.IsNullOrWhiteSpace(_eggLotId))
-            return "Compost plant cannot run because the manure source lots are missing from the dairy or poultry ledger.";
+        if (string.IsNullOrWhiteSpace(_mixedRationLotId) || string.IsNullOrWhiteSpace(_eggLotId))
+            return "Compost plant cannot run because the dairy ration or poultry source lots are missing from the manure ledger.";
 
         double input = dairyManure + poultryManure + organics;
         _compostTemperatureC = 32;
@@ -1694,7 +1759,7 @@ public sealed class CakeFactoryService
             FilterMediaPct = 0.55,
             WearPct = 1.10,
             CalibrationDriftPct = 0.45,
-            InputLotId = $"DAIRY-MANURE/{_milkLotId}/POULTRY-MANURE/{_eggLotId}/BYPRODUCTS",
+            InputLotId = $"DAIRY-MANURE/{_mixedRationLotId}/POULTRY-MANURE/{_eggLotId}/BYPRODUCTS",
             OutputLotId = NewLotId("FERT"),
         };
 
@@ -1877,9 +1942,9 @@ public sealed class CakeFactoryService
         var recipe = CurrentRecipe;
         var formula = IcingFormula(recipe);
         if (!IcingInputsAvailable(recipe))
-            return "Icing kitchen needs released sugar, butter, cold milk, vanilla, cocoa when required, process water, culinary steam, compressed air, filter media and milk QA in spec.";
+            return "Icing kitchen needs released sugar, butter, pasteurized milk, vanilla, cocoa when required, process water, culinary steam, compressed air and filter media.";
         if (!IcingInputLotsReady(recipe))
-            return "Icing kitchen cannot run because sugar, butter, vanilla, cocoa or milk lot release is incomplete.";
+            return "Icing kitchen cannot run because sugar, butter, pasteurized milk, vanilla or cocoa lot release is incomplete.";
 
         _icingMixerRpm = 0;
         _icingTemperatureC = 24;
@@ -1889,7 +1954,7 @@ public sealed class CakeFactoryService
         {
             Kind = IngredientFactoryKind.Icing,
             Name = "Icing tempering kitchen",
-            StartedMessage = $"Started preparing {formula.ProductKg:0.0} kg icing for {recipe.Name}: sugar, butter, cow milk, vanilla{(formula.CocoaKg > 0 ? " and cocoa" : "")} are being weighed, cooked, cooled and tempered.",
+            StartedMessage = $"Started preparing {formula.ProductKg:0.0} kg icing for {recipe.Name}: sugar, butter, pasteurized cow milk, vanilla{(formula.CocoaKg > 0 ? " and cocoa" : "")} are being weighed, cooked, cooled and tempered.",
             DurationSeconds = 6.8,
             PowerDemandMW = 0.9,
             PrimaryInput = formula.SugarKg,
@@ -2084,7 +2149,7 @@ public sealed class CakeFactoryService
 
         _sanitationScore = Math.Min(100, _sanitationScore + 1.4);
         _factoryMaintenanceStatus = BuildFactoryMaintenanceStatus();
-        _factoryStatus = "Maintenance crew serviced roller mill, sugar house, butter room, vanilla extractor, cocoa line, salt works, starch wet mill, leavening blender, packaging plant, icing tempering kitchen, poultry feed mill, compost fertilizer plant and straw bedding chopper.";
+        _factoryStatus = "Maintenance crew serviced roller mill, sugar house, milk pasteurizer, butter room, vanilla extractor, cocoa line, salt works, starch wet mill, leavening blender, packaging plant, icing tempering kitchen, poultry feed mill, compost fertilizer plant and straw bedding chopper.";
         return "Serviced all ingredient factories: lubricated bearings, verified guards, replaced filters, calibrated scales, extraction temperature probes, starch dryer moisture probes, packaging registration sensors, icing viscosity probes, feed mill magnets, compost aeration probes, bedding dust collectors and safety interlocks, and signed the maintenance log.";
     }
 
@@ -2189,6 +2254,16 @@ public sealed class CakeFactoryService
                 _sugarEvaporatorTemperatureC = 45.0 + p * 61.0;
                 if (p > 0.5) _factoryRunQualityPct -= Math.Abs(_sugarEvaporatorTemperatureC - 104.0) * 0.15;
                 break;
+            case IngredientFactoryKind.Milk:
+                _milkPasteurizerTemperatureC = p < 0.25 ? _bulkMilkTankC + p / 0.25 * 68.0 : 72.0 + Math.Sin(p * Math.PI * 4) * 1.4;
+                _milkHomogenizerPressureBar = p < 0.38 ? 0 : 126.0 + Math.Sin(p * Math.PI * 3) * 8.0;
+                _milkPasteurizationHoldSeconds = p < 0.34 ? 0 : Math.Min(18.5, (p - 0.34) / 0.66 * 18.5);
+                _milkMicroLogReduction = p < 0.40 ? 0 : Math.Min(5.8, (p - 0.40) / 0.60 * 5.8);
+                if (p > 0.35) _factoryRunQualityPct -= Math.Abs(_milkPasteurizerTemperatureC - 72.0) * 0.55;
+                if (p > 0.55) _factoryRunQualityPct -= Math.Max(0, 15.0 - _milkPasteurizationHoldSeconds) * 1.5;
+                if (p > 0.62) _factoryRunQualityPct -= Math.Max(0, 4.8 - _milkMicroLogReduction) * 3.5;
+                if (p > 0.45) _factoryRunQualityPct -= Math.Abs(_milkHomogenizerPressureBar - 130.0) * 0.06;
+                break;
             case IngredientFactoryKind.Butter:
                 _creamSeparatorRpm = p < 0.15 ? 6400 * p / 0.15 : 6400 + Math.Sin(p * Math.PI * 3) * 180;
                 _butterFatPct = 35.0 + p * 47.0;
@@ -2281,6 +2356,11 @@ public sealed class CakeFactoryService
             IngredientFactoryKind.Sugar when p < 0.42 => "diffusion",
             IngredientFactoryKind.Sugar when p < 0.74 => "evaporation",
             IngredientFactoryKind.Sugar => "crystallization and drying",
+            IngredientFactoryKind.Milk when p < 0.18 => "raw balance tank and filter check",
+            IngredientFactoryKind.Milk when p < 0.42 => "HTST heat-up",
+            IngredientFactoryKind.Milk when p < 0.68 => "72 degC holding tube",
+            IngredientFactoryKind.Milk when p < 0.86 => "homogenization",
+            IngredientFactoryKind.Milk => "plate-cooler and sterile tank transfer",
             IngredientFactoryKind.Butter when p < 0.25 => "cream separation",
             IngredientFactoryKind.Butter when p < 0.58 => "pasteurization hold",
             IngredientFactoryKind.Butter when p < 0.84 => "churning",
@@ -2346,6 +2426,7 @@ public sealed class CakeFactoryService
     {
         IngredientFactoryKind.Mill => "roller mill",
         IngredientFactoryKind.Sugar => "sugar house",
+        IngredientFactoryKind.Milk => "milk pasteurizer",
         IngredientFactoryKind.Butter => "butter room",
         IngredientFactoryKind.Vanilla => "vanilla extraction line",
         IngredientFactoryKind.Cocoa => "cocoa line",
@@ -2365,6 +2446,7 @@ public sealed class CakeFactoryService
     {
         IngredientFactoryKind.Mill => "cake flour",
         IngredientFactoryKind.Sugar => "sugar",
+        IngredientFactoryKind.Milk => "pasteurized milk",
         IngredientFactoryKind.Butter => "butter",
         IngredientFactoryKind.Vanilla => "vanilla extract",
         IngredientFactoryKind.Cocoa => "cocoa",
@@ -2418,7 +2500,9 @@ public sealed class CakeFactoryService
         _pendingLabProductName = FactoryProductName(run.Kind);
         _pendingLabQualityPct = _factoryRunQualityPct;
         _pendingLabQuantity = output;
-        _ingredientLabStatus = $"QA lab hold: {_pendingLabProductName} lot {_pendingLabLotId} awaiting moisture, sieve, micro and label checks.";
+        _ingredientLabStatus = run.Kind == IngredientFactoryKind.Milk
+            ? $"QA lab hold: {_pendingLabProductName} lot {_pendingLabLotId} awaiting phosphatase, micro, temperature and label checks."
+            : $"QA lab hold: {_pendingLabProductName} lot {_pendingLabLotId} awaiting moisture, sieve, micro and label checks.";
     }
 
     private void RemoveRejectedFactoryLot(IngredientFactoryKind kind, double quantity)
@@ -2430,6 +2514,9 @@ public sealed class CakeFactoryService
                 break;
             case IngredientFactoryKind.Sugar:
                 ConsumeTrackedStock(ref _sugarKg, quantity, ref _sugarLotId);
+                break;
+            case IngredientFactoryKind.Milk:
+                ConsumeTrackedStock(ref _milkL, quantity, ref _milkLotId);
                 break;
             case IngredientFactoryKind.Butter:
                 ConsumeTrackedStock(ref _butterKg, quantity, ref _butterLotId);
@@ -2575,6 +2662,10 @@ public sealed class CakeFactoryService
                 _beetPulpKg += pulp;
                 detail = $"{pulp:0.0} kg beet pulp";
                 break;
+            case IngredientFactoryKind.Milk:
+                double milkSolids = run.PrimaryInput * 0.012;
+                detail = $"{milkSolids:0.0} kg separator solids, filter soil and plate-pasteurizer rinse";
+                break;
             case IngredientFactoryKind.Butter:
                 double buttermilk = run.PrimaryInput * 0.78;
                 _buttermilkL += buttermilk;
@@ -2659,6 +2750,21 @@ public sealed class CakeFactoryService
                 _sugarEvaporatorTemperatureC = 103.0 + _rng.NextDouble() * 4.0;
                 _factoryRunQualityPct = Math.Clamp(98 - Math.Abs(_sugarJuiceBrix - 68.0) * 1.5 - FactoryEquipmentPenalty(run.Kind), 0, 100);
                 _factoryStatus = $"Sugar house completed: {output:0.0} kg sugar at {_sugarJuiceBrix:0.0} Brix and {_sugarEvaporatorTemperatureC:0} degC, QA {_factoryRunQualityPct:0}%.";
+                break;
+            case IngredientFactoryKind.Milk:
+                _milkL += output;
+                _milkLotId = run.OutputLotId;
+                _wasteKg += waste;
+                _milkPasteurizerTemperatureC = 71.8 + _rng.NextDouble() * 1.2;
+                _milkHomogenizerPressureBar = 126 + _rng.NextDouble() * 10;
+                _milkPasteurizationHoldSeconds = 16.0 + _rng.NextDouble() * 2.4;
+                _milkMicroLogReduction = 5.1 + _rng.NextDouble() * 0.8;
+                _factoryRunQualityPct = Math.Clamp(99
+                    - Math.Abs(_milkPasteurizerTemperatureC - 72.0) * 0.7
+                    - Math.Max(0, 15.0 - _milkPasteurizationHoldSeconds) * 1.6
+                    - Math.Max(0, 4.8 - _milkMicroLogReduction) * 4.0
+                    - FactoryEquipmentPenalty(run.Kind), 0, 100);
+                _factoryStatus = $"Milk pasteurizer completed: {output:0.0} L pasteurized milk from raw cow milk, {_milkPasteurizerTemperatureC:0.0} degC HTST, {_milkPasteurizationHoldSeconds:0.0}s hold, {_milkHomogenizerPressureBar:0} bar homogenizer and {_milkMicroLogReduction:0.0}-log micro reduction, QA {_factoryRunQualityPct:0}%.";
                 break;
             case IngredientFactoryKind.Butter:
                 _butterKg += output;
@@ -2993,12 +3099,15 @@ public sealed class CakeFactoryService
             CanHarvestFeedCrops = power >= 0.15 && _barnLaborHours >= 0.7 && (_pastureHealth >= 35 || _wheatGrowth >= 55),
             CanHarvestCocoa = power >= 0.15 && _barnLaborHours >= 0.55 && _forkliftBatteryPct >= 6 && _cocoaGrowth >= 35,
             CanCollectDairy = power >= 0.12 && (_dairyReadyL >= 1 || _eggsReady >= 1),
+            CanPasteurizeMilk = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _rawMilkL >= 5 && HasFactoryUtilities(80, 160, 14, 0.45)
+                                && !string.IsNullOrWhiteSpace(_rawMilkLotId) && MilkQaInSpec(),
             CanMixDairyRation = power >= 0.15 && _forageKg >= 48 && _grainKg >= 22 && _dairyMineralKg >= 2.2 && FactoryLotReleased(_dairyMineralKg, _dairyMineralLotId) && _irrigationWaterL >= 38 && _barnLaborHours >= 0.8,
             CanWashDairyParlor = power >= 0.15 && HasFactoryUtilities(180, 60, 12, 0.5) && _barnLaborHours >= 1.4 && (_dairyParlorHygienePct < 96 || _manureKg > 80),
             CanWashPoultryHouse = power >= 0.15 && HasFactoryUtilities(90, 30, 8, 0.35) && _barnLaborHours >= 1.0 && (_henHouseHygienePct < 96 || _poultryManureKg > 80),
             CanMillWheat = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _wheatKg >= 5 && HasFactoryUtilities(20, 0, 38, 0.6),
             CanRefineSugar = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _sugarCropKg >= 10 && HasFactoryUtilities(320, 520, 22, 1.2),
-            CanChurnButter = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _milkL > 35 && HasFactoryUtilities(110, 140, 15, 0.8),
+            CanChurnButter = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _rawMilkL > 35 && HasFactoryUtilities(110, 140, 15, 0.8)
+                             && !string.IsNullOrWhiteSpace(_rawMilkLotId) && MilkQaInSpec(),
             CanExtractVanilla = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _vanillaBeansKg >= 0.5 && HasFactoryUtilities(72, 85, 10, 0.35),
             CanReceiveSupplies = power >= 0.1 && (!_supplyTruckEnRoute || _supplyTruckArrived),
             CanOrderSupplyDelivery = power >= 0.1 && !_supplyTruckEnRoute && _cashBalance >= _supplyOrderCost,
@@ -3095,6 +3204,7 @@ public sealed class CakeFactoryService
             SugarCropLotId = _sugarCropLotId,
             VanillaBeanLotId = _vanillaBeanLotId,
             VanillaLotId = _vanillaLotId,
+            RawMilkLotId = _rawMilkLotId,
             MilkLotId = _milkLotId,
             EggLotId = _eggLotId,
             FlourLotId = _flourLotId,
@@ -3117,6 +3227,7 @@ public sealed class CakeFactoryService
             FlourKg = _flourKg,
             SugarKg = _sugarKg,
             Eggs = _eggs,
+            RawMilkL = _rawMilkL,
             MilkL = _milkL,
             ButterKg = _butterKg,
             BakingPowderKg = _bakingPowderKg,
@@ -3191,6 +3302,8 @@ public sealed class CakeFactoryService
             MillCalibrationPct = EquipmentFor(IngredientFactoryKind.Mill).CalibrationPct,
             SugarConditionPct = EquipmentFor(IngredientFactoryKind.Sugar).ConditionPct,
             SugarCalibrationPct = EquipmentFor(IngredientFactoryKind.Sugar).CalibrationPct,
+            MilkConditionPct = EquipmentFor(IngredientFactoryKind.Milk).ConditionPct,
+            MilkCalibrationPct = EquipmentFor(IngredientFactoryKind.Milk).CalibrationPct,
             ButterConditionPct = EquipmentFor(IngredientFactoryKind.Butter).ConditionPct,
             ButterCalibrationPct = EquipmentFor(IngredientFactoryKind.Butter).CalibrationPct,
             VanillaConditionPct = EquipmentFor(IngredientFactoryKind.Vanilla).ConditionPct,
@@ -3219,6 +3332,10 @@ public sealed class CakeFactoryService
             FlourExtractionPct = _flourExtractionPct,
             SugarJuiceBrix = _sugarJuiceBrix,
             SugarEvaporatorTemperatureC = _sugarEvaporatorTemperatureC,
+            MilkPasteurizerTemperatureC = _milkPasteurizerTemperatureC,
+            MilkHomogenizerPressureBar = _milkHomogenizerPressureBar,
+            MilkPasteurizationHoldSeconds = _milkPasteurizationHoldSeconds,
+            MilkMicroLogReduction = _milkMicroLogReduction,
             CreamSeparatorRpm = _creamSeparatorRpm,
             ButterFatPct = _butterFatPct,
             VanillaExtractorTemperatureC = _vanillaExtractorTemperatureC,
@@ -3410,7 +3527,7 @@ public sealed class CakeFactoryService
         _dairyReadyL = Math.Min(140, _dairyReadyL + _milkProductionLPerHour * simHours);
         _eggsReady = Math.Min(420, _eggsReady + _eggProductionPerHour * simHours);
         _milkSourceStatus = cowInputFactor > 0 && livestockPower > 0
-            ? $"Milk comes from {_lactatingCowCount} lactating cows; herd consumed {rationNeed * cowInputFactor:0.0} kg TMR ration {_mixedRationLotId}, {beddingNeed * cowInputFactor:0.0} kg released bedding lot {_beddingLotId}, {barnWaterNeed * cowInputFactor:0} L water and made {_manureKg:0} kg manure."
+            ? $"Milk comes from {_lactatingCowCount} lactating cows; herd consumed {rationNeed * cowInputFactor:0.0} kg TMR ration {_mixedRationLotId}, {beddingNeed * cowInputFactor:0.0} kg released bedding lot {_beddingLotId}, {barnWaterNeed * cowInputFactor:0} L water and made {_manureKg:0} kg manure. Raw bulk-tank milk still requires pasteurization before batching."
             : beddingLotReleased
                 ? "Milk production stalled: cow herd needs mixed ration, water, released bedding, labor, pasture health and powered milking systems."
                 : $"Milk production stalled: livestock bedding lot {_beddingLotId} is waiting for QA lab release.";
@@ -3696,6 +3813,10 @@ public sealed class CakeFactoryService
         if (_dairyMineralKg < 2.2 && (_limestoneKg < 16 || _traceMineralKg < 5.5 || _phosphateKg < 3 || _saltKg < 4)) low.Add("mineral premix plant feedstocks");
         if (!FactoryLotReleased(_dairyMineralKg, _dairyMineralLotId)) low.Add("dairy mineral QA release");
         if (_mixedRationKg < 20) low.Add("mixed dairy ration");
+        double neededMilk = CurrentRecipe.MilkL * CurrentRecipe.BatchSize;
+        if (_milkL < neededMilk) low.Add(_rawMilkL >= 5 ? "milk pasteurizer" : "raw milk collection");
+        if (_rawMilkL > 0 && !MilkQaInSpec()) low.Add("raw milk QA");
+        if (!FactoryLotReleased(_milkL, _milkLotId)) low.Add("pasteurized milk QA release");
         if (_beddingKg < 10) low.Add("bedding");
         if (_beddingKg < 10 && _strawKg < 54) low.Add("straw bedding feedstock");
         if (!FactoryLotReleased(_beddingKg, _beddingLotId)) low.Add("bedding QA release");
@@ -3754,6 +3875,7 @@ public sealed class CakeFactoryService
         Count(_beddingKg, _beddingLotId);
         Count(_vanillaBeansKg, _vanillaBeanLotId);
         Count(_vanillaL, _vanillaLotId);
+        Count(_rawMilkL, _rawMilkLotId);
         Count(_milkL, _milkLotId);
         Count(_eggs, _eggLotId);
         Count(_flourKg, _flourLotId);
@@ -3782,7 +3904,8 @@ public sealed class CakeFactoryService
         if (!HasLot(_flourKg, _flourLotId)) missing.Add("flour");
         if (!HasLot(_sugarKg, _sugarLotId)) missing.Add("sugar");
         if (!HasLot(_eggs, _eggLotId)) missing.Add("eggs");
-        if (!HasLot(_milkL, _milkLotId)) missing.Add("milk");
+        if (!HasLot(_rawMilkL, _rawMilkLotId)) missing.Add("raw milk");
+        if (!HasLot(_milkL, _milkLotId)) missing.Add("pasteurized milk");
         if (!HasLot(_butterKg, _butterLotId)) missing.Add("butter");
         if (!HasLot(_vanillaL, _vanillaLotId)) missing.Add("vanilla");
         if (!HasLot(_bakingPowderKg, _leaveningLotId)) missing.Add("baking powder");
@@ -3804,7 +3927,7 @@ public sealed class CakeFactoryService
     }
 
     private bool MilkQaInSpec() =>
-        _milkL <= 0
+        _rawMilkL <= 0
         || (_bulkMilkTankC <= 7.0
             && _milkBacteriaCfuPerMl <= 100000
             && _milkSomaticCellCountKPerMl <= 400
@@ -3821,7 +3944,7 @@ public sealed class CakeFactoryService
         if (_milkFatPct < 3.0) issues.Add("low fat");
         if (_milkProteinPct < 2.9) issues.Add("low protein");
         if (_dairyParlorHygienePct < 45) issues.Add("parlor hygiene low");
-        return issues.Count == 0 ? "Milk QA in spec" : "Milk QA hold: " + string.Join(", ", issues);
+        return issues.Count == 0 ? "Raw milk QA in spec" : "Raw milk QA hold: " + string.Join(", ", issues);
     }
 
     private bool EggQaInSpec() =>
@@ -3891,8 +4014,7 @@ public sealed class CakeFactoryService
         if (_eggs < r.EggCount * n) missing.Add("eggs");
         else if (r.EggCount > 0 && !EggQaInSpec()) missing.Add("egg QA");
         if (_butterKg < r.ButterKg * n) missing.Add("butter");
-        if (_milkL < r.MilkL * n) missing.Add("milk");
-        else if (r.MilkL > 0 && !MilkQaInSpec()) missing.Add("milk QA");
+        if (_milkL < r.MilkL * n) missing.Add("pasteurized milk");
         if (_bakingPowderKg < r.BakingPowderKg * n) missing.Add("baking powder");
         if (_saltKg < r.SaltKg * n) missing.Add("salt");
         if (_vanillaL < r.VanillaL * n) missing.Add("vanilla");

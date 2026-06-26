@@ -219,6 +219,10 @@ public sealed partial class CakeFactoryModule : Page
                 PostNotice("success", P("Barn collected", "畜舍已收集"), _sim.CollectDairyAndEggs());
                 break;
 
+            case "pasteurizeMilk":
+                PostNotice("success", P("Milk pasteurized", "牛奶已巴氏殺菌"), _sim.PasteurizeMilk());
+                break;
+
             case "mixDairyRation":
                 PostNotice("success", P("Dairy ration mixed", "奶牛飼料已混合"), _sim.MixDairyRation());
                 break;

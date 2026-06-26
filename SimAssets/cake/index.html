@@ -600,6 +600,7 @@
                 <button class="action" type="button" data-action="runMineralPlant">Blend minerals</button>
                 <button class="action" type="button" data-action="mill">Mill flour</button>
                 <button class="action" type="button" data-action="refine">Refine sugar</button>
+                <button class="action" type="button" data-action="pasteurizeMilk">Pasteurize milk</button>
                 <button class="action" type="button" data-action="churn">Churn butter</button>
                 <button class="action" type="button" data-action="extractVanilla">Extract vanilla</button>
                 <button class="action" type="button" data-action="processCocoa">Roast cocoa</button>
@@ -745,6 +746,7 @@
       CanHarvestFeedCrops: false,
       CanHarvestCocoa: false,
       CanCollectDairy: false,
+      CanPasteurizeMilk: false,
       CanMixDairyRation: false,
       CanWashDairyParlor: false,
       CanWashPoultryHouse: false,
@@ -793,7 +795,7 @@
       MilkFatPct: 3.8,
       MilkProteinPct: 3.25,
       MilkingVacuumKPa: 42,
-      MilkQaStatus: 'Milk QA in spec',
+      MilkQaStatus: 'Raw milk QA in spec',
       EggProductionPerHour: 2.5,
       HenHouseHygienePct: 86,
       PoultryManureKg: 95,
@@ -839,6 +841,7 @@
       SugarCropLotId: 'SUGARCROP-OPENING',
       VanillaBeanLotId: 'VANILLABEAN-OPENING',
       VanillaLotId: 'VANILLA-OPENING',
+      RawMilkLotId: 'RAWMILK-OPENING',
       MilkLotId: 'MILK-OPENING',
       EggLotId: 'EGG-OPENING',
       FlourLotId: 'FLOUR-OPENING',
@@ -861,6 +864,7 @@
       FlourKg: 120,
       SugarKg: 92,
       Eggs: 240,
+      RawMilkL: 90,
       MilkL: 140,
       ButterKg: 28,
       BakingPowderKg: 14,
@@ -938,6 +942,8 @@
       MillCalibrationPct: 96,
       SugarConditionPct: 91,
       SugarCalibrationPct: 94,
+      MilkConditionPct: 94,
+      MilkCalibrationPct: 96,
       ButterConditionPct: 95,
       ButterCalibrationPct: 97,
       VanillaConditionPct: 92,
@@ -960,6 +966,10 @@
       FlourExtractionPct: 76,
       SugarJuiceBrix: 0,
       SugarEvaporatorTemperatureC: 24,
+      MilkPasteurizerTemperatureC: 4,
+      MilkHomogenizerPressureBar: 0,
+      MilkPasteurizationHoldSeconds: 0,
+      MilkMicroLogReduction: 0,
       CreamSeparatorRpm: 0,
       ButterFatPct: 0,
       VanillaExtractorTemperatureC: 24,
@@ -1149,6 +1159,7 @@
       setButton('harvestFeedCrops', s.CanHarvestFeedCrops);
       setButton('harvestCocoa', s.CanHarvestCocoa);
       setButton('collect', s.CanCollectDairy);
+      setButton('pasteurizeMilk', s.CanPasteurizeMilk);
       setButton('mixDairyRation', s.CanMixDairyRation);
       setButton('washDairyParlor', s.CanWashDairyParlor);
       setButton('washPoultryHouse', s.CanWashPoultryHouse);
@@ -1188,7 +1199,8 @@
         ['Cake flour', `${n(s.FlourKg, 1)} kg`],
         ['Sugar', `${n(s.SugarKg, 1)} kg`],
         ['Eggs', `${n(s.Eggs, 0)}`],
-        ['Milk', `${n(s.MilkL, 1)} L`],
+        ['Raw milk', `${n(s.RawMilkL, 1)} L`],
+        ['Pasteurized milk', `${n(s.MilkL, 1)} L`],
         ['Butter', `${n(s.ButterKg, 1)} kg`],
         ['Vanilla', `${n(s.VanillaL, 2)} L`],
         ['Vanilla beans', `${n(s.VanillaBeansKg, 1)} kg`],
@@ -1217,6 +1229,8 @@
         ['Dairy mineral', `${n(s.DairyMineralKg, 1)} kg / ${s.DairyMineralLotId || '-'}`],
         ['Mineral raws', `lime ${n(s.LimestoneKg, 1)} kg / trace ${n(s.TraceMineralKg, 1)} kg`],
         ['Mixed ration', `${n(s.MixedRationKg, 1)} kg`],
+        ['Raw milk lot', `${n(s.RawMilkL, 1)} L / ${s.RawMilkLotId || '-'}`],
+        ['Pasteurized milk lot', `${n(s.MilkL, 1)} L / ${s.MilkLotId || '-'}`],
         ['Straw feedstock', `${n(s.StrawKg, 1)} kg / ${s.StrawLotId || '-'}`],
         ['Bedding lot', `${n(s.BeddingKg, 1)} kg / ${s.BeddingLotId || '-'}`],
         ['Barn labor', `${n(s.BarnLaborHours, 1)} h`],
@@ -1289,6 +1303,7 @@
         ['Active vibration', `${n(s.ActiveFactoryVibrationMmS, 1)} mm/s / ${n(s.ActiveFactoryBearingTemperatureC, 0)} degC`],
         ['Mill asset', `${n(s.MillConditionPct, 0)}% / ${n(s.MillCalibrationPct, 0)}% cal`],
         ['Sugar asset', `${n(s.SugarConditionPct, 0)}% / ${n(s.SugarCalibrationPct, 0)}% cal`],
+        ['Milk asset', `${n(s.MilkConditionPct, 0)}% / ${n(s.MilkCalibrationPct, 0)}% cal`],
         ['Butter asset', `${n(s.ButterConditionPct, 0)}% / ${n(s.ButterCalibrationPct, 0)}% cal`],
         ['Vanilla asset', `${n(s.VanillaConditionPct, 0)}% / ${n(s.VanillaCalibrationPct, 0)}% cal`],
         ['Cocoa asset', `${n(s.CocoaConditionPct, 0)}% / ${n(s.CocoaCalibrationPct, 0)}% cal`],
@@ -1305,7 +1320,9 @@
         ['Utility status', s.UtilityPlantStatus || 'Utility plant idle'],
         ['RO / boiler / air', `${n(s.ProcessWaterConductivityUsCm, 3)} uS/cm / ${n(s.BoilerPressureBar, 1)} bar / ${n(s.AirHeaderPressureBar, 1)} bar`],
         ['Milk source', s.MilkSourceStatus || 'Cow dairy idle'],
-        ['Milk QA', s.MilkQaStatus || 'Milk QA in spec'],
+        ['Raw milk QA', s.MilkQaStatus || 'Raw milk QA in spec'],
+        ['Milk pasteurizer', `${n(s.MilkPasteurizerTemperatureC, 1)} degC / ${n(s.MilkPasteurizationHoldSeconds, 1)}s / ${n(s.MilkMicroLogReduction, 1)} log`],
+        ['Homogenizer', `${n(s.MilkHomogenizerPressureBar, 0)} bar`],
         ['Egg source', s.EggSourceStatus || 'Poultry house idle'],
         ['Egg QA', s.EggQaStatus || 'Egg QA in spec'],
         ['Feed crop harvest', s.FeedCropStatus || 'Feed crop header idle'],
@@ -1314,7 +1331,8 @@
         ['Ration quality', `${n(s.RationEnergyPct, 0)}% energy / ${n(s.RationProteinPct, 0)}% protein`],
         ['Dairy manure + hygiene', `${n(s.ManureKg, 0)} kg / ${n(s.DairyParlorHygienePct, 0)}%`],
         ['Poultry manure + hygiene', `${n(s.PoultryManureKg, 0)} kg / ${n(s.HenHouseHygienePct, 0)}%`],
-        ['Milk lot', s.MilkLotId || '-'],
+        ['Raw milk lot', s.RawMilkLotId || '-'],
+        ['Pasteurized milk lot', s.MilkLotId || '-'],
         ['Ration lot', s.MixedRationLotId || '-'],
         ['Mineral source lot', `${s.DairyMineralLotId || '-'} / lime ${s.LimestoneLotId || '-'} / trace ${s.TraceMineralLotId || '-'}`],
         ['Bedding source lot', `${s.BeddingLotId || '-'} / straw ${s.StrawLotId || '-'}`],
@@ -1490,7 +1508,7 @@
       drawHen(228, 414);
       text(`COW MILK ${n(s.DairyReadyL, 0)} L / EGGS ${n(s.EggsReady, 0)}`, 75, 490, 13, '#effbe6', 800);
       text(`${s.LactatingCowCount || 0}/${s.DairyCowCount || 0} cows - ${n(s.MilkProductionLPerHour, 1)} L/h`, 75, 508, 11, '#cfe7c9', 800);
-      text(`Bulk tank ${n(s.BulkMilkTankC, 1)} degC - ${n(s.MilkBacteriaCfuPerMl, 0)} CFU`, 75, 523, 10, '#d4f3fb', 800);
+      text(`Raw ${n(s.RawMilkL, 0)} L / pasteurized ${n(s.MilkL, 0)} L`, 75, 523, 10, '#d4f3fb', 800);
       text(`${s.LayingHenCount || 0} hens - ${n(s.EggProductionPerHour, 1)} eggs/h`, 75, 538, 10, '#fff1bf', 800);
       text(`Poultry house ${n(s.HenHouseHygienePct, 0)}% - manure ${n(s.PoultryManureKg, 0)} kg`, 75, 552, 10, '#ffd6aa', 800);
 

@@ -8,7 +8,7 @@ This note records the research inputs used for `Pages/CakeFactoryModule` and `Se
 - Dairy forage and feed grain are not treated only as supplier stocks. The simulator models a feed-crop harvest that cuts pasture into forage, diverts mature wheat into feed grain, checks moisture and stamps lots before the TMR mixer consumes them.
 - Sugar comes from sugar beets or sugarcane. The simulator models a sugar crop field, refining yield, sugar inventory, and crop pulp/waste.
 - Eggs are produced by laying hens and are treated as a raw-food safety risk until the bake kill step is reached.
-- Milk and butter come from dairy. The simulator models pasture health, milk collection, butter churning from milk, and separate milk/butter inventories.
+- Milk and butter come from dairy. The simulator models pasture health, raw milk collection, bulk-tank QA, HTST pasteurization/homogenization into QA-released recipe milk, butter churning from raw milk/cream, and separate raw milk, pasteurized milk and butter inventories.
 - Poultry feed is not treated as an infinite finished input. The simulator models a feed mill that converts grain, starch carrier, released mineral premix and bakery byproducts into a QA-released feed lot before hens can consume it.
 - Crop fertilizer is not treated as a finished supplier input. The simulator models a compost plant that converts dairy manure, poultry manure and factory organics into a QA-released fertilizer lot before fields can consume it.
 - Livestock bedding is not treated as a finished supplier input. The simulator models straw from wheat harvest or receiving, then a bedding chopper/dust extractor that makes a QA-released bedding lot before cows or hens can consume it.
@@ -16,7 +16,7 @@ This note records the research inputs used for `Pages/CakeFactoryModule` and `Se
 - Starch carrier is not treated as a finished supplier input. The simulator models a starch wet mill that converts harvested or received feed grain into a QA-released starch lot before the feed mill or leavening plant can consume it.
 - Vanilla and cocoa are flavoring inputs. Vanilla is represented as a greenhouse crop because commercial vanilla requires managed flowering, pollination/curing, and a long supply chain; cocoa is modeled as a small greenhouse/import crop that must be harvested into fermented, dried bean lots before the roast/grind factory can consume it.
 - Baking powder and salt are not farm outputs, so they are represented as factory-made outputs from mineral/dry-store feedstocks.
-- Decorating icing is not a field crop or automatic line effect. It is represented as a prepared factory lot made from released sugar, butter, cow milk, vanilla and cocoa when required.
+- Decorating icing is not a field crop or automatic line effect. It is represented as a prepared factory lot made from released sugar, butter, pasteurized cow milk, vanilla and cocoa when required.
 
 ## Bakery Process
 
