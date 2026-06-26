@@ -211,6 +211,10 @@ public sealed partial class CakeFactoryModule : Page
                 PostNotice("success", P("Feed crops harvested", "飼料作物已收成"), _sim.HarvestFeedCrops());
                 break;
 
+            case "harvestCocoa":
+                PostNotice("success", P("Cocoa harvested", "可可已收成"), _sim.HarvestCocoa());
+                break;
+
             case "collect":
                 PostNotice("success", P("Barn collected", "畜舍已收集"), _sim.CollectDairyAndEggs());
                 break;

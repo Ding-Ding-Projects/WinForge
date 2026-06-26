@@ -61,6 +61,7 @@ public sealed class CakeFactorySnapshot
     public string MissingIngredients { get; init; } = "";
     public bool CanHarvest { get; init; }
     public bool CanHarvestFeedCrops { get; init; }
+    public bool CanHarvestCocoa { get; init; }
     public bool CanCollectDairy { get; init; }
     public bool CanMixDairyRation { get; init; }
     public bool CanWashDairyParlor { get; init; }
@@ -94,6 +95,7 @@ public sealed class CakeFactorySnapshot
     public double BeetGrowth { get; init; }
     public double PastureHealth { get; init; }
     public double VanillaGrowth { get; init; }
+    public double CocoaGrowth { get; init; }
     public double DairyReadyL { get; init; }
     public double EggsReady { get; init; }
     public int DairyCowCount { get; init; }
@@ -129,6 +131,7 @@ public sealed class CakeFactorySnapshot
     public double RationProteinPct { get; init; }
     public string RationStatus { get; init; } = "";
     public string FeedCropStatus { get; init; } = "";
+    public string CocoaGreenhouseStatus { get; init; } = "";
     public string ForageLotId { get; init; } = "";
     public string GrainLotId { get; init; } = "";
     public string MixedRationLotId { get; init; } = "";
@@ -159,6 +162,7 @@ public sealed class CakeFactorySnapshot
     public string FlourLotId { get; init; } = "";
     public string SugarLotId { get; init; } = "";
     public string ButterLotId { get; init; } = "";
+    public string CocoaBeansLotId { get; init; } = "";
     public string CocoaLotId { get; init; } = "";
     public string SaltLotId { get; init; } = "";
     public string StarchLotId { get; init; } = "";
@@ -183,6 +187,8 @@ public sealed class CakeFactorySnapshot
     public double VanillaBeansKg { get; init; }
     public double CocoaBeansKg { get; init; }
     public double CocoaKg { get; init; }
+    public double CocoaBeanMoisturePct { get; init; }
+    public double CocoaFermentationPct { get; init; }
     public double BrineL { get; init; }
     public double SodaAshKg { get; init; }
     public double PhosphateKg { get; init; }
@@ -443,6 +449,7 @@ public sealed class CakeFactoryService
     private double _beetGrowth = 58;
     private double _pastureHealth = 76;
     private double _vanillaGrowth = 34;
+    private double _cocoaGrowth = 52;
     private double _dairyReadyL = 18;
     private double _eggsReady = 42;
     private int _dairyCowCount = 18;
@@ -476,6 +483,7 @@ public sealed class CakeFactoryService
     private double _rationProteinPct = 92;
     private string _rationStatus = "Total mixed ration TMR-OPENING loaded for the lactating cow herd.";
     private string _feedCropStatus = "Feed crop header idle: pasture and feed-grain lots can be harvested for the TMR mixer.";
+    private string _cocoaGreenhouseStatus = "Cocoa greenhouse idle: cacao pods are growing under irrigation, fertilizer and shade-house controls.";
 
     private double _wheatKg = 260;
     private double _sugarCropKg = 380;
@@ -490,6 +498,8 @@ public sealed class CakeFactoryService
     private double _vanillaBeansKg = 9.5;
     private double _cocoaBeansKg = 60;
     private double _cocoaKg = 20;
+    private double _cocoaBeanMoisturePct = 6.8;
+    private double _cocoaFermentationPct = 91.0;
     private double _brineL = 900;
     private double _sodaAshKg = 28;
     private double _phosphateKg = 30;
@@ -1032,6 +1042,32 @@ public sealed class CakeFactoryService
         return _feedCropStatus;
     }
 
+    public string HarvestCocoa()
+    {
+        if (_lastPowerAvailability < 0.15)
+            return "Cocoa greenhouse harvest needs reactor bus power for irrigation valves, shade controls and drying fans.";
+
+        const double labor = 0.55;
+        if (_barnLaborHours < labor)
+            return "Cocoa harvest needs farm labor for pod cutting, bean scooping, fermentation box turns and dryer checks.";
+        if (_forkliftBatteryPct < 6)
+            return "Cocoa harvest needs forklift battery for moving fermentation trays and drying racks.";
+        if (_cocoaGrowth < 35)
+            return "Cacao pods are not mature enough for harvest.";
+
+        double beans = _cocoaGrowth * 0.34;
+        _cocoaBeansKg += beans;
+        _cocoaBeansLotId = NewLotId("COCOABEAN");
+        _cocoaBeanMoisturePct = Math.Clamp(7.8 - _cocoaGrowth * 0.018 + _rng.NextDouble() * 0.6, 5.8, 8.2);
+        _cocoaFermentationPct = Math.Clamp(76 + _cocoaGrowth * 0.22 + _rng.NextDouble() * 5.0, 82, 99);
+        _cocoaGrowth = 16 + _rng.NextDouble() * 8;
+        _barnLaborHours = Math.Max(0, _barnLaborHours - labor);
+        _forkliftBatteryPct = Math.Max(0, _forkliftBatteryPct - 1.1);
+        _cocoaGreenhouseStatus = $"Cocoa greenhouse harvest logged: {beans:0.0} kg fermented cocoa beans lot {_cocoaBeansLotId}, {_cocoaFermentationPct:0}% fermentation and {_cocoaBeanMoisturePct:0.0}% moisture.";
+        _traceabilityStatus = $"Cocoa greenhouse trace logged: cacao pods -> fermented bean lot {_cocoaBeansLotId}; roast/grind factory still required before chocolate batching.";
+        return _cocoaGreenhouseStatus;
+    }
+
     public string MixDairyRation()
     {
         if (_lastPowerAvailability < 0.15)
@@ -1416,6 +1452,8 @@ public sealed class CakeFactoryService
         double beans = Math.Min(_cocoaBeansKg, 45);
         if (beans < 5)
             return "Not enough cocoa beans are available for a roast/grind run.";
+        if (string.IsNullOrWhiteSpace(_cocoaBeansLotId))
+            return "Cocoa roaster cannot run because the cocoa bean lot is missing from the ledger.";
 
         _cocoaRoasterTemperatureC = 24;
         _cocoaGrindMicrons = 0;
@@ -2166,6 +2204,7 @@ public sealed class CakeFactoryService
                 _cocoaRoasterTemperatureC = 24.0 + p * 112.0;
                 _cocoaGrindMicrons = p < 0.45 ? 0 : 140.0 - (p - 0.45) / 0.55 * 66.0;
                 if (p > 0.5) _factoryRunQualityPct -= Math.Abs(_cocoaRoasterTemperatureC - 134.0) * 0.08;
+                if (p > 0.55) _factoryRunQualityPct -= Math.Max(0, 86.0 - _cocoaFermentationPct) * 0.22 + Math.Abs(_cocoaBeanMoisturePct - 6.8) * 0.9;
                 break;
             case IngredientFactoryKind.Salt:
                 _saltCrystallizerTemperatureC = 28.0 + p * 38.0;
@@ -2645,8 +2684,8 @@ public sealed class CakeFactoryService
                 _wasteKg += waste;
                 _cocoaRoasterTemperatureC = 130 + _rng.NextDouble() * 12;
                 _cocoaGrindMicrons = 68 + _rng.NextDouble() * 18;
-                _factoryRunQualityPct = Math.Clamp(98 - Math.Abs(_cocoaGrindMicrons - 75.0) * 0.35 - FactoryEquipmentPenalty(run.Kind), 0, 100);
-                _factoryStatus = $"Cocoa line completed: {output:0.0} kg cocoa at {_cocoaRoasterTemperatureC:0} degC roast and {_cocoaGrindMicrons:0} micron grind, QA {_factoryRunQualityPct:0}%.";
+                _factoryRunQualityPct = Math.Clamp(98 - Math.Abs(_cocoaGrindMicrons - 75.0) * 0.35 - Math.Max(0, 86.0 - _cocoaFermentationPct) * 0.25 - Math.Abs(_cocoaBeanMoisturePct - 6.8) * 0.9 - FactoryEquipmentPenalty(run.Kind), 0, 100);
+                _factoryStatus = $"Cocoa line completed: {output:0.0} kg cocoa from fermented beans at {_cocoaFermentationPct:0}% fermentation, {_cocoaBeanMoisturePct:0.0}% moisture, {_cocoaRoasterTemperatureC:0} degC roast and {_cocoaGrindMicrons:0} micron grind, QA {_factoryRunQualityPct:0}%.";
                 break;
             case IngredientFactoryKind.Salt:
                 _saltKg += output;
@@ -2952,6 +2991,7 @@ public sealed class CakeFactoryService
             MissingIngredients = missing,
             CanHarvest = power >= 0.15 && (_wheatGrowth >= 25 || _beetGrowth >= 25 || _vanillaGrowth >= 25),
             CanHarvestFeedCrops = power >= 0.15 && _barnLaborHours >= 0.7 && (_pastureHealth >= 35 || _wheatGrowth >= 55),
+            CanHarvestCocoa = power >= 0.15 && _barnLaborHours >= 0.55 && _forkliftBatteryPct >= 6 && _cocoaGrowth >= 35,
             CanCollectDairy = power >= 0.12 && (_dairyReadyL >= 1 || _eggsReady >= 1),
             CanMixDairyRation = power >= 0.15 && _forageKg >= 48 && _grainKg >= 22 && _dairyMineralKg >= 2.2 && FactoryLotReleased(_dairyMineralKg, _dairyMineralLotId) && _irrigationWaterL >= 38 && _barnLaborHours >= 0.8,
             CanWashDairyParlor = power >= 0.15 && HasFactoryUtilities(180, 60, 12, 0.5) && _barnLaborHours >= 1.4 && (_dairyParlorHygienePct < 96 || _manureKg > 80),
@@ -2993,6 +3033,7 @@ public sealed class CakeFactoryService
             BeetGrowth = _beetGrowth,
             PastureHealth = _pastureHealth,
             VanillaGrowth = _vanillaGrowth,
+            CocoaGrowth = _cocoaGrowth,
             DairyReadyL = _dairyReadyL,
             EggsReady = _eggsReady,
             DairyCowCount = _dairyCowCount,
@@ -3028,6 +3069,7 @@ public sealed class CakeFactoryService
             RationProteinPct = _rationProteinPct,
             RationStatus = _rationStatus,
             FeedCropStatus = _feedCropStatus,
+            CocoaGreenhouseStatus = _cocoaGreenhouseStatus,
             ForageLotId = _forageLotId,
             GrainLotId = _grainLotId,
             MixedRationLotId = _mixedRationLotId,
@@ -3058,6 +3100,7 @@ public sealed class CakeFactoryService
             FlourLotId = _flourLotId,
             SugarLotId = _sugarLotId,
             ButterLotId = _butterLotId,
+            CocoaBeansLotId = _cocoaBeansLotId,
             CocoaLotId = _cocoaLotId,
             SaltLotId = _saltLotId,
             StarchLotId = _starchLotId,
@@ -3082,6 +3125,8 @@ public sealed class CakeFactoryService
             VanillaBeansKg = _vanillaBeansKg,
             CocoaBeansKg = _cocoaBeansKg,
             CocoaKg = _cocoaKg,
+            CocoaBeanMoisturePct = _cocoaBeanMoisturePct,
+            CocoaFermentationPct = _cocoaFermentationPct,
             BrineL = _brineL,
             SodaAshKg = _sodaAshKg,
             PhosphateKg = _phosphateKg,
@@ -3289,6 +3334,7 @@ public sealed class CakeFactoryService
         _beetGrowth = Math.Min(100, _beetGrowth + seconds * 0.13 * fieldEffect);
         _pastureHealth = Math.Clamp(_pastureHealth + seconds * (0.09 * fieldEffect - 0.015), 10, 100);
         _vanillaGrowth = Math.Min(100, _vanillaGrowth + seconds * 0.045 * fieldEffect);
+        _cocoaGrowth = Math.Min(100, _cocoaGrowth + seconds * 0.040 * fieldEffect);
 
         if (AutoHarvest && _lastPowerAvailability >= 0.15 && _wheatGrowth >= 100) _wheatKg += HarvestCrop(ref _wheatGrowth, 390);
         if (AutoHarvest && _lastPowerAvailability >= 0.15 && _beetGrowth >= 100) _sugarCropKg += HarvestCrop(ref _beetGrowth, 760);
@@ -3663,7 +3709,7 @@ public sealed class CakeFactoryService
         if (_adhesiveKg < 6) low.Add("food-grade adhesive");
         if (_icingKg < IcingNeedKg(CurrentRecipe)) low.Add("prepared icing");
         if (_vanillaBeansKg < 0.5 && _vanillaL < CurrentRecipe.VanillaL * CurrentRecipe.BatchSize) low.Add("vanilla beans");
-        if (_cocoaBeansKg < 5 && _cocoaKg < CurrentRecipe.CocoaKg * CurrentRecipe.BatchSize) low.Add("cocoa beans");
+        if (_cocoaBeansKg < 5 && _cocoaKg < CurrentRecipe.CocoaKg * CurrentRecipe.BatchSize) low.Add(_cocoaGrowth >= 35 ? "cocoa harvest" : "cocoa greenhouse maturity");
         if (_brineL < 80 && _saltKg < CurrentRecipe.SaltKg * CurrentRecipe.BatchSize) low.Add("brine");
         if ((_sodaAshKg < 3 || _phosphateKg < 3 || _starchKg < 2)
             && _bakingPowderKg < CurrentRecipe.BakingPowderKg * CurrentRecipe.BatchSize)
@@ -3742,6 +3788,7 @@ public sealed class CakeFactoryService
         if (!HasLot(_bakingPowderKg, _leaveningLotId)) missing.Add("baking powder");
         if (!HasLot(_saltKg, _saltLotId)) missing.Add("salt");
         if (!HasLot(_starchKg, _starchLotId)) missing.Add("starch");
+        if (!HasLot(_cocoaBeansKg, _cocoaBeansLotId)) missing.Add("cocoa beans");
         if (!HasLot(_cocoaKg, _cocoaLotId)) missing.Add("cocoa");
         if (!HasLot(_packagingUnits, _packagingLotId)) missing.Add("packaging");
         if (!HasLot(_icingKg, _icingLotId)) missing.Add("prepared icing");

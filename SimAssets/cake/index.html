@@ -583,6 +583,7 @@
               <div class="button-grid">
                 <button class="action" type="button" data-action="harvest">Harvest</button>
                 <button class="action" type="button" data-action="harvestFeedCrops">Harvest feed</button>
+                <button class="action" type="button" data-action="harvestCocoa">Harvest cocoa</button>
                 <button class="action" type="button" data-action="collect">Milk + eggs</button>
                 <button class="action" type="button" data-action="mixDairyRation">Mix dairy ration</button>
                 <button class="action guard" type="button" data-action="washDairyParlor">Wash parlor</button>
@@ -742,6 +743,7 @@
       MissingIngredients: '',
       CanHarvest: false,
       CanHarvestFeedCrops: false,
+      CanHarvestCocoa: false,
       CanCollectDairy: false,
       CanMixDairyRation: false,
       CanWashDairyParlor: false,
@@ -775,6 +777,7 @@
       BeetGrowth: 58,
       PastureHealth: 76,
       VanillaGrowth: 34,
+      CocoaGrowth: 52,
       DairyReadyL: 18,
       EggsReady: 42,
       DairyCowCount: 18,
@@ -810,6 +813,7 @@
       RationProteinPct: 92,
       RationStatus: 'Total mixed ration TMR-OPENING loaded for the lactating cow herd.',
       FeedCropStatus: 'Feed crop header idle: pasture and feed-grain lots can be harvested for the TMR mixer.',
+      CocoaGreenhouseStatus: 'Cocoa greenhouse idle: cacao pods are growing under irrigation, fertilizer and shade-house controls.',
       ForageLotId: 'FORAGE-OPENING',
       GrainLotId: 'GRAIN-OPENING',
       MixedRationLotId: 'TMR-OPENING',
@@ -840,6 +844,7 @@
       FlourLotId: 'FLOUR-OPENING',
       SugarLotId: 'SUGAR-OPENING',
       ButterLotId: 'BUTTER-OPENING',
+      CocoaBeansLotId: 'COCOA-BEAN-OPENING',
       CocoaLotId: 'COCOA-OPENING',
       SaltLotId: 'SALT-OPENING',
       StarchLotId: 'STARCH-OPENING',
@@ -864,6 +869,8 @@
       VanillaBeansKg: 9.5,
       CocoaBeansKg: 60,
       CocoaKg: 20,
+      CocoaBeanMoisturePct: 6.8,
+      CocoaFermentationPct: 91,
       BrineL: 900,
       SodaAshKg: 28,
       PhosphateKg: 30,
@@ -1140,6 +1147,7 @@
 
       setButton('harvest', s.CanHarvest);
       setButton('harvestFeedCrops', s.CanHarvestFeedCrops);
+      setButton('harvestCocoa', s.CanHarvestCocoa);
       setButton('collect', s.CanCollectDairy);
       setButton('mixDairyRation', s.CanMixDairyRation);
       setButton('washDairyParlor', s.CanWashDairyParlor);
@@ -1213,7 +1221,8 @@
         ['Bedding lot', `${n(s.BeddingKg, 1)} kg / ${s.BeddingLotId || '-'}`],
         ['Barn labor', `${n(s.BarnLaborHours, 1)} h`],
         ['Vanilla beans', `${n(s.VanillaBeansKg, 1)} kg`],
-        ['Cocoa beans', `${n(s.CocoaBeansKg, 1)} kg`],
+        ['Cocoa greenhouse', `${n(s.CocoaGrowth, 0)}% mature / ${s.CocoaGreenhouseStatus || 'idle'}`],
+        ['Cocoa beans', `${n(s.CocoaBeansKg, 1)} kg / ${n(s.CocoaFermentationPct, 0)}% ferment / ${n(s.CocoaBeanMoisturePct, 1)}% moisture`],
         ['Brine', `${n(s.BrineL, 0)} L`],
         ['Soda ash', `${n(s.SodaAshKg, 1)} kg`],
         ['Phosphate', `${n(s.PhosphateKg, 1)} kg`],
@@ -1300,6 +1309,7 @@
         ['Egg source', s.EggSourceStatus || 'Poultry house idle'],
         ['Egg QA', s.EggQaStatus || 'Egg QA in spec'],
         ['Feed crop harvest', s.FeedCropStatus || 'Feed crop header idle'],
+        ['Cocoa greenhouse', s.CocoaGreenhouseStatus || 'Cocoa greenhouse idle'],
         ['Dairy ration', s.RationStatus || 'No ration mixed'],
         ['Ration quality', `${n(s.RationEnergyPct, 0)}% energy / ${n(s.RationProteinPct, 0)}% protein`],
         ['Dairy manure + hygiene', `${n(s.ManureKg, 0)} kg / ${n(s.DairyParlorHygienePct, 0)}%`],
@@ -1313,6 +1323,7 @@
         ['Butter lot', s.ButterLotId || '-'],
         ['Vanilla bean lot', s.VanillaBeanLotId || '-'],
         ['Vanilla lot', s.VanillaLotId || '-'],
+        ['Cocoa beans', `${s.CocoaBeansLotId || '-'} / ${n(s.CocoaBeansKg, 1)} kg`],
         ['Cocoa lot', s.CocoaLotId || '-'],
         ['Salt lot', s.SaltLotId || '-'],
         ['Leavening lot', s.LeaveningLotId || '-'],
@@ -1493,8 +1504,13 @@
         ctx.beginPath();
         ctx.ellipse(x + 8, 406 + (i % 3) * 14, 7, 4, 0, 0, Math.PI * 2);
         ctx.fill();
+        ctx.fillStyle = i % 2 ? '#9b4e2d' : '#d28a43';
+        ctx.beginPath();
+        ctx.ellipse(x + 2, 444 + (i % 3) * 10, 6, 10, 0.2, 0, Math.PI * 2);
+        ctx.fill();
       }
-      text(`VANILLA ${n(s.VanillaGrowth, 0)}%`, 315, 496, 13, '#e7fbf8', 800);
+      text(`VANILLA ${n(s.VanillaGrowth, 0)}%`, 315, 493, 13, '#e7fbf8', 800);
+      text(`COCOA ${n(s.CocoaGrowth, 0)}% / beans ${n(s.CocoaBeansKg, 0)} kg`, 315, 509, 11, '#ffd7a3', 800);
 
       const tx = 70 + (s.TractorPhase || 0) * 390;
       rr(tx, 304, 56, 24, 5, '#df4535');
@@ -1521,8 +1537,8 @@
       text(`Leavening raws ${n((s.SodaAshKg || 0) + (s.PhosphateKg || 0) + (s.StarchKg || 0), 1)} kg`, 198, 612, 12, '#ffe1a1', 800);
       text(`Mineral premix ${n(s.DairyMineralKg, 1)} kg / raw ${n((s.LimestoneKg || 0) + (s.TraceMineralKg || 0), 1)} kg`, 76, 632, 11, '#ece5c6', 800);
       text(`Vanilla beans ${n(s.VanillaBeansKg, 1)} kg / extract ${n(s.VanillaL, 2)} L`, 76, 648, 11, '#d4f3fb', 800);
-      text(`Paper ${n(s.PaperboardKg, 0)} kg / cartons ${n(s.PackagingUnits, 0)}`, 76, 664, 11, '#d4f3fb', 800);
-      text(`Labels ${n(s.LabelStockM, 0)} m / ink ${n(s.PackagingInkL, 1)} L / glue ${n(s.AdhesiveKg, 1)} kg`, 76, 680, 11, '#e8ddb7', 800);
+      text(`Cocoa beans ${n(s.CocoaBeansKg, 1)} kg / cocoa ${n(s.CocoaKg, 1)} kg`, 76, 664, 11, '#ffd7a3', 800);
+      text(`Paper ${n(s.PaperboardKg, 0)} kg / cartons ${n(s.PackagingUnits, 0)}`, 76, 680, 11, '#d4f3fb', 800);
 
       drawTruck(412, 545, s.ConveyorPhase);
       line(470, 556, 610, 556, '#80bc74', 4, 0.9);

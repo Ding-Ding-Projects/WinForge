@@ -14,7 +14,7 @@ This note records the research inputs used for `Pages/CakeFactoryModule` and `Se
 - Livestock bedding is not treated as a finished supplier input. The simulator models straw from wheat harvest or receiving, then a bedding chopper/dust extractor that makes a QA-released bedding lot before cows or hens can consume it.
 - Dairy mineral premix is not treated as a finished supplier input. The simulator models limestone, trace minerals, phosphate and salt as finite feedstocks, then a mineral premix micro-dosing/blending plant that makes a QA-released premix lot before the dairy ration mixer or feed mill can consume it.
 - Starch carrier is not treated as a finished supplier input. The simulator models a starch wet mill that converts harvested or received feed grain into a QA-released starch lot before the feed mill or leavening plant can consume it.
-- Vanilla and cocoa are flavoring inputs. Vanilla is represented as a greenhouse crop because commercial vanilla requires managed flowering, pollination/curing, and a long supply chain; cocoa is modeled as a small greenhouse/import crop inventory.
+- Vanilla and cocoa are flavoring inputs. Vanilla is represented as a greenhouse crop because commercial vanilla requires managed flowering, pollination/curing, and a long supply chain; cocoa is modeled as a small greenhouse/import crop that must be harvested into fermented, dried bean lots before the roast/grind factory can consume it.
 - Baking powder and salt are not farm outputs, so they are represented as factory-made outputs from mineral/dry-store feedstocks.
 - Decorating icing is not a field crop or automatic line effect. It is represented as a prepared factory lot made from released sugar, butter, cow milk, vanilla and cocoa when required.
 

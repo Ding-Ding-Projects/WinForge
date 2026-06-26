@@ -753,7 +753,8 @@ internal static class Program
                                  && Math.Abs(matureFarm.SugarCropKg - beforeFarmRun.SugarCropKg) < 0.001
                                  && Math.Abs(matureFarm.VanillaL - beforeFarmRun.VanillaL) < 0.001
                                  && Math.Abs(matureFarm.ForageKg - beforeFarmRun.ForageKg) < 0.001
-                                 && Math.Abs(matureFarm.GrainKg - beforeFarmRun.GrainKg) < 0.001;
+                                 && Math.Abs(matureFarm.GrainKg - beforeFarmRun.GrainKg) < 0.001
+                                 && Math.Abs(matureFarm.CocoaBeansKg - beforeFarmRun.CocoaBeansKg) < 0.001;
 
             string kitMsg = cake.StageBatchKit();
             TickCake(cake, fullBus, 0.5);
@@ -849,6 +850,53 @@ internal static class Program
                           $"lotsStamped={lotsStamped} ({harvested.ForageLotId}/{harvested.GrainLotId}), harvestTelemetry={harvestTelemetry} " +
                           $"(moisture {harvested.ForageMoisturePct:F1}/{harvested.FeedGrainMoisturePct:F1}%), " +
                           $"rationConsumesFarmLots={rationConsumesFarmLots} ('{Trim(mix)}')");
+        });
+
+        Scenario("CAKE COCOA GREENHOUSE (cocoa beans are grown before roasting)", () =>
+        {
+            var cake = new CakeFactoryService { FarmIntensity = 1.0 };
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            string harvest = cake.HarvestCocoa();
+            TickCake(cake, fullBus, 0.5);
+            var harvested = cake.Snapshot;
+
+            string roast = cake.ProcessCocoa();
+            TickCake(cake, fullBus, 1.0);
+            var running = cake.Snapshot;
+
+            TickCake(cake, fullBus, 12.0);
+            var held = cake.Snapshot;
+            string release = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var released = cake.Snapshot;
+
+            bool harvestAvailable = before.CanHarvestCocoa;
+            bool beansProduced = harvested.CocoaBeansKg > before.CocoaBeansKg
+                                 && harvested.CocoaGrowth < before.CocoaGrowth
+                                 && harvested.BarnLaborHours < before.BarnLaborHours
+                                 && harvested.ForkliftBatteryPct < before.ForkliftBatteryPct;
+            bool lotStamped = harvested.CocoaBeansLotId.StartsWith("COCOABEAN-", StringComparison.OrdinalIgnoreCase)
+                              && harvested.CocoaBeansLotId != before.CocoaBeansLotId
+                              && harvested.TraceabilityStatus.Contains(harvested.CocoaBeansLotId, StringComparison.OrdinalIgnoreCase);
+            bool greenhouseTelemetry = harvested.CocoaFermentationPct > 80
+                                       && harvested.CocoaBeanMoisturePct > 0
+                                       && harvested.CocoaGreenhouseStatus.Contains("fermented cocoa beans", StringComparison.OrdinalIgnoreCase);
+            bool roastConsumesBeans = running.FactoryRunActive
+                                      && running.ActiveFactoryName.Contains("Cocoa", StringComparison.OrdinalIgnoreCase)
+                                      && running.CocoaBeansKg < harvested.CocoaBeansKg
+                                      && running.TraceabilityStatus.Contains(harvested.CocoaBeansLotId, StringComparison.OrdinalIgnoreCase)
+                                      && roast.Contains("roasting", StringComparison.OrdinalIgnoreCase);
+            bool labRelease = held.PendingLabLotId == held.CocoaLotId
+                              && released.CocoaKg > harvested.CocoaKg
+                              && released.PendingLabLotId.Length == 0
+                              && release.Contains("released", StringComparison.OrdinalIgnoreCase);
+            bool pass = harvestAvailable && beansProduced && lotStamped && greenhouseTelemetry && roastConsumesBeans && labRelease;
+            return (pass, $"harvestAvailable={harvestAvailable}, beansProduced={beansProduced} ('{Trim(harvest)}'), " +
+                          $"lotStamped={lotStamped} ({harvested.CocoaBeansLotId}), greenhouseTelemetry={greenhouseTelemetry} " +
+                          $"(ferment {harvested.CocoaFermentationPct:F0}%, moisture {harvested.CocoaBeanMoisturePct:F1}%), " +
+                          $"roastConsumesBeans={roastConsumesBeans} ('{Trim(roast)}'), labRelease={labRelease} ('{Trim(release)}')");
         });
 
         Scenario("CAKE STARCH PLANT (grain becomes QA-released starch before feed/leavening use)", () =>
