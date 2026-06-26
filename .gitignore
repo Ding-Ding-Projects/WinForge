@@ -57,3 +57,6 @@ Generated\ Files/
 *_wpftmp.csproj
 
 docs/test/
+
+# Local external source checkouts
+external/
