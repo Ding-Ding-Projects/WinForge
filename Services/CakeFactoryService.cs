@@ -60,6 +60,7 @@ public sealed class CakeFactorySnapshot
     public string OperatorPrompt { get; init; } = "";
     public string MissingIngredients { get; init; } = "";
     public bool CanHarvest { get; init; }
+    public bool CanHarvestFeedCrops { get; init; }
     public bool CanCollectDairy { get; init; }
     public bool CanMixDairyRation { get; init; }
     public bool CanWashDairyParlor { get; init; }
@@ -126,6 +127,9 @@ public sealed class CakeFactorySnapshot
     public double RationEnergyPct { get; init; }
     public double RationProteinPct { get; init; }
     public string RationStatus { get; init; } = "";
+    public string FeedCropStatus { get; init; } = "";
+    public string ForageLotId { get; init; } = "";
+    public string GrainLotId { get; init; } = "";
     public string MixedRationLotId { get; init; } = "";
     public string DairyMineralLotId { get; init; } = "";
     public string BeddingLotId { get; init; } = "";
@@ -182,6 +186,8 @@ public sealed class CakeFactorySnapshot
     public double PhosphateKg { get; init; }
     public double StarchKg { get; init; }
     public double StrawKg { get; init; }
+    public double ForageMoisturePct { get; init; }
+    public double FeedGrainMoisturePct { get; init; }
     public double LimestoneKg { get; init; }
     public double TraceMineralKg { get; init; }
     public double WheatSeedKg { get; init; }
@@ -461,6 +467,7 @@ public sealed class CakeFactoryService
     private double _rationEnergyPct = 94;
     private double _rationProteinPct = 92;
     private string _rationStatus = "Total mixed ration TMR-OPENING loaded for the lactating cow herd.";
+    private string _feedCropStatus = "Feed crop header idle: pasture and feed-grain lots can be harvested for the TMR mixer.";
 
     private double _wheatKg = 260;
     private double _sugarCropKg = 380;
@@ -480,6 +487,8 @@ public sealed class CakeFactoryService
     private double _phosphateKg = 30;
     private double _starchKg = 24;
     private double _strawKg = 170;
+    private double _forageMoisturePct = 13.8;
+    private double _feedGrainMoisturePct = 12.4;
     private double _limestoneKg = 46;
     private double _traceMineralKg = 22;
     private double _wheatSeedKg = 18;
@@ -959,6 +968,52 @@ public sealed class CakeFactoryService
             ? "Harvest completed with no new traceable lots."
             : "Harvest trace logged: " + string.Join(", ", lots) + ".";
         return $"Harvested {wheat:0} kg wheat, {straw:0} kg straw, {beet:0} kg sugar crop, {vanillaBeans:0.0} kg green vanilla beans for curing/extraction.";
+    }
+
+    public string HarvestFeedCrops()
+    {
+        if (_lastPowerAvailability < 0.15)
+            return "Forage mower, wagon scale and grain cleaner need reactor bus power.";
+
+        const double labor = 0.7;
+        if (_barnLaborHours < labor)
+            return "Feed crop harvest needs barn labor for cutting, raking, moisture checks and wagon unloading.";
+        if (_pastureHealth < 35 && _wheatGrowth < 55)
+            return "Feed crops are not ready; pasture or wheat must mature before forage/grain harvest.";
+
+        double forage = _pastureHealth >= 35 ? _pastureHealth * 4.6 : 0;
+        double grain = _wheatGrowth >= 55 ? _wheatGrowth * 0.95 : 0;
+        double straw = grain > 0 ? grain * 0.28 : 0;
+        var lots = new List<string>();
+
+        if (forage > 0)
+        {
+            _forageKg += forage;
+            _forageLotId = NewLotId("FORAGE");
+            _forageMoisturePct = Math.Clamp(22.0 - _pastureHealth * 0.08 + _rng.NextDouble() * 1.4, 12.0, 22.0);
+            _pastureHealth = Math.Max(18, _pastureHealth - 31);
+            lots.Add($"forage {_forageLotId}");
+        }
+
+        if (grain > 0)
+        {
+            _grainKg += grain;
+            _strawKg += straw;
+            _grainLotId = NewLotId("GRAIN");
+            _strawLotId = NewLotId("STRAW");
+            _feedGrainMoisturePct = 11.6 + _rng.NextDouble() * 2.2;
+            _wheatGrowth = 14 + _rng.NextDouble() * 8;
+            lots.Add($"feed grain {_grainLotId}");
+            lots.Add($"straw {_strawLotId}");
+        }
+
+        _barnLaborHours = Math.Max(0, _barnLaborHours - labor);
+        _forkliftBatteryPct = Math.Max(0, _forkliftBatteryPct - 1.4);
+        _feedCropStatus = $"Feed crop harvest logged: {forage:0} kg forage at {_forageMoisturePct:0.0}% moisture, {grain:0} kg feed grain at {_feedGrainMoisturePct:0.0}% moisture and {straw:0} kg straw.";
+        _traceabilityStatus = lots.Count == 0
+            ? "Feed crop harvest completed with no new traceable lots."
+            : "Feed crop trace logged: " + string.Join(", ", lots) + ".";
+        return _feedCropStatus;
     }
 
     public string MixDairyRation()
@@ -2805,6 +2860,7 @@ public sealed class CakeFactoryService
             OperatorPrompt = OperatorPrompt(power, missing),
             MissingIngredients = missing,
             CanHarvest = power >= 0.15 && (_wheatGrowth >= 25 || _beetGrowth >= 25 || _vanillaGrowth >= 25),
+            CanHarvestFeedCrops = power >= 0.15 && _barnLaborHours >= 0.7 && (_pastureHealth >= 35 || _wheatGrowth >= 55),
             CanCollectDairy = power >= 0.12 && (_dairyReadyL >= 1 || _eggsReady >= 1),
             CanMixDairyRation = power >= 0.15 && _forageKg >= 48 && _grainKg >= 22 && _dairyMineralKg >= 2.2 && FactoryLotReleased(_dairyMineralKg, _dairyMineralLotId) && _irrigationWaterL >= 38 && _barnLaborHours >= 0.8,
             CanWashDairyParlor = power >= 0.15 && HasFactoryUtilities(180, 60, 12, 0.5) && _barnLaborHours >= 1.4 && (_dairyParlorHygienePct < 96 || _manureKg > 80),
@@ -2877,6 +2933,9 @@ public sealed class CakeFactoryService
             RationEnergyPct = _rationEnergyPct,
             RationProteinPct = _rationProteinPct,
             RationStatus = _rationStatus,
+            FeedCropStatus = _feedCropStatus,
+            ForageLotId = _forageLotId,
+            GrainLotId = _grainLotId,
             MixedRationLotId = _mixedRationLotId,
             DairyMineralLotId = _dairyMineralLotId,
             BeddingLotId = _beddingLotId,
@@ -2933,6 +2992,8 @@ public sealed class CakeFactoryService
             PhosphateKg = _phosphateKg,
             StarchKg = _starchKg,
             StrawKg = _strawKg,
+            ForageMoisturePct = _forageMoisturePct,
+            FeedGrainMoisturePct = _feedGrainMoisturePct,
             LimestoneKg = _limestoneKg,
             TraceMineralKg = _traceMineralKg,
             WheatSeedKg = _wheatSeedKg,

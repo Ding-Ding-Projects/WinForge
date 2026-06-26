@@ -751,7 +751,9 @@ internal static class Program
                                  && matureFarm.WheatGrowth >= 99
                                  && Math.Abs(matureFarm.WheatKg - beforeFarmRun.WheatKg) < 0.001
                                  && Math.Abs(matureFarm.SugarCropKg - beforeFarmRun.SugarCropKg) < 0.001
-                                 && Math.Abs(matureFarm.VanillaL - beforeFarmRun.VanillaL) < 0.001;
+                                 && Math.Abs(matureFarm.VanillaL - beforeFarmRun.VanillaL) < 0.001
+                                 && Math.Abs(matureFarm.ForageKg - beforeFarmRun.ForageKg) < 0.001
+                                 && Math.Abs(matureFarm.GrainKg - beforeFarmRun.GrainKg) < 0.001;
 
             string kitMsg = cake.StageBatchKit();
             TickCake(cake, fullBus, 0.5);
@@ -804,6 +806,49 @@ internal static class Program
                           $"cowInputsConsumed={cowInputsConsumed}, milkProduced={milkProduced} ({after.MilkProductionLPerHour:F1} L/h), " +
                           $"milkCollected={milkCollected} ('{Trim(collect)}'), milkQaModeled={milkQaModeled} " +
                           $"({collected.BulkMilkTankC:F1}C, {collected.MilkBacteriaCfuPerMl:F0} CFU/mL)");
+        });
+
+        Scenario("CAKE FEED CROP HARVEST (forage and feed grain come from farm lots)", () =>
+        {
+            var cake = new CakeFactoryService { FarmIntensity = 0 };
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            string harvest = cake.HarvestFeedCrops();
+            TickCake(cake, fullBus, 0.5);
+            var harvested = cake.Snapshot;
+
+            string mix = cake.MixDairyRation();
+            TickCake(cake, fullBus, 0.5);
+            var mixed = cake.Snapshot;
+
+            bool harvestAvailable = before.CanHarvestFeedCrops;
+            bool farmStocksProduced = harvested.ForageKg > before.ForageKg
+                                      && harvested.GrainKg > before.GrainKg
+                                      && harvested.StrawKg > before.StrawKg
+                                      && harvested.PastureHealth < before.PastureHealth
+                                      && harvested.WheatGrowth < before.WheatGrowth;
+            bool lotsStamped = harvested.ForageLotId.StartsWith("FORAGE-", StringComparison.OrdinalIgnoreCase)
+                               && harvested.GrainLotId.StartsWith("GRAIN-", StringComparison.OrdinalIgnoreCase)
+                               && harvested.ForageLotId != before.ForageLotId
+                               && harvested.GrainLotId != before.GrainLotId
+                               && harvested.TraceabilityStatus.Contains("feed grain", StringComparison.OrdinalIgnoreCase)
+                               && harvested.FeedCropStatus.Contains("forage", StringComparison.OrdinalIgnoreCase);
+            bool harvestTelemetry = harvested.ForageMoisturePct > 0
+                                    && harvested.FeedGrainMoisturePct > 0
+                                    && harvested.BarnLaborHours < before.BarnLaborHours
+                                    && harvested.ForkliftBatteryPct < before.ForkliftBatteryPct;
+            bool rationConsumesFarmLots = mixed.ForageKg < harvested.ForageKg
+                                           && mixed.GrainKg < harvested.GrainKg
+                                           && mixed.MixedRationKg > harvested.MixedRationKg
+                                           && mixed.TraceabilityStatus.Contains(harvested.ForageLotId, StringComparison.OrdinalIgnoreCase)
+                                           && mixed.TraceabilityStatus.Contains(harvested.GrainLotId, StringComparison.OrdinalIgnoreCase)
+                                           && mix.Contains("TMR", StringComparison.OrdinalIgnoreCase);
+            bool pass = harvestAvailable && farmStocksProduced && lotsStamped && harvestTelemetry && rationConsumesFarmLots;
+            return (pass, $"harvestAvailable={harvestAvailable}, farmStocksProduced={farmStocksProduced} ('{Trim(harvest)}'), " +
+                          $"lotsStamped={lotsStamped} ({harvested.ForageLotId}/{harvested.GrainLotId}), harvestTelemetry={harvestTelemetry} " +
+                          $"(moisture {harvested.ForageMoisturePct:F1}/{harvested.FeedGrainMoisturePct:F1}%), " +
+                          $"rationConsumesFarmLots={rationConsumesFarmLots} ('{Trim(mix)}')");
         });
 
         Scenario("CAKE FEED MILL (poultry feed is factory-made before hens consume it)", () =>

@@ -582,6 +582,7 @@
               <h3>Farm</h3>
               <div class="button-grid">
                 <button class="action" type="button" data-action="harvest">Harvest</button>
+                <button class="action" type="button" data-action="harvestFeedCrops">Harvest feed</button>
                 <button class="action" type="button" data-action="collect">Milk + eggs</button>
                 <button class="action" type="button" data-action="mixDairyRation">Mix dairy ration</button>
                 <button class="action guard" type="button" data-action="washDairyParlor">Wash parlor</button>
@@ -739,6 +740,7 @@
       OperatorPrompt: 'Waiting for reactor bus.',
       MissingIngredients: '',
       CanHarvest: false,
+      CanHarvestFeedCrops: false,
       CanCollectDairy: false,
       CanMixDairyRation: false,
       CanWashDairyParlor: false,
@@ -805,6 +807,9 @@
       RationEnergyPct: 94,
       RationProteinPct: 92,
       RationStatus: 'Total mixed ration TMR-OPENING loaded for the lactating cow herd.',
+      FeedCropStatus: 'Feed crop header idle: pasture and feed-grain lots can be harvested for the TMR mixer.',
+      ForageLotId: 'FORAGE-OPENING',
+      GrainLotId: 'GRAIN-OPENING',
       MixedRationLotId: 'TMR-OPENING',
       DairyMineralLotId: 'DAIRYMIN-OPENING',
       BeddingLotId: 'BEDDING-OPENING',
@@ -861,6 +866,8 @@
       PhosphateKg: 30,
       StarchKg: 24,
       StrawKg: 170,
+      ForageMoisturePct: 13.8,
+      FeedGrainMoisturePct: 12.4,
       LimestoneKg: 46,
       TraceMineralKg: 22,
       WheatSeedKg: 18,
@@ -1124,6 +1131,7 @@
       setFill('cipFill', s.CipActive ? pct(s.CipProgress, 1) : pct(s.SanitationScore));
 
       setButton('harvest', s.CanHarvest);
+      setButton('harvestFeedCrops', s.CanHarvestFeedCrops);
       setButton('collect', s.CanCollectDairy);
       setButton('mixDairyRation', s.CanMixDairyRation);
       setButton('washDairyParlor', s.CanWashDairyParlor);
@@ -1186,8 +1194,9 @@
         ['Beet seed', `${n(s.BeetSeedKg, 1)} kg`],
         ['Animal feed', `${n(s.AnimalFeedKg, 1)} kg`],
         ['Feed lot', s.FeedLotId || '-'],
-        ['Dairy forage', `${n(s.ForageKg, 1)} kg`],
-        ['Dairy grain', `${n(s.GrainKg, 1)} kg`],
+        ['Dairy forage', `${n(s.ForageKg, 1)} kg / ${s.ForageLotId || '-'}`],
+        ['Dairy grain', `${n(s.GrainKg, 1)} kg / ${s.GrainLotId || '-'}`],
+        ['Feed crop moisture', `forage ${n(s.ForageMoisturePct, 1)}% / grain ${n(s.FeedGrainMoisturePct, 1)}%`],
         ['Dairy mineral', `${n(s.DairyMineralKg, 1)} kg / ${s.DairyMineralLotId || '-'}`],
         ['Mineral raws', `lime ${n(s.LimestoneKg, 1)} kg / trace ${n(s.TraceMineralKg, 1)} kg`],
         ['Mixed ration', `${n(s.MixedRationKg, 1)} kg`],
@@ -1278,6 +1287,7 @@
         ['Milk QA', s.MilkQaStatus || 'Milk QA in spec'],
         ['Egg source', s.EggSourceStatus || 'Poultry house idle'],
         ['Egg QA', s.EggQaStatus || 'Egg QA in spec'],
+        ['Feed crop harvest', s.FeedCropStatus || 'Feed crop header idle'],
         ['Dairy ration', s.RationStatus || 'No ration mixed'],
         ['Ration quality', `${n(s.RationEnergyPct, 0)}% energy / ${n(s.RationProteinPct, 0)}% protein`],
         ['Dairy manure + hygiene', `${n(s.ManureKg, 0)} kg / ${n(s.DairyParlorHygienePct, 0)}%`],
@@ -1484,8 +1494,8 @@
       text('INPUT YARD', 76, 544, 13, '#dceecb', 900);
       text(`Water ${n(s.IrrigationWaterL, 0)} L`, 76, 566, 12, '#d9f0ff', 800);
       text(`Seed ${n((s.WheatSeedKg || 0) + (s.BeetSeedKg || 0), 1)} kg`, 76, 588, 12, '#e6ddb6', 800);
-      text(`Feed ${n(s.AnimalFeedKg, 0)} / TMR ${n(s.MixedRationKg, 0)} kg`, 198, 566, 12, '#f1d19c', 800);
-      text(`Bedding ${n(s.BeddingKg, 0)} / straw ${n(s.StrawKg, 0)} kg`, 198, 588, 12, '#c8efb2', 800);
+      text(`Forage ${n(s.ForageKg, 0)} / grain ${n(s.GrainKg, 0)} kg`, 198, 566, 12, '#e9e1b8', 800);
+      text(`Feed ${n(s.AnimalFeedKg, 0)} / TMR ${n(s.MixedRationKg, 0)} kg`, 198, 588, 12, '#f1d19c', 800);
       drawMiniPlant(305, 540, 'SALT', s.CanRunSaltWorks ? '#78c7dd' : '#69716f');
       drawMiniPlant(305, 588, 'LEAVEN', s.CanRunLeaveningPlant ? '#e8b75d' : '#69716f');
       drawMiniPlant(305, 636, 'PACK', s.CanRunPackagingPlant ? '#dfbd66' : '#69716f');

@@ -5,6 +5,7 @@ This note records the research inputs used for `Pages/CakeFactoryModule` and `Se
 ## Ingredient Chain
 
 - Wheat is grown, harvested, milled and sifted into lower-protein cake flour. The simulator models wheat growth, wheat inventory, milling extraction, bran/waste, and cake-flour inventory.
+- Dairy forage and feed grain are not treated only as supplier stocks. The simulator models a feed-crop harvest that cuts pasture into forage, diverts mature wheat into feed grain, checks moisture and stamps lots before the TMR mixer consumes them.
 - Sugar comes from sugar beets or sugarcane. The simulator models a sugar crop field, refining yield, sugar inventory, and crop pulp/waste.
 - Eggs are produced by laying hens and are treated as a raw-food safety risk until the bake kill step is reached.
 - Milk and butter come from dairy. The simulator models pasture health, milk collection, butter churning from milk, and separate milk/butter inventories.
