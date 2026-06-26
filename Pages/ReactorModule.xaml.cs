@@ -132,16 +132,21 @@ public sealed partial class ReactorModule : Page
 
     // Cached control text blocks needing re-localization.
     private readonly List<Action> _relocalizers = new();
+    // Native controls mirror the shared sim state so the HTML control room and embedded control room stay in sync.
+    private readonly List<Action> _controlSyncers = new();
+    private bool _syncingControlValues;
 
     // Public status-API card live element (the enable/disable toggle moved to the Reactor Settings page).
     private TextBlock? _apiStateText;
     private ReactorHtmlWindow? _controlRoomWindow;
+    private ReactorStartupChecklistWindow? _startupChecklistWindow;
     // 防崩潰自動儲存：本反應堆喺 PersistenceService 嘅提供者 id。
     // Persistence: this reactor's provider id in PersistenceService.
     private const string PersistId = "reactor";
     private bool _persistenceRegistered;
     private FrameworkElement? _startupChecklistAnchor;
     private string? _pendingDeepLink;
+    private bool _startupChecklistRequested;
 
     public ReactorModule()
     {
@@ -253,6 +258,8 @@ public sealed partial class ReactorModule : Page
     {
         if (!IsStartupDeepLink(_pendingDeepLink) || _startupChecklistAnchor is null) return;
         _pendingDeepLink = null;
+        _startupChecklistRequested = true;
+        _controlRoomWindow?.NavigateRoom("startup");
         DispatcherQueue.TryEnqueue(ScrollToStartupChecklist);
     }
 
@@ -357,6 +364,7 @@ public sealed partial class ReactorModule : Page
         // toolbar
         OpenControlRoomButton.Content = P("Open full control room ⤢", "開啟完整控制室 ⤢");
         StartupChecklistButton.Content = P("Startup checklist", "啟動程序清單");
+        ChecklistWidgetButton.Content = P("Checklist widget", "程序清單小工具");
         OpenWidgetsButton.Content = P("Mini widgets", "桌面小工具");
         MuteToggle.Content = P("Mute audio", "靜音");
         MuteToggle.IsChecked = !ReactorAudioEngine.I.Enabled;
@@ -2230,7 +2238,7 @@ public sealed partial class ReactorModule : Page
                 return;
             }
 
-            var w = new ReactorHtmlWindow(_sim, _fuel);
+            var w = new ReactorHtmlWindow(_sim, _fuel, _startupChecklistRequested ? "startup" : null);
             _controlRoomWindow = w;
             w.Closed += (_, _) => _controlRoomWindow = null;
             w.Activate();
@@ -2245,6 +2253,28 @@ public sealed partial class ReactorModule : Page
     {
         _pendingDeepLink = "startup";
         TryApplyPendingDeepLink();
+    }
+
+    private void OpenChecklistWidget_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (_startupChecklistWindow is not null)
+            {
+                _startupChecklistWindow.RestoreInteractive();
+                return;
+            }
+
+            var w = new ReactorStartupChecklistWindow(_sim);
+            _startupChecklistWindow = w;
+            w.Closed += (_, _) => _startupChecklistWindow = null;
+            w.Activate();
+            SettingsStore.Set("reactor.widgets", "CorePower,Status,Scram,StartupChecklist");
+        }
+        catch (Exception ex)
+        {
+            CrashLogger.Log("reactor:open-startup-checklist-widget", ex);
+        }
     }
 
     private void OpenWidgets_Click(object sender, RoutedEventArgs e)
@@ -2316,6 +2346,7 @@ public sealed partial class ReactorModule : Page
         var host = ControlsHost;
         host.Children.Clear();
         _startupChecklistAnchor = null;
+        _controlSyncers.Clear();
 
         host.Children.Add(SectionHeader("Reactor controls · 反應堆控制", "反應堆控制 · Reactor controls"));
 
@@ -2375,8 +2406,23 @@ public sealed partial class ReactorModule : Page
         {
             int pump = p;
             var tg = new ToggleButton { Content = P($"RCP {pump + 1}", $"主泵 {pump + 1}") };
-            tg.Checked += (_, _) => _sim.StartRcp(pump);
-            tg.Unchecked += (_, _) => _sim.StopRcp(pump);
+            tg.Checked += (_, _) =>
+            {
+                if (_syncingControlValues) return;
+                _sim.StartRcp(pump);
+                PersistenceService.I.NoteChanged();
+            };
+            tg.Unchecked += (_, _) =>
+            {
+                if (_syncingControlValues) return;
+                _sim.StopRcp(pump);
+                PersistenceService.I.NoteChanged();
+            };
+            _controlSyncers.Add(() =>
+            {
+                if (tg.IsChecked != _sim.RcpRunning[pump])
+                    tg.IsChecked = _sim.RcpRunning[pump];
+            });
             _relocalizers.Add(() => tg.Content = P($"RCP {pump + 1}", $"主泵 {pump + 1}"));
             pumpPanel.Children.Add(tg);
         }
@@ -2389,12 +2435,15 @@ public sealed partial class ReactorModule : Page
 
         // Pressurizer toggles + relief + ECCS
         var pzrPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        var autoPzr = MakeToggle("Auto press ctrl · 自動壓力", "自動壓力 · Auto press ctrl", v => _sim.PzrAutoPressureControl = v);
-        autoPzr.IsChecked = true; // defaults to the automatic pressure-control program
+        var autoPzr = MakeToggle("Auto press ctrl · 自動壓力", "自動壓力 · Auto press ctrl",
+            v => _sim.PzrAutoPressureControl = v, () => _sim.PzrAutoPressureControl);
         pzrPanel.Children.Add(autoPzr);
-        pzrPanel.Children.Add(MakeToggle("Heater · 加熱器", "加熱器 · Heater", v => _sim.PressurizerHeater = v));
-        pzrPanel.Children.Add(MakeToggle("Spray · 噴淋", "噴淋 · Spray", v => _sim.PressurizerSpray = v));
-        pzrPanel.Children.Add(MakeToggle("Relief valve · 釋壓閥", "釋壓閥 · Relief valve", v => _sim.ReliefValveOpen = v));
+        pzrPanel.Children.Add(MakeToggle("Heater · 加熱器", "加熱器 · Heater",
+            v => _sim.PressurizerHeater = v, () => _sim.PressurizerHeater));
+        pzrPanel.Children.Add(MakeToggle("Spray · 噴淋", "噴淋 · Spray",
+            v => _sim.PressurizerSpray = v, () => _sim.PressurizerSpray));
+        pzrPanel.Children.Add(MakeToggle("Relief valve · 釋壓閥", "釋壓閥 · Relief valve",
+            v => _sim.ReliefValveOpen = v, () => _sim.ReliefValveOpen));
         host.Children.Add(WrapLabel("Pressurizer & relief · 穩壓器與釋壓", "穩壓器與釋壓 · Pressurizer & relief", pzrPanel));
 
         // CVCS boric-acid / reactor-makeup-water blender mode. Only AUTOMATIC is auto-driven by the VCT level
@@ -2405,33 +2454,46 @@ public sealed partial class ReactorModule : Page
         blenderCombo.Items.Add(P("Borate · 加硼", "加硼 · Borate"));
         blenderCombo.Items.Add(P("Dilute · 稀釋", "稀釋 · Dilute"));
         blenderCombo.Items.Add(P("Alternate dilute · 交替稀釋", "交替稀釋 · Alternate dilute"));
-        blenderCombo.SelectedIndex = 0; // AUTOMATIC matches the sim default
-        blenderCombo.SelectionChanged += (_, _) => _sim.BlenderMode = blenderCombo.SelectedIndex switch
+        blenderCombo.SelectedIndex = (int)_sim.BlenderMode;
+        blenderCombo.SelectionChanged += (_, _) =>
         {
-            1 => CvcsBlenderMode.Borate,
-            2 => CvcsBlenderMode.Dilute,
-            3 => CvcsBlenderMode.AlternateDilute,
-            _ => CvcsBlenderMode.Automatic,
+            if (_syncingControlValues) return;
+            _sim.BlenderMode = blenderCombo.SelectedIndex switch
+            {
+                1 => CvcsBlenderMode.Borate,
+                2 => CvcsBlenderMode.Dilute,
+                3 => CvcsBlenderMode.AlternateDilute,
+                _ => CvcsBlenderMode.Automatic,
+            };
+            PersistenceService.I.NoteChanged();
         };
+        _controlSyncers.Add(() =>
+        {
+            int idx = Math.Clamp((int)_sim.BlenderMode, 0, 3);
+            if (blenderCombo.SelectedIndex != idx) blenderCombo.SelectedIndex = idx;
+        });
         host.Children.Add(WrapLabel("CVCS makeup blender mode · 化容系統補水混合器模式",
             "化容系統補水混合器模式 · CVCS makeup blender mode", blenderCombo));
 
         var safetyPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        safetyPanel.Children.Add(MakeToggle("Arm ECCS · 啟用應急冷卻", "啟用應急冷卻 · Arm ECCS", v => _sim.EccsArmed = v));
+        safetyPanel.Children.Add(MakeToggle("Arm ECCS · 啟用應急冷卻", "啟用應急冷卻 · Arm ECCS",
+            v => _sim.EccsArmed = v, () => _sim.EccsArmed));
         var injBtn = new Button { Content = P("Force ECCS inject · 強制注入", "強制注入 · Force ECCS inject") };
         injBtn.Click += (_, _) => { _sim.EccsArmed = true; };
         _relocalizers.Add(() => injBtn.Content = P("Force ECCS inject · 強制注入", "強制注入 · Force ECCS inject"));
         safetyPanel.Children.Add(injBtn);
         // ES-1.4 hot-leg recirculation switchover (post-LOCA boric-acid-precipitation prevention, ~5.5 h credited
         // time). Defaults OFF — the operator elects the transfer to establish the through-core flush.
-        safetyPanel.Children.Add(MakeToggle("ES-1.4 hot-leg recirc · 熱段再循環", "熱段再循環 · ES-1.4 hot-leg recirc", v => _sim.HotLegRecircActive = v));
+        safetyPanel.Children.Add(MakeToggle("ES-1.4 hot-leg recirc · 熱段再循環", "熱段再循環 · ES-1.4 hot-leg recirc",
+            v => _sim.HotLegRecircActive = v, () => _sim.HotLegRecircActive));
         host.Children.Add(WrapLabel("Safety injection · 安全注入", "安全注入 · Safety injection", safetyPanel));
 
         // Containment combustible-gas control (10 CFR 50.44): PARs are passive (always on, no control); the
         // Distributed Ignition System is operator-armed and defaults OFF — arm it on a core-damage entry to
         // burn H₂ off lean before it reaches the detonable band (arming late, above 13 vol%, risks a detonation).
         var h2Panel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        h2Panel.Children.Add(MakeToggle("Arm H₂ igniters · 啟用氫氣點火器", "啟用氫氣點火器 · Arm H₂ igniters", v => _sim.IgniterSystemArmed = v));
+        h2Panel.Children.Add(MakeToggle("Arm H₂ igniters · 啟用氫氣點火器", "啟用氫氣點火器 · Arm H₂ igniters",
+            v => _sim.IgniterSystemArmed = v, () => _sim.IgniterSystemArmed));
         host.Children.Add(WrapLabel("Combustible-gas control · 可燃氣體控制", "可燃氣體控制 · Combustible-gas control", h2Panel));
 
         // RCS Leakage Detection (LCO 3.4.13 / RG 1.45) — demo inputs. Both default OFF/zero so the subsystem is
@@ -2444,14 +2506,15 @@ public sealed partial class ReactorModule : Page
             0, 3, _sim.DemoUnidentifiedLeakGpm, 0.05,
             v => _sim.DemoUnidentifiedLeakGpm = v, () => _sim.DemoUnidentifiedLeakGpm));
         var leakPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        leakPanel.Children.Add(MakeToggle("Pressure-boundary leak · 壓力邊界洩漏", "壓力邊界洩漏 · Pressure-boundary leak", v => _sim.PressureBoundaryLeak = v));
+        leakPanel.Children.Add(MakeToggle("Pressure-boundary leak · 壓力邊界洩漏", "壓力邊界洩漏 · Pressure-boundary leak",
+            v => _sim.PressureBoundaryLeak = v, () => _sim.PressureBoundaryLeak));
         host.Children.Add(WrapLabel("RCS pressure boundary · 一次側壓力邊界", "一次側壓力邊界 · RCS pressure boundary", leakPanel));
 
         host.Children.Add(SectionHeader("Secondary & turbine · 二迴路與汽輪機", "二迴路與汽輪機 · Secondary & turbine"));
 
         var fwPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        var fwAuto = MakeToggle("Feedwater AUTO · 給水自動", "給水自動 · Feedwater AUTO", v => _sim.FeedwaterAuto = v);
-        fwAuto.IsChecked = true; // three-element controller engaged by default
+        var fwAuto = MakeToggle("Feedwater AUTO · 給水自動", "給水自動 · Feedwater AUTO",
+            v => _sim.FeedwaterAuto = v, () => _sim.FeedwaterAuto);
         fwPanel.Children.Add(fwAuto);
         host.Children.Add(WrapLabel("Three-element feed control · 三元給水控制", "三元給水控制 · Three-element feed control", fwPanel));
 
@@ -2468,16 +2531,17 @@ public sealed partial class ReactorModule : Page
         // falls, LP exhaust moisture climbs toward the blade-erosion limit, and gross output drops. Default OFF.
         var msrPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
         msrPanel.Children.Add(MakeToggle("Reheater tube leak · 再熱器傳熱管洩漏", "再熱器傳熱管洩漏 · Reheater tube leak",
-            v => _sim.ReheaterTubeLeak = v));
+            v => _sim.ReheaterTubeLeak = v, () => _sim.ReheaterTubeLeak));
         host.Children.Add(WrapLabel("Moisture Separator Reheater · 汽水分離再熱器", "汽水分離再熱器 · Moisture Separator Reheater", msrPanel));
 
         var grdPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
         // Generator breaker: with the sync interlock OFF (default) the toggle closes unconditionally, exactly
         // as before; with it ON, the ANSI-25 sync-check window must be satisfied to close onto the grid.
         grdPanel.Children.Add(MakeToggle("Generator breaker · 發電機開關", "發電機開關 · Generator breaker",
-            v => { if (v && _sim.SyncInterlock && !_sim.SyncCheckPermissive) return; _sim.GeneratorBreakerClosed = v; }));
+            v => { if (v && _sim.SyncInterlock && !_sim.SyncCheckPermissive) return; _sim.GeneratorBreakerClosed = v; },
+            () => _sim.GeneratorBreakerClosed));
         grdPanel.Children.Add(MakeToggle("Sync interlock (25) · 同步聯鎖", "同步聯鎖 · Sync interlock (25)",
-            v => _sim.SyncInterlock = v)); // DEFAULT OFF
+            v => _sim.SyncInterlock = v, () => _sim.SyncInterlock)); // DEFAULT OFF
         host.Children.Add(WrapLabel("Grid synchronization · 併網", "併網 · Grid synchronization", grdPanel));
 
         // ---- Main generator excitation / AVR (reactive-power control) ----
@@ -2486,14 +2550,36 @@ public sealed partial class ReactorModule : Page
         avrCombo.Items.Add(P("Constant PF · 固定功率因數", "固定功率因數 · Constant PF"));
         avrCombo.Items.Add(P("Constant MVAR · 固定無功", "固定無功 · Constant MVAR"));
         avrCombo.Items.Add(P("Manual field · 手動勵磁", "手動勵磁 · Manual field"));
-        avrCombo.SelectedIndex = 1; // Constant PF — matches the sim default (rated 0.90 lagging)
-        avrCombo.SelectionChanged += (_, _) => _sim.GenAvrMode = avrCombo.SelectedIndex switch
+        avrCombo.SelectedIndex = _sim.GenAvrMode switch
         {
-            1 => ReactorSimService.AvrMode.ConstantPf,
-            2 => ReactorSimService.AvrMode.ConstantMvar,
-            3 => ReactorSimService.AvrMode.Manual,
-            _ => ReactorSimService.AvrMode.AutoVoltage,
+            ReactorSimService.AvrMode.ConstantPf => 1,
+            ReactorSimService.AvrMode.ConstantMvar => 2,
+            ReactorSimService.AvrMode.Manual => 3,
+            _ => 0,
         };
+        avrCombo.SelectionChanged += (_, _) =>
+        {
+            if (_syncingControlValues) return;
+            _sim.GenAvrMode = avrCombo.SelectedIndex switch
+            {
+                1 => ReactorSimService.AvrMode.ConstantPf,
+                2 => ReactorSimService.AvrMode.ConstantMvar,
+                3 => ReactorSimService.AvrMode.Manual,
+                _ => ReactorSimService.AvrMode.AutoVoltage,
+            };
+            PersistenceService.I.NoteChanged();
+        };
+        _controlSyncers.Add(() =>
+        {
+            int idx = _sim.GenAvrMode switch
+            {
+                ReactorSimService.AvrMode.ConstantPf => 1,
+                ReactorSimService.AvrMode.ConstantMvar => 2,
+                ReactorSimService.AvrMode.Manual => 3,
+                _ => 0,
+            };
+            if (avrCombo.SelectedIndex != idx) avrCombo.SelectedIndex = idx;
+        });
         host.Children.Add(WrapLabel("Excitation / AVR mode · 勵磁／自動電壓調節模式",
             "勵磁／自動電壓調節模式 · Excitation / AVR mode", avrCombo));
         host.Children.Add(LabeledSlider("AVR voltage setpoint (%)", "自動電壓設定（%）",
@@ -2512,8 +2598,7 @@ public sealed partial class ReactorModule : Page
         // Generator protection (ANSI 32/40/24/27/59/81) + hand-reset of the 86 lockout.
         var genProtPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
         var genProtToggle = MakeToggle("Gen protection armed · 發電機保護啟用",
-            "發電機保護啟用 · Gen protection armed", v => _sim.GenProtectionArmed = v);
-        genProtToggle.IsChecked = true; // relays armed by default (act only on genuine abnormal conditions)
+            "發電機保護啟用 · Gen protection armed", v => _sim.GenProtectionArmed = v, () => _sim.GenProtectionArmed);
         genProtPanel.Children.Add(genProtToggle);
         var genResetBtn = new Button { Content = P("Reset gen lockout (86) · 重置發電機閉鎖", "重置發電機閉鎖 · Reset gen lockout (86)") };
         genResetBtn.Click += (_, _) => _sim.ResetGeneratorTrip();
@@ -2536,7 +2621,8 @@ public sealed partial class ReactorModule : Page
         // DC load shedding stretches the station-battery coping time during a blackout (×1.67 here).
         var dcPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
         dcPanel.Children.Add(MakeToggle("Shed non-vital DC loads · 卸除非必要直流負載",
-            "卸除非必要直流負載 · Shed non-vital DC loads", v => _sim.Electrical.LoadShed = v));
+            "卸除非必要直流負載 · Shed non-vital DC loads", v => _sim.Electrical.LoadShed = v,
+            () => _sim.Electrical.LoadShed));
         host.Children.Add(WrapLabel("Station battery (125 VDC) · 蓄電池（125 VDC）",
             "蓄電池（125 VDC）· Station battery (125 VDC)", dcPanel));
 
@@ -2547,12 +2633,28 @@ public sealed partial class ReactorModule : Page
         modeCombo.Items.Add(P("Shutdown · 停機", "停機 · Shutdown"));
         modeCombo.Items.Add(P("Startup · 啟動", "啟動 · Startup"));
         modeCombo.Items.Add(P("Run · 運轉", "運轉 · Run"));
-        modeCombo.SelectedIndex = 0;
+        modeCombo.SelectedIndex = _sim.Mode switch
+        {
+            ReactorMode.Startup => 1,
+            ReactorMode.Run => 2,
+            _ => 0,
+        };
         modeCombo.SelectionChanged += (_, _) =>
         {
+            if (_syncingControlValues) return;
             _sim.SetMode(modeCombo.SelectedIndex switch { 1 => ReactorMode.Startup, 2 => ReactorMode.Run, _ => ReactorMode.Shutdown });
             PersistenceService.I.NoteChanged();
         };
+        _controlSyncers.Add(() =>
+        {
+            int idx = _sim.Mode switch
+            {
+                ReactorMode.Startup => 1,
+                ReactorMode.Run => 2,
+                _ => 0,
+            };
+            if (modeCombo.SelectedIndex != idx) modeCombo.SelectedIndex = idx;
+        });
         host.Children.Add(WrapLabel("Reactor mode · 反應堆模式", "反應堆模式 · Reactor mode", modeCombo));
 
         host.Children.Add(InfoNote(
@@ -2577,9 +2679,24 @@ public sealed partial class ReactorModule : Page
         deplCombo.Items.Add(P("Accelerate ×1000 · 加速 ×1000", "加速 ×1000 · Accelerate ×1000"));
         deplCombo.Items.Add(P("Accelerate ×10000 · 加速 ×10000", "加速 ×10000 · Accelerate ×10000"));
         deplCombo.Items.Add(P("Accelerate ×50000 · 加速 ×50000", "加速 ×50000 · Accelerate ×50000"));
-        deplCombo.SelectedIndex = 0; // DEFAULT OFF (real time)
+        deplCombo.SelectedIndex = _sim.DepletionAccel >= 50000.0 ? 3
+            : _sim.DepletionAccel >= 10000.0 ? 2
+            : _sim.DepletionAccel >= 1000.0 ? 1
+            : 0;
         deplCombo.SelectionChanged += (_, _) =>
+        {
+            if (_syncingControlValues) return;
             _sim.DepletionAccel = deplCombo.SelectedIndex switch { 1 => 1000.0, 2 => 10000.0, 3 => 50000.0, _ => 1.0 };
+            PersistenceService.I.NoteChanged();
+        };
+        _controlSyncers.Add(() =>
+        {
+            int idx = _sim.DepletionAccel >= 50000.0 ? 3
+                : _sim.DepletionAccel >= 10000.0 ? 2
+                : _sim.DepletionAccel >= 1000.0 ? 1
+                : 0;
+            if (deplCombo.SelectedIndex != idx) deplCombo.SelectedIndex = idx;
+        });
         host.Children.Add(WrapLabel("Cycle depletion accelerator (demo, default OFF) · 循環燃耗加速器（演示，預設關閉）",
                                     "循環燃耗加速器（演示，預設關閉）· Cycle depletion accelerator (demo, default OFF)", deplCombo));
 
@@ -2599,14 +2716,43 @@ public sealed partial class ReactorModule : Page
         // honours ReactorRealShutdownArm.Armed when a meltdown occurs. 真實關機等對外設定已搬去反應堆設定頁。
 
         ResetTripButton.IsEnabled = true;
+        SyncControlValues();
     }
 
     private readonly List<(StartupStep step, TextBlock check)> _startupSteps = new();
     private TextBlock? _keepAliveStatus;
     private Border? _keepAliveDot;
 
+    private void SyncControlValues()
+    {
+        _syncingControlValues = true;
+        try
+        {
+            SyncTopLevelControls();
+            foreach (var sync in _controlSyncers)
+            {
+                try { sync(); }
+                catch (Exception ex) { CrashLogger.Log("reactor:control-sync", ex); }
+            }
+        }
+        finally
+        {
+            _syncingControlValues = false;
+        }
+    }
+
+    private void SyncTopLevelControls()
+    {
+        if (AutoRunToggle is null) return;
+
+        if (AutoRunToggle.IsOn != _sim.AutoRodControl)
+            AutoRunToggle.IsOn = _sim.AutoRodControl;
+    }
+
     private void UpdateControlsLive()
     {
+        SyncControlValues();
+
         // Live rod-position indication: per-bank steps withdrawn (0–228) + lead-bank insertion limit.
         if (_rodStatusText is not null)
         {
@@ -2793,10 +2939,26 @@ public sealed partial class ReactorModule : Page
     {
         var label = new TextBlock { FontSize = 12 };
         var slider = new Slider { Minimum = min, Maximum = max, Value = init, StepFrequency = step, Width = 380 };
-        void Upd() => label.Text = P(en, zh) + $"  ·  {read():F0}{unit}";
-        slider.ValueChanged += (_, ev) => { set(ev.NewValue); Upd(); };
-        _relocalizers.Add(Upd);
-        Upd();
+        void UpdateLabel() => label.Text = P(en, zh) + $"  ·  {read():F0}{unit}";
+        void Sync()
+        {
+            var value = Math.Clamp(read(), min, max);
+            if (Math.Abs(slider.Value - value) > Math.Max(step * 0.5, 0.01))
+                slider.Value = value;
+            UpdateLabel();
+        }
+        slider.ValueChanged += (_, ev) =>
+        {
+            if (!_syncingControlValues)
+            {
+                set(ev.NewValue);
+                PersistenceService.I.NoteChanged();
+            }
+            UpdateLabel();
+        };
+        _controlSyncers.Add(Sync);
+        _relocalizers.Add(UpdateLabel);
+        Sync();
         return new StackPanel { Spacing = 2, Children = { label, slider } };
     }
 
@@ -2806,10 +2968,26 @@ public sealed partial class ReactorModule : Page
     {
         var label = new TextBlock { FontSize = 12 };
         var slider = new Slider { Minimum = min, Maximum = max, Value = init, StepFrequency = step, Width = 380 };
-        void Upd() => label.Text = P(en, zh) + $"  ·  {read():F2} gpm";
-        slider.ValueChanged += (_, ev) => { set(ev.NewValue); Upd(); };
-        _relocalizers.Add(Upd);
-        Upd();
+        void UpdateLabel() => label.Text = P(en, zh) + $"  ·  {read():F2} gpm";
+        void Sync()
+        {
+            var value = Math.Clamp(read(), min, max);
+            if (Math.Abs(slider.Value - value) > Math.Max(step * 0.5, 0.001))
+                slider.Value = value;
+            UpdateLabel();
+        }
+        slider.ValueChanged += (_, ev) =>
+        {
+            if (!_syncingControlValues)
+            {
+                set(ev.NewValue);
+                PersistenceService.I.NoteChanged();
+            }
+            UpdateLabel();
+        };
+        _controlSyncers.Add(Sync);
+        _relocalizers.Add(UpdateLabel);
+        Sync();
         return new StackPanel { Spacing = 2, Children = { label, slider } };
     }
 
@@ -2821,11 +2999,33 @@ public sealed partial class ReactorModule : Page
         return new StackPanel { Spacing = 4, Children = { label, content } };
     }
 
-    private ToggleButton MakeToggle(string en, string zh, Action<bool> set)
+    private ToggleButton MakeToggle(string en, string zh, Action<bool> set, Func<bool>? read = null)
     {
         var tg = new ToggleButton { Content = P(en, zh) };
-        tg.Checked += (_, _) => set(true);
-        tg.Unchecked += (_, _) => set(false);
+        tg.Checked += (_, _) =>
+        {
+            if (_syncingControlValues) return;
+            set(true);
+            PersistenceService.I.NoteChanged();
+        };
+        tg.Unchecked += (_, _) =>
+        {
+            if (_syncingControlValues) return;
+            set(false);
+            PersistenceService.I.NoteChanged();
+        };
+        if (read is not null)
+        {
+            _controlSyncers.Add(() =>
+            {
+                var value = read();
+                if (tg.IsChecked != value) tg.IsChecked = value;
+            });
+            bool wasSyncing = _syncingControlValues;
+            _syncingControlValues = true;
+            try { tg.IsChecked = read(); }
+            finally { _syncingControlValues = wasSyncing; }
+        }
         _relocalizers.Add(() => tg.Content = P(en, zh));
         return tg;
     }
@@ -2846,6 +3046,7 @@ public sealed partial class ReactorModule : Page
 
     private void AutoRun_Toggled(object sender, RoutedEventArgs e)
     {
+        if (_syncingControlValues) return;
         _sim.AutoRodControl = AutoRunToggle.IsOn;
         PersistenceService.I.NoteChanged();
     }

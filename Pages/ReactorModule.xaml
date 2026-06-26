@@ -117,6 +117,7 @@
                         </Button>
                         <Button x:Name="OpenControlRoomButton" Click="OpenControlRoom_Click" />
                         <Button x:Name="StartupChecklistButton" Click="StartupChecklist_Click" />
+                        <Button x:Name="ChecklistWidgetButton" Click="OpenChecklistWidget_Click" />
                         <Button x:Name="OpenWidgetsButton" Click="OpenWidgets_Click" />
                         <ToggleButton x:Name="MuteToggle" Click="MuteToggle_Click" />
                         <TextBlock x:Name="ScenarioLabel" VerticalAlignment="Center" Margin="8,0,0,0"

@@ -427,3 +427,277 @@ public sealed class ReactorWidgetWindow : Window
         }
     }
 }
+
+/// <summary>Startup-checklist widget · 獨立啟動程序清單小工具.</summary>
+public sealed class ReactorStartupChecklistWindow : Window
+{
+    private readonly ReactorSimService _sim;
+    private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(250) };
+    private readonly OverlappedPresenter _presenter = OverlappedPresenter.Create();
+    private readonly List<(StartupStep step, TextBlock mark, TextBlock title, TextBlock control, Border row)> _rows = new();
+
+    private TextBlock _title = null!;
+    private TextBlock _progress = null!;
+    private TextBlock _status = null!;
+    private TextBlock _power = null!;
+    private TextBlock _pressure = null!;
+    private TextBlock _oneOverM = null!;
+
+    public ReactorStartupChecklistWindow(ReactorSimService sim)
+    {
+        _sim = sim;
+        Title = "Reactor startup checklist";
+        ExtendsContentIntoTitleBar = true;
+
+        _presenter.SetBorderAndTitleBar(false, false);
+        _presenter.IsAlwaysOnTop = true;
+        _presenter.IsResizable = false;
+        _presenter.IsMaximizable = false;
+        _presenter.IsMinimizable = false;
+        AppWindow.SetPresenter(_presenter);
+        AppWindow.Resize(new SizeInt32(430, 560));
+
+        Content = BuildContent();
+
+        try
+        {
+            string kx = "reactor.widget.StartupChecklist.x";
+            string ky = "reactor.widget.StartupChecklist.y";
+            int x = int.TryParse(SettingsStore.Get(kx, ""), out var px) ? px : -1;
+            int y = int.TryParse(SettingsStore.Get(ky, ""), out var py) ? py : -1;
+            if (x >= 0 && y >= 0) AppWindow.Move(new PointInt32(x, y));
+            else
+            {
+                var area = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Primary);
+                AppWindow.Move(new PointInt32(
+                    area.WorkArea.X + area.WorkArea.Width - 470,
+                    area.WorkArea.Y + 40));
+            }
+        }
+        catch { }
+
+        ReactorWindowManager.Track(this);
+        AppWindow.Changed += (_, args) =>
+        {
+            if (!args.DidPositionChange) return;
+            SettingsStore.Set("reactor.widget.StartupChecklist.x", AppWindow.Position.X.ToString());
+            SettingsStore.Set("reactor.widget.StartupChecklist.y", AppWindow.Position.Y.ToString());
+        };
+
+        _timer.Tick += Tick;
+        _timer.Start();
+        Closed += (_, _) => _timer.Stop();
+        Tick(null, EventArgs.Empty);
+    }
+
+    private string P(string en, string zh) => Loc.I.Pick(en, zh);
+
+    private FrameworkElement BuildContent()
+    {
+        var root = new Grid
+        {
+            Background = new SolidColorBrush(Color.FromArgb(238, 0x10, 0x12, 0x16)),
+            CornerRadius = new CornerRadius(12),
+            Padding = new Thickness(14),
+            RowSpacing = 10,
+        };
+        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        root.PointerPressed += (_, e) =>
+        {
+            var pp = e.GetCurrentPoint(root);
+            if (pp.Properties.IsLeftButtonPressed) BeginDrag();
+        };
+
+        var header = new Grid { ColumnSpacing = 8 };
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        var headerCopy = new StackPanel { Spacing = 2 };
+        _title = new TextBlock
+        {
+            FontSize = 17,
+            FontWeight = FontWeights.Bold,
+            Foreground = new SolidColorBrush(Colors.White),
+            TextWrapping = TextWrapping.Wrap,
+        };
+        _progress = new TextBlock
+        {
+            FontSize = 12,
+            Foreground = new SolidColorBrush(Color.FromArgb(210, 0xCF, 0xD8, 0xDC)),
+        };
+        headerCopy.Children.Add(_title);
+        headerCopy.Children.Add(_progress);
+        Grid.SetColumn(headerCopy, 0);
+        header.Children.Add(headerCopy);
+
+        var close = new Button
+        {
+            Content = "✕",
+            Width = 26,
+            Height = 26,
+            Padding = new Thickness(0),
+            Background = new SolidColorBrush(Color.FromArgb(60, 0xFF, 0xFF, 0xFF)),
+            Foreground = new SolidColorBrush(Colors.White),
+        };
+        close.Click += (_, _) => Close();
+        Grid.SetColumn(close, 1);
+        header.Children.Add(close);
+        Grid.SetRow(header, 0);
+        root.Children.Add(header);
+
+        var metrics = new Grid { ColumnSpacing = 8, RowSpacing = 4 };
+        metrics.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        metrics.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        metrics.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        metrics.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        _status = MetricText();
+        _power = MetricText();
+        _pressure = MetricText();
+        _oneOverM = MetricText();
+        metrics.Children.Add(_status);
+        Grid.SetColumn(_power, 1);
+        metrics.Children.Add(_power);
+        Grid.SetRow(_pressure, 1);
+        metrics.Children.Add(_pressure);
+        Grid.SetRow(_oneOverM, 1);
+        Grid.SetColumn(_oneOverM, 1);
+        metrics.Children.Add(_oneOverM);
+        Grid.SetRow(metrics, 1);
+        root.Children.Add(metrics);
+
+        var list = new StackPanel { Spacing = 6 };
+        foreach (var step in ReactorScenarios.StartupSequence())
+        {
+            var mark = new TextBlock
+            {
+                Text = "○",
+                FontSize = 18,
+                Width = 24,
+                TextAlignment = TextAlignment.Center,
+                Foreground = new SolidColorBrush(Color.FromArgb(170, 0xAA, 0xAA, 0xAA)),
+            };
+            var title = new TextBlock
+            {
+                FontSize = 12,
+                FontWeight = FontWeights.SemiBold,
+                TextWrapping = TextWrapping.Wrap,
+                Foreground = new SolidColorBrush(Colors.White),
+            };
+            var control = new TextBlock
+            {
+                FontSize = 11,
+                TextWrapping = TextWrapping.Wrap,
+                Foreground = new SolidColorBrush(Color.FromArgb(190, 0x9E, 0xA7, 0xB0)),
+                Margin = new Thickness(0, 2, 0, 0),
+            };
+            var copy = new StackPanel { Spacing = 0 };
+            copy.Children.Add(title);
+            copy.Children.Add(control);
+
+            var rowGrid = new Grid { ColumnSpacing = 6 };
+            rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            Grid.SetColumn(mark, 0);
+            Grid.SetColumn(copy, 1);
+            rowGrid.Children.Add(mark);
+            rowGrid.Children.Add(copy);
+
+            var row = new Border
+            {
+                CornerRadius = new CornerRadius(7),
+                Padding = new Thickness(8, 7, 8, 7),
+                Background = new SolidColorBrush(Color.FromArgb(55, 0xFF, 0xFF, 0xFF)),
+                Child = rowGrid,
+            };
+            list.Children.Add(row);
+            _rows.Add((step, mark, title, control, row));
+        }
+
+        var scroller = new ScrollViewer
+        {
+            Content = list,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+        };
+        Grid.SetRow(scroller, 2);
+        root.Children.Add(scroller);
+
+        return root;
+    }
+
+    private static TextBlock MetricText() => new()
+    {
+        FontSize = 12,
+        FontFamily = new FontFamily("Consolas"),
+        Foreground = new SolidColorBrush(Color.FromArgb(220, 0x90, 0xCA, 0xF9)),
+        TextWrapping = TextWrapping.Wrap,
+    };
+
+    private void Tick(object? sender, object e)
+    {
+        _title.Text = P("Startup checklist", "啟動程序清單");
+
+        int done = 0;
+        for (int i = 0; i < _rows.Count; i++)
+        {
+            var (step, mark, title, control, row) = _rows[i];
+            bool ok = step.IsSatisfied(_sim);
+            if (ok) done++;
+
+            mark.Text = ok ? "✓" : "○";
+            mark.Foreground = new SolidColorBrush(ok
+                ? Color.FromArgb(255, 0x4C, 0xAF, 0x50)
+                : Color.FromArgb(170, 0xAA, 0xAA, 0xAA));
+            row.Background = new SolidColorBrush(ok
+                ? Color.FromArgb(75, 0x2E, 0x7D, 0x32)
+                : Color.FromArgb(55, 0xFF, 0xFF, 0xFF));
+            title.Text = $"{i + 1}. " + P(step.En, step.Zh);
+            control.Text = P($"Use: {step.ControlEn}", $"使用：{step.ControlZh}");
+        }
+
+        _progress.Text = P($"Checklist progress: {done}/{_rows.Count}",
+                           $"程序進度：{done}/{_rows.Count}");
+        _status.Text = P("Mode: ", "模式：") + P(_sim.StatusEn, _sim.StatusZh);
+        _power.Text = P("Power: ", "功率：") + $"{_sim.NeutronPowerFraction * 100:F1}% / {_sim.ElectricPowerMW:F0} MWe";
+        _pressure.Text = P("Primary: ", "一迴路：") + $"{_sim.PrimaryPressure:F1} MPa";
+        _oneOverM.Text = "1/M: " + $"{_sim.OneOverM:F3}";
+    }
+
+    public void RestoreInteractive()
+    {
+        try { Activate(); } catch { }
+    }
+
+    private void BeginDrag()
+    {
+        try
+        {
+            var startCursor = GetCursor();
+            var startPos = AppWindow.Position;
+            var dt = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(8) };
+            dt.Tick += (_, _) =>
+            {
+                if (!LeftButtonDown())
+                {
+                    dt.Stop();
+                    SettingsStore.Set("reactor.widget.StartupChecklist.x", AppWindow.Position.X.ToString());
+                    SettingsStore.Set("reactor.widget.StartupChecklist.y", AppWindow.Position.Y.ToString());
+                    return;
+                }
+                var now = GetCursor();
+                AppWindow.Move(new PointInt32(startPos.X + (now.X - startCursor.X), startPos.Y + (now.Y - startCursor.Y)));
+            };
+            dt.Start();
+        }
+        catch { }
+    }
+
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    private struct POINT { public int X; public int Y; }
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool GetCursorPos(out POINT p);
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern short GetAsyncKeyState(int vKey);
+    private static PointInt32 GetCursor() { GetCursorPos(out var p); return new PointInt32(p.X, p.Y); }
+    private static bool LeftButtonDown() => (GetAsyncKeyState(0x01) & 0x8000) != 0;
+}

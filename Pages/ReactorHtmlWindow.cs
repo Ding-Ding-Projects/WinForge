@@ -28,6 +28,7 @@ public sealed class ReactorHtmlWindow : Window
     private readonly FuelFactoryService _fuel;
     private readonly NuclearWasteService _waste = new();
     private readonly WaterTreatmentService _water = new();
+    private readonly string? _initialRoom;
     private double _mwdSinceLastWaste;            // MWd accrued since last waste junk file
     private double _wasteFullGrace;               // seconds the cap has stayed full (drives mandate-shutdown)
     private const double WasteFullGraceSeconds = 8.0; // grace after runback before mandatory shutdown
@@ -50,10 +51,11 @@ public sealed class ReactorHtmlWindow : Window
         DefaultIgnoreCondition = JsonIgnoreCondition.Never,
     };
 
-    public ReactorHtmlWindow(ReactorSimService sim, FuelFactoryService? fuel = null)
+    public ReactorHtmlWindow(ReactorSimService sim, FuelFactoryService? fuel = null, string? initialRoom = null)
     {
         _sim = sim;
         _fuel = fuel ?? new FuelFactoryService();
+        _initialRoom = NormalizeRoom(initialRoom);
 
         // Surface waste storage warnings + progress to the HTML room.
         _waste.StorageWarning += (en, zh) =>
@@ -126,7 +128,10 @@ public sealed class ReactorHtmlWindow : Window
             string assets = Path.Combine(AppContext.BaseDirectory, "SimAssets", "reactor");
             core.SetVirtualHostNameToFolderMapping("reactor.assets", assets,
                 CoreWebView2HostResourceAccessKind.DenyCors);
-            core.Navigate("https://reactor.assets/index.html");
+            string target = "https://reactor.assets/index.html";
+            if (!string.IsNullOrEmpty(_initialRoom))
+                target += "#" + Uri.EscapeDataString(_initialRoom);
+            core.Navigate(target);
 
             _webReady = true;
             _last = DateTime.UtcNow;
@@ -536,6 +541,40 @@ public sealed class ReactorHtmlWindow : Window
     {
         ExitFullScreen();
         try { Activate(); } catch { }
+    }
+
+    public void NavigateRoom(string room)
+    {
+        var normalized = NormalizeRoom(room);
+        if (string.IsNullOrEmpty(normalized)) return;
+        try
+        {
+            if (_webReady && _web.CoreWebView2 is not null)
+                _web.CoreWebView2.ExecuteScriptAsync($"location.hash = '{normalized}';");
+        }
+        catch (Exception ex)
+        {
+            CrashLogger.Log("reactor-html:navigate-room", ex);
+        }
+    }
+
+    private static string? NormalizeRoom(string? room)
+    {
+        if (string.IsNullOrWhiteSpace(room)) return null;
+        return room.Trim().ToLowerInvariant() switch
+        {
+            "startup" or "startup-checklist" or "checklist" => "startup",
+            "control" or "control-room" => "control",
+            "contain" or "containment" => "contain",
+            "turbine" or "turbine-hall" => "turbine",
+            "fuel" or "fuel-handling" => "fuel",
+            "cvcs" => "cvcs",
+            "elec" or "electrical" => "elec",
+            "cooling" => "cooling",
+            "water" or "water-treatment" => "water",
+            "rad" or "radiation" => "rad",
+            _ => null,
+        };
     }
 
     private void EnterFullScreen()

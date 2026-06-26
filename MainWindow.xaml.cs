@@ -900,8 +900,15 @@ public sealed partial class MainWindow : Window
             case "meltdown":
                 Navigator.GoToModule?.Invoke("module.reactor");
                 break;
+            case "module.reactor#startup":
+            case "module.reactor#startup-checklist":
             case "reactor#startup":
+            case "reactor#startup-checklist":
+            case "reactor/startup":
+            case "reactor/startup-checklist":
             case "reactor-startup":
+            case "reactor-startup-checklist":
+            case "reactor-checklist":
             case "startup-checklist":
                 Navigator.GoToModule?.Invoke("module.reactor#startup");
                 break;
