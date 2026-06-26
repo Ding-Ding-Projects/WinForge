@@ -22,13 +22,26 @@ param(
 $ErrorActionPreference = "Stop"
 # repo root = three levels up from .claude/skills/run-winforge/
 $root = (Resolve-Path (Join-Path $PSScriptRoot "..\..\..")).Path
-$exe  = Join-Path $root "bin\x64\Debug\net11.0-windows10.0.26100.0\win-x64\publish\WinForge.exe"
+$tfm = "net11.0-windows10.0.26100.0"
+$exeCandidates = @(
+  (Join-Path $root "bin\x64\Debug\$tfm\win-x64\publish\WinForge.exe"),
+  (Join-Path $root "bin\Debug\$tfm\win-x64\publish\WinForge.exe"),
+  (Join-Path $root "bin\x64\Debug\$tfm\win-x64\WinForge.exe")
+)
+function Resolve-WinForgeExe {
+  foreach ($candidate in $exeCandidates) {
+    if (Test-Path $candidate) { return $candidate }
+  }
+  return $null
+}
+$exe = Resolve-WinForgeExe
 
-if ($Publish -or -not (Test-Path $exe)) {
+if ($Publish -or -not $exe -or -not (Test-Path $exe)) {
   Write-Host "Publishing self-contained (this takes a few minutes)..."
   & dotnet publish (Join-Path $root "WinForge.csproj") -c Debug -r win-x64 --self-contained true `
       -p:Platform=x64 -p:WindowsAppSDKSelfContained=true -v quiet
-  if (-not (Test-Path $exe)) { throw "publish did not produce $exe" }
+  $exe = Resolve-WinForgeExe
+  if (-not $exe) { throw "publish did not produce WinForge.exe in any known Debug win-x64 output path" }
 }
 
 Add-Type -AssemblyName System.Drawing

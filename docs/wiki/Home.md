@@ -46,5 +46,8 @@
 **EN —** See the [Screenshots gallery](Screenshots.md) for the full image set and capture status.
 **粵語 —** 睇 [截圖畫廊](Screenshots.md) 了解完整圖檔同擷取狀態。
 
+**EN —** See the [No-Redirect Audit](No-Redirect-Audit.md) for the latest in-app redirect and external-engine review.
+**粵語 —** 睇 [無跳轉審核](No-Redirect-Audit.md) 了解最新 app 內跳轉同外部引擎審核。
+
 ---
 *Made with WinUI 3 · 用 WinUI 3 製作 · `English + 繁體中文／粵語`*

@@ -26,6 +26,8 @@ public sealed partial class TimeLensModule : Page
     public TimeLensModule()
     {
         InitializeComponent();
+        IdleSlider.ValueChanged += Idle_Changed;
+        PollSlider.ValueChanged += Poll_Changed;
         Loc.I.LanguageChanged += OnLang;
         ActivityTrackerService.I.StateChanged += OnTrackerState;
         ActivityTrackerService.I.SegmentRecorded += OnSegment;

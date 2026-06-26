@@ -22,6 +22,8 @@ public sealed partial class LightSwitchModule : Page
     public LightSwitchModule()
     {
         InitializeComponent();
+        SunriseOffBox.ValueChanged += Offsets_Changed;
+        SunsetOffBox.ValueChanged += Offsets_Changed;
         _timer.Tick += (_, _) => OnTick();
         Loc.I.LanguageChanged += (_, _) => Render();
         Loaded += (_, _) => { Render(); LoadFromSettings(); RefreshBackgroundState(); _timer.Start(); };

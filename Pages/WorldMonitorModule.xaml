@@ -64,10 +64,10 @@
                 <Button x:Name="ZoomInBtn" Click="ZoomIn_Click" ToolTipService.ToolTip="Zoom in · 放大">
                     <FontIcon FontSize="14" Glyph="&#xE8A3;" />
                 </Button>
-                <Button x:Name="OpenBrowserBtn" Click="OpenBrowser_Click" Margin="6,0,0,0">
+                <Button x:Name="CopyUrlBtn" Click="CopyUrl_Click" Margin="6,0,0,0">
                     <StackPanel Orientation="Horizontal" Spacing="6">
                         <FontIcon FontSize="14" Glyph="&#xE774;" />
-                        <TextBlock x:Name="OpenBrowserTxt" />
+                        <TextBlock x:Name="CopyUrlTxt" />
                     </StackPanel>
                 </Button>
                 <Button x:Name="AdvBtn" Click="Adv_Click" ToolTipService.ToolTip="Advanced · 進階">
@@ -94,7 +94,7 @@
                         <InfoBar x:Name="ErrorBar" Severity="Error" IsClosable="False" IsOpen="True" />
                         <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
                             <Button x:Name="RetryBtn" Click="Retry_Click" Style="{StaticResource AccentButtonStyle}" />
-                            <Button x:Name="ErrOpenBrowserBtn" Click="OpenBrowser_Click" />
+                            <Button x:Name="ErrCopyUrlBtn" Click="CopyUrl_Click" />
                         </StackPanel>
                     </StackPanel>
                 </Grid>
@@ -104,8 +104,8 @@
                     <StackPanel MaxWidth="460" Spacing="14" VerticalAlignment="Center" HorizontalAlignment="Center">
                         <InfoBar x:Name="RuntimeBar" Severity="Warning" IsClosable="False" IsOpen="True" />
                         <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
-                            <Button x:Name="GetRuntimeBtn" Click="GetRuntime_Click" Style="{StaticResource AccentButtonStyle}" />
-                            <Button x:Name="RtOpenBrowserBtn" Click="OpenBrowser_Click" />
+                            <Button x:Name="CopyRuntimeBtn" Click="CopyRuntimeUrl_Click" Style="{StaticResource AccentButtonStyle}" />
+                            <Button x:Name="RtCopyUrlBtn" Click="CopyUrl_Click" />
                         </StackPanel>
                     </StackPanel>
                 </Grid>

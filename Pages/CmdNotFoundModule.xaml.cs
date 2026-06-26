@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using Windows.ApplicationModel.DataTransfer;
 using WinForge.Models;
 using WinForge.Services;
 
@@ -71,14 +72,24 @@ public sealed partial class CmdNotFoundModule : Page
         LookupBtnLabel.Text = P("Search", "搜尋");
 
         ProfileHeader.Text = P("PowerShell profile · PowerShell profile", "PowerShell profile");
-        OpenEditorLabel.Text = P("Open in editor", "用編輯器開啟");
+        OpenEditorLabel.Text = P("Copy profile path", "複製 profile 路徑");
 
         ExplainHeader.Text = P("How it works · 運作原理", "運作原理 · How it works");
         ExplainEn.Text =
             "English: PowerShell 7.4+ ships two experimental features (PSFeedbackProvider and PSCommandNotFoundSuggestion). With the official Microsoft.WinGet.CommandNotFound module imported in your profile, typing a command that isn't installed makes PowerShell suggest the winget package that provides it — e.g. typing 'gh' suggests 'winget install GitHub.cli'. WinForge enables the experimental features, installs the module, and adds a small, clearly-marked Import-Module block to your $PROFILE (backing it up first). Disable removes only that block.";
         ExplainZh.Text =
             "廣東話：PowerShell 7.4 或以上內置兩個實驗功能（PSFeedbackProvider 同 PSCommandNotFoundSuggestion）。當 profile 入面載入咗官方 Microsoft.WinGet.CommandNotFound 模組，打一個未安裝嘅指令時，PowerShell 會建議邊個 winget 套件提供佢——例如打「gh」會建議「winget install GitHub.cli」。WinForge 會開啟實驗功能、安裝模組，並喺你嘅 $PROFILE 加入一段有清楚標記嘅 Import-Module（事前先備份）。停用時只會移除嗰段。";
-        LearnMoreLink.Content = P("Learn more about winget", "了解更多關於 winget");
+        LearnMoreLink.Content = P("Copy winget docs URL", "複製 winget 文件網址");
+    }
+
+    private void LearnMoreLink_Click(object sender, RoutedEventArgs e)
+    {
+        var url = "https://learn.microsoft.com/windows/package-manager/winget/";
+        var dp = new DataPackage { RequestedOperation = DataPackageOperation.Copy };
+        dp.SetText(url);
+        Clipboard.SetContent(dp);
+        Clipboard.Flush();
+        ShowResult(InfoBarSeverity.Success, P("Copied", "已複製"), url);
     }
 
     // ── reload / render · 重新載入與繪製 ────────────────────────────────────────
@@ -210,7 +221,7 @@ public sealed partial class CmdNotFoundModule : Page
 
         ProfilePathText.Text = string.IsNullOrEmpty(s.ProfilePath)
             ? P("(profile path unknown)", "（profile 路徑未知）")
-            : s.ProfilePath;
+            : DisplayPath(s.ProfilePath);
     }
 
     private async Task LoadProfileTextAsync(CmdNotFoundService.CnfStatus s, CancellationToken ct)
@@ -384,10 +395,27 @@ public sealed partial class CmdNotFoundModule : Page
     private void OpenEditor_Click(object sender, RoutedEventArgs e)
     {
         if (_status is null) return;
-        CmdNotFoundService.OpenProfileInEditor(_status.ProfilePath);
+        var dp = new DataPackage { RequestedOperation = DataPackageOperation.Copy };
+        dp.SetText(_status.ProfilePath);
+        Clipboard.SetContent(dp);
+        Clipboard.Flush();
+        ShowResult(InfoBarSeverity.Success, P("Profile path copied.", "已複製 profile 路徑。"), DisplayPath(_status.ProfilePath));
     }
 
     // ── small helpers · 小工具 ──────────────────────────────────────────────────
+
+    private static string DisplayPath(string path)
+    {
+        try
+        {
+            var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile).TrimEnd('\\');
+            if (!string.IsNullOrWhiteSpace(home) &&
+                path.StartsWith(home, StringComparison.OrdinalIgnoreCase))
+                return "%USERPROFILE%" + path[home.Length..];
+        }
+        catch { }
+        return path;
+    }
 
     private string ResultText(TweakResult r)
         => r.Message is null ? "" : P(r.Message.En, r.Message.Zh);

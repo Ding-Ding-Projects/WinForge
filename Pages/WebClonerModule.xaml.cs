@@ -7,7 +7,7 @@ using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
-using WinForge.Models;
+using Windows.ApplicationModel.DataTransfer;
 using WinForge.Services;
 
 namespace WinForge.Pages;
@@ -15,8 +15,7 @@ namespace WinForge.Pages;
 /// <summary>
 /// 網站複製器 · Website Cloner — point it at a URL, pick a folder, and it fetches the page,
 /// downloads its assets, rewrites links to local paths and writes a browsable index.html.
-/// 可選 AI 一步用終端機編程代理清理成 index.html／styles.css／script.js。
-/// An optional AI pass hands the result to a terminal coding agent to tidy it up. Bilingual.
+/// 以原生 HttpClient/WebView2 工作，不會啟動瀏覽器、檔案總管或終端機代理。Bilingual.
 /// </summary>
 public sealed partial class WebClonerModule : Page
 {
@@ -31,8 +30,8 @@ public sealed partial class WebClonerModule : Page
         Loaded += async (_, _) =>
         {
             Render();
-            FolderBox.Text = DefaultDest();
-            await BuildAgentCombo();
+            FolderBox.Text = DisplayPath(DefaultDest());
+            await Task.CompletedTask;
         };
     }
 
@@ -48,12 +47,35 @@ public sealed partial class WebClonerModule : Page
         catch { return ""; }
     }
 
+    private static string DisplayPath(string path)
+    {
+        try
+        {
+            var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile).TrimEnd('\\');
+            if (!string.IsNullOrWhiteSpace(home) &&
+                path.StartsWith(home, StringComparison.OrdinalIgnoreCase))
+                return "%USERPROFILE%" + path[home.Length..];
+        }
+        catch { }
+        return path;
+    }
+
+    private static string ExpandDisplayPath(string path)
+    {
+        if (path.StartsWith("%USERPROFILE%", StringComparison.OrdinalIgnoreCase))
+        {
+            var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile).TrimEnd('\\');
+            return home + path["%USERPROFILE%".Length..];
+        }
+        return Environment.ExpandEnvironmentVariables(path);
+    }
+
     private void Render()
     {
         HeaderTitle.Text = "Website Cloner · 網站複製器";
         HeaderBlurb.Text = P(
-            "Fetch a live web page, download its assets and save a browsable local copy. Optionally let an AI coding agent clean it into tidy HTML/CSS/JS.",
-            "下載一個網頁、攞埋佢嘅資源，儲存成可以喺本機瀏覽嘅副本。仲可以叫 AI 編程代理幫你清理成整齊嘅 HTML／CSS／JS。");
+            "Fetch a live web page, download its assets and save a browsable local copy. Preview the result inside WinForge without opening an external browser or folder.",
+            "下載一個網頁、攞埋佢嘅資源，儲存成可以喺本機瀏覽嘅副本，並喺 WinForge 入面預覽，唔會開外部瀏覽器或資料夾。");
 
         DisclaimerBar.Title = P("For personal & learning use only", "只供個人及學習用途");
         DisclaimerBar.Message = P(
@@ -70,71 +92,14 @@ public sealed partial class WebClonerModule : Page
         RenderedCheck.Content = P("Capture JS-rendered DOM via WebView2 (better for dynamic sites)",
             "用 WebView2 擷取 JS 渲染後嘅 DOM（適合動態網站）");
 
-        // Mode radios — rebuild so labels follow language.
-        var sel = ModeRadios.SelectedIndex < 0 ? 0 : ModeRadios.SelectedIndex;
-        ModeRadios.Header = P("Mode", "模式");
-        ModeRadios.Items.Clear();
-        ModeRadios.Items.Add(P("Native only — fetch & save (fully offline)", "只用原生 — 下載並儲存（完全離線）"));
-        ModeRadios.Items.Add(P("Native + AI cleanup — then tidy with a coding agent", "原生 + AI 清理 — 之後用編程代理整理"));
-        ModeRadios.SelectedIndex = sel;
-        ModeRadios.SelectionChanged -= Mode_Changed;
-        ModeRadios.SelectionChanged += Mode_Changed;
-
-        AgentLabel.Text = P("AI agent", "AI 代理");
-
         CloneBtn.Content = P("Clone website", "複製網站");
         CancelBtn.Content = P("Cancel", "取消");
-        OpenFolderBtn.Content = P("Open folder", "打開資料夾");
-        OpenBrowserBtn.Content = P("Open in browser", "喺瀏覽器打開");
+        CopyFolderBtn.Content = P("Copy folder path", "複製資料夾路徑");
+        PreviewBtn.Content = P("Preview in app", "喺 app 預覽");
+        PreviewTitle.Text = P("Local clone preview", "本機副本預覽");
 
         TokenTitle.Text = P("Extracted design tokens", "抽取到嘅設計符記");
         LogTitle.Text = P("Progress log", "進度記錄");
-
-        UpdateAgentRowVisibility();
-    }
-
-    private void Mode_Changed(object sender, SelectionChangedEventArgs e) => UpdateAgentRowVisibility();
-
-    private void UpdateAgentRowVisibility()
-    {
-        bool ai = ModeRadios.SelectedIndex == 1;
-        AgentRow.Visibility = ai ? Visibility.Visible : Visibility.Collapsed;
-    }
-
-    private async Task BuildAgentCombo()
-    {
-        AgentCombo.Items.Clear();
-        foreach (var a in AiAgentService.All)
-            AgentCombo.Items.Add(new ComboBoxItem { Content = a.Name, Tag = a.Key });
-        if (AgentCombo.Items.Count > 0) AgentCombo.SelectedIndex = 0;
-
-        // Surface a hint if no agent is installed (offered via AiAgents module).
-        try
-        {
-            bool any = false;
-            foreach (var a in AiAgentService.All)
-                if (await AiAgentService.IsInstalledAsync(a)) { any = true; break; }
-            if (!any)
-            {
-                AgentBar.IsOpen = true;
-                AgentBar.Severity = InfoBarSeverity.Informational;
-                AgentBar.Title = P("No AI agent detected", "偵測唔到 AI 代理");
-                AgentBar.Message = P(
-                    "Native mode works without any agent. For the AI cleanup pass, install a coding agent in the AI Agents module first.",
-                    "原生模式唔需要任何代理。如要 AI 清理，請先喺「AI 代理」模組安裝一個編程代理。");
-            }
-        }
-        catch { }
-    }
-
-    private AiAgent? SelectedAgent()
-    {
-        if (AgentCombo.SelectedItem is ComboBoxItem item && item.Tag is string key)
-        {
-            foreach (var a in AiAgentService.All)
-                if (a.Key == key) return a;
-        }
-        return null;
     }
 
     // ===================== UI actions =====================
@@ -142,13 +107,13 @@ public sealed partial class WebClonerModule : Page
     private async void Folder_Click(object sender, RoutedEventArgs e)
     {
         var folder = await FileDialogs.OpenFolderAsync(P("Choose where to save the clone", "揀儲存複製品嘅位置"));
-        if (folder is not null) FolderBox.Text = folder;
+        if (folder is not null) FolderBox.Text = DisplayPath(folder);
     }
 
     private async void Clone_Click(object sender, RoutedEventArgs e)
     {
         var url = UrlBox.Text?.Trim() ?? "";
-        var folder = FolderBox.Text?.Trim() ?? "";
+        var folder = ExpandDisplayPath(FolderBox.Text?.Trim() ?? "");
 
         if (string.IsNullOrWhiteSpace(url)) { ShowResult(false, P("Enter a URL first.", "請先輸入網址。")); return; }
         if (string.IsNullOrWhiteSpace(folder)) { ShowResult(false, P("Choose a destination folder first.", "請先揀目的資料夾。")); return; }
@@ -187,8 +152,8 @@ public sealed partial class WebClonerModule : Page
             }
 
             _lastIndexPath = result.IndexPath;
-            OpenFolderBtn.IsEnabled = true;
-            OpenBrowserBtn.IsEnabled = result.IndexPath is not null;
+            CopyFolderBtn.IsEnabled = true;
+            PreviewBtn.IsEnabled = result.IndexPath is not null;
 
             if (result.DesignTokens is { Count: > 0 })
             {
@@ -200,32 +165,6 @@ public sealed partial class WebClonerModule : Page
             }
 
             ShowResult(true, result.Message.Get(Loc.I.Language));
-
-            // AI cleanup pass.
-            if (ModeRadios.SelectedIndex == 1)
-            {
-                var agent = SelectedAgent();
-                if (agent is null)
-                {
-                    AppendLog(new WebsiteClonerService.Progress(
-                        "No agent selected — skipping AI pass.", "未揀代理 — 略過 AI 清理。",
-                        WebsiteClonerService.LogLevel.Warn));
-                }
-                else if (!await AiAgentService.IsInstalledAsync(agent, _cts.Token))
-                {
-                    AppendLog(new WebsiteClonerService.Progress(
-                        $"{agent.NameEn} is not installed — skipping AI pass.",
-                        $"未安裝 {agent.NameZh} — 略過 AI 清理。", WebsiteClonerService.LogLevel.Warn));
-                }
-                else
-                {
-                    AppendLog(new WebsiteClonerService.Progress(
-                        $"Starting AI cleanup with {agent.NameEn}…", $"開始用 {agent.NameZh} 做 AI 清理…",
-                        WebsiteClonerService.LogLevel.Info));
-                    var ai = await WebsiteClonerService.RunAiPassAsync(agent, folder, url, progress, _cts.Token);
-                    ShowResult(ai.Success, (Loc.I.IsCantonesePrimary ? ai.Message?.Zh : ai.Message?.En) ?? "");
-                }
-            }
         }
         catch (OperationCanceledException)
         {
@@ -245,15 +184,29 @@ public sealed partial class WebClonerModule : Page
 
     private void Cancel_Click(object sender, RoutedEventArgs e) => _cts?.Cancel();
 
-    private void OpenFolder_Click(object sender, RoutedEventArgs e)
+    private void CopyFolder_Click(object sender, RoutedEventArgs e)
     {
-        var folder = FolderBox.Text?.Trim();
-        if (!string.IsNullOrWhiteSpace(folder)) WebsiteClonerService.OpenFolder(folder);
+        var folder = ExpandDisplayPath(FolderBox.Text?.Trim() ?? "");
+        if (string.IsNullOrWhiteSpace(folder)) return;
+        var package = new DataPackage();
+        package.SetText(folder);
+        Clipboard.SetContent(package);
+        ShowResult(true, P("Folder path copied to clipboard.", "資料夾路徑已複製到剪貼簿。"));
     }
 
-    private void OpenBrowser_Click(object sender, RoutedEventArgs e)
+    private async void Preview_Click(object sender, RoutedEventArgs e)
     {
-        if (!string.IsNullOrWhiteSpace(_lastIndexPath)) WebsiteClonerService.OpenInBrowser(_lastIndexPath);
+        if (string.IsNullOrWhiteSpace(_lastIndexPath) || !System.IO.File.Exists(_lastIndexPath)) return;
+        try
+        {
+            PreviewCard.Visibility = Visibility.Visible;
+            await PreviewWeb.EnsureCoreWebView2Async();
+            PreviewWeb.CoreWebView2.Navigate(new Uri(_lastIndexPath).AbsoluteUri);
+        }
+        catch (Exception ex)
+        {
+            ShowResult(false, ex.Message);
+        }
     }
 
     // ===================== WebView2 rendered-DOM capture =====================

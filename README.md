@@ -153,7 +153,7 @@ dotnet publish WinForge.csproj -c Release -p:Platform=x64 -r win-x64 ^
 | Module · 模組 | Description · 說明 | `--page` |
 |---|---|---|
 | **Media · 媒體** | ffmpeg-powered video/audio convert, trim and GIF making. <br> 用 ffmpeg 轉檔、剪裁影音同整 GIF。 | `media` |
-| **Audio Editor · 音訊編輯器** | Audacity-style waveform recording, trimming and effects. <br> Audacity 式波形錄音、剪裁同效果處理。 | `audioeditor` |
+| **Audio Editor · 音訊編輯器** | In-app waveform recording, trimming and effects. <br> App 內波形錄音、剪裁同效果處理。 | `audioeditor` |
 | **Audio Tagger · 音訊標籤編輯器** | Batch-edit ID3/audio metadata and cover art. <br> 批次編輯 ID3／音訊中繼資料同封面圖。 | `tags` |
 | **Media Player · 媒體播放器** | libVLC player with streams, subtitles and snapshots. <br> libVLC 播放器，支援串流、字幕同截圖。 | `mediaplayer` |
 | **Media Downloader · 媒體下載器** | yt-dlp video/audio downloads with quality and subtitle options. <br> yt-dlp 下載影音，可選畫質同字幕。 | `ytdlp` |

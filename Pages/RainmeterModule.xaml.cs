@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Windows.ApplicationModel.DataTransfer;
 using WinForge.Catalog;
 using WinForge.Controls;
 using WinForge.Models;
@@ -285,7 +286,14 @@ public sealed partial class RainmeterModule : Page
 
     private void OpenUrl(string url)
     {
-        try { Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true }); }
+        try
+        {
+            var dp = new DataPackage { RequestedOperation = DataPackageOperation.Copy };
+            dp.SetText(url);
+            Clipboard.SetContent(dp);
+            Clipboard.Flush();
+            ShowStatus(P("URL copied.", "已複製網址。"), InfoBarSeverity.Success);
+        }
         catch (Exception ex) { ShowStatus(ex.Message, InfoBarSeverity.Error); }
     }
 

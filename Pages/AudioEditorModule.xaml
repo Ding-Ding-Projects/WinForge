@@ -141,7 +141,7 @@
                     <StackPanel Spacing="6">
                         <TextBlock x:Name="GainLabel" FontWeight="SemiBold" />
                         <Slider x:Name="GainSlider" Minimum="-24" Maximum="24" Value="0" StepFrequency="1"
-                                TickFrequency="6" TickPlacement="Outside" ValueChanged="GainSlider_ValueChanged" />
+                                TickFrequency="6" TickPlacement="Outside" />
                         <Button x:Name="GainBtn" Click="Gain_Click" />
                     </StackPanel>
                 </Border>
@@ -151,11 +151,10 @@
                         BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
                     <StackPanel Spacing="6">
                         <TextBlock x:Name="SpeedLabel" FontWeight="SemiBold" />
-                        <Slider x:Name="SpeedSlider" Minimum="0.25" Maximum="4" Value="1" StepFrequency="0.05"
-                                ValueChanged="SpeedSlider_ValueChanged" />
+                        <Slider x:Name="SpeedSlider" Minimum="0.25" Maximum="4" Value="1" StepFrequency="0.05" />
                         <TextBlock x:Name="PitchLabel" FontWeight="SemiBold" />
                         <Slider x:Name="PitchSlider" Minimum="-12" Maximum="12" Value="0" StepFrequency="1"
-                                TickFrequency="3" TickPlacement="Outside" ValueChanged="PitchSlider_ValueChanged" />
+                                TickFrequency="3" TickPlacement="Outside" />
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <Button x:Name="SpeedBtn" Click="Speed_Click" />
                             <Button x:Name="PitchBtn" Click="Pitch_Click" />
@@ -198,19 +197,6 @@
             <AutoSuggestBox x:Name="FxFilter" MaxWidth="420" HorizontalAlignment="Left" QueryIcon="Find"
                             TextChanged="FxFilter_TextChanged" />
             <StackPanel x:Name="FxPanel" Spacing="2" />
-
-            <!-- ===== Audacity fallback ===== -->
-            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
-                <StackPanel Spacing="10">
-                    <TextBlock x:Name="FallbackLabel" FontWeight="SemiBold" />
-                    <TextBlock x:Name="FallbackBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                               FontSize="12" TextWrapping="Wrap" />
-                    <StackPanel x:Name="AudacityActions" Orientation="Horizontal" Spacing="8">
-                        <Button x:Name="LaunchAudacityBtn" Click="LaunchAudacity_Click" />
-                    </StackPanel>
-                </StackPanel>
-            </Border>
 
         </StackPanel>
     </ScrollViewer>

@@ -12,7 +12,7 @@ Open in-app: `WinForge.exe --page media`
 
 ## Audio Editor · 音訊編輯器
 
-Audacity-style waveform recording, trimming and effects. · Audacity 式波形錄音、剪裁同效果處理。
+In-app waveform recording, trimming and effects. · App 內波形錄音、剪裁同效果處理。
 
 Open in-app: `WinForge.exe --page audioeditor`
 
