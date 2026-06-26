@@ -1102,7 +1102,62 @@ internal static class Program
                           $"leaveningConsumesStarch={leaveningConsumesStarch} ('{Trim(leavening)}')");
         });
 
-        Scenario("CAKE LEAVENING PLANT REALISM (baking soda, phosphate and released starch become QA-held baking powder)", () =>
+        Scenario("CAKE BAKING SODA PLANT (raw soda ash is carbonated, dried and QA-released before leavening)", () =>
+        {
+            var cake = new CakeFactoryService { FarmIntensity = 0 };
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            string start = cake.RunBakingSodaPlant();
+            TickCake(cake, fullBus, 2.5);
+            var running = cake.Snapshot;
+
+            TickCake(cake, fullBus, 7.0);
+            var held = cake.Snapshot;
+            string blockedLeavening = cake.RunLeaveningPlant();
+            TickCake(cake, fullBus, 0.5);
+            var blocked = cake.Snapshot;
+
+            string release = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var released = cake.Snapshot;
+
+            bool rawSodaReady = before.CanRunBakingSodaPlant
+                                && before.SodaAshKg >= 6
+                                && before.SodaAshLotId.StartsWith("SODA-", StringComparison.OrdinalIgnoreCase)
+                                && before.SodaAshAssayPct > 98;
+            bool carbonationStarted = running.FactoryRunActive
+                                      && running.ActiveFactoryName.Contains("Baking-soda", StringComparison.OrdinalIgnoreCase)
+                                      && running.SodaAshKg < before.SodaAshKg
+                                      && Math.Abs(running.BakingSodaKg - before.BakingSodaKg) < 0.001
+                                      && running.SodaCarbonationPressureBar > 0
+                                      && running.SodaReactorTemperatureC > 30
+                                      && start.Contains("carbonating", StringComparison.OrdinalIgnoreCase);
+            bool heldForLab = !held.FactoryRunActive
+                              && held.BakingSodaKg > before.BakingSodaKg
+                              && held.BakingSodaLotId.StartsWith("BAKESODA-", StringComparison.OrdinalIgnoreCase)
+                              && held.BakingSodaLotId != before.BakingSodaLotId
+                              && held.PendingLabLotId == held.BakingSodaLotId
+                              && held.PendingLabProductName.Contains("baking soda", StringComparison.OrdinalIgnoreCase)
+                              && held.IngredientLabStatus.Contains("bicarbonate", StringComparison.OrdinalIgnoreCase)
+                              && held.SodaCentrifugeRpm > 0
+                              && held.BakingSodaPurityPct > 98.5
+                              && held.BakingSodaMoisturePct > 0
+                              && held.LeaveningDustKg > before.LeaveningDustKg
+                              && held.FactoryStatus.Contains("raw soda ash", StringComparison.OrdinalIgnoreCase);
+            bool unreleasedSodaBlocked = blockedLeavening.Contains("baking soda lot", StringComparison.OrdinalIgnoreCase)
+                                         && !blocked.CanRunLeaveningPlant;
+            bool releaseClearsHold = release.Contains("released", StringComparison.OrdinalIgnoreCase)
+                                     && released.PendingLabLotId.Length == 0
+                                     && released.CanRunLeaveningPlant;
+            bool pass = rawSodaReady && carbonationStarted && heldForLab && unreleasedSodaBlocked && releaseClearsHold;
+            return (pass, $"rawSodaReady={rawSodaReady} ({before.SodaAshLotId}, {before.SodaAshAssayPct:F1}%), " +
+                          $"carbonationStarted={carbonationStarted} ('{Trim(start)}'), heldForLab={heldForLab} " +
+                          $"(bicarb {before.BakingSodaKg:F1}->{held.BakingSodaKg:F1} kg, lot {held.BakingSodaLotId}, purity {held.BakingSodaPurityPct:F2}%), " +
+                          $"unreleasedSodaBlocked={unreleasedSodaBlocked} ('{Trim(blockedLeavening)}'), releaseClearsHold={releaseClearsHold} ('{Trim(release)}')");
+        });
+
+        Scenario("CAKE LEAVENING PLANT REALISM (released baking soda, phosphate and released starch become QA-held baking powder)", () =>
         {
             var cake = new CakeFactoryService { FarmIntensity = 0 };
             TickCake(cake, fullBus, 0.5);
@@ -1121,16 +1176,17 @@ internal static class Program
             var released = cake.Snapshot;
 
             bool sourceLotsReady = before.CanRunLeaveningPlant
-                                   && before.SodaAshLotId.StartsWith("SODA-", StringComparison.OrdinalIgnoreCase)
+                                   && before.BakingSodaLotId.StartsWith("BAKESODA-", StringComparison.OrdinalIgnoreCase)
                                    && before.PhosphateLotId.StartsWith("PHOSPHATE-", StringComparison.OrdinalIgnoreCase)
                                    && before.StarchLotId.Length > 0
-                                   && before.SodaAshAssayPct > 98
+                                   && before.BakingSodaPurityPct > 98
                                    && before.PhosphateAcidValuePct > 96
                                    && before.TraceabilityScorePct >= 99;
             bool blendStarted = running.FactoryRunActive
                                 && running.ActiveFactoryName.Contains("baking-powder", StringComparison.OrdinalIgnoreCase)
                                 && running.ActiveFactoryPhase.Length > 0
-                                && running.SodaAshKg < before.SodaAshKg
+                                && Math.Abs(running.SodaAshKg - before.SodaAshKg) < 0.001
+                                && running.BakingSodaKg < before.BakingSodaKg
                                 && running.PhosphateKg < before.PhosphateKg
                                 && running.StarchKg < before.StarchKg
                                 && Math.Abs(running.BakingPowderKg - before.BakingPowderKg) < 0.001
@@ -1139,6 +1195,7 @@ internal static class Program
                                 && running.LeaveningBlendMoisturePct > 0
                                 && running.LeaveningDustCollectorPressurePa > 0
                                 && start.Contains("baking soda", StringComparison.OrdinalIgnoreCase)
+                                && start.Contains(before.BakingSodaLotId, StringComparison.OrdinalIgnoreCase)
                                 && start.Contains(before.PhosphateLotId, StringComparison.OrdinalIgnoreCase);
             bool heldForLab = !held.FactoryRunActive
                               && held.BakingPowderKg > before.BakingPowderKg
@@ -1152,13 +1209,13 @@ internal static class Program
                               && held.LeaveningDustCollectorPressurePa > 0
                               && held.LeaveningDustKg > before.LeaveningDustKg
                               && held.FactoryStatus.Contains("source lots", StringComparison.OrdinalIgnoreCase)
-                              && held.FactoryStatus.Contains("baking soda assay", StringComparison.OrdinalIgnoreCase);
+                              && held.FactoryStatus.Contains("baking soda purity", StringComparison.OrdinalIgnoreCase);
             bool releaseClearsLeavening = blocked.Contains("lab release", StringComparison.OrdinalIgnoreCase)
                                           && release.Contains("released", StringComparison.OrdinalIgnoreCase)
                                           && released.PendingLabLotId.Length == 0
                                           && released.CanStageBatchKit;
             bool pass = sourceLotsReady && blendStarted && heldForLab && releaseClearsLeavening;
-            return (pass, $"sourceLotsReady={sourceLotsReady} ({before.SodaAshLotId}/{before.PhosphateLotId}, soda {before.SodaAshAssayPct:F1}%, acid {before.PhosphateAcidValuePct:F1}%), " +
+            return (pass, $"sourceLotsReady={sourceLotsReady} ({before.BakingSodaLotId}/{before.PhosphateLotId}, bicarb {before.BakingSodaPurityPct:F1}%, acid {before.PhosphateAcidValuePct:F1}%), " +
                           $"blendStarted={blendStarted} ('{Trim(start)}'), heldForLab={heldForLab} " +
                           $"(homogeneity {held.LeaveningHomogeneityPct:F1}%, moisture {held.LeaveningBlendMoisturePct:F1}%, dust {held.LeaveningDustCollectorPressurePa:F0} Pa), " +
                           $"releaseClearsLeavening={releaseClearsLeavening} ('{Trim(release)}')");
@@ -1709,17 +1766,23 @@ internal static class Program
             TickCake(cake, fullBus, 0.5);
             var s8 = cake.Snapshot;
 
+            string soda = cake.RunBakingSodaPlant();
+            TickCake(cake, fullBus, 7.5);
+            string releaseSoda = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var s9 = cake.Snapshot;
+
             string leavening = cake.RunLeaveningPlant();
             TickCake(cake, fullBus, 6.5);
             string releaseLeavening = cake.ReleaseIngredientLabLot();
             TickCake(cake, fullBus, 0.5);
-            var s9 = cake.Snapshot;
+            var s10 = cake.Snapshot;
 
             string packaging = cake.RunPackagingPlant();
             TickCake(cake, fullBus, 8.5);
             string releasePackaging = cake.ReleaseIngredientLabLot();
             TickCake(cake, fullBus, 0.5);
-            var s10 = cake.Snapshot;
+            var s11 = cake.Snapshot;
 
             bool farmYield = s1.WheatKg > s0.WheatKg
                              && s1.SugarCropKg > s0.SugarCropKg
@@ -1732,15 +1795,19 @@ internal static class Program
             bool vanillaYield = s6.VanillaL > s5.VanillaL && s6.VanillaBeansKg < s5.VanillaBeansKg;
             bool cocoaYield = s7.CocoaKg > s6.CocoaKg && s7.CocoaBeansKg < s6.CocoaBeansKg;
             bool saltYield = s8.SaltKg > s7.SaltKg && s8.BrineL < s7.BrineL;
-            bool leaveningYield = s9.BakingPowderKg > s8.BakingPowderKg
-                                   && s9.SodaAshKg < s8.SodaAshKg
-                                   && s9.PhosphateKg < s8.PhosphateKg
-                                   && s9.StarchKg < s8.StarchKg;
-            bool packagingYield = s10.PackagingUnits > s9.PackagingUnits
-                                   && s10.PaperboardKg < s9.PaperboardKg
-                                   && s10.LabelStockM < s9.LabelStockM
-                                   && s10.PackagingInkL < s9.PackagingInkL
-                                   && s10.AdhesiveKg < s9.AdhesiveKg;
+            bool sodaYield = s9.BakingSodaKg > s8.BakingSodaKg
+                             && s9.SodaAshKg < s8.SodaAshKg
+                             && s9.BakingSodaLotId != s8.BakingSodaLotId;
+            bool leaveningYield = s10.BakingPowderKg > s9.BakingPowderKg
+                                   && s10.BakingSodaKg < s9.BakingSodaKg
+                                   && Math.Abs(s10.SodaAshKg - s9.SodaAshKg) < 0.001
+                                   && s10.PhosphateKg < s9.PhosphateKg
+                                   && s10.StarchKg < s9.StarchKg;
+            bool packagingYield = s11.PackagingUnits > s10.PackagingUnits
+                                   && s11.PaperboardKg < s10.PaperboardKg
+                                   && s11.LabelStockM < s10.LabelStockM
+                                   && s11.PackagingInkL < s10.PackagingInkL
+                                   && s11.AdhesiveKg < s10.AdhesiveKg;
             bool processTelemetry = s3.MillRollGapMm > 0 && s3.FlourExtractionPct > 0
                                     && s3.WheatTemperMoisturePct > 0 && s3.FlourMoisturePct > 0
                                     && s3.FlourAshPct > 0 && s3.FlourProteinPct > 0
@@ -1763,19 +1830,22 @@ internal static class Program
                                     && s8.SaltCrystallizerTemperatureC > 40 && s8.SaltCentrifugeRpm > 0
                                     && s8.SaltDryerTemperatureC > 40 && s8.SaltMoisturePct > 0
                                     && s8.SaltPurityPct > 98 && s8.SaltScreenPassingPct > 90
-                                    && s9.SodaAshAssayPct > 98 && s9.PhosphateAcidValuePct > 96
-                                    && s9.LeaveningMixerRpm > 0 && s9.LeaveningHomogeneityPct > 90
-                                    && s9.LeaveningBlendMoisturePct > 0 && s9.LeaveningSifterLoadPct > 0
-                                    && s9.LeaveningDustCollectorPressurePa > 0
-                                    && s10.CartonBoardCaliperMm > 0.38 && s10.CartonBoardMoisturePct > 5.5
-                                    && s10.CartonFormerSpeedCpm > 0 && s10.CartonDieCutWastePct > 0
-                                    && s10.LabelWebTensionN > 0 && s10.PrintRegistrationMm > 0
-                                    && s10.GluePotTemperatureC > 100 && s10.GlueBeadGPerCarton > 0
-                                    && s10.CaseCodeReadRatePct > 95 && s10.PackagingTrimKg > s9.PackagingTrimKg;
-            bool factoryUtilitiesConsumed = s10.ProcessWaterL < s0.ProcessWaterL
-                                            && s10.CulinarySteamKg < s0.CulinarySteamKg
-                                            && s10.CompressedAirNm3 < s0.CompressedAirNm3
-                                            && s10.FilterMediaPct < s0.FilterMediaPct;
+                                    && s9.SodaCarbonationPressureBar > 0 && s9.SodaReactorTemperatureC > 30
+                                    && s9.SodaCentrifugeRpm > 0 && s9.BakingSodaPurityPct > 98.5
+                                    && s9.BakingSodaMoisturePct > 0
+                                    && s10.BakingSodaPurityPct > 98 && s10.PhosphateAcidValuePct > 96
+                                    && s10.LeaveningMixerRpm > 0 && s10.LeaveningHomogeneityPct > 90
+                                    && s10.LeaveningBlendMoisturePct > 0 && s10.LeaveningSifterLoadPct > 0
+                                    && s10.LeaveningDustCollectorPressurePa > 0
+                                    && s11.CartonBoardCaliperMm > 0.38 && s11.CartonBoardMoisturePct > 5.5
+                                    && s11.CartonFormerSpeedCpm > 0 && s11.CartonDieCutWastePct > 0
+                                    && s11.LabelWebTensionN > 0 && s11.PrintRegistrationMm > 0
+                                    && s11.GluePotTemperatureC > 100 && s11.GlueBeadGPerCarton > 0
+                                    && s11.CaseCodeReadRatePct > 95 && s11.PackagingTrimKg > s10.PackagingTrimKg;
+            bool factoryUtilitiesConsumed = s11.ProcessWaterL < s0.ProcessWaterL
+                                            && s11.CulinarySteamKg < s0.CulinarySteamKg
+                                            && s11.CompressedAirNm3 < s0.CompressedAirNm3
+                                            && s11.FilterMediaPct < s0.FilterMediaPct;
             bool timedFactoryRun = millRunning.FactoryRunActive
                                    && millRunning.ActiveFactoryName.Contains("mill", StringComparison.OrdinalIgnoreCase)
                                    && millRunning.ActiveFactoryPhase.Length > 0
@@ -1792,14 +1862,15 @@ internal static class Program
                                       && releaseVanilla.Contains("released", StringComparison.OrdinalIgnoreCase)
                                       && releaseCocoa.Contains("released", StringComparison.OrdinalIgnoreCase)
                                       && releaseSalt.Contains("released", StringComparison.OrdinalIgnoreCase)
+                                      && releaseSoda.Contains("released", StringComparison.OrdinalIgnoreCase)
                                       && releaseLeavening.Contains("released", StringComparison.OrdinalIgnoreCase)
                                       && releasePackaging.Contains("released", StringComparison.OrdinalIgnoreCase)
-                                      && s10.PendingLabLotId.Length == 0;
-            bool pass = farmYield && dairyYield && flourYield && sugarYield && butterYield && vanillaYield && cocoaYield && saltYield && leaveningYield && packagingYield && processTelemetry && factoryUtilitiesConsumed && timedFactoryRun && labReleaseWorkflow;
+                                      && s11.PendingLabLotId.Length == 0;
+            bool pass = farmYield && dairyYield && flourYield && sugarYield && butterYield && vanillaYield && cocoaYield && saltYield && sodaYield && leaveningYield && packagingYield && processTelemetry && factoryUtilitiesConsumed && timedFactoryRun && labReleaseWorkflow;
             return (pass, $"farmYield={farmYield} ('{Trim(harvest)}'), dairyYield={dairyYield} ('{Trim(collect)}'), " +
                           $"flourYield={flourYield} ('{Trim(mill)}'), sugarYield={sugarYield} ('{Trim(refine)}'), " +
                           $"butterYield={butterYield} ('{Trim(churn)}'), vanillaYield={vanillaYield} ('{Trim(vanilla)}'), cocoaYield={cocoaYield} ('{Trim(cocoa)}'), " +
-                          $"saltYield={saltYield} ('{Trim(salt)}'), leaveningYield={leaveningYield} ('{Trim(leavening)}'), packagingYield={packagingYield} ('{Trim(packaging)}'), " +
+                          $"saltYield={saltYield} ('{Trim(salt)}'), sodaYield={sodaYield} ('{Trim(soda)}'), leaveningYield={leaveningYield} ('{Trim(leavening)}'), packagingYield={packagingYield} ('{Trim(packaging)}'), " +
                           $"processTelemetry={processTelemetry}, factoryUtilitiesConsumed={factoryUtilitiesConsumed}, timedFactoryRun={timedFactoryRun}, " +
                           $"labReleaseWorkflow={labReleaseWorkflow}");
         });
@@ -2266,6 +2337,7 @@ internal static class Program
             double feedBeforeSupply = after.AnimalFeedKg;
             double beddingBeforeSupply = after.BeddingKg;
             double dairyMineralBeforeSupply = after.DairyMineralKg;
+            double bakingSodaBeforeSupply = after.BakingSodaKg;
             double bakingPowderBeforeSupply = after.BakingPowderKg;
             double saltBeforeSupply = after.SaltKg;
             double cartonsBeforeSupply = after.PackagingUnits;
@@ -2291,6 +2363,7 @@ internal static class Program
                                          && supplied.CompressedAirNm3 > after.CompressedAirNm3
                                          && supplied.FilterMediaPct >= after.FilterMediaPct;
             bool supplyTruckDoesNotMakeFinalIngredients = Math.Abs(supplied.BakingPowderKg - bakingPowderBeforeSupply) < 0.001
+                                                          && Math.Abs(supplied.BakingSodaKg - bakingSodaBeforeSupply) < 0.001
                                                           && Math.Abs(supplied.SaltKg - saltBeforeSupply) < 0.001
                                                           && Math.Abs(supplied.PackagingUnits - cartonsBeforeSupply) < 0.001
                                                           && supplied.FertilizerKg <= fertilizerBeforeSupply + 0.001

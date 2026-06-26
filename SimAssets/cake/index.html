@@ -606,6 +606,7 @@
                 <button class="action" type="button" data-action="processCocoa">Roast cocoa</button>
                 <button class="action" type="button" data-action="runSaltWorks">Salt works</button>
                 <button class="action" type="button" data-action="runStarchPlant">Starch plant</button>
+                <button class="action" type="button" data-action="runBakingSodaPlant">Baking soda</button>
                 <button class="action" type="button" data-action="runLeaveningPlant">Leavening plant</button>
                 <button class="action" type="button" data-action="runPackagingPlant">Packaging plant</button>
                 <button class="action" type="button" data-action="prepareIcing">Prepare icing</button>
@@ -766,6 +767,7 @@
       CanProcessCocoa: false,
       CanRunSaltWorks: false,
       CanRunStarchPlant: false,
+      CanRunBakingSodaPlant: false,
       CanRunLeaveningPlant: false,
       CanRunPackagingPlant: false,
       CanPrepareIcing: false,
@@ -859,6 +861,7 @@
       BrineLotId: 'BRINE-OPENING',
       SaltLotId: 'SALT-OPENING',
       StarchLotId: 'STARCH-OPENING',
+      BakingSodaLotId: 'BAKESODA-OPENING',
       LeaveningLotId: 'LEAVEN-OPENING',
       PackagingLotId: 'PACK-OPENING',
       IcingLotId: 'ICING-OPENING',
@@ -892,8 +895,11 @@
       CocoaFermentationPct: 91,
       BrineL: 900,
       SodaAshKg: 28,
+      BakingSodaKg: 22,
       PhosphateKg: 30,
       SodaAshAssayPct: 99.2,
+      BakingSodaPurityPct: 99.3,
+      BakingSodaMoisturePct: 0.22,
       PhosphateAcidValuePct: 98.4,
       StarchKg: 24,
       StrawKg: 170,
@@ -975,6 +981,8 @@
       SaltCalibrationPct: 93,
       StarchConditionPct: 92,
       StarchCalibrationPct: 95,
+      SodaConditionPct: 92,
+      SodaCalibrationPct: 95,
       LeaveningConditionPct: 94,
       LeaveningCalibrationPct: 96,
       PackagingConditionPct: 91,
@@ -1038,6 +1046,9 @@
       StarchSlurryBrix: 0,
       StarchDryerTemperatureC: 24,
       StarchMoisturePct: 12.5,
+      SodaCarbonationPressureBar: 0,
+      SodaReactorTemperatureC: 24,
+      SodaCentrifugeRpm: 0,
       LeaveningMixerRpm: 0,
       LeaveningHomogeneityPct: 0,
       LeaveningBlendMoisturePct: 2.8,
@@ -1244,6 +1255,7 @@
       setButton('processCocoa', s.CanProcessCocoa);
       setButton('runSaltWorks', s.CanRunSaltWorks);
       setButton('runStarchPlant', s.CanRunStarchPlant);
+      setButton('runBakingSodaPlant', s.CanRunBakingSodaPlant);
       setButton('runLeaveningPlant', s.CanRunLeaveningPlant);
       setButton('runPackagingPlant', s.CanRunPackagingPlant);
       setButton('prepareIcing', s.CanPrepareIcing);
@@ -1306,7 +1318,8 @@
         ['Cocoa greenhouse', `${n(s.CocoaGrowth, 0)}% mature / ${s.CocoaGreenhouseStatus || 'idle'}`],
         ['Cocoa beans', `${n(s.CocoaBeansKg, 1)} kg / ${n(s.CocoaFermentationPct, 0)}% ferment / ${n(s.CocoaBeanMoisturePct, 1)}% moisture`],
         ['Brine', `${n(s.BrineL, 0)} L / ${s.BrineLotId || '-'} / ${n(s.BrineSalinityPct, 1)}%`],
-        ['Baking soda', `${n(s.SodaAshKg, 1)} kg / ${s.SodaAshLotId || '-'} / ${n(s.SodaAshAssayPct, 1)}% assay`],
+        ['Soda ash feedstock', `${n(s.SodaAshKg, 1)} kg / ${s.SodaAshLotId || '-'} / ${n(s.SodaAshAssayPct, 1)}% assay`],
+        ['Baking soda', `${n(s.BakingSodaKg, 1)} kg / ${s.BakingSodaLotId || '-'} / ${n(s.BakingSodaPurityPct, 1)}% purity`],
         ['Phosphate', `${n(s.PhosphateKg, 1)} kg / ${s.PhosphateLotId || '-'} / ${n(s.PhosphateAcidValuePct, 1)}% acid`],
         ['Starch carrier', `${n(s.StarchKg, 1)} kg / ${s.StarchLotId || '-'}`],
         ['Process water', `${n(s.ProcessWaterL, 0)} L`],
@@ -1377,6 +1390,7 @@
         ['Cocoa asset', `${n(s.CocoaConditionPct, 0)}% / ${n(s.CocoaCalibrationPct, 0)}% cal`],
         ['Salt asset', `${n(s.SaltConditionPct, 0)}% / ${n(s.SaltCalibrationPct, 0)}% cal`],
         ['Starch asset', `${n(s.StarchConditionPct, 0)}% / ${n(s.StarchCalibrationPct, 0)}% cal`],
+        ['Baking soda asset', `${n(s.SodaConditionPct, 0)}% / ${n(s.SodaCalibrationPct, 0)}% cal`],
         ['Leavening asset', `${n(s.LeaveningConditionPct, 0)}% / ${n(s.LeaveningCalibrationPct, 0)}% cal`],
         ['Packaging asset', `${n(s.PackagingConditionPct, 0)}% / ${n(s.PackagingCalibrationPct, 0)}% cal`],
         ['Icing asset', `${n(s.IcingConditionPct, 0)}% / ${n(s.IcingCalibrationPct, 0)}% cal`],
@@ -1415,7 +1429,8 @@
         ['Cocoa lot', s.CocoaLotId || '-'],
         ['Salt source lot', `${s.BrineLotId || '-'} / ${n(s.BrineHardnessPpm, 0)} ppm / ${n(s.BrineTurbidityNtu, 1)} NTU`],
         ['Salt lot', s.SaltLotId || '-'],
-        ['Leavening source lots', `soda ${s.SodaAshLotId || '-'} / phosphate ${s.PhosphateLotId || '-'} / starch ${s.StarchLotId || '-'}`],
+        ['Baking soda lot', `${s.BakingSodaLotId || '-'} / soda ash ${s.SodaAshLotId || '-'}`],
+        ['Leavening source lots', `baking soda ${s.BakingSodaLotId || '-'} / phosphate ${s.PhosphateLotId || '-'} / starch ${s.StarchLotId || '-'}`],
         ['Leavening lot', s.LeaveningLotId || '-'],
         ['Packaging lot', s.PackagingLotId || '-'],
         ['Bulk tank', `${n(s.BulkMilkTankC, 1)} degC / ${n(s.BulkTankAgitationRpm, 0)} rpm / ${n(s.BulkTankCoolingLoadKw, 1)} kW`],
@@ -1448,7 +1463,9 @@
         ['Salt centrifuge', `${n(s.SaltCentrifugeRpm, 0)} rpm / dryer ${n(s.SaltDryerTemperatureC, 0)} degC`],
         ['Salt spec', `${n(s.SaltPurityPct, 2)}% purity / ${n(s.SaltMoisturePct, 3)}% moisture / ${n(s.SaltScreenPassingPct, 1)}% screen`],
         ['Starch plant', `${n(s.StarchSlurryBrix, 1)} Brix / ${n(s.StarchDryerTemperatureC, 0)} degC / ${n(s.StarchMoisturePct, 1)}%`],
-        ['Leavening assay', `${n(s.SodaAshAssayPct, 1)}% soda / ${n(s.PhosphateAcidValuePct, 1)}% acid`],
+        ['Baking soda reactor', `${n(s.SodaCarbonationPressureBar, 2)} bar / ${n(s.SodaReactorTemperatureC, 1)} degC / ${n(s.SodaCentrifugeRpm, 0)} rpm`],
+        ['Baking soda spec', `${n(s.BakingSodaPurityPct, 2)}% purity / ${n(s.BakingSodaMoisturePct, 2)}% moisture`],
+        ['Leavening assay', `${n(s.BakingSodaPurityPct, 1)}% soda / ${n(s.PhosphateAcidValuePct, 1)}% acid`],
         ['Leavening blend', `${n(s.LeaveningMixerRpm, 0)} rpm / ${n(s.LeaveningHomogeneityPct, 1)}% / ${n(s.LeaveningBlendMoisturePct, 1)}% moisture`],
         ['Leavening sifter', `${n(s.LeaveningSifterLoadPct, 0)}% load / ${n(s.LeaveningDustCollectorPressurePa, 0)} Pa dust`],
         ['Packaging board', `${n(s.CartonBoardCaliperMm, 3)} mm / ${n(s.CartonBoardMoisturePct, 1)}% moisture / ${n(s.CartonDieCutWastePct, 1)}% trim`],
@@ -1635,15 +1652,16 @@
       text(`Forage ${n(s.ForageKg, 0)} / grain ${n(s.GrainKg, 0)} kg`, 198, 566, 12, '#e9e1b8', 800);
       text(`Feed ${n(s.AnimalFeedKg, 0)} / TMR ${n(s.MixedRationKg, 0)} kg`, 198, 588, 12, '#f1d19c', 800);
       drawMiniPlant(305, 540, 'SALT', s.CanRunSaltWorks ? '#78c7dd' : '#69716f');
-      drawMiniPlant(305, 588, 'LEAVEN', s.CanRunLeaveningPlant ? '#e8b75d' : '#69716f');
-      drawMiniPlant(305, 636, 'PACK', s.CanRunPackagingPlant ? '#dfbd66' : '#69716f');
-      drawMiniPlant(410, 540, 'MIN', s.CanRunMineralPlant ? '#d7d0b1' : '#69716f');
-      drawMiniPlant(410, 588, 'FEED', s.CanRunFeedMill ? '#bfde72' : '#69716f');
-      drawMiniPlant(410, 636, 'VANILLA', s.CanExtractVanilla ? '#c7925b' : '#69716f');
+      drawMiniPlant(305, 588, 'SODA', s.CanRunBakingSodaPlant ? '#e4d9a8' : '#69716f');
+      drawMiniPlant(305, 636, 'LEAVEN', s.CanRunLeaveningPlant ? '#e8b75d' : '#69716f');
+      drawMiniPlant(410, 540, 'PACK', s.CanRunPackagingPlant ? '#dfbd66' : '#69716f');
+      drawMiniPlant(410, 588, 'MIN', s.CanRunMineralPlant ? '#d7d0b1' : '#69716f');
+      drawMiniPlant(410, 636, 'FEED', s.CanRunFeedMill ? '#bfde72' : '#69716f');
+      drawMiniPlant(505, 540, 'VANILLA', s.CanExtractVanilla ? '#c7925b' : '#69716f');
       drawMiniPlant(505, 588, 'COMP', s.CanRunCompostPlant ? '#9bd06c' : '#69716f');
       drawMiniPlant(505, 636, 'BED', s.CanRunBeddingPlant ? '#d8c27a' : '#69716f');
       text(`Brine ${n(s.BrineL, 0)} L`, 76, 612, 12, '#d9f0ff', 800);
-      text(`Leavening raws ${n((s.SodaAshKg || 0) + (s.PhosphateKg || 0) + (s.StarchKg || 0), 1)} kg`, 198, 612, 12, '#ffe1a1', 800);
+      text(`Soda ash ${n(s.SodaAshKg, 1)} / bicarb ${n(s.BakingSodaKg, 1)} kg`, 198, 612, 12, '#ffe1a1', 800);
       text(`Mineral premix ${n(s.DairyMineralKg, 1)} kg / raw ${n((s.LimestoneKg || 0) + (s.TraceMineralKg || 0), 1)} kg`, 76, 632, 11, '#ece5c6', 800);
       text(`Vanilla beans ${n(s.VanillaBeansKg, 1)} kg / extract ${n(s.VanillaL, 2)} L`, 76, 648, 11, '#d4f3fb', 800);
       text(`Cocoa beans ${n(s.CocoaBeansKg, 1)} kg / cocoa ${n(s.CocoaKg, 1)} kg`, 76, 664, 11, '#ffd7a3', 800);
