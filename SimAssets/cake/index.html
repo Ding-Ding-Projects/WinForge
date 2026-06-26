@@ -600,6 +600,7 @@
             <div class="control-bank">
               <h3>Bakery line</h3>
               <div class="button-grid">
+                <button class="action guard" type="button" data-action="stageBatchKit">Stage kit</button>
                 <button class="action primary" type="button" data-action="startBatch">Start batch</button>
                 <button class="action primary guard" type="button" data-action="advance">Release step</button>
                 <button class="action danger" type="button" data-action="clean">CIP clean</button>
@@ -727,6 +728,7 @@
       CanRunSaltWorks: false,
       CanRunLeaveningPlant: false,
       CanReleaseLabLot: false,
+      CanStageBatchKit: false,
       WheatGrowth: 64,
       BeetGrowth: 58,
       PastureHealth: 76,
@@ -751,6 +753,13 @@
       LastSupplyManifestId: 'RCV-OPENING-2400',
       CurrentBatchLotId: '',
       CurrentBatchTrace: 'No batch has been started.',
+      BatchKitStaged: false,
+      BatchKitLotId: '',
+      BatchKitStatus: 'No staged batch kit.',
+      BatchKitMassKg: 0,
+      ForkliftBatteryPct: 88,
+      WarehousePalletSpacePct: 62,
+      WarehouseStatus: 'Warehouse ready: no staged kit on the line.',
       IngredientLabStatus: 'Factory QA lab released opening ingredient lots.',
       PendingLabLotId: '',
       PendingLabProductName: '',
@@ -972,6 +981,7 @@
       setButton('runLeaveningPlant', s.CanRunLeaveningPlant);
       setButton('releaseLabLot', s.CanReleaseLabLot);
       setButton('serviceFactories', s.CanServiceFactories);
+      setButton('stageBatchKit', s.CanStageBatchKit);
       setButton('startBatch', s.CanStartBatch);
       setButton('advance', s.CanAdvanceStage);
       setButton('clean', s.CleanEnabled);
@@ -1012,6 +1022,8 @@
         ['Compressed air', `${n(s.CompressedAirNm3, 0)} Nm3`],
         ['Filter media', `${n(s.FilterMediaPct, 1)}%`],
         ['Cartons + labels', `${n(s.PackagingUnits, 0)}`],
+        ['Forklift battery', `${n(s.ForkliftBatteryPct, 0)}%`],
+        ['Pallet space', `${n(s.WarehousePalletSpacePct, 0)}% free`],
         ['Trace score', `${n(s.TraceabilityScorePct, 0)}%`],
         ['Receiving manifest', s.LastSupplyManifestId || '-']
       ];
@@ -1028,6 +1040,8 @@
         ['QA lab', s.IngredientLabStatus || 'Factory QA lab ready'],
         ['Pending lab lot', s.PendingLabLotId ? `${s.PendingLabProductName || 'lot'} ${s.PendingLabLotId} / QA ${n(s.PendingLabQualityPct, 0)}%` : 'None'],
         ['Traceability', s.TraceabilityStatus || 'Traceability ready'],
+        ['Warehouse', s.WarehouseStatus || 'Warehouse ready'],
+        ['Batch kit', s.BatchKitStaged ? `${s.BatchKitLotId} / ${n(s.BatchKitMassKg, 1)} kg` : (s.BatchKitStatus || 'No staged kit')],
         ['Batch lot', s.CurrentBatchLotId || 'No active batch lot'],
         ['Batch trace', s.CurrentBatchTrace || 'No batch trace'],
         ['Active condition', `${n(s.ActiveFactoryConditionPct, 0)}% / ${n(s.ActiveFactoryCalibrationPct, 0)}% cal`],
@@ -1277,6 +1291,12 @@
       if (s.StageReadyForOperator) {
         rr(930, 202, 278, 44, 8, '#543115', '#e9ae58');
         text('OPERATOR RELEASE REQUIRED', 948, 230, 15, '#ffe1a1', 900);
+      }
+
+      if (s.BatchKitStaged) {
+        rr(930, 366, 278, 42, 8, '#26301f', '#98c66b');
+        text(`WAREHOUSE KIT ${s.BatchKitLotId || ''}`, 948, 390, 13, '#dff3cd', 900);
+        text(`${n(s.BatchKitMassKg, 1)} kg staged - forklift ${n(s.ForkliftBatteryPct, 0)}%`, 948, 404, 11, '#c9beb0', 800);
       }
     }
 

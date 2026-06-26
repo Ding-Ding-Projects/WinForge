@@ -718,12 +718,12 @@ internal static class Program
             bool offlineGated = !off.ReactorOnline && off.PowerAvailability == 0 && !off.CanStartBatch && !off.CanHarvest;
             bool actionBlocked = startBlocked && blockedMsg.Contains("reactor", StringComparison.OrdinalIgnoreCase)
                                  && harvestBlockedMsg.Contains("locked", StringComparison.OrdinalIgnoreCase);
-            bool poweredEnabled = on.ReactorOnline && on.PowerAvailability > 0.98 && on.CanStartBatch && on.CanHarvest && on.CanCollectDairy;
-            bool meltdownGated = !melt.ReactorOnline && melt.PowerAvailability == 0 && !melt.CanStartBatch;
+            bool poweredEnabled = on.ReactorOnline && on.PowerAvailability > 0.98 && on.CanStageBatchKit && on.CanHarvest && on.CanCollectDairy;
+            bool meltdownGated = !melt.ReactorOnline && melt.PowerAvailability == 0 && !melt.CanStartBatch && !melt.CanStageBatchKit;
             bool pass = offlineGated && actionBlocked && poweredEnabled && meltdownGated;
             return (pass, $"offline start={off.CanStartBatch}/harvest={off.CanHarvest}, blockedMsg='{Trim(blockedMsg)}', " +
-                          $"powered availability={on.PowerAvailability:P0} start={on.CanStartBatch}, " +
-                          $"meltdown availability={melt.PowerAvailability:P0} start={melt.CanStartBatch}");
+                          $"powered availability={on.PowerAvailability:P0} stageKit={on.CanStageBatchKit}, " +
+                          $"meltdown availability={melt.PowerAvailability:P0} start={melt.CanStartBatch}/stageKit={melt.CanStageBatchKit}");
         });
 
         Scenario("CAKE MANUAL MODE (no auto batch, no auto harvest, no auto stage advance)", () =>
@@ -745,6 +745,8 @@ internal static class Program
                                  && Math.Abs(matureFarm.SugarCropKg - beforeFarmRun.SugarCropKg) < 0.001
                                  && Math.Abs(matureFarm.VanillaL - beforeFarmRun.VanillaL) < 0.001;
 
+            string kitMsg = cake.StageBatchKit();
+            TickCake(cake, fullBus, 0.5);
             bool started = cake.TryStartBatch(out var startMsg);
             TickCake(cake, fullBus, 30);
             var waiting = cake.Snapshot;
@@ -752,7 +754,7 @@ internal static class Program
 
             bool pass = noAutoBatch && noAutoHarvest && started && noAutoAdvance;
             return (pass, $"noAutoBatch={noAutoBatch} after 90s powered idle, noAutoHarvest={noAutoHarvest} at wheatGrowth={matureFarm.WheatGrowth:F0}%, " +
-                          $"started={started} ('{Trim(startMsg)}'), " +
+                          $"kit='{Trim(kitMsg)}', started={started} ('{Trim(startMsg)}'), " +
                           $"after 30s stage={waiting.StageName}, ready={waiting.StageReadyForOperator}, canRelease={waiting.CanAdvanceStage}");
         });
 
@@ -947,7 +949,8 @@ internal static class Program
             TickCake(cake, fullBus, 9.0);
             var held = cake.Snapshot;
 
-            bool startBlocked = !cake.TryStartBatch(out var blockedMsg);
+            string blockedMsg = cake.StageBatchKit();
+            bool stageBlocked = blockedMsg.Contains("lab release", StringComparison.OrdinalIgnoreCase);
             double waterBeforeRelease = held.ProcessWaterL;
             double airBeforeRelease = held.CompressedAirNm3;
             double filterBeforeRelease = held.FilterMediaPct;
@@ -959,18 +962,55 @@ internal static class Program
                               && held.PendingLabProductName.Contains("flour", StringComparison.OrdinalIgnoreCase)
                               && held.IngredientLabStatus.Contains("hold", StringComparison.OrdinalIgnoreCase)
                               && held.MissingIngredients.Contains("lab release", StringComparison.OrdinalIgnoreCase);
-            bool batchBlockedUntilRelease = startBlocked
-                                            && blockedMsg.Contains("lab release", StringComparison.OrdinalIgnoreCase);
+            bool batchBlockedUntilRelease = stageBlocked;
             bool releaseClearsHold = released.PendingLabLotId.Length == 0
                                      && released.IngredientLabStatus.Contains("released", StringComparison.OrdinalIgnoreCase)
-                                     && released.CanStartBatch
+                                     && released.CanStageBatchKit
                                      && released.MissingIngredients.Length == 0;
             bool releaseConsumesLabUtilities = released.ProcessWaterL < waterBeforeRelease
                                                && released.CompressedAirNm3 < airBeforeRelease
                                                && released.FilterMediaPct < filterBeforeRelease;
-            bool pass = initial.CanStartBatch && heldForLab && batchBlockedUntilRelease && releaseClearsHold && releaseConsumesLabUtilities;
+            bool pass = initial.CanStageBatchKit && heldForLab && batchBlockedUntilRelease && releaseClearsHold && releaseConsumesLabUtilities;
             return (pass, $"heldForLab={heldForLab} after '{Trim(mill)}', batchBlockedUntilRelease={batchBlockedUntilRelease} ('{Trim(blockedMsg)}'), " +
                           $"releaseClearsHold={releaseClearsHold} ('{Trim(release)}'), releaseConsumesLabUtilities={releaseConsumesLabUtilities}");
+        });
+
+        Scenario("CAKE WAREHOUSE KITTING (ingredients are staged before the bakery line starts)", () =>
+        {
+            var cake = new CakeFactoryService();
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            bool directStartBlocked = !cake.TryStartBatch(out var blockedMsg);
+            string kit = cake.StageBatchKit();
+            TickCake(cake, fullBus, 0.5);
+            var staged = cake.Snapshot;
+            bool started = cake.TryStartBatch(out var startMsg);
+            TickCake(cake, fullBus, 0.5);
+            var startedState = cake.Snapshot;
+
+            bool stageAvailable = before.CanStageBatchKit && !before.CanStartBatch;
+            bool kitConsumesInventory = staged.FlourKg < before.FlourKg
+                                        && staged.SugarKg < before.SugarKg
+                                        && staged.MilkL < before.MilkL
+                                        && staged.PackagingUnits < before.PackagingUnits;
+            bool warehouseResourcesUsed = staged.ForkliftBatteryPct < before.ForkliftBatteryPct
+                                          && staged.WarehousePalletSpacePct < before.WarehousePalletSpacePct;
+            bool kitTraceable = staged.BatchKitStaged
+                                && staged.BatchKitLotId.StartsWith("KIT-", StringComparison.OrdinalIgnoreCase)
+                                && staged.BatchKitStatus.Contains("staged", StringComparison.OrdinalIgnoreCase)
+                                && staged.BatchKitMassKg > 0
+                                && staged.CanStartBatch;
+            bool startUsesKit = directStartBlocked
+                                && blockedMsg.Contains("kit", StringComparison.OrdinalIgnoreCase)
+                                && started
+                                && !startedState.BatchKitStaged
+                                && startedState.CurrentBatchTrace.Contains("KIT-", StringComparison.OrdinalIgnoreCase)
+                                && startedState.Stage == CakeBatchStage.Scaling;
+            bool pass = stageAvailable && kitConsumesInventory && warehouseResourcesUsed && kitTraceable && startUsesKit;
+            return (pass, $"stageAvailable={stageAvailable}, directStartBlocked={directStartBlocked} ('{Trim(blockedMsg)}'), " +
+                          $"kitConsumesInventory={kitConsumesInventory}, warehouseResourcesUsed={warehouseResourcesUsed}, " +
+                          $"kitTraceable={kitTraceable} ('{Trim(kit)}'), startUsesKit={startUsesKit} ('{Trim(startMsg)}')");
         });
 
         Scenario("CAKE TRACEABILITY (receiving, dairy, factory conversion and batch lots are audited)", () =>
@@ -995,6 +1035,10 @@ internal static class Program
             TickCake(cake, fullBus, 0.5);
             var labReleased = cake.Snapshot;
 
+            string kit = cake.StageBatchKit();
+            TickCake(cake, fullBus, 0.5);
+            var staged = cake.Snapshot;
+
             bool started = cake.TryStartBatch(out var startMsg);
             TickCake(cake, fullBus, 0.5);
             var batch = cake.Snapshot;
@@ -1015,15 +1059,21 @@ internal static class Program
                                            && milled.TraceabilityStatus.Contains("source lot", StringComparison.OrdinalIgnoreCase);
             bool labReleasedLot = labReleased.PendingLabLotId.Length == 0
                                   && lab.Contains("released", StringComparison.OrdinalIgnoreCase);
-            bool batchManifestOpened = started
+            bool warehouseKitStaged = staged.BatchKitStaged
+                                      && staged.BatchKitLotId.Length > 0
+                                      && staged.BatchKitStatus.Contains("staged", StringComparison.OrdinalIgnoreCase);
+            bool batchManifestOpened = warehouseKitStaged
+                                       && started
                                        && batch.CurrentBatchLotId.Length > 0
+                                       && batch.CurrentBatchTrace.Contains("KIT-", StringComparison.OrdinalIgnoreCase)
                                        && batch.CurrentBatchTrace.Contains("flour", StringComparison.OrdinalIgnoreCase)
                                        && batch.CurrentBatchTrace.Contains("milk", StringComparison.OrdinalIgnoreCase)
                                        && batch.TraceabilityScorePct >= 99;
-            bool pass = openingLotsPresent && receivingManifestChanged && dairyLotChanged && factoryOutputLotChanged && labReleasedLot && batchManifestOpened;
+            bool pass = openingLotsPresent && receivingManifestChanged && dairyLotChanged && factoryOutputLotChanged && labReleasedLot && warehouseKitStaged && batchManifestOpened;
             return (pass, $"openingLotsPresent={openingLotsPresent}, receivingManifestChanged={receivingManifestChanged} ('{Trim(supply)}'), " +
                           $"dairyLotChanged={dairyLotChanged} ('{Trim(collect)}'), factoryOutputLotChanged={factoryOutputLotChanged} ('{Trim(mill)}'), " +
-                          $"labReleasedLot={labReleasedLot}, batchManifestOpened={batchManifestOpened} started={started} ('{Trim(startMsg)}'), batchLot={batch.CurrentBatchLotId}");
+                          $"labReleasedLot={labReleasedLot}, warehouseKitStaged={warehouseKitStaged} ('{Trim(kit)}'), " +
+                          $"batchManifestOpened={batchManifestOpened} started={started} ('{Trim(startMsg)}'), batchLot={batch.CurrentBatchLotId}");
         });
 
         Scenario("CAKE SUPPLY CHAIN INPUTS (ingredients require finite seed, water, feed, beans, factory feedstocks and cartons)", () =>
@@ -1073,7 +1123,11 @@ internal static class Program
             var cake = new CakeFactoryService { LineSpeed = 1.0, FarmIntensity = 1.0 };
             TickCake(cake, fullBus, 0.5);
             double packagingBefore = cake.Snapshot.PackagingUnits;
-            bool canStart = cake.Snapshot.CanStartBatch;
+            bool canStage = cake.Snapshot.CanStageBatchKit;
+            string kitMsg = cake.StageBatchKit();
+            TickCake(cake, fullBus, 0.5);
+            var staged = cake.Snapshot;
+            bool kitStaged = staged.BatchKitStaged && staged.CanStartBatch;
             bool started = cake.TryStartBatch(out var startMsg);
 
             int releases = 0;
@@ -1101,10 +1155,10 @@ internal static class Program
             bool sevenManualReleases = releases == 7;
             bool packedOrRejectedAll = done.CakesPacked + done.CakesRejected == done.Recipe.BatchSize;
             bool packagingConsumed = done.PackagingUnits < packagingBefore;
-            bool pass = canStart && started && sevenManualReleases && done.Stage == CakeBatchStage.Idle
+            bool pass = canStage && kitStaged && started && sevenManualReleases && done.Stage == CakeBatchStage.Idle
                         && done.CakesBaked == done.Recipe.BatchSize && packedOrRejectedAll
                         && packagingConsumed && done.QualityScore >= 70 && done.SanitationScore > 0;
-            return (pass, $"canStart={canStart}, started={started} ('{Trim(startMsg)}'), releases={releases} [{string.Join(" > ", releasedStages)}], " +
+            return (pass, $"canStage={canStage}, kitStaged={kitStaged} ('{Trim(kitMsg)}'), started={started} ('{Trim(startMsg)}'), releases={releases} [{string.Join(" > ", releasedStages)}], " +
                           $"baked={done.CakesBaked}, packed={done.CakesPacked}, rejected={done.CakesRejected}, " +
                           $"QA={done.QualityScore:F0}%, sanitation={done.SanitationScore:F0}%, cartons {packagingBefore:F0}->{done.PackagingUnits:F0}, " +
                           $"last='{Trim(lastMsg)}'");

@@ -69,6 +69,7 @@ public sealed class CakeFactorySnapshot
     public bool CanRunSaltWorks { get; init; }
     public bool CanRunLeaveningPlant { get; init; }
     public bool CanReleaseLabLot { get; init; }
+    public bool CanStageBatchKit { get; init; }
     public double WheatGrowth { get; init; }
     public double BeetGrowth { get; init; }
     public double PastureHealth { get; init; }
@@ -93,6 +94,13 @@ public sealed class CakeFactorySnapshot
     public string LastSupplyManifestId { get; init; } = "";
     public string CurrentBatchLotId { get; init; } = "";
     public string CurrentBatchTrace { get; init; } = "";
+    public bool BatchKitStaged { get; init; }
+    public string BatchKitLotId { get; init; } = "";
+    public string BatchKitStatus { get; init; } = "";
+    public double BatchKitMassKg { get; init; }
+    public double ForkliftBatteryPct { get; init; }
+    public double WarehousePalletSpacePct { get; init; }
+    public string WarehouseStatus { get; init; } = "";
     public string IngredientLabStatus { get; init; } = "";
     public string PendingLabLotId { get; init; } = "";
     public string PendingLabProductName { get; init; } = "";
@@ -324,6 +332,15 @@ public sealed class CakeFactoryService
     private string _currentBatchLotId = "";
     private string _currentBatchTrace = "No batch has been started.";
     private string _traceabilityStatus = "Opening audited lots loaded for farm, dairy, ingredient and packaging inventory.";
+    private bool _batchKitStaged;
+    private string _batchKitRecipeKey = "";
+    private string _batchKitLotId = "";
+    private string _batchKitTrace = "No batch kit staged.";
+    private double _batchKitMassKg;
+    private int _batchKitPackagingUnits;
+    private double _forkliftBatteryPct = 88;
+    private double _warehousePalletSpacePct = 62;
+    private string _warehouseStatus = "Warehouse ready: no staged kit on the line.";
     private string _wheatSeedLotId = "SEED-WHT-OPENING";
     private string _beetSeedLotId = "SEED-BEET-OPENING";
     private string _feedLotId = "FEED-OPENING";
@@ -651,6 +668,8 @@ public sealed class CakeFactoryService
         _culinarySteamKg += 2200;
         _compressedAirNm3 += 720;
         _filterMediaPct = Math.Min(100, _filterMediaPct + 45);
+        _forkliftBatteryPct = Math.Min(100, _forkliftBatteryPct + 12);
+        _warehousePalletSpacePct = Math.Min(90, _warehousePalletSpacePct + 4);
         _lastSupplyManifestId = NewLotId("RCV");
         _wheatSeedLotId = NewLotId("SEED-WHT");
         _beetSeedLotId = NewLotId("SEED-BEET");
@@ -660,8 +679,9 @@ public sealed class CakeFactoryService
         _mineralLotId = NewLotId("MINERAL");
         _packagingLotId = NewLotId("PACK");
         _utilityLotId = NewLotId("UTILITY");
+        _warehouseStatus = $"Receiving manifest {_lastSupplyManifestId} booked into warehouse; forklift battery {_forkliftBatteryPct:0}% and {_warehousePalletSpacePct:0}% pallet space free.";
         _traceabilityStatus = $"Receiving manifest {_lastSupplyManifestId} logged seed, feed, cocoa, brine, mineral, packaging and utility lots.";
-        return "Received audited supplies: seed, irrigation water, fertilizer, animal feed, brine, soda ash, phosphate, starch, cartons, cocoa beans, process water, culinary steam, compressed air and filter media.";
+        return "Received audited supplies: seed, irrigation water, fertilizer, animal feed, brine, soda ash, phosphate, starch, cartons, cocoa beans, process water, culinary steam, compressed air, filter media and warehouse handling capacity.";
     }
 
     public string ProcessCocoa()
@@ -1216,6 +1236,42 @@ public sealed class CakeFactoryService
         if (_stage == CakeBatchStage.Idle) _stageSeconds = 0;
     }
 
+    public string StageBatchKit()
+    {
+        if (_stage != CakeBatchStage.Idle)
+            return "Cannot stage a new kit while a batch is already on the line.";
+        if (CipActive)
+            return "Cannot stage a batch kit while CIP sanitation is active.";
+        if (_lastPowerAvailability < 0.2)
+            return "Warehouse pick scales, forklift chargers and line staging need reactor bus power.";
+        if (_batchKitStaged)
+            return $"Batch kit {_batchKitLotId} is already staged for the line.";
+        if (_forkliftBatteryPct < 12)
+            return $"Warehouse forklift battery is low ({_forkliftBatteryPct:0}%). Recharge before staging a kit.";
+        if (_warehousePalletSpacePct < 18)
+            return $"Line staging is congested ({_warehousePalletSpacePct:0}% pallet space free).";
+
+        var missing = MissingIngredients(CurrentRecipe);
+        if (missing.Length > 0)
+            return "Cannot stage kit. Missing: " + missing;
+        if (!RecipeLotsReady(CurrentRecipe))
+            return "Cannot stage kit; ingredient lot ledger or lab release is incomplete.";
+
+        _batchKitLotId = NewLotId("KIT");
+        _batchKitRecipeKey = CurrentRecipe.Key;
+        _batchKitTrace = BuildBatchTrace(CurrentRecipe, _batchKitLotId);
+        _batchKitMassKg = BatchIngredientMass(CurrentRecipe);
+        _batchKitPackagingUnits = CurrentRecipe.BatchSize;
+        ConsumeIngredients(CurrentRecipe);
+        ConsumeTrackedStock(ref _packagingUnits, CurrentRecipe.BatchSize, ref _packagingLotId);
+        _forkliftBatteryPct = Math.Max(0, _forkliftBatteryPct - Math.Clamp(5.0 + _batchKitMassKg * 0.10, 5.0, 14.0));
+        _warehousePalletSpacePct = Math.Max(0, _warehousePalletSpacePct - 8);
+        _batchKitStaged = true;
+        _warehouseStatus = $"Batch kit {_batchKitLotId} staged at line scales: {_batchKitMassKg:0.0} kg ingredients plus {_batchKitPackagingUnits} cartons.";
+        _traceabilityStatus = $"Warehouse staged kit {_batchKitLotId}; batch start can only use this picked kit.";
+        return _warehouseStatus;
+    }
+
     public bool TryStartBatch(out string message)
     {
         if (_stage != CakeBatchStage.Idle)
@@ -1233,29 +1289,35 @@ public sealed class CakeFactoryService
             message = "Nuclear reactor power is required before the factory can start a batch.";
             return false;
         }
-        var missing = MissingIngredients(CurrentRecipe);
-        if (missing.Length > 0)
+        if (!_batchKitStaged)
         {
-            message = "Missing: " + missing;
+            message = "Stage a warehouse batch kit before starting the line.";
             return false;
         }
-        if (!RecipeLotsReady(CurrentRecipe))
+        if (!string.Equals(_batchKitRecipeKey, CurrentRecipe.Key, StringComparison.Ordinal))
         {
-            message = "Missing traceable ingredient lot data.";
+            message = $"Staged kit {_batchKitLotId} is for a different recipe.";
             return false;
         }
 
         _currentBatchLotId = NewLotId("BATCH");
-        _currentBatchTrace = BuildBatchTrace(CurrentRecipe, _currentBatchLotId);
-        _traceabilityStatus = $"Batch trace manifest {_currentBatchLotId} opened.";
-        ConsumeIngredients(CurrentRecipe);
+        _currentBatchTrace = $"{_currentBatchLotId}: started from staged warehouse kit {_batchKitLotId}. {_batchKitTrace}";
+        _traceabilityStatus = $"Batch trace manifest {_currentBatchLotId} opened from staged kit {_batchKitLotId}.";
         _stage = CakeBatchStage.Scaling;
         _stageReadyForOperator = false;
         _stageSeconds = 0;
         _batchInternalC = 22;
         _mixerSpecificGravity = 1.02;
         _batchQuality = Math.Clamp(86 + _sanitationScore * 0.11 + _rng.NextDouble() * 4, 70, 99);
-        _batterKg += BatchIngredientMass(CurrentRecipe);
+        _batterKg += _batchKitMassKg;
+        _warehousePalletSpacePct = Math.Min(100, _warehousePalletSpacePct + 6);
+        _batchKitStaged = false;
+        _batchKitRecipeKey = "";
+        _batchKitLotId = "";
+        _batchKitTrace = "No batch kit staged.";
+        _batchKitMassKg = 0;
+        _batchKitPackagingUnits = 0;
+        _warehouseStatus = $"Batch {_currentBatchLotId} pulled staged kit into scaling; staging lane clear.";
         message = $"Started {CurrentRecipe.Name} batch ({CurrentRecipe.BatchSize} cakes).";
         return true;
     }
@@ -1322,13 +1384,16 @@ public sealed class CakeFactoryService
         UpdateAnimation(seconds, power);
         UpdateFarm(seconds, power);
         UpdateMilkColdChain(seconds, power);
+        UpdateWarehouse(seconds, power);
         UpdateCleaning(seconds, power);
         UpdateFactoryRun(seconds, power);
         UpdateBatch(seconds, power);
 
         _sanitationScore = Math.Clamp(_sanitationScore - seconds * (0.003 + (_stage == CakeBatchStage.Idle ? 0 : 0.018 * LineSpeed)), 0, 100);
 
-        var missing = MissingIngredients(recipe);
+        bool kitMatchesRecipe = _batchKitStaged && string.Equals(_batchKitRecipeKey, recipe.Key, StringComparison.Ordinal);
+        var rawMissing = MissingIngredients(recipe);
+        var missing = kitMatchesRecipe ? "" : rawMissing;
         var displayedEquipment = _factoryRun is null ? LowestConditionEquipment() : EquipmentFor(_factoryRun.Kind);
         bool labClear = string.IsNullOrWhiteSpace(_pendingLabLotId);
         Snapshot = new CakeFactorySnapshot
@@ -1353,7 +1418,7 @@ public sealed class CakeFactoryService
             HaccpStatus = HaccpStatus(),
             CipActive = CipActive,
             CipProgress = CipActive ? 1.0 - _cipSeconds / 24.0 : 1.0,
-            CanStartBatch = _stage == CakeBatchStage.Idle && !CipActive && missing.Length == 0 && power >= 0.2,
+            CanStartBatch = _stage == CakeBatchStage.Idle && !CipActive && kitMatchesRecipe && power >= 0.2,
             StageReadyForOperator = _stageReadyForOperator,
             CanAdvanceStage = _stage != CakeBatchStage.Idle && _stageReadyForOperator && power >= 0.2 && StageSafetyGateMet(_stage),
             OperatorPrompt = OperatorPrompt(power, missing),
@@ -1368,6 +1433,7 @@ public sealed class CakeFactoryService
             CanRunSaltWorks = power >= 0.2 && _factoryRun is null && labClear && _brineL >= 80 && HasFactoryUtilities(0, 700, 30, 0.4),
             CanRunLeaveningPlant = power >= 0.2 && _factoryRun is null && labClear && _sodaAshKg >= 3 && _phosphateKg >= 3 && _starchKg >= 2 && HasFactoryUtilities(0, 0, 50, 1.0),
             CanReleaseLabLot = power >= 0.15 && _factoryRun is null && !labClear && HasFactoryUtilities(12, 0, 4, 0.1),
+            CanStageBatchKit = _stage == CakeBatchStage.Idle && !CipActive && !_batchKitStaged && rawMissing.Length == 0 && power >= 0.2 && _forkliftBatteryPct >= 12 && _warehousePalletSpacePct >= 18,
             CanServiceFactories = power >= 0.2 && _factoryRun is null && NeedsFactoryService() && HasFactoryUtilities(120, 80, 35, 1.5),
             WheatGrowth = _wheatGrowth,
             BeetGrowth = _beetGrowth,
@@ -1393,6 +1459,13 @@ public sealed class CakeFactoryService
             LastSupplyManifestId = _lastSupplyManifestId,
             CurrentBatchLotId = _currentBatchLotId,
             CurrentBatchTrace = _currentBatchTrace,
+            BatchKitStaged = _batchKitStaged,
+            BatchKitLotId = _batchKitLotId,
+            BatchKitStatus = _batchKitStaged ? _warehouseStatus : "No staged batch kit.",
+            BatchKitMassKg = _batchKitMassKg,
+            ForkliftBatteryPct = _forkliftBatteryPct,
+            WarehousePalletSpacePct = _warehousePalletSpacePct,
+            WarehouseStatus = _warehouseStatus,
             IngredientLabStatus = _ingredientLabStatus,
             PendingLabLotId = _pendingLabLotId,
             PendingLabProductName = _pendingLabProductName,
@@ -1591,6 +1664,14 @@ public sealed class CakeFactoryService
         _sanitationScore = Math.Min(100, _sanitationScore + cleanRate * 4.2);
     }
 
+    private void UpdateWarehouse(double seconds, double power)
+    {
+        if (power >= 0.1)
+            _forkliftBatteryPct = Math.Min(100, _forkliftBatteryPct + seconds * 0.08 * power);
+        if (!_batchKitStaged)
+            _warehousePalletSpacePct += (70 - _warehousePalletSpacePct) * Math.Min(1, seconds / 90.0);
+    }
+
     private void UpdateBatch(double seconds, double power)
     {
         double idleTarget = power > 0 ? 82 : 24;
@@ -1645,7 +1726,6 @@ public sealed class CakeFactoryService
         _cakesBaked += recipe.BatchSize;
         _cakesPacked += packed;
         _cakesRejected += rejected;
-        ConsumeTrackedStock(ref _packagingUnits, recipe.BatchSize, ref _packagingLotId);
         _wasteKg += rejected * 0.42;
         _batterKg = Math.Max(0, _batterKg - BatchIngredientMass(recipe));
         _sanitationScore = Math.Max(0, _sanitationScore - 2.4);
@@ -1700,9 +1780,15 @@ public sealed class CakeFactoryService
             return "Start or recover the nuclear reactor; farm equipment and bakery drives are waiting for bus power.";
 
         if (_stage == CakeBatchStage.Idle)
+        {
+            if (_batchKitStaged && string.Equals(_batchKitRecipeKey, CurrentRecipe.Key, StringComparison.Ordinal))
+                return $"Warehouse kit {_batchKitLotId} is staged. Start the batch when ready.";
+            if (_batchKitStaged)
+                return $"Warehouse kit {_batchKitLotId} is staged for another recipe. Select its recipe before starting.";
             return missing.Length == 0
-                ? "Manual mode: harvest, collect, mill/refine/churn as needed, then start a batch."
+                ? "Manual mode: harvest, collect, run factories, release QA lots, stage a warehouse kit, then start a batch."
                 : "Manual mode: prep ingredients before batching. Missing: " + missing;
+        }
 
         if (!_stageReadyForOperator)
             return _stage switch
@@ -1768,6 +1854,8 @@ public sealed class CakeFactoryService
         if (_culinarySteamKg < 260) low.Add("culinary steam");
         if (_compressedAirNm3 < 60) low.Add("compressed air");
         if (_filterMediaPct < 3) low.Add("filter media");
+        if (_forkliftBatteryPct < 12) low.Add("forklift battery");
+        if (_warehousePalletSpacePct < 18) low.Add("staging pallet space");
         return low.Count == 0 ? "Inputs stocked" : "Low: " + string.Join(", ", low);
     }
 
