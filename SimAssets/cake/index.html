@@ -573,8 +573,9 @@
           <div class="panel-body">
             <div class="control-bank">
               <h3>Receiving</h3>
-              <div class="button-grid single">
-                <button class="action file" type="button" data-action="receiveSupplies">Receive supplies</button>
+              <div class="button-grid">
+                <button class="action file" type="button" data-action="orderSupplyDelivery">Order supplies</button>
+                <button class="action guard" type="button" data-action="unloadSupplyDelivery">Unload delivery</button>
               </div>
             </div>
             <div class="control-bank">
@@ -736,6 +737,14 @@
       CanRefineSugar: false,
       CanChurnButter: false,
       CanReceiveSupplies: false,
+      CanOrderSupplyDelivery: false,
+      CanUnloadSupplyDelivery: false,
+      SupplyTruckEnRoute: false,
+      SupplyTruckArrived: false,
+      SupplyTruckEtaSeconds: 0,
+      SupplyOrderCost: 260,
+      InboundSupplyManifestId: '',
+      SupplyOrderStatus: 'No supplier delivery scheduled.',
       CanProcessCocoa: false,
       CanRunSaltWorks: false,
       CanRunLeaveningPlant: false,
@@ -1027,6 +1036,8 @@
       setButton('refine', s.CanRefineSugar);
       setButton('churn', s.CanChurnButter);
       setButton('receiveSupplies', s.CanReceiveSupplies);
+      setButton('orderSupplyDelivery', s.CanOrderSupplyDelivery);
+      setButton('unloadSupplyDelivery', s.CanUnloadSupplyDelivery);
       setButton('processCocoa', s.CanProcessCocoa);
       setButton('runSaltWorks', s.CanRunSaltWorks);
       setButton('runLeaveningPlant', s.CanRunLeaveningPlant);
@@ -1088,7 +1099,9 @@
         ['Pallet space', `${n(s.WarehousePalletSpacePct, 0)}% free`],
         ['Dispatch truck', `${n(s.DispatchTruckChargePct, 0)}% / ${n(s.DispatchColdChainC, 1)} degC`],
         ['Trace score', `${n(s.TraceabilityScorePct, 0)}%`],
-        ['Receiving manifest', s.LastSupplyManifestId || '-']
+        ['Receiving manifest', s.LastSupplyManifestId || '-'],
+        ['Inbound supply', s.SupplyOrderStatus || 'No supplier delivery scheduled'],
+        ['Supplier ETA', s.SupplyTruckEnRoute ? `${s.InboundSupplyManifestId || '-'} / ${s.SupplyTruckArrived ? 'at dock' : `${n(s.SupplyTruckEtaSeconds, 0)}s`} / $${n(s.SupplyOrderCost, 2)}` : 'No truck']
       ];
       document.getElementById('resourceRows').innerHTML =
         resources.map(([name, value]) => `<tr><td>${name}</td><td>${value}</td></tr>`).join('');

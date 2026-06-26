@@ -28,7 +28,7 @@ Included native clone examples: API Client, Diff & Merge, Diagram Editor, .NET D
 
 ## Cake Factory & Farm · 蛋糕工廠與農場
 
-HTML5 reactor-powered cake factory simulation game with cow milk provenance, mixed dairy ration, parlor hygiene/manure, audited ingredient lots, QA lab release, warehouse batch kitting, finite supply inputs/utilities, manual harvest and conversion, timed instrumented non-farm ingredient factories, named byproduct/effluent handling, plant condition/calibration maintenance, HACCP release gates, customer order dispatch, signed portable `.cake` files, tunnel baking, cooling, icing, packaging, QA and CIP sanitation. · 以 HTML5 製作、由反應堆供電嘅蛋糕工廠模擬遊戲，包含牛奶來源、混合奶牛飼料、擠奶間衛生／糞污、已審核原料批號、QA 實驗室放行、倉庫批次備料、有限補給／公用工程、手動收成與轉換、計時同具遙測嘅非農場原料工廠、具名副產物／廢水處理、廠房狀態／校準維修、HACCP 放行關卡、客戶訂單出貨、已簽署可攜 `.cake` 檔、隧道焗爐、冷卻、裝飾、包裝、品檢同 CIP 清潔。
+HTML5 reactor-powered cake factory simulation game with cow milk provenance, supplier delivery lead times, mixed dairy ration, parlor hygiene/manure, audited ingredient lots, QA lab release, warehouse batch kitting, finite supply inputs/utilities, manual harvest and conversion, timed instrumented non-farm ingredient factories, named byproduct/effluent handling, plant condition/calibration maintenance, HACCP release gates, customer order dispatch, signed portable `.cake` files, tunnel baking, cooling, icing, packaging, QA and CIP sanitation. · 以 HTML5 製作、由反應堆供電嘅蛋糕工廠模擬遊戲，包含牛奶來源、供應商送貨等候時間、混合奶牛飼料、擠奶間衛生／糞污、已審核原料批號、QA 實驗室放行、倉庫批次備料、有限補給／公用工程、手動收成與轉換、計時同具遙測嘅非農場原料工廠、具名副產物／廢水處理、廠房狀態／校準維修、HACCP 放行關卡、客戶訂單出貨、已簽署可攜 `.cake` 檔、隧道焗爐、冷卻、裝飾、包裝、品檢同 CIP 清潔。
 
 Open in-app: `WinForge.exe --page cakefactory`
 

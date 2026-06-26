@@ -235,6 +235,14 @@ public sealed partial class CakeFactoryModule : Page
                 PostNotice("success", P("Supplies received", "補給已接收"), _sim.ReceiveSupplies());
                 break;
 
+            case "orderSupplyDelivery":
+                PostNotice("info", P("Supply order", "補給訂單"), _sim.OrderSupplyDelivery());
+                break;
+
+            case "unloadSupplyDelivery":
+                PostNotice("success", P("Supply delivery unloaded", "補給已卸貨"), _sim.UnloadSupplyDelivery());
+                break;
+
             case "processCocoa":
                 PostNotice("success", P("Cocoa processed", "可可已處理"), _sim.ProcessCocoa());
                 break;

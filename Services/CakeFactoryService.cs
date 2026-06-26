@@ -67,6 +67,14 @@ public sealed class CakeFactorySnapshot
     public bool CanRefineSugar { get; init; }
     public bool CanChurnButter { get; init; }
     public bool CanReceiveSupplies { get; init; }
+    public bool CanOrderSupplyDelivery { get; init; }
+    public bool CanUnloadSupplyDelivery { get; init; }
+    public bool SupplyTruckEnRoute { get; init; }
+    public bool SupplyTruckArrived { get; init; }
+    public double SupplyTruckEtaSeconds { get; init; }
+    public double SupplyOrderCost { get; init; }
+    public string InboundSupplyManifestId { get; init; } = "";
+    public string SupplyOrderStatus { get; init; } = "";
     public bool CanProcessCocoa { get; init; }
     public bool CanRunSaltWorks { get; init; }
     public bool CanRunLeaveningPlant { get; init; }
@@ -379,6 +387,12 @@ public sealed class CakeFactoryService
     private double _packagingUnits = 160;
     private int _lotSequence = 2400;
     private string _lastSupplyManifestId = "RCV-OPENING-2400";
+    private bool _supplyTruckEnRoute;
+    private bool _supplyTruckArrived;
+    private double _supplyTruckEtaSeconds;
+    private double _supplyOrderCost = 260;
+    private string _inboundSupplyManifestId = "";
+    private string _supplyOrderStatus = "No supplier delivery scheduled.";
     private string _currentBatchLotId = "";
     private string _currentBatchTrace = "No batch has been started.";
     private string _traceabilityStatus = "Opening audited lots loaded for farm, dairy, ingredient and packaging inventory.";
@@ -899,9 +913,61 @@ public sealed class CakeFactoryService
 
     public string ReceiveSupplies()
     {
+        if (_supplyTruckEnRoute)
+        {
+            if (_supplyTruckArrived)
+                return UnloadSupplyDelivery();
+
+            return $"Supplier truck {_inboundSupplyManifestId} is still en route; ETA {_supplyTruckEtaSeconds:0}s. Supplies cannot enter inventory until dock unloading is complete.";
+        }
+
+        return OrderSupplyDelivery();
+    }
+
+    public string OrderSupplyDelivery()
+    {
+        if (_lastPowerAvailability < 0.1)
+            return "Purchasing terminal and supplier EDI need reactor bus power.";
+        if (_supplyTruckEnRoute)
+            return $"Supplier truck {_inboundSupplyManifestId} is already scheduled; ETA {_supplyTruckEtaSeconds:0}s.";
+        if (_cashBalance < _supplyOrderCost)
+            return $"Cash balance ${_cashBalance:0.00} is below supplier order cost ${_supplyOrderCost:0.00}.";
+
+        _cashBalance -= _supplyOrderCost;
+        _inboundSupplyManifestId = NewLotId("PO");
+        _supplyTruckEtaSeconds = 42 + _rng.NextDouble() * 18;
+        _supplyTruckEnRoute = true;
+        _supplyTruckArrived = false;
+        _supplyOrderStatus = $"Purchase order {_inboundSupplyManifestId} placed with audited suppliers; refrigerated truck ETA {_supplyTruckEtaSeconds:0}s.";
+        _warehouseStatus = _supplyOrderStatus;
+        return _supplyOrderStatus;
+    }
+
+    public string UnloadSupplyDelivery()
+    {
         if (_lastPowerAvailability < 0.1)
             return "Receiving dock, cold room and barcode scales need reactor bus power.";
+        if (!_supplyTruckEnRoute)
+            return "No supplier truck is scheduled.";
+        if (!_supplyTruckArrived)
+            return $"Supplier truck {_inboundSupplyManifestId} is still en route; ETA {_supplyTruckEtaSeconds:0}s.";
+        if (_forkliftBatteryPct < 8 || _warehousePalletSpacePct < 8)
+            return "Unloading needs forklift battery and open pallet space.";
 
+        string manifest = _inboundSupplyManifestId.Replace("PO-", "RCV-");
+        ApplySupplyManifest(manifest);
+        _forkliftBatteryPct = Math.Max(0, _forkliftBatteryPct - 4.5);
+        _warehousePalletSpacePct = Math.Max(0, _warehousePalletSpacePct - 2.0);
+        _supplyTruckEnRoute = false;
+        _supplyTruckArrived = false;
+        _supplyTruckEtaSeconds = 0;
+        _supplyOrderStatus = $"Supplier delivery {manifest} unloaded, weighed, temperature-checked and booked into inventory.";
+        _warehouseStatus = $"{_supplyOrderStatus} Forklift battery {_forkliftBatteryPct:0}% and {_warehousePalletSpacePct:0}% pallet space free.";
+        return _supplyOrderStatus;
+    }
+
+    private void ApplySupplyManifest(string manifestId)
+    {
         _wheatSeedKg += 28;
         _beetSeedKg += 24;
         _irrigationWaterL += 24000;
@@ -924,7 +990,7 @@ public sealed class CakeFactoryService
         _filterMediaPct = Math.Min(100, _filterMediaPct + 45);
         _forkliftBatteryPct = Math.Min(100, _forkliftBatteryPct + 12);
         _warehousePalletSpacePct = Math.Min(90, _warehousePalletSpacePct + 4);
-        _lastSupplyManifestId = NewLotId("RCV");
+        _lastSupplyManifestId = manifestId;
         _wheatSeedLotId = NewLotId("SEED-WHT");
         _beetSeedLotId = NewLotId("SEED-BEET");
         _feedLotId = NewLotId("FEED");
@@ -939,7 +1005,6 @@ public sealed class CakeFactoryService
         _utilityLotId = NewLotId("UTILITY");
         _warehouseStatus = $"Receiving manifest {_lastSupplyManifestId} booked into warehouse; forklift battery {_forkliftBatteryPct:0}% and {_warehousePalletSpacePct:0}% pallet space free.";
         _traceabilityStatus = $"Receiving manifest {_lastSupplyManifestId} logged seed, dairy forage, grain, mineral, bedding, feed, cocoa, brine, mineral, packaging and utility lots.";
-        return "Received audited supplies: seed, irrigation water, fertilizer, animal feed, dairy forage, grain, mineral premix, bedding, labor, brine, soda ash, phosphate, starch, cartons, cocoa beans, process water, culinary steam, compressed air, filter media and warehouse handling capacity.";
     }
 
     public string ProcessCocoa()
@@ -1746,6 +1811,7 @@ public sealed class CakeFactoryService
         UpdateFarm(seconds, power);
         UpdateMilkColdChain(seconds, power);
         UpdateWarehouse(seconds, power);
+        UpdateSupplyDelivery(seconds, power);
         UpdateOrders(seconds, power);
         UpdateCleaning(seconds, power);
         UpdateFactoryRun(seconds, power);
@@ -1793,7 +1859,15 @@ public sealed class CakeFactoryService
             CanMillWheat = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _wheatKg >= 5 && HasFactoryUtilities(20, 0, 38, 0.6),
             CanRefineSugar = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _sugarCropKg >= 10 && HasFactoryUtilities(320, 520, 22, 1.2),
             CanChurnButter = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _milkL > 35 && HasFactoryUtilities(110, 140, 15, 0.8),
-            CanReceiveSupplies = power >= 0.1,
+            CanReceiveSupplies = power >= 0.1 && (!_supplyTruckEnRoute || _supplyTruckArrived),
+            CanOrderSupplyDelivery = power >= 0.1 && !_supplyTruckEnRoute && _cashBalance >= _supplyOrderCost,
+            CanUnloadSupplyDelivery = power >= 0.1 && _supplyTruckEnRoute && _supplyTruckArrived && _forkliftBatteryPct >= 8 && _warehousePalletSpacePct >= 8,
+            SupplyTruckEnRoute = _supplyTruckEnRoute,
+            SupplyTruckArrived = _supplyTruckArrived,
+            SupplyTruckEtaSeconds = _supplyTruckEtaSeconds,
+            SupplyOrderCost = _supplyOrderCost,
+            InboundSupplyManifestId = _inboundSupplyManifestId,
+            SupplyOrderStatus = _supplyOrderStatus,
             CanProcessCocoa = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _cocoaBeansKg >= 5 && HasFactoryUtilities(25, 0, 45, 0.7),
             CanRunSaltWorks = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _brineL >= 80 && HasFactoryUtilities(0, 700, 30, 0.4),
             CanRunLeaveningPlant = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _sodaAshKg >= 3 && _phosphateKg >= 3 && _starchKg >= 2 && HasFactoryUtilities(0, 0, 50, 1.0),
@@ -2094,6 +2168,24 @@ public sealed class CakeFactoryService
             _forkliftBatteryPct = Math.Min(100, _forkliftBatteryPct + seconds * 0.08 * power);
         if (!_batchKitStaged)
             _warehousePalletSpacePct += (70 - _warehousePalletSpacePct) * Math.Min(1, seconds / 90.0);
+    }
+
+    private void UpdateSupplyDelivery(double seconds, double power)
+    {
+        if (!_supplyTruckEnRoute || _supplyTruckArrived) return;
+
+        double travelFactor = power >= 0.05 ? 1.0 : 0.35;
+        _supplyTruckEtaSeconds = Math.Max(0, _supplyTruckEtaSeconds - seconds * travelFactor);
+        if (_supplyTruckEtaSeconds <= 0)
+        {
+            _supplyTruckArrived = true;
+            _supplyOrderStatus = $"Supplier truck {_inboundSupplyManifestId} is at the receiving dock; unload it before ingredients enter inventory.";
+            _warehouseStatus = _supplyOrderStatus;
+        }
+        else
+        {
+            _supplyOrderStatus = $"Supplier truck {_inboundSupplyManifestId} en route with audited finite supplies; ETA {_supplyTruckEtaSeconds:0}s.";
+        }
     }
 
     private void UpdateOrders(double seconds, double power)

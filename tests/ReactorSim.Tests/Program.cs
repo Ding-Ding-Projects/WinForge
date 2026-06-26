@@ -694,6 +694,14 @@ internal static class Program
         }
     }
 
+    private static (string order, string unload) DeliverCakeSupplies(CakeFactoryService cake, ReactorStatusSnapshot bus, double travelSeconds = 80)
+    {
+        string order = cake.OrderSupplyDelivery();
+        TickCake(cake, bus, travelSeconds);
+        string unload = cake.UnloadSupplyDelivery();
+        return (order, unload);
+    }
+
     private static void CakeFactoryScenarios()
     {
         var fullBus = ReactorBus(250.0);
@@ -1100,7 +1108,8 @@ internal static class Program
             TickCake(cake, fullBus, 0.5);
             var initial = cake.Snapshot;
 
-            string supply = cake.ReceiveSupplies();
+            var (supplyOrder, supplyUnload) = DeliverCakeSupplies(cake, fullBus);
+            string supply = $"{supplyOrder} / {supplyUnload}";
             TickCake(cake, fullBus, 0.5);
             var supplied = cake.Snapshot;
 
@@ -1176,7 +1185,8 @@ internal static class Program
             double waterBeforeSupply = after.IrrigationWaterL;
             double bakingPowderBeforeSupply = after.BakingPowderKg;
             double saltBeforeSupply = after.SaltKg;
-            string supply = cake.ReceiveSupplies();
+            var (supplyOrder, supplyUnload) = DeliverCakeSupplies(cake, fullBus);
+            string supply = $"{supplyOrder} / {supplyUnload}";
             TickCake(cake, fullBus, 0.5);
             var supplied = cake.Snapshot;
             bool supplyTruckAddsInputs = supplied.IrrigationWaterL > waterBeforeSupply
@@ -1197,6 +1207,53 @@ internal static class Program
             return (pass, $"fieldInputsConsumed={fieldInputsConsumed}, livestockInputsConsumed={livestockInputsConsumed}, " +
                           $"cocoaDoesNotAppear={cocoaDoesNotAppear}, supplyTruckAddsInputs={supplyTruckAddsInputs}, " +
                           $"supplyTruckDoesNotMakeFinalIngredients={supplyTruckDoesNotMakeFinalIngredients} ('{Trim(supply)}')");
+        });
+
+        Scenario("CAKE SUPPLIER DELIVERY LEAD TIME (supplies are ordered, delivered, then unloaded)", () =>
+        {
+            var cake = new CakeFactoryService { FarmIntensity = 1.0 };
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            string order = cake.OrderSupplyDelivery();
+            string earlyReceive = cake.ReceiveSupplies();
+            TickCake(cake, fullBus, 1.0);
+            var enroute = cake.Snapshot;
+
+            TickCake(cake, fullBus, 80);
+            var arrived = cake.Snapshot;
+
+            double waterBeforeUnload = arrived.IrrigationWaterL;
+            double packagingBeforeUnload = arrived.PackagingUnits;
+            double cocoaBeforeUnload = arrived.CocoaBeansKg;
+            string unload = cake.UnloadSupplyDelivery();
+            TickCake(cake, fullBus, 0.5);
+            var unloaded = cake.Snapshot;
+
+            bool orderPlaced = before.CanOrderSupplyDelivery
+                               && enroute.SupplyTruckEnRoute
+                               && !enroute.SupplyTruckArrived
+                               && enroute.CashBalance < before.CashBalance
+                               && enroute.InboundSupplyManifestId.StartsWith("PO-", StringComparison.OrdinalIgnoreCase)
+                               && order.Contains("ETA", StringComparison.OrdinalIgnoreCase);
+            bool noAirDrop = enroute.IrrigationWaterL <= before.IrrigationWaterL
+                             && Math.Abs(enroute.PackagingUnits - before.PackagingUnits) < 0.001
+                             && Math.Abs(enroute.CocoaBeansKg - before.CocoaBeansKg) < 0.001
+                             && earlyReceive.Contains("cannot enter inventory", StringComparison.OrdinalIgnoreCase);
+            bool arrivalGate = arrived.SupplyTruckEnRoute
+                               && arrived.SupplyTruckArrived
+                               && arrived.CanUnloadSupplyDelivery
+                               && arrived.SupplyOrderStatus.Contains("receiving dock", StringComparison.OrdinalIgnoreCase);
+            bool unloadAddsInputs = !unloaded.SupplyTruckEnRoute
+                                    && unloaded.IrrigationWaterL > waterBeforeUnload
+                                    && unloaded.PackagingUnits > packagingBeforeUnload
+                                    && unloaded.CocoaBeansKg > cocoaBeforeUnload
+                                    && unloaded.LastSupplyManifestId.StartsWith("RCV-", StringComparison.OrdinalIgnoreCase)
+                                    && unloaded.TraceabilityStatus.Contains("manifest", StringComparison.OrdinalIgnoreCase)
+                                    && unload.Contains("unloaded", StringComparison.OrdinalIgnoreCase);
+            bool pass = orderPlaced && noAirDrop && arrivalGate && unloadAddsInputs;
+            return (pass, $"orderPlaced={orderPlaced} ('{Trim(order)}'), noAirDrop={noAirDrop}, " +
+                          $"arrivalGate={arrivalGate}, unloadAddsInputs={unloadAddsInputs} ('{Trim(unload)}')");
         });
 
         Scenario("CAKE FULL MANUAL BATCH (operator releases every HACCP gate to packaged cakes)", () =>
