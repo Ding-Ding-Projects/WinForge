@@ -6,6 +6,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="using:WinForge"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:automation="using:Microsoft.UI.Xaml.Automation"
     Title="WinForge · 視窗調校"
     mc:Ignorable="d">
     <Window.SystemBackdrop>
@@ -24,7 +25,8 @@
             BackRequested="TitleBar_BackRequested"
             IsBackButtonVisible="False"
             IsPaneToggleButtonVisible="True"
-            PaneToggleRequested="TitleBar_PaneToggleRequested">
+            PaneToggleRequested="TitleBar_PaneToggleRequested"
+            automation:AutomationProperties.Name="WinForge title bar · WinForge 標題列">
             <TitleBar.IconSource>
                 <ImageIconSource ImageSource="Assets/AppIcon.ico" />
             </TitleBar.IconSource>
@@ -36,14 +38,16 @@
             IsBackButtonVisible="Collapsed"
             IsPaneToggleButtonVisible="False"
             IsSettingsVisible="True"
-            SelectionChanged="NavView_SelectionChanged">
+            SelectionChanged="NavView_SelectionChanged"
+            automation:AutomationProperties.Name="WinForge navigation · WinForge 導航">
             <NavigationView.AutoSuggestBox>
                 <AutoSuggestBox
                     x:Name="SearchBox"
                     QueryIcon="Find"
                     PlaceholderText="Search everything · 搜尋全部"
                     QuerySubmitted="SearchBox_QuerySubmitted"
-                    TextChanged="SearchBox_TextChanged" />
+                    TextChanged="SearchBox_TextChanged"
+                    automation:AutomationProperties.Name="Search all WinForge modules · 搜尋全部 WinForge 模組" />
             </NavigationView.AutoSuggestBox>
             <NavigationView.MenuItems>
                 <NavigationViewItemHeader Content="Suite · 套件" />
@@ -251,14 +255,16 @@
                 AddTabButtonClick="Tabs_AddTabButtonClick"
                 CanReorderTabs="True"
                 SelectionChanged="Tabs_SelectionChanged"
-                TabCloseRequested="Tabs_TabCloseRequested">
+                TabCloseRequested="Tabs_TabCloseRequested"
+                automation:AutomationProperties.Name="Open WinForge module tabs · 已開啟 WinForge 模組分頁">
                 <TabView.TabStripFooter>
                     <Button
                         x:Name="SessionBtn"
                         Margin="6,0"
                         Padding="9,5"
                         VerticalAlignment="Center"
-                        ToolTipService.ToolTip="Tab session · 分頁工作階段（匯出／匯入／還原）">
+                        ToolTipService.ToolTip="Tab session · 分頁工作階段（匯出／匯入／還原）"
+                        automation:AutomationProperties.Name="Tab session actions · 分頁工作階段動作">
                         <FontIcon FontSize="15" Glyph="&#xE74E;" />
                         <Button.Flyout>
                             <MenuFlyout>

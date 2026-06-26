@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Windows.ApplicationModel.DataTransfer;
 using WinForge.Services;
 
@@ -81,6 +82,15 @@ public sealed partial class FeedReaderModule : Page
     }
 
     private async void AddFeed_Click(object sender, RoutedEventArgs e)
+        => await AddFeedAsync();
+
+    private async void AddFeedAccel_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        args.Handled = true;
+        await AddFeedAsync();
+    }
+
+    private async Task AddFeedAsync()
     {
         try
         {
@@ -97,6 +107,15 @@ public sealed partial class FeedReaderModule : Page
     }
 
     private async void Refresh_Click(object sender, RoutedEventArgs e)
+        => await RefreshCurrentScopeAsync();
+
+    private async void RefreshAccel_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        args.Handled = true;
+        await RefreshCurrentScopeAsync();
+    }
+
+    private async Task RefreshCurrentScopeAsync()
     {
         if (FeedList.SelectedItem is FeedSubscription)
             await RefreshSelectedAsync();
@@ -186,6 +205,7 @@ public sealed partial class FeedReaderModule : Page
         ArticleSummary.Text = string.IsNullOrWhiteSpace(_selectedArticle.Summary)
             ? P("No summary was included in this feed item.", "此 feed 項目無包含摘要。")
             : _selectedArticle.Summary;
+        CopyLinkBtn.IsEnabled = !string.IsNullOrWhiteSpace(_selectedArticle.Link);
     }
 
     private void ClearArticlePreview()
@@ -194,9 +214,19 @@ public sealed partial class FeedReaderModule : Page
         ArticleTitle.Text = P("Select an article", "選取一篇文章");
         ArticleMeta.Text = "";
         ArticleSummary.Text = P("Article summaries appear here after you refresh a feed.", "重新整理 feed 後，文章摘要會喺呢度顯示。");
+        CopyLinkBtn.IsEnabled = false;
     }
 
     private void CopyLink_Click(object sender, RoutedEventArgs e)
+        => CopySelectedArticleLink();
+
+    private void CopyLinkAccel_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        args.Handled = true;
+        CopySelectedArticleLink();
+    }
+
+    private void CopySelectedArticleLink()
     {
         if (_selectedArticle is null || string.IsNullOrWhiteSpace(_selectedArticle.Link)) return;
         var dp = new DataPackage { RequestedOperation = DataPackageOperation.Copy };

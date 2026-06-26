@@ -36,6 +36,7 @@ git push
 
 - `Home.md` — **categorized index of all 137 modules** (landing page) · **全部 137 個模組嘅分類索引**（首頁）
 - `Screenshots.md` — image inventory + capture status · 圖檔清單同擷取狀態
+- `Accessibility.md` — keyboard and screen-reader baseline · 鍵盤同螢幕閱讀器基本標準
 - One deeper page per headline module · 每個重點模組一頁: Dashboard, Git-and-GitHub, Package-Manager, Open-Source-App-Hub,
   Cloudflare-and-Tunnel, AI-Agents, Media, Settings-and-Control-Panel, Clipboard, Connections,
   System-Monitor.

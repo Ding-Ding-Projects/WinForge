@@ -17,7 +17,11 @@
                 </Grid.ColumnDefinitions>
                 <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12">
                     <FontIcon FontSize="24" Glyph="&#xE71D;" VerticalAlignment="Center" />
-                    <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" VerticalAlignment="Center" />
+                    <TextBlock
+                        x:Name="HeaderTitle"
+                        Style="{StaticResource TitleTextBlockStyle}"
+                        VerticalAlignment="Center"
+                        automation:AutomationProperties.HeadingLevel="Level1" />
                 </StackPanel>
                 <StackPanel
                     x:Name="NativeOnlyMarker"

@@ -18,7 +18,10 @@
         <StackPanel Grid.Row="0" Spacing="6">
             <StackPanel Orientation="Horizontal" Spacing="12">
                 <FontIcon FontSize="24" Glyph="&#xE8A7;" VerticalAlignment="Center" />
-                <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
+                <TextBlock
+                    x:Name="HeaderTitle"
+                    Style="{StaticResource TitleTextBlockStyle}"
+                    automation:AutomationProperties.HeadingLevel="Level1" />
             </StackPanel>
             <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
         </StackPanel>
@@ -34,7 +37,11 @@
             <TextBox
                 x:Name="FeedUrlBox"
                 Grid.Column="0"
-                automation:AutomationProperties.Name="Feed URL · Feed 網址" />
+                automation:AutomationProperties.Name="Feed URL · Feed 網址">
+                <TextBox.KeyboardAccelerators>
+                    <KeyboardAccelerator Key="Enter" Invoked="AddFeedAccel_Invoked" />
+                </TextBox.KeyboardAccelerators>
+            </TextBox>
             <Button
                 x:Name="AddFeedBtn"
                 Grid.Column="1"
@@ -51,6 +58,9 @@
                 Grid.Column="2"
                 Click="Refresh_Click"
                 automation:AutomationProperties.Name="Refresh feeds · 重新整理 Feed">
+                <Button.KeyboardAccelerators>
+                    <KeyboardAccelerator Key="F5" Invoked="RefreshAccel_Invoked" />
+                </Button.KeyboardAccelerators>
                 <StackPanel Orientation="Horizontal" Spacing="6">
                     <FontIcon FontSize="14" Glyph="&#xE72C;" />
                     <TextBlock x:Name="RefreshLabel" />
@@ -66,7 +76,14 @@
                     <TextBlock x:Name="RemoveLabel" />
                 </StackPanel>
             </Button>
-            <ProgressRing x:Name="Busy" Grid.Column="4" Width="24" Height="24" IsActive="False" VerticalAlignment="Center" />
+            <ProgressRing
+                x:Name="Busy"
+                Grid.Column="4"
+                Width="24"
+                Height="24"
+                IsActive="False"
+                VerticalAlignment="Center"
+                automation:AutomationProperties.Name="Refreshing feeds · 正在重新整理 Feed" />
         </Grid>
 
         <Grid Grid.Row="2" ColumnSpacing="12">
@@ -87,7 +104,10 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
-                    <TextBlock x:Name="FeedsHeader" FontWeight="SemiBold" />
+                    <TextBlock
+                        x:Name="FeedsHeader"
+                        FontWeight="SemiBold"
+                        automation:AutomationProperties.HeadingLevel="Level2" />
                     <ListView
                         x:Name="FeedList"
                         Grid.Row="1"
@@ -173,8 +193,21 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock x:Name="ArticleTitle" Grid.Column="0" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" />
-                            <Button x:Name="CopyLinkBtn" Grid.Column="1" Click="CopyLink_Click">
+                            <TextBlock
+                                x:Name="ArticleTitle"
+                                Grid.Column="0"
+                                FontSize="18"
+                                FontWeight="SemiBold"
+                                TextWrapping="Wrap"
+                                automation:AutomationProperties.HeadingLevel="Level2" />
+                            <Button
+                                x:Name="CopyLinkBtn"
+                                Grid.Column="1"
+                                Click="CopyLink_Click"
+                                automation:AutomationProperties.Name="Copy selected article link · 複製已選文章連結">
+                                <Button.KeyboardAccelerators>
+                                    <KeyboardAccelerator Key="C" Modifiers="Control" Invoked="CopyLinkAccel_Invoked" />
+                                </Button.KeyboardAccelerators>
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <FontIcon FontSize="14" Glyph="&#xE8C8;" />
                                     <TextBlock x:Name="CopyLinkLabel" />
