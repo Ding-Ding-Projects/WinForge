@@ -47,6 +47,7 @@
     <Compile Include="..\..\Services\ReactorScenarios.cs"       Link="Engine\ReactorScenarios.cs" />
     <Compile Include="..\..\Services\ReactorElectrical.cs"      Link="Engine\ReactorElectrical.cs" />
     <Compile Include="..\..\Services\ReactorReactivityMeter.cs" Link="Engine\ReactorReactivityMeter.cs" />
+    <Compile Include="..\..\Services\ReactorDependencyService.cs" Link="Engine\ReactorDependencyService.cs" />
     <Compile Include="..\..\Services\FuelFactoryService.cs"     Link="Engine\FuelFactoryService.cs" />
     <Compile Include="..\..\Services\NuclearWasteService.cs"    Link="Engine\NuclearWasteService.cs" />
     <Compile Include="..\..\Services\WaterTreatmentService.cs"  Link="Engine\WaterTreatmentService.cs" />

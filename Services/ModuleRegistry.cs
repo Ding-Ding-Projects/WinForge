@@ -12,7 +12,13 @@ public sealed class ModuleInfo
     public string Glyph { get; init; } = "";
     public string Keywords { get; init; } = "";
 
-    public string Haystack => $"{En} {Zh} {Keywords}".ToLowerInvariant();
+    public bool RequiresReactor => ReactorDependencyService.Requires(Tag);
+    public string ReactorRequirementBadge => ReactorDependencyService.BadgeFor(Tag);
+    public double ReactorRequirementOpacity => RequiresReactor ? 1.0 : 0.0;
+
+    public string Haystack =>
+        $"{En} {Zh} {Keywords} {(RequiresReactor ? "reactor nuclear powered reactor-dependent 反應堆 核能 供電 相依" : "")}"
+        .ToLowerInvariant();
 }
 
 /// <summary>

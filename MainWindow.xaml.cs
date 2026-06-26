@@ -1227,6 +1227,7 @@ public sealed partial class MainWindow : Window
         _titles[typeof(SettingsPage)] = "Settings · 設定";
         _titles[typeof(SearchResultsPage)] = "Search · 搜尋";
         _titles[typeof(ManualPage)] = "Manual · 使用手冊";
+        _titles[typeof(ReactorDependencyPage)] = "Reactor required · 需要反應堆";
         foreach (var m in ModuleRegistry.All)
             _titles[MapType(m.Tag)] = $"{m.En} · {m.Zh}";
     }
@@ -1246,7 +1247,15 @@ public sealed partial class MainWindow : Window
         if (key.StartsWith("search:", StringComparison.OrdinalIgnoreCase))
             return (typeof(SearchResultsPage), key.Substring("search:".Length));
         if (key.StartsWith("module.", StringComparison.Ordinal))
+        {
+            if (ReactorDependencyService.TryGet(key, out var dependency))
+            {
+                var check = ReactorDependencyService.Evaluate(dependency, ReactorStatusApiService.I.LastSnapshot, ReactorStatusApiService.I.Enabled);
+                if (!check.IsSatisfied)
+                    return (typeof(ReactorDependencyPage), new ReactorDependencyPageContext(key, dependency));
+            }
             return (MapType(key), null);
+        }
         var cat = Categories.All.FirstOrDefault(c => c.Id == key);
         if (cat is not null) return (typeof(CategoryPage), cat);
         return (typeof(DashboardPage), null);
@@ -1256,6 +1265,8 @@ public sealed partial class MainWindow : Window
     {
         if (type == typeof(CategoryPage) && param is AppCategory c) return $"{c.Name.En} · {c.Name.Zh}";
         if (type == typeof(SearchResultsPage)) return param is string q && q.Length > 0 ? $"Search: {q}" : "Search · 搜尋";
+        if (type == typeof(ReactorDependencyPage) && param is ReactorDependencyPageContext ctx)
+            return $"{ctx.Dependency.NameEn} · reactor required";
         return _titles.TryGetValue(type, out var t) ? t : "WinForge";
     }
 

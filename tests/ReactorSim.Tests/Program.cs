@@ -72,6 +72,7 @@ internal static class Program
         FuelCycleScenarios();
         WasteCapScenarios();
         WaterTreatmentScenarios();
+        ReactorDependencyScenarios();
         CakeFactoryScenarios();
 
         // ----------------------------------------------------------------- summary ----
@@ -682,6 +683,49 @@ internal static class Program
         ReactorPeriodS = 0,
         ActiveAlarms = Array.Empty<string>(),
     };
+
+    private static void ReactorDependencyScenarios()
+    {
+        Scenario("APP REACTOR DEPENDENCY GATING (selected modules require a live reactor bus)", () =>
+        {
+            var dependency = ReactorDependencyService.All.First(d => d.Tag == "module.blender");
+            var offline = ReactorBus(0.0, generating: false, mode: "Offline");
+            var lowPower = ReactorBus(dependency.MinimumElectricMW - 1.0);
+            var fullPower = ReactorBus(dependency.MinimumElectricMW + 25.0);
+            var meltdown = ReactorBus(dependency.MinimumElectricMW + 25.0, generating: true, meltdown: true, mode: "Meltdown");
+            var scrammed = fullPower;
+            scrammed.IsScrammed = true;
+            scrammed.Mode = "Tripped";
+
+            var apiDisabled = ReactorDependencyService.Evaluate(dependency, fullPower, apiEnabled: false);
+            var off = ReactorDependencyService.Evaluate(dependency, offline);
+            var low = ReactorDependencyService.Evaluate(dependency, lowPower);
+            var melt = ReactorDependencyService.Evaluate(dependency, meltdown);
+            var trip = ReactorDependencyService.Evaluate(dependency, scrammed);
+            var ok = ReactorDependencyService.Evaluate(dependency, fullPower);
+            var ordinaryModule = ReactorDependencyService.Evaluate("module.git", offline);
+
+            bool selectedApps = ReactorDependencyService.All.Count >= 5
+                                && ReactorDependencyService.Requires("module.ollama")
+                                && ReactorDependencyService.Requires("module.docker")
+                                && ReactorDependencyService.BadgeFor("module.blender").Contains("MWe", StringComparison.OrdinalIgnoreCase);
+            bool blockers = !apiDisabled.IsSatisfied
+                            && !off.IsSatisfied
+                            && !low.IsSatisfied
+                            && !melt.IsSatisfied
+                            && !trip.IsSatisfied
+                            && apiDisabled.StatusEn.Contains("API", StringComparison.OrdinalIgnoreCase)
+                            && off.StatusEn.Contains("generation", StringComparison.OrdinalIgnoreCase)
+                            && low.StatusEn.Contains("low", StringComparison.OrdinalIgnoreCase)
+                            && melt.StatusEn.Contains("meltdown", StringComparison.OrdinalIgnoreCase)
+                            && trip.StatusEn.Contains("SCRAM", StringComparison.OrdinalIgnoreCase);
+            bool pass = selectedApps && blockers && ok.IsSatisfied && ordinaryModule.IsSatisfied;
+
+            return (pass, $"selectedApps={selectedApps}, apiOff={apiDisabled.IsSatisfied}, offline={off.IsSatisfied}, " +
+                          $"low={low.IsSatisfied}, meltdown={melt.IsSatisfied}, scram={trip.IsSatisfied}, ok={ok.IsSatisfied}, " +
+                          $"ordinaryModule={ordinaryModule.IsSatisfied}, badge='{ReactorDependencyService.BadgeFor("module.blender")}'");
+        });
+    }
 
     private static void TickCake(CakeFactoryService cake, ReactorStatusSnapshot bus, double seconds)
     {

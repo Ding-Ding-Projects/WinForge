@@ -35,6 +35,11 @@
                                     <StackPanel Spacing="1" VerticalAlignment="Center">
                                         <TextBlock Text="{Binding En}" FontWeight="SemiBold" FontSize="13" />
                                         <TextBlock Text="{Binding Zh}" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        <TextBlock
+                                            Text="{Binding ReactorRequirementBadge}"
+                                            FontSize="10"
+                                            Opacity="{Binding ReactorRequirementOpacity}"
+                                            Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
                                     </StackPanel>
                                 </StackPanel>
                             </Border>
