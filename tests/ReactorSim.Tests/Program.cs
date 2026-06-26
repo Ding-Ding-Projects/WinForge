@@ -995,6 +995,48 @@ internal static class Program
                           $"labReleaseWorkflow={labReleaseWorkflow}");
         });
 
+        Scenario("CAKE UTILITY PLANT (process water, steam and compressed air are produced by a powered support plant)", () =>
+        {
+            var cake = new CakeFactoryService { FarmIntensity = 1.0 };
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            string start = cake.RunUtilityPlant();
+            TickCake(cake, fullBus, 1.0);
+            var running = cake.Snapshot;
+
+            TickCake(cake, fullBus, 12.0);
+            var finished = cake.Snapshot;
+
+            bool startConsumesInputs = before.CanRunUtilityPlant
+                                       && running.UtilityPlantActive
+                                       && running.UtilityPlantProgress > 0
+                                       && running.UtilityPlantProgress < 1
+                                       && running.UtilityPlantPowerMW > 0
+                                       && running.IrrigationWaterL < before.IrrigationWaterL
+                                       && running.FilterMediaPct < before.FilterMediaPct
+                                       && Math.Abs(running.ProcessWaterL - before.ProcessWaterL) < 0.001
+                                       && Math.Abs(running.CulinarySteamKg - before.CulinarySteamKg) < 0.001
+                                       && Math.Abs(running.CompressedAirNm3 - before.CompressedAirNm3) < 0.001
+                                       && start.Contains("Started utility plant", StringComparison.OrdinalIgnoreCase);
+            bool completedProducesUtilities = !finished.UtilityPlantActive
+                                              && finished.ProcessWaterL > running.ProcessWaterL
+                                              && finished.CulinarySteamKg > running.CulinarySteamKg
+                                              && finished.CompressedAirNm3 > running.CompressedAirNm3
+                                              && finished.FactoryEffluentL > running.FactoryEffluentL
+                                              && finished.ProcessWaterConductivityUsCm > 0
+                                              && finished.BoilerPressureBar > running.BoilerPressureBar
+                                              && finished.AirHeaderPressureBar > running.AirHeaderPressureBar
+                                              && finished.UtilityPlantStatus.Contains("completed", StringComparison.OrdinalIgnoreCase);
+            bool traceableUtilityRun = finished.TraceabilityStatus.Contains("Utility", StringComparison.OrdinalIgnoreCase)
+                                       && finished.FactoryUtilityStatus.Contains("Utility plant", StringComparison.OrdinalIgnoreCase);
+            bool pass = startConsumesInputs && completedProducesUtilities && traceableUtilityRun;
+            return (pass, $"startConsumesInputs={startConsumesInputs} ('{Trim(start)}'), " +
+                          $"completedProducesUtilities={completedProducesUtilities} ({running.ProcessWaterL:F0}->{finished.ProcessWaterL:F0} L water, " +
+                          $"{running.CulinarySteamKg:F0}->{finished.CulinarySteamKg:F0} kg steam, {running.CompressedAirNm3:F0}->{finished.CompressedAirNm3:F0} Nm3 air), " +
+                          $"traceableUtilityRun={traceableUtilityRun}");
+        });
+
         Scenario("CAKE FACTORY MAINTENANCE (plant condition affects factories and service consumes utilities)", () =>
         {
             var cake = new CakeFactoryService();

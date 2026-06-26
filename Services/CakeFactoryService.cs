@@ -175,6 +175,16 @@ public sealed class CakeFactorySnapshot
     public double CompressedAirNm3 { get; init; }
     public double FilterMediaPct { get; init; }
     public string FactoryUtilityStatus { get; init; } = "";
+    public bool CanRunUtilityPlant { get; init; }
+    public bool UtilityPlantActive { get; init; }
+    public string UtilityPlantPhase { get; init; } = "";
+    public double UtilityPlantProgress { get; init; }
+    public double UtilityPlantPowerMW { get; init; }
+    public double UtilityPlantSecondsRemaining { get; init; }
+    public string UtilityPlantStatus { get; init; } = "";
+    public double ProcessWaterConductivityUsCm { get; init; }
+    public double BoilerPressureBar { get; init; }
+    public double AirHeaderPressureBar { get; init; }
     public string FactoryStatus { get; init; } = "";
     public bool FactoryRunActive { get; init; }
     public string ActiveFactoryName { get; init; } = "";
@@ -463,6 +473,17 @@ public sealed class CakeFactoryService
     private double _culinarySteamKg = 2600;
     private double _compressedAirNm3 = 900;
     private double _filterMediaPct = 100;
+    private const double ProcessWaterCapacityL = 9000;
+    private const double CulinarySteamCapacityKg = 4200;
+    private const double CompressedAirCapacityNm3 = 1500;
+    private const double UtilityPlantDurationSeconds = 9.5;
+    private const double UtilityPlantPowerDemandMW = 2.2;
+    private bool _utilityPlantActive;
+    private double _utilityPlantElapsedSeconds;
+    private string _utilityPlantStatus = "Utility plant idle: RO skid, clean-steam boiler and compressor stand ready.";
+    private double _processWaterConductivityUsCm = 0.35;
+    private double _boilerPressureBar = 3.2;
+    private double _airHeaderPressureBar = 6.6;
     private string _factoryStatus = "Ingredient factories idle.";
     private string _factoryMaintenanceStatus = "Preventive maintenance normal: all ingredient plants within limits.";
     private readonly Dictionary<IngredientFactoryKind, IngredientFactoryEquipment> _factoryEquipment = new()
@@ -1233,6 +1254,89 @@ public sealed class CakeFactoryService
         && _compressedAirNm3 >= compressedAirNm3
         && _filterMediaPct >= filterMediaPct;
 
+    public string RunUtilityPlant()
+    {
+        if (_lastPowerAvailability < 0.18)
+            return "Utility plant needs reactor bus power for the RO skid, clean-steam boiler and compressor.";
+        if (_utilityPlantActive)
+            return $"Utility plant already running: {UtilityPlantPhase()}, {UtilityPlantProgressValue() * 100:0}% complete.";
+        if (_irrigationWaterL < 900 || _filterMediaPct < 0.8)
+            return "Utility plant needs raw water inventory and filter media before it can make process utilities.";
+        if (!UtilityPlantHasStorageRoom())
+            return "Utility plant output tanks are full enough; consume process water, steam or compressed air first.";
+
+        _irrigationWaterL = Math.Max(0, _irrigationWaterL - 900);
+        _filterMediaPct = Math.Max(0, _filterMediaPct - 0.8);
+        _utilityPlantElapsedSeconds = 0;
+        _utilityPlantActive = true;
+        _processWaterConductivityUsCm = 0.18 + _rng.NextDouble() * 0.12;
+        _boilerPressureBar = 2.8;
+        _airHeaderPressureBar = 4.2;
+        _utilityPlantStatus = "Utility plant running: raw water drawn through RO prefilters, boiler feedwater heating and compressor dryer startup.";
+        _traceabilityStatus = $"Utility run started from water manifest {_lastSupplyManifestId} using filter media lot {_utilityLotId}.";
+        return "Started utility plant: raw water is being treated into process water, culinary steam and compressed air.";
+    }
+
+    private bool UtilityPlantHasStorageRoom() =>
+        _processWaterL < ProcessWaterCapacityL - 120
+        || _culinarySteamKg < CulinarySteamCapacityKg - 80
+        || _compressedAirNm3 < CompressedAirCapacityNm3 - 40;
+
+    private double UtilityPlantProgressValue() =>
+        UtilityPlantDurationSeconds <= 0 ? 1 : Math.Clamp(_utilityPlantElapsedSeconds / UtilityPlantDurationSeconds, 0, 1);
+
+    private double UtilityPlantSecondsRemainingValue() =>
+        _utilityPlantActive ? Math.Max(0, UtilityPlantDurationSeconds - _utilityPlantElapsedSeconds) : 0;
+
+    private string UtilityPlantPhase()
+    {
+        if (!_utilityPlantActive) return "";
+        double p = UtilityPlantProgressValue();
+        return p switch
+        {
+            < 0.22 => "raw-water prefilter and RO pressurization",
+            < 0.48 => "RO permeate polishing",
+            < 0.72 => "clean-steam boiler ramp",
+            < 0.90 => "compressor dryer and air receiver fill",
+            _ => "sample panel release and utility tank transfer",
+        };
+    }
+
+    private void UpdateUtilityPlant(double seconds, double power)
+    {
+        if (!_utilityPlantActive)
+            return;
+
+        if (power < 0.15)
+        {
+            _utilityPlantStatus = $"Utility plant paused: reactor bus power is too low during {UtilityPlantPhase()}.";
+            return;
+        }
+
+        _utilityPlantElapsedSeconds = Math.Min(UtilityPlantDurationSeconds, _utilityPlantElapsedSeconds + seconds * Math.Clamp(power, 0.35, 1.0));
+        double p = UtilityPlantProgressValue();
+        _processWaterConductivityUsCm = Math.Clamp(0.22 - p * 0.17 + _rng.NextDouble() * 0.015, 0.035, 0.30);
+        _boilerPressureBar = Math.Clamp(2.8 + p * 3.4, 2.6, 6.5);
+        _airHeaderPressureBar = Math.Clamp(4.2 + p * 2.8, 4.0, 7.2);
+        _utilityPlantStatus = $"Utility plant running: {UtilityPlantPhase()}, {p * 100:0}% complete, RO conductivity {_processWaterConductivityUsCm:0.000} uS/cm, boiler {_boilerPressureBar:0.0} bar, air header {_airHeaderPressureBar:0.0} bar.";
+
+        if (_utilityPlantElapsedSeconds < UtilityPlantDurationSeconds)
+            return;
+
+        double processWater = Math.Min(680, Math.Max(0, ProcessWaterCapacityL - _processWaterL));
+        double culinarySteam = Math.Min(420, Math.Max(0, CulinarySteamCapacityKg - _culinarySteamKg));
+        double compressedAir = Math.Min(260, Math.Max(0, CompressedAirCapacityNm3 - _compressedAirNm3));
+        _processWaterL += processWater;
+        _culinarySteamKg += culinarySteam;
+        _compressedAirNm3 += compressedAir;
+        _factoryEffluentL = Math.Min(FactoryEffluentCapacityL, _factoryEffluentL + 72);
+        _utilityPlantActive = false;
+        _utilityPlantElapsedSeconds = 0;
+        _utilityPlantStatus = $"Utility plant completed: produced {processWater:0} L process water, {culinarySteam:0} kg culinary steam and {compressedAir:0} Nm3 compressed air; RO reject/blowdown added 72 L effluent.";
+        _factoryStatus = _factoryRun is null ? _utilityPlantStatus : _factoryStatus;
+        _traceabilityStatus = $"Utility lot {_utilityLotId} converted raw water into food-plant utilities for downstream factory runs.";
+    }
+
     public string ServiceIngredientFactories()
     {
         if (_lastPowerAvailability < 0.2)
@@ -1857,7 +1961,8 @@ public sealed class CakeFactoryService
         var recipe = CurrentRecipe;
         double farmDemand = 0.7 + FarmIntensity * 3.8;
         double ingredientFactoryDemand = _factoryRun?.PowerDemandMW ?? 0;
-        double factoryDemand = 2.4 + LineSpeed * 28.0 + (CipActive ? 2.8 : 0) + ingredientFactoryDemand;
+        double utilityDemand = _utilityPlantActive ? UtilityPlantPowerDemandMW : 0;
+        double factoryDemand = 2.4 + LineSpeed * 28.0 + (CipActive ? 2.8 : 0) + ingredientFactoryDemand + utilityDemand;
         double demand = farmDemand + factoryDemand;
         bool reactorOnline = reactor.IsGenerating && reactor.ElectricMW > 1 && !reactor.IsMeltdown;
         double power = reactorOnline ? Math.Clamp(reactor.ElectricMW / Math.Max(1, demand), 0, 1) : 0;
@@ -1870,6 +1975,7 @@ public sealed class CakeFactoryService
         UpdateSupplyDelivery(seconds, power);
         UpdateOrders(seconds, power);
         UpdateCleaning(seconds, power);
+        UpdateUtilityPlant(seconds, power);
         UpdateFactoryRun(seconds, power);
         UpdateBatch(seconds, power);
 
@@ -2027,6 +2133,16 @@ public sealed class CakeFactoryService
             CompressedAirNm3 = _compressedAirNm3,
             FilterMediaPct = _filterMediaPct,
             FactoryUtilityStatus = FactoryUtilityStatus(),
+            CanRunUtilityPlant = power >= 0.18 && !_utilityPlantActive && _irrigationWaterL >= 900 && _filterMediaPct >= 0.8 && UtilityPlantHasStorageRoom(),
+            UtilityPlantActive = _utilityPlantActive,
+            UtilityPlantPhase = UtilityPlantPhase(),
+            UtilityPlantProgress = UtilityPlantProgressValue(),
+            UtilityPlantPowerMW = _utilityPlantActive ? UtilityPlantPowerDemandMW : 0,
+            UtilityPlantSecondsRemaining = UtilityPlantSecondsRemainingValue(),
+            UtilityPlantStatus = _utilityPlantStatus,
+            ProcessWaterConductivityUsCm = _processWaterConductivityUsCm,
+            BoilerPressureBar = _boilerPressureBar,
+            AirHeaderPressureBar = _airHeaderPressureBar,
             FactoryStatus = _factoryStatus,
             FactoryRunActive = _factoryRun is not null,
             ActiveFactoryName = _factoryRun?.Name ?? "",
@@ -2599,6 +2715,9 @@ public sealed class CakeFactoryService
 
     private string FactoryUtilityStatus()
     {
+        if (_utilityPlantActive)
+            return _utilityPlantStatus;
+
         var low = new List<string>();
         if (_processWaterL < 200) low.Add("process water");
         if (_culinarySteamKg < 260) low.Add("culinary steam");
@@ -2606,7 +2725,7 @@ public sealed class CakeFactoryService
         if (_filterMediaPct < 3) low.Add("filter media");
         if (ByproductStoragePctValue() > 85) low.Add("byproduct bins");
         if (EffluentTankPctValue() > 85) low.Add("effluent tank");
-        return low.Count == 0 ? "Utilities ready" : "Low utilities: " + string.Join(", ", low);
+        return low.Count == 0 ? _utilityPlantStatus : "Low utilities: " + string.Join(", ", low) + ". Run the utility plant or order supplies.";
     }
 
     private string StageLabel(CakeBatchStage stage) => stage switch

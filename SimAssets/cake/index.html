@@ -591,6 +591,7 @@
             <div class="control-bank">
               <h3>Ingredient factories</h3>
               <div class="button-grid">
+                <button class="action" type="button" data-action="runUtilityPlant">Run utilities</button>
                 <button class="action" type="button" data-action="mill">Mill flour</button>
                 <button class="action" type="button" data-action="refine">Refine sugar</button>
                 <button class="action" type="button" data-action="churn">Churn butter</button>
@@ -846,6 +847,16 @@
       CompressedAirNm3: 900,
       FilterMediaPct: 100,
       FactoryUtilityStatus: 'Utilities ready',
+      CanRunUtilityPlant: false,
+      UtilityPlantActive: false,
+      UtilityPlantPhase: '',
+      UtilityPlantProgress: 0,
+      UtilityPlantPowerMW: 0,
+      UtilityPlantSecondsRemaining: 0,
+      UtilityPlantStatus: 'Utility plant idle: RO skid, clean-steam boiler and compressor stand ready.',
+      ProcessWaterConductivityUsCm: 0.35,
+      BoilerPressureBar: 3.2,
+      AirHeaderPressureBar: 6.6,
       FactoryStatus: 'Ingredient factories idle.',
       FactoryRunActive: false,
       ActiveFactoryName: '',
@@ -1049,6 +1060,7 @@
       setButton('receiveSupplies', s.CanReceiveSupplies);
       setButton('orderSupplyDelivery', s.CanOrderSupplyDelivery);
       setButton('unloadSupplyDelivery', s.CanUnloadSupplyDelivery);
+      setButton('runUtilityPlant', s.CanRunUtilityPlant);
       setButton('processCocoa', s.CanProcessCocoa);
       setButton('runSaltWorks', s.CanRunSaltWorks);
       setButton('runLeaveningPlant', s.CanRunLeaveningPlant);
@@ -1103,6 +1115,7 @@
         ['Culinary steam', `${n(s.CulinarySteamKg, 0)} kg`],
         ['Compressed air', `${n(s.CompressedAirNm3, 0)} Nm3`],
         ['Filter media', `${n(s.FilterMediaPct, 1)}%`],
+        ['Utility plant', s.UtilityPlantActive ? `${s.UtilityPlantPhase || 'running'} / ${n(s.UtilityPlantProgress * 100, 0)}% / ${n(s.UtilityPlantPowerMW, 1)} MW` : (s.UtilityPlantStatus || 'Idle')],
         ['Byproduct bins', `${n(s.ByproductStoragePct, 0)}%`],
         ['Effluent tank', `${n(s.EffluentTankPct, 0)}% / ${n(s.FactoryEffluentL, 0)} L`],
         ['Cartons + labels', `${n(s.PackagingUnits, 0)}`],
@@ -1147,6 +1160,8 @@
         ['Salt asset', `${n(s.SaltConditionPct, 0)}% / ${n(s.SaltCalibrationPct, 0)}% cal`],
         ['Leavening asset', `${n(s.LeaveningConditionPct, 0)}% / ${n(s.LeaveningCalibrationPct, 0)}% cal`],
         ['Utilities', s.FactoryUtilityStatus || 'Utilities ready'],
+        ['Utility status', s.UtilityPlantStatus || 'Utility plant idle'],
+        ['RO / boiler / air', `${n(s.ProcessWaterConductivityUsCm, 3)} uS/cm / ${n(s.BoilerPressureBar, 1)} bar / ${n(s.AirHeaderPressureBar, 1)} bar`],
         ['Milk source', s.MilkSourceStatus || 'Cow dairy idle'],
         ['Milk QA', s.MilkQaStatus || 'Milk QA in spec'],
         ['Egg source', s.EggSourceStatus || 'Poultry house idle'],
@@ -1391,6 +1406,13 @@
         text(`Cond ${n(s.ActiveFactoryConditionPct, 0)}% Cal ${n(s.ActiveFactoryCalibrationPct, 0)}% Vib ${n(s.ActiveFactoryVibrationMmS, 1)} mm/s`, 948, 330, 11, '#d4f3fb', 800);
         text(`Trace ${n(s.TraceabilityScorePct, 0)}% - ${s.LastSupplyManifestId || 'no manifest'}`, 948, 346, 11, '#c9beb0', 800);
         text(s.PendingLabLotId ? `Lab hold ${s.PendingLabLotId}` : 'Lab clear', 948, 362, 11, s.PendingLabLotId ? '#ffe1a1' : '#bce1c0', 800);
+      }
+
+      if (s.UtilityPlantActive) {
+        rr(930, 374, 278, 58, 8, '#1f3335', '#7bd3c4');
+        text('UTILITY PLANT', 948, 396, 13, '#d4f3fb', 900);
+        text(`${s.UtilityPlantPhase || 'running'} - ${n((s.UtilityPlantProgress || 0) * 100, 0)}%`, 948, 414, 11, '#fff3d8', 800);
+        text(`RO ${n(s.ProcessWaterConductivityUsCm, 3)} uS/cm / air ${n(s.AirHeaderPressureBar, 1)} bar`, 948, 428, 10, '#c9beb0', 800);
       }
 
       if (s.StageReadyForOperator) {

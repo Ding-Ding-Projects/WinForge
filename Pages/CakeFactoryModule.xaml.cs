@@ -247,6 +247,10 @@ public sealed partial class CakeFactoryModule : Page
                 PostNotice("success", P("Supply delivery unloaded", "補給已卸貨"), _sim.UnloadSupplyDelivery());
                 break;
 
+            case "runUtilityPlant":
+                PostNotice("info", P("Utility plant started", "公用工程已啟動"), _sim.RunUtilityPlant());
+                break;
+
             case "processCocoa":
                 PostNotice("success", P("Cocoa processed", "可可已處理"), _sim.ProcessCocoa());
                 break;
