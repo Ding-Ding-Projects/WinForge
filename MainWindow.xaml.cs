@@ -882,6 +882,12 @@ public sealed partial class MainWindow : Window
             case "settings":
                 NavigateActive("settings");
                 break;
+            case "manual":
+            case "help":
+            case "guide":
+            case "userguide":
+                NavigateActive("manual");
+                break;
             default:
                 var cat = Categories.All.FirstOrDefault(c => c.Id == App.StartPage);
                 if (cat is not null)
@@ -1153,6 +1159,7 @@ public sealed partial class MainWindow : Window
         _titles[typeof(AboutPage)] = "About · 關於";
         _titles[typeof(SettingsPage)] = "Settings · 設定";
         _titles[typeof(SearchResultsPage)] = "Search · 搜尋";
+        _titles[typeof(ManualPage)] = "Manual · 使用手冊";
         foreach (var m in ModuleRegistry.All)
             _titles[MapType(m.Tag)] = $"{m.En} · {m.Zh}";
     }
@@ -1165,7 +1172,10 @@ public sealed partial class MainWindow : Window
             case "dashboard": return (typeof(DashboardPage), null);
             case "about": return (typeof(AboutPage), null);
             case "settings": return (typeof(SettingsPage), null);
+            case "manual": return (typeof(ManualPage), null);
         }
+        if (key.StartsWith("manual:", StringComparison.OrdinalIgnoreCase))
+            return (typeof(ManualPage), key.Substring("manual:".Length));
         if (key.StartsWith("search:", StringComparison.OrdinalIgnoreCase))
             return (typeof(SearchResultsPage), key.Substring("search:".Length));
         if (key.StartsWith("module.", StringComparison.Ordinal))
