@@ -21,8 +21,8 @@
     <!-- ConPtySession 用 P/Invoke 嘅 STARTUPINFOEX／指標操作需要 unsafe ·
          The embedded ConPTY terminal (Services/ConPtySession.cs) needs unsafe pointer code. -->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <!-- Vendored upstream sources under external/ (git submodules) must NEVER be compiled into WinForge;
-         exclude them from all default item globs so a 'git submodule update' can't break the build. -->
+    <!-- External upstream source checkouts must NEVER be compiled into WinForge; keep the exclusion so
+         any local reference copies under external/ cannot be pulled in by default item globs. -->
     <DefaultItemExcludes>$(DefaultItemExcludes);external\**;launcher\**</DefaultItemExcludes>
   </PropertyGroup>
 
