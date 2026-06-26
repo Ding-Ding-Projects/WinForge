@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Win32;
 
 namespace WinForge.Services;
@@ -131,6 +132,9 @@ public sealed class PersistenceService
 
     /// <summary>即時同步儲存（畀死亡鈎同關機前用）· Immediate synchronous save (used by death hooks).</summary>
     public void Flush() => SaveAll();
+
+    /// <summary>非同步儲存（畀 UI 互動路徑用）· Save without blocking UI interactions.</summary>
+    public Task FlushAsync() => Task.Run(SaveAll);
 
     // ----------------------------------------------------------------- save ----
 

@@ -139,6 +139,8 @@ public sealed partial class ReactorModule : Page
     // Persistence: this reactor's provider id in PersistenceService.
     private const string PersistId = "reactor";
     private bool _persistenceRegistered;
+    private FrameworkElement? _startupChecklistAnchor;
+    private string? _pendingDeepLink;
 
     public ReactorModule()
     {
@@ -199,6 +201,8 @@ public sealed partial class ReactorModule : Page
                 if (ReactorAudioEngine.I.Enabled) ReactorAudioEngine.I.Hum(true);
             }
             catch { /* degrade silently */ }
+
+            TryApplyPendingDeepLink();
         };
         Unloaded += (_, _) =>
         {
@@ -209,7 +213,7 @@ public sealed partial class ReactorModule : Page
             // Persist current reactor state one last time, then stop listening. We keep the provider
             // registered so a final app-exit/crash flush still captures the latest snapshot.
             PersistenceService.I.Saved -= OnStateSaved;
-            CrashLogger.Guard("reactor:unload-flush", () => PersistenceService.I.Flush());
+            CrashLogger.Guard("reactor:unload-flush", () => _ = PersistenceService.I.FlushAsync());
             Loc.I.LanguageChanged -= OnLanguageChanged;
             // Stop the synthesized voices but keep the graph alive (singleton, reused by the windows).
             try { ReactorAudioEngine.I.StopVoices(); } catch { }
@@ -223,8 +227,43 @@ public sealed partial class ReactorModule : Page
             // when leaving the page so the user is never stranded on a red accent or power-saver.
             // The persisted toggle is left as-is, so it re-arms next time the page opens.
             // 離開頁面時務必還原所有真實 Windows 設定，免得使用者卡喺紅色強調色或省電模式。
-            try { ReactorSystemLinkService.I.RestoreAll(); } catch { }
+            try { _ = ReactorSystemLinkService.I.RestoreAllAsync(); } catch { }
         };
+    }
+
+    protected override void OnNavigatedTo(Microsoft.UI.Xaml.Navigation.NavigationEventArgs e)
+    {
+        base.OnNavigatedTo(e);
+        if (e.Parameter is string target && IsStartupDeepLink(target))
+        {
+            _pendingDeepLink = target;
+            TryApplyPendingDeepLink();
+        }
+    }
+
+    private static bool IsStartupDeepLink(string? target)
+        => !string.IsNullOrWhiteSpace(target)
+           && (string.Equals(target, "startup", StringComparison.OrdinalIgnoreCase)
+               || string.Equals(target, "startup-checklist", StringComparison.OrdinalIgnoreCase));
+
+    private void TryApplyPendingDeepLink()
+    {
+        if (!IsStartupDeepLink(_pendingDeepLink) || _startupChecklistAnchor is null) return;
+        _pendingDeepLink = null;
+        DispatcherQueue.TryEnqueue(ScrollToStartupChecklist);
+    }
+
+    private void ScrollToStartupChecklist()
+    {
+        try
+        {
+            if (_startupChecklistAnchor is null || RootScroll.Content is not UIElement content) return;
+            RootScroll.UpdateLayout();
+            _startupChecklistAnchor.UpdateLayout();
+            var point = _startupChecklistAnchor.TransformToVisual(content).TransformPoint(new Point(0, 0));
+            RootScroll.ChangeView(null, Math.Max(0, point.Y - 12), null);
+        }
+        catch (Exception ex) { CrashLogger.Log("reactor:startup-deeplink", ex); }
     }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
@@ -314,6 +353,7 @@ public sealed partial class ReactorModule : Page
             "WinForge 旗艦：超寫實壓水堆控制室 — 點堆動力學＋熱工水力、切連科夫核芯輝光、合成控制室音效、趨勢記錄儀、NIS／SPDS 面板、事故情景、獨立控制室視窗同桌面小工具。純教育模擬 — 唔會控制任何真實硬件。");
         // toolbar
         OpenControlRoomButton.Content = P("Open full control room ⤢", "開啟完整控制室 ⤢");
+        StartupChecklistButton.Content = P("Startup checklist", "啟動程序清單");
         OpenWidgetsButton.Content = P("Mini widgets", "桌面小工具");
         MuteToggle.Content = P("Mute audio", "靜音");
         MuteToggle.IsChecked = !ReactorAudioEngine.I.Enabled;
@@ -2183,6 +2223,12 @@ public sealed partial class ReactorModule : Page
         try { var w = new ReactorHtmlWindow(_sim, _fuel); w.Activate(); } catch { }
     }
 
+    private void StartupChecklist_Click(object sender, RoutedEventArgs e)
+    {
+        _pendingDeepLink = "startup";
+        TryApplyPendingDeepLink();
+    }
+
     private void OpenWidgets_Click(object sender, RoutedEventArgs e)
     {
         try
@@ -2251,6 +2297,7 @@ public sealed partial class ReactorModule : Page
     {
         var host = ControlsHost;
         host.Children.Clear();
+        _startupChecklistAnchor = null;
 
         host.Children.Add(SectionHeader("Reactor controls · 反應堆控制", "反應堆控制 · Reactor controls"));
 
@@ -2519,8 +2566,10 @@ public sealed partial class ReactorModule : Page
                                     "循環燃耗加速器（演示，預設關閉）· Cycle depletion accelerator (demo, default OFF)", deplCombo));
 
         // ---- Startup-sequence checklist (approach to criticality) ----
-        host.Children.Add(SectionHeader("Startup sequence (approach to criticality) · 啟動程序（趨近臨界）",
-                                        "啟動程序（趨近臨界）· Startup sequence"));
+        var startupHeader = SectionHeader("Startup sequence (approach to criticality) · 啟動程序（趨近臨界）",
+                                          "啟動程序（趨近臨界）· Startup sequence");
+        _startupChecklistAnchor = startupHeader;
+        host.Children.Add(startupHeader);
         BuildStartupChecklist(host);
 
         // ---- Always-on reactor persistence (opt-in, default OFF, easy off switch) ----
@@ -2617,11 +2666,24 @@ public sealed partial class ReactorModule : Page
         {
             var check = new TextBlock { Text = "○", FontSize = 16, Width = 24, Foreground = new SolidColorBrush(Color.FromArgb(160, 0xAA, 0xAA, 0xAA)) };
             var text = new TextBlock { FontSize = 13, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center };
+            var control = new TextBlock
+            {
+                FontSize = 11,
+                TextWrapping = TextWrapping.Wrap,
+                Opacity = 0.78,
+                Foreground = new SolidColorBrush(Color.FromArgb(190, 0x93, 0xA2, 0xB5)),
+            };
             int n = i;
             var stp = step;
-            _relocalizers.Add(() => text.Text = $"{n}. " + P(stp.En, stp.Zh));
-            text.Text = $"{n}. " + P(stp.En, stp.Zh);
-            var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { check, text } };
+            void Relabel()
+            {
+                text.Text = $"{n}. " + P(stp.En, stp.Zh);
+                control.Text = P($"Use: {stp.ControlEn}", $"使用：{stp.ControlZh}");
+            }
+            _relocalizers.Add(Relabel);
+            Relabel();
+            var rowText = new StackPanel { Spacing = 2, Children = { text, control } };
+            var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { check, rowText } };
             host.Children.Add(row);
             _startupSteps.Add((step, check));
             i++;
@@ -2880,6 +2942,6 @@ public sealed partial class ReactorModule : Page
         AutoRunToggle.IsOn = false;
         Render();
         // Persist the clean cold-shutdown state immediately so a restart doesn't resume a meltdown.
-        PersistenceService.I.Flush();
+        _ = PersistenceService.I.FlushAsync();
     }
 }

@@ -175,6 +175,8 @@ public sealed class ReactorHtmlWindow : Window
             catch { }
             try { _web.CoreWebView2.PostWebMessageAsJson(_water.ExportStateJson()); }
             catch { }
+            try { PostStartupChecklist(); }
+            catch { }
         }
     }
 
@@ -441,6 +443,21 @@ public sealed class ReactorHtmlWindow : Window
                 spent = _fuel.ListSpent(),
             },
             canRun = _fuel.CanReactorRun,
+        });
+
+    private void PostStartupChecklist() =>
+        Post(new
+        {
+            type = "startupChecklist",
+            steps = ReactorScenarios.StartupSequence().Select((s, i) => new
+            {
+                index = i + 1,
+                en = s.En,
+                zh = s.Zh,
+                controlEn = s.ControlEn,
+                controlZh = s.ControlZh,
+                ok = s.IsSatisfied(_sim),
+            }),
         });
 
     private void PostWasteStatus()

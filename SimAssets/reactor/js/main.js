@@ -4,6 +4,7 @@ import { t, pick, isZh, applyLang } from "./i18n.js";
 import { setActiveDraw } from "./render.js";
 
 import { ControlRoom } from "./rooms/controlRoom.js";
+import { StartupChecklist } from "./rooms/startupChecklist.js";
 import { Containment } from "./rooms/reactorContainment.js";
 import { TurbineHall } from "./rooms/turbineHall.js";
 import { FuelHandling } from "./rooms/fuelHandling.js";
@@ -20,6 +21,7 @@ const MODE_NAMES = [
 
 const ROOMS = [
   { id: "control",  key: "roomControl", make: ControlRoom },
+  { id: "startup",  key: "roomStartup", make: StartupChecklist },
   { id: "contain",  key: "roomContain", make: Containment },
   { id: "turbine",  key: "roomTurbine", make: TurbineHall },
   { id: "fuel",     key: "roomFuel",    make: FuelHandling },
@@ -54,19 +56,28 @@ for (let i = 0; i < ROOMS.length; i++) {
   def._tab = tab;
 }
 
-function selectRoom(i) {
+function selectRoom(i, updateHash = true) {
   active = i;
   rooms.forEach((r, idx) => r.el.classList.toggle("active", idx === i));
   ROOMS.forEach((d, idx) => d._tab.classList.toggle("active", idx === i));
   try { localStorage.setItem("reactor.activeRoom", ROOMS[i].id); } catch (e) {}
+  if (updateHash && location.hash.slice(1) !== ROOMS[i].id) {
+    try { history.replaceState(null, "", "#" + ROOMS[i].id); } catch (e) {}
+  }
 }
 
 // restore last room
 try {
+  const linked = location.hash ? ROOMS.findIndex(d => d.id === location.hash.slice(1)) : -1;
   const saved = localStorage.getItem("reactor.activeRoom");
-  const idx = ROOMS.findIndex(d => d.id === saved);
+  const idx = linked >= 0 ? linked : ROOMS.findIndex(d => d.id === saved);
   selectRoom(idx >= 0 ? idx : 0);
 } catch (e) { selectRoom(0); }
+
+window.addEventListener("hashchange", () => {
+  const idx = ROOMS.findIndex(d => d.id === location.hash.slice(1));
+  if (idx >= 0 && idx !== active) selectRoom(idx, false);
+});
 
 // ---- header wiring ----
 const statusDot = document.getElementById("statusDot");
@@ -109,14 +120,15 @@ store.on("state", s => {
 
 function updateTabAlarms(s) {
   // mark control-room tab if any alarm active
-  const ctrl = ROOMS[0]._tab;
+  const ctrl = ROOMS.find(d => d.id === "control")?._tab;
   const any = (s.alarms && s.alarms.length > 0);
-  ctrl.querySelector("span").innerHTML = t("roomControl") + (any ? ' <span class="tab-alarm">●</span>' : "");
-  const fuelTab = ROOMS[3]._tab;
-  fuelTab.querySelector("span").innerHTML = t("roomFuel") + (!s.fuelCanRun ? ' <span class="tab-alarm">●</span>' : "");
+  if (ctrl) ctrl.querySelector("span").innerHTML = t("roomControl") + (any ? ' <span class="tab-alarm">●</span>' : "");
+  const fuelTab = ROOMS.find(d => d.id === "fuel")?._tab;
+  if (fuelTab) fuelTab.querySelector("span").innerHTML = t("roomFuel") + (!s.fuelCanRun ? ' <span class="tab-alarm">●</span>' : "");
 }
 
 store.on("fuel", r => { rooms.forEach(rm => rm.onFuel && rm.onFuel(r)); });
+store.on("startupChecklist", r => { rooms.forEach(rm => rm.onStartupChecklist && rm.onStartupChecklist(r)); });
 
 // language refresh
 store.on("lang", () => {

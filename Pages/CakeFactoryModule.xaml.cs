@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -6,15 +7,16 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.Web.WebView2.Core;
 using WinForge.Services;
 
 namespace WinForge.Pages;
 
 /// <summary>
-/// Nuclear-powered cake factory and farm simulator hosted as a self-contained HTML5/WebView2 control
-/// room. The C# service remains authoritative; JavaScript only renders controls and posts operator
-/// actions back through this bridge.
+/// Nuclear-powered cake factory and farm simulator with native WinUI 3 controls and an optional
+/// full HTML5/WebView2 factory mode. The C# service remains authoritative; every UI surface posts
+/// operator actions back through one bridge.
 /// </summary>
 public sealed partial class CakeFactoryModule : Page
 {
@@ -24,7 +26,11 @@ public sealed partial class CakeFactoryModule : Page
     private DateTime _lastTick = DateTime.UtcNow;
     private bool _coreReady;
     private bool _webReady;
+    private bool _nativeSyncing;
     private int _cakeFilesIssuedForPacked;
+    private DateTime _lastCakeFileUiRefresh = DateTime.MinValue;
+    private IReadOnlyList<CakeFileRecord> _cachedCakeFiles = Array.Empty<CakeFileRecord>();
+    private CakeValidationResult? _cachedLatestCakeValidation;
 
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
@@ -43,15 +49,13 @@ public sealed partial class CakeFactoryModule : Page
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
-    private async void OnLoaded(object sender, RoutedEventArgs e)
+    private void OnLoaded(object sender, RoutedEventArgs e)
     {
         ReactorStatusApiService.I.Start();
         RenderText();
         _lastTick = DateTime.UtcNow;
-
-        if (!_coreReady)
-            await InitWebAsync();
-
+        LoadingRing.IsActive = false;
+        RefreshSnapshot(forceCakeFileRefresh: true);
         _timer.Start();
     }
 
@@ -79,9 +83,161 @@ public sealed partial class CakeFactoryModule : Page
     {
         HeaderTitle.Text = "Nuclear Cake Factory & Farm · 核能蛋糕工廠與農場";
         HeaderBlurb.Text = P(
-            "Hands-on HTML5 farm, mill, bakery, QA and sanitation controls driven by the live reactor bus.",
-            "以 HTML5 操作農場、磨粉、焗爐、品檢同清潔；全部由即時反應堆供電。");
+            "Native WinUI 3 controls for daily operation, with full HTML5 factory mode available on demand.",
+            "日常操作用原生 WinUI 3 控制；需要時可開啟完整 HTML5 工廠模式。");
+        OpenFullFactoryText.Text = P("Full factory mode", "完整工廠模式");
         OpenReactorText.Text = P("Open reactor", "開反應堆");
+        FullFactoryTitle.Text = P("HTML5 full factory mode", "HTML5 完整工廠模式");
+        CloseFullFactoryText.Text = P("Back to WinUI", "返回 WinUI");
+
+        NativeControlsTitle.Text = P("WinUI 3 factory controls", "WinUI 3 工廠控制");
+        RecipeBox.Header = P("Recipe", "配方");
+        FarmIntensityLabel.Text = P("Farm intensity", "農場強度");
+        LineSpeedLabel.Text = P("Line speed", "生產線速度");
+        ReceiveSuppliesText.Text = P("Receive", "收貨");
+        HarvestText.Text = P("Harvest", "收成");
+        CollectText.Text = P("Milk + eggs", "牛奶雞蛋");
+        MillText.Text = P("Mill flour", "磨粉");
+        RefineText.Text = P("Refine sugar", "煉糖");
+        ChurnText.Text = P("Churn butter", "攪牛油");
+        ProcessCocoaText.Text = P("Roast cocoa", "烘可可");
+        StartBatchText.Text = P("Start batch", "開批");
+        AdvanceText.Text = P("Release step", "放行工序");
+        CleanText.Text = P("CIP clean", "CIP 清潔");
+
+        FactoryStatusTitle.Text = P("Factory status", "工廠狀態");
+        StageLabel.Text = P("Stage", "工序");
+        PowerLabel.Text = P("Power", "電力");
+        QualityLabel.Text = P("Quality", "品質");
+        SanitationLabel.Text = P("Sanitation", "衛生");
+        OvenLabel.Text = P("Oven", "焗爐");
+        PackedLabel.Text = P("Packed", "已包裝");
+        PromptLabel.Text = P("Operator prompt", "操作提示");
+        StageProgressLabel.Text = P("Stage progress", "工序進度");
+        CoreProgressLabel.Text = P("Core temperature gate", "中心溫度閘");
+        CipProgressLabel.Text = P("CIP progress", "CIP 進度");
+
+        InventoryTitle.Text = P("Ingredients and farm buffers", "材料與農場緩衝");
+        CakeFilesTitle.Text = P("Signed cake files", "已簽署蛋糕檔");
+        BakeryKeyLabel.Text = P("Bakery key", "烘焙公鑰");
+        CakeCountLabel.Text = P("Files", "檔案");
+        LatestCakeLabel.Text = P("Latest", "最新");
+        TrustCakeKeyText.Text = P("Trust key", "信任公鑰");
+        ValidateCakeText.Text = P("Validate", "驗證");
+        EatCakeText.Text = P("Eat + delete", "食用刪除");
+        OpenCakeFolderText.Text = P("Open folder", "開資料夾");
+
+        RefreshRecipeItems();
+        UpdateNativeSnapshot(_sim.Snapshot, forceCakeFileRefresh: true);
+    }
+
+    private void RefreshRecipeItems()
+    {
+        int selected = Math.Clamp(_sim.RecipeIndex, 0, CakeFactoryService.Recipes.Count - 1);
+        _nativeSyncing = true;
+        try
+        {
+            RecipeBox.Items.Clear();
+            for (int i = 0; i < CakeFactoryService.Recipes.Count; i++)
+            {
+                var recipe = CakeFactoryService.Recipes[i];
+                RecipeBox.Items.Add(new ComboBoxItem
+                {
+                    Content = P(recipe.Name, recipe.NameZh),
+                    Tag = i,
+                });
+            }
+            RecipeBox.SelectedIndex = selected;
+        }
+        finally
+        {
+            _nativeSyncing = false;
+        }
+    }
+
+    private void UpdateNativeSnapshot(CakeFactorySnapshot s, bool forceCakeFileRefresh = false)
+    {
+        _nativeSyncing = true;
+        try
+        {
+            if (RecipeBox.SelectedIndex != _sim.RecipeIndex)
+                RecipeBox.SelectedIndex = _sim.RecipeIndex;
+            double farmValue = Math.Round(_sim.FarmIntensity * 100);
+            double lineValue = Math.Round(_sim.LineSpeed * 100);
+            if (Math.Abs(FarmIntensitySlider.Value - farmValue) > 0.5)
+                FarmIntensitySlider.Value = farmValue;
+            if (Math.Abs(LineSpeedSlider.Value - lineValue) > 0.5)
+                LineSpeedSlider.Value = lineValue;
+            FarmIntensityValue.Text = $"{_sim.FarmIntensity * 100:0}%";
+            LineSpeedValue.Text = $"{_sim.LineSpeed * 100:0}%";
+        }
+        finally
+        {
+            _nativeSyncing = false;
+        }
+
+        string release = P("release ready", "可放行");
+        StageValue.Text = s.StageReadyForOperator ? $"{s.StageName} - {release}" : s.StageName;
+        PowerValue.Text = $"{s.PowerAvailability * 100:0}% · {s.ReactorElectricMW:0.0} MWe";
+        QualityValue.Text = $"{s.QualityScore:0}%";
+        SanitationValue.Text = $"{s.SanitationScore:0}%";
+        OvenValue.Text = $"{s.OvenTemperatureC:0} degC · core {s.ProductInternalC:0} degC";
+        PackedValue.Text = $"{s.CakesPacked} / {s.CakesBaked}";
+        PromptText.Text = s.OperatorPrompt;
+
+        StageProgressBar.Value = Math.Clamp(s.StageProgress * 100, 0, 100);
+        CoreProgressLabel.Text = P($"Core gate: {s.ProductInternalC:0} degC", $"中心溫度閘: {s.ProductInternalC:0} degC");
+        CoreProgressBar.Value = Math.Clamp(s.ProductInternalC / 71.0 * 100, 0, 100);
+        CipProgressLabel.Text = s.CipActive
+            ? P($"CIP progress: {s.CipProgress * 100:0}%", $"CIP 進度: {s.CipProgress * 100:0}%")
+            : P("CIP progress: ready", "CIP 進度: 就緒");
+        CipProgressBar.Value = s.CipActive ? Math.Clamp(s.CipProgress * 100, 0, 100) : 100;
+
+        ReceiveSuppliesButton.IsEnabled = s.CanReceiveSupplies;
+        HarvestButton.IsEnabled = s.CanHarvest;
+        CollectButton.IsEnabled = s.CanCollectDairy;
+        MillButton.IsEnabled = s.CanMillWheat;
+        RefineButton.IsEnabled = s.CanRefineSugar;
+        ChurnButton.IsEnabled = s.CanChurnButter;
+        ProcessCocoaButton.IsEnabled = s.CanProcessCocoa;
+        StartBatchButton.IsEnabled = s.CanStartBatch;
+        AdvanceButton.IsEnabled = s.CanAdvanceStage;
+        CleanButton.IsEnabled = !s.CipActive && s.Stage == CakeBatchStage.Idle;
+
+        FlourValue.Text = $"{P("Flour", "麵粉")}: {s.FlourKg:0.0} kg";
+        SugarValue.Text = $"{P("Sugar", "糖")}: {s.SugarKg:0.0} kg";
+        EggsValue.Text = $"{P("Eggs", "雞蛋")}: {s.Eggs:0}";
+        MilkValue.Text = $"{P("Milk", "牛奶")}: {s.MilkL:0.0} L";
+        ButterValue.Text = $"{P("Butter", "牛油")}: {s.ButterKg:0.0} kg";
+        CocoaValue.Text = $"{P("Cocoa", "可可")}: {s.CocoaKg:0.0} kg";
+        FieldValue.Text = P(
+            $"Fields: wheat {s.WheatGrowth:0}%, beets {s.BeetGrowth:0}%, vanilla {s.VanillaGrowth:0}%, pasture {s.PastureHealth:0}%",
+            $"田區: 小麥 {s.WheatGrowth:0}%, 甜菜 {s.BeetGrowth:0}%, 雲呢拿 {s.VanillaGrowth:0}%, 牧草 {s.PastureHealth:0}%");
+        ResourceStatusText.Text = string.IsNullOrWhiteSpace(s.MissingIngredients)
+            ? s.ResourceStatus
+            : $"{s.ResourceStatus} · {P("Missing", "缺少")}: {s.MissingIngredients}";
+
+        RefreshCakeFileUiCache(forceCakeFileRefresh);
+        var latestCake = _cachedCakeFiles.FirstOrDefault();
+        BakeryKeyValue.Text = _cakeFiles.PublicKeyId;
+        CakeCountValue.Text = _cachedCakeFiles.Count.ToString();
+        LatestCakeValue.Text = latestCake?.CakeId ?? P("No cake file", "未有蛋糕檔");
+        CakeValidationText.Text = _cachedLatestCakeValidation?.ReasonEn ?? P("No cake file is ready.", "未有蛋糕檔。");
+        TrustCakeKeyButton.IsEnabled = latestCake is not null;
+        ValidateCakeButton.IsEnabled = latestCake is not null;
+        EatCakeButton.IsEnabled = latestCake is not null;
+    }
+
+    private void RefreshCakeFileUiCache(bool force = false)
+    {
+        var now = DateTime.UtcNow;
+        if (!force && (now - _lastCakeFileUiRefresh).TotalSeconds < 1)
+            return;
+
+        _lastCakeFileUiRefresh = now;
+        _cachedCakeFiles = _cakeFiles.ListFresh();
+        var latestCake = _cachedCakeFiles.FirstOrDefault();
+        _cachedLatestCakeValidation = latestCake is null ? null : _cakeFiles.Validate(latestCake.Path);
     }
 
     private async System.Threading.Tasks.Task InitWebAsync()
@@ -123,6 +279,8 @@ public sealed partial class CakeFactoryModule : Page
         catch (Exception ex)
         {
             LoadingRing.IsActive = false;
+            FullFactoryPanel.Visibility = Visibility.Collapsed;
+            NativeFactoryView.Visibility = Visibility.Visible;
             PowerInfo.Severity = InfoBarSeverity.Error;
             PowerInfo.Title = P("Could not start cake controls", "無法啟動蛋糕控制台");
             PowerInfo.Message = ex.Message;
@@ -133,11 +291,13 @@ public sealed partial class CakeFactoryModule : Page
     private void ShowRuntimeMissing()
     {
         LoadingRing.IsActive = false;
+        FullFactoryPanel.Visibility = Visibility.Collapsed;
+        NativeFactoryView.Visibility = Visibility.Visible;
         PowerInfo.Severity = InfoBarSeverity.Warning;
         PowerInfo.Title = P("WebView2 Runtime not found", "搵唔到 WebView2 執行階段");
         PowerInfo.Message = P(
-            "The cake simulator now uses an embedded HTML5 control room and needs the Microsoft Edge WebView2 Runtime.",
-            "蛋糕模擬器現時使用內嵌 HTML5 控制室，需要 Microsoft Edge WebView2 執行階段。");
+            "Native WinUI controls still work. Full factory mode needs the Microsoft Edge WebView2 Runtime.",
+            "原生 WinUI 控制仍可使用；完整工廠模式需要 Microsoft Edge WebView2 執行階段。");
         PowerInfo.IsOpen = true;
     }
 
@@ -150,6 +310,7 @@ public sealed partial class CakeFactoryModule : Page
         _sim.Tick(dt, ReactorStatusApiService.I.LastSnapshot);
         IssueCakeFilesIfNeeded(_sim.Snapshot);
         UpdatePowerInfo(_sim.Snapshot);
+        UpdateNativeSnapshot(_sim.Snapshot);
         PostSnapshot(_sim.Snapshot);
     }
 
@@ -186,20 +347,26 @@ public sealed partial class CakeFactoryModule : Page
         if (!string.Equals(msg.Type, "cake", StringComparison.OrdinalIgnoreCase))
             return;
 
-        switch (msg.Action)
+        HandleCakeAction(msg.Action, msg.Index, msg.Value);
+    }
+
+    private void HandleCakeAction(string? action, int? index = null, double? value = null)
+    {
+        bool forceCakeFileRefresh = false;
+        switch (action)
         {
             case "recipe":
-                if (msg.Index is int recipeIndex)
+                if (index is int recipeIndex)
                     _sim.SelectRecipe(recipeIndex);
                 break;
 
             case "farmIntensity":
-                if (msg.Value is double farm)
+                if (value is double farm)
                     _sim.FarmIntensity = Math.Clamp(farm, 0, 1);
                 break;
 
             case "lineSpeed":
-                if (msg.Value is double speed)
+                if (value is double speed)
                     _sim.LineSpeed = Math.Clamp(speed, 0, 1.2);
                 break;
 
@@ -255,6 +422,7 @@ public sealed partial class CakeFactoryModule : Page
             case "validateCake":
                 {
                     var v = _cakeFiles.ValidateLatest();
+                    forceCakeFileRefresh = true;
                     PostNotice(v.Valid ? "success" : "warning",
                         v.Valid ? P("Cake file authentic", "蛋糕檔可信") : P("Cake file rejected", "蛋糕檔被拒絕"),
                         v.ReasonEn);
@@ -264,6 +432,7 @@ public sealed partial class CakeFactoryModule : Page
             case "trustCakeKey":
                 {
                     var latest = _cakeFiles.ListFresh().FirstOrDefault();
+                    forceCakeFileRefresh = true;
                     if (latest is null)
                     {
                         PostNotice("warning", P("No cake file", "未有蛋糕檔"), P("No cake file is available to trust.", "未有蛋糕檔可匯入公鑰。"));
@@ -280,6 +449,7 @@ public sealed partial class CakeFactoryModule : Page
             case "eatCake":
                 {
                     var r = _cakeFiles.EatLatest();
+                    forceCakeFileRefresh = true;
                     PostNotice(r.Eaten ? "success" : "warning",
                         r.Eaten ? P("Cake eaten", "蛋糕已食用") : P("Cannot eat cake", "未能食用蛋糕"),
                         r.ReasonEn);
@@ -302,14 +472,15 @@ public sealed partial class CakeFactoryModule : Page
                 break;
         }
 
-        RefreshSnapshot();
+        RefreshSnapshot(forceCakeFileRefresh);
     }
 
-    private void RefreshSnapshot()
+    private void RefreshSnapshot(bool forceCakeFileRefresh = false)
     {
         _sim.Tick(0.016, ReactorStatusApiService.I.LastSnapshot);
         IssueCakeFilesIfNeeded(_sim.Snapshot);
         UpdatePowerInfo(_sim.Snapshot);
+        UpdateNativeSnapshot(_sim.Snapshot, forceCakeFileRefresh);
         PostSnapshot(_sim.Snapshot);
     }
 
@@ -322,6 +493,7 @@ public sealed partial class CakeFactoryModule : Page
         _cakeFilesIssuedForPacked += issued.Count;
         if (issued.Count > 0)
         {
+            RefreshCakeFileUiCache(force: true);
             PostNotice("success", P("Cake files signed", "蛋糕檔已簽署"),
                 $"{issued.Count} .cake files minted with bakery key {_cakeFiles.PublicKeyId}.");
         }
@@ -359,9 +531,13 @@ public sealed partial class CakeFactoryModule : Page
 
     private void PostSnapshot(CakeFactorySnapshot s)
     {
-        var cakes = _cakeFiles.ListFresh();
+        if (!_webReady || CakeWeb.CoreWebView2 is null || FullFactoryPanel.Visibility != Visibility.Visible)
+            return;
+
+        RefreshCakeFileUiCache();
+        var cakes = _cachedCakeFiles;
         var latestCake = cakes.FirstOrDefault();
-        var latestValidation = latestCake is null ? null : _cakeFiles.Validate(latestCake.Path);
+        var latestValidation = latestCake is null ? null : _cachedLatestCakeValidation;
         PostJson(new
         {
             type = "snapshot",
@@ -382,6 +558,17 @@ public sealed partial class CakeFactoryModule : Page
 
     private void PostNotice(string severity, string title, string message)
     {
+        NativeActionBar.Severity = severity switch
+        {
+            "success" => InfoBarSeverity.Success,
+            "warning" => InfoBarSeverity.Warning,
+            "error" => InfoBarSeverity.Error,
+            _ => InfoBarSeverity.Informational,
+        };
+        NativeActionBar.Title = title;
+        NativeActionBar.Message = message;
+        NativeActionBar.IsOpen = true;
+
         PostJson(new
         {
             type = "notice",
@@ -393,7 +580,7 @@ public sealed partial class CakeFactoryModule : Page
 
     private void PostJson(object message)
     {
-        if (!_webReady || CakeWeb.CoreWebView2 is null) return;
+        if (!_webReady || CakeWeb.CoreWebView2 is null || FullFactoryPanel.Visibility != Visibility.Visible) return;
         try
         {
             CakeWeb.CoreWebView2.PostWebMessageAsJson(JsonSerializer.Serialize(message, JsonOpts));
@@ -401,7 +588,62 @@ public sealed partial class CakeFactoryModule : Page
         catch { }
     }
 
+    private async void OpenFullFactory_Click(object sender, RoutedEventArgs e)
+    {
+        NativeFactoryView.Visibility = Visibility.Collapsed;
+        FullFactoryPanel.Visibility = Visibility.Visible;
+        LoadingRing.IsActive = !_webReady;
+
+        if (!_coreReady)
+            await InitWebAsync();
+        else
+        {
+            PostInit();
+            RefreshSnapshot(forceCakeFileRefresh: true);
+        }
+    }
+
+    private void CloseFullFactory_Click(object sender, RoutedEventArgs e)
+    {
+        FullFactoryPanel.Visibility = Visibility.Collapsed;
+        NativeFactoryView.Visibility = Visibility.Visible;
+        LoadingRing.IsActive = false;
+    }
+
     private void OpenReactor_Click(object sender, RoutedEventArgs e) => Navigator.GoToModule?.Invoke("module.reactor");
+
+    private void RecipeBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_nativeSyncing || RecipeBox.SelectedIndex < 0) return;
+        HandleCakeAction("recipe", RecipeBox.SelectedIndex);
+    }
+
+    private void FarmIntensitySlider_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
+    {
+        if (_nativeSyncing) return;
+        HandleCakeAction("farmIntensity", value: e.NewValue / 100.0);
+    }
+
+    private void LineSpeedSlider_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
+    {
+        if (_nativeSyncing) return;
+        HandleCakeAction("lineSpeed", value: e.NewValue / 100.0);
+    }
+
+    private void ReceiveSupplies_Click(object sender, RoutedEventArgs e) => HandleCakeAction("receiveSupplies");
+    private void Harvest_Click(object sender, RoutedEventArgs e) => HandleCakeAction("harvest");
+    private void Collect_Click(object sender, RoutedEventArgs e) => HandleCakeAction("collect");
+    private void Mill_Click(object sender, RoutedEventArgs e) => HandleCakeAction("mill");
+    private void Refine_Click(object sender, RoutedEventArgs e) => HandleCakeAction("refine");
+    private void Churn_Click(object sender, RoutedEventArgs e) => HandleCakeAction("churn");
+    private void ProcessCocoa_Click(object sender, RoutedEventArgs e) => HandleCakeAction("processCocoa");
+    private void StartBatch_Click(object sender, RoutedEventArgs e) => HandleCakeAction("startBatch");
+    private void Advance_Click(object sender, RoutedEventArgs e) => HandleCakeAction("advance");
+    private void Clean_Click(object sender, RoutedEventArgs e) => HandleCakeAction("clean");
+    private void TrustCakeKey_Click(object sender, RoutedEventArgs e) => HandleCakeAction("trustCakeKey");
+    private void ValidateCake_Click(object sender, RoutedEventArgs e) => HandleCakeAction("validateCake");
+    private void EatCake_Click(object sender, RoutedEventArgs e) => HandleCakeAction("eatCake");
+    private void OpenCakeFolder_Click(object sender, RoutedEventArgs e) => HandleCakeAction("openCakeFolder");
 
     private sealed class CakeBridgeMessage
     {

@@ -235,8 +235,9 @@ public sealed class ReactorStatusApiService
         {
             if (mtx is not null)
             {
-                try { held = mtx.WaitOne(200); }
+                try { held = mtx.WaitOne(0); }
                 catch (AbandonedMutexException) { held = true; } // previous owner died; we now own it
+                if (!held) return; // never stall the reactor/UI tick on a slow reader
             }
             using var view = mmf.CreateViewAccessor(0, payload.Length + 4, MemoryMappedFileAccess.Write);
             view.Write(0, payload.Length);            // 4-byte length prefix (little-endian Int32)

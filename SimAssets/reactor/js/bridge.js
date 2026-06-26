@@ -1,10 +1,11 @@
 // 橋接 · WebView2 message bridge + state store with snapshot interpolation.
-// C#->JS: {type:'state', ...} at 10 Hz, and {type:'fuelResult', ...} on demand.
+// C#->JS: {type:'state', ...} at 10 Hz, {type:'startupChecklist', ...}, and
+// {type:'fuelResult', ...} on demand.
 // JS->C#: {type:'control'|'fuel'|'ui', ...}.
 
 import { setLang } from "./i18n.js";
 
-const listeners = { state: [], fuel: [], lang: [], water: [] };
+const listeners = { state: [], fuel: [], lang: [], water: [], startupChecklist: [] };
 
 // Two most-recent snapshots for interpolation, plus arrival timestamps.
 let prev = null, curr = null;
@@ -13,6 +14,7 @@ const TICK = 0.1; // 10 Hz nominal
 
 export const store = {
   latest: null,           // most-recent raw snapshot
+  startupChecklist: { steps: [] },
   fuel: { fresh: [], loaded: [], spent: [], canRun: false, lastResult: null },
   waste: { files: [], totalMb: 0, totalGb: 0, count: 0, driveFreeGb: -1, safetyFloorGb: 10,
            capGb: 50, capUsedPct: 0, capReached: false, runbackZone: false,
@@ -49,6 +51,9 @@ export const store = {
     } else if (data.type === "water") {
       this.water = Object.assign(this.water, data);
       listeners.water.forEach(fn => fn(this.water));
+    } else if (data.type === "startupChecklist") {
+      this.startupChecklist = { steps: Array.isArray(data.steps) ? data.steps : [] };
+      listeners.startupChecklist.forEach(fn => fn(this.startupChecklist));
     }
   },
 

@@ -900,6 +900,11 @@ public sealed partial class MainWindow : Window
             case "meltdown":
                 Navigator.GoToModule?.Invoke("module.reactor");
                 break;
+            case "reactor#startup":
+            case "reactor-startup":
+            case "startup-checklist":
+                Navigator.GoToModule?.Invoke("module.reactor#startup");
+                break;
             case "reactorsettings":
             case "reactor-settings":
                 Navigator.GoToModule?.Invoke("module.reactorsettings");
@@ -970,10 +975,14 @@ public sealed partial class MainWindow : Window
 
         Navigator.GoToModule = key =>
         {
-            var item = FindByTag(key);
-            if (item is not null && ReferenceEquals(NavView.SelectedItem, item)) NavigateActive(key); // already selected → re-navigate active tab
-            else if (item is not null) NavView.SelectedItem = item;
-            else NavigateActive(key); // fall back to direct navigation if not in the pane
+            var navKey = BaseNavKey(key);
+            var item = FindByTag(navKey);
+            if (item is not null && !ReferenceEquals(NavView.SelectedItem, item))
+            {
+                _syncingTabs = true;
+                try { NavView.SelectedItem = item; } finally { _syncingTabs = false; }
+            }
+            NavigateActive(key);
         };
     }
 
@@ -1138,6 +1147,20 @@ public sealed partial class MainWindow : Window
         _ => typeof(DashboardPage),
     };
 
+    private static string BaseNavKey(string key)
+    {
+        var hash = key.IndexOf('#');
+        return hash >= 0 ? key[..hash] : key;
+    }
+
+    private static string? NavFragment(string key)
+    {
+        var hash = key.IndexOf('#');
+        if (hash < 0 || hash == key.Length - 1) return null;
+        var fragment = key[(hash + 1)..].Trim();
+        return fragment.Length == 0 ? null : fragment;
+    }
+
     private void SearchBox_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
     {
         if (args.Reason != AutoSuggestionBoxTextChangeReason.UserInput) return;
@@ -1235,28 +1258,30 @@ public sealed partial class MainWindow : Window
     /// <summary>Resolve a tab/nav key into a page type + parameter.</summary>
     private (Type type, object? param) Resolve(string key)
     {
-        switch (key)
+        var baseKey = BaseNavKey(key);
+        var fragment = NavFragment(key);
+        switch (baseKey)
         {
             case "dashboard": return (typeof(DashboardPage), null);
             case "about": return (typeof(AboutPage), null);
             case "settings": return (typeof(SettingsPage), null);
             case "manual": return (typeof(ManualPage), null);
         }
-        if (key.StartsWith("manual:", StringComparison.OrdinalIgnoreCase))
-            return (typeof(ManualPage), key.Substring("manual:".Length));
-        if (key.StartsWith("search:", StringComparison.OrdinalIgnoreCase))
-            return (typeof(SearchResultsPage), key.Substring("search:".Length));
-        if (key.StartsWith("module.", StringComparison.Ordinal))
+        if (baseKey.StartsWith("manual:", StringComparison.OrdinalIgnoreCase))
+            return (typeof(ManualPage), baseKey.Substring("manual:".Length));
+        if (baseKey.StartsWith("search:", StringComparison.OrdinalIgnoreCase))
+            return (typeof(SearchResultsPage), baseKey.Substring("search:".Length));
+        if (baseKey.StartsWith("module.", StringComparison.Ordinal))
         {
-            if (ReactorDependencyService.TryGet(key, out var dependency))
+            if (ReactorDependencyService.TryGet(baseKey, out var dependency))
             {
                 var check = ReactorDependencyService.Evaluate(dependency, ReactorStatusApiService.I.LastSnapshot, ReactorStatusApiService.I.Enabled);
                 if (!check.IsSatisfied)
-                    return (typeof(ReactorDependencyPage), new ReactorDependencyPageContext(key, dependency));
+                    return (typeof(ReactorDependencyPage), new ReactorDependencyPageContext(baseKey, dependency));
             }
-            return (MapType(key), null);
+            return (MapType(baseKey), fragment);
         }
-        var cat = Categories.All.FirstOrDefault(c => c.Id == key);
+        var cat = Categories.All.FirstOrDefault(c => c.Id == baseKey);
         if (cat is not null) return (typeof(CategoryPage), cat);
         return (typeof(DashboardPage), null);
     }
@@ -1341,7 +1366,7 @@ public sealed partial class MainWindow : Window
         UpdateBackButton();
         var key = DataOf(tab).Key;
         if (string.IsNullOrEmpty(key)) return;
-        var item = FindByTag(key);
+        var item = FindByTag(BaseNavKey(key));
         if (item is not null && !ReferenceEquals(NavView.SelectedItem, item))
         {
             _syncingTabs = true;

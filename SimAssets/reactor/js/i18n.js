@@ -17,6 +17,7 @@ const S = {
   roomElec:       ["Electrical", "電氣"],
   roomCooling:    ["Cooling", "冷卻"],
   roomRad:        ["Rad Monitoring", "輻射監測"],
+  roomStartup:    ["Startup Checklist", "啟動程序清單"],
 
   // common
   power:      ["Power", "功率"],
@@ -93,6 +94,10 @@ const S = {
   annun:      ["Annunciators", "報警盤"],
   csf:        ["Critical safety functions", "關鍵安全功能"],
   rps:        ["Reactor protection system", "反應堆保護系統"],
+  startupChecklist:["Startup checklist", "啟動程序清單"],
+  startupProgress:["Checklist progress", "程序進度"],
+  startupControls:["Controls to use", "要使用的控制"],
+  startupWaiting:["Waiting for checklist data…", "等待程序清單資料…"],
   thx:        ["Primary loop", "一迴路"],
   rodCtl:     ["Rod & reactivity control", "控棒及反應性控制"],
   alarmCtl:   ["Alarm control", "報警控制"],

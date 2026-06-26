@@ -42,6 +42,8 @@ public sealed class StartupStep
 {
     public string En = "";
     public string Zh = "";
+    public string ControlEn = "";
+    public string ControlZh = "";
     public Func<ReactorSimService, bool> IsSatisfied = _ => false;
 }
 
@@ -260,44 +262,66 @@ public static class ReactorScenarios
     {
         new StartupStep
         {
+            En = "Select Startup mode",
+            Zh = "選擇啟動模式",
+            ControlEn = "Mode selector: Startup",
+            ControlZh = "模式選擇：啟動",
+            IsSatisfied = s => s.Mode == ReactorMode.Startup || s.Mode == ReactorMode.Run,
+        },
+        new StartupStep
+        {
             En = "Start ≥3 reactor coolant pumps",
             Zh = "啟動 ≥3 部主泵",
+            ControlEn = "RCP toggles: start pumps 1-4",
+            ControlZh = "主泵開關：啟動 1-4 號泵",
             IsSatisfied = s => { int n = 0; foreach (var r in s.RcpRunning) if (r) n++; return n >= 3; },
         },
         new StartupStep
         {
             En = "Establish primary flow > 85%",
             Zh = "建立一迴路流量 > 85%",
+            ControlEn = "RCP flow demand slider",
+            ControlZh = "主泵流量需求滑桿",
             IsSatisfied = s => s.CoolantFlowFraction > 0.85,
         },
         new StartupStep
         {
             En = "Pressurizer heaters on, pressure → ~2235 psia",
             Zh = "穩壓器加熱器開，壓力 → 約 2235 psia",
+            ControlEn = "PZR heater toggle; keep PZR spray off unless pressure is high",
+            ControlZh = "穩壓器加熱器開關；壓力偏高前保持噴淋關閉",
             IsSatisfied = s => s.PressurizerHeater && s.PrimaryPressure > 14.5,
         },
         new StartupStep
         {
             En = "Pull shutdown banks / dilute boron toward ECP",
             Zh = "提起停堆棒組／稀釋硼至估算臨界位置",
+            ControlEn = "Control rod bank sliders and Boron target slider",
+            ControlZh = "控制棒組滑桿同硼目標滑桿",
             IsSatisfied = s => { double avg = 0; foreach (var p in s.RodBankInsertion) avg += p; avg /= s.RodBankInsertion.Length; return avg < 60 || s.BoronPpm < 1000; },
         },
         new StartupStep
         {
             En = "Watch source-range count-rate, 1/M → 0",
             Zh = "監察起動範圍計數率，1/M → 0",
+            ControlEn = "NIS source-range bars and 1/M display",
+            ControlZh = "核儀表起動量程棒圖同 1/M 顯示",
             IsSatisfied = s => s.OneOverM < 0.25,
         },
         new StartupStep
         {
             En = "Declare criticality at stable positive period > 30 s",
             Zh = "於穩定正週期 > 30 秒時宣布臨界",
+            ControlEn = "Period meter and startup-rate readout",
+            ControlZh = "週期儀表同啟動率讀數",
             IsSatisfied = s => s.NeutronPowerFraction > 1e-3 && s.ReactorPeriodSeconds > 30 && s.ReactorPeriodSeconds < 1e8,
         },
         new StartupStep
         {
             En = "Raise power, sync turbine, close generator breaker",
             Zh = "升功率、汽輪機併網、合發電機開關",
+            ControlEn = "Turbine load slider, synchroscope, Generator breaker",
+            ControlZh = "汽輪機負荷滑桿、同步指示器、發電機開關",
             IsSatisfied = s => s.GeneratorBreakerClosed && s.ElectricPowerMW > 1.0,
         },
     };

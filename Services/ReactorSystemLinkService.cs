@@ -1,6 +1,8 @@
 using System;
 using System.Management;
 using System.Runtime.InteropServices;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Win32;
 
 namespace WinForge.Services;
@@ -45,7 +47,8 @@ public sealed class ReactorSystemLinkService
     }
 
     /// <summary>連動是否生效中 · Is the linkage currently driving real settings?</summary>
-    public bool Active { get; private set; }
+    public bool Active => _active;
+    private volatile bool _active;
 
     // ── snapshot of the user's originals (captured on Enable) ──
     private Guid? _origScheme;
@@ -60,6 +63,9 @@ public sealed class ReactorSystemLinkService
     private int _appliedBrightness = -1;
     private float _appliedVolume = -1f;
     private double _pulsePhase;         // meltdown pulse clock
+    private int _generation;
+    private int _enableBusy;
+    private int _applyBusy;
 
     private ReactorSystemLinkService() { }
 
@@ -68,44 +74,59 @@ public sealed class ReactorSystemLinkService
     // =====================================================================================
 
     /// <summary>
-    /// 啟用連動並快照原狀 · Turn the linkage on, snapshotting all originals first so they can be
-    /// restored later. Safe to call repeatedly. Returns true if it is now active.
+    /// 啟用連動並快照原狀 · Turn the linkage on. Snapshotting originals is queued off the UI thread
+    /// because power/WMI/audio probes can stall on some machines. Safe to call repeatedly.
     /// </summary>
     public bool Enable()
     {
         if (Active) return true;
-        // Snapshot originals BEFORE we touch anything.
-        _origScheme = TryGetActiveScheme();
-        _origAccentBgr = TryGetAccentBgr();
-        _origBrightness = TryGetBrightness();
-        _origVolume = TryGetVolume();
-
-        // Reset idempotency caches so the first Apply() definitely writes.
-        _appliedScheme = Guid.Empty;
-        _appliedAccent = 0xFFFFFFFF;
-        _appliedBrightness = -1;
-        _appliedVolume = -1f;
-        _pulsePhase = 0;
-
-        Active = true;
         EnabledSetting = true;
-
-        // Restore on process exit no matter how we leave (covers app close while linked).
-        if (!_processExitHooked)
-        {
-            try { AppDomain.CurrentDomain.ProcessExit += (_, _) => RestoreAll(); _processExitHooked = true; }
-            catch { /* best effort */ }
-        }
+        if (Interlocked.CompareExchange(ref _enableBusy, 1, 0) != 0) return true;
+        int generation = Interlocked.Increment(ref _generation);
+        _ = Task.Run(() => EnableCore(generation));
         return true;
+    }
+
+    private void EnableCore(int generation)
+    {
+        try
+        {
+            // Snapshot originals BEFORE we touch anything. These calls are intentionally off the UI thread.
+            var origScheme = TryGetActiveScheme();
+            var origAccent = TryGetAccentBgr();
+            var origBrightness = TryGetBrightness();
+            var origVolume = TryGetVolume();
+            if (Volatile.Read(ref _generation) != generation || !EnabledSetting) return;
+
+            _origScheme = origScheme;
+            _origAccentBgr = origAccent;
+            _origBrightness = origBrightness;
+            _origVolume = origVolume;
+
+            // Reset idempotency caches so the first Apply() definitely writes.
+            _appliedScheme = Guid.Empty;
+            _appliedAccent = 0xFFFFFFFF;
+            _appliedBrightness = -1;
+            _appliedVolume = -1f;
+            _pulsePhase = 0;
+
+            _active = true;
+
+            // Restore on process exit no matter how we leave (covers app close while linked).
+            if (!_processExitHooked)
+            {
+                try { AppDomain.CurrentDomain.ProcessExit += (_, _) => RestoreAll(); _processExitHooked = true; }
+                catch { /* best effort */ }
+            }
+        }
+        finally { Volatile.Write(ref _enableBusy, 0); }
     }
 
     /// <summary>停用連動並還原所有原狀 · Turn the linkage off and restore every original setting.</summary>
     public void Disable()
     {
         EnabledSetting = false;
-        if (!Active) return;
-        Active = false;
-        RestoreAll();
+        _ = RestoreAllAsync();
     }
 
     /// <summary>
@@ -115,11 +136,30 @@ public sealed class ReactorSystemLinkService
     /// </summary>
     public void RestoreAll()
     {
-        if (_origScheme is Guid g) { TrySetActiveScheme(g); }
-        if (_origAccentBgr is byte[] a) { TryApplyAccentBgr(a); }
-        if (_origBrightness is int b) { TrySetBrightness(b); }
-        if (_origVolume is float v) { TrySetVolume(v); }
+        Interlocked.Increment(ref _generation);
+        _active = false;
+        RestoreAllCore();
+    }
 
+    /// <summary>非同步還原原狀 · Restore originals without blocking the UI thread.</summary>
+    public Task RestoreAllAsync()
+    {
+        Interlocked.Increment(ref _generation);
+        _active = false;
+        return Task.Run(async () =>
+        {
+            for (int i = 0; i < 60 && Volatile.Read(ref _applyBusy) == 1; i++)
+                await Task.Delay(50).ConfigureAwait(false);
+            RestoreAllCore();
+        });
+    }
+
+    private void RestoreAllCore()
+    {
+        var origScheme = _origScheme;
+        var origAccent = _origAccentBgr;
+        var origBrightness = _origBrightness;
+        var origVolume = _origVolume;
         _origScheme = null;
         _origAccentBgr = null;
         _origBrightness = null;
@@ -128,7 +168,12 @@ public sealed class ReactorSystemLinkService
         _appliedAccent = 0xFFFFFFFF;
         _appliedBrightness = -1;
         _appliedVolume = -1f;
-        Active = false;
+        _active = false;
+
+        if (origScheme is Guid g) { TrySetActiveScheme(g); }
+        if (origAccent is byte[] a) { TryApplyAccentBgr(a); }
+        if (origBrightness is int b) { TrySetBrightness(b); }
+        if (origVolume is float v) { TrySetVolume(v); }
     }
 
     // =====================================================================================
@@ -137,31 +182,81 @@ public sealed class ReactorSystemLinkService
 
     /// <summary>
     /// 依反應堆狀態更新系統設定 · Drive the real settings from the current reactor state. No-op unless
-    /// Active. <paramref name="dt"/> is the elapsed seconds (for the meltdown pulse).
+    /// Active. Queues a single background update so the reactor UI timer never waits on WMI,
+    /// registry broadcasts, power-plan APIs or audio COM.
     /// </summary>
     public void Apply(ReactorSimService sim, double dt)
     {
         if (!Active || sim is null) return;
-        try { ApplyPowerPlan(sim); } catch { }
-        try { ApplyAccent(sim, dt); } catch { }
-        try { ApplyBrightness(sim, dt); } catch { }
-        try { ApplyVolume(sim); } catch { }
+        var snap = LinkSnapshot.FromSim(sim, dt);
+        int generation = Volatile.Read(ref _generation);
+        if (Interlocked.Exchange(ref _applyBusy, 1) == 1) return;
+
+        _ = Task.Run(() =>
+        {
+            try
+            {
+                if (!Active || Volatile.Read(ref _generation) != generation) return;
+                try { ApplyPowerPlan(snap); } catch { }
+                if (!Active || Volatile.Read(ref _generation) != generation) return;
+                try { ApplyAccent(snap); } catch { }
+                if (!Active || Volatile.Read(ref _generation) != generation) return;
+                try { ApplyBrightness(snap); } catch { }
+                if (!Active || Volatile.Read(ref _generation) != generation) return;
+                try { ApplyVolume(snap); } catch { }
+            }
+            finally { Volatile.Write(ref _applyBusy, 0); }
+        });
+    }
+
+    private readonly record struct LinkSnapshot(
+        ReactorMode Mode,
+        bool IsScrammed,
+        bool AnyAlarm,
+        bool AnyPartialTrip,
+        double DamageAccumulation,
+        double ElectricPowerMW,
+        double Dt)
+    {
+        public static LinkSnapshot FromSim(ReactorSimService sim, double dt)
+        {
+            bool anyAlarm = false;
+            foreach (ReactorAlarm a in Enum.GetValues(typeof(ReactorAlarm)))
+            {
+                if (sim.Alarm(a)) { anyAlarm = true; break; }
+            }
+
+            bool anyPartialTrip = false;
+            foreach (var f in sim.Rps.Functions)
+            {
+                if (f.PartialTrip || f.FunctionTrip) { anyPartialTrip = true; break; }
+            }
+
+            return new LinkSnapshot(
+                sim.Mode,
+                sim.IsScrammed,
+                anyAlarm,
+                anyPartialTrip,
+                sim.DamageAccumulation,
+                sim.ElectricPowerMW,
+                dt);
+        }
     }
 
     // ---- power plan ----
-    private void ApplyPowerPlan(ReactorSimService sim)
+    private void ApplyPowerPlan(LinkSnapshot snap)
     {
-        Guid want = sim.Mode switch
+        Guid want = snap.Mode switch
         {
             ReactorMode.Tripped  => GuidPowerSaver,
             ReactorMode.Shutdown => GuidPowerSaver,
             ReactorMode.Meltdown => GuidPowerSaver,
             ReactorMode.Startup  => GuidBalanced,
             // Run: full performance only when actually generating; otherwise balanced.
-            ReactorMode.Run      => sim.ElectricPowerMW > 1.0 ? PreferHigh() : GuidBalanced,
+            ReactorMode.Run      => snap.ElectricPowerMW > 1.0 ? PreferHigh() : GuidBalanced,
             _ => GuidBalanced,
         };
-        if (sim.IsScrammed) want = GuidPowerSaver; // a SCRAM trumps the mode
+        if (snap.IsScrammed) want = GuidPowerSaver; // a SCRAM trumps the mode
 
         if (want == _appliedScheme) return;        // idempotent
         if (TrySetActiveScheme(want)) _appliedScheme = want;
@@ -172,21 +267,21 @@ public sealed class ReactorSystemLinkService
         => SchemeExists(GuidUltimate) ? GuidUltimate : GuidHighPerformance;
 
     // ---- accent colour ----
-    private void ApplyAccent(ReactorSimService sim, double dt)
+    private void ApplyAccent(LinkSnapshot snap)
     {
         // green stable → amber warning/partial-trip → red SCRAM/alarms → pulsing deep red meltdown.
         byte r, g, b;
-        if (sim.Mode == ReactorMode.Meltdown)
+        if (snap.Mode == ReactorMode.Meltdown)
         {
-            _pulsePhase += dt * 3.0; // ~0.5 Hz visible pulse
+            _pulsePhase += snap.Dt * 3.0; // ~0.5 Hz visible pulse
             double k = 0.5 + 0.5 * Math.Sin(_pulsePhase); // 0..1
             r = (byte)(120 + 110 * k); g = 0; b = 0;       // deep red → bright red
         }
-        else if (sim.IsScrammed || AnyAlarm(sim))
+        else if (snap.IsScrammed || snap.AnyAlarm)
         {
             r = 0xE5; g = 0x39; b = 0x35;                  // red
         }
-        else if (sim.DamageAccumulation > 1.0 || AnyPartialTrip(sim))
+        else if (snap.DamageAccumulation > 1.0 || snap.AnyPartialTrip)
         {
             r = 0xFB; g = 0xC0; b = 0x2D;                  // amber (warning / partial trip)
         }
@@ -202,33 +297,18 @@ public sealed class ReactorSystemLinkService
         if (TryApplyAccentBgr(bgr)) _appliedAccent = key;
     }
 
-    private static bool AnyAlarm(ReactorSimService sim)
-    {
-        foreach (ReactorAlarm a in Enum.GetValues(typeof(ReactorAlarm)))
-            if (sim.Alarm(a)) return true;
-        return false;
-    }
-
-    /// <summary>Any RPS protection function showing a single-channel (partial) trip → warning state.</summary>
-    private static bool AnyPartialTrip(ReactorSimService sim)
-    {
-        foreach (var f in sim.Rps.Functions)
-            if (f.PartialTrip || f.FunctionTrip) return true;
-        return false;
-    }
-
     // ---- brightness ----
-    private void ApplyBrightness(ReactorSimService sim, double dt)
+    private void ApplyBrightness(LinkSnapshot snap)
     {
         if (_origBrightness is null) return;               // panel doesn't support WMI brightness
         int want;
-        if (sim.Mode == ReactorMode.Meltdown)
+        if (snap.Mode == ReactorMode.Meltdown)
         {
             // pulse low↔high during meltdown
             double k = 0.5 + 0.5 * Math.Sin(_pulsePhase); // shares the accent pulse clock
             want = (int)(20 + 80 * k);
         }
-        else if (sim.IsScrammed)
+        else if (snap.IsScrammed)
         {
             want = 30;                                     // dim on SCRAM
         }
@@ -237,18 +317,18 @@ public sealed class ReactorSystemLinkService
             want = _origBrightness.Value;                  // back to the user's level on recovery
         }
         want = Math.Clamp(want, 0, 100);
-        if (Math.Abs(want - _appliedBrightness) < 2 && sim.Mode != ReactorMode.Meltdown) return; // idempotent
+        if (Math.Abs(want - _appliedBrightness) < 2 && snap.Mode != ReactorMode.Meltdown) return; // idempotent
         if (TrySetBrightness(want)) _appliedBrightness = want;
     }
 
     // ---- volume (optional, low-risk) ----
-    private void ApplyVolume(ReactorSimService sim)
+    private void ApplyVolume(LinkSnapshot snap)
     {
         if (_origVolume is null) return;
         // Only raise the floor on a genuine emergency; never lower the user below where they were.
         float want;
-        if (sim.Mode == ReactorMode.Meltdown) want = Math.Max(_origVolume.Value, 0.90f);
-        else if (sim.IsScrammed) want = Math.Max(_origVolume.Value, 0.70f);
+        if (snap.Mode == ReactorMode.Meltdown) want = Math.Max(_origVolume.Value, 0.90f);
+        else if (snap.IsScrammed) want = Math.Max(_origVolume.Value, 0.70f);
         else want = _origVolume.Value;
         if (Math.Abs(want - _appliedVolume) < 0.02f) return;
         if (TrySetVolume(want)) _appliedVolume = want;
