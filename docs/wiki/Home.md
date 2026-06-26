@@ -30,7 +30,7 @@
 | [Media-and-Capture.md](Media-and-Capture.md) | Media & Capture · 媒體與擷取 | 18 |
 | [Developer.md](Developer.md) | Developer · 開發者 | 14 |
 | [Network.md](Network.md) | Network · 網絡 | 9 |
-| [Apps-Git-and-Packages.md](Apps-Git-and-Packages.md) | Apps, Git & Packages · 應用程式、Git 與套件 | 12 |
+| [Apps-Git-and-Packages.md](Apps-Git-and-Packages.md) | Apps, Git & Packages · 應用程式、Git 與套件 | 13 |
 | [AI.md](AI.md) | AI · 人工智能 | 3 |
 | [Window-Management.md](Window-Management.md) | Window Management · 視窗管理 | 6 |
 | [PowerToys-Utilities.md](PowerToys-Utilities.md) | PowerToys-style Utilities · PowerToys 式工具 | 19 |

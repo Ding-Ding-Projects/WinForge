@@ -286,6 +286,9 @@ All screenshots are captured from the running self-contained build via `WinForge
 ### Package Manager · 套件管理
 ![](images/screenshot-packages.png)
 
+### Cake Factory & Farm · 蛋糕工廠與農場
+![](images/screenshot-cakefactory.png)
+
 ### App Uninstaller · 應用程式解除安裝
 ![](images/screenshot-uninstall.png)
 

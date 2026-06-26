@@ -5,7 +5,7 @@
 **An all-in-one, fully bilingual Windows 11 control center — every module is real and working — crowned by a hyper-realistic flagship nuclear-reactor simulator.**
 **一個全方位、全程雙語嘅 Windows 11 控制中心 — 每個模組都係真正用得 — 仲有一個超寫實嘅旗艦核反應堆模擬器坐鎮。**
 
-`WinUI 3 · .NET 11` · `English + 繁體中文／粵語` · `x64` · `137 in-app modules` · `everything runs in-app`
+`WinUI 3 · .NET 11` · `English + 繁體中文／粵語` · `x64` · `138 in-app modules` · `everything runs in-app`
 
 </div>
 
@@ -13,9 +13,9 @@
 
 ## 🌏 Overview · 概覽
 
-**EN —** WinForge is an all-in-one, fully bilingual control center for Windows 11. It gathers 137 real, working modules — system tweaking, files & disks, media & capture, developer tooling, networking, package management, AI, window management, PowerToys-style utilities, security vaults, virtualization and gaming — into a single **WinUI 3 / .NET 11** app where every English label is paired with **繁體中文／粵語** and every action actually changes the system. Its flagship is a **hyper-realistic Pressurized Water Reactor (PWR) control-room simulator** with full point-kinetics physics, a fuel-and-waste fuel cycle, a water-treatment plant, and Westinghouse-style safety systems.
+**EN —** WinForge is an all-in-one, fully bilingual control center for Windows 11. It gathers 138 real, working modules — system tweaking, files & disks, media & capture, developer tooling, networking, package management, AI, window management, PowerToys-style utilities, security vaults, virtualization and gaming — into a single **WinUI 3 / .NET 11** app where every English label is paired with **繁體中文／粵語** and every action actually changes the system. Its flagship is a **hyper-realistic Pressurized Water Reactor (PWR) control-room simulator** with full point-kinetics physics, a fuel-and-waste fuel cycle, a water-treatment plant, and Westinghouse-style safety systems.
 
-**粵語 —** WinForge 係一個畀 Windows 11 用嘅全方位、全程雙語控制中心。佢將 137 個真正用得嘅模組 — 系統調校、檔案與磁碟、媒體與擷取、開發者工具、網絡、套件管理、AI、視窗管理、PowerToys 式工具、安全保險庫、虛擬化同遊戲 — 全部集合喺一個 **WinUI 3 / .NET 11** app 入面，每個英文標籤都配上**繁體中文／粵語**，而且每個動作都真正改到部機。佢嘅旗艦係一個**超寫實壓水堆（PWR）控制室模擬器**，附完整點動力學物理、燃料與廢料燃料循環、水處理廠同西屋式保護系統。
+**粵語 —** WinForge 係一個畀 Windows 11 用嘅全方位、全程雙語控制中心。佢將 138 個真正用得嘅模組 — 系統調校、檔案與磁碟、媒體與擷取、開發者工具、網絡、套件管理、AI、視窗管理、PowerToys 式工具、安全保險庫、虛擬化同遊戲 — 全部集合喺一個 **WinUI 3 / .NET 11** app 入面，每個英文標籤都配上**繁體中文／粵語**，而且每個動作都真正改到部機。佢嘅旗艦係一個**超寫實壓水堆（PWR）控制室模擬器**，附完整點動力學物理、燃料與廢料燃料循環、水處理廠同西屋式保護系統。
 
 ---
 
@@ -61,7 +61,7 @@ dotnet publish WinForge.csproj -c Release -p:Platform=x64 -r win-x64 ^
 ## ✨ Highlights · 重點
 
 **EN —**
-- **All-in-one control center** — 137 modules in one app; OSS-inspired additions are remade as native WinForge tabs instead of installer-only launchers. · **全方位控制中心** — 一個 app 有 137 個模組；受開源 app 啟發嘅新增功能會重製成 WinForge 原生分頁，而唔係只做安裝／啟動器。
+- **All-in-one control center** — 138 modules in one app; OSS-inspired additions are remade as native WinForge tabs instead of installer-only launchers. · **全方位控制中心** — 一個 app 有 138 個模組；受開源 app 啟發嘅新增功能會重製成 WinForge 原生分頁，而唔係只做安裝／啟動器。
 - **Fully bilingual** — English and 繁體中文／粵語 appear together on every surface; choose which language leads, UI updates live. · **全程雙語** — 每個介面同時顯示英文同繁體中文／粵語；可揀邊種語言排前，介面即時更新。
 - **Accessible app shell** — main navigation, search, tabs and new native OSS pages expose screen-reader names, heading levels, visible focus paths and keyboard accelerators. · **無障礙 app 外殼** — 主要導航、搜尋、分頁同新原生開源頁面提供螢幕閱讀器名稱、標題層級、清楚焦點路徑同鍵盤捷徑。
 - **Real engines, real effects** — wraps git/gh, ffmpeg, 7-Zip, yt-dlp, cloudflared, winget, libVLC, Docker and more, plus native Windows APIs — no fake toggles. · **真實引擎、真實效果** — 包住 git/gh、ffmpeg、7-Zip、yt-dlp、cloudflared、winget、libVLC、Docker 等同原生 Windows API — 冇假開關。
@@ -211,6 +211,7 @@ dotnet publish WinForge.csproj -c Release -p:Platform=x64 -r win-x64 ^
 | **Git & GitHub · Git 與 GitHub** | Multi-repo workbench for git and gh operations with a chunked uploader. <br> 多儲存庫工作台，操作 git 同 gh，附分塊上傳器。 | `git` |
 | **Package Manager · 套件管理** | One front-end over winget, scoop, choco, pip, npm and more. <br> 統一前端操作 winget、scoop、choco、pip、npm 等。 | `packages` |
 | **Native OSS Clones · 開源原生分頁** | Map of open-source app ideas remade as native C# WinForge tabs. <br> 將開源 app 想法重製成 WinForge 原生 C# 分頁嘅索引。 | `ossapps` |
+| **Cake Factory & Farm · 蛋糕工廠與農場** | HTML5 reactor-powered cake factory and ingredient farm with manual HACCP gates. <br> HTML5 反應堆供電蛋糕工廠與原料農場，附手動 HACCP 放行關卡。 | `cakefactory` |
 | **Feed Reader · RSS 閱讀器** | Native RSS/Atom reader inspired by QuiteRSS and Fluent Reader. <br> 受 QuiteRSS 同 Fluent Reader 啟發嘅原生 RSS／Atom 閱讀器。 | `rss` |
 | **App Uninstaller · 應用程式解除安裝** | Remove apps and Appx packages via winget. <br> 用 winget 移除應用程式同 Appx 套件。 | `uninstall` |
 | **Android (ADB) · Android（ADB）** | adb devices, APK install, shell, logcat and scrcpy mirroring. <br> adb 裝置、安裝 APK、shell、logcat 同 scrcpy 鏡像。 | `adb` |
@@ -301,9 +302,9 @@ dotnet publish WinForge.csproj -c Release -p:Platform=x64 -r win-x64 ^
 
 ## 📚 Documentation & Wiki · 文件與 Wiki
 
-**EN —** The wiki is a categorized index of every module, with deeper pages for the headline ones — start at **[docs/wiki/Home.md](docs/wiki/Home.md)**. The flagship has its own full **[Nuclear Reactor Operating Manual](docs/wiki/Nuclear-Reactor-Operating-Manual.md)**.
+**EN —** The wiki is a categorized index of every module, with deeper pages for the headline ones — start at **[docs/wiki/Home.md](docs/wiki/Home.md)**. The flagship has its own full **[Nuclear Reactor Operating Manual](docs/wiki/Nuclear-Reactor-Operating-Manual.md)**, and the HTML5 cake simulator has a full **[Cake Factory & Farm manual](docs/wiki/Cake-Factory-and-Farm.md)**.
 
-**粵語 —** Wiki 係所有模組嘅分類索引，重點模組仲有專頁 — 由 **[docs/wiki/Home.md](docs/wiki/Home.md)** 開始。旗艦有自己完整嘅**[核反應堆操作手冊](docs/wiki/Nuclear-Reactor-Operating-Manual.md)**。
+**粵語 —** Wiki 係所有模組嘅分類索引，重點模組仲有專頁 — 由 **[docs/wiki/Home.md](docs/wiki/Home.md)** 開始。旗艦有自己完整嘅**[核反應堆操作手冊](docs/wiki/Nuclear-Reactor-Operating-Manual.md)**，HTML5 蛋糕模擬器亦有完整嘅**[蛋糕工廠與農場手冊](docs/wiki/Cake-Factory-and-Farm.md)**。
 
 ---
 
