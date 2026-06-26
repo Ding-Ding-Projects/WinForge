@@ -231,6 +231,14 @@ public sealed partial class CakeFactoryModule : Page
                 PostNotice("success", P("Cocoa processed", "可可已處理"), _sim.ProcessCocoa());
                 break;
 
+            case "runSaltWorks":
+                PostNotice("success", P("Salt works run", "鹽廠已運行"), _sim.RunSaltWorks());
+                break;
+
+            case "runLeaveningPlant":
+                PostNotice("success", P("Leavening plant run", "膨鬆劑廠已運行"), _sim.RunLeaveningPlant());
+                break;
+
             case "startBatch":
                 {
                     bool ok = _sim.TryStartBatch(out var message);

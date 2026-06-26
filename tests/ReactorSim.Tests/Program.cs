@@ -756,7 +756,7 @@ internal static class Program
                           $"after 30s stage={waiting.StageName}, ready={waiting.StageReadyForOperator}, canRelease={waiting.CanAdvanceStage}");
         });
 
-        Scenario("CAKE INGREDIENT CHAIN (harvest, collect, mill, refine, churn mutate inventory)", () =>
+        Scenario("CAKE INGREDIENT CHAIN (harvest, collect, mill, refine, churn and non-farm factories mutate inventory)", () =>
         {
             var cake = new CakeFactoryService();
             TickCake(cake, fullBus, 0.5);
@@ -786,19 +786,33 @@ internal static class Program
             TickCake(cake, fullBus, 0.5);
             var s6 = cake.Snapshot;
 
+            string salt = cake.RunSaltWorks();
+            TickCake(cake, fullBus, 0.5);
+            var s7 = cake.Snapshot;
+
+            string leavening = cake.RunLeaveningPlant();
+            TickCake(cake, fullBus, 0.5);
+            var s8 = cake.Snapshot;
+
             bool farmYield = s1.WheatKg > s0.WheatKg && s1.SugarCropKg > s0.SugarCropKg && s1.VanillaL > s0.VanillaL;
             bool dairyYield = s2.MilkL > s1.MilkL && s2.Eggs > s1.Eggs;
             bool flourYield = s3.FlourKg > s2.FlourKg && s3.WheatKg < s2.WheatKg;
             bool sugarYield = s4.SugarKg > s3.SugarKg && s4.SugarCropKg < s3.SugarCropKg;
             bool butterYield = s5.ButterKg > s4.ButterKg && s5.MilkL < s4.MilkL;
             bool cocoaYield = s6.CocoaKg > s5.CocoaKg && s6.CocoaBeansKg < s5.CocoaBeansKg;
-            bool pass = farmYield && dairyYield && flourYield && sugarYield && butterYield && cocoaYield;
+            bool saltYield = s7.SaltKg > s6.SaltKg && s7.BrineL < s6.BrineL;
+            bool leaveningYield = s8.BakingPowderKg > s7.BakingPowderKg
+                                   && s8.SodaAshKg < s7.SodaAshKg
+                                   && s8.PhosphateKg < s7.PhosphateKg
+                                   && s8.StarchKg < s7.StarchKg;
+            bool pass = farmYield && dairyYield && flourYield && sugarYield && butterYield && cocoaYield && saltYield && leaveningYield;
             return (pass, $"farmYield={farmYield} ('{Trim(harvest)}'), dairyYield={dairyYield} ('{Trim(collect)}'), " +
                           $"flourYield={flourYield} ('{Trim(mill)}'), sugarYield={sugarYield} ('{Trim(refine)}'), " +
-                          $"butterYield={butterYield} ('{Trim(churn)}'), cocoaYield={cocoaYield} ('{Trim(cocoa)}')");
+                          $"butterYield={butterYield} ('{Trim(churn)}'), cocoaYield={cocoaYield} ('{Trim(cocoa)}'), " +
+                          $"saltYield={saltYield} ('{Trim(salt)}'), leaveningYield={leaveningYield} ('{Trim(leavening)}')");
         });
 
-        Scenario("CAKE SUPPLY CHAIN INPUTS (ingredients require finite seed, water, feed, beans and cartons)", () =>
+        Scenario("CAKE SUPPLY CHAIN INPUTS (ingredients require finite seed, water, feed, beans, factory feedstocks and cartons)", () =>
         {
             var cake = new CakeFactoryService { FarmIntensity = 1.0 };
             TickCake(cake, fullBus, 0.5);
@@ -815,16 +829,25 @@ internal static class Program
                                       && Math.Abs(after.CocoaBeansKg - before.CocoaBeansKg) < 0.001;
 
             double waterBeforeSupply = after.IrrigationWaterL;
+            double bakingPowderBeforeSupply = after.BakingPowderKg;
+            double saltBeforeSupply = after.SaltKg;
             string supply = cake.ReceiveSupplies();
             TickCake(cake, fullBus, 0.5);
             var supplied = cake.Snapshot;
             bool supplyTruckAddsInputs = supplied.IrrigationWaterL > waterBeforeSupply
                                          && supplied.PackagingUnits > after.PackagingUnits
-                                         && supplied.CocoaBeansKg > after.CocoaBeansKg;
+                                         && supplied.CocoaBeansKg > after.CocoaBeansKg
+                                         && supplied.BrineL > after.BrineL
+                                         && supplied.SodaAshKg > after.SodaAshKg
+                                         && supplied.PhosphateKg > after.PhosphateKg
+                                         && supplied.StarchKg > after.StarchKg;
+            bool supplyTruckDoesNotMakeFinalIngredients = Math.Abs(supplied.BakingPowderKg - bakingPowderBeforeSupply) < 0.001
+                                                          && Math.Abs(supplied.SaltKg - saltBeforeSupply) < 0.001;
 
-            bool pass = fieldInputsConsumed && livestockInputsConsumed && cocoaDoesNotAppear && supplyTruckAddsInputs;
+            bool pass = fieldInputsConsumed && livestockInputsConsumed && cocoaDoesNotAppear && supplyTruckAddsInputs && supplyTruckDoesNotMakeFinalIngredients;
             return (pass, $"fieldInputsConsumed={fieldInputsConsumed}, livestockInputsConsumed={livestockInputsConsumed}, " +
-                          $"cocoaDoesNotAppear={cocoaDoesNotAppear}, supplyTruckAddsInputs={supplyTruckAddsInputs} ('{Trim(supply)}')");
+                          $"cocoaDoesNotAppear={cocoaDoesNotAppear}, supplyTruckAddsInputs={supplyTruckAddsInputs}, " +
+                          $"supplyTruckDoesNotMakeFinalIngredients={supplyTruckDoesNotMakeFinalIngredients} ('{Trim(supply)}')");
         });
 
         Scenario("CAKE FULL MANUAL BATCH (operator releases every HACCP gate to packaged cakes)", () =>

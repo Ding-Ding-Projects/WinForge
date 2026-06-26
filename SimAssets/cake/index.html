@@ -286,6 +286,29 @@
       gap: 8px;
     }
 
+    .button-grid.single {
+      grid-template-columns: 1fr;
+    }
+
+    .control-bank {
+      display: grid;
+      gap: 6px;
+    }
+
+    .control-bank + .control-bank {
+      padding-top: 2px;
+      border-top: 1px solid #3d362e;
+    }
+
+    .control-bank h3 {
+      margin: 0;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
     button.action {
       min-height: 38px;
       border: 1px solid #605747;
@@ -545,17 +568,37 @@
         <section class="panel">
           <header><span>Operator station</span><span id="gateState">Hold</span></header>
           <div class="panel-body">
-            <div class="button-grid">
-              <button class="action file" type="button" data-action="receiveSupplies">Receive supplies</button>
-              <button class="action" type="button" data-action="harvest">Harvest</button>
-              <button class="action" type="button" data-action="collect">Milk + eggs</button>
-              <button class="action" type="button" data-action="mill">Mill flour</button>
-              <button class="action" type="button" data-action="refine">Refine sugar</button>
-              <button class="action" type="button" data-action="churn">Churn butter</button>
-              <button class="action" type="button" data-action="processCocoa">Roast cocoa</button>
-              <button class="action primary" type="button" data-action="startBatch">Start batch</button>
-              <button class="action primary guard" type="button" data-action="advance">Release step</button>
-              <button class="action danger" type="button" data-action="clean">CIP clean</button>
+            <div class="control-bank">
+              <h3>Receiving</h3>
+              <div class="button-grid single">
+                <button class="action file" type="button" data-action="receiveSupplies">Receive supplies</button>
+              </div>
+            </div>
+            <div class="control-bank">
+              <h3>Farm</h3>
+              <div class="button-grid">
+                <button class="action" type="button" data-action="harvest">Harvest</button>
+                <button class="action" type="button" data-action="collect">Milk + eggs</button>
+              </div>
+            </div>
+            <div class="control-bank">
+              <h3>Ingredient factories</h3>
+              <div class="button-grid">
+                <button class="action" type="button" data-action="mill">Mill flour</button>
+                <button class="action" type="button" data-action="refine">Refine sugar</button>
+                <button class="action" type="button" data-action="churn">Churn butter</button>
+                <button class="action" type="button" data-action="processCocoa">Roast cocoa</button>
+                <button class="action" type="button" data-action="runSaltWorks">Salt works</button>
+                <button class="action" type="button" data-action="runLeaveningPlant">Leavening plant</button>
+              </div>
+            </div>
+            <div class="control-bank">
+              <h3>Bakery line</h3>
+              <div class="button-grid">
+                <button class="action primary" type="button" data-action="startBatch">Start batch</button>
+                <button class="action primary guard" type="button" data-action="advance">Release step</button>
+                <button class="action danger" type="button" data-action="clean">CIP clean</button>
+              </div>
             </div>
             <div id="prompt" class="prompt">Waiting for reactor bus.</div>
             <div id="notice" class="notice"></div>
@@ -667,6 +710,8 @@
       CanChurnButter: false,
       CanReceiveSupplies: false,
       CanProcessCocoa: false,
+      CanRunSaltWorks: false,
+      CanRunLeaveningPlant: false,
       WheatGrowth: 64,
       BeetGrowth: 58,
       PastureHealth: 76,
@@ -685,6 +730,10 @@
       VanillaL: 2.8,
       CocoaBeansKg: 60,
       CocoaKg: 20,
+      BrineL: 900,
+      SodaAshKg: 28,
+      PhosphateKg: 30,
+      StarchKg: 24,
       WheatSeedKg: 18,
       BeetSeedKg: 16,
       IrrigationWaterL: 16000,
@@ -827,6 +876,8 @@
       setButton('churn', s.CanChurnButter);
       setButton('receiveSupplies', s.CanReceiveSupplies);
       setButton('processCocoa', s.CanProcessCocoa);
+      setButton('runSaltWorks', s.CanRunSaltWorks);
+      setButton('runLeaveningPlant', s.CanRunLeaveningPlant);
       setButton('startBatch', s.CanStartBatch);
       setButton('advance', s.CanAdvanceStage);
       setButton('clean', s.CleanEnabled);
@@ -843,7 +894,8 @@
         ['Butter', `${n(s.ButterKg, 1)} kg`],
         ['Vanilla', `${n(s.VanillaL, 2)} L`],
         ['Cocoa', `${n(s.CocoaKg, 1)} kg`],
-        ['Leavening + salt', `${n((s.BakingPowderKg || 0) + (s.SaltKg || 0), 1)} kg`],
+        ['Baking powder', `${n(s.BakingPowderKg, 1)} kg`],
+        ['Salt', `${n(s.SaltKg, 1)} kg`],
         ['Batter in system', `${n(s.BatterKg, 1)} kg`],
         ['Rejects', `${s.CakesRejected || 0}`]
       ];
@@ -857,6 +909,10 @@
         ['Beet seed', `${n(s.BeetSeedKg, 1)} kg`],
         ['Animal feed', `${n(s.AnimalFeedKg, 1)} kg`],
         ['Cocoa beans', `${n(s.CocoaBeansKg, 1)} kg`],
+        ['Brine', `${n(s.BrineL, 0)} L`],
+        ['Soda ash', `${n(s.SodaAshKg, 1)} kg`],
+        ['Phosphate', `${n(s.PhosphateKg, 1)} kg`],
+        ['Starch carrier', `${n(s.StarchKg, 1)} kg`],
         ['Cartons + labels', `${n(s.PackagingUnits, 0)}`]
       ];
       document.getElementById('resourceRows').innerHTML =
@@ -1021,13 +1077,17 @@
       wheel(tx + 44, 330, 12);
       line(tx + 58, 316, tx + 103, 300, '#d4e7ff', 2, s.PowerAvailability);
 
-      rr(58, 530, 312, 92, 8, '#232621', '#5a6b4d');
-      text('INPUT YARD', 76, 554, 13, '#dceecb', 900);
-      text(`Water ${n(s.IrrigationWaterL, 0)} L`, 76, 576, 12, '#d9f0ff', 800);
-      text(`Seed ${n((s.WheatSeedKg || 0) + (s.BeetSeedKg || 0), 1)} kg`, 76, 598, 12, '#e6ddb6', 800);
-      text(`Feed ${n(s.AnimalFeedKg, 0)} kg`, 230, 576, 12, '#f1d19c', 800);
-      text(`Fertilizer ${n(s.FertilizerKg, 0)} kg`, 230, 598, 12, '#c8efb2', 800);
-      text(s.ResourceStatus || 'Inputs stocked', 76, 618, 12, '#ffe1a1', 800);
+      rr(58, 520, 342, 120, 8, '#232621', '#5a6b4d');
+      text('INPUT YARD', 76, 544, 13, '#dceecb', 900);
+      text(`Water ${n(s.IrrigationWaterL, 0)} L`, 76, 566, 12, '#d9f0ff', 800);
+      text(`Seed ${n((s.WheatSeedKg || 0) + (s.BeetSeedKg || 0), 1)} kg`, 76, 588, 12, '#e6ddb6', 800);
+      text(`Feed ${n(s.AnimalFeedKg, 0)} kg`, 198, 566, 12, '#f1d19c', 800);
+      text(`Fertilizer ${n(s.FertilizerKg, 0)} kg`, 198, 588, 12, '#c8efb2', 800);
+      drawMiniPlant(305, 540, 'SALT', s.CanRunSaltWorks ? '#78c7dd' : '#69716f');
+      drawMiniPlant(305, 588, 'LEAVEN', s.CanRunLeaveningPlant ? '#e8b75d' : '#69716f');
+      text(`Brine ${n(s.BrineL, 0)} L`, 76, 612, 12, '#d9f0ff', 800);
+      text(`Minerals ${n((s.SodaAshKg || 0) + (s.PhosphateKg || 0) + (s.StarchKg || 0), 1)} kg`, 198, 612, 12, '#ffe1a1', 800);
+      text(s.ResourceStatus || 'Inputs stocked', 76, 632, 12, '#ffe1a1', 800);
 
       drawTruck(412, 545, s.ConveyorPhase);
       line(470, 556, 610, 556, '#80bc74', 4, 0.9);
@@ -1072,6 +1132,14 @@
       ctx.stroke();
       rr(x + 10, y + 12, 32, 24, 3, fill);
       text(label, x - 4, y + 92, 12, '#dfe5e8', 800);
+    }
+
+    function drawMiniPlant(x, y, label, accent) {
+      rr(x, y, 72, 34, 5, '#30383a', accent);
+      rr(x + 8, y - 8, 14, 16, 3, '#556165', '#8f9aa4');
+      rr(x + 42, y - 5, 14, 13, 3, '#556165', '#8f9aa4');
+      line(x + 22, y + 8, x + 42, y + 8, '#b7c5c9', 2, 0.85);
+      text(label, x + 9, y + 23, 10, '#f4eee4', 900);
     }
 
     function drawMill(x, y, s) {

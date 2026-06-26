@@ -66,6 +66,8 @@ public sealed class CakeFactorySnapshot
     public bool CanChurnButter { get; init; }
     public bool CanReceiveSupplies { get; init; }
     public bool CanProcessCocoa { get; init; }
+    public bool CanRunSaltWorks { get; init; }
+    public bool CanRunLeaveningPlant { get; init; }
     public double WheatGrowth { get; init; }
     public double BeetGrowth { get; init; }
     public double PastureHealth { get; init; }
@@ -84,6 +86,10 @@ public sealed class CakeFactorySnapshot
     public double VanillaL { get; init; }
     public double CocoaBeansKg { get; init; }
     public double CocoaKg { get; init; }
+    public double BrineL { get; init; }
+    public double SodaAshKg { get; init; }
+    public double PhosphateKg { get; init; }
+    public double StarchKg { get; init; }
     public double WheatSeedKg { get; init; }
     public double BeetSeedKg { get; init; }
     public double IrrigationWaterL { get; init; }
@@ -159,6 +165,10 @@ public sealed class CakeFactoryService
     private double _vanillaL = 2.8;
     private double _cocoaBeansKg = 60;
     private double _cocoaKg = 20;
+    private double _brineL = 900;
+    private double _sodaAshKg = 28;
+    private double _phosphateKg = 30;
+    private double _starchKg = 24;
     private double _wheatSeedKg = 18;
     private double _beetSeedKg = 16;
     private double _irrigationWaterL = 16000;
@@ -282,11 +292,13 @@ public sealed class CakeFactoryService
         _irrigationWaterL += 24000;
         _fertilizerKg += 150;
         _animalFeedKg += 640;
-        _bakingPowderKg += 12;
-        _saltKg += 16;
+        _brineL += 1600;
+        _sodaAshKg += 42;
+        _phosphateKg += 48;
+        _starchKg += 36;
         _packagingUnits += 180;
         _cocoaBeansKg += 90;
-        return "Received audited supplies: seed, irrigation water, fertilizer, animal feed, leavening, salt, cartons and cocoa beans.";
+        return "Received audited supplies: seed, irrigation water, fertilizer, animal feed, brine, soda ash, phosphate, starch, cartons and cocoa beans.";
     }
 
     public string ProcessCocoa()
@@ -302,6 +314,45 @@ public sealed class CakeFactoryService
         _cocoaKg += beans * 0.78;
         _wasteKg += beans * 0.05;
         return $"Roasted and ground {beans:0} kg cocoa beans into {beans * 0.78:0.0} kg cocoa.";
+    }
+
+    public string RunSaltWorks()
+    {
+        if (_lastPowerAvailability < 0.2)
+            return "Salt evaporator and crystallizer need reactor power.";
+
+        double brine = Math.Min(_brineL, 600);
+        if (brine < 80)
+            return "Not enough brine is available for a salt works run.";
+
+        _brineL -= brine;
+        double salt = brine * 0.026;
+        _saltKg += salt;
+        _wasteKg += brine * 0.001;
+        return $"Evaporated {brine:0} L brine into {salt:0.0} kg baking-grade salt.";
+    }
+
+    public string RunLeaveningPlant()
+    {
+        if (_lastPowerAvailability < 0.2)
+            return "Leavening plant blender needs reactor power.";
+
+        if (_sodaAshKg < 3 || _phosphateKg < 3 || _starchKg < 2)
+            return "Not enough soda ash, phosphate and starch are available for baking powder.";
+
+        double scale = Math.Min(Math.Min(_sodaAshKg / 18.0, _phosphateKg / 18.0), _starchKg / 12.0);
+        scale = Math.Min(1.0, scale);
+        double soda = 18.0 * scale;
+        double phosphate = 18.0 * scale;
+        double starch = 12.0 * scale;
+        double input = soda + phosphate + starch;
+
+        _sodaAshKg -= soda;
+        _phosphateKg -= phosphate;
+        _starchKg -= starch;
+        _bakingPowderKg += input * 0.92;
+        _wasteKg += input * 0.02;
+        return $"Blended {input * 0.92:0.0} kg baking powder from soda ash, phosphate and starch.";
     }
 
     public void StartClean()
@@ -446,6 +497,8 @@ public sealed class CakeFactoryService
             CanChurnButter = power >= 0.2 && _milkL > 35,
             CanReceiveSupplies = power >= 0.1,
             CanProcessCocoa = power >= 0.2 && _cocoaBeansKg >= 5,
+            CanRunSaltWorks = power >= 0.2 && _brineL >= 80,
+            CanRunLeaveningPlant = power >= 0.2 && _sodaAshKg >= 3 && _phosphateKg >= 3 && _starchKg >= 2,
             WheatGrowth = _wheatGrowth,
             BeetGrowth = _beetGrowth,
             PastureHealth = _pastureHealth,
@@ -464,6 +517,10 @@ public sealed class CakeFactoryService
             VanillaL = _vanillaL,
             CocoaBeansKg = _cocoaBeansKg,
             CocoaKg = _cocoaKg,
+            BrineL = _brineL,
+            SodaAshKg = _sodaAshKg,
+            PhosphateKg = _phosphateKg,
+            StarchKg = _starchKg,
             WheatSeedKg = _wheatSeedKg,
             BeetSeedKg = _beetSeedKg,
             IrrigationWaterL = _irrigationWaterL,
@@ -737,6 +794,10 @@ public sealed class CakeFactoryService
         if (_animalFeedKg < 20) low.Add("feed");
         if (_packagingUnits < CurrentRecipe.BatchSize) low.Add("cartons");
         if (_cocoaBeansKg < 5 && _cocoaKg < CurrentRecipe.CocoaKg * CurrentRecipe.BatchSize) low.Add("cocoa beans");
+        if (_brineL < 80 && _saltKg < CurrentRecipe.SaltKg * CurrentRecipe.BatchSize) low.Add("brine");
+        if ((_sodaAshKg < 3 || _phosphateKg < 3 || _starchKg < 2)
+            && _bakingPowderKg < CurrentRecipe.BakingPowderKg * CurrentRecipe.BatchSize)
+            low.Add("leavening feedstocks");
         return low.Count == 0 ? "Inputs stocked" : "Low: " + string.Join(", ", low);
     }
 
