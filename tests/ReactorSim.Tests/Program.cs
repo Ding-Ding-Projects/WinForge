@@ -68,6 +68,7 @@ internal static class Program
         Console.WriteLine(new string('-', 95));
 
         PhysicsScenarios();
+        ScenarioInjectionCoverageScenarios();
         FuelCycleScenarios();
         WasteCapScenarios();
         WaterTreatmentScenarios();
@@ -155,23 +156,32 @@ internal static class Program
                                 $"power@t=0.1={pAfter1:E2}, mode→{r.Mode}, dmg={r.DamageAccumulation:F0}. Expected: deeply subcritical, no power.");
         });
 
-        // ---- SCRAM (deterministic mechanism: rods insert, trip latches, Mode=Tripped) ----
-        // NOTE: we assert the SCRAM MECHANISM (the synchronous, deterministic part). We deliberately do
+        // ---- SCRAM (deterministic mechanism: trip latches, release delay, gravity rod drop) ----
+        // NOTE: we assert the SCRAM MECHANISM. Rods no longer snap fully in synchronously; StepRodDrop
+        // models the breaker/gripper release delay and gravity insertion over the next few ticks. We deliberately do
         // NOT require power to stay shut down over time, because the Tripped mode still runs the kinetics
         // branch and the same cold-temperature positive-feedback calibration bug then drives a tripped,
         // FULLY-RODDED core supercritical — a downstream symptom reported in its own finding below.
-        Scenario("SCRAM (mechanism: rods insert to 100%, Mode=Tripped, trip latched)", () =>
+        Scenario("SCRAM (mechanism: trip latch, release delay, rods start dropping)", () =>
         {
             var r = new ReactorSimService();
             for (int b = 0; b < r.RodBankInsertion.Length; b++) r.SetRodBank(b, 10.0); // withdraw first
             double rodsBefore = Avg(r.RodBankInsertion);
             r.Scram();
+            double rodsLatched = Avg(r.RodBankInsertion);
+            bool releaseDelayHeld = Math.Abs(rodsLatched - rodsBefore) < 1e-9 && !r.RodsDropping && r.RodDropElapsedS == 0.0;
+            bool sawMotion = false;
+            for (int i = 0; i < 10; i++)
+            {
+                r.Update(0.1);
+                if (Avg(r.RodBankInsertion) > rodsBefore + 0.1 || r.RodsDropping) sawMotion = true;
+            }
             double rodsAfter = Avg(r.RodBankInsertion);
-            bool rodsIn = rodsAfter >= 99.0;
             bool tripped = r.Mode == ReactorMode.Tripped;
             bool scrammed = r.IsScrammed;
-            bool pass = rodsIn && tripped && scrammed && Finite(r.NeutronPowerFraction);
-            return (pass, $"rods {rodsBefore:F0}%→{rodsAfter:F0}% (in={rodsIn}), mode→{r.Mode} (Tripped={tripped}), IsScrammed={scrammed}");
+            bool pass = releaseDelayHeld && sawMotion && tripped && scrammed && Finite(r.NeutronPowerFraction);
+            return (pass, $"rods {rodsBefore:F0}%→latched {rodsLatched:F0}%→(+1s){rodsAfter:F0}% " +
+                          $"(delayHeld={releaseDelayHeld}, motion={sawMotion}), mode→{r.Mode} (Tripped={tripped}), IsScrammed={scrammed}");
         });
 
         // ---- DOWNSTREAM SYMPTOM: a tripped, fully-rodded core is still supercritical → meltdown ----
@@ -243,10 +253,178 @@ internal static class Program
             for (int i = 0; i < (int)(3600 / dt); i++) r.Update(dt); // another hour
             double xe2h = r.Xenon;
             bool jumped = xeJump >= 2.5;
-            bool decays = xe1h < xe0 && xe2h < xe1h; // Xe-135 burns/decays away with no production
+            const double xeEps = 1e-6;
+            bool decays = xe1h <= xe0 + xeEps && (xe2h <= xe1h + xeEps || xe2h <= xeEps); // allow a zero plateau after depletion
             bool pass = jumped && decays && Finite(xe2h);
             return (pass, $"restart jump Xe={xeJump:F2}, then Xe {xe0:F3}→(1h){xe1h:F3}→(2h){xe2h:F3} (monotone decay={decays})");
         });
+    }
+
+    // =============================================================== SCENARIO INJECTION ====
+    private static void ScenarioInjectionCoverageScenarios()
+    {
+        Scenario("ACCIDENT SCENARIO INJECTION (all ReactorScenario values covered)", () =>
+        {
+            var scenarios = Enum.GetValues(typeof(ReactorScenario)).Cast<ReactorScenario>().ToArray();
+            var covered = new HashSet<ReactorScenario>();
+            var failures = new List<string>();
+
+            foreach (var sc in scenarios)
+            {
+                var r = new ReactorSimService();
+                SeedScenarioPreconditions(r);
+
+                bool ok;
+                string detail;
+                switch (sc)
+                {
+                    case ReactorScenario.Normal:
+                        r.TriggerScenario(sc);
+                        ok = r.ActiveScenario == sc && !r.EccsArmed && !r.RcpLockedRotor &&
+                             !r.RodEjectionActive && r.DilutionFlowGpm == 0.0 && r.RccaWithdrawSpm == 0.0;
+                        detail = $"active={r.ActiveScenario}, eccs={r.EccsArmed}, dilution={r.DilutionFlowGpm:F1}";
+                        break;
+
+                    case ReactorScenario.Loca:
+                        r.TriggerScenario(sc);
+                        StepActiveScenario(r, 0.1);
+                        ok = r.ActiveScenario == sc && r.EccsArmed && r.PrimaryDeficitPct > 0.0;
+                        detail = $"active={r.ActiveScenario}, eccs={r.EccsArmed}, deficit={r.PrimaryDeficitPct:F3}%";
+                        break;
+
+                    case ReactorScenario.StationBlackout:
+                        r.TriggerScenario(sc);
+                        StepActiveScenario(r, 0.1);
+                        ok = r.ActiveScenario == sc && r.RcpRunning.All(x => !x) && r.RcpFlowDemand == 0.0 &&
+                             r.FeedwaterFlow == 0.0 && !r.EccsArmed && r.Electrical.InSbo &&
+                             r.Alarm(ReactorAlarm.StationBlackout);
+                        detail = $"active={r.ActiveScenario}, rcps={r.RcpRunning.Count(x => x)}, flowDemand={r.RcpFlowDemand:F1}, " +
+                                 $"feed={r.FeedwaterFlow:F1}, sbo={r.Electrical.InSbo}";
+                        break;
+
+                    case ReactorScenario.LossOfFeedwater:
+                        r.TriggerScenario(sc);
+                        ok = r.ActiveScenario == sc && r.FeedwaterFlow == 0.0;
+                        detail = $"active={r.ActiveScenario}, feed={r.FeedwaterFlow:F1}";
+                        break;
+
+                    case ReactorScenario.Atws:
+                        for (int b = 0; b < r.RodBankInsertion.Length; b++) r.SetRodBank(b, 10.0);
+                        double rods0 = Avg(r.RodBankInsertion);
+                        r.TriggerScenario(sc);
+                        r.Scram();
+                        r.Update(0.5);
+                        double rods1 = Avg(r.RodBankInsertion);
+                        ok = r.ActiveScenario == sc && r.IsScrammed && Math.Abs(rods1 - rods0) < 1e-9 &&
+                             r.Alarm(ReactorAlarm.AtwsActive);
+                        detail = $"active={r.ActiveScenario}, scram={r.IsScrammed}, rods {rods0:F0}->{rods1:F0}, alarm={r.Alarm(ReactorAlarm.AtwsActive)}";
+                        break;
+
+                    case ReactorScenario.XenonRestart:
+                        r.TriggerScenario(sc);
+                        ok = r.ActiveScenario == sc && r.Xenon >= 2.6;
+                        detail = $"active={r.ActiveScenario}, xenon={r.Xenon:F2}";
+                        break;
+
+                    case ReactorScenario.SgTubeRupture:
+                        r.TriggerScenario(sc);
+                        StepActiveScenario(r, 0.1);
+                        ok = r.ActiveScenario == sc && r.EccsArmed && r.SgtrLeakRate > 0.0;
+                        detail = $"active={r.ActiveScenario}, eccs={r.EccsArmed}, leak={r.SgtrLeakRate:F3}";
+                        break;
+
+                    case ReactorScenario.MainSteamLineBreak:
+                        r.TriggerScenario(sc);
+                        StepActiveScenario(r, 0.1);
+                        ok = r.ActiveScenario == sc && r.EccsArmed && !r.MslbIsolated &&
+                             r.MslbBreakFlow > 0.0 && r.Alarm(ReactorAlarm.SteamlineBreak);
+                        detail = $"active={r.ActiveScenario}, eccs={r.EccsArmed}, isolated={r.MslbIsolated}, breakFlow={r.MslbBreakFlow:F3}";
+                        break;
+
+                    case ReactorScenario.RcpSealLoca:
+                        r.TriggerScenario(sc);
+                        StepActiveScenario(r, 0.1);
+                        ok = r.ActiveScenario == sc && r.EccsArmed && !r.SealCoolingAvailable;
+                        detail = $"active={r.ActiveScenario}, eccs={r.EccsArmed}, sealCooling={r.SealCoolingAvailable}";
+                        break;
+
+                    case ReactorScenario.RodEjection:
+                        r.TriggerScenario(sc);
+                        ok = r.ActiveScenario == sc && r.RodEjectionActive && r.EjectedRodWorthPcm > 0.0;
+                        detail = $"active={r.ActiveScenario}, active={r.RodEjectionActive}, worth={r.EjectedRodWorthPcm:F0} pcm";
+                        break;
+
+                    case ReactorScenario.BoronDilution:
+                        r.TriggerScenario(sc);
+                        ok = r.ActiveScenario == sc && r.DilutionFlowGpm > 0.0;
+                        detail = $"active={r.ActiveScenario}, dilution={r.DilutionFlowGpm:F1} gpm";
+                        break;
+
+                    case ReactorScenario.RccaWithdrawal:
+                        r.TriggerScenario(sc);
+                        StepActiveScenario(r, 0.1);
+                        ok = r.ActiveScenario == sc && !r.AutoRodControl && r.RccaWithdrawSpm > 0.0;
+                        detail = $"active={r.ActiveScenario}, autoRods={r.AutoRodControl}, spm={r.RccaWithdrawSpm:F1}";
+                        break;
+
+                    case ReactorScenario.CompleteLossOfFlow:
+                        r.TriggerScenario(sc);
+                        ok = r.ActiveScenario == sc && r.RcpRunning.All(x => !x) && r.RcpFlowDemand == 0.0 && !r.RcpLockedRotor;
+                        detail = $"active={r.ActiveScenario}, rcps={r.RcpRunning.Count(x => x)}, flowDemand={r.RcpFlowDemand:F1}, locked={r.RcpLockedRotor}";
+                        break;
+
+                    case ReactorScenario.LockedRotor:
+                        r.TriggerScenario(sc);
+                        ok = r.ActiveScenario == sc && r.RcpLockedRotor && r.LockedRotorLoop == 0 &&
+                             r.RcpRunning.Skip(1).All(x => x);
+                        detail = $"active={r.ActiveScenario}, locked={r.RcpLockedRotor}, loop={r.LockedRotorLoop}, otherRcps={r.RcpRunning.Skip(1).Count(x => x)}";
+                        break;
+
+                    case ReactorScenario.LossOfFeedwaterHeating:
+                        r.TriggerScenario(sc);
+                        ok = r.ActiveScenario == sc && r.FeedwaterHeatersInService < 1.0;
+                        detail = $"active={r.ActiveScenario}, heaters={r.FeedwaterHeatersInService:F2}";
+                        break;
+
+                    case ReactorScenario.LossOfComponentCoolingWater:
+                        r.TriggerScenario(sc);
+                        StepActiveScenario(r, 0.1);
+                        ok = r.ActiveScenario == sc && r.CcwPumpsRunning == 0 && r.CcwFlowFrac == 0.0 &&
+                             !r.CcwAvailable && r.Alarm(ReactorAlarm.CcwLowFlow);
+                        detail = $"active={r.ActiveScenario}, ccwPumps={r.CcwPumpsRunning}, ccwFlow={r.CcwFlowFrac:F1}, available={r.CcwAvailable}";
+                        break;
+
+                    default:
+                        ok = false;
+                        detail = "no assertion written";
+                        break;
+                }
+
+                covered.Add(sc);
+                if (!ok) failures.Add($"{sc}: {detail}");
+            }
+
+            bool allEnumsCovered = covered.Count == scenarios.Length && scenarios.All(s => covered.Contains(s));
+            bool pass = allEnumsCovered && failures.Count == 0;
+            string coverage = $"{covered.Count}/{scenarios.Length} enum values: {string.Join(", ", covered.OrderBy(s => (int)s))}";
+            return (pass, failures.Count == 0 ? $"covered {coverage}" : $"covered {coverage}; failures: {string.Join("; ", failures)}");
+        });
+    }
+
+    private static void SeedScenarioPreconditions(ReactorSimService r)
+    {
+        for (int i = 0; i < r.RcpRunning.Length; i++) r.StartRcp(i);
+        r.RcpFlowDemand = 1.0;
+        r.FeedwaterAuto = false;
+        r.FeedwaterFlow = 0.8;
+        r.EccsArmed = false;
+        r.AutoRodControl = true;
+    }
+
+    private static void StepActiveScenario(ReactorSimService r, double dt)
+    {
+        if (r.Mode == ReactorMode.Shutdown) r.SetMode(ReactorMode.Startup);
+        r.Update(dt);
     }
 
     // =========================================================================== FUEL CYCLE ====

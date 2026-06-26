@@ -39,7 +39,7 @@ The reactor physics/services run headless via a console harness (no WinUI):
 ```bash
 dotnet run --project tests/ReactorSim.Tests -c Debug
 ```
-Prints a per-scenario PASS/FAIL table (currently 13/15). Use this for PRs that touch reactor internals — far faster than launching the GUI.
+Prints a per-scenario PASS/FAIL table (currently 16/16). Use this for PRs that touch reactor internals — far faster than launching the GUI.
 
 ## Run (human path)
 `WinForge.exe` with no args opens the Dashboard and waits — useless headless, and the plain Debug exe needs the self-contained publish first. Use the driver instead.

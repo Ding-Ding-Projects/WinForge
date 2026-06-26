@@ -33,13 +33,19 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Using Include="System.Collections.Generic" />
+
     <!-- The local test harness sources. -->
     <Compile Include="Program.cs" />
 
     <!-- Linked PURE engine / service sources from the main repo (no WinUI types in any of these). -->
+    <Compile Include="..\..\Models\Core.cs"                    Link="Engine\Core.cs" />
+    <Compile Include="..\..\Services\Loc.cs"                   Link="Engine\Loc.cs" />
     <Compile Include="..\..\Services\ReactorSimService.cs"      Link="Engine\ReactorSimService.cs" />
     <Compile Include="..\..\Services\ReactorRps.cs"             Link="Engine\ReactorRps.cs" />
     <Compile Include="..\..\Services\ReactorScenarios.cs"       Link="Engine\ReactorScenarios.cs" />
+    <Compile Include="..\..\Services\ReactorElectrical.cs"      Link="Engine\ReactorElectrical.cs" />
+    <Compile Include="..\..\Services\ReactorReactivityMeter.cs" Link="Engine\ReactorReactivityMeter.cs" />
     <Compile Include="..\..\Services\FuelFactoryService.cs"     Link="Engine\FuelFactoryService.cs" />
     <Compile Include="..\..\Services\NuclearWasteService.cs"    Link="Engine\NuclearWasteService.cs" />
     <Compile Include="..\..\Services\WaterTreatmentService.cs"  Link="Engine\WaterTreatmentService.cs" />

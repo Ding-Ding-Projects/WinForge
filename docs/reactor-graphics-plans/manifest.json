@@ -1,0 +1,23 @@
+{
+  "created_utc": "2026-06-26T06:00:06.371396Z",
+  "project": "WinForge reactor graphics planning pack",
+  "file_count": 14,
+  "target_repo_path": "docs/reactor-graphics-plans/",
+  "safety_boundary": "educational fictional simulator graphics only; no real setpoints, procedures, security layouts, or plant identifiers",
+  "files": [
+    "00_README_REACTOR_GRAPHICS_PLAN_PACK.md",
+    "01_PLANT_MIMIC_GRAPHICS_PLAN.md",
+    "02_CONTROL_ROOM_UI_GRAPHICS_PLAN.md",
+    "03_FACILITY_WALKTHROUGH_MAPS_PLAN.md",
+    "04_SAFETY_SYSTEMS_GRAPHICS_PLAN.md",
+    "05_INSTRUMENTATION_ALARMS_TRENDS_PLAN.md",
+    "06_SCENARIO_TRAINING_GRAPHICS_PLAN.md",
+    "07_REACTOR_PHYSICS_VISUALS_PLAN.md",
+    "08_FUEL_WASTE_WATER_CYCLE_GRAPHICS_PLAN.md",
+    "09_GRAPHICS_GENERATOR_PIPELINE_PLAN.md",
+    "10_BILINGUAL_LABELING_STYLE_GUIDE.md",
+    "11_GRAPHICS_BACKLOG_AND_ISSUES.md",
+    "12_REGULATORY_REALISM_REFERENCE_MAP.md",
+    "13_REACTOR_REALISM_GAP_FILL_PLAN.md"
+  ]
+}

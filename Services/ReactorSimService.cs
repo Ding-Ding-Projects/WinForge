@@ -2438,7 +2438,10 @@ public sealed class ReactorSimService
                 _rodsFailToInsert = true;  // rods latched but will not move on demand
                 break;
             case ReactorScenario.XenonRestart:
-                Xenon = Math.Max(Xenon, 2.6); // jump to a post-trip xenon peak (iodine pit)
+                double xePeak = Math.Max(Xenon, 2.6); // jump to a post-trip xenon peak (iodine pit)
+                Xenon = xePeak;
+                _xenonTop = Math.Max(_xenonTop, xePeak);
+                _xenonBot = Math.Max(_xenonBot, xePeak);
                 _pm = Math.Max(_pm, 1.8371);  // promethium reservoir (= full-power Pm equilibrium) from prior operation
                 _sm = Math.Max(_sm, 1.3);     // partial samarium build-in (dead-time band) atop the xenon pit
                 break;
