@@ -923,6 +923,67 @@ internal static class Program
                           $"releasedFertilizerConsumed={releasedFertilizerConsumed} ({released.FertilizerKg:F1}->{worked.FertilizerKg:F1} kg, wheat {released.WheatGrowth:F1}->{worked.WheatGrowth:F1}%)");
         });
 
+        Scenario("CAKE BEDDING PLANT (livestock bedding is made from straw before barns consume it)", () =>
+        {
+            var cake = new CakeFactoryService { FarmIntensity = 0 };
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            string start = cake.RunBeddingPlant();
+            TickCake(cake, fullBus, 1.0);
+            var running = cake.Snapshot;
+            TickCake(cake, fullBus, 6.5);
+            var held = cake.Snapshot;
+
+            bool startConsumesInputs = before.CanRunBeddingPlant
+                                       && start.Contains("bedding", StringComparison.OrdinalIgnoreCase)
+                                       && running.FactoryRunActive
+                                       && running.ActiveFactoryName.Contains("bedding", StringComparison.OrdinalIgnoreCase)
+                                       && running.StrawKg < before.StrawKg
+                                       && running.BranKg < before.BranKg
+                                       && Math.Abs(running.BeddingKg - before.BeddingKg) < 0.001
+                                       && running.ProcessWaterL < before.ProcessWaterL
+                                       && running.CompressedAirNm3 < before.CompressedAirNm3
+                                       && running.FilterMediaPct < before.FilterMediaPct;
+            bool completionHeldForLab = !held.FactoryRunActive
+                                        && held.BeddingKg > before.BeddingKg
+                                        && held.BeddingLotId.StartsWith("BEDDING-", StringComparison.OrdinalIgnoreCase)
+                                        && held.BeddingLotId != before.BeddingLotId
+                                        && held.PendingLabLotId == held.BeddingLotId
+                                        && held.PendingLabProductName.Contains("bedding", StringComparison.OrdinalIgnoreCase)
+                                        && held.BeddingChopperRpm > 0
+                                        && held.BeddingMoisturePct > 0
+                                        && held.BeddingDustPct > 0;
+
+            cake.FarmIntensity = 1.0;
+            TickCake(cake, fullBus, 45);
+            var blocked = cake.Snapshot;
+            bool unreleasedBeddingBlocked = Math.Abs(blocked.BeddingKg - held.BeddingKg) < 0.001
+                                            && blocked.MilkProductionLPerHour <= 0.001
+                                            && blocked.EggProductionPerHour <= 0.001
+                                            && (blocked.MilkSourceStatus.Contains("bedding lot", StringComparison.OrdinalIgnoreCase)
+                                                || blocked.EggSourceStatus.Contains("bedding lot", StringComparison.OrdinalIgnoreCase));
+
+            string release = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var released = cake.Snapshot;
+            TickCake(cake, fullBus, 45);
+            var used = cake.Snapshot;
+
+            bool releaseClearsHold = released.PendingLabLotId.Length == 0
+                                     && release.Contains("released", StringComparison.OrdinalIgnoreCase);
+            bool releasedBeddingConsumed = used.BeddingKg < released.BeddingKg
+                                           && used.MilkProductionLPerHour > 0
+                                           && used.EggProductionPerHour > 0
+                                           && used.MilkSourceStatus.Contains(released.BeddingLotId, StringComparison.OrdinalIgnoreCase);
+
+            bool pass = startConsumesInputs && completionHeldForLab && unreleasedBeddingBlocked && releaseClearsHold && releasedBeddingConsumed;
+            return (pass, $"startConsumesInputs={startConsumesInputs} ('{Trim(start)}'), completionHeldForLab={completionHeldForLab} " +
+                          $"(bedding {before.BeddingKg:F1}->{held.BeddingKg:F1} kg, lot {held.BeddingLotId}, straw {before.StrawKg:F1}->{held.StrawKg:F1} kg), " +
+                          $"unreleasedBeddingBlocked={unreleasedBeddingBlocked}, releaseClearsHold={releaseClearsHold} ('{Trim(release)}'), " +
+                          $"releasedBeddingConsumed={releasedBeddingConsumed} ({released.BeddingKg:F1}->{used.BeddingKg:F1} kg)");
+        });
+
         Scenario("CAKE POULTRY PROVENANCE (eggs come from hens consuming feed, water, bedding and labor)", () =>
         {
             var cake = new CakeFactoryService { FarmIntensity = 1.0 };
@@ -1580,6 +1641,7 @@ internal static class Program
             double waterBeforeSupply = after.IrrigationWaterL;
             double fertilizerBeforeSupply = after.FertilizerKg;
             double feedBeforeSupply = after.AnimalFeedKg;
+            double beddingBeforeSupply = after.BeddingKg;
             double bakingPowderBeforeSupply = after.BakingPowderKg;
             double saltBeforeSupply = after.SaltKg;
             double cartonsBeforeSupply = after.PackagingUnits;
@@ -1588,6 +1650,7 @@ internal static class Program
             TickCake(cake, fullBus, 0.5);
             var supplied = cake.Snapshot;
             bool supplyTruckAddsInputs = supplied.IrrigationWaterL > waterBeforeSupply
+                                         && supplied.StrawKg > after.StrawKg
                                          && supplied.PaperboardKg > after.PaperboardKg
                                          && supplied.LabelStockM > after.LabelStockM
                                          && supplied.PackagingInkL > after.PackagingInkL
@@ -1605,6 +1668,7 @@ internal static class Program
                                                           && Math.Abs(supplied.SaltKg - saltBeforeSupply) < 0.001
                                                           && Math.Abs(supplied.PackagingUnits - cartonsBeforeSupply) < 0.001
                                                           && supplied.FertilizerKg <= fertilizerBeforeSupply + 0.001
+                                                          && supplied.BeddingKg <= beddingBeforeSupply + 0.001
                                                           && supplied.AnimalFeedKg <= feedBeforeSupply + 0.001;
 
             bool pass = fieldInputsConsumed && livestockInputsConsumed && cocoaDoesNotAppear && supplyTruckAddsInputs && supplyTruckDoesNotMakeFinalIngredients;

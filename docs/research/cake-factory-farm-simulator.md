@@ -10,6 +10,7 @@ This note records the research inputs used for `Pages/CakeFactoryModule` and `Se
 - Milk and butter come from dairy. The simulator models pasture health, milk collection, butter churning from milk, and separate milk/butter inventories.
 - Poultry feed is not treated as an infinite finished input. The simulator models a feed mill that converts grain, starch carrier, mineral premix and bakery byproducts into a QA-released feed lot before hens can consume it.
 - Crop fertilizer is not treated as a finished supplier input. The simulator models a compost plant that converts dairy manure, poultry manure and factory organics into a QA-released fertilizer lot before fields can consume it.
+- Livestock bedding is not treated as a finished supplier input. The simulator models straw from wheat harvest or receiving, then a bedding chopper/dust extractor that makes a QA-released bedding lot before cows or hens can consume it.
 - Vanilla and cocoa are flavoring inputs. Vanilla is represented as a greenhouse crop because commercial vanilla requires managed flowering, pollination/curing, and a long supply chain; cocoa is modeled as a small greenhouse/import crop inventory.
 - Baking powder and salt are not farm outputs, so they are represented as factory-made outputs from mineral/dry-store feedstocks.
 - Decorating icing is not a field crop or automatic line effect. It is represented as a prepared factory lot made from released sugar, butter, cow milk, vanilla and cocoa when required.
