@@ -980,6 +980,46 @@ internal static class Program
                           $"serviceConsumedUtilities={serviceConsumedUtilities} ('{Trim(service)}')");
         });
 
+        Scenario("CAKE FACTORY BYPRODUCT HANDLING (plants make residual streams that must be hauled or treated)", () =>
+        {
+            var cake = new CakeFactoryService();
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            string mill = cake.MillWheat();
+            TickCake(cake, fullBus, 8.5);
+            var afterRun = cake.Snapshot;
+
+            double feedBefore = afterRun.AnimalFeedKg;
+            double cashBefore = afterRun.CashBalance;
+            string haul = cake.HaulFactoryByproducts();
+            TickCake(cake, fullBus, 0.5);
+            var afterHaul = cake.Snapshot;
+
+            double effluentBefore = afterHaul.FactoryEffluentL;
+            double airBefore = afterHaul.CompressedAirNm3;
+            double waterBefore = afterHaul.IrrigationWaterL;
+            string treat = cake.TreatFactoryEffluent();
+            TickCake(cake, fullBus, 0.5);
+            var afterTreat = cake.Snapshot;
+
+            bool byproductsCreated = afterRun.BranKg > before.BranKg
+                                     && afterRun.FactoryEffluentL > before.FactoryEffluentL
+                                     && afterRun.WasteHandlingStatus.Contains("bran", StringComparison.OrdinalIgnoreCase);
+            bool handlingAvailable = afterRun.CanHaulByproducts && afterRun.CanTreatFactoryEffluent;
+            bool haulWorks = afterHaul.ByproductStoragePct < afterRun.ByproductStoragePct
+                             && afterHaul.AnimalFeedKg > feedBefore
+                             && afterHaul.CashBalance > cashBefore
+                             && haul.Contains("Hauled", StringComparison.OrdinalIgnoreCase);
+            bool treatmentWorks = afterTreat.FactoryEffluentL < effluentBefore
+                                  && afterTreat.CompressedAirNm3 < airBefore
+                                  && afterTreat.IrrigationWaterL > waterBefore
+                                  && treat.Contains("Treated", StringComparison.OrdinalIgnoreCase);
+            bool pass = byproductsCreated && handlingAvailable && haulWorks && treatmentWorks;
+            return (pass, $"byproductsCreated={byproductsCreated} after '{Trim(mill)}', handlingAvailable={handlingAvailable}, " +
+                          $"haulWorks={haulWorks} ('{Trim(haul)}'), treatmentWorks={treatmentWorks} ('{Trim(treat)}')");
+        });
+
         Scenario("CAKE QA LAB RELEASE (factory output lots are held until operator release)", () =>
         {
             var cake = new CakeFactoryService();

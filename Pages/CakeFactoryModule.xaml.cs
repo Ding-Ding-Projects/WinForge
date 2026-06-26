@@ -251,6 +251,14 @@ public sealed partial class CakeFactoryModule : Page
                 PostNotice("info", P("Factories serviced", "工廠已維修"), _sim.ServiceIngredientFactories());
                 break;
 
+            case "haulByproducts":
+                PostNotice("info", P("Byproducts hauled", "副產物已運走"), _sim.HaulFactoryByproducts());
+                break;
+
+            case "treatEffluent":
+                PostNotice("info", P("Effluent treated", "廢水已處理"), _sim.TreatFactoryEffluent());
+                break;
+
             case "releaseLabLot":
                 PostNotice("info", P("Lab lot released", "品檢批號已放行"), _sim.ReleaseIngredientLabLot());
                 break;

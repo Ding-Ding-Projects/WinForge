@@ -2,9 +2,9 @@
 
 ![Cake Factory & Farm · 蛋糕工廠與農場](images/screenshot-cakefactory.png)
 
-**EN —** The Cake Factory & Farm module is a hands-on HTML5 simulator for a reactor-powered ingredient farm and bakery line. It is not a video and it is not fully automatic: the reactor bus, supply dock, farm, dairy ration mixing, milking-parlor washdown, audited ingredient lots, ingredient factories, QA lab release, warehouse batch kitting, plant maintenance, mixer, tunnel oven, cooling, icing, packaging, customer order dispatch, QA, signed `.cake` files and CIP cleaning all expose live controls and operator release gates.
+**EN —** The Cake Factory & Farm module is a hands-on HTML5 simulator for a reactor-powered ingredient farm and bakery line. It is not a video and it is not fully automatic: the reactor bus, supply dock, farm, dairy ration mixing, milking-parlor washdown, audited ingredient lots, ingredient factories, byproduct hauling, effluent treatment, QA lab release, warehouse batch kitting, plant maintenance, mixer, tunnel oven, cooling, icing, packaging, customer order dispatch, QA, signed `.cake` files and CIP cleaning all expose live controls and operator release gates.
 
-**粵語 —** 蛋糕工廠與農場模組係一個由反應堆供電嘅 HTML5 互動模擬器，包含原料農場同烘焙生產線。佢唔係影片，亦唔係全自動：反應堆供電、收貨、農場、奶牛飼料混合、擠奶間清洗、已審核批號、原料工廠、QA 實驗室放行、倉庫備料、廠房維修、攪拌、隧道焗爐、冷卻、裝飾、包裝、客戶訂單出貨、品檢、已簽署 `.cake` 檔同 CIP 清潔全部都有即時控制同操作員放行關卡。
+**粵語 —** 蛋糕工廠與農場模組係一個由反應堆供電嘅 HTML5 互動模擬器，包含原料農場同烘焙生產線。佢唔係影片，亦唔係全自動：反應堆供電、收貨、農場、奶牛飼料混合、擠奶間清洗、已審核批號、原料工廠、副產物運走、廢水處理、QA 實驗室放行、倉庫備料、廠房維修、攪拌、隧道焗爐、冷卻、裝飾、包裝、客戶訂單出貨、品檢、已簽署 `.cake` 檔同 CIP 清潔全部都有即時控制同操作員放行關卡。
 
 Open in-app: `WinForge.exe --page cakefactory`
 
@@ -30,7 +30,8 @@ Open in-app: `WinForge.exe --page cakefactory`
 | Lot traceability · 批號追蹤 | Receiving, harvest, dairy collection, ingredient factories and batch start all stamp audited lot or manifest IDs. Batches keep a trace manifest that lists the flour, sugar, eggs, milk, butter, leavening, salt, vanilla, cocoa and packaging lots used. |
 | Ingredient conversion · 原料轉換 | Harvest, collect cow milk/eggs, then run timed powered factory jobs: mill wheat into cake flour, refine sugar crop into sugar, churn milk/cream into butter, roast/grind cocoa beans into cocoa, evaporate brine into salt and blend leavening feedstocks into baking powder. Completed factory lots go to QA lab hold before batching can use them. |
 | Warehouse kitting · 倉庫備料 | Batches do not pull ingredients straight from storage. The operator must stage a traceable warehouse kit first; kitting consumes ingredient inventory, reserves cartons, uses forklift battery and occupies staging pallet space before the line can start. |
-| Factory telemetry · 工廠遙測 | Ingredient factories consume raw inputs plus process water, culinary steam, compressed air and filter media at start, add reactor load, expose unit-operation phase, run progress and process QA, pause on low power, and release output only after completion. Each plant tracks equipment condition, calibration, bearing temperature and vibration; wear affects throughput, QA and yield until the operator services the factories. Readings include mill roll gap, flour extraction, sugar Brix, evaporator temperature, separator rpm, butterfat, cocoa roast temperature, grind size, brine salinity, crystallizer temperature and leavening blend homogeneity. |
+| Factory telemetry · 工廠遙測 | Ingredient factories consume raw inputs plus process water, culinary steam, compressed air and filter media at start, add reactor load, expose unit-operation phase, run progress and process QA, pause on low power, and release output only after completion. Each plant tracks equipment condition, calibration, bearing temperature, vibration, byproduct bin capacity and effluent tank capacity; wear affects throughput, QA and yield until the operator services the factories. Readings include mill roll gap, flour extraction, sugar Brix, evaporator temperature, separator rpm, butterfat, cocoa roast temperature, grind size, brine salinity, crystallizer temperature and leavening blend homogeneity. |
+| Byproducts + effluent · 副產物與廢水 | Factory runs create named residual streams: bran, beet pulp, buttermilk, cocoa shell, brine blowdown, leavening dust and process effluent. Full bins or tanks block new factory runs until the operator hauls byproducts or treats effluent. |
 | Bakery line · 烘焙生產線 | Operator-driven scaling, mixing, depositing, tunnel baking, spiral cooling, icing/decorating and packaging/coding. |
 | Customer orders · 客戶訂單 | Packed cakes move into finished goods. Active customer orders track required cakes, due time, reward, cash and reputation. Dispatch is manual and requires reactor power, enough finished goods, truck battery charge and a cold-chain temperature below the safety limit. |
 | Signed cake files · 已簽署蛋糕檔 | Packed cakes are minted as portable `.cake` files signed with the bakery private key. Other devices validate them with the trusted public key, forged cakes are rejected, and eating a cake deletes the file. |
@@ -58,6 +59,8 @@ Open in-app: `WinForge.exe --page cakefactory`
 | Leavening plant · 膨鬆劑廠 | Converts finite soda ash, phosphate and starch carrier into usable baking powder. |
 | Release lab lot · 實驗室放行批號 | Consumes lab utilities and releases a completed factory output lot after QA checks. Batching is blocked while a required factory lot is still on lab hold. |
 | Service plants · 維修廠房 | Stops ingredient-factory work, consumes utilities, lubricates bearings, replaces filters, recalibrates sensors/scales and restores plant condition. |
+| Haul byproducts · 運走副產物 | Uses the dock/forklift to clear bran, beet pulp, buttermilk, cocoa shell, brine blowdown and leavening dust; some residuals are sold or reused as animal feed. |
+| Treat effluent · 處理廢水 | Uses compressed air and filter media to treat process effluent, reclaim water and send sludge to waste. |
 | Stage kit · 備料套件 | Picks released ingredients and cartons into a traceable warehouse kit using forklift battery and staging pallet space. |
 | Start batch · 開批 | Starts the manual batch line from the staged warehouse kit. |
 | Release step · 放行工序 | Advances only when the current stage is complete and the safety gate is satisfied. |
@@ -85,6 +88,7 @@ Open in-app: `WinForge.exe --page cakefactory`
    - Roast cocoa beans into cocoa when a chocolate recipe needs it, then wait for roast/grind completion.
    - Run the salt works when salt is low and wait for evaporation/crystallization.
    - Run the leavening plant when baking powder is low and wait for blend homogeneity.
+   - Watch byproduct bins and the effluent tank. Press **Haul byproducts** or **Treat effluent** before support systems reach capacity.
    - Press **Release lab lot** after each factory run finishes so the completed lot clears QA hold before it can feed a batch or the next factory run.
    - Use **Service plants** when condition, calibration, vibration or bearing temperature starts to pull down yield or QA.
 6. Press **Stage kit** after the inventory panel shows no missing ingredients, required factory lots are released, and enough cartons/labels are available.
@@ -118,6 +122,7 @@ The simulator deliberately avoids full automation:
 - The parlor is not self-cleaning. Manure accumulates, hygiene decays, and washdown consumes real utilities and labor before improving milk QA conditions.
 - Receiving, harvest, dairy collection, factory output and batch start all carry lot IDs. A batch cannot start if required ingredient lot data is missing.
 - Ingredient factories are not instant: they consume finite inputs and utilities, add reactor load, move through unit-operation phases, report process QA, pause on low power and release usable ingredients only after the process completes.
+- Ingredient factory residuals are not ignored. Named byproducts and process effluent accumulate, capacity can block further runs, and clearing them consumes dock handling, compressed air or filter media.
 - Factory output is not automatically usable. The QA lab holds each completed factory lot until the operator releases it, and the release consumes real utilities.
 - The bakery line cannot start directly from storage. The operator must stage a warehouse kit, which consumes inventory and warehouse handling capacity before the line can run.
 - Ingredient factories wear down. A run degrades the specific plant that ran, worn equipment slows throughput and reduces yield/QA, and maintenance consumes real utilities before restoring condition and calibration.
@@ -140,6 +145,7 @@ The simulator deliberately avoids full automation:
 | Traceability hold · 批號追蹤暫停 | A required ingredient has quantity but no lot ID. Run the relevant collection/factory step or receive audited supplies so the ledger can be restored. |
 | Lab release hold · 實驗室放行暫停 | A factory output lot is waiting for QA lab release. Press Release lab lot after restoring reactor power and lab utilities. |
 | Service plants is disabled · 無法維修廠房 | A factory run is active, reactor bus power is low, or process water/steam/compressed air/filter media is insufficient. |
+| Ingredient factory is disabled · 原料工廠不能啟動 | QA lab hold, low utilities, full byproduct bins or a full effluent tank can block the run. Release the lab lot, restore utilities, haul byproducts or treat effluent. |
 | Release step is disabled · 未能放行 | Stage timer is still running, kill-step/cooling/sanitation gate is not met, or reactor power is unavailable. |
 | Dispatch order is disabled · 無法出貨 | Finished goods are below the active order quantity, reactor bus power is low, truck battery charge is low, or the dispatch cold chain is too warm. |
 | Cake file rejected · 蛋糕檔被拒絕 | The file is forged, tampered, signed by an untrusted public key, expired or already eaten. |
@@ -152,7 +158,7 @@ The module was tested with these checks:
 
 | Evidence · 證據 | Result · 結果 |
 |---|---|
-| Headless service scenarios · 無介面服務情景 | `dotnet run --project tests/ReactorSim.Tests/ReactorSim.Tests.csproj -c Debug` passed **30/30** scenarios, including cake power gating, no-auto manual mode, cow milk provenance and cold-chain QA, dairy ration mixing and parlor hygiene/washdown, audited lot traceability, QA lab release holds, warehouse batch kitting, finite supply inputs and utilities, timed non-farm ingredient factories, unit-operation phases, process QA, factory equipment maintenance, ingredient chain, full manual batch, customer order dispatch, signed `.cake` file crypto and CIP sanitation. |
+| Headless service scenarios · 無介面服務情景 | `dotnet run --project tests/ReactorSim.Tests/ReactorSim.Tests.csproj -c Debug` passed **31/31** scenarios, including cake power gating, no-auto manual mode, cow milk provenance and cold-chain QA, dairy ration mixing and parlor hygiene/washdown, audited lot traceability, QA lab release holds, warehouse batch kitting, finite supply inputs and utilities, timed non-farm ingredient factories, unit-operation phases, process QA, factory equipment maintenance, named byproduct/effluent handling, ingredient chain, full manual batch, customer order dispatch, signed `.cake` file crypto and CIP sanitation. |
 | WinForge GUI screenshot · WinForge 圖形介面截圖 | `WinForge.exe --page cakefactory` was launched from a self-contained publish and captured into `docs/screenshot-cakefactory.png`. |
 | WebView asset packaging · WebView 資產封裝 | `SimAssets/cake/index.html` is included under `SimAssets/**/*.*`, copied to publish output and loaded through WebView2 virtual-host mapping. |
 | Signed cake files · 已簽署蛋糕檔 | The test suite verifies private-key signing, public-key trust on another device root, forged/tampered rejection, replay rejection and eat-delete consumption. |

@@ -167,7 +167,19 @@ public sealed class CakeFactorySnapshot
     public double FactoryRunSecondsRemaining { get; init; }
     public double FactoryRunQualityPct { get; init; }
     public bool CanServiceFactories { get; init; }
+    public bool CanHaulByproducts { get; init; }
+    public bool CanTreatFactoryEffluent { get; init; }
     public string FactoryMaintenanceStatus { get; init; } = "";
+    public string WasteHandlingStatus { get; init; } = "";
+    public double BranKg { get; init; }
+    public double BeetPulpKg { get; init; }
+    public double ButtermilkL { get; init; }
+    public double CocoaShellKg { get; init; }
+    public double BrineBlowdownL { get; init; }
+    public double LeaveningDustKg { get; init; }
+    public double FactoryEffluentL { get; init; }
+    public double ByproductStoragePct { get; init; }
+    public double EffluentTankPct { get; init; }
     public double ActiveFactoryConditionPct { get; init; }
     public double ActiveFactoryCalibrationPct { get; init; }
     public double ActiveFactoryBearingTemperatureC { get; init; }
@@ -449,6 +461,16 @@ public sealed class CakeFactoryService
     private IngredientFactoryRun? _factoryRun;
     private double _batterKg;
     private double _wasteKg;
+    private const double ByproductStorageCapacityKg = 900;
+    private const double FactoryEffluentCapacityL = 3000;
+    private double _branKg = 34;
+    private double _beetPulpKg = 52;
+    private double _buttermilkL = 18;
+    private double _cocoaShellKg = 6;
+    private double _brineBlowdownL = 80;
+    private double _leaveningDustKg = 1.2;
+    private double _factoryEffluentL = 360;
+    private string _wasteHandlingStatus = "Byproduct bins and effluent equalization tank ready.";
 
     private int _cakesBaked;
     private int _cakesPacked;
@@ -546,6 +568,75 @@ public sealed class CakeFactoryService
         && _finishedGoodsCakes >= _orderCakesRequired
         && _dispatchTruckChargePct >= 18
         && _dispatchColdChainC <= 8.0;
+
+    private double ByproductStorageLoadKg() =>
+        _branKg
+        + _beetPulpKg
+        + _cocoaShellKg
+        + _leaveningDustKg
+        + _buttermilkL * 1.03
+        + _brineBlowdownL * 1.05;
+
+    private double ByproductStoragePctValue() =>
+        Math.Clamp(ByproductStorageLoadKg() / ByproductStorageCapacityKg * 100.0, 0, 160);
+
+    private double EffluentTankPctValue() =>
+        Math.Clamp(_factoryEffluentL / FactoryEffluentCapacityL * 100.0, 0, 160);
+
+    private static double ExpectedByproductLoadKg(IngredientFactoryRun run) => run.Kind switch
+    {
+        IngredientFactoryKind.Mill => run.PrimaryInput * 0.22,
+        IngredientFactoryKind.Sugar => run.PrimaryInput * 0.34,
+        IngredientFactoryKind.Butter => run.PrimaryInput * 0.78,
+        IngredientFactoryKind.Cocoa => run.PrimaryInput * 0.14,
+        IngredientFactoryKind.Salt => run.PrimaryInput * 0.16 * 1.05,
+        IngredientFactoryKind.Leavening => run.Product * 0.025,
+        _ => run.Waste,
+    };
+
+    private static double ExpectedEffluentL(IngredientFactoryRun run) => run.Kind switch
+    {
+        IngredientFactoryKind.Sugar => run.ProcessWaterL * 0.72 + run.CulinarySteamKg * 0.08,
+        IngredientFactoryKind.Butter => run.ProcessWaterL * 0.55 + run.PrimaryInput * 0.08,
+        IngredientFactoryKind.Salt => run.PrimaryInput * 0.14,
+        IngredientFactoryKind.Cocoa => run.ProcessWaterL * 0.35,
+        IngredientFactoryKind.Leavening => run.FilterMediaPct * 8.0,
+        _ => run.ProcessWaterL * 0.25,
+    };
+
+    private bool HasWasteHandlingCapacity(IngredientFactoryRun run, out string issue)
+    {
+        double nextByproductPct = (ByproductStorageLoadKg() + ExpectedByproductLoadKg(run)) / ByproductStorageCapacityKg * 100.0;
+        if (nextByproductPct > 100)
+        {
+            issue = $"byproduct storage would reach {nextByproductPct:0}%";
+            return false;
+        }
+
+        double nextEffluentPct = (_factoryEffluentL + ExpectedEffluentL(run)) / FactoryEffluentCapacityL * 100.0;
+        if (nextEffluentPct > 100)
+        {
+            issue = $"factory effluent tank would reach {nextEffluentPct:0}%";
+            return false;
+        }
+
+        issue = "";
+        return true;
+    }
+
+    private bool WasteHandlingReady(IngredientFactoryRun run) =>
+        HasWasteHandlingCapacity(run, out _);
+
+    private string WasteHandlingStatus()
+    {
+        var issues = new List<string>();
+        double byproductPct = ByproductStoragePctValue();
+        double effluentPct = EffluentTankPctValue();
+        if (byproductPct >= 90) issues.Add($"byproduct bins {byproductPct:0}%");
+        if (effluentPct >= 90) issues.Add($"effluent tank {effluentPct:0}%");
+        if (issues.Count > 0) return "Waste handling near capacity: " + string.Join(", ", issues);
+        return _wasteHandlingStatus;
+    }
 
     public string DispatchOrder()
     {
@@ -982,6 +1073,8 @@ public sealed class CakeFactoryService
             return $"{run.Name} is locked out for maintenance; equipment condition is {equipment.ConditionPct:0}%.";
         if (equipment.CalibrationPct < 58)
             return $"{run.Name} needs calibration before release; calibration is {equipment.CalibrationPct:0}%.";
+        if (!HasWasteHandlingCapacity(run, out var wasteIssue))
+            return $"{run.Name} cannot start; {wasteIssue}. Haul byproducts or treat factory effluent first.";
 
         run.EquipmentConditionAtStart = equipment.ConditionPct;
         run.EquipmentCalibrationAtStart = equipment.CalibrationPct;
@@ -1050,6 +1143,59 @@ public sealed class CakeFactoryService
         _factoryMaintenanceStatus = BuildFactoryMaintenanceStatus();
         _factoryStatus = "Maintenance crew serviced roller mill, sugar house, butter room, cocoa line, salt works and leavening blender.";
         return "Serviced all ingredient factories: lubricated bearings, verified guards, replaced filters, calibrated scales and sensors, and signed the maintenance log.";
+    }
+
+    public string HaulFactoryByproducts()
+    {
+        if (_lastPowerAvailability < 0.12)
+            return "Byproduct loading dock, scale and forklift charger need reactor bus power.";
+
+        double load = ByproductStorageLoadKg();
+        if (load < 10)
+            return "Byproduct bins are already nearly empty.";
+        if (_forkliftBatteryPct < 8 || _warehousePalletSpacePct < 5)
+            return "Byproduct hauling needs forklift battery and dock pallet space.";
+
+        double feedCredit = Math.Min(120, _branKg * 0.35 + _beetPulpKg * 0.18 + _buttermilkL * 0.08);
+        double revenue = Math.Round(load * 0.045, 2);
+        _animalFeedKg += feedCredit;
+        _cashBalance += revenue;
+        _forkliftBatteryPct = Math.Max(0, _forkliftBatteryPct - 5.5);
+        _warehousePalletSpacePct = Math.Max(0, _warehousePalletSpacePct - 3.0);
+        string detail = $"Hauled {load:0} kg-equivalent byproducts: bran {_branKg:0} kg, beet pulp {_beetPulpKg:0} kg, buttermilk {_buttermilkL:0} L, cocoa shell {_cocoaShellKg:0} kg, brine blowdown {_brineBlowdownL:0} L and leavening dust {_leaveningDustKg:0.0} kg.";
+        _branKg = 0;
+        _beetPulpKg = 0;
+        _buttermilkL = 0;
+        _cocoaShellKg = 0;
+        _brineBlowdownL = 0;
+        _leaveningDustKg = 0;
+        _wasteHandlingStatus = $"{detail} Sold/repurposed for ${revenue:0.00} and recovered {feedCredit:0.0} kg animal feed equivalent.";
+        return _wasteHandlingStatus;
+    }
+
+    public string TreatFactoryEffluent()
+    {
+        if (_lastPowerAvailability < 0.15)
+            return "Effluent equalization pumps and dissolved-air flotation need reactor bus power.";
+
+        if (_factoryEffluentL < 25)
+            return "Factory effluent tank is already nearly empty.";
+
+        const double compressedAir = 24;
+        const double filterMedia = 0.8;
+        if (_compressedAirNm3 < compressedAir || _filterMediaPct < filterMedia)
+            return "Effluent treatment needs compressed air and filter media.";
+
+        double treated = Math.Min(_factoryEffluentL, 950);
+        _factoryEffluentL -= treated;
+        _compressedAirNm3 = Math.Max(0, _compressedAirNm3 - compressedAir);
+        _filterMediaPct = Math.Max(0, _filterMediaPct - filterMedia);
+        double reclaimed = treated * 0.62;
+        double sludge = treated * 0.018;
+        _irrigationWaterL += reclaimed;
+        _wasteKg += sludge;
+        _wasteHandlingStatus = $"Treated {treated:0} L factory effluent; reclaimed {reclaimed:0} L utility water and sent {sludge:0.0} kg sludge to waste.";
+        return _wasteHandlingStatus;
     }
 
     private void UpdateFactoryRun(double seconds, double power)
@@ -1329,10 +1475,58 @@ public sealed class CakeFactoryService
         return $"Preventive maintenance normal: lowest asset is {name} at {worst.ConditionPct:0}% condition / {worst.CalibrationPct:0}% calibration.";
     }
 
+    private string RecordFactoryByproducts(IngredientFactoryRun run)
+    {
+        double effluent = ExpectedEffluentL(run);
+        _factoryEffluentL = Math.Min(FactoryEffluentCapacityL, _factoryEffluentL + effluent);
+
+        string detail;
+        switch (run.Kind)
+        {
+            case IngredientFactoryKind.Mill:
+                double bran = run.PrimaryInput * 0.22;
+                _branKg += bran;
+                detail = $"{bran:0.0} kg bran";
+                break;
+            case IngredientFactoryKind.Sugar:
+                double pulp = run.PrimaryInput * 0.34;
+                _beetPulpKg += pulp;
+                detail = $"{pulp:0.0} kg beet pulp";
+                break;
+            case IngredientFactoryKind.Butter:
+                double buttermilk = run.PrimaryInput * 0.78;
+                _buttermilkL += buttermilk;
+                detail = $"{buttermilk:0.0} L buttermilk";
+                break;
+            case IngredientFactoryKind.Cocoa:
+                double shell = run.PrimaryInput * 0.14;
+                _cocoaShellKg += shell;
+                detail = $"{shell:0.0} kg cocoa shell";
+                break;
+            case IngredientFactoryKind.Salt:
+                double blowdown = run.PrimaryInput * 0.16;
+                _brineBlowdownL += blowdown;
+                detail = $"{blowdown:0.0} L brine blowdown";
+                break;
+            case IngredientFactoryKind.Leavening:
+                double dust = run.Product * 0.025;
+                _leaveningDustKg += dust;
+                detail = $"{dust:0.0} kg leavening dust";
+                break;
+            default:
+                detail = $"{run.Waste:0.0} kg residuals";
+                break;
+        }
+
+        _wasteHandlingStatus = $"{run.Name} added {detail} and {effluent:0} L effluent. Byproduct bins {ByproductStoragePctValue():0}% full; effluent tank {EffluentTankPctValue():0}% full.";
+        return _wasteHandlingStatus;
+    }
+
     private void CompleteFactoryRun(IngredientFactoryRun run)
     {
         double output = run.Product * FactoryYieldFactor(run.Kind);
         double waste = run.Waste + Math.Max(0, run.Product - output);
+        string byproductStatus = RecordFactoryByproducts(run);
         switch (run.Kind)
         {
             case IngredientFactoryKind.Mill:
@@ -1394,7 +1588,7 @@ public sealed class CakeFactoryService
         var equipment = EquipmentFor(run.Kind);
         _factoryMaintenanceStatus = BuildFactoryMaintenanceStatus();
         _traceabilityStatus = $"{run.Name} completed trace: source lot {run.InputLotId} -> output lot {run.OutputLotId}; QA lab release required.";
-        _factoryStatus += $" Equipment now {equipment.ConditionPct:0}% condition, {equipment.CalibrationPct:0}% calibration, {equipment.VibrationMmS:0.0} mm/s vibration. QA lab is holding lot {run.OutputLotId}.";
+        _factoryStatus += $" {byproductStatus} Equipment now {equipment.ConditionPct:0}% condition, {equipment.CalibrationPct:0}% calibration, {equipment.VibrationMmS:0.0} mm/s vibration. QA lab is holding lot {run.OutputLotId}.";
     }
 
     public void StartClean()
@@ -1564,6 +1758,7 @@ public sealed class CakeFactoryService
         var missing = kitMatchesRecipe ? "" : rawMissing;
         var displayedEquipment = _factoryRun is null ? LowestConditionEquipment() : EquipmentFor(_factoryRun.Kind);
         bool labClear = string.IsNullOrWhiteSpace(_pendingLabLotId);
+        bool wasteReady = ByproductStoragePctValue() < 92 && EffluentTankPctValue() < 92;
         Snapshot = new CakeFactorySnapshot
         {
             Recipe = recipe,
@@ -1595,16 +1790,18 @@ public sealed class CakeFactoryService
             CanCollectDairy = power >= 0.12 && (_dairyReadyL >= 1 || _eggsReady >= 1),
             CanMixDairyRation = power >= 0.15 && _forageKg >= 48 && _grainKg >= 22 && _dairyMineralKg >= 2.2 && _irrigationWaterL >= 38 && _barnLaborHours >= 0.8,
             CanWashDairyParlor = power >= 0.15 && HasFactoryUtilities(180, 60, 12, 0.5) && _barnLaborHours >= 1.4 && (_dairyParlorHygienePct < 96 || _manureKg > 80),
-            CanMillWheat = power >= 0.2 && _factoryRun is null && labClear && _wheatKg >= 5 && HasFactoryUtilities(20, 0, 38, 0.6),
-            CanRefineSugar = power >= 0.2 && _factoryRun is null && labClear && _sugarCropKg >= 10 && HasFactoryUtilities(320, 520, 22, 1.2),
-            CanChurnButter = power >= 0.2 && _factoryRun is null && labClear && _milkL > 35 && HasFactoryUtilities(110, 140, 15, 0.8),
+            CanMillWheat = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _wheatKg >= 5 && HasFactoryUtilities(20, 0, 38, 0.6),
+            CanRefineSugar = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _sugarCropKg >= 10 && HasFactoryUtilities(320, 520, 22, 1.2),
+            CanChurnButter = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _milkL > 35 && HasFactoryUtilities(110, 140, 15, 0.8),
             CanReceiveSupplies = power >= 0.1,
-            CanProcessCocoa = power >= 0.2 && _factoryRun is null && labClear && _cocoaBeansKg >= 5 && HasFactoryUtilities(25, 0, 45, 0.7),
-            CanRunSaltWorks = power >= 0.2 && _factoryRun is null && labClear && _brineL >= 80 && HasFactoryUtilities(0, 700, 30, 0.4),
-            CanRunLeaveningPlant = power >= 0.2 && _factoryRun is null && labClear && _sodaAshKg >= 3 && _phosphateKg >= 3 && _starchKg >= 2 && HasFactoryUtilities(0, 0, 50, 1.0),
+            CanProcessCocoa = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _cocoaBeansKg >= 5 && HasFactoryUtilities(25, 0, 45, 0.7),
+            CanRunSaltWorks = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _brineL >= 80 && HasFactoryUtilities(0, 700, 30, 0.4),
+            CanRunLeaveningPlant = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _sodaAshKg >= 3 && _phosphateKg >= 3 && _starchKg >= 2 && HasFactoryUtilities(0, 0, 50, 1.0),
             CanReleaseLabLot = power >= 0.15 && _factoryRun is null && !labClear && HasFactoryUtilities(12, 0, 4, 0.1),
             CanStageBatchKit = _stage == CakeBatchStage.Idle && !CipActive && !_batchKitStaged && rawMissing.Length == 0 && power >= 0.2 && _forkliftBatteryPct >= 12 && _warehousePalletSpacePct >= 18,
             CanServiceFactories = power >= 0.2 && _factoryRun is null && NeedsFactoryService() && HasFactoryUtilities(120, 80, 35, 1.5),
+            CanHaulByproducts = power >= 0.12 && ByproductStorageLoadKg() > 10 && _forkliftBatteryPct >= 8 && _warehousePalletSpacePct >= 5,
+            CanTreatFactoryEffluent = power >= 0.15 && _factoryEffluentL >= 25 && _compressedAirNm3 >= 24 && _filterMediaPct >= 0.8,
             WheatGrowth = _wheatGrowth,
             BeetGrowth = _beetGrowth,
             PastureHealth = _pastureHealth,
@@ -1700,6 +1897,16 @@ public sealed class CakeFactoryService
             FactoryRunSecondsRemaining = _factoryRun?.RemainingSeconds ?? 0,
             FactoryRunQualityPct = _factoryRunQualityPct,
             FactoryMaintenanceStatus = _factoryMaintenanceStatus,
+            WasteHandlingStatus = WasteHandlingStatus(),
+            BranKg = _branKg,
+            BeetPulpKg = _beetPulpKg,
+            ButtermilkL = _buttermilkL,
+            CocoaShellKg = _cocoaShellKg,
+            BrineBlowdownL = _brineBlowdownL,
+            LeaveningDustKg = _leaveningDustKg,
+            FactoryEffluentL = _factoryEffluentL,
+            ByproductStoragePct = ByproductStoragePctValue(),
+            EffluentTankPct = EffluentTankPctValue(),
             ActiveFactoryConditionPct = displayedEquipment.ConditionPct,
             ActiveFactoryCalibrationPct = displayedEquipment.CalibrationPct,
             ActiveFactoryBearingTemperatureC = displayedEquipment.BearingTemperatureC,
@@ -2114,6 +2321,8 @@ public sealed class CakeFactoryService
         if (_filterMediaPct < 3) low.Add("filter media");
         if (_forkliftBatteryPct < 12) low.Add("forklift battery");
         if (_warehousePalletSpacePct < 18) low.Add("staging pallet space");
+        if (ByproductStoragePctValue() > 85) low.Add("byproduct storage");
+        if (EffluentTankPctValue() > 85) low.Add("factory effluent tank");
         if (_dispatchTruckChargePct < 18) low.Add("dispatch truck charge");
         if (_dispatchColdChainC > 8.0) low.Add("dispatch cold chain");
         return low.Count == 0 ? "Inputs stocked" : "Low: " + string.Join(", ", low);
@@ -2201,6 +2410,8 @@ public sealed class CakeFactoryService
         if (_culinarySteamKg < 260) low.Add("culinary steam");
         if (_compressedAirNm3 < 60) low.Add("compressed air");
         if (_filterMediaPct < 3) low.Add("filter media");
+        if (ByproductStoragePctValue() > 85) low.Add("byproduct bins");
+        if (EffluentTankPctValue() > 85) low.Add("effluent tank");
         return low.Count == 0 ? "Utilities ready" : "Low utilities: " + string.Join(", ", low);
     }
 

@@ -597,6 +597,8 @@
                 <button class="action" type="button" data-action="runLeaveningPlant">Leavening plant</button>
                 <button class="action guard" type="button" data-action="releaseLabLot">Release lab lot</button>
                 <button class="action guard" type="button" data-action="serviceFactories">Service plants</button>
+                <button class="action guard" type="button" data-action="haulByproducts">Haul byproducts</button>
+                <button class="action guard" type="button" data-action="treatEffluent">Treat effluent</button>
               </div>
             </div>
             <div class="control-bank">
@@ -834,7 +836,19 @@
       FactoryRunSecondsRemaining: 0,
       FactoryRunQualityPct: 100,
       CanServiceFactories: false,
+      CanHaulByproducts: false,
+      CanTreatFactoryEffluent: false,
       FactoryMaintenanceStatus: 'Preventive maintenance normal: all ingredient plants within limits.',
+      WasteHandlingStatus: 'Byproduct bins and effluent equalization tank ready.',
+      BranKg: 34,
+      BeetPulpKg: 52,
+      ButtermilkL: 18,
+      CocoaShellKg: 6,
+      BrineBlowdownL: 80,
+      LeaveningDustKg: 1.2,
+      FactoryEffluentL: 360,
+      ByproductStoragePct: 0,
+      EffluentTankPct: 0,
       ActiveFactoryConditionPct: 90,
       ActiveFactoryCalibrationPct: 94,
       ActiveFactoryBearingTemperatureC: 38,
@@ -1018,6 +1032,8 @@
       setButton('runLeaveningPlant', s.CanRunLeaveningPlant);
       setButton('releaseLabLot', s.CanReleaseLabLot);
       setButton('serviceFactories', s.CanServiceFactories);
+      setButton('haulByproducts', s.CanHaulByproducts);
+      setButton('treatEffluent', s.CanTreatFactoryEffluent);
       setButton('stageBatchKit', s.CanStageBatchKit);
       setButton('startBatch', s.CanStartBatch);
       setButton('advance', s.CanAdvanceStage);
@@ -1065,6 +1081,8 @@
         ['Culinary steam', `${n(s.CulinarySteamKg, 0)} kg`],
         ['Compressed air', `${n(s.CompressedAirNm3, 0)} Nm3`],
         ['Filter media', `${n(s.FilterMediaPct, 1)}%`],
+        ['Byproduct bins', `${n(s.ByproductStoragePct, 0)}%`],
+        ['Effluent tank', `${n(s.EffluentTankPct, 0)}% / ${n(s.FactoryEffluentL, 0)} L`],
         ['Cartons + labels', `${n(s.PackagingUnits, 0)}`],
         ['Forklift battery', `${n(s.ForkliftBatteryPct, 0)}%`],
         ['Pallet space', `${n(s.WarehousePalletSpacePct, 0)}% free`],
@@ -1082,6 +1100,9 @@
         ['Run load', `${n(s.FactoryRunPowerMW, 1)} MW`],
         ['Process QA', `${n(s.FactoryRunQualityPct, 0)}%`],
         ['Maintenance', s.FactoryMaintenanceStatus || 'Maintenance normal'],
+        ['Waste handling', s.WasteHandlingStatus || 'Byproducts clear'],
+        ['Byproducts', `bran ${n(s.BranKg, 0)} kg / pulp ${n(s.BeetPulpKg, 0)} kg / buttermilk ${n(s.ButtermilkL, 0)} L`],
+        ['Residual streams', `shell ${n(s.CocoaShellKg, 0)} kg / brine ${n(s.BrineBlowdownL, 0)} L / dust ${n(s.LeaveningDustKg, 1)} kg`],
         ['QA lab', s.IngredientLabStatus || 'Factory QA lab ready'],
         ['Pending lab lot', s.PendingLabLotId ? `${s.PendingLabProductName || 'lot'} ${s.PendingLabLotId} / QA ${n(s.PendingLabQualityPct, 0)}%` : 'None'],
         ['Traceability', s.TraceabilityStatus || 'Traceability ready'],
@@ -1355,6 +1376,10 @@
       rr(930, 414, 278, 52, 8, '#28231b', '#c6a15f');
       text(`ORDER ${s.CurrentOrderId || '-'}`, 948, 438, 13, '#ffe1a1', 900);
       text(`${s.FinishedGoodsCakes || 0}/${s.OrderCakesRequired || 0} ready - truck ${n(s.DispatchTruckChargePct, 0)}% - ${n(s.DispatchColdChainC, 1)} degC`, 948, 454, 11, '#c9beb0', 800);
+
+      rr(930, 528, 278, 46, 8, '#211d18', '#8b7352');
+      text('BYPRODUCT / EFFLUENT', 948, 550, 12, '#ffe1a1', 900);
+      text(`Bins ${n(s.ByproductStoragePct, 0)}% - effluent ${n(s.EffluentTankPct, 0)}%`, 948, 564, 11, '#c9beb0', 800);
     }
 
     function drawSilo(x, y, label, fill) {
