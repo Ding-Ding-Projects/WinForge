@@ -4,6 +4,12 @@
 
 **粵語 —** 反應堆對真實世界嘅每一個影響都係**可選、明確開關、可逆轉**。呢頁集合咗安全開關、作業系統整合、防崩潰自動儲存，以及畀其他 app 依賴反應堆嘅公開狀態 API。
 
+**EN —** All of these live on a **dedicated Reactor Settings page** (⚙ button on the reactor toolbar, or `WinForge.exe --page reactorsettings`), kept separate from the pure-simulation controls. Defaults: ARM real-shutdown **OFF**, Windows-settings link **OFF**, Home Assistant mirror **OFF**, status API **ON**, autosave **ON**, keep-awake **ON**.
+
+**粵語 —** 以上全部都喺一個**獨立嘅反應堆設定頁**（反應堆工具列嘅 ⚙ 掣，或 `WinForge.exe --page reactorsettings`），同純模擬控制分開。預設：真實關機 **OFF**、Windows 設定連動 **OFF**、Home Assistant 連動 **OFF**、狀態 API **ON**、自動儲存 **ON**、保持喚醒 **ON**。
+
+![Reactor Settings · 反應堆設定](images/screenshot-reactorsettings.png)
+
 ---
 
 ## Meltdown → real shutdown (ARM toggle) · 熔毀 → 真實關機（ARM 開關）
