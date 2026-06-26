@@ -87,6 +87,7 @@ public sealed partial class MainWindow : Window
         if (_reallyQuit || !TrayService.IsInstalled)
         {
             // Genuinely closing → flush all volatile state before the process tears down.
+            CrashLogger.Guard("activity:close", () => Services.ActivityTrackerService.I.FlushForShutdown());
             CrashLogger.Guard("persistence:close", () => Services.PersistenceService.I.Flush());
             return;
         }
@@ -126,6 +127,7 @@ public sealed partial class MainWindow : Window
         try { WinForge.Pages.ReactorWindowManager.CloseAll(); } catch { }
         try { WinForge.Services.ReactorAudioEngine.I.Dispose(); } catch { }
         // Flush volatile state before exiting from the tray (ProcessExit also flushes as a backstop).
+        CrashLogger.Guard("activity:quit", () => Services.ActivityTrackerService.I.FlushForShutdown());
         CrashLogger.Guard("persistence:quit", () => Services.PersistenceService.I.Flush());
         TrayService.Remove();
         Application.Current.Exit();

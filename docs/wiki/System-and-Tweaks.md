@@ -212,8 +212,8 @@ Open in-app: `WinForge.exe --page worldmonitor`
 
 ## Activity Timeline · 活動時間軸
 
-Foreground-window time tracking with per-app usage insights.
-追蹤前景視窗時間，顯示逐個應用程式使用量。
+Default-on foreground-window time tracking with local crash recovery and per-app usage insights.
+預設開啟前景視窗時間追蹤，有本機閃退復原同逐個應用程式使用量。
 
 Open in-app: `WinForge.exe --page timelens`
 

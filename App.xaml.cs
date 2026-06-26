@@ -151,7 +151,8 @@ public partial class App : Application
                     AdvancedPasteService.EnableHotkey(dq);
             }
             catch { /* best effort — never block startup */ }
-            // Resume activity tracking if the user had it enabled (privacy default: off).
+            // Start/resume activity tracking by default unless the user turned it off. The tracker keeps
+            // a crash-safe checkpoint of the current segment and recovers it here before sampling resumes.
             try { Services.ActivityTrackerService.I.InitFromPrefs(); } catch { }
             // Restore Mouse Utilities (Find My Mouse / Highlighter / Crosshairs / Jump) if enabled.
             try { Services.MouseUtilsService.LoadSettings(); Services.MouseUtilsService.Sync(); } catch { }

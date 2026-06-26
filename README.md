@@ -122,7 +122,7 @@ dotnet publish WinForge.csproj -c Release -p:Platform=x64 -r win-x64 ^
 | **Native Utilities · 原生工具** | Wi-Fi passwords, SMB shares, brightness, certificates, Bluetooth and more. <br> Wi-Fi 密碼、SMB 共享、亮度、憑證、藍牙等原生雜錦。 | `native` |
 | **PowerToys Extras · PowerToys 額外工具** | Image Resizer, OCR text extractor and always-on-top helpers. <br> 圖片縮放、OCR 文字擷取同視窗置頂工具。 | `powertoys` |
 | **World Monitor · 世界監察** | News, geopolitics, finance and instability-index intelligence dashboard. <br> 新聞、地緣政治、金融同不穩定指數嘅情報儀表板。 | `worldmonitor` |
-| **Activity Timeline · 活動時間軸** | Foreground-window time tracking with per-app usage insights. <br> 追蹤前景視窗時間，顯示逐個應用程式使用量。 | `timelens` |
+| **Activity Timeline · 活動時間軸** | Default-on foreground-window time tracking with crash-safe local recovery and per-app usage insights. <br> 預設開啟前景視窗時間追蹤，有本機防閃退復原同逐個應用程式使用量。 | `timelens` |
 
 ### Files & Disks · 檔案與磁碟
 
