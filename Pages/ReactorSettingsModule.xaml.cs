@@ -27,6 +27,16 @@ public sealed partial class ReactorSettingsModule : Page
 {
     private readonly DispatcherTimer _liveTimer = new() { Interval = TimeSpan.FromMilliseconds(800) };
     private bool _suppress; // guard so programmatic toggle/combobox updates don't re-fire handlers
+    private List<HaEntity> _haLights = new();
+    private List<HaEntity> _haSwitches = new();
+
+    private sealed class HaEntityChoice
+    {
+        public required HaEntity Entity { get; init; }
+        public string EntityId => Entity.EntityId;
+        public string SearchText => $"{Entity.Display} {Entity.EntityId} {Entity.Domain}".ToLowerInvariant();
+        public override string ToString() => Entity.Display;
+    }
 
     public ReactorSettingsModule()
     {
@@ -145,10 +155,13 @@ public sealed partial class ReactorSettingsModule : Page
         HaMirrorToggle.OffContent = P("Off", "關");
         HaAlarmLabel.Text = P("Alarm lights (SCRAM / meltdown red) · 警報燈（SCRAM／熔毀紅燈）",
                               "警報燈（SCRAM／熔毀紅燈）· Alarm lights");
+        HaAlarmSearchBox.PlaceholderText = P("Search alarm lights…", "搜尋警報燈…");
         HaGenLightsLabel.Text = P("Generating lights (full-bright white) · 發電燈（全亮白色）",
                                   "發電燈（全亮白色）· Generating lights");
+        HaGenLightsSearchBox.PlaceholderText = P("Search generating lights…", "搜尋發電燈…");
         HaGenLabel.Text = P("Generating switches / plugs · 「發電中」開關／插座",
                             "「發電中」開關／插座 · Generating switches / plugs");
+        HaGenSwitchesSearchBox.PlaceholderText = P("Search switches / plugs…", "搜尋開關／插座…");
         HaRefreshButton.Content = P("Refresh entities · 重新整理實體", "重新整理實體 · Refresh entities");
 
         UpdateHaVisibility();
@@ -249,61 +262,81 @@ public sealed partial class ReactorSettingsModule : Page
         try { entities = await ReactorHomeAssistantMirror.I.Ha.Controllables(); }
         catch { entities = new List<HaEntity>(); }
 
-        // Lights for the alarm picker; switches + plugs (and input_boolean) for the generating picker.
-        var lights = entities.Where(en => en.Domain == "light").ToList();
-        var switches = entities.Where(en => en.Domain is "switch" or "input_boolean").ToList();
-
-        FillCheckPanel(HaAlarmLightsPanel, lights, ReactorHomeAssistantMirror.I.AlarmLightIds,
-            (id, on) => ReactorHomeAssistantMirror.I.SetAlarmLightSelected(id, on));
-        FillCheckPanel(HaGenLightsPanel, lights, ReactorHomeAssistantMirror.I.GenLightIds,
-            (id, on) => ReactorHomeAssistantMirror.I.SetGenLightSelected(id, on));
-        FillCheckPanel(HaGenSwitchesPanel, switches, ReactorHomeAssistantMirror.I.GenSwitchIds,
-            (id, on) => ReactorHomeAssistantMirror.I.SetGenSwitchSelected(id, on));
+        // Lights for the alarm/generating pickers; switches + plugs (and input_boolean) for generating.
+        _haLights = entities.Where(en => en.Domain == "light").OrderBy(en => en.Display).ToList();
+        _haSwitches = entities.Where(en => en.Domain is "switch" or "input_boolean").OrderBy(en => en.Display).ToList();
+        RefreshHaPickers();
 
         HaStatusText.Text = P(
-            $"{lights.Count} lights · {switches.Count} switches",
-            $"{lights.Count} 盞燈 · {switches.Count} 個開關");
+            $"{_haLights.Count} lights · {_haSwitches.Count} switches",
+            $"{_haLights.Count} 盞燈 · {_haSwitches.Count} 個開關");
     }
 
-    private void FillCheckPanel(StackPanel panel, List<HaEntity> items, IReadOnlyList<string> selectedIds, Action<string, bool> setSelected)
+    private void RefreshHaPickers()
     {
+        FillEntityList(HaAlarmLightsList, HaAlarmSearchBox, _haLights, ReactorHomeAssistantMirror.I.AlarmLightIds);
+        FillEntityList(HaGenLightsList, HaGenLightsSearchBox, _haLights, ReactorHomeAssistantMirror.I.GenLightIds);
+        FillEntityList(HaGenSwitchesList, HaGenSwitchesSearchBox, _haSwitches, ReactorHomeAssistantMirror.I.GenSwitchIds);
+    }
+
+    private void FillEntityList(ListBox list, TextBox search, List<HaEntity> source, IReadOnlyList<string> selectedIds)
+    {
+        var selected = new HashSet<string>(selectedIds, StringComparer.OrdinalIgnoreCase);
+        string q = (search.Text ?? "").Trim().ToLowerInvariant();
+        var items = source
+            .Select(en => new HaEntityChoice { Entity = en })
+            .Where(item => q.Length == 0 || item.SearchText.Contains(q, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
         _suppress = true;
         try
         {
-            panel.Children.Clear();
-            if (items.Count == 0)
-            {
-                panel.Children.Add(new TextBlock
-                {
-                    Text = P("(none found)", "（未搵到）"),
-                    FontSize = 12,
-                    Foreground = new SolidColorBrush(Color.FromArgb(160, 0xAA, 0xAA, 0xAA)),
-                });
-                return;
-            }
-
-            var selected = new HashSet<string>(selectedIds, StringComparer.OrdinalIgnoreCase);
-            foreach (var en in items)
-            {
-                var box = new CheckBox
-                {
-                    Content = new TextBlock { Text = en.Display, TextWrapping = TextWrapping.Wrap, MaxWidth = 760 },
-                    Tag = en.EntityId,
-                    IsChecked = selected.Contains(en.EntityId),
-                    MinWidth = 360,
-                };
-                box.Checked += (_, _) =>
-                {
-                    if (!_suppress && box.Tag is string id) setSelected(id, true);
-                };
-                box.Unchecked += (_, _) =>
-                {
-                    if (!_suppress && box.Tag is string id) setSelected(id, false);
-                };
-                panel.Children.Add(box);
-            }
+            list.ItemsSource = items;
+            list.SelectedItems.Clear();
+            foreach (var item in items)
+                if (selected.Contains(item.EntityId))
+                    list.SelectedItems.Add(item);
         }
         finally { _suppress = false; }
+    }
+
+    private static IReadOnlyList<string> SelectedIds(ListBox list, IReadOnlyList<string> existingIds)
+    {
+        var visibleIds = list.Items.OfType<HaEntityChoice>()
+            .Select(item => item.EntityId)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var result = existingIds
+            .Where(id => !visibleIds.Contains(id))
+            .ToList();
+        result.AddRange(list.SelectedItems.OfType<HaEntityChoice>().Select(item => item.EntityId));
+        return result.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
+    private void HaSearch_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_suppress) return;
+        RefreshHaPickers();
+    }
+
+    private void HaAlarmLights_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suppress) return;
+        ReactorHomeAssistantMirror.I.SetAlarmLightIds(
+            SelectedIds(HaAlarmLightsList, ReactorHomeAssistantMirror.I.AlarmLightIds));
+    }
+
+    private void HaGenLights_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suppress) return;
+        ReactorHomeAssistantMirror.I.SetGenLightIds(
+            SelectedIds(HaGenLightsList, ReactorHomeAssistantMirror.I.GenLightIds));
+    }
+
+    private void HaGenSwitches_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suppress) return;
+        ReactorHomeAssistantMirror.I.SetGenSwitchIds(
+            SelectedIds(HaGenSwitchesList, ReactorHomeAssistantMirror.I.GenSwitchIds));
     }
 
     private void HaMirror_Toggled(object sender, RoutedEventArgs e)

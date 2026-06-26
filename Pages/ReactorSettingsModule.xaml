@@ -99,19 +99,25 @@
                         <StackPanel Spacing="4">
                             <TextBlock x:Name="HaAlarmLabel" FontSize="12"
                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                            <StackPanel x:Name="HaAlarmLightsPanel" Spacing="2" />
+                            <TextBox x:Name="HaAlarmSearchBox" TextChanged="HaSearch_TextChanged" />
+                            <ListBox x:Name="HaAlarmLightsList" SelectionMode="Multiple" Height="170"
+                                     SelectionChanged="HaAlarmLights_SelectionChanged" />
                         </StackPanel>
 
                         <StackPanel Spacing="4">
                             <TextBlock x:Name="HaGenLightsLabel" FontSize="12"
                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                            <StackPanel x:Name="HaGenLightsPanel" Spacing="2" />
+                            <TextBox x:Name="HaGenLightsSearchBox" TextChanged="HaSearch_TextChanged" />
+                            <ListBox x:Name="HaGenLightsList" SelectionMode="Multiple" Height="170"
+                                     SelectionChanged="HaGenLights_SelectionChanged" />
                         </StackPanel>
 
                         <StackPanel Spacing="4">
                             <TextBlock x:Name="HaGenLabel" FontSize="12"
                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                            <StackPanel x:Name="HaGenSwitchesPanel" Spacing="2" />
+                            <TextBox x:Name="HaGenSwitchesSearchBox" TextChanged="HaSearch_TextChanged" />
+                            <ListBox x:Name="HaGenSwitchesList" SelectionMode="Multiple" Height="170"
+                                     SelectionChanged="HaGenSwitches_SelectionChanged" />
                         </StackPanel>
 
                         <StackPanel Orientation="Horizontal" Spacing="10">

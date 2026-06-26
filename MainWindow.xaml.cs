@@ -101,6 +101,7 @@ public sealed partial class MainWindow : Window
             return;
         }
         args.Cancel = true;       // don't exit — hide to the tray so background work continues
+        CrashLogger.Guard("persistence:hide-to-tray", () => Services.PersistenceService.I.Flush());
         AppWindow.Hide();
     }
 

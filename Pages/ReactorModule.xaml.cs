@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Numerics;
+using System.Threading;
 using Microsoft.UI;
 using Microsoft.UI.Composition;
 using Microsoft.UI.Text;
@@ -149,6 +150,9 @@ public sealed partial class ReactorModule : Page
     private FrameworkElement? _startupChecklistAnchor;
     private string? _pendingDeepLink;
     private bool _startupChecklistRequested;
+    private DateTime _lastHardSaveUtc = DateTime.MinValue;
+    private int _hardSaveInFlight;
+    private static readonly TimeSpan HardSaveInterval = TimeSpan.FromSeconds(1);
 
     public ReactorModule()
     {
@@ -464,9 +468,25 @@ public sealed partial class ReactorModule : Page
         UpdateAudio();
         UpdateControlsLive();
         UpdateStatusApiCard();
+        MaybeHardSave(now);
 
         if (_sim.Mode == ReactorMode.Meltdown)
             AnimateMeltdown(dt);
+    }
+
+    private void MaybeHardSave(DateTime nowUtc)
+    {
+        if (!_persistenceRegistered || !PersistenceService.I.AutosaveEnabled) return;
+        if (nowUtc - _lastHardSaveUtc < HardSaveInterval) return;
+        if (Interlocked.CompareExchange(ref _hardSaveInFlight, 1, 0) != 0) return;
+
+        _lastHardSaveUtc = nowUtc;
+        _ = System.Threading.Tasks.Task.Run(() =>
+        {
+            try { PersistenceService.I.Flush(); }
+            catch (Exception ex) { CrashLogger.Log("reactor:hard-save", ex); }
+            finally { Interlocked.Exchange(ref _hardSaveInFlight, 0); }
+        });
     }
 
     // ============================================================ audio ====
