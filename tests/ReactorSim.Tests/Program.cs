@@ -1348,6 +1348,54 @@ internal static class Program
                           $"washdown={washdown} ('{Trim(wash)}')");
         });
 
+        Scenario("CAKE FLOUR MILL REALISM (wheat is cleaned and tempered before flour release)", () =>
+        {
+            var cake = new CakeFactoryService { FarmIntensity = 1.0 };
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            string start = cake.MillWheat();
+            TickCake(cake, fullBus, 1.0);
+            var running = cake.Snapshot;
+
+            TickCake(cake, fullBus, 8.5);
+            var held = cake.Snapshot;
+
+            string blocked = cake.StageBatchKit();
+            string release = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var released = cake.Snapshot;
+
+            bool rawWheatAssayed = before.WheatMoisturePct > 0
+                                   && before.WheatForeignMaterialPct > 0
+                                   && before.WheatProteinPct > 0
+                                   && before.CanMillWheat;
+            bool millConsumesWheatBeforeOutput = running.FactoryRunActive
+                                                 && running.ActiveFactoryName.Contains("mill", StringComparison.OrdinalIgnoreCase)
+                                                 && running.ActiveFactoryPhase.Length > 0
+                                                 && running.WheatKg < before.WheatKg
+                                                 && running.WheatTemperMoisturePct >= before.WheatMoisturePct
+                                                 && running.MillSifterLoadPct >= 0
+                                                 && Math.Abs(running.FlourKg - before.FlourKg) < 0.001
+                                                 && start.Contains("tempering", StringComparison.OrdinalIgnoreCase);
+            bool flourHeldForLab = !held.FactoryRunActive
+                                   && held.FlourKg > before.FlourKg
+                                   && held.FlourLotId != before.FlourLotId
+                                   && held.PendingLabLotId == held.FlourLotId
+                                   && held.IngredientLabStatus.Contains("ash", StringComparison.OrdinalIgnoreCase)
+                                   && held.FlourMoisturePct > 0
+                                   && held.FlourAshPct > 0
+                                   && held.FlourProteinPct > 0
+                                   && held.FactoryStatus.Contains("cleaned/tempered", StringComparison.OrdinalIgnoreCase);
+            bool releaseClearsFlour = blocked.Contains("lab release", StringComparison.OrdinalIgnoreCase)
+                                      && release.Contains("released", StringComparison.OrdinalIgnoreCase)
+                                      && released.PendingLabLotId.Length == 0;
+            bool pass = rawWheatAssayed && millConsumesWheatBeforeOutput && flourHeldForLab && releaseClearsFlour;
+            return (pass, $"rawWheatAssayed={rawWheatAssayed} ({before.WheatMoisturePct:F1}% moisture, {before.WheatForeignMaterialPct:F1}% FM, {before.WheatProteinPct:F1}% protein), " +
+                          $"millConsumesWheatBeforeOutput={millConsumesWheatBeforeOutput} ('{Trim(start)}'), flourHeldForLab={flourHeldForLab} " +
+                          $"({held.FlourMoisturePct:F1}% moisture, {held.FlourAshPct:F2}% ash, {held.FlourProteinPct:F1}% protein), releaseClearsFlour={releaseClearsFlour} ('{Trim(release)}')");
+        });
+
         Scenario("CAKE INGREDIENT CHAIN (harvest, collect, mill, refine, churn and non-farm factories mutate inventory)", () =>
         {
             var cake = new CakeFactoryService();
@@ -1434,6 +1482,8 @@ internal static class Program
                                    && s10.PackagingInkL < s9.PackagingInkL
                                    && s10.AdhesiveKg < s9.AdhesiveKg;
             bool processTelemetry = s3.MillRollGapMm > 0 && s3.FlourExtractionPct > 0
+                                    && s3.WheatTemperMoisturePct > 0 && s3.FlourMoisturePct > 0
+                                    && s3.FlourAshPct > 0 && s3.FlourProteinPct > 0
                                     && s4.SugarJuiceBrix > 0 && s4.SugarEvaporatorTemperatureC > 90
                                     && s5.CreamSeparatorRpm > 0 && s5.ButterFatPct > 70
                                     && s6.VanillaExtractorTemperatureC > 70 && s6.VanillaExtractStrengthPct > 80

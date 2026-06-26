@@ -177,6 +177,9 @@ public sealed class CakeFactorySnapshot
     public string LimestoneLotId { get; init; } = "";
     public string TraceMineralLotId { get; init; } = "";
     public double WheatKg { get; init; }
+    public double WheatMoisturePct { get; init; }
+    public double WheatForeignMaterialPct { get; init; }
+    public double WheatProteinPct { get; init; }
     public double SugarCropKg { get; init; }
     public double FlourKg { get; init; }
     public double SugarKg { get; init; }
@@ -281,6 +284,11 @@ public sealed class CakeFactorySnapshot
     public double FeedCalibrationPct { get; init; }
     public double MillRollGapMm { get; init; }
     public double FlourExtractionPct { get; init; }
+    public double WheatTemperMoisturePct { get; init; }
+    public double MillSifterLoadPct { get; init; }
+    public double FlourMoisturePct { get; init; }
+    public double FlourAshPct { get; init; }
+    public double FlourProteinPct { get; init; }
     public double SugarJuiceBrix { get; init; }
     public double SugarEvaporatorTemperatureC { get; init; }
     public double MilkPasteurizerTemperatureC { get; init; }
@@ -518,6 +526,9 @@ public sealed class CakeFactoryService
     private double _strawKg = 170;
     private double _forageMoisturePct = 13.8;
     private double _feedGrainMoisturePct = 12.4;
+    private double _wheatMoisturePct = 12.7;
+    private double _wheatForeignMaterialPct = 0.8;
+    private double _wheatProteinPct = 8.4;
     private double _limestoneKg = 46;
     private double _traceMineralKg = 22;
     private double _wheatSeedKg = 18;
@@ -651,6 +662,11 @@ public sealed class CakeFactoryService
     };
     private double _millRollGapMm = 0.32;
     private double _flourExtractionPct = 76;
+    private double _wheatTemperMoisturePct = 13.0;
+    private double _millSifterLoadPct = 0;
+    private double _flourMoisturePct = 13.1;
+    private double _flourAshPct = 0.42;
+    private double _flourProteinPct = 8.1;
     private double _sugarJuiceBrix = 0;
     private double _sugarEvaporatorTemperatureC = 24;
     private double _milkPasteurizerTemperatureC = 4;
@@ -993,6 +1009,9 @@ public sealed class CakeFactoryService
         {
             _wheatLotId = NewLotId("WHEAT");
             _strawLotId = NewLotId("STRAW");
+            _wheatMoisturePct = Math.Clamp(17.0 - _wheatGrowth * 0.050 + _rng.NextDouble() * 0.8, 11.5, 15.8);
+            _wheatForeignMaterialPct = Math.Clamp(1.4 - _wheatGrowth * 0.004 + _rng.NextDouble() * 0.5, 0.35, 2.2);
+            _wheatProteinPct = Math.Clamp(7.7 + _pastureHealth * 0.009 + _rng.NextDouble() * 0.35, 7.8, 9.4);
             lots.Add($"wheat {_wheatLotId}");
             lots.Add($"straw {_strawLotId}");
         }
@@ -1232,20 +1251,30 @@ public sealed class CakeFactoryService
         double wheat = Math.Min(_wheatKg, 90);
         if (wheat < 5)
             return "Not enough harvested wheat is available for a mill run.";
+        if (string.IsNullOrWhiteSpace(_wheatLotId))
+            return "Roller mill cannot run because the wheat lot is missing from the grain ledger.";
 
+        double targetTemperMoisture = 15.2;
+        double temperWater = Math.Max(0, targetTemperMoisture - _wheatMoisturePct) * wheat * 0.11;
+        double cleaningRejects = wheat * Math.Clamp(_wheatForeignMaterialPct / 100.0 * 0.72, 0.0025, 0.026);
         _millRollGapMm = 0.28 + _rng.NextDouble() * 0.05;
         _flourExtractionPct = 0;
+        _wheatTemperMoisturePct = _wheatMoisturePct;
+        _millSifterLoadPct = 0;
+        _flourMoisturePct = 0;
+        _flourAshPct = 0;
+        _flourProteinPct = 0;
         var run = new IngredientFactoryRun
         {
             Kind = IngredientFactoryKind.Mill,
             Name = "Roller mill",
-            StartedMessage = $"Started milling {wheat:0} kg wheat through break rolls, sifters and purifier.",
+            StartedMessage = $"Started cleaning, tempering and milling {wheat:0} kg wheat lot {_wheatLotId}: {_wheatMoisturePct:0.0}% moisture, {_wheatForeignMaterialPct:0.0}% foreign material and {_wheatProteinPct:0.0}% protein.",
             DurationSeconds = 8.0,
             PowerDemandMW = 1.8,
             PrimaryInput = wheat,
-            Product = wheat * 0.76,
-            Waste = wheat * 0.04,
-            ProcessWaterL = 20,
+            Product = wheat * Math.Clamp(0.775 - _wheatForeignMaterialPct * 0.012 - Math.Abs(_wheatProteinPct - 8.4) * 0.006, 0.70, 0.78),
+            Waste = wheat * 0.025 + cleaningRejects,
+            ProcessWaterL = 18 + temperWater,
             CompressedAirNm3 = 38,
             FilterMediaPct = 0.6,
             WearPct = 1.8,
@@ -2246,8 +2275,16 @@ public sealed class CakeFactoryService
         switch (run.Kind)
         {
             case IngredientFactoryKind.Mill:
-                _flourExtractionPct = 76.0 * p;
+                _wheatTemperMoisturePct = Math.Clamp(_wheatMoisturePct + Math.Min(1.0, p / 0.28) * Math.Max(0, 15.2 - _wheatMoisturePct), _wheatMoisturePct, 15.8);
+                _millSifterLoadPct = Math.Clamp(p < 0.35 ? 0 : (p - 0.35) / 0.65 * (78.0 + _wheatForeignMaterialPct * 4.5), 0, 100);
+                _flourExtractionPct = Math.Clamp((74.5 - Math.Max(0, _wheatForeignMaterialPct - 0.7) * 1.6 + Math.Max(0, 8.8 - _wheatProteinPct) * 0.35) * p, 0, 80);
+                _flourMoisturePct = Math.Clamp(p < 0.48 ? 0 : _wheatTemperMoisturePct - 1.4 - p * 0.22 + Math.Sin(p * Math.PI * 3) * 0.08, 0, 15.0);
+                _flourAshPct = Math.Clamp(0.34 + _millRollGapMm * 0.24 + _wheatForeignMaterialPct * 0.020 + p * 0.035, 0.32, 0.62);
+                _flourProteinPct = Math.Clamp(_wheatProteinPct - 0.25 + Math.Sin(p * Math.PI) * 0.05, 7.2, 10.2);
                 if (p > 0.35) _factoryRunQualityPct -= Math.Abs(_millRollGapMm - 0.30) * 120;
+                if (p > 0.45) _factoryRunQualityPct -= Math.Abs(_wheatTemperMoisturePct - 15.2) * 1.6;
+                if (p > 0.62) _factoryRunQualityPct -= Math.Max(0, _millSifterLoadPct - 88.0) * 0.45;
+                if (p > 0.70) _factoryRunQualityPct -= Math.Abs(_flourAshPct - 0.44) * 34.0 + Math.Max(0, _flourMoisturePct - 14.2) * 2.0;
                 break;
             case IngredientFactoryKind.Sugar:
                 _sugarJuiceBrix = 12.0 + p * 57.0;
@@ -2348,10 +2385,11 @@ public sealed class CakeFactoryService
         double p = run.Progress;
         return run.Kind switch
         {
-            IngredientFactoryKind.Mill when p < 0.22 => "magnet check and wheat feed",
-            IngredientFactoryKind.Mill when p < 0.48 => "break rolling",
-            IngredientFactoryKind.Mill when p < 0.76 => "plansifter separation",
-            IngredientFactoryKind.Mill => "purifier and flour bin transfer",
+            IngredientFactoryKind.Mill when p < 0.16 => "scalper aspiration and magnet check",
+            IngredientFactoryKind.Mill when p < 0.32 => "tempering water addition and rest",
+            IngredientFactoryKind.Mill when p < 0.56 => "break rolling and stock grading",
+            IngredientFactoryKind.Mill when p < 0.78 => "plansifter separation",
+            IngredientFactoryKind.Mill => "purifier, ash sample and flour-bin transfer",
             IngredientFactoryKind.Sugar when p < 0.18 => "wash and slice",
             IngredientFactoryKind.Sugar when p < 0.42 => "diffusion",
             IngredientFactoryKind.Sugar when p < 0.74 => "evaporation",
@@ -2500,9 +2538,12 @@ public sealed class CakeFactoryService
         _pendingLabProductName = FactoryProductName(run.Kind);
         _pendingLabQualityPct = _factoryRunQualityPct;
         _pendingLabQuantity = output;
-        _ingredientLabStatus = run.Kind == IngredientFactoryKind.Milk
-            ? $"QA lab hold: {_pendingLabProductName} lot {_pendingLabLotId} awaiting phosphatase, micro, temperature and label checks."
-            : $"QA lab hold: {_pendingLabProductName} lot {_pendingLabLotId} awaiting moisture, sieve, micro and label checks.";
+        _ingredientLabStatus = run.Kind switch
+        {
+            IngredientFactoryKind.Milk => $"QA lab hold: {_pendingLabProductName} lot {_pendingLabLotId} awaiting phosphatase, micro, temperature and label checks.",
+            IngredientFactoryKind.Mill => $"QA lab hold: {_pendingLabProductName} lot {_pendingLabLotId} awaiting moisture, ash, protein, sieve and micro checks.",
+            _ => $"QA lab hold: {_pendingLabProductName} lot {_pendingLabLotId} awaiting moisture, sieve, micro and label checks.",
+        };
     }
 
     private void RemoveRejectedFactoryLot(IngredientFactoryKind kind, double quantity)
@@ -2655,7 +2696,7 @@ public sealed class CakeFactoryService
             case IngredientFactoryKind.Mill:
                 double bran = run.PrimaryInput * 0.22;
                 _branKg += bran;
-                detail = $"{bran:0.0} kg bran";
+                detail = $"{bran:0.0} kg bran and {run.Waste:0.0} kg scalper screenings/germ dust";
                 break;
             case IngredientFactoryKind.Sugar:
                 double pulp = run.PrimaryInput * 0.34;
@@ -2738,9 +2779,20 @@ public sealed class CakeFactoryService
                 _flourKg += output;
                 _flourLotId = run.OutputLotId;
                 _wasteKg += waste;
-                _flourExtractionPct = 75.0 + _rng.NextDouble() * 2.0;
-                _factoryRunQualityPct = Math.Clamp(96 - Math.Abs(_millRollGapMm - 0.30) * 120 - FactoryEquipmentPenalty(run.Kind), 0, 100);
-                _factoryStatus = $"Roller mill completed: {output:0.0} kg cake flour, {waste:0.0} kg bran/waste, {_millRollGapMm:0.00} mm roll gap, QA {_factoryRunQualityPct:0}%.";
+                _wheatTemperMoisturePct = Math.Clamp(15.0 + _rng.NextDouble() * 0.4, 14.7, 15.5);
+                _millSifterLoadPct = Math.Clamp(76.0 + _wheatForeignMaterialPct * 3.2 + _rng.NextDouble() * 5.0, 70, 96);
+                _flourExtractionPct = Math.Clamp(75.0 - Math.Max(0, _wheatForeignMaterialPct - 0.7) * 1.3 + _rng.NextDouble() * 1.4, 69, 78);
+                _flourMoisturePct = Math.Clamp(_wheatTemperMoisturePct - 1.45 + _rng.NextDouble() * 0.25, 12.4, 14.4);
+                _flourAshPct = Math.Clamp(0.36 + _millRollGapMm * 0.20 + _wheatForeignMaterialPct * 0.016 + _rng.NextDouble() * 0.025, 0.36, 0.58);
+                _flourProteinPct = Math.Clamp(_wheatProteinPct - 0.25 + _rng.NextDouble() * 0.12, 7.5, 10.0);
+                _factoryRunQualityPct = Math.Clamp(98
+                    - Math.Abs(_millRollGapMm - 0.30) * 120
+                    - Math.Abs(_wheatTemperMoisturePct - 15.2) * 1.8
+                    - Math.Max(0, _millSifterLoadPct - 88.0) * 0.5
+                    - Math.Abs(_flourAshPct - 0.44) * 36.0
+                    - Math.Max(0, _flourMoisturePct - 14.2) * 2.2
+                    - FactoryEquipmentPenalty(run.Kind), 0, 100);
+                _factoryStatus = $"Roller mill completed: {output:0.0} kg cake flour from cleaned/tempered wheat lot {run.InputLotId}; temper {_wheatTemperMoisturePct:0.0}% moisture, {_millSifterLoadPct:0}% sifter load, extraction {_flourExtractionPct:0.0}%, flour {_flourMoisturePct:0.0}% moisture, {_flourAshPct:0.00}% ash and {_flourProteinPct:0.0}% protein, QA {_factoryRunQualityPct:0}%.";
                 break;
             case IngredientFactoryKind.Sugar:
                 _sugarKg += output;
@@ -3104,7 +3156,7 @@ public sealed class CakeFactoryService
             CanMixDairyRation = power >= 0.15 && _forageKg >= 48 && _grainKg >= 22 && _dairyMineralKg >= 2.2 && FactoryLotReleased(_dairyMineralKg, _dairyMineralLotId) && _irrigationWaterL >= 38 && _barnLaborHours >= 0.8,
             CanWashDairyParlor = power >= 0.15 && HasFactoryUtilities(180, 60, 12, 0.5) && _barnLaborHours >= 1.4 && (_dairyParlorHygienePct < 96 || _manureKg > 80),
             CanWashPoultryHouse = power >= 0.15 && HasFactoryUtilities(90, 30, 8, 0.35) && _barnLaborHours >= 1.0 && (_henHouseHygienePct < 96 || _poultryManureKg > 80),
-            CanMillWheat = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _wheatKg >= 5 && HasFactoryUtilities(20, 0, 38, 0.6),
+            CanMillWheat = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _wheatKg >= 5 && HasFactoryUtilities(50, 0, 38, 0.6),
             CanRefineSugar = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _sugarCropKg >= 10 && HasFactoryUtilities(320, 520, 22, 1.2),
             CanChurnButter = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _rawMilkL > 35 && HasFactoryUtilities(110, 140, 15, 0.8)
                              && !string.IsNullOrWhiteSpace(_rawMilkLotId) && MilkQaInSpec(),
@@ -3223,6 +3275,9 @@ public sealed class CakeFactoryService
             LimestoneLotId = _limestoneLotId,
             TraceMineralLotId = _traceMineralLotId,
             WheatKg = _wheatKg,
+            WheatMoisturePct = _wheatMoisturePct,
+            WheatForeignMaterialPct = _wheatForeignMaterialPct,
+            WheatProteinPct = _wheatProteinPct,
             SugarCropKg = _sugarCropKg,
             FlourKg = _flourKg,
             SugarKg = _sugarKg,
@@ -3330,6 +3385,11 @@ public sealed class CakeFactoryService
             MineralCalibrationPct = EquipmentFor(IngredientFactoryKind.MineralPremix).CalibrationPct,
             MillRollGapMm = _millRollGapMm,
             FlourExtractionPct = _flourExtractionPct,
+            WheatTemperMoisturePct = _wheatTemperMoisturePct,
+            MillSifterLoadPct = _millSifterLoadPct,
+            FlourMoisturePct = _flourMoisturePct,
+            FlourAshPct = _flourAshPct,
+            FlourProteinPct = _flourProteinPct,
             SugarJuiceBrix = _sugarJuiceBrix,
             SugarEvaporatorTemperatureC = _sugarEvaporatorTemperatureC,
             MilkPasteurizerTemperatureC = _milkPasteurizerTemperatureC,
