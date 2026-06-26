@@ -1,0 +1,58 @@
+---
+name: run-winforge
+description: Build, launch, drive and screenshot the WinForge WinUI 3 desktop app. Use when asked to run, start, launch, build, publish, screenshot, or smoke-test WinForge or its modules (e.g. "run WinForge", "screenshot the reactor page", "open the docker module").
+---
+
+# Run WinForge
+
+WinForge is a **.NET (net11.0-windows) WinUI 3 desktop app** (`WinForge.csproj`, ~130 module pages, flagship nuclear-reactor sim). It is driven by a PowerShell driver — **`.claude/skills/run-winforge/driver.ps1`** — that publishes a self-contained build, deep-links any module page via `WinForge.exe --page <alias>`, and captures the live window to a PNG (DWM bounds + `Graphics.CopyFromScreen`). All paths below are relative to the repo root.
+
+> Why a self-contained publish + self-capture? A plain `dotnet build` produces a **framework-dependent** exe that, with no matching desktop runtime here, just shows a *"You must install or update .NET"* dialog. And the app is **not a Start-menu app**, so desktop/computer-use screenshot tools can't target its window — the driver's `CopyFromScreen` is the reliable capture path.
+
+## Prerequisites
+- .NET SDK with WinUI/Windows App SDK support (this repo built on .NET 11 SDK; `dotnet --version` → `11.0.100-preview...`). No extra OS packages needed on Windows.
+
+## Build (compile check)
+```bash
+dotnet build WinForge.sln -c Debug -p:Platform=x64 -v minimal
+```
+Builds clean (0 errors). This only *compiles* — it does not produce a runnable exe here (see note above).
+
+## Run (agent path) — the driver
+One command builds-if-needed, launches a page, and screenshots it:
+```bash
+powershell -ExecutionPolicy Bypass -File .claude/skills/run-winforge/driver.ps1 -Page monitor -Out shot.png
+```
+- `-Page <alias>` — deep-link alias from `MainWindow.ApplyStartPage` (e.g. `dashboard`, `reactor`, `reactorsettings`, `monitor`, `docker`, `torrent`, `proxmox`, `ocr`, `keepass`, `hexeditor`). ~127 aliases; one per module.
+- `-Out <file.png>` — where the screenshot is written (printed as `OK page='…' -> … (WxH)`).
+- `-Publish` — force a fresh self-contained publish first.
+- `-WaitMs <n>` — render wait before capture (default 12000; raise for heavy pages).
+
+First run (no publish yet) does the self-contained publish itself; or do it explicitly:
+```bash
+dotnet publish WinForge.csproj -c Debug -r win-x64 --self-contained true -p:Platform=x64 -p:WindowsAppSDKSelfContained=true -v quiet
+```
+The published exe lands at `bin/x64/Debug/net11.0-windows10.0.26100.0/win-x64/publish/WinForge.exe`.
+
+## Direct invocation — reactor engine tests (no GUI)
+The reactor physics/services run headless via a console harness (no WinUI):
+```bash
+dotnet run --project tests/ReactorSim.Tests -c Debug
+```
+Prints a per-scenario PASS/FAIL table (currently 13/15). Use this for PRs that touch reactor internals — far faster than launching the GUI.
+
+## Run (human path)
+`WinForge.exe` with no args opens the Dashboard and waits — useless headless, and the plain Debug exe needs the self-contained publish first. Use the driver instead.
+
+## Gotchas
+- **Framework-dependent build won't run** → it pops a *"install .NET"* dialog. Always run/launch the **self-contained publish** exe (the driver does this).
+- **App not in the Start menu** → computer-use / desktop screenshot tools mask it. The driver captures via `CopyFromScreen` over the DWM extended-frame bounds (attribute `9`) — accurate and shadow-excluded.
+- **`--page` is reliable; bare `--reactor` is not** — with a restored multi-tab session, `--reactor` can land on the Dashboard. `--page <alias>` navigated correctly for 124/127 pages in a full sweep.
+- **3 pages crash on open** — `audioeditor`, `lightswitch`, `timelens` throw in `NavigateActive` at load → no window (the driver will throw "no window appeared"). The other ~124 open fine.
+- **Reactor boots held in MODE 5 cold shutdown** — it's subcritical/idle by design (operator must start it up); safe at rest. The at-power reactivity calibration (P2) is unfinished, so it melts if started up — see `docs/handoffs/52-omega-session-handoff.md`.
+- **First publish is slow** (~3–4 min); subsequent ones are incremental.
+
+## Troubleshooting
+- `no WinForge window appeared for page '<x>'` → that page likely crashes on load; check `%LOCALAPPDATA%\WinForge\crash.log`. Or raise `-WaitMs`.
+- Reactor restores a stale/melted autosave → delete `%LOCALAPPDATA%\WinForge\state` (and `…\session\tabs.json`) to boot fresh.
+- Test harness fails to compile after engine changes → it links specific engine sources; add any new `Services/Reactor*.cs` it references to `tests/ReactorSim.Tests/ReactorSim.Tests.csproj`.
