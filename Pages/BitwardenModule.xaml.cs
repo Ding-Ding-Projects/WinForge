@@ -442,7 +442,7 @@ public sealed partial class BitwardenModule : Page
         {
             if (Uri.TryCreate(uri, UriKind.Absolute, out var u) &&
                 (u.Scheme == Uri.UriSchemeHttp || u.Scheme == Uri.UriSchemeHttps))
-                await Windows.System.Launcher.LaunchUriAsync(u);
+                CopySecret(u.ToString(), persistent: true, P("URL copied.", "已複製網址。"));
             else
                 Toast(InfoBarSeverity.Error, P("That URL is not a valid web address.", "嗰個唔係有效嘅網址。"));
         }

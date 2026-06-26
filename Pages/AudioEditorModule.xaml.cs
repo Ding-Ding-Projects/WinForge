@@ -19,7 +19,7 @@ using WinForge.Services;
 namespace WinForge.Pages;
 
 /// <summary>
-/// 音訊編輯器（Audacity 風格）· Audacity-style audio editor: open/record a clip, view + select its waveform,
+/// 音訊編輯器 · In-app audio editor: open/record a clip, view + select its waveform,
 /// apply ffmpeg-backed effects (trim/fade/normalize/gain/speed/pitch/noise + ~40 more), mix/concat, and export.
 /// 原生波形繪製 + 內建 MediaPlayer 播放 + ffmpeg 效果引擎。Native waveform render, in-box MediaPlayer playback,
 /// ffmpeg effects engine — no GPL linking, no extra NuGet. All strings bilingual (English · 粵語).
@@ -43,6 +43,9 @@ public sealed partial class AudioEditorModule : Page
     public AudioEditorModule()
     {
         InitializeComponent();
+        GainSlider.ValueChanged += GainSlider_ValueChanged;
+        SpeedSlider.ValueChanged += SpeedSlider_ValueChanged;
+        PitchSlider.ValueChanged += PitchSlider_ValueChanged;
         Loc.I.LanguageChanged += OnLang;
         AppState.AudioClipChanged += OnClipChanged;
         Loaded += OnLoaded;
@@ -88,9 +91,9 @@ public sealed partial class AudioEditorModule : Page
         HeaderBlurb.Text = P("Open or record a clip, see and select its waveform, apply effects (trim, fade, normalize, gain, speed, pitch, noise reduction and more) and export — all in-app.",
             "開檔或者錄音、睇同揀波形、套效果（剪裁、淡入淡出、正規化、增益、變速、變調、降噪等等）再匯出 — 全部喺 app 內。");
 
-        ScopeBar.Title = P("Focused editor — not a full Audacity clone", "精簡編輯器 — 唔係完整 Audacity");
-        ScopeBar.Message = P("Effects are destructive and operate on a working copy; use Revert to reload the original. For multitrack, label tracks and plug-ins, launch real Audacity below.",
-            "效果係破壞性嘅，喺工作副本上做；撳「還原」可重載原檔。要多軌、標籤軌或外掛，請喺下面開真正嘅 Audacity。");
+        ScopeBar.Title = P("Focused in-app editor", "精簡 app 內編輯器");
+        ScopeBar.Message = P("Effects are destructive and operate on a working copy; use Revert to reload the original. Advanced multitrack, label-track and plug-in workflows are outside this focused in-app editor.",
+            "效果係破壞性嘅，喺工作副本上做；撳「還原」可重載原檔。進階多軌、標籤軌同外掛流程唔屬於呢個精簡 app 內編輯器。");
 
         SourceLabel.Text = P("Source — open a file or record", "來源 — 開檔或錄音");
         OpenBtn.Content = P("Open audio…", "開啟音訊…");
@@ -139,13 +142,7 @@ public sealed partial class AudioEditorModule : Page
             "每個效果套用喺成段目前嘅 clip，並接喺上一個之後。");
         FxFilter.PlaceholderText = P("Filter effects…", "篩選效果…");
 
-        FallbackLabel.Text = P("Need the full Audacity?", "需要完整 Audacity？");
-        FallbackBlurb.Text = P("For multitrack timelines, spectrograms, label tracks, EQ curves and plug-ins, install or launch the real Audacity.",
-            "要多軌時間軸、頻譜圖、標籤軌、EQ 曲線同外掛，請安裝或開啟真正嘅 Audacity。");
-        LaunchAudacityBtn.Content = P("Launch Audacity", "開啟 Audacity");
-
         UpdateEngineBar();
-        BuildAudacityBar();
     }
 
     private void UpdateEngineBar()
@@ -162,16 +159,6 @@ public sealed partial class AudioEditorModule : Page
                 async () => { FfmpegAudioService.Rescan(); Render(); await RefreshDevicesAsync(); }, FfmpegAudioService.Rescan);
         }
         else { EngineBar.IsOpen = false; EngineBar.ActionButton = null; }
-    }
-
-    private Button? _audacityInstaller;
-    private void BuildAudacityBar()
-    {
-        // Re-use the touchless winget install button to fetch Audacity for the advanced fallback.
-        if (_audacityInstaller is not null) AudacityActions.Children.Remove(_audacityInstaller);
-        _audacityInstaller = EngineBars.AutoInstallButton("Audacity.Audacity", "Install Audacity", "安裝 Audacity",
-            () => Task.CompletedTask, null);
-        AudacityActions.Children.Insert(0, _audacityInstaller);
     }
 
     private void UpdateSliderLabels()
@@ -611,39 +598,6 @@ public sealed partial class AudioEditorModule : Page
             AppState.CurrentAudioClip = (r.Success && wav is not null) ? wav : path;
         }
         else AppState.CurrentAudioClip = path;
-    }
-
-    // ===================== Audacity fallback launch =====================
-
-    private void LaunchAudacity_Click(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-            {
-                FileName = "audacity",
-                UseShellExecute = true,
-            });
-        }
-        catch
-        {
-            try
-            {
-                // try common install path / via cmd resolving PATH
-                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = "cmd.exe",
-                    Arguments = "/c start \"\" audacity",
-                    UseShellExecute = true,
-                    CreateNoWindow = true,
-                });
-            }
-            catch (Exception ex)
-            {
-                ShowStatus(TweakResult.Fail("Could not launch Audacity — install it first. " + ex.Message,
-                    "開唔到 Audacity — 請先安裝。" + ex.Message));
-            }
-        }
     }
 
     // ===================== effects list =====================

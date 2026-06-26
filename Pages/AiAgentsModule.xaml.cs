@@ -6,6 +6,7 @@ using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Windows.ApplicationModel.DataTransfer;
 using WinForge.Services;
 
 namespace WinForge.Pages;
@@ -20,7 +21,7 @@ public sealed partial class AiAgentsModule : Page
     {
         InitializeComponent();
         Loc.I.LanguageChanged += (_, _) => { Render(); _ = BuildCards(); };
-        Loaded += async (_, _) => { Render(); WorkDirBox.Text = DefaultWorkDir(); await CheckNode(); await BuildCards(); };
+        Loaded += async (_, _) => { Render(); WorkDirBox.Text = DisplayPath(DefaultWorkDir()); await CheckNode(); await BuildCards(); };
     }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
@@ -28,6 +29,29 @@ public sealed partial class AiAgentsModule : Page
     private static string DefaultWorkDir()
     {
         try { return Environment.GetFolderPath(Environment.SpecialFolder.UserProfile); } catch { return ""; }
+    }
+
+    private static string DisplayPath(string path)
+    {
+        try
+        {
+            var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile).TrimEnd('\\');
+            if (!string.IsNullOrWhiteSpace(home) &&
+                path.StartsWith(home, StringComparison.OrdinalIgnoreCase))
+                return "%USERPROFILE%" + path[home.Length..];
+        }
+        catch { }
+        return path;
+    }
+
+    private static string ExpandDisplayPath(string path)
+    {
+        if (path.StartsWith("%USERPROFILE%", StringComparison.OrdinalIgnoreCase))
+        {
+            var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile).TrimEnd('\\');
+            return home + path["%USERPROFILE%".Length..];
+        }
+        return Environment.ExpandEnvironmentVariables(path);
     }
 
     private void Render()
@@ -57,7 +81,7 @@ public sealed partial class AiAgentsModule : Page
     private async void WorkDir_Click(object sender, RoutedEventArgs e)
     {
         var folder = await FileDialogs.OpenFolderAsync();
-        if (folder is not null) WorkDirBox.Text = folder;
+        if (folder is not null) WorkDirBox.Text = DisplayPath(folder);
     }
 
     private async Task BuildCards()
@@ -110,7 +134,7 @@ public sealed partial class AiAgentsModule : Page
         var launch = new Button { Content = P("Launch", "啟動"), IsEnabled = installed };
         launch.Click += (_, _) =>
         {
-            var dir = string.IsNullOrWhiteSpace(WorkDirBox.Text) ? null : WorkDirBox.Text;
+            var dir = string.IsNullOrWhiteSpace(WorkDirBox.Text) ? null : ExpandDisplayPath(WorkDirBox.Text);
             var r = AiAgentService.Launch(agent, dir);
             ShowResult(r.Success, r);
         };
@@ -135,7 +159,8 @@ public sealed partial class AiAgentsModule : Page
             actions.Children.Add(btn);
         }
 
-        var docs = new HyperlinkButton { Content = P("Docs", "文件"), NavigateUri = SafeUri(agent.DocsUrl) };
+        var docs = new Button { Content = P("Copy docs URL", "複製文件網址") };
+        docs.Click += (_, _) => CopyText(agent.DocsUrl);
         actions.Children.Add(docs);
         panel.Children.Add(actions);
 
@@ -373,11 +398,6 @@ public sealed partial class AiAgentsModule : Page
         };
     }
 
-    private static Uri? SafeUri(string url)
-    {
-        try { return new Uri(url); } catch { return null; }
-    }
-
     private void ShowOk(string msg)
     {
         ResultBar.IsOpen = true; ResultBar.Severity = InfoBarSeverity.Success;
@@ -390,5 +410,17 @@ public sealed partial class AiAgentsModule : Page
         ResultBar.Severity = ok ? InfoBarSeverity.Success : InfoBarSeverity.Error;
         ResultBar.Title = ok ? P("Done", "完成") : P("Failed", "失敗");
         ResultBar.Message = (Loc.I.IsCantonesePrimary ? r.Message?.Zh : r.Message?.En) ?? (r.Output ?? "");
+    }
+
+    private void CopyText(string text)
+    {
+        var dp = new DataPackage { RequestedOperation = DataPackageOperation.Copy };
+        dp.SetText(text ?? "");
+        Clipboard.SetContent(dp);
+        Clipboard.Flush();
+        ResultBar.IsOpen = true;
+        ResultBar.Severity = InfoBarSeverity.Success;
+        ResultBar.Title = P("Copied", "已複製");
+        ResultBar.Message = text ?? "";
     }
 }

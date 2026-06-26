@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Windows.ApplicationModel.DataTransfer;
 using WinForge.Catalog;
 using WinForge.Models;
 using WinForge.Pages;
@@ -1308,6 +1308,13 @@ public sealed partial class MainWindow : Window
 
     private void Session_OpenFolder(object sender, RoutedEventArgs e)
     {
-        try { Process.Start(new ProcessStartInfo("explorer.exe", $"\"{TabSessionService.Folder}\"") { UseShellExecute = true }); } catch { }
+        try
+        {
+            var dp = new DataPackage { RequestedOperation = DataPackageOperation.Copy };
+            dp.SetText(TabSessionService.Folder);
+            Clipboard.SetContent(dp);
+            Clipboard.Flush();
+        }
+        catch { }
     }
 }

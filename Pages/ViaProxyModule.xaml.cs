@@ -143,7 +143,11 @@ public sealed partial class ViaProxyModule : Page
     {
         try
         {
-            Process.Start(new ProcessStartInfo { FileName = ViaProxyService.SourceUrl, UseShellExecute = true });
+            var dp = new DataPackage { RequestedOperation = DataPackageOperation.Copy };
+            dp.SetText(ViaProxyService.SourceUrl);
+            Clipboard.SetContent(dp);
+            Clipboard.Flush();
+            AppendLog(P("Source URL copied: ", "已複製原始碼網址：") + ViaProxyService.SourceUrl);
         }
         catch { }
     }

@@ -145,10 +145,7 @@ public sealed partial class RichPreviewModule : Page
     private void Open_Click(object sender, RoutedEventArgs e)
     {
         if (_current is null) return;
-        try
-        {
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(_current) { UseShellExecute = true });
-        }
+        try { CopyText(_current); Note(P("File path copied.", "已複製檔案路徑。")); }
         catch (Exception ex) { Warn(ex.Message); }
     }
 
@@ -157,8 +154,9 @@ public sealed partial class RichPreviewModule : Page
         if (_current is null) return;
         try
         {
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe")
-            { Arguments = $"/select,\"{_current}\"", UseShellExecute = true });
+            var folder = Path.GetDirectoryName(_current) ?? _current;
+            CopyText(folder);
+            Note(P("Folder path copied.", "已複製資料夾路徑。"));
         }
         catch (Exception ex) { Warn(ex.Message); }
     }
@@ -178,9 +176,8 @@ public sealed partial class RichPreviewModule : Page
 
     private void OpenPreviewSettings_Click(object sender, RoutedEventArgs e)
     {
-        // Open the classic File Explorer Options (Folder Options) where the preview pane is configured.
-        try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("control.exe") { Arguments = "folders", UseShellExecute = true }); }
-        catch (Exception ex) { Warn(ex.Message); }
+        CopyText("control.exe folders");
+        Note(P("Folder Options command copied.", "已複製資料夾選項命令。"));
     }
 
     private void OpenFolderOptions_Click(object sender, RoutedEventArgs e)
@@ -301,12 +298,20 @@ public sealed partial class RichPreviewModule : Page
         s.AreDefaultContextMenusEnabled = true;
         s.AreDevToolsEnabled = false;
         s.IsZoomControlEnabled = true;
-        // Open clicked links in the default browser, not inside the preview.
+        // Keep clicked links inside WinForge by copying them instead of opening the default browser.
         sender.CoreWebView2.NewWindowRequested += (_, e) =>
         {
             e.Handled = true;
-            try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(e.Uri) { UseShellExecute = true }); } catch { }
+            try { CopyText(e.Uri); Note(P("Link copied.", "已複製連結。")); } catch { }
         };
+    }
+
+    private static void CopyText(string text)
+    {
+        var dp = new DataPackage { RequestedOperation = DataPackageOperation.Copy };
+        dp.SetText(text);
+        Clipboard.SetContent(dp);
+        Clipboard.Flush();
     }
 
     private async Task ShowHtmlAsync(string html)

@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.Web.WebView2.Core;
+using Windows.ApplicationModel.DataTransfer;
 using WinForge.Services;
 
 namespace WinForge.Pages;
@@ -264,7 +265,7 @@ public sealed partial class MailModule : Page
                 e.Handled = true;
                 if (Uri.TryCreate(e.Uri, UriKind.Absolute, out var uri) &&
                     (uri.Scheme == "http" || uri.Scheme == "https" || uri.Scheme == "mailto"))
-                    try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(e.Uri) { UseShellExecute = true }); } catch { }
+                    try { CopyText(e.Uri); Done(true, "Link copied", "已複製連結", e.Uri); } catch { }
             };
             _webReady = true;
         }
@@ -285,6 +286,14 @@ public sealed partial class MailModule : Page
         "<meta http-equiv=\"Content-Security-Policy\" content=\"script-src 'none'; object-src 'none';\">" +
         "<style>body{font-family:Segoe UI,Arial,sans-serif;margin:12px;color:#1a1a1a;background:#fff;word-wrap:break-word;}img{max-width:100%;height:auto;}</style></head><body>" +
         body + "</body></html>";
+
+    private static void CopyText(string text)
+    {
+        var dp = new DataPackage { RequestedOperation = DataPackageOperation.Copy };
+        dp.SetText(text);
+        Clipboard.SetContent(dp);
+        Clipboard.Flush();
+    }
 
     private void RemoteToggle_Click(object sender, RoutedEventArgs e)
     {

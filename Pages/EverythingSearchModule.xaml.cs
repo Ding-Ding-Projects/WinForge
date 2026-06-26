@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -57,7 +56,7 @@ public sealed partial class EverythingSearchModule : Page
         SearchBox.PlaceholderText = P("Search files…  (use * ? wildcards, or toggle Regex)", "搜尋檔案…（可用 * ? 萬用字元，或切換正規表示式）");
         RegexCheck.Content = P("Regex", "正規表示式");
         RefreshBtn.Content = P("Rebuild index", "重建索引");
-        OpenFolderBtn.Content = P("Open folder", "開啟資料夾");
+        OpenFolderBtn.Content = P("Copy containing path", "複製所在路徑");
         CopyPathBtn.Content = P("Copy path", "複製路徑");
         ColName.Text = P("Name", "名稱");
         ColPath.Text = P("Path", "路徑");
@@ -255,7 +254,7 @@ public sealed partial class EverythingSearchModule : Page
         {
             List.SelectedItem = r;
             var menu = new MenuFlyout();
-            var openItem = new MenuFlyoutItem { Text = P("Open containing folder", "開啟所在資料夾") };
+            var openItem = new MenuFlyoutItem { Text = P("Copy containing path", "複製所在路徑") };
             openItem.Click += (_, _) => OpenContainingFolder(r);
             var copyItem = new MenuFlyoutItem { Text = P("Copy path", "複製路徑") };
             copyItem.Click += (_, _) => CopyPath(r);
@@ -278,39 +277,34 @@ public sealed partial class EverythingSearchModule : Page
     }
 
     /// <summary>
-    /// 喺檔案總管開啟並選取結果 · Open Explorer at the result and select it. This is a result action
-    /// on a USER FILE, not "launching the upstream search app".
+    /// 複製結果所在位置，避免跳去檔案總管 · Copy the containing path without opening Explorer.
     /// </summary>
     private void OpenContainingFolder(Row r)
     {
         try
         {
-            if (r.IsDir && Directory.Exists(r.Path))
-                Process.Start(new ProcessStartInfo("explorer.exe", $"\"{r.Path}\"") { UseShellExecute = true });
-            else if (File.Exists(r.Path))
-                Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{r.Path}\"") { UseShellExecute = true });
+            var path = r.IsDir ? r.Path : Path.GetDirectoryName(r.Path);
+            if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
+                Warn(P("That path no longer exists. Rebuild the index.", "呢個路徑已經唔存在。請重建索引。"));
             else
-            {
-                var parent = Path.GetDirectoryName(r.Path);
-                if (parent is not null && Directory.Exists(parent))
-                    Process.Start(new ProcessStartInfo("explorer.exe", $"\"{parent}\"") { UseShellExecute = true });
-                else
-                    Warn(P("That path no longer exists. Rebuild the index.", "呢個路徑已經唔存在。請重建索引。"));
-            }
+                CopyPath(path);
         }
         catch (Exception ex) { Warn(ex.Message); }
     }
 
     private void CopyPath(Row r)
+        => CopyPath(r.Path);
+
+    private void CopyPath(string path)
     {
         try
         {
             var dp = new DataPackage();
-            dp.SetText(r.Path);
+            dp.SetText(path);
             Clipboard.SetContent(dp);
             ResultBar.Severity = InfoBarSeverity.Success;
             ResultBar.Title = P("Copied", "已複製");
-            ResultBar.Message = r.Path;
+            ResultBar.Message = path;
             ResultBar.IsOpen = true;
         }
         catch (Exception ex) { Warn(ex.Message); }

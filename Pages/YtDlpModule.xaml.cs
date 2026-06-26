@@ -239,7 +239,15 @@ public sealed partial class YtDlpModule : Page
     {
         var dir = (FolderBox.Text ?? "").Trim();
         if (dir.Length == 0 || !Directory.Exists(dir)) return;
-        try { Process.Start(new ProcessStartInfo("explorer.exe", $"\"{dir}\"") { UseShellExecute = true }); } catch { }
+        try
+        {
+            var dp = new DataPackage { RequestedOperation = DataPackageOperation.Copy };
+            dp.SetText(dir);
+            Clipboard.SetContent(dp);
+            Clipboard.Flush();
+            Notify(InfoBarSeverity.Success, P("Folder path copied", "已複製資料夾路徑"), dir);
+        }
+        catch (Exception ex) { Notify(InfoBarSeverity.Error, P("Copy failed", "複製失敗"), ex.Message); }
     }
 
     // ───────────────────────── download ─────────────────────────

@@ -2,6 +2,7 @@ using System;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Windows.ApplicationModel.DataTransfer;
 using WinForge.Catalog;
 using WinForge.Services;
 
@@ -53,11 +54,12 @@ public sealed partial class AboutPage : Page
             "部分需要管理員權限，或者要重啟先生效。"));
 
         Root.Children.Add(Heading(Loc.I.Pick("Source code", "原始碼"), null));
-        var link = new HyperlinkButton
+        var link = new Button
         {
             Content = "github.com/codingmachineedge/WinForge",
-            NavigateUri = new Uri("https://github.com/codingmachineedge/WinForge"),
+            Padding = new Thickness(0),
         };
+        link.Click += (_, _) => CopyText("https://github.com/codingmachineedge/WinForge");
         Root.Children.Add(link);
 
         Root.Children.Add(new TextBlock
@@ -89,5 +91,13 @@ public sealed partial class AboutPage : Page
             Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
         });
         return p;
+    }
+
+    private static void CopyText(string text)
+    {
+        var dp = new DataPackage { RequestedOperation = DataPackageOperation.Copy };
+        dp.SetText(text);
+        Clipboard.SetContent(dp);
+        Clipboard.Flush();
     }
 }

@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.Web.WebView2.Core;
+using Windows.ApplicationModel.DataTransfer;
 using WinForge.Controls;
 using WinForge.Services;
 
@@ -173,13 +174,21 @@ public sealed partial class WebLoginModule : Page
         EngineBar.Message = P(
             "The Microsoft Edge WebView2 Runtime is required for in-app login. It ships with Windows 11; on older images install the Evergreen Runtime.",
             "內置登入需要 Microsoft Edge WebView2 執行階段。Windows 11 已內附；舊版系統請安裝 Evergreen Runtime。");
-        var btn = new HyperlinkButton
+        var btn = new Button
         {
-            Content = P("Open download page", "開啟下載頁面"),
-            NavigateUri = new Uri("https://developer.microsoft.com/microsoft-edge/webview2/"),
+            Content = P("Copy download URL", "複製下載網址"),
         };
+        btn.Click += (_, _) => CopyText("https://developer.microsoft.com/microsoft-edge/webview2/");
         EngineBar.ActionButton = btn;
         EngineBar.IsOpen = true;
+    }
+
+    private static void CopyText(string text)
+    {
+        var dp = new DataPackage { RequestedOperation = DataPackageOperation.Copy };
+        dp.SetText(text);
+        Clipboard.SetContent(dp);
+        Clipboard.Flush();
     }
 
     private void Back_Click(object sender, RoutedEventArgs e)

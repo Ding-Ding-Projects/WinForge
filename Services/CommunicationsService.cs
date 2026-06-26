@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using Microsoft.Win32;
+using Windows.ApplicationModel.DataTransfer;
 using WinForge.Models;
 
 namespace WinForge.Services;
@@ -69,42 +70,51 @@ public static class CommunicationsService
     public static bool HasClassicOutlook() => ResolveOutlookExe() is not null;
 
     /// <summary>
-    /// 啟動一個協定 URI（mailto:, discord://, tg://, slack://, tel:, https://…）。
-    /// Launch a protocol URI through its registered handler (ShellExecute). Never sends.
+    /// 複製一個協定 URI（mailto:, discord://, tg://, slack://, tel:, https://…），避免跳去外部 app。
+    /// Copy a protocol URI instead of handing off to the registered external handler.
     /// </summary>
     public static TweakResult LaunchUri(string uri)
     {
         if (string.IsNullOrWhiteSpace(uri))
-            return TweakResult.Fail("Nothing to launch.", "冇嘢可以啟動。");
+            return TweakResult.Fail("Nothing to copy.", "冇嘢可以複製。");
         try
         {
-            Process.Start(new ProcessStartInfo { FileName = uri, UseShellExecute = true });
-            return TweakResult.Ok($"Launched: {uri}", $"已啟動：{uri}", uri);
+            CopyText(uri);
+            return TweakResult.Ok($"Copied launch URI: {uri}", $"已複製啟動 URI：{uri}", uri);
         }
         catch (Exception ex)
         {
             return TweakResult.Fail(
-                $"Could not launch — no handler for this scheme? ({ex.Message})",
-                $"啟動唔到 — 可能冇 app 處理呢個 scheme？（{ex.Message}）", uri);
+                $"Could not copy launch URI: {ex.Message}",
+                $"複製啟動 URI 失敗：{ex.Message}", uri);
         }
     }
 
     /// <summary>
-    /// 啟動一個有引數嘅可執行檔（例如 OUTLOOK.EXE）· Launch an exe with arguments (e.g. OUTLOOK.EXE).
+    /// 複製一個有引數嘅可執行檔命令（例如 OUTLOOK.EXE）· Copy an exe command with arguments.
     /// </summary>
     public static TweakResult LaunchExe(string exe, string args)
     {
         try
         {
-            Process.Start(new ProcessStartInfo { FileName = exe, Arguments = args, UseShellExecute = true });
-            return TweakResult.Ok($"Launched: {Path.GetFileName(exe)} {args}",
-                $"已啟動：{Path.GetFileName(exe)} {args}", $"{exe} {args}");
+            var command = $"{exe} {args}".Trim();
+            CopyText(command);
+            return TweakResult.Ok($"Copied launch command: {Path.GetFileName(exe)} {args}",
+                $"已複製啟動命令：{Path.GetFileName(exe)} {args}", command);
         }
         catch (Exception ex)
         {
-            return TweakResult.Fail($"Could not launch Outlook: {ex.Message}",
-                $"啟動 Outlook 失敗：{ex.Message}", $"{exe} {args}");
+            return TweakResult.Fail($"Could not copy launch command: {ex.Message}",
+                $"複製啟動命令失敗：{ex.Message}", $"{exe} {args}");
         }
+    }
+
+    private static void CopyText(string text)
+    {
+        var dp = new DataPackage { RequestedOperation = DataPackageOperation.Copy };
+        dp.SetText(text);
+        Clipboard.SetContent(dp);
+        Clipboard.Flush();
     }
 
     // ---------- Mail: mailto: query (RFC 6068) ----------

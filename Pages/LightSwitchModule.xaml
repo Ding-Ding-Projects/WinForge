@@ -109,11 +109,11 @@
                         <StackPanel Orientation="Horizontal" Spacing="14">
                             <StackPanel Spacing="4">
                                 <TextBlock x:Name="SunriseOffLabel" FontSize="13" />
-                                <NumberBox x:Name="SunriseOffBox" Value="0" Minimum="-720" Maximum="720" SpinButtonPlacementMode="Inline" MinWidth="140" ValueChanged="Offsets_Changed" />
+                                <NumberBox x:Name="SunriseOffBox" Value="0" Minimum="-720" Maximum="720" SpinButtonPlacementMode="Inline" MinWidth="140" />
                             </StackPanel>
                             <StackPanel Spacing="4">
                                 <TextBlock x:Name="SunsetOffLabel" FontSize="13" />
-                                <NumberBox x:Name="SunsetOffBox" Value="0" Minimum="-720" Maximum="720" SpinButtonPlacementMode="Inline" MinWidth="140" ValueChanged="Offsets_Changed" />
+                                <NumberBox x:Name="SunsetOffBox" Value="0" Minimum="-720" Maximum="720" SpinButtonPlacementMode="Inline" MinWidth="140" />
                             </StackPanel>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Spacing="10">

@@ -28,7 +28,7 @@ Use the committed skill **`.claude/skills/run-winforge/`** (SKILL.md + driver.ps
 - **.NET `net11.0-windows10.0.26100.0`, WinUI 3, self-contained, unpackaged** (`WindowsPackageType=None`). Resilient startup via `WinForgeLauncher` (`launcher/`).
 - **Adding a module touches 4 places:** `Services/ModuleRegistry.cs` (Tag/En/Zh/Glyph/Keywords), `MainWindow.xaml.cs` `MapType()` (tag→Page type) + `ApplyStartPage()` (deep-link aliases), and `MainWindow.xaml` (`NavigationViewItem`). Pages live in `Pages/<X>Module.xaml(.cs)`, logic in `Services/<X>Service.cs`.
 - **Bilingual everywhere:** `Models/Core.cs` `LocalizedText(en, zh)` + `Services/Loc.cs` `Loc.I.Pick(en, zh)`; the UI shows both languages. **Cantonese (粵語/繁體中文)**, not Mandarin.
-- **Controls:** `Controls/TweakCard` (data-driven cards) + a `VisualBuilder` hook for generated previews; `Services/FileDialogs.cs` (never WinRT pickers); WebView2 available (used by RichPreview + the reactor HTML5 window).
+- **Controls:** `Controls/RichTweakControl` (data-driven cards) + a `VisualBuilder` hook for generated previews; `Services/FileDialogs.cs` (never WinRT pickers); WebView2 available (used by RichPreview + the reactor HTML5 window).
 
 ## 4. What shipped · 已交付
 
@@ -36,7 +36,7 @@ Use the committed skill **`.claude/skills/run-winforge/`** (SKILL.md + driver.ps
 KeePass (KDBX4 read/write, AES/ChaCha20, Argon2 via managed Konscious) · Everything (NTFS MFT/USN search via PInvoke) · CrystalDiskInfo (SMART via DeviceIoControl/WMI) · CrystalDiskMark (FILE_FLAG_NO_BUFFERING benchmark) · Process Explorer (WMI + Process) · Docker manager (Docker.DotNet over npipe) · WinMerge (Myers diff) · HxD hex editor (memory-mapped) · Postman/REST (HttpClient) · DB Browser for SQLite (Microsoft.Data.Sqlite) · Stirling-PDF (PdfSharp + PdfPig) · Mp3tag (TagLib#) · Paint.NET-style editor (ImageSharp 3.1.x — note: v4 is build-license-gated) · draw.io diagram editor (WinUI canvas) · Anki flashcards (SM-2, JSON) · ILSpy decompiler (ICSharpCode.Decompiler) · NormCap OCR (Windows.Media.Ocr).
 
 ### 4b. Other integrations
-Native BitTorrent client (MonoTorrent) · real Bitwarden vault client (API login + PBKDF2/Argon2id + EncString type-2 + HKDF + TOTP, DPAPI tokens) · Explorer right-click context menus (HKCU verbs + `--page/--path`) · rich TweakCards (VisualBuilder + 5 upgraded cards) · Home Assistant native light/plug toggling (REST) · Proxmox VE VM/LXC power (REST, API-token/ticket) · Docker-over-SSH (SSH.NET) · speaker TTS announcements (System.Speech) · capture/ruler drag-crash fix.
+Native BitTorrent client (MonoTorrent) · real Bitwarden vault client (API login + PBKDF2/Argon2id + EncString type-2 + HKDF + TOTP, DPAPI tokens) · Explorer right-click context menus (HKCU verbs + `--page/--path`) · rich rich tweak controls (VisualBuilder + 5 upgraded cards) · Home Assistant native light/plug toggling (REST) · Proxmox VE VM/LXC power (REST, API-token/ticket) · Docker-over-SSH (SSH.NET) · speaker TTS announcements (System.Speech) · capture/ruler drag-crash fix.
 
 ### 4c. Flagship Nuclear Reactor (the centerpiece)
 - **Physics (`Services/ReactorSimService.cs`):** 6-group point kinetics with **backward-Euler** integration (numerically stable); reactivity = rods + boron + Doppler + moderator + xenon (+samarium); **ANS-5.1 decay heat**; **Westinghouse rod control** (S-curve worth, 228-step bank overlap, insertion limits); saturated-pressurizer pressure model + auto pressure program; **3-element SG feedwater** (shrink/swell); **3-range NIS** (source/intermediate/power, 1/M); **RPS** with 2-of-4 coincidence (`Services/ReactorRps.cs`); axial-flux ΔI/CAOC + f₁(ΔI) OTΔT penalty; accident **scenarios** (LOCA, SBO, LOFW, ATWS, SGTR, MSLB) in `Services/ReactorScenarios.cs`; electrical in `Services/ReactorElectrical.cs`; reactivity meter in `Services/ReactorReactivityMeter.cs`.
@@ -54,9 +54,9 @@ Native BitTorrent client (MonoTorrent) · real Bitwarden vault client (API login
 
 ## 6. Open items · 未完成事項 (prioritized)
 1. **Reactor at-power calibration (P2) — the one real functional gap.** The core is safe at rest but **melts if started up**: a fresh core reads **+5335 pcm (supercritical) with all rods inserted** at cold temp, because the cold Doppler (datum 600 °C) and moderator (datum 305 °C) feedbacks are large and positive and, with `ExcessBaseline`, exceed full rod worth — so leaving Shutdown sends it prompt-supercritical and SCRAM can't hold it. The realism loop landed the integrator/decay-heat/rod-control/scenarios but not the reactivity recalibration. Fix lives in `Services/ReactorSimService.cs` (the reactivity assembly + `ExcessBaseline` + temperature-feedback referencing) and `Services/ReactorReactivityMeter.cs`; guidance + numbers in `docs/reactor-realism-review-001.md` (P1–P3). The `reactor-realism-loop` scheduled task is **disabled** — re-enable it to continue, or do a focused P2 fix.
-2. **3 module pages crash on open** — `audioeditor`, `lightswitch`, `timelens` throw in `MainWindow.NavigateActive` at page load (no window appears). A background task chip ("Fix 3 modules that crash on open") was filed; suggested branch `fix/module-load-crashes`. The other ~124 pages open fine. (These are also the only 3 missing from the 124/127 wiki screenshot set.)
-3. **Reactor scenario screenshots** — LOCA/SBO/SGTR/MSLB/ATWS/meltdown need in-app interaction (and a working at-power core, i.e. P2) to capture; currently documented textually in the test report + emergencies page.
-4. **`feature/in-app-manual`** — left unmerged (separate orchestration). Decide whether to integrate.
+2. **Reactor scenario screenshots** — LOCA/SBO/SGTR/MSLB/ATWS/meltdown need in-app interaction (and a working at-power core, i.e. P2) to capture; currently documented textually in the test report + emergencies page.
+3. **`feature/in-app-manual`** — left unmerged (separate orchestration). Decide whether to integrate.
+4. **Resolved after this handoff:** `audioeditor`, `lightswitch`, and `timelens` now open via `MainWindow.NavigateActive`; the three missing page screenshots were recaptured with `driver.ps1`.
 
 ## 7. Scheduled tasks · 排程工作
 - `reactor-realism-loop` (durable, `*/5 * * * *`) → **disabled** (was implementing reactor realism each run; stopped on request).
@@ -67,9 +67,8 @@ Organized bilingual wiki: `docs/wiki/Home.md` index → **13 category pages** + 
 
 ## 9. Next steps · 下一步 (suggested order)
 1. Land **P2 reactivity recalibration** so the reactor can be operated at power (re-enable the loop or focused fix per `reactor-realism-review-001.md`), then re-run `tests/ReactorSim.Tests` (expect a green at-power path) and capture scenario screenshots via the driver.
-2. Fix the **3 crashing module pages**, then capture their 3 missing screenshots with `driver.ps1`.
-3. Refresh the 2 stale test assertions to match the new SCRAM/xenon models.
-4. Optionally prune the merged `feature/*` branches.
+2. Refresh the 2 stale test assertions to match the new SCRAM/xenon models.
+3. Optionally prune the merged `feature/*` branches.
 
 ## 10. Key paths · 重要路徑
 - Reactor engine: `Services/ReactorSimService.cs`, `ReactorRps.cs`, `ReactorScenarios.cs`, `ReactorElectrical.cs`, `ReactorReactivityMeter.cs`.

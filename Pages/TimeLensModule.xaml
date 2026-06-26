@@ -51,14 +51,14 @@
                         <StackPanel Grid.Column="0" Spacing="4">
                             <TextBlock x:Name="IdleLabel" FontWeight="SemiBold" />
                             <StackPanel Orientation="Horizontal" Spacing="10">
-                                <Slider x:Name="IdleSlider" Width="180" Minimum="1" Maximum="30" StepFrequency="1" ValueChanged="Idle_Changed" />
+                                <Slider x:Name="IdleSlider" Width="180" Minimum="1" Maximum="30" StepFrequency="1" />
                                 <TextBlock x:Name="IdleValue" VerticalAlignment="Center" />
                             </StackPanel>
                         </StackPanel>
                         <StackPanel Grid.Column="1" Spacing="4">
                             <TextBlock x:Name="PollLabel" FontWeight="SemiBold" />
                             <StackPanel Orientation="Horizontal" Spacing="10">
-                                <Slider x:Name="PollSlider" Width="180" Minimum="1" Maximum="30" StepFrequency="1" ValueChanged="Poll_Changed" />
+                                <Slider x:Name="PollSlider" Width="180" Minimum="1" Maximum="30" StepFrequency="1" />
                                 <TextBlock x:Name="PollValue" VerticalAlignment="Center" />
                             </StackPanel>
                         </StackPanel>

@@ -48,7 +48,7 @@ Prints a per-scenario PASS/FAIL table (currently 16/16). Use this for PRs that t
 - **Framework-dependent build won't run** → it pops a *"install .NET"* dialog. Always run/launch the **self-contained publish** exe (the driver does this).
 - **App not in the Start menu** → computer-use / desktop screenshot tools mask it. The driver captures via `CopyFromScreen` over the DWM extended-frame bounds (attribute `9`) — accurate and shadow-excluded.
 - **`--page` is reliable; bare `--reactor` is not** — with a restored multi-tab session, `--reactor` can land on the Dashboard. `--page <alias>` navigated correctly for 124/127 pages in a full sweep.
-- **3 pages crash on open** — `audioeditor`, `lightswitch`, `timelens` throw in `NavigateActive` at load → no window (the driver will throw "no window appeared"). The other ~124 open fine.
+- **Previously blank pages** — `audioeditor`, `lightswitch`, and `timelens` were fixed after the Omega handoff. If a capture is blank, rerun with a longer `-WaitMs`.
 - **Reactor boots held in MODE 5 cold shutdown** — it's subcritical/idle by design (operator must start it up); safe at rest. The at-power reactivity calibration (P2) is unfinished, so it melts if started up — see `docs/handoffs/52-omega-session-handoff.md`.
 - **First publish is slow** (~3–4 min); subsequent ones are incremental.
 

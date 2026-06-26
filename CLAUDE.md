@@ -28,11 +28,11 @@ WinForge (a.k.a. 視窗調校) is an all-in-one, **fully bilingual (English + �
 - **Known gap:** at-power **reactivity calibration (P2) is unfinished** — the core is safe at rest but melts if started up. See `docs/reactor-realism-review-001.md` and `docs/handoffs/52-omega-session-handoff.md`.
 
 ## Docs
-Bilingual wiki under `docs/wiki/` (Home → 13 category pages + reactor hub with 7 sub-pages + manual + test report + screenshots gallery; 124 page screenshots in `docs/wiki/images/`). Full session state & open items: **`docs/handoffs/52-omega-session-handoff.md`**.
+Bilingual wiki under `docs/wiki/` (Home → 13 category pages + reactor hub with 7 sub-pages + manual + test report + screenshots gallery; page screenshots in `docs/wiki/images/` and `docs/`). Full session state & open items: **`docs/handoffs/52-omega-session-handoff.md`**.
 
 ## Gotchas
-- 3 module pages crash on open (`audioeditor`, `lightswitch`, `timelens`) — throw in `MainWindow.NavigateActive` at load.
+- `audioeditor`, `lightswitch`, and `timelens` were fixed after the Omega handoff; if one captures blank via the driver, rerun with a longer `-WaitMs`.
 - `--page <alias>` is reliable; bare `--reactor` can land on the Dashboard if a session was restored.
 - Reactor restoring a stale/melted autosave → delete `%LOCALAPPDATA%\WinForge\state` (+ `…\session\tabs.json`).
 - `.claude/` is gitignored — the run-winforge skill is tracked via `git add -f`.
-- Git: branch + merge into `main`; never force-push; never touch any `cafepromenade/WinTune` remote. Commit messages are bilingual.
+- Git: branch + merge into `main`; never force-push; never touch unrelated personal remotes. Commit messages are bilingual.

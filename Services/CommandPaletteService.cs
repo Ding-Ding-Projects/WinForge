@@ -657,11 +657,11 @@ public static class CommandPaletteService
         list.Add(new CommandPaletteResult
         {
             Title = Loc.I.Pick($"Search the web for \"{q}\"", $"喺網上搜尋「{q}」"),
-            Subtitle = Loc.I.Pick("Open a web search in your browser", "用瀏覽器開啟網絡搜尋"),
+            Subtitle = Loc.I.Pick("Copy the web-search URL", "複製網絡搜尋網址"),
             Glyph = ((char)0xE721).ToString(),
             ProviderTag = Loc.I.Pick("Web", "網絡"),
             Score = 10, // always last unless nothing else matches
-            Invoke = () => { LaunchPath("https://www.bing.com/search?q=" + encoded); return true; },
+            Invoke = () => { CopyText("https://www.bing.com/search?q=" + encoded); return true; },
         });
     }
 
@@ -671,11 +671,7 @@ public static class CommandPaletteService
     {
         try
         {
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = path,
-                UseShellExecute = true,
-            });
+            CopyText(path);
         }
         catch { /* best effort */ }
     }
@@ -684,12 +680,7 @@ public static class CommandPaletteService
     {
         try
         {
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = file,
-                Arguments = args,
-                UseShellExecute = true,
-            });
+            CopyText($"{file} {args}".Trim());
         }
         catch { /* best effort */ }
     }

@@ -1,23 +1,23 @@
 using System;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.Web.WebView2.Core;
+using Windows.ApplicationModel.DataTransfer;
 using WinForge.Services;
 
 namespace WinForge.Pages;
 
 /// <summary>
 /// World Monitor — 實時全球情報儀表板（新聞、地緣政治、金融、能源、不穩定指數），
-/// 經 WebView2 內嵌官方寄存網頁，配原生 WinForge 工具列（變體切換、重載、縮放、外開瀏覽器）。
+/// 經 WebView2 內嵌官方寄存網頁，配原生 WinForge 工具列（變體切換、重載、縮放、複製網址）。
 /// AGPL 合規：只內嵌寄存網頁／啟動未經修改嘅上游二進位檔，絕不 fork 或重新編譯 WM 原始碼。
 ///
 /// World Monitor — a real-time global intelligence dashboard (news, geopolitics, finance,
 /// energy, an instability index) embedded via WebView2 with a native WinForge toolbar
-/// (variant switch, reload, zoom, open-in-browser). AGPL-clean: embeds the hosted web app /
-/// launches the unmodified upstream binary; never forks or recompiles WM source.
+/// (variant switch, reload, zoom, copy URL). AGPL-clean: embeds the hosted web app /
+/// never forks, vendors, recompiles or launches the upstream binary.
 /// </summary>
 public sealed partial class WorldMonitorModule : Page
 {
@@ -53,12 +53,12 @@ public sealed partial class WorldMonitorModule : Page
     {
         HeaderTitle.Text = "World Monitor · 世界監察";
         VariantLbl.Text = P("Variant", "變體");
-        OpenBrowserTxt.Text = P("Open in browser", "用瀏覽器開");
+        CopyUrlTxt.Text = P("Copy URL", "複製網址");
         ZoomLbl.Text = $"{(int)Math.Round(_svc.Zoom * 100)}%";
         RetryBtn.Content = P("Retry", "重試");
-        ErrOpenBrowserBtn.Content = P("Open in browser", "用瀏覽器開");
-        RtOpenBrowserBtn.Content = P("Open in browser", "用瀏覽器開");
-        GetRuntimeBtn.Content = P("Get WebView2 Runtime", "下載 WebView2 執行階段");
+        ErrCopyUrlBtn.Content = P("Copy URL", "複製網址");
+        RtCopyUrlBtn.Content = P("Copy dashboard URL", "複製儀表板網址");
+        CopyRuntimeBtn.Content = P("Copy WebView2 Runtime link", "複製 WebView2 執行階段連結");
         FootNote.Text = P(
             "World Monitor is open-source (AGPL-3.0) by koala73. WinForge embeds the hosted web app — it does not fork or recompile the source. AI features and some feeds need third-party keys / network.",
             "World Monitor 係 koala73 嘅開源項目（AGPL-3.0）。WinForge 只係內嵌官方網頁，唔會 fork 或重新編譯原始碼。AI 功能同部分資料源需要第三方金鑰／網絡。");
@@ -160,11 +160,24 @@ public sealed partial class WorldMonitorModule : Page
         else NavigateToCurrent();
     }
 
-    private void OpenBrowser_Click(object sender, RoutedEventArgs e)
-        => WorldMonitorService.OpenInBrowser(CurrentUrl);
+    private void CopyUrl_Click(object sender, RoutedEventArgs e)
+        => CopyUrl(CurrentUrl);
 
-    private void GetRuntime_Click(object sender, RoutedEventArgs e)
-        => WorldMonitorService.OpenInBrowser("https://developer.microsoft.com/microsoft-edge/webview2/");
+    private void CopyRuntimeUrl_Click(object sender, RoutedEventArgs e)
+        => CopyUrl("https://developer.microsoft.com/microsoft-edge/webview2/");
+
+    private void CopyUrl(string url)
+    {
+        try
+        {
+            var dp = new DataPackage { RequestedOperation = DataPackageOperation.Copy };
+            dp.SetText(url);
+            Clipboard.SetContent(dp);
+            Clipboard.Flush();
+            UrlText.Text = P("Copied URL: ", "已複製網址：") + url;
+        }
+        catch { }
+    }
 
     // ── Zoom ──────────────────────────────────────────────────────────────────
 
@@ -228,8 +241,8 @@ public sealed partial class WorldMonitorModule : Page
     {
         ErrorBar.Title = P("Couldn't load World Monitor", "載入唔到 World Monitor");
         ErrorBar.Message = P(
-            "Check your network connection, then retry — or open the dashboard in your browser. ",
-            "請檢查網絡連線再重試 — 或者用瀏覽器打開儀表板。 ") + detail;
+            "Check your network connection, then retry — or copy the dashboard URL. ",
+            "請檢查網絡連線再重試 — 或者複製儀表板網址。 ") + detail;
         ErrorPanel.Visibility = Visibility.Visible;
     }
 
@@ -237,13 +250,13 @@ public sealed partial class WorldMonitorModule : Page
     {
         RuntimeBar.Title = P("WebView2 Runtime not found", "搵唔到 WebView2 執行階段");
         RuntimeBar.Message = P(
-            "World Monitor is embedded via WebView2, which ships with Windows 11. Install the runtime, then reload — or open the dashboard in your browser.",
-            "World Monitor 經 WebView2 內嵌，Windows 11 一般已內建。請安裝執行階段後重新載入 — 或者用瀏覽器打開。")
+            "World Monitor is embedded via WebView2, which ships with Windows 11. Copy the runtime link, install it, then reload.",
+            "World Monitor 經 WebView2 內嵌，Windows 11 一般已內建。請複製執行階段連結，安裝後再重新載入。")
             + (string.IsNullOrEmpty(detail) ? "" : "\n" + detail);
         RuntimePanel.Visibility = Visibility.Visible;
     }
 
-    // ── Advanced: URL overrides + desktop binary ──────────────────────────────
+    // ── Advanced: URL overrides ───────────────────────────────────────────────
 
     private async void Adv_Click(object sender, RoutedEventArgs e)
     {
@@ -270,81 +283,6 @@ public sealed partial class WorldMonitorModule : Page
             stack.Children.Add(tb);
         }
 
-        // Desktop binary section
-        stack.Children.Add(new TextBlock
-        {
-            Text = P("Desktop app (optional) — for full 3D-globe performance",
-                     "桌面版（選用）— 完整 3D 地球效能"),
-            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-            Margin = new Thickness(0, 8, 0, 0),
-        });
-        var binBox = new TextBox
-        {
-            Header = P("Path to World Monitor desktop binary", "World Monitor 桌面安裝檔路徑"),
-            Text = _svc.BinaryPath,
-            PlaceholderText = "C:\\...\\WorldMonitor.exe",
-            FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Consolas"),
-        };
-        stack.Children.Add(binBox);
-
-        var binBtns = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        var browseBtn = new Button { Content = P("Browse…", "瀏覽…") };
-        var dlBtn = new Button { Content = P("Download installer", "下載安裝檔") };
-        var launchBtn = new Button { Content = P("Launch desktop app", "啟動桌面版") };
-        binBtns.Children.Add(browseBtn);
-        binBtns.Children.Add(dlBtn);
-        binBtns.Children.Add(launchBtn);
-        stack.Children.Add(binBtns);
-
-        var advBar = new InfoBar { IsClosable = false, IsOpen = false };
-        var dlRing = new ProgressBar { Minimum = 0, Maximum = 1, Visibility = Visibility.Collapsed };
-        stack.Children.Add(dlRing);
-        stack.Children.Add(advBar);
-
-        browseBtn.Click += async (_, _) =>
-        {
-            var path = await FileDialogs.OpenFileAsync(".exe");
-            if (path is not null) binBox.Text = path;
-        };
-
-        var cts = new CancellationTokenSource();
-        dlBtn.Click += async (_, _) =>
-        {
-            var dir = await FileDialogs.OpenFolderAsync(P("Choose a download folder", "揀下載資料夾"));
-            if (dir is null) return;
-            dlBtn.IsEnabled = false; dlRing.Visibility = Visibility.Visible; dlRing.Value = 0;
-            advBar.Severity = InfoBarSeverity.Informational;
-            advBar.Title = P("Downloading…", "下載緊…");
-            advBar.Message = WorldMonitorService.WindowsDownloadUrl;
-            advBar.IsOpen = true;
-            var prog = new Progress<double>(p => dlRing.Value = p);
-            var (ok, path, msg) = await _svc.DownloadInstallerAsync(dir, prog, cts.Token);
-            dlRing.Visibility = Visibility.Collapsed; dlBtn.IsEnabled = true;
-            if (ok)
-            {
-                binBox.Text = path;
-                advBar.Severity = InfoBarSeverity.Success;
-                advBar.Title = P("Downloaded — run it to install", "下載完成 — 執行佢嚟安裝");
-                advBar.Message = $"{path}  ({msg})";
-            }
-            else
-            {
-                advBar.Severity = InfoBarSeverity.Error;
-                advBar.Title = P("Download failed", "下載失敗");
-                advBar.Message = msg;
-            }
-        };
-
-        launchBtn.Click += async (_, _) =>
-        {
-            _svc.BinaryPath = (binBox.Text ?? "").Trim();
-            var (ok, msg) = await _svc.LaunchBinaryAsync();
-            advBar.Severity = ok ? InfoBarSeverity.Success : InfoBarSeverity.Error;
-            advBar.Title = ok ? P("Launched", "已啟動") : P("Could not launch", "啟動唔到");
-            advBar.Message = msg;
-            advBar.IsOpen = true;
-        };
-
         var dlg = new ContentDialog
         {
             XamlRoot = XamlRoot,
@@ -356,12 +294,10 @@ public sealed partial class WorldMonitorModule : Page
         };
 
         var res = await dlg.ShowAsync();
-        cts.Cancel();
         if (res == ContentDialogResult.Primary)
         {
             foreach (var v in WorldMonitorService.DefaultVariants)
                 _svc.SetUrlOverride(v.Key, boxes[v.Key].Text ?? "");
-            _svc.BinaryPath = (binBox.Text ?? "").Trim();
             // 重新導向到更新後嘅網址 · re-navigate to the updated URL
             if (Web.CoreWebView2 is not null) NavigateToCurrent();
         }
