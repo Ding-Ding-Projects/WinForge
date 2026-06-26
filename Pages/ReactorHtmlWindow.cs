@@ -475,20 +475,30 @@ public sealed class ReactorHtmlWindow : Window
             canRun = _fuel.CanReactorRun,
         });
 
-    private void PostStartupChecklist() =>
+    private void PostStartupChecklist()
+    {
+        var steps = ReactorScenarios.StartupSequence();
+        int done = ReactorScenarios.CompletedStartupSteps(steps, _sim);
         Post(new
         {
             type = "startupChecklist",
-            steps = ReactorScenarios.StartupSequence().Select((s, i) => new
+            done,
+            steps = steps.Select((s, i) => new
             {
                 index = i + 1,
                 en = s.En,
                 zh = s.Zh,
                 controlEn = s.ControlEn,
                 controlZh = s.ControlZh,
-                ok = s.IsSatisfied(_sim),
+                controlTarget = s.ControlTarget,
+                room = s.ControlRoom,
+                ok = i < done,
+                rawOk = s.IsSatisfied(_sim),
+                active = i == done && done < steps.Length,
+                blocked = i > done,
             }),
         });
+    }
 
     private void PostWasteStatus()
     {
@@ -550,7 +560,7 @@ public sealed class ReactorHtmlWindow : Window
         try
         {
             if (_webReady && _web.CoreWebView2 is not null)
-                _web.CoreWebView2.ExecuteScriptAsync($"location.hash = '{normalized}';");
+                _ = _web.CoreWebView2.ExecuteScriptAsync($"location.hash = '{normalized}';");
         }
         catch (Exception ex)
         {

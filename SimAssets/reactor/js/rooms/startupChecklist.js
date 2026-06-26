@@ -1,5 +1,5 @@
 // 啟動程序清單 · Live approach-to-criticality checklist, fed by the C# simulator.
-import { el, panel, readout } from "../ui.js";
+import { el, panel, readout, button } from "../ui.js";
 
 const MODE_NAMES = [
   ["Shutdown", "停機"], ["Startup", "啟動"], ["Run", "運轉"],
@@ -34,6 +34,11 @@ export function StartupChecklist(ctx) {
   let checklist = store.startupChecklist || { steps: [] };
   let latestState = store.latest;
 
+  function goToControl(step) {
+    const room = step.room || "control";
+    try { location.hash = room; } catch (e) {}
+  }
+
   function renderChecklist() {
     const steps = checklist.steps || [];
     rowsHost.innerHTML = "";
@@ -45,24 +50,28 @@ export function StartupChecklist(ctx) {
       return;
     }
 
-    const done = steps.filter(s => !!s.ok).length;
+    const done = Number.isFinite(checklist.done) ? checklist.done : steps.filter(s => !!s.ok).length;
     progress.textContent = `${t("startupProgress")}: ${done}/${steps.length}`;
 
     steps.forEach(step => {
-      const row = el("div", "startup-step" + (step.ok ? " done" : ""));
-      const mark = el("div", "startup-check", step.ok ? "✓" : "○");
+      const rowCls = "startup-step" + (step.ok ? " done" : step.active ? " active" : step.blocked ? " blocked" : "");
+      const row = el("div", rowCls);
+      const mark = el("div", "startup-check", step.ok ? "✓" : step.active ? "→" : "○");
       const body = el("div", "startup-step-body");
       const title = el("div", "startup-step-title", `${step.index}. ${pick(step.en, step.zh)}`);
       const ctl = el("div", "startup-step-control", pick(`Use: ${step.controlEn}`, `使用：${step.controlZh}`));
+      const goBtn = button(pick("Control", "控制"), "startup-go", () => goToControl(step));
       body.appendChild(title);
       body.appendChild(ctl);
       row.appendChild(mark);
       row.appendChild(body);
+      row.appendChild(goBtn);
       rowsHost.appendChild(row);
 
       const controlRow = el("div", "startup-control-row");
       controlRow.appendChild(el("span", "startup-control-num", String(step.index)));
       controlRow.appendChild(el("span", null, pick(step.controlEn, step.controlZh)));
+      controlRow.appendChild(button(pick("Open", "開啟"), "startup-go ghost", () => goToControl(step)));
       controlsHost.appendChild(controlRow);
     });
   }

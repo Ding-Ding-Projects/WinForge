@@ -44,6 +44,8 @@ public sealed class StartupStep
     public string Zh = "";
     public string ControlEn = "";
     public string ControlZh = "";
+    public string ControlTarget = "";
+    public string ControlRoom = "control";
     public Func<ReactorSimService, bool> IsSatisfied = _ => false;
 }
 
@@ -266,6 +268,8 @@ public static class ReactorScenarios
             Zh = "選擇啟動模式",
             ControlEn = "Mode & automation -> Reactor mode: Startup.",
             ControlZh = "模式與自動化 -> 反應堆模式：啟動。",
+            ControlTarget = "mode-automation",
+            ControlRoom = "control",
             IsSatisfied = s => s.Mode == ReactorMode.Startup || s.Mode == ReactorMode.Run,
         },
         new StartupStep
@@ -274,6 +278,8 @@ public static class ReactorScenarios
             Zh = "啟動 ≥3 部主泵",
             ControlEn = "Primary system -> Reactor coolant pumps: turn on RCP 1-4 until at least three are on.",
             ControlZh = "一迴路系統 -> 反應堆冷卻劑泵：開啟主泵 1-4，至少三部要開。",
+            ControlTarget = "primary-system",
+            ControlRoom = "contain",
             IsSatisfied = s => { int n = 0; foreach (var r in s.RcpRunning) if (r) n++; return n >= 3; },
         },
         new StartupStep
@@ -282,6 +288,8 @@ public static class ReactorScenarios
             Zh = "建立一迴路流量 > 85%",
             ControlEn = "Primary system -> RCP flow demand (%): raise the slider, then verify the RCP flow gauge.",
             ControlZh = "一迴路系統 -> 主泵流量需求（%）：調高滑桿，然後確認主泵流量儀表。",
+            ControlTarget = "primary-system",
+            ControlRoom = "contain",
             IsSatisfied = s => s.CoolantFlowFraction > 0.85,
         },
         new StartupStep
@@ -290,6 +298,8 @@ public static class ReactorScenarios
             Zh = "穩壓器加熱器開，壓力 → 約 2235 psia",
             ControlEn = "Primary system -> Pressurizer & relief: leave Auto press ctrl on and turn Heater on; watch the Pressurizer pressure gauge.",
             ControlZh = "一迴路系統 -> 穩壓器與釋壓：保持自動壓力開啟並開加熱器；監察穩壓器壓力儀表。",
+            ControlTarget = "primary-system",
+            ControlRoom = "contain",
             IsSatisfied = s => s.PressurizerHeater && s.PrimaryPressure > 14.5,
         },
         new StartupStep
@@ -298,6 +308,8 @@ public static class ReactorScenarios
             Zh = "提起停堆棒組／稀釋硼至估算臨界位置",
             ControlEn = "Reactor controls -> Control rod bank A-D, Soluble boron target, and CVCS makeup blender mode (Dilute / Alternate dilute).",
             ControlZh = "反應堆控制 -> 控制棒組 A-D、硼濃度目標、化容系統補水混合器模式（稀釋／交替稀釋）。",
+            ControlTarget = "reactor-controls",
+            ControlRoom = "control",
             IsSatisfied = s => { double avg = 0; foreach (var p in s.RodBankInsertion) avg += p; avg /= s.RodBankInsertion.Length; return avg < 60 || s.BoronPpm < 1000; },
         },
         new StartupStep
@@ -306,6 +318,8 @@ public static class ReactorScenarios
             Zh = "監察起動範圍計數率，1/M → 0",
             ControlEn = "Use the Nuclear instrumentation (NIS), 1/M plot, and reactimeter period/SUR readouts.",
             ControlZh = "使用核儀表（NIS）、1/M 圖、反應性儀週期／起動率讀數。",
+            ControlTarget = "nis",
+            ControlRoom = "control",
             IsSatisfied = s => s.OneOverM < 0.25,
         },
         new StartupStep
@@ -314,6 +328,8 @@ public static class ReactorScenarios
             Zh = "於穩定正週期 > 30 秒時宣布臨界",
             ControlEn = "Use the reactimeter period/SUR readouts and reactor power gauge; hold rod/boron changes steady.",
             ControlZh = "使用反應性儀週期／起動率讀數及反應堆功率儀表；保持棒位／硼濃度變更穩定。",
+            ControlTarget = "nis",
+            ControlRoom = "control",
             IsSatisfied = s => s.NeutronPowerFraction > 1e-3 && s.ReactorPeriodSeconds > 30 && s.ReactorPeriodSeconds < 1e8,
         },
         new StartupStep
@@ -322,7 +338,20 @@ public static class ReactorScenarios
             Zh = "升功率、汽輪機併網、合發電機開關",
             ControlEn = "Secondary & turbine -> Turbine load setpoint, Grid synchronization -> Generator breaker, and optional Sync interlock (25).",
             ControlZh = "二迴路與汽輪機 -> 汽輪機負載設定、併網 -> 發電機開關，以及可選同步聯鎖（25）。",
+            ControlTarget = "secondary-turbine",
+            ControlRoom = "turbine",
             IsSatisfied = s => s.GeneratorBreakerClosed && s.ElectricPowerMW > 1.0,
         },
     };
+
+    public static int CompletedStartupSteps(IReadOnlyList<StartupStep> steps, ReactorSimService sim)
+    {
+        int done = 0;
+        foreach (var step in steps)
+        {
+            if (!step.IsSatisfied(sim)) break;
+            done++;
+        }
+        return done;
+    }
 }

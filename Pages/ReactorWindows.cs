@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using Microsoft.UI;
 using Microsoft.UI.Composition;
@@ -432,9 +433,10 @@ public sealed class ReactorWidgetWindow : Window
 public sealed class ReactorStartupChecklistWindow : Window
 {
     private readonly ReactorSimService _sim;
+    private readonly Action<string>? _navigateTarget;
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(250) };
     private readonly OverlappedPresenter _presenter = OverlappedPresenter.Create();
-    private readonly List<(StartupStep step, TextBlock mark, TextBlock title, TextBlock control, Border row)> _rows = new();
+    private readonly List<(StartupStep step, TextBlock mark, TextBlock title, TextBlock control, Button go, Border row)> _rows = new();
 
     private TextBlock _title = null!;
     private TextBlock _progress = null!;
@@ -443,9 +445,10 @@ public sealed class ReactorStartupChecklistWindow : Window
     private TextBlock _pressure = null!;
     private TextBlock _oneOverM = null!;
 
-    public ReactorStartupChecklistWindow(ReactorSimService sim)
+    public ReactorStartupChecklistWindow(ReactorSimService sim, Action<string>? navigateTarget = null)
     {
         _sim = sim;
+        _navigateTarget = navigateTarget;
         Title = "Reactor startup checklist";
         ExtendsContentIntoTitleBar = true;
 
@@ -595,13 +598,31 @@ public sealed class ReactorStartupChecklistWindow : Window
             copy.Children.Add(title);
             copy.Children.Add(control);
 
+            var go = new Button
+            {
+                Content = P("Control", "控制"),
+                MinWidth = 70,
+                Padding = new Thickness(8, 2, 8, 2),
+                VerticalAlignment = VerticalAlignment.Center,
+                Background = new SolidColorBrush(Color.FromArgb(70, 0x1B, 0x6C, 0xFF)),
+                Foreground = new SolidColorBrush(Colors.White),
+            };
+            go.Click += (_, _) =>
+            {
+                RestoreInteractive();
+                _navigateTarget?.Invoke(step.ControlTarget);
+            };
+
             var rowGrid = new Grid { ColumnSpacing = 6 };
             rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             Grid.SetColumn(mark, 0);
             Grid.SetColumn(copy, 1);
+            Grid.SetColumn(go, 2);
             rowGrid.Children.Add(mark);
             rowGrid.Children.Add(copy);
+            rowGrid.Children.Add(go);
 
             var row = new Border
             {
@@ -611,7 +632,7 @@ public sealed class ReactorStartupChecklistWindow : Window
                 Child = rowGrid,
             };
             list.Children.Add(row);
-            _rows.Add((step, mark, title, control, row));
+            _rows.Add((step, mark, title, control, go, row));
         }
 
         var scroller = new ScrollViewer
@@ -637,22 +658,26 @@ public sealed class ReactorStartupChecklistWindow : Window
     {
         _title.Text = P("Startup checklist", "啟動程序清單");
 
-        int done = 0;
+        int done = ReactorScenarios.CompletedStartupSteps(_rows.Select(x => x.step).ToArray(), _sim);
         for (int i = 0; i < _rows.Count; i++)
         {
-            var (step, mark, title, control, row) = _rows[i];
-            bool ok = step.IsSatisfied(_sim);
-            if (ok) done++;
+            var (step, mark, title, control, go, row) = _rows[i];
+            bool ok = i < done;
+            bool active = i == done && done < _rows.Count;
 
-            mark.Text = ok ? "✓" : "○";
+            mark.Text = ok ? "✓" : active ? "→" : "○";
             mark.Foreground = new SolidColorBrush(ok
                 ? Color.FromArgb(255, 0x4C, 0xAF, 0x50)
+                : active ? Color.FromArgb(255, 0xFF, 0xB3, 0x00)
                 : Color.FromArgb(170, 0xAA, 0xAA, 0xAA));
             row.Background = new SolidColorBrush(ok
                 ? Color.FromArgb(75, 0x2E, 0x7D, 0x32)
+                : active ? Color.FromArgb(75, 0x7A, 0x55, 0x12)
                 : Color.FromArgb(55, 0xFF, 0xFF, 0xFF));
+            row.Opacity = i > done ? 0.68 : 1.0;
             title.Text = $"{i + 1}. " + P(step.En, step.Zh);
             control.Text = P($"Use: {step.ControlEn}", $"使用：{step.ControlZh}");
+            go.Content = P("Control", "控制");
         }
 
         _progress.Text = P($"Checklist progress: {done}/{_rows.Count}",

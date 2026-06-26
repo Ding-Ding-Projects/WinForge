@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Numerics;
 using Microsoft.UI;
 using Microsoft.UI.Composition;
@@ -135,6 +136,7 @@ public sealed partial class ReactorModule : Page
     // Native controls mirror the shared sim state so the HTML control room and embedded control room stay in sync.
     private readonly List<Action> _controlSyncers = new();
     private bool _syncingControlValues;
+    private readonly Dictionary<string, FrameworkElement> _startupControlAnchors = new(StringComparer.OrdinalIgnoreCase);
 
     // Public status-API card live element (the enable/disable toggle moved to the Reactor Settings page).
     private TextBlock? _apiStateText;
@@ -267,13 +269,36 @@ public sealed partial class ReactorModule : Page
     {
         try
         {
-            if (_startupChecklistAnchor is null || RootScroll.Content is not UIElement content) return;
-            RootScroll.UpdateLayout();
-            _startupChecklistAnchor.UpdateLayout();
-            var point = _startupChecklistAnchor.TransformToVisual(content).TransformPoint(new Point(0, 0));
-            RootScroll.ChangeView(null, Math.Max(0, point.Y - 12), null);
+            if (_startupChecklistAnchor is not null) ScrollToElement(_startupChecklistAnchor);
         }
         catch (Exception ex) { CrashLogger.Log("reactor:startup-deeplink", ex); }
+    }
+
+    private void ScrollToStartupTarget(string? target)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(target))
+            {
+                ScrollToStartupChecklist();
+                return;
+            }
+
+            if (_startupControlAnchors.TryGetValue(target.Trim(), out var anchor))
+                ScrollToElement(anchor);
+            else
+                ScrollToStartupChecklist();
+        }
+        catch (Exception ex) { CrashLogger.Log("reactor:startup-control-link", ex); }
+    }
+
+    private void ScrollToElement(FrameworkElement element)
+    {
+        if (RootScroll.Content is not UIElement content) return;
+        RootScroll.UpdateLayout();
+        element.UpdateLayout();
+        var point = element.TransformToVisual(content).TransformPoint(new Point(0, 0));
+        RootScroll.ChangeView(null, Math.Max(0, point.Y - 12), null);
     }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
@@ -2265,7 +2290,7 @@ public sealed partial class ReactorModule : Page
                 return;
             }
 
-            var w = new ReactorStartupChecklistWindow(_sim);
+            var w = new ReactorStartupChecklistWindow(_sim, target => DispatcherQueue.TryEnqueue(() => ScrollToStartupTarget(target)));
             _startupChecklistWindow = w;
             w.Closed += (_, _) => _startupChecklistWindow = null;
             w.Activate();
@@ -2347,8 +2372,12 @@ public sealed partial class ReactorModule : Page
         host.Children.Clear();
         _startupChecklistAnchor = null;
         _controlSyncers.Clear();
+        _startupControlAnchors.Clear();
+        _startupControlAnchors["nis"] = NisTitle;
 
-        host.Children.Add(SectionHeader("Reactor controls · 反應堆控制", "反應堆控制 · Reactor controls"));
+        var reactorControlsHeader = SectionHeader("Reactor controls · 反應堆控制", "反應堆控制 · Reactor controls");
+        _startupControlAnchors["reactor-controls"] = reactorControlsHeader;
+        host.Children.Add(reactorControlsHeader);
 
         // Rod banks
         for (int b = 0; b < 4; b++)
@@ -2398,7 +2427,9 @@ public sealed partial class ReactorModule : Page
             0, 2500, _sim.TargetBoronPpm, 10,
             v => _sim.TargetBoronPpm = v, () => _sim.TargetBoronPpm, " ppm"));
 
-        host.Children.Add(SectionHeader("Primary system · 一迴路系統", "一迴路系統 · Primary system"));
+        var primaryHeader = SectionHeader("Primary system · 一迴路系統", "一迴路系統 · Primary system");
+        _startupControlAnchors["primary-system"] = primaryHeader;
+        host.Children.Add(primaryHeader);
 
         // RCP pumps
         var pumpPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
@@ -2510,7 +2541,9 @@ public sealed partial class ReactorModule : Page
             v => _sim.PressureBoundaryLeak = v, () => _sim.PressureBoundaryLeak));
         host.Children.Add(WrapLabel("RCS pressure boundary · 一次側壓力邊界", "一次側壓力邊界 · RCS pressure boundary", leakPanel));
 
-        host.Children.Add(SectionHeader("Secondary & turbine · 二迴路與汽輪機", "二迴路與汽輪機 · Secondary & turbine"));
+        var secondaryHeader = SectionHeader("Secondary & turbine · 二迴路與汽輪機", "二迴路與汽輪機 · Secondary & turbine");
+        _startupControlAnchors["secondary-turbine"] = secondaryHeader;
+        host.Children.Add(secondaryHeader);
 
         var fwPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
         var fwAuto = MakeToggle("Feedwater AUTO · 給水自動", "給水自動 · Feedwater AUTO",
@@ -2626,7 +2659,9 @@ public sealed partial class ReactorModule : Page
         host.Children.Add(WrapLabel("Station battery (125 VDC) · 蓄電池（125 VDC）",
             "蓄電池（125 VDC）· Station battery (125 VDC)", dcPanel));
 
-        host.Children.Add(SectionHeader("Mode & automation · 模式與自動化", "模式與自動化 · Mode & automation"));
+        var modeHeader = SectionHeader("Mode & automation · 模式與自動化", "模式與自動化 · Mode & automation");
+        _startupControlAnchors["mode-automation"] = modeHeader;
+        host.Children.Add(modeHeader);
 
         // Mode selector
         var modeCombo = new ComboBox { MinWidth = 220 };
@@ -2719,7 +2754,7 @@ public sealed partial class ReactorModule : Page
         SyncControlValues();
     }
 
-    private readonly List<(StartupStep step, TextBlock check)> _startupSteps = new();
+    private readonly List<(StartupStep step, TextBlock check, Border frame)> _startupSteps = new();
     private TextBlock? _keepAliveStatus;
     private Border? _keepAliveDot;
 
@@ -2792,14 +2827,27 @@ public sealed partial class ReactorModule : Page
                 : Color.FromArgb(200, 0xCF, 0xD8, 0xDC));
         }
 
-        // Live-update the startup checklist marks.
-        foreach (var (step, check) in _startupSteps)
+        // Live-update the startup checklist marks in order. Later steps stay pending until previous steps are done.
+        int orderedDone = ReactorScenarios.CompletedStartupSteps(_startupSteps.Select(x => x.step).ToArray(), _sim);
+        for (int i = 0; i < _startupSteps.Count; i++)
         {
-            bool ok = step.IsSatisfied(_sim);
-            check.Text = ok ? "✓" : "○";
+            var (step, check, frame) = _startupSteps[i];
+            bool ok = i < orderedDone;
+            bool active = i == orderedDone && orderedDone < _startupSteps.Count;
+            check.Text = ok ? "✓" : active ? "→" : "○";
             check.Foreground = new SolidColorBrush(ok
                 ? Color.FromArgb(255, 0x4C, 0xAF, 0x50)
+                : active ? Color.FromArgb(255, 0xFF, 0xB3, 0x00)
                 : Color.FromArgb(160, 0xAA, 0xAA, 0xAA));
+            frame.BorderBrush = new SolidColorBrush(active
+                ? Color.FromArgb(210, 0xFF, 0xB3, 0x00)
+                : ok ? Color.FromArgb(150, 0x4C, 0xAF, 0x50)
+                : Color.FromArgb(80, 0x99, 0x99, 0x99));
+            frame.Background = new SolidColorBrush(ok
+                ? Color.FromArgb(25, 0x4C, 0xAF, 0x50)
+                : active ? Color.FromArgb(25, 0xFF, 0xB3, 0x00)
+                : Color.FromArgb(0, 0, 0, 0));
+            frame.Opacity = i > orderedDone ? 0.72 : 1.0;
         }
         // Live-update keep-alive status pill.
         if (_keepAliveStatus is not null && _keepAliveDot is not null)
@@ -2850,15 +2898,36 @@ public sealed partial class ReactorModule : Page
             var copy = new StackPanel { Spacing = 0 };
             copy.Children.Add(text);
             copy.Children.Add(controlText);
-            var row = new Grid { ColumnSpacing = 6, Margin = new Thickness(0, 1, 0, 1) };
+            var go = new Button
+            {
+                MinWidth = 72,
+                Padding = new Thickness(8, 2, 8, 2),
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+            _relocalizers.Add(() => go.Content = P("Control", "控制"));
+            go.Content = P("Control", "控制");
+            go.Click += (_, _) => ScrollToStartupTarget(stp.ControlTarget);
+
+            var row = new Grid { ColumnSpacing = 6 };
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             Grid.SetColumn(check, 0);
             Grid.SetColumn(copy, 1);
+            Grid.SetColumn(go, 2);
             row.Children.Add(check);
             row.Children.Add(copy);
-            host.Children.Add(row);
-            _startupSteps.Add((step, check));
+            row.Children.Add(go);
+            var frame = new Border
+            {
+                CornerRadius = new CornerRadius(7),
+                BorderThickness = new Thickness(1),
+                Padding = new Thickness(6, 5, 6, 5),
+                Margin = new Thickness(0, 1, 0, 1),
+                Child = row,
+            };
+            host.Children.Add(frame);
+            _startupSteps.Add((step, check, frame));
             i++;
         }
     }
