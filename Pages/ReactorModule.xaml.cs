@@ -135,6 +135,7 @@ public sealed partial class ReactorModule : Page
 
     // Public status-API card live element (the enable/disable toggle moved to the Reactor Settings page).
     private TextBlock? _apiStateText;
+    private ReactorHtmlWindow? _controlRoomWindow;
     // 防崩潰自動儲存：本反應堆喺 PersistenceService 嘅提供者 id。
     // Persistence: this reactor's provider id in PersistenceService.
     private const string PersistId = "reactor";
@@ -224,6 +225,8 @@ public sealed partial class ReactorModule : Page
             // The persisted toggle is left as-is, so it re-arms next time the page opens.
             // 離開頁面時務必還原所有真實 Windows 設定，免得使用者卡喺紅色強調色或省電模式。
             try { ReactorSystemLinkService.I.RestoreAll(); } catch { }
+            try { _controlRoomWindow?.Close(); } catch { }
+            _controlRoomWindow = null;
         };
     }
 
@@ -2179,8 +2182,23 @@ public sealed partial class ReactorModule : Page
     // ================================================================ TOOLBAR ====
     private void OpenControlRoom_Click(object sender, RoutedEventArgs e)
     {
-        // Repointed to the HTML5/WebView2 room-tabbed control room, sharing this page's sim + fuel.
-        try { var w = new ReactorHtmlWindow(_sim, _fuel); w.Activate(); } catch { }
+        try
+        {
+            if (_controlRoomWindow is not null)
+            {
+                _controlRoomWindow.RestoreInteractive();
+                return;
+            }
+
+            var w = new ReactorHtmlWindow(_sim, _fuel);
+            _controlRoomWindow = w;
+            w.Closed += (_, _) => _controlRoomWindow = null;
+            w.Activate();
+        }
+        catch (Exception ex)
+        {
+            CrashLogger.Log("reactor:open-control-room", ex);
+        }
     }
 
     private void OpenWidgets_Click(object sender, RoutedEventArgs e)

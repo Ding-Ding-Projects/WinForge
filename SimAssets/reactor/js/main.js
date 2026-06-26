@@ -77,6 +77,15 @@ document.getElementById("fullBtn").onclick = () => send.fullscreen();
 document.getElementById("langBtn").onclick = () => {
   send.setLanguage(isZh() ? "English" : "Cantonese");
 };
+document.addEventListener("keydown", e => {
+  if (e.key === "F11") {
+    e.preventDefault();
+    send.fullscreen();
+  } else if (e.key === "Escape") {
+    e.preventDefault();
+    send.exitFullscreen();
+  }
+});
 
 const clockReadout = document.getElementById("clockReadout");
 const powerReadout = document.getElementById("powerReadout");
