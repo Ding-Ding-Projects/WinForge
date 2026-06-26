@@ -67,6 +67,7 @@ public sealed class CakeFactorySnapshot
     public bool CanMillWheat { get; init; }
     public bool CanRefineSugar { get; init; }
     public bool CanChurnButter { get; init; }
+    public bool CanExtractVanilla { get; init; }
     public bool CanReceiveSupplies { get; init; }
     public bool CanOrderSupplyDelivery { get; init; }
     public bool CanUnloadSupplyDelivery { get; init; }
@@ -139,6 +140,8 @@ public sealed class CakeFactorySnapshot
     public double PendingLabQualityPct { get; init; }
     public string WheatLotId { get; init; } = "";
     public string SugarCropLotId { get; init; } = "";
+    public string VanillaBeanLotId { get; init; } = "";
+    public string VanillaLotId { get; init; } = "";
     public string MilkLotId { get; init; } = "";
     public string EggLotId { get; init; } = "";
     public string FlourLotId { get; init; } = "";
@@ -158,6 +161,7 @@ public sealed class CakeFactorySnapshot
     public double BakingPowderKg { get; init; }
     public double SaltKg { get; init; }
     public double VanillaL { get; init; }
+    public double VanillaBeansKg { get; init; }
     public double CocoaBeansKg { get; init; }
     public double CocoaKg { get; init; }
     public double BrineL { get; init; }
@@ -206,6 +210,7 @@ public sealed class CakeFactorySnapshot
     public double BranKg { get; init; }
     public double BeetPulpKg { get; init; }
     public double ButtermilkL { get; init; }
+    public double VanillaPomaceKg { get; init; }
     public double CocoaShellKg { get; init; }
     public double BrineBlowdownL { get; init; }
     public double LeaveningDustKg { get; init; }
@@ -222,6 +227,8 @@ public sealed class CakeFactorySnapshot
     public double SugarCalibrationPct { get; init; }
     public double ButterConditionPct { get; init; }
     public double ButterCalibrationPct { get; init; }
+    public double VanillaConditionPct { get; init; }
+    public double VanillaCalibrationPct { get; init; }
     public double CocoaConditionPct { get; init; }
     public double CocoaCalibrationPct { get; init; }
     public double SaltConditionPct { get; init; }
@@ -236,6 +243,8 @@ public sealed class CakeFactorySnapshot
     public double SugarEvaporatorTemperatureC { get; init; }
     public double CreamSeparatorRpm { get; init; }
     public double ButterFatPct { get; init; }
+    public double VanillaExtractorTemperatureC { get; init; }
+    public double VanillaExtractStrengthPct { get; init; }
     public double CocoaRoasterTemperatureC { get; init; }
     public double CocoaGrindMicrons { get; init; }
     public double BrineSalinityPct { get; init; }
@@ -280,6 +289,7 @@ public sealed class CakeFactoryService
         Mill,
         Sugar,
         Butter,
+        Vanilla,
         Cocoa,
         Salt,
         Leavening,
@@ -409,6 +419,7 @@ public sealed class CakeFactoryService
     private double _bakingPowderKg = 14;
     private double _saltKg = 18;
     private double _vanillaL = 2.8;
+    private double _vanillaBeansKg = 9.5;
     private double _cocoaBeansKg = 60;
     private double _cocoaKg = 20;
     private double _brineL = 900;
@@ -450,6 +461,7 @@ public sealed class CakeFactoryService
     private string _feedLotId = "FEED-OPENING";
     private string _wheatLotId = "WHEAT-OPENING";
     private string _sugarCropLotId = "SUGARCROP-OPENING";
+    private string _vanillaBeanLotId = "VANILLABEAN-OPENING";
     private string _vanillaLotId = "VANILLA-OPENING";
     private string _milkLotId = "MILK-OPENING";
     private string _eggLotId = "EGG-OPENING";
@@ -478,6 +490,7 @@ public sealed class CakeFactoryService
         "FLOUR-OPENING",
         "SUGAR-OPENING",
         "BUTTER-OPENING",
+        "VANILLA-OPENING",
         "COCOA-OPENING",
         "SALT-OPENING",
         "LEAVEN-OPENING",
@@ -511,6 +524,7 @@ public sealed class CakeFactoryService
         [IngredientFactoryKind.Mill] = new(93, 96, 36, 1.8),
         [IngredientFactoryKind.Sugar] = new(91, 94, 39, 2.0),
         [IngredientFactoryKind.Butter] = new(95, 97, 34, 1.4),
+        [IngredientFactoryKind.Vanilla] = new(92, 95, 35, 1.5),
         [IngredientFactoryKind.Cocoa] = new(90, 95, 41, 2.1),
         [IngredientFactoryKind.Salt] = new(92, 93, 38, 1.9),
         [IngredientFactoryKind.Leavening] = new(94, 96, 33, 1.3),
@@ -522,6 +536,8 @@ public sealed class CakeFactoryService
     private double _sugarEvaporatorTemperatureC = 24;
     private double _creamSeparatorRpm = 0;
     private double _butterFatPct = 0;
+    private double _vanillaExtractorTemperatureC = 24;
+    private double _vanillaExtractStrengthPct = 0;
     private double _cocoaRoasterTemperatureC = 24;
     private double _cocoaGrindMicrons = 0;
     private double _brineSalinityPct = 2.6;
@@ -540,6 +556,7 @@ public sealed class CakeFactoryService
     private double _branKg = 34;
     private double _beetPulpKg = 52;
     private double _buttermilkL = 18;
+    private double _vanillaPomaceKg = 2.0;
     private double _cocoaShellKg = 6;
     private double _brineBlowdownL = 80;
     private double _leaveningDustKg = 1.2;
@@ -617,6 +634,7 @@ public sealed class CakeFactoryService
                && FactoryLotReleased(r.ButterKg * n, _butterLotId)
                && FactoryLotReleased(r.BakingPowderKg * n, _leaveningLotId)
                && FactoryLotReleased(r.SaltKg * n, _saltLotId)
+               && FactoryLotReleased(r.VanillaL * n, _vanillaLotId)
                && FactoryLotReleased(r.CocoaKg * n, _cocoaLotId)
                && FactoryLotReleased(n, _packagingLotId);
     }
@@ -647,6 +665,7 @@ public sealed class CakeFactoryService
     private double ByproductStorageLoadKg() =>
         _branKg
         + _beetPulpKg
+        + _vanillaPomaceKg
         + _cocoaShellKg
         + _leaveningDustKg
         + _buttermilkL * 1.03
@@ -663,6 +682,7 @@ public sealed class CakeFactoryService
         IngredientFactoryKind.Mill => run.PrimaryInput * 0.22,
         IngredientFactoryKind.Sugar => run.PrimaryInput * 0.34,
         IngredientFactoryKind.Butter => run.PrimaryInput * 0.78,
+        IngredientFactoryKind.Vanilla => run.PrimaryInput * 0.32,
         IngredientFactoryKind.Cocoa => run.PrimaryInput * 0.14,
         IngredientFactoryKind.Salt => run.PrimaryInput * 0.16 * 1.05,
         IngredientFactoryKind.Leavening => run.Product * 0.025,
@@ -674,6 +694,7 @@ public sealed class CakeFactoryService
     {
         IngredientFactoryKind.Sugar => run.ProcessWaterL * 0.72 + run.CulinarySteamKg * 0.08,
         IngredientFactoryKind.Butter => run.ProcessWaterL * 0.55 + run.PrimaryInput * 0.08,
+        IngredientFactoryKind.Vanilla => run.ProcessWaterL * 0.62,
         IngredientFactoryKind.Salt => run.PrimaryInput * 0.14,
         IngredientFactoryKind.Cocoa => run.ProcessWaterL * 0.35,
         IngredientFactoryKind.Leavening => run.FilterMediaPct * 8.0,
@@ -750,10 +771,10 @@ public sealed class CakeFactoryService
 
         double wheat = _wheatGrowth >= 25 ? 3.8 * _wheatGrowth : 0;
         double beet = _beetGrowth >= 25 ? 7.2 * _beetGrowth : 0;
-        double vanilla = _vanillaGrowth >= 25 ? 0.018 * _vanillaGrowth : 0;
+        double vanillaBeans = _vanillaGrowth >= 25 ? 0.055 * _vanillaGrowth : 0;
         _wheatKg += wheat;
         _sugarCropKg += beet;
-        _vanillaL += vanilla;
+        _vanillaBeansKg += vanillaBeans;
         var lots = new List<string>();
         if (wheat > 0)
         {
@@ -765,19 +786,19 @@ public sealed class CakeFactoryService
             _sugarCropLotId = NewLotId("SUGARCROP");
             lots.Add($"sugar crop {_sugarCropLotId}");
         }
-        if (vanilla > 0)
+        if (vanillaBeans > 0)
         {
-            _vanillaLotId = NewLotId("VANILLA");
-            lots.Add($"vanilla {_vanillaLotId}");
+            _vanillaBeanLotId = NewLotId("VANILLABEAN");
+            lots.Add($"vanilla beans {_vanillaBeanLotId}");
         }
         if (wheat > 0) _wheatGrowth = 12 + _rng.NextDouble() * 8;
         if (beet > 0) _beetGrowth = 10 + _rng.NextDouble() * 8;
-        if (vanilla > 0) _vanillaGrowth = 8 + _rng.NextDouble() * 5;
+        if (vanillaBeans > 0) _vanillaGrowth = 8 + _rng.NextDouble() * 5;
         _pastureHealth = Math.Min(100, _pastureHealth + 8);
         _traceabilityStatus = lots.Count == 0
             ? "Harvest completed with no new traceable lots."
             : "Harvest trace logged: " + string.Join(", ", lots) + ".";
-        return $"Harvested {wheat:0} kg wheat, {beet:0} kg sugar crop, {vanilla:0.00} L vanilla extract equivalent.";
+        return $"Harvested {wheat:0} kg wheat, {beet:0} kg sugar crop, {vanillaBeans:0.0} kg green vanilla beans for curing/extraction.";
     }
 
     public string MixDairyRation()
@@ -1013,6 +1034,43 @@ public sealed class CakeFactoryService
             OutputLotId = NewLotId("BUTTER"),
         };
         return StartFactoryRun(run, () => ConsumeTrackedStock(ref _milkL, milk, ref _milkLotId));
+    }
+
+    public string ExtractVanilla()
+    {
+        if (_lastPowerAvailability < 0.2)
+            return "Vanilla curing room, extractor and polish filter need reactor power.";
+        if (_factoryRun is not null)
+            return $"{_factoryRun.Name} is already running; wait for the ingredient factory run to finish.";
+
+        double beans = Math.Min(_vanillaBeansKg, 5.5);
+        if (beans < 0.5)
+            return "Not enough harvested vanilla beans are available for extraction.";
+        if (string.IsNullOrWhiteSpace(_vanillaBeanLotId))
+            return "Vanilla extraction cannot run because the vanilla bean lot is missing from the ledger.";
+
+        _vanillaExtractorTemperatureC = 32;
+        _vanillaExtractStrengthPct = 0;
+        var run = new IngredientFactoryRun
+        {
+            Kind = IngredientFactoryKind.Vanilla,
+            Name = "Vanilla curing and extraction line",
+            StartedMessage = $"Started blanching, conditioning and hot-steeping {beans:0.0} kg vanilla beans into vanilla extract.",
+            DurationSeconds = 7.5,
+            PowerDemandMW = 1.0,
+            PrimaryInput = beans,
+            Product = beans * 0.42,
+            Waste = beans * 0.08,
+            ProcessWaterL = 72,
+            CulinarySteamKg = 85,
+            CompressedAirNm3 = 10,
+            FilterMediaPct = 0.35,
+            WearPct = 1.35,
+            CalibrationDriftPct = 0.50,
+            InputLotId = _vanillaBeanLotId,
+            OutputLotId = NewLotId("VANILLA"),
+        };
+        return StartFactoryRun(run, () => ConsumeTrackedStock(ref _vanillaBeansKg, beans, ref _vanillaBeanLotId));
     }
 
     public string ReceiveSupplies()
@@ -1448,8 +1506,8 @@ public sealed class CakeFactoryService
 
         _sanitationScore = Math.Min(100, _sanitationScore + 1.4);
         _factoryMaintenanceStatus = BuildFactoryMaintenanceStatus();
-        _factoryStatus = "Maintenance crew serviced roller mill, sugar house, butter room, cocoa line, salt works, leavening blender and packaging plant.";
-        return "Serviced all ingredient factories: lubricated bearings, verified guards, replaced filters, calibrated scales, packaging registration sensors and safety interlocks, and signed the maintenance log.";
+        _factoryStatus = "Maintenance crew serviced roller mill, sugar house, butter room, vanilla extractor, cocoa line, salt works, leavening blender and packaging plant.";
+        return "Serviced all ingredient factories: lubricated bearings, verified guards, replaced filters, calibrated scales, extraction temperature probes, packaging registration sensors and safety interlocks, and signed the maintenance log.";
     }
 
     public string HaulFactoryByproducts()
@@ -1463,16 +1521,17 @@ public sealed class CakeFactoryService
         if (_forkliftBatteryPct < 8 || _warehousePalletSpacePct < 5)
             return "Byproduct hauling needs forklift battery and dock pallet space.";
 
-        double feedCredit = Math.Min(120, _branKg * 0.35 + _beetPulpKg * 0.18 + _buttermilkL * 0.08);
+        double feedCredit = Math.Min(120, _branKg * 0.35 + _beetPulpKg * 0.18 + _buttermilkL * 0.08 + _vanillaPomaceKg * 0.04);
         double revenue = Math.Round(load * 0.045, 2);
         _animalFeedKg += feedCredit;
         _cashBalance += revenue;
         _forkliftBatteryPct = Math.Max(0, _forkliftBatteryPct - 5.5);
         _warehousePalletSpacePct = Math.Max(0, _warehousePalletSpacePct - 3.0);
-        string detail = $"Hauled {load:0} kg-equivalent byproducts: bran {_branKg:0} kg, beet pulp {_beetPulpKg:0} kg, buttermilk {_buttermilkL:0} L, cocoa shell {_cocoaShellKg:0} kg, brine blowdown {_brineBlowdownL:0} L and leavening dust {_leaveningDustKg:0.0} kg.";
+        string detail = $"Hauled {load:0} kg-equivalent byproducts: bran {_branKg:0} kg, beet pulp {_beetPulpKg:0} kg, buttermilk {_buttermilkL:0} L, vanilla pomace {_vanillaPomaceKg:0.0} kg, cocoa shell {_cocoaShellKg:0} kg, brine blowdown {_brineBlowdownL:0} L and leavening dust {_leaveningDustKg:0.0} kg.";
         _branKg = 0;
         _beetPulpKg = 0;
         _buttermilkL = 0;
+        _vanillaPomaceKg = 0;
         _cocoaShellKg = 0;
         _brineBlowdownL = 0;
         _leaveningDustKg = 0;
@@ -1555,6 +1614,12 @@ public sealed class CakeFactoryService
                 _butterFatPct = 35.0 + p * 47.0;
                 if (p > 0.4) _factoryRunQualityPct -= Math.Abs(_butterFatPct - 82.0) * 0.12;
                 break;
+            case IngredientFactoryKind.Vanilla:
+                _vanillaExtractorTemperatureC = 32.0 + p * 56.0;
+                _vanillaExtractStrengthPct = Math.Clamp(18.0 + p * 77.0, 0, 100);
+                if (p > 0.35) _factoryRunQualityPct -= Math.Abs(_vanillaExtractorTemperatureC - 82.0) * 0.10;
+                if (p > 0.62) _factoryRunQualityPct -= Math.Max(0, 88.0 - _vanillaExtractStrengthPct) * 0.22;
+                break;
             case IngredientFactoryKind.Cocoa:
                 _cocoaRoasterTemperatureC = 24.0 + p * 112.0;
                 _cocoaGrindMicrons = p < 0.45 ? 0 : 140.0 - (p - 0.45) / 0.55 * 66.0;
@@ -1597,6 +1662,11 @@ public sealed class CakeFactoryService
             IngredientFactoryKind.Butter when p < 0.58 => "pasteurization hold",
             IngredientFactoryKind.Butter when p < 0.84 => "churning",
             IngredientFactoryKind.Butter => "working and cold-room transfer",
+            IngredientFactoryKind.Vanilla when p < 0.18 => "bean grading and blanch",
+            IngredientFactoryKind.Vanilla when p < 0.42 => "conditioning and chopping",
+            IngredientFactoryKind.Vanilla when p < 0.72 => "hot extraction",
+            IngredientFactoryKind.Vanilla when p < 0.90 => "polish filtration",
+            IngredientFactoryKind.Vanilla => "extract strength sample and tank transfer",
             IngredientFactoryKind.Cocoa when p < 0.28 => "roast ramp",
             IngredientFactoryKind.Cocoa when p < 0.48 => "roast hold",
             IngredientFactoryKind.Cocoa when p < 0.64 => "winnowing",
@@ -1624,6 +1694,7 @@ public sealed class CakeFactoryService
         IngredientFactoryKind.Mill => "roller mill",
         IngredientFactoryKind.Sugar => "sugar house",
         IngredientFactoryKind.Butter => "butter room",
+        IngredientFactoryKind.Vanilla => "vanilla extraction line",
         IngredientFactoryKind.Cocoa => "cocoa line",
         IngredientFactoryKind.Salt => "salt works",
         IngredientFactoryKind.Leavening => "leavening plant",
@@ -1636,6 +1707,7 @@ public sealed class CakeFactoryService
         IngredientFactoryKind.Mill => "cake flour",
         IngredientFactoryKind.Sugar => "sugar",
         IngredientFactoryKind.Butter => "butter",
+        IngredientFactoryKind.Vanilla => "vanilla extract",
         IngredientFactoryKind.Cocoa => "cocoa",
         IngredientFactoryKind.Salt => "baking salt",
         IngredientFactoryKind.Leavening => "baking powder",
@@ -1696,6 +1768,9 @@ public sealed class CakeFactoryService
                 break;
             case IngredientFactoryKind.Butter:
                 ConsumeTrackedStock(ref _butterKg, quantity, ref _butterLotId);
+                break;
+            case IngredientFactoryKind.Vanilla:
+                ConsumeTrackedStock(ref _vanillaL, quantity, ref _vanillaLotId);
                 break;
             case IngredientFactoryKind.Cocoa:
                 ConsumeTrackedStock(ref _cocoaKg, quantity, ref _cocoaLotId);
@@ -1822,6 +1897,11 @@ public sealed class CakeFactoryService
                 _buttermilkL += buttermilk;
                 detail = $"{buttermilk:0.0} L buttermilk";
                 break;
+            case IngredientFactoryKind.Vanilla:
+                double pomace = run.PrimaryInput * 0.32;
+                _vanillaPomaceKg += pomace;
+                detail = $"{pomace:0.0} kg vanilla bean pomace";
+                break;
             case IngredientFactoryKind.Cocoa:
                 double shell = run.PrimaryInput * 0.14;
                 _cocoaShellKg += shell;
@@ -1883,6 +1963,15 @@ public sealed class CakeFactoryService
                 _wasteKg += waste;
                 _factoryRunQualityPct = Math.Clamp(98 - Math.Abs(_butterFatPct - 82.0) * 1.4 - FactoryEquipmentPenalty(run.Kind), 0, 100);
                 _factoryStatus = $"Butter room completed: {output:0.0} kg butter at {_butterFatPct:0.0}% butterfat, QA {_factoryRunQualityPct:0}%.";
+                break;
+            case IngredientFactoryKind.Vanilla:
+                _vanillaL += output;
+                _vanillaLotId = run.OutputLotId;
+                _wasteKg += waste;
+                _vanillaExtractorTemperatureC = 80 + _rng.NextDouble() * 7;
+                _vanillaExtractStrengthPct = 90 + _rng.NextDouble() * 6;
+                _factoryRunQualityPct = Math.Clamp(98 - Math.Abs(_vanillaExtractorTemperatureC - 82.0) * 0.22 - Math.Max(0, 92.0 - _vanillaExtractStrengthPct) * 0.45 - FactoryEquipmentPenalty(run.Kind), 0, 100);
+                _factoryStatus = $"Vanilla extraction completed: {output:0.00} L vanilla extract, strength {_vanillaExtractStrengthPct:0}%, kettle {_vanillaExtractorTemperatureC:0} degC, QA {_factoryRunQualityPct:0}%.";
                 break;
             case IngredientFactoryKind.Cocoa:
                 _cocoaKg += output;
@@ -2136,6 +2225,7 @@ public sealed class CakeFactoryService
             CanMillWheat = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _wheatKg >= 5 && HasFactoryUtilities(20, 0, 38, 0.6),
             CanRefineSugar = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _sugarCropKg >= 10 && HasFactoryUtilities(320, 520, 22, 1.2),
             CanChurnButter = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _milkL > 35 && HasFactoryUtilities(110, 140, 15, 0.8),
+            CanExtractVanilla = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _vanillaBeansKg >= 0.5 && HasFactoryUtilities(72, 85, 10, 0.35),
             CanReceiveSupplies = power >= 0.1 && (!_supplyTruckEnRoute || _supplyTruckArrived),
             CanOrderSupplyDelivery = power >= 0.1 && !_supplyTruckEnRoute && _cashBalance >= _supplyOrderCost,
             CanUnloadSupplyDelivery = power >= 0.1 && _supplyTruckEnRoute && _supplyTruckArrived && _forkliftBatteryPct >= 8 && _warehousePalletSpacePct >= 8,
@@ -2211,6 +2301,8 @@ public sealed class CakeFactoryService
             PendingLabQualityPct = _pendingLabQualityPct,
             WheatLotId = _wheatLotId,
             SugarCropLotId = _sugarCropLotId,
+            VanillaBeanLotId = _vanillaBeanLotId,
+            VanillaLotId = _vanillaLotId,
             MilkLotId = _milkLotId,
             EggLotId = _eggLotId,
             FlourLotId = _flourLotId,
@@ -2230,6 +2322,7 @@ public sealed class CakeFactoryService
             BakingPowderKg = _bakingPowderKg,
             SaltKg = _saltKg,
             VanillaL = _vanillaL,
+            VanillaBeansKg = _vanillaBeansKg,
             CocoaBeansKg = _cocoaBeansKg,
             CocoaKg = _cocoaKg,
             BrineL = _brineL,
@@ -2275,6 +2368,7 @@ public sealed class CakeFactoryService
             BranKg = _branKg,
             BeetPulpKg = _beetPulpKg,
             ButtermilkL = _buttermilkL,
+            VanillaPomaceKg = _vanillaPomaceKg,
             CocoaShellKg = _cocoaShellKg,
             BrineBlowdownL = _brineBlowdownL,
             LeaveningDustKg = _leaveningDustKg,
@@ -2291,6 +2385,8 @@ public sealed class CakeFactoryService
             SugarCalibrationPct = EquipmentFor(IngredientFactoryKind.Sugar).CalibrationPct,
             ButterConditionPct = EquipmentFor(IngredientFactoryKind.Butter).ConditionPct,
             ButterCalibrationPct = EquipmentFor(IngredientFactoryKind.Butter).CalibrationPct,
+            VanillaConditionPct = EquipmentFor(IngredientFactoryKind.Vanilla).ConditionPct,
+            VanillaCalibrationPct = EquipmentFor(IngredientFactoryKind.Vanilla).CalibrationPct,
             CocoaConditionPct = EquipmentFor(IngredientFactoryKind.Cocoa).ConditionPct,
             CocoaCalibrationPct = EquipmentFor(IngredientFactoryKind.Cocoa).CalibrationPct,
             SaltConditionPct = EquipmentFor(IngredientFactoryKind.Salt).ConditionPct,
@@ -2305,6 +2401,8 @@ public sealed class CakeFactoryService
             SugarEvaporatorTemperatureC = _sugarEvaporatorTemperatureC,
             CreamSeparatorRpm = _creamSeparatorRpm,
             ButterFatPct = _butterFatPct,
+            VanillaExtractorTemperatureC = _vanillaExtractorTemperatureC,
+            VanillaExtractStrengthPct = _vanillaExtractStrengthPct,
             CocoaRoasterTemperatureC = _cocoaRoasterTemperatureC,
             CocoaGrindMicrons = _cocoaGrindMicrons,
             BrineSalinityPct = _brineSalinityPct,
@@ -2388,7 +2486,8 @@ public sealed class CakeFactoryService
         if (AutoHarvest && _lastPowerAvailability >= 0.15 && _beetGrowth >= 100) _sugarCropKg += HarvestCrop(ref _beetGrowth, 760);
         if (AutoHarvest && _lastPowerAvailability >= 0.15 && _vanillaGrowth >= 100)
         {
-            _vanillaL += 2.2 + _rng.NextDouble() * 0.6;
+            _vanillaBeansKg += 5.5 + _rng.NextDouble() * 1.4;
+            _vanillaBeanLotId = NewLotId("VANILLABEAN");
             _vanillaGrowth = 9 + _rng.NextDouble() * 6;
         }
 
@@ -2732,6 +2831,7 @@ public sealed class CakeFactoryService
         if (_labelStockM < 140) low.Add("label stock");
         if (_packagingInkL < 2.4) low.Add("packaging ink");
         if (_adhesiveKg < 6) low.Add("food-grade adhesive");
+        if (_vanillaBeansKg < 0.5 && _vanillaL < CurrentRecipe.VanillaL * CurrentRecipe.BatchSize) low.Add("vanilla beans");
         if (_cocoaBeansKg < 5 && _cocoaKg < CurrentRecipe.CocoaKg * CurrentRecipe.BatchSize) low.Add("cocoa beans");
         if (_brineL < 80 && _saltKg < CurrentRecipe.SaltKg * CurrentRecipe.BatchSize) low.Add("brine");
         if ((_sodaAshKg < 3 || _phosphateKg < 3 || _starchKg < 2)
@@ -2771,6 +2871,7 @@ public sealed class CakeFactoryService
         Count(_dairyMineralKg, _dairyMineralLotId);
         Count(_mixedRationKg, _mixedRationLotId);
         Count(_beddingKg, _beddingLotId);
+        Count(_vanillaBeansKg, _vanillaBeanLotId);
         Count(_vanillaL, _vanillaLotId);
         Count(_milkL, _milkLotId);
         Count(_eggs, _eggLotId);
@@ -2800,6 +2901,7 @@ public sealed class CakeFactoryService
         if (!HasLot(_eggs, _eggLotId)) missing.Add("eggs");
         if (!HasLot(_milkL, _milkLotId)) missing.Add("milk");
         if (!HasLot(_butterKg, _butterLotId)) missing.Add("butter");
+        if (!HasLot(_vanillaL, _vanillaLotId)) missing.Add("vanilla");
         if (!HasLot(_bakingPowderKg, _leaveningLotId)) missing.Add("baking powder");
         if (!HasLot(_saltKg, _saltLotId)) missing.Add("salt");
         if (!HasLot(_cocoaKg, _cocoaLotId)) missing.Add("cocoa");

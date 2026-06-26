@@ -595,6 +595,7 @@
                 <button class="action" type="button" data-action="mill">Mill flour</button>
                 <button class="action" type="button" data-action="refine">Refine sugar</button>
                 <button class="action" type="button" data-action="churn">Churn butter</button>
+                <button class="action" type="button" data-action="extractVanilla">Extract vanilla</button>
                 <button class="action" type="button" data-action="processCocoa">Roast cocoa</button>
                 <button class="action" type="button" data-action="runSaltWorks">Salt works</button>
                 <button class="action" type="button" data-action="runLeaveningPlant">Leavening plant</button>
@@ -740,6 +741,7 @@
       CanMillWheat: false,
       CanRefineSugar: false,
       CanChurnButter: false,
+      CanExtractVanilla: false,
       CanReceiveSupplies: false,
       CanOrderSupplyDelivery: false,
       CanUnloadSupplyDelivery: false,
@@ -812,6 +814,8 @@
       PendingLabQualityPct: 0,
       WheatLotId: 'WHEAT-OPENING',
       SugarCropLotId: 'SUGARCROP-OPENING',
+      VanillaBeanLotId: 'VANILLABEAN-OPENING',
+      VanillaLotId: 'VANILLA-OPENING',
       MilkLotId: 'MILK-OPENING',
       EggLotId: 'EGG-OPENING',
       FlourLotId: 'FLOUR-OPENING',
@@ -831,6 +835,7 @@
       BakingPowderKg: 14,
       SaltKg: 18,
       VanillaL: 2.8,
+      VanillaBeansKg: 9.5,
       CocoaBeansKg: 60,
       CocoaKg: 20,
       BrineL: 900,
@@ -879,6 +884,7 @@
       BranKg: 34,
       BeetPulpKg: 52,
       ButtermilkL: 18,
+      VanillaPomaceKg: 2,
       CocoaShellKg: 6,
       BrineBlowdownL: 80,
       LeaveningDustKg: 1.2,
@@ -895,6 +901,8 @@
       SugarCalibrationPct: 94,
       ButterConditionPct: 95,
       ButterCalibrationPct: 97,
+      VanillaConditionPct: 92,
+      VanillaCalibrationPct: 95,
       CocoaConditionPct: 90,
       CocoaCalibrationPct: 95,
       SaltConditionPct: 92,
@@ -909,6 +917,8 @@
       SugarEvaporatorTemperatureC: 24,
       CreamSeparatorRpm: 0,
       ButterFatPct: 0,
+      VanillaExtractorTemperatureC: 24,
+      VanillaExtractStrengthPct: 0,
       CocoaRoasterTemperatureC: 24,
       CocoaGrindMicrons: 0,
       BrineSalinityPct: 2.6,
@@ -1068,6 +1078,7 @@
       setButton('mill', s.CanMillWheat);
       setButton('refine', s.CanRefineSugar);
       setButton('churn', s.CanChurnButter);
+      setButton('extractVanilla', s.CanExtractVanilla);
       setButton('receiveSupplies', s.CanReceiveSupplies);
       setButton('orderSupplyDelivery', s.CanOrderSupplyDelivery);
       setButton('unloadSupplyDelivery', s.CanUnloadSupplyDelivery);
@@ -1097,6 +1108,7 @@
         ['Milk', `${n(s.MilkL, 1)} L`],
         ['Butter', `${n(s.ButterKg, 1)} kg`],
         ['Vanilla', `${n(s.VanillaL, 2)} L`],
+        ['Vanilla beans', `${n(s.VanillaBeansKg, 1)} kg`],
         ['Cocoa', `${n(s.CocoaKg, 1)} kg`],
         ['Baking powder', `${n(s.BakingPowderKg, 1)} kg`],
         ['Salt', `${n(s.SaltKg, 1)} kg`],
@@ -1118,6 +1130,7 @@
         ['Dairy mineral', `${n(s.DairyMineralKg, 1)} kg`],
         ['Mixed ration', `${n(s.MixedRationKg, 1)} kg`],
         ['Bedding + labor', `${n(s.BeddingKg, 1)} kg / ${n(s.BarnLaborHours, 1)} h`],
+        ['Vanilla beans', `${n(s.VanillaBeansKg, 1)} kg`],
         ['Cocoa beans', `${n(s.CocoaBeansKg, 1)} kg`],
         ['Brine', `${n(s.BrineL, 0)} L`],
         ['Soda ash', `${n(s.SodaAshKg, 1)} kg`],
@@ -1155,6 +1168,7 @@
         ['Maintenance', s.FactoryMaintenanceStatus || 'Maintenance normal'],
         ['Waste handling', s.WasteHandlingStatus || 'Byproducts clear'],
         ['Byproducts', `bran ${n(s.BranKg, 0)} kg / pulp ${n(s.BeetPulpKg, 0)} kg / buttermilk ${n(s.ButtermilkL, 0)} L`],
+        ['Vanilla pomace', `${n(s.VanillaPomaceKg, 1)} kg`],
         ['Residual streams', `shell ${n(s.CocoaShellKg, 0)} kg / brine ${n(s.BrineBlowdownL, 0)} L / dust ${n(s.LeaveningDustKg, 1)} kg`],
         ['QA lab', s.IngredientLabStatus || 'Factory QA lab ready'],
         ['Pending lab lot', s.PendingLabLotId ? `${s.PendingLabProductName || 'lot'} ${s.PendingLabLotId} / QA ${n(s.PendingLabQualityPct, 0)}%` : 'None'],
@@ -1172,6 +1186,7 @@
         ['Mill asset', `${n(s.MillConditionPct, 0)}% / ${n(s.MillCalibrationPct, 0)}% cal`],
         ['Sugar asset', `${n(s.SugarConditionPct, 0)}% / ${n(s.SugarCalibrationPct, 0)}% cal`],
         ['Butter asset', `${n(s.ButterConditionPct, 0)}% / ${n(s.ButterCalibrationPct, 0)}% cal`],
+        ['Vanilla asset', `${n(s.VanillaConditionPct, 0)}% / ${n(s.VanillaCalibrationPct, 0)}% cal`],
         ['Cocoa asset', `${n(s.CocoaConditionPct, 0)}% / ${n(s.CocoaCalibrationPct, 0)}% cal`],
         ['Salt asset', `${n(s.SaltConditionPct, 0)}% / ${n(s.SaltCalibrationPct, 0)}% cal`],
         ['Leavening asset', `${n(s.LeaveningConditionPct, 0)}% / ${n(s.LeaveningCalibrationPct, 0)}% cal`],
@@ -1192,6 +1207,8 @@
         ['Flour lot', s.FlourLotId || '-'],
         ['Sugar lot', s.SugarLotId || '-'],
         ['Butter lot', s.ButterLotId || '-'],
+        ['Vanilla bean lot', s.VanillaBeanLotId || '-'],
+        ['Vanilla lot', s.VanillaLotId || '-'],
         ['Cocoa lot', s.CocoaLotId || '-'],
         ['Salt lot', s.SaltLotId || '-'],
         ['Leavening lot', s.LeaveningLotId || '-'],
@@ -1209,6 +1226,7 @@
         ['Mill gap', `${n(s.MillRollGapMm, 2)} mm / ${n(s.FlourExtractionPct, 1)}%`],
         ['Sugar pan', `${n(s.SugarJuiceBrix, 1)} Brix / ${n(s.SugarEvaporatorTemperatureC, 0)} degC`],
         ['Butter churn', `${n(s.CreamSeparatorRpm, 0)} rpm / ${n(s.ButterFatPct, 1)}% fat`],
+        ['Vanilla extraction', `${n(s.VanillaExtractorTemperatureC, 0)} degC / ${n(s.VanillaExtractStrengthPct, 0)}% strength`],
         ['Cocoa line', `${n(s.CocoaRoasterTemperatureC, 0)} degC / ${n(s.CocoaGrindMicrons, 0)} micron`],
         ['Salt works', `${n(s.BrineSalinityPct, 1)}% brine / ${n(s.SaltCrystallizerTemperatureC, 0)} degC`],
         ['Leavening', `${n(s.LeaveningMixerRpm, 0)} rpm / ${n(s.LeaveningHomogeneityPct, 1)}%`],
@@ -1389,10 +1407,12 @@
       drawMiniPlant(305, 540, 'SALT', s.CanRunSaltWorks ? '#78c7dd' : '#69716f');
       drawMiniPlant(305, 588, 'LEAVEN', s.CanRunLeaveningPlant ? '#e8b75d' : '#69716f');
       drawMiniPlant(305, 636, 'PACK', s.CanRunPackagingPlant ? '#dfbd66' : '#69716f');
+      drawMiniPlant(410, 636, 'VANILLA', s.CanExtractVanilla ? '#c7925b' : '#69716f');
       text(`Brine ${n(s.BrineL, 0)} L`, 76, 612, 12, '#d9f0ff', 800);
       text(`Minerals ${n((s.SodaAshKg || 0) + (s.PhosphateKg || 0) + (s.StarchKg || 0), 1)} kg`, 198, 612, 12, '#ffe1a1', 800);
-      text(`Paper ${n(s.PaperboardKg, 0)} kg / cartons ${n(s.PackagingUnits, 0)}`, 76, 632, 11, '#d4f3fb', 800);
-      text(`Labels ${n(s.LabelStockM, 0)} m / ink ${n(s.PackagingInkL, 1)} L / glue ${n(s.AdhesiveKg, 1)} kg`, 76, 652, 11, '#e8ddb7', 800);
+      text(`Vanilla beans ${n(s.VanillaBeansKg, 1)} kg / extract ${n(s.VanillaL, 2)} L`, 76, 632, 11, '#d4f3fb', 800);
+      text(`Paper ${n(s.PaperboardKg, 0)} kg / cartons ${n(s.PackagingUnits, 0)}`, 76, 652, 11, '#d4f3fb', 800);
+      text(`Labels ${n(s.LabelStockM, 0)} m / ink ${n(s.PackagingInkL, 1)} L / glue ${n(s.AdhesiveKg, 1)} kg`, 76, 668, 11, '#e8ddb7', 800);
 
       drawTruck(412, 545, s.ConveyorPhase);
       line(470, 556, 610, 556, '#80bc74', 4, 0.9);

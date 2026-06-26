@@ -235,6 +235,10 @@ public sealed partial class CakeFactoryModule : Page
                 PostNotice("success", P("Butter churned", "牛油製成"), _sim.ChurnButter());
                 break;
 
+            case "extractVanilla":
+                PostNotice("success", P("Vanilla extraction run", "雲呢拿萃取已運行"), _sim.ExtractVanilla());
+                break;
+
             case "receiveSupplies":
                 PostNotice("success", P("Supplies received", "補給已接收"), _sim.ReceiveSupplies());
                 break;

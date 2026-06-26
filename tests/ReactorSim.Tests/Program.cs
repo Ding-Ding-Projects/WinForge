@@ -930,57 +930,68 @@ internal static class Program
             TickCake(cake, fullBus, 0.5);
             var s5 = cake.Snapshot;
 
+            string vanilla = cake.ExtractVanilla();
+            TickCake(cake, fullBus, 8.0);
+            string releaseVanilla = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var s6 = cake.Snapshot;
+
             string cocoa = cake.ProcessCocoa();
             TickCake(cake, fullBus, 11.5);
             string releaseCocoa = cake.ReleaseIngredientLabLot();
             TickCake(cake, fullBus, 0.5);
-            var s6 = cake.Snapshot;
+            var s7 = cake.Snapshot;
 
             string salt = cake.RunSaltWorks();
             TickCake(cake, fullBus, 9.5);
             string releaseSalt = cake.ReleaseIngredientLabLot();
             TickCake(cake, fullBus, 0.5);
-            var s7 = cake.Snapshot;
+            var s8 = cake.Snapshot;
 
             string leavening = cake.RunLeaveningPlant();
             TickCake(cake, fullBus, 6.5);
             string releaseLeavening = cake.ReleaseIngredientLabLot();
             TickCake(cake, fullBus, 0.5);
-            var s8 = cake.Snapshot;
+            var s9 = cake.Snapshot;
 
             string packaging = cake.RunPackagingPlant();
             TickCake(cake, fullBus, 8.5);
             string releasePackaging = cake.ReleaseIngredientLabLot();
             TickCake(cake, fullBus, 0.5);
-            var s9 = cake.Snapshot;
+            var s10 = cake.Snapshot;
 
-            bool farmYield = s1.WheatKg > s0.WheatKg && s1.SugarCropKg > s0.SugarCropKg && s1.VanillaL > s0.VanillaL;
+            bool farmYield = s1.WheatKg > s0.WheatKg
+                             && s1.SugarCropKg > s0.SugarCropKg
+                             && s1.VanillaBeansKg > s0.VanillaBeansKg
+                             && Math.Abs(s1.VanillaL - s0.VanillaL) < 0.001;
             bool dairyYield = s2.MilkL > s1.MilkL && s2.Eggs > s1.Eggs;
             bool flourYield = s3.FlourKg > s2.FlourKg && s3.WheatKg < s2.WheatKg;
             bool sugarYield = s4.SugarKg > s3.SugarKg && s4.SugarCropKg < s3.SugarCropKg;
             bool butterYield = s5.ButterKg > s4.ButterKg && s5.MilkL < s4.MilkL;
-            bool cocoaYield = s6.CocoaKg > s5.CocoaKg && s6.CocoaBeansKg < s5.CocoaBeansKg;
-            bool saltYield = s7.SaltKg > s6.SaltKg && s7.BrineL < s6.BrineL;
-            bool leaveningYield = s8.BakingPowderKg > s7.BakingPowderKg
-                                   && s8.SodaAshKg < s7.SodaAshKg
-                                   && s8.PhosphateKg < s7.PhosphateKg
-                                   && s8.StarchKg < s7.StarchKg;
-            bool packagingYield = s9.PackagingUnits > s8.PackagingUnits
-                                   && s9.PaperboardKg < s8.PaperboardKg
-                                   && s9.LabelStockM < s8.LabelStockM
-                                   && s9.PackagingInkL < s8.PackagingInkL
-                                   && s9.AdhesiveKg < s8.AdhesiveKg;
+            bool vanillaYield = s6.VanillaL > s5.VanillaL && s6.VanillaBeansKg < s5.VanillaBeansKg;
+            bool cocoaYield = s7.CocoaKg > s6.CocoaKg && s7.CocoaBeansKg < s6.CocoaBeansKg;
+            bool saltYield = s8.SaltKg > s7.SaltKg && s8.BrineL < s7.BrineL;
+            bool leaveningYield = s9.BakingPowderKg > s8.BakingPowderKg
+                                   && s9.SodaAshKg < s8.SodaAshKg
+                                   && s9.PhosphateKg < s8.PhosphateKg
+                                   && s9.StarchKg < s8.StarchKg;
+            bool packagingYield = s10.PackagingUnits > s9.PackagingUnits
+                                   && s10.PaperboardKg < s9.PaperboardKg
+                                   && s10.LabelStockM < s9.LabelStockM
+                                   && s10.PackagingInkL < s9.PackagingInkL
+                                   && s10.AdhesiveKg < s9.AdhesiveKg;
             bool processTelemetry = s3.MillRollGapMm > 0 && s3.FlourExtractionPct > 0
                                     && s4.SugarJuiceBrix > 0 && s4.SugarEvaporatorTemperatureC > 90
                                     && s5.CreamSeparatorRpm > 0 && s5.ButterFatPct > 70
-                                    && s6.CocoaRoasterTemperatureC > 100 && s6.CocoaGrindMicrons > 0
-                                    && s7.BrineSalinityPct > 0 && s7.SaltCrystallizerTemperatureC > 40
-                                    && s8.LeaveningMixerRpm > 0 && s8.LeaveningHomogeneityPct > 90
-                                    && s9.CartonFormerSpeedCpm > 0 && s9.PrintRegistrationMm > 0 && s9.GluePotTemperatureC > 100;
-            bool factoryUtilitiesConsumed = s9.ProcessWaterL < s0.ProcessWaterL
-                                            && s9.CulinarySteamKg < s0.CulinarySteamKg
-                                            && s9.CompressedAirNm3 < s0.CompressedAirNm3
-                                            && s9.FilterMediaPct < s0.FilterMediaPct;
+                                    && s6.VanillaExtractorTemperatureC > 70 && s6.VanillaExtractStrengthPct > 80
+                                    && s7.CocoaRoasterTemperatureC > 100 && s7.CocoaGrindMicrons > 0
+                                    && s8.BrineSalinityPct > 0 && s8.SaltCrystallizerTemperatureC > 40
+                                    && s9.LeaveningMixerRpm > 0 && s9.LeaveningHomogeneityPct > 90
+                                    && s10.CartonFormerSpeedCpm > 0 && s10.PrintRegistrationMm > 0 && s10.GluePotTemperatureC > 100;
+            bool factoryUtilitiesConsumed = s10.ProcessWaterL < s0.ProcessWaterL
+                                            && s10.CulinarySteamKg < s0.CulinarySteamKg
+                                            && s10.CompressedAirNm3 < s0.CompressedAirNm3
+                                            && s10.FilterMediaPct < s0.FilterMediaPct;
             bool timedFactoryRun = millRunning.FactoryRunActive
                                    && millRunning.ActiveFactoryName.Contains("mill", StringComparison.OrdinalIgnoreCase)
                                    && millRunning.ActiveFactoryPhase.Length > 0
@@ -994,15 +1005,16 @@ internal static class Program
                                       && releaseFlour.Contains("released", StringComparison.OrdinalIgnoreCase)
                                       && releaseSugar.Contains("released", StringComparison.OrdinalIgnoreCase)
                                       && releaseButter.Contains("released", StringComparison.OrdinalIgnoreCase)
+                                      && releaseVanilla.Contains("released", StringComparison.OrdinalIgnoreCase)
                                       && releaseCocoa.Contains("released", StringComparison.OrdinalIgnoreCase)
                                       && releaseSalt.Contains("released", StringComparison.OrdinalIgnoreCase)
                                       && releaseLeavening.Contains("released", StringComparison.OrdinalIgnoreCase)
                                       && releasePackaging.Contains("released", StringComparison.OrdinalIgnoreCase)
-                                      && s9.PendingLabLotId.Length == 0;
-            bool pass = farmYield && dairyYield && flourYield && sugarYield && butterYield && cocoaYield && saltYield && leaveningYield && packagingYield && processTelemetry && factoryUtilitiesConsumed && timedFactoryRun && labReleaseWorkflow;
+                                      && s10.PendingLabLotId.Length == 0;
+            bool pass = farmYield && dairyYield && flourYield && sugarYield && butterYield && vanillaYield && cocoaYield && saltYield && leaveningYield && packagingYield && processTelemetry && factoryUtilitiesConsumed && timedFactoryRun && labReleaseWorkflow;
             return (pass, $"farmYield={farmYield} ('{Trim(harvest)}'), dairyYield={dairyYield} ('{Trim(collect)}'), " +
                           $"flourYield={flourYield} ('{Trim(mill)}'), sugarYield={sugarYield} ('{Trim(refine)}'), " +
-                          $"butterYield={butterYield} ('{Trim(churn)}'), cocoaYield={cocoaYield} ('{Trim(cocoa)}'), " +
+                          $"butterYield={butterYield} ('{Trim(churn)}'), vanillaYield={vanillaYield} ('{Trim(vanilla)}'), cocoaYield={cocoaYield} ('{Trim(cocoa)}'), " +
                           $"saltYield={saltYield} ('{Trim(salt)}'), leaveningYield={leaveningYield} ('{Trim(leavening)}'), packagingYield={packagingYield} ('{Trim(packaging)}'), " +
                           $"processTelemetry={processTelemetry}, factoryUtilitiesConsumed={factoryUtilitiesConsumed}, timedFactoryRun={timedFactoryRun}, " +
                           $"labReleaseWorkflow={labReleaseWorkflow}");
@@ -1048,6 +1060,52 @@ internal static class Program
                           $"completedProducesUtilities={completedProducesUtilities} ({running.ProcessWaterL:F0}->{finished.ProcessWaterL:F0} L water, " +
                           $"{running.CulinarySteamKg:F0}->{finished.CulinarySteamKg:F0} kg steam, {running.CompressedAirNm3:F0}->{finished.CompressedAirNm3:F0} Nm3 air), " +
                           $"traceableUtilityRun={traceableUtilityRun}");
+        });
+
+        Scenario("CAKE VANILLA EXTRACTION (farm grows beans, factory makes extract)", () =>
+        {
+            var cake = new CakeFactoryService();
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            string harvest = cake.HarvestNow();
+            TickCake(cake, fullBus, 0.5);
+            var harvested = cake.Snapshot;
+
+            string start = cake.ExtractVanilla();
+            TickCake(cake, fullBus, 1.0);
+            var running = cake.Snapshot;
+
+            TickCake(cake, fullBus, 8.0);
+            var held = cake.Snapshot;
+
+            string blockedMsg = cake.StageBatchKit();
+            string release = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var released = cake.Snapshot;
+
+            bool harvestMakesBeans = harvested.VanillaBeansKg > before.VanillaBeansKg
+                                     && Math.Abs(harvested.VanillaL - before.VanillaL) < 0.001
+                                     && harvested.VanillaBeanLotId != before.VanillaBeanLotId
+                                     && harvest.Contains("vanilla beans", StringComparison.OrdinalIgnoreCase);
+            bool extractionConsumesBeans = running.FactoryRunActive
+                                           && running.ActiveFactoryName.Contains("Vanilla", StringComparison.OrdinalIgnoreCase)
+                                           && running.VanillaBeansKg < harvested.VanillaBeansKg
+                                           && Math.Abs(running.VanillaL - harvested.VanillaL) < 0.001
+                                           && running.VanillaExtractorTemperatureC > 30
+                                           && start.Contains("vanilla beans", StringComparison.OrdinalIgnoreCase);
+            bool extractionProducesHeldLot = !held.FactoryRunActive
+                                             && held.VanillaL > harvested.VanillaL
+                                             && held.VanillaPomaceKg > harvested.VanillaPomaceKg
+                                             && held.VanillaExtractStrengthPct > 80
+                                             && held.PendingLabProductName.Contains("vanilla", StringComparison.OrdinalIgnoreCase)
+                                             && blockedMsg.Contains("lab release", StringComparison.OrdinalIgnoreCase);
+            bool releaseClearsExtract = released.PendingLabLotId.Length == 0
+                                        && released.IngredientLabStatus.Contains("released", StringComparison.OrdinalIgnoreCase)
+                                        && release.Contains("released", StringComparison.OrdinalIgnoreCase);
+            bool pass = harvestMakesBeans && extractionConsumesBeans && extractionProducesHeldLot && releaseClearsExtract;
+            return (pass, $"harvestMakesBeans={harvestMakesBeans} ('{Trim(harvest)}'), extractionConsumesBeans={extractionConsumesBeans} ('{Trim(start)}'), " +
+                          $"extractionProducesHeldLot={extractionProducesHeldLot} ('{Trim(blockedMsg)}'), releaseClearsExtract={releaseClearsExtract} ('{Trim(release)}')");
         });
 
         Scenario("CAKE PACKAGING PLANT (cartons are made from paperboard, labels, ink and adhesive)", () =>
