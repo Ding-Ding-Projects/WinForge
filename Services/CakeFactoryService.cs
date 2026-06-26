@@ -85,6 +85,7 @@ public sealed class CakeFactorySnapshot
     public bool CanRunFeedMill { get; init; }
     public bool CanRunCompostPlant { get; init; }
     public bool CanRunBeddingPlant { get; init; }
+    public bool CanRunMineralPlant { get; init; }
     public bool CanReleaseLabLot { get; init; }
     public bool CanStageBatchKit { get; init; }
     public double WheatGrowth { get; init; }
@@ -126,6 +127,7 @@ public sealed class CakeFactorySnapshot
     public double RationProteinPct { get; init; }
     public string RationStatus { get; init; } = "";
     public string MixedRationLotId { get; init; } = "";
+    public string DairyMineralLotId { get; init; } = "";
     public string BeddingLotId { get; init; } = "";
     public string TraceabilityStatus { get; init; } = "";
     public double TraceabilityScorePct { get; init; }
@@ -160,6 +162,8 @@ public sealed class CakeFactorySnapshot
     public string FeedLotId { get; init; } = "";
     public string FertilizerLotId { get; init; } = "";
     public string StrawLotId { get; init; } = "";
+    public string LimestoneLotId { get; init; } = "";
+    public string TraceMineralLotId { get; init; } = "";
     public double WheatKg { get; init; }
     public double SugarCropKg { get; init; }
     public double FlourKg { get; init; }
@@ -178,6 +182,8 @@ public sealed class CakeFactorySnapshot
     public double PhosphateKg { get; init; }
     public double StarchKg { get; init; }
     public double StrawKg { get; init; }
+    public double LimestoneKg { get; init; }
+    public double TraceMineralKg { get; init; }
     public double WheatSeedKg { get; init; }
     public double BeetSeedKg { get; init; }
     public double IrrigationWaterL { get; init; }
@@ -291,6 +297,11 @@ public sealed class CakeFactorySnapshot
     public double BeddingChopperRpm { get; init; }
     public double BeddingMoisturePct { get; init; }
     public double BeddingDustPct { get; init; }
+    public double MineralConditionPct { get; init; }
+    public double MineralCalibrationPct { get; init; }
+    public double MineralMixerRpm { get; init; }
+    public double MineralHomogeneityPct { get; init; }
+    public double MineralMetalPpm { get; init; }
     public double BatterKg { get; init; }
     public int CakesBaked { get; init; }
     public int CakesPacked { get; init; }
@@ -335,6 +346,7 @@ public sealed class CakeFactoryService
         Feed,
         Fertilizer,
         Bedding,
+        MineralPremix,
     }
 
     private sealed class IngredientFactoryRun
@@ -468,6 +480,8 @@ public sealed class CakeFactoryService
     private double _phosphateKg = 30;
     private double _starchKg = 24;
     private double _strawKg = 170;
+    private double _limestoneKg = 46;
+    private double _traceMineralKg = 22;
     private double _wheatSeedKg = 18;
     private double _beetSeedKg = 16;
     private double _irrigationWaterL = 16000;
@@ -526,6 +540,8 @@ public sealed class CakeFactoryService
     private string _mineralLotId = "MINERAL-OPENING";
     private string _fertilizerLotId = "FERT-OPENING";
     private string _strawLotId = "STRAW-OPENING";
+    private string _limestoneLotId = "LIMESTONE-OPENING";
+    private string _traceMineralLotId = "TRACE-MIN-OPENING";
     private string _leaveningLotId = "LEAVEN-OPENING";
     private string _packagingLotId = "PACK-OPENING";
     private string _icingLotId = "ICING-OPENING";
@@ -548,6 +564,7 @@ public sealed class CakeFactoryService
         "FEED-OPENING",
         "FERT-OPENING",
         "BEDDING-OPENING",
+        "DAIRYMIN-OPENING",
     };
     private string _ingredientLabStatus = "Factory QA lab released opening ingredient lots.";
     private IngredientFactoryKind _pendingLabKind = IngredientFactoryKind.Mill;
@@ -586,6 +603,7 @@ public sealed class CakeFactoryService
         [IngredientFactoryKind.Feed] = new(93, 96, 35, 1.6),
         [IngredientFactoryKind.Fertilizer] = new(90, 94, 38, 2.2),
         [IngredientFactoryKind.Bedding] = new(92, 95, 36, 1.5),
+        [IngredientFactoryKind.MineralPremix] = new(94, 96, 34, 1.4),
     };
     private double _millRollGapMm = 0.32;
     private double _flourExtractionPct = 76;
@@ -616,6 +634,9 @@ public sealed class CakeFactoryService
     private double _beddingChopperRpm = 0;
     private double _beddingMoisturePct = 11.8;
     private double _beddingDustPct = 3.2;
+    private double _mineralMixerRpm = 0;
+    private double _mineralHomogeneityPct = 96.0;
+    private double _mineralMetalPpm = 12.0;
     private double _factoryRunQualityPct = 100;
     private IngredientFactoryRun? _factoryRun;
     private double _batterKg;
@@ -818,6 +839,7 @@ public sealed class CakeFactoryService
         IngredientFactoryKind.Packaging => 0,
         IngredientFactoryKind.Feed => 0,
         IngredientFactoryKind.Fertilizer => -run.TertiaryInput,
+        IngredientFactoryKind.MineralPremix => run.Waste,
         _ => run.Waste,
     };
 
@@ -832,6 +854,7 @@ public sealed class CakeFactoryService
         IngredientFactoryKind.Packaging => run.ProcessWaterL * 0.45 + run.QuaternaryInput * 0.7,
         IngredientFactoryKind.Feed => run.CulinarySteamKg * 0.06 + run.ProcessWaterL * 0.25,
         IngredientFactoryKind.Fertilizer => run.ProcessWaterL * 0.18,
+        IngredientFactoryKind.MineralPremix => run.ProcessWaterL * 0.20,
         _ => run.ProcessWaterL * 0.25,
     };
 
@@ -950,6 +973,8 @@ public sealed class CakeFactoryService
         const double labor = 0.8;
         if (_forageKg < forage || _grainKg < grain || _dairyMineralKg < mineral)
             return "Dairy ration cannot be mixed; forage, grain or mineral premix is low.";
+        if (!FactoryLotReleased(_dairyMineralKg, _dairyMineralLotId))
+            return $"Dairy ration cannot be mixed; mineral premix lot {_dairyMineralLotId} is waiting for QA lab release.";
         if (_irrigationWaterL < water || _barnLaborHours < labor)
             return "Dairy ration needs water and barn labor before the herd can be fed.";
         if (string.IsNullOrWhiteSpace(_forageLotId) || string.IsNullOrWhiteSpace(_grainLotId) || string.IsNullOrWhiteSpace(_dairyMineralLotId))
@@ -1272,8 +1297,9 @@ public sealed class CakeFactoryService
         _irrigationWaterL += 24000;
         _forageKg += 380;
         _grainKg += 260;
-        _dairyMineralKg += 40;
         _strawKg += 260;
+        _limestoneKg += 72;
+        _traceMineralKg += 24;
         _barnLaborHours = Math.Min(60, _barnLaborHours + 12);
         _brineL += 1600;
         _sodaAshKg += 42;
@@ -1295,8 +1321,9 @@ public sealed class CakeFactoryService
         _beetSeedLotId = NewLotId("SEED-BEET");
         _forageLotId = NewLotId("FORAGE");
         _grainLotId = NewLotId("GRAIN");
-        _dairyMineralLotId = NewLotId("DAIRYMIN");
         _strawLotId = NewLotId("STRAW");
+        _limestoneLotId = NewLotId("LIMESTONE");
+        _traceMineralLotId = NewLotId("TRACE-MIN");
         _cocoaBeansLotId = NewLotId("COCOABEAN");
         _brineLotId = NewLotId("BRINE");
         _mineralLotId = NewLotId("MINERAL");
@@ -1306,7 +1333,7 @@ public sealed class CakeFactoryService
         _adhesiveLotId = NewLotId("ADHESIVE");
         _utilityLotId = NewLotId("UTILITY");
         _warehouseStatus = $"Receiving manifest {_lastSupplyManifestId} booked into warehouse; forklift battery {_forkliftBatteryPct:0}% and {_warehousePalletSpacePct:0}% pallet space free.";
-        _traceabilityStatus = $"Receiving manifest {_lastSupplyManifestId} logged seed, dairy forage, grain, mineral, straw-bedding feedstock, feed-mill inputs, cocoa, brine, leavening feedstocks, packaging feedstocks and utility lots; crop fertilizer and livestock bedding must be made on site.";
+        _traceabilityStatus = $"Receiving manifest {_lastSupplyManifestId} logged seed, dairy forage, grain, limestone, trace minerals, straw-bedding feedstock, feed-mill inputs, cocoa, brine, leavening feedstocks, packaging feedstocks and utility lots; crop fertilizer, livestock bedding and dairy mineral premix must be made on site.";
     }
 
     public string ProcessCocoa()
@@ -1577,6 +1604,60 @@ public sealed class CakeFactoryService
         });
     }
 
+    public string RunMineralPremixPlant()
+    {
+        if (_lastPowerAvailability < 0.2)
+            return "Mineral premix weigh room, micro-doser and ribbon blender need reactor power.";
+        if (_factoryRun is not null)
+            return $"{_factoryRun.Name} is already running; wait for the ingredient factory run to finish.";
+
+        const double limestone = 16.0;
+        const double traceMineral = 5.5;
+        const double phosphate = 3.0;
+        const double salt = 4.0;
+        if (_limestoneKg < limestone || _traceMineralKg < traceMineral || _phosphateKg < phosphate || _saltKg < salt)
+            return "Mineral premix plant needs limestone, trace mineral concentrate, phosphate and released baking salt.";
+        if (string.IsNullOrWhiteSpace(_limestoneLotId) || string.IsNullOrWhiteSpace(_traceMineralLotId) || string.IsNullOrWhiteSpace(_mineralLotId) || string.IsNullOrWhiteSpace(_saltLotId))
+            return "Mineral premix plant cannot run because a mineral source lot is missing from the ledger.";
+        if (!FactoryLotReleased(_saltKg, _saltLotId))
+            return $"Mineral premix plant cannot run; salt lot {_saltLotId} is waiting for QA lab release.";
+
+        double input = limestone + traceMineral + phosphate + salt;
+        _mineralMixerRpm = 0;
+        _mineralHomogeneityPct = 0;
+        _mineralMetalPpm = 38;
+        var run = new IngredientFactoryRun
+        {
+            Kind = IngredientFactoryKind.MineralPremix,
+            Name = "Dairy mineral premix micro-doser",
+            StartedMessage = $"Started blending {input:0.0} kg limestone, trace minerals, phosphate and salt into dairy mineral premix.",
+            DurationSeconds = 5.6,
+            PowerDemandMW = 0.58,
+            PrimaryInput = limestone,
+            SecondaryInput = traceMineral,
+            TertiaryInput = phosphate,
+            QuaternaryInput = salt,
+            Product = input * 0.94,
+            Waste = input * 0.018,
+            ProcessWaterL = 12,
+            CompressedAirNm3 = 22,
+            FilterMediaPct = 0.30,
+            WearPct = 0.88,
+            CalibrationDriftPct = 0.42,
+            InputLotId = $"{_limestoneLotId}/{_traceMineralLotId}/{_mineralLotId}/{_saltLotId}",
+            OutputLotId = NewLotId("DAIRYMIN"),
+        };
+
+        return StartFactoryRun(run, () =>
+        {
+            ConsumeTrackedStock(ref _limestoneKg, limestone, ref _limestoneLotId);
+            ConsumeTrackedStock(ref _traceMineralKg, traceMineral, ref _traceMineralLotId);
+            _phosphateKg = Math.Max(0, _phosphateKg - phosphate);
+            if (_sodaAshKg <= 0.001 && _phosphateKg <= 0.001 && _starchKg <= 0.001) _mineralLotId = "";
+            ConsumeTrackedStock(ref _saltKg, salt, ref _saltLotId);
+        });
+    }
+
     public string RunFeedMill()
     {
         if (_lastPowerAvailability < 0.2)
@@ -1593,6 +1674,8 @@ public sealed class CakeFactoryService
             return "Feed mill needs grain, starch carrier and mineral premix before it can make poultry feed.";
         if (string.IsNullOrWhiteSpace(_grainLotId) || string.IsNullOrWhiteSpace(_dairyMineralLotId) || string.IsNullOrWhiteSpace(_mineralLotId))
             return "Feed mill cannot run because a grain, mineral or starch lot is missing from the ledger.";
+        if (!FactoryLotReleased(_dairyMineralKg, _dairyMineralLotId))
+            return $"Feed mill cannot run; mineral premix lot {_dairyMineralLotId} is waiting for QA lab release.";
 
         double input = grain + starch + mineral + bran + beetPulp;
         _feedMillHammerRpm = 0;
@@ -2014,6 +2097,13 @@ public sealed class CakeFactoryService
                 if (p > 0.45) _factoryRunQualityPct -= Math.Abs(_beddingMoisturePct - 11.0) * 0.75;
                 if (p > 0.55) _factoryRunQualityPct -= Math.Max(0, _beddingDustPct - 3.0) * 1.1;
                 break;
+            case IngredientFactoryKind.MineralPremix:
+                _mineralMixerRpm = p < 0.18 ? 92.0 * p / 0.18 : 92.0 + Math.Sin(p * Math.PI * 4) * 10.0;
+                _mineralHomogeneityPct = Math.Clamp(44.0 + p * 54.0, 0, 100);
+                _mineralMetalPpm = Math.Clamp(38.0 - p * 30.0 + Math.Sin(p * Math.PI * 5) * 1.6, 4.0, 42.0);
+                _factoryRunQualityPct = Math.Min(_factoryRunQualityPct, _mineralHomogeneityPct);
+                if (p > 0.55) _factoryRunQualityPct -= Math.Max(0, _mineralMetalPpm - 10.0) * 1.0;
+                break;
         }
         _factoryRunQualityPct = Math.Clamp(_factoryRunQualityPct, 0, 100);
     }
@@ -2076,6 +2166,11 @@ public sealed class CakeFactoryService
             IngredientFactoryKind.Bedding when p < 0.72 => "dedusting cyclone and mist trim",
             IngredientFactoryKind.Bedding when p < 0.90 => "screening and density check",
             IngredientFactoryKind.Bedding => "bale press and barn hygiene sample pull",
+            IngredientFactoryKind.MineralPremix when p < 0.20 => "limestone and trace-mineral weigh-up",
+            IngredientFactoryKind.MineralPremix when p < 0.48 => "micro-dosing phosphate and salt",
+            IngredientFactoryKind.MineralPremix when p < 0.74 => "ribbon blending and magnet pass",
+            IngredientFactoryKind.MineralPremix when p < 0.90 => "sieve check and bagger fill",
+            IngredientFactoryKind.MineralPremix => "premix assay and QA sample pull",
             _ => "processing",
         };
     }
@@ -2096,6 +2191,7 @@ public sealed class CakeFactoryService
         IngredientFactoryKind.Feed => "poultry feed mill",
         IngredientFactoryKind.Fertilizer => "compost fertilizer plant",
         IngredientFactoryKind.Bedding => "straw bedding chopper",
+        IngredientFactoryKind.MineralPremix => "mineral premix plant",
         _ => "ingredient plant",
     };
 
@@ -2113,6 +2209,7 @@ public sealed class CakeFactoryService
         IngredientFactoryKind.Feed => "poultry feed",
         IngredientFactoryKind.Fertilizer => "crop fertilizer",
         IngredientFactoryKind.Bedding => "livestock bedding",
+        IngredientFactoryKind.MineralPremix => "dairy mineral premix",
         _ => "ingredient",
     };
 
@@ -2196,6 +2293,9 @@ public sealed class CakeFactoryService
                 break;
             case IngredientFactoryKind.Bedding:
                 ConsumeTrackedStock(ref _beddingKg, quantity, ref _beddingLotId);
+                break;
+            case IngredientFactoryKind.MineralPremix:
+                ConsumeTrackedStock(ref _dairyMineralKg, quantity, ref _dairyMineralLotId);
                 break;
         }
     }
@@ -2349,6 +2449,9 @@ public sealed class CakeFactoryService
             case IngredientFactoryKind.Bedding:
                 detail = $"{run.Waste:0.0} kg straw fines and dust collector sweepings";
                 break;
+            case IngredientFactoryKind.MineralPremix:
+                detail = $"{run.Waste:0.0} kg mineral dust and screen rejects";
+                break;
             default:
                 detail = $"{run.Waste:0.0} kg residuals";
                 break;
@@ -2475,6 +2578,16 @@ public sealed class CakeFactoryService
                 _beddingDustPct = 2.1 + _rng.NextDouble() * 0.9;
                 _factoryRunQualityPct = Math.Clamp(98 - Math.Abs(_beddingMoisturePct - 11.0) * 0.9 - Math.Max(0, _beddingDustPct - 3.0) * 1.6 - FactoryEquipmentPenalty(run.Kind), 0, 100);
                 _factoryStatus = $"Bedding plant completed: {output:0.0} kg low-dust livestock bedding at {_beddingMoisturePct:0.0}% moisture, {_beddingDustPct:0.0}% dust and {_beddingChopperRpm:0} rpm, QA {_factoryRunQualityPct:0}%.";
+                break;
+            case IngredientFactoryKind.MineralPremix:
+                _dairyMineralKg += output;
+                _dairyMineralLotId = run.OutputLotId;
+                _wasteKg += waste;
+                _mineralMixerRpm = 78 + _rng.NextDouble() * 22;
+                _mineralHomogeneityPct = 96.0 + _rng.NextDouble() * 2.4;
+                _mineralMetalPpm = 7.0 + _rng.NextDouble() * 4.0;
+                _factoryRunQualityPct = Math.Clamp(_mineralHomogeneityPct - Math.Max(0, _mineralMetalPpm - 10.0) * 1.4 - FactoryEquipmentPenalty(run.Kind), 0, 100);
+                _factoryStatus = $"Mineral premix plant completed: {output:0.0} kg dairy mineral premix at {_mineralHomogeneityPct:0.0}% homogeneity, {_mineralMetalPpm:0.0} ppm metal check and {_mineralMixerRpm:0} rpm, QA {_factoryRunQualityPct:0}%.";
                 break;
         }
 
@@ -2693,7 +2806,7 @@ public sealed class CakeFactoryService
             MissingIngredients = missing,
             CanHarvest = power >= 0.15 && (_wheatGrowth >= 25 || _beetGrowth >= 25 || _vanillaGrowth >= 25),
             CanCollectDairy = power >= 0.12 && (_dairyReadyL >= 1 || _eggsReady >= 1),
-            CanMixDairyRation = power >= 0.15 && _forageKg >= 48 && _grainKg >= 22 && _dairyMineralKg >= 2.2 && _irrigationWaterL >= 38 && _barnLaborHours >= 0.8,
+            CanMixDairyRation = power >= 0.15 && _forageKg >= 48 && _grainKg >= 22 && _dairyMineralKg >= 2.2 && FactoryLotReleased(_dairyMineralKg, _dairyMineralLotId) && _irrigationWaterL >= 38 && _barnLaborHours >= 0.8,
             CanWashDairyParlor = power >= 0.15 && HasFactoryUtilities(180, 60, 12, 0.5) && _barnLaborHours >= 1.4 && (_dairyParlorHygienePct < 96 || _manureKg > 80),
             CanWashPoultryHouse = power >= 0.15 && HasFactoryUtilities(90, 30, 8, 0.35) && _barnLaborHours >= 1.0 && (_henHouseHygienePct < 96 || _poultryManureKg > 80),
             CanMillWheat = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _wheatKg >= 5 && HasFactoryUtilities(20, 0, 38, 0.6),
@@ -2714,11 +2827,13 @@ public sealed class CakeFactoryService
             CanRunLeaveningPlant = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _sodaAshKg >= 3 && _phosphateKg >= 3 && _starchKg >= 2 && HasFactoryUtilities(0, 0, 50, 1.0),
             CanRunPackagingPlant = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _paperboardKg >= 42 && _labelStockM >= 140 && _packagingInkL >= 2.4 && _adhesiveKg >= 6 && HasFactoryUtilities(18, 0, 42, 0.45),
             CanPrepareIcing = CanPrepareIcing(recipe, power, labClear, wasteReady),
-            CanRunFeedMill = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _grainKg >= 42 && _starchKg >= 4.8 && _dairyMineralKg >= 1.6 && HasFactoryUtilities(28, 55, 18, 0.25)
+            CanRunFeedMill = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _grainKg >= 42 && _starchKg >= 4.8 && _dairyMineralKg >= 1.6 && FactoryLotReleased(_dairyMineralKg, _dairyMineralLotId) && HasFactoryUtilities(28, 55, 18, 0.25)
                             && !string.IsNullOrWhiteSpace(_grainLotId) && !string.IsNullOrWhiteSpace(_dairyMineralLotId) && !string.IsNullOrWhiteSpace(_mineralLotId),
             CanRunCompostPlant = power >= 0.2 && _factoryRun is null && labClear && CompostPlantInputsReady() && HasFactoryUtilities(70, 0, 34, 0.55),
             CanRunBeddingPlant = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _strawKg >= 54 && HasFactoryUtilities(18, 0, 26, 0.35)
                                  && !string.IsNullOrWhiteSpace(_strawLotId),
+            CanRunMineralPlant = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _limestoneKg >= 16 && _traceMineralKg >= 5.5 && _phosphateKg >= 3 && _saltKg >= 4 && FactoryLotReleased(_saltKg, _saltLotId) && HasFactoryUtilities(12, 0, 22, 0.30)
+                                  && !string.IsNullOrWhiteSpace(_limestoneLotId) && !string.IsNullOrWhiteSpace(_traceMineralLotId) && !string.IsNullOrWhiteSpace(_mineralLotId) && !string.IsNullOrWhiteSpace(_saltLotId),
             CanReleaseLabLot = power >= 0.15 && _factoryRun is null && !labClear && HasFactoryUtilities(12, 0, 4, 0.1),
             CanStageBatchKit = _stage == CakeBatchStage.Idle && !CipActive && !_batchKitStaged && rawMissing.Length == 0 && power >= 0.2 && _forkliftBatteryPct >= 12 && _warehousePalletSpacePct >= 18,
             CanServiceFactories = power >= 0.2 && _factoryRun is null && NeedsFactoryService() && HasFactoryUtilities(120, 80, 35, 1.5),
@@ -2763,6 +2878,7 @@ public sealed class CakeFactoryService
             RationProteinPct = _rationProteinPct,
             RationStatus = _rationStatus,
             MixedRationLotId = _mixedRationLotId,
+            DairyMineralLotId = _dairyMineralLotId,
             BeddingLotId = _beddingLotId,
             TraceabilityStatus = TraceabilityStatus(),
             TraceabilityScorePct = TraceabilityScore(),
@@ -2797,6 +2913,8 @@ public sealed class CakeFactoryService
             FeedLotId = _feedLotId,
             FertilizerLotId = _fertilizerLotId,
             StrawLotId = _strawLotId,
+            LimestoneLotId = _limestoneLotId,
+            TraceMineralLotId = _traceMineralLotId,
             WheatKg = _wheatKg,
             SugarCropKg = _sugarCropKg,
             FlourKg = _flourKg,
@@ -2815,6 +2933,8 @@ public sealed class CakeFactoryService
             PhosphateKg = _phosphateKg,
             StarchKg = _starchKg,
             StrawKg = _strawKg,
+            LimestoneKg = _limestoneKg,
+            TraceMineralKg = _traceMineralKg,
             WheatSeedKg = _wheatSeedKg,
             BeetSeedKg = _beetSeedKg,
             IrrigationWaterL = _irrigationWaterL,
@@ -2890,6 +3010,8 @@ public sealed class CakeFactoryService
             FertilizerCalibrationPct = EquipmentFor(IngredientFactoryKind.Fertilizer).CalibrationPct,
             BeddingConditionPct = EquipmentFor(IngredientFactoryKind.Bedding).ConditionPct,
             BeddingCalibrationPct = EquipmentFor(IngredientFactoryKind.Bedding).CalibrationPct,
+            MineralConditionPct = EquipmentFor(IngredientFactoryKind.MineralPremix).ConditionPct,
+            MineralCalibrationPct = EquipmentFor(IngredientFactoryKind.MineralPremix).CalibrationPct,
             MillRollGapMm = _millRollGapMm,
             FlourExtractionPct = _flourExtractionPct,
             SugarJuiceBrix = _sugarJuiceBrix,
@@ -2927,6 +3049,9 @@ public sealed class CakeFactoryService
             BeddingChopperRpm = _beddingChopperRpm,
             BeddingMoisturePct = _beddingMoisturePct,
             BeddingDustPct = _beddingDustPct,
+            MineralMixerRpm = _mineralMixerRpm,
+            MineralHomogeneityPct = _mineralHomogeneityPct,
+            MineralMetalPpm = _mineralMetalPpm,
             BatterKg = _batterKg,
             CakesBaked = _cakesBaked,
             CakesPacked = _cakesPacked,
@@ -3358,7 +3483,9 @@ public sealed class CakeFactoryService
         if (_animalFeedKg < 20 && (_grainKg < 42 || _starchKg < 4.8 || _dairyMineralKg < 1.6)) low.Add("feed mill inputs");
         if (_forageKg < 48) low.Add("dairy forage");
         if (_grainKg < 22) low.Add("dairy grain");
-        if (_dairyMineralKg < 2.2) low.Add("dairy mineral");
+        if (_dairyMineralKg < 2.2) low.Add("dairy mineral premix");
+        if (_dairyMineralKg < 2.2 && (_limestoneKg < 16 || _traceMineralKg < 5.5 || _phosphateKg < 3 || _saltKg < 4)) low.Add("mineral premix plant feedstocks");
+        if (!FactoryLotReleased(_dairyMineralKg, _dairyMineralLotId)) low.Add("dairy mineral QA release");
         if (_mixedRationKg < 20) low.Add("mixed dairy ration");
         if (_beddingKg < 10) low.Add("bedding");
         if (_beddingKg < 10 && _strawKg < 54) low.Add("straw bedding feedstock");
@@ -3412,6 +3539,8 @@ public sealed class CakeFactoryService
         Count(_forageKg, _forageLotId);
         Count(_grainKg, _grainLotId);
         Count(_dairyMineralKg, _dairyMineralLotId);
+        Count(_limestoneKg, _limestoneLotId);
+        Count(_traceMineralKg, _traceMineralLotId);
         Count(_mixedRationKg, _mixedRationLotId);
         Count(_beddingKg, _beddingLotId);
         Count(_vanillaBeansKg, _vanillaBeanLotId);
@@ -3455,6 +3584,9 @@ public sealed class CakeFactoryService
         if (!HasLot(_fertilizerKg, _fertilizerLotId)) missing.Add("fertilizer");
         if (!HasLot(_beddingKg, _beddingLotId)) missing.Add("bedding");
         if (!HasLot(_strawKg, _strawLotId)) missing.Add("straw");
+        if (!HasLot(_dairyMineralKg, _dairyMineralLotId)) missing.Add("dairy mineral premix");
+        if (!HasLot(_limestoneKg, _limestoneLotId)) missing.Add("limestone");
+        if (!HasLot(_traceMineralKg, _traceMineralLotId)) missing.Add("trace minerals");
         if (missing.Count > 0) return "Traceability hold: missing lot data for " + string.Join(", ", missing);
         return _traceabilityStatus;
     }

@@ -865,6 +865,69 @@ internal static class Program
                           $"releasedFeedConsumed={releasedFeedConsumed} ({released.AnimalFeedKg:F1}->{used.AnimalFeedKg:F1} kg)");
         });
 
+        Scenario("CAKE MINERAL PREMIX PLANT (dairy mineral is factory-made before ration/feed consume it)", () =>
+        {
+            var cake = new CakeFactoryService { FarmIntensity = 0 };
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            string start = cake.RunMineralPremixPlant();
+            TickCake(cake, fullBus, 1.0);
+            var running = cake.Snapshot;
+            TickCake(cake, fullBus, 6.0);
+            var held = cake.Snapshot;
+
+            string blockedMix = cake.MixDairyRation();
+            TickCake(cake, fullBus, 0.5);
+            var blocked = cake.Snapshot;
+
+            string release = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var released = cake.Snapshot;
+
+            string mix = cake.MixDairyRation();
+            TickCake(cake, fullBus, 0.5);
+            var mixed = cake.Snapshot;
+
+            bool startConsumesInputs = before.CanRunMineralPlant
+                                       && start.Contains("mineral", StringComparison.OrdinalIgnoreCase)
+                                       && running.FactoryRunActive
+                                       && running.ActiveFactoryName.Contains("mineral", StringComparison.OrdinalIgnoreCase)
+                                       && running.LimestoneKg < before.LimestoneKg
+                                       && running.TraceMineralKg < before.TraceMineralKg
+                                       && running.PhosphateKg < before.PhosphateKg
+                                       && running.SaltKg < before.SaltKg
+                                       && Math.Abs(running.DairyMineralKg - before.DairyMineralKg) < 0.001
+                                       && running.ProcessWaterL < before.ProcessWaterL
+                                       && running.CompressedAirNm3 < before.CompressedAirNm3
+                                       && running.FilterMediaPct < before.FilterMediaPct;
+            bool completionHeldForLab = !held.FactoryRunActive
+                                        && held.DairyMineralKg > before.DairyMineralKg
+                                        && held.DairyMineralLotId.StartsWith("DAIRYMIN-", StringComparison.OrdinalIgnoreCase)
+                                        && held.DairyMineralLotId != before.DairyMineralLotId
+                                        && held.PendingLabLotId == held.DairyMineralLotId
+                                        && held.PendingLabProductName.Contains("mineral", StringComparison.OrdinalIgnoreCase)
+                                        && held.MineralMixerRpm > 0
+                                        && held.MineralHomogeneityPct > 90
+                                        && held.MineralMetalPpm > 0;
+            bool unreleasedMineralBlocked = Math.Abs(blocked.MixedRationKg - held.MixedRationKg) < 0.001
+                                            && !blocked.CanMixDairyRation
+                                            && blockedMix.Contains("QA lab release", StringComparison.OrdinalIgnoreCase);
+            bool releaseClearsHold = released.PendingLabLotId.Length == 0
+                                     && released.CanMixDairyRation
+                                     && released.CanRunFeedMill
+                                     && release.Contains("released", StringComparison.OrdinalIgnoreCase);
+            bool releasedMineralConsumed = mixed.DairyMineralKg < released.DairyMineralKg
+                                           && mixed.MixedRationKg > released.MixedRationKg
+                                           && mixed.TraceabilityStatus.Contains(released.DairyMineralLotId, StringComparison.OrdinalIgnoreCase)
+                                           && mix.Contains("mineral premix", StringComparison.OrdinalIgnoreCase);
+            bool pass = startConsumesInputs && completionHeldForLab && unreleasedMineralBlocked && releaseClearsHold && releasedMineralConsumed;
+            return (pass, $"startConsumesInputs={startConsumesInputs} ('{Trim(start)}'), completionHeldForLab={completionHeldForLab} " +
+                          $"(mineral {before.DairyMineralKg:F1}->{held.DairyMineralKg:F1} kg, lot {held.DairyMineralLotId}), " +
+                          $"unreleasedMineralBlocked={unreleasedMineralBlocked} ('{Trim(blockedMix)}'), releaseClearsHold={releaseClearsHold} ('{Trim(release)}'), " +
+                          $"releasedMineralConsumed={releasedMineralConsumed} ({released.DairyMineralKg:F1}->{mixed.DairyMineralKg:F1} kg)");
+        });
+
         Scenario("CAKE COMPOST FERTILIZER PLANT (crop fertilizer is factory-made from manure and organics)", () =>
         {
             var cake = new CakeFactoryService { FarmIntensity = 0 };
@@ -1642,6 +1705,7 @@ internal static class Program
             double fertilizerBeforeSupply = after.FertilizerKg;
             double feedBeforeSupply = after.AnimalFeedKg;
             double beddingBeforeSupply = after.BeddingKg;
+            double dairyMineralBeforeSupply = after.DairyMineralKg;
             double bakingPowderBeforeSupply = after.BakingPowderKg;
             double saltBeforeSupply = after.SaltKg;
             double cartonsBeforeSupply = after.PackagingUnits;
@@ -1660,6 +1724,8 @@ internal static class Program
                                          && supplied.SodaAshKg > after.SodaAshKg
                                          && supplied.PhosphateKg > after.PhosphateKg
                                          && supplied.StarchKg > after.StarchKg
+                                         && supplied.LimestoneKg > after.LimestoneKg
+                                         && supplied.TraceMineralKg > after.TraceMineralKg
                                          && supplied.ProcessWaterL > after.ProcessWaterL
                                          && supplied.CulinarySteamKg > after.CulinarySteamKg
                                          && supplied.CompressedAirNm3 > after.CompressedAirNm3
@@ -1669,6 +1735,7 @@ internal static class Program
                                                           && Math.Abs(supplied.PackagingUnits - cartonsBeforeSupply) < 0.001
                                                           && supplied.FertilizerKg <= fertilizerBeforeSupply + 0.001
                                                           && supplied.BeddingKg <= beddingBeforeSupply + 0.001
+                                                          && supplied.DairyMineralKg <= dairyMineralBeforeSupply + 0.001
                                                           && supplied.AnimalFeedKg <= feedBeforeSupply + 0.001;
 
             bool pass = fieldInputsConsumed && livestockInputsConsumed && cocoaDoesNotAppear && supplyTruckAddsInputs && supplyTruckDoesNotMakeFinalIngredients;
@@ -1698,6 +1765,9 @@ internal static class Program
             double adhesiveBeforeUnload = arrived.AdhesiveKg;
             double cartonsBeforeUnload = arrived.PackagingUnits;
             double cocoaBeforeUnload = arrived.CocoaBeansKg;
+            double limestoneBeforeUnload = arrived.LimestoneKg;
+            double traceBeforeUnload = arrived.TraceMineralKg;
+            double dairyMineralBeforeUnload = arrived.DairyMineralKg;
             string unload = cake.UnloadSupplyDelivery();
             TickCake(cake, fullBus, 0.5);
             var unloaded = cake.Snapshot;
@@ -1715,6 +1785,9 @@ internal static class Program
                              && Math.Abs(enroute.PackagingInkL - before.PackagingInkL) < 0.001
                              && Math.Abs(enroute.AdhesiveKg - before.AdhesiveKg) < 0.001
                              && Math.Abs(enroute.CocoaBeansKg - before.CocoaBeansKg) < 0.001
+                             && Math.Abs(enroute.LimestoneKg - before.LimestoneKg) < 0.001
+                             && Math.Abs(enroute.TraceMineralKg - before.TraceMineralKg) < 0.001
+                             && Math.Abs(enroute.DairyMineralKg - before.DairyMineralKg) < 0.001
                              && earlyReceive.Contains("cannot enter inventory", StringComparison.OrdinalIgnoreCase);
             bool arrivalGate = arrived.SupplyTruckEnRoute
                                && arrived.SupplyTruckArrived
@@ -1728,6 +1801,9 @@ internal static class Program
                                     && unloaded.AdhesiveKg > adhesiveBeforeUnload
                                     && Math.Abs(unloaded.PackagingUnits - cartonsBeforeUnload) < 0.001
                                     && unloaded.CocoaBeansKg > cocoaBeforeUnload
+                                    && unloaded.LimestoneKg > limestoneBeforeUnload
+                                    && unloaded.TraceMineralKg > traceBeforeUnload
+                                    && Math.Abs(unloaded.DairyMineralKg - dairyMineralBeforeUnload) < 0.001
                                     && unloaded.LastSupplyManifestId.StartsWith("RCV-", StringComparison.OrdinalIgnoreCase)
                                     && unloaded.TraceabilityStatus.Contains("manifest", StringComparison.OrdinalIgnoreCase)
                                     && unload.Contains("unloaded", StringComparison.OrdinalIgnoreCase);
