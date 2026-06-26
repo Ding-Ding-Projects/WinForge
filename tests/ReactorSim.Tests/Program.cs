@@ -868,6 +868,60 @@ internal static class Program
                           $"releaseClearsHold={releaseClearsHold} ('{Trim(release)}')");
         });
 
+        Scenario("CAKE BUTTER ROOM REALISM (raw cow milk is separated, pasteurized and churned before butter release)", () =>
+        {
+            var cake = new CakeFactoryService { FarmIntensity = 1.0 };
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            string start = cake.ChurnButter();
+            TickCake(cake, fullBus, 1.0);
+            var running = cake.Snapshot;
+
+            TickCake(cake, fullBus, 8.0);
+            var held = cake.Snapshot;
+
+            string blocked = cake.StageBatchKit();
+            string release = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var released = cake.Snapshot;
+
+            bool rawMilkReady = before.CanChurnButter
+                                && before.RawMilkL > 35
+                                && before.MilkFatPct > 0
+                                && before.RawMilkLotId.StartsWith("RAWMILK-", StringComparison.OrdinalIgnoreCase);
+            bool creamRunStarted = running.FactoryRunActive
+                                   && running.ActiveFactoryName.Contains("Cream", StringComparison.OrdinalIgnoreCase)
+                                   && running.ActiveFactoryPhase.Length > 0
+                                   && running.RawMilkL < before.RawMilkL
+                                   && Math.Abs(running.ButterKg - before.ButterKg) < 0.001
+                                   && running.CreamSeparatorRpm > 0
+                                   && running.CreamYieldL > 0
+                                   && running.CreamFatPct > 0
+                                   && start.Contains("cream", StringComparison.OrdinalIgnoreCase);
+            bool butterHeldForLab = !held.FactoryRunActive
+                                    && held.ButterKg > before.ButterKg
+                                    && held.ButterLotId != before.ButterLotId
+                                    && held.PendingLabLotId == held.ButterLotId
+                                    && held.IngredientLabStatus.Contains("fat", StringComparison.OrdinalIgnoreCase)
+                                    && held.SkimMilkL > before.SkimMilkL
+                                    && held.ButtermilkL > before.ButtermilkL
+                                    && held.CreamPasteurizerTemperatureC > 70
+                                    && held.CreamPasteurizationHoldSeconds >= 16
+                                    && held.ButterChurnTemperatureC > 0
+                                    && held.ButterFatPct > 80
+                                    && held.ButterMoisturePct > 0
+                                    && held.ButterWorkingPressureKPa > 0
+                                    && held.FactoryStatus.Contains("sweet-cream", StringComparison.OrdinalIgnoreCase);
+            bool releaseClearsButter = blocked.Contains("lab release", StringComparison.OrdinalIgnoreCase)
+                                       && release.Contains("released", StringComparison.OrdinalIgnoreCase)
+                                       && released.PendingLabLotId.Length == 0;
+            bool pass = rawMilkReady && creamRunStarted && butterHeldForLab && releaseClearsButter;
+            return (pass, $"rawMilkReady={rawMilkReady} ({before.RawMilkL:F1} L raw, fat {before.MilkFatPct:F2}%), creamRunStarted={creamRunStarted} ('{Trim(start)}'), " +
+                          $"butterHeldForLab={butterHeldForLab} (cream {held.CreamYieldL:F1} L/{held.CreamFatPct:F1}% fat, butter {held.ButterFatPct:F1}% fat/{held.ButterMoisturePct:F1}% moisture, " +
+                          $"skim {before.SkimMilkL:F1}->{held.SkimMilkL:F1} L, buttermilk {before.ButtermilkL:F1}->{held.ButtermilkL:F1} L), releaseClearsButter={releaseClearsButter} ('{Trim(release)}')");
+        });
+
         Scenario("CAKE FEED CROP HARVEST (forage and feed grain come from farm lots)", () =>
         {
             var cake = new CakeFactoryService { FarmIntensity = 0 };
@@ -1542,7 +1596,10 @@ internal static class Program
                                     && s4.SugarJuicePurityPct > 0 && s4.SugarLimePh > 0
                                     && s4.SugarPanVacuumKPa > 0 && s4.SugarCentrifugeRpm > 0
                                     && s4.SugarMoisturePct > 0 && s4.SugarColorIcumsa > 0 && s4.SugarPolarizationPct > 99
-                                    && s5.CreamSeparatorRpm > 0 && s5.ButterFatPct > 70
+                                    && s5.CreamSeparatorRpm > 0 && s5.CreamYieldL > 0 && s5.CreamFatPct > 0
+                                    && s5.CreamPasteurizerTemperatureC > 70 && s5.CreamPasteurizationHoldSeconds >= 16
+                                    && s5.ButterChurnTemperatureC > 0 && s5.ButterFatPct > 70
+                                    && s5.ButterMoisturePct > 0 && s5.ButterWorkingPressureKPa > 0
                                     && s6.VanillaExtractorTemperatureC > 70 && s6.VanillaExtractStrengthPct > 80
                                     && s7.CocoaRoasterTemperatureC > 100 && s7.CocoaGrindMicrons > 0
                                     && s8.BrineSalinityPct > 0 && s8.SaltCrystallizerTemperatureC > 40

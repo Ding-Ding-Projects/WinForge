@@ -249,6 +249,7 @@ public sealed class CakeFactorySnapshot
     public double BranKg { get; init; }
     public double BeetPulpKg { get; init; }
     public double MolassesKg { get; init; }
+    public double SkimMilkL { get; init; }
     public double ButtermilkL { get; init; }
     public double VanillaPomaceKg { get; init; }
     public double CocoaShellKg { get; init; }
@@ -306,7 +307,15 @@ public sealed class CakeFactorySnapshot
     public double MilkPasteurizationHoldSeconds { get; init; }
     public double MilkMicroLogReduction { get; init; }
     public double CreamSeparatorRpm { get; init; }
+    public double CreamYieldL { get; init; }
+    public double CreamFatPct { get; init; }
+    public double CreamPasteurizerTemperatureC { get; init; }
+    public double CreamPasteurizationHoldSeconds { get; init; }
+    public double ButterChurnTemperatureC { get; init; }
     public double ButterFatPct { get; init; }
+    public double ButterMoisturePct { get; init; }
+    public double ButterSaltPct { get; init; }
+    public double ButterWorkingPressureKPa { get; init; }
     public double VanillaExtractorTemperatureC { get; init; }
     public double VanillaExtractStrengthPct { get; init; }
     public double CocoaRoasterTemperatureC { get; init; }
@@ -693,7 +702,15 @@ public sealed class CakeFactoryService
     private double _milkPasteurizationHoldSeconds = 0;
     private double _milkMicroLogReduction = 0;
     private double _creamSeparatorRpm = 0;
+    private double _creamYieldL = 0;
+    private double _creamFatPct = 38.0;
+    private double _creamPasteurizerTemperatureC = 4.0;
+    private double _creamPasteurizationHoldSeconds = 0;
+    private double _butterChurnTemperatureC = 10.0;
     private double _butterFatPct = 0;
+    private double _butterMoisturePct = 16.0;
+    private double _butterSaltPct = 0.05;
+    private double _butterWorkingPressureKPa = 0;
     private double _vanillaExtractorTemperatureC = 24;
     private double _vanillaExtractStrengthPct = 0;
     private double _cocoaRoasterTemperatureC = 24;
@@ -732,6 +749,7 @@ public sealed class CakeFactoryService
     private double _branKg = 34;
     private double _beetPulpKg = 52;
     private double _molassesKg = 12;
+    private double _skimMilkL = 24;
     private double _buttermilkL = 18;
     private double _vanillaPomaceKg = 2.0;
     private double _cocoaShellKg = 6;
@@ -894,6 +912,7 @@ public sealed class CakeFactoryService
         + _vanillaPomaceKg
         + _cocoaShellKg
         + _leaveningDustKg
+        + _skimMilkL * 1.03
         + _buttermilkL * 1.03
         + _brineBlowdownL * 1.05;
 
@@ -903,6 +922,7 @@ public sealed class CakeFactoryService
         + Math.Min(_molassesKg, 10.0)
         + Math.Min(_vanillaPomaceKg, 2.0)
         + Math.Min(_cocoaShellKg, 5.0)
+        + Math.Min(_skimMilkL, 10.0) * 1.03
         + Math.Min(_buttermilkL, 12.0) * 1.03;
 
     private bool CompostPlantInputsReady() =>
@@ -921,7 +941,7 @@ public sealed class CakeFactoryService
         IngredientFactoryKind.Mill => run.PrimaryInput * 0.22,
         IngredientFactoryKind.Sugar => run.PrimaryInput * 0.39,
         IngredientFactoryKind.Milk => run.PrimaryInput * 0.012,
-        IngredientFactoryKind.Butter => run.PrimaryInput * 0.78,
+        IngredientFactoryKind.Butter => run.PrimaryInput * 0.92 * 1.03,
         IngredientFactoryKind.Vanilla => run.PrimaryInput * 0.32,
         IngredientFactoryKind.Cocoa => run.PrimaryInput * 0.14,
         IngredientFactoryKind.Salt => run.PrimaryInput * 0.16 * 1.05,
@@ -1413,19 +1433,33 @@ public sealed class CakeFactoryService
         if (!MilkQaInSpec())
             return "Butter room cannot run; raw milk QA is on hold. Wash the parlor, restore cooling and wait for in-spec milk.";
 
+        double targetCreamFatPct = Math.Clamp(37.5 + _milkFatPct * 0.22 + _rng.NextDouble() * 1.4, 37.0, 41.5);
+        double cream = milk * Math.Clamp(_milkFatPct / targetCreamFatPct * 0.98, 0.075, 0.125);
+        double fatKg = milk * 1.03 * (_milkFatPct / 100.0);
+        double butter = fatKg * Math.Clamp(0.93 - Math.Max(0, _milkBacteriaCfuPerMl - 22000) / 600000.0, 0.86, 0.94) / 0.82;
         _creamSeparatorRpm = 0;
+        _creamYieldL = 0;
+        _creamFatPct = 0;
+        _creamPasteurizerTemperatureC = _bulkMilkTankC;
+        _creamPasteurizationHoldSeconds = 0;
+        _butterChurnTemperatureC = 0;
         _butterFatPct = 0;
+        _butterMoisturePct = 0;
+        _butterSaltPct = 0;
+        _butterWorkingPressureKPa = 0;
         var run = new IngredientFactoryRun
         {
             Kind = IngredientFactoryKind.Butter,
-            Name = "Cream separator and butter churn",
-            StartedMessage = $"Started separating cream, pasteurizing cream and churning {milk:0.0} L raw cow milk.",
-            DurationSeconds = 7.0,
+            Name = "Cream separator, pasteurizer and butter churn",
+            StartedMessage = $"Started separating {cream:0.0} L cream from {milk:0.0} L raw cow milk lot {_rawMilkLotId}: {_milkFatPct:0.00}% milk fat, {_milkProteinPct:0.00}% protein, bulk tank {_bulkMilkTankC:0.0} degC.",
+            DurationSeconds = 7.6,
             PowerDemandMW = 1.4,
             PrimaryInput = milk,
-            Product = milk / 22.0,
-            ProcessWaterL = 110,
-            CulinarySteamKg = 140,
+            SecondaryInput = cream,
+            Product = butter,
+            Waste = milk * 0.006,
+            ProcessWaterL = 90 + milk * 0.55,
+            CulinarySteamKg = 120 + cream * 10.5,
             CompressedAirNm3 = 15,
             FilterMediaPct = 0.8,
             WearPct = 1.45,
@@ -1797,8 +1831,9 @@ public sealed class CakeFactoryService
         double molasses = Math.Min(_molassesKg, 10.0);
         double pomace = Math.Min(_vanillaPomaceKg, 2.0);
         double shell = Math.Min(_cocoaShellKg, 5.0);
+        double skimMilk = Math.Min(_skimMilkL, 10.0);
         double buttermilk = Math.Min(_buttermilkL, 12.0);
-        double organics = bran + beetPulp + molasses + pomace + shell + buttermilk * 1.03;
+        double organics = bran + beetPulp + molasses + pomace + shell + skimMilk * 1.03 + buttermilk * 1.03;
 
         if (_manureKg < dairyManure || _poultryManureKg < poultryManure || organics < 18.0)
             return "Compost plant needs dairy manure, poultry manure and enough factory organics before it can make crop fertilizer.";
@@ -1839,6 +1874,7 @@ public sealed class CakeFactoryService
             _molassesKg = Math.Max(0, _molassesKg - molasses);
             _vanillaPomaceKg = Math.Max(0, _vanillaPomaceKg - pomace);
             _cocoaShellKg = Math.Max(0, _cocoaShellKg - shell);
+            _skimMilkL = Math.Max(0, _skimMilkL - skimMilk);
             _buttermilkL = Math.Max(0, _buttermilkL - buttermilk);
         });
     }
@@ -2232,17 +2268,18 @@ public sealed class CakeFactoryService
         if (_forkliftBatteryPct < 8 || _warehousePalletSpacePct < 5)
             return "Byproduct hauling needs forklift battery and dock pallet space.";
 
-        double feedMillCredit = Math.Min(120, _branKg * 0.35 + _beetPulpKg * 0.18 + _buttermilkL * 0.08 + _vanillaPomaceKg * 0.04);
+        double feedMillCredit = Math.Min(120, _branKg * 0.35 + _beetPulpKg * 0.18 + _skimMilkL * 0.05 + _buttermilkL * 0.08 + _vanillaPomaceKg * 0.04);
         double revenue = Math.Round(load * 0.045, 2);
         _grainKg += feedMillCredit;
         if (feedMillCredit > 0.001) _grainLotId = NewLotId("FEEDGRAIN");
         _cashBalance += revenue;
         _forkliftBatteryPct = Math.Max(0, _forkliftBatteryPct - 5.5);
         _warehousePalletSpacePct = Math.Max(0, _warehousePalletSpacePct - 3.0);
-        string detail = $"Hauled {load:0} kg-equivalent byproducts: bran {_branKg:0} kg, beet pulp {_beetPulpKg:0} kg, molasses {_molassesKg:0.0} kg, buttermilk {_buttermilkL:0} L, vanilla pomace {_vanillaPomaceKg:0.0} kg, cocoa shell {_cocoaShellKg:0} kg, brine blowdown {_brineBlowdownL:0} L and leavening dust {_leaveningDustKg:0.0} kg.";
+        string detail = $"Hauled {load:0} kg-equivalent byproducts: bran {_branKg:0} kg, beet pulp {_beetPulpKg:0} kg, molasses {_molassesKg:0.0} kg, skim milk {_skimMilkL:0} L, buttermilk {_buttermilkL:0} L, vanilla pomace {_vanillaPomaceKg:0.0} kg, cocoa shell {_cocoaShellKg:0} kg, brine blowdown {_brineBlowdownL:0} L and leavening dust {_leaveningDustKg:0.0} kg.";
         _branKg = 0;
         _beetPulpKg = 0;
         _molassesKg = 0;
+        _skimMilkL = 0;
         _buttermilkL = 0;
         _vanillaPomaceKg = 0;
         _cocoaShellKg = 0;
@@ -2359,9 +2396,22 @@ public sealed class CakeFactoryService
                 if (p > 0.45) _factoryRunQualityPct -= Math.Abs(_milkHomogenizerPressureBar - 130.0) * 0.06;
                 break;
             case IngredientFactoryKind.Butter:
-                _creamSeparatorRpm = p < 0.15 ? 6400 * p / 0.15 : 6400 + Math.Sin(p * Math.PI * 3) * 180;
-                _butterFatPct = 35.0 + p * 47.0;
-                if (p > 0.4) _factoryRunQualityPct -= Math.Abs(_butterFatPct - 82.0) * 0.12;
+                _creamSeparatorRpm = p < 0.16 ? 6450.0 * p / 0.16 : 6450.0 + Math.Sin(p * Math.PI * 3) * 180.0;
+                _creamYieldL = Math.Clamp(run.SecondaryInput * Math.Min(1.0, p / 0.24), 0, run.SecondaryInput);
+                _creamFatPct = p < 0.12 ? 0 : Math.Clamp(38.5 + Math.Sin(p * Math.PI * 2.2) * 1.2 + (_milkFatPct - 3.8) * 0.6, 35, 43);
+                _creamPasteurizerTemperatureC = p < 0.30
+                    ? _bulkMilkTankC + p / 0.30 * (76.0 - _bulkMilkTankC)
+                    : 76.0 + Math.Sin(p * Math.PI * 4) * 1.6;
+                _creamPasteurizationHoldSeconds = p < 0.34 ? 0 : Math.Min(22.0, (p - 0.34) / 0.66 * 22.0);
+                _butterChurnTemperatureC = p < 0.48 ? 0 : Math.Clamp(8.0 + Math.Sin(p * Math.PI * 5) * 1.1 + p * 1.2, 7.2, 11.8);
+                _butterFatPct = p < 0.52 ? 0 : Math.Clamp(76.0 + (p - 0.52) / 0.48 * 6.4, 0, 84.5);
+                _butterMoisturePct = p < 0.64 ? 0 : Math.Clamp(17.7 - (p - 0.64) / 0.36 * 1.5 + Math.Sin(p * Math.PI * 4) * 0.16, 15.4, 18.0);
+                _butterSaltPct = p < 0.72 ? 0 : Math.Clamp(0.045 + Math.Sin(p * Math.PI * 3) * 0.012, 0.02, 0.08);
+                _butterWorkingPressureKPa = p < 0.72 ? 0 : 95.0 + (p - 0.72) / 0.28 * 80.0 + Math.Sin(p * Math.PI * 4) * 6.0;
+                if (p > 0.28) _factoryRunQualityPct -= Math.Abs(_creamFatPct - 39.0) * 0.45;
+                if (p > 0.38) _factoryRunQualityPct -= Math.Abs(_creamPasteurizerTemperatureC - 76.0) * 0.32 + Math.Max(0, 16.0 - _creamPasteurizationHoldSeconds) * 1.4;
+                if (p > 0.56) _factoryRunQualityPct -= Math.Abs(_butterChurnTemperatureC - 9.8) * 1.2;
+                if (p > 0.82) _factoryRunQualityPct -= Math.Abs(_butterFatPct - 82.0) * 1.15 + Math.Abs(_butterMoisturePct - 16.1) * 2.4 + Math.Max(0, _butterSaltPct - 0.10) * 40.0;
                 break;
             case IngredientFactoryKind.Vanilla:
                 _vanillaExtractorTemperatureC = 32.0 + p * 56.0;
@@ -2458,10 +2508,12 @@ public sealed class CakeFactoryService
             IngredientFactoryKind.Milk when p < 0.68 => "72 degC holding tube",
             IngredientFactoryKind.Milk when p < 0.86 => "homogenization",
             IngredientFactoryKind.Milk => "plate-cooler and sterile tank transfer",
-            IngredientFactoryKind.Butter when p < 0.25 => "cream separation",
-            IngredientFactoryKind.Butter when p < 0.58 => "pasteurization hold",
-            IngredientFactoryKind.Butter when p < 0.84 => "churning",
-            IngredientFactoryKind.Butter => "working and cold-room transfer",
+            IngredientFactoryKind.Butter when p < 0.18 => "separator bowl spin-up and cream split",
+            IngredientFactoryKind.Butter when p < 0.38 => "cream HTST pasteurization hold",
+            IngredientFactoryKind.Butter when p < 0.54 => "cream cooling and aging tank",
+            IngredientFactoryKind.Butter when p < 0.72 => "churning to butter granules",
+            IngredientFactoryKind.Butter when p < 0.88 => "buttermilk drain, wash and moisture trim",
+            IngredientFactoryKind.Butter => "working, metal check and cold-room transfer",
             IngredientFactoryKind.Vanilla when p < 0.18 => "bean grading and blanch",
             IngredientFactoryKind.Vanilla when p < 0.42 => "conditioning and chopping",
             IngredientFactoryKind.Vanilla when p < 0.72 => "hot extraction",
@@ -2602,6 +2654,7 @@ public sealed class CakeFactoryService
             IngredientFactoryKind.Milk => $"QA lab hold: {_pendingLabProductName} lot {_pendingLabLotId} awaiting phosphatase, micro, temperature and label checks.",
             IngredientFactoryKind.Mill => $"QA lab hold: {_pendingLabProductName} lot {_pendingLabLotId} awaiting moisture, ash, protein, sieve and micro checks.",
             IngredientFactoryKind.Sugar => $"QA lab hold: {_pendingLabProductName} lot {_pendingLabLotId} awaiting polarization, color, moisture, insoluble solids and label checks.",
+            IngredientFactoryKind.Butter => $"QA lab hold: {_pendingLabProductName} lot {_pendingLabLotId} awaiting fat, moisture, salt, micro, temperature and label checks.",
             _ => $"QA lab hold: {_pendingLabProductName} lot {_pendingLabLotId} awaiting moisture, sieve, micro and label checks.",
         };
     }
@@ -2770,9 +2823,11 @@ public sealed class CakeFactoryService
                 detail = $"{milkSolids:0.0} kg separator solids, filter soil and plate-pasteurizer rinse";
                 break;
             case IngredientFactoryKind.Butter:
-                double buttermilk = run.PrimaryInput * 0.78;
+                double skim = Math.Max(0, run.PrimaryInput - run.SecondaryInput);
+                double buttermilk = run.SecondaryInput * 0.55;
+                _skimMilkL += skim;
                 _buttermilkL += buttermilk;
-                detail = $"{buttermilk:0.0} L buttermilk";
+                detail = $"{skim:0.0} L separator skim milk and {buttermilk:0.0} L churn buttermilk";
                 break;
             case IngredientFactoryKind.Vanilla:
                 double pomace = run.PrimaryInput * 0.32;
@@ -2897,11 +2952,27 @@ public sealed class CakeFactoryService
             case IngredientFactoryKind.Butter:
                 _butterKg += output;
                 _butterLotId = run.OutputLotId;
-                _creamSeparatorRpm = 6400 + _rng.NextDouble() * 420;
-                _butterFatPct = 81.0 + _rng.NextDouble() * 2.5;
+                _creamSeparatorRpm = 6420 + _rng.NextDouble() * 360;
+                _creamYieldL = run.SecondaryInput;
+                _creamFatPct = Math.Clamp(38.4 + (_milkFatPct - 3.8) * 0.55 + _rng.NextDouble() * 1.2, 37.2, 41.5);
+                _creamPasteurizerTemperatureC = 75.2 + _rng.NextDouble() * 1.5;
+                _creamPasteurizationHoldSeconds = 18.0 + _rng.NextDouble() * 4.0;
+                _butterChurnTemperatureC = 8.8 + _rng.NextDouble() * 1.8;
+                _butterFatPct = 81.2 + _rng.NextDouble() * 1.8;
+                _butterMoisturePct = 15.7 + _rng.NextDouble() * 0.75;
+                _butterSaltPct = 0.035 + _rng.NextDouble() * 0.035;
+                _butterWorkingPressureKPa = 128 + _rng.NextDouble() * 52;
                 _wasteKg += waste;
-                _factoryRunQualityPct = Math.Clamp(98 - Math.Abs(_butterFatPct - 82.0) * 1.4 - FactoryEquipmentPenalty(run.Kind), 0, 100);
-                _factoryStatus = $"Butter room completed: {output:0.0} kg butter at {_butterFatPct:0.0}% butterfat, QA {_factoryRunQualityPct:0}%.";
+                _factoryRunQualityPct = Math.Clamp(98
+                    - Math.Abs(_creamFatPct - 39.0) * 0.60
+                    - Math.Abs(_creamPasteurizerTemperatureC - 76.0) * 0.40
+                    - Math.Max(0, 16.0 - _creamPasteurizationHoldSeconds) * 1.5
+                    - Math.Abs(_butterChurnTemperatureC - 9.8) * 1.3
+                    - Math.Abs(_butterFatPct - 82.0) * 1.2
+                    - Math.Abs(_butterMoisturePct - 16.1) * 2.7
+                    - Math.Max(0, _butterSaltPct - 0.10) * 40.0
+                    - FactoryEquipmentPenalty(run.Kind), 0, 100);
+                _factoryStatus = $"Butter room completed: {output:0.0} kg sweet-cream baking butter from raw cow milk lot {run.InputLotId}; cream {_creamYieldL:0.0} L at {_creamFatPct:0.0}% fat, pasteurized {_creamPasteurizerTemperatureC:0.0} degC for {_creamPasteurizationHoldSeconds:0.0}s, churn {_butterChurnTemperatureC:0.0} degC, butter {_butterFatPct:0.0}% fat, {_butterMoisturePct:0.0}% moisture and {_butterSaltPct:0.00}% salt, QA {_factoryRunQualityPct:0}%.";
                 break;
             case IngredientFactoryKind.Vanilla:
                 _vanillaL += output;
@@ -3234,7 +3305,7 @@ public sealed class CakeFactoryService
             CanWashPoultryHouse = power >= 0.15 && HasFactoryUtilities(90, 30, 8, 0.35) && _barnLaborHours >= 1.0 && (_henHouseHygienePct < 96 || _poultryManureKg > 80),
             CanMillWheat = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _wheatKg >= 5 && HasFactoryUtilities(50, 0, 38, 0.6),
             CanRefineSugar = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _sugarCropKg >= 10 && HasFactoryUtilities(520, 610, 22, 1.2),
-            CanChurnButter = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _rawMilkL > 35 && HasFactoryUtilities(110, 140, 15, 0.8)
+            CanChurnButter = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _rawMilkL > 35 && HasFactoryUtilities(125, 180, 15, 0.8)
                              && !string.IsNullOrWhiteSpace(_rawMilkLotId) && MilkQaInSpec(),
             CanExtractVanilla = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _vanillaBeansKg >= 0.5 && HasFactoryUtilities(72, 85, 10, 0.35),
             CanReceiveSupplies = power >= 0.1 && (!_supplyTruckEnRoute || _supplyTruckArrived),
@@ -3420,6 +3491,7 @@ public sealed class CakeFactoryService
             BranKg = _branKg,
             BeetPulpKg = _beetPulpKg,
             MolassesKg = _molassesKg,
+            SkimMilkL = _skimMilkL,
             ButtermilkL = _buttermilkL,
             VanillaPomaceKg = _vanillaPomaceKg,
             CocoaShellKg = _cocoaShellKg,
@@ -3483,7 +3555,15 @@ public sealed class CakeFactoryService
             MilkPasteurizationHoldSeconds = _milkPasteurizationHoldSeconds,
             MilkMicroLogReduction = _milkMicroLogReduction,
             CreamSeparatorRpm = _creamSeparatorRpm,
+            CreamYieldL = _creamYieldL,
+            CreamFatPct = _creamFatPct,
+            CreamPasteurizerTemperatureC = _creamPasteurizerTemperatureC,
+            CreamPasteurizationHoldSeconds = _creamPasteurizationHoldSeconds,
+            ButterChurnTemperatureC = _butterChurnTemperatureC,
             ButterFatPct = _butterFatPct,
+            ButterMoisturePct = _butterMoisturePct,
+            ButterSaltPct = _butterSaltPct,
+            ButterWorkingPressureKPa = _butterWorkingPressureKPa,
             VanillaExtractorTemperatureC = _vanillaExtractorTemperatureC,
             VanillaExtractStrengthPct = _vanillaExtractStrengthPct,
             CocoaRoasterTemperatureC = _cocoaRoasterTemperatureC,
