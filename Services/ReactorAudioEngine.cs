@@ -13,8 +13,9 @@ namespace WinForge.Services;
 /// 控制室合成音效引擎（純 C#，AudioGraph）· Synthesized control-room audio (pure managed, AudioGraph).
 ///
 /// Generates every sound procedurally as 48 kHz stereo float PCM in the AudioGraph render callback:
-/// an ambient reactor hum loop, a SCRAM klaxon, an annunciator buzzer, an ANSI Temporal-3 evacuation
-/// tone, relay clicks and acknowledge beeps. No bundled audio assets, no ffmpeg, no AudioEngineService.
+/// an ambient reactor hum loop, pump rumble, turbine whine, steam-relief hiss, radiation clicks, a
+/// SCRAM klaxon, an annunciator buzzer, an ANSI Temporal-3 evacuation tone, relay clicks and
+/// acknowledge beeps. No bundled audio assets, no ffmpeg, no AudioEngineService.
 /// Degrades silently (all methods become no-ops) when there is no audio device.
 ///
 /// SAFETY for the audio thread: the QuantumStarted handler performs NO allocation, NO locking and
@@ -28,8 +29,12 @@ public sealed class ReactorAudioEngine : IDisposable
     // ---- public lock-free control surface (set from UI) ----
     public bool Enabled { get; set; } = true;          // master mute (persisted reactor.audio)
     public volatile float Power;                        // 0..1 — drives hum fundamental + turbine whine
+    public volatile float Flow;                         // 0..1 — drives RCP / coolant-rumble layer
+    public volatile float TurbineRpm;                   // 0..~1800 — drives turbine-generator whine
+    public volatile float Radiation;                    // normalized display value — drives geiger-like clicks
     public volatile bool Scram;
     public volatile bool Meltdown;
+    public volatile bool SteamRelief;                   // PORV / safety / MSSV relief hiss
 
     private volatile bool _humOn;
     private volatile bool _klaxonOn;
@@ -55,10 +60,12 @@ public sealed class ReactorAudioEngine : IDisposable
 
     // ---- persistent voice phases (render-thread only) ----
     private double _phHum1, _phHum2, _phHum3, _phHum4, _phWhine, _phKlaxon, _phLfo, _phBuzzer, _phEvac;
+    private double _phPump1, _phPump2, _phTurbine1, _phTurbine2, _phRadClick;
     private double _phRing;                       // ringback chime oscillator phase
     private double _ringTime;                     // seconds within the 1 s ringback gate cycle
-    private double _noiseLp;
-    private double _humAmp, _whineAmp;          // smoothed amplitudes
+    private double _noiseLp, _steamLp;
+    private double _humAmp, _whineAmp, _pumpAmp, _turbineAmp, _steamAmp; // smoothed amplitudes
+    private double _radClickEnv;
     private double _evacTime;                    // seconds within the evac pattern cycle
     // one-shot envelopes
     private double _beepPhase, _beepEnv; private bool _beepAccept; private bool _beepActive;
@@ -187,6 +194,10 @@ public sealed class ReactorAudioEngine : IDisposable
         if (cr != _clickConsumed) { _clickConsumed = cr; _clickActive = true; _clickEnv = 1.0; _clickPhase = 0; }
 
         double pwr = Power; if (pwr < 0) pwr = 0; if (pwr > 1.5) pwr = 1.5;
+        double flow = Flow; if (flow < 0) flow = 0; if (flow > 1.5) flow = 1.5;
+        double rpm = TurbineRpm; if (rpm < 0) rpm = 0; if (rpm > 2400) rpm = 2400;
+        double rpmNorm = Math.Min(1.35, rpm / 1800.0);
+        double rad = Radiation; if (rad < 0) rad = 0; if (rad > 50) rad = 50;
         double dt = 1.0 / SampleRate;
 
         for (int i = 0; i < n; i++)
@@ -221,6 +232,55 @@ public sealed class ReactorAudioEngine : IDisposable
                     double targetWhine = _humOn ? (0.02 + 0.05 * pwr) : 0;
                     _whineAmp += (targetWhine - _whineAmp) * 0.0008;
                     s += Math.Sin(_phWhine) * _whineAmp;
+                }
+
+                // ---- RCP / coolant rumble: low rotating mass + broadband pipe turbulence ----
+                double targetPump = _humOn ? Math.Clamp(flow, 0.0, 1.0) : 0.0;
+                _pumpAmp += (targetPump - _pumpAmp) * 0.0012;
+                if (_pumpAmp > 0.0005)
+                {
+                    double f1 = 24.0 + 42.0 * Math.Clamp(flow, 0.0, 1.0);
+                    double f2 = 2.0 * f1 + 5.0;
+                    _phPump1 += TwoPi * f1 * dt;
+                    _phPump2 += TwoPi * f2 * dt;
+                    double white = _rng.NextDouble() * 2.0 - 1.0;
+                    _noiseLp += (white - _noiseLp) * 0.025;
+                    double turbulence = _noiseLp * (0.03 + 0.05 * Math.Clamp(flow, 0.0, 1.0));
+                    s += (Math.Sin(_phPump1) * 0.11 + Math.Sin(_phPump2) * 0.035 + turbulence) * _pumpAmp;
+                }
+
+                // ---- turbine-generator whine: ramps with actual shaft speed, not power demand ----
+                double targetTurbine = _humOn ? Math.Clamp(rpmNorm, 0.0, 1.2) : 0.0;
+                _turbineAmp += (targetTurbine - _turbineAmp) * 0.0010;
+                if (_turbineAmp > 0.0005)
+                {
+                    double f = 260.0 + 1260.0 * rpmNorm;
+                    _phTurbine1 += TwoPi * f * dt;
+                    _phTurbine2 += TwoPi * (f * 1.985) * dt;
+                    double beat = 0.85 + 0.15 * Math.Sin(_phLfo * 0.37);
+                    s += (Math.Sin(_phTurbine1) * 0.045 + Math.Sin(_phTurbine2) * 0.020) * _turbineAmp * beat;
+                }
+
+                // ---- steam relief / safety valve hiss: shaped high-pass noise with a slow flutter ----
+                double targetSteam = SteamRelief ? 1.0 : 0.0;
+                _steamAmp += (targetSteam - _steamAmp) * (targetSteam > _steamAmp ? 0.006 : 0.0012);
+                if (_steamAmp > 0.0005)
+                {
+                    double white = _rng.NextDouble() * 2.0 - 1.0;
+                    _steamLp += (white - _steamLp) * 0.012;
+                    double hiss = white - _steamLp;
+                    double flutter = 0.75 + 0.25 * Math.Sin(TwoPi * 11.0 * _evacTimeCounter);
+                    s += hiss * 0.24 * _steamAmp * flutter;
+                }
+
+                // ---- radiation monitor texture: sparse clicks that become a chatter under high readings ----
+                double clickRate = Math.Min(140.0, 1.5 + rad * 8.0 + (Meltdown ? 35.0 : 0.0));
+                if (_rng.NextDouble() < clickRate * dt) { _radClickEnv = 1.0; _phRadClick = 0.0; }
+                if (_radClickEnv > 0.001)
+                {
+                    _phRadClick += TwoPi * 3200.0 * dt;
+                    s += Math.Sin(_phRadClick) * _radClickEnv * 0.11;
+                    _radClickEnv *= 0.92;
                 }
 
                 // ---- SCRAM klaxon: square warbling 600↔1200 Hz via 3 Hz triangle LFO ----

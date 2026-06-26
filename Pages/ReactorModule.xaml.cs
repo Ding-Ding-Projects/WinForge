@@ -399,8 +399,17 @@ public sealed partial class ReactorModule : Page
         if (!_audioStarted) return;
         var a = ReactorAudioEngine.I;
         a.Power = (float)_sim.NeutronPowerFraction;
+        a.Flow = (float)_sim.CoolantFlowFraction;
+        a.TurbineRpm = (float)_sim.TurbineRPM;
         a.Scram = _sim.IsScrammed;
         a.Meltdown = _sim.Mode == ReactorMode.Meltdown;
+        a.SteamRelief = _sim.ReliefValveOpen || _sim.AnyPzrCodeSafetyOpen || _sim.MssvLifted;
+        a.Radiation = (float)Math.Min(50.0,
+            _sim.RadiationLevel
+            + _sim.SecondaryRadiation / 100.0
+            + _sim.ParticulateMonitorRatio * 2.0
+            + _sim.GaseousMonitorRatio * 2.0
+            + Math.Max(0.0, _sim.DamageAccumulation) / 20.0);
 
         bool enabled = a.Enabled;
         a.Hum(enabled);
@@ -1382,6 +1391,23 @@ public sealed partial class ReactorModule : Page
         c.Children.Clear();
         var stroke = new SolidColorBrush(Color.FromArgb(200, 0x90, 0x90, 0x90));
 
+        // Abstract containment boundary: conceptual training graphic, not a physical layout.
+        var ctmt = new Rectangle
+        {
+            Width = 415,
+            Height = 300,
+            RadiusX = 26,
+            RadiusY = 26,
+            Fill = new SolidColorBrush(Color.FromArgb(18, 0x77, 0xAA, 0xFF)),
+            Stroke = new SolidColorBrush(Color.FromArgb(170, 0x6D, 0x9E, 0xCC)),
+            StrokeThickness = 1.5,
+            StrokeDashArray = new DoubleCollection { 8, 5 },
+        };
+        Canvas.SetLeft(ctmt, 20);
+        Canvas.SetTop(ctmt, 24);
+        c.Children.Add(ctmt);
+        AddStaticText(c, 34, 32, "Containment boundary · 安全殼邊界");
+
         // Reactor vessel
         AddBox(c, 40, 120, 120, 160, "Reactor\n反應堆", Color.FromArgb(40, 0x33, 0x66, 0x99));
         // Pressurizer
@@ -1396,6 +1422,9 @@ public sealed partial class ReactorModule : Page
         AddCircle(c, 740, 125, 32, "Gen\n發電機");
         // Condenser
         AddBox(c, 560, 220, 110, 60, "Condenser\n冷凝器", Color.FromArgb(40, 0x33, 0x66, 0x88));
+        // Cooling water / heat sink and safety support blocks.
+        AddBox(c, 500, 300, 215, 34, "Cooling water / heat sink · 冷卻水／熱沉", Color.FromArgb(32, 0x22, 0x77, 0x99));
+        AddBox(c, 30, 292, 165, 36, "SI / AFW support · 安全注入／輔助給水", Color.FromArgb(30, 0x22, 0x88, 0x55));
 
         // Primary loop pipes (will be recolored dynamically) — store references via tags through dynamic layer instead.
         // Secondary steam line
@@ -1404,6 +1433,7 @@ public sealed partial class ReactorModule : Page
         AddPipe(c, 615, 160, 615, 220, stroke);   // turbine -> condenser
         AddPipe(c, 560, 250, 420, 250, stroke);   // condenser -> SG (feedwater)
         AddPipe(c, 420, 250, 420, 230, stroke);
+        AddPipe(c, 560, 280, 560, 300, stroke);   // condenser -> cooling water
     }
 
     private void UpdateMimic()
@@ -1423,6 +1453,21 @@ public sealed partial class ReactorModule : Page
         AddDynPipe(c, 166, 200, 160, 200, cold, 5);
         // vessel <-> PZR surge line
         AddDynPipe(c, 130, 120, 235, 130, TempColor(_sim.Tavg), 3);
+        // Safety injection / auxiliary feedwater conceptual support paths.
+        if (_sim.EccsInjecting || _sim.AccumulatorInjecting)
+            AddDynPipe(c, 110, 292, 110, 250, Color.FromArgb(255, 0x35, 0xD0, 0x7F), 4);
+        if (_sim.AuxFeedwaterRunning)
+            AddDynPipe(c, 195, 310, 330, 230, Color.FromArgb(255, 0x4C, 0xC2, 0xFF), 4);
+        if (_sim.ContainmentSprayActive)
+        {
+            for (int i = 0; i < 6; i++)
+            {
+                var drop = new Ellipse { Width = 5, Height = 9, Fill = new SolidColorBrush(Color.FromArgb(180, 0x4C, 0xC2, 0xFF)) };
+                Canvas.SetLeft(drop, 70 + i * 45);
+                Canvas.SetTop(drop, 58 + ((_flashPhase * 60 + i * 11) % 34));
+                c.Children.Add(drop); _mimicDynamic.Add(drop);
+            }
+        }
 
         // Flow particles (animate when pumps running)
         double phase = (_flashPhase * 1.5) % 1.0;
@@ -1434,6 +1479,12 @@ public sealed partial class ReactorModule : Page
         // Steam flow when steaming — gate on the REAL governor-valve flow, not the operator demand.
         if (_sim.SteamPressure > 3.0 && _sim.GovernorValve > 0.02 && !_sim.TurbineTripped)
             DrawFlowDot(c, 420, 110, 560, 110, phase, Color.FromArgb(255, 0xCC, 0xDD, 0xEE));
+        if (_sim.FeedwaterFlow > 0.02)
+            DrawFlowDot(c, 560, 250, 420, 250, phase, Color.FromArgb(255, 0x90, 0xCA, 0xF9));
+        if (_sim.CondenserAvailable)
+            DrawFlowDot(c, 560, 280, 560, 300, phase, Color.FromArgb(255, 0x4C, 0xC2, 0xFF));
+        if (_sim.ReliefValveOpen || _sim.AnyPzrCodeSafetyOpen || _sim.MssvLifted)
+            AddDynLabel(c, 430, 72, P("Steam relief / safety lift", "蒸汽釋放／安全閥起跳"));
 
         // Core glow by fuel temp
         Color core = _sim.Mode == ReactorMode.Meltdown
@@ -1466,7 +1517,80 @@ public sealed partial class ReactorModule : Page
         AddDynLabel(c, 560, 185, _sim.GeneratorLockout86 ? "86 LOCKOUT"
             : _sim.GeneratorBreakerClosed ? "SYNCED"
             : $"{_sim.SyncPhaseAngleDeg:F0}° · {_sim.SlipHz:+0.00;-0.00} Hz");
+
+        // Concept status cards keep the mimic useful at a glance without exposing operating procedures.
+        AddDynStatusCard(c, 805, 38, P("Core heat", "爐心熱量"), CoreHeatText(), CoreHeatColor());
+        AddDynStatusCard(c, 805, 94, P("Heat removal", "移熱能力"), HeatRemovalText(), HeatRemovalColor());
+        AddDynStatusCard(c, 805, 150, P("Containment", "安全殼"), ContainmentText(), ContainmentColor());
+        AddDynStatusCard(c, 805, 206, P("Electrical", "電力支援"), ElectricalText(), ElectricalColor());
+        AddDynStatusCard(c, 805, 262, P("Chemistry", "化學／水質"), ChemistryText(), ChemistryColor());
     }
+
+    private string CoreHeatText()
+    {
+        if (_sim.Mode == ReactorMode.Meltdown) return P("Damage / melt", "受損／熔毀");
+        if (_sim.IsScrammed) return P("Trip heat", "跳堆餘熱");
+        if (_sim.NeutronPowerFraction > 1.0) return P("High power", "高功率");
+        if (_sim.NeutronPowerFraction > 0.05) return P("Generating", "發電中");
+        return P("Low / source", "低功率／源區");
+    }
+
+    private Color CoreHeatColor()
+        => _sim.Mode == ReactorMode.Meltdown || _sim.DamageAccumulation > 1.0 ? Color.FromArgb(255, 0xFF, 0x52, 0x52)
+         : _sim.IsScrammed || _sim.NeutronPowerFraction > 1.0 ? Color.FromArgb(255, 0xFF, 0xB3, 0x00)
+         : Color.FromArgb(255, 0x35, 0xD0, 0x7F);
+
+    private string HeatRemovalText()
+    {
+        bool lowDemand = _sim.NeutronPowerFraction < 0.02 && _sim.FuelTemp < 120.0;
+        if (lowDemand) return P("Standby / low demand", "備用／低熱量");
+        if (_sim.CoolantFlowFraction < 0.05 && _sim.FeedwaterFlow < 0.05 && !_sim.AuxFeedwaterRunning) return P("Lost / challenged", "喪失／受挑戰");
+        if (_sim.AuxFeedwaterRunning || _sim.EccsInjecting || _sim.CoolantFlowFraction < 0.4) return P("Mitigating", "緩解中");
+        return P("Available", "可用");
+    }
+
+    private Color HeatRemovalColor()
+        => _sim.NeutronPowerFraction < 0.02 && _sim.FuelTemp < 120.0 ? Color.FromArgb(255, 0x35, 0xD0, 0x7F)
+         : _sim.CoolantFlowFraction < 0.05 && _sim.FeedwaterFlow < 0.05 && !_sim.AuxFeedwaterRunning ? Color.FromArgb(255, 0xFF, 0x52, 0x52)
+         : _sim.AuxFeedwaterRunning || _sim.EccsInjecting || _sim.CoolantFlowFraction < 0.4 ? Color.FromArgb(255, 0xFF, 0xB3, 0x00)
+         : Color.FromArgb(255, 0x35, 0xD0, 0x7F);
+
+    private string ContainmentText()
+    {
+        if (_sim.ContainmentSprayActive) return P("Spray active", "噴淋啟動");
+        if (_sim.ContainmentIsolationPhaseA || _sim.ContainmentIsolationPhaseB) return P("Isolated", "已隔離");
+        if (_sim.ContainmentPressureKpa > 0.5 || _sim.ContainmentSumpGal > 100) return P("Watch", "監察");
+        return P("Normal", "正常");
+    }
+
+    private Color ContainmentColor()
+        => _sim.ContainmentSprayActive || _sim.ContainmentPressureKpa > 186.0 ? Color.FromArgb(255, 0xFF, 0x52, 0x52)
+         : _sim.ContainmentIsolationPhaseA || _sim.ContainmentIsolationPhaseB || _sim.ContainmentPressureKpa > 0.5 ? Color.FromArgb(255, 0xFF, 0xB3, 0x00)
+         : Color.FromArgb(255, 0x35, 0xD0, 0x7F);
+
+    private string ElectricalText()
+    {
+        if (_sim.Electrical.InSbo) return P("SBO / DC coping", "全廠斷電／直流維持");
+        if (_sim.Electrical.OnEdgPower) return P("EDG support", "柴油機支援");
+        return _sim.GeneratorBreakerClosed ? P("Grid synced", "已併網") : P("Offsite available", "廠外電可用");
+    }
+
+    private Color ElectricalColor()
+        => _sim.Electrical.InSbo ? Color.FromArgb(255, 0xFF, 0x52, 0x52)
+         : _sim.Electrical.OnEdgPower ? Color.FromArgb(255, 0xFF, 0xB3, 0x00)
+         : Color.FromArgb(255, 0x35, 0xD0, 0x7F);
+
+    private string ChemistryText()
+    {
+        if (_sim.ChemistryAlarm) return P("Out of spec", "水質越限");
+        if (!_sim.MakeupWaterInSpec || _sim.LowMakeupAlarm) return P("Watch", "監察");
+        return P("In spec", "合格");
+    }
+
+    private Color ChemistryColor()
+        => _sim.ChemistryAlarm ? Color.FromArgb(255, 0xFF, 0x52, 0x52)
+         : (!_sim.MakeupWaterInSpec || _sim.LowMakeupAlarm) ? Color.FromArgb(255, 0xFF, 0xB3, 0x00)
+         : Color.FromArgb(255, 0x35, 0xD0, 0x7F);
 
     private static Color TempColor(double t)
     {
@@ -1498,6 +1622,17 @@ public sealed partial class ReactorModule : Page
     private static void AddPipe(Canvas c, double x1, double y1, double x2, double y2, Brush stroke)
         => c.Children.Add(new Line { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Stroke = stroke, StrokeThickness = 3 });
 
+    private static void AddStaticText(Canvas c, double x, double y, string text)
+    {
+        var tb = new TextBlock
+        {
+            Text = text,
+            FontSize = 10,
+            Foreground = new SolidColorBrush(Color.FromArgb(190, 0x9E, 0xCF, 0xFF)),
+        };
+        Canvas.SetLeft(tb, x); Canvas.SetTop(tb, y); c.Children.Add(tb);
+    }
+
     private void AddDynPipe(Canvas c, double x1, double y1, double x2, double y2, Color color, double th)
     {
         var l = new Line { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Stroke = new SolidColorBrush(color), StrokeThickness = th };
@@ -1516,6 +1651,37 @@ public sealed partial class ReactorModule : Page
     {
         var tb = new TextBlock { Text = text, FontSize = 11, FontFamily = new FontFamily("Consolas"), Foreground = new SolidColorBrush(Color.FromArgb(230, 0x90, 0xCA, 0xF9)) };
         Canvas.SetLeft(tb, x); Canvas.SetTop(tb, y); c.Children.Add(tb); _mimicDynamic.Add(tb);
+    }
+
+    private void AddDynStatusCard(Canvas c, double x, double y, string title, string value, Color color)
+    {
+        var bg = new Border
+        {
+            Width = 155,
+            Height = 46,
+            CornerRadius = new CornerRadius(8),
+            Background = new SolidColorBrush(Color.FromArgb(38, color.R, color.G, color.B)),
+            BorderBrush = new SolidColorBrush(Color.FromArgb(210, color.R, color.G, color.B)),
+            BorderThickness = new Thickness(1),
+        };
+        var stack = new StackPanel { Margin = new Thickness(9, 5, 9, 5) };
+        stack.Children.Add(new TextBlock
+        {
+            Text = title,
+            FontSize = 10,
+            Foreground = new SolidColorBrush(Color.FromArgb(210, 0xDD, 0xE7, 0xF4)),
+        });
+        stack.Children.Add(new TextBlock
+        {
+            Text = value,
+            FontSize = 12,
+            FontWeight = FontWeights.SemiBold,
+            Foreground = new SolidColorBrush(Colors.White),
+            TextTrimming = TextTrimming.CharacterEllipsis,
+        });
+        bg.Child = stack;
+        Canvas.SetLeft(bg, x); Canvas.SetTop(bg, y);
+        c.Children.Add(bg); _mimicDynamic.Add(bg);
     }
 
     // ================================================================ STRIP CHARTS ====
