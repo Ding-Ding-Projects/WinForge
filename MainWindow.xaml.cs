@@ -1,10 +1,17 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
+using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.UI;
+using Microsoft.UI.Text;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
+using Windows.UI;
 using WinForge.Catalog;
 using WinForge.Models;
 using WinForge.Pages;
@@ -47,6 +54,7 @@ public sealed partial class MainWindow : Window
         // Ctrl+T 開新分頁、Ctrl+W 關閉分頁 · Ctrl+T new tab, Ctrl+W close tab.
         AddAccel(Windows.System.VirtualKey.T, () => AddTab("dashboard"));
         AddAccel(Windows.System.VirtualKey.W, CloseActiveTab);
+        AppState.RepoChanged += (_, _) => SaveSession();
 
         AppWindow.Closing += OnAppWindowClosing;
 
@@ -1137,13 +1145,39 @@ public sealed partial class MainWindow : Window
     }
 
     // ===================== Browser-style tabs · 瀏覽器式分頁 =====================
-    // Each tab owns its own navigation Frame. The tab title is the page you're on,
-    // a new tab opens the Dashboard, and the open tabs are mirrored to a local git
-    // repo (TabSessionService) so the whole session can be exported / restored.
+    // Each tab owns its own navigation Frame. Tab metadata now includes grouping,
+    // colors, custom names, font settings, and the local Git repo context.
 
     private bool _syncingTabs;
     private bool _restoring;
     private readonly Dictionary<Type, string> _titles = new();
+    private readonly List<TabSessionService.TabGroupData> _tabGroups = new();
+
+    private static readonly (string Name, string Hex)[] TabPalette =
+    {
+        ("Blue", "#FF0078D4"),
+        ("Teal", "#FF038387"),
+        ("Green", "#FF107C10"),
+        ("Amber", "#FFFFB900"),
+        ("Orange", "#FFD83B01"),
+        ("Red", "#FFE81123"),
+        ("Magenta", "#FFE3008C"),
+        ("Purple", "#FF5C2D91"),
+        ("Slate", "#FF68768A"),
+    };
+
+    private sealed class TabAppearanceEditor
+    {
+        public TextBox NameBox { get; init; } = new();
+        public TextBox ColorBox { get; init; } = new();
+        public ComboBox? GroupBox { get; init; }
+        public TextBox FontFamilyBox { get; init; } = new();
+        public TextBox FontSizeBox { get; init; } = new();
+        public ComboBox WeightBox { get; init; } = new();
+        public ComboBox StyleBox { get; init; } = new();
+        public TextBox FontColorBox { get; init; } = new();
+        public TextBox? RepoPathBox { get; init; }
+    }
 
     private Frame? ActiveFrame => (Tabs?.SelectedItem as TabViewItem)?.Content as Frame;
 
@@ -1200,24 +1234,32 @@ public sealed partial class MainWindow : Window
         if (Tabs.SelectedItem is not TabViewItem tab || tab.Content is not Frame frame) { AddTab(key); return; }
         var (type, param) = Resolve(key);
         frame.Navigate(type, param);
-        tab.Tag = key;
-        tab.Header = TitleFor(key, type, param);
+        DataOf(tab).Key = key;
+        RefreshTabHeader(tab);
         UpdateBackButton();
         SaveSession();
     }
 
     private TabViewItem AddTab(string key = "dashboard", bool select = true)
+        => AddTab(new TabSessionService.TabData { Key = key }, select);
+
+    private TabViewItem AddTab(TabSessionService.TabData source, bool select = true)
     {
-        var (type, param) = Resolve(key);
+        var data = TabSessionService.CloneTab(source);
+        if (string.IsNullOrWhiteSpace(data.Key)) data.Key = "dashboard";
+        if (!string.IsNullOrWhiteSpace(data.GroupId) && GroupFor(data.GroupId) is null) data.GroupId = string.Empty;
+
+        var (type, param) = Resolve(data.Key);
         var frame = new Frame();
         frame.Navigated += (_, _) => UpdateBackButton();
         var tab = new TabViewItem
         {
-            Tag = key,
-            Header = TitleFor(key, type, param),
+            Tag = data,
+            Header = BuildTabHeader(data, type, param),
             Content = frame,
-            IconSource = new Microsoft.UI.Xaml.Controls.SymbolIconSource { Symbol = Symbol.Document },
+            IconSource = new SymbolIconSource { Symbol = Symbol.Document },
         };
+        tab.ContextFlyout = BuildTabFlyout(tab);
         Tabs.TabItems.Add(tab);
         if (select) Tabs.SelectedItem = tab;
         frame.Navigate(type, param);
@@ -1254,7 +1296,7 @@ public sealed partial class MainWindow : Window
     {
         if (Tabs.SelectedItem is not TabViewItem tab) return;
         UpdateBackButton();
-        var key = tab.Tag as string;
+        var key = DataOf(tab).Key;
         if (string.IsNullOrEmpty(key)) return;
         var item = FindByTag(key);
         if (item is not null && !ReferenceEquals(NavView.SelectedItem, item))
@@ -1270,8 +1312,7 @@ public sealed partial class MainWindow : Window
     private void SaveSession()
     {
         if (Tabs is null || _restoring) return;
-        var keys = Tabs.TabItems.OfType<TabViewItem>().Select(t => (t.Tag as string) ?? "dashboard");
-        TabSessionService.Save(keys, Tabs.SelectedIndex < 0 ? 0 : Tabs.SelectedIndex);
+        TabSessionService.Save(CurrentSessionData());
     }
 
     private void RestoreSessionOrDefault()
@@ -1286,8 +1327,10 @@ public sealed partial class MainWindow : Window
         _restoring = true;
         try
         {
+            ApplyLocalGitState(data.LocalGit, selectActive: true);
+            var tabs = LoadGroupsAndMapTabs(data);
             Tabs.TabItems.Clear();
-            foreach (var key in data.Tabs) AddTab(key, select: false);
+            foreach (var tabData in tabs) AddTab(tabData, select: false);
             if (Tabs.TabItems.Count == 0) AddTab("dashboard", select: false);
             var active = (data.Active >= 0 && data.Active < Tabs.TabItems.Count) ? data.Active : 0;
             Tabs.SelectedItem = Tabs.TabItems[active];
@@ -1298,11 +1341,28 @@ public sealed partial class MainWindow : Window
 
     private void Session_NewTab(object sender, RoutedEventArgs e) => AddTab("dashboard");
 
+    private async void Session_CustomizeTab(object sender, RoutedEventArgs e)
+        => await EditTabAsync(Tabs.SelectedItem as TabViewItem);
+
+    private async void Session_NewGroup(object sender, RoutedEventArgs e)
+        => await CreateGroupFromTabAsync(Tabs.SelectedItem as TabViewItem);
+
+    private async void Session_CustomizeGroup(object sender, RoutedEventArgs e)
+        => await EditCurrentGroupAsync(Tabs.SelectedItem as TabViewItem);
+
+    private void Session_UngroupTab(object sender, RoutedEventArgs e)
+    {
+        if (Tabs.SelectedItem is not TabViewItem tab) return;
+        DataOf(tab).GroupId = string.Empty;
+        RefreshTabHeader(tab);
+        SaveSession();
+    }
+
     private async void Session_Export(object sender, RoutedEventArgs e)
     {
         SaveSession();
         var path = await FileDialogs.SaveFileAsync($"winforge-tabs-{DateTime.Now:yyyyMMdd-HHmm}", ".json");
-        if (!string.IsNullOrEmpty(path)) { try { TabSessionService.ExportTo(path); } catch { } }
+        if (!string.IsNullOrEmpty(path)) { try { TabSessionService.ExportTo(path, CurrentSessionData()); } catch { } }
     }
 
     private async void Session_Import(object sender, RoutedEventArgs e)
@@ -1311,6 +1371,78 @@ public sealed partial class MainWindow : Window
         if (string.IsNullOrEmpty(path)) return;
         var data = TabSessionService.ImportFrom(path);
         if (data is not null) ReloadTabs(data);
+    }
+
+    private async void Session_ExportGroup(object sender, RoutedEventArgs e)
+    {
+        if (Tabs.SelectedItem is not TabViewItem tab) return;
+        var group = GroupFor(DataOf(tab).GroupId);
+        if (group is null)
+        {
+            await ShowSessionMessageAsync("No group selected", "Put the current tab in a group before exporting a group.");
+            return;
+        }
+
+        SaveSession();
+        var safe = SafeFileName(string.IsNullOrWhiteSpace(group.Name) ? "winforge-tab-group" : group.Name);
+        var filters = new[]
+        {
+            new FileDialogs.Filter("WinForge tab group (*.json)", "*.json"),
+            new FileDialogs.Filter("All files", "*.*"),
+        };
+        var path = await FileDialogs.SaveFileAsync(safe, filters, "json", "Export tab group");
+        if (!string.IsNullOrEmpty(path))
+        {
+            try { TabSessionService.ExportGroupTo(path, CurrentSessionData(), group.Id); } catch { }
+        }
+    }
+
+    private async void Session_ImportGroup(object sender, RoutedEventArgs e)
+    {
+        var filters = new[]
+        {
+            new FileDialogs.Filter("WinForge tab group/session (*.json)", "*.json"),
+            new FileDialogs.Filter("All files", "*.*"),
+        };
+        var path = await FileDialogs.OpenFileAsync(filters, "Import tab group");
+        if (string.IsNullOrEmpty(path)) return;
+
+        var data = TabSessionService.ImportGroupFrom(path);
+        if (data is null)
+        {
+            await ShowSessionMessageAsync("Import failed", "That file is not a WinForge tab group.");
+            return;
+        }
+
+        var group = TabSessionService.CloneGroup(data.Group);
+        group.Id = UniqueGroupId(group.Id);
+        if (string.IsNullOrWhiteSpace(group.Name)) group.Name = $"Imported group {_tabGroups.Count + 1}";
+        _tabGroups.Add(group);
+
+        ApplyLocalGitState(data.LocalGit, selectActive: false);
+        if (!string.IsNullOrWhiteSpace(group.RepoPath) && Directory.Exists(group.RepoPath))
+            RepoStore.Add(group.RepoPath);
+
+        var importedTabs = data.Tabs.Count == 0
+            ? new List<TabSessionService.TabData> { new() { Key = "dashboard", GroupId = group.Id } }
+            : data.Tabs.Select(TabSessionService.CloneTab).ToList();
+
+        TabViewItem? first = null;
+        _restoring = true;
+        try
+        {
+            foreach (var importedTab in importedTabs)
+            {
+                importedTab.GroupId = group.Id;
+                var added = AddTab(importedTab, select: false);
+                first ??= added;
+            }
+        }
+        finally { _restoring = false; }
+
+        if (first is not null) Tabs.SelectedItem = first;
+        RefreshAllTabHeaders();
+        SaveSession();
     }
 
     private void Session_Restore(object sender, RoutedEventArgs e)
@@ -1322,5 +1454,556 @@ public sealed partial class MainWindow : Window
     private void Session_OpenFolder(object sender, RoutedEventArgs e)
     {
         try { Process.Start(new ProcessStartInfo("explorer.exe", $"\"{TabSessionService.Folder}\"") { UseShellExecute = true }); } catch { }
+    }
+
+    private TabSessionService.TabData DataOf(TabViewItem tab)
+    {
+        if (tab.Tag is TabSessionService.TabData data) return data;
+        var created = new TabSessionService.TabData { Key = tab.Tag as string ?? "dashboard" };
+        tab.Tag = created;
+        return created;
+    }
+
+    private TabSessionService.TabGroupData? GroupFor(string? id)
+        => string.IsNullOrWhiteSpace(id) ? null : _tabGroups.FirstOrDefault(g => string.Equals(g.Id, id, StringComparison.OrdinalIgnoreCase));
+
+    private TabSessionService.SessionData CurrentSessionData()
+    {
+        var repos = RepoStore.All
+            .Select(r => r.Path)
+            .Where(p => !string.IsNullOrWhiteSpace(p))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(200)
+            .ToList();
+
+        return new TabSessionService.SessionData
+        {
+            Active = Tabs.SelectedIndex < 0 ? 0 : Tabs.SelectedIndex,
+            Tabs = Tabs.TabItems.OfType<TabViewItem>().Select(t => TabSessionService.CloneTab(DataOf(t))).ToList(),
+            Groups = _tabGroups.Select(TabSessionService.CloneGroup).ToList(),
+            LocalGit = new TabSessionService.LocalGitData
+            {
+                CurrentRepoPath = AppState.CurrentRepoPath,
+                SavedRepos = repos,
+            },
+        };
+    }
+
+    private List<TabSessionService.TabData> LoadGroupsAndMapTabs(TabSessionService.SessionData data)
+    {
+        _tabGroups.Clear();
+        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var source in data.Groups)
+        {
+            var group = TabSessionService.CloneGroup(source);
+            var original = group.Id;
+            group.Id = UniqueGroupId(group.Id);
+            if (string.IsNullOrWhiteSpace(group.Name)) group.Name = $"Group {_tabGroups.Count + 1}";
+            if (string.IsNullOrWhiteSpace(group.Color)) group.Color = NextGroupColor();
+            if (string.IsNullOrWhiteSpace(group.RepoPath)) group.RepoPath = data.LocalGit.CurrentRepoPath;
+            _tabGroups.Add(group);
+            if (!string.IsNullOrWhiteSpace(original)) map[original] = group.Id;
+            if (!string.IsNullOrWhiteSpace(group.RepoPath) && Directory.Exists(group.RepoPath)) RepoStore.Add(group.RepoPath);
+        }
+
+        var tabs = new List<TabSessionService.TabData>();
+        foreach (var source in data.Tabs)
+        {
+            var tab = TabSessionService.CloneTab(source);
+            if (!string.IsNullOrWhiteSpace(tab.GroupId) && map.TryGetValue(tab.GroupId, out var mapped)) tab.GroupId = mapped;
+            if (!string.IsNullOrWhiteSpace(tab.GroupId) && GroupFor(tab.GroupId) is null) tab.GroupId = string.Empty;
+            tabs.Add(tab);
+        }
+        return tabs;
+    }
+
+    private void ApplyLocalGitState(TabSessionService.LocalGitData? state, bool selectActive)
+    {
+        if (state is null) return;
+        foreach (var repo in state.SavedRepos)
+        {
+            if (!string.IsNullOrWhiteSpace(repo) && Directory.Exists(repo)) RepoStore.Add(repo);
+        }
+        if (selectActive && !string.IsNullOrWhiteSpace(state.CurrentRepoPath) && Directory.Exists(state.CurrentRepoPath))
+        {
+            RepoStore.Add(state.CurrentRepoPath);
+            RepoStore.Select(state.CurrentRepoPath);
+        }
+    }
+
+    private object BuildTabHeader(TabSessionService.TabData data, Type type, object? param)
+    {
+        var group = GroupFor(data.GroupId);
+        var title = string.IsNullOrWhiteSpace(data.Name) ? TitleFor(data.Key, type, param) : data.Name.Trim();
+        var accent = FirstNonEmpty(data.Color, group?.Color, "#FF0078D4");
+        var font = EffectiveFont(data.Font, group?.Font);
+
+        var root = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 7,
+            VerticalAlignment = VerticalAlignment.Center,
+            MaxWidth = 260,
+        };
+
+        root.Children.Add(new Border
+        {
+            Width = 4,
+            Height = group is null ? 18 : 28,
+            CornerRadius = new CornerRadius(2),
+            Background = BrushFromHex(accent, Color.FromArgb(255, 0, 120, 212)),
+            VerticalAlignment = VerticalAlignment.Center,
+        });
+
+        var text = new StackPanel { Orientation = Orientation.Vertical, Spacing = 1, MaxWidth = 230 };
+        if (group is not null)
+        {
+            var groupText = new TextBlock
+            {
+                Text = group.Name,
+                FontSize = 10,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                Foreground = BrushFromHex(group.Color, Color.FromArgb(255, 0, 120, 212)),
+                MaxWidth = 220,
+            };
+            ApplyFont(groupText, group.Font, allowSize: false);
+            text.Children.Add(groupText);
+        }
+
+        var titleText = new TextBlock
+        {
+            Text = title,
+            FontSize = font.Size > 0 ? font.Size : 13,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            MaxWidth = 230,
+        };
+        ApplyFont(titleText, font, allowSize: true);
+        text.Children.Add(titleText);
+        root.Children.Add(text);
+        ToolTipService.SetToolTip(root, group is null ? title : $"{group.Name} - {title}");
+        return root;
+    }
+
+    private void RefreshTabHeader(TabViewItem tab)
+    {
+        var data = DataOf(tab);
+        var (type, param) = Resolve(data.Key);
+        tab.Header = BuildTabHeader(data, type, param);
+        tab.ContextFlyout = BuildTabFlyout(tab);
+    }
+
+    private void RefreshAllTabHeaders()
+    {
+        foreach (var tab in Tabs.TabItems.OfType<TabViewItem>()) RefreshTabHeader(tab);
+    }
+
+    private MenuFlyout BuildTabFlyout(TabViewItem tab)
+    {
+        var flyout = new MenuFlyout();
+        AddFlyoutItem(flyout, "New tab · 新分頁", "\uE710", (_, _) => AddTab("dashboard"));
+        flyout.Items.Add(new MenuFlyoutSeparator());
+        AddFlyoutItem(flyout, "Rename/style tab… · 分頁名稱／樣式…", "\uE8D2", async (_, _) => await EditTabAsync(tab));
+        AddFlyoutItem(flyout, "New group from tab… · 由分頁新增分組…", "\uE8A5", async (_, _) => await CreateGroupFromTabAsync(tab));
+        AddFlyoutItem(flyout, "Rename/style group… · 分組名稱／樣式…", "\uE713", async (_, _) => await EditCurrentGroupAsync(tab));
+        AddFlyoutItem(flyout, "Remove tab from group · 分頁移出分組", "\uE711", (_, _) =>
+        {
+            DataOf(tab).GroupId = string.Empty;
+            RefreshTabHeader(tab);
+            SaveSession();
+        });
+        flyout.Items.Add(new MenuFlyoutSeparator());
+        AddFlyoutItem(flyout, "Close tab · 關閉分頁", "\uE8BB", (_, _) => CloseTab(tab));
+        return flyout;
+    }
+
+    private static void AddFlyoutItem(MenuFlyout flyout, string text, string glyph, RoutedEventHandler click)
+    {
+        var item = new MenuFlyoutItem
+        {
+            Text = text,
+            Icon = new FontIcon { Glyph = glyph, FontSize = 14 },
+        };
+        item.Click += click;
+        flyout.Items.Add(item);
+    }
+
+    private async Task EditTabAsync(TabViewItem? tab)
+    {
+        if (tab is null) return;
+        var data = DataOf(tab);
+        var panel = new StackPanel { Spacing = 10, Width = 420 };
+        var editor = BuildAppearanceEditor(
+            panel,
+            nameHeader: "Tab name · 分頁名稱",
+            namePlaceholder: "Blank uses the page title",
+            name: data.Name,
+            colorHeader: "Tab color · 分頁顏色",
+            color: data.Color,
+            font: data.Font,
+            includeGroups: true,
+            currentGroupId: data.GroupId,
+            includeRepoPath: false,
+            repoPath: null);
+
+        var dialog = SessionDialog("Rename/style tab", panel);
+        if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
+
+        data.Name = editor.NameBox.Text.Trim();
+        data.Color = NormalizeHexOrEmpty(editor.ColorBox.Text);
+        data.GroupId = (editor.GroupBox?.SelectedItem as ComboBoxItem)?.Tag as string ?? string.Empty;
+        data.Font = ReadFont(editor);
+        RefreshTabHeader(tab);
+        SaveSession();
+    }
+
+    private async Task CreateGroupFromTabAsync(TabViewItem? tab)
+    {
+        if (tab is null) return;
+        var group = new TabSessionService.TabGroupData
+        {
+            Id = UniqueGroupId(Guid.NewGuid().ToString("N")),
+            Name = $"Group {_tabGroups.Count + 1}",
+            Color = NextGroupColor(),
+            RepoPath = AppState.CurrentRepoPath,
+        };
+
+        if (!await EditGroupAsync(group, isNew: true)) return;
+        _tabGroups.Add(group);
+        DataOf(tab).GroupId = group.Id;
+        RefreshAllTabHeaders();
+        SaveSession();
+    }
+
+    private async Task EditCurrentGroupAsync(TabViewItem? tab)
+    {
+        if (tab is null) return;
+        var group = GroupFor(DataOf(tab).GroupId);
+        if (group is null)
+        {
+            await CreateGroupFromTabAsync(tab);
+            return;
+        }
+
+        if (!await EditGroupAsync(group, isNew: false)) return;
+        RefreshAllTabHeaders();
+        SaveSession();
+    }
+
+    private async Task<bool> EditGroupAsync(TabSessionService.TabGroupData group, bool isNew)
+    {
+        var panel = new StackPanel { Spacing = 10, Width = 420 };
+        var editor = BuildAppearanceEditor(
+            panel,
+            nameHeader: "Group name · 分組名稱",
+            namePlaceholder: "Group name",
+            name: group.Name,
+            colorHeader: "Group color · 分組顏色",
+            color: group.Color,
+            font: group.Font,
+            includeGroups: false,
+            currentGroupId: null,
+            includeRepoPath: true,
+            repoPath: group.RepoPath);
+
+        var dialog = SessionDialog(isNew ? "New tab group" : "Rename/style group", panel);
+        if (await dialog.ShowAsync() != ContentDialogResult.Primary) return false;
+
+        group.Name = string.IsNullOrWhiteSpace(editor.NameBox.Text) ? "Tab group" : editor.NameBox.Text.Trim();
+        group.Color = NormalizeHexOrEmpty(editor.ColorBox.Text);
+        if (string.IsNullOrWhiteSpace(group.Color)) group.Color = NextGroupColor();
+        group.Font = ReadFont(editor);
+        group.RepoPath = editor.RepoPathBox?.Text.Trim() ?? string.Empty;
+        if (!string.IsNullOrWhiteSpace(group.RepoPath) && Directory.Exists(group.RepoPath)) RepoStore.Add(group.RepoPath);
+        return true;
+    }
+
+    private TabAppearanceEditor BuildAppearanceEditor(
+        StackPanel panel,
+        string nameHeader,
+        string namePlaceholder,
+        string name,
+        string colorHeader,
+        string color,
+        TabSessionService.TabFontData font,
+        bool includeGroups,
+        string? currentGroupId,
+        bool includeRepoPath,
+        string? repoPath)
+    {
+        var nameBox = new TextBox
+        {
+            Header = nameHeader,
+            PlaceholderText = namePlaceholder,
+            Text = name ?? string.Empty,
+        };
+        panel.Children.Add(nameBox);
+
+        ComboBox? groupBox = null;
+        if (includeGroups)
+        {
+            groupBox = new ComboBox { Header = "Group · 分組", HorizontalAlignment = HorizontalAlignment.Stretch };
+            groupBox.Items.Add(new ComboBoxItem { Content = "No group · 無分組", Tag = string.Empty });
+            foreach (var group in _tabGroups)
+                groupBox.Items.Add(new ComboBoxItem { Content = group.Name, Tag = group.Id });
+            SelectComboTag(groupBox, currentGroupId ?? string.Empty);
+            panel.Children.Add(groupBox);
+        }
+
+        var colorBox = new TextBox
+        {
+            Header = colorHeader,
+            PlaceholderText = "#RRGGBB or #AARRGGBB",
+            Text = color ?? string.Empty,
+        };
+        panel.Children.Add(ColorPresetRow(colorBox));
+
+        var fontFamily = new TextBox
+        {
+            Header = "Font family · 字型",
+            PlaceholderText = "Segoe UI, Cascadia Mono, Consolas",
+            Text = font.Family ?? string.Empty,
+        };
+        panel.Children.Add(fontFamily);
+
+        var fontRow = new Grid { ColumnSpacing = 8 };
+        fontRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        fontRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        fontRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+        var fontSize = new TextBox
+        {
+            Header = "Size · 大小",
+            PlaceholderText = "13",
+            Text = font.Size > 0 ? font.Size.ToString("0.###", CultureInfo.InvariantCulture) : string.Empty,
+        };
+        Grid.SetColumn(fontSize, 0);
+        fontRow.Children.Add(fontSize);
+
+        var weight = new ComboBox { Header = "Weight · 粗幼", HorizontalAlignment = HorizontalAlignment.Stretch };
+        AddCombo(weight, "", "Inherit");
+        AddCombo(weight, "Light", "Light");
+        AddCombo(weight, "Normal", "Normal");
+        AddCombo(weight, "SemiBold", "SemiBold");
+        AddCombo(weight, "Bold", "Bold");
+        SelectComboTag(weight, font.Weight);
+        Grid.SetColumn(weight, 1);
+        fontRow.Children.Add(weight);
+
+        var style = new ComboBox { Header = "Style · 樣式", HorizontalAlignment = HorizontalAlignment.Stretch };
+        AddCombo(style, "", "Inherit");
+        AddCombo(style, "Normal", "Normal");
+        AddCombo(style, "Italic", "Italic");
+        AddCombo(style, "Oblique", "Oblique");
+        SelectComboTag(style, font.Style);
+        Grid.SetColumn(style, 2);
+        fontRow.Children.Add(style);
+        panel.Children.Add(fontRow);
+
+        var fontColor = new TextBox
+        {
+            Header = "Font color · 字色",
+            PlaceholderText = "#RRGGBB or #AARRGGBB",
+            Text = font.Color ?? string.Empty,
+        };
+        panel.Children.Add(ColorPresetRow(fontColor));
+
+        TextBox? repoBox = null;
+        if (includeRepoPath)
+        {
+            repoBox = new TextBox
+            {
+                Header = "Local git repo for group · 分組本機 Git 倉",
+                PlaceholderText = AppState.CurrentRepoPath,
+                Text = repoPath ?? string.Empty,
+            };
+            panel.Children.Add(repoBox);
+        }
+
+        return new TabAppearanceEditor
+        {
+            NameBox = nameBox,
+            ColorBox = colorBox,
+            GroupBox = groupBox,
+            FontFamilyBox = fontFamily,
+            FontSizeBox = fontSize,
+            WeightBox = weight,
+            StyleBox = style,
+            FontColorBox = fontColor,
+            RepoPathBox = repoBox,
+        };
+    }
+
+    private FrameworkElement ColorPresetRow(TextBox colorBox)
+    {
+        var root = new StackPanel { Spacing = 6 };
+        root.Children.Add(colorBox);
+
+        var presets = new ComboBox { Header = "Preset · 預設", HorizontalAlignment = HorizontalAlignment.Stretch };
+        presets.Items.Add(new ComboBoxItem { Content = "Custom / inherit", Tag = string.Empty });
+        foreach (var (name, hex) in TabPalette)
+            presets.Items.Add(new ComboBoxItem { Content = $"{name}  {hex}", Tag = hex });
+        presets.SelectionChanged += (_, _) =>
+        {
+            if ((presets.SelectedItem as ComboBoxItem)?.Tag is string hex)
+                colorBox.Text = hex;
+        };
+        SelectComboTag(presets, NormalizeHexOrEmpty(colorBox.Text));
+        root.Children.Add(presets);
+        return root;
+    }
+
+    private static void AddCombo(ComboBox combo, string tag, string label)
+        => combo.Items.Add(new ComboBoxItem { Tag = tag, Content = label });
+
+    private static void SelectComboTag(ComboBox combo, string? value)
+    {
+        value ??= string.Empty;
+        foreach (var item in combo.Items.OfType<ComboBoxItem>())
+        {
+            if (string.Equals(item.Tag as string ?? string.Empty, value, StringComparison.OrdinalIgnoreCase))
+            {
+                combo.SelectedItem = item;
+                return;
+            }
+        }
+        if (combo.Items.Count > 0) combo.SelectedIndex = 0;
+    }
+
+    private ContentDialog SessionDialog(string title, UIElement content)
+    {
+        return new ContentDialog
+        {
+            XamlRoot = RootGrid.XamlRoot,
+            Title = $"{title} · 分頁設定",
+            Content = new ScrollViewer
+            {
+                Content = content,
+                MaxHeight = 520,
+                VerticalScrollBarVisibility = Microsoft.UI.Xaml.Controls.ScrollBarVisibility.Auto,
+            },
+            PrimaryButtonText = "Save · 儲存",
+            CloseButtonText = "Cancel · 取消",
+            DefaultButton = ContentDialogButton.Primary,
+        };
+    }
+
+    private async Task ShowSessionMessageAsync(string title, string message)
+    {
+        var dialog = new ContentDialog
+        {
+            XamlRoot = RootGrid.XamlRoot,
+            Title = title,
+            Content = new TextBlock { Text = message, TextWrapping = TextWrapping.Wrap },
+            CloseButtonText = "OK",
+            DefaultButton = ContentDialogButton.Close,
+        };
+        await dialog.ShowAsync();
+    }
+
+    private TabSessionService.TabFontData ReadFont(TabAppearanceEditor editor)
+    {
+        var size = 0d;
+        if (!string.IsNullOrWhiteSpace(editor.FontSizeBox.Text))
+            _ = double.TryParse(editor.FontSizeBox.Text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out size);
+
+        return new TabSessionService.TabFontData
+        {
+            Family = editor.FontFamilyBox.Text.Trim(),
+            Size = Math.Clamp(size, 0, 48),
+            Weight = (editor.WeightBox.SelectedItem as ComboBoxItem)?.Tag as string ?? string.Empty,
+            Style = (editor.StyleBox.SelectedItem as ComboBoxItem)?.Tag as string ?? string.Empty,
+            Color = NormalizeHexOrEmpty(editor.FontColorBox.Text),
+        };
+    }
+
+    private static TabSessionService.TabFontData EffectiveFont(TabSessionService.TabFontData tab, TabSessionService.TabFontData? group)
+    {
+        group ??= new TabSessionService.TabFontData();
+        return new TabSessionService.TabFontData
+        {
+            Family = FirstNonEmpty(tab.Family, group.Family),
+            Size = tab.Size > 0 ? tab.Size : group.Size,
+            Weight = FirstNonEmpty(tab.Weight, group.Weight),
+            Style = FirstNonEmpty(tab.Style, group.Style),
+            Color = FirstNonEmpty(tab.Color, group.Color),
+        };
+    }
+
+    private static void ApplyFont(TextBlock text, TabSessionService.TabFontData font, bool allowSize)
+    {
+        if (!string.IsNullOrWhiteSpace(font.Family)) text.FontFamily = new FontFamily(font.Family.Trim());
+        if (allowSize && font.Size > 0) text.FontSize = font.Size;
+        text.FontWeight = FontWeightFor(font.Weight);
+        text.FontStyle = FontStyleFor(font.Style);
+        if (!string.IsNullOrWhiteSpace(font.Color))
+            text.Foreground = BrushFromHex(font.Color, Color.FromArgb(255, 32, 32, 32));
+    }
+
+    private static Windows.UI.Text.FontWeight FontWeightFor(string? weight)
+    {
+        return (weight ?? string.Empty).Trim().ToLowerInvariant() switch
+        {
+            "light" => FontWeights.Light,
+            "semibold" => FontWeights.SemiBold,
+            "bold" => FontWeights.Bold,
+            _ => FontWeights.Normal,
+        };
+    }
+
+    private static Windows.UI.Text.FontStyle FontStyleFor(string? style)
+    {
+        return (style ?? string.Empty).Trim().ToLowerInvariant() switch
+        {
+            "italic" => Windows.UI.Text.FontStyle.Italic,
+            "oblique" => Windows.UI.Text.FontStyle.Oblique,
+            _ => Windows.UI.Text.FontStyle.Normal,
+        };
+    }
+
+    private static SolidColorBrush BrushFromHex(string? hex, Color fallback)
+        => new(TryParseHex(hex, out var color) ? color : fallback);
+
+    private static string NormalizeHexOrEmpty(string? hex)
+    {
+        return TryParseHex(hex, out var color)
+            ? $"#{color.A:X2}{color.R:X2}{color.G:X2}{color.B:X2}"
+            : string.Empty;
+    }
+
+    private static bool TryParseHex(string? input, out Color color)
+    {
+        color = default;
+        var hex = (input ?? string.Empty).Trim();
+        if (hex.StartsWith("#", StringComparison.Ordinal)) hex = hex[1..];
+        if (hex.Length == 6) hex = "FF" + hex;
+        if (hex.Length != 8) return false;
+        if (!uint.TryParse(hex, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var value)) return false;
+        color = Color.FromArgb(
+            (byte)((value >> 24) & 0xFF),
+            (byte)((value >> 16) & 0xFF),
+            (byte)((value >> 8) & 0xFF),
+            (byte)(value & 0xFF));
+        return true;
+    }
+
+    private string UniqueGroupId(string? id)
+    {
+        var candidate = string.IsNullOrWhiteSpace(id) ? Guid.NewGuid().ToString("N") : id.Trim();
+        while (_tabGroups.Any(g => string.Equals(g.Id, candidate, StringComparison.OrdinalIgnoreCase)))
+            candidate = Guid.NewGuid().ToString("N");
+        return candidate;
+    }
+
+    private string NextGroupColor()
+        => TabPalette[_tabGroups.Count % TabPalette.Length].Hex;
+
+    private static string FirstNonEmpty(params string?[] values)
+        => values.FirstOrDefault(v => !string.IsNullOrWhiteSpace(v))?.Trim() ?? string.Empty;
+
+    private static string SafeFileName(string text)
+    {
+        var invalid = Path.GetInvalidFileNameChars();
+        var cleaned = new string((text ?? string.Empty).Select(ch => invalid.Contains(ch) ? '-' : ch).ToArray()).Trim();
+        return string.IsNullOrWhiteSpace(cleaned) ? "winforge-tab-group" : cleaned;
     }
 }
