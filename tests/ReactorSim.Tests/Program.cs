@@ -965,7 +965,7 @@ internal static class Program
                           $"rationConsumesFarmLots={rationConsumesFarmLots} ('{Trim(mix)}')");
         });
 
-        Scenario("CAKE COCOA GREENHOUSE (cocoa beans are grown before roasting)", () =>
+        Scenario("CAKE COCOA LINE REALISM (cocoa beans are grown, roasted, winnowed, pressed and milled)", () =>
         {
             var cake = new CakeFactoryService { FarmIntensity = 1.0 };
             TickCake(cake, fullBus, 0.5);
@@ -976,7 +976,7 @@ internal static class Program
             var harvested = cake.Snapshot;
 
             string roast = cake.ProcessCocoa();
-            TickCake(cake, fullBus, 1.0);
+            TickCake(cake, fullBus, 3.0);
             var running = cake.Snapshot;
 
             TickCake(cake, fullBus, 12.0);
@@ -998,18 +998,37 @@ internal static class Program
                                        && harvested.CocoaGreenhouseStatus.Contains("fermented cocoa beans", StringComparison.OrdinalIgnoreCase);
             bool roastConsumesBeans = running.FactoryRunActive
                                       && running.ActiveFactoryName.Contains("Cocoa", StringComparison.OrdinalIgnoreCase)
+                                      && running.ActiveFactoryPhase.Length > 0
                                       && running.CocoaBeansKg < harvested.CocoaBeansKg
                                       && running.TraceabilityStatus.Contains(harvested.CocoaBeansLotId, StringComparison.OrdinalIgnoreCase)
-                                      && roast.Contains("roasting", StringComparison.OrdinalIgnoreCase);
+                                      && running.CocoaRoasterTemperatureC > 80
+                                      && running.CocoaRoasterAirflowM3Min > 0
+                                      && running.CocoaRoastDevelopmentPct > 0
+                                      && roast.Contains("winnowing", StringComparison.OrdinalIgnoreCase)
+                                      && roast.Contains("pin-milling", StringComparison.OrdinalIgnoreCase);
             bool labRelease = held.PendingLabLotId == held.CocoaLotId
                               && released.CocoaKg > harvested.CocoaKg
                               && released.PendingLabLotId.Length == 0
-                              && release.Contains("released", StringComparison.OrdinalIgnoreCase);
+                              && release.Contains("released", StringComparison.OrdinalIgnoreCase)
+                              && held.IngredientLabStatus.Contains("fat", StringComparison.OrdinalIgnoreCase)
+                              && held.CocoaRoasterTemperatureC > 120
+                              && held.CocoaRoasterAirflowM3Min > 0
+                              && held.CocoaRoastDevelopmentPct > 80
+                              && held.CocoaWinnowerEfficiencyPct > 90
+                              && held.CocoaNibYieldPct > 70
+                              && held.CocoaPressPressureBar > 0
+                              && held.CocoaGrindMicrons > 0
+                              && held.CocoaPowderFatPct > 0
+                              && held.CocoaPowderMoisturePct > 0
+                              && held.CocoaShellKg > harvested.CocoaShellKg
+                              && held.CocoaButterKg > harvested.CocoaButterKg
+                              && held.FactoryStatus.Contains("cocoa powder", StringComparison.OrdinalIgnoreCase);
             bool pass = harvestAvailable && beansProduced && lotStamped && greenhouseTelemetry && roastConsumesBeans && labRelease;
             return (pass, $"harvestAvailable={harvestAvailable}, beansProduced={beansProduced} ('{Trim(harvest)}'), " +
                           $"lotStamped={lotStamped} ({harvested.CocoaBeansLotId}), greenhouseTelemetry={greenhouseTelemetry} " +
                           $"(ferment {harvested.CocoaFermentationPct:F0}%, moisture {harvested.CocoaBeanMoisturePct:F1}%), " +
-                          $"roastConsumesBeans={roastConsumesBeans} ('{Trim(roast)}'), labRelease={labRelease} ('{Trim(release)}')");
+                          $"roastConsumesBeans={roastConsumesBeans} ('{Trim(roast)}'), labRelease={labRelease} " +
+                          $"(fat {held.CocoaPowderFatPct:F1}%, moisture {held.CocoaPowderMoisturePct:F1}%, grind {held.CocoaGrindMicrons:F0} micron, butter {harvested.CocoaButterKg:F1}->{held.CocoaButterKg:F1} kg)");
         });
 
         Scenario("CAKE STARCH PLANT (grain becomes QA-released starch before feed/leavening use)", () =>
@@ -1722,7 +1741,11 @@ internal static class Program
                                     && s5.ButterChurnTemperatureC > 0 && s5.ButterFatPct > 70
                                     && s5.ButterMoisturePct > 0 && s5.ButterWorkingPressureKPa > 0
                                     && s6.VanillaExtractorTemperatureC > 70 && s6.VanillaExtractStrengthPct > 80
-                                    && s7.CocoaRoasterTemperatureC > 100 && s7.CocoaGrindMicrons > 0
+                                    && s7.CocoaRoasterTemperatureC > 100 && s7.CocoaRoasterAirflowM3Min > 0
+                                    && s7.CocoaRoastDevelopmentPct > 80 && s7.CocoaWinnowerEfficiencyPct > 90
+                                    && s7.CocoaNibYieldPct > 70 && s7.CocoaPressPressureBar > 0
+                                    && s7.CocoaGrindMicrons > 0 && s7.CocoaPowderFatPct > 0
+                                    && s7.CocoaPowderMoisturePct > 0
                                     && s8.BrineSalinityPct > 0 && s8.BrineHardnessPpm > 0 && s8.BrineTurbidityNtu > 0
                                     && s8.BrineClarifierTurbidityNtu > 0 && s8.SaltEvaporatorVacuumKPa > 0
                                     && s8.SaltCrystallizerTemperatureC > 40 && s8.SaltCentrifugeRpm > 0

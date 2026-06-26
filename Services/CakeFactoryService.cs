@@ -258,6 +258,7 @@ public sealed class CakeFactorySnapshot
     public double ButtermilkL { get; init; }
     public double VanillaPomaceKg { get; init; }
     public double CocoaShellKg { get; init; }
+    public double CocoaButterKg { get; init; }
     public double BrineBlowdownL { get; init; }
     public double LeaveningDustKg { get; init; }
     public double FactoryEffluentL { get; init; }
@@ -324,7 +325,14 @@ public sealed class CakeFactorySnapshot
     public double VanillaExtractorTemperatureC { get; init; }
     public double VanillaExtractStrengthPct { get; init; }
     public double CocoaRoasterTemperatureC { get; init; }
+    public double CocoaRoasterAirflowM3Min { get; init; }
+    public double CocoaRoastDevelopmentPct { get; init; }
+    public double CocoaWinnowerEfficiencyPct { get; init; }
+    public double CocoaNibYieldPct { get; init; }
+    public double CocoaPressPressureBar { get; init; }
     public double CocoaGrindMicrons { get; init; }
+    public double CocoaPowderFatPct { get; init; }
+    public double CocoaPowderMoisturePct { get; init; }
     public double BrineSalinityPct { get; init; }
     public double BrineHardnessPpm { get; init; }
     public double BrineTurbidityNtu { get; init; }
@@ -732,7 +740,14 @@ public sealed class CakeFactoryService
     private double _vanillaExtractorTemperatureC = 24;
     private double _vanillaExtractStrengthPct = 0;
     private double _cocoaRoasterTemperatureC = 24;
+    private double _cocoaRoasterAirflowM3Min = 0;
+    private double _cocoaRoastDevelopmentPct = 0;
+    private double _cocoaWinnowerEfficiencyPct = 0;
+    private double _cocoaNibYieldPct = 0;
+    private double _cocoaPressPressureBar = 0;
     private double _cocoaGrindMicrons = 0;
+    private double _cocoaPowderFatPct = 11.0;
+    private double _cocoaPowderMoisturePct = 4.2;
     private double _brineSalinityPct = 2.6;
     private double _brineHardnessPpm = 420;
     private double _brineTurbidityNtu = 12.0;
@@ -785,6 +800,7 @@ public sealed class CakeFactoryService
     private double _buttermilkL = 18;
     private double _vanillaPomaceKg = 2.0;
     private double _cocoaShellKg = 6;
+    private double _cocoaButterKg = 3.0;
     private double _brineBlowdownL = 80;
     private double _leaveningDustKg = 1.2;
     private double _factoryEffluentL = 360;
@@ -943,6 +959,7 @@ public sealed class CakeFactoryService
         + _molassesKg
         + _vanillaPomaceKg
         + _cocoaShellKg
+        + _cocoaButterKg
         + _leaveningDustKg
         + _skimMilkL * 1.03
         + _buttermilkL * 1.03
@@ -975,7 +992,7 @@ public sealed class CakeFactoryService
         IngredientFactoryKind.Milk => run.PrimaryInput * 0.012,
         IngredientFactoryKind.Butter => run.PrimaryInput * 0.92 * 1.03,
         IngredientFactoryKind.Vanilla => run.PrimaryInput * 0.32,
-        IngredientFactoryKind.Cocoa => run.PrimaryInput * 0.14,
+        IngredientFactoryKind.Cocoa => run.PrimaryInput * 0.36,
         IngredientFactoryKind.Salt => run.PrimaryInput * 0.16 * 1.05,
         IngredientFactoryKind.Starch => run.PrimaryInput * 0.18,
         IngredientFactoryKind.Leavening => run.Product * 0.025,
@@ -1179,7 +1196,7 @@ public sealed class CakeFactoryService
         _barnLaborHours = Math.Max(0, _barnLaborHours - labor);
         _forkliftBatteryPct = Math.Max(0, _forkliftBatteryPct - 1.1);
         _cocoaGreenhouseStatus = $"Cocoa greenhouse harvest logged: {beans:0.0} kg fermented cocoa beans lot {_cocoaBeansLotId}, {_cocoaFermentationPct:0}% fermentation and {_cocoaBeanMoisturePct:0.0}% moisture.";
-        _traceabilityStatus = $"Cocoa greenhouse trace logged: cacao pods -> fermented bean lot {_cocoaBeansLotId}; roast/grind factory still required before chocolate batching.";
+        _traceabilityStatus = $"Cocoa greenhouse trace logged: cacao pods -> fermented bean lot {_cocoaBeansLotId}; cocoa roaster/winnower/press/pin mill still required before chocolate batching.";
         return _cocoaGreenhouseStatus;
     }
 
@@ -1649,33 +1666,40 @@ public sealed class CakeFactoryService
     public string ProcessCocoa()
     {
         if (_lastPowerAvailability < 0.2)
-            return "Cocoa roaster and grinder need reactor power.";
+            return "Cocoa roaster, winnower, hydraulic press and pin mill need reactor power.";
         if (_factoryRun is not null)
             return $"{_factoryRun.Name} is already running; wait for the ingredient factory run to finish.";
 
         double beans = Math.Min(_cocoaBeansKg, 45);
         if (beans < 5)
-            return "Not enough cocoa beans are available for a roast/grind run.";
+            return "Not enough cocoa beans are available for the cocoa roaster/winnower/press/pin mill run.";
         if (string.IsNullOrWhiteSpace(_cocoaBeansLotId))
             return "Cocoa roaster cannot run because the cocoa bean lot is missing from the ledger.";
 
         _cocoaRoasterTemperatureC = 24;
+        _cocoaRoasterAirflowM3Min = 0;
+        _cocoaRoastDevelopmentPct = 0;
+        _cocoaWinnowerEfficiencyPct = 0;
+        _cocoaNibYieldPct = 0;
+        _cocoaPressPressureBar = 0;
         _cocoaGrindMicrons = 0;
+        _cocoaPowderFatPct = 0;
+        _cocoaPowderMoisturePct = 0;
         var run = new IngredientFactoryRun
         {
             Kind = IngredientFactoryKind.Cocoa,
-            Name = "Cocoa roaster and grinder",
-            StartedMessage = $"Started roasting, winnowing and grinding {beans:0} kg cocoa beans.",
-            DurationSeconds = 11.0,
-            PowerDemandMW = 1.9,
+            Name = "Cocoa roaster, winnower, press and pin mill",
+            StartedMessage = $"Started roasting, cracking, winnowing, pressing and pin-milling {beans:0} kg cocoa beans lot {_cocoaBeansLotId}; beans {_cocoaFermentationPct:0}% fermented and {_cocoaBeanMoisturePct:0.0}% moisture.",
+            DurationSeconds = 12.4,
+            PowerDemandMW = 2.05,
             PrimaryInput = beans,
-            Product = beans * 0.78,
-            Waste = beans * 0.05,
-            ProcessWaterL = 25,
-            CompressedAirNm3 = 45,
-            FilterMediaPct = 0.7,
-            WearPct = 2.15,
-            CalibrationDriftPct = 0.65,
+            Product = beans * 0.52,
+            Waste = beans * 0.025,
+            ProcessWaterL = 32,
+            CompressedAirNm3 = 58,
+            FilterMediaPct = 0.95,
+            WearPct = 2.25,
+            CalibrationDriftPct = 0.72,
             InputLotId = _cocoaBeansLotId,
             OutputLotId = NewLotId("COCOA"),
         };
@@ -2325,7 +2349,7 @@ public sealed class CakeFactoryService
         _cashBalance += revenue;
         _forkliftBatteryPct = Math.Max(0, _forkliftBatteryPct - 5.5);
         _warehousePalletSpacePct = Math.Max(0, _warehousePalletSpacePct - 3.0);
-        string detail = $"Hauled {load:0} kg-equivalent byproducts: bran {_branKg:0} kg, beet pulp {_beetPulpKg:0} kg, molasses {_molassesKg:0.0} kg, skim milk {_skimMilkL:0} L, buttermilk {_buttermilkL:0} L, vanilla pomace {_vanillaPomaceKg:0.0} kg, cocoa shell {_cocoaShellKg:0} kg, brine blowdown {_brineBlowdownL:0} L and leavening dust {_leaveningDustKg:0.0} kg.";
+        string detail = $"Hauled {load:0} kg-equivalent byproducts: bran {_branKg:0} kg, beet pulp {_beetPulpKg:0} kg, molasses {_molassesKg:0.0} kg, skim milk {_skimMilkL:0} L, buttermilk {_buttermilkL:0} L, vanilla pomace {_vanillaPomaceKg:0.0} kg, cocoa shell {_cocoaShellKg:0} kg, cocoa butter {_cocoaButterKg:0.0} kg, brine blowdown {_brineBlowdownL:0} L and leavening dust {_leaveningDustKg:0.0} kg.";
         _branKg = 0;
         _beetPulpKg = 0;
         _molassesKg = 0;
@@ -2333,6 +2357,7 @@ public sealed class CakeFactoryService
         _buttermilkL = 0;
         _vanillaPomaceKg = 0;
         _cocoaShellKg = 0;
+        _cocoaButterKg = 0;
         _brineBlowdownL = 0;
         _leaveningDustKg = 0;
         _wasteHandlingStatus = $"{detail} Sold/repurposed for ${revenue:0.00} and recovered {feedMillCredit:0.0} kg feed-mill grain equivalent for the poultry feed mill.";
@@ -2470,10 +2495,18 @@ public sealed class CakeFactoryService
                 if (p > 0.62) _factoryRunQualityPct -= Math.Max(0, 88.0 - _vanillaExtractStrengthPct) * 0.22;
                 break;
             case IngredientFactoryKind.Cocoa:
-                _cocoaRoasterTemperatureC = 24.0 + p * 112.0;
-                _cocoaGrindMicrons = p < 0.45 ? 0 : 140.0 - (p - 0.45) / 0.55 * 66.0;
-                if (p > 0.5) _factoryRunQualityPct -= Math.Abs(_cocoaRoasterTemperatureC - 134.0) * 0.08;
-                if (p > 0.55) _factoryRunQualityPct -= Math.Max(0, 86.0 - _cocoaFermentationPct) * 0.22 + Math.Abs(_cocoaBeanMoisturePct - 6.8) * 0.9;
+                _cocoaRoasterTemperatureC = p < 0.34 ? 24.0 + p * 345.0 : 136.0 + Math.Sin(p * Math.PI * 3) * 5.5;
+                _cocoaRoasterAirflowM3Min = p < 0.12 ? 8.0 * p / 0.12 : 8.0 + Math.Sin(p * Math.PI * 4) * 1.1;
+                _cocoaRoastDevelopmentPct = Math.Clamp(p < 0.20 ? 0 : (p - 0.20) / 0.28 * 100.0, 0, 100);
+                _cocoaWinnowerEfficiencyPct = p < 0.46 ? 0 : Math.Clamp(86.0 + (p - 0.46) / 0.18 * 10.5, 0, 98.5);
+                _cocoaNibYieldPct = p < 0.48 ? 0 : Math.Clamp(70.0 + (p - 0.48) / 0.18 * 9.0, 0, 82);
+                _cocoaPressPressureBar = p < 0.66 ? 0 : Math.Clamp(110.0 + (p - 0.66) / 0.18 * 330.0 + Math.Sin(p * Math.PI * 5) * 12.0, 0, 455);
+                _cocoaGrindMicrons = p < 0.76 ? 0 : Math.Clamp(132.0 - (p - 0.76) / 0.24 * 58.0 + Math.Sin(p * Math.PI * 5) * 2.5, 62, 145);
+                _cocoaPowderFatPct = p < 0.70 ? 0 : Math.Clamp(13.6 - (p - 0.70) / 0.30 * 2.3 + Math.Sin(p * Math.PI * 4) * 0.12, 10.4, 14.2);
+                _cocoaPowderMoisturePct = p < 0.58 ? 0 : Math.Clamp(_cocoaBeanMoisturePct - (p - 0.58) / 0.42 * 2.7 + Math.Sin(p * Math.PI * 4) * 0.10, 3.0, 7.4);
+                if (p > 0.36) _factoryRunQualityPct -= Math.Abs(_cocoaRoasterTemperatureC - 136.0) * 0.06 + Math.Abs(_cocoaRoastDevelopmentPct - 92.0) * 0.045;
+                if (p > 0.55) _factoryRunQualityPct -= Math.Max(0, 86.0 - _cocoaFermentationPct) * 0.22 + Math.Abs(_cocoaBeanMoisturePct - 6.8) * 0.9 + Math.Max(0, 94.0 - _cocoaWinnowerEfficiencyPct) * 0.22;
+                if (p > 0.80) _factoryRunQualityPct -= Math.Abs(_cocoaPowderFatPct - 11.4) * 1.2 + Math.Abs(_cocoaPowderMoisturePct - 4.2) * 0.85 + Math.Max(0, _cocoaGrindMicrons - 82.0) * 0.18;
                 break;
             case IngredientFactoryKind.Salt:
                 _brineClarifierTurbidityNtu = Math.Clamp(_brineTurbidityNtu * (1.0 - Math.Min(p / 0.28, 1.0) * 0.82), 0.4, _brineTurbidityNtu);
@@ -2584,10 +2617,12 @@ public sealed class CakeFactoryService
             IngredientFactoryKind.Vanilla when p < 0.72 => "hot extraction",
             IngredientFactoryKind.Vanilla when p < 0.90 => "polish filtration",
             IngredientFactoryKind.Vanilla => "extract strength sample and tank transfer",
-            IngredientFactoryKind.Cocoa when p < 0.28 => "roast ramp",
-            IngredientFactoryKind.Cocoa when p < 0.48 => "roast hold",
-            IngredientFactoryKind.Cocoa when p < 0.64 => "winnowing",
-            IngredientFactoryKind.Cocoa => "pin milling",
+            IngredientFactoryKind.Cocoa when p < 0.20 => "bean lot assay, roaster charge and airflow check",
+            IngredientFactoryKind.Cocoa when p < 0.44 => "roast development and moisture drive-off",
+            IngredientFactoryKind.Cocoa when p < 0.62 => "crack, aspirate and winnow shell separation",
+            IngredientFactoryKind.Cocoa when p < 0.76 => "nib milling to cocoa liquor",
+            IngredientFactoryKind.Cocoa when p < 0.90 => "hydraulic press cake and cocoa butter separation",
+            IngredientFactoryKind.Cocoa => "pin mill, sieve and fat/moisture QA sample",
             IngredientFactoryKind.Salt when p < 0.18 => "brine source-lot assay and prefilter",
             IngredientFactoryKind.Salt when p < 0.36 => "lime softening and clarifier settling",
             IngredientFactoryKind.Salt when p < 0.62 => "vacuum pan evaporation",
@@ -2724,6 +2759,7 @@ public sealed class CakeFactoryService
             IngredientFactoryKind.Mill => $"QA lab hold: {_pendingLabProductName} lot {_pendingLabLotId} awaiting moisture, ash, protein, sieve and micro checks.",
             IngredientFactoryKind.Sugar => $"QA lab hold: {_pendingLabProductName} lot {_pendingLabLotId} awaiting polarization, color, moisture, insoluble solids and label checks.",
             IngredientFactoryKind.Butter => $"QA lab hold: {_pendingLabProductName} lot {_pendingLabLotId} awaiting fat, moisture, salt, micro, temperature and label checks.",
+            IngredientFactoryKind.Cocoa => $"QA lab hold: {_pendingLabProductName} lot {_pendingLabLotId} awaiting roast profile, shell, fat, moisture, grind, micro and label checks.",
             IngredientFactoryKind.Salt => $"QA lab hold: {_pendingLabProductName} lot {_pendingLabLotId} awaiting purity, moisture, insoluble matter, screen sizing, metal and label checks.",
             IngredientFactoryKind.Leavening => $"QA lab hold: {_pendingLabProductName} lot {_pendingLabLotId} awaiting CO2 release, neutralization, moisture, homogeneity, sieve and label checks.",
             _ => $"QA lab hold: {_pendingLabProductName} lot {_pendingLabLotId} awaiting moisture, sieve, micro and label checks.",
@@ -2907,8 +2943,10 @@ public sealed class CakeFactoryService
                 break;
             case IngredientFactoryKind.Cocoa:
                 double shell = run.PrimaryInput * 0.14;
+                double cocoaButter = run.PrimaryInput * 0.22;
                 _cocoaShellKg += shell;
-                detail = $"{shell:0.0} kg cocoa shell";
+                _cocoaButterKg += cocoaButter;
+                detail = $"{shell:0.0} kg cocoa shell and {cocoaButter:0.0} kg separated cocoa butter";
                 break;
             case IngredientFactoryKind.Salt:
                 double blowdown = run.PrimaryInput * 0.16;
@@ -3058,10 +3096,26 @@ public sealed class CakeFactoryService
                 _cocoaKg += output;
                 _cocoaLotId = run.OutputLotId;
                 _wasteKg += waste;
-                _cocoaRoasterTemperatureC = 130 + _rng.NextDouble() * 12;
-                _cocoaGrindMicrons = 68 + _rng.NextDouble() * 18;
-                _factoryRunQualityPct = Math.Clamp(98 - Math.Abs(_cocoaGrindMicrons - 75.0) * 0.35 - Math.Max(0, 86.0 - _cocoaFermentationPct) * 0.25 - Math.Abs(_cocoaBeanMoisturePct - 6.8) * 0.9 - FactoryEquipmentPenalty(run.Kind), 0, 100);
-                _factoryStatus = $"Cocoa line completed: {output:0.0} kg cocoa from fermented beans at {_cocoaFermentationPct:0}% fermentation, {_cocoaBeanMoisturePct:0.0}% moisture, {_cocoaRoasterTemperatureC:0} degC roast and {_cocoaGrindMicrons:0} micron grind, QA {_factoryRunQualityPct:0}%.";
+                _cocoaRoasterTemperatureC = 132 + _rng.NextDouble() * 8;
+                _cocoaRoasterAirflowM3Min = 7.6 + _rng.NextDouble() * 1.8;
+                _cocoaRoastDevelopmentPct = 90 + _rng.NextDouble() * 6;
+                _cocoaWinnowerEfficiencyPct = 95.0 + _rng.NextDouble() * 2.6;
+                _cocoaNibYieldPct = 77.5 + _rng.NextDouble() * 2.8;
+                _cocoaPressPressureBar = 388 + _rng.NextDouble() * 48;
+                _cocoaGrindMicrons = 66 + _rng.NextDouble() * 16;
+                _cocoaPowderFatPct = 10.8 + _rng.NextDouble() * 1.5;
+                _cocoaPowderMoisturePct = 3.6 + _rng.NextDouble() * 1.0;
+                _factoryRunQualityPct = Math.Clamp(99
+                    - Math.Abs(_cocoaRoasterTemperatureC - 136.0) * 0.07
+                    - Math.Abs(_cocoaRoastDevelopmentPct - 92.0) * 0.06
+                    - Math.Max(0, 94.0 - _cocoaWinnowerEfficiencyPct) * 0.30
+                    - Math.Abs(_cocoaPowderFatPct - 11.4) * 1.25
+                    - Math.Abs(_cocoaPowderMoisturePct - 4.2) * 0.90
+                    - Math.Max(0, _cocoaGrindMicrons - 82.0) * 0.18
+                    - Math.Max(0, 86.0 - _cocoaFermentationPct) * 0.25
+                    - Math.Abs(_cocoaBeanMoisturePct - 6.8) * 0.85
+                    - FactoryEquipmentPenalty(run.Kind), 0, 100);
+                _factoryStatus = $"Cocoa line completed: {output:0.0} kg cocoa powder from bean lot {run.InputLotId}; beans {_cocoaFermentationPct:0}% fermented and {_cocoaBeanMoisturePct:0.0}% moisture, roast {_cocoaRoasterTemperatureC:0} degC with {_cocoaRoastDevelopmentPct:0}% development, winnower {_cocoaWinnowerEfficiencyPct:0.0}% efficient, nib yield {_cocoaNibYieldPct:0.0}%, press {_cocoaPressPressureBar:0} bar, powder {_cocoaPowderFatPct:0.0}% fat, {_cocoaPowderMoisturePct:0.0}% moisture and {_cocoaGrindMicrons:0} micron grind, QA {_factoryRunQualityPct:0}%.";
                 break;
             case IngredientFactoryKind.Salt:
                 _saltKg += output;
@@ -3414,7 +3468,8 @@ public sealed class CakeFactoryService
             SupplyOrderCost = _supplyOrderCost,
             InboundSupplyManifestId = _inboundSupplyManifestId,
             SupplyOrderStatus = _supplyOrderStatus,
-            CanProcessCocoa = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _cocoaBeansKg >= 5 && HasFactoryUtilities(25, 0, 45, 0.7),
+            CanProcessCocoa = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _cocoaBeansKg >= 5 && HasFactoryUtilities(32, 0, 58, 0.95)
+                              && !string.IsNullOrWhiteSpace(_cocoaBeansLotId),
             CanRunSaltWorks = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _brineL >= 80 && HasFactoryUtilities(18, 780, 38, 0.65)
                               && !string.IsNullOrWhiteSpace(_brineLotId),
             CanRunStarchPlant = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _grainKg >= 52 && HasFactoryUtilities(85, 140, 16, 0.45)
@@ -3598,6 +3653,7 @@ public sealed class CakeFactoryService
             ButtermilkL = _buttermilkL,
             VanillaPomaceKg = _vanillaPomaceKg,
             CocoaShellKg = _cocoaShellKg,
+            CocoaButterKg = _cocoaButterKg,
             BrineBlowdownL = _brineBlowdownL,
             LeaveningDustKg = _leaveningDustKg,
             FactoryEffluentL = _factoryEffluentL,
@@ -3670,7 +3726,14 @@ public sealed class CakeFactoryService
             VanillaExtractorTemperatureC = _vanillaExtractorTemperatureC,
             VanillaExtractStrengthPct = _vanillaExtractStrengthPct,
             CocoaRoasterTemperatureC = _cocoaRoasterTemperatureC,
+            CocoaRoasterAirflowM3Min = _cocoaRoasterAirflowM3Min,
+            CocoaRoastDevelopmentPct = _cocoaRoastDevelopmentPct,
+            CocoaWinnowerEfficiencyPct = _cocoaWinnowerEfficiencyPct,
+            CocoaNibYieldPct = _cocoaNibYieldPct,
+            CocoaPressPressureBar = _cocoaPressPressureBar,
             CocoaGrindMicrons = _cocoaGrindMicrons,
+            CocoaPowderFatPct = _cocoaPowderFatPct,
+            CocoaPowderMoisturePct = _cocoaPowderMoisturePct,
             BrineSalinityPct = _brineSalinityPct,
             BrineHardnessPpm = _brineHardnessPpm,
             BrineTurbidityNtu = _brineTurbidityNtu,
