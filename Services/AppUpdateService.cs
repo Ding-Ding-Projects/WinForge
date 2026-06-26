@@ -22,6 +22,7 @@ public static class AppUpdateService
     private const string EnabledKey = "app.autoupdate.enabled";
     private const string LastAttemptTagKey = "app.autoupdate.lastAttemptTag";
     private const string LastAttemptUtcKey = "app.autoupdate.lastAttemptUtc";
+    private const string LastInstalledNoticeTagKey = "app.autoupdate.lastInstalledNoticeTag";
     private const string LatestReleaseApi = "https://api.github.com/repos/codingmachineedge/WinForge/releases/latest";
     private static readonly TimeSpan FirstCheckDelay = TimeSpan.FromSeconds(20);
     private static readonly TimeSpan CheckInterval = TimeSpan.FromHours(6);
@@ -29,56 +30,193 @@ public static class AppUpdateService
     private static readonly HttpClient Http = CreateHttp();
     private static int _started;
 
+    public enum NoticeSeverity { Info, Success, Warning, Error }
+
+    public sealed record AppUpdateNotice(
+        NoticeSeverity Severity,
+        string TitleEn,
+        string TitleZh,
+        string MessageEn,
+        string MessageZh,
+        int AutoDismissMs = 0);
+
+    public static event Action<AppUpdateNotice>? Notice;
+
     public static void StartAutomaticChecks(DispatcherQueue ui)
     {
         if (Interlocked.Exchange(ref _started, 1) == 1) return;
+        NotifyInstalledIfNeeded(ui);
         _ = Task.Run(() => Loop(ui));
     }
 
     private static async Task Loop(DispatcherQueue ui)
     {
         await Task.Delay(FirstCheckDelay).ConfigureAwait(false);
+        bool firstCheck = true;
         while (true)
         {
-            await CheckAndApplyLatestAsync(ui).ConfigureAwait(false);
+            await CheckAndApplyLatestAsync(ui, firstCheck).ConfigureAwait(false);
+            firstCheck = false;
             await Task.Delay(CheckInterval).ConfigureAwait(false);
         }
     }
 
-    private static async Task CheckAndApplyLatestAsync(DispatcherQueue ui)
+    private static async Task CheckAndApplyLatestAsync(DispatcherQueue ui, bool notifyQuietResult)
     {
-        if (!Enabled()) return;
-        if (IsDevelopmentRun()) return;
+        if (!Enabled())
+        {
+            if (notifyQuietResult)
+                Notify(ui, NoticeSeverity.Warning,
+                    "Auto update is off", "自動更新已關閉",
+                    "WinForge will not install new releases automatically.",
+                    "WinForge 不會自動安裝新版本。",
+                    7000);
+            return;
+        }
+        if (IsDevelopmentRun())
+        {
+            if (notifyQuietResult)
+                Notify(ui, NoticeSeverity.Info,
+                    "Auto update skipped", "已略過自動更新",
+                    "This is a development checkout, so release installers are not applied automatically.",
+                    "這是開發 checkout，所以不會自動套用 release 安裝程式。",
+                    7000);
+            return;
+        }
 
         try
         {
+            if (notifyQuietResult)
+                Notify(ui, NoticeSeverity.Info,
+                    "Checking for updates", "正在檢查更新",
+                    "WinForge is checking GitHub releases in the background.",
+                    "WinForge 正在背景檢查 GitHub release。",
+                    5000);
+
             using var res = await Http.GetAsync(LatestReleaseApi).ConfigureAwait(false);
-            if (!res.IsSuccessStatusCode) return;
+            if (!res.IsSuccessStatusCode)
+            {
+                if (notifyQuietResult)
+                    Notify(ui, NoticeSeverity.Warning,
+                        "Update check failed", "更新檢查失敗",
+                        $"GitHub returned HTTP {(int)res.StatusCode}. Auto update will retry later.",
+                        $"GitHub 回傳 HTTP {(int)res.StatusCode}。自動更新稍後會重試。",
+                        9000);
+                return;
+            }
 
             await using var stream = await res.Content.ReadAsStreamAsync().ConfigureAwait(false);
             var release = await JsonSerializer.DeserializeAsync<GitHubRelease>(stream).ConfigureAwait(false);
             if (release is null || release.Draft || release.Prerelease) return;
 
             string latestTag = NormalizeTag(release.TagName);
-            if (!IsNewer(latestTag, CurrentVersionTag())) return;
+            string currentTag = CurrentVersionTag();
+            if (!IsNewer(latestTag, currentTag))
+            {
+                if (notifyQuietResult)
+                    Notify(ui, NoticeSeverity.Success,
+                        "WinForge is up to date", "WinForge 已是最新",
+                        $"Current version: v{currentTag}.",
+                        $"目前版本：v{currentTag}。",
+                        7000);
+                return;
+            }
             if (RecentlyAttempted(latestTag)) return;
 
             var setup = release.Assets.FirstOrDefault(a =>
                 string.Equals(a.Name, "WinForge-Setup.exe", StringComparison.OrdinalIgnoreCase)
                 && !string.IsNullOrWhiteSpace(a.BrowserDownloadUrl));
-            if (setup is null) return;
+            if (setup is null)
+            {
+                Notify(ui, NoticeSeverity.Warning,
+                    "Update found, installer missing", "找到更新但缺少安裝程式",
+                    $"Release v{latestTag} does not include WinForge-Setup.exe. Auto update will retry later.",
+                    $"Release v{latestTag} 沒有包含 WinForge-Setup.exe。自動更新稍後會重試。",
+                    12000);
+                return;
+            }
 
+            Notify(ui, NoticeSeverity.Info,
+                "Downloading WinForge update", "正在下載 WinForge 更新",
+                $"Downloading v{latestTag}. You can keep using the app while it downloads.",
+                $"正在下載 v{latestTag}。下載期間可以繼續使用 app。",
+                0);
             string installer = await DownloadInstallerAsync(latestTag, setup.BrowserDownloadUrl).ConfigureAwait(false);
             SettingsStore.Set(LastAttemptTagKey, latestTag);
             SettingsStore.Set(LastAttemptUtcKey, DateTime.UtcNow.ToString("O"));
 
             if (LaunchInstallerAfterExit(installer, latestTag))
+            {
+                Notify(ui, NoticeSeverity.Info,
+                    "Installing update", "正在安裝更新",
+                    $"WinForge will close, install v{latestTag}, then reopen automatically.",
+                    $"WinForge 將會關閉、安裝 v{latestTag}，然後自動重新開啟。",
+                    0);
+                await Task.Delay(2500).ConfigureAwait(false);
                 ui.TryEnqueue(() => Application.Current.Exit());
+            }
+            else
+            {
+                Notify(ui, NoticeSeverity.Error,
+                    "Could not start updater", "無法啟動更新程式",
+                    $"The v{latestTag} installer was downloaded, but WinForge could not start the updater.",
+                    $"已下載 v{latestTag} 安裝程式，但 WinForge 無法啟動更新程式。",
+                    12000);
+            }
         }
         catch (Exception ex)
         {
             CrashLogger.Log("app-update", ex);
+            if (notifyQuietResult)
+                Notify(ui, NoticeSeverity.Error,
+                    "Update check failed", "更新檢查失敗",
+                    "Auto update hit an error and will retry later.",
+                    "自動更新遇到錯誤，稍後會重試。",
+                    10000);
         }
+    }
+
+    private static void NotifyInstalledIfNeeded(DispatcherQueue ui)
+    {
+        try
+        {
+            string attempted = NormalizeTag(SettingsStore.Get(LastAttemptTagKey, ""));
+            string current = CurrentVersionTag();
+            if (string.IsNullOrWhiteSpace(attempted)) return;
+            if (!string.Equals(attempted, current, StringComparison.OrdinalIgnoreCase)) return;
+            if (string.Equals(SettingsStore.Get(LastInstalledNoticeTagKey, ""), current, StringComparison.OrdinalIgnoreCase)) return;
+
+            SettingsStore.Set(LastInstalledNoticeTagKey, current);
+            Notify(ui, NoticeSeverity.Success,
+                "WinForge updated", "WinForge 已更新",
+                $"Update v{current} installed successfully.",
+                $"已成功安裝 v{current}。",
+                12000);
+        }
+        catch { }
+    }
+
+    private static void Notify(
+        DispatcherQueue ui,
+        NoticeSeverity severity,
+        string titleEn,
+        string titleZh,
+        string messageEn,
+        string messageZh,
+        int autoDismissMs)
+    {
+        var notice = new AppUpdateNotice(severity, titleEn, titleZh, messageEn, messageZh, autoDismissMs);
+        void Raise()
+        {
+            try { Notice?.Invoke(notice); } catch { }
+        }
+
+        try
+        {
+            if (ui.TryEnqueue(Raise)) return;
+        }
+        catch { }
+        Raise();
     }
 
     private static bool Enabled() =>

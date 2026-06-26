@@ -27,6 +27,7 @@ public sealed partial class MainWindow : Window
         CrashLogger.Mark("MW: ctor start");
         InitializeComponent();
         CrashLogger.Mark("MW: after InitializeComponent");
+        AppUpdateService.Notice += OnAppUpdateNotice;
 
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(AppTitleBar);
@@ -67,6 +68,46 @@ public sealed partial class MainWindow : Window
         // so global hooks/overlays never race the fragile XAML init (the cause of intermittent
         // stowed-exception crashes at launch) and one faulty service can never abort startup.
         RootGrid.Loaded += StartBackgroundServicesOnce;
+    }
+
+    private int _appUpdateNoticeSerial;
+
+    private void OnAppUpdateNotice(AppUpdateService.AppUpdateNotice notice)
+    {
+        try { DispatcherQueue.TryEnqueue(() => ShowAppUpdateNotice(notice)); } catch { }
+    }
+
+    private void ShowAppUpdateNotice(AppUpdateService.AppUpdateNotice notice)
+    {
+        int serial = ++_appUpdateNoticeSerial;
+        AppUpdateBar.Severity = notice.Severity switch
+        {
+            AppUpdateService.NoticeSeverity.Success => InfoBarSeverity.Success,
+            AppUpdateService.NoticeSeverity.Warning => InfoBarSeverity.Warning,
+            AppUpdateService.NoticeSeverity.Error => InfoBarSeverity.Error,
+            _ => InfoBarSeverity.Informational,
+        };
+        AppUpdateBar.Title = Loc.I.Pick(notice.TitleEn, notice.TitleZh);
+        AppUpdateBar.Message = Loc.I.Pick(notice.MessageEn, notice.MessageZh);
+        AppUpdateBar.IsOpen = true;
+
+        if (notice.AutoDismissMs > 0)
+            _ = AutoDismissAppUpdateNotice(serial, notice.AutoDismissMs);
+    }
+
+    private async Task AutoDismissAppUpdateNotice(int serial, int delayMs)
+    {
+        try { await Task.Delay(delayMs); }
+        catch { return; }
+        try
+        {
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                if (_appUpdateNoticeSerial == serial)
+                    AppUpdateBar.IsOpen = false;
+            });
+        }
+        catch { }
     }
 
     private bool _bgStarted;
