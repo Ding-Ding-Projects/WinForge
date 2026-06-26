@@ -29,7 +29,7 @@ WinForge integration plan, dependencies/risks, and acceptance criteria.
 | 02 | [SSH toolset (terminal, profiles, passwordless deploy)](02-ssh-toolset.md) | ssh/SSH.NET/ConPTY | Native |
 | 03 | [Config exports include secrets](03-exports-include-secrets.md) | ConfigBackupService | Native |
 | 04 | [AI agent config editors](04-ai-agent-config-editors.md) | claude/codex/opencode/openclaw/hermes | Native |
-| 05 | [SecureVault vault (VeraCrypt-derived)](05-SecureVault-clone.md) | SecureVault (local) | Hybrid (de-brand) |
+| 05 | [WinForge Vault volume engine](05-vault-volume-engine.md) | SecureVault (local) | Hybrid (de-brand) |
 | 06 | [Resume & cover-letter writer](06-resume-cover-letter-writer.md) | opencode/claude | Native |
 | 07 | [Scheduled settings auto-sync to git](07-settings-auto-sync-git.md) | ConfigBackup + git | Native |
 | 08 | [README + wiki screenshots](08-readme-wiki-screenshots.md) | docs/wiki | Docs |

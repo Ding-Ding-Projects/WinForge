@@ -11,12 +11,12 @@
 | **Action · 動作** | Open · 打開 |
 
 ## English
-Open VeraCrypt where you can run the algorithm benchmark from Settings.
+Open WinForge Vault where you can run the algorithm benchmark from Settings.
 
 ## 粵語
-打開 VeraCrypt，喺設定度可以做演算法效能測試。
+打開 WinForge 保險庫，喺設定度可以做演算法效能測試。
 
 ---
-_Keywords · 關鍵字: veracrypt, benchmark, 效能, settings, 設定_
+_Keywords · 關鍵字: vault, benchmark, 效能, settings, 設定, 保險庫_
 
 _Part of WinForge · WinForge 套件嘅一部分_

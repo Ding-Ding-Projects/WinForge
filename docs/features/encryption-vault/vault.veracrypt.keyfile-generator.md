@@ -11,12 +11,12 @@
 | **Action · 動作** | Open · 打開 |
 
 ## English
-Open VeraCrypt where the Keyfile Generator is under the Tools menu.
+Open WinForge Vault where the Keyfile Generator is under the Tools menu.
 
 ## 粵語
-打開 VeraCrypt，金鑰檔產生器喺工具選單度。
+打開 WinForge 保險庫，金鑰檔產生器喺工具選單度。
 
 ---
-_Keywords · 關鍵字: veracrypt, keyfile, 金鑰檔, generator_
+_Keywords · 關鍵字: vault, keyfile, 金鑰檔, generator, 保險庫_
 
 _Part of WinForge · WinForge 套件嘅一部分_

@@ -17,6 +17,6 @@ List current drive letters to see mounted volumes.
 列出目前磁碟機代號睇下掛載咗咩磁碟區。
 
 ---
-_Keywords · 關鍵字: veracrypt, list, 列出, mounted, drives_
+_Keywords · 關鍵字: vault, list, 列出, mounted, drives, 保險庫_
 
 _Part of WinForge · WinForge 套件嘅一部分_

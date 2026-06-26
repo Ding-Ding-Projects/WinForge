@@ -11,12 +11,12 @@
 | **Action · 動作** | Open wizard · 打開精靈 |
 
 ## English
-Open the VeraCrypt Format wizard executable directly.
+Open the volume-creation wizard executable directly.
 
 ## 粵語
-直接打開 VeraCrypt Format 精靈程式。
+直接打開磁碟區建立精靈程式。
 
 ---
-_Keywords · 關鍵字: veracrypt, wizard, 精靈, format_
+_Keywords · 關鍵字: vault, wizard, 精靈, format, 保險庫_
 
 _Part of WinForge · WinForge 套件嘅一部分_

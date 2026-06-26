@@ -61,35 +61,35 @@
   - _reg add "HKCU\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32" /f /ve (empty default value), then restart explorer.exe. Masks the Win11 compact-menu COM object so the classic full context menu shows directly. Delete the CLSID key to revert._
 
 ### Encryption · 🆕 new module / 新模組  (15)
-- [ ] **Create Volume (silent, scripted)** · 靜雞雞整個加密磁碟區
+- [x] **Create Volume (silent, scripted)** · 靜雞雞整個加密磁碟區
   - _"VeraCrypt Format.exe" /create <path> /size <e.g. 200M|max> /encryption <AES|Serpent|Twofish|Camellia|Kuznyechik|AES(Twofish)...> /hash <sha-512|sha-256|whirlpool|blake2s|streebog> /filesystem <NTFS|exFAT|FAT|ReFS|None> /pim 0 /dynamic /quick /silent — drives the VeraCrypt Format.exe wizard binary to build a file container with no UI; password supplied at runtime via /password, never stored._
-- [ ] **Mount All Favorites on demand** · 一次過開晒啲常用磁碟區
+- [x] **Mount All Favorites on demand** · 一次過開晒啲常用磁碟區
   - _VeraCrypt.exe /a favorites /q (optionally /m ro for read-only). /a favorites is the documented batch-mount switch; it mounts every entry in Configuration\Favorite Volumes.xml under %APPDATA%\VeraCrypt. Confirmed against VeraCrypt Windows command-line docs._
-- [ ] **Mount with keyfile + PIM** · 用鎖匙檔加 PIM 嚟開
+- [x] **Mount with keyfile + PIM** · 用鎖匙檔加 PIM 嚟開
   - _VeraCrypt.exe /v <volume> /l <driveLetter> /k <keyfilePathOrFolder> /pim <n> /m ro /q /silent — /k passes a keyfile (or a folder of keyfiles), /pim sets the Personal Iterations Multiplier; add /tokenlib <pkcs11.dll> for security-token keyfiles._
-- [ ] **Dismount all / force dismount** · 全部熄晒，鎖死都照熄
+- [x] **Dismount all / force dismount** · 全部熄晒，鎖死都照熄
   - _VeraCrypt.exe /d /q dismounts every mounted volume (omit the drive letter = all); add /force (/f) to dismount even when an app is holding the volume open. Confirmed against VeraCrypt Windows command-line docs and the Normal vs Force Dismount page._
-- [ ] **Change volume password / PIM** · 改咗加密磁碟區嘅密碼
+- [x] **Change volume password / PIM** · 改咗加密磁碟區嘅密碼
   - _VeraCrypt.exe has no headless change-password switch, so wrap it as a GUI deep action: launch VeraCrypt.exe /v <volume> and surface Volume > Change Volume Password. BitLocker equivalent is fully headless: manage-bde -changepassword <drive:>._
-- [ ] **Backup volume header (raw copy)** · 備份磁碟區個 header
+- [x] **Backup volume header (raw copy)** · 備份磁碟區個 header
   - _Header backup is GUI-only (Tools > Backup Volume Header) — wrap by launching VeraCrypt.exe to that tool. As a true CLI fallback, snapshot the first 131072 bytes of the container with PowerShell [IO.File] read/write (captures the embedded primary header); label clearly as a raw header copy, not VeraCrypt's official backup-header format._
-- [ ] **BitLocker: pause / resume encryption** · 暫停咗 / 繼續 BitLocker 加密
+- [x] **BitLocker: pause / resume encryption** · 暫停咗 / 繼續 BitLocker 加密
   - _manage-bde -pause <drive:> and manage-bde -resume <drive:> — pause/resume an in-progress encrypt or decrypt sweep without changing protection state. Documented manage-bde subcommands._
-- [ ] **BitLocker: backup recovery key to AD / Entra ID** · BitLocker 救命金鎖匙備份咗去網域
+- [x] **BitLocker: backup recovery key to AD / Entra ID** · BitLocker 救命金鎖匙備份咗去網域
   - _manage-bde -protectors -get <drive:> to read the numerical recovery password + its key-protector ID, then manage-bde -protectors -adbackup <drive:> -id {GUID} for Active Directory, or -aadbackup for Microsoft Entra ID. PowerShell equivalents: Backup-BitLockerKeyProtector. Confirmed against manage-bde -protectors docs._
-- [ ] **BitLocker: force recovery on next boot** · 下次開機逼出 BitLocker 救命畫面
+- [x] **BitLocker: force recovery on next boot** · 下次開機逼出 BitLocker 救命畫面
   - _manage-bde -forcerecovery <drive:> — sets the volume to demand the recovery key at next boot (useful before firmware/TPM changes). Real and not undoable until you supply the key; gate behind explicit confirmation._
-- [ ] **BitLocker: repair a damaged encrypted drive** · 救返爛咗嘅 BitLocker 磁碟
+- [x] **BitLocker: repair a damaged encrypted drive** · 救返爛咗嘅 BitLocker 磁碟
   - _repair-bde <inputVolume> <outputVolumeOrImage> [-rp <48-digit recovery password> | -rk <key.bek> | -kp <keyPackageFile>] [-lf <log>] [-f] — reconstructs and decrypts salvageable data from a corrupted BitLocker volume to a clean target (the -kp key package comes from AD DS / the BitLocker Recovery Password Viewer). Confirmed against the Microsoft repair-bde reference. Output is overwritten, so require a separate empty target and confirmation._
-- [ ] **EFS: wipe free space (cipher /w)** · 抹乾淨啲冇用嘅空間
+- [x] **EFS: wipe free space (cipher /w)** · 抹乾淨啲冇用嘅空間
   - _cipher /w:<directory|drive> — overwrites all unallocated/slack space on the hosting volume (zeros, then 0xFF, then random), erasing remnants of deleted plaintext. Per Microsoft docs, all other cipher params are ignored when /w is used._
-- [ ] **EFS: backup encryption certificate + key** · 備份 EFS 證書同私鑰
+- [x] **EFS: backup encryption certificate + key** · 備份 EFS 證書同私鑰
   - _cipher /x[:<efsFile>] <outFile.pfx> — exports the user's EFS certificate and private key to a .pfx so encrypted files stay recoverable after a profile/OS reinstall; cipher /y prints the current EFS cert thumbprint. Confirmed against the Microsoft cipher reference._
-- [ ] **EFS: generate Data Recovery Agent cert** · 整個 EFS 救援代理證書
+- [x] **EFS: generate Data Recovery Agent cert** · 整個 EFS 救援代理證書
   - _cipher /r:<fileName> [/smartcard] — generates an EFS recovery-agent key pair, writing <fileName>.cer (public cert) and <fileName>.pfx (cert + private key); the .cer is then added to the EFS recovery policy so an admin can recover any user's files. Confirmed against the Microsoft cipher reference._
-- [ ] **Encrypt folder with EFS (per-file)** · 用 EFS 加密成個資料夾
+- [x] **Encrypt folder with EFS (per-file)** · 用 EFS 加密成個資料夾
   - _cipher /e /s:<folder> marks a tree for EFS encryption (new files inherit); cipher /d /s:<folder> decrypts. Per-file via the FILE_ATTRIBUTE_ENCRYPTED flag (PowerShell (Get-Item x).Encrypt() / Win32 EncryptFile). Distinct from container/volume encryption._
-- [ ] **Defender: toggle Attack Surface Reduction rules** · 開熄 Defender 攻擊面收窄規則
+- [x] **Defender: toggle Attack Surface Reduction rules** · 開熄 Defender 攻擊面收窄規則
   - _Add-MpPreference -AttackSurfaceReductionRules_Ids <ruleGUID> -AttackSurfaceReductionRules_Actions <Enabled|AuditMode|Disabled|Warn>; read current state via (Get-MpPreference).AttackSurfaceReductionRules_Ids/_Actions. Resolve human-readable rule names (e.g. 'Block credential stealing from LSASS') from Microsoft's ASR reference at runtime rather than hardcoding GUIDs._
 
 ### ViveTool · 🆕 new module / 新模組  (15)

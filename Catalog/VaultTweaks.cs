@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Threading.Tasks;
 using Microsoft.Win32;
 using WinForge.Models;
 using WinForge.Services;
@@ -208,6 +210,13 @@ $AsrNames = @{
                 },
                 new WizardStep
                 {
+                    Title = new("Keyfile (optional)", "鎖匙檔（可選）"),
+                    Description = new("Optional keyfile path to combine with the password.",
+                                      "可選鎖匙檔路徑，會同密碼一齊使用。"),
+                    Input = WizardInputKind.Text, Key = "keyfile",
+                },
+                new WizardStep
+                {
                     Title = new("PIM (optional)", "PIM（可選）"),
                     Description = new("Personal Iterations Multiplier; leave 0 if you did not set one.",
                                       "個人迭代倍數；如果冇設定就留 0。"),
@@ -218,6 +227,20 @@ $AsrNames = @{
                     Title = new("Read-only", "唯讀"),
                     Description = new("Mount the volume read-only (no writes).", "以唯讀方式掛載磁碟區（唔可以寫入）。"),
                     Input = WizardInputKind.Toggle, Key = "readonly", Default = "false",
+                },
+                new WizardStep
+                {
+                    Title = new("Removable media", "可移除媒體"),
+                    Description = new("Expose the mounted volume as removable media.",
+                                      "將掛載後嘅磁碟區顯示成可移除媒體。"),
+                    Input = WizardInputKind.Toggle, Key = "removable", Default = "false",
+                },
+                new WizardStep
+                {
+                    Title = new("Open in Explorer", "掛載後開啟"),
+                    Description = new("Open File Explorer after the mount request succeeds.",
+                                      "掛載要求成功後開啟檔案總管。"),
+                    Input = WizardInputKind.Toggle, Key = "explore", Default = "false",
                 },
             },
             async (values, ct) =>
@@ -234,8 +257,13 @@ $AsrNames = @{
                 int pim = int.TryParse(Get(values, "pim"),
                     System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var p) ? p : 0;
                 bool ro = string.Equals(Get(values, "readonly"), "true", StringComparison.OrdinalIgnoreCase);
+                bool removable = string.Equals(Get(values, "removable"), "true", StringComparison.OrdinalIgnoreCase);
+                bool explore = string.Equals(Get(values, "explore"), "true", StringComparison.OrdinalIgnoreCase);
+                var keyfile = Get(values, "keyfile");
                 return await VaultVolumeService.MountAsync(
-                    path, letterStr[0], password, pim: pim, readOnly: ro, ct: ct);
+                    path, letterStr[0], password, pim: pim,
+                    keyfile: string.IsNullOrWhiteSpace(keyfile) ? null : keyfile,
+                    readOnly: ro, removable: removable, explore: explore, ct: ct);
             },
             keywords: "vault,mount,掛載,dialog,wizard,精靈,保險庫"),
 
@@ -244,7 +272,7 @@ $AsrNames = @{
         // 引導式建立：路徑 → 大小 → 演算法 → 雜湊 → 檔案系統 → 密碼，
         // 完成時行返同一個無聲 CreateContainerAsync 流程。
         Tweak.Wizard("vault.veracrypt.create-volume", "Create new volume", "建立新磁碟區",
-            "Guided creation of a new encrypted container — pick path, size, algorithm, hash, file system and password; the same silent engine create runs at the end.", "引導式建立新嘅加密容器 — 揀路徑、大小、演算法、雜湊、檔案系統同密碼；最後行返同一個無聲引擎建立流程。",
+            "Guided creation of a new encrypted container — pick path, size, algorithm, hash, file system, password, optional keyfile and PIM; the same silent engine create runs at the end.", "引導式建立新嘅加密容器 — 揀路徑、大小、演算法、雜湊、檔案系統、密碼、可選鎖匙檔同 PIM；最後行返同一個無聲引擎建立流程。",
             "Create", "建立",
             new[]
             {
@@ -292,6 +320,34 @@ $AsrNames = @{
                                       "磁碟區密碼。揀個夠強嘅 — 唔記得就冇得還原。"),
                     Input = WizardInputKind.Text, Key = "password",
                 },
+                new WizardStep
+                {
+                    Title = new("Keyfile (optional)", "鎖匙檔（可選）"),
+                    Description = new("Optional keyfile path to require along with the password.",
+                                      "可選鎖匙檔路徑，建立後會同密碼一齊需要。"),
+                    Input = WizardInputKind.Text, Key = "keyfile",
+                },
+                new WizardStep
+                {
+                    Title = new("PIM (optional)", "PIM（可選）"),
+                    Description = new("Personal Iterations Multiplier; leave 0 for the default.",
+                                      "個人迭代倍數；用預設就留 0。"),
+                    Input = WizardInputKind.Number, Key = "pim", Default = "0",
+                },
+                new WizardStep
+                {
+                    Title = new("Dynamic container", "動態容器"),
+                    Description = new("Allocate storage as data is written instead of preallocating the full size.",
+                                      "寫入資料時先配置空間，而唔係即時佔用全部大小。"),
+                    Input = WizardInputKind.Toggle, Key = "dynamic", Default = "false",
+                },
+                new WizardStep
+                {
+                    Title = new("Quick format", "快速格式化"),
+                    Description = new("Use quick format for the new container.",
+                                      "新容器使用快速格式化。"),
+                    Input = WizardInputKind.Toggle, Key = "quick", Default = "false",
+                },
             },
             async (values, ct) =>
             {
@@ -306,11 +362,20 @@ $AsrNames = @{
                 if (sizeMb <= 0)
                     return TweakResult.Fail("Enter a valid size in MB.", "請輸入有效嘅大小（MB）。");
                 long sizeBytes = (long)Math.Round(sizeMb * 1024 * 1024);
+                int pim = int.TryParse(Get(values, "pim"),
+                    System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var p) ? p : 0;
+                var keyfile = Get(values, "keyfile");
+                bool dynamic = string.Equals(Get(values, "dynamic"), "true", StringComparison.OrdinalIgnoreCase);
+                bool quick = string.Equals(Get(values, "quick"), "true", StringComparison.OrdinalIgnoreCase);
                 return await VaultVolumeService.CreateContainerAsync(
                     path, sizeBytes, password,
                     algorithm: Get(values, "algorithm", "AES"),
                     hash: Get(values, "hash", "sha512"),
                     fileSystem: Get(values, "filesystem", "FAT"),
+                    pim: pim,
+                    keyfile: string.IsNullOrWhiteSpace(keyfile) ? null : keyfile,
+                    dynamic: dynamic,
+                    quickFormat: quick,
                     ct: ct);
             },
             keywords: "vault,create,建立,volume,wizard,精靈,保險庫"),
@@ -320,10 +385,64 @@ $AsrNames = @{
             "Open wizard", "打開精靈", mount: false, args: "",
             keywords: "vault,wizard,精靈,format,保險庫"),
 
+        Tweak.Wizard("vault.veracrypt.change-password", "Change container password", "更改容器密碼",
+            "Open a selected vault container in the engine so you can run Volume Tools > Change Volume Password.", "用引擎打開所選保險庫容器，之後可行「磁碟區工具 > 更改磁碟區密碼」。",
+            "Open", "打開",
+            new[]
+            {
+                new WizardStep
+                {
+                    Title = new("Container path", "容器路徑"),
+                    Description = new("Full path of the encrypted container whose password you want to change.",
+                                      "要更改密碼嘅加密容器完整路徑。"),
+                    Input = WizardInputKind.Text, Key = "path",
+                },
+            },
+            async (values, ct) =>
+            {
+                var path = Get(values, "path");
+                if (string.IsNullOrWhiteSpace(path))
+                    return TweakResult.Fail("A container path is required.", "必須輸入容器路徑。");
+                return await VaultVolumeService.ChangePasswordAsync(path, ct);
+            },
+            keywords: "vault,change,password,pim,密碼,更改,保險庫"),
+
+        VaultShell("vault.veracrypt.hidden-volume", "Hidden volume wizard", "隱藏磁碟區精靈",
+            "Open the creation wizard for hidden-volume setup.", "打開建立精靈設定隱藏磁碟區。",
+            "Open wizard", "打開精靈", mount: false, args: "",
+            keywords: "vault,hidden,volume,wizard,隱藏,磁碟區,精靈,保險庫"),
+
+        VaultShell("vault.veracrypt.partition-encryption", "Partition / device encryption", "分割區／裝置加密",
+            "Open WinForge Vault for device-hosted volume and partition encryption workflows.", "打開 WinForge 保險庫，處理裝置承載磁碟區同分割區加密流程。",
+            "Open tools", "打開工具", mount: true, args: "",
+            keywords: "vault,partition,device,disk,encryption,分割區,裝置,磁碟,加密,保險庫"),
+
+        VaultShell("vault.veracrypt.system-encryption", "System encryption tools", "系統加密工具",
+            "Open WinForge Vault for operating-system drive encryption tools.", "打開 WinForge 保險庫，處理作業系統磁碟加密工具。",
+            "Open tools", "打開工具", mount: true, args: "",
+            keywords: "vault,system,encryption,boot,os,系統,開機,加密,保險庫"),
+
         VaultShell("vault.veracrypt.keyfile-generator", "Keyfile generator", "金鑰檔產生器",
             "Open WinForge Vault where the Keyfile Generator is under the Tools menu.", "打開 WinForge 保險庫，金鑰檔產生器喺工具選單度。",
             "Open", "打開", mount: true, args: "",
             keywords: "vault,keyfile,金鑰檔,generator,保險庫"),
+
+        new TweakDefinition
+        {
+            Id = "vault.veracrypt.documentation",
+            Title = new("Open vault guide", "打開保險庫指南"),
+            Description = new("Open the bundled WinForge Vault user guide when it is present beside the app.", "如果 app 旁邊有隨附 WinForge 保險庫使用者指南，就打開佢。"),
+            Kind = TweakKind.Action,
+            Keywords = new[] { "vault", "docs", "guide", "documentation", "文件", "指南", "保險庫" },
+            ActionLabel = new("Open", "打開"),
+            RunAsync = ct =>
+            {
+                var guide = FindVaultGuide();
+                return guide is null
+                    ? Task.FromResult(TweakResult.Fail("WinForge Vault guide not found beside the app.", "app 旁邊搵唔到 WinForge 保險庫指南。"))
+                    : ShellRunner.Run("explorer.exe", QuotePath(guide), elevated: false, ct);
+            },
+        },
 
         VaultShell("vault.veracrypt.wipe-cache", "Wipe password cache", "清除密碼快取",
             "Clear cached passwords held in memory quietly.", "靜默清除記憶體中快取嘅密碼。",
@@ -423,6 +542,11 @@ $AsrNames = @{
             "Mount RO", "唯讀掛載", mount: true, args: "",
             keywords: "vault,readonly,唯讀,mount,保險庫"),
 
+        VaultShell("vault.veracrypt.mount-removable", "Mount as removable media", "以可移除媒體掛載",
+            "Open WinForge Vault and use Mount Options to expose the mounted volume as removable media.", "打開 WinForge 保險庫，喺掛載選項度將掛載後嘅磁碟區顯示成可移除媒體。",
+            "Mount RM", "可移除掛載", mount: true, args: "",
+            keywords: "vault,removable,media,可移除,媒體,mount,保險庫"),
+
         VaultShell("vault.veracrypt.set-pim", "Mount with PIM", "以 PIM 掛載",
             "Open WinForge Vault where the PIM field is available in the password prompt.", "打開 WinForge 保險庫，密碼提示度可以輸入 PIM。",
             "Mount PIM", "PIM 掛載", mount: true, args: "",
@@ -457,6 +581,16 @@ $AsrNames = @{
             "CLI fallback: copy the first 131072 bytes of a vault container to a .hdrbak file next to it. This captures the embedded primary header as a RAW copy — it is NOT the official backup-header format. Edit the volume path first.", "命令列備援：將保險庫容器嘅首 131072 位元組複製去旁邊嘅 .hdrbak 檔。呢個係抓內嵌主檔頭嘅原始複本 — 唔係官方嘅備份檔頭格式。先改容器路徑。",
             "Snapshot", "快照", "$src='C:\\path\\to\\volume.wfv'; if (-not (Test-Path $src)) { Write-Host 'Volume not found. Edit the path in this op.'; return }; $dst=$src + '.hdrbak'; $fs=[IO.File]::OpenRead($src); try { $buf=New-Object byte[] 131072; $read=$fs.Read($buf,0,131072); [IO.File]::WriteAllBytes($dst,$buf[0..($read-1)]); Write-Host (\"Wrote raw header snapshot ($read bytes) to: \" + $dst); Write-Host 'NOTE: raw copy only, not the official backup-header format.' } finally { $fs.Dispose() }",
             keywords: "vault,header,raw,131072,檔頭,快照,backup,備份,保險庫"),
+
+        VaultShell("vault.veracrypt.restore-header-gui", "Restore volume header", "還原磁碟區檔頭",
+            "Open WinForge Vault so you can use Tools > Restore Volume Header for the official restore flow.", "打開 WinForge 保險庫，用「工具 > 還原磁碟區檔頭」行官方還原流程。",
+            "Open", "打開", mount: true, args: "",
+            keywords: "vault,restore,header,檔頭,還原,tools,工具,保險庫"),
+
+        Tweak.Powershell("vault.veracrypt.restore-header-raw", "Restore raw header snapshot", "還原原始檔頭快照",
+            "CLI fallback: write up to the first 131072 bytes from a .hdrbak snapshot back over a vault container header. Edit both paths first. This is destructive and is NOT the official restore-header format.", "命令列備援：將 .hdrbak 快照最多首 131072 位元組寫返到保險庫容器檔頭。先改兩個路徑。呢個係破壞性操作，唔係官方還原檔頭格式。",
+            "Restore", "還原", "$src='C:\\path\\to\\volume.wfv'; $bak='C:\\path\\to\\volume.wfv.hdrbak'; if (-not (Test-Path $src)) { Write-Host 'Volume not found. Edit $src first.'; return }; if (-not (Test-Path $bak)) { Write-Host 'Header snapshot not found. Edit $bak first.'; return }; $bytes=[IO.File]::ReadAllBytes($bak); $n=[Math]::Min($bytes.Length,131072); if ($n -le 0) { Write-Host 'Header snapshot is empty.'; return }; $fs=[IO.File]::Open($src,[IO.FileMode]::Open,[IO.FileAccess]::Write,[IO.FileShare]::None); try { $fs.Write($bytes,0,$n); Write-Host (\"Restored raw header bytes: \" + $n) } finally { $fs.Dispose() }",
+            destructive: true, keywords: "vault,restore,header,raw,131072,檔頭,快照,還原,保險庫"),
 
         // --- efs (20) ---
         Tweak.Cmd("vault.efs.show-file-encryption", "Show file encryption state", "顯示檔案加密狀態",
@@ -823,6 +957,24 @@ Write-Host (""Set "" + $AsrNames.Count + "" ASR rules to AuditMode. Use 'List AS
                 return await ShellRunner.Run(exe, args, elevated, ct);
             },
             requiresAdmin: elevated, destructive: destructive, keywords: keywords);
+
+    private static string? FindVaultGuide()
+    {
+        var dir = AppContext.BaseDirectory;
+        var pf = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+        foreach (var p in new[]
+        {
+            Path.Combine(dir, "Vault", "WinForgeVault User Guide.pdf"),
+            Path.Combine(dir, "WinForgeVault User Guide.pdf"),
+            Path.Combine(pf, "VeraCrypt", "VeraCrypt User Guide.pdf"),
+        })
+        {
+            if (File.Exists(p)) return p;
+        }
+        return null;
+    }
+
+    private static string QuotePath(string path) => "\"" + path.Replace("\"", "") + "\"";
 
     // ===================== wizard helpers · 精靈輔助 =====================
 

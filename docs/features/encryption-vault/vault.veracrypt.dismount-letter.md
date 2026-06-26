@@ -4,19 +4,19 @@
 |---|---|
 | **ID** | `vault.veracrypt.dismount-letter` |
 | **Module · 模組** | Encryption & Vault · 加密與保險庫 |
-| **Type · 種類** | Action |
-| **Administrator · 管理員** | No · 唔使 |
-| **Destructive · 具破壞性** | No · 唔係 |
+| **Type · 種類** | Wizard |
+| **Administrator · 管理員** | Yes · 需要 |
+| **Destructive · 具破壞性** | Yes · 係 |
 | **Restart · 重啟** | None |
-| **Action · 動作** | Dismount X · 卸載 X |
+| **Action · 動作** | Dismount · 卸載 |
 
 ## English
-Dismount the volume on drive X (edit the letter as needed).
+Guided dismount — pick a currently-mounted drive letter and optionally force it even if files are open; the same engine dismount runs at the end.
 
 ## 粵語
-卸載 X 磁碟機上嘅磁碟區（按需要改代號）。
+引導式卸載 — 揀一個已掛載嘅磁碟機代號，可選即使有檔案開住都強制卸載；最後行返同一個引擎卸載流程。
 
 ---
-_Keywords · 關鍵字: veracrypt, dismount, 磁碟機, letter, X_
+_Keywords · 關鍵字: vault, dismount, 磁碟機, letter, wizard, 精靈, 保險庫_
 
 _Part of WinForge · WinForge 套件嘅一部分_

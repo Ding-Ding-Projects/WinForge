@@ -54,6 +54,7 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
                     <Grid Grid.Row="0" Grid.ColumnSpan="2" ColumnSpacing="8">
@@ -74,8 +75,17 @@
                     <ComboBox x:Name="CreateFsBox" Grid.Row="3" Grid.Column="0" HorizontalAlignment="Stretch" />
                     <NumberBox x:Name="CreatePimBox" Grid.Row="3" Grid.Column="1" Value="0" Minimum="0" Maximum="2147483" SpinButtonPlacementMode="Inline" />
 
-                    <PasswordBox x:Name="CreatePwdBox" Grid.Row="4" Grid.Column="0" />
-                    <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                    <Grid Grid.Row="4" Grid.Column="0" ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="CreateKeyfileBox" Grid.Column="0" IsReadOnly="True" />
+                        <Button x:Name="CreateKeyfileBtn" Grid.Column="1" Click="PickCreateKeyfile_Click" />
+                    </Grid>
+                    <PasswordBox x:Name="CreatePwdBox" Grid.Row="4" Grid.Column="1" />
+
+                    <StackPanel Grid.Row="5" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
                         <CheckBox x:Name="CreateDynamicChk" />
                         <CheckBox x:Name="CreateQuickChk" />
                         <Button x:Name="CreateBtn" Click="Create_Click" Style="{StaticResource AccentButtonStyle}" />

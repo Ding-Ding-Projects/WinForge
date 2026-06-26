@@ -17,6 +17,6 @@ Open File Explorer to browse a mounted volume (edit drive letter).
 打開檔案總管瀏覽已掛載磁碟區（改磁碟機代號）。
 
 ---
-_Keywords · 關鍵字: veracrypt, explore, 瀏覽, explorer, volume_
+_Keywords · 關鍵字: vault, explore, 瀏覽, explorer, volume, 保險庫_
 
 _Part of WinForge · WinForge 套件嘅一部分_

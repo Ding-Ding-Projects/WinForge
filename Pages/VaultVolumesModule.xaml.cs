@@ -55,6 +55,8 @@ public sealed partial class VaultVolumesModule : Page
         CreateHashBox.Header = P("Hash (PRF)", "雜湊（PRF）");
         CreateFsBox.Header = P("File system", "檔案系統");
         CreatePimBox.Header = P("PIM (0 = default)", "PIM（0 = 預設）");
+        CreateKeyfileBox.PlaceholderText = P("Keyfile (optional)", "鎖匙檔（選填）");
+        CreateKeyfileBtn.Content = P("Browse…", "瀏覽…");
         CreatePwdBox.Header = P("Password", "密碼");
         CreatePwdBox.PlaceholderText = P("Volume password", "磁碟區密碼");
         CreateDynamicChk.Content = P("Dynamic", "動態");
@@ -155,6 +157,12 @@ public sealed partial class VaultVolumesModule : Page
         if (path is not null) CreatePathBox.Text = path;
     }
 
+    private async void PickCreateKeyfile_Click(object sender, RoutedEventArgs e)
+    {
+        var path = await FileDialogs.OpenFileAsync();
+        if (path is not null) CreateKeyfileBox.Text = path;
+    }
+
     private async void PickMountPath_Click(object sender, RoutedEventArgs e)
     {
         var path = await FileDialogs.OpenFileAsync(VaultVolumeService.ContainerExtension, ".hc", ".tc", ".*");
@@ -198,7 +206,9 @@ public sealed partial class VaultVolumesModule : Page
 
         await Run(() => VaultVolumeService.CreateContainerAsync(
             CreatePathBox.Text, bytes, CreatePwdBox.Password, algo, hash, fs,
-            (int)CreatePimBox.Value, null, CreateDynamicChk.IsChecked == true, CreateQuickChk.IsChecked == true),
+            (int)CreatePimBox.Value,
+            string.IsNullOrWhiteSpace(CreateKeyfileBox.Text) ? null : CreateKeyfileBox.Text,
+            CreateDynamicChk.IsChecked == true, CreateQuickChk.IsChecked == true),
             P("Create", "建立"));
 
         // Pre-fill the mount box with what we just created for a smooth create → mount flow.

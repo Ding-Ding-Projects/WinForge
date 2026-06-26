@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Status** | Not started |
+| **Status** | Implemented in WinForge; branch verification in progress |
 | **Source** | Local fork: `C:\Users\<USER>\Documents\GitHub\SecureVault` (VeraCrypt → TrueCrypt 7.1a derived, C/C++) |
 | **License** | Apache License 2.0 (VeraCrypt portions) + TrueCrypt License 3.0 (legacy parts). Source-available; **derived works must NOT use the "TrueCrypt" / "VeraCrypt" names or logos** — de-brand mandatory. |
-| **Proposed module** | "WinForge Vault" (粵語: WinForge 保險庫) · left-nav group **Security & Privacy** · Tag `module.vault-volumes` |
+| **Implemented module** | "WinForge Vault" (粵語: WinForge 保險庫) · left-nav group **Security & Privacy** · Tag `module.vault-volumes` |
 | **Effort** | **L** — no native crypto to write, but a rich create/mount/dismount front-end over a CLI, plus elevation, progress parsing and bundling the de-branded binary. |
 
 ## What the user asked for
@@ -16,16 +16,16 @@ Bring SecureVault (a VeraCrypt/TrueCrypt fork) into WinForge as a disk-encryptio
 
 Realistic v1: a WinUI page that drives a **de-branded** `VeraCrypt.exe` / `VeraCrypt Format.exe` (renamed, e.g. `WinForgeVault.exe`) via its documented switches for mount, dismount, and silent operations, plus a guided "Create container" wizard. **Note:** `Catalog/VaultTweaks.cs` already ships ~20 VeraCrypt ops (`vault.veracrypt.*`) that shell out to `%ProgramFiles%\VeraCrypt\...`. **Extend that, do not duplicate** — the new module should host a real UI flow; keep the catalog ops as quick-actions but repoint paths to the bundled de-branded binary.
 
-## Features to implement (v1 → later)
+## Implemented features
 - **v1:** Create encrypted file container (size, filesystem, AES/Serpent/Twofish, password, optional keyfile/PIM) via `Format.exe`; mount to a chosen drive letter (`/v /l /p /pim /k /q`); dismount one / dismount-all / force-dismount (`/d /f`); change volume password; list mounted volumes; run algorithm benchmark; open a mounted volume in Explorer.
-- **later:** Hidden volumes, full-partition/system encryption, favourites & auto-mount, keyfile generator, traveler-disk, volume header backup/restore, read-only / removable-media mount options.
+- **Extended surface:** Hidden-volume wizard entry, partition/device encryption entry, system-encryption entry, favourites & auto-mount, keyfile generator, traveler-disk, volume header backup/restore, read-only and removable-media mount options.
 
-## Integration plan (WinForge specifics)
-- **New files:** `Services/VaultVolumeService.cs` (build CLI arg strings, call `ShellRunner.Run` with `elevated:true` where needed, parse mount list), `Pages/VaultVolumesModule.xaml` + `.cs` (wizard + mounted-volumes list). Extend existing `Catalog/VaultTweaks.cs` rather than adding a new catalog file.
-- **Nav wiring:** add `NavigationViewItem Tag="module.vault-volumes"` in `MainWindow.xaml` (Security & Privacy group); add a `ModuleRegistry` entry (`Services/ModuleRegistry.cs`) for master search; wire the Tag in `MainWindow.xaml.cs` `MapType`, `NavView_SelectionChanged`, and `ApplyStartPage` (`--page vault-volumes`).
-- **Engine/install:** winget id `n/a` (SecureVault is a custom fork — not in winget). Bundle the de-branded binary in the package and detect it; use `EngineBars.AutoInstallButton` only as a fallback pointing at upstream `VeraCrypt.VeraCrypt` if the bundled binary is missing. Show an InfoBar when the binary/driver is absent.
-- **Pickers:** ALWAYS use `Services/FileDialogs.cs` (Win32 COM) for container path / keyfile / target folder — never WinRT pickers (module runs elevated).
-- **Key CLIs to call:** `WinForgeVault.exe /v <file> /l <letter> /p <pwd> /pim <n> /k <keyfile> /q /silent`; dismount `/d [letter] /f`; format wizard `WinForgeVault Format.exe`; benchmark/settings via the GUI exe.
+## Implemented integration (WinForge specifics)
+- `Services/VaultVolumeService.cs` builds CLI argument strings, calls `ShellRunner.Run` with elevation where needed, and re-lists drives to confirm state.
+- `Pages/VaultVolumesModule.xaml` + `.cs` host create, mount, mounted-volume, browse, dismount, password-change, cache-wipe and benchmark flows.
+- `Catalog/VaultTweaks.cs` keeps the quick actions in the existing Security & Vault catalog and routes them through the same service where a direct flow exists.
+- Navigation is wired through `MainWindow.xaml`, `MainWindow.xaml.cs`, and `Services/ModuleRegistry.cs`.
+- File and folder selection uses `Services/FileDialogs.cs`; no WinRT picker is used by the module.
 
 ## Dependencies & risks
 - Mount/dismount and the kernel driver require **elevation** — route through `ShellRunner.Run(..., elevated:true)`; captured output is unavailable under UAC, so confirm state by re-listing drives.

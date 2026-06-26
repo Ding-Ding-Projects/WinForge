@@ -1,8 +1,8 @@
-# Open vault guide · 打開保險庫指南
+# Restore volume header · 還原磁碟區檔頭
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| **ID** | `vault.veracrypt.documentation` |
+| **ID** | `vault.veracrypt.restore-header-gui` |
 | **Module · 模組** | Encryption & Vault · 加密與保險庫 |
 | **Type · 種類** | Action |
 | **Administrator · 管理員** | No · 唔使 |
@@ -11,12 +11,12 @@
 | **Action · 動作** | Open · 打開 |
 
 ## English
-Open the bundled WinForge Vault user guide when it is present beside the app.
+Open WinForge Vault so you can use Tools > Restore Volume Header for the official restore flow.
 
 ## 粵語
-如果 app 旁邊有隨附 WinForge 保險庫使用者指南，就打開佢。
+打開 WinForge 保險庫，用「工具 > 還原磁碟區檔頭」行官方還原流程。
 
 ---
-_Keywords · 關鍵字: vault, docs, guide, documentation, 文件, 指南, 保險庫_
+_Keywords · 關鍵字: vault, restore, header, 檔頭, 還原, tools, 工具, 保險庫_
 
 _Part of WinForge · WinForge 套件嘅一部分_
