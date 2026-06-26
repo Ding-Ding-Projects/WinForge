@@ -5,7 +5,7 @@
 **An all-in-one, fully bilingual Windows 11 control center — every module is real and working — crowned by a hyper-realistic flagship nuclear-reactor simulator.**
 **一個全方位、全程雙語嘅 Windows 11 控制中心 — 每個模組都係真正用得 — 仲有一個超寫實嘅旗艦核反應堆模擬器坐鎮。**
 
-`WinUI 3 · .NET 11` · `English + 繁體中文／粵語` · `x64` · `100+ in-app modules` · `everything runs in-app`
+`WinUI 3 · .NET 11` · `English + 繁體中文／粵語` · `x64` · `136 registered modules` · `147 screenshots` · `everything runs in-app`
 
 </div>
 
@@ -13,9 +13,9 @@
 
 ## 🌏 Overview · 概覽
 
-**EN —** WinForge is an all-in-one, fully bilingual control center for Windows 11. It gathers 100+ real, working modules — system tweaking, files & disks, media & capture, developer tooling, networking, package management, AI, window management, PowerToys-style utilities, security vaults, virtualization and gaming — into a single **WinUI 3 / .NET 11** app where every English label is paired with **繁體中文／粵語** and every action actually changes the system. Its flagship is a **hyper-realistic Pressurized Water Reactor (PWR) control-room simulator** with full point-kinetics physics, a fuel-and-waste fuel cycle, a water-treatment plant, and Westinghouse-style safety systems.
+**EN —** WinForge is an all-in-one, fully bilingual control center for Windows 11. It gathers 136 registered, working modules — system tweaking, files & disks, media & capture, developer tooling, networking, package management, AI, window management, PowerToys-style utilities, security vaults, virtualization and gaming — into a single **WinUI 3 / .NET 11** app where every English label is paired with **繁體中文／粵語** and every action actually changes the system. Its flagship is a **hyper-realistic Pressurized Water Reactor (PWR) control-room simulator** with full point-kinetics physics, a fuel-and-waste fuel cycle, a water-treatment plant, and Westinghouse-style safety systems.
 
-**粵語 —** WinForge 係一個畀 Windows 11 用嘅全方位、全程雙語控制中心。佢將 100+ 個真正用得嘅模組 — 系統調校、檔案與磁碟、媒體與擷取、開發者工具、網絡、套件管理、AI、視窗管理、PowerToys 式工具、安全保險庫、虛擬化同遊戲 — 全部集合喺一個 **WinUI 3 / .NET 11** app 入面，每個英文標籤都配上**繁體中文／粵語**，而且每個動作都真正改到部機。佢嘅旗艦係一個**超寫實壓水堆（PWR）控制室模擬器**，附完整點動力學物理、燃料與廢料燃料循環、水處理廠同西屋式保護系統。
+**粵語 —** WinForge 係一個畀 Windows 11 用嘅全方位、全程雙語控制中心。佢將 136 個已登記、真正用得嘅模組 — 系統調校、檔案與磁碟、媒體與擷取、開發者工具、網絡、套件管理、AI、視窗管理、PowerToys 式工具、安全保險庫、虛擬化同遊戲 — 全部集合喺一個 **WinUI 3 / .NET 11** app 入面，每個英文標籤都配上**繁體中文／粵語**，而且每個動作都真正改到部機。佢嘅旗艦係一個**超寫實壓水堆（PWR）控制室模擬器**，附完整點動力學物理、燃料與廢料燃料循環、水處理廠同西屋式保護系統。
 
 ---
 
@@ -24,6 +24,7 @@
 - [Build & Run · 建置與執行](#-build--run--建置與執行)
 - [Highlights · 重點](#-highlights--重點)
 - [Flagship: Nuclear Reactor · 旗艦：核反應堆](#-flagship-nuclear-reactor--旗艦核反應堆)
+- [Screenshots · 截圖](#-screenshots--截圖)
 - [Module Catalog · 模組目錄](#-module-catalog--模組目錄)
 - [Documentation & Wiki · 文件與 Wiki](#-documentation--wiki--文件與-wiki)
 - [License · 授權條款](#-license--授權條款)
@@ -61,7 +62,7 @@ dotnet publish WinForge.csproj -c Release -p:Platform=x64 -r win-x64 ^
 ## ✨ Highlights · 重點
 
 **EN —**
-- **All-in-one control center** — 100+ modules in one app; nothing redirects to external windows, everything runs in-app. · **全方位控制中心** — 一個 app 過百模組；唔會跳去外部視窗，一切喺 app 內運行。
+- **All-in-one control center** — 136 registered modules in one app; nothing redirects to external windows, everything runs in-app. · **全方位控制中心** — 一個 app 內有 136 個已登記模組；唔會跳去外部視窗，一切喺 app 內運行。
 - **Fully bilingual** — English and 繁體中文／粵語 appear together on every surface; choose which language leads, UI updates live. · **全程雙語** — 每個介面同時顯示英文同繁體中文／粵語；可揀邊種語言排前，介面即時更新。
 - **Real engines, real effects** — wraps git/gh, ffmpeg, 7-Zip, yt-dlp, cloudflared, winget, libVLC, Docker and more, plus native Windows APIs — no fake toggles. · **真實引擎、真實效果** — 包住 git/gh、ffmpeg、7-Zip、yt-dlp、cloudflared、winget、libVLC、Docker 等同原生 Windows API — 冇假開關。
 - **Master search** — find and launch any module from the Dashboard. · **總搜尋** — 喺概覽頁搵到同啟動任何模組。
@@ -85,6 +86,22 @@ dotnet publish WinForge.csproj -c Release -p:Platform=x64 -r win-x64 ^
 | **Safety** · 安全 | **Meltdown → real PC shutdown is OFF by default** — a meltdown only shows a simulated overlay unless you explicitly arm "ARM REAL SHUTDOWN" (an abortable 10 s Windows shutdown). <br> **熔毀真實關機預設 OFF** — 熔毀只播模擬畫面，除非你明確開啟「ARM REAL SHUTDOWN」（可中止嘅 10 秒 Windows 關機）。 |
 
 > Open it directly · 直接開啟: `WinForge.exe --page reactor`. Full procedures (startup-to-shutdown, scenarios, protection system) are in the [Nuclear Reactor Operating Manual](docs/wiki/Nuclear-Reactor-Operating-Manual.md). · 完整程序見[核反應堆操作手冊](docs/wiki/Nuclear-Reactor-Operating-Manual.md)。
+
+---
+
+## 🖼️ Screenshots · 截圖
+
+**EN —** The canonical screenshot set lives in [`docs/`](docs/) as `screenshot-<key>.png`; the full gallery is in [docs/wiki/Screenshots.md](docs/wiki/Screenshots.md). The headline gallery below uses repo-level screenshots, with a larger module-by-module gallery in the wiki.
+
+**粵語 —** 正式截圖放喺 [`docs/`](docs/)，命名為 `screenshot-<key>.png`；完整畫廊喺 [docs/wiki/Screenshots.md](docs/wiki/Screenshots.md)。下面嘅重點畫廊使用 repo 層級截圖，wiki 入面有更完整嘅逐模組畫廊。
+
+| | |
+|---|---|
+| ![Dashboard](docs/screenshot-dashboard.png) <br> **Dashboard · 概覽** | ![Nuclear Reactor](docs/screenshot-reactor.png) <br> **Nuclear Reactor · 核反應堆** |
+| ![Settings & Control Panel](docs/screenshot-settingshub.png) <br> **Settings & Control Panel · 設定與控制台** | ![Cloudflare & Tunnel](docs/screenshot-cloudflare.png) <br> **Cloudflare & Tunnel · Cloudflare 與 Tunnel** |
+| ![AI Agents](docs/screenshot-aiagents.png) <br> **AI Agents · AI 代理** | ![Git & GitHub](docs/screenshot-git.png) <br> **Git & GitHub · Git 與 GitHub** |
+| ![Package Manager](docs/screenshot-packages.png) <br> **Package Manager · 套件管理** | ![Media](docs/screenshot-media.png) <br> **Media · 媒體** |
+| ![System Monitor](docs/screenshot-monitor.png) <br> **System Monitor · 系統監察** | ![Docker](docs/screenshot-docker.png) <br> **Docker · Docker 容器管理** |
 
 ---
 
@@ -152,7 +169,7 @@ dotnet publish WinForge.csproj -c Release -p:Platform=x64 -r win-x64 ^
 | Module · 模組 | Description · 說明 | `--page` |
 |---|---|---|
 | **Media · 媒體** | ffmpeg-powered video/audio convert, trim and GIF making. <br> 用 ffmpeg 轉檔、剪裁影音同整 GIF。 | `media` |
-| **Audio Editor · 音訊編輯器** | Audacity-style waveform recording, trimming and effects. <br> Audacity 式波形錄音、剪裁同效果處理。 | `audioeditor` |
+| **Audio Editor · 音訊編輯器** | In-app waveform recording, trimming and effects. <br> App 內波形錄音、剪裁同效果處理。 | `audioeditor` |
 | **Audio Tagger · 音訊標籤編輯器** | Batch-edit ID3/audio metadata and cover art. <br> 批次編輯 ID3／音訊中繼資料同封面圖。 | `tags` |
 | **Media Player · 媒體播放器** | libVLC player with streams, subtitles and snapshots. <br> libVLC 播放器，支援串流、字幕同截圖。 | `mediaplayer` |
 | **Media Downloader · 媒體下載器** | yt-dlp video/audio downloads with quality and subtitle options. <br> yt-dlp 下載影音，可選畫質同字幕。 | `ytdlp` |
@@ -257,7 +274,7 @@ dotnet publish WinForge.csproj -c Release -p:Platform=x64 -r win-x64 ^
 | **Taskbar Tweaker · 工作列調校** | Tweak taskbar alignment, button combining, tray and clock. <br> 調校工作列對齊、合併按鈕、系統匣同時鐘。 | `taskbar-tweaker` |
 | **Windhawk Mods · Windhawk 模組** | Manage Windhawk mods that customize the taskbar, clock and shell. <br> 管理 Windhawk 模組，自訂工作列、時鐘同殼層。 | `windhawk` |
 | **LightSwitch (Auto Dark Mode) · 自動深淺色** | Automatically switch light/dark theme on a sunrise/sunset schedule. <br> 按日出日落排程自動切換深淺色主題。 | `lightswitch` |
-| **Rainmeter Widgets · Rainmeter 桌面小工具** | Install and toggle Rainmeter desktop skins and widgets. <br> 安裝同切換 Rainmeter 桌面皮膚同小工具。 | `taskbar` |
+| **Rainmeter Widgets · Rainmeter 桌面小工具** | Install and toggle Rainmeter desktop skins and widgets. <br> 安裝同切換 Rainmeter 桌面皮膚同小工具。 | `rainmeter` |
 | **Time & Unit Tools · 時間與單位工具** | World clock, time-zone converter and unit converters. <br> 世界時鐘、時區換算同單位換算。 | `time` |
 | **Flashcards · 間隔重複記憶卡** | Spaced-repetition flashcard study with SM-2 scheduling. <br> 用 SM-2 排程嘅間隔重複記憶卡學習。 | `flashcards` |
 

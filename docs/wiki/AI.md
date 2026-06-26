@@ -10,7 +10,7 @@ Install and launch terminal AI coding agents (Claude Code, Codex and more).
 
 Open in-app · 喺 App 內開啟: `WinForge.exe --page ai`
 
-![AI Agents](images/screenshot-ai.png)
+![AI Agents](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-ai.png)
 
 ## AI Chat · AI 聊天
 
@@ -19,7 +19,7 @@ OpenWebUI 式聊天，連接本機同雲端大模型。
 
 Open in-app · 喺 App 內開啟: `WinForge.exe --page aichat`
 
-![AI Chat](images/screenshot-aichat.png)
+![AI Chat](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-aichat.png)
 
 ## Ollama · 本地大模型
 
@@ -28,6 +28,6 @@ Pull, serve and chat with local GGUF models via Ollama.
 
 Open in-app · 喺 App 內開啟: `WinForge.exe --page ollama`
 
-![Ollama](images/screenshot-ollama.png)
+![Ollama](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-ollama.png)
 
 [← Wiki Home](Home.md)

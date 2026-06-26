@@ -6,7 +6,7 @@
 
 Open in-app · 喺 app 內開啟：`WinForge.exe --reactor` (or `--page reactor`)
 
-![Nuclear Reactor · 核反應堆](images/screenshot-reactor.png)
+![Nuclear Reactor · 核反應堆](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-reactor.png)
 
 ---
 

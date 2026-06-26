@@ -34,8 +34,8 @@ git push
 
 ## Pages · 頁
 
-- `Home.md` — **categorized index of all 112 modules** (landing page) · **全部 112 個模組嘅分類索引**（首頁）
-- `Screenshots.md` — image inventory + capture status · 圖檔清單同擷取狀態
+- `Home.md` — **categorized index of 136 registered modules** (landing page) · **136 個已登記模組嘅分類索引**（首頁）
+- `Screenshots.md` — image inventory + capture status; canonical PNGs live in `../../docs/` · 圖檔清單同擷取狀態；正式 PNG 放喺 `../../docs/`
 - One deeper page per headline module · 每個重點模組一頁: Dashboard, Git-and-GitHub, Package-Manager,
   Cloudflare-and-Tunnel, AI-Agents, Media, Settings-and-Control-Panel, Clipboard, Connections,
   System-Monitor.

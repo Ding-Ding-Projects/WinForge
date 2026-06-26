@@ -432,6 +432,11 @@ public sealed partial class MainWindow : Window
             case "powertoys-zones":
                 Navigator.GoToModule?.Invoke("module.fancyzones");
                 break;
+            case "altsnap":
+            case "altdrag":
+            case "module.altsnap":
+                Navigator.GoToModule?.Invoke("module.altsnap");
+                break;
             case "komorebi":
             case "tiling":
             case "komorebic":
@@ -515,6 +520,12 @@ public sealed partial class MainWindow : Window
             case "systeminformer":
                 Navigator.GoToModule?.Invoke("module.procexp");
                 break;
+            case "battery":
+            case "thermal":
+            case "powercfg":
+            case "module.battery":
+                Navigator.GoToModule?.Invoke("module.battery");
+                break;
             case "winfetch":
             case "sysinfo":
             case "systeminfo":
@@ -558,6 +569,12 @@ public sealed partial class MainWindow : Window
             case "winforgemenu":
             case "shellcontextmenu":
                 Navigator.GoToModule?.Invoke("module.shellmenu");
+                break;
+            case "nilesoftshell":
+            case "nilesoft":
+            case "nss":
+            case "module.nilesoftshell":
+                Navigator.GoToModule?.Invoke("module.nilesoftshell");
                 break;
             case "awake":
                 Navigator.GoToModule?.Invoke("module.awake");
@@ -674,6 +691,12 @@ public sealed partial class MainWindow : Window
             case "conpty":
                 Navigator.GoToModule?.Invoke("module.terminal");
                 break;
+            case "ssh":
+            case "scp":
+            case "openssh":
+            case "module.ssh":
+                Navigator.GoToModule?.Invoke("module.ssh");
+                break;
             case "onedrive":
                 Navigator.GoToModule?.Invoke("module.onedrive");
                 break;
@@ -709,6 +732,13 @@ public sealed partial class MainWindow : Window
             case "paper":
             case "spigot":
                 Navigator.GoToModule?.Invoke("module.minecraftserver");
+                break;
+            case "viaproxy":
+            case "viaversion":
+            case "viabackwards":
+            case "viarewind":
+            case "module.viaproxy":
+                Navigator.GoToModule?.Invoke("module.viaproxy");
                 break;
             case "voice":
             case "tts":
@@ -848,7 +878,9 @@ public sealed partial class MainWindow : Window
                 break;
             case null:
             case "":
+                break;
             case "dashboard":
+                NavigateActive("dashboard");
                 break;
             case "about":
                 NavigateActive("about");

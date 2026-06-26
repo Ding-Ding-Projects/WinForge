@@ -10,7 +10,7 @@ Launch the Amulet Minecraft world/map editor with backups.
 
 Open in-app: `WinForge.exe --page amulet`
 
-![Minecraft World Editor (Amulet)](images/screenshot-amulet.png)
+![Minecraft World Editor (Amulet)](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-amulet.png)
 
 ## Minecraft Server · Minecraft 伺服器
 
@@ -19,7 +19,7 @@ Set up and run a Paper/Spigot server with plugins and console.
 
 Open in-app: `WinForge.exe --page minecraftserver`
 
-![Minecraft Server](images/screenshot-minecraftserver.png)
+![Minecraft Server](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-minecraftserver.png)
 
 ## ViaProxy · Minecraft 版本代理
 
@@ -28,7 +28,7 @@ Cross-version Minecraft protocol bridge (ViaVersion-based).
 
 Open in-app: `WinForge.exe --page viaproxy`
 
-![ViaProxy](images/screenshot-viaproxy.png)
+![ViaProxy](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-viaproxy.png)
 
 ## Imaging & Game Tools · 燒錄與遊戲工具
 
@@ -37,6 +37,6 @@ USB／SD 燒錄（Rufus、Pi Imager）同 Minecraft 世界下載器。
 
 Open in-app: `WinForge.exe --page imaging`
 
-![Imaging & Game Tools](images/screenshot-imaging.png)
+![Imaging & Game Tools](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-imaging.png)
 
 [← Wiki Home](Home.md)

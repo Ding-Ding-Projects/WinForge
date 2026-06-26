@@ -8,7 +8,7 @@
 
 **粵語 —** 以上全部都喺一個**獨立嘅反應堆設定頁**（反應堆工具列嘅 ⚙ 掣，或 `WinForge.exe --page reactorsettings`），同純模擬控制分開。預設：真實關機 **OFF**、Windows 設定連動 **OFF**、Home Assistant 連動 **OFF**、狀態 API **ON**、自動儲存 **ON**、保持喚醒 **ON**。
 
-![Reactor Settings · 反應堆設定](images/screenshot-reactorsettings.png)
+![Reactor Settings · 反應堆設定](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-reactorsettings.png)
 
 ---
 

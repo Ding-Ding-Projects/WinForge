@@ -8,7 +8,7 @@ On-the-fly encrypted volume containers (VeraCrypt-derived). · 即時加密嘅�
 
 Open in-app: `WinForge.exe --page vault-volumes`
 
-![WinForge Vault](images/screenshot-vault-volumes.png)
+![WinForge Vault](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-vault.png)
 
 ## Bitwarden Vault · Bitwarden 密碼庫
 
@@ -16,7 +16,7 @@ Drive the Bitwarden CLI for logins, TOTP and generators. · 驅動 Bitwarden CLI
 
 Open in-app: `WinForge.exe --page bitwarden`
 
-![Bitwarden Vault](images/screenshot-bitwarden.png)
+![Bitwarden Vault](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-bitwarden.png)
 
 ## KeePass Vault · 密碼保險庫
 
@@ -24,6 +24,6 @@ Local offline KeePass (kdbx) password vault, natively encrypted. · 本機離線
 
 Open in-app: `WinForge.exe --page keepass`
 
-![KeePass Vault](images/screenshot-keepass.png)
+![KeePass Vault](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-keepass.png)
 
 [← Wiki Home](Home.md)

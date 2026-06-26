@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Not started |
+| **Status** | Completed for current docs pass — README/wiki expanded; canonical screenshot inventory promoted to `docs/`; pending module captures added |
 | **Source** | Local: `README.md`, `docs/screenshot-*.png`, `docs/features/`, plus the GitHub wiki (`https://github.com/codingmachineedge/WinForge/wiki`) |
 | **License** | Project: MIT (see `LICENSE`). Screenshots and docs ship under the same repo license. |
 | **Proposed module** | Docs task — no new module. (Touches `Documentation` section only; not a NavigationView page.) |
@@ -15,7 +15,7 @@ Capture fresh screenshots of every major module by actually running the app and 
 Pure documentation — no native clone or CLI wrap applies (global strategy is N/A here). The deliverable is images plus markdown. Realistic v1: a complete, current screenshot set under `docs/`, a README that shows far more than the two images it has today (`screenshot-dashboard.png`, `screenshot-git.png`), and a wiki page per major module. Be honest: this requires building and launching the app, so it cannot be done by editing files alone — it needs a Debug x64 build and computer-use to drive the UI and capture each page.
 
 ## Features to implement (v1 → later)
-- v1: Recapture existing stale shots and ADD missing ones. Confirmed-missing screenshots (no file in `docs/` today): `screenshot-cloudflare.png`, `screenshot-aiagents.png`, `screenshot-settingshub.png`, `screenshot-ssh.png` (if an SSH module/flow exists), and a refreshed `screenshot-packages.png`. Existing-but-likely-stale: dashboard, git, media, monitor, clipboard.
+- v1: Recapture existing stale shots and ADD missing ones. Current repo state: `docs/` has 147 `screenshot-*.png` files after promoting the tracked wiki image set and adding dedicated captures for SSH Toolset, Battery & Thermal, Nilesoft Shell, Activity Timeline, Audio Editor, qBittorrent, AltSnap, Taskbar Tweaker, LightSwitch, and ViaProxy. `screenshot-cloudflare.png`, `screenshot-aiagents.png`, `screenshot-settingshub.png`, and `screenshot-packages.png` are no longer placeholders.
 - v1: Embed a "Suite modules" gallery in `README.md` (one image per major module: Dashboard, Git/GitHub, Package Manager, Cloudflare, AI Agents, Media, Settings hub, Clipboard, SSH/Connections), each with a bilingual one-line caption.
 - v1: One wiki page per major module, each embedding its screenshot via the raw GitHub URL (`https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/<file>.png`).
 - later: Animated GIFs for flagship flows (chunked uploader in Git/GitHub, batch update in Package Manager). A short "module index" wiki home page linking every page.
