@@ -603,6 +603,7 @@
                 <button class="action" type="button" data-action="extractVanilla">Extract vanilla</button>
                 <button class="action" type="button" data-action="processCocoa">Roast cocoa</button>
                 <button class="action" type="button" data-action="runSaltWorks">Salt works</button>
+                <button class="action" type="button" data-action="runStarchPlant">Starch plant</button>
                 <button class="action" type="button" data-action="runLeaveningPlant">Leavening plant</button>
                 <button class="action" type="button" data-action="runPackagingPlant">Packaging plant</button>
                 <button class="action" type="button" data-action="prepareIcing">Prepare icing</button>
@@ -760,6 +761,7 @@
       SupplyOrderStatus: 'No supplier delivery scheduled.',
       CanProcessCocoa: false,
       CanRunSaltWorks: false,
+      CanRunStarchPlant: false,
       CanRunLeaveningPlant: false,
       CanRunPackagingPlant: false,
       CanPrepareIcing: false,
@@ -840,6 +842,7 @@
       ButterLotId: 'BUTTER-OPENING',
       CocoaLotId: 'COCOA-OPENING',
       SaltLotId: 'SALT-OPENING',
+      StarchLotId: 'STARCH-OPENING',
       LeaveningLotId: 'LEAVEN-OPENING',
       PackagingLotId: 'PACK-OPENING',
       IcingLotId: 'ICING-OPENING',
@@ -936,6 +939,8 @@
       CocoaCalibrationPct: 95,
       SaltConditionPct: 92,
       SaltCalibrationPct: 93,
+      StarchConditionPct: 92,
+      StarchCalibrationPct: 95,
       LeaveningConditionPct: 94,
       LeaveningCalibrationPct: 96,
       PackagingConditionPct: 91,
@@ -956,6 +961,9 @@
       CocoaGrindMicrons: 0,
       BrineSalinityPct: 2.6,
       SaltCrystallizerTemperatureC: 24,
+      StarchSlurryBrix: 0,
+      StarchDryerTemperatureC: 24,
+      StarchMoisturePct: 12.5,
       LeaveningMixerRpm: 0,
       LeaveningHomogeneityPct: 0,
       CartonFormerSpeedCpm: 0,
@@ -1150,6 +1158,7 @@
       setButton('runMineralPlant', s.CanRunMineralPlant);
       setButton('processCocoa', s.CanProcessCocoa);
       setButton('runSaltWorks', s.CanRunSaltWorks);
+      setButton('runStarchPlant', s.CanRunStarchPlant);
       setButton('runLeaveningPlant', s.CanRunLeaveningPlant);
       setButton('runPackagingPlant', s.CanRunPackagingPlant);
       setButton('prepareIcing', s.CanPrepareIcing);
@@ -1208,7 +1217,7 @@
         ['Brine', `${n(s.BrineL, 0)} L`],
         ['Soda ash', `${n(s.SodaAshKg, 1)} kg`],
         ['Phosphate', `${n(s.PhosphateKg, 1)} kg`],
-        ['Starch carrier', `${n(s.StarchKg, 1)} kg`],
+        ['Starch carrier', `${n(s.StarchKg, 1)} kg / ${s.StarchLotId || '-'}`],
         ['Process water', `${n(s.ProcessWaterL, 0)} L`],
         ['Culinary steam', `${n(s.CulinarySteamKg, 0)} kg`],
         ['Compressed air', `${n(s.CompressedAirNm3, 0)} Nm3`],
@@ -1261,6 +1270,8 @@
         ['Bedding lot', `${s.BeddingLotId || '-'} / ${n(s.BeddingKg, 1)} kg`],
         ['Mineral premix plant', `${n(s.MineralMixerRpm, 0)} rpm / ${n(s.MineralHomogeneityPct, 1)}% blend / ${n(s.MineralMetalPpm, 1)} ppm metal`],
         ['Mineral premix lot', `${s.DairyMineralLotId || '-'} / ${n(s.DairyMineralKg, 1)} kg`],
+        ['Starch plant', `${n(s.StarchSlurryBrix, 1)} Brix / ${n(s.StarchDryerTemperatureC, 0)} degC / ${n(s.StarchMoisturePct, 1)}% moisture`],
+        ['Starch lot', `${s.StarchLotId || '-'} / ${n(s.StarchKg, 1)} kg`],
         ['Customer order', s.CurrentOrderId || '-'],
         ['Order status', s.OrderStatus || 'No active order'],
         ['Order ready', `${s.OrderCakesReady || 0}/${s.OrderCakesRequired || 0} cakes / ${n(s.OrderSecondsRemaining, 0)}s`],
@@ -1273,6 +1284,7 @@
         ['Vanilla asset', `${n(s.VanillaConditionPct, 0)}% / ${n(s.VanillaCalibrationPct, 0)}% cal`],
         ['Cocoa asset', `${n(s.CocoaConditionPct, 0)}% / ${n(s.CocoaCalibrationPct, 0)}% cal`],
         ['Salt asset', `${n(s.SaltConditionPct, 0)}% / ${n(s.SaltCalibrationPct, 0)}% cal`],
+        ['Starch asset', `${n(s.StarchConditionPct, 0)}% / ${n(s.StarchCalibrationPct, 0)}% cal`],
         ['Leavening asset', `${n(s.LeaveningConditionPct, 0)}% / ${n(s.LeaveningCalibrationPct, 0)}% cal`],
         ['Packaging asset', `${n(s.PackagingConditionPct, 0)}% / ${n(s.PackagingCalibrationPct, 0)}% cal`],
         ['Icing asset', `${n(s.IcingConditionPct, 0)}% / ${n(s.IcingCalibrationPct, 0)}% cal`],
@@ -1321,6 +1333,7 @@
         ['Vanilla extraction', `${n(s.VanillaExtractorTemperatureC, 0)} degC / ${n(s.VanillaExtractStrengthPct, 0)}% strength`],
         ['Cocoa line', `${n(s.CocoaRoasterTemperatureC, 0)} degC / ${n(s.CocoaGrindMicrons, 0)} micron`],
         ['Salt works', `${n(s.BrineSalinityPct, 1)}% brine / ${n(s.SaltCrystallizerTemperatureC, 0)} degC`],
+        ['Starch plant', `${n(s.StarchSlurryBrix, 1)} Brix / ${n(s.StarchDryerTemperatureC, 0)} degC / ${n(s.StarchMoisturePct, 1)}%`],
         ['Leavening', `${n(s.LeaveningMixerRpm, 0)} rpm / ${n(s.LeaveningHomogeneityPct, 1)}%`],
         ['Packaging line', `${n(s.CartonFormerSpeedCpm, 0)} cpm / ${n(s.PrintRegistrationMm, 2)} mm / ${n(s.GluePotTemperatureC, 0)} degC`]
       ];

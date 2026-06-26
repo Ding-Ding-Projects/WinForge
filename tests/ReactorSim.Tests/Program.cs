@@ -851,6 +851,65 @@ internal static class Program
                           $"rationConsumesFarmLots={rationConsumesFarmLots} ('{Trim(mix)}')");
         });
 
+        Scenario("CAKE STARCH PLANT (grain becomes QA-released starch before feed/leavening use)", () =>
+        {
+            var cake = new CakeFactoryService { FarmIntensity = 0 };
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            string start = cake.RunStarchPlant();
+            TickCake(cake, fullBus, 1.0);
+            var running = cake.Snapshot;
+
+            TickCake(cake, fullBus, 8.0);
+            var held = cake.Snapshot;
+            string blockedFeed = cake.RunFeedMill();
+            string blockedLeavening = cake.RunLeaveningPlant();
+            TickCake(cake, fullBus, 0.5);
+            var blocked = cake.Snapshot;
+
+            string release = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var released = cake.Snapshot;
+
+            string leavening = cake.RunLeaveningPlant();
+            TickCake(cake, fullBus, 0.5);
+            var leaveningRun = cake.Snapshot;
+
+            bool startConsumesGrain = before.CanRunStarchPlant
+                                      && running.FactoryRunActive
+                                      && running.ActiveFactoryName.Contains("Starch", StringComparison.OrdinalIgnoreCase)
+                                      && running.GrainKg < before.GrainKg
+                                      && Math.Abs(running.StarchKg - before.StarchKg) < 0.001
+                                      && running.ProcessWaterL < before.ProcessWaterL
+                                      && running.CulinarySteamKg < before.CulinarySteamKg
+                                      && start.Contains("Started wet-milling", StringComparison.OrdinalIgnoreCase);
+            bool heldForLab = held.StarchKg > before.StarchKg
+                              && held.StarchLotId.StartsWith("STARCH-", StringComparison.OrdinalIgnoreCase)
+                              && held.StarchLotId != before.StarchLotId
+                              && held.PendingLabLotId == held.StarchLotId
+                              && held.StarchSlurryBrix > 0
+                              && held.StarchDryerTemperatureC > 40
+                              && held.StarchMoisturePct > 0;
+            bool unreleasedStarchBlocked = blockedFeed.Contains("starch lot", StringComparison.OrdinalIgnoreCase)
+                                           && blockedLeavening.Contains("starch lot", StringComparison.OrdinalIgnoreCase)
+                                           && !blocked.CanRunFeedMill
+                                           && !blocked.CanRunLeaveningPlant;
+            bool releaseClearsHold = release.Contains("released", StringComparison.OrdinalIgnoreCase)
+                                     && released.PendingLabLotId.Length == 0
+                                     && released.CanRunFeedMill
+                                     && released.CanRunLeaveningPlant;
+            bool leaveningConsumesStarch = leaveningRun.StarchKg < released.StarchKg
+                                           && leaveningRun.FactoryRunActive
+                                           && leaveningRun.TraceabilityStatus.Contains(released.StarchLotId, StringComparison.OrdinalIgnoreCase)
+                                           && leavening.Contains("starch carrier", StringComparison.OrdinalIgnoreCase);
+            bool pass = startConsumesGrain && heldForLab && unreleasedStarchBlocked && releaseClearsHold && leaveningConsumesStarch;
+            return (pass, $"startConsumesGrain={startConsumesGrain} ('{Trim(start)}'), heldForLab={heldForLab} " +
+                          $"(starch {before.StarchKg:F1}->{held.StarchKg:F1} kg, lot {held.StarchLotId}), " +
+                          $"unreleasedStarchBlocked={unreleasedStarchBlocked}, releaseClearsHold={releaseClearsHold} ('{Trim(release)}'), " +
+                          $"leaveningConsumesStarch={leaveningConsumesStarch} ('{Trim(leavening)}')");
+        });
+
         Scenario("CAKE FEED MILL (poultry feed is factory-made before hens consume it)", () =>
         {
             var cake = new CakeFactoryService { FarmIntensity = 0 };
@@ -1768,7 +1827,7 @@ internal static class Program
                                          && supplied.BrineL > after.BrineL
                                          && supplied.SodaAshKg > after.SodaAshKg
                                          && supplied.PhosphateKg > after.PhosphateKg
-                                         && supplied.StarchKg > after.StarchKg
+                                         && supplied.GrainKg > after.GrainKg
                                          && supplied.LimestoneKg > after.LimestoneKg
                                          && supplied.TraceMineralKg > after.TraceMineralKg
                                          && supplied.ProcessWaterL > after.ProcessWaterL
