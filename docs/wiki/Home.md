@@ -1,7 +1,7 @@
 # WinForge Wiki · 視窗鑄造 Wiki
 
-**EN —** WinForge is a fully bilingual (English + 繁體中文／粵語) Windows convenience suite that bundles dozens of in-app modules into one place.
-**粵語 —** WinForge 係一個全程雙語（英文 + 繁體中文／粵語）嘅 Windows 便利套件，將幾十個 app 內模組集合喺一處。
+**EN —** WinForge is a fully bilingual (English + 繁體中文／粵語) Windows convenience suite that bundles 136 registered real in-app modules into one place.
+**粵語 —** WinForge 係一個全程雙語（英文 + 繁體中文／粵語）嘅 Windows 便利套件，將 136 個已登記、真正 app 內模組集合喺一處。
 
 **EN —** This wiki is the categorized index of every module. Pick a category below to dive in.
 **粵語 —** 呢個 wiki 係所有模組嘅分類索引。喺下面揀一個分類入去睇。

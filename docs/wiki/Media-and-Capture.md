@@ -8,7 +8,7 @@ ffmpeg-powered video/audio convert, trim and GIF making. · 用 ffmpeg 轉檔、
 
 Open in-app: `WinForge.exe --page media`
 
-![Media](images/screenshot-media.png)
+![Media](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-media.png)
 
 ## Audio Editor · 音訊編輯器
 
@@ -16,7 +16,7 @@ In-app waveform recording, trimming and effects. · App 內波形錄音、剪裁
 
 Open in-app: `WinForge.exe --page audioeditor`
 
-![Audio Editor](images/screenshot-audioeditor.png)
+![Audio Editor](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-audioeditor.png)
 
 ## Audio Tagger · 音訊標籤編輯器
 
@@ -24,7 +24,7 @@ Batch-edit ID3/audio metadata and cover art. · 批次編輯 ID3／音訊中繼�
 
 Open in-app: `WinForge.exe --page tags`
 
-![Audio Tagger](images/screenshot-tags.png)
+![Audio Tagger](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-tags.png)
 
 ## Media Player · 媒體播放器
 
@@ -32,7 +32,7 @@ libVLC player with streams, subtitles and snapshots. · libVLC 播放器，支�
 
 Open in-app: `WinForge.exe --page mediaplayer`
 
-![Media Player](images/screenshot-mediaplayer.png)
+![Media Player](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-mediaplayer.png)
 
 ## Media Downloader · 媒體下載器
 
@@ -40,7 +40,7 @@ yt-dlp video/audio downloads with quality and subtitle options. · yt-dlp 下載
 
 Open in-app: `WinForge.exe --page ytdlp`
 
-![Media Downloader](images/screenshot-ytdlp.png)
+![Media Downloader](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-ytdlp.png)
 
 ## Document Converter · 文件轉換器
 
@@ -48,7 +48,7 @@ Headless LibreOffice batch conversion between Office and PDF formats. · 用無�
 
 Open in-app: `WinForge.exe --page libreoffice`
 
-![Document Converter](images/screenshot-libreoffice.png)
+![Document Converter](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-libreoffice.png)
 
 ## PDF Toolkit · PDF 工具箱
 
@@ -56,7 +56,7 @@ Merge, split, rotate, watermark, encrypt and extract from PDFs. · 合併、分�
 
 Open in-app: `WinForge.exe --page pdf`
 
-![PDF Toolkit](images/screenshot-pdf.png)
+![PDF Toolkit](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-pdf.png)
 
 ## Screen Recorder · 螢幕錄影
 
@@ -64,7 +64,7 @@ Record the desktop with ffmpeg gdigrab. · 用 ffmpeg gdigrab 錄製桌面畫面
 
 Open in-app: `WinForge.exe --page recorder`
 
-![Screen Recorder](images/screenshot-recorder.png)
+![Screen Recorder](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-recorder.png)
 
 ## Capture Studio · 擷取工作室
 
@@ -72,7 +72,7 @@ Snip regions, screenshot, make GIFs and OCR text. · 擷取區域、截圖、整
 
 Open in-app: `WinForge.exe --page capture`
 
-![Capture Studio](images/screenshot-capture.png)
+![Capture Studio](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-capture.png)
 
 ## Text Extractor (OCR) · 原生文字辨識
 
@@ -80,7 +80,7 @@ Extract text from any screen region using the native Windows OCR engine. · 用�
 
 Open in-app: `WinForge.exe --page ocr`
 
-![Text Extractor (OCR)](images/screenshot-ocr.png)
+![Text Extractor (OCR)](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-ocr.png)
 
 ## GIF Studio · 螢幕轉 GIF
 
@@ -88,7 +88,7 @@ Screen-to-GIF recording with a built-in frame editor. · 螢幕轉 GIF 錄製，
 
 Open in-app: `WinForge.exe --page giflab`
 
-![GIF Studio](images/screenshot-giflab.png)
+![GIF Studio](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-giflab.png)
 
 ## Crop And Lock · 裁切與鎖定
 
@@ -96,7 +96,7 @@ Crop a window into an always-on-top floating live thumbnail. · 將視窗裁切�
 
 Open in-app: `WinForge.exe --page cropandlock`
 
-![Crop And Lock](images/screenshot-cropandlock.png)
+![Crop And Lock](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-cropandlock.png)
 
 ## ZoomIt · 螢幕放大與標註
 
@@ -104,7 +104,7 @@ On-screen zoom, annotation and presentation break timer. · 螢幕放大、標�
 
 Open in-app: `WinForge.exe --page zoomit`
 
-![ZoomIt](images/screenshot-zoomit.png)
+![ZoomIt](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-zoomit.png)
 
 ## Voice & Read-Aloud · 語音朗讀
 
@@ -112,7 +112,7 @@ SAPI text-to-speech read-aloud with WAV export. · SAPI 文字轉語音朗讀，
 
 Open in-app: `WinForge.exe --page voice`
 
-![Voice & Read-Aloud](images/screenshot-voice.png)
+![Voice & Read-Aloud](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-voice.png)
 
 ## PA Announcements · 喇叭語音廣播
 
@@ -120,7 +120,7 @@ Public-address voice broadcasts with chimes, queue and priority. · 公共廣播
 
 Open in-app: `WinForge.exe --page announce`
 
-![PA Announcements](images/screenshot-announce.png)
+![PA Announcements](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-announce.png)
 
 ## Pixel Editor · 像素畫編輯器
 
@@ -128,7 +128,7 @@ Aseprite-style pixel-art editor with layers and animation frames. · Aseprite �
 
 Open in-app: `WinForge.exe --page pixeleditor`
 
-![Pixel Editor](images/screenshot-pixeleditor.png)
+![Pixel Editor](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-pixeleditor.png)
 
 ## Image Editor · 點陣圖影像編輯器
 
@@ -136,7 +136,7 @@ Raster photo editor with filters, layers and adjustments. · 點陣圖相片編�
 
 Open in-app: `WinForge.exe --page imageeditor`
 
-![Image Editor](images/screenshot-imageeditor.png)
+![Image Editor](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-imageeditor.png)
 
 ## Blender (3D / Render) · Blender（3D／算圖）
 
@@ -144,6 +144,6 @@ Headless Blender render and animation queue. · 無介面 Blender 算圖同動�
 
 Open in-app: `WinForge.exe --page blender`
 
-![Blender (3D / Render)](images/screenshot-blender.png)
+![Blender (3D / Render)](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-blender.png)
 
 [← Wiki Home](Home.md)

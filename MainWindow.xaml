@@ -54,6 +54,16 @@
                 <NavigationViewItem Content="Dashboard · 概覽" Tag="dashboard">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE80F;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
+                <NavigationViewItem Content="★ Nuclear Reactor · 核反應堆" Tag="module.reactor">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xEBC0;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="⚙ Reactor Settings · 反應堆設定" Tag="module.reactorsettings">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE713;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Cake Factory &amp; Farm · 蛋糕工廠與農場" Tag="module.cakefactory">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xECA5;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
+
                 <NavigationViewItem Content="Files &amp; Disks · 檔案與磁碟" SelectsOnInvoked="False">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE8B7;" /></NavigationViewItem.Icon>
                     <NavigationViewItem.MenuItems>
@@ -269,11 +279,30 @@
                                 <MenuFlyoutItem Click="Session_NewTab" Text="New tab · 新分頁">
                                     <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE710;" /></MenuFlyoutItem.Icon>
                                 </MenuFlyoutItem>
+                                <MenuFlyoutItem Click="Session_CustomizeTab" Text="Rename/style current tab… · 重新命名／樣式目前分頁…">
+                                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8D2;" /></MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                                <MenuFlyoutSeparator />
+                                <MenuFlyoutItem Click="Session_NewGroup" Text="New group from current tab… · 由目前分頁新增分組…">
+                                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8A5;" /></MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                                <MenuFlyoutItem Click="Session_CustomizeGroup" Text="Rename/style current group… · 重新命名／樣式目前分組…">
+                                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE713;" /></MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                                <MenuFlyoutItem Click="Session_UngroupTab" Text="Remove current tab from group · 目前分頁移出分組">
+                                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE711;" /></MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
                                 <MenuFlyoutSeparator />
                                 <MenuFlyoutItem Click="Session_Export" Text="Export session… · 匯出工作階段…">
                                     <MenuFlyoutItem.Icon><FontIcon Glyph="&#xEDE1;" /></MenuFlyoutItem.Icon>
                                 </MenuFlyoutItem>
                                 <MenuFlyoutItem Click="Session_Import" Text="Import session… · 匯入工作階段…">
+                                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8E5;" /></MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                                <MenuFlyoutItem Click="Session_ExportGroup" Text="Export current group… · 匯出目前分組…">
+                                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xEDE1;" /></MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                                <MenuFlyoutItem Click="Session_ImportGroup" Text="Import group… · 匯入分組…">
                                     <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8E5;" /></MenuFlyoutItem.Icon>
                                 </MenuFlyoutItem>
                                 <MenuFlyoutItem Click="Session_Restore" Text="Restore last saved · 還原上次">

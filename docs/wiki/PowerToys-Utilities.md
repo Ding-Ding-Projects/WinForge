@@ -8,7 +8,7 @@ Remap keys via the Scancode Map (SharpKeys-style). · 用 Scancode Map 重新對
 
 Open in-app: `WinForge.exe --page keyboard`
 
-![Keyboard Remapper](images/screenshot-keyboard.png)
+![Keyboard Remapper](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-keyboard.png)
 
 ## Hotkey & Macro Runner · 熱鍵與巨集
 
@@ -16,7 +16,7 @@ Run hotkeys, macros and text expansion snippets. · 執行熱鍵、巨集同文�
 
 Open in-app: `WinForge.exe --page hotkeys`
 
-![Hotkey & Macro Runner](images/screenshot-hotkeys.png)
+![Hotkey & Macro Runner](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-hotkeys.png)
 
 ## Shortcut Guide · 快捷鍵指南
 
@@ -24,7 +24,7 @@ Hold-Win overlay cheat sheet of Windows shortcuts. · 揿住 Win 鍵顯示快捷
 
 Open in-app: `WinForge.exe --page shortcutguide`
 
-![Shortcut Guide](images/screenshot-shortcutguide.png)
+![Shortcut Guide](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-shortcutguide.png)
 
 ## Command Palette · 指令面板
 
@@ -32,7 +32,7 @@ Global launcher and Run box for apps, calc and system actions. · 全域啟動�
 
 Open in-app: `WinForge.exe --page cmdpalette`
 
-![Command Palette](images/screenshot-cmdpalette.png)
+![Command Palette](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-cmdpalette.png)
 
 ## Color Picker · 螢幕取色
 
@@ -40,7 +40,7 @@ System-wide color picker with hex/RGB/HSL output. · 全系統取色器，輸出
 
 Open in-app: `WinForge.exe --page colorpicker`
 
-![Color Picker](images/screenshot-colorpicker.png)
+![Color Picker](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-colorpicker.png)
 
 ## Screen Ruler · 螢幕間尺
 
@@ -48,7 +48,7 @@ Measure distances and pixels on screen. · 喺螢幕量度距離同像素。
 
 Open in-app: `WinForge.exe --page screenruler`
 
-![Screen Ruler](images/screenshot-screenruler.png)
+![Screen Ruler](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-screenruler.png)
 
 ## Mouse Utilities · 滑鼠工具
 
@@ -56,7 +56,7 @@ Find My Mouse, highlighter, crosshairs and pointer jump. · 搵滑鼠、點擊�
 
 Open in-app: `WinForge.exe --page mouseutils`
 
-![Mouse Utilities](images/screenshot-mouseutils.png)
+![Mouse Utilities](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-mouseutils.png)
 
 ## Mouse & Pointer · 滑鼠與指標
 
@@ -64,7 +64,7 @@ Adjust pointer speed, acceleration and behaviour. · 調整指標速度、加速
 
 Open in-app: `WinForge.exe --page mouse`
 
-![Mouse & Pointer](images/screenshot-mouse.png)
+![Mouse & Pointer](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-mouse.png)
 
 ## Mouse Without Borders · 無界滑鼠
 
@@ -72,7 +72,7 @@ Share one keyboard and mouse across multiple PCs (software KVM). · 跨多部電
 
 Open in-app: `WinForge.exe --page mwb`
 
-![Mouse Without Borders](images/screenshot-mwb.png)
+![Mouse Without Borders](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-mwb.png)
 
 ## Quick Accent · 快速重音符
 
@@ -80,7 +80,7 @@ Insert accented and special characters by holding a letter. · 揿住字母快�
 
 Open in-app: `WinForge.exe --page quickaccent`
 
-![Quick Accent](images/screenshot-quickaccent.png)
+![Quick Accent](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-quickaccent.png)
 
 ## Command Not Found · 搵唔到指令
 
@@ -88,7 +88,7 @@ Suggest a winget package for a missing PowerShell command. · 為搵唔到嘅 Po
 
 Open in-app: `WinForge.exe --page cmdnotfound`
 
-![Command Not Found](images/screenshot-cmdnotfound.png)
+![Command Not Found](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-cmdnotfound.png)
 
 ## Clipboard · 剪貼簿
 
@@ -96,7 +96,7 @@ Richer clipboard history with QR-code generation. · 更豐富嘅剪貼簿歷史
 
 Open in-app: `WinForge.exe --page clipboard`
 
-![Clipboard](images/screenshot-clipboard.png)
+![Clipboard](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-clipboard.png)
 
 ## Advanced Paste · 進階貼上
 
@@ -104,7 +104,7 @@ Paste-as transforms: plain text, Markdown, JSON, OCR and AI. · 貼上轉換：�
 
 Open in-app: `WinForge.exe --page advancedpaste`
 
-![Advanced Paste](images/screenshot-advancedpaste.png)
+![Advanced Paste](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-advancedpaste.png)
 
 ## Taskbar Tweaker · 工作列調校
 
@@ -112,7 +112,7 @@ Tweak taskbar alignment, button combining, tray and clock. · 調校工作列對
 
 Open in-app: `WinForge.exe --page taskbar-tweaker`
 
-![Taskbar Tweaker](images/screenshot-taskbar-tweaker.png)
+![Taskbar Tweaker](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-taskbar-tweaker.png)
 
 ## Windhawk Mods · Windhawk 模組
 
@@ -120,7 +120,7 @@ Manage Windhawk mods that customize the taskbar, clock and shell. · 管理 Wind
 
 Open in-app: `WinForge.exe --page windhawk`
 
-![Windhawk Mods](images/screenshot-windhawk.png)
+![Windhawk Mods](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-windhawk.png)
 
 ## LightSwitch (Auto Dark Mode) · 自動深淺色
 
@@ -128,15 +128,15 @@ Automatically switch light/dark theme on a sunrise/sunset schedule. · 按日出
 
 Open in-app: `WinForge.exe --page lightswitch`
 
-![LightSwitch (Auto Dark Mode)](images/screenshot-lightswitch.png)
+![LightSwitch (Auto Dark Mode)](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-lightswitch.png)
 
 ## Rainmeter Widgets · Rainmeter 桌面小工具
 
 Install and toggle Rainmeter desktop skins and widgets. · 安裝同切換 Rainmeter 桌面皮膚同小工具。
 
-Open in-app: `WinForge.exe --page taskbar`
+Open in-app: `WinForge.exe --page rainmeter`
 
-![Rainmeter Widgets](images/screenshot-taskbar.png)
+![Rainmeter Widgets](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-taskbar.png)
 
 ## Time & Unit Tools · 時間與單位工具
 
@@ -144,7 +144,7 @@ World clock, time-zone converter and unit converters. · 世界時鐘、時區�
 
 Open in-app: `WinForge.exe --page time`
 
-![Time & Unit Tools](images/screenshot-time.png)
+![Time & Unit Tools](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-time.png)
 
 ## Flashcards · 間隔重複記憶卡
 
@@ -152,6 +152,6 @@ Spaced-repetition flashcard study with SM-2 scheduling. · 用 SM-2 排程嘅間
 
 Open in-app: `WinForge.exe --page flashcards`
 
-![Flashcards](images/screenshot-flashcards.png)
+![Flashcards](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-flashcards.png)
 
 [← Wiki Home](Home.md)

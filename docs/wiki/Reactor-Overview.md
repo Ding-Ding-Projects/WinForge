@@ -4,7 +4,7 @@
 
 **粵語 —** 核反應堆係 WinForge 嘅旗艦模組：一個完全用 WinUI 3 繪製、超寫實嘅**壓水式反應堆（PWR）**控制室。佢模擬六組點動力學、反應性回饋（都卜勒／緩和劑／硼／氙）、熱工水力、蒸汽渦輪二次側、西屋式保護系統、合成控制室音效，同即時機組流程圖。佢只係一個**模擬／訓練玩具**，唔會控制任何真實硬件。
 
-![Reactor control room · 反應堆控制室](images/screenshot-reactor.png)
+![Reactor control room · 反應堆控制室](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-reactor.png)
 
 ---
 

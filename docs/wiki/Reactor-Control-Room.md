@@ -4,7 +4,7 @@
 
 **粵語 —** 控制室係反應堆模組嘅核心：西屋式硬面板佈局，附狀態橫額、模擬指針儀錶、反應堆保護系統（RPS）通道面板、警示磚、走紙記錄儀同即時機組流程圖。可以喺頁面內嵌運行，亦可彈出做獨立全螢幕視窗；各房間以 HTML5／WebView2 介面嘅分頁形式組織。
 
-![Reactor control room · 反應堆控制室](images/screenshot-reactor.png)
+![Reactor control room · 反應堆控制室](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-reactor.png)
 
 ---
 
