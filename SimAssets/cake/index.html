@@ -290,10 +290,16 @@
       min-height: 38px;
       border: 1px solid #605747;
       border-radius: 8px;
-      background: #343026;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 42%),
+        #343026;
       color: var(--text);
       cursor: pointer;
       font-weight: 700;
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        inset 0 -3px 0 rgba(0, 0, 0, 0.28),
+        0 2px 0 rgba(0, 0, 0, 0.35);
     }
 
     button.action:hover:not(:disabled) {
@@ -310,6 +316,48 @@
     button.action.danger {
       border-color: #a55b4e;
       background: #55302a;
+    }
+
+    button.action.guard {
+      border-color: #957442;
+      background:
+        repeating-linear-gradient(135deg, rgba(255, 220, 120, 0.15) 0 7px, transparent 7px 14px),
+        #3b2d1a;
+      color: #ffe5aa;
+    }
+
+    button.action.file {
+      border-color: #5c8d99;
+      background: #243b3f;
+      color: #d9f8ff;
+    }
+
+    .status-row {
+      display: grid;
+      grid-template-columns: 82px 1fr;
+      gap: 8px;
+      align-items: center;
+      min-width: 0;
+      padding: 8px;
+      border: 1px solid #443d34;
+      border-radius: 8px;
+      background: #211f1b;
+    }
+
+    .status-row span {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .status-row b {
+      overflow: hidden;
+      color: var(--text);
+      font-family: "Cascadia Mono", Consolas, monospace;
+      font-size: 12px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     button:disabled {
@@ -495,16 +543,18 @@
         </section>
 
         <section class="panel">
-          <header><span>Manual operations</span><span id="gateState">Hold</span></header>
+          <header><span>Operator station</span><span id="gateState">Hold</span></header>
           <div class="panel-body">
             <div class="button-grid">
+              <button class="action file" type="button" data-action="receiveSupplies">Receive supplies</button>
               <button class="action" type="button" data-action="harvest">Harvest</button>
               <button class="action" type="button" data-action="collect">Milk + eggs</button>
               <button class="action" type="button" data-action="mill">Mill flour</button>
               <button class="action" type="button" data-action="refine">Refine sugar</button>
               <button class="action" type="button" data-action="churn">Churn butter</button>
+              <button class="action" type="button" data-action="processCocoa">Roast cocoa</button>
               <button class="action primary" type="button" data-action="startBatch">Start batch</button>
-              <button class="action primary" type="button" data-action="advance">Release step</button>
+              <button class="action primary guard" type="button" data-action="advance">Release step</button>
               <button class="action danger" type="button" data-action="clean">CIP clean</button>
             </div>
             <div id="prompt" class="prompt">Waiting for reactor bus.</div>
@@ -540,6 +590,30 @@
             <table aria-label="Ingredient inventory">
               <tbody id="inventoryRows"></tbody>
             </table>
+          </div>
+        </section>
+
+        <section class="panel">
+          <header><span>Supply chain inputs</span><span id="resourceText">Inputs</span></header>
+          <div class="panel-body">
+            <table aria-label="Supply chain inputs">
+              <tbody id="resourceRows"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel">
+          <header><span>Signed cake files</span><span id="cakeFileCount">0 files</span></header>
+          <div class="panel-body">
+            <div class="status-row"><span>Bakery key</span><b id="bakeryKey">-</b></div>
+            <div class="status-row"><span>Latest</span><b id="latestCake">No cake file</b></div>
+            <div class="status-row"><span>Validation</span><b id="cakeFileStatus">No cake file is ready.</b></div>
+            <div class="button-grid">
+              <button class="action file" type="button" data-action="trustCakeKey">Trust key</button>
+              <button class="action file" type="button" data-action="validateCake">Validate cake</button>
+              <button class="action danger" type="button" data-action="eatCake">Eat + delete</button>
+              <button class="action" type="button" data-action="openCakeFolder">Open folder</button>
+            </div>
           </div>
         </section>
       </aside>
@@ -591,6 +665,8 @@
       CanMillWheat: false,
       CanRefineSugar: false,
       CanChurnButter: false,
+      CanReceiveSupplies: false,
+      CanProcessCocoa: false,
       WheatGrowth: 64,
       BeetGrowth: 58,
       PastureHealth: 76,
@@ -607,7 +683,15 @@
       BakingPowderKg: 14,
       SaltKg: 18,
       VanillaL: 2.8,
+      CocoaBeansKg: 60,
       CocoaKg: 20,
+      WheatSeedKg: 18,
+      BeetSeedKg: 16,
+      IrrigationWaterL: 16000,
+      FertilizerKg: 120,
+      AnimalFeedKg: 420,
+      PackagingUnits: 160,
+      ResourceStatus: 'Inputs stocked',
       BatterKg: 0,
       CakesBaked: 0,
       CakesPacked: 0,
@@ -640,6 +724,12 @@
           latest.FarmIntensity = message.farmIntensity ?? 0;
           latest.LineSpeed = message.lineSpeed ?? 0;
           latest.CleanEnabled = !!message.cleanEnabled;
+          latest.BakeryKeyId = message.bakeryKeyId || '';
+          latest.CakeFileCount = message.cakeFileCount || 0;
+          latest.LatestCakeId = message.latestCakeId || '';
+          latest.LatestCakeFile = message.latestCakeFile || '';
+          latest.LatestCakeValid = !!message.latestCakeValid;
+          latest.LatestCakeStatus = message.latestCakeStatus || 'No cake file is ready.';
         }
         updateUi();
       } else if (message.type === 'notice') {
@@ -708,6 +798,11 @@
       setText('prompt', s.OperatorPrompt || '');
       setText('haccpText', s.HaccpStatus || '');
       setText('missingText', s.MissingIngredients ? 'Missing' : 'Ready');
+      setText('resourceText', s.ResourceStatus || 'Inputs');
+      setText('cakeFileCount', `${s.CakeFileCount || 0} files`);
+      setText('bakeryKey', s.BakeryKeyId || '-');
+      setText('latestCake', s.LatestCakeId || 'No cake file');
+      setText('cakeFileStatus', s.LatestCakeStatus || 'No cake file is ready.');
 
       setText('loadMetric', `${n(s.PowerDemandMW, 1)} MW`);
       setText('mweMetric', n(s.ReactorElectricMW, 1));
@@ -730,9 +825,15 @@
       setButton('mill', s.CanMillWheat);
       setButton('refine', s.CanRefineSugar);
       setButton('churn', s.CanChurnButter);
+      setButton('receiveSupplies', s.CanReceiveSupplies);
+      setButton('processCocoa', s.CanProcessCocoa);
       setButton('startBatch', s.CanStartBatch);
       setButton('advance', s.CanAdvanceStage);
       setButton('clean', s.CleanEnabled);
+      setButton('trustCakeKey', (s.CakeFileCount || 0) > 0);
+      setButton('validateCake', (s.CakeFileCount || 0) > 0);
+      setButton('eatCake', (s.CakeFileCount || 0) > 0 && !!s.LatestCakeValid);
+      setButton('openCakeFolder', true);
 
       const rows = [
         ['Cake flour', `${n(s.FlourKg, 1)} kg`],
@@ -748,6 +849,18 @@
       ];
       document.getElementById('inventoryRows').innerHTML =
         rows.map(([name, value]) => `<tr><td>${name}</td><td>${value}</td></tr>`).join('');
+
+      const resources = [
+        ['Water', `${n(s.IrrigationWaterL, 0)} L`],
+        ['Fertilizer', `${n(s.FertilizerKg, 1)} kg`],
+        ['Wheat seed', `${n(s.WheatSeedKg, 1)} kg`],
+        ['Beet seed', `${n(s.BeetSeedKg, 1)} kg`],
+        ['Animal feed', `${n(s.AnimalFeedKg, 1)} kg`],
+        ['Cocoa beans', `${n(s.CocoaBeansKg, 1)} kg`],
+        ['Cartons + labels', `${n(s.PackagingUnits, 0)}`]
+      ];
+      document.getElementById('resourceRows').innerHTML =
+        resources.map(([name, value]) => `<tr><td>${name}</td><td>${value}</td></tr>`).join('');
     }
 
     recipeSelect.addEventListener('change', () => {
@@ -907,6 +1020,14 @@
       wheel(tx + 7, 330, 10);
       wheel(tx + 44, 330, 12);
       line(tx + 58, 316, tx + 103, 300, '#d4e7ff', 2, s.PowerAvailability);
+
+      rr(58, 530, 312, 92, 8, '#232621', '#5a6b4d');
+      text('INPUT YARD', 76, 554, 13, '#dceecb', 900);
+      text(`Water ${n(s.IrrigationWaterL, 0)} L`, 76, 576, 12, '#d9f0ff', 800);
+      text(`Seed ${n((s.WheatSeedKg || 0) + (s.BeetSeedKg || 0), 1)} kg`, 76, 598, 12, '#e6ddb6', 800);
+      text(`Feed ${n(s.AnimalFeedKg, 0)} kg`, 230, 576, 12, '#f1d19c', 800);
+      text(`Fertilizer ${n(s.FertilizerKg, 0)} kg`, 230, 598, 12, '#c8efb2', 800);
+      text(s.ResourceStatus || 'Inputs stocked', 76, 618, 12, '#ffe1a1', 800);
 
       drawTruck(412, 545, s.ConveyorPhase);
       line(470, 556, 610, 556, '#80bc74', 4, 0.9);

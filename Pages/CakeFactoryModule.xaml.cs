@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
@@ -18,10 +19,12 @@ namespace WinForge.Pages;
 public sealed partial class CakeFactoryModule : Page
 {
     private readonly CakeFactoryService _sim = new();
+    private readonly CakeFileService _cakeFiles = new();
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(80) };
     private DateTime _lastTick = DateTime.UtcNow;
     private bool _coreReady;
     private bool _webReady;
+    private int _cakeFilesIssuedForPacked;
 
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
@@ -145,6 +148,7 @@ public sealed partial class CakeFactoryModule : Page
         _lastTick = now;
 
         _sim.Tick(dt, ReactorStatusApiService.I.LastSnapshot);
+        IssueCakeFilesIfNeeded(_sim.Snapshot);
         UpdatePowerInfo(_sim.Snapshot);
         PostSnapshot(_sim.Snapshot);
     }
@@ -219,6 +223,14 @@ public sealed partial class CakeFactoryModule : Page
                 PostNotice("success", P("Butter churned", "牛油製成"), _sim.ChurnButter());
                 break;
 
+            case "receiveSupplies":
+                PostNotice("success", P("Supplies received", "補給已接收"), _sim.ReceiveSupplies());
+                break;
+
+            case "processCocoa":
+                PostNotice("success", P("Cocoa processed", "可可已處理"), _sim.ProcessCocoa());
+                break;
+
             case "startBatch":
                 {
                     bool ok = _sim.TryStartBatch(out var message);
@@ -240,6 +252,51 @@ public sealed partial class CakeFactoryModule : Page
                         "清潔迴路正沖洗攪拌機、落模機、爐帶、唧花頭同包裝機。"));
                 break;
 
+            case "validateCake":
+                {
+                    var v = _cakeFiles.ValidateLatest();
+                    PostNotice(v.Valid ? "success" : "warning",
+                        v.Valid ? P("Cake file authentic", "蛋糕檔可信") : P("Cake file rejected", "蛋糕檔被拒絕"),
+                        v.ReasonEn);
+                    break;
+                }
+
+            case "trustCakeKey":
+                {
+                    var latest = _cakeFiles.ListFresh().FirstOrDefault();
+                    if (latest is null)
+                    {
+                        PostNotice("warning", P("No cake file", "未有蛋糕檔"), P("No cake file is available to trust.", "未有蛋糕檔可匯入公鑰。"));
+                        break;
+                    }
+
+                    string keyId = _cakeFiles.TrustPublicKeyFromCake(latest.Path, P("Imported WinForge bakery", "已匯入 WinForge 烘焙房"));
+                    PostNotice(string.IsNullOrWhiteSpace(keyId) ? "warning" : "success",
+                        P("Bakery key trusted", "烘焙公鑰已信任"),
+                        string.IsNullOrWhiteSpace(keyId) ? P("Could not read the cake public key.", "無法讀取蛋糕公鑰。") : keyId);
+                    break;
+                }
+
+            case "eatCake":
+                {
+                    var r = _cakeFiles.EatLatest();
+                    PostNotice(r.Eaten ? "success" : "warning",
+                        r.Eaten ? P("Cake eaten", "蛋糕已食用") : P("Cannot eat cake", "未能食用蛋糕"),
+                        r.ReasonEn);
+                    break;
+                }
+
+            case "openCakeFolder":
+                try
+                {
+                    Process.Start(new ProcessStartInfo { FileName = _cakeFiles.CakeDir, UseShellExecute = true });
+                }
+                catch (Exception ex)
+                {
+                    PostNotice("warning", P("Could not open folder", "無法開啟資料夾"), ex.Message);
+                }
+                break;
+
             case "openReactor":
                 Navigator.GoToModule?.Invoke("module.reactor");
                 break;
@@ -251,8 +308,23 @@ public sealed partial class CakeFactoryModule : Page
     private void RefreshSnapshot()
     {
         _sim.Tick(0.016, ReactorStatusApiService.I.LastSnapshot);
+        IssueCakeFilesIfNeeded(_sim.Snapshot);
         UpdatePowerInfo(_sim.Snapshot);
         PostSnapshot(_sim.Snapshot);
+    }
+
+    private void IssueCakeFilesIfNeeded(CakeFactorySnapshot s)
+    {
+        int pending = Math.Max(0, s.CakesPacked - _cakeFilesIssuedForPacked);
+        if (pending <= 0) return;
+
+        var issued = _cakeFiles.IssueBatch(s.Recipe, pending, s.QualityScore, s.SanitationScore);
+        _cakeFilesIssuedForPacked += issued.Count;
+        if (issued.Count > 0)
+        {
+            PostNotice("success", P("Cake files signed", "蛋糕檔已簽署"),
+                $"{issued.Count} .cake files minted with bakery key {_cakeFiles.PublicKeyId}.");
+        }
     }
 
     private void PostInit()
@@ -287,6 +359,9 @@ public sealed partial class CakeFactoryModule : Page
 
     private void PostSnapshot(CakeFactorySnapshot s)
     {
+        var cakes = _cakeFiles.ListFresh();
+        var latestCake = cakes.FirstOrDefault();
+        var latestValidation = latestCake is null ? null : _cakeFiles.Validate(latestCake.Path);
         PostJson(new
         {
             type = "snapshot",
@@ -295,6 +370,12 @@ public sealed partial class CakeFactoryModule : Page
             lineSpeed = _sim.LineSpeed,
             stageKey = s.Stage.ToString(),
             cleanEnabled = !s.CipActive && s.Stage == CakeBatchStage.Idle,
+            bakeryKeyId = _cakeFiles.PublicKeyId,
+            cakeFileCount = cakes.Count,
+            latestCakeId = latestCake?.CakeId ?? "",
+            latestCakeFile = latestCake?.Path ?? "",
+            latestCakeValid = latestValidation?.Valid ?? false,
+            latestCakeStatus = latestValidation?.ReasonEn ?? P("No cake file is ready.", "未有蛋糕檔。"),
             snapshot = s,
         });
     }

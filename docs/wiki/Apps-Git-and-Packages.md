@@ -28,7 +28,7 @@ Included native clone examples: API Client, Diff & Merge, Diagram Editor, .NET D
 
 ## Cake Factory & Farm · 蛋糕工廠與農場
 
-HTML5 reactor-powered cake factory and ingredient farm simulator with manual harvest, ingredient conversion, HACCP release gates, tunnel baking, cooling, icing, packaging, QA and CIP sanitation. · 以 HTML5 製作、由反應堆供電嘅蛋糕工廠與原料農場模擬器，包含手動收成、原料轉換、HACCP 放行關卡、隧道焗爐、冷卻、裝飾、包裝、品檢同 CIP 清潔。
+HTML5 reactor-powered cake factory simulation game with finite supply inputs, manual harvest and conversion, HACCP release gates, signed portable `.cake` files, tunnel baking, cooling, icing, packaging, QA and CIP sanitation. · 以 HTML5 製作、由反應堆供電嘅蛋糕工廠模擬遊戲，包含有限補給、手動收成與轉換、HACCP 放行關卡、已簽署可攜 `.cake` 檔、隧道焗爐、冷卻、裝飾、包裝、品檢同 CIP 清潔。
 
 Open in-app: `WinForge.exe --page cakefactory`
 
