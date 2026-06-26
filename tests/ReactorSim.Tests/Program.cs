@@ -873,6 +873,48 @@ internal static class Program
                           $"processTelemetry={processTelemetry}, factoryUtilitiesConsumed={factoryUtilitiesConsumed}, timedFactoryRun={timedFactoryRun}");
         });
 
+        Scenario("CAKE FACTORY MAINTENANCE (plant condition affects factories and service consumes utilities)", () =>
+        {
+            var cake = new CakeFactoryService();
+            TickCake(cake, fullBus, 0.5);
+            var initial = cake.Snapshot;
+
+            string mill = cake.MillWheat();
+            TickCake(cake, fullBus, 9.0);
+            var worn = cake.Snapshot;
+
+            double waterBeforeService = worn.ProcessWaterL;
+            double steamBeforeService = worn.CulinarySteamKg;
+            double airBeforeService = worn.CompressedAirNm3;
+            double filterBeforeService = worn.FilterMediaPct;
+            string service = cake.ServiceIngredientFactories();
+            TickCake(cake, fullBus, 0.5);
+            var serviced = cake.Snapshot;
+
+            bool equipmentModeled = initial.MillConditionPct > 0
+                                    && initial.MillCalibrationPct > 0
+                                    && initial.ActiveFactoryBearingTemperatureC > 0
+                                    && initial.ActiveFactoryVibrationMmS > 0
+                                    && initial.FactoryMaintenanceStatus.Contains("maintenance", StringComparison.OrdinalIgnoreCase);
+            bool wearApplied = worn.MillConditionPct < initial.MillConditionPct
+                               && worn.MillCalibrationPct < initial.MillCalibrationPct
+                               && worn.FactoryStatus.Contains("Equipment now", StringComparison.OrdinalIgnoreCase);
+            bool maintenanceAvailable = worn.CanServiceFactories;
+            bool serviceRecovered = serviced.MillConditionPct > worn.MillConditionPct
+                                    && serviced.MillCalibrationPct > worn.MillCalibrationPct
+                                    && serviced.MillConditionPct <= 100
+                                    && serviced.MillCalibrationPct <= 100;
+            bool serviceConsumedUtilities = serviced.ProcessWaterL < waterBeforeService
+                                            && serviced.CulinarySteamKg < steamBeforeService
+                                            && serviced.CompressedAirNm3 < airBeforeService
+                                            && serviced.FilterMediaPct < filterBeforeService;
+            bool pass = equipmentModeled && wearApplied && maintenanceAvailable && serviceRecovered && serviceConsumedUtilities;
+            return (pass, $"equipmentModeled={equipmentModeled}, wearApplied={wearApplied} after '{Trim(mill)}' " +
+                          $"({initial.MillConditionPct:F0}%->{worn.MillConditionPct:F0}%), maintenanceAvailable={maintenanceAvailable}, " +
+                          $"serviceRecovered={serviceRecovered} ({worn.MillConditionPct:F0}%->{serviced.MillConditionPct:F0}%), " +
+                          $"serviceConsumedUtilities={serviceConsumedUtilities} ('{Trim(service)}')");
+        });
+
         Scenario("CAKE SUPPLY CHAIN INPUTS (ingredients require finite seed, water, feed, beans, factory feedstocks and cartons)", () =>
         {
             var cake = new CakeFactoryService { FarmIntensity = 1.0 };

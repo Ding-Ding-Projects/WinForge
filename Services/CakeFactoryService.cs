@@ -123,6 +123,24 @@ public sealed class CakeFactorySnapshot
     public double FactoryRunPowerMW { get; init; }
     public double FactoryRunSecondsRemaining { get; init; }
     public double FactoryRunQualityPct { get; init; }
+    public bool CanServiceFactories { get; init; }
+    public string FactoryMaintenanceStatus { get; init; } = "";
+    public double ActiveFactoryConditionPct { get; init; }
+    public double ActiveFactoryCalibrationPct { get; init; }
+    public double ActiveFactoryBearingTemperatureC { get; init; }
+    public double ActiveFactoryVibrationMmS { get; init; }
+    public double MillConditionPct { get; init; }
+    public double MillCalibrationPct { get; init; }
+    public double SugarConditionPct { get; init; }
+    public double SugarCalibrationPct { get; init; }
+    public double ButterConditionPct { get; init; }
+    public double ButterCalibrationPct { get; init; }
+    public double CocoaConditionPct { get; init; }
+    public double CocoaCalibrationPct { get; init; }
+    public double SaltConditionPct { get; init; }
+    public double SaltCalibrationPct { get; init; }
+    public double LeaveningConditionPct { get; init; }
+    public double LeaveningCalibrationPct { get; init; }
     public double MillRollGapMm { get; init; }
     public double FlourExtractionPct { get; init; }
     public double SugarJuiceBrix { get; init; }
@@ -180,8 +198,28 @@ public sealed class CakeFactoryService
         public double CulinarySteamKg { get; init; }
         public double CompressedAirNm3 { get; init; }
         public double FilterMediaPct { get; init; }
+        public double WearPct { get; init; }
+        public double CalibrationDriftPct { get; init; }
+        public double EquipmentConditionAtStart { get; set; }
+        public double EquipmentCalibrationAtStart { get; set; }
         public double Progress => DurationSeconds <= 0 ? 1 : Math.Clamp(ElapsedSeconds / DurationSeconds, 0, 1);
         public double RemainingSeconds => Math.Max(0, DurationSeconds - ElapsedSeconds);
+    }
+
+    private sealed class IngredientFactoryEquipment
+    {
+        public IngredientFactoryEquipment(double conditionPct, double calibrationPct, double bearingTemperatureC, double vibrationMmS)
+        {
+            ConditionPct = conditionPct;
+            CalibrationPct = calibrationPct;
+            BearingTemperatureC = bearingTemperatureC;
+            VibrationMmS = vibrationMmS;
+        }
+
+        public double ConditionPct { get; set; }
+        public double CalibrationPct { get; set; }
+        public double BearingTemperatureC { get; set; }
+        public double VibrationMmS { get; set; }
     }
 
     public static IReadOnlyList<CakeRecipe> Recipes { get; } = new[]
@@ -263,6 +301,16 @@ public sealed class CakeFactoryService
     private double _compressedAirNm3 = 900;
     private double _filterMediaPct = 100;
     private string _factoryStatus = "Ingredient factories idle.";
+    private string _factoryMaintenanceStatus = "Preventive maintenance normal: all ingredient plants within limits.";
+    private readonly Dictionary<IngredientFactoryKind, IngredientFactoryEquipment> _factoryEquipment = new()
+    {
+        [IngredientFactoryKind.Mill] = new(93, 96, 36, 1.8),
+        [IngredientFactoryKind.Sugar] = new(91, 94, 39, 2.0),
+        [IngredientFactoryKind.Butter] = new(95, 97, 34, 1.4),
+        [IngredientFactoryKind.Cocoa] = new(90, 95, 41, 2.1),
+        [IngredientFactoryKind.Salt] = new(92, 93, 38, 1.9),
+        [IngredientFactoryKind.Leavening] = new(94, 96, 33, 1.3),
+    };
     private double _millRollGapMm = 0.32;
     private double _flourExtractionPct = 76;
     private double _sugarJuiceBrix = 0;
@@ -374,6 +422,8 @@ public sealed class CakeFactoryService
             ProcessWaterL = 20,
             CompressedAirNm3 = 38,
             FilterMediaPct = 0.6,
+            WearPct = 1.8,
+            CalibrationDriftPct = 0.55,
         };
         return StartFactoryRun(run, () => _wheatKg -= wheat);
     }
@@ -405,6 +455,8 @@ public sealed class CakeFactoryService
             CulinarySteamKg = 520,
             CompressedAirNm3 = 22,
             FilterMediaPct = 1.2,
+            WearPct = 2.35,
+            CalibrationDriftPct = 0.75,
         };
         return StartFactoryRun(run, () => _sugarCropKg -= crop);
     }
@@ -435,6 +487,8 @@ public sealed class CakeFactoryService
             CulinarySteamKg = 140,
             CompressedAirNm3 = 15,
             FilterMediaPct = 0.8,
+            WearPct = 1.45,
+            CalibrationDriftPct = 0.45,
         };
         return StartFactoryRun(run, () => _milkL -= milk);
     }
@@ -488,6 +542,8 @@ public sealed class CakeFactoryService
             ProcessWaterL = 25,
             CompressedAirNm3 = 45,
             FilterMediaPct = 0.7,
+            WearPct = 2.15,
+            CalibrationDriftPct = 0.65,
         };
         return StartFactoryRun(run, () => _cocoaBeansKg -= beans);
     }
@@ -519,6 +575,8 @@ public sealed class CakeFactoryService
             CulinarySteamKg = 700,
             CompressedAirNm3 = 30,
             FilterMediaPct = 0.4,
+            WearPct = 1.95,
+            CalibrationDriftPct = 0.50,
         };
         return StartFactoryRun(run, () => _brineL -= brine);
     }
@@ -556,6 +614,8 @@ public sealed class CakeFactoryService
             Waste = input * 0.02,
             CompressedAirNm3 = 50,
             FilterMediaPct = 1.0,
+            WearPct = 1.25,
+            CalibrationDriftPct = 0.85,
         };
         return StartFactoryRun(run, () =>
         {
@@ -571,11 +631,20 @@ public sealed class CakeFactoryService
         if (missingUtilities.Length > 0)
             return $"{run.Name} cannot start; missing factory utilities: {missingUtilities}.";
 
+        var equipment = EquipmentFor(run.Kind);
+        if (equipment.ConditionPct < 42)
+            return $"{run.Name} is locked out for maintenance; equipment condition is {equipment.ConditionPct:0}%.";
+        if (equipment.CalibrationPct < 58)
+            return $"{run.Name} needs calibration before release; calibration is {equipment.CalibrationPct:0}%.";
+
+        run.EquipmentConditionAtStart = equipment.ConditionPct;
+        run.EquipmentCalibrationAtStart = equipment.CalibrationPct;
         consumeInputs();
         ConsumeFactoryUtilities(run);
         _factoryRun = run;
-        _factoryRunQualityPct = 72;
-        _factoryStatus = $"{run.Name} running: {FactoryPhase(run)} at 0% complete, {run.PowerDemandMW:0.0} MW load.";
+        _factoryRunQualityPct = Math.Clamp(72 - FactoryEquipmentPenalty(run.Kind), 0, 100);
+        _factoryStatus = $"{run.Name} running: {FactoryPhase(run)} at 0% complete, {run.PowerDemandMW:0.0} MW load, condition {equipment.ConditionPct:0}% and calibration {equipment.CalibrationPct:0}%.";
+        _factoryMaintenanceStatus = BuildFactoryMaintenanceStatus();
         return run.StartedMessage;
     }
 
@@ -603,6 +672,39 @@ public sealed class CakeFactoryService
         && _compressedAirNm3 >= compressedAirNm3
         && _filterMediaPct >= filterMediaPct;
 
+    public string ServiceIngredientFactories()
+    {
+        if (_lastPowerAvailability < 0.2)
+            return "Maintenance crews need reactor bus power before servicing ingredient factories.";
+        if (_factoryRun is not null)
+            return $"{_factoryRun.Name} is running; service crews cannot enter until the plant is isolated.";
+
+        const double processWaterL = 120;
+        const double culinarySteamKg = 80;
+        const double compressedAirNm3 = 35;
+        const double filterMediaPct = 1.5;
+        if (!HasFactoryUtilities(processWaterL, culinarySteamKg, compressedAirNm3, filterMediaPct))
+            return "Factory service cannot start; maintenance needs process water, culinary steam, compressed air and filter media.";
+
+        _processWaterL = Math.Max(0, _processWaterL - processWaterL);
+        _culinarySteamKg = Math.Max(0, _culinarySteamKg - culinarySteamKg);
+        _compressedAirNm3 = Math.Max(0, _compressedAirNm3 - compressedAirNm3);
+        _filterMediaPct = Math.Max(0, _filterMediaPct - filterMediaPct);
+
+        foreach (var equipment in _factoryEquipment.Values)
+        {
+            equipment.ConditionPct = Math.Min(100, equipment.ConditionPct + 8.0);
+            equipment.CalibrationPct = Math.Min(100, equipment.CalibrationPct + 6.0);
+            equipment.BearingTemperatureC += (32 - equipment.BearingTemperatureC) * 0.65;
+            equipment.VibrationMmS = Math.Max(0.8, equipment.VibrationMmS - 0.7);
+        }
+
+        _sanitationScore = Math.Min(100, _sanitationScore + 1.4);
+        _factoryMaintenanceStatus = BuildFactoryMaintenanceStatus();
+        _factoryStatus = "Maintenance crew serviced roller mill, sugar house, butter room, cocoa line, salt works and leavening blender.";
+        return "Serviced all ingredient factories: lubricated bearings, verified guards, replaced filters, calibrated scales and sensors, and signed the maintenance log.";
+    }
+
     private void UpdateFactoryRun(double seconds, double power)
     {
         if (_factoryRun is not { } run) return;
@@ -613,8 +715,9 @@ public sealed class CakeFactoryService
             return;
         }
 
-        run.ElapsedSeconds = Math.Min(run.DurationSeconds, run.ElapsedSeconds + seconds * Math.Clamp(power, 0, 1));
-        UpdateFactoryTelemetry(run, power);
+        double throughput = FactoryThroughputFactor(run.Kind);
+        run.ElapsedSeconds = Math.Min(run.DurationSeconds, run.ElapsedSeconds + seconds * Math.Clamp(power, 0, 1) * throughput);
+        UpdateFactoryTelemetry(run, power, seconds);
 
         if (run.Progress >= 1)
         {
@@ -627,10 +730,15 @@ public sealed class CakeFactoryService
         }
     }
 
-    private void UpdateFactoryTelemetry(IngredientFactoryRun run, double power)
+    private void UpdateFactoryTelemetry(IngredientFactoryRun run, double power, double seconds)
     {
         double p = run.Progress;
-        _factoryRunQualityPct = Math.Clamp(72 + p * 24 + power * 4, 0, 100);
+        var equipment = EquipmentFor(run.Kind);
+        double bearingTarget = 31 + run.PowerDemandMW * 3.4 + p * 7.0 + Math.Max(0, 88 - equipment.ConditionPct) * 0.12;
+        equipment.BearingTemperatureC += (bearingTarget - equipment.BearingTemperatureC) * Math.Min(1, seconds / 10.0);
+        equipment.VibrationMmS = Math.Clamp(equipment.VibrationMmS + Math.Sin(p * Math.PI * 6) * 0.012 + Math.Max(0, 92 - equipment.ConditionPct) * 0.0008 * seconds, 0.6, 12.0);
+
+        _factoryRunQualityPct = Math.Clamp(72 + p * 24 + power * 4 - FactoryEquipmentPenalty(run.Kind), 0, 100);
         switch (run.Kind)
         {
             case IngredientFactoryKind.Mill:
@@ -697,56 +805,158 @@ public sealed class CakeFactoryService
         };
     }
 
+    private IngredientFactoryEquipment EquipmentFor(IngredientFactoryKind kind) => _factoryEquipment[kind];
+
+    private static string FactoryName(IngredientFactoryKind kind) => kind switch
+    {
+        IngredientFactoryKind.Mill => "roller mill",
+        IngredientFactoryKind.Sugar => "sugar house",
+        IngredientFactoryKind.Butter => "butter room",
+        IngredientFactoryKind.Cocoa => "cocoa line",
+        IngredientFactoryKind.Salt => "salt works",
+        IngredientFactoryKind.Leavening => "leavening plant",
+        _ => "ingredient plant",
+    };
+
+    private double FactoryThroughputFactor(IngredientFactoryKind kind)
+    {
+        var equipment = EquipmentFor(kind);
+        return Math.Clamp(0.48 + equipment.ConditionPct / 170.0 + equipment.CalibrationPct / 420.0, 0.45, 1.08);
+    }
+
+    private double FactoryEquipmentPenalty(IngredientFactoryKind kind)
+    {
+        var equipment = EquipmentFor(kind);
+        double conditionPenalty = Math.Max(0, 96 - equipment.ConditionPct) * 0.38;
+        double calibrationPenalty = Math.Max(0, 98 - equipment.CalibrationPct) * 0.30;
+        double vibrationPenalty = Math.Max(0, equipment.VibrationMmS - 3.2) * 1.8;
+        double bearingPenalty = Math.Max(0, equipment.BearingTemperatureC - 58) * 0.28;
+        return conditionPenalty + calibrationPenalty + vibrationPenalty + bearingPenalty;
+    }
+
+    private double FactoryYieldFactor(IngredientFactoryKind kind)
+    {
+        var equipment = EquipmentFor(kind);
+        return Math.Clamp(0.82 + equipment.ConditionPct / 620.0 + equipment.CalibrationPct / 980.0, 0.82, 1.0);
+    }
+
+    private void ApplyFactoryWear(IngredientFactoryRun run)
+    {
+        var equipment = EquipmentFor(run.Kind);
+        equipment.ConditionPct = Math.Clamp(equipment.ConditionPct - run.WearPct, 0, 100);
+        equipment.CalibrationPct = Math.Clamp(equipment.CalibrationPct - run.CalibrationDriftPct, 0, 100);
+        equipment.BearingTemperatureC = Math.Clamp(equipment.BearingTemperatureC + run.WearPct * 0.55, 20, 90);
+        equipment.VibrationMmS = Math.Clamp(equipment.VibrationMmS + run.WearPct * 0.12, 0.6, 12.0);
+    }
+
+    private bool NeedsFactoryService()
+    {
+        foreach (var equipment in _factoryEquipment.Values)
+        {
+            if (equipment.ConditionPct < 98 || equipment.CalibrationPct < 99 || equipment.VibrationMmS > 1.0 || equipment.BearingTemperatureC > 33)
+                return true;
+        }
+        return false;
+    }
+
+    private IngredientFactoryEquipment LowestConditionEquipment()
+    {
+        IngredientFactoryEquipment? lowest = null;
+        double score = double.MaxValue;
+        foreach (var equipment in _factoryEquipment.Values)
+        {
+            double candidate = Math.Min(equipment.ConditionPct, equipment.CalibrationPct);
+            if (candidate < score)
+            {
+                score = candidate;
+                lowest = equipment;
+            }
+        }
+        return lowest ?? EquipmentFor(IngredientFactoryKind.Mill);
+    }
+
+    private string BuildFactoryMaintenanceStatus()
+    {
+        IngredientFactoryKind worstKind = IngredientFactoryKind.Mill;
+        IngredientFactoryEquipment worst = EquipmentFor(worstKind);
+        double worstScore = Math.Min(worst.ConditionPct, worst.CalibrationPct);
+        foreach (var (kind, equipment) in _factoryEquipment)
+        {
+            double score = Math.Min(equipment.ConditionPct, equipment.CalibrationPct);
+            if (score < worstScore)
+            {
+                worstKind = kind;
+                worst = equipment;
+                worstScore = score;
+            }
+        }
+
+        string name = FactoryName(worstKind);
+        if (worst.ConditionPct < 55 || worst.CalibrationPct < 65)
+            return $"Maintenance lockout risk: {name} at {worst.ConditionPct:0}% condition / {worst.CalibrationPct:0}% calibration.";
+        if (worst.ConditionPct < 76 || worst.CalibrationPct < 82 || worst.VibrationMmS > 5.0)
+            return $"Maintenance due soon: {name} at {worst.ConditionPct:0}% condition, {worst.CalibrationPct:0}% calibration, {worst.VibrationMmS:0.0} mm/s vibration.";
+        return $"Preventive maintenance normal: lowest asset is {name} at {worst.ConditionPct:0}% condition / {worst.CalibrationPct:0}% calibration.";
+    }
+
     private void CompleteFactoryRun(IngredientFactoryRun run)
     {
+        double output = run.Product * FactoryYieldFactor(run.Kind);
+        double waste = run.Waste + Math.Max(0, run.Product - output);
         switch (run.Kind)
         {
             case IngredientFactoryKind.Mill:
-                _flourKg += run.Product;
-                _wasteKg += run.Waste;
+                _flourKg += output;
+                _wasteKg += waste;
                 _flourExtractionPct = 75.0 + _rng.NextDouble() * 2.0;
-                _factoryRunQualityPct = Math.Clamp(96 - Math.Abs(_millRollGapMm - 0.30) * 120, 0, 100);
-                _factoryStatus = $"Roller mill completed: {run.Product:0.0} kg cake flour, {run.Waste:0.0} kg bran/waste, {_millRollGapMm:0.00} mm roll gap, QA {_factoryRunQualityPct:0}%.";
+                _factoryRunQualityPct = Math.Clamp(96 - Math.Abs(_millRollGapMm - 0.30) * 120 - FactoryEquipmentPenalty(run.Kind), 0, 100);
+                _factoryStatus = $"Roller mill completed: {output:0.0} kg cake flour, {waste:0.0} kg bran/waste, {_millRollGapMm:0.00} mm roll gap, QA {_factoryRunQualityPct:0}%.";
                 break;
             case IngredientFactoryKind.Sugar:
-                _sugarKg += run.Product;
-                _wasteKg += run.Waste;
+                _sugarKg += output;
+                _wasteKg += waste;
                 _sugarJuiceBrix = 67.0 + _rng.NextDouble() * 3.0;
                 _sugarEvaporatorTemperatureC = 103.0 + _rng.NextDouble() * 4.0;
-                _factoryRunQualityPct = Math.Clamp(98 - Math.Abs(_sugarJuiceBrix - 68.0) * 1.5, 0, 100);
-                _factoryStatus = $"Sugar house completed: {run.Product:0.0} kg sugar at {_sugarJuiceBrix:0.0} Brix and {_sugarEvaporatorTemperatureC:0} degC, QA {_factoryRunQualityPct:0}%.";
+                _factoryRunQualityPct = Math.Clamp(98 - Math.Abs(_sugarJuiceBrix - 68.0) * 1.5 - FactoryEquipmentPenalty(run.Kind), 0, 100);
+                _factoryStatus = $"Sugar house completed: {output:0.0} kg sugar at {_sugarJuiceBrix:0.0} Brix and {_sugarEvaporatorTemperatureC:0} degC, QA {_factoryRunQualityPct:0}%.";
                 break;
             case IngredientFactoryKind.Butter:
-                _butterKg += run.Product;
+                _butterKg += output;
                 _creamSeparatorRpm = 6400 + _rng.NextDouble() * 420;
                 _butterFatPct = 81.0 + _rng.NextDouble() * 2.5;
-                _factoryRunQualityPct = Math.Clamp(98 - Math.Abs(_butterFatPct - 82.0) * 1.4, 0, 100);
-                _factoryStatus = $"Butter room completed: {run.Product:0.0} kg butter at {_butterFatPct:0.0}% butterfat, QA {_factoryRunQualityPct:0}%.";
+                _wasteKg += waste;
+                _factoryRunQualityPct = Math.Clamp(98 - Math.Abs(_butterFatPct - 82.0) * 1.4 - FactoryEquipmentPenalty(run.Kind), 0, 100);
+                _factoryStatus = $"Butter room completed: {output:0.0} kg butter at {_butterFatPct:0.0}% butterfat, QA {_factoryRunQualityPct:0}%.";
                 break;
             case IngredientFactoryKind.Cocoa:
-                _cocoaKg += run.Product;
-                _wasteKg += run.Waste;
+                _cocoaKg += output;
+                _wasteKg += waste;
                 _cocoaRoasterTemperatureC = 130 + _rng.NextDouble() * 12;
                 _cocoaGrindMicrons = 68 + _rng.NextDouble() * 18;
-                _factoryRunQualityPct = Math.Clamp(98 - Math.Abs(_cocoaGrindMicrons - 75.0) * 0.35, 0, 100);
-                _factoryStatus = $"Cocoa line completed: {run.Product:0.0} kg cocoa at {_cocoaRoasterTemperatureC:0} degC roast and {_cocoaGrindMicrons:0} micron grind, QA {_factoryRunQualityPct:0}%.";
+                _factoryRunQualityPct = Math.Clamp(98 - Math.Abs(_cocoaGrindMicrons - 75.0) * 0.35 - FactoryEquipmentPenalty(run.Kind), 0, 100);
+                _factoryStatus = $"Cocoa line completed: {output:0.0} kg cocoa at {_cocoaRoasterTemperatureC:0} degC roast and {_cocoaGrindMicrons:0} micron grind, QA {_factoryRunQualityPct:0}%.";
                 break;
             case IngredientFactoryKind.Salt:
-                _saltKg += run.Product;
-                _wasteKg += run.Waste;
+                _saltKg += output;
+                _wasteKg += waste;
                 _saltCrystallizerTemperatureC = 62 + _rng.NextDouble() * 8;
-                _factoryRunQualityPct = Math.Clamp(97 - Math.Abs(_brineSalinityPct - 2.7) * 5.0, 0, 100);
-                _factoryStatus = $"Salt works completed: {run.Product:0.0} kg baking-grade salt from {_brineSalinityPct:0.0}% brine, QA {_factoryRunQualityPct:0}%.";
+                _factoryRunQualityPct = Math.Clamp(97 - Math.Abs(_brineSalinityPct - 2.7) * 5.0 - FactoryEquipmentPenalty(run.Kind), 0, 100);
+                _factoryStatus = $"Salt works completed: {output:0.0} kg baking-grade salt from {_brineSalinityPct:0.0}% brine, QA {_factoryRunQualityPct:0}%.";
                 break;
             case IngredientFactoryKind.Leavening:
-                _bakingPowderKg += run.Product;
-                _wasteKg += run.Waste;
+                _bakingPowderKg += output;
+                _wasteKg += waste;
                 _leaveningMixerRpm = 72 + _rng.NextDouble() * 36;
                 _leaveningHomogeneityPct = 96.5 + _rng.NextDouble() * 2.6;
-                _factoryRunQualityPct = _leaveningHomogeneityPct;
-                _factoryStatus = $"Leavening plant completed: {run.Product:0.0} kg baking powder at {_leaveningHomogeneityPct:0.0}% homogeneity, QA {_factoryRunQualityPct:0}%.";
+                _factoryRunQualityPct = Math.Clamp(_leaveningHomogeneityPct - FactoryEquipmentPenalty(run.Kind), 0, 100);
+                _factoryStatus = $"Leavening plant completed: {output:0.0} kg baking powder at {_leaveningHomogeneityPct:0.0}% homogeneity, QA {_factoryRunQualityPct:0}%.";
                 break;
         }
+
+        ApplyFactoryWear(run);
+        var equipment = EquipmentFor(run.Kind);
+        _factoryMaintenanceStatus = BuildFactoryMaintenanceStatus();
+        _factoryStatus += $" Equipment now {equipment.ConditionPct:0}% condition, {equipment.CalibrationPct:0}% calibration, {equipment.VibrationMmS:0.0} mm/s vibration.";
     }
 
     public void StartClean()
@@ -860,6 +1070,7 @@ public sealed class CakeFactoryService
         _sanitationScore = Math.Clamp(_sanitationScore - seconds * (0.003 + (_stage == CakeBatchStage.Idle ? 0 : 0.018 * LineSpeed)), 0, 100);
 
         var missing = MissingIngredients(recipe);
+        var displayedEquipment = _factoryRun is null ? LowestConditionEquipment() : EquipmentFor(_factoryRun.Kind);
         Snapshot = new CakeFactorySnapshot
         {
             Recipe = recipe,
@@ -896,6 +1107,7 @@ public sealed class CakeFactoryService
             CanProcessCocoa = power >= 0.2 && _factoryRun is null && _cocoaBeansKg >= 5 && HasFactoryUtilities(25, 0, 45, 0.7),
             CanRunSaltWorks = power >= 0.2 && _factoryRun is null && _brineL >= 80 && HasFactoryUtilities(0, 700, 30, 0.4),
             CanRunLeaveningPlant = power >= 0.2 && _factoryRun is null && _sodaAshKg >= 3 && _phosphateKg >= 3 && _starchKg >= 2 && HasFactoryUtilities(0, 0, 50, 1.0),
+            CanServiceFactories = power >= 0.2 && _factoryRun is null && NeedsFactoryService() && HasFactoryUtilities(120, 80, 35, 1.5),
             WheatGrowth = _wheatGrowth,
             BeetGrowth = _beetGrowth,
             PastureHealth = _pastureHealth,
@@ -951,6 +1163,23 @@ public sealed class CakeFactoryService
             FactoryRunPowerMW = _factoryRun?.PowerDemandMW ?? 0,
             FactoryRunSecondsRemaining = _factoryRun?.RemainingSeconds ?? 0,
             FactoryRunQualityPct = _factoryRunQualityPct,
+            FactoryMaintenanceStatus = _factoryMaintenanceStatus,
+            ActiveFactoryConditionPct = displayedEquipment.ConditionPct,
+            ActiveFactoryCalibrationPct = displayedEquipment.CalibrationPct,
+            ActiveFactoryBearingTemperatureC = displayedEquipment.BearingTemperatureC,
+            ActiveFactoryVibrationMmS = displayedEquipment.VibrationMmS,
+            MillConditionPct = EquipmentFor(IngredientFactoryKind.Mill).ConditionPct,
+            MillCalibrationPct = EquipmentFor(IngredientFactoryKind.Mill).CalibrationPct,
+            SugarConditionPct = EquipmentFor(IngredientFactoryKind.Sugar).ConditionPct,
+            SugarCalibrationPct = EquipmentFor(IngredientFactoryKind.Sugar).CalibrationPct,
+            ButterConditionPct = EquipmentFor(IngredientFactoryKind.Butter).ConditionPct,
+            ButterCalibrationPct = EquipmentFor(IngredientFactoryKind.Butter).CalibrationPct,
+            CocoaConditionPct = EquipmentFor(IngredientFactoryKind.Cocoa).ConditionPct,
+            CocoaCalibrationPct = EquipmentFor(IngredientFactoryKind.Cocoa).CalibrationPct,
+            SaltConditionPct = EquipmentFor(IngredientFactoryKind.Salt).ConditionPct,
+            SaltCalibrationPct = EquipmentFor(IngredientFactoryKind.Salt).CalibrationPct,
+            LeaveningConditionPct = EquipmentFor(IngredientFactoryKind.Leavening).ConditionPct,
+            LeaveningCalibrationPct = EquipmentFor(IngredientFactoryKind.Leavening).CalibrationPct,
             MillRollGapMm = _millRollGapMm,
             FlourExtractionPct = _flourExtractionPct,
             SugarJuiceBrix = _sugarJuiceBrix,

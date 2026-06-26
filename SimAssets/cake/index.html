@@ -593,6 +593,7 @@
                 <button class="action" type="button" data-action="processCocoa">Roast cocoa</button>
                 <button class="action" type="button" data-action="runSaltWorks">Salt works</button>
                 <button class="action" type="button" data-action="runLeaveningPlant">Leavening plant</button>
+                <button class="action guard" type="button" data-action="serviceFactories">Service plants</button>
               </div>
             </div>
             <div class="control-bank">
@@ -779,6 +780,24 @@
       FactoryRunPowerMW: 0,
       FactoryRunSecondsRemaining: 0,
       FactoryRunQualityPct: 100,
+      CanServiceFactories: false,
+      FactoryMaintenanceStatus: 'Preventive maintenance normal: all ingredient plants within limits.',
+      ActiveFactoryConditionPct: 90,
+      ActiveFactoryCalibrationPct: 94,
+      ActiveFactoryBearingTemperatureC: 38,
+      ActiveFactoryVibrationMmS: 1.9,
+      MillConditionPct: 93,
+      MillCalibrationPct: 96,
+      SugarConditionPct: 91,
+      SugarCalibrationPct: 94,
+      ButterConditionPct: 95,
+      ButterCalibrationPct: 97,
+      CocoaConditionPct: 90,
+      CocoaCalibrationPct: 95,
+      SaltConditionPct: 92,
+      SaltCalibrationPct: 93,
+      LeaveningConditionPct: 94,
+      LeaveningCalibrationPct: 96,
       MillRollGapMm: 0.32,
       FlourExtractionPct: 76,
       SugarJuiceBrix: 0,
@@ -929,6 +948,7 @@
       setButton('processCocoa', s.CanProcessCocoa);
       setButton('runSaltWorks', s.CanRunSaltWorks);
       setButton('runLeaveningPlant', s.CanRunLeaveningPlant);
+      setButton('serviceFactories', s.CanServiceFactories);
       setButton('startBatch', s.CanStartBatch);
       setButton('advance', s.CanAdvanceStage);
       setButton('clean', s.CleanEnabled);
@@ -979,6 +999,15 @@
         ['Run progress', s.FactoryRunActive ? `${n((s.FactoryProgress || 0) * 100, 0)}% / ${n(s.FactoryRunSecondsRemaining, 1)}s` : '0%'],
         ['Run load', `${n(s.FactoryRunPowerMW, 1)} MW`],
         ['Process QA', `${n(s.FactoryRunQualityPct, 0)}%`],
+        ['Maintenance', s.FactoryMaintenanceStatus || 'Maintenance normal'],
+        ['Active condition', `${n(s.ActiveFactoryConditionPct, 0)}% / ${n(s.ActiveFactoryCalibrationPct, 0)}% cal`],
+        ['Active vibration', `${n(s.ActiveFactoryVibrationMmS, 1)} mm/s / ${n(s.ActiveFactoryBearingTemperatureC, 0)} degC`],
+        ['Mill asset', `${n(s.MillConditionPct, 0)}% / ${n(s.MillCalibrationPct, 0)}% cal`],
+        ['Sugar asset', `${n(s.SugarConditionPct, 0)}% / ${n(s.SugarCalibrationPct, 0)}% cal`],
+        ['Butter asset', `${n(s.ButterConditionPct, 0)}% / ${n(s.ButterCalibrationPct, 0)}% cal`],
+        ['Cocoa asset', `${n(s.CocoaConditionPct, 0)}% / ${n(s.CocoaCalibrationPct, 0)}% cal`],
+        ['Salt asset', `${n(s.SaltConditionPct, 0)}% / ${n(s.SaltCalibrationPct, 0)}% cal`],
+        ['Leavening asset', `${n(s.LeaveningConditionPct, 0)}% / ${n(s.LeaveningCalibrationPct, 0)}% cal`],
         ['Utilities', s.FactoryUtilityStatus || 'Utilities ready'],
         ['Milk source', s.MilkSourceStatus || 'Cow dairy idle'],
         ['Milk QA', s.MilkQaStatus || 'Milk QA in spec'],
@@ -1198,10 +1227,11 @@
       drawCakes(s);
 
       if (s.FactoryRunActive) {
-        rr(930, 254, 278, 66, 8, '#1f3335', '#78c7dd');
+        rr(930, 254, 278, 82, 8, '#1f3335', '#78c7dd');
         text(s.ActiveFactoryName || 'INGREDIENT FACTORY', 948, 276, 13, '#d4f3fb', 900);
         text(s.ActiveFactoryPhase || 'processing', 948, 296, 12, '#c9beb0', 800);
         text(`${n((s.FactoryProgress || 0) * 100, 0)}% - ${n(s.FactoryRunPowerMW, 1)} MW - QA ${n(s.FactoryRunQualityPct, 0)}%`, 948, 314, 12, '#fff3d8', 800);
+        text(`Cond ${n(s.ActiveFactoryConditionPct, 0)}% Cal ${n(s.ActiveFactoryCalibrationPct, 0)}% Vib ${n(s.ActiveFactoryVibrationMmS, 1)} mm/s`, 948, 330, 11, '#d4f3fb', 800);
       }
 
       if (s.StageReadyForOperator) {
