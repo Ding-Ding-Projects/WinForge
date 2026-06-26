@@ -66,6 +66,7 @@ public sealed class CakeFactorySnapshot
     public bool CanPasteurizeMilk { get; init; }
     public bool CanMixDairyRation { get; init; }
     public bool CanWashDairyParlor { get; init; }
+    public bool CanGetCowFromPetStore { get; init; }
     public bool CanWashPoultryHouse { get; init; }
     public bool CanMillWheat { get; init; }
     public bool CanRefineSugar { get; init; }
@@ -112,6 +113,12 @@ public sealed class CakeFactorySnapshot
     public double MilkProductionLPerHour { get; init; }
     public double MilkParlorThroughputLPerHour { get; init; }
     public string MilkSourceStatus { get; init; } = "";
+    public bool CowPickupActive { get; init; }
+    public bool GuestCowActive { get; init; }
+    public double CowPickupEtaSeconds { get; init; }
+    public double GuestCowSecondsRemaining { get; init; }
+    public string GuestCowTagId { get; init; } = "";
+    public string CowAcquisitionStatus { get; init; } = "";
     public double BulkMilkTankC { get; init; }
     public double BulkTankAgitationRpm { get; init; }
     public double BulkTankCoolingLoadKw { get; init; }
@@ -557,6 +564,12 @@ public sealed class CakeFactoryService
     private double _milkProductionLPerHour;
     private double _milkParlorThroughputLPerHour = 720;
     private string _milkSourceStatus = "Milk comes from the lactating cow herd after feed, water, pasture and powered milking.";
+    private bool _cowPickupActive;
+    private double _cowPickupEtaSeconds;
+    private bool _guestCowActive;
+    private double _guestCowSecondsRemaining;
+    private string _guestCowTagId = "";
+    private string _cowAcquisitionStatus = "Pet-store livestock counter idle: reserve one cow, inspect/transport it, care for it in the barn, then release it back into the wild after 1 hour.";
     private double _bulkMilkTankC = 3.6;
     private double _bulkTankAgitationRpm = 36;
     private double _bulkTankCoolingLoadKw = 0.8;
@@ -578,6 +591,14 @@ public sealed class CakeFactoryService
     private string _rationStatus = "Total mixed ration TMR-OPENING loaded for the lactating cow herd.";
     private string _feedCropStatus = "Feed crop header idle: pasture and feed-grain lots can be harvested for the TMR mixer.";
     private string _cocoaGreenhouseStatus = "Cocoa greenhouse idle: cacao pods are growing under irrigation, fertilizer and shade-house controls.";
+
+    private const double PetStoreCowCost = 38.0;
+    private const double PetStoreCowPickupDurationSeconds = 18.0;
+    private const double GuestCowStaySeconds = 3600.0;
+    private const double PetStoreCowRationKg = 3.5;
+    private const double PetStoreCowWaterL = 24.0;
+    private const double PetStoreCowBeddingKg = 0.8;
+    private const double PetStoreCowLaborHours = 0.25;
 
     private double _wheatKg = 260;
     private double _sugarCropKg = 380;
@@ -1249,6 +1270,36 @@ public sealed class CakeFactoryService
         _cocoaGreenhouseStatus = $"Cocoa greenhouse harvest logged: {beans:0.0} kg fermented cocoa beans lot {_cocoaBeansLotId}, {_cocoaFermentationPct:0}% fermentation and {_cocoaBeanMoisturePct:0.0}% moisture.";
         _traceabilityStatus = $"Cocoa greenhouse trace logged: cacao pods -> fermented bean lot {_cocoaBeansLotId}; cocoa roaster/winnower/press/pin mill still required before chocolate batching.";
         return _cocoaGreenhouseStatus;
+    }
+
+    public string GetCowFromPetStore()
+    {
+        if (_lastPowerAvailability < 0.10)
+            return "Pet-store cow pickup needs reactor bus power for the barn gate, ID scanner and trailer checks.";
+        if (_cowPickupActive)
+            return $"Pet-store cow pickup already scheduled; trailer ETA {_cowPickupEtaSeconds:0}s.";
+        if (_guestCowActive)
+            return $"Guest cow {_guestCowTagId} is already in the barn; release back into the wild in {_guestCowSecondsRemaining / 60.0:0.0} min.";
+        if (_cashBalance < PetStoreCowCost)
+            return $"Cash balance ${_cashBalance:0.00} is below pet-store cow intake cost ${PetStoreCowCost:0.00}.";
+        if (_mixedRationKg < PetStoreCowRationKg || _irrigationWaterL < PetStoreCowWaterL || _beddingKg < PetStoreCowBeddingKg || _barnLaborHours < PetStoreCowLaborHours)
+            return "Pet-store cow intake needs a little mixed ration, water, released bedding and barn labor.";
+        if (!FactoryLotReleased(_beddingKg, _beddingLotId))
+            return $"Pet-store cow intake cannot proceed; bedding lot {_beddingLotId} is waiting for QA lab release.";
+        if (string.IsNullOrWhiteSpace(_mixedRationLotId) || string.IsNullOrWhiteSpace(_beddingLotId))
+            return "Pet-store cow intake cannot proceed because the ration or bedding lot is missing from the ledger.";
+
+        _cashBalance -= PetStoreCowCost;
+        ConsumeTrackedStock(ref _mixedRationKg, PetStoreCowRationKg, ref _mixedRationLotId);
+        _irrigationWaterL = Math.Max(0, _irrigationWaterL - PetStoreCowWaterL);
+        ConsumeTrackedStock(ref _beddingKg, PetStoreCowBeddingKg, ref _beddingLotId);
+        _barnLaborHours = Math.Max(0, _barnLaborHours - PetStoreCowLaborHours);
+        _cowPickupActive = true;
+        _cowPickupEtaSeconds = PetStoreCowPickupDurationSeconds;
+        _guestCowTagId = NewLotId("PETCOW");
+        _cowAcquisitionStatus = $"Pet-store desk reserved guest cow {_guestCowTagId}: paid ${PetStoreCowCost:0.00}, loaded intake ration {_mixedRationLotId}, water and bedding {_beddingLotId}; trailer ETA {_cowPickupEtaSeconds:0}s.";
+        _traceabilityStatus = $"Cow acquisition trace logged for {_guestCowTagId}: pet-store intake used TMR {_mixedRationLotId} and bedding {_beddingLotId}; milk still depends on full dairy care and QA.";
+        return _cowAcquisitionStatus;
     }
 
     public string MixDairyRation()
@@ -3575,13 +3626,15 @@ public sealed class CakeFactoryService
         double farmDemand = 0.7 + FarmIntensity * 3.8;
         double ingredientFactoryDemand = _factoryRun?.PowerDemandMW ?? 0;
         double utilityDemand = _utilityPlantActive ? UtilityPlantPowerDemandMW : 0;
+        double cowPickupDemand = _cowPickupActive ? 0.25 : 0;
         double factoryDemand = 2.4 + LineSpeed * 28.0 + (CipActive ? 2.8 : 0) + ingredientFactoryDemand + utilityDemand;
-        double demand = farmDemand + factoryDemand;
+        double demand = farmDemand + factoryDemand + cowPickupDemand;
         bool reactorOnline = reactor.IsGenerating && reactor.ElectricMW > 1 && !reactor.IsMeltdown;
         double power = reactorOnline ? Math.Clamp(reactor.ElectricMW / Math.Max(1, demand), 0, 1) : 0;
         _lastPowerAvailability = power;
 
         UpdateAnimation(seconds, power);
+        UpdateCowAcquisition(seconds, power);
         UpdateFarm(seconds, power);
         UpdateMilkColdChain(seconds, power);
         UpdateWarehouse(seconds, power);
@@ -3635,6 +3688,9 @@ public sealed class CakeFactoryService
                                 && !string.IsNullOrWhiteSpace(_rawMilkLotId) && MilkQaInSpec(),
             CanMixDairyRation = power >= 0.15 && _forageKg >= 48 && _grainKg >= 22 && _dairyMineralKg >= 2.2 && FactoryLotReleased(_dairyMineralKg, _dairyMineralLotId) && _irrigationWaterL >= 38 && _barnLaborHours >= 0.8,
             CanWashDairyParlor = power >= 0.15 && HasFactoryUtilities(180, 60, 12, 0.5) && _barnLaborHours >= 1.4 && (_dairyParlorHygienePct < 96 || _manureKg > 80),
+            CanGetCowFromPetStore = power >= 0.10 && !_cowPickupActive && !_guestCowActive && _cashBalance >= PetStoreCowCost && _mixedRationKg >= PetStoreCowRationKg
+                                    && _irrigationWaterL >= PetStoreCowWaterL && _beddingKg >= PetStoreCowBeddingKg && _barnLaborHours >= PetStoreCowLaborHours
+                                    && FactoryLotReleased(_beddingKg, _beddingLotId) && !string.IsNullOrWhiteSpace(_mixedRationLotId) && !string.IsNullOrWhiteSpace(_beddingLotId),
             CanWashPoultryHouse = power >= 0.15 && HasFactoryUtilities(90, 30, 8, 0.35) && _barnLaborHours >= 1.0 && (_henHouseHygienePct < 96 || _poultryManureKg > 80),
             CanMillWheat = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _wheatKg >= 5 && HasFactoryUtilities(50, 0, 38, 0.6),
             CanRefineSugar = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _sugarCropKg >= 10 && HasFactoryUtilities(520, 610, 22, 1.2),
@@ -3693,6 +3749,12 @@ public sealed class CakeFactoryService
             MilkProductionLPerHour = _milkProductionLPerHour,
             MilkParlorThroughputLPerHour = _milkParlorThroughputLPerHour,
             MilkSourceStatus = _milkSourceStatus,
+            CowPickupActive = _cowPickupActive,
+            GuestCowActive = _guestCowActive,
+            CowPickupEtaSeconds = _cowPickupEtaSeconds,
+            GuestCowSecondsRemaining = _guestCowSecondsRemaining,
+            GuestCowTagId = _guestCowTagId,
+            CowAcquisitionStatus = _cowAcquisitionStatus,
             BulkMilkTankC = _bulkMilkTankC,
             BulkTankAgitationRpm = _bulkTankAgitationRpm,
             BulkTankCoolingLoadKw = _bulkTankCoolingLoadKw,
@@ -4038,6 +4100,71 @@ public sealed class CakeFactoryService
         _milkBacteriaCfuPerMl = Math.Clamp(_milkBacteriaCfuPerMl * (1.0 + growthFactor * seconds), 1200, 250000);
     }
 
+    private void UpdateCowAcquisition(double seconds, double power)
+    {
+        if (_cowPickupActive)
+        {
+            double travelFactor = power >= 0.10 ? 1.0 : 0.30;
+            _cowPickupEtaSeconds = Math.Max(0, _cowPickupEtaSeconds - seconds * travelFactor);
+            if (_cowPickupEtaSeconds > 0)
+            {
+                _cowAcquisitionStatus = $"Pet-store cow {_guestCowTagId} is in transport: ID check complete, trailer ETA {_cowPickupEtaSeconds:0}s.";
+            }
+            else
+            {
+                CompleteCowPickup();
+            }
+        }
+
+        if (!_guestCowActive)
+            return;
+
+        _guestCowSecondsRemaining = Math.Max(0, _guestCowSecondsRemaining - seconds);
+        if (_guestCowSecondsRemaining <= 0)
+        {
+            ReleaseGuestCow();
+        }
+        else if (!_cowPickupActive)
+        {
+            _cowAcquisitionStatus = $"Guest cow {_guestCowTagId} is in the dairy barn for supervised care; release back into the wild in {_guestCowSecondsRemaining / 60.0:0.0} min.";
+        }
+    }
+
+    private void CompleteCowPickup()
+    {
+        _cowPickupActive = false;
+        _cowPickupEtaSeconds = 0;
+        _guestCowActive = true;
+        _guestCowSecondsRemaining = GuestCowStaySeconds;
+        int previousLactating = Math.Max(0, _lactatingCowCount);
+        _dairyCowCount += 1;
+        _lactatingCowCount += 1;
+        _averageLactationDays = previousLactating > 0
+            ? ((_averageLactationDays * previousLactating) + 96.0) / (previousLactating + 1)
+            : 96.0;
+        _cowComfort = Math.Clamp(_cowComfort + 2.0, 0, 100);
+        _milkFatPct = Math.Clamp(_milkFatPct + 0.02, 2.4, 4.5);
+        _milkProteinPct = Math.Clamp(_milkProteinPct + 0.01, 2.5, 3.8);
+        _cowAcquisitionStatus = $"Guest cow {_guestCowTagId} arrived from the pet-store livestock counter, passed visual inspection, joined the lactating herd and will be released back into the wild after 60.0 min.";
+        _milkSourceStatus = $"Guest cow {_guestCowTagId} joined the lactating herd; milk still requires ration, water, released bedding, labor, parlor hygiene, bulk-tank QA and pasteurization.";
+        _traceabilityStatus = $"Cow intake trace logged: {_guestCowTagId} added to herd after pet-store pickup; dairy care and milk QA remain active.";
+    }
+
+    private void ReleaseGuestCow()
+    {
+        string tag = string.IsNullOrWhiteSpace(_guestCowTagId) ? "guest cow" : _guestCowTagId;
+        _guestCowActive = false;
+        _guestCowSecondsRemaining = 0;
+        _cowPickupActive = false;
+        _cowPickupEtaSeconds = 0;
+        _dairyCowCount = Math.Max(0, _dairyCowCount - 1);
+        _lactatingCowCount = Math.Max(0, Math.Min(_dairyCowCount, _lactatingCowCount - 1));
+        _cowAcquisitionStatus = $"Released {tag} back into the wild after the 1-hour dairy stay; herd returned to {_lactatingCowCount}/{_dairyCowCount} lactating cows.";
+        _milkSourceStatus = $"{tag} released back into the wild; remaining milk comes from the resident lactating cow herd under normal dairy care.";
+        _traceabilityStatus = $"Cow release trace logged: {tag} completed 1-hour stay and left the dairy herd.";
+        _guestCowTagId = "";
+    }
+
     private void UpdateFarm(double seconds, double power)
     {
         double fieldDemand = Math.Max(0, FarmIntensity * power);
@@ -4166,10 +4293,13 @@ public sealed class CakeFactoryService
 
         _dairyReadyL = Math.Min(140, _dairyReadyL + _milkProductionLPerHour * simHours);
         _eggsReady = Math.Min(420, _eggsReady + _eggProductionPerHour * simHours);
+        string guestCowNote = _guestCowActive
+            ? $" Guest cow {_guestCowTagId} is included in the herd and has {_guestCowSecondsRemaining / 60.0:0.0} min before release back into the wild."
+            : "";
         _milkSourceStatus = cowInputFactor > 0 && livestockPower > 0
-            ? $"Milk comes from {_lactatingCowCount} lactating cows averaging {_averageLactationDays:0} days in milk; herd consumed {rationNeed * cowInputFactor:0.0} kg TMR ration {_mixedRationLotId}, {_dryMatterIntakeKgPerCowDay:0.0} kg dry matter/cow/day, {beddingNeed * cowInputFactor:0.0} kg released bedding lot {_beddingLotId}, {barnWaterNeed * cowInputFactor:0} L water and made {_manureKg:0} kg manure. Rumen pH {_rumenPh:0.00}, BCS {_bodyConditionScore:0.00}, MUN {_milkUreaNitrogenMgDl:0.0} mg/dL; raw bulk-tank milk still requires pasteurization before batching."
+            ? $"Milk comes from {_lactatingCowCount} lactating cows averaging {_averageLactationDays:0} days in milk; herd consumed {rationNeed * cowInputFactor:0.0} kg TMR ration {_mixedRationLotId}, {_dryMatterIntakeKgPerCowDay:0.0} kg dry matter/cow/day, {beddingNeed * cowInputFactor:0.0} kg released bedding lot {_beddingLotId}, {barnWaterNeed * cowInputFactor:0} L water and made {_manureKg:0} kg manure. Rumen pH {_rumenPh:0.00}, BCS {_bodyConditionScore:0.00}, MUN {_milkUreaNitrogenMgDl:0.0} mg/dL; raw bulk-tank milk still requires pasteurization before batching.{guestCowNote}"
             : beddingLotReleased
-                ? "Milk production stalled: cow herd needs mixed ration, water, released bedding, labor, pasture health and powered milking systems."
+                ? $"Milk production stalled: cow herd needs mixed ration, water, released bedding, labor, pasture health and powered milking systems.{guestCowNote}"
                 : $"Milk production stalled: livestock bedding lot {_beddingLotId} is waiting for QA lab release.";
         _eggSourceStatus = henInputFactor > 0 && livestockPower > 0
             ? $"Eggs come from {_layingHenCount} laying hens; flock consumed {henFeedNeed * henInputFactor:0.0} kg released feed lot {_feedLotId}, {henBeddingNeed * henInputFactor:0.0} kg released bedding lot {_beddingLotId}, {henWaterNeed * henInputFactor:0} L water and labor, then made {_poultryManureKg:0} kg manure."

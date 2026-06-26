@@ -822,6 +822,60 @@ internal static class Program
                           $"({collected.BulkMilkTankC:F1}C, {collected.BulkTankAgitationRpm:F0} rpm, {collected.BulkTankCoolingLoadKw:F1} kW, {collected.MilkBacteriaCfuPerMl:F0} CFU/mL)");
         });
 
+        Scenario("CAKE PET-STORE COW INTAKE (easy pickup joins herd, uses care resources and releases after one hour)", () =>
+        {
+            var cake = new CakeFactoryService { FarmIntensity = 1.0 };
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            string start = cake.GetCowFromPetStore();
+            TickCake(cake, fullBus, 0.5);
+            var enroute = cake.Snapshot;
+
+            TickCake(cake, fullBus, 20.0);
+            var arrived = cake.Snapshot;
+
+            TickCake(cake, fullBus, 3595.0);
+            var nearRelease = cake.Snapshot;
+
+            TickCake(cake, fullBus, 10.0);
+            var released = cake.Snapshot;
+
+            bool pickupStarted = before.CanGetCowFromPetStore
+                                 && enroute.CowPickupActive
+                                 && enroute.CowPickupEtaSeconds > 0
+                                 && enroute.CashBalance < before.CashBalance
+                                 && enroute.MixedRationKg < before.MixedRationKg
+                                 && enroute.BeddingKg < before.BeddingKg
+                                 && start.Contains("Pet-store", StringComparison.OrdinalIgnoreCase);
+            bool joinedHerd = !arrived.CowPickupActive
+                              && arrived.GuestCowActive
+                              && arrived.GuestCowTagId.StartsWith("PETCOW-", StringComparison.OrdinalIgnoreCase)
+                              && arrived.DairyCowCount == before.DairyCowCount + 1
+                              && arrived.LactatingCowCount == before.LactatingCowCount + 1
+                              && arrived.GuestCowSecondsRemaining <= 3600
+                              && arrived.CowAcquisitionStatus.Contains("wild", StringComparison.OrdinalIgnoreCase);
+            bool careStillModeled = arrived.MilkProductionLPerHour > 0
+                                    && arrived.MilkSourceStatus.Contains("ration", StringComparison.OrdinalIgnoreCase)
+                                    && arrived.MilkSourceStatus.Contains("rumen", StringComparison.OrdinalIgnoreCase)
+                                    && arrived.MilkSourceStatus.Contains("Guest cow", StringComparison.OrdinalIgnoreCase)
+                                    && arrived.CowComfort > 0
+                                    && arrived.DryMatterIntakeKgPerCowDay > 10;
+            bool oneHourRelease = nearRelease.GuestCowActive
+                                  && nearRelease.GuestCowSecondsRemaining > 0
+                                  && !released.GuestCowActive
+                                  && released.DairyCowCount == before.DairyCowCount
+                                  && released.LactatingCowCount == before.LactatingCowCount
+                                  && released.CowAcquisitionStatus.Contains("1-hour", StringComparison.OrdinalIgnoreCase)
+                                  && released.CowAcquisitionStatus.Contains("wild", StringComparison.OrdinalIgnoreCase);
+
+            bool pass = pickupStarted && joinedHerd && careStillModeled && oneHourRelease;
+            return (pass, $"pickupStarted={pickupStarted} ('{Trim(start)}'), joinedHerd={joinedHerd} " +
+                          $"({before.LactatingCowCount}/{before.DairyCowCount}->{arrived.LactatingCowCount}/{arrived.DairyCowCount}, tag {arrived.GuestCowTagId}), " +
+                          $"careStillModeled={careStillModeled} (milk {arrived.MilkProductionLPerHour:F1} L/h, DMI {arrived.DryMatterIntakeKgPerCowDay:F1}, pH {arrived.RumenPh:F2}), " +
+                          $"oneHourRelease={oneHourRelease} (near {nearRelease.GuestCowSecondsRemaining:F0}s, released '{Trim(released.CowAcquisitionStatus)}')");
+        });
+
         Scenario("CAKE MILK PASTEURIZER (raw cow milk becomes released recipe milk)", () =>
         {
             var cake = new CakeFactoryService { FarmIntensity = 1.0 };

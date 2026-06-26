@@ -585,6 +585,7 @@
                 <button class="action" type="button" data-action="harvestFeedCrops">Harvest feed</button>
                 <button class="action" type="button" data-action="harvestCocoa">Harvest cocoa</button>
                 <button class="action" type="button" data-action="collect">Milk + eggs</button>
+                <button class="action" type="button" data-action="getCowFromPetStore">Get cow</button>
                 <button class="action" type="button" data-action="mixDairyRation">Mix dairy ration</button>
                 <button class="action guard" type="button" data-action="washDairyParlor">Wash parlor</button>
                 <button class="action guard" type="button" data-action="washPoultryHouse">Wash poultry</button>
@@ -750,6 +751,7 @@
       CanPasteurizeMilk: false,
       CanMixDairyRation: false,
       CanWashDairyParlor: false,
+      CanGetCowFromPetStore: false,
       CanWashPoultryHouse: false,
       CanMillWheat: false,
       CanRefineSugar: false,
@@ -796,6 +798,12 @@
       MilkProductionLPerHour: 15.5,
       MilkParlorThroughputLPerHour: 720,
       MilkSourceStatus: 'Milk comes from the lactating cow herd after feed, water, pasture and powered milking.',
+      CowPickupActive: false,
+      GuestCowActive: false,
+      CowPickupEtaSeconds: 0,
+      GuestCowSecondsRemaining: 0,
+      GuestCowTagId: '',
+      CowAcquisitionStatus: 'Pet-store livestock counter idle: reserve one cow, inspect/transport it, care for it in the barn, then release it back into the wild after 1 hour.',
       BulkMilkTankC: 3.6,
       BulkTankAgitationRpm: 36,
       BulkTankCoolingLoadKw: 0.8,
@@ -1236,6 +1244,7 @@
       setButton('harvestFeedCrops', s.CanHarvestFeedCrops);
       setButton('harvestCocoa', s.CanHarvestCocoa);
       setButton('collect', s.CanCollectDairy);
+      setButton('getCowFromPetStore', s.CanGetCowFromPetStore);
       setButton('pasteurizeMilk', s.CanPasteurizeMilk);
       setButton('mixDairyRation', s.CanMixDairyRation);
       setButton('washDairyParlor', s.CanWashDairyParlor);
@@ -1309,6 +1318,8 @@
         ['Dairy mineral', `${n(s.DairyMineralKg, 1)} kg / ${s.DairyMineralLotId || '-'}`],
         ['Mineral raws', `lime ${n(s.LimestoneKg, 1)} kg / trace ${n(s.TraceMineralKg, 1)} kg`],
         ['Mixed ration', `${n(s.MixedRationKg, 1)} kg`],
+        ['Cow source', s.CowAcquisitionStatus || 'Pet-store livestock counter idle'],
+        ['Cow timer', s.CowPickupActive ? `pickup ETA ${n(s.CowPickupEtaSeconds, 0)}s` : (s.GuestCowActive ? `${s.GuestCowTagId || 'guest cow'} release in ${n((s.GuestCowSecondsRemaining || 0) / 60, 1)} min` : 'No guest cow')],
         ['Raw milk lot', `${n(s.RawMilkL, 1)} L / ${s.RawMilkLotId || '-'}`],
         ['Pasteurized milk lot', `${n(s.MilkL, 1)} L / ${s.MilkLotId || '-'}`],
         ['Straw feedstock', `${n(s.StrawKg, 1)} kg / ${s.StrawLotId || '-'}`],
@@ -1402,6 +1413,7 @@
         ['Utility status', s.UtilityPlantStatus || 'Utility plant idle'],
         ['RO / boiler / air', `${n(s.ProcessWaterConductivityUsCm, 3)} uS/cm / ${n(s.BoilerPressureBar, 1)} bar / ${n(s.AirHeaderPressureBar, 1)} bar`],
         ['Milk source', s.MilkSourceStatus || 'Cow dairy idle'],
+        ['Cow acquisition', s.CowAcquisitionStatus || 'Pet-store livestock counter idle'],
         ['Raw milk QA', s.MilkQaStatus || 'Raw milk QA in spec'],
         ['Milk pasteurizer', `${n(s.MilkPasteurizerTemperatureC, 1)} degC / ${n(s.MilkPasteurizationHoldSeconds, 1)}s / ${n(s.MilkMicroLogReduction, 1)} log`],
         ['Homogenizer', `${n(s.MilkHomogenizerPressureBar, 0)} bar`],
@@ -1617,6 +1629,7 @@
       text(`${s.LactatingCowCount || 0}/${s.DairyCowCount || 0} cows - ${n(s.MilkProductionLPerHour, 1)} L/h - ${n(s.AverageLactationDays, 0)} DIM`, 75, 508, 11, '#cfe7c9', 800);
       text(`${n(s.DryMatterIntakeKgPerCowDay, 1)} kg DMI - rumen pH ${n(s.RumenPh, 2)} - BCS ${n(s.BodyConditionScore, 2)}`, 75, 523, 10, '#d9edc7', 800);
       text(`Raw ${n(s.RawMilkL, 0)} L / pasteurized ${n(s.MilkL, 0)} L / tank ${n(s.BulkMilkTankC, 1)} degC`, 75, 538, 10, '#d4f3fb', 800);
+      text(s.CowPickupActive ? `Pet-store trailer ETA ${n(s.CowPickupEtaSeconds, 0)}s` : (s.GuestCowActive ? `${s.GuestCowTagId || 'Guest cow'} release ${n((s.GuestCowSecondsRemaining || 0) / 60, 1)} min` : 'Pet-store cow counter ready'), 75, 553, 10, '#f6e8b8', 800);
       text(`${s.LayingHenCount || 0} hens - ${n(s.EggProductionPerHour, 1)} eggs/h`, 75, 553, 10, '#fff1bf', 800);
       text(`Poultry house ${n(s.HenHouseHygienePct, 0)}% - manure ${n(s.PoultryManureKg, 0)} kg`, 75, 567, 10, '#ffd6aa', 800);
 
