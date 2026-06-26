@@ -593,6 +593,7 @@
               <div class="button-grid">
                 <button class="action" type="button" data-action="runUtilityPlant">Run utilities</button>
                 <button class="action" type="button" data-action="runFeedMill">Mill feed</button>
+                <button class="action" type="button" data-action="runCompostPlant">Compost fertilizer</button>
                 <button class="action" type="button" data-action="mill">Mill flour</button>
                 <button class="action" type="button" data-action="refine">Refine sugar</button>
                 <button class="action" type="button" data-action="churn">Churn butter</button>
@@ -759,6 +760,7 @@
       CanRunPackagingPlant: false,
       CanPrepareIcing: false,
       CanRunFeedMill: false,
+      CanRunCompostPlant: false,
       CanReleaseLabLot: false,
       CanStageBatchKit: false,
       WheatGrowth: 64,
@@ -831,6 +833,7 @@
       PackagingLotId: 'PACK-OPENING',
       IcingLotId: 'ICING-OPENING',
       FeedLotId: 'FEED-OPENING',
+      FertilizerLotId: 'FERT-OPENING',
       WheatKg: 260,
       SugarCropKg: 380,
       FlourKg: 120,
@@ -951,6 +954,11 @@
       FeedMillHammerRpm: 0,
       FeedPelletTemperatureC: 24,
       FeedMoisturePct: 11.5,
+      FertilizerConditionPct: 90,
+      FertilizerCalibrationPct: 94,
+      CompostTemperatureC: 32,
+      CompostMoisturePct: 42,
+      CompostAerationPct: 78,
       BatterKg: 0,
       CakesBaked: 0,
       CakesPacked: 0,
@@ -1107,6 +1115,7 @@
       setButton('unloadSupplyDelivery', s.CanUnloadSupplyDelivery);
       setButton('runUtilityPlant', s.CanRunUtilityPlant);
       setButton('runFeedMill', s.CanRunFeedMill);
+      setButton('runCompostPlant', s.CanRunCompostPlant);
       setButton('processCocoa', s.CanProcessCocoa);
       setButton('runSaltWorks', s.CanRunSaltWorks);
       setButton('runLeaveningPlant', s.CanRunLeaveningPlant);
@@ -1148,6 +1157,7 @@
       const resources = [
         ['Water', `${n(s.IrrigationWaterL, 0)} L`],
         ['Fertilizer', `${n(s.FertilizerKg, 1)} kg`],
+        ['Fertilizer lot', s.FertilizerLotId || '-'],
         ['Wheat seed', `${n(s.WheatSeedKg, 1)} kg`],
         ['Beet seed', `${n(s.BeetSeedKg, 1)} kg`],
         ['Animal feed', `${n(s.AnimalFeedKg, 1)} kg`],
@@ -1209,6 +1219,8 @@
         ['Icing lot', `${s.IcingLotId || '-'} / ${n(s.IcingKg, 1)} kg`],
         ['Feed mill', `${n(s.FeedMillHammerRpm, 0)} rpm / ${n(s.FeedPelletTemperatureC, 0)} degC / ${n(s.FeedMoisturePct, 1)}% moisture`],
         ['Feed lot', `${s.FeedLotId || '-'} / ${n(s.AnimalFeedKg, 1)} kg`],
+        ['Compost plant', `${n(s.CompostTemperatureC, 0)} degC / ${n(s.CompostMoisturePct, 1)}% moisture / ${n(s.CompostAerationPct, 0)}% air`],
+        ['Fertilizer lot', `${s.FertilizerLotId || '-'} / ${n(s.FertilizerKg, 1)} kg`],
         ['Customer order', s.CurrentOrderId || '-'],
         ['Order status', s.OrderStatus || 'No active order'],
         ['Order ready', `${s.OrderCakesReady || 0}/${s.OrderCakesRequired || 0} cakes / ${n(s.OrderSecondsRemaining, 0)}s`],
@@ -1225,6 +1237,7 @@
         ['Packaging asset', `${n(s.PackagingConditionPct, 0)}% / ${n(s.PackagingCalibrationPct, 0)}% cal`],
         ['Icing asset', `${n(s.IcingConditionPct, 0)}% / ${n(s.IcingCalibrationPct, 0)}% cal`],
         ['Feed mill asset', `${n(s.FeedConditionPct, 0)}% / ${n(s.FeedCalibrationPct, 0)}% cal`],
+        ['Compost asset', `${n(s.FertilizerConditionPct, 0)}% / ${n(s.FertilizerCalibrationPct, 0)}% cal`],
         ['Utilities', s.FactoryUtilityStatus || 'Utilities ready'],
         ['Utility status', s.UtilityPlantStatus || 'Utility plant idle'],
         ['RO / boiler / air', `${n(s.ProcessWaterConductivityUsCm, 3)} uS/cm / ${n(s.BoilerPressureBar, 1)} bar / ${n(s.AirHeaderPressureBar, 1)} bar`],
@@ -1443,6 +1456,7 @@
       drawMiniPlant(305, 636, 'PACK', s.CanRunPackagingPlant ? '#dfbd66' : '#69716f');
       drawMiniPlant(410, 588, 'FEED', s.CanRunFeedMill ? '#bfde72' : '#69716f');
       drawMiniPlant(410, 636, 'VANILLA', s.CanExtractVanilla ? '#c7925b' : '#69716f');
+      drawMiniPlant(505, 588, 'COMP', s.CanRunCompostPlant ? '#9bd06c' : '#69716f');
       text(`Brine ${n(s.BrineL, 0)} L`, 76, 612, 12, '#d9f0ff', 800);
       text(`Minerals ${n((s.SodaAshKg || 0) + (s.PhosphateKg || 0) + (s.StarchKg || 0), 1)} kg`, 198, 612, 12, '#ffe1a1', 800);
       text(`Vanilla beans ${n(s.VanillaBeansKg, 1)} kg / extract ${n(s.VanillaL, 2)} L`, 76, 632, 11, '#d4f3fb', 800);

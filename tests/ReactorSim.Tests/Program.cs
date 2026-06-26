@@ -865,6 +865,64 @@ internal static class Program
                           $"releasedFeedConsumed={releasedFeedConsumed} ({released.AnimalFeedKg:F1}->{used.AnimalFeedKg:F1} kg)");
         });
 
+        Scenario("CAKE COMPOST FERTILIZER PLANT (crop fertilizer is factory-made from manure and organics)", () =>
+        {
+            var cake = new CakeFactoryService { FarmIntensity = 0 };
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            string start = cake.RunCompostPlant();
+            TickCake(cake, fullBus, 1.0);
+            var running = cake.Snapshot;
+            TickCake(cake, fullBus, 8.5);
+            var held = cake.Snapshot;
+
+            bool startConsumesInputs = before.CanRunCompostPlant
+                                       && start.Contains("compost", StringComparison.OrdinalIgnoreCase)
+                                       && running.FactoryRunActive
+                                       && running.ActiveFactoryName.Contains("compost", StringComparison.OrdinalIgnoreCase)
+                                       && running.ManureKg < before.ManureKg
+                                       && running.PoultryManureKg < before.PoultryManureKg
+                                       && running.BranKg < before.BranKg
+                                       && running.BeetPulpKg < before.BeetPulpKg
+                                       && running.ProcessWaterL < before.ProcessWaterL
+                                       && running.CompressedAirNm3 < before.CompressedAirNm3
+                                       && running.FilterMediaPct < before.FilterMediaPct;
+            bool completionHeldForLab = !held.FactoryRunActive
+                                        && held.FertilizerKg > before.FertilizerKg
+                                        && held.FertilizerLotId.StartsWith("FERT-", StringComparison.OrdinalIgnoreCase)
+                                        && held.FertilizerLotId != before.FertilizerLotId
+                                        && held.PendingLabLotId == held.FertilizerLotId
+                                        && held.PendingLabProductName.Contains("fertilizer", StringComparison.OrdinalIgnoreCase)
+                                        && held.CompostTemperatureC > 45
+                                        && held.CompostMoisturePct > 25
+                                        && held.CompostAerationPct > 80;
+
+            cake.FarmIntensity = 1.0;
+            TickCake(cake, fullBus, 60);
+            var blocked = cake.Snapshot;
+            bool unreleasedFertilizerBlocked = Math.Abs(blocked.FertilizerKg - held.FertilizerKg) < 0.001
+                                               && blocked.WheatGrowth <= held.WheatGrowth + 0.001
+                                               && blocked.TraceabilityStatus.Contains("fertilizer", StringComparison.OrdinalIgnoreCase);
+
+            string release = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var released = cake.Snapshot;
+            TickCake(cake, fullBus, 60);
+            var worked = cake.Snapshot;
+
+            bool releaseClearsHold = released.PendingLabLotId.Length == 0
+                                     && release.Contains("released", StringComparison.OrdinalIgnoreCase);
+            bool releasedFertilizerConsumed = worked.FertilizerKg < released.FertilizerKg
+                                              && worked.WheatGrowth > released.WheatGrowth
+                                              && worked.FertilizerLotId == released.FertilizerLotId;
+            bool pass = startConsumesInputs && completionHeldForLab && unreleasedFertilizerBlocked && releaseClearsHold && releasedFertilizerConsumed;
+            return (pass, $"startConsumesInputs={startConsumesInputs} ('{Trim(start)}'), completionHeldForLab={completionHeldForLab} " +
+                          $"(fertilizer {before.FertilizerKg:F1}->{held.FertilizerKg:F1} kg, lot {held.FertilizerLotId}), " +
+                          $"unreleasedFertilizerBlocked={unreleasedFertilizerBlocked}, releaseClearsHold={releaseClearsHold} ('{Trim(release)}'), " +
+                          $"releasedFertilizerConsumed={releasedFertilizerConsumed} ({released.FertilizerKg:F1}->{worked.FertilizerKg:F1} kg, wheat {released.WheatGrowth:F1}->{worked.WheatGrowth:F1}%)");
+        });
+
         Scenario("CAKE POULTRY PROVENANCE (eggs come from hens consuming feed, water, bedding and labor)", () =>
         {
             var cake = new CakeFactoryService { FarmIntensity = 1.0 };
@@ -1520,6 +1578,7 @@ internal static class Program
                                       && Math.Abs(after.CocoaBeansKg - before.CocoaBeansKg) < 0.001;
 
             double waterBeforeSupply = after.IrrigationWaterL;
+            double fertilizerBeforeSupply = after.FertilizerKg;
             double feedBeforeSupply = after.AnimalFeedKg;
             double bakingPowderBeforeSupply = after.BakingPowderKg;
             double saltBeforeSupply = after.SaltKg;
@@ -1545,6 +1604,7 @@ internal static class Program
             bool supplyTruckDoesNotMakeFinalIngredients = Math.Abs(supplied.BakingPowderKg - bakingPowderBeforeSupply) < 0.001
                                                           && Math.Abs(supplied.SaltKg - saltBeforeSupply) < 0.001
                                                           && Math.Abs(supplied.PackagingUnits - cartonsBeforeSupply) < 0.001
+                                                          && supplied.FertilizerKg <= fertilizerBeforeSupply + 0.001
                                                           && supplied.AnimalFeedKg <= feedBeforeSupply + 0.001;
 
             bool pass = fieldInputsConsumed && livestockInputsConsumed && cocoaDoesNotAppear && supplyTruckAddsInputs && supplyTruckDoesNotMakeFinalIngredients;

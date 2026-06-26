@@ -83,6 +83,7 @@ public sealed class CakeFactorySnapshot
     public bool CanRunPackagingPlant { get; init; }
     public bool CanPrepareIcing { get; init; }
     public bool CanRunFeedMill { get; init; }
+    public bool CanRunCompostPlant { get; init; }
     public bool CanReleaseLabLot { get; init; }
     public bool CanStageBatchKit { get; init; }
     public double WheatGrowth { get; init; }
@@ -155,6 +156,7 @@ public sealed class CakeFactorySnapshot
     public string PackagingLotId { get; init; } = "";
     public string IcingLotId { get; init; } = "";
     public string FeedLotId { get; init; } = "";
+    public string FertilizerLotId { get; init; } = "";
     public double WheatKg { get; init; }
     public double SugarCropKg { get; init; }
     public double FlourKg { get; init; }
@@ -275,6 +277,11 @@ public sealed class CakeFactorySnapshot
     public double FeedMillHammerRpm { get; init; }
     public double FeedPelletTemperatureC { get; init; }
     public double FeedMoisturePct { get; init; }
+    public double FertilizerConditionPct { get; init; }
+    public double FertilizerCalibrationPct { get; init; }
+    public double CompostTemperatureC { get; init; }
+    public double CompostMoisturePct { get; init; }
+    public double CompostAerationPct { get; init; }
     public double BatterKg { get; init; }
     public int CakesBaked { get; init; }
     public int CakesPacked { get; init; }
@@ -317,6 +324,7 @@ public sealed class CakeFactoryService
         Packaging,
         Icing,
         Feed,
+        Fertilizer,
     }
 
     private sealed class IngredientFactoryRun
@@ -505,6 +513,7 @@ public sealed class CakeFactoryService
     private string _brineLotId = "BRINE-OPENING";
     private string _saltLotId = "SALT-OPENING";
     private string _mineralLotId = "MINERAL-OPENING";
+    private string _fertilizerLotId = "FERT-OPENING";
     private string _leaveningLotId = "LEAVEN-OPENING";
     private string _packagingLotId = "PACK-OPENING";
     private string _icingLotId = "ICING-OPENING";
@@ -525,6 +534,7 @@ public sealed class CakeFactoryService
         "PACK-OPENING",
         "ICING-OPENING",
         "FEED-OPENING",
+        "FERT-OPENING",
     };
     private string _ingredientLabStatus = "Factory QA lab released opening ingredient lots.";
     private IngredientFactoryKind _pendingLabKind = IngredientFactoryKind.Mill;
@@ -561,6 +571,7 @@ public sealed class CakeFactoryService
         [IngredientFactoryKind.Packaging] = new(91, 94, 37, 1.7),
         [IngredientFactoryKind.Icing] = new(92, 95, 34, 1.5),
         [IngredientFactoryKind.Feed] = new(93, 96, 35, 1.6),
+        [IngredientFactoryKind.Fertilizer] = new(90, 94, 38, 2.2),
     };
     private double _millRollGapMm = 0.32;
     private double _flourExtractionPct = 76;
@@ -585,6 +596,9 @@ public sealed class CakeFactoryService
     private double _feedMillHammerRpm = 0;
     private double _feedPelletTemperatureC = 24;
     private double _feedMoisturePct = 11.5;
+    private double _compostTemperatureC = 32;
+    private double _compostMoisturePct = 42;
+    private double _compostAerationPct = 78;
     private double _factoryRunQualityPct = 100;
     private IngredientFactoryRun? _factoryRun;
     private double _batterKg;
@@ -757,6 +771,18 @@ public sealed class CakeFactoryService
         + _buttermilkL * 1.03
         + _brineBlowdownL * 1.05;
 
+    private double CompostableOrganicsKg() =>
+        Math.Min(_branKg, 18.0)
+        + Math.Min(_beetPulpKg, 24.0)
+        + Math.Min(_vanillaPomaceKg, 2.0)
+        + Math.Min(_cocoaShellKg, 5.0)
+        + Math.Min(_buttermilkL, 12.0) * 1.03;
+
+    private bool CompostPlantInputsReady() =>
+        _manureKg >= 120
+        && _poultryManureKg >= 42
+        && CompostableOrganicsKg() >= 18;
+
     private double ByproductStoragePctValue() =>
         Math.Clamp(ByproductStorageLoadKg() / ByproductStorageCapacityKg * 100.0, 0, 160);
 
@@ -774,6 +800,7 @@ public sealed class CakeFactoryService
         IngredientFactoryKind.Leavening => run.Product * 0.025,
         IngredientFactoryKind.Packaging => 0,
         IngredientFactoryKind.Feed => 0,
+        IngredientFactoryKind.Fertilizer => -run.TertiaryInput,
         _ => run.Waste,
     };
 
@@ -787,6 +814,7 @@ public sealed class CakeFactoryService
         IngredientFactoryKind.Leavening => run.FilterMediaPct * 8.0,
         IngredientFactoryKind.Packaging => run.ProcessWaterL * 0.45 + run.QuaternaryInput * 0.7,
         IngredientFactoryKind.Feed => run.CulinarySteamKg * 0.06 + run.ProcessWaterL * 0.25,
+        IngredientFactoryKind.Fertilizer => run.ProcessWaterL * 0.18,
         _ => run.ProcessWaterL * 0.25,
     };
 
@@ -1221,7 +1249,6 @@ public sealed class CakeFactoryService
         _wheatSeedKg += 28;
         _beetSeedKg += 24;
         _irrigationWaterL += 24000;
-        _fertilizerKg += 150;
         _forageKg += 380;
         _grainKg += 260;
         _dairyMineralKg += 40;
@@ -1258,7 +1285,7 @@ public sealed class CakeFactoryService
         _adhesiveLotId = NewLotId("ADHESIVE");
         _utilityLotId = NewLotId("UTILITY");
         _warehouseStatus = $"Receiving manifest {_lastSupplyManifestId} booked into warehouse; forklift battery {_forkliftBatteryPct:0}% and {_warehousePalletSpacePct:0}% pallet space free.";
-        _traceabilityStatus = $"Receiving manifest {_lastSupplyManifestId} logged seed, dairy forage, grain, mineral, bedding, feed-mill inputs, cocoa, brine, leavening feedstocks, packaging feedstocks and utility lots.";
+        _traceabilityStatus = $"Receiving manifest {_lastSupplyManifestId} logged seed, dairy forage, grain, mineral, bedding, feed-mill inputs, cocoa, brine, leavening feedstocks, packaging feedstocks and utility lots; crop fertilizer must come from the compost plant.";
     }
 
     public string ProcessCocoa()
@@ -1423,6 +1450,64 @@ public sealed class CakeFactoryService
             ConsumeTrackedStock(ref _labelStockM, labels, ref _labelStockLotId);
             ConsumeTrackedStock(ref _packagingInkL, ink, ref _packagingInkLotId);
             ConsumeTrackedStock(ref _adhesiveKg, adhesive, ref _adhesiveLotId);
+        });
+    }
+
+    public string RunCompostPlant()
+    {
+        if (_lastPowerAvailability < 0.2)
+            return "Compost turner, aeration blower and screen need reactor power.";
+        if (_factoryRun is not null)
+            return $"{_factoryRun.Name} is already running; wait for the ingredient factory run to finish.";
+
+        const double dairyManure = 120.0;
+        const double poultryManure = 42.0;
+        double bran = Math.Min(_branKg, 18.0);
+        double beetPulp = Math.Min(_beetPulpKg, 24.0);
+        double pomace = Math.Min(_vanillaPomaceKg, 2.0);
+        double shell = Math.Min(_cocoaShellKg, 5.0);
+        double buttermilk = Math.Min(_buttermilkL, 12.0);
+        double organics = bran + beetPulp + pomace + shell + buttermilk * 1.03;
+
+        if (_manureKg < dairyManure || _poultryManureKg < poultryManure || organics < 18.0)
+            return "Compost plant needs dairy manure, poultry manure and enough factory organics before it can make crop fertilizer.";
+        if (string.IsNullOrWhiteSpace(_milkLotId) || string.IsNullOrWhiteSpace(_eggLotId))
+            return "Compost plant cannot run because the manure source lots are missing from the dairy or poultry ledger.";
+
+        double input = dairyManure + poultryManure + organics;
+        _compostTemperatureC = 32;
+        _compostMoisturePct = 42;
+        _compostAerationPct = 0;
+        var run = new IngredientFactoryRun
+        {
+            Kind = IngredientFactoryKind.Fertilizer,
+            Name = "Compost fertilizer plant",
+            StartedMessage = $"Started composting {input:0.0} kg manure and factory organics into screened crop fertilizer.",
+            DurationSeconds = 8.2,
+            PowerDemandMW = 0.72,
+            PrimaryInput = dairyManure,
+            SecondaryInput = poultryManure,
+            TertiaryInput = organics,
+            Product = input * 0.52,
+            Waste = input * 0.026,
+            ProcessWaterL = 70,
+            CompressedAirNm3 = 34,
+            FilterMediaPct = 0.55,
+            WearPct = 1.10,
+            CalibrationDriftPct = 0.45,
+            InputLotId = $"DAIRY-MANURE/{_milkLotId}/POULTRY-MANURE/{_eggLotId}/BYPRODUCTS",
+            OutputLotId = NewLotId("FERT"),
+        };
+
+        return StartFactoryRun(run, () =>
+        {
+            _manureKg = Math.Max(0, _manureKg - dairyManure);
+            _poultryManureKg = Math.Max(0, _poultryManureKg - poultryManure);
+            _branKg = Math.Max(0, _branKg - bran);
+            _beetPulpKg = Math.Max(0, _beetPulpKg - beetPulp);
+            _vanillaPomaceKg = Math.Max(0, _vanillaPomaceKg - pomace);
+            _cocoaShellKg = Math.Max(0, _cocoaShellKg - shell);
+            _buttermilkL = Math.Max(0, _buttermilkL - buttermilk);
         });
     }
 
@@ -1698,8 +1783,8 @@ public sealed class CakeFactoryService
 
         _sanitationScore = Math.Min(100, _sanitationScore + 1.4);
         _factoryMaintenanceStatus = BuildFactoryMaintenanceStatus();
-        _factoryStatus = "Maintenance crew serviced roller mill, sugar house, butter room, vanilla extractor, cocoa line, salt works, leavening blender, packaging plant, icing tempering kitchen and poultry feed mill.";
-        return "Serviced all ingredient factories: lubricated bearings, verified guards, replaced filters, calibrated scales, extraction temperature probes, packaging registration sensors, icing viscosity probes, feed mill magnets and safety interlocks, and signed the maintenance log.";
+        _factoryStatus = "Maintenance crew serviced roller mill, sugar house, butter room, vanilla extractor, cocoa line, salt works, leavening blender, packaging plant, icing tempering kitchen, poultry feed mill and compost fertilizer plant.";
+        return "Serviced all ingredient factories: lubricated bearings, verified guards, replaced filters, calibrated scales, extraction temperature probes, packaging registration sensors, icing viscosity probes, feed mill magnets, compost aeration probes and safety interlocks, and signed the maintenance log.";
     }
 
     public string HaulFactoryByproducts()
@@ -1849,6 +1934,13 @@ public sealed class CakeFactoryService
                 if (p > 0.42) _factoryRunQualityPct -= Math.Abs(_feedPelletTemperatureC - 80.0) * 0.05;
                 if (p > 0.65) _factoryRunQualityPct -= Math.Abs(_feedMoisturePct - 11.2) * 1.4;
                 break;
+            case IngredientFactoryKind.Fertilizer:
+                _compostTemperatureC = p < 0.30 ? 32.0 + p * 78.0 : 56.0 + Math.Sin(p * Math.PI * 2.5) * 4.5;
+                _compostMoisturePct = Math.Clamp(42.0 - p * 7.5 + Math.Sin(p * Math.PI * 3) * 1.0, 31.0, 46.0);
+                _compostAerationPct = Math.Clamp(p * 105.0, 0, 100);
+                if (p > 0.35) _factoryRunQualityPct -= Math.Abs(_compostTemperatureC - 58.0) * 0.08;
+                if (p > 0.55) _factoryRunQualityPct -= Math.Abs(_compostMoisturePct - 35.0) * 0.55;
+                break;
         }
         _factoryRunQualityPct = Math.Clamp(_factoryRunQualityPct, 0, 100);
     }
@@ -1901,6 +1993,11 @@ public sealed class CakeFactoryService
             IngredientFactoryKind.Feed when p < 0.68 => "steam conditioning and pelleting",
             IngredientFactoryKind.Feed when p < 0.88 => "crumbler screen and cooler",
             IngredientFactoryKind.Feed => "feed-bin transfer and mycotoxin sample pull",
+            IngredientFactoryKind.Fertilizer when p < 0.18 => "manure receiving and carbon mix",
+            IngredientFactoryKind.Fertilizer when p < 0.44 => "aerated thermophilic composting",
+            IngredientFactoryKind.Fertilizer when p < 0.70 => "moisture trim and curing",
+            IngredientFactoryKind.Fertilizer when p < 0.88 => "trommel screening",
+            IngredientFactoryKind.Fertilizer => "fertilizer bagging and soil QA sample pull",
             _ => "processing",
         };
     }
@@ -1919,6 +2016,7 @@ public sealed class CakeFactoryService
         IngredientFactoryKind.Packaging => "packaging plant",
         IngredientFactoryKind.Icing => "icing tempering kitchen",
         IngredientFactoryKind.Feed => "poultry feed mill",
+        IngredientFactoryKind.Fertilizer => "compost fertilizer plant",
         _ => "ingredient plant",
     };
 
@@ -1934,6 +2032,7 @@ public sealed class CakeFactoryService
         IngredientFactoryKind.Packaging => "cake cartons",
         IngredientFactoryKind.Icing => "prepared icing",
         IngredientFactoryKind.Feed => "poultry feed",
+        IngredientFactoryKind.Fertilizer => "crop fertilizer",
         _ => "ingredient",
     };
 
@@ -2011,6 +2110,9 @@ public sealed class CakeFactoryService
                 break;
             case IngredientFactoryKind.Feed:
                 ConsumeTrackedStock(ref _animalFeedKg, quantity, ref _feedLotId);
+                break;
+            case IngredientFactoryKind.Fertilizer:
+                ConsumeTrackedStock(ref _fertilizerKg, quantity, ref _fertilizerLotId);
                 break;
         }
     }
@@ -2158,6 +2260,9 @@ public sealed class CakeFactoryService
             case IngredientFactoryKind.Feed:
                 detail = $"{run.Waste:0.0} kg feed screenings";
                 break;
+            case IngredientFactoryKind.Fertilizer:
+                detail = $"{run.TertiaryInput:0.0} kg factory organics composted with manure and {run.Waste:0.0} kg screening rejects";
+                break;
             default:
                 detail = $"{run.Waste:0.0} kg residuals";
                 break;
@@ -2264,6 +2369,16 @@ public sealed class CakeFactoryService
                 _feedMoisturePct = 10.8 + _rng.NextDouble() * 0.8;
                 _factoryRunQualityPct = Math.Clamp(97 - Math.Abs(_feedMoisturePct - 11.2) * 1.8 - Math.Abs(_feedPelletTemperatureC - 39.0) * 0.12 - FactoryEquipmentPenalty(run.Kind), 0, 100);
                 _factoryStatus = $"Feed mill completed: {output:0.0} kg poultry feed at {_feedMoisturePct:0.0}% moisture and {_feedPelletTemperatureC:0} degC cooler discharge, QA {_factoryRunQualityPct:0}%.";
+                break;
+            case IngredientFactoryKind.Fertilizer:
+                _fertilizerKg += output;
+                _fertilizerLotId = run.OutputLotId;
+                _wasteKg += waste;
+                _compostTemperatureC = 56 + _rng.NextDouble() * 5;
+                _compostMoisturePct = 33 + _rng.NextDouble() * 4;
+                _compostAerationPct = 88 + _rng.NextDouble() * 10;
+                _factoryRunQualityPct = Math.Clamp(96 - Math.Abs(_compostMoisturePct - 35.0) * 0.75 - Math.Abs(_compostTemperatureC - 58.0) * 0.16 - FactoryEquipmentPenalty(run.Kind), 0, 100);
+                _factoryStatus = $"Compost plant completed: {output:0.0} kg crop fertilizer at {_compostTemperatureC:0} degC, {_compostMoisturePct:0.0}% moisture and {_compostAerationPct:0}% aeration, QA {_factoryRunQualityPct:0}%.";
                 break;
         }
 
@@ -2505,6 +2620,7 @@ public sealed class CakeFactoryService
             CanPrepareIcing = CanPrepareIcing(recipe, power, labClear, wasteReady),
             CanRunFeedMill = power >= 0.2 && _factoryRun is null && labClear && wasteReady && _grainKg >= 42 && _starchKg >= 4.8 && _dairyMineralKg >= 1.6 && HasFactoryUtilities(28, 55, 18, 0.25)
                             && !string.IsNullOrWhiteSpace(_grainLotId) && !string.IsNullOrWhiteSpace(_dairyMineralLotId) && !string.IsNullOrWhiteSpace(_mineralLotId),
+            CanRunCompostPlant = power >= 0.2 && _factoryRun is null && labClear && CompostPlantInputsReady() && HasFactoryUtilities(70, 0, 34, 0.55),
             CanReleaseLabLot = power >= 0.15 && _factoryRun is null && !labClear && HasFactoryUtilities(12, 0, 4, 0.1),
             CanStageBatchKit = _stage == CakeBatchStage.Idle && !CipActive && !_batchKitStaged && rawMissing.Length == 0 && power >= 0.2 && _forkliftBatteryPct >= 12 && _warehousePalletSpacePct >= 18,
             CanServiceFactories = power >= 0.2 && _factoryRun is null && NeedsFactoryService() && HasFactoryUtilities(120, 80, 35, 1.5),
@@ -2580,6 +2696,7 @@ public sealed class CakeFactoryService
             PackagingLotId = _packagingLotId,
             IcingLotId = _icingLotId,
             FeedLotId = _feedLotId,
+            FertilizerLotId = _fertilizerLotId,
             WheatKg = _wheatKg,
             SugarCropKg = _sugarCropKg,
             FlourKg = _flourKg,
@@ -2668,6 +2785,8 @@ public sealed class CakeFactoryService
             IcingCalibrationPct = EquipmentFor(IngredientFactoryKind.Icing).CalibrationPct,
             FeedConditionPct = EquipmentFor(IngredientFactoryKind.Feed).ConditionPct,
             FeedCalibrationPct = EquipmentFor(IngredientFactoryKind.Feed).CalibrationPct,
+            FertilizerConditionPct = EquipmentFor(IngredientFactoryKind.Fertilizer).ConditionPct,
+            FertilizerCalibrationPct = EquipmentFor(IngredientFactoryKind.Fertilizer).CalibrationPct,
             MillRollGapMm = _millRollGapMm,
             FlourExtractionPct = _flourExtractionPct,
             SugarJuiceBrix = _sugarJuiceBrix,
@@ -2699,6 +2818,9 @@ public sealed class CakeFactoryService
             FeedMillHammerRpm = _feedMillHammerRpm,
             FeedPelletTemperatureC = _feedPelletTemperatureC,
             FeedMoisturePct = _feedMoisturePct,
+            CompostTemperatureC = _compostTemperatureC,
+            CompostMoisturePct = _compostMoisturePct,
+            CompostAerationPct = _compostAerationPct,
             BatterKg = _batterKg,
             CakesBaked = _cakesBaked,
             CakesPacked = _cakesPacked,
@@ -2749,18 +2871,25 @@ public sealed class CakeFactoryService
         double fertilizerNeed = seconds * fieldDemand * 0.035;
         double wheatSeedNeed = seconds * fieldDemand * 0.0028;
         double beetSeedNeed = seconds * fieldDemand * 0.0024;
-        double fieldInputFactor = SupplyFactor(
-            (_irrigationWaterL, fieldWaterNeed),
-            (_fertilizerKg, fertilizerNeed),
-            (_wheatSeedKg, wheatSeedNeed),
-            (_beetSeedKg, beetSeedNeed));
+        bool fertilizerLotReleased = FactoryLotReleased(_fertilizerKg, _fertilizerLotId);
+        double fieldInputFactor = fertilizerLotReleased
+            ? SupplyFactor(
+                (_irrigationWaterL, fieldWaterNeed),
+                (_fertilizerKg, fertilizerNeed),
+                (_wheatSeedKg, wheatSeedNeed),
+                (_beetSeedKg, beetSeedNeed))
+            : 0;
 
         if (fieldInputFactor > 0)
         {
             _irrigationWaterL = Math.Max(0, _irrigationWaterL - fieldWaterNeed * fieldInputFactor);
-            _fertilizerKg = Math.Max(0, _fertilizerKg - fertilizerNeed * fieldInputFactor);
+            ConsumeTrackedStock(ref _fertilizerKg, fertilizerNeed * fieldInputFactor, ref _fertilizerLotId);
             _wheatSeedKg = Math.Max(0, _wheatSeedKg - wheatSeedNeed * fieldInputFactor);
             _beetSeedKg = Math.Max(0, _beetSeedKg - beetSeedNeed * fieldInputFactor);
+        }
+        else if (!fertilizerLotReleased && fieldDemand > 0)
+        {
+            _traceabilityStatus = $"Crop growth stalled: fertilizer lot {_fertilizerLotId} is waiting for QA lab release.";
         }
 
         double fieldEffect = FarmIntensity * (0.12 + 0.88 * power) * fieldInputFactor;
@@ -3108,6 +3237,8 @@ public sealed class CakeFactoryService
         var low = new List<string>();
         if (_irrigationWaterL < 800) low.Add("water");
         if (_fertilizerKg < 8) low.Add("fertilizer");
+        if (_fertilizerKg < 8 && !CompostPlantInputsReady()) low.Add("compost plant inputs");
+        if (!FactoryLotReleased(_fertilizerKg, _fertilizerLotId)) low.Add("fertilizer QA release");
         if (_wheatSeedKg < 1) low.Add("wheat seed");
         if (_beetSeedKg < 1) low.Add("beet seed");
         if (_animalFeedKg < 20) low.Add("poultry feed");
@@ -3160,6 +3291,7 @@ public sealed class CakeFactoryService
         Count(_sugarCropKg, _sugarCropLotId);
         Count(_wheatSeedKg, _wheatSeedLotId);
         Count(_beetSeedKg, _beetSeedLotId);
+        Count(_fertilizerKg, _fertilizerLotId);
         Count(_animalFeedKg, _feedLotId);
         Count(_forageKg, _forageLotId);
         Count(_grainKg, _grainLotId);
@@ -3204,6 +3336,7 @@ public sealed class CakeFactoryService
         if (!HasLot(_packagingUnits, _packagingLotId)) missing.Add("packaging");
         if (!HasLot(_icingKg, _icingLotId)) missing.Add("prepared icing");
         if (!HasLot(_animalFeedKg, _feedLotId)) missing.Add("poultry feed");
+        if (!HasLot(_fertilizerKg, _fertilizerLotId)) missing.Add("fertilizer");
         if (missing.Count > 0) return "Traceability hold: missing lot data for " + string.Join(", ", missing);
         return _traceabilityStatus;
     }
