@@ -5,8 +5,10 @@ using System.Text.Json.Serialization;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.Web.WebView2.Core;
 using Windows.Graphics;
+using Windows.System;
 using WinForge.Models;
 using WinForge.Services;
 
@@ -15,10 +17,10 @@ namespace WinForge.Pages;
 /// <summary>
 /// 反應堆 HTML5 控制室視窗 · The dedicated reactor control-room window: one full-bleed WebView2 hosting
 /// the self-contained HTML5 app (rooms as tabs). Shares the SAME <see cref="ReactorSimService"/> as the
-/// in-module page — no second sim. A 10 Hz C# tick advances the physics and posts a JSON snapshot to JS;
-/// JS posts control / fuel / ui actions back, which are funnelled through <c>sim.ApplyControl</c> and the
-/// <see cref="FuelFactoryService"/>. The page never exposes the real-PC-shutdown toggle, so meltdown can
-/// never arm a real shutdown from here.
+/// in-module page — no second sim. The in-module page owns physics stepping; this window polls and posts
+/// JSON snapshots to JS, then funnels control / fuel / ui actions back through <c>sim.ApplyControl</c> and
+/// the <see cref="FuelFactoryService"/>. The page never exposes the real-PC-shutdown toggle, so meltdown
+/// can never arm a real shutdown from here.
 /// </summary>
 public sealed class ReactorHtmlWindow : Window
 {
@@ -39,6 +41,7 @@ public sealed class ReactorHtmlWindow : Window
     private DateTime _last = DateTime.UtcNow;
     private double _simClock;
     private bool _webReady;
+    private bool _initializing;
     private bool _full;
 
     private static readonly JsonSerializerOptions JsonOpts = new()
@@ -70,6 +73,7 @@ public sealed class ReactorHtmlWindow : Window
         _web.HorizontalAlignment = HorizontalAlignment.Stretch;
         _web.VerticalAlignment = VerticalAlignment.Stretch;
         Content = _web;
+        InstallRecoveryAccelerators();
 
         try
         {
@@ -88,12 +92,20 @@ public sealed class ReactorHtmlWindow : Window
         {
             _timer.Stop();
             _timer.Tick -= Tick;
+            try
+            {
+                if (_web.CoreWebView2 is not null) _web.CoreWebView2.WebMessageReceived -= OnWebMessage;
+            }
+            catch { }
+            _webReady = false;
             // Do NOT dispose _sim (owned by the page).
         };
     }
 
     private async System.Threading.Tasks.Task InitWebAsync()
     {
+        if (_initializing || _webReady) return;
+        _initializing = true;
         try
         {
             var env = await CoreWebView2Environment.CreateWithOptionsAsync(
@@ -121,7 +133,15 @@ public sealed class ReactorHtmlWindow : Window
             _timer.Tick += Tick;
             _timer.Start();
         }
-        catch { /* WebView2 runtime missing — window stays blank rather than crashing the app. */ }
+        catch (Exception ex)
+        {
+            CrashLogger.Log("reactor-html:init", ex);
+            // WebView2 runtime missing — window stays blank rather than crashing the app.
+        }
+        finally
+        {
+            _initializing = false;
+        }
     }
 
     private void Tick(object? sender, object e)
@@ -145,9 +165,9 @@ public sealed class ReactorHtmlWindow : Window
         _sim.MakeupWaterAvailability = _water.Availability();
         _sim.MakeupWaterInSpec = _water.InSpec();
 
-        _sim.Update(dt);
-
         // Accrue burnup onto loaded assemblies and re-sign on disk; collect any newly-spent assemblies.
+        // The main ReactorModule owns physics stepping. This view only applies auxiliary gates
+        // and mirrors the current snapshot, so opening the control room cannot multiply sim ticks.
         var newlySpent = _fuel.AccrueBurnup(_sim.ThermalPowerMW, dt);
 
         // MANDATORY nuclear waste: burning fuel produces real junk files. Trigger on burnup
@@ -233,7 +253,8 @@ public sealed class ReactorHtmlWindow : Window
         switch (msg.Type)
         {
             case "control":
-                _sim.ApplyControl(msg.Action, msg.Index, msg.Value, msg.Flag);
+                try { _sim.ApplyControl(msg.Action, msg.Index, msg.Value, msg.Flag); }
+                catch (Exception ex) { CrashLogger.Log("reactor-html:control", ex); }
                 break;
 
             case "fuel":
@@ -251,6 +272,10 @@ public sealed class ReactorHtmlWindow : Window
                 else if (msg.Action == "fullscreen")
                 {
                     ToggleFull();
+                }
+                else if (msg.Action == "exitFullscreen")
+                {
+                    ExitFullScreen();
                 }
                 break;
         }
@@ -503,13 +528,68 @@ public sealed class ReactorHtmlWindow : Window
 
     private void ToggleFull()
     {
-        _full = !_full;
+        if (_full) ExitFullScreen();
+        else EnterFullScreen();
+    }
+
+    public void RestoreInteractive()
+    {
+        ExitFullScreen();
+        try { Activate(); } catch { }
+    }
+
+    private void EnterFullScreen()
+    {
         try
         {
-            if (_full) AppWindow.SetPresenter(FullScreenPresenter.Create());
-            else AppWindow.SetPresenter(_presenter);
+            _full = true;
+            AppWindow.SetPresenter(FullScreenPresenter.Create());
         }
-        catch { }
+        catch (Exception ex)
+        {
+            _full = false;
+            CrashLogger.Log("reactor-html:enter-fullscreen", ex);
+        }
+    }
+
+    private void ExitFullScreen()
+    {
+        if (!_full) return;
+        try
+        {
+            AppWindow.SetPresenter(_presenter);
+        }
+        catch (Exception ex)
+        {
+            CrashLogger.Log("reactor-html:exit-fullscreen", ex);
+        }
+        finally
+        {
+            _full = false;
+        }
+    }
+
+    private void InstallRecoveryAccelerators()
+    {
+        AddRecoveryAccelerator(VirtualKey.Escape, () =>
+        {
+            if (_full) ExitFullScreen();
+            else RestoreInteractive();
+        });
+        AddRecoveryAccelerator(VirtualKey.F11, ToggleFull);
+        AddRecoveryAccelerator(VirtualKey.W, Close, VirtualKeyModifiers.Control);
+    }
+
+    private void AddRecoveryAccelerator(VirtualKey key, Action action,
+        VirtualKeyModifiers modifiers = VirtualKeyModifiers.None)
+    {
+        var accelerator = new KeyboardAccelerator { Key = key, Modifiers = modifiers };
+        accelerator.Invoked += (_, args) =>
+        {
+            args.Handled = true;
+            try { action(); } catch (Exception ex) { CrashLogger.Log("reactor-html:accelerator", ex); }
+        };
+        _web.KeyboardAccelerators.Add(accelerator);
     }
 
     /// <summary>JS → C# 橋接訊息 · The single inbound bridge message shape (all fields optional).</summary>

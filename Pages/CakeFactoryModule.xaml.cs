@@ -374,8 +374,36 @@ public sealed partial class CakeFactoryModule : Page
                 PostNotice("success", P("Harvest complete", "收成完成"), _sim.HarvestNow());
                 break;
 
+            case "harvestFeedCrops":
+                PostNotice("success", P("Feed crops harvested", "飼料作物已收成"), _sim.HarvestFeedCrops());
+                break;
+
+            case "harvestCocoa":
+                PostNotice("success", P("Cocoa harvested", "可可已收成"), _sim.HarvestCocoa());
+                break;
+
             case "collect":
                 PostNotice("success", P("Barn collected", "畜舍已收集"), _sim.CollectDairyAndEggs());
+                break;
+
+            case "getCowFromPetStore":
+                PostNotice("success", P("Cow acquired", "已取得奶牛"), _sim.GetCowFromPetStore());
+                break;
+
+            case "pasteurizeMilk":
+                PostNotice("success", P("Milk pasteurized", "牛奶已巴氏殺菌"), _sim.PasteurizeMilk());
+                break;
+
+            case "mixDairyRation":
+                PostNotice("success", P("Dairy ration mixed", "奶牛飼料已混合"), _sim.MixDairyRation());
+                break;
+
+            case "washDairyParlor":
+                PostNotice("info", P("Dairy parlor washed", "擠奶間已清洗"), _sim.WashDairyParlor());
+                break;
+
+            case "washPoultryHouse":
+                PostNotice("info", P("Poultry house washed", "禽舍已清洗"), _sim.WashPoultryHouse());
                 break;
 
             case "mill":
@@ -390,12 +418,92 @@ public sealed partial class CakeFactoryModule : Page
                 PostNotice("success", P("Butter churned", "牛油製成"), _sim.ChurnButter());
                 break;
 
+            case "extractVanilla":
+                PostNotice("success", P("Vanilla extraction run", "雲呢拿萃取已運行"), _sim.ExtractVanilla());
+                break;
+
             case "receiveSupplies":
                 PostNotice("success", P("Supplies received", "補給已接收"), _sim.ReceiveSupplies());
                 break;
 
+            case "orderSupplyDelivery":
+                PostNotice("info", P("Supply order", "補給訂單"), _sim.OrderSupplyDelivery());
+                break;
+
+            case "unloadSupplyDelivery":
+                PostNotice("success", P("Supply delivery unloaded", "補給已卸貨"), _sim.UnloadSupplyDelivery());
+                break;
+
+            case "runUtilityPlant":
+                PostNotice("info", P("Utility plant started", "公用工程已啟動"), _sim.RunUtilityPlant());
+                break;
+
             case "processCocoa":
                 PostNotice("success", P("Cocoa processed", "可可已處理"), _sim.ProcessCocoa());
+                break;
+
+            case "runSaltWorks":
+                PostNotice("success", P("Salt works run", "鹽廠已運行"), _sim.RunSaltWorks());
+                break;
+
+            case "runStarchPlant":
+                PostNotice("success", P("Starch plant run", "澱粉廠已運行"), _sim.RunStarchPlant());
+                break;
+
+            case "runBakingSodaPlant":
+                PostNotice("success", P("Baking soda plant run", "小蘇打廠已運行"), _sim.RunBakingSodaPlant());
+                break;
+
+            case "runLeaveningPlant":
+                PostNotice("success", P("Leavening plant run", "膨鬆劑廠已運行"), _sim.RunLeaveningPlant());
+                break;
+
+            case "runPackagingPlant":
+                PostNotice("success", P("Packaging plant run", "包裝廠已運行"), _sim.RunPackagingPlant());
+                break;
+
+            case "runFeedMill":
+                PostNotice("info", P("Feed mill run", "飼料廠已運行"), _sim.RunFeedMill());
+                break;
+
+            case "runCompostPlant":
+                PostNotice("info", P("Compost plant run", "堆肥廠已運行"), _sim.RunCompostPlant());
+                break;
+
+            case "runBeddingPlant":
+                PostNotice("info", P("Bedding plant run", "墊料廠已運行"), _sim.RunBeddingPlant());
+                break;
+
+            case "runMineralPlant":
+                PostNotice("info", P("Mineral premix run", "礦物預混料已運行"), _sim.RunMineralPremixPlant());
+                break;
+
+            case "prepareIcing":
+                PostNotice("info", P("Icing kitchen started", "糖霜廚房已啟動"), _sim.PrepareIcing());
+                break;
+
+            case "serviceFactories":
+                PostNotice("info", P("Factories serviced", "工廠已維修"), _sim.ServiceIngredientFactories());
+                break;
+
+            case "haulByproducts":
+                PostNotice("info", P("Byproducts hauled", "副產物已運走"), _sim.HaulFactoryByproducts());
+                break;
+
+            case "treatEffluent":
+                PostNotice("info", P("Effluent treated", "廢水已處理"), _sim.TreatFactoryEffluent());
+                break;
+
+            case "releaseLabLot":
+                PostNotice("info", P("Lab lot released", "品檢批號已放行"), _sim.ReleaseIngredientLabLot());
+                break;
+
+            case "stageBatchKit":
+                PostNotice("info", P("Batch kit staged", "批次套件已備料"), _sim.StageBatchKit());
+                break;
+
+            case "dispatchOrder":
+                PostNotice("info", P("Order dispatch", "訂單出貨"), _sim.DispatchOrder());
                 break;
 
             case "startBatch":

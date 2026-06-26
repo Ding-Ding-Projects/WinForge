@@ -132,8 +132,8 @@ public sealed partial class ReactorSettingsModule : Page
         HaTitle.Text = P("Mirror reactor to Home Assistant · 反應堆連動 Home Assistant",
                          "反應堆連動 Home Assistant · Mirror reactor to Home Assistant");
         HaBlurb.Text = P(
-            "Opt-in: mirror the reactor's state to your smart home. Pick a LIGHT for alarms (turns red/on during SCRAM or meltdown, off when normal) and a SWITCH/plug for \"generating\" (on while the generator is on-load). Default off; turning it off stops driving and restores both entities to off.",
-            "可選：將反應堆狀態連動到你嘅智能家居。揀一盞燈做警報（SCRAM 或熔毀時變紅／著燈，正常時熄）同一個開關／插座做「發電中」（發電機帶載時著）。預設關閉；關閉時會停止驅動並將兩個實體還原為熄。");
+            "Opt-in: mirror the reactor's state to your smart home. Alarm lights turn red during SCRAM or meltdown. Generating lights are held on at full-bright white while the generator is on-load, and generating switches/plugs stay on too. Default off; turning it off stops driving and restores selected entities to off.",
+            "可選：將反應堆狀態連動到你嘅智能家居。警報燈喺 SCRAM 或熔毀時變紅。發電燈喺發電機帶載時保持全亮白色，發電開關／插座亦保持開啟。預設關閉；關閉時會停止驅動並將已選實體還原為熄。");
         HaNotConfiguredText.Text = P(
             "Home Assistant is not configured. Set your HA URL and token in the Home Assistant module first, then return here.",
             "未設定 Home Assistant。請先喺 Home Assistant 模組設定你嘅 HA 網址同權杖，再返嚟呢度。");
@@ -143,10 +143,12 @@ public sealed partial class ReactorSettingsModule : Page
                                   "反應堆連動 Home Assistant · Mirror reactor to Home Assistant");
         HaMirrorToggle.OnContent = P("On", "開");
         HaMirrorToggle.OffContent = P("Off", "關");
-        HaAlarmLabel.Text = P("Alarm light (SCRAM / meltdown) · 警報燈（SCRAM／熔毀）",
-                              "警報燈（SCRAM／熔毀）· Alarm light (SCRAM / meltdown)");
-        HaGenLabel.Text = P("Generating switch / plug · 「發電中」開關／插座",
-                            "「發電中」開關／插座 · Generating switch / plug");
+        HaAlarmLabel.Text = P("Alarm lights (SCRAM / meltdown red) · 警報燈（SCRAM／熔毀紅燈）",
+                              "警報燈（SCRAM／熔毀紅燈）· Alarm lights");
+        HaGenLightsLabel.Text = P("Generating lights (full-bright white) · 發電燈（全亮白色）",
+                                  "發電燈（全亮白色）· Generating lights");
+        HaGenLabel.Text = P("Generating switches / plugs · 「發電中」開關／插座",
+                            "「發電中」開關／插座 · Generating switches / plugs");
         HaRefreshButton.Content = P("Refresh entities · 重新整理實體", "重新整理實體 · Refresh entities");
 
         UpdateHaVisibility();
@@ -219,13 +221,6 @@ public sealed partial class ReactorSettingsModule : Page
     }
 
     // ============================================================ Home Assistant ====
-    private sealed class EntityChoice
-    {
-        public string Id = "";
-        public string Display = "";
-        public override string ToString() => Display;
-    }
-
     private void UpdateHaVisibility()
     {
         bool configured = ReactorHomeAssistantMirror.I.IsHaConfigured;
@@ -258,28 +253,55 @@ public sealed partial class ReactorSettingsModule : Page
         var lights = entities.Where(en => en.Domain == "light").ToList();
         var switches = entities.Where(en => en.Domain is "switch" or "input_boolean").ToList();
 
-        FillCombo(HaAlarmCombo, lights, ReactorHomeAssistantMirror.I.AlarmLightId);
-        FillCombo(HaGenCombo, switches, ReactorHomeAssistantMirror.I.GenSwitchId);
+        FillCheckPanel(HaAlarmLightsPanel, lights, ReactorHomeAssistantMirror.I.AlarmLightIds,
+            (id, on) => ReactorHomeAssistantMirror.I.SetAlarmLightSelected(id, on));
+        FillCheckPanel(HaGenLightsPanel, lights, ReactorHomeAssistantMirror.I.GenLightIds,
+            (id, on) => ReactorHomeAssistantMirror.I.SetGenLightSelected(id, on));
+        FillCheckPanel(HaGenSwitchesPanel, switches, ReactorHomeAssistantMirror.I.GenSwitchIds,
+            (id, on) => ReactorHomeAssistantMirror.I.SetGenSwitchSelected(id, on));
 
         HaStatusText.Text = P(
             $"{lights.Count} lights · {switches.Count} switches",
             $"{lights.Count} 盞燈 · {switches.Count} 個開關");
     }
 
-    private void FillCombo(ComboBox combo, List<HaEntity> items, string selectedId)
+    private void FillCheckPanel(StackPanel panel, List<HaEntity> items, IReadOnlyList<string> selectedIds, Action<string, bool> setSelected)
     {
         _suppress = true;
         try
         {
-            combo.Items.Clear();
-            combo.Items.Add(new EntityChoice { Id = "", Display = P("(none) · 不使用", "（不使用）· (none)") });
-            foreach (var en in items)
-                combo.Items.Add(new EntityChoice { Id = en.EntityId, Display = en.Display });
+            panel.Children.Clear();
+            if (items.Count == 0)
+            {
+                panel.Children.Add(new TextBlock
+                {
+                    Text = P("(none found)", "（未搵到）"),
+                    FontSize = 12,
+                    Foreground = new SolidColorBrush(Color.FromArgb(160, 0xAA, 0xAA, 0xAA)),
+                });
+                return;
+            }
 
-            int idx = 0;
-            for (int i = 0; i < combo.Items.Count; i++)
-                if (combo.Items[i] is EntityChoice ec && ec.Id == selectedId) { idx = i; break; }
-            combo.SelectedIndex = idx;
+            var selected = new HashSet<string>(selectedIds, StringComparer.OrdinalIgnoreCase);
+            foreach (var en in items)
+            {
+                var box = new CheckBox
+                {
+                    Content = new TextBlock { Text = en.Display, TextWrapping = TextWrapping.Wrap, MaxWidth = 760 },
+                    Tag = en.EntityId,
+                    IsChecked = selected.Contains(en.EntityId),
+                    MinWidth = 360,
+                };
+                box.Checked += (_, _) =>
+                {
+                    if (!_suppress && box.Tag is string id) setSelected(id, true);
+                };
+                box.Unchecked += (_, _) =>
+                {
+                    if (!_suppress && box.Tag is string id) setSelected(id, false);
+                };
+                panel.Children.Add(box);
+            }
         }
         finally { _suppress = false; }
     }
@@ -290,17 +312,4 @@ public sealed partial class ReactorSettingsModule : Page
         ReactorHomeAssistantMirror.I.Enabled = HaMirrorToggle.IsOn;
     }
 
-    private void HaAlarmCombo_Changed(object sender, SelectionChangedEventArgs e)
-    {
-        if (_suppress) return;
-        if (HaAlarmCombo.SelectedItem is EntityChoice ec)
-            ReactorHomeAssistantMirror.I.AlarmLightId = ec.Id;
-    }
-
-    private void HaGenCombo_Changed(object sender, SelectionChangedEventArgs e)
-    {
-        if (_suppress) return;
-        if (HaGenCombo.SelectedItem is EntityChoice ec)
-            ReactorHomeAssistantMirror.I.GenSwitchId = ec.Id;
-    }
 }

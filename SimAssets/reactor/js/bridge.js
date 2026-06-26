@@ -83,6 +83,7 @@ export const send = {
   fuel(op, extra = {}) { post({ type: "fuel", op, ...extra }); },
   setLanguage(lang) { post({ type: "ui", action: "setLanguage", valueStr: lang }); },
   fullscreen() { post({ type: "ui", action: "fullscreen" }); },
+  exitFullscreen() { post({ type: "ui", action: "exitFullscreen" }); },
 };
 
 // Wire the incoming message pipe.

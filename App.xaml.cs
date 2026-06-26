@@ -156,6 +156,7 @@ public partial class App : Application
             try { Services.ActivityTrackerService.I.InitFromPrefs(); } catch { }
             // Restore Mouse Utilities (Find My Mouse / Highlighter / Crosshairs / Jump) if enabled.
             try { Services.MouseUtilsService.LoadSettings(); Services.MouseUtilsService.Sync(); } catch { }
+            try { Services.AppUpdateService.StartAutomaticChecks(dq); } catch { }
         });
     }
 

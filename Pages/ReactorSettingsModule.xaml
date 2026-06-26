@@ -99,13 +99,19 @@
                         <StackPanel Spacing="4">
                             <TextBlock x:Name="HaAlarmLabel" FontSize="12"
                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                            <ComboBox x:Name="HaAlarmCombo" MinWidth="360" SelectionChanged="HaAlarmCombo_Changed" />
+                            <StackPanel x:Name="HaAlarmLightsPanel" Spacing="2" />
+                        </StackPanel>
+
+                        <StackPanel Spacing="4">
+                            <TextBlock x:Name="HaGenLightsLabel" FontSize="12"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <StackPanel x:Name="HaGenLightsPanel" Spacing="2" />
                         </StackPanel>
 
                         <StackPanel Spacing="4">
                             <TextBlock x:Name="HaGenLabel" FontSize="12"
                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                            <ComboBox x:Name="HaGenCombo" MinWidth="360" SelectionChanged="HaGenCombo_Changed" />
+                            <StackPanel x:Name="HaGenSwitchesPanel" Spacing="2" />
                         </StackPanel>
 
                         <StackPanel Orientation="Horizontal" Spacing="10">

@@ -135,6 +135,7 @@ public sealed partial class ReactorModule : Page
 
     // Public status-API card live element (the enable/disable toggle moved to the Reactor Settings page).
     private TextBlock? _apiStateText;
+    private ReactorHtmlWindow? _controlRoomWindow;
     // 防崩潰自動儲存：本反應堆喺 PersistenceService 嘅提供者 id。
     // Persistence: this reactor's provider id in PersistenceService.
     private const string PersistId = "reactor";
@@ -228,6 +229,8 @@ public sealed partial class ReactorModule : Page
             // The persisted toggle is left as-is, so it re-arms next time the page opens.
             // 離開頁面時務必還原所有真實 Windows 設定，免得使用者卡喺紅色強調色或省電模式。
             try { _ = ReactorSystemLinkService.I.RestoreAllAsync(); } catch { }
+            try { _controlRoomWindow?.Close(); } catch { }
+            _controlRoomWindow = null;
         };
     }
 
@@ -2219,8 +2222,23 @@ public sealed partial class ReactorModule : Page
     // ================================================================ TOOLBAR ====
     private void OpenControlRoom_Click(object sender, RoutedEventArgs e)
     {
-        // Repointed to the HTML5/WebView2 room-tabbed control room, sharing this page's sim + fuel.
-        try { var w = new ReactorHtmlWindow(_sim, _fuel); w.Activate(); } catch { }
+        try
+        {
+            if (_controlRoomWindow is not null)
+            {
+                _controlRoomWindow.RestoreInteractive();
+                return;
+            }
+
+            var w = new ReactorHtmlWindow(_sim, _fuel);
+            _controlRoomWindow = w;
+            w.Closed += (_, _) => _controlRoomWindow = null;
+            w.Activate();
+        }
+        catch (Exception ex)
+        {
+            CrashLogger.Log("reactor:open-control-room", ex);
+        }
     }
 
     private void StartupChecklist_Click(object sender, RoutedEventArgs e)
@@ -2666,24 +2684,33 @@ public sealed partial class ReactorModule : Page
         {
             var check = new TextBlock { Text = "○", FontSize = 16, Width = 24, Foreground = new SolidColorBrush(Color.FromArgb(160, 0xAA, 0xAA, 0xAA)) };
             var text = new TextBlock { FontSize = 13, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center };
-            var control = new TextBlock
+            var controlText = new TextBlock
             {
                 FontSize = 11,
                 TextWrapping = TextWrapping.Wrap,
+                Foreground = new SolidColorBrush(Color.FromArgb(190, 0x9E, 0xA7, 0xB0)),
                 Opacity = 0.78,
-                Foreground = new SolidColorBrush(Color.FromArgb(190, 0x93, 0xA2, 0xB5)),
+                Margin = new Thickness(0, 2, 0, 0),
             };
             int n = i;
             var stp = step;
-            void Relabel()
+            _relocalizers.Add(() =>
             {
                 text.Text = $"{n}. " + P(stp.En, stp.Zh);
-                control.Text = P($"Use: {stp.ControlEn}", $"使用：{stp.ControlZh}");
-            }
-            _relocalizers.Add(Relabel);
-            Relabel();
-            var rowText = new StackPanel { Spacing = 2, Children = { text, control } };
-            var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { check, rowText } };
+                controlText.Text = P($"Use: {stp.ControlEn}", $"使用：{stp.ControlZh}");
+            });
+            text.Text = $"{n}. " + P(stp.En, stp.Zh);
+            controlText.Text = P($"Use: {stp.ControlEn}", $"使用：{stp.ControlZh}");
+            var copy = new StackPanel { Spacing = 0 };
+            copy.Children.Add(text);
+            copy.Children.Add(controlText);
+            var row = new Grid { ColumnSpacing = 6, Margin = new Thickness(0, 1, 0, 1) };
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            Grid.SetColumn(check, 0);
+            Grid.SetColumn(copy, 1);
+            row.Children.Add(check);
+            row.Children.Add(copy);
             host.Children.Add(row);
             _startupSteps.Add((step, check));
             i++;

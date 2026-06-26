@@ -42,6 +42,18 @@ public static class ReactorWindowManager
         }
         Open.Clear();
     }
+
+    /// <summary>Close full control-room windows, leaving small desktop widgets alone.</summary>
+    public static void CloseControlRooms()
+    {
+        foreach (var w in Open.ToArray())
+        {
+            if (w is ReactorHtmlWindow or ReactorControlRoomWindow)
+            {
+                try { w.Close(); } catch { /* best effort */ }
+            }
+        }
+    }
 }
 
 /// <summary>完整控制室視窗 · Full control-room window in its own AppWindow.</summary>

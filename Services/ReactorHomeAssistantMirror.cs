@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace WinForge.Services;
@@ -42,12 +44,13 @@ public static class ReactorKeepAwakeSetting
 /// picks entities, the reactor's live tick (in <c>ReactorModule</c>) calls <see cref="Drive"/> a few
 /// times a second. We translate two reactor conditions into HA service calls over the existing
 /// <see cref="HomeAssistantService"/> REST client:
-///   • an ALARM light entity — turned ON (red, if it is an RGB light) during SCRAM / meltdown, OFF when normal;
-///   • a GENERATING switch / plug entity — ON while the generator is on-load delivering power, OFF otherwise.
+///   • ALARM light entities — turned ON (red, if RGB-capable) during SCRAM / meltdown, OFF when normal;
+///   • GENERATING light entities — held ON, full-bright white while the generator is on-load;
+///   • GENERATING switch / plug entities — ON while the generator is on-load, OFF otherwise.
 ///
 /// Robustness: every HA call is awaited fire-and-forget inside try/catch and can NEVER throw into the
 /// reactor tick. State is edge-driven (we only push a call when the desired HA state actually changes),
-/// so we do not spam the REST API. Configuration (the master toggle + the two entity ids) persists via
+/// so we do not spam the REST API. Configuration (the master toggle + selected entity ids) persists via
 /// <see cref="SettingsStore"/>. Turning the mirror off stops driving and (best-effort) restores both
 /// entities to OFF so the house is never left lit up by a closed simulation.
 ///
@@ -59,26 +62,32 @@ public sealed class ReactorHomeAssistantMirror
 
     public const string KeyEnabled = "reactor.ha.mirror.enabled";   // "True"/"False" — DEFAULT OFF
     public const string KeyAlarmLight = "reactor.ha.mirror.alarmLight";
+    public const string KeyGenLights = "reactor.ha.mirror.genLights";
     public const string KeyGenSwitch = "reactor.ha.mirror.genSwitch";
+    private static readonly TimeSpan AssertInterval = TimeSpan.FromSeconds(30);
 
     // Shared, lazily-built REST client (config is read from SettingsStore in its ctor). Rebuildable so a
     // freshly-saved HA URL/token on the Home Assistant module is picked up without an app restart.
     private HomeAssistantService _ha = new();
 
     private bool _enabled;
-    private string _alarmLightId = "";
-    private string _genSwitchId = "";
+    private List<string> _alarmLightIds = new();
+    private List<string> _genLightIds = new();
+    private List<string> _genSwitchIds = new();
 
     // Edge memory: last value we actually pushed (null = unknown / not yet pushed this session).
     private bool? _lastAlarmOn;
     private bool? _lastGenOn;
+    private DateTime _lastAlarmAssertUtc = DateTime.MinValue;
+    private DateTime _lastGenAssertUtc = DateTime.MinValue;
     private bool _busy; // single-flight guard so overlapping ticks never queue concurrent REST calls
 
     private ReactorHomeAssistantMirror()
     {
         _enabled = SettingsStore.Get(KeyEnabled, "False") == "True";
-        _alarmLightId = SettingsStore.Get(KeyAlarmLight, "");
-        _genSwitchId = SettingsStore.Get(KeyGenSwitch, "");
+        _alarmLightIds = LoadIds(KeyAlarmLight);
+        _genLightIds = LoadIds(KeyGenLights);
+        _genSwitchIds = LoadIds(KeyGenSwitch);
     }
 
     /// <summary>The shared HA REST client (reads persisted URL + token).</summary>
@@ -107,27 +116,55 @@ public sealed class ReactorHomeAssistantMirror
         }
     }
 
+    public IReadOnlyList<string> AlarmLightIds => _alarmLightIds;
+    public IReadOnlyList<string> GenLightIds => _genLightIds;
+    public IReadOnlyList<string> GenSwitchIds => _genSwitchIds;
+
+    // Back-compat for old code/settings that used a single entity id.
     public string AlarmLightId
     {
-        get => _alarmLightId;
-        set
-        {
-            _alarmLightId = value ?? "";
-            SettingsStore.Set(KeyAlarmLight, _alarmLightId);
-            _lastAlarmOn = null; // force a fresh push to the newly-selected entity
-        }
+        get => _alarmLightIds.FirstOrDefault() ?? "";
+        set => SetAlarmLightIds(ToList(value));
     }
 
     public string GenSwitchId
     {
-        get => _genSwitchId;
-        set
-        {
-            _genSwitchId = value ?? "";
-            SettingsStore.Set(KeyGenSwitch, _genSwitchId);
-            _lastGenOn = null;
-        }
+        get => _genSwitchIds.FirstOrDefault() ?? "";
+        set => SetGenSwitchIds(ToList(value));
     }
+
+    public void SetAlarmLightIds(IEnumerable<string> ids)
+    {
+        _alarmLightIds = NormalizeIds(ids);
+        SaveIds(KeyAlarmLight, _alarmLightIds);
+        _lastAlarmOn = null;
+        _lastAlarmAssertUtc = DateTime.MinValue;
+    }
+
+    public void SetGenLightIds(IEnumerable<string> ids)
+    {
+        _genLightIds = NormalizeIds(ids);
+        SaveIds(KeyGenLights, _genLightIds);
+        _lastGenOn = null;
+        _lastGenAssertUtc = DateTime.MinValue;
+    }
+
+    public void SetGenSwitchIds(IEnumerable<string> ids)
+    {
+        _genSwitchIds = NormalizeIds(ids);
+        SaveIds(KeyGenSwitch, _genSwitchIds);
+        _lastGenOn = null;
+        _lastGenAssertUtc = DateTime.MinValue;
+    }
+
+    public void SetAlarmLightSelected(string id, bool selected) =>
+        SetAlarmLightIds(Toggled(_alarmLightIds, id, selected));
+
+    public void SetGenLightSelected(string id, bool selected) =>
+        SetGenLightIds(Toggled(_genLightIds, id, selected));
+
+    public void SetGenSwitchSelected(string id, bool selected) =>
+        SetGenSwitchIds(Toggled(_genSwitchIds, id, selected));
 
     /// <summary>
     /// 由反應堆 tick 驅動 · Called from the reactor tick. Pushes HA service calls only on a state edge.
@@ -139,15 +176,18 @@ public sealed class ReactorHomeAssistantMirror
         if (!_enabled || _busy) return;
         if (!_ha.IsConfigured) return;
 
-        bool needAlarm = _alarmLightId.Length > 0 && _lastAlarmOn != alarmActive;
-        bool needGen = _genSwitchId.Length > 0 && _lastGenOn != generating;
+        DateTime now = DateTime.UtcNow;
+        bool needAlarm = _alarmLightIds.Count > 0 &&
+            (_lastAlarmOn != alarmActive || (alarmActive && now - _lastAlarmAssertUtc >= AssertInterval));
+        bool needGen = (_genLightIds.Count > 0 || _genSwitchIds.Count > 0) &&
+            (_lastGenOn != generating || (generating && now - _lastGenAssertUtc >= AssertInterval));
         if (!needAlarm && !needGen) return;
 
         _busy = true;
-        _ = PushAsync(needAlarm, alarmActive, needGen, generating);
+        _ = PushAsync(needAlarm, alarmActive, needGen, generating, now);
     }
 
-    private async Task PushAsync(bool needAlarm, bool alarmActive, bool needGen, bool generating)
+    private async Task PushAsync(bool needAlarm, bool alarmActive, bool needGen, bool generating, DateTime pushedAtUtc)
     {
         try
         {
@@ -155,23 +195,42 @@ public sealed class ReactorHomeAssistantMirror
             {
                 try
                 {
-                    if (alarmActive)
-                        // Turn the alarm light on and (if it supports colour) make it red at full brightness.
-                        await _ha.SetLight(_alarmLightId, 100, null, (255, 0, 0)).ConfigureAwait(false);
-                    else
-                        await _ha.LightOff(_alarmLightId).ConfigureAwait(false);
+                    foreach (string id in _alarmLightIds)
+                    {
+                        if (alarmActive)
+                            // Turn each alarm light on and (if it supports colour) make it red at full brightness.
+                            await _ha.SetLight(id, 100, null, (255, 0, 0)).ConfigureAwait(false);
+                        else
+                            await _ha.LightOff(id).ConfigureAwait(false);
+                    }
                     _lastAlarmOn = alarmActive;
+                    if (alarmActive) _lastAlarmAssertUtc = pushedAtUtc;
                 }
-                catch { /* leave _lastAlarmOn unchanged so we retry next edge */ }
+                catch { /* leave _lastAlarmOn unchanged so a later tick retries */ }
             }
 
             if (needGen)
             {
                 try
                 {
-                    if (generating) await _ha.TurnOn(_genSwitchId).ConfigureAwait(false);
-                    else await _ha.TurnOff(_genSwitchId).ConfigureAwait(false);
+                    var alarmSet = alarmActive
+                        ? new HashSet<string>(_alarmLightIds, StringComparer.OrdinalIgnoreCase)
+                        : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    foreach (string id in _genLightIds)
+                    {
+                        if (generating)
+                            await _ha.SetLight(id, 100, null, (255, 255, 255)).ConfigureAwait(false);
+                        else if (!alarmSet.Contains(id))
+                            await _ha.LightOff(id).ConfigureAwait(false);
+                    }
+
+                    foreach (string id in _genSwitchIds)
+                    {
+                        if (generating) await _ha.TurnOn(id).ConfigureAwait(false);
+                        else await _ha.TurnOff(id).ConfigureAwait(false);
+                    }
                     _lastGenOn = generating;
+                    if (generating) _lastGenAssertUtc = pushedAtUtc;
                 }
                 catch { }
             }
@@ -186,8 +245,47 @@ public sealed class ReactorHomeAssistantMirror
         if (!_ha.IsConfigured) return;
         _ = Task.Run(async () =>
         {
-            try { if (_alarmLightId.Length > 0) await _ha.LightOff(_alarmLightId).ConfigureAwait(false); } catch { }
-            try { if (_genSwitchId.Length > 0) await _ha.TurnOff(_genSwitchId).ConfigureAwait(false); } catch { }
+            try
+            {
+                foreach (string id in _alarmLightIds) await _ha.LightOff(id).ConfigureAwait(false);
+            }
+            catch { }
+            try
+            {
+                foreach (string id in _genLightIds.Except(_alarmLightIds, StringComparer.OrdinalIgnoreCase))
+                    await _ha.LightOff(id).ConfigureAwait(false);
+            }
+            catch { }
+            try
+            {
+                foreach (string id in _genSwitchIds) await _ha.TurnOff(id).ConfigureAwait(false);
+            }
+            catch { }
         });
     }
+
+    private static List<string> LoadIds(string key) =>
+        NormalizeIds((SettingsStore.Get(key, "") ?? "")
+            .Split(new[] { '\n', '\r', '|', ';', ',' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+
+    private static void SaveIds(string key, IEnumerable<string> ids) =>
+        SettingsStore.Set(key, string.Join("\n", NormalizeIds(ids)));
+
+    private static List<string> NormalizeIds(IEnumerable<string> ids) =>
+        ids.Where(id => !string.IsNullOrWhiteSpace(id))
+           .Select(id => id.Trim())
+           .Distinct(StringComparer.OrdinalIgnoreCase)
+           .ToList();
+
+    private static IEnumerable<string> Toggled(IEnumerable<string> current, string id, bool selected)
+    {
+        var set = new HashSet<string>(NormalizeIds(current), StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(id)) return set;
+        if (selected) set.Add(id.Trim());
+        else set.Remove(id.Trim());
+        return set;
+    }
+
+    private static List<string> ToList(string? id) =>
+        string.IsNullOrWhiteSpace(id) ? new List<string>() : new List<string> { id.Trim() };
 }
