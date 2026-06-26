@@ -459,10 +459,13 @@
     }
 
     td {
+      overflow: hidden;
       padding: 4px 0;
       border-bottom: 1px solid #3d362e;
       color: var(--muted);
       font-size: 12px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     td:last-child {
@@ -646,6 +649,15 @@
         </section>
 
         <section class="panel">
+          <header><span>Process telemetry</span><span id="factoryText">Factories</span></header>
+          <div class="panel-body">
+            <table aria-label="Process telemetry">
+              <tbody id="factoryRows"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel">
           <header><span>Signed cake files</span><span id="cakeFileCount">0 files</span></header>
           <div class="panel-body">
             <div class="status-row"><span>Bakery key</span><b id="bakeryKey">-</b></div>
@@ -718,6 +730,19 @@
       VanillaGrowth: 34,
       DairyReadyL: 18,
       EggsReady: 42,
+      DairyCowCount: 18,
+      LactatingCowCount: 14,
+      CowComfort: 82,
+      MilkProductionLPerHour: 15.5,
+      MilkParlorThroughputLPerHour: 720,
+      MilkSourceStatus: 'Milk comes from the lactating cow herd after feed, water, pasture and powered milking.',
+      BulkMilkTankC: 3.6,
+      MilkBacteriaCfuPerMl: 8500,
+      MilkSomaticCellCountKPerMl: 145,
+      MilkFatPct: 3.8,
+      MilkProteinPct: 3.25,
+      MilkingVacuumKPa: 42,
+      MilkQaStatus: 'Milk QA in spec',
       WheatKg: 260,
       SugarCropKg: 380,
       FlourKg: 120,
@@ -741,6 +766,31 @@
       AnimalFeedKg: 420,
       PackagingUnits: 160,
       ResourceStatus: 'Inputs stocked',
+      ProcessWaterL: 6000,
+      CulinarySteamKg: 2600,
+      CompressedAirNm3: 900,
+      FilterMediaPct: 100,
+      FactoryUtilityStatus: 'Utilities ready',
+      FactoryStatus: 'Ingredient factories idle.',
+      FactoryRunActive: false,
+      ActiveFactoryName: '',
+      ActiveFactoryPhase: '',
+      FactoryProgress: 0,
+      FactoryRunPowerMW: 0,
+      FactoryRunSecondsRemaining: 0,
+      FactoryRunQualityPct: 100,
+      MillRollGapMm: 0.32,
+      FlourExtractionPct: 76,
+      SugarJuiceBrix: 0,
+      SugarEvaporatorTemperatureC: 24,
+      CreamSeparatorRpm: 0,
+      ButterFatPct: 0,
+      CocoaRoasterTemperatureC: 24,
+      CocoaGrindMicrons: 0,
+      BrineSalinityPct: 2.6,
+      SaltCrystallizerTemperatureC: 24,
+      LeaveningMixerRpm: 0,
+      LeaveningHomogeneityPct: 0,
       BatterKg: 0,
       CakesBaked: 0,
       CakesPacked: 0,
@@ -848,6 +898,7 @@
       setText('haccpText', s.HaccpStatus || '');
       setText('missingText', s.MissingIngredients ? 'Missing' : 'Ready');
       setText('resourceText', s.ResourceStatus || 'Inputs');
+      setText('factoryText', s.FactoryStatus || 'Factories idle');
       setText('cakeFileCount', `${s.CakeFileCount || 0} files`);
       setText('bakeryKey', s.BakeryKeyId || '-');
       setText('latestCake', s.LatestCakeId || 'No cake file');
@@ -913,10 +964,41 @@
         ['Soda ash', `${n(s.SodaAshKg, 1)} kg`],
         ['Phosphate', `${n(s.PhosphateKg, 1)} kg`],
         ['Starch carrier', `${n(s.StarchKg, 1)} kg`],
+        ['Process water', `${n(s.ProcessWaterL, 0)} L`],
+        ['Culinary steam', `${n(s.CulinarySteamKg, 0)} kg`],
+        ['Compressed air', `${n(s.CompressedAirNm3, 0)} Nm3`],
+        ['Filter media', `${n(s.FilterMediaPct, 1)}%`],
         ['Cartons + labels', `${n(s.PackagingUnits, 0)}`]
       ];
       document.getElementById('resourceRows').innerHTML =
         resources.map(([name, value]) => `<tr><td>${name}</td><td>${value}</td></tr>`).join('');
+
+      const factories = [
+        ['Active run', s.FactoryRunActive ? s.ActiveFactoryName : 'Idle'],
+        ['Unit operation', s.FactoryRunActive ? s.ActiveFactoryPhase : 'Idle'],
+        ['Run progress', s.FactoryRunActive ? `${n((s.FactoryProgress || 0) * 100, 0)}% / ${n(s.FactoryRunSecondsRemaining, 1)}s` : '0%'],
+        ['Run load', `${n(s.FactoryRunPowerMW, 1)} MW`],
+        ['Process QA', `${n(s.FactoryRunQualityPct, 0)}%`],
+        ['Utilities', s.FactoryUtilityStatus || 'Utilities ready'],
+        ['Milk source', s.MilkSourceStatus || 'Cow dairy idle'],
+        ['Milk QA', s.MilkQaStatus || 'Milk QA in spec'],
+        ['Bulk tank', `${n(s.BulkMilkTankC, 1)} degC / ${n(s.MilkBacteriaCfuPerMl, 0)} CFU`],
+        ['SCC', `${n(s.MilkSomaticCellCountKPerMl, 0)}k / mL`],
+        ['Milk solids', `${n(s.MilkFatPct, 2)}% fat / ${n(s.MilkProteinPct, 2)}% protein`],
+        ['Parlor vacuum', `${n(s.MilkingVacuumKPa, 1)} kPa`],
+        ['Cow herd', `${s.LactatingCowCount || 0}/${s.DairyCowCount || 0} lactating`],
+        ['Cow comfort', `${n(s.CowComfort, 0)}%`],
+        ['Milk rate', `${n(s.MilkProductionLPerHour, 1)} L/h`],
+        ['Parlor capacity', `${n(s.MilkParlorThroughputLPerHour, 0)} L/h`],
+        ['Mill gap', `${n(s.MillRollGapMm, 2)} mm / ${n(s.FlourExtractionPct, 1)}%`],
+        ['Sugar pan', `${n(s.SugarJuiceBrix, 1)} Brix / ${n(s.SugarEvaporatorTemperatureC, 0)} degC`],
+        ['Butter churn', `${n(s.CreamSeparatorRpm, 0)} rpm / ${n(s.ButterFatPct, 1)}% fat`],
+        ['Cocoa line', `${n(s.CocoaRoasterTemperatureC, 0)} degC / ${n(s.CocoaGrindMicrons, 0)} micron`],
+        ['Salt works', `${n(s.BrineSalinityPct, 1)}% brine / ${n(s.SaltCrystallizerTemperatureC, 0)} degC`],
+        ['Leavening', `${n(s.LeaveningMixerRpm, 0)} rpm / ${n(s.LeaveningHomogeneityPct, 1)}%`]
+      ];
+      document.getElementById('factoryRows').innerHTML =
+        factories.map(([name, value]) => `<tr><td>${name}</td><td title="${String(value).replace(/"/g, '&quot;')}">${value}</td></tr>`).join('');
     }
 
     recipeSelect.addEventListener('change', () => {
@@ -1055,7 +1137,9 @@
       drawCow(170, 438, s.PowerAvailability);
       drawHen(209, 384);
       drawHen(228, 414);
-      text(`DAIRY ${n(s.DairyReadyL, 0)} L / EGGS ${n(s.EggsReady, 0)}`, 75, 498, 13, '#effbe6', 800);
+      text(`COW MILK ${n(s.DairyReadyL, 0)} L / EGGS ${n(s.EggsReady, 0)}`, 75, 490, 13, '#effbe6', 800);
+      text(`${s.LactatingCowCount || 0}/${s.DairyCowCount || 0} cows - ${n(s.MilkProductionLPerHour, 1)} L/h`, 75, 508, 11, '#cfe7c9', 800);
+      text(`Bulk tank ${n(s.BulkMilkTankC, 1)} degC - ${n(s.MilkBacteriaCfuPerMl, 0)} CFU`, 75, 523, 10, '#d4f3fb', 800);
 
       rr(292, 354, 205, 160, 10, '#1e4645', '#80d8d8');
       line(306, 354, 395, 306, '#80d8d8', 3);
@@ -1087,7 +1171,7 @@
       drawMiniPlant(305, 588, 'LEAVEN', s.CanRunLeaveningPlant ? '#e8b75d' : '#69716f');
       text(`Brine ${n(s.BrineL, 0)} L`, 76, 612, 12, '#d9f0ff', 800);
       text(`Minerals ${n((s.SodaAshKg || 0) + (s.PhosphateKg || 0) + (s.StarchKg || 0), 1)} kg`, 198, 612, 12, '#ffe1a1', 800);
-      text(s.ResourceStatus || 'Inputs stocked', 76, 632, 12, '#ffe1a1', 800);
+      text(`Utilities ${n(s.ProcessWaterL, 0)} L / ${n(s.CompressedAirNm3, 0)} air`, 76, 632, 11, '#d4f3fb', 800);
 
       drawTruck(412, 545, s.ConveyorPhase);
       line(470, 556, 610, 556, '#80bc74', 4, 0.9);
@@ -1112,6 +1196,13 @@
       drawConveyor(672, 418, 500, s);
       drawConveyor(672, 574, 500, s);
       drawCakes(s);
+
+      if (s.FactoryRunActive) {
+        rr(930, 254, 278, 66, 8, '#1f3335', '#78c7dd');
+        text(s.ActiveFactoryName || 'INGREDIENT FACTORY', 948, 276, 13, '#d4f3fb', 900);
+        text(s.ActiveFactoryPhase || 'processing', 948, 296, 12, '#c9beb0', 800);
+        text(`${n((s.FactoryProgress || 0) * 100, 0)}% - ${n(s.FactoryRunPowerMW, 1)} MW - QA ${n(s.FactoryRunQualityPct, 0)}%`, 948, 314, 12, '#fff3d8', 800);
+      }
 
       if (s.StageReadyForOperator) {
         rr(930, 202, 278, 44, 8, '#543115', '#e9ae58');

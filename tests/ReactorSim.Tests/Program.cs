@@ -756,6 +756,45 @@ internal static class Program
                           $"after 30s stage={waiting.StageName}, ready={waiting.StageReadyForOperator}, canRelease={waiting.CanAdvanceStage}");
         });
 
+        Scenario("CAKE MILK PROVENANCE (milk comes from cows consuming feed and water)", () =>
+        {
+            var cake = new CakeFactoryService { FarmIntensity = 1.0 };
+            TickCake(cake, fullBus, 1.0);
+            var before = cake.Snapshot;
+
+            TickCake(cake, fullBus, 30);
+            var after = cake.Snapshot;
+
+            string collect = cake.CollectDairyAndEggs();
+            TickCake(cake, fullBus, 0.5);
+            var collected = cake.Snapshot;
+
+            bool cowHerdModeled = after.DairyCowCount > 0
+                                  && after.LactatingCowCount > 0
+                                  && after.LactatingCowCount <= after.DairyCowCount
+                                  && after.MilkSourceStatus.Contains("cow", StringComparison.OrdinalIgnoreCase);
+            bool cowInputsConsumed = after.AnimalFeedKg < before.AnimalFeedKg
+                                     && after.IrrigationWaterL < before.IrrigationWaterL;
+            bool milkProduced = after.MilkProductionLPerHour > 0
+                                && after.DairyReadyL > before.DairyReadyL
+                                && after.CowComfort > 0;
+            bool milkCollected = collected.MilkL > after.MilkL
+                                 && collected.DairyReadyL < after.DairyReadyL
+                                 && collected.MilkSourceStatus.Contains("cow", StringComparison.OrdinalIgnoreCase);
+            bool milkQaModeled = collected.BulkMilkTankC > 0
+                                 && collected.MilkBacteriaCfuPerMl > 0
+                                 && collected.MilkSomaticCellCountKPerMl > 0
+                                 && collected.MilkFatPct > 3.0
+                                 && collected.MilkProteinPct > 2.9
+                                 && collected.MilkingVacuumKPa > 35
+                                 && collected.MilkQaStatus.Contains("spec", StringComparison.OrdinalIgnoreCase);
+            bool pass = cowHerdModeled && cowInputsConsumed && milkProduced && milkCollected && milkQaModeled;
+            return (pass, $"cowHerdModeled={cowHerdModeled} ({after.LactatingCowCount}/{after.DairyCowCount} cows, comfort={after.CowComfort:F0}%), " +
+                          $"cowInputsConsumed={cowInputsConsumed}, milkProduced={milkProduced} ({after.MilkProductionLPerHour:F1} L/h), " +
+                          $"milkCollected={milkCollected} ('{Trim(collect)}'), milkQaModeled={milkQaModeled} " +
+                          $"({collected.BulkMilkTankC:F1}C, {collected.MilkBacteriaCfuPerMl:F0} CFU/mL)");
+        });
+
         Scenario("CAKE INGREDIENT CHAIN (harvest, collect, mill, refine, churn and non-farm factories mutate inventory)", () =>
         {
             var cake = new CakeFactoryService();
@@ -771,27 +810,29 @@ internal static class Program
             var s2 = cake.Snapshot;
 
             string mill = cake.MillWheat();
-            TickCake(cake, fullBus, 0.5);
+            TickCake(cake, fullBus, 1.0);
+            var millRunning = cake.Snapshot;
+            TickCake(cake, fullBus, 8.5);
             var s3 = cake.Snapshot;
 
             string refine = cake.RefineSugar();
-            TickCake(cake, fullBus, 0.5);
+            TickCake(cake, fullBus, 10.5);
             var s4 = cake.Snapshot;
 
             string churn = cake.ChurnButter();
-            TickCake(cake, fullBus, 0.5);
+            TickCake(cake, fullBus, 7.5);
             var s5 = cake.Snapshot;
 
             string cocoa = cake.ProcessCocoa();
-            TickCake(cake, fullBus, 0.5);
+            TickCake(cake, fullBus, 11.5);
             var s6 = cake.Snapshot;
 
             string salt = cake.RunSaltWorks();
-            TickCake(cake, fullBus, 0.5);
+            TickCake(cake, fullBus, 9.5);
             var s7 = cake.Snapshot;
 
             string leavening = cake.RunLeaveningPlant();
-            TickCake(cake, fullBus, 0.5);
+            TickCake(cake, fullBus, 6.5);
             var s8 = cake.Snapshot;
 
             bool farmYield = s1.WheatKg > s0.WheatKg && s1.SugarCropKg > s0.SugarCropKg && s1.VanillaL > s0.VanillaL;
@@ -805,11 +846,31 @@ internal static class Program
                                    && s8.SodaAshKg < s7.SodaAshKg
                                    && s8.PhosphateKg < s7.PhosphateKg
                                    && s8.StarchKg < s7.StarchKg;
-            bool pass = farmYield && dairyYield && flourYield && sugarYield && butterYield && cocoaYield && saltYield && leaveningYield;
+            bool processTelemetry = s3.MillRollGapMm > 0 && s3.FlourExtractionPct > 0
+                                    && s4.SugarJuiceBrix > 0 && s4.SugarEvaporatorTemperatureC > 90
+                                    && s5.CreamSeparatorRpm > 0 && s5.ButterFatPct > 70
+                                    && s6.CocoaRoasterTemperatureC > 100 && s6.CocoaGrindMicrons > 0
+                                    && s7.BrineSalinityPct > 0 && s7.SaltCrystallizerTemperatureC > 40
+                                    && s8.LeaveningMixerRpm > 0 && s8.LeaveningHomogeneityPct > 90;
+            bool factoryUtilitiesConsumed = s8.ProcessWaterL < s0.ProcessWaterL
+                                            && s8.CulinarySteamKg < s0.CulinarySteamKg
+                                            && s8.CompressedAirNm3 < s0.CompressedAirNm3
+                                            && s8.FilterMediaPct < s0.FilterMediaPct;
+            bool timedFactoryRun = millRunning.FactoryRunActive
+                                   && millRunning.ActiveFactoryName.Contains("mill", StringComparison.OrdinalIgnoreCase)
+                                   && millRunning.ActiveFactoryPhase.Length > 0
+                                   && millRunning.FactoryProgress > 0
+                                   && millRunning.FactoryProgress < 1
+                                   && millRunning.FactoryRunPowerMW > 0
+                                   && millRunning.FactoryRunQualityPct > 0
+                                   && Math.Abs(millRunning.FlourKg - s2.FlourKg) < 0.001
+                                   && !s3.FactoryRunActive;
+            bool pass = farmYield && dairyYield && flourYield && sugarYield && butterYield && cocoaYield && saltYield && leaveningYield && processTelemetry && factoryUtilitiesConsumed && timedFactoryRun;
             return (pass, $"farmYield={farmYield} ('{Trim(harvest)}'), dairyYield={dairyYield} ('{Trim(collect)}'), " +
                           $"flourYield={flourYield} ('{Trim(mill)}'), sugarYield={sugarYield} ('{Trim(refine)}'), " +
                           $"butterYield={butterYield} ('{Trim(churn)}'), cocoaYield={cocoaYield} ('{Trim(cocoa)}'), " +
-                          $"saltYield={saltYield} ('{Trim(salt)}'), leaveningYield={leaveningYield} ('{Trim(leavening)}')");
+                          $"saltYield={saltYield} ('{Trim(salt)}'), leaveningYield={leaveningYield} ('{Trim(leavening)}'), " +
+                          $"processTelemetry={processTelemetry}, factoryUtilitiesConsumed={factoryUtilitiesConsumed}, timedFactoryRun={timedFactoryRun}");
         });
 
         Scenario("CAKE SUPPLY CHAIN INPUTS (ingredients require finite seed, water, feed, beans, factory feedstocks and cartons)", () =>
@@ -840,7 +901,11 @@ internal static class Program
                                          && supplied.BrineL > after.BrineL
                                          && supplied.SodaAshKg > after.SodaAshKg
                                          && supplied.PhosphateKg > after.PhosphateKg
-                                         && supplied.StarchKg > after.StarchKg;
+                                         && supplied.StarchKg > after.StarchKg
+                                         && supplied.ProcessWaterL > after.ProcessWaterL
+                                         && supplied.CulinarySteamKg > after.CulinarySteamKg
+                                         && supplied.CompressedAirNm3 > after.CompressedAirNm3
+                                         && supplied.FilterMediaPct >= after.FilterMediaPct;
             bool supplyTruckDoesNotMakeFinalIngredients = Math.Abs(supplied.BakingPowderKg - bakingPowderBeforeSupply) < 0.001
                                                           && Math.Abs(supplied.SaltKg - saltBeforeSupply) < 0.001;
 

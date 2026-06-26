@@ -74,6 +74,19 @@ public sealed class CakeFactorySnapshot
     public double VanillaGrowth { get; init; }
     public double DairyReadyL { get; init; }
     public double EggsReady { get; init; }
+    public int DairyCowCount { get; init; }
+    public int LactatingCowCount { get; init; }
+    public double CowComfort { get; init; }
+    public double MilkProductionLPerHour { get; init; }
+    public double MilkParlorThroughputLPerHour { get; init; }
+    public string MilkSourceStatus { get; init; } = "";
+    public double BulkMilkTankC { get; init; }
+    public double MilkBacteriaCfuPerMl { get; init; }
+    public double MilkSomaticCellCountKPerMl { get; init; }
+    public double MilkFatPct { get; init; }
+    public double MilkProteinPct { get; init; }
+    public double MilkingVacuumKPa { get; init; }
+    public string MilkQaStatus { get; init; } = "";
     public double WheatKg { get; init; }
     public double SugarCropKg { get; init; }
     public double FlourKg { get; init; }
@@ -97,6 +110,31 @@ public sealed class CakeFactorySnapshot
     public double AnimalFeedKg { get; init; }
     public double PackagingUnits { get; init; }
     public string ResourceStatus { get; init; } = "";
+    public double ProcessWaterL { get; init; }
+    public double CulinarySteamKg { get; init; }
+    public double CompressedAirNm3 { get; init; }
+    public double FilterMediaPct { get; init; }
+    public string FactoryUtilityStatus { get; init; } = "";
+    public string FactoryStatus { get; init; } = "";
+    public bool FactoryRunActive { get; init; }
+    public string ActiveFactoryName { get; init; } = "";
+    public string ActiveFactoryPhase { get; init; } = "";
+    public double FactoryProgress { get; init; }
+    public double FactoryRunPowerMW { get; init; }
+    public double FactoryRunSecondsRemaining { get; init; }
+    public double FactoryRunQualityPct { get; init; }
+    public double MillRollGapMm { get; init; }
+    public double FlourExtractionPct { get; init; }
+    public double SugarJuiceBrix { get; init; }
+    public double SugarEvaporatorTemperatureC { get; init; }
+    public double CreamSeparatorRpm { get; init; }
+    public double ButterFatPct { get; init; }
+    public double CocoaRoasterTemperatureC { get; init; }
+    public double CocoaGrindMicrons { get; init; }
+    public double BrineSalinityPct { get; init; }
+    public double SaltCrystallizerTemperatureC { get; init; }
+    public double LeaveningMixerRpm { get; init; }
+    public double LeaveningHomogeneityPct { get; init; }
     public double BatterKg { get; init; }
     public int CakesBaked { get; init; }
     public int CakesPacked { get; init; }
@@ -114,6 +152,38 @@ public sealed class CakeFactorySnapshot
 /// </summary>
 public sealed class CakeFactoryService
 {
+    private enum IngredientFactoryKind
+    {
+        Mill,
+        Sugar,
+        Butter,
+        Cocoa,
+        Salt,
+        Leavening,
+    }
+
+    private sealed class IngredientFactoryRun
+    {
+        public required IngredientFactoryKind Kind { get; init; }
+        public required string Name { get; init; }
+        public required string StartedMessage { get; init; }
+        public double DurationSeconds { get; init; }
+        public double ElapsedSeconds { get; set; }
+        public double PowerDemandMW { get; init; }
+        public double PrimaryInput { get; init; }
+        public double SecondaryInput { get; init; }
+        public double TertiaryInput { get; init; }
+        public double QuaternaryInput { get; init; }
+        public double Product { get; init; }
+        public double Waste { get; init; }
+        public double ProcessWaterL { get; init; }
+        public double CulinarySteamKg { get; init; }
+        public double CompressedAirNm3 { get; init; }
+        public double FilterMediaPct { get; init; }
+        public double Progress => DurationSeconds <= 0 ? 1 : Math.Clamp(ElapsedSeconds / DurationSeconds, 0, 1);
+        public double RemainingSeconds => Math.Max(0, DurationSeconds - ElapsedSeconds);
+    }
+
     public static IReadOnlyList<CakeRecipe> Recipes { get; } = new[]
     {
         new CakeRecipe(
@@ -152,6 +222,19 @@ public sealed class CakeFactoryService
     private double _vanillaGrowth = 34;
     private double _dairyReadyL = 18;
     private double _eggsReady = 42;
+    private int _dairyCowCount = 18;
+    private int _lactatingCowCount = 14;
+    private int _layingHenCount = 72;
+    private double _cowComfort = 82;
+    private double _milkProductionLPerHour;
+    private double _milkParlorThroughputLPerHour = 720;
+    private string _milkSourceStatus = "Milk comes from the lactating cow herd after feed, water, pasture and powered milking.";
+    private double _bulkMilkTankC = 3.6;
+    private double _milkBacteriaCfuPerMl = 8500;
+    private double _milkSomaticCellCountKPerMl = 145;
+    private double _milkFatPct = 3.8;
+    private double _milkProteinPct = 3.25;
+    private double _milkingVacuumKPa = 42;
 
     private double _wheatKg = 260;
     private double _sugarCropKg = 380;
@@ -175,6 +258,25 @@ public sealed class CakeFactoryService
     private double _fertilizerKg = 120;
     private double _animalFeedKg = 420;
     private double _packagingUnits = 160;
+    private double _processWaterL = 6000;
+    private double _culinarySteamKg = 2600;
+    private double _compressedAirNm3 = 900;
+    private double _filterMediaPct = 100;
+    private string _factoryStatus = "Ingredient factories idle.";
+    private double _millRollGapMm = 0.32;
+    private double _flourExtractionPct = 76;
+    private double _sugarJuiceBrix = 0;
+    private double _sugarEvaporatorTemperatureC = 24;
+    private double _creamSeparatorRpm = 0;
+    private double _butterFatPct = 0;
+    private double _cocoaRoasterTemperatureC = 24;
+    private double _cocoaGrindMicrons = 0;
+    private double _brineSalinityPct = 2.6;
+    private double _saltCrystallizerTemperatureC = 24;
+    private double _leaveningMixerRpm = 0;
+    private double _leaveningHomogeneityPct = 0;
+    private double _factoryRunQualityPct = 100;
+    private IngredientFactoryRun? _factoryRun;
     private double _batterKg;
     private double _wasteKg;
 
@@ -235,51 +337,106 @@ public sealed class CakeFactoryService
         _eggsReady -= eggs;
         _milkL += milk;
         _eggs += eggs;
-        return $"Collected {milk:0.0} L milk and {eggs:0} graded eggs.";
+        _milkParlorThroughputLPerHour = 680 + _rng.NextDouble() * 80;
+        _milkingVacuumKPa = 40.5 + _rng.NextDouble() * 3.0;
+        _milkFatPct = 3.55 + _cowComfort / 100.0 * 0.55 + _rng.NextDouble() * 0.12;
+        _milkProteinPct = 3.05 + _pastureHealth / 100.0 * 0.28 + _rng.NextDouble() * 0.06;
+        _milkSomaticCellCountKPerMl = Math.Clamp(250 - _cowComfort * 1.25 + _rng.NextDouble() * 25, 80, 420);
+        _milkBacteriaCfuPerMl = Math.Clamp(_milkBacteriaCfuPerMl + milk * 28 + (100 - _sanitationScore) * 35, 1200, 60000);
+        _bulkMilkTankC = Math.Min(6.0, (_bulkMilkTankC * Math.Max(0, _milkL - milk) + 37.0 * milk) / Math.Max(1, _milkL));
+        _milkSourceStatus = $"Transferred {milk:0.0} L raw milk from {_lactatingCowCount} lactating cows through the milking parlor to cold storage.";
+        return $"Collected {milk:0.0} L cow milk and {eggs:0} graded eggs; bulk tank {_bulkMilkTankC:0.0} degC, bacteria {_milkBacteriaCfuPerMl:0} CFU/mL.";
     }
 
     public string MillWheat()
     {
         if (_lastPowerAvailability < 0.2)
             return "The roller mill requires reactor power before wheat can be milled.";
+        if (_factoryRun is not null)
+            return $"{_factoryRun.Name} is already running; wait for the ingredient factory run to finish.";
 
         double wheat = Math.Min(_wheatKg, 90);
         if (wheat < 5)
             return "Not enough harvested wheat is available for a mill run.";
 
-        _wheatKg -= wheat;
-        _flourKg += wheat * 0.76;
-        _wasteKg += wheat * 0.04;
-        return $"Milled {wheat:0} kg wheat into {wheat * 0.76:0.0} kg cake flour.";
+        _millRollGapMm = 0.28 + _rng.NextDouble() * 0.05;
+        _flourExtractionPct = 0;
+        var run = new IngredientFactoryRun
+        {
+            Kind = IngredientFactoryKind.Mill,
+            Name = "Roller mill",
+            StartedMessage = $"Started milling {wheat:0} kg wheat through break rolls, sifters and purifier.",
+            DurationSeconds = 8.0,
+            PowerDemandMW = 1.8,
+            PrimaryInput = wheat,
+            Product = wheat * 0.76,
+            Waste = wheat * 0.04,
+            ProcessWaterL = 20,
+            CompressedAirNm3 = 38,
+            FilterMediaPct = 0.6,
+        };
+        return StartFactoryRun(run, () => _wheatKg -= wheat);
     }
 
     public string RefineSugar()
     {
         if (_lastPowerAvailability < 0.2)
             return "Sugar washing, extraction and evaporation need reactor power.";
+        if (_factoryRun is not null)
+            return $"{_factoryRun.Name} is already running; wait for the ingredient factory run to finish.";
 
         double crop = Math.Min(_sugarCropKg, 160);
         if (crop < 10)
             return "Not enough sugar crop is available for refining.";
 
-        _sugarCropKg -= crop;
-        _sugarKg += crop * 0.155;
-        _wasteKg += crop * 0.025;
-        return $"Refined {crop:0} kg sugar crop into {crop * 0.155:0.0} kg sugar.";
+        _sugarJuiceBrix = 12.0;
+        _sugarEvaporatorTemperatureC = 45.0;
+        var run = new IngredientFactoryRun
+        {
+            Kind = IngredientFactoryKind.Sugar,
+            Name = "Sugar diffuser and evaporator",
+            StartedMessage = $"Started washing, slicing, diffusing and evaporating {crop:0} kg sugar crop.",
+            DurationSeconds = 10.0,
+            PowerDemandMW = 2.2,
+            PrimaryInput = crop,
+            Product = crop * 0.155,
+            Waste = crop * 0.025,
+            ProcessWaterL = 320,
+            CulinarySteamKg = 520,
+            CompressedAirNm3 = 22,
+            FilterMediaPct = 1.2,
+        };
+        return StartFactoryRun(run, () => _sugarCropKg -= crop);
     }
 
     public string ChurnButter()
     {
         if (_lastPowerAvailability < 0.2)
             return "Cream separator and churn need reactor power.";
+        if (_factoryRun is not null)
+            return $"{_factoryRun.Name} is already running; wait for the ingredient factory run to finish.";
 
         double milk = Math.Min(Math.Max(0, _milkL - 30), 54);
         if (milk < 5)
             return "Keep at least 30 L milk in cold storage before churning butter.";
 
-        _milkL -= milk;
-        _butterKg += milk / 22.0;
-        return $"Churned {milk:0.0} L milk/cream into {milk / 22.0:0.0} kg butter.";
+        _creamSeparatorRpm = 0;
+        _butterFatPct = 0;
+        var run = new IngredientFactoryRun
+        {
+            Kind = IngredientFactoryKind.Butter,
+            Name = "Cream separator and butter churn",
+            StartedMessage = $"Started separating cream and churning {milk:0.0} L cow milk.",
+            DurationSeconds = 7.0,
+            PowerDemandMW = 1.4,
+            PrimaryInput = milk,
+            Product = milk / 22.0,
+            ProcessWaterL = 110,
+            CulinarySteamKg = 140,
+            CompressedAirNm3 = 15,
+            FilterMediaPct = 0.8,
+        };
+        return StartFactoryRun(run, () => _milkL -= milk);
     }
 
     public string ReceiveSupplies()
@@ -298,44 +455,80 @@ public sealed class CakeFactoryService
         _starchKg += 36;
         _packagingUnits += 180;
         _cocoaBeansKg += 90;
-        return "Received audited supplies: seed, irrigation water, fertilizer, animal feed, brine, soda ash, phosphate, starch, cartons and cocoa beans.";
+        _processWaterL += 9000;
+        _culinarySteamKg += 2200;
+        _compressedAirNm3 += 720;
+        _filterMediaPct = Math.Min(100, _filterMediaPct + 45);
+        return "Received audited supplies: seed, irrigation water, fertilizer, animal feed, brine, soda ash, phosphate, starch, cartons, cocoa beans, process water, culinary steam, compressed air and filter media.";
     }
 
     public string ProcessCocoa()
     {
         if (_lastPowerAvailability < 0.2)
             return "Cocoa roaster and grinder need reactor power.";
+        if (_factoryRun is not null)
+            return $"{_factoryRun.Name} is already running; wait for the ingredient factory run to finish.";
 
         double beans = Math.Min(_cocoaBeansKg, 45);
         if (beans < 5)
             return "Not enough cocoa beans are available for a roast/grind run.";
 
-        _cocoaBeansKg -= beans;
-        _cocoaKg += beans * 0.78;
-        _wasteKg += beans * 0.05;
-        return $"Roasted and ground {beans:0} kg cocoa beans into {beans * 0.78:0.0} kg cocoa.";
+        _cocoaRoasterTemperatureC = 24;
+        _cocoaGrindMicrons = 0;
+        var run = new IngredientFactoryRun
+        {
+            Kind = IngredientFactoryKind.Cocoa,
+            Name = "Cocoa roaster and grinder",
+            StartedMessage = $"Started roasting, winnowing and grinding {beans:0} kg cocoa beans.",
+            DurationSeconds = 11.0,
+            PowerDemandMW = 1.9,
+            PrimaryInput = beans,
+            Product = beans * 0.78,
+            Waste = beans * 0.05,
+            ProcessWaterL = 25,
+            CompressedAirNm3 = 45,
+            FilterMediaPct = 0.7,
+        };
+        return StartFactoryRun(run, () => _cocoaBeansKg -= beans);
     }
 
     public string RunSaltWorks()
     {
         if (_lastPowerAvailability < 0.2)
             return "Salt evaporator and crystallizer need reactor power.";
+        if (_factoryRun is not null)
+            return $"{_factoryRun.Name} is already running; wait for the ingredient factory run to finish.";
 
         double brine = Math.Min(_brineL, 600);
         if (brine < 80)
             return "Not enough brine is available for a salt works run.";
 
-        _brineL -= brine;
         double salt = brine * 0.026;
-        _saltKg += salt;
-        _wasteKg += brine * 0.001;
-        return $"Evaporated {brine:0} L brine into {salt:0.0} kg baking-grade salt.";
+        _brineSalinityPct = 2.5 + _rng.NextDouble() * 0.4;
+        _saltCrystallizerTemperatureC = 28;
+        var run = new IngredientFactoryRun
+        {
+            Kind = IngredientFactoryKind.Salt,
+            Name = "Salt evaporator and crystallizer",
+            StartedMessage = $"Started evaporating {brine:0} L brine into baking-grade salt crystals.",
+            DurationSeconds = 9.0,
+            PowerDemandMW = 1.6,
+            PrimaryInput = brine,
+            Product = salt,
+            Waste = brine * 0.001,
+            CulinarySteamKg = 700,
+            CompressedAirNm3 = 30,
+            FilterMediaPct = 0.4,
+        };
+        return StartFactoryRun(run, () => _brineL -= brine);
     }
 
     public string RunLeaveningPlant()
     {
         if (_lastPowerAvailability < 0.2)
             return "Leavening plant blender needs reactor power.";
+        if (_factoryRun is not null)
+            return $"{_factoryRun.Name} is already running; wait for the ingredient factory run to finish.";
 
         if (_sodaAshKg < 3 || _phosphateKg < 3 || _starchKg < 2)
             return "Not enough soda ash, phosphate and starch are available for baking powder.";
@@ -347,12 +540,213 @@ public sealed class CakeFactoryService
         double starch = 12.0 * scale;
         double input = soda + phosphate + starch;
 
-        _sodaAshKg -= soda;
-        _phosphateKg -= phosphate;
-        _starchKg -= starch;
-        _bakingPowderKg += input * 0.92;
-        _wasteKg += input * 0.02;
-        return $"Blended {input * 0.92:0.0} kg baking powder from soda ash, phosphate and starch.";
+        _leaveningMixerRpm = 0;
+        _leaveningHomogeneityPct = 0;
+        var run = new IngredientFactoryRun
+        {
+            Kind = IngredientFactoryKind.Leavening,
+            Name = "Leavening weigh-blend plant",
+            StartedMessage = $"Started weighing and blending {input:0.0} kg soda ash, phosphate and starch carrier.",
+            DurationSeconds = 6.0,
+            PowerDemandMW = 1.1,
+            PrimaryInput = soda,
+            SecondaryInput = phosphate,
+            TertiaryInput = starch,
+            Product = input * 0.92,
+            Waste = input * 0.02,
+            CompressedAirNm3 = 50,
+            FilterMediaPct = 1.0,
+        };
+        return StartFactoryRun(run, () =>
+        {
+            _sodaAshKg -= soda;
+            _phosphateKg -= phosphate;
+            _starchKg -= starch;
+        });
+    }
+
+    private string StartFactoryRun(IngredientFactoryRun run, Action consumeInputs)
+    {
+        string missingUtilities = MissingFactoryUtilities(run);
+        if (missingUtilities.Length > 0)
+            return $"{run.Name} cannot start; missing factory utilities: {missingUtilities}.";
+
+        consumeInputs();
+        ConsumeFactoryUtilities(run);
+        _factoryRun = run;
+        _factoryRunQualityPct = 72;
+        _factoryStatus = $"{run.Name} running: {FactoryPhase(run)} at 0% complete, {run.PowerDemandMW:0.0} MW load.";
+        return run.StartedMessage;
+    }
+
+    private string MissingFactoryUtilities(IngredientFactoryRun run)
+    {
+        var missing = new List<string>();
+        if (_processWaterL < run.ProcessWaterL) missing.Add("process water");
+        if (_culinarySteamKg < run.CulinarySteamKg) missing.Add("culinary steam");
+        if (_compressedAirNm3 < run.CompressedAirNm3) missing.Add("compressed air");
+        if (_filterMediaPct < run.FilterMediaPct) missing.Add("filter media");
+        return string.Join(", ", missing);
+    }
+
+    private void ConsumeFactoryUtilities(IngredientFactoryRun run)
+    {
+        _processWaterL = Math.Max(0, _processWaterL - run.ProcessWaterL);
+        _culinarySteamKg = Math.Max(0, _culinarySteamKg - run.CulinarySteamKg);
+        _compressedAirNm3 = Math.Max(0, _compressedAirNm3 - run.CompressedAirNm3);
+        _filterMediaPct = Math.Max(0, _filterMediaPct - run.FilterMediaPct);
+    }
+
+    private bool HasFactoryUtilities(double processWaterL, double culinarySteamKg, double compressedAirNm3, double filterMediaPct) =>
+        _processWaterL >= processWaterL
+        && _culinarySteamKg >= culinarySteamKg
+        && _compressedAirNm3 >= compressedAirNm3
+        && _filterMediaPct >= filterMediaPct;
+
+    private void UpdateFactoryRun(double seconds, double power)
+    {
+        if (_factoryRun is not { } run) return;
+
+        if (power < 0.2)
+        {
+            _factoryStatus = $"{run.Name} paused during {FactoryPhase(run)} at {run.Progress:P0}; restore reactor bus power.";
+            return;
+        }
+
+        run.ElapsedSeconds = Math.Min(run.DurationSeconds, run.ElapsedSeconds + seconds * Math.Clamp(power, 0, 1));
+        UpdateFactoryTelemetry(run, power);
+
+        if (run.Progress >= 1)
+        {
+            CompleteFactoryRun(run);
+            _factoryRun = null;
+        }
+        else
+        {
+            _factoryStatus = $"{run.Name} running: {FactoryPhase(run)}, {run.Progress:P0} complete, {run.RemainingSeconds:0.0}s remaining.";
+        }
+    }
+
+    private void UpdateFactoryTelemetry(IngredientFactoryRun run, double power)
+    {
+        double p = run.Progress;
+        _factoryRunQualityPct = Math.Clamp(72 + p * 24 + power * 4, 0, 100);
+        switch (run.Kind)
+        {
+            case IngredientFactoryKind.Mill:
+                _flourExtractionPct = 76.0 * p;
+                if (p > 0.35) _factoryRunQualityPct -= Math.Abs(_millRollGapMm - 0.30) * 120;
+                break;
+            case IngredientFactoryKind.Sugar:
+                _sugarJuiceBrix = 12.0 + p * 57.0;
+                _sugarEvaporatorTemperatureC = 45.0 + p * 61.0;
+                if (p > 0.5) _factoryRunQualityPct -= Math.Abs(_sugarEvaporatorTemperatureC - 104.0) * 0.15;
+                break;
+            case IngredientFactoryKind.Butter:
+                _creamSeparatorRpm = p < 0.15 ? 6400 * p / 0.15 : 6400 + Math.Sin(p * Math.PI * 3) * 180;
+                _butterFatPct = 35.0 + p * 47.0;
+                if (p > 0.4) _factoryRunQualityPct -= Math.Abs(_butterFatPct - 82.0) * 0.12;
+                break;
+            case IngredientFactoryKind.Cocoa:
+                _cocoaRoasterTemperatureC = 24.0 + p * 112.0;
+                _cocoaGrindMicrons = p < 0.45 ? 0 : 140.0 - (p - 0.45) / 0.55 * 66.0;
+                if (p > 0.5) _factoryRunQualityPct -= Math.Abs(_cocoaRoasterTemperatureC - 134.0) * 0.08;
+                break;
+            case IngredientFactoryKind.Salt:
+                _saltCrystallizerTemperatureC = 28.0 + p * 38.0;
+                if (p > 0.45) _factoryRunQualityPct -= Math.Abs(_brineSalinityPct - 2.7) * 8.0;
+                break;
+            case IngredientFactoryKind.Leavening:
+                _leaveningMixerRpm = p < 0.12 ? 90.0 * p / 0.12 : 90.0 + Math.Sin(p * Math.PI * 4) * 12.0;
+                _leaveningHomogeneityPct = 52.0 + p * 46.0;
+                _factoryRunQualityPct = Math.Min(_factoryRunQualityPct, _leaveningHomogeneityPct);
+                break;
+        }
+        _factoryRunQualityPct = Math.Clamp(_factoryRunQualityPct, 0, 100);
+    }
+
+    private static string FactoryPhase(IngredientFactoryRun run)
+    {
+        double p = run.Progress;
+        return run.Kind switch
+        {
+            IngredientFactoryKind.Mill when p < 0.22 => "magnet check and wheat feed",
+            IngredientFactoryKind.Mill when p < 0.48 => "break rolling",
+            IngredientFactoryKind.Mill when p < 0.76 => "plansifter separation",
+            IngredientFactoryKind.Mill => "purifier and flour bin transfer",
+            IngredientFactoryKind.Sugar when p < 0.18 => "wash and slice",
+            IngredientFactoryKind.Sugar when p < 0.42 => "diffusion",
+            IngredientFactoryKind.Sugar when p < 0.74 => "evaporation",
+            IngredientFactoryKind.Sugar => "crystallization and drying",
+            IngredientFactoryKind.Butter when p < 0.25 => "cream separation",
+            IngredientFactoryKind.Butter when p < 0.58 => "pasteurization hold",
+            IngredientFactoryKind.Butter when p < 0.84 => "churning",
+            IngredientFactoryKind.Butter => "working and cold-room transfer",
+            IngredientFactoryKind.Cocoa when p < 0.28 => "roast ramp",
+            IngredientFactoryKind.Cocoa when p < 0.48 => "roast hold",
+            IngredientFactoryKind.Cocoa when p < 0.64 => "winnowing",
+            IngredientFactoryKind.Cocoa => "pin milling",
+            IngredientFactoryKind.Salt when p < 0.30 => "brine preheat",
+            IngredientFactoryKind.Salt when p < 0.70 => "vacuum evaporation",
+            IngredientFactoryKind.Salt => "crystallizer and centrifuge",
+            IngredientFactoryKind.Leavening when p < 0.20 => "ingredient weigh-up",
+            IngredientFactoryKind.Leavening when p < 0.55 => "ribbon blending",
+            IngredientFactoryKind.Leavening when p < 0.82 => "screening",
+            IngredientFactoryKind.Leavening => "lot QA and bin discharge",
+            _ => "processing",
+        };
+    }
+
+    private void CompleteFactoryRun(IngredientFactoryRun run)
+    {
+        switch (run.Kind)
+        {
+            case IngredientFactoryKind.Mill:
+                _flourKg += run.Product;
+                _wasteKg += run.Waste;
+                _flourExtractionPct = 75.0 + _rng.NextDouble() * 2.0;
+                _factoryRunQualityPct = Math.Clamp(96 - Math.Abs(_millRollGapMm - 0.30) * 120, 0, 100);
+                _factoryStatus = $"Roller mill completed: {run.Product:0.0} kg cake flour, {run.Waste:0.0} kg bran/waste, {_millRollGapMm:0.00} mm roll gap, QA {_factoryRunQualityPct:0}%.";
+                break;
+            case IngredientFactoryKind.Sugar:
+                _sugarKg += run.Product;
+                _wasteKg += run.Waste;
+                _sugarJuiceBrix = 67.0 + _rng.NextDouble() * 3.0;
+                _sugarEvaporatorTemperatureC = 103.0 + _rng.NextDouble() * 4.0;
+                _factoryRunQualityPct = Math.Clamp(98 - Math.Abs(_sugarJuiceBrix - 68.0) * 1.5, 0, 100);
+                _factoryStatus = $"Sugar house completed: {run.Product:0.0} kg sugar at {_sugarJuiceBrix:0.0} Brix and {_sugarEvaporatorTemperatureC:0} degC, QA {_factoryRunQualityPct:0}%.";
+                break;
+            case IngredientFactoryKind.Butter:
+                _butterKg += run.Product;
+                _creamSeparatorRpm = 6400 + _rng.NextDouble() * 420;
+                _butterFatPct = 81.0 + _rng.NextDouble() * 2.5;
+                _factoryRunQualityPct = Math.Clamp(98 - Math.Abs(_butterFatPct - 82.0) * 1.4, 0, 100);
+                _factoryStatus = $"Butter room completed: {run.Product:0.0} kg butter at {_butterFatPct:0.0}% butterfat, QA {_factoryRunQualityPct:0}%.";
+                break;
+            case IngredientFactoryKind.Cocoa:
+                _cocoaKg += run.Product;
+                _wasteKg += run.Waste;
+                _cocoaRoasterTemperatureC = 130 + _rng.NextDouble() * 12;
+                _cocoaGrindMicrons = 68 + _rng.NextDouble() * 18;
+                _factoryRunQualityPct = Math.Clamp(98 - Math.Abs(_cocoaGrindMicrons - 75.0) * 0.35, 0, 100);
+                _factoryStatus = $"Cocoa line completed: {run.Product:0.0} kg cocoa at {_cocoaRoasterTemperatureC:0} degC roast and {_cocoaGrindMicrons:0} micron grind, QA {_factoryRunQualityPct:0}%.";
+                break;
+            case IngredientFactoryKind.Salt:
+                _saltKg += run.Product;
+                _wasteKg += run.Waste;
+                _saltCrystallizerTemperatureC = 62 + _rng.NextDouble() * 8;
+                _factoryRunQualityPct = Math.Clamp(97 - Math.Abs(_brineSalinityPct - 2.7) * 5.0, 0, 100);
+                _factoryStatus = $"Salt works completed: {run.Product:0.0} kg baking-grade salt from {_brineSalinityPct:0.0}% brine, QA {_factoryRunQualityPct:0}%.";
+                break;
+            case IngredientFactoryKind.Leavening:
+                _bakingPowderKg += run.Product;
+                _wasteKg += run.Waste;
+                _leaveningMixerRpm = 72 + _rng.NextDouble() * 36;
+                _leaveningHomogeneityPct = 96.5 + _rng.NextDouble() * 2.6;
+                _factoryRunQualityPct = _leaveningHomogeneityPct;
+                _factoryStatus = $"Leavening plant completed: {run.Product:0.0} kg baking powder at {_leaveningHomogeneityPct:0.0}% homogeneity, QA {_factoryRunQualityPct:0}%.";
+                break;
+        }
     }
 
     public void StartClean()
@@ -449,7 +843,8 @@ public sealed class CakeFactoryService
         seconds = Math.Clamp(seconds, 0.016, 0.25);
         var recipe = CurrentRecipe;
         double farmDemand = 0.7 + FarmIntensity * 3.8;
-        double factoryDemand = 2.4 + LineSpeed * 28.0 + (CipActive ? 2.8 : 0);
+        double ingredientFactoryDemand = _factoryRun?.PowerDemandMW ?? 0;
+        double factoryDemand = 2.4 + LineSpeed * 28.0 + (CipActive ? 2.8 : 0) + ingredientFactoryDemand;
         double demand = farmDemand + factoryDemand;
         bool reactorOnline = reactor.IsGenerating && reactor.ElectricMW > 1 && !reactor.IsMeltdown;
         double power = reactorOnline ? Math.Clamp(reactor.ElectricMW / Math.Max(1, demand), 0, 1) : 0;
@@ -457,7 +852,9 @@ public sealed class CakeFactoryService
 
         UpdateAnimation(seconds, power);
         UpdateFarm(seconds, power);
+        UpdateMilkColdChain(seconds, power);
         UpdateCleaning(seconds, power);
+        UpdateFactoryRun(seconds, power);
         UpdateBatch(seconds, power);
 
         _sanitationScore = Math.Clamp(_sanitationScore - seconds * (0.003 + (_stage == CakeBatchStage.Idle ? 0 : 0.018 * LineSpeed)), 0, 100);
@@ -492,19 +889,32 @@ public sealed class CakeFactoryService
             MissingIngredients = missing,
             CanHarvest = power >= 0.15 && (_wheatGrowth >= 25 || _beetGrowth >= 25 || _vanillaGrowth >= 25),
             CanCollectDairy = power >= 0.12 && (_dairyReadyL >= 1 || _eggsReady >= 1),
-            CanMillWheat = power >= 0.2 && _wheatKg >= 5,
-            CanRefineSugar = power >= 0.2 && _sugarCropKg >= 10,
-            CanChurnButter = power >= 0.2 && _milkL > 35,
+            CanMillWheat = power >= 0.2 && _factoryRun is null && _wheatKg >= 5 && HasFactoryUtilities(20, 0, 38, 0.6),
+            CanRefineSugar = power >= 0.2 && _factoryRun is null && _sugarCropKg >= 10 && HasFactoryUtilities(320, 520, 22, 1.2),
+            CanChurnButter = power >= 0.2 && _factoryRun is null && _milkL > 35 && HasFactoryUtilities(110, 140, 15, 0.8),
             CanReceiveSupplies = power >= 0.1,
-            CanProcessCocoa = power >= 0.2 && _cocoaBeansKg >= 5,
-            CanRunSaltWorks = power >= 0.2 && _brineL >= 80,
-            CanRunLeaveningPlant = power >= 0.2 && _sodaAshKg >= 3 && _phosphateKg >= 3 && _starchKg >= 2,
+            CanProcessCocoa = power >= 0.2 && _factoryRun is null && _cocoaBeansKg >= 5 && HasFactoryUtilities(25, 0, 45, 0.7),
+            CanRunSaltWorks = power >= 0.2 && _factoryRun is null && _brineL >= 80 && HasFactoryUtilities(0, 700, 30, 0.4),
+            CanRunLeaveningPlant = power >= 0.2 && _factoryRun is null && _sodaAshKg >= 3 && _phosphateKg >= 3 && _starchKg >= 2 && HasFactoryUtilities(0, 0, 50, 1.0),
             WheatGrowth = _wheatGrowth,
             BeetGrowth = _beetGrowth,
             PastureHealth = _pastureHealth,
             VanillaGrowth = _vanillaGrowth,
             DairyReadyL = _dairyReadyL,
             EggsReady = _eggsReady,
+            DairyCowCount = _dairyCowCount,
+            LactatingCowCount = _lactatingCowCount,
+            CowComfort = _cowComfort,
+            MilkProductionLPerHour = _milkProductionLPerHour,
+            MilkParlorThroughputLPerHour = _milkParlorThroughputLPerHour,
+            MilkSourceStatus = _milkSourceStatus,
+            BulkMilkTankC = _bulkMilkTankC,
+            MilkBacteriaCfuPerMl = _milkBacteriaCfuPerMl,
+            MilkSomaticCellCountKPerMl = _milkSomaticCellCountKPerMl,
+            MilkFatPct = _milkFatPct,
+            MilkProteinPct = _milkProteinPct,
+            MilkingVacuumKPa = _milkingVacuumKPa,
+            MilkQaStatus = MilkQaStatus(),
             WheatKg = _wheatKg,
             SugarCropKg = _sugarCropKg,
             FlourKg = _flourKg,
@@ -528,6 +938,31 @@ public sealed class CakeFactoryService
             AnimalFeedKg = _animalFeedKg,
             PackagingUnits = _packagingUnits,
             ResourceStatus = ResourceStatus(power),
+            ProcessWaterL = _processWaterL,
+            CulinarySteamKg = _culinarySteamKg,
+            CompressedAirNm3 = _compressedAirNm3,
+            FilterMediaPct = _filterMediaPct,
+            FactoryUtilityStatus = FactoryUtilityStatus(),
+            FactoryStatus = _factoryStatus,
+            FactoryRunActive = _factoryRun is not null,
+            ActiveFactoryName = _factoryRun?.Name ?? "",
+            ActiveFactoryPhase = _factoryRun is null ? "" : FactoryPhase(_factoryRun),
+            FactoryProgress = _factoryRun?.Progress ?? 0,
+            FactoryRunPowerMW = _factoryRun?.PowerDemandMW ?? 0,
+            FactoryRunSecondsRemaining = _factoryRun?.RemainingSeconds ?? 0,
+            FactoryRunQualityPct = _factoryRunQualityPct,
+            MillRollGapMm = _millRollGapMm,
+            FlourExtractionPct = _flourExtractionPct,
+            SugarJuiceBrix = _sugarJuiceBrix,
+            SugarEvaporatorTemperatureC = _sugarEvaporatorTemperatureC,
+            CreamSeparatorRpm = _creamSeparatorRpm,
+            ButterFatPct = _butterFatPct,
+            CocoaRoasterTemperatureC = _cocoaRoasterTemperatureC,
+            CocoaGrindMicrons = _cocoaGrindMicrons,
+            BrineSalinityPct = _brineSalinityPct,
+            SaltCrystallizerTemperatureC = _saltCrystallizerTemperatureC,
+            LeaveningMixerRpm = _leaveningMixerRpm,
+            LeaveningHomogeneityPct = _leaveningHomogeneityPct,
             BatterKg = _batterKg,
             CakesBaked = _cakesBaked,
             CakesPacked = _cakesPacked,
@@ -546,6 +981,14 @@ public sealed class CakeFactoryService
         _conveyorPhase = (_conveyorPhase + seconds * motion * 90) % 80;
         _mixerAngle = (_mixerAngle + seconds * motion * 260) % 360;
         _tractorPhase = (_tractorPhase + seconds * Math.Max(0.02, FarmIntensity * power) * 0.05) % 1;
+    }
+
+    private void UpdateMilkColdChain(double seconds, double power)
+    {
+        double targetC = power >= 0.15 ? 3.4 : 12.0;
+        _bulkMilkTankC += (targetC - _bulkMilkTankC) * Math.Min(1, seconds / (power >= 0.15 ? 18.0 : 42.0));
+        double growthFactor = Math.Max(0, _bulkMilkTankC - 4.0) * 0.018 + Math.Max(0, 75 - _sanitationScore) * 0.002;
+        _milkBacteriaCfuPerMl = Math.Clamp(_milkBacteriaCfuPerMl * (1.0 + growthFactor * seconds), 1200, 250000);
     }
 
     private void UpdateFarm(double seconds, double power)
@@ -584,17 +1027,30 @@ public sealed class CakeFactoryService
         }
 
         double livestockPower = FarmIntensity * power;
-        double feedNeed = seconds * livestockPower * 0.22;
-        double barnWaterNeed = seconds * livestockPower * 9.0;
+        double simHours = seconds * 0.05 * Math.Max(0.25, FarmIntensity);
+        double feedNeed = _dairyCowCount * 1.10 * simHours * livestockPower;
+        double barnWaterNeed = _dairyCowCount * 4.20 * simHours * livestockPower;
         double livestockInputFactor = SupplyFactor((_animalFeedKg, feedNeed), (_irrigationWaterL, barnWaterNeed));
         if (livestockInputFactor > 0)
         {
             _animalFeedKg = Math.Max(0, _animalFeedKg - feedNeed * livestockInputFactor);
             _irrigationWaterL = Math.Max(0, _irrigationWaterL - barnWaterNeed * livestockInputFactor);
         }
-        livestockPower *= livestockInputFactor;
-        _dairyReadyL = Math.Min(140, _dairyReadyL + seconds * (0.9 + _pastureHealth / 120.0) * livestockPower);
-        _eggsReady = Math.Min(420, _eggsReady + seconds * (0.75 + FarmIntensity * 0.55) * livestockPower);
+        double targetComfort = livestockInputFactor > 0
+            ? Math.Clamp(46 + _pastureHealth * 0.36 + power * 18, 35, 98)
+            : 24;
+        _cowComfort += (targetComfort - _cowComfort) * Math.Min(1, seconds / 45.0);
+
+        double comfortFactor = Math.Clamp(_cowComfort / 82.0, 0.25, 1.20);
+        double pastureFactor = Math.Clamp(0.70 + _pastureHealth / 360.0, 0.60, 1.05);
+        _milkProductionLPerHour = _lactatingCowCount * 1.15 * livestockInputFactor * livestockPower * comfortFactor * pastureFactor;
+        _milkParlorThroughputLPerHour = power >= 0.12 ? 650 + 130 * Math.Clamp(power, 0, 1) : 0;
+
+        _dairyReadyL = Math.Min(140, _dairyReadyL + _milkProductionLPerHour * simHours);
+        _eggsReady = Math.Min(420, _eggsReady + _layingHenCount * 0.035 * simHours * livestockInputFactor * livestockPower);
+        _milkSourceStatus = livestockInputFactor > 0 && livestockPower > 0
+            ? $"Milk comes from {_lactatingCowCount} lactating cows; herd consumed {feedNeed * livestockInputFactor:0.0} kg feed and {barnWaterNeed * livestockInputFactor:0} L water this tick."
+            : "Milk production stalled: cow herd needs feed, water, pasture health and powered milking systems.";
         if (livestockInputFactor <= 0)
             _pastureHealth = Math.Max(10, _pastureHealth - seconds * 0.035);
     }
@@ -798,7 +1254,40 @@ public sealed class CakeFactoryService
         if ((_sodaAshKg < 3 || _phosphateKg < 3 || _starchKg < 2)
             && _bakingPowderKg < CurrentRecipe.BakingPowderKg * CurrentRecipe.BatchSize)
             low.Add("leavening feedstocks");
+        if (_processWaterL < 200) low.Add("process water");
+        if (_culinarySteamKg < 260) low.Add("culinary steam");
+        if (_compressedAirNm3 < 60) low.Add("compressed air");
+        if (_filterMediaPct < 3) low.Add("filter media");
         return low.Count == 0 ? "Inputs stocked" : "Low: " + string.Join(", ", low);
+    }
+
+    private bool MilkQaInSpec() =>
+        _milkL <= 0
+        || (_bulkMilkTankC <= 7.0
+            && _milkBacteriaCfuPerMl <= 100000
+            && _milkSomaticCellCountKPerMl <= 400
+            && _milkFatPct >= 3.0
+            && _milkProteinPct >= 2.9);
+
+    private string MilkQaStatus()
+    {
+        var issues = new List<string>();
+        if (_bulkMilkTankC > 7.0) issues.Add("bulk tank warm");
+        if (_milkBacteriaCfuPerMl > 100000) issues.Add("bacteria high");
+        if (_milkSomaticCellCountKPerMl > 400) issues.Add("somatic cells high");
+        if (_milkFatPct < 3.0) issues.Add("low fat");
+        if (_milkProteinPct < 2.9) issues.Add("low protein");
+        return issues.Count == 0 ? "Milk QA in spec" : "Milk QA hold: " + string.Join(", ", issues);
+    }
+
+    private string FactoryUtilityStatus()
+    {
+        var low = new List<string>();
+        if (_processWaterL < 200) low.Add("process water");
+        if (_culinarySteamKg < 260) low.Add("culinary steam");
+        if (_compressedAirNm3 < 60) low.Add("compressed air");
+        if (_filterMediaPct < 3) low.Add("filter media");
+        return low.Count == 0 ? "Utilities ready" : "Low utilities: " + string.Join(", ", low);
     }
 
     private string StageLabel(CakeBatchStage stage) => stage switch
@@ -837,6 +1326,7 @@ public sealed class CakeFactoryService
         if (_eggs < r.EggCount * n) missing.Add("eggs");
         if (_butterKg < r.ButterKg * n) missing.Add("butter");
         if (_milkL < r.MilkL * n) missing.Add("milk");
+        else if (r.MilkL > 0 && !MilkQaInSpec()) missing.Add("milk QA");
         if (_bakingPowderKg < r.BakingPowderKg * n) missing.Add("baking powder");
         if (_saltKg < r.SaltKg * n) missing.Add("salt");
         if (_vanillaL < r.VanillaL * n) missing.Add("vanilla");

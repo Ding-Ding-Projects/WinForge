@@ -24,9 +24,10 @@ Open in-app: `WinForge.exe --page cakefactory`
 | Area · 區域 | Simulation · 模擬內容 |
 |---|---|
 | Reactor bus · 反應堆供電 | The factory only runs when the live reactor status bus is generating enough electrical power. A meltdown or offline reactor locks out powered actions. |
-| Supply chain inputs · 供應鏈輸入 | Ingredients do not appear from nowhere: seed, irrigation water, fertilizer, animal feed, cocoa beans, brine, soda ash, phosphate, starch carrier and cartons/labels are finite stocks delivered through the receiving dock. |
-| Ingredient farm · 原料農場 | Wheat, sugar crop, vanilla, pasture health, milk and eggs grow over time only when reactor power and the required farm inputs are available. |
-| Ingredient conversion · 原料轉換 | Harvest, collect milk/eggs, mill wheat into cake flour, refine sugar crop into sugar, churn milk/cream into butter, roast/grind cocoa beans into cocoa, evaporate brine into salt and blend leavening feedstocks into baking powder. |
+| Supply chain inputs · 供應鏈輸入 | Ingredients do not appear from nowhere: seed, irrigation water, fertilizer, animal feed, cocoa beans, brine, soda ash, phosphate, starch carrier, cartons/labels and factory utilities are finite stocks delivered through the receiving dock. |
+| Ingredient farm · 原料農場 | Wheat, sugar crop, vanilla, pasture health, cow milk and eggs grow over time only when reactor power and the required farm inputs are available. Milk comes from a tracked lactating cow herd that consumes feed and water, then passes through a powered milking parlor and chilled bulk tank. |
+| Ingredient conversion · 原料轉換 | Harvest, collect cow milk/eggs, then run timed powered factory jobs: mill wheat into cake flour, refine sugar crop into sugar, churn milk/cream into butter, roast/grind cocoa beans into cocoa, evaporate brine into salt and blend leavening feedstocks into baking powder. |
+| Factory telemetry · 工廠遙測 | Ingredient factories consume raw inputs plus process water, culinary steam, compressed air and filter media at start, add reactor load, expose unit-operation phase, run progress and process QA, pause on low power, and release output only after completion. Readings include mill roll gap, flour extraction, sugar Brix, evaporator temperature, separator rpm, butterfat, cocoa roast temperature, grind size, brine salinity, crystallizer temperature and leavening blend homogeneity. |
 | Bakery line · 烘焙生產線 | Operator-driven scaling, mixing, depositing, tunnel baking, spiral cooling, icing/decorating and packaging/coding. |
 | Signed cake files · 已簽署蛋糕檔 | Packed cakes are minted as portable `.cake` files signed with the bakery private key. Other devices validate them with the trusted public key, forged cakes are rejected, and eating a cake deletes the file. |
 | Food safety · 食物安全 | HACCP-style prompts, kill-step temperature, cooling limit, sanitation score, quality score, rejects and waste tracking. |
@@ -40,9 +41,9 @@ Open in-app: `WinForge.exe --page cakefactory`
 | Recipe select · 配方選單 | Choose White layer cake, Butter pound cake or Chocolate layer cake. The recipe changes batch size, ingredients, bake target and target specific gravity. |
 | Farm intensity · 農場強度 | Raises or lowers crop growth, pasture/livestock output and farm electrical demand. |
 | Line speed · 生產線速度 | Raises or lowers bakery throughput and factory electrical demand. |
-| Receive supplies · 接收補給 | Adds audited seed, water, fertilizer, feed, cocoa beans, brine, soda ash, phosphate, starch carrier and cartons/labels at the receiving dock. |
+| Receive supplies · 接收補給 | Adds audited seed, water, fertilizer, feed, cocoa beans, brine, soda ash, phosphate, starch carrier, cartons/labels, process water, culinary steam, compressed air and filter media at the receiving dock. |
 | Harvest · 收成 | Moves ready wheat, sugar crop and vanilla from fields into inventory. |
-| Milk + eggs · 收奶蛋 | Collects dairy and graded eggs from the barn buffers. |
+| Milk + eggs · 收奶蛋 | Collects cow milk from the powered milking parlor and graded eggs from the barn buffers. The milk buffer is produced by lactating cows, chilled in a bulk tank and checked for temperature, bacteria, somatic cell count, fat and protein. |
 | Mill flour · 磨粉 | Converts harvested wheat into cake flour and bran/waste. |
 | Refine sugar · 煉糖 | Converts sugar crop into usable sugar and waste. |
 | Churn butter · 打牛油 | Converts milk/cream into butter while preserving cold milk inventory. |
@@ -62,16 +63,16 @@ Open in-app: `WinForge.exe --page cakefactory`
 1. Open the module with `WinForge.exe --page cakefactory`.
 2. If the banner says **Waiting for nuclear reactor generation**, open the reactor module and bring the plant to generation. The cake simulator intentionally disables powered work without the reactor bus.
 3. Select a recipe and set farm intensity / line speed. Higher settings make the scene more active but increase plant load.
-4. Keep the supply chain stocked. Use **Receive supplies** when seed, irrigation water, fertilizer, feed, cocoa beans, brine, leavening feedstocks or cartons/labels are low.
+4. Keep the supply chain stocked. Use **Receive supplies** when seed, irrigation water, fertilizer, feed, cocoa beans, brine, leavening feedstocks, cartons/labels or factory utilities are low.
 5. Prepare ingredients manually:
    - Harvest fields when wheat, sugar crop or vanilla are mature.
-   - Collect milk and eggs when barn buffers are ready.
-   - Mill wheat into flour.
-   - Refine sugar crop into sugar.
-   - Churn butter when milk inventory has enough reserve.
-   - Roast cocoa beans into cocoa when a chocolate recipe needs it.
-   - Run the salt works when salt is low.
-   - Run the leavening plant when baking powder is low.
+   - Keep the cow herd fed and watered, then collect milk and eggs when barn buffers are ready. Watch bulk tank temperature and milk QA before batching.
+   - Mill wheat into flour and wait for the powered roller mill run to finish.
+   - Refine sugar crop into sugar and wait for diffuser/evaporator completion.
+   - Churn butter when milk inventory has enough reserve and wait for the separator/churn run.
+   - Roast cocoa beans into cocoa when a chocolate recipe needs it, then wait for roast/grind completion.
+   - Run the salt works when salt is low and wait for evaporation/crystallization.
+   - Run the leavening plant when baking powder is low and wait for blend homogeneity.
 6. Press **Start batch** only after the inventory panel shows no missing ingredients and enough cartons/labels are available.
 7. Watch the current stage and wait for the release gate:
    - **Weighing + scaling:** wait for scale verification.
@@ -94,6 +95,8 @@ The simulator deliberately avoids full automation:
 - It does not start batches on its own.
 - It does not harvest, mill, refine or churn ingredients automatically.
 - It does not create ingredients from thin air; farm and bakery output consume finite upstream inputs.
+- Milk specifically comes from lactating cows, which consume feed and water before the powered milking parlor can transfer raw milk into cold storage. Warm or high-count milk is held by the recipe gate.
+- Ingredient factories are not instant: they consume finite inputs and utilities, add reactor load, move through unit-operation phases, report process QA, pause on low power and release usable ingredients only after the process completes.
 - It does not advance stages automatically after timers complete.
 - It waits for the operator to release each HACCP gate.
 - It blocks release if power, temperature, sanitation or recipe requirements are not satisfied.
@@ -117,7 +120,7 @@ The module was tested with these checks:
 
 | Evidence · 證據 | Result · 結果 |
 |---|---|
-| Headless service scenarios · 無介面服務情景 | `dotnet run --project tests/ReactorSim.Tests/ReactorSim.Tests.csproj -c Debug` passed **23/23** scenarios, including cake power gating, no-auto manual mode, finite supply inputs, non-farm ingredient factories, ingredient chain, full manual batch, signed `.cake` file crypto and CIP sanitation. |
+| Headless service scenarios · 無介面服務情景 | `dotnet run --project tests/ReactorSim.Tests/ReactorSim.Tests.csproj -c Debug` passed **24/24** scenarios, including cake power gating, no-auto manual mode, cow milk provenance and cold-chain QA, finite supply inputs and utilities, timed non-farm ingredient factories, unit-operation phases, process QA, ingredient chain, full manual batch, signed `.cake` file crypto and CIP sanitation. |
 | WinForge GUI screenshot · WinForge 圖形介面截圖 | `WinForge.exe --page cakefactory` was launched from a self-contained publish and captured into `docs/screenshot-cakefactory.png`. |
 | WebView asset packaging · WebView 資產封裝 | `SimAssets/cake/index.html` is included under `SimAssets/**/*.*`, copied to publish output and loaded through WebView2 virtual-host mapping. |
 | Signed cake files · 已簽署蛋糕檔 | The test suite verifies private-key signing, public-key trust on another device root, forged/tampered rejection, replay rejection and eat-delete consumption. |
