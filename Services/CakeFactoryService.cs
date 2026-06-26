@@ -61,6 +61,8 @@ public sealed class CakeFactorySnapshot
     public string MissingIngredients { get; init; } = "";
     public bool CanHarvest { get; init; }
     public bool CanCollectDairy { get; init; }
+    public bool CanMixDairyRation { get; init; }
+    public bool CanWashDairyParlor { get; init; }
     public bool CanMillWheat { get; init; }
     public bool CanRefineSugar { get; init; }
     public bool CanChurnButter { get; init; }
@@ -89,6 +91,18 @@ public sealed class CakeFactorySnapshot
     public double MilkProteinPct { get; init; }
     public double MilkingVacuumKPa { get; init; }
     public string MilkQaStatus { get; init; } = "";
+    public double ForageKg { get; init; }
+    public double GrainKg { get; init; }
+    public double DairyMineralKg { get; init; }
+    public double MixedRationKg { get; init; }
+    public double BeddingKg { get; init; }
+    public double BarnLaborHours { get; init; }
+    public double ManureKg { get; init; }
+    public double DairyParlorHygienePct { get; init; }
+    public double RationEnergyPct { get; init; }
+    public double RationProteinPct { get; init; }
+    public string RationStatus { get; init; } = "";
+    public string MixedRationLotId { get; init; } = "";
     public string TraceabilityStatus { get; init; } = "";
     public double TraceabilityScorePct { get; init; }
     public string LastSupplyManifestId { get; init; } = "";
@@ -317,6 +331,17 @@ public sealed class CakeFactoryService
     private double _milkFatPct = 3.8;
     private double _milkProteinPct = 3.25;
     private double _milkingVacuumKPa = 42;
+    private double _forageKg = 260;
+    private double _grainKg = 180;
+    private double _dairyMineralKg = 35;
+    private double _mixedRationKg = 90;
+    private double _beddingKg = 160;
+    private double _barnLaborHours = 32;
+    private double _manureKg = 240;
+    private double _dairyParlorHygienePct = 88;
+    private double _rationEnergyPct = 94;
+    private double _rationProteinPct = 92;
+    private string _rationStatus = "Total mixed ration TMR-OPENING loaded for the lactating cow herd.";
 
     private double _wheatKg = 260;
     private double _sugarCropKg = 380;
@@ -362,6 +387,11 @@ public sealed class CakeFactoryService
     private string _vanillaLotId = "VANILLA-OPENING";
     private string _milkLotId = "MILK-OPENING";
     private string _eggLotId = "EGG-OPENING";
+    private string _forageLotId = "FORAGE-OPENING";
+    private string _grainLotId = "GRAIN-OPENING";
+    private string _dairyMineralLotId = "DAIRYMIN-OPENING";
+    private string _mixedRationLotId = "TMR-OPENING";
+    private string _beddingLotId = "BEDDING-OPENING";
     private string _flourLotId = "FLOUR-OPENING";
     private string _sugarLotId = "SUGAR-OPENING";
     private string _butterLotId = "BUTTER-OPENING";
@@ -582,6 +612,66 @@ public sealed class CakeFactoryService
         return $"Harvested {wheat:0} kg wheat, {beet:0} kg sugar crop, {vanilla:0.00} L vanilla extract equivalent.";
     }
 
+    public string MixDairyRation()
+    {
+        if (_lastPowerAvailability < 0.15)
+            return "The TMR mixer wagon and ration scales need reactor bus power.";
+
+        const double forage = 48.0;
+        const double grain = 22.0;
+        const double mineral = 2.2;
+        const double water = 38.0;
+        const double labor = 0.8;
+        if (_forageKg < forage || _grainKg < grain || _dairyMineralKg < mineral)
+            return "Dairy ration cannot be mixed; forage, grain or mineral premix is low.";
+        if (_irrigationWaterL < water || _barnLaborHours < labor)
+            return "Dairy ration needs water and barn labor before the herd can be fed.";
+        if (string.IsNullOrWhiteSpace(_forageLotId) || string.IsNullOrWhiteSpace(_grainLotId) || string.IsNullOrWhiteSpace(_dairyMineralLotId))
+            return "Dairy ration cannot be mixed because a feed ingredient lot is missing from the ledger.";
+
+        _forageKg -= forage;
+        _grainKg -= grain;
+        _dairyMineralKg -= mineral;
+        _irrigationWaterL -= water;
+        _barnLaborHours -= labor;
+        double output = forage + grain + mineral + water * 0.18;
+        _mixedRationKg += output;
+        _mixedRationLotId = NewLotId("TMR");
+        _rationEnergyPct = Math.Clamp(86 + grain / 22.0 * 8 + _pastureHealth / 100.0 * 3, 70, 102);
+        _rationProteinPct = Math.Clamp(84 + forage / 48.0 * 5 + mineral / 2.2 * 5, 70, 101);
+        _rationStatus = $"Mixed TMR lot {_mixedRationLotId}: {forage:0} kg forage, {grain:0} kg grain, {mineral:0.0} kg mineral premix, energy {_rationEnergyPct:0}% and protein {_rationProteinPct:0}%.";
+        _traceabilityStatus = $"Dairy ration trace logged: {_mixedRationLotId} from forage {_forageLotId}, grain {_grainLotId} and mineral {_dairyMineralLotId}.";
+        return _rationStatus;
+    }
+
+    public string WashDairyParlor()
+    {
+        if (_lastPowerAvailability < 0.15)
+            return "Dairy washdown pumps, hot-water set and scraper alley need reactor bus power.";
+
+        const double processWater = 180.0;
+        const double steam = 60.0;
+        const double air = 12.0;
+        const double filter = 0.5;
+        const double labor = 1.4;
+        if (!HasFactoryUtilities(processWater, steam, air, filter) || _barnLaborHours < labor)
+            return "Dairy washdown needs process water, culinary steam, compressed air, filter media and barn labor.";
+
+        _processWaterL -= processWater;
+        _culinarySteamKg -= steam;
+        _compressedAirNm3 -= air;
+        _filterMediaPct = Math.Max(0, _filterMediaPct - filter);
+        _barnLaborHours -= labor;
+        double manureRemoved = Math.Min(_manureKg, 340);
+        _manureKg -= manureRemoved;
+        _dairyParlorHygienePct = Math.Min(100, _dairyParlorHygienePct + 34);
+        _cowComfort = Math.Min(100, _cowComfort + 4);
+        _milkBacteriaCfuPerMl = Math.Max(1200, _milkBacteriaCfuPerMl * 0.78);
+        _milkSomaticCellCountKPerMl = Math.Max(70, _milkSomaticCellCountKPerMl * 0.94);
+        _milkSourceStatus = $"Parlor washed and alleys scraped; removed {manureRemoved:0} kg manure before the next milking.";
+        return $"Washed dairy parlor: hygiene {_dairyParlorHygienePct:0}%, removed {manureRemoved:0} kg manure, labor {_barnLaborHours:0.0} h remaining.";
+    }
+
     public string CollectDairyAndEggs()
     {
         if (_lastPowerAvailability < 0.12)
@@ -602,12 +692,15 @@ public sealed class CakeFactoryService
         _milkingVacuumKPa = 40.5 + _rng.NextDouble() * 3.0;
         _milkFatPct = 3.55 + _cowComfort / 100.0 * 0.55 + _rng.NextDouble() * 0.12;
         _milkProteinPct = 3.05 + _pastureHealth / 100.0 * 0.28 + _rng.NextDouble() * 0.06;
-        _milkSomaticCellCountKPerMl = Math.Clamp(250 - _cowComfort * 1.25 + _rng.NextDouble() * 25, 80, 420);
-        _milkBacteriaCfuPerMl = Math.Clamp(_milkBacteriaCfuPerMl + milk * 28 + (100 - _sanitationScore) * 35, 1200, 60000);
+        double hygienePenalty = Math.Max(0, 86 - _dairyParlorHygienePct);
+        double manurePenalty = Math.Max(0, _manureKg - 650) * 0.025;
+        _milkSomaticCellCountKPerMl = Math.Clamp(250 - _cowComfort * 1.25 + hygienePenalty * 3.0 + manurePenalty + _rng.NextDouble() * 25, 80, 520);
+        _milkBacteriaCfuPerMl = Math.Clamp(_milkBacteriaCfuPerMl + milk * (24 + hygienePenalty * 1.8) + (100 - _sanitationScore) * 35, 1200, 85000);
         _bulkMilkTankC = Math.Min(6.0, (_bulkMilkTankC * Math.Max(0, _milkL - milk) + 37.0 * milk) / Math.Max(1, _milkL));
-        _milkSourceStatus = $"Transferred {milk:0.0} L raw milk from {_lactatingCowCount} lactating cows through the milking parlor to cold storage.";
-        _traceabilityStatus = $"Dairy trace logged: milk lot {_milkLotId} from {_lactatingCowCount} lactating cows, egg lot {_eggLotId} from {_layingHenCount} hens.";
-        return $"Collected {milk:0.0} L cow milk and {eggs:0} graded eggs; bulk tank {_bulkMilkTankC:0.0} degC, bacteria {_milkBacteriaCfuPerMl:0} CFU/mL.";
+        _dairyParlorHygienePct = Math.Max(0, _dairyParlorHygienePct - milk * 0.045);
+        _milkSourceStatus = $"Transferred {milk:0.0} L raw milk from {_lactatingCowCount} lactating cows fed by TMR lot {_mixedRationLotId} through the milking parlor to cold storage.";
+        _traceabilityStatus = $"Dairy trace logged: milk lot {_milkLotId} from {_lactatingCowCount} lactating cows, ration {_mixedRationLotId}, egg lot {_eggLotId} from {_layingHenCount} hens.";
+        return $"Collected {milk:0.0} L cow milk and {eggs:0} graded eggs; parlor hygiene {_dairyParlorHygienePct:0}%, bulk tank {_bulkMilkTankC:0.0} degC, bacteria {_milkBacteriaCfuPerMl:0} CFU/mL.";
     }
 
     public string MillWheat()
@@ -723,6 +816,11 @@ public sealed class CakeFactoryService
         _irrigationWaterL += 24000;
         _fertilizerKg += 150;
         _animalFeedKg += 640;
+        _forageKg += 380;
+        _grainKg += 260;
+        _dairyMineralKg += 40;
+        _beddingKg += 220;
+        _barnLaborHours = Math.Min(60, _barnLaborHours + 12);
         _brineL += 1600;
         _sodaAshKg += 42;
         _phosphateKg += 48;
@@ -739,14 +837,18 @@ public sealed class CakeFactoryService
         _wheatSeedLotId = NewLotId("SEED-WHT");
         _beetSeedLotId = NewLotId("SEED-BEET");
         _feedLotId = NewLotId("FEED");
+        _forageLotId = NewLotId("FORAGE");
+        _grainLotId = NewLotId("GRAIN");
+        _dairyMineralLotId = NewLotId("DAIRYMIN");
+        _beddingLotId = NewLotId("BEDDING");
         _cocoaBeansLotId = NewLotId("COCOABEAN");
         _brineLotId = NewLotId("BRINE");
         _mineralLotId = NewLotId("MINERAL");
         _packagingLotId = NewLotId("PACK");
         _utilityLotId = NewLotId("UTILITY");
         _warehouseStatus = $"Receiving manifest {_lastSupplyManifestId} booked into warehouse; forklift battery {_forkliftBatteryPct:0}% and {_warehousePalletSpacePct:0}% pallet space free.";
-        _traceabilityStatus = $"Receiving manifest {_lastSupplyManifestId} logged seed, feed, cocoa, brine, mineral, packaging and utility lots.";
-        return "Received audited supplies: seed, irrigation water, fertilizer, animal feed, brine, soda ash, phosphate, starch, cartons, cocoa beans, process water, culinary steam, compressed air, filter media and warehouse handling capacity.";
+        _traceabilityStatus = $"Receiving manifest {_lastSupplyManifestId} logged seed, dairy forage, grain, mineral, bedding, feed, cocoa, brine, mineral, packaging and utility lots.";
+        return "Received audited supplies: seed, irrigation water, fertilizer, animal feed, dairy forage, grain, mineral premix, bedding, labor, brine, soda ash, phosphate, starch, cartons, cocoa beans, process water, culinary steam, compressed air, filter media and warehouse handling capacity.";
     }
 
     public string ProcessCocoa()
@@ -1491,6 +1593,8 @@ public sealed class CakeFactoryService
             MissingIngredients = missing,
             CanHarvest = power >= 0.15 && (_wheatGrowth >= 25 || _beetGrowth >= 25 || _vanillaGrowth >= 25),
             CanCollectDairy = power >= 0.12 && (_dairyReadyL >= 1 || _eggsReady >= 1),
+            CanMixDairyRation = power >= 0.15 && _forageKg >= 48 && _grainKg >= 22 && _dairyMineralKg >= 2.2 && _irrigationWaterL >= 38 && _barnLaborHours >= 0.8,
+            CanWashDairyParlor = power >= 0.15 && HasFactoryUtilities(180, 60, 12, 0.5) && _barnLaborHours >= 1.4 && (_dairyParlorHygienePct < 96 || _manureKg > 80),
             CanMillWheat = power >= 0.2 && _factoryRun is null && labClear && _wheatKg >= 5 && HasFactoryUtilities(20, 0, 38, 0.6),
             CanRefineSugar = power >= 0.2 && _factoryRun is null && labClear && _sugarCropKg >= 10 && HasFactoryUtilities(320, 520, 22, 1.2),
             CanChurnButter = power >= 0.2 && _factoryRun is null && labClear && _milkL > 35 && HasFactoryUtilities(110, 140, 15, 0.8),
@@ -1520,6 +1624,18 @@ public sealed class CakeFactoryService
             MilkProteinPct = _milkProteinPct,
             MilkingVacuumKPa = _milkingVacuumKPa,
             MilkQaStatus = MilkQaStatus(),
+            ForageKg = _forageKg,
+            GrainKg = _grainKg,
+            DairyMineralKg = _dairyMineralKg,
+            MixedRationKg = _mixedRationKg,
+            BeddingKg = _beddingKg,
+            BarnLaborHours = _barnLaborHours,
+            ManureKg = _manureKg,
+            DairyParlorHygienePct = _dairyParlorHygienePct,
+            RationEnergyPct = _rationEnergyPct,
+            RationProteinPct = _rationProteinPct,
+            RationStatus = _rationStatus,
+            MixedRationLotId = _mixedRationLotId,
             TraceabilityStatus = TraceabilityStatus(),
             TraceabilityScorePct = TraceabilityScore(),
             LastSupplyManifestId = _lastSupplyManifestId,
@@ -1649,7 +1765,9 @@ public sealed class CakeFactoryService
     {
         double targetC = power >= 0.15 ? 3.4 : 12.0;
         _bulkMilkTankC += (targetC - _bulkMilkTankC) * Math.Min(1, seconds / (power >= 0.15 ? 18.0 : 42.0));
-        double growthFactor = Math.Max(0, _bulkMilkTankC - 4.0) * 0.018 + Math.Max(0, 75 - _sanitationScore) * 0.002;
+        double growthFactor = Math.Max(0, _bulkMilkTankC - 4.0) * 0.018
+            + Math.Max(0, 75 - _sanitationScore) * 0.002
+            + Math.Max(0, 82 - _dairyParlorHygienePct) * 0.0009;
         _milkBacteriaCfuPerMl = Math.Clamp(_milkBacteriaCfuPerMl * (1.0 + growthFactor * seconds), 1200, 250000);
     }
 
@@ -1690,30 +1808,50 @@ public sealed class CakeFactoryService
 
         double livestockPower = FarmIntensity * power;
         double simHours = seconds * 0.05 * Math.Max(0.25, FarmIntensity);
-        double feedNeed = _dairyCowCount * 1.10 * simHours * livestockPower;
+        double rationNeed = _dairyCowCount * 1.35 * simHours * livestockPower;
         double barnWaterNeed = _dairyCowCount * 4.20 * simHours * livestockPower;
-        double livestockInputFactor = SupplyFactor((_animalFeedKg, feedNeed), (_irrigationWaterL, barnWaterNeed));
-        if (livestockInputFactor > 0)
+        double beddingNeed = _dairyCowCount * 0.035 * simHours * livestockPower;
+        double laborNeed = _dairyCowCount * 0.004 * simHours * livestockPower;
+        double cowInputFactor = SupplyFactor(
+            (_mixedRationKg, rationNeed),
+            (_irrigationWaterL, barnWaterNeed),
+            (_beddingKg, beddingNeed),
+            (_barnLaborHours, laborNeed));
+        double henFeedNeed = _layingHenCount * 0.026 * simHours * livestockPower;
+        double henInputFactor = SupplyFactor((_animalFeedKg, henFeedNeed), (_irrigationWaterL, barnWaterNeed * 0.08));
+
+        if (cowInputFactor > 0)
         {
-            _animalFeedKg = Math.Max(0, _animalFeedKg - feedNeed * livestockInputFactor);
-            _irrigationWaterL = Math.Max(0, _irrigationWaterL - barnWaterNeed * livestockInputFactor);
+            ConsumeTrackedStock(ref _mixedRationKg, rationNeed * cowInputFactor, ref _mixedRationLotId);
+            _irrigationWaterL = Math.Max(0, _irrigationWaterL - barnWaterNeed * cowInputFactor);
+            _beddingKg = Math.Max(0, _beddingKg - beddingNeed * cowInputFactor);
+            _barnLaborHours = Math.Max(0, _barnLaborHours - laborNeed * cowInputFactor);
+            _manureKg = Math.Min(1800, _manureKg + _dairyCowCount * 0.42 * simHours * cowInputFactor);
+            _dairyParlorHygienePct = Math.Max(0, _dairyParlorHygienePct - seconds * (0.006 + 0.006 * livestockPower) - Math.Max(0, _manureKg - 700) * 0.00018);
         }
-        double targetComfort = livestockInputFactor > 0
-            ? Math.Clamp(46 + _pastureHealth * 0.36 + power * 18, 35, 98)
-            : 24;
+
+        if (henInputFactor > 0)
+            _animalFeedKg = Math.Max(0, _animalFeedKg - henFeedNeed * henInputFactor);
+
+        double hygieneFactor = Math.Clamp(_dairyParlorHygienePct / 88.0, 0.35, 1.10);
+        double rationFactor = Math.Clamp((_rationEnergyPct * 0.55 + _rationProteinPct * 0.45) / 94.0, 0.45, 1.12);
+        double manurePenalty = Math.Max(0, _manureKg - 850) / 32.0;
+        double targetComfort = cowInputFactor > 0
+            ? Math.Clamp(44 + _pastureHealth * 0.28 + power * 15 + hygieneFactor * 12 + rationFactor * 8 - manurePenalty, 25, 98)
+            : 22;
         _cowComfort += (targetComfort - _cowComfort) * Math.Min(1, seconds / 45.0);
 
         double comfortFactor = Math.Clamp(_cowComfort / 82.0, 0.25, 1.20);
         double pastureFactor = Math.Clamp(0.70 + _pastureHealth / 360.0, 0.60, 1.05);
-        _milkProductionLPerHour = _lactatingCowCount * 1.15 * livestockInputFactor * livestockPower * comfortFactor * pastureFactor;
-        _milkParlorThroughputLPerHour = power >= 0.12 ? 650 + 130 * Math.Clamp(power, 0, 1) : 0;
+        _milkProductionLPerHour = _lactatingCowCount * 1.15 * cowInputFactor * livestockPower * comfortFactor * pastureFactor * rationFactor * hygieneFactor;
+        _milkParlorThroughputLPerHour = power >= 0.12 ? (610 + 150 * Math.Clamp(power, 0, 1)) * hygieneFactor : 0;
 
         _dairyReadyL = Math.Min(140, _dairyReadyL + _milkProductionLPerHour * simHours);
-        _eggsReady = Math.Min(420, _eggsReady + _layingHenCount * 0.035 * simHours * livestockInputFactor * livestockPower);
-        _milkSourceStatus = livestockInputFactor > 0 && livestockPower > 0
-            ? $"Milk comes from {_lactatingCowCount} lactating cows; herd consumed {feedNeed * livestockInputFactor:0.0} kg feed and {barnWaterNeed * livestockInputFactor:0} L water this tick."
-            : "Milk production stalled: cow herd needs feed, water, pasture health and powered milking systems.";
-        if (livestockInputFactor <= 0)
+        _eggsReady = Math.Min(420, _eggsReady + _layingHenCount * 0.035 * simHours * henInputFactor * livestockPower);
+        _milkSourceStatus = cowInputFactor > 0 && livestockPower > 0
+            ? $"Milk comes from {_lactatingCowCount} lactating cows; herd consumed {rationNeed * cowInputFactor:0.0} kg TMR ration {_mixedRationLotId}, {barnWaterNeed * cowInputFactor:0} L water and made {_manureKg:0} kg manure."
+            : "Milk production stalled: cow herd needs mixed ration, water, bedding, labor, pasture health and powered milking systems.";
+        if (cowInputFactor <= 0)
             _pastureHealth = Math.Max(10, _pastureHealth - seconds * 0.035);
     }
 
@@ -1956,6 +2094,14 @@ public sealed class CakeFactoryService
         if (_wheatSeedKg < 1) low.Add("wheat seed");
         if (_beetSeedKg < 1) low.Add("beet seed");
         if (_animalFeedKg < 20) low.Add("feed");
+        if (_forageKg < 48) low.Add("dairy forage");
+        if (_grainKg < 22) low.Add("dairy grain");
+        if (_dairyMineralKg < 2.2) low.Add("dairy mineral");
+        if (_mixedRationKg < 20) low.Add("mixed dairy ration");
+        if (_beddingKg < 10) low.Add("bedding");
+        if (_barnLaborHours < 2) low.Add("barn labor");
+        if (_manureKg > 1300) low.Add("manure storage");
+        if (_dairyParlorHygienePct < 55) low.Add("dairy parlor hygiene");
         if (_packagingUnits < CurrentRecipe.BatchSize) low.Add("cartons");
         if (_cocoaBeansKg < 5 && _cocoaKg < CurrentRecipe.CocoaKg * CurrentRecipe.BatchSize) low.Add("cocoa beans");
         if (_brineL < 80 && _saltKg < CurrentRecipe.SaltKg * CurrentRecipe.BatchSize) low.Add("brine");
@@ -1989,6 +2135,11 @@ public sealed class CakeFactoryService
         Count(_wheatSeedKg, _wheatSeedLotId);
         Count(_beetSeedKg, _beetSeedLotId);
         Count(_animalFeedKg, _feedLotId);
+        Count(_forageKg, _forageLotId);
+        Count(_grainKg, _grainLotId);
+        Count(_dairyMineralKg, _dairyMineralLotId);
+        Count(_mixedRationKg, _mixedRationLotId);
+        Count(_beddingKg, _beddingLotId);
         Count(_vanillaL, _vanillaLotId);
         Count(_milkL, _milkLotId);
         Count(_eggs, _eggLotId);
@@ -2028,7 +2179,8 @@ public sealed class CakeFactoryService
             && _milkBacteriaCfuPerMl <= 100000
             && _milkSomaticCellCountKPerMl <= 400
             && _milkFatPct >= 3.0
-            && _milkProteinPct >= 2.9);
+            && _milkProteinPct >= 2.9
+            && _dairyParlorHygienePct >= 45);
 
     private string MilkQaStatus()
     {
@@ -2038,6 +2190,7 @@ public sealed class CakeFactoryService
         if (_milkSomaticCellCountKPerMl > 400) issues.Add("somatic cells high");
         if (_milkFatPct < 3.0) issues.Add("low fat");
         if (_milkProteinPct < 2.9) issues.Add("low protein");
+        if (_dairyParlorHygienePct < 45) issues.Add("parlor hygiene low");
         return issues.Count == 0 ? "Milk QA in spec" : "Milk QA hold: " + string.Join(", ", issues);
     }
 

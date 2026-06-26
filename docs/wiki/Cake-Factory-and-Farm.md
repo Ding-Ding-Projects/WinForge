@@ -2,9 +2,9 @@
 
 ![Cake Factory & Farm · 蛋糕工廠與農場](images/screenshot-cakefactory.png)
 
-**EN —** The Cake Factory & Farm module is a hands-on HTML5 simulator for a reactor-powered ingredient farm and bakery line. It is not a video and it is not fully automatic: the reactor bus, supply dock, farm, audited ingredient lots, ingredient factories, QA lab release, warehouse batch kitting, plant maintenance, mixer, tunnel oven, cooling, icing, packaging, customer order dispatch, QA, signed `.cake` files and CIP cleaning all expose live controls and operator release gates.
+**EN —** The Cake Factory & Farm module is a hands-on HTML5 simulator for a reactor-powered ingredient farm and bakery line. It is not a video and it is not fully automatic: the reactor bus, supply dock, farm, dairy ration mixing, milking-parlor washdown, audited ingredient lots, ingredient factories, QA lab release, warehouse batch kitting, plant maintenance, mixer, tunnel oven, cooling, icing, packaging, customer order dispatch, QA, signed `.cake` files and CIP cleaning all expose live controls and operator release gates.
 
-**粵語 —** 蛋糕工廠與農場模組係一個由反應堆供電嘅 HTML5 互動模擬器，包含原料農場同烘焙生產線。佢唔係影片，亦唔係全自動：反應堆供電、收貨、農場、已審核批號、原料工廠、QA 實驗室放行、倉庫備料、廠房維修、攪拌、隧道焗爐、冷卻、裝飾、包裝、客戶訂單出貨、品檢、已簽署 `.cake` 檔同 CIP 清潔全部都有即時控制同操作員放行關卡。
+**粵語 —** 蛋糕工廠與農場模組係一個由反應堆供電嘅 HTML5 互動模擬器，包含原料農場同烘焙生產線。佢唔係影片，亦唔係全自動：反應堆供電、收貨、農場、奶牛飼料混合、擠奶間清洗、已審核批號、原料工廠、QA 實驗室放行、倉庫備料、廠房維修、攪拌、隧道焗爐、冷卻、裝飾、包裝、客戶訂單出貨、品檢、已簽署 `.cake` 檔同 CIP 清潔全部都有即時控制同操作員放行關卡。
 
 Open in-app: `WinForge.exe --page cakefactory`
 
@@ -25,7 +25,8 @@ Open in-app: `WinForge.exe --page cakefactory`
 |---|---|
 | Reactor bus · 反應堆供電 | The factory only runs when the live reactor status bus is generating enough electrical power. A meltdown or offline reactor locks out powered actions. |
 | Supply chain inputs · 供應鏈輸入 | Ingredients do not appear from nowhere: seed, irrigation water, fertilizer, animal feed, cocoa beans, brine, soda ash, phosphate, starch carrier, cartons/labels and factory utilities are finite stocks delivered through the receiving dock. |
-| Ingredient farm · 原料農場 | Wheat, sugar crop, vanilla, pasture health, cow milk and eggs grow over time only when reactor power and the required farm inputs are available. Milk comes from a tracked lactating cow herd that consumes feed and water, then passes through a powered milking parlor and chilled bulk tank. |
+| Ingredient farm · 原料農場 | Wheat, sugar crop, vanilla, pasture health, cow milk and eggs grow over time only when reactor power and the required farm inputs are available. Milk comes from a tracked lactating cow herd that consumes mixed dairy ration, water, bedding and labor, then passes through a powered milking parlor and chilled bulk tank. |
+| Dairy barn · 奶牛畜舍 | The operator mixes TMR from finite forage, grain and mineral premix. Cows consume that ration, make manure, lose comfort when bedding/labor/hygiene are poor, and milk QA reflects parlor hygiene, bacteria, somatic cells, fat and protein. Washdown consumes process water, steam, compressed air, filter media and labor. |
 | Lot traceability · 批號追蹤 | Receiving, harvest, dairy collection, ingredient factories and batch start all stamp audited lot or manifest IDs. Batches keep a trace manifest that lists the flour, sugar, eggs, milk, butter, leavening, salt, vanilla, cocoa and packaging lots used. |
 | Ingredient conversion · 原料轉換 | Harvest, collect cow milk/eggs, then run timed powered factory jobs: mill wheat into cake flour, refine sugar crop into sugar, churn milk/cream into butter, roast/grind cocoa beans into cocoa, evaporate brine into salt and blend leavening feedstocks into baking powder. Completed factory lots go to QA lab hold before batching can use them. |
 | Warehouse kitting · 倉庫備料 | Batches do not pull ingredients straight from storage. The operator must stage a traceable warehouse kit first; kitting consumes ingredient inventory, reserves cartons, uses forklift battery and occupies staging pallet space before the line can start. |
@@ -46,6 +47,8 @@ Open in-app: `WinForge.exe --page cakefactory`
 | Line speed · 生產線速度 | Raises or lowers bakery throughput and factory electrical demand. |
 | Receive supplies · 接收補給 | Adds audited seed, water, fertilizer, feed, cocoa beans, brine, soda ash, phosphate, starch carrier, cartons/labels, process water, culinary steam, compressed air and filter media at the receiving dock. |
 | Harvest · 收成 | Moves ready wheat, sugar crop and vanilla from fields into inventory and stamps harvest lot IDs. |
+| Mix dairy ration · 混合奶牛飼料 | Converts finite forage, grain, mineral premix, water and barn labor into a traceable TMR ration lot for the lactating cow herd. |
+| Wash parlor · 清洗擠奶間 | Uses process water, culinary steam, compressed air, filter media and labor to wash the milking parlor, scrape manure and restore hygiene. |
 | Milk + eggs · 收奶蛋 | Collects cow milk from the powered milking parlor and graded eggs from the barn buffers. The milk buffer is produced by lactating cows, chilled in a bulk tank, stamped as a milk lot and checked for temperature, bacteria, somatic cell count, fat and protein. |
 | Mill flour · 磨粉 | Converts harvested wheat into cake flour and bran/waste. |
 | Refine sugar · 煉糖 | Converts sugar crop into usable sugar and waste. |
@@ -70,10 +73,12 @@ Open in-app: `WinForge.exe --page cakefactory`
 1. Open the module with `WinForge.exe --page cakefactory`.
 2. If the banner says **Waiting for nuclear reactor generation**, open the reactor module and bring the plant to generation. The cake simulator intentionally disables powered work without the reactor bus.
 3. Select a recipe and set farm intensity / line speed. Higher settings make the scene more active but increase plant load.
-4. Keep the supply chain stocked. Use **Receive supplies** when seed, irrigation water, fertilizer, feed, cocoa beans, brine, leavening feedstocks, cartons/labels or factory utilities are low. Each receiving action records a new supply manifest.
+4. Keep the supply chain stocked. Use **Receive supplies** when seed, irrigation water, fertilizer, poultry feed, dairy forage, grain, mineral premix, bedding, labor, cocoa beans, brine, leavening feedstocks, cartons/labels or factory utilities are low. Each receiving action records a new supply manifest.
 5. Prepare ingredients manually:
    - Harvest fields when wheat, sugar crop or vanilla are mature.
-   - Keep the cow herd fed and watered, then collect milk and eggs when barn buffers are ready. Watch bulk tank temperature and milk QA before batching.
+   - Press **Mix dairy ration** to make a TMR lot from forage, grain, mineral premix, water and barn labor.
+   - Keep the cow herd fed, watered and bedded, then collect milk and eggs when barn buffers are ready. Watch mixed ration, manure, parlor hygiene, bulk tank temperature and milk QA before batching.
+   - Press **Wash parlor** when manure rises or parlor hygiene drops; washdown consumes utilities and labor.
    - Mill wheat into flour and wait for the powered roller mill run to finish.
    - Refine sugar crop into sugar and wait for diffuser/evaporator completion.
    - Churn butter when milk inventory has enough reserve and wait for the separator/churn run.
@@ -108,7 +113,9 @@ The simulator deliberately avoids full automation:
 - It does not start batches on its own.
 - It does not harvest, mill, refine or churn ingredients automatically.
 - It does not create ingredients from thin air; farm and bakery output consume finite upstream inputs.
-- Milk specifically comes from lactating cows, which consume feed and water before the powered milking parlor can transfer raw milk into cold storage. Warm or high-count milk is held by the recipe gate.
+- Milk specifically comes from lactating cows, which consume traceable mixed ration, water, bedding and barn labor before the powered milking parlor can transfer raw milk into cold storage. Warm, high-count, low-solids, high-SCC or low-hygiene milk is held by the recipe gate.
+- Dairy ration is not automatic. The operator must mix forage, grain, mineral premix, water and labor into a TMR lot, and the herd consumes that lot during production.
+- The parlor is not self-cleaning. Manure accumulates, hygiene decays, and washdown consumes real utilities and labor before improving milk QA conditions.
 - Receiving, harvest, dairy collection, factory output and batch start all carry lot IDs. A batch cannot start if required ingredient lot data is missing.
 - Ingredient factories are not instant: they consume finite inputs and utilities, add reactor load, move through unit-operation phases, report process QA, pause on low power and release usable ingredients only after the process completes.
 - Factory output is not automatically usable. The QA lab holds each completed factory lot until the operator releases it, and the release consumes real utilities.
@@ -128,6 +135,8 @@ The simulator deliberately avoids full automation:
 | Stage kit is disabled · 無法備料 | Missing recipe ingredients, lab hold, active CIP cycle, no reactor bus power, low forklift battery or no staging pallet space. |
 | Start batch is disabled · 未能開批 | No staged warehouse kit, active CIP cycle, no reactor bus power, wrong selected recipe for the staged kit, or a batch already on the line. |
 | Farm output stalls · 農場停產 | Seed, irrigation water, fertilizer or animal feed is low. Use Receive supplies and restore reactor power. |
+| Milk production stalls · 牛奶停產 | Mixed ration, water, bedding, labor, pasture health or reactor power is low. Mix dairy ration, receive supplies, wash the parlor and restore power. |
+| Milk QA hold · 牛奶品檢暫停 | Bulk tank is warm, bacteria/SCC is high, solids are low or parlor hygiene is poor. Wash the parlor, restore cooling and wait for in-spec milk. |
 | Traceability hold · 批號追蹤暫停 | A required ingredient has quantity but no lot ID. Run the relevant collection/factory step or receive audited supplies so the ledger can be restored. |
 | Lab release hold · 實驗室放行暫停 | A factory output lot is waiting for QA lab release. Press Release lab lot after restoring reactor power and lab utilities. |
 | Service plants is disabled · 無法維修廠房 | A factory run is active, reactor bus power is low, or process water/steam/compressed air/filter media is insufficient. |
@@ -143,7 +152,7 @@ The module was tested with these checks:
 
 | Evidence · 證據 | Result · 結果 |
 |---|---|
-| Headless service scenarios · 無介面服務情景 | `dotnet run --project tests/ReactorSim.Tests/ReactorSim.Tests.csproj -c Debug` passed **29/29** scenarios, including cake power gating, no-auto manual mode, cow milk provenance and cold-chain QA, audited lot traceability, QA lab release holds, warehouse batch kitting, finite supply inputs and utilities, timed non-farm ingredient factories, unit-operation phases, process QA, factory equipment maintenance, ingredient chain, full manual batch, customer order dispatch, signed `.cake` file crypto and CIP sanitation. |
+| Headless service scenarios · 無介面服務情景 | `dotnet run --project tests/ReactorSim.Tests/ReactorSim.Tests.csproj -c Debug` passed **30/30** scenarios, including cake power gating, no-auto manual mode, cow milk provenance and cold-chain QA, dairy ration mixing and parlor hygiene/washdown, audited lot traceability, QA lab release holds, warehouse batch kitting, finite supply inputs and utilities, timed non-farm ingredient factories, unit-operation phases, process QA, factory equipment maintenance, ingredient chain, full manual batch, customer order dispatch, signed `.cake` file crypto and CIP sanitation. |
 | WinForge GUI screenshot · WinForge 圖形介面截圖 | `WinForge.exe --page cakefactory` was launched from a self-contained publish and captured into `docs/screenshot-cakefactory.png`. |
 | WebView asset packaging · WebView 資產封裝 | `SimAssets/cake/index.html` is included under `SimAssets/**/*.*`, copied to publish output and loaded through WebView2 virtual-host mapping. |
 | Signed cake files · 已簽署蛋糕檔 | The test suite verifies private-key signing, public-key trust on another device root, forged/tampered rejection, replay rejection and eat-delete consumption. |

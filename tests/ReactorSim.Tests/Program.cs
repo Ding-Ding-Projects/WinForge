@@ -797,6 +797,47 @@ internal static class Program
                           $"({collected.BulkMilkTankC:F1}C, {collected.MilkBacteriaCfuPerMl:F0} CFU/mL)");
         });
 
+        Scenario("CAKE DAIRY RATION AND PARLOR HYGIENE (milk depends on feed mixing and washdown)", () =>
+        {
+            var cake = new CakeFactoryService { FarmIntensity = 1.0 };
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            string mix = cake.MixDairyRation();
+            TickCake(cake, fullBus, 0.5);
+            var mixed = cake.Snapshot;
+
+            TickCake(cake, fullBus, 80);
+            var worked = cake.Snapshot;
+
+            string wash = cake.WashDairyParlor();
+            TickCake(cake, fullBus, 0.5);
+            var washed = cake.Snapshot;
+
+            bool rationMixed = mixed.MixedRationKg > before.MixedRationKg
+                                && mixed.ForageKg < before.ForageKg
+                                && mixed.GrainKg < before.GrainKg
+                                && mixed.DairyMineralKg < before.DairyMineralKg
+                                && mixed.RationStatus.Contains("TMR", StringComparison.OrdinalIgnoreCase)
+                                && !string.Equals(mixed.MixedRationLotId, before.MixedRationLotId, StringComparison.Ordinal);
+            bool rationConsumed = worked.MixedRationKg < mixed.MixedRationKg
+                                   && worked.MilkProductionLPerHour > 0
+                                   && worked.MilkSourceStatus.Contains("ration", StringComparison.OrdinalIgnoreCase);
+            bool barnReality = worked.ManureKg > mixed.ManureKg
+                               && worked.DairyParlorHygienePct < mixed.DairyParlorHygienePct
+                               && worked.CowComfort > 0
+                               && worked.BarnLaborHours < mixed.BarnLaborHours;
+            bool washdown = washed.DairyParlorHygienePct > worked.DairyParlorHygienePct
+                            && washed.ManureKg < worked.ManureKg
+                            && washed.ProcessWaterL < worked.ProcessWaterL
+                            && washed.CulinarySteamKg < worked.CulinarySteamKg
+                            && wash.Contains("Washed", StringComparison.OrdinalIgnoreCase);
+            bool pass = rationMixed && rationConsumed && barnReality && washdown;
+            return (pass, $"rationMixed={rationMixed} ('{Trim(mix)}'), rationConsumed={rationConsumed} ({mixed.MixedRationKg:F1}->{worked.MixedRationKg:F1} kg), " +
+                          $"barnReality={barnReality} (manure {mixed.ManureKg:F0}->{worked.ManureKg:F0} kg, hygiene {mixed.DairyParlorHygienePct:F0}->{worked.DairyParlorHygienePct:F0}%), " +
+                          $"washdown={washdown} ('{Trim(wash)}')");
+        });
+
         Scenario("CAKE INGREDIENT CHAIN (harvest, collect, mill, refine, churn and non-farm factories mutate inventory)", () =>
         {
             var cake = new CakeFactoryService();

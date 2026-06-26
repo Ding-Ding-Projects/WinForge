@@ -582,6 +582,8 @@
               <div class="button-grid">
                 <button class="action" type="button" data-action="harvest">Harvest</button>
                 <button class="action" type="button" data-action="collect">Milk + eggs</button>
+                <button class="action" type="button" data-action="mixDairyRation">Mix dairy ration</button>
+                <button class="action guard" type="button" data-action="washDairyParlor">Wash parlor</button>
               </div>
             </div>
             <div class="control-bank">
@@ -726,6 +728,8 @@
       MissingIngredients: '',
       CanHarvest: false,
       CanCollectDairy: false,
+      CanMixDairyRation: false,
+      CanWashDairyParlor: false,
       CanMillWheat: false,
       CanRefineSugar: false,
       CanChurnButter: false,
@@ -754,6 +758,18 @@
       MilkProteinPct: 3.25,
       MilkingVacuumKPa: 42,
       MilkQaStatus: 'Milk QA in spec',
+      ForageKg: 260,
+      GrainKg: 180,
+      DairyMineralKg: 35,
+      MixedRationKg: 90,
+      BeddingKg: 160,
+      BarnLaborHours: 32,
+      ManureKg: 240,
+      DairyParlorHygienePct: 88,
+      RationEnergyPct: 94,
+      RationProteinPct: 92,
+      RationStatus: 'Total mixed ration TMR-OPENING loaded for the lactating cow herd.',
+      MixedRationLotId: 'TMR-OPENING',
       TraceabilityStatus: 'Opening audited lots loaded for farm, dairy, ingredient and packaging inventory.',
       TraceabilityScorePct: 100,
       LastSupplyManifestId: 'RCV-OPENING-2400',
@@ -991,6 +1007,8 @@
 
       setButton('harvest', s.CanHarvest);
       setButton('collect', s.CanCollectDairy);
+      setButton('mixDairyRation', s.CanMixDairyRation);
+      setButton('washDairyParlor', s.CanWashDairyParlor);
       setButton('mill', s.CanMillWheat);
       setButton('refine', s.CanRefineSugar);
       setButton('churn', s.CanChurnButter);
@@ -1033,6 +1051,11 @@
         ['Wheat seed', `${n(s.WheatSeedKg, 1)} kg`],
         ['Beet seed', `${n(s.BeetSeedKg, 1)} kg`],
         ['Animal feed', `${n(s.AnimalFeedKg, 1)} kg`],
+        ['Dairy forage', `${n(s.ForageKg, 1)} kg`],
+        ['Dairy grain', `${n(s.GrainKg, 1)} kg`],
+        ['Dairy mineral', `${n(s.DairyMineralKg, 1)} kg`],
+        ['Mixed ration', `${n(s.MixedRationKg, 1)} kg`],
+        ['Bedding + labor', `${n(s.BeddingKg, 1)} kg / ${n(s.BarnLaborHours, 1)} h`],
         ['Cocoa beans', `${n(s.CocoaBeansKg, 1)} kg`],
         ['Brine', `${n(s.BrineL, 0)} L`],
         ['Soda ash', `${n(s.SodaAshKg, 1)} kg`],
@@ -1081,7 +1104,11 @@
         ['Utilities', s.FactoryUtilityStatus || 'Utilities ready'],
         ['Milk source', s.MilkSourceStatus || 'Cow dairy idle'],
         ['Milk QA', s.MilkQaStatus || 'Milk QA in spec'],
+        ['Dairy ration', s.RationStatus || 'No ration mixed'],
+        ['Ration quality', `${n(s.RationEnergyPct, 0)}% energy / ${n(s.RationProteinPct, 0)}% protein`],
+        ['Manure + hygiene', `${n(s.ManureKg, 0)} kg / ${n(s.DairyParlorHygienePct, 0)}%`],
         ['Milk lot', s.MilkLotId || '-'],
+        ['Ration lot', s.MixedRationLotId || '-'],
         ['Flour lot', s.FlourLotId || '-'],
         ['Sugar lot', s.SugarLotId || '-'],
         ['Butter lot', s.ButterLotId || '-'],
@@ -1272,13 +1299,13 @@
       text('INPUT YARD', 76, 544, 13, '#dceecb', 900);
       text(`Water ${n(s.IrrigationWaterL, 0)} L`, 76, 566, 12, '#d9f0ff', 800);
       text(`Seed ${n((s.WheatSeedKg || 0) + (s.BeetSeedKg || 0), 1)} kg`, 76, 588, 12, '#e6ddb6', 800);
-      text(`Feed ${n(s.AnimalFeedKg, 0)} kg`, 198, 566, 12, '#f1d19c', 800);
+      text(`Feed ${n(s.AnimalFeedKg, 0)} / TMR ${n(s.MixedRationKg, 0)} kg`, 198, 566, 12, '#f1d19c', 800);
       text(`Fertilizer ${n(s.FertilizerKg, 0)} kg`, 198, 588, 12, '#c8efb2', 800);
       drawMiniPlant(305, 540, 'SALT', s.CanRunSaltWorks ? '#78c7dd' : '#69716f');
       drawMiniPlant(305, 588, 'LEAVEN', s.CanRunLeaveningPlant ? '#e8b75d' : '#69716f');
       text(`Brine ${n(s.BrineL, 0)} L`, 76, 612, 12, '#d9f0ff', 800);
       text(`Minerals ${n((s.SodaAshKg || 0) + (s.PhosphateKg || 0) + (s.StarchKg || 0), 1)} kg`, 198, 612, 12, '#ffe1a1', 800);
-      text(`Utilities ${n(s.ProcessWaterL, 0)} L / ${n(s.CompressedAirNm3, 0)} air`, 76, 632, 11, '#d4f3fb', 800);
+      text(`Parlor ${n(s.DairyParlorHygienePct, 0)}% / manure ${n(s.ManureKg, 0)} kg`, 76, 632, 11, '#d4f3fb', 800);
 
       drawTruck(412, 545, s.ConveyorPhase);
       line(470, 556, 610, 556, '#80bc74', 4, 0.9);
