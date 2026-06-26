@@ -1,8 +1,8 @@
-// 反應堆引擎情景測試套件 · Standalone reactor scenario test harness.
+// 反應堆引擎情景測試套件 · Standalone reactor/dependent simulator scenario test harness.
 //
 // Drives the ACTUAL pure-C# engine/service classes (compiled in via <Compile Include> links in the
 // .csproj) deterministically and asserts behaviour per scenario. The WinUI app cannot run headless;
-// this console harness exercises only the headless-safe engine code.
+// this console harness exercises only the headless-safe engine code and dependent simulators.
 //
 // IMPORTANT FINDING (drives several test designs below):
 //   A fresh core taken OUT of Shutdown (Mode=Startup/Run) is PROMPT-SUPERCRITICAL on the very first
@@ -63,8 +63,8 @@ internal static class Program
 
     private static int Main()
     {
-        Console.WriteLine("反應堆引擎情景測試套件 · Reactor engine scenario test suite");
-        Console.WriteLine("Driving the real ReactorSimService / FuelFactoryService / NuclearWasteService / WaterTreatmentService.");
+        Console.WriteLine("反應堆引擎情景測試套件 · Reactor engine/dependent simulator scenario test suite");
+        Console.WriteLine("Driving the real ReactorSimService / FuelFactoryService / NuclearWasteService / WaterTreatmentService / CakeFactoryService.");
         Console.WriteLine(new string('-', 95));
 
         PhysicsScenarios();
@@ -72,6 +72,7 @@ internal static class Program
         FuelCycleScenarios();
         WasteCapScenarios();
         WaterTreatmentScenarios();
+        CakeFactoryScenarios();
 
         // ----------------------------------------------------------------- summary ----
         Console.WriteLine();
@@ -660,6 +661,288 @@ internal static class Program
                           $"valveShut→avail={availValveShut:F2} (gate={valveGate}). " +
                           $"NOTE: the REACTOR-side makeup coupling (UpdateMakeupWater: pzr/SG sag, LowMakeupAlarm) " +
                           $"lives in the at-power Update() branch, which the P1-P3 runaway prevents from being held headlessly.");
+        });
+    }
+
+    // ======================================================================= CAKE FACTORY ====
+    private static ReactorStatusSnapshot ReactorBus(double electricMw, bool generating = true, bool meltdown = false, string mode = "Run") => new()
+    {
+        SchemaVersion = ReactorStatusSnapshot.CurrentSchemaVersion,
+        Sequence = 1,
+        TimestampUtc = DateTime.UtcNow.ToString("o"),
+        Mode = mode,
+        PowerPercent = generating ? 100 : 0,
+        ThermalMW = generating ? electricMw / 0.34 : 0,
+        ElectricMW = electricMw,
+        IsGenerating = generating,
+        IsScrammed = false,
+        IsMeltdown = meltdown,
+        PrimaryPressureMPa = generating ? 15.5 : 0,
+        CoolantAvgC = generating ? 305 : 0,
+        ReactorPeriodS = 0,
+        ActiveAlarms = Array.Empty<string>(),
+    };
+
+    private static void TickCake(CakeFactoryService cake, ReactorStatusSnapshot bus, double seconds)
+    {
+        double left = seconds;
+        while (left > 0)
+        {
+            double dt = Math.Min(0.25, left);
+            cake.Tick(dt, bus);
+            left -= dt;
+        }
+    }
+
+    private static void CakeFactoryScenarios()
+    {
+        var fullBus = ReactorBus(250.0);
+        var offline = ReactorBus(0.0, generating: false, mode: "Offline");
+        var meltdown = ReactorBus(250.0, generating: true, meltdown: true, mode: "Meltdown");
+
+        Scenario("CAKE POWER GATING (reactor bus required; meltdown locks out the line)", () =>
+        {
+            var cake = new CakeFactoryService();
+
+            TickCake(cake, offline, 0.5);
+            var off = cake.Snapshot;
+            bool startBlocked = !cake.TryStartBatch(out var blockedMsg);
+            string harvestBlockedMsg = cake.HarvestNow();
+
+            TickCake(cake, fullBus, 0.5);
+            var on = cake.Snapshot;
+
+            TickCake(cake, meltdown, 0.5);
+            var melt = cake.Snapshot;
+
+            bool offlineGated = !off.ReactorOnline && off.PowerAvailability == 0 && !off.CanStartBatch && !off.CanHarvest;
+            bool actionBlocked = startBlocked && blockedMsg.Contains("reactor", StringComparison.OrdinalIgnoreCase)
+                                 && harvestBlockedMsg.Contains("locked", StringComparison.OrdinalIgnoreCase);
+            bool poweredEnabled = on.ReactorOnline && on.PowerAvailability > 0.98 && on.CanStartBatch && on.CanHarvest && on.CanCollectDairy;
+            bool meltdownGated = !melt.ReactorOnline && melt.PowerAvailability == 0 && !melt.CanStartBatch;
+            bool pass = offlineGated && actionBlocked && poweredEnabled && meltdownGated;
+            return (pass, $"offline start={off.CanStartBatch}/harvest={off.CanHarvest}, blockedMsg='{Trim(blockedMsg)}', " +
+                          $"powered availability={on.PowerAvailability:P0} start={on.CanStartBatch}, " +
+                          $"meltdown availability={melt.PowerAvailability:P0} start={melt.CanStartBatch}");
+        });
+
+        Scenario("CAKE MANUAL MODE (no auto batch, no auto harvest, no auto stage advance)", () =>
+        {
+            var cake = new CakeFactoryService { LineSpeed = 1.0 };
+
+            TickCake(cake, fullBus, 90);
+            var idleAfterRun = cake.Snapshot;
+            bool noAutoBatch = idleAfterRun.Stage == CakeBatchStage.Idle && idleAfterRun.CakesBaked == 0 && idleAfterRun.CakesPacked == 0;
+
+            var farm = new CakeFactoryService { FarmIntensity = 1.0 };
+            TickCake(farm, fullBus, 0.5);
+            var beforeFarmRun = farm.Snapshot;
+            TickCake(farm, fullBus, 260);
+            var matureFarm = farm.Snapshot;
+            bool noAutoHarvest = matureFarm.CanHarvest
+                                 && matureFarm.WheatGrowth >= 99
+                                 && Math.Abs(matureFarm.WheatKg - beforeFarmRun.WheatKg) < 0.001
+                                 && Math.Abs(matureFarm.SugarCropKg - beforeFarmRun.SugarCropKg) < 0.001
+                                 && Math.Abs(matureFarm.VanillaL - beforeFarmRun.VanillaL) < 0.001;
+
+            bool started = cake.TryStartBatch(out var startMsg);
+            TickCake(cake, fullBus, 30);
+            var waiting = cake.Snapshot;
+            bool noAutoAdvance = waiting.Stage == CakeBatchStage.Scaling && waiting.StageReadyForOperator && waiting.CanAdvanceStage;
+
+            bool pass = noAutoBatch && noAutoHarvest && started && noAutoAdvance;
+            return (pass, $"noAutoBatch={noAutoBatch} after 90s powered idle, noAutoHarvest={noAutoHarvest} at wheatGrowth={matureFarm.WheatGrowth:F0}%, " +
+                          $"started={started} ('{Trim(startMsg)}'), " +
+                          $"after 30s stage={waiting.StageName}, ready={waiting.StageReadyForOperator}, canRelease={waiting.CanAdvanceStage}");
+        });
+
+        Scenario("CAKE INGREDIENT CHAIN (harvest, collect, mill, refine, churn mutate inventory)", () =>
+        {
+            var cake = new CakeFactoryService();
+            TickCake(cake, fullBus, 0.5);
+            var s0 = cake.Snapshot;
+
+            string harvest = cake.HarvestNow();
+            TickCake(cake, fullBus, 0.5);
+            var s1 = cake.Snapshot;
+
+            string collect = cake.CollectDairyAndEggs();
+            TickCake(cake, fullBus, 0.5);
+            var s2 = cake.Snapshot;
+
+            string mill = cake.MillWheat();
+            TickCake(cake, fullBus, 0.5);
+            var s3 = cake.Snapshot;
+
+            string refine = cake.RefineSugar();
+            TickCake(cake, fullBus, 0.5);
+            var s4 = cake.Snapshot;
+
+            string churn = cake.ChurnButter();
+            TickCake(cake, fullBus, 0.5);
+            var s5 = cake.Snapshot;
+
+            string cocoa = cake.ProcessCocoa();
+            TickCake(cake, fullBus, 0.5);
+            var s6 = cake.Snapshot;
+
+            bool farmYield = s1.WheatKg > s0.WheatKg && s1.SugarCropKg > s0.SugarCropKg && s1.VanillaL > s0.VanillaL;
+            bool dairyYield = s2.MilkL > s1.MilkL && s2.Eggs > s1.Eggs;
+            bool flourYield = s3.FlourKg > s2.FlourKg && s3.WheatKg < s2.WheatKg;
+            bool sugarYield = s4.SugarKg > s3.SugarKg && s4.SugarCropKg < s3.SugarCropKg;
+            bool butterYield = s5.ButterKg > s4.ButterKg && s5.MilkL < s4.MilkL;
+            bool cocoaYield = s6.CocoaKg > s5.CocoaKg && s6.CocoaBeansKg < s5.CocoaBeansKg;
+            bool pass = farmYield && dairyYield && flourYield && sugarYield && butterYield && cocoaYield;
+            return (pass, $"farmYield={farmYield} ('{Trim(harvest)}'), dairyYield={dairyYield} ('{Trim(collect)}'), " +
+                          $"flourYield={flourYield} ('{Trim(mill)}'), sugarYield={sugarYield} ('{Trim(refine)}'), " +
+                          $"butterYield={butterYield} ('{Trim(churn)}'), cocoaYield={cocoaYield} ('{Trim(cocoa)}')");
+        });
+
+        Scenario("CAKE SUPPLY CHAIN INPUTS (ingredients require finite seed, water, feed, beans and cartons)", () =>
+        {
+            var cake = new CakeFactoryService { FarmIntensity = 1.0 };
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            TickCake(cake, fullBus, 80);
+            var after = cake.Snapshot;
+            bool fieldInputsConsumed = after.IrrigationWaterL < before.IrrigationWaterL
+                                       && after.FertilizerKg < before.FertilizerKg
+                                       && after.WheatSeedKg < before.WheatSeedKg
+                                       && after.BeetSeedKg < before.BeetSeedKg;
+            bool livestockInputsConsumed = after.AnimalFeedKg < before.AnimalFeedKg;
+            bool cocoaDoesNotAppear = Math.Abs(after.CocoaKg - before.CocoaKg) < 0.001
+                                      && Math.Abs(after.CocoaBeansKg - before.CocoaBeansKg) < 0.001;
+
+            double waterBeforeSupply = after.IrrigationWaterL;
+            string supply = cake.ReceiveSupplies();
+            TickCake(cake, fullBus, 0.5);
+            var supplied = cake.Snapshot;
+            bool supplyTruckAddsInputs = supplied.IrrigationWaterL > waterBeforeSupply
+                                         && supplied.PackagingUnits > after.PackagingUnits
+                                         && supplied.CocoaBeansKg > after.CocoaBeansKg;
+
+            bool pass = fieldInputsConsumed && livestockInputsConsumed && cocoaDoesNotAppear && supplyTruckAddsInputs;
+            return (pass, $"fieldInputsConsumed={fieldInputsConsumed}, livestockInputsConsumed={livestockInputsConsumed}, " +
+                          $"cocoaDoesNotAppear={cocoaDoesNotAppear}, supplyTruckAddsInputs={supplyTruckAddsInputs} ('{Trim(supply)}')");
+        });
+
+        Scenario("CAKE FULL MANUAL BATCH (operator releases every HACCP gate to packaged cakes)", () =>
+        {
+            var cake = new CakeFactoryService { LineSpeed = 1.0, FarmIntensity = 1.0 };
+            TickCake(cake, fullBus, 0.5);
+            double packagingBefore = cake.Snapshot.PackagingUnits;
+            bool canStart = cake.Snapshot.CanStartBatch;
+            bool started = cake.TryStartBatch(out var startMsg);
+
+            int releases = 0;
+            var releasedStages = new List<string>();
+            string lastMsg = "";
+            for (int guard = 0; guard < 3000; guard++)
+            {
+                TickCake(cake, fullBus, 0.25);
+                var s = cake.Snapshot;
+                if (s.CanAdvanceStage)
+                {
+                    releasedStages.Add(s.StageName);
+                    bool advanced = cake.TryAdvanceStage(out lastMsg);
+                    if (!advanced)
+                        return (false, $"release failed at {s.StageName}: {lastMsg}");
+                    releases++;
+                    TickCake(cake, fullBus, 0.25);
+                }
+
+                if (cake.Snapshot.Stage == CakeBatchStage.Idle && cake.Snapshot.CakesBaked > 0)
+                    break;
+            }
+
+            var done = cake.Snapshot;
+            bool sevenManualReleases = releases == 7;
+            bool packedOrRejectedAll = done.CakesPacked + done.CakesRejected == done.Recipe.BatchSize;
+            bool packagingConsumed = done.PackagingUnits < packagingBefore;
+            bool pass = canStart && started && sevenManualReleases && done.Stage == CakeBatchStage.Idle
+                        && done.CakesBaked == done.Recipe.BatchSize && packedOrRejectedAll
+                        && packagingConsumed && done.QualityScore >= 70 && done.SanitationScore > 0;
+            return (pass, $"canStart={canStart}, started={started} ('{Trim(startMsg)}'), releases={releases} [{string.Join(" > ", releasedStages)}], " +
+                          $"baked={done.CakesBaked}, packed={done.CakesPacked}, rejected={done.CakesRejected}, " +
+                          $"QA={done.QualityScore:F0}%, sanitation={done.SanitationScore:F0}%, cartons {packagingBefore:F0}->{done.PackagingUnits:F0}, " +
+                          $"last='{Trim(lastMsg)}'");
+        });
+
+        Scenario("CAKE FILE CRYPTO (portable signed files reject forged cakes and delete when eaten)", () =>
+        {
+            string rootA = Path.Combine(Path.GetTempPath(), "cake-device-a-" + Guid.NewGuid().ToString("N"));
+            string rootB = Path.Combine(Path.GetTempPath(), "cake-device-b-" + Guid.NewGuid().ToString("N"));
+            string transfer = Path.Combine(Path.GetTempPath(), "cake-transfer-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(transfer);
+
+            try
+            {
+                var deviceA = new CakeFileService(rootA);
+                var issued = deviceA.IssueBatch(CakeFactoryService.Recipes[0], 2, 96, 92);
+                var first = issued[0];
+                var second = issued[1];
+                bool privateSigned = deviceA.Validate(first.Path).Valid && first.SignatureValid;
+
+                string copied = Path.Combine(transfer, "portable.cake");
+                File.Copy(first.Path, copied);
+                var deviceB = new CakeFileService(rootB);
+                var beforeTrust = deviceB.Validate(copied);
+                string trustedKey = deviceB.TrustPublicKeyFromCake(copied, "Device A bakery");
+                var afterTrust = deviceB.Validate(copied);
+
+                string forged = Path.Combine(transfer, "forged.cake");
+                string text = File.ReadAllText(second.Path);
+                string forgedText = text.Replace("\"qualityScore\": 96", "\"qualityScore\": 12");
+                if (forgedText == text) forgedText = text.Replace("\"status\": \"packed\"", "\"status\": \"eaten\"");
+                File.WriteAllText(forged, forgedText);
+                deviceB.TrustPublicKeyFromCake(forged, "Device A bakery");
+                var forgedValidation = deviceB.Validate(forged);
+
+                var eat = deviceB.EatCake(copied);
+                bool deleted = eat.Eaten && eat.FileDeleted && !File.Exists(copied);
+
+                string replay = Path.Combine(transfer, "replay.cake");
+                File.Copy(first.Path, replay);
+                var replayValidation = deviceB.Validate(replay);
+
+                bool pass = privateSigned
+                            && !beforeTrust.Valid && beforeTrust.Reason == "untrusted"
+                            && !string.IsNullOrWhiteSpace(trustedKey)
+                            && afterTrust.Valid
+                            && !forgedValidation.Valid && forgedValidation.Reason == "tampered"
+                            && deleted
+                            && !replayValidation.Valid && replayValidation.Reason == "already-eaten";
+                return (pass, $"privateSigned={privateSigned}, crossDeviceBeforeTrust={beforeTrust.Reason}, afterTrust={afterTrust.Valid}, " +
+                              $"forgedRejected={forgedValidation.Reason}, eatenDeleted={deleted}, replay={replayValidation.Reason}");
+            }
+            finally
+            {
+                try { Directory.Delete(rootA, true); } catch { }
+                try { Directory.Delete(rootB, true); } catch { }
+                try { Directory.Delete(transfer, true); } catch { }
+            }
+        });
+
+        Scenario("CAKE CIP SANITATION (cleaning locks batching, progresses, restores sanitation)", () =>
+        {
+            var cake = new CakeFactoryService();
+            TickCake(cake, fullBus, 0.5);
+            double before = cake.Snapshot.SanitationScore;
+
+            cake.StartClean();
+            TickCake(cake, fullBus, 0.5);
+            var active = cake.Snapshot;
+
+            TickCake(cake, fullBus, 40);
+            var after = cake.Snapshot;
+
+            bool activeLocks = active.CipActive && !active.CanStartBatch && active.OperatorPrompt.Contains("CIP", StringComparison.OrdinalIgnoreCase);
+            bool finished = !after.CipActive && after.CipProgress >= 1.0;
+            bool sanitationRecovered = after.SanitationScore >= before;
+            bool pass = activeLocks && finished && sanitationRecovered;
+            return (pass, $"before={before:F0}%, active={active.CipActive}/start={active.CanStartBatch}/progress={active.CipProgress:P0}, " +
+                          $"after active={after.CipActive}, progress={after.CipProgress:P0}, sanitation={after.SanitationScore:F0}%");
         });
     }
 }

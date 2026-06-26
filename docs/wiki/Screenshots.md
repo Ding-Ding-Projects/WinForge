@@ -286,6 +286,9 @@ Canonical screenshots live in `docs/` and are embedded here through raw GitHub U
 ### Package Manager · 套件管理
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-packages.png)
 
+### Cake Factory & Farm · 蛋糕工廠與農場
+![](images/screenshot-cakefactory.png)
+
 ### App Uninstaller · 應用程式解除安裝
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-uninstall.png)
 

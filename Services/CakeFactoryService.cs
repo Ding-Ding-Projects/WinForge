@@ -64,6 +64,8 @@ public sealed class CakeFactorySnapshot
     public bool CanMillWheat { get; init; }
     public bool CanRefineSugar { get; init; }
     public bool CanChurnButter { get; init; }
+    public bool CanReceiveSupplies { get; init; }
+    public bool CanProcessCocoa { get; init; }
     public double WheatGrowth { get; init; }
     public double BeetGrowth { get; init; }
     public double PastureHealth { get; init; }
@@ -80,7 +82,15 @@ public sealed class CakeFactorySnapshot
     public double BakingPowderKg { get; init; }
     public double SaltKg { get; init; }
     public double VanillaL { get; init; }
+    public double CocoaBeansKg { get; init; }
     public double CocoaKg { get; init; }
+    public double WheatSeedKg { get; init; }
+    public double BeetSeedKg { get; init; }
+    public double IrrigationWaterL { get; init; }
+    public double FertilizerKg { get; init; }
+    public double AnimalFeedKg { get; init; }
+    public double PackagingUnits { get; init; }
+    public string ResourceStatus { get; init; } = "";
     public double BatterKg { get; init; }
     public int CakesBaked { get; init; }
     public int CakesPacked { get; init; }
@@ -147,7 +157,14 @@ public sealed class CakeFactoryService
     private double _bakingPowderKg = 14;
     private double _saltKg = 18;
     private double _vanillaL = 2.8;
+    private double _cocoaBeansKg = 60;
     private double _cocoaKg = 20;
+    private double _wheatSeedKg = 18;
+    private double _beetSeedKg = 16;
+    private double _irrigationWaterL = 16000;
+    private double _fertilizerKg = 120;
+    private double _animalFeedKg = 420;
+    private double _packagingUnits = 160;
     private double _batterKg;
     private double _wasteKg;
 
@@ -253,6 +270,38 @@ public sealed class CakeFactoryService
         _milkL -= milk;
         _butterKg += milk / 22.0;
         return $"Churned {milk:0.0} L milk/cream into {milk / 22.0:0.0} kg butter.";
+    }
+
+    public string ReceiveSupplies()
+    {
+        if (_lastPowerAvailability < 0.1)
+            return "Receiving dock, cold room and barcode scales need reactor bus power.";
+
+        _wheatSeedKg += 28;
+        _beetSeedKg += 24;
+        _irrigationWaterL += 24000;
+        _fertilizerKg += 150;
+        _animalFeedKg += 640;
+        _bakingPowderKg += 12;
+        _saltKg += 16;
+        _packagingUnits += 180;
+        _cocoaBeansKg += 90;
+        return "Received audited supplies: seed, irrigation water, fertilizer, animal feed, leavening, salt, cartons and cocoa beans.";
+    }
+
+    public string ProcessCocoa()
+    {
+        if (_lastPowerAvailability < 0.2)
+            return "Cocoa roaster and grinder need reactor power.";
+
+        double beans = Math.Min(_cocoaBeansKg, 45);
+        if (beans < 5)
+            return "Not enough cocoa beans are available for a roast/grind run.";
+
+        _cocoaBeansKg -= beans;
+        _cocoaKg += beans * 0.78;
+        _wasteKg += beans * 0.05;
+        return $"Roasted and ground {beans:0} kg cocoa beans into {beans * 0.78:0.0} kg cocoa.";
     }
 
     public void StartClean()
@@ -395,6 +444,8 @@ public sealed class CakeFactoryService
             CanMillWheat = power >= 0.2 && _wheatKg >= 5,
             CanRefineSugar = power >= 0.2 && _sugarCropKg >= 10,
             CanChurnButter = power >= 0.2 && _milkL > 35,
+            CanReceiveSupplies = power >= 0.1,
+            CanProcessCocoa = power >= 0.2 && _cocoaBeansKg >= 5,
             WheatGrowth = _wheatGrowth,
             BeetGrowth = _beetGrowth,
             PastureHealth = _pastureHealth,
@@ -411,7 +462,15 @@ public sealed class CakeFactoryService
             BakingPowderKg = _bakingPowderKg,
             SaltKg = _saltKg,
             VanillaL = _vanillaL,
+            CocoaBeansKg = _cocoaBeansKg,
             CocoaKg = _cocoaKg,
+            WheatSeedKg = _wheatSeedKg,
+            BeetSeedKg = _beetSeedKg,
+            IrrigationWaterL = _irrigationWaterL,
+            FertilizerKg = _fertilizerKg,
+            AnimalFeedKg = _animalFeedKg,
+            PackagingUnits = _packagingUnits,
+            ResourceStatus = ResourceStatus(power),
             BatterKg = _batterKg,
             CakesBaked = _cakesBaked,
             CakesPacked = _cakesPacked,
@@ -434,7 +493,26 @@ public sealed class CakeFactoryService
 
     private void UpdateFarm(double seconds, double power)
     {
-        double fieldEffect = FarmIntensity * (0.12 + 0.88 * power);
+        double fieldDemand = Math.Max(0, FarmIntensity * power);
+        double fieldWaterNeed = seconds * fieldDemand * 18.0;
+        double fertilizerNeed = seconds * fieldDemand * 0.035;
+        double wheatSeedNeed = seconds * fieldDemand * 0.0028;
+        double beetSeedNeed = seconds * fieldDemand * 0.0024;
+        double fieldInputFactor = SupplyFactor(
+            (_irrigationWaterL, fieldWaterNeed),
+            (_fertilizerKg, fertilizerNeed),
+            (_wheatSeedKg, wheatSeedNeed),
+            (_beetSeedKg, beetSeedNeed));
+
+        if (fieldInputFactor > 0)
+        {
+            _irrigationWaterL = Math.Max(0, _irrigationWaterL - fieldWaterNeed * fieldInputFactor);
+            _fertilizerKg = Math.Max(0, _fertilizerKg - fertilizerNeed * fieldInputFactor);
+            _wheatSeedKg = Math.Max(0, _wheatSeedKg - wheatSeedNeed * fieldInputFactor);
+            _beetSeedKg = Math.Max(0, _beetSeedKg - beetSeedNeed * fieldInputFactor);
+        }
+
+        double fieldEffect = FarmIntensity * (0.12 + 0.88 * power) * fieldInputFactor;
         _wheatGrowth = Math.Min(100, _wheatGrowth + seconds * 0.16 * fieldEffect);
         _beetGrowth = Math.Min(100, _beetGrowth + seconds * 0.13 * fieldEffect);
         _pastureHealth = Math.Clamp(_pastureHealth + seconds * (0.09 * fieldEffect - 0.015), 10, 100);
@@ -449,9 +527,30 @@ public sealed class CakeFactoryService
         }
 
         double livestockPower = FarmIntensity * power;
+        double feedNeed = seconds * livestockPower * 0.22;
+        double barnWaterNeed = seconds * livestockPower * 9.0;
+        double livestockInputFactor = SupplyFactor((_animalFeedKg, feedNeed), (_irrigationWaterL, barnWaterNeed));
+        if (livestockInputFactor > 0)
+        {
+            _animalFeedKg = Math.Max(0, _animalFeedKg - feedNeed * livestockInputFactor);
+            _irrigationWaterL = Math.Max(0, _irrigationWaterL - barnWaterNeed * livestockInputFactor);
+        }
+        livestockPower *= livestockInputFactor;
         _dairyReadyL = Math.Min(140, _dairyReadyL + seconds * (0.9 + _pastureHealth / 120.0) * livestockPower);
-        _eggsReady = Math.Min(420, _eggsReady + seconds * (0.75 + FarmIntensity * 0.55) * power);
-        _cocoaKg += seconds * 0.03 * fieldEffect;
+        _eggsReady = Math.Min(420, _eggsReady + seconds * (0.75 + FarmIntensity * 0.55) * livestockPower);
+        if (livestockInputFactor <= 0)
+            _pastureHealth = Math.Max(10, _pastureHealth - seconds * 0.035);
+    }
+
+    private static double SupplyFactor(params (double available, double needed)[] supplies)
+    {
+        double factor = 1.0;
+        foreach (var (available, needed) in supplies)
+        {
+            if (needed <= 0) continue;
+            factor = Math.Min(factor, Math.Clamp(available / needed, 0, 1));
+        }
+        return factor;
     }
 
     private double HarvestCrop(ref double growth, double baseYield)
@@ -523,6 +622,7 @@ public sealed class CakeFactoryService
         _cakesBaked += recipe.BatchSize;
         _cakesPacked += packed;
         _cakesRejected += rejected;
+        _packagingUnits = Math.Max(0, _packagingUnits - recipe.BatchSize);
         _wasteKg += rejected * 0.42;
         _batterKg = Math.Max(0, _batterKg - BatchIngredientMass(recipe));
         _sanitationScore = Math.Max(0, _sanitationScore - 2.4);
@@ -626,6 +726,20 @@ public sealed class CakeFactoryService
         return _batchInternalC >= 35 ? "Cooling below hot zone" : "Post-bake protected";
     }
 
+    private string ResourceStatus(double power)
+    {
+        if (power < 0.2) return "Reactor bus required";
+        var low = new List<string>();
+        if (_irrigationWaterL < 800) low.Add("water");
+        if (_fertilizerKg < 8) low.Add("fertilizer");
+        if (_wheatSeedKg < 1) low.Add("wheat seed");
+        if (_beetSeedKg < 1) low.Add("beet seed");
+        if (_animalFeedKg < 20) low.Add("feed");
+        if (_packagingUnits < CurrentRecipe.BatchSize) low.Add("cartons");
+        if (_cocoaBeansKg < 5 && _cocoaKg < CurrentRecipe.CocoaKg * CurrentRecipe.BatchSize) low.Add("cocoa beans");
+        return low.Count == 0 ? "Inputs stocked" : "Low: " + string.Join(", ", low);
+    }
+
     private string StageLabel(CakeBatchStage stage) => stage switch
     {
         CakeBatchStage.Idle => "Idle",
@@ -666,6 +780,7 @@ public sealed class CakeFactoryService
         if (_saltKg < r.SaltKg * n) missing.Add("salt");
         if (_vanillaL < r.VanillaL * n) missing.Add("vanilla");
         if (_cocoaKg < r.CocoaKg * n) missing.Add("cocoa");
+        if (_packagingUnits < n) missing.Add("cartons/labels");
         return string.Join(", ", missing);
     }
 

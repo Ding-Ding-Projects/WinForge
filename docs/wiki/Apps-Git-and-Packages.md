@@ -26,6 +26,16 @@ Open in-app: `WinForge.exe --page ossapps`
 
 Included native clone examples: API Client, Diff & Merge, Diagram Editor, .NET Decompiler, SQLite Browser, Feed Reader, Flashcards, PDF Toolkit, Audio Tagger, Image Editor, Text Extractor, KeePass Vault, Native Torrent, Docker, Process Explorer, Disk Health, Disk Benchmark and Everything Search. · 原生複製例子包括 API 用戶端、比對與合併、圖表編輯器、.NET 反編譯器、SQLite 瀏覽器、RSS 閱讀器、記憶卡、PDF 工具箱、音訊標籤、影像編輯、文字辨識、KeePass 保險庫、原生種子下載、Docker、程序總管、硬碟健康、硬碟測速同即時檔案搜尋。
 
+## Cake Factory & Farm · 蛋糕工廠與農場
+
+HTML5 reactor-powered cake factory simulation game with finite supply inputs, manual harvest and conversion, HACCP release gates, signed portable `.cake` files, tunnel baking, cooling, icing, packaging, QA and CIP sanitation. · 以 HTML5 製作、由反應堆供電嘅蛋糕工廠模擬遊戲，包含有限補給、手動收成與轉換、HACCP 放行關卡、已簽署可攜 `.cake` 檔、隧道焗爐、冷卻、裝飾、包裝、品檢同 CIP 清潔。
+
+Open in-app: `WinForge.exe --page cakefactory`
+
+Manual: [Cake Factory & Farm](Cake-Factory-and-Farm.md)
+
+![Cake Factory & Farm](images/screenshot-cakefactory.png)
+
 ## Feed Reader · RSS 閱讀器
 
 Native QuiteRSS/Fluent Reader-style RSS and Atom reader with local JSON subscriptions, HttpClient refresh and in-app article summaries. · 原生 QuiteRSS／Fluent Reader 式 RSS 同 Atom 閱讀器，使用本機 JSON 訂閱、HttpClient 重新整理同 app 內文章摘要。
