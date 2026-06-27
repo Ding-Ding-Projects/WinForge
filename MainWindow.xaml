@@ -261,9 +261,11 @@
                 x:Name="Tabs"
                 IsAddTabButtonVisible="True"
                 AddTabButtonClick="Tabs_AddTabButtonClick"
+                CanDragTabs="True"
                 CanReorderTabs="True"
                 SelectionChanged="Tabs_SelectionChanged"
                 TabCloseRequested="Tabs_TabCloseRequested"
+                TabDroppedOutside="Tabs_TabDroppedOutside"
                 automation:AutomationProperties.Name="Open WinForge module tabs · 已開啟 WinForge 模組分頁">
                 <TabView.TabStripFooter>
                     <Button
