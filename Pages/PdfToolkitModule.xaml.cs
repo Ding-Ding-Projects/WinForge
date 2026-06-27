@@ -43,10 +43,11 @@ public sealed partial class PdfToolkitModule : Page
     {
         HeaderTitle.Text = "PDF Toolkit · PDF 工具箱";
         HeaderBlurb.Text = P(
-            "A native, Stirling-PDF-style toolkit — merge, split, rotate, delete/reorder/extract pages, watermark, encrypt/decrypt, extract text, and build a PDF from images. Fully managed (PDFsharp + PdfPig); nothing is shelled out or bundled.",
-            "原生、Stirling-PDF 風格嘅工具箱 — 合併、分割、旋轉、刪頁／重排／抽頁、浮水印、加密／解密、抽取文字、由圖片整 PDF。完全受管理（PDFsharp + PdfPig）；唔會呼叫或捆綁任何外部工具。");
+            "A native, Stirling-PDF-style toolkit with an in-page PDF viewer — browse, inspect, search text, jump pages, extract ranges, rotate copies, merge, split, watermark, encrypt/decrypt, extract text, and build a PDF from images. Fully managed (PDFsharp + PdfPig) with WebView2 for viewing; nothing is shelled out or bundled.",
+            "原生、Stirling-PDF 風格嘅工具箱，內置 PDF 檢視器 — 瀏覽、檢查、搜尋文字、跳頁、抽取範圍、旋轉副本、合併、分割、浮水印、加密／解密、抽取文字、由圖片整 PDF。完全受管理（PDFsharp + PdfPig），檢視用 WebView2；唔會呼叫或捆綁任何外部工具。");
 
         CardHost.Children.Clear();
+        CardHost.Children.Add(BuildViewerCard());
         CardHost.Children.Add(BuildMergeCard());
         CardHost.Children.Add(BuildSplitCard());
         CardHost.Children.Add(BuildRotateCard());
@@ -565,8 +566,8 @@ public sealed partial class PdfToolkitModule : Page
             Severity = InfoBarSeverity.Informational,
             Title = P("Fully managed · 完全受管理", "完全受管理"),
             Message = P(
-                "All operations run in-process via the PDFsharp and PdfPig NuGet libraries. No Stirling-PDF, Ghostscript or any external tool is launched or bundled. Rendering a PDF page to an image is not provided here, as no fully-managed renderer is bundled.",
-                "全部操作都喺程序內用 PDFsharp 同 PdfPig NuGet 程式庫執行。唔會啟動或捆綁 Stirling-PDF、Ghostscript 或任何外部工具。呢度唔提供將 PDF 頁渲染成圖片，因為冇捆綁純受管理嘅渲染器。"),
+                "All write operations run in-process via the PDFsharp and PdfPig NuGet libraries. No Stirling-PDF, Ghostscript or external tool is launched or bundled. The viewer uses the built-in Edge/WebView2 PDF renderer and keeps editing actions as save-to-new-file operations.",
+                "全部寫入操作都喺程序內用 PDFsharp 同 PdfPig NuGet 程式庫執行。唔會啟動或捆綁 Stirling-PDF、Ghostscript 或外部工具。檢視器使用 Edge/WebView2 內建 PDF 渲染，編輯動作都係另存新檔。"),
         };
         return new Border { Child = bar };
     }

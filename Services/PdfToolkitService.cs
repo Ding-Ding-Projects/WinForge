@@ -25,6 +25,26 @@ namespace WinForge.Services;
 /// </summary>
 public static class PdfToolkitService
 {
+    public sealed record PdfPageSummary(int PageNumber, double WidthPoints, double HeightPoints, int Rotation);
+
+    public sealed record PdfMetadata(
+        string Path,
+        long FileBytes,
+        DateTime Modified,
+        int PageCount,
+        string Version,
+        string? Title,
+        string? Author,
+        string? Subject,
+        string? Keywords,
+        string? Creator,
+        string? Producer,
+        string? Created,
+        string? PdfModified,
+        IReadOnlyList<PdfPageSummary> PageSummaries);
+
+    public sealed record PdfSearchHit(int PageNumber, int MatchCount, string Snippet);
+
     // ─────────────────────────────────────────────────────────────────────────
     // 共用：頁碼範圍解析（1-based，"1-3,5,8-" 之類）· Parse a 1-based page-range spec.
     // ─────────────────────────────────────────────────────────────────────────
@@ -80,6 +100,78 @@ public static class PdfToolkitService
             return PdfReader.Open(path, mode);
         return PdfReader.Open(path, password, mode);
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 檢視器資料 · Viewer metadata + text search
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public static Task<PdfMetadata> InspectAsync(string input, string? password = null)
+        => Task.Run(() =>
+        {
+            using var doc = Open(input, password, PdfDocumentOpenMode.Import);
+            var fi = new FileInfo(input);
+            var summaries = new List<PdfPageSummary>();
+            int take = Math.Min(doc.PageCount, 24);
+            for (int i = 0; i < take; i++)
+            {
+                var p = doc.Pages[i];
+                summaries.Add(new PdfPageSummary(i + 1, p.Width.Point, p.Height.Point, p.Rotate));
+            }
+
+            return new PdfMetadata(
+                input,
+                fi.Exists ? fi.Length : 0,
+                fi.Exists ? fi.LastWriteTime : DateTime.MinValue,
+                doc.PageCount,
+                doc.Version.ToString(CultureInfo.InvariantCulture),
+                BlankToNull(doc.Info.Title),
+                BlankToNull(doc.Info.Author),
+                BlankToNull(doc.Info.Subject),
+                BlankToNull(doc.Info.Keywords),
+                BlankToNull(doc.Info.Creator),
+                BlankToNull(doc.Info.Producer),
+                DateOrNull(doc.Info.CreationDate),
+                DateOrNull(doc.Info.ModificationDate),
+                summaries);
+        });
+
+    public static Task<IReadOnlyList<PdfSearchHit>> SearchTextAsync(
+        string input,
+        string query,
+        string? password = null,
+        bool caseSensitive = false,
+        int maxHits = 80)
+        => Task.Run<IReadOnlyList<PdfSearchHit>>(() =>
+        {
+            var hits = new List<PdfSearchHit>();
+            if (string.IsNullOrWhiteSpace(query)) return hits;
+
+            var opts = string.IsNullOrEmpty(password) ? new ParsingOptions() : new ParsingOptions { Password = password };
+            var comparison = caseSensitive ? StringComparison.CurrentCulture : StringComparison.CurrentCultureIgnoreCase;
+            using var pdf = PigDocument.Open(input, opts);
+            foreach (var page in pdf.GetPages())
+            {
+                var text = page.Text ?? "";
+                int first = -1;
+                int count = 0;
+                int at = 0;
+                while (at < text.Length)
+                {
+                    int found = text.IndexOf(query, at, comparison);
+                    if (found < 0) break;
+                    if (first < 0) first = found;
+                    count++;
+                    at = found + Math.Max(1, query.Length);
+                }
+
+                if (count > 0)
+                {
+                    hits.Add(new PdfSearchHit(page.Number, count, Snippet(text, first, query.Length)));
+                    if (hits.Count >= maxHits) break;
+                }
+            }
+            return hits;
+        });
 
     // ─────────────────────────────────────────────────────────────────────────
     // 合併 · Merge
@@ -399,5 +491,43 @@ public static class PdfToolkitService
             ? TweakResult.Fail($"Failed: {msg}  (wrong password, or the PDF is protected?)",
                                $"失敗：{msg}（密碼錯誤，或者 PDF 受保護？）", msg)
             : TweakResult.Fail($"Failed: {msg}", $"失敗：{msg}", msg);
+    }
+
+    private static string? BlankToNull(string? value)
+        => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static string? DateOrNull(DateTime value)
+        => value == DateTime.MinValue ? null : value.ToString("yyyy-MM-dd HH:mm", CultureInfo.CurrentCulture);
+
+    private static string Snippet(string text, int first, int queryLength)
+    {
+        if (first < 0) return "";
+        int start = Math.Max(0, first - 80);
+        int length = Math.Min(text.Length - start, queryLength + 160);
+        var slice = CollapseWhitespace(text.Substring(start, length));
+        if (start > 0) slice = "… " + slice;
+        if (start + length < text.Length) slice += " …";
+        return slice;
+    }
+
+    private static string CollapseWhitespace(string text)
+    {
+        var sb = new StringBuilder(text.Length);
+        bool pendingSpace = false;
+        foreach (char c in text)
+        {
+            if (char.IsWhiteSpace(c))
+            {
+                pendingSpace = sb.Length > 0;
+                continue;
+            }
+            if (pendingSpace)
+            {
+                sb.Append(' ');
+                pendingSpace = false;
+            }
+            sb.Append(c);
+        }
+        return sb.ToString().Trim();
     }
 }
