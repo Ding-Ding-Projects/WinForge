@@ -57,6 +57,7 @@ const S = {
   rodsIn:     ["INSERT", "插棒"],
   hold:       ["HOLD", "保持"],
   autoRods:   ["Auto rods", "自動控棒"],
+  easyStartup:["Easy startup", "簡易啟動"],
   setpoint:   ["Power setpoint", "功率設定"],
   borate:     ["Borate", "加硼"],
   dilute:     ["Dilute", "稀釋"],

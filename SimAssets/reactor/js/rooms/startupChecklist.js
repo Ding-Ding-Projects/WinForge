@@ -60,9 +60,12 @@ export function StartupChecklist(ctx) {
       const body = el("div", "startup-step-body");
       const title = el("div", "startup-step-title", `${step.index}. ${pick(step.en, step.zh)}`);
       const ctl = el("div", "startup-step-control", pick(`Use: ${step.controlEn}`, `使用：${step.controlZh}`));
+      const detailText = pick(step.detailEn || "", step.detailZh || "");
+      const detail = detailText ? el("div", "startup-step-detail", detailText) : null;
       const goBtn = button(pick("Control", "控制"), "startup-go", () => goToControl(step));
       body.appendChild(title);
       body.appendChild(ctl);
+      if (detail) body.appendChild(detail);
       row.appendChild(mark);
       row.appendChild(body);
       row.appendChild(goBtn);

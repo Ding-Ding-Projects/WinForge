@@ -52,7 +52,10 @@ export const store = {
       this.water = Object.assign(this.water, data);
       listeners.water.forEach(fn => fn(this.water));
     } else if (data.type === "startupChecklist") {
-      this.startupChecklist = { steps: Array.isArray(data.steps) ? data.steps : [] };
+      this.startupChecklist = {
+        done: Number.isFinite(data.done) ? data.done : undefined,
+        steps: Array.isArray(data.steps) ? data.steps : []
+      };
       listeners.startupChecklist.forEach(fn => fn(this.startupChecklist));
     }
   },
@@ -106,6 +109,7 @@ if (window.chrome?.webview) {
       pzrHeater: false, pzrSpray: false, rcpFlowDemand: 0, rcpRunning: [false, false, false, false],
       feedwaterFlow: 0, turbineLoad: 0, genBreaker: false, reliefValve: false,
       eccsArmed: false, eccsInjecting: false, autoRods: false, autoSetpoint: 1,
+      easyStartup: false, easyStartupAssistPcm: 0,
       turbineRpm: 0, syncRpm: 1800, flowFraction: 0, decayHeat: 0, subcoolingC: 100,
       sourceCps: 100, oneOverM: 1, startupRateDpm: 0, burnup: 0,
       scrammed: false, damage: 0, meltdown: false, scenario: 0,

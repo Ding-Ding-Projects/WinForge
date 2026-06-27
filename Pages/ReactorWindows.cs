@@ -516,7 +516,8 @@ public sealed class ReactorWidgetWindow : Window
 
         int done = ReactorScenarios.CompletedStartupSteps(ReactorScenarios.StartupSequence(), _sim);
         _label.Text = P("Startup gauges", "啟動儀表");
-        _value.Text = P($"Checklist {done}/8", $"程序 {done}/8");
+        _value.Text = P($"Checklist {done}/8{(_sim.EasyStartupMode ? " · EASY ×1.5 burn" : "")}",
+                        $"程序 {done}/8{(_sim.EasyStartupMode ? " · EASY 燃耗 ×1.5" : "")}");
 
         SetStartupGauge(0, P("RCP pumps", "主泵"), $"{pumps}/4", pumps / 3.0, pumps >= 3);
         SetStartupGauge(1, P("RCP flow", "主泵流量"), $"{_sim.CoolantFlowFraction * 100:F0}%", _sim.CoolantFlowFraction / 0.85, _sim.CoolantFlowFraction > 0.85);
@@ -578,7 +579,7 @@ public sealed class ReactorStartupChecklistWindow : Window
         _presenter.IsMaximizable = false;
         _presenter.IsMinimizable = false;
         AppWindow.SetPresenter(_presenter);
-        AppWindow.Resize(new SizeInt32(430, 560));
+        AppWindow.Resize(new SizeInt32(460, 640));
 
         Content = BuildContent();
 
@@ -593,7 +594,7 @@ public sealed class ReactorStartupChecklistWindow : Window
             {
                 var area = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Primary);
                 AppWindow.Move(new PointInt32(
-                    area.WorkArea.X + area.WorkArea.Width - 470,
+                    area.WorkArea.X + area.WorkArea.Width - 500,
                     area.WorkArea.Y + 40));
             }
         }

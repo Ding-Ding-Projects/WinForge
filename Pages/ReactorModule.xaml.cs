@@ -1175,7 +1175,8 @@ public sealed partial class ReactorModule : Page
         AddGauge("Samarium worth", "釤毒", 0, 300, () => _sim.Samarium * 100, () => $"{-_sim.SamariumReactivityPcm:F0} pcm", id: "samarium");
         // ---- Fuel-cycle core depletion (burnup) ----
         AddGauge("Core burnup", "堆芯燃耗", 0, 18, () => _sim.BurnupMwdPerTonne / 1000.0,
-            () => $"{_sim.BurnupMwdPerTonne / 1000.0:F2} GWd/tU · {_sim.CycleEfpd:F0} EFPD · {P(_sim.CoreLifePhaseEn, _sim.CoreLifePhaseZh)}",
+            () => $"{_sim.BurnupMwdPerTonne / 1000.0:F2} GWd/tU · {_sim.CycleEfpd:F0} EFPD · {P(_sim.CoreLifePhaseEn, _sim.CoreLifePhaseZh)}" +
+                  (_sim.EasyStartupMode ? P(" · EASY burn ×1.5", " · EASY 燃耗 ×1.5") : ""),
             warnFrac: 1.2, id: "burnup");
         // Boron letdown target + the cycle drift of MTC and the dollar (β_eff): all anchored to today's BOL values.
         AddGauge("Boron letdown", "降硼曲線", 0, 1400, () => _sim.CriticalBoronPpm,
@@ -2735,6 +2736,17 @@ public sealed partial class ReactorModule : Page
         });
         host.Children.Add(WrapLabel("Reactor mode · 反應堆模式", "反應堆模式 · Reactor mode", modeCombo));
 
+        var easyStartup = MakeToggle(
+            "Easy startup assist · 50% easier / fuel burns 50% faster",
+            "簡易啟動輔助 · 易啟動 50% / 燃料快耗 50%",
+            v => _sim.EasyStartupMode = v,
+            () => _sim.EasyStartupMode);
+        host.Children.Add(WrapLabel("Beginner startup assist · 新手啟動輔助",
+            "新手啟動輔助 · Beginner startup assist", easyStartup));
+        host.Children.Add(InfoNote(
+            "Easy mode adds about +500 pcm only below 5% power, so startup responds sooner but still needs pumps, pressure, rods, and boron in order. It burns fuel 1.5x faster while enabled.",
+            "簡易模式只喺低於 5% 功率時加入約 +500 pcm，啟動反應會快啲，但仍然要按次序做好主泵、壓力、控制棒同硼濃度。開啟期間燃料燃耗為 1.5 倍。"));
+
         host.Children.Add(InfoNote(
             "AUTO rod control regulates Tavg to the turbine-load-programmed Tref (Westinghouse §8.1): " +
             "raise turbine load and the rods withdraw to follow. The reference rises 557°F (no-load) → 581°F (full).",
@@ -2783,6 +2795,9 @@ public sealed partial class ReactorModule : Page
                                           "啟動程序（趨近臨界）· Startup sequence");
         _startupChecklistAnchor = startupHeader;
         host.Children.Add(startupHeader);
+        host.Children.Add(InfoNote(
+            "New operator path: read each row left to right, press Control to jump to the needed panel, move the named control a little, then wait for the listed gauge. To avoid avoidable simulator auto-SCRAMs, keep at least 3 RCPs running, RCP flow above 85%, primary pressure near 2235 psia, and stop withdrawing rods or diluting boron if period falls under 30 s or startup rate climbs fast. Do not bypass safety trips.",
+            "新手流程：每行由左至右睇，按「控制」跳到需要嘅面板，少量調整列出嘅控制，然後等指定儀表穩定。避免可避免嘅模擬器自動 SCRAM：保持至少 3 部主泵運行、主泵流量高於 85%、一迴路壓力接近 2235 psia；如果週期低過 30 秒或起動率急升，就停止提棒或稀釋硼。唔好繞過安全跳脫。"));
         BuildStartupChecklist(host);
 
         // ---- Always-on reactor persistence (opt-in, default OFF, easy off switch) ----

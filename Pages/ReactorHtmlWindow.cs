@@ -576,6 +576,8 @@ public sealed class ReactorHtmlWindow : Window
                 zh = s.Zh,
                 controlEn = s.ControlEn,
                 controlZh = s.ControlZh,
+                detailEn = s.DetailEn,
+                detailZh = s.DetailZh,
                 controlTarget = s.ControlTarget,
                 room = s.ControlRoom,
                 ok = i < done,

@@ -282,6 +282,9 @@ public sealed class ReactorSimService
     private const double RiaLegacyCoolabilityCalG = 280.0; // RG 1.77 (1974) fresh-fuel reference / incipient melt
     private const double RiaPcmiRiseFreshCalG     = 150.0; // PCMI clad-failure enthalpy RISE at ~zero excess H
     private const double RiaPcmiRiseHighBurnCalG  = 60.0;  // PCMI rise threshold near 68 GWd/MTU (high burnup)
+    private const double EasyStartupAssistPcm     = 500.0; // +0.005 dk/k: roughly half of fresh all-rods-in shutdown margin
+    private const double EasyStartupPowerLimit    = 0.05;  // assist only below 5% RTP; above that, normal physics
+    private const double EasyStartupBurnFactor    = 1.5;   // explicit fuel penalty for the beginner startup assist
 
     /// <summary>UO₂ 焓擬合（cal/g，由 ~25 °C 起）· UO₂ enthalpy above cold, cal/g.</summary>
     private static double Uo2Enthalpy(double tc)
@@ -1416,6 +1419,10 @@ public sealed class ReactorSimService
     public double NisCalorimetricDeviationPct { get; private set; } // indicated PR − calorimetric, %RTP (signed)
     public bool   NisCalorimetricDeviationOob { get; private set; } // |deviation| > 2 % RTP while valid → recalibrate
     public double BurnupSinceNisCalMwd { get; private set; }       // MWd/tU accrued since last PR calibration (drift driver)
+    public bool   EasyStartupMode { get; set; }                    // beginner assist: +startup reactivity, ×1.5 burnup
+    public double EasyStartupAssistActivePcm =>
+        EasyStartupMode && (Mode == ReactorMode.Startup || Mode == ReactorMode.Run) && _power < EasyStartupPowerLimit
+            ? EasyStartupAssistPcm : 0.0;
     public bool   UseLefm { get; set; }                            // LEFM (ultrasonic FW flow) in service → MUR uprate, tighter band
     public double CalorimetricUncertaintyPct => UseLefm ? 0.6 : 2.0; // 1σ %RTP — venturi ~2.0 (fouling-biased high) vs LEFM ~0.6
     public double LicensedPowerPct => UseLefm ? 101.7 : 100.0;      // MUR: LEFM recaptures the App-K 2% FW margin (~+1.7%)
@@ -3073,7 +3080,8 @@ public sealed class ReactorSimService
         // ≈ 34 MW/tU at full power → 34 MWd/tU per EFPD; scales with actual power so part-load accrues less.
         // DepletionAccel (default ×1 = real time, effectively frozen for a session) fast-forwards the cycle so
         // burnup-dependent reactivity (MTC, β_eff, boron letdown) can be watched evolve BOL→EOL on demand.
-        BurnupMwdPerTonne += ThermalPowerMW * dt / 86400.0 / CoreTonnesU * Math.Max(1.0, DepletionAccel);
+        double startupBurnFactor = EasyStartupMode ? EasyStartupBurnFactor : 1.0;
+        BurnupMwdPerTonne += ThermalPowerMW * dt / 86400.0 / CoreTonnesU * Math.Max(1.0, DepletionAccel) * startupBurnFactor;
     }
 
     /// <summary>1 − e^(−x) for x ≥ 0, computed without catastrophic cancellation for tiny x
@@ -4322,8 +4330,9 @@ public sealed class ReactorSimService
         BurnupDefectPcm = burnupDefectRho * 1e5;
         // A dropped full-length RCCA inserts its integral worth (negative) as the fall-ramp completes.
         double droppedRho = -(DroppedRodWorthPcm * 1e-5) * _dropRamp;
+        double startupAssistRho = EasyStartupAssistActivePcm * 1e-5;
         // Everything above is constant across the (possibly fine-grained) RIA micro-steps below.
-        double rhoSlow = ExcessBaseline + rodRho + boronRho + dopplerRho + modRho + xenonRho + samariumRho + droppedRho + burnupDefectRho;
+        double rhoSlow = ExcessBaseline + rodRho + boronRho + dopplerRho + modRho + xenonRho + samariumRho + droppedRho + burnupDefectRho + startupAssistRho;
         // β_eff cycle scale (1 at BOL → 0.90 at EOL); applied uniformly at every Beta[]/BetaTotal use below.
         double bcf = BetaCycleFactor;
 
@@ -5996,6 +6005,8 @@ public sealed class ReactorSimService
             eccsInjecting = EccsInjecting,
             autoRods = AutoRodControl,
             autoSetpoint = AutoPowerSetpoint,
+            easyStartup = EasyStartupMode,
+            easyStartupAssistPcm = EasyStartupAssistActivePcm,
             // turbine / flow / decay
             turbineRpm = TurbineRPM,
             syncRpm = SyncRpm,
@@ -6109,6 +6120,7 @@ public sealed class ReactorSimService
             case "eccsArm": EccsArmed = flag; break;
             case "autoRods": AutoRodControl = flag; break;
             case "autoSetpoint": AutoPowerSetpoint = Math.Clamp(value, 0, 1.2); break;
+            case "easyStartup": EasyStartupMode = flag; break;
             case "setMode": SetMode((ReactorMode)index); break;
             case "scram": Scram(); break;
             case "resetTrip": ResetTrip(); break;
@@ -6159,6 +6171,7 @@ public sealed class ReactorSimService
         public double[] RodBankInsertion { get; set; } = new double[4];
         public double BoronPpm { get; set; }
         public double TargetBoronPpm { get; set; }
+        public bool EasyStartupMode { get; set; }
         public bool PressurizerHeater { get; set; }
         public bool PressurizerSpray { get; set; }
         public double RcpFlowDemand { get; set; }
@@ -6197,6 +6210,7 @@ public sealed class ReactorSimService
             CoolantFlowFraction = CoolantFlowFraction,
             Iodine = Iodine, Xenon = Xenon,
             BoronPpm = BoronPpm, TargetBoronPpm = TargetBoronPpm,
+            EasyStartupMode = EasyStartupMode,
             PressurizerHeater = PressurizerHeater, PressurizerSpray = PressurizerSpray,
             RcpFlowDemand = RcpFlowDemand, FeedwaterFlow = FeedwaterFlow,
             TurbineLoadSetpoint = TurbineLoadSetpoint, GeneratorBreakerClosed = GeneratorBreakerClosed,
@@ -6232,6 +6246,7 @@ public sealed class ReactorSimService
             if (s.RodBankInsertion is { Length: 4 })
                 for (int i = 0; i < 4; i++) RodBankInsertion[i] = s.RodBankInsertion[i];
             BoronPpm = s.BoronPpm; TargetBoronPpm = s.TargetBoronPpm;
+            EasyStartupMode = s.EasyStartupMode;
             PressurizerHeater = s.PressurizerHeater; PressurizerSpray = s.PressurizerSpray;
             RcpFlowDemand = s.RcpFlowDemand;
             if (s.RcpRunning is { Length: 4 })

@@ -152,6 +152,28 @@ internal static class Program
                                        $"meltdown={r.MeltdownTriggered}");
         });
 
+        // ---- EASY STARTUP ASSIST (limited beginner aid, not a bypass) ----
+        Scenario("EASY STARTUP: assist is limited and fully-rodded core stays subcritical", () =>
+        {
+            var normal = new ReactorSimService();
+            normal.SetMode(ReactorMode.Startup);
+            normal.Update(0.1);
+
+            var easy = new ReactorSimService { EasyStartupMode = true };
+            easy.SetMode(ReactorMode.Startup);
+            easy.Update(0.1);
+
+            double deltaPcm = easy.ReactivityPcm - normal.ReactivityPcm;
+            bool pass = Math.Abs(easy.EasyStartupAssistActivePcm - 500.0) < 1e-6
+                        && deltaPcm > 450.0 && deltaPcm < 550.0
+                        && easy.ReactivityPcm < 0.0
+                        && easy.NeutronPowerFraction < 1e-3
+                        && !easy.IsScrammed
+                        && !easy.MeltdownTriggered;
+            return (pass, $"assist={easy.EasyStartupAssistActivePcm:F0} pcm, rho normal/easy={normal.ReactivityPcm:F0}/{easy.ReactivityPcm:F0} pcm, " +
+                          $"delta={deltaPcm:F0} pcm, power={easy.NeutronPowerFraction:E2}, scram={easy.IsScrammed}");
+        });
+
         // ---- SCRAM (deterministic mechanism: trip latches, release delay, gravity rod drop) ----
         // NOTE: we assert the SCRAM MECHANISM. Rods no longer snap fully in synchronously; StepRodDrop
         // models the breaker/gripper release delay and gravity insertion over the next few ticks.

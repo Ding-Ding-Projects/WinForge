@@ -113,6 +113,8 @@ export function ControlRoom(ctx) {
 
   const autoTog = toggle(t("autoRods"), on => send.control("autoRods", { flag: on }));
   rodP.appendChild(autoTog);
+  const easyTog = toggle(t("easyStartup"), on => send.control("easyStartup", { flag: on }));
+  rodP.appendChild(easyTog);
   const spLab = el("div", "ctl-label"); const spVal = el("span", null, "100%");
   const spName = el("span", null, t("setpoint")); spLab.appendChild(spName); spLab.appendChild(spVal);
   const spS = slider(0, 120, 1, v => { send.control("autoSetpoint", { value: v / 100 }); spVal.textContent = v + "%"; });
@@ -180,6 +182,7 @@ export function ControlRoom(ctx) {
     }
     lastAvg = avg / 4;
     autoTog.setState(s.autoRods);
+    easyTog.setState(!!s.easyStartup, !!s.easyStartupAssistPcm);
     if (document.activeElement !== boronS) { boronS.value = s.targetBoronPpm; boronVal.textContent = s.targetBoronPpm.toFixed(0) + " ppm"; }
     scenSel.value = s.scenario;
     // annunciators
@@ -224,6 +227,8 @@ export function ControlRoom(ctx) {
     rodP._modeBtns[0].textContent = t("shutdown");
     rodP._modeBtns[1].textContent = t("startup");
     rodP._modeBtns[2].textContent = t("run");
+    autoTog._lab.textContent = t("autoRods");
+    easyTog._lab.textContent = t("easyStartup");
     csfCells.forEach(c => c.innerHTML = pick(c._en, c._zh));
     [...scenSel.options].forEach(o => o.textContent = t(o._key));
     if (st) onState(st);
