@@ -253,6 +253,9 @@
                 <NavigationViewItem Content="Manual · 使用手冊" Tag="manual">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE82D;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
+                <NavigationViewItem Content="Licenses · 授權" Tag="licenses">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE8D7;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
                 <NavigationViewItem Content="About · 關於" Tag="about">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE946;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>

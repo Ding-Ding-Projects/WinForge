@@ -1031,6 +1031,14 @@ public sealed partial class MainWindow : Window
             case "userguide":
                 NavigateActive("manual");
                 break;
+            case "licenses":
+            case "license":
+            case "licence":
+            case "osslicenses":
+            case "notices":
+            case "source":
+                NavigateActive("licenses");
+                break;
             default:
                 var cat = Categories.All.FirstOrDefault(c => c.Id == App.StartPage);
                 if (cat is not null)
@@ -1069,6 +1077,17 @@ public sealed partial class MainWindow : Window
         };
 
         Navigator.GoToSettings = () => NavigateActive("settings");
+        Navigator.GoToPage = key =>
+        {
+            var navKey = BaseNavKey(key);
+            var item = FindByTag(navKey);
+            if (item is not null && !ReferenceEquals(NavView.SelectedItem, item))
+            {
+                _syncingTabs = true;
+                try { NavView.SelectedItem = item; } finally { _syncingTabs = false; }
+            }
+            NavigateActive(key);
+        };
 
         Navigator.GoToModule = key =>
         {
@@ -1347,6 +1366,7 @@ public sealed partial class MainWindow : Window
         _titles[typeof(SettingsPage)] = "Settings · 設定";
         _titles[typeof(SearchResultsPage)] = "Search · 搜尋";
         _titles[typeof(ManualPage)] = "Manual · 使用手冊";
+        _titles[typeof(LicensesPage)] = "Licenses · 授權";
         _titles[typeof(ReactorDependencyPage)] = "Reactor required · 需要反應堆";
         foreach (var m in ModuleRegistry.All)
             _titles[MapType(m.Tag)] = $"{m.En} · {m.Zh}";
@@ -1363,6 +1383,7 @@ public sealed partial class MainWindow : Window
             case "about": return (typeof(AboutPage), null);
             case "settings": return (typeof(SettingsPage), null);
             case "manual": return (typeof(ManualPage), null);
+            case "licenses": return (typeof(LicensesPage), null);
         }
         if (baseKey.StartsWith("manual:", StringComparison.OrdinalIgnoreCase))
             return (typeof(ManualPage), baseKey.Substring("manual:".Length));
