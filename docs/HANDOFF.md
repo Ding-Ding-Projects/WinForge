@@ -12,7 +12,7 @@ A complete map of every module/feature: what it does, how to open it, the page +
 - Exe: `bin\x64\Debug\net11.0-windows10.0.26100.0\win-x64\WinForge.exe`. Self-contained (`WindowsAppSDKSelfContained=true`, `WindowsPackageType=None`).
 - Launch a page directly: `WinForge.exe --page <id>` (see `docs/CLI.md` for every id) · master search: `--page search:<q>` · headless docs: `--export-docs docs\features`.
 - Window: **windowed by default (~82% screen), F11 toggles full screen** (saved). Closing **hides to the system tray** (right-click tray → Quit) so the background clipboard monitor keeps running.
-- Theme: Settings → App theme (Light/Dark/System), saved. Language: Settings → Primary language (both always shown).
+- Theme: Settings → App theme (Light/Dark/System), saved. Language: Settings → Language (Bilingual/Cantonese/English).
 - CI: `.github/workflows/release.yml` builds + publishes a **new GitHub Release on every push** (`v1.0.<run#>`) with a portable zip + Inno Setup installer (`installer/WinForge.iss`).
 
 ## Suite modules · 套件模組
@@ -61,7 +61,7 @@ A complete map of every module/feature: what it does, how to open it, the page +
 Data-driven: `Catalog/*Tweaks.cs` files build `TweakDefinition`s via the `Services/Tweak` factory (RegToggle/CustomToggle/RegChoice/Action/Shell/Powershell/Cmd/Info). `Catalog/TweakCatalog.cs` aggregates them per `Catalog/Categories.cs` category. Rendered by `Controls/TweakCard` (shows EN+粵語, reads live state via `GetIsOn`, full scrollable monospace output for actions). ~1140 tweaks/ops across 22 categories incl. **Winaero Tweaks** (45) and **Debloat & Annoyances**.
 
 ## Key architecture · 主要架構
-- **Bilingual:** `Services/Loc` — `Loc.I.Pick(en, zh)` picks the lead language; titles/labels show both via "EN · 粵語".
+- **Language modes:** `Services/Loc` — `Loc.I.Pick(en, zh)` returns bilingual text in Bilingual mode, or a single string in Cantonese/English modes.
 - **Registry:** `Services/RegistryHelper` (RegRoot HKCU/HKLM/HKCR/HKU, Get/Set/Delete/SubKeys).
 - **Shell:** `Services/ShellRunner` (Run/RunCmd/RunPowershell/CapturePowershell).
 - **Nav:** `MainWindow` NavigationView with collapsible groups; `Navigator.GoToModule/GoToCategory` resolve tags **recursively**; `MapType` fallback. `Services/ModuleRegistry` powers page-search.

@@ -113,7 +113,7 @@ public sealed partial class TimeUnitModule : Page
         var now = TimeZoneService.Now(z);
         LocalZone.Text = ZoneText(z) + (TimeZoneService.IsDst(z) ? P("  (DST)", "（夏令時間）") : "");
         LocalTime.Text = now.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
-        var culture = CultureInfo.GetCultureInfo(Loc.I.Pick("en-US", "zh-HK"));
+        var culture = CultureInfo.GetCultureInfo(Loc.I.PickSingle("en-US", "zh-HK"));
         LocalDate.Text = now.ToString("dddd, dd MMM yyyy", culture);
     }
 

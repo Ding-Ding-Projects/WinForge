@@ -5936,7 +5936,7 @@ public sealed class ReactorSimService
     /// 匯出整個反應堆狀態為 JSON · Export the full reactor state as a flat JSON snapshot for the
     /// HTML5 client (one object posted per 10 Hz tick).
     /// </summary>
-    public string ExportStateJson(double clock, bool zhPrimary)
+    public string ExportStateJson(double clock, bool zhPrimary, string languageMode = "English")
     {
         var alarms = new System.Collections.Generic.List<int>();
         foreach (ReactorAlarm a in Enum.GetValues(typeof(ReactorAlarm)))
@@ -5962,6 +5962,7 @@ public sealed class ReactorSimService
             type = "state",
             clock,
             zhPrimary,
+            languageMode,
             mode = (int)Mode,
             statusEn = StatusEn,
             statusZh = StatusZh,

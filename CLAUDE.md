@@ -16,7 +16,7 @@ WinForge (a.k.a. 視窗調校) is an all-in-one, **fully bilingual (English + �
 
 ## Architecture & conventions (follow these)
 - **Add a module = touch 4 places:** `Pages/<X>Module.xaml(.cs)` (class `<X>Module : Page`, namespace `WinForge.Pages`) + logic in `Services/<X>Service.cs`; then register in **(1)** `Services/ModuleRegistry.cs` (Tag `module.xxx`, En, Zh, Glyph, Keywords), **(2)** `MainWindow.xaml.cs` `MapType()` (tag→type), **(3)** `MainWindow.xaml.cs` `ApplyStartPage()` (deep-link aliases for `--page`), **(4)** `MainWindow.xaml` `NavigationViewItem`.
-- **Bilingual everywhere:** all user-facing strings use `Models/Core.cs` `LocalizedText(en, zh)` or `Services/Loc.cs` `Loc.I.Pick(en, zh)`. Cantonese (粵語), not Mandarin. The UI shows both languages.
+- **Language modes:** all user-facing strings use `Models/Core.cs` `LocalizedText(en, zh)` or `Services/Loc.cs` `Loc.I.Pick(en, zh)`. Cantonese (粵語), not Mandarin. The UI supports Bilingual, Cantonese, and English modes.
 - **UI:** prefer `Controls/TweakCard` (data-driven; has a `VisualBuilder` hook for generated previews). Use `Services/FileDialogs.cs` (never WinRT pickers). WebView2 is available.
 - **Pure managed C#** for module functionality; do not shell out to / launch the upstream program a module reimplements. Managed NuGet wrappers are fine (note them).
 - **Secrets:** DPAPI (`ProtectedData`) via the existing stores; never log secrets.

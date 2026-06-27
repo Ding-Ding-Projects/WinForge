@@ -51,7 +51,19 @@ function pct(v, digits = 0) {
 }
 
 function pick(state, en, zh) {
-  return state?.zhPrimary ? zh : en;
+  if (state?.languageMode === "Cantonese") return zh;
+  if (state?.languageMode === "Bilingual") return both(en, zh);
+  return en;
+}
+
+function both(en, zh) {
+  en = en ?? "";
+  zh = zh ?? "";
+  if (!en.trim()) return zh;
+  if (!zh.trim()) return en;
+  if (en === zh) return en;
+  if (/[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]/.test(en)) return en;
+  return `${en} · ${zh}`;
 }
 
 export class Mimic {
@@ -238,7 +250,7 @@ export class Mimic {
     this._setText("txtContainmentReadout", `${containmentPressure.toFixed(0)} kPa · ${containmentTemp.toFixed(0)} C`);
 
     const scenarioId = clamp(Math.round(state.scenarioId ?? 0), 0, SCENARIOS_EN.length - 1);
-    this._setText("txtScenario", state.zhPrimary ? SCENARIOS_ZH[scenarioId] : SCENARIOS_EN[scenarioId]);
+    this._setText("txtScenario", pick(state, SCENARIOS_EN[scenarioId], SCENARIOS_ZH[scenarioId]));
     this._setText("txtMode", this._modeText(state));
     this._setText("txtCoreHeat", this._coreText(state, coreState));
     this._setText("txtHeatRemoval", this._heatText(state, heatState));
@@ -284,7 +296,7 @@ export class Mimic {
     const mode = Math.round(state.mode ?? 0);
     const en = ["Shutdown", "Startup", "Power", "Hot standby", "Cooldown"];
     const zh = ["停機", "啟動", "功率運行", "熱備用", "冷卻"];
-    return state.zhPrimary ? (zh[mode] ?? zh[0]) : (en[mode] ?? en[0]);
+    return pick(state, en[mode] ?? en[0], zh[mode] ?? zh[0]);
   }
 
   _coreText(state, severity) {

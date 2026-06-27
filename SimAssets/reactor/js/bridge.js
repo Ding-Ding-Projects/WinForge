@@ -28,9 +28,9 @@ export const store = {
   ingest(data) {
     if (!data || typeof data !== "object") return;
     if (data.type === "state") {
-      if (typeof data.zhPrimary === "boolean") {
-        setLang(data.zhPrimary);
-        listeners.lang.forEach(fn => fn(data.zhPrimary));
+      if (typeof data.languageMode === "string" || typeof data.zhPrimary === "boolean") {
+        setLang(data.languageMode ?? data.zhPrimary);
+        listeners.lang.forEach(fn => fn(data.languageMode ?? data.zhPrimary));
       }
       prev = curr; prevT = currT;
       curr = data; currT = performance.now() / 1000;
@@ -99,7 +99,7 @@ if (window.chrome?.webview) {
   setInterval(() => {
     t += 0.1;
     store.ingest({
-      type: "state", clock: t, zhPrimary: false, mode: 0,
+      type: "state", clock: t, zhPrimary: false, languageMode: "Bilingual", mode: 0,
       statusEn: "Cold shutdown (dev shim)", statusZh: "冷停機（開發模擬）",
       power: 1e-6, thermalMW: 0, electricMW: 0, periodS: 1e9, reactivityPcm: -9000,
       rodPcm: -8000, boronPcm: 0, dopplerPcm: 0, modPcm: 0, xenonPcm: 0,

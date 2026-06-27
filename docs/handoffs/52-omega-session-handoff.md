@@ -27,7 +27,7 @@ Use the committed skill **`.claude/skills/run-winforge/`** (SKILL.md + driver.ps
 ## 3. Architecture · 架構
 - **.NET `net11.0-windows10.0.26100.0`, WinUI 3, self-contained, unpackaged** (`WindowsPackageType=None`). Resilient startup via `WinForgeLauncher` (`launcher/`).
 - **Adding a module touches 4 places:** `Services/ModuleRegistry.cs` (Tag/En/Zh/Glyph/Keywords), `MainWindow.xaml.cs` `MapType()` (tag→Page type) + `ApplyStartPage()` (deep-link aliases), and `MainWindow.xaml` (`NavigationViewItem`). Pages live in `Pages/<X>Module.xaml(.cs)`, logic in `Services/<X>Service.cs`.
-- **Bilingual everywhere:** `Models/Core.cs` `LocalizedText(en, zh)` + `Services/Loc.cs` `Loc.I.Pick(en, zh)`; the UI shows both languages. **Cantonese (粵語/繁體中文)**, not Mandarin.
+- **Language modes:** `Models/Core.cs` `LocalizedText(en, zh)` + `Services/Loc.cs` `Loc.I.Pick(en, zh)`; the UI supports Bilingual, Cantonese, and English modes. **Cantonese (粵語/繁體中文)**, not Mandarin.
 - **Controls:** `Controls/RichTweakControl` (data-driven cards) + a `VisualBuilder` hook for generated previews; `Services/FileDialogs.cs` (never WinRT pickers); WebView2 available (used by RichPreview + the reactor HTML5 window).
 
 ## 4. What shipped · 已交付
