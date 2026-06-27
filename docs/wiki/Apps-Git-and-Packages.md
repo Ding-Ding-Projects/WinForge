@@ -4,7 +4,7 @@ Tools for source control, package managers, app removal, Android device workflow
 
 ## Git & GitHub · Git 與 GitHub
 
-Multi-repo workbench for git and gh operations with a chunked uploader. · 多儲存庫工作台，操作 git 同 gh，附分塊上傳器。
+Multi-repo workbench for git and gh operations with repository overview, remotes, stashes, tags and a chunked uploader. · 多儲存庫工作台，操作 git 同 gh，附儲存庫概覽、remotes、stashes、tags 同分塊上傳器。
 
 Open in-app: `WinForge.exe --page git`
 

@@ -167,6 +167,8 @@ public static class GitDeskService
         return p;
     }
 
+    private static string QuoteArg(string value) => "\"" + value.Replace("\"", "\\\"") + "\"";
+
     // ===== diff =====
 
     /// <summary>一行 diff · One diff line with its colour role.</summary>
@@ -312,6 +314,234 @@ public static class GitDeskService
             return (ahead, behind);
         return null;
     }
+
+    // ===== repository overview / remotes / stashes / tags =====
+
+    /// <summary>儲存庫概覽 · Repository summary for the Desktop-style overview tab.</summary>
+    public sealed class RepoOverview
+    {
+        public string Root = string.Empty;
+        public string Branch = string.Empty;
+        public bool Detached;
+        public string Upstream = string.Empty;
+        public string OriginUrl = string.Empty;
+        public string DefaultBranch = string.Empty;
+        public string Head = string.Empty;
+        public string ShortHead = string.Empty;
+        public string LastSubject = string.Empty;
+        public string LastAuthor = string.Empty;
+        public string LastDate = string.Empty;
+        public string UserName = string.Empty;
+        public string UserEmail = string.Empty;
+        public int TotalChanges;
+        public int Staged;
+        public int Unstaged;
+        public int Untracked;
+        public int Conflicted;
+        public int? Ahead;
+        public int? Behind;
+    }
+
+    /// <summary>攞儲存庫概覽 · Build a local repository overview without touching the network.</summary>
+    public static async Task<RepoOverview> Overview(CancellationToken ct = default)
+    {
+        var overview = new RepoOverview { Root = Repo };
+        if (!HasRepo) return overview;
+
+        async Task<string> Read(string args)
+        {
+            var (ok, outp) = await Exec(args, ct);
+            return ok ? outp.Trim() : string.Empty;
+        }
+
+        overview.Root = await Read("rev-parse --show-toplevel");
+        overview.Branch = await Read("branch --show-current");
+        if (string.IsNullOrWhiteSpace(overview.Branch))
+        {
+            overview.Detached = true;
+            overview.Branch = "HEAD";
+        }
+        overview.Upstream = await Read("rev-parse --abbrev-ref --symbolic-full-name @{u}");
+        overview.OriginUrl = await Read("config --get remote.origin.url");
+        var defaultRef = await Read("symbolic-ref --quiet --short refs/remotes/origin/HEAD");
+        overview.DefaultBranch = defaultRef.StartsWith("origin/", StringComparison.OrdinalIgnoreCase)
+            ? defaultRef["origin/".Length..]
+            : defaultRef;
+        overview.Head = await Read("rev-parse HEAD");
+        overview.ShortHead = await Read("rev-parse --short HEAD");
+        overview.UserName = await Read("config user.name");
+        overview.UserEmail = await Read("config user.email");
+
+        var (logOk, log) = await Exec("log -1 --date=short --format=%an%ad%s", ct);
+        if (logOk)
+        {
+            var f = log.Trim().Split('');
+            if (f.Length > 0) overview.LastAuthor = f[0];
+            if (f.Length > 1) overview.LastDate = f[1];
+            if (f.Length > 2) overview.LastSubject = f[2];
+        }
+
+        var changes = await Changes(ct);
+        overview.TotalChanges = changes.Count;
+        overview.Staged = changes.Count(c => c.Staged);
+        overview.Unstaged = changes.Count(c => c.Unstaged);
+        overview.Untracked = changes.Count(c => c.Untracked);
+        overview.Conflicted = changes.Count(c => c.Conflicted);
+
+        var ab = await AheadBehind(ct);
+        if (ab is { } counts)
+        {
+            overview.Ahead = counts.ahead;
+            overview.Behind = counts.behind;
+        }
+
+        return overview;
+    }
+
+    public sealed class RemoteInfo
+    {
+        public string Name = string.Empty;
+        public string FetchUrl = string.Empty;
+        public string PushUrl = string.Empty;
+    }
+
+    /// <summary>列出 remotes · List configured remotes with fetch/push URLs.</summary>
+    public static async Task<List<RemoteInfo>> Remotes(CancellationToken ct = default)
+    {
+        var map = new Dictionary<string, RemoteInfo>(StringComparer.OrdinalIgnoreCase);
+        var (ok, outp) = await Exec("remote -v", ct);
+        if (!ok) return [];
+
+        foreach (var raw in outp.Replace("\r", "").Split('\n', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var line = raw.Trim();
+            var tab = line.IndexOf('\t');
+            if (tab <= 0) continue;
+            var name = line[..tab].Trim();
+            var rest = line[(tab + 1)..].Trim();
+            var modeStart = rest.LastIndexOf(" (", StringComparison.Ordinal);
+            var url = modeStart >= 0 ? rest[..modeStart].Trim() : rest;
+            var mode = modeStart >= 0 ? rest[(modeStart + 2)..].TrimEnd(')') : "";
+            if (!map.TryGetValue(name, out var remote))
+            {
+                remote = new RemoteInfo { Name = name };
+                map[name] = remote;
+            }
+            if (string.Equals(mode, "push", StringComparison.OrdinalIgnoreCase))
+                remote.PushUrl = url;
+            else
+                remote.FetchUrl = url;
+        }
+
+        return map.Values.OrderBy(r => r.Name, StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
+    public static Task<TweakResult> AddRemote(string name, string url, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(url))
+            return Task.FromResult(TweakResult.Fail("Enter a remote name and URL.", "請輸入 remote 名同網址。"));
+        return RunRaw($"remote add {QuoteArg(name.Trim())} {QuoteArg(url.Trim())}", ct);
+    }
+
+    public static Task<TweakResult> SetRemoteUrl(string name, string url, bool pushUrl, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(url))
+            return Task.FromResult(TweakResult.Fail("Enter a remote name and URL.", "請輸入 remote 名同網址。"));
+        var mode = pushUrl ? "--push " : "";
+        return RunRaw($"remote set-url {mode}{QuoteArg(name.Trim())} {QuoteArg(url.Trim())}", ct);
+    }
+
+    public static Task<TweakResult> RemoveRemote(string name, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return Task.FromResult(TweakResult.Fail("Choose a remote first.", "請先揀一個 remote。"));
+        return RunRaw($"remote remove {QuoteArg(name.Trim())}", ct);
+    }
+
+    public sealed class StashInfo
+    {
+        public string Selector = string.Empty;
+        public string Hash = string.Empty;
+        public string Age = string.Empty;
+        public string Message = string.Empty;
+    }
+
+    /// <summary>列出 stash · List local stash entries.</summary>
+    public static async Task<List<StashInfo>> Stashes(CancellationToken ct = default)
+    {
+        var list = new List<StashInfo>();
+        var (ok, outp) = await Exec("stash list --pretty=format:%gd%h%cr%s", ct);
+        if (!ok) return list;
+        foreach (var raw in outp.Replace("\r", "").Split('\n', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var f = raw.Split('');
+            if (f.Length < 4) continue;
+            list.Add(new StashInfo { Selector = f[0], Hash = f[1], Age = f[2], Message = f[3] });
+        }
+        return list;
+    }
+
+    public static Task<TweakResult> StashPush(string message, bool includeUntracked, CancellationToken ct = default)
+    {
+        var msg = string.IsNullOrWhiteSpace(message) ? "WinForge stash" : message.Trim();
+        var untracked = includeUntracked ? "--include-untracked " : "";
+        return RunRaw($"stash push {untracked}-m {QuoteArg(msg)}", ct);
+    }
+
+    public static Task<TweakResult> StashApply(string selector, CancellationToken ct = default)
+        => RunRaw($"stash apply {QuoteArg(selector)}", ct);
+
+    public static Task<TweakResult> StashPop(string selector, CancellationToken ct = default)
+        => RunRaw($"stash pop {QuoteArg(selector)}", ct);
+
+    public static Task<TweakResult> StashDrop(string selector, CancellationToken ct = default)
+        => RunRaw($"stash drop {QuoteArg(selector)}", ct);
+
+    public sealed class TagInfo
+    {
+        public string Name = string.Empty;
+        public string Date = string.Empty;
+        public string Subject = string.Empty;
+    }
+
+    /// <summary>列出 tags · List tags, newest first.</summary>
+    public static async Task<List<TagInfo>> Tags(CancellationToken ct = default)
+    {
+        var list = new List<TagInfo>();
+        var (ok, outp) = await Exec("tag --list --sort=-creatordate --format=%(refname:short)%(creatordate:short)%(subject)", ct);
+        if (!ok) return list;
+        foreach (var raw in outp.Replace("\r", "").Split('\n', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var f = raw.Split('');
+            if (f.Length < 1 || string.IsNullOrWhiteSpace(f[0])) continue;
+            list.Add(new TagInfo
+            {
+                Name = f[0],
+                Date = f.Length > 1 ? f[1] : "",
+                Subject = f.Length > 2 ? f[2] : "",
+            });
+        }
+        return list;
+    }
+
+    public static Task<TweakResult> CreateTag(string name, string? message, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return Task.FromResult(TweakResult.Fail("Enter a tag name first.", "請先輸入 tag 名。"));
+        var n = name.Trim();
+        if (string.IsNullOrWhiteSpace(message))
+            return RunRaw($"tag {QuoteArg(n)}", ct);
+        return RunRaw($"tag -a {QuoteArg(n)} -m {QuoteArg(message.Trim())}", ct);
+    }
+
+    public static Task<TweakResult> DeleteTag(string name, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return Task.FromResult(TweakResult.Fail("Choose a tag first.", "請先揀一個 tag。"));
+        return RunRaw($"tag -d {QuoteArg(name.Trim())}", ct);
+    }
+
+    public static Task<TweakResult> PushTags(CancellationToken ct = default) => RunRaw("push --tags", ct);
 
     // ===== branches =====
 

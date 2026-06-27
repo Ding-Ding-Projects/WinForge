@@ -128,6 +128,135 @@
                     VerticalAlignment="Stretch">
                     <TabView.TabItems>
 
+                        <!-- ===== OVERVIEW ===== -->
+                        <TabViewItem x:Name="OverviewTab" IsClosable="False">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,8,8,0">
+                                <Grid ColumnSpacing="14" RowSpacing="14" MaxWidth="1180">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+
+                                    <!-- repository health -->
+                                    <Border
+                                        Grid.Row="0"
+                                        Grid.Column="0"
+                                        Padding="16,14,16,14"
+                                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8">
+                                        <StackPanel Spacing="10">
+                                            <Grid ColumnSpacing="8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock x:Name="OverviewLabel" Grid.Column="0" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                                <Button x:Name="PublishBranchBtn" Grid.Column="1" Click="PublishBranch_Click" />
+                                                <Button x:Name="RefreshOverviewBtn" Grid.Column="2" Click="RefreshOverview_Click" />
+                                            </Grid>
+                                            <StackPanel x:Name="OverviewSummaryPanel" Spacing="6" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- remotes -->
+                                    <Border
+                                        Grid.Row="0"
+                                        Grid.Column="1"
+                                        Padding="16,14,16,14"
+                                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8">
+                                        <StackPanel Spacing="10">
+                                            <TextBlock x:Name="RemotesLabel" FontWeight="SemiBold" />
+                                            <StackPanel x:Name="RemoteListPanel" Spacing="6" />
+                                            <Grid ColumnSpacing="8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="140" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBox x:Name="RemoteNameBox" Grid.Column="0" />
+                                                <TextBox x:Name="RemoteUrlBox" Grid.Column="1" />
+                                                <Button x:Name="AddRemoteBtn2" Grid.Column="2" Click="AddRemote_Click" />
+                                            </Grid>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- stashes -->
+                                    <Border
+                                        Grid.Row="1"
+                                        Grid.Column="0"
+                                        Padding="16,14,16,14"
+                                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8">
+                                        <StackPanel Spacing="10">
+                                            <Grid ColumnSpacing="8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock x:Name="StashesLabel" Grid.Column="0" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                                <Button x:Name="RefreshStashesBtn" Grid.Column="1" Click="RefreshStashes_Click" />
+                                            </Grid>
+                                            <Grid ColumnSpacing="8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBox x:Name="StashMessageBox" Grid.Column="0" />
+                                                <CheckBox x:Name="StashIncludeUntrackedCheck" Grid.Column="1" VerticalAlignment="Center" />
+                                                <Button x:Name="StashPushBtn" Grid.Column="2" Click="StashPush_Click" />
+                                            </Grid>
+                                            <StackPanel x:Name="StashListPanel" Spacing="6" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- tags -->
+                                    <Border
+                                        Grid.Row="1"
+                                        Grid.Column="1"
+                                        Padding="16,14,16,14"
+                                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8">
+                                        <StackPanel Spacing="10">
+                                            <Grid ColumnSpacing="8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock x:Name="TagsLabel" Grid.Column="0" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                                <Button x:Name="PushTagsBtn" Grid.Column="1" Click="PushTags_Click" />
+                                            </Grid>
+                                            <Grid ColumnSpacing="8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="160" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBox x:Name="TagNameBox" Grid.Column="0" />
+                                                <TextBox x:Name="TagMessageBox" Grid.Column="1" />
+                                                <Button x:Name="CreateTagBtn" Grid.Column="2" Click="CreateTag_Click" />
+                                            </Grid>
+                                            <StackPanel x:Name="TagListPanel" Spacing="6" />
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+                            </ScrollViewer>
+                        </TabViewItem>
+
                         <!-- ===== CHANGES ===== -->
                         <TabViewItem x:Name="ChangesTab" IsClosable="False">
                             <Grid ColumnSpacing="12" Padding="0,8,0,0">
