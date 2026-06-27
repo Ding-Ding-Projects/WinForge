@@ -97,10 +97,30 @@ public sealed partial class GitHubModule : Page
         TerminalBtn.Content = P("Terminal", "終端機");
         BrowserBtn.Content = P("Open on GitHub", "開 GitHub");
 
+        OverviewTab.Header = P("Overview", "概覽");
         ChangesTab.Header = P("Changes", "改動");
         HistoryTab.Header = P("History", "歷史");
         BranchesTab.Header = P("Branches", "分支");
         ToolsTab.Header = P("Tools", "工具");
+
+        // Overview tab
+        OverviewLabel.Text = P("Repository overview", "儲存庫概覽");
+        RefreshOverviewBtn.Content = P("Refresh", "重新整理");
+        PublishBranchBtn.Content = P("Publish branch", "發佈分支");
+        RemotesLabel.Text = P("Remotes", "Remotes");
+        RemoteNameBox.PlaceholderText = P("name", "名稱");
+        RemoteUrlBox.PlaceholderText = P("fetch / push URL…", "fetch / push 網址…");
+        AddRemoteBtn2.Content = P("Add remote", "新增 remote");
+        StashesLabel.Text = P("Stashes", "Stashes");
+        RefreshStashesBtn.Content = P("Refresh", "重新整理");
+        StashMessageBox.PlaceholderText = P("Stash message…", "Stash 訊息…");
+        StashIncludeUntrackedCheck.Content = P("Include untracked", "包括未追蹤");
+        StashPushBtn.Content = P("Stash changes", "收藏改動");
+        TagsLabel.Text = P("Tags", "Tags");
+        PushTagsBtn.Content = P("Push tags", "推送 tags");
+        TagNameBox.PlaceholderText = P("Tag name…", "Tag 名…");
+        TagMessageBox.PlaceholderText = P("Annotation message (optional)…", "標註訊息（可選）…");
+        CreateTagBtn.Content = P("Create tag", "建立 tag");
 
         // Changes tab
         ChangesLabel.Text = P("Changes", "改動");
@@ -398,6 +418,7 @@ public sealed partial class GitHubModule : Page
         {
             RepoStatus.Text = P("No repository selected — add or pick one on the left.",
                 "未揀儲存庫 — 喺左邊加或者揀一個。");
+            ClearOverview();
             ChangesList.Children.Clear();
             BranchCombo.Items.Clear();
             return;
@@ -407,6 +428,7 @@ public sealed partial class GitHubModule : Page
         {
             RepoStatus.Text = P("This folder is not a git repository. Use the “git init” quick action, or pick another.",
                 "呢個資料夾唔係 git 儲存庫。可以用「git init」快捷鍵，或者揀第二個。");
+            ClearOverview();
             ChangesList.Children.Clear();
             BranchCombo.Items.Clear();
             return;
@@ -429,7 +451,8 @@ public sealed partial class GitHubModule : Page
     {
         if (!GitDeskService.HasRepo) return;
         var sel = WorkTabs.SelectedItem as TabViewItem;
-        if (sel == ChangesTab) await LoadChanges();
+        if (sel == OverviewTab) await LoadOverview();
+        else if (sel == ChangesTab) await LoadChanges();
         else if (sel == HistoryTab) await LoadHistory();
         else if (sel == BranchesTab) await LoadGraph();
     }
@@ -487,6 +510,342 @@ public sealed partial class GitHubModule : Page
         if (!GitDeskService.HasRepo) return;
         var r = await ShellRunner.RunIn(GitDeskService.Repo, "gh", "repo view --web", elevated: false, CancellationToken.None);
         if (!r.Success && !string.IsNullOrWhiteSpace(r.Output)) Notify(InfoBarSeverity.Warning, P("Open on GitHub", "開 GitHub"), Msg(r));
+    }
+
+    // ===== OVERVIEW tab =====
+
+    private void ClearOverview()
+    {
+        OverviewSummaryPanel.Children.Clear();
+        RemoteListPanel.Children.Clear();
+        StashListPanel.Children.Clear();
+        TagListPanel.Children.Clear();
+        PublishBranchBtn.IsEnabled = false;
+    }
+
+    private async Task LoadOverview()
+    {
+        ClearOverview();
+        if (!GitDeskService.HasRepo) return;
+
+        var overview = await GitDeskService.Overview(CancellationToken.None);
+        PublishBranchBtn.IsEnabled = !overview.Detached && string.IsNullOrWhiteSpace(overview.Upstream);
+
+        OverviewSummaryPanel.Children.Add(InfoRow(P("Root", "根目錄"), string.IsNullOrWhiteSpace(overview.Root) ? GitDeskService.Repo : overview.Root));
+        OverviewSummaryPanel.Children.Add(InfoRow(P("Branch", "分支"),
+            overview.Detached ? P($"Detached HEAD at {overview.ShortHead}", $"脫離 HEAD：{overview.ShortHead}") : overview.Branch));
+        OverviewSummaryPanel.Children.Add(InfoRow(P("Upstream", "上游"),
+            string.IsNullOrWhiteSpace(overview.Upstream) ? P("Not published yet", "未發佈") : overview.Upstream));
+        OverviewSummaryPanel.Children.Add(InfoRow(P("Sync", "同步"),
+            overview.Ahead is null || overview.Behind is null
+                ? P("No upstream tracking information", "未有上游追蹤資料")
+                : P($"Ahead {overview.Ahead}, behind {overview.Behind}", $"領先 {overview.Ahead}，落後 {overview.Behind}")));
+        OverviewSummaryPanel.Children.Add(InfoRow(P("Changes", "改動"),
+            P($"{overview.TotalChanges} total · {overview.Staged} staged · {overview.Unstaged} unstaged · {overview.Untracked} untracked · {overview.Conflicted} conflicted",
+              $"共 {overview.TotalChanges} 項 · {overview.Staged} 已暫存 · {overview.Unstaged} 未暫存 · {overview.Untracked} 未追蹤 · {overview.Conflicted} 衝突")));
+        OverviewSummaryPanel.Children.Add(InfoRow(P("Identity", "身份"),
+            string.IsNullOrWhiteSpace(overview.UserName + overview.UserEmail)
+                ? P("No repo-specific user.name / user.email", "未設定呢個 repo 專用 user.name / user.email")
+                : $"{overview.UserName} <{overview.UserEmail}>"));
+        OverviewSummaryPanel.Children.Add(InfoRow(P("Last commit", "最後提交"),
+            string.IsNullOrWhiteSpace(overview.LastSubject)
+                ? P("No commits yet", "未有提交")
+                : $"{overview.ShortHead} · {overview.LastSubject} · {overview.LastAuthor} · {overview.LastDate}"));
+
+        await LoadRemotes();
+        await LoadStashes();
+        await LoadTags();
+    }
+
+    private FrameworkElement InfoRow(string label, string value)
+    {
+        var grid = new Grid { ColumnSpacing = 10 };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(130) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.Children.Add(new TextBlock
+        {
+            Text = label,
+            FontSize = 12,
+            Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+            VerticalAlignment = VerticalAlignment.Top,
+        });
+        var val = new TextBlock
+        {
+            Text = value,
+            TextWrapping = TextWrapping.Wrap,
+            IsTextSelectionEnabled = true,
+        };
+        Grid.SetColumn(val, 1);
+        grid.Children.Add(val);
+        return grid;
+    }
+
+    private TextBlock EmptyHint(string text) => new()
+    {
+        Text = text,
+        FontSize = 13,
+        TextWrapping = TextWrapping.Wrap,
+        Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+    };
+
+    private async Task LoadRemotes()
+    {
+        RemoteListPanel.Children.Clear();
+        var remotes = await GitDeskService.Remotes(CancellationToken.None);
+        if (remotes.Count == 0)
+        {
+            RemoteListPanel.Children.Add(EmptyHint(P("No remotes configured.", "未設定 remote。")));
+            return;
+        }
+
+        foreach (var remote in remotes)
+            RemoteListPanel.Children.Add(BuildRemoteRow(remote));
+    }
+
+    private FrameworkElement BuildRemoteRow(GitDeskService.RemoteInfo remote)
+    {
+        var grid = new Grid { ColumnSpacing = 8, Padding = new Thickness(8, 6, 8, 6) };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        var text = new StackPanel { Spacing = 2 };
+        text.Children.Add(new TextBlock { Text = remote.Name, FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis });
+        var fetch = string.IsNullOrWhiteSpace(remote.FetchUrl) ? remote.PushUrl : remote.FetchUrl;
+        text.Children.Add(new TextBlock
+        {
+            Text = fetch,
+            FontSize = 11,
+            Foreground = (Brush)Application.Current.Resources["TextFillColorTertiaryBrush"],
+            TextTrimming = TextTrimming.CharacterEllipsis,
+        });
+        Grid.SetColumn(text, 0);
+        grid.Children.Add(text);
+
+        var fetchBtn = new Button { Content = P("Fetch", "抓取"), Padding = new Thickness(8, 4, 8, 4) };
+        fetchBtn.Click += async (_, _) =>
+        {
+            var r = await GitDeskService.RunRaw($"fetch --prune \"{remote.Name.Replace("\"", "\\\"")}\"");
+            Notify(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error, P("Fetch remote", "抓取 remote"), Msg(r));
+            await Refresh();
+        };
+        Grid.SetColumn(fetchBtn, 1);
+        grid.Children.Add(fetchBtn);
+
+        var removeBtn = new Button { Content = P("Remove", "移除"), Padding = new Thickness(8, 4, 8, 4) };
+        removeBtn.Click += async (_, _) =>
+        {
+            if (!await Confirm(P("Remove remote", "移除 remote"),
+                    P($"Remove remote “{remote.Name}” from this repository?", $"由呢個儲存庫移除 remote「{remote.Name}」？"),
+                    P("Remove", "移除"))) return;
+            var r = await GitDeskService.RemoveRemote(remote.Name);
+            Notify(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error, P("Remove remote", "移除 remote"), Msg(r));
+            await LoadOverview();
+        };
+        Grid.SetColumn(removeBtn, 2);
+        grid.Children.Add(removeBtn);
+
+        return new Border
+        {
+            Background = (Brush)Application.Current.Resources["LayerFillColorDefaultBrush"],
+            CornerRadius = new CornerRadius(6),
+            Child = grid,
+        };
+    }
+
+    private async void AddRemote_Click(object sender, RoutedEventArgs e)
+    {
+        var r = await GitDeskService.AddRemote(RemoteNameBox.Text ?? "", RemoteUrlBox.Text ?? "");
+        if (r.Success)
+        {
+            RemoteNameBox.Text = string.Empty;
+            RemoteUrlBox.Text = string.Empty;
+        }
+        Notify(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error, P("Add remote", "新增 remote"), Msg(r));
+        await LoadOverview();
+    }
+
+    private async Task LoadStashes()
+    {
+        StashListPanel.Children.Clear();
+        var stashes = await GitDeskService.Stashes(CancellationToken.None);
+        if (stashes.Count == 0)
+        {
+            StashListPanel.Children.Add(EmptyHint(P("No stashes saved.", "未有 stash。")));
+            return;
+        }
+
+        foreach (var stash in stashes)
+            StashListPanel.Children.Add(BuildStashRow(stash));
+    }
+
+    private FrameworkElement BuildStashRow(GitDeskService.StashInfo stash)
+    {
+        var grid = new Grid { ColumnSpacing = 8, Padding = new Thickness(8, 6, 8, 6) };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        var text = new StackPanel { Spacing = 2 };
+        text.Children.Add(new TextBlock { Text = stash.Message, FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis });
+        text.Children.Add(new TextBlock
+        {
+            Text = $"{stash.Selector} · {stash.Hash} · {stash.Age}",
+            FontSize = 11,
+            Foreground = (Brush)Application.Current.Resources["TextFillColorTertiaryBrush"],
+        });
+        Grid.SetColumn(text, 0);
+        grid.Children.Add(text);
+
+        var applyBtn = new Button { Content = P("Apply", "套用"), Padding = new Thickness(8, 4, 8, 4) };
+        applyBtn.Click += async (_, _) =>
+        {
+            var r = await GitDeskService.StashApply(stash.Selector);
+            Notify(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error, P("Apply stash", "套用 stash"), Msg(r));
+            await Refresh();
+        };
+        Grid.SetColumn(applyBtn, 1);
+        grid.Children.Add(applyBtn);
+
+        var popBtn = new Button { Content = P("Pop", "彈出"), Padding = new Thickness(8, 4, 8, 4) };
+        popBtn.Click += async (_, _) =>
+        {
+            var r = await GitDeskService.StashPop(stash.Selector);
+            Notify(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error, P("Pop stash", "彈出 stash"), Msg(r));
+            await Refresh();
+        };
+        Grid.SetColumn(popBtn, 2);
+        grid.Children.Add(popBtn);
+
+        var dropBtn = new Button { Content = P("Drop", "刪除"), Padding = new Thickness(8, 4, 8, 4) };
+        dropBtn.Click += async (_, _) =>
+        {
+            if (!await Confirm(P("Drop stash", "刪除 stash"),
+                    P($"Drop {stash.Selector}? This cannot be undone.", $"刪除 {stash.Selector}？呢個動作無法復原。"),
+                    P("Drop", "刪除"))) return;
+            var r = await GitDeskService.StashDrop(stash.Selector);
+            Notify(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error, P("Drop stash", "刪除 stash"), Msg(r));
+            await LoadOverview();
+        };
+        Grid.SetColumn(dropBtn, 3);
+        grid.Children.Add(dropBtn);
+
+        return new Border
+        {
+            Background = (Brush)Application.Current.Resources["LayerFillColorDefaultBrush"],
+            CornerRadius = new CornerRadius(6),
+            Child = grid,
+        };
+    }
+
+    private async void StashPush_Click(object sender, RoutedEventArgs e)
+    {
+        var r = await GitDeskService.StashPush(StashMessageBox.Text ?? "", StashIncludeUntrackedCheck.IsChecked == true);
+        if (r.Success) StashMessageBox.Text = string.Empty;
+        Notify(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error, P("Stash changes", "收藏改動"), Msg(r));
+        await Refresh();
+    }
+
+    private async Task LoadTags()
+    {
+        TagListPanel.Children.Clear();
+        var tags = await GitDeskService.Tags(CancellationToken.None);
+        if (tags.Count == 0)
+        {
+            TagListPanel.Children.Add(EmptyHint(P("No tags yet.", "未有 tag。")));
+            return;
+        }
+
+        foreach (var tag in tags.Take(30))
+            TagListPanel.Children.Add(BuildTagRow(tag));
+    }
+
+    private FrameworkElement BuildTagRow(GitDeskService.TagInfo tag)
+    {
+        var grid = new Grid { ColumnSpacing = 8, Padding = new Thickness(8, 6, 8, 6) };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        var text = new StackPanel { Spacing = 2 };
+        text.Children.Add(new TextBlock { Text = tag.Name, FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis });
+        var sub = string.Join(" · ", new[] { tag.Date, tag.Subject }.Where(s => !string.IsNullOrWhiteSpace(s)));
+        if (!string.IsNullOrWhiteSpace(sub))
+        {
+            text.Children.Add(new TextBlock
+            {
+                Text = sub,
+                FontSize = 11,
+                Foreground = (Brush)Application.Current.Resources["TextFillColorTertiaryBrush"],
+                TextTrimming = TextTrimming.CharacterEllipsis,
+            });
+        }
+        Grid.SetColumn(text, 0);
+        grid.Children.Add(text);
+
+        var deleteBtn = new Button { Content = P("Delete", "刪除"), Padding = new Thickness(8, 4, 8, 4) };
+        deleteBtn.Click += async (_, _) =>
+        {
+            if (!await Confirm(P("Delete tag", "刪除 tag"),
+                    P($"Delete local tag “{tag.Name}”?", $"刪除本機 tag「{tag.Name}」？"),
+                    P("Delete", "刪除"))) return;
+            var r = await GitDeskService.DeleteTag(tag.Name);
+            Notify(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error, P("Delete tag", "刪除 tag"), Msg(r));
+            await LoadOverview();
+        };
+        Grid.SetColumn(deleteBtn, 1);
+        grid.Children.Add(deleteBtn);
+
+        return new Border
+        {
+            Background = (Brush)Application.Current.Resources["LayerFillColorDefaultBrush"],
+            CornerRadius = new CornerRadius(6),
+            Child = grid,
+        };
+    }
+
+    private async void CreateTag_Click(object sender, RoutedEventArgs e)
+    {
+        var r = await GitDeskService.CreateTag(TagNameBox.Text ?? "", TagMessageBox.Text);
+        if (r.Success)
+        {
+            TagNameBox.Text = string.Empty;
+            TagMessageBox.Text = string.Empty;
+        }
+        Notify(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error, P("Create tag", "建立 tag"), Msg(r));
+        await LoadOverview();
+    }
+
+    private async void PushTags_Click(object sender, RoutedEventArgs e)
+    {
+        var r = await GitDeskService.PushTags();
+        Notify(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error, P("Push tags", "推送 tags"), Msg(r));
+        await LoadOverview();
+    }
+
+    private async void RefreshOverview_Click(object sender, RoutedEventArgs e) => await LoadOverview();
+
+    private async void RefreshStashes_Click(object sender, RoutedEventArgs e) => await LoadStashes();
+
+    private async void PublishBranch_Click(object sender, RoutedEventArgs e)
+    {
+        var r = await GitDeskService.PushSetUpstream();
+        Notify(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error, P("Publish branch", "發佈分支"), Msg(r));
+        await Refresh();
+    }
+
+    private async Task<bool> Confirm(string title, string body, string primary)
+    {
+        var dlg = new ContentDialog
+        {
+            Title = title,
+            Content = body,
+            PrimaryButtonText = primary,
+            CloseButtonText = P("Cancel", "取消"),
+            DefaultButton = ContentDialogButton.Close,
+            XamlRoot = this.XamlRoot,
+        };
+        return await dlg.ShowAsync() == ContentDialogResult.Primary;
     }
 
     // ===== CHANGES tab =====
