@@ -187,6 +187,10 @@ public static class ResumeWriterService
                             $"搵唔到 {agent.NameZh} 嘅 API 金鑰（{agent.EnvKey}）。請先喺 AI 代理模組設定。"),
             };
 
+        var creditReady = CakeCreditService.I.CheckCanStartGeneration(agent.NameEn, agent.NameZh);
+        if (!creditReady.Success)
+            return new ResumeGenResult { Success = false, Error = creditReady.Message };
+
         var prompt = BuildPrompt(baseResume, jobDescription, tone);
         var r = await RunAgentAsync(agent, prompt, ct);
 
@@ -204,6 +208,13 @@ public static class ResumeWriterService
                     $"The agent did not return any output. {(Loc.I.IsCantonesePrimary ? r.Message?.Zh : r.Message?.En) ?? ""}".Trim(),
                     $"代理冇任何輸出。{r.Message?.Zh ?? ""}".Trim()),
             };
+
+        var charge = CakeCreditService.I.TryChargeGeneratedUnits(
+            agent.NameEn,
+            agent.NameZh,
+            CakeCreditService.EstimateGeneratedUnits(raw));
+        if (!charge.Success)
+            return new ResumeGenResult { Success = false, Raw = raw, Error = charge.Message };
 
         var (resume, cover) = Split(raw);
         return new ResumeGenResult

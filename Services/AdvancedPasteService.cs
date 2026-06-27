@@ -519,10 +519,19 @@ public static class AdvancedPasteService
         });
 
         var sb = new StringBuilder();
+        bool? creditOk = null;
+        LocalizedText? creditMessage = null;
         await AiChatService.I.StreamChatAsync(chat, provider, chunk =>
         {
             if (!string.IsNullOrEmpty(chunk.Delta)) sb.Append(chunk.Delta);
+            if (chunk.CreditMessage is not null)
+            {
+                creditOk = chunk.CreditSuccess;
+                creditMessage = chunk.CreditMessage;
+            }
         }, ct);
+        if (creditOk == false && creditMessage is not null)
+            throw new InvalidOperationException(creditMessage.Primary);
         return sb.ToString().Trim();
     }
 

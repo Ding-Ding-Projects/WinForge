@@ -97,7 +97,13 @@ public sealed class OllamaChatOptions
 }
 
 /// <summary>聊天串流嘅一嚿 · One streamed chunk from POST /api/chat.</summary>
-public readonly record struct OllamaChatChunk(string Content, bool Done, bool Failed, string? Error);
+public readonly record struct OllamaChatChunk(
+    string Content,
+    bool Done,
+    bool Failed,
+    string? Error,
+    int? PromptTokens = null,
+    int? CompletionTokens = null);
 
 /// <summary>
 /// 本機 Ollama 嘅 REST 客戶端 · Typed HttpClient wrapper over the local Ollama REST API
@@ -419,6 +425,7 @@ public sealed class OllamaService
                 if (line.Length == 0) continue;
 
                 string content = ""; bool done = false; bool failed = false; string? err = null;
+                int? promptTokens = null, completionTokens = null;
                 bool ok = true;
                 try
                 {
@@ -430,12 +437,16 @@ public sealed class OllamaService
                         && msg.TryGetProperty("content", out var c) && c.ValueKind == JsonValueKind.String)
                         content = c.GetString() ?? "";
                     if (root.TryGetProperty("done", out var dn) && dn.ValueKind == JsonValueKind.True) done = true;
+                    if (root.TryGetProperty("prompt_eval_count", out var pt) && pt.TryGetInt32(out var ptv))
+                        promptTokens = ptv;
+                    if (root.TryGetProperty("eval_count", out var et) && et.TryGetInt32(out var etv))
+                        completionTokens = etv;
                 }
                 catch { ok = false; }
                 if (!ok) continue;
                 if (failed) { yield return new OllamaChatChunk("", false, true, err); yield break; }
                 if (content.Length > 0) yield return new OllamaChatChunk(content, false, false, null);
-                if (done) { yield return new OllamaChatChunk("", true, false, null); yield break; }
+                if (done) { yield return new OllamaChatChunk("", true, false, null, promptTokens, completionTokens); yield break; }
             }
         }
         finally

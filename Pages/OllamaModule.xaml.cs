@@ -370,6 +370,13 @@ public sealed partial class OllamaModule : Page
         var text = (ChatInput.Text ?? "").Trim();
         if (text.Length == 0) return;
 
+        var creditReady = CakeCreditService.I.CheckCanStartGeneration("Ollama", "Ollama");
+        if (!creditReady.Success)
+        {
+            AddSystemNote(creditReady.Message.Primary);
+            return;
+        }
+
         ChatInput.Text = "";
         AddBubble(text, isUser: true);
 
@@ -397,6 +404,7 @@ public sealed partial class OllamaModule : Page
         ChatSendBtn.IsEnabled = false; ChatStopBtn.IsEnabled = true; ChatInput.IsEnabled = false;
         var assistant = new OllamaChatMessage { Role = "assistant", Content = "" };
         bool any = false; string? error = null;
+        int? promptTok = null, compTok = null;
         try
         {
             await foreach (var chunk in _svc.ChatStreamAsync(model, request, options, ct))
@@ -409,6 +417,8 @@ public sealed partial class OllamaModule : Page
                     replyBlock.Text = assistant.Content;
                     ChatScroll.ChangeView(null, ChatScroll.ScrollableHeight, null, true);
                 }
+                if (chunk.PromptTokens is int pt) promptTok = pt;
+                if (chunk.CompletionTokens is int ct2) compTok = ct2;
                 if (chunk.Done) break;
             }
         }
@@ -432,6 +442,14 @@ public sealed partial class OllamaModule : Page
         else
         {
             _history.Add(assistant);
+            var units = CakeCreditService.GeneratedUnitsFrom(compTok, assistant.Content);
+            var charge = CakeCreditService.I.TryChargeGeneratedUnits("Ollama", "Ollama", units);
+            var tokenText = compTok is int c
+                ? (promptTok is int p
+                    ? P($"Prompt {p} tok · response {c} tok", $"提示 {p} tok · 回應 {c} tok")
+                    : P($"Response {c} tokens", $"回應 {c} 個 token"))
+                : P($"Estimated {CakeCreditService.FormatUnits(units)}", $"估算 {CakeCreditService.FormatUnits(units)}");
+            AddSystemNote($"{tokenText} · {charge.Message.Primary}");
         }
         ChatInput.Focus(FocusState.Programmatic);
         await LoadRunning();

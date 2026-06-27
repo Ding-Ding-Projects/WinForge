@@ -2700,6 +2700,44 @@ internal static class Program
             }
         });
 
+        Scenario("CAKE AI CREDITS (signed cakes become one-million-unit generation credits)", () =>
+        {
+            string root = Path.Combine(Path.GetTempPath(), "cake-ai-credit-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                var bakery = new CakeFileService(root);
+                var issued = bakery.IssueBatch(CakeFactoryService.Recipes[0], 1, 97, 94);
+                var cakePath = issued[0].Path;
+                bool fileReady = File.Exists(cakePath) && bakery.Validate(cakePath).Valid;
+
+                var credits = new CakeCreditService(root);
+                var canStart = credits.CheckCanStartGeneration("Ollama", "Ollama");
+                var first = credits.TryChargeGeneratedUnits("Ollama", "Ollama", 250_000);
+                var afterFirst = credits.Snapshot;
+                var second = credits.TryChargeGeneratedUnits("Ollama", "Ollama", 750_000);
+                var afterSecond = credits.Snapshot;
+                var denied = credits.TryChargeGeneratedUnits("Ollama", "Ollama", 1);
+
+                bool consumedCakeFile = !File.Exists(cakePath);
+                bool pass = fileReady
+                            && canStart.Success
+                            && first.Success && first.CakesFedNow == 1 && first.BalanceUnits == 750_000
+                            && afterFirst.CakesFed == 1 && afterFirst.LifetimeDepositedUnits == CakeCreditService.UnitsPerCake
+                            && consumedCakeFile
+                            && second.Success && second.BalanceUnits == 0
+                            && afterSecond.LifetimeSpentUnits == CakeCreditService.UnitsPerCake
+                            && !denied.Success && denied.BalanceUnits == 0;
+
+                return (pass, $"fileReady={fileReady}, canStart={canStart.Success}, firstSpent={first.UnitsCharged}, " +
+                              $"fedNow={first.CakesFedNow}, balanceAfterFirst={first.BalanceUnits}, " +
+                              $"fileDeleted={consumedCakeFile}, secondSpent={second.UnitsCharged}, denied={denied.Success}");
+            }
+            finally
+            {
+                try { Directory.Delete(root, true); } catch { }
+            }
+        });
+
         Scenario("CAKE CIP SANITATION (cleaning locks batching, progresses, restores sanitation)", () =>
         {
             var cake = new CakeFactoryService();

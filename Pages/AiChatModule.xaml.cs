@@ -629,6 +629,9 @@ public sealed partial class AiChatModule : Page
         ToggleSending(true);
         var sb = new StringBuilder();
         int? promptTok = null, compTok = null;
+        bool? creditOk = null;
+        long? creditUnits = null;
+        LocalizedText? creditMessage = null;
 
         try
         {
@@ -645,6 +648,12 @@ public sealed partial class AiChatModule : Page
                     }
                     if (chunk.PromptTokens is int pt) promptTok = pt;
                     if (chunk.CompletionTokens is int ct2) compTok = ct2;
+                    if (chunk.CreditMessage is not null)
+                    {
+                        creditOk = chunk.CreditSuccess;
+                        creditUnits = chunk.CreditUnits;
+                        creditMessage = chunk.CreditMessage;
+                    }
                 });
             }, _streamCts.Token);
         }
@@ -661,11 +670,21 @@ public sealed partial class AiChatModule : Page
         _svc.SaveConversation(_active);
         RenderMessages();
 
-        if (compTok is int c)
-            ShowInfo(InfoBarSeverity.Informational, P("Done", "完成"),
-                promptTok is int p
+        if (creditMessage is not null)
+        {
+            var units = creditUnits ?? CakeCreditService.GeneratedUnitsFrom(compTok, assistant.Content);
+            var tokenText = !string.IsNullOrWhiteSpace(assistant.Content) && compTok is int c
+                ? (promptTok is int p
                     ? P($"Prompt {p} tok · response {c} tok", $"提示 {p} tok · 回應 {c} tok")
-                    : P($"Response {c} tokens", $"回應 {c} 個 token"));
+                    : P($"Response {c} tokens", $"回應 {c} 個 token"))
+                : P($"Estimated {CakeCreditService.FormatUnits(units)}", $"估算 {CakeCreditService.FormatUnits(units)}");
+            var detail = string.IsNullOrWhiteSpace(assistant.Content) && creditOk != true
+                ? creditMessage.Primary
+                : $"{tokenText} · {creditMessage.Primary}";
+            ShowInfo(creditOk == true ? InfoBarSeverity.Informational : InfoBarSeverity.Warning,
+                creditOk == true ? P("Done · cake credits spent", "完成 · 已使用蛋糕額度") : P("Cake credits required", "需要蛋糕額度"),
+                detail);
+        }
     }
 
     private void UpdateBubble(FrameworkElement bubbleRoot, ChatMessage m)
