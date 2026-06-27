@@ -281,7 +281,8 @@ public sealed partial class PackageManagerModule : Page
                 (P("Options…", "選項…"), async _ => await ShowOptionsDialog(item)),
                 (P("More ▾", "更多 ▾"), btn => { ShowMoreFlyout(btn, item, RowExtraScope.Discover); return Task.CompletedTask; }),
             };
-            ResultsPanel.Children.Add(RowFor(item, P("Install", "安裝"), async btn => await ActionInstall(item, btn), extras));
+            ResultsPanel.Children.Add(RowFor(item, P("Install", "安裝"), async btn => await ActionInstall(item, btn),
+                extras, RowExtraScope.Discover, PackageOperations.Op.Install));
         }
     }
 
@@ -339,7 +340,8 @@ public sealed partial class PackageManagerModule : Page
                 (P("Ignore ▾", "忽略 ▾"), btn => { ShowIgnoreFlyout(btn, pkg); return Task.CompletedTask; }),
                 (P("More ▾", "更多 ▾"), btn => { ShowMoreFlyout(btn, item, RowExtraScope.Updates); return Task.CompletedTask; }),
             };
-            ResultsPanel.Children.Add(RowFor(item, label, async btn => await ActionUpdate(item, btn), extras));
+            ResultsPanel.Children.Add(RowFor(item, label, async btn => await ActionUpdate(item, btn),
+                extras, RowExtraScope.Updates, PackageOperations.Op.Update));
         }
     }
 
@@ -350,14 +352,19 @@ public sealed partial class PackageManagerModule : Page
     private void ShowIgnoreFlyout(Button anchor, PackageItem item)
     {
         var flyout = new MenuFlyout();
+        AddIgnoreMenuItems(flyout.Items, item);
+        flyout.ShowAt(anchor);
+    }
 
+    private void AddIgnoreMenuItems(IList<MenuFlyoutItemBase> items, PackageItem item)
+    {
         var skip = new MenuFlyoutItem { Text = P("Skip this version", "跳過此版本") };
         skip.Click += async (_, _) => { IgnoredUpdates.PinThisVersion(item); await LoadUpdates(); };
-        flyout.Items.Add(skip);
+        items.Add(skip);
 
         var all = new MenuFlyoutItem { Text = P("Ignore all versions", "忽略所有版本") };
         all.Click += async (_, _) => { IgnoredUpdates.PinAllVersions(item); await LoadUpdates(); };
-        flyout.Items.Add(all);
+        items.Add(all);
 
         var pause = new MenuFlyoutSubItem { Text = P("Pause updates for…", "暫停更新…") };
         void AddPause(string en, string zh, TimeSpan d)
@@ -370,9 +377,7 @@ public sealed partial class PackageManagerModule : Page
         AddPause("1 week", "1 個星期", TimeSpan.FromDays(7));
         AddPause("1 month", "1 個月", TimeSpan.FromDays(30));
         AddPause("3 months", "3 個月", TimeSpan.FromDays(90));
-        flyout.Items.Add(pause);
-
-        flyout.ShowAt(anchor);
+        items.Add(pause);
     }
 
     private async Task UpdateAll()
@@ -414,7 +419,8 @@ public sealed partial class PackageManagerModule : Page
             {
                 (P("More ▾", "更多 ▾"), btn => { ShowMoreFlyout(btn, item, RowExtraScope.Installed); return Task.CompletedTask; }),
             };
-            ResultsPanel.Children.Add(RowFor(item, P("Uninstall", "解除安裝"), async btn => await ActionUninstall(item, btn), extras));
+            ResultsPanel.Children.Add(RowFor(item, P("Uninstall", "解除安裝"), async btn => await ActionUninstall(item, btn),
+                extras, RowExtraScope.Installed, PackageOperations.Op.Uninstall));
         }
     }
 
@@ -954,26 +960,110 @@ public sealed partial class PackageManagerModule : Page
     /// (reinstall / uninstall-then-X). Bilingual throughout.
     /// </summary>
     private void ShowMoreFlyout(Button btn, PackageItem item, RowExtraScope scope)
+        => BuildMoreFlyout(item, scope).ShowAt(btn);
+
+    private MenuFlyout BuildMoreFlyout(PackageItem item, RowExtraScope scope)
     {
         var flyout = new MenuFlyout();
 
         // Copy install command.
+        AddCopyInstallCommandItem(flyout.Items, item);
+
+        // Download installer…
+        AddDownloadInstallerItem(flyout.Items, item);
+
+        // Chained ops vary per view.
+        AddChainedOperationItems(flyout.Items, item, scope);
+
+        return flyout;
+    }
+
+    private MenuFlyout BuildPackageContextFlyout(PackageItem item, RowExtraScope scope, string actionLabel, PackageOperations.Op op)
+    {
+        var flyout = new MenuFlyout();
+
+        var details = new MenuFlyoutItem { Text = P("Details", "詳情") };
+        details.Click += async (_, _) => await ShowDetails(item);
+        flyout.Items.Add(details);
+
+        var run = new MenuFlyoutItem { Text = actionLabel };
+        run.Click += async (_, _) => await RunOperationFromMenu(item, op);
+        flyout.Items.Add(run);
+
+        var options = new MenuFlyoutItem
+        {
+            Text = op switch
+            {
+                PackageOperations.Op.Update => P("Update options…", "更新選項…"),
+                PackageOperations.Op.Uninstall => P("Uninstall options…", "解除安裝選項…"),
+                _ => P("Install options…", "安裝選項…"),
+            },
+        };
+        options.Click += async (_, _) => await ShowOperationOptionsDialog(item, op);
+        flyout.Items.Add(options);
+
+        if (scope is RowExtraScope.Updates)
+        {
+            var ignore = new MenuFlyoutSubItem { Text = P("Ignore updates", "忽略更新") };
+            AddIgnoreMenuItems(ignore.Items, item);
+            flyout.Items.Add(ignore);
+        }
+
+        flyout.Items.Add(new MenuFlyoutSeparator());
+        AddCopyOperationCommandItem(flyout.Items, item, op);
+        AddCopyInstallCommandItem(flyout.Items, item);
+
+        var copyId = new MenuFlyoutItem { Text = P("Copy package ID", "複製套件 ID") };
+        copyId.Click += (_, _) => CopyText(item.Id, P("package ID", "套件 ID"));
+        flyout.Items.Add(copyId);
+
+        var copyName = new MenuFlyoutItem { Text = P("Copy package name", "複製套件名稱") };
+        copyName.Click += (_, _) => CopyText(item.Name, P("package name", "套件名稱"));
+        flyout.Items.Add(copyName);
+
+        var copyRef = new MenuFlyoutItem { Text = P("Copy package reference", "複製套件參照") };
+        copyRef.Click += (_, _) => CopyText(
+            $"manager={item.ManagerKey}\nid={item.Id}\nname={item.Name}\nversion={item.Version}\nsource={item.Source}",
+            P("package reference", "套件參照"));
+        flyout.Items.Add(copyRef);
+
+        AddDownloadInstallerItem(flyout.Items, item);
+        AddChainedOperationItems(flyout.Items, item, scope);
+
+        return flyout;
+    }
+
+    private void AddCopyInstallCommandItem(IList<MenuFlyoutItemBase> items, PackageItem item)
+    {
         var copy = new MenuFlyoutItem { Text = P("Copy install command", "複製安裝指令") };
         copy.Click += (_, _) =>
         {
-            try
-            {
-                var cmd = PackageDetails.BuildInstallCommand(item);
-                var dp = new Windows.ApplicationModel.DataTransfer.DataPackage();
-                dp.SetText(cmd);
-                Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(dp);
-                ResultsHeader.Text = P($"Copied: {cmd}", $"已複製：{cmd}");
-            }
+            try { CopyText(PackageDetails.BuildInstallCommand(item), P("install command", "安裝指令")); }
             catch (Exception ex) { ResultsHeader.Text = ex.Message; }
         };
-        flyout.Items.Add(copy);
+        items.Add(copy);
+    }
 
-        // Download installer…
+    private void AddCopyOperationCommandItem(IList<MenuFlyoutItemBase> items, PackageItem item, PackageOperations.Op op)
+    {
+        var label = op switch
+        {
+            PackageOperations.Op.Update => P("Copy update command", "複製更新指令"),
+            PackageOperations.Op.Uninstall => P("Copy uninstall command", "複製解除安裝指令"),
+            _ => P("Copy install command with options", "複製含選項安裝指令"),
+        };
+        var copy = new MenuFlyoutItem { Text = label };
+        copy.Click += (_, _) =>
+        {
+            var opts = InstallOptions.Load(item.ManagerKey, item.Id);
+            var cmd = PackageOperations.BuildCommandPreview(item.ManagerKey, item.Id, op, opts);
+            CopyText(cmd, P("operation command", "操作指令"));
+        };
+        items.Add(copy);
+    }
+
+    private void AddDownloadInstallerItem(IList<MenuFlyoutItemBase> items, PackageItem item)
+    {
         var download = new MenuFlyoutItem { Text = P("Download installer…", "下載安裝程式…") };
         download.Click += async (_, _) =>
         {
@@ -987,12 +1077,14 @@ public sealed partial class PackageManagerModule : Page
             }
             catch (Exception ex) { ResultsHeader.Text = ex.Message; }
         };
-        flyout.Items.Add(download);
+        items.Add(download);
+    }
 
-        // Chained ops vary per view.
+    private void AddChainedOperationItems(IList<MenuFlyoutItemBase> items, PackageItem item, RowExtraScope scope)
+    {
         if (scope is RowExtraScope.Installed)
         {
-            flyout.Items.Add(new MenuFlyoutSeparator());
+            items.Add(new MenuFlyoutSeparator());
             var reinstall = new MenuFlyoutItem { Text = P("Reinstall", "重新安裝") };
             reinstall.Click += async (_, _) => await RunChainedFromRow(item,
                 P("Reinstall", "重新安裝"),
@@ -1001,7 +1093,7 @@ public sealed partial class PackageManagerModule : Page
                     ("Uninstall", "解除安裝", (m, c) => m.UninstallAsync(item.Id, c)),
                     ("Install", "安裝", (m, c) => m.InstallAsync(item.Id, c)),
                 });
-            flyout.Items.Add(reinstall);
+            items.Add(reinstall);
 
             var unRe = new MenuFlyoutItem { Text = P("Uninstall then reinstall", "解除後重裝") };
             unRe.Click += async (_, _) => await RunChainedFromRow(item,
@@ -1011,11 +1103,11 @@ public sealed partial class PackageManagerModule : Page
                     ("Uninstall", "解除安裝", (m, c) => m.UninstallAsync(item.Id, c)),
                     ("Install", "安裝", (m, c) => m.InstallAsync(item.Id, c)),
                 });
-            flyout.Items.Add(unRe);
+            items.Add(unRe);
         }
         else if (scope is RowExtraScope.Updates)
         {
-            flyout.Items.Add(new MenuFlyoutSeparator());
+            items.Add(new MenuFlyoutSeparator());
             var unUp = new MenuFlyoutItem { Text = P("Uninstall then update", "解除後更新") };
             unUp.Click += async (_, _) => await RunChainedFromRow(item,
                 P("Uninstall then update", "解除後更新"),
@@ -1025,10 +1117,8 @@ public sealed partial class PackageManagerModule : Page
                     ("Install", "安裝", (m, c) => m.InstallAsync(item.Id, c)),
                     ("Update", "更新", (m, c) => m.UpdateAsync(item.Id, c)),
                 });
-            flyout.Items.Add(unUp);
+            items.Add(unUp);
         }
-
-        flyout.ShowAt(btn);
     }
 
     /// <summary>由行內鏈式操作執行並更新表頭 · Run a chained sequence of manager ops from a row, surfacing progress in the header.</summary>
@@ -1060,27 +1150,60 @@ public sealed partial class PackageManagerModule : Page
     }
 
     private async Task ShowOptionsDialog(PackageItem item)
+        => await ShowOperationOptionsDialog(item, PackageOperations.Op.Install);
+
+    private async Task ShowOperationOptionsDialog(PackageItem item, PackageOperations.Op op)
     {
         // 載入每個套件嘅選項（無覆寫就跟全域）· Load per-package options (follows global if no override).
         var opts = InstallOptions.Load(item.ManagerKey, item.Id);
         var confirmed = await InstallOptionsDialog.ShowAsync(
-            this.XamlRoot, item, opts, PackageOperations.Op.Install);
+            this.XamlRoot, item, opts, op);
         if (!confirmed) return;
 
         // 確認後重新載入（對話框已經寫咗覆寫或重設）· Reload after confirm; dialog persisted the choice.
+        await RunOperationFromMenu(item, op);
+    }
+
+    private async Task RunOperationFromMenu(PackageItem item, PackageOperations.Op op)
+    {
+        var action = op switch
+        {
+            PackageOperations.Op.Update => P("Updating", "更新緊"),
+            PackageOperations.Op.Uninstall => P("Uninstalling", "解除安裝緊"),
+            _ => P("Installing", "安裝緊"),
+        };
         var effective = InstallOptions.Load(item.ManagerKey, item.Id);
-        ResultsHeader.Text = P($"Installing {item.Name}…", $"安裝緊 {item.Name}…");
+        ResultsHeader.Text = $"{action} {item.Name}…";
         Busy.IsActive = true;
         try
         {
             var r = await PackageOperations.RunAsync(
-                item.ManagerKey, item.Id, PackageOperations.Op.Install, effective, CancellationToken.None);
+                item.ManagerKey, item.Id, op, effective, CancellationToken.None);
             ResultsHeader.Text = r.Success
-                ? P($"Installed {item.Name}.", $"已安裝 {item.Name}。")
-                : P($"Install failed for {item.Name}.", $"{item.Name} 安裝失敗。");
+                ? op switch
+                {
+                    PackageOperations.Op.Update => P($"Updated {item.Name}.", $"已更新 {item.Name}。"),
+                    PackageOperations.Op.Uninstall => P($"Uninstalled {item.Name}.", $"已解除安裝 {item.Name}。"),
+                    _ => P($"Installed {item.Name}.", $"已安裝 {item.Name}。"),
+                }
+                : r.Message?.Primary ?? op switch
+                {
+                    PackageOperations.Op.Update => P($"Update failed for {item.Name}.", $"{item.Name} 更新失敗。"),
+                    PackageOperations.Op.Uninstall => P($"Uninstall failed for {item.Name}.", $"{item.Name} 解除安裝失敗。"),
+                    _ => P($"Install failed for {item.Name}.", $"{item.Name} 安裝失敗。"),
+                };
         }
         catch (Exception ex) { ResultsHeader.Text = ex.Message; }
         finally { Busy.IsActive = false; }
+    }
+
+    private void CopyText(string text, string label)
+    {
+        var dp = new Windows.ApplicationModel.DataTransfer.DataPackage();
+        dp.SetText(text ?? "");
+        Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(dp);
+        Windows.ApplicationModel.DataTransfer.Clipboard.Flush();
+        ResultsHeader.Text = P($"Copied {label}.", $"已複製{label}。");
     }
 
     // ===== Row builders =====
@@ -1124,7 +1247,9 @@ public sealed partial class PackageManagerModule : Page
     };
 
     private Border RowFor(PackageItem item, string actionLabel, Func<Button, Task> action,
-        List<(string label, Func<Button, Task> run)>? extras = null)
+        List<(string label, Func<Button, Task> run)>? extras = null,
+        RowExtraScope? contextScope = null,
+        PackageOperations.Op? contextOperation = null)
     {
         var grid = new Grid { ColumnSpacing = 10 };
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // checkbox
@@ -1180,7 +1305,10 @@ public sealed partial class PackageManagerModule : Page
         Grid.SetColumn(buttons, 3);
         grid.Children.Add(buttons);
 
-        return Card(grid);
+        var card = Card(grid);
+        if (contextScope is { } scope && contextOperation is { } op)
+            card.ContextFlyout = BuildPackageContextFlyout(item, scope, actionLabel, op);
+        return card;
     }
 
     private Border StatusRow(string title, string id, string status, bool ok, (string label, Func<Task> action)? action)
