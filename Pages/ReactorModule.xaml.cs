@@ -399,7 +399,7 @@ public sealed partial class ReactorModule : Page
         // toolbar
         OpenControlRoomButton.Content = P("Open full control room ⤢", "開啟完整控制室 ⤢");
         StartupChecklistButton.Content = P("Startup checklist", "啟動程序清單");
-        ChecklistWidgetButton.Content = P("Checklist widget", "程序清單小工具");
+        ChecklistWidgetButton.Content = P("Checklist + gauges", "程序清單＋儀表");
         OpenWidgetsButton.Content = P("Mini widgets", "桌面小工具");
         MuteToggle.Content = P("Mute audio", "靜音");
         MuteToggle.IsChecked = !ReactorAudioEngine.I.Enabled;
@@ -2335,7 +2335,8 @@ public sealed partial class ReactorModule : Page
             _startupChecklistWindow = w;
             w.Closed += (_, _) => _startupChecklistWindow = null;
             w.Activate();
-            SettingsStore.Set("reactor.widgets", "CorePower,Status,Scram,StartupChecklist");
+            new ReactorWidgetWindow(_sim, WidgetKind.StartupGauges).Activate();
+            SettingsStore.Set("reactor.widgets", "CorePower,Status,Scram,StartupChecklist,StartupGauges");
         }
         catch (Exception ex)
         {
@@ -2350,7 +2351,8 @@ public sealed partial class ReactorModule : Page
             new ReactorWidgetWindow(_sim, WidgetKind.CorePower).Activate();
             new ReactorWidgetWindow(_sim, WidgetKind.Status).Activate();
             new ReactorWidgetWindow(_sim, WidgetKind.Scram).Activate();
-            SettingsStore.Set("reactor.widgets", "CorePower,Status,Scram");
+            new ReactorWidgetWindow(_sim, WidgetKind.StartupGauges).Activate();
+            SettingsStore.Set("reactor.widgets", "CorePower,Status,Scram,StartupGauges");
         }
         catch { }
     }
@@ -2927,18 +2929,29 @@ public sealed partial class ReactorModule : Page
                 Opacity = 0.78,
                 Margin = new Thickness(0, 2, 0, 0),
             };
+            var detailText = new TextBlock
+            {
+                FontSize = 11,
+                TextWrapping = TextWrapping.Wrap,
+                Foreground = new SolidColorBrush(Color.FromArgb(220, 0xFF, 0xD1, 0x80)),
+                Margin = new Thickness(0, 2, 0, 0),
+                Visibility = string.IsNullOrWhiteSpace(step.DetailEn) ? Visibility.Collapsed : Visibility.Visible,
+            };
             int n = i;
             var stp = step;
             _relocalizers.Add(() =>
             {
                 text.Text = $"{n}. " + P(stp.En, stp.Zh);
                 controlText.Text = P($"Use: {stp.ControlEn}", $"使用：{stp.ControlZh}");
+                detailText.Text = P(stp.DetailEn, stp.DetailZh);
             });
             text.Text = $"{n}. " + P(stp.En, stp.Zh);
             controlText.Text = P($"Use: {stp.ControlEn}", $"使用：{stp.ControlZh}");
+            detailText.Text = P(stp.DetailEn, stp.DetailZh);
             var copy = new StackPanel { Spacing = 0 };
             copy.Children.Add(text);
             copy.Children.Add(controlText);
+            copy.Children.Add(detailText);
             var go = new Button
             {
                 MinWidth = 72,

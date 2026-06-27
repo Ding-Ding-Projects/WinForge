@@ -40,7 +40,8 @@ public static class PlainTextPasteService
     private static IntPtr _hook = IntPtr.Zero;
     private static LowLevelKeyboardProc? _proc;
     private static DispatcherQueue? _ui;
-    private static bool _injecting;
+    private static readonly NativeMessagePump HookPump = new("WinForge-PlainTextPasteHook");
+    private static volatile bool _injecting;
 
     public static bool HotkeyActive => _hook != IntPtr.Zero;
 
@@ -68,16 +69,25 @@ public static class PlainTextPasteService
     /// <summary>啟用全域熱鍵 · Enable the Ctrl+Shift+V global hotkey. UI queue is needed for clipboard work.</summary>
     public static void EnableHotkey(DispatcherQueue uiQueue)
     {
-        if (HotkeyActive) return;
         _ui = uiQueue;
+        HookPump.Post(InstallHotkey);
+    }
+
+    private static void InstallHotkey()
+    {
+        if (_hook != IntPtr.Zero || _ui is null) return;
         _proc = HookProc;
         _hook = SetWindowsHookEx(WH_KEYBOARD_LL, _proc, GetModuleHandle(null), 0);
     }
 
     public static void DisableHotkey()
     {
-        if (_hook != IntPtr.Zero) { UnhookWindowsHookEx(_hook); _hook = IntPtr.Zero; }
-        _proc = null; _ui = null;
+        HookPump.Post(() =>
+        {
+            if (_hook != IntPtr.Zero) { UnhookWindowsHookEx(_hook); _hook = IntPtr.Zero; }
+            _proc = null;
+            _ui = null;
+        });
     }
 
     private static IntPtr HookProc(int nCode, IntPtr wParam, IntPtr lParam)

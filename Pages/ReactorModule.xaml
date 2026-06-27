@@ -165,21 +165,21 @@
                         BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                     <StackPanel Spacing="8">
                         <TextBlock x:Name="NisTitle" FontWeight="SemiBold" />
-                        <StackPanel Orientation="Horizontal" Spacing="16">
-                            <StackPanel>
+                        <VariableSizedWrapGrid Orientation="Horizontal" ItemWidth="340" ItemHeight="166" Margin="0,0,-8,0">
+                            <StackPanel Width="320">
                                 <TextBlock x:Name="NisLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                 <Canvas x:Name="NisCanvas" Width="320" Height="120" Background="#11000000" />
                             </StackPanel>
-                            <StackPanel>
+                            <StackPanel Width="320">
                                 <TextBlock x:Name="OneOverMLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                <Canvas x:Name="OneOverMCanvas" Width="240" Height="120" Background="#11000000" />
+                                <Canvas x:Name="OneOverMCanvas" Width="320" Height="120" Background="#11000000" />
                             </StackPanel>
-                            <StackPanel>
+                            <StackPanel Width="320">
                                 <TextBlock x:Name="CsfTitle" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                 <VariableSizedWrapGrid x:Name="CsfPanel" Orientation="Horizontal" ItemWidth="100" ItemHeight="58" Width="320" />
                             </StackPanel>
-                            <StackPanel Width="232" Spacing="2">
-                                <TextBlock x:Name="RevMeterTitle" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <StackPanel Width="320" Spacing="2">
+                                <TextBlock x:Name="RevMeterTitle" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                                 <Border CornerRadius="6" Padding="8,6" Background="#11000000">
                                     <StackPanel Spacing="2">
                                         <TextBlock x:Name="RevMeterRho" FontFamily="Consolas" FontSize="15" FontWeight="Bold" />
@@ -196,8 +196,8 @@
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
-                            <StackPanel Width="248" Spacing="2">
-                                <TextBlock x:Name="CalMeterTitle" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <StackPanel Width="320" Spacing="2">
+                                <TextBlock x:Name="CalMeterTitle" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                                 <Border CornerRadius="6" Padding="8,6" Background="#11000000">
                                     <StackPanel Spacing="2">
                                         <TextBlock x:Name="CalMeterCal" FontFamily="Consolas" FontSize="15" FontWeight="Bold" />
@@ -213,7 +213,7 @@
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
-                        </StackPanel>
+                        </VariableSizedWrapGrid>
                     </StackPanel>
                 </Border>
 

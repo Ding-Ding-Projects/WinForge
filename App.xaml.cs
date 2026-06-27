@@ -142,22 +142,58 @@ public partial class App : Application
         // overlays) until after the window is shown — each guarded — so they never race the fragile XAML
         // init, which was causing intermittent stowed-exception crashes at launch.
         var dq = Shell.DispatcherQueue;
-        dq.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
+        UiResponsivenessWatchdog.Start(dq);
+        _ = StartPostLaunchServicesAsync(dq);
+    }
+
+    private static async Task StartPostLaunchServicesAsync(Microsoft.UI.Dispatching.DispatcherQueue dq)
+    {
+        try
         {
-            try
+            await Task.Delay(150);
+            await EnqueuePostLaunchStepAsync(dq, "startup:advancedpaste", () =>
             {
                 AdvancedPasteService.PaletteRequested += () => AdvancedPastePalette.Show(dq);
                 if (AdvancedPasteService.HotkeyEnabledSetting)
                     AdvancedPasteService.EnableHotkey(dq);
-            }
-            catch { /* best effort — never block startup */ }
-            // Start/resume activity tracking by default unless the user turned it off. The tracker keeps
-            // a crash-safe checkpoint of the current segment and recovers it here before sampling resumes.
-            try { Services.ActivityTrackerService.I.InitFromPrefs(); } catch { }
-            // Restore Mouse Utilities (Find My Mouse / Highlighter / Crosshairs / Jump) if enabled.
-            try { Services.MouseUtilsService.LoadSettings(); Services.MouseUtilsService.Sync(); } catch { }
-            try { Services.AppUpdateService.StartAutomaticChecks(dq); } catch { }
-        });
+            });
+
+            await Task.Delay(100);
+            await Task.Run(() =>
+                CrashLogger.Guard("startup:activity", () => Services.ActivityTrackerService.I.InitFromPrefs()));
+
+            await Task.Delay(100);
+            await Task.Run(() =>
+                CrashLogger.Guard("startup:mouseutils", () =>
+                {
+                    Services.MouseUtilsService.LoadSettings();
+                    Services.MouseUtilsService.Sync();
+                }));
+
+            await Task.Delay(100);
+            CrashLogger.Guard("startup:app-update", () => Services.AppUpdateService.StartAutomaticChecks(dq));
+        }
+        catch (Exception ex)
+        {
+            CrashLogger.Log("startup:post-launch-services", ex);
+        }
+    }
+
+    private static Task EnqueuePostLaunchStepAsync(
+        Microsoft.UI.Dispatching.DispatcherQueue dq,
+        string source,
+        Action body)
+    {
+        var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        if (!dq.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
+            {
+                try { CrashLogger.Guard(source, body); }
+                finally { tcs.TrySetResult(); }
+            }))
+        {
+            tcs.TrySetResult();
+        }
+        return tcs.Task;
     }
 
     private static void ParseArgs()

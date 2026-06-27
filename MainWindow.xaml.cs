@@ -117,17 +117,65 @@ public sealed partial class MainWindow : Window
         _bgStarted = true;
         RootGrid.Loaded -= StartBackgroundServicesOnce;
         CrashLogger.Mark("MW: RootGrid.Loaded fired");
-        DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
+        _ = StartBackgroundServicesAsync();
+    }
+
+    private async Task StartBackgroundServicesAsync()
+    {
+        try
         {
-            CrashLogger.Mark("svc: clipboard");     CrashLogger.Guard("startup:clipboard",     () => ClipboardService.Start(DispatcherQueue));
-            CrashLogger.Mark("svc: hotkeys");       CrashLogger.Guard("startup:hotkeys",       () => HotkeyMacroService.StartHotkeys());
-            CrashLogger.Mark("svc: zoomit");        CrashLogger.Guard("startup:zoomit",        () => ZoomItService.StartHotkeys());
-            CrashLogger.Mark("svc: quickaccent");   CrashLogger.Guard("startup:quickaccent",   () => QuickAccentService.Apply());
-            CrashLogger.Mark("svc: shortcutguide"); CrashLogger.Guard("startup:shortcutguide", () => ShortcutGuideService.Init(DispatcherQueue));
-            CrashLogger.Mark("svc: cmdpalette");    CrashLogger.Guard("startup:cmdpalette",    () => CommandPaletteService.Start(DispatcherQueue));
-            CrashLogger.Mark("svc: tray");          CrashLogger.Guard("startup:tray",          () => TrayService.Install(ShowFromTray, QuitFromTray, "WinForge · 視窗調校"));
+            await Task.Delay(75);
+
+            var background = new[]
+            {
+                StartServiceInBackground("svc: hotkeys", "startup:hotkeys", HotkeyMacroService.StartHotkeys),
+                StartServiceInBackground("svc: zoomit", "startup:zoomit", ZoomItService.StartHotkeys),
+                StartServiceInBackground("svc: quickaccent", "startup:quickaccent", QuickAccentService.Apply),
+            };
+
+            await StartServiceOnUiAsync("svc: clipboard", "startup:clipboard", () => ClipboardService.Start(DispatcherQueue));
+            await Task.Delay(75);
+            await StartServiceOnUiAsync("svc: shortcutguide", "startup:shortcutguide", () => ShortcutGuideService.Init(DispatcherQueue));
+            await Task.Delay(75);
+            await StartServiceOnUiAsync("svc: cmdpalette", "startup:cmdpalette", () => CommandPaletteService.Start(DispatcherQueue));
+            await Task.Delay(75);
+            await StartServiceOnUiAsync("svc: tray", "startup:tray", () => TrayService.Install(ShowFromTray, QuitFromTray, "WinForge · 視窗調校"));
+
+            await Task.WhenAll(background);
             CrashLogger.Mark("svc: all started");
+        }
+        catch (Exception ex)
+        {
+            CrashLogger.Log("startup:background-services", ex);
+        }
+    }
+
+    private static Task StartServiceInBackground(string mark, string source, Action body)
+        => Task.Run(() =>
+        {
+            CrashLogger.Mark(mark);
+            CrashLogger.Guard(source, body);
         });
+
+    private Task StartServiceOnUiAsync(string mark, string source, Action body)
+    {
+        var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        if (!DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
+            {
+                try
+                {
+                    CrashLogger.Mark(mark);
+                    CrashLogger.Guard(source, body);
+                }
+                finally
+                {
+                    tcs.TrySetResult();
+                }
+            }))
+        {
+            tcs.TrySetResult();
+        }
+        return tcs.Task;
     }
 
     private bool _reallyQuit;

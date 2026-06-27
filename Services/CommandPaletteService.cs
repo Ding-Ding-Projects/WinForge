@@ -105,6 +105,7 @@ public static class CommandPaletteService
     private static IntPtr _hook = IntPtr.Zero;
     private static LowLevelKeyboardProc? _proc;
     private static DispatcherQueue? _ui;
+    private static readonly NativeMessagePump HookPump = new("WinForge-CommandPaletteHook");
 
     // Parsed hotkey: required modifiers + the main virtual key.
     private static bool _needCtrl, _needAlt, _needShift, _needWin;
@@ -116,14 +117,17 @@ public static class CommandPaletteService
     public static void Start(DispatcherQueue uiQueue)
     {
         _ui = uiQueue;
-        if (Enabled) InstallHotkey();
+        if (Enabled) HookPump.Post(InstallHotkey);
     }
 
     /// <summary>重新套用設定（啟用狀態／熱鍵改變後）· Re-apply settings after the user toggles or rebinds.</summary>
     public static void Reapply()
     {
-        RemoveHotkey();
-        if (Enabled) InstallHotkey();
+        HookPump.Post(() =>
+        {
+            RemoveHotkey();
+            if (Enabled) InstallHotkey();
+        });
     }
 
     private static void InstallHotkey()

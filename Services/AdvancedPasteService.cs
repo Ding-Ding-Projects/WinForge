@@ -103,7 +103,8 @@ public static class AdvancedPasteService
     private static IntPtr _hook = IntPtr.Zero;
     private static LowLevelKeyboardProc? _proc;
     private static DispatcherQueue? _ui;
-    private static bool _injecting;
+    private static readonly NativeMessagePump HookPump = new("WinForge-AdvancedPasteHook");
+    private static volatile bool _injecting;
 
     /// <summary>熱鍵描述（顯示用）· Hotkey label shown in the UI.</summary>
     public const string HotkeyText = "Win + Shift + V";
@@ -344,16 +345,25 @@ public static class AdvancedPasteService
 
     public static void EnableHotkey(DispatcherQueue uiQueue)
     {
-        if (HotkeyActive) return;
         _ui = uiQueue;
+        HookPump.Post(InstallHotkey);
+    }
+
+    private static void InstallHotkey()
+    {
+        if (_hook != IntPtr.Zero || _ui is null) return;
         _proc = HookProc;
         _hook = SetWindowsHookEx(WH_KEYBOARD_LL, _proc, GetModuleHandle(null), 0);
     }
 
     public static void DisableHotkey()
     {
-        if (_hook != IntPtr.Zero) { UnhookWindowsHookEx(_hook); _hook = IntPtr.Zero; }
-        _proc = null;
+        HookPump.Post(() =>
+        {
+            if (_hook != IntPtr.Zero) { UnhookWindowsHookEx(_hook); _hook = IntPtr.Zero; }
+            _proc = null;
+            _ui = null;
+        });
     }
 
     private static IntPtr HookProc(int nCode, IntPtr wParam, IntPtr lParam)

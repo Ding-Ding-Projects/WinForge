@@ -44,6 +44,8 @@ public sealed class StartupStep
     public string Zh = "";
     public string ControlEn = "";
     public string ControlZh = "";
+    public string DetailEn = "";
+    public string DetailZh = "";
     public string ControlTarget = "";
     public string ControlRoom = "control";
     public Func<ReactorSimService, bool> IsSatisfied = _ => false;
@@ -296,11 +298,13 @@ public static class ReactorScenarios
         {
             En = "Pressurizer heaters on, pressure → ~2235 psia",
             Zh = "穩壓器加熱器開，壓力 → 約 2235 psia",
-            ControlEn = "Primary system -> Pressurizer & relief: leave Auto press ctrl on and turn Heater on; watch the Pressurizer pressure gauge.",
-            ControlZh = "一迴路系統 -> 穩壓器與釋壓：保持自動壓力開啟並開加熱器；監察穩壓器壓力儀表。",
+            ControlEn = "Primary system -> Pressurizer & relief: Auto press ctrl ON, Heater ON, Spray OFF, Relief valve CLOSED.",
+            ControlZh = "一迴路系統 -> 穩壓器與釋壓：自動壓力開、加熱器開、噴淋關、釋壓閥關。",
+            DetailEn = "Wait here until the Primary pressure gauge reaches at least 14.5 MPa / 2235 psia before changing rods or boron.",
+            DetailZh = "停喺呢一步，等一迴路壓力儀表至少到 14.5 MPa / 2235 psia，先好改棒位或硼濃度。",
             ControlTarget = "primary-system",
             ControlRoom = "contain",
-            IsSatisfied = s => s.PressurizerHeater && s.PrimaryPressure > 14.5,
+            IsSatisfied = s => s.PzrAutoPressureControl && s.PressurizerHeater && !s.PressurizerSpray && !s.ReliefValveOpen && s.PrimaryPressure > 14.5,
         },
         new StartupStep
         {

@@ -233,7 +233,7 @@ public sealed class ReactorControlRoomWindow : Window
 }
 
 /// <summary>桌面小工具種類 · Desktop widget kinds.</summary>
-public enum WidgetKind { CorePower, Status, Scram }
+public enum WidgetKind { CorePower, Status, Scram, StartupGauges }
 
 /// <summary>常駐置頂桌面小工具 · A borderless always-on-top desktop widget mini-window.</summary>
 public sealed class ReactorWidgetWindow : Window
@@ -246,6 +246,7 @@ public sealed class ReactorWidgetWindow : Window
     private TextBlock _value = null!, _label = null!;
     private Ellipse _ring = null!;
     private Border _pill = null!;
+    private readonly List<(TextBlock label, TextBlock value, Border fill)> _startupGaugeRows = new();
 
     public ReactorWidgetWindow(ReactorSimService sim, WidgetKind kind)
     {
@@ -259,7 +260,7 @@ public sealed class ReactorWidgetWindow : Window
         _presenter.IsMaximizable = false;
         _presenter.IsMinimizable = false;
         AppWindow.SetPresenter(_presenter);
-        AppWindow.Resize(new SizeInt32(220, 220));
+        AppWindow.Resize(kind == WidgetKind.StartupGauges ? new SizeInt32(320, 340) : new SizeInt32(220, 220));
 
         Content = BuildContent();
 
@@ -347,6 +348,35 @@ public sealed class ReactorWidgetWindow : Window
             _value = new TextBlock { Foreground = new SolidColorBrush(Color.FromArgb(200, 0x90, 0xCA, 0xF9)), FontFamily = new FontFamily("Consolas"), HorizontalAlignment = HorizontalAlignment.Center };
             panel.Children.Add(_value);
         }
+        else if (_kind == WidgetKind.StartupGauges)
+        {
+            panel.Width = 270;
+            panel.Spacing = 8;
+            _label = new TextBlock
+            {
+                Text = P("Startup gauges", "啟動儀表"),
+                FontSize = 16,
+                FontWeight = FontWeights.Bold,
+                Foreground = new SolidColorBrush(Colors.White),
+                HorizontalAlignment = HorizontalAlignment.Center,
+            };
+            panel.Children.Add(_label);
+            AddStartupGaugeRow(panel);
+            AddStartupGaugeRow(panel);
+            AddStartupGaugeRow(panel);
+            AddStartupGaugeRow(panel);
+            AddStartupGaugeRow(panel);
+            AddStartupGaugeRow(panel);
+            _value = new TextBlock
+            {
+                FontSize = 12,
+                FontFamily = new FontFamily("Consolas"),
+                Foreground = new SolidColorBrush(Color.FromArgb(210, 0x90, 0xCA, 0xF9)),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                TextAlignment = TextAlignment.Center,
+            };
+            panel.Children.Add(_value);
+        }
         else // CorePower
         {
             var canvas = new Canvas { Width = 150, Height = 150 };
@@ -364,6 +394,51 @@ public sealed class ReactorWidgetWindow : Window
         root.Children.Add(panel);
         root.Children.Add(close);
         return root;
+    }
+
+    private void AddStartupGaugeRow(StackPanel panel)
+    {
+        var row = new StackPanel { Spacing = 3 };
+        var top = new Grid();
+        top.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        top.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        var label = new TextBlock
+        {
+            FontSize = 11,
+            Foreground = new SolidColorBrush(Color.FromArgb(220, 0xDD, 0xE7, 0xF4)),
+        };
+        var value = new TextBlock
+        {
+            FontSize = 11,
+            FontFamily = new FontFamily("Consolas"),
+            Foreground = new SolidColorBrush(Colors.White),
+            HorizontalAlignment = HorizontalAlignment.Right,
+        };
+        Grid.SetColumn(value, 1);
+        top.Children.Add(label);
+        top.Children.Add(value);
+
+        var bar = new Grid();
+        bar.Children.Add(new Border
+        {
+            Height = 6,
+            CornerRadius = new CornerRadius(3),
+            Background = new SolidColorBrush(Color.FromArgb(55, 0xFF, 0xFF, 0xFF)),
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+        });
+        var fill = new Border
+        {
+            Height = 6,
+            Width = 0,
+            CornerRadius = new CornerRadius(3),
+            Background = new SolidColorBrush(Color.FromArgb(255, 0xFF, 0xB3, 0x00)),
+            HorizontalAlignment = HorizontalAlignment.Left,
+        };
+        bar.Children.Add(fill);
+        row.Children.Add(top);
+        row.Children.Add(bar);
+        panel.Children.Add(row);
+        _startupGaugeRows.Add((label, value, fill));
     }
 
     private void BeginDrag()
@@ -425,7 +500,52 @@ public sealed class ReactorWidgetWindow : Window
             case WidgetKind.Scram:
                 _label.Text = _sim.IsScrammed ? P("TRIPPED · 已跳機", "已跳機 · TRIPPED") : P("Armed · 待命", "待命 · Armed");
                 break;
+            case WidgetKind.StartupGauges:
+                TickStartupGauges();
+                break;
         }
+    }
+
+    private void TickStartupGauges()
+    {
+        int pumps = 0;
+        foreach (var running in _sim.RcpRunning) if (running) pumps++;
+        double avgRodIn = 0;
+        foreach (var p in _sim.RodBankInsertion) avgRodIn += p;
+        avgRodIn /= Math.Max(1, _sim.RodBankInsertion.Length);
+
+        int done = ReactorScenarios.CompletedStartupSteps(ReactorScenarios.StartupSequence(), _sim);
+        _label.Text = P("Startup gauges", "啟動儀表");
+        _value.Text = P($"Checklist {done}/8", $"程序 {done}/8");
+
+        SetStartupGauge(0, P("RCP pumps", "主泵"), $"{pumps}/4", pumps / 3.0, pumps >= 3);
+        SetStartupGauge(1, P("RCP flow", "主泵流量"), $"{_sim.CoolantFlowFraction * 100:F0}%", _sim.CoolantFlowFraction / 0.85, _sim.CoolantFlowFraction > 0.85);
+        SetStartupGauge(2, P("Primary pressure", "一迴路壓力"), $"{_sim.PrimaryPressure * 145.038:F0} psia", (_sim.PrimaryPressure * 145.038) / 2235.0, _sim.PrimaryPressure > 14.5);
+        SetStartupGauge(3, P("Rods / boron", "棒位／硼"), $"{avgRodIn:F0}% in / {_sim.BoronPpm:F0} ppm", Math.Max((100 - avgRodIn) / 40.0, (1500 - _sim.BoronPpm) / 500.0), avgRodIn < 60 || _sim.BoronPpm < 1000);
+        SetStartupGauge(4, "1/M", $"{_sim.OneOverM:F3}", 1.0 - _sim.OneOverM / 0.25, _sim.OneOverM < 0.25);
+        SetStartupGauge(5, P("Period / power", "週期／功率"), $"{PeriodLabel()} / {_sim.NeutronPowerFraction * 100:F2}%", _sim.NeutronPowerFraction / 0.001, _sim.NeutronPowerFraction > 1e-3 && _sim.ReactorPeriodSeconds > 30 && _sim.ReactorPeriodSeconds < 1e8);
+    }
+
+    private void SetStartupGauge(int index, string label, string value, double fraction, bool ok)
+    {
+        if (index < 0 || index >= _startupGaugeRows.Count) return;
+        var row = _startupGaugeRows[index];
+        double pct = Math.Clamp(fraction, 0, 1);
+        row.label.Text = label;
+        row.value.Text = value;
+        row.fill.Width = 270 * pct;
+        Color color = ok ? Color.FromArgb(255, 0x4C, 0xAF, 0x50)
+            : pct > 0.7 ? Color.FromArgb(255, 0xFF, 0xB3, 0x00)
+            : Color.FromArgb(255, 0x42, 0xA5, 0xF5);
+        row.fill.Background = new SolidColorBrush(color);
+    }
+
+    private string PeriodLabel()
+    {
+        double p = _sim.ReactorPeriodSeconds;
+        if (Math.Abs(p) >= 1e5) return "∞";
+        if (Math.Abs(p) >= 999) return $"{p:F0}s";
+        return $"{p:+0;-0;0}s";
     }
 }
 
@@ -436,7 +556,7 @@ public sealed class ReactorStartupChecklistWindow : Window
     private readonly Action<string>? _navigateTarget;
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(250) };
     private readonly OverlappedPresenter _presenter = OverlappedPresenter.Create();
-    private readonly List<(StartupStep step, TextBlock mark, TextBlock title, TextBlock control, Button go, Border row)> _rows = new();
+    private readonly List<(StartupStep step, TextBlock mark, TextBlock title, TextBlock control, TextBlock detail, Button go, Border row)> _rows = new();
 
     private TextBlock _title = null!;
     private TextBlock _progress = null!;
@@ -594,9 +714,18 @@ public sealed class ReactorStartupChecklistWindow : Window
                 Foreground = new SolidColorBrush(Color.FromArgb(190, 0x9E, 0xA7, 0xB0)),
                 Margin = new Thickness(0, 2, 0, 0),
             };
+            var detail = new TextBlock
+            {
+                FontSize = 11,
+                TextWrapping = TextWrapping.Wrap,
+                Foreground = new SolidColorBrush(Color.FromArgb(220, 0xFF, 0xD1, 0x80)),
+                Margin = new Thickness(0, 2, 0, 0),
+                Visibility = string.IsNullOrWhiteSpace(step.DetailEn) ? Visibility.Collapsed : Visibility.Visible,
+            };
             var copy = new StackPanel { Spacing = 0 };
             copy.Children.Add(title);
             copy.Children.Add(control);
+            copy.Children.Add(detail);
 
             var go = new Button
             {
@@ -632,7 +761,7 @@ public sealed class ReactorStartupChecklistWindow : Window
                 Child = rowGrid,
             };
             list.Children.Add(row);
-            _rows.Add((step, mark, title, control, go, row));
+            _rows.Add((step, mark, title, control, detail, go, row));
         }
 
         var scroller = new ScrollViewer
@@ -661,7 +790,7 @@ public sealed class ReactorStartupChecklistWindow : Window
         int done = ReactorScenarios.CompletedStartupSteps(_rows.Select(x => x.step).ToArray(), _sim);
         for (int i = 0; i < _rows.Count; i++)
         {
-            var (step, mark, title, control, go, row) = _rows[i];
+            var (step, mark, title, control, detail, go, row) = _rows[i];
             bool ok = i < done;
             bool active = i == done && done < _rows.Count;
 
@@ -677,6 +806,7 @@ public sealed class ReactorStartupChecklistWindow : Window
             row.Opacity = i > done ? 0.68 : 1.0;
             title.Text = $"{i + 1}. " + P(step.En, step.Zh);
             control.Text = P($"Use: {step.ControlEn}", $"使用：{step.ControlZh}");
+            detail.Text = P(step.DetailEn, step.DetailZh);
             go.Content = P("Control", "控制");
         }
 
