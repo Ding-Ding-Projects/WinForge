@@ -1,7 +1,7 @@
-// 雙語字串表 · Bilingual string table (EN + 繁體中文/粵語). t(key) returns the primary-language
-// string; the C# side pushes the primary language each tick via state.zhPrimary.
+// 雙語字串表 · Bilingual string table (EN + 繁體中文/粵語).
+// The C# side pushes the display mode each tick via state.languageMode.
 
-let zhPrimary = false;
+let languageMode = "Bilingual";
 
 const S = {
   appTitle:   ["Reactor Control Room", "反應堆控制室"],
@@ -214,15 +214,46 @@ const S = {
   no:  ["NO", "否"],
 };
 
-export function setLang(zh) { zhPrimary = !!zh; }
-export function isZh() { return zhPrimary; }
+export function setLang(mode) {
+  if (typeof mode === "string") {
+    languageMode = mode === "Cantonese" || mode === "English" ? mode : "Bilingual";
+  } else {
+    languageMode = mode ? "Cantonese" : "English";
+  }
+}
+export function isZh() { return languageMode === "Cantonese"; }
+export function currentLang() { return languageMode; }
+export function nextLang() {
+  if (languageMode === "Bilingual") return "Cantonese";
+  if (languageMode === "Cantonese") return "English";
+  return "Bilingual";
+}
+export function langButtonText() {
+  if (languageMode === "Bilingual") return "BI / 雙";
+  if (languageMode === "Cantonese") return "粵";
+  return "EN";
+}
 export function t(key) {
   const e = S[key];
   if (!e) return key;
-  return zhPrimary ? e[1] : e[0];
+  return pick(e[0], e[1]);
 }
 // pick(en, zh) for ad-hoc strings (e.g. server-provided status)
-export function pick(en, zh) { return zhPrimary ? zh : en; }
+export function pick(en, zh) {
+  if (languageMode === "Cantonese") return zh;
+  if (languageMode === "English") return en;
+  return both(en, zh);
+}
+
+function both(en, zh) {
+  en = en ?? "";
+  zh = zh ?? "";
+  if (!en.trim()) return zh;
+  if (!zh.trim()) return en;
+  if (en === zh) return en;
+  if (/[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]/.test(en)) return en;
+  return `${en} · ${zh}`;
+}
 
 export function applyLang(root = document) {
   root.querySelectorAll("[data-i18n]").forEach(el => {

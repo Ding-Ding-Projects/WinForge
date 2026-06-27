@@ -5,8 +5,7 @@ namespace WinForge.Services;
 
 /// <summary>
 /// 全域語言狀態 · Global language state.
-/// 兩種語言永遠同時顯示喺介面上；呢度只係決定邊個係「主要」。
-/// Both languages are always shown in the UI; this only decides which is "primary".
+/// 支援雙語、純粵語、純英文顯示 · Supports bilingual, Cantonese-only and English-only display.
 /// </summary>
 public sealed class Loc
 {
@@ -16,12 +15,13 @@ public sealed class Loc
 
     private Loc()
     {
-        _language = SettingsStore.Get("language", "English") == "Cantonese"
-            ? AppLanguage.Cantonese
-            : AppLanguage.English;
+        var saved = SettingsStore.Get("language", nameof(AppLanguage.Bilingual));
+        _language = Enum.TryParse<AppLanguage>(saved, ignoreCase: true, out var parsed)
+            ? parsed
+            : AppLanguage.Bilingual;
     }
 
-    /// <summary>主要語言 · The primary language.</summary>
+    /// <summary>語言顯示模式 · Language display mode.</summary>
     public AppLanguage Language
     {
         get => _language;
@@ -34,17 +34,54 @@ public sealed class Loc
         }
     }
 
-    /// <summary>另一種語言 · The other (secondary) language.</summary>
-    public AppLanguage Other => _language == AppLanguage.English ? AppLanguage.Cantonese : AppLanguage.English;
+    /// <summary>另一種語言；雙語模式用粵語做第二行 · The secondary language; bilingual mode uses Cantonese second.</summary>
+    public AppLanguage Other => _language == AppLanguage.Cantonese ? AppLanguage.English : AppLanguage.Cantonese;
 
+    public bool IsBilingual => _language == AppLanguage.Bilingual;
     public bool IsCantonesePrimary => _language == AppLanguage.Cantonese;
 
-    /// <summary>語言改變時通知 UI 重繪 · Raised when the primary language changes.</summary>
+    /// <summary>語言改變時通知 UI 重繪 · Raised when the language mode changes.</summary>
     public event EventHandler? LanguageChanged;
 
     public void Toggle() =>
-        Language = _language == AppLanguage.English ? AppLanguage.Cantonese : AppLanguage.English;
+        Language = _language switch
+        {
+            AppLanguage.Bilingual => AppLanguage.Cantonese,
+            AppLanguage.Cantonese => AppLanguage.English,
+            _ => AppLanguage.Bilingual,
+        };
 
-    /// <summary>快捷雙語選擇 · Pick a string in the current primary language.</summary>
-    public string Pick(string en, string zh) => _language == AppLanguage.Cantonese ? zh : en;
+    /// <summary>顯示目前語言模式嘅文字 · Format a string for the current language mode.</summary>
+    public string Pick(string en, string zh) => _language switch
+    {
+        AppLanguage.Bilingual => Both(en, zh),
+        AppLanguage.Cantonese => zh,
+        _ => en,
+    };
+
+    /// <summary>需要單一語言值時使用，例如 culture name · Use when an API needs one language value, such as a culture name.</summary>
+    public string PickSingle(string en, string zh) => _language == AppLanguage.Cantonese ? zh : en;
+
+    public static string Both(string en, string zh)
+    {
+        en ??= "";
+        zh ??= "";
+        if (string.IsNullOrWhiteSpace(en)) return zh;
+        if (string.IsNullOrWhiteSpace(zh)) return en;
+        if (string.Equals(en, zh, StringComparison.Ordinal)) return en;
+        if (ContainsCjk(en)) return en;
+        return $"{en} · {zh}";
+    }
+
+    private static bool ContainsCjk(string value)
+    {
+        foreach (var ch in value)
+        {
+            if ((ch >= '\u3400' && ch <= '\u4DBF') ||
+                (ch >= '\u4E00' && ch <= '\u9FFF') ||
+                (ch >= '\uF900' && ch <= '\uFAFF'))
+                return true;
+        }
+        return false;
+    }
 }

@@ -1,6 +1,6 @@
 // 主程式 · App shell: builds tabs, mounts rooms, wires header + language + RAF active-room dispatch.
 import { store, send } from "./bridge.js";
-import { t, pick, isZh, applyLang } from "./i18n.js";
+import { t, pick, nextLang, langButtonText, applyLang } from "./i18n.js";
 import { setActiveDraw } from "./render.js";
 
 import { ControlRoom } from "./rooms/controlRoom.js";
@@ -85,9 +85,8 @@ const statusText = document.getElementById("statusText");
 const modePill = document.getElementById("modePill");
 document.getElementById("scramBtn").onclick = () => send.control("scram");
 document.getElementById("fullBtn").onclick = () => send.fullscreen();
-document.getElementById("langBtn").onclick = () => {
-  send.setLanguage(isZh() ? "English" : "Cantonese");
-};
+const langBtn = document.getElementById("langBtn");
+langBtn.onclick = () => send.setLanguage(nextLang());
 document.addEventListener("keydown", e => {
   if (e.key === "F11") {
     e.preventDefault();
@@ -142,6 +141,7 @@ store.on("startupChecklist", r => { rooms.forEach(rm => rm.onStartupChecklist &&
 // language refresh
 store.on("lang", () => {
   applyLang(document);
+  langBtn.textContent = langButtonText();
   ROOMS.forEach(d => { d._tab.querySelector("span").textContent = t(d.key); });
   rooms.forEach(r => r.onLang && r.onLang());
 });
@@ -155,3 +155,4 @@ setActiveDraw((dt, time) => {
 // request initial fuel list
 send.fuel("listFuel");
 applyLang(document);
+langBtn.textContent = langButtonText();

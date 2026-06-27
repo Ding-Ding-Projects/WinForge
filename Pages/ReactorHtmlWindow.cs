@@ -188,7 +188,7 @@ public sealed class ReactorHtmlWindow : Window
             if (now - _lastStatePostUtc >= StatePostInterval)
             {
                 _lastStatePostUtc = now;
-                try { _web.CoreWebView2.PostWebMessageAsJson(_sim.ExportStateJson(_simClock, Loc.I.IsCantonesePrimary)); }
+                try { _web.CoreWebView2.PostWebMessageAsJson(_sim.ExportStateJson(_simClock, Loc.I.IsCantonesePrimary, Loc.I.Language.ToString())); }
                 catch { }
                 try { _web.CoreWebView2.PostWebMessageAsJson(_water.ExportStateJson()); }
                 catch { }
@@ -342,10 +342,8 @@ public sealed class ReactorHtmlWindow : Window
             case "ui":
                 if (msg.Action == "setLanguage" && msg.Value2 is not null)
                 {
-                    if (string.Equals(msg.Value2, "Cantonese", StringComparison.OrdinalIgnoreCase))
-                        Loc.I.Language = AppLanguage.Cantonese;
-                    else if (string.Equals(msg.Value2, "English", StringComparison.OrdinalIgnoreCase))
-                        Loc.I.Language = AppLanguage.English;
+                    if (Enum.TryParse<AppLanguage>(msg.Value2, ignoreCase: true, out var lang))
+                        Loc.I.Language = lang;
                 }
                 else if (msg.Action == "fullscreen")
                 {

@@ -102,18 +102,30 @@ public sealed partial class SettingsPage : Page
     {
         var panel = new StackPanel { Spacing = 8 };
         panel.Children.Add(Heading(
-            Loc.I.Pick("Primary language", "主要語言"),
-            "界面永遠雙語顯示；呢度只係揀邊個排前面。Both languages always show; this picks which leads."));
+            Loc.I.Pick("Language", "語言"),
+            Loc.I.Pick("Show both languages, Cantonese only, or English only.",
+                "顯示雙語、只顯示粵語，或者只顯示英文。")));
 
         _suppress = true;
         var radios = new RadioButtons();
+        radios.Items.Add("Bilingual");
+        radios.Items.Add("Cantonese");
         radios.Items.Add("English");
-        radios.Items.Add("粵語 (Cantonese)");
-        radios.SelectedIndex = Loc.I.Language == AppLanguage.English ? 0 : 1;
+        radios.SelectedIndex = Loc.I.Language switch
+        {
+            AppLanguage.Cantonese => 1,
+            AppLanguage.English => 2,
+            _ => 0,
+        };
         radios.SelectionChanged += (_, _) =>
         {
             if (_suppress) return;
-            Loc.I.Language = radios.SelectedIndex == 0 ? AppLanguage.English : AppLanguage.Cantonese;
+            Loc.I.Language = radios.SelectedIndex switch
+            {
+                1 => AppLanguage.Cantonese,
+                2 => AppLanguage.English,
+                _ => AppLanguage.Bilingual,
+            };
         };
         _suppress = false;
         panel.Children.Add(radios);

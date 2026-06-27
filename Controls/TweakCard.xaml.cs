@@ -142,12 +142,14 @@ public sealed partial class TweakCard : UserControl
         if (_tweak is null) return;
         TitlePrimary.Text = _tweak.Title.Primary;
         TitleSecondary.Text = _tweak.Title.Secondary;
+        TitleSecondary.Visibility = string.IsNullOrWhiteSpace(TitleSecondary.Text) ? Visibility.Collapsed : Visibility.Visible;
         DescPrimary.Text = _tweak.Description.Primary;
         DescSecondary.Text = _tweak.Description.Secondary;
+        DescSecondary.Visibility = string.IsNullOrWhiteSpace(DescSecondary.Text) ? Visibility.Collapsed : Visibility.Visible;
 
         if (_actionButton is not null && _tweak.ActionLabel is not null)
         {
-            _actionButton.Content = _tweak.ActionLabel.Primary;
+            _actionButton.Content = _tweak.ActionLabel.Get(Loc.I.Language);
             ToolTipService.SetToolTip(_actionButton, $"{_tweak.ActionLabel.En} · {_tweak.ActionLabel.Zh}");
         }
         if (_toggle is not null)
@@ -166,11 +168,11 @@ public sealed partial class TweakCard : UserControl
         for (int i = 0; i < _checks.Count && _tweak.CheckItems is not null && i < _tweak.CheckItems.Count; i++)
         {
             var it = _tweak.CheckItems[i];
-            _checks[i].Content = $"{it.Label.En} · {it.Label.Zh}";
+            _checks[i].Content = it.Label.Get(Loc.I.Language);
         }
         if (_wizardButton is not null && _tweak.ActionLabel is not null)
         {
-            _wizardButton.Content = _tweak.ActionLabel.Primary;
+            _wizardButton.Content = _tweak.ActionLabel.Get(Loc.I.Language);
             ToolTipService.SetToolTip(_wizardButton, $"{_tweak.ActionLabel.En} · {_tweak.ActionLabel.Zh}");
         }
         UpdateStatusPill();
@@ -215,7 +217,7 @@ public sealed partial class TweakCard : UserControl
     {
         _combo = new ComboBox { MinWidth = 170 };
         foreach (var c in _tweak!.Choices!)
-            _combo.Items.Add(new ComboBoxItem { Content = $"{c.Label.En} · {c.Label.Zh}", Tag = c.Value });
+            _combo.Items.Add(new ComboBoxItem { Content = c.Label.Get(Loc.I.Language), Tag = c.Value });
 
         _suppress = true;
         try
@@ -294,7 +296,7 @@ public sealed partial class TweakCard : UserControl
             var result = await _tweak.RunAsync(CancellationToken.None);
             ResultBar.Severity = result.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error;
             ResultBar.Title = result.Success ? Loc.I.Pick("Done", "完成") : Loc.I.Pick("Failed", "失敗");
-            ResultBar.Message = result.Message is null ? string.Empty : $"{result.Message.En}\n{result.Message.Zh}";
+            ResultBar.Message = result.Message is null ? string.Empty : result.Message.Get(Loc.I.Language);
             ResultBar.ActionButton = (!result.Success && _tweak.RequiresAdmin && !AdminHelper.IsElevated)
                 ? MakeRelaunchButton() : null;
             ResultBar.IsOpen = true;
@@ -662,7 +664,7 @@ public sealed partial class TweakCard : UserControl
         _suppress = true;
         _radio.Items.Clear();
         foreach (var c in _tweak.Choices)
-            _radio.Items.Add(new RadioButton { Content = $"{c.Label.En} · {c.Label.Zh}", Tag = c.Value });
+            _radio.Items.Add(new RadioButton { Content = c.Label.Get(Loc.I.Language), Tag = c.Value });
         _radio.SelectedIndex = sel;
         _suppress = false;
     }
@@ -700,7 +702,7 @@ public sealed partial class TweakCard : UserControl
         {
             foreach (var item in _tweak.CheckItems)
             {
-                var cb = new CheckBox { Content = $"{item.Label.En} · {item.Label.Zh}", Tag = item };
+                var cb = new CheckBox { Content = item.Label.Get(Loc.I.Language), Tag = item };
                 _suppress = true;
                 try { cb.IsChecked = item.Get(); } catch { cb.IsChecked = false; }
                 _suppress = false;
@@ -887,7 +889,7 @@ public sealed partial class TweakCard : UserControl
         var dlg = new ContentDialog
         {
             XamlRoot = XamlRoot,
-            Title = _tweak.Title.Primary,
+            Title = _tweak.Title.Get(Loc.I.Language),
             Content = host,
             PrimaryButtonText = Loc.I.Pick("Next", "下一步"),
             CloseButtonText = Loc.I.Pick("Cancel", "取消"),
@@ -906,9 +908,11 @@ public sealed partial class TweakCard : UserControl
                 Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
             });
             host.Children.Add(new TextBlock { Text = step.Title.Primary, FontWeight = FontWeights.SemiBold });
-            host.Children.Add(new TextBlock { Text = step.Title.Secondary, FontSize = 12, Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"] });
+            if (!string.IsNullOrWhiteSpace(step.Title.Secondary))
+                host.Children.Add(new TextBlock { Text = step.Title.Secondary, FontSize = 12, Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"] });
             host.Children.Add(new TextBlock { Text = step.Description.Primary, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) });
-            host.Children.Add(new TextBlock { Text = step.Description.Secondary, FontSize = 12, TextWrapping = TextWrapping.Wrap, Foreground = (Brush)Application.Current.Resources["TextFillColorTertiaryBrush"] });
+            if (!string.IsNullOrWhiteSpace(step.Description.Secondary))
+                host.Children.Add(new TextBlock { Text = step.Description.Secondary, FontSize = 12, TextWrapping = TextWrapping.Wrap, Foreground = (Brush)Application.Current.Resources["TextFillColorTertiaryBrush"] });
 
             string key = string.IsNullOrEmpty(step.Key) ? $"step{index}" : step.Key;
             switch (step.Input)
@@ -937,7 +941,7 @@ public sealed partial class TweakCard : UserControl
                     var cb = new ComboBox { MinWidth = 200, Margin = new Thickness(0, 6, 0, 0) };
                     if (step.Choices is not null)
                         foreach (var c in step.Choices)
-                            cb.Items.Add(new ComboBoxItem { Content = $"{c.Label.En} · {c.Label.Zh}", Tag = c.Value });
+                            cb.Items.Add(new ComboBoxItem { Content = c.Label.Get(Loc.I.Language), Tag = c.Value });
                     cb.SelectedIndex = cb.Items.Count > 0 ? 0 : -1;
                     host.Children.Add(cb);
                     inputs[key] = () => (cb.SelectedItem as ComboBoxItem)?.Tag as string ?? "";
@@ -985,7 +989,7 @@ public sealed partial class TweakCard : UserControl
             var result = await _tweak.WizardFinish(collected, CancellationToken.None);
             ResultBar.Severity = result.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error;
             ResultBar.Title = result.Success ? Loc.I.Pick("Done", "完成") : Loc.I.Pick("Failed", "失敗");
-            ResultBar.Message = result.Message is null ? string.Empty : $"{result.Message.En}\n{result.Message.Zh}";
+            ResultBar.Message = result.Message is null ? string.Empty : result.Message.Get(Loc.I.Language);
             ResultBar.IsOpen = true;
             UpdateStatusPill();
         }
@@ -1011,7 +1015,7 @@ public sealed partial class TweakCard : UserControl
         try
         {
             var (en, zh, color) = _tweak.ColoredStatus();
-            StatusPillText.Text = $"{Loc.I.Pick(en, zh)} · {Loc.I.Pick(zh, en)}";
+            StatusPillText.Text = Loc.I.Pick(en, zh);
             var (bg, fg) = StatusBrushes(color);
             StatusPill.Background = bg;
             StatusPillText.Foreground = fg;
@@ -1067,7 +1071,7 @@ public sealed partial class TweakCard : UserControl
         }
         ResultBar.Severity = InfoBarSeverity.Success;
         ResultBar.Title = Loc.I.Pick("Done", "完成");
-        ResultBar.Message = $"{en}\n{zh}";
+        ResultBar.Message = Loc.I.Pick(en, zh);
         ResultBar.ActionButton = t.Restart == RestartScope.Explorer ? MakeRestartExplorerButton() : null;
         ResultBar.IsOpen = true;
         RefreshVisualIfLive();
@@ -1079,7 +1083,7 @@ public sealed partial class TweakCard : UserControl
         ResultBar.Severity = InfoBarSeverity.Error;
         ResultBar.Title = Loc.I.Pick("Failed", "失敗");
         ResultBar.Message = needAdmin
-            ? "This change needs administrator rights.\n呢項更改需要管理員權限。"
+            ? Loc.I.Pick("This change needs administrator rights.", "呢項更改需要管理員權限。")
             : $"{ex.Message}";
         ResultBar.ActionButton = needAdmin ? MakeRelaunchButton() : null;
         ResultBar.IsOpen = true;
