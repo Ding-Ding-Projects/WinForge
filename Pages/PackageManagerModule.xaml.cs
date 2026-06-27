@@ -24,6 +24,9 @@ public sealed partial class PackageManagerModule : Page
     private int _view; // 0 Discover, 1 Updates, 2 Installed, 3 Bundles, 4 Sources, 5 Ignored, 6 Setup
     private HashSet<string> _wingetInstalled = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, PackageItem> _selectedPkgs = new(StringComparer.OrdinalIgnoreCase); // 已勾選套件 · checked packages keyed by "manager|id"
+    private readonly List<PackageItem> _lastDiscoverResults = new();
+    private string _lastDiscoverQuery = "";
+    private bool _syncingSearchOptions;
 
     private static string PkgKey(PackageItem i) => $"{i.ManagerKey}|{i.Id}";
 
@@ -31,6 +34,11 @@ public sealed partial class PackageManagerModule : Page
     private const string IgnoreNotApplicableKey = "pkg.ignore.notapplicable";
     private static bool IgnoreNotApplicable =>
         SettingsStore.Get(IgnoreNotApplicableKey, "false") == "true";
+    private const string SearchModeKey = "pkg.search.mode";
+    private const string SearchCaseSensitiveKey = "pkg.search.caseSensitive";
+    private const string SearchIgnoreSpecialKey = "pkg.search.ignoreSpecial";
+
+    private enum PackageSearchMode { Both, Name, Id, Exact, Similar }
 
     public PackageManagerModule()
     {
@@ -60,9 +68,73 @@ public sealed partial class PackageManagerModule : Page
             "UniGetUI 式總管，統一 winget、Scoop、Chocolatey、pip、npm、.NET 工具、PowerShell Gallery、PowerShell 7、Cargo、Bun 同 vcpkg — 搜尋、多選、批次安裝／更新／解除安裝，仲可以匯出／匯入清單，全部喺 app 內。");
         ManagersLabel.Text = P("Package managers", "套件管理器");
         SearchBox.PlaceholderText = P("Search packages (e.g. vscode, vlc, obs)…", "搜尋套件（例如 vscode、vlc、obs）…");
+        SearchOptionsText.Text = P("Filters", "篩選");
+        SearchOptionsTitle.Text = P("Search filters", "搜尋篩選");
+        SearchModeLabel.Text = P("Search mode", "搜尋模式");
+        SearchModeBoth.Content = P("Both", "兩者");
+        SearchModeName.Content = P("Package Name", "套件名稱");
+        SearchModeId.Content = P("Package ID", "套件 ID");
+        SearchModeExact.Content = P("Exact match", "完全符合");
+        SearchModeSimilar.Content = P("Show similar packages", "顯示相似套件");
+        SearchCaseToggle.Header = P("Distinguish between uppercase and lowercase", "區分大小寫");
+        SearchIgnoreSpecialToggle.Header = P("Ignore special characters", "忽略特殊字元");
         TerminalBtnText.Text = P("Terminal", "終端機");
+        ToolTipService.SetToolTip(SearchOptionsBtn, P("UniGetUI-style search mode and filter options.",
+            "UniGetUI 式搜尋模式同篩選選項。"));
         ToolTipService.SetToolTip(TerminalBtn, P("Open a shell for manual winget / scoop / choco / pip / npm",
             "開一個 shell 手動執行 winget／scoop／choco／pip／npm"));
+        RefreshSearchOptionControls();
+    }
+
+    private PackageSearchMode CurrentSearchMode()
+        => Enum.TryParse<PackageSearchMode>(SettingsStore.Get(SearchModeKey, PackageSearchMode.Both.ToString()), true, out var mode)
+            ? mode
+            : PackageSearchMode.Both;
+
+    private bool SearchCaseSensitive => SettingsStore.Get(SearchCaseSensitiveKey, "false") == "true";
+    private bool SearchIgnoreSpecial => SettingsStore.Get(SearchIgnoreSpecialKey, "false") == "true";
+
+    private void RefreshSearchOptionControls()
+    {
+        _syncingSearchOptions = true;
+        try
+        {
+            var mode = CurrentSearchMode();
+            SearchModeBoth.IsChecked = mode == PackageSearchMode.Both;
+            SearchModeName.IsChecked = mode == PackageSearchMode.Name;
+            SearchModeId.IsChecked = mode == PackageSearchMode.Id;
+            SearchModeExact.IsChecked = mode == PackageSearchMode.Exact;
+            SearchModeSimilar.IsChecked = mode == PackageSearchMode.Similar;
+            SearchCaseToggle.IsOn = SearchCaseSensitive;
+            SearchIgnoreSpecialToggle.IsOn = SearchIgnoreSpecial;
+        }
+        finally { _syncingSearchOptions = false; }
+    }
+
+    private void SearchMode_Checked(object sender, RoutedEventArgs e)
+    {
+        if (_syncingSearchOptions) return;
+        if (sender is RadioButton { Tag: string tag }
+            && Enum.TryParse<PackageSearchMode>(tag, true, out var mode))
+        {
+            SettingsStore.Set(SearchModeKey, mode.ToString());
+            RenderCachedDiscoverResults();
+        }
+    }
+
+    private void SearchOption_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (_syncingSearchOptions) return;
+        SettingsStore.Set(SearchCaseSensitiveKey, SearchCaseToggle.IsOn ? "true" : "false");
+        SettingsStore.Set(SearchIgnoreSpecialKey, SearchIgnoreSpecialToggle.IsOn ? "true" : "false");
+        RenderCachedDiscoverResults();
+    }
+
+    private void RenderCachedDiscoverResults()
+    {
+        if (_view != 0 || _lastDiscoverResults.Count == 0 || string.IsNullOrWhiteSpace(_lastDiscoverQuery))
+            return;
+        RenderDiscoverResults(_lastDiscoverQuery, _lastDiscoverResults);
     }
 
     /// <summary>
@@ -145,6 +217,7 @@ public sealed partial class PackageManagerModule : Page
     {
         ResultsPanel.Children.Clear();
         ResultsHeader.Text = "";
+        SearchOptionsBtn.Visibility = _view == 0 ? Visibility.Visible : Visibility.Collapsed;
         ClearSelection(); // 切換檢視就清空多選 · switching views clears the multi-select set
         switch (_view)
         {
@@ -273,7 +346,39 @@ public sealed partial class PackageManagerModule : Page
         catch { results = new(); }
         Busy.IsActive = false;
 
-        ResultsHeader.Text = P($"Results — {results.Count}", $"結果 — {results.Count}");
+        _lastDiscoverQuery = query;
+        _lastDiscoverResults.Clear();
+        _lastDiscoverResults.AddRange(results);
+        RenderDiscoverResults(query, _lastDiscoverResults);
+    }
+
+    private void RenderDiscoverResults(string query, IReadOnlyList<PackageItem> rawResults)
+    {
+        ResultsPanel.Children.Clear();
+        var results = FilterDiscoverResults(query, rawResults);
+        var mode = CurrentSearchMode();
+        var modeLabel = SearchModeDisplay(mode);
+        var extra = SearchIgnoreSpecial
+            ? P(" · ignoring special characters", " · 忽略特殊字元")
+            : "";
+        extra += SearchCaseSensitive
+            ? P(" · case-sensitive", " · 區分大小寫")
+            : "";
+        ResultsHeader.Text = results.Count == rawResults.Count
+            ? P($"Results — {results.Count} · {modeLabel}{extra}", $"結果 — {results.Count} · {modeLabel}{extra}")
+            : P($"Results — {results.Count}/{rawResults.Count} · {modeLabel}{extra}", $"結果 — {results.Count}/{rawResults.Count} · {modeLabel}{extra}");
+
+        if (results.Count == 0)
+        {
+            ResultsPanel.Children.Add(Card(new TextBlock
+            {
+                Text = P("No packages match the current search filters.", "冇套件符合目前搜尋篩選。"),
+                TextWrapping = TextWrapping.Wrap,
+                Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+            }));
+            return;
+        }
+
         foreach (var item in results)
         {
             var extras = new List<(string, Func<Button, Task>)>
@@ -285,6 +390,45 @@ public sealed partial class PackageManagerModule : Page
                 extras, RowExtraScope.Discover, PackageOperations.Op.Install));
         }
     }
+
+    private List<PackageItem> FilterDiscoverResults(string query, IReadOnlyList<PackageItem> rawResults)
+    {
+        var mode = CurrentSearchMode();
+        if (mode == PackageSearchMode.Similar) return rawResults.ToList();
+
+        var q = NormalizeSearchText(query, SearchIgnoreSpecial, SearchCaseSensitive);
+        if (string.IsNullOrWhiteSpace(q)) return rawResults.ToList();
+
+        bool Contains(string value)
+            => NormalizeSearchText(value, SearchIgnoreSpecial, SearchCaseSensitive).Contains(q, StringComparison.Ordinal);
+        bool Exact(string value)
+            => string.Equals(NormalizeSearchText(value, SearchIgnoreSpecial, SearchCaseSensitive), q, StringComparison.Ordinal);
+
+        return rawResults.Where(item => mode switch
+        {
+            PackageSearchMode.Name => Contains(item.Name),
+            PackageSearchMode.Id => Contains(item.Id),
+            PackageSearchMode.Exact => Exact(item.Name) || Exact(item.Id),
+            _ => Contains(item.Name) || Contains(item.Id),
+        }).ToList();
+    }
+
+    private static string NormalizeSearchText(string text, bool ignoreSpecial, bool caseSensitive)
+    {
+        var value = text ?? "";
+        if (ignoreSpecial)
+            value = new string(value.Where(char.IsLetterOrDigit).ToArray());
+        return caseSensitive ? value : value.ToUpperInvariant();
+    }
+
+    private string SearchModeDisplay(PackageSearchMode mode) => mode switch
+    {
+        PackageSearchMode.Name => P("Package Name", "套件名稱"),
+        PackageSearchMode.Id => P("Package ID", "套件 ID"),
+        PackageSearchMode.Exact => P("Exact match", "完全符合"),
+        PackageSearchMode.Similar => P("Show similar packages", "顯示相似套件"),
+        _ => P("Both", "兩者"),
+    };
 
     // ===== Updates =====
 

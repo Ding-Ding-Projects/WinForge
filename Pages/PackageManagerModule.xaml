@@ -52,6 +52,7 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <ComboBox x:Name="ViewCombo" Grid.Column="0" MinWidth="160" SelectionChanged="View_Changed" />
             <AutoSuggestBox
@@ -59,15 +60,39 @@
                 Grid.Column="1"
                 QueryIcon="Find"
                 QuerySubmitted="Search_Submitted" />
-            <Button x:Name="PrimaryActionBtn" Grid.Column="2" Click="PrimaryAction_Click" />
-            <Button x:Name="SecondaryActionBtn" Grid.Column="3" Click="SecondaryAction_Click" />
-            <Button x:Name="TerminalBtn" Grid.Column="4" Click="Terminal_Click">
+            <Button x:Name="SearchOptionsBtn" Grid.Column="2">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <FontIcon FontSize="14" Glyph="&#xE71C;" />
+                    <TextBlock x:Name="SearchOptionsText" />
+                </StackPanel>
+                <Button.Flyout>
+                    <Flyout>
+                        <StackPanel Width="300" Spacing="10">
+                            <TextBlock x:Name="SearchOptionsTitle" FontWeight="SemiBold" />
+                            <TextBlock
+                                x:Name="SearchModeLabel"
+                                FontSize="12"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <RadioButton x:Name="SearchModeBoth" Tag="Both" Checked="SearchMode_Checked" GroupName="PackageSearchMode" />
+                            <RadioButton x:Name="SearchModeName" Tag="Name" Checked="SearchMode_Checked" GroupName="PackageSearchMode" />
+                            <RadioButton x:Name="SearchModeId" Tag="Id" Checked="SearchMode_Checked" GroupName="PackageSearchMode" />
+                            <RadioButton x:Name="SearchModeExact" Tag="Exact" Checked="SearchMode_Checked" GroupName="PackageSearchMode" />
+                            <RadioButton x:Name="SearchModeSimilar" Tag="Similar" Checked="SearchMode_Checked" GroupName="PackageSearchMode" />
+                            <ToggleSwitch x:Name="SearchCaseToggle" Toggled="SearchOption_Toggled" />
+                            <ToggleSwitch x:Name="SearchIgnoreSpecialToggle" Toggled="SearchOption_Toggled" />
+                        </StackPanel>
+                    </Flyout>
+                </Button.Flyout>
+            </Button>
+            <Button x:Name="PrimaryActionBtn" Grid.Column="3" Click="PrimaryAction_Click" />
+            <Button x:Name="SecondaryActionBtn" Grid.Column="4" Click="SecondaryAction_Click" />
+            <Button x:Name="TerminalBtn" Grid.Column="5" Click="Terminal_Click">
                 <StackPanel Orientation="Horizontal" Spacing="6">
                     <FontIcon FontSize="14" Glyph="&#xE756;" />
                     <TextBlock x:Name="TerminalBtnText" />
                 </StackPanel>
             </Button>
-            <ProgressRing x:Name="Busy" Grid.Column="5" Width="22" Height="22" IsActive="False" VerticalAlignment="Center" />
+            <ProgressRing x:Name="Busy" Grid.Column="6" Width="22" Height="22" IsActive="False" VerticalAlignment="Center" />
         </Grid>
 
         <!-- Results -->
