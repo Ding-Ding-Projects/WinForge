@@ -62,6 +62,13 @@ public sealed partial class AboutPage : Page
         link.Click += (_, _) => CopyText("https://github.com/codingmachineedge/WinForge");
         Root.Children.Add(link);
 
+        var licenses = new Button
+        {
+            Content = Loc.I.Pick("Licenses & source notices · 授權與原始碼聲明", "授權與原始碼聲明 · Licenses & source notices"),
+        };
+        licenses.Click += (_, _) => Navigator.GoToPage?.Invoke("licenses");
+        Root.Children.Add(licenses);
+
         Root.Children.Add(new TextBlock
         {
             Margin = new Thickness(0, 8, 0, 0),

@@ -47,8 +47,8 @@ public sealed partial class OpenSourceAppHubModule : Page
     {
         HeaderTitle.Text = "Native OSS Clones · 開源原生分頁";
         HeaderBlurb.Text = P(
-            "A native-only map of useful open-source app ideas that have been remade as C# tabs inside WinForge. These entries do not install or launch upstream apps; each one routes to an in-app module backed by managed code, Windows APIs or an embedded library.",
-            "呢個係只限原生嘅開源 app 概念地圖：有用嘅開源應用程式想法已經重製成 WinForge 入面嘅 C# 分頁。呢啲項目唔會安裝或啟動上游 app；每一項都會去到一個由受控程式碼、Windows API 或內嵌程式庫支援嘅 app 內模組。");
+            "A native-only map of useful open-source app ideas that have been remade as C# tabs inside WinForge. These entries do not install or launch upstream apps; each one routes to an in-app module backed by managed code, Windows APIs or an embedded library. GPL, AGPL and source-available notices are tracked on the Licenses page.",
+            "呢個係只限原生嘅開源 app 概念地圖：有用嘅開源應用程式想法已經重製成 WinForge 入面嘅 C# 分頁。呢啲項目唔會安裝或啟動上游 app；每一項都會去到一個由受控程式碼、Windows API 或內嵌程式庫支援嘅 app 內模組。GPL、AGPL 同 source-available 聲明會喺授權頁追蹤。");
         NativeOnlyLabel.Text = P("Native only", "只限原生");
         ClearLabel.Text = P("Clear", "清除");
         SearchBox.PlaceholderText = P("Search native clones, source inspirations or module aliases…",
@@ -86,6 +86,8 @@ public sealed partial class OpenSourceAppHubModule : Page
             $"{apps.Count} shown · {OpenSourceAppHubService.Catalog.Length} native open-source-inspired tabs catalogued",
             $"顯示 {apps.Count} 個 · 已登記 {OpenSourceAppHubService.Catalog.Length} 個開源靈感原生分頁");
 
+        AppsPanel.Children.Add(BuildLicenseNoticeCard());
+
         if (apps.Count == 0)
         {
             AppsPanel.Children.Add(Card(new TextBlock
@@ -108,6 +110,50 @@ public sealed partial class OpenSourceAppHubModule : Page
             .Where(a => q.Length == 0 || a.SearchHaystack.Contains(q))
             .OrderBy(a => a.CategoryEn)
             .ThenBy(a => a.NameEn);
+    }
+
+    private Border BuildLicenseNoticeCard()
+    {
+        var row = new Grid { ColumnSpacing = 12 };
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        var text = new StackPanel { Spacing = 3 };
+        text.Children.Add(new TextBlock
+        {
+            Text = P("Source and license notices", "原始碼與授權聲明"),
+            FontWeight = FontWeights.SemiBold,
+            TextWrapping = TextWrapping.Wrap,
+        });
+        text.Children.Add(new TextBlock
+        {
+            Text = P("GPL, AGPL, LGPL, MPL and source-available upstreams are called out in-app with copyable source/license links.",
+                "GPL、AGPL、LGPL、MPL 同 source-available 上游會喺 app 內列明，並提供可複製嘅來源／授權連結。"),
+            Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+            TextWrapping = TextWrapping.Wrap,
+        });
+        Grid.SetColumn(text, 0);
+        row.Children.Add(text);
+
+        var button = new Button
+        {
+            VerticalAlignment = VerticalAlignment.Center,
+            Content = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 6,
+                Children =
+                {
+                    new FontIcon { Glyph = "\uE8D7", FontSize = 13 },
+                    new TextBlock { Text = P("Licenses", "授權") },
+                },
+            },
+        };
+        button.Click += (_, _) => Navigator.GoToPage?.Invoke("licenses");
+        Grid.SetColumn(button, 1);
+        row.Children.Add(button);
+
+        return Card(row);
     }
 
     private Border BuildAppCard(NativeOssCloneInfo app)
