@@ -184,6 +184,7 @@ public sealed partial class MainWindow : Window
     {
         if (_reallyQuit || !TrayService.IsInstalled)
         {
+            CloseDetachedTabs();
             // Genuinely closing → flush all volatile state before the process tears down.
             CrashLogger.Guard("activity:close", () => Services.ActivityTrackerService.I.FlushForShutdown());
             CrashLogger.Guard("persistence:close", () => Services.PersistenceService.I.Flush());
@@ -229,6 +230,7 @@ public sealed partial class MainWindow : Window
         CrashLogger.Guard("activity:quit", () => Services.ActivityTrackerService.I.FlushForShutdown());
         CrashLogger.Guard("persistence:quit", () => Services.PersistenceService.I.Flush());
         TrayService.Remove();
+        CloseDetachedTabs();
         Application.Current.Exit();
     }
 
@@ -1783,6 +1785,8 @@ public sealed partial class MainWindow : Window
             RefreshTabHeader(tab);
             SaveSession();
         });
+        flyout.Items.Add(new MenuFlyoutSeparator());
+        AddFlyoutItem(flyout, "Detach tab to window · 分離分頁做視窗", "\uE8A7", (_, _) => DetachTab(tab));
         flyout.Items.Add(new MenuFlyoutSeparator());
         AddFlyoutItem(flyout, "Close tab · 關閉分頁", "\uE8BB", (_, _) => CloseTab(tab));
         return flyout;
