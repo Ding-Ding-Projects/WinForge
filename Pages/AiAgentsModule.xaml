@@ -21,6 +21,38 @@
 
             <InfoBar x:Name="NodeBar" IsClosable="False" IsOpen="False" Severity="Informational" />
 
+            <!-- Shared cake-credit wallet for AI generation. -->
+            <Border
+                Padding="14,10,14,10"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <Grid ColumnSpacing="10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Spacing="2">
+                        <TextBlock x:Name="CreditTitle" FontWeight="SemiBold" />
+                        <TextBlock
+                            x:Name="CreditBalanceText"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            TextWrapping="Wrap" />
+                        <TextBlock
+                            x:Name="CreditRuleText"
+                            FontSize="12"
+                            Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                    <Button
+                        x:Name="FeedCreditBtn"
+                        Grid.Column="1"
+                        VerticalAlignment="Center"
+                        Click="FeedCredit_Click" />
+                </Grid>
+            </Border>
+
             <!-- Launch working folder -->
             <Border
                 Padding="14,10,14,10"

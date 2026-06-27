@@ -60,8 +60,14 @@ public sealed partial class AiAgentsModule : Page
         HeaderBlurb.Text = P(
             "Install, configure and launch terminal AI coding agents — one click each. Most install via npm (Node.js); some via an official installer.",
             "一鍵安裝、設定同啟動終端機 AI 編程代理。大部分用 npm（Node.js）安裝，部分用官方安裝器。");
+        CreditTitle.Text = P("Cake generation credits", "蛋糕生成額度");
+        CreditRuleText.Text = P(
+            "AI Agents, Communication AI and Ollama share this wallet. 1 packed cake deposits 1,000,000 generated units; in-app generations spend credits on usage.",
+            "AI 代理、通訊 AI 同 Ollama 共用呢個錢包。1 個已包裝蛋糕會存入 1,000,000 個生成單位；App 內生成會按用量扣額。");
+        FeedCreditBtn.Content = P("Feed cake", "餵蛋糕");
         WorkDirLabel.Text = P("Launch in folder", "啟動目錄");
         WorkDirBtn.Content = P("Browse…", "瀏覽…");
+        RefreshCreditStatus();
     }
 
     private async Task CheckNode()
@@ -134,9 +140,13 @@ public sealed partial class AiAgentsModule : Page
         var launch = new Button { Content = P("Launch", "啟動"), IsEnabled = installed };
         launch.Click += (_, _) =>
         {
+            if (!EnsureLaunchCredits(agent))
+                return;
+
             var dir = string.IsNullOrWhiteSpace(WorkDirBox.Text) ? null : ExpandDisplayPath(WorkDirBox.Text);
             var r = AiAgentService.Launch(agent, dir);
             ShowResult(r.Success, r);
+            RefreshCreditStatus();
         };
         actions.Children.Add(launch);
 
@@ -402,6 +412,55 @@ public sealed partial class AiAgentsModule : Page
     {
         ResultBar.IsOpen = true; ResultBar.Severity = InfoBarSeverity.Success;
         ResultBar.Title = P("Done", "完成"); ResultBar.Message = msg;
+    }
+
+    private bool EnsureLaunchCredits(AiAgent agent)
+    {
+        var snap = CakeCreditService.I.Snapshot;
+        if (snap.BalanceUnits > 0)
+            return true;
+
+        var feed = CakeCreditService.I.FeedOneCake(
+            $"{agent.NameEn} launch credits",
+            $"{agent.NameZh} 啟動額度");
+        RefreshCreditStatus();
+        if (feed.Success)
+        {
+            ResultBar.IsOpen = true;
+            ResultBar.Severity = InfoBarSeverity.Informational;
+            ResultBar.Title = P("Cake fed", "已餵蛋糕");
+            ResultBar.Message = P(
+                $"{feed.Message.En} External terminal usage cannot be metered after launch; in-app generations still spend credits on output.",
+                $"{feed.Message.Zh} 啟動外部終端機之後嘅用量無法由 WinForge 逐 token 計量；App 內生成仍然會按輸出扣額。");
+            return true;
+        }
+
+        ResultBar.IsOpen = true;
+        ResultBar.Severity = InfoBarSeverity.Warning;
+        ResultBar.Title = P("Cake credits required", "需要蛋糕額度");
+        ResultBar.Message = feed.Message.Primary;
+        return false;
+    }
+
+    private void FeedCredit_Click(object sender, RoutedEventArgs e)
+    {
+        var r = CakeCreditService.I.FeedOneCake(
+            "AI generation credits",
+            "AI 生成額度");
+        RefreshCreditStatus();
+        ResultBar.IsOpen = true;
+        ResultBar.Severity = r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Warning;
+        ResultBar.Title = r.Success ? P("Cake fed", "已餵蛋糕") : P("No cake available", "無可用蛋糕");
+        ResultBar.Message = r.Message.Primary;
+    }
+
+    private void RefreshCreditStatus()
+    {
+        var s = CakeCreditService.I.Snapshot;
+        CreditBalanceText.Text = P(
+            $"Balance: {CakeCreditService.FormatUnits(s.BalanceUnits)} · packed cakes ready: {s.CakeFilesAvailable} · spent: {CakeCreditService.FormatUnits(s.LifetimeSpentUnits)}",
+            $"餘額：{CakeCreditService.FormatUnits(s.BalanceUnits)} · 可用已包裝蛋糕：{s.CakeFilesAvailable} · 已使用：{CakeCreditService.FormatUnits(s.LifetimeSpentUnits)}");
+        FeedCreditBtn.IsEnabled = s.CakeFilesAvailable > 0;
     }
 
     private void ShowResult(bool ok, Models.TweakResult r)

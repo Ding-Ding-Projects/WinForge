@@ -66,6 +66,7 @@ public sealed partial class OllamaModule : Page
         HeaderBlurb.Text = P(
             "Run local large-language models with Ollama — manage installed models, pull new ones with live progress, watch what's loaded in memory, and chat with streaming tokens and tunable parameters. Everything talks to the local API on port 11434.",
             "用 Ollama 喺本機跑大型語言模型 — 管理已安裝模型、即時進度下載新模型、睇住記憶體載咗咩、同串流式逐字聊天兼可調參數。全部都係同本機 11434 埠嘅 API 溝通。");
+        RefreshCreditStatus();
 
         UrlLabel.Text = P("API URL · API 網址", "API 網址");
         SaveUrlBtn.Content = P("Save · 儲存", "儲存");
@@ -374,6 +375,7 @@ public sealed partial class OllamaModule : Page
         if (!creditReady.Success)
         {
             AddSystemNote(creditReady.Message.Primary);
+            RefreshCreditStatus();
             return;
         }
 
@@ -450,12 +452,31 @@ public sealed partial class OllamaModule : Page
                     : P($"Response {c} tokens", $"回應 {c} 個 token"))
                 : P($"Estimated {CakeCreditService.FormatUnits(units)}", $"估算 {CakeCreditService.FormatUnits(units)}");
             AddSystemNote($"{tokenText} · {charge.Message.Primary}");
+            RefreshCreditStatus();
         }
         ChatInput.Focus(FocusState.Programmatic);
         await LoadRunning();
     }
 
     private void ChatStop_Click(object sender, RoutedEventArgs e) => _chatCts?.Cancel();
+
+    private void Credit_Click(object sender, RoutedEventArgs e)
+    {
+        var r = CakeCreditService.I.FeedOneCake(
+            "Ollama credits",
+            "Ollama 額度");
+        RefreshCreditStatus();
+        AddSystemNote(r.Message.Primary);
+    }
+
+    private void RefreshCreditStatus()
+    {
+        var s = CakeCreditService.I.Snapshot;
+        CreditText.Text = CakeCreditService.FormatUnits(s.BalanceUnits);
+        ToolTipService.SetToolTip(CreditBtn, P(
+            $"Cake generation credits\nBalance: {CakeCreditService.FormatUnits(s.BalanceUnits)}\nPacked cakes ready: {s.CakeFilesAvailable}\nSpent: {CakeCreditService.FormatUnits(s.LifetimeSpentUnits)}\n1 cake = 1,000,000 generated units.",
+            $"蛋糕生成額度\n餘額：{CakeCreditService.FormatUnits(s.BalanceUnits)}\n可用已包裝蛋糕：{s.CakeFilesAvailable}\n已使用：{CakeCreditService.FormatUnits(s.LifetimeSpentUnits)}\n1 個蛋糕 = 1,000,000 個生成單位。"));
+    }
 
     private TextBlock AddBubble(string text, bool isUser)
     {

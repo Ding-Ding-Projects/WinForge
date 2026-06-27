@@ -67,6 +67,7 @@
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Grid.Column="0" VerticalAlignment="Center">
@@ -93,8 +94,18 @@
                     VerticalAlignment="Center"
                     SelectionChanged="Model_SelectionChanged" />
                 <Button
-                    x:Name="SettingsBtn"
+                    x:Name="CreditBtn"
                     Grid.Column="3"
+                    VerticalAlignment="Center"
+                    Click="Credit_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <FontIcon FontSize="14" Glyph="&#xECA5;" />
+                        <TextBlock x:Name="CreditText" />
+                    </StackPanel>
+                </Button>
+                <Button
+                    x:Name="SettingsBtn"
+                    Grid.Column="4"
                     VerticalAlignment="Center"
                     ToolTipService.ToolTip="Chat settings · 對話設定">
                     <FontIcon FontSize="16" Glyph="&#xE713;" />
@@ -136,7 +147,7 @@
                 </Button>
                 <Button
                     x:Name="ManageBtn"
-                    Grid.Column="4"
+                    Grid.Column="5"
                     VerticalAlignment="Center"
                     Click="Manage_Click"
                     ToolTipService.ToolTip="Providers &amp; Ollama models · 供應商與 Ollama 模型">

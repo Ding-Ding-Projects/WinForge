@@ -48,6 +48,10 @@ public sealed partial class AiChatModule : Page
         SysPromptLabel.Text = P("System prompt", "系統提示");
         TempLabel.Text = P("Temperature", "溫度");
         MaxTokLabel.Text = P("Max tokens (0 = model default)", "最大 token 數（0 = 模型預設）");
+        ToolTipService.SetToolTip(CreditBtn, P(
+            "Cake generation credits: 1 cake = 1,000,000 generated units. Click to feed one packed cake.",
+            "蛋糕生成額度：1 個蛋糕 = 1,000,000 個生成單位。撳一下餵入 1 個已包裝蛋糕。"));
+        RefreshCreditStatus();
     }
 
     private async Task InitAsync()
@@ -684,7 +688,28 @@ public sealed partial class AiChatModule : Page
             ShowInfo(creditOk == true ? InfoBarSeverity.Informational : InfoBarSeverity.Warning,
                 creditOk == true ? P("Done · cake credits spent", "完成 · 已使用蛋糕額度") : P("Cake credits required", "需要蛋糕額度"),
                 detail);
+            RefreshCreditStatus();
         }
+    }
+
+    private void Credit_Click(object sender, RoutedEventArgs e)
+    {
+        var r = CakeCreditService.I.FeedOneCake(
+            "Communication AI credits",
+            "通訊 AI 額度");
+        RefreshCreditStatus();
+        ShowInfo(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Warning,
+            r.Success ? P("Cake fed", "已餵蛋糕") : P("No cake available", "無可用蛋糕"),
+            r.Message.Primary);
+    }
+
+    private void RefreshCreditStatus()
+    {
+        var s = CakeCreditService.I.Snapshot;
+        CreditText.Text = CakeCreditService.FormatUnits(s.BalanceUnits);
+        ToolTipService.SetToolTip(CreditBtn, P(
+            $"Cake generation credits\nBalance: {CakeCreditService.FormatUnits(s.BalanceUnits)}\nPacked cakes ready: {s.CakeFilesAvailable}\nSpent: {CakeCreditService.FormatUnits(s.LifetimeSpentUnits)}\n1 cake = 1,000,000 generated units.",
+            $"蛋糕生成額度\n餘額：{CakeCreditService.FormatUnits(s.BalanceUnits)}\n可用已包裝蛋糕：{s.CakeFilesAvailable}\n已使用：{CakeCreditService.FormatUnits(s.LifetimeSpentUnits)}\n1 個蛋糕 = 1,000,000 個生成單位。"));
     }
 
     private void UpdateBubble(FrameworkElement bubbleRoot, ChatMessage m)

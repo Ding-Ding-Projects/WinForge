@@ -23,6 +23,12 @@
                 <Border x:Name="VersionPill" Background="{ThemeResource SystemFillColorSuccessBackgroundBrush}" CornerRadius="10" Padding="10,2" VerticalAlignment="Center" Visibility="Collapsed">
                     <TextBlock x:Name="VersionText" FontSize="12" Foreground="{ThemeResource SystemFillColorSuccessBrush}" />
                 </Border>
+                <Button x:Name="CreditBtn" VerticalAlignment="Center" Click="Credit_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <FontIcon FontSize="14" Glyph="&#xECA5;" />
+                        <TextBlock x:Name="CreditText" />
+                    </StackPanel>
+                </Button>
             </StackPanel>
             <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
         </StackPanel>
