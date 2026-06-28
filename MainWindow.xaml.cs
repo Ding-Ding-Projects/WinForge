@@ -1438,6 +1438,17 @@ public sealed partial class MainWindow : Window
         public string Title { get; init; } = "";
         public string Subtitle { get; init; } = "";
         public string Glyph { get; init; } = "";
+        public string CategoryId { get; init; } = "all";
+    }
+
+    private sealed class PickerCategory
+    {
+        public string Id { get; init; } = "";
+        public string En { get; init; } = "";
+        public string Zh { get; init; } = "";
+        public string[] Keys { get; init; } = Array.Empty<string>();
+
+        public string Title => Loc.I.Pick(En, Zh);
     }
 
     private const string RecentModulesKey = "shell.recentModules";
@@ -1464,6 +1475,101 @@ public sealed partial class MainWindow : Window
         "module.docker",
         "module.settingshub",
         "module.feedreader",
+    };
+
+    private static readonly PickerCategory[] PickerCategories =
+    {
+        new() { Id = "all", En = "All apps", Zh = "所有 app" },
+        new()
+        {
+            Id = "reactor",
+            En = "Reactor suite",
+            Zh = "反應堆套件",
+            Keys = new[] { "module.reactor", "module.reactorsettings", "module.cakefactory" },
+        },
+        new()
+        {
+            Id = "files",
+            En = "Files & disks",
+            Zh = "檔案與磁碟",
+            Keys = new[]
+            {
+                "module.peek", "module.newplus", "module.archives", "module.bulkops", "module.rename",
+                "module.duplicates", "module.everything", "module.filelocksmith", "module.diffmerge",
+                "module.hexeditor", "module.disk", "module.drives", "module.diskhealth", "module.diskbench",
+                "module.testdisk", "module.onedrive", "module.richpreview",
+            },
+        },
+        new()
+        {
+            Id = "system",
+            En = "System",
+            Zh = "系統",
+            Keys = new[]
+            {
+                "module.doctors", "module.services", "module.tasks", "module.devices", "module.vivetool",
+                "module.regedit", "module.startup", "module.events", "module.monitor", "module.procexp",
+                "module.winfetch", "module.battery", "module.connections", "module.wireshark", "module.nmap",
+                "module.native", "module.envvars", "module.clipboard", "module.settingshub",
+            },
+        },
+        new()
+        {
+            Id = "media",
+            En = "Media & capture",
+            Zh = "媒體與擷取",
+            Keys = new[]
+            {
+                "module.media", "module.audioeditor", "module.audiotagger", "module.mediaplayer", "module.ytdlp",
+                "module.blender", "module.libreoffice", "module.pdftoolkit", "module.recorder", "module.capture",
+                "module.textocr", "module.cropandlock", "module.giflab", "module.zoomit", "module.mixer",
+                "module.colorpicker", "module.screenruler", "module.pixeleditor", "module.imageeditor",
+                "module.timeunit", "module.timelens",
+            },
+        },
+        new()
+        {
+            Id = "tweaks",
+            En = "Tweaks & input",
+            Zh = "調校與輸入",
+            Keys = new[]
+            {
+                "module.hosts", "module.mouse", "module.mouseutils", "module.mwb", "module.keyboard",
+                "module.hotkeys", "module.quickaccent", "module.shortcutguide", "module.cmdpalette",
+                "module.contextmenu", "module.shellmenu", "module.taskbar-tweaker", "module.lightswitch",
+                "module.nilesoftshell", "module.windows", "module.workspaces", "module.altsnap",
+                "module.fancyzones", "module.komorebi", "module.glazewm", "module.fonts", "module.awake",
+                "module.advancedpaste", "module.powertoys", "module.windhawk", "module.voice",
+                "module.announcements", "module.rainmeter",
+            },
+        },
+        new()
+        {
+            Id = "apps",
+            En = "Apps & Git",
+            Zh = "程式與 Git",
+            Keys = new[]
+            {
+                "module.packages", "module.ossapps", "module.adb", "module.fastboot", "module.emulator",
+                "module.vpn", "module.qbittorrent", "module.torrent", "module.dockerssh", "module.docker",
+                "module.diagram", "module.flashcards", "module.rustdesk", "module.homeassistant",
+                "module.comms", "module.mail", "module.wslvm", "module.virtualbox", "module.proxmox",
+                "module.terminal", "module.uninstall", "module.imaging", "module.amulet",
+                "module.minecraftworldtools", "module.viaproxy", "module.minecraftserver", "module.git",
+                "module.vscode", "module.aiagents", "module.resume", "module.ollama", "module.aichat",
+                "module.cloudflare", "module.weblogin", "module.ssh", "module.apiclient", "module.packer",
+                "module.worldmonitor", "module.webcloner", "module.pgadmin", "module.sqlitebrowser",
+                "module.filezilla", "module.feedreader", "module.quicktype", "module.decompiler",
+                "module.aws", "module.cmdnotfound", "module.configbackup",
+            },
+        },
+        new()
+        {
+            Id = "security",
+            En = "Security & privacy",
+            Zh = "安全與私隱",
+            Keys = new[] { "module.vault-volumes", "module.bitwarden", "module.keepass" },
+        },
     };
 
     private Frame? ActiveFrame => (Tabs?.SelectedItem as TabViewItem)?.Content as Frame;
@@ -1499,6 +1605,19 @@ public sealed partial class MainWindow : Window
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(search, Loc.I.Pick("Search all apps and tools", "搜尋所有 app 同工具"));
         root.Children.Add(search);
 
+        var categoryBox = new ComboBox
+        {
+            Header = Loc.I.Pick("Category", "分類"),
+            ItemsSource = PickerCategories,
+            DisplayMemberPath = nameof(PickerCategory.Title),
+            SelectedIndex = 0,
+            MinWidth = 220,
+            HorizontalAlignment = HorizontalAlignment.Left,
+        };
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(categoryBox, "NewTabPickerCategoryBox");
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(categoryBox, Loc.I.Pick("Filter by category", "按分類篩選"));
+        root.Children.Add(categoryBox);
+
         var results = new StackPanel { Spacing = 12 };
         var scroller = new ScrollViewer
         {
@@ -1518,24 +1637,36 @@ public sealed partial class MainWindow : Window
         {
             results.Children.Clear();
             query = (query ?? string.Empty).Trim();
+            var selectedCategory = categoryBox.SelectedItem as PickerCategory ?? PickerCategories[0];
+            var entries = FilterEntriesForCategory(AllPickerEntries(), selectedCategory);
 
             if (query.Length == 0)
             {
-                AddPickerSection(results, Loc.I.Pick("Frequently used", "常用"), FrequentEntries(), Open);
-                AddPickerSection(results, Loc.I.Pick("You may like", "你可能會用"), EntriesFor(SuggestedTabKeys), Open);
-                AddPickerSection(results, Loc.I.Pick("All apps", "所有 app"), AllPickerEntries().Take(24), Open);
+                if (selectedCategory.Id == "all")
+                {
+                    AddPickerSection(results, Loc.I.Pick("Frequently used", "常用"), FrequentEntries(), Open);
+                    AddPickerSection(results, Loc.I.Pick("You may like", "你可能會用"), EntriesFor(SuggestedTabKeys), Open);
+                    AddPickerSection(results, Loc.I.Pick("All apps", "所有 app"), entries.Take(24), Open);
+                }
+                else
+                {
+                    AddPickerSection(results, selectedCategory.Title, entries, Open);
+                }
                 return;
             }
 
             AddPickerSection(results,
-                Loc.I.Pick("Search results", "搜尋結果"),
-                AllPickerEntries()
+                selectedCategory.Id == "all"
+                    ? Loc.I.Pick("Search results", "搜尋結果")
+                    : Loc.I.Pick($"{selectedCategory.En} search results", $"{selectedCategory.Zh}搜尋結果"),
+                entries
                     .Where(e => MatchesPickerEntry(e, query))
                     .Take(40),
                 Open);
         }
 
         search.TextChanged += (_, _) => Render(search.Text);
+        categoryBox.SelectionChanged += (_, _) => Render(search.Text);
         Render(string.Empty);
 
         dialog = new ContentDialog
@@ -1665,6 +1796,7 @@ public sealed partial class MainWindow : Window
             Title = Loc.I.Pick("Dashboard", "概覽"),
             Subtitle = Loc.I.Pick("Home, search, and suggestions", "首頁、搜尋同建議"),
             Glyph = ((char)0xE80F).ToString(),
+            CategoryId = "all",
         };
         yield return new NewTabEntry
         {
@@ -1672,6 +1804,7 @@ public sealed partial class MainWindow : Window
             Title = Loc.I.Pick("Settings", "設定"),
             Subtitle = Loc.I.Pick("Language, theme, and app preferences", "語言、主題同 app 偏好"),
             Glyph = ((char)0xE713).ToString(),
+            CategoryId = "all",
         };
         foreach (var module in ModuleRegistry.All.Where(m => m.Tag.StartsWith("module.", StringComparison.Ordinal)))
             yield return EntryFor(module)!;
@@ -1697,12 +1830,31 @@ public sealed partial class MainWindow : Window
                 ? Loc.I.Pick(module.ReactorRequirementBadge, module.ReactorRequirementBadge)
                 : module.Keywords.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(6).DefaultIfEmpty(module.En).Aggregate((a, b) => $"{a} {b}"),
             Glyph = module.Glyph,
+            CategoryId = PickerCategoryIdFor(module.Tag),
         };
 
     private static bool MatchesPickerEntry(NewTabEntry entry, string query)
     {
-        var haystack = $"{entry.Title} {entry.Subtitle} {entry.Key}".ToLowerInvariant();
+        var category = PickerCategories.FirstOrDefault(c => c.Id == entry.CategoryId);
+        var haystack = $"{entry.Title} {entry.Subtitle} {entry.Key} {category?.En} {category?.Zh}".ToLowerInvariant();
         return haystack.Contains(query.ToLowerInvariant());
+    }
+
+    private static IEnumerable<NewTabEntry> FilterEntriesForCategory(IEnumerable<NewTabEntry> entries, PickerCategory category)
+        => category.Id == "all"
+            ? entries
+            : entries.Where(e => string.Equals(e.CategoryId, category.Id, StringComparison.OrdinalIgnoreCase));
+
+    private static string PickerCategoryIdFor(string key)
+    {
+        foreach (var category in PickerCategories)
+        {
+            if (category.Id == "all") continue;
+            if (category.Keys.Any(k => string.Equals(k, key, StringComparison.OrdinalIgnoreCase)))
+                return category.Id;
+        }
+
+        return "apps";
     }
 
     private void RememberAppUse(string key)
