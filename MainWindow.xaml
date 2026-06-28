@@ -39,6 +39,7 @@
             IsPaneToggleButtonVisible="False"
             IsSettingsVisible="True"
             SelectionChanged="NavView_SelectionChanged"
+            automation:AutomationProperties.AutomationId="ShellNavigationView"
             automation:AutomationProperties.Name="WinForge navigation · WinForge 導航">
             <NavigationView.AutoSuggestBox>
                 <AutoSuggestBox
@@ -291,6 +292,7 @@
                 SelectionChanged="Tabs_SelectionChanged"
                 TabCloseRequested="Tabs_TabCloseRequested"
                 TabDroppedOutside="Tabs_TabDroppedOutside"
+                automation:AutomationProperties.AutomationId="ShellTabs"
                 automation:AutomationProperties.Name="Open WinForge module tabs · 已開啟 WinForge 模組分頁">
                 <TabView.TabStripFooter>
                     <Button
@@ -299,6 +301,7 @@
                         Padding="9,5"
                         VerticalAlignment="Center"
                         ToolTipService.ToolTip="Tab session · 分頁工作階段（匯出／匯入／還原）"
+                        automation:AutomationProperties.AutomationId="ShellSessionButton"
                         automation:AutomationProperties.Name="Tab session actions · 分頁工作階段動作">
                         <FontIcon FontSize="15" Glyph="&#xE74E;" />
                         <Button.Flyout>
