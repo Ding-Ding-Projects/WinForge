@@ -293,6 +293,29 @@
             </Grid>
         </ScrollViewer>
 
+        <!-- Command-line auto-start animation/progress. Non-blocking: the control room stays usable. -->
+        <Border x:Name="AutoStartOverlay" Visibility="Collapsed" IsHitTestVisible="False"
+                HorizontalAlignment="Right" VerticalAlignment="Top" Margin="24"
+                CornerRadius="8" Padding="14,12,14,12" Width="360"
+                Background="#E61B2430" BorderBrush="#FF42A5F5" BorderThickness="1">
+            <Grid ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid Width="44" Height="44" VerticalAlignment="Center">
+                    <Ellipse x:Name="AutoStartPulse" Fill="#3342A5F5" Stroke="#FF42A5F5" StrokeThickness="2" />
+                    <FontIcon Glyph="&#xE9D9;" FontSize="20" Foreground="#FF90CAF9"
+                              HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Grid>
+                <StackPanel Grid.Column="1" Spacing="5" VerticalAlignment="Center">
+                    <TextBlock x:Name="AutoStartText" FontWeight="SemiBold" Foreground="White" TextWrapping="Wrap" />
+                    <TextBlock x:Name="AutoStartSubText" FontSize="11" Foreground="#FFD0E7FF" TextWrapping="Wrap" />
+                    <ProgressBar x:Name="AutoStartProgress" Minimum="0" Maximum="100" Height="6" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
         <!-- MELTDOWN overlay (dramatic) -->
         <Grid x:Name="MeltdownOverlay" Visibility="Collapsed" Background="#E6000000">
             <Border Background="#22FF0000" />

@@ -36,6 +36,8 @@ public partial class App : Application
 
     /// <summary>由命令列 "--reactor" 設定：直接開旗艦反應堆 · Open the flagship reactor directly.</summary>
     public static bool StartReactor { get; private set; }
+    /// <summary>由命令列 "--auto-start-reactor" 設定：開啟並自動啟動反應堆 · Open and auto-start the reactor.</summary>
+    public static bool AutoStartReactor { get; private set; }
 
     protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
     {
@@ -49,6 +51,9 @@ public partial class App : Application
         CrashLogger.Guard("startup:persistence", () => PersistenceService.I.Initialize());
 
         ParseArgs();
+        // --reactor / --auto-start-reactor must win before MainWindow restores saved tabs, otherwise a
+        // stale heavy session can load first and make direct reactor launches feel frozen.
+        if (StartReactor) StartPage ??= "reactor";
 
         // 無頭模式："Copy as path" 右鍵動作：直接複製路徑入剪貼簿然後退出，唔開視窗。
         // Headless mode: the "Copy as path" right-click verb just copies the path to the clipboard and exits,
@@ -109,9 +114,6 @@ public partial class App : Application
         // it available even before the reactor page is opened. Default ON; toggle on the reactor page.
         // Exception-safe and self-cleaning (AppDomain.ProcessExit) — never blocks app startup.
         try { WinForge.Services.ReactorStatusApiService.I.Start(); } catch { }
-
-        // --reactor (from the keep-alive launcher) opens the flagship reactor page on launch.
-        if (StartReactor) StartPage ??= "reactor";
 
         // A normal (non-quit) launch clears any stale user-quit flag the watchdog left behind.
         try
@@ -220,6 +222,14 @@ public partial class App : Application
             if (string.Equals(argv[i], "--reactor", StringComparison.OrdinalIgnoreCase))
             {
                 StartReactor = true;
+                continue;
+            }
+            if (string.Equals(argv[i], "--auto-start-reactor", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(argv[i], "--reactor-auto-start", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(argv[i], "--auto-start-nuclear", StringComparison.OrdinalIgnoreCase))
+            {
+                StartReactor = true;
+                AutoStartReactor = true;
                 continue;
             }
 

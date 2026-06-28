@@ -284,7 +284,8 @@ public sealed class ReactorSimService
     private const double RiaPcmiRiseHighBurnCalG  = 60.0;  // PCMI rise threshold near 68 GWd/MTU (high burnup)
     private const double EasyStartupAssistPcm     = 500.0; // +0.005 dk/k: roughly half of fresh all-rods-in shutdown margin
     private const double EasyStartupPowerLimit    = 0.05;  // assist only below 5% RTP; above that, normal physics
-    private const double EasyStartupBurnFactor    = 1.5;   // explicit fuel penalty for the beginner startup assist
+    public const double EasyStartupBurnFactor     = 1.75;  // explicit fuel penalty for the beginner startup assist
+    public const double AutoStartFuelWasteFactor  = 2.5;   // command-line auto-start penalty: 150% faster than normal
 
     /// <summary>UO₂ 焓擬合（cal/g，由 ~25 °C 起）· UO₂ enthalpy above cold, cal/g.</summary>
     private static double Uo2Enthalpy(double tc)
@@ -1420,7 +1421,7 @@ public sealed class ReactorSimService
     public bool   NisCalorimetricDeviationOob { get; private set; } // |deviation| > 2 % RTP while valid → recalibrate
     public double BurnupSinceNisCalMwd { get; private set; }       // MWd/tU accrued since last PR calibration (drift driver)
     private bool _easyStartupMode;
-    public bool   EasyStartupMode                                  // beginner assist: +startup reactivity, ×1.5 burnup
+    public bool   EasyStartupMode                                  // beginner assist: +startup reactivity, ×1.75 burnup
     {
         get => _easyStartupMode;
         set
@@ -1430,11 +1431,26 @@ public sealed class ReactorSimService
             {
                 EasyStartupSkipPressureStep = false;
                 EasyStartupSkipReactivityStep = false;
+                EasyStartupSkipNisStep = false;
             }
         }
     }
     public bool   EasyStartupSkipPressureStep { get; set; }         // Easy-mode checklist only: marks pressure-wait step skipped
     public bool   EasyStartupSkipReactivityStep { get; set; }       // Easy-mode checklist only: marks rod/boron step skipped
+    public bool   EasyStartupSkipNisStep { get; set; }              // Easy-mode checklist only: marks 1/M observation step skipped
+    public bool   AutoStartMode { get; set; }                       // command-line auto-start assist; suppresses automatic SCRAMs
+    public int EasyStartupSkipCount =>
+        (EasyStartupSkipPressureStep ? 1 : 0)
+        + (EasyStartupSkipReactivityStep ? 1 : 0)
+        + (EasyStartupSkipNisStep ? 1 : 0);
+    public const double WastePenaltyPerEasySkip = 0.25;
+    public double FuelConsumptionMultiplier =>
+        (EasyStartupMode ? EasyStartupBurnFactor : 1.0) * (AutoStartMode ? AutoStartFuelWasteFactor : 1.0);
+    public double WasteProductionMultiplier =>
+        (AutoStartMode ? AutoStartFuelWasteFactor : 1.0) * (1.0 + WastePenaltyPerEasySkip * EasyStartupSkipCount);
+    public double AutoStartProgressFraction { get; private set; }
+    public string AutoStartStageEn { get; private set; } = "";
+    public string AutoStartStageZh { get; private set; } = "";
     public double EasyStartupAssistActivePcm =>
         EasyStartupMode && (Mode == ReactorMode.Startup || Mode == ReactorMode.Run) && _power < EasyStartupPowerLimit
             ? EasyStartupAssistPcm : 0.0;
@@ -2175,7 +2191,7 @@ public sealed class ReactorSimService
 
     public bool TryAutoScram(string en, string zh)
     {
-        if (EasyStartupMode) return false;
+        if (EasyStartupMode || AutoStartMode) return false;
         LastTripFunctionEn = en;
         LastTripFunctionZh = zh;
         Scram();
@@ -2865,7 +2881,8 @@ public sealed class ReactorSimService
         CoreExitTempC = ColdTemp; CetSubcoolingMarginC = 0; _cetInit = false;
         MinDnbr = DnbrRawUnfiltered = DnbrCeiling; DnbrLocalQuality = 0; RodsInDnbPercent = 0;
         OneOverM = 1.0; StartupRateDpm = 0; BurnupMwdPerTonne = 0; BurnupDefectPcm = 0; DepletionAccel = 1.0;
-        EasyStartupMode = false; EasyStartupSkipPressureStep = false; EasyStartupSkipReactivityStep = false;
+        EasyStartupMode = false; EasyStartupSkipPressureStep = false; EasyStartupSkipReactivityStep = false; EasyStartupSkipNisStep = false;
+        AutoStartMode = false;
         IntermediateRangeAmps = IrBottomAmps; IntermediateRangeDecades = 0; IntermediateRangePercent = 0;
         PowerRangePercent = 0; SourceRangeEnergized = true; _p6Latched = false;
         NisCalibrationGain = 1.0; CalorimetricPowerPct = 0; CalorimetricValid = false;
@@ -3105,8 +3122,7 @@ public sealed class ReactorSimService
         // ≈ 34 MW/tU at full power → 34 MWd/tU per EFPD; scales with actual power so part-load accrues less.
         // DepletionAccel (default ×1 = real time, effectively frozen for a session) fast-forwards the cycle so
         // burnup-dependent reactivity (MTC, β_eff, boron letdown) can be watched evolve BOL→EOL on demand.
-        double startupBurnFactor = EasyStartupMode ? EasyStartupBurnFactor : 1.0;
-        BurnupMwdPerTonne += ThermalPowerMW * dt / 86400.0 / CoreTonnesU * Math.Max(1.0, DepletionAccel) * startupBurnFactor;
+        BurnupMwdPerTonne += ThermalPowerMW * dt / 86400.0 / CoreTonnesU * Math.Max(1.0, DepletionAccel) * FuelConsumptionMultiplier;
     }
 
     /// <summary>1 − e^(−x) for x ≥ 0, computed without catastrophic cancellation for tiny x
@@ -4154,6 +4170,110 @@ public sealed class ReactorSimService
         BurnupSinceNisCalMwd = 0.0;
         NisCalibrationGain = 1.0;
         NisCalorimetricDeviationOob = false;
+    }
+
+    /// <summary>
+    /// Command-line auto-start preset. This is an explicit assisted-start mode, separate from Easy
+    /// Mode: it disables automatic simulator SCRAMs and applies the auto-start fuel/waste penalty.
+    /// </summary>
+    public void ApplyAutoStartPreset()
+    {
+        if (Mode == ReactorMode.Meltdown) return;
+        AutoStartMode = true;
+        if (Mode == ReactorMode.Shutdown) SetMode(ReactorMode.Startup);
+        for (int i = 0; i < RcpRunning.Length; i++) StartRcp(i);
+        RcpFlowDemand = 1.0;
+        PzrAutoPressureControl = true;
+        PressurizerHeater = true;
+        PressurizerSpray = false;
+        ReliefValveOpen = false;
+        FeedwaterAuto = true;
+        FeedwaterFlow = Math.Max(FeedwaterFlow, 0.75);
+        EccsArmed = true;
+        TargetBoronPpm = Math.Min(TargetBoronPpm, 900.0);
+    }
+
+    /// <summary>
+    /// Drive the command-line auto-start sequence. Idempotent and conservative: it establishes
+    /// pumps/pressure first, then uses modest reactivity targets and turbine load.
+    /// </summary>
+    public void DriveAutoStart(double dt = 0.1)
+    {
+        if (!AutoStartMode || Mode == ReactorMode.Meltdown || IsScrammed)
+        {
+            AutoStartProgressFraction = 0;
+            AutoStartStageEn = "";
+            AutoStartStageZh = "";
+            return;
+        }
+
+        ApplyAutoStartPreset();
+        if (CoolantFlowFraction < 0.85)
+        {
+            SetAutoStartStage(0.20 + Math.Clamp(CoolantFlowFraction / 0.85, 0, 1) * 0.20,
+                "Auto-start: establishing reactor-coolant flow",
+                "自動啟動：建立反應堆冷卻劑流量");
+            return;
+        }
+        if (PrimaryPressure < 14.5)
+        {
+            SetAutoStartStage(0.40 + Math.Clamp(PrimaryPressure / 14.5, 0, 1) * 0.18,
+                "Auto-start: heating pressurizer to startup pressure",
+                "自動啟動：加熱穩壓器至啟動壓力");
+            return;
+        }
+
+        double targetInsertion =
+            _power < 1e-5 ? 70.0 :
+            _power < 1e-3 ? 58.0 :
+            _power < 0.02 ? 52.0 :
+            62.0;
+        double maxRodMove = Math.Max(0.2, 5.0 * Math.Clamp(dt, 0.02, 0.5));
+        for (int i = 0; i < RodBankInsertion.Length; i++)
+            SetRodBank(i, MoveToward(RodBankInsertion[i], targetInsertion, maxRodMove));
+
+        if (_power < 1e-3)
+        {
+            SetAutoStartStage(0.58 + Math.Clamp(_power / 1e-3, 0, 1) * 0.18,
+                "Auto-start: withdrawing rods toward criticality",
+                "自動啟動：逐步提棒趨近臨界");
+            return;
+        }
+
+        if (_power > 1e-3 && ReactorPeriodSeconds > 30 && ReactorPeriodSeconds < 1e8)
+            SetMode(ReactorMode.Run);
+        else
+        {
+            SetAutoStartStage(0.76,
+                "Auto-start: holding for a stable positive period",
+                "自動啟動：等待穩定正週期");
+            return;
+        }
+
+        if (Mode == ReactorMode.Run)
+        {
+            AutoRodControl = true;
+            AutoPowerSetpoint = Math.Max(AutoPowerSetpoint, 0.12);
+            TurbineLoadSetpoint = Math.Max(TurbineLoadSetpoint, Math.Min(0.25, Math.Max(0.05, _power)));
+            if (TurbineRPM > SyncRpm * 0.94 && SteamPressure > 3.0)
+                GeneratorBreakerClosed = true;
+            SetAutoStartStage(GeneratorBreakerClosed && ElectricPowerMW > 1.0 ? 1.0 : 0.88,
+                GeneratorBreakerClosed ? "Auto-start: loading generator" : "Auto-start: rolling turbine and synchronizing",
+                GeneratorBreakerClosed ? "自動啟動：發電機帶載" : "自動啟動：汽輪機升速並同步");
+        }
+    }
+
+    private void SetAutoStartStage(double progress, string en, string zh)
+    {
+        AutoStartProgressFraction = Math.Clamp(progress, 0, 1);
+        AutoStartStageEn = en;
+        AutoStartStageZh = zh;
+    }
+
+    private static double MoveToward(double current, double target, double maxDelta)
+    {
+        if (Math.Abs(target - current) <= maxDelta) return target;
+        return current + Math.Sign(target - current) * maxDelta;
     }
 
     private void UpdateBoron(double dt)
@@ -6028,6 +6148,14 @@ public sealed class ReactorSimService
             easyStartup = EasyStartupMode,
             easyStartupSkipPressureStep = EasyStartupSkipPressureStep,
             easyStartupSkipReactivityStep = EasyStartupSkipReactivityStep,
+            easyStartupSkipNisStep = EasyStartupSkipNisStep,
+            autoStartMode = AutoStartMode,
+            autoStartProgress = AutoStartProgressFraction,
+            autoStartStageEn = AutoStartStageEn,
+            autoStartStageZh = AutoStartStageZh,
+            easyStartupSkipCount = EasyStartupSkipCount,
+            fuelMultiplier = FuelConsumptionMultiplier,
+            wasteMultiplier = WasteProductionMultiplier,
             easyStartupAssistPcm = EasyStartupAssistActivePcm,
             // turbine / flow / decay
             turbineRpm = TurbineRPM,
@@ -6149,6 +6277,9 @@ public sealed class ReactorSimService
             case "skipStartupStep5":
                 if (EasyStartupMode) EasyStartupSkipReactivityStep = true;
                 break;
+            case "skipStartupStep6":
+                if (EasyStartupMode) EasyStartupSkipNisStep = true;
+                break;
             case "setMode": SetMode((ReactorMode)index); break;
             case "scram": Scram(); break;
             case "resetTrip": ResetTrip(); break;
@@ -6202,6 +6333,8 @@ public sealed class ReactorSimService
         public bool EasyStartupMode { get; set; }
         public bool EasyStartupSkipPressureStep { get; set; }
         public bool EasyStartupSkipReactivityStep { get; set; }
+        public bool EasyStartupSkipNisStep { get; set; }
+        public bool AutoStartMode { get; set; }
         public bool PressurizerHeater { get; set; }
         public bool PressurizerSpray { get; set; }
         public double RcpFlowDemand { get; set; }
@@ -6243,6 +6376,8 @@ public sealed class ReactorSimService
             EasyStartupMode = EasyStartupMode,
             EasyStartupSkipPressureStep = EasyStartupSkipPressureStep,
             EasyStartupSkipReactivityStep = EasyStartupSkipReactivityStep,
+            EasyStartupSkipNisStep = EasyStartupSkipNisStep,
+            AutoStartMode = AutoStartMode,
             PressurizerHeater = PressurizerHeater, PressurizerSpray = PressurizerSpray,
             RcpFlowDemand = RcpFlowDemand, FeedwaterFlow = FeedwaterFlow,
             TurbineLoadSetpoint = TurbineLoadSetpoint, GeneratorBreakerClosed = GeneratorBreakerClosed,
@@ -6281,6 +6416,8 @@ public sealed class ReactorSimService
             EasyStartupMode = s.EasyStartupMode;
             EasyStartupSkipPressureStep = s.EasyStartupSkipPressureStep && EasyStartupMode;
             EasyStartupSkipReactivityStep = s.EasyStartupSkipReactivityStep && EasyStartupMode;
+            EasyStartupSkipNisStep = s.EasyStartupSkipNisStep && EasyStartupMode;
+            AutoStartMode = s.AutoStartMode;
             PressurizerHeater = s.PressurizerHeater; PressurizerSpray = s.PressurizerSpray;
             RcpFlowDemand = s.RcpFlowDemand;
             if (s.RcpRunning is { Length: 4 })

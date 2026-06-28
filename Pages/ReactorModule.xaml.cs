@@ -162,6 +162,7 @@ public sealed partial class ReactorModule : Page
     private static readonly TimeSpan StripChartUiInterval = TimeSpan.FromMilliseconds(250);
     private static readonly TimeSpan InstrumentPanelUiInterval = TimeSpan.FromMilliseconds(350);
     private static readonly TimeSpan ControlSyncUiInterval = TimeSpan.FromMilliseconds(500);
+    private bool _autoStartApplied;
 
     public ReactorModule()
     {
@@ -178,6 +179,12 @@ public sealed partial class ReactorModule : Page
             // 還原已儲存狀態（如有）· Restore saved reactor state (if any) BEFORE building the UI so
             // gauges/controls reflect the resumed state. The provider's restore Action runs here.
             RegisterPersistence();
+            if (!App.AutoStartReactor && _sim.AutoStartMode)
+            {
+                _sim.AutoStartMode = false;
+                PersistenceService.I.NoteChanged();
+            }
+            ApplyCommandLineAutoStart();
 
             // Build each section under its own guard so a single control failure can never blank the
             // whole control room (Render + the live timer must still run). 逐段建構並各自防護，
@@ -277,6 +284,16 @@ public sealed partial class ReactorModule : Page
         _startupChecklistRequested = true;
         _controlRoomWindow?.NavigateRoom("startup");
         DispatcherQueue.TryEnqueue(ScrollToStartupChecklist);
+    }
+
+    private void ApplyCommandLineAutoStart()
+    {
+        if (_autoStartApplied || !App.AutoStartReactor) return;
+        _autoStartApplied = true;
+        _sim.ApplyAutoStartPreset();
+        _pendingDeepLink = "startup";
+        _startupChecklistRequested = true;
+        PersistenceService.I.NoteChanged();
     }
 
     private void ScrollToStartupChecklist()
@@ -457,6 +474,8 @@ public sealed partial class ReactorModule : Page
         _simClock += dt;
         _flashPhase += dt;
 
+        if (_sim.AutoStartMode)
+            _sim.DriveAutoStart(dt);
         _sim.Update(dt);
 
         // 每個反應堆 tick 向對外 API 發佈狀態快照 · Publish a fresh status snapshot to the public API
@@ -472,6 +491,7 @@ public sealed partial class ReactorModule : Page
         UpdateAlarmTiles();
         UpdateMimic();
         UpdateAudio();
+        UpdateAutoStartOverlay();
 
         // The simulator still ticks at 10 Hz, but these panels rebuild/measure lots of XAML. Redrawing
         // them every frame can starve pointer/keyboard input, especially with the full control room open.
@@ -512,6 +532,32 @@ public sealed partial class ReactorModule : Page
             catch (Exception ex) { CrashLogger.Log("reactor:hard-save", ex); }
             finally { Interlocked.Exchange(ref _hardSaveInFlight, 0); }
         });
+    }
+
+    private void UpdateAutoStartOverlay()
+    {
+        if (!_sim.AutoStartMode)
+        {
+            AutoStartOverlay.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        AutoStartOverlay.Visibility = Visibility.Visible;
+        double progress = Math.Clamp(_sim.AutoStartProgressFraction, 0, 1);
+        AutoStartProgress.Value = progress * 100.0;
+        string stageEn = string.IsNullOrWhiteSpace(_sim.AutoStartStageEn) ? "Auto-start: arming startup sequence" : _sim.AutoStartStageEn;
+        string stageZh = string.IsNullOrWhiteSpace(_sim.AutoStartStageZh) ? "自動啟動：準備啟動程序" : _sim.AutoStartStageZh;
+        AutoStartText.Text = P(stageEn, stageZh);
+        AutoStartSubText.Text = P(
+            $"Staged startup in progress · auto-SCRAM suppressed · fuel x{_sim.FuelConsumptionMultiplier:0.##} · waste x{_sim.WasteProductionMultiplier:0.##}",
+            $"分階段啟動中 · 自動 SCRAM 已抑制 · 燃料 x{_sim.FuelConsumptionMultiplier:0.##} · 廢料 x{_sim.WasteProductionMultiplier:0.##}");
+
+        double wave = 0.5 + 0.5 * Math.Sin(_flashPhase * 5.0);
+        byte alpha = (byte)(55 + 90 * wave);
+        AutoStartPulse.Fill = new SolidColorBrush(Color.FromArgb(alpha, 0x42, 0xA5, 0xF5));
+        AutoStartPulse.Stroke = new SolidColorBrush(progress >= 1.0
+            ? Color.FromArgb(255, 0x4C, 0xAF, 0x50)
+            : Color.FromArgb(255, 0x90, 0xCA, 0xF9));
     }
 
     // ============================================================ audio ====
@@ -1180,7 +1226,8 @@ public sealed partial class ReactorModule : Page
         // ---- Fuel-cycle core depletion (burnup) ----
         AddGauge("Core burnup", "堆芯燃耗", 0, 18, () => _sim.BurnupMwdPerTonne / 1000.0,
             () => $"{_sim.BurnupMwdPerTonne / 1000.0:F2} GWd/tU · {_sim.CycleEfpd:F0} EFPD · {P(_sim.CoreLifePhaseEn, _sim.CoreLifePhaseZh)}" +
-                  (_sim.EasyStartupMode ? P(" · EASY burn ×1.5", " · EASY 燃耗 ×1.5") : ""),
+                  (_sim.EasyStartupMode ? P(" · EASY burn ×1.75", " · EASY 燃耗 ×1.75") : "") +
+                  (_sim.WasteProductionMultiplier > 1.01 ? P($" · waste ×{_sim.WasteProductionMultiplier:0.##}", $" · 廢料 ×{_sim.WasteProductionMultiplier:0.##}") : ""),
             warnFrac: 1.2, id: "burnup");
         // Boron letdown target + the cycle drift of MTC and the dollar (β_eff): all anchored to today's BOL values.
         AddGauge("Boron letdown", "降硼曲線", 0, 1400, () => _sim.CriticalBoronPpm,
@@ -2749,16 +2796,16 @@ public sealed partial class ReactorModule : Page
             WrapLabel("Reactor mode · 反應堆模式", "反應堆模式 · Reactor mode", modeCombo)));
 
         var easyStartup = MakeToggle(
-            "Easy startup assist · 50% easier / fuel burns 50% faster",
-            "簡易啟動輔助 · 易啟動 50% / 燃料快耗 50%",
+            "Easy startup assist · 50% easier / fuel costs 75% more",
+            "簡易啟動輔助 · 易啟動 50% / 燃料多耗 75%",
             v => { _sim.EasyStartupMode = v; DispatcherQueue.TryEnqueue(UpdateControlsLive); },
             () => _sim.EasyStartupMode);
         host.Children.Add(StartupControlFrame("mode-automation", 1, () => _sim.EasyStartupMode,
             WrapLabel("Beginner startup assist · 新手啟動輔助",
                 "新手啟動輔助 · Beginner startup assist", easyStartup)));
         host.Children.Add(InfoNote(
-            "Easy mode adds about +500 pcm only below 5% power, suppresses automatic simulator SCRAMs, and allows skipping the pressure and rod/boron checklist waits. Manual SCRAM remains available. It burns fuel 1.5x faster while enabled.",
-            "簡易模式只喺低於 5% 功率時加入約 +500 pcm，會抑制模擬器自動 SCRAM，並容許跳過壓力同控制棒／硼等待步驟。手動 SCRAM 仍可使用。開啟期間燃料燃耗為 1.5 倍。"));
+            "Easy mode adds about +500 pcm only below 5% power, suppresses automatic simulator SCRAMs, and allows skipping the pressure, rod/boron, and 1/M checklist waits. Manual SCRAM remains available. It costs 1.75x fuel while enabled, and each skipped startup step adds 25% more nuclear waste.",
+            "簡易模式只喺低於 5% 功率時加入約 +500 pcm，會抑制模擬器自動 SCRAM，並容許跳過壓力、控制棒／硼、1/M 等待步驟。手動 SCRAM 仍可使用。開啟期間燃料成本為 1.75 倍，每跳過一個啟動步驟會再增加 25% 核廢料。"));
 
         host.Children.Add(InfoNote(
             "AUTO rod control regulates Tavg to the turbine-load-programmed Tref (Westinghouse §8.1): " +
@@ -2812,8 +2859,8 @@ public sealed partial class ReactorModule : Page
         startupIntro.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         startupIntro.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         var startupNote = InfoNote(
-            "Beginner path: complete one row at a time. Press Control on the active row, use the highlighted Easy Mode controls, then wait for the named measured gauge before moving on. In Easy Mode, automatic simulator SCRAMs are suppressed and steps 4-5 can be skipped if they stall; gauges still read live and the manual SCRAM button still works.",
-            "新手流程：逐行完成。按目前行嘅「控制」，使用簡易模式高亮嘅控制，然後等指定實際儀表到位先下一步。簡易模式會抑制模擬器自動 SCRAM；第 4-5 步如果卡住可以跳過。儀表仍然即時讀數，手動 SCRAM 按鈕仍可使用。");
+            "Beginner path: complete one row at a time. Press Control on the active row, use the highlighted Easy Mode controls, then wait for the named measured gauge before moving on. In Easy Mode, automatic simulator SCRAMs are suppressed and steps 4-6 can be skipped if they stall; each skip adds 25% more waste. Gauges still read live and the manual SCRAM button still works.",
+            "新手流程：逐行完成。按目前行嘅「控制」，使用簡易模式高亮嘅控制，然後等指定實際儀表到位先下一步。簡易模式會抑制模擬器自動 SCRAM；第 4-6 步如果卡住可以跳過，每跳一步增加 25% 廢料。儀表仍然即時讀數，手動 SCRAM 按鈕仍可使用。");
         Grid.SetColumn(startupNote, 0);
         startupIntro.Children.Add(startupNote);
         var pressureGauge = BuildStartupPressureGauge();
@@ -3050,6 +3097,7 @@ public sealed partial class ReactorModule : Page
                     if (!_sim.EasyStartupMode) return;
                     if (n == 4) _sim.EasyStartupSkipPressureStep = true;
                     else if (n == 5) _sim.EasyStartupSkipReactivityStep = true;
+                    else if (n == 6) _sim.EasyStartupSkipNisStep = true;
                     PersistenceService.I.NoteChanged();
                     DispatcherQueue.TryEnqueue(UpdateControlsLive);
                 };

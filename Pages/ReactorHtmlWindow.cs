@@ -41,6 +41,7 @@ public sealed class ReactorHtmlWindow : Window
     private static readonly TimeSpan AuxWorkInterval = TimeSpan.FromSeconds(1);
     private static readonly TimeSpan StatePostInterval = TimeSpan.FromMilliseconds(200);
     private static readonly TimeSpan ChecklistPostInterval = TimeSpan.FromMilliseconds(500);
+    private static readonly TimeSpan WasteStatusPostInterval = TimeSpan.FromMilliseconds(500);
     private readonly WebView2 _web = new();
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(100) }; // 10 Hz
     private readonly OverlappedPresenter _presenter = OverlappedPresenter.Create();
@@ -48,6 +49,7 @@ public sealed class ReactorHtmlWindow : Window
     private DateTime _lastAuxWorkUtc = DateTime.MinValue;
     private DateTime _lastStatePostUtc = DateTime.MinValue;
     private DateTime _lastChecklistPostUtc = DateTime.MinValue;
+    private DateTime _lastWasteStatusQueuedUtc = DateTime.MinValue;
     private double _simClock;
     private bool _fuelCanRun;
     private bool _wasteCapReached;
@@ -56,6 +58,7 @@ public sealed class ReactorHtmlWindow : Window
     private bool _webReady;
     private bool _initializing;
     private bool _full;
+    private int _wasteStatusInFlight;
 
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
@@ -74,10 +77,7 @@ public sealed class ReactorHtmlWindow : Window
         {
             try { DispatcherQueue?.TryEnqueue(() => PostFuel("waste", false, en, zh)); } catch { }
         };
-        _waste.Changed += () =>
-        {
-            try { DispatcherQueue?.TryEnqueue(PostWasteStatus); } catch { }
-        };
+        _waste.Changed += QueueWasteStatus;
 
         Title = "Reactor Control Room · 反應堆控制室";
         try { AppWindow.SetIcon("Assets/AppIcon.ico"); } catch { }
@@ -218,7 +218,7 @@ public sealed class ReactorHtmlWindow : Window
         long milestoneWasteBytes = NuclearWasteService.MinWasteBytes;
         if (thermalMW > 0)
         {
-            _mwdSinceLastWaste += thermalMW * dt / 86400.0;
+            _mwdSinceLastWaste += thermalMW * dt / 86400.0 * _sim.WasteProductionMultiplier;
             if (_mwdSinceLastWaste >= WasteEveryMwd)
             {
                 _mwdSinceLastWaste = 0;
@@ -238,7 +238,7 @@ public sealed class ReactorHtmlWindow : Window
             {
                 canRun = _fuel.CanReactorRun;
                 var newlySpent = thermalMW > 0
-                    ? _fuel.AccrueBurnup(thermalMW, dt)
+                    ? _fuel.AccrueBurnup(thermalMW * _sim.FuelConsumptionMultiplier, dt)
                     : Array.Empty<string>();
 
                 if (generateMilestoneWaste && !_waste.IsGenerating)
@@ -594,8 +594,18 @@ public sealed class ReactorHtmlWindow : Window
         });
     }
 
+    private void QueueWasteStatus()
+    {
+        var now = DateTime.UtcNow;
+        if (now - _lastWasteStatusQueuedUtc < WasteStatusPostInterval) return;
+        _lastWasteStatusQueuedUtc = now;
+
+        try { DispatcherQueue?.TryEnqueue(PostWasteStatus); } catch { }
+    }
+
     private async void PostWasteStatus()
     {
+        if (Interlocked.Exchange(ref _wasteStatusInFlight, 1) == 1) return;
         try
         {
             var waste = await Task.Run(() =>
@@ -631,6 +641,7 @@ public sealed class ReactorHtmlWindow : Window
             Post(new { type = "fuelResult", op = "wasteStatus", ok = true, waste });
         }
         catch { }
+        finally { Interlocked.Exchange(ref _wasteStatusInFlight, 0); }
     }
 
     private void PostWaterStatus()

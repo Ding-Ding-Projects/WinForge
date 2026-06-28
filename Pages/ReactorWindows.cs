@@ -516,8 +516,10 @@ public sealed class ReactorWidgetWindow : Window
 
         int done = ReactorScenarios.CompletedStartupSteps(ReactorScenarios.StartupSequence(), _sim);
         _label.Text = P("Startup gauges", "啟動儀表");
-        _value.Text = P($"Checklist {done}/8{(_sim.EasyStartupMode ? " · EASY ×1.5 burn" : "")}",
-                        $"程序 {done}/8{(_sim.EasyStartupMode ? " · EASY 燃耗 ×1.5" : "")}");
+        string waste = _sim.WasteProductionMultiplier > 1.01 ? $" · waste ×{_sim.WasteProductionMultiplier:0.##}" : "";
+        string wasteZh = _sim.WasteProductionMultiplier > 1.01 ? $" · 廢料 ×{_sim.WasteProductionMultiplier:0.##}" : "";
+        _value.Text = P($"Checklist {done}/8{(_sim.EasyStartupMode ? " · EASY ×1.75 burn" : "")}{waste}",
+                        $"程序 {done}/8{(_sim.EasyStartupMode ? " · EASY 燃耗 ×1.75" : "")}{wasteZh}");
 
         SetStartupGauge(0, P("RCP pumps", "主泵"), $"{pumps}/4", pumps / 3.0, pumps >= 3);
         SetStartupGauge(1, P("RCP flow", "主泵流量"), $"{_sim.CoolantFlowFraction * 100:F0}%", _sim.CoolantFlowFraction / 0.85, _sim.CoolantFlowFraction > 0.85);
@@ -766,6 +768,7 @@ public sealed class ReactorStartupChecklistWindow : Window
                     if (!_sim.EasyStartupMode) return;
                     if (stepNumber == 4) _sim.EasyStartupSkipPressureStep = true;
                     else if (stepNumber == 5) _sim.EasyStartupSkipReactivityStep = true;
+                    else if (stepNumber == 6) _sim.EasyStartupSkipNisStep = true;
                     PersistenceService.I.NoteChanged();
                     DispatcherQueue.TryEnqueue(() => Tick(null, EventArgs.Empty));
                 };

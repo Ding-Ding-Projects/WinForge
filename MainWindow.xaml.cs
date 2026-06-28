@@ -1505,6 +1505,11 @@ public sealed partial class MainWindow : Window
 
     private void RestoreSessionOrDefault()
     {
+        if (!string.IsNullOrWhiteSpace(App.StartPage))
+        {
+            AddTab("dashboard");
+            return;
+        }
         var data = TabSessionService.Load();
         if (data is null || data.Tabs.Count == 0) { AddTab("dashboard"); return; }
         ReloadTabs(data);

@@ -76,7 +76,7 @@ export function StartupChecklist(ctx) {
         const skipBtn = button(
           skipped ? pick("Skipped", "已跳過") : pick(`Skip step ${step.index}`, `跳過第 ${step.index} 步`),
           "startup-go skip",
-          () => send.control(step.index === 5 ? "skipStartupStep5" : "skipStartupStep4", { flag: true })
+          () => send.control(step.index === 6 ? "skipStartupStep6" : step.index === 5 ? "skipStartupStep5" : "skipStartupStep4", { flag: true })
         );
         skipBtn.disabled = !step.canSkip || skipped;
         skipBtn.title = pick("Easy Mode only. This advances the checklist, not the plant trips.", "只限簡易模式。只推進清單，唔會繞過跳脫。");

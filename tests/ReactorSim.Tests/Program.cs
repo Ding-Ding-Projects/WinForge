@@ -216,6 +216,67 @@ internal static class Program
             return (pass, $"before={before}, afterSkip={after}, step5Skipped={step5Skipped}, avgRodIn={Avg(r.RodBankInsertion):F0}%, scram={r.IsScrammed}");
         });
 
+        Scenario("EASY STARTUP: NIS/1-over-M step 6 skip is easy-only", () =>
+        {
+            var normal = new ReactorSimService();
+            normal.ApplyControl("skipStartupStep6", 0, 0, true);
+
+            var r = new ReactorSimService { EasyStartupMode = true };
+            r.SetMode(ReactorMode.Startup);
+            for (int i = 0; i < 4; i++) r.StartRcp(i);
+            r.RcpFlowDemand = 1.0;
+            for (int i = 0; i < 200; i++) r.Update(0.1);
+            r.ApplyControl("skipStartupStep4", 0, 0, true);
+            r.ApplyControl("skipStartupStep5", 0, 0, true);
+
+            var steps = ReactorScenarios.StartupSequence();
+            int before = ReactorScenarios.CompletedStartupSteps(steps, r);
+            r.ApplyControl("skipStartupStep6", 0, 0, true);
+            int after = ReactorScenarios.CompletedStartupSteps(steps, r);
+            bool step6Skipped = steps[5].IsSkipped(r);
+            bool easyOnly = !normal.EasyStartupSkipNisStep;
+
+            r.EasyStartupMode = false;
+            int offAgain = ReactorScenarios.CompletedStartupSteps(steps, r);
+            bool cleared = !r.EasyStartupSkipNisStep && !steps[5].IsSkipped(r);
+
+            bool pass = steps[5].EasyModeSkippable && easyOnly && after >= before && step6Skipped && cleared && !r.IsScrammed;
+            return (pass, $"before={before}, afterSkip={after}, easyOff={offAgain}, easyOnly={easyOnly}, cleared={cleared}, " +
+                          $"1/M={r.OneOverM:F2}, scram={r.IsScrammed}");
+        });
+
+        Scenario("EASY STARTUP: fuel and waste penalties scale with skips", () =>
+        {
+            var normal = new ReactorSimService();
+            var easy = new ReactorSimService { EasyStartupMode = true };
+            easy.ApplyControl("skipStartupStep4", 0, 0, true);
+            easy.ApplyControl("skipStartupStep5", 0, 0, true);
+            easy.ApplyControl("skipStartupStep6", 0, 0, true);
+
+            var auto = new ReactorSimService();
+            auto.ApplyAutoStartPreset();
+
+            var easyAuto = new ReactorSimService { EasyStartupMode = true };
+            easyAuto.ApplyAutoStartPreset();
+            easyAuto.ApplyControl("skipStartupStep4", 0, 0, true);
+            easyAuto.ApplyControl("skipStartupStep5", 0, 0, true);
+            easyAuto.ApplyControl("skipStartupStep6", 0, 0, true);
+
+            bool pass = Math.Abs(normal.FuelConsumptionMultiplier - 1.0) < 1e-9
+                        && Math.Abs(normal.WasteProductionMultiplier - 1.0) < 1e-9
+                        && Math.Abs(easy.FuelConsumptionMultiplier - 1.75) < 1e-9
+                        && Math.Abs(easy.WasteProductionMultiplier - 1.75) < 1e-9
+                        && easy.EasyStartupSkipCount == 3
+                        && Math.Abs(auto.FuelConsumptionMultiplier - 2.5) < 1e-9
+                        && Math.Abs(auto.WasteProductionMultiplier - 2.5) < 1e-9
+                        && Math.Abs(easyAuto.FuelConsumptionMultiplier - 4.375) < 1e-9
+                        && Math.Abs(easyAuto.WasteProductionMultiplier - 4.375) < 1e-9;
+            return (pass, $"normal fuel/waste={normal.FuelConsumptionMultiplier:F2}/{normal.WasteProductionMultiplier:F2}, " +
+                          $"easy skips={easy.EasyStartupSkipCount}, easy fuel/waste={easy.FuelConsumptionMultiplier:F2}/{easy.WasteProductionMultiplier:F2}, " +
+                          $"auto={auto.FuelConsumptionMultiplier:F2}/{auto.WasteProductionMultiplier:F2}, " +
+                          $"easy+auto={easyAuto.FuelConsumptionMultiplier:F3}/{easyAuto.WasteProductionMultiplier:F3}");
+        });
+
         Scenario("PERSISTENCE SNAPSHOT: active startup restores instead of resetting to shutdown", () =>
         {
             var r = new ReactorSimService { EasyStartupMode = true };
@@ -227,6 +288,7 @@ internal static class Program
             for (int b = 0; b < r.RodBankInsertion.Length; b++) r.SetRodBank(b, 58 + b);
             r.ApplyControl("skipStartupStep4", 0, 0, true);
             r.ApplyControl("skipStartupStep5", 0, 0, true);
+            r.ApplyControl("skipStartupStep6", 0, 0, true);
             for (int i = 0; i < 30; i++) r.Update(0.1);
 
             var saved = r.CaptureSnapshot(123.45);
@@ -240,7 +302,8 @@ internal static class Program
                                 && Math.Abs(Avg(restored.RodBankInsertion) - Avg(r.RodBankInsertion)) < 1e-9;
             bool easyGuideKept = restored.EasyStartupMode
                                  && restored.EasyStartupSkipPressureStep
-                                 && restored.EasyStartupSkipReactivityStep;
+                                 && restored.EasyStartupSkipReactivityStep
+                                 && restored.EasyStartupSkipNisStep;
             bool physicsKept = Math.Abs(restored.NeutronPowerFraction - r.NeutronPowerFraction) < 1e-12
                                && Math.Abs(restored.PrimaryPressure - r.PrimaryPressure) < 1e-12
                                && saved.SimClockSeconds == 123.45;
@@ -250,7 +313,7 @@ internal static class Program
 
             bool pass = modeKept && controlsKept && easyGuideKept && physicsKept && notFreshReset;
             return (pass, $"mode={restored.Mode}, rcps={restored.RcpRunning.Count(x => x)}, avgRod={Avg(restored.RodBankInsertion):F1}%, " +
-                          $"boron={restored.TargetBoronPpm:F0}, easySkips={restored.EasyStartupSkipPressureStep}/{restored.EasyStartupSkipReactivityStep}, " +
+                          $"boron={restored.TargetBoronPpm:F0}, easySkips={restored.EasyStartupSkipPressureStep}/{restored.EasyStartupSkipReactivityStep}/{restored.EasyStartupSkipNisStep}, " +
                           $"clock={saved.SimClockSeconds:F2}s");
         });
 
@@ -347,6 +410,44 @@ internal static class Program
 
             bool pass = rpsTrip && !r.IsScrammed && r.Mode != ReactorMode.Tripped;
             return (pass, $"rpsTrip={rpsTrip}, scram={r.IsScrammed}, mode={r.Mode}, peakPower={peakPower:F3}");
+        });
+
+        Scenario("AUTO START: command assist stages startup and suppresses auto-SCRAM", () =>
+        {
+            var r = new ReactorSimService();
+            r.ApplyAutoStartPreset();
+            double firstProgress = r.AutoStartProgressFraction;
+            string firstStage = r.AutoStartStageEn;
+            bool preset = r.RcpRunning.Count(x => x) == 4
+                          && r.RcpFlowDemand >= 0.99
+                          && r.PressurizerHeater
+                          && r.FeedwaterAuto
+                          && r.FeedwaterFlow >= 0.75
+                          && r.EccsArmed;
+
+            r.DriveAutoStart(0.1);
+            r.Update(0.1);
+
+            bool staged = r.AutoStartMode
+                          && r.Mode == ReactorMode.Startup
+                          && r.AutoStartProgressFraction > 0.0
+                          && r.AutoStartProgressFraction < 1.0
+                          && !string.IsNullOrWhiteSpace(r.AutoStartStageEn)
+                          && !r.GeneratorBreakerClosed;
+
+            r.SetMode(ReactorMode.Run);
+            for (int b = 0; b < r.RodBankInsertion.Length; b++) r.SetRodBank(b, 0);
+            bool rpsTrip = false;
+            for (int i = 0; i < 6000; i++)
+            {
+                r.Update(0.1);
+                if (r.Rps.ReactorTrip) { rpsTrip = true; break; }
+                if (r.Mode == ReactorMode.Meltdown) break;
+            }
+
+            bool pass = staged && preset && rpsTrip && !r.IsScrammed && Math.Abs(r.FuelConsumptionMultiplier - 2.5) < 1e-9;
+            return (pass, $"preset={preset}, first={firstProgress:F2}/{firstStage}, progress={r.AutoStartProgressFraction:F2}, " +
+                          $"stage='{r.AutoStartStageEn}', rpsTrip={rpsTrip}, scram={r.IsScrammed}, fuelMul={r.FuelConsumptionMultiplier:F2}");
         });
 
         // ---- XENON (Xe-135 ODE evolves: restart-peak jump, then physical decay) ----
