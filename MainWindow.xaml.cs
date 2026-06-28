@@ -57,8 +57,8 @@ public sealed partial class MainWindow : Window
         ApplyStartPage();
         CrashLogger.Mark("MW: after ApplyStartPage");
 
-        // Ctrl+T 開新分頁、Ctrl+W 關閉分頁 · Ctrl+T new tab, Ctrl+W close tab.
-        AddAccel(Windows.System.VirtualKey.T, () => AddTab("dashboard"));
+        // Ctrl+T 開新分頁選擇器、Ctrl+W 關閉分頁 · Ctrl+T new-tab app picker, Ctrl+W close tab.
+        AddAccel(Windows.System.VirtualKey.T, () => _ = ShowNewTabPickerAsync());
         AddAccel(Windows.System.VirtualKey.W, CloseActiveTab);
         AppState.RepoChanged += (_, _) => SaveSession();
 
@@ -1432,6 +1432,40 @@ public sealed partial class MainWindow : Window
         public TextBox? RepoPathBox { get; init; }
     }
 
+    private sealed class NewTabEntry
+    {
+        public string Key { get; init; } = "";
+        public string Title { get; init; } = "";
+        public string Subtitle { get; init; } = "";
+        public string Glyph { get; init; } = "";
+    }
+
+    private const string RecentModulesKey = "shell.recentModules";
+
+    private static readonly string[] DefaultFrequentTabKeys =
+    {
+        "dashboard",
+        "module.reactor",
+        "module.git",
+        "module.vscode",
+        "module.packages",
+        "module.monitor",
+        "module.textocr",
+        "module.terminal",
+    };
+
+    private static readonly string[] SuggestedTabKeys =
+    {
+        "module.apiclient",
+        "module.aichat",
+        "module.keepass",
+        "module.hexeditor",
+        "module.worldmonitor",
+        "module.docker",
+        "module.settingshub",
+        "module.feedreader",
+    };
+
     private Frame? ActiveFrame => (Tabs?.SelectedItem as TabViewItem)?.Content as Frame;
 
     private void AddAccel(Windows.System.VirtualKey key, Action action)
@@ -1443,6 +1477,241 @@ public sealed partial class MainWindow : Window
         };
         a.Invoked += (_, e) => { action(); e.Handled = true; };
         RootGrid.KeyboardAccelerators.Add(a);
+    }
+
+    private async Task ShowNewTabPickerAsync()
+    {
+        string? selectedKey = null;
+        ContentDialog? dialog = null;
+
+        var root = new StackPanel
+        {
+            Spacing = 12,
+            Width = 640,
+            MaxWidth = 640,
+        };
+
+        var search = new TextBox
+        {
+            PlaceholderText = Loc.I.Pick("Search all apps and tools", "搜尋所有 app 同工具"),
+        };
+        root.Children.Add(search);
+
+        var results = new StackPanel { Spacing = 12 };
+        var scroller = new ScrollViewer
+        {
+            Content = results,
+            MaxHeight = 520,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+        };
+        root.Children.Add(scroller);
+
+        void Open(string key)
+        {
+            selectedKey = key;
+            dialog?.Hide();
+        }
+
+        void Render(string query)
+        {
+            results.Children.Clear();
+            query = (query ?? string.Empty).Trim();
+
+            if (query.Length == 0)
+            {
+                AddPickerSection(results, Loc.I.Pick("Frequently used", "常用"), FrequentEntries(), Open);
+                AddPickerSection(results, Loc.I.Pick("You may like", "你可能會用"), EntriesFor(SuggestedTabKeys), Open);
+                AddPickerSection(results, Loc.I.Pick("All apps", "所有 app"), AllPickerEntries().Take(24), Open);
+                return;
+            }
+
+            AddPickerSection(results,
+                Loc.I.Pick("Search results", "搜尋結果"),
+                AllPickerEntries()
+                    .Where(e => MatchesPickerEntry(e, query))
+                    .Take(40),
+                Open);
+        }
+
+        search.TextChanged += (_, _) => Render(search.Text);
+        Render(string.Empty);
+
+        dialog = new ContentDialog
+        {
+            XamlRoot = RootGrid.XamlRoot,
+            Title = Loc.I.Pick("Open new tab", "開新分頁"),
+            Content = root,
+            CloseButtonText = Loc.I.Pick("Cancel", "取消"),
+            DefaultButton = ContentDialogButton.None,
+        };
+
+        await dialog.ShowAsync();
+        if (!string.IsNullOrWhiteSpace(selectedKey))
+        {
+            RememberAppUse(selectedKey);
+            AddTab(selectedKey);
+        }
+    }
+
+    private void AddPickerSection(StackPanel target, string title, IEnumerable<NewTabEntry> entries, Action<string> open)
+    {
+        var list = entries
+            .GroupBy(e => e.Key, StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.First())
+            .ToList();
+        if (list.Count == 0) return;
+
+        target.Children.Add(new TextBlock
+        {
+            Text = title,
+            FontWeight = FontWeights.SemiBold,
+            Margin = new Thickness(0, 4, 0, 0),
+        });
+
+        var grid = new ItemsRepeater
+        {
+            Layout = new UniformGridLayout
+            {
+                MinItemWidth = 280,
+                MinItemHeight = 74,
+                MinColumnSpacing = 6,
+                MinRowSpacing = 6,
+            },
+            ItemsSource = list.Select(e => PickerButton(e, open)).ToList(),
+        };
+        target.Children.Add(grid);
+    }
+
+    private Button PickerButton(NewTabEntry entry, Action<string> open)
+    {
+        var grid = new Grid
+        {
+            ColumnSpacing = 10,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+        };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(30) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+        var icon = new FontIcon
+        {
+            Glyph = string.IsNullOrWhiteSpace(entry.Glyph) ? ((char)0xE8B7).ToString() : entry.Glyph,
+            FontSize = 20,
+            Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        Grid.SetColumn(icon, 0);
+        grid.Children.Add(icon);
+
+        var text = new StackPanel { Spacing = 1, VerticalAlignment = VerticalAlignment.Center };
+        text.Children.Add(new TextBlock
+        {
+            Text = entry.Title,
+            FontWeight = FontWeights.SemiBold,
+            MaxLines = 2,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            TextWrapping = TextWrapping.WrapWholeWords,
+        });
+        text.Children.Add(new TextBlock
+        {
+            Text = entry.Subtitle,
+            FontSize = 12,
+            Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+            MaxLines = 1,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+        });
+        Grid.SetColumn(text, 1);
+        grid.Children.Add(text);
+
+        var button = new Button
+        {
+            Content = grid,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            HorizontalContentAlignment = HorizontalAlignment.Stretch,
+            MinHeight = 74,
+            Padding = new Thickness(12, 9, 12, 9),
+            Tag = entry.Key,
+        };
+        ToolTipService.SetToolTip(button, entry.Title);
+        button.Click += (_, _) => open(entry.Key);
+        return button;
+    }
+
+    private IEnumerable<NewTabEntry> FrequentEntries()
+    {
+        var recent = SettingsStore.Get(RecentModulesKey, "")
+            .Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return EntriesFor(recent.Concat(DefaultFrequentTabKeys)).Take(12);
+    }
+
+    private IEnumerable<NewTabEntry> EntriesFor(IEnumerable<string> keys)
+    {
+        foreach (var key in keys)
+        {
+            var entry = EntryFor(key);
+            if (entry is not null) yield return entry;
+        }
+    }
+
+    private IEnumerable<NewTabEntry> AllPickerEntries()
+    {
+        yield return new NewTabEntry
+        {
+            Key = "dashboard",
+            Title = Loc.I.Pick("Dashboard", "概覽"),
+            Subtitle = Loc.I.Pick("Home, search, and suggestions", "首頁、搜尋同建議"),
+            Glyph = ((char)0xE80F).ToString(),
+        };
+        yield return new NewTabEntry
+        {
+            Key = "settings",
+            Title = Loc.I.Pick("Settings", "設定"),
+            Subtitle = Loc.I.Pick("Language, theme, and app preferences", "語言、主題同 app 偏好"),
+            Glyph = ((char)0xE713).ToString(),
+        };
+        foreach (var module in ModuleRegistry.All.Where(m => m.Tag.StartsWith("module.", StringComparison.Ordinal)))
+            yield return EntryFor(module)!;
+    }
+
+    private NewTabEntry? EntryFor(string key)
+    {
+        if (string.Equals(key, "dashboard", StringComparison.OrdinalIgnoreCase))
+            return AllPickerEntries().First();
+        if (string.Equals(key, "settings", StringComparison.OrdinalIgnoreCase))
+            return AllPickerEntries().Skip(1).First();
+
+        var module = ModuleRegistry.All.FirstOrDefault(m => string.Equals(m.Tag, key, StringComparison.OrdinalIgnoreCase));
+        return module is null ? null : EntryFor(module);
+    }
+
+    private NewTabEntry EntryFor(ModuleInfo module)
+        => new()
+        {
+            Key = module.Tag,
+            Title = $"{module.En} · {module.Zh}",
+            Subtitle = module.RequiresReactor
+                ? Loc.I.Pick(module.ReactorRequirementBadge, module.ReactorRequirementBadge)
+                : module.Keywords.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(6).DefaultIfEmpty(module.En).Aggregate((a, b) => $"{a} {b}"),
+            Glyph = module.Glyph,
+        };
+
+    private static bool MatchesPickerEntry(NewTabEntry entry, string query)
+    {
+        var haystack = $"{entry.Title} {entry.Subtitle} {entry.Key}".ToLowerInvariant();
+        return haystack.Contains(query.ToLowerInvariant());
+    }
+
+    private void RememberAppUse(string key)
+    {
+        if (!key.StartsWith("module.", StringComparison.OrdinalIgnoreCase) && key != "dashboard" && key != "settings")
+            return;
+
+        var keys = SettingsStore.Get(RecentModulesKey, "")
+            .Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(k => !string.Equals(k, key, StringComparison.OrdinalIgnoreCase))
+            .Prepend(key)
+            .Take(16);
+        SettingsStore.Set(RecentModulesKey, string.Join("|", keys));
     }
 
     private void BuildTitleMap()
@@ -1508,6 +1777,7 @@ public sealed partial class MainWindow : Window
         var (type, param) = Resolve(key);
         frame.Navigate(type, param);
         DataOf(tab).Key = key;
+        RememberAppUse(key);
         RefreshTabHeader(tab);
         UpdateBackButton();
         SaveSession();
@@ -1520,6 +1790,7 @@ public sealed partial class MainWindow : Window
     {
         var data = TabSessionService.CloneTab(source);
         if (string.IsNullOrWhiteSpace(data.Key)) data.Key = "dashboard";
+        if (select) RememberAppUse(data.Key);
         if (!string.IsNullOrWhiteSpace(data.GroupId) && GroupFor(data.GroupId) is null) data.GroupId = string.Empty;
 
         var (type, param) = Resolve(data.Key);
@@ -1558,7 +1829,7 @@ public sealed partial class MainWindow : Window
         try { AppTitleBar.IsBackButtonVisible = ActiveFrame?.CanGoBack == true; } catch { }
     }
 
-    private void Tabs_AddTabButtonClick(TabView sender, object args) => AddTab("dashboard");
+    private async void Tabs_AddTabButtonClick(TabView sender, object args) => await ShowNewTabPickerAsync();
 
     private void Tabs_TabCloseRequested(TabView sender, TabViewTabCloseRequestedEventArgs args)
     {
@@ -1617,7 +1888,7 @@ public sealed partial class MainWindow : Window
         SaveSession();
     }
 
-    private void Session_NewTab(object sender, RoutedEventArgs e) => AddTab("dashboard");
+    private async void Session_NewTab(object sender, RoutedEventArgs e) => await ShowNewTabPickerAsync();
 
     private async void Session_CustomizeTab(object sender, RoutedEventArgs e)
         => await EditTabAsync(Tabs.SelectedItem as TabViewItem);
@@ -1885,7 +2156,7 @@ public sealed partial class MainWindow : Window
     private MenuFlyout BuildTabFlyout(TabViewItem tab)
     {
         var flyout = new MenuFlyout();
-        AddFlyoutItem(flyout, "New tab · 新分頁", "\uE710", (_, _) => AddTab("dashboard"));
+        AddFlyoutItem(flyout, "New tab · 新分頁", "\uE710", async (_, _) => await ShowNewTabPickerAsync());
         flyout.Items.Add(new MenuFlyoutSeparator());
         AddFlyoutItem(flyout, "Rename/style tab… · 分頁名稱／樣式…", "\uE8D2", async (_, _) => await EditTabAsync(tab));
         AddFlyoutItem(flyout, "New group from tab… · 由分頁新增分組…", "\uE8A5", async (_, _) => await CreateGroupFromTabAsync(tab));
