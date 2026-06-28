@@ -693,6 +693,7 @@ public sealed class ReactorStartupChecklistWindow : Window
         var list = new StackPanel { Spacing = 6 };
         foreach (var step in ReactorScenarios.StartupSequence())
         {
+            int stepNumber = _rows.Count + 1;
             var mark = new TextBlock
             {
                 Text = "○",
@@ -753,7 +754,7 @@ public sealed class ReactorStartupChecklistWindow : Window
             {
                 skip = new Button
                 {
-                    Content = P("Skip step 4", "跳過第 4 步"),
+                    Content = P($"Skip step {stepNumber}", $"跳過第 {stepNumber} 步"),
                     MinWidth = 92,
                     Padding = new Thickness(8, 2, 8, 2),
                     Background = new SolidColorBrush(Color.FromArgb(75, 0x42, 0xA5, 0xF5)),
@@ -763,9 +764,10 @@ public sealed class ReactorStartupChecklistWindow : Window
                 skip.Click += (_, _) =>
                 {
                     if (!_sim.EasyStartupMode) return;
-                    _sim.EasyStartupSkipPressureStep = true;
+                    if (stepNumber == 4) _sim.EasyStartupSkipPressureStep = true;
+                    else if (stepNumber == 5) _sim.EasyStartupSkipReactivityStep = true;
                     PersistenceService.I.NoteChanged();
-                    Tick(null, EventArgs.Empty);
+                    DispatcherQueue.TryEnqueue(() => Tick(null, EventArgs.Empty));
                 };
                 actions.Children.Add(skip);
             }
@@ -838,7 +840,7 @@ public sealed class ReactorStartupChecklistWindow : Window
             control.Text = P($"Use: {step.ControlEn}", $"使用：{step.ControlZh}");
             var detailText = P(step.DetailEn, step.DetailZh);
             if (skipped)
-                detailText += "\n" + P("Skipped in Easy Mode; pressure and trips remain live.", "已於簡易模式跳過；壓力同跳脫仍然即時生效。");
+                detailText += "\n" + P("Skipped in Easy Mode; gauges stay live and manual SCRAM remains available.", "已於簡易模式跳過；儀表仍然即時，手動 SCRAM 仍可使用。");
             detail.Text = detailText;
             go.Content = P("Control", "控制");
             if (skip is not null)
@@ -846,7 +848,7 @@ public sealed class ReactorStartupChecklistWindow : Window
                 bool canShow = step.EasyModeSkippable && _sim.EasyStartupMode && !step.IsSatisfied(_sim);
                 skip.Visibility = canShow || skipped ? Visibility.Visible : Visibility.Collapsed;
                 skip.IsEnabled = canShow && !skipped;
-                skip.Content = skipped ? P("Skipped", "已跳過") : P("Skip step 4", "跳過第 4 步");
+                skip.Content = skipped ? P("Skipped", "已跳過") : P($"Skip step {i + 1}", $"跳過第 {i + 1} 步");
             }
         }
 

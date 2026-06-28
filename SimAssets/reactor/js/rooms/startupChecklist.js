@@ -74,9 +74,9 @@ export function StartupChecklist(ctx) {
       }
       if (step.skippable) {
         const skipBtn = button(
-          skipped ? pick("Skipped", "已跳過") : pick("Skip step 4", "跳過第 4 步"),
+          skipped ? pick("Skipped", "已跳過") : pick(`Skip step ${step.index}`, `跳過第 ${step.index} 步`),
           "startup-go skip",
-          () => send.control("skipStartupStep4", { flag: true })
+          () => send.control(step.index === 5 ? "skipStartupStep5" : "skipStartupStep4", { flag: true })
         );
         skipBtn.disabled = !step.canSkip || skipped;
         skipBtn.title = pick("Easy Mode only. This advances the checklist, not the plant trips.", "只限簡易模式。只推進清單，唔會繞過跳脫。");
@@ -86,14 +86,18 @@ export function StartupChecklist(ctx) {
       body.appendChild(title);
       body.appendChild(ctl);
       if (detail) body.appendChild(detail);
-      if (skipped) body.appendChild(el("div", "startup-step-skipnote", pick("Skipped in Easy Mode; pressure and trips remain live.", "已於簡易模式跳過；壓力同跳脫仍然即時生效。")));
+      if (skipped) body.appendChild(el("div", "startup-step-skipnote", pick("Skipped in Easy Mode; gauges stay live and manual SCRAM remains available.", "已於簡易模式跳過；儀表仍然即時，手動 SCRAM 仍可使用。")));
       row.appendChild(mark);
       row.appendChild(body);
       row.appendChild(actions);
       rowsHost.appendChild(row);
 
       const controlRow = el("div", "startup-control-row");
-      if (latestState?.easyStartup && step.active) controlRow.classList.add("active");
+      if (latestState?.easyStartup) {
+        if (skipped) controlRow.classList.add("skipped");
+        else if (step.rawOk || step.ok || step.complete) controlRow.classList.add("done");
+        else if (step.active) controlRow.classList.add("active");
+      }
       controlRow.appendChild(el("span", "startup-control-num", String(step.index)));
       controlRow.appendChild(el("span", null, pick(step.controlEn, step.controlZh)));
       controlRow.appendChild(button(pick("Open", "開啟"), "startup-go ghost", () => goToControl(step)));

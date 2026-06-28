@@ -217,7 +217,9 @@ input[type=number], select {
   padding: 7px 9px; border: 1px solid #20262f; border-radius: 7px; background: #11151b;
   font-size: 12px; color: var(--ink);
 }
+.startup-control-row.done { border-color: #1f7a4a; background: #10331f; }
 .startup-control-row.active { border-color: #a87916; background: #241d10; }
+.startup-control-row.skipped { border-color: #2d7fbf; background: #102a3b; }
 .startup-control-num {
   font-family: var(--mono); color: var(--accent-2); text-align: center;
 }

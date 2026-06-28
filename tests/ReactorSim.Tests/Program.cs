@@ -186,7 +186,7 @@ internal static class Program
             var steps = ReactorScenarios.StartupSequence();
             int before = ReactorScenarios.CompletedStartupSteps(steps, r);
             bool pressureStillLow = r.PrimaryPressure < 14.5;
-            r.EasyStartupSkipPressureStep = true;
+            r.ApplyControl("skipStartupStep4", 0, 0, true);
             int after = ReactorScenarios.CompletedStartupSteps(steps, r);
 
             r.EasyStartupMode = false;
@@ -194,6 +194,26 @@ internal static class Program
 
             bool pass = before == 3 && after == 4 && offAgain == 3 && pressureStillLow && !r.IsScrammed;
             return (pass, $"before={before}, afterSkip={after}, easyOff={offAgain}, pressure={r.PrimaryPressure * 145.038:F0} psia, scram={r.IsScrammed}");
+        });
+
+        Scenario("EASY STARTUP: checklist can skip rod/boron step 5", () =>
+        {
+            var r = new ReactorSimService { EasyStartupMode = true };
+            r.SetMode(ReactorMode.Startup);
+            for (int i = 0; i < 4; i++) r.StartRcp(i);
+            r.RcpFlowDemand = 1.0;
+            for (int i = 0; i < 200; i++) r.Update(0.1);
+            r.ApplyControl("skipStartupStep4", 0, 0, true);
+
+            var steps = ReactorScenarios.StartupSequence();
+            int before = ReactorScenarios.CompletedStartupSteps(steps, r);
+            bool rodsStillIn = Avg(r.RodBankInsertion) > 95.0;
+            r.ApplyControl("skipStartupStep5", 0, 0, true);
+            int after = ReactorScenarios.CompletedStartupSteps(steps, r);
+            bool step5Skipped = steps[4].IsSkipped(r);
+
+            bool pass = before == 4 && after >= 5 && step5Skipped && rodsStillIn && !r.IsScrammed;
+            return (pass, $"before={before}, afterSkip={after}, step5Skipped={step5Skipped}, avgRodIn={Avg(r.RodBankInsertion):F0}%, scram={r.IsScrammed}");
         });
 
         // ---- SCRAM (deterministic mechanism: trip latches, release delay, gravity rod drop) ----
@@ -268,6 +288,27 @@ internal static class Program
             }
             bool pass = autoScrammed && r.IsScrammed;
             return (pass, $"autoSCRAM={autoScrammed} via '{tripFn}', peakPower={peakPower:F3}, mode={r.Mode}");
+        });
+
+        Scenario("EASY STARTUP: RPS auto-SCRAM is suppressed", () =>
+        {
+            var r = new ReactorSimService { EasyStartupMode = true };
+            r.SetMode(ReactorMode.Run);
+            for (int b = 0; b < r.RodBankInsertion.Length; b++) r.SetRodBank(b, 0);
+
+            double dt = 0.1;
+            double peakPower = 0;
+            bool rpsTrip = false;
+            for (int i = 0; i < 6000; i++)
+            {
+                r.Update(dt);
+                peakPower = Math.Max(peakPower, r.NeutronPowerFraction);
+                if (r.Rps.ReactorTrip) { rpsTrip = true; break; }
+                if (r.Mode == ReactorMode.Meltdown) break;
+            }
+
+            bool pass = rpsTrip && !r.IsScrammed && r.Mode != ReactorMode.Tripped;
+            return (pass, $"rpsTrip={rpsTrip}, scram={r.IsScrammed}, mode={r.Mode}, peakPower={peakPower:F3}");
         });
 
         // ---- XENON (Xe-135 ODE evolves: restart-peak jump, then physical decay) ----

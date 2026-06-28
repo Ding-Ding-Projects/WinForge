@@ -1426,10 +1426,15 @@ public sealed class ReactorSimService
         set
         {
             _easyStartupMode = value;
-            if (!value) EasyStartupSkipPressureStep = false;
+            if (!value)
+            {
+                EasyStartupSkipPressureStep = false;
+                EasyStartupSkipReactivityStep = false;
+            }
         }
     }
     public bool   EasyStartupSkipPressureStep { get; set; }         // Easy-mode checklist only: marks pressure-wait step skipped
+    public bool   EasyStartupSkipReactivityStep { get; set; }       // Easy-mode checklist only: marks rod/boron step skipped
     public double EasyStartupAssistActivePcm =>
         EasyStartupMode && (Mode == ReactorMode.Startup || Mode == ReactorMode.Run) && _power < EasyStartupPowerLimit
             ? EasyStartupAssistPcm : 0.0;
@@ -2168,6 +2173,15 @@ public sealed class ReactorSimService
         if (Mode != ReactorMode.Meltdown) Mode = ReactorMode.Tripped;
     }
 
+    public bool TryAutoScram(string en, string zh)
+    {
+        if (EasyStartupMode) return false;
+        LastTripFunctionEn = en;
+        LastTripFunctionZh = zh;
+        Scram();
+        return true;
+    }
+
     // Effective per-bank gravity-drop velocity at insertion fraction p: drag-limited free fall through the
     // active core, then hydraulic dashpot snubbing over the bottom ~15 % of the stroke. Advances p toward 1.0.
     private static double AdvanceRodDrop(double p, double h)
@@ -2851,7 +2865,7 @@ public sealed class ReactorSimService
         CoreExitTempC = ColdTemp; CetSubcoolingMarginC = 0; _cetInit = false;
         MinDnbr = DnbrRawUnfiltered = DnbrCeiling; DnbrLocalQuality = 0; RodsInDnbPercent = 0;
         OneOverM = 1.0; StartupRateDpm = 0; BurnupMwdPerTonne = 0; BurnupDefectPcm = 0; DepletionAccel = 1.0;
-        EasyStartupMode = false; EasyStartupSkipPressureStep = false;
+        EasyStartupMode = false; EasyStartupSkipPressureStep = false; EasyStartupSkipReactivityStep = false;
         IntermediateRangeAmps = IrBottomAmps; IntermediateRangeDecades = 0; IntermediateRangePercent = 0;
         PowerRangePercent = 0; SourceRangeEnergized = true; _p6Latched = false;
         NisCalibrationGain = 1.0; CalorimetricPowerPct = 0; CalorimetricValid = false;
@@ -4047,9 +4061,7 @@ public sealed class ReactorSimService
             ContainmentFanCoolers = true;
             if (!IsScrammed && Mode != ReactorMode.Meltdown)
             {
-                LastTripFunctionEn = "Containment Pressure Hi-1 (SI)";
-                LastTripFunctionZh = "安全殼壓力高 Hi-1（安全注入）";
-                Scram();
+                TryAutoScram("Containment Pressure Hi-1 (SI)", "安全殼壓力高 Hi-1（安全注入）");
             }
         }
 
@@ -5245,9 +5257,7 @@ public sealed class ReactorSimService
         _rps.Evaluate();
         if (_rps.ReactorTrip && !IsScrammed && Mode != ReactorMode.Meltdown)
         {
-            LastTripFunctionEn = _rps.ControllingFunctionEn;
-            LastTripFunctionZh = _rps.ControllingFunctionZh;
-            Scram();
+            TryAutoScram(_rps.ControllingFunctionEn, _rps.ControllingFunctionZh);
         }
 
         // P-9: anticipatory reactor-trip-on-turbine-trip, ABOVE ~50 % power. A turbine trip at high load
@@ -5255,9 +5265,7 @@ public sealed class ReactorSimService
         // tripped first. Below P-9 the interlock is blocked — the plant rides the runback instead.
         if (TurbineTripped && _power >= 0.50 && !IsScrammed && Mode != ReactorMode.Meltdown)
         {
-            LastTripFunctionEn = "Turbine Trip (P-9)";
-            LastTripFunctionZh = "汽輪機跳脫（P-9）";
-            Scram();
+            TryAutoScram("Turbine Trip (P-9)", "汽輪機跳脫（P-9）");
         }
 
         // AMSAC runs here — AFTER the RPS evaluation/scram and the P-9 trip — but it is deliberately
@@ -5881,8 +5889,8 @@ public sealed class ReactorSimService
         _power += 0.20 * severity;                          // prompt power peaking
         DamageAccumulation += 12.0 * severity;             // core damage toward meltdown
         RadiationLevel = Math.Clamp(RadiationLevel + 0.5 * severity, 0, 1);
-        // Mandatory protective trip on a fuel-handling fault.
-        Scram();
+        // Automatic protective trip on a fuel-handling fault; Easy Mode suppresses only the automatic trip.
+        TryAutoScram("Counterfeit / off-spec fuel", "偽冒／不合格燃料");
     }
 
     private void UpdateForgedTransient(double dt)
@@ -6019,6 +6027,7 @@ public sealed class ReactorSimService
             autoSetpoint = AutoPowerSetpoint,
             easyStartup = EasyStartupMode,
             easyStartupSkipPressureStep = EasyStartupSkipPressureStep,
+            easyStartupSkipReactivityStep = EasyStartupSkipReactivityStep,
             easyStartupAssistPcm = EasyStartupAssistActivePcm,
             // turbine / flow / decay
             turbineRpm = TurbineRPM,
@@ -6137,6 +6146,9 @@ public sealed class ReactorSimService
             case "skipStartupStep4":
                 if (EasyStartupMode) EasyStartupSkipPressureStep = true;
                 break;
+            case "skipStartupStep5":
+                if (EasyStartupMode) EasyStartupSkipReactivityStep = true;
+                break;
             case "setMode": SetMode((ReactorMode)index); break;
             case "scram": Scram(); break;
             case "resetTrip": ResetTrip(); break;
@@ -6189,6 +6201,7 @@ public sealed class ReactorSimService
         public double TargetBoronPpm { get; set; }
         public bool EasyStartupMode { get; set; }
         public bool EasyStartupSkipPressureStep { get; set; }
+        public bool EasyStartupSkipReactivityStep { get; set; }
         public bool PressurizerHeater { get; set; }
         public bool PressurizerSpray { get; set; }
         public double RcpFlowDemand { get; set; }
@@ -6229,6 +6242,7 @@ public sealed class ReactorSimService
             BoronPpm = BoronPpm, TargetBoronPpm = TargetBoronPpm,
             EasyStartupMode = EasyStartupMode,
             EasyStartupSkipPressureStep = EasyStartupSkipPressureStep,
+            EasyStartupSkipReactivityStep = EasyStartupSkipReactivityStep,
             PressurizerHeater = PressurizerHeater, PressurizerSpray = PressurizerSpray,
             RcpFlowDemand = RcpFlowDemand, FeedwaterFlow = FeedwaterFlow,
             TurbineLoadSetpoint = TurbineLoadSetpoint, GeneratorBreakerClosed = GeneratorBreakerClosed,
@@ -6266,6 +6280,7 @@ public sealed class ReactorSimService
             BoronPpm = s.BoronPpm; TargetBoronPpm = s.TargetBoronPpm;
             EasyStartupMode = s.EasyStartupMode;
             EasyStartupSkipPressureStep = s.EasyStartupSkipPressureStep && EasyStartupMode;
+            EasyStartupSkipReactivityStep = s.EasyStartupSkipReactivityStep && EasyStartupMode;
             PressurizerHeater = s.PressurizerHeater; PressurizerSpray = s.PressurizerSpray;
             RcpFlowDemand = s.RcpFlowDemand;
             if (s.RcpRunning is { Length: 4 })

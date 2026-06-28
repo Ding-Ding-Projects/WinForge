@@ -2434,7 +2434,7 @@ public sealed partial class ReactorModule : Page
         {
             int bank = b;
             char name = (char)('A' + b);
-            host.Children.Add(StartupControlFrame("reactor-controls", LabeledSlider(
+            host.Children.Add(StartupControlFrame("reactor-controls", 5, IsReactivityStepReady, LabeledSlider(
                 $"Control rod bank {name} (% inserted)", $"控制棒組 {name}（插入 %）",
                 0, 100, _sim.RodBankInsertion[bank], 1,
                 v => _sim.SetRodBank(bank, v),
@@ -2472,7 +2472,7 @@ public sealed partial class ReactorModule : Page
             "落棒→象限傾斜（QPTR）· Dropped RCCA → quadrant tilt", dropPanel));
 
         // Boron
-        host.Children.Add(StartupControlFrame("reactor-controls", LabeledSlider(
+        host.Children.Add(StartupControlFrame("reactor-controls", 5, IsReactivityStepReady, LabeledSlider(
             "Soluble boron target (ppm) — charging ↑ / dilution ↓", "硼濃度目標（ppm）— 加硼 ↑／稀釋 ↓",
             0, 2500, _sim.TargetBoronPpm, 10,
             v => _sim.TargetBoronPpm = v, () => _sim.TargetBoronPpm, " ppm")));
@@ -2507,10 +2507,10 @@ public sealed partial class ReactorModule : Page
             _relocalizers.Add(() => tg.Content = P($"RCP {pump + 1}", $"主泵 {pump + 1}"));
             pumpPanel.Children.Add(tg);
         }
-        host.Children.Add(StartupControlFrame("primary-system",
+        host.Children.Add(StartupControlFrame("primary-system", 2, HasStartupPumpCount,
             WrapLabel("Reactor coolant pumps · 反應堆冷卻劑泵", "反應堆冷卻劑泵 · Reactor coolant pumps", pumpPanel)));
 
-        host.Children.Add(StartupControlFrame("primary-system", LabeledSlider(
+        host.Children.Add(StartupControlFrame("primary-system", 3, IsStartupFlowReady, LabeledSlider(
             "RCP flow demand (%)", "主泵流量需求（%）",
             0, 100, _sim.RcpFlowDemand * 100, 1,
             v => _sim.RcpFlowDemand = v / 100.0, () => _sim.RcpFlowDemand * 100, "%")));
@@ -2526,7 +2526,7 @@ public sealed partial class ReactorModule : Page
             v => _sim.PressurizerSpray = v, () => _sim.PressurizerSpray));
         pzrPanel.Children.Add(MakeToggle("Relief valve · 釋壓閥", "釋壓閥 · Relief valve",
             v => _sim.ReliefValveOpen = v, () => _sim.ReliefValveOpen));
-        host.Children.Add(StartupControlFrame("primary-system",
+        host.Children.Add(StartupControlFrame("primary-system", 4, IsStartupPressureStepReady,
             WrapLabel("Pressurizer & relief · 穩壓器與釋壓", "穩壓器與釋壓 · Pressurizer & relief", pzrPanel)));
 
         // CVCS boric-acid / reactor-makeup-water blender mode. Only AUTOMATIC is auto-driven by the VCT level
@@ -2555,7 +2555,7 @@ public sealed partial class ReactorModule : Page
             int idx = Math.Clamp((int)_sim.BlenderMode, 0, 3);
             if (blenderCombo.SelectedIndex != idx) blenderCombo.SelectedIndex = idx;
         });
-        host.Children.Add(StartupControlFrame("reactor-controls",
+        host.Children.Add(StartupControlFrame("reactor-controls", 5, IsReactivityStepReady,
             WrapLabel("CVCS makeup blender mode · 化容系統補水混合器模式",
                 "化容系統補水混合器模式 · CVCS makeup blender mode", blenderCombo)));
 
@@ -2608,7 +2608,7 @@ public sealed partial class ReactorModule : Page
             "Feedwater flow — manual (%)", "給水流量－手動（%）",
             0, 100, _sim.FeedwaterFlow * 100, 1,
             v => _sim.FeedwaterFlow = v / 100.0, () => _sim.FeedwaterFlow * 100, "%"));
-        host.Children.Add(StartupControlFrame("secondary-turbine", LabeledSlider(
+        host.Children.Add(StartupControlFrame("secondary-turbine", 8, IsGeneratorStepReady, LabeledSlider(
             "Turbine load setpoint (%)", "汽輪機負載設定（%）",
             0, 100, _sim.TurbineLoadSetpoint * 100, 1,
             v => _sim.TurbineLoadSetpoint = v / 100.0, () => _sim.TurbineLoadSetpoint * 100, "%")));
@@ -2628,7 +2628,7 @@ public sealed partial class ReactorModule : Page
             () => _sim.GeneratorBreakerClosed));
         grdPanel.Children.Add(MakeToggle("Sync interlock (25) · 同步聯鎖", "同步聯鎖 · Sync interlock (25)",
             v => _sim.SyncInterlock = v, () => _sim.SyncInterlock)); // DEFAULT OFF
-        host.Children.Add(StartupControlFrame("secondary-turbine",
+        host.Children.Add(StartupControlFrame("secondary-turbine", 8, IsGeneratorStepReady,
             WrapLabel("Grid synchronization · 併網", "併網 · Grid synchronization", grdPanel)));
 
         // ---- Main generator excitation / AVR (reactive-power control) ----
@@ -2744,20 +2744,20 @@ public sealed partial class ReactorModule : Page
             };
             if (modeCombo.SelectedIndex != idx) modeCombo.SelectedIndex = idx;
         });
-        host.Children.Add(StartupControlFrame("mode-automation",
+        host.Children.Add(StartupControlFrame("mode-automation", 1, IsStartupModeSelected,
             WrapLabel("Reactor mode · 反應堆模式", "反應堆模式 · Reactor mode", modeCombo)));
 
         var easyStartup = MakeToggle(
             "Easy startup assist · 50% easier / fuel burns 50% faster",
             "簡易啟動輔助 · 易啟動 50% / 燃料快耗 50%",
-            v => { _sim.EasyStartupMode = v; UpdateControlsLive(); },
+            v => { _sim.EasyStartupMode = v; DispatcherQueue.TryEnqueue(UpdateControlsLive); },
             () => _sim.EasyStartupMode);
-        host.Children.Add(StartupControlFrame("mode-automation",
+        host.Children.Add(StartupControlFrame("mode-automation", 1, () => _sim.EasyStartupMode,
             WrapLabel("Beginner startup assist · 新手啟動輔助",
                 "新手啟動輔助 · Beginner startup assist", easyStartup)));
         host.Children.Add(InfoNote(
-            "Easy mode adds about +500 pcm only below 5% power, so startup responds sooner but still needs pumps, pressure, rods, and boron in order. It burns fuel 1.5x faster while enabled.",
-            "簡易模式只喺低於 5% 功率時加入約 +500 pcm，啟動反應會快啲，但仍然要按次序做好主泵、壓力、控制棒同硼濃度。開啟期間燃料燃耗為 1.5 倍。"));
+            "Easy mode adds about +500 pcm only below 5% power, suppresses automatic simulator SCRAMs, and allows skipping the pressure and rod/boron checklist waits. Manual SCRAM remains available. It burns fuel 1.5x faster while enabled.",
+            "簡易模式只喺低於 5% 功率時加入約 +500 pcm，會抑制模擬器自動 SCRAM，並容許跳過壓力同控制棒／硼等待步驟。手動 SCRAM 仍可使用。開啟期間燃料燃耗為 1.5 倍。"));
 
         host.Children.Add(InfoNote(
             "AUTO rod control regulates Tavg to the turbine-load-programmed Tref (Westinghouse §8.1): " +
@@ -2811,8 +2811,8 @@ public sealed partial class ReactorModule : Page
         startupIntro.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         startupIntro.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         var startupNote = InfoNote(
-            "Beginner path: complete one row at a time. Press Control on the active row, use the highlighted Easy Mode controls, then wait for the named measured gauge before moving on. To avoid simulator auto-SCRAMs: keep at least 3 RCPs running, measured RCP flow above 85%, pressure near 2235 psia, and stop rod withdrawal or boron dilution if period falls under 30 s or SUR rises quickly. Step 4 can be skipped only while Easy Mode is on; safety trips still work.",
-            "新手流程：逐行完成。按目前行嘅「控制」，使用簡易模式高亮嘅控制，然後等指定實際儀表到位先下一步。避免模擬器自動 SCRAM：保持至少 3 部主泵運行、實際主泵流量高於 85%、壓力接近 2235 psia；如果週期低過 30 秒或起動率急升，就停止提棒或稀釋硼。第 4 步只可喺簡易模式開啟時跳過；安全跳脫仍然生效。");
+            "Beginner path: complete one row at a time. Press Control on the active row, use the highlighted Easy Mode controls, then wait for the named measured gauge before moving on. In Easy Mode, automatic simulator SCRAMs are suppressed and steps 4-5 can be skipped if they stall; gauges still read live and the manual SCRAM button still works.",
+            "新手流程：逐行完成。按目前行嘅「控制」，使用簡易模式高亮嘅控制，然後等指定實際儀表到位先下一步。簡易模式會抑制模擬器自動 SCRAM；第 4-5 步如果卡住可以跳過。儀表仍然即時讀數，手動 SCRAM 按鈕仍可使用。");
         Grid.SetColumn(startupNote, 0);
         startupIntro.Children.Add(startupNote);
         var pressureGauge = BuildStartupPressureGauge();
@@ -2935,12 +2935,12 @@ public sealed partial class ReactorModule : Page
                 bool canShow = step.EasyModeSkippable && _sim.EasyStartupMode && !step.IsSatisfied(_sim);
                 skip.Visibility = canShow || skipped ? Visibility.Visible : Visibility.Collapsed;
                 skip.IsEnabled = canShow && !skipped;
-                skip.Content = skipped ? P("Skipped", "已跳過") : P("Skip step 4", "跳過第 4 步");
+                skip.Content = skipped ? P("Skipped", "已跳過") : P($"Skip step {i + 1}", $"跳過第 {i + 1} 步");
             }
             if (skipNote is not null)
             {
                 skipNote.Visibility = skipped ? Visibility.Visible : Visibility.Collapsed;
-                skipNote.Text = P("Skipped in Easy Mode; trips still active.", "已於簡易模式跳過；跳脫仍然生效。");
+                skipNote.Text = P("Skipped in Easy Mode; gauges live, manual SCRAM available.", "已於簡易模式跳過；儀表即時，手動 SCRAM 可用。");
             }
         }
         // Live-update keep-alive status pill.
@@ -3023,15 +3023,18 @@ public sealed partial class ReactorModule : Page
             };
             if (stp.EasyModeSkippable)
             {
-                pressureStepText = new TextBlock
+                if (n == 4)
                 {
-                    FontSize = 11,
-                    FontFamily = new FontFamily("Consolas"),
-                    TextAlignment = TextAlignment.Right,
-                    Foreground = new SolidColorBrush(Color.FromArgb(220, 0x90, 0xCA, 0xF9)),
-                };
-                _startupPressureStepText = pressureStepText;
-                actions.Children.Add(pressureStepText);
+                    pressureStepText = new TextBlock
+                    {
+                        FontSize = 11,
+                        FontFamily = new FontFamily("Consolas"),
+                        TextAlignment = TextAlignment.Right,
+                        Foreground = new SolidColorBrush(Color.FromArgb(220, 0x90, 0xCA, 0xF9)),
+                    };
+                    _startupPressureStepText = pressureStepText;
+                    actions.Children.Add(pressureStepText);
+                }
 
                 skip = new Button
                 {
@@ -3039,14 +3042,15 @@ public sealed partial class ReactorModule : Page
                     Padding = new Thickness(8, 2, 8, 2),
                     Visibility = Visibility.Collapsed,
                 };
-                _relocalizers.Add(() => skip.Content = stp.IsSkipped(_sim) ? P("Skipped", "已跳過") : P("Skip step 4", "跳過第 4 步"));
-                skip.Content = P("Skip step 4", "跳過第 4 步");
+                _relocalizers.Add(() => skip.Content = stp.IsSkipped(_sim) ? P("Skipped", "已跳過") : P($"Skip step {n}", $"跳過第 {n} 步"));
+                skip.Content = P($"Skip step {n}", $"跳過第 {n} 步");
                 skip.Click += (_, _) =>
                 {
                     if (!_sim.EasyStartupMode) return;
-                    _sim.EasyStartupSkipPressureStep = true;
+                    if (n == 4) _sim.EasyStartupSkipPressureStep = true;
+                    else if (n == 5) _sim.EasyStartupSkipReactivityStep = true;
                     PersistenceService.I.NoteChanged();
-                    UpdateControlsLive();
+                    DispatcherQueue.TryEnqueue(UpdateControlsLive);
                 };
                 actions.Children.Add(skip);
 
@@ -3236,7 +3240,7 @@ public sealed partial class ReactorModule : Page
         }
     }
 
-    private FrameworkElement StartupControlFrame(string target, FrameworkElement content)
+    private FrameworkElement StartupControlFrame(string target, int stepNumber, Func<bool> isCorrect, FrameworkElement content)
     {
         var frame = new Border
         {
@@ -3245,22 +3249,37 @@ public sealed partial class ReactorModule : Page
             Padding = new Thickness(6, 4, 6, 4),
             Child = content,
         };
-        void Sync() => UpdateStartupControlHighlight(frame, target);
+        void Sync() => UpdateStartupControlHighlight(frame, target, stepNumber, isCorrect);
         _controlSyncers.Add(Sync);
         Sync();
         return frame;
     }
 
-    private void UpdateStartupControlHighlight(Border frame, string target)
+    private void UpdateStartupControlHighlight(Border frame, string target, int stepNumber, Func<bool> isCorrect)
     {
-        bool active = _sim.EasyStartupMode
+        bool easy = _sim.EasyStartupMode;
+        bool active = easy
+                      && CurrentStartupStepNumber() == stepNumber
                       && string.Equals(CurrentStartupTarget(), target, StringComparison.OrdinalIgnoreCase);
-        frame.BorderBrush = new SolidColorBrush(active
-            ? Color.FromArgb(220, 0xFF, 0xB3, 0x00)
-            : Color.FromArgb(45, 0x99, 0x99, 0x99));
-        frame.Background = new SolidColorBrush(active
-            ? Color.FromArgb(30, 0xFF, 0xB3, 0x00)
-            : Color.FromArgb(0, 0, 0, 0));
+        bool correct = easy && isCorrect();
+
+        var border = correct
+            ? Color.FromArgb(210, 0x4C, 0xAF, 0x50)
+            : active ? Color.FromArgb(220, 0xFF, 0xB3, 0x00)
+            : Color.FromArgb(45, 0x99, 0x99, 0x99);
+        var fill = correct
+            ? Color.FromArgb(30, 0x4C, 0xAF, 0x50)
+            : active ? Color.FromArgb(30, 0xFF, 0xB3, 0x00)
+            : Color.FromArgb(0, 0, 0, 0);
+        frame.BorderBrush = new SolidColorBrush(border);
+        frame.Background = new SolidColorBrush(fill);
+    }
+
+    private int CurrentStartupStepNumber()
+    {
+        var steps = ReactorScenarios.StartupSequence();
+        int done = ReactorScenarios.CompletedStartupSteps(steps, _sim);
+        return done >= 0 && done < steps.Length ? done + 1 : 0;
     }
 
     private string CurrentStartupTarget()
@@ -3269,6 +3288,37 @@ public sealed partial class ReactorModule : Page
         int done = ReactorScenarios.CompletedStartupSteps(steps, _sim);
         return done >= 0 && done < steps.Length ? steps[done].ControlTarget : "";
     }
+
+    private bool IsStartupModeSelected()
+        => _sim.Mode == ReactorMode.Startup || _sim.Mode == ReactorMode.Run;
+
+    private bool HasStartupPumpCount()
+    {
+        int count = 0;
+        foreach (var running in _sim.RcpRunning) if (running) count++;
+        return count >= 3;
+    }
+
+    private bool IsStartupFlowReady()
+        => _sim.CoolantFlowFraction > 0.85;
+
+    private bool IsStartupPressureStepReady()
+        => _sim.PzrAutoPressureControl
+           && _sim.PressurizerHeater
+           && !_sim.PressurizerSpray
+           && !_sim.ReliefValveOpen
+           && _sim.PrimaryPressure > 14.5;
+
+    private bool IsReactivityStepReady()
+    {
+        double avg = 0;
+        foreach (var p in _sim.RodBankInsertion) avg += p;
+        avg /= Math.Max(1, _sim.RodBankInsertion.Length);
+        return avg < 60 || _sim.BoronPpm < 1000;
+    }
+
+    private bool IsGeneratorStepReady()
+        => _sim.GeneratorBreakerClosed && _sim.ElectricPowerMW > 1.0;
 
     private FrameworkElement LabeledSlider(string en, string zh, double min, double max, double init, double step,
         Action<double> set, Func<double> read, string unit)

@@ -301,8 +301,8 @@ public sealed class ReactorHtmlWindow : Window
             if (_wasteFullGrace >= WasteFullGraceSeconds && !_sim.IsScrammed
                 && operating && _sim.Mode != ReactorMode.Meltdown)
             {
-                _sim.Scram();                 // mandatory auto-SCRAM
-                _sim.SetMode(ReactorMode.Shutdown);
+                if (_sim.TryAutoScram("Spent fuel storage FULL", "乏燃料貯存已滿"))
+                    _sim.SetMode(ReactorMode.Shutdown);
             }
         }
         else if (runback)
@@ -399,10 +399,12 @@ public sealed class ReactorHtmlWindow : Window
                     var lr = _fuel.LoadIntoCoreUnsafe(path);
                     if (lr.Harmful && lr.HarmSeverity > 0)
                     {
-                        _sim.InjectForgedFuelHarm(lr.HarmSeverity); // SIM-ONLY harm + auto-SCRAM
+                        _sim.InjectForgedFuelHarm(lr.HarmSeverity); // SIM-ONLY harm; Easy Mode suppresses automatic SCRAM
+                        string autoTripEn = _sim.IsScrammed ? "Auto-SCRAM, core damage rising." : "Easy Mode suppressed auto-SCRAM; core damage rising.";
+                        string autoTripZh = _sim.IsScrammed ? "已自動緊急停堆，堆芯損傷上升。" : "簡易模式已抑制自動緊急停堆；堆芯損傷上升。";
                         PostFuel("load", false,
-                            $"⚠ Counterfeit / off-spec fuel — cladding breach! {lr.ReasonEn} Auto-SCRAM, core damage rising.",
-                            $"⚠ 偽冒／不合格燃料 — 包殼破損！{lr.ReasonZh} 已自動緊急停堆，堆芯損傷上升。");
+                            $"⚠ Counterfeit / off-spec fuel — cladding breach! {lr.ReasonEn} {autoTripEn}",
+                            $"⚠ 偽冒／不合格燃料 — 包殼破損！{lr.ReasonZh} {autoTripZh}");
                     }
                     else
                     {
