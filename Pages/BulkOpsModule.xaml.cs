@@ -25,12 +25,6 @@ public sealed partial class BulkOpsModule : Page
         Loaded += (_, _) =>
         {
             Render();
-            if (string.IsNullOrEmpty(_source))
-            {
-                _source = AppContext.BaseDirectory;
-                SourceBox.Text = _source;
-                PatternBox.Text = "*.dll";
-            }
             Recompute();
         };
     }
@@ -66,7 +60,13 @@ public sealed partial class BulkOpsModule : Page
 
     private void Recompute()
     {
-        if (string.IsNullOrEmpty(_source)) { _matches = new(); List.ItemsSource = null; CountText.Text = ""; return; }
+        if (string.IsNullOrEmpty(_source))
+        {
+            _matches = new();
+            List.ItemsSource = new[] { P("Choose a source folder to preview matching files.", "揀來源資料夾後會預覽符合嘅檔案。") };
+            CountText.Text = P("No source selected", "未揀來源");
+            return;
+        }
         _matches = BulkFileOps.Match(_source, PatternBox.Text ?? "", Mode, RecurseCheck.IsChecked == true);
         List.ItemsSource = _matches;
         CountText.Text = P($"{_matches.Count} matched", $"配對到 {_matches.Count} 個");
