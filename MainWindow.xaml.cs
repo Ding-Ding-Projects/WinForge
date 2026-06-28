@@ -1614,12 +1614,17 @@ public sealed partial class MainWindow : Window
     {
         string? selectedKey = null;
         ContentDialog? dialog = null;
+        var xamlSize = RootGrid.XamlRoot?.Size ?? new Windows.Foundation.Size(760, 760);
+        var pickerWidth = Math.Clamp(xamlSize.Width - 96, 420, 760);
+        var pickerScrollerHeight = Math.Clamp(xamlSize.Height - 330, 260, 520);
 
         var root = new StackPanel
         {
             Spacing = 12,
-            Width = 640,
-            MaxWidth = 640,
+            MinWidth = 420,
+            MaxWidth = 760,
+            Width = pickerWidth,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
         };
 
         var search = new TextBox
@@ -1637,7 +1642,8 @@ public sealed partial class MainWindow : Window
             DisplayMemberPath = nameof(PickerCategory.Title),
             SelectedIndex = 0,
             MinWidth = 220,
-            HorizontalAlignment = HorizontalAlignment.Left,
+            MaxWidth = 360,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
         };
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(categoryBox, "NewTabPickerCategoryBox");
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(categoryBox, Loc.I.Pick("Filter by category", "按分類篩選"));
@@ -1647,7 +1653,7 @@ public sealed partial class MainWindow : Window
         var scroller = new ScrollViewer
         {
             Content = results,
-            MaxHeight = 520,
+            MaxHeight = pickerScrollerHeight,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
         };
         root.Children.Add(scroller);
@@ -1736,8 +1742,8 @@ public sealed partial class MainWindow : Window
         {
             Layout = new UniformGridLayout
             {
-                MinItemWidth = 280,
-                MinItemHeight = 74,
+                MinItemWidth = 260,
+                MinItemHeight = 82,
                 MinColumnSpacing = 6,
                 MinRowSpacing = 6,
             },
@@ -1781,8 +1787,9 @@ public sealed partial class MainWindow : Window
             Text = entry.Subtitle,
             FontSize = 12,
             Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
-            MaxLines = 1,
+            MaxLines = 2,
             TextTrimming = TextTrimming.CharacterEllipsis,
+            TextWrapping = TextWrapping.WrapWholeWords,
         });
         Grid.SetColumn(text, 1);
         grid.Children.Add(text);
@@ -1792,7 +1799,7 @@ public sealed partial class MainWindow : Window
             Content = grid,
             HorizontalAlignment = HorizontalAlignment.Stretch,
             HorizontalContentAlignment = HorizontalAlignment.Stretch,
-            MinHeight = 74,
+            MinHeight = 82,
             Padding = new Thickness(12, 9, 12, 9),
             Tag = entry.Key,
         };

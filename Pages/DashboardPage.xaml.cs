@@ -80,8 +80,9 @@ public sealed partial class DashboardPage : Page
     {
         var grid = new Grid();
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(28) });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(170) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto, MinWidth = 120, MaxWidth = 220 });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnSpacing = 10;
 
         var icon = new FontIcon { Glyph = glyph, FontSize = 14, HorizontalAlignment = HorizontalAlignment.Left };
         Grid.SetColumn(icon, 0);
@@ -91,6 +92,8 @@ public sealed partial class DashboardPage : Page
             Text = $"{en} · {zh}",
             FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
             TextWrapping = TextWrapping.Wrap,
+            MaxLines = 2,
+            TextTrimming = TextTrimming.CharacterEllipsis,
         };
         Grid.SetColumn(label, 1);
 
