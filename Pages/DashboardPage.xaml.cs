@@ -68,12 +68,12 @@ public sealed partial class DashboardPage : Page
     private void RenderStats()
     {
         StatsPanel.Children.Clear();
-        AddStat("", "Operating system", "作業系統", SystemInfo.OsFull);
-        AddStat("", "Processor", "處理器", $"{SystemInfo.CpuName}  ({SystemInfo.LogicalProcessors} {Loc.I.Pick("threads", "執行緒")} · {SystemInfo.Architecture})");
-        AddStat("", "Memory", "記憶體", SystemInfo.RamUsage);
-        AddStat("", "Graphics", "顯示卡", SystemInfo.GpuName);
-        AddStat("", "System drive", "系統磁碟", SystemInfo.SystemDrive);
-        AddStat("", "Uptime", "運行時間", $"{SystemInfo.Uptime}  ({Loc.I.Pick("since", "由")} {SystemInfo.BootTime})");
+        AddStat(((char)0xE7F4).ToString(), "Operating system", "作業系統", SystemInfo.OsFull);
+        AddStat(((char)0xE950).ToString(), "Processor", "處理器", $"{SystemInfo.CpuName}  ({SystemInfo.LogicalProcessors} {Loc.I.Pick("threads", "執行緒")} · {SystemInfo.Architecture})");
+        AddStat(((char)0xE950).ToString(), "Memory", "記憶體", SystemInfo.RamUsage);
+        AddStat(((char)0xE7F4).ToString(), "Graphics", "顯示卡", SystemInfo.GpuName);
+        AddStat(((char)0xEDA2).ToString(), "System drive", "系統磁碟", SystemInfo.SystemDrive);
+        AddStat(((char)0xE823).ToString(), "Uptime", "運行時間", $"{SystemInfo.Uptime}  ({Loc.I.Pick("since", "由")} {SystemInfo.BootTime})");
     }
 
     private void AddStat(string glyph, string en, string zh, string value)
@@ -254,38 +254,22 @@ ModuleTile(((char)0xE83E).ToString(), "Battery & Thermal", "電池與散熱",
                 () => Navigator.GoToCategory?.Invoke(Categories.Appearance)),
         };
 
-        ModuleRepeater.Layout = new UniformGridLayout { MinItemWidth = 320, MinItemHeight = 76, MinRowSpacing = 4, MinColumnSpacing = 4 };
+        ModuleRepeater.Layout = new UniformGridLayout { MinItemWidth = 320, MinItemHeight = 96, MinRowSpacing = 4, MinColumnSpacing = 4 };
         ModuleRepeater.ItemsSource = tiles;
     }
 
     /// <summary>旗艦反應堆英雄磚 · The flagship reactor hero tile (accented Cherenkov-blue border).</summary>
     private Button ReactorHeroTile()
     {
-        var content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 14 };
-        content.Children.Add(new FontIcon
-        {
-            Glyph = ((char)0xEBC0).ToString(),
-            FontSize = 30,
-            VerticalAlignment = VerticalAlignment.Center,
-            Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0x6F, 0xB8, 0xFF)),
-        });
-        var texts = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
-        texts.Children.Add(new TextBlock
-        {
-            Text = "★ Nuclear Reactor · 核反應堆",
-            FontWeight = Microsoft.UI.Text.FontWeights.Bold,
-            FontSize = 16,
-            TextWrapping = TextWrapping.Wrap,
-        });
-        texts.Children.Add(new TextBlock
-        {
-            Text = Loc.I.Pick("FLAGSHIP — hyper-realistic PWR control room simulation",
-                              "旗艦 — 超寫實壓水堆控制室模擬"),
-            FontSize = 12,
-            Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0x6F, 0xB8, 0xFF)),
-            TextWrapping = TextWrapping.Wrap,
-        });
-        content.Children.Add(texts);
+        var accent = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0x6F, 0xB8, 0xFF));
+        var content = TileContent(
+            ((char)0xEBC0).ToString(),
+            "★ Nuclear Reactor · 核反應堆",
+            Loc.I.Pick("FLAGSHIP - PWR simulator",
+                       "旗艦 - 壓水堆模擬"),
+            30,
+            accent,
+            accent);
         var button = new Button
         {
             Content = content,
@@ -294,6 +278,7 @@ ModuleTile(((char)0xE83E).ToString(), "Battery & Thermal", "電池與散熱",
             Padding = new Thickness(18, 14, 18, 14),
             Margin = new Thickness(0, 0, 8, 8),
             MinWidth = 300,
+            MinHeight = 96,
             BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0x1B, 0x6C, 0xFF)),
             BorderThickness = new Thickness(2),
         };
@@ -303,12 +288,11 @@ ModuleTile(((char)0xE83E).ToString(), "Battery & Thermal", "電池與散熱",
 
     private Button ModuleTile(string glyph, string titleEn, string titleZh, string sub, Action onClick)
     {
-        var content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12 };
-        content.Children.Add(new FontIcon { Glyph = glyph, FontSize = 24, VerticalAlignment = VerticalAlignment.Center });
-        var texts = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
-        texts.Children.Add(new TextBlock { Text = $"{titleEn} · {titleZh}", FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap });
-        texts.Children.Add(new TextBlock { Text = sub, FontSize = 12, Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"] });
-        content.Children.Add(texts);
+        var content = TileContent(
+            ResolveModuleGlyph(glyph, titleEn),
+            $"{titleEn} · {titleZh}",
+            sub,
+            24);
         var button = new Button
         {
             Content = content,
@@ -317,9 +301,70 @@ ModuleTile(((char)0xE83E).ToString(), "Battery & Thermal", "電池與散熱",
             Padding = new Thickness(16, 12, 16, 12),
             Margin = new Thickness(0, 0, 8, 8),
             MinWidth = 300,
+            MinHeight = 76,
         };
         button.Click += (_, _) => onClick();
         return button;
+    }
+
+    private Grid TileContent(string glyph, string title, string subtitle, double iconSize, Brush? iconBrush = null, Brush? subtitleBrush = null)
+    {
+        var grid = new Grid
+        {
+            ColumnSpacing = 12,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+        };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(34) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+        var icon = new FontIcon
+        {
+            Glyph = glyph,
+            FontSize = iconSize,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            Foreground = iconBrush ?? (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+        };
+        Grid.SetColumn(icon, 0);
+
+        var texts = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Spacing = 2 };
+        texts.Children.Add(new TextBlock
+        {
+            Text = title,
+            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+            MaxLines = 2,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            TextWrapping = TextWrapping.WrapWholeWords,
+        });
+        texts.Children.Add(new TextBlock
+        {
+            Text = subtitle,
+            FontSize = 12,
+            Foreground = subtitleBrush ?? (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+            MaxLines = 2,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            TextWrapping = TextWrapping.WrapWholeWords,
+        });
+        Grid.SetColumn(texts, 1);
+
+        grid.Children.Add(icon);
+        grid.Children.Add(texts);
+        return grid;
+    }
+
+    private string ResolveModuleGlyph(string glyph, string titleEn)
+    {
+        if (!string.IsNullOrWhiteSpace(glyph))
+            return glyph;
+
+        var module = ModuleRegistry.All.FirstOrDefault(m =>
+            string.Equals(m.En, titleEn, StringComparison.OrdinalIgnoreCase) ||
+            m.En.StartsWith(titleEn, StringComparison.OrdinalIgnoreCase) ||
+            titleEn.StartsWith(m.En, StringComparison.OrdinalIgnoreCase));
+
+        return string.IsNullOrWhiteSpace(module?.Glyph)
+            ? ((char)0xE8B7).ToString()
+            : module.Glyph;
     }
 
     private void RenderCategoryTiles()
@@ -327,17 +372,11 @@ ModuleTile(((char)0xE83E).ToString(), "Battery & Thermal", "電池與散熱",
         var tiles = new List<UIElement>();
         foreach (var cat in Categories.All)
         {
-            var content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12 };
-            content.Children.Add(new FontIcon { Glyph = cat.Glyph, FontSize = 22, VerticalAlignment = VerticalAlignment.Center });
-            var texts = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
-            texts.Children.Add(new TextBlock { Text = $"{cat.Name.En} · {cat.Name.Zh}", FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap });
-            texts.Children.Add(new TextBlock
-            {
-                Text = Loc.I.Pick($"{TweakCatalog.CountFor(cat)} features", $"{TweakCatalog.CountFor(cat)} 項功能"),
-                FontSize = 12,
-                Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
-            });
-            content.Children.Add(texts);
+            var content = TileContent(
+                cat.Glyph,
+                $"{cat.Name.En} · {cat.Name.Zh}",
+                Loc.I.Pick($"{TweakCatalog.CountFor(cat)} features", $"{TweakCatalog.CountFor(cat)} 項功能"),
+                22);
 
             var button = new Button
             {
@@ -347,6 +386,7 @@ ModuleTile(((char)0xE83E).ToString(), "Battery & Thermal", "電池與散熱",
                 Padding = new Thickness(16, 12, 16, 12),
                 Margin = new Thickness(0, 0, 8, 8),
                 MinWidth = 280,
+                MinHeight = 72,
             };
             var captured = cat;
             button.Click += (_, _) => Navigator.GoToCategory?.Invoke(captured);
@@ -356,7 +396,7 @@ ModuleTile(((char)0xE83E).ToString(), "Battery & Thermal", "電池與散熱",
         CategoryRepeater.Layout = new UniformGridLayout
         {
             MinItemWidth = 300,
-            MinItemHeight = 72,
+            MinItemHeight = 82,
             MinRowSpacing = 4,
             MinColumnSpacing = 4,
         };

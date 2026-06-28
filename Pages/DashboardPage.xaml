@@ -13,8 +13,10 @@
             <!-- Hero -->
             <Border
                 Padding="24,20,24,20"
-                Background="{ThemeResource AccentControlElevationBorderBrush}"
-                CornerRadius="12">
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource AccentControlElevationBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
                 <StackPanel Spacing="4">
                     <TextBlock
                         x:Name="HeroTitle"
