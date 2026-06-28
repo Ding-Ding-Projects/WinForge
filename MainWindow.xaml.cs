@@ -2499,6 +2499,9 @@ public sealed partial class MainWindow : Window
             Text = text,
             Icon = new FontIcon { Glyph = glyph, FontSize = 14 },
         };
+        var enText = text.Split('·')[0].Trim();
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(item, "ShellTabAction_" + AutomationSafeKey(enText));
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(item, text);
         item.Click += click;
         flyout.Items.Add(item);
     }

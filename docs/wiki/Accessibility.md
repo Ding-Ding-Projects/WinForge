@@ -6,6 +6,7 @@ WinForge follows a keyboard-first, screen-reader-aware baseline for the main she
 
 - Main navigation, global search, open module tabs and tab-session actions have explicit automation names. · 主要導航、全域搜尋、已開啟模組分頁同分頁工作階段動作都有明確 automation 名稱。
 - Main navigation, open tab strip, individual tab items, session actions and generated navigation items also expose stable automation IDs for UI automation. · 主要導航、已開啟分頁列、個別分頁項目、工作階段動作同產生出嚟嘅導航項目亦有穩定 automation ID，方便 UI 自動化。
+- Tab session flyout commands, generated tab context commands and app update notices expose stable automation IDs for shell tests. · 分頁工作階段 flyout 指令、產生出嚟嘅分頁右鍵指令同 app 更新通知都有穩定 automation ID，方便外殼測試。
 - The new-tab picker exposes a named search box, category filter and named app-result buttons, so automation can open frequent apps, suggestions or category-filtered modules without relying on visual text only. · 新分頁選擇器提供具名搜尋框、分類篩選同具名 app 結果按鈕，所以自動化可以開啟常用 app、建議項目或者按分類篩選嘅模組，唔使只靠畫面文字。
 - The new-tab picker focuses search when it opens; typing a query and pressing `Enter` opens the first rendered result. Section labels are exposed as headings, and result buttons expose both title and context in their automation names. · 新分頁選擇器開啟時會聚焦搜尋；輸入查詢再撳 `Enter` 會開啟第一個已顯示結果。區段標籤會以標題形式提供畀輔助工具，結果按鈕嘅 automation 名稱亦同時包括標題同語境。
 - Shell search suggestions now carry stable route keys, so choosing a module or tweak category opens it directly while plain text still falls back to the search-results page. · 外殼搜尋建議而家帶穩定路由 key，揀模組或者調校分類會直接開啟；直接輸入文字仍然會回落到搜尋結果頁。
