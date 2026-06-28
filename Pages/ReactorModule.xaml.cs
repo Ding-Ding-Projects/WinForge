@@ -138,6 +138,9 @@ public sealed partial class ReactorModule : Page
     private readonly List<Action> _controlSyncers = new();
     private bool _syncingControlValues;
     private readonly Dictionary<string, FrameworkElement> _startupControlAnchors = new(StringComparer.OrdinalIgnoreCase);
+    private TextBlock? _startupPressureGaugeText;
+    private TextBlock? _startupPressureStepText;
+    private ProgressBar? _startupPressureGauge;
 
     // Public status-API card live element (the enable/disable toggle moved to the Reactor Settings page).
     private TextBlock? _apiStateText;
@@ -159,6 +162,7 @@ public sealed partial class ReactorModule : Page
     private static readonly TimeSpan StripChartUiInterval = TimeSpan.FromMilliseconds(250);
     private static readonly TimeSpan InstrumentPanelUiInterval = TimeSpan.FromMilliseconds(350);
     private static readonly TimeSpan ControlSyncUiInterval = TimeSpan.FromMilliseconds(500);
+    private bool _autoStartApplied;
 
     public ReactorModule()
     {
@@ -175,6 +179,12 @@ public sealed partial class ReactorModule : Page
             // 還原已儲存狀態（如有）· Restore saved reactor state (if any) BEFORE building the UI so
             // gauges/controls reflect the resumed state. The provider's restore Action runs here.
             RegisterPersistence();
+            if (!App.AutoStartReactor && _sim.AutoStartMode)
+            {
+                _sim.AutoStartMode = false;
+                PersistenceService.I.NoteChanged();
+            }
+            ApplyCommandLineAutoStart();
 
             // Build each section under its own guard so a single control failure can never blank the
             // whole control room (Render + the live timer must still run). 逐段建構並各自防護，
@@ -228,10 +238,11 @@ public sealed partial class ReactorModule : Page
             _timer.Tick -= Tick;
             _countdownTimer?.Stop();
             _renderClock.Stop();
-            // Persist current reactor state one last time, then stop listening. We keep the provider
-            // registered so a final app-exit/crash flush still captures the latest snapshot.
+            // Persist current reactor state one last time, then stop listening. This must be
+            // synchronous so navigating away and immediately back restores the state just left.
+            // We keep the provider registered so a final app-exit/crash flush still captures it.
             PersistenceService.I.Saved -= OnStateSaved;
-            CrashLogger.Guard("reactor:unload-flush", () => _ = PersistenceService.I.FlushAsync());
+            CrashLogger.Guard("reactor:unload-flush", () => PersistenceService.I.Flush());
             Loc.I.LanguageChanged -= OnLanguageChanged;
             // Stop the synthesized voices but keep the graph alive (singleton, reused by the windows).
             try { ReactorAudioEngine.I.StopVoices(); } catch { }
@@ -273,6 +284,16 @@ public sealed partial class ReactorModule : Page
         _startupChecklistRequested = true;
         _controlRoomWindow?.NavigateRoom("startup");
         DispatcherQueue.TryEnqueue(ScrollToStartupChecklist);
+    }
+
+    private void ApplyCommandLineAutoStart()
+    {
+        if (_autoStartApplied || !App.AutoStartReactor) return;
+        _autoStartApplied = true;
+        _sim.ApplyAutoStartPreset();
+        _pendingDeepLink = "startup";
+        _startupChecklistRequested = true;
+        PersistenceService.I.NoteChanged();
     }
 
     private void ScrollToStartupChecklist()
@@ -453,6 +474,8 @@ public sealed partial class ReactorModule : Page
         _simClock += dt;
         _flashPhase += dt;
 
+        if (_sim.AutoStartMode)
+            _sim.DriveAutoStart(dt);
         _sim.Update(dt);
 
         // 每個反應堆 tick 向對外 API 發佈狀態快照 · Publish a fresh status snapshot to the public API
@@ -468,6 +491,7 @@ public sealed partial class ReactorModule : Page
         UpdateAlarmTiles();
         UpdateMimic();
         UpdateAudio();
+        UpdateAutoStartOverlay();
 
         // The simulator still ticks at 10 Hz, but these panels rebuild/measure lots of XAML. Redrawing
         // them every frame can starve pointer/keyboard input, especially with the full control room open.
@@ -508,6 +532,32 @@ public sealed partial class ReactorModule : Page
             catch (Exception ex) { CrashLogger.Log("reactor:hard-save", ex); }
             finally { Interlocked.Exchange(ref _hardSaveInFlight, 0); }
         });
+    }
+
+    private void UpdateAutoStartOverlay()
+    {
+        if (!_sim.AutoStartMode)
+        {
+            AutoStartOverlay.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        AutoStartOverlay.Visibility = Visibility.Visible;
+        double progress = Math.Clamp(_sim.AutoStartProgressFraction, 0, 1);
+        AutoStartProgress.Value = progress * 100.0;
+        string stageEn = string.IsNullOrWhiteSpace(_sim.AutoStartStageEn) ? "Auto-start: arming startup sequence" : _sim.AutoStartStageEn;
+        string stageZh = string.IsNullOrWhiteSpace(_sim.AutoStartStageZh) ? "自動啟動：準備啟動程序" : _sim.AutoStartStageZh;
+        AutoStartText.Text = P(stageEn, stageZh);
+        AutoStartSubText.Text = P(
+            $"Staged startup in progress · auto-SCRAM suppressed · fuel x{_sim.FuelConsumptionMultiplier:0.##} · waste x{_sim.WasteProductionMultiplier:0.##}",
+            $"分階段啟動中 · 自動 SCRAM 已抑制 · 燃料 x{_sim.FuelConsumptionMultiplier:0.##} · 廢料 x{_sim.WasteProductionMultiplier:0.##}");
+
+        double wave = 0.5 + 0.5 * Math.Sin(_flashPhase * 5.0);
+        byte alpha = (byte)(55 + 90 * wave);
+        AutoStartPulse.Fill = new SolidColorBrush(Color.FromArgb(alpha, 0x42, 0xA5, 0xF5));
+        AutoStartPulse.Stroke = new SolidColorBrush(progress >= 1.0
+            ? Color.FromArgb(255, 0x4C, 0xAF, 0x50)
+            : Color.FromArgb(255, 0x90, 0xCA, 0xF9));
     }
 
     // ============================================================ audio ====
@@ -1176,7 +1226,8 @@ public sealed partial class ReactorModule : Page
         // ---- Fuel-cycle core depletion (burnup) ----
         AddGauge("Core burnup", "堆芯燃耗", 0, 18, () => _sim.BurnupMwdPerTonne / 1000.0,
             () => $"{_sim.BurnupMwdPerTonne / 1000.0:F2} GWd/tU · {_sim.CycleEfpd:F0} EFPD · {P(_sim.CoreLifePhaseEn, _sim.CoreLifePhaseZh)}" +
-                  (_sim.EasyStartupMode ? P(" · EASY burn ×1.5", " · EASY 燃耗 ×1.5") : ""),
+                  (_sim.EasyStartupMode ? P(" · EASY burn ×1.75", " · EASY 燃耗 ×1.75") : "") +
+                  (_sim.WasteProductionMultiplier > 1.01 ? P($" · waste ×{_sim.WasteProductionMultiplier:0.##}", $" · 廢料 ×{_sim.WasteProductionMultiplier:0.##}") : ""),
             warnFrac: 1.2, id: "burnup");
         // Boron letdown target + the cycle drift of MTC and the dollar (β_eff): all anchored to today's BOL values.
         AddGauge("Boron letdown", "降硼曲線", 0, 1400, () => _sim.CriticalBoronPpm,
@@ -2415,6 +2466,9 @@ public sealed partial class ReactorModule : Page
         var host = ControlsHost;
         host.Children.Clear();
         _startupChecklistAnchor = null;
+        _startupPressureGaugeText = null;
+        _startupPressureStepText = null;
+        _startupPressureGauge = null;
         _controlSyncers.Clear();
         _startupControlAnchors.Clear();
         _startupControlAnchors["nis"] = NisTitle;
@@ -2428,11 +2482,11 @@ public sealed partial class ReactorModule : Page
         {
             int bank = b;
             char name = (char)('A' + b);
-            host.Children.Add(LabeledSlider(
+            host.Children.Add(StartupControlFrame("reactor-controls", 5, IsReactivityStepReady, LabeledSlider(
                 $"Control rod bank {name} (% inserted)", $"控制棒組 {name}（插入 %）",
                 0, 100, _sim.RodBankInsertion[bank], 1,
                 v => _sim.SetRodBank(bank, v),
-                () => _sim.RodBankInsertion[bank], "%"));
+                () => _sim.RodBankInsertion[bank], "%")));
         }
 
         // Live rod-position indication (steps withdrawn, 0–228) + lead-bank insertion-limit status.
@@ -2466,10 +2520,10 @@ public sealed partial class ReactorModule : Page
             "落棒→象限傾斜（QPTR）· Dropped RCCA → quadrant tilt", dropPanel));
 
         // Boron
-        host.Children.Add(LabeledSlider(
+        host.Children.Add(StartupControlFrame("reactor-controls", 5, IsReactivityStepReady, LabeledSlider(
             "Soluble boron target (ppm) — charging ↑ / dilution ↓", "硼濃度目標（ppm）— 加硼 ↑／稀釋 ↓",
             0, 2500, _sim.TargetBoronPpm, 10,
-            v => _sim.TargetBoronPpm = v, () => _sim.TargetBoronPpm, " ppm"));
+            v => _sim.TargetBoronPpm = v, () => _sim.TargetBoronPpm, " ppm")));
 
         var primaryHeader = SectionHeader("Primary system · 一迴路系統", "一迴路系統 · Primary system");
         _startupControlAnchors["primary-system"] = primaryHeader;
@@ -2501,12 +2555,13 @@ public sealed partial class ReactorModule : Page
             _relocalizers.Add(() => tg.Content = P($"RCP {pump + 1}", $"主泵 {pump + 1}"));
             pumpPanel.Children.Add(tg);
         }
-        host.Children.Add(WrapLabel("Reactor coolant pumps · 反應堆冷卻劑泵", "反應堆冷卻劑泵 · Reactor coolant pumps", pumpPanel));
+        host.Children.Add(StartupControlFrame("primary-system", 2, HasStartupPumpCount,
+            WrapLabel("Reactor coolant pumps · 反應堆冷卻劑泵", "反應堆冷卻劑泵 · Reactor coolant pumps", pumpPanel)));
 
-        host.Children.Add(LabeledSlider(
+        host.Children.Add(StartupControlFrame("primary-system", 3, IsStartupFlowReady, LabeledSlider(
             "RCP flow demand (%)", "主泵流量需求（%）",
             0, 100, _sim.RcpFlowDemand * 100, 1,
-            v => _sim.RcpFlowDemand = v / 100.0, () => _sim.RcpFlowDemand * 100, "%"));
+            v => _sim.RcpFlowDemand = v / 100.0, () => _sim.RcpFlowDemand * 100, "%")));
 
         // Pressurizer toggles + relief + ECCS
         var pzrPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
@@ -2519,7 +2574,8 @@ public sealed partial class ReactorModule : Page
             v => _sim.PressurizerSpray = v, () => _sim.PressurizerSpray));
         pzrPanel.Children.Add(MakeToggle("Relief valve · 釋壓閥", "釋壓閥 · Relief valve",
             v => _sim.ReliefValveOpen = v, () => _sim.ReliefValveOpen));
-        host.Children.Add(WrapLabel("Pressurizer & relief · 穩壓器與釋壓", "穩壓器與釋壓 · Pressurizer & relief", pzrPanel));
+        host.Children.Add(StartupControlFrame("primary-system", 4, IsStartupPressureStepReady,
+            WrapLabel("Pressurizer & relief · 穩壓器與釋壓", "穩壓器與釋壓 · Pressurizer & relief", pzrPanel)));
 
         // CVCS boric-acid / reactor-makeup-water blender mode. Only AUTOMATIC is auto-driven by the VCT level
         // controller (and matches current RCS boron → zero net reactivity); the others are operator-intent
@@ -2547,8 +2603,9 @@ public sealed partial class ReactorModule : Page
             int idx = Math.Clamp((int)_sim.BlenderMode, 0, 3);
             if (blenderCombo.SelectedIndex != idx) blenderCombo.SelectedIndex = idx;
         });
-        host.Children.Add(WrapLabel("CVCS makeup blender mode · 化容系統補水混合器模式",
-            "化容系統補水混合器模式 · CVCS makeup blender mode", blenderCombo));
+        host.Children.Add(StartupControlFrame("reactor-controls", 5, IsReactivityStepReady,
+            WrapLabel("CVCS makeup blender mode · 化容系統補水混合器模式",
+                "化容系統補水混合器模式 · CVCS makeup blender mode", blenderCombo)));
 
         var safetyPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
         safetyPanel.Children.Add(MakeToggle("Arm ECCS · 啟用應急冷卻", "啟用應急冷卻 · Arm ECCS",
@@ -2599,10 +2656,10 @@ public sealed partial class ReactorModule : Page
             "Feedwater flow — manual (%)", "給水流量－手動（%）",
             0, 100, _sim.FeedwaterFlow * 100, 1,
             v => _sim.FeedwaterFlow = v / 100.0, () => _sim.FeedwaterFlow * 100, "%"));
-        host.Children.Add(LabeledSlider(
+        host.Children.Add(StartupControlFrame("secondary-turbine", 8, IsGeneratorStepReady, LabeledSlider(
             "Turbine load setpoint (%)", "汽輪機負載設定（%）",
             0, 100, _sim.TurbineLoadSetpoint * 100, 1,
-            v => _sim.TurbineLoadSetpoint = v / 100.0, () => _sim.TurbineLoadSetpoint * 100, "%"));
+            v => _sim.TurbineLoadSetpoint = v / 100.0, () => _sim.TurbineLoadSetpoint * 100, "%")));
 
         // MSR (汽水分離再熱器) fault demo: a reheater tube leak / bypass that degrades the reheat — hot reheat
         // falls, LP exhaust moisture climbs toward the blade-erosion limit, and gross output drops. Default OFF.
@@ -2619,7 +2676,8 @@ public sealed partial class ReactorModule : Page
             () => _sim.GeneratorBreakerClosed));
         grdPanel.Children.Add(MakeToggle("Sync interlock (25) · 同步聯鎖", "同步聯鎖 · Sync interlock (25)",
             v => _sim.SyncInterlock = v, () => _sim.SyncInterlock)); // DEFAULT OFF
-        host.Children.Add(WrapLabel("Grid synchronization · 併網", "併網 · Grid synchronization", grdPanel));
+        host.Children.Add(StartupControlFrame("secondary-turbine", 8, IsGeneratorStepReady,
+            WrapLabel("Grid synchronization · 併網", "併網 · Grid synchronization", grdPanel)));
 
         // ---- Main generator excitation / AVR (reactive-power control) ----
         var avrCombo = new ComboBox { MinWidth = 220 };
@@ -2734,18 +2792,20 @@ public sealed partial class ReactorModule : Page
             };
             if (modeCombo.SelectedIndex != idx) modeCombo.SelectedIndex = idx;
         });
-        host.Children.Add(WrapLabel("Reactor mode · 反應堆模式", "反應堆模式 · Reactor mode", modeCombo));
+        host.Children.Add(StartupControlFrame("mode-automation", 1, IsStartupModeSelected,
+            WrapLabel("Reactor mode · 反應堆模式", "反應堆模式 · Reactor mode", modeCombo)));
 
         var easyStartup = MakeToggle(
-            "Easy startup assist · 50% easier / fuel burns 50% faster",
-            "簡易啟動輔助 · 易啟動 50% / 燃料快耗 50%",
-            v => _sim.EasyStartupMode = v,
+            "Easy startup assist · 50% easier / fuel costs 75% more",
+            "簡易啟動輔助 · 易啟動 50% / 燃料多耗 75%",
+            v => { _sim.EasyStartupMode = v; DispatcherQueue.TryEnqueue(UpdateControlsLive); },
             () => _sim.EasyStartupMode);
-        host.Children.Add(WrapLabel("Beginner startup assist · 新手啟動輔助",
-            "新手啟動輔助 · Beginner startup assist", easyStartup));
+        host.Children.Add(StartupControlFrame("mode-automation", 1, () => _sim.EasyStartupMode,
+            WrapLabel("Beginner startup assist · 新手啟動輔助",
+                "新手啟動輔助 · Beginner startup assist", easyStartup)));
         host.Children.Add(InfoNote(
-            "Easy mode adds about +500 pcm only below 5% power, so startup responds sooner but still needs pumps, pressure, rods, and boron in order. It burns fuel 1.5x faster while enabled.",
-            "簡易模式只喺低於 5% 功率時加入約 +500 pcm，啟動反應會快啲，但仍然要按次序做好主泵、壓力、控制棒同硼濃度。開啟期間燃料燃耗為 1.5 倍。"));
+            "Easy mode adds about +500 pcm only below 5% power, suppresses automatic simulator SCRAMs, and allows skipping the pressure, rod/boron, and 1/M checklist waits. Manual SCRAM remains available. It costs 1.75x fuel while enabled, and each skipped startup step adds 25% more nuclear waste.",
+            "簡易模式只喺低於 5% 功率時加入約 +500 pcm，會抑制模擬器自動 SCRAM，並容許跳過壓力、控制棒／硼、1/M 等待步驟。手動 SCRAM 仍可使用。開啟期間燃料成本為 1.75 倍，每跳過一個啟動步驟會再增加 25% 核廢料。"));
 
         host.Children.Add(InfoNote(
             "AUTO rod control regulates Tavg to the turbine-load-programmed Tref (Westinghouse §8.1): " +
@@ -2795,9 +2855,18 @@ public sealed partial class ReactorModule : Page
                                           "啟動程序（趨近臨界）· Startup sequence");
         _startupChecklistAnchor = startupHeader;
         host.Children.Add(startupHeader);
-        host.Children.Add(InfoNote(
-            "New operator path: read each row left to right, press Control to jump to the needed panel, move the named control a little, then wait for the listed gauge. To avoid avoidable simulator auto-SCRAMs, keep at least 3 RCPs running, RCP flow above 85%, primary pressure near 2235 psia, and stop withdrawing rods or diluting boron if period falls under 30 s or startup rate climbs fast. Do not bypass safety trips.",
-            "新手流程：每行由左至右睇，按「控制」跳到需要嘅面板，少量調整列出嘅控制，然後等指定儀表穩定。避免可避免嘅模擬器自動 SCRAM：保持至少 3 部主泵運行、主泵流量高於 85%、一迴路壓力接近 2235 psia；如果週期低過 30 秒或起動率急升，就停止提棒或稀釋硼。唔好繞過安全跳脫。"));
+        var startupIntro = new Grid { ColumnSpacing = 10, Margin = new Thickness(0, 0, 0, 2) };
+        startupIntro.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        startupIntro.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        var startupNote = InfoNote(
+            "Beginner path: complete one row at a time. Press Control on the active row, use the highlighted Easy Mode controls, then wait for the named measured gauge before moving on. In Easy Mode, automatic simulator SCRAMs are suppressed and steps 4-6 can be skipped if they stall; each skip adds 25% more waste. Gauges still read live and the manual SCRAM button still works.",
+            "新手流程：逐行完成。按目前行嘅「控制」，使用簡易模式高亮嘅控制，然後等指定實際儀表到位先下一步。簡易模式會抑制模擬器自動 SCRAM；第 4-6 步如果卡住可以跳過，每跳一步增加 25% 廢料。儀表仍然即時讀數，手動 SCRAM 按鈕仍可使用。");
+        Grid.SetColumn(startupNote, 0);
+        startupIntro.Children.Add(startupNote);
+        var pressureGauge = BuildStartupPressureGauge();
+        Grid.SetColumn(pressureGauge, 1);
+        startupIntro.Children.Add(pressureGauge);
+        host.Children.Add(startupIntro);
         BuildStartupChecklist(host);
 
         // ---- Always-on reactor persistence (opt-in, default OFF, easy off switch) ----
@@ -2812,7 +2881,7 @@ public sealed partial class ReactorModule : Page
         SyncControlValues();
     }
 
-    private readonly List<(StartupStep step, TextBlock check, Border frame)> _startupSteps = new();
+    private readonly List<(StartupStep step, TextBlock check, Border frame, Button? skip, TextBlock? skipNote)> _startupSteps = new();
     private TextBlock? _keepAliveStatus;
     private Border? _keepAliveDot;
 
@@ -2885,27 +2954,42 @@ public sealed partial class ReactorModule : Page
                 : Color.FromArgb(200, 0xCF, 0xD8, 0xDC));
         }
 
+        UpdateStartupPressureGauge();
+
         // Live-update the startup checklist marks in order. Later steps stay pending until previous steps are done.
         int orderedDone = ReactorScenarios.CompletedStartupSteps(_startupSteps.Select(x => x.step).ToArray(), _sim);
         for (int i = 0; i < _startupSteps.Count; i++)
         {
-            var (step, check, frame) = _startupSteps[i];
+            var (step, check, frame, skip, skipNote) = _startupSteps[i];
             bool ok = i < orderedDone;
             bool active = i == orderedDone && orderedDone < _startupSteps.Count;
-            check.Text = ok ? "✓" : active ? "→" : "○";
+            bool skipped = step.IsSkipped(_sim);
+            check.Text = skipped ? "↷" : ok ? "✓" : active ? "→" : "○";
             check.Foreground = new SolidColorBrush(ok
-                ? Color.FromArgb(255, 0x4C, 0xAF, 0x50)
+                ? skipped ? Color.FromArgb(255, 0x90, 0xCA, 0xF9) : Color.FromArgb(255, 0x4C, 0xAF, 0x50)
                 : active ? Color.FromArgb(255, 0xFF, 0xB3, 0x00)
                 : Color.FromArgb(160, 0xAA, 0xAA, 0xAA));
             frame.BorderBrush = new SolidColorBrush(active
                 ? Color.FromArgb(210, 0xFF, 0xB3, 0x00)
-                : ok ? Color.FromArgb(150, 0x4C, 0xAF, 0x50)
+                : ok ? skipped ? Color.FromArgb(170, 0x42, 0xA5, 0xF5) : Color.FromArgb(150, 0x4C, 0xAF, 0x50)
                 : Color.FromArgb(80, 0x99, 0x99, 0x99));
             frame.Background = new SolidColorBrush(ok
-                ? Color.FromArgb(25, 0x4C, 0xAF, 0x50)
+                ? skipped ? Color.FromArgb(28, 0x42, 0xA5, 0xF5) : Color.FromArgb(25, 0x4C, 0xAF, 0x50)
                 : active ? Color.FromArgb(25, 0xFF, 0xB3, 0x00)
                 : Color.FromArgb(0, 0, 0, 0));
             frame.Opacity = i > orderedDone ? 0.72 : 1.0;
+            if (skip is not null)
+            {
+                bool canShow = step.EasyModeSkippable && _sim.EasyStartupMode && !step.IsSatisfied(_sim);
+                skip.Visibility = canShow || skipped ? Visibility.Visible : Visibility.Collapsed;
+                skip.IsEnabled = canShow && !skipped;
+                skip.Content = skipped ? P("Skipped", "已跳過") : P($"Skip step {i + 1}", $"跳過第 {i + 1} 步");
+            }
+            if (skipNote is not null)
+            {
+                skipNote.Visibility = skipped ? Visibility.Visible : Visibility.Collapsed;
+                skipNote.Text = P("Skipped in Easy Mode; gauges live, manual SCRAM available.", "已於簡易模式跳過；儀表即時，手動 SCRAM 可用。");
+            }
         }
         // Live-update keep-alive status pill.
         if (_keepAliveStatus is not null && _keepAliveDot is not null)
@@ -2976,6 +3060,61 @@ public sealed partial class ReactorModule : Page
             _relocalizers.Add(() => go.Content = P("Control", "控制"));
             go.Content = P("Control", "控制");
             go.Click += (_, _) => ScrollToStartupTarget(stp.ControlTarget);
+            Button? skip = null;
+            TextBlock? skipNote = null;
+            TextBlock? pressureStepText = null;
+            var actions = new StackPanel
+            {
+                Spacing = 4,
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Right,
+            };
+            if (stp.EasyModeSkippable)
+            {
+                if (n == 4)
+                {
+                    pressureStepText = new TextBlock
+                    {
+                        FontSize = 11,
+                        FontFamily = new FontFamily("Consolas"),
+                        TextAlignment = TextAlignment.Right,
+                        Foreground = new SolidColorBrush(Color.FromArgb(220, 0x90, 0xCA, 0xF9)),
+                    };
+                    _startupPressureStepText = pressureStepText;
+                    actions.Children.Add(pressureStepText);
+                }
+
+                skip = new Button
+                {
+                    MinWidth = 92,
+                    Padding = new Thickness(8, 2, 8, 2),
+                    Visibility = Visibility.Collapsed,
+                };
+                _relocalizers.Add(() => skip.Content = stp.IsSkipped(_sim) ? P("Skipped", "已跳過") : P($"Skip step {n}", $"跳過第 {n} 步"));
+                skip.Content = P($"Skip step {n}", $"跳過第 {n} 步");
+                skip.Click += (_, _) =>
+                {
+                    if (!_sim.EasyStartupMode) return;
+                    if (n == 4) _sim.EasyStartupSkipPressureStep = true;
+                    else if (n == 5) _sim.EasyStartupSkipReactivityStep = true;
+                    else if (n == 6) _sim.EasyStartupSkipNisStep = true;
+                    PersistenceService.I.NoteChanged();
+                    DispatcherQueue.TryEnqueue(UpdateControlsLive);
+                };
+                actions.Children.Add(skip);
+
+                skipNote = new TextBlock
+                {
+                    FontSize = 10,
+                    TextWrapping = TextWrapping.Wrap,
+                    TextAlignment = TextAlignment.Right,
+                    Foreground = new SolidColorBrush(Color.FromArgb(220, 0x90, 0xCA, 0xF9)),
+                    Visibility = Visibility.Collapsed,
+                    MaxWidth = 160,
+                };
+                actions.Children.Add(skipNote);
+            }
+            actions.Children.Add(go);
 
             var row = new Grid { ColumnSpacing = 6 };
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -2983,10 +3122,10 @@ public sealed partial class ReactorModule : Page
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             Grid.SetColumn(check, 0);
             Grid.SetColumn(copy, 1);
-            Grid.SetColumn(go, 2);
+            Grid.SetColumn(actions, 2);
             row.Children.Add(check);
             row.Children.Add(copy);
-            row.Children.Add(go);
+            row.Children.Add(actions);
             var frame = new Border
             {
                 CornerRadius = new CornerRadius(7),
@@ -2996,7 +3135,7 @@ public sealed partial class ReactorModule : Page
                 Child = row,
             };
             host.Children.Add(frame);
-            _startupSteps.Add((step, check, frame));
+            _startupSteps.Add((step, check, frame, skip, skipNote));
             i++;
         }
     }
@@ -3071,6 +3210,164 @@ public sealed partial class ReactorModule : Page
         tb.Text = P(en, zh);
         return tb;
     }
+
+    private FrameworkElement BuildStartupPressureGauge()
+    {
+        var title = new TextBlock
+        {
+            FontSize = 11,
+            FontWeight = FontWeights.SemiBold,
+            TextWrapping = TextWrapping.Wrap,
+        };
+        _relocalizers.Add(() => title.Text = P("Live primary pressure", "即時一迴路壓力"));
+        title.Text = P("Live primary pressure", "即時一迴路壓力");
+
+        _startupPressureGaugeText = new TextBlock
+        {
+            FontSize = 12,
+            FontFamily = new FontFamily("Consolas"),
+            TextWrapping = TextWrapping.Wrap,
+        };
+        _startupPressureGauge = new ProgressBar
+        {
+            Minimum = 0,
+            Maximum = 2235,
+            Width = 185,
+            Height = 8,
+        };
+        var target = new TextBlock
+        {
+            FontSize = 10,
+            Opacity = 0.72,
+            TextWrapping = TextWrapping.Wrap,
+        };
+        _relocalizers.Add(() => target.Text = P("Step 4 target: >=2235 psia", "第 4 步目標：>=2235 psia"));
+        target.Text = P("Step 4 target: >=2235 psia", "第 4 步目標：>=2235 psia");
+
+        var panel = new StackPanel { Spacing = 4 };
+        panel.Children.Add(title);
+        panel.Children.Add(_startupPressureGaugeText);
+        panel.Children.Add(_startupPressureGauge);
+        panel.Children.Add(target);
+
+        var frame = new Border
+        {
+            CornerRadius = new CornerRadius(7),
+            BorderThickness = new Thickness(1),
+            BorderBrush = new SolidColorBrush(Color.FromArgb(90, 0x42, 0xA5, 0xF5)),
+            Background = new SolidColorBrush(Color.FromArgb(22, 0x42, 0xA5, 0xF5)),
+            Padding = new Thickness(9, 7, 9, 7),
+            MinWidth = 210,
+            Child = panel,
+        };
+        UpdateStartupPressureGauge();
+        return frame;
+    }
+
+    private void UpdateStartupPressureGauge()
+    {
+        double psia = _sim.PrimaryPressure * 145.038;
+        bool ok = _sim.PrimaryPressure >= 14.5;
+        if (_startupPressureGauge is not null)
+            _startupPressureGauge.Value = Math.Clamp(psia, 0, 2235);
+        var brush = new SolidColorBrush(ok
+            ? Color.FromArgb(255, 0x4C, 0xAF, 0x50)
+            : Color.FromArgb(255, 0xFF, 0xB3, 0x00));
+        if (_startupPressureGaugeText is not null)
+        {
+            _startupPressureGaugeText.Text = P(
+                $"{psia:F0} / 2235 psia  ({_sim.PrimaryPressure:F2} MPa)",
+                $"{psia:F0} / 2235 psia  ({_sim.PrimaryPressure:F2} MPa)");
+            _startupPressureGaugeText.Foreground = brush;
+        }
+        if (_startupPressureStepText is not null)
+        {
+            _startupPressureStepText.Text = P(
+                $"PZR {psia:F0}/2235 psia",
+                $"穩壓 {psia:F0}/2235 psia");
+            _startupPressureStepText.Foreground = brush;
+        }
+    }
+
+    private FrameworkElement StartupControlFrame(string target, int stepNumber, Func<bool> isCorrect, FrameworkElement content)
+    {
+        var frame = new Border
+        {
+            CornerRadius = new CornerRadius(7),
+            BorderThickness = new Thickness(1),
+            Padding = new Thickness(6, 4, 6, 4),
+            Child = content,
+        };
+        void Sync() => UpdateStartupControlHighlight(frame, target, stepNumber, isCorrect);
+        _controlSyncers.Add(Sync);
+        Sync();
+        return frame;
+    }
+
+    private void UpdateStartupControlHighlight(Border frame, string target, int stepNumber, Func<bool> isCorrect)
+    {
+        bool easy = _sim.EasyStartupMode;
+        bool active = easy
+                      && CurrentStartupStepNumber() == stepNumber
+                      && string.Equals(CurrentStartupTarget(), target, StringComparison.OrdinalIgnoreCase);
+        bool correct = easy && isCorrect();
+
+        var border = correct
+            ? Color.FromArgb(210, 0x4C, 0xAF, 0x50)
+            : active ? Color.FromArgb(220, 0xFF, 0xB3, 0x00)
+            : Color.FromArgb(45, 0x99, 0x99, 0x99);
+        var fill = correct
+            ? Color.FromArgb(30, 0x4C, 0xAF, 0x50)
+            : active ? Color.FromArgb(30, 0xFF, 0xB3, 0x00)
+            : Color.FromArgb(0, 0, 0, 0);
+        frame.BorderBrush = new SolidColorBrush(border);
+        frame.Background = new SolidColorBrush(fill);
+    }
+
+    private int CurrentStartupStepNumber()
+    {
+        var steps = ReactorScenarios.StartupSequence();
+        int done = ReactorScenarios.CompletedStartupSteps(steps, _sim);
+        return done >= 0 && done < steps.Length ? done + 1 : 0;
+    }
+
+    private string CurrentStartupTarget()
+    {
+        var steps = ReactorScenarios.StartupSequence();
+        int done = ReactorScenarios.CompletedStartupSteps(steps, _sim);
+        return done >= 0 && done < steps.Length ? steps[done].ControlTarget : "";
+    }
+
+    private bool IsStartupModeSelected()
+        => _sim.Mode == ReactorMode.Startup || _sim.Mode == ReactorMode.Run;
+
+    private bool HasStartupPumpCount()
+    {
+        int count = 0;
+        foreach (var running in _sim.RcpRunning) if (running) count++;
+        return count >= 3;
+    }
+
+    private bool IsStartupFlowReady()
+        => _sim.CoolantFlowFraction > 0.85;
+
+    private bool IsStartupPressureStepReady()
+        => _sim.PzrAutoPressureControl
+           && _sim.PressurizerHeater
+           && !_sim.PressurizerSpray
+           && !_sim.ReliefValveOpen
+           && _sim.PrimaryPressure > 14.5;
+
+    private bool IsReactivityStepReady()
+    {
+        double avg = 0;
+        foreach (var p in _sim.RodBankInsertion) avg += p;
+        avg /= Math.Max(1, _sim.RodBankInsertion.Length);
+        return avg < 60 || _sim.BoronPpm < 1000;
+    }
+
+    private bool IsGeneratorStepReady()
+        => _sim.GeneratorBreakerClosed && _sim.ElectricPowerMW > 1.0;
 
     private FrameworkElement LabeledSlider(string en, string zh, double min, double max, double init, double step,
         Action<double> set, Func<double> read, string unit)

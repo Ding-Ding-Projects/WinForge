@@ -48,7 +48,9 @@ public sealed class StartupStep
     public string DetailZh = "";
     public string ControlTarget = "";
     public string ControlRoom = "control";
+    public bool EasyModeSkippable;
     public Func<ReactorSimService, bool> IsSatisfied = _ => false;
+    public Func<ReactorSimService, bool> IsSkipped = _ => false;
 }
 
 /// <summary>
@@ -270,8 +272,8 @@ public static class ReactorScenarios
             Zh = "選擇啟動模式",
             ControlEn = "Mode & automation -> Reactor mode: Startup.",
             ControlZh = "模式與自動化 -> 反應堆模式：啟動。",
-            DetailEn = "For a first run, turn on Easy startup assist in the same panel if you want gentler response. It only helps below 5% power and costs 1.5x fuel burn.",
-            DetailZh = "第一次玩可以喺同一面板開「簡易啟動輔助」；只會喺低於 5% 功率時幫手，但燃料燃耗會變成 1.5 倍。",
+            DetailEn = "Step 1: choose Startup. For a first run, turn on Easy startup assist here; it only helps below 5% power and costs 1.75x fuel burn.",
+            DetailZh = "第 1 步：選擇啟動。第一次玩可以喺度開「簡易啟動輔助」；只會喺低於 5% 功率時幫手，但燃料燃耗會變成 1.75 倍。",
             ControlTarget = "mode-automation",
             ControlRoom = "control",
             IsSatisfied = s => s.Mode == ReactorMode.Startup || s.Mode == ReactorMode.Run,
@@ -282,8 +284,8 @@ public static class ReactorScenarios
             Zh = "啟動 ≥3 部主泵",
             ControlEn = "Primary system -> Reactor coolant pumps: turn on RCP 1-4 until at least three are on.",
             ControlZh = "一迴路系統 -> 反應堆冷卻劑泵：開啟主泵 1-4，至少三部要開。",
-            DetailEn = "Do this before pulling rods. In the simulator, low coolant flow during a power rise is a common avoidable auto-SCRAM.",
-            DetailZh = "提棒前先做呢步。喺模擬器入面，功率上升但冷卻劑流量不足係常見可避免自動 SCRAM 原因。",
+            DetailEn = "Step 2: turn on any three RCP buttons before touching rods. Low coolant flow during a power rise is a common avoidable auto-SCRAM.",
+            DetailZh = "第 2 步：提棒之前，先開任意三部主泵。功率上升但冷卻劑流量不足係常見可避免自動 SCRAM 原因。",
             ControlTarget = "primary-system",
             ControlRoom = "contain",
             IsSatisfied = s => { int n = 0; foreach (var r in s.RcpRunning) if (r) n++; return n >= 3; },
@@ -294,8 +296,8 @@ public static class ReactorScenarios
             Zh = "建立一迴路流量 > 85%",
             ControlEn = "Primary system -> RCP flow demand (%): raise the slider, then verify the RCP flow gauge.",
             ControlZh = "一迴路系統 -> 主泵流量需求（%）：調高滑桿，然後確認主泵流量儀表。",
-            DetailEn = "Move the flow demand up, then wait for the gauge itself to pass 85%. The checklist follows the measured flow, not just the slider.",
-            DetailZh = "調高流量需求後，要等儀表本身超過 85%。清單睇嘅係實際量測流量，唔係單睇滑桿位置。",
+            DetailEn = "Step 3: raise RCP flow demand, then wait for the measured RCP flow gauge to pass 85%. The checklist does not count the slider alone.",
+            DetailZh = "第 3 步：調高主泵流量需求，然後等實際主泵流量儀表超過 85%。清單唔係單睇滑桿位置。",
             ControlTarget = "primary-system",
             ControlRoom = "contain",
             IsSatisfied = s => s.CoolantFlowFraction > 0.85,
@@ -306,11 +308,13 @@ public static class ReactorScenarios
             Zh = "穩壓器加熱器開，壓力 → 約 2235 psia",
             ControlEn = "Primary system -> Pressurizer & relief: Auto press ctrl ON, Heater ON, Spray OFF, Relief valve CLOSED.",
             ControlZh = "一迴路系統 -> 穩壓器與釋壓：自動壓力開、加熱器開、噴淋關、釋壓閥關。",
-            DetailEn = "Wait here until the Primary pressure gauge reaches at least 14.5 MPa / 2235 psia before changing rods or boron. Low pressure or an open relief path can make startup unstable.",
-            DetailZh = "停喺呢一步，等一迴路壓力儀表至少到 14.5 MPa / 2235 psia，先好改棒位或硼濃度。低壓或釋壓路徑打開會令啟動唔穩定。",
+            DetailEn = "Step 4: turn Auto press ctrl and Heater ON, keep Spray OFF and Relief CLOSED, then wait for the live pressure gauge to reach 14.5 MPa / 2235 psia. In Easy Mode you may Skip step 4 if this wait stalls; gauges still read live and manual SCRAM stays available.",
+            DetailZh = "第 4 步：開啟自動壓力同加熱器，保持噴淋關、釋壓閥關，然後等即時壓力儀表到 14.5 MPa / 2235 psia。簡易模式如果卡喺呢度，可以跳過第 4 步；儀表仍然即時讀數，手動 SCRAM 仍可使用。",
             ControlTarget = "primary-system",
             ControlRoom = "contain",
+            EasyModeSkippable = true,
             IsSatisfied = s => s.PzrAutoPressureControl && s.PressurizerHeater && !s.PressurizerSpray && !s.ReliefValveOpen && s.PrimaryPressure > 14.5,
+            IsSkipped = s => s.EasyStartupMode && s.EasyStartupSkipPressureStep,
         },
         new StartupStep
         {
@@ -318,11 +322,13 @@ public static class ReactorScenarios
             Zh = "提起停堆棒組／稀釋硼至估算臨界位置",
             ControlEn = "Reactor controls -> Control rod bank A-D, Soluble boron target, and CVCS makeup blender mode (Dilute / Alternate dilute).",
             ControlZh = "反應堆控制 -> 控制棒組 A-D、硼濃度目標、化容系統補水混合器模式（稀釋／交替稀釋）。",
-            DetailEn = "Beginner rule: make one small change, then wait. Withdraw rods by about 5-10% or lower boron in small steps; stop if period drops under 30 s or SUR rises quickly.",
-            DetailZh = "新手規則：每次只做一個細調整，然後等待。控制棒每次約提 5-10%，或少量降低硼目標；如果週期低於 30 秒或起動率急升，就停止。",
+            DetailEn = "Step 5: make one small reactivity change, then wait. Withdraw rods by about 5-10% or lower boron in small steps. In Easy Mode you may Skip step 5 if rod/boron control is confusing.",
+            DetailZh = "第 5 步：每次只做一個細反應性調整，然後等待。控制棒每次約提 5-10%，或少量降低硼目標。簡易模式如果棒位／硼控制太難，可以跳過第 5 步。",
             ControlTarget = "reactor-controls",
             ControlRoom = "control",
+            EasyModeSkippable = true,
             IsSatisfied = s => { double avg = 0; foreach (var p in s.RodBankInsertion) avg += p; avg /= s.RodBankInsertion.Length; return avg < 60 || s.BoronPpm < 1000; },
+            IsSkipped = s => s.EasyStartupMode && s.EasyStartupSkipReactivityStep,
         },
         new StartupStep
         {
@@ -330,11 +336,13 @@ public static class ReactorScenarios
             Zh = "監察起動範圍計數率，1/M → 0",
             ControlEn = "Use the Nuclear instrumentation (NIS), 1/M plot, and reactimeter period/SUR readouts.",
             ControlZh = "使用核儀表（NIS）、1/M 圖、反應性儀週期／起動率讀數。",
-            DetailEn = "1/M moving toward 0 means the core is approaching critical. If the period gets short, hold rods and boron steady until the response slows.",
-            DetailZh = "1/M 趨近 0 代表堆芯接近臨界。如果週期變短，就保持棒位同硼濃度不變，等反應慢返。",
+            DetailEn = "Step 6: watch 1/M move toward 0. If period gets short, hold rods and boron steady until the response slows. In Easy Mode you may Skip step 6 if the 1/M and period controls are confusing.",
+            DetailZh = "第 6 步：監察 1/M 趨近 0。如果週期變短，就保持棒位同硼濃度不變，等反應慢返。簡易模式如果 1/M 同週期控制太難明，可以跳過第 6 步。",
             ControlTarget = "nis",
             ControlRoom = "control",
+            EasyModeSkippable = true,
             IsSatisfied = s => s.OneOverM < 0.25,
+            IsSkipped = s => s.EasyStartupMode && s.EasyStartupSkipNisStep,
         },
         new StartupStep
         {
@@ -342,8 +350,8 @@ public static class ReactorScenarios
             Zh = "於穩定正週期 > 30 秒時宣布臨界",
             ControlEn = "Use the reactimeter period/SUR readouts and reactor power gauge; hold rod/boron changes steady.",
             ControlZh = "使用反應性儀週期／起動率讀數及反應堆功率儀表；保持棒位／硼濃度變更穩定。",
-            DetailEn = "This is not a race. A stable positive period above 30 s is the simulator's calm startup region; below that, slow down rather than forcing power up.",
-            DetailZh = "呢一步唔係鬥快。穩定正週期高於 30 秒係模擬器較平順嘅啟動區；低過呢個值就要放慢，唔好硬推功率。",
+            DetailEn = "Step 7: declare critical only after power is rising gently with a stable positive period above 30 s. Below that, slow down instead of forcing power up.",
+            DetailZh = "第 7 步：只有喺功率平順上升、正週期穩定高於 30 秒時先宣布臨界。低過呢個值就要放慢，唔好硬推功率。",
             ControlTarget = "nis",
             ControlRoom = "control",
             IsSatisfied = s => s.NeutronPowerFraction > 1e-3 && s.ReactorPeriodSeconds > 30 && s.ReactorPeriodSeconds < 1e8,
@@ -354,8 +362,8 @@ public static class ReactorScenarios
             Zh = "升功率、汽輪機併網、合發電機開關",
             ControlEn = "Secondary & turbine -> Turbine load setpoint, Grid synchronization -> Generator breaker, and optional Sync interlock (25).",
             ControlZh = "二迴路與汽輪機 -> 汽輪機負載設定、併網 -> 發電機開關，以及可選同步聯鎖（25）。",
-            DetailEn = "Raise load gradually after the reactor is stable. Big turbine/load jumps can drag temperature and pressure away from the startup checklist targets.",
-            DetailZh = "反應堆穩定後先逐步加負荷。汽輪機或負荷大幅跳變會拉走溫度同壓力，令佢哋偏離啟動清單目標。",
+            DetailEn = "Step 8: after the reactor is stable, raise turbine load gradually and close the generator breaker. Big load jumps can pull temperature and pressure away from target.",
+            DetailZh = "第 8 步：反應堆穩定後先逐步加汽輪機負荷並合上發電機開關。負荷大幅跳變會拉走溫度同壓力，令佢哋偏離目標。",
             ControlTarget = "secondary-turbine",
             ControlRoom = "turbine",
             IsSatisfied = s => s.GeneratorBreakerClosed && s.ElectricPowerMW > 1.0,
@@ -367,9 +375,12 @@ public static class ReactorScenarios
         int done = 0;
         foreach (var step in steps)
         {
-            if (!step.IsSatisfied(sim)) break;
+            if (!IsComplete(step, sim)) break;
             done++;
         }
         return done;
     }
+
+    public static bool IsComplete(StartupStep step, ReactorSimService sim)
+        => step.IsSatisfied(sim) || step.IsSkipped(sim);
 }

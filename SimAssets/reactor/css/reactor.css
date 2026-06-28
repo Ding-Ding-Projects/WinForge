@@ -191,22 +191,35 @@ input[type=number], select {
 }
 .startup-step.done { border-color: #1f7a4a; background: #10331f; }
 .startup-step.active { border-color: #a87916; background: #241d10; }
+.startup-step.skipped { border-color: #2d7fbf; background: #102a3b; }
 .startup-step.blocked { opacity: .68; }
 .startup-check {
   font-family: var(--mono); font-size: 18px; line-height: 1; color: var(--ink-dim); text-align: center;
 }
 .startup-step.done .startup-check { color: var(--good); }
+.startup-step.skipped .startup-check { color: #90caf9; }
 .startup-step.active .startup-check { color: var(--warn); }
 .startup-step-body { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .startup-step-title { font-size: 13px; line-height: 1.25; }
 .startup-step-control { font-size: 11px; line-height: 1.25; color: var(--ink-dim); }
 .startup-step-detail { font-size: 11px; line-height: 1.25; color: #ffd180; }
+.startup-step-skipnote { font-size: 11px; line-height: 1.25; color: #90caf9; }
 .startup-go { padding: 4px 8px; font-size: 11px; white-space: nowrap; align-self: center; }
+.startup-go.skip { border-color: #2d7fbf; color: #d7ecff; }
+.startup-go.skip:disabled { opacity: .45; cursor: not-allowed; }
+.startup-actions { display: flex; flex-direction: column; gap: 5px; align-items: flex-end; align-self: center; }
+.startup-pressure-pill {
+  font-family: var(--mono); font-size: 10px; color: #90caf9;
+  padding: 3px 6px; border: 1px solid #2d7fbf; border-radius: 7px; background: #0e2230; white-space: nowrap;
+}
 .startup-control-row {
   display: grid; grid-template-columns: 24px 1fr auto; gap: 8px; align-items: center;
   padding: 7px 9px; border: 1px solid #20262f; border-radius: 7px; background: #11151b;
   font-size: 12px; color: var(--ink);
 }
+.startup-control-row.done { border-color: #1f7a4a; background: #10331f; }
+.startup-control-row.active { border-color: #a87916; background: #241d10; }
+.startup-control-row.skipped { border-color: #2d7fbf; background: #102a3b; }
 .startup-control-num {
   font-family: var(--mono); color: var(--accent-2); text-align: center;
 }

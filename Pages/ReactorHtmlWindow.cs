@@ -41,6 +41,7 @@ public sealed class ReactorHtmlWindow : Window
     private static readonly TimeSpan AuxWorkInterval = TimeSpan.FromSeconds(1);
     private static readonly TimeSpan StatePostInterval = TimeSpan.FromMilliseconds(200);
     private static readonly TimeSpan ChecklistPostInterval = TimeSpan.FromMilliseconds(500);
+    private static readonly TimeSpan WasteStatusPostInterval = TimeSpan.FromMilliseconds(500);
     private readonly WebView2 _web = new();
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(100) }; // 10 Hz
     private readonly OverlappedPresenter _presenter = OverlappedPresenter.Create();
@@ -48,6 +49,7 @@ public sealed class ReactorHtmlWindow : Window
     private DateTime _lastAuxWorkUtc = DateTime.MinValue;
     private DateTime _lastStatePostUtc = DateTime.MinValue;
     private DateTime _lastChecklistPostUtc = DateTime.MinValue;
+    private DateTime _lastWasteStatusQueuedUtc = DateTime.MinValue;
     private double _simClock;
     private bool _fuelCanRun;
     private bool _wasteCapReached;
@@ -56,6 +58,7 @@ public sealed class ReactorHtmlWindow : Window
     private bool _webReady;
     private bool _initializing;
     private bool _full;
+    private int _wasteStatusInFlight;
 
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
@@ -74,10 +77,7 @@ public sealed class ReactorHtmlWindow : Window
         {
             try { DispatcherQueue?.TryEnqueue(() => PostFuel("waste", false, en, zh)); } catch { }
         };
-        _waste.Changed += () =>
-        {
-            try { DispatcherQueue?.TryEnqueue(PostWasteStatus); } catch { }
-        };
+        _waste.Changed += QueueWasteStatus;
 
         Title = "Reactor Control Room · 反應堆控制室";
         try { AppWindow.SetIcon("Assets/AppIcon.ico"); } catch { }
@@ -218,7 +218,7 @@ public sealed class ReactorHtmlWindow : Window
         long milestoneWasteBytes = NuclearWasteService.MinWasteBytes;
         if (thermalMW > 0)
         {
-            _mwdSinceLastWaste += thermalMW * dt / 86400.0;
+            _mwdSinceLastWaste += thermalMW * dt / 86400.0 * _sim.WasteProductionMultiplier;
             if (_mwdSinceLastWaste >= WasteEveryMwd)
             {
                 _mwdSinceLastWaste = 0;
@@ -238,7 +238,7 @@ public sealed class ReactorHtmlWindow : Window
             {
                 canRun = _fuel.CanReactorRun;
                 var newlySpent = thermalMW > 0
-                    ? _fuel.AccrueBurnup(thermalMW, dt)
+                    ? _fuel.AccrueBurnup(thermalMW * _sim.FuelConsumptionMultiplier, dt)
                     : Array.Empty<string>();
 
                 if (generateMilestoneWaste && !_waste.IsGenerating)
@@ -301,8 +301,8 @@ public sealed class ReactorHtmlWindow : Window
             if (_wasteFullGrace >= WasteFullGraceSeconds && !_sim.IsScrammed
                 && operating && _sim.Mode != ReactorMode.Meltdown)
             {
-                _sim.Scram();                 // mandatory auto-SCRAM
-                _sim.SetMode(ReactorMode.Shutdown);
+                if (_sim.TryAutoScram("Spent fuel storage FULL", "乏燃料貯存已滿"))
+                    _sim.SetMode(ReactorMode.Shutdown);
             }
         }
         else if (runback)
@@ -399,10 +399,12 @@ public sealed class ReactorHtmlWindow : Window
                     var lr = _fuel.LoadIntoCoreUnsafe(path);
                     if (lr.Harmful && lr.HarmSeverity > 0)
                     {
-                        _sim.InjectForgedFuelHarm(lr.HarmSeverity); // SIM-ONLY harm + auto-SCRAM
+                        _sim.InjectForgedFuelHarm(lr.HarmSeverity); // SIM-ONLY harm; Easy Mode suppresses automatic SCRAM
+                        string autoTripEn = _sim.IsScrammed ? "Auto-SCRAM, core damage rising." : "Easy Mode suppressed auto-SCRAM; core damage rising.";
+                        string autoTripZh = _sim.IsScrammed ? "已自動緊急停堆，堆芯損傷上升。" : "簡易模式已抑制自動緊急停堆；堆芯損傷上升。";
                         PostFuel("load", false,
-                            $"⚠ Counterfeit / off-spec fuel — cladding breach! {lr.ReasonEn} Auto-SCRAM, core damage rising.",
-                            $"⚠ 偽冒／不合格燃料 — 包殼破損！{lr.ReasonZh} 已自動緊急停堆，堆芯損傷上升。");
+                            $"⚠ Counterfeit / off-spec fuel — cladding breach! {lr.ReasonEn} {autoTripEn}",
+                            $"⚠ 偽冒／不合格燃料 — 包殼破損！{lr.ReasonZh} {autoTripZh}");
                     }
                     else
                     {
@@ -580,14 +582,30 @@ public sealed class ReactorHtmlWindow : Window
                 room = s.ControlRoom,
                 ok = i < done,
                 rawOk = s.IsSatisfied(_sim),
+                skipped = s.IsSkipped(_sim),
+                complete = ReactorScenarios.IsComplete(s, _sim),
+                skippable = s.EasyModeSkippable,
+                canSkip = s.EasyModeSkippable && _sim.EasyStartupMode && !s.IsSatisfied(_sim),
+                easyMode = _sim.EasyStartupMode,
+                primaryPressurePsia = _sim.PrimaryPressure * 145.038,
                 active = i == done && done < steps.Length,
                 blocked = i > done,
             }),
         });
     }
 
+    private void QueueWasteStatus()
+    {
+        var now = DateTime.UtcNow;
+        if (now - _lastWasteStatusQueuedUtc < WasteStatusPostInterval) return;
+        _lastWasteStatusQueuedUtc = now;
+
+        try { DispatcherQueue?.TryEnqueue(PostWasteStatus); } catch { }
+    }
+
     private async void PostWasteStatus()
     {
+        if (Interlocked.Exchange(ref _wasteStatusInFlight, 1) == 1) return;
         try
         {
             var waste = await Task.Run(() =>
@@ -623,6 +641,7 @@ public sealed class ReactorHtmlWindow : Window
             Post(new { type = "fuelResult", op = "wasteStatus", ok = true, waste });
         }
         catch { }
+        finally { Interlocked.Exchange(ref _wasteStatusInFlight, 0); }
     }
 
     private void PostWaterStatus()

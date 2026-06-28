@@ -516,8 +516,10 @@ public sealed class ReactorWidgetWindow : Window
 
         int done = ReactorScenarios.CompletedStartupSteps(ReactorScenarios.StartupSequence(), _sim);
         _label.Text = P("Startup gauges", "啟動儀表");
-        _value.Text = P($"Checklist {done}/8{(_sim.EasyStartupMode ? " · EASY ×1.5 burn" : "")}",
-                        $"程序 {done}/8{(_sim.EasyStartupMode ? " · EASY 燃耗 ×1.5" : "")}");
+        string waste = _sim.WasteProductionMultiplier > 1.01 ? $" · waste ×{_sim.WasteProductionMultiplier:0.##}" : "";
+        string wasteZh = _sim.WasteProductionMultiplier > 1.01 ? $" · 廢料 ×{_sim.WasteProductionMultiplier:0.##}" : "";
+        _value.Text = P($"Checklist {done}/8{(_sim.EasyStartupMode ? " · EASY ×1.75 burn" : "")}{waste}",
+                        $"程序 {done}/8{(_sim.EasyStartupMode ? " · EASY 燃耗 ×1.75" : "")}{wasteZh}");
 
         SetStartupGauge(0, P("RCP pumps", "主泵"), $"{pumps}/4", pumps / 3.0, pumps >= 3);
         SetStartupGauge(1, P("RCP flow", "主泵流量"), $"{_sim.CoolantFlowFraction * 100:F0}%", _sim.CoolantFlowFraction / 0.85, _sim.CoolantFlowFraction > 0.85);
@@ -557,7 +559,7 @@ public sealed class ReactorStartupChecklistWindow : Window
     private readonly Action<string>? _navigateTarget;
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(250) };
     private readonly OverlappedPresenter _presenter = OverlappedPresenter.Create();
-    private readonly List<(StartupStep step, TextBlock mark, TextBlock title, TextBlock control, TextBlock detail, Button go, Border row)> _rows = new();
+    private readonly List<(StartupStep step, TextBlock mark, TextBlock title, TextBlock control, TextBlock detail, Button go, Button? skip, Border row)> _rows = new();
 
     private TextBlock _title = null!;
     private TextBlock _progress = null!;
@@ -693,6 +695,7 @@ public sealed class ReactorStartupChecklistWindow : Window
         var list = new StackPanel { Spacing = 6 };
         foreach (var step in ReactorScenarios.StartupSequence())
         {
+            int stepNumber = _rows.Count + 1;
             var mark = new TextBlock
             {
                 Text = "○",
@@ -742,6 +745,36 @@ public sealed class ReactorStartupChecklistWindow : Window
                 RestoreInteractive();
                 _navigateTarget?.Invoke(step.ControlTarget);
             };
+            Button? skip = null;
+            var actions = new StackPanel
+            {
+                Spacing = 4,
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Right,
+            };
+            if (step.EasyModeSkippable)
+            {
+                skip = new Button
+                {
+                    Content = P($"Skip step {stepNumber}", $"跳過第 {stepNumber} 步"),
+                    MinWidth = 92,
+                    Padding = new Thickness(8, 2, 8, 2),
+                    Background = new SolidColorBrush(Color.FromArgb(75, 0x42, 0xA5, 0xF5)),
+                    Foreground = new SolidColorBrush(Colors.White),
+                    Visibility = Visibility.Collapsed,
+                };
+                skip.Click += (_, _) =>
+                {
+                    if (!_sim.EasyStartupMode) return;
+                    if (stepNumber == 4) _sim.EasyStartupSkipPressureStep = true;
+                    else if (stepNumber == 5) _sim.EasyStartupSkipReactivityStep = true;
+                    else if (stepNumber == 6) _sim.EasyStartupSkipNisStep = true;
+                    PersistenceService.I.NoteChanged();
+                    DispatcherQueue.TryEnqueue(() => Tick(null, EventArgs.Empty));
+                };
+                actions.Children.Add(skip);
+            }
+            actions.Children.Add(go);
 
             var rowGrid = new Grid { ColumnSpacing = 6 };
             rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -749,10 +782,10 @@ public sealed class ReactorStartupChecklistWindow : Window
             rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             Grid.SetColumn(mark, 0);
             Grid.SetColumn(copy, 1);
-            Grid.SetColumn(go, 2);
+            Grid.SetColumn(actions, 2);
             rowGrid.Children.Add(mark);
             rowGrid.Children.Add(copy);
-            rowGrid.Children.Add(go);
+            rowGrid.Children.Add(actions);
 
             var row = new Border
             {
@@ -762,7 +795,7 @@ public sealed class ReactorStartupChecklistWindow : Window
                 Child = rowGrid,
             };
             list.Children.Add(row);
-            _rows.Add((step, mark, title, control, detail, go, row));
+            _rows.Add((step, mark, title, control, detail, go, skip, row));
         }
 
         var scroller = new ScrollViewer
@@ -791,31 +824,42 @@ public sealed class ReactorStartupChecklistWindow : Window
         int done = ReactorScenarios.CompletedStartupSteps(_rows.Select(x => x.step).ToArray(), _sim);
         for (int i = 0; i < _rows.Count; i++)
         {
-            var (step, mark, title, control, detail, go, row) = _rows[i];
+            var (step, mark, title, control, detail, go, skip, row) = _rows[i];
             bool ok = i < done;
             bool active = i == done && done < _rows.Count;
+            bool skipped = step.IsSkipped(_sim);
 
-            mark.Text = ok ? "✓" : active ? "→" : "○";
+            mark.Text = skipped ? "↷" : ok ? "✓" : active ? "→" : "○";
             mark.Foreground = new SolidColorBrush(ok
-                ? Color.FromArgb(255, 0x4C, 0xAF, 0x50)
+                ? skipped ? Color.FromArgb(255, 0x90, 0xCA, 0xF9) : Color.FromArgb(255, 0x4C, 0xAF, 0x50)
                 : active ? Color.FromArgb(255, 0xFF, 0xB3, 0x00)
                 : Color.FromArgb(170, 0xAA, 0xAA, 0xAA));
             row.Background = new SolidColorBrush(ok
-                ? Color.FromArgb(75, 0x2E, 0x7D, 0x32)
+                ? skipped ? Color.FromArgb(75, 0x15, 0x4D, 0x78) : Color.FromArgb(75, 0x2E, 0x7D, 0x32)
                 : active ? Color.FromArgb(75, 0x7A, 0x55, 0x12)
                 : Color.FromArgb(55, 0xFF, 0xFF, 0xFF));
             row.Opacity = i > done ? 0.68 : 1.0;
             title.Text = $"{i + 1}. " + P(step.En, step.Zh);
             control.Text = P($"Use: {step.ControlEn}", $"使用：{step.ControlZh}");
-            detail.Text = P(step.DetailEn, step.DetailZh);
+            var detailText = P(step.DetailEn, step.DetailZh);
+            if (skipped)
+                detailText += "\n" + P("Skipped in Easy Mode; gauges stay live and manual SCRAM remains available.", "已於簡易模式跳過；儀表仍然即時，手動 SCRAM 仍可使用。");
+            detail.Text = detailText;
             go.Content = P("Control", "控制");
+            if (skip is not null)
+            {
+                bool canShow = step.EasyModeSkippable && _sim.EasyStartupMode && !step.IsSatisfied(_sim);
+                skip.Visibility = canShow || skipped ? Visibility.Visible : Visibility.Collapsed;
+                skip.IsEnabled = canShow && !skipped;
+                skip.Content = skipped ? P("Skipped", "已跳過") : P($"Skip step {i + 1}", $"跳過第 {i + 1} 步");
+            }
         }
 
         _progress.Text = P($"Checklist progress: {done}/{_rows.Count}",
                            $"程序進度：{done}/{_rows.Count}");
         _status.Text = P("Mode: ", "模式：") + P(_sim.StatusEn, _sim.StatusZh);
         _power.Text = P("Power: ", "功率：") + $"{_sim.NeutronPowerFraction * 100:F1}% / {_sim.ElectricPowerMW:F0} MWe";
-        _pressure.Text = P("Primary: ", "一迴路：") + $"{_sim.PrimaryPressure:F1} MPa";
+        _pressure.Text = P("Primary: ", "一迴路：") + $"{_sim.PrimaryPressure:F1} MPa / {_sim.PrimaryPressure * 145.038:F0} psia";
         _oneOverM.Text = "1/M: " + $"{_sim.OneOverM:F3}";
     }
 
