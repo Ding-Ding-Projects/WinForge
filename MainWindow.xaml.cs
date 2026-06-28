@@ -23,6 +23,7 @@ namespace WinForge;
 public sealed partial class MainWindow : Window
 {
     private readonly Dictionary<object, (string en, string zh)> _navOriginalLabels = new();
+    private const string AllAppsPickerKey = "shell.allapps";
 
     public MainWindow()
     {
@@ -1368,14 +1369,20 @@ public sealed partial class MainWindow : Window
         if (args.Reason != AutoSuggestionBoxTextChangeReason.UserInput) return;
         var q = sender.Text ?? "";
         if (q.Trim().Length == 0) { sender.ItemsSource = null; return; }
-        var sugg = ModuleRegistry.Search(q).Select(m => Loc.I.Pick(m.En, m.Zh))
-            .Concat(TweakCatalog.Search(q).Take(6).Select(t => t.Title.Display))
-            .Take(10).ToList();
-        sender.ItemsSource = sugg;
+        var suggestions = ShellSearchSuggestions(q).Take(10).ToList();
+        sender.ItemsSource = suggestions.Count == 0 ? null : suggestions;
     }
 
     private void SearchBox_QuerySubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
     {
+        if (args.ChosenSuggestion is ShellSearchSuggestion suggestion)
+        {
+            OpenShellSearchSuggestion(suggestion);
+            sender.Text = string.Empty;
+            sender.ItemsSource = null;
+            return;
+        }
+
         var q = args.QueryText;
         if (!string.IsNullOrWhiteSpace(q)) NavigateActive("search:" + q);
     }
@@ -1390,11 +1397,20 @@ public sealed partial class MainWindow : Window
         if (ActiveFrame is { CanGoBack: true } f) { f.GoBack(); UpdateBackButton(); }
     }
 
-    private void NavView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
+    private async void NavView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
     {
         if (_syncingTabs) return;
         if (args.IsSettingsSelected) { NavigateActive("settings"); return; }
-        if (args.SelectedItem is NavigationViewItem item && item.Tag is string tag) NavigateActive(tag);
+        if (args.SelectedItem is NavigationViewItem item && item.Tag is string tag)
+        {
+            if (string.Equals(tag, AllAppsPickerKey, StringComparison.OrdinalIgnoreCase))
+            {
+                await OpenAllAppsPickerFromShellAsync();
+                return;
+            }
+
+            NavigateActive(tag);
+        }
     }
 
     // ===================== Browser-style tabs · 瀏覽器式分頁 =====================
@@ -1449,6 +1465,15 @@ public sealed partial class MainWindow : Window
         public string[] Keys { get; init; } = Array.Empty<string>();
 
         public string Title => Loc.I.Pick(En, Zh);
+    }
+
+    private sealed class ShellSearchSuggestion
+    {
+        public string Key { get; init; } = "";
+        public string Title { get; init; } = "";
+        public string Subtitle { get; init; } = "";
+
+        public override string ToString() => Title;
     }
 
     private const string RecentModulesKey = "shell.recentModules";
@@ -1686,6 +1711,12 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    private async Task OpenAllAppsPickerFromShellAsync()
+    {
+        await ShowNewTabPickerAsync();
+        SyncNavSelectionToActiveTab();
+    }
+
     private void AddPickerSection(StackPanel target, string title, IEnumerable<NewTabEntry> entries, Action<string> open)
     {
         var list = entries
@@ -1855,6 +1886,71 @@ public sealed partial class MainWindow : Window
         }
 
         return "apps";
+    }
+
+    private IEnumerable<ShellSearchSuggestion> ShellSearchSuggestions(string query)
+    {
+        query = (query ?? string.Empty).Trim();
+        if (query.Length == 0) yield break;
+
+        if (MatchesText(Loc.I.Pick("All Apps", "所有 app"), query) || MatchesText("apps tools modules search picker", query))
+        {
+            yield return new ShellSearchSuggestion
+            {
+                Key = AllAppsPickerKey,
+                Title = Loc.I.Pick("All Apps · 所有 app", "所有 app · All Apps"),
+                Subtitle = Loc.I.Pick("Open the searchable app picker", "開啟可搜尋 app 選擇器"),
+            };
+        }
+
+        foreach (var module in ModuleRegistry.Search(query)
+                     .Where(m => m.Tag.StartsWith("module.", StringComparison.Ordinal))
+                     .Take(6))
+        {
+            yield return new ShellSearchSuggestion
+            {
+                Key = module.Tag,
+                Title = $"{module.En} · {module.Zh}",
+                Subtitle = Loc.I.Pick("Open module", "開啟模組"),
+            };
+        }
+
+        foreach (var category in Categories.All
+                     .Where(c => MatchesText($"{c.Name.En} {c.Name.Zh} {c.Id}", query))
+                     .Take(3))
+        {
+            yield return new ShellSearchSuggestion
+            {
+                Key = category.Id,
+                Title = category.Name.Display,
+                Subtitle = Loc.I.Pick("Open tweak category", "開啟調校分類"),
+            };
+        }
+    }
+
+    private void OpenShellSearchSuggestion(ShellSearchSuggestion suggestion)
+    {
+        if (string.Equals(suggestion.Key, AllAppsPickerKey, StringComparison.OrdinalIgnoreCase))
+        {
+            _ = OpenAllAppsPickerFromShellAsync();
+            return;
+        }
+
+        NavigateActive(suggestion.Key);
+    }
+
+    private static bool MatchesText(string text, string query)
+        => text.Contains(query, StringComparison.OrdinalIgnoreCase);
+
+    private void SyncNavSelectionToActiveTab()
+    {
+        var key = Tabs?.SelectedItem is TabViewItem tab ? BaseNavKey(DataOf(tab).Key) : "dashboard";
+        var item = FindByTag(key);
+        if (item is null) return;
+
+        _syncingTabs = true;
+        try { NavView.SelectedItem = item; }
+        finally { _syncingTabs = false; }
     }
 
     private void RememberAppUse(string key)

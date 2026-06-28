@@ -45,6 +45,7 @@
                     x:Name="SearchBox"
                     QueryIcon="Find"
                     PlaceholderText="Search everything · 搜尋全部"
+                    TextMemberPath="Title"
                     QuerySubmitted="SearchBox_QuerySubmitted"
                     TextChanged="SearchBox_TextChanged"
                     automation:AutomationProperties.Name="Search all WinForge modules · 搜尋全部 WinForge 模組" />
@@ -62,6 +63,9 @@
                 </NavigationViewItem>
                 <NavigationViewItem Content="Cake Factory &amp; Farm · 蛋糕工廠與農場" Tag="module.cakefactory">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xECA5;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="All Apps · 所有 app" Tag="shell.allapps">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE71D;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
 
                 <NavigationViewItem Content="Files &amp; Disks · 檔案與磁碟" SelectsOnInvoked="False">
