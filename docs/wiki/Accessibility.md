@@ -5,7 +5,9 @@ WinForge follows a keyboard-first, screen-reader-aware baseline for the main she
 ## Current Shell Coverage · 目前外殼覆蓋
 
 - Main navigation, global search, open module tabs and tab-session actions have explicit automation names. · 主要導航、全域搜尋、已開啟模組分頁同分頁工作階段動作都有明確 automation 名稱。
+- Main navigation, open tab strip, individual tab items, session actions and generated navigation items also expose stable automation IDs for UI automation. · 主要導航、已開啟分頁列、個別分頁項目、工作階段動作同產生出嚟嘅導航項目亦有穩定 automation ID，方便 UI 自動化。
 - The new-tab picker exposes a named search box, category filter and named app-result buttons, so automation can open frequent apps, suggestions or category-filtered modules without relying on visual text only. · 新分頁選擇器提供具名搜尋框、分類篩選同具名 app 結果按鈕，所以自動化可以開啟常用 app、建議項目或者按分類篩選嘅模組，唔使只靠畫面文字。
+- The new-tab picker focuses search when it opens; typing a query and pressing `Enter` opens the first rendered result. Section labels are exposed as headings, and result buttons expose both title and context in their automation names. · 新分頁選擇器開啟時會聚焦搜尋；輸入查詢再撳 `Enter` 會開啟第一個已顯示結果。區段標籤會以標題形式提供畀輔助工具，結果按鈕嘅 automation 名稱亦同時包括標題同語境。
 - Shell search suggestions now carry stable route keys, so choosing a module or tweak category opens it directly while plain text still falls back to the search-results page. · 外殼搜尋建議而家帶穩定路由 key，揀模組或者調校分類會直接開啟；直接輸入文字仍然會回落到搜尋結果頁。
 - Shell search suggestions show both the destination name and action context, making module/category/app-picker results easier to distinguish before opening. · 外殼搜尋建議會同時顯示目的地名稱同操作語境，開啟前更容易分清模組、分類或者 app 選擇器結果。
 - Picker cards and dashboard stats use responsive sizing and wrapped bilingual text to reduce clipping at narrow widths or higher text scale. · 選擇器卡片同概覽統計用響應式尺寸同可換行雙語文字，減少窄視窗或者較大文字比例時被截斷。

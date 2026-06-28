@@ -1107,10 +1107,31 @@ public sealed partial class MainWindow : Window
                     break;
                 case NavigationViewItem nav:
                     nav.Content = LocalizedNavLabel(nav, nav.Tag as string, nav.Content as string);
+                    ApplyNavAutomation(nav);
                     if (nav.MenuItems.Count > 0) RelabelNavItems(nav.MenuItems);
                     break;
             }
         }
+    }
+
+    private void ApplyNavAutomation(NavigationViewItem nav)
+    {
+        if (nav.Tag is string tag && !string.IsNullOrWhiteSpace(tag))
+        {
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(nav, "ShellNavItem_" + AutomationSafeKey(tag));
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(nav, nav.Content?.ToString() ?? tag);
+        }
+        else if (!string.IsNullOrWhiteSpace(nav.Name))
+        {
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(nav, "ShellNavGroup_" + nav.Name);
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(nav, nav.Content?.ToString() ?? nav.Name);
+        }
+    }
+
+    private static string AutomationSafeKey(string value)
+    {
+        var chars = value.Select(ch => char.IsLetterOrDigit(ch) ? ch : '_').ToArray();
+        return new string(chars);
     }
 
     private string LocalizedNavLabel(object owner, string? tag, string? fallback)
@@ -1650,6 +1671,7 @@ public sealed partial class MainWindow : Window
         root.Children.Add(categoryBox);
 
         var results = new StackPanel { Spacing = 12 };
+        var renderedButtons = new List<Button>();
         var scroller = new ScrollViewer
         {
             Content = results,
@@ -1667,6 +1689,7 @@ public sealed partial class MainWindow : Window
         void Render(string query)
         {
             results.Children.Clear();
+            renderedButtons.Clear();
             query = (query ?? string.Empty).Trim();
             var selectedCategory = categoryBox.SelectedItem as PickerCategory ?? PickerCategories[0];
             var entries = FilterEntriesForCategory(AllPickerEntries(), selectedCategory);
@@ -1675,13 +1698,13 @@ public sealed partial class MainWindow : Window
             {
                 if (selectedCategory.Id == "all")
                 {
-                    AddPickerSection(results, Loc.I.Pick("Frequently used", "常用"), FrequentEntries(), Open);
-                    AddPickerSection(results, Loc.I.Pick("You may like", "你可能會用"), EntriesFor(SuggestedTabKeys), Open);
-                    AddPickerSection(results, Loc.I.Pick("All apps", "所有 app"), entries.Take(24), Open);
+                    AddPickerSection(results, Loc.I.Pick("Frequently used", "常用"), FrequentEntries(), Open, renderedButtons);
+                    AddPickerSection(results, Loc.I.Pick("You may like", "你可能會用"), EntriesFor(SuggestedTabKeys), Open, renderedButtons);
+                    AddPickerSection(results, Loc.I.Pick("All apps", "所有 app"), entries.Take(24), Open, renderedButtons);
                 }
                 else
                 {
-                    AddPickerSection(results, selectedCategory.Title, entries, Open);
+                    AddPickerSection(results, selectedCategory.Title, entries, Open, renderedButtons);
                 }
                 return;
             }
@@ -1693,10 +1716,20 @@ public sealed partial class MainWindow : Window
                 entries
                     .Where(e => MatchesPickerEntry(e, query))
                     .Take(40),
-                Open);
+                Open,
+                renderedButtons);
         }
 
         search.TextChanged += (_, _) => Render(search.Text);
+        search.KeyDown += (_, e) =>
+        {
+            if (e.Key != Windows.System.VirtualKey.Enter || renderedButtons.Count == 0) return;
+            if (renderedButtons[0].Tag is string key)
+            {
+                e.Handled = true;
+                Open(key);
+            }
+        };
         categoryBox.SelectionChanged += (_, _) => Render(search.Text);
         Render(string.Empty);
 
@@ -1708,6 +1741,9 @@ public sealed partial class MainWindow : Window
             CloseButtonText = Loc.I.Pick("Cancel", "取消"),
             DefaultButton = ContentDialogButton.None,
         };
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(dialog, "NewTabPickerDialog");
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(dialog, Loc.I.Pick("Open new tab", "開新分頁"));
+        dialog.Opened += (_, _) => search.Focus(FocusState.Programmatic);
 
         await dialog.ShowAsync();
         if (!string.IsNullOrWhiteSpace(selectedKey))
@@ -1723,7 +1759,7 @@ public sealed partial class MainWindow : Window
         SyncNavSelectionToActiveTab();
     }
 
-    private void AddPickerSection(StackPanel target, string title, IEnumerable<NewTabEntry> entries, Action<string> open)
+    private void AddPickerSection(StackPanel target, string title, IEnumerable<NewTabEntry> entries, Action<string> open, IList<Button>? renderedButtons = null)
     {
         var list = entries
             .GroupBy(e => e.Key, StringComparer.OrdinalIgnoreCase)
@@ -1731,12 +1767,21 @@ public sealed partial class MainWindow : Window
             .ToList();
         if (list.Count == 0) return;
 
-        target.Children.Add(new TextBlock
+        var header = new TextBlock
         {
             Text = title,
             FontWeight = FontWeights.SemiBold,
             Margin = new Thickness(0, 4, 0, 0),
-        });
+        };
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetHeadingLevel(header, Microsoft.UI.Xaml.Automation.Peers.AutomationHeadingLevel.Level3);
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(header, title);
+        target.Children.Add(header);
+
+        var buttons = list.Select(e => PickerButton(e, open)).ToList();
+        if (renderedButtons is not null)
+        {
+            foreach (var button in buttons) renderedButtons.Add(button);
+        }
 
         var grid = new ItemsRepeater
         {
@@ -1747,7 +1792,7 @@ public sealed partial class MainWindow : Window
                 MinColumnSpacing = 6,
                 MinRowSpacing = 6,
             },
-            ItemsSource = list.Select(e => PickerButton(e, open)).ToList(),
+            ItemsSource = buttons,
         };
         target.Children.Add(grid);
     }
@@ -1803,8 +1848,8 @@ public sealed partial class MainWindow : Window
             Padding = new Thickness(12, 9, 12, 9),
             Tag = entry.Key,
         };
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(button, "NewTabPickerItem_" + entry.Key.Replace('.', '_').Replace(':', '_'));
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, entry.Title);
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(button, "NewTabPickerItem_" + AutomationSafeKey(entry.Key));
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, $"{entry.Title} - {entry.Subtitle}");
         ToolTipService.SetToolTip(button, entry.Title);
         button.Click += (_, _) => open(entry.Key);
         return button;
@@ -2062,6 +2107,7 @@ public sealed partial class MainWindow : Window
             Content = frame,
             IconSource = new SymbolIconSource { Symbol = Symbol.Document },
         };
+        ApplyTabAutomation(tab, type, param);
         tab.ContextFlyout = BuildTabFlyout(tab);
         Tabs.TabItems.Add(tab);
         if (select) Tabs.SelectedItem = tab;
@@ -2404,7 +2450,20 @@ public sealed partial class MainWindow : Window
         var data = DataOf(tab);
         var (type, param) = Resolve(data.Key);
         tab.Header = BuildTabHeader(data, type, param);
+        ApplyTabAutomation(tab, type, param);
         tab.ContextFlyout = BuildTabFlyout(tab);
+    }
+
+    private void ApplyTabAutomation(TabViewItem tab, Type type, object? param)
+    {
+        var data = DataOf(tab);
+        var group = GroupFor(data.GroupId);
+        var title = string.IsNullOrWhiteSpace(data.Name) ? TitleFor(data.Key, type, param) : data.Name.Trim();
+        var label = group is null
+            ? title
+            : Loc.I.Pick($"{group.Name} tab: {title}", $"{group.Name} 分頁：{title}");
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(tab, "ShellTab_" + AutomationSafeKey(data.Key));
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(tab, label);
     }
 
     private void RefreshAllTabHeaders()
