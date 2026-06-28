@@ -47,6 +47,21 @@ public sealed partial class TerminalModule : Page
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
+    private static string DisplayPath(string path)
+    {
+        var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        if (!string.IsNullOrWhiteSpace(local) &&
+            path.StartsWith(local, StringComparison.OrdinalIgnoreCase))
+            return "%LOCALAPPDATA%" + path[local.Length..];
+
+        var profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        if (!string.IsNullOrWhiteSpace(profile) &&
+            path.StartsWith(profile, StringComparison.OrdinalIgnoreCase))
+            return "%USERPROFILE%" + path[profile.Length..];
+
+        return path;
+    }
+
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
         Render();
@@ -135,7 +150,7 @@ public sealed partial class TerminalModule : Page
         try
         {
             _root = WindowsTerminalService.Load(_settingsPath);
-            PathText.Text = _settingsPath;
+            PathText.Text = DisplayPath(_settingsPath);
             PopulateList();
             Info(InfoBarSeverity.Informational, P("Loaded", "已載入"),
                 $"{_rows.Count} " + P("profiles", "個設定檔"));
@@ -238,7 +253,7 @@ public sealed partial class TerminalModule : Page
                 ["schemes"] = new JsonArray(),
                 ["actions"] = new JsonArray(),
             };
-            PathText.Text = _settingsPath;
+            PathText.Text = DisplayPath(_settingsPath);
         }
 
         var prof = WindowsTerminalService.NewProfile(P("New profile", "新設定檔"),
