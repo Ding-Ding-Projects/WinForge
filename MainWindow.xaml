@@ -48,6 +48,7 @@
                     TextMemberPath="Title"
                     QuerySubmitted="SearchBox_QuerySubmitted"
                     TextChanged="SearchBox_TextChanged"
+                    automation:AutomationProperties.AutomationId="ShellSearchBox"
                     automation:AutomationProperties.Name="Search all WinForge modules · 搜尋全部 WinForge 模組" />
             </NavigationView.AutoSuggestBox>
             <NavigationView.MenuItems>
