@@ -16,6 +16,8 @@ namespace WinForge.Pages;
 /// </summary>
 public sealed partial class VaultVolumesModule : Page
 {
+    private bool _hasScanned;
+
     public sealed class Row
     {
         public string Letter { get; init; } = "";   // "X:"
@@ -28,8 +30,13 @@ public sealed partial class VaultVolumesModule : Page
     public VaultVolumesModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => { Render(); Reload(); };
-        Loaded += (_, _) => { Render(); FillCombos(); Reload(); CheckEngine(); };
+        Loc.I.LanguageChanged += (_, _) =>
+        {
+            Render();
+            if (_hasScanned) Reload();
+            else ShowUnscannedState();
+        };
+        Loaded += (_, _) => { Render(); FillCombos(); ShowUnscannedState(); CheckEngine(); };
     }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
@@ -78,8 +85,11 @@ public sealed partial class VaultVolumesModule : Page
         MountBtn.Content = P("Mount", "掛載");
 
         MountedHeader.Text = P("Mounted volumes", "已掛載磁碟區");
-        EmptyHint.Text = P("No mountable volumes detected. Mount a container above; mounted drives appear here so you can browse, dismount or force-dismount them.",
-            "未偵測到可卸載嘅磁碟區。喺上面掛載容器；掛載咗嘅磁碟機會喺呢度出現，方便瀏覽、卸載或強制卸載。");
+        EmptyHint.Text = _hasScanned
+            ? P("No mountable volumes detected. Mount a container above; mounted drives appear here so you can browse, dismount or force-dismount them.",
+                "未偵測到可卸載嘅磁碟區。喺上面掛載容器；掛載咗嘅磁碟機會喺呢度出現，方便瀏覽、卸載或強制卸載。")
+            : P("Mounted volumes are hidden until you refresh. This avoids showing local drive labels in screenshots.",
+                "已掛載磁碟區會隱藏到你重新整理為止，避免截圖顯示本機磁碟標籤。");
     }
 
     private void FillCombos()
@@ -134,6 +144,7 @@ public sealed partial class VaultVolumesModule : Page
 
     private void Reload()
     {
+        _hasScanned = true;
         var mounted = VaultVolumeService.ListMounted();
         var rows = mounted.Select(m => new Row
         {
@@ -144,6 +155,16 @@ public sealed partial class VaultVolumesModule : Page
         List.ItemsSource = rows;
         List.Visibility = rows.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
         EmptyHint.Visibility = rows.Count > 0 ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    private void ShowUnscannedState()
+    {
+        _hasScanned = false;
+        List.ItemsSource = Array.Empty<Row>();
+        List.Visibility = Visibility.Collapsed;
+        EmptyHint.Visibility = Visibility.Visible;
+        EmptyHint.Text = P("Mounted volumes are hidden until you refresh. This avoids showing local drive labels in screenshots.",
+            "已掛載磁碟區會隱藏到你重新整理為止，避免截圖顯示本機磁碟標籤。");
     }
 
     private void Refresh_Click(object sender, RoutedEventArgs e) => Reload();
