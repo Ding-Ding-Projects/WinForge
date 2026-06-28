@@ -18,3 +18,7 @@
 **EN â€”** Use this control from the module page shown above. If the handler is blank, the action is represented by binding or template state rather than a direct click handler in XAML.
 
 **ç²µèªž â€”** å–ºä¸Šé¢æ¨¡çµ„é é¢ä½¿ç”¨å‘¢å€‹æŽ§åˆ¶é …ã€‚å¦‚æžœè™•ç†å‡½å¼ä¿‚ç©ºç™½ï¼Œä»£è¡¨å‹•ä½œå¯èƒ½ç”± binding æˆ–æ¨£æ¿ç‹€æ…‹è™•ç†ï¼Œè€Œå””ä¿‚ XAML å…¥é¢ç›´æŽ¥å¯« click handlerã€‚
+
+**EN —** Consumes the latest trusted, valid cake. WinForge appends the cake id to the eaten ledger and deletes the `.cake` file from disk when possible; a rejected cake is never consumed.
+
+**粵語 —** 消耗最新可信而有效嘅蛋糕。WinForge 會將 cake id 加入食用記錄，並盡量由磁碟刪除 `.cake` 檔；被拒絕嘅蛋糕唔會被消耗。

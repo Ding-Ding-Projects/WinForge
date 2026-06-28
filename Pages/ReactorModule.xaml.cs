@@ -2849,6 +2849,20 @@ public sealed partial class ReactorModule : Page
         });
         host.Children.Add(WrapLabel("Cycle depletion accelerator (demo, default OFF) · 循環燃耗加速器（演示，預設關閉）",
                                     "循環燃耗加速器（演示，預設關閉）· Cycle depletion accelerator (demo, default OFF)", deplCombo));
+        Button FuelFolderButton(string label, string kind)
+        {
+            var btn = new Button { Content = label };
+            btn.Click += (_, _) => _fuel.OpenFuelFolder(kind);
+            return btn;
+        }
+        var fuelFolders = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Thickness(0, 4, 0, 8) };
+        fuelFolders.Children.Add(FuelFolderButton(P("Open fresh fuel folder", "開新燃料資料夾"), "fresh"));
+        fuelFolders.Children.Add(FuelFolderButton(P("Open loaded fuel folder", "開已入堆燃料資料夾"), "loaded"));
+        fuelFolders.Children.Add(FuelFolderButton(P("Open spent fuel folder", "開乏燃料資料夾"), "spent"));
+        host.Children.Add(fuelFolders);
+        host.Children.Add(InfoNote(
+            "Fuel assemblies are real .fuel files in these folders. Use Explorer to inspect, drag/drop, copy, or archive them; loading fuel consumes the fresh file into the reactor model.",
+            "燃料組件係呢啲資料夾入面嘅真實 .fuel 檔。可用檔案總管查看、拖放、複製或封存；入料會將新燃料檔實際消耗入反應堆模型。"));
 
         // ---- Startup-sequence checklist (approach to criticality) ----
         var startupHeader = SectionHeader("Startup sequence (approach to criticality) · 啟動程序（趨近臨界）",

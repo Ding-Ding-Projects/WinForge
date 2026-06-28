@@ -193,6 +193,9 @@
                         <Border
                             Grid.Column="1"
                             Padding="14"
+                            AllowDrop="True"
+                            DragOver="CakeFiles_DragOver"
+                            Drop="CakeFiles_Drop"
                             Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                             BorderThickness="1"

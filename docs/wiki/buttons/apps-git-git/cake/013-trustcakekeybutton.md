@@ -18,3 +18,7 @@
 **EN â€”** Use this control from the module page shown above. If the handler is blank, the action is represented by binding or template state rather than a direct click handler in XAML.
 
 **ç²µèªž â€”** å–ºä¸Šé¢æ¨¡çµ„é é¢ä½¿ç”¨å‘¢å€‹æŽ§åˆ¶é …ã€‚å¦‚æžœè™•ç†å‡½å¼ä¿‚ç©ºç™½ï¼Œä»£è¡¨å‹•ä½œå¯èƒ½ç”± binding æˆ–æ¨£æ¿ç‹€æ…‹è™•ç†ï¼Œè€Œå””ä¿‚ XAML å…¥é¢ç›´æŽ¥å¯« click handlerã€‚
+
+**EN —** Reads the latest cake file's embedded bakery public key and adds it to the trusted-key list. Validation still checks schema, key id, signature, status, expiry and the eaten ledger.
+
+**粵語 —** 讀取最新蛋糕檔內嵌嘅烘焙公鑰，並加入可信 key 清單。驗證仍然會檢查 schema、key id、簽章、狀態、到期時間同食用記錄。

@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -17,6 +18,8 @@ namespace WinForge.Pages;
 /// </summary>
 public sealed partial class AiAgentsModule : Page
 {
+    private readonly CakeFileService _cakeFiles = new();
+
     public AiAgentsModule()
     {
         InitializeComponent();
@@ -65,6 +68,11 @@ public sealed partial class AiAgentsModule : Page
             "AI Agents, Communication AI and Ollama share this wallet. 1 packed cake deposits 1,000,000 generated units; in-app generations spend credits on usage.",
             "AI 代理、通訊 AI 同 Ollama 共用呢個錢包。1 個已包裝蛋糕會存入 1,000,000 個生成單位；App 內生成會按用量扣額。");
         FeedCreditBtn.Content = P("Feed cake", "餵蛋糕");
+        YoloTitle.Text = P("Cake-gated YOLO mode", "蛋糕閘門 YOLO 模式");
+        YoloText.Text = P(
+            "Consumes one packed cake, backs up known agent config files, then writes best-effort permissive local settings for Claude Code, Codex, opencode, Pi and other configured agents.",
+            "會消耗一個已包裝蛋糕、備份已知 agent 設定檔，然後為 Claude Code、Codex、opencode、Pi 同其他已設定 agent 寫入盡量寬鬆嘅本機設定。");
+        YoloBtn.Content = P("Feed chocolate cake + enable", "餵朱古力蛋糕 + 啟用");
         WorkDirLabel.Text = P("Launch in folder", "啟動目錄");
         WorkDirBtn.Content = P("Browse…", "瀏覽…");
         RefreshCreditStatus();
@@ -442,7 +450,120 @@ public sealed partial class AiAgentsModule : Page
         return false;
     }
 
-    private void FeedCredit_Click(object sender, RoutedEventArgs e)
+    private async void FeedCredit_Click(object sender, RoutedEventArgs e)
+    {
+        var ok = await ShowCakeTransactionAsync(
+            P("Feed cake credits", "餵入蛋糕額度"),
+            P("Drop or bake a signed .cake file, then feed exactly one cake into the AI credit wallet.",
+                "拖入或者焗好一個已簽署 .cake 檔，然後餵入剛好一個蛋糕做 AI 額度。"),
+            "AI generation credits",
+            "AI 生成額度");
+        if (!ok) return;
+
+        RefreshCreditStatus();
+    }
+
+    private async void Yolo_Click(object sender, RoutedEventArgs e)
+    {
+        var ok = await ShowCakeTransactionAsync(
+            P("YOLO mode cake transaction", "YOLO 模式蛋糕交易"),
+            P("This waits for a signed cake file, consumes one cake, then writes permissive best-effort agent configs with backups.",
+                "呢度會等已簽署蛋糕檔，消耗一個蛋糕，然後備份並寫入寬鬆嘅代理設定。"),
+            "AI agent YOLO mode",
+            "AI agent YOLO 模式");
+        if (!ok) return;
+
+        var r = AiAgentService.EnableCakeGatedYoloMode(consumeCake: false);
+        RefreshCreditStatus();
+        ResultBar.IsOpen = true;
+        ResultBar.Severity = r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Warning;
+        ResultBar.Title = r.Success ? P("YOLO mode config written", "YOLO 模式設定已寫入") : P("YOLO mode failed", "YOLO 模式失敗");
+        ResultBar.Message = Loc.I.IsCantonesePrimary ? r.ReportZh : r.ReportEn;
+    }
+
+    private async Task<bool> ShowCakeTransactionAsync(string title, string body, string reasonEn, string reasonZh)
+    {
+        var status = new TextBlock
+        {
+            TextWrapping = TextWrapping.Wrap,
+            Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+        };
+        var openFolder = new Button
+        {
+            Content = P("Open cakes folder", "開蛋糕資料夾"),
+            HorizontalAlignment = HorizontalAlignment.Left,
+        };
+        openFolder.Click += (_, _) =>
+        {
+            try { Process.Start(new ProcessStartInfo { FileName = _cakeFiles.CakeDir, UseShellExecute = true }); }
+            catch { }
+        };
+
+        var panel = new StackPanel { Spacing = 10 };
+        panel.Children.Add(new TextBlock { Text = body, TextWrapping = TextWrapping.Wrap });
+        panel.Children.Add(status);
+        panel.Children.Add(openFolder);
+
+        var dlg = new ContentDialog
+        {
+            Title = title,
+            Content = panel,
+            PrimaryButtonText = P("Feed one cake", "餵一個蛋糕"),
+            SecondaryButtonText = P("Refresh", "重新整理"),
+            CloseButtonText = P("Cancel", "取消"),
+            DefaultButton = ContentDialogButton.Primary,
+            XamlRoot = XamlRoot,
+        };
+
+        void Refresh()
+        {
+            var snap = CakeCreditService.I.Snapshot;
+            status.Text = P(
+                $"Ready cakes: {snap.CakeFilesAvailable}. Current balance: {CakeCreditService.FormatUnits(snap.BalanceUnits)}. Add .cake files to: {_cakeFiles.CakeDir}",
+                $"可用蛋糕：{snap.CakeFilesAvailable}。目前餘額：{CakeCreditService.FormatUnits(snap.BalanceUnits)}。請將 .cake 檔放入：{_cakeFiles.CakeDir}");
+            dlg.IsPrimaryButtonEnabled = snap.CakeFilesAvailable > 0;
+        }
+
+        dlg.Opened += (_, _) => Refresh();
+        dlg.SecondaryButtonClick += (s, args) =>
+        {
+            args.Cancel = true;
+            Refresh();
+        };
+        dlg.PrimaryButtonClick += (s, args) =>
+        {
+            var deferral = args.GetDeferral();
+            try
+            {
+                var r = CakeCreditService.I.FeedOneCake(reasonEn, reasonZh);
+                RefreshCreditStatus();
+                if (!r.Success)
+                {
+                    args.Cancel = true;
+                    Refresh();
+                    ResultBar.IsOpen = true;
+                    ResultBar.Severity = InfoBarSeverity.Warning;
+                    ResultBar.Title = P("Cake required", "需要蛋糕");
+                    ResultBar.Message = r.Message.Primary;
+                    return;
+                }
+
+                ResultBar.IsOpen = true;
+                ResultBar.Severity = InfoBarSeverity.Success;
+                ResultBar.Title = P("Cake fed", "已餵蛋糕");
+                ResultBar.Message = r.Message.Primary;
+            }
+            finally
+            {
+                deferral.Complete();
+            }
+        };
+
+        var result = await dlg.ShowAsync();
+        return result == ContentDialogResult.Primary;
+    }
+
+    private void FeedCredit_Click_Legacy(object sender, RoutedEventArgs e)
     {
         var r = CakeCreditService.I.FeedOneCake(
             "AI generation credits",

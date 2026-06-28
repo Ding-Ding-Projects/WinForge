@@ -167,6 +167,34 @@ public sealed class CakeFileService
         return list.OrderByDescending(c => c.BakedUtc).ThenBy(c => c.CakeId, StringComparer.Ordinal).ToList();
     }
 
+    public CakeValidationResult ImportCakeFile(string sourcePath)
+    {
+        if (string.IsNullOrWhiteSpace(sourcePath) || !File.Exists(sourcePath))
+            return new CakeValidationResult(false, "missing", "Cake file was not found.", "搵唔到蛋糕檔。");
+
+        if (!string.Equals(Path.GetExtension(sourcePath), ".cake", StringComparison.OrdinalIgnoreCase))
+            return new CakeValidationResult(false, "not-cake", "Only .cake files can be imported.", "只可以匯入 .cake 蛋糕檔。");
+
+        Directory.CreateDirectory(_cakeDir);
+        var name = SanitizeFileName(Path.GetFileNameWithoutExtension(sourcePath));
+        if (string.IsNullOrWhiteSpace(name)) name = "imported-cake";
+        var dest = Path.Combine(_cakeDir, name + ".cake");
+        var sourceFull = Path.GetFullPath(sourcePath);
+        var destFull = Path.GetFullPath(dest);
+        if (!string.Equals(sourceFull, destFull, StringComparison.OrdinalIgnoreCase))
+        {
+            var suffix = 1;
+            while (File.Exists(destFull))
+            {
+                dest = Path.Combine(_cakeDir, $"{name}-{suffix++:D2}.cake");
+                destFull = Path.GetFullPath(dest);
+            }
+            File.Copy(sourceFull, destFull, overwrite: false);
+        }
+
+        return Validate(destFull);
+    }
+
     public CakeFileRecord? LatestFresh()
         => ListFresh().Where(c => c.SignatureValid).OrderByDescending(c => c.BakedUtc).FirstOrDefault();
 

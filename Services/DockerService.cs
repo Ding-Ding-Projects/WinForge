@@ -364,6 +364,10 @@ public sealed class DockerService : IDisposable
                 },
                 ExposedPorts = new Dictionary<string, EmptyStruct>(),
             };
+            if (!string.IsNullOrWhiteSpace(svc.Command))
+                create.Cmd = new List<string> { "/bin/sh", "-c", svc.Command };
+            if (!string.IsNullOrWhiteSpace(svc.WorkingDir))
+                create.WorkingDir = svc.WorkingDir;
 
             // Ports: "hostPort:containerPort" 或 "containerPort"。
             foreach (var p in svc.Ports)

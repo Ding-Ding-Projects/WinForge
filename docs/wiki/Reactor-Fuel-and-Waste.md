@@ -20,6 +20,10 @@
 
 **粵語 —** 當你**送入燃料**，反應堆會先**驗證** HMAC 簽章。真品組件會被接受、載入爐心，而原始檔案會被**自動刪除**——載入即被*消耗*，正如真燃料一樣。一個全新、有效嘅檔案載入後會消失，並出現喺已載入清單。
 
+**EN —** Fuel handling stays file-realistic: open the managed fuel folder in Windows Explorer, drag/drop fuel assembly files into place, then return to the reactor to inspect or load them. This avoids a magic easy-load path and makes the consumed-file behavior visible.
+
+**粵語 —** 燃料處理維持檔案式寫實：喺 Windows Explorer 開啟受管理燃料資料夾，將燃料組件檔拖放入去，之後返反應堆檢查或載入。咁樣唔會變成魔法式 easy-load，亦可以清楚見到檔案被消耗。
+
 ---
 
 ## Forged fuel harms — inspect is safe · 偽冒燃料損堆——檢查安全

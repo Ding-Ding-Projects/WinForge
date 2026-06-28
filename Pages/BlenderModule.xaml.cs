@@ -23,6 +23,7 @@ public sealed partial class BlenderModule : Page
 {
     private List<TweakDefinition>? _ops;
     private readonly ObservableCollection<RenderJob> _queue = new();
+    private readonly ObservableCollection<BlenderMcpInstance> _mcpInstances = new();
     private bool _queueRunning;
     private int _curFrame;
 
@@ -37,6 +38,8 @@ public sealed partial class BlenderModule : Page
             BuildCombos();
             BuildScriptList();
             QueueList.ItemsSource = _queue;
+            McpList.ItemsSource = _mcpInstances;
+            RefreshMcpInstances();
             await CheckEngine();
             UpdateRunState();
             UpdateQueueEmpty();
@@ -88,6 +91,21 @@ public sealed partial class BlenderModule : Page
             "對住上面嘅輸入 .blend（或者唔開檔）跑 script。內建起步 script 會寫去 %LOCALAPPDATA%\\WinForge\\blender-scripts。");
         RunScriptBtn.Content = P("Run starter", "跑起步 script");
         RunCustomScriptBtn.Content = P("Run .py file…", "跑 .py 檔…");
+
+        McpHeader.Text = P("Blender MCP server manager", "Blender MCP server 管理");
+        McpBlurb.Text = P("Deploy and manage unlimited Blender MCP instances. Each saved instance has its own name and Blender add-on port, so multiple AI agents or models can work against separate Blender sessions at the same time.",
+            "部署同管理不限數量嘅 Blender MCP 實例。每個實例都有自己嘅名稱同 Blender add-on port，方便多個 AI agent 或 model 同時對住唔同 Blender session 做嘢。");
+        McpCreateBtn.Content = P("Add instance", "新增實例");
+        McpOpenFolderBtn.Content = P("Open MCP folder", "開 MCP 資料夾");
+        McpDeployBtn.Content = P("Deploy / verify server", "部署／驗證 server");
+        McpAddonBtn.Content = P("Download add-on", "下載 add-on");
+        McpStartBtn.Content = P("Start instance", "啟動實例");
+        McpStopBtn.Content = P("Stop instance", "停止實例");
+        McpTestBtn.Content = P("Test Blender socket", "測試 Blender socket");
+        McpConfigureBtn.Content = P("Add to Codex / Claude / OpenCode", "加入 Codex／Claude／OpenCode");
+        McpBundleBtn.Content = P("Export config bundle", "匯出設定包");
+        McpSkillBtn.Content = P("Generate agent skill", "產生 agent skill");
+        McpDeleteBtn.Content = P("Delete instance", "刪除實例");
 
         LogHeader.Text = P("Output log", "輸出記錄");
         ClearLogBtn.Content = P("Clear", "清空");
@@ -364,6 +382,119 @@ public sealed partial class BlenderModule : Page
             }));
         if (!r.Success) Report(P("Script", "Script"), r);
         UpdateRunState();
+    }
+
+    // ── Blender MCP manager ─────────────────────────────────────────────────
+
+    private void RefreshMcpInstances()
+    {
+        _mcpInstances.Clear();
+        foreach (var inst in BlenderService.LoadMcpInstances())
+        {
+            inst.Notes = BlenderService.IsMcpRunning(inst) ? P("Running", "運行中") : "";
+            _mcpInstances.Add(inst);
+        }
+        if (_mcpInstances.Count > 0 && McpList.SelectedIndex < 0) McpList.SelectedIndex = 0;
+    }
+
+    private BlenderMcpInstance? SelectedMcp()
+        => McpList.SelectedItem as BlenderMcpInstance ?? _mcpInstances.FirstOrDefault();
+
+    private void McpCreate_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var name = string.IsNullOrWhiteSpace(McpNameBox.Text) ? $"blender-{(int)McpPortBox.Value}" : McpNameBox.Text.Trim();
+            var inst = BlenderService.CreateMcpInstance(name, (int)McpPortBox.Value);
+            RefreshMcpInstances();
+            McpList.SelectedItem = _mcpInstances.FirstOrDefault(i => i.Id == inst.Id);
+            Report(P("Blender MCP", "Blender MCP"), TweakResult.Ok($"Added {inst.Display}.", $"已新增 {inst.Display}。"));
+        }
+        catch (Exception ex)
+        {
+            Report(P("Blender MCP", "Blender MCP"), TweakResult.Fail(ex.Message, $"無法新增 MCP 實例：{ex.Message}"));
+        }
+    }
+
+    private void McpOpenFolder_Click(object sender, RoutedEventArgs e) => BlenderService.OpenFolder(BlenderService.McpDir);
+
+    private async void McpDeploy_Click(object sender, RoutedEventArgs e)
+    {
+        Report(P("Blender MCP", "Blender MCP"), await BlenderService.DeployBlenderMcpServer());
+    }
+
+    private async void McpAddon_Click(object sender, RoutedEventArgs e)
+    {
+        Report(P("Blender MCP add-on", "Blender MCP add-on"), await BlenderService.DownloadMcpAddon());
+    }
+
+    private void McpStart_Click(object sender, RoutedEventArgs e)
+    {
+        var inst = SelectedMcp();
+        if (inst is null) return;
+        var r = BlenderService.StartMcpInstance(inst, line => DispatcherQueue.TryEnqueue(() => AppendLog(line)));
+        RefreshMcpInstances();
+        Report(P("Start MCP", "啟動 MCP"), r);
+    }
+
+    private void McpStop_Click(object sender, RoutedEventArgs e)
+    {
+        var inst = SelectedMcp();
+        if (inst is null) return;
+        var r = BlenderService.StopMcpInstance(inst);
+        RefreshMcpInstances();
+        Report(P("Stop MCP", "停止 MCP"), r);
+    }
+
+    private async void McpTest_Click(object sender, RoutedEventArgs e)
+    {
+        var inst = SelectedMcp();
+        if (inst is null) return;
+        Report(P("Test Blender socket", "測試 Blender socket"), await BlenderService.TestMcpBlenderSocket(inst));
+    }
+
+    private void McpConfigure_Click(object sender, RoutedEventArgs e)
+    {
+        var inst = SelectedMcp();
+        if (inst is null) return;
+        var cfg = BlenderService.ConfigFor(inst);
+        var results = new[]
+        {
+            BlenderService.ConfigureCodexBlenderMcp(cfg),
+            BlenderService.ConfigureClaudeBlenderMcpJson(cfg),
+            BlenderService.ConfigureOpenCodeBlenderMcp(cfg),
+        };
+        var failed = results.FirstOrDefault(r => !r.Success);
+        Report(P("Agent MCP config", "Agent MCP 設定"), failed ?? TweakResult.Ok(
+            $"Saved MCP config for Codex, Claude Code JSON and OpenCode as \"{cfg.Name}\".",
+            $"已為 Codex、Claude Code JSON 同 OpenCode 儲存「{cfg.Name}」MCP 設定。"));
+    }
+
+    private async void McpBundle_Click(object sender, RoutedEventArgs e)
+    {
+        var inst = SelectedMcp();
+        if (inst is null) return;
+        var dir = await FileDialogs.OpenFolderAsync(P("Export MCP configs and skill", "匯出 MCP 設定同 skill"));
+        if (dir is null) return;
+        Report(P("Export MCP bundle", "匯出 MCP 設定包"), await BlenderService.ExportMcpAgentBundle(inst, dir));
+    }
+
+    private async void McpSkill_Click(object sender, RoutedEventArgs e)
+    {
+        var inst = SelectedMcp();
+        if (inst is null) return;
+        var dir = await FileDialogs.OpenFolderAsync(P("Pick skill folder", "揀 skill 資料夾"));
+        if (dir is null) return;
+        Report(P("Generate skill", "產生 skill"), await BlenderService.GenerateMcpSkill(inst, dir));
+    }
+
+    private void McpDelete_Click(object sender, RoutedEventArgs e)
+    {
+        var inst = SelectedMcp();
+        if (inst is null) return;
+        BlenderService.DeleteMcpInstance(inst);
+        RefreshMcpInstances();
+        Report(P("Delete MCP instance", "刪除 MCP 實例"), TweakResult.Ok($"Deleted {inst.Display}.", $"已刪除 {inst.Display}。"));
     }
 
     // ── Log ──────────────────────────────────────────────────────────────────

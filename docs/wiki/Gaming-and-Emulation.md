@@ -8,6 +8,9 @@ Minecraft 世界、伺服器、跨版本連線同磁碟燒錄嘅工具。
 Launch the Amulet Minecraft world/map editor with backups.
 啟動 Amulet Minecraft 世界／地圖編輯器，附備份。
 
+WinForge first tries to clone the original Amulet source automatically. If that source path is not available, use the manual folder or zip fallback to point WinForge at an existing checkout or `amulet_map_editor.zip`.
+WinForge 會先嘗試自動 clone 原版 Amulet source。如果未有 source 路徑，可以用手動資料夾或 zip 後備流程，指向現有 checkout 或 `amulet_map_editor.zip`。
+
 Open in-app: `WinForge.exe --page amulet`
 
 ![Minecraft World Editor (Amulet)](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-amulet.png)

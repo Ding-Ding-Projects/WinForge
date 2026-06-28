@@ -53,6 +53,33 @@
                 </Grid>
             </Border>
 
+            <Border
+                Padding="14,10,14,10"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <Grid ColumnSpacing="10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Spacing="2">
+                        <TextBlock x:Name="YoloTitle" FontWeight="SemiBold" />
+                        <TextBlock
+                            x:Name="YoloText"
+                            FontSize="12"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                    <Button
+                        x:Name="YoloBtn"
+                        Grid.Column="1"
+                        VerticalAlignment="Center"
+                        Click="Yolo_Click" />
+                </Grid>
+            </Border>
+
             <!-- Launch working folder -->
             <Border
                 Padding="14,10,14,10"

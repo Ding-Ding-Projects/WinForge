@@ -67,6 +67,9 @@ public sealed partial class AmuletModule : Page
         BackupBtn.Content = P("Backup world…", "備份世界…");
 
         SetupHeader.Text = P("Setup & maintenance", "設定與維護");
+        CloneSourceBtn.Content = P("Clone / update original source", "Clone／更新原始 source");
+        UseSourceFolderBtn.Content = P("Use source folder…", "使用 source 資料夾…");
+        LocateZipBtn.Content = P("Locate zip fallback…", "指定 zip 後備…");
         LogHeader.Text = P("Live log", "即時記錄");
         ClearLogBtn.Content = P("Clear log", "清除記錄");
     }
@@ -169,6 +172,32 @@ public sealed partial class AmuletModule : Page
         AmuletService.SetZip(path!);
         Notify(InfoBarSeverity.Success, P("Zip set", "已設定壓縮檔"), path!);
         RefreshEngines();
+    }
+
+    private async void LocateZip_Click(object sender, RoutedEventArgs e) => await LocateZip();
+
+    private async void CloneSource_Click(object sender, RoutedEventArgs e)
+    {
+        Busy.IsActive = true;
+        AppendLog(P("[cloning/updating Amulet source…]", "[clone／更新 Amulet source 中…]"));
+        var r = await AmuletService.CloneOrUpdateSource(line => DispatcherQueue.TryEnqueue(() => AppendLog(line)));
+        Busy.IsActive = false;
+        Notify(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error,
+            r.Success ? P("Source ready", "Source 已就緒") : P("Source clone failed", "Source clone 失敗"), Msg(r));
+        AppendLog(Msg(r));
+        RefreshEngines();
+        BuildOps();
+    }
+
+    private async void UseSourceFolder_Click(object sender, RoutedEventArgs e)
+    {
+        var folder = await FileDialogs.OpenFolderAsync(P("Pick Amulet source folder", "揀 Amulet source 資料夾"));
+        if (string.IsNullOrWhiteSpace(folder)) return;
+        var r = AmuletService.UseExistingSourceFolder(folder!);
+        Notify(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error,
+            r.Success ? P("Source folder set", "Source 資料夾已設定") : P("Invalid source folder", "Source 資料夾無效"), Msg(r));
+        RefreshEngines();
+        BuildOps();
     }
 
     // ── World picker ──────────────────────────────────────────────────────────

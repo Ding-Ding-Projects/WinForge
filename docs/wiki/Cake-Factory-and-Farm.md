@@ -40,6 +40,24 @@ Open in-app: `WinForge.exe --page cakefactory`
 | Food safety · 食物安全 | HACCP-style prompts, kill-step temperature, cooling limit, sanitation score, quality score, rejects and waste tracking. |
 | CIP sanitation · CIP 清潔 | Clean-in-place locks batching while washing mixer, depositor, oven belt, icing head and packer. |
 
+## Cake Files · 蛋糕檔
+
+**EN —** Packed cakes become real portable files in `%LOCALAPPDATA%\WinForge\cake-factory\cakes`. Each `.cake` file contains a signed payload, bakery public key, issuer key id, lot id, recipe, quality/sanitation scores, origin device, baked time and expiry. The local bakery private key is stored under the Cake Factory key folder with DPAPI protection.
+
+**粵語 —** 已包裝蛋糕會變成真實可攜檔案，放喺 `%LOCALAPPDATA%\WinForge\cake-factory\cakes`。每個 `.cake` 檔包含已簽署 payload、烘焙公鑰、發行 key id、批號、配方、品質／衛生分數、來源裝置、焗製時間同到期時間。本機烘焙私鑰會用 DPAPI 保護後存放喺 Cake Factory key 資料夾。
+
+| Action · 動作 | Behavior · 行為 |
+|---|---|
+| Open folder · 開資料夾 | Opens the signed-cake folder in Windows Explorer for file-based transfer. |
+| Drag/drop `.cake` files · 拖放 `.cake` 檔 | Drop files onto the cake-file panel to import them into the signed-cake folder. Non-`.cake` files are ignored by the import gate. |
+| Trust key · 信任公鑰 | Reads the latest cake file's embedded public key and adds it to the trusted bakery key list. |
+| Validate · 驗證 | Checks schema, signature algorithm, public-key id, signature, trust, eaten ledger, packed status and expiry. |
+| Eat + delete · 食用刪除 | Consumes the latest trusted cake, records the cake id in the eaten ledger and deletes the physical `.cake` file when possible. |
+
+**EN —** This file workflow is also what AI features use for cake credit. If AI Agents YOLO mode feeds a cake, that same signed `.cake` file is consumed and removed from the cake folder.
+
+**粵語 —** AI 功能嘅蛋糕額度都係用呢個檔案流程。如果 AI Agents YOLO 模式餵入蛋糕，同一個已簽署 `.cake` 檔會被消耗並由蛋糕資料夾移除。
+
 ## Controls · 控制
 
 | Control · 控制 | Use · 用途 |
@@ -87,6 +105,7 @@ Open in-app: `WinForge.exe --page cakefactory`
 | Trust key · 信任公鑰 | Imports the embedded bakery public key from a copied `.cake` file so another device can validate that bakery. |
 | Validate cake · 驗證蛋糕 | Verifies the latest `.cake` file signature and trusted public key before it can be used. |
 | Eat + delete · 食用並刪除 | Consumes the latest valid cake by deleting the `.cake` file from disk. |
+| Open folder + drag/drop · 開資料夾＋拖放 | Opens the signed-cake folder in Windows Explorer. Move `.cake` files in or out by dragging them in Explorer, or drop `.cake` files directly onto the cake-file panel to import them, then return to WinForge and trust/validate/eat the file; this keeps cake handling file-based instead of an instant easy-load shortcut. |
 | Open reactor · 開反應堆 | Navigates to the Nuclear Reactor module so the reactor bus can be started/recovered. |
 
 ## Operating Procedure · 操作程序
@@ -139,7 +158,7 @@ Open in-app: `WinForge.exe --page cakefactory`
    - **Packaging + coding:** release to finish the batch, log QA and count packed/rejected cakes.
 9. When packaging completes, packed cakes enter finished goods and the app mints one signed `.cake` file per packed cake under the cake-factory app data folder.
 10. Watch the customer order panel. Press **Dispatch order** only when finished goods meet the order quantity and the truck battery / cold-chain readings are ready.
-11. On another device, copy the `.cake` file into the cake folder, press **Trust key** once for that bakery, then use **Validate cake**.
+11. On another device, press **Open folder**, drag/drop the `.cake` file into the cake folder in Windows Explorer, press **Trust key** once for that bakery, then use **Validate cake**.
 12. Use **Validate cake** before another module or operator uses a cake file. A forged, tampered, untrusted, replayed or expired cake is rejected.
 13. Use **Eat + delete** when a workflow consumes a cake. The valid `.cake` file is deleted, so it cannot be eaten twice.
 14. Run **CIP clean** when sanitation drops or after production. The simulator locks batching during CIP, then restores sanitation as the wash/rinse/drain loop progresses.
@@ -224,7 +243,7 @@ The simulator deliberately avoids full automation:
 | Prepare icing is disabled · 準備糖霜不能啟動 | Released sugar, butter, released pasteurized milk, vanilla, cocoa for chocolate recipes, process water, culinary steam, compressed air, filter media, lab clearance or waste/effluent capacity is not ready. |
 | Release step is disabled · 未能放行 | Stage timer is still running, kill-step/cooling/sanitation gate is not met, or reactor power is unavailable. |
 | Dispatch order is disabled · 無法出貨 | Finished goods are below the active order quantity, reactor bus power is low, truck battery charge is low, or the dispatch cold chain is too warm. |
-| Cake file rejected · 蛋糕檔被拒絕 | The file is forged, tampered, signed by an untrusted public key, expired or already eaten. |
+| Cake file rejected · 蛋糕檔被拒絕 | The file is malformed, not a `.cake`, forged, tampered, signed by an untrusted public key, expired, already eaten or not in packed/edible status. |
 | Quality drops · 品質下降 | Low power, worn or uncalibrated ingredient plants, bad oven temperature, missed specific gravity target, or low sanitation. Service plants, slow down, clean and wait for gate conditions. |
 | CIP seems to stop production · CIP 停止生產 | Expected behavior: CIP locks batching until the sanitation loop finishes. |
 

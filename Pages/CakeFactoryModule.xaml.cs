@@ -11,6 +11,8 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.Web.WebView2.Core;
+using Windows.ApplicationModel.DataTransfer;
+using Windows.Storage;
 using WinForge.Services;
 
 namespace WinForge.Pages;
@@ -802,6 +804,31 @@ public sealed partial class CakeFactoryModule : Page
     private void ValidateCake_Click(object sender, RoutedEventArgs e) => HandleCakeAction("validateCake");
     private void EatCake_Click(object sender, RoutedEventArgs e) => HandleCakeAction("eatCake");
     private void OpenCakeFolder_Click(object sender, RoutedEventArgs e) => HandleCakeAction("openCakeFolder");
+
+    private void CakeFiles_DragOver(object sender, DragEventArgs e)
+    {
+        if (e.DataView.Contains(StandardDataFormats.StorageItems))
+            e.AcceptedOperation = DataPackageOperation.Copy;
+    }
+
+    private async void CakeFiles_Drop(object sender, DragEventArgs e)
+    {
+        if (!e.DataView.Contains(StandardDataFormats.StorageItems)) return;
+        var items = await e.DataView.GetStorageItemsAsync();
+        var cake = items.OfType<StorageFile>().FirstOrDefault(f =>
+            string.Equals(Path.GetExtension(f.Path), ".cake", StringComparison.OrdinalIgnoreCase));
+        if (cake is null)
+        {
+            PostNotice("warning", P("No cake file", "未有蛋糕檔"), P("Drop a .cake file here.", "請拖入 .cake 蛋糕檔。"));
+            return;
+        }
+
+        var v = await Task.Run(() => _cakeFiles.ImportCakeFile(cake.Path));
+        RefreshSnapshot(forceCakeFileRefresh: true);
+        PostNotice(v.Valid ? "success" : "warning",
+            v.Valid ? P("Cake imported", "蛋糕已匯入") : P("Cake rejected", "蛋糕被拒絕"),
+            Loc.I.IsCantonesePrimary ? v.ReasonZh : v.ReasonEn);
+    }
 
     private sealed class CakeBridgeMessage
     {

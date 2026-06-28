@@ -18,3 +18,11 @@
 **EN â€”** Use this control from the module page shown above. If the handler is blank, the action is represented by binding or template state rather than a direct click handler in XAML.
 
 **ç²µèªž â€”** å–ºä¸Šé¢æ¨¡çµ„é é¢ä½¿ç”¨å‘¢å€‹æŽ§åˆ¶é …ã€‚å¦‚æžœè™•ç†å‡½å¼ä¿‚ç©ºç™½ï¼Œä»£è¡¨å‹•ä½œå¯èƒ½ç”± binding æˆ–æ¨£æ¿ç‹€æ…‹è™•ç†ï¼Œè€Œå””ä¿‚ XAML å…¥é¢ç›´æŽ¥å¯« click handlerã€‚
+
+**EN —** Opens the signed-cake folder so operators can drag/drop `.cake` files with Windows Explorer. After dropping files in, return to WinForge and use Trust key, Validate or Eat + delete.
+
+**粵語 —** 開啟已簽署蛋糕資料夾，方便操作員用 Windows Explorer 拖放 `.cake` 檔。放入檔案後，返 WinForge 使用信任公鑰、驗證或食用刪除。
+
+**EN —** The folder is `%LOCALAPPDATA%\WinForge\cake-factory\cakes`. Files may also be dropped directly onto the cake-file panel; WinForge copies valid `.cake` paths into this folder before validation.
+
+**粵語 —** 資料夾係 `%LOCALAPPDATA%\WinForge\cake-factory\cakes`。亦可以直接將檔案拖到蛋糕檔面板；WinForge 會先將有效 `.cake` 路徑複製入呢個資料夾，再做驗證。

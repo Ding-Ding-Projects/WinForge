@@ -12,6 +12,7 @@
 | [SaveBtn](apps-git-git/decompiler/004-savebtn.md) | .NET Decompiler Â· .NET åç·¨è­¯å™¨ | Apps & Git Â· ç¨‹å¼èˆ‡ Git | `Button` | `Save_Click` |
 | [FeedCreditBtn](apps-git-git/ai/001-feedcreditbtn.md) | AI Agents Â· AI ä»£ç† | Apps & Git Â· ç¨‹å¼èˆ‡ Git | `Button` | `FeedCredit_Click` |
 | [WorkDirBtn](apps-git-git/ai/002-workdirbtn.md) | AI Agents Â· AI ä»£ç† | Apps & Git Â· ç¨‹å¼èˆ‡ Git | `Button` | `WorkDir_Click` |
+| [YoloBtn](apps-git-git/ai/003-yolobtn.md) | AI Agents · AI 代理 | Apps & Git · 程式與 Git | `Button` | `Yolo_Click` |
 | [Attach a text file Â· é™„åŠ æ–‡å­—æª”](apps-git-git/aichat/005-attachbtn.md) | AI Chat Â· AI èŠå¤© | Apps & Git Â· ç¨‹å¼èˆ‡ Git | `Button` | `Attach_Click` |
 | [Chat settings Â· å°è©±è¨­å®š](apps-git-git/aichat/003-settingsbtn.md) | AI Chat Â· AI èŠå¤© | Apps & Git Â· ç¨‹å¼èˆ‡ Git | `Button` | `` |
 | [CreditBtn](apps-git-git/aichat/002-creditbtn.md) | AI Chat Â· AI èŠå¤© | Apps & Git Â· ç¨‹å¼èˆ‡ Git | `Button` | `Credit_Click` |

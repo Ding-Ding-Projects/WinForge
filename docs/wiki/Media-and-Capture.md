@@ -140,7 +140,7 @@ Open in-app: `WinForge.exe --page imageeditor`
 
 ## Blender (3D / Render) · Blender（3D／算圖）
 
-Headless Blender render and animation queue. · 無介面 Blender 算圖同動畫佇列。
+Headless Blender render queue plus Blender MCP server management for unlimited AI-agent instances. · 無介面 Blender 算圖佇列，並支援 Blender MCP server 管理，畀不限數量 AI-agent 實例使用。
 
 Open in-app: `WinForge.exe --page blender`
 

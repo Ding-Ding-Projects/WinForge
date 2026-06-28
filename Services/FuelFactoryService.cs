@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
@@ -95,6 +96,27 @@ public sealed class FuelFactoryService
 
     /// <summary>在堆燃料目錄 · Where in-core assemblies live (used by the waste service to size waste).</summary>
     public string LoadedDir => _loadedDir;
+    public string FreshDir => _freshDir;
+    public string SpentDir => _spentDir;
+    public string RootDir => _root;
+
+    public TweakResult OpenFuelFolder(string kind)
+    {
+        var dir = kind switch
+        {
+            "fresh" => _freshDir,
+            "spent" => _spentDir,
+            "loaded" => _loadedDir,
+            _ => _root,
+        };
+        try
+        {
+            Directory.CreateDirectory(dir);
+            Process.Start(new ProcessStartInfo { FileName = dir, UseShellExecute = true });
+            return TweakResult.Ok($"Opened fuel folder: {dir}", $"已開啟燃料資料夾：{dir}");
+        }
+        catch (Exception ex) { return TweakResult.Fail(ex.Message, $"出錯：{ex.Message}"); }
+    }
 
     // ------------------------------------------------------------------ key mgmt ----
     private byte[] LoadOrCreateKey()

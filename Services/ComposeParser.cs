@@ -11,6 +11,8 @@ public sealed class ComposeService
 {
     public string Name { get; init; } = "";
     public string Image { get; init; } = "";
+    public string Command { get; set; } = "";
+    public string WorkingDir { get; set; } = "";
     public List<string> Ports { get; } = new();
     public Dictionary<string, string> Env { get; } = new();
     public List<string> Volumes { get; } = new();
@@ -60,7 +62,7 @@ public sealed class ComposeProject
 public static class ComposeParser
 {
     private static readonly HashSet<string> Supported = new(StringComparer.Ordinal)
-        { "image", "ports", "environment", "volumes", "depends_on", "container_name" };
+        { "image", "command", "working_dir", "ports", "environment", "volumes", "depends_on", "container_name" };
 
     public static ComposeProject Parse(string yamlText, string projectName)
     {
@@ -94,6 +96,8 @@ public static class ComposeParser
 
             var svc = new ComposeService { Name = svcName, Image = image };
 
+            if (TryGet(svcMap, "command", out var cmdN)) svc.Command = Scalar(cmdN);
+            if (TryGet(svcMap, "working_dir", out var wdN)) svc.WorkingDir = Scalar(wdN);
             if (TryGet(svcMap, "ports", out var portsN)) ParsePorts(portsN, svc, svcName, project);
             if (TryGet(svcMap, "environment", out var envN)) ParseEnv(envN, svc);
             if (TryGet(svcMap, "volumes", out var volN)) ParseVolumes(volN, svc);
