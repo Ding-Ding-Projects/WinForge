@@ -842,6 +842,12 @@ public sealed partial class MainWindow : Window
             case "mapeditor":
                 Navigator.GoToModule?.Invoke("module.amulet");
                 break;
+            case "minecraftworldtools":
+            case "worldtools":
+            case "chunker":
+            case "bluemap":
+                Navigator.GoToModule?.Invoke("module.minecraftworldtools");
+                break;
             case "minecraftserver":
             case "mcserver":
             case "paper":
@@ -1330,6 +1336,7 @@ public sealed partial class MainWindow : Window
         "module.settingshub" => typeof(SettingsHubModule),
         "module.imaging" => typeof(ImagingGameModule),
         "module.amulet" => typeof(AmuletModule),
+        "module.minecraftworldtools" => typeof(MinecraftWorldToolsModule),
         "module.viaproxy" => typeof(ViaProxyModule),
         "module.minecraftserver" => typeof(MinecraftServerModule),
         "module.voice" => typeof(VoiceModule),
