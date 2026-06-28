@@ -35,7 +35,10 @@ git push
 
 ## Pages · 頁
 
-- `Home.md` — **categorized index of all 139 modules** (landing page) · **全部 139 個模組嘅分類索引**（首頁）
+- `Home.md` — compact landing page · 精簡首頁
+- `Module-Categories.md` — categorized index of all 139 modules · 全部 139 個模組嘅分類索引
+- `Reactor-Hub.md` — reactor documentation hub · 反應堆文件中心
+- `Generated-References.md` — generated feature/button reference guide · 生成功能／按鈕參考指南
 - `Screenshots.md` — image inventory + capture status · 圖檔清單同擷取狀態
 - `features/README.md` — generated one-page-per-feature reference · 生成嘅每功能一頁參考
 - `buttons/README.md` — generated one-page-per-button/control reference · 生成嘅每按鈕／控制項一頁參考
