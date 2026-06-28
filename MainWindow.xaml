@@ -45,11 +45,30 @@
                     x:Name="SearchBox"
                     QueryIcon="Find"
                     PlaceholderText="Search everything · 搜尋全部"
+                    MaxSuggestionListHeight="420"
                     TextMemberPath="Title"
                     QuerySubmitted="SearchBox_QuerySubmitted"
                     TextChanged="SearchBox_TextChanged"
                     automation:AutomationProperties.AutomationId="ShellSearchBox"
-                    automation:AutomationProperties.Name="Search all WinForge modules · 搜尋全部 WinForge 模組" />
+                    automation:AutomationProperties.Name="Search all WinForge modules · 搜尋全部 WinForge 模組">
+                    <AutoSuggestBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Padding="0,4" Spacing="2">
+                                <TextBlock
+                                    Text="{Binding Title}"
+                                    FontWeight="SemiBold"
+                                    MaxLines="1"
+                                    TextTrimming="CharacterEllipsis" />
+                                <TextBlock
+                                    Text="{Binding Subtitle}"
+                                    FontSize="12"
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                    MaxLines="1"
+                                    TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </AutoSuggestBox.ItemTemplate>
+                </AutoSuggestBox>
             </NavigationView.AutoSuggestBox>
             <NavigationView.MenuItems>
                 <NavigationViewItemHeader Content="Suite · 套件" />
