@@ -1495,6 +1495,8 @@ public sealed partial class MainWindow : Window
         {
             PlaceholderText = Loc.I.Pick("Search all apps and tools", "搜尋所有 app 同工具"),
         };
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(search, "NewTabPickerSearchBox");
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(search, Loc.I.Pick("Search all apps and tools", "搜尋所有 app 同工具"));
         root.Children.Add(search);
 
         var results = new StackPanel { Spacing = 12 };
@@ -1632,6 +1634,8 @@ public sealed partial class MainWindow : Window
             Padding = new Thickness(12, 9, 12, 9),
             Tag = entry.Key,
         };
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(button, "NewTabPickerItem_" + entry.Key.Replace('.', '_').Replace(':', '_'));
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, entry.Title);
         ToolTipService.SetToolTip(button, entry.Title);
         button.Click += (_, _) => open(entry.Key);
         return button;

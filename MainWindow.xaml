@@ -109,8 +109,6 @@
                         <NavigationViewItem Content="Environment Variables · 環境變數" Tag="module.envvars"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Clipboard · 剪貼簿" Tag="module.clipboard"><NavigationViewItem.Icon><FontIcon Glyph="&#xE77F;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Settings &amp; Control Panel · 設定與控制台" Tag="module.settingshub"><NavigationViewItem.Icon><FontIcon Glyph="&#xE713;" /></NavigationViewItem.Icon></NavigationViewItem>
-                        <NavigationViewItem Content="Nuclear Reactor · 核反應堆" Tag="module.reactor"><NavigationViewItem.Icon><FontIcon Glyph="&#xEBC0;" /></NavigationViewItem.Icon></NavigationViewItem>
-                        <NavigationViewItem Content="Reactor Settings · 反應堆設定" Tag="module.reactorsettings"><NavigationViewItem.Icon><FontIcon Glyph="&#xE713;" /></NavigationViewItem.Icon></NavigationViewItem>
                     </NavigationViewItem.MenuItems>
                 </NavigationViewItem>
 
@@ -200,7 +198,6 @@
                         <NavigationViewItem Content="Windows Terminal · Windows 終端機" Tag="module.terminal"><NavigationViewItem.Icon><FontIcon Glyph="&#xE756;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="App Uninstaller · 應用程式解除安裝" Tag="module.uninstall"><NavigationViewItem.Icon><FontIcon Glyph="&#xE74D;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Imaging &amp; Game Tools · 燒錄與遊戲工具" Tag="module.imaging"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7F4;" /></NavigationViewItem.Icon></NavigationViewItem>
-                        <NavigationViewItem Content="Cake Factory &amp; Farm · 蛋糕工廠與農場" Tag="module.cakefactory"><NavigationViewItem.Icon><FontIcon Glyph="&#xECA5;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Minecraft World Editor (Amulet) · Minecraft 世界編輯器（Amulet）" Tag="module.amulet"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7FC;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Minecraft World Tools · Minecraft 世界工具" Tag="module.minecraftworldtools"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7FC;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="ViaProxy · Minecraft 版本代理" Tag="module.viaproxy"><NavigationViewItem.Icon><FontIcon Glyph="&#xE990;" /></NavigationViewItem.Icon></NavigationViewItem>
