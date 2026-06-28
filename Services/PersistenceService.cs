@@ -168,6 +168,16 @@ public sealed class PersistenceService
             {
                 ["_meta"] = new { savedUtc = DateTime.UtcNow, version = 1 },
             };
+            // Preserve state for providers that are not currently loaded. Without this merge, the
+            // background timer can erase a saved page snapshot before that page is opened again.
+            if (_loaded is not null && _loaded.RootElement.ValueKind == JsonValueKind.Object)
+            {
+                foreach (var prop in _loaded.RootElement.EnumerateObject())
+                {
+                    if (string.Equals(prop.Name, "_meta", StringComparison.Ordinal)) continue;
+                    doc[prop.Name] = prop.Value.Clone();
+                }
+            }
             foreach (var kv in _providers)
             {
                 try { doc[kv.Key] = kv.Value.Snapshot(); }
@@ -179,6 +189,7 @@ public sealed class PersistenceService
         {
             string json = JsonSerializer.Serialize(doc, JsonOpts);
             WriteAtomic(json);
+            RefreshLoadedDocument(json);
             var now = DateTime.Now;
             LastSaved = now;
             try { Saved?.Invoke(now); } catch { }
@@ -221,19 +232,26 @@ public sealed class PersistenceService
     /// <summary>載入文件到記憶體（主檔損壞就回退 .bak）· Load the saved doc; fall back to .bak on corruption.</summary>
     private void LoadDocument()
     {
-        _loaded?.Dispose();
-        _loaded = TryParse(FilePath) ?? TryParse(BakPath);
-        if (_loaded is not null)
+        var loaded = TryParse(FilePath) ?? TryParse(BakPath);
+        if (loaded is not null)
         {
             try
             {
-                if (_loaded.RootElement.TryGetProperty("_meta", out var meta) &&
+                if (loaded.RootElement.TryGetProperty("_meta", out var meta) &&
                     meta.TryGetProperty("savedUtc", out var su) &&
                     su.TryGetDateTime(out var dt))
                     LastSaved = dt.ToLocalTime();
             }
             catch { }
         }
+
+        JsonDocument? old;
+        lock (_gate)
+        {
+            old = _loaded;
+            _loaded = loaded;
+        }
+        old?.Dispose();
     }
 
     private static JsonDocument? TryParse(string path)
@@ -252,10 +270,9 @@ public sealed class PersistenceService
     {
         try
         {
-            if (_loaded is null) return;
-            if (_loaded.RootElement.ValueKind != JsonValueKind.Object) return;
-            if (_loaded.RootElement.TryGetProperty(id, out var el) && el.ValueKind != JsonValueKind.Null)
-                restore(el);
+            var el = LoadedElement(id);
+            if (el is JsonElement saved)
+                restore(saved);
         }
         catch (Exception ex) { CrashLogger.Log($"persistence:restore:{id}", ex); }
     }
@@ -263,14 +280,35 @@ public sealed class PersistenceService
     /// <summary>是否有某 id 嘅已儲存狀態可還原 · True if saved state exists for the given id.</summary>
     public bool HasSavedState(string id)
     {
-        try
-        {
-            return _loaded is not null
-                && _loaded.RootElement.ValueKind == JsonValueKind.Object
-                && _loaded.RootElement.TryGetProperty(id, out var el)
-                && el.ValueKind != JsonValueKind.Null;
-        }
+        try { return LoadedElement(id) is not null; }
         catch { return false; }
+    }
+
+    private JsonElement? LoadedElement(string id)
+    {
+        lock (_gate)
+        {
+            if (_loaded is null) return null;
+            if (_loaded.RootElement.ValueKind != JsonValueKind.Object) return null;
+            if (_loaded.RootElement.TryGetProperty(id, out var el) && el.ValueKind != JsonValueKind.Null)
+                return el.Clone();
+            return null;
+        }
+    }
+
+    private void RefreshLoadedDocument(string json)
+    {
+        JsonDocument? parsed = null;
+        try { parsed = JsonDocument.Parse(json); }
+        catch (Exception ex) { CrashLogger.Log("persistence:refresh-loaded", ex); return; }
+
+        JsonDocument? old;
+        lock (_gate)
+        {
+            old = _loaded;
+            _loaded = parsed;
+        }
+        old?.Dispose();
     }
 
     // ----------------------------------------------------------------- death hooks ----

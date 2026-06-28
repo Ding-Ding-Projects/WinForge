@@ -231,10 +231,11 @@ public sealed partial class ReactorModule : Page
             _timer.Tick -= Tick;
             _countdownTimer?.Stop();
             _renderClock.Stop();
-            // Persist current reactor state one last time, then stop listening. We keep the provider
-            // registered so a final app-exit/crash flush still captures the latest snapshot.
+            // Persist current reactor state one last time, then stop listening. This must be
+            // synchronous so navigating away and immediately back restores the state just left.
+            // We keep the provider registered so a final app-exit/crash flush still captures it.
             PersistenceService.I.Saved -= OnStateSaved;
-            CrashLogger.Guard("reactor:unload-flush", () => _ = PersistenceService.I.FlushAsync());
+            CrashLogger.Guard("reactor:unload-flush", () => PersistenceService.I.Flush());
             Loc.I.LanguageChanged -= OnLanguageChanged;
             // Stop the synthesized voices but keep the graph alive (singleton, reused by the windows).
             try { ReactorAudioEngine.I.StopVoices(); } catch { }

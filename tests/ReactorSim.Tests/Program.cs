@@ -216,6 +216,44 @@ internal static class Program
             return (pass, $"before={before}, afterSkip={after}, step5Skipped={step5Skipped}, avgRodIn={Avg(r.RodBankInsertion):F0}%, scram={r.IsScrammed}");
         });
 
+        Scenario("PERSISTENCE SNAPSHOT: active startup restores instead of resetting to shutdown", () =>
+        {
+            var r = new ReactorSimService { EasyStartupMode = true };
+            r.SetMode(ReactorMode.Startup);
+            for (int i = 0; i < 4; i++) r.StartRcp(i);
+            r.RcpFlowDemand = 0.72;
+            r.PressurizerHeater = true;
+            r.TargetBoronPpm = 925;
+            for (int b = 0; b < r.RodBankInsertion.Length; b++) r.SetRodBank(b, 58 + b);
+            r.ApplyControl("skipStartupStep4", 0, 0, true);
+            r.ApplyControl("skipStartupStep5", 0, 0, true);
+            for (int i = 0; i < 30; i++) r.Update(0.1);
+
+            var saved = r.CaptureSnapshot(123.45);
+            var restored = new ReactorSimService();
+            restored.RestoreSnapshot(saved);
+
+            bool modeKept = restored.Mode == ReactorMode.Startup;
+            bool controlsKept = restored.RcpRunning.Count(x => x) == 4
+                                && Math.Abs(restored.RcpFlowDemand - r.RcpFlowDemand) < 1e-9
+                                && Math.Abs(restored.TargetBoronPpm - r.TargetBoronPpm) < 1e-9
+                                && Math.Abs(Avg(restored.RodBankInsertion) - Avg(r.RodBankInsertion)) < 1e-9;
+            bool easyGuideKept = restored.EasyStartupMode
+                                 && restored.EasyStartupSkipPressureStep
+                                 && restored.EasyStartupSkipReactivityStep;
+            bool physicsKept = Math.Abs(restored.NeutronPowerFraction - r.NeutronPowerFraction) < 1e-12
+                               && Math.Abs(restored.PrimaryPressure - r.PrimaryPressure) < 1e-12
+                               && saved.SimClockSeconds == 123.45;
+            bool notFreshReset = restored.Mode != ReactorMode.Shutdown
+                                 && restored.RcpRunning.Any(x => x)
+                                 && Avg(restored.RodBankInsertion) < 95.0;
+
+            bool pass = modeKept && controlsKept && easyGuideKept && physicsKept && notFreshReset;
+            return (pass, $"mode={restored.Mode}, rcps={restored.RcpRunning.Count(x => x)}, avgRod={Avg(restored.RodBankInsertion):F1}%, " +
+                          $"boron={restored.TargetBoronPpm:F0}, easySkips={restored.EasyStartupSkipPressureStep}/{restored.EasyStartupSkipReactivityStep}, " +
+                          $"clock={saved.SimClockSeconds:F2}s");
+        });
+
         // ---- SCRAM (deterministic mechanism: trip latches, release delay, gravity rod drop) ----
         // NOTE: we assert the SCRAM MECHANISM. Rods no longer snap fully in synchronously; StepRodDrop
         // models the breaker/gripper release delay and gravity insertion over the next few ticks.
