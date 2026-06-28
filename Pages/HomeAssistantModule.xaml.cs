@@ -26,6 +26,8 @@ namespace WinForge.Pages;
 public sealed partial class HomeAssistantModule : Page
 {
     private readonly HomeAssistantService _ha = new();
+    private readonly HomeAssistantAcDefenderService _acDefender = new();
+    private readonly DockerService _docker = new();
     private readonly ObservableCollection<HaCalendarEvent> _calEvents = new();
     private byte[]? _lastSnap;
 
@@ -47,10 +49,17 @@ public sealed partial class HomeAssistantModule : Page
         {
             UrlBox.Text = _ha.BaseUrl;
             TokenBox.Password = _ha.Token;
+            AcRepoBox.Text = string.IsNullOrWhiteSpace(_acDefender.RepositoryPath)
+                ? HomeAssistantAcDefenderService.LocateCandidate() ?? HomeAssistantAcDefenderService.GitHubRoot()
+                : _acDefender.RepositoryPath;
             if (string.IsNullOrEmpty(TplBox.Text)) TplBox.Text = "{{ states('sun.sun') }}";
             Render();
         };
-        Unloaded += (_, _) => _autoTimer?.Stop();
+        Unloaded += (_, _) =>
+        {
+            _autoTimer?.Stop();
+            _docker.Dispose();
+        };
     }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
@@ -74,6 +83,7 @@ public sealed partial class HomeAssistantModule : Page
         TabNotify.Header = P("Notify · 通知", "通知");
         TabCamera.Header = P("Camera · 鏡頭", "鏡頭");
         TabCalendar.Header = P("Calendar · 日曆", "日曆");
+        TabAcDefender.Header = P("AC Defender · 冷氣防護", "冷氣防護");
         TabLog.Header = P("Error log · 錯誤記錄", "錯誤記錄");
 
         // Template
@@ -147,6 +157,26 @@ public sealed partial class HomeAssistantModule : Page
         // Calendar
         LoadCalsBtn.Content = P("Load · 載入", "載入");
         TodayBtn.Content = P("Today · 今日", "今日");
+
+        // AC Defender
+        AcBlurb.Text = P("Generate and manage a small Home Assistant AC Defender Docker deployment. Pick a repo under your GitHub folder, export Dockerfile/docker-compose.yml, run it locally through the managed Docker API, or create a zip bundle for upload to an SSH Docker host. Secrets are not written to the generated files.",
+            "產生同管理一個細型 Home Assistant 冷氣防護 Docker 部署。揀你 GitHub 資料夾入面嘅 repo，匯出 Dockerfile/docker-compose.yml，用 managed Docker API 本機啟停，或者整 zip bundle 上傳去 SSH Docker 主機。權杖唔會寫入產生嘅檔案。");
+        AcRepoBox.Header = P("Repository folder · Repo 資料夾", "Repo 資料夾");
+        AcLocateBtn.Content = P("Locate · 尋找", "尋找");
+        AcBrowseBtn.Content = P("Browse… · 瀏覽…", "瀏覽…");
+        AcProjectBox.Header = P("Docker project · Docker 專案", "Docker 專案");
+        AcClimateBox.Header = P("Climate entity · 冷氣實體", "冷氣實體");
+        AcPollBox.Header = P("Poll seconds · 輪詢秒數", "輪詢秒數");
+        AcCoolAboveBox.Header = P("Turn off cooling above °C · 高過此溫度關冷氣", "高過此溫度關冷氣");
+        AcHeatBelowBox.Header = P("Turn off heating below °C · 低過此溫度關暖氣", "低過此溫度關暖氣");
+        AcDryRunToggle.Header = P("Dry run · 試行", "試行");
+        AcDryRunToggle.OnContent = P("No HA changes · 唔改 HA", "唔改 HA");
+        AcDryRunToggle.OffContent = P("Can turn off · 可以關機", "可以關機");
+        AcGenerateBtn.Content = P("Generate files · 產生檔案", "產生檔案");
+        AcExportBtn.Content = P("Export SSH bundle · 匯出 SSH bundle", "匯出 SSH bundle");
+        AcStartBtn.Content = P("Start local · 本機啟動", "本機啟動");
+        AcStopBtn.Content = P("Stop local · 本機停止", "本機停止");
+        AcStatusBtn.Content = P("Status · 狀態", "狀態");
 
         // Log
         TailBtn.Content = P("Tail log · 睇 log", "睇 log");
@@ -657,6 +687,171 @@ public sealed partial class HomeAssistantModule : Page
         _calEvents.Clear();
         foreach (var ev in events) _calEvents.Add(ev);
         Ok(CalResult, P($"{events.Count} events today", $"今日 {events.Count} 個節目"), "");
+    }
+
+    // ── AC Defender Docker deployment ───────────────────────────────────────
+
+    private HaAcDefenderRequest BuildAcRequest()
+    {
+        var repo = (AcRepoBox.Text ?? "").Trim();
+        var climate = (AcClimateBox.Text ?? "").Trim();
+        if (repo.Length == 0) throw new InvalidOperationException(P("Pick a repository folder first.", "請先揀 repo 資料夾。"));
+        if (!System.IO.Directory.Exists(repo)) throw new System.IO.DirectoryNotFoundException(repo);
+        if (climate.Length == 0) throw new InvalidOperationException(P("Enter a climate entity id.", "請填冷氣 entity id。"));
+        return new HaAcDefenderRequest(
+            repo,
+            HomeAssistantAcDefenderService.ProjectName(AcProjectBox.Text ?? HomeAssistantAcDefenderService.DefaultProjectName),
+            climate,
+            double.IsNaN(AcCoolAboveBox.Value) ? 28 : AcCoolAboveBox.Value,
+            double.IsNaN(AcHeatBelowBox.Value) ? 16 : AcHeatBelowBox.Value,
+            double.IsNaN(AcPollBox.Value) ? 60 : (int)Math.Round(AcPollBox.Value),
+            AcDryRunToggle.IsOn);
+    }
+
+    private void ShowAcArtifacts(HaAcDefenderArtifacts a)
+    {
+        AcOut.Text = string.Join(Environment.NewLine, new[]
+        {
+            P("Generated:", "已產生："),
+            a.Folder,
+            a.Dockerfile,
+            a.Compose,
+            a.App,
+            a.Readme,
+            a.DeployScript,
+        });
+    }
+
+    private void AcLocate_Click(object sender, RoutedEventArgs e)
+    {
+        var found = HomeAssistantAcDefenderService.LocateCandidate();
+        if (found is null)
+        {
+            Warn(AcResult, P("No candidate repo found", "搵唔到候選 repo"), HomeAssistantAcDefenderService.GitHubRoot());
+            return;
+        }
+        AcRepoBox.Text = found;
+        Ok(AcResult, P("Repository located", "已搵到 repo"), found);
+    }
+
+    private async void AcBrowse_Click(object sender, RoutedEventArgs e)
+    {
+        var folder = await FileDialogs.OpenFolderAsync(P("Pick AC Defender repository", "揀 AC Defender repo"));
+        if (folder is null) return;
+        AcRepoBox.Text = folder;
+        _acDefender.RepositoryPath = folder;
+    }
+
+    private void AcGenerate_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var artifacts = _acDefender.Generate(BuildAcRequest());
+            ShowAcArtifacts(artifacts);
+            Ok(AcResult, P("Deployment files generated", "已產生部署檔"), artifacts.Folder);
+        }
+        catch (Exception ex) { Warn(AcResult, P("Could not generate files", "產生唔到檔案"), ex.Message); }
+    }
+
+    private async void AcExport_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var req = BuildAcRequest();
+            var path = await FileDialogs.SaveFileAsync($"{req.ProjectName}-ssh-bundle.zip", ".zip");
+            if (path is null) return;
+            var zip = _acDefender.ExportBundle(req, path);
+            AcOut.Text = zip;
+            Ok(AcResult, P("SSH deployment bundle exported", "已匯出 SSH 部署 bundle"), zip);
+        }
+        catch (Exception ex) { Warn(AcResult, P("Could not export bundle", "匯出唔到 bundle"), ex.Message); }
+    }
+
+    private async Task<ComposeProject> LoadAcComposeForLocal()
+    {
+        _ha.SaveConfig(UrlBox.Text, TokenBox.Password);
+        if (!_ha.IsConfigured) throw new InvalidOperationException(P("Save the Home Assistant URL and token first.", "請先儲存 Home Assistant URL 同權杖。"));
+
+        var req = BuildAcRequest();
+        var artifacts = _acDefender.Generate(req);
+        ShowAcArtifacts(artifacts);
+        var project = ComposeParser.Parse(await System.IO.File.ReadAllTextAsync(artifacts.Compose), req.ProjectName);
+        foreach (var svc in project.Services)
+        {
+            svc.Env["HA_URL"] = _ha.BaseUrl;
+            svc.Env["HA_TOKEN"] = _ha.Token;
+            for (int i = 0; i < svc.Volumes.Count; i++)
+            {
+                if (svc.Volumes[i].StartsWith("./", StringComparison.Ordinal))
+                    svc.Volumes[i] = System.IO.Path.Combine(artifacts.Folder, svc.Volumes[i][2..]).Replace('\\', '/');
+            }
+        }
+        return project;
+    }
+
+    private async Task EnsureDocker()
+    {
+        if (_docker.Connected) return;
+        await _docker.ConnectAsync();
+    }
+
+    private async void AcStart_Click(object sender, RoutedEventArgs e)
+    {
+        AcBusy.IsActive = true;
+        AcStartBtn.IsEnabled = false;
+        try
+        {
+            var project = await LoadAcComposeForLocal();
+            await EnsureDocker();
+            var rep = new Progress<string>(line => DispatcherQueue.TryEnqueue(() =>
+                AcOut.Text += (AcOut.Text.Length > 0 ? Environment.NewLine : "") + line));
+            await _docker.ComposeUpAsync(project, rep);
+            Ok(AcResult, P("Local AC Defender stack started", "本機冷氣防護堆疊已啟動"), project.Name);
+        }
+        catch (Exception ex) { Warn(AcResult, P("Could not start local Docker stack", "啟動唔到本機 Docker 堆疊"), ex.Message); }
+        finally { AcBusy.IsActive = false; AcStartBtn.IsEnabled = true; }
+    }
+
+    private async void AcStop_Click(object sender, RoutedEventArgs e)
+    {
+        AcBusy.IsActive = true;
+        AcStopBtn.IsEnabled = false;
+        try
+        {
+            var name = HomeAssistantAcDefenderService.ProjectName(AcProjectBox.Text ?? HomeAssistantAcDefenderService.DefaultProjectName);
+            await EnsureDocker();
+            AcOut.Text = "";
+            var rep = new Progress<string>(line => DispatcherQueue.TryEnqueue(() =>
+                AcOut.Text += (AcOut.Text.Length > 0 ? Environment.NewLine : "") + line));
+            await _docker.ComposeDownAsync(name, rep);
+            Ok(AcResult, P("Local AC Defender stack stopped", "本機冷氣防護堆疊已停止"), name);
+        }
+        catch (Exception ex) { Warn(AcResult, P("Could not stop local Docker stack", "停止唔到本機 Docker 堆疊"), ex.Message); }
+        finally { AcBusy.IsActive = false; AcStopBtn.IsEnabled = true; }
+    }
+
+    private async void AcStatus_Click(object sender, RoutedEventArgs e)
+    {
+        AcBusy.IsActive = true;
+        try
+        {
+            var name = HomeAssistantAcDefenderService.ProjectName(AcProjectBox.Text ?? HomeAssistantAcDefenderService.DefaultProjectName);
+            await EnsureDocker();
+            var rows = await _docker.ListContainersAsync(true);
+            var mine = rows.Where(c => c.Labels is not null &&
+                c.Labels.TryGetValue("com.docker.compose.project", out var pn) && pn == name).ToList();
+            if (mine.Count == 0)
+            {
+                AcOut.Text = P("No local containers found for this project.", "呢個專案搵唔到本機容器。");
+                Warn(AcResult, P("No stack found", "搵唔到堆疊"), name);
+                return;
+            }
+            AcOut.Text = string.Join(Environment.NewLine, mine.Select(c =>
+                $"{(c.Names.FirstOrDefault() ?? c.ID).TrimStart('/'),-32} {c.State,-12} {c.Status}"));
+            Ok(AcResult, P($"{mine.Count} local container(s)", $"{mine.Count} 個本機容器"), name);
+        }
+        catch (Exception ex) { Warn(AcResult, P("Could not read local Docker status", "讀唔到本機 Docker 狀態"), ex.Message); }
+        finally { AcBusy.IsActive = false; }
     }
 
     // ── Error log ────────────────────────────────────────────────────────────

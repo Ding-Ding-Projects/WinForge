@@ -62,6 +62,12 @@ Open in-app: `WinForge.exe --page cloudflare`
 
 Drive the Home Assistant REST API for scenes, lights and more. · 驅動 Home Assistant REST API 控制場景、燈光等。
 
+Climate controls include thermostat target temperature and HVAC mode for `climate.*` entities, so a Home Assistant deployment that exposes an AC Defender thermostat can be driven from WinForge after the integration is running.
+冷氣控制包括為 `climate.*` 實體設定目標溫度同 HVAC 模式；如果 Home Assistant 部署已暴露 AC Defender thermostat，整合運行後就可以由 WinForge 控制。
+
+AC Defender itself is a Home Assistant-side deployment concern: run it in Docker or Docker Compose, expose its entities to Home Assistant, then use this module's REST connection, Lights & Climate tab and Notify tab for operation and alerts.
+AC Defender 本身係 Home Assistant 端嘅部署工作：用 Docker 或 Docker Compose 運行，將實體暴露畀 Home Assistant，之後用呢個模組嘅 REST 連線、燈與冷氣分頁同通知分頁操作同收告警。
+
 Open in-app: `WinForge.exe --page homeassistant`
 
 ![Home Assistant](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-homeassistant.png)

@@ -18,3 +18,7 @@
 **EN â€”** Use this control from the module page shown above. If the handler is blank, the action is represented by binding or template state rather than a direct click handler in XAML.
 
 **ç²µèªž â€”** å–ºä¸Šé¢æ¨¡çµ„é é¢ä½¿ç”¨å‘¢å€‹æŽ§åˆ¶é …ã€‚å¦‚æžœè™•ç†å‡½å¼ä¿‚ç©ºç™½ï¼Œä»£è¡¨å‹•ä½œå¯èƒ½ç”± binding æˆ–æ¨£æ¿ç‹€æ…‹è™•ç†ï¼Œè€Œå””ä¿‚ XAML å…¥é¢ç›´æŽ¥å¯« click handlerã€‚
+
+**EN —** Sends `POST /api/services/climate/set_temperature` for the selected `climate.*` entity. This is the temperature control to use after an AC Defender Docker/Compose deployment has exposed its thermostat through Home Assistant.
+
+**粵語 —** 對已選 `climate.*` 實體送出 `POST /api/services/climate/set_temperature`。當 AC Defender Docker/Compose 部署已透過 Home Assistant 暴露 thermostat 後，就用呢個控制設定溫度。

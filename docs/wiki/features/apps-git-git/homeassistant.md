@@ -18,6 +18,23 @@
 
 **ç²µèªž â€”** å®¶å±…åŠ©ç† å·²ç™»è¨˜å–º WinForge æœå°‹åŒå°Žè¦½ï¼Œé—œéµå­—åŒ…æ‹¬ï¼š$(System.Collections.Specialized.OrderedDictionary["Keywords"])ã€‚
 
+## Climate and AC Defender · 冷氣與 AC Defender
+
+**EN —** WinForge talks to Home Assistant through the REST API. For AC Defender-style cooling control, use the AC Defender tab to generate a Docker/Compose bundle, export it for an SSH Docker host, or start/stop/status the local stack through WinForge's managed Docker client. The deployment watches Home Assistant entities such as `climate.*`, `sensor.*`, `switch.*` or `notify.*` and deliberately turns HVAC off instead of auto-adjusting the set temperature.
+
+**粵語 —** WinForge 係透過 Home Assistant REST API 溝通。要做 AC Defender 式冷氣防護，可以用 AC Defender 分頁產生 Docker/Compose bundle、匯出畀 SSH Docker 主機，或者透過 WinForge managed Docker client 本機啟停同睇狀態。部署會監察 `climate.*`、`sensor.*`、`switch.*` 或 `notify.*` 等 Home Assistant 實體，而且只會關 HVAC，唔會自動調整設定溫度。
+
+| Step · 步驟 | Operator action · 操作 |
+|---|---|
+| Deploy · 部署 | Run AC Defender with Docker/Compose on the Home Assistant host or another reachable Docker host. |
+| Expose entities · 暴露實體 | Confirm Home Assistant can see the AC/thermostat entity and any sensors, switches or notification targets. |
+| Connect WinForge · 連接 WinForge | Save the Home Assistant base URL and a long-lived access token in this module. The token is stored DPAPI-encrypted. |
+| Operate · 操作 | Use **Lights & Climate** to select a `climate.*` entity, set target temperature and set HVAC mode. Use **Notify** to load and send to Home Assistant notification targets. |
+
+**EN —** The relevant REST calls are `climate/set_temperature`, `climate/set_hvac_mode` and `notify/<target>`. Use the Docker module or Docker over SSH module only when you need to inspect or manage the container host; the Home Assistant module only needs the HA REST endpoint.
+
+**粵語 —** 相關 REST 呼叫係 `climate/set_temperature`、`climate/set_hvac_mode` 同 `notify/<target>`。只有需要檢查或管理容器主機時，先用 Docker 模組或 Docker over SSH 模組；Home Assistant 模組只需要 HA REST endpoint。
+
 ## Buttons And Controls Â· æŒ‰éˆ•èˆ‡æŽ§åˆ¶é …
 
 | Button Â· æŒ‰éˆ• | Type Â· é¡žåž‹ | XAML name Â· åç¨± | Handler Â· è™•ç†å‡½å¼ |
