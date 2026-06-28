@@ -4,6 +4,12 @@ Canonical screenshots live in `docs/` and are embedded here through raw GitHub U
 
 正式截圖放喺 `docs/`，呢度用 raw GitHub URL 嵌入。截圖由運行緊嘅可獨立執行自帶建置（self-contained build）行 `WinForge.exe --page <alias>` 擷取。
 
+## Redaction Rules · 遮蔽規則
+
+**EN —** Before adding screenshots, redact or avoid personal data: Windows usernames, home-folder paths, repo paths outside WinForge, hostnames, IPs that identify private networks, account names, emails, API keys, tokens, session cookies, vault item names, SSH profiles, and real package/source credentials.
+
+**粵語 —** 新增截圖前，請遮蔽或者避開個人資料：Windows 用戶名、home folder 路徑、WinForge 以外嘅 repo 路徑、主機名、會識別私人網絡嘅 IP、帳戶名、電郵、API key、token、session cookie、保險庫項目名、SSH profile，同真實套件／來源憑證。
+
 ---
 
 ## System & Tweaks · 系統與調校
@@ -463,3 +469,46 @@ Canonical screenshots live in `docs/` and are embedded here through raw GitHub U
 
 ### Nuclear Reactor · 核反應堆
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-reactor.png)
+
+### Reactor Gauges · 反應堆儀表
+![](images/screenshot-reactor-gauges.png)
+
+### Reactor Meltdown Scenario · 反應堆熔毀情境
+![](images/screenshot-reactor-meltdown.png)
+
+---
+
+## Additional Wiki Captures · 額外 Wiki 截圖
+
+### AltSnap · Alt 拖曳視窗
+![](images/screenshot-altsnap.png)
+
+### Annoyances · 煩擾項目
+![](images/screenshot-annoyances.png)
+
+### Battery & Thermal · 電池與散熱
+![](images/screenshot-battery.png)
+
+### Maintenance · 維護
+![](images/screenshot-maintenance.png)
+
+### Nilesoft Shell · Nilesoft 右鍵選單
+![](images/screenshot-nilesoftshell.png)
+
+### qBittorrent · 種子下載
+![](images/screenshot-qbittorrent.png)
+
+### Recipes · 配方
+![](images/screenshot-recipes.png)
+
+### Search · 搜尋
+![](images/screenshot-search.png)
+
+### Taskbar Tweaker · 工作列調校
+![](images/screenshot-taskbar-tweaker.png)
+
+### App Uninstaller · 應用程式解除安裝
+![](images/screenshot-uninstaller.png)
+
+### Winaero · Winaero 調校
+![](images/screenshot-winaero.png)

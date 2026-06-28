@@ -1,7 +1,7 @@
 # WinForge Wiki · 視窗鑄造 Wiki
 
-**EN —** WinForge is a fully bilingual (English + 繁體中文／粵語) Windows convenience suite that bundles 136 registered real in-app modules into one place.
-**粵語 —** WinForge 係一個全程雙語（英文 + 繁體中文／粵語）嘅 Windows 便利套件，將 136 個已登記、真正 app 內模組集合喺一處。
+**EN —** WinForge is a fully bilingual (English + 繁體中文／粵語) Windows convenience suite that bundles 139 registered real in-app modules into one place.
+**粵語 —** WinForge 係一個全程雙語（英文 + 繁體中文／粵語）嘅 Windows 便利套件，將 139 個已登記、真正 app 內模組集合喺一處。
 
 **EN —** This wiki is the categorized index of every module. Pick a category below to dive in.
 **粵語 —** 呢個 wiki 係所有模組嘅分類索引。喺下面揀一個分類入去睇。
@@ -45,6 +45,11 @@
 
 **EN —** See the [Screenshots gallery](Screenshots.md) for the full image set and capture status.
 **粵語 —** 睇 [截圖畫廊](Screenshots.md) 了解完整圖檔同擷取狀態。
+
+## 🧭 Generated References · 生成參考
+
+**EN —** See the generated [Feature Reference](features/README.md) for one Markdown page per registered module, and the generated [Button Reference](buttons/README.md) for one Markdown page per actionable XAML button/control.
+**粵語 —** 睇生成嘅 [功能參考](features/README.md)；每個已登記模組都有一頁 Markdown。再睇 [按鈕參考](buttons/README.md)；每個可操作 XAML 按鈕／控制項都有一頁 Markdown。
 
 **EN —** See the [No-Redirect Audit](No-Redirect-Audit.md) for the latest in-app redirect and external-engine review.
 **粵語 —** 睇 [無跳轉審核](No-Redirect-Audit.md) 了解最新 app 內跳轉同外部引擎審核。
