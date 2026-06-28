@@ -7,6 +7,7 @@ WinForge follows a keyboard-first, screen-reader-aware baseline for the main she
 - Main navigation, global search, open module tabs and tab-session actions have explicit automation names. · 主要導航、全域搜尋、已開啟模組分頁同分頁工作階段動作都有明確 automation 名稱。
 - The new-tab picker exposes a named search box, category filter and named app-result buttons, so automation can open frequent apps, suggestions or category-filtered modules without relying on visual text only. · 新分頁選擇器提供具名搜尋框、分類篩選同具名 app 結果按鈕，所以自動化可以開啟常用 app、建議項目或者按分類篩選嘅模組，唔使只靠畫面文字。
 - Shell search suggestions now carry stable route keys, so choosing a module or tweak category opens it directly while plain text still falls back to the search-results page. · 外殼搜尋建議而家帶穩定路由 key，揀模組或者調校分類會直接開啟；直接輸入文字仍然會回落到搜尋結果頁。
+- Shell search suggestions show both the destination name and action context, making module/category/app-picker results easier to distinguish before opening. · 外殼搜尋建議會同時顯示目的地名稱同操作語境，開啟前更容易分清模組、分類或者 app 選擇器結果。
 - Picker cards and dashboard stats use responsive sizing and wrapped bilingual text to reduce clipping at narrow widths or higher text scale. · 選擇器卡片同概覽統計用響應式尺寸同可換行雙語文字，減少窄視窗或者較大文字比例時被截斷。
 - New native pages expose heading levels for page title and major content regions. · 新原生頁面為頁面標題同主要內容區域提供標題層級。
 - The Feed Reader supports keyboard flow: `Enter` adds the typed feed URL, `F5` refreshes feeds, and `Ctrl+C` copies the selected article link. · RSS 閱讀器支援鍵盤流程：`Enter` 新增已輸入 feed 網址、`F5` 重新整理、`Ctrl+C` 複製已選文章連結。
