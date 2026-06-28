@@ -42,6 +42,7 @@ public sealed partial class ConnectionsModule : Page
 
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromSeconds(2) };
     private readonly ObservableCollection<ConnView> _rows = new();
+    private bool _rendering;
     private string _filter = "";
 
     public ConnectionsModule()
@@ -50,7 +51,7 @@ public sealed partial class ConnectionsModule : Page
         List.ItemsSource = _rows;
         _timer.Tick += (_, _) => Refresh();
         Loc.I.LanguageChanged += (_, _) => Render();
-        Loaded += (_, _) => { Render(); Refresh(); if (AutoSwitch.IsOn) _timer.Start(); };
+        Loaded += (_, _) => Render();
         Unloaded += (_, _) => _timer.Stop();
     }
 
@@ -58,6 +59,7 @@ public sealed partial class ConnectionsModule : Page
 
     private void Render()
     {
+        _rendering = true;
         HeaderTitle.Text = "Connections · 連線";
         HeaderBlurb.Text = P("Every live TCP/UDP socket and the app that owns it. Drop a single connection or end the process — no resmon needed.",
             "每一條即時 TCP/UDP 連線同擁有佢嘅程式。可以單獨切斷一條連線或者結束程序 — 唔使開資源監視器。");
@@ -68,7 +70,9 @@ public sealed partial class ConnectionsModule : Page
         ColLocal.Text = P("Local address", "本機位址");
         ColRemote.Text = P("Remote address", "遠端位址");
         ColState.Text = P("State", "狀態");
-        ColProc.Text = P("Process · PID", "程序 · PID");
+        ColProc.Text = _rows.Count == 0
+            ? P("Process · PID — not scanned", "程序 · PID — 未掃描")
+            : P($"Process · PID — {_rows.Count} shown", $"程序 · PID — 顯示 {_rows.Count} 條");
 
         int sel = ProtoBox.SelectedIndex < 0 ? 0 : ProtoBox.SelectedIndex;
         ProtoBox.Items.Clear();
@@ -76,18 +80,28 @@ public sealed partial class ConnectionsModule : Page
         ProtoBox.Items.Add("TCP");
         ProtoBox.Items.Add("UDP");
         ProtoBox.SelectedIndex = sel;
+        _rendering = false;
     }
 
     private void Auto_Toggled(object sender, RoutedEventArgs e)
     {
         if (!IsLoaded) return;
-        if (AutoSwitch.IsOn) _timer.Start(); else _timer.Stop();
+        if (AutoSwitch.IsOn)
+        {
+            Refresh();
+            _timer.Start();
+        }
+        else
+        {
+            _timer.Stop();
+        }
     }
 
     private void Refresh_Click(object sender, RoutedEventArgs e) => Refresh();
 
     private void Filter_Changed(object sender, object e)
     {
+        if (_rendering) return;
         _filter = (FilterBox.Text ?? "").Trim();
         if (IsLoaded) Refresh();
     }

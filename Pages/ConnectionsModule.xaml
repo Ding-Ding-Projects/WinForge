@@ -32,7 +32,7 @@
             </Grid.ColumnDefinitions>
             <TextBox x:Name="FilterBox" Grid.Column="0" TextChanged="Filter_Changed" />
             <ComboBox x:Name="ProtoBox" Grid.Column="1" SelectedIndex="0" SelectionChanged="Filter_Changed" MinWidth="110" />
-            <ToggleSwitch x:Name="AutoSwitch" Grid.Column="2" IsOn="True" Toggled="Auto_Toggled" VerticalAlignment="Center" />
+            <ToggleSwitch x:Name="AutoSwitch" Grid.Column="2" IsOn="False" Toggled="Auto_Toggled" VerticalAlignment="Center" />
             <Button x:Name="RefreshBtn" Grid.Column="3" Click="Refresh_Click">
                 <FontIcon Glyph="&#xE72C;" FontSize="14" />
             </Button>
