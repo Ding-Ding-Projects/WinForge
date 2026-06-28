@@ -59,6 +59,8 @@ public sealed class Loc
         _ => en,
     };
 
+    public string Pick(LocalizedText text) => text.Get(_language);
+
     /// <summary>需要單一語言值時使用，例如 culture name · Use when an API needs one language value, such as a culture name.</summary>
     public string PickSingle(string en, string zh) => _language == AppLanguage.Cantonese ? zh : en;
 

@@ -125,7 +125,7 @@ public sealed partial class PdfToolkitModule : Page
     private static void ShowOk(InfoBar bar, TweakResult r, bool offerOpen, string? path)
     {
         bar.Severity = r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error;
-        bar.Message = r.Message?.Primary + (r.Message is { } m && m.Primary != m.Secondary ? $"  ·  {m.Secondary}" : "");
+        bar.Message = r.Message?.Display ?? "";
         bar.IsOpen = true;
         bar.ActionButton = null;
         if (r.Success && offerOpen && !string.IsNullOrEmpty(path))

@@ -22,6 +22,8 @@ namespace WinForge;
 
 public sealed partial class MainWindow : Window
 {
+    private readonly Dictionary<object, (string en, string zh)> _navOriginalLabels = new();
+
     public MainWindow()
     {
         CrashLogger.Mark("MW: ctor start");
@@ -46,6 +48,8 @@ public sealed partial class MainWindow : Window
         CrashLogger.Mark("MW: after BuildCategoryMenu");
         BuildTitleMap();
         WireNavigator();
+        Loc.I.LanguageChanged += OnLanguageChanged;
+        ApplyLanguageToShell();
         CrashLogger.Mark("MW: after WireNavigator");
 
         RestoreSessionOrDefault();
@@ -1063,11 +1067,84 @@ public sealed partial class MainWindow : Window
             };
             parent.MenuItems.Add(new NavigationViewItem
             {
-                Content = $"{cat.Name.En} · {cat.Name.Zh}",
+                Content = cat.Name.Display,
                 Tag = cat.Id,
                 Icon = new FontIcon { Glyph = cat.Glyph },
             });
         }
+    }
+
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        BuildTitleMap();
+        ApplyLanguageToShell();
+        RefreshAllTabHeaders();
+    }
+
+    private void ApplyLanguageToShell()
+    {
+        AppTitleBar.Title = Loc.I.Pick("WinForge", "視窗調校");
+        SearchBox.PlaceholderText = Loc.I.Pick("Search everything", "搜尋全部");
+        RelabelNavItems(NavView.MenuItems);
+        RelabelNavItems(NavView.FooterMenuItems);
+    }
+
+    private void RelabelNavItems(System.Collections.Generic.IList<object> items)
+    {
+        foreach (var item in items)
+        {
+            switch (item)
+            {
+                case NavigationViewItemHeader header:
+                    header.Content = LocalizeKnownText(header, header.Content as string);
+                    break;
+                case NavigationViewItem nav:
+                    nav.Content = LocalizedNavLabel(nav, nav.Tag as string, nav.Content as string);
+                    if (nav.MenuItems.Count > 0) RelabelNavItems(nav.MenuItems);
+                    break;
+            }
+        }
+    }
+
+    private string LocalizedNavLabel(object owner, string? tag, string? fallback)
+    {
+        if (!string.IsNullOrWhiteSpace(tag))
+        {
+            var module = ModuleRegistry.All.FirstOrDefault(m => m.Tag == tag);
+            if (module is not null) return Loc.I.Pick(module.En, module.Zh);
+
+            var category = Categories.All.FirstOrDefault(c => c.Id == tag);
+            if (category is not null) return category.Name.Display;
+
+            return tag switch
+            {
+                "dashboard" => Loc.I.Pick("Dashboard", "概覽"),
+                "manual" => Loc.I.Pick("Manual", "使用手冊"),
+                "licenses" => Loc.I.Pick("Licenses", "授權"),
+                "about" => Loc.I.Pick("About", "關於"),
+                _ => LocalizeKnownText(owner, fallback),
+            };
+        }
+
+        return LocalizeKnownText(owner, fallback);
+    }
+
+    private string LocalizeKnownText(object owner, string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return "";
+        if (!_navOriginalLabels.TryGetValue(owner, out var parts))
+        {
+            parts = SplitBilingual(text);
+            _navOriginalLabels[owner] = parts;
+        }
+        return Loc.I.Pick(parts.en, parts.zh);
+    }
+
+    private static (string en, string zh) SplitBilingual(string text)
+    {
+        var marker = text.IndexOf(" · ", StringComparison.Ordinal);
+        if (marker < 0) return (text, text);
+        return (text[..marker], text[(marker + 3)..]);
     }
 
     private void WireNavigator()
@@ -1284,8 +1361,8 @@ public sealed partial class MainWindow : Window
         if (args.Reason != AutoSuggestionBoxTextChangeReason.UserInput) return;
         var q = sender.Text ?? "";
         if (q.Trim().Length == 0) { sender.ItemsSource = null; return; }
-        var sugg = ModuleRegistry.Search(q).Select(m => $"{m.En} · {m.Zh}")
-            .Concat(TweakCatalog.Search(q).Take(6).Select(t => $"{t.Title.En} · {t.Title.Zh}"))
+        var sugg = ModuleRegistry.Search(q).Select(m => Loc.I.Pick(m.En, m.Zh))
+            .Concat(TweakCatalog.Search(q).Take(6).Select(t => t.Title.Display))
             .Take(10).ToList();
         sender.ItemsSource = sugg;
     }
@@ -1363,15 +1440,16 @@ public sealed partial class MainWindow : Window
 
     private void BuildTitleMap()
     {
-        _titles[typeof(DashboardPage)] = "Dashboard · 概覽";
-        _titles[typeof(AboutPage)] = "About · 關於";
-        _titles[typeof(SettingsPage)] = "Settings · 設定";
-        _titles[typeof(SearchResultsPage)] = "Search · 搜尋";
-        _titles[typeof(ManualPage)] = "Manual · 使用手冊";
-        _titles[typeof(LicensesPage)] = "Licenses · 授權";
-        _titles[typeof(ReactorDependencyPage)] = "Reactor required · 需要反應堆";
+        _titles.Clear();
+        _titles[typeof(DashboardPage)] = Loc.I.Pick("Dashboard", "概覽");
+        _titles[typeof(AboutPage)] = Loc.I.Pick("About", "關於");
+        _titles[typeof(SettingsPage)] = Loc.I.Pick("Settings", "設定");
+        _titles[typeof(SearchResultsPage)] = Loc.I.Pick("Search", "搜尋");
+        _titles[typeof(ManualPage)] = Loc.I.Pick("Manual", "使用手冊");
+        _titles[typeof(LicensesPage)] = Loc.I.Pick("Licenses", "授權");
+        _titles[typeof(ReactorDependencyPage)] = Loc.I.Pick("Reactor required", "需要反應堆");
         foreach (var m in ModuleRegistry.All)
-            _titles[MapType(m.Tag)] = $"{m.En} · {m.Zh}";
+            _titles[MapType(m.Tag)] = Loc.I.Pick(m.En, m.Zh);
     }
 
     /// <summary>Resolve a tab/nav key into a page type + parameter.</summary>
@@ -1408,10 +1486,10 @@ public sealed partial class MainWindow : Window
 
     private string TitleFor(string key, Type type, object? param)
     {
-        if (type == typeof(CategoryPage) && param is AppCategory c) return $"{c.Name.En} · {c.Name.Zh}";
-        if (type == typeof(SearchResultsPage)) return param is string q && q.Length > 0 ? $"Search: {q}" : "Search · 搜尋";
+        if (type == typeof(CategoryPage) && param is AppCategory c) return c.Name.Display;
+        if (type == typeof(SearchResultsPage)) return param is string q && q.Length > 0 ? Loc.I.Pick($"Search: {q}", $"搜尋：{q}") : Loc.I.Pick("Search", "搜尋");
         if (type == typeof(ReactorDependencyPage) && param is ReactorDependencyPageContext ctx)
-            return $"{ctx.Dependency.NameEn} · reactor required";
+            return Loc.I.Pick($"{ctx.Dependency.NameEn} - reactor required", $"{ctx.Dependency.NameZh} - 需要反應堆");
         return _titles.TryGetValue(type, out var t) ? t : "WinForge";
     }
 

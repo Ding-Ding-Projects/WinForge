@@ -270,7 +270,7 @@ public sealed partial class BundleWorkspaceDialog : ContentDialog
             msgs.Add(P($"Security: {report.Warnings.Count} package(s) carry custom commands/args/kill-lists:",
                        $"安全：{report.Warnings.Count} 個套件帶有自訂指令／參數／kill-list："));
             foreach (var w in report.Warnings.Take(8))
-                msgs.Add("  • " + w.Primary + "  ·  " + w.Secondary);
+                msgs.Add("  • " + w.Display);
             if (report.Warnings.Count > 8)
                 msgs.Add(P($"  …and {report.Warnings.Count - 8} more.", $"  …仲有 {report.Warnings.Count - 8} 個。"));
         }
@@ -371,7 +371,7 @@ public sealed partial class BundleWorkspaceDialog : ContentDialog
             var body = new TextBlock { TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true };
             body.Text = P("This bundle runs custom commands / arguments / kill-lists. Install anyway?",
                           "呢個清單會執行自訂指令／參數／kill-list。仍然要安裝？")
-                        + "\n\n" + string.Join("\n", report.Warnings.Take(10).Select(w => "• " + w.Primary + "  ·  " + w.Secondary));
+                        + "\n\n" + string.Join("\n", report.Warnings.Take(10).Select(w => "• " + w.Display));
             var confirm = new ContentDialog
             {
                 Title = P("Security review", "安全檢查"),

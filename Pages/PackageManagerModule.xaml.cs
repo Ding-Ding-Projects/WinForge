@@ -766,7 +766,7 @@ public sealed partial class PackageManagerModule : Page
         {
             lines.Add(P($"Security — {report.Warnings.Count} package(s) run custom commands/args/kill-lists:",
                         $"安全 — {report.Warnings.Count} 個套件會執行自訂指令／參數／kill-list："));
-            foreach (var w in report.Warnings.Take(10)) lines.Add("• " + w.Primary + "  ·  " + w.Secondary);
+            foreach (var w in report.Warnings.Take(10)) lines.Add("• " + w.Display);
         }
         lines.Add(P($"Install {bundle.packages.Count} compatible package(s)?{(bundle.incompatible_packages.Count > 0 ? $" ({bundle.incompatible_packages.Count} incompatible skipped)" : "")}",
                     $"安裝 {bundle.packages.Count} 個相容套件？{(bundle.incompatible_packages.Count > 0 ? $"（略過 {bundle.incompatible_packages.Count} 個不相容）" : "")}"));

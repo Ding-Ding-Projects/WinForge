@@ -32,7 +32,7 @@ public sealed partial class SettingsPage : Page
 
         Root.Children.Add(new TextBlock
         {
-            Text = "Settings · 設定",
+            Text = Loc.I.Pick("Settings", "設定"),
             Style = (Style)Application.Current.Resources["TitleTextBlockStyle"],
         });
 
@@ -108,9 +108,9 @@ public sealed partial class SettingsPage : Page
 
         _suppress = true;
         var radios = new RadioButtons();
-        radios.Items.Add("Bilingual");
-        radios.Items.Add("Cantonese");
-        radios.Items.Add("English");
+        radios.Items.Add(Loc.I.Pick("Bilingual (English + Cantonese)", "雙語（英文 + 粵語）"));
+        radios.Items.Add(Loc.I.Pick("Cantonese only", "只顯示粵語"));
+        radios.Items.Add(Loc.I.Pick("English only", "English only"));
         radios.SelectedIndex = Loc.I.Language switch
         {
             AppLanguage.Cantonese => 1,
@@ -178,7 +178,7 @@ public sealed partial class SettingsPage : Page
         }
         else
         {
-            var b = new Button { Content = "Relaunch as administrator · 以管理員身分重新啟動" };
+            var b = new Button { Content = Loc.I.Pick("Relaunch as administrator", "以管理員身分重新啟動") };
             b.Click += (_, _) =>
             {
                 if (AdminHelper.RelaunchElevated())

@@ -83,6 +83,9 @@ public sealed class LocalizedText
         _ => En,
     };
 
+    /// <summary>目前語言模式嘅完整顯示文字 · Display text for the current language mode.</summary>
+    public string Display => Get(Services.Loc.I.Language);
+
     /// <summary>主要文字 · Primary text for the user's display mode.</summary>
     public string Primary => Services.Loc.I.Language == AppLanguage.Cantonese ? Zh : En;
 

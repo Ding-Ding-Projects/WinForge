@@ -173,6 +173,7 @@ public sealed class AdvancedPastePalette
     {
         var title = new TextBlock { Text = action.Name.Primary, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold };
         var second = new TextBlock { Text = action.Name.Secondary, FontSize = 11, Opacity = 0.6 };
+        second.Visibility = string.IsNullOrWhiteSpace(second.Text) ? Visibility.Collapsed : Visibility.Visible;
         var col = new StackPanel { Spacing = 0 };
         col.Children.Add(title);
         col.Children.Add(second);
@@ -201,7 +202,7 @@ public sealed class AdvancedPastePalette
             MinWidth = 320,
             Padding = new Thickness(10, 7, 10, 7),
         };
-        ToolTipService.SetToolTip(btn, action.Blurb.Primary + " · " + action.Blurb.Secondary);
+        ToolTipService.SetToolTip(btn, action.Blurb.Display);
         btn.Click += async (_, _) =>
         {
             if (action.RequiresAi)
