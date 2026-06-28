@@ -7,7 +7,7 @@ const MODE_NAMES = [
 ];
 
 export function StartupChecklist(ctx) {
-  const { store, t, pick } = ctx;
+  const { store, send, t, pick } = ctx;
   const root = el("div");
   root.style.gridTemplateColumns = "1.35fr .8fr";
 
@@ -51,27 +51,49 @@ export function StartupChecklist(ctx) {
     }
 
     const done = Number.isFinite(checklist.done) ? checklist.done : steps.filter(s => !!s.ok).length;
-    progress.textContent = `${t("startupProgress")}: ${done}/${steps.length}`;
+    const easyNote = latestState?.easyStartup ? pick(" · Easy Mode control highlights active", " · 簡易模式控制高亮已啟用") : "";
+    progress.textContent = `${t("startupProgress")}: ${done}/${steps.length}${easyNote}`;
 
     steps.forEach(step => {
-      const rowCls = "startup-step" + (step.ok ? " done" : step.active ? " active" : step.blocked ? " blocked" : "");
+      const skipped = !!step.skipped;
+      const rowCls = "startup-step" + (step.ok ? " done" : step.active ? " active" : step.blocked ? " blocked" : "") + (skipped ? " skipped" : "");
       const row = el("div", rowCls);
-      const mark = el("div", "startup-check", step.ok ? "✓" : step.active ? "→" : "○");
+      const mark = el("div", "startup-check", skipped ? "↷" : step.ok ? "✓" : step.active ? "→" : "○");
       const body = el("div", "startup-step-body");
       const title = el("div", "startup-step-title", `${step.index}. ${pick(step.en, step.zh)}`);
       const ctl = el("div", "startup-step-control", pick(`Use: ${step.controlEn}`, `使用：${step.controlZh}`));
       const detailText = pick(step.detailEn || "", step.detailZh || "");
       const detail = detailText ? el("div", "startup-step-detail", detailText) : null;
       const goBtn = button(pick("Control", "控制"), "startup-go", () => goToControl(step));
+      const actions = el("div", "startup-actions");
+      if (step.index === 4) {
+        const psia = Number.isFinite(step.primaryPressurePsia)
+          ? step.primaryPressurePsia
+          : (latestState?.primaryPressureMPa ?? 0) * 145.038;
+        actions.appendChild(el("div", "startup-pressure-pill", `${psia.toFixed(0)} / 2235 psia`));
+      }
+      if (step.skippable) {
+        const skipBtn = button(
+          skipped ? pick("Skipped", "已跳過") : pick("Skip step 4", "跳過第 4 步"),
+          "startup-go skip",
+          () => send.control("skipStartupStep4", { flag: true })
+        );
+        skipBtn.disabled = !step.canSkip || skipped;
+        skipBtn.title = pick("Easy Mode only. This advances the checklist, not the plant trips.", "只限簡易模式。只推進清單，唔會繞過跳脫。");
+        actions.appendChild(skipBtn);
+      }
+      actions.appendChild(goBtn);
       body.appendChild(title);
       body.appendChild(ctl);
       if (detail) body.appendChild(detail);
+      if (skipped) body.appendChild(el("div", "startup-step-skipnote", pick("Skipped in Easy Mode; pressure and trips remain live.", "已於簡易模式跳過；壓力同跳脫仍然即時生效。")));
       row.appendChild(mark);
       row.appendChild(body);
-      row.appendChild(goBtn);
+      row.appendChild(actions);
       rowsHost.appendChild(row);
 
       const controlRow = el("div", "startup-control-row");
+      if (latestState?.easyStartup && step.active) controlRow.classList.add("active");
       controlRow.appendChild(el("span", "startup-control-num", String(step.index)));
       controlRow.appendChild(el("span", null, pick(step.controlEn, step.controlZh)));
       controlRow.appendChild(button(pick("Open", "開啟"), "startup-go ghost", () => goToControl(step)));

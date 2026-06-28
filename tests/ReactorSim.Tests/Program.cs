@@ -174,6 +174,28 @@ internal static class Program
                           $"delta={deltaPcm:F0} pcm, power={easy.NeutronPowerFraction:E2}, scram={easy.IsScrammed}");
         });
 
+        // ---- EASY STARTUP CHECKLIST STEP 4 SKIP (guide state only, trips untouched) ----
+        Scenario("EASY STARTUP: checklist can skip pressure-wait step 4 without satisfying pressure", () =>
+        {
+            var r = new ReactorSimService { EasyStartupMode = true };
+            r.SetMode(ReactorMode.Startup);
+            for (int i = 0; i < 4; i++) r.StartRcp(i);
+            r.RcpFlowDemand = 1.0;
+            for (int i = 0; i < 200; i++) r.Update(0.1);
+
+            var steps = ReactorScenarios.StartupSequence();
+            int before = ReactorScenarios.CompletedStartupSteps(steps, r);
+            bool pressureStillLow = r.PrimaryPressure < 14.5;
+            r.EasyStartupSkipPressureStep = true;
+            int after = ReactorScenarios.CompletedStartupSteps(steps, r);
+
+            r.EasyStartupMode = false;
+            int offAgain = ReactorScenarios.CompletedStartupSteps(steps, r);
+
+            bool pass = before == 3 && after == 4 && offAgain == 3 && pressureStillLow && !r.IsScrammed;
+            return (pass, $"before={before}, afterSkip={after}, easyOff={offAgain}, pressure={r.PrimaryPressure * 145.038:F0} psia, scram={r.IsScrammed}");
+        });
+
         // ---- SCRAM (deterministic mechanism: trip latches, release delay, gravity rod drop) ----
         // NOTE: we assert the SCRAM MECHANISM. Rods no longer snap fully in synchronously; StepRodDrop
         // models the breaker/gripper release delay and gravity insertion over the next few ticks.

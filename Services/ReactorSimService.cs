@@ -1419,7 +1419,17 @@ public sealed class ReactorSimService
     public double NisCalorimetricDeviationPct { get; private set; } // indicated PR − calorimetric, %RTP (signed)
     public bool   NisCalorimetricDeviationOob { get; private set; } // |deviation| > 2 % RTP while valid → recalibrate
     public double BurnupSinceNisCalMwd { get; private set; }       // MWd/tU accrued since last PR calibration (drift driver)
-    public bool   EasyStartupMode { get; set; }                    // beginner assist: +startup reactivity, ×1.5 burnup
+    private bool _easyStartupMode;
+    public bool   EasyStartupMode                                  // beginner assist: +startup reactivity, ×1.5 burnup
+    {
+        get => _easyStartupMode;
+        set
+        {
+            _easyStartupMode = value;
+            if (!value) EasyStartupSkipPressureStep = false;
+        }
+    }
+    public bool   EasyStartupSkipPressureStep { get; set; }         // Easy-mode checklist only: marks pressure-wait step skipped
     public double EasyStartupAssistActivePcm =>
         EasyStartupMode && (Mode == ReactorMode.Startup || Mode == ReactorMode.Run) && _power < EasyStartupPowerLimit
             ? EasyStartupAssistPcm : 0.0;
@@ -2841,6 +2851,7 @@ public sealed class ReactorSimService
         CoreExitTempC = ColdTemp; CetSubcoolingMarginC = 0; _cetInit = false;
         MinDnbr = DnbrRawUnfiltered = DnbrCeiling; DnbrLocalQuality = 0; RodsInDnbPercent = 0;
         OneOverM = 1.0; StartupRateDpm = 0; BurnupMwdPerTonne = 0; BurnupDefectPcm = 0; DepletionAccel = 1.0;
+        EasyStartupMode = false; EasyStartupSkipPressureStep = false;
         IntermediateRangeAmps = IrBottomAmps; IntermediateRangeDecades = 0; IntermediateRangePercent = 0;
         PowerRangePercent = 0; SourceRangeEnergized = true; _p6Latched = false;
         NisCalibrationGain = 1.0; CalorimetricPowerPct = 0; CalorimetricValid = false;
@@ -6007,6 +6018,7 @@ public sealed class ReactorSimService
             autoRods = AutoRodControl,
             autoSetpoint = AutoPowerSetpoint,
             easyStartup = EasyStartupMode,
+            easyStartupSkipPressureStep = EasyStartupSkipPressureStep,
             easyStartupAssistPcm = EasyStartupAssistActivePcm,
             // turbine / flow / decay
             turbineRpm = TurbineRPM,
@@ -6122,6 +6134,9 @@ public sealed class ReactorSimService
             case "autoRods": AutoRodControl = flag; break;
             case "autoSetpoint": AutoPowerSetpoint = Math.Clamp(value, 0, 1.2); break;
             case "easyStartup": EasyStartupMode = flag; break;
+            case "skipStartupStep4":
+                if (EasyStartupMode) EasyStartupSkipPressureStep = true;
+                break;
             case "setMode": SetMode((ReactorMode)index); break;
             case "scram": Scram(); break;
             case "resetTrip": ResetTrip(); break;
@@ -6173,6 +6188,7 @@ public sealed class ReactorSimService
         public double BoronPpm { get; set; }
         public double TargetBoronPpm { get; set; }
         public bool EasyStartupMode { get; set; }
+        public bool EasyStartupSkipPressureStep { get; set; }
         public bool PressurizerHeater { get; set; }
         public bool PressurizerSpray { get; set; }
         public double RcpFlowDemand { get; set; }
@@ -6212,6 +6228,7 @@ public sealed class ReactorSimService
             Iodine = Iodine, Xenon = Xenon,
             BoronPpm = BoronPpm, TargetBoronPpm = TargetBoronPpm,
             EasyStartupMode = EasyStartupMode,
+            EasyStartupSkipPressureStep = EasyStartupSkipPressureStep,
             PressurizerHeater = PressurizerHeater, PressurizerSpray = PressurizerSpray,
             RcpFlowDemand = RcpFlowDemand, FeedwaterFlow = FeedwaterFlow,
             TurbineLoadSetpoint = TurbineLoadSetpoint, GeneratorBreakerClosed = GeneratorBreakerClosed,
@@ -6248,6 +6265,7 @@ public sealed class ReactorSimService
                 for (int i = 0; i < 4; i++) RodBankInsertion[i] = s.RodBankInsertion[i];
             BoronPpm = s.BoronPpm; TargetBoronPpm = s.TargetBoronPpm;
             EasyStartupMode = s.EasyStartupMode;
+            EasyStartupSkipPressureStep = s.EasyStartupSkipPressureStep && EasyStartupMode;
             PressurizerHeater = s.PressurizerHeater; PressurizerSpray = s.PressurizerSpray;
             RcpFlowDemand = s.RcpFlowDemand;
             if (s.RcpRunning is { Length: 4 })
