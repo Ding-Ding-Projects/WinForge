@@ -91,6 +91,19 @@
                                 <Button x:Name="SyncNowBtn" Style="{StaticResource AccentButtonStyle}" Click="SyncNow_Click" />
                                 <Button x:Name="RefreshCommitsBtn" Click="RefreshCommits_Click" />
                             </StackPanel>
+
+                            <!-- Remote (push on sync) -->
+                            <Border Background="{ThemeResource LayerFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="6" Padding="12,10,12,10">
+                                <StackPanel Spacing="8">
+                                    <TextBlock x:Name="RemoteTitle" FontWeight="SemiBold" FontSize="13" />
+                                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                        <TextBox x:Name="RemoteUrlBox" MinWidth="340" />
+                                        <Button x:Name="SaveRemoteBtn" Click="SaveRemote_Click" />
+                                        <Button x:Name="PushNowBtn" Click="PushNow_Click" />
+                                    </StackPanel>
+                                    <CheckBox x:Name="PushOnSyncCheck" Click="PushOnSync_Click" />
+                                </StackPanel>
+                            </Border>
                         </StackPanel>
                     </Border>
 

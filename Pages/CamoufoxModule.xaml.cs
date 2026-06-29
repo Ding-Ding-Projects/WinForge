@@ -58,6 +58,13 @@ public sealed partial class CamoufoxModule : Page
         SyncNoteBox.PlaceholderText = P("Optional sync note…", "可填同步備註…");
         SyncNowBtn.Content = P("Sync now", "立即同步");
         RefreshCommitsBtn.Content = P("Refresh", "重新整理");
+        RemoteTitle.Text = P("Remote (push the profile store off-machine)", "遠端（將設定檔倉庫 push 到機外）");
+        RemoteUrlBox.PlaceholderText = P("https://… or git@…  (may embed a token)", "https://… 或 git@…（可含權杖）");
+        SaveRemoteBtn.Content = P("Save remote", "儲存遠端");
+        PushNowBtn.Content = P("Push now", "立即 push");
+        PushOnSyncCheck.Content = P("Push to the remote on every Sync", "每次同步都 push 上遠端");
+        RemoteUrlBox.Text = CamoufoxService.RemoteUrl;
+        PushOnSyncCheck.IsChecked = CamoufoxService.PushOnSync;
         HistoryLabel.Text = P("Commit history", "Commit 歷史");
         GitOutputTitle.Text = P("Git output", "Git 輸出");
         CommitsEmpty.Text = P("No commits yet.", "未有 commit。");
@@ -319,6 +326,28 @@ public sealed partial class CamoufoxModule : Page
         await Run(() => CamoufoxService.SyncAsync(note), P("Sync", "同步"), GitOutput);
         SyncNoteBox.Text = "";
         await RefreshCommits();
+    }
+
+    private void SaveRemote_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            CamoufoxService.RemoteUrl = RemoteUrlBox.Text?.Trim() ?? "";
+            Show(TweakResult.Ok("Remote saved.", "已儲存遠端。"), P("Save remote", "儲存遠端"));
+        }
+        catch (Exception ex) { CrashLogger.Log("camoufox.remote", ex); Warn(ex.Message); }
+    }
+
+    private void PushOnSync_Click(object sender, RoutedEventArgs e)
+    {
+        try { CamoufoxService.PushOnSync = PushOnSyncCheck.IsChecked == true; }
+        catch (Exception ex) { CrashLogger.Log("camoufox.pushonsync", ex); }
+    }
+
+    private async void PushNow_Click(object sender, RoutedEventArgs e)
+    {
+        CamoufoxService.RemoteUrl = RemoteUrlBox.Text?.Trim() ?? "";
+        await Run(() => CamoufoxService.PushAsync(), P("Push", "Push"), GitOutput);
     }
 
     private async void CommitDiff_Click(object sender, RoutedEventArgs e)

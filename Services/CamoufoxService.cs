@@ -160,14 +160,74 @@ public static class CamoufoxService
         return outp.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length;
     }
 
-    /// <summary>「同步」= 將所有待處理改動 commit · "Sync" the store — commit every pending change in one go.</summary>
+    // ───────────────────────── remote (push on sync) ─────────────────────────
+
+    public const string KeyRemote = "camoufox.remote.url";
+    public const string KeyPushOnSync = "camoufox.remote.pushonsync";
+
+    /// <summary>遠端倉庫網址（可含權杖）· Remote URL to push the profile store to (may embed a token).</summary>
+    public static string RemoteUrl
+    {
+        get => SettingsStore.Get(KeyRemote, "");
+        set => SettingsStore.Set(KeyRemote, value ?? "");
+    }
+
+    /// <summary>每次同步後自動 push · Whether every Sync also pushes to the remote.</summary>
+    public static bool PushOnSync
+    {
+        get => SettingsStore.Get(KeyPushOnSync, "false") == "true";
+        set => SettingsStore.Set(KeyPushOnSync, value ? "true" : "false");
+    }
+
+    public static bool HasRemote => !string.IsNullOrWhiteSpace(RemoteUrl);
+
+    /// <summary>設定 origin 遠端（idempotent）· Point the 'origin' remote at RemoteUrl (add or update).</summary>
+    private static async Task EnsureRemoteAsync(CancellationToken ct = default)
+    {
+        if (!HasRemote) return;
+        var (ok, _) = await Git("remote get-url origin", ct);
+        if (ok) await Git($"remote set-url origin \"{RemoteUrl}\"", ct);
+        else await Git($"remote add origin \"{RemoteUrl}\"", ct);
+    }
+
+    /// <summary>將設定檔倉庫 push 上遠端 · Push the profile store to the configured remote.</summary>
+    public static async Task<TweakResult> PushAsync(CancellationToken ct = default)
+    {
+        if (!HasRemote)
+            return TweakResult.Fail("No remote configured — set a remote URL first.", "未設定遠端 — 請先填遠端網址。");
+        try
+        {
+            await EnsureRepoAsync(ct);
+            await EnsureRemoteAsync(ct);
+            // Push the current branch and set upstream; works for a fresh master/main alike.
+            var (ok, outp) = await Git("push -u origin HEAD", ct);
+            return ok
+                ? TweakResult.Ok("Pushed the profile store to the remote.", "已將設定檔倉庫 push 上遠端。", outp)
+                : TweakResult.Fail("git push failed (check the URL / credentials).", "git push 失敗（請檢查網址／憑證）。", outp);
+        }
+        catch (Exception ex) { return TweakResult.Fail(ex.Message, $"出錯：{ex.Message}"); }
+    }
+
+    /// <summary>「同步」= 將所有待處理改動 commit（並按設定 push）· "Sync" — commit every pending change, then push if enabled.</summary>
     public static async Task<TweakResult> SyncAsync(string? note = null, CancellationToken ct = default)
     {
         await EnsureRepoAsync(ct);
         int pending = await PendingChangesAsync(ct);
-        if (pending == 0)
-            return TweakResult.Ok("Already in sync — nothing to commit.", "已經同步 — 冇嘢需要 commit。");
-        return await CommitAsync(string.IsNullOrWhiteSpace(note) ? $"Sync ({pending} change(s))" : $"Sync — {note}", ct);
+        TweakResult commitResult = pending == 0
+            ? TweakResult.Ok("Already in sync — nothing to commit.", "已經同步 — 冇嘢需要 commit。")
+            : await CommitAsync(string.IsNullOrWhiteSpace(note) ? $"Sync ({pending} change(s))" : $"Sync — {note}", ct);
+
+        // Push on every sync when a remote is configured and the option is on.
+        if (HasRemote && PushOnSync)
+        {
+            var push = await PushAsync(ct);
+            var combined = (commitResult.Output ?? "") + "\n" + (push.Output ?? "");
+            return push.Success
+                ? TweakResult.Ok("Synced and pushed to the remote.", "已同步並 push 上遠端。", combined)
+                : TweakResult.Fail("Committed, but the push failed (check URL / credentials).",
+                                   "已 commit，但 push 失敗（請檢查網址／憑證）。", combined);
+        }
+        return commitResult;
     }
 
     public static async Task<List<CamoufoxCommit>> ListCommitsAsync(CancellationToken ct = default)
