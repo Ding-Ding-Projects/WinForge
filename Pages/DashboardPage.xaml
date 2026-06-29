@@ -37,18 +37,18 @@
                 <!-- Stat row: features · categories · modules -->
                 <StackPanel Orientation="Horizontal" Spacing="28" Margin="0,18,0,0">
                     <StackPanel>
-                        <TextBlock x:Name="StatFeatures" FontFamily="Consolas" FontSize="24" FontWeight="Bold" Foreground="{StaticResource WinForgeBrandBrush}" />
-                        <TextBlock Text="FEATURES · 功能" FontSize="10.5" FontFamily="Consolas" Foreground="{ThemeResource TextFillColorTertiaryBrush}" Margin="0,2,0,0" />
+                        <TextBlock x:Name="StatFeatures" FontFamily="{StaticResource WinForgeMonoFont}" FontSize="24" FontWeight="Bold" Foreground="{StaticResource WinForgeBrandBrush}" />
+                        <TextBlock Text="FEATURES · 功能" FontSize="10.5" FontFamily="{StaticResource WinForgeMonoFont}" Foreground="{ThemeResource TextFillColorTertiaryBrush}" Margin="0,2,0,0" />
                     </StackPanel>
                     <Border Width="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" />
                     <StackPanel>
-                        <TextBlock x:Name="StatCategories" FontFamily="Consolas" FontSize="24" FontWeight="Bold" />
-                        <TextBlock Text="CATEGORIES · 分類" FontSize="10.5" FontFamily="Consolas" Foreground="{ThemeResource TextFillColorTertiaryBrush}" Margin="0,2,0,0" />
+                        <TextBlock x:Name="StatCategories" FontFamily="{StaticResource WinForgeMonoFont}" FontSize="24" FontWeight="Bold" />
+                        <TextBlock Text="CATEGORIES · 分類" FontSize="10.5" FontFamily="{StaticResource WinForgeMonoFont}" Foreground="{ThemeResource TextFillColorTertiaryBrush}" Margin="0,2,0,0" />
                     </StackPanel>
                     <Border Width="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" />
                     <StackPanel>
-                        <TextBlock x:Name="StatModules" FontFamily="Consolas" FontSize="24" FontWeight="Bold" />
-                        <TextBlock Text="MODULES · 模組" FontSize="10.5" FontFamily="Consolas" Foreground="{ThemeResource TextFillColorTertiaryBrush}" Margin="0,2,0,0" />
+                        <TextBlock x:Name="StatModules" FontFamily="{StaticResource WinForgeMonoFont}" FontSize="24" FontWeight="Bold" />
+                        <TextBlock Text="MODULES · 模組" FontSize="10.5" FontFamily="{StaticResource WinForgeMonoFont}" Foreground="{ThemeResource TextFillColorTertiaryBrush}" Margin="0,2,0,0" />
                     </StackPanel>
                 </StackPanel>
             </StackPanel>

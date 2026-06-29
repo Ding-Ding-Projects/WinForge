@@ -29,6 +29,13 @@
             <Color x:Key="SystemAccentColorDark2">#FF279048</Color>
             <Color x:Key="SystemAccentColorDark3">#FF1F7239</Color>
 
+            <!-- Design fonts: Space Grotesk (UI) + JetBrains Mono (numerals). CJK glyphs fall back to
+                 the system font automatically. Overriding ContentControlThemeFontFamily + setting the
+                 shell root's FontFamily makes Space Grotesk the app-wide UI font. -->
+            <FontFamily x:Key="WinForgeUiFont">ms-appx:///Assets/Fonts/SpaceGrotesk.ttf#Space Grotesk</FontFamily>
+            <FontFamily x:Key="WinForgeMonoFont">ms-appx:///Assets/Fonts/JetBrainsMono.ttf#JetBrains Mono</FontFamily>
+            <FontFamily x:Key="ContentControlThemeFontFamily">ms-appx:///Assets/Fonts/SpaceGrotesk.ttf#Space Grotesk</FontFamily>
+
             <!-- Shared brand brushes pages/cards can reference directly. -->
             <SolidColorBrush x:Key="WinForgeBrandBrush" Color="#FF54E07E" />
             <SolidColorBrush x:Key="WinForgeBrandDimBrush" Color="#FF2FAF57" />

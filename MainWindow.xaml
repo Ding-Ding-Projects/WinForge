@@ -21,6 +21,7 @@
 
         <TitleBar
             x:Name="AppTitleBar"
+            FontFamily="{StaticResource WinForgeUiFont}"
             Title="WinForge · 視窗調校"
             BackRequested="TitleBar_BackRequested"
             IsBackButtonVisible="False"
@@ -51,6 +52,7 @@
         <NavigationView
             x:Name="NavView"
             Grid.Row="1"
+            FontFamily="{StaticResource WinForgeUiFont}"
             IsBackButtonVisible="Collapsed"
             IsPaneToggleButtonVisible="False"
             IsSettingsVisible="True"

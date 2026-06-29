@@ -57,9 +57,19 @@
        Unpackaged runs can't rely on ms-appx:///, so every asset PNG (including loose ones not in the
        original explicit list) is copied to the output dir via a wildcard, letting the converter load
        them as file:/// from AppContext.BaseDirectory. -->
+  <!-- The repo-root SDK project globs **/*.cs; keep the standalone tools/ projects out of it. -->
+  <ItemGroup>
+    <Compile Remove="tools\**\*.cs" />
+    <Content Remove="tools\**\*" />
+    <None Remove="tools\**\*" />
+    <Page Remove="tools\**\*" />
+  </ItemGroup>
+
   <ItemGroup>
     <Content Include="Assets\**\*.png" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Assets\AppIcon.ico" CopyToOutputDirectory="PreserveNewest" />
+    <!-- WinForge "Reactor" design fonts (OFL) — Space Grotesk (UI) + JetBrains Mono (numerals). -->
+    <Content Include="Assets\Fonts\*.ttf" CopyToOutputDirectory="PreserveNewest" />
     <!-- 反應堆 HTML5/WebView2 控制室資產（自包含，無 CDN）· Self-contained HTML5 reactor control-room
          assets served via SetVirtualHostNameToFolderMapping at https://reactor.assets/. -->
     <Content Include="SimAssets\**\*.*" CopyToOutputDirectory="PreserveNewest" />
