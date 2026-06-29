@@ -46,11 +46,13 @@ public sealed partial class GitHubModule : Page
         InitializeComponent();
         Loc.I.LanguageChanged += OnLang;
         RepoStore.Changed += OnReposChanged;
+        GitAliasStore.Changed += OnAliasesChanged;
         WorkTabs.SelectionChanged += async (_, _) => await OnTabChanged();
         Unloaded += (_, _) =>
         {
             Loc.I.LanguageChanged -= OnLang;
             RepoStore.Changed -= OnReposChanged;
+            GitAliasStore.Changed -= OnAliasesChanged;
         };
         Loaded += async (_, _) =>
         {
@@ -74,7 +76,10 @@ public sealed partial class GitHubModule : Page
     }
 
     private void OnReposChanged(object? sender, EventArgs e) =>
-        DispatcherQueue.TryEnqueue(BuildRepoList);
+        DispatcherQueue.TryEnqueue(() => { BuildRepoList(); BuildAliasList(); });
+
+    private void OnAliasesChanged(object? sender, EventArgs e) =>
+        DispatcherQueue.TryEnqueue(BuildAliasList);
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
@@ -102,6 +107,7 @@ public sealed partial class GitHubModule : Page
         HistoryTab.Header = P("History", "歷史");
         BranchesTab.Header = P("Branches", "分支");
         ToolsTab.Header = P("Tools", "工具");
+        WorkflowsTab.Header = P("Workflows", "工作流程");
 
         // Overview tab
         OverviewLabel.Text = P("Repository overview", "儲存庫概覽");
@@ -169,6 +175,36 @@ public sealed partial class GitHubModule : Page
         RunnerBtn.Content = P("Run", "執行");
         OpsFilter.PlaceholderText = P("Filter operations…", "篩選操作…");
         AdvancedHeader.Text = P($"Operation library ({GitCatalog.Count})", $"操作庫（{GitCatalog.Count}）");
+
+        // Workflows tab (Gitty)
+        WorkflowsBlurb.Text = P(
+            "Opinionated one-click shortcuts inspired by the Gitty CLI — collapse the everyday add/commit/push, tag checkpoints, undo, and your own saved command sequences into single clicks against the selected repository.",
+            "受 Gitty CLI 啟發嘅一鍵捷徑 — 將日常 add/commit/push、開檢查點 tag、撤回，同你自訂嘅指令序列，喺選中嘅儲存庫上一 click 搞掂。");
+        WorkflowsLabel.Text = P("One-click workflows", "一鍵工作流程");
+        UpHint.Text = P("Up · stage everything, commit, then push in one go (git add -A + commit + push).",
+            "Up · 一次過暫存全部、提交、再推送（git add -A + commit + push）。");
+        UpMessageBox.PlaceholderText = P("Commit message (optional)…", "提交訊息（可選）…");
+        UpBtn.Content = P("Up", "Up");
+        UndoBtn.Content = P("Undo last commit", "撤回上一個提交");
+        ShareBtn.Content = P("Push & share link", "推送並複製連結");
+        PrLinkBtn.Content = P("Copy PR link", "複製 PR 連結");
+
+        CheckpointLabel.Text = P("Checkpoints", "檢查點");
+        CheckpointHint.Text = P("Create a tag at the current branch tip and push it to origin. Restoring checks out the tag (detached HEAD).",
+            "喺目前分支頂點開一個 tag 並推上 origin。還原會 checkout 個 tag（detached HEAD）。");
+        CheckpointNameBox.PlaceholderText = P("Checkpoint / tag name…", "檢查點／tag 名…");
+        CheckpointBtn.Content = P("Checkpoint", "建立檢查點");
+        RestoreBtn.Content = P("Restore", "還原");
+
+        AliasLabel.Text = P("Aliases", "別名");
+        AliasHint.Text = P("Save a named sequence of git/gh steps (one per line) and run it with one click. Each line is \"git …\" or \"gh …\"; a bare line is treated as git. Stops on the first failing step.",
+            "儲存一串具名嘅 git/gh 步驟（每行一個），一 click 執行。每行係「git …」或「gh …」；冇前綴當 git。第一步失敗就停低。");
+        AliasEditorLabel.Text = P("New / edit alias", "新增／編輯別名");
+        AliasNameBox.PlaceholderText = P("Alias name (button label)…", "別名（按鈕標籤）…");
+        AliasStepsBox.PlaceholderText = P("add -A\ncommit -m \"wip\"\npush", "add -A\ncommit -m \"wip\"\npush");
+        AliasSaveBtn.Content = P("Save alias", "儲存別名");
+
+        BuildAliasList();
     }
 
     private void BuildScopeCombo()
@@ -414,6 +450,7 @@ public sealed partial class GitHubModule : Page
     private async Task Refresh()
     {
         RepoPathBox.Text = AppState.CurrentRepoPath;
+        BuildAliasList();
         if (!GitDeskService.HasRepo)
         {
             RepoStatus.Text = P("No repository selected — add or pick one on the left.",
@@ -1354,6 +1391,291 @@ public sealed partial class GitHubModule : Page
             card.SetTweak(op);
             OpsPanel.Children.Add(card);
         }
+    }
+
+    // ===== WORKFLOWS / ALIASES (Gitty) tab =====
+
+    private void WfConsole(string text)
+    {
+        WorkflowConsoleBorder.Visibility = Visibility.Visible;
+        WorkflowConsoleLog.Text += text;
+        if (WorkflowConsoleLog.Text.Length > 20000)
+            WorkflowConsoleLog.Text = WorkflowConsoleLog.Text[^20000..];
+    }
+
+    private bool RequireRepo()
+    {
+        if (GitService.HasRepo) return true;
+        Notify(InfoBarSeverity.Warning, P("Pick a repository first.", "請先揀儲存庫。"), "");
+        return false;
+    }
+
+    /// <summary>Run a workflow with its button disabled, streaming to the workflow console.</summary>
+    private async Task RunWorkflow(Button btn, string title, Func<IProgress<string>, Task<TweakResult>> run)
+    {
+        if (!RequireRepo()) return;
+        btn.IsEnabled = false;
+        var progress = new Progress<string>(WfConsole);
+        try
+        {
+            var r = await run(progress);
+            Notify(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error, title, Msg(r));
+            await Refresh();
+        }
+        catch (Exception ex)
+        {
+            CrashLogger.Log("GitHubModule.RunWorkflow", ex);
+            WfConsole("\n" + ex.Message + "\n");
+            Notify(InfoBarSeverity.Error, title, ex.Message);
+        }
+        finally { btn.IsEnabled = true; }
+    }
+
+    private async void Up_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var msg = UpMessageBox.Text ?? string.Empty;
+            await RunWorkflow(UpBtn, P("Up", "Up"),
+                p => GitWorkflows.Up(msg, p, CancellationToken.None));
+            UpMessageBox.Text = string.Empty;
+        }
+        catch (Exception ex) { CrashLogger.Log("GitHubModule.Up_Click", ex); }
+    }
+
+    private async void Undo_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (!RequireRepo()) return;
+            if (!await Confirm(P("Undo last commit", "撤回上一個提交"),
+                    P("Soft-reset the last commit (git reset --soft HEAD~1)? Its changes stay staged so you can re-commit.",
+                      "軟重設上一個提交（git reset --soft HEAD~1）？改動會留喺暫存區，可以再提交。"),
+                    P("Undo", "撤回"))) return;
+            await RunWorkflow(UndoBtn, P("Undo last commit", "撤回上一個提交"),
+                p => GitWorkflows.Undo(p, CancellationToken.None));
+        }
+        catch (Exception ex) { CrashLogger.Log("GitHubModule.Undo_Click", ex); }
+    }
+
+    private async void Share_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (!RequireRepo()) return;
+            ShareBtn.IsEnabled = false;
+            var progress = new Progress<string>(WfConsole);
+            try
+            {
+                var r = await GitWorkflows.PushAndShare(progress, CancellationToken.None);
+                if (r.Success && !string.IsNullOrWhiteSpace(r.Output))
+                    CopyToClipboard(r.Output!);
+                Notify(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error,
+                    P("Push & share link", "推送並複製連結"), Msg(r));
+                await Refresh();
+            }
+            finally { ShareBtn.IsEnabled = true; }
+        }
+        catch (Exception ex)
+        {
+            CrashLogger.Log("GitHubModule.Share_Click", ex);
+            Notify(InfoBarSeverity.Error, P("Push & share link", "推送並複製連結"), ex.Message);
+        }
+    }
+
+    private async void PrLink_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (!RequireRepo()) return;
+            PrLinkBtn.IsEnabled = false;
+            try
+            {
+                var r = await GitWorkflows.PrUrl(CancellationToken.None);
+                if (r.Success && !string.IsNullOrWhiteSpace(r.Output))
+                    CopyToClipboard(r.Output!);
+                Notify(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Warning,
+                    P("Copy PR link", "複製 PR 連結"), Msg(r));
+            }
+            finally { PrLinkBtn.IsEnabled = true; }
+        }
+        catch (Exception ex)
+        {
+            CrashLogger.Log("GitHubModule.PrLink_Click", ex);
+            Notify(InfoBarSeverity.Error, P("Copy PR link", "複製 PR 連結"), ex.Message);
+        }
+    }
+
+    private async void Checkpoint_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var name = CheckpointNameBox.Text?.Trim() ?? string.Empty;
+            if (string.IsNullOrEmpty(name))
+            {
+                Notify(InfoBarSeverity.Warning, P("Enter a checkpoint name first.", "請先輸入檢查點名稱。"), "");
+                return;
+            }
+            var branch = await GitDeskService.CurrentBranch();
+            await RunWorkflow(CheckpointBtn, P("Checkpoint", "建立檢查點"),
+                p => GitWorkflows.Checkpoint(name, branch, p, CancellationToken.None));
+            CheckpointNameBox.Text = string.Empty;
+        }
+        catch (Exception ex) { CrashLogger.Log("GitHubModule.Checkpoint_Click", ex); }
+    }
+
+    private async void Restore_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var name = CheckpointNameBox.Text?.Trim() ?? string.Empty;
+            if (string.IsNullOrEmpty(name))
+            {
+                Notify(InfoBarSeverity.Warning, P("Enter a checkpoint name first.", "請先輸入檢查點名稱。"), "");
+                return;
+            }
+            if (!RequireRepo()) return;
+            if (!await Confirm(P("Restore checkpoint", "還原檢查點"),
+                    P($"Check out tag “{name}”? This leaves you in a detached HEAD — create a branch to keep working.",
+                      $"Checkout tag「{name}」？呢個會令你進入 detached HEAD — 想繼續開發請開新分支。"),
+                    P("Restore", "還原"))) return;
+            await RunWorkflow(RestoreBtn, P("Restore checkpoint", "還原檢查點"),
+                p => GitWorkflows.Restore(name, p, CancellationToken.None));
+        }
+        catch (Exception ex) { CrashLogger.Log("GitHubModule.Restore_Click", ex); }
+    }
+
+    private void BuildAliasList()
+    {
+        if (AliasListPanel is null) return;
+        AliasListPanel.Children.Clear();
+        if (!GitService.HasRepo)
+        {
+            AliasListPanel.Children.Add(EmptyHint(P("Pick a repository to see its saved aliases.",
+                "揀一個儲存庫去睇佢儲存咗嘅別名。")));
+            return;
+        }
+        List<GitAlias> aliases;
+        try { aliases = GitAliasStore.Load(GitService.Repo); }
+        catch (Exception ex) { CrashLogger.Log("GitHubModule.BuildAliasList", ex); aliases = new(); }
+        if (aliases.Count == 0)
+        {
+            AliasListPanel.Children.Add(EmptyHint(P("No saved aliases yet — add one below.",
+                "未有儲存別名 — 喺下面加一個。")));
+            return;
+        }
+        foreach (var alias in aliases)
+            AliasListPanel.Children.Add(BuildAliasRow(alias));
+    }
+
+    private FrameworkElement BuildAliasRow(GitAlias alias)
+    {
+        var grid = new Grid { ColumnSpacing = 8, Padding = new Thickness(8, 6, 8, 6) };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        var text = new StackPanel { Spacing = 2 };
+        text.Children.Add(new TextBlock { Text = alias.Name, FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis });
+        text.Children.Add(new TextBlock
+        {
+            Text = string.Join("  ·  ", alias.Steps),
+            FontSize = 11,
+            Foreground = (Brush)Application.Current.Resources["TextFillColorTertiaryBrush"],
+            TextTrimming = TextTrimming.CharacterEllipsis,
+        });
+        Grid.SetColumn(text, 0);
+        grid.Children.Add(text);
+
+        var runBtn = new Button { Content = P("Run", "執行"), Padding = new Thickness(8, 4, 8, 4) };
+        runBtn.Click += async (_, _) =>
+        {
+            try
+            {
+                await RunWorkflow(runBtn, P($"Alias · {alias.Name}", $"別名 · {alias.Name}"),
+                    p => GitAliasStore.Run(alias, p, CancellationToken.None));
+            }
+            catch (Exception ex) { CrashLogger.Log("GitHubModule.AliasRun", ex); }
+        };
+        Grid.SetColumn(runBtn, 1);
+        grid.Children.Add(runBtn);
+
+        var editBtn = new Button { Content = P("Edit", "編輯"), Padding = new Thickness(8, 4, 8, 4) };
+        editBtn.Click += (_, _) =>
+        {
+            AliasNameBox.Text = alias.Name;
+            AliasStepsBox.Text = string.Join("\n", alias.Steps);
+        };
+        Grid.SetColumn(editBtn, 2);
+        grid.Children.Add(editBtn);
+
+        var deleteBtn = new Button { Content = P("Delete", "刪除"), Padding = new Thickness(8, 4, 8, 4) };
+        deleteBtn.Click += async (_, _) =>
+        {
+            try
+            {
+                if (!await Confirm(P("Delete alias", "刪除別名"),
+                        P($"Delete alias “{alias.Name}”?", $"刪除別名「{alias.Name}」？"),
+                        P("Delete", "刪除"))) return;
+                GitAliasStore.Remove(GitService.Repo, alias.Name);
+            }
+            catch (Exception ex) { CrashLogger.Log("GitHubModule.AliasDelete", ex); }
+        };
+        Grid.SetColumn(deleteBtn, 3);
+        grid.Children.Add(deleteBtn);
+
+        return new Border
+        {
+            Background = (Brush)Application.Current.Resources["LayerFillColorDefaultBrush"],
+            CornerRadius = new CornerRadius(6),
+            Child = grid,
+        };
+    }
+
+    private void AliasSave_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (!RequireRepo()) return;
+            var name = AliasNameBox.Text?.Trim() ?? string.Empty;
+            if (string.IsNullOrEmpty(name))
+            {
+                Notify(InfoBarSeverity.Warning, P("Enter an alias name first.", "請先輸入別名。"), "");
+                return;
+            }
+            var steps = GitAliasStore.ParseSteps(AliasStepsBox.Text ?? string.Empty);
+            if (steps.Count == 0)
+            {
+                Notify(InfoBarSeverity.Warning, P("Add at least one step.", "請加最少一個步驟。"), "");
+                return;
+            }
+            GitAliasStore.Save(GitService.Repo, new GitAlias { Name = name, Steps = steps });
+            AliasNameBox.Text = string.Empty;
+            AliasStepsBox.Text = string.Empty;
+            Notify(InfoBarSeverity.Success, P("Alias saved", "已儲存別名"),
+                P($"“{name}” saved with {steps.Count} step(s).", $"「{name}」已儲存（{steps.Count} 步）。"));
+        }
+        catch (Exception ex)
+        {
+            CrashLogger.Log("GitHubModule.AliasSave_Click", ex);
+            Notify(InfoBarSeverity.Error, P("Save alias", "儲存別名"), ex.Message);
+        }
+    }
+
+    private void CopyToClipboard(string text)
+    {
+        try
+        {
+            var dp = new Windows.ApplicationModel.DataTransfer.DataPackage
+            {
+                RequestedOperation = Windows.ApplicationModel.DataTransfer.DataPackageOperation.Copy,
+            };
+            dp.SetText(text);
+            Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(dp);
+            Windows.ApplicationModel.DataTransfer.Clipboard.Flush();
+        }
+        catch (Exception ex) { CrashLogger.Log("GitHubModule.CopyToClipboard", ex); }
     }
 
     // ===== helpers =====
