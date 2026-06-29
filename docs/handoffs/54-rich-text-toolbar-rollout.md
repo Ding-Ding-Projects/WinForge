@@ -105,6 +105,37 @@ For a brand-new module, this still follows the standard "touch 4 places" rule in
 
 ---
 
+## 4a. Embed it in the VS Code module (and other Monaco / WebView2 editors)
+
+**Explicit ask: the toolbar must also be embedded in the VS Code editor surface.** This is the
+`module.vscode` module ([Pages/VsCodeModule.xaml.cs](../../Pages/VsCodeModule.xaml.cs)) and any
+Monaco-in-WebView2 surface (e.g. **Rich Preview** / `module.richpreview`, which already hosts Monaco via
+WebView2 — see `Services/RichPreviewService.cs`).
+
+A WebView2/Monaco editor is **not** a XAML text control, so you can't apply `FontFamily`/`Foreground` to it
+directly. Bridge it instead — the toolbar stays the same XAML control, but `Apply()` routes to Monaco:
+
+- **Host:** place the `RichTextToolbar` in XAML **above** the `WebView2`, in the same scoped container.
+- **Editor mode:** add a `Mode.WebViewEditor` (or pass an `IRichTextTarget` adapter) so `Apply()` calls
+  `webView.CoreWebView2.ExecuteScriptAsync(...)` instead of touching XAML properties:
+  - Font family / size → `editor.updateOptions({ fontFamily: '…', fontSize: N })`.
+  - Theme → `monaco.editor.setTheme('vs' | 'vs-dark' | 'hc-black')` — **scoped to this editor instance
+    only**, never the app (same rule as §3; the WebView is the container).
+  - Bold / italic / strikethrough / colour → Monaco styles the whole buffer via syntax themes, so apply
+    these as an **editor-wide text decoration / inline style** (or a `<style>` injection), not per-run,
+    and keep them in this instance's state.
+  - Copy → `editor.getModel().getValue()` → bridge back to the clipboard via `DataPackage`.
+  - Save TXT / PDF → get the value through `ExecuteScriptAsync('editor.getValue()')`, then reuse the shared
+    `TextExportService` exactly as the native path does.
+- **Per-instance still holds:** each VS Code / Monaco surface has its **own** WebView and its **own**
+  toolbar instance and state. One editor going Dark + 18px must not change another editor or the app.
+- If the `module.vscode` page is only a **CLI launcher** (it shells out to the real VS Code rather than
+  hosting an editor), there is no in-app text buffer to format — in that case add the toolbar to the
+  module's own notes/preview/output text surfaces, and treat **Rich Preview's Monaco** as the primary
+  WebView2 embedding target. Confirm which it is before wiring.
+
+---
+
 ## 5. Gotchas / conventions (from building the Terms reader)
 
 - **Icons:** use plain text glyphs for B / I / S, not Segoe MDL2 glyphs (strikethrough looks like underline).
@@ -126,6 +157,8 @@ For a brand-new module, this still follows the standard "touch 4 places" rule in
 - [ ] `Controls/RichTextToolbar.cs` exists; `RenderPdf`/`WrapLine`/`FontChoices` moved to
       `Services/TextExportService.cs`; `TermsService` refactored to use it (behaviour unchanged).
 - [ ] Read-only mode (TextBlock) and editable mode (RichEditBox selection formatting) both work.
+- [ ] Embedded in the VS Code module / a Monaco-in-WebView2 editor via the `ExecuteScriptAsync` bridge
+      (§4a), with theme scoped to that editor instance only.
 - [ ] Two surfaces open at once have **fully independent** font/size/colour/style/theme.
 - [ ] Theme changes are scoped to the surface's container, never `App.SetTheme`.
 - [ ] Copy / Save TXT / Save PDF all work; PDF honours the live formatting incl. CJK.
