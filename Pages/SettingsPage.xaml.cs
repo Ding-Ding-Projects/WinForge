@@ -36,6 +36,7 @@ public sealed partial class SettingsPage : Page
             Style = (Style)Application.Current.Resources["TitleTextBlockStyle"],
         });
 
+        Root.Children.Add(BuildBrandingCard());
         Root.Children.Add(BuildLanguageCard());
         Root.Children.Add(BuildThemeCard());
         Root.Children.Add(BuildBackupCard());
@@ -129,6 +130,58 @@ public sealed partial class SettingsPage : Page
         };
         _suppress = false;
         panel.Children.Add(radios);
+        return Card(panel);
+    }
+
+    private Border BuildBrandingCard()
+    {
+        var panel = new StackPanel { Spacing = 8 };
+        panel.Children.Add(Heading(
+            Loc.I.Pick("App name (branding)", "應用程式名稱（品牌）"),
+            Loc.I.Pick("Rename the app to your own name. Shown in the title bar and dashboard; your data folder and internal IDs stay unchanged.",
+                "將 app 改成你自己嘅名。會喺標題列同概覽顯示；資料夾同內部識別碼維持不變。")));
+
+        var enBox = new TextBox
+        {
+            Header = Loc.I.Pick("Name (English)", "名稱（英文）"),
+            Text = BrandingService.NameEn,
+            PlaceholderText = BrandingService.DefaultEn,
+            MaxWidth = 360,
+            HorizontalAlignment = HorizontalAlignment.Left,
+        };
+        var zhBox = new TextBox
+        {
+            Header = Loc.I.Pick("Name (Chinese)", "名稱（中文）"),
+            Text = BrandingService.NameZh,
+            PlaceholderText = BrandingService.DefaultZh,
+            MaxWidth = 360,
+            HorizontalAlignment = HorizontalAlignment.Left,
+        };
+
+        var status = new TextBlock { FontSize = 12, Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"] };
+
+        var apply = new Button { Content = Loc.I.Pick("Apply name", "套用名稱"), Style = (Style)Application.Current.Resources["AccentButtonStyle"] };
+        apply.Click += (_, _) =>
+        {
+            BrandingService.Set(enBox.Text, zhBox.Text);
+            enBox.Text = BrandingService.NameEn;
+            zhBox.Text = BrandingService.NameZh;
+            status.Text = Loc.I.Pick($"Applied — now \"{BrandingService.NameEn} · {BrandingService.NameZh}\".",
+                $"已套用 — 而家係「{BrandingService.NameEn} · {BrandingService.NameZh}」。");
+        };
+        var reset = new Button { Content = Loc.I.Pick("Reset to WinForge", "還原做 WinForge") };
+        reset.Click += (_, _) =>
+        {
+            BrandingService.Reset();
+            enBox.Text = BrandingService.NameEn;
+            zhBox.Text = BrandingService.NameZh;
+            status.Text = Loc.I.Pick("Reset to the default name.", "已還原做預設名稱。");
+        };
+
+        panel.Children.Add(enBox);
+        panel.Children.Add(zhBox);
+        panel.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { apply, reset } });
+        panel.Children.Add(status);
         return Card(panel);
     }
 

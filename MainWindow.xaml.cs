@@ -50,6 +50,7 @@ public sealed partial class MainWindow : Window
         BuildTitleMap();
         WireNavigator();
         Loc.I.LanguageChanged += OnLanguageChanged;
+        BrandingService.Changed += (_, _) => { try { ApplyLanguageToShell(); } catch { } };
         ApplyLanguageToShell();
         CrashLogger.Mark("MW: after WireNavigator");
 
@@ -1108,7 +1109,8 @@ public sealed partial class MainWindow : Window
 
     private void ApplyLanguageToShell()
     {
-        AppTitleBar.Title = Loc.I.Pick("WinForge", "視窗調校");
+        AppTitleBar.Title = BrandingService.Display;
+        try { Title = BrandingService.Display; } catch { }
         SearchBox.PlaceholderText = Loc.I.Pick("Search everything", "搜尋全部");
         RelabelNavItems(NavView.MenuItems);
         RelabelNavItems(NavView.FooterMenuItems);

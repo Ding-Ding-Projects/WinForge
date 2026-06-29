@@ -13,8 +13,9 @@
             <!-- Hero (WinForge.dc.html design) -->
             <StackPanel Spacing="3">
                 <StackPanel Orientation="Horizontal" Spacing="14">
-                    <TextBlock Text="WinForge" FontSize="48" FontWeight="Bold" />
+                    <TextBlock x:Name="HeroNameEn" Text="WinForge" FontSize="48" FontWeight="Bold" />
                     <TextBlock
+                        x:Name="HeroNameZh"
                         Text="視窗調校"
                         FontSize="32"
                         FontWeight="SemiBold"

@@ -21,11 +21,14 @@ public sealed partial class DashboardPage : Page
     {
         InitializeComponent();
         Loc.I.LanguageChanged += (_, _) => Render();
+        BrandingService.Changed += (_, _) => { try { Render(); } catch { } };
         Loaded += (_, _) => Render();
     }
 
     private void Render()
     {
+        HeroNameEn.Text = BrandingService.NameEn;
+        HeroNameZh.Text = BrandingService.NameZh;
         HeroSubEn.Text = "An all-in-one, fully bilingual control center that genuinely tunes Windows 11.";
         HeroSubZh.Text = "全方位、全雙語嘅控制中心，真係會幫你調校 Windows 11。";
         StatFeatures.Text = TweakCatalog.Count.ToString();
