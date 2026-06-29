@@ -147,14 +147,17 @@
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <Grid Grid.Column="0" RowSpacing="6">
+            <Grid x:Name="ResumePaneRoot" Grid.Column="0" RowSpacing="6">
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
                 <TextBlock x:Name="ResumePaneLabel" Grid.Row="0" FontWeight="SemiBold" />
+                <!-- Rich-text toolbar (handoff 54) injected here at runtime -->
+                <ContentControl x:Name="ResumeToolbarHost" Grid.Row="1" HorizontalAlignment="Left" Margin="0,0,0,4" />
                 <Border
-                    Grid.Row="1"
+                    Grid.Row="2"
                     Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                     BorderThickness="1"
@@ -170,14 +173,17 @@
                 </Border>
             </Grid>
 
-            <Grid Grid.Column="1" RowSpacing="6">
+            <Grid x:Name="CoverPaneRoot" Grid.Column="1" RowSpacing="6">
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
                 <TextBlock x:Name="CoverPaneLabel" Grid.Row="0" FontWeight="SemiBold" />
+                <!-- Rich-text toolbar (handoff 54) injected here at runtime -->
+                <ContentControl x:Name="CoverToolbarHost" Grid.Row="1" HorizontalAlignment="Left" Margin="0,0,0,4" />
                 <Border
-                    Grid.Row="1"
+                    Grid.Row="2"
                     Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                     BorderThickness="1"

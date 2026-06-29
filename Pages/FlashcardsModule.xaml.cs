@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using WinForge.Controls;
 using WinForge.Services;
 
 namespace WinForge.Pages;
@@ -35,6 +36,9 @@ public sealed partial class FlashcardsModule : Page
     private int _studiedThisSession;
     private bool _answerShown;
 
+    // 學習卡正面嘅富文字工具列（每實例獨立，主題只影響學習卡）· per-instance toolbar for the study card.
+    private RichTextToolbar? _studyToolbar;
+
     public FlashcardsModule()
     {
         InitializeComponent();
@@ -43,9 +47,22 @@ public sealed partial class FlashcardsModule : Page
         StatsList.ItemsSource = _deckStats;
         Loc.I.LanguageChanged += (_, _) => Render();
         Loaded += OnLoaded;
+        Loaded += (_, _) => EnsureStudyToolbar();
     }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
+
+    /// <summary>建立學習卡正面嘅富文字工具列；主題只影響學習卡容器 · build the study card's toolbar once (theme scoped to the card).</summary>
+    private void EnsureStudyToolbar()
+    {
+        if (_studyToolbar is not null) return;
+        try
+        {
+            _studyToolbar = new RichTextToolbar(StudyFront, RichTextToolbar.Mode.ReadOnly, themeScope: StudyCard);
+            StudyToolbarHost.Content = _studyToolbar;
+        }
+        catch (Exception ex) { CrashLogger.Log("flashcards:toolbar", ex); }
+    }
 
     private void OnLoaded(object? s, RoutedEventArgs e)
     {

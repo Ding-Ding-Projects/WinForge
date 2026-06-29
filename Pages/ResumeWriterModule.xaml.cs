@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using WinForge.Controls;
 using WinForge.Models;
 using WinForge.Services;
 
@@ -23,6 +24,10 @@ public sealed partial class ResumeWriterModule : Page
     private CancellationTokenSource? _cts;
     private string _currentOutputId = "";   // history id of the loaded output, if any
 
+    // 履歷／求職信編輯框各自嘅富文字工具列（每實例獨立，互不影響）· independent per-instance toolbars.
+    private RichTextToolbar? _resumeToolbar;
+    private RichTextToolbar? _coverToolbar;
+
     public ResumeWriterModule()
     {
         InitializeComponent();
@@ -31,6 +36,7 @@ public sealed partial class ResumeWriterModule : Page
         Loaded += async (_, _) =>
         {
             Render();
+            EnsureResumeToolbar();
             RefreshBaseCombo();
             FillToneCombo();
             await RefreshAgentsAsync();
@@ -43,6 +49,25 @@ public sealed partial class ResumeWriterModule : Page
     }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
+
+    /// <summary>建立履歷編輯框嘅富文字工具列；主題只套用喺履歷面容器 · build the resume editor's toolbar once (theme scoped to its pane).</summary>
+    private void EnsureResumeToolbar()
+    {
+        try
+        {
+            if (_resumeToolbar is null)
+            {
+                _resumeToolbar = new RichTextToolbar(ResumeEditor, RichTextToolbar.Mode.Editable, themeScope: ResumePaneRoot);
+                ResumeToolbarHost.Content = _resumeToolbar;
+            }
+            if (_coverToolbar is null)
+            {
+                _coverToolbar = new RichTextToolbar(CoverEditor, RichTextToolbar.Mode.Editable, themeScope: CoverPaneRoot);
+                CoverToolbarHost.Content = _coverToolbar;
+            }
+        }
+        catch (Exception ex) { CrashLogger.Log("resumewriter:toolbar", ex); }
+    }
 
     private void OnLanguageChanged(object? s, EventArgs e)
     {
