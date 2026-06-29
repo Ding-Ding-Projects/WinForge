@@ -427,24 +427,42 @@ public static class AmuletService
             workdir = entry.Path; // parent of the package dir
         }
 
+        // 凍結 GUI .exe（PyInstaller --windowed）唔好重新導向 stdout/stderr：佢哋成日會因為被導向去管道
+        // 而卡死或者開唔到視窗，睇落就好似「launch 唔到」。只有 Python 模組模式先需要串流 console 輸出。
+        // A frozen GUI .exe (PyInstaller --windowed) must NOT have its stdio redirected — windowed builds
+        // routinely hang or never show a window when stdout/stderr are piped, which looks exactly like
+        // "Amulet won't launch". Only the Python-module path benefits from streaming console output.
+        bool redirect = entry.Mode == LaunchMode.PythonModule;
+
+        if (redirect && !File.Exists(file))
+            return TweakResult.Fail("Python executable went missing.", "Python 執行檔唔見咗。");
+        if (!redirect && !File.Exists(file))
+            return TweakResult.Fail("Amulet executable went missing — re-extract it.", "Amulet 執行檔唔見咗 — 請重新解壓。");
+
         var psi = new ProcessStartInfo
         {
             FileName = file,
             Arguments = args,
             WorkingDirectory = workdir,
             UseShellExecute = false,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            CreateNoWindow = true,
-            StandardOutputEncoding = Encoding.UTF8,
-            StandardErrorEncoding = Encoding.UTF8,
+            RedirectStandardOutput = redirect,
+            RedirectStandardError = redirect,
+            CreateNoWindow = redirect,
         };
+        if (redirect)
+        {
+            psi.StandardOutputEncoding = Encoding.UTF8;
+            psi.StandardErrorEncoding = Encoding.UTF8;
+        }
 
         try
         {
             var p = new Process { StartInfo = psi, EnableRaisingEvents = true };
-            p.OutputDataReceived += (_, e) => { if (e.Data is not null) onOutput(e.Data); };
-            p.ErrorDataReceived += (_, e) => { if (e.Data is not null) onOutput(e.Data); };
+            if (redirect)
+            {
+                p.OutputDataReceived += (_, e) => { if (e.Data is not null) onOutput(e.Data); };
+                p.ErrorDataReceived += (_, e) => { if (e.Data is not null) onOutput(e.Data); };
+            }
             p.Exited += (_, _) =>
             {
                 lock (_gate) { _proc = null; }
@@ -452,8 +470,16 @@ public static class AmuletService
             };
             if (!p.Start())
                 return TweakResult.Fail("Failed to start Amulet.", "啟動 Amulet 失敗。");
-            p.BeginOutputReadLine();
-            p.BeginErrorReadLine();
+            if (redirect)
+            {
+                p.BeginOutputReadLine();
+                p.BeginErrorReadLine();
+            }
+            else
+            {
+                onOutput(Loc.I.Pick("Amulet (frozen build) launched in its own window.",
+                                    "Amulet（凍結版本）已喺自己嘅視窗開啟。"));
+            }
             lock (_gate) { _proc = p; }
 
             if (!string.IsNullOrWhiteSpace(worldFolder)) LastWorld = worldFolder!;
