@@ -76,12 +76,13 @@ public static class DocsExporter
 
         var payload = new
         {
+            // No timestamp here — keep the output deterministic so CI only commits when the
+            // REAL module/category/feature data actually changes (not on every run).
             meta = new
             {
                 totalFeatures = TweakCatalog.Count,
                 categoryCount = Categories.All.Length,
                 moduleCount = ModuleRegistry.All.Count,
-                generatedUtc = DateTime.UtcNow.ToString("o"),
             },
             categories,
             modules,

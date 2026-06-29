@@ -79,4 +79,6 @@ jobs:
           }
           git add design/winforge-data.js
           git commit -m "chore: regenerate real site data from the app [auto]"
+          # Rebase onto any commits that landed while we were building, then push.
+          git pull --rebase origin main
           git push

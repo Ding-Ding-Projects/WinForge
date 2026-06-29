@@ -67,7 +67,6 @@ $merged = [ordered]@{
     categoryCount = $real.meta.categoryCount
     moduleCount   = $real.meta.moduleCount
     wikiCount     = $wikiCount
-    generatedUtc  = $real.meta.generatedUtc
   }
   categories = $real.categories
   modules    = $real.modules
