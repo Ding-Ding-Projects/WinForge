@@ -8,6 +8,14 @@ name: Build & Release · 建置同發佈
 on:
   push:
     branches: [ main ]
+    # Docs / design / site-data commits shouldn't cut an app release.
+    paths-ignore:
+      - 'design/**'
+      - 'docs/**'
+      - '.github/workflows/pages.yml'
+      - '.github/workflows/site-data.yml'
+      - 'tools/regen-site-data.ps1'
+      - '**/*.md'
   workflow_dispatch:
 
 permissions:

@@ -20,25 +20,31 @@
 .EXAMPLE
   pwsh -File tools/regen-site-data.ps1
 #>
-param([switch]$SkipBuild)
+param(
+  [switch]$SkipBuild,
+  [string]$ExePath    # use a prebuilt WinForge.exe (CI passes the published Release exe)
+)
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $tfm  = 'net11.0-windows10.0.26100.0'
-$exe  = Join-Path $root "bin/Debug/$tfm/win-x64/publish/WinForge.exe"
+$exe  = if ($ExePath) { $ExePath } else { Join-Path $root "bin/Debug/$tfm/win-x64/publish/WinForge.exe" }
 $data = Join-Path $root 'design/winforge-data.js'
 $tmp  = Join-Path $env:TEMP 'winforge-sitedata.json'
 
-if (-not $SkipBuild -or -not (Test-Path $exe)) {
+if (-not $ExePath -and (-not $SkipBuild -or -not (Test-Path $exe))) {
   Write-Host 'Publishing WinForge (self-contained)…'
   & dotnet publish (Join-Path $root 'WinForge.csproj') -c Debug -r win-x64 --self-contained true `
       -p:Platform=x64 -p:WindowsAppSDKSelfContained=true | Out-Null
 }
 if (-not (Test-Path $exe)) { throw "WinForge.exe not found at $exe" }
 
+if (Test-Path $tmp) { Remove-Item $tmp -Force }
 Write-Host 'Exporting real app data…'
-& $exe --export-site-data $tmp | Out-Null
-$deadline = (Get-Date).AddSeconds(30)
+# Run headless with a hard timeout so a stuck UI start can never hang CI.
+$p = Start-Process -FilePath $exe -ArgumentList '--export-site-data', $tmp -PassThru
+if (-not $p.WaitForExit(60000)) { try { $p.Kill($true) } catch {} }
+$deadline = (Get-Date).AddSeconds(20)
 while (-not (Test-Path $tmp) -and (Get-Date) -lt $deadline) { Start-Sleep -Milliseconds 300 }
 if (-not (Test-Path $tmp)) { throw 'Export did not produce the data file.' }
 
