@@ -19,8 +19,26 @@
 
 ---
 
+## 🖼️ Gallery · 模組畫廊
+
+**EN —** A look at some of the major modules. Every screenshot shows the app's live bilingual UI; the full catalog is below.
+
+**粵語 —** 部分主要模組嘅一覽。每張截圖都係 app 嘅即時雙語介面；完整目錄見下面。
+
+| | |
+|---|---|
+| ![Dashboard · 概覽](docs/screenshot-dashboard.png) <br> **Dashboard · 概覽** — Master search and home overview across every module. <br> 跨晒所有模組嘅總搜尋同主頁概覽。 | ![Nuclear Reactor · 核反應堆](docs/screenshot-reactor.png) <br> **Nuclear Reactor · 核反應堆** — The flagship hyper-realistic PWR control-room simulator. <br> 旗艦超寫實壓水堆控制室模擬器。 |
+| ![Git & GitHub · Git 與 GitHub](docs/screenshot-git.png) <br> **Git & GitHub · Git 與 GitHub** — Multi-repo workbench for git and gh with a chunked uploader. <br> 多儲存庫工作台，操作 git 同 gh，附分塊上傳器。 | ![Package Manager · 套件管理](docs/screenshot-packages.png) <br> **Package Manager · 套件管理** — One front-end over winget, scoop, choco, pip and npm. <br> 統一前端操作 winget、scoop、choco、pip 同 npm。 |
+| ![Cloudflare & Tunnel · Cloudflare 與 Tunnel](docs/screenshot-cloudflare.png) <br> **Cloudflare & Tunnel · Cloudflare 與 Tunnel** — Tunnels, DNS routing, Access, DoH and WARP. <br> 隧道、DNS 路由、Access、DoH 同 WARP。 | ![AI Agents · AI 代理](docs/screenshot-aiagents.png) <br> **AI Agents · AI 代理** — Install and launch terminal AI coding agents. <br> 安裝同啟動終端機 AI 編程代理。 |
+| ![Media · 媒體](docs/screenshot-media.png) <br> **Media · 媒體** — ffmpeg-powered video/audio convert, trim and GIF making. <br> 用 ffmpeg 轉檔、剪裁影音同整 GIF。 | ![Settings & Control Panel · 設定與控制台](docs/screenshot-settingshub.png) <br> **Settings & Control Panel · 設定與控制台** — In-app launcher for ms-settings and Control Panel applets. <br> app 內啟動 ms-settings 頁面同控制台小程式。 |
+| ![Clipboard · 剪貼簿](docs/screenshot-clipboard.png) <br> **Clipboard · 剪貼簿** — Richer clipboard history with QR-code generation. <br> 更豐富嘅剪貼簿歷史，附二維碼產生。 | ![Connections · 連線](docs/screenshot-connections.png) <br> **Connections · 連線** — Live TCP/UDP socket list with owning processes. <br> 即時 TCP／UDP 連線清單同擁有程序。 |
+| ![Docker · Docker 容器管理](docs/screenshot-docker.png) <br> **Docker · Docker 容器管理** — Manage containers, images, volumes and networks. <br> 管理容器、映像、磁碟區同網路。 | ![Cake Factory & Farm · 蛋糕工廠與農場](docs/screenshot-cakefactory.png) <br> **Cake Factory & Farm · 蛋糕工廠與農場** — HTML5 reactor-powered cake factory game. <br> HTML5 反應堆供電蛋糕工廠遊戲。 |
+
+---
+
 ## 📑 Table of contents · 目錄
 
+- [Gallery · 模組畫廊](#️-gallery--模組畫廊)
 - [Build & Run · 建置與執行](#-build--run--建置與執行)
 - [Highlights · 重點](#-highlights--重點)
 - [Flagship: Nuclear Reactor · 旗艦：核反應堆](#-flagship-nuclear-reactor--旗艦核反應堆)
