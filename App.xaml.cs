@@ -162,24 +162,38 @@ public partial class App : Application
     {
         var dq = Shell?.DispatcherQueue;
         if (dq is null) return;
-        dq.TryEnqueue(async () =>
+
+        // XamlRoot 喺視窗 Activate 之後仍要等版面載入先有值，所以喺 UI 線程輪詢直到 root 就緒先彈閘。
+        // XamlRoot is still null for a beat after Activate (it appears once the root grid lays out), so poll
+        // on the UI thread until it's ready before showing the gate. Bounded so we never spin forever.
+        int attempts = 0;
+        async void Pump()
         {
             try
             {
                 var root = (Shell?.Content as FrameworkElement)?.XamlRoot;
-                if (root is null) return;
-                bool ok = await TermsService.EnsureAcceptedAsync(root);
-                if (!ok)
+                if (root is null)
                 {
-                    Current.Exit();
+                    if (attempts++ < 100)       // ~5s worst case @ 50ms
+                    {
+                        var t = new Microsoft.UI.Xaml.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(50) };
+                        t.Tick += (s, e) => { t.Stop(); Pump(); };
+                        t.Start();
+                    }
+                    return;
                 }
+
+                bool ok = await TermsService.EnsureAcceptedAsync(root);
+                if (!ok) Current.Exit();
             }
             catch (Exception ex)
             {
                 // 閘出錯唔應該封死 app；記錄低就算 · A gate error must not lock the user out; log and continue.
                 CrashLogger.Log("startup:terms-gate", ex);
             }
-        });
+        }
+
+        dq.TryEnqueue(Pump);
     }
 
     private static async Task StartPostLaunchServicesAsync(Microsoft.UI.Dispatching.DispatcherQueue dq)

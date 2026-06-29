@@ -84,7 +84,15 @@ public static class TermsService
             CloseButtonText = P("Decline & Exit", "拒絕並退出"),
             DefaultButton = ContentDialogButton.Primary,
         };
-        return await dlg.ShowAsync() == ContentDialogResult.Primary;
+        try
+        {
+            return await dlg.ShowAsync() == ContentDialogResult.Primary;
+        }
+        catch (Exception ex)
+        {
+            CrashLogger.Log("terms: ShowTermsAsync.ShowAsync threw", ex);
+            throw;
+        }
     }
 
     /// <summary>顯示測驗，回傳得分（0–5）；-1 代表使用者拒絕 · Show the quiz; returns score 0–5, or -1 if declined.</summary>
