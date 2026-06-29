@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:'Space Grotesk','Noto Sans TC',sans-serif;-webkit-font-smoothing:antialiased}
+  ::-webkit-scrollbar{width:9px;height:9px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:var(--line2);border-radius:8px;border:2px solid transparent;background-clip:padding-box}
+  ::-webkit-scrollbar-thumb:hover{background:var(--text-faint);background-clip:padding-box}
+  @keyframes wf-glow{0%,100%{opacity:.55}50%{opacity:1}}
+  @keyframes wf-flicker{0%,100%{opacity:1}45%{opacity:.7}55%{opacity:.92}}
+  @keyframes wf-sweep{0%{transform:translateX(-100%)}100%{transform:translateX(220%)}}
+</style>
+</helmet>
+<div ref="{{ setRoot }}" style="height:100vh;width:100%;display:flex;flex-direction:column;overflow:hidden;background:#0a0d0b;color:#e8efe9;--bg:#0a0d0b;--bg2:#0e120f;--panel:#131814;--panel2:#1a211b;--line:rgba(255,255,255,.07);--line2:rgba(255,255,255,.13);--text:#e9efe9;--text-dim:#9fae9f;--text-faint:#6b7a6d;--brand:#54e07e;--brand-dim:#2faf57;--brand-glow:rgba(84,224,126,.13);--spark:#f7b034;--spark2:#ff7a45;--danger:#ff5f5f;--warn:#f5c451;--cyan:#49cdd9;font-size:14px;line-height:1.4">
+
+  <!-- TITLE BAR -->
+  <div style="height:46px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 6px 0 14px;background:var(--bg2);border-bottom:1px solid var(--line);position:relative;z-index:5">
+    <div style="display:flex;align-items:center;gap:11px">
+      <div style="width:26px;height:26px;border-radius:8px;background:linear-gradient(140deg,#54e07e,#1f5a30);display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 1px rgba(255,255,255,.12) inset,0 4px 12px rgba(40,140,70,.35);position:relative">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0a1c0f" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5h6v6H5zM13 5h6v6h-6zM5 13h6v6H5zM13 13h6v6h-6z"></path></svg>
+        <div style="position:absolute;top:-3px;right:-3px;width:8px;height:8px;background:var(--spark);border-radius:50%;box-shadow:0 0 6px var(--spark);animation:wf-flicker 2.4s infinite"></div>
+      </div>
+      <div style="display:flex;align-items:baseline;gap:8px">
+        <span style="font-weight:700;font-size:14px;letter-spacing:.02em">WinForge</span>
+        <span style="font-size:11px;color:var(--text-faint);font-family:'Noto Sans TC'">視窗調校</span>
+      </div>
+      <div style="width:1px;height:18px;background:var(--line);margin:0 4px"></div>
+      <div style="display:flex;align-items:center;gap:6px;padding:3px 9px;border-radius:20px;background:var(--brand-glow);border:1px solid rgba(84,224,126,.25)">
+        <span style="width:6px;height:6px;border-radius:50%;background:var(--brand);box-shadow:0 0 7px var(--brand);animation:wf-glow 2s infinite"></span>
+        <span style="font-size:10.5px;font-weight:600;color:var(--brand);letter-spacing:.04em">REACTOR ONLINE</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:4px">
+      <button onClick="{{ cycleLang }}" style="display:flex;align-items:center;gap:7px;height:30px;padding:0 11px;border-radius:8px;background:transparent;border:1px solid var(--line);color:var(--text-dim);cursor:pointer;font:inherit;font-size:11px;font-weight:600;letter-spacing:.03em" style-hover="background:var(--panel2);color:var(--text)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3c2.5 2.7 2.5 15.3 0 18M12 3c-2.5 2.7-2.5 15.3 0 18"></path></svg>
+        <span>{{ langLabel }}</span>
+      </button>
+      <button onClick="{{ toggleTheme }}" title="Toggle theme" style="width:30px;height:30px;border-radius:8px;background:transparent;border:1px solid var(--line);color:var(--text-dim);cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:var(--panel2);color:var(--spark)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 3v2.2M12 18.8V21M3 12h2.2M18.8 12H21M5.6 5.6l1.6 1.6M16.8 16.8l1.6 1.6M18.4 5.6l-1.6 1.6M7.2 16.8l-1.6 1.6"></path></svg>
+      </button>
+      <div style="width:1px;height:18px;background:var(--line);margin:0 6px"></div>
+      <button style="width:34px;height:30px;border-radius:7px;background:transparent;border:none;color:var(--text-dim);cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:var(--panel2)"><svg width="11" height="11" viewBox="0 0 12 12" stroke="currentColor" stroke-width="1.2"><line x1="2" y1="6" x2="10" y2="6"></line></svg></button>
+      <button style="width:34px;height:30px;border-radius:7px;background:transparent;border:none;color:var(--text-dim);cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:var(--panel2)"><svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="2.5" y="2.5" width="7" height="7" rx="1"></rect></svg></button>
+      <button style="width:34px;height:30px;border-radius:7px;background:transparent;border:none;color:var(--text-dim);cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:#c8302e;color:#fff"><svg width="11" height="11" viewBox="0 0 12 12" stroke="currentColor" stroke-width="1.2"><line x1="3" y1="3" x2="9" y2="9"></line><line x1="9" y1="3" x2="3" y2="9"></line></svg></button>
+    </div>
+  </div>
+
+  <!-- BODY -->
+  <div style="flex:1;display:flex;min-height:0">
+
+    <!-- NAV RAIL -->
+    <div style="width:264px;flex:none;background:var(--bg2);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0">
+      <div style="padding:13px 13px 9px">
+        <div style="display:flex;align-items:center;gap:9px;height:38px;padding:0 12px;border-radius:10px;background:var(--panel);border:1px solid var(--line)">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-faint)" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><line x1="20" y1="20" x2="16.5" y2="16.5"></line></svg>
+          <span style="font-size:12.5px;color:var(--text-faint)">{{ searchPlaceholder }}</span>
+        </div>
+      </div>
+
+      <div style="flex:1;overflow-y:auto;padding:0 9px 10px">
+        <sc-for list="{{ navGroups }}" as="g" hint-placeholder-count="8">
+          <div style="margin-top:10px">
+            <!-- flat group: header -->
+            <sc-if value="{{ g.flat }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex;align-items:baseline;gap:6px;padding:6px 10px 6px">
+                <span style="font-size:10px;font-weight:700;letter-spacing:.13em;color:var(--text-faint);text-transform:uppercase">{{ g.label }}</span>
+                <span style="font-size:9.5px;color:var(--text-faint);opacity:.7;font-family:'Noto Sans TC'">{{ g.zh }}</span>
+              </div>
+            </sc-if>
+            <!-- collapsible group: parent row -->
+            <sc-if value="{{ g.collapsible }}" hint-placeholder-val="{{ false }}">
+              <button onClick="{{ g.onToggle }}" style="{{ g.parentCss }}" style-hover="background:var(--panel2)">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="{{ g.icon }}"></path></svg>
+                <span style="display:flex;flex-direction:column;line-height:1.15;flex:1;min-width:0">
+                  <span style="font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ g.label }}</span>
+                  <span style="font-size:9.5px;color:var(--text-faint);font-family:'Noto Sans TC'">{{ g.zh }}</span>
+                </span>
+                <span style="font-size:9px;color:var(--text-faint);font-family:'JetBrains Mono'">{{ g.count }}</span>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{{ g.chevCss }}"><path d="M9 6l6 6-6 6"></path></svg>
+              </button>
+            </sc-if>
+            <!-- items -->
+            <sc-if value="{{ g.showItems }}" hint-placeholder-val="{{ true }}">
+              <div style="{{ g.itemsWrap }}">
+                <sc-for list="{{ g.items }}" as="item" hint-placeholder-count="4">
+                  <button onClick="{{ item.onClick }}" style="{{ item.css }}" style-hover="background:var(--panel2)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="{{ item.icon }}"></path></svg>
+                    <span style="display:flex;flex-direction:column;line-height:1.15;min-width:0;flex:1">
+                      <span style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ item.en }}</span>
+                      <span style="font-size:9px;color:var(--text-faint);font-family:'Noto Sans TC';white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ item.zh }}</span>
+                    </span>
+                    <sc-if value="{{ item.star }}" hint-placeholder-val="{{ false }}"><span style="font-size:8px;font-weight:700;color:var(--spark);letter-spacing:.05em;flex:none">★</span></sc-if>
+                  </button>
+                </sc-for>
+              </div>
+            </sc-if>
+          </div>
+        </sc-for>
+
+        <!-- footer -->
+        <div style="margin-top:14px;padding-top:10px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:2px">
+          <sc-for list="{{ footerItems }}" as="item" hint-placeholder-count="3">
+            <button onClick="{{ item.onClick }}" style="{{ item.css }}" style-hover="background:var(--panel2)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="{{ item.icon }}"></path></svg>
+              <span style="display:flex;flex-direction:column;line-height:1.15"><span style="font-size:12px;font-weight:500">{{ item.en }}</span><span style="font-size:9px;color:var(--text-faint);font-family:'Noto Sans TC'">{{ item.zh }}</span></span>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN -->
+    <div style="flex:1;display:flex;flex-direction:column;min-width:0;background:var(--bg)">
+
+      <!-- TAB STRIP -->
+      <div style="height:42px;flex:none;display:flex;align-items:center;gap:2px;padding:0 10px;border-bottom:1px solid var(--line);background:var(--bg2);overflow-x:auto">
+        <sc-for list="{{ tabs }}" as="tab" hint-placeholder-count="1">
+          <div style="{{ tab.css }}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex:none;opacity:.85"><path d="{{ tab.icon }}"></path></svg>
+            <span onClick="{{ tab.onClick }}" style="white-space:nowrap;cursor:pointer">{{ tab.label }}</span>
+            <button onClick="{{ tab.onClose }}" style="width:17px;height:17px;border-radius:5px;border:none;background:transparent;color:currentColor;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:.5;flex:none" style-hover="background:var(--line2);opacity:1"><svg width="9" height="9" viewBox="0 0 12 12" stroke="currentColor" stroke-width="1.4"><line x1="3" y1="3" x2="9" y2="9"></line><line x1="9" y1="3" x2="3" y2="9"></line></svg></button>
+          </div>
+        </sc-for>
+        <button style="width:28px;height:28px;border-radius:7px;background:transparent;border:none;color:var(--text-faint);cursor:pointer;display:flex;align-items:center;justify-content:center;margin-left:4px;flex:none" style-hover="background:var(--panel2);color:var(--text)"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
+      </div>
+
+      <!-- CONTENT -->
+      <div style="flex:1;overflow-y:auto;min-height:0">
+
+        <!-- ===== DASHBOARD ===== -->
+        <sc-if value="{{ isDash }}" hint-placeholder-val="{{ true }}">
+          <div style="max-width:1120px;margin:0 auto;padding:40px 48px 60px">
+            <div>
+              <div style="display:flex;align-items:baseline;gap:16px;flex-wrap:wrap">
+                <h1 style="font-size:52px;font-weight:700;letter-spacing:-.02em;line-height:1">WinForge</h1>
+                <span style="font-size:34px;font-weight:500;color:var(--brand);font-family:'Noto Sans TC'">視窗調校</span>
+              </div>
+              <p style="margin-top:16px;font-size:16px;color:var(--text-dim);max-width:640px">An all-in-one, fully bilingual control center that genuinely tunes Windows 11.</p>
+              <p style="margin-top:3px;font-size:13.5px;color:var(--text-faint);font-family:'Noto Sans TC'">全方位、全雙語嘅控制中心，真係會幫你調校 Windows 11。</p>
+              <div style="display:flex;gap:28px;margin-top:24px;font-family:'JetBrains Mono'">
+                <div><div style="font-size:24px;font-weight:700;color:var(--brand)">895</div><div style="font-size:10.5px;color:var(--text-faint);letter-spacing:.08em;text-transform:uppercase;margin-top:2px">features · 功能</div></div>
+                <div style="width:1px;background:var(--line)"></div>
+                <div><div style="font-size:24px;font-weight:700">22</div><div style="font-size:10.5px;color:var(--text-faint);letter-spacing:.08em;text-transform:uppercase;margin-top:2px">categories · 分類</div></div>
+                <div style="width:1px;background:var(--line)"></div>
+                <div><div style="font-size:24px;font-weight:700">138</div><div style="font-size:10.5px;color:var(--text-faint);letter-spacing:.08em;text-transform:uppercase;margin-top:2px">modules · 模組</div></div>
+              </div>
+            </div>
+            <div style="margin-top:30px;display:flex;align-items:center;gap:16px;padding:16px 20px;border-radius:14px;background:linear-gradient(100deg,rgba(247,176,52,.1),rgba(247,176,52,.03));border:1px solid rgba(247,176,52,.28)">
+              <div style="width:38px;height:38px;border-radius:10px;background:rgba(247,176,52,.16);display:flex;align-items:center;justify-content:center;flex:none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--spark)" stroke-width="1.8" stroke-linecap="round"><path d="M12 9v4M12 16.5v.01M10.3 4l-7 12.2a2 2 0 001.7 3h14a2 2 0 001.7-3L13.7 4a2 2 0 00-3.4 0z"></path></svg></div>
+              <div style="flex:1"><div style="font-size:13.5px;font-weight:600">Standard user — some system-wide tweaks need administrator rights.</div><div style="font-size:11.5px;color:var(--text-faint);font-family:'Noto Sans TC';margin-top:2px">標準使用者 · 部分全系統調校需要管理員權限。</div></div>
+              <button style="padding:9px 16px;border-radius:9px;background:var(--spark);border:none;color:#241500;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap" style-hover="background:#ffc04f">Relaunch as admin</button>
+            </div>
+            <div style="margin-top:14px;display:flex;align-items:center;gap:12px;height:54px;padding:0 20px;border-radius:14px;background:var(--panel);border:1px solid var(--line)" style-hover="border-color:var(--line2)">
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><line x1="20" y1="20" x2="16.5" y2="16.5"></line></svg>
+              <span style="font-size:15px;color:var(--text-faint)">Search all 895 features — 搜尋全部功能 (EN / 粵語)…</span>
+              <span style="margin-left:auto;font-family:'JetBrains Mono';font-size:11px;color:var(--text-faint);border:1px solid var(--line);padding:2px 7px;border-radius:6px">Ctrl K</span>
+            </div>
+            <div style="display:flex;align-items:baseline;gap:10px;margin:38px 0 16px"><h2 style="font-size:17px;font-weight:600">Suite modules</h2><span style="font-size:13px;color:var(--text-faint);font-family:'Noto Sans TC'">套件模組</span></div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
+              <sc-for list="{{ cards }}" as="c" hint-placeholder-count="9">
+                <button onClick="{{ c.onClick }}" style="{{ c.css }}" style-hover="border-color:var(--line2);transform:translateY(-2px)">
+                  <div style="display:flex;align-items:center;justify-content:space-between">
+                    <div style="{{ c.iconWrap }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="{{ c.icon }}"></path></svg></div>
+                    <sc-if value="{{ c.star }}" hint-placeholder-val="{{ false }}"><span style="font-size:9.5px;font-weight:700;letter-spacing:.08em;color:var(--spark);padding:3px 8px;border-radius:20px;background:rgba(247,176,52,.12)">★ FLAGSHIP</span></sc-if>
+                  </div>
+                  <div style="margin-top:16px;display:flex;align-items:baseline;gap:7px;flex-wrap:wrap"><span style="font-size:14.5px;font-weight:600">{{ c.title }}</span><span style="font-size:11.5px;color:var(--text-faint);font-family:'Noto Sans TC'">{{ c.titleZh }}</span></div>
+                  <div style="margin-top:5px;font-size:12px;color:var(--text-dim);line-height:1.45">{{ c.desc }}</div>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ===== SYSTEM MONITOR ===== -->
+        <sc-if value="{{ isMon }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:30px 36px 50px">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap">
+              <div>
+                <div style="display:flex;align-items:center;gap:12px"><div style="width:34px;height:34px;border-radius:9px;background:var(--brand-glow);display:flex;align-items:center;justify-content:center"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2-7 4 14 2-7h6"></path></svg></div><div style="display:flex;align-items:baseline;gap:10px"><h1 style="font-size:26px;font-weight:700">System Monitor</h1><span style="font-size:17px;color:var(--text-dim);font-family:'Noto Sans TC'">系統監察</span></div></div>
+                <p style="margin-top:8px;font-size:13px;color:var(--text-dim);max-width:680px">A btop-style live dashboard — per-core CPU bars, memory and swap meters, network graphs, and the busiest processes.</p>
+              </div>
+              <div style="display:flex;align-items:center;gap:9px;font-size:12px;color:var(--text-dim)"><span>Refresh · 更新</span><span style="display:flex;align-items:center;gap:7px;padding:7px 12px;border-radius:8px;background:var(--panel);border:1px solid var(--line);font-family:'JetBrains Mono';font-weight:500;color:var(--text)">1s<svg width="11" height="11" viewBox="0 0 12 12" stroke="currentColor" stroke-width="1.4" fill="none" style="opacity:.6"><path d="M3 4.5L6 7.5 9 4.5"></path></svg></span></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 320px;gap:14px;margin-top:24px">
+              <div style="padding:20px;border-radius:14px;background:var(--panel);border:1px solid var(--line)">
+                <div style="display:flex;align-items:center;justify-content:space-between"><div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:12px;font-weight:700;letter-spacing:.1em;color:var(--text-faint)">CPU</span><span style="font-size:11px;color:var(--text-faint);font-family:'JetBrains Mono'">32 cores</span></div><div style="font-size:30px;font-weight:700;font-family:'JetBrains Mono';color:var(--brand)">{{ cpu }}%</div></div>
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);column-gap:22px;row-gap:7px;margin-top:18px">
+                  <sc-for list="{{ coreCells }}" as="core" hint-placeholder-count="32">
+                    <div style="display:flex;align-items:center;gap:8px"><span style="font-size:10.5px;font-family:'JetBrains Mono';color:var(--text-faint);width:18px">{{ core.i }}</span><div style="flex:1;height:7px;border-radius:4px;background:var(--line);overflow:hidden"><div style="{{ core.barCss }}"></div></div><span style="font-size:10px;font-family:'JetBrains Mono';color:var(--text-dim);width:28px;text-align:right">{{ core.pct }}%</span></div>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <div style="padding:18px;border-radius:14px;background:var(--panel);border:1px solid var(--line)">
+                  <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:12.5px;font-weight:600">Memory · 記憶體</span><span style="font-size:18px;font-weight:700;font-family:'JetBrains Mono';color:var(--spark)">{{ mem }}%</span></div>
+                  <div style="height:9px;border-radius:5px;background:var(--line);overflow:hidden;margin-top:10px"><div style="height:100%;border-radius:5px;background:linear-gradient(90deg,var(--spark),var(--spark2));width:{{ mem }}%;transition:width .8s ease"></div></div>
+                  <div style="font-size:10.5px;color:var(--text-faint);font-family:'JetBrains Mono';margin-top:7px">{{ memUsed }} GB / 63.8 GB</div>
+                  <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:16px"><span style="font-size:12.5px;font-weight:600">Swap · 置換檔</span><span style="font-size:18px;font-weight:700;font-family:'JetBrains Mono';color:var(--danger)">100%</span></div>
+                  <div style="height:9px;border-radius:5px;background:var(--line);overflow:hidden;margin-top:10px"><div style="height:100%;border-radius:5px;background:var(--danger);width:100%"></div></div>
+                  <div style="font-size:10.5px;color:var(--text-faint);font-family:'JetBrains Mono';margin-top:7px">4.0 GB / 4.0 GB</div>
+                </div>
+                <div style="padding:18px;border-radius:14px;background:var(--panel);border:1px solid var(--line)">
+                  <div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:12.5px;font-weight:600">Network · 網絡</span><span style="font-size:10.5px;color:var(--text-faint)">Uptime {{ uptime }}</span></div>
+                  <svg viewBox="0 0 300 56" preserveAspectRatio="none" style="width:100%;height:56px;margin-top:10px;overflow:visible"><defs><linearGradient id="netfill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--cyan)" stop-opacity=".35"></stop><stop offset="1" stop-color="var(--cyan)" stop-opacity="0"></stop></linearGradient></defs><polygon points="{{ netArea }}" fill="url(#netfill)"></polygon><polyline points="{{ netPoints }}" fill="none" stroke="var(--cyan)" stroke-width="1.6" stroke-linejoin="round"></polyline></svg>
+                  <div style="display:flex;justify-content:space-between;margin-top:8px;font-family:'JetBrains Mono'"><span style="font-size:11.5px;color:var(--cyan)">↓ {{ down }} KB/s</span><span style="font-size:11.5px;color:var(--brand)">↑ {{ up }} KB/s</span></div>
+                </div>
+              </div>
+            </div>
+            <div style="margin-top:14px;border-radius:14px;background:var(--panel);border:1px solid var(--line);overflow:hidden">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px 10px"><div style="display:flex;align-items:baseline;gap:9px"><span style="font-size:13px;font-weight:600">Processes</span><span style="font-size:11px;color:var(--text-faint);font-family:'Noto Sans TC'">處理程序</span></div><div style="display:flex;align-items:center;gap:8px;padding:6px 11px;border-radius:8px;background:var(--bg2);border:1px solid var(--line)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text-faint)" stroke-width="1.8"><circle cx="11" cy="11" r="7"></circle><line x1="20" y1="20" x2="16.5" y2="16.5"></line></svg><span style="font-size:11.5px;color:var(--text-faint)">Filter processes…</span></div></div>
+              <div style="display:grid;grid-template-columns:80px 1fr 150px 110px 130px;gap:12px;padding:8px 20px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);font-size:10.5px;font-weight:700;letter-spacing:.06em;color:var(--text-faint);text-transform:uppercase"><span>PID</span><span>Process</span><span>CPU ▾</span><span style="text-align:right">Memory</span><span style="text-align:right">Actions</span></div>
+              <sc-for list="{{ procRows }}" as="p" hint-placeholder-count="6">
+                <div style="display:grid;grid-template-columns:80px 1fr 150px 110px 130px;gap:12px;align-items:center;padding:11px 20px;border-bottom:1px solid var(--line)" style-hover="background:var(--bg2)"><span style="font-size:12px;font-family:'JetBrains Mono';color:var(--text-faint)">{{ p.pid }}</span><span style="font-size:13px;font-weight:500">{{ p.name }}</span><div style="display:flex;align-items:center;gap:8px"><div style="flex:1;height:6px;border-radius:3px;background:var(--line);overflow:hidden"><div style="{{ p.barCss }}"></div></div><span style="font-size:11px;font-family:'JetBrains Mono';color:var(--text-dim);width:30px">{{ p.cpu }}%</span></div><span style="font-size:12px;font-family:'JetBrains Mono';color:var(--text-dim);text-align:right">{{ p.mem }} MB</span><div style="display:flex;gap:6px;justify-content:flex-end"><button style="font-size:10.5px;padding:4px 9px;border-radius:6px;background:var(--bg2);border:1px solid var(--line);color:var(--text-dim);cursor:pointer;font:inherit" style-hover="border-color:var(--line2);color:var(--text)">Priority</button><button style="width:24px;height:24px;border-radius:6px;background:transparent;border:1px solid var(--line);color:var(--text-faint);cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="border-color:var(--danger);color:var(--danger)"><svg width="10" height="10" viewBox="0 0 12 12" stroke="currentColor" stroke-width="1.3"><line x1="3" y1="3" x2="9" y2="9"></line><line x1="9" y1="3" x2="3" y2="9"></line></svg></button></div></div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ===== REACTOR ===== -->
+        <sc-if value="{{ isReactor }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:30px 36px 50px">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap">
+              <div>
+                <div style="display:flex;align-items:center;gap:12px"><div style="width:36px;height:36px;border-radius:10px;background:radial-gradient(circle at 30% 30%,rgba(84,224,126,.3),rgba(84,224,126,.08));border:1px solid rgba(84,224,126,.3);display:flex;align-items:center;justify-content:center"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="1.7"><circle cx="12" cy="12" r="2.3"></circle><circle cx="12" cy="12" r="9"></circle><path d="M12 3v6M12 15v6M3 12h6M15 12h6"></path></svg></div><div style="display:flex;align-items:baseline;gap:11px"><h1 style="font-size:26px;font-weight:700">Nuclear Reactor</h1><span style="font-size:17px;color:var(--text-dim);font-family:'Noto Sans TC'">核反應堆</span><span style="font-size:9.5px;font-weight:700;letter-spacing:.1em;color:var(--spark);padding:3px 9px;border-radius:20px;background:rgba(247,176,52,.12)">★ FLAGSHIP</span></div></div>
+                <p style="margin-top:8px;font-size:13px;color:var(--text-dim);max-width:640px">A real-time PWR simulator — control rods, coolant loops, turbine output, and a live safety bus driving the rest of the suite.</p>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;background:var(--brand-glow);border:1px solid rgba(84,224,126,.28)"><span style="width:7px;height:7px;border-radius:50%;background:var(--brand);box-shadow:0 0 8px var(--brand);animation:wf-glow 1.8s infinite"></span><span style="font-size:11.5px;font-weight:600;color:var(--brand);letter-spacing:.03em">CRITICAL · STABLE</span></div>
+            </div>
+            <div style="display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:14px;margin-top:24px">
+              <div style="position:relative;padding:26px;border-radius:16px;background:radial-gradient(120% 120% at 80% 0%,rgba(84,224,126,.1),transparent 55%),var(--panel);border:1px solid var(--line);overflow:hidden">
+                <div style="position:absolute;inset:0;background:linear-gradient(120deg,transparent,rgba(84,224,126,.06),transparent);width:40%;animation:wf-sweep 6s linear infinite;pointer-events:none"></div>
+                <div style="font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--text-faint);text-transform:uppercase">Net electrical output · 淨電力輸出</div>
+                <div style="display:flex;align-items:flex-end;gap:10px;margin-top:8px"><span style="font-size:64px;font-weight:700;font-family:'JetBrains Mono';line-height:.9;color:var(--brand);text-shadow:0 0 28px var(--brand-glow)">{{ output }}</span><span style="font-size:20px;font-weight:600;color:var(--text-dim);margin-bottom:8px">MWe</span></div>
+                <div style="height:10px;border-radius:6px;background:var(--line);overflow:hidden;margin-top:18px"><div style="height:100%;border-radius:6px;background:linear-gradient(90deg,var(--brand-dim),var(--brand));width:{{ powerPct }}%;box-shadow:0 0 14px var(--brand-glow);transition:width 1s ease"></div></div>
+                <div style="display:flex;justify-content:space-between;font-size:10.5px;font-family:'JetBrains Mono';color:var(--text-faint);margin-top:7px"><span>0</span><span>thermal {{ thermal }} MWt</span><span>900</span></div>
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:24px">
+                  <sc-for list="{{ gauges }}" as="gg" hint-placeholder-count="3">
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 8px;border-radius:12px;background:var(--bg2);border:1px solid var(--line)">
+                      <div style="position:relative;width:84px;height:84px"><svg width="84" height="84" viewBox="0 0 112 112"><circle cx="56" cy="56" r="46" fill="none" stroke="var(--line)" stroke-width="9"></circle><circle cx="56" cy="56" r="46" fill="none" stroke="{{ gg.color }}" stroke-width="9" stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="{{ gg.off }}" transform="rotate(-90 56 56)" style="transition:stroke-dashoffset 1s ease"></circle></svg><div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center"><span style="font-size:18px;font-weight:700;font-family:'JetBrains Mono'">{{ gg.val }}</span><span style="font-size:9px;color:var(--text-faint)">{{ gg.unit }}</span></div></div>
+                      <div style="text-align:center"><div style="font-size:11.5px;font-weight:600">{{ gg.label }}</div><div style="font-size:9.5px;color:var(--text-faint);font-family:'Noto Sans TC'">{{ gg.zh }}</div></div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <div style="padding:20px;border-radius:16px;background:var(--panel);border:1px solid var(--line)">
+                  <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font-size:13px;font-weight:600">Control rods · 控制棒</span><span style="font-size:12px;font-family:'JetBrains Mono';color:var(--brand)">{{ rodAvg }}% inserted</span></div>
+                  <div style="display:flex;align-items:flex-end;gap:12px;height:118px;margin-top:18px;padding:0 4px">
+                    <sc-for list="{{ rods }}" as="r" hint-placeholder-count="6"><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end"><div style="width:100%;flex:1;border-radius:5px;background:var(--bg2);border:1px solid var(--line);display:flex;flex-direction:column;justify-content:flex-start;overflow:hidden"><div style="{{ r.fillCss }}"></div></div><span style="font-size:9px;font-family:'JetBrains Mono';color:var(--text-faint)">{{ r.id }}</span></div></sc-for>
+                  </div>
+                </div>
+                <div style="padding:20px;border-radius:16px;background:var(--panel);border:1px solid var(--line)">
+                  <div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:13px;font-weight:600">Coolant loop · 冷卻迴路</span><span style="font-size:11px;color:var(--cyan);font-family:'JetBrains Mono'">{{ coolant }}% flow</span></div>
+                  <div style="height:9px;border-radius:5px;background:var(--line);overflow:hidden;margin-top:12px"><div style="height:100%;border-radius:5px;background:linear-gradient(90deg,#2b8a93,var(--cyan));width:{{ coolant }}%;transition:width 1s ease"></div></div>
+                  <div style="display:flex;gap:10px;margin-top:18px"><button style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:12px;border-radius:11px;background:var(--bg2);border:1px solid var(--line);cursor:pointer;color:var(--text)" style-hover="border-color:var(--line2)"><span style="font-size:12.5px;font-weight:600">AUTO</span><span style="font-size:9px;color:var(--text-faint);font-family:'Noto Sans TC'">自動</span></button><button style="flex:2;display:flex;flex-direction:column;align-items:center;gap:3px;padding:12px;border-radius:11px;background:linear-gradient(180deg,#ff6a6a,#d83434);border:none;cursor:pointer;color:#fff;box-shadow:0 4px 16px rgba(216,52,52,.3)" style-hover="filter:brightness(1.08)"><span style="font-size:13px;font-weight:700;letter-spacing:.08em">SCRAM</span><span style="font-size:9px;opacity:.85;font-family:'Noto Sans TC'">緊急停堆</span></button></div>
+                </div>
+                <div style="padding:14px 18px;border-radius:14px;background:var(--bg2);border:1px solid var(--line);font-family:'JetBrains Mono';font-size:11px;color:var(--text-dim);display:flex;align-items:center;gap:10px;overflow:hidden"><span style="color:var(--brand);flex:none">●</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ telemetry }}</span></div>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ===== CAKE FACTORY ===== -->
+        <sc-if value="{{ isCake }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:30px 36px 50px">
+            <div style="display:flex;align-items:center;gap:12px"><div style="width:34px;height:34px;border-radius:9px;background:rgba(247,176,52,.14);display:flex;align-items:center;justify-content:center"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--spark)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16M5.5 20v-6a2.5 2.5 0 012.5-2.5h8a2.5 2.5 0 012.5 2.5v6M9 8.5V6M12 8.5V5M15 8.5V6"></path></svg></div><div style="display:flex;align-items:baseline;gap:10px"><h1 style="font-size:26px;font-weight:700">Nuclear Cake Factory &amp; Farm</h1><span style="font-size:16px;color:var(--text-dim);font-family:'Noto Sans TC'">核能蛋糕工廠與農場</span></div></div>
+            <p style="margin-top:8px;font-size:13px;color:var(--text-dim)">Hands-on farm, mill, bakery, QA and sanitation controls driven by the live reactor bus.</p>
+            <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:14px;margin-top:22px">
+              <div style="padding:22px;border-radius:16px;background:var(--panel);border:1px solid var(--line)">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px"><div style="display:flex;align-items:center;gap:9px"><span style="width:7px;height:7px;border-radius:50%;background:var(--brand);box-shadow:0 0 8px var(--brand)"></span><span style="font-size:12px;font-weight:600">Line running · 生產線運行中</span></div><span style="font-family:'JetBrains Mono';font-size:12px;color:var(--brand)">{{ output }} MWe bus</span></div>
+                <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px">
+                  <sc-for list="{{ cakeStages }}" as="st" hint-placeholder-count="5"><div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 6px;border-radius:12px;background:var(--bg2);border:1px solid var(--line)"><div style="width:40px;height:40px;border-radius:11px;background:{{ st.bg }};display:flex;align-items:center;justify-content:center;color:{{ st.fg }};font-weight:700;font-family:'JetBrains Mono';font-size:13px">{{ st.n }}</div><div style="text-align:center"><div style="font-size:11px;font-weight:600">{{ st.en }}</div><div style="font-size:9px;color:var(--text-faint);font-family:'Noto Sans TC'">{{ st.zh }}</div></div></div></sc-for>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:18px">
+                  <div style="padding:14px;border-radius:12px;background:var(--bg2);border:1px solid var(--line)"><div style="font-size:10px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.08em">Power</div><div style="font-size:20px;font-weight:700;font-family:'JetBrains Mono';color:var(--brand);margin-top:3px">98%</div></div>
+                  <div style="padding:14px;border-radius:12px;background:var(--bg2);border:1px solid var(--line)"><div style="font-size:10px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.08em">Quality</div><div style="font-size:20px;font-weight:700;font-family:'JetBrains Mono';color:var(--spark);margin-top:3px">96%</div></div>
+                  <div style="padding:14px;border-radius:12px;background:var(--bg2);border:1px solid var(--line)"><div style="font-size:10px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.08em">Sanitation</div><div style="font-size:20px;font-weight:700;font-family:'JetBrains Mono';color:var(--cyan);margin-top:3px">94%</div></div>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <div style="padding:20px;border-radius:16px;background:var(--panel);border:1px solid var(--line)">
+                  <div style="font-size:12px;font-weight:600;margin-bottom:14px">Recipe &amp; demand · 配方與需求</div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;height:40px;padding:0 14px;border-radius:9px;background:var(--bg2);border:1px solid var(--line)"><span style="font-size:12.5px">White layer cake · 白色忌廉蛋糕</span><svg width="12" height="12" viewBox="0 0 12 12" stroke="currentColor" stroke-width="1.4" fill="none" style="opacity:.5"><path d="M3 4.5L6 7.5 9 4.5"></path></svg></div>
+                  <div style="margin-top:16px"><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-dim)"><span>Farm intensity · 農場強度</span><span style="font-family:'JetBrains Mono';color:var(--spark)">78%</span></div><div style="height:7px;border-radius:4px;background:var(--line);overflow:hidden;margin-top:7px"><div style="height:100%;width:78%;border-radius:4px;background:var(--spark)"></div></div></div>
+                  <div style="margin-top:14px"><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-dim)"><span>Line speed · 生產線速度</span><span style="font-family:'JetBrains Mono';color:var(--brand)">72%</span></div><div style="height:7px;border-radius:4px;background:var(--line);overflow:hidden;margin-top:7px"><div style="height:100%;width:72%;border-radius:4px;background:var(--brand)"></div></div></div>
+                </div>
+                <div style="padding:20px;border-radius:16px;background:var(--panel);border:1px solid var(--line)">
+                  <div style="font-size:12px;font-weight:600;margin-bottom:14px">Manual operations · 手動操作</div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
+                    <sc-for list="{{ cakeOps }}" as="op" hint-placeholder-count="6"><button style="padding:11px;border-radius:10px;background:var(--bg2);border:1px solid var(--line);color:var(--text);cursor:pointer;font:inherit;font-size:11.5px;font-weight:500;display:flex;flex-direction:column;gap:2px;align-items:flex-start" style-hover="border-color:var(--line2)"><span>{{ op.en }}</span><span style="font-size:9px;color:var(--text-faint);font-family:'Noto Sans TC'">{{ op.zh }}</span></button></sc-for>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ===== GENERIC (archetypes) ===== -->
+        <sc-if value="{{ isGeneric }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:30px 36px 50px;max-width:1180px">
+            <!-- shared header -->
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap">
+              <div style="min-width:0">
+                <div style="display:flex;align-items:center;gap:12px"><div style="width:34px;height:34px;border-radius:9px;background:var(--brand-glow);display:flex;align-items:center;justify-content:center;flex:none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="{{ aIcon }}"></path></svg></div><div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap"><h1 style="font-size:24px;font-weight:700">{{ aTitle }}</h1><span style="font-size:15px;color:var(--text-dim);font-family:'Noto Sans TC'">{{ aZh }}</span><sc-if value="{{ hasBadge }}" hint-placeholder-val="{{ false }}"><span style="font-size:9px;font-weight:700;letter-spacing:.1em;color:var(--spark);padding:3px 8px;border-radius:20px;background:rgba(247,176,52,.12)">★ {{ aBadge }}</span></sc-if></div></div>
+                <p style="margin-top:8px;font-size:13px;color:var(--text-dim);max-width:680px">{{ aDesc }}</p>
+                <p style="margin-top:2px;font-size:11.5px;color:var(--text-faint);font-family:'Noto Sans TC'">{{ aDescZh }}</p>
+              </div>
+              <div style="display:flex;gap:8px;flex:none"><button style="display:flex;align-items:center;gap:7px;padding:9px 15px;border-radius:9px;background:var(--brand);border:none;color:#06210f;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer" style-hover="filter:brightness(1.06)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>{{ aPrimary }}</button></div>
+            </div>
+
+            <div style="margin-top:24px">
+              <!-- RUNNER -->
+              <sc-if value="{{ archRunner }}" hint-placeholder-val="{{ false }}">
+                <div style="display:grid;grid-template-columns:300px 1fr;gap:14px">
+                  <div style="padding:14px;border-radius:14px;background:var(--panel);border:1px solid var(--line)">
+                    <div style="font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--text-faint);text-transform:uppercase;padding:4px 8px 10px">Operations · 操作</div>
+                    <div style="display:flex;flex-direction:column;gap:4px">
+                      <sc-for list="{{ rows }}" as="r" hint-placeholder-count="6"><button style="display:flex;align-items:center;gap:10px;padding:10px 11px;border-radius:9px;background:var(--bg2);border:1px solid var(--line);color:var(--text);cursor:pointer;font:inherit;text-align:left" style-hover="border-color:var(--brand-dim);background:var(--brand-glow)"><span style="width:6px;height:6px;border-radius:50%;background:var(--brand);flex:none"></span><span style="display:flex;flex-direction:column;line-height:1.2"><span style="font-size:12.5px;font-weight:500">{{ r.a.en }}</span><span style="font-size:9.5px;color:var(--text-faint);font-family:'Noto Sans TC'">{{ r.a.zh }}</span></span></button></sc-for>
+                    </div>
+                  </div>
+                  <div style="border-radius:14px;background:#070a08;border:1px solid var(--line);overflow:hidden;display:flex;flex-direction:column;min-height:340px">
+                    <div style="display:flex;align-items:center;gap:7px;padding:11px 16px;border-bottom:1px solid var(--line)"><span style="width:9px;height:9px;border-radius:50%;background:#ff5f56"></span><span style="width:9px;height:9px;border-radius:50%;background:#ffbd2e"></span><span style="width:9px;height:9px;border-radius:50%;background:#27c93f"></span><span style="margin-left:8px;font-size:11px;color:var(--text-faint);font-family:'JetBrains Mono'">console · 主控台</span></div>
+                    <div style="flex:1;padding:16px 18px;font-family:'JetBrains Mono';font-size:12px;line-height:1.7;color:var(--text-dim)"><sc-for list="{{ consoleLines }}" as="ln" hint-placeholder-count="5"><div style="{{ ln.css }}">{{ ln.t }}</div></sc-for><div style="color:var(--brand)">$ <span style="opacity:.5">▋</span></div></div>
+                  </div>
+                </div>
+              </sc-if>
+
+              <!-- LIST (master-detail) -->
+              <sc-if value="{{ archList }}" hint-placeholder-val="{{ false }}">
+                <div style="display:grid;grid-template-columns:1fr 320px;gap:14px">
+                  <div style="border-radius:14px;background:var(--panel);border:1px solid var(--line);overflow:hidden">
+                    <sc-for list="{{ rows }}" as="r" hint-placeholder-count="5"><button onClick="{{ r.onClick }}" style="{{ r.listCss }}" style-hover="background:var(--bg2)"><span style="width:8px;height:8px;border-radius:50%;background:{{ r.dot }};flex:none;box-shadow:0 0 6px {{ r.dot }}"></span><span style="display:flex;flex-direction:column;line-height:1.25;flex:1;min-width:0"><span style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.a.en }}</span><span style="font-size:9.5px;color:var(--text-faint);font-family:'Noto Sans TC'">{{ r.a.zh }}</span></span><span style="font-size:10.5px;font-family:'JetBrains Mono';color:var(--text-faint);white-space:nowrap">{{ r.meta }}</span><span style="font-size:9.5px;font-weight:600;color:{{ r.dot }};text-transform:uppercase;letter-spacing:.05em">{{ r.status }}</span></button></sc-for>
+                  </div>
+                  <div style="padding:20px;border-radius:14px;background:var(--panel);border:1px solid var(--line);align-self:flex-start">
+                    <div style="font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--text-faint);text-transform:uppercase">Details · 詳情</div>
+                    <div style="margin-top:12px;font-size:16px;font-weight:600">{{ selName }}</div>
+                    <div style="font-size:11.5px;color:var(--text-faint);font-family:'Noto Sans TC'">{{ selZh }}</div>
+                    <div style="height:1px;background:var(--line);margin:14px 0"></div>
+                    <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:8px"><span style="color:var(--text-faint)">Status · 狀態</span><span style="color:{{ selDot }};font-weight:600">{{ selStatus }}</span></div>
+                    <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:8px"><span style="color:var(--text-faint)">Detail · 資料</span><span style="font-family:'JetBrains Mono'">{{ selMeta }}</span></div>
+                    <div style="display:flex;gap:8px;margin-top:16px"><button style="flex:1;padding:9px;border-radius:9px;background:var(--brand);border:none;color:#06210f;font:inherit;font-size:12px;font-weight:700;cursor:pointer">Start · 啟動</button><button style="flex:1;padding:9px;border-radius:9px;background:var(--bg2);border:1px solid var(--line);color:var(--text);font:inherit;font-size:12px;font-weight:500;cursor:pointer">Stop · 停止</button></div>
+                  </div>
+                </div>
+              </sc-if>
+
+              <!-- TABLE -->
+              <sc-if value="{{ archTable }}" hint-placeholder-val="{{ false }}">
+                <div style="border-radius:14px;background:var(--panel);border:1px solid var(--line);overflow:hidden">
+                  <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 18px;border-bottom:1px solid var(--line)"><div style="display:flex;align-items:center;gap:8px;padding:6px 11px;border-radius:8px;background:var(--bg2);border:1px solid var(--line)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text-faint)" stroke-width="1.8"><circle cx="11" cy="11" r="7"></circle><line x1="20" y1="20" x2="16.5" y2="16.5"></line></svg><span style="font-size:11.5px;color:var(--text-faint)">Filter · 篩選</span></div><span style="font-size:11px;color:var(--text-faint);font-family:'JetBrains Mono'">{{ rowCount }} rows</span></div>
+                  <div style="{{ tableHeadCss }}"><span>{{ colA }}</span><span>{{ colB }}</span><span>{{ colC }}</span><sc-if value="{{ hasColD }}" hint-placeholder-val="{{ false }}"><span style="text-align:right">{{ colD }}</span></sc-if></div>
+                  <sc-for list="{{ rows }}" as="r" hint-placeholder-count="5"><div style="{{ tableRowCss }}" style-hover="background:var(--bg2)"><span style="font-size:12.5px;font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.a.en }}</span><span style="font-size:12px;color:var(--text-dim);font-family:'JetBrains Mono';min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.b.en }}</span><span style="font-size:12px;color:var(--text-dim);font-family:'JetBrains Mono';min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.c.en }}</span><sc-if value="{{ hasColD }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:var(--brand);font-family:'JetBrains Mono';text-align:right;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.d.en }}</span></sc-if></div></sc-for>
+                </div>
+              </sc-if>
+
+              <!-- METERS -->
+              <sc-if value="{{ archMeters }}" hint-placeholder-val="{{ false }}">
+                <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px">
+                  <sc-for list="{{ rows }}" as="r" hint-placeholder-count="4"><div style="padding:20px;border-radius:14px;background:var(--panel);border:1px solid var(--line);min-width:0"><div style="font-size:10.5px;font-weight:600;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.a.en }}</div><div style="font-size:9.5px;color:var(--text-faint);font-family:'Noto Sans TC'">{{ r.a.zh }}</div><div style="display:flex;align-items:baseline;gap:5px;margin-top:14px;min-width:0"><span style="font-size:26px;font-weight:700;font-family:'JetBrains Mono';color:var(--brand);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">{{ r.b.en }}</span><span style="font-size:12px;color:var(--text-dim);white-space:nowrap;flex:none">{{ r.c.en }}</span></div><div style="height:5px;border-radius:3px;background:var(--line);overflow:hidden;margin-top:14px"><div style="{{ r.meterCss }}"></div></div></div></sc-for>
+                </div>
+              </sc-if>
+
+              <!-- MEDIA pipeline -->
+              <sc-if value="{{ archMedia }}" hint-placeholder-val="{{ false }}">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+                  <div style="padding:22px;border-radius:14px;background:var(--panel);border:1px dashed var(--line2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;min-height:240px;text-align:center"><div style="width:48px;height:48px;border-radius:13px;background:var(--brand-glow);display:flex;align-items:center;justify-content:center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 11l5 5 5-5M5 21h14"></path></svg></div><div><div style="font-size:13px;font-weight:600">Drop a source file</div><div style="font-size:11px;color:var(--text-faint);font-family:'Noto Sans TC'">拖入來源檔案</div></div><button style="padding:8px 16px;border-radius:8px;background:var(--bg2);border:1px solid var(--line);color:var(--text);font:inherit;font-size:12px;cursor:pointer">Browse · 瀏覽</button></div>
+                  <div style="padding:20px;border-radius:14px;background:var(--panel);border:1px solid var(--line)"><div style="font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--text-faint);text-transform:uppercase">Output · 輸出</div><div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px"><sc-for list="{{ mediaChips }}" as="c" hint-placeholder-count="5"><span style="{{ c.css }}">{{ c.t }}</span></sc-for></div><div style="margin-top:18px;font-size:11px;color:var(--text-faint)">Quality · 品質</div><div style="height:6px;border-radius:4px;background:var(--line);margin-top:8px;overflow:hidden"><div style="height:100%;width:80%;background:var(--brand);border-radius:4px"></div></div><button style="margin-top:18px;width:100%;padding:11px;border-radius:9px;background:var(--brand);border:none;color:#06210f;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer">Convert · 轉換</button></div>
+                  <div style="padding:20px;border-radius:14px;background:var(--panel);border:1px solid var(--line)"><div style="font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--text-faint);text-transform:uppercase">Queue · 佇列</div><div style="display:flex;flex-direction:column;gap:9px;margin-top:14px"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:11px;font-family:'JetBrains Mono';color:var(--brand)">100%</span><div style="flex:1;height:5px;background:var(--line);border-radius:3px;overflow:hidden"><div style="height:100%;width:100%;background:var(--brand)"></div></div></div><div style="display:flex;align-items:center;gap:10px"><span style="font-size:11px;font-family:'JetBrains Mono';color:var(--spark)">64%</span><div style="flex:1;height:5px;background:var(--line);border-radius:3px;overflow:hidden"><div style="height:100%;width:64%;background:var(--spark)"></div></div></div><div style="display:flex;align-items:center;gap:10px"><span style="font-size:11px;font-family:'JetBrains Mono';color:var(--text-faint)">queued</span><div style="flex:1;height:5px;background:var(--line);border-radius:3px"></div></div></div></div>
+                </div>
+              </sc-if>
+
+              <!-- CHAT -->
+              <sc-if value="{{ archChat }}" hint-placeholder-val="{{ false }}">
+                <div style="display:grid;grid-template-columns:220px 1fr;gap:14px;height:440px">
+                  <div style="padding:12px;border-radius:14px;background:var(--panel);border:1px solid var(--line);display:flex;flex-direction:column;gap:4px"><button style="display:flex;align-items:center;gap:8px;padding:10px;border-radius:9px;background:var(--brand-glow);border:1px solid rgba(84,224,126,.25);color:var(--brand);font:inherit;font-size:12px;font-weight:600;cursor:pointer;margin-bottom:6px"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>New chat · 新對話</button><sc-for list="{{ rows }}" as="r" hint-placeholder-count="3"><div style="padding:9px 11px;border-radius:8px;font-size:12px;color:var(--text-dim)" style-hover="background:var(--bg2)">{{ r.a.en }}</div></sc-for></div>
+                  <div style="border-radius:14px;background:var(--panel);border:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden">
+                    <div style="flex:1;padding:20px;display:flex;flex-direction:column;gap:14px;overflow-y:auto"><sc-for list="{{ chatMsgs }}" as="m" hint-placeholder-count="2"><div style="{{ m.wrap }}"><div style="{{ m.bubble }}">{{ m.text }}</div></div></sc-for></div>
+                    <div style="padding:14px;border-top:1px solid var(--line);display:flex;gap:10px;align-items:center"><div style="flex:1;height:40px;border-radius:10px;background:var(--bg2);border:1px solid var(--line);display:flex;align-items:center;padding:0 14px;font-size:12.5px;color:var(--text-faint)">Message · 輸入訊息…</div><button style="width:40px;height:40px;border-radius:10px;background:var(--brand);border:none;color:#06210f;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></button></div>
+                  </div>
+                </div>
+              </sc-if>
+
+              <!-- VAULT -->
+              <sc-if value="{{ archVault }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;justify-content:center;padding:30px 0"><div style="width:380px;padding:34px 30px;border-radius:18px;background:var(--panel);border:1px solid var(--line);text-align:center"><div style="width:60px;height:60px;border-radius:16px;background:var(--brand-glow);display:flex;align-items:center;justify-content:center;margin:0 auto"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 11h12v9H6zM9 11V8a3 3 0 016 0v3"></path></svg></div><div style="margin-top:18px;font-size:18px;font-weight:700">{{ aTitle }}</div><div style="font-size:12px;color:var(--text-faint);font-family:'Noto Sans TC';margin-top:2px">{{ aZh }} · 已鎖定</div><div style="margin-top:22px;height:44px;border-radius:11px;background:var(--bg2);border:1px solid var(--line);display:flex;align-items:center;gap:10px;padding:0 14px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-faint)" stroke-width="1.7"><path d="M6 11h12v9H6zM9 11V8a3 3 0 016 0v3"></path></svg><span style="letter-spacing:.3em;color:var(--text-faint);font-size:13px">••••••••••</span></div><button style="margin-top:14px;width:100%;padding:12px;border-radius:11px;background:var(--brand);border:none;color:#06210f;font:inherit;font-size:13px;font-weight:700;cursor:pointer" style-hover="filter:brightness(1.06)">Unlock · 解鎖</button><div style="margin-top:14px;font-size:11px;color:var(--text-faint)">Native encryption · 原生加密 · AES-256</div></div></div>
+              </sc-if>
+
+              <!-- GRID -->
+              <sc-if value="{{ archGrid }}" hint-placeholder-val="{{ false }}">
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
+                  <sc-for list="{{ rows }}" as="r" hint-placeholder-count="6"><button onClick="{{ r.onClick }}" style="display:flex;flex-direction:column;align-items:stretch;text-align:left;padding:18px;border-radius:14px;background:var(--panel);border:1px solid var(--line);cursor:pointer;font:inherit;transition:transform .18s ease,border-color .18s ease" style-hover="border-color:var(--line2);transform:translateY(-2px)"><div style="display:flex;align-items:center;justify-content:space-between"><div style="width:38px;height:38px;border-radius:11px;background:var(--brand-glow);display:flex;align-items:center;justify-content:center;color:var(--brand)"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="{{ r.gIcon }}"></path></svg></div><sc-if value="{{ r.hasTag }}" hint-placeholder-val="{{ false }}"><span style="font-size:9.5px;font-weight:600;color:var(--text-faint);font-family:'Noto Sans TC'">{{ r.tag }}</span></sc-if></div><div style="margin-top:14px;display:flex;align-items:baseline;gap:7px;flex-wrap:wrap"><span style="font-size:14px;font-weight:600">{{ r.a.en }}</span><span style="font-size:11px;color:var(--text-faint);font-family:'Noto Sans TC'">{{ r.a.zh }}</span></div><div style="margin-top:5px;font-size:11.5px;color:var(--text-dim);line-height:1.45">{{ r.desc }}</div></button></sc-for>
+                </div>
+              </sc-if>
+
+              <!-- TERMINAL -->
+              <sc-if value="{{ archTerminal }}" hint-placeholder-val="{{ false }}">
+                <div style="border-radius:14px;background:#070a08;border:1px solid var(--line);overflow:hidden;min-height:420px;display:flex;flex-direction:column">
+                  <div style="display:flex;align-items:center;gap:2px;padding:8px 10px;border-bottom:1px solid var(--line);background:var(--bg2)"><sc-for list="{{ rows }}" as="r" hint-placeholder-count="3"><span style="{{ r.termTab }}">{{ r.a.en }}</span></sc-for><button style="width:24px;height:24px;border-radius:6px;background:transparent;border:none;color:var(--text-faint);cursor:pointer;margin-left:4px;display:flex;align-items:center;justify-content:center"><svg width="13" height="13" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></button></div>
+                  <div style="flex:1;padding:18px;font-family:'JetBrains Mono';font-size:12.5px;line-height:1.8"><div style="color:var(--brand)">winforge@desktop <span style="color:var(--cyan)">~/projects</span> $ <span style="color:var(--text)">{{ termCmd }}</span></div><sc-for list="{{ consoleLines }}" as="ln" hint-placeholder-count="4"><div style="{{ ln.css }}">{{ ln.t }}</div></sc-for><div style="color:var(--brand)">winforge@desktop <span style="color:var(--cyan)">~/projects</span> $ <span style="opacity:.5">▋</span></div></div>
+                </div>
+              </sc-if>
+
+              <!-- FORM -->
+              <sc-if value="{{ archForm }}" hint-placeholder-val="{{ false }}">
+                <div style="max-width:680px;border-radius:14px;background:var(--panel);border:1px solid var(--line);overflow:hidden">
+                  <sc-for list="{{ rows }}" as="r" hint-placeholder-count="6"><div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:15px 20px;border-bottom:1px solid var(--line)"><div style="display:flex;flex-direction:column;line-height:1.3"><span style="font-size:13px;font-weight:500">{{ r.a.en }}</span><span style="font-size:10.5px;color:var(--text-faint);font-family:'Noto Sans TC'">{{ r.a.zh }}</span></div><div style="{{ r.switchTrack }}"><div style="{{ r.switchKnob }}"></div></div></div></sc-for>
+                </div>
+              </sc-if>
+
+              <!-- EDITOR -->
+              <sc-if value="{{ archEditor }}" hint-placeholder-val="{{ false }}">
+                <div style="border-radius:14px;background:var(--panel);border:1px solid var(--line);overflow:hidden">
+                  <div style="display:flex;align-items:center;gap:6px;padding:10px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap"><sc-for list="{{ rows }}" as="r" hint-placeholder-count="5"><button style="display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:8px;background:var(--bg2);border:1px solid var(--line);color:var(--text);font:inherit;font-size:11.5px;cursor:pointer" style-hover="border-color:var(--brand-dim);color:var(--brand)">{{ r.a.en }}</button></sc-for></div>
+                  <div style="display:grid;grid-template-columns:200px 1fr;min-height:380px">
+                    <div style="border-right:1px solid var(--line);padding:14px;background:var(--bg2)"><div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--text-faint);text-transform:uppercase;margin-bottom:10px">{{ editPanel }}</div><sc-for list="{{ editTree }}" as="t" hint-placeholder-count="4"><div style="padding:6px 8px;border-radius:6px;font-size:11.5px;color:var(--text-dim);font-family:'JetBrains Mono'" style-hover="background:var(--panel)">{{ t }}</div></sc-for></div>
+                    <!-- code surface -->
+                    <sc-if value="{{ isEditCode }}" hint-placeholder-val="{{ true }}"><div style="padding:18px;font-family:'JetBrains Mono';font-size:12.5px;line-height:1.8;color:var(--text-dim);background:#070a08;overflow:auto"><sc-for list="{{ codeLines }}" as="c" hint-placeholder-count="6"><div style="{{ c.css }}"><span style="display:inline-block;width:28px;color:var(--text-faint);opacity:.5">{{ c.n }}</span>{{ c.t }}</div></sc-for></div></sc-if>
+                    <!-- canvas surface -->
+                    <sc-if value="{{ isEditCanvas }}" hint-placeholder-val="{{ false }}"><div style="display:flex;align-items:center;justify-content:center;background:repeating-conic-gradient(var(--bg2) 0% 25%,transparent 0% 50%) 0 0/22px 22px,var(--bg);position:relative"><div style="text-align:center;padding:30px;border-radius:14px;background:var(--panel);border:1px solid var(--line)"><div style="width:54px;height:54px;border-radius:14px;background:var(--brand-glow);display:flex;align-items:center;justify-content:center;margin:0 auto;color:var(--brand)"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="{{ aIcon }}"></path></svg></div><div style="margin-top:14px;font-size:13px;font-weight:600">{{ editLabel }}</div><div style="font-size:11px;color:var(--text-faint);margin-top:3px">{{ aTitle }} canvas</div></div></div></sc-if>
+                    <!-- split (diff) -->
+                    <sc-if value="{{ isEditSplit }}" hint-placeholder-val="{{ false }}"><div style="display:grid;grid-template-columns:1fr 1fr;background:#070a08;font-family:'JetBrains Mono';font-size:12px;line-height:1.8"><div style="padding:16px;border-right:1px solid var(--line)"><div style="color:var(--text-faint)">— a/config.toml</div><div style="background:rgba(255,95,95,.12)">- theme = "light"</div><div>port = 8080</div><div>name = "winforge"</div></div><div style="padding:16px"><div style="color:var(--text-faint)">+ b/config.toml</div><div style="background:rgba(84,224,126,.12)">+ theme = "dark"</div><div>port = 8080</div><div>name = "winforge"</div></div></div></sc-if>
+                  </div>
+                </div>
+              </sc-if>
+
+              <!-- DOC -->
+              <sc-if value="{{ archDoc }}" hint-placeholder-val="{{ false }}">
+                <sc-if value="{{ isAbout }}" hint-placeholder-val="{{ false }}">
+                  <div style="max-width:560px;padding:34px;border-radius:16px;background:var(--panel);border:1px solid var(--line)"><div style="display:flex;align-items:center;gap:14px"><div style="width:54px;height:54px;border-radius:14px;background:linear-gradient(140deg,#54e07e,#1f5a30);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(40,140,70,.35)"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0a1c0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5h6v6H5zM13 5h6v6h-6zM5 13h6v6H5zM13 13h6v6h-6z"></path></svg></div><div><div style="font-size:22px;font-weight:700">WinForge <span style="font-size:16px;color:var(--brand);font-family:'Noto Sans TC'">視窗調校</span></div><div style="font-size:12px;color:var(--text-faint);font-family:'JetBrains Mono'">v3.0 · build 26100 · net11.0</div></div></div><p style="margin-top:20px;font-size:13.5px;color:var(--text-dim);line-height:1.6">An all-in-one, fully bilingual control center with 138 modules that genuinely tunes Windows 11 — from a nuclear-reactor simulator to registry edits.</p><p style="margin-top:4px;font-size:12px;color:var(--text-faint);font-family:'Noto Sans TC';line-height:1.6">全方位、全雙語、138 個模組嘅控制中心，真係會幫你調校 Windows 11。</p><div style="display:flex;gap:10px;margin-top:22px"><button style="padding:9px 16px;border-radius:9px;background:var(--brand);border:none;color:#06210f;font:inherit;font-size:12px;font-weight:700;cursor:pointer">Check for updates</button><button style="padding:9px 16px;border-radius:9px;background:var(--bg2);border:1px solid var(--line);color:var(--text);font:inherit;font-size:12px;cursor:pointer">Release notes</button></div></div>
+                </sc-if>
+                <sc-if value="{{ isPlainDoc }}" hint-placeholder-val="{{ true }}">
+                  <div style="max-width:720px"><sc-for list="{{ docParas }}" as="p" hint-placeholder-count="3"><div style="margin-bottom:18px"><div style="font-size:14px;font-weight:600;margin-bottom:6px">{{ p.h }}</div><div style="font-size:13px;color:var(--text-dim);line-height:1.6">{{ p.t }}</div></div></sc-for></div>
+                </sc-if>
+              </sc-if>
+
+            </div>
+          </div>
+        </sc-if>
+
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:&quot;100%&quot;},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Appearance&quot;}}">
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.langs = ['Bilingual · 雙語','English','粵語'];
+    this.ICON = {
+      dash:'M5 5h6v6H5zM13 5h6v6h-6zM5 13h6v6H5zM13 13h6v6h-6z',
+      reactor:'M12 10.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM12 3a9 9 0 100 18 9 9 0 000-18zM12 3v6.5M12 14.5V21M3 12h6.5M14.5 12H21',
+      gear:'M12 9a3 3 0 100 6 3 3 0 000-6zM19.4 13a7.5 7.5 0 000-2l1.8-1.3-2-3.4-2 .9a7.5 7.5 0 00-1.8-1l-.3-2.2H9.9l-.3 2.2a7.5 7.5 0 00-1.8 1l-2-.9-2 3.4L5.6 11a7.5 7.5 0 000 2l-1.8 1.3 2 3.4 2-.9a7.5 7.5 0 001.8 1l.3 2.2h4.2l.3-2.2a7.5 7.5 0 001.8-1l2 .9 2-3.4z',
+      cake:'M4 20h16M5.5 20v-6a2.5 2.5 0 012.5-2.5h8a2.5 2.5 0 012.5 2.5v6M9 8.5V6M12 8.5V5M15 8.5V6',
+      apps:'M6 6h.01M12 6h.01M18 6h.01M6 12h.01M12 12h.01M18 12h.01M6 18h.01M12 18h.01M18 18h.01',
+      folder:'M4 7a2 2 0 012-2h3.5l2 2H18a2 2 0 012 2v8a2 2 0 01-2 2H6a2 2 0 01-2-2z',
+      files:'M7 3h7l5 5v11a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1zM14 3v5h5',
+      system:'M3 5h18v11H3zM8 20h8M12 16v4',
+      monitor:'M3 12h4l2-7 4 14 2-7h6',
+      media:'M3 7a2 2 0 012-2h8a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2zM15 10l6-3v10l-6-3',
+      video:'M3 7a2 2 0 012-2h8a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2zM15 10l6-3v10l-6-3',
+      audio:'M9 18V7l9-2v11M9 18a3 3 0 11-6 0 3 3 0 016 0zM18 16a3 3 0 11-6 0 3 3 0 016 0z',
+      music:'M9 18V7l9-2v11M9 18a3 3 0 11-6 0 3 3 0 016 0zM18 16a3 3 0 11-6 0 3 3 0 016 0z',
+      download:'M12 3v12M7 11l5 5 5-5M5 21h14',
+      image:'M4 5h16v14H4zM4 15l5-5 4 4 3-3 4 4M9 9a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z',
+      gif:'M4 5h16v14H4zM4 15l5-5 4 4 3-3 4 4M9 9a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z',
+      palette:'M12 3a9 9 0 100 18c1 0 1.5-.7 1.5-1.5 0-.4-.2-.8-.5-1-.3-.3-.5-.6-.5-1 0-.8.7-1.5 1.5-1.5H16a5 5 0 005-5c0-4.4-4-8-9-8zM7.5 12a1 1 0 110-2 1 1 0 010 2zM10.5 8a1 1 0 110-2 1 1 0 010 2zM15 8a1 1 0 110-2 1 1 0 010 2z',
+      ruler:'M3 8l5-5 13 13-5 5zM8 5l2 2M11 8l2 2M14 11l2 2',
+      camera:'M3 7a2 2 0 012-2h8a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2zM15 10l6-3v10l-6-3',
+      tweaks:'M4 7h16M4 12h16M4 17h16M9 5v4M15 10v4M7 15v4',
+      mouse:'M12 3a5 5 0 015 5v8a5 5 0 01-10 0V8a5 5 0 015-5zM12 7v3',
+      keyboard:'M3 6h18v12H3zM6 9v.01M9 9v.01M12 9v.01M15 9v.01M18 9v.01M6 12v.01M18 12v.01M8 15h8',
+      window:'M3 5h18v14H3zM3 9h18',
+      font:'M5 19l5-14 5 14M7 14h6M16 19h4',
+      clock:'M12 3a9 9 0 100 18 9 9 0 000-18zM12 8v4l3 2',
+      git:'M6 4v16M6 4a2 2 0 100 4 2 2 0 000-4zM6 16a2 2 0 100 4 2 2 0 000-4zM18 6a2 2 0 100 4 2 2 0 000-4zM18 8c0 4-6 4-6 8',
+      terminal:'M4 5h16v14H4zM7 9l3 3-3 3M13 15h4',
+      code:'M9 8l-5 4 5 4M15 8l5 4-5 4',
+      docker:'M4 11h16c0 4-3 7-7 7-3.5 0-6-2-6.5-4M6 11V8h2v3M9 11V8h2v3M12 11V8h2v3M9 8V5h2v3',
+      server:'M4 5h16v5H4zM4 14h16v5H4zM7 7.5v.01M7 16.5v.01',
+      phone:'M8 3h8a1 1 0 011 1v16a1 1 0 01-1 1H8a1 1 0 01-1-1V4a1 1 0 011-1zM11 18h2',
+      cloud:'M7 18a4 4 0 010-8 5 5 0 019.5-1A3.5 3.5 0 0117 18z',
+      globe:'M12 3a9 9 0 100 18 9 9 0 000-18zM3 12h18M12 3c2.5 2.7 2.5 15.3 0 18M12 3c-2.5 2.7-2.5 15.3 0 18',
+      network:'M5 12.5a9 9 0 0114 0M8 15.5a5 5 0 018 0M12 19h.01',
+      scan:'M4 8V5a1 1 0 011-1h3M16 4h3a1 1 0 011 1v3M20 16v3a1 1 0 01-1 1h-3M8 20H5a1 1 0 01-1-1v-3M4 12h16',
+      shield:'M12 3l7 3v5c0 5-3.5 8-7 10-3.5-2-7-5-7-10V6z',
+      lock:'M6 11h12v9H6zM9 11V8a3 3 0 016 0v3',
+      key:'M14 7a4 4 0 11-3 3.9L4 18v2h2l1-1h2v-2h2l1.1-1.1A4 4 0 0114 7z',
+      vault:'M4 5h16v14H4zM12 12m-3 0a3 3 0 106 0a3 3 0 10-6 0M12 9v.01',
+      mail:'M3 6h18v12H3zM3 7l9 6 9-6',
+      chat:'M4 5h16v11H8l-4 4z',
+      ai:'M12 4a8 8 0 100 16 8 8 0 000-16zM9 10h.01M15 10h.01M9 14c1 1 5 1 6 0',
+      db:'M5 6c0-1.7 3.1-3 7-3s7 1.3 7 3-3.1 3-7 3-7-1.3-7-3zM5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3',
+      table:'M3 5h18v14H3zM3 10h18M9 5v14',
+      package:'M12 3l8 4v10l-8 4-8-4V7zM4 7l8 4 8-4M12 11v10',
+      diagram:'M4 4h6v5H4zM14 15h6v5h-6zM7 9v4a2 2 0 002 2h5',
+      chart:'M4 19V5M4 19h16M8 16v-5M12 16V8M16 16v-7',
+      book:'M5 4h11a2 2 0 012 2v14H7a2 2 0 01-2-2zM5 18a2 2 0 012-2h11',
+      info:'M12 4a8 8 0 100 16 8 8 0 000-16zM12 11v5M12 8h.01',
+      search:'M11 4a7 7 0 104.95 11.95A7 7 0 0011 4zM20 20l-3.5-3.5',
+      hex:'M7 3h10v18H7zM10 7h4M10 11h4M10 15h2',
+      clipboard:'M9 4h6v2H9zM6 6h12v14H6zM9 4a1 1 0 011-1h4a1 1 0 011 1v1H9z',
+      bolt:'M13 3L5 13h5l-1 8 8-10h-5z',
+      wrench:'M14.5 6.5a4 4 0 00-5.3 5.3l-5.5 5.5 2 2 5.5-5.5a4 4 0 005.3-5.3l-2.7 2.7-2-2z',
+      recipes:'M6 4v16M6 5h11l-2.2 3 2.2 3H6',
+      doc:'M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 16h6M10 10h3',
+      flask:'M9 3h6M10 3v6l-5 9a1.5 1.5 0 001.3 2.2h11.4A1.5 1.5 0 0019 18l-5-9V3',
+      play:'M8 5v14l11-7z',
+      disk:'M5 6c0-1.7 3.1-3 7-3s7 1.3 7 3-3.1 3-7 3-7-1.3-7-3zM5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6',
+      battery:'M3 8h16v8H3zM21 11v2M6 11v2M9 11v2M12 11v2',
+    };
+    this.state = {
+      data: null,
+      openTabs: ['dashboard'],
+      active: 'dashboard',
+      expanded: {},
+      sel: 0,
+      theme: this.props.theme || 'dark',
+      lang: 0,
+      cpu: 7, mem: 56, memUsed: 36.3,
+      cores: Array.from({length:32}, () => Math.random()*22),
+      down: 75.4, up: 519.7,
+      net: Array.from({length:44}, (_,i)=> 12 + Math.sin(i/3)*8 + Math.random()*10),
+      uptime: '1d 8h 31m',
+      power: 612, temp: 318, pressure: 15.4, coolant: 88, rodSet: [60,64,58,66,61,63],
+      procs: [
+        {pid:4408, name:'chrome.exe', cpu:11, mem:1842.0},{pid:9120, name:'WinForge.exe', cpu:6, mem:212.4},
+        {pid:16252, name:'Discord', cpu:4, mem:283.6},{pid:1180, name:'dwm.exe', cpu:3, mem:96.8},
+        {pid:15044, name:'TrafficMonitor', cpu:2, mem:7.3},{pid:7732, name:'explorer.exe', cpu:2, mem:178.2},
+        {pid:28252, name:'CurseForge', cpu:1, mem:149.7},
+      ],
+    };
+    this.rootRef = null;
+  }
+
+  palettes(){ return {
+    dark:{'--bg':'#0a0d0b','--bg2':'#0e120f','--panel':'#131814','--panel2':'#1a211b','--line':'rgba(255,255,255,.07)','--line2':'rgba(255,255,255,.13)','--text':'#e9efe9','--text-dim':'#9fae9f','--text-faint':'#6b7a6d','--brand':'#54e07e','--brand-dim':'#2faf57','--brand-glow':'rgba(84,224,126,.13)','--spark':'#f7b034','--spark2':'#ff7a45','--danger':'#ff5f5f','--warn':'#f5c451','--cyan':'#49cdd9'},
+    light:{'--bg':'#eaeee7','--bg2':'#f3f6f0','--panel':'#ffffff','--panel2':'#eef2ea','--line':'rgba(20,45,25,.09)','--line2':'rgba(20,45,25,.16)','--text':'#15201a','--text-dim':'#4a5a4c','--text-faint':'#7a8a7c','--brand':'#1f8a44','--brand-dim':'#2faf57','--brand-glow':'rgba(31,138,68,.1)','--spark':'#d97a10','--spark2':'#e8632a','--danger':'#d83a3a','--warn':'#c79412','--cyan':'#1f9aa6'}
+  };}
+  setRoot = (el) => { this.rootRef = el; if(el) this.applyTheme(this.state.theme); };
+  applyTheme(theme){ if(!this.rootRef) return; const p=this.palettes()[theme]||this.palettes().dark; for(const k in p) this.rootRef.style.setProperty(k,p[k]); this.rootRef.style.background=p['--bg']; this.rootRef.style.color=p['--text']; }
+  toggleTheme = () => this.setState(s=>({theme:s.theme==='dark'?'light':'dark'}), ()=>this.applyTheme(this.state.theme));
+  cycleLang = () => this.setState(s=>({lang:(s.lang+1)%3}));
+
+  async componentDidMount(){
+    try { const m = await import('./winforge-modules.js'); this.setState({ data:{GROUPS:m.GROUPS, MODULES:m.MODULES, FOOTER:m.FOOTER} }); }
+    catch(e){ console.error('module catalog load failed', e); }
+    this.timer = setInterval(()=>this.tick(), 1300);
+  }
+  componentWillUnmount(){ clearInterval(this.timer); }
+
+  groupOf(tag){ const d=this.state.data; if(!d) return null; for(const g of d.GROUPS){ if(g.items.includes(tag)) return g.id; } return null; }
+  open = (tag) => () => {
+    this.setState(s=>{
+      const openTabs = s.openTabs.includes(tag) ? s.openTabs : [...s.openTabs, tag];
+      const gid = this.groupOf(tag);
+      const expanded = gid ? {...s.expanded, [gid]:true} : s.expanded;
+      return { active:tag, openTabs, expanded, sel:0 };
+    });
+  };
+  closeTab = (tag) => (e) => {
+    if(e&&e.stopPropagation) e.stopPropagation();
+    this.setState(s=>{
+      const i = s.openTabs.indexOf(tag);
+      const openTabs = s.openTabs.filter(t=>t!==tag);
+      let active = s.active;
+      if(active===tag) active = openTabs[Math.max(0,i-1)] || openTabs[0] || 'dashboard';
+      return { openTabs: openTabs.length?openTabs:['dashboard'], active };
+    });
+  };
+  toggleGroup = (id) => () => this.setState(s=>({expanded:{...s.expanded,[id]:!s.expanded[id]}}));
+  selectRow = (i) => () => this.setState({sel:i});
+
+  clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+  walk(v,amt,a,b){ return this.clamp(v+(Math.random()-0.5)*amt,a,b); }
+  tick(){
+    this.setState(s=>{
+      const cores = s.cores.map(c=>{ let n=c+(Math.random()-0.5)*22; if(Math.random()<0.05)n+=35; return this.clamp(n,0,100); });
+      const cpu = Math.round(cores.reduce((a,b)=>a+b,0)/cores.length);
+      const net = s.net.slice(1).concat(this.clamp(s.net[s.net.length-1]+(Math.random()-0.5)*30,2,100));
+      const procs = s.procs.map(p=>({...p, cpu:this.clamp(Math.round(p.cpu+(Math.random()-0.5)*6),0,60)}));
+      return { cores,cpu,net,procs,
+        mem:Math.round(this.walk(s.mem,4,48,64)), memUsed:+(this.walk(s.memUsed,1.5,30,41)).toFixed(1),
+        down:+(this.walk(s.down,60,8,480)).toFixed(1), up:+(this.walk(s.up,120,40,980)).toFixed(1),
+        power:Math.round(this.walk(s.power,14,560,720)), temp:Math.round(this.walk(s.temp,6,300,332)),
+        pressure:+(this.walk(s.pressure,0.4,14.6,16.2)).toFixed(1), coolant:Math.round(this.walk(s.coolant,5,78,96)),
+        rodSet:s.rodSet.map(r=>Math.round(this.clamp(r+(Math.random()-0.5)*3,50,72))),
+      };
+    });
+  }
+  pad2(n){ return String(n).padStart(2,'0'); }
+  coreColor(v){ return v<45?'var(--brand)':v<75?'var(--spark)':'var(--danger)'; }
+  ic(k){ return this.ICON[k] || 'M12 11.5a.5.5 0 100 1 .5.5 0 000-1zM12 4a8 8 0 100 16 8 8 0 000-16z'; }
+  pf(f){ if(f==null) return {en:'',zh:''}; const p=String(f).split('·'); return {en:(p[0]||'').trim(), zh:(p[1]||'').trim()}; }
+
+  statusMeta(s){
+    const t=(s||'').toLowerCase();
+    if(['on','running','installed','good','estab','passed','done','active'].includes(t)) return 'var(--brand)';
+    if(['off','stopped','exited','disabled'].includes(t)) return 'var(--text-faint)';
+    if(['warn','warning','caution'].includes(t)) return 'var(--spark)';
+    if(['update','queued','seeding','syncing'].includes(t)) return 'var(--cyan)';
+    return 'var(--brand)';
+  }
+
+  parseRows(items){
+    return (items||[]).map((it)=>{
+      const fields = String(it).split('|').map(x=>x.trim());
+      const a=this.pf(fields[0]); const b=fields[1]!=null?this.pf(fields[1]):null;
+      const c=fields[2]!=null?this.pf(fields[2]):null; const d=fields[3]!=null?this.pf(fields[3]):null;
+      const lastEn=this.pf(fields[fields.length-1]).en.toLowerCase();
+      const on = lastEn==='on' ? true : (lastEn==='off'? false : null);
+      return {fields,a,b:b||{en:'',zh:''},c:c||{en:'',zh:''},d:d||{en:'',zh:''},nb:!!b,nc:!!c,nd:!!d,on};
+    });
+  }
+
+  renderVals(){
+    const s=this.state; const d=s.data;
+    const base = {
+      setRoot:this.setRoot, toggleTheme:this.toggleTheme, cycleLang:this.cycleLang,
+      langLabel:this.langs[s.lang],
+      searchPlaceholder: s.lang===2?'搜尋全部…':'Search everything · 搜尋全部',
+      navGroups:[], footerItems:[], tabs:[],
+      isDash:s.active==='dashboard', isMon:s.active==='module.monitor', isReactor:s.active==='module.reactor', isCake:s.active==='module.cakefactory',
+      isGeneric:false,
+      cpu:s.cpu, mem:s.mem, memUsed:s.memUsed.toFixed(1), down:s.down, up:s.up, uptime:s.uptime,
+      coreCells:[], procRows:[], netPoints:'', netArea:'',
+      output:s.power, powerPct:Math.round((s.power/900)*100), thermal:Math.round(s.power*2.95),
+      gauges:[], rods:[], rodAvg:0, coolant:s.coolant, telemetry:'',
+      cards:[], cakeStages:[], cakeOps:[],
+      archRunner:false,archList:false,archTable:false,archEditor:false,archMeters:false,archMedia:false,archChat:false,archVault:false,archGrid:false,archTerminal:false,archForm:false,archDoc:false,
+      rows:[], consoleLines:[], chatMsgs:[], mediaChips:[], codeLines:[], editTree:[], docParas:[],
+      aIcon:this.ic('apps'),aTitle:'',aZh:'',aDesc:'',aDescZh:'',aBadge:'',hasBadge:false,aPrimary:'Run',
+      colA:'',colB:'',colC:'',colD:'',hasColD:false,rowCount:0,tableHeadCss:'',tableRowCss:'',
+      selName:'',selZh:'',selMeta:'',selStatus:'',selDot:'var(--brand)',
+      isEditCode:false,isEditCanvas:false,isEditSplit:false,editPanel:'Explorer',editLabel:'',termCmd:'',
+      isAbout:false,isPlainDoc:false,
+    };
+
+    // live bespoke data (always computed for the hero screens)
+    base.coreCells = s.cores.map((v,i)=>({ i:this.pad2(i), pct:Math.round(v), barCss:{height:'100%',width:Math.round(v)+'%',borderRadius:'4px',background:this.coreColor(v),transition:'width .9s ease, background .4s ease'} }));
+    base.procRows = [...s.procs].sort((a,b)=>b.cpu-a.cpu).map(p=>({ pid:p.pid,name:p.name,cpu:p.cpu,mem:p.mem.toFixed(1), barCss:{height:'100%',width:Math.min(100,p.cpu*1.6)+'%',borderRadius:'3px',background:this.coreColor(p.cpu*1.4),transition:'width .8s ease'} }));
+    const W=300,H=56,mx=Math.max(...s.net,1);
+    const pts=s.net.map((v,i)=>{const x=(i/(s.net.length-1))*W;const y=H-(v/mx)*(H-6)-3;return x.toFixed(1)+','+y.toFixed(1);});
+    base.netPoints=pts.join(' '); base.netArea='0,'+H+' '+base.netPoints+' '+W+','+H;
+    const CIRC=289; const gauge=(val,unit,label,zh,frac,color)=>({val,unit,label,zh,color,off:(CIRC*(1-this.clamp(frac,0,1))).toFixed(1)});
+    base.gauges=[ gauge(s.temp,'°C','Core temp','堆芯溫度',s.temp/360,'var(--spark)'), gauge(s.pressure,'MPa','Pressure','壓力',s.pressure/20,'var(--cyan)'), gauge(s.coolant,'%','Coolant','冷卻',s.coolant/100,'var(--brand)') ];
+    base.rods=s.rodSet.map((r,i)=>({id:'R'+(i+1),fillCss:{width:'100%',height:r+'%',background:'linear-gradient(180deg,var(--brand),var(--brand-dim))',transition:'height 1s ease'}}));
+    base.rodAvg=Math.round(s.rodSet.reduce((a,b)=>a+b,0)/s.rodSet.length);
+    base.telemetry='reactor_bus '+s.power+' MWe · loop ΔT '+(s.temp-289)+'°C · '+s.pressure+' MPa · rods '+base.rodAvg+'% · all interlocks nominal';
+    base.cakeStages=[ {n:'1',en:'Farm',zh:'農場',bg:'var(--brand-glow)',fg:'var(--brand)'},{n:'2',en:'Mill',zh:'磨坊',bg:'rgba(247,176,52,.14)',fg:'var(--spark)'},{n:'3',en:'Mix',zh:'攪拌',bg:'rgba(73,205,217,.14)',fg:'var(--cyan)'},{n:'4',en:'Bake',zh:'烘焙',bg:'rgba(247,176,52,.14)',fg:'var(--spark)'},{n:'5',en:'Pack',zh:'包裝',bg:'var(--brand-glow)',fg:'var(--brand)'} ];
+    base.cakeOps=[ {en:'Harvest',zh:'收割'},{en:'Milk + eggs',zh:'牛奶雞蛋'},{en:'Mill flour',zh:'磨粉'},{en:'Churn butter',zh:'攪牛油'},{en:'Start batch',zh:'開始批次'},{en:'CIP clean',zh:'就地清洗'} ];
+
+    if(!d) return base;
+
+    // NAV
+    base.navGroups = d.GROUPS.map(g=>{
+      const flat = (g.id==='suite'||g.id==='win11');
+      const expanded = flat ? true : !!s.expanded[g.id];
+      const items = g.items.map(tag=>{
+        const m = d.MODULES[tag] || {en:tag,zh:'',icon:'apps'};
+        const active = s.active===tag;
+        return { tag, en:m.en, zh:m.zh, icon:this.ic(m.icon), star: m.badge==='FLAGSHIP', onClick:this.open(tag),
+          css:{display:'flex',alignItems:'center',gap:'10px',width:'100%',padding:'7px 10px',borderRadius:'9px',cursor:'pointer',font:'inherit',textAlign:'left',border:'none',background:active?'var(--brand-glow)':'transparent',color:active?'var(--brand)':'var(--text-dim)',boxShadow:active?'inset 2px 0 0 var(--brand)':'none'} };
+      });
+      return { id:g.id, label:g.label, zh:g.zh, flat, collapsible:!flat, expanded, showItems:flat||expanded,
+        count:String(g.items.length), icon:this.ic(g.icon), onToggle:this.toggleGroup(g.id),
+        itemsWrap:{display:'flex',flexDirection:'column',gap:'2px', paddingLeft: flat?'0':'8px', marginTop: flat?'2px':'2px'},
+        chevCss:{transform: expanded?'rotate(90deg)':'rotate(0deg)', transition:'transform .15s ease', flex:'none'},
+        parentCss:{display:'flex',alignItems:'center',gap:'10px',width:'100%',padding:'8px 10px',borderRadius:'9px',cursor:'pointer',font:'inherit',textAlign:'left',border:'none',background:'transparent',color:'var(--text-dim)'},
+        items };
+    });
+    base.footerItems = (d.FOOTER||[]).map(tag=>{ const m=d.MODULES[tag]||{en:tag,zh:'',icon:'info'}; const active=s.active===tag;
+      return { tag, en:m.en, zh:m.zh, icon:this.ic(m.icon), onClick:this.open(tag),
+        css:{display:'flex',alignItems:'center',gap:'10px',width:'100%',padding:'7px 10px',borderRadius:'9px',cursor:'pointer',font:'inherit',textAlign:'left',border:'none',background:active?'var(--brand-glow)':'transparent',color:active?'var(--brand)':'var(--text-dim)'} }; });
+
+    // TABS
+    base.tabs = s.openTabs.map(tag=>{ const m=d.MODULES[tag]||{en:tag,icon:'apps'}; const active=s.active===tag;
+      return { tag, label:m.en, icon:this.ic(m.icon), onClick:this.open(tag), onClose:this.closeTab(tag),
+        css:{display:'flex',alignItems:'center',gap:'8px',height:'30px',padding:'0 8px 0 12px',borderRadius:'8px',fontSize:'12.5px',fontWeight:active?'600':'500',border:'1px solid '+(active?'var(--line2)':'transparent'),background:active?'var(--panel)':'transparent',color:active?'var(--text)':'var(--text-faint)',boxShadow:active?'inset 0 2px 0 -1px var(--brand)':'none',flex:'none'} }; });
+
+    // dashboard cards → real modules
+    const iconWrap=(t)=>({width:'40px',height:'40px',borderRadius:'11px',display:'flex',alignItems:'center',justifyContent:'center',background:t==='brand'?'var(--brand-glow)':t==='spark'?'rgba(247,176,52,.12)':t==='cyan'?'rgba(73,205,217,.12)':'var(--panel2)',color:t==='brand'?'var(--brand)':t==='spark'?'var(--spark)':t==='cyan'?'var(--cyan)':'var(--text-dim)'});
+    const cardBase=(star)=>({display:'flex',flexDirection:'column',alignItems:'stretch',textAlign:'left',padding:'18px',borderRadius:'14px',cursor:'pointer',font:'inherit',background:star?'radial-gradient(120% 120% at 100% 0%, rgba(84,224,126,.1), transparent 60%), var(--panel)':'var(--panel)',border:'1px solid '+(star?'rgba(84,224,126,.35)':'var(--line)'),transition:'transform .18s ease, border-color .18s ease'});
+    const cdefs=[['module.reactor','brand',true],['module.git','cyan'],['module.archives','spark'],['module.media','cyan'],['module.regedit','brand'],['module.doctors','spark'],['module.services','brand'],['module.tasks','cyan'],['module.cakefactory','spark']];
+    base.cards = cdefs.map(([tag,tone,star])=>{ const m=d.MODULES[tag]; return {title:m.en,titleZh:m.zh,desc:(m.d||'').split('.')[0]+'.',icon:this.ic(m.icon),star:!!star,onClick:this.open(tag),css:cardBase(star),iconWrap:iconWrap(tone)}; });
+
+    // GENERIC module routing
+    const bespoke = ['dashboard','module.monitor','module.reactor','module.cakefactory'];
+    if(bespoke.includes(s.active)) return base;
+    const m = d.MODULES[s.active];
+    if(!m) return base;
+    base.isGeneric = true;
+    base.aIcon=this.ic(m.icon); base.aTitle=m.en; base.aZh=m.zh; base.aDesc=m.d||''; base.aDescZh=m.dz||'';
+    base.hasBadge=!!m.badge; base.aBadge=m.badge||'';
+    const arch=m.arch;
+    base['arch'+arch.charAt(0).toUpperCase()+arch.slice(1)] = true;
+
+    let rows = this.parseRows(m.items);
+    // synthesize All Apps grid from catalog
+    if(s.active==='shell.allapps'){
+      rows=[]; for(const g of d.GROUPS){ if(g.id==='win11') continue; for(const tag of g.items){ if(tag.startsWith('shell.')) continue; const mm=d.MODULES[tag]; if(!mm) continue; rows.push({a:{en:mm.en,zh:mm.zh},b:{en:'',zh:''},c:{en:(mm.d||'').split('.')[0]+'.',zh:''},nb:false,nc:true,gIcon:this.ic(mm.icon),tag,onClick:this.open(tag)}); } }
+    }
+
+    const primary={runner:'Run · 執行',list:'Add · 新增',table:'New · 新增',editor:'Save · 儲存',meters:'Refresh · 重新整理',media:'Convert · 轉換',chat:'New chat',vault:'Unlock · 解鎖',grid:'Open · 開啟',terminal:'New tab',form:'Apply · 套用',doc:'Print · 列印'};
+    base.aPrimary = primary[arch]||'Run';
+
+    if(arch==='runner'||arch==='terminal'){
+      base.rows = rows.map(r=>({...r, termTab:{padding:'7px 12px',borderRadius:'7px 7px 0 0',fontSize:'12px',color:r===rows[0]?'var(--text)':'var(--text-faint)',background:r===rows[0]?'#070a08':'transparent',cursor:'pointer'}}));
+      const op = rows[0]?rows[0].a.en:'run';
+      base.termCmd = (m.en.toLowerCase().split(' ')[0])+' '+(op.toLowerCase());
+      const lines=[
+        {t:'$ winforge '+(s.active.split('.')[1]||'tool')+' --status', css:{color:'var(--brand)'}},
+        {t:'✓ connected · '+m.en, css:{color:'var(--text)'}},
+        {t:'· '+(m.d||''), css:{color:'var(--text-faint)'}},
+        {t:'ready in 0.4s', css:{color:'var(--text-faint)'}},
+      ];
+      base.consoleLines=lines;
+    } else if(arch==='list'){
+      base.rows = rows.map((r,i)=>{ const status=(r.nc?r.c.en:r.b.en)||'on'; const meta=r.nc?r.b.en:''; const dot=this.statusMeta(status); const seld=i===s.sel;
+        return {...r, status, meta, dot, onClick:this.selectRow(i),
+          listCss:{display:'flex',alignItems:'center',gap:'12px',width:'100%',padding:'12px 16px',border:'none',borderBottom:'1px solid var(--line)',borderLeft:'2px solid '+(seld?'var(--brand)':'transparent'),background:seld?'var(--brand-glow)':'transparent',color:'var(--text)',cursor:'pointer',font:'inherit',textAlign:'left'} }; });
+      const sr = base.rows[s.sel]||base.rows[0]||{a:{en:'',zh:''},meta:'',status:'',dot:'var(--brand)'};
+      base.selName=sr.a.en; base.selZh=sr.a.zh; base.selMeta=sr.meta||'—'; base.selStatus=sr.status||'—'; base.selDot=sr.dot;
+    } else if(arch==='table'){
+      base.rows=rows; base.rowCount=rows.length;
+      const cols=(m.cols||['Name','Value','Detail']).map(c=>this.pf(c));
+      base.colA=cols[0]?cols[0].en:''; base.colB=cols[1]?cols[1].en:''; base.colC=cols[2]?cols[2].en:''; base.colD=cols[3]?cols[3].en:''; base.hasColD=cols.length>3;
+      const tmpl = cols.length>3?'minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)':'minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr)';
+      base.tableHeadCss={display:'grid',gridTemplateColumns:tmpl,gap:'12px',padding:'9px 18px',borderBottom:'1px solid var(--line)',fontSize:'10px',fontWeight:'700',letterSpacing:'.06em',color:'var(--text-faint)',textTransform:'uppercase'};
+      base.tableRowCss={display:'grid',gridTemplateColumns:tmpl,gap:'12px',alignItems:'center',padding:'12px 18px',borderBottom:'1px solid var(--line)'};
+    } else if(arch==='meters'){
+      base.rows = rows.map(r=>{ const pct=Math.min(100,parseFloat(r.b.en)||60); return {...r, meterCss:{height:'100%',width:(isNaN(pct)?60:pct)+'%',borderRadius:'3px',background:'var(--brand)'}}; });
+    } else if(arch==='media'){
+      base.mediaChips = (m.items||[]).map((t,i)=>({t, css:{padding:'7px 12px',borderRadius:'8px',fontSize:'11.5px',fontWeight:'500',fontFamily:"'JetBrains Mono'",border:'1px solid '+(i===0?'var(--brand)':'var(--line)'),background:i===0?'var(--brand-glow)':'var(--bg2)',color:i===0?'var(--brand)':'var(--text-dim)',cursor:'pointer'}}));
+    } else if(arch==='chat'){
+      base.rows=rows;
+      base.chatMsgs=[
+        {role:'user',text:'Summarise today\u2019s reactor telemetry.', wrap:{display:'flex',justifyContent:'flex-end'}, bubble:{maxWidth:'78%',padding:'11px 15px',borderRadius:'14px 14px 4px 14px',background:'var(--brand-glow)',border:'1px solid rgba(84,224,126,.25)',fontSize:'13px',color:'var(--text)'}},
+        {role:'ai',text:'Core stable at ~618 MWe, loop \u0394T 29\u00b0C, pressure 15.4 MPa. All interlocks nominal \u2014 no anomalies in the last hour.', wrap:{display:'flex',justifyContent:'flex-start'}, bubble:{maxWidth:'78%',padding:'11px 15px',borderRadius:'14px 14px 14px 4px',background:'var(--panel2)',border:'1px solid var(--line)',fontSize:'13px',color:'var(--text-dim)'}},
+      ];
+    } else if(arch==='grid'){
+      base.rows = rows.map(r=>{ const hasTag=r.nc; const desc=hasTag?r.c.en:r.b.en; const tag=hasTag?r.b.en:''; return {...r, gIcon:r.gIcon||this.ic(m.icon), hasTag:!!tag, tag, desc, onClick:r.onClick||(()=>{})}; });
+    } else if(arch==='form'){
+      base.rows = rows.map(r=>{ const on=r.on!==false; return {...r, switchTrack:{width:'40px',height:'23px',borderRadius:'12px',background:on?'var(--brand)':'var(--line2)',position:'relative',flex:'none',transition:'background .2s ease',cursor:'pointer'}, switchKnob:{position:'absolute',top:'2px',left:on?'19px':'2px',width:'19px',height:'19px',borderRadius:'50%',background:'#fff',transition:'left .2s ease',boxShadow:'0 1px 3px rgba(0,0,0,.3)'}}; });
+    } else if(arch==='editor'){
+      base.rows=rows;
+      const v=m.variant||'code';
+      const codeKinds=['hex','code','sql','api','hosts','tree'];
+      const canvasKinds=['image','pixel','diagram','zones','pdf','gif','preview','wave','doc'];
+      base.isEditCode=codeKinds.includes(v); base.isEditCanvas=canvasKinds.includes(v); base.isEditSplit=(v==='diff');
+      base.editPanel = v==='tree'?'Registry · 登錄':v==='sql'?'Tables · 表':v==='api'?'Collection · 集合':v==='code'?'Explorer':v==='hex'?'Files · 檔案':'Explorer';
+      base.editLabel = {image:'Image canvas',pixel:'Sprite canvas',diagram:'Diagram canvas',zones:'Zone layout',pdf:'PDF page',gif:'Frame timeline',preview:'Preview pane',wave:'Waveform',doc:'Document'}[v]||'Canvas';
+      base.editTree = (v==='tree')?['HKEY_CURRENT_USER','  Software','    WinForge','      Theme','      Language']:(v==='sql')?['modules','tweaks','recipes','sessions']:(v==='api')?['GET /status','POST /run','GET /modules','DELETE /tab']:['main.cs','config.toml','README.md','assets/'];
+      const samples={
+        sql:['SELECT id, name, status','FROM modules','WHERE active = true','ORDER BY name','LIMIT 50;'],
+        api:['{','  "status": 200,','  "ok": true,','  "data": [ … ]','}'],
+        hex:['0000  53 65 72 76 65 72 20 72   Server r','0008  65 61 64 79 0A 00 FF FE   eady....','0010  57 69 6E 46 6F 72 67 65   WinForge'],
+        hosts:['127.0.0.1   localhost','0.0.0.0     ads.example.com','0.0.0.0     telemetry.example.com','# blocked by WinForge'],
+        code:['// generated by WinForge','public class Module {','  public string Tag { get; set; }','  public bool  Active { get; set; }','}'],
+        tree:['Theme   = "dark"','Language = "bilingual"','StartPage = "dashboard"'],
+      };
+      const sm = samples[v]||samples.code;
+      base.codeLines = sm.map((t,i)=>({n:String(i+1),t, css:{whiteSpace:'pre'}}));
+    } else if(arch==='doc'){
+      base.isAbout = (m.variant==='about'); base.isPlainDoc = !base.isAbout;
+      base.docParas = base.isAbout?[]:[
+        {h:m.en+' · '+m.zh, t:m.d||''},
+        {h:'Overview · 概覽', t:'This page documents how the module works inside WinForge, in both English and 粵語. '+(m.dz||'')},
+        {h:'Notes · 備註', t:'Open-source components retain their original licenses. WinForge ships them self-contained via the Windows App SDK.'},
+      ];
+    }
+    return base;
+  }
+}
+</script>
+</body>
+</html>

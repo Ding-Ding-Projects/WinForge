@@ -1,0 +1,45 @@
+name: Deploy design to GitHub Pages
+
+# Publishes the WinForge UI design (design/) to GitHub Pages. Runs on every push to
+# main that touches the design (so future "design syncs" auto-publish), and can be
+# triggered manually. This is the design/UI sync target — the live design site.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'design/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+# Least-privilege token for Pages deployment.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One live deployment at a time; let an in-progress run finish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload design as Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: design
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
