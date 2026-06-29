@@ -866,6 +866,10 @@ public sealed partial class MainWindow : Window
             case "spigot":
                 Navigator.GoToModule?.Invoke("module.minecraftserver");
                 break;
+            case "minecraftlauncher":
+            case "mclauncher":
+                Navigator.GoToModule?.Invoke("module.minecraftlauncher");
+                break;
             case "viaproxy":
             case "viaversion":
             case "viabackwards":
@@ -1373,6 +1377,7 @@ public sealed partial class MainWindow : Window
         "module.minecraftworldtools" => typeof(MinecraftWorldToolsModule),
         "module.viaproxy" => typeof(ViaProxyModule),
         "module.minecraftserver" => typeof(MinecraftServerModule),
+        "module.minecraftlauncher" => typeof(MinecraftLauncherModule),
         "module.voice" => typeof(VoiceModule),
         "module.announcements" => typeof(AnnouncementsModule),
         "module.vault-volumes" => typeof(VaultVolumesModule),
@@ -1614,7 +1619,7 @@ public sealed partial class MainWindow : Window
                 "module.diagram", "module.flashcards", "module.rustdesk", "module.homeassistant",
                 "module.comms", "module.mail", "module.wslvm", "module.virtualbox", "module.proxmox",
                 "module.terminal", "module.uninstall", "module.imaging", "module.amulet",
-                "module.minecraftworldtools", "module.viaproxy", "module.minecraftserver", "module.git",
+                "module.minecraftworldtools", "module.viaproxy", "module.minecraftserver", "module.minecraftlauncher", "module.git",
                 "module.vscode", "module.aiagents", "module.resume", "module.ollama", "module.aichat",
                 "module.cloudflare", "module.weblogin", "module.ssh", "module.apiclient", "module.packer",
                 "module.worldmonitor", "module.webcloner", "module.pgadmin", "module.sqlitebrowser",
