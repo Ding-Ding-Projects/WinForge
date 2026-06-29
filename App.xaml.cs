@@ -133,6 +133,15 @@ public partial class App : Application
             Shell.Activate();
         CrashLogger.Mark("App: after Activate");
 
+        // 首次啟動條款及細則閘：使用者必須讀完條款並喺 5 題測驗攞 5/5 先可繼續；拒絕／不及格就退出。
+        // First-launch Terms & Conditions gate: the user must read the terms and score 5/5 on a short
+        // quiz before continuing; declining or failing exits the app. Once accepted it never shows again.
+        // Deep-link / automation / tray launches (--page, --reactor, --minimized) bypass the gate so the
+        // dev driver and login startup are never blocked — the gate is for the normal interactive launch.
+        bool automationLaunch = StartMinimized || StartReactor || !string.IsNullOrEmpty(StartPage);
+        if (!automationLaunch && !TermsService.HasAccepted)
+            MaybeShowTermsGate();
+
         // 啟動成功 → 解除最早期載入器診斷，免得正常運作時嘅良性 first-chance 例外洗版 crash.log。
         // Startup succeeded → detach the early loader diagnostics so benign first-chance loader exceptions
         // during normal operation don't spam crash.log.
@@ -146,6 +155,31 @@ public partial class App : Application
         var dq = Shell.DispatcherQueue;
         UiResponsivenessWatchdog.Start(dq);
         _ = StartPostLaunchServicesAsync(dq);
+    }
+
+    /// <summary>喺 UI 線程顯示首次條款閘；拒絕或不及格就退出 app · Show the first-launch terms gate on the UI thread; exit on decline/fail.</summary>
+    private static void MaybeShowTermsGate()
+    {
+        var dq = Shell?.DispatcherQueue;
+        if (dq is null) return;
+        dq.TryEnqueue(async () =>
+        {
+            try
+            {
+                var root = (Shell?.Content as FrameworkElement)?.XamlRoot;
+                if (root is null) return;
+                bool ok = await TermsService.EnsureAcceptedAsync(root);
+                if (!ok)
+                {
+                    Current.Exit();
+                }
+            }
+            catch (Exception ex)
+            {
+                // 閘出錯唔應該封死 app；記錄低就算 · A gate error must not lock the user out; log and continue.
+                CrashLogger.Log("startup:terms-gate", ex);
+            }
+        });
     }
 
     private static async Task StartPostLaunchServicesAsync(Microsoft.UI.Dispatching.DispatcherQueue dq)
