@@ -47,7 +47,7 @@ public sealed partial class YtDlpModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Media Downloader · 媒體下載器";
+        Header.Title = "Media Downloader · 媒體下載器";
         HeaderBlurb.Text = P(
             "Download video and audio from 1000+ sites with yt-dlp. Paste one or more URLs (one per line), list the available formats, pick a quality, choose a folder, and download with live progress. Audio-only, subtitles, thumbnails, playlists and more are supported.",
             "用 yt-dlp 由 1000+ 個網站下載影片同音訊。貼一條或多條網址（每行一條），列出可用格式，揀畫質，揀資料夾，即時睇住進度下載。支援只要音訊、字幕、縮圖、播放清單等等。");

@@ -81,8 +81,8 @@ public sealed partial class ReactorSettingsModule : Page
     // ============================================================ localized labels ====
     private void Render()
     {
-        HeaderTitle.Text = "⚙ Reactor Settings · 反應堆設定";
-        HeaderBlurb.Text = P(
+        Header.Title = "⚙ Reactor Settings · 反應堆設定";
+        Header.Subtitle = P(
             "Controls that affect the REAL computer or EXTERNAL systems live here, separate from the pure simulation. All are reversible; the dangerous one (real shutdown) defaults OFF.",
             "會影響真實電腦或外部系統嘅控制集中喺呢度，同純模擬分開。全部可還原；最危險嗰個（真實關機）預設關閉。");
 

@@ -61,7 +61,7 @@ public sealed partial class TimeLensModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Activity Timeline · 活動時間軸";
+        Header.Title = "Activity Timeline · 活動時間軸";
         HeaderBlurb.Text = P(
             "See where your time goes. WinForge records the foreground app by default while it's running, then shows a readable timeline of your day and sorted per-app totals.",
             "睇下你嘅時間用咗喺邊。WinForge 開住嘅時候預設會記錄前景係邊個 app，然後整理成一條易睇嘅當日時間軸同每個 app 嘅總時間排行。");

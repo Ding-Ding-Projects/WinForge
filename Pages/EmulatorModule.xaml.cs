@@ -35,7 +35,7 @@ public sealed partial class EmulatorModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Android Emulator & SDK · Android 模擬器與 SDK";
+        Header.Title = "Android Emulator & SDK · Android 模擬器與 SDK";
         HeaderBlurb.Text = P("Control Android Virtual Devices and manage the SDK from one place — list/create/launch/wipe AVDs, and list/install/update/uninstall SDK packages and accept licenses. Needs the Android SDK (emulator + cmdline-tools).",
             "喺一個地方控制 Android 虛擬裝置同管理 SDK — 列出／建立／啟動／清資料 AVD，又可以列出／安裝／更新／移除 SDK 套件同接受授權。需要 Android SDK（emulator + cmdline-tools）。");
 

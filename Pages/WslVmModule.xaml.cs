@@ -26,7 +26,7 @@ public sealed partial class WslVmModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "WSL & VM Launcher · WSL 與 VM 啟動器";
+        Header.Title = "WSL & VM Launcher · WSL 與 VM 啟動器";
         HeaderBlurb.Text = P("Manage Windows Subsystem for Linux distros (list, install, export/import, set default, shut down) and launch Windows Sandbox from a generated .wsb config with mapped folders. Everything runs in-app via wsl.exe and WindowsSandbox.exe.",
             "管理 Windows Subsystem for Linux 發行版（列出、安裝、匯出／匯入、設預設、關閉），並用自動產生嘅 .wsb 設定（含對應資料夾）啟動 Windows 沙盒。全部喺 app 內經 wsl.exe 同 WindowsSandbox.exe 運行。");
 

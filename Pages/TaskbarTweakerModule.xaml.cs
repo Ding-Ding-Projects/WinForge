@@ -37,7 +37,7 @@ public sealed partial class TaskbarTweakerModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Taskbar Tweaker · 工作列調校";
+        Header.Title = "Taskbar Tweaker · 工作列調校";
         HeaderBlurb.Text = P(
             "Every taskbar and Start tweak WinForge can do natively, plus a launcher for the real 7+ Taskbar Tweaker and Windhawk for behaviours that need a runtime hook.",
             "WinForge 原生可以做嘅工作列同開始功能表調校，仲有可以啟動真正嘅 7+ Taskbar Tweaker 同 Windhawk，做需要執行時鈎子嘅行為。");

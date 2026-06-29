@@ -52,7 +52,7 @@ public sealed partial class AwsCliModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "AWS CLI · AWS 命令列";
+        Header.Title = "AWS CLI · AWS 命令列";
         HeaderBlurb.Text = P(
             "Drive the entire AWS CLI from inside WinForge. Browse every service and operation, auto-build a parameter form from --generate-cli-skeleton, or type any raw aws command. Manage profiles, region, output format and SSO. Friendly panels for S3, EC2, IAM, Lambda and CloudWatch sit on top of the same generic runner.",
             "喺 WinForge 直接駕馭成個 AWS CLI。瀏覽每個服務同操作、由 --generate-cli-skeleton 自動砌參數表單，或者打任何原始 aws 指令。管理 profile、region、輸出格式同 SSO。S3、EC2、IAM、Lambda、CloudWatch 都有貼心面板，全部都係同一個通用引擎之上。");

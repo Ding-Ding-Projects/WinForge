@@ -38,7 +38,7 @@ public sealed partial class MediaModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Media · 媒體";
+        Header.Title = "Media · 媒體";
         HeaderBlurb.Text = P("Convert, trim, make GIFs, grab frames and inspect video/audio with ffmpeg — all in-app.",
             "用 ffmpeg 轉檔、剪裁、整 GIF、擷取畫格、檢視影片／音訊 — 全部喺 app 內。");
         SelLabel.Text = P("Files", "檔案");

@@ -48,7 +48,7 @@ public sealed partial class RegistryEditor : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Registry Editor · 登錄編輯器";
+        Header.Title = "Registry Editor · 登錄編輯器";
         NewBtn.Content = P("New value", "新增值");
         EditBtn.Content = P("Edit", "編輯");
         DeleteBtn.Content = P("Delete", "刪除");

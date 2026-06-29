@@ -38,8 +38,8 @@ public sealed partial class TestDiskModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "TestDisk / PhotoRec · 資料救援";
-        HeaderSub.Text = P(
+        Header.Title = "TestDisk / PhotoRec · 資料救援";
+        Header.Subtitle = P(
             "Carve lost files (PhotoRec) and scan partitions read-only (TestDisk). Recover to a DIFFERENT disk.",
             "碳化救回遺失檔案（PhotoRec），唯讀掃描分割區（TestDisk）。請救援到另一個磁碟。");
 

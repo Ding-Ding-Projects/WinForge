@@ -44,7 +44,7 @@ public sealed partial class DecompilerModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = ".NET Decompiler · .NET 反編譯器";
+        Header.Title = ".NET Decompiler · .NET 反編譯器";
         HeaderBlurb.Text = P(
             "Open a managed .dll or .exe and browse it like ILSpy — namespaces, types and members — then decompile any item to C# or toggle to IL disassembly. Inspect assembly metadata, referenced assemblies and resources, search by name, and save the decompiled C#. Runs entirely in-app on the managed ICSharpCode.Decompiler engine; no external tool is launched.",
             "開一個受控 .dll 或 .exe，好似 ILSpy 咁瀏覽 —— 命名空間、型別同成員 —— 跟住將任何項目反編譯做 C# 或者切去 IL 反組譯。可以睇組件後設資料、參考組件同資源，按名搜尋，又可以另存反編譯出嚟嘅 C#。全部喺 app 內用受控嘅 ICSharpCode.Decompiler 引擎運行，唔會啟動任何外部工具。");

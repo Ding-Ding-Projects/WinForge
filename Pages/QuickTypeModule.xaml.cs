@@ -51,8 +51,8 @@ public sealed partial class QuickTypeModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "quicktype · JSON 轉型別";
-        HeaderBlurb.Text = P(
+        Header.Title = "quicktype · JSON 轉型別";
+        Header.Subtitle = P(
             "Turn JSON, JSON Schema, TypeScript, GraphQL or a Postman collection into typed code in C#, TypeScript, Python, Go, Rust, Java, Swift and more.",
             "將 JSON、JSON Schema、TypeScript、GraphQL 或 Postman 集合轉成 C#、TypeScript、Python、Go、Rust、Java、Swift 等語言嘅型別程式碼。");
 

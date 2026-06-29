@@ -33,7 +33,7 @@ public sealed partial class FontManagerModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Font Manager · 字型管理";
+        Header.Title = "Font Manager · 字型管理";
         HeaderBlurb.Text = P(
             "Install, preview and uninstall fonts in-app. Per-user install needs no admin (it copies to your profile's Fonts folder). The machine-wide option installs for all users and needs administrator rights.",
             "喺 app 內裝、睇同移除字型。逐個使用者安裝唔使管理員（會複製去你個人檔案嘅 Fonts 資料夾）。全機安裝係畀所有使用者用，需要管理員權限。");

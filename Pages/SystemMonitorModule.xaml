@@ -8,7 +8,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid Padding="24,16,24,16" RowSpacing="12">
+    <Grid Style="{StaticResource WinForgePageGridStyle}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -19,20 +19,14 @@
         </Grid.RowDefinitions>
 
         <!--  Header  -->
-        <Grid Grid.Row="0" ColumnSpacing="12">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12">
-                <FontIcon FontSize="22" Glyph="&#xE9D9;" VerticalAlignment="Center" />
-                <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" VerticalAlignment="Center" />
-            </StackPanel>
-            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                <TextBlock x:Name="IntervalLabel" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                <ComboBox x:Name="IntervalBox" SelectionChanged="Interval_Changed" SelectedIndex="1" MinWidth="92" />
-            </StackPanel>
-        </Grid>
+        <controls:ModuleHeader x:Name="Header" Grid.Row="0" Glyph="&#xE9D9;">
+            <controls:ModuleHeader.ActionContent>
+                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <TextBlock x:Name="IntervalLabel" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <ComboBox x:Name="IntervalBox" SelectionChanged="Interval_Changed" SelectedIndex="1" MinWidth="92" />
+                </StackPanel>
+            </controls:ModuleHeader.ActionContent>
+        </controls:ModuleHeader>
         <TextBlock x:Name="HeaderBlurb" Grid.Row="1" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
 
         <!--  btop-style meter dashboard  -->

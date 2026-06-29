@@ -82,7 +82,7 @@ public sealed partial class GitHubModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Git & GitHub · Git 與 GitHub";
+        Header.Title = "Git & GitHub · Git 與 GitHub";
         HeaderBlurb.Text = P(
             "GitHub Desktop, reimagined natively: pick a repo, review a colour-coded diff, stage files, commit with a summary + description, browse history, manage branches, open a pull request, and run any git or gh command.",
             "原生重做 GitHub Desktop：揀儲存庫、睇彩色 diff、暫存檔案、用摘要＋描述提交、瀏覽歷史、管理分支、開 pull request，仲可以執行任何 git 或 gh 指令。");

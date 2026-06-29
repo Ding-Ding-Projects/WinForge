@@ -63,7 +63,7 @@ public sealed partial class KeePassModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "KeePass Vault · 密碼保險庫";
+        Header.Title = "KeePass Vault · 密碼保險庫";
         HeaderBlurb.Text = P(
             "A native local password vault. Open or create a KeePass .kdbx database with a master password (and optional key file), browse groups and entries, generate strong passwords, and copy credentials (the clipboard clears itself after ~12 seconds). The KDBX file is read and written entirely in-app — nothing is launched or uploaded.",
             "原生本機密碼保險庫。用主密碼（同可選鎖匙檔）開啟或者建立 KeePass .kdbx 資料庫，瀏覽群組同項目、產生強密碼、複製帳密（剪貼簿約 12 秒後自動清除）。KDBX 檔完全喺 app 內讀寫 — 唔會啟動或上載任何嘢。");

@@ -33,7 +33,7 @@ public sealed partial class BulkOpsModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Bulk File Ops · 批次檔案操作";
+        Header.Title = "Bulk File Ops · 批次檔案操作";
         HeaderBlurb.Text = P("Match files by wildcard, regex or extension, preview them, then copy, move, recycle, flatten or organise by type.",
             "用萬用字元、正則或副檔名比對檔案，預覽之後可以複製、移動、放入回收筒、攤平或者按類型整理。");
         SrcCap.Text = P("Source", "來源");

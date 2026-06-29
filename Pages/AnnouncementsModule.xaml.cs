@@ -54,7 +54,7 @@ public sealed partial class AnnouncementsModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "PA Announcements · 喇叭語音廣播";
+        Header.Title = "PA Announcements · 喇叭語音廣播";
         HeaderBlurb.Text = P(
             "Speak public-address announcements through the PC speakers. Announcements queue so they never overlap; urgent ones jump the queue. A short two-tone chime can play first. This same engine can be called from anywhere in the app (e.g. by the reactor PA or alarms).",
             "用電腦喇叭發出語音廣播。廣播會排隊，唔會疊聲；緊急廣播會插隊。可以喺講之前先播一段雙音叮咚。呢個引擎可以喺 app 任何地方叫用（例如反應堆廣播或警報）。");

@@ -77,7 +77,7 @@ public sealed partial class PeekModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Peek · 快速預覽";
+        Header.Title = "Peek · 快速預覽";
         HeaderBlurb.Text = P(
             "Quick, read-only file preview — pick or drop a file and it shows by type: images, text & code, Markdown, PDF, audio, video, archives, or metadata. Step Prev/Next through the folder.",
             "快速、唯讀嘅檔案預覽 — 揀或者拖放一個檔案，按類型即時顯示：圖片、文字同程式碼、Markdown、PDF、音訊、影片、壓縮檔，或者中繼資料。可以喺資料夾入面上一個／下一個咁睇。");

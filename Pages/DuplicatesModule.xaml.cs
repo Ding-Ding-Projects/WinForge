@@ -46,7 +46,7 @@ public sealed partial class DuplicatesModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Duplicate Finder · 重複檔案搜尋";
+        Header.Title = "Duplicate Finder · 重複檔案搜尋";
         HeaderBlurb.Text = P("Find byte-identical files (size + SHA-256, no false positives), then recycle the redundant copies.",
             "搵出內容完全一樣嘅檔案（用大細 + SHA-256，唔會誤判），再將多餘嘅副本放入回收筒。");
         SrcCap.Text = P("Folder", "資料夾");

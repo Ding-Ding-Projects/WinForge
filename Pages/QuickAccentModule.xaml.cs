@@ -50,7 +50,7 @@ public sealed partial class QuickAccentModule : Page
 
     private void RenderTexts()
     {
-        HeaderTitle.Text = P("Quick Accent", "快速重音符");
+        Header.Title = P("Quick Accent", "快速重音符");
         HeaderBlurb.Text = P(
             "Type accented and special characters by holding a base letter and pressing an activation key.",
             "按住一個基底字母再撳啟動鍵，即可輸入重音符及特殊字元。");

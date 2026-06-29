@@ -50,7 +50,7 @@ public sealed partial class WorkspacesModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Workspaces · 工作區";
+        Header.Title = "Workspaces · 工作區";
         HeaderBlurb.Text = P(
             "Capture the apps open on your desktop as a named workspace, then relaunch them all at once with their windows restored to where they were. Edit each workspace to enable/disable apps, tweak window bounds or remove apps.",
             "將桌面上開住嘅應用程式擷取成一個有名嘅工作區，之後一鍵重新開晒所有 app，仲會還原返視窗嘅位置同大細。可以編輯每個工作區去啟用／停用 app、調整視窗範圍或者移除 app。");

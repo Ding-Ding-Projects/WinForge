@@ -56,7 +56,7 @@ public sealed partial class PgAdminModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Postgres Tool · Postgres 工具 / pgAdmin";
+        Header.Title = "Postgres Tool · Postgres 工具 / pgAdmin";
         HeaderBlurb.Text = P(
             "A native PostgreSQL client: save connections, browse databases / schemas / tables, run SQL and view results. Launch the full pgAdmin 4 desktop app for advanced administration.",
             "原生 PostgreSQL 用戶端：儲存連線、瀏覽資料庫／結構描述／表、跑 SQL 睇結果。需要進階管理時可啟動完整 pgAdmin 4 桌面版。");

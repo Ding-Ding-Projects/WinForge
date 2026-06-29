@@ -29,7 +29,7 @@ public sealed partial class ScheduledTasksModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Scheduled Tasks · 排程工作";
+        Header.Title = "Scheduled Tasks · 排程工作";
         FilterBox.PlaceholderText = P("Filter tasks (e.g. Appraiser, Consolidator)…", "篩選工作（例如 Appraiser、Consolidator）…");
         RefreshBtn.Content = P("Refresh", "重新整理");
         if (!AdminHelper.IsElevated)

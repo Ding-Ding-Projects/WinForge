@@ -52,7 +52,7 @@ public sealed partial class AudioTaggerModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Audio Tagger · 音訊標籤編輯器";
+        Header.Title = "Audio Tagger · 音訊標籤編輯器";
         HeaderBlurb.Text = P("A native, Mp3tag-style tag editor. Pick a folder or files, see current tags in the grid, edit one or many at once (including cover art), and save back with TagLib# — fully in-app.",
             "原生、Mp3tag 風格嘅標籤編輯器。揀資料夾或檔案、喺表格睇現有標籤、單一或批次編輯（包括封面圖），再用 TagLib# 寫返落檔 — 全部喺 app 內。");
 

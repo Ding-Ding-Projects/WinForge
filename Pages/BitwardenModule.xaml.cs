@@ -73,7 +73,7 @@ public sealed partial class BitwardenModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Bitwarden Vault · Bitwarden 保險庫";
+        Header.Title = "Bitwarden Vault · Bitwarden 保險庫";
         HeaderBlurb.Text = P(
             "A native Bitwarden client built into WinForge — it talks to the Bitwarden API and decrypts your vault end-to-end in pure managed code (no Bitwarden CLI, app, or browser). Log in, browse by folder, copy username / password / TOTP (clipboard auto-clears), generate passwords, and sync. Keys live in memory only and are wiped on lock.",
             "WinForge 內建嘅原生 Bitwarden 用戶端 —— 直接同 Bitwarden API 對話，喺純 managed 程式碼度端對端解密你嘅保險庫（唔使 Bitwarden CLI、App 或瀏覽器）。登入、按資料夾瀏覽、複製用戶名／密碼／TOTP（剪貼簿自動清除）、產生密碼、同步。金鑰只留喺記憶體，鎖定即清除。");

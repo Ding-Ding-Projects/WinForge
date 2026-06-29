@@ -57,7 +57,7 @@ public sealed partial class FancyZonesModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "FancyZones · 視窗分區";
+        Header.Title = "FancyZones · 視窗分區";
         HeaderBlurb.Text = P(
             "FancyZones is the PowerToys window-tiling feature: drag windows into a custom grid of zones and snap them instantly. WinForge installs and launches PowerToys, opens the zone editor, toggles the module and lets you tune its behaviour — the snap engine stays native PowerToys.",
             "FancyZones 係 PowerToys 嘅視窗排版功能：將窗拖入自訂嘅分區格網，即刻貼齊。WinForge 幫你安裝同啟動 PowerToys、開分區編輯器、開關模組同調校行為 — 貼齊引擎本身仍然係原生 PowerToys。");

@@ -42,7 +42,7 @@ public sealed partial class RustDeskModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "RustDesk · 遠端桌面";
+        Header.Title = "RustDesk · 遠端桌面";
         HeaderBlurb.Text = P("Install, launch and manage RustDesk remote desktop — show this PC's ID, set a permanent password, quick-connect to a peer, keep an address book and point RustDesk at your own self-hosted server. Everything runs in-app by driving the RustDesk CLI and config.",
             "安裝、啟動同管理 RustDesk 遠端桌面 — 顯示本機 ID、設永久密碼、快速連去對端、保存常用清單，仲可以指向你自己嘅自架伺服器。全部喺 app 內透過 RustDesk CLI 同設定檔做。");
 

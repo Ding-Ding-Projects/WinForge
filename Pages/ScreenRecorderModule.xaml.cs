@@ -28,7 +28,7 @@ public sealed partial class ScreenRecorderModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Screen Recorder · 螢幕錄影";
+        Header.Title = "Screen Recorder · 螢幕錄影";
         HeaderBlurb.Text = P("Record the whole desktop — including File Explorer and the Start menu — which Xbox Game Bar can't. Saved as MP4 (H.264). Video only for now.",
             "錄成個桌面 — 連檔案總管同開始功能表都得 — Xbox Game Bar 做唔到。存做 MP4 (H.264)。暫時淨係錄畫面。");
         OutCap.Text = P("Save to", "存去");

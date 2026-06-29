@@ -28,7 +28,7 @@ public sealed partial class AppUninstallerModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "App Uninstaller · 應用程式解除安裝";
+        Header.Title = "App Uninstaller · 應用程式解除安裝";
         HeaderBlurb.Text = P("Remove Store/UWP apps (bloatware) silently — shared frameworks are hidden so they can't be removed. Reinstall from the Store anytime.",
             "靜靜哋移除商店／UWP 應用程式（臃腫程式）— 共用框架已經收埋，唔會誤刪。隨時可以由商店重裝。");
         FilterBox.PlaceholderText = P("Filter apps (e.g. Xbox, Bing, Clipchamp)…", "篩選應用程式（例如 Xbox、Bing、Clipchamp）…");

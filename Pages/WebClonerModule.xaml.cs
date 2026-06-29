@@ -72,7 +72,7 @@ public sealed partial class WebClonerModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Website Cloner · 網站複製器";
+        Header.Title = "Website Cloner · 網站複製器";
         HeaderBlurb.Text = P(
             "Fetch a live web page, download its assets and save a browsable local copy. Preview the result inside WinForge without opening an external browser or folder.",
             "下載一個網頁、攞埋佢嘅資源，儲存成可以喺本機瀏覽嘅副本，並喺 WinForge 入面預覽，唔會開外部瀏覽器或資料夾。");

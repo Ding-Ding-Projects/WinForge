@@ -66,7 +66,7 @@ public sealed partial class ShortcutGuideModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Shortcut Guide · 快捷鍵指南";
+        Header.Title = "Shortcut Guide · 快捷鍵指南";
         HeaderBlurb.Text = P(
             "Hold the Windows key for a moment to pop up a topmost overlay of the common Win-key shortcuts, grouped by category. Release Win or press Esc to dismiss. Below is a searchable reference of Windows shortcuts you can browse any time.",
             "揿住 Windows 鍵一陣，就會彈出一個置頂覆蓋層，按分類列出常用嘅 Win 鍵快捷鍵。放開 Win 或者揿 Esc 收起。下面係一個可搜尋嘅 Windows 快捷鍵參考表，幾時都查得到。");

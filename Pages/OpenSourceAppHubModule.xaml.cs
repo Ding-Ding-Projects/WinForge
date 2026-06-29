@@ -45,7 +45,7 @@ public sealed partial class OpenSourceAppHubModule : Page
 
     private void RenderText()
     {
-        HeaderTitle.Text = "Native OSS Clones · 開源原生分頁";
+        Header.Title = "Native OSS Clones · 開源原生分頁";
         HeaderBlurb.Text = P(
             "A native-only map of useful open-source app ideas that have been remade as C# tabs inside WinForge. These entries do not install or launch upstream apps; each one routes to an in-app module backed by managed code, Windows APIs or an embedded library. GPL, AGPL and source-available notices are tracked on the Licenses page.",
             "呢個係只限原生嘅開源 app 概念地圖：有用嘅開源應用程式想法已經重製成 WinForge 入面嘅 C# 分頁。呢啲項目唔會安裝或啟動上游 app；每一項都會去到一個由受控程式碼、Windows API 或內嵌程式庫支援嘅 app 內模組。GPL、AGPL 同 source-available 聲明會喺授權頁追蹤。");

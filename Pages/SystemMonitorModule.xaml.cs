@@ -109,7 +109,7 @@ public sealed partial class SystemMonitorModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "System Monitor · 系統監察";
+        Header.Title = "System Monitor · 系統監察";
         HeaderBlurb.Text = P("A btop-style live dashboard — per-core CPU bars, memory and swap meters, network graphs, and the busiest processes. Sort, search, set priority, efficiency mode or end any process.",
             "btop 風格即時儀表板 — 每核心 CPU 條、記憶體同 swap 計、網絡圖，再加最忙嘅程序。可排序、搜尋、設定優先權、效率模式或結束任何程序。");
         CpuLabel.Text = P("CPU", "CPU");

@@ -81,7 +81,7 @@ public sealed partial class PowerToysExtrasModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "PowerToys Extras · PowerToys 額外工具";
+        Header.Title = "PowerToys Extras · PowerToys 額外工具";
         HeaderBlurb.Text = P("Four native, in-app PowerToys-style utilities — bulk image resizing, on-screen text extraction (OCR), always-on-top, and paste-as-plain-text.",
             "四個原生、應用程式內嘅 PowerToys 式工具 — 圖片批次縮放、螢幕文字擷取（OCR）、視窗置頂、純文字貼上。");
 

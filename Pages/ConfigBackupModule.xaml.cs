@@ -47,7 +47,7 @@ public sealed partial class ConfigBackupModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Config & Backup · 設定與備份";
+        Header.Title = "Config & Backup · 設定與備份";
         HeaderBlurb.Text = P(
             "Snapshot, back up and restore your whole WinForge configuration — all in-app.",
             "影快照、備份同還原成個 WinForge 設定 — 全程喺 app 內。");

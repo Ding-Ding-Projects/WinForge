@@ -44,7 +44,7 @@ public sealed partial class LicensesPage : Page
 
     private void RenderText()
     {
-        HeaderTitle.Text = "Licenses & Source · 授權與原始碼";
+        Header.Title = "Licenses & Source · 授權與原始碼";
         HeaderBlurb.Text = P(
             "WinForge is open source. This page lists bundled libraries and open-source or source-available upstream projects used as in-app modules, libraries, integrations or behavioral references. GPL, AGPL, LGPL, MPL and source-available entries are called out here so feature pages can stay transparent as they grow.",
             "WinForge 係開源。呢頁列出已捆綁程式庫，以及作為 app 內模組、程式庫、整合或行為參考嘅開源／source-available 上游項目。GPL、AGPL、LGPL、MPL 同 source-available 項目會喺呢度清楚標示，等功能頁越做越完整時都保持透明。");

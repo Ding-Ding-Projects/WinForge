@@ -59,7 +59,7 @@ public sealed partial class AiAgentsModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "AI Agents · AI 代理";
+        Header.Title = "AI Agents · AI 代理";
         HeaderBlurb.Text = P(
             "Install, configure and launch terminal AI coding agents — one click each. Most install via npm (Node.js); some via an official installer.",
             "一鍵安裝、設定同啟動終端機 AI 編程代理。大部分用 npm（Node.js）安裝，部分用官方安裝器。");

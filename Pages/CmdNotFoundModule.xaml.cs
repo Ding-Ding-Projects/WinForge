@@ -50,7 +50,7 @@ public sealed partial class CmdNotFoundModule : Page
 
     private void RenderText()
     {
-        HeaderTitle.Text = "Command Not Found · 搵唔到指令";
+        Header.Title = "Command Not Found · 搵唔到指令";
         HeaderBlurb.Text = P(
             "When a command isn't found in PowerShell 7, suggest the winget package that provides it — a native clone of PowerToys' Command Not Found. WinForge wires the suggestion module into your PowerShell profile safely (with a backup).",
             "當 PowerShell 7 搵唔到某個指令時，建議邊個 winget 套件提供佢——PowerToys「Command Not Found」嘅原生複製版。WinForge 會安全咁（連備份）將建議模組接駁入你嘅 PowerShell profile。");

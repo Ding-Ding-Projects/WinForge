@@ -52,8 +52,8 @@ public sealed partial class ManualPage : Page
 
     private void RenderLabels()
     {
-        HeaderTitle.Text = "Instruction Manual · 使用手冊";
-        HeaderSubtitle.Text = P(
+        Header.Title = "Instruction Manual · 使用手冊";
+        Header.Subtitle = P(
             $"{ManualContent.Sections.Count} sections · {ManualContent.FeatureCount} how-to guides · English + 粵語",
             $"{ManualContent.Sections.Count} 個章節 · {ManualContent.FeatureCount} 篇教學 · 英文 + 粵語");
         FilterBox.PlaceholderText = P("Search the manual…", "搜尋手冊…");

@@ -64,8 +64,8 @@ public sealed partial class ReactorDependencyPage : Page
         string nameZh = dep?.NameZh ?? P("此應用程式", "This app");
         double mw = dep?.MinimumElectricMW ?? 1;
 
-        HeaderTitle.Text = P($"{nameEn} needs reactor power", $"{nameZh} 需要反應堆供電");
-        HeaderBlurb.Text = P(
+        Header.Title = P($"{nameEn} needs reactor power", $"{nameZh} 需要反應堆供電");
+        Header.Subtitle = P(
             "Some high-load apps are wired to WinForge's simulated nuclear plant. Start the reactor and bring the generator on-load to unlock this app.",
             "部分高負載 app 已接駁到 WinForge 模擬核電廠。請啟動反應堆並將發電機帶載，先可以解鎖此 app。");
 

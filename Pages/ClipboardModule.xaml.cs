@@ -41,7 +41,7 @@ public sealed partial class ClipboardModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Clipboard · 剪貼簿";
+        Header.Title = "Clipboard · 剪貼簿";
         HeaderBlurb.Text = P("Everything you copy — text, images and files — kept here automatically. Click to copy back, paste as plain text, make a QR code, or convert images and media to another format.",
             "你複製過嘅嘢 — 文字、圖片同檔案 — 自動留喺度。撳一下複製返、貼為純文字、整 QR 碼，或者將圖片同媒體轉做另一種格式。");
         ClearText.Text = P("Clear all", "清除全部");

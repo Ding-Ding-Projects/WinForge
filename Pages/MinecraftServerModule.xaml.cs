@@ -48,7 +48,7 @@ public sealed partial class MinecraftServerModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Minecraft Server · Minecraft 伺服器";
+        Header.Title = "Minecraft Server · Minecraft 伺服器";
         HeaderBlurb.Text = P("Stand up a Paper or Spigot server: download/build the jar, accept the EULA, edit server.properties, run it with a live console, and build plugins from git source.",
             "架設 Paper 或 Spigot 伺服器：下載／編譯 jar、接受 EULA、編輯 server.properties、用即時主控台執行，並由 git 原始碼建置外掛。");
 

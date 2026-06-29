@@ -86,7 +86,7 @@ public sealed partial class ProcessExplorerModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Process Explorer · 程序總管";
+        Header.Title = "Process Explorer · 程序總管";
         HeaderBlurb.Text = P(
             "A System Informer-style process tree built natively from WMI and the OS — parent/child hierarchy, live CPU %, working set, threads, owner and description. Select a process to end it (or its whole tree), set priority, open its file location, copy its PID or path, or view full details.",
             "原生用 WMI 同作業系統砌出嚟、System Informer 風格嘅程序樹 — 父／子層級、即時 CPU %、工作集、執行緒、擁有者同描述。揀一個程序就可以結束佢（或成棵樹）、設定優先權、開啟檔案位置、複製 PID 或路徑，或者睇晒詳細資料。");

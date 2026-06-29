@@ -48,7 +48,7 @@ public sealed partial class HexEditorModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Hex Editor · 十六進位編輯器";
+        Header.Title = "Hex Editor · 十六進位編輯器";
         HeaderBlurb.Text = P(
             "A native HxD-style hex/binary editor — open files of any size (memory-mapped, never loaded whole), view offsets · hex · ASCII, overwrite bytes in place (highlighted), insert/delete, find hex or text, go to an offset, and compute MD5/SHA-1/SHA-256. Everything runs in managed C#.",
             "原生 HxD 風格十六進位／二進位編輯器 — 開任何大細嘅檔（記憶體對應，唔會成個讀入記憶體）、睇位移 · 十六進位 · ASCII、就地覆寫位元組（會標示）、插入／刪除、搵十六進位或文字、跳到位移、計 MD5／SHA-1／SHA-256。全部用純 C# 行。");

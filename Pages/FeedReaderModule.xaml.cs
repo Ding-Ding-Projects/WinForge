@@ -48,7 +48,7 @@ public sealed partial class FeedReaderModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Feed Reader · RSS 閱讀器";
+        Header.Title = "Feed Reader · RSS 閱讀器";
         HeaderBlurb.Text = P(
             "A native QuiteRSS/Fluent Reader-style RSS and Atom reader. Add feeds, refresh them with HttpClient, read article summaries, and copy links without launching an external reader.",
             "原生 QuiteRSS／Fluent Reader 式 RSS 同 Atom 閱讀器。新增 feed、用 HttpClient 重新整理、閱讀文章摘要同複製連結，唔會啟動外部閱讀器。");

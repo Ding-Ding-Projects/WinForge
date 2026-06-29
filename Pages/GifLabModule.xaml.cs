@@ -64,7 +64,7 @@ public sealed partial class GifLabModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "GIF Studio · 螢幕轉 GIF";
+        Header.Title = "GIF Studio · 螢幕轉 GIF";
         HeaderBlurb.Text = P("Record a screen region, window or the whole screen into frames, tidy them up — delete, reorder (drag or move buttons), uniform crop — preview the loop, then export to GIF, MP4 or APNG. Everything runs in-app via ffmpeg.",
             "錄一忽螢幕、一個視窗或者成個畫面做一格格畫面，再執靚佢 — 刪格、調次序（拖或者用按鈕）、統一裁切 — 預覽個循環，最後匯出做 GIF、MP4 或 APNG。全部喺 app 內用 ffmpeg 做。");
 

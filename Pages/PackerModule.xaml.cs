@@ -46,7 +46,7 @@ public sealed partial class PackerModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Packer · 映像建置器";
+        Header.Title = "Packer · 映像建置器";
         HeaderBlurb.Text = P(
             "Run HashiCorp Packer from inside WinForge: pick a working folder, edit variables, then run init / validate / fmt / build with live streaming output. WinForge only shells out to the official packer binary (BUSL-1.1).",
             "喺 WinForge 直接用 HashiCorp Packer：揀工作資料夾、編輯變數，再行 init / validate / fmt / build，即時串流輸出。WinForge 只係呼叫官方 packer binary（BUSL-1.1）。");

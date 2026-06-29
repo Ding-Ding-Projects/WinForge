@@ -60,7 +60,7 @@ public sealed partial class RainmeterModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Rainmeter Widgets · Rainmeter 桌面小工具";
+        Header.Title = "Rainmeter Widgets · Rainmeter 桌面小工具";
         HeaderBlurb.Text = P(
             "Install and manage Rainmeter — the desktop-widget engine. Scan installed skins, load/unload and toggle them, show/hide/refresh/edit individual widgets, install .rmskin packs, switch layouts and run global operations. WinForge drives the Rainmeter binary; nothing is reimplemented.",
             "安裝同管理 Rainmeter — 桌面小工具引擎。掃描已裝皮膚、載入／卸載／切換，逐個顯示／隱藏／重新整理／編輯小工具，安裝 .rmskin 皮膚包，切換版面配置，仲可以跑全域操作。WinForge 操控 Rainmeter 程式本體，唔會重寫。");

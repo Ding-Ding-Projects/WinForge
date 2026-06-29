@@ -77,7 +77,7 @@ public sealed partial class ProxmoxModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Proxmox VE · Proxmox VE 虛擬化";
+        Header.Title = "Proxmox VE · Proxmox VE 虛擬化";
         HeaderBlurb.Text = P("Power your Proxmox VE virtual machines and containers on and off — natively over the REST API. Lists every QEMU VM and LXC container across all nodes with live status, CPU, memory and uptime; start / shutdown / stop / reboot / suspend / resume the selected guest; and inspect its configuration. Everything runs in-app — no browser, no shelling out.",
             "原生經 REST API 開關你嘅 Proxmox VE 虛擬機同容器。列出所有節點上嘅 QEMU 虛擬機同 LXC 容器，顯示即時狀態、CPU、記憶體同開機時間；對選定客體做 啟動／關機／停止／重新開機／暫停／繼續；仲可以查看設定。全部喺 app 內運行 — 唔開瀏覽器、唔外呼程式。");
 

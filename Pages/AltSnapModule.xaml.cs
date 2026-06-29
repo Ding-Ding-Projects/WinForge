@@ -39,7 +39,7 @@ public sealed partial class AltSnapModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "AltSnap · Alt 拖曳視窗";
+        Header.Title = "AltSnap · Alt 拖曳視窗";
         HeaderBlurb.Text = P(
             "Move and resize any window by holding a modifier key (Alt by default) and dragging anywhere inside it — classic Linux-style alt-drag. WinForge installs the official AltSnap, controls it, and edits its configuration.",
             "撳住一個修飾鍵（預設 Alt）就可以喺視窗任何位置拖動嚟移動同縮放 — 經典 Linux 式 alt 拖曳。WinForge 會安裝官方 AltSnap、控制佢、並編輯佢嘅設定。");

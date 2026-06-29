@@ -49,7 +49,7 @@ public sealed partial class EventViewerModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Event Viewer · 事件檢視器";
+        Header.Title = "Event Viewer · 事件檢視器";
         HeaderBlurb.Text = P("Browse the Windows event logs in-app — pick a log and severity, filter, and read the full message. No eventvwr.msc.",
             "喺 app 內睇 Windows 事件記錄 — 揀記錄同嚴重程度、篩選、睇完整訊息。唔使開 eventvwr.msc。");
         FilterBox.PlaceholderText = P("Filter by provider, message or ID…", "用來源、訊息或 ID 篩選…");

@@ -46,7 +46,7 @@ public sealed partial class NmapModule : Page
     private void Render()
     {
         _building = true;
-        HeaderTitle.Text = "Nmap Scanner · 網絡掃描";
+        Header.Title = "Nmap Scanner · 網絡掃描";
         HeaderBlurb.Text = P(
             "Wrap the Nmap port scanner: enter a target (IP, hostname, CIDR like 192.168.1.0/24, or a range), pick a profile, toggle flags, run, and read the parsed hosts / ports / services. Only scan networks you own or are authorised to test.",
             "包裝 Nmap 連接埠掃描器：輸入目標（IP、主機名、CIDR 如 192.168.1.0/24，或範圍），揀設定檔、開關旗標、執行，然後睇解析好嘅主機／連接埠／服務。只可掃描你擁有或獲授權測試嘅網絡。");

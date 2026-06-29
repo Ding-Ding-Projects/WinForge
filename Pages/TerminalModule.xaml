@@ -8,7 +8,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid Padding="24,16,24,16" RowSpacing="10">
+    <Grid Style="{StaticResource WinForgePageGridStyle}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -18,10 +18,7 @@
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="12">
-            <FontIcon FontSize="22" Glyph="&#xE756;" VerticalAlignment="Center" />
-            <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
-        </StackPanel>
+        <controls:ModuleHeader x:Name="Header" Grid.Row="0" Glyph="&#xE756;" />
         <TextBlock
             x:Name="HeaderBlurb"
             Grid.Row="1"

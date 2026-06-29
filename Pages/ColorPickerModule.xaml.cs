@@ -30,7 +30,7 @@ public sealed partial class ColorPickerModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Color Picker · 螢幕取色";
+        Header.Title = "Color Picker · 螢幕取色";
         HeaderBlurb.Text = P("Click \"Pick\" then click anywhere on screen to grab that pixel's colour. Right-click cancels. Copy HEX, RGB or HSL.",
             "撳「取色」之後喺螢幕任何位置撳一下，就攞到嗰點嘅顏色。右鍵取消。可以複製 HEX、RGB 或 HSL。");
         PickBtn.Content = P("Pick from screen", "螢幕取色");

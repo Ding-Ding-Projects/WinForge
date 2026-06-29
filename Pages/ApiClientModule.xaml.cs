@@ -64,7 +64,7 @@ public sealed partial class ApiClientModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "API Client · REST API 用戶端";
+        Header.Title = "API Client · REST API 用戶端";
         HeaderBlurb.Text = P(
             "A native REST API client — build requests with a method, URL, query params, headers, body and auth, send them over HttpClient, and inspect the status, timing, size, headers and a pretty-printed body. Save requests into collections and switch environments whose {{variables}} are substituted before sending.",
             "原生 REST API 用戶端 — 用方法、網址、查詢參數、標頭、內文同驗證砌請求，經 HttpClient 送出，再睇狀態、時間、大小、回應標頭同美化內文。可以將請求存入集合，亦可切換環境，發送前自動替換 {{變數}}。");

@@ -96,7 +96,7 @@ public sealed partial class BatteryThermalModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Battery & Thermal · 電池與散熱";
+        Header.Title = "Battery & Thermal · 電池與散熱";
         HeaderBlurb.Text = P(
             "Live battery charge, health & wear, energy warnings, plus CPU/GPU temperatures, fans and load — all in-app, updating every second.",
             "即時電量、電池健康同耗損、能源警告，再加 CPU／GPU 溫度、風扇同負載 — 全部喺 app 內，每秒更新。");

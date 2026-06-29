@@ -23,7 +23,7 @@ public sealed partial class WindowManagerModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Window Manager · 視窗管理";
+        Header.Title = "Window Manager · 視窗管理";
         HeaderBlurb.Text = P("Pick an open window on the left, then snap it to a zone — halves, quarters, thirds, maximise, centre or always-on-top.",
             "喺左邊揀一個開住嘅視窗，再貼去一個分區 — 一半、四分一、三分一、最大化、置中或者永遠置頂。");
         RefreshBtn.Content = P("Refresh", "重新整理");

@@ -33,7 +33,7 @@ public sealed partial class WindhawkModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Windhawk Mods · Windhawk 模組";
+        Header.Title = "Windhawk Mods · Windhawk 模組";
         HeaderBlurb.Text = P(
             "Windhawk is an open-source platform that customizes Windows by injecting community 'mods' — taskbar height, clock tweaks, Start-menu styling and much more. Install it, launch it, and browse a curated gallery below.",
             "Windhawk 係一個開源平台，透過注入社群「mod」嚟自訂 Windows — 工作列高度、時鐘調校、開始功能表美化等等。喺下面安裝、啟動，再瀏覽精選 mod。");
