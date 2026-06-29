@@ -34,10 +34,33 @@ using System.Windows.Automation;
 //    --settext <k=v>    Set a TextBox/ValuePattern element's value.
 //    --click  <key>     Real mouse click at the element's center.
 //    --sleep  <ms>      Wait.
-//    --out    <file>    Capture a screenshot now (can be used multiple times).
+//    --out    <file>    Save the working image now (capturing first if needed).
+//
+//  Wiki post-processing (operate on the in-memory "canvas"; geometry fields accept
+//  pixels or NN%, '|' separated; auto-captures the window if no image is loaded yet):
+//    --capture          Capture the window into the canvas (without saving).
+//    --open  <file>     Load an existing PNG into the canvas (edit it instead of capturing).
+//    --crop     <x|y|w|h>                 Crop to a region.
+//    --scale    <pct | w:px>              Resize (e.g. 50, 50%, w:1200).
+//    --highlight <x|y|w|h[|color|thick]>  Rounded call-out box with a glow.
+//    --box      <x|y|w|h[|color|thick]>   Plain rectangle outline.
+//    --ellipse  <x|y|w|h[|color|thick]>   Ellipse outline.
+//    --arrow    <x1|y1|x2|y2[|color|thick]>  Arrow pointing at something.
+//    --text     <x|y|message[|color|size|bg]>  Text label (optional rounded background).
+//    --step     <x|y|number[|color|diam]> Numbered step badge (circle + number).
+//    --redact   <x|y|w|h[|box|blur|pixelate]>  Hide personal info (default: solid box).
 //
 //  Example — open Camoufox, switch to its Git tab, screenshot:
 //    winforge-shot --page camoufox --wait 14000 --invoke "Git" --sleep 800 --out cam-git.png
+//
+//  Example — annotated step-by-step shot (highlight a button, number it, redact a path):
+//    winforge-shot --page git --wait 14000 \
+//      --highlight "62%|18%|30%|9%|red" --step "60%|18%|1" \
+//      --redact "2%|94%|40%|4%|blur" --text "5%|2%|Step 1 — click Clone|white|28|#111" \
+//      --out git-step1.png
+//
+//  Example — annotate an EXISTING screenshot without relaunching the app:
+//    winforge-shot --open docs/screenshot-vault.png --redact "10%|40%|35%|6%|box" --out vault-redacted.png
 // ─────────────────────────────────────────────────────────────────────────────
 
 string? page = null, exe = null;
@@ -66,18 +89,43 @@ for (int i = 0; i < args.Length; i++)
         case "--sleep": actions.Add(("sleep", Next())); break;
         case "--out": actions.Add(("out", Next())); break;
 
+        // wiki post-processing
+        case "--capture": actions.Add(("capture", "")); break;
+        case "--open": actions.Add(("open", Next())); break;
+        case "--crop": actions.Add(("crop", Next())); break;
+        case "--scale": actions.Add(("scale", Next())); break;
+        case "--highlight": actions.Add(("highlight", Next())); break;
+        case "--box": actions.Add(("box", Next())); break;
+        case "--ellipse": actions.Add(("ellipse", Next())); break;
+        case "--arrow": actions.Add(("arrow", Next())); break;
+        case "--text": actions.Add(("text", Next())); break;
+        case "--step": actions.Add(("step", Next())); break;
+        case "--redact": actions.Add(("redact", Next())); break;
+
         case "-h": case "--help":
             Console.WriteLine("winforge-shot [--page x][--exe p][--attach][--keep-open][--wait ms] " +
-                              "[--list-ui [depth]][--invoke key][--select key][--toggle key][--settext k=v][--click key][--sleep ms][--out file]...");
+                              "[--list-ui [depth]][--invoke key][--select key][--toggle key][--settext k=v][--click key][--sleep ms]\n" +
+                              "  [--capture][--open f][--crop x|y|w|h][--scale pct][--highlight x|y|w|h][--box ...][--ellipse ...]\n" +
+                              "  [--arrow x1|y1|x2|y2][--text x|y|msg][--step x|y|n][--redact x|y|w|h|mode][--out file]...");
             return 0;
     }
 }
 // Back-compat: a bare run with no actions still takes one screenshot.
 if (actions.Count == 0) actions.Add(("out", "winforge-shot.png"));
 
+// Decide whether we actually need the WinForge window. Pure image post-processing
+// (e.g. --open an existing PNG, redact/annotate, --out) needs no app at all.
+var windowVerbs = new HashSet<string> { "capture", "list-ui", "invoke", "select", "toggle", "click", "settext" };
+bool hasOpen = actions.Any(x => x.verb == "open");
+bool needsWindow = actions.Any(x => windowVerbs.Contains(x.verb)) || !hasOpen;
+
 Process? launched = null;
 bool wasRunning = Process.GetProcessesByName("WinForge").Length > 0;
+IntPtr hwnd = IntPtr.Zero;
+AutomationElement? root = null;
 
+if (needsWindow)
+{
 if (!attach)
 {
     string? path = exe ?? FindExe();
@@ -93,7 +141,6 @@ if (!attach)
 
 // Wait for a window.
 var deadline = DateTime.UtcNow.AddMilliseconds(Math.Max(2000, wait));
-IntPtr hwnd = IntPtr.Zero;
 while (DateTime.UtcNow < deadline)
 {
     var wins = FindWinForgeWindows();
@@ -103,8 +150,22 @@ while (DateTime.UtcNow < deadline)
 if (hwnd == IntPtr.Zero) return Fail("No WinForge top-level window appeared. Try a longer --wait.");
 Thread.Sleep(Math.Min(4000, Math.Max(1200, wait / 4)));
 
-AutomationElement? root = null;
 try { root = AutomationElement.FromHandle(hwnd); } catch { }
+} // needsWindow
+
+Bitmap? canvas = null;
+// Capture the live window into the canvas (used by --capture and as the lazy
+// fallback for any edit/--out when nothing has been loaded yet).
+Bitmap? GrabWindow()
+{
+    if (hwnd == IntPtr.Zero) { Fail("no WinForge window to capture (use --open to edit a file)"); return null; }
+    TryForeground(hwnd);
+    Thread.Sleep(500);
+    if (!Native.GetWindowRect(hwnd, out var wr) || wr.W <= 0) { Fail("bad window rect"); return null; }
+    return CaptureBitmap(hwnd, wr);
+}
+// Ensure there's something to draw on before an edit op.
+bool EnsureCanvas() { if (canvas is null) canvas = GrabWindow(); return canvas is not null; }
 
 int outCount = 0;
 foreach (var (verb, arg) in actions)
@@ -124,17 +185,34 @@ foreach (var (verb, arg) in actions)
             SetText(root, arg[..eq], arg[(eq + 1)..]);
             break;
         }
+        case "capture": canvas?.Dispose(); canvas = GrabWindow(); break;
+        case "open":
+            try { canvas?.Dispose(); canvas = new Bitmap(arg); Console.WriteLine($"[open] {arg} ({canvas.Width}x{canvas.Height})"); }
+            catch (Exception ex) { Fail("open failed: " + ex.Message); }
+            break;
+
+        case "crop":   if (EnsureCanvas()) { var c = ImageOps.Crop(canvas!, Fields(arg)); canvas!.Dispose(); canvas = c; Console.WriteLine($"[crop] -> {canvas.Width}x{canvas.Height}"); } break;
+        case "scale":  if (EnsureCanvas()) { var c = ImageOps.Scale(canvas!, arg); canvas!.Dispose(); canvas = c; Console.WriteLine($"[scale] -> {canvas.Width}x{canvas.Height}"); } break;
+        case "highlight": if (EnsureCanvas()) { ImageOps.Highlight(canvas!, Fields(arg)); Console.WriteLine("[highlight]"); } break;
+        case "box":    if (EnsureCanvas()) { ImageOps.Box(canvas!, Fields(arg)); Console.WriteLine("[box]"); } break;
+        case "ellipse":if (EnsureCanvas()) { ImageOps.Ellipse(canvas!, Fields(arg)); Console.WriteLine("[ellipse]"); } break;
+        case "arrow":  if (EnsureCanvas()) { ImageOps.Arrow(canvas!, Fields(arg)); Console.WriteLine("[arrow]"); } break;
+        case "text":   if (EnsureCanvas()) { ImageOps.Text(canvas!, Fields(arg)); Console.WriteLine("[text]"); } break;
+        case "step":   if (EnsureCanvas()) { ImageOps.Step(canvas!, Fields(arg)); Console.WriteLine("[step]"); } break;
+        case "redact": if (EnsureCanvas()) { ImageOps.Redact(canvas!, Fields(arg)); Console.WriteLine("[redact]"); } break;
+
         case "out":
         {
-            TryForeground(hwnd);
-            Thread.Sleep(500);
-            if (!Native.GetWindowRect(hwnd, out var r) || r.W <= 0) { Fail("bad window rect"); break; }
-            Capture(hwnd, r, arg);
-            Console.WriteLine($"OK  shot[{++outCount}] -> {Path.GetFullPath(arg)}  ({r.W}x{r.H})");
+            if (!EnsureCanvas()) break;
+            var dir = Path.GetDirectoryName(Path.GetFullPath(arg));
+            if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+            canvas!.Save(arg, ImageFormat.Png);
+            Console.WriteLine($"OK  shot[{++outCount}] -> {Path.GetFullPath(arg)}  ({canvas.Width}x{canvas.Height})");
             break;
         }
     }
 }
+canvas?.Dispose();
 
 if (launched is not null && !wasRunning && !keepOpen)
     try { if (!launched.HasExited) launched.Kill(entireProcessTree: true); } catch { }
@@ -239,9 +317,12 @@ static void ClickCenter(IntPtr hwnd, AutomationElement el)
     Thread.Sleep(120);
 }
 
-static void Capture(IntPtr hwnd, Native.RECT r, string outPath)
+// Split a '|'-separated annotation argument into trimmed fields.
+static string[] Fields(string s) => (s ?? "").Split('|').Select(p => p.Trim()).ToArray();
+
+static Bitmap CaptureBitmap(IntPtr hwnd, Native.RECT r)
 {
-    using var bmp = new Bitmap(r.W, r.H, PixelFormat.Format32bppArgb);
+    var bmp = new Bitmap(r.W, r.H, PixelFormat.Format32bppArgb);
     using (var g = Graphics.FromImage(bmp))
     {
         IntPtr hdc = g.GetHdc();
@@ -256,9 +337,7 @@ static void Capture(IntPtr hwnd, Native.RECT r, string outPath)
             finally { g2.ReleaseHdc(hdc2); }
         }
     }
-    var dir = Path.GetDirectoryName(Path.GetFullPath(outPath));
-    if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
-    bmp.Save(outPath, ImageFormat.Png);
+    return bmp;
 }
 
 static void TryForeground(IntPtr hwnd)
