@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WinForge Account · 帳戶 — passkey sign-in</title>
+<meta name="description" content="Create a WinForge account with a username and a passkey (no password) to manage WinForge.">
+<style>
+  :root{
+    --bg:#0a0d0b; --bg2:#0e120f; --panel:#131814; --panel2:#1a211b;
+    --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.15);
+    --text:#edf3ed; --muted:#bfcbbf; --faint:#95a395;
+    --brand:#54e07e; --brand-dim:#2faf57; --spark:#f7b034; --red:#ff5f5f; --cyan:#49cdd9;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Space Grotesk','Segoe UI',system-ui,sans-serif;-webkit-font-smoothing:antialiased;line-height:1.5;min-height:100vh}
+  a{color:var(--brand);text-decoration:none}a:hover{text-decoration:underline}
+  .bar{height:50px;display:flex;align-items:center;gap:11px;padding:0 18px;background:var(--bg2);border-bottom:1px solid var(--line)}
+  .logo{width:26px;height:26px;border-radius:8px;background:linear-gradient(140deg,#54e07e,#1f5a30);display:grid;place-items:center;color:#0a1c0f;font-weight:800;font-size:15px}
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:20px;background:rgba(84,224,126,.12);border:1px solid rgba(84,224,126,.28);color:var(--brand);font-size:10.5px;font-weight:600;margin-left:auto}
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--brand);box-shadow:0 0 7px var(--brand)}
+  .wrap{max-width:560px;margin:0 auto;padding:42px 22px 80px}
+  h1{font-size:30px;font-weight:700;letter-spacing:-.01em}
+  h1 .zh{color:var(--brand);font-size:22px;font-weight:600;margin-left:8px}
+  .sub{color:var(--muted);margin-top:8px}.sub.zh{color:var(--faint);font-size:13px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px;margin-top:22px}
+  label{display:block;font-size:12px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;margin:0 0 6px}
+  input{width:100%;height:44px;background:var(--bg2);border:1px solid var(--line2);border-radius:10px;color:var(--text);padding:0 13px;font:inherit;font-size:15px;outline:none}
+  input:focus{border-color:var(--brand)}
+  .btn{width:100%;height:46px;border:none;border-radius:10px;font:inherit;font-weight:700;font-size:15px;cursor:pointer;margin-top:14px;display:flex;align-items:center;justify-content:center;gap:9px}
+  .btn.primary{background:var(--brand);color:#06210f}.btn.primary:hover{background:#6be892}
+  .btn.ghost{background:var(--panel2);color:var(--text);border:1px solid var(--line2)}.btn.ghost:hover{border-color:var(--brand)}
+  .btn.danger{background:transparent;color:var(--red);border:1px solid rgba(255,95,95,.4)}.btn.danger:hover{background:rgba(255,95,95,.12)}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .row{display:flex;gap:12px}.row .btn{margin-top:0}
+  .msg{margin-top:14px;font-size:13.5px;padding:11px 13px;border-radius:9px;display:none}
+  .msg.ok{display:block;background:rgba(84,224,126,.1);border:1px solid rgba(84,224,126,.3);color:var(--brand)}
+  .msg.err{display:block;background:rgba(255,95,95,.1);border:1px solid rgba(255,95,95,.35);color:var(--red)}
+  .msg.info{display:block;background:var(--panel2);border:1px solid var(--line2);color:var(--muted)}
+  .kv{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
+  .kv:last-child{border-bottom:none}.kv .k{color:var(--faint)}.kv .v{font-family:'JetBrains Mono','Consolas',monospace}
+  .manage a.tile{display:block;background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:13px 15px;margin-top:10px;color:var(--text)}
+  .manage a.tile:hover{border-color:var(--brand);text-decoration:none}
+  .manage .t{font-weight:600}.manage .d{font-size:12.5px;color:var(--faint);margin-top:2px}
+  .hint{font-size:12px;color:var(--faint);margin-top:12px;line-height:1.5}
+  .foot{text-align:center;margin-top:26px;font-size:12px;color:var(--faint)}
+  .hidden{display:none!important}
+</style>
+</head>
+<body>
+<div class="bar">
+  <div class="logo">W</div>
+  <strong style="font-size:14px">WinForge</strong>
+  <span style="font-size:11px;color:var(--faint)">視窗調校 · Account</span>
+  <span class="pill"><span class="dot"></span>PASSKEY ONLY</span>
+</div>
+
+<div class="wrap">
+  <!-- AUTH (register / sign-in) -->
+  <div id="authView">
+    <h1>Account <span class="zh">帳戶</span></h1>
+    <p class="sub">Create a WinForge account to manage your suite — secured by a <strong>passkey</strong> (Face/Touch ID, Windows Hello or a security key). No password, ever.</p>
+    <p class="sub zh">建立 WinForge 帳戶嚟管理你嘅套件 — 用<strong>通行密鑰</strong>（Face/Touch ID、Windows Hello 或安全密鑰）保護。永遠唔使密碼。</p>
+
+    <div class="card" id="registerCard">
+      <label for="username">Username · 使用者名稱</label>
+      <input id="username" autocomplete="username webauthn" placeholder="e.g. costcosoap" maxlength="40" />
+      <button class="btn primary" id="registerBtn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 11V7a5 5 0 0 1 10 0v4"></path><rect x="4" y="11" width="16" height="10" rx="2"></rect><circle cx="12" cy="16" r="1.4"></circle></svg>
+        Create account with passkey
+      </button>
+      <button class="btn ghost" id="signinBtn">Sign in with passkey · 用通行密鑰登入</button>
+      <div class="msg" id="authMsg"></div>
+      <p class="hint" id="haveAccountHint"></p>
+    </div>
+  </div>
+
+  <!-- MANAGE (gated) -->
+  <div id="manageView" class="hidden">
+    <h1>Manage WinForge <span class="zh">管理</span></h1>
+    <p class="sub" id="welcome"></p>
+
+    <div class="card">
+      <div class="kv"><span class="k">Username · 名稱</span><span class="v" id="mUser"></span></div>
+      <div class="kv"><span class="k">Passkey · 通行密鑰</span><span class="v" id="mCred"></span></div>
+      <div class="kv"><span class="k">Created · 建立</span><span class="v" id="mCreated"></span></div>
+      <div class="kv"><span class="k">Auth · 驗證</span><span class="v">Passkey only · 只限通行密鑰</span></div>
+    </div>
+
+    <div class="card manage">
+      <div style="font-weight:600">Your WinForge · 你嘅 WinForge</div>
+      <a class="tile" href="./WinForge.dc.html"><div class="t">Module manual & wiki · 模組手冊與維基</div><div class="d">Browse all 144 modules and 895 features.</div></a>
+      <a class="tile" href="./App.dc.html"><div class="t">App replica · App 複本</div><div class="d">Try the WinUI-style control center in your browser.</div></a>
+      <a class="tile" href="./Reactor.dc.html"><div class="t">Reactor · 反應堆</div><div class="d">Run the PWR simulator; it powers the cake factory.</div></a>
+      <a class="tile" href="#" id="prefTile"><div class="t">Preferences · 偏好設定</div><div class="d" id="prefDesc">Theme & display name, saved to this account.</div></a>
+    </div>
+
+    <div class="card" id="prefCard" style="display:none">
+      <label for="display">Display name · 顯示名稱</label>
+      <input id="display" placeholder="optional" maxlength="40" />
+      <label for="themePref" style="margin-top:14px">Preferred theme · 偏好主題</label>
+      <select id="themePref" style="width:100%;height:44px;background:var(--bg2);border:1px solid var(--line2);border-radius:10px;color:var(--text);padding:0 10px;font:inherit">
+        <option value="dark">Dark · 深色 (reactor)</option>
+        <option value="light">Light · 淺色</option>
+        <option value="system">System · 跟系統</option>
+      </select>
+      <button class="btn primary" id="savePrefBtn">Save preferences · 儲存偏好</button>
+    </div>
+
+    <div class="row" style="margin-top:18px">
+      <button class="btn ghost" id="signoutBtn">Sign out · 登出</button>
+      <button class="btn danger" id="deleteBtn">Delete account · 刪除帳戶</button>
+    </div>
+    <div class="msg" id="manageMsg"></div>
+  </div>
+
+  <div class="foot">
+    <a href="./WinForge.dc.html">← Back to WinForge</a> · Passkeys are stored by your device/authenticator; the account record lives in this browser.
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var KEY = "winforge.account.v1";
+  var SESS = "winforge.account.session";
+  var $ = function(id){ return document.getElementById(id); };
+
+  function b64u(buf){ var b=btoa(String.fromCharCode.apply(null,new Uint8Array(buf))); return b.replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
+  function fromB64u(s){ s=s.replace(/-/g,'+').replace(/_/g,'/'); while(s.length%4)s+='='; var bin=atob(s); var a=new Uint8Array(bin.length); for(var i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i); return a; }
+  function rand(n){ var a=new Uint8Array(n); crypto.getRandomValues(a); return a; }
+  function load(){ try{ return JSON.parse(localStorage.getItem(KEY)||'null'); }catch(e){ return null; } }
+  function save(a){ localStorage.setItem(KEY, JSON.stringify(a)); }
+  function show(el,kind,html){ el.className='msg '+kind; el.innerHTML=html; }
+
+  function supported(){ return !!(window.PublicKeyCredential && navigator.credentials && navigator.credentials.create); }
+
+  function refresh(){
+    var acct=load();
+    var signedIn = acct && sessionStorage.getItem(SESS)==='1';
+    $('authView').classList.toggle('hidden', signedIn);
+    $('manageView').classList.toggle('hidden', !signedIn);
+    if(acct && !signedIn){
+      $('registerBtn').style.display='none';
+      $('username').value=acct.username; $('username').disabled=true;
+      show($('haveAccountHint'),'info','An account "<b>'+esc(acct.username)+'</b>" exists on this device. Sign in with your passkey.');
+      $('haveAccountHint').className='hint';
+    }
+    if(signedIn){
+      $('welcome').textContent = 'Signed in as '+(acct.display||acct.username)+' · 已登入';
+      $('mUser').textContent = acct.username;
+      $('mCred').textContent = (acct.credId||'').slice(0,16)+'…';
+      $('mCreated').textContent = new Date(acct.createdUtc).toLocaleString();
+      $('display').value = acct.display||'';
+      $('themePref').value = acct.theme||'dark';
+    }
+  }
+  function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+
+  // ---- register ----
+  $('registerBtn').addEventListener('click', async function(){
+    var msg=$('authMsg');
+    if(!supported()){ show(msg,'err','This browser does not support passkeys (WebAuthn).'); return; }
+    var username=($('username').value||'').trim();
+    if(username.length<2){ show(msg,'err','Enter a username (2+ characters). · 請輸入使用者名稱。'); return; }
+    if(load()){ show(msg,'err','An account already exists on this device. Sign in instead.'); return; }
+    this.disabled=true; show(msg,'info','Follow your device prompt to create the passkey… · 跟住裝置提示建立通行密鑰…');
+    try{
+      var userId=rand(16);
+      var cred=await navigator.credentials.create({ publicKey:{
+        challenge:rand(32),
+        rp:{ name:"WinForge · 視窗調校" },
+        user:{ id:userId, name:username, displayName:username },
+        pubKeyCredParams:[{type:"public-key",alg:-7},{type:"public-key",alg:-257}],
+        authenticatorSelection:{ residentKey:"preferred", userVerification:"preferred" },
+        timeout:60000, attestation:"none"
+      }});
+      save({ username:username, credId:b64u(cred.rawId), userId:b64u(userId), createdUtc:new Date().toISOString(), display:"", theme:"dark" });
+      sessionStorage.setItem(SESS,'1');
+      show(msg,'ok','Passkey created. Welcome! · 已建立通行密鑰，歡迎！');
+      setTimeout(refresh,500);
+    }catch(e){
+      this.disabled=false;
+      show(msg,'err','Could not create the passkey: '+(e&&e.message||e)+' · 建立失敗。');
+    }
+  });
+
+  // ---- sign in ----
+  $('signinBtn').addEventListener('click', async function(){
+    var msg=$('authMsg');
+    if(!supported()){ show(msg,'err','This browser does not support passkeys (WebAuthn).'); return; }
+    var acct=load();
+    if(!acct){ show(msg,'err','No account on this device yet — create one first. · 此裝置未有帳戶，請先建立。'); return; }
+    show(msg,'info','Follow your device prompt to sign in… · 跟住裝置提示登入…');
+    try{
+      await navigator.credentials.get({ publicKey:{
+        challenge:rand(32),
+        allowCredentials:[{ id:fromB64u(acct.credId), type:"public-key" }],
+        userVerification:"preferred", timeout:60000
+      }});
+      sessionStorage.setItem(SESS,'1');
+      show(msg,'ok','Signed in. · 已登入。');
+      setTimeout(refresh,400);
+    }catch(e){
+      show(msg,'err','Sign-in failed or cancelled: '+(e&&e.message||e));
+    }
+  });
+
+  // ---- manage actions ----
+  $('signoutBtn').addEventListener('click',function(){ sessionStorage.removeItem(SESS); refresh(); });
+  $('prefTile').addEventListener('click',function(ev){ ev.preventDefault(); var c=$('prefCard'); c.style.display = c.style.display==='none'?'block':'none'; });
+  $('savePrefBtn').addEventListener('click',function(){
+    var acct=load(); if(!acct)return;
+    acct.display=($('display').value||'').trim(); acct.theme=$('themePref').value; save(acct);
+    show($('manageMsg'),'ok','Preferences saved. · 已儲存偏好。'); refresh();
+  });
+  $('deleteBtn').addEventListener('click',function(){
+    if(!confirm('Delete this WinForge account from this browser? The passkey on your device is not removed automatically.\n從此瀏覽器刪除帳戶？裝置上嘅通行密鑰唔會自動移除。')) return;
+    localStorage.removeItem(KEY); sessionStorage.removeItem(SESS);
+    $('username').disabled=false; $('username').value=''; $('registerBtn').style.display='';
+    refresh(); show($('authMsg'),'info','Account deleted from this browser. · 已從此瀏覽器刪除帳戶。');
+  });
+
+  if(!supported()){ show($('authMsg'),'err','Your browser does not support passkeys (WebAuthn). Use a recent Chrome, Edge, Safari or Firefox.'); }
+  refresh();
+})();
+</script>
+</body>
+</html>
