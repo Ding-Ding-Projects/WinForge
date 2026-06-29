@@ -77,6 +77,16 @@ jobs:
           if (-not (Test-Path "${{ steps.pub.outputs.dir }}\WinForgeLauncher.exe")) { throw "WinForgeLauncher.exe not produced" }
           Write-Host "launcher published next to WinForge.exe"
 
+      - name: Publish WinForge Updater into publish folder · 建置更新程式
+        shell: pwsh
+        run: |
+          dotnet publish updater/WinForgeUpdater/WinForgeUpdater.csproj -c Release -p:Platform=x64 -r win-x64 `
+            --self-contained true -p:WindowsAppSDKSelfContained=true -p:WindowsPackageType=None `
+            -o "${{ steps.pub.outputs.dir }}"
+          if ($LASTEXITCODE -ne 0) { throw "updater publish failed" }
+          if (-not (Test-Path "${{ steps.pub.outputs.dir }}\WinForgeUpdater.exe")) { throw "WinForgeUpdater.exe not produced" }
+          Write-Host "WinForgeUpdater published next to WinForge.exe"
+
       - name: Portable zip · 可攜 zip
         shell: pwsh
         run: |

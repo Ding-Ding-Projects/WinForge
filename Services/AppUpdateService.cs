@@ -136,14 +136,30 @@ public static class AppUpdateService
                 return;
             }
 
+            SettingsStore.Set(LastAttemptTagKey, latestTag);
+            SettingsStore.Set(LastAttemptUtcKey, DateTime.UtcNow.ToString("O"));
+
+            // Preferred path: hand off to the dedicated WinForgeUpdater WinUI app, which shows a real
+            // progress window (download → wait → install → relaunch) so the update is never silent.
+            if (LaunchUpdaterApp(latestTag, setup.BrowserDownloadUrl))
+            {
+                Notify(ui, NoticeSeverity.Info,
+                    "Updating WinForge", "正在更新 WinForge",
+                    $"WinForge will close and the updater will install v{latestTag} with a progress window, then reopen.",
+                    $"WinForge 將會關閉，更新程式會用進度視窗安裝 v{latestTag}，然後重新開啟。",
+                    0);
+                await Task.Delay(2500).ConfigureAwait(false);
+                ui.TryEnqueue(() => Application.Current.Exit());
+                return;
+            }
+
+            // Fallback (older installs without WinForgeUpdater.exe): download in-app, then the silent script.
             Notify(ui, NoticeSeverity.Info,
                 "Downloading WinForge update", "正在下載 WinForge 更新",
                 $"Downloading v{latestTag}. You can keep using the app while it downloads.",
                 $"正在下載 v{latestTag}。下載期間可以繼續使用 app。",
                 0);
             string installer = await DownloadInstallerAsync(latestTag, setup.BrowserDownloadUrl).ConfigureAwait(false);
-            SettingsStore.Set(LastAttemptTagKey, latestTag);
-            SettingsStore.Set(LastAttemptUtcKey, DateTime.UtcNow.ToString("O"));
 
             if (LaunchInstallerAfterExit(installer, latestTag))
             {
@@ -251,6 +267,36 @@ public static class AppUpdateService
         try { if (File.Exists(path)) File.Delete(path); } catch { }
         File.Move(tmp, path);
         return path;
+    }
+
+    /// <summary>
+    /// 啟動專用 WinUI 更新程式（有進度視窗）· Launch the dedicated WinForgeUpdater WinUI app, which
+    /// downloads (with a progress bar), waits for this process to exit, installs, and relaunches WinForge.
+    /// Returns false if the updater exe isn't present (then the caller uses the silent fallback).
+    /// </summary>
+    private static bool LaunchUpdaterApp(string tag, string url)
+    {
+        try
+        {
+            string dir = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            string updater = Path.Combine(dir, "WinForgeUpdater.exe");
+            if (!File.Exists(updater)) return false;
+
+            var psi = new ProcessStartInfo { FileName = updater, UseShellExecute = true };
+            psi.ArgumentList.Add("--tag"); psi.ArgumentList.Add(tag);
+            psi.ArgumentList.Add("--url"); psi.ArgumentList.Add(url);
+            psi.ArgumentList.Add("--pid"); psi.ArgumentList.Add(Environment.ProcessId.ToString());
+            psi.ArgumentList.Add("--install-dir"); psi.ArgumentList.Add(dir);
+            psi.ArgumentList.Add("--exe"); psi.ArgumentList.Add(Path.Combine(dir, "WinForge.exe"));
+            psi.ArgumentList.Add("--launcher"); psi.ArgumentList.Add(Path.Combine(dir, "WinForgeLauncher.exe"));
+            Process.Start(psi);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            CrashLogger.Log("app-update:launch-updater-app", ex);
+            return false;
+        }
     }
 
     private static bool LaunchInstallerAfterExit(string installer, string tag)

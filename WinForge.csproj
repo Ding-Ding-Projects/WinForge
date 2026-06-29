@@ -26,7 +26,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!-- External upstream source checkouts must NEVER be compiled into WinForge; keep the exclusion so
          any local reference copies under external/ cannot be pulled in by default item globs. -->
-    <DefaultItemExcludes>$(DefaultItemExcludes);external\**;launcher\**</DefaultItemExcludes>
+    <DefaultItemExcludes>$(DefaultItemExcludes);external\**;launcher\**;updater\**;tools\**</DefaultItemExcludes>
   </PropertyGroup>
 
   <!-- Sdk/** is a STANDALONE, drop-in client SDK that OTHER apps copy into their own projects.

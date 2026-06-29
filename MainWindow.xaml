@@ -373,14 +373,24 @@
 
         <InfoBar
             x:Name="AppUpdateBar"
-            Grid.Row="1"
-            Margin="16,10,16,0"
+            Grid.Row="0"
+            Grid.RowSpan="2"
+            Canvas.ZIndex="999"
+            Margin="16,54,16,0"
             MaxWidth="880"
-            HorizontalAlignment="Stretch"
+            HorizontalAlignment="Center"
             VerticalAlignment="Top"
             IsClosable="True"
             IsOpen="False"
             automation:AutomationProperties.AutomationId="ShellAppUpdateBar"
-            automation:AutomationProperties.Name="WinForge update notice · WinForge 更新通知" />
+            automation:AutomationProperties.Name="WinForge update notice · WinForge 更新通知">
+            <InfoBar.Content>
+                <ProgressBar
+                    x:Name="AppUpdateProgress"
+                    Margin="0,4,0,10"
+                    IsIndeterminate="True"
+                    Visibility="Collapsed" />
+            </InfoBar.Content>
+        </InfoBar>
     </Grid>
 </Window>

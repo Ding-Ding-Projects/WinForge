@@ -100,6 +100,13 @@ public sealed partial class MainWindow : Window
         AppUpdateBar.Message = Loc.I.Pick(notice.MessageEn, notice.MessageZh);
         AppUpdateBar.IsOpen = true;
 
+        // Show a live progress bar while an update is in flight (the persistent "downloading /
+        // installing" notices use AutoDismissMs == 0) so the update never looks silent.
+        bool inProgress = notice.AutoDismissMs <= 0
+            && notice.Severity == AppUpdateService.NoticeSeverity.Info;
+        AppUpdateProgress.Visibility = inProgress ? Visibility.Visible : Visibility.Collapsed;
+        AppUpdateProgress.IsIndeterminate = inProgress;
+
         if (notice.AutoDismissMs > 0)
             _ = AutoDismissAppUpdateNotice(serial, notice.AutoDismissMs);
     }
