@@ -26,7 +26,52 @@ Actions run **in the order given**. `--invoke` tries Invoke → Select → Toggl
 mouse click. Collapsed nav groups realize their children only once expanded (invoke the
 group first, e.g. `--invoke "System"`, then the child item).
 
-## Screenshots
+## Wiki post-processing · Wiki 截圖後製
+
+For step-by-step wiki guides the tool can **crop, highlight, annotate and redact**
+screenshots in the same run that captures them — no second image editor needed.
+These operate on an in-memory **canvas**: the live window is captured into it lazily
+(the first edit/`--out` grabs it), or you load an existing PNG with `--open`.
+
+Geometry fields are **`|`-separated** and each value is either **pixels** (`120`) or a
+**percentage** of the image dimension (`35%`). x/width resolve against the width,
+y/height against the height. Percentages are recommended — they survive resolution
+changes. Colors are names (`red green cyan amber yellow blue magenta white black`) or
+hex (`#RRGGBB` / `#AARRGGBB`); call-outs default to attention-red.
+
+| Action | Argument | Does |
+|---|---|---|
+| `--capture` | — | Capture the window into the canvas (no save). |
+| `--open` | `<file>` | Load an existing PNG to edit (no app launched). |
+| `--crop` | `x\|y\|w\|h` | Crop to a region. |
+| `--scale` | `pct` or `w:px` | Resize (`50`, `50%`, `w:1200`). |
+| `--highlight` | `x\|y\|w\|h[\|color\|thick]` | Rounded call-out box with a soft glow. |
+| `--box` | `x\|y\|w\|h[\|color\|thick]` | Plain rectangle outline. |
+| `--ellipse` | `x\|y\|w\|h[\|color\|thick]` | Ellipse outline. |
+| `--arrow` | `x1\|y1\|x2\|y2[\|color\|thick]` | Arrow pointing at something. |
+| `--text` | `x\|y\|message[\|color\|size\|bg]` | Text label; give a `bg` color for a rounded plate. |
+| `--step` | `x\|y\|number[\|color\|diam]` | Numbered step badge (circle + number). |
+| `--redact` | `x\|y\|w\|h[\|box\|blur\|pixelate]` | Hide personal info; default is a solid box. |
+
+```
+# Capture the Git page, ring the Clone button, number it, redact a local path, label it:
+winforge-shot --page git --wait 14000 \
+    --highlight "62%|18%|30%|9%|red" --step "60%|18%|1" \
+    --redact "2%|94%|44%|4%|blur" \
+    --text "5%|2%|Step 1 — click Clone|white|30|#111" \
+    --out git-step1.png
+
+# Annotate / redact an EXISTING screenshot, no app needed:
+winforge-shot --open docs/screenshot-vault.png \
+    --redact "10%|40%|35%|6%|box" --out docs/screenshot-vault.png
+```
+
+**Redaction modes** — `box` paints a solid hatched rectangle (clearest "this was hidden"),
+`blur` and `pixelate` obscure while keeping the layout legible. All three are
+**irreversible** (the pixels are destroyed), which is what you want for usernames, home
+paths, hostnames, IPs, emails, tokens, vault item names and the like. See the wiki's
+[Wiki Screenshot Workflow](../../docs/wiki/Wiki-Screenshot-Workflow.md) for the full
+redaction checklist and the authoring recipe.
 
 ## Why not the PowerShell driver?
 

@@ -1,14 +1,14 @@
 # Screenshots · 截圖集
 
-Canonical screenshots live in `docs/` and are embedded here through raw GitHub URLs. Entries are captured from running self-contained builds via `WinForge.exe --page <alias>`.
+Canonical screenshots live in `docs/` and are embedded here through raw GitHub URLs. Entries are captured — and cropped, highlighted, annotated, and redacted — with [`winforge-shot`](https://github.com/codingmachineedge/WinForge/tree/main/tools/WinForgeShot). See the [Wiki Screenshot Workflow](Wiki-Screenshot-Workflow.md) for the full recipe.
 
-正式截圖放喺 `docs/`，呢度用 raw GitHub URL 嵌入。截圖由運行緊嘅可獨立執行自帶建置（self-contained build）行 `WinForge.exe --page <alias>` 擷取。
+正式截圖放喺 `docs/`，呢度用 raw GitHub URL 嵌入。截圖由 [`winforge-shot`](https://github.com/codingmachineedge/WinForge/tree/main/tools/WinForgeShot) 擷取，並裁切、加強調、標註同遮蔽。完整做法見 [Wiki 截圖工作流程](Wiki-Screenshot-Workflow.md)。
 
 ## Redaction Rules · 遮蔽規則
 
-**EN —** Before adding screenshots, redact or avoid personal data: Windows usernames, home-folder paths, repo paths outside WinForge, hostnames, IPs that identify private networks, account names, emails, API keys, tokens, session cookies, vault item names, SSH profiles, and real package/source credentials.
+**EN —** Before adding screenshots, redact or avoid personal data: Windows usernames, home-folder paths, repo paths outside WinForge, hostnames, IPs that identify private networks, account names, emails, API keys, tokens, session cookies, vault item names, SSH profiles, and real package/source credentials. Use `winforge-shot --redact "x|y|w|h|box|blur|pixelate"` to obscure regions irreversibly; see the [Wiki Screenshot Workflow](Wiki-Screenshot-Workflow.md).
 
-**粵語 —** 新增截圖前，請遮蔽或者避開個人資料：Windows 用戶名、home folder 路徑、WinForge 以外嘅 repo 路徑、主機名、會識別私人網絡嘅 IP、帳戶名、電郵、API key、token、session cookie、保險庫項目名、SSH profile，同真實套件／來源憑證。
+**粵語 —** 新增截圖前，請遮蔽或者避開個人資料：Windows 用戶名、home folder 路徑、WinForge 以外嘅 repo 路徑、主機名、會識別私人網絡嘅 IP、帳戶名、電郵、API key、token、session cookie、保險庫項目名、SSH profile，同真實套件／來源憑證。用 `winforge-shot --redact "x|y|w|h|box|blur|pixelate"` 不可逆咁遮蔽範圍；詳見 [Wiki 截圖工作流程](Wiki-Screenshot-Workflow.md)。
 
 ---
 
