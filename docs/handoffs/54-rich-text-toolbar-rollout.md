@@ -136,6 +136,44 @@ directly. Bridge it instead — the toolbar stays the same XAML control, but `Ap
 
 ---
 
+## 4b. Error handling — this is what was crashing / freezing the app
+
+The first cut of the Terms reader **randomly crashed or froze the app**. Root causes, and the rules that
+fix them — **`RichTextToolbar` must follow all of these**:
+
+1. **Every event handler must be wrapped.** A throwing **sync** handler propagates onto the dispatcher and
+   crashes the process; a throwing **`async void`** handler raises an *unobserved* exception that also
+   crashes. Clipboard (`Clipboard.SetContent`), `new FontFamily(badName)`, file writes, PDF rendering can
+   all throw. Wrap each handler body — see the `Guard(src, Action)` / `GuardAsync(src, Func<Task>)` helpers
+   in [Services/TermsService.cs](../../Services/TermsService.cs). Pattern:
+   ```csharp
+   btn.Click += (_, _) => Guard("copy", () => { /* … */ });
+   saveBtn.Click += (_, _) => GuardAsync("save.pdf", async () => { /* await … */ });
+   ```
+   Note `async void` lambdas are the trap: put the `await` **inside** `GuardAsync`, never leave an
+   `async (_,_) => { await … }` unguarded.
+
+2. **`ContentDialog.ShowAsync` must be wrapped.** WinUI throws *"Only a single ContentDialog can be open at
+   a time"* if anything else (an update prompt, another flyout-dialog) is open — at startup this was the
+   crash/freeze. Use a `SafeShowAsync(dlg)` that try/catches and returns `null` on failure, then treat
+   `null` as "couldn't show", **not** as a user choice.
+
+3. **Fail OPEN, never block.** If the toolbar/dialog can't do its job, it must degrade quietly — never exit
+   the app, never hang, never re-loop forever. In the gate, `EnsureAcceptedAsync` wraps the whole flow in
+   try/catch and returns "don't exit" on any error (the gate just reappears next launch). For a toolbar on
+   a normal surface there's nothing to exit — just log and no-op.
+
+4. **Long work off the UI thread.** PDF export runs under `Task.Run` so a big document never freezes the
+   UI. Keep file I/O and rendering off the dispatcher.
+
+5. **Log, don't swallow silently.** Route every caught exception to `CrashLogger.Log("source", ex)` so
+   `%LOCALAPPDATA%\WinForge\crash.log` shows what happened — guarded ≠ invisible.
+
+A throwing handler that *looks* harmless ("it's just setting a font") is exactly what took the app down.
+Treat every UI callback as if it can throw.
+
+---
+
 ## 5. Gotchas / conventions (from building the Terms reader)
 
 - **Icons:** use plain text glyphs for B / I / S, not Segoe MDL2 glyphs (strikethrough looks like underline).
@@ -162,6 +200,8 @@ directly. Bridge it instead — the toolbar stays the same XAML control, but `Ap
 - [ ] Two surfaces open at once have **fully independent** font/size/colour/style/theme.
 - [ ] Theme changes are scoped to the surface's container, never `App.SetTheme`.
 - [ ] Copy / Save TXT / Save PDF all work; PDF honours the live formatting incl. CJK.
+- [ ] Every event handler is wrapped (`Guard`/`GuardAsync`); every `ShowAsync` goes through
+      `SafeShowAsync`; the control fails open and never crashes/exits/hangs the app (§4b).
 - [ ] `dotnet build WinForge.sln -c Debug -p:Platform=x64` → 0 errors.
 - [ ] Rolled out to at least the priority surfaces in §4, each with its own instance.
 

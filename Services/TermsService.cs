@@ -54,36 +54,85 @@ public static class TermsService
 
     private static string P(string en, string zh) => Loc.I.Pick(en, zh);
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // 防護 · Safety wrappers
+    // 任何事件處理器拋例外都會冧 app（同步：未捕捉派發例外；async void：未觀察例外）。
+    // 全部 UI 事件都包住，PDF／檔案／剪貼簿都唔會整冧 app。對話框顯示亦包住，避免
+    // 「同一時間只可開一個 ContentDialog」會擲出而令啟動崩潰或卡死。
+    // Any throwing event handler crashes the app (sync handlers throw on the dispatcher; async void
+    // handlers raise unobserved exceptions). Wrap every handler. Also wrap ShowAsync, because WinUI
+    // throws "only a single ContentDialog can be open" — that exception at startup was crashing/freezing.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private static void Guard(string src, Action body)
+    {
+        try { body(); }
+        catch (Exception ex) { CrashLogger.Log("terms:" + src, ex); }
+    }
+
+    private static async void GuardAsync(string src, Func<Task> body)
+    {
+        try { await body(); }
+        catch (Exception ex) { CrashLogger.Log("terms:" + src, ex); }
+    }
+
+    /// <summary>顯示對話框且永不拋例外；出錯回 null（當作非主要按鈕）· Show a dialog that never throws; null on error.</summary>
+    private static async Task<ContentDialogResult?> SafeShowAsync(ContentDialog dlg)
+    {
+        try { return await dlg.ShowAsync(); }
+        catch (Exception ex) { CrashLogger.Log("terms:ShowAsync", ex); return null; }
+    }
+
     public static async Task<bool> EnsureAcceptedAsync(XamlRoot xamlRoot)
     {
         if (HasAccepted) return true;
         if (xamlRoot is null) return true;     // 無 UI 根（無頭模式）就唔阻塞 · no root (headless) → don't block
 
-        if (!await ShowTermsAsync(xamlRoot)) return false;
-
-        while (true)
+        // 整個閘包一層：任何未預期錯誤都「容錯放行」（唔接受、唔退出、唔卡死），下次啟動再彈。
+        // The whole gate is wrapped: any unexpected error fails OPEN — we neither mark accepted nor exit
+        // the app nor block; the gate simply reappears next launch. Returning true here means "don't exit".
+        try
         {
-            int score = await RunQuizAsync(xamlRoot);
-            if (score < 0) return false;
-            if (score >= PassMark)
-            {
-                MarkAccepted();
-                await ShowInfoAsync(xamlRoot,
-                    P("Welcome to WinForge", "歡迎使用 WinForge"),
-                    P("You scored 5/5. Terms accepted — enjoy WinForge!",
-                      "你考到 5/5。條款已接受 — 盡情使用 WinForge！"));
-                return true;
-            }
+            // null = 顯示失敗（例如對話框衝突）→ 容錯放行，唔好退出 app。
+            // null = the dialog could not be shown (e.g. dialog conflict) → fail open, do not exit.
+            var read = await ShowTermsAsync(xamlRoot);
+            if (read is null) return true;          // couldn't show → don't exit
+            if (read == false) return false;        // user declined → caller exits
 
-            if (!await ShowRetryAsync(xamlRoot, score)) return false;
+            while (true)
+            {
+                int score = await RunQuizAsync(xamlRoot);
+                if (score == QuizError) return true;    // couldn't show quiz → fail open
+                if (score < 0) return false;            // user declined
+                if (score >= PassMark)
+                {
+                    MarkAccepted();
+                    await ShowInfoAsync(xamlRoot,
+                        P("Welcome to WinForge", "歡迎使用 WinForge"),
+                        P("You scored 5/5. Terms accepted — enjoy WinForge!",
+                          "你考到 5/5。條款已接受 — 盡情使用 WinForge！"));
+                    return true;
+                }
+
+                var again = await ShowRetryAsync(xamlRoot, score);
+                if (again is null) return true;     // couldn't show → fail open
+                if (again == false) return false;   // user declined
+            }
+        }
+        catch (Exception ex)
+        {
+            CrashLogger.Log("terms:gate (failing open)", ex);
+            return true;        // never crash / exit / block the app because of the gate
         }
     }
+
+    private const int QuizError = -2;     // RunQuizAsync sentinel: dialog could not be shown
 
     // ─────────────────────────────────────────────────────────────────────────
     // 條款閱讀器 · The rich terms reader
     // ─────────────────────────────────────────────────────────────────────────
 
-    private static async Task<bool> ShowTermsAsync(XamlRoot xamlRoot)
+    private static async Task<bool?> ShowTermsAsync(XamlRoot xamlRoot)
     {
         // 條款本身嘅語言（獨立於 app 語言）· The language the terms are shown in (independent of the app language).
         var termsLang = Loc.I.Language;
@@ -122,37 +171,37 @@ public static class TermsService
             AppLanguage.Cantonese => 1,
             _ => 2,
         };
-        langBox.SelectionChanged += (_, _) =>
+        langBox.SelectionChanged += (_, _) => Guard("lang", () =>
         {
             if (langBox.SelectedItem is ComboBoxItem { Tag: AppLanguage l })
             {
                 termsLang = l;
                 body.Text = TermsTextFor(l);
             }
-        };
+        });
 
         var fontBox = new ComboBox { MinWidth = 170 };
         foreach (var f in FontChoices) fontBox.Items.Add(new ComboBoxItem { Content = f, Tag = f });
         fontBox.SelectedIndex = 0;
-        fontBox.SelectionChanged += (_, _) =>
+        fontBox.SelectionChanged += (_, _) => Guard("font", () =>
         {
             if (fontBox.SelectedItem is ComboBoxItem { Tag: string fam })
                 body.FontFamily = new FontFamily(fam);
-        };
+        });
 
         var sizeBox = new NumberBox
         {
             Minimum = 9, Maximum = 40, Value = 15, SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Inline,
             MinWidth = 120,
         };
-        sizeBox.ValueChanged += (_, _) =>
+        sizeBox.ValueChanged += (_, _) => Guard("size", () =>
         {
             if (!double.IsNaN(sizeBox.Value) && sizeBox.Value >= 9)
             {
                 body.FontSize = sizeBox.Value;
                 body.LineHeight = sizeBox.Value * 1.45;
             }
-        };
+        });
 
         var bold = new ToggleButton { Content = new FontIcon { Glyph = "" } };
         ToolTipService.SetToolTip(bold, P("Bold", "粗體"));
@@ -174,9 +223,9 @@ public static class TermsService
                 ? Windows.UI.Text.TextDecorations.Strikethrough
                 : Windows.UI.Text.TextDecorations.None;
         }
-        bold.Click += (_, _) => ApplyStyle();
-        italic.Click += (_, _) => ApplyStyle();
-        strike.Click += (_, _) => ApplyStyle();
+        bold.Click += (_, _) => Guard("bold", ApplyStyle);
+        italic.Click += (_, _) => Guard("italic", ApplyStyle);
+        strike.Click += (_, _) => Guard("strike", ApplyStyle);
 
         // 字體顏色（ColorPicker 喺 flyout）· Font colour via a ColorPicker flyout.
         Color? chosenColor = null;
@@ -189,17 +238,17 @@ public static class TermsService
         };
         var applyColor = new Button { Content = P("Apply", "套用"), Margin = new Thickness(0, 8, 0, 0) };
         var colorFlyout = new Flyout { Content = new StackPanel { Children = { picker, applyColor } } };
-        applyColor.Click += (_, _) =>
+        applyColor.Click += (_, _) => Guard("color.apply", () =>
         {
             chosenColor = picker.Color;
             body.Foreground = new SolidColorBrush(picker.Color);
             colorFlyout.Hide();
-        };
+        });
         var colorBtn = new Button { Content = new FontIcon { Glyph = "" }, Flyout = colorFlyout };
         ToolTipService.SetToolTip(colorBtn, P("Font colour", "字體顏色"));
         var resetColor = new Button { Content = new FontIcon { Glyph = "" } };
         ToolTipService.SetToolTip(resetColor, P("Reset colour", "重設顏色"));
-        resetColor.Click += (_, _) => { chosenColor = null; body.ClearValue(TextBlock.ForegroundProperty); };
+        resetColor.Click += (_, _) => Guard("color.reset", () => { chosenColor = null; body.ClearValue(TextBlock.ForegroundProperty); });
 
         // 主題（套用到整個視窗根）· Theme applied to the whole window root.
         var themeBox = new ComboBox
@@ -213,37 +262,34 @@ public static class TermsService
             },
             SelectedIndex = 0,
         };
-        themeBox.SelectionChanged += (_, _) =>
+        themeBox.SelectionChanged += (_, _) => Guard("theme", () =>
         {
             if (themeBox.SelectedItem is ComboBoxItem { Tag: ElementTheme t })
                 App.SetTheme(t);
-        };
+        });
 
         // 動作：複製 / 另存 TXT / 另存 PDF · Actions: copy / save TXT / save PDF.
         var copyBtn = new Button { Content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6,
             Children = { new FontIcon { Glyph = "" }, new TextBlock { Text = P("Copy", "複製") } } } };
-        copyBtn.Click += (_, _) =>
+        copyBtn.Click += (_, _) => Guard("copy", () =>
         {
             var dp = new Windows.ApplicationModel.DataTransfer.DataPackage();
             dp.SetText(body.Text);
             Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(dp);
-        };
+        });
 
         var txtBtn = new Button { Content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6,
             Children = { new FontIcon { Glyph = "" }, new TextBlock { Text = P("Save TXT", "存 TXT") } } } };
-        txtBtn.Click += async (_, _) =>
+        txtBtn.Click += (_, _) => GuardAsync("save.txt", async () =>
         {
             var path = await FileDialogs.SaveFileAsync("WinForge-Terms", ".txt");
             if (!string.IsNullOrEmpty(path))
-            {
-                try { File.WriteAllText(path, body.Text); }
-                catch (Exception ex) { CrashLogger.Log("terms: save txt", ex); }
-            }
-        };
+                File.WriteAllText(path, body.Text);
+        });
 
         var pdfBtn = new Button { Content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6,
             Children = { new FontIcon { Glyph = "" }, new TextBlock { Text = P("Save PDF", "存 PDF") } } } };
-        pdfBtn.Click += async (_, _) =>
+        pdfBtn.Click += (_, _) => GuardAsync("save.pdf", async () =>
         {
             var path = await FileDialogs.SaveFileAsync("WinForge-Terms", ".pdf");
             if (string.IsNullOrEmpty(path)) return;
@@ -252,9 +298,8 @@ public static class TermsService
             var col = chosenColor;
             string text = body.Text;
             bool b = bold.IsChecked == true, i = italic.IsChecked == true, s = strike.IsChecked == true;
-            try { await Task.Run(() => RenderPdf(path!, text, family, sz, b, i, s, col)); }
-            catch (Exception ex) { CrashLogger.Log("terms: save pdf", ex); }
-        };
+            await Task.Run(() => RenderPdf(path!, text, family, sz, b, i, s, col));
+        });
 
         // 工具列分兩行排，確保全部按鈕都見得到（唔使橫向捲）· Two rows so every control is visible (no horizontal scrolling).
         TextBlock Label(string en, string zh) => new()
@@ -305,8 +350,9 @@ public static class TermsService
         };
         dlg.Resources["ContentDialogMaxWidth"] = 1200.0;
 
-        try { return await dlg.ShowAsync() == ContentDialogResult.Primary; }
-        catch (Exception ex) { CrashLogger.Log("terms: ShowTermsAsync threw", ex); throw; }
+        var r = await SafeShowAsync(dlg);
+        if (r is null) return null;                         // couldn't show → caller fails open
+        return r == ContentDialogResult.Primary;
     }
 
     /// <summary>用 PdfSharp 將條款渲染成 PDF，保留字型／字級／粗斜／刪除線／顏色 · Render the terms to PDF honouring the chosen formatting.</summary>
@@ -434,7 +480,9 @@ public static class TermsService
             DefaultButton = ContentDialogButton.Primary,
         };
 
-        if (await dlg.ShowAsync() != ContentDialogResult.Primary) return -1;
+        var r = await SafeShowAsync(dlg);
+        if (r is null) return QuizError;                    // couldn't show → fail open
+        if (r != ContentDialogResult.Primary) return -1;    // declined
 
         int score = 0;
         for (int i = 0; i < Questions.Length; i++)
@@ -442,7 +490,7 @@ public static class TermsService
         return score;
     }
 
-    private static async Task<bool> ShowRetryAsync(XamlRoot xamlRoot, int score)
+    private static async Task<bool?> ShowRetryAsync(XamlRoot xamlRoot, int score)
     {
         var dlg = new ContentDialog
         {
@@ -454,7 +502,9 @@ public static class TermsService
             CloseButtonText = P("Decline & Exit", "拒絕並退出"),
             DefaultButton = ContentDialogButton.Primary,
         };
-        return await dlg.ShowAsync() == ContentDialogResult.Primary;
+        var r = await SafeShowAsync(dlg);
+        if (r is null) return null;
+        return r == ContentDialogResult.Primary;
     }
 
     private static async Task ShowInfoAsync(XamlRoot xamlRoot, string title, string body)
@@ -467,7 +517,7 @@ public static class TermsService
             CloseButtonText = P("Get started", "開始使用"),
             DefaultButton = ContentDialogButton.Close,
         };
-        await dlg.ShowAsync();
+        await SafeShowAsync(dlg);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
