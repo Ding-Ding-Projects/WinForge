@@ -1121,7 +1121,8 @@ public sealed partial class MainWindow : Window
             switch (item)
             {
                 case NavigationViewItemHeader header:
-                    header.Content = LocalizeKnownText(header, header.Content as string);
+                    var hp = HeaderPair(header);
+                    header.Content = BuildNavHeader(hp.en, hp.zh);
                     break;
                 case NavigationViewItem nav:
                     var pair = NavPair(nav);
@@ -1159,6 +1160,39 @@ public sealed partial class MainWindow : Window
         if (_navOriginalLabels.TryGetValue(nav, out var cached)) return cached;
         if (nav.Content is string s) { var p = SplitBilingual(s); _navOriginalLabels[nav] = p; return p; }
         return ("", "");
+    }
+
+    /// <summary>解析群組標題嘅 (英,中) 對 · Resolve a nav group header's (en, zh) pair.</summary>
+    private (string en, string zh) HeaderPair(NavigationViewItemHeader header)
+    {
+        if (_navOriginalLabels.TryGetValue(header, out var cached)) return cached;
+        if (header.Content is string s) { var p = SplitBilingual(s); _navOriginalLabels[header] = p; return p; }
+        return ("", "");
+    }
+
+    /// <summary>砌個細楷、加字距嘅群組標題（SUITE 套件）· Build the uppercase, letter-spaced group header.</summary>
+    private UIElement BuildNavHeader(string en, string zh)
+    {
+        var sp = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, VerticalAlignment = VerticalAlignment.Center };
+        sp.Children.Add(new TextBlock
+        {
+            Text = en.ToUpperInvariant(),
+            FontSize = 10,
+            FontWeight = Microsoft.UI.Text.FontWeights.Bold,
+            CharacterSpacing = 160,   // ~0.13em letter-spacing (1/1000 em units)
+            Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextFillColorTertiaryBrush"],
+            VerticalAlignment = VerticalAlignment.Center,
+        });
+        if (!string.IsNullOrEmpty(zh) && zh != en)
+            sp.Children.Add(new TextBlock
+            {
+                Text = zh,
+                FontSize = 9,
+                Opacity = 0.7,
+                Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextFillColorTertiaryBrush"],
+                VerticalAlignment = VerticalAlignment.Center,
+            });
+        return sp;
     }
 
     /// <summary>砌個直疊雙語導覽內容 · Build stacked bilingual nav content (EN over ZH) per the design.</summary>
