@@ -7,9 +7,14 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
-        <StackPanel MaxWidth="1100" Spacing="14">
+    <Grid Padding="24,16,24,16" RowSpacing="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
 
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Spacing="6">
             <StackPanel Orientation="Horizontal" Spacing="12">
                 <FontIcon FontSize="24" Glyph="&#xE72E;" VerticalAlignment="Center" />
                 <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
@@ -18,217 +23,85 @@
                 x:Name="HeaderBlurb"
                 Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                 TextWrapping="Wrap" />
+        </StackPanel>
 
-            <!-- Status banner -->
-            <InfoBar x:Name="StatusBar" IsClosable="False" IsOpen="True" Severity="Informational" />
+        <!-- Tabbed shell: a "Servers" tab + unlimited independent connection tabs -->
+        <TabView
+            x:Name="Tabs"
+            Grid.Row="1"
+            CanReorderTabs="True"
+            CanDragTabs="False"
+            IsAddTabButtonVisible="True"
+            AddTabButtonClick="Tabs_AddTabButtonClick"
+            TabCloseRequested="Tabs_TabCloseRequested"
+            VerticalAlignment="Stretch">
+            <TabView.TabItems>
 
-            <!-- Toast / transient message -->
-            <InfoBar x:Name="ToastBar" IsClosable="True" IsOpen="False" Severity="Success" />
+                <!-- ===== Self-hosted servers (Vaultwarden via Docker) ===== -->
+                <TabViewItem x:Name="ServersTab" IsClosable="False">
+                    <TabViewItem.IconSource>
+                        <FontIconSource Glyph="&#xE753;" />
+                    </TabViewItem.IconSource>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,8,8,0">
+                        <StackPanel MaxWidth="1000" Spacing="14">
 
-            <!-- ===================== Sign-in / unlock panel ===================== -->
-            <Border
-                x:Name="AuthPanel"
-                Padding="16"
-                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                BorderThickness="1"
-                CornerRadius="8"
-                Visibility="Collapsed">
-                <StackPanel Spacing="10">
-                    <TextBlock x:Name="AuthTitle" Style="{StaticResource SubtitleTextBlockStyle}" />
-
-                    <!-- Server / base URL (login only) -->
-                    <TextBox x:Name="ServerBox" MaxWidth="420" HorizontalAlignment="Left" />
-                    <TextBlock
-                        x:Name="ServerHint"
-                        FontSize="12"
-                        MaxWidth="460"
-                        HorizontalAlignment="Left"
-                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                        TextWrapping="Wrap" />
-
-                    <!-- Email shown only when logging in (unauthenticated) -->
-                    <TextBox x:Name="EmailBox" MaxWidth="420" HorizontalAlignment="Left" />
-                    <PasswordBox x:Name="MasterBox" MaxWidth="420" HorizontalAlignment="Left" />
-
-                    <!-- 2FA (login only) -->
-                    <CheckBox x:Name="TwoFaToggle" Click="TwoFaToggle_Click" Visibility="Collapsed" />
-                    <StackPanel x:Name="TwoFaPanel" Orientation="Horizontal" Spacing="8" Visibility="Collapsed">
-                        <ComboBox x:Name="TwoFaMethod" Width="220" />
-                        <TextBox x:Name="TwoFaCode" Width="180" />
-                    </StackPanel>
-
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <Button x:Name="AuthButton" Style="{StaticResource AccentButtonStyle}" Click="Auth_Click" />
-                        <ProgressRing x:Name="AuthBusy" Width="22" Height="22" IsActive="False" VerticalAlignment="Center" />
-                    </StackPanel>
-                </StackPanel>
-            </Border>
-
-            <!-- ===================== Vault (unlocked) ===================== -->
-            <StackPanel x:Name="VaultPanel" Spacing="12" Visibility="Collapsed">
-
-                <!-- Toolbar -->
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <AutoSuggestBox
-                        x:Name="SearchBox"
-                        Width="360"
-                        QueryIcon="Find"
-                        TextChanged="Search_TextChanged" />
-                    <Button x:Name="SyncBtn" Click="Sync_Click">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <FontIcon FontSize="14" Glyph="&#xE895;" />
-                            <TextBlock x:Name="SyncLabel" />
-                        </StackPanel>
-                    </Button>
-                    <Button x:Name="GenBtn" Click="Gen_Click">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <FontIcon FontSize="14" Glyph="&#xE8D7;" />
-                            <TextBlock x:Name="GenLabel" />
-                        </StackPanel>
-                    </Button>
-                    <Button x:Name="LockBtn" Click="Lock_Click">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <FontIcon FontSize="14" Glyph="&#xE72E;" />
-                            <TextBlock x:Name="LockLabel" />
-                        </StackPanel>
-                    </Button>
-                    <Button x:Name="LogoutBtn" Click="Logout_Click">
-                        <TextBlock x:Name="LogoutLabel" />
-                    </Button>
-                </StackPanel>
-
-                <Grid ColumnSpacing="16">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="1.1*" />
-                        <ColumnDefinition Width="1*" />
-                    </Grid.ColumnDefinitions>
-
-                    <!-- Item list (grouped by folder) -->
-                    <Border
-                        Grid.Column="0"
-                        MinHeight="360"
-                        Background="{ThemeResource LayerFillColorDefaultBrush}"
-                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                        BorderThickness="1"
-                        CornerRadius="8">
-                        <Grid>
-                            <ListView
-                                x:Name="ItemsList"
-                                Padding="4"
-                                SelectionChanged="Items_SelectionChanged" />
+                            <TextBlock x:Name="ServersTitle" Style="{StaticResource SubtitleTextBlockStyle}" />
                             <TextBlock
-                                x:Name="EmptyHint"
-                                Margin="16"
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center"
-                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                TextAlignment="Center"
-                                TextWrapping="Wrap"
-                                Visibility="Collapsed" />
-                            <ProgressRing x:Name="ListBusy" IsActive="False" VerticalAlignment="Top" Margin="0,12,0,0" />
-                        </Grid>
-                    </Border>
-
-                    <!-- Detail pane -->
-                    <Border
-                        Grid.Column="1"
-                        Padding="16"
-                        VerticalAlignment="Top"
-                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                        BorderThickness="1"
-                        CornerRadius="8">
-                        <StackPanel Spacing="10">
-                            <TextBlock
-                                x:Name="DetailPlaceholder"
+                                x:Name="ServersBlurb"
                                 Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                 TextWrapping="Wrap" />
 
-                            <StackPanel x:Name="DetailContent" Spacing="12" Visibility="Collapsed">
-                                <TextBlock x:Name="DetailName" Style="{StaticResource SubtitleTextBlockStyle}" TextWrapping="Wrap" />
-                                <TextBlock
-                                    x:Name="DetailType"
-                                    FontSize="12"
-                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <!-- Docker engine banner -->
+                            <InfoBar x:Name="DockerBar" IsClosable="False" IsOpen="False" />
 
-                                <!-- Username -->
-                                <StackPanel x:Name="UserRow" Spacing="4">
-                                    <TextBlock x:Name="UserLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <!-- New-instance controls -->
+                            <Border
+                                Padding="16"
+                                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8">
+                                <StackPanel Spacing="10">
+                                    <TextBlock x:Name="NewServerTitle" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                    <TextBox x:Name="NewNameBox" MaxWidth="420" HorizontalAlignment="Left" />
+                                    <CheckBox x:Name="SignupsToggle" IsChecked="True" />
+                                    <CheckBox x:Name="WebsocketToggle" IsChecked="False" />
                                     <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <TextBlock x:Name="UserValue" VerticalAlignment="Center" IsTextSelectionEnabled="True" TextWrapping="Wrap" />
-                                        <Button x:Name="CopyUserBtn" Click="CopyUser_Click">
-                                            <FontIcon FontSize="14" Glyph="&#xE8C8;" />
-                                        </Button>
+                                        <Button x:Name="CreateServerBtn" Style="{StaticResource AccentButtonStyle}" Click="CreateServer_Click" />
+                                        <Button x:Name="RefreshServersBtn" Click="RefreshServers_Click" />
+                                        <ProgressRing x:Name="ServerBusy" Width="22" Height="22" IsActive="False" VerticalAlignment="Center" />
                                     </StackPanel>
                                 </StackPanel>
+                            </Border>
 
-                                <!-- Password -->
-                                <StackPanel x:Name="PassRow" Spacing="4">
-                                    <TextBlock x:Name="PassLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <TextBlock x:Name="PassValue" VerticalAlignment="Center" FontFamily="Consolas" IsTextSelectionEnabled="True" TextWrapping="Wrap" />
-                                        <Button x:Name="RevealPassBtn" Click="RevealPass_Click">
-                                            <FontIcon x:Name="RevealPassIcon" FontSize="14" Glyph="&#xE7B3;" />
-                                        </Button>
-                                        <Button x:Name="CopyPassBtn" Click="CopyPass_Click">
-                                            <FontIcon FontSize="14" Glyph="&#xE8C8;" />
-                                        </Button>
-                                    </StackPanel>
-                                </StackPanel>
+                            <!-- Instances list -->
+                            <TextBlock x:Name="InstancesHeader" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                            <StackPanel x:Name="InstancesPanel" Spacing="8" />
+                            <TextBlock
+                                x:Name="NoInstancesHint"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                TextWrapping="Wrap"
+                                Visibility="Collapsed" />
 
-                                <!-- TOTP -->
-                                <StackPanel x:Name="TotpRow" Spacing="4" Visibility="Collapsed">
-                                    <TextBlock x:Name="TotpLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <TextBlock x:Name="TotpValue" VerticalAlignment="Center" FontFamily="Consolas" FontSize="18" />
-                                        <ProgressRing
-                                            x:Name="TotpCountdown"
-                                            Width="20"
-                                            Height="20"
-                                            VerticalAlignment="Center"
-                                            IsIndeterminate="False"
-                                            Maximum="30"
-                                            Value="30" />
-                                        <TextBlock x:Name="TotpSeconds" VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                        <Button x:Name="CopyTotpBtn" Click="CopyTotp_Click">
-                                            <FontIcon FontSize="14" Glyph="&#xE8C8;" />
-                                        </Button>
-                                    </StackPanel>
-                                </StackPanel>
+                            <!-- Live log -->
+                            <TextBlock x:Name="LogHeader" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                            <Border
+                                MinHeight="120"
+                                MaxHeight="220"
+                                Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8">
+                                <ScrollViewer x:Name="LogScroller" VerticalScrollBarVisibility="Auto" Padding="10">
+                                    <TextBlock x:Name="LogText" FontFamily="Consolas" FontSize="12" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                                </ScrollViewer>
+                            </Border>
 
-                                <!-- URI -->
-                                <StackPanel x:Name="UriRow" Spacing="4" Visibility="Collapsed">
-                                    <TextBlock x:Name="UriLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <TextBlock x:Name="UriValue" VerticalAlignment="Center" IsTextSelectionEnabled="True" TextWrapping="Wrap" />
-                                        <Button x:Name="OpenUriBtn" Click="OpenUri_Click">
-                                            <FontIcon FontSize="14" Glyph="&#xE8A7;" />
-                                        </Button>
-                                    </StackPanel>
-                                </StackPanel>
-
-                                <!-- Card -->
-                                <StackPanel x:Name="CardRow" Spacing="4" Visibility="Collapsed">
-                                    <TextBlock x:Name="CardLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                    <TextBlock x:Name="CardValue" IsTextSelectionEnabled="True" TextWrapping="Wrap" />
-                                </StackPanel>
-
-                                <!-- Notes -->
-                                <StackPanel x:Name="NotesRow" Spacing="4" Visibility="Collapsed">
-                                    <TextBlock x:Name="NotesLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                    <TextBlock x:Name="NotesValue" IsTextSelectionEnabled="True" TextWrapping="Wrap" />
-                                </StackPanel>
-                            </StackPanel>
                         </StackPanel>
-                    </Border>
-                </Grid>
-            </StackPanel>
+                    </ScrollViewer>
+                </TabViewItem>
 
-            <!-- ===================== Maintenance operations ===================== -->
-            <TextBlock x:Name="OpsHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
-            <StackPanel x:Name="OpsPanel" Spacing="2" />
-
-        </StackPanel>
-    </ScrollViewer>
+            </TabView.TabItems>
+        </TabView>
+    </Grid>
 </Page>
