@@ -1134,7 +1134,14 @@ public sealed partial class MainWindow : Window
                     else if (!string.IsNullOrWhiteSpace(nav.Name))
                         Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(nav, "ShellNavGroup_" + nav.Name);
                     nav.Content = BuildNavContent(pair.en, pair.zh);
-                    if (nav.MenuItems.Count > 0) RelabelNavItems(nav.MenuItems);
+                    // Count badge on collapsible groups (the reference's 17/19/21 numerals).
+                    if (nav.MenuItems.Count > 0)
+                    {
+                        int count = nav.MenuItems.OfType<NavigationViewItem>().Count();
+                        if (count > 0)
+                            nav.InfoBadge = new Microsoft.UI.Xaml.Controls.InfoBadge { Value = count };
+                        RelabelNavItems(nav.MenuItems);
+                    }
                     break;
             }
         }
