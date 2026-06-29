@@ -1124,12 +1124,70 @@ public sealed partial class MainWindow : Window
                     header.Content = LocalizeKnownText(header, header.Content as string);
                     break;
                 case NavigationViewItem nav:
-                    nav.Content = LocalizedNavLabel(nav, nav.Tag as string, nav.Content as string);
-                    ApplyNavAutomation(nav);
+                    var pair = NavPair(nav);
+                    Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(nav, Loc.I.Pick(pair.en, pair.zh));
+                    if (nav.Tag is string t0 && !string.IsNullOrWhiteSpace(t0))
+                        Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(nav, "ShellNavItem_" + AutomationSafeKey(t0));
+                    else if (!string.IsNullOrWhiteSpace(nav.Name))
+                        Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(nav, "ShellNavGroup_" + nav.Name);
+                    nav.Content = BuildNavContent(pair.en, pair.zh);
                     if (nav.MenuItems.Count > 0) RelabelNavItems(nav.MenuItems);
                     break;
             }
         }
+    }
+
+    /// <summary>解析導覽項目嘅 (英,中) 標籤對 · Resolve a nav item's (en, zh) label pair (design = stacked bilingual).</summary>
+    private (string en, string zh) NavPair(NavigationViewItem nav)
+    {
+        var tag = nav.Tag as string;
+        if (!string.IsNullOrWhiteSpace(tag))
+        {
+            var m = ModuleRegistry.All.FirstOrDefault(x => x.Tag == tag);
+            if (m is not null) return (m.En, m.Zh);
+            var c = Categories.All.FirstOrDefault(x => x.Id == tag);
+            if (c is not null) return (c.Name.En, c.Name.Zh);
+            switch (tag)
+            {
+                case "dashboard": return ("Dashboard", "概覽");
+                case "manual": return ("Manual", "使用手冊");
+                case "licenses": return ("Licenses", "授權");
+                case "about": return ("About", "關於");
+                case "settings": return ("Settings", "設定");
+            }
+        }
+        if (_navOriginalLabels.TryGetValue(nav, out var cached)) return cached;
+        if (nav.Content is string s) { var p = SplitBilingual(s); _navOriginalLabels[nav] = p; return p; }
+        return ("", "");
+    }
+
+    /// <summary>砌個直疊雙語導覽內容 · Build stacked bilingual nav content (EN over ZH) per the design.</summary>
+    private UIElement BuildNavContent(string en, string zh)
+    {
+        // The reference nav is always stacked-bilingual (EN over ZH); keep that design element in every
+        // language mode — Cantonese mode just flips which line is primary. Page content still respects Loc.
+        bool zhPrimary = Loc.I.IsCantonesePrimary;
+        var primary = zhPrimary ? zh : en;
+        var secondary = zhPrimary ? en : zh;
+        var sp = new StackPanel { Spacing = 0, VerticalAlignment = VerticalAlignment.Center };
+        sp.Children.Add(new TextBlock
+        {
+            Text = string.IsNullOrEmpty(primary) ? secondary : primary,
+            FontSize = 13,
+            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            TextWrapping = TextWrapping.NoWrap,
+        });
+        if (!string.IsNullOrEmpty(secondary) && secondary != primary)
+            sp.Children.Add(new TextBlock
+            {
+                Text = secondary,
+                FontSize = 10,
+                Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextFillColorTertiaryBrush"],
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                TextWrapping = TextWrapping.NoWrap,
+            });
+        return sp;
     }
 
     private void ApplyNavAutomation(NavigationViewItem nav)
