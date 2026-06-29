@@ -1,77 +1,27 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>WinForge · 視窗調校 — UI Design</title>
+<title>WinForge · 視窗鑄造 — Docs, Wiki & Simulators</title>
+<meta name="description" content="WinForge: a bilingual Windows 11 control center. Full module manual, wiki, an app replica, and playable nuclear-reactor, fuel-factory and cake-factory simulators.">
+<link rel="canonical" href="WinForge.dc.html">
+<meta http-equiv="refresh" content="0; url=WinForge.dc.html">
 <style>
-  :root{
-    --bg:#0a0d0b; --bg2:#0e120f; --panel:#131814; --panel2:#1a211b;
-    --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.14);
-    --text:#edf3ed; --dim:#bfcbbf; --faint:#95a395;
-    --brand:#54e07e; --brand-dim:#2faf57; --spark:#f7b034; --cyan:#49cdd9;
-  }
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;-webkit-font-smoothing:antialiased;line-height:1.5}
-  a{color:var(--brand);text-decoration:none}
-  a:hover{text-decoration:underline}
-  header{padding:48px 24px 28px;max-width:1120px;margin:0 auto}
-  .badge{display:inline-flex;align-items:center;gap:7px;padding:4px 11px;border-radius:20px;background:rgba(84,224,126,.12);border:1px solid rgba(84,224,126,.28);color:var(--brand);font-size:12px;font-weight:600;letter-spacing:.04em}
-  .dot{width:7px;height:7px;border-radius:50%;background:var(--brand);box-shadow:0 0 7px var(--brand)}
-  h1{font-size:46px;font-weight:800;letter-spacing:-.02em;margin:18px 0 4px}
-  h1 .zh{color:var(--brand);font-weight:700}
-  .sub{color:var(--dim);font-size:16px;max-width:680px}
-  .sub.zh{color:var(--faint);font-size:13.5px;margin-top:2px}
-  .stats{display:flex;gap:28px;margin-top:22px;font-family:'Cascadia Mono','Consolas',monospace}
-  .stat .n{font-size:24px;font-weight:700;color:var(--brand)}
-  .stat .n.w{color:var(--text)}
-  .stat .l{font-size:10.5px;color:var(--faint);letter-spacing:.08em;text-transform:uppercase;margin-top:2px}
-  .cta{display:flex;gap:12px;margin-top:26px;flex-wrap:wrap}
-  .btn{padding:11px 18px;border-radius:10px;font-weight:700;font-size:14px;border:1px solid var(--line2)}
-  .btn.primary{background:var(--brand);color:#06210f;border-color:transparent}
-  .btn.ghost{background:var(--panel);color:var(--text)}
-  main{max-width:1120px;margin:0 auto;padding:8px 24px 80px}
-  h2{font-size:18px;margin:38px 0 16px;font-weight:700}
-  h2 .zh{color:var(--faint);font-weight:500;font-size:14px;margin-left:8px}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:16px}
-  figure{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;transition:border-color .15s,transform .15s}
-  figure:hover{border-color:var(--line2);transform:translateY(-2px)}
-  figure img{width:100%;display:block;background:var(--bg2)}
-  figcaption{padding:12px 14px;font-size:13px;color:var(--dim)}
-  figcaption .zh{color:var(--faint);font-size:11.5px;display:block;margin-top:2px}
-  footer{max-width:1120px;margin:0 auto;padding:24px;color:var(--faint);font-size:12.5px;border-top:1px solid var(--line)}
+  html,body{margin:0;height:100%;background:#0b0d11;color:#e9edf3;font-family:'Space Grotesk',system-ui,sans-serif}
+  .w{height:100%;display:grid;place-items:center;text-align:center;padding:24px}
+  .b{width:54px;height:54px;border-radius:13px;background:linear-gradient(135deg,#ff7a1a,#c43d00);display:grid;place-items:center;font-size:30px;margin:0 auto 16px;box-shadow:0 0 30px -6px #ff7a1a}
+  a{color:#33d6e0}
 </style>
 </head>
 <body>
-<header>
-  <span class="badge"><span class="dot"></span> REACTOR ONLINE</span>
-  <h1>WinForge <span class="zh">視窗調校</span></h1>
-  <p class="sub">The dark, reactor-green UI design for WinForge — an all-in-one, fully bilingual Windows 11 control center.</p>
-  <p class="sub zh">WinForge 嘅深色反應堆綠介面設計 — 全方位、全雙語嘅 Windows 11 控制中心。</p>
-  <div class="stats">
-    <div class="stat"><div class="n">895</div><div class="l">features · 功能</div></div>
-    <div class="stat"><div class="n w">22</div><div class="l">categories · 分類</div></div>
-    <div class="stat"><div class="n w">143</div><div class="l">modules · 模組</div></div>
+<div class="w">
+  <div>
+    <div class="b">⚒</div>
+    <h1 style="margin:0 0 6px;font-size:22px">WinForge · 視窗鑄造</h1>
+    <p style="color:#99a2b0;margin:0 0 14px">Loading the documentation site…</p>
+    <p style="font-size:14px"><a href="WinForge.dc.html">Continue to WinForge &rarr;</a></p>
   </div>
-  <div class="cta">
-    <a class="btn primary" href="./WinForge.dc.html">Open interactive design ↗</a>
-    <a class="btn ghost" href="https://github.com/codingmachineedge/WinForge">Source on GitHub</a>
-  </div>
-</header>
-<main>
-  <h2>Screens<span class="zh">畫面</span></h2>
-  <div class="grid">
-    <figure><img src="./ref/v2.png" alt="Shell"><figcaption>Shell · dark reactor-green theme<span class="zh">外殼 · 深色反應堆綠主題</span></figcaption></figure>
-    <figure><img src="./ref/dashboard.png" alt="Dashboard"><figcaption>Dashboard<span class="zh">概覽</span></figcaption></figure>
-    <figure><img src="./ref/reactor.png" alt="Reactor"><figcaption>Nuclear Reactor (flagship)<span class="zh">核反應堆（旗艦）</span></figcaption></figure>
-    <figure><img src="./ref/monitor.png" alt="System Monitor"><figcaption>System Monitor<span class="zh">系統監察</span></figcaption></figure>
-    <figure><img src="./ref/cakefactory.png" alt="Cake Factory"><figcaption>Cake Factory &amp; Farm<span class="zh">蛋糕工廠與農場</span></figcaption></figure>
-    <figure><img src="./ref/ai.png" alt="AI"><figcaption>AI Agents<span class="zh">AI 代理</span></figcaption></figure>
-  </div>
-</main>
-<footer>
-  WinForge · 視窗調校 — UI design reference. Auto-published to GitHub Pages on every design sync.<br>
-  自動於每次設計同步發佈到 GitHub Pages。
-</footer>
+</div>
 </body>
 </html>

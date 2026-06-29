@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#080a0d; --panel:#0f1318; --panel2:#151a21; --panel3:#1c232c;
+    --line:#232b35; --line2:#323c49;
+    --text:#e7ecf2; --muted:#93a0b0; --dim:#5f6b79;
+    --cyan:#33d6e0; --amber:#ffb020; --green:#46d17a; --red:#ff4d44; --orange:#ff7a1a; --violet:#9b8cff;
+    --mono:'JetBrains Mono',ui-monospace,monospace; --disp:'Space Grotesk',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--disp);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  button{font-family:var(--disp);cursor:pointer}
+  ::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-thumb{background:var(--line2);border-radius:6px}::-webkit-scrollbar-track{background:transparent}
+  @keyframes rx-flow{to{background-position:-28px 0}}
+  @keyframes rx-flowv{to{background-position:0 -28px}}
+  @keyframes rx-blink{0%,49%{opacity:1}50%,100%{opacity:.2}}
+  @keyframes rx-pulse{0%,100%{opacity:.5}50%{opacity:1}}
+  @keyframes rx-spin{to{transform:rotate(360deg)}}
+  @keyframes rx-shake{0%,100%{transform:translate(0,0)}25%{transform:translate(-2px,1px)}50%{transform:translate(2px,-1px)}75%{transform:translate(-1px,-1px)}}
+  .rx-flow{background-image:repeating-linear-gradient(90deg,currentColor 0 7px,transparent 7px 14px);background-size:28px 100%;animation:rx-flow .6s linear infinite}
+  .rx-flowv{background-image:repeating-linear-gradient(180deg,currentColor 0 7px,transparent 7px 14px);background-size:100% 28px;animation:rx-flowv .6s linear infinite}
+  .rx-btn:hover{filter:brightness(1.12)}
+  .rx-btn:active{transform:translateY(1px)}
+  @media(max-width:1040px){ .rx-grid{grid-template-columns:1fr!important} .rx-side{order:-1} }
+  @media(max-width:680px){ .rx-controls{grid-template-columns:1fr 1fr!important} .rx-gauges{grid-template-columns:1fr 1fr!important} }
+</style>
+</helmet>
+<div style="min-height:100vh">{{ view }}</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:&quot;100%&quot;}}">
+class Component extends DCLogic {
+  state = { tk:0, speed:4, showGuide:true, muted:true, alarmTab:'log', confirm:null };
+  KEY='winforge.reactor.state.v2';
+
+  constructor(props){
+    super(props);
+    const L=this.load();
+    this.P = (L&&L.P) ? L.P : this.fresh();
+    this.hist = []; this.log = (L&&L.log)||[];
+    this._restored = !!(L&&L.P);
+    if(L&&L.speed) this.state.speed=L.speed;
+    if(L&&typeof L.muted==='boolean') this.state.muted=L.muted;
+    this.fuelInput = React.createRef(); this._saveN=0;
+  }
+  load(){ try{ return JSON.parse(localStorage.getItem(this.KEY)||'null'); }catch(e){ return null; } }
+  persist(){ try{ localStorage.setItem(this.KEY, JSON.stringify({P:this.P, log:this.log.slice(0,40), speed:this.state.speed, muted:this.state.muted})); }catch(e){} }
+  askConfirm(msg,onYes){ this.setState({confirm:{msg,onYes}}); }
+  fresh(){
+    return {
+      rcp:false, heaters:false,
+      rods:0, boron:1400, power:1e-6, fuel:100, energyGWh:0,
+      fuelT:38, modT:38, coldLeg:38, hotLeg:38, pressure:24,
+      turbineRoll:false, rpm:0, synced:false, gridMW:0,
+      xenon:0, tripped:false, melted:false, scram:'', decay:0, achieved:false,
+      elapsed:0, holdRod:0, holdBoron:0, score:0, mIdx:0,
+    };
+  }
+  componentDidMount(){
+    this.logEvent(this._restored ? 'Session restored from your last visit — plant state preserved.' : 'Plant in COLD SHUTDOWN. Follow the checklist to start up.', 'info');
+    if((location.hash||'').toLowerCase().includes('guide')) this.setState({showGuide:true});
+    this.timer = setInterval(()=>this.step(), 100);
+  }
+  componentWillUnmount(){ clearInterval(this.timer); if(this.osc){try{this.osc.stop()}catch(e){}} }
+
+  logEvent(msg, kind){
+    const t = this.fmtT(this.P.elapsed);
+    this.log.unshift({t, msg, kind:kind||'info', id:Math.random()});
+    if(this.log.length>120) this.log.pop();
+  }
+  fmtT(s){ s=Math.floor(s); return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); }
+
+  // ---------------- SIMULATION ----------------
+  step(){
+    const P = this.P;
+    if(P.melted){ this.bump(); return; }
+    const dt = 0.1 * this.state.speed;
+    P.elapsed += dt;
+
+    // hold-button ramps
+    if(P.holdRod){ P.rods = this.clamp(P.rods + P.holdRod*22*dt, 0, 100); }
+    if(P.holdBoron){ P.boron = this.clamp(P.boron + P.holdBoron*55*dt, 0, 2000); }
+
+    // ---- Reactivity ----
+    const rodRho = (P.rods/100)*0.075;
+    const boronRho = -(P.boron/1400)*0.045;
+    const xenonRho = -0.03*P.xenon;
+    const PCOEF = 0.05; // power defect (Doppler+moderator lumped, negative)
+    let rhoCtrl = rodRho + boronRho;
+    if(P.tripped) rhoCtrl = -0.25; // rods slammed
+    const rhoNet = rhoCtrl - PCOEF*P.power + xenonRho;
+
+    // ---- Point-kinetics-ish power ----
+    const TAU = 0.6, S = 1.2e-6;
+    if(P.tripped){
+      // decay heat after trip
+      P.decay = Math.max(0, P.decay - P.decay*0.012*dt);
+      P.power = Math.max(P.decay, S);
+    } else {
+      let dP = (rhoNet/TAU)*P.power*dt + S*dt;
+      P.power = Math.max(S, P.power + dP);
+      P.power = Math.min(P.power, 2.2);
+      // fuel burnup limits achievable power
+      const fuelCap = 0.15 + (P.fuel/100)*1.05;
+      if(P.power>fuelCap) P.power = fuelCap;
+    }
+    // ---- Fuel burnup ----
+    if(!P.tripped){ P.fuel=Math.max(0,P.fuel - P.power*0.045*dt); P.energyGWh += P.power*3400*dt/3600/1000; }
+
+    // ---- Xenon (slow, gentle) ----
+    const xeEq = Math.min(1, P.power);
+    P.xenon += (xeEq - P.xenon)*0.012*dt;
+
+    // ---- Thermal ----
+    const thMW = P.power*3400;
+    const flow = P.rcp ? 1 : 0.015;
+    if(P.rcp || P.power<0.02){
+      const modTarget = (P.rcp ? 38 + (P.heaters?222:120)*(P.pressure>80?1:.4) : 38) + 30*P.power;
+      P.modT += (modTarget - P.modT)*Math.min(1,0.06*dt*(P.rcp?3:1));
+      const fuelTarget = P.modT + 680*P.power;
+      P.fuelT += (fuelTarget - P.fuelT)*Math.min(1,0.12*dt);
+    } else {
+      // loss of cooling: heat accumulates
+      P.fuelT += (thMW*0.06 + (P.tripped?P.decay*3400*0.06:0))*dt;
+      P.modT  += (thMW*0.018 + 0.6)*dt;
+    }
+    P.fuelT = Math.max(P.modT, P.fuelT);
+    const spread = P.rcp ? 18*P.power+ (P.power>0.01?6:0) : 2;
+    P.coldLeg = P.modT - spread; P.hotLeg = P.modT + spread;
+
+    // ---- Pressure ----
+    let pTarget = 24;
+    if(P.heaters) pTarget = 158;
+    pTarget += (P.modT-200)*0.04;
+    if(!P.rcp && P.power>0.05) pTarget += P.fuelT*0.03; // overheat pressurization
+    P.pressure += (pTarget - P.pressure)*Math.min(1,0.14*dt);
+    if(P.pressure>170){ P.pressure -= (P.pressure-168)*0.3; } // relief valve
+
+    // ---- Secondary / turbine ----
+    const steamReady = P.rcp && P.modT>240 && P.power>0.04;
+    if(P.turbineRoll && steamReady && !P.tripped){
+      P.rpm += (1800 - P.rpm)*Math.min(1,0.04*dt) + 4*dt;
+    } else if(!steamReady || P.tripped){
+      P.rpm -= P.rpm*Math.min(1,0.06*dt);
+      if(P.rpm<10){ P.rpm=0; if(P.synced){ P.synced=false; this.logEvent('Generator separated from grid.','warn'); } }
+    }
+    P.rpm = this.clamp(P.rpm, 0, 1950);
+    if(P.synced){
+      const target = P.power*1100;
+      P.gridMW += (target - P.gridMW)*Math.min(1,0.05*dt);
+      P.gridMW = this.clamp(P.gridMW,0,1250);
+    } else { P.gridMW = Math.max(0, P.gridMW - P.gridMW*0.2); }
+
+    // ---- Protection system ----
+    if(!P.tripped && !P.melted){
+      let cause='';
+      if(P.power>1.18) cause='OVERPOWER ΔT (>118%)';
+      else if(P.fuelT>2400) cause='HIGH FUEL TEMPERATURE';
+      else if(P.pressure<128 && P.power>0.08) cause='LOW PRESSURIZER PRESSURE';
+      else if(P.pressure>172) cause='HIGH PRESSURIZER PRESSURE';
+      else if(P.modT>345) cause='HIGH COOLANT TEMPERATURE';
+      else if(!P.rcp && P.power>0.15) cause='LOSS OF RCP FLOW';
+      else if(P.fuel<=1.5 && P.power>0.05) cause='FUEL DEPLETED — reload assemblies';
+      if(cause) this.trip(cause, true);
+    }
+    // meltdown
+    if(P.fuelT>2865 && !P.melted){
+      P.melted=true; P.power=0; this.logEvent('CORE MELTDOWN — fuel cladding failure. (Simulation only.)','crit'); this.beep(true);
+    }
+    // goal
+    if(!P.achieved && P.synced && P.gridMW>1000 && P.power>0.95){
+      P.achieved=true; this.logEvent('★ FULL POWER — 1,100 MWe synchronized to the grid. Well operated.','good'); this.beep(false,'good');
+    }
+
+    // ---- status bus for Cake Factory ----
+    if(this._busN==null) this._busN=0; this._busN++;
+    if(this._busN%10===0){
+      try{ localStorage.setItem('winforge.reactor.v1', JSON.stringify({generating:P.synced&&P.gridMW>50, mw:Math.round(P.gridMW), pct:+(P.power*100).toFixed(1), melted:P.melted, ts:Date.now()})); }catch(e){}
+    }
+    this.checkMissions();
+    // history
+    this.hist.push(P.power); if(this.hist.length>160) this.hist.shift();
+    if((++this._saveN)%15===0) this.persist();
+    this.bump();
+  }
+  bump(){ this.setState(s=>({tk:s.tk+1})); }
+  clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+
+  trip(cause, auto){
+    const P=this.P; if(P.tripped) return;
+    P.tripped=true; P.scram=cause; P.rods=0; P.holdRod=0; P.turbineRoll=false;
+    P.decay = Math.max(0.065*P.power, 0.001);
+    this.logEvent((auto?'⚡ AUTOMATIC REACTOR TRIP (SCRAM): ':'⚡ MANUAL SCRAM: ')+cause+'. Rods inserted; decay heat present — keep cooling.', auto?'crit':'warn');
+    this.beep(true);
+  }
+
+  // ---------------- AUDIO ----------------
+  ensureAudio(){
+    if(this.actx || this.state.muted) return;
+    try{ this.actx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){}
+  }
+  beep(alarm, kind){
+    if(this.state.muted) return; this.ensureAudio(); if(!this.actx) return;
+    try{
+      const o=this.actx.createOscillator(), g=this.actx.createGain();
+      o.type='square'; o.frequency.value = kind==='good'?660:(alarm?440:520);
+      g.gain.value=0.0001; o.connect(g); g.connect(this.actx.destination);
+      const t=this.actx.currentTime; o.start(t);
+      g.gain.exponentialRampToValueAtTime(0.08,t+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t+ (alarm?0.5:0.25));
+      o.stop(t+0.6);
+    }catch(e){}
+  }
+
+  // ---------------- ACTIONS ----------------
+  act(fn){ return (e)=>{ if(e&&e.preventDefault)e.preventDefault(); this.ensureAudio(); fn(); this.bump(); }; }
+  setRodHold(d){ return ()=>{ if(this.P.tripped||this.P.melted)return; this.P.holdRod=d; }; }
+  clearHold(){ this.P.holdRod=0; this.P.holdBoron=0; }
+  setBoronHold(d){ return ()=>{ if(this.P.melted)return; this.P.holdBoron=d; }; }
+  toggleRcp(){ this.P.rcp=!this.P.rcp; this.logEvent('Reactor coolant pumps '+(this.P.rcp?'STARTED — primary flow established.':'STOPPED.'), this.P.rcp?'info':'warn'); }
+  toggleHeaters(){ this.P.heaters=!this.P.heaters; this.logEvent('Pressurizer heaters '+(this.P.heaters?'ON — pressurizing to 158 bar.':'OFF.'),'info'); }
+  rollTurbine(){ if(this.P.tripped)return; this.P.turbineRoll=!this.P.turbineRoll; this.logEvent('Turbine '+(this.P.turbineRoll?'roll initiated — accelerating to 1800 rpm.':'roll secured.'),'info'); }
+  syncGrid(){ const P=this.P; if(P.synced){P.synced=false;this.logEvent('Generator output breaker opened.','warn');return;} if(Math.abs(P.rpm-1800)<60){ P.synced=true; this.logEvent('Generator SYNCHRONIZED to grid at 1800 rpm.','good'); } else { this.logEvent('Cannot sync — turbine not at 1800 rpm.','warn'); } }
+  reset(){ this.P=this.fresh(); this.hist=[]; this.log=[]; this.logEvent('Plant reset to COLD SHUTDOWN.','info'); }
+  // ---- fuel file (shared format with Fuel Factory) ----
+  hash(s){ let h=5381; for(let i=0;i<s.length;i++){ h=((h<<5)+h+s.charCodeAt(i))>>>0; } return 'WF'+h.toString(16); }
+  canonFuel(o){ return ['winforge.fuel.v1',o.id,o.enrichment,o.assemblies,o.massKg,o.fabricated,o.issuer].join('|'); }
+  loadFuel(e){
+    const f=e.target.files&&e.target.files[0]; e.target.value='';
+    if(!f) return; const r=new FileReader();
+    r.onload=()=>{ try{
+      const o=JSON.parse(r.result);
+      if(o.format!=='winforge.fuel.v1') throw 'fmt';
+      if(o.sig!==this.hash(this.canonFuel(o)+'WINFORGE-FUEL')){ this.logEvent('⛔ Fuel assembly '+(o.id||'?')+' REJECTED — signature invalid (forged or tampered).','crit'); this.bump(); return; }
+      const add=this.clamp((o.assemblies||1)*22*((o.enrichment||4)/4),5,100);
+      this.P.fuel=this.clamp(this.P.fuel+add,0,100);
+      this.logEvent('✓ Loaded '+o.id+' — '+o.assemblies+' assemblies @ '+o.enrichment+'% enrichment. Core refueled +'+Math.round(add)+'%.','good');
+    }catch(err){ this.logEvent('⛔ File rejected — not a valid WinForge .fuel file.','crit'); } this.bump(); };
+    r.readAsText(f);
+  }
+  scenario(s){
+    const P=this.P;
+    if(s==='loca'){ if(!P.rcp){this.logEvent('Start the RCPs first.','warn');return;} this.logEvent('SCENARIO: small-break LOCA — pressure falling.','warn'); P.pressure=130; P.boron=Math.min(2000,P.boron); }
+    if(s==='lof'){ this.logEvent('SCENARIO: loss of one RCP — flow degraded.','warn'); if(P.rcp){ P.rcp=false; } }
+    if(s==='turbtrip'){ this.logEvent('SCENARIO: turbine trip.','warn'); P.turbineRoll=false; P.synced=false; }
+  }
+
+  // ---------------- MODE ----------------
+  mode(){
+    const P=this.P;
+    if(P.melted) return {t:'CORE MELTDOWN', c:'var(--red)'};
+    if(P.tripped) return {t:'REACTOR TRIPPED', c:'var(--red)'};
+    if(P.synced && P.power>0.9) return {t:'AT FULL POWER', c:'var(--green)'};
+    if(P.synced) return {t:'ON GRID · ASCENDING', c:'var(--green)'};
+    if(P.power>0.02) return {t:'POWER OPERATION', c:'var(--amber)'};
+    if(P.power>0.0008) return {t:'CRITICAL · STARTUP', c:'var(--amber)'};
+    if(P.rcp && P.modT>240) return {t:'HOT STANDBY', c:'var(--cyan)'};
+    if(P.rcp) return {t:'HEATUP', c:'var(--cyan)'};
+    return {t:'COLD SHUTDOWN', c:'var(--muted)'};
+  }
+  missions(){ return [
+    {label:'Reach hot standby (Tavg ≥ 250°C)',zh:'達到熱待機',check:P=>P.rcp&&P.modT>=250,reward:100},
+    {label:'Take the reactor critical',zh:'達到臨界',check:P=>P.power>0.01,reward:150},
+    {label:'Roll the turbine to 1800 rpm',zh:'渦輪併網轉速',check:P=>P.rpm>1750,reward:150},
+    {label:'Synchronize to the grid',zh:'併網',check:P=>P.synced,reward:250},
+    {label:'Reach 100% power on the grid',zh:'滿功率',check:P=>P.synced&&P.power>0.95,reward:400},
+    {label:'Generate 2.0 GWh of electricity',zh:'發電 2 GWh',check:P=>P.energyGWh>=2,reward:600},
+  ]; }
+  checkMissions(){ const ms=this.missions(),P=this.P; while(P.mIdx<ms.length && ms[P.mIdx].check(P)){ const m=ms[P.mIdx]; P.score+=m.reward; this.logEvent('🏆 Objective complete: '+m.label+'  +'+m.reward+' pts','good'); this.beep(false,'good'); P.mIdx++; } }
+  missionBar(){
+    const h=React.createElement,P=this.P,ms=this.missions(); const m=ms[P.mIdx]; const all=P.mIdx>=ms.length;
+    return h('div',{style:{display:'flex',alignItems:'center',gap:13,flexWrap:'wrap',background:'var(--panel)',border:'1px solid var(--line)',borderRadius:11,padding:'9px 14px',marginTop:14}},
+      h('span',{style:{fontFamily:'var(--mono)',fontSize:10,letterSpacing:'1px',color:all?'var(--green)':'var(--amber)'}},all?'★ CAMPAIGN COMPLETE':'OBJECTIVE '+(P.mIdx+1)+'/'+ms.length),
+      h('span',{style:{flex:1,minWidth:160,fontFamily:'var(--disp)',fontWeight:600,fontSize:14}}, all?'All objectives cleared — keep the plant on the grid.':m.label, m&&!all?h('span',{style:{color:'var(--dim)',fontWeight:400,fontSize:12,marginLeft:8}},m.zh):null),
+      m&&!all?h('span',{style:{fontFamily:'var(--mono)',fontSize:11,color:'var(--amber2)'}},'+'+m.reward+' pts'):null,
+      h('span',{style:{fontFamily:'var(--mono)',fontSize:12,color:'var(--cyan)'}},'SCORE ',h('b',{style:{color:'var(--text)'}},P.score)));
+  }
+  fuelColor(t){ if(t<150)return '#2a3340'; if(t<400)return '#7a4a12'; if(t<900)return '#c4630a'; if(t<1600)return '#ff7a1a'; if(t<2400)return '#ffb020'; return '#fff1c4'; }
+
+  // ---------------- RENDER ----------------
+  renderVals(){ return { view: this.view() }; }
+
+  view(){
+    const h=React.createElement, P=this.P, m=this.mode();
+    return h('div',{style:{maxWidth:1320,margin:'0 auto',padding:'14px clamp(10px,2.5vw,22px) 40px'}},
+      this.header(m),
+      this.missionBar(),
+      h('div',{className:'rx-grid',style:{display:'grid',gridTemplateColumns:'1.55fr 1fr',gap:14,marginTop:14,alignItems:'start'}},
+        h('div',{style:{display:'flex',flexDirection:'column',gap:14,minWidth:0}}, this.mimic(), this.gauges()),
+        h('div',{className:'rx-side',style:{display:'flex',flexDirection:'column',gap:14,minWidth:0}}, this.controls(), this.annunciator(), this.console())
+      ),
+      this.state.showGuide ? this.guide() : null,
+      P.melted ? this.meltdown() : null,
+      this.state.confirm ? this.confirmModal() : null
+    );
+  }
+  confirmModal(){
+    const h=React.createElement, c=this.state.confirm;
+    return h('div',{style:{position:'fixed',inset:0,zIndex:130,background:'rgba(4,6,9,.72)',display:'grid',placeItems:'center',padding:20},onClick:()=>this.setState({confirm:null})},
+      h('div',{onClick:e=>e.stopPropagation(),style:{maxWidth:380,background:'var(--panel)',border:'1px solid var(--line2)',borderRadius:14,padding:'22px 22px 18px',boxShadow:'0 30px 70px -24px #000'}},
+        h('div',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:17,marginBottom:8}},'Confirm'),
+        h('p',{style:{color:'var(--muted)',fontSize:14,lineHeight:1.55,margin:'0 0 18px'}},c.msg),
+        h('div',{style:{display:'flex',gap:10,justifyContent:'flex-end'}},
+          h('button',{onClick:()=>this.setState({confirm:null}),className:'rx-btn',style:{background:'var(--panel3)',color:'var(--muted)',border:'1px solid var(--line2)',borderRadius:8,padding:'9px 16px',fontFamily:'var(--disp)',fontWeight:600,fontSize:13}},'Cancel'),
+          h('button',{onClick:()=>{ const f=c.onYes; this.setState({confirm:null}); if(f)f(); },className:'rx-btn',style:{background:'linear-gradient(180deg,#ff5a50,#c8241b)',color:'#fff',border:'none',borderRadius:8,padding:'9px 16px',fontFamily:'var(--disp)',fontWeight:700,fontSize:13}},'Reset plant'))));
+  }
+
+  panel(title, right, body, accent){
+    const h=React.createElement;
+    return h('div',{style:{background:'var(--panel)',border:'1px solid var(--line)',borderRadius:12,overflow:'hidden'}},
+      h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,padding:'9px 13px',borderBottom:'1px solid var(--line)',background:'var(--panel2)'}},
+        h('span',{style:{fontFamily:'var(--mono)',fontSize:11,letterSpacing:'1.5px',color:accent||'var(--cyan)',textTransform:'uppercase'}},title),
+        right||null),
+      h('div',{style:{padding:'13px'}}, body));
+  }
+
+  header(m){
+    const h=React.createElement, P=this.P;
+    const spd=(v)=>h('button',{key:v,onClick:this.act(()=>this.setState({speed:v})),className:'rx-btn',style:{background:this.state.speed===v?'var(--cyan)':'var(--panel3)',color:this.state.speed===v?'#04181a':'var(--muted)',border:'none',borderRadius:6,padding:'5px 9px',fontFamily:'var(--mono)',fontSize:11,fontWeight:700}},v+'×');
+    return h('div',{style:{display:'flex',alignItems:'center',gap:12,flexWrap:'wrap',background:'var(--panel)',border:'1px solid var(--line)',borderRadius:12,padding:'10px 14px'}},
+      h('div',{style:{display:'flex',alignItems:'center',gap:10,flex:1,minWidth:200}},
+        h('span',{style:{width:34,height:34,borderRadius:8,display:'grid',placeItems:'center',background:'radial-gradient(circle,'+this.fuelColor(P.fuelT)+',#1a0f02)',fontSize:18,boxShadow:'0 0 18px -2px '+this.fuelColor(P.fuelT)}},'☢'),
+        h('div',null,
+          h('div',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:16,lineHeight:1}},'PWR Control Room ',h('span',{style:{color:'var(--dim)',fontSize:12,fontWeight:500}},'核反應堆')),
+          h('div',{style:{fontFamily:'var(--mono)',fontSize:11,color:m.c,marginTop:3,display:'flex',alignItems:'center',gap:6}}, h('span',{style:{width:8,height:8,borderRadius:'50%',background:m.c,animation:(P.tripped||P.melted)?'rx-blink .6s infinite':'rx-pulse 2s infinite'}}), m.t, h('span',{style:{color:'var(--dim)'}},' · T+'+this.fmtT(P.elapsed))))),
+      h('div',{style:{display:'flex',gap:4,alignItems:'center'}}, h('span',{style:{fontFamily:'var(--mono)',fontSize:10,color:'var(--dim)',marginRight:4}},'SPEED'), spd(1),spd(4),spd(16)),
+      h('button',{onClick:this.act(()=>{ this.setState(s=>({muted:!s.muted})); }),className:'rx-btn',style:{background:'var(--panel3)',color:this.state.muted?'var(--dim)':'var(--amber)',border:'1px solid var(--line2)',borderRadius:7,padding:'7px 10px',fontSize:13}}, this.state.muted?'🔇':'🔊'),
+      h('button',{onClick:this.act(()=>this.setState(s=>({showGuide:!s.showGuide}))),className:'rx-btn',style:{background:'var(--panel3)',color:'var(--muted)',border:'1px solid var(--line2)',borderRadius:7,padding:'7px 11px',fontFamily:'var(--mono)',fontSize:11}},'? GUIDE'),
+      h('button',{onClick:this.act(()=>{ if(this.P.tripped&&!this.P.melted){ this.askConfirm('Reset the plant to COLD SHUTDOWN? Your saved reactor state will be cleared.', ()=>this.reset()); } else this.trip('manual scram',false); }),className:'rx-btn',style:{background:P.tripped?'var(--panel3)':'linear-gradient(180deg,#ff5a50,#c8241b)',color:'#fff',border:'1px solid '+(P.tripped?'var(--line2)':'#ff5a50'),borderRadius:8,padding:'8px 15px',fontFamily:'var(--disp)',fontWeight:700,fontSize:13,boxShadow:P.tripped?'none':'0 0 16px -4px var(--red)'}}, P.tripped?'↺ RESET':'⏻ SCRAM'));
+  }
+
+  // ----- Plant mimic -----
+  mimic(){
+    const h=React.createElement, P=this.P;
+    const flowing=P.rcp;
+    const fcol=this.fuelColor(P.fuelT);
+    const node=(label,sub,col,extra)=>h('div',{style:Object.assign({flex:'1 1 0',minWidth:0,background:'var(--panel2)',border:'1px solid var(--line2)',borderRadius:9,padding:'10px 8px',textAlign:'center'},extra||{})},
+      h('div',{style:{fontFamily:'var(--mono)',fontSize:9.5,color:'var(--dim)',letterSpacing:'.5px'}},label),
+      h('div',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:14,color:col||'var(--text)',marginTop:2}},sub));
+    const pipe=(col,on)=>h('div',{className:on?'rx-flow':'',style:{height:6,borderRadius:3,flex:'0 0 26px',color:col,background:on?'':'var(--line)',opacity:on?1:.5,alignSelf:'center'}});
+    const vesselGlow = '0 0 '+(8+P.power*40)+'px '+Math.round(P.power*8)+'px '+fcol;
+    return this.panel('Primary & Secondary Plant Mimic · 機組流程圖',
+      h('span',{style:{fontFamily:'var(--mono)',fontSize:10,color:flowing?'var(--cyan)':'var(--dim)'}}, flowing?'◉ FLOW':'○ NO FLOW'),
+      h('div',null,
+        h('div',{style:{display:'flex',alignItems:'stretch',gap:0,flexWrap:'nowrap'}},
+          // Reactor vessel
+          h('div',{style:{flex:'1 1 0',minWidth:0,background:'var(--panel2)',border:'1px solid var(--line2)',borderRadius:9,padding:'8px',position:'relative'}},
+            h('div',{style:{fontFamily:'var(--mono)',fontSize:9.5,color:'var(--dim)',textAlign:'center'}},'REACTOR'),
+            h('div',{style:{margin:'7px auto 4px',width:'70%',maxWidth:90,aspectRatio:'3/4',borderRadius:'40px 40px 8px 8px',border:'2px solid var(--line2)',background:'radial-gradient(circle at 50% 60%,'+fcol+','+ '#0c0a08 75%)',boxShadow:vesselGlow,position:'relative',overflow:'hidden',transition:'box-shadow .3s'}},
+              // rods
+              h('div',{style:{position:'absolute',top:0,left:0,right:0,height:(100-P.rods)+'%',background:'repeating-linear-gradient(90deg,#3a4756 0 4px,#222a33 4px 9px)',borderBottom:'2px solid #4a586a',transition:'height .2s'}}),
+              h('div',{style:{position:'absolute',bottom:4,left:0,right:0,textAlign:'center',fontFamily:'var(--mono)',fontSize:10,fontWeight:700,color:P.fuelT>1200?'#0a0a0a':'#fff',textShadow:'0 0 4px #000'}},Math.round(P.power*100<0.1?0:P.power*100)+'%')),
+            h('div',{style:{fontFamily:'var(--mono)',fontSize:9,color:'var(--dim)',textAlign:'center'}},'rods '+Math.round(P.rods)+'% out')),
+          pipe('var(--red)',flowing),
+          node('STEAM GEN','Tavg '+Math.round(P.modT)+'°C','var(--amber)'),
+          pipe('var(--amber)',P.rpm>20),
+          // turbine
+          h('div',{style:{flex:'1 1 0',minWidth:0,background:'var(--panel2)',border:'1px solid var(--line2)',borderRadius:9,padding:'10px 8px',textAlign:'center'}},
+            h('div',{style:{fontFamily:'var(--mono)',fontSize:9.5,color:'var(--dim)'}},'TURBINE'),
+            h('div',{style:{margin:'4px auto',width:24,height:24,borderRadius:'50%',border:'2px solid var(--line2)',borderTopColor:'var(--cyan)',animation:P.rpm>20?('rx-spin '+Math.max(0.18,1.6-P.rpm/1300)+'s linear infinite'):'none'}}),
+            h('div',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:13,color:Math.abs(P.rpm-1800)<60?'var(--green)':'var(--text)'}},Math.round(P.rpm)),
+            h('div',{style:{fontFamily:'var(--mono)',fontSize:9,color:'var(--dim)'}},'rpm')),
+          pipe('var(--cyan)',P.synced),
+          node('GRID','⚡ '+Math.round(P.gridMW)+' MWe', P.synced?'var(--green)':'var(--dim)')
+        ),
+        h('div',{style:{display:'flex',gap:14,marginTop:10,flexWrap:'wrap',fontFamily:'var(--mono)',fontSize:10.5,color:'var(--muted)'}},
+          h('span',null,'Cold leg ',h('b',{style:{color:'var(--cyan)'}},Math.round(P.coldLeg)+'°C')),
+          h('span',null,'Hot leg ',h('b',{style:{color:'var(--red)'}},Math.round(P.hotLeg)+'°C')),
+          h('span',null,'Pressr ',h('b',{style:{color:P.pressure<132||P.pressure>168?'var(--amber)':'var(--text)'}},Math.round(P.pressure)+' bar')),
+          h('span',null,'Fuel ctr ',h('b',{style:{color:this.fuelColor(P.fuelT)}},Math.round(P.fuelT)+'°C')))
+      ), 'var(--cyan)');
+  }
+
+  // ----- Gauges -----
+  gauges(){
+    const h=React.createElement, P=this.P;
+    const bar=(label,zh,val,unit,frac,col,warn)=>{
+      frac=this.clamp(frac,0,1);
+      return h('div',{style:{background:'var(--panel2)',border:'1px solid var(--line)',borderRadius:9,padding:'10px 11px'}},
+        h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'baseline'}},
+          h('span',{style:{fontFamily:'var(--mono)',fontSize:9.5,color:'var(--dim)',letterSpacing:'.5px'}},label),
+          h('span',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:15,color:warn?'var(--red)':col}},val,h('span',{style:{fontSize:10,color:'var(--dim)',fontWeight:500,marginLeft:2}},unit))),
+        h('div',{style:{height:6,borderRadius:4,background:'var(--bg)',marginTop:7,overflow:'hidden'}},
+          h('div',{style:{height:'100%',width:(frac*100)+'%',background:warn?'var(--red)':col,transition:'width .2s',boxShadow:'0 0 8px '+(warn?'var(--red)':col)}})));
+    };
+    return this.panel('Instrumentation · 儀錶',
+      h('span',{style:{fontFamily:'var(--mono)',fontSize:10,color:'var(--dim)'}},'live'),
+      h('div',null,
+        // power + sparkline
+        h('div',{style:{display:'flex',gap:11,alignItems:'center',background:'var(--panel2)',border:'1px solid var(--line)',borderRadius:9,padding:'11px 12px',marginBottom:9}},
+          this.radial(P.power),
+          h('div',{style:{flex:1,minWidth:0}},
+            h('div',{style:{fontFamily:'var(--mono)',fontSize:9.5,color:'var(--dim)'}},'REACTOR POWER · 反應堆功率'),
+            h('div',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:26,color:P.power>1.05?'var(--red)':'var(--amber)',lineHeight:1.1}}, (P.power*100).toFixed(P.power<0.01?3:1),h('span',{style:{fontSize:13,color:'var(--dim)'}},' %')),
+            h('div',{style:{fontFamily:'var(--mono)',fontSize:11,color:'var(--muted)'}}, Math.round(P.power*3400)+' MWt'),
+            this.spark())),
+        h('div',{className:'rx-gauges',style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}},
+          bar('THERMAL','熱功率',Math.round(P.power*3400),'MWt',P.power/1.2,'var(--orange)',P.power>1.18),
+          bar('GRID','電功率',Math.round(P.gridMW),'MWe',P.gridMW/1100,'var(--green)'),
+          bar('ROD POS','控制棒',Math.round(P.rods),'%out',P.rods/100,'var(--cyan)'),
+          bar('BORON','硼濃度',Math.round(P.boron),'ppm',P.boron/2000,'var(--violet)'),
+          bar('PRESSR','穩壓器',Math.round(P.pressure),'bar',P.pressure/175,'var(--cyan)',P.pressure<128||P.pressure>170),
+          bar('Tavg','平均溫',Math.round(P.modT),'°C',P.modT/360,'var(--amber)',P.modT>345),
+          bar('FUEL T','燃料溫',Math.round(P.fuelT),'°C',P.fuelT/2865,this.fuelColor(P.fuelT),P.fuelT>2200),
+          bar('TURBINE','渦輪',Math.round(P.rpm),'rpm',P.rpm/1800,'var(--cyan)'),
+          bar('XENON','氙毒',Math.round(P.xenon*100),'%',P.xenon,'var(--violet)'),
+          bar('FUEL','燃料',Math.round(P.fuel),'%',P.fuel/100,'var(--green)',P.fuel<12),
+          bar('OUTPUT','發電量',P.energyGWh.toFixed(2),'GWh',this.clamp(P.energyGWh/5,0,1),'var(--cream,#f1dbb3)'))
+      ), 'var(--amber)');
+  }
+  radial(power){
+    const h=React.createElement;
+    const frac=this.clamp(power,0,1.2)/1.2;
+    const R=30, C=2*Math.PI*R, span=0.75; // 270deg
+    const off=C*(1-frac*span);
+    const col = power>1.05?'var(--red)':(power>0.9?'var(--green)':'var(--amber)');
+    return h('svg',{width:74,height:74,viewBox:'0 0 74 74',style:{flexShrink:0}},
+      h('circle',{cx:37,cy:37,r:R,fill:'none',stroke:'var(--bg)',strokeWidth:7,strokeDasharray:C,strokeDashoffset:C*(1-span),transform:'rotate(135 37 37)',strokeLinecap:'round'}),
+      h('circle',{cx:37,cy:37,r:R,fill:'none',stroke:col,strokeWidth:7,strokeDasharray:C,strokeDashoffset:off,transform:'rotate(135 37 37)',strokeLinecap:'round',style:{transition:'stroke-dashoffset .2s'}}),
+      h('text',{x:37,y:42,textAnchor:'middle',fill:col,style:{font:'700 16px var(--disp)'}},Math.round(power*100)));
+  }
+  spark(){
+    const h=React.createElement; const data=this.hist; if(data.length<2) return h('div',{style:{height:22}});
+    const w=180,ht=22, max=Math.max(0.05,...data);
+    const pts=data.map((v,i)=>(i/(data.length-1)*w).toFixed(1)+','+(ht-this.clamp(v/max,0,1)*ht).toFixed(1)).join(' ');
+    return h('svg',{width:'100%',height:ht,viewBox:'0 0 '+w+' '+ht,preserveAspectRatio:'none',style:{marginTop:4,display:'block'}},
+      h('polyline',{points:pts,fill:'none',stroke:'var(--amber)',strokeWidth:1.4,opacity:.8}));
+  }
+
+  // ----- Controls -----
+  controls(){
+    const h=React.createElement, P=this.P, dead=P.melted;
+    const tog=(label,zh,on,fn,col)=>h('button',{onClick:this.act(fn),disabled:dead,className:'rx-btn',style:{background:on?(col||'var(--cyan)'):'var(--panel3)',color:on?'#04181a':'var(--muted)',border:'1px solid '+(on?(col||'var(--cyan)'):'var(--line2)'),borderRadius:8,padding:'10px 8px',textAlign:'left',opacity:dead?.5:1}},
+      h('div',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:13}},label),
+      h('div',{style:{fontFamily:'var(--mono)',fontSize:9.5,opacity:.85}},zh+' · '+(on?'ON':'OFF')));
+    const hold=(label,d,kind,col)=>{
+      const nudge = kind==='rod' ? (()=>{ if(!P.tripped&&!dead) P.rods=this.clamp(P.rods+d*3,0,100); }) : (()=>{ if(!dead) P.boron=this.clamp(P.boron+d*60,0,2000); });
+      const start = kind==='rod' ? (()=>{ if(!P.tripped&&!dead) P.holdRod=d; }) : (()=>{ if(!dead) P.holdBoron=d; });
+      return h('button',{
+        onClick:this.act(nudge),
+        onMouseDown:this.act(start),
+        onMouseUp:()=>{this.clearHold();}, onMouseLeave:()=>{this.clearHold();},
+        onTouchStart:this.act(start),
+        onTouchEnd:(e)=>{e.preventDefault();this.clearHold();},
+        disabled:dead||(kind==='rod'&&P.tripped),className:'rx-btn',
+        title:'Tap to nudge · press and hold to ramp',
+        style:{flex:1,background:'var(--panel3)',color:col,border:'1px solid var(--line2)',borderRadius:8,padding:'11px 6px',fontFamily:'var(--disp)',fontWeight:700,fontSize:12.5,opacity:(dead||(kind==='rod'&&P.tripped))?.45:1}},label);
+    };
+    const can = Math.abs(P.rpm-1800)<60;
+    return this.panel('Operator Controls · 操作控制', null,
+      h('div',null,
+        h('div',{className:'rx-controls',style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}},
+          tog('Coolant Pumps','主泵',P.rcp,()=>this.toggleRcp(),'var(--cyan)'),
+          tog('Pressr Heaters','加熱器',P.heaters,()=>this.toggleHeaters(),'var(--amber)'),
+          tog('Roll Turbine','渦輪',P.turbineRoll,()=>this.rollTurbine(),'var(--cyan)'),
+          h('button',{onClick:this.act(()=>this.syncGrid()),disabled:dead||(!P.synced&&!can),className:'rx-btn',style:{background:P.synced?'var(--green)':(can?'var(--panel3)':'var(--panel3)'),color:P.synced?'#04140a':(can?'var(--green)':'var(--dim)'),border:'1px solid '+(P.synced?'var(--green)':'var(--line2)'),borderRadius:8,padding:'10px 8px',textAlign:'left',opacity:(dead||(!P.synced&&!can))?.55:1}},
+            h('div',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:13}},'Sync to Grid'),
+            h('div',{style:{fontFamily:'var(--mono)',fontSize:9.5,opacity:.85}},'併網 · '+(P.synced?'SYNCED':(can?'READY':'1800rpm')))) ),
+        h('div',{style:{marginTop:11}},
+          h('div',{style:{display:'flex',justifyContent:'space-between',fontFamily:'var(--mono)',fontSize:10,color:'var(--dim)',marginBottom:5}},h('span',null,'CONTROL RODS · 控制棒'),h('span',null,Math.round(P.rods)+'% withdrawn')),
+          h('div',{style:{display:'flex',gap:7}}, hold('▼ INSERT',-1,'rod','var(--cyan)'), hold('▲ WITHDRAW',1,'rod','var(--amber)'))),
+        h('div',{style:{marginTop:9}},
+          h('div',{style:{display:'flex',justifyContent:'space-between',fontFamily:'var(--mono)',fontSize:10,color:'var(--dim)',marginBottom:5}},h('span',null,'BORON · 硼酸 (chemical shim)'),h('span',null,Math.round(P.boron)+' ppm')),
+          h('div',{style:{display:'flex',gap:7}}, hold('– DILUTE',-1,'boron','var(--green)'), hold('+ BORATE',1,'boron','var(--violet)'))),
+        h('div',{style:{marginTop:11,display:'flex',gap:7,flexWrap:'wrap'}},
+          h('span',{style:{fontFamily:'var(--mono)',fontSize:10,color:'var(--dim)',alignSelf:'center'}},'DRILL:'),
+          this.scenBtn('Loss of flow','lof'), this.scenBtn('Small LOCA','loca'), this.scenBtn('Turbine trip','turbtrip')),
+        h('div',{style:{marginTop:10,display:'flex',gap:8,alignItems:'center',flexWrap:'wrap',borderTop:'1px solid var(--line)',paddingTop:10}},
+          h('span',{style:{fontFamily:'var(--mono)',fontSize:10,color:'var(--dim)'}},'FUEL · 燃料 '+Math.round(P.fuel)+'%'),
+          h('input',{ref:this.fuelInput,type:'file',accept:'.fuel,.json',style:{display:'none'},onChange:e=>this.loadFuel(e)}),
+          h('button',{onClick:this.act(()=>{ if(this.fuelInput.current) this.fuelInput.current.click(); }),className:'rx-btn',style:{background:'var(--panel3)',color:'var(--green)',border:'1px solid var(--line2)',borderRadius:7,padding:'7px 12px',fontFamily:'var(--mono)',fontSize:11}},'⛽ Load .fuel assembly'),
+          h('span',{style:{fontFamily:'var(--mono)',fontSize:10,color:'var(--dim)'}},'made in the Fuel Factory')))
+    , 'var(--green)');
+  }
+  scenBtn(label,s){ return React.createElement('button',{onClick:this.act(()=>this.scenario(s)),disabled:this.P.melted,className:'rx-btn',style:{background:'var(--panel3)',color:'var(--muted)',border:'1px solid var(--line2)',borderRadius:7,padding:'6px 10px',fontFamily:'var(--mono)',fontSize:10.5}},label); }
+
+  // ----- Annunciator -----
+  annunciator(){
+    const h=React.createElement, P=this.P;
+    const al=(label,active,crit)=>h('div',{style:{padding:'8px 7px',borderRadius:7,textAlign:'center',border:'1px solid '+(active?(crit?'var(--red)':'var(--amber)'):'var(--line)'),background:active?(crit?'rgba(255,77,68,.16)':'rgba(255,176,32,.13)'):'var(--panel2)',color:active?(crit?'var(--red)':'var(--amber)'):'var(--dim)',animation:active&&crit?'rx-blink .7s infinite':'none'}},
+      h('div',{style:{fontFamily:'var(--mono)',fontSize:9.5,fontWeight:700,letterSpacing:'.3px',lineHeight:1.2}},label));
+    return this.panel('Annunciator · 警報盤', null,
+      h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:6}},
+        al('SOURCE RANGE', P.power<0.001 && !P.tripped),
+        al('HI FLUX', P.power>1.05, P.power>1.15),
+        al('HI FUEL T', P.fuelT>1400, P.fuelT>2200),
+        al('LOSS OF FLOW', !P.rcp && P.power>0.02, !P.rcp&&P.power>0.15),
+        al('LO PRESS', P.pressure<132 && P.power>0.05, P.pressure<128&&P.power>0.08),
+        al('HI PRESS', P.pressure>165, P.pressure>172),
+        al('HI Tavg', P.modT>335, P.modT>345),
+        al('LOW FUEL', P.fuel<12, P.fuel<4),
+        al('TURBINE TRIP', P.turbineRoll===false&&P.rpm>20),
+        al('RX TRIP', P.tripped, P.tripped)),
+      'var(--red)');
+  }
+
+  // ----- Console / log -----
+  console(){
+    const h=React.createElement;
+    const kc={info:'var(--muted)',warn:'var(--amber)',crit:'var(--red)',good:'var(--green)'};
+    const rows=this.log.slice(0,40).map(e=>h('div',{key:e.id,style:{display:'flex',gap:8,padding:'4px 0',borderBottom:'1px solid var(--line)',fontFamily:'var(--mono)',fontSize:11,lineHeight:1.35}},
+      h('span',{style:{color:'var(--dim)',flexShrink:0}},e.t),
+      h('span',{style:{color:kc[e.kind]||'var(--muted)'}},e.msg)));
+    return this.panel('Event Log · 事件記錄', h('span',{style:{fontFamily:'var(--mono)',fontSize:10,color:'var(--dim)'}},this.log.length),
+      h('div',{style:{maxHeight:200,overflowY:'auto'}}, rows), 'var(--violet)');
+  }
+
+  // ----- Guide -----
+  guide(){
+    const h=React.createElement;
+    const P=this.P;
+    const steps=[
+      ['Start Reactor Coolant Pumps','Establish primary flow before anything else.', P.rcp],
+      ['Turn on Pressurizer Heaters','Bring the primary up to ~158 bar and heat to hot standby.', P.heaters && P.pressure>140],
+      ['Dilute boron & withdraw rods','Add positive reactivity to approach criticality. Watch power start to climb on the source range.', P.power>0.001],
+      ['Ascend in power','Keep withdrawing slowly. Doppler feedback self-limits — aim for power to settle, not run away.', P.power>0.4],
+      ['Roll the turbine to 1800 rpm','Once steam is available (Tavg high, power up), roll the turbine.', P.rpm>1700],
+      ['Synchronize to the grid','At 1800 rpm, close the breaker. Then raise power to load the generator.', P.synced],
+      ['Reach full power','Trim rods/boron for ~100% and ~1,100 MWe. Avoid an over-power SCRAM.', P.achieved],
+    ];
+    let nextIdx = steps.findIndex(s=>!s[2]); if(nextIdx<0) nextIdx=steps.length;
+    return h('div',{style:{position:'fixed',right:'clamp(10px,2vw,22px)',bottom:'clamp(10px,2vw,22px)',width:'min(340px,92vw)',background:'var(--panel)',border:'1px solid var(--line2)',borderRadius:14,boxShadow:'0 24px 60px -20px #000',zIndex:80,overflow:'hidden'}},
+      h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 13px',borderBottom:'1px solid var(--line)',background:'var(--panel2)'}},
+        h('span',{style:{fontFamily:'var(--mono)',fontSize:11,letterSpacing:'1px',color:'var(--cyan)'}},'STARTUP CHECKLIST · 起動程序'),
+        h('button',{onClick:this.act(()=>this.setState({showGuide:false})),className:'rx-btn',style:{background:'none',border:'none',color:'var(--dim)',fontSize:16}},'×')),
+      h('div',{style:{padding:'10px 13px',maxHeight:'46vh',overflowY:'auto'}},
+        steps.map((s,i)=>h('div',{key:i,style:{display:'flex',gap:9,padding:'7px 0',opacity:s[2]?.6:(i===nextIdx?1:.85)}},
+          h('span',{style:{width:18,height:18,borderRadius:'50%',flexShrink:0,display:'grid',placeItems:'center',fontFamily:'var(--mono)',fontSize:10,fontWeight:700,background:s[2]?'var(--green)':(i===nextIdx?'var(--amber)':'var(--panel3)'),color:s[2]||i===nextIdx?'#06140b':'var(--dim)'}}, s[2]?'✓':(i+1)),
+          h('div',null,
+            h('div',{style:{fontFamily:'var(--disp)',fontWeight:600,fontSize:13,color:i===nextIdx?'var(--amber)':'var(--text)'}},s[0]),
+            h('div',{style:{fontSize:11.5,color:'var(--muted)',lineHeight:1.4}},s[1])))) ),
+      h('div',{style:{padding:'9px 13px',borderTop:'1px solid var(--line)',fontFamily:'var(--mono)',fontSize:10,color:'var(--dim)'}},'Tip: hold WITHDRAW/DILUTE in short pulses — give feedback time to settle.'));
+  }
+
+  meltdown(){
+    const h=React.createElement;
+    return h('div',{style:{position:'fixed',inset:0,zIndex:120,background:'radial-gradient(circle at 50% 45%,rgba(255,90,40,.28),rgba(8,4,2,.94))',display:'grid',placeItems:'center',animation:'rx-shake .4s infinite',padding:20}},
+      h('div',{style:{textAlign:'center',maxWidth:440}},
+        h('div',{style:{fontSize:70}},'☢'),
+        h('div',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:34,color:'var(--red)',letterSpacing:'1px'}},'CORE MELTDOWN'),
+        h('div',{style:{fontFamily:'var(--mono)',fontSize:13,color:'var(--amber)',margin:'8px 0 4px'}},'核心熔毀 · fuel exceeded 2865°C'),
+        h('p',{style:{color:'var(--muted)',fontSize:13.5,lineHeight:1.6}},'Cooling could not remove decay heat. In WinForge this is simulation-only and never touches real hardware — the real-PC effect is OFF by default.'),
+        h('button',{onClick:this.act(()=>this.reset()),className:'rx-btn',style:{marginTop:14,background:'linear-gradient(180deg,#ff5a50,#c8241b)',color:'#fff',border:'none',borderRadius:9,padding:'12px 26px',fontFamily:'var(--disp)',fontWeight:700,fontSize:15}},'↺ Restart plant')));
+  }
+}
+</script>
+</body>
+</html>

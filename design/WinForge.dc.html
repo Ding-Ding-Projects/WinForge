@@ -10,778 +10,796 @@
 <helmet>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="winforge-data.js"></script>
 <style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  html,body{height:100%}
-  body{font-family:'Space Grotesk','Noto Sans TC',sans-serif;-webkit-font-smoothing:antialiased}
-  ::-webkit-scrollbar{width:9px;height:9px}
-  ::-webkit-scrollbar-track{background:transparent}
-  ::-webkit-scrollbar-thumb{background:var(--line2);border-radius:8px;border:2px solid transparent;background-clip:padding-box}
-  ::-webkit-scrollbar-thumb:hover{background:var(--text-faint);background-clip:padding-box}
-  @keyframes wf-glow{0%,100%{opacity:.55}50%{opacity:1}}
-  @keyframes wf-flicker{0%,100%{opacity:1}45%{opacity:.7}55%{opacity:.92}}
-  @keyframes wf-sweep{0%{transform:translateX(-100%)}100%{transform:translateX(220%)}}
+  :root{
+    --bg:#0b0d11; --panel:#13161c; --panel2:#181c23; --panel3:#1e232b;
+    --line:#262c36; --line2:#333b47;
+    --text:#e9edf3; --muted:#99a2b0; --dim:#697080;
+    --amber:#ff7a1a; --amber2:#ffb066; --cyan:#33d6e0; --green:#5fd37a; --red:#ff5d52; --violet:#9b8cff;
+    --mono:'JetBrains Mono',ui-monospace,monospace; --disp:'Space Grotesk',sans-serif; --body:'IBM Plex Sans',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--body);-webkit-font-smoothing:antialiased;}
+  a{color:inherit;text-decoration:none}
+  ::selection{background:rgba(255,122,26,.3)}
+  ::-webkit-scrollbar{width:11px;height:11px}
+  ::-webkit-scrollbar-track{background:var(--bg)}
+  ::-webkit-scrollbar-thumb{background:var(--line2);border-radius:6px;border:3px solid var(--bg)}
+  @keyframes wf-pulse{0%,100%{opacity:.55}50%{opacity:1}}
+  @keyframes wf-blink{0%,49%{opacity:1}50%,100%{opacity:.15}}
+  @keyframes wf-rise{from{transform:translateY(12px)}to{transform:none}}
+  @keyframes wf-scan{from{transform:translateY(-100%)}to{transform:translateY(100%)}}
+  @keyframes wf-spin{to{transform:rotate(360deg)}}
+  .wf-rise{animation:wf-rise .6s cubic-bezier(.2,.7,.3,1) both}
+  .wf-md h1,.wf-md h2,.wf-md h3,.wf-md h4{font-family:var(--disp);line-height:1.2;margin:1.6em 0 .6em;font-weight:600}
+  .wf-md h1{font-size:clamp(26px,4vw,38px);margin-top:0;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  .wf-md h2{font-size:clamp(21px,3vw,27px);color:var(--amber2)}
+  .wf-md h3{font-size:clamp(18px,2.4vw,21px);color:var(--cyan)}
+  .wf-md h4{font-size:16px;color:var(--text)}
+  .wf-md p{margin:.8em 0;color:#c8ced7}
+  .wf-md ul,.wf-md ol{margin:.7em 0;padding-left:1.4em;color:#c8ced7}
+  .wf-md li{margin:.32em 0}
+  .wf-md a{color:var(--cyan);border-bottom:1px solid rgba(51,214,224,.3)}
+  .wf-md a:hover{color:var(--amber2);border-color:var(--amber2)}
+  .wf-md code{font-family:var(--mono);font-size:.86em;background:var(--panel3);padding:.12em .42em;border-radius:4px;color:var(--amber2);border:1px solid var(--line)}
+  .wf-md pre{background:#0a0c10;border:1px solid var(--line);border-radius:8px;padding:14px 16px;overflow:auto}
+  .wf-md pre code{background:none;border:none;padding:0;color:#c8ced7}
+  .wf-md blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--amber);background:var(--panel);border-radius:0 8px 8px 0;color:var(--muted)}
+  .wf-md table{border-collapse:collapse;width:100%;margin:1.1em 0;font-size:14px;display:block;overflow-x:auto}
+  .wf-md th,.wf-md td{border:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
+  .wf-md th{background:var(--panel2);font-family:var(--disp);font-weight:600;color:var(--text)}
+  .wf-md tr:nth-child(even) td{background:rgba(255,255,255,.018)}
+  .wf-md img{max-width:100%;border-radius:8px;border:1px solid var(--line);margin:.6em 0;display:block}
+  .wf-md hr{border:none;border-top:1px solid var(--line);margin:1.6em 0}
+  .wf-card-h:hover{border-color:var(--line2);transform:translateY(-3px);box-shadow:0 14px 34px -18px rgba(0,0,0,.8)}
+  .wf-row-h:hover{background:var(--panel2);border-color:var(--line2)}
+  .wf-row-h:hover .wf-arrow{transform:translateX(3px);opacity:1}
+  .wf-nav-h:hover{color:var(--amber2)}
+  .wf-btn-h:hover{filter:brightness(1.08);transform:translateY(-2px)}
+  .wf-chip-h:hover{border-color:var(--amber);color:var(--amber2)}
+  input::placeholder{color:var(--dim)}
+  @keyframes wf-spin{to{transform:rotate(360deg)}}
+  @keyframes wf-spinr{to{transform:rotate(-360deg)}}
+  @keyframes wf-corepulse{0%,100%{opacity:.9;transform:scale(1)}50%{opacity:1;transform:scale(1.05)}}
+  @keyframes wf-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+  @keyframes wf-dash{to{stroke-dashoffset:-300}}
+  @keyframes wf-glow{0%,100%{filter:brightness(1) drop-shadow(0 0 14px rgba(255,122,26,.5))}50%{filter:brightness(1.25) drop-shadow(0 0 26px rgba(255,122,26,.8))}}
+  @keyframes wf-flowdash{to{background-position:34px 0}}
+  @keyframes wf-shimmer{to{background-position:200% 0}}
+  .wf-flowline{background-image:repeating-linear-gradient(90deg,currentColor 0 9px,transparent 9px 17px);background-size:34px 100%;animation:wf-flowdash .7s linear infinite}
+  .wf-eco-h:hover{transform:translateY(-4px) scale(1.02)}
+  .wf-shot-h:hover img{transform:scale(1.06)}
+  @media(max-width:1000px){ .wf-desktop-nav{display:none!important} }
+  @media(min-width:1001px){ .wf-menu-btn{display:none!important} .wf-mobile-nav{display:none!important} }
+  @media(max-width:880px){
+    .wf-hero-grid{grid-template-columns:1fr!important}
+    .wf-try-grid{grid-template-columns:1fr!important}
+  }
+  @media(max-width:820px){ .wf-wiki-layout{grid-template-columns:1fr!important} .wf-wiki-layout aside{position:static!important;max-height:none!important;border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--panel)} }
 </style>
 </helmet>
-<div ref="{{ setRoot }}" style="height:100vh;width:100%;display:flex;flex-direction:column;overflow:hidden;background:#0a0d0b;color:#e8efe9;--bg:#0a0d0b;--bg2:#0e120f;--panel:#131814;--panel2:#1a211b;--line:rgba(255,255,255,.07);--line2:rgba(255,255,255,.13);--text:#e9efe9;--text-dim:#9fae9f;--text-faint:#6b7a6d;--brand:#54e07e;--brand-dim:#2faf57;--brand-glow:rgba(84,224,126,.13);--spark:#f7b034;--spark2:#ff7a45;--danger:#ff5f5f;--warn:#f5c451;--cyan:#49cdd9;font-size:14px;line-height:1.4">
+<div style="min-height:100vh;display:flex;flex-direction:column;position:relative;z-index:1">
+  <div aria-hidden="true" style="position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(1100px 600px at 78% -8%,rgba(255,122,26,.10),transparent 60%),radial-gradient(900px 520px at 8% 8%,rgba(51,214,224,.07),transparent 55%),linear-gradient(transparent 0,transparent calc(100% - 1px),rgba(255,255,255,.018) 100%) 0 0/100% 46px,linear-gradient(90deg,transparent 0,transparent calc(100% - 1px),rgba(255,255,255,.018) 100%) 0 0/46px 100%"></div>
 
-  <!-- TITLE BAR -->
-  <div style="height:46px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 6px 0 14px;background:var(--bg2);border-bottom:1px solid var(--line);position:relative;z-index:5">
-    <div style="display:flex;align-items:center;gap:11px">
-      <div style="width:26px;height:26px;border-radius:8px;background:linear-gradient(140deg,#54e07e,#1f5a30);display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 1px rgba(255,255,255,.12) inset,0 4px 12px rgba(40,140,70,.35);position:relative">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0a1c0f" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5h6v6H5zM13 5h6v6h-6zM5 13h6v6H5zM13 13h6v6h-6z"></path></svg>
-        <div style="position:absolute;top:-3px;right:-3px;width:8px;height:8px;background:var(--spark);border-radius:50%;box-shadow:0 0 6px var(--spark);animation:wf-flicker 2.4s infinite"></div>
+  <header style="position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:18px;padding:11px clamp(14px,3vw,30px);background:rgba(11,13,17,.82);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)">
+    <a href="#/" class="wf-nav-h" style="display:flex;align-items:center;gap:11px;flex-shrink:0">
+      <span style="width:30px;height:30px;border-radius:7px;background:linear-gradient(135deg,var(--amber),#c43d00);display:grid;place-items:center;font-size:17px;box-shadow:0 0 18px -4px var(--amber)">⚒</span>
+      <span style="display:flex;flex-direction:column;line-height:1.05">
+        <span style="font-family:var(--disp);font-weight:700;font-size:18px;letter-spacing:.5px">WinForge</span>
+        <span style="font-family:var(--mono);font-size:9.5px;color:var(--dim);letter-spacing:1.5px">視窗鑄造 · DOCS</span>
+      </span>
+    </a>
+    <nav class="wf-desktop-nav" style="display:flex;gap:22px;font-family:var(--disp);font-size:14.5px;font-weight:500;margin-left:6px">
+      <a class="wf-nav-h" href="#/manual">Manual</a>
+      <a class="wf-nav-h" href="#/wiki">Wiki</a>
+      <a class="wf-nav-h" href="#/pricing">Pricing</a>
+      <a class="wf-nav-h" href="#/reactor" style="color:var(--cyan)">Reactor</a>
+      <a class="wf-nav-h" href="#/cake" style="color:var(--amber2)">Cake</a>
+      <a class="wf-nav-h" href="#/fuel" style="color:var(--green)">Fuel</a>
+      <a class="wf-nav-h" href="#/app" style="color:var(--amber)">⊞&nbsp;App</a>
+    </nav>
+    <div style="flex:1;max-width:440px;margin-left:auto;position:relative">
+      <div style="display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:8px 11px">
+        <span style="color:var(--dim);font-size:14px">⌕</span>
+        <input value="{{ q }}" onInput="{{ onSearch }}" onKeyDown="{{ onSearchKey }}" onFocus="{{ onSearchFocus }}" placeholder="Search 1,174 features, modules, wiki…" style="flex:1;background:none;border:none;outline:none;color:var(--text);font-family:var(--body);font-size:13.5px"/>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--dim);border:1px solid var(--line);border-radius:4px;padding:1px 5px">/</span>
       </div>
-      <div style="display:flex;align-items:baseline;gap:8px">
-        <span style="font-weight:700;font-size:14px;letter-spacing:.02em">WinForge</span>
-        <span style="font-size:11px;color:var(--text-faint);font-family:'Noto Sans TC'">視窗調校</span>
-      </div>
-      <div style="width:1px;height:18px;background:var(--line);margin:0 4px"></div>
-      <div style="display:flex;align-items:center;gap:6px;padding:3px 9px;border-radius:20px;background:var(--brand-glow);border:1px solid rgba(84,224,126,.25)">
-        <span style="width:6px;height:6px;border-radius:50%;background:var(--brand);box-shadow:0 0 7px var(--brand);animation:wf-glow 2s infinite"></span>
-        <span style="font-size:10.5px;font-weight:600;color:var(--brand);letter-spacing:.04em">REACTOR ONLINE</span>
-      </div>
+      {{ searchDropdown }}
     </div>
-    <div style="display:flex;align-items:center;gap:4px">
-      <button onClick="{{ cycleLang }}" style="display:flex;align-items:center;gap:7px;height:30px;padding:0 11px;border-radius:8px;background:transparent;border:1px solid var(--line);color:var(--text-dim);cursor:pointer;font:inherit;font-size:11px;font-weight:600;letter-spacing:.03em" style-hover="background:var(--panel2);color:var(--text)">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3c2.5 2.7 2.5 15.3 0 18M12 3c-2.5 2.7-2.5 15.3 0 18"></path></svg>
-        <span>{{ langLabel }}</span>
-      </button>
-      <button onClick="{{ toggleTheme }}" title="Toggle theme" style="width:30px;height:30px;border-radius:8px;background:transparent;border:1px solid var(--line);color:var(--text-dim);cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:var(--panel2);color:var(--spark)">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 3v2.2M12 18.8V21M3 12h2.2M18.8 12H21M5.6 5.6l1.6 1.6M16.8 16.8l1.6 1.6M18.4 5.6l-1.6 1.6M7.2 16.8l-1.6 1.6"></path></svg>
-      </button>
-      <div style="width:1px;height:18px;background:var(--line);margin:0 6px"></div>
-      <button style="width:34px;height:30px;border-radius:7px;background:transparent;border:none;color:var(--text-dim);cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:var(--panel2)"><svg width="11" height="11" viewBox="0 0 12 12" stroke="currentColor" stroke-width="1.2"><line x1="2" y1="6" x2="10" y2="6"></line></svg></button>
-      <button style="width:34px;height:30px;border-radius:7px;background:transparent;border:none;color:var(--text-dim);cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:var(--panel2)"><svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="2.5" y="2.5" width="7" height="7" rx="1"></rect></svg></button>
-      <button style="width:34px;height:30px;border-radius:7px;background:transparent;border:none;color:var(--text-dim);cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:#c8302e;color:#fff"><svg width="11" height="11" viewBox="0 0 12 12" stroke="currentColor" stroke-width="1.2"><line x1="3" y1="3" x2="9" y2="9"></line><line x1="9" y1="3" x2="3" y2="9"></line></svg></button>
-    </div>
-  </div>
+    <a class="wf-desktop-nav wf-btn-h" href="https://github.com/codingmachineedge/WinForge" target="_blank" rel="noopener" style="flex-shrink:0;display:inline-flex;align-items:center;gap:7px;background:linear-gradient(135deg,var(--amber),#d24500);color:#1a0e00;font-family:var(--disp);font-weight:600;font-size:13.5px;padding:8px 15px;border-radius:9px">⭳ Install</a>
+    <a class="wf-menu-btn wf-nav-h" href="#/menu" onClick="{{ toggleMenu }}" style="font-size:22px;line-height:1;flex-shrink:0">≡</a>
+  </header>
 
-  <!-- BODY -->
-  <div style="flex:1;display:flex;min-height:0">
+  {{ mobileNav }}
 
-    <!-- NAV RAIL -->
-    <div style="width:264px;flex:none;background:var(--bg2);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0">
-      <div style="padding:13px 13px 9px">
-        <div style="display:flex;align-items:center;gap:9px;height:38px;padding:0 12px;border-radius:10px;background:var(--panel);border:1px solid var(--line)">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-faint)" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><line x1="20" y1="20" x2="16.5" y2="16.5"></line></svg>
-          <span style="font-size:12.5px;color:var(--text-faint)">{{ searchPlaceholder }}</span>
+  <main style="flex:1;position:relative;z-index:1">{{ view }}</main>
+  {{ appRunner }}
+
+  <footer style="border-top:1px solid var(--line);background:var(--panel);padding:34px clamp(16px,4vw,60px);position:relative;z-index:1">
+    <div style="max-width:1180px;margin:0 auto;display:flex;flex-wrap:wrap;gap:30px;justify-content:space-between;align-items:flex-start">
+      <div style="max-width:340px">
+        <div style="display:flex;align-items:center;gap:9px;margin-bottom:10px">
+          <span style="width:24px;height:24px;border-radius:6px;background:linear-gradient(135deg,var(--amber),#c43d00);display:grid;place-items:center;font-size:13px">⚒</span>
+          <span style="font-family:var(--disp);font-weight:700;font-size:16px">WinForge · 視窗鑄造</span>
         </div>
+        <p style="color:var(--muted);font-size:13px;line-height:1.6;margin:0">A fully bilingual (English + 粵語) Windows 11 control center — 139 in-app modules, ~1,174 tweaks, and a flagship nuclear-reactor simulator. Built with WinUI 3 / .NET 11.</p>
       </div>
-
-      <div style="flex:1;overflow-y:auto;padding:0 9px 10px">
-        <sc-for list="{{ navGroups }}" as="g" hint-placeholder-count="8">
-          <div style="margin-top:10px">
-            <!-- flat group: header -->
-            <sc-if value="{{ g.flat }}" hint-placeholder-val="{{ true }}">
-              <div style="display:flex;align-items:baseline;gap:6px;padding:6px 10px 6px">
-                <span style="font-size:10px;font-weight:700;letter-spacing:.13em;color:var(--text-faint);text-transform:uppercase">{{ g.label }}</span>
-                <span style="font-size:9.5px;color:var(--text-faint);opacity:.7;font-family:'Noto Sans TC'">{{ g.zh }}</span>
-              </div>
-            </sc-if>
-            <!-- collapsible group: parent row -->
-            <sc-if value="{{ g.collapsible }}" hint-placeholder-val="{{ false }}">
-              <button onClick="{{ g.onToggle }}" style="{{ g.parentCss }}" style-hover="background:var(--panel2)">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="{{ g.icon }}"></path></svg>
-                <span style="display:flex;flex-direction:column;line-height:1.15;flex:1;min-width:0">
-                  <span style="font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ g.label }}</span>
-                  <span style="font-size:9.5px;color:var(--text-faint);font-family:'Noto Sans TC'">{{ g.zh }}</span>
-                </span>
-                <span style="font-size:9px;color:var(--text-faint);font-family:'JetBrains Mono'">{{ g.count }}</span>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{{ g.chevCss }}"><path d="M9 6l6 6-6 6"></path></svg>
-              </button>
-            </sc-if>
-            <!-- items -->
-            <sc-if value="{{ g.showItems }}" hint-placeholder-val="{{ true }}">
-              <div style="{{ g.itemsWrap }}">
-                <sc-for list="{{ g.items }}" as="item" hint-placeholder-count="4">
-                  <button onClick="{{ item.onClick }}" style="{{ item.css }}" style-hover="background:var(--panel2)">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="{{ item.icon }}"></path></svg>
-                    <span style="display:flex;flex-direction:column;line-height:1.15;min-width:0;flex:1">
-                      <span style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ item.en }}</span>
-                      <span style="font-size:9px;color:var(--text-faint);font-family:'Noto Sans TC';white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ item.zh }}</span>
-                    </span>
-                    <sc-if value="{{ item.star }}" hint-placeholder-val="{{ false }}"><span style="font-size:8px;font-weight:700;color:var(--spark);letter-spacing:.05em;flex:none">★</span></sc-if>
-                  </button>
-                </sc-for>
-              </div>
-            </sc-if>
-          </div>
-        </sc-for>
-
-        <!-- footer -->
-        <div style="margin-top:14px;padding-top:10px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:2px">
-          <sc-for list="{{ footerItems }}" as="item" hint-placeholder-count="3">
-            <button onClick="{{ item.onClick }}" style="{{ item.css }}" style-hover="background:var(--panel2)">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="{{ item.icon }}"></path></svg>
-              <span style="display:flex;flex-direction:column;line-height:1.15"><span style="font-size:12px;font-weight:500">{{ item.en }}</span><span style="font-size:9px;color:var(--text-faint);font-family:'Noto Sans TC'">{{ item.zh }}</span></span>
-            </button>
-          </sc-for>
+      <div style="display:flex;gap:46px;flex-wrap:wrap;font-size:13px">
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <span style="font-family:var(--mono);font-size:10px;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase">Docs</span>
+          <a class="wf-nav-h" href="#/manual" style="color:var(--muted)">Module manual</a>
+          <a class="wf-nav-h" href="#/wiki" style="color:var(--muted)">Wiki</a>
+          <a class="wf-nav-h" href="#/pricing" style="color:var(--muted)">Pricing & requirements</a>
+          <a class="wf-nav-h" href="#/wiki/Nuclear-Reactor-Operating-Manual" style="color:var(--muted)">Reactor manual</a>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <span style="font-family:var(--mono);font-size:10px;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase">Try in browser</span>
+          <a class="wf-nav-h" href="#/reactor" style="color:var(--muted)">Nuclear reactor</a>
+          <a class="wf-nav-h" href="#/cake" style="color:var(--muted)">Cake factory & farm</a>
         </div>
       </div>
     </div>
-
-    <!-- MAIN -->
-    <div style="flex:1;display:flex;flex-direction:column;min-width:0;background:var(--bg)">
-
-      <!-- TAB STRIP -->
-      <div style="height:42px;flex:none;display:flex;align-items:center;gap:2px;padding:0 10px;border-bottom:1px solid var(--line);background:var(--bg2);overflow-x:auto">
-        <sc-for list="{{ tabs }}" as="tab" hint-placeholder-count="1">
-          <div style="{{ tab.css }}">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex:none;opacity:.85"><path d="{{ tab.icon }}"></path></svg>
-            <span onClick="{{ tab.onClick }}" style="white-space:nowrap;cursor:pointer">{{ tab.label }}</span>
-            <button onClick="{{ tab.onClose }}" style="width:17px;height:17px;border-radius:5px;border:none;background:transparent;color:currentColor;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:.5;flex:none" style-hover="background:var(--line2);opacity:1"><svg width="9" height="9" viewBox="0 0 12 12" stroke="currentColor" stroke-width="1.4"><line x1="3" y1="3" x2="9" y2="9"></line><line x1="9" y1="3" x2="3" y2="9"></line></svg></button>
-          </div>
-        </sc-for>
-        <button style="width:28px;height:28px;border-radius:7px;background:transparent;border:none;color:var(--text-faint);cursor:pointer;display:flex;align-items:center;justify-content:center;margin-left:4px;flex:none" style-hover="background:var(--panel2);color:var(--text)"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
-      </div>
-
-      <!-- CONTENT -->
-      <div style="flex:1;overflow-y:auto;min-height:0">
-
-        <!-- ===== DASHBOARD ===== -->
-        <sc-if value="{{ isDash }}" hint-placeholder-val="{{ true }}">
-          <div style="max-width:1120px;margin:0 auto;padding:40px 48px 60px">
-            <div>
-              <div style="display:flex;align-items:baseline;gap:16px;flex-wrap:wrap">
-                <h1 style="font-size:52px;font-weight:700;letter-spacing:-.02em;line-height:1">WinForge</h1>
-                <span style="font-size:34px;font-weight:500;color:var(--brand);font-family:'Noto Sans TC'">視窗調校</span>
-              </div>
-              <p style="margin-top:16px;font-size:16px;color:var(--text-dim);max-width:640px">An all-in-one, fully bilingual control center that genuinely tunes Windows 11.</p>
-              <p style="margin-top:3px;font-size:13.5px;color:var(--text-faint);font-family:'Noto Sans TC'">全方位、全雙語嘅控制中心，真係會幫你調校 Windows 11。</p>
-              <div style="display:flex;gap:28px;margin-top:24px;font-family:'JetBrains Mono'">
-                <div><div style="font-size:24px;font-weight:700;color:var(--brand)">895</div><div style="font-size:10.5px;color:var(--text-faint);letter-spacing:.08em;text-transform:uppercase;margin-top:2px">features · 功能</div></div>
-                <div style="width:1px;background:var(--line)"></div>
-                <div><div style="font-size:24px;font-weight:700">22</div><div style="font-size:10.5px;color:var(--text-faint);letter-spacing:.08em;text-transform:uppercase;margin-top:2px">categories · 分類</div></div>
-                <div style="width:1px;background:var(--line)"></div>
-                <div><div style="font-size:24px;font-weight:700">138</div><div style="font-size:10.5px;color:var(--text-faint);letter-spacing:.08em;text-transform:uppercase;margin-top:2px">modules · 模組</div></div>
-              </div>
-            </div>
-            <div style="margin-top:30px;display:flex;align-items:center;gap:16px;padding:16px 20px;border-radius:14px;background:linear-gradient(100deg,rgba(247,176,52,.1),rgba(247,176,52,.03));border:1px solid rgba(247,176,52,.28)">
-              <div style="width:38px;height:38px;border-radius:10px;background:rgba(247,176,52,.16);display:flex;align-items:center;justify-content:center;flex:none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--spark)" stroke-width="1.8" stroke-linecap="round"><path d="M12 9v4M12 16.5v.01M10.3 4l-7 12.2a2 2 0 001.7 3h14a2 2 0 001.7-3L13.7 4a2 2 0 00-3.4 0z"></path></svg></div>
-              <div style="flex:1"><div style="font-size:13.5px;font-weight:600">Standard user — some system-wide tweaks need administrator rights.</div><div style="font-size:11.5px;color:var(--text-faint);font-family:'Noto Sans TC';margin-top:2px">標準使用者 · 部分全系統調校需要管理員權限。</div></div>
-              <button style="padding:9px 16px;border-radius:9px;background:var(--spark);border:none;color:#241500;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap" style-hover="background:#ffc04f">Relaunch as admin</button>
-            </div>
-            <div style="margin-top:14px;display:flex;align-items:center;gap:12px;height:54px;padding:0 20px;border-radius:14px;background:var(--panel);border:1px solid var(--line)" style-hover="border-color:var(--line2)">
-              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><line x1="20" y1="20" x2="16.5" y2="16.5"></line></svg>
-              <span style="font-size:15px;color:var(--text-faint)">Search all 895 features — 搜尋全部功能 (EN / 粵語)…</span>
-              <span style="margin-left:auto;font-family:'JetBrains Mono';font-size:11px;color:var(--text-faint);border:1px solid var(--line);padding:2px 7px;border-radius:6px">Ctrl K</span>
-            </div>
-            <div style="display:flex;align-items:baseline;gap:10px;margin:38px 0 16px"><h2 style="font-size:17px;font-weight:600">Suite modules</h2><span style="font-size:13px;color:var(--text-faint);font-family:'Noto Sans TC'">套件模組</span></div>
-            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
-              <sc-for list="{{ cards }}" as="c" hint-placeholder-count="9">
-                <button onClick="{{ c.onClick }}" style="{{ c.css }}" style-hover="border-color:var(--line2);transform:translateY(-2px)">
-                  <div style="display:flex;align-items:center;justify-content:space-between">
-                    <div style="{{ c.iconWrap }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="{{ c.icon }}"></path></svg></div>
-                    <sc-if value="{{ c.star }}" hint-placeholder-val="{{ false }}"><span style="font-size:9.5px;font-weight:700;letter-spacing:.08em;color:var(--spark);padding:3px 8px;border-radius:20px;background:rgba(247,176,52,.12)">★ FLAGSHIP</span></sc-if>
-                  </div>
-                  <div style="margin-top:16px;display:flex;align-items:baseline;gap:7px;flex-wrap:wrap"><span style="font-size:14.5px;font-weight:600">{{ c.title }}</span><span style="font-size:11.5px;color:var(--text-faint);font-family:'Noto Sans TC'">{{ c.titleZh }}</span></div>
-                  <div style="margin-top:5px;font-size:12px;color:var(--text-dim);line-height:1.45">{{ c.desc }}</div>
-                </button>
-              </sc-for>
-            </div>
-          </div>
-        </sc-if>
-
-        <!-- ===== SYSTEM MONITOR ===== -->
-        <sc-if value="{{ isMon }}" hint-placeholder-val="{{ false }}">
-          <div style="padding:30px 36px 50px">
-            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap">
-              <div>
-                <div style="display:flex;align-items:center;gap:12px"><div style="width:34px;height:34px;border-radius:9px;background:var(--brand-glow);display:flex;align-items:center;justify-content:center"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2-7 4 14 2-7h6"></path></svg></div><div style="display:flex;align-items:baseline;gap:10px"><h1 style="font-size:26px;font-weight:700">System Monitor</h1><span style="font-size:17px;color:var(--text-dim);font-family:'Noto Sans TC'">系統監察</span></div></div>
-                <p style="margin-top:8px;font-size:13px;color:var(--text-dim);max-width:680px">A btop-style live dashboard — per-core CPU bars, memory and swap meters, network graphs, and the busiest processes.</p>
-              </div>
-              <div style="display:flex;align-items:center;gap:9px;font-size:12px;color:var(--text-dim)"><span>Refresh · 更新</span><span style="display:flex;align-items:center;gap:7px;padding:7px 12px;border-radius:8px;background:var(--panel);border:1px solid var(--line);font-family:'JetBrains Mono';font-weight:500;color:var(--text)">1s<svg width="11" height="11" viewBox="0 0 12 12" stroke="currentColor" stroke-width="1.4" fill="none" style="opacity:.6"><path d="M3 4.5L6 7.5 9 4.5"></path></svg></span></div>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 320px;gap:14px;margin-top:24px">
-              <div style="padding:20px;border-radius:14px;background:var(--panel);border:1px solid var(--line)">
-                <div style="display:flex;align-items:center;justify-content:space-between"><div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:12px;font-weight:700;letter-spacing:.1em;color:var(--text-faint)">CPU</span><span style="font-size:11px;color:var(--text-faint);font-family:'JetBrains Mono'">32 cores</span></div><div style="font-size:30px;font-weight:700;font-family:'JetBrains Mono';color:var(--brand)">{{ cpu }}%</div></div>
-                <div style="display:grid;grid-template-columns:repeat(4,1fr);column-gap:22px;row-gap:7px;margin-top:18px">
-                  <sc-for list="{{ coreCells }}" as="core" hint-placeholder-count="32">
-                    <div style="display:flex;align-items:center;gap:8px"><span style="font-size:10.5px;font-family:'JetBrains Mono';color:var(--text-faint);width:18px">{{ core.i }}</span><div style="flex:1;height:7px;border-radius:4px;background:var(--line);overflow:hidden"><div style="{{ core.barCss }}"></div></div><span style="font-size:10px;font-family:'JetBrains Mono';color:var(--text-dim);width:28px;text-align:right">{{ core.pct }}%</span></div>
-                  </sc-for>
-                </div>
-              </div>
-              <div style="display:flex;flex-direction:column;gap:14px">
-                <div style="padding:18px;border-radius:14px;background:var(--panel);border:1px solid var(--line)">
-                  <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:12.5px;font-weight:600">Memory · 記憶體</span><span style="font-size:18px;font-weight:700;font-family:'JetBrains Mono';color:var(--spark)">{{ mem }}%</span></div>
-                  <div style="height:9px;border-radius:5px;background:var(--line);overflow:hidden;margin-top:10px"><div style="height:100%;border-radius:5px;background:linear-gradient(90deg,var(--spark),var(--spark2));width:{{ mem }}%;transition:width .8s ease"></div></div>
-                  <div style="font-size:10.5px;color:var(--text-faint);font-family:'JetBrains Mono';margin-top:7px">{{ memUsed }} GB / 63.8 GB</div>
-                  <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:16px"><span style="font-size:12.5px;font-weight:600">Swap · 置換檔</span><span style="font-size:18px;font-weight:700;font-family:'JetBrains Mono';color:var(--danger)">100%</span></div>
-                  <div style="height:9px;border-radius:5px;background:var(--line);overflow:hidden;margin-top:10px"><div style="height:100%;border-radius:5px;background:var(--danger);width:100%"></div></div>
-                  <div style="font-size:10.5px;color:var(--text-faint);font-family:'JetBrains Mono';margin-top:7px">4.0 GB / 4.0 GB</div>
-                </div>
-                <div style="padding:18px;border-radius:14px;background:var(--panel);border:1px solid var(--line)">
-                  <div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:12.5px;font-weight:600">Network · 網絡</span><span style="font-size:10.5px;color:var(--text-faint)">Uptime {{ uptime }}</span></div>
-                  <svg viewBox="0 0 300 56" preserveAspectRatio="none" style="width:100%;height:56px;margin-top:10px;overflow:visible"><defs><linearGradient id="netfill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--cyan)" stop-opacity=".35"></stop><stop offset="1" stop-color="var(--cyan)" stop-opacity="0"></stop></linearGradient></defs><polygon points="{{ netArea }}" fill="url(#netfill)"></polygon><polyline points="{{ netPoints }}" fill="none" stroke="var(--cyan)" stroke-width="1.6" stroke-linejoin="round"></polyline></svg>
-                  <div style="display:flex;justify-content:space-between;margin-top:8px;font-family:'JetBrains Mono'"><span style="font-size:11.5px;color:var(--cyan)">↓ {{ down }} KB/s</span><span style="font-size:11.5px;color:var(--brand)">↑ {{ up }} KB/s</span></div>
-                </div>
-              </div>
-            </div>
-            <div style="margin-top:14px;border-radius:14px;background:var(--panel);border:1px solid var(--line);overflow:hidden">
-              <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px 10px"><div style="display:flex;align-items:baseline;gap:9px"><span style="font-size:13px;font-weight:600">Processes</span><span style="font-size:11px;color:var(--text-faint);font-family:'Noto Sans TC'">處理程序</span></div><div style="display:flex;align-items:center;gap:8px;padding:6px 11px;border-radius:8px;background:var(--bg2);border:1px solid var(--line)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text-faint)" stroke-width="1.8"><circle cx="11" cy="11" r="7"></circle><line x1="20" y1="20" x2="16.5" y2="16.5"></line></svg><span style="font-size:11.5px;color:var(--text-faint)">Filter processes…</span></div></div>
-              <div style="display:grid;grid-template-columns:80px 1fr 150px 110px 130px;gap:12px;padding:8px 20px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);font-size:10.5px;font-weight:700;letter-spacing:.06em;color:var(--text-faint);text-transform:uppercase"><span>PID</span><span>Process</span><span>CPU ▾</span><span style="text-align:right">Memory</span><span style="text-align:right">Actions</span></div>
-              <sc-for list="{{ procRows }}" as="p" hint-placeholder-count="6">
-                <div style="display:grid;grid-template-columns:80px 1fr 150px 110px 130px;gap:12px;align-items:center;padding:11px 20px;border-bottom:1px solid var(--line)" style-hover="background:var(--bg2)"><span style="font-size:12px;font-family:'JetBrains Mono';color:var(--text-faint)">{{ p.pid }}</span><span style="font-size:13px;font-weight:500">{{ p.name }}</span><div style="display:flex;align-items:center;gap:8px"><div style="flex:1;height:6px;border-radius:3px;background:var(--line);overflow:hidden"><div style="{{ p.barCss }}"></div></div><span style="font-size:11px;font-family:'JetBrains Mono';color:var(--text-dim);width:30px">{{ p.cpu }}%</span></div><span style="font-size:12px;font-family:'JetBrains Mono';color:var(--text-dim);text-align:right">{{ p.mem }} MB</span><div style="display:flex;gap:6px;justify-content:flex-end"><button style="font-size:10.5px;padding:4px 9px;border-radius:6px;background:var(--bg2);border:1px solid var(--line);color:var(--text-dim);cursor:pointer;font:inherit" style-hover="border-color:var(--line2);color:var(--text)">Priority</button><button style="width:24px;height:24px;border-radius:6px;background:transparent;border:1px solid var(--line);color:var(--text-faint);cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="border-color:var(--danger);color:var(--danger)"><svg width="10" height="10" viewBox="0 0 12 12" stroke="currentColor" stroke-width="1.3"><line x1="3" y1="3" x2="9" y2="9"></line><line x1="9" y1="3" x2="3" y2="9"></line></svg></button></div></div>
-              </sc-for>
-            </div>
-          </div>
-        </sc-if>
-
-        <!-- ===== REACTOR ===== -->
-        <sc-if value="{{ isReactor }}" hint-placeholder-val="{{ false }}">
-          <div style="padding:30px 36px 50px">
-            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap">
-              <div>
-                <div style="display:flex;align-items:center;gap:12px"><div style="width:36px;height:36px;border-radius:10px;background:radial-gradient(circle at 30% 30%,rgba(84,224,126,.3),rgba(84,224,126,.08));border:1px solid rgba(84,224,126,.3);display:flex;align-items:center;justify-content:center"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="1.7"><circle cx="12" cy="12" r="2.3"></circle><circle cx="12" cy="12" r="9"></circle><path d="M12 3v6M12 15v6M3 12h6M15 12h6"></path></svg></div><div style="display:flex;align-items:baseline;gap:11px"><h1 style="font-size:26px;font-weight:700">Nuclear Reactor</h1><span style="font-size:17px;color:var(--text-dim);font-family:'Noto Sans TC'">核反應堆</span><span style="font-size:9.5px;font-weight:700;letter-spacing:.1em;color:var(--spark);padding:3px 9px;border-radius:20px;background:rgba(247,176,52,.12)">★ FLAGSHIP</span></div></div>
-                <p style="margin-top:8px;font-size:13px;color:var(--text-dim);max-width:640px">A real-time PWR simulator — control rods, coolant loops, turbine output, and a live safety bus driving the rest of the suite.</p>
-              </div>
-              <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;background:var(--brand-glow);border:1px solid rgba(84,224,126,.28)"><span style="width:7px;height:7px;border-radius:50%;background:var(--brand);box-shadow:0 0 8px var(--brand);animation:wf-glow 1.8s infinite"></span><span style="font-size:11.5px;font-weight:600;color:var(--brand);letter-spacing:.03em">CRITICAL · STABLE</span></div>
-            </div>
-            <div style="display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:14px;margin-top:24px">
-              <div style="position:relative;padding:26px;border-radius:16px;background:radial-gradient(120% 120% at 80% 0%,rgba(84,224,126,.1),transparent 55%),var(--panel);border:1px solid var(--line);overflow:hidden">
-                <div style="position:absolute;inset:0;background:linear-gradient(120deg,transparent,rgba(84,224,126,.06),transparent);width:40%;animation:wf-sweep 6s linear infinite;pointer-events:none"></div>
-                <div style="font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--text-faint);text-transform:uppercase">Net electrical output · 淨電力輸出</div>
-                <div style="display:flex;align-items:flex-end;gap:10px;margin-top:8px"><span style="font-size:64px;font-weight:700;font-family:'JetBrains Mono';line-height:.9;color:var(--brand);text-shadow:0 0 28px var(--brand-glow)">{{ output }}</span><span style="font-size:20px;font-weight:600;color:var(--text-dim);margin-bottom:8px">MWe</span></div>
-                <div style="height:10px;border-radius:6px;background:var(--line);overflow:hidden;margin-top:18px"><div style="height:100%;border-radius:6px;background:linear-gradient(90deg,var(--brand-dim),var(--brand));width:{{ powerPct }}%;box-shadow:0 0 14px var(--brand-glow);transition:width 1s ease"></div></div>
-                <div style="display:flex;justify-content:space-between;font-size:10.5px;font-family:'JetBrains Mono';color:var(--text-faint);margin-top:7px"><span>0</span><span>thermal {{ thermal }} MWt</span><span>900</span></div>
-                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:24px">
-                  <sc-for list="{{ gauges }}" as="gg" hint-placeholder-count="3">
-                    <div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 8px;border-radius:12px;background:var(--bg2);border:1px solid var(--line)">
-                      <div style="position:relative;width:84px;height:84px"><svg width="84" height="84" viewBox="0 0 112 112"><circle cx="56" cy="56" r="46" fill="none" stroke="var(--line)" stroke-width="9"></circle><circle cx="56" cy="56" r="46" fill="none" stroke="{{ gg.color }}" stroke-width="9" stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="{{ gg.off }}" transform="rotate(-90 56 56)" style="transition:stroke-dashoffset 1s ease"></circle></svg><div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center"><span style="font-size:18px;font-weight:700;font-family:'JetBrains Mono'">{{ gg.val }}</span><span style="font-size:9px;color:var(--text-faint)">{{ gg.unit }}</span></div></div>
-                      <div style="text-align:center"><div style="font-size:11.5px;font-weight:600">{{ gg.label }}</div><div style="font-size:9.5px;color:var(--text-faint);font-family:'Noto Sans TC'">{{ gg.zh }}</div></div>
-                    </div>
-                  </sc-for>
-                </div>
-              </div>
-              <div style="display:flex;flex-direction:column;gap:14px">
-                <div style="padding:20px;border-radius:16px;background:var(--panel);border:1px solid var(--line)">
-                  <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font-size:13px;font-weight:600">Control rods · 控制棒</span><span style="font-size:12px;font-family:'JetBrains Mono';color:var(--brand)">{{ rodAvg }}% inserted</span></div>
-                  <div style="display:flex;align-items:flex-end;gap:12px;height:118px;margin-top:18px;padding:0 4px">
-                    <sc-for list="{{ rods }}" as="r" hint-placeholder-count="6"><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end"><div style="width:100%;flex:1;border-radius:5px;background:var(--bg2);border:1px solid var(--line);display:flex;flex-direction:column;justify-content:flex-start;overflow:hidden"><div style="{{ r.fillCss }}"></div></div><span style="font-size:9px;font-family:'JetBrains Mono';color:var(--text-faint)">{{ r.id }}</span></div></sc-for>
-                  </div>
-                </div>
-                <div style="padding:20px;border-radius:16px;background:var(--panel);border:1px solid var(--line)">
-                  <div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:13px;font-weight:600">Coolant loop · 冷卻迴路</span><span style="font-size:11px;color:var(--cyan);font-family:'JetBrains Mono'">{{ coolant }}% flow</span></div>
-                  <div style="height:9px;border-radius:5px;background:var(--line);overflow:hidden;margin-top:12px"><div style="height:100%;border-radius:5px;background:linear-gradient(90deg,#2b8a93,var(--cyan));width:{{ coolant }}%;transition:width 1s ease"></div></div>
-                  <div style="display:flex;gap:10px;margin-top:18px"><button style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:12px;border-radius:11px;background:var(--bg2);border:1px solid var(--line);cursor:pointer;color:var(--text)" style-hover="border-color:var(--line2)"><span style="font-size:12.5px;font-weight:600">AUTO</span><span style="font-size:9px;color:var(--text-faint);font-family:'Noto Sans TC'">自動</span></button><button style="flex:2;display:flex;flex-direction:column;align-items:center;gap:3px;padding:12px;border-radius:11px;background:linear-gradient(180deg,#ff6a6a,#d83434);border:none;cursor:pointer;color:#fff;box-shadow:0 4px 16px rgba(216,52,52,.3)" style-hover="filter:brightness(1.08)"><span style="font-size:13px;font-weight:700;letter-spacing:.08em">SCRAM</span><span style="font-size:9px;opacity:.85;font-family:'Noto Sans TC'">緊急停堆</span></button></div>
-                </div>
-                <div style="padding:14px 18px;border-radius:14px;background:var(--bg2);border:1px solid var(--line);font-family:'JetBrains Mono';font-size:11px;color:var(--text-dim);display:flex;align-items:center;gap:10px;overflow:hidden"><span style="color:var(--brand);flex:none">●</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ telemetry }}</span></div>
-              </div>
-            </div>
-          </div>
-        </sc-if>
-
-        <!-- ===== CAKE FACTORY ===== -->
-        <sc-if value="{{ isCake }}" hint-placeholder-val="{{ false }}">
-          <div style="padding:30px 36px 50px">
-            <div style="display:flex;align-items:center;gap:12px"><div style="width:34px;height:34px;border-radius:9px;background:rgba(247,176,52,.14);display:flex;align-items:center;justify-content:center"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--spark)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16M5.5 20v-6a2.5 2.5 0 012.5-2.5h8a2.5 2.5 0 012.5 2.5v6M9 8.5V6M12 8.5V5M15 8.5V6"></path></svg></div><div style="display:flex;align-items:baseline;gap:10px"><h1 style="font-size:26px;font-weight:700">Nuclear Cake Factory &amp; Farm</h1><span style="font-size:16px;color:var(--text-dim);font-family:'Noto Sans TC'">核能蛋糕工廠與農場</span></div></div>
-            <p style="margin-top:8px;font-size:13px;color:var(--text-dim)">Hands-on farm, mill, bakery, QA and sanitation controls driven by the live reactor bus.</p>
-            <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:14px;margin-top:22px">
-              <div style="padding:22px;border-radius:16px;background:var(--panel);border:1px solid var(--line)">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px"><div style="display:flex;align-items:center;gap:9px"><span style="width:7px;height:7px;border-radius:50%;background:var(--brand);box-shadow:0 0 8px var(--brand)"></span><span style="font-size:12px;font-weight:600">Line running · 生產線運行中</span></div><span style="font-family:'JetBrains Mono';font-size:12px;color:var(--brand)">{{ output }} MWe bus</span></div>
-                <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px">
-                  <sc-for list="{{ cakeStages }}" as="st" hint-placeholder-count="5"><div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 6px;border-radius:12px;background:var(--bg2);border:1px solid var(--line)"><div style="width:40px;height:40px;border-radius:11px;background:{{ st.bg }};display:flex;align-items:center;justify-content:center;color:{{ st.fg }};font-weight:700;font-family:'JetBrains Mono';font-size:13px">{{ st.n }}</div><div style="text-align:center"><div style="font-size:11px;font-weight:600">{{ st.en }}</div><div style="font-size:9px;color:var(--text-faint);font-family:'Noto Sans TC'">{{ st.zh }}</div></div></div></sc-for>
-                </div>
-                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:18px">
-                  <div style="padding:14px;border-radius:12px;background:var(--bg2);border:1px solid var(--line)"><div style="font-size:10px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.08em">Power</div><div style="font-size:20px;font-weight:700;font-family:'JetBrains Mono';color:var(--brand);margin-top:3px">98%</div></div>
-                  <div style="padding:14px;border-radius:12px;background:var(--bg2);border:1px solid var(--line)"><div style="font-size:10px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.08em">Quality</div><div style="font-size:20px;font-weight:700;font-family:'JetBrains Mono';color:var(--spark);margin-top:3px">96%</div></div>
-                  <div style="padding:14px;border-radius:12px;background:var(--bg2);border:1px solid var(--line)"><div style="font-size:10px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.08em">Sanitation</div><div style="font-size:20px;font-weight:700;font-family:'JetBrains Mono';color:var(--cyan);margin-top:3px">94%</div></div>
-                </div>
-              </div>
-              <div style="display:flex;flex-direction:column;gap:14px">
-                <div style="padding:20px;border-radius:16px;background:var(--panel);border:1px solid var(--line)">
-                  <div style="font-size:12px;font-weight:600;margin-bottom:14px">Recipe &amp; demand · 配方與需求</div>
-                  <div style="display:flex;align-items:center;justify-content:space-between;height:40px;padding:0 14px;border-radius:9px;background:var(--bg2);border:1px solid var(--line)"><span style="font-size:12.5px">White layer cake · 白色忌廉蛋糕</span><svg width="12" height="12" viewBox="0 0 12 12" stroke="currentColor" stroke-width="1.4" fill="none" style="opacity:.5"><path d="M3 4.5L6 7.5 9 4.5"></path></svg></div>
-                  <div style="margin-top:16px"><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-dim)"><span>Farm intensity · 農場強度</span><span style="font-family:'JetBrains Mono';color:var(--spark)">78%</span></div><div style="height:7px;border-radius:4px;background:var(--line);overflow:hidden;margin-top:7px"><div style="height:100%;width:78%;border-radius:4px;background:var(--spark)"></div></div></div>
-                  <div style="margin-top:14px"><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-dim)"><span>Line speed · 生產線速度</span><span style="font-family:'JetBrains Mono';color:var(--brand)">72%</span></div><div style="height:7px;border-radius:4px;background:var(--line);overflow:hidden;margin-top:7px"><div style="height:100%;width:72%;border-radius:4px;background:var(--brand)"></div></div></div>
-                </div>
-                <div style="padding:20px;border-radius:16px;background:var(--panel);border:1px solid var(--line)">
-                  <div style="font-size:12px;font-weight:600;margin-bottom:14px">Manual operations · 手動操作</div>
-                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
-                    <sc-for list="{{ cakeOps }}" as="op" hint-placeholder-count="6"><button style="padding:11px;border-radius:10px;background:var(--bg2);border:1px solid var(--line);color:var(--text);cursor:pointer;font:inherit;font-size:11.5px;font-weight:500;display:flex;flex-direction:column;gap:2px;align-items:flex-start" style-hover="border-color:var(--line2)"><span>{{ op.en }}</span><span style="font-size:9px;color:var(--text-faint);font-family:'Noto Sans TC'">{{ op.zh }}</span></button></sc-for>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </sc-if>
-
-        <!-- ===== GENERIC (archetypes) ===== -->
-        <sc-if value="{{ isGeneric }}" hint-placeholder-val="{{ false }}">
-          <div style="padding:30px 36px 50px;max-width:1180px">
-            <!-- shared header -->
-            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap">
-              <div style="min-width:0">
-                <div style="display:flex;align-items:center;gap:12px"><div style="width:34px;height:34px;border-radius:9px;background:var(--brand-glow);display:flex;align-items:center;justify-content:center;flex:none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="{{ aIcon }}"></path></svg></div><div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap"><h1 style="font-size:24px;font-weight:700">{{ aTitle }}</h1><span style="font-size:15px;color:var(--text-dim);font-family:'Noto Sans TC'">{{ aZh }}</span><sc-if value="{{ hasBadge }}" hint-placeholder-val="{{ false }}"><span style="font-size:9px;font-weight:700;letter-spacing:.1em;color:var(--spark);padding:3px 8px;border-radius:20px;background:rgba(247,176,52,.12)">★ {{ aBadge }}</span></sc-if></div></div>
-                <p style="margin-top:8px;font-size:13px;color:var(--text-dim);max-width:680px">{{ aDesc }}</p>
-                <p style="margin-top:2px;font-size:11.5px;color:var(--text-faint);font-family:'Noto Sans TC'">{{ aDescZh }}</p>
-              </div>
-              <div style="display:flex;gap:8px;flex:none"><button style="display:flex;align-items:center;gap:7px;padding:9px 15px;border-radius:9px;background:var(--brand);border:none;color:#06210f;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer" style-hover="filter:brightness(1.06)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>{{ aPrimary }}</button></div>
-            </div>
-
-            <div style="margin-top:24px">
-              <!-- RUNNER -->
-              <sc-if value="{{ archRunner }}" hint-placeholder-val="{{ false }}">
-                <div style="display:grid;grid-template-columns:300px 1fr;gap:14px">
-                  <div style="padding:14px;border-radius:14px;background:var(--panel);border:1px solid var(--line)">
-                    <div style="font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--text-faint);text-transform:uppercase;padding:4px 8px 10px">Operations · 操作</div>
-                    <div style="display:flex;flex-direction:column;gap:4px">
-                      <sc-for list="{{ rows }}" as="r" hint-placeholder-count="6"><button style="display:flex;align-items:center;gap:10px;padding:10px 11px;border-radius:9px;background:var(--bg2);border:1px solid var(--line);color:var(--text);cursor:pointer;font:inherit;text-align:left" style-hover="border-color:var(--brand-dim);background:var(--brand-glow)"><span style="width:6px;height:6px;border-radius:50%;background:var(--brand);flex:none"></span><span style="display:flex;flex-direction:column;line-height:1.2"><span style="font-size:12.5px;font-weight:500">{{ r.a.en }}</span><span style="font-size:9.5px;color:var(--text-faint);font-family:'Noto Sans TC'">{{ r.a.zh }}</span></span></button></sc-for>
-                    </div>
-                  </div>
-                  <div style="border-radius:14px;background:#070a08;border:1px solid var(--line);overflow:hidden;display:flex;flex-direction:column;min-height:340px">
-                    <div style="display:flex;align-items:center;gap:7px;padding:11px 16px;border-bottom:1px solid var(--line)"><span style="width:9px;height:9px;border-radius:50%;background:#ff5f56"></span><span style="width:9px;height:9px;border-radius:50%;background:#ffbd2e"></span><span style="width:9px;height:9px;border-radius:50%;background:#27c93f"></span><span style="margin-left:8px;font-size:11px;color:var(--text-faint);font-family:'JetBrains Mono'">console · 主控台</span></div>
-                    <div style="flex:1;padding:16px 18px;font-family:'JetBrains Mono';font-size:12px;line-height:1.7;color:var(--text-dim)"><sc-for list="{{ consoleLines }}" as="ln" hint-placeholder-count="5"><div style="{{ ln.css }}">{{ ln.t }}</div></sc-for><div style="color:var(--brand)">$ <span style="opacity:.5">▋</span></div></div>
-                  </div>
-                </div>
-              </sc-if>
-
-              <!-- LIST (master-detail) -->
-              <sc-if value="{{ archList }}" hint-placeholder-val="{{ false }}">
-                <div style="display:grid;grid-template-columns:1fr 320px;gap:14px">
-                  <div style="border-radius:14px;background:var(--panel);border:1px solid var(--line);overflow:hidden">
-                    <sc-for list="{{ rows }}" as="r" hint-placeholder-count="5"><button onClick="{{ r.onClick }}" style="{{ r.listCss }}" style-hover="background:var(--bg2)"><span style="width:8px;height:8px;border-radius:50%;background:{{ r.dot }};flex:none;box-shadow:0 0 6px {{ r.dot }}"></span><span style="display:flex;flex-direction:column;line-height:1.25;flex:1;min-width:0"><span style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.a.en }}</span><span style="font-size:9.5px;color:var(--text-faint);font-family:'Noto Sans TC'">{{ r.a.zh }}</span></span><span style="font-size:10.5px;font-family:'JetBrains Mono';color:var(--text-faint);white-space:nowrap">{{ r.meta }}</span><span style="font-size:9.5px;font-weight:600;color:{{ r.dot }};text-transform:uppercase;letter-spacing:.05em">{{ r.status }}</span></button></sc-for>
-                  </div>
-                  <div style="padding:20px;border-radius:14px;background:var(--panel);border:1px solid var(--line);align-self:flex-start">
-                    <div style="font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--text-faint);text-transform:uppercase">Details · 詳情</div>
-                    <div style="margin-top:12px;font-size:16px;font-weight:600">{{ selName }}</div>
-                    <div style="font-size:11.5px;color:var(--text-faint);font-family:'Noto Sans TC'">{{ selZh }}</div>
-                    <div style="height:1px;background:var(--line);margin:14px 0"></div>
-                    <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:8px"><span style="color:var(--text-faint)">Status · 狀態</span><span style="color:{{ selDot }};font-weight:600">{{ selStatus }}</span></div>
-                    <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:8px"><span style="color:var(--text-faint)">Detail · 資料</span><span style="font-family:'JetBrains Mono'">{{ selMeta }}</span></div>
-                    <div style="display:flex;gap:8px;margin-top:16px"><button style="flex:1;padding:9px;border-radius:9px;background:var(--brand);border:none;color:#06210f;font:inherit;font-size:12px;font-weight:700;cursor:pointer">Start · 啟動</button><button style="flex:1;padding:9px;border-radius:9px;background:var(--bg2);border:1px solid var(--line);color:var(--text);font:inherit;font-size:12px;font-weight:500;cursor:pointer">Stop · 停止</button></div>
-                  </div>
-                </div>
-              </sc-if>
-
-              <!-- TABLE -->
-              <sc-if value="{{ archTable }}" hint-placeholder-val="{{ false }}">
-                <div style="border-radius:14px;background:var(--panel);border:1px solid var(--line);overflow:hidden">
-                  <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 18px;border-bottom:1px solid var(--line)"><div style="display:flex;align-items:center;gap:8px;padding:6px 11px;border-radius:8px;background:var(--bg2);border:1px solid var(--line)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text-faint)" stroke-width="1.8"><circle cx="11" cy="11" r="7"></circle><line x1="20" y1="20" x2="16.5" y2="16.5"></line></svg><span style="font-size:11.5px;color:var(--text-faint)">Filter · 篩選</span></div><span style="font-size:11px;color:var(--text-faint);font-family:'JetBrains Mono'">{{ rowCount }} rows</span></div>
-                  <div style="{{ tableHeadCss }}"><span>{{ colA }}</span><span>{{ colB }}</span><span>{{ colC }}</span><sc-if value="{{ hasColD }}" hint-placeholder-val="{{ false }}"><span style="text-align:right">{{ colD }}</span></sc-if></div>
-                  <sc-for list="{{ rows }}" as="r" hint-placeholder-count="5"><div style="{{ tableRowCss }}" style-hover="background:var(--bg2)"><span style="font-size:12.5px;font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.a.en }}</span><span style="font-size:12px;color:var(--text-dim);font-family:'JetBrains Mono';min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.b.en }}</span><span style="font-size:12px;color:var(--text-dim);font-family:'JetBrains Mono';min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.c.en }}</span><sc-if value="{{ hasColD }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:var(--brand);font-family:'JetBrains Mono';text-align:right;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.d.en }}</span></sc-if></div></sc-for>
-                </div>
-              </sc-if>
-
-              <!-- METERS -->
-              <sc-if value="{{ archMeters }}" hint-placeholder-val="{{ false }}">
-                <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px">
-                  <sc-for list="{{ rows }}" as="r" hint-placeholder-count="4"><div style="padding:20px;border-radius:14px;background:var(--panel);border:1px solid var(--line);min-width:0"><div style="font-size:10.5px;font-weight:600;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.a.en }}</div><div style="font-size:9.5px;color:var(--text-faint);font-family:'Noto Sans TC'">{{ r.a.zh }}</div><div style="display:flex;align-items:baseline;gap:5px;margin-top:14px;min-width:0"><span style="font-size:26px;font-weight:700;font-family:'JetBrains Mono';color:var(--brand);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">{{ r.b.en }}</span><span style="font-size:12px;color:var(--text-dim);white-space:nowrap;flex:none">{{ r.c.en }}</span></div><div style="height:5px;border-radius:3px;background:var(--line);overflow:hidden;margin-top:14px"><div style="{{ r.meterCss }}"></div></div></div></sc-for>
-                </div>
-              </sc-if>
-
-              <!-- MEDIA pipeline -->
-              <sc-if value="{{ archMedia }}" hint-placeholder-val="{{ false }}">
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
-                  <div style="padding:22px;border-radius:14px;background:var(--panel);border:1px dashed var(--line2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;min-height:240px;text-align:center"><div style="width:48px;height:48px;border-radius:13px;background:var(--brand-glow);display:flex;align-items:center;justify-content:center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 11l5 5 5-5M5 21h14"></path></svg></div><div><div style="font-size:13px;font-weight:600">Drop a source file</div><div style="font-size:11px;color:var(--text-faint);font-family:'Noto Sans TC'">拖入來源檔案</div></div><button style="padding:8px 16px;border-radius:8px;background:var(--bg2);border:1px solid var(--line);color:var(--text);font:inherit;font-size:12px;cursor:pointer">Browse · 瀏覽</button></div>
-                  <div style="padding:20px;border-radius:14px;background:var(--panel);border:1px solid var(--line)"><div style="font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--text-faint);text-transform:uppercase">Output · 輸出</div><div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px"><sc-for list="{{ mediaChips }}" as="c" hint-placeholder-count="5"><span style="{{ c.css }}">{{ c.t }}</span></sc-for></div><div style="margin-top:18px;font-size:11px;color:var(--text-faint)">Quality · 品質</div><div style="height:6px;border-radius:4px;background:var(--line);margin-top:8px;overflow:hidden"><div style="height:100%;width:80%;background:var(--brand);border-radius:4px"></div></div><button style="margin-top:18px;width:100%;padding:11px;border-radius:9px;background:var(--brand);border:none;color:#06210f;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer">Convert · 轉換</button></div>
-                  <div style="padding:20px;border-radius:14px;background:var(--panel);border:1px solid var(--line)"><div style="font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--text-faint);text-transform:uppercase">Queue · 佇列</div><div style="display:flex;flex-direction:column;gap:9px;margin-top:14px"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:11px;font-family:'JetBrains Mono';color:var(--brand)">100%</span><div style="flex:1;height:5px;background:var(--line);border-radius:3px;overflow:hidden"><div style="height:100%;width:100%;background:var(--brand)"></div></div></div><div style="display:flex;align-items:center;gap:10px"><span style="font-size:11px;font-family:'JetBrains Mono';color:var(--spark)">64%</span><div style="flex:1;height:5px;background:var(--line);border-radius:3px;overflow:hidden"><div style="height:100%;width:64%;background:var(--spark)"></div></div></div><div style="display:flex;align-items:center;gap:10px"><span style="font-size:11px;font-family:'JetBrains Mono';color:var(--text-faint)">queued</span><div style="flex:1;height:5px;background:var(--line);border-radius:3px"></div></div></div></div>
-                </div>
-              </sc-if>
-
-              <!-- CHAT -->
-              <sc-if value="{{ archChat }}" hint-placeholder-val="{{ false }}">
-                <div style="display:grid;grid-template-columns:220px 1fr;gap:14px;height:440px">
-                  <div style="padding:12px;border-radius:14px;background:var(--panel);border:1px solid var(--line);display:flex;flex-direction:column;gap:4px"><button style="display:flex;align-items:center;gap:8px;padding:10px;border-radius:9px;background:var(--brand-glow);border:1px solid rgba(84,224,126,.25);color:var(--brand);font:inherit;font-size:12px;font-weight:600;cursor:pointer;margin-bottom:6px"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>New chat · 新對話</button><sc-for list="{{ rows }}" as="r" hint-placeholder-count="3"><div style="padding:9px 11px;border-radius:8px;font-size:12px;color:var(--text-dim)" style-hover="background:var(--bg2)">{{ r.a.en }}</div></sc-for></div>
-                  <div style="border-radius:14px;background:var(--panel);border:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden">
-                    <div style="flex:1;padding:20px;display:flex;flex-direction:column;gap:14px;overflow-y:auto"><sc-for list="{{ chatMsgs }}" as="m" hint-placeholder-count="2"><div style="{{ m.wrap }}"><div style="{{ m.bubble }}">{{ m.text }}</div></div></sc-for></div>
-                    <div style="padding:14px;border-top:1px solid var(--line);display:flex;gap:10px;align-items:center"><div style="flex:1;height:40px;border-radius:10px;background:var(--bg2);border:1px solid var(--line);display:flex;align-items:center;padding:0 14px;font-size:12.5px;color:var(--text-faint)">Message · 輸入訊息…</div><button style="width:40px;height:40px;border-radius:10px;background:var(--brand);border:none;color:#06210f;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></button></div>
-                  </div>
-                </div>
-              </sc-if>
-
-              <!-- VAULT -->
-              <sc-if value="{{ archVault }}" hint-placeholder-val="{{ false }}">
-                <div style="display:flex;justify-content:center;padding:30px 0"><div style="width:380px;padding:34px 30px;border-radius:18px;background:var(--panel);border:1px solid var(--line);text-align:center"><div style="width:60px;height:60px;border-radius:16px;background:var(--brand-glow);display:flex;align-items:center;justify-content:center;margin:0 auto"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 11h12v9H6zM9 11V8a3 3 0 016 0v3"></path></svg></div><div style="margin-top:18px;font-size:18px;font-weight:700">{{ aTitle }}</div><div style="font-size:12px;color:var(--text-faint);font-family:'Noto Sans TC';margin-top:2px">{{ aZh }} · 已鎖定</div><div style="margin-top:22px;height:44px;border-radius:11px;background:var(--bg2);border:1px solid var(--line);display:flex;align-items:center;gap:10px;padding:0 14px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-faint)" stroke-width="1.7"><path d="M6 11h12v9H6zM9 11V8a3 3 0 016 0v3"></path></svg><span style="letter-spacing:.3em;color:var(--text-faint);font-size:13px">••••••••••</span></div><button style="margin-top:14px;width:100%;padding:12px;border-radius:11px;background:var(--brand);border:none;color:#06210f;font:inherit;font-size:13px;font-weight:700;cursor:pointer" style-hover="filter:brightness(1.06)">Unlock · 解鎖</button><div style="margin-top:14px;font-size:11px;color:var(--text-faint)">Native encryption · 原生加密 · AES-256</div></div></div>
-              </sc-if>
-
-              <!-- GRID -->
-              <sc-if value="{{ archGrid }}" hint-placeholder-val="{{ false }}">
-                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
-                  <sc-for list="{{ rows }}" as="r" hint-placeholder-count="6"><button onClick="{{ r.onClick }}" style="display:flex;flex-direction:column;align-items:stretch;text-align:left;padding:18px;border-radius:14px;background:var(--panel);border:1px solid var(--line);cursor:pointer;font:inherit;transition:transform .18s ease,border-color .18s ease" style-hover="border-color:var(--line2);transform:translateY(-2px)"><div style="display:flex;align-items:center;justify-content:space-between"><div style="width:38px;height:38px;border-radius:11px;background:var(--brand-glow);display:flex;align-items:center;justify-content:center;color:var(--brand)"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="{{ r.gIcon }}"></path></svg></div><sc-if value="{{ r.hasTag }}" hint-placeholder-val="{{ false }}"><span style="font-size:9.5px;font-weight:600;color:var(--text-faint);font-family:'Noto Sans TC'">{{ r.tag }}</span></sc-if></div><div style="margin-top:14px;display:flex;align-items:baseline;gap:7px;flex-wrap:wrap"><span style="font-size:14px;font-weight:600">{{ r.a.en }}</span><span style="font-size:11px;color:var(--text-faint);font-family:'Noto Sans TC'">{{ r.a.zh }}</span></div><div style="margin-top:5px;font-size:11.5px;color:var(--text-dim);line-height:1.45">{{ r.desc }}</div></button></sc-for>
-                </div>
-              </sc-if>
-
-              <!-- TERMINAL -->
-              <sc-if value="{{ archTerminal }}" hint-placeholder-val="{{ false }}">
-                <div style="border-radius:14px;background:#070a08;border:1px solid var(--line);overflow:hidden;min-height:420px;display:flex;flex-direction:column">
-                  <div style="display:flex;align-items:center;gap:2px;padding:8px 10px;border-bottom:1px solid var(--line);background:var(--bg2)"><sc-for list="{{ rows }}" as="r" hint-placeholder-count="3"><span style="{{ r.termTab }}">{{ r.a.en }}</span></sc-for><button style="width:24px;height:24px;border-radius:6px;background:transparent;border:none;color:var(--text-faint);cursor:pointer;margin-left:4px;display:flex;align-items:center;justify-content:center"><svg width="13" height="13" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></button></div>
-                  <div style="flex:1;padding:18px;font-family:'JetBrains Mono';font-size:12.5px;line-height:1.8"><div style="color:var(--brand)">winforge@desktop <span style="color:var(--cyan)">~/projects</span> $ <span style="color:var(--text)">{{ termCmd }}</span></div><sc-for list="{{ consoleLines }}" as="ln" hint-placeholder-count="4"><div style="{{ ln.css }}">{{ ln.t }}</div></sc-for><div style="color:var(--brand)">winforge@desktop <span style="color:var(--cyan)">~/projects</span> $ <span style="opacity:.5">▋</span></div></div>
-                </div>
-              </sc-if>
-
-              <!-- FORM -->
-              <sc-if value="{{ archForm }}" hint-placeholder-val="{{ false }}">
-                <div style="max-width:680px;border-radius:14px;background:var(--panel);border:1px solid var(--line);overflow:hidden">
-                  <sc-for list="{{ rows }}" as="r" hint-placeholder-count="6"><div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:15px 20px;border-bottom:1px solid var(--line)"><div style="display:flex;flex-direction:column;line-height:1.3"><span style="font-size:13px;font-weight:500">{{ r.a.en }}</span><span style="font-size:10.5px;color:var(--text-faint);font-family:'Noto Sans TC'">{{ r.a.zh }}</span></div><div style="{{ r.switchTrack }}"><div style="{{ r.switchKnob }}"></div></div></div></sc-for>
-                </div>
-              </sc-if>
-
-              <!-- EDITOR -->
-              <sc-if value="{{ archEditor }}" hint-placeholder-val="{{ false }}">
-                <div style="border-radius:14px;background:var(--panel);border:1px solid var(--line);overflow:hidden">
-                  <div style="display:flex;align-items:center;gap:6px;padding:10px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap"><sc-for list="{{ rows }}" as="r" hint-placeholder-count="5"><button style="display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:8px;background:var(--bg2);border:1px solid var(--line);color:var(--text);font:inherit;font-size:11.5px;cursor:pointer" style-hover="border-color:var(--brand-dim);color:var(--brand)">{{ r.a.en }}</button></sc-for></div>
-                  <div style="display:grid;grid-template-columns:200px 1fr;min-height:380px">
-                    <div style="border-right:1px solid var(--line);padding:14px;background:var(--bg2)"><div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--text-faint);text-transform:uppercase;margin-bottom:10px">{{ editPanel }}</div><sc-for list="{{ editTree }}" as="t" hint-placeholder-count="4"><div style="padding:6px 8px;border-radius:6px;font-size:11.5px;color:var(--text-dim);font-family:'JetBrains Mono'" style-hover="background:var(--panel)">{{ t }}</div></sc-for></div>
-                    <!-- code surface -->
-                    <sc-if value="{{ isEditCode }}" hint-placeholder-val="{{ true }}"><div style="padding:18px;font-family:'JetBrains Mono';font-size:12.5px;line-height:1.8;color:var(--text-dim);background:#070a08;overflow:auto"><sc-for list="{{ codeLines }}" as="c" hint-placeholder-count="6"><div style="{{ c.css }}"><span style="display:inline-block;width:28px;color:var(--text-faint);opacity:.5">{{ c.n }}</span>{{ c.t }}</div></sc-for></div></sc-if>
-                    <!-- canvas surface -->
-                    <sc-if value="{{ isEditCanvas }}" hint-placeholder-val="{{ false }}"><div style="display:flex;align-items:center;justify-content:center;background:repeating-conic-gradient(var(--bg2) 0% 25%,transparent 0% 50%) 0 0/22px 22px,var(--bg);position:relative"><div style="text-align:center;padding:30px;border-radius:14px;background:var(--panel);border:1px solid var(--line)"><div style="width:54px;height:54px;border-radius:14px;background:var(--brand-glow);display:flex;align-items:center;justify-content:center;margin:0 auto;color:var(--brand)"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="{{ aIcon }}"></path></svg></div><div style="margin-top:14px;font-size:13px;font-weight:600">{{ editLabel }}</div><div style="font-size:11px;color:var(--text-faint);margin-top:3px">{{ aTitle }} canvas</div></div></div></sc-if>
-                    <!-- split (diff) -->
-                    <sc-if value="{{ isEditSplit }}" hint-placeholder-val="{{ false }}"><div style="display:grid;grid-template-columns:1fr 1fr;background:#070a08;font-family:'JetBrains Mono';font-size:12px;line-height:1.8"><div style="padding:16px;border-right:1px solid var(--line)"><div style="color:var(--text-faint)">— a/config.toml</div><div style="background:rgba(255,95,95,.12)">- theme = "light"</div><div>port = 8080</div><div>name = "winforge"</div></div><div style="padding:16px"><div style="color:var(--text-faint)">+ b/config.toml</div><div style="background:rgba(84,224,126,.12)">+ theme = "dark"</div><div>port = 8080</div><div>name = "winforge"</div></div></div></sc-if>
-                  </div>
-                </div>
-              </sc-if>
-
-              <!-- DOC -->
-              <sc-if value="{{ archDoc }}" hint-placeholder-val="{{ false }}">
-                <sc-if value="{{ isAbout }}" hint-placeholder-val="{{ false }}">
-                  <div style="max-width:560px;padding:34px;border-radius:16px;background:var(--panel);border:1px solid var(--line)"><div style="display:flex;align-items:center;gap:14px"><div style="width:54px;height:54px;border-radius:14px;background:linear-gradient(140deg,#54e07e,#1f5a30);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(40,140,70,.35)"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0a1c0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5h6v6H5zM13 5h6v6h-6zM5 13h6v6H5zM13 13h6v6h-6z"></path></svg></div><div><div style="font-size:22px;font-weight:700">WinForge <span style="font-size:16px;color:var(--brand);font-family:'Noto Sans TC'">視窗調校</span></div><div style="font-size:12px;color:var(--text-faint);font-family:'JetBrains Mono'">v3.0 · build 26100 · net11.0</div></div></div><p style="margin-top:20px;font-size:13.5px;color:var(--text-dim);line-height:1.6">An all-in-one, fully bilingual control center with 138 modules that genuinely tunes Windows 11 — from a nuclear-reactor simulator to registry edits.</p><p style="margin-top:4px;font-size:12px;color:var(--text-faint);font-family:'Noto Sans TC';line-height:1.6">全方位、全雙語、138 個模組嘅控制中心，真係會幫你調校 Windows 11。</p><div style="display:flex;gap:10px;margin-top:22px"><button style="padding:9px 16px;border-radius:9px;background:var(--brand);border:none;color:#06210f;font:inherit;font-size:12px;font-weight:700;cursor:pointer">Check for updates</button><button style="padding:9px 16px;border-radius:9px;background:var(--bg2);border:1px solid var(--line);color:var(--text);font:inherit;font-size:12px;cursor:pointer">Release notes</button></div></div>
-                </sc-if>
-                <sc-if value="{{ isPlainDoc }}" hint-placeholder-val="{{ true }}">
-                  <div style="max-width:720px"><sc-for list="{{ docParas }}" as="p" hint-placeholder-count="3"><div style="margin-bottom:18px"><div style="font-size:14px;font-weight:600;margin-bottom:6px">{{ p.h }}</div><div style="font-size:13px;color:var(--text-dim);line-height:1.6">{{ p.t }}</div></div></sc-for></div>
-                </sc-if>
-              </sc-if>
-
-            </div>
-          </div>
-        </sc-if>
-
-      </div>
+    <div style="max-width:1180px;margin:26px auto 0;padding-top:18px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--dim)">
+      <span>NO REDIRECTS · every feature wraps a real engine in-app</span>
+      <span>Sim-only · controls no real hardware</span>
     </div>
-  </div>
+  </footer>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:&quot;100%&quot;},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Appearance&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:&quot;100%&quot;}}">
 class Component extends DCLogic {
-  constructor(props){
-    super(props);
-    this.langs = ['Bilingual · 雙語','English','粵語'];
-    this.ICON = {
-      dash:'M5 5h6v6H5zM13 5h6v6h-6zM5 13h6v6H5zM13 13h6v6h-6z',
-      reactor:'M12 10.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM12 3a9 9 0 100 18 9 9 0 000-18zM12 3v6.5M12 14.5V21M3 12h6.5M14.5 12H21',
-      gear:'M12 9a3 3 0 100 6 3 3 0 000-6zM19.4 13a7.5 7.5 0 000-2l1.8-1.3-2-3.4-2 .9a7.5 7.5 0 00-1.8-1l-.3-2.2H9.9l-.3 2.2a7.5 7.5 0 00-1.8 1l-2-.9-2 3.4L5.6 11a7.5 7.5 0 000 2l-1.8 1.3 2 3.4 2-.9a7.5 7.5 0 001.8 1l.3 2.2h4.2l.3-2.2a7.5 7.5 0 001.8-1l2 .9 2-3.4z',
-      cake:'M4 20h16M5.5 20v-6a2.5 2.5 0 012.5-2.5h8a2.5 2.5 0 012.5 2.5v6M9 8.5V6M12 8.5V5M15 8.5V6',
-      apps:'M6 6h.01M12 6h.01M18 6h.01M6 12h.01M12 12h.01M18 12h.01M6 18h.01M12 18h.01M18 18h.01',
-      folder:'M4 7a2 2 0 012-2h3.5l2 2H18a2 2 0 012 2v8a2 2 0 01-2 2H6a2 2 0 01-2-2z',
-      files:'M7 3h7l5 5v11a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1zM14 3v5h5',
-      system:'M3 5h18v11H3zM8 20h8M12 16v4',
-      monitor:'M3 12h4l2-7 4 14 2-7h6',
-      media:'M3 7a2 2 0 012-2h8a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2zM15 10l6-3v10l-6-3',
-      video:'M3 7a2 2 0 012-2h8a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2zM15 10l6-3v10l-6-3',
-      audio:'M9 18V7l9-2v11M9 18a3 3 0 11-6 0 3 3 0 016 0zM18 16a3 3 0 11-6 0 3 3 0 016 0z',
-      music:'M9 18V7l9-2v11M9 18a3 3 0 11-6 0 3 3 0 016 0zM18 16a3 3 0 11-6 0 3 3 0 016 0z',
-      download:'M12 3v12M7 11l5 5 5-5M5 21h14',
-      image:'M4 5h16v14H4zM4 15l5-5 4 4 3-3 4 4M9 9a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z',
-      gif:'M4 5h16v14H4zM4 15l5-5 4 4 3-3 4 4M9 9a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z',
-      palette:'M12 3a9 9 0 100 18c1 0 1.5-.7 1.5-1.5 0-.4-.2-.8-.5-1-.3-.3-.5-.6-.5-1 0-.8.7-1.5 1.5-1.5H16a5 5 0 005-5c0-4.4-4-8-9-8zM7.5 12a1 1 0 110-2 1 1 0 010 2zM10.5 8a1 1 0 110-2 1 1 0 010 2zM15 8a1 1 0 110-2 1 1 0 010 2z',
-      ruler:'M3 8l5-5 13 13-5 5zM8 5l2 2M11 8l2 2M14 11l2 2',
-      camera:'M3 7a2 2 0 012-2h8a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2zM15 10l6-3v10l-6-3',
-      tweaks:'M4 7h16M4 12h16M4 17h16M9 5v4M15 10v4M7 15v4',
-      mouse:'M12 3a5 5 0 015 5v8a5 5 0 01-10 0V8a5 5 0 015-5zM12 7v3',
-      keyboard:'M3 6h18v12H3zM6 9v.01M9 9v.01M12 9v.01M15 9v.01M18 9v.01M6 12v.01M18 12v.01M8 15h8',
-      window:'M3 5h18v14H3zM3 9h18',
-      font:'M5 19l5-14 5 14M7 14h6M16 19h4',
-      clock:'M12 3a9 9 0 100 18 9 9 0 000-18zM12 8v4l3 2',
-      git:'M6 4v16M6 4a2 2 0 100 4 2 2 0 000-4zM6 16a2 2 0 100 4 2 2 0 000-4zM18 6a2 2 0 100 4 2 2 0 000-4zM18 8c0 4-6 4-6 8',
-      terminal:'M4 5h16v14H4zM7 9l3 3-3 3M13 15h4',
-      code:'M9 8l-5 4 5 4M15 8l5 4-5 4',
-      docker:'M4 11h16c0 4-3 7-7 7-3.5 0-6-2-6.5-4M6 11V8h2v3M9 11V8h2v3M12 11V8h2v3M9 8V5h2v3',
-      server:'M4 5h16v5H4zM4 14h16v5H4zM7 7.5v.01M7 16.5v.01',
-      phone:'M8 3h8a1 1 0 011 1v16a1 1 0 01-1 1H8a1 1 0 01-1-1V4a1 1 0 011-1zM11 18h2',
-      cloud:'M7 18a4 4 0 010-8 5 5 0 019.5-1A3.5 3.5 0 0117 18z',
-      globe:'M12 3a9 9 0 100 18 9 9 0 000-18zM3 12h18M12 3c2.5 2.7 2.5 15.3 0 18M12 3c-2.5 2.7-2.5 15.3 0 18',
-      network:'M5 12.5a9 9 0 0114 0M8 15.5a5 5 0 018 0M12 19h.01',
-      scan:'M4 8V5a1 1 0 011-1h3M16 4h3a1 1 0 011 1v3M20 16v3a1 1 0 01-1 1h-3M8 20H5a1 1 0 01-1-1v-3M4 12h16',
-      shield:'M12 3l7 3v5c0 5-3.5 8-7 10-3.5-2-7-5-7-10V6z',
-      lock:'M6 11h12v9H6zM9 11V8a3 3 0 016 0v3',
-      key:'M14 7a4 4 0 11-3 3.9L4 18v2h2l1-1h2v-2h2l1.1-1.1A4 4 0 0114 7z',
-      vault:'M4 5h16v14H4zM12 12m-3 0a3 3 0 106 0a3 3 0 10-6 0M12 9v.01',
-      mail:'M3 6h18v12H3zM3 7l9 6 9-6',
-      chat:'M4 5h16v11H8l-4 4z',
-      ai:'M12 4a8 8 0 100 16 8 8 0 000-16zM9 10h.01M15 10h.01M9 14c1 1 5 1 6 0',
-      db:'M5 6c0-1.7 3.1-3 7-3s7 1.3 7 3-3.1 3-7 3-7-1.3-7-3zM5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3',
-      table:'M3 5h18v14H3zM3 10h18M9 5v14',
-      package:'M12 3l8 4v10l-8 4-8-4V7zM4 7l8 4 8-4M12 11v10',
-      diagram:'M4 4h6v5H4zM14 15h6v5h-6zM7 9v4a2 2 0 002 2h5',
-      chart:'M4 19V5M4 19h16M8 16v-5M12 16V8M16 16v-7',
-      book:'M5 4h11a2 2 0 012 2v14H7a2 2 0 01-2-2zM5 18a2 2 0 012-2h11',
-      info:'M12 4a8 8 0 100 16 8 8 0 000-16zM12 11v5M12 8h.01',
-      search:'M11 4a7 7 0 104.95 11.95A7 7 0 0011 4zM20 20l-3.5-3.5',
-      hex:'M7 3h10v18H7zM10 7h4M10 11h4M10 15h2',
-      clipboard:'M9 4h6v2H9zM6 6h12v14H6zM9 4a1 1 0 011-1h4a1 1 0 011 1v1H9z',
-      bolt:'M13 3L5 13h5l-1 8 8-10h-5z',
-      wrench:'M14.5 6.5a4 4 0 00-5.3 5.3l-5.5 5.5 2 2 5.5-5.5a4 4 0 005.3-5.3l-2.7 2.7-2-2z',
-      recipes:'M6 4v16M6 5h11l-2.2 3 2.2 3H6',
-      doc:'M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 16h6M10 10h3',
-      flask:'M9 3h6M10 3v6l-5 9a1.5 1.5 0 001.3 2.2h11.4A1.5 1.5 0 0019 18l-5-9V3',
-      play:'M8 5v14l11-7z',
-      disk:'M5 6c0-1.7 3.1-3 7-3s7 1.3 7 3-3.1 3-7 3-7-1.3-7-3zM5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6',
-      battery:'M3 8h16v8H3zM21 11v2M6 11v2M9 11v2M12 11v2',
+  state = { route: this.parse(), q: '', lang: 'both', menuOpen: false, dropOpen: false, catFilter: '', toasts: [], appMounted: false, appDrawer: false };
+
+  silentRun(href, label){
+    const i=(href||'').indexOf('#'); const hash = i>=0 ? href.slice(i) : '#/page/dashboard';
+    this._pendingHash = hash;
+    if(this._appLoaded && this.appIframe && this.appIframe.contentWindow){ try{ this.appIframe.contentWindow.postMessage({type:'winforge-deeplink',hash},'*'); }catch(e){} }
+    this.toast('Running in WinForge — silently in the background. Tap to view.');
+    if(!this.state.appMounted) this.setState({appMounted:true});
+  }
+  toast(msg){ const t={msg,id:Math.random()}; this.setState(s=>({toasts:[t,...s.toasts].slice(0,4)})); setTimeout(()=>{ this.setState(s=>({toasts:s.toasts.filter(x=>x!==t)})); }, 5000); }
+  appRunnerView(){
+    const h=React.createElement;
+    const toasts = this.state.toasts.length ? h('div',{style:{position:'fixed',right:16,bottom:this.state.appDrawer?'calc(min(620px,84vh) + 28px)':16,zIndex:210,display:'flex',flexDirection:'column',gap:9,alignItems:'flex-end'}},
+      this.state.toasts.map(t=>h('button',{key:t.id,onClick:()=>this.setState({appDrawer:true}),className:'wf-btn-h',style:{display:'flex',alignItems:'center',gap:10,background:'var(--panel2)',border:'1px solid var(--amber)',borderRadius:10,padding:'11px 15px',boxShadow:'0 16px 40px -18px #000',maxWidth:330,textAlign:'left',cursor:'pointer'}},
+        h('span',{style:{color:'var(--amber2)',fontSize:15}},'⊞'), h('span',{style:{fontSize:12.5,color:'var(--text)',lineHeight:1.4}},t.msg)))) : null;
+    let drawer=null;
+    if(this.state.appMounted){
+      const open=this.state.appDrawer;
+      drawer=h('div',{style:{position:'fixed',right:open?16:0,bottom:open?16:0,zIndex:205,width:open?'min(460px,94vw)':1,height:open?'min(620px,84vh)':1,opacity:open?1:0,pointerEvents:open?'auto':'none',background:'var(--panel)',border:open?'1px solid var(--line2)':'none',borderRadius:14,overflow:'hidden',boxShadow:open?'0 30px 80px -24px #000':'none',display:'flex',flexDirection:'column',transition:'opacity .2s'}},
+        h('div',{style:{display:open?'flex':'none',alignItems:'center',gap:10,padding:'9px 13px',borderBottom:'1px solid var(--line)',background:'var(--panel2)',flexShrink:0}},
+          h('span',{style:{width:18,height:18,borderRadius:5,background:'linear-gradient(135deg,var(--amber),#c43d00)',display:'grid',placeItems:'center',fontSize:11}},'⚒'),
+          h('span',{style:{fontFamily:'var(--disp)',fontWeight:600,fontSize:13,flex:1}},'WinForge app · running silently'),
+          h('a',{href:'App.dc.html',target:'_blank',rel:'noopener',style:{fontFamily:'var(--mono)',fontSize:10.5,color:'var(--muted)',marginRight:4}},'pop out ↗'),
+          h('button',{onClick:()=>this.setState({appDrawer:false}),className:'wf-nav-h',style:{background:'none',border:'none',color:'var(--dim)',fontSize:16,cursor:'pointer'}},'×')),
+        h('iframe',{ref:n=>{this.appIframe=n;}, src:'App.dc.html', title:'WinForge app',
+          onLoad:()=>{ this._appLoaded=true; if(this._pendingHash && this.appIframe && this.appIframe.contentWindow){ try{ this.appIframe.contentWindow.postMessage({type:'winforge-deeplink',hash:this._pendingHash},'*'); }catch(e){} } },
+          style:{flex:1,width:'100%',border:'none',background:'var(--bg)'}}));
+    }
+    return h(React.Fragment,null, toasts, drawer);
+  }
+
+  parse(){
+    let h = (location.hash || '').replace(/^#\/?/, '');
+    const parts = h.split('/').filter(Boolean).map(decodeURIComponent);
+    return { page: parts[0] || 'home', a: parts[1] || '', b: parts[2] || '' };
+  }
+  componentDidMount(){
+    this._onHash = () => {
+      const r = this.parse();
+      if (r.page === 'menu'){ return; }
+      window.scrollTo(0,0);
+      this.setState({ route: r, menuOpen:false, dropOpen:false, catFilter:'' });
     };
-    this.state = {
-      data: null,
-      openTabs: ['dashboard'],
-      active: 'dashboard',
-      expanded: {},
-      sel: 0,
-      theme: this.props.theme || 'dark',
-      lang: 0,
-      cpu: 7, mem: 56, memUsed: 36.3,
-      cores: Array.from({length:32}, () => Math.random()*22),
-      down: 75.4, up: 519.7,
-      net: Array.from({length:44}, (_,i)=> 12 + Math.sin(i/3)*8 + Math.random()*10),
-      uptime: '1d 8h 31m',
-      power: 612, temp: 318, pressure: 15.4, coolant: 88, rodSet: [60,64,58,66,61,63],
-      procs: [
-        {pid:4408, name:'chrome.exe', cpu:11, mem:1842.0},{pid:9120, name:'WinForge.exe', cpu:6, mem:212.4},
-        {pid:16252, name:'Discord', cpu:4, mem:283.6},{pid:1180, name:'dwm.exe', cpu:3, mem:96.8},
-        {pid:15044, name:'TrafficMonitor', cpu:2, mem:7.3},{pid:7732, name:'explorer.exe', cpu:2, mem:178.2},
-        {pid:28252, name:'CurseForge', cpu:1, mem:149.7},
-      ],
-    };
-    this.rootRef = null;
+    window.addEventListener('hashchange', this._onHash);
+    this.D = window.WINFORGE_DATA || {categories:[],modules:[],wikiIndex:[],wiki:{},meta:{}};
+    // flagship modules (not in the handoff table) + their in-app requirement ("pricing")
+    const flag = [
+      {en:'Nuclear Reactor',zh:'核反應堆',page:'reactor',pageFile:'Pages/NuclearReactorModule',service:'Services/ReactorSim, ReactorStatusApiService',engine:'PWR point-kinetics control room — 6-group kinetics, RPS, steam/turbine; burns .fuel assemblies',status:'✅',requires:'fuel',playable:'#/reactor'},
+      {en:'Nuclear Fuel Factory',zh:'核燃料工廠',page:'fuelfactory',pageFile:'Pages/FuelFactoryModule',service:'Services/FuelFabService',engine:'UF6 → centrifuge enrichment → pellets → assemblies; mints signed .fuel files',status:'✅',requires:null,playable:'#/fuel'},
+      {en:'Cake Factory & Farm',zh:'蛋糕工廠與農場',page:'cakefactory',pageFile:'Pages/CakeFactoryModule',service:'Services/CakeFactoryService',engine:'reactor-powered HTML5 ingredient farm + bakery line, signed .cake files',status:'✅',requires:'power',playable:'#/cake'},
+      {en:'AI Agents',zh:'AI 代理',page:'aiagents',pageFile:'Pages/AiAgentsModule',service:'Services/AgentRunner',engine:'autonomous agent runner — YOLO mode consumes one signed .cake per run',status:'✅',requires:'cake'},
+      {en:'AI Chat',zh:'AI 對話',page:'aichat',pageFile:'Pages/AiChatModule',service:'Services/AiService',engine:'local / remote LLM chat with tools',status:'✅',requires:'cake'},
+    ];
+    this.D.modules = flag.concat(this.D.modules||[]);
+    this.buildIndex();
+    this.forceUpdate();
+  }
+  componentWillUnmount(){ window.removeEventListener('hashchange', this._onHash); }
+
+  slug(s){ return (s||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''); }
+
+  buildIndex(){
+    const idx = [];
+    (this.D.modules||[]).forEach(m=>idx.push({type:'module',title:m.en,zh:m.zh,sub:m.engine,route:'#/module/'+m.page,hay:(m.en+' '+m.zh+' '+m.page+' '+m.engine+' '+m.service).toLowerCase()}));
+    (this.D.categories||[]).forEach((c,i)=>{
+      idx.push({type:'category',title:c.en,zh:c.zh,sub:c.count+' features',route:'#/category/'+this.slug(c.en),hay:(c.en+' '+c.zh).toLowerCase()});
+      c.features.forEach(f=>idx.push({type:'feature',title:f.en,zh:f.zh,sub:c.en,route:'#/category/'+this.slug(c.en)+'/'+f.id,hay:(f.en+' '+f.zh+' '+f.id).toLowerCase()}));
+    });
+    (this.D.wikiIndex||[]).forEach(w=>idx.push({type:'wiki',title:w.title.replace(/[·].*$/,'').trim(),zh:'',sub:'Wiki',route:'#/wiki/'+w.slug,hay:(w.title+' '+w.slug).toLowerCase()}));
+    this.index = idx;
+  }
+  search(q, limit){
+    q = (q||'').trim().toLowerCase();
+    if(!q) return [];
+    const terms = q.split(/\s+/);
+    const scored = [];
+    for(const it of this.index){
+      let ok = true, score = 0;
+      for(const t of terms){ const p = it.hay.indexOf(t); if(p<0){ok=false;break;} score += p===0?0:(p<20?6:12); }
+      if(!ok) continue;
+      const w = {module:0,category:1,wiki:2,feature:5}[it.type]||5;
+      scored.push([score+w, it]);
+    }
+    scored.sort((a,b)=>a[0]-b[0]);
+    return scored.slice(0, limit||scored.length).map(s=>s[1]);
   }
 
-  palettes(){ return {
-    dark:{'--bg':'#0a0d0b','--bg2':'#0e120f','--panel':'#131814','--panel2':'#1a211b','--line':'rgba(255,255,255,.07)','--line2':'rgba(255,255,255,.13)','--text':'#e9efe9','--text-dim':'#9fae9f','--text-faint':'#6b7a6d','--brand':'#54e07e','--brand-dim':'#2faf57','--brand-glow':'rgba(84,224,126,.13)','--spark':'#f7b034','--spark2':'#ff7a45','--danger':'#ff5f5f','--warn':'#f5c451','--cyan':'#49cdd9'},
-    light:{'--bg':'#eaeee7','--bg2':'#f3f6f0','--panel':'#ffffff','--panel2':'#eef2ea','--line':'rgba(20,45,25,.09)','--line2':'rgba(20,45,25,.16)','--text':'#15201a','--text-dim':'#4a5a4c','--text-faint':'#7a8a7c','--brand':'#1f8a44','--brand-dim':'#2faf57','--brand-glow':'rgba(31,138,68,.1)','--spark':'#d97a10','--spark2':'#e8632a','--danger':'#d83a3a','--warn':'#c79412','--cyan':'#1f9aa6'}
-  };}
-  setRoot = (el) => { this.rootRef = el; if(el) this.applyTheme(this.state.theme); };
-  applyTheme(theme){ if(!this.rootRef) return; const p=this.palettes()[theme]||this.palettes().dark; for(const k in p) this.rootRef.style.setProperty(k,p[k]); this.rootRef.style.background=p['--bg']; this.rootRef.style.color=p['--text']; }
-  toggleTheme = () => this.setState(s=>({theme:s.theme==='dark'?'light':'dark'}), ()=>this.applyTheme(this.state.theme));
-  cycleLang = () => this.setState(s=>({lang:(s.lang+1)%3}));
-
-  async componentDidMount(){
-    try { const m = await import('./winforge-modules.js'); this.setState({ data:{GROUPS:m.GROUPS, MODULES:m.MODULES, FOOTER:m.FOOTER} }); }
-    catch(e){ console.error('module catalog load failed', e); }
-    this.timer = setInterval(()=>this.tick(), 1300);
+  // ---- requirements ("pricing") + deep links ----
+  reqMeta(t){
+    if(t==='power') return {icon:'⚡',label:'Needs reactor power',zh:'需要反應堆電力',color:'var(--cyan)',bg:'rgba(51,214,224,.12)'};
+    if(t==='cake') return {icon:'🍰',label:'Costs 1 signed cake',zh:'消耗 1 個已簽署蛋糕',color:'var(--amber2)',bg:'rgba(255,176,102,.13)'};
+    if(t==='fuel') return {icon:'⬡',label:'Needs fuel assemblies',zh:'需要燃料組件',color:'var(--green)',bg:'rgba(95,211,122,.12)'};
+    return null;
   }
-  componentWillUnmount(){ clearInterval(this.timer); }
-
-  groupOf(tag){ const d=this.state.data; if(!d) return null; for(const g of d.GROUPS){ if(g.items.includes(tag)) return g.id; } return null; }
-  open = (tag) => () => {
-    this.setState(s=>{
-      const openTabs = s.openTabs.includes(tag) ? s.openTabs : [...s.openTabs, tag];
-      const gid = this.groupOf(tag);
-      const expanded = gid ? {...s.expanded, [gid]:true} : s.expanded;
-      return { active:tag, openTabs, expanded, sel:0 };
-    });
-  };
-  closeTab = (tag) => (e) => {
-    if(e&&e.stopPropagation) e.stopPropagation();
-    this.setState(s=>{
-      const i = s.openTabs.indexOf(tag);
-      const openTabs = s.openTabs.filter(t=>t!==tag);
-      let active = s.active;
-      if(active===tag) active = openTabs[Math.max(0,i-1)] || openTabs[0] || 'dashboard';
-      return { openTabs: openTabs.length?openTabs:['dashboard'], active };
-    });
-  };
-  toggleGroup = (id) => () => this.setState(s=>({expanded:{...s.expanded,[id]:!s.expanded[id]}}));
-  selectRow = (i) => () => this.setState({sel:i});
-
-  clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
-  walk(v,amt,a,b){ return this.clamp(v+(Math.random()-0.5)*amt,a,b); }
-  tick(){
-    this.setState(s=>{
-      const cores = s.cores.map(c=>{ let n=c+(Math.random()-0.5)*22; if(Math.random()<0.05)n+=35; return this.clamp(n,0,100); });
-      const cpu = Math.round(cores.reduce((a,b)=>a+b,0)/cores.length);
-      const net = s.net.slice(1).concat(this.clamp(s.net[s.net.length-1]+(Math.random()-0.5)*30,2,100));
-      const procs = s.procs.map(p=>({...p, cpu:this.clamp(Math.round(p.cpu+(Math.random()-0.5)*6),0,60)}));
-      return { cores,cpu,net,procs,
-        mem:Math.round(this.walk(s.mem,4,48,64)), memUsed:+(this.walk(s.memUsed,1.5,30,41)).toFixed(1),
-        down:+(this.walk(s.down,60,8,480)).toFixed(1), up:+(this.walk(s.up,120,40,980)).toFixed(1),
-        power:Math.round(this.walk(s.power,14,560,720)), temp:Math.round(this.walk(s.temp,6,300,332)),
-        pressure:+(this.walk(s.pressure,0.4,14.6,16.2)).toFixed(1), coolant:Math.round(this.walk(s.coolant,5,78,96)),
-        rodSet:s.rodSet.map(r=>Math.round(this.clamp(r+(Math.random()-0.5)*3,50,72))),
-      };
-    });
+  catReq(cat){ return cat && cat.en==='AI' ? 'cake' : null; }
+  reqBadge(t, small){
+    const m=this.reqMeta(t); if(!m) return null; const h=React.createElement;
+    return h('a',{href:'#/pricing',onClick:e=>e.stopPropagation(),title:m.label,style:{display:'inline-flex',alignItems:'center',gap:5,fontFamily:'var(--mono)',fontSize:small?10:11,fontWeight:600,color:m.color,background:m.bg,border:'1px solid '+m.color,borderRadius:999,padding:small?'2px 7px':'4px 10px',whiteSpace:'nowrap'}}, m.icon, this.state.lang==='zh'?m.zh:m.label);
   }
-  pad2(n){ return String(n).padStart(2,'0'); }
-  coreColor(v){ return v<45?'var(--brand)':v<75?'var(--spark)':'var(--danger)'; }
-  ic(k){ return this.ICON[k] || 'M12 11.5a.5.5 0 100 1 .5.5 0 000-1zM12 4a8 8 0 100 16 8 8 0 000-16z'; }
-  pf(f){ if(f==null) return {en:'',zh:''}; const p=String(f).split('·'); return {en:(p[0]||'').trim(), zh:(p[1]||'').trim()}; }
-
-  statusMeta(s){
-    const t=(s||'').toLowerCase();
-    if(['on','running','installed','good','estab','passed','done','active'].includes(t)) return 'var(--brand)';
-    if(['off','stopped','exited','disabled'].includes(t)) return 'var(--text-faint)';
-    if(['warn','warning','caution'].includes(t)) return 'var(--spark)';
-    if(['update','queued','seeding','syncing'].includes(t)) return 'var(--cyan)';
-    return 'var(--brand)';
+  appLink(page){ return 'App.dc.html#/page/'+page; }
+  appRun(cat, feat){ return 'App.dc.html#/run/'+cat+'/'+feat; }
+  appSearch(q){ return 'App.dc.html#/search/'+encodeURIComponent(q); }
+  openChip(href, label, color){
+    const h=React.createElement;
+    return h('button',{onClick:(e)=>{e.preventDefault();e.stopPropagation();this.silentRun(href,label);},className:'wf-chip-h',title:'Runs in the WinForge app replica — silently, without stealing focus',style:{display:'inline-flex',alignItems:'center',gap:6,background:'var(--panel3)',border:'1px solid var(--line2)',borderRadius:7,padding:'6px 11px',fontFamily:'var(--mono)',fontSize:11.5,color:color||'var(--muted)',cursor:'pointer',transition:'all .15s'}}, '⊞ ', label);
   }
 
-  parseRows(items){
-    return (items||[]).map((it)=>{
-      const fields = String(it).split('|').map(x=>x.trim());
-      const a=this.pf(fields[0]); const b=fields[1]!=null?this.pf(fields[1]):null;
-      const c=fields[2]!=null?this.pf(fields[2]):null; const d=fields[3]!=null?this.pf(fields[3]):null;
-      const lastEn=this.pf(fields[fields.length-1]).en.toLowerCase();
-      const on = lastEn==='on' ? true : (lastEn==='off'? false : null);
-      return {fields,a,b:b||{en:'',zh:''},c:c||{en:'',zh:''},d:d||{en:'',zh:''},nb:!!b,nc:!!c,nd:!!d,on};
-    });
+  reqBanner(t){
+    const m=this.reqMeta(t); if(!m) return null; const h=React.createElement;
+    const body = t==='power'
+      ? 'This module is gated by the reactor bus. It only runs while the Nuclear Reactor is synchronized and generating — if the reactor is offline or in meltdown, powered work locks out, and below demand every process is slowed by the available-power fraction.'
+      : 'This feature spends one signed .cake file per run. Bake cakes in the Cake Factory (which itself needs reactor power); forged, tampered, expired or already-eaten cakes are rejected. It is WinForge\u2019s in-app credit — not real money.';
+    return h('div',{style:{display:'flex',gap:13,alignItems:'flex-start',background:m.bg,border:'1px solid '+m.color,borderRadius:11,padding:'14px 16px',margin:'4px 0 20px',maxWidth:720}},
+      h('span',{style:{fontSize:22,lineHeight:1}},m.icon),
+      h('div',null,
+        h('div',{style:{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}},
+          h('span',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:14,color:m.color}}, t==='power'?'Requires reactor power · 需要反應堆電力':'Requires a cake · 需要蛋糕'),
+          h('a',{href:'#/pricing',className:'wf-nav-h',style:{fontFamily:'var(--mono)',fontSize:11,color:'var(--muted)'}},'see pricing →')),
+        h('p',{style:{margin:'5px 0 0',fontSize:13.5,color:'#c8ced7',lineHeight:1.55}}, body)));
+  }
+  go(h){ location.hash = h; }
+  onSearch = (e)=>{ this.setState({q:e.target.value, dropOpen:true}); };
+  onSearchFocus = ()=>{ if(this.state.q) this.setState({dropOpen:true}); };
+  onSearchKey = (e)=>{ if(e.key==='Enter'){ const q=this.state.q.trim(); if(q){ this.setState({dropOpen:false}); this.go('#/search/'+encodeURIComponent(q)); } } else if(e.key==='Escape'){ this.setState({dropOpen:false}); } };
+  toggleMenu = (e)=>{ e.preventDefault(); this.setState(s=>({menuOpen:!s.menuOpen})); };
+  setLang = (l)=>(e)=>{ e.preventDefault(); this.setState({lang:l}); };
+
+  // bilingual text helper -> React node
+  bi(en, zh, sep){
+    const L = this.state.lang;
+    if(L==='en' || !zh) return en;
+    if(L==='zh') return zh || en;
+    return React.createElement(React.Fragment,null, en, React.createElement('span',{style:{color:'var(--dim)'}}, (sep||' · ')+zh));
+  }
+
+  // ---------- Markdown ----------
+  esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  inline(s){
+    s = this.esc(s);
+    s = s.replace(/`([^`]+)`/g,(m,c)=>'<code>'+c+'</code>');
+    s = s.replace(/!\[([^\]]*)\]\(([^)]+)\)/g,(m,a,u)=>{ u=this.imgsrc(u); return '<img alt="'+a+'" src="'+u+'" loading="lazy" onerror="this.style.display=\'none\'">'; });
+    s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g,(m,t,u)=>{ const r=this.linkrw(u); return '<a href="'+r.href+'"'+(r.ext?' target="_blank" rel="noopener"':'')+'>'+t+'</a>'; });
+    s = s.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
+    s = s.replace(/(^|[^*])\*([^*]+)\*(?!\*)/g,'$1<em>$2</em>');
+    return s;
+  }
+  imgsrc(u){ if(/^https?:/.test(u)) return u; const base=u.split('/').pop(); return 'assets/'+base; }
+  linkrw(u){
+    if(/^https?:/.test(u)) return {href:u, ext:true};
+    if(/^#/.test(u)) return {href:u, ext:false};
+    const m = u.match(/([^\/]+)\.md(#.*)?$/);
+    if(m) return {href:'#/wiki/'+m[1], ext:false};
+    return {href:u, ext:false};
+  }
+  md(src){
+    const lines = src.replace(/\r/g,'').split('\n');
+    let html = '', i=0;
+    const flushPara=(buf)=>{ if(buf.length){ html+='<p>'+this.inline(buf.join(' '))+'</p>'; } };
+    while(i<lines.length){
+      let ln = lines[i];
+      if(/^```/.test(ln)){ let code=''; i++; while(i<lines.length && !/^```/.test(lines[i])){ code+=this.esc(lines[i])+'\n'; i++; } i++; html+='<pre><code>'+code+'</code></pre>'; continue; }
+      const hm = ln.match(/^(#{1,6})\s+(.*)$/);
+      if(hm){ const lv=hm[1].length; html+='<h'+lv+'>'+this.inline(hm[2].replace(/\s*#+\s*$/,''))+'</h'+lv+'>'; i++; continue; }
+      if(/^\s*---+\s*$/.test(ln)){ html+='<hr>'; i++; continue; }
+      if(/^\s*>/.test(ln)){ let buf=[]; while(i<lines.length && /^\s*>/.test(lines[i])){ buf.push(lines[i].replace(/^\s*>\s?/,'')); i++; } html+='<blockquote>'+this.inline(buf.join(' '))+'</blockquote>'; continue; }
+      if(/^\s*\|.*\|\s*$/.test(ln)){
+        const tbl=[]; while(i<lines.length && /^\s*\|.*\|\s*$/.test(lines[i])){ tbl.push(lines[i]); i++; }
+        const rows = tbl.map(r=>r.trim().replace(/^\||\|$/g,'').split('|').map(c=>c.trim()));
+        let sep=1; if(rows[1] && rows[1].every(c=>/^:?-+:?$/.test(c))) sep=1; else sep=-1;
+        html+='<table>';
+        if(sep===1){ html+='<thead><tr>'+rows[0].map(c=>'<th>'+this.inline(c)+'</th>').join('')+'</tr></thead>'; }
+        html+='<tbody>';
+        rows.forEach((r,ri)=>{ if(sep===1 && (ri===0||ri===1)) return; html+='<tr>'+r.map(c=>'<td>'+this.inline(c)+'</td>').join('')+'</tr>'; });
+        html+='</tbody></table>'; continue;
+      }
+      if(/^\s*[-*]\s+/.test(ln)){ let buf=[]; while(i<lines.length && /^\s*[-*]\s+/.test(lines[i])){ buf.push('<li>'+this.inline(lines[i].replace(/^\s*[-*]\s+/,''))+'</li>'); i++; } html+='<ul>'+buf.join('')+'</ul>'; continue; }
+      if(/^\s*\d+\.\s+/.test(ln)){ let buf=[]; while(i<lines.length && /^\s*\d+\.\s+/.test(lines[i])){ buf.push('<li>'+this.inline(lines[i].replace(/^\s*\d+\.\s+/,''))+'</li>'); i++; } html+='<ol>'+buf.join('')+'</ol>'; continue; }
+      if(/^\s*$/.test(ln)){ i++; continue; }
+      let buf=[]; while(i<lines.length && !/^\s*$/.test(lines[i]) && !/^(#{1,6}\s|```|\s*>|\s*[-*]\s|\s*\d+\.\s|\s*\|)/.test(lines[i])){ buf.push(lines[i]); i++; } flushPara(buf);
+    }
+    return html;
   }
 
   renderVals(){
-    const s=this.state; const d=s.data;
-    const base = {
-      setRoot:this.setRoot, toggleTheme:this.toggleTheme, cycleLang:this.cycleLang,
-      langLabel:this.langs[s.lang],
-      searchPlaceholder: s.lang===2?'搜尋全部…':'Search everything · 搜尋全部',
-      navGroups:[], footerItems:[], tabs:[],
-      isDash:s.active==='dashboard', isMon:s.active==='module.monitor', isReactor:s.active==='module.reactor', isCake:s.active==='module.cakefactory',
-      isGeneric:false,
-      cpu:s.cpu, mem:s.mem, memUsed:s.memUsed.toFixed(1), down:s.down, up:s.up, uptime:s.uptime,
-      coreCells:[], procRows:[], netPoints:'', netArea:'',
-      output:s.power, powerPct:Math.round((s.power/900)*100), thermal:Math.round(s.power*2.95),
-      gauges:[], rods:[], rodAvg:0, coolant:s.coolant, telemetry:'',
-      cards:[], cakeStages:[], cakeOps:[],
-      archRunner:false,archList:false,archTable:false,archEditor:false,archMeters:false,archMedia:false,archChat:false,archVault:false,archGrid:false,archTerminal:false,archForm:false,archDoc:false,
-      rows:[], consoleLines:[], chatMsgs:[], mediaChips:[], codeLines:[], editTree:[], docParas:[],
-      aIcon:this.ic('apps'),aTitle:'',aZh:'',aDesc:'',aDescZh:'',aBadge:'',hasBadge:false,aPrimary:'Run',
-      colA:'',colB:'',colC:'',colD:'',hasColD:false,rowCount:0,tableHeadCss:'',tableRowCss:'',
-      selName:'',selZh:'',selMeta:'',selStatus:'',selDot:'var(--brand)',
-      isEditCode:false,isEditCanvas:false,isEditSplit:false,editPanel:'Explorer',editLabel:'',termCmd:'',
-      isAbout:false,isPlainDoc:false,
+    if(!this.D) return { q:'', view:null, searchDropdown:null, mobileNav:null };
+    const r = this.state.route;
+    let view;
+    switch(r.page){
+      case 'manual': view = this.vManual(); break;
+      case 'category': view = this.vCategory(r.a, r.b); break;
+      case 'module': view = this.vModule(r.a); break;
+      case 'wiki': view = r.a ? this.vWikiPage(r.a) : this.vWikiIndex(); break;
+      case 'pricing': view = this.vPricing(); break;
+      case 'search': view = this.vSearch(r.a); break;
+      case 'reactor': view = this.vSim('Reactor.dc.html#guide','Nuclear Reactor · 核反應堆','Full PWR control room — start-up checklist on screen. Your plant state is saved.'); break;
+      case 'cake': view = this.vSim('CakeFarm.dc.html#guide','Cake Factory & Farm · 蛋糕工廠與農場','Reactor-powered ingredient chain — bakery checklist on screen. Treasury & orders saved.'); break;
+      case 'fuel': view = this.vSim('FuelFactory.dc.html#guide','Nuclear Fuel Factory · 核燃料工廠','Fabricate enriched assemblies and export signed .fuel files. Fabrication checklist on screen.'); break;
+      case 'app': view = this.vSim('App.dc.html','WinForge App Replica · app 復刻','The full WinUI-style app, in your browser. Deep links land here and press the button.'); break;
+      default: view = this.vHome();
+    }
+    return {
+      q: this.state.q,
+      onSearch: this.onSearch, onSearchKey: this.onSearchKey, onSearchFocus: this.onSearchFocus,
+      toggleMenu: this.toggleMenu,
+      view,
+      searchDropdown: this.dropdown(),
+      mobileNav: this.state.menuOpen ? this.mobile() : null,
+      appRunner: this.appRunnerView(),
     };
+  }
 
-    // live bespoke data (always computed for the hero screens)
-    base.coreCells = s.cores.map((v,i)=>({ i:this.pad2(i), pct:Math.round(v), barCss:{height:'100%',width:Math.round(v)+'%',borderRadius:'4px',background:this.coreColor(v),transition:'width .9s ease, background .4s ease'} }));
-    base.procRows = [...s.procs].sort((a,b)=>b.cpu-a.cpu).map(p=>({ pid:p.pid,name:p.name,cpu:p.cpu,mem:p.mem.toFixed(1), barCss:{height:'100%',width:Math.min(100,p.cpu*1.6)+'%',borderRadius:'3px',background:this.coreColor(p.cpu*1.4),transition:'width .8s ease'} }));
-    const W=300,H=56,mx=Math.max(...s.net,1);
-    const pts=s.net.map((v,i)=>{const x=(i/(s.net.length-1))*W;const y=H-(v/mx)*(H-6)-3;return x.toFixed(1)+','+y.toFixed(1);});
-    base.netPoints=pts.join(' '); base.netArea='0,'+H+' '+base.netPoints+' '+W+','+H;
-    const CIRC=289; const gauge=(val,unit,label,zh,frac,color)=>({val,unit,label,zh,color,off:(CIRC*(1-this.clamp(frac,0,1))).toFixed(1)});
-    base.gauges=[ gauge(s.temp,'°C','Core temp','堆芯溫度',s.temp/360,'var(--spark)'), gauge(s.pressure,'MPa','Pressure','壓力',s.pressure/20,'var(--cyan)'), gauge(s.coolant,'%','Coolant','冷卻',s.coolant/100,'var(--brand)') ];
-    base.rods=s.rodSet.map((r,i)=>({id:'R'+(i+1),fillCss:{width:'100%',height:r+'%',background:'linear-gradient(180deg,var(--brand),var(--brand-dim))',transition:'height 1s ease'}}));
-    base.rodAvg=Math.round(s.rodSet.reduce((a,b)=>a+b,0)/s.rodSet.length);
-    base.telemetry='reactor_bus '+s.power+' MWe · loop ΔT '+(s.temp-289)+'°C · '+s.pressure+' MPa · rods '+base.rodAvg+'% · all interlocks nominal';
-    base.cakeStages=[ {n:'1',en:'Farm',zh:'農場',bg:'var(--brand-glow)',fg:'var(--brand)'},{n:'2',en:'Mill',zh:'磨坊',bg:'rgba(247,176,52,.14)',fg:'var(--spark)'},{n:'3',en:'Mix',zh:'攪拌',bg:'rgba(73,205,217,.14)',fg:'var(--cyan)'},{n:'4',en:'Bake',zh:'烘焙',bg:'rgba(247,176,52,.14)',fg:'var(--spark)'},{n:'5',en:'Pack',zh:'包裝',bg:'var(--brand-glow)',fg:'var(--brand)'} ];
-    base.cakeOps=[ {en:'Harvest',zh:'收割'},{en:'Milk + eggs',zh:'牛奶雞蛋'},{en:'Mill flour',zh:'磨粉'},{en:'Churn butter',zh:'攪牛油'},{en:'Start batch',zh:'開始批次'},{en:'CIP clean',zh:'就地清洗'} ];
+  dropdown(){
+    if(!this.state.dropOpen || this.state.q.trim().length<1) return null;
+    const res = this.search(this.state.q, 8);
+    const h=React.createElement;
+    const items = res.length ? res.map((it,i)=>h('a',{key:i,href:it.route,onClick:()=>this.setState({dropOpen:false}),className:'wf-row-h',style:{display:'flex',alignItems:'center',gap:10,padding:'9px 12px',borderBottom:'1px solid var(--line)',cursor:'pointer'}},
+        h('span',{style:{fontFamily:'var(--mono)',fontSize:9,padding:'2px 6px',borderRadius:4,background:'var(--panel3)',color:this.typeColor(it.type),flexShrink:0,textTransform:'uppercase',letterSpacing:'.5px'}}, it.type),
+        h('span',{style:{flex:1,minWidth:0}},
+          h('div',{style:{fontSize:13,fontWeight:500,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, it.title),
+          h('div',{style:{fontSize:11,color:'var(--dim)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, it.zh||it.sub)
+        )
+      )) : [h('div',{key:'no',style:{padding:'14px',color:'var(--dim)',fontSize:13}},'No matches.')];
+    if(res.length) items.push(h('a',{key:'all',href:'#/search/'+encodeURIComponent(this.state.q),onClick:()=>this.setState({dropOpen:false}),style:{display:'block',padding:'10px 12px',fontFamily:'var(--mono)',fontSize:11,color:'var(--amber2)',textAlign:'center'}},'See all results →'));
+    return h('div',{style:{position:'absolute',top:'calc(100% + 8px)',left:0,right:0,background:'var(--panel)',border:'1px solid var(--line2)',borderRadius:10,overflow:'hidden',boxShadow:'0 24px 60px -20px rgba(0,0,0,.9)',zIndex:60,maxHeight:'70vh',overflowY:'auto'}}, items);
+  }
+  typeColor(t){ return {module:'var(--amber2)',category:'var(--cyan)',wiki:'var(--violet)',feature:'var(--green)'}[t]||'var(--muted)'; }
 
-    if(!d) return base;
+  mobile(){
+    const h=React.createElement;
+    const ln=(href,label,c)=>h('a',{href,onClick:()=>this.setState({menuOpen:false}),style:{padding:'14px 4px',borderBottom:'1px solid var(--line)',fontFamily:'var(--disp)',fontSize:18,fontWeight:500,color:c||'var(--text)'}},label);
+    return h('div',{style:{position:'sticky',top:55,zIndex:49,background:'var(--panel)',borderBottom:'1px solid var(--line2)',padding:'8px clamp(14px,3vw,30px) 16px',display:'flex',flexDirection:'column'}},
+      ln('#/manual','Manual · 手冊'), ln('#/wiki','Wiki'), ln('#/pricing','Pricing · 收費'), ln('#/app','⊞ Open the app replica','var(--amber)'), ln('#/reactor','Reactor · 核反應堆','var(--cyan)'), ln('#/cake','Cake Farm · 蛋糕農場','var(--amber2)'), ln('#/fuel','Fuel Factory · 核燃料','var(--green)'),
+      h('a',{href:'https://github.com/codingmachineedge/WinForge',target:'_blank',rel:'noopener',onClick:()=>this.setState({menuOpen:false}),style:{padding:'14px 4px',fontFamily:'var(--disp)',fontSize:18,fontWeight:600,color:'var(--amber)'}},'⭳ Install WinForge'));
+  }
 
-    // NAV
-    base.navGroups = d.GROUPS.map(g=>{
-      const flat = (g.id==='suite'||g.id==='win11');
-      const expanded = flat ? true : !!s.expanded[g.id];
-      const items = g.items.map(tag=>{
-        const m = d.MODULES[tag] || {en:tag,zh:'',icon:'apps'};
-        const active = s.active===tag;
-        return { tag, en:m.en, zh:m.zh, icon:this.ic(m.icon), star: m.badge==='FLAGSHIP', onClick:this.open(tag),
-          css:{display:'flex',alignItems:'center',gap:'10px',width:'100%',padding:'7px 10px',borderRadius:'9px',cursor:'pointer',font:'inherit',textAlign:'left',border:'none',background:active?'var(--brand-glow)':'transparent',color:active?'var(--brand)':'var(--text-dim)',boxShadow:active?'inset 2px 0 0 var(--brand)':'none'} };
-      });
-      return { id:g.id, label:g.label, zh:g.zh, flat, collapsible:!flat, expanded, showItems:flat||expanded,
-        count:String(g.items.length), icon:this.ic(g.icon), onToggle:this.toggleGroup(g.id),
-        itemsWrap:{display:'flex',flexDirection:'column',gap:'2px', paddingLeft: flat?'0':'8px', marginTop: flat?'2px':'2px'},
-        chevCss:{transform: expanded?'rotate(90deg)':'rotate(0deg)', transition:'transform .15s ease', flex:'none'},
-        parentCss:{display:'flex',alignItems:'center',gap:'10px',width:'100%',padding:'8px 10px',borderRadius:'9px',cursor:'pointer',font:'inherit',textAlign:'left',border:'none',background:'transparent',color:'var(--text-dim)'},
-        items };
+  // ---------- shared bits ----------
+  langToggle(){
+    const h=React.createElement; const L=this.state.lang;
+    const b=(v,t)=>h('button',{onClick:this.setLang(v),style:{background:L===v?'var(--amber)':'transparent',color:L===v?'#1a0e00':'var(--muted)',border:'none',borderRadius:6,padding:'5px 11px',fontFamily:'var(--mono)',fontSize:11,fontWeight:600,cursor:'pointer'}},t);
+    return h('div',{style:{display:'inline-flex',gap:3,background:'var(--panel2)',border:'1px solid var(--line)',borderRadius:8,padding:3}}, b('both','BOTH'), b('en','EN'), b('zh','粵'));
+  }
+  crumb(items){
+    const h=React.createElement;
+    const out=[]; items.forEach((it,i)=>{ if(i) out.push(h('span',{key:'s'+i,style:{color:'var(--dim)',margin:'0 8px'}},'/')); out.push(it[1]?h('a',{key:i,href:it[1],className:'wf-nav-h',style:{color:'var(--muted)'}},it[0]):h('span',{key:i,style:{color:'var(--text)'}},it[0])); });
+    return h('div',{style:{fontFamily:'var(--mono)',fontSize:12,marginBottom:18,display:'flex',flexWrap:'wrap',alignItems:'center'}}, out);
+  }
+  page(children, max){ return React.createElement('div',{className:'wf-rise',style:{maxWidth:max||1180,margin:'0 auto',padding:'clamp(26px,5vw,52px) clamp(16px,4vw,40px)'}}, children); }
+
+  // ---------- HOME ----------
+  GH(){ return 'https://github.com/codingmachineedge/WinForge'; }
+  PS(){ return 'irm https://get.winforge.app | iex'; }
+  copyCmd(text){ try{ navigator.clipboard.writeText(text); this.toast('Copied — paste into PowerShell.'); }catch(e){ this.toast('Select the command and copy it manually.'); } }
+  vHome(){
+    const h=React.createElement;
+    return h('div',null, this.heroV2(), this.ecosystem(), this.trySec(), this.homeRequirements(), this.homeCategories(), this.homeWiki(), this.installSection());
+  }
+  heroCore(){
+    const h=React.createElement;
+    const ring=(r,w,col,dur,rev,dash)=>h('circle',{cx:180,cy:180,r:r,fill:'none',stroke:col,strokeWidth:w,strokeDasharray:dash,strokeLinecap:'round',opacity:.85,style:{transformOrigin:'180px 180px',animation:'wf-spin'+(rev?'r':'')+' '+dur+'s linear infinite'}});
+    const orbit=(r,size,col,dur,rev)=>h('g',{style:{transformOrigin:'180px 180px',animation:'wf-spin'+(rev?'r':'')+' '+dur+'s linear infinite'}},h('circle',{cx:180,cy:180-r,r:size,fill:col,style:{filter:'drop-shadow(0 0 7px '+col+')'}}));
+    return h('div',{style:{position:'relative'}},
+      h('div',{style:{position:'absolute',inset:'8%',background:'radial-gradient(circle at 50% 50%,rgba(255,122,26,.30),transparent 62%)',filter:'blur(26px)',pointerEvents:'none'}}),
+      h('svg',{viewBox:'0 0 360 360',role:'img','aria-label':'Reactor core',style:{width:'100%',maxWidth:430,display:'block',margin:'0 auto',position:'relative',animation:'wf-float 7s ease-in-out infinite'}},
+        h('defs',null,h('radialGradient',{id:'wfcore'},h('stop',{offset:'0%',stopColor:'#fff6e0'}),h('stop',{offset:'45%',stopColor:'var(--amber)'}),h('stop',{offset:'100%',stopColor:'#7a1f00',stopOpacity:0}))),
+        h('circle',{cx:180,cy:180,r:152,fill:'none',stroke:'var(--line2)',strokeWidth:1,opacity:.45}),
+        ring(152,2,'var(--cyan)',30,false,'2 16'),
+        ring(124,3,'var(--amber)',17,true,'34 18'),
+        ring(98,2,'var(--cyan)',12,false,'2 11'),
+        h('circle',{cx:180,cy:180,r:64,fill:'url(#wfcore)',style:{transformOrigin:'180px 180px',animation:'wf-corepulse 3s ease-in-out infinite'}}),
+        h('circle',{cx:180,cy:180,r:30,fill:'#fff7e6',opacity:.92,style:{transformOrigin:'180px 180px',animation:'wf-corepulse 2s ease-in-out infinite'}}),
+        h('text',{x:180,y:188,textAnchor:'middle',style:{font:'700 26px var(--disp)',fill:'#3a1500'}},'⚒'),
+        orbit(152,5,'var(--cyan)',9,false), orbit(124,6,'var(--amber2)',6,true), orbit(98,4,'var(--green)',5,false)));
+  }
+  heroV2(){
+    const h=React.createElement;
+    const stat=(n,l)=>h('div',{style:{display:'flex',flexDirection:'column',gap:3}}, h('span',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:'clamp(24px,4vw,38px)',color:'var(--amber2)',lineHeight:1}},n), h('span',{style:{fontFamily:'var(--mono)',fontSize:10.5,color:'var(--dim)',letterSpacing:'.5px'}},l));
+    return h('section',{style:{position:'relative',overflow:'hidden'}},
+      h('div',{'aria-hidden':'true',style:{position:'absolute',inset:0,background:'radial-gradient(680px 420px at 82% 18%,rgba(255,122,26,.16),transparent 60%),radial-gradient(560px 360px at 10% 90%,rgba(51,214,224,.10),transparent 60%)',pointerEvents:'none'}}),
+      h('div',{style:{position:'relative',maxWidth:1180,margin:'0 auto',padding:'clamp(30px,6vw,72px) clamp(16px,4vw,40px) clamp(18px,4vw,38px)'}},
+        h('div',{className:'wf-hero-grid',style:{display:'grid',gridTemplateColumns:'1.12fr .88fr',gap:'clamp(20px,4vw,48px)',alignItems:'center'}},
+          h('div',null,
+            h('div',{style:{display:'inline-flex',alignItems:'center',gap:8,fontFamily:'var(--mono)',fontSize:11,letterSpacing:'1px',color:'var(--cyan)',border:'1px solid var(--line2)',borderRadius:999,padding:'6px 13px',marginBottom:20,background:'rgba(20,23,29,.6)'}},
+              h('span',{style:{width:7,height:7,borderRadius:'50%',background:'var(--green)',animation:'wf-pulse 2s infinite'}}), 'WinUI 3 · .NET 11 · WINDOWS 11'),
+            h('h1',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:'clamp(38px,7vw,76px)',lineHeight:1,margin:'0 0 18px',letterSpacing:'-1.5px'}},'Forge your',h('br'),h('span',{style:{background:'linear-gradient(100deg,var(--amber),var(--amber2) 55%,var(--cyan))',WebkitBackgroundClip:'text',backgroundClip:'text',color:'transparent'}},'whole machine.')),
+            h('p',{style:{fontSize:'clamp(15px,2vw,18px)',color:'var(--muted)',lineHeight:1.6,maxWidth:540,margin:'0 0 22px'}},'A bilingual Windows 11 control center — ~1,174 tweaks & ops across 139 modules, each wrapping a real engine in-app, no redirects. Powered by its own nuclear reactor, fuel factory and cake economy you can run right here in the browser.'),
+            this.installCluster(),
+            h('div',{style:{display:'flex',gap:'clamp(18px,5vw,44px)',flexWrap:'wrap',marginTop:30}}, stat('139','MODULES'), stat('1,174','TWEAKS & OPS'), stat('4','SIMULATORS'), stat('100%','BILINGUAL'))
+          ),
+          h('div',{style:{minWidth:0}}, this.heroCore())
+        )));
+  }
+  installCluster(){
+    const h=React.createElement; const GH=this.GH(), PS=this.PS();
+    return h('div',null,
+      h('div',{style:{display:'flex',flexWrap:'wrap',gap:11,marginBottom:14}},
+        h('a',{href:GH+'/releases/latest',target:'_blank',rel:'noopener',className:'wf-btn-h',style:{display:'inline-flex',alignItems:'center',gap:9,background:'linear-gradient(135deg,var(--amber),#d24500)',color:'#1a0e00',fontFamily:'var(--disp)',fontWeight:700,fontSize:15.5,padding:'13px 24px',borderRadius:11,boxShadow:'0 14px 34px -14px var(--amber)'}},'⭳ Install WinForge'),
+        h('a',{href:'#/app',className:'wf-btn-h',style:{display:'inline-flex',alignItems:'center',gap:8,background:'var(--panel2)',border:'1px solid var(--line2)',color:'var(--text)',fontFamily:'var(--disp)',fontWeight:600,fontSize:15.5,padding:'13px 22px',borderRadius:11}},'⊞ Open the app replica')),
+      h('div',{onClick:()=>this.copyCmd('irm https://get.winforge.app | iex'),title:'Click to copy',style:{display:'flex',alignItems:'center',gap:10,background:'#0a0c10',border:'1px solid var(--line2)',borderRadius:10,padding:'11px 14px',maxWidth:440,cursor:'pointer'}},
+        h('span',{style:{fontFamily:'var(--mono)',fontSize:11,color:'var(--green)'}},'PS>'),
+        h('code',{style:{flex:1,fontFamily:'var(--mono)',fontSize:13,color:'var(--text)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}},PS),
+        h('span',{style:{fontFamily:'var(--mono)',fontSize:10,color:'var(--dim)',border:'1px solid var(--line2)',borderRadius:5,padding:'3px 7px'}},'COPY')),
+      h('div',{style:{display:'flex',gap:16,flexWrap:'wrap',marginTop:11,fontFamily:'var(--mono)',fontSize:12.5}},
+        h('a',{href:GH+'/releases',target:'_blank',rel:'noopener',className:'wf-nav-h',style:{color:'var(--muted)'}},'↺ Older versions'),
+        h('a',{href:GH,target:'_blank',rel:'noopener',className:'wf-nav-h',style:{color:'var(--muted)'}},'⟨⟩ Source on GitHub'),
+        h('a',{href:'#/manual',className:'wf-nav-h',style:{color:'var(--muted)'}},'📖 Read the manual')));
+  }
+  ecosystem(){
+    const h=React.createElement;
+    const node=(href,icon,t,sub,col)=>h('a',{href,className:'wf-eco-h',style:{flex:'1 1 130px',minWidth:120,display:'flex',flexDirection:'column',alignItems:'center',gap:7,textAlign:'center',padding:'18px 12px',background:'var(--panel)',border:'1px solid '+col,borderRadius:14,textDecoration:'none',transition:'transform .2s',boxShadow:'0 0 40px -30px '+col}},
+      h('span',{style:{width:52,height:52,borderRadius:'50%',display:'grid',placeItems:'center',fontSize:25,background:'radial-gradient(circle,'+col+'33,transparent 70%)',border:'1px solid '+col}},icon),
+      h('span',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:14,color:col}},t),
+      h('span',{style:{fontFamily:'var(--mono)',fontSize:10,color:'var(--dim)'}},sub));
+    const link=(label,col)=>h('div',{style:{flex:'0 1 70px',minWidth:40,display:'flex',flexDirection:'column',alignItems:'center',gap:4}},
+      h('span',{style:{fontFamily:'var(--mono)',fontSize:9.5,color:col,whiteSpace:'nowrap'}},label),
+      h('div',{className:'wf-flowline',style:{height:4,width:'100%',borderRadius:3,color:col}}));
+    return h('section',{style:{maxWidth:1180,margin:'0 auto',padding:'clamp(16px,3vw,30px) clamp(16px,4vw,40px)'}},
+      h('div',{style:{background:'linear-gradient(180deg,var(--panel),rgba(20,23,29,.4))',border:'1px solid var(--line)',borderRadius:18,padding:'clamp(18px,3vw,28px)'}},
+        h('div',{style:{display:'flex',alignItems:'baseline',gap:12,flexWrap:'wrap',marginBottom:18}},
+          h('h2',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:'clamp(20px,3vw,28px)',margin:0}},'One closed economy'),
+          h('span',{style:{fontFamily:'var(--mono)',fontSize:12,color:'var(--dim)'}},'燃料 → 電力 → 蛋糕 → AI')),
+        h('div',{style:{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap',justifyContent:'center'}},
+          node('#/fuel','⬡','Fuel Factory','mints .fuel','var(--green)'), link('.fuel →','var(--green)'),
+          node('#/reactor','☢','Reactor','makes power','var(--cyan)'), link('power →','var(--cyan)'),
+          node('#/cake','🍰','Cake Factory','bakes cakes','var(--amber2)'), link('cakes $ →','var(--amber2)'),
+          node('#/pricing','🤖','AI Agents','billed in cakes','var(--violet)'))));
+  }
+  tryCard(href,emoji,title,zh,desc,img,accent,badge){
+    const h=React.createElement;
+    return h('a',{href,className:'wf-card-h wf-shot-h',style:{display:'flex',flexDirection:'column',background:'var(--panel)',border:'1px solid var(--line)',borderRadius:14,overflow:'hidden',transition:'all .2s',textDecoration:'none'}},
+      h('div',{style:{position:'relative',aspectRatio:'16/10',overflow:'hidden',background:'radial-gradient(circle at 50% 38%,'+accent+'2e,var(--panel2))',display:'grid',placeItems:'center'}},
+        h('span',{style:{position:'absolute',fontSize:84,opacity:.16}},emoji),
+        img?h('img',{src:img,alt:title,loading:'lazy',style:{width:'100%',height:'100%',objectFit:'cover',position:'relative',transition:'transform .4s'},onError:e=>{e.target.style.display='none';}}):null,
+        h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180deg,transparent 38%,rgba(11,13,17,.88))'}}),
+        h('span',{style:{position:'absolute',top:12,left:12,fontFamily:'var(--mono)',fontSize:10,letterSpacing:'1px',color:accent,border:'1px solid '+accent,borderRadius:999,padding:'4px 10px',background:'rgba(11,13,17,.65)'}},badge||'PLAYABLE IN BROWSER')),
+      h('div',{style:{padding:'17px 19px 21px'}},
+        h('div',{style:{fontSize:24,marginBottom:5}},emoji),
+        h('div',{style:{fontFamily:'var(--disp)',fontWeight:600,fontSize:19}},title),
+        h('div',{style:{fontFamily:'var(--mono)',fontSize:11.5,color:'var(--dim)',margin:'2px 0 9px'}},zh),
+        h('p',{style:{color:'var(--muted)',fontSize:13.5,lineHeight:1.5,margin:0}},desc),
+        h('div',{style:{marginTop:13,fontFamily:'var(--disp)',fontWeight:600,fontSize:14,color:accent}},'Launch →')));
+  }
+  trySec(){
+    const h=React.createElement;
+    return h('section',{style:{maxWidth:1180,margin:'0 auto',padding:'clamp(20px,4vw,40px) clamp(16px,4vw,40px)'}},
+      this.sectionHead('Run the whole suite in your browser','喺瀏覽器運行成個套件','Four full HTML5 builds — not demos. State saves to your browser; close the tab and pick up where you left off.'),
+      h('div',{className:'wf-try-grid',style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:18,marginTop:24}},
+        this.tryCard('#/reactor','☢','Nuclear Reactor','核反應堆 · PWR 控制室','A pressurized-water control room — establish flow, pull rods, ride the ascension to the grid, burn fuel, avoid a SCRAM. Objectives, score, meltdown.','assets/screenshot-reactor-gauges.png','var(--cyan)'),
+        this.tryCard('#/cake','🍰','Cake Factory & Farm','蛋糕工廠與農場','Reactor-powered. Grow, mill, churn, bake through the kill step, ship orders and mint signed cakes worth real money.','assets/screenshot-cakefactory-scene.png','var(--amber2)'),
+        this.tryCard('#/fuel','⬡','Nuclear Fuel Factory','核燃料工廠','Convert UF6 → centrifuge enrichment → pellets → assemblies. Fabricate signed .fuel files and load them straight into the reactor.',null,'var(--green)'),
+        this.tryCard('#/app','⊞','The app, in your browser','app 復刻','The full WinUI-style WinForge replica: NavigationView, master search, live tweak toggles with real engine output. Deep links land here.','assets/screenshot-dashboard.png','var(--amber)','LIVE REPLICA')));
+  }
+  installSection(){
+    const h=React.createElement; const GH=this.GH();
+    const opt=(icon,t,sub,cmd,href,col)=>h('div',{style:{flex:'1 1 240px',minWidth:0,background:'var(--panel)',border:'1px solid var(--line)',borderRadius:13,padding:'17px 18px',display:'flex',flexDirection:'column',gap:9}},
+      h('div',{style:{display:'flex',alignItems:'center',gap:10}}, h('span',{style:{fontSize:20}},icon), h('span',{style:{fontFamily:'var(--disp)',fontWeight:600,fontSize:15.5,color:col}},t)),
+      h('p',{style:{margin:0,fontSize:13,color:'var(--muted)',lineHeight:1.5,flex:1}},sub),
+      cmd?h('div',{onClick:()=>this.copyCmd(cmd),title:'Click to copy',style:{display:'flex',alignItems:'center',gap:8,background:'#0a0c10',border:'1px solid var(--line2)',borderRadius:8,padding:'9px 11px',cursor:'pointer'}},
+        h('code',{style:{flex:1,fontFamily:'var(--mono)',fontSize:12,color:'var(--text)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}},cmd),
+        h('span',{style:{fontFamily:'var(--mono)',fontSize:9.5,color:'var(--dim)'}},'COPY'))
+        :h('a',{href:href,target:'_blank',rel:'noopener',className:'wf-chip-h',style:{fontFamily:'var(--mono)',fontSize:12,color:col,border:'1px solid var(--line2)',borderRadius:8,padding:'9px 11px',textAlign:'center'}},'Open ↗'));
+    return h('section',{id:'install',style:{maxWidth:1180,margin:'0 auto',padding:'clamp(20px,4vw,46px) clamp(16px,4vw,40px) clamp(40px,6vw,72px)'}},
+      this.sectionHead('Get WinForge','安裝 WinForge','Self-contained · no install dependencies · auto-updated on every push.'),
+      h('div',{style:{display:'flex',gap:14,flexWrap:'wrap',marginTop:24}},
+        opt('⊞','winget','The simplest install — one command in any terminal.','winget install WinForge.WinForge',null,'var(--cyan)'),
+        opt('⚡','PowerShell','Bootstrapping script — downloads and runs the latest installer.','irm https://get.winforge.app | iex',null,'var(--amber2)'),
+        opt('⭳','Installer & portable','Inno Setup installer or a portable zip from GitHub Releases.',null,GH+'/releases/latest','var(--green)'),
+        opt('↺','Older versions','Every build is published as v1.0.<run#> on GitHub Releases.',null,GH+'/releases','var(--violet)')),
+      h('div',{style:{marginTop:16,display:'flex',gap:10,alignItems:'center',flexWrap:'wrap',fontFamily:'var(--mono)',fontSize:12,color:'var(--dim)',background:'var(--panel)',border:'1px dashed var(--line2)',borderRadius:10,padding:'12px 15px'}},
+        h('span',{style:{color:'var(--green)'}},'CI'),'GitHub Actions builds + publishes a new release on every push — portable zip + installer.',
+        h('a',{href:GH,target:'_blank',rel:'noopener',className:'wf-nav-h',style:{color:'var(--cyan)',marginLeft:'auto'}},'⟨⟩ View source →')));
+  }
+  sectionHead(t,zh,sub){
+    const h=React.createElement;
+    return h('div',null,
+      h('div',{style:{display:'flex',alignItems:'baseline',gap:14,flexWrap:'wrap'}},
+        h('h2',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:'clamp(24px,3.4vw,34px)',margin:0,letterSpacing:'-.5px'}},t),
+        h('span',{style:{fontFamily:'var(--mono)',fontSize:13,color:'var(--dim)'}},zh)),
+      sub?h('p',{style:{color:'var(--muted)',fontSize:15,margin:'8px 0 0',maxWidth:680}},sub):null);
+  }
+  homeCategories(){
+    const h=React.createElement;
+    const cards=(this.D.categories||[]).map((c,i)=>h('a',{key:i,href:'#/category/'+this.slug(c.en),className:'wf-card-h',style:{display:'flex',flexDirection:'column',gap:6,padding:'16px 17px',background:'var(--panel)',border:'1px solid var(--line)',borderRadius:11,transition:'all .2s'}},
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
+        h('span',{style:{fontFamily:'var(--mono)',fontSize:11,color:'var(--cyan)'}},String(i+1).padStart(2,'0')),
+        h('span',{style:{fontFamily:'var(--mono)',fontSize:11,color:'var(--dim)',border:'1px solid var(--line)',borderRadius:999,padding:'2px 8px'}},c.count)),
+      h('div',{style:{fontFamily:'var(--disp)',fontWeight:600,fontSize:15.5,lineHeight:1.2}},c.en),
+      h('div',{style:{fontFamily:'var(--mono)',fontSize:11.5,color:'var(--dim)'}},c.zh)));
+    return h('section',{style:{maxWidth:1180,margin:'0 auto',padding:'clamp(20px,4vw,46px) clamp(16px,4vw,40px)'}},
+      this.sectionHead('Every module, documented','逐個模組 · 完整手冊','Browse all 25 categories and 1,174 features. Each opens to its full reference.'),
+      h('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:13,marginTop:24}}, cards));
+  }
+  homeWiki(){
+    const h=React.createElement;
+    const picks=['Nuclear-Reactor','Cake-Factory-and-Farm','Reactor-Operating-Procedures','Dashboard','Package-Manager','AI-Agents'];
+    const map={}; (this.D.wikiIndex||[]).forEach(w=>map[w.slug]=w);
+    const cards=picks.filter(s=>map[s]).map(s=>{ const w=map[s]; return h('a',{key:s,href:'#/wiki/'+s,className:'wf-row-h',style:{display:'flex',alignItems:'center',gap:12,padding:'14px 16px',background:'var(--panel)',border:'1px solid var(--line)',borderRadius:10,transition:'all .15s'}},
+      h('span',{style:{fontFamily:'var(--mono)',fontSize:10,color:'var(--violet)',border:'1px solid var(--line2)',borderRadius:5,padding:'3px 7px'}},'WIKI'),
+      h('span',{style:{flex:1,fontFamily:'var(--disp)',fontWeight:500,fontSize:14.5}}, w.title.replace(/·.*$/,'').trim()),
+      h('span',{className:'wf-arrow',style:{color:'var(--dim)',opacity:.6,transition:'all .15s'}},'→')); });
+    return h('section',{style:{maxWidth:1180,margin:'0 auto',padding:'clamp(20px,4vw,46px) clamp(16px,4vw,40px) clamp(40px,6vw,70px)'}},
+      this.sectionHead('From the wiki','知識庫精選',null),
+      h('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(290px,1fr))',gap:13,marginTop:24}}, cards),
+      h('a',{href:'#/wiki',className:'wf-chip-h',style:{display:'inline-block',marginTop:18,fontFamily:'var(--mono)',fontSize:13,color:'var(--muted)',border:'1px solid var(--line2)',borderRadius:8,padding:'9px 16px',transition:'all .15s'}},'Open the full wiki →'));
+  }
+
+  // ---------- REQUIREMENTS / PRICING ----------
+  homeRequirements(){
+    const h=React.createElement;
+    const card=(icon,t,zh,desc,color,bg,cta,href)=>h('a',{href,className:'wf-card-h',style:{display:'flex',flexDirection:'column',gap:9,padding:'20px 21px',background:'var(--panel)',border:'1px solid '+color,borderRadius:14,transition:'all .2s',boxShadow:'0 0 40px -28px '+color}},
+      h('div',{style:{display:'flex',alignItems:'center',gap:11}}, h('span',{style:{fontSize:30}},icon), h('div',null, h('div',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:19,color:color}},t), h('div',{style:{fontFamily:'var(--mono)',fontSize:12,color:'var(--dim)'}},zh))),
+      h('p',{style:{margin:0,fontSize:14,color:'var(--muted)',lineHeight:1.55}},desc),
+      h('span',{style:{marginTop:4,fontFamily:'var(--disp)',fontWeight:600,fontSize:13.5,color:color}},cta));
+    return h('section',{style:{maxWidth:1180,margin:'0 auto',padding:'clamp(20px,4vw,46px) clamp(16px,4vw,40px)'}},
+      this.sectionHead('Two in-app currencies','兩種 app 內「貨幣」','Most of WinForge is free. But the powered and AI features run on an in-app economy — not money. This is the "pricing" you actually pay.'),
+      h('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(280px,1fr))',gap:16,marginTop:24}},
+        card('⚡','Reactor Power','反應堆電力 · MWe','The Cake Factory and its farm automation only run while the Nuclear Reactor is synchronized and generating. Offline or melted → powered work locks out. Below demand → everything slows by the available-power fraction.','var(--cyan)','',' See what needs power →','#/pricing'),
+        card('🍰','Cakes','蛋糕 · the currency','Cakes are WinForge\u2019s money — each signed .cake is worth real value. AI Agents YOLO mode is billed one cake per run. You mint your own treasury in the Cake Factory (which needs reactor power).','var(--amber2)','',' See what costs cakes →','#/pricing')),
+      h('div',{style:{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap',marginTop:18,fontFamily:'var(--mono)',fontSize:12.5,color:'var(--muted)',background:'var(--panel)',border:'1px dashed var(--line2)',borderRadius:10,padding:'13px 16px'}},
+        h('span',{style:{color:'var(--green)'}},'⬡ Fuel'),h('span',{style:{color:'var(--dim)'}},'→'),
+        h('span',{style:{color:'var(--cyan)'}},'☢ Reactor'),h('span',{style:{color:'var(--dim)'}},'— power →'),
+        h('span',{style:{color:'var(--amber2)'}},'🍰 Cake Factory'),h('span',{style:{color:'var(--dim)'}},'— cakes ($) →'),
+        h('span',{style:{color:'var(--violet)'}},'🤖 AI Agents'),
+        h('span',{style:{color:'var(--dim)',marginLeft:'auto'}},'cakes = the currency · 蛋糕即貨幣')));
+  }
+  vPricing(){
+    const h=React.createElement;
+    const tier=(badge,bcol,title,zh,price,priceUnit,desc,bullets,cta,href,featured)=>h('div',{style:{display:'flex',flexDirection:'column',gap:13,padding:'22px 22px 24px',background:'var(--panel)',border:'1px solid '+(featured?bcol:'var(--line)'),borderRadius:16,position:'relative',boxShadow:featured?'0 0 50px -26px '+bcol:'none'}},
+      h('div',{style:{display:'inline-flex',alignSelf:'flex-start',whiteSpace:'nowrap',fontFamily:'var(--mono)',fontSize:10.5,letterSpacing:'1px',color:bcol,border:'1px solid '+bcol,borderRadius:999,padding:'4px 11px'}},badge),
+      h('div',null, h('div',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:21}},title), h('div',{style:{fontFamily:'var(--mono)',fontSize:12,color:'var(--dim)'}},zh)),
+      h('div',{style:{display:'flex',alignItems:'baseline',gap:7}}, h('span',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:36,color:bcol,lineHeight:1}},price), h('span',{style:{fontFamily:'var(--mono)',fontSize:12,color:'var(--dim)'}},priceUnit)),
+      h('p',{style:{margin:0,fontSize:13.5,color:'var(--muted)',lineHeight:1.55}},desc),
+      h('div',{style:{display:'flex',flexDirection:'column',gap:8,marginTop:2}}, bullets.map((b,i)=>h('div',{key:i,style:{display:'flex',gap:9,fontSize:13,color:'#c8ced7',lineHeight:1.45}}, h('span',{style:{color:bcol,flexShrink:0}},'›'), b))),
+      cta?h('a',{href,className:'wf-btn-h',style:{marginTop:'auto',textAlign:'center',background:featured?bcol:'var(--panel3)',color:featured?'#04120a':bcol,border:'1px solid '+bcol,borderRadius:10,padding:'11px',fontFamily:'var(--disp)',fontWeight:600,fontSize:14}},cta):null);
+    return this.page(h('div',null,
+      this.crumb([['Home','#/'],['Pricing']]),
+      h('div',{style:{textAlign:'center',maxWidth:680,margin:'0 auto 8px'}},
+        h('div',{style:{display:'inline-flex',alignItems:'center',gap:8,fontFamily:'var(--mono)',fontSize:11,letterSpacing:'1px',color:'var(--amber2)',border:'1px solid var(--line2)',borderRadius:999,padding:'6px 13px',marginBottom:16}},'PRICING · 收費 · REQUIREMENTS'),
+        h('h1',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:'clamp(30px,5vw,46px)',margin:'0 0 12px'}},'Priced in ',h('span',{style:{color:'var(--amber2)'}},'power and cakes.')),
+        h('p',{style:{color:'var(--muted)',fontSize:16,lineHeight:1.6}},'WinForge\u2019s powered and AI features run on a closed economy: electricity from your reactor, and cakes \u2014 the suite\u2019s unit of account, worth real money. You generate both yourself.')),
+      h('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(270px,1fr))',gap:16,marginTop:30}},
+        tier('CORE · 核心','var(--green)','The control center','核心控制中心','Bundled','with every install','The full suite — 139 modules and ~1,170 tweaks & ops, every one wrapping a real engine in-app. No redirects, no account, no nag screens.',
+          ['All system, file, network, dev, media & security modules','Full tweak catalog incl. Winaero & debloat','Bilingual English + 粵語 everywhere','Master search & one-click recipes'],'Browse the manual →','#/manual',false),
+        tier('⚡ REACTOR POWER','var(--cyan)','Powered features','需要電力','MWe','generated, not bought','Gated by the live reactor bus. The Cake Factory and its farm automation only run while the reactor is synchronized and generating electrical power.',
+          ['Cake Factory & Farm simulator','Farm growth, milling, mixing, ovens, cooling','Offline / meltdown → powered work locks out','Below demand → slowed by available-power fraction'],'☢ Start the reactor →','#/reactor',true),
+        tier('🍰 CAKES · 蛋糕','var(--amber2)','AI features','需要蛋糕','≈ $9','per cake','Cakes are WinForge\u2019s money — each signed .cake carries real value. AI Agents YOLO mode is billed one cake per run; cakes are baked in the Cake Factory and cryptographically validated.',
+          ['AI Agents — autonomous YOLO runs, billed in cakes','Signed, trusted, single-use .cake files','Forged / tampered / expired cakes rejected','Mint your own treasury in the Cake Factory'],'🍰 Run the bakery →','#/cake',false)),
+      h('div',{style:{marginTop:30,background:'var(--panel)',border:'1px solid var(--line)',borderRadius:14,padding:'clamp(18px,3vw,28px)'}},
+        h('h3',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:20,margin:'0 0 6px'}},'How the economy connects · 經濟循環'),
+        h('p',{style:{color:'var(--muted)',fontSize:14,margin:'0 0 20px',maxWidth:640}},'The reactor makes power; power runs the bakery; the bakery makes cakes; cakes pay for AI. Break the chain anywhere and everything downstream stalls — exactly like the app.'),
+        h('div',{style:{display:'flex',alignItems:'stretch',gap:0,flexWrap:'wrap'}},
+          this.flowNode('⬡','Fuel Factory','fabricates','var(--green)','#/fuel'),
+          this.flowArrow('.fuel assemblies','var(--green)'),
+          this.flowNode('☢','Nuclear Reactor','burns fuel → generates','var(--cyan)','#/reactor'),
+          this.flowArrow('electrical power','var(--cyan)'),
+          this.flowNode('🍰','Cake Factory','bakes','var(--amber2)','#/cake'),
+          this.flowArrow('cakes ($)','var(--amber2)'),
+          this.flowNode('🤖','AI Agents','billed in cakes','var(--violet)','#/module/aiagents'))),
+      h('p',{style:{textAlign:'center',marginTop:24,fontFamily:'var(--mono)',fontSize:12,color:'var(--dim)'}},'Cakes are the unit of account across WinForge — earned by baking, spent on AI. The reactor and plants are training simulators; the .cake and .fuel files they mint are real, signed files.')
+    ));
+  }
+  flowNode(icon,t,sub,col,href){
+    const h=React.createElement;
+    return h('a',{href,className:'wf-card-h',style:{flex:'1 1 160px',minWidth:140,display:'flex',flexDirection:'column',alignItems:'center',gap:5,textAlign:'center',padding:'16px 12px',background:'var(--panel2)',border:'1px solid '+col,borderRadius:12,transition:'all .2s'}},
+      h('span',{style:{fontSize:28}},icon),
+      h('span',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:14,color:col}},t),
+      h('span',{style:{fontFamily:'var(--mono)',fontSize:10.5,color:'var(--dim)'}},sub));
+  }
+  flowArrow(label,col){
+    const h=React.createElement;
+    return h('div',{style:{flex:'0 1 110px',minWidth:80,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'0 4px'}},
+      h('span',{style:{fontFamily:'var(--mono)',fontSize:10,color:col,marginBottom:3}},label),
+      h('span',{style:{color:col,fontSize:18}},'→'));
+  }
+
+  // ---------- MANUAL ----------
+  vManual(){
+    const h=React.createElement;
+    const modCards=(this.D.modules||[]).map((m,i)=>h('a',{key:i,href:'#/module/'+m.page,className:'wf-card-h',style:{display:'flex',flexDirection:'column',gap:8,padding:'15px 16px',background:'var(--panel)',border:'1px solid var(--line)',borderRadius:11,transition:'all .2s'}},
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
+        h('code',{style:{fontFamily:'var(--mono)',fontSize:11,color:'var(--amber2)',background:'var(--panel3)',padding:'2px 7px',borderRadius:5,border:'1px solid var(--line)'}},'--page '+m.page),
+        h('span',{style:{fontSize:12}}, m.status||'')),
+      h('div',{style:{fontFamily:'var(--disp)',fontWeight:600,fontSize:15}}, this.bi(m.en,m.zh)),
+      h('div',{style:{fontSize:12.5,color:'var(--dim)',lineHeight:1.4,flex:1}}, m.engine),
+      h('div',{style:{display:'flex',gap:7,alignItems:'center',flexWrap:'wrap',marginTop:2}},
+        m.requires?this.reqBadge(m.requires,true):null,
+        m.playable?h('span',{style:{fontFamily:'var(--mono)',fontSize:10.5,color:'var(--green)'}},'▶ playable in browser'):null,
+        this.openChip(this.appLink(m.page),'Open',m.requires==='power'?'var(--cyan)':(m.requires==='cake'?'var(--amber2)':'var(--muted)')))));
+    const catRows=(this.D.categories||[]).map((c,i)=>h('a',{key:i,href:'#/category/'+this.slug(c.en),className:'wf-row-h',style:{display:'flex',alignItems:'center',gap:13,padding:'13px 15px',background:'var(--panel)',border:'1px solid var(--line)',borderRadius:10,transition:'all .15s'}},
+      h('span',{style:{fontFamily:'var(--mono)',fontSize:12,color:'var(--cyan)',width:24}},String(i+1).padStart(2,'0')),
+      h('span',{style:{flex:1}}, h('span',{style:{fontFamily:'var(--disp)',fontWeight:500,fontSize:14.5}}, this.bi(c.en,c.zh))),
+      h('span',{style:{fontFamily:'var(--mono)',fontSize:11,color:'var(--dim)',border:'1px solid var(--line)',borderRadius:999,padding:'2px 9px'}}, c.count+' items'),
+      h('span',{className:'wf-arrow',style:{color:'var(--dim)',opacity:.6,transition:'all .15s'}},'→')));
+    return this.page(h('div',null,
+      this.crumb([['Home','#/'],['Manual']]),
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-end',gap:16,flexWrap:'wrap',marginBottom:6}},
+        this.sectionHead('Module manual','模組手冊','Every WinForge module and feature, in English and 粵語.'), this.langToggle()),
+      h('h3',{style:{fontFamily:'var(--disp)',fontSize:18,color:'var(--amber2)',margin:'34px 0 14px'}},'Core modules · 核心模組'),
+      h('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:13}}, modCards),
+      h('h3',{style:{fontFamily:'var(--disp)',fontSize:18,color:'var(--cyan)',margin:'40px 0 14px'}},'Feature categories · 功能分類'),
+      h('div',{style:{display:'grid',gap:9}}, catRows)
+    ));
+  }
+
+  // ---------- CATEGORY ----------
+  vCategory(slug, featId){
+    const h=React.createElement;
+    const cat=(this.D.categories||[]).find(c=>this.slug(c.en)===slug);
+    if(!cat) return this.notFound('Category');
+    const creq=this.catReq(cat);
+    const q=(this.state.catFilter||'').trim().toLowerCase();
+    const feats = q ? cat.features.filter(f=>(f.en+' '+f.zh+' '+f.id).toLowerCase().includes(q)) : cat.features;
+    const rows=feats.map((f,i)=>{
+      const open = featId===f.id;
+      return h('div',{key:f.id,id:f.id,style:{background:open?'var(--panel2)':'var(--panel)',border:'1px solid '+(open?'var(--amber)':'var(--line)'),borderRadius:9,padding:'11px 14px',transition:'all .15s'},className:open?'':'wf-row-h'},
+        h('div',{style:{display:'flex',alignItems:'center',gap:11}},
+          h('span',{style:{fontFamily:'var(--mono)',fontSize:11,color:'var(--green)',flexShrink:0}},'✓'),
+          h('span',{style:{flex:1,minWidth:0}},
+            h('div',{style:{fontFamily:'var(--disp)',fontWeight:500,fontSize:14.5}}, this.bi(f.en,f.zh)),
+            h('code',{style:{fontFamily:'var(--mono)',fontSize:10.5,color:'var(--dim)'}}, f.folder+' / '+f.id)),
+          creq?this.reqBadge(creq,true):null,
+          this.openChip(this.appRun(slug,f.id),'Open & run',creq==='cake'?'var(--amber2)':'var(--green)')));
     });
-    base.footerItems = (d.FOOTER||[]).map(tag=>{ const m=d.MODULES[tag]||{en:tag,zh:'',icon:'info'}; const active=s.active===tag;
-      return { tag, en:m.en, zh:m.zh, icon:this.ic(m.icon), onClick:this.open(tag),
-        css:{display:'flex',alignItems:'center',gap:'10px',width:'100%',padding:'7px 10px',borderRadius:'9px',cursor:'pointer',font:'inherit',textAlign:'left',border:'none',background:active?'var(--brand-glow)':'transparent',color:active?'var(--brand)':'var(--text-dim)'} }; });
+    return this.page(h('div',null,
+      this.crumb([['Home','#/'],['Manual','#/manual'],[cat.en]]),
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-end',gap:16,flexWrap:'wrap'}},
+        h('div',null,
+          h('h1',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:'clamp(26px,4vw,38px)',margin:0}}, cat.en),
+          h('div',{style:{fontFamily:'var(--mono)',fontSize:14,color:'var(--dim)',marginTop:4}}, cat.zh+' · '+cat.features.length+' features')),
+        this.langToggle()),
+      creq?h('div',{style:{marginTop:16}}, this.reqBanner(creq)):null,
+      h('div',{style:{display:'flex',alignItems:'center',gap:9,background:'var(--panel2)',border:'1px solid var(--line)',borderRadius:9,padding:'9px 13px',margin:'22px 0 16px',maxWidth:420}},
+        h('span',{style:{color:'var(--dim)'}},'⌕'),
+        h('input',{value:this.state.catFilter,onInput:e=>this.setState({catFilter:e.target.value}),placeholder:'Filter in this category…',style:{flex:1,background:'none',border:'none',outline:'none',color:'var(--text)',fontFamily:'var(--body)',fontSize:13.5}})),
+      h('div',{style:{display:'grid',gap:7}}, rows.length?rows:h('div',{style:{color:'var(--dim)',padding:20}},'No features match your filter.'))
+    ));
+  }
 
-    // TABS
-    base.tabs = s.openTabs.map(tag=>{ const m=d.MODULES[tag]||{en:tag,icon:'apps'}; const active=s.active===tag;
-      return { tag, label:m.en, icon:this.ic(m.icon), onClick:this.open(tag), onClose:this.closeTab(tag),
-        css:{display:'flex',alignItems:'center',gap:'8px',height:'30px',padding:'0 8px 0 12px',borderRadius:'8px',fontSize:'12.5px',fontWeight:active?'600':'500',border:'1px solid '+(active?'var(--line2)':'transparent'),background:active?'var(--panel)':'transparent',color:active?'var(--text)':'var(--text-faint)',boxShadow:active?'inset 0 2px 0 -1px var(--brand)':'none',flex:'none'} }; });
+  // ---------- MODULE DETAIL ----------
+  vModule(page){
+    const h=React.createElement;
+    const m=(this.D.modules||[]).find(x=>x.page===page);
+    if(!m) return this.notFound('Module');
+    const wikiGuess=(this.D.wikiIndex||[]).find(w=>this.slug(w.title.replace(/·.*$/,''))===this.slug(m.en));
+    const field=(k,v,mono)=>h('div',{style:{display:'flex',flexDirection:'column',gap:4,padding:'13px 15px',background:'var(--panel)',border:'1px solid var(--line)',borderRadius:9}},
+      h('span',{style:{fontFamily:'var(--mono)',fontSize:10,letterSpacing:'1px',color:'var(--dim)',textTransform:'uppercase'}},k),
+      h('span',{style:{fontSize:14,fontFamily:mono?'var(--mono)':'var(--body)',color:mono?'var(--amber2)':'var(--text)',wordBreak:'break-word'}},v||'—'));
+    return this.page(h('div',null,
+      this.crumb([['Home','#/'],['Manual','#/manual'],[m.en]]),
+      h('div',{style:{display:'inline-flex',alignItems:'center',gap:8,fontFamily:'var(--mono)',fontSize:11,color:'var(--green)',border:'1px solid var(--line2)',borderRadius:999,padding:'5px 12px',marginBottom:16}},h('span',{style:{width:7,height:7,borderRadius:'50%',background:'var(--green)'}}),'STATUS '+(m.status||'✅')+' · SHIPPING'),
+      h('h1',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:'clamp(30px,5vw,46px)',margin:'0 0 6px'}}, m.en),
+      h('div',{style:{fontFamily:'var(--mono)',fontSize:16,color:'var(--muted)',marginBottom:16}}, m.zh),
+      m.requires?this.reqBanner(m.requires):null,
+      h('p',{style:{fontSize:16,color:'#c8ced7',lineHeight:1.6,maxWidth:720}}, 'The '+m.en+' module runs entirely inside WinForge — no redirects. It wraps '+m.engine+'. Open it in the app with the deep link, launch it from a terminal, or jump to it from the dashboard search.'),
+      h('div',{style:{display:'flex',alignItems:'center',gap:10,background:'#0a0c10',border:'1px solid var(--line2)',borderRadius:10,padding:'14px 16px',margin:'20px 0',maxWidth:520,fontFamily:'var(--mono)'}},
+        h('span',{style:{color:'var(--green)'}},'›'),
+        h('span',{style:{color:'var(--text)',fontSize:14}},'WinForge.exe --page '),h('span',{style:{color:'var(--amber2)',fontSize:14}}, m.page)),
+      h('div',{style:{display:'flex',gap:10,flexWrap:'wrap',margin:'0 0 6px'}},
+        this.openChip(this.appLink(m.page),'Open in WinForge',m.requires==='power'?'var(--cyan)':(m.requires==='cake'?'var(--amber2)':'var(--green)')),
+        m.playable?h('a',{href:m.playable,className:'wf-btn-h',style:{display:'inline-flex',alignItems:'center',gap:7,background:'var(--panel3)',border:'1px solid var(--line2)',borderRadius:8,padding:'7px 13px',fontFamily:'var(--mono)',fontSize:12,color:'var(--green)'}},'▶ Try it in the browser'):null),
+      h('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:12,marginTop:8}},
+        field('Open command','--page '+m.page,true),
+        field('Page','/'+m.pageFile,true),
+        field('Service(s)',m.service||'—',true),
+        field('Engine / mechanism',m.engine),
+        field('Bilingual','English + 粵語')),
+      wikiGuess?h('a',{href:'#/wiki/'+wikiGuess.slug,className:'wf-chip-h',style:{display:'inline-block',marginTop:26,fontFamily:'var(--mono)',fontSize:13,color:'var(--violet)',border:'1px solid var(--line2)',borderRadius:8,padding:'10px 16px',transition:'all .15s'}},'Read the wiki page · '+wikiGuess.title.replace(/·.*$/,'').trim()+' →'):null
+    ),900);
+  }
 
-    // dashboard cards → real modules
-    const iconWrap=(t)=>({width:'40px',height:'40px',borderRadius:'11px',display:'flex',alignItems:'center',justifyContent:'center',background:t==='brand'?'var(--brand-glow)':t==='spark'?'rgba(247,176,52,.12)':t==='cyan'?'rgba(73,205,217,.12)':'var(--panel2)',color:t==='brand'?'var(--brand)':t==='spark'?'var(--spark)':t==='cyan'?'var(--cyan)':'var(--text-dim)'});
-    const cardBase=(star)=>({display:'flex',flexDirection:'column',alignItems:'stretch',textAlign:'left',padding:'18px',borderRadius:'14px',cursor:'pointer',font:'inherit',background:star?'radial-gradient(120% 120% at 100% 0%, rgba(84,224,126,.1), transparent 60%), var(--panel)':'var(--panel)',border:'1px solid '+(star?'rgba(84,224,126,.35)':'var(--line)'),transition:'transform .18s ease, border-color .18s ease'});
-    const cdefs=[['module.reactor','brand',true],['module.git','cyan'],['module.archives','spark'],['module.media','cyan'],['module.regedit','brand'],['module.doctors','spark'],['module.services','brand'],['module.tasks','cyan'],['module.cakefactory','spark']];
-    base.cards = cdefs.map(([tag,tone,star])=>{ const m=d.MODULES[tag]; return {title:m.en,titleZh:m.zh,desc:(m.d||'').split('.')[0]+'.',icon:this.ic(m.icon),star:!!star,onClick:this.open(tag),css:cardBase(star),iconWrap:iconWrap(tone)}; });
+  // ---------- WIKI ----------
+  vWikiIndex(){
+    const h=React.createElement;
+    const rows=(this.D.wikiIndex||[]).map(w=>h('a',{key:w.slug,href:'#/wiki/'+w.slug,className:'wf-row-h',style:{display:'flex',alignItems:'center',gap:12,padding:'13px 15px',background:'var(--panel)',border:'1px solid var(--line)',borderRadius:9,transition:'all .15s'}},
+      h('span',{style:{fontFamily:'var(--mono)',fontSize:10,color:'var(--violet)',border:'1px solid var(--line2)',borderRadius:5,padding:'3px 7px'}},'WIKI'),
+      h('span',{style:{flex:1,fontFamily:'var(--disp)',fontWeight:500,fontSize:14.5}}, w.title.replace(/·.*$/,'').trim()),
+      h('span',{className:'wf-arrow',style:{color:'var(--dim)',opacity:.6,transition:'all .15s'}},'→')));
+    return this.page(h('div',null,
+      this.crumb([['Home','#/'],['Wiki']]),
+      this.sectionHead('WinForge Wiki','視窗鑄造知識庫','Operating guides, module deep-dives, the reactor manual, and more.'),
+      h('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))',gap:10,marginTop:24}}, rows)));
+  }
+  wikiAppMap(slug){
+    const m={Dashboard:'dashboard','Git-and-GitHub':'git','Package-Manager':'packages','System-Monitor':'monitor',Connections:'connections',Clipboard:'clipboard','Cake-Factory-and-Farm':'cakefactory','Nuclear-Reactor':'reactor','Nuclear-Reactor-Operating-Manual':'reactor','AI-Agents':'aiagents',AI:'aichat',Media:'media','Window-Management':'windows','Files-and-Disks':'disk','Security-and-Vaults':'vault','Settings-and-Control-Panel':'settings'};
+    if(m[slug]) return m[slug];
+    if(/^Reactor-/.test(slug)) return 'reactor';
+    return null;
+  }
+  wikiOpenBar(slug){
+    const h=React.createElement; const page=this.wikiAppMap(slug);
+    const play = slug==='Cake-Factory-and-Farm'?'#/cake':(/(^Reactor-|^Nuclear-Reactor)/.test(slug)?'#/reactor':null);
+    return h('div',{style:{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap',background:'var(--panel2)',border:'1px solid var(--line)',borderRadius:11,padding:'11px 14px',marginBottom:16}},
+      h('span',{style:{fontFamily:'var(--mono)',fontSize:11,color:'var(--dim)',flex:1,minWidth:140}}, 'Deep link · 喺 WinForge 開啟'),
+      play?h('a',{href:play,className:'wf-btn-h',style:{display:'inline-flex',alignItems:'center',gap:6,background:'var(--panel3)',border:'1px solid var(--line2)',borderRadius:8,padding:'7px 13px',fontFamily:'var(--mono)',fontSize:12,color:'var(--green)'}},'▶ Try in browser'):null,
+      this.openChip(this.appLink(page||'dashboard'), page?('Open '+page):'Open WinForge', 'var(--cyan)'));
+  }
+  vWikiPage(slug){
+    const h=React.createElement;
+    const src=(this.D.wiki||{})[slug];
+    if(!src) return this.notFound('Wiki page');
+    const html=this.md(src);
+    const others=(this.D.wikiIndex||[]).filter(w=>w.slug!==slug);
+    const toc=others.slice(0,40).map(w=>h('a',{key:w.slug,href:'#/wiki/'+w.slug,className:'wf-nav-h',style:{display:'block',padding:'6px 0',fontSize:13,color:'var(--muted)',borderBottom:'1px solid var(--line)'}}, w.title.replace(/·.*$/,'').trim()));
+    return h('div',{className:'wf-rise',style:{maxWidth:1180,margin:'0 auto',padding:'clamp(22px,4vw,40px) clamp(16px,4vw,40px)'}},
+      this.crumb([['Home','#/'],['Wiki','#/wiki'],[slug.replace(/-/g,' ')]]),
+      h('div',{style:{display:'grid',gridTemplateColumns:'minmax(0,1fr)',gap:30}},
+        h('div',{style:{display:'grid',gridTemplateColumns:'220px minmax(0,1fr)',gap:34,alignItems:'start'},className:'wf-wiki-layout'},
+          h('aside',{style:{position:'sticky',top:80,maxHeight:'calc(100vh - 100px)',overflowY:'auto'}},
+            h('div',{style:{fontFamily:'var(--mono)',fontSize:10,letterSpacing:'1px',color:'var(--dim)',marginBottom:8,textTransform:'uppercase'}},'All wiki pages'),
+            toc),
+          h('div',{style:{minWidth:0}}, this.wikiOpenBar(slug),
+            h('article',{className:'wf-md',style:{minWidth:0,background:'var(--panel)',border:'1px solid var(--line)',borderRadius:14,padding:'clamp(20px,4vw,40px)'},dangerouslySetInnerHTML:{__html:html}})))));
+  }
 
-    // GENERIC module routing
-    const bespoke = ['dashboard','module.monitor','module.reactor','module.cakefactory'];
-    if(bespoke.includes(s.active)) return base;
-    const m = d.MODULES[s.active];
-    if(!m) return base;
-    base.isGeneric = true;
-    base.aIcon=this.ic(m.icon); base.aTitle=m.en; base.aZh=m.zh; base.aDesc=m.d||''; base.aDescZh=m.dz||'';
-    base.hasBadge=!!m.badge; base.aBadge=m.badge||'';
-    const arch=m.arch;
-    base['arch'+arch.charAt(0).toUpperCase()+arch.slice(1)] = true;
+  // ---------- SEARCH ----------
+  vSearch(q){
+    const h=React.createElement;
+    q=q||this.state.q;
+    const res=this.search(q, 400);
+    const rows=res.map((it,i)=>h('a',{key:i,href:it.route,className:'wf-row-h',style:{display:'flex',alignItems:'center',gap:12,padding:'12px 15px',background:'var(--panel)',border:'1px solid var(--line)',borderRadius:9,transition:'all .15s'}},
+      h('span',{style:{fontFamily:'var(--mono)',fontSize:9.5,padding:'3px 7px',borderRadius:5,background:'var(--panel3)',color:this.typeColor(it.type),textTransform:'uppercase',letterSpacing:'.5px',flexShrink:0}}, it.type),
+      h('span',{style:{flex:1,minWidth:0}},
+        h('div',{style:{fontFamily:'var(--disp)',fontWeight:500,fontSize:14.5}}, it.title, it.zh?h('span',{style:{color:'var(--dim)',fontWeight:400}},'  ·  '+it.zh):null),
+        h('div',{style:{fontSize:12,color:'var(--dim)'}}, it.sub)),
+      h('span',{className:'wf-arrow',style:{color:'var(--dim)',opacity:.5,transition:'all .15s'}},'→')));
+    return this.page(h('div',null,
+      this.crumb([['Home','#/'],['Search']]),
+      h('h1',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:'clamp(24px,4vw,34px)',margin:'0 0 6px'}},'Search'),
+      h('p',{style:{fontFamily:'var(--mono)',fontSize:13,color:'var(--dim)',marginBottom:22}}, res.length+' result'+(res.length===1?'':'s')+' for \u201c'+q+'\u201d'),
+      h('div',{style:{display:'grid',gap:8}}, rows.length?rows:h('div',{style:{color:'var(--dim)',padding:24}},'Nothing matched. Try fewer or different words.'))));
+  }
 
-    let rows = this.parseRows(m.items);
-    // synthesize All Apps grid from catalog
-    if(s.active==='shell.allapps'){
-      rows=[]; for(const g of d.GROUPS){ if(g.id==='win11') continue; for(const tag of g.items){ if(tag.startsWith('shell.')) continue; const mm=d.MODULES[tag]; if(!mm) continue; rows.push({a:{en:mm.en,zh:mm.zh},b:{en:'',zh:''},c:{en:(mm.d||'').split('.')[0]+'.',zh:''},nb:false,nc:true,gIcon:this.ic(mm.icon),tag,onClick:this.open(tag)}); } }
-    }
+  // ---------- SIM ----------
+  vSim(file,title,desc){
+    const h=React.createElement;
+    return h('div',{style:{display:'flex',flexDirection:'column'}},
+      h('div',{style:{display:'flex',alignItems:'center',gap:14,padding:'12px clamp(16px,4vw,30px)',borderBottom:'1px solid var(--line)',flexWrap:'wrap',background:'var(--panel)'}},
+        h('a',{href:'#/',className:'wf-nav-h',style:{fontFamily:'var(--mono)',fontSize:12,color:'var(--muted)'}},'← Back to docs'),
+        h('span',{style:{fontFamily:'var(--disp)',fontWeight:600,fontSize:15}},title),
+        h('span',{style:{fontSize:12.5,color:'var(--dim)',flex:1,minWidth:0}},desc),
+        h('a',{href:file,target:'_blank',rel:'noopener',className:'wf-chip-h',style:{fontFamily:'var(--mono)',fontSize:11,color:'var(--muted)',border:'1px solid var(--line2)',borderRadius:7,padding:'6px 11px',transition:'all .15s'}},'Open fullscreen ↗')),
+      h('iframe',{src:file,title:title,style:{width:'100%',height:'calc(100vh - 56px)',border:'none',display:'block',background:'var(--bg)'}}));
+  }
 
-    const primary={runner:'Run · 執行',list:'Add · 新增',table:'New · 新增',editor:'Save · 儲存',meters:'Refresh · 重新整理',media:'Convert · 轉換',chat:'New chat',vault:'Unlock · 解鎖',grid:'Open · 開啟',terminal:'New tab',form:'Apply · 套用',doc:'Print · 列印'};
-    base.aPrimary = primary[arch]||'Run';
-
-    if(arch==='runner'||arch==='terminal'){
-      base.rows = rows.map(r=>({...r, termTab:{padding:'7px 12px',borderRadius:'7px 7px 0 0',fontSize:'12px',color:r===rows[0]?'var(--text)':'var(--text-faint)',background:r===rows[0]?'#070a08':'transparent',cursor:'pointer'}}));
-      const op = rows[0]?rows[0].a.en:'run';
-      base.termCmd = (m.en.toLowerCase().split(' ')[0])+' '+(op.toLowerCase());
-      const lines=[
-        {t:'$ winforge '+(s.active.split('.')[1]||'tool')+' --status', css:{color:'var(--brand)'}},
-        {t:'✓ connected · '+m.en, css:{color:'var(--text)'}},
-        {t:'· '+(m.d||''), css:{color:'var(--text-faint)'}},
-        {t:'ready in 0.4s', css:{color:'var(--text-faint)'}},
-      ];
-      base.consoleLines=lines;
-    } else if(arch==='list'){
-      base.rows = rows.map((r,i)=>{ const status=(r.nc?r.c.en:r.b.en)||'on'; const meta=r.nc?r.b.en:''; const dot=this.statusMeta(status); const seld=i===s.sel;
-        return {...r, status, meta, dot, onClick:this.selectRow(i),
-          listCss:{display:'flex',alignItems:'center',gap:'12px',width:'100%',padding:'12px 16px',border:'none',borderBottom:'1px solid var(--line)',borderLeft:'2px solid '+(seld?'var(--brand)':'transparent'),background:seld?'var(--brand-glow)':'transparent',color:'var(--text)',cursor:'pointer',font:'inherit',textAlign:'left'} }; });
-      const sr = base.rows[s.sel]||base.rows[0]||{a:{en:'',zh:''},meta:'',status:'',dot:'var(--brand)'};
-      base.selName=sr.a.en; base.selZh=sr.a.zh; base.selMeta=sr.meta||'—'; base.selStatus=sr.status||'—'; base.selDot=sr.dot;
-    } else if(arch==='table'){
-      base.rows=rows; base.rowCount=rows.length;
-      const cols=(m.cols||['Name','Value','Detail']).map(c=>this.pf(c));
-      base.colA=cols[0]?cols[0].en:''; base.colB=cols[1]?cols[1].en:''; base.colC=cols[2]?cols[2].en:''; base.colD=cols[3]?cols[3].en:''; base.hasColD=cols.length>3;
-      const tmpl = cols.length>3?'minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)':'minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr)';
-      base.tableHeadCss={display:'grid',gridTemplateColumns:tmpl,gap:'12px',padding:'9px 18px',borderBottom:'1px solid var(--line)',fontSize:'10px',fontWeight:'700',letterSpacing:'.06em',color:'var(--text-faint)',textTransform:'uppercase'};
-      base.tableRowCss={display:'grid',gridTemplateColumns:tmpl,gap:'12px',alignItems:'center',padding:'12px 18px',borderBottom:'1px solid var(--line)'};
-    } else if(arch==='meters'){
-      base.rows = rows.map(r=>{ const pct=Math.min(100,parseFloat(r.b.en)||60); return {...r, meterCss:{height:'100%',width:(isNaN(pct)?60:pct)+'%',borderRadius:'3px',background:'var(--brand)'}}; });
-    } else if(arch==='media'){
-      base.mediaChips = (m.items||[]).map((t,i)=>({t, css:{padding:'7px 12px',borderRadius:'8px',fontSize:'11.5px',fontWeight:'500',fontFamily:"'JetBrains Mono'",border:'1px solid '+(i===0?'var(--brand)':'var(--line)'),background:i===0?'var(--brand-glow)':'var(--bg2)',color:i===0?'var(--brand)':'var(--text-dim)',cursor:'pointer'}}));
-    } else if(arch==='chat'){
-      base.rows=rows;
-      base.chatMsgs=[
-        {role:'user',text:'Summarise today\u2019s reactor telemetry.', wrap:{display:'flex',justifyContent:'flex-end'}, bubble:{maxWidth:'78%',padding:'11px 15px',borderRadius:'14px 14px 4px 14px',background:'var(--brand-glow)',border:'1px solid rgba(84,224,126,.25)',fontSize:'13px',color:'var(--text)'}},
-        {role:'ai',text:'Core stable at ~618 MWe, loop \u0394T 29\u00b0C, pressure 15.4 MPa. All interlocks nominal \u2014 no anomalies in the last hour.', wrap:{display:'flex',justifyContent:'flex-start'}, bubble:{maxWidth:'78%',padding:'11px 15px',borderRadius:'14px 14px 14px 4px',background:'var(--panel2)',border:'1px solid var(--line)',fontSize:'13px',color:'var(--text-dim)'}},
-      ];
-    } else if(arch==='grid'){
-      base.rows = rows.map(r=>{ const hasTag=r.nc; const desc=hasTag?r.c.en:r.b.en; const tag=hasTag?r.b.en:''; return {...r, gIcon:r.gIcon||this.ic(m.icon), hasTag:!!tag, tag, desc, onClick:r.onClick||(()=>{})}; });
-    } else if(arch==='form'){
-      base.rows = rows.map(r=>{ const on=r.on!==false; return {...r, switchTrack:{width:'40px',height:'23px',borderRadius:'12px',background:on?'var(--brand)':'var(--line2)',position:'relative',flex:'none',transition:'background .2s ease',cursor:'pointer'}, switchKnob:{position:'absolute',top:'2px',left:on?'19px':'2px',width:'19px',height:'19px',borderRadius:'50%',background:'#fff',transition:'left .2s ease',boxShadow:'0 1px 3px rgba(0,0,0,.3)'}}; });
-    } else if(arch==='editor'){
-      base.rows=rows;
-      const v=m.variant||'code';
-      const codeKinds=['hex','code','sql','api','hosts','tree'];
-      const canvasKinds=['image','pixel','diagram','zones','pdf','gif','preview','wave','doc'];
-      base.isEditCode=codeKinds.includes(v); base.isEditCanvas=canvasKinds.includes(v); base.isEditSplit=(v==='diff');
-      base.editPanel = v==='tree'?'Registry · 登錄':v==='sql'?'Tables · 表':v==='api'?'Collection · 集合':v==='code'?'Explorer':v==='hex'?'Files · 檔案':'Explorer';
-      base.editLabel = {image:'Image canvas',pixel:'Sprite canvas',diagram:'Diagram canvas',zones:'Zone layout',pdf:'PDF page',gif:'Frame timeline',preview:'Preview pane',wave:'Waveform',doc:'Document'}[v]||'Canvas';
-      base.editTree = (v==='tree')?['HKEY_CURRENT_USER','  Software','    WinForge','      Theme','      Language']:(v==='sql')?['modules','tweaks','recipes','sessions']:(v==='api')?['GET /status','POST /run','GET /modules','DELETE /tab']:['main.cs','config.toml','README.md','assets/'];
-      const samples={
-        sql:['SELECT id, name, status','FROM modules','WHERE active = true','ORDER BY name','LIMIT 50;'],
-        api:['{','  "status": 200,','  "ok": true,','  "data": [ … ]','}'],
-        hex:['0000  53 65 72 76 65 72 20 72   Server r','0008  65 61 64 79 0A 00 FF FE   eady....','0010  57 69 6E 46 6F 72 67 65   WinForge'],
-        hosts:['127.0.0.1   localhost','0.0.0.0     ads.example.com','0.0.0.0     telemetry.example.com','# blocked by WinForge'],
-        code:['// generated by WinForge','public class Module {','  public string Tag { get; set; }','  public bool  Active { get; set; }','}'],
-        tree:['Theme   = "dark"','Language = "bilingual"','StartPage = "dashboard"'],
-      };
-      const sm = samples[v]||samples.code;
-      base.codeLines = sm.map((t,i)=>({n:String(i+1),t, css:{whiteSpace:'pre'}}));
-    } else if(arch==='doc'){
-      base.isAbout = (m.variant==='about'); base.isPlainDoc = !base.isAbout;
-      base.docParas = base.isAbout?[]:[
-        {h:m.en+' · '+m.zh, t:m.d||''},
-        {h:'Overview · 概覽', t:'This page documents how the module works inside WinForge, in both English and 粵語. '+(m.dz||'')},
-        {h:'Notes · 備註', t:'Open-source components retain their original licenses. WinForge ships them self-contained via the Windows App SDK.'},
-      ];
-    }
-    return base;
+  notFound(what){
+    const h=React.createElement;
+    return this.page(h('div',{style:{textAlign:'center',padding:'60px 0'}},
+      h('div',{style:{fontFamily:'var(--mono)',fontSize:60,color:'var(--line2)'}},'404'),
+      h('p',{style:{color:'var(--muted)',fontSize:16}}, what+' not found.'),
+      h('a',{href:'#/',className:'wf-chip-h',style:{display:'inline-block',marginTop:14,fontFamily:'var(--mono)',fontSize:13,color:'var(--muted)',border:'1px solid var(--line2)',borderRadius:8,padding:'10px 18px'}},'← Home')));
   }
 }
 </script>
