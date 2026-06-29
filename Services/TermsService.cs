@@ -40,16 +40,37 @@ public static class TermsService
         File.Exists(MarkerPath) ||
         string.Equals(SettingsStore.Get(AcceptedKey, "false"), "true", StringComparison.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// 將接受寫入磁碟，並核實真係寫到 · Persist acceptance to disk and verify it actually landed.
+    /// 標記檔同設定鍵兩者都寫；只要其中一個成功，<see cref="HasAccepted"/> 下次啟動就會見到。
+    /// Writes BOTH a marker file and a settings key; if either survives, the gate won't show again.
+    /// </summary>
     private static void MarkAccepted()
     {
+        string stamp = DateTime.UtcNow.ToString("o");
+
+        bool markerOk = false;
         try
         {
             Directory.CreateDirectory(Dir);
-            File.WriteAllText(MarkerPath, DateTime.UtcNow.ToString("o"));
+            File.WriteAllText(MarkerPath, stamp);
+            markerOk = File.Exists(MarkerPath);     // 核實 · verify the write really landed
         }
-        catch { /* best effort — settings key below is the fallback */ }
-        SettingsStore.Set(AcceptedKey, "true");
-        SettingsStore.Set("terms.accepted.utc", DateTime.UtcNow.ToString("o"));
+        catch (Exception ex) { CrashLogger.Log("terms:markerwrite", ex); }
+
+        bool settingsOk = false;
+        try
+        {
+            SettingsStore.Set(AcceptedKey, "true");
+            SettingsStore.Set("terms.accepted.utc", stamp);
+            settingsOk = string.Equals(SettingsStore.Get(AcceptedKey, "false"), "true", StringComparison.OrdinalIgnoreCase);
+        }
+        catch (Exception ex) { CrashLogger.Log("terms:settingswrite", ex); }
+
+        // 兩個方法都寫唔到先記錄低 — 咁先知道接受冇被持久化 · Only flag a problem if neither store succeeded.
+        if (!markerOk && !settingsOk)
+            CrashLogger.Log("terms:accept-not-persisted",
+                new IOException($"Could not record acceptance (marker='{MarkerPath}')."));
     }
 
     private static string P(string en, string zh) => Loc.I.Pick(en, zh);
