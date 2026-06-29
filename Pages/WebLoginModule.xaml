@@ -90,7 +90,7 @@
         <!-- Embedded browser -->
         <Grid Grid.Row="4" RowSpacing="8">
             <Grid.RowDefinitions>
-                <RowDefinition Height="*" />
+                <RowDefinition Height="*" MinHeight="520" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 

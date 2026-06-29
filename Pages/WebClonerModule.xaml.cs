@@ -22,6 +22,7 @@ public sealed partial class WebClonerModule : Page
     private CancellationTokenSource? _cts;
     private string? _lastIndexPath;
     private bool _webReady;
+    private string? _aiAgentName;
 
     public WebClonerModule()
     {
@@ -31,8 +32,24 @@ public sealed partial class WebClonerModule : Page
         {
             Render();
             FolderBox.Text = DisplayPath(DefaultDest());
-            await Task.CompletedTask;
+            await DetectAgentAsync();
         };
+    }
+
+    /// <summary>背景偵測有冇可用代理，更新提示 · Detect an available agent off the UI thread, refresh the hint.</summary>
+    private async Task DetectAgentAsync()
+    {
+        try
+        {
+            var agent = await Task.Run(() => WebClonerAiService.FindAvailableAgentAsync());
+            _aiAgentName = agent?.Name;
+        }
+        catch (Exception ex)
+        {
+            CrashLogger.Log("WebClonerModule.DetectAgent", ex);
+            _aiAgentName = null;
+        }
+        try { Render(); } catch (Exception ex) { CrashLogger.Log("WebClonerModule.DetectAgent.Render", ex); }
     }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
@@ -91,6 +108,13 @@ public sealed partial class WebClonerModule : Page
             "下載資源（圖片、CSS、JS、字型）並改寫連結");
         RenderedCheck.Content = P("Capture JS-rendered DOM via WebView2 (better for dynamic sites)",
             "用 WebView2 擷取 JS 渲染後嘅 DOM（適合動態網站）");
+        AiCheck.Content = P("AI reconstruction: clean up the HTML/CSS/JS with an installed coding agent",
+            "AI 重建：用已安裝嘅編程代理整靚 HTML／CSS／JS");
+        AiHint.Text = _aiAgentName is null
+            ? P("No AI coding agent detected — this step will be skipped (the native clone still works).",
+                "未偵測到 AI 編程代理 — 呢一步會略過（原生複製照樣可用）。")
+            : P($"Detected agent: {_aiAgentName}. Output is written to an ai/ sub-folder.",
+                $"偵測到代理：{_aiAgentName}。輸出會寫入 ai/ 子資料夾。");
 
         CloneBtn.Content = P("Clone website", "複製網站");
         CancelBtn.Content = P("Cancel", "取消");
@@ -162,6 +186,23 @@ public sealed partial class WebClonerModule : Page
                     sb.AppendLine($"{kv.Key}: {kv.Value}");
                 TokenText.Text = sb.ToString().TrimEnd();
                 TokenCard.Visibility = Visibility.Visible;
+            }
+
+            // Optional AI reconstruction pass — best-effort, never breaks the native result.
+            if (AiCheck.IsChecked == true)
+            {
+                var ai = await WebClonerAiService.ReconstructAsync(folder, progress, _cts.Token);
+                AppendLog(new WebsiteClonerService.Progress(
+                    ai.Message.En, ai.Message.Zh,
+                    ai.Success ? WebsiteClonerService.LogLevel.Ok
+                    : ai.Available ? WebsiteClonerService.LogLevel.Warn
+                    : WebsiteClonerService.LogLevel.Info));
+
+                if (ai.Success && ai.OutputPath is not null &&
+                    System.IO.File.Exists(ai.OutputPath))
+                {
+                    _lastIndexPath = ai.OutputPath;  // preview the cleaned AI index instead.
+                }
             }
 
             ShowResult(true, result.Message.Get(Loc.I.Language));

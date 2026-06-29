@@ -227,6 +227,7 @@
                         <NavigationViewItem Content="Minecraft World Tools · Minecraft 世界工具" Tag="module.minecraftworldtools"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7FC;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="ViaProxy · Minecraft 版本代理" Tag="module.viaproxy"><NavigationViewItem.Icon><FontIcon Glyph="&#xE990;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Minecraft Server · Minecraft 伺服器" Tag="module.minecraftserver"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7FC;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Minecraft Launcher · Minecraft 啟動器" Tag="module.minecraftlauncher"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7FC;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Git &amp; GitHub · Git 與 GitHub" Tag="module.git"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8AB;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="VS Code · VS Code 編輯器" Tag="module.vscode"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="AI Agents · AI 代理" Tag="module.aiagents"><NavigationViewItem.Icon><FontIcon Glyph="&#xE99A;" /></NavigationViewItem.Icon></NavigationViewItem>
@@ -243,6 +244,7 @@
                         <NavigationViewItem Content="Postgres Tool · Postgres 工具 / pgAdmin" Tag="module.pgadmin"><NavigationViewItem.Icon><FontIcon Glyph="&#xE94D;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="SQLite Browser · SQLite 資料庫瀏覽器" Tag="module.sqlitebrowser"><NavigationViewItem.Icon><FontIcon Glyph="&#xEC0A;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="FTP / SFTP · FTP／SFTP 檔案傳輸" Tag="module.filezilla"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8B7;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="File Server (FTP/SFTP host) · 檔案伺服器" Tag="module.fileserver"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8CE;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Bitwarden Vault · Bitwarden 密碼庫" Tag="module.bitwarden"><NavigationViewItem.Icon><FontIcon Glyph="&#xE72E;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="KeePass Vault · 密碼保險庫" Tag="module.keepass"><NavigationViewItem.Icon><FontIcon Glyph="&#xE192;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Feed Reader · RSS 閱讀器" Tag="module.feedreader"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A7;" /></NavigationViewItem.Icon></NavigationViewItem>
@@ -258,6 +260,7 @@
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE72E;" /></NavigationViewItem.Icon>
                     <NavigationViewItem.MenuItems>
                         <NavigationViewItem Content="WinForge Vault · WinForge 保險庫" Tag="module.vault-volumes"><NavigationViewItem.Icon><FontIcon Glyph="&#xE72E;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Camoufox Profiles · Camoufox 指紋設定檔" Tag="module.camoufox"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7B3;" /></NavigationViewItem.Icon></NavigationViewItem>
                     </NavigationViewItem.MenuItems>
                 </NavigationViewItem>
 

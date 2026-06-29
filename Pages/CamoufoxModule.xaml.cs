@@ -1,0 +1,431 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using WinForge.Models;
+using WinForge.Services;
+
+namespace WinForge.Pages;
+
+/// <summary>
+/// Camoufox 設定檔管理器 · Camoufox profile manager — create / edit / delete / launch anti-detect
+/// browser profiles (cookies + fingerprints stored as files), export one / selected / all, and manage
+/// the local git repo that auto-commits every change. The only app it launches is Camoufox itself,
+/// cloning + building it from source on first use. Fully in-app, fully bilingual.
+/// </summary>
+public sealed partial class CamoufoxModule : Page
+{
+    private bool _busy;
+
+    public CamoufoxModule()
+    {
+        InitializeComponent();
+        Loc.I.LanguageChanged += (_, _) => Render();
+        Loaded += async (_, _) =>
+        {
+            Render();
+            await RefreshProfiles();
+            await RefreshEngine();
+            await RefreshCommits();
+        };
+    }
+
+    private string P(string en, string zh) => Loc.I.Pick(en, zh);
+
+    private void Render()
+    {
+        HeaderTitle.Text = "Camoufox Profiles · Camoufox 指紋設定檔";
+        HeaderBlurb.Text = P(
+            "Manage Camoufox anti-detect browser profiles — cookies, fingerprints and names stored as files in a local git repo that commits every change. Launch, edit, delete and export profiles entirely in-app.",
+            "管理 Camoufox 指紋瀏覽器設定檔 — cookies、指紋同名稱以檔案形式存喺本地 git 倉庫，每次改動都會 commit。喺 app 內啟動、編輯、刪除同匯出設定檔。");
+
+        NewBtn.Content = P("New", "新增");
+        EditBtn.Content = P("Edit", "編輯");
+        DeleteBtn.Content = P("Delete", "刪除");
+        LaunchBtn.Content = P("Launch", "啟動");
+        ExportSelBtn.Content = P("Export selected…", "匯出已選…");
+        ExportAllBtn.Content = P("Export all…", "全部匯出…");
+        ImportBtn.Content = P("Import…", "匯入…");
+        RefreshProfilesBtn.Content = P("Refresh", "重新整理");
+        ProfilesEmpty.Text = P("No profiles yet. Click \"New\" to create your first Camoufox profile.",
+            "未有設定檔。撳「新增」整你第一個 Camoufox 設定檔。");
+
+        GitTitle.Text = P("Local git store (auto-commits every change)", "本地 git 倉庫（每次改動自動 commit）");
+        GitDesc.Text = P("Every create / edit / delete / launch / import is committed automatically. \"Sync\" commits any pending changes in one go; below is the full commit history for this feature.",
+            "每次新增／編輯／刪除／啟動／匯入都會自動 commit。「同步」會將所有待處理改動一次過 commit；下面係呢個功能嘅完整 commit 歷史。");
+        SyncNoteBox.PlaceholderText = P("Optional sync note…", "可填同步備註…");
+        SyncNowBtn.Content = P("Sync now", "立即同步");
+        RefreshCommitsBtn.Content = P("Refresh", "重新整理");
+        HistoryLabel.Text = P("Commit history", "Commit 歷史");
+        GitOutputTitle.Text = P("Git output", "Git 輸出");
+        CommitsEmpty.Text = P("No commits yet.", "未有 commit。");
+
+        EngineTitle.Text = P("Camoufox engine", "Camoufox 引擎");
+        EngineDesc.Text = P("Camoufox is required to launch profiles. If it isn't installed, WinForge clones the source and builds/fetches the engine for you. This is the only external program WinForge installs or launches.",
+            "啟動設定檔需要 Camoufox。如果未安裝，WinForge 會幫你 clone 原始碼並建置／取得引擎。呢個係 WinForge 唯一會安裝或啟動嘅外部程式。");
+        BuildBtn.Content = P("Clone & build from source", "Clone 並由原始碼建置");
+        DetectBtn.Content = P("Re-detect", "重新偵測");
+        BuildLogTitle.Text = P("Build log", "建置記錄");
+        RepoPath.Text = CamoufoxService.StoreDir;
+    }
+
+    // ───────────────────────── result/output plumbing ─────────────────────────
+
+    private void Show(TweakResult r, string verb, TextBlock? outputTarget = null)
+    {
+        ResultBar.Severity = r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error;
+        ResultBar.Title = r.Success ? P("Done", "完成") : P("Failed", "失敗");
+        ResultBar.Message = r.Message is null ? verb : $"{verb} — {r.Message.Primary}";
+        ResultBar.IsOpen = true;
+        if (outputTarget is not null && !string.IsNullOrWhiteSpace(r.Output))
+            outputTarget.Text = r.Output;
+    }
+
+    private async Task Run(Func<Task<TweakResult>> op, string verb, TextBlock? outputTarget = null)
+    {
+        if (_busy) return;
+        _busy = true;
+        try { Show(await op(), verb, outputTarget); }
+        catch (Exception ex)
+        {
+            ResultBar.Severity = InfoBarSeverity.Error;
+            ResultBar.Title = P("Failed", "失敗");
+            ResultBar.Message = ex.Message;
+            ResultBar.IsOpen = true;
+            CrashLogger.Log("camoufox", ex);
+        }
+        finally { _busy = false; }
+    }
+
+    // ───────────────────────── profiles ─────────────────────────
+
+    private async Task RefreshProfiles()
+    {
+        try
+        {
+            var profiles = await CamoufoxService.ListProfilesAsync();
+            ProfileList.ItemsSource = profiles;
+            ProfilesEmpty.Visibility = profiles.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+            await RefreshPending();
+        }
+        catch (Exception ex) { CrashLogger.Log("camoufox.refresh", ex); }
+    }
+
+    private async void RefreshProfiles_Click(object sender, RoutedEventArgs e) => await RefreshProfiles();
+
+    private List<CamoufoxProfile> Selected() =>
+        ProfileList.SelectedItems.OfType<CamoufoxProfile>().ToList();
+
+    private async void New_Click(object sender, RoutedEventArgs e)
+    {
+        var profile = CamoufoxService.NewProfile(P("New profile", "新設定檔"));
+        var edited = await EditProfileDialog(profile, isNew: true);
+        if (edited is null) return;
+        await Run(() => CamoufoxService.SaveProfileAsync(edited), P("Create profile", "新增設定檔"));
+        await RefreshProfiles();
+        await RefreshCommits();
+    }
+
+    private async void Edit_Click(object sender, RoutedEventArgs e)
+    {
+        var sel = Selected();
+        if (sel.Count != 1)
+        {
+            Warn(P("Select exactly one profile to edit.", "請揀一個設定檔嚟編輯。"));
+            return;
+        }
+        var edited = await EditProfileDialog(sel[0], isNew: false);
+        if (edited is null) return;
+        await Run(() => CamoufoxService.SaveProfileAsync(edited), P("Edit profile", "編輯設定檔"));
+        await RefreshProfiles();
+        await RefreshCommits();
+    }
+
+    private async void Delete_Click(object sender, RoutedEventArgs e)
+    {
+        var sel = Selected();
+        if (sel.Count == 0) { Warn(P("Select one or more profiles to delete.", "請揀一個或多個設定檔嚟刪除。")); return; }
+
+        var dlg = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = P("Delete profiles?", "刪除設定檔？"),
+            Content = P($"Permanently delete {sel.Count} profile(s) and their cookies/fingerprints? This is committed to the git store and can be restored from history.",
+                       $"永久刪除 {sel.Count} 個設定檔連 cookies／指紋？呢個會 commit 入 git 倉庫，可由歷史還原。"),
+            PrimaryButtonText = P("Delete", "刪除"),
+            CloseButtonText = P("Cancel", "取消"),
+            DefaultButton = ContentDialogButton.Close,
+        };
+        if (await SafeShowAsync(dlg) != ContentDialogResult.Primary) return;
+
+        foreach (var p in sel)
+            await Run(() => CamoufoxService.DeleteProfileAsync(p), P("Delete profile", "刪除設定檔"));
+        await RefreshProfiles();
+        await RefreshCommits();
+    }
+
+    private async void Launch_Click(object sender, RoutedEventArgs e)
+    {
+        var sel = Selected();
+        if (sel.Count != 1) { Warn(P("Select exactly one profile to launch.", "請揀一個設定檔嚟啟動。")); return; }
+        await Run(() => CamoufoxService.LaunchProfileAsync(sel[0]), P("Launch profile", "啟動設定檔"));
+        await RefreshCommits();
+    }
+
+    private async void ExportSelected_Click(object sender, RoutedEventArgs e)
+    {
+        var sel = Selected();
+        if (sel.Count == 0) { Warn(P("Select one or more profiles to export.", "請揀一個或多個設定檔嚟匯出。")); return; }
+        var path = await FileDialogs.SaveFileAsync($"camoufox-profiles-{DateTime.Now:yyyyMMdd-HHmm}", ".zip");
+        if (path is null) return;
+        await Run(() => CamoufoxService.ExportProfilesAsync(sel, path), P("Export selected", "匯出已選"));
+    }
+
+    private async void ExportAll_Click(object sender, RoutedEventArgs e)
+    {
+        var path = await FileDialogs.SaveFileAsync($"camoufox-all-{DateTime.Now:yyyyMMdd-HHmm}", ".zip");
+        if (path is null) return;
+        await Run(() => CamoufoxService.ExportAllAsync(path), P("Export all", "全部匯出"));
+    }
+
+    private async void Import_Click(object sender, RoutedEventArgs e)
+    {
+        var path = await FileDialogs.OpenFileAsync(".zip");
+        if (path is null) return;
+        await Run(() => CamoufoxService.ImportAsync(path), P("Import profiles", "匯入設定檔"));
+        await RefreshProfiles();
+        await RefreshCommits();
+    }
+
+    // ───────────────────────── editor dialog ─────────────────────────
+
+    private async Task<CamoufoxProfile?> EditProfileDialog(CamoufoxProfile src, bool isNew)
+    {
+        // Work on a copy so Cancel discards changes.
+        var p = new CamoufoxProfile
+        {
+            Id = src.Id, Name = src.Name, Notes = src.Notes, Tags = src.Tags,
+            CreatedUtc = src.CreatedUtc, UpdatedUtc = src.UpdatedUtc,
+            UserAgent = src.UserAgent, Locale = src.Locale, Timezone = src.Timezone,
+            OsName = src.OsName, ScreenWidth = src.ScreenWidth, ScreenHeight = src.ScreenHeight,
+            Proxy = src.Proxy, ConfigJson = src.ConfigJson,
+        };
+
+        TextBox MakeBox(string val, string placeholder, bool multiline = false) => new()
+        {
+            Text = val ?? "",
+            PlaceholderText = placeholder,
+            AcceptsReturn = multiline,
+            TextWrapping = multiline ? TextWrapping.Wrap : TextWrapping.NoWrap,
+            Height = multiline ? 90 : double.NaN,
+            FontFamily = multiline ? new Microsoft.UI.Xaml.Media.FontFamily("Consolas") : FontFamily,
+        };
+
+        var nameBox = MakeBox(p.Name, P("Profile name", "設定檔名稱"));
+        var notesBox = MakeBox(p.Notes, P("Notes", "備註"), multiline: false);
+        var uaBox = MakeBox(p.UserAgent, P("User agent (blank = Camoufox default)", "User agent（留空 = Camoufox 預設）"));
+        var osBox = new ComboBox { ItemsSource = new[] { "windows", "macos", "linux" }, SelectedItem = string.IsNullOrWhiteSpace(p.OsName) ? "windows" : p.OsName, MinWidth = 160 };
+        var localeBox = MakeBox(p.Locale, "en-US");
+        var tzBox = MakeBox(p.Timezone, "America/New_York");
+        var swBox = MakeBox(p.ScreenWidth, "1920");
+        var shBox = MakeBox(p.ScreenHeight, "1080");
+        var proxyBox = MakeBox(p.Proxy, P("http://user:pass@host:port or socks5://host:port", "http://user:pass@host:port 或 socks5://host:port"));
+        var configBox = MakeBox(p.ConfigJson, P("Extra Camoufox config as JSON (overrides the fields above)", "額外 Camoufox JSON 設定（會覆寫以上欄位）"), multiline: true);
+
+        Grid Row(string label, FrameworkElement input)
+        {
+            var g = new Grid { ColumnSpacing = 10, Margin = new Thickness(0, 0, 0, 2) };
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(140) });
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            var t = new TextBlock { Text = label, VerticalAlignment = VerticalAlignment.Center, FontSize = 13, TextWrapping = TextWrapping.Wrap };
+            Grid.SetColumn(t, 0); Grid.SetColumn(input, 1);
+            g.Children.Add(t); g.Children.Add(input);
+            return g;
+        }
+
+        var screen = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        screen.Children.Add(swBox); screen.Children.Add(new TextBlock { Text = "×", VerticalAlignment = VerticalAlignment.Center }); screen.Children.Add(shBox);
+
+        var panel = new StackPanel { Spacing = 8, MinWidth = 460 };
+        panel.Children.Add(Row(P("Name", "名稱"), nameBox));
+        panel.Children.Add(Row(P("Notes", "備註"), notesBox));
+        panel.Children.Add(Row(P("OS", "作業系統"), osBox));
+        panel.Children.Add(Row(P("User agent", "User agent"), uaBox));
+        panel.Children.Add(Row(P("Locale", "地區"), localeBox));
+        panel.Children.Add(Row(P("Timezone", "時區"), tzBox));
+        panel.Children.Add(Row(P("Screen", "螢幕"), screen));
+        panel.Children.Add(Row(P("Proxy", "代理"), proxyBox));
+        panel.Children.Add(Row(P("Extra config", "額外設定"), configBox));
+
+        var dlg = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = isNew ? P("New Camoufox profile", "新增 Camoufox 設定檔") : P("Edit profile", "編輯設定檔"),
+            Content = new ScrollViewer { Content = panel, MaxHeight = 520, VerticalScrollBarVisibility = ScrollBarVisibility.Auto },
+            PrimaryButtonText = P("Save", "儲存"),
+            CloseButtonText = P("Cancel", "取消"),
+            DefaultButton = ContentDialogButton.Primary,
+        };
+        dlg.Resources["ContentDialogMaxWidth"] = 720.0;
+
+        if (await SafeShowAsync(dlg) != ContentDialogResult.Primary) return null;
+
+        p.Name = string.IsNullOrWhiteSpace(nameBox.Text) ? P("Unnamed", "未命名") : nameBox.Text.Trim();
+        p.Notes = notesBox.Text.Trim();
+        p.UserAgent = uaBox.Text.Trim();
+        p.OsName = osBox.SelectedItem as string ?? "windows";
+        p.Locale = localeBox.Text.Trim();
+        p.Timezone = tzBox.Text.Trim();
+        p.ScreenWidth = swBox.Text.Trim();
+        p.ScreenHeight = shBox.Text.Trim();
+        p.Proxy = proxyBox.Text.Trim();
+        p.ConfigJson = configBox.Text.Trim();
+        return p;
+    }
+
+    // ───────────────────────── git history ─────────────────────────
+
+    private async Task RefreshPending()
+    {
+        try
+        {
+            int pending = await CamoufoxService.PendingChangesAsync();
+            PendingStatus.Text = pending == 0
+                ? P("In sync — no pending changes.", "已同步 — 冇待處理改動。")
+                : P($"{pending} pending change(s) not yet committed.", $"有 {pending} 項改動仲未 commit。");
+        }
+        catch { }
+    }
+
+    private async Task RefreshCommits()
+    {
+        try
+        {
+            var commits = await CamoufoxService.ListCommitsAsync();
+            CommitList.ItemsSource = commits;
+            CommitsEmpty.Visibility = commits.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+            await RefreshPending();
+        }
+        catch (Exception ex) { CrashLogger.Log("camoufox.commits", ex); }
+    }
+
+    private async void RefreshCommits_Click(object sender, RoutedEventArgs e) => await RefreshCommits();
+
+    private async void SyncNow_Click(object sender, RoutedEventArgs e)
+    {
+        var note = SyncNoteBox.Text?.Trim();
+        await Run(() => CamoufoxService.SyncAsync(note), P("Sync", "同步"), GitOutput);
+        SyncNoteBox.Text = "";
+        await RefreshCommits();
+    }
+
+    private async void CommitDiff_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button b || b.DataContext is not CamoufoxCommit c) return;
+        await Run(() => CamoufoxService.DiffCommitAsync(c.Hash), P("Diff", "差異"), GitOutput);
+    }
+
+    private async void CommitRestore_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button b || b.DataContext is not CamoufoxCommit c) return;
+        var dlg = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = P("Restore this commit?", "還原到呢個 commit？"),
+            Content = P($"Restore all profiles to commit {c.ShortHash}? Your current state is committed first as a safety point.",
+                       $"將所有設定檔還原到 commit {c.ShortHash}？而家嘅狀態會先 commit 做安全點。"),
+            PrimaryButtonText = P("Restore", "還原"),
+            CloseButtonText = P("Cancel", "取消"),
+            DefaultButton = ContentDialogButton.Close,
+        };
+        if (await SafeShowAsync(dlg) != ContentDialogResult.Primary) return;
+        await Run(() => CamoufoxService.RestoreCommitAsync(c.Hash), P("Restore", "還原"), GitOutput);
+        await RefreshProfiles();
+        await RefreshCommits();
+    }
+
+    // ───────────────────────── engine ─────────────────────────
+
+    private async Task RefreshEngine()
+    {
+        try
+        {
+            var exe = CamoufoxService.LocateExecutable();
+            if (exe is not null)
+            {
+                EngineStatusBar.Severity = InfoBarSeverity.Success;
+                EngineStatusBar.Title = P("Camoufox is installed", "Camoufox 已安裝");
+                EngineStatusBar.Message = P("You can launch profiles.", "可以啟動設定檔。");
+                ExePath.Text = exe;
+            }
+            else
+            {
+                EngineStatusBar.Severity = InfoBarSeverity.Warning;
+                EngineStatusBar.Title = P("Camoufox not installed", "Camoufox 未安裝");
+                EngineStatusBar.Message = P("Clone & build from source to enable launching.", "Clone 並由原始碼建置先可以啟動。");
+                ExePath.Text = P("(not found)", "（搵唔到）");
+            }
+        }
+        catch (Exception ex) { CrashLogger.Log("camoufox.engine", ex); }
+        await Task.CompletedTask;
+    }
+
+    private async void Detect_Click(object sender, RoutedEventArgs e) => await RefreshEngine();
+
+    private async void Build_Click(object sender, RoutedEventArgs e)
+    {
+        if (_busy) return;
+        _busy = true;
+        BuildRing.IsActive = true;
+        BuildBtn.IsEnabled = false;
+        BuildLog.Text = "";
+        try
+        {
+            void Log(string s)
+            {
+                if (string.IsNullOrEmpty(s)) return;
+                DispatcherQueue.TryEnqueue(() =>
+                {
+                    BuildLog.Text += s + "\n";
+                    BuildLogScroller.ChangeView(null, BuildLogScroller.ScrollableHeight, null);
+                });
+            }
+            var r = await CamoufoxService.CloneAndBuildAsync(Log);
+            Show(r, P("Clone & build", "Clone 並建置"));
+        }
+        catch (Exception ex)
+        {
+            CrashLogger.Log("camoufox.build", ex);
+            ResultBar.Severity = InfoBarSeverity.Error;
+            ResultBar.Title = P("Failed", "失敗");
+            ResultBar.Message = ex.Message;
+            ResultBar.IsOpen = true;
+        }
+        finally
+        {
+            BuildRing.IsActive = false;
+            BuildBtn.IsEnabled = true;
+            _busy = false;
+            await RefreshEngine();
+        }
+    }
+
+    // ───────────────────────── helpers ─────────────────────────
+
+    private void Warn(string message)
+    {
+        ResultBar.Severity = InfoBarSeverity.Warning;
+        ResultBar.Title = P("Heads up", "提提你");
+        ResultBar.Message = message;
+        ResultBar.IsOpen = true;
+    }
+
+    /// <summary>包住 ShowAsync，避免「同時開兩個 dialog」會 crash · Guard ShowAsync (fail open).</summary>
+    private static async Task<ContentDialogResult> SafeShowAsync(ContentDialog dlg)
+    {
+        try { return await dlg.ShowAsync(); }
+        catch (Exception ex) { CrashLogger.Log("camoufox.dialog", ex); return ContentDialogResult.None; }
+    }
+}

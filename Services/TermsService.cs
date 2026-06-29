@@ -10,8 +10,6 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
 using Windows.UI;
-using PdfSharp.Drawing;
-using PdfSharp.Pdf;
 using WinForge.Models;
 
 namespace WinForge.Services;
@@ -202,7 +200,7 @@ public static class TermsService
         });
 
         var fontBox = new ComboBox { MinWidth = 170 };
-        foreach (var f in FontChoices) fontBox.Items.Add(new ComboBoxItem { Content = f, Tag = f });
+        foreach (var f in TextExportService.FontChoices) fontBox.Items.Add(new ComboBoxItem { Content = f, Tag = f });
         fontBox.SelectedIndex = 0;
         fontBox.SelectionChanged += (_, _) => Guard("font", () =>
         {
@@ -314,12 +312,12 @@ public static class TermsService
         {
             var path = await FileDialogs.SaveFileAsync("WinForge-Terms", ".pdf");
             if (string.IsNullOrEmpty(path)) return;
-            var family = (fontBox.SelectedItem as ComboBoxItem)?.Tag as string ?? FontChoices[0];
+            var family = (fontBox.SelectedItem as ComboBoxItem)?.Tag as string ?? TextExportService.FontChoices[0];
             double sz = (sizeBox.Value >= 9 && !double.IsNaN(sizeBox.Value)) ? sizeBox.Value : 15;
             var col = chosenColor;
             string text = body.Text;
             bool b = bold.IsChecked == true, i = italic.IsChecked == true, s = strike.IsChecked == true;
-            await Task.Run(() => RenderPdf(path!, text, family, sz, b, i, s, col));
+            await Task.Run(() => TextExportService.RenderPdf(path!, text, family, sz, b, i, s, col));
         });
 
         // 工具列分兩行排，確保全部按鈕都見得到（唔使橫向捲）· Two rows so every control is visible (no horizontal scrolling).
@@ -375,88 +373,6 @@ public static class TermsService
         if (r is null) return null;                         // couldn't show → caller fails open
         return r == ContentDialogResult.Primary;
     }
-
-    /// <summary>用 PdfSharp 將條款渲染成 PDF，保留字型／字級／粗斜／刪除線／顏色 · Render the terms to PDF honouring the chosen formatting.</summary>
-    private static void RenderPdf(string path, string text, string family, double size,
-        bool bold, bool italic, bool strike, Color? color)
-    {
-        var style = XFontStyleEx.Regular;
-        if (bold) style |= XFontStyleEx.Bold;
-        if (italic) style |= XFontStyleEx.Italic;
-        if (strike) style |= XFontStyleEx.Strikeout;
-
-        XFont font;
-        try { font = new XFont(family, size, style); }
-        catch { font = new XFont("Microsoft JhengHei", size, style); }   // CJK-safe fallback
-
-        var brush = color is { } c ? new XSolidBrush(XColor.FromArgb(c.A, c.R, c.G, c.B)) : XBrushes.Black;
-
-        using var doc = new PdfDocument();
-        const double margin = 56;
-        double lineHeight = size * 1.45;
-
-        PdfPage page = doc.AddPage();
-        var gfx = XGraphics.FromPdfPage(page);
-        double maxWidth = page.Width.Point - margin * 2;
-        double y = margin;
-
-        foreach (var rawLine in text.Replace("\r\n", "\n").Split('\n'))
-        {
-            // 逐字／逐詞自動換行 · word-wrap each paragraph line to the page width.
-            foreach (var visualLine in WrapLine(gfx, rawLine, font, maxWidth))
-            {
-                if (y + lineHeight > page.Height.Point - margin)
-                {
-                    gfx.Dispose();
-                    page = doc.AddPage();
-                    gfx = XGraphics.FromPdfPage(page);
-                    y = margin;
-                }
-                if (visualLine.Length > 0)
-                    gfx.DrawString(visualLine, font, brush, new XPoint(margin, y));
-                y += lineHeight;
-            }
-        }
-        gfx.Dispose();
-        doc.Save(path);
-    }
-
-    private static IEnumerable<string> WrapLine(XGraphics gfx, string line, XFont font, double maxWidth)
-    {
-        if (line.Length == 0) { yield return ""; yield break; }
-
-        var current = new System.Text.StringBuilder();
-        foreach (var ch in line)
-        {
-            var trial = current.ToString() + ch;
-            if (gfx.MeasureString(trial, font).Width > maxWidth && current.Length > 0)
-            {
-                // 喺最近嘅空格切（西文），冇就硬切（中文）· break at the last space (Latin), else hard-break (CJK).
-                string s = current.ToString();
-                int sp = s.LastIndexOf(' ');
-                if (sp > 0)
-                {
-                    yield return s.Substring(0, sp);
-                    current.Clear();
-                    current.Append(s.Substring(sp + 1));
-                }
-                else
-                {
-                    yield return s;
-                    current.Clear();
-                }
-            }
-            current.Append(ch);
-        }
-        if (current.Length > 0) yield return current.ToString();
-    }
-
-    private static readonly string[] FontChoices =
-    {
-        "Segoe UI", "Segoe UI Variable", "Microsoft JhengHei UI", "Microsoft JhengHei",
-        "PMingLiU", "DFKai-SB", "Cambria", "Georgia", "Times New Roman",
-        "Consolas", "Cascadia Mono", "Arial", "Verdana", "Calibri",
-    };
 
     // ─────────────────────────────────────────────────────────────────────────
     // 測驗 · Quiz

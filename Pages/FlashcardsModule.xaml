@@ -207,12 +207,16 @@
                                 BorderThickness="1" CornerRadius="12" Padding="28" Visibility="Collapsed">
                             <Grid RowSpacing="16">
                                 <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
                                     <RowDefinition Height="*" />
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
 
-                                <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+                                <!-- Rich-text toolbar (handoff 54) injected here at runtime -->
+                                <ContentControl x:Name="StudyToolbarHost" Grid.Row="0" HorizontalAlignment="Left" />
+
+                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                                     <StackPanel Spacing="16">
                                         <StackPanel Spacing="4">
                                             <TextBlock x:Name="StudyFrontLbl" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
@@ -227,9 +231,9 @@
                                     </StackPanel>
                                 </ScrollViewer>
 
-                                <Button x:Name="ShowAnswerBtn" Grid.Row="1" Click="ShowAnswer_Click" HorizontalAlignment="Stretch" Style="{StaticResource AccentButtonStyle}" />
+                                <Button x:Name="ShowAnswerBtn" Grid.Row="2" Click="ShowAnswer_Click" HorizontalAlignment="Stretch" Style="{StaticResource AccentButtonStyle}" />
 
-                                <StackPanel x:Name="GradeRow" Grid.Row="2" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Stretch" Visibility="Collapsed">
+                                <StackPanel x:Name="GradeRow" Grid.Row="3" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Stretch" Visibility="Collapsed">
                                     <Button x:Name="AgainBtn" Click="Grade_Again" HorizontalAlignment="Stretch" />
                                     <Button x:Name="HardBtn" Click="Grade_Hard" HorizontalAlignment="Stretch" />
                                     <Button x:Name="GoodBtn" Click="Grade_Good" HorizontalAlignment="Stretch" />

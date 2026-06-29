@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.CamoufoxModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid Padding="24,16,24,16" RowSpacing="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="12">
+            <FontIcon FontSize="22" Glyph="&#xE7B3;" VerticalAlignment="Center" />
+            <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
+        </StackPanel>
+        <TextBlock x:Name="HeaderBlurb" Grid.Row="1" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+        <InfoBar x:Name="ResultBar" Grid.Row="2" IsClosable="True" IsOpen="False" Margin="0,2,0,0" />
+
+        <Pivot Grid.Row="3">
+
+            <!-- ───────────────── Profiles ───────────────── -->
+            <PivotItem x:Name="TabProfiles">
+                <Grid RowSpacing="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
+                        <Button x:Name="NewBtn" Style="{StaticResource AccentButtonStyle}" Click="New_Click" />
+                        <Button x:Name="EditBtn" Click="Edit_Click" />
+                        <Button x:Name="DeleteBtn" Click="Delete_Click" />
+                        <Button x:Name="LaunchBtn" Click="Launch_Click" />
+                        <AppBarSeparator />
+                        <Button x:Name="ExportSelBtn" Click="ExportSelected_Click" />
+                        <Button x:Name="ExportAllBtn" Click="ExportAll_Click" />
+                        <Button x:Name="ImportBtn" Click="Import_Click" />
+                        <Button x:Name="RefreshProfilesBtn" Click="RefreshProfiles_Click" />
+                    </StackPanel>
+
+                    <Border Grid.Row="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                        <Grid>
+                            <ListView x:Name="ProfileList" SelectionMode="Multiple" Padding="2,4,2,4">
+                                <ListView.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Padding="6,8,6,8" ColumnSpacing="12">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Text="{Binding FingerprintSummary}" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="1" Text="{Binding ShortId}" FontFamily="Consolas" FontSize="11" Foreground="{ThemeResource TextFillColorTertiaryBrush}" VerticalAlignment="Center" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+                            <TextBlock x:Name="ProfilesEmpty" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Visibility="Collapsed" TextWrapping="Wrap" TextAlignment="Center" MaxWidth="420" />
+                        </Grid>
+                    </Border>
+                </Grid>
+            </PivotItem>
+
+            <!-- ───────────────── Git history / management ───────────────── -->
+            <PivotItem x:Name="TabGit">
+                <Grid RowSpacing="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16,14,16,14">
+                        <StackPanel Spacing="10">
+                            <TextBlock x:Name="GitTitle" FontWeight="SemiBold" />
+                            <TextBlock x:Name="GitDesc" FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock x:Name="RepoPath" FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True" Foreground="{ThemeResource TextFillColorTertiaryBrush}" TextWrapping="Wrap" />
+                            <TextBlock x:Name="PendingStatus" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <TextBox x:Name="SyncNoteBox" MinWidth="280" />
+                                <Button x:Name="SyncNowBtn" Style="{StaticResource AccentButtonStyle}" Click="SyncNow_Click" />
+                                <Button x:Name="RefreshCommitsBtn" Click="RefreshCommits_Click" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Grid.Row="1" x:Name="HistoryLabel" FontWeight="SemiBold" Margin="2,4,0,0" />
+
+                    <Border Grid.Row="2" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                        <Grid>
+                            <ListView x:Name="CommitList" SelectionMode="None">
+                                <ListView.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Padding="6,6,6,6" ColumnSpacing="10">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="74" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="{Binding ShortHash}" FontFamily="Consolas" FontSize="12" VerticalAlignment="Center" />
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Subject}" FontSize="13" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Text="{Binding Date}" FontSize="11" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                                <Button Click="CommitDiff_Click" Padding="8,5,8,5" ToolTipService.ToolTip="Diff · 差異"><FontIcon Glyph="&#xE7C3;" FontSize="14" /></Button>
+                                                <Button Click="CommitRestore_Click" Padding="8,5,8,5" ToolTipService.ToolTip="Restore · 還原"><FontIcon Glyph="&#xE7A7;" FontSize="14" /></Button>
+                                            </StackPanel>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+                            <TextBlock x:Name="CommitsEmpty" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Visibility="Collapsed" />
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Row="3" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12,8,12,8">
+                        <StackPanel Spacing="6">
+                            <TextBlock x:Name="GitOutputTitle" FontWeight="SemiBold" FontSize="12" />
+                            <ScrollViewer Height="120" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="6" Padding="10,8,10,8">
+                                <TextBlock x:Name="GitOutput" FontFamily="Consolas" FontSize="12" IsTextSelectionEnabled="True" TextWrapping="NoWrap" />
+                            </ScrollViewer>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </PivotItem>
+
+            <!-- ───────────────── Engine (Camoufox install / build) ───────────────── -->
+            <PivotItem x:Name="TabEngine">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Spacing="14">
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16,14,16,14">
+                            <StackPanel Spacing="10">
+                                <TextBlock x:Name="EngineTitle" FontWeight="SemiBold" />
+                                <TextBlock x:Name="EngineDesc" FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <InfoBar x:Name="EngineStatusBar" IsClosable="False" IsOpen="True" />
+                                <TextBlock x:Name="ExePath" FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True" Foreground="{ThemeResource TextFillColorTertiaryBrush}" TextWrapping="Wrap" />
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Button x:Name="BuildBtn" Style="{StaticResource AccentButtonStyle}" Click="Build_Click" />
+                                    <Button x:Name="DetectBtn" Click="Detect_Click" />
+                                    <ProgressRing x:Name="BuildRing" IsActive="False" Width="20" Height="20" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12,8,12,8">
+                            <StackPanel Spacing="6">
+                                <TextBlock x:Name="BuildLogTitle" FontWeight="SemiBold" FontSize="12" />
+                                <ScrollViewer x:Name="BuildLogScroller" Height="260" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="6" Padding="10,8,10,8">
+                                    <TextBlock x:Name="BuildLog" FontFamily="Consolas" FontSize="12" IsTextSelectionEnabled="True" TextWrapping="NoWrap" />
+                                </ScrollViewer>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </PivotItem>
+
+        </Pivot>
+    </Grid>
+</Page>

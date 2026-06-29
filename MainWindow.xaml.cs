@@ -323,6 +323,17 @@ public sealed partial class MainWindow : Window
             case "signin":
                 Navigator.GoToModule?.Invoke("module.weblogin");
                 break;
+            case "camoufox":
+            case "antidetect":
+            case "fingerprint":
+                Navigator.GoToModule?.Invoke("module.camoufox");
+                break;
+            case "fileserver":
+            case "ftpserver":
+            case "sftpserver":
+            case "hostshare":
+                Navigator.GoToModule?.Invoke("module.fileserver");
+                break;
             case "ocr":
             case "textocr":
             case "textextractor":
@@ -855,6 +866,10 @@ public sealed partial class MainWindow : Window
             case "spigot":
                 Navigator.GoToModule?.Invoke("module.minecraftserver");
                 break;
+            case "minecraftlauncher":
+            case "mclauncher":
+                Navigator.GoToModule?.Invoke("module.minecraftlauncher");
+                break;
             case "viaproxy":
             case "viaversion":
             case "viabackwards":
@@ -1247,6 +1262,7 @@ public sealed partial class MainWindow : Window
         "module.pgadmin" => typeof(PgAdminModule),
         "module.sqlitebrowser" => typeof(SqliteBrowserModule),
         "module.filezilla" => typeof(FileZillaModule),
+        "module.fileserver" => typeof(FileServerModule),
         "module.bitwarden" => typeof(BitwardenModule),
         "module.keepass" => typeof(KeePassModule),
         "module.feedreader" => typeof(FeedReaderModule),
@@ -1361,9 +1377,11 @@ public sealed partial class MainWindow : Window
         "module.minecraftworldtools" => typeof(MinecraftWorldToolsModule),
         "module.viaproxy" => typeof(ViaProxyModule),
         "module.minecraftserver" => typeof(MinecraftServerModule),
+        "module.minecraftlauncher" => typeof(MinecraftLauncherModule),
         "module.voice" => typeof(VoiceModule),
         "module.announcements" => typeof(AnnouncementsModule),
         "module.vault-volumes" => typeof(VaultVolumesModule),
+        "module.camoufox" => typeof(CamoufoxModule),
         "module.worldmonitor" => typeof(WorldMonitorModule),
         "module.timelens" => typeof(TimeLensModule),
         "module.diffmerge" => typeof(DiffMergeModule),
@@ -1601,11 +1619,11 @@ public sealed partial class MainWindow : Window
                 "module.diagram", "module.flashcards", "module.rustdesk", "module.homeassistant",
                 "module.comms", "module.mail", "module.wslvm", "module.virtualbox", "module.proxmox",
                 "module.terminal", "module.uninstall", "module.imaging", "module.amulet",
-                "module.minecraftworldtools", "module.viaproxy", "module.minecraftserver", "module.git",
+                "module.minecraftworldtools", "module.viaproxy", "module.minecraftserver", "module.minecraftlauncher", "module.git",
                 "module.vscode", "module.aiagents", "module.resume", "module.ollama", "module.aichat",
                 "module.cloudflare", "module.weblogin", "module.ssh", "module.apiclient", "module.packer",
                 "module.worldmonitor", "module.webcloner", "module.pgadmin", "module.sqlitebrowser",
-                "module.filezilla", "module.feedreader", "module.quicktype", "module.decompiler",
+                "module.filezilla", "module.fileserver", "module.feedreader", "module.quicktype", "module.decompiler",
                 "module.aws", "module.cmdnotfound", "module.configbackup",
             },
         },
@@ -1614,7 +1632,7 @@ public sealed partial class MainWindow : Window
             Id = "security",
             En = "Security & privacy",
             Zh = "安全與私隱",
-            Keys = new[] { "module.vault-volumes", "module.bitwarden", "module.keepass" },
+            Keys = new[] { "module.vault-volumes", "module.bitwarden", "module.keepass", "module.camoufox" },
         },
     };
 
