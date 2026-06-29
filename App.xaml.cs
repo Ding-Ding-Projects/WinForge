@@ -28,6 +28,7 @@ public partial class App : Application
     }
 
     private static string? _exportDocsDir;
+    private static string? _exportSiteData;
     private static bool _takeSnapshot;
     private static bool _applyTheme;
 
@@ -80,6 +81,15 @@ public partial class App : Application
                 int n = WinForge.Services.DocsExporter.Export(_exportDocsDir);
                 System.IO.File.WriteAllText(System.IO.Path.Combine(_exportDocsDir, "_export_count.txt"), n.ToString());
             }
+            catch { /* best effort */ }
+            Exit();
+            return;
+        }
+
+        // 無頭模式：由真實目錄匯出網站資料 JSON 然後退出 · headless: export real site data JSON then exit.
+        if (_exportSiteData is not null)
+        {
+            try { WinForge.Services.DocsExporter.ExportSiteData(_exportSiteData); }
             catch { /* best effort */ }
             Exit();
             return;
@@ -289,6 +299,8 @@ public partial class App : Application
                 StartPath = argv[i + 1];      // keep exact case / spaces — it's a filesystem path
             else if (string.Equals(argv[i], "--export-docs", StringComparison.OrdinalIgnoreCase))
                 _exportDocsDir = argv[i + 1];
+            else if (string.Equals(argv[i], "--export-site-data", StringComparison.OrdinalIgnoreCase))
+                _exportSiteData = argv[i + 1];
         }
     }
 
