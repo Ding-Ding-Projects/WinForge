@@ -9,7 +9,11 @@
     CornerRadius="8"
     mc:Ignorable="d">
 
-    <Grid Width="860" Height="640" RowSpacing="8">
+    <Grid
+        x:Name="RootGrid"
+        MinWidth="900"
+        MinHeight="680"
+        RowSpacing="8">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -68,7 +72,10 @@
             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
             BorderThickness="1"
             CornerRadius="6">
-            <controls:WebView2 x:Name="Web" />
+            <controls:WebView2
+                x:Name="Web"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch" />
         </Border>
     </Grid>
 </ContentDialog>

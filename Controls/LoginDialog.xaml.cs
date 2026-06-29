@@ -32,9 +32,45 @@ public sealed partial class LoginDialog : ContentDialog
         CloseButtonText = Loc.I.Pick("Cancel", "取消");
         AddressBox.Text = _request.StartUrl;
 
+        // Lift the ContentDialog's default ~548 max-width / max-height clamps so the dialog can
+        // actually grow to the responsive size we compute below (same trick as the Terms reader).
+        try
+        {
+            Resources["ContentDialogMaxWidth"] = double.PositiveInfinity;
+            Resources["ContentDialogMaxHeight"] = double.PositiveInfinity;
+        }
+        catch { /* resource override is best-effort */ }
+
         Loaded += OnLoaded;
         CloseButtonClick += OnCloseButtonClick;
     }
+
+    /// <summary>
+    /// 依視窗大小調整對話框 · Size the dialog responsively to the host window — ~min(1200, 90% width)
+    /// × 85% height, never below the XAML minimums. Recomputed whenever the XamlRoot resizes so the
+    /// embedded browser stays large. Fails open: any error just leaves the minimum size in place.
+    /// </summary>
+    private void ResizeToWindow()
+    {
+        try
+        {
+            var size = XamlRoot?.Size ?? default;
+            if (size.Width <= 0 || size.Height <= 0) return;
+
+            const double minW = 900, minH = 680;
+            double w = Math.Min(1200.0, size.Width * 0.90);
+            double h = size.Height * 0.85;
+
+            RootGrid.Width = Math.Max(minW, w);
+            RootGrid.Height = Math.Max(minH, h);
+        }
+        catch (Exception ex)
+        {
+            CrashLogger.Log("LoginDialog.ResizeToWindow", ex);
+        }
+    }
+
+    private void OnXamlRootChanged(XamlRoot sender, XamlRootChangedEventArgs args) => ResizeToWindow();
 
     /// <summary>顯示對話框並等結果 · Show the dialog and await the captured result.</summary>
     public async Task<LoginResult> RunAsync()
@@ -47,6 +83,17 @@ public sealed partial class LoginDialog : ContentDialog
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
+        // Size to the host window now, and keep tracking its size changes for responsiveness.
+        try
+        {
+            if (XamlRoot is not null)
+            {
+                XamlRoot.Changed += OnXamlRootChanged;
+                ResizeToWindow();
+            }
+        }
+        catch (Exception ex) { CrashLogger.Log("LoginDialog.OnLoaded.size", ex); }
+
         // Defensive: the WebView2 Runtime ships with Win11 but may be missing on stripped images.
         try
         {
@@ -248,6 +295,7 @@ public sealed partial class LoginDialog : ContentDialog
     {
         if (_completed) return;
         _completed = true;
+        try { if (XamlRoot is not null) XamlRoot.Changed -= OnXamlRootChanged; } catch { /* ignore */ }
         _tcs.TrySetResult(result);
         // Tear down the WebView before the dialog (and its UserDataFolder lock) closes.
         try { Web.Close(); } catch { /* ignore */ }
