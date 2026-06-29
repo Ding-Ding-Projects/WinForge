@@ -20,7 +20,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid ColumnSpacing="14">
+    <Grid ColumnSpacing="12">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="*" />
@@ -35,7 +35,7 @@
             Height="40"
             VerticalAlignment="Top"
             Background="{ThemeResource AccentFillColorDefaultBrush}"
-            CornerRadius="10">
+            CornerRadius="{StaticResource OverlayCornerRadius}">
             <FontIcon
                 x:Name="HeaderGlyph"
                 FontSize="20"
@@ -49,8 +49,8 @@
             Spacing="2">
             <TextBlock
                 x:Name="TitleText"
-                FontSize="20"
-                FontWeight="SemiBold"
+                AutomationProperties.HeadingLevel="Level1"
+                Style="{StaticResource SubtitleTextBlockStyle}"
                 TextWrapping="Wrap" />
             <TextBlock
                 x:Name="SubtitleText"
