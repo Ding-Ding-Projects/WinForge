@@ -323,6 +323,11 @@ public sealed partial class MainWindow : Window
             case "signin":
                 Navigator.GoToModule?.Invoke("module.weblogin");
                 break;
+            case "camoufox":
+            case "antidetect":
+            case "fingerprint":
+                Navigator.GoToModule?.Invoke("module.camoufox");
+                break;
             case "ocr":
             case "textocr":
             case "textextractor":
@@ -1364,6 +1369,7 @@ public sealed partial class MainWindow : Window
         "module.voice" => typeof(VoiceModule),
         "module.announcements" => typeof(AnnouncementsModule),
         "module.vault-volumes" => typeof(VaultVolumesModule),
+        "module.camoufox" => typeof(CamoufoxModule),
         "module.worldmonitor" => typeof(WorldMonitorModule),
         "module.timelens" => typeof(TimeLensModule),
         "module.diffmerge" => typeof(DiffMergeModule),
@@ -1614,7 +1620,7 @@ public sealed partial class MainWindow : Window
             Id = "security",
             En = "Security & privacy",
             Zh = "安全與私隱",
-            Keys = new[] { "module.vault-volumes", "module.bitwarden", "module.keepass" },
+            Keys = new[] { "module.vault-volumes", "module.bitwarden", "module.keepass", "module.camoufox" },
         },
     };
 
