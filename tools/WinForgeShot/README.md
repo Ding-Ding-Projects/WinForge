@@ -1,8 +1,32 @@
 # winforge-shot · WinForge 驅動與截圖工具
 
-A tiny C# console tool that **launches/attaches to the WinForge app, opens a page,
-and captures a screenshot of the WinForge window** — reliably, even when another
-window (e.g. a Unity editor) is in the foreground.
+A C# console tool that **drives the WinForge app (via UI Automation) and captures
+screenshots** — reliably, even when another window (e.g. a Unity editor) is in the
+foreground. This is "computer use" through a C# tool: discover elements, click /
+select / toggle / type into them, and screenshot the result.
+
+## Driving (UI Automation)
+
+WinForge sets `AutomationId`s (e.g. `ShellNavItem_dashboard`, `ShellNavItem_module_reactor`)
+and `Name`s, so the tool can find and operate elements without the window being focused.
+
+```
+# Discover what's on screen (AutomationId | Name | ControlType):
+winforge-shot --attach --list-ui 6
+
+# Navigate to the reactor page, wait, screenshot:
+winforge-shot --page dashboard --wait 15000 \
+    --invoke ShellNavItem_module_reactor --sleep 2000 --out reactor.png
+
+# Type into a box and toggle a switch (by AutomationId or Name substring):
+winforge-shot --attach --settext "SyncNoteBox=nightly" --toggle "PushOnSyncCheck" --out x.png
+```
+
+Actions run **in the order given**. `--invoke` tries Invoke → Select → Toggle → a real
+mouse click. Collapsed nav groups realize their children only once expanded (invoke the
+group first, e.g. `--invoke "System"`, then the child item).
+
+## Screenshots
 
 ## Why not the PowerShell driver?
 

@@ -6,8 +6,10 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- Pulls in the Windows Desktop framework so System.Drawing (Bitmap/Graphics/PrintWindow target)
-         is available without a separate NuGet package. -->
+         is available without a separate NuGet package. UseWPF adds System.Windows.Automation
+         (UIAutomationClient/Types) for driving the WinForge UI. -->
     <UseWindowsForms>true</UseWindowsForms>
+    <UseWPF>true</UseWPF>
     <AssemblyName>winforge-shot</AssemblyName>
     <Platforms>x64</Platforms>
   </PropertyGroup>

@@ -1,106 +1,243 @@
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
+using System.Windows.Automation;
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  winforge-shot · WinForge 驅動與截圖工具
-//  A small C# tool to drive the WinForge desktop app and capture screenshots.
+//  A C# tool to DRIVE the WinForge desktop app (via UI Automation) and capture
+//  screenshots (via PrintWindow) — i.e. "computer use" through a C# tool.
 //
-//  Why this exists: the PowerShell driver used CopyFromScreen, which grabs whatever
-//  pixels are physically on screen — so an overlapping window (e.g. a Unity editor)
-//  gets captured instead of WinForge. This tool uses PrintWindow with
-//  PW_RENDERFULLCONTENT, which asks the window to render ITS OWN pixels into a
-//  bitmap, so the capture is correct even when WinForge is occluded or in the
-//  background. It also force-foregrounds the window first (best effort).
+//  • Screenshots use PrintWindow(PW_RENDERFULLCONTENT), so the capture is WinForge's
+//    OWN pixels even when another window (e.g. a Unity editor) overlaps it.
+//  • Driving uses UI Automation: WinForge sets AutomationIds (e.g. ShellNavItem_module_camoufox,
+//    ShellNavItem_dashboard) and Names, so we can find + invoke/select/toggle/type elements
+//    without needing the window in the foreground.
 //
-//  Usage:
-//    winforge-shot --page <alias> --out <file.png> [--wait <ms>] [--exe <path>]
-//                  [--attach] [--keep-open] [--list-windows]
+//  Options (order-independent):
+//    --page <alias>     Launch WinForge with this deep-link page first.
+//    --exe  <path>      Explicit WinForge.exe (else auto-detected, then running instance).
+//    --attach           Don't launch; use an already-running WinForge window.
+//    --keep-open        Leave a launched instance running afterwards.
+//    --wait <ms>        Initial settle time after the window appears (default 12000).
+//
+//  Actions (executed IN THE ORDER they appear on the command line):
+//    --list-ui [depth]  Dump the UI Automation tree (AutomationId | Name | ControlType).
+//    --invoke <key>     Find by AutomationId / Name (exact, then contains) and Invoke
+//                       (falls back to Select / Toggle / a real mouse click).
+//    --select <key>     SelectionItem.Select the element (nav items, list items).
+//    --toggle <key>     Toggle the element (ToggleSwitch / CheckBox).
+//    --settext <k=v>    Set a TextBox/ValuePattern element's value.
+//    --click  <key>     Real mouse click at the element's center.
+//    --sleep  <ms>      Wait.
+//    --out    <file>    Capture a screenshot now (can be used multiple times).
+//
+//  Example — open Camoufox, switch to its Git tab, screenshot:
+//    winforge-shot --page camoufox --wait 14000 --invoke "Git" --sleep 800 --out cam-git.png
 // ─────────────────────────────────────────────────────────────────────────────
 
-// ── parse args ──
-var o = new Opts();
+string? page = null, exe = null;
+bool attach = false, keepOpen = false;
+int wait = 12000;
+var actions = new List<(string verb, string arg)>();
+
 for (int i = 0; i < args.Length; i++)
 {
-    string a = args[i];
+    string a = args[i].ToLowerInvariant();
     string Next() => i + 1 < args.Length ? args[++i] : "";
-    switch (a.ToLowerInvariant())
+    switch (a)
     {
-        case "--page": o.Page = Next(); break;
-        case "--out": o.Out = Next(); break;
-        case "--wait": int.TryParse(Next(), out o.Wait); break;
-        case "--exe": o.Exe = Next(); break;
-        case "--attach": o.Attach = true; break;
-        case "--keep-open": o.KeepOpen = true; break;
-        case "--list-windows": o.ListWindows = true; break;
+        case "--page": page = Next(); break;
+        case "--exe": exe = Next(); break;
+        case "--attach": attach = true; break;
+        case "--keep-open": keepOpen = true; break;
+        case "--wait": int.TryParse(Next(), out wait); break;
+
+        case "--list-ui": actions.Add(("list-ui", (i + 1 < args.Length && !args[i + 1].StartsWith("--")) ? Next() : "3")); break;
+        case "--invoke": actions.Add(("invoke", Next())); break;
+        case "--select": actions.Add(("select", Next())); break;
+        case "--toggle": actions.Add(("toggle", Next())); break;
+        case "--settext": actions.Add(("settext", Next())); break;
+        case "--click": actions.Add(("click", Next())); break;
+        case "--sleep": actions.Add(("sleep", Next())); break;
+        case "--out": actions.Add(("out", Next())); break;
+
         case "-h": case "--help":
-            Console.WriteLine("winforge-shot --page <alias> --out <file.png> [--wait ms] [--exe path] [--attach] [--keep-open] [--list-windows]");
+            Console.WriteLine("winforge-shot [--page x][--exe p][--attach][--keep-open][--wait ms] " +
+                              "[--list-ui [depth]][--invoke key][--select key][--toggle key][--settext k=v][--click key][--sleep ms][--out file]...");
             return 0;
     }
 }
+// Back-compat: a bare run with no actions still takes one screenshot.
+if (actions.Count == 0) actions.Add(("out", "winforge-shot.png"));
 
-if (o.ListWindows)
-{
-    foreach (var (h, t, pid) in FindWinForgeWindows()) Console.WriteLine($"hwnd=0x{h:X}  pid={pid}  title=\"{t}\"");
-    return 0;
-}
-
-// ── locate / launch ──
 Process? launched = null;
 bool wasRunning = Process.GetProcessesByName("WinForge").Length > 0;
 
-if (!o.Attach)
+if (!attach)
 {
-    string? exe = o.Exe ?? FindExe();
-    if (exe is null && !wasRunning)
-        return Fail("WinForge.exe not found. Build a self-contained publish first, or pass --exe / --attach.");
-    if (exe is not null)
+    string? path = exe ?? FindExe();
+    if (path is null && !wasRunning) return Fail("WinForge.exe not found. Publish self-contained first, or pass --exe / --attach.");
+    if (path is not null)
     {
-        var psi = new ProcessStartInfo { FileName = exe, UseShellExecute = true };
-        if (!string.IsNullOrEmpty(o.Page)) { psi.ArgumentList.Add("--page"); psi.ArgumentList.Add(o.Page!); }
+        var psi = new ProcessStartInfo { FileName = path, UseShellExecute = true };
+        if (!string.IsNullOrEmpty(page)) { psi.ArgumentList.Add("--page"); psi.ArgumentList.Add(page!); }
         launched = Process.Start(psi);
-        Console.WriteLine($"Launched: {exe} {(o.Page is null ? "" : "--page " + o.Page)}");
+        Console.WriteLine($"Launched: {path} {(page is null ? "" : "--page " + page)}");
     }
 }
 
-// ── wait for a window ──
-var deadline = DateTime.UtcNow.AddMilliseconds(Math.Max(2000, o.Wait));
+// Wait for a window.
+var deadline = DateTime.UtcNow.AddMilliseconds(Math.Max(2000, wait));
 IntPtr hwnd = IntPtr.Zero;
 while (DateTime.UtcNow < deadline)
 {
     var wins = FindWinForgeWindows();
-    if (wins.Count > 0) hwnd = wins[0].hwnd;
-    if (hwnd != IntPtr.Zero) { Thread.Sleep(800); break; }
+    if (wins.Count > 0) { hwnd = wins[0].hwnd; Thread.Sleep(800); break; }
     Thread.Sleep(400);
 }
 if (hwnd == IntPtr.Zero) return Fail("No WinForge top-level window appeared. Try a longer --wait.");
+Thread.Sleep(Math.Min(4000, Math.Max(1200, wait / 4)));
 
-// Final settle so the page finishes rendering.
-Thread.Sleep(Math.Min(4000, Math.Max(1200, o.Wait / 4)));
+AutomationElement? root = null;
+try { root = AutomationElement.FromHandle(hwnd); } catch { }
 
-// ── best-effort foreground (PrintWindow works even if this fails) ──
-TryForeground(hwnd);
-Thread.Sleep(600);
-
-// ── capture via PrintWindow(PW_RENDERFULLCONTENT) ──
-if (!Native.GetWindowRect(hwnd, out var r) || r.W <= 0 || r.H <= 0)
-    return Fail("Could not read the window rect.");
-
-Capture(hwnd, r, o.Out);
-Console.WriteLine($"OK  page={o.Page ?? "(current)"}  ->  {Path.GetFullPath(o.Out)}  ({r.W}x{r.H})");
-
-// Clean up only an instance WE launched and the caller didn't ask to keep.
-if (launched is not null && !wasRunning && !o.KeepOpen)
+int outCount = 0;
+foreach (var (verb, arg) in actions)
 {
-    try { if (!launched.HasExited) launched.Kill(entireProcessTree: true); } catch { }
+    switch (verb)
+    {
+        case "sleep": if (int.TryParse(arg, out var ms)) Thread.Sleep(ms); break;
+        case "list-ui": DumpTree(root, int.TryParse(arg, out var d) ? d : 3); break;
+        case "invoke": DoAction(root, hwnd, arg, "invoke"); break;
+        case "select": DoAction(root, hwnd, arg, "select"); break;
+        case "toggle": DoAction(root, hwnd, arg, "toggle"); break;
+        case "click": DoAction(root, hwnd, arg, "click"); break;
+        case "settext":
+        {
+            int eq = arg.IndexOf('=');
+            if (eq <= 0) { Console.Error.WriteLine("settext expects key=value"); break; }
+            SetText(root, arg[..eq], arg[(eq + 1)..]);
+            break;
+        }
+        case "out":
+        {
+            TryForeground(hwnd);
+            Thread.Sleep(500);
+            if (!Native.GetWindowRect(hwnd, out var r) || r.W <= 0) { Fail("bad window rect"); break; }
+            Capture(hwnd, r, arg);
+            Console.WriteLine($"OK  shot[{++outCount}] -> {Path.GetFullPath(arg)}  ({r.W}x{r.H})");
+            break;
+        }
+    }
 }
+
+if (launched is not null && !wasRunning && !keepOpen)
+    try { if (!launched.HasExited) launched.Kill(entireProcessTree: true); } catch { }
 return 0;
 
 
-// ───────────────────────── local functions ─────────────────────────
+// ───────────────────────── UI Automation ─────────────────────────
 
-static int Fail(string msg) { Console.Error.WriteLine("ERROR: " + msg); return 2; }
+static AutomationElement? FindEl(AutomationElement? root, string key)
+{
+    if (root is null) return null;
+    try
+    {
+        var byId = root.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.AutomationIdProperty, key));
+        if (byId is not null) return byId;
+        var byName = root.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.NameProperty, key));
+        if (byName is not null) return byName;
+        // contains match on Name or AutomationId
+        var all = root.FindAll(TreeScope.Descendants, Condition.TrueCondition);
+        foreach (AutomationElement e in all)
+        {
+            string n = Safe(() => e.Current.Name), id = Safe(() => e.Current.AutomationId);
+            if ((!string.IsNullOrEmpty(n) && n.Contains(key, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrEmpty(id) && id.Contains(key, StringComparison.OrdinalIgnoreCase)))
+                return e;
+        }
+    }
+    catch (Exception ex) { Console.Error.WriteLine("find error: " + ex.Message); }
+    return null;
+}
+
+static void DoAction(AutomationElement? root, IntPtr hwnd, string key, string mode)
+{
+    var el = FindEl(root, key);
+    if (el is null) { Console.Error.WriteLine($"[{mode}] not found: {key}"); return; }
+    string label = Safe(() => el.Current.Name);
+    try
+    {
+        switch (mode)
+        {
+            case "select" when el.TryGetCurrentPattern(SelectionItemPattern.Pattern, out var sp):
+                ((SelectionItemPattern)sp).Select(); Console.WriteLine($"[select] {label}"); return;
+            case "toggle" when el.TryGetCurrentPattern(TogglePattern.Pattern, out var tp):
+                ((TogglePattern)tp).Toggle(); Console.WriteLine($"[toggle] {label}"); return;
+            case "click":
+                ClickCenter(hwnd, el); Console.WriteLine($"[click] {label}"); return;
+        }
+        if (el.TryGetCurrentPattern(InvokePattern.Pattern, out var ip)) { ((InvokePattern)ip).Invoke(); Console.WriteLine($"[invoke] {label}"); return; }
+        if (el.TryGetCurrentPattern(SelectionItemPattern.Pattern, out var sp2)) { ((SelectionItemPattern)sp2).Select(); Console.WriteLine($"[select] {label}"); return; }
+        if (el.TryGetCurrentPattern(TogglePattern.Pattern, out var tp2)) { ((TogglePattern)tp2).Toggle(); Console.WriteLine($"[toggle] {label}"); return; }
+        ClickCenter(hwnd, el); Console.WriteLine($"[click-fallback] {label}");
+    }
+    catch (Exception ex) { Console.Error.WriteLine($"[{mode}] failed on '{label}': {ex.Message}"); }
+}
+
+static void SetText(AutomationElement? root, string key, string value)
+{
+    var el = FindEl(root, key);
+    if (el is null) { Console.Error.WriteLine($"[settext] not found: {key}"); return; }
+    try
+    {
+        if (el.TryGetCurrentPattern(ValuePattern.Pattern, out var vp)) { ((ValuePattern)vp).SetValue(value); Console.WriteLine($"[settext] {key} = {value}"); }
+        else Console.Error.WriteLine($"[settext] no ValuePattern on {key}");
+    }
+    catch (Exception ex) { Console.Error.WriteLine($"[settext] failed: {ex.Message}"); }
+}
+
+static void DumpTree(AutomationElement? root, int maxDepth)
+{
+    if (root is null) { Console.Error.WriteLine("no automation root"); return; }
+    var walker = TreeWalker.ControlViewWalker;
+    void Walk(AutomationElement el, int depth)
+    {
+        if (depth > maxDepth) return;
+        string id = Safe(() => el.Current.AutomationId);
+        string name = Safe(() => el.Current.Name);
+        string ct = Safe(() => el.Current.ControlType.ProgrammaticName.Replace("ControlType.", ""));
+        if (!string.IsNullOrEmpty(id) || !string.IsNullOrEmpty(name))
+            Console.WriteLine($"{new string(' ', depth * 2)}{ct,-14} id='{id}' name='{Trunc(name, 60)}'");
+        var child = walker.GetFirstChild(el);
+        while (child is not null) { Walk(child, depth + 1); child = walker.GetNextSibling(child); }
+    }
+    try { Walk(root, 0); } catch (Exception ex) { Console.Error.WriteLine("dump error: " + ex.Message); }
+}
+
+static string Trunc(string s, int n) => string.IsNullOrEmpty(s) ? "" : (s.Length <= n ? s : s[..n] + "…");
+static string Safe(Func<string> f) { try { return f() ?? ""; } catch { return ""; } }
+
+
+// ───────────────────────── capture / window ─────────────────────────
+
+static void ClickCenter(IntPtr hwnd, AutomationElement el)
+{
+    TryForeground(hwnd);
+    Thread.Sleep(250);
+    var r = el.Current.BoundingRectangle;
+    int x = (int)(r.Left + r.Width / 2), y = (int)(r.Top + r.Height / 2);
+    Native.SetCursorPos(x, y);
+    Thread.Sleep(60);
+    Native.mouse_event(Native.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, IntPtr.Zero);
+    Native.mouse_event(Native.MOUSEEVENTF_LEFTUP, 0, 0, 0, IntPtr.Zero);
+    Thread.Sleep(120);
+}
 
 static void Capture(IntPtr hwnd, Native.RECT r, string outPath)
 {
@@ -115,7 +252,7 @@ static void Capture(IntPtr hwnd, Native.RECT r, string outPath)
         {
             using var g2 = Graphics.FromImage(bmp);
             IntPtr hdc2 = g2.GetHdc();
-            try { Native.PrintWindow(hwnd, hdc2, 0); }   // fallback: plain PrintWindow
+            try { Native.PrintWindow(hwnd, hdc2, 0); }
             finally { g2.ReleaseHdc(hdc2); }
         }
     }
@@ -131,9 +268,6 @@ static void TryForeground(IntPtr hwnd)
         if (Native.IsIconic(hwnd)) Native.ShowWindow(hwnd, Native.SW_RESTORE);
         else Native.ShowWindow(hwnd, Native.SW_SHOW);
         Native.BringWindowToTop(hwnd);
-
-        // The foreground lock means SetForegroundWindow often no-ops unless we attach
-        // our input thread to the current foreground window's thread first.
         IntPtr fg = Native.GetForegroundWindow();
         uint fgThread = Native.GetWindowThreadProcessId(fg, out _);
         uint thisThread = Native.GetCurrentThreadId();
@@ -141,7 +275,7 @@ static void TryForeground(IntPtr hwnd)
         Native.SetForegroundWindow(hwnd);
         if (fgThread != thisThread) Native.AttachThreadInput(thisThread, fgThread, false);
     }
-    catch { /* foreground is best-effort; PrintWindow captures regardless */ }
+    catch { }
 }
 
 static List<(IntPtr hwnd, string title, uint pid)> FindWinForgeWindows()
@@ -149,7 +283,6 @@ static List<(IntPtr hwnd, string title, uint pid)> FindWinForgeWindows()
     var pids = Process.GetProcessesByName("WinForge").Select(p => (uint)p.Id).ToHashSet();
     var result = new List<(IntPtr, string, uint)>();
     if (pids.Count == 0) return result;
-
     Native.EnumWindows((h, _) =>
     {
         if (!Native.IsWindowVisible(h)) return true;
@@ -158,30 +291,30 @@ static List<(IntPtr hwnd, string title, uint pid)> FindWinForgeWindows()
         int len = Native.GetWindowTextLength(h);
         var sb = new System.Text.StringBuilder(len + 1);
         Native.GetWindowText(h, sb, sb.Capacity);
-        string title = sb.ToString();
         if (Native.GetWindowRect(h, out var rr) && rr.W > 200 && rr.H > 150)
-            result.Add((h, title, pid));
+            result.Add((h, sb.ToString(), pid));
         return true;
     }, IntPtr.Zero);
-
     return result
         .OrderByDescending(w => !string.IsNullOrEmpty(w.Item2))
         .ThenByDescending(w => { Native.GetWindowRect(w.Item1, out var rr); return (long)rr.W * rr.H; })
         .ToList();
 }
 
+static int Fail(string msg) { Console.Error.WriteLine("ERROR: " + msg); return 2; }
+
 static string? FindExe()
 {
-    string? root = FindRepoRoot(AppContext.BaseDirectory);
-    if (root is null) return null;
+    string? rootDir = FindRepoRoot(AppContext.BaseDirectory);
+    if (rootDir is null) return null;
     string[] tfms = { "net11.0-windows10.0.26100.0", "net10.0-windows10.0.26100.0" };
     var candidates = new List<string>();
     foreach (var tfm in tfms)
     {
-        candidates.Add(Path.Combine(root, "bin", "x64", "Debug", tfm, "win-x64", "publish", "WinForge.exe"));
-        candidates.Add(Path.Combine(root, "bin", "Debug", tfm, "win-x64", "publish", "WinForge.exe"));
-        candidates.Add(Path.Combine(root, "bin", "x64", "Debug", tfm, "win-x64", "WinForge.exe"));
-        candidates.Add(Path.Combine(root, "bin", "x64", "Release", tfm, "win-x64", "publish", "WinForge.exe"));
+        candidates.Add(Path.Combine(rootDir, "bin", "x64", "Debug", tfm, "win-x64", "publish", "WinForge.exe"));
+        candidates.Add(Path.Combine(rootDir, "bin", "Debug", tfm, "win-x64", "publish", "WinForge.exe"));
+        candidates.Add(Path.Combine(rootDir, "bin", "x64", "Debug", tfm, "win-x64", "WinForge.exe"));
+        candidates.Add(Path.Combine(rootDir, "bin", "x64", "Release", tfm, "win-x64", "publish", "WinForge.exe"));
     }
     return candidates.FirstOrDefault(File.Exists);
 }
@@ -198,7 +331,7 @@ static string? FindRepoRoot(string start)
 }
 
 
-// ───────────────────────── types ─────────────────────────
+// ───────────────────────── native ─────────────────────────
 
 static class Native
 {
@@ -216,6 +349,8 @@ static class Native
     [DllImport("user32.dll")] public static extern int GetWindowTextLength(IntPtr hwnd);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern int GetWindowText(IntPtr hwnd, System.Text.StringBuilder s, int max);
     [DllImport("user32.dll")] public static extern bool EnumWindows(EnumWindowsProc cb, IntPtr l);
+    [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
+    [DllImport("user32.dll")] public static extern void mouse_event(uint flags, int dx, int dy, uint data, IntPtr extra);
 
     public delegate bool EnumWindowsProc(IntPtr hwnd, IntPtr lParam);
 
@@ -223,11 +358,6 @@ static class Native
     public struct RECT { public int Left, Top, Right, Bottom; public int W => Right - Left; public int H => Bottom - Top; }
 
     public const int SW_RESTORE = 9, SW_SHOW = 5;
-    public const uint PW_RENDERFULLCONTENT = 0x00000002; // needed for WinUI / DirectComposition windows
-}
-
-class Opts
-{
-    public string? Page; public string Out = "winforge-shot.png"; public int Wait = 12000;
-    public string? Exe; public bool Attach; public bool KeepOpen; public bool ListWindows;
+    public const uint PW_RENDERFULLCONTENT = 0x00000002;
+    public const uint MOUSEEVENTF_LEFTDOWN = 0x0002, MOUSEEVENTF_LEFTUP = 0x0004;
 }
