@@ -161,6 +161,11 @@ public static class TermsService
         var strike = new ToggleButton { Content = new FontIcon { Glyph = "" } };
         ToolTipService.SetToolTip(strike, P("Strikethrough", "刪除線"));
 
+        // 用文字圖示避免 glyph 字碼含糊（例如刪除線睇落似底線）· Use text glyphs so the icons are unambiguous.
+        bold.Content = new TextBlock { Text = "B", FontWeight = FontWeights.Bold, FontSize = 16 };
+        italic.Content = new TextBlock { Text = "I", FontStyle = Windows.UI.Text.FontStyle.Italic, FontSize = 16, FontFamily = new FontFamily("Georgia") };
+        strike.Content = new TextBlock { Text = "S", FontSize = 16, TextDecorations = Windows.UI.Text.TextDecorations.Strikethrough };
+
         void ApplyStyle()
         {
             body.FontWeight = (bold.IsChecked == true) ? FontWeights.Bold : FontWeights.Normal;
