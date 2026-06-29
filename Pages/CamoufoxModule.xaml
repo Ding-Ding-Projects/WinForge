@@ -23,7 +23,29 @@
 
         <InfoBar x:Name="ResultBar" Grid.Row="2" IsClosable="True" IsOpen="False" Margin="0,2,0,0" />
 
-        <Pivot Grid.Row="3">
+        <Pivot Grid.Row="3" x:Name="MainPivot">
+
+            <!-- ───────────────── Guide (checklists + Easy Mode deep-links) ───────────────── -->
+            <PivotItem x:Name="TabGuide">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Spacing="14" Padding="0,8,0,0">
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16,14,16,14">
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                    <TextBlock x:Name="EasyTitle" FontWeight="SemiBold" />
+                                    <TextBlock x:Name="EasyDesc" FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                </StackPanel>
+                                <ToggleSwitch x:Name="EasyToggle" Grid.Column="1" VerticalAlignment="Center" Toggled="EasyToggle_Toggled" />
+                            </Grid>
+                        </Border>
+                        <StackPanel x:Name="GuideHost" Spacing="14" />
+                    </StackPanel>
+                </ScrollViewer>
+            </PivotItem>
 
             <!-- ───────────────── Profiles ───────────────── -->
             <PivotItem x:Name="TabProfiles">

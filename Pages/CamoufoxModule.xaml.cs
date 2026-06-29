@@ -25,11 +25,163 @@ public sealed partial class CamoufoxModule : Page
         Loc.I.LanguageChanged += (_, _) => Render();
         Loaded += async (_, _) =>
         {
+            EasyToggle.IsOn = EasyMode;
             Render();
+            BuildGuide();
             await RefreshProfiles();
             await RefreshEngine();
             await RefreshCommits();
         };
+    }
+
+    // ───────────────────────── Easy Mode + guided checklists ─────────────────────────
+
+    private const string KeyEasy = "camoufox.easymode";
+    private bool EasyMode
+    {
+        get => SettingsStore.Get(KeyEasy, "true") == "true";   // guided by default
+        set => SettingsStore.Set(KeyEasy, value ? "true" : "false");
+    }
+
+    private sealed record GuideStep(string Text, Action Go);
+
+    private void EasyToggle_Toggled(object sender, RoutedEventArgs e)
+    {
+        EasyMode = EasyToggle.IsOn;
+        BuildGuide();
+    }
+
+    /// <summary>深連結：跳去某個分頁再聚焦控制項 · Deep-link: switch to a tab and focus the control.</summary>
+    private void DeepLink(PivotItem tab, Control? focus = null, Action? then = null)
+    {
+        MainPivot.SelectedItem = tab;
+        DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
+        {
+            try { focus?.Focus(FocusState.Programmatic); then?.Invoke(); } catch (Exception ex) { CrashLogger.Log("camoufox.deeplink", ex); }
+        });
+    }
+
+    private void BuildGuide()
+    {
+        if (GuideHost is null) return;
+        EasyTitle.Text = P("Easy Mode — guided checklists", "簡易模式 — 導引清單");
+        EasyDesc.Text = EasyMode
+            ? P("On: each step has a “Go →” button that jumps you straight to the right screen and control.",
+                "開：每個步驟有「前往 →」掣，直接帶你去對應嘅畫面同控制項。")
+            : P("Off: steps are a manual checklist you tick yourself. Turn on for one-click deep links.",
+                "關：步驟係你自己剔嘅清單。開咗就有一鍵深連結。");
+
+        GuideHost.Children.Clear();
+
+        GuideHost.Children.Add(BuildChecklist(
+            P("Set up Camoufox", "設定 Camoufox"),
+            P("Get the engine, then make and launch your first profile.", "取得引擎，然後整並啟動你第一個設定檔。"),
+            new List<GuideStep>
+            {
+                new(P("Install the Camoufox engine (clone & build from source).", "安裝 Camoufox 引擎（clone 並由原始碼建置）。"),
+                    () => DeepLink(TabEngine, BuildBtn)),
+                new(P("Create your first profile.", "建立你第一個設定檔。"),
+                    () => DeepLink(TabProfiles, NewBtn, () => New_Click(NewBtn, new RoutedEventArgs()))),
+                new(P("Launch a profile in Camoufox.", "用 Camoufox 啟動設定檔。"),
+                    () => DeepLink(TabProfiles, LaunchBtn)),
+            }));
+
+        GuideHost.Children.Add(BuildChecklist(
+            P("Create & sync a profile", "建立並同步設定檔"),
+            P("Profiles store cookies + fingerprints as files; every change is committed.", "設定檔以檔案儲存 cookies 同指紋；每次改動都會 commit。"),
+            new List<GuideStep>
+            {
+                new(P("New profile — name it.", "新增設定檔 — 改個名。"),
+                    () => DeepLink(TabProfiles, NewBtn, () => New_Click(NewBtn, new RoutedEventArgs()))),
+                new(P("Edit the fingerprint (UA, locale, timezone, proxy…).", "編輯指紋（UA、地區、時區、代理…）。"),
+                    () => DeepLink(TabProfiles, EditBtn)),
+                new(P("Sync now — commit pending changes to the local git store.", "立即同步 — 將待處理改動 commit 入本地 git 倉庫。"),
+                    () => DeepLink(TabGit, SyncNowBtn)),
+                new(P("Export the profile to a .zip to back it up or move it.", "將設定檔匯出做 .zip 備份或搬遷。"),
+                    () => DeepLink(TabProfiles, ExportSelBtn)),
+            }));
+
+        GuideHost.Children.Add(BuildChecklist(
+            P("Manage git commits", "管理 git commit"),
+            P("Browse history, restore a point in time, and push off-machine.", "瀏覽歷史、還原到某時間點、push 去機外。"),
+            new List<GuideStep>
+            {
+                new(P("Open the commit history.", "開啟 commit 歷史。"),
+                    () => DeepLink(TabGit, RefreshCommitsBtn)),
+                new(P("Sync now to commit anything pending.", "立即同步，commit 待處理嘅嘢。"),
+                    () => DeepLink(TabGit, SyncNowBtn)),
+                new(P("Set a remote URL and enable push-on-sync.", "設定遠端網址並開啟同步即 push。"),
+                    () => DeepLink(TabGit, RemoteUrlBox)),
+                new(P("Push the whole profile store to the remote now.", "立即將成個設定檔倉庫 push 上遠端。"),
+                    () => DeepLink(TabGit, PushNowBtn)),
+            }));
+    }
+
+    private UIElement BuildChecklist(string title, string desc, List<GuideStep> steps)
+    {
+        var card = new StackPanel { Spacing = 10 };
+        var border = new Border
+        {
+            Background = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"],
+            BorderBrush = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"],
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(8),
+            Padding = new Thickness(16, 14, 16, 14),
+            Child = card,
+        };
+        card.Children.Add(new TextBlock { Text = title, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, FontSize = 15 });
+        card.Children.Add(new TextBlock { Text = desc, FontSize = 12, TextWrapping = TextWrapping.Wrap, Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextFillColorSecondaryBrush"] });
+
+        int n = 1;
+        foreach (var s in steps)
+        {
+            var row = new Grid { ColumnSpacing = 12, Margin = new Thickness(0, 4, 0, 0) };
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            if (EasyMode)
+            {
+                // numbered green badge
+                var badge = new Border
+                {
+                    Width = 24, Height = 24, CornerRadius = new CornerRadius(12),
+                    Background = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["WinForgeBrandBrush"],
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Child = new TextBlock { Text = n.ToString(), FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.Bold, Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, 6, 33, 15)), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
+                };
+                Grid.SetColumn(badge, 0);
+                row.Children.Add(badge);
+            }
+            else
+            {
+                var cb = new CheckBox { MinWidth = 0, VerticalAlignment = VerticalAlignment.Center };
+                Grid.SetColumn(cb, 0);
+                row.Children.Add(cb);
+            }
+
+            var text = new TextBlock { Text = s.Text, FontSize = 13, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center };
+            Grid.SetColumn(text, 1);
+            row.Children.Add(text);
+
+            if (EasyMode)
+            {
+                var go = new Button
+                {
+                    Content = P("Go →", "前往 →"),
+                    Padding = new Thickness(12, 5, 12, 5),
+                    VerticalAlignment = VerticalAlignment.Center,
+                };
+                var action = s.Go;
+                go.Click += (_, _) => { try { action(); } catch (Exception ex) { CrashLogger.Log("camoufox.guide", ex); } };
+                Grid.SetColumn(go, 2);
+                row.Children.Add(go);
+            }
+
+            card.Children.Add(row);
+            n++;
+        }
+        return border;
     }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
@@ -37,6 +189,11 @@ public sealed partial class CamoufoxModule : Page
     private void Render()
     {
         HeaderTitle.Text = "Camoufox Profiles · Camoufox 指紋設定檔";
+
+        TabGuide.Header = P("Guide", "導引");
+        TabProfiles.Header = P("Profiles", "設定檔");
+        TabGit.Header = P("Git / History", "Git／歷史");
+        TabEngine.Header = P("Engine", "引擎");
         HeaderBlurb.Text = P(
             "Manage Camoufox anti-detect browser profiles — cookies, fingerprints and names stored as files in a local git repo that commits every change. Launch, edit, delete and export profiles entirely in-app.",
             "管理 Camoufox 指紋瀏覽器設定檔 — cookies、指紋同名稱以檔案形式存喺本地 git 倉庫，每次改動都會 commit。喺 app 內啟動、編輯、刪除同匯出設定檔。");
