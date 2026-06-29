@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.FileServerModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid Padding="24,16,24,16" RowSpacing="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="12">
+            <FontIcon FontSize="22" Glyph="&#xE8B7;" VerticalAlignment="Center" />
+            <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
+        </StackPanel>
+        <TextBlock x:Name="HeaderBlurb" Grid.Row="1" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+        <InfoBar x:Name="ResultBar" Grid.Row="2" IsClosable="True" IsOpen="False" Margin="0,2,0,0" />
+        <InfoBar x:Name="DockerBar" Grid.Row="3" Severity="Warning" IsClosable="False" IsOpen="False" Margin="0,2,0,0" />
+
+        <ScrollViewer Grid.Row="4" VerticalScrollBarVisibility="Auto">
+            <StackPanel Spacing="14">
+
+                <!-- New share -->
+                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16,14,16,14">
+                    <StackPanel Spacing="10">
+                        <TextBlock x:Name="NewTitle" FontWeight="SemiBold" />
+                        <TextBlock x:Name="NewDesc" FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+
+                        <Grid ColumnSpacing="10" RowSpacing="10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <TextBlock x:Name="NameLabel" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" FontSize="13" />
+                            <TextBox x:Name="NameBox" Grid.Row="0" Grid.Column="1" />
+
+                            <TextBlock x:Name="FolderLabel" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" FontSize="13" />
+                            <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                                <TextBox x:Name="FolderBox" MinWidth="360" IsReadOnly="True" />
+                                <Button x:Name="BrowseBtn" Click="Browse_Click" />
+                            </StackPanel>
+
+                            <TextBlock x:Name="ProtoLabel" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" FontSize="13" />
+                            <ComboBox x:Name="ProtoBox" Grid.Row="2" Grid.Column="1" MinWidth="200" SelectedIndex="0">
+                                <ComboBoxItem Content="SFTP (atmoz/sftp)" Tag="sftp" />
+                                <ComboBoxItem Content="FTP / FTPS (alpine-ftp-server)" Tag="ftp" />
+                            </ComboBox>
+
+                            <TextBlock x:Name="UserLabel" Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" FontSize="13" />
+                            <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                                <TextBox x:Name="UserBox" Text="user" MinWidth="160" />
+                                <PasswordBox x:Name="PwdBox" MinWidth="200" />
+                            </StackPanel>
+
+                            <TextBlock x:Name="PortLabel" Grid.Row="4" Grid.Column="0" VerticalAlignment="Center" FontSize="13" />
+                            <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <NumberBox x:Name="PortBox" Minimum="1" Maximum="65535" SpinButtonPlacementMode="Compact" Width="140" />
+                                <CheckBox x:Name="AutoPortCheck" IsChecked="True" />
+                            </StackPanel>
+                        </Grid>
+
+                        <InfoBar x:Name="SecurityBar" Severity="Informational" IsClosable="False" IsOpen="True" />
+
+                        <Button x:Name="AddBtn" Style="{StaticResource AccentButtonStyle}" Click="Add_Click" HorizontalAlignment="Left" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Shares list -->
+                <TextBlock x:Name="SharesTitle" FontWeight="SemiBold" Margin="2,2,0,0" />
+                <ItemsControl x:Name="SharesPanel">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="14,12,14,12" Margin="0,0,0,10">
+                                <StackPanel Spacing="6">
+                                    <Grid ColumnSpacing="10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="14" />
+                                            <TextBlock Text="{Binding FolderPath}" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+                                            <Button Click="Start_Click" Tag="{Binding Id}" ToolTipService.ToolTip="Start · 啟動"><FontIcon Glyph="&#xE768;" FontSize="14" /></Button>
+                                            <Button Click="Stop_Click" Tag="{Binding Id}" ToolTipService.ToolTip="Stop · 停止"><FontIcon Glyph="&#xE71A;" FontSize="14" /></Button>
+                                            <Button Click="Copy_Click" Tag="{Binding Id}" ToolTipService.ToolTip="Copy connection · 複製連線"><FontIcon Glyph="&#xE8C8;" FontSize="14" /></Button>
+                                            <Button Click="Remove_Click" Tag="{Binding Id}" ToolTipService.ToolTip="Remove · 移除"><FontIcon Glyph="&#xE74D;" FontSize="14" /></Button>
+                                        </StackPanel>
+                                    </Grid>
+                                    <TextBlock Text="{Binding Endpoint}" FontFamily="Consolas" FontSize="12" IsTextSelectionEnabled="True" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock x:Name="SharesEmpty" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Visibility="Collapsed" />
+
+                <!-- Output -->
+                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12,8,12,8">
+                    <StackPanel Spacing="6">
+                        <TextBlock x:Name="OutputTitle" FontWeight="SemiBold" FontSize="12" />
+                        <ScrollViewer Height="140" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="6" Padding="10,8,10,8">
+                            <TextBlock x:Name="OutputText" FontFamily="Consolas" FontSize="12" IsTextSelectionEnabled="True" TextWrapping="NoWrap" />
+                        </ScrollViewer>
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Page>

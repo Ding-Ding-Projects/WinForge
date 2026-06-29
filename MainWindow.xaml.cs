@@ -328,6 +328,12 @@ public sealed partial class MainWindow : Window
             case "fingerprint":
                 Navigator.GoToModule?.Invoke("module.camoufox");
                 break;
+            case "fileserver":
+            case "ftpserver":
+            case "sftpserver":
+            case "hostshare":
+                Navigator.GoToModule?.Invoke("module.fileserver");
+                break;
             case "ocr":
             case "textocr":
             case "textextractor":
@@ -1252,6 +1258,7 @@ public sealed partial class MainWindow : Window
         "module.pgadmin" => typeof(PgAdminModule),
         "module.sqlitebrowser" => typeof(SqliteBrowserModule),
         "module.filezilla" => typeof(FileZillaModule),
+        "module.fileserver" => typeof(FileServerModule),
         "module.bitwarden" => typeof(BitwardenModule),
         "module.keepass" => typeof(KeePassModule),
         "module.feedreader" => typeof(FeedReaderModule),
@@ -1611,7 +1618,7 @@ public sealed partial class MainWindow : Window
                 "module.vscode", "module.aiagents", "module.resume", "module.ollama", "module.aichat",
                 "module.cloudflare", "module.weblogin", "module.ssh", "module.apiclient", "module.packer",
                 "module.worldmonitor", "module.webcloner", "module.pgadmin", "module.sqlitebrowser",
-                "module.filezilla", "module.feedreader", "module.quicktype", "module.decompiler",
+                "module.filezilla", "module.fileserver", "module.feedreader", "module.quicktype", "module.decompiler",
                 "module.aws", "module.cmdnotfound", "module.configbackup",
             },
         },
