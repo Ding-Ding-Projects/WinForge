@@ -36,6 +36,10 @@
             <FontFamily x:Key="WinForgeMonoFont">ms-appx:///Assets/Fonts/JetBrainsMono.ttf#JetBrains Mono</FontFamily>
             <FontFamily x:Key="ContentControlThemeFontFamily">ms-appx:///Assets/Fonts/SpaceGrotesk.ttf#Space Grotesk</FontFamily>
 
+            <!-- Make scroll bars clearly visible in dark mode (the default thumb was near-invisible
+                 dark-on-dark, and the auto-hide indicator was too faint). Wider + brighter thumb. -->
+            <x:Double x:Key="ScrollBarSize">14</x:Double>
+
             <!-- Shared brand brushes pages/cards can reference directly. -->
             <SolidColorBrush x:Key="WinForgeBrandBrush" Color="#FF54E07E" />
             <SolidColorBrush x:Key="WinForgeBrandDimBrush" Color="#FF2FAF57" />
@@ -79,6 +83,19 @@
                     <!-- Accent-tinted subtle fills for nav + list hover/selection -->
                     <SolidColorBrush x:Key="SubtleFillColorSecondaryBrush" Color="#1454E07E" />
                     <SolidColorBrush x:Key="SubtleFillColorTertiaryBrush" Color="#0F54E07E" />
+
+                    <!-- Visible scroll bars (thumb + always-present panning indicator) -->
+                    <SolidColorBrush x:Key="ScrollBarPanningThumbBackground" Color="#99B5C2B5" />
+                    <SolidColorBrush x:Key="ScrollBarThumbFill" Color="#FF748576" />
+                    <SolidColorBrush x:Key="ScrollBarThumbFillPointerOver" Color="#FF93A395" />
+                    <SolidColorBrush x:Key="ScrollBarThumbFillPressed" Color="#FFAEC0B0" />
+                    <SolidColorBrush x:Key="ScrollBarThumbFillDisabled" Color="#33FFFFFF" />
+                    <SolidColorBrush x:Key="ScrollBarTrackFill" Color="#FF131814" />
+                    <SolidColorBrush x:Key="ScrollBarTrackFillPointerOver" Color="#FF1A211B" />
+                    <SolidColorBrush x:Key="ScrollBarTrackStroke" Color="#1FFFFFFF" />
+                    <SolidColorBrush x:Key="ScrollBarTrackStrokePointerOver" Color="#2EFFFFFF" />
+                    <SolidColorBrush x:Key="ScrollBarButtonArrowForeground" Color="#FFBFCBBF" />
+                    <SolidColorBrush x:Key="ScrollBarButtonArrowForegroundPointerOver" Color="#FFEDF3ED" />
                 </ResourceDictionary>
 
                 <!-- LIGHT — keep Fluent light, just the green accent (set above) -->
