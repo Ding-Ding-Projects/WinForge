@@ -111,10 +111,16 @@
         </ScrollViewer>
 
         <!-- ===== ASCII / console mode ===== -->
+        <Grid x:Name="AsciiHost" Grid.Row="3" RowSpacing="8" Visibility="Collapsed">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <!-- Rich-text toolbar (handoff 54) injected here at runtime -->
+            <ContentControl x:Name="AsciiToolbarHost" Grid.Row="0" HorizontalAlignment="Left" />
         <Border
             x:Name="AsciiPanel"
-            Grid.Row="3"
-            Visibility="Collapsed"
+            Grid.Row="1"
             Background="#FF0C0C0C"
             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
             BorderThickness="1"
@@ -133,5 +139,6 @@
                     IsSpellCheckEnabled="False" />
             </ScrollViewer>
         </Border>
+        </Grid>
     </Grid>
 </Page>
