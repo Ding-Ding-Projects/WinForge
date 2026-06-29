@@ -256,29 +256,35 @@ public static class TermsService
             catch (Exception ex) { CrashLogger.Log("terms: save pdf", ex); }
         };
 
-        var toolbar = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        void Add(UIElement e) => toolbar.Children.Add(e);
-        Add(new TextBlock { Text = P("Language", "語言"), VerticalAlignment = VerticalAlignment.Center });
-        Add(langBox);
-        Add(new TextBlock { Text = P("Font", "字型"), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(6, 0, 0, 0) });
-        Add(fontBox);
-        Add(sizeBox);
-        Add(bold); Add(italic); Add(strike);
-        Add(colorBtn); Add(resetColor);
-        Add(new TextBlock { Text = P("Theme", "主題"), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(6, 0, 0, 0) });
-        Add(themeBox);
-        Add(copyBtn); Add(txtBtn); Add(pdfBtn);
-
-        var toolbarScroller = new ScrollViewer
+        // 工具列分兩行排，確保全部按鈕都見得到（唔使橫向捲）· Two rows so every control is visible (no horizontal scrolling).
+        TextBlock Label(string en, string zh) => new()
         {
-            Content = toolbar,
-            HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
-            VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
-            HorizontalScrollMode = ScrollMode.Auto,
+            Text = P(en, zh), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(2, 0, 2, 0),
         };
 
+        var row1 = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        row1.Children.Add(Label("Language", "語言"));
+        row1.Children.Add(langBox);
+        row1.Children.Add(Label("Font", "字型"));
+        row1.Children.Add(fontBox);
+        row1.Children.Add(sizeBox);
+        row1.Children.Add(bold);
+        row1.Children.Add(italic);
+        row1.Children.Add(strike);
+        row1.Children.Add(colorBtn);
+        row1.Children.Add(resetColor);
+
+        var row2 = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        row2.Children.Add(Label("Theme", "主題"));
+        row2.Children.Add(themeBox);
+        row2.Children.Add(copyBtn);
+        row2.Children.Add(txtBtn);
+        row2.Children.Add(pdfBtn);
+
+        var toolbar = new StackPanel { Spacing = 8, Children = { row1, row2 } };
+
         var layout = new StackPanel { Spacing = 12, Width = 860 };
-        layout.Children.Add(toolbarScroller);
+        layout.Children.Add(toolbar);
         layout.Children.Add(scroller);
         layout.Children.Add(new TextBlock
         {
