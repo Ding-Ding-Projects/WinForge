@@ -30,7 +30,7 @@ public sealed partial class FastbootModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Fastboot / Flasher · Fastboot／刷機";
+        Header.Title = "Fastboot / Flasher · Fastboot／刷機";
         HeaderBlurb.Text = P("A native PixelFlasher-style workflow over fastboot — unlock/lock the bootloader, flash boot.img, test a patched image with 'boot', flash a factory image, or sideload an OTA. Put the phone in bootloader mode first (Reboot → bootloader on the ADB page).",
             "原生 PixelFlasher 式 fastboot 流程 — 解鎖／上鎖 bootloader、flash boot.img、用「boot」試一張 patched image、刷原廠 image，或者 sideload OTA。先將手機入 bootloader 模式（ADB 頁 → 重啟入 bootloader）。");
 

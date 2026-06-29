@@ -82,7 +82,7 @@ public sealed partial class ResumeWriterModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Resume & Cover-letter Writer · 履歷與求職信寫手";
+        Header.Title = "Resume & Cover-letter Writer · 履歷與求職信寫手";
         HeaderBlurb.Text = P(
             "Keep one or more base resumes, paste a target job description, and let an installed AI coding agent tailor a resume and matching cover letter. Edit them, save to history, and export.",
             "儲存一份或多份底稿履歷，貼上目標職位描述，由已安裝嘅 AI 編程代理幫你度身訂造履歷同埋配對嘅求職信。可以手動編輯、存入歷史、匯出。");

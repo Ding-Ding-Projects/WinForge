@@ -49,7 +49,7 @@ public sealed partial class SqliteBrowserModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "SQLite Browser · SQLite 資料庫瀏覽器";
+        Header.Title = "SQLite Browser · SQLite 資料庫瀏覽器";
         HeaderBlurb.Text = P(
             "A native SQLite database browser: open or create a .db file, inspect the structure, browse and edit data, run SQL, and export to CSV — all in pure managed C#.",
             "原生 SQLite 資料庫瀏覽器：開啟或建立 .db 檔、檢視結構、瀏覽同編輯資料、跑 SQL、匯出 CSV — 全部純託管 C#。");

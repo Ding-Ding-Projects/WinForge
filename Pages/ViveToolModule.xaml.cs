@@ -32,7 +32,7 @@ public sealed partial class ViveToolModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "ViVeTool · 功能旗標";
+        Header.Title = "ViVeTool · 功能旗標";
         FilterBox.PlaceholderText = P("Filter by name or id…", "用名或 ID 篩選…");
         RefreshBtn.Content = P("Refresh", "重新整理");
         MoreText.Text = P("More", "更多");

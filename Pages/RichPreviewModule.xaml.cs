@@ -63,7 +63,7 @@ public sealed partial class RichPreviewModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Rich Preview · 豐富預覽";
+        Header.Title = "Rich Preview · 豐富預覽";
         HeaderBlurb.Text = P(
             "Pick or drop a file for a rich, type-aware preview — SVG, Markdown, PDF, source code, developer data (JSON/XML/YAML/TOML), G-code, QOI and ordinary images. The same file types PowerToys' File Explorer add-ons cover, rendered right here.",
             "揀檔或者拖入檔案，即時得到按類型嘅豐富預覽 — SVG、Markdown、PDF、原始碼、開發者資料（JSON／XML／YAML／TOML）、G-code、QOI 同一般圖片。等同 PowerToys 檔案總管增益所涵蓋嘅類型，喺呢度直接渲染。");

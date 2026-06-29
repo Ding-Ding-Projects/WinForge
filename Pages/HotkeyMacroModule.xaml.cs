@@ -62,7 +62,7 @@ public sealed partial class HotkeyMacroModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Hotkey & Macro Runner · 熱鍵與巨集";
+        Header.Title = "Hotkey & Macro Runner · 熱鍵與巨集";
         HeaderBlurb.Text = P(
             "Register global keyboard chords that launch an app, run a PowerShell snippet, or type text. Plus a text expander that turns typed triggers into snippets. Everything runs in-app and keeps working in the tray.",
             "登記全域鍵盤組合鍵，用嚟開程式、執行 PowerShell 片段，或者自動打字。仲有文字展開：將你打嘅縮寫變成片語。全部喺 app 內運行，收入系統匣都繼續運作。");

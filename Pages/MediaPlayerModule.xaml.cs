@@ -416,7 +416,7 @@ public sealed partial class MediaPlayerModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Media Player · 媒體播放器";
+        Header.Title = "Media Player · 媒體播放器";
         HeaderBlurb.Text = P("A real media player powered by the VLC engine (libVLC), embedded inside WinForge — no separate VLC install or redirect. Open files, URLs and streams; manage a playlist; switch audio and subtitle tracks; snapshot a frame; and convert with presets.",
             "用真正 VLC 引擎（libVLC）內嵌喺 WinForge 入面嘅媒體播放器 — 唔使另外裝 VLC，亦唔會跳出去。可以開檔案、URL、串流；管理播放清單；切換音訊同字幕軌；截圖；仲可以用預設轉檔。");
         OpenFileText.Text = P("Open file…", "開檔案…");

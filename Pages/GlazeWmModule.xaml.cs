@@ -63,7 +63,7 @@ public sealed partial class GlazeWmModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "GlazeWM Tiling · GlazeWM 平鋪視窗";
+        Header.Title = "GlazeWM Tiling · GlazeWM 平鋪視窗";
         HeaderBlurb.Text = P(
             "Wrap GlazeWM, the open-source tiling window manager, inside WinForge: install it, start/stop/reload the daemon, and edit its config (gaps, keybindings, workspaces) in-app.",
             "喺 WinForge 包住開源平鋪視窗管理員 GlazeWM：安裝、起停／重載 daemon，並喺 app 內編輯設定（邊距、鍵盤綁定、工作區）。");

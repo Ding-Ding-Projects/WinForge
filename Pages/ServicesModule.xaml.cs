@@ -29,7 +29,7 @@ public sealed partial class ServicesModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Services · 服務";
+        Header.Title = "Services · 服務";
         FilterBox.PlaceholderText = P("Filter services…", "篩選服務…");
         RefreshBtn.Content = P("Refresh", "重新整理");
         if (!AdminHelper.IsElevated)

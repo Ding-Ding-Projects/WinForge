@@ -42,7 +42,7 @@ public sealed partial class WinfetchModule : Page
 
     private void RenderText()
     {
-        HeaderTitle.Text = "System Info · 系統資訊 (Winfetch)";
+        Header.Title = "System Info · 系統資訊 (Winfetch)";
         HeaderBlurb.Text = P(
             "A native winfetch — your machine at a glance beside the Windows logo. Toggle ASCII for the classic console look, then copy or export.",
             "原生版 winfetch — 喺 Windows 標誌旁邊一眼睇晒部機嘅資料。撳 ASCII 切換經典主控台外觀，再複製或匯出。");

@@ -48,7 +48,7 @@ public sealed partial class TimeUnitModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Time & Unit Tools · 時間與單位工具";
+        Header.Title = "Time & Unit Tools · 時間與單位工具";
         HeaderBlurb.Text = P("A live world clock, a timezone converter and handy unit conversions — all offline, straight from Windows' own time-zone data.",
             "即時世界時鐘、時區換算同常用單位轉換 — 全部離線，直接用 Windows 自己嘅時區資料。");
 

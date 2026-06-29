@@ -75,7 +75,7 @@ public sealed partial class TerminalModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Windows Terminal · Windows 終端機";
+        Header.Title = "Windows Terminal · Windows 終端機";
         HeaderBlurb.Text = P("Edit Windows Terminal profiles natively (settings.json — backed up and written atomically so unknown keys are preserved), run a real shell embedded via ConPTY, and quick-launch wt.exe.",
             "原生編輯 Windows 終端機 profile（settings.json，會備份同原子寫入，保留未知欄位），用 ConPTY 喺 app 內開真正嘅 shell，仲可以快捷啟動 wt.exe。");
 

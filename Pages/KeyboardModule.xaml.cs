@@ -26,7 +26,7 @@ public sealed partial class KeyboardModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Keyboard Remapper · 鍵盤重新對應";
+        Header.Title = "Keyboard Remapper · 鍵盤重新對應";
         HeaderBlurb.Text = P("Remap one key to another, or disable it entirely. Writes the system Scancode Map — needs administrator and a reboot to take effect.",
             "將一個鍵改做另一個，或者完全停用佢。會寫入系統 Scancode Map — 需要管理員權限，重新開機先生效。");
         FromCap.Text = P("Map", "對應");

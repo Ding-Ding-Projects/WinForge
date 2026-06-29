@@ -37,7 +37,7 @@ public sealed partial class EnvVarsModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Environment Variables · 環境變數";
+        Header.Title = "Environment Variables · 環境變數";
         HeaderBlurb.Text = P("View, add, edit and delete environment variables. User variables apply without admin; System variables need WinForge running as administrator.",
             "檢視、新增、編輯同刪除環境變數。使用者變數唔使管理員；系統變數要 WinForge 以管理員身分執行。");
         NameBox.PlaceholderText = P("Variable name", "變數名稱");

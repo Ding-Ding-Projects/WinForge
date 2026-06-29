@@ -34,7 +34,7 @@ public sealed partial class ArchivesModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Archives · 壓縮檔";
+        Header.Title = "Archives · 壓縮檔";
         HeaderBlurb.Text = P("Create, extract, list and test archives with 7-Zip — zip, 7z, tar, gzip, bzip2, xz and more.",
             "用 7-Zip 建立、解壓、列出同測試壓縮檔 — zip、7z、tar、gzip、bzip2、xz 等等。");
         SelLabel.Text = P("Selection", "選擇");

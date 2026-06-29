@@ -35,7 +35,7 @@ public sealed partial class ContextMenuModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Context Menu Editor · 右鍵選單編輯器";
+        Header.Title = "Context Menu Editor · 右鍵選單編輯器";
         HeaderBlurb.Text = P("Add your own right-click commands and remove ones you created — per-user, applied instantly. Use %1 for the file/folder, %V for folder-background.",
             "加自己嘅右鍵指令，又可以移除自己整嘅 — 只限本使用者、即時生效。用 %1 代表檔案／資料夾，%V 代表資料夾空白處。");
         LabelBox.PlaceholderText = P("Menu label, e.g. Open with Notepad", "選單文字，例如 用記事本開");

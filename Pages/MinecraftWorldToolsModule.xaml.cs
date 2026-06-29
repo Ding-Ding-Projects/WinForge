@@ -32,7 +32,7 @@ public sealed partial class MinecraftWorldToolsModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Minecraft World Tools · Minecraft 世界工具";
+        Header.Title = "Minecraft World Tools · Minecraft 世界工具";
         HeaderBlurb.Text = P(
             "Manage Chunker-style world conversion in bounded 500 MB batches and run BlueMap renders from a full in-app control surface.",
             "喺完整介面管理 Chunker 類世界轉換（預設 500 MB 分批，避開記憶體漏）同 BlueMap 地圖算圖。");

@@ -41,7 +41,7 @@ public sealed partial class SettingsHubModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Settings & Control Panel · 設定與控制台";
+        Header.Title = "Settings & Control Panel · 設定與控制台";
         HeaderBlurb.Text = P(
             "Change Windows settings right here — the in-app catalog reads each setting's current value before showing it — or open any Settings page / Control Panel applet, grouped and searchable.",
             "喺呢度直接改 Windows 設定 — 應用程式內目錄顯示前會先讀取每項設定嘅目前值 — 又或者打開任何設定頁／控制台 applet，已分類同可搜尋。");

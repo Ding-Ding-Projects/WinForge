@@ -87,7 +87,7 @@ public sealed partial class AudioEditorModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Audio Editor · 音訊編輯器";
+        Header.Title = "Audio Editor · 音訊編輯器";
         HeaderBlurb.Text = P("Open or record a clip, see and select its waveform, apply effects (trim, fade, normalize, gain, speed, pitch, noise reduction and more) and export — all in-app.",
             "開檔或者錄音、睇同揀波形、套效果（剪裁、淡入淡出、正規化、增益、變速、變調、降噪等等）再匯出 — 全部喺 app 內。");
 

@@ -62,8 +62,8 @@ public sealed partial class OllamaModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Ollama · 本地大模型";
-        HeaderBlurb.Text = P(
+        Header.Title = "Ollama · 本地大模型";
+        Header.Subtitle = P(
             "Run local large-language models with Ollama — manage installed models, pull new ones with live progress, watch what's loaded in memory, and chat with streaming tokens and tunable parameters. Everything talks to the local API on port 11434.",
             "用 Ollama 喺本機跑大型語言模型 — 管理已安裝模型、即時進度下載新模型、睇住記憶體載咗咩、同串流式逐字聊天兼可調參數。全部都係同本機 11434 埠嘅 API 溝通。");
         RefreshCreditStatus();

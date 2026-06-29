@@ -41,7 +41,7 @@ public sealed partial class TextOcrModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Text Extractor (OCR) · 原生文字辨識";
+        Header.Title = "Text Extractor (OCR) · 原生文字辨識";
         HeaderBlurb.Text = P(
             "Pull text out of anything on screen or out of an image file using the built-in Windows OCR engine — no external tools, nothing to install. Drag a region or open a picture, pick the recognition language, then copy the text.",
             "用內置嘅 Windows OCR 引擎，由螢幕上任何嘢或者圖片檔抽取文字 — 唔使外部工具、唔使裝任何嘢。拖一個區域或者開一張圖、揀辨識語言，再複製文字。");

@@ -60,7 +60,7 @@ public sealed partial class ConnectionsModule : Page
     private void Render()
     {
         _rendering = true;
-        HeaderTitle.Text = "Connections · 連線";
+        Header.Title = "Connections · 連線";
         HeaderBlurb.Text = P("Every live TCP/UDP socket and the app that owns it. Drop a single connection or end the process — no resmon needed.",
             "每一條即時 TCP/UDP 連線同擁有佢嘅程式。可以單獨切斷一條連線或者結束程序 — 唔使開資源監視器。");
         FilterBox.PlaceholderText = P("Filter by process, address or port…", "用程序、位址或連接埠篩選…");

@@ -95,7 +95,7 @@ public sealed partial class PixelEditorModule : Page
 
     private void RenderText()
     {
-        HeaderTitle.Text = "Pixel Editor · 像素畫編輯器";
+        Header.Title = "Pixel Editor · 像素畫編輯器";
         HeaderBlurb.Text = P("A native, lightweight pixel-art editor: draw, manage a palette, layers and animation frames, then export PNG or animated GIF.",
             "原生輕量像素畫編輯器：畫畫、管理調色盤、圖層同動畫影格，再匯出 PNG 或動畫 GIF。");
         SubsetNote.Title = P("Lightweight subset — not full Aseprite", "輕量子集 — 唔係完整 Aseprite");

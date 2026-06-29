@@ -413,8 +413,8 @@ public sealed partial class ReactorModule : Page
     // ============================================================ static labels ====
     private void Render()
     {
-        HeaderTitle.Text = "★ Nuclear Reactor · 核反應堆";
-        HeaderBlurb.Text = P(
+        Header.Title = "★ Nuclear Reactor · 核反應堆";
+        Header.Subtitle = P(
             "WinForge's flagship: a hyper-realistic PWR control room — point-kinetics + thermal-hydraulics, Cherenkov core glow, synthesized control-room audio, strip-chart recorders, NIS/SPDS panels, accident scenarios, a dedicated control-room window and desktop widgets. Educational simulation only — controls nothing real.",
             "WinForge 旗艦：超寫實壓水堆控制室 — 點堆動力學＋熱工水力、切連科夫核芯輝光、合成控制室音效、趨勢記錄儀、NIS／SPDS 面板、事故情景、獨立控制室視窗同桌面小工具。純教育模擬 — 唔會控制任何真實硬件。");
         // toolbar

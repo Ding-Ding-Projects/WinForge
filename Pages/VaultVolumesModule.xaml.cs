@@ -43,7 +43,7 @@ public sealed partial class VaultVolumesModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "WinForge Vault · WinForge 保險庫";
+        Header.Title = "WinForge Vault · WinForge 保險庫";
         HeaderBlurb.Text = P("Create encrypted containers and mount them as a drive. Everything in a container is encrypted on the fly — files are only readable while mounted with the correct password. Mounting needs administrator rights.",
             "建立加密容器並掛載成磁碟機。容器內所有嘢都即時加密 — 只有用正確密碼掛載時先讀得到。掛載需要管理員權限。");
 

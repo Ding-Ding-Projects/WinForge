@@ -62,7 +62,7 @@ public sealed partial class PackageManagerModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Package Manager · 套件管理";
+        Header.Title = "Package Manager · 套件管理";
         HeaderBlurb.Text = P(
             "A UniGetUI-style hub over winget, Scoop, Chocolatey, pip, npm, .NET tools, PowerShell Gallery, PowerShell 7, Cargo, Bun and vcpkg — discover, multi-select, batch install/update/uninstall, and export/import bundles, all in-app.",
             "UniGetUI 式總管，統一 winget、Scoop、Chocolatey、pip、npm、.NET 工具、PowerShell Gallery、PowerShell 7、Cargo、Bun 同 vcpkg — 搜尋、多選、批次安裝／更新／解除安裝，仲可以匯出／匯入清單，全部喺 app 內。");

@@ -54,7 +54,7 @@ public sealed partial class DiskBenchmarkModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Disk Benchmark · 硬碟速度測試";
+        Header.Title = "Disk Benchmark · 硬碟速度測試";
         HeaderBlurb.Text = P("Measure real read/write speed of any drive or folder with a CrystalDiskMark-style test set — sequential and random, at several queue depths. Pure in-app C# direct I/O; no external tool.",
             "用 CrystalDiskMark 風格嘅測試組合量度任何磁碟或資料夾嘅真實讀寫速度 — 循序同隨機、多種佇列深度。純 app 內 C# 直接 I/O，唔使任何外部工具。");
 

@@ -77,7 +77,7 @@ public sealed partial class WebLoginModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "In-App Login · 內置登入";
+        Header.Title = "In-App Login · 內置登入";
         HeaderBlurb.Text = P(
             "Sign in to web services (GitHub, Cloudflare, OpenAI, Anthropic, Bitwarden…) inside WinForge instead of an external browser. Pick a provider and Capture to drive an OAuth redirect or grab session cookies; the same plumbing is reused by the Git, Cloudflare and AI modules.",
             "喺 WinForge 內置登入各種網頁服務（GitHub、Cloudflare、OpenAI、Anthropic、Bitwarden…），唔使彈出外置瀏覽器。揀一個提供者再撳「捕捉」去跑 OAuth 重新導向或者攞 session cookie；Git、Cloudflare 同 AI 模組都共用同一套底層。");

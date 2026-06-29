@@ -50,7 +50,7 @@ public sealed partial class EverythingSearchModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Instant File Search · 即時檔案搜尋";
+        Header.Title = "Instant File Search · 即時檔案搜尋";
         HeaderBlurb.Text = P("Type to find any file or folder by name across your local NTFS drives. The index is built natively (NTFS Master File Table via the USN journal), no external search engine.",
             "打字即搵本機 NTFS 磁碟上嘅任何檔案或資料夾。索引係原生建立（讀 NTFS 主檔案表 MFT，經 USN journal），冇用任何外部搜尋引擎。");
         SearchBox.PlaceholderText = P("Search files…  (use * ? wildcards, or toggle Regex)", "搜尋檔案…（可用 * ? 萬用字元，或切換正規表示式）");

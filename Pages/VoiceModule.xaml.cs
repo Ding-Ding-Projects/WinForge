@@ -30,7 +30,7 @@ public sealed partial class VoiceModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Voice & Read-Aloud · 語音朗讀";
+        Header.Title = "Voice & Read-Aloud · 語音朗讀";
         HeaderBlurb.Text = P("Read any text aloud with a built-in Windows voice, or export it to a WAV file. Choose a voice, adjust the speed and volume, then Play, Stop or Export.",
             "用 Windows 內置語音將文字讀出嚟，或者出成 WAV 檔。揀把聲、調速度同音量，跟住撳播放、停止或者匯出。");
         TextLabel.Text = P("Text to read aloud", "要朗讀嘅文字");

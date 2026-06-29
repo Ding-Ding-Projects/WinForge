@@ -76,7 +76,7 @@ public sealed partial class FlashcardsModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Flashcards · 間隔重複記憶卡";
+        Header.Title = "Flashcards · 間隔重複記憶卡";
         HeaderBlurb.Text = P(
             "Native Anki-style spaced repetition. Build decks, add cards, then study: see the front, reveal the answer, and grade your recall — the SM-2 algorithm schedules each card's next review. All offline, stored locally.",
             "原生 Anki 式間隔重複記憶。建立牌組、加入卡片，然後學習：睇正面、揭曉答案、再為自己嘅記憶評分 — SM-2 演算法會安排每張卡下次幾時複習。全程離線，資料存喺本機。");

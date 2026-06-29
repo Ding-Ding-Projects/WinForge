@@ -36,7 +36,7 @@ public sealed partial class AndroidAdbModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Android (ADB) · Android（ADB）";
+        Header.Title = "Android (ADB) · Android（ADB）";
         HeaderBlurb.Text = P("Manage Android devices over adb — console, a file push/pull browser, APK backup, live logcat, and screen mirroring (scrcpy). Enable USB debugging on the phone first.",
             "用 adb 管理 Android 裝置 — 主控台、檔案推送／拉取瀏覽器、APK 備份、即時 logcat，同螢幕鏡像（scrcpy）。手機要先開 USB 偵錯。");
         ConnectBtn.Content = P("Connect", "連接");

@@ -25,7 +25,7 @@ public sealed partial class MouseModule : Page
 
     private void Build()
     {
-        HeaderTitle.Text = "Mouse & Pointer · 滑鼠與指標";
+        Header.Title = "Mouse & Pointer · 滑鼠與指標";
         HeaderBlurb.Text = P("Native mouse settings that apply instantly and persist — no Settings app needed.",
             "原生滑鼠設定，即時生效又會記住 — 唔使開設定 app。");
         Root.Children.Clear();

@@ -73,7 +73,7 @@ public sealed partial class TorrentModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = P("Native Torrent · 原生種子下載", "原生種子下載");
+        Header.Title = P("Native Torrent · 原生種子下載", "原生種子下載");
         HeaderBlurb.Text = P("A full BitTorrent client built right into WinForge with the managed MonoTorrent engine — the protocol (DHT, local peer discovery, PEX, UDP/HTTP trackers) runs in-process. No qBittorrent, no external program. Add magnets or .torrent files, watch live progress, set per-file priority, and control each torrent.",
             "用受控 MonoTorrent 引擎內建喺 WinForge 嘅完整 BitTorrent 用戶端 — 協定（DHT、本地 peer 探索、PEX、UDP／HTTP 追蹤器）全部喺程序內運行。唔使 qBittorrent，亦冇外部程式。加磁力或 .torrent 檔、睇實時進度、設定每個檔案優先次序、控制每個種子。");
 

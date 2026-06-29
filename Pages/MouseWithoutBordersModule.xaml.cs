@@ -80,7 +80,7 @@ public sealed partial class MouseWithoutBordersModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Mouse Without Borders · 無界滑鼠";
+        Header.Title = "Mouse Without Borders · 無界滑鼠";
         HeaderBlurb.Text = P(
             "Control several PCs on the same network with one keyboard and mouse, and share the clipboard. Show this PC's security key and IP, then enter them on another machine to pair. Arrange machines left-to-right; when the pointer crosses a screen edge toward a neighbour, control moves to that PC.",
             "用一套鍵盤滑鼠操控同一網絡上嘅多部電腦，仲可以共用剪貼簿。顯示本機嘅安全密鑰同 IP，喺另一部機輸入嚟配對。將機器由左到右排列；當指標越過螢幕邊界去鄰機時，控制權就交畀嗰部電腦。");

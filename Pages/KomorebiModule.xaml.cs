@@ -54,7 +54,7 @@ public sealed partial class KomorebiModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Komorebi · 平鋪視窗管理";
+        Header.Title = "Komorebi · 平鋪視窗管理";
         HeaderBlurb.Text = P(
             "Drive the Komorebi tiling window manager from inside WinForge: install it, start/stop the daemon, switch layouts, navigate workspaces, set gaps, add window rules and edit the config — all over the komorebic CLI.",
             "喺 WinForge 直接操控 Komorebi 平鋪視窗管理：安裝、開／停守護程序、切換排版、切換工作區、設定間距、加視窗規則同編輯設定 — 全部經 komorebic CLI。");

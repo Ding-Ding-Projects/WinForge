@@ -35,7 +35,7 @@ public sealed partial class CaptureStudioModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Capture Studio · 擷取工作室";
+        Header.Title = "Capture Studio · 擷取工作室";
         HeaderBlurb.Text = P("Record a region of the screen to MP4 or GIF, snip a rectangle straight to the clipboard, or pull text out of any region or image with OCR. Everything runs in-app — no redirects.",
             "錄螢幕一忽做 MP4 或 GIF、㩒個矩形截圖直入剪貼簿、或者用 OCR 由任何區域／圖片認返啲字出嚟。全部喺 app 內做，唔會跳走。");
 

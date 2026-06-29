@@ -94,7 +94,7 @@ public sealed partial class DiskHealthModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Disk Health (SMART) · 硬碟健康（SMART）";
+        Header.Title = "Disk Health (SMART) · 硬碟健康（SMART）";
         HeaderBlurb.Text = P(
             "A CrystalDiskInfo-style health monitor read natively from each drive's SMART data — temperature, power-on hours, wear and every attribute. No external tools.",
             "CrystalDiskInfo 風格嘅健康監測，直接由每個磁碟嘅 SMART 資料原生讀取 — 溫度、通電時數、耗損同所有屬性。唔使任何外部程式。");

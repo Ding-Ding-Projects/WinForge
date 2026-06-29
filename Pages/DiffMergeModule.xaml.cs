@@ -52,7 +52,7 @@ public sealed partial class DiffMergeModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "File & Folder Diff/Merge · 檔案及資料夾比對合併";
+        Header.Title = "File & Folder Diff/Merge · 檔案及資料夾比對合併";
         HeaderBlurb.Text = P(
             "A native, in-app diff & merge — pick two files for a colour-coded side-by-side line diff with word highlighting, copy changed lines left↔right and save each side back, or compare two folders recursively and open any differing pair. Pure managed C#, no external tools.",
             "原生、app 內嘅比對及合併 — 揀兩個檔案做彩色並排逐行比對（含逐字標示），將改動嘅行左右互抄再各自存檔，又或者遞迴比對兩個資料夾、雙擊任何唔同嘅檔案對開比對。全部純受管理 C#，唔使任何外部工具。");

@@ -56,7 +56,7 @@ public sealed partial class SshModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "SSH Toolset · SSH 工具";
+        Header.Title = "SSH Toolset · SSH 工具";
         HeaderBlurb.Text = P(
             "Saved connection profiles (secrets encrypted at rest with DPAPI), an in-app terminal, key generation, one-click passwordless deploy, and an SFTP browser — all in-process via SSH.NET.",
             "已儲存嘅連線設定檔（秘密用 DPAPI 加密存放）、應用程式內終端機、產生金鑰、一鍵免密碼部署，同 SFTP 瀏覽器 — 全部經 SSH.NET 喺進程內完成。");

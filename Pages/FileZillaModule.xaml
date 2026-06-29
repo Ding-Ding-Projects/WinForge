@@ -4,10 +4,11 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid Padding="16,12,16,12" RowSpacing="10">
+    <Grid Style="{StaticResource WinForgePageGridStyle}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <!-- header -->
@@ -20,16 +21,7 @@
         </Grid.RowDefinitions>
 
         <!-- ===================== Header ===================== -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="12">
-            <FontIcon FontSize="22" Glyph="&#xE8B7;" VerticalAlignment="Center" />
-            <StackPanel>
-                <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
-                <TextBlock
-                    x:Name="HeaderBlurb"
-                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                    TextWrapping="Wrap" />
-            </StackPanel>
-        </StackPanel>
+        <controls:ModuleHeader x:Name="Header" Grid.Row="0" Glyph="&#xE8B7;" />
 
         <!-- About / operations help (reachable, collapsible) -->
         <Expander

@@ -33,7 +33,7 @@ public sealed partial class CloudflareModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Cloudflare & Tunnel · Cloudflare 與 Tunnel";
+        Header.Title = "Cloudflare & Tunnel · Cloudflare 與 Tunnel";
         HeaderBlurb.Text = P(
             "Run cloudflared from inside WinForge: named tunnels, free quick tunnels, route DNS, Cloudflare Access, DNS-over-HTTPS and WARP.",
             "喺 WinForge 直接用 cloudflared：具名 tunnel、免費快速 tunnel、DNS 路由、Cloudflare Access、DNS-over-HTTPS 同 WARP。");

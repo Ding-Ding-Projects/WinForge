@@ -30,7 +30,7 @@ public sealed partial class DevicesModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Devices · 裝置";
+        Header.Title = "Devices · 裝置";
         FilterBox.PlaceholderText = P("Filter devices (e.g. Bluetooth, Audio)…", "篩選裝置（例如 Bluetooth、Audio）…");
         RefreshBtn.Content = P("Refresh", "重新整理");
         if (!AdminHelper.IsElevated)

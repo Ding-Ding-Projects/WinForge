@@ -44,7 +44,7 @@ public sealed partial class ImagingGameModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Imaging & game tools · 燒錄與遊戲工具";
+        Header.Title = "Imaging & game tools · 燒錄與遊戲工具";
         HeaderBlurb.Text = P("Write an OS image to an SD card (Raspberry Pi style) with strong guards, and run the Minecraft world downloader.",
             "用強力保護將 OS 映像燒落 SD 卡（樹莓派式），同埋執行 Minecraft 世界下載器。");
 

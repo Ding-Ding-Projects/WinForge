@@ -32,7 +32,7 @@ public sealed partial class ViaProxyModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "ViaProxy · Minecraft 版本代理";
+        Header.Title = "ViaProxy · Minecraft 版本代理";
         HeaderBlurb.Text = P("Run the ViaProxy Java proxy so one Minecraft client can join servers of almost any version (and vice-versa). Detect Java, download the jar, set your target server + version, start the proxy and connect Minecraft to the local address.",
             "行 ViaProxy Java 代理，等一個 Minecraft 客戶端可以連去差唔多任何版本嘅伺服器（反之亦然）。偵測 Java、下載 jar、設定目標伺服器同版本、啟動代理，再用 Minecraft 連去本機位址。");
 

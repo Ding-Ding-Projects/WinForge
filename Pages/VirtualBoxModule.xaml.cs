@@ -28,7 +28,7 @@ public sealed partial class VirtualBoxModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "VirtualBox Manager · VirtualBox 管理";
+        Header.Title = "VirtualBox Manager · VirtualBox 管理";
         HeaderBlurb.Text = P("Manage Oracle VirtualBox virtual machines via VBoxManage — list with live state, start (GUI / headless), pause / resume / save / power off, take and restore snapshots, change CPUs and RAM, create / clone / delete VMs, and import / export OVA appliances. Everything runs in-app.",
             "經 VBoxManage 管理 Oracle VirtualBox 虛擬機 — 列出並顯示即時狀態，啟動（圖形／無頭）、暫停／繼續／儲存／關機，拍攝同還原快照，改 CPU 同記憶體，建立／複製／刪除虛擬機，匯入／匯出 OVA。全部喺 app 內運行。");
 

@@ -34,7 +34,7 @@ public sealed partial class SearchResultsPage : Page
 
     private void RenderLabels()
     {
-        HeaderTitle.Text = "Search · 搜尋";
+        Header.Title = "Search · 搜尋";
         SearchBox.PlaceholderText = P("Search every page and setting…", "搜尋所有頁面同設定…");
     }
 

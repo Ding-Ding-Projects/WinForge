@@ -68,7 +68,7 @@ public sealed partial class VpnMeshModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "VPN & Mesh · VPN 與網狀網";
+        Header.Title = "VPN & Mesh · VPN 與網狀網";
         HeaderBlurb.Text = P("Control NordVPN, Tailscale, the built-in Windows VPN client and WireGuard in-app by wrapping their command-line tools.",
             "喺 app 內透過包住佢哋嘅命令列工具控制 NordVPN、Tailscale、Windows 內置 VPN 同 WireGuard。");
 

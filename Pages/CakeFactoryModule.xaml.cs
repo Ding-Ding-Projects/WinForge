@@ -87,8 +87,8 @@ public sealed partial class CakeFactoryModule : Page
 
     private void RenderText()
     {
-        HeaderTitle.Text = "Nuclear Cake Factory & Farm · 核能蛋糕工廠與農場";
-        HeaderBlurb.Text = P(
+        Header.Title = "Nuclear Cake Factory & Farm · 核能蛋糕工廠與農場";
+        Header.Subtitle = P(
             "Native WinUI 3 controls for daily operation, with full HTML5 factory mode available on demand.",
             "日常操作用原生 WinUI 3 控制；需要時可開啟完整 HTML5 工廠模式。");
         OpenFullFactoryText.Text = P("Full factory mode", "完整工廠模式");

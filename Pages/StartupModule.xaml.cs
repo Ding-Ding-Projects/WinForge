@@ -26,7 +26,7 @@ public sealed partial class StartupModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Startup Apps · 開機程式";
+        Header.Title = "Startup Apps · 開機程式";
         FilterBox.PlaceholderText = P("Filter startup apps…", "篩選開機程式…");
         RefreshBtn.Content = P("Refresh", "重新整理");
     }

@@ -78,7 +78,7 @@ public sealed partial class DockerModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Docker · Docker 容器管理";
+        Header.Title = "Docker · Docker 容器管理";
         HeaderBlurb.Text = P("Full container management over the local Docker Engine REST API — a managed .NET client (Docker.DotNet) talking to npipe://./pipe/docker_engine, the same native-client pattern as the qBittorrent module. List and control containers, view logs, exec commands, watch live CPU/memory, manage images, volumes and networks, and bring docker-compose stacks up/down — all in-app, never shelling out to the docker CLI. Requires a running Docker daemon.",
             "喺本機 Docker Engine REST API 上面做完整容器管理 — 用 managed .NET 客戶端（Docker.DotNet）打 npipe://./pipe/docker_engine，同 qBittorrent 模組一樣係原生客戶端模式。列出同控制容器、睇 log、exec 指令、睇實時 CPU／記憶體、管理映像／磁碟區／網路，仲可以將 docker-compose 堆疊 up／down — 全部喺 app 內做，唔會行 docker CLI。需要本機有 Docker daemon 行緊。");
 

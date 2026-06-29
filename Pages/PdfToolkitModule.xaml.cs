@@ -41,7 +41,7 @@ public sealed partial class PdfToolkitModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "PDF Toolkit · PDF 工具箱";
+        Header.Title = "PDF Toolkit · PDF 工具箱";
         HeaderBlurb.Text = P(
             "A native, Stirling-PDF-style toolkit with an in-page PDF viewer — browse, inspect, search text, jump pages, extract ranges, rotate copies, merge, split, watermark, encrypt/decrypt, extract text, and build a PDF from images. Fully managed (PDFsharp + PdfPig) with WebView2 for viewing; nothing is shelled out or bundled.",
             "原生、Stirling-PDF 風格嘅工具箱，內置 PDF 檢視器 — 瀏覽、檢查、搜尋文字、跳頁、抽取範圍、旋轉副本、合併、分割、浮水印、加密／解密、抽取文字、由圖片整 PDF。完全受管理（PDFsharp + PdfPig），檢視用 WebView2；唔會呼叫或捆綁任何外部工具。");

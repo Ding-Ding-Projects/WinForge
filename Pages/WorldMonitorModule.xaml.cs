@@ -51,7 +51,7 @@ public sealed partial class WorldMonitorModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "World Monitor · 世界監察";
+        Header.Title = "World Monitor · 世界監察";
         VariantLbl.Text = P("Variant", "變體");
         CopyUrlTxt.Text = P("Copy URL", "複製網址");
         ZoomLbl.Text = $"{(int)Math.Round(_svc.Zoom * 100)}%";

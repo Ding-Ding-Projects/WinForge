@@ -101,7 +101,7 @@ public sealed partial class NativeUtilitiesModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Native Utilities · 原生工具";
+        Header.Title = "Native Utilities · 原生工具";
         HeaderBlurb.Text = P("In-app tools built straight on documented Windows APIs — no external tools, no redirects.",
             "直接建喺有文件記載嘅 Windows API 之上嘅應用程式內工具 — 唔使外部工具、唔會跳走。");
 

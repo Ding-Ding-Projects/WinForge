@@ -68,7 +68,7 @@ public sealed partial class HomeAssistantModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Home Assistant · 家居助理";
+        Header.Title = "Home Assistant · 家居助理";
         HeaderBlurb.Text = P("Control your Home Assistant over its REST API — render templates, check config and restart, plot history, run scenes, control lights and thermostats, push phone notifications and more. Everything runs in-app.",
             "用 REST API 控制你嘅 Home Assistant — 跑範本、驗 config 再重啟、畫歷史走勢、跑場景、控制燈同冷氣、推手機通知等等。全部喺 app 內做。");
 

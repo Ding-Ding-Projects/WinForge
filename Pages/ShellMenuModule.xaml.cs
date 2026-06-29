@@ -28,7 +28,7 @@ public sealed partial class ShellMenuModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Explorer Right-Click · 檔案總管右鍵選單";
+        Header.Title = "Explorer Right-Click · 檔案總管右鍵選單";
         HeaderBlurb.Text = P(
             "Add WinForge actions to Windows Explorer's right-click menu. Each toggle writes a per-user registry verb instantly (no admin needed). On Windows 11 these appear under \"Show more options\"; on Windows 10 they appear directly.",
             "將 WinForge 動作加入 Windows 檔案總管嘅右鍵選單。每個開關即時寫入本使用者登錄項目（免管理員）。Windows 11 喺「顯示更多選項」入面、Windows 10 直接顯示。");

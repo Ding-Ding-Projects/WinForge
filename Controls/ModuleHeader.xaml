@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+    ModuleHeader · 模組頁首
+    ============================================================================
+    The standard page header used at the top of every module page: an accent
+    icon chip, a title, an optional subtitle/blurb, and a right-aligned slot for
+    page-level actions (Content). Replaces the hand-rolled FontIcon + title +
+    blurb stack that was duplicated across ~130 pages.
+
+    Usage: place a ModuleHeader at the top of the page, optionally filling its
+    ActionContent slot with page-level buttons/pills. Set Header.Title and
+    Header.Subtitle from code-behind (already-localized text via Loc.I.Pick),
+    exactly like the old HeaderTitle.Text assignments.
+-->
+<UserControl
+    x:Class="WinForge.Controls.ModuleHeader"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid ColumnSpacing="12">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+
+        <!--  Accent icon chip · 強調色圖示方塊  -->
+        <Border
+            x:Name="IconChip"
+            Grid.Column="0"
+            Width="40"
+            Height="40"
+            VerticalAlignment="Top"
+            Background="{ThemeResource AccentFillColorDefaultBrush}"
+            CornerRadius="{StaticResource OverlayCornerRadius}">
+            <FontIcon
+                x:Name="HeaderGlyph"
+                FontSize="20"
+                Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}" />
+        </Border>
+
+        <!--  Title + subtitle · 標題與副標題  -->
+        <StackPanel
+            Grid.Column="1"
+            VerticalAlignment="Center"
+            Spacing="2">
+            <TextBlock
+                x:Name="TitleText"
+                AutomationProperties.HeadingLevel="Level1"
+                Style="{StaticResource SubtitleTextBlockStyle}"
+                TextWrapping="Wrap" />
+            <TextBlock
+                x:Name="SubtitleText"
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                TextWrapping="Wrap"
+                Visibility="Collapsed" />
+        </StackPanel>
+
+        <!--  Actions slot · 動作區（右邊）  -->
+        <ContentPresenter
+            x:Name="ActionsHost"
+            Grid.Column="2"
+            VerticalAlignment="Center"
+            Content="{x:Bind ActionContent, Mode=OneWay}" />
+    </Grid>
+</UserControl>

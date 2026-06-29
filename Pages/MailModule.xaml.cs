@@ -47,7 +47,7 @@ public sealed partial class MailModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Mail · 電郵";
+        Header.Title = "Mail · 電郵";
         HeaderBlurb.Text = P(
             "A native multi-account email client. Add IMAP/SMTP accounts (auto-detects Gmail/Outlook/iCloud), browse folders, read mail with attachments, and compose / reply / forward — all in-app. Credentials are DPAPI-encrypted.",
             "原生多帳戶電郵客戶端。加 IMAP／SMTP 帳戶（自動偵測 Gmail／Outlook／iCloud），瀏覽資料夾、睇郵件同附件，撰寫／回覆／轉寄全部喺 app 內。憑證以 DPAPI 加密。");

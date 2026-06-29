@@ -75,7 +75,7 @@ public sealed partial class DockerSshModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Docker over SSH · 透過 SSH 控制 Docker";
+        Header.Title = "Docker over SSH · 透過 SSH 控制 Docker";
         HeaderBlurb.Text = P(
             "Manage Docker containers on a remote host over SSH — pick a saved SSH profile (or enter host/user/password or key), then list containers and power them: start, stop, restart, pause, remove, view logs and exec commands. Everything runs the docker CLI on the remote machine via SSH.NET; nothing is installed locally.",
             "經 SSH 管理遠端主機上嘅 Docker 容器 — 揀一個已儲存嘅 SSH 設定檔（或者輸入主機／帳號／密碼或私鑰），就可以列出容器同控制電源：啟動、停止、重啟、暫停、移除、睇日誌、執行命令。全部經 SSH.NET 喺遠端機跑 docker CLI；本機唔使安裝任何嘢。");

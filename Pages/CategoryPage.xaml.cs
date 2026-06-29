@@ -33,8 +33,8 @@ public sealed partial class CategoryPage : Page
     private void RenderHeader()
     {
         if (_category is null) return;
-        HeaderIcon.Glyph = _category.Glyph;
-        HeaderTitle.Text = $"{_category.Name.En} · {_category.Name.Zh}";
+        Header.Glyph = _category.Glyph;
+        Header.Title = $"{_category.Name.En} · {_category.Name.Zh}";
         HeaderBlurb.Text = $"{_category.Blurb.En}\n{_category.Blurb.Zh}";
         FilterBox.PlaceholderText = Loc.I.Pick("Filter this section…", "篩選呢個分類…");
     }

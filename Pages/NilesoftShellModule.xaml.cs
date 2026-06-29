@@ -57,7 +57,7 @@ public sealed partial class NilesoftShellModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Nilesoft Shell · Nilesoft 右鍵選單";
+        Header.Title = "Nilesoft Shell · Nilesoft 右鍵選單";
         HeaderBlurb.Text = P(
             "Install and control Nilesoft Shell — a native replacement for the Windows right-click menu — and edit its shell.nss configuration with templates, snippets and automatic backups.",
             "安裝同控制 Nilesoft Shell（Windows 右鍵選單嘅原生替代品），並用範本、片語同自動備份去編輯佢嘅 shell.nss 設定檔。");

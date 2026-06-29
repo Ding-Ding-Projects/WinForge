@@ -44,7 +44,7 @@ public sealed partial class AmuletModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Minecraft World Editor (Amulet) · Minecraft 世界編輯器（Amulet）";
+        Header.Title = "Minecraft World Editor (Amulet) · Minecraft 世界編輯器（Amulet）";
         HeaderBlurb.Text = P(
             "Bundle, install and launch the Amulet Minecraft world editor. Pick a Java/Bedrock world, preview its level.dat metadata, then open it in Amulet — with tracked Start/Stop and a live log. Amulet runs as its own process.",
             "打包、安裝同啟動 Amulet Minecraft 世界編輯器。揀一個 Java／Bedrock 世界，預覽佢嘅 level.dat 資料，然後喺 Amulet 入面開 — 有追蹤式開始／停止同即時記錄。Amulet 以獨立程序運行。");

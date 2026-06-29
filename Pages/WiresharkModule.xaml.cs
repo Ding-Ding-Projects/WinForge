@@ -61,7 +61,7 @@ public sealed partial class WiresharkModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Packet Capture · 封包擷取";
+        Header.Title = "Packet Capture · 封包擷取";
         HeaderBlurb.Text = P(
             "Capture network packets with Wireshark's engine: pick an interface, capture to a .pcapng with a live summary grid, apply capture (BPF) and display filters, inspect packet detail, read saved files, view statistics, and open the full Wireshark GUI. Capture needs administrator rights and Npcap.",
             "用 Wireshark 引擎擷取網絡封包：揀介面、擷取去 .pcapng 並即時顯示摘要、套用擷取（BPF）同顯示篩選器、查睇封包詳情、讀已存檔案、睇統計，仲可以打開完整 Wireshark GUI。擷取需要管理員權限同 Npcap。");

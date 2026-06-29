@@ -35,8 +35,8 @@ public sealed partial class SystemDoctorsModule : Page
 
     private void Build()
     {
-        HeaderTitle.Text = "System Doctors · 系統醫生";
-        HeaderSub.Text = P("Guided rescue routines that really fix Windows 11 — diagnose, then repair, all in-app.",
+        Header.Title = "System Doctors · 系統醫生";
+        Header.Subtitle = P("Guided rescue routines that really fix Windows 11 — diagnose, then repair, all in-app.",
             "真正修復 Windows 11 嘅引導式急救流程 — 先診斷、再修復，全程喺 app 內。");
 
         if (!AdminHelper.IsElevated)
