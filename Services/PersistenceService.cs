@@ -202,28 +202,54 @@ public sealed class PersistenceService
     /// Atomic write: write a temp file, flush to disk, then File.Replace the target (keeping a .bak
     /// of the previous good file). If the target doesn't exist yet, just Move the temp into place.
     /// </summary>
+    private static readonly object _writeLock = new();
+
     private static void WriteAtomic(string json)
     {
         Directory.CreateDirectory(Dir);
 
-        // 1) Write fully to the temp file and flush it to the physical disk.
-        using (var fs = new FileStream(TmpPath, FileMode.Create, FileAccess.Write, FileShare.None))
-        using (var sw = new StreamWriter(fs))
+        // Serialize all writers: the autosave timer, page-driven saves and the shutdown flush can
+        // otherwise overlap and collide on the temp file (FileShare.None) — which made every save
+        // throw "used by another process" and silently lose state. A per-write unique temp name also
+        // means a lingering/locked temp from a prior write can never block the next one.
+        lock (_writeLock)
         {
-            sw.Write(json);
-            sw.Flush();
-            fs.Flush(flushToDisk: true);
-        }
+            string tmp = FilePath + "." + Guid.NewGuid().ToString("N") + ".tmp";
+            try
+            {
+                // 1) Write fully to the temp file and flush it to the physical disk.
+                using (var fs = new FileStream(tmp, FileMode.Create, FileAccess.Write, FileShare.None))
+                using (var sw = new StreamWriter(fs))
+                {
+                    sw.Write(json);
+                    sw.Flush();
+                    fs.Flush(flushToDisk: true);
+                }
 
-        // 2) Swap it into place atomically.
-        if (File.Exists(FilePath))
-        {
-            // File.Replace is atomic on NTFS and moves the previous good file to BakPath.
-            File.Replace(TmpPath, FilePath, BakPath, ignoreMetadataErrors: true);
-        }
-        else
-        {
-            File.Move(TmpPath, FilePath);
+                // 2) Swap into place, retrying briefly for transient AV/search-indexer locks.
+                for (int attempt = 0; attempt < 5; attempt++)
+                {
+                    try
+                    {
+                        if (File.Exists(FilePath))
+                            File.Replace(tmp, FilePath, BakPath, ignoreMetadataErrors: true);  // atomic on NTFS, keeps a .bak
+                        else
+                            File.Move(tmp, FilePath);
+                        return;
+                    }
+                    catch (IOException) { System.Threading.Thread.Sleep(50 * (attempt + 1)); }
+                    catch (UnauthorizedAccessException) { System.Threading.Thread.Sleep(50 * (attempt + 1)); }
+                }
+
+                // 3) Swap kept failing — overwrite in place so state is never lost (non-atomic last resort).
+                File.Copy(tmp, FilePath, overwrite: true);
+            }
+            finally
+            {
+                try { if (File.Exists(tmp)) File.Delete(tmp); } catch { }
+                // Tidy up any stale fixed-name temp from older builds.
+                try { if (File.Exists(TmpPath)) File.Delete(TmpPath); } catch { }
+            }
         }
     }
 

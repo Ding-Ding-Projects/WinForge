@@ -25,6 +25,21 @@ public partial class App : Application
     public App()
     {
         InitializeComponent();
+        // Last-resort safety net: log any unhandled UI-thread exception (so crashes are diagnosable in
+        // crash.log) and keep the app alive — a single page/animation fault should not kill the suite.
+        UnhandledException += (_, e) =>
+        {
+            try { CrashLogger.Log("app:unhandled", e.Exception); } catch { }
+            e.Handled = true;
+        };
+        try
+        {
+            AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+            { try { CrashLogger.Log("appdomain:unhandled", e.ExceptionObject as Exception); } catch { } };
+            System.Threading.Tasks.TaskScheduler.UnobservedTaskException += (_, e) =>
+            { try { CrashLogger.Log("task:unobserved", e.Exception); e.SetObserved(); } catch { } };
+        }
+        catch { }
     }
 
     private static string? _exportDocsDir;
