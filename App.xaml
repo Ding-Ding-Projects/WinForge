@@ -10,7 +10,75 @@
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
                 <!-- Other merged dictionaries here -->
             </ResourceDictionary.MergedDictionaries>
-            <!-- Other app resources here -->
+
+            <!-- ════════════════════════════════════════════════════════════════════
+                 WinForge "Reactor" theme · 反應堆主題 (from WinForge.dc.html design)
+                 Dark-first, reactor-green accent. Tokens: brand #54E07E,
+                 panel #131814 / #1A211B, bg #0A0D0B, spark #F7B034, cyan #49CDD9.
+                 Overriding the SystemAccentColor* palette + Fluent card/layer/text
+                 brushes recolors accent buttons, toggles, selection, progress, links
+                 and every TweakCard across all 138 pages at once.
+                 ═══════════════════════════════════════════════════════════════════ -->
+
+            <!-- Accent palette (dark theme uses Light*, light theme uses Dark*). -->
+            <Color x:Key="SystemAccentColor">#FF54E07E</Color>
+            <Color x:Key="SystemAccentColorLight1">#FF6BE892</Color>
+            <Color x:Key="SystemAccentColorLight2">#FF82EBA4</Color>
+            <Color x:Key="SystemAccentColorLight3">#FF9FF0BA</Color>
+            <Color x:Key="SystemAccentColorDark1">#FF2FAF57</Color>
+            <Color x:Key="SystemAccentColorDark2">#FF279048</Color>
+            <Color x:Key="SystemAccentColorDark3">#FF1F7239</Color>
+
+            <!-- Shared brand brushes pages/cards can reference directly. -->
+            <SolidColorBrush x:Key="WinForgeBrandBrush" Color="#FF54E07E" />
+            <SolidColorBrush x:Key="WinForgeBrandDimBrush" Color="#FF2FAF57" />
+            <SolidColorBrush x:Key="WinForgeSparkBrush" Color="#FFF7B034" />
+            <SolidColorBrush x:Key="WinForgeCyanBrush" Color="#FF49CDD9" />
+            <SolidColorBrush x:Key="WinForgeDangerBrush" Color="#FFFF5F5F" />
+
+            <ResourceDictionary.ThemeDictionaries>
+
+                <!-- DARK (= "Default") — the reactor palette -->
+                <ResourceDictionary x:Key="Default">
+                    <!-- Paneled card surfaces -->
+                    <SolidColorBrush x:Key="CardBackgroundFillColorDefaultBrush" Color="#FF131814" />
+                    <SolidColorBrush x:Key="CardBackgroundFillColorSecondaryBrush" Color="#FF0E120F" />
+                    <SolidColorBrush x:Key="CardStrokeColorDefaultBrush" Color="#14FFFFFF" />
+                    <SolidColorBrush x:Key="CardStrokeColorDefaultSolidBrush" Color="#FF272D28" />
+                    <SolidColorBrush x:Key="LayerFillColorDefaultBrush" Color="#FF1A211B" />
+                    <SolidColorBrush x:Key="LayerFillColorAltBrush" Color="#FF131814" />
+                    <SolidColorBrush x:Key="LayerOnAcrylicFillColorDefaultBrush" Color="#CC1A211B" />
+
+                    <!-- App / page / control backgrounds → flat near-black -->
+                    <SolidColorBrush x:Key="ApplicationPageBackgroundThemeBrush" Color="#FF0A0D0B" />
+                    <SolidColorBrush x:Key="SolidBackgroundFillColorBaseBrush" Color="#FF0A0D0B" />
+                    <SolidColorBrush x:Key="SolidBackgroundFillColorSecondaryBrush" Color="#FF0E120F" />
+                    <SolidColorBrush x:Key="SolidBackgroundFillColorTertiaryBrush" Color="#FF131814" />
+                    <SolidColorBrush x:Key="SolidBackgroundFillColorQuarternaryBrush" Color="#FF1A211B" />
+
+                    <!-- Nav rail + content panes -->
+                    <SolidColorBrush x:Key="NavigationViewDefaultPaneBackground" Color="#FF0E120F" />
+                    <SolidColorBrush x:Key="NavigationViewContentBackground" Color="#FF0A0D0B" />
+                    <SolidColorBrush x:Key="NavigationViewExpandedPaneBackground" Color="#FF0E120F" />
+
+                    <!-- Text ramp -->
+                    <SolidColorBrush x:Key="TextFillColorPrimaryBrush" Color="#FFE9EFE9" />
+                    <SolidColorBrush x:Key="TextFillColorSecondaryBrush" Color="#FF9FAE9F" />
+                    <SolidColorBrush x:Key="TextFillColorTertiaryBrush" Color="#FF6B7A6D" />
+
+                    <!-- Accent-tinted subtle fills for nav + list hover/selection -->
+                    <SolidColorBrush x:Key="SubtleFillColorSecondaryBrush" Color="#1454E07E" />
+                    <SolidColorBrush x:Key="SubtleFillColorTertiaryBrush" Color="#0F54E07E" />
+                </ResourceDictionary>
+
+                <!-- LIGHT — keep Fluent light, just the green accent (set above) -->
+                <ResourceDictionary x:Key="Light" />
+
+                <!-- HIGH CONTRAST — leave system defaults -->
+                <ResourceDictionary x:Key="HighContrast" />
+
+            </ResourceDictionary.ThemeDictionaries>
+
         </ResourceDictionary>
     </Application.Resources>
 </Application>

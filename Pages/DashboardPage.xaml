@@ -7,41 +7,51 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
-        <StackPanel MaxWidth="980" Spacing="18">
+    <ScrollViewer Padding="40,28,40,40" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="1120" Spacing="18">
 
-            <!-- Hero -->
-            <Border
-                Padding="24,20,24,20"
-                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                BorderBrush="{ThemeResource AccentControlElevationBorderBrush}"
-                BorderThickness="1"
-                CornerRadius="8">
-                <StackPanel Spacing="4">
+            <!-- Hero (WinForge.dc.html design) -->
+            <StackPanel Spacing="3">
+                <StackPanel Orientation="Horizontal" Spacing="14">
+                    <TextBlock Text="WinForge" FontSize="48" FontWeight="Bold" />
                     <TextBlock
-                        x:Name="HeroTitle"
-                        FontSize="30"
-                        FontWeight="Bold" />
-                    <TextBlock
-                        x:Name="HeroSubtitle"
-                        FontSize="15"
-                        Opacity="0.9"
-                        TextWrapping="Wrap" />
-                    <StackPanel
-                        Margin="0,8,0,0"
-                        Orientation="Horizontal"
-                        Spacing="8">
-                        <Border
-                            Padding="12,4,12,4"
-                            Background="{ThemeResource SystemControlBackgroundAltHighBrush}"
-                            CornerRadius="14">
-                            <TextBlock
-                                x:Name="CountBadge"
-                                FontWeight="SemiBold" />
-                        </Border>
+                        Text="視窗調校"
+                        FontSize="32"
+                        FontWeight="SemiBold"
+                        VerticalAlignment="Bottom"
+                        Margin="0,0,0,6"
+                        Foreground="{StaticResource WinForgeBrandBrush}" />
+                </StackPanel>
+                <TextBlock
+                    x:Name="HeroSubEn"
+                    Margin="0,12,0,0"
+                    FontSize="16"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    TextWrapping="Wrap" />
+                <TextBlock
+                    x:Name="HeroSubZh"
+                    FontSize="13"
+                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                    TextWrapping="Wrap" />
+
+                <!-- Stat row: features · categories · modules -->
+                <StackPanel Orientation="Horizontal" Spacing="28" Margin="0,18,0,0">
+                    <StackPanel>
+                        <TextBlock x:Name="StatFeatures" FontFamily="Consolas" FontSize="24" FontWeight="Bold" Foreground="{StaticResource WinForgeBrandBrush}" />
+                        <TextBlock Text="FEATURES · 功能" FontSize="10.5" FontFamily="Consolas" Foreground="{ThemeResource TextFillColorTertiaryBrush}" Margin="0,2,0,0" />
+                    </StackPanel>
+                    <Border Width="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" />
+                    <StackPanel>
+                        <TextBlock x:Name="StatCategories" FontFamily="Consolas" FontSize="24" FontWeight="Bold" />
+                        <TextBlock Text="CATEGORIES · 分類" FontSize="10.5" FontFamily="Consolas" Foreground="{ThemeResource TextFillColorTertiaryBrush}" Margin="0,2,0,0" />
+                    </StackPanel>
+                    <Border Width="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" />
+                    <StackPanel>
+                        <TextBlock x:Name="StatModules" FontFamily="Consolas" FontSize="24" FontWeight="Bold" />
+                        <TextBlock Text="MODULES · 模組" FontSize="10.5" FontFamily="Consolas" Foreground="{ThemeResource TextFillColorTertiaryBrush}" Margin="0,2,0,0" />
                     </StackPanel>
                 </StackPanel>
-            </Border>
+            </StackPanel>
 
             <InfoBar
                 x:Name="AdminBar"

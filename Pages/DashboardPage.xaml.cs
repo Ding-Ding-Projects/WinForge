@@ -26,9 +26,11 @@ public sealed partial class DashboardPage : Page
 
     private void Render()
     {
-        HeroTitle.Text = "WinForge · 視窗調校";
-        HeroSubtitle.Text = "An all-in-one, fully bilingual control center that really tunes Windows 11.\n全方位、全雙語嘅控制中心，真係會幫你調校 Windows 11。";
-        CountBadge.Text = $"{TweakCatalog.Count} features · {Categories.All.Length} categories  ·  {TweakCatalog.Count} 項功能 · {Categories.All.Length} 個分類";
+        HeroSubEn.Text = "An all-in-one, fully bilingual control center that genuinely tunes Windows 11.";
+        HeroSubZh.Text = "全方位、全雙語嘅控制中心，真係會幫你調校 Windows 11。";
+        StatFeatures.Text = TweakCatalog.Count.ToString();
+        StatCategories.Text = Categories.All.Length.ToString();
+        StatModules.Text = ModuleRegistry.All.Count.ToString();
 
         RenderAdminBar();
         RenderModuleTiles();

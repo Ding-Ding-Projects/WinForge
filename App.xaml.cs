@@ -295,7 +295,9 @@ public partial class App : Application
     /// <summary>套用使用者揀選嘅佈景主題 · Apply the user's saved theme to the window root.</summary>
     public static void ApplyThemeFromSettings()
     {
-        var theme = SettingsStore.Get("theme", "Default");
+        // Dark-first: the WinForge "Reactor" design (WinForge.dc.html) is a dark, reactor-green
+        // theme, so a fresh install defaults to Dark. The user can still switch via the theme toggle.
+        var theme = SettingsStore.Get("theme", "Dark");
         SetTheme(theme switch
         {
             "Light" => ElementTheme.Light,
