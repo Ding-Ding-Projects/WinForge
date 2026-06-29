@@ -296,13 +296,14 @@ public partial class App : Application
     public static void ApplyThemeFromSettings()
     {
         // Dark-first: the WinForge "Reactor" design (WinForge.dc.html) is a dark, reactor-green
-        // theme, so a fresh install defaults to Dark. The user can still switch via the theme toggle.
-        var theme = SettingsStore.Get("theme", "Dark");
+        // theme, so Dark is the baseline. Only an explicit "Light" choice opts out — "Default"/unset
+        // resolve to Dark so the reactor look is what users see out of the box (toggle still works).
+        var theme = SettingsStore.Get("theme", "Dark");   // unset → Dark reactor look out of the box
         SetTheme(theme switch
         {
             "Light" => ElementTheme.Light,
-            "Dark" => ElementTheme.Dark,
-            _ => ElementTheme.Default,
+            "Default" => ElementTheme.Default,             // explicit "follow Windows" still honored
+            _ => ElementTheme.Dark,
         });
     }
 
