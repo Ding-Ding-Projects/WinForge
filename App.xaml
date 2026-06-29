@@ -68,10 +68,13 @@
                     <SolidColorBrush x:Key="NavigationViewContentBackground" Color="#FF0A0D0B" />
                     <SolidColorBrush x:Key="NavigationViewExpandedPaneBackground" Color="#FF0E120F" />
 
-                    <!-- Text ramp -->
-                    <SolidColorBrush x:Key="TextFillColorPrimaryBrush" Color="#FFE9EFE9" />
-                    <SolidColorBrush x:Key="TextFillColorSecondaryBrush" Color="#FF9FAE9F" />
-                    <SolidColorBrush x:Key="TextFillColorTertiaryBrush" Color="#FF6B7A6D" />
+                    <!-- Text ramp — brightened from the raw design tokens for readable contrast on the
+                         near-black background (the #9FAE9F/#6B7A6D dim/faint greys were too dark for
+                         small captions + the ZH nav subtitles). -->
+                    <SolidColorBrush x:Key="TextFillColorPrimaryBrush" Color="#FFEDF3ED" />
+                    <SolidColorBrush x:Key="TextFillColorSecondaryBrush" Color="#FFBFCBBF" />
+                    <SolidColorBrush x:Key="TextFillColorTertiaryBrush" Color="#FF95A395" />
+                    <SolidColorBrush x:Key="TextFillColorDisabledBrush" Color="#FF6E7A6E" />
 
                     <!-- Accent-tinted subtle fills for nav + list hover/selection -->
                     <SolidColorBrush x:Key="SubtleFillColorSecondaryBrush" Color="#1454E07E" />
