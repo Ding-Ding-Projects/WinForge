@@ -266,7 +266,8 @@ ModuleTile(((char)0xE83E).ToString(), "Battery & Thermal", "電池與散熱",
     /// <summary>旗艦反應堆英雄磚 · The flagship reactor hero tile (accented Cherenkov-blue border).</summary>
     private Button ReactorHeroTile()
     {
-        var accent = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0x6F, 0xB8, 0xFF));
+        // Reactor-green flagship accent (WinForge.dc.html), not the old Cherenkov blue.
+        var accent = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0x54, 0xE0, 0x7E));
         var content = TileContent(
             ((char)0xEBC0).ToString(),
             "★ Nuclear Reactor · 核反應堆",
@@ -284,7 +285,7 @@ ModuleTile(((char)0xE83E).ToString(), "Battery & Thermal", "電池與散熱",
             Margin = new Thickness(0, 0, 8, 8),
             MinWidth = 300,
             MinHeight = 96,
-            BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0x1B, 0x6C, 0xFF)),
+            BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0x2F, 0xAF, 0x57)),
             BorderThickness = new Thickness(2),
         };
         button.Click += (_, _) => Navigator.GoToModule?.Invoke("module.reactor");
