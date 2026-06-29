@@ -65,6 +65,9 @@ public sealed partial class MainWindow : Window
 
         AppWindow.Closing += OnAppWindowClosing;
 
+        // Title-bar reactor status pill — reflects the live reactor bus (WinForge.dc.html design).
+        StartReactorPill();
+
         // 背景服務（剪貼簿、全域熱鍵泵、ZoomIt、快速重音、快捷鍵指南、指令面板、系統匣）延後到首次版面完成
         // 先啟動，而且每個都用 CrashLogger.Guard 包住——避免喺 XAML 初始化嘅脆弱時段同全域掛鈎／覆蓋層競爭，
         // 以免間歇性 stowed-exception 閃退；亦確保任何單一服務出錯都唔會拖冧開機。
@@ -1240,6 +1243,44 @@ public sealed partial class MainWindow : Window
             }
         }
         return null;
+    }
+
+    // ───────────────────────── reactor status pill (title bar) ─────────────────────────
+    private readonly Microsoft.UI.Xaml.DispatcherTimer _reactorPillTimer = new();
+
+    private void StartReactorPill()
+    {
+        try
+        {
+            UpdateReactorPill();
+            _reactorPillTimer.Interval = TimeSpan.FromSeconds(2);
+            _reactorPillTimer.Tick += (_, _) => UpdateReactorPill();
+            _reactorPillTimer.Start();
+        }
+        catch (Exception ex) { CrashLogger.Log("reactorpill.start", ex); }
+    }
+
+    private void UpdateReactorPill()
+    {
+        try
+        {
+            if (ReactorPillText is null) return;
+            var snap = ReactorStatusApiService.I.LastSnapshot;
+            string text;
+            Windows.UI.Color color;
+            if (snap.IsMeltdown) { text = "REACTOR MELTDOWN"; color = Windows.UI.Color.FromArgb(255, 0xFF, 0x5F, 0x5F); }
+            else if (snap.IsScrammed) { text = "REACTOR SCRAM"; color = Windows.UI.Color.FromArgb(255, 0xF7, 0xB0, 0x34); }
+            else if (snap.IsGenerating) { text = "REACTOR ONLINE"; color = Windows.UI.Color.FromArgb(255, 0x54, 0xE0, 0x7E); }
+            else { text = "REACTOR STANDBY"; color = Windows.UI.Color.FromArgb(255, 0xF7, 0xB0, 0x34); }
+
+            ReactorPillText.Text = text;
+            var solid = new Microsoft.UI.Xaml.Media.SolidColorBrush(color);
+            ReactorPillText.Foreground = solid;
+            ReactorPillDot.Fill = solid;
+            ReactorPill.BorderBrush = new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(0x40, color.R, color.G, color.B));
+            ReactorPill.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(0x14, color.R, color.G, color.B));
+        }
+        catch (Exception ex) { CrashLogger.Log("reactorpill.update", ex); }
     }
 
     private static Type MapType(string key) => key switch

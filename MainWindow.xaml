@@ -30,6 +30,22 @@
             <TitleBar.IconSource>
                 <ImageIconSource ImageSource="Assets/AppIcon.ico" />
             </TitleBar.IconSource>
+            <TitleBar.Content>
+                <Border
+                    x:Name="ReactorPill"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Padding="9,3,11,3"
+                    CornerRadius="20"
+                    Background="#1454E07E"
+                    BorderBrush="#4054E07E"
+                    BorderThickness="1">
+                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <Ellipse x:Name="ReactorPillDot" Width="6" Height="6" Fill="{StaticResource WinForgeBrandBrush}" />
+                        <TextBlock x:Name="ReactorPillText" Text="REACTOR" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource WinForgeBrandBrush}" />
+                    </StackPanel>
+                </Border>
+            </TitleBar.Content>
         </TitleBar>
 
         <NavigationView
