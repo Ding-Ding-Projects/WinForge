@@ -605,6 +605,134 @@
                                 </StackPanel>
                             </ScrollViewer>
                         </TabViewItem>
+
+                        <!-- ===== WORKFLOWS / ALIASES (Gitty) ===== -->
+                        <TabViewItem x:Name="WorkflowsTab" IsClosable="False">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,8,8,0">
+                                <StackPanel MaxWidth="1000" Spacing="14">
+
+                                    <TextBlock
+                                        x:Name="WorkflowsBlurb"
+                                        FontSize="13"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                        TextWrapping="Wrap" />
+
+                                    <!-- One-click workflows -->
+                                    <Border
+                                        Padding="16,14,16,14"
+                                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8">
+                                        <StackPanel Spacing="10">
+                                            <TextBlock x:Name="WorkflowsLabel" FontWeight="SemiBold" />
+
+                                            <!-- Up -->
+                                            <StackPanel Spacing="6">
+                                                <TextBlock x:Name="UpHint" FontSize="12"
+                                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                           TextWrapping="Wrap" />
+                                                <Grid ColumnSpacing="8">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBox x:Name="UpMessageBox" Grid.Column="0" />
+                                                    <Button x:Name="UpBtn" Grid.Column="1" Click="Up_Click"
+                                                            Style="{StaticResource AccentButtonStyle}" />
+                                                </Grid>
+                                            </StackPanel>
+
+                                            <!-- Undo + Push & share -->
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <Button x:Name="UndoBtn" Click="Undo_Click" />
+                                                <Button x:Name="ShareBtn" Click="Share_Click" />
+                                                <Button x:Name="PrLinkBtn" Click="PrLink_Click" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Checkpoints -->
+                                    <Border
+                                        Padding="16,14,16,14"
+                                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8">
+                                        <StackPanel Spacing="10">
+                                            <TextBlock x:Name="CheckpointLabel" FontWeight="SemiBold" />
+                                            <TextBlock x:Name="CheckpointHint" FontSize="12"
+                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                       TextWrapping="Wrap" />
+                                            <Grid ColumnSpacing="8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBox x:Name="CheckpointNameBox" Grid.Column="0" />
+                                                <Button x:Name="CheckpointBtn" Grid.Column="1" Click="Checkpoint_Click" />
+                                                <Button x:Name="RestoreBtn" Grid.Column="2" Click="Restore_Click" />
+                                            </Grid>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Aliases -->
+                                    <Border
+                                        Padding="16,14,16,14"
+                                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8">
+                                        <StackPanel Spacing="10">
+                                            <TextBlock x:Name="AliasLabel" FontWeight="SemiBold" />
+                                            <TextBlock x:Name="AliasHint" FontSize="12"
+                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                       TextWrapping="Wrap" />
+
+                                            <!-- saved alias buttons -->
+                                            <StackPanel x:Name="AliasListPanel" Spacing="6" />
+
+                                            <!-- editor -->
+                                            <Border
+                                                Padding="12"
+                                                Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                                CornerRadius="6">
+                                                <StackPanel Spacing="8">
+                                                    <TextBlock x:Name="AliasEditorLabel" FontWeight="SemiBold" FontSize="13" />
+                                                    <TextBox x:Name="AliasNameBox" />
+                                                    <TextBox
+                                                        x:Name="AliasStepsBox"
+                                                        AcceptsReturn="True"
+                                                        TextWrapping="Wrap"
+                                                        FontFamily="Consolas"
+                                                        Height="100" />
+                                                    <Button x:Name="AliasSaveBtn" Click="AliasSave_Click"
+                                                            Style="{StaticResource AccentButtonStyle}" />
+                                                </StackPanel>
+                                            </Border>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Workflow console -->
+                                    <Border
+                                        x:Name="WorkflowConsoleBorder"
+                                        Padding="12"
+                                        Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                        CornerRadius="6"
+                                        Visibility="Collapsed">
+                                        <ScrollViewer MaxHeight="240" VerticalScrollBarVisibility="Auto">
+                                            <TextBlock
+                                                x:Name="WorkflowConsoleLog"
+                                                FontFamily="Consolas"
+                                                FontSize="12"
+                                                IsTextSelectionEnabled="True"
+                                                TextWrapping="Wrap" />
+                                        </ScrollViewer>
+                                    </Border>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </TabViewItem>
                     </TabView.TabItems>
                 </TabView>
             </Grid>
