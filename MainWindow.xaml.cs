@@ -390,6 +390,11 @@ public sealed partial class MainWindow : Window
             case "http":
                 Navigator.GoToModule?.Invoke("module.apiclient");
                 break;
+            case "connectors":
+            case "connector":
+            case "integrations":
+                Navigator.GoToModule?.Invoke("module.connectors");
+                break;
             case "bitwarden":
             case "bw":
             case "passwords":
@@ -1528,6 +1533,7 @@ public sealed partial class MainWindow : Window
         "module.timelens" => typeof(TimeLensModule),
         "module.diffmerge" => typeof(DiffMergeModule),
         "module.apiclient" => typeof(ApiClientModule),
+        "module.connectors" => typeof(ConnectorsModule),
         _ => typeof(DashboardPage),
     };
 
@@ -1674,6 +1680,7 @@ public sealed partial class MainWindow : Window
     private static readonly string[] SuggestedTabKeys =
     {
         "module.apiclient",
+        "module.connectors",
         "module.aichat",
         "module.keepass",
         "module.hexeditor",
@@ -1763,7 +1770,7 @@ public sealed partial class MainWindow : Window
                 "module.terminal", "module.uninstall", "module.imaging", "module.amulet",
                 "module.minecraftworldtools", "module.viaproxy", "module.minecraftserver", "module.minecraftlauncher", "module.git",
                 "module.vscode", "module.aiagents", "module.resume", "module.ollama", "module.aichat",
-                "module.cloudflare", "module.weblogin", "module.ssh", "module.apiclient", "module.packer",
+                "module.cloudflare", "module.weblogin", "module.ssh", "module.apiclient", "module.connectors", "module.packer",
                 "module.worldmonitor", "module.webcloner", "module.pgadmin", "module.sqlitebrowser",
                 "module.filezilla", "module.fileserver", "module.feedreader", "module.quicktype", "module.decompiler",
                 "module.aws", "module.cmdnotfound", "module.configbackup",
