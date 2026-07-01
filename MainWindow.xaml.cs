@@ -1765,6 +1765,9 @@ public sealed partial class MainWindow : Window
                     else if (!string.IsNullOrWhiteSpace(nav.Name))
                         Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(nav, "ShellNavGroup_" + nav.Name);
                     nav.Content = BuildNavContent(pair.en, pair.zh);
+                    // Full bilingual tooltip — long labels ellipsize in the pane; hover reveals the rest.
+                    if (!string.IsNullOrEmpty(pair.en))
+                        ToolTipService.SetToolTip(nav, string.IsNullOrEmpty(pair.zh) || pair.zh == pair.en ? pair.en : pair.en + " · " + pair.zh);
                     // Count badge on collapsible groups (the reference's 17/19/21 numerals).
                     if (nav.MenuItems.Count > 0)
                     {
@@ -1843,11 +1846,12 @@ public sealed partial class MainWindow : Window
         bool zhPrimary = Loc.I.IsCantonesePrimary;
         var primary = zhPrimary ? zh : en;
         var secondary = zhPrimary ? en : zh;
-        var sp = new StackPanel { Spacing = 0, VerticalAlignment = VerticalAlignment.Center };
+        var sp = new StackPanel { Spacing = 1, VerticalAlignment = VerticalAlignment.Center };
         sp.Children.Add(new TextBlock
         {
             Text = string.IsNullOrEmpty(primary) ? secondary : primary,
             FontSize = 13,
+            LineHeight = 17,
             FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
             TextTrimming = TextTrimming.CharacterEllipsis,
             TextWrapping = TextWrapping.NoWrap,
@@ -1856,8 +1860,9 @@ public sealed partial class MainWindow : Window
             sp.Children.Add(new TextBlock
             {
                 Text = secondary,
-                FontSize = 10,
-                Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextFillColorTertiaryBrush"],
+                FontSize = 11,
+                LineHeight = 15,
+                Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
                 TextTrimming = TextTrimming.CharacterEllipsis,
                 TextWrapping = TextWrapping.NoWrap,
             });
