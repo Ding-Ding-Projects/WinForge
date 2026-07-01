@@ -20,7 +20,7 @@ public sealed partial class EpochModule : Page
     {
         InitializeComponent();
         _timer.Tick += (_, _) => UpdateNow();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) =>
         {
             Render();
@@ -28,8 +28,10 @@ public sealed partial class EpochModule : Page
             RecomputeHumanToEpoch();
             _timer.Start();
         };
-        Unloaded += (_, _) => _timer.Stop();
+        Unloaded += (_, _) => { _timer.Stop(); Loc.I.LanguageChanged -= OnLanguageChanged; };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 

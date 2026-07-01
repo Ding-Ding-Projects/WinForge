@@ -6,13 +6,15 @@ Guardrail: nothing merges/deploys unless `dotnet build WinForge.sln -c Debug -p:
 
 ## Status
 - Baseline: 144 modules (2026-07-01).
-- **Batch 1 — DONE (this iteration): +12 developer/text-utility modules → 156.**
-  GUID/ID Generator, Hash & Checksum, Encode/Decode, JSON & XML Tools, Regex Tester, Password Generator, Text Tools, Base Converter, Epoch Converter, Unit Converter, Character Map, Color Tools. All pure-managed, control-based (no tweak cards), bilingual.
-- Target to 200: **+44 modules** remaining across the batches below.
+- **Batch 1 — DONE: +12 developer/text-utility modules → 156.**
+  GUID/ID Generator, Hash & Checksum, Encode/Decode, JSON & XML Tools, Regex Tester, Password Generator, Text Tools, Base Converter, Epoch Converter, Unit Converter, Character Map, Color Tools.
+- **Batch 2 — DONE: +12 utility/time/dev modules → 168.**
+  Cron Builder, Data Faker, CSV/JSON, Timer & Stopwatch (Pomodoro), World Clock, Scratchpad (persisted notes), Calculator (expression evaluator), Randomizer, Date Calculator, URL Tools, Markdown Preview (WebView2), Number to Words. All pure-managed, control-based (no tweak cards), bilingual, leak-safe (named LanguageChanged handlers).
+- Target to 200: **+32 modules** remaining across the batches below.
 
 ## Bug / hardening priorities (fold into every iteration)
 - [x] **Freezes — round 1:** offloaded WMI/PDH/`Process.GetProcesses`/sensor ticks to `Task.Run` (SystemMonitor, ProcessExplorer, Connections, BatteryThermal, NativeUtilities); off-thread registry-hive enumeration; Unloaded timer stops (ScreenRecorder); calmed CakeFactory 80ms→200ms; fixed `LanguageChanged` leaks on the hot pages.
-- [ ] **Freezes — round 2 (structural):** introduce `LocalizedPage : Page` base that wires/unwires `Loc.I.LanguageChanged` automatically; convert the ~113 inline-lambda pages (166 `+=` / 52 `-=`). Kills the biggest leak + the language-toggle stall.
+- [~] **Freezes — round 2 (structural):** batch-1 + batch-2 modules now use named `LanguageChanged` handlers + Unloaded teardown (no leak). STILL TODO: introduce a `LocalizedPage : Page` base and convert the ~100 remaining inline-lambda pages (the bulk of the leak + the language-toggle stall).
 - [ ] **Freezes — round 3:** make `CropAndLockService.CreateFromScreenRect` async (remove `req.Done.Wait(4000)`); `NativeMessagePump._ready.Wait(1500)` → await; audit remaining sync-over-async (`.Result`/`.GetAwaiter().GetResult()`).
 
 ## UI overhaul epic — ZERO tweak cards (theme C)
@@ -33,3 +35,14 @@ Add Fluent entrance/state animations throughout.
 
 ## Idea intake (never stop)
 Append new ideas here as they surface; promote to a batch when scoped. Keep each idea one line with its theme tag (A/B/C).
+
+- (A) PATH doctor — edit/validate/dedupe user+system PATH, flag dead entries.
+- (A) DNS-over-HTTPS / DNS lookup tester (managed HttpClient + raw DNS).
+- (A) Focus/DND scheduler; (A) Clipboard-history pinning; (A) Windows Update history viewer.
+- (A) Group Policy quick-toggles (registry-backed, reversible).
+- (B) Managed EPUB/CBZ/CBR reader (System.IO.Compression; own rendering code — record license).
+- (B) QR code generator — reimplement the encoder ourselves (no GPL lib) → theme B/own-code.
+- (C) Calculator: matrix mode, variable memory, unit-aware arithmetic.
+- (C) Hasher: add xxHash/BLAKE2 (managed); (C) Encoder: add Base32/Base58/Ascii85.
+- (C) Text Tools: add JSON-path extract, column select, find/replace-regex.
+- (A) Env-var diff between snapshots; (A) Services dependency grapher.

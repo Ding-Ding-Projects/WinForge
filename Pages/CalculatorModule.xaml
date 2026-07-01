@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.CalculatorModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="760" Spacing="14">
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE8EF;" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <!-- Expression + result -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="ExprBox" Grid.Column="0" TextChanged="Expr_TextChanged" KeyDown="Expr_KeyDown" FontFamily="Consolas" FontSize="16" />
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="12,0,0,0" VerticalAlignment="Center">
+                            <TextBlock x:Name="AngleLabel" VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <ToggleSwitch x:Name="AngleSwitch" Toggled="Angle_Toggled" MinWidth="0" />
+                        </StackPanel>
+                    </Grid>
+
+                    <TextBlock x:Name="ResultText" FontSize="30" FontWeight="SemiBold" IsTextSelectionEnabled="True" TextWrapping="Wrap" />
+                    <TextBlock x:Name="StatusText" FontSize="12" Foreground="{ThemeResource SystemFillColorCriticalBrush}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <!-- Button pad -->
+            <Border Padding="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="8">
+                    <TextBlock x:Name="PadTitle" FontWeight="SemiBold" FontSize="14" />
+                    <StackPanel x:Name="PadPanel" Spacing="6" />
+                </StackPanel>
+            </Border>
+
+            <!-- Programmer view -->
+            <Border x:Name="ProgCard" Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Visibility="Collapsed">
+                <StackPanel Spacing="8">
+                    <TextBlock x:Name="ProgTitle" FontWeight="SemiBold" FontSize="14" />
+                    <Grid ColumnSpacing="12" RowSpacing="6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="DEC" FontFamily="Consolas" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock x:Name="DecText" Grid.Row="0" Grid.Column="1" FontFamily="Consolas" IsTextSelectionEnabled="True" />
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="HEX" FontFamily="Consolas" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock x:Name="HexText" Grid.Row="1" Grid.Column="1" FontFamily="Consolas" IsTextSelectionEnabled="True" />
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="BIN" FontFamily="Consolas" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock x:Name="BinText" Grid.Row="2" Grid.Column="1" FontFamily="Consolas" IsTextSelectionEnabled="True" TextWrapping="Wrap" />
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="OCT" FontFamily="Consolas" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock x:Name="OctText" Grid.Row="3" Grid.Column="1" FontFamily="Consolas" IsTextSelectionEnabled="True" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- History -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="8">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="HistoryTitle" Grid.Column="0" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" />
+                        <Button x:Name="ClearBtn" Grid.Column="1" Click="Clear_Click" />
+                    </Grid>
+                    <ListView x:Name="HistoryList" SelectionMode="Single" ItemClick="History_ItemClick" IsItemClickEnabled="True" MaxHeight="240" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

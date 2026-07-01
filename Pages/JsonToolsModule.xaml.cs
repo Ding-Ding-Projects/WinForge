@@ -20,13 +20,16 @@ public sealed partial class JsonToolsModule : Page
     public JsonToolsModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) =>
         {
             if (ModeCombo.SelectedIndex < 0) ModeCombo.SelectedIndex = 0;
             Render();
         };
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 

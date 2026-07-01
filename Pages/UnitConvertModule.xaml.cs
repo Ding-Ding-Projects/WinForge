@@ -19,8 +19,15 @@ public sealed partial class UnitConvertModule : Page
     public UnitConvertModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => { RenderStatics(); PopulateCategories(); };
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) => { RenderStatics(); PopulateCategories(); };
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; };
+    }
+
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        RenderStatics();
+        PopulateCategories();
     }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);

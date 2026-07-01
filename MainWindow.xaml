@@ -301,6 +301,24 @@
                     </NavigationViewItem.MenuItems>
                 </NavigationViewItem>
 
+                <NavigationViewItem Content="Utilities &amp; Time · 實用與時間" SelectsOnInvoked="False">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE916;" /></NavigationViewItem.Icon>
+                    <NavigationViewItem.MenuItems>
+                        <NavigationViewItem Content="Calculator · 計數機" Tag="module.calculator"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8EF;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Timer &amp; Stopwatch · 計時器・碼錶" Tag="module.timer"><NavigationViewItem.Icon><FontIcon Glyph="&#xE916;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="World Clock · 世界時鐘" Tag="module.worldclock"><NavigationViewItem.Icon><FontIcon Glyph="&#xE774;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Date Calculator · 日期計算器" Tag="module.datecalc"><NavigationViewItem.Icon><FontIcon Glyph="&#xE163;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Scratchpad · 便箋" Tag="module.notes"><NavigationViewItem.Icon><FontIcon Glyph="&#xE70B;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Randomizer · 隨機工具箱" Tag="module.randomizer"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8B1;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Markdown Preview · Markdown 預覽" Tag="module.markdown"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A1;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="CSV / JSON · CSV/JSON 轉換" Tag="module.csvjson"><NavigationViewItem.Icon><FontIcon Glyph="&#xE9F9;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="URL Tools · 網址工具" Tag="module.urltools"><NavigationViewItem.Icon><FontIcon Glyph="&#xE71B;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Cron Builder · Cron 建構器" Tag="module.cronbuilder"><NavigationViewItem.Icon><FontIcon Glyph="&#xE787;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Data Faker · 假資料產生器" Tag="module.faker"><NavigationViewItem.Icon><FontIcon Glyph="&#xE897;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Number to Words · 數字轉文字" Tag="module.numwords"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8EF;" /></NavigationViewItem.Icon></NavigationViewItem>
+                    </NavigationViewItem.MenuItems>
+                </NavigationViewItem>
+
                 <NavigationViewItemHeader Content="Windows 11 · 視窗 11" />
                 <NavigationViewItem x:Name="TweaksGroup" Content="All Tweaks · 全部調校" SelectsOnInvoked="False">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE713;" /></NavigationViewItem.Icon>

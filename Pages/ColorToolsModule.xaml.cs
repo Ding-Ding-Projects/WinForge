@@ -22,7 +22,7 @@ public sealed partial class ColorToolsModule : Page
     public ColorToolsModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) =>
         {
             Render();
@@ -33,7 +33,10 @@ public sealed partial class ColorToolsModule : Page
             SyncSlidersFromCurrent();
             RefreshAll();
         };
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 

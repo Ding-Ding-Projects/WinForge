@@ -19,7 +19,7 @@ public sealed partial class BaseConvertModule : Page
     public BaseConvertModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => { Render(); Recompute(); RecomputeBitwise(); };
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) =>
         {
             BuildCombos();
@@ -34,6 +34,14 @@ public sealed partial class BaseConvertModule : Page
             Recompute();
             RecomputeBitwise();
         };
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; };
+    }
+
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        Render();
+        Recompute();
+        RecomputeBitwise();
     }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);

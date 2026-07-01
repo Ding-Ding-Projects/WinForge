@@ -184,6 +184,18 @@ public static class ModuleRegistry
         new() { Tag = "module.unitconvert", En = "Unit Converter", Zh = "單位換算", Glyph = ((char)0xE9CE).ToString(), Keywords = "unit convert converter length mass weight temperature celsius fahrenheit kelvin data bytes speed area time pressure metric imperial 單位 換算 轉換 長度 質量 重量 溫度 攝氏 華氏 資料 速度 面積 時間 壓力 公制 英制" },
         new() { Tag = "module.charmap", En = "Character Map", Zh = "字元對照表", Glyph = ((char)0xE8D2).ToString(), Keywords = "character map unicode codepoint glyph symbol emoji utf-8 utf-16 html entity charmap block 字元 字符 對照表 統一碼 萬國碼 碼位 符號 表情符號 特殊符號" },
         new() { Tag = "module.colortools", En = "Color Tools", Zh = "色彩工具", Glyph = ((char)0xE790).ToString(), Keywords = "color colour hex rgb hsl hsv cmyk palette contrast wcag accessibility converter swatch 色彩 顏色 調色 對比度 無障礙 轉換 色板" },
+        new() { Tag = "module.cronbuilder", En = "Cron Builder", Zh = "Cron 建構器", Glyph = ((char)0xE787).ToString(), Keywords = "cron schedule crontab expression job timer next run 排程 定時 計劃任務 運算式 crontab 下次執行" },
+        new() { Tag = "module.faker", En = "Data Faker", Zh = "假資料產生器", Glyph = ((char)0xE897).ToString(), Keywords = "lorem ipsum fake data generator placeholder mock seed name email uuid address 假資料 佔位文字 產生器 測試 種子 姓名 電郵 地址" },
+        new() { Tag = "module.csvjson", En = "CSV / JSON", Zh = "CSV/JSON 轉換", Glyph = ((char)0xE9F9).ToString(), Keywords = "csv json convert converter parse rfc4180 delimiter table array header 轉換 逗號 表格 解析 標題列" },
+        new() { Tag = "module.timer", En = "Timer & Stopwatch", Zh = "計時器・碼錶・番茄鐘", Glyph = ((char)0xE916).ToString(), Keywords = "timer stopwatch countdown pomodoro focus lap clock 計時器 碼錶 秒錶 倒數 倒數計時 番茄鐘 專注 分段 時鐘" },
+        new() { Tag = "module.worldclock", En = "World Clock", Zh = "世界時鐘", Glyph = ((char)0xE774).ToString(), Keywords = "world clock time zone converter utc offset city 世界時鐘 時區 轉換 時間 城市 時差 協調世界時" },
+        new() { Tag = "module.notes", En = "Scratchpad", Zh = "便箋", Glyph = ((char)0xE70B).ToString(), Keywords = "notes scratchpad memo jot text save persistent 便箋 筆記 記事 備忘 草稿 儲存" },
+        new() { Tag = "module.calculator", En = "Calculator", Zh = "計數機", Glyph = ((char)0xE8EF).ToString(), Keywords = "calculator math expression evaluator arithmetic trig scientific hex binary octal 計數機 數學 表達式 計算 三角函數 科學 進位 十六進位 二進位" },
+        new() { Tag = "module.randomizer", En = "Randomizer", Zh = "隨機工具箱", Glyph = ((char)0xE8B1).ToString(), Keywords = "random rng integer coin flip dice roll d20 shuffle pick list secure unbiased 隨機 亂數 擲骰 擲銀仔 抽籤 打亂 洗牌 骰仔 公字" },
+        new() { Tag = "module.datecalc", En = "Date Calculator", Zh = "日期計算器", Glyph = ((char)0xE163).ToString(), Keywords = "date days weeks age birthday countdown business days iso week leap year difference add subtract 日期 計算 日數 週數 年齡 生日 倒數 工作日 閏年 星期" },
+        new() { Tag = "module.urltools", En = "URL Tools", Zh = "網址工具", Glyph = ((char)0xE71B).ToString(), Keywords = "url uri link query string parameter encode decode escape unescape percent 網址 連結 查詢 參數 編碼 解碼 拆解" },
+        new() { Tag = "module.markdown", En = "Markdown Preview", Zh = "Markdown 預覽", Glyph = ((char)0xE8A1).ToString(), Keywords = "markdown md preview render html editor document 文件 標記 預覽 排版 編輯 渲染" },
+        new() { Tag = "module.numwords", En = "Number to Words", Zh = "數字轉文字", Glyph = ((char)0xE8EF).ToString(), Keywords = "number words spell out cardinal ordinal roman numeral currency dollars cents amount cheque spelling 數字 文字 拼寫 序數 羅馬數字 金額 銀碼 支票 大寫 讀數" },
     };
 
     public static IEnumerable<ModuleInfo> Search(string query)

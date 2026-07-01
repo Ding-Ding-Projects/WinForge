@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.FakerModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="760" Spacing="14">
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE897;" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+            <TextBlock x:Name="StatusText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <!-- Lorem ipsum -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <TextBlock x:Name="LoremTitle" FontWeight="SemiBold" FontSize="15" />
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <TextBlock x:Name="LoremModeLabel" VerticalAlignment="Center" />
+                        <ComboBox x:Name="LoremModeBox" MinWidth="160" SelectedIndex="0" />
+                        <TextBlock x:Name="LoremCountLabel" VerticalAlignment="Center" />
+                        <NumberBox x:Name="LoremCountBox" Value="3" Minimum="1" Maximum="500" SpinButtonPlacementMode="Inline" MinWidth="130" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button x:Name="LoremGenBtn" Click="LoremGen_Click" Style="{ThemeResource AccentButtonStyle}" />
+                        <Button x:Name="LoremCopyBtn" Click="LoremCopy_Click" />
+                    </StackPanel>
+                    <TextBox x:Name="LoremOutput" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="140" MaxHeight="240" ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                </StackPanel>
+            </Border>
+
+            <!-- Fake data -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <TextBlock x:Name="DataTitle" FontWeight="SemiBold" FontSize="15" />
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <TextBlock x:Name="DataFieldLabel" VerticalAlignment="Center" />
+                        <ComboBox x:Name="DataFieldBox" MinWidth="200" SelectedIndex="0" />
+                        <TextBlock x:Name="DataCountLabel" VerticalAlignment="Center" />
+                        <NumberBox x:Name="DataCountBox" Value="10" Minimum="1" Maximum="500" SpinButtonPlacementMode="Inline" MinWidth="130" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button x:Name="DataGenBtn" Click="DataGen_Click" Style="{ThemeResource AccentButtonStyle}" />
+                        <Button x:Name="DataCopyBtn" Click="DataCopy_Click" />
+                    </StackPanel>
+                    <TextBox x:Name="DataOutput" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap" FontFamily="Consolas" MinHeight="140" MaxHeight="260" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Auto" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

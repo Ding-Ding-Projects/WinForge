@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.RandomizerModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="760" Spacing="14">
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE8B1;" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+            <TextBlock x:Name="StatusText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <!-- Random integers -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <TextBlock x:Name="IntTitle" FontWeight="SemiBold" FontSize="15" />
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <StackPanel Spacing="1">
+                            <TextBlock x:Name="IntMinLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <NumberBox x:Name="IntMinBox" Value="1" SpinButtonPlacementMode="Compact" MinWidth="120" />
+                        </StackPanel>
+                        <StackPanel Spacing="1">
+                            <TextBlock x:Name="IntMaxLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <NumberBox x:Name="IntMaxBox" Value="100" SpinButtonPlacementMode="Compact" MinWidth="120" />
+                        </StackPanel>
+                        <StackPanel Spacing="1">
+                            <TextBlock x:Name="IntCountLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <NumberBox x:Name="IntCountBox" Value="5" Minimum="1" Maximum="10000" SpinButtonPlacementMode="Compact" MinWidth="120" />
+                        </StackPanel>
+                    </StackPanel>
+                    <CheckBox x:Name="IntUniqueChk" />
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button x:Name="IntGenBtn" Click="IntGen_Click" Style="{ThemeResource AccentButtonStyle}" />
+                        <Button x:Name="IntCopyBtn" Click="IntCopy_Click" />
+                    </StackPanel>
+                    <TextBox x:Name="IntResult" IsReadOnly="True" TextWrapping="Wrap" AcceptsReturn="True" MinHeight="52" />
+                </StackPanel>
+            </Border>
+
+            <!-- Coin flip -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <TextBlock x:Name="CoinTitle" FontWeight="SemiBold" FontSize="15" />
+                    <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                        <Button x:Name="CoinFlipBtn" Click="CoinFlip_Click" Style="{ThemeResource AccentButtonStyle}" />
+                        <TextBlock x:Name="CoinResult" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <Button x:Name="CoinResetBtn" Click="CoinReset_Click" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <TextBlock x:Name="CoinTally" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </StackPanel>
+            </Border>
+
+            <!-- Dice roller -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <TextBlock x:Name="DiceTitle" FontWeight="SemiBold" FontSize="15" />
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <TextBox x:Name="DiceBox" Text="2d6" MinWidth="160" VerticalAlignment="Center" />
+                        <Button x:Name="DiceRollBtn" Click="DiceRoll_Click" Style="{ThemeResource AccentButtonStyle}" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <TextBox x:Name="DiceResult" IsReadOnly="True" TextWrapping="Wrap" AcceptsReturn="True" MinHeight="52" />
+                </StackPanel>
+            </Border>
+
+            <!-- List picker -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <TextBlock x:Name="ListTitle" FontWeight="SemiBold" FontSize="15" />
+                    <TextBlock x:Name="ListHint" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    <TextBox x:Name="ListInput" TextWrapping="Wrap" AcceptsReturn="True" MinHeight="96" />
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button x:Name="ListPickBtn" Click="ListPick_Click" Style="{ThemeResource AccentButtonStyle}" />
+                        <Button x:Name="ListShuffleBtn" Click="ListShuffle_Click" />
+                        <Button x:Name="ListCopyBtn" Click="ListCopy_Click" />
+                    </StackPanel>
+                    <TextBox x:Name="ListResult" IsReadOnly="True" TextWrapping="Wrap" AcceptsReturn="True" MinHeight="52" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

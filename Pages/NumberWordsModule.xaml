@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.NumberWordsModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="760" Spacing="14">
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE8EF;" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <!-- Number -> English words -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="WordsTitle" FontWeight="SemiBold" FontSize="15" />
+                    <TextBox x:Name="WordsInput" TextChanged="WordsInput_Changed" PlaceholderText="1234567.89" />
+                    <TextBlock x:Name="WordsOutput" TextWrapping="Wrap" IsTextSelectionEnabled="True" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <Button x:Name="WordsCopy" Click="WordsCopy_Click" HorizontalAlignment="Left" />
+                </StackPanel>
+            </Border>
+
+            <!-- Number -> currency words -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="MoneyTitle" FontWeight="SemiBold" FontSize="15" />
+                    <TextBox x:Name="MoneyInput" TextChanged="MoneyInput_Changed" PlaceholderText="1234.50" />
+                    <TextBlock x:Name="MoneyOutput" TextWrapping="Wrap" IsTextSelectionEnabled="True" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <Button x:Name="MoneyCopy" Click="MoneyCopy_Click" HorizontalAlignment="Left" />
+                </StackPanel>
+            </Border>
+
+            <!-- Ordinal -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="OrdinalTitle" FontWeight="SemiBold" FontSize="15" />
+                    <TextBox x:Name="OrdinalInput" TextChanged="OrdinalInput_Changed" PlaceholderText="21" />
+                    <TextBlock x:Name="OrdinalOutput" TextWrapping="Wrap" IsTextSelectionEnabled="True" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <Button x:Name="OrdinalCopy" Click="OrdinalCopy_Click" HorizontalAlignment="Left" />
+                </StackPanel>
+            </Border>
+
+            <!-- Roman: number -> roman -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="RomanTitle" FontWeight="SemiBold" FontSize="15" />
+                    <TextBox x:Name="RomanInput" TextChanged="RomanInput_Changed" PlaceholderText="2024" />
+                    <TextBlock x:Name="RomanOutput" TextWrapping="Wrap" IsTextSelectionEnabled="True" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <Button x:Name="RomanCopy" Click="RomanCopy_Click" HorizontalAlignment="Left" />
+                </StackPanel>
+            </Border>
+
+            <!-- Roman -> number -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="UnromanTitle" FontWeight="SemiBold" FontSize="15" />
+                    <TextBox x:Name="UnromanInput" TextChanged="UnromanInput_Changed" PlaceholderText="MMXXIV" />
+                    <TextBlock x:Name="UnromanOutput" TextWrapping="Wrap" IsTextSelectionEnabled="True" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <Button x:Name="UnromanCopy" Click="UnromanCopy_Click" HorizontalAlignment="Left" />
+                </StackPanel>
+            </Border>
+
+            <!-- Words -> number -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="ParseTitle" FontWeight="SemiBold" FontSize="15" />
+                    <TextBox x:Name="ParseInput" TextChanged="ParseInput_Changed" PlaceholderText="two hundred and five" />
+                    <TextBlock x:Name="ParseOutput" TextWrapping="Wrap" IsTextSelectionEnabled="True" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <Button x:Name="ParseCopy" Click="ParseCopy_Click" HorizontalAlignment="Left" />
+                </StackPanel>
+            </Border>
+
+            <TextBlock x:Name="StatusText" FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+        </StackPanel>
+    </ScrollViewer>
+</Page>

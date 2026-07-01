@@ -17,7 +17,7 @@ public sealed partial class GuidGenModule : Page
     public GuidGenModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) =>
         {
             if (FormatCombo.SelectedIndex < 0) FormatCombo.SelectedIndex = 0;
@@ -26,7 +26,10 @@ public sealed partial class GuidGenModule : Page
             GenUlid();
             GenNano();
         };
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 

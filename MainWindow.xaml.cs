@@ -298,6 +298,52 @@ public sealed partial class MainWindow : Window
         }
         switch (App.StartPage)
         {
+            case "cronbuilder":
+            case "cron":
+                Navigator.GoToModule?.Invoke("module.cronbuilder");
+                break;
+            case "faker":
+            case "lorem":
+                Navigator.GoToModule?.Invoke("module.faker");
+                break;
+            case "csvjson":
+            case "csv":
+                Navigator.GoToModule?.Invoke("module.csvjson");
+                break;
+            case "timer":
+            case "stopwatch":
+            case "pomodoro":
+                Navigator.GoToModule?.Invoke("module.timer");
+                break;
+            case "worldclock":
+                Navigator.GoToModule?.Invoke("module.worldclock");
+                break;
+            case "notes":
+            case "scratchpad":
+                Navigator.GoToModule?.Invoke("module.notes");
+                break;
+            case "calculator":
+            case "calc":
+                Navigator.GoToModule?.Invoke("module.calculator");
+                break;
+            case "randomizer":
+            case "random":
+                Navigator.GoToModule?.Invoke("module.randomizer");
+                break;
+            case "datecalc":
+                Navigator.GoToModule?.Invoke("module.datecalc");
+                break;
+            case "urltools":
+            case "url":
+                Navigator.GoToModule?.Invoke("module.urltools");
+                break;
+            case "markdown":
+            case "md":
+                Navigator.GoToModule?.Invoke("module.markdown");
+                break;
+            case "numwords":
+                Navigator.GoToModule?.Invoke("module.numwords");
+                break;
             case "guidgen":
                 Navigator.GoToModule?.Invoke("module.guidgen");
                 break;
@@ -1591,6 +1637,18 @@ public sealed partial class MainWindow : Window
         "module.unitconvert" => typeof(UnitConvertModule),
         "module.charmap" => typeof(CharMapModule),
         "module.colortools" => typeof(ColorToolsModule),
+        "module.cronbuilder" => typeof(CronBuilderModule),
+        "module.faker" => typeof(FakerModule),
+        "module.csvjson" => typeof(CsvJsonModule),
+        "module.timer" => typeof(TimerModule),
+        "module.worldclock" => typeof(WorldClockModule),
+        "module.notes" => typeof(NotesModule),
+        "module.calculator" => typeof(CalculatorModule),
+        "module.randomizer" => typeof(RandomizerModule),
+        "module.datecalc" => typeof(DateCalcModule),
+        "module.urltools" => typeof(UrlToolsModule),
+        "module.markdown" => typeof(MarkdownModule),
+        "module.numwords" => typeof(NumberWordsModule),
         _ => typeof(DashboardPage),
     };
 
@@ -1850,6 +1908,18 @@ public sealed partial class MainWindow : Window
                 "module.guidgen", "module.hasher", "module.encoder", "module.jsontools", "module.regextester",
                 "module.passgen", "module.texttools", "module.baseconvert", "module.epoch", "module.unitconvert",
                 "module.charmap", "module.colortools",
+            },
+        },
+        new()
+        {
+            Id = "utility",
+            En = "Utilities & time",
+            Zh = "實用與時間",
+            Keys = new[]
+            {
+                "module.cronbuilder", "module.faker", "module.csvjson", "module.timer", "module.worldclock",
+                "module.notes", "module.calculator", "module.randomizer", "module.datecalc", "module.urltools",
+                "module.markdown", "module.numwords",
             },
         },
     };
