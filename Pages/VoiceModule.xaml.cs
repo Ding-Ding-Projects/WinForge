@@ -16,15 +16,18 @@ public sealed partial class VoiceModule : Page
     public VoiceModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         VoiceService.SpeakingChanged += OnSpeakingChanged;
         Loaded += (_, _) => { Render(); LoadVoices(); SyncButtons(); };
         Unloaded += (_, _) =>
         {
+            Loc.I.LanguageChanged -= OnLanguageChanged;
             VoiceService.SpeakingChanged -= OnSpeakingChanged;
             VoiceService.Stop();
         };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 

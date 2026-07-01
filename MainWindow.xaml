@@ -337,6 +337,38 @@
                     </NavigationViewItem.MenuItems>
                 </NavigationViewItem>
 
+                <NavigationViewItem Content="Dev &amp; Format · 開發與格式" SelectsOnInvoked="False">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon>
+                    <NavigationViewItem.MenuItems>
+                        <NavigationViewItem Content="JSON Query · JSON 查詢" Tag="module.jsonpath"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="SQL Formatter · SQL 格式化" Tag="module.sqlformat"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="XPath Tester · XPath 測試器" Tag="module.xpathtester"><NavigationViewItem.Icon><FontIcon Glyph="&#xE773;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="String Inspector · 字串檢查器" Tag="module.stringinspector"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8C1;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Namespaced UUID · 具名空間 UUID" Tag="module.uuidv5"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Table Formatter · 表格排版" Tag="module.tableformat"><NavigationViewItem.Icon><FontIcon Glyph="&#xE9F9;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Check Digit Validator · 檢查碼驗證器" Tag="module.checkdigit"><NavigationViewItem.Icon><FontIcon Glyph="&#xE73E;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="TOTP Authenticator · TOTP 驗證器" Tag="module.totp"><NavigationViewItem.Icon><FontIcon Glyph="&#xE72E;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Classic Ciphers · 經典密碼" Tag="module.ciphers"><NavigationViewItem.Icon><FontIcon Glyph="&#xE72E;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Gitignore Generator · .gitignore 產生器" Tag="module.gitignore"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7C3;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Encoding Converter · 編碼轉換" Tag="module.encodingconv"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8C8;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="HTML Preview · HTML 預覽" Tag="module.htmlpreview"><NavigationViewItem.Icon><FontIcon Glyph="&#xE12B;" /></NavigationViewItem.Icon></NavigationViewItem>
+                    </NavigationViewItem.MenuItems>
+                </NavigationViewItem>
+
+                <NavigationViewItem Content="Calculators &amp; Text · 計算與文字" SelectsOnInvoked="False">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE8EF;" /></NavigationViewItem.Icon>
+                    <NavigationViewItem.MenuItems>
+                        <NavigationViewItem Content="Percentage Calculator · 百分比計算器" Tag="module.percentcalc"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8EF;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Loan Calculator · 貸款計算" Tag="module.loancalc"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8EF;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Health Calculators · 健康計算器" Tag="module.bmi"><NavigationViewItem.Icon><FontIcon Glyph="&#xE95E;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Text Statistics · 文字統計" Tag="module.textstats"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="ASCII Banner · ASCII 橫幅" Tag="module.asciiart"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8D2;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="MIME Type Lookup · MIME 類型查詢" Tag="module.mimetypes"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Recycle Bin Manager · 回收筒管理" Tag="module.recyclebin"><NavigationViewItem.Icon><FontIcon Glyph="&#xE74D;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="File Split &amp; Join · 檔案切割／合併" Tag="module.filesplit"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>
+                    </NavigationViewItem.MenuItems>
+                </NavigationViewItem>
+
                 <NavigationViewItemHeader Content="Windows 11 · 視窗 11" />
                 <NavigationViewItem x:Name="TweaksGroup" Content="All Tweaks · 全部調校" SelectsOnInvoked="False">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE713;" /></NavigationViewItem.Icon>

@@ -298,6 +298,80 @@ public sealed partial class MainWindow : Window
         }
         switch (App.StartPage)
         {
+            case "jsonpath":
+                Navigator.GoToModule?.Invoke("module.jsonpath");
+                break;
+            case "sqlformat":
+            case "sql":
+                Navigator.GoToModule?.Invoke("module.sqlformat");
+                break;
+            case "xpath":
+                Navigator.GoToModule?.Invoke("module.xpathtester");
+                break;
+            case "strinspect":
+            case "stringinspect":
+                Navigator.GoToModule?.Invoke("module.stringinspector");
+                break;
+            case "gitignore":
+                Navigator.GoToModule?.Invoke("module.gitignore");
+                break;
+            case "percent":
+            case "percentage":
+                Navigator.GoToModule?.Invoke("module.percentcalc");
+                break;
+            case "loan":
+            case "mortgage":
+                Navigator.GoToModule?.Invoke("module.loancalc");
+                break;
+            case "cipher":
+            case "ciphers":
+                Navigator.GoToModule?.Invoke("module.ciphers");
+                break;
+            case "checkdigit":
+            case "luhn":
+                Navigator.GoToModule?.Invoke("module.checkdigit");
+                break;
+            case "totp":
+            case "2fa":
+                Navigator.GoToModule?.Invoke("module.totp");
+                break;
+            case "uuid5":
+            case "uuidv5":
+                Navigator.GoToModule?.Invoke("module.uuidv5");
+                break;
+            case "tableformat":
+                Navigator.GoToModule?.Invoke("module.tableformat");
+                break;
+            case "textstats":
+                Navigator.GoToModule?.Invoke("module.textstats");
+                break;
+            case "htmlpreview":
+            case "html":
+                Navigator.GoToModule?.Invoke("module.htmlpreview");
+                break;
+            case "recyclebin":
+            case "trash":
+                Navigator.GoToModule?.Invoke("module.recyclebin");
+                break;
+            case "filesplit":
+                Navigator.GoToModule?.Invoke("module.filesplit");
+                break;
+            case "encodingconv":
+            case "encoding":
+                Navigator.GoToModule?.Invoke("module.encodingconv");
+                break;
+            case "bmi":
+            case "health":
+                Navigator.GoToModule?.Invoke("module.bmi");
+                break;
+            case "asciiart":
+            case "banner":
+                Navigator.GoToModule?.Invoke("module.asciiart");
+                break;
+            case "mimetype":
+            case "mime":
+                Navigator.GoToModule?.Invoke("module.mimetypes");
+                break;
             case "pathdoctor":
             case "path":
                 Navigator.GoToModule?.Invoke("module.pathdoctor");
@@ -1707,6 +1781,26 @@ public sealed partial class MainWindow : Window
         "module.envdiff" => typeof(EnvDiffModule),
         "module.httpheaders" => typeof(HttpHeadersModule),
         "module.ipinfo" => typeof(IpInfoModule),
+        "module.jsonpath" => typeof(JsonPathModule),
+        "module.sqlformat" => typeof(SqlFormatModule),
+        "module.xpathtester" => typeof(XPathTesterModule),
+        "module.stringinspector" => typeof(StringInspectorModule),
+        "module.gitignore" => typeof(GitignoreModule),
+        "module.percentcalc" => typeof(PercentCalcModule),
+        "module.loancalc" => typeof(LoanCalcModule),
+        "module.ciphers" => typeof(CiphersModule),
+        "module.checkdigit" => typeof(CheckDigitModule),
+        "module.totp" => typeof(TotpModule),
+        "module.uuidv5" => typeof(UuidV5Module),
+        "module.tableformat" => typeof(TableFormatModule),
+        "module.textstats" => typeof(TextStatsModule),
+        "module.htmlpreview" => typeof(HtmlPreviewModule),
+        "module.recyclebin" => typeof(RecycleBinModule),
+        "module.filesplit" => typeof(FileSplitModule),
+        "module.encodingconv" => typeof(EncodingConvModule),
+        "module.bmi" => typeof(BmiModule),
+        "module.asciiart" => typeof(AsciiArtModule),
+        "module.mimetypes" => typeof(MimeTypesModule),
         _ => typeof(DashboardPage),
     };
 
@@ -1990,6 +2084,29 @@ public sealed partial class MainWindow : Window
                 "module.subnetcalc", "module.ping", "module.portscan", "module.wol", "module.dnslookup",
                 "module.mactools", "module.httpheaders", "module.ipinfo", "module.pathdoctor", "module.envdiff",
                 "module.base32", "module.jwtinspect",
+            },
+        },
+        new()
+        {
+            Id = "devformat",
+            En = "Dev & format",
+            Zh = "開發與格式",
+            Keys = new[]
+            {
+                "module.jsonpath", "module.sqlformat", "module.xpathtester", "module.stringinspector",
+                "module.uuidv5", "module.tableformat", "module.checkdigit", "module.totp", "module.ciphers",
+                "module.gitignore", "module.encodingconv", "module.htmlpreview",
+            },
+        },
+        new()
+        {
+            Id = "calctext",
+            En = "Calculators & text",
+            Zh = "計算與文字",
+            Keys = new[]
+            {
+                "module.percentcalc", "module.loancalc", "module.bmi", "module.textstats", "module.asciiart",
+                "module.mimetypes", "module.recyclebin", "module.filesplit",
             },
         },
     };

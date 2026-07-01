@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.LoanCalcModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="820" Spacing="14">
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE8EF;" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <!-- Inputs -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="14">
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <TextBlock x:Name="PrincipalLabel" Width="220" VerticalAlignment="Center" TextWrapping="Wrap" />
+                        <NumberBox x:Name="PrincipalBox" Value="300000" Minimum="0" Maximum="1000000000" SpinButtonPlacementMode="Compact" MinWidth="180" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <TextBlock x:Name="RateLabel" Width="220" VerticalAlignment="Center" TextWrapping="Wrap" />
+                        <NumberBox x:Name="RateBox" Value="5.25" Minimum="0" Maximum="1000" SmallChange="0.05" SpinButtonPlacementMode="Compact" MinWidth="180" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <TextBlock x:Name="TermLabel" Width="220" VerticalAlignment="Center" TextWrapping="Wrap" />
+                        <NumberBox x:Name="TermBox" Value="30" Minimum="1" Maximum="12000" SpinButtonPlacementMode="Compact" MinWidth="180" />
+                        <RadioButton x:Name="YearsRadio" GroupName="TermUnit" IsChecked="True" Checked="TermUnit_Changed" />
+                        <RadioButton x:Name="MonthsRadio" GroupName="TermUnit" Checked="TermUnit_Changed" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button x:Name="CalcButton" Click="Calc_Click" Style="{ThemeResource AccentButtonStyle}" />
+                        <Button x:Name="CopyButton" Click="Copy_Click" />
+                    </StackPanel>
+
+                    <TextBlock x:Name="StatusText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <!-- Summary -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="6">
+                    <TextBlock x:Name="MonthlyText" FontWeight="SemiBold" FontSize="18" />
+                    <TextBlock x:Name="TotalPaidText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBlock x:Name="TotalInterestText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </StackPanel>
+            </Border>
+
+            <!-- Schedule -->
+            <TextBlock x:Name="ScheduleHeading" FontWeight="SemiBold" />
+            <TextBlock x:Name="CapNote" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Visibility="Collapsed" TextWrapping="Wrap" />
+
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel>
+                    <!-- Header row -->
+                    <Grid Padding="12,8,12,8" Background="{ThemeResource LayerFillColorDefaultBrush}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="0.7*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="1.2*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="ColPeriod" Grid.Column="0" FontWeight="SemiBold" FontSize="12" />
+                        <TextBlock x:Name="ColPayment" Grid.Column="1" FontWeight="SemiBold" FontSize="12" TextAlignment="Right" />
+                        <TextBlock x:Name="ColPrincipal" Grid.Column="2" FontWeight="SemiBold" FontSize="12" TextAlignment="Right" />
+                        <TextBlock x:Name="ColInterest" Grid.Column="3" FontWeight="SemiBold" FontSize="12" TextAlignment="Right" />
+                        <TextBlock x:Name="ColBalance" Grid.Column="4" FontWeight="SemiBold" FontSize="12" TextAlignment="Right" />
+                    </Grid>
+
+                    <ListView x:Name="ScheduleList" MaxHeight="420" SelectionMode="None">
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="ListViewItem">
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                <Setter Property="Padding" Value="12,4,12,4" />
+                                <Setter Property="MinHeight" Value="0" />
+                            </Style>
+                        </ListView.ItemContainerStyle>
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="0.7*" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="1.2*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="{Binding PeriodText}" FontSize="12" />
+                                    <TextBlock Grid.Column="1" Text="{Binding PaymentText}" FontSize="12" TextAlignment="Right" />
+                                    <TextBlock Grid.Column="2" Text="{Binding PrincipalText}" FontSize="12" TextAlignment="Right" />
+                                    <TextBlock Grid.Column="3" Text="{Binding InterestText}" FontSize="12" TextAlignment="Right" />
+                                    <TextBlock Grid.Column="4" Text="{Binding BalanceText}" FontSize="12" TextAlignment="Right" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>
