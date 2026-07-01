@@ -329,6 +329,13 @@ public static class ModuleRegistry
         new() { Tag = "module.unicodeinspect", En = "Unicode Inspector", Zh = "Unicode 檢查器", Glyph = ((char)0xE943).ToString(), Keywords = "unicode inspector codepoint character utf-8 utf-16 category combining zero-width confusable rune 統一碼 字元 碼位 類別 組合 零寬 檢查" },
         new() { Tag = "module.regexcheat", En = "Regex Cheatsheet", Zh = "正則速查", Glyph = ((char)0xE943).ToString(), Keywords = "regex regular expression cheatsheet reference tokens character class anchor quantifier lookaround flags .net 正則 正規表達式 速查 參考 字元類 錨點 量詞" },
         new() { Tag = "module.dnsref", En = "DNS Records Reference", Zh = "DNS 記錄參考", Glyph = ((char)0xEB41).ToString(), Keywords = "dns records reference a aaaa cname mx txt ns soa srv caa dmarc spf dkim zone file 域名 記錄 參考 區域檔 郵件 解析" },
+        new() { Tag = "module.vertfarm", En = "Vertical Farm", Zh = "垂直農場", Glyph = ((char)0xE945).ToString(), Keywords = "vertical farm grow lights led hydroponics indoor agriculture crops harvest reactor nuclear power 垂直農場 植物工廠 補光燈 水耕 室內 農業 農作物 收成 反應堆 核電" },
+        new() { Tag = "module.steelmill", En = "Arc-Furnace Steel Mill", Zh = "電弧爐煉鋼廠", Glyph = ((char)0xE945).ToString(), Keywords = "steel mill electric arc furnace eaf melt scrap heat tap tonnes reactor nuclear megawatt heavy load 鋼廠 電弧爐 煉鋼 廢鋼 熔煉 出鋼 反應堆 核電 重負載" },
+        new() { Tag = "module.cssunits", En = "CSS Unit Converter", Zh = "CSS 單位換算", Glyph = ((char)0xE943).ToString(), Keywords = "css units px em rem pt vw vh percent convert web design root font size 單位 換算 網頁 設計 字級" },
+        new() { Tag = "module.loremimg", En = "Placeholder Image", Zh = "佔位圖", Glyph = ((char)0xE91B).ToString(), Keywords = "placeholder image svg dummy mockup data uri base64 width height colour generator 佔位圖 預留圖 假圖 圖片 產生器 資料URI" },
+        new() { Tag = "module.htmltable", En = "HTML Table Convert", Zh = "HTML 表格轉換", Glyph = ((char)0xE943).ToString(), Keywords = "html table csv tsv markdown convert thead tbody tr td parse generate 表格 轉換 逗號 標記 解析 產生" },
+        new() { Tag = "module.barcode", En = "Barcode Generator", Zh = "條碼產生器", Glyph = ((char)0xE91B).ToString(), Keywords = "barcode code128 code39 ean-13 ean13 1d symbology svg generate scan retail 條碼 條形碼 產生 掃描 零售" },
+        new() { Tag = "module.jsonpointer", En = "JSON Pointer", Zh = "JSON 指標", Glyph = ((char)0xE943).ToString(), Keywords = "json pointer rfc 6901 path resolve query escape tilde slash index 指標 路徑 解析 逃逸 索引" },
     };
 
     public static IEnumerable<ModuleInfo> Search(string query)

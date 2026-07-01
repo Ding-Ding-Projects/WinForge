@@ -501,6 +501,28 @@ public sealed partial class MainWindow : Window
             case "dnsref":
                 Navigator.GoToModule?.Invoke("module.dnsref");
                 break;
+            case "vertfarm":
+                Navigator.GoToModule?.Invoke("module.vertfarm");
+                break;
+            case "steelmill":
+                Navigator.GoToModule?.Invoke("module.steelmill");
+                break;
+            case "cssunits":
+                Navigator.GoToModule?.Invoke("module.cssunits");
+                break;
+            case "loremimg":
+            case "placeholder":
+                Navigator.GoToModule?.Invoke("module.loremimg");
+                break;
+            case "htmltable":
+                Navigator.GoToModule?.Invoke("module.htmltable");
+                break;
+            case "barcode":
+                Navigator.GoToModule?.Invoke("module.barcode");
+                break;
+            case "jsonpointer":
+                Navigator.GoToModule?.Invoke("module.jsonpointer");
+                break;
             case "uuidv7":
                 Navigator.GoToModule?.Invoke("module.uuidv7");
                 break;
@@ -2340,6 +2362,13 @@ public sealed partial class MainWindow : Window
         "module.unicodeinspect" => typeof(UnicodeInspectModule),
         "module.regexcheat" => typeof(RegexCheatModule),
         "module.dnsref" => typeof(DnsRefModule),
+        "module.vertfarm" => typeof(VertFarmModule),
+        "module.steelmill" => typeof(SteelMillModule),
+        "module.cssunits" => typeof(CssUnitsModule),
+        "module.loremimg" => typeof(LoremImgModule),
+        "module.htmltable" => typeof(HtmlTableModule),
+        "module.barcode" => typeof(BarcodeModule),
+        "module.jsonpointer" => typeof(JsonPointerModule),
         "module.uuidv7" => typeof(UuidV7Module),
         "module.jsonschema" => typeof(JsonSchemaModule),
         "module.htmlentities" => typeof(HtmlEntitiesModule),
@@ -2755,7 +2784,7 @@ public sealed partial class MainWindow : Window
                 "module.griddispatch", "module.h2plant", "module.aicluster", "module.hpc",
                 "module.computemine", "module.smelter", "module.datacenter", "module.collider",
                 "module.reactorbank", "module.desal", "module.evcharge", "module.pumpedhydro",
-                "module.districtheat", "module.dac",
+                "module.districtheat", "module.dac", "module.vertfarm", "module.steelmill",
             },
         },
         new()
@@ -2768,7 +2797,8 @@ public sealed partial class MainWindow : Window
                 "module.uuidv7", "module.jsonschema", "module.htmlentities", "module.queryedit",
                 "module.morse", "module.romannum", "module.yamljson", "module.slugify",
                 "module.diceware", "module.textsort", "module.hexdump", "module.envsubst",
-                "module.unicodeinspect", "module.regexcheat", "module.dnsref",
+                "module.unicodeinspect", "module.regexcheat", "module.dnsref", "module.cssunits",
+                "module.loremimg", "module.htmltable", "module.barcode", "module.jsonpointer",
             },
         },
     };
