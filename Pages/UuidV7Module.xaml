@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.UuidV7Module"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="760" Spacing="14">
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE943;" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <InfoBar x:Name="Status" IsOpen="False" IsClosable="False" />
+
+            <!-- Generate -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <TextBlock x:Name="GenTitle" FontWeight="SemiBold" FontSize="15" />
+
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <TextBlock x:Name="CountLabel" VerticalAlignment="Center" />
+                        <NumberBox x:Name="CountBox" Value="1" Minimum="1" Maximum="1000" SpinButtonPlacementMode="Inline" MinWidth="150" />
+                    </StackPanel>
+
+                    <CheckBox x:Name="MonotonicChk" IsChecked="True" />
+
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button x:Name="GenBtn" Click="Generate_Click" Style="{ThemeResource AccentButtonStyle}" />
+                        <Button x:Name="CopyGenBtn" Click="CopyGen_Click" />
+                    </StackPanel>
+
+                    <TextBox x:Name="GenOutput" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap" FontFamily="Consolas" MinHeight="120" MaxHeight="260"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Auto" />
+                </StackPanel>
+            </Border>
+
+            <!-- Decode -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <TextBlock x:Name="DecTitle" FontWeight="SemiBold" FontSize="15" />
+
+                    <TextBox x:Name="DecInput" TextChanged="DecInput_Changed" FontFamily="Consolas" />
+
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button x:Name="DecodeBtn" Click="Decode_Click" />
+                        <Button x:Name="CopyTsBtn" Click="CopyTs_Click" />
+                    </StackPanel>
+
+                    <Grid x:Name="DecResults" ColumnSpacing="12" RowSpacing="6" Visibility="Collapsed">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock x:Name="VerCaption" Grid.Row="0" Grid.Column="0" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock x:Name="VerValue" Grid.Row="0" Grid.Column="1" FontFamily="Consolas" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+
+                        <TextBlock x:Name="VarCaption" Grid.Row="1" Grid.Column="0" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock x:Name="VarValue" Grid.Row="1" Grid.Column="1" FontFamily="Consolas" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+
+                        <TextBlock x:Name="UtcCaption" Grid.Row="2" Grid.Column="0" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock x:Name="UtcValue" Grid.Row="2" Grid.Column="1" FontFamily="Consolas" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+
+                        <TextBlock x:Name="LocalCaption" Grid.Row="3" Grid.Column="0" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock x:Name="LocalValue" Grid.Row="3" Grid.Column="1" FontFamily="Consolas" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+
+                        <TextBlock x:Name="CanonCaption" Grid.Row="4" Grid.Column="0" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock x:Name="CanonValue" Grid.Row="4" Grid.Column="1" FontFamily="Consolas" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

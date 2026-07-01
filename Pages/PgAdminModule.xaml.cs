@@ -90,9 +90,32 @@ public sealed partial class PgAdminModule : Page
 
     private async Task CheckEngine()
     {
-        bool installed = await Task.Run(() => PostgresService.IsPgAdminInstalled());
-        LaunchPgAdminBtn.Visibility = installed ? Visibility.Visible : Visibility.Collapsed;
-        if (installed)
+        // Probe (off the UI thread) for a local PostgreSQL server and for the pgAdmin 4 desktop app.
+        var (localPg, pgAdmin) = await Task.Run(() =>
+            (PostgresService.IsLocalPostgresInstalled(), PostgresService.IsPgAdminInstalled()));
+
+        LaunchPgAdminBtn.Visibility = pgAdmin ? Visibility.Visible : Visibility.Collapsed;
+
+        // No local Postgres server detected → offer the one-click prerequisite install
+        // (PostgreSQL.PostgreSQL — this winget package bundles the server + pgAdmin 4).
+        if (!localPg)
+        {
+            EngineBar.IsOpen = true;
+            EngineBar.Severity = InfoBarSeverity.Warning;
+            EngineBar.Title = P("No local PostgreSQL found", "搵唔到本機 PostgreSQL");
+            EngineBar.Message = P(
+                "WinForge can connect to any Postgres server natively (Npgsql), but none was detected on this PC (no psql, no service). Install PostgreSQL + pgAdmin locally to get started — no restart needed. You can still connect to a remote server using the fields below.",
+                "WinForge 可以用原生 Npgsql 連任何 Postgres 伺服器，但喺呢部電腦搵唔到（冇 psql、冇服務）。撳一下喺本機裝 PostgreSQL + pgAdmin 就用得 — 唔使重啟。你亦可以用下面嘅欄位連遠端伺服器。");
+            EngineBar.ActionButton = EngineBars.AutoInstallButton(
+                PostgresService.PostgresWingetId, "Install PostgreSQL + pgAdmin", "安裝 PostgreSQL + pgAdmin",
+                async () => { await CheckEngine(); },
+                PostgresService.RescanLocal);
+            return;
+        }
+
+        // Local Postgres present. If the full pgAdmin 4 desktop is installed we're done; otherwise
+        // offer the (optional) pgAdmin-only install for advanced administration.
+        if (pgAdmin)
         {
             EngineBar.IsOpen = false;
             EngineBar.ActionButton = null;

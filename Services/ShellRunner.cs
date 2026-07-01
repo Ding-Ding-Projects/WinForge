@@ -332,6 +332,46 @@ public static class ShellRunner
     }
 
     /// <summary>
+    /// 用管理員權限(UAC)執行一句指令，同時經臨時檔擷取合併輸出 · Run a command line ELEVATED (a real UAC
+    /// prompt) while STILL capturing its combined stdout+stderr — the elevated ShellExecute path can't
+    /// redirect handles, so we redirect the child's own output to a temp file and read it back. This is
+    /// what makes installs both succeed (admin rights) AND surface the real error text.
+    /// Returns (exitCode, output, started). started=false ⇒ the UAC prompt was declined / couldn't launch.
+    /// </summary>
+    public static async Task<(int exitCode, string output, bool started)> RunElevatedCaptureAsync(
+        string command, System.Threading.CancellationToken ct = default)
+    {
+        var log = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"winforge-install-{Guid.NewGuid():N}.log");
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = "cmd.exe",
+                // /c "<command> > "<log>" 2>&1" — the child redirects its own combined output to the temp file.
+                Arguments = $"/c \"{command} > \"{log}\" 2>&1\"",
+                UseShellExecute = true,     // required for Verb=runas
+                Verb = "runas",             // triggers the UAC elevation prompt
+                CreateNoWindow = true,
+                WindowStyle = ProcessWindowStyle.Hidden,
+            };
+            using var p = Process.Start(psi);
+            if (p is null) return (-1, "", false);
+            await p.WaitForExitAsync(ct);
+            string outp = "";
+            try { if (System.IO.File.Exists(log)) outp = (await System.IO.File.ReadAllTextAsync(log, ct)).Trim(); }
+            catch { /* best-effort capture */ }
+            return (p.ExitCode, outp, true);
+        }
+        catch (System.ComponentModel.Win32Exception wex) when (wex.NativeErrorCode == 1223)
+        {
+            return (-1, "The administrator (UAC) prompt was cancelled.", false);
+        }
+        catch (OperationCanceledException) { return (-1, "Cancelled.", false); }
+        catch (Exception ex) { return (-1, ex.Message, false); }
+        finally { try { if (System.IO.File.Exists(log)) System.IO.File.Delete(log); } catch { } }
+    }
+
+    /// <summary>
     /// 執行一段 PowerShell（用 EncodedCommand 避免引號地獄）。
     /// Run a PowerShell snippet via -EncodedCommand to dodge quoting issues.
     /// </summary>

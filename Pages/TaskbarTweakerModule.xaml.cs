@@ -530,7 +530,6 @@ public sealed partial class TaskbarTweakerModule : Page
         _windhawk = TaskbarTweakerService.DetectWindhawk();
         RenderSevenTtBar();
         RenderWindhawkBar();
-        RenderWindhawkInstall();
     }
 
     private void RenderSevenTtBar()
@@ -580,11 +579,15 @@ public sealed partial class TaskbarTweakerModule : Page
             WindhawkBar.Severity = InfoBarSeverity.Informational;
             WindhawkBar.Title = P("Windhawk not detected", "未偵測到 Windhawk");
             WindhawkBar.Message = P(
-                "Windhawk is a maintained, open mod platform that can replicate 7+TT's deep behaviours. Install it below to get started.",
-                "Windhawk 係仍有維護嘅開放模組平台，可以重現 7+TT 嘅深層行為。喺下面安裝就可以開始。");
+                "Windhawk is a maintained, open mod platform that can replicate 7+TT's deep behaviours. Install it below to get started — live progress, no restart needed.",
+                "Windhawk 係仍有維護嘅開放模組平台，可以重現 7+TT 嘅深層行為。喺下面安裝就可以開始 — 即時進度，唔使重啟。");
+            // The rich one-click Windhawk install (progress bar + streamed status + animation) lives in the
+            // explainer card via RenderWindhawkInstall(); no duplicate button on the InfoBar.
+            // 7+TT is deliberately never offered for auto-install (closed-source freeware, no winget id).
             WindhawkBar.ActionButton = null;
             WindhawkBar.IsOpen = true;
         }
+        RenderWindhawkInstall();
     }
 
     private void RenderWindhawkInstall()

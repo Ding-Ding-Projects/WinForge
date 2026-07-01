@@ -38,7 +38,9 @@ Guardrail: nothing merges/deploys unless `dotnet build WinForge.sln -c Debug -p:
   JSON Merge Patch (RFC 7386), ULID/Snowflake generator+decoder, Hosts File Editor (safe non-elevated + block-list presets), iCalendar (.ics) Builder (RRULE/VALARM), Ascii85/Base85 (Adobe·Z85·RFC1924), Security Header Scorecard (A+..F grading), Box & Banner Text, Number-to-Words+ (currency + Chinese 大寫). Clean pitfall-scan — no agent slips; build 0 errors, tests 62/62. Also fixed CI: `pages.yml` now chains off the site-data workflow via `workflow_run` (token-authored regen commits couldn't trigger the deploy → live site had gone stale); README/CLAUDE.md counts refreshed to 264; GitHub repo description updated.
 - **Batch 16 — DONE: +8 modules → 272.**
   CSV Linter (RFC 4180 lint+repair), JWT Builder (HMAC HS256/384/512 sign+verify), TOML↔JSON (hand-written parser), Cron Next Runs (5-field + macros, timezone-aware), Markdown Table generator/reformatter, Semver Range Tester (node-semver), Glob Tester (glob→regex), HAR Analyzer (HTTP Archive). Clean pitfall-scan — no agent slips; build 0 errors, tests 62/62.
-- **Next focus:** keep the depth cadence toward **1000+ working features** (add ~6-8 modules/iteration + extend existing modules, theme C). Big epics DONE: zero tweak cards (TweakCard deleted), freeze rounds essentially complete (~3 accepted-risk pages). At **272 modules** / 16 iterations.
+- **Batch 17 — DONE: +8 modules → 277 (first ⚛️ reactor loads shipped).**
+  ⚛️ **Grid Dispatch Center** + ⚛️ **Hydrogen Electrolysis** — both gate real work on the live reactor via `ReactorStatusApiService.I.LastSnapshot` (ElectricMW/IsGenerating/Mode/IsScrammed), show a MW meter + "needs nuclear power" empty-state, draw a defined MW load. Plus 6 general: UUID v7, JSON Schema Validator, HTML Entities, URL Query Editor, Morse Code, Roman Numerals. Pre-merge fix: both reactor agents mishandled `ReactorStatusSnapshot` (a value struct) as nullable — corrected to `default` / `is { } r`. Build 0 errors, tests 62/62.
+- **Next focus:** keep the depth cadence toward **1000+ working features**; keep shipping ⚛️ reactor loads (next: AI Training Cluster, Desalination, Aluminium Smelter) 1–2/iteration. At **277 modules** / 17 iterations.
 
 ## Bug / hardening priorities (fold into every iteration)
 - [x] **Freezes — round 1:** offloaded WMI/PDH/`Process.GetProcesses`/sensor ticks to `Task.Run` (SystemMonitor, ProcessExplorer, Connections, BatteryThermal, NativeUtilities); off-thread registry-hive enumeration; Unloaded timer stops (ScreenRecorder); calmed CakeFactory 80ms→200ms; fixed `LanguageChanged` leaks on the hot pages.
@@ -93,3 +95,27 @@ Append new ideas here as they surface; promote to a batch when scoped. Keep each
   - (C) Short ID: add ULID + Snowflake decode (timestamp/machine/seq breakdown); (A) GUID/ULID timestamp extractor.
   - (A) Reg-hive value search across HKCU/HKLM; (C) HTTP Headers: add security-header scorecard (given a paste of a response).
   - (C) Text Wrap: add box-drawing/banner mode; (C) Number → words: add currency + ordinal + Chinese-numeral modes.
+
+## ⚛️ Epic: "Requires nuclear generation" — reactor-powered industrial loads (goal 2026-07-01)
+Standing goal from the user: **keep finding (and building) more stuff that requires the flagship reactor's
+electrical output.** Pattern to follow (same as CakeFactoryService): a module gates its real work on
+`ReactorSimService.ElectricPowerMW` (rated ~1150 MWe gross) / an energized reactor bus, draws a defined MW
+load, and degrades/stops when the reactor is subcritical, tripped, or in MODE 5. All in-app, bilingual,
+reversible; opt-in; never breaks the reactor safety invariants. Candidate loads (each = one module drawing
+reactor MW):
+- (Reactor) **Grid Dispatch Center** — sell MWe to a simulated grid: demand curve, spot price, frequency
+  regulation, load-following against the turbine setpoint; revenue only when generating.
+- (Reactor) **AI Training Cluster** — a datacenter whose GPU racks only train while fed ≥N MW from the bus;
+  ties into the existing AI-credits economy (cake→credits) as a compute sink.
+- (Reactor) **Hydrogen Electrolysis Plant** — high-temp electrolysis; kg H₂/h scales with available MW.
+- (Reactor) **Seawater Desalination** — MED/RO plant; m³/day potable water gated on reactor power + waste heat.
+- (Reactor) **Aluminium Smelter / Arc Furnace** — huge continuous pot-line load; brownout if power dips.
+- (Reactor) **EV Fast-Charge Depot** — stalls charge only when the bus is up; fleet SoC economy.
+- (Reactor) **District Heating Loop** — cogeneration: bleed steam + electric trace heating for a city.
+- (Reactor) **Crypto/Compute Mine** — hashrate ∝ MW; explicit "only runs on nuclear" framing.
+- (Reactor) **Pumped-Storage Hydro** — store surplus MWe by pumping uphill, regenerate on demand (grid buffer).
+- (Reactor) **Vertical Farm / Greenhouse Array** — grow-light + HVAC load; yield gated on continuous power.
+- (Reactor) **Data-of-record / Home Assistant mirror** already exists — extend with a live MW-budget dashboard
+  that shows every connected load and sheds the lowest-priority ones on undervoltage (load-shed simulator).
+Build cadence: fold 1–2 of these into each Ralph iteration as real reactor-integrated modules (read
+`ElectricPowerMW`, gate work, show a MW meter), verified green + reactor tests 62/62 before merge.

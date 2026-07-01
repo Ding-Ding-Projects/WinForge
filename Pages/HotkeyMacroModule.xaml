@@ -57,6 +57,9 @@
                     <!-- SendKeys field -->
                     <TextBox x:Name="KeysBox" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="60" Visibility="Collapsed" />
 
+                    <!-- Open-module field: pick any WinForge module to activate from a global hotkey -->
+                    <ComboBox x:Name="ModuleBox" MinWidth="340" Visibility="Collapsed" />
+
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <Button x:Name="AddBindingBtn" Click="AddBinding_Click" Style="{StaticResource AccentButtonStyle}" />
                     </StackPanel>

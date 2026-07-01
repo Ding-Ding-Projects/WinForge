@@ -16,6 +16,7 @@ public enum MacroActionKind
     LaunchApp,      // Process.Start a program / file / URL
     RunPowerShell,  // run a PowerShell snippet
     SendKeys,       // replay keystrokes via SendInput
+    OpenModule,     // bring WinForge to front and open a module by tag (Target = "module.xxx")
 }
 
 /// <summary>修飾鍵旗標（user32 MOD_*） · Modifier flags for RegisterHotKey (MOD_*).</summary>
@@ -66,6 +67,9 @@ public sealed class HotkeyBinding
         MacroActionKind.LaunchApp => string.IsNullOrWhiteSpace(Arguments) ? Target : $"{Target} {Arguments}",
         MacroActionKind.RunPowerShell => Script.Replace("\r", " ").Replace("\n", " "),
         MacroActionKind.SendKeys => Keys,
+        MacroActionKind.OpenModule => ModuleRegistry.All.FirstOrDefault(m => m.Tag == Target) is { } mi
+            ? $"{Loc.I.Pick("Open", "開啟")}: {Loc.I.Pick(mi.En, mi.Zh)}"
+            : $"{Loc.I.Pick("Open module", "開啟模組")}: {Target}",
         _ => "",
     };
 }
@@ -95,6 +99,13 @@ public static class HotkeyMacroService
     public static string LastEvent { get; private set; } = "";
     public static event Action? Changed;       // store changed (saved)
     public static event Action? Fired;         // a hotkey fired / a snippet expanded (LastEvent updated)
+
+    /// <summary>
+    /// 由 MainWindow 接駁：一個 OpenModule 熱鍵撳咗，要求將 app 帶到前面並開某個模組（用 nav tag）。
+    /// Wired by MainWindow: an OpenModule hotkey fired — bring the app to the front and open a module by tag.
+    /// Invoked on the hotkey pump thread, so the handler must marshal onto the UI dispatcher itself.
+    /// </summary>
+    public static Action<string>? OpenModuleRequested;
 
     private const string BindingsKey = "hotkeymacro.bindings";
     private const string SnippetsKey = "hotkeymacro.snippets";
@@ -283,6 +294,11 @@ public static class HotkeyMacroService
                 case MacroActionKind.SendKeys:
                     if (!string.IsNullOrEmpty(b.Keys))
                         SendUnicodeString(b.Keys);
+                    break;
+
+                case MacroActionKind.OpenModule:
+                    if (!string.IsNullOrWhiteSpace(b.Target))
+                        OpenModuleRequested?.Invoke(b.Target);
                     break;
             }
         }

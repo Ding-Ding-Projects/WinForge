@@ -103,6 +103,12 @@
                 <NavigationViewItem Content="Cake Factory &amp; Farm · 蛋糕工廠與農場" Tag="module.cakefactory">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xECA5;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
+                <NavigationViewItem Content="Grid Dispatch Center · 電網調度中心" Tag="module.griddispatch">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE945;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Hydrogen Electrolysis · 氫電解制氫廠" Tag="module.h2plant">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE945;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
                 <NavigationViewItem Content="All Apps · 所有 app" Tag="shell.allapps">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE71D;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
@@ -468,6 +474,12 @@
                         <NavigationViewItem Content="Semver Range Tester · 語意化版本範圍" Tag="module.semverrange"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Glob Tester · Glob 樣式測試器" Tag="module.globtester"><NavigationViewItem.Icon><FontIcon Glyph="&#xE71C;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="HAR Analyzer · HAR 分析器" Tag="module.haranalyzer"><NavigationViewItem.Icon><FontIcon Glyph="&#xEB41;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="UUID v7 · UUID v7 識別碼" Tag="module.uuidv7"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="JSON Schema Validator · JSON 結構描述驗證器" Tag="module.jsonschema"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="HTML Entities · HTML 實體" Tag="module.htmlentities"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="URL Query Editor · 網址查詢編輯器" Tag="module.queryedit"><NavigationViewItem.Icon><FontIcon Glyph="&#xEB41;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Morse Code · 摩斯電碼" Tag="module.morse"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8D6;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Roman Numerals · 羅馬數字" Tag="module.romannum"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
                     </NavigationViewItem.MenuItems>
                 </NavigationViewItem>
 

@@ -25,6 +25,18 @@
                         <InfoBar x:Name="ChunkerBar" IsClosable="True" IsOpen="False" />
                         <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
                             <StackPanel Spacing="10">
+                                <TextBlock x:Name="ChunkerCliLbl" FontWeight="SemiBold" />
+                                <TextBlock x:Name="ChunkerCliStatus" FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Button x:Name="RecheckChunkerBtn" Click="RecheckChunker_Click" />
+                                    <Button x:Name="InstallChunkerBtn" Click="InstallChunker_Click" Style="{StaticResource AccentButtonStyle}" />
+                                    <ProgressRing x:Name="InstallChunkerRing" IsActive="False" Width="20" Height="20" VerticalAlignment="Center" />
+                                </StackPanel>
+                                <StackPanel x:Name="PythonInstallHost" Orientation="Horizontal" Spacing="8" Visibility="Collapsed" />
+                            </StackPanel>
+                        </Border>
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                            <StackPanel Spacing="10">
                                 <TextBlock x:Name="ChunkerWorldLbl" FontWeight="SemiBold" />
                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                     <TextBox x:Name="WorldBox" Width="520" IsReadOnly="True" />

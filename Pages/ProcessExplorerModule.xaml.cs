@@ -57,6 +57,8 @@ public sealed class ProcNode : INotifyPropertyChanged
 public sealed partial class ProcessExplorerModule : Page
 {
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromSeconds(2) };
+    // Debounce search typing so we don't fire a heavy WMI/GetOwner snapshot on every keystroke.
+    private readonly DispatcherTimer _searchDebounce = new() { Interval = TimeSpan.FromMilliseconds(280) };
     private readonly ObservableCollection<ProcNode> _roots = new();
     private readonly Dictionary<int, ProcNode> _index = new();
     private double _intervalSec = 2.0;
@@ -71,7 +73,8 @@ public sealed partial class ProcessExplorerModule : Page
         _timer.Tick += (_, _) => _ = Tick();
         Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += OnLoaded;
-        Unloaded += (_, _) => { _timer.Stop(); Loc.I.LanguageChanged -= OnLanguageChanged; };
+        _searchDebounce.Tick += (_, _) => { _searchDebounce.Stop(); if (IsLoaded) _ = Tick(); };
+        Unloaded += (_, _) => { _timer.Stop(); _searchDebounce.Stop(); Loc.I.LanguageChanged -= OnLanguageChanged; };
     }
 
     private void OnLanguageChanged(object? s, EventArgs e) => Render();

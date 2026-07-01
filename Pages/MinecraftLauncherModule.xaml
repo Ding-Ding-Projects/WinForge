@@ -56,6 +56,15 @@
                 <Button x:Name="SignOutBtn" Click="SignOut_Click" />
                 <TextBlock x:Name="AccountText" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
             </StackPanel>
+
+            <!-- Offline mode: play without Mojang sign-in (accounts you own / offline &amp; LAN) -->
+            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <FontIcon Glyph="&#xE977;" FontSize="14" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                <TextBlock x:Name="OfflineLabel" VerticalAlignment="Center" />
+                <TextBox x:Name="OfflineNameBox" MinWidth="180" MaxLength="16" PlaceholderText="Player" />
+                <Button x:Name="OfflineBtn" Click="Offline_Click" />
+                <TextBlock x:Name="OfflineHint" VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource TextFillColorTertiaryBrush}" TextWrapping="Wrap" MaxWidth="360" />
+            </StackPanel>
         </StackPanel>
 
         <!-- Instances + editor -->

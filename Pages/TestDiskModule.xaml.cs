@@ -79,6 +79,9 @@ public sealed partial class TestDiskModule : Page
     private async Task RefreshEngine()
     {
         bool ok = await Task.Run(TestDiskService.IsAvailable);
+        // Don't clobber the live "Downloading…/Extracting…" status while a job is running.
+        if (_busy) return;
+
         if (ok)
         {
             EngineBar.IsOpen = false;

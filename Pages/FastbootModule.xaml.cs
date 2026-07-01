@@ -55,20 +55,26 @@ public sealed partial class FastbootModule : Page
 
     private async Task CheckEngine()
     {
+        // Rescan the resolved path (PATH may have changed since last check / after an install).
+        FastbootService.ClearCache();
         bool ok = await FastbootService.IsAvailable();
         EngineBar.IsOpen = !ok;
         if (!ok)
         {
             EngineBar.Severity = InfoBarSeverity.Warning;
             EngineBar.Title = P("fastboot not found", "搵唔到 fastboot");
-            EngineBar.Message = P("fastboot ships with Google Platform Tools. Install it automatically (winget) — live progress, no restart.",
-                "fastboot 隨 Google Platform Tools 一齊嚟。自動安裝（winget）— 即時進度，唔使重啟。");
+            EngineBar.Message = P("fastboot ships with the Android SDK Platform-Tools (alongside adb). Install it automatically below (winget) — live progress, no restart.",
+                "fastboot 隨 Android SDK Platform-Tools（同 adb 一齊）嚟。喺下面自動安裝（winget）— 即時進度，唔使重啟。");
             // Rich install control: real progress bar + live bilingual status + % + Cancel + success/error animation.
+            // recheck = re-detect and refresh the UI; rescan = drop the cached fastboot.exe path.
             EngineBar.ActionButton = null;
             if (EngineBar.Content is not InstallProgress)
                 EngineBar.Content = EngineBars.AutoInstallProgress(
-                    "Google.PlatformTools", "Install Platform Tools automatically", "自動安裝 Platform Tools",
-                    recheck: async () => { await CheckEngine(); if (await FastbootService.IsAvailable()) await RefreshDevices(); });
+                    "Google.PlatformTools",
+                    "Install Android Platform-Tools (adb + fastboot)",
+                    "安裝 Android Platform-Tools（adb + fastboot）",
+                    recheck: async () => { await CheckEngine(); if (await FastbootService.IsAvailable()) await RefreshDevices(); },
+                    rescan: FastbootService.ClearCache);
         }
         else { EngineBar.ActionButton = null; EngineBar.Content = null; }
     }

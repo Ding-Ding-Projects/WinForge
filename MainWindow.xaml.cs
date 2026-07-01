@@ -419,6 +419,35 @@ public sealed partial class MainWindow : Window
             case "har":
                 Navigator.GoToModule?.Invoke("module.haranalyzer");
                 break;
+            case "griddispatch":
+            case "grid":
+                Navigator.GoToModule?.Invoke("module.griddispatch");
+                break;
+            case "h2plant":
+            case "hydrogen":
+                Navigator.GoToModule?.Invoke("module.h2plant");
+                break;
+            case "uuidv7":
+                Navigator.GoToModule?.Invoke("module.uuidv7");
+                break;
+            case "jsonschema":
+            case "schema":
+                Navigator.GoToModule?.Invoke("module.jsonschema");
+                break;
+            case "htmlentities":
+            case "entities":
+                Navigator.GoToModule?.Invoke("module.htmlentities");
+                break;
+            case "queryedit":
+                Navigator.GoToModule?.Invoke("module.queryedit");
+                break;
+            case "morse":
+                Navigator.GoToModule?.Invoke("module.morse");
+                break;
+            case "romannum":
+            case "roman":
+                Navigator.GoToModule?.Invoke("module.romannum");
+                break;
             case "passwordstrength":
             case "pwstrength":
                 Navigator.GoToModule?.Invoke("module.passwordstrength");
@@ -1832,6 +1861,44 @@ public sealed partial class MainWindow : Window
             }
             NavigateActive(key);
         };
+
+        // Global "open module" hotkeys (HotkeyMacroModule → action = Open module): bring WinForge to the
+        // front from the tray/background and navigate to the bound module. Fires on the hotkey pump thread,
+        // so marshal onto the UI dispatcher before touching the window.
+        HotkeyMacroService.OpenModuleRequested = tag =>
+        {
+            try
+            {
+                DispatcherQueue.TryEnqueue(() =>
+                {
+                    try
+                    {
+                        BringToForeground();
+                        Navigator.GoToModule?.Invoke(tag);
+                    }
+                    catch (Exception ex) { CrashLogger.Log("hotkey.openmodule.ui", ex); }
+                });
+            }
+            catch (Exception ex) { CrashLogger.Log("hotkey.openmodule", ex); }
+        };
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    /// <summary>由匣或背景將視窗帶返出嚟並搶到前景 · Un-hide, restore and force the window to the foreground.</summary>
+    private void BringToForeground()
+    {
+        try
+        {
+            AppWindow.Show();
+            if (AppWindow.Presenter is Microsoft.UI.Windowing.OverlappedPresenter op && op.State == Microsoft.UI.Windowing.OverlappedPresenterState.Minimized)
+                op.Restore();
+            Activate();
+            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+            SetForegroundWindow(hwnd);
+        }
+        catch (Exception ex) { CrashLogger.Log("bringtofront", ex); }
     }
 
     /// <summary>Resolve a nav item by Tag, searching nested groups recursively (pane + footer).</summary>
@@ -2176,6 +2243,14 @@ public sealed partial class MainWindow : Window
         "module.semverrange" => typeof(SemverRangeModule),
         "module.globtester" => typeof(GlobTesterModule),
         "module.haranalyzer" => typeof(HarAnalyzerModule),
+        "module.griddispatch" => typeof(GridDispatchModule),
+        "module.h2plant" => typeof(H2PlantModule),
+        "module.uuidv7" => typeof(UuidV7Module),
+        "module.jsonschema" => typeof(JsonSchemaModule),
+        "module.htmlentities" => typeof(HtmlEntitiesModule),
+        "module.queryedit" => typeof(QueryEditModule),
+        "module.morse" => typeof(MorseModule),
+        "module.romannum" => typeof(RomanNumModule),
         _ => typeof(DashboardPage),
     };
 
@@ -2573,6 +2648,27 @@ public sealed partial class MainWindow : Window
             {
                 "module.csvlint", "module.jwtbuild", "module.tomljson", "module.cronnext",
                 "module.mdtable", "module.semverrange", "module.globtester", "module.haranalyzer",
+            },
+        },
+        new()
+        {
+            Id = "reactorloads",
+            En = "Reactor-powered loads",
+            Zh = "反應堆供電負載",
+            Keys = new[]
+            {
+                "module.griddispatch", "module.h2plant",
+            },
+        },
+        new()
+        {
+            Id = "devtext5",
+            En = "IDs, data & text",
+            Zh = "識別碼、資料與文字",
+            Keys = new[]
+            {
+                "module.uuidv7", "module.jsonschema", "module.htmlentities", "module.queryedit",
+                "module.morse", "module.romannum",
             },
         },
     };
