@@ -20,9 +20,12 @@ public sealed partial class ConnectorsModule : Page
     public ConnectorsModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => { Render(); Refresh(); };
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) => { Render(); Refresh(); };
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) { Render(); Refresh(); }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 

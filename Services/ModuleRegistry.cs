@@ -196,6 +196,18 @@ public static class ModuleRegistry
         new() { Tag = "module.urltools", En = "URL Tools", Zh = "網址工具", Glyph = ((char)0xE71B).ToString(), Keywords = "url uri link query string parameter encode decode escape unescape percent 網址 連結 查詢 參數 編碼 解碼 拆解" },
         new() { Tag = "module.markdown", En = "Markdown Preview", Zh = "Markdown 預覽", Glyph = ((char)0xE8A1).ToString(), Keywords = "markdown md preview render html editor document 文件 標記 預覽 排版 編輯 渲染" },
         new() { Tag = "module.numwords", En = "Number to Words", Zh = "數字轉文字", Glyph = ((char)0xE8EF).ToString(), Keywords = "number words spell out cardinal ordinal roman numeral currency dollars cents amount cheque spelling 數字 文字 拼寫 序數 羅馬數字 金額 銀碼 支票 大寫 讀數" },
+        new() { Tag = "module.pathdoctor", En = "PATH Doctor", Zh = "PATH 醫生", Glyph = ((char)0xE9D5).ToString(), Keywords = "path environment variable editor cleanup dedupe dead folders system user 環境變數 路徑 編輯 清理 去重複 死項 系統 使用者" },
+        new() { Tag = "module.subnetcalc", En = "Subnet Calculator", Zh = "子網計算器", Glyph = ((char)0xE968).ToString(), Keywords = "subnet cidr ipv4 netmask network broadcast wildcard host class rfc1918 vlsm 子網 遮罩 網絡 廣播 主機 前綴 私有" },
+        new() { Tag = "module.ping", En = "Ping & Traceroute", Zh = "網路測試（Ping・路由追蹤）", Glyph = ((char)0xEB41).ToString(), Keywords = "ping traceroute tracert icmp latency rtt ttl packet loss network diagnose reachability dns 網路 測試 延遲 丟包 路由 追蹤 躍點 主機 連線" },
+        new() { Tag = "module.portscan", En = "Port Scanner", Zh = "連接埠掃描", Glyph = ((char)0xE968).ToString(), Keywords = "port scanner tcp scan network ports open service reachability diagnostic 連接埠 埠 掃描 網絡 開放 服務 診斷 通訊埠" },
+        new() { Tag = "module.wol", En = "Wake-on-LAN", Zh = "網絡喚醒", Glyph = ((char)0xE839).ToString(), Keywords = "wol wake on lan magic packet remote power boot mac udp broadcast 網絡喚醒 遠端開機 魔術封包 喚醒 開機 網卡" },
+        new() { Tag = "module.dnslookup", En = "DNS Lookup", Zh = "DNS 查詢", Glyph = ((char)0xE774).ToString(), Keywords = "dns lookup resolve record a aaaa mx txt ns cname ptr nslookup dig doh DNS 查詢 域名 解析 記錄 反向 郵件伺服器 名稱伺服器" },
+        new() { Tag = "module.mactools", En = "MAC Address Tools", Zh = "MAC 位址工具", Glyph = ((char)0xE839).ToString(), Keywords = "mac address ethernet hardware physical oui vendor unicast multicast locally administered format normalize colon hyphen cisco dotted generate random MAC 位址 網卡 硬件 實體位址 廠商 單播 多播 本地管理 格式 轉換 冒號 生成 隨機" },
+        new() { Tag = "module.base32", En = "Base32 / 58 / 85", Zh = "Base32 / 58 / 85 編解碼", Glyph = ((char)0xE8C8).ToString(), Keywords = "base32 base58 base85 ascii85 rfc4648 bitcoin adobe encode decode codec 編碼 解碼 編解碼 位元組" },
+        new() { Tag = "module.jwtinspect", En = "JWT Inspector", Zh = "JWT 檢查器", Glyph = ((char)0xE72E).ToString(), Keywords = "jwt json web token decode verify hmac hs256 hs384 hs512 claims exp iat signature 權杖 解碼 驗證 簽名 聲明 到期" },
+        new() { Tag = "module.envdiff", En = "Env Snapshot & Diff", Zh = "環境變數快照同差異", Glyph = ((char)0xE8F7).ToString(), Keywords = "environment variables snapshot diff env path compare added removed changed process user machine export clipboard 環境變數 快照 差異 比較 匯出 路徑" },
+        new() { Tag = "module.httpheaders", En = "HTTP Header Inspector", Zh = "HTTP 標頭檢測", Glyph = ((char)0xEB41).ToString(), Keywords = "http header inspector headers response status redirect content-type curl request 標頭 檢測 回應 狀態 重新導向 網絡請求 網址" },
+        new() { Tag = "module.ipinfo", En = "IP & Network Info", Zh = "IP 同網絡資訊", Glyph = ((char)0xE968).ToString(), Keywords = "ip network adapter mac ipv4 ipv6 gateway dns public ip lan wifi ethernet 網絡 網卡 位址 閘道 公開ip 網絡資訊" },
     };
 
     public static IEnumerable<ModuleInfo> Search(string query)

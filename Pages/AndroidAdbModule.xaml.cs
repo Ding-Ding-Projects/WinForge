@@ -25,10 +25,12 @@ public sealed partial class AndroidAdbModule : Page
     {
         InitializeComponent();
         _ui = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += async (_, _) => { Render(); await CheckEngine(); await RefreshDevices(); };
-        Unloaded += (_, _) => { AdbService.StopLogcatStream(); ScrcpyService.Stop(); };
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; AdbService.StopLogcatStream(); ScrcpyService.Stop(); };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 

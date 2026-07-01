@@ -319,6 +319,24 @@
                     </NavigationViewItem.MenuItems>
                 </NavigationViewItem>
 
+                <NavigationViewItem Content="Network &amp; Dev · 網絡與開發" SelectsOnInvoked="False">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE968;" /></NavigationViewItem.Icon>
+                    <NavigationViewItem.MenuItems>
+                        <NavigationViewItem Content="Ping &amp; Traceroute · 網路測試" Tag="module.ping"><NavigationViewItem.Icon><FontIcon Glyph="&#xEB41;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="DNS Lookup · DNS 查詢" Tag="module.dnslookup"><NavigationViewItem.Icon><FontIcon Glyph="&#xE774;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Port Scanner · 連接埠掃描" Tag="module.portscan"><NavigationViewItem.Icon><FontIcon Glyph="&#xE968;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Subnet Calculator · 子網計算器" Tag="module.subnetcalc"><NavigationViewItem.Icon><FontIcon Glyph="&#xE968;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="IP &amp; Network Info · IP 網絡資訊" Tag="module.ipinfo"><NavigationViewItem.Icon><FontIcon Glyph="&#xE968;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="HTTP Header Inspector · HTTP 標頭檢測" Tag="module.httpheaders"><NavigationViewItem.Icon><FontIcon Glyph="&#xEB41;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Wake-on-LAN · 網絡喚醒" Tag="module.wol"><NavigationViewItem.Icon><FontIcon Glyph="&#xE839;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="MAC Address Tools · MAC 位址工具" Tag="module.mactools"><NavigationViewItem.Icon><FontIcon Glyph="&#xE839;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="PATH Doctor · PATH 醫生" Tag="module.pathdoctor"><NavigationViewItem.Icon><FontIcon Glyph="&#xE9D5;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Env Snapshot &amp; Diff · 環境變數快照" Tag="module.envdiff"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8F7;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="JWT Inspector · JWT 檢查器" Tag="module.jwtinspect"><NavigationViewItem.Icon><FontIcon Glyph="&#xE72E;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Base32 / 58 / 85 · 編解碼" Tag="module.base32"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8C8;" /></NavigationViewItem.Icon></NavigationViewItem>
+                    </NavigationViewItem.MenuItems>
+                </NavigationViewItem>
+
                 <NavigationViewItemHeader Content="Windows 11 · 視窗 11" />
                 <NavigationViewItem x:Name="TweaksGroup" Content="All Tweaks · 全部調校" SelectsOnInvoked="False">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE713;" /></NavigationViewItem.Icon>

@@ -22,7 +22,7 @@ public sealed partial class CamoufoxModule : Page
     public CamoufoxModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += async (_, _) =>
         {
             EasyToggle.IsOn = EasyMode;
@@ -32,7 +32,10 @@ public sealed partial class CamoufoxModule : Page
             await RefreshEngine();
             await RefreshCommits();
         };
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     // ───────────────────────── Easy Mode + guided checklists ─────────────────────────
 

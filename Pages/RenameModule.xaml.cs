@@ -38,7 +38,8 @@ public sealed partial class RenameModule : Page
     public RenameModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; };
         Loaded += (_, _) =>
         {
             Render();
@@ -56,6 +57,8 @@ public sealed partial class RenameModule : Page
     }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private void Render()
     {

@@ -25,10 +25,12 @@ public sealed partial class CaptureStudioModule : Page
     {
         InitializeComponent();
         _timer.Tick += (_, _) => { _elapsed++; UpdateStatus(); };
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) => { Render(); DefaultOutput(); SyncButtons(); RefreshOcrLangs(); };
-        Unloaded += (_, _) => _timer.Stop();
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; _timer.Stop(); };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
     private string Msg(TweakResult r) => (Loc.I.IsCantonesePrimary ? r.Message?.Zh : r.Message?.En) ?? "";

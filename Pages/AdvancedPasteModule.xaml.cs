@@ -26,9 +26,12 @@ public sealed partial class AdvancedPasteModule : Page
     public AdvancedPasteModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => { Render(); BuildLists(); };
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) => { Render(); BuildLists(); SyncFromState(); };
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; _cts?.Cancel(); };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) { Render(); BuildLists(); }
 
     private static string P(string en, string zh) => Loc.I.Pick(en, zh);
 

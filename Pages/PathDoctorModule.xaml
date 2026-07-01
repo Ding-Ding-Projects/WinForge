@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.PathDoctorModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="760" Spacing="14">
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE9D5;" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <!-- Scope + status card -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <TextBlock x:Name="ScopeLabel" VerticalAlignment="Center" />
+                        <ComboBox x:Name="ScopeCombo" MinWidth="220" SelectionChanged="Scope_Changed" />
+                    </StackPanel>
+                    <TextBlock x:Name="CountText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    <TextBlock x:Name="StatusText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <!-- Entries card -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <TextBlock x:Name="EntriesTitle" FontWeight="SemiBold" FontSize="15" />
+
+                    <ListView x:Name="EntriesList" SelectionMode="Single" MaxHeight="320" BorderThickness="0">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Padding="0,4,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="{Binding Mark}" Foreground="{Binding MarkBrush}" FontWeight="SemiBold" Width="22" VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="1" Text="{Binding Path}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" ToolTipService.ToolTip="{Binding Path}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="UpBtn" Click="Up_Click" />
+                        <Button x:Name="DownBtn" Click="Down_Click" />
+                        <Button x:Name="RemoveBtn" Click="Remove_Click" />
+                        <Button x:Name="AddBtn" Click="Add_Click" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="DedupeBtn" Click="Dedupe_Click" />
+                        <Button x:Name="DeadBtn" Click="Dead_Click" />
+                        <Button x:Name="SortBtn" Click="Sort_Click" />
+                        <Button x:Name="ReloadBtn" Click="Reload_Click" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Preview + apply card -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="PreviewTitle" FontWeight="SemiBold" FontSize="15" />
+                    <TextBlock x:Name="BeforeLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBox x:Name="BeforeBox" IsReadOnly="True" TextWrapping="Wrap" MinHeight="60" MaxHeight="120" AcceptsReturn="True" IsSpellCheckEnabled="False" />
+                    <TextBlock x:Name="AfterLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBox x:Name="AfterBox" IsReadOnly="True" TextWrapping="Wrap" MinHeight="60" MaxHeight="120" AcceptsReturn="True" IsSpellCheckEnabled="False" />
+                    <Button x:Name="ApplyBtn" Click="Apply_Click" Style="{ThemeResource AccentButtonStyle}" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

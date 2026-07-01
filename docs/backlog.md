@@ -10,11 +10,13 @@ Guardrail: nothing merges/deploys unless `dotnet build WinForge.sln -c Debug -p:
   GUID/ID Generator, Hash & Checksum, Encode/Decode, JSON & XML Tools, Regex Tester, Password Generator, Text Tools, Base Converter, Epoch Converter, Unit Converter, Character Map, Color Tools.
 - **Batch 2 — DONE: +12 utility/time/dev modules → 168.**
   Cron Builder, Data Faker, CSV/JSON, Timer & Stopwatch (Pomodoro), World Clock, Scratchpad (persisted notes), Calculator (expression evaluator), Randomizer, Date Calculator, URL Tools, Markdown Preview (WebView2), Number to Words. All pure-managed, control-based (no tweak cards), bilingual, leak-safe (named LanguageChanged handlers).
-- Target to 200: **+32 modules** remaining across the batches below.
+- **Batch 3 — DONE: +12 networking/dev/Windows-power modules → 180.**
+  PATH Doctor, Subnet Calculator, Ping & Traceroute, Port Scanner, Wake-on-LAN, DNS Lookup (DoH), MAC Address Tools, Base32/58/85, JWT Inspector (HMAC verify), Env Snapshot & Diff, HTTP Header Inspector, IP & Network Info. All pure-managed, control-based, bilingual, leak-safe, async I/O.
+- Target to 200: **+20 modules** remaining across the batches below.
 
 ## Bug / hardening priorities (fold into every iteration)
 - [x] **Freezes — round 1:** offloaded WMI/PDH/`Process.GetProcesses`/sensor ticks to `Task.Run` (SystemMonitor, ProcessExplorer, Connections, BatteryThermal, NativeUtilities); off-thread registry-hive enumeration; Unloaded timer stops (ScreenRecorder); calmed CakeFactory 80ms→200ms; fixed `LanguageChanged` leaks on the hot pages.
-- [~] **Freezes — round 2 (structural):** batch-1 + batch-2 modules now use named `LanguageChanged` handlers + Unloaded teardown (no leak). STILL TODO: introduce a `LocalizedPage : Page` base and convert the ~100 remaining inline-lambda pages (the bulk of the leak + the language-toggle stall).
+- [~] **Freezes — round 2 (structural):** all batch-1/2/3 modules ship leak-safe (named `LanguageChanged` handlers). Round 2 also converted **20 existing pages** off the inline-lambda leak (AdvancedPaste, AltSnap, AppUninstaller, Awake, BulkOps, Clipboard, ColorPicker, CommandPalette, Communications, ContextMenu, Devices, Decompiler, CropAndLock, Camoufox, CaptureStudio, ConfigBackup, Connectors, AndroidAdb, Rename, EnvVars). Leaking pages: ~96 → ~76. STILL TODO: a `LocalizedPage : Page` base (or weak event) + convert the remaining ~76.
 - [ ] **Freezes — round 3:** make `CropAndLockService.CreateFromScreenRect` async (remove `req.Done.Wait(4000)`); `NativeMessagePump._ready.Wait(1500)` → await; audit remaining sync-over-async (`.Result`/`.GetAwaiter().GetResult()`).
 
 ## UI overhaul epic — ZERO tweak cards (theme C)

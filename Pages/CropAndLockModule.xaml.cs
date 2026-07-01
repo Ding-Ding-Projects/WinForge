@@ -19,7 +19,7 @@ public sealed partial class CropAndLockModule : Page
     public CropAndLockModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         CropAndLockService.Changed += OnServiceChanged;
         CropAndLockService.HotkeyPickRequested += OnHotkeyPick;
         Loaded += (_, _) =>
@@ -31,10 +31,13 @@ public sealed partial class CropAndLockModule : Page
         };
         Unloaded += (_, _) =>
         {
+            Loc.I.LanguageChanged -= OnLanguageChanged;
             CropAndLockService.Changed -= OnServiceChanged;
             CropAndLockService.HotkeyPickRequested -= OnHotkeyPick;
         };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 

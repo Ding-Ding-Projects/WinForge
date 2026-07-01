@@ -21,10 +21,12 @@ public sealed partial class ColorPickerModule : Page
     public ColorPickerModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) => { Render(); SetColor(0x2D, 0x7D, 0x46); };
-        Unloaded += (_, _) => ColorPickService.StopPick();
+        Unloaded += (_, _) => { ColorPickService.StopPick(); Loc.I.LanguageChanged -= OnLanguageChanged; };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 

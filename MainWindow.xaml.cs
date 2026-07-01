@@ -298,6 +298,53 @@ public sealed partial class MainWindow : Window
         }
         switch (App.StartPage)
         {
+            case "pathdoctor":
+            case "path":
+                Navigator.GoToModule?.Invoke("module.pathdoctor");
+                break;
+            case "subnetcalc":
+            case "subnet":
+                Navigator.GoToModule?.Invoke("module.subnetcalc");
+                break;
+            case "ping":
+            case "traceroute":
+                Navigator.GoToModule?.Invoke("module.ping");
+                break;
+            case "portscan":
+            case "ports":
+                Navigator.GoToModule?.Invoke("module.portscan");
+                break;
+            case "wol":
+            case "wakeonlan":
+                Navigator.GoToModule?.Invoke("module.wol");
+                break;
+            case "dnslookup":
+            case "dns":
+                Navigator.GoToModule?.Invoke("module.dnslookup");
+                break;
+            case "mactools":
+            case "mac":
+                Navigator.GoToModule?.Invoke("module.mactools");
+                break;
+            case "base32":
+            case "base58":
+                Navigator.GoToModule?.Invoke("module.base32");
+                break;
+            case "jwtinspect":
+            case "jwt":
+                Navigator.GoToModule?.Invoke("module.jwtinspect");
+                break;
+            case "envdiff":
+                Navigator.GoToModule?.Invoke("module.envdiff");
+                break;
+            case "httpheaders":
+            case "headers":
+                Navigator.GoToModule?.Invoke("module.httpheaders");
+                break;
+            case "ipinfo":
+            case "netinfo":
+                Navigator.GoToModule?.Invoke("module.ipinfo");
+                break;
             case "cronbuilder":
             case "cron":
                 Navigator.GoToModule?.Invoke("module.cronbuilder");
@@ -765,7 +812,6 @@ public sealed partial class MainWindow : Window
                 Navigator.GoToModule?.Invoke("module.wireshark");
                 break;
             case "nmap":
-            case "portscan":
             case "scan":
                 Navigator.GoToModule?.Invoke("module.nmap");
                 break;
@@ -1649,6 +1695,18 @@ public sealed partial class MainWindow : Window
         "module.urltools" => typeof(UrlToolsModule),
         "module.markdown" => typeof(MarkdownModule),
         "module.numwords" => typeof(NumberWordsModule),
+        "module.pathdoctor" => typeof(PathDoctorModule),
+        "module.subnetcalc" => typeof(SubnetCalcModule),
+        "module.ping" => typeof(PingModule),
+        "module.portscan" => typeof(PortScanModule),
+        "module.wol" => typeof(WolModule),
+        "module.dnslookup" => typeof(DnsLookupModule),
+        "module.mactools" => typeof(MacToolsModule),
+        "module.base32" => typeof(Base32Module),
+        "module.jwtinspect" => typeof(JwtInspectModule),
+        "module.envdiff" => typeof(EnvDiffModule),
+        "module.httpheaders" => typeof(HttpHeadersModule),
+        "module.ipinfo" => typeof(IpInfoModule),
         _ => typeof(DashboardPage),
     };
 
@@ -1920,6 +1978,18 @@ public sealed partial class MainWindow : Window
                 "module.cronbuilder", "module.faker", "module.csvjson", "module.timer", "module.worldclock",
                 "module.notes", "module.calculator", "module.randomizer", "module.datecalc", "module.urltools",
                 "module.markdown", "module.numwords",
+            },
+        },
+        new()
+        {
+            Id = "network",
+            En = "Network & dev",
+            Zh = "網絡與開發",
+            Keys = new[]
+            {
+                "module.subnetcalc", "module.ping", "module.portscan", "module.wol", "module.dnslookup",
+                "module.mactools", "module.httpheaders", "module.ipinfo", "module.pathdoctor", "module.envdiff",
+                "module.base32", "module.jwtinspect",
             },
         },
     };

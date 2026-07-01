@@ -31,7 +31,7 @@ public sealed partial class ConfigBackupModule : Page
     public ConfigBackupModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         _syncTimer.Tick += async (_, _) => await OnTimerTick();
         Loaded += async (_, _) =>
         {
@@ -40,8 +40,10 @@ public sealed partial class ConfigBackupModule : Page
             await RefreshScheduleStatus();
             await LoadAutoSyncState();
         };
-        Unloaded += (_, _) => _syncTimer.Stop();
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; _syncTimer.Stop(); };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 

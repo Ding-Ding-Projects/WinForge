@@ -35,10 +35,12 @@ public sealed partial class DecompilerModule : Page
     public DecompilerModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) => Render();
-        Unloaded += (_, _) => { _cts?.Cancel(); _svc.Dispose(); };
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; _cts?.Cancel(); _svc.Dispose(); };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 

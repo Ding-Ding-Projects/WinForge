@@ -31,10 +31,12 @@ public sealed partial class ClipboardModule : Page
     public ClipboardModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => { Render(); Build(); };
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) => { Render(); Build(); ClipboardService.Changed += OnChanged; };
-        Unloaded += (_, _) => ClipboardService.Changed -= OnChanged;
+        Unloaded += (_, _) => { ClipboardService.Changed -= OnChanged; Loc.I.LanguageChanged -= OnLanguageChanged; };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) { Render(); Build(); }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
     private void OnChanged() => DispatcherQueue.TryEnqueue(Build);
