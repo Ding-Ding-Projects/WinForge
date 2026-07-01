@@ -20,12 +20,48 @@
         <!-- Header -->
         <controls:ModuleHeader x:Name="Header" Grid.Row="0" Glyph="&#xE7BA;" />
 
-        <!-- Engine / install banner -->
-        <InfoBar x:Name="EngineBar" Grid.Row="1" IsClosable="False" IsOpen="False" Severity="Warning">
-            <InfoBar.ActionButton>
-                <Button x:Name="DownloadBtn" Click="Download_Click" />
-            </InfoBar.ActionButton>
-        </InfoBar>
+        <!-- Engine / install banner + explicit install panel -->
+        <StackPanel Grid.Row="1" Spacing="8">
+            <InfoBar x:Name="EngineBar" IsClosable="False" IsOpen="False" Severity="Warning">
+                <InfoBar.ActionButton>
+                    <Button x:Name="DownloadBtn" Click="Download_Click" />
+                </InfoBar.ActionButton>
+            </InfoBar>
+
+            <!-- Explicit Download & install control with progress ring + live status -->
+            <Border x:Name="InstallPanel"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="16,12,16,12">
+                <Grid ColumnSpacing="12" RowSpacing="6">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <ProgressRing x:Name="InstallRing" Grid.Row="0" Grid.Column="0" Grid.RowSpan="2"
+                                  Width="28" Height="28" IsActive="False" IsIndeterminate="True"
+                                  VerticalAlignment="Center" />
+
+                    <TextBlock x:Name="InstallTitle" Grid.Row="0" Grid.Column="1" VerticalAlignment="Center"
+                               Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="Wrap" />
+                    <TextBlock x:Name="InstallStatus" Grid.Row="1" Grid.Column="1" VerticalAlignment="Center"
+                               FontSize="12" TextWrapping="Wrap"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+
+                    <Button x:Name="InstallBtn" Grid.Row="0" Grid.Column="2" Grid.RowSpan="2"
+                            Style="{StaticResource AccentButtonStyle}" VerticalAlignment="Center"
+                            Click="Install_Click" />
+                </Grid>
+            </Border>
+        </StackPanel>
 
         <!-- Configuration card -->
         <Border

@@ -529,7 +529,13 @@ public sealed partial class TaskbarTweakerModule : Page
         _windhawk = TaskbarTweakerService.DetectWindhawk();
         RenderSevenTtBar();
         RenderWindhawkBar();
-        RenderWindhawkInstall();
+    }
+
+    /// <summary>Re-run engine detection and refresh every detection bar (used by the auto-install button).</summary>
+    private Task RecheckEnginesAsync()
+    {
+        RefreshDetection();
+        return Task.CompletedTask;
     }
 
     private void RenderSevenTtBar()
@@ -579,47 +585,17 @@ public sealed partial class TaskbarTweakerModule : Page
             WindhawkBar.Severity = InfoBarSeverity.Informational;
             WindhawkBar.Title = P("Windhawk not detected", "未偵測到 Windhawk");
             WindhawkBar.Message = P(
-                "Windhawk is a maintained, open mod platform that can replicate 7+TT's deep behaviours. Install it below to get started.",
-                "Windhawk 係仍有維護嘅開放模組平台，可以重現 7+TT 嘅深層行為。喺下面安裝就可以開始。");
-            WindhawkBar.ActionButton = null;
+                "Windhawk is a maintained, open mod platform that can replicate 7+TT's deep behaviours. Install it here to get started — no restart needed.",
+                "Windhawk 係仍有維護嘅開放模組平台，可以重現 7+TT 嘅深層行為。喺呢度安裝就可以開始 — 唔使重啟。");
+            // One-click winget install with a live progress bar + status + real error surfacing.
+            // 7+TT is deliberately never offered for auto-install (closed-source freeware, no winget id).
+            WindhawkBar.ActionButton = EngineBars.AutoInstallButton(
+                "RamenSoftware.Windhawk",
+                "Install Windhawk (free, maintained)",
+                "安裝 Windhawk（免費、有維護）",
+                RecheckEnginesAsync,
+                () => PackageService.RefreshProcessPath());
             WindhawkBar.IsOpen = true;
-        }
-    }
-
-    private void RenderWindhawkInstall()
-    {
-        // Offer a one-click Windhawk install (winget) only when it is NOT already present.
-        // 7+TT is deliberately never offered for auto-install (closed-source freeware, no winget id).
-        if (_windhawk.Installed)
-        {
-            WindhawkInstallHost.Visibility = Visibility.Collapsed;
-            return;
-        }
-
-        WindhawkInstallHost.Content = P("Install Windhawk", "安裝 Windhawk");
-        WindhawkInstallHost.IsEnabled = true;
-        WindhawkInstallHost.Visibility = Visibility.Visible;
-        WindhawkInstallHost.Click -= WindhawkInstall_Click;
-        WindhawkInstallHost.Click += WindhawkInstall_Click;
-    }
-
-    private async void WindhawkInstall_Click(object sender, RoutedEventArgs e)
-    {
-        var b = (Button)sender;
-        b.IsEnabled = false;
-        b.Content = P("Installing…", "安裝緊…");
-        bool ok;
-        try { ok = await PackageService.AutoInstall("RamenSoftware.Windhawk"); }
-        catch { ok = false; }
-        if (ok)
-        {
-            b.Content = P("Installed ✓", "已安裝 ✓");
-            RefreshDetection();
-        }
-        else
-        {
-            b.Content = P("Install failed — retry", "安裝失敗 — 再試");
-            b.IsEnabled = true;
         }
     }
 

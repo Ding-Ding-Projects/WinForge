@@ -66,6 +66,12 @@ public sealed partial class TestDiskModule : Page
         ClearLogBtn.Content = P("Clear", "清除");
 
         DownloadBtn.Content = P("Download recovery tools", "下載救援工具");
+
+        InstallTitle.Text = P("TestDisk + PhotoRec", "TestDisk + PhotoRec");
+        if (!_busy)
+            InstallBtn.Content = TestDiskService.IsAvailable()
+                ? P("Reinstall", "重新安裝")
+                : P("Download & install", "下載並安裝");
     }
 
     private async Task Init()
@@ -81,9 +87,17 @@ public sealed partial class TestDiskModule : Page
     private async Task RefreshEngine()
     {
         bool ok = await Task.Run(TestDiskService.IsAvailable);
+        // Don't clobber the live "Downloading…/Extracting…" status while a job is running.
+        if (_busy) return;
+
         if (ok)
         {
             EngineBar.IsOpen = false;
+            InstallRing.IsActive = false;
+            InstallStatus.Text = P(
+                $"Installed — PhotoRec / TestDisk v{TestDiskService.Version} are ready.",
+                $"已安裝 — PhotoRec / TestDisk v{TestDiskService.Version} 已就緒。");
+            InstallBtn.Content = P("Reinstall", "重新安裝");
         }
         else
         {
@@ -93,23 +107,84 @@ public sealed partial class TestDiskModule : Page
                 $"PhotoRec / TestDisk v{TestDiskService.Version} (GPLv2, cgsecurity.org) are downloaded on demand — not bundled. Click to fetch + extract (~7 MB).",
                 $"PhotoRec / TestDisk v{TestDiskService.Version}（GPLv2，cgsecurity.org）按需下載，唔會內附。撳一下即可下載＋解壓（約 7 MB）。");
             EngineBar.IsOpen = true;
+            InstallRing.IsActive = false;
+            InstallStatus.Text = P(
+                $"Not installed. Downloads + extracts ~7 MB from cgsecurity.org.",
+                $"未安裝。會由 cgsecurity.org 下載並解壓約 7 MB。");
+            InstallBtn.Content = P("Download & install", "下載並安裝");
         }
     }
 
-    private async void Download_Click(object sender, RoutedEventArgs e)
+    /// <summary>InfoBar 動作掣同大掣共用同一條安裝流程 · Both entry points share one install routine.</summary>
+    private async void Download_Click(object sender, RoutedEventArgs e) => await RunInstall();
+
+    private async void Install_Click(object sender, RoutedEventArgs e) => await RunInstall();
+
+    /// <summary>
+    /// 明確「下載＋安裝 TestDisk + PhotoRec」· Explicit download+install with an indeterminate ring, a live
+    /// status line (Downloading… → Extracting… → Ready / real error), busy-disable, and a recheck that flips
+    /// the UI to "installed" when the exes appear. The actual fetch/extract is the module's EXISTING
+    /// <see cref="TestDiskService.DownloadBinaries"/> — offloaded to the pool so the UI never blocks.
+    /// </summary>
+    private async Task RunInstall()
     {
         if (_busy) return;
         _busy = true;
+
+        InstallRing.IsActive = true;
+        InstallBtn.IsEnabled = false;
         DownloadBtn.IsEnabled = false;
-        var progress = new Progress<string>(s => { EngineBar.Message = s; AppendLog(s); });
+        InstallStatus.Text = P("Starting…", "開始緊…");
+        UpdateButtons();
+
+        // DownloadBinaries already reports phase text ("Downloading… X/Y MB" → "Extracting…"); marshal each
+        // report back to the UI thread for the status line and the live log.
+        var progress = new Progress<string>(s =>
+        {
+            InstallStatus.Text = s;
+            EngineBar.Message = s;
+            AppendLog(s);
+        });
+
         try
         {
-            var r = await TestDiskService.DownloadBinaries(progress);
+            // Offload so the synchronous zip extract never runs on the UI thread.
+            var r = await Task.Run(() => TestDiskService.DownloadBinaries(progress));
+
+            if (r.Success)
+            {
+                InstallStatus.Text = P(
+                    $"Ready — PhotoRec / TestDisk v{TestDiskService.Version} installed.",
+                    $"完成 — 已安裝 PhotoRec / TestDisk v{TestDiskService.Version}。");
+            }
+            else
+            {
+                // Surface the REAL message from the service (e.g. "Download failed: <http status>",
+                // "too small", "not found in archive") — never a generic "failed".
+                InstallStatus.Text = r.Message is null
+                    ? P("Install failed.", "安裝失敗。")
+                    : Loc.I.Pick(r.Message.En, r.Message.Zh);
+            }
             ShowResult(r);
+        }
+        catch (Exception ex)
+        {
+            // Surface the real exception text, both in the status line and the result bar.
+            CrashLogger.Log("testdisk.install", ex);
+            InstallStatus.Text = P($"Error: {ex.Message}", $"出錯：{ex.Message}");
+            ShowResult(TweakResult.Fail(ex.Message, $"出錯：{ex.Message}"));
+        }
+        finally
+        {
+            InstallRing.IsActive = false;
+            InstallBtn.IsEnabled = true;
+            DownloadBtn.IsEnabled = true;
+            _busy = false;
+            // Recheck: flips the panel + banner to "installed" when the exes now exist.
             await RefreshEngine();
             await LoadTypes();
+            UpdateButtons();
         }
-        finally { _busy = false; DownloadBtn.IsEnabled = true; UpdateButtons(); }
     }
 
     // ───────────────────────── disks / image ─────────────────────────

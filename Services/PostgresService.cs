@@ -71,6 +71,13 @@ public static class PostgresService
     /// <summary>畀 Launch 後備路徑用嘅 winget 套件 ID · winget id for the pgAdmin 4 fallback.</summary>
     public const string PgAdminWingetId = "PostgreSQL.pgAdmin";
 
+    /// <summary>
+    /// 完整 PostgreSQL 伺服器套件（順帶裝埋 pgAdmin 4）· winget id for the full PostgreSQL server
+    /// (this package bundles the server + pgAdmin 4). Used by the "install prerequisite" button when no
+    /// local Postgres is detected.
+    /// </summary>
+    public const string PostgresWingetId = "PostgreSQL.PostgreSQL";
+
     /// <summary>預設渲染上限，避免巨大結果集塞爆 UI · Default cap on rendered rows to guard the UI.</summary>
     public const int DefaultRowCap = 1000;
 
@@ -407,6 +414,72 @@ public static class PostgresService
         }
         catch { return false; }
     }
+
+    // ===================== 本機 Postgres 偵測 · Local Postgres detection =====================
+
+    private static string? _cachedPsql;
+
+    /// <summary>清除本機偵測快取（安裝後叫）· Clear the local-detection cache (call after an install).</summary>
+    public static void RescanLocal() => _cachedPsql = null;
+
+    /// <summary>
+    /// 探測本機 psql.exe（PATH + 常見安裝目錄）· Probe for a local psql.exe on PATH and in the standard
+    /// "PostgreSQL\&lt;ver&gt;\bin" install locations. Cached; call <see cref="RescanLocal"/> to invalidate.
+    /// </summary>
+    public static string? FindPsqlExe()
+    {
+        if (_cachedPsql is not null && File.Exists(_cachedPsql)) return _cachedPsql;
+
+        // 1) On PATH.
+        var pathEnv = Environment.GetEnvironmentVariable("PATH") ?? "";
+        foreach (var dir in pathEnv.Split(Path.PathSeparator))
+        {
+            if (string.IsNullOrWhiteSpace(dir)) continue;
+            try
+            {
+                var cand = Path.Combine(dir.Trim(), "psql.exe");
+                if (File.Exists(cand)) { _cachedPsql = cand; return cand; }
+            }
+            catch { /* malformed PATH entry — skip */ }
+        }
+
+        // 2) Standard installer layout: "<ProgramFiles>\PostgreSQL\<ver>\bin\psql.exe".
+        foreach (var root in new[]
+                 {
+                     Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                     Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+                 }.Where(r => !string.IsNullOrWhiteSpace(r)))
+        {
+            var baseDir = Path.Combine(root, "PostgreSQL");
+            if (!Directory.Exists(baseDir)) continue;
+            try
+            {
+                var hit = Directory.EnumerateFiles(baseDir, "psql.exe", SearchOption.AllDirectories).FirstOrDefault();
+                if (hit is not null) { _cachedPsql = hit; return hit; }
+            }
+            catch { /* permission — skip */ }
+        }
+        return null;
+    }
+
+    /// <summary>有冇 postgresql 服務（無論運行與否）· Whether a "postgresql*" Windows service is registered.</summary>
+    public static bool HasPostgresService()
+    {
+        // Read the services registry directly so we don't need the System.ServiceProcess assembly.
+        try
+        {
+            using var svc = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Services");
+            if (svc is null) return false;
+            return svc.GetSubKeyNames().Any(n => n.StartsWith("postgresql", StringComparison.OrdinalIgnoreCase));
+        }
+        catch { return false; }
+    }
+
+    /// <summary>
+    /// 本機有冇裝 PostgreSQL（psql 或服務任一命中）· Whether a local PostgreSQL server appears installed —
+    /// true if psql.exe is found OR a postgresql* service exists. Cheap, offline, and never throws.
+    /// </summary>
+    public static bool IsLocalPostgresInstalled() => FindPsqlExe() is not null || HasPostgresService();
 
     // ===================== helpers =====================
 

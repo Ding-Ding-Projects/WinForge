@@ -47,7 +47,6 @@ public sealed partial class AltSnapModule : Page
             "Move and resize any window by holding a modifier key (Alt by default) and dragging anywhere inside it — classic Linux-style alt-drag. WinForge installs the official AltSnap, controls it, and edits its configuration.",
             "撳住一個修飾鍵（預設 Alt）就可以喺視窗任何位置拖動嚟移動同縮放 — 經典 Linux 式 alt 拖曳。WinForge 會安裝官方 AltSnap、控制佢、並編輯佢嘅設定。");
 
-        InstallBtn.Content = P("Install via winget", "用 winget 安裝");
         RefreshBtn.Content = P("Refresh", "重新整理");
 
         LifecycleTitle.Text = P("AltSnap engine", "AltSnap 引擎");
@@ -90,8 +89,11 @@ public sealed partial class AltSnapModule : Page
             {
                 InstallBar.Title = P("AltSnap is not installed", "未安裝 AltSnap");
                 InstallBar.Message = P(
-                    "AltSnap (RamonUnch.AltSnap) is required. Install it below, then it appears here. The install may prompt for UAC.",
-                    "需要 AltSnap（RamonUnch.AltSnap）。喺下面安裝，之後就會喺度顯示。安裝可能會彈 UAC。");
+                    "AltSnap (RamonUnch.AltSnap) is required. Install it automatically below, then it appears here. The install may prompt for UAC.",
+                    "需要 AltSnap（RamonUnch.AltSnap）。喺下面自動安裝，之後就會喺度顯示。安裝可能會彈 UAC。");
+                InstallBar.ActionButton = EngineBars.AutoInstallButton(
+                    AltSnapService.WingetId, "Install AltSnap", "安裝 AltSnap",
+                    async () => { await DetectAndLoad(); }, AltSnapService.InvalidateCache);
                 InstallBar.IsOpen = true;
                 SetEnabled(false);
             }
@@ -464,23 +466,6 @@ public sealed partial class AltSnapModule : Page
             if (ReloadOnSaveChk.IsChecked == true)
                 await AltSnapService.ReloadSettings(elevated: false);
         }
-    }
-
-    // ===================== install =====================
-
-    private async void Install_Click(object sender, RoutedEventArgs e)
-    {
-        if (_busy) return;
-        _busy = true;
-        InstallBtn.IsEnabled = false;
-        InstallBtn.Content = P("Installing…", "安裝緊…");
-        bool ok;
-        try { ok = await AltSnapService.InstallViaWinget(); }
-        catch { ok = false; }
-        InstallBtn.Content = ok ? P("Installed ✓", "已安裝 ✓") : P("Install failed — retry", "安裝失敗 — 再試");
-        InstallBtn.IsEnabled = !ok;
-        _busy = false;
-        if (ok) await DetectAndLoad();
     }
 
     // ===================== feedback =====================

@@ -54,24 +54,28 @@ public sealed partial class FastbootModule : Page
 
     private async Task CheckEngine()
     {
+        // Rescan the resolved path (PATH may have changed since last check / after an install).
+        FastbootService.ClearCache();
         bool ok = await FastbootService.IsAvailable();
         EngineBar.IsOpen = !ok;
         if (!ok)
         {
             EngineBar.Severity = InfoBarSeverity.Warning;
             EngineBar.Title = P("fastboot not found", "搵唔到 fastboot");
-            EngineBar.Message = P("fastboot ships with Google Platform Tools. Click to install it automatically (no restart).",
-                "fastboot 隨 Google Platform Tools 一齊嚟。撳一下自動安裝（唔使重啟）。");
-            var btn = new Button { Content = P("Install Platform Tools automatically", "自動安裝 Platform Tools") };
-            btn.Click += async (_, _) =>
-            {
-                btn.IsEnabled = false;
-                btn.Content = P("Installing…", "安裝緊…");
-                await PackageService.AutoInstall("Google.PlatformTools");
-                await CheckEngine();
-                if (await FastbootService.IsAvailable()) await RefreshDevices();
-            };
-            EngineBar.ActionButton = btn;
+            EngineBar.Message = P("fastboot ships with the Android SDK Platform-Tools (alongside adb). Install it automatically below — no restart.",
+                "fastboot 隨 Android SDK Platform-Tools（同 adb 一齊）嚟。喺下面自動安裝 — 唔使重啟。");
+            // Shared auto-install button: live progress bar + status + pulse + real error surfacing.
+            // recheck = re-detect and refresh the UI; rescan = drop the cached fastboot.exe path.
+            EngineBar.ActionButton = EngineBars.AutoInstallButton(
+                "Google.PlatformTools",
+                "Install Android Platform-Tools (adb + fastboot)",
+                "安裝 Android Platform-Tools（adb + fastboot）",
+                recheck: async () =>
+                {
+                    await CheckEngine();
+                    if (await FastbootService.IsAvailable()) await RefreshDevices();
+                },
+                rescan: FastbootService.ClearCache);
         }
         else EngineBar.ActionButton = null;
     }

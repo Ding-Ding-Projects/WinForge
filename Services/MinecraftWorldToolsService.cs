@@ -76,6 +76,129 @@ public static class MinecraftWorldToolsService
 
     public static string? FindJava() => MinecraftService.FindJava();
 
+    // ───────────────────────── Python / Chunker CLI detection + install ─────────────────────────
+
+    public sealed record PythonProbe(bool PythonFound, string? PythonCommand, string? PythonVersion, bool ChunkerFound, string? ChunkerDetail);
+
+    /// <summary>
+    /// 偵測 Python 同 Chunker CLI · Detect a usable Python launcher (`python` then `py`) and whether the
+    /// Chunker Python CLI is importable. All out-of-process via ShellRunner.Capture; never blocks the UI thread.
+    /// </summary>
+    public static async Task<PythonProbe> ProbePythonAndChunkerAsync(CancellationToken ct = default)
+    {
+        var (pyCmd, pyVer) = await DetectPythonAsync(ct);
+        if (pyCmd is null)
+            return new PythonProbe(false, null, null, false, null);
+
+        var (chunkerFound, detail) = await DetectChunkerAsync(pyCmd, ct);
+        return new PythonProbe(true, pyCmd, pyVer, chunkerFound, detail);
+    }
+
+    /// <summary>找 Python 啟動器 · Find a Python launcher; returns (command, version) or (null, null).</summary>
+    private static async Task<(string? command, string? version)> DetectPythonAsync(CancellationToken ct)
+    {
+        // Try `python --version` first, then the Windows `py` launcher.
+        foreach (var cmd in new[] { "python", "py" })
+        {
+            try
+            {
+                var r = await ShellRunner.Run(cmd, "--version", elevated: false, ct);
+                var text = (r.Output ?? "").Trim();
+                if (r.Success && text.StartsWith("Python", StringComparison.OrdinalIgnoreCase))
+                    return (cmd, text);
+            }
+            catch { /* command missing → try the next one */ }
+        }
+        return (null, null);
+    }
+
+    /// <summary>睇下 chunker 有冇裝 · Check whether the Chunker CLI is importable/installed for this Python.</summary>
+    private static async Task<(bool found, string? detail)> DetectChunkerAsync(string pyCmd, CancellationToken ct)
+    {
+        // `python -m chunker --help` succeeds only when the module resolves.
+        try
+        {
+            var help = await ShellRunner.Run(pyCmd, "-m chunker --help", elevated: false, ct);
+            if (help.Success) return (true, FirstLine(help.Output));
+        }
+        catch { }
+
+        // Fall back to `pip show chunker` for the installed version string.
+        try
+        {
+            var show = await ShellRunner.Run(pyCmd, "-m pip show chunker", elevated: false, ct);
+            var text = (show.Output ?? "").Trim();
+            if (show.Success && text.Contains("Name:", StringComparison.OrdinalIgnoreCase))
+            {
+                var ver = text.Replace("\r", "")
+                    .Split('\n')
+                    .FirstOrDefault(l => l.StartsWith("Version:", StringComparison.OrdinalIgnoreCase))?.Trim();
+                return (true, ver);
+            }
+        }
+        catch { }
+
+        return (false, null);
+    }
+
+    /// <summary>
+    /// 裝 / 更新 Chunker CLI（pip user install，唔使管理員）· Install/upgrade the Chunker CLI via
+    /// `pip install --upgrade chunker` for the given Python. A user install does NOT need admin. Streams pip
+    /// output through <paramref name="onLog"/> and surfaces the real pip error on failure.
+    /// </summary>
+    public static async Task<TweakResult> InstallChunkerAsync(string pyCmd, Action<string>? onLog, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(pyCmd))
+            return TweakResult.Fail("Python was not found. Install Python first.", "搵唔到 Python。請先安裝 Python。");
+        try
+        {
+            onLog?.Invoke($"[{pyCmd} -m pip install --upgrade chunker]");
+            var r = await ShellRunner.Run(pyCmd, "-m pip install --user --upgrade chunker", elevated: false, ct);
+            var output = (r.Output ?? "").Trim();
+            if (!string.IsNullOrEmpty(output)) onLog?.Invoke(output);
+            if (r.Success)
+                return TweakResult.Ok("Chunker installed.", "Chunker 已安裝。", output);
+
+            // Surface the real pip error (last meaningful line) so the UI can show it.
+            var err = LastMeaningfulLine(output);
+            return TweakResult.Fail(
+                string.IsNullOrWhiteSpace(err) ? "pip install failed." : err,
+                string.IsNullOrWhiteSpace(err) ? "pip 安裝失敗。" : err,
+                output);
+        }
+        catch (OperationCanceledException)
+        {
+            return TweakResult.Fail("Install cancelled.", "安裝已取消。");
+        }
+        catch (Exception ex)
+        {
+            return TweakResult.Fail($"Chunker install failed: {ex.Message}", $"Chunker 安裝失敗：{ex.Message}");
+        }
+    }
+
+    private static string? FirstLine(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return null;
+        foreach (var raw in text.Replace("\r", "").Split('\n'))
+        {
+            var line = raw.Trim();
+            if (line.Length > 0) return line;
+        }
+        return null;
+    }
+
+    private static string LastMeaningfulLine(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return "";
+        var lines = text.Replace("\r", "").Split('\n');
+        for (int i = lines.Length - 1; i >= 0; i--)
+        {
+            var line = lines[i].Trim();
+            if (line.Length > 0) return line.Length > 200 ? line[..200] + "…" : line;
+        }
+        return "";
+    }
+
     public static bool IsValidWorld(string? folder)
     {
         if (string.IsNullOrWhiteSpace(folder) || !Directory.Exists(folder)) return false;

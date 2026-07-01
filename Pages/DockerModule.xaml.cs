@@ -156,8 +156,24 @@ public sealed partial class DockerModule : Page
         EngineBar.IsOpen = true;
         EngineBar.Severity = InfoBarSeverity.Warning;
         EngineBar.Title = P("Docker daemon not reachable", "連唔到 Docker daemon");
-        EngineBar.Message = P($"Could not connect to the Docker Engine at {_docker.Endpoint}. Start Docker (Docker Desktop or the Docker Engine service) and click Refresh. WinForge talks to the engine's local API directly and cannot start the daemon for you. ({ex.Message})",
-            $"連唔到 {_docker.Endpoint} 嘅 Docker Engine。請啟動 Docker（Docker Desktop 或 Docker Engine 服務）再撳「重新整理」。WinForge 直接打引擎嘅本機 API，唔可以幫你開 daemon。（{ex.Message}）");
+        EngineBar.Message = P($"Could not connect to the Docker Engine at {_docker.Endpoint}. If Docker isn't installed yet, use the button to install Docker Desktop (winget). Docker Desktop needs WSL2 or Hyper-V enabled and usually a restart before the engine starts — after installing, reboot if prompted, launch Docker Desktop once, then click Refresh. WinForge talks to the engine's local API directly and cannot start the daemon for you. ({ex.Message})",
+            $"連唔到 {_docker.Endpoint} 嘅 Docker Engine。如果仲未裝 Docker，可以撳按鈕經 winget 安裝 Docker Desktop。Docker Desktop 需要開啟 WSL2 或 Hyper-V，通常仲要重新開機引擎先會啟動 — 裝完之後，如有提示請重新開機，開一次 Docker Desktop，再撳「重新整理」。WinForge 直接打引擎嘅本機 API，唔可以幫你開 daemon。（{ex.Message}）");
+
+        // Docker has no install button otherwise — offer a one-click winget install of Docker Desktop
+        // (progress bar + live status + pulse + real winget error live inside the button itself).
+        EngineBar.ActionButton = EngineBars.AutoInstallButton(
+            "Docker.DockerDesktop", "Install Docker Desktop", "安裝 Docker Desktop",
+            recheck: async () =>
+            {
+                // Re-run the module's existing availability check and refresh the UI.
+                if (!_docker.Connected) await Connect();
+                else await RefreshAll();
+            },
+            rescan: () =>
+            {
+                // Drop any stale connection so recheck reconnects fresh against the newly-installed engine.
+                if (_docker.Connected) _docker.Disconnect();
+            });
     }
 
     private async void Refresh_Click(object sender, RoutedEventArgs e)
@@ -437,23 +453,26 @@ public sealed partial class DockerModule : Page
             CloseButtonText = P("Close · 關閉", "關閉"),
         };
         var rep = new Progress<string>(line => DispatcherQueue.TryEnqueue(() => progress.Text = line));
-        var pullTask = Task.Run(async () =>
-        {
-            try { await _docker.PullImageAsync(name, rep); return (true, ""); }
-            catch (Exception ex) { return (false, ex.Message); }
-        });
-        _ = pullTask.ContinueWith(async t =>
-        {
-            DispatcherQueue.TryEnqueue(async () =>
-            {
-                var (ok, err) = t.Result;
-                progress.Text = ok ? P("Done.", "完成。") : err;
-                if (ok) await RefreshImages();
-                await UpdateSummary();
-            });
-            await Task.CompletedTask;
-        });
+        var pullTask = _docker.PullImageAsync(name, rep);
+        _ = PullAsync();
         await dlg.ShowAsync();
+
+        // Proper async flow — no ContinueWith, no t.Result on the thread pool, no async-void inside TryEnqueue.
+        async Task PullAsync()
+        {
+            try
+            {
+                await pullTask;
+                DispatcherQueue.TryEnqueue(() => progress.Text = P("Done.", "完成。"));
+                await RefreshImages();
+                await UpdateSummary();
+            }
+            catch (Exception ex)
+            {
+                CrashLogger.Log("docker.pull", ex);
+                DispatcherQueue.TryEnqueue(() => progress.Text = ex.Message);
+            }
+        }
     }
 
     private async void ImgRemove_Click(object sender, RoutedEventArgs e)

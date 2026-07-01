@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using WinForge.Models;
@@ -13,6 +14,9 @@ public sealed partial class MinecraftWorldToolsModule : Page
 {
     private CancellationTokenSource? _chunkerCts;
     private CancellationTokenSource? _blueMapCts;
+    private CancellationTokenSource? _installCts;
+    private string? _pythonCommand;
+    private bool _installBusy;
 
     public MinecraftWorldToolsModule()
     {
@@ -24,12 +28,14 @@ public sealed partial class MinecraftWorldToolsModule : Page
             Render();
             RefreshWorldMeta();
             RefreshRunState();
+            _ = RefreshChunkerCliAsync();
         };
         Unloaded += (_, _) =>
         {
             Loc.I.LanguageChanged -= OnLanguageChanged;
             try { _chunkerCts?.Cancel(); } catch { }
             try { _blueMapCts?.Cancel(); } catch { }
+            try { _installCts?.Cancel(); } catch { }
         };
     }
 
@@ -48,6 +54,10 @@ public sealed partial class MinecraftWorldToolsModule : Page
         BlueMapTab.Header = "BlueMap";
         SettingsTab.Header = P("Settings", "設定");
         LogTab.Header = P("Log", "記錄");
+
+        ChunkerCliLbl.Text = P("Chunker CLI (Python)", "Chunker CLI（Python）");
+        RecheckChunkerBtn.Content = P("Re-check", "重新偵測");
+        InstallChunkerBtn.Content = P("Install Chunker (needs Python)", "安裝 Chunker（需要 Python）");
 
         ChunkerWorldLbl.Text = P("World folder", "世界資料夾");
         PickWorldBtn.Content = P("Choose…", "揀…");
@@ -203,6 +213,109 @@ public sealed partial class MinecraftWorldToolsModule : Page
     }
 
     private void CancelChunker_Click(object sender, RoutedEventArgs e) => _chunkerCts?.Cancel();
+
+    // ───────────────────────── Chunker CLI (Python) detection + install ─────────────────────────
+
+    private async void RecheckChunker_Click(object sender, RoutedEventArgs e) => await RefreshChunkerCliAsync();
+
+    /// <summary>
+    /// 偵測 Python 同 Chunker，然後更新 UI · Probe Python + Chunker off the UI thread, then reflect state:
+    /// Chunker ready / Python present but Chunker missing (Install button) / Python missing (winget button).
+    /// </summary>
+    private async Task RefreshChunkerCliAsync()
+    {
+        if (_installBusy) return;
+        InstallChunkerRing.IsActive = true;
+        RecheckChunkerBtn.IsEnabled = false;
+        InstallChunkerBtn.IsEnabled = false;
+        PythonInstallHost.Children.Clear();
+        PythonInstallHost.Visibility = Visibility.Collapsed;
+        ChunkerCliStatus.Text = P("Checking for Python and Chunker…", "偵測緊 Python 同 Chunker…");
+        try
+        {
+            var probe = await Task.Run(() => MinecraftWorldToolsService.ProbePythonAndChunkerAsync());
+            _pythonCommand = probe.PythonCommand;
+
+            if (!probe.PythonFound)
+            {
+                // Python required — offer a one-click winget install via the shared EngineBars helper.
+                ChunkerCliStatus.Text = P(
+                    "Python is required to install the Chunker CLI, but it was not found. Install Python 3.12 below, then re-check.",
+                    "安裝 Chunker CLI 需要 Python，但搵唔到。喺下面裝 Python 3.12，然後重新偵測。");
+                InstallChunkerBtn.IsEnabled = false;
+                PythonInstallHost.Visibility = Visibility.Visible;
+                PythonInstallHost.Children.Add(EngineBars.AutoInstallButton(
+                    "Python.Python.3.12", "Install Python 3.12", "安裝 Python 3.12",
+                    async () => { PackageService.RefreshProcessPath(); await RefreshChunkerCliAsync(); },
+                    () => { }));
+            }
+            else if (probe.ChunkerFound)
+            {
+                var detail = string.IsNullOrWhiteSpace(probe.ChunkerDetail) ? "" : $" · {probe.ChunkerDetail}";
+                ChunkerCliStatus.Text = P(
+                    $"Ready — {probe.PythonVersion} with the Chunker CLI installed{detail}.",
+                    $"已就緒 — {probe.PythonVersion}，已安裝 Chunker CLI{detail}。");
+                InstallChunkerBtn.Content = P("Reinstall / upgrade Chunker", "重裝／升級 Chunker");
+                InstallChunkerBtn.IsEnabled = true;
+            }
+            else
+            {
+                ChunkerCliStatus.Text = P(
+                    $"{probe.PythonVersion} found, but the Chunker CLI is not installed. Click Install to run pip.",
+                    $"搵到 {probe.PythonVersion}，但未安裝 Chunker CLI。撳「安裝」執行 pip。");
+                InstallChunkerBtn.Content = P("Install Chunker (needs Python)", "安裝 Chunker（需要 Python）");
+                InstallChunkerBtn.IsEnabled = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            ChunkerCliStatus.Text = P($"Detection failed: {ex.Message}", $"偵測失敗：{ex.Message}");
+        }
+        finally
+        {
+            InstallChunkerRing.IsActive = false;
+            RecheckChunkerBtn.IsEnabled = true;
+        }
+    }
+
+    private async void InstallChunker_Click(object sender, RoutedEventArgs e)
+    {
+        if (_installBusy || string.IsNullOrWhiteSpace(_pythonCommand)) return;
+        _installBusy = true;
+        _installCts = new CancellationTokenSource();
+        InstallChunkerRing.IsActive = true;
+        InstallChunkerBtn.IsEnabled = false;
+        RecheckChunkerBtn.IsEnabled = false;
+        ChunkerCliStatus.Text = P("Installing Chunker via pip…", "用 pip 安裝 Chunker…");
+        AppendLog(P("[Chunker install started]", "[Chunker 安裝已啟動]"));
+        try
+        {
+            var r = await MinecraftWorldToolsService.InstallChunkerAsync(
+                _pythonCommand!,
+                line => DispatcherQueue.TryEnqueue(() => AppendLog(line)),
+                _installCts.Token);
+            AppendLog(Msg(r));
+            Notify(ChunkerBar, r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error,
+                r.Success ? P("Chunker installed", "Chunker 已安裝") : P("Chunker install failed", "Chunker 安裝失敗"), Msg(r));
+            if (r.Success)
+                ChunkerCliStatus.Text = P("Installed — verifying…", "已安裝 — 驗證緊…");
+            else
+                ChunkerCliStatus.Text = P($"Install failed: {Msg(r)}", $"安裝失敗：{Msg(r)}");
+        }
+        catch (Exception ex)
+        {
+            AppendLog(ex.Message);
+            Notify(ChunkerBar, InfoBarSeverity.Error, P("Chunker install failed", "Chunker 安裝失敗"), ex.Message);
+            ChunkerCliStatus.Text = P($"Install failed: {ex.Message}", $"安裝失敗：{ex.Message}");
+        }
+        finally
+        {
+            InstallChunkerRing.IsActive = false;
+            _installBusy = false;
+            // Re-probe so a successful install flips the UI to "Ready".
+            await RefreshChunkerCliAsync();
+        }
+    }
 
     private void GenerateBlueMapConfig_Click(object sender, RoutedEventArgs e)
     {
