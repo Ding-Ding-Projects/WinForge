@@ -284,6 +284,14 @@ public static class ModuleRegistry
         new() { Tag = "module.httpheaderref", En = "HTTP Headers Ref", Zh = "HTTP 標頭參考", Glyph = ((char)0xEB41).ToString(), Keywords = "http header headers request response cache cors security cookie auth reference mime standard 標頭 標頭參考 請求 回應 快取 安全 曲奇 參考" },
         new() { Tag = "module.calendarmonth", En = "Calendar", Zh = "月曆", Glyph = ((char)0xE787).ToString(), Keywords = "calendar month week iso weekday date day-of-year today 月曆 日曆 月份 星期 週數 日期 今日" },
         new() { Tag = "module.jsonltools", En = "JSONL Tools", Zh = "JSONL 工具", Glyph = ((char)0xE943).ToString(), Keywords = "jsonl ndjson json lines array validate minify pretty convert JSONL 換行 分行 陣列 驗證 壓縮 美化 轉換" },
+        new() { Tag = "module.jsonmergepatch", En = "JSON Merge Patch", Zh = "JSON 合併修補", Glyph = ((char)0xE943).ToString(), Keywords = "json merge patch rfc 7386 diff apply shallow merge null delete document target source 合併 修補 差異 套用 淺層 刪除 文件 目標 來源" },
+        new() { Tag = "module.ulid", En = "ULID / Snowflake", Zh = "ULID／Snowflake 工具", Glyph = ((char)0xE943).ToString(), Keywords = "ulid snowflake identifier id generate decode timestamp crockford base32 monotonic twitter discord epoch worker sequence guid uuid 識別碼 產生 解碼 時間戳 序號" },
+        new() { Tag = "module.hostsedit", En = "Hosts File Editor", Zh = "主機檔編輯器", Glyph = ((char)0xE968).ToString(), Keywords = "hosts file editor dns block ad tracker 0.0.0.0 localhost domain blocklist etc drivers hostname 主機檔 編輯器 封鎖 廣告 追蹤 網域 遮蔽" },
+        new() { Tag = "module.icalendar", En = "iCalendar Builder", Zh = "日曆檔產生器", Glyph = ((char)0xE787).ToString(), Keywords = "icalendar ics calendar event vevent vcalendar rrule valarm reminder recurrence appointment meeting invite 日曆 行事曆 活動 提醒 重複 會議 邀請 匯出" },
+        new() { Tag = "module.ascii85", En = "Ascii85 / Base85", Zh = "Ascii85 / 八十五進位編碼", Glyph = ((char)0xE943).ToString(), Keywords = "ascii85 base85 z85 zeromq rfc1924 adobe encode decode encoder decoder btoa ipv6 八十五進位 編碼 解碼 十六進位" },
+        new() { Tag = "module.headerscore", En = "Security Header Score", Zh = "安全標頭計分", Glyph = ((char)0xEB41).ToString(), Keywords = "http header security score csp hsts x-frame-options referrer permissions coop coep scorecard grade 安全 標頭 計分 網頁 安全性 標頭評分 版本洩露" },
+        new() { Tag = "module.boxtext", En = "Box & Banner Text", Zh = "文字方框 / 橫幅", Glyph = ((char)0xE8A5).ToString(), Keywords = "box banner ascii border frame comment block banner text wrap 文字方框 橫幅 邊框 框框 註解 ASCII 標題" },
+        new() { Tag = "module.numwordsx", En = "Number to Words+", Zh = "數字轉文字（加強版）", Glyph = ((char)0xE7BF).ToString(), Keywords = "number words spell cardinal ordinal currency dollars cents pounds pence chinese uppercase financial daxie 數字 轉 文字 大寫 小寫 中文 貨幣 元角分 序數 基數 一百二十三 壹佰貳拾參" },
     };
 
     public static IEnumerable<ModuleInfo> Search(string query)

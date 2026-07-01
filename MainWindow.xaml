@@ -452,6 +452,14 @@
                         <NavigationViewItem Content="Dotenv Editor · .env 編輯器" Tag="module.envfile"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7C3;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="HTTP Headers Ref · HTTP 標頭參考" Tag="module.httpheaderref"><NavigationViewItem.Icon><FontIcon Glyph="&#xEB41;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Calendar · 月曆" Tag="module.calendarmonth"><NavigationViewItem.Icon><FontIcon Glyph="&#xE787;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="JSON Merge Patch · JSON 合併修補" Tag="module.jsonmergepatch"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="ULID / Snowflake · ULID／Snowflake 工具" Tag="module.ulid"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Ascii85 / Base85 · 八十五進位編碼" Tag="module.ascii85"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Number to Words+ · 數字轉文字" Tag="module.numwordsx"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7BF;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Box &amp; Banner Text · 文字方框 / 橫幅" Tag="module.boxtext"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="iCalendar Builder · 日曆檔產生器" Tag="module.icalendar"><NavigationViewItem.Icon><FontIcon Glyph="&#xE787;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Hosts File Editor · 主機檔編輯器" Tag="module.hostsedit"><NavigationViewItem.Icon><FontIcon Glyph="&#xE968;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Security Header Score · 安全標頭計分" Tag="module.headerscore"><NavigationViewItem.Icon><FontIcon Glyph="&#xEB41;" /></NavigationViewItem.Icon></NavigationViewItem>
                     </NavigationViewItem.MenuItems>
                 </NavigationViewItem>
 

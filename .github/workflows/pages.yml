@@ -9,6 +9,13 @@ on:
     paths:
       - 'design/**'
       - '.github/workflows/pages.yml'
+  # The site-data workflow commits design/winforge-data.js using GITHUB_TOKEN, and
+  # GitHub deliberately does NOT let token-authored commits trigger further workflows
+  # (loop prevention). So a plain push trigger misses the auto-regenerated data and the
+  # live site goes stale. Chain off that workflow's completion to always redeploy.
+  workflow_run:
+    workflows: ["Regenerate real site data from the app"]
+    types: [completed]
   workflow_dispatch:
 
 # Least-privilege token for Pages deployment.
@@ -24,6 +31,8 @@ concurrency:
 
 jobs:
   deploy:
+    # For the workflow_run chain, only deploy when the data regen actually succeeded.
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     environment:
       name: github-pages

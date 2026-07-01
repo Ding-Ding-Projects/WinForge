@@ -351,6 +351,37 @@ public sealed partial class MainWindow : Window
             case "ndjson":
                 Navigator.GoToModule?.Invoke("module.jsonltools");
                 break;
+            case "jsonmergepatch":
+            case "mergepatch":
+                Navigator.GoToModule?.Invoke("module.jsonmergepatch");
+                break;
+            case "ulid":
+            case "snowflake":
+                Navigator.GoToModule?.Invoke("module.ulid");
+                break;
+            case "hostsedit":
+            case "hostsfile":
+                Navigator.GoToModule?.Invoke("module.hostsedit");
+                break;
+            case "icalendar":
+            case "ics":
+                Navigator.GoToModule?.Invoke("module.icalendar");
+                break;
+            case "ascii85":
+            case "base85":
+                Navigator.GoToModule?.Invoke("module.ascii85");
+                break;
+            case "headerscore":
+            case "secheaders":
+                Navigator.GoToModule?.Invoke("module.headerscore");
+                break;
+            case "boxtext":
+                Navigator.GoToModule?.Invoke("module.boxtext");
+                break;
+            case "numwordsx":
+            case "moneywords":
+                Navigator.GoToModule?.Invoke("module.numwordsx");
+                break;
             case "passwordstrength":
             case "pwstrength":
                 Navigator.GoToModule?.Invoke("module.passwordstrength");
@@ -2074,6 +2105,14 @@ public sealed partial class MainWindow : Window
         "module.httpheaderref" => typeof(HttpHeaderRefModule),
         "module.calendarmonth" => typeof(CalendarMonthModule),
         "module.jsonltools" => typeof(JsonlToolsModule),
+        "module.jsonmergepatch" => typeof(JsonMergePatchModule),
+        "module.ulid" => typeof(UlidModule),
+        "module.hostsedit" => typeof(HostsEditModule),
+        "module.icalendar" => typeof(ICalendarModule),
+        "module.ascii85" => typeof(Ascii85Module),
+        "module.headerscore" => typeof(HeaderScoreModule),
+        "module.boxtext" => typeof(BoxTextModule),
+        "module.numwordsx" => typeof(NumWordsXModule),
         _ => typeof(DashboardPage),
     };
 
@@ -2449,6 +2488,17 @@ public sealed partial class MainWindow : Window
             {
                 "module.jsonpatch", "module.jsonltools", "module.textwrap", "module.shortid",
                 "module.envfile", "module.httpheaderref", "module.calendarmonth",
+            },
+        },
+        new()
+        {
+            Id = "devdata3",
+            En = "Encoders, IDs & docs",
+            Zh = "編碼、識別碼與文件",
+            Keys = new[]
+            {
+                "module.jsonmergepatch", "module.ulid", "module.ascii85", "module.numwordsx",
+                "module.boxtext", "module.icalendar", "module.hostsedit", "module.headerscore",
             },
         },
     };
