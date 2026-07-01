@@ -71,10 +71,12 @@ public sealed partial class PixelEditorModule : Page
     public PixelEditorModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => RenderText();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += OnLoaded;
-        Unloaded += (_, _) => { _playTimer?.Stop(); };
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; _playTimer?.Stop(); };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => RenderText();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 

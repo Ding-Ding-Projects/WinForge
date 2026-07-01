@@ -15,6 +15,7 @@
             <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
 
             <InfoBar x:Name="EngineBar" IsClosable="False" IsOpen="False" />
+            <InfoBar x:Name="StatusBar" IsClosable="True" IsOpen="False" />
 
             <!-- Files -->
             <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
@@ -155,7 +156,14 @@
             <!-- Operations -->
             <TextBlock x:Name="OpsHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
             <AutoSuggestBox x:Name="OpsFilter" MaxWidth="420" HorizontalAlignment="Left" QueryIcon="Find" TextChanged="OpsFilter_TextChanged" />
-            <StackPanel x:Name="OpsPanel" />
+            <!-- Hand-built control rows with a subtle Fluent entrance animation. -->
+            <StackPanel x:Name="OpsPanel" Spacing="0">
+                <StackPanel.ChildrenTransitions>
+                    <TransitionCollection>
+                        <EntranceThemeTransition FromVerticalOffset="24" IsStaggeringEnabled="True" />
+                    </TransitionCollection>
+                </StackPanel.ChildrenTransitions>
+            </StackPanel>
         </StackPanel>
     </ScrollViewer>
 </Page>

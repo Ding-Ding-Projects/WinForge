@@ -382,6 +382,11 @@
                         <NavigationViewItem Content="JSON Diff · JSON 比對" Tag="module.jsondiff"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="INI Editor · INI 編輯器" Tag="module.iniedit"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Image / Base64 · 圖片 ↔ Base64" Tag="module.imgbase64"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8B9;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="String Escaper · 字串跳脫" Tag="module.textescape"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8C8;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Line Tools · 行工具" Tag="module.linetools"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Fancy Text · 花式文字" Tag="module.leet"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Gradient Generator · 漸變產生器" Tag="module.gradient"><NavigationViewItem.Icon><FontIcon Glyph="&#xE790;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Tally Counter · 點數計數器" Tag="module.tallycounter"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8EF;" /></NavigationViewItem.Icon></NavigationViewItem>
                     </NavigationViewItem.MenuItems>
                 </NavigationViewItem>
 

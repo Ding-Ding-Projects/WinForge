@@ -298,6 +298,25 @@ public sealed partial class MainWindow : Window
         }
         switch (App.StartPage)
         {
+            case "textescape":
+            case "escape":
+                Navigator.GoToModule?.Invoke("module.textescape");
+                break;
+            case "linetools":
+            case "lines":
+                Navigator.GoToModule?.Invoke("module.linetools");
+                break;
+            case "gradient":
+                Navigator.GoToModule?.Invoke("module.gradient");
+                break;
+            case "leet":
+            case "fancytext":
+                Navigator.GoToModule?.Invoke("module.leet");
+                break;
+            case "tally":
+            case "counter":
+                Navigator.GoToModule?.Invoke("module.tallycounter");
+                break;
             case "jsondiff":
             case "jsoncompare":
                 Navigator.GoToModule?.Invoke("module.jsondiff");
@@ -1850,6 +1869,11 @@ public sealed partial class MainWindow : Window
         "module.textdiff" => typeof(TextDiffModule),
         "module.iniedit" => typeof(IniEditModule),
         "module.imgbase64" => typeof(ImgBase64Module),
+        "module.textescape" => typeof(TextEscapeModule),
+        "module.linetools" => typeof(LineToolsModule),
+        "module.gradient" => typeof(GradientModule),
+        "module.leet" => typeof(LeetModule),
+        "module.tallycounter" => typeof(TallyCounterModule),
         _ => typeof(DashboardPage),
     };
 
@@ -2168,6 +2192,7 @@ public sealed partial class MainWindow : Window
                 "module.caseconvert", "module.htmltomd", "module.textreplace", "module.numseq",
                 "module.durationcalc", "module.colorpalette",
                 "module.jsondiff", "module.textdiff", "module.iniedit", "module.imgbase64",
+                "module.textescape", "module.linetools", "module.leet", "module.gradient", "module.tallycounter",
             },
         },
     };

@@ -15,8 +15,15 @@ public sealed partial class WindowManagerModule : Page
     public WindowManagerModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => { Render(); BuildPad(); };
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) => { Render(); BuildPad(); Reload(); };
+        Unloaded += (_, _) => Loc.I.LanguageChanged -= OnLanguageChanged;
+    }
+
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        Render();
+        BuildPad();
     }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);

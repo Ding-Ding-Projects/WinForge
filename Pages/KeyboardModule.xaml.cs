@@ -18,8 +18,16 @@ public sealed partial class KeyboardModule : Page
     public KeyboardModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => { Render(); FillCombos(); RefreshList(); };
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) => { Render(); FillCombos(); _maps = KeyboardRemapper.GetCurrent(); RefreshList(); };
+        Unloaded += (_, _) => Loc.I.LanguageChanged -= OnLanguageChanged;
+    }
+
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        Render();
+        FillCombos();
+        RefreshList();
     }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);

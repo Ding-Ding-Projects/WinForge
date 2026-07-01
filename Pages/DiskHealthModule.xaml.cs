@@ -85,9 +85,15 @@ public sealed partial class DiskHealthModule : Page
         InitializeComponent();
         Cards.ItemsSource = _cards;
         _timer.Tick += (_, _) => RefreshTemps();
-        Loc.I.LanguageChanged += (_, _) => { Render(); Rebind(); };
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += async (_, _) => { Render(); await Reload(); _timer.Start(); };
-        Unloaded += (_, _) => _timer.Stop();
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; _timer.Stop(); };
+    }
+
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        Render();
+        Rebind();
     }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);

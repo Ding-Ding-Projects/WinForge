@@ -26,9 +26,12 @@ public sealed partial class VolumeMixerModule : Page
     public VolumeMixerModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Build();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) => Build();
+        Unloaded += (_, _) => Loc.I.LanguageChanged -= OnLanguageChanged;
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Build();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 

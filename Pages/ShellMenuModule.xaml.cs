@@ -1,8 +1,9 @@
 using System;
 using System.Linq;
+using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using WinForge.Controls;
+using Microsoft.UI.Xaml.Media;
 using WinForge.Models;
 using WinForge.Services;
 
@@ -11,9 +12,12 @@ namespace WinForge.Pages;
 /// <summary>
 /// 檔案總管右鍵選單整合管理 · Manager for WinForge's native Explorer right-click integration.
 ///
-/// 每個動作一個 TweakCard 開關（即時寫／刪 HKCU 登錄），另加「全部登記／全部移除」同「分組做 WinForge flyout」。
-/// One TweakCard toggle per action (writes/removes HKCU keys live), plus master Register-all / Remove-all
-/// and a "group under one WinForge flyout" action. 全部介面雙語。All UI bilingual (English + Cantonese).
+/// 每個動作用手砌嘅控件列渲染（唔再用 Controls/TweakCard）：左邊雙語標題／說明，右邊一個 ToggleSwitch
+/// （即時寫／刪 HKCU 登錄，出錯時還原），另加「全部登記／全部移除」同「分組做 WinForge flyout」。
+/// Each action is a hand-built control row (no Controls/TweakCard): bilingual title/description on the
+/// left, a ToggleSwitch on the right (writes/removes HKCU keys live, reverts on error), plus master
+/// Register-all / Remove-all and a "group under one WinForge flyout" action. Results & errors go to one
+/// persistent InfoBar. 全部介面雙語。All UI bilingual (English + Cantonese).
 /// </summary>
 public sealed partial class ShellMenuModule : Page
 {
@@ -21,11 +25,30 @@ public sealed partial class ShellMenuModule : Page
     {
         InitializeComponent();
         Loc.I.LanguageChanged += OnLanguageChanged;
-        Loaded += (_, _) => { Render(); BuildCards(); UpdateCount(); };
-        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; };
+        Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
     }
 
-    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
+    private void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        Render();
+        BuildRows();
+        UpdateCount();
+    }
+
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        Loc.I.LanguageChanged -= OnLanguageChanged;
+        Loaded -= OnLoaded;
+        Unloaded -= OnUnloaded;
+    }
+
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        Render();
+        BuildRows();
+        UpdateCount();
+    }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
@@ -53,7 +76,9 @@ public sealed partial class ShellMenuModule : Page
             "備註：呢啲係經典 shell verb（登記喺 HKCU\\Software\\Classes，只限本使用者）。要喺 Windows 11 直接頂層顯示（唔使㩒「顯示更多選項」）就要用打包嘅 IExplorerCommand 處理常式，呢度未用。");
     }
 
-    private void BuildCards()
+    // ================= Tweak rows =================
+
+    private void BuildRows()
     {
         FilesPanel.Children.Clear();
         FoldersPanel.Children.Clear();
@@ -67,20 +92,26 @@ public sealed partial class ShellMenuModule : Page
                 ShellScope.Directory => FoldersPanel,
                 _ => BackgroundPanel,
             };
-            var card = new TweakCard();
-            card.SetTweak(MakeTweak(a));
-            host.Children.Add(card);
+            if (host.Children.Count > 0) host.Children.Add(BuildDivider());
+            host.Children.Add(BuildRow(a));
         }
     }
 
-    /// <summary>把一個 ShellAction 變成一張 Toggle TweakCard 嘅定義 · Build a Toggle TweakDefinition for one action.</summary>
-    private TweakDefinition MakeTweak(ShellAction a)
+    private Border BuildDivider() => new()
+    {
+        Height = 1,
+        Background = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"],
+        Opacity = 0.6,
+    };
+
+    /// <summary>把一個 ShellAction 砌成一條控件列 · Build one control row for a shell action.</summary>
+    private FrameworkElement BuildRow(ShellAction a)
     {
         string scopeEn = a.Scope switch
         {
-            ShellScope.AllFiles => "Files",
-            ShellScope.Directory => "Folders",
-            _ => "Folder background",
+            ShellScope.AllFiles => "files",
+            ShellScope.Directory => "folders",
+            _ => "folder background",
         };
         string scopeZh = a.Scope switch
         {
@@ -89,26 +120,97 @@ public sealed partial class ShellMenuModule : Page
             _ => "資料夾空白處",
         };
 
-        return new TweakDefinition
+        var grid = new Grid { Padding = new Thickness(0, 12, 0, 12) };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        var text = new StackPanel { Spacing = 2, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 16, 0) };
+
+        text.Children.Add(new TextBlock
         {
-            Id = $"shellmenu.{a.Id}",
-            Title = new LocalizedText(a.En, a.Zh),
-            Description = new LocalizedText(
-                $"Show \"{a.En}\" in the right-click menu for {scopeEn.ToLowerInvariant()}. Routes to WinForge and acts on the selected item.",
+            Text = P(a.En, a.Zh),
+            FontWeight = FontWeights.SemiBold,
+            TextWrapping = TextWrapping.Wrap,
+        });
+
+        text.Children.Add(new TextBlock
+        {
+            Text = P(
+                $"Show \"{a.En}\" in the right-click menu for {scopeEn}. Routes to WinForge and acts on the selected item.",
                 $"喺{scopeZh}嘅右鍵選單顯示「{a.Zh}」。會開 WinForge 並對住揀中嘅項目操作。"),
-            Kind = TweakKind.Toggle,
-            Restart = RestartScope.None,
-            GetIsOn = () => ShellContextMenuService.IsRegistered(a),
-            SetIsOn = on =>
-            {
-                ShellContextMenuService.SetRegistered(a, on);
-                // Reflect the new total in the header pill.
-                DispatcherQueue.TryEnqueue(UpdateCount);
-            },
-            ColoredStatus = () => ShellContextMenuService.IsRegistered(a)
-                ? ("In menu", "已喺選單", StatusColor.Good)
-                : ("Not shown", "未顯示", StatusColor.Neutral),
+            FontSize = 13,
+            Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+            TextWrapping = TextWrapping.Wrap,
+            Margin = new Thickness(0, 2, 0, 0),
+        });
+
+        // Small live status hint (mirrors the old card's coloured status).
+        var status = new TextBlock
+        {
+            FontSize = 11,
+            TextWrapping = TextWrapping.Wrap,
+            Margin = new Thickness(0, 2, 0, 0),
         };
+        text.Children.Add(status);
+
+        Grid.SetColumn(text, 0);
+        grid.Children.Add(text);
+
+        var toggle = BuildToggle(a, status);
+        toggle.VerticalAlignment = VerticalAlignment.Center;
+        Grid.SetColumn(toggle, 1);
+        grid.Children.Add(toggle);
+
+        return grid;
+    }
+
+    // ---------------- Toggle → ToggleSwitch (writes/removes HKCU live, reverts on error) ----------------
+    private ToggleSwitch BuildToggle(ShellAction a, TextBlock status)
+    {
+        var toggle = new ToggleSwitch { OnContent = "On · 開", OffContent = "Off · 熄" };
+
+        void RefreshStatus()
+        {
+            bool on;
+            try { on = ShellContextMenuService.IsRegistered(a); } catch { on = false; }
+            status.Text = on ? P("In menu", "已喺選單") : P("Not shown", "未顯示");
+            status.Foreground = (Brush)Application.Current.Resources[
+                on ? "SystemFillColorSuccessBrush" : "TextFillColorTertiaryBrush"];
+        }
+
+        bool suppress = true;
+        try { toggle.IsOn = ShellContextMenuService.IsRegistered(a); } catch { /* show as off */ }
+        suppress = false;
+        RefreshStatus();
+
+        toggle.Toggled += (_, _) =>
+        {
+            if (suppress) return;
+            try
+            {
+                ShellContextMenuService.SetRegistered(a, toggle.IsOn);
+                RefreshStatus();
+                UpdateCount();
+                ShowApplied(toggle.IsOn);
+            }
+            catch (Exception ex)
+            {
+                // Revert to the real registry state on failure.
+                suppress = true;
+                try { toggle.IsOn = ShellContextMenuService.IsRegistered(a); } catch { /* ignore */ }
+                suppress = false;
+                RefreshStatus();
+                Show(InfoBarSeverity.Error, P("Failed", "失敗"), ex.Message);
+            }
+        };
+        return toggle;
+    }
+
+    private void ShowApplied(bool on)
+    {
+        Show(InfoBarSeverity.Success, P("Done", "完成"),
+            on ? P("Added to the right-click menu.", "已加入右鍵選單。")
+               : P("Removed from the right-click menu.", "已由右鍵選單移除。"));
     }
 
     private void UpdateCount()
@@ -163,7 +265,7 @@ public sealed partial class ShellMenuModule : Page
 
     private void Refresh()
     {
-        BuildCards();
+        BuildRows();
         UpdateCount();
     }
 

@@ -54,10 +54,12 @@ public sealed partial class GifLabModule : Page
         FrameStrip.ItemsSource = _frames;
         _capTimer.Tick += (_, _) => { _elapsed++; UpdateStatus(); };
         _playTimer.Tick += PlayTick;
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) => { Render(); SyncButtons(); RefreshFrames(); };
-        Unloaded += (_, _) => { _capTimer.Stop(); _playTimer.Stop(); };
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; _capTimer.Stop(); _playTimer.Stop(); _busyCts?.Cancel(); };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
     private string Msg(TweakResult r) => (Loc.I.IsCantonesePrimary ? r.Message?.Zh : r.Message?.En) ?? "";

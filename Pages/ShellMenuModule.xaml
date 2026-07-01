@@ -8,6 +8,13 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
+    <!--
+        檔案總管右鍵選單 · Explorer right-click menu. 每個動作用手砌嘅控件列渲染（唔再用 Controls/TweakCard）：
+        左邊雙語標題／說明，右邊一個 ToggleSwitch；結果／錯誤集中喺一個常駐 InfoBar。
+        Each action is rendered as a hand-built control row (no Controls/TweakCard): bilingual
+        title/description on the left, a ToggleSwitch on the right; results & errors go to one
+        persistent InfoBar. Registry writes are unchanged.
+    -->
     <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
         <StackPanel MaxWidth="1040" Spacing="14">
 
@@ -31,6 +38,7 @@
                 Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                 TextWrapping="Wrap" />
 
+            <!-- One persistent result / status area -->
             <InfoBar x:Name="ResultBar" IsClosable="True" IsOpen="False" />
 
             <!-- ===== Master controls ===== -->
@@ -50,15 +58,33 @@
 
             <!-- ===== Files (*) ===== -->
             <TextBlock x:Name="FilesHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
-            <StackPanel x:Name="FilesPanel" Spacing="2" />
+            <StackPanel x:Name="FilesPanel" Spacing="0">
+                <StackPanel.ChildrenTransitions>
+                    <TransitionCollection>
+                        <EntranceThemeTransition FromVerticalOffset="24" IsStaggeringEnabled="True" />
+                    </TransitionCollection>
+                </StackPanel.ChildrenTransitions>
+            </StackPanel>
 
             <!-- ===== Folders (Directory) ===== -->
             <TextBlock x:Name="FoldersHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
-            <StackPanel x:Name="FoldersPanel" Spacing="2" />
+            <StackPanel x:Name="FoldersPanel" Spacing="0">
+                <StackPanel.ChildrenTransitions>
+                    <TransitionCollection>
+                        <EntranceThemeTransition FromVerticalOffset="24" IsStaggeringEnabled="True" />
+                    </TransitionCollection>
+                </StackPanel.ChildrenTransitions>
+            </StackPanel>
 
             <!-- ===== Folder background ===== -->
             <TextBlock x:Name="BackgroundHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
-            <StackPanel x:Name="BackgroundPanel" Spacing="2" />
+            <StackPanel x:Name="BackgroundPanel" Spacing="0">
+                <StackPanel.ChildrenTransitions>
+                    <TransitionCollection>
+                        <EntranceThemeTransition FromVerticalOffset="24" IsStaggeringEnabled="True" />
+                    </TransitionCollection>
+                </StackPanel.ChildrenTransitions>
+            </StackPanel>
 
             <TextBlock
                 x:Name="FootNote"

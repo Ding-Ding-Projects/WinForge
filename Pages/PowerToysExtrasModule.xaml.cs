@@ -43,10 +43,12 @@ public sealed partial class PowerToysExtrasModule : Page
     public PowerToysExtrasModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) => { Render(); InitOnce(); };
-        Unloaded += (_, _) => { /* keep hotkey + pins running app-wide; nothing to tear down here */ };
+        Unloaded += (_, _) => Loc.I.LanguageChanged -= OnLanguageChanged; // keep hotkey + pins running app-wide; nothing else to tear down here
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private bool _inited;
     private string P(string en, string zh) => Loc.I.Pick(en, zh);

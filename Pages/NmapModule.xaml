@@ -82,7 +82,14 @@
             <!-- Operations tab -->
             <PivotItem x:Name="OpsTab">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="320">
-                    <StackPanel x:Name="OpsPanel" Spacing="2" />
+                    <!-- Hand-built control rows with a subtle Fluent entrance animation. -->
+                    <StackPanel x:Name="OpsPanel" Spacing="0">
+                        <StackPanel.ChildrenTransitions>
+                            <TransitionCollection>
+                                <EntranceThemeTransition FromVerticalOffset="24" IsStaggeringEnabled="True" />
+                            </TransitionCollection>
+                        </StackPanel.ChildrenTransitions>
+                    </StackPanel>
                 </ScrollViewer>
             </PivotItem>
 

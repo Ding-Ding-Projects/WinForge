@@ -33,9 +33,15 @@ public sealed partial class WinfetchModule : Page
     public WinfetchModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => { RenderText(); if (_snap is not null) RenderSnapshot(_snap); };
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += async (_, _) => { RenderText(); await ReloadAsync(); };
-        Unloaded += (_, _) => _cts?.Cancel();
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; _cts?.Cancel(); };
+    }
+
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        RenderText();
+        if (_snap is not null) RenderSnapshot(_snap);
     }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);

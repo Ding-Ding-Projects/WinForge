@@ -238,6 +238,11 @@ public static class ModuleRegistry
         new() { Tag = "module.textdiff", En = "Text Diff", Zh = "文字差異比對", Glyph = ((char)0xE8A5).ToString(), Keywords = "diff compare text lines lcs unified merge changes 文字 差異 比較 對比 逐行 合併" },
         new() { Tag = "module.iniedit", En = "INI Editor", Zh = "INI 編輯器", Glyph = ((char)0xE8A5).ToString(), Keywords = "ini config configuration parser editor section key value comment settings 設定 組態 解析 分區 鍵 值 註解 編輯器" },
         new() { Tag = "module.imgbase64", En = "Image / Base64", Zh = "圖片 ↔ Base64", Glyph = ((char)0xE8B9).ToString(), Keywords = "image base64 data uri encode decode png jpg gif webp clipboard 圖片 圖像 編碼 解碼 資料 網址 剪貼簿" },
+        new() { Tag = "module.textescape", En = "String Escaper", Zh = "字串跳脫", Glyph = ((char)0xE8C8).ToString(), Keywords = "escape unescape string json csharp javascript java python xml html url regex csv sql shell encode decode 字串 跳脫 還原 轉義 逃逸 編碼 解碼 正則 網址" },
+        new() { Tag = "module.linetools", En = "Line Tools", Zh = "行工具", Glyph = ((char)0xE8A5).ToString(), Keywords = "line tools text lines number prefix suffix quotes join split reverse sort dedupe deduplicate trim shuffle 行工具 文字 行 編號 前綴 後綴 引號 合併 拆分 反轉 排序 去重 修剪 打亂" },
+        new() { Tag = "module.gradient", En = "Gradient Generator", Zh = "漸變產生器", Glyph = ((char)0xE790).ToString(), Keywords = "gradient css linear radial colour color stops hex angle 漸變 顏色 色標 線性 放射 CSS 十六進位" },
+        new() { Tag = "module.leet", En = "Fancy Text", Zh = "花式文字", Glyph = ((char)0xE8A5).ToString(), Keywords = "fancy text unicode font styler bold italic fraktur script circled fullwidth strikethrough underline leetspeak upside down 花式文字 特殊字體 粗體 斜體 花體 圓圈 全形 刪除線 底線 火星文 倒轉字" },
+        new() { Tag = "module.tallycounter", En = "Tally Counter", Zh = "點數計數器", Glyph = ((char)0xE8EF).ToString(), Keywords = "tally counter count clicker increment score reps 點數 計數器 計數 數數 點算 分數 加減" },
     };
 
     public static IEnumerable<ModuleInfo> Search(string query)
