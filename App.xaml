@@ -42,6 +42,10 @@
                  dark-on-dark, and the auto-hide indicator was too faint). Wider + brighter thumb. -->
             <x:Double x:Key="ScrollBarSize">14</x:Double>
 
+            <!-- Nav items hold a two-line stacked bilingual label (EN over ZH); the default 40px
+                 row clips the second line in half. 56px fits both lines with breathing room. -->
+            <x:Double x:Key="NavigationViewItemOnLeftMinHeight">56</x:Double>
+
             <!-- Shared brand brushes pages/cards can reference directly. -->
             <SolidColorBrush x:Key="WinForgeBrandBrush" Color="#FF54E07E" />
             <SolidColorBrush x:Key="WinForgeBrandDimBrush" Color="#FF2FAF57" />

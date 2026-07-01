@@ -100,56 +100,27 @@
                 <NavigationViewItem Content="⚙ Reactor Settings · 反應堆設定" Tag="module.reactorsettings">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE713;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
-                <NavigationViewItem Content="Cake Factory &amp; Farm · 蛋糕工廠與農場" Tag="module.cakefactory">
-                    <NavigationViewItem.Icon><FontIcon Glyph="&#xECA5;" /></NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem Content="Grid Dispatch Center · 電網調度中心" Tag="module.griddispatch">
+                <NavigationViewItem Content="Reactor Loads · 反應堆負載" SelectsOnInvoked="False">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE945;" /></NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem Content="Hydrogen Electrolysis · 氫電解制氫廠" Tag="module.h2plant">
-                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE945;" /></NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem Content="AI Training Cluster · AI 訓練叢集" Tag="module.aicluster">
-                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE99A;" /></NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem Content="Supercomputer (HPC) · 超級電腦" Tag="module.hpc">
-                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE9D9;" /></NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem Content="Compute Mine · 運算礦場" Tag="module.computemine">
-                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE945;" /></NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem Content="Aluminium Smelter · 鋁冶煉廠" Tag="module.smelter">
-                    <NavigationViewItem.Icon><FontIcon Glyph="&#xEA0C;" /></NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem Content="Nuclear Data Center · 核能資料中心" Tag="module.datacenter">
-                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE968;" /></NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem Content="Particle Collider · 粒子對撞機" Tag="module.collider">
-                    <NavigationViewItem.Icon><FontIcon Glyph="&#xEA86;" /></NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem Content="Reactor Bank (⚡ Watts) · 反應堆銀行" Tag="module.reactorbank">
-                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE1D6;" /></NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem Content="Seawater Desalination · 海水淡化廠" Tag="module.desal">
-                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE945;" /></NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem Content="EV Fast-Charge Depot · 電動車快充站" Tag="module.evcharge">
-                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE945;" /></NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem Content="Pumped-Storage Hydro · 抽水蓄能" Tag="module.pumpedhydro">
-                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE945;" /></NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem Content="District Heating · 區域供熱" Tag="module.districtheat">
-                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE945;" /></NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem Content="Carbon Capture (DAC) · 碳捕集" Tag="module.dac">
-                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE945;" /></NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem Content="Vertical Farm · 垂直農場" Tag="module.vertfarm">
-                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE945;" /></NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem Content="Arc-Furnace Steel Mill · 電弧爐煉鋼廠" Tag="module.steelmill">
-                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE945;" /></NavigationViewItem.Icon>
+                    <NavigationViewItem.MenuItems>
+                        <NavigationViewItem Content="Cake Factory &amp; Farm · 蛋糕工廠與農場" Tag="module.cakefactory"><NavigationViewItem.Icon><FontIcon Glyph="&#xECA5;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Grid Dispatch Center · 電網調度中心" Tag="module.griddispatch"><NavigationViewItem.Icon><FontIcon Glyph="&#xE839;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Hydrogen Electrolysis · 氫電解制氫廠" Tag="module.h2plant"><NavigationViewItem.Icon><FontIcon Glyph="&#xE9CE;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="AI Training Cluster · AI 訓練叢集" Tag="module.aicluster"><NavigationViewItem.Icon><FontIcon Glyph="&#xE99A;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Supercomputer (HPC) · 超級電腦" Tag="module.hpc"><NavigationViewItem.Icon><FontIcon Glyph="&#xE9D9;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Compute Mine · 運算礦場" Tag="module.computemine"><NavigationViewItem.Icon><FontIcon Glyph="&#xE950;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Aluminium Smelter · 鋁冶煉廠" Tag="module.smelter"><NavigationViewItem.Icon><FontIcon Glyph="&#xEA0C;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Nuclear Data Center · 核能資料中心" Tag="module.datacenter"><NavigationViewItem.Icon><FontIcon Glyph="&#xE968;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Particle Collider · 粒子對撞機" Tag="module.collider"><NavigationViewItem.Icon><FontIcon Glyph="&#xEA86;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Reactor Bank (⚡ Watts) · 反應堆銀行" Tag="module.reactorbank"><NavigationViewItem.Icon><FontIcon Glyph="&#xE1D6;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Seawater Desalination · 海水淡化廠" Tag="module.desal"><NavigationViewItem.Icon><FontIcon Glyph="&#xE774;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="EV Fast-Charge Depot · 電動車快充站" Tag="module.evcharge"><NavigationViewItem.Icon><FontIcon Glyph="&#xE83E;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Pumped-Storage Hydro · 抽水蓄能" Tag="module.pumpedhydro"><NavigationViewItem.Icon><FontIcon Glyph="&#xEC4A;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="District Heating · 區域供熱" Tag="module.districtheat"><NavigationViewItem.Icon><FontIcon Glyph="&#xE793;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Carbon Capture (DAC) · 碳捕集" Tag="module.dac"><NavigationViewItem.Icon><FontIcon Glyph="&#xEDA3;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Vertical Farm · 垂直農場" Tag="module.vertfarm"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8FD;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Arc-Furnace Steel Mill · 電弧爐煉鋼廠" Tag="module.steelmill"><NavigationViewItem.Icon><FontIcon Glyph="&#xE90F;" /></NavigationViewItem.Icon></NavigationViewItem>
+                    </NavigationViewItem.MenuItems>
                 </NavigationViewItem>
                 <NavigationViewItem Content="All Apps · 所有 app" Tag="shell.allapps">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE71D;" /></NavigationViewItem.Icon>
