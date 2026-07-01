@@ -23,9 +23,12 @@ public sealed partial class AiAgentsModule : Page
     public AiAgentsModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => { Render(); _ = BuildCards(); };
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += async (_, _) => { Render(); WorkDirBox.Text = DisplayPath(DefaultWorkDir()); await CheckNode(); await BuildCards(); };
+        Unloaded += (_, _) => Loc.I.LanguageChanged -= OnLanguageChanged;
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) { Render(); _ = BuildCards(); }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 

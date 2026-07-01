@@ -398,6 +398,10 @@
                         <NavigationViewItem Content="Text to Binary · 文字轉二進位" Tag="module.binarytext"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Emoji Picker · Emoji 選擇器" Tag="module.emoji"><NavigationViewItem.Icon><FontIcon Glyph="&#xE76E;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Symbols Palette · 特殊符號調色盤" Tag="module.symbols"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8D2;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Meta Tag Generator · Meta 標籤產生器" Tag="module.metatags"><NavigationViewItem.Icon><FontIcon Glyph="&#xE12B;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Template Renderer · 模板渲染器" Tag="module.texttemplate"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="ASCII Table · ASCII 表" Tag="module.asciitable"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8D2;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="chmod Calculator · chmod 計算機" Tag="module.unixperm"><NavigationViewItem.Icon><FontIcon Glyph="&#xE72E;" /></NavigationViewItem.Icon></NavigationViewItem>
                     </NavigationViewItem.MenuItems>
                 </NavigationViewItem>
 

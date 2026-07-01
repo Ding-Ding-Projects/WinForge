@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
@@ -18,8 +19,11 @@ public sealed partial class SearchResultsPage : Page
     public SearchResultsPage()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => { RenderLabels(); Run(SearchBox.Text); };
+        Loc.I.LanguageChanged += OnLanguageChanged;
+        Unloaded += (_, _) => Loc.I.LanguageChanged -= OnLanguageChanged;
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) { RenderLabels(); Run(SearchBox.Text); }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 

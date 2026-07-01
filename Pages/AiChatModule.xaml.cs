@@ -34,9 +34,16 @@ public sealed partial class AiChatModule : Page
     public AiChatModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += async (_, _) => { Render(); await InitAsync(); };
+        Unloaded += (_, _) =>
+        {
+            Loc.I.LanguageChanged -= OnLanguageChanged;
+            try { _streamCts?.Cancel(); } catch { }
+        };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 

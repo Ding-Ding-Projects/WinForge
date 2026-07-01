@@ -192,9 +192,21 @@
             <TextBlock x:Name="EffectsHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
             <TextBlock x:Name="EffectsBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                        FontSize="12" TextWrapping="Wrap" />
+
+            <!-- One persistent result / status area for effect results & errors -->
+            <InfoBar x:Name="FxResultBar" IsClosable="True" IsOpen="False" />
+
             <AutoSuggestBox x:Name="FxFilter" MaxWidth="420" HorizontalAlignment="Left" QueryIcon="Find"
                             TextChanged="FxFilter_TextChanged" />
-            <StackPanel x:Name="FxPanel" Spacing="2" />
+
+            <!-- Hand-built control rows with a subtle Fluent entrance animation. -->
+            <StackPanel x:Name="FxPanel" Spacing="0">
+                <StackPanel.ChildrenTransitions>
+                    <TransitionCollection>
+                        <EntranceThemeTransition FromVerticalOffset="24" IsStaggeringEnabled="True" />
+                    </TransitionCollection>
+                </StackPanel.ChildrenTransitions>
+            </StackPanel>
 
         </StackPanel>
     </ScrollViewer>

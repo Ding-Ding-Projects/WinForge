@@ -19,8 +19,11 @@ public sealed partial class CategoryPage : Page
     public CategoryPage()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => RenderHeader();
+        Loc.I.LanguageChanged += OnLanguageChanged;
+        Unloaded += (_, _) => Loc.I.LanguageChanged -= OnLanguageChanged;
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => RenderHeader();
 
     protected override void OnNavigatedTo(NavigationEventArgs e)
     {

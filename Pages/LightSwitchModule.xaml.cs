@@ -25,10 +25,12 @@ public sealed partial class LightSwitchModule : Page
         SunriseOffBox.ValueChanged += Offsets_Changed;
         SunsetOffBox.ValueChanged += Offsets_Changed;
         _timer.Tick += (_, _) => OnTick();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) => { Render(); LoadFromSettings(); RefreshBackgroundState(); _timer.Start(); };
-        Unloaded += (_, _) => _timer.Stop();
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; _timer.Stop(); };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 

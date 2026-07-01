@@ -29,7 +29,7 @@ public sealed partial class MinecraftServerModule : Page
     public MinecraftServerModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) =>
         {
             Render();
@@ -41,7 +41,16 @@ public sealed partial class MinecraftServerModule : Page
             RefreshRunState();
             EulaToggle.IsOn = MinecraftServerService.IsEulaAccepted();
         };
+        Unloaded += (_, _) =>
+        {
+            Loc.I.LanguageChanged -= OnLanguageChanged;
+            try { _paperCts?.Cancel(); } catch { }
+            try { _spigotCts?.Cancel(); } catch { }
+            try { _pluginCts?.Cancel(); } catch { }
+        };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
     private static string Msg(TweakResult r) => (Loc.I.IsCantonesePrimary ? r.Message?.Zh : r.Message?.En) ?? "";

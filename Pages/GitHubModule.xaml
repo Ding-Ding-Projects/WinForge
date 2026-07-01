@@ -599,7 +599,13 @@
                                             QueryIcon="Find"
                                             TextChanged="OpsFilter_TextChanged" />
                                     </Grid>
-                                    <StackPanel x:Name="OpsPanel" Spacing="2" />
+                                    <StackPanel x:Name="OpsPanel" Spacing="0">
+                                        <StackPanel.ChildrenTransitions>
+                                            <TransitionCollection>
+                                                <EntranceThemeTransition />
+                                            </TransitionCollection>
+                                        </StackPanel.ChildrenTransitions>
+                                    </StackPanel>
                                 </StackPanel>
                             </ScrollViewer>
                         </TabViewItem>

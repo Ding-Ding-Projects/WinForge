@@ -17,7 +17,7 @@ public sealed partial class MinecraftWorldToolsModule : Page
     public MinecraftWorldToolsModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) =>
         {
             LoadSettings();
@@ -25,7 +25,15 @@ public sealed partial class MinecraftWorldToolsModule : Page
             RefreshWorldMeta();
             RefreshRunState();
         };
+        Unloaded += (_, _) =>
+        {
+            Loc.I.LanguageChanged -= OnLanguageChanged;
+            try { _chunkerCts?.Cancel(); } catch { }
+            try { _blueMapCts?.Cancel(); } catch { }
+        };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
     private static string Msg(TweakResult r) => (Loc.I.IsCantonesePrimary ? r.Message?.Zh : r.Message?.En) ?? "";

@@ -248,6 +248,10 @@ public static class ModuleRegistry
         new() { Tag = "module.emoji", En = "Emoji Picker", Zh = "Emoji 選擇器", Glyph = ((char)0xE76E).ToString(), Keywords = "emoji smiley face symbol copy clipboard picker 表情 符號 貼圖 複製 剪貼簿 選擇器" },
         new() { Tag = "module.symbols", En = "Symbols Palette", Zh = "特殊符號調色盤", Glyph = ((char)0xE8D2).ToString(), Keywords = "symbols special characters unicode glyph arrows math currency greek punctuation box drawing stars fractions superscript subscript copy 符號 特殊字元 統一碼 箭嘴 數學 貨幣 希臘 標點 框線 星 分數 上下標 複製" },
         new() { Tag = "module.binarytext", En = "Text to Binary", Zh = "文字轉二進位", Glyph = ((char)0xE943).ToString(), Keywords = "binary text codes utf-8 encode decode ascii hex octal decimal base converter 二進位 文字 編碼 解碼 十六進位 八進位 十進位 位元組 轉換" },
+        new() { Tag = "module.texttemplate", En = "Template Renderer", Zh = "模板渲染器", Glyph = ((char)0xE8A5).ToString(), Keywords = "template render placeholder mustache handlebars merge fields json key value substitute 模板 渲染 佔位符 合併 欄位 變數 替換 生成" },
+        new() { Tag = "module.asciitable", En = "ASCII Table", Zh = "ASCII 表", Glyph = ((char)0xE8D2).ToString(), Keywords = "ascii table character codes control codes hex octal binary latin-1 charset reference 字元 字元碼 控制碼 十六進 八進 二進 參考表" },
+        new() { Tag = "module.metatags", En = "Meta Tag Generator", Zh = "Meta 標籤產生器", Glyph = ((char)0xE12B).ToString(), Keywords = "meta tag html head seo open graph twitter card canonical viewport theme charset og description keywords 標籤 網頁 元資料 搜尋引擎 分享 預覽 標題 描述" },
+        new() { Tag = "module.unixperm", En = "chmod Calculator", Zh = "chmod 計算機", Glyph = ((char)0xE72E).ToString(), Keywords = "chmod unix permission octal symbolic rwx setuid setgid sticky linux file mode 權限 八進位 符號 檔案模式" },
     };
 
     public static IEnumerable<ModuleInfo> Search(string query)

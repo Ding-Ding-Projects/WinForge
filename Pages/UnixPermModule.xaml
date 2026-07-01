@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.UnixPermModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="760" Spacing="14">
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE72E;" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <TextBlock x:Name="MatrixTitle" FontWeight="SemiBold" FontSize="15" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="90" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock x:Name="ColRead" Grid.Row="0" Grid.Column="1" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                        <TextBlock x:Name="ColWrite" Grid.Row="0" Grid.Column="2" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                        <TextBlock x:Name="ColExec" Grid.Row="0" Grid.Column="3" FontWeight="SemiBold" HorizontalAlignment="Center" />
+
+                        <TextBlock x:Name="RowOwner" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" />
+                        <CheckBox x:Name="OwnerR" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Center" Checked="Bit_Changed" Unchecked="Bit_Changed" />
+                        <CheckBox x:Name="OwnerW" Grid.Row="1" Grid.Column="2" HorizontalAlignment="Center" Checked="Bit_Changed" Unchecked="Bit_Changed" />
+                        <CheckBox x:Name="OwnerX" Grid.Row="1" Grid.Column="3" HorizontalAlignment="Center" Checked="Bit_Changed" Unchecked="Bit_Changed" />
+
+                        <TextBlock x:Name="RowGroup" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" />
+                        <CheckBox x:Name="GroupR" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Center" Checked="Bit_Changed" Unchecked="Bit_Changed" />
+                        <CheckBox x:Name="GroupW" Grid.Row="2" Grid.Column="2" HorizontalAlignment="Center" Checked="Bit_Changed" Unchecked="Bit_Changed" />
+                        <CheckBox x:Name="GroupX" Grid.Row="2" Grid.Column="3" HorizontalAlignment="Center" Checked="Bit_Changed" Unchecked="Bit_Changed" />
+
+                        <TextBlock x:Name="RowOther" Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" />
+                        <CheckBox x:Name="OtherR" Grid.Row="3" Grid.Column="1" HorizontalAlignment="Center" Checked="Bit_Changed" Unchecked="Bit_Changed" />
+                        <CheckBox x:Name="OtherW" Grid.Row="3" Grid.Column="2" HorizontalAlignment="Center" Checked="Bit_Changed" Unchecked="Bit_Changed" />
+                        <CheckBox x:Name="OtherX" Grid.Row="3" Grid.Column="3" HorizontalAlignment="Center" Checked="Bit_Changed" Unchecked="Bit_Changed" />
+                    </Grid>
+
+                    <StackPanel Orientation="Horizontal" Spacing="18">
+                        <CheckBox x:Name="SetUidChk" Checked="Bit_Changed" Unchecked="Bit_Changed" />
+                        <CheckBox x:Name="SetGidChk" Checked="Bit_Changed" Unchecked="Bit_Changed" />
+                        <CheckBox x:Name="StickyChk" Checked="Bit_Changed" Unchecked="Bit_Changed" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <TextBlock x:Name="OctalLabel" VerticalAlignment="Center" MinWidth="90" />
+                        <TextBox x:Name="OctalBox" MinWidth="140" TextChanged="Octal_TextChanged" />
+                        <Button x:Name="CopyOctalBtn" Click="CopyOctal_Click" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <TextBlock x:Name="SymbolicLabel" VerticalAlignment="Center" MinWidth="90" />
+                        <TextBox x:Name="SymbolicBox" MinWidth="160" FontFamily="Consolas" TextChanged="Symbolic_TextChanged" />
+                        <Button x:Name="CopySymbolicBtn" Click="CopySymbolic_Click" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <TextBlock x:Name="CommandLabel" VerticalAlignment="Center" MinWidth="90" />
+                        <TextBlock x:Name="CommandText" VerticalAlignment="Center" FontFamily="Consolas" IsTextSelectionEnabled="True" />
+                        <Button x:Name="CopyCommandBtn" Click="CopyCommand_Click" />
+                    </StackPanel>
+                    <TextBlock x:Name="StatusText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

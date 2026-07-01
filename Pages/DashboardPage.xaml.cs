@@ -20,10 +20,13 @@ public sealed partial class DashboardPage : Page
     public DashboardPage()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         BrandingService.Changed += (_, _) => { try { Render(); } catch { } };
         Loaded += (_, _) => Render();
+        Unloaded += (_, _) => Loc.I.LanguageChanged -= OnLanguageChanged;
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private void Render()
     {

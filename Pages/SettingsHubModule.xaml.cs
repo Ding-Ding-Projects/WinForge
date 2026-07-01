@@ -33,8 +33,22 @@ public sealed partial class SettingsHubModule : Page
     public SettingsHubModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => { Render(); BuildModeCombo(); Apply(FilterBox.Text ?? ""); };
+        Loc.I.LanguageChanged += OnLanguageChanged;
+        Unloaded += OnUnloaded;
         Loaded += (_, _) => { Render(); BuildModeCombo(); ModeCombo.SelectedIndex = 0; Apply(""); };
+    }
+
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        Render();
+        BuildModeCombo();
+        Apply(FilterBox.Text ?? "");
+    }
+
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        Loc.I.LanguageChanged -= OnLanguageChanged;
+        Unloaded -= OnUnloaded;
     }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
@@ -121,12 +135,10 @@ public sealed partial class SettingsHubModule : Page
         {
             if (built) return;
             built = true;
-            foreach (var t in TweakCatalog.ByCategory(cat))
-            {
-                var card = new TweakCard();
-                card.SetTweak(t);   // reads the setting's current value on load
-                inner.Children.Add(card);
-            }
+            // One control-row list per category — reads each setting's current value as it renders.
+            var list = new ControlRowList();
+            list.SetTweaks(TweakCatalog.ByCategory(cat));
+            inner.Children.Add(list);
         };
         return exp;
     }
@@ -165,13 +177,11 @@ public sealed partial class SettingsHubModule : Page
         var f = filter.ToLowerInvariant();
         var hits = TweakCatalog.All.Where(t => t.SearchHaystack.Contains(f)).Take(300).ToList();
         CountText.Text = P($"{hits.Count} settings", $"{hits.Count} 項設定");
-        foreach (var t in hits)
-        {
-            var card = new TweakCard();
-            card.SetTweak(t);
-            Sections.Children.Add(card);
-        }
-        if (hits.Count == 0) Sections.Children.Add(EmptyNote());
+        if (hits.Count == 0) { Sections.Children.Add(EmptyNote()); return; }
+        // A single control-row list holds the whole flat, filtered result set.
+        var list = new ControlRowList();
+        list.SetTweaks(hits);
+        Sections.Children.Add(list);
     }
 
     private void BuildLauncherSearch(string filter)

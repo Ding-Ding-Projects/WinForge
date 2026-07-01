@@ -37,9 +37,16 @@ public sealed partial class MinecraftLauncherModule : Page
     {
         InitializeComponent();
         MinecraftAuthService.ClientId = SettingsStore.Get(ClientIdSetting, "");
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) => { Render(); LoadInstances(); UpdateAccountUi(); };
+        Unloaded += (_, _) =>
+        {
+            Loc.I.LanguageChanged -= OnLanguageChanged;
+            try { _downloadCts?.Cancel(); } catch { }
+        };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 

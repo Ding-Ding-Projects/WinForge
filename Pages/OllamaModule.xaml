@@ -250,9 +250,17 @@
             <!-- Operations -->
             <PivotItem x:Name="TabOps">
                 <ScrollViewer Margin="0,12,0,0" VerticalScrollBarVisibility="Auto">
-                    <StackPanel Spacing="8">
+                    <StackPanel Spacing="10">
                         <TextBlock x:Name="OpsBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
-                        <StackPanel x:Name="OpsPanel" Spacing="2" />
+                        <InfoBar x:Name="OpsStatusBar" IsClosable="True" IsOpen="False" />
+                        <!-- Hand-built control rows with a subtle Fluent entrance animation. -->
+                        <StackPanel x:Name="OpsPanel" Spacing="0">
+                            <StackPanel.ChildrenTransitions>
+                                <TransitionCollection>
+                                    <EntranceThemeTransition FromVerticalOffset="24" IsStaggeringEnabled="True" />
+                                </TransitionCollection>
+                            </StackPanel.ChildrenTransitions>
+                        </StackPanel>
                     </StackPanel>
                 </ScrollViewer>
             </PivotItem>

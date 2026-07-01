@@ -298,6 +298,22 @@ public sealed partial class MainWindow : Window
         }
         switch (App.StartPage)
         {
+            case "texttemplate":
+            case "template":
+                Navigator.GoToModule?.Invoke("module.texttemplate");
+                break;
+            case "asciitable":
+            case "ascii":
+                Navigator.GoToModule?.Invoke("module.asciitable");
+                break;
+            case "metatags":
+            case "meta":
+                Navigator.GoToModule?.Invoke("module.metatags");
+                break;
+            case "unixperm":
+            case "chmod":
+                Navigator.GoToModule?.Invoke("module.unixperm");
+                break;
             case "htmlformat":
             case "htmltidy":
                 Navigator.GoToModule?.Invoke("module.htmlformat");
@@ -1897,6 +1913,10 @@ public sealed partial class MainWindow : Window
         "module.emoji" => typeof(EmojiModule),
         "module.symbols" => typeof(SymbolsModule),
         "module.binarytext" => typeof(BinaryTextModule),
+        "module.texttemplate" => typeof(TextTemplateModule),
+        "module.asciitable" => typeof(AsciiTableModule),
+        "module.metatags" => typeof(MetaTagsModule),
+        "module.unixperm" => typeof(UnixPermModule),
         _ => typeof(DashboardPage),
     };
 
@@ -2226,6 +2246,7 @@ public sealed partial class MainWindow : Window
             Keys = new[]
             {
                 "module.htmlformat", "module.cssformat", "module.binarytext", "module.emoji", "module.symbols",
+                "module.metatags", "module.texttemplate", "module.asciitable", "module.unixperm",
             },
         },
     };
