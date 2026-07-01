@@ -41,6 +41,10 @@ public sealed class CamoufoxProfile
     [JsonIgnore]
     public string ShortId => Id.Length >= 8 ? Id[..8] : Id;
 
+    /// <summary>頭一個字母（做頭像）· First letter of the name, for the list avatar badge.</summary>
+    [JsonIgnore]
+    public string Initial => string.IsNullOrWhiteSpace(Name) ? "?" : Name.Trim()[..1].ToUpperInvariant();
+
     [JsonIgnore]
     public string FingerprintSummary
     {

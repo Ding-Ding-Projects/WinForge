@@ -15,11 +15,41 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="12">
-            <FontIcon FontSize="22" Glyph="&#xE7B3;" VerticalAlignment="Center" />
-            <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
-        </StackPanel>
-        <TextBlock x:Name="HeaderBlurb" Grid.Row="1" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+        <!-- ───────────────── Header: icon + title + live status chips ───────────────── -->
+        <Grid Grid.Row="0" ColumnSpacing="12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Width="44" Height="44" CornerRadius="10" VerticalAlignment="Center"
+                    Background="{ThemeResource WinForgeBrandBrush}">
+                <FontIcon FontSize="22" Glyph="&#xE7B3;" Foreground="#06210F" />
+            </Border>
+
+            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
+                <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
+                <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" FontSize="12.5" />
+            </StackPanel>
+
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <Border x:Name="CountChip" CornerRadius="12" Padding="12,5,12,5" VerticalAlignment="Center"
+                        Background="{ThemeResource LayerFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <FontIcon Glyph="&#xE77B;" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock x:Name="CountChipText" FontSize="12" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Border>
+                <Border x:Name="EngineChip" CornerRadius="12" Padding="12,5,12,5" VerticalAlignment="Center"
+                        Background="{ThemeResource LayerFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <Ellipse x:Name="EngineDot" Width="9" Height="9" Fill="{ThemeResource TextFillColorTertiaryBrush}" VerticalAlignment="Center" />
+                        <TextBlock x:Name="EngineChipText" FontSize="12" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </Grid>
 
         <InfoBar x:Name="ResultBar" Grid.Row="2" IsClosable="True" IsOpen="False" Margin="0,2,0,0" />
 
@@ -47,7 +77,7 @@
                 </ScrollViewer>
             </PivotItem>
 
-            <!-- ───────────────── Profiles ───────────────── -->
+            <!-- ───────────────── Profiles (revamped) ───────────────── -->
             <PivotItem x:Name="TabProfiles">
                 <Grid RowSpacing="10">
                     <Grid.RowDefinitions>
@@ -55,38 +85,82 @@
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
-                    <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
-                        <Button x:Name="NewBtn" Style="{StaticResource AccentButtonStyle}" Click="New_Click" />
-                        <Button x:Name="EditBtn" Click="Edit_Click" />
-                        <Button x:Name="DeleteBtn" Click="Delete_Click" />
-                        <Button x:Name="LaunchBtn" Click="Launch_Click" />
-                        <AppBarSeparator />
-                        <Button x:Name="ExportSelBtn" Click="ExportSelected_Click" />
-                        <Button x:Name="ExportAllBtn" Click="ExportAll_Click" />
-                        <Button x:Name="ImportBtn" Click="Import_Click" />
-                        <Button x:Name="RefreshProfilesBtn" Click="RefreshProfiles_Click" />
-                    </StackPanel>
+                    <!-- Command bar -->
+                    <Border Grid.Row="0" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="8,6,8,6" Margin="0,4,0,0">
+                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                            <Button x:Name="NewBtn" Style="{StaticResource AccentButtonStyle}" Click="New_Click">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xE710;" FontSize="14" />
+                                    <TextBlock x:Name="NewBtnText" />
+                                </StackPanel>
+                            </Button>
+                            <Button x:Name="EditBtn" Click="Edit_Click" ToolTipService.ToolTip="Edit · 編輯"><FontIcon Glyph="&#xE70F;" FontSize="15" /></Button>
+                            <Button x:Name="LaunchBtn" Click="Launch_Click" ToolTipService.ToolTip="Launch · 啟動"><FontIcon Glyph="&#xE768;" FontSize="15" /></Button>
+                            <Button x:Name="DeleteBtn" Click="Delete_Click" ToolTipService.ToolTip="Delete · 刪除"><FontIcon Glyph="&#xE74D;" FontSize="15" /></Button>
+                            <AppBarSeparator />
+                            <Button x:Name="ExportSelBtn" Click="ExportSelected_Click" ToolTipService.ToolTip="Export selected · 匯出已選"><FontIcon Glyph="&#xEDE1;" FontSize="15" /></Button>
+                            <Button x:Name="ExportAllBtn" Click="ExportAll_Click" ToolTipService.ToolTip="Export all · 全部匯出"><FontIcon Glyph="&#xE74E;" FontSize="15" /></Button>
+                            <Button x:Name="ImportBtn" Click="Import_Click" ToolTipService.ToolTip="Import · 匯入"><FontIcon Glyph="&#xE8B5;" FontSize="15" /></Button>
+                            <AppBarSeparator />
+                            <Button x:Name="RefreshProfilesBtn" Click="RefreshProfiles_Click" ToolTipService.ToolTip="Refresh · 重新整理"><FontIcon Glyph="&#xE72C;" FontSize="15" /></Button>
+                        </StackPanel>
+                    </Border>
 
                     <Border Grid.Row="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
                         <Grid>
-                            <ListView x:Name="ProfileList" SelectionMode="Multiple" Padding="2,4,2,4">
+                            <ListView x:Name="ProfileList" SelectionMode="Multiple" Padding="4,6,4,6">
+                                <ListView.ItemContainerStyle>
+                                    <Style TargetType="ListViewItem">
+                                        <Setter Property="Margin" Value="2,2,2,2" />
+                                        <Setter Property="CornerRadius" Value="6" />
+                                    </Style>
+                                </ListView.ItemContainerStyle>
                                 <ListView.ItemTemplate>
                                     <DataTemplate>
                                         <Grid Padding="6,8,6,8" ColumnSpacing="12">
                                             <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                            <Border Grid.Column="0" Width="40" Height="40" CornerRadius="20" VerticalAlignment="Center"
+                                                    Background="{ThemeResource WinForgeBrandBrush}">
+                                                <TextBlock Text="{Binding Initial}" FontWeight="Bold" FontSize="16" Foreground="#06210F"
+                                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            </Border>
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
                                                 <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" />
-                                                <TextBlock Text="{Binding FingerprintSummary}" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
+                                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                                    <TextBlock Text="{Binding FingerprintSummary}" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Text="{Binding ShortId}" FontFamily="Consolas" FontSize="11" Foreground="{ThemeResource TextFillColorTertiaryBrush}" VerticalAlignment="Center" />
+                                                </StackPanel>
                                             </StackPanel>
-                                            <TextBlock Grid.Column="1" Text="{Binding ShortId}" FontFamily="Consolas" FontSize="11" Foreground="{ThemeResource TextFillColorTertiaryBrush}" VerticalAlignment="Center" />
+                                            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                                <Button Click="RowLaunch_Click" Padding="9,6,9,6" Background="Transparent" BorderThickness="0" ToolTipService.ToolTip="Launch · 啟動"><FontIcon Glyph="&#xE768;" FontSize="15" /></Button>
+                                                <Button Click="RowEdit_Click" Padding="9,6,9,6" Background="Transparent" BorderThickness="0" ToolTipService.ToolTip="Edit · 編輯"><FontIcon Glyph="&#xE70F;" FontSize="15" /></Button>
+                                            </StackPanel>
                                         </Grid>
                                     </DataTemplate>
                                 </ListView.ItemTemplate>
                             </ListView>
-                            <TextBlock x:Name="ProfilesEmpty" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Visibility="Collapsed" TextWrapping="Wrap" TextAlignment="Center" MaxWidth="420" />
+
+                            <!-- Loading overlay -->
+                            <StackPanel x:Name="ProfilesLoading" Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed">
+                                <ProgressRing IsActive="True" Width="22" Height="22" />
+                                <TextBlock x:Name="ProfilesLoadingText" VerticalAlignment="Center" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+
+                            <!-- Empty state -->
+                            <StackPanel x:Name="ProfilesEmpty" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12" MaxWidth="440" Visibility="Collapsed">
+                                <FontIcon Glyph="&#xE7B3;" FontSize="40" Foreground="{ThemeResource TextFillColorTertiaryBrush}" HorizontalAlignment="Center" />
+                                <TextBlock x:Name="ProfilesEmptyText" HorizontalAlignment="Center" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" TextAlignment="Center" />
+                                <Button x:Name="EmptyNewBtn" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Center" Click="New_Click">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <FontIcon Glyph="&#xE710;" FontSize="14" />
+                                        <TextBlock x:Name="EmptyNewBtnText" />
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
                         </Grid>
                     </Border>
                 </Grid>

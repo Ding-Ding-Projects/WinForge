@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using WinForge.Models;
 using WinForge.Services;
 
@@ -14,28 +15,59 @@ namespace WinForge.Pages;
 /// browser profiles (cookies + fingerprints stored as files), export one / selected / all, and manage
 /// the local git repo that auto-commits every change. The only app it launches is Camoufox itself,
 /// cloning + building it from source on first use. Fully in-app, fully bilingual.
+///
+/// Freeze-safe: the page renders instantly, then each tab lazy-loads its data the first time it is
+/// shown, and every git/file call is pushed onto the thread pool with <see cref="Task.Run(Func{Task})"/>
+/// so the synchronous <c>Process.Start</c> spawn never runs on the UI thread.
 /// </summary>
 public sealed partial class CamoufoxModule : Page
 {
     private bool _busy;
+    private bool _profilesLoaded, _commitsLoaded, _engineLoaded;
 
     public CamoufoxModule()
     {
         InitializeComponent();
         Loc.I.LanguageChanged += OnLanguageChanged;
-        Loaded += async (_, _) =>
-        {
-            EasyToggle.IsOn = EasyMode;
-            Render();
-            BuildGuide();
-            await RefreshProfiles();
-            await RefreshEngine();
-            await RefreshCommits();
-        };
-        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; };
+        Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
+    }
+
+    private void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        EasyToggle.IsOn = EasyMode;
+        Render();
+        BuildGuide();
+        MainPivot.SelectionChanged += MainPivot_SelectionChanged;
+        // Cheap engine probe for the header chip (file-existence checks) — still off the UI thread.
+        _ = ProbeEngineChipAsync();
+        // Load whatever tab we start on; the rest load lazily on first view.
+        _ = EnsureTabLoadedAsync();
+    }
+
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        Loc.I.LanguageChanged -= OnLanguageChanged;
+        MainPivot.SelectionChanged -= MainPivot_SelectionChanged;
     }
 
     private void OnLanguageChanged(object? sender, EventArgs e) => Render();
+
+    private async void MainPivot_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        => await EnsureTabLoadedAsync();
+
+    /// <summary>第一次睇某個分頁先至載入佢嘅資料 · Lazy-load a tab's data the first time it becomes visible.</summary>
+    private async Task EnsureTabLoadedAsync()
+    {
+        try
+        {
+            var tab = MainPivot.SelectedItem;
+            if (ReferenceEquals(tab, TabProfiles) && !_profilesLoaded) { _profilesLoaded = true; await RefreshProfiles(); }
+            else if (ReferenceEquals(tab, TabGit) && !_commitsLoaded) { _commitsLoaded = true; await RefreshCommits(); }
+            else if (ReferenceEquals(tab, TabEngine) && !_engineLoaded) { _engineLoaded = true; await RefreshEngine(); }
+        }
+        catch (Exception ex) { CrashLogger.Log("camoufox.tabload", ex); }
+    }
 
     // ───────────────────────── Easy Mode + guided checklists ─────────────────────────
 
@@ -125,15 +157,15 @@ public sealed partial class CamoufoxModule : Page
         var card = new StackPanel { Spacing = 10 };
         var border = new Border
         {
-            Background = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"],
-            BorderBrush = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"],
+            Background = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"],
+            BorderBrush = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"],
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(8),
             Padding = new Thickness(16, 14, 16, 14),
             Child = card,
         };
         card.Children.Add(new TextBlock { Text = title, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, FontSize = 15 });
-        card.Children.Add(new TextBlock { Text = desc, FontSize = 12, TextWrapping = TextWrapping.Wrap, Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextFillColorSecondaryBrush"] });
+        card.Children.Add(new TextBlock { Text = desc, FontSize = 12, TextWrapping = TextWrapping.Wrap, Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"] });
 
         int n = 1;
         foreach (var s in steps)
@@ -145,13 +177,12 @@ public sealed partial class CamoufoxModule : Page
 
             if (EasyMode)
             {
-                // numbered green badge
                 var badge = new Border
                 {
                     Width = 24, Height = 24, CornerRadius = new CornerRadius(12),
-                    Background = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["WinForgeBrandBrush"],
+                    Background = (Brush)Application.Current.Resources["WinForgeBrandBrush"],
                     VerticalAlignment = VerticalAlignment.Center,
-                    Child = new TextBlock { Text = n.ToString(), FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.Bold, Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, 6, 33, 15)), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
+                    Child = new TextBlock { Text = n.ToString(), FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.Bold, Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 6, 33, 15)), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
                 };
                 Grid.SetColumn(badge, 0);
                 row.Children.Add(badge);
@@ -198,19 +229,15 @@ public sealed partial class CamoufoxModule : Page
         TabGit.Header = P("Git / History", "Git／歷史");
         TabEngine.Header = P("Engine", "引擎");
         HeaderBlurb.Text = P(
-            "Manage Camoufox anti-detect browser profiles — cookies, fingerprints and names stored as files in a local git repo that commits every change. Launch, edit, delete and export profiles entirely in-app.",
-            "管理 Camoufox 指紋瀏覽器設定檔 — cookies、指紋同名稱以檔案形式存喺本地 git 倉庫，每次改動都會 commit。喺 app 內啟動、編輯、刪除同匯出設定檔。");
+            "Anti-detect browser profiles — cookies & fingerprints as files in a local git repo that commits every change.",
+            "指紋瀏覽器設定檔 — cookies 同指紋以檔案存喺本地 git 倉庫，每次改動都會 commit。");
 
-        NewBtn.Content = P("New", "新增");
-        EditBtn.Content = P("Edit", "編輯");
-        DeleteBtn.Content = P("Delete", "刪除");
-        LaunchBtn.Content = P("Launch", "啟動");
-        ExportSelBtn.Content = P("Export selected…", "匯出已選…");
-        ExportAllBtn.Content = P("Export all…", "全部匯出…");
-        ImportBtn.Content = P("Import…", "匯入…");
-        RefreshProfilesBtn.Content = P("Refresh", "重新整理");
-        ProfilesEmpty.Text = P("No profiles yet. Click \"New\" to create your first Camoufox profile.",
-            "未有設定檔。撳「新增」整你第一個 Camoufox 設定檔。");
+        // Profiles toolbar: New has text; the rest are icon buttons with tooltips (set in XAML).
+        NewBtnText.Text = P("New profile", "新增設定檔");
+        EmptyNewBtnText.Text = P("New profile", "新增設定檔");
+        ProfilesEmptyText.Text = P("No profiles yet. Create your first Camoufox profile to store its cookies and fingerprint.",
+            "未有設定檔。整你第一個 Camoufox 設定檔，儲存佢嘅 cookies 同指紋。");
+        ProfilesLoadingText.Text = P("Loading profiles…", "載入設定檔中…");
 
         GitTitle.Text = P("Local git store (auto-commits every change)", "本地 git 倉庫（每次改動自動 commit）");
         GitDesc.Text = P("Every create / edit / delete / launch / import is committed automatically. \"Sync\" commits any pending changes in one go; below is the full commit history for this feature.",
@@ -236,6 +263,41 @@ public sealed partial class CamoufoxModule : Page
         DetectBtn.Content = P("Re-detect", "重新偵測");
         BuildLogTitle.Text = P("Build log", "建置記錄");
         RepoPath.Text = CamoufoxService.StoreDir;
+
+        // Chips reflect current known state (updated again after async probes).
+        UpdateCountChip(ProfileList.ItemsSource is IReadOnlyCollection<CamoufoxProfile> c ? c.Count : (int?)null);
+    }
+
+    // ───────────────────────── header chips ─────────────────────────
+
+    private void UpdateCountChip(int? count)
+    {
+        CountChipText.Text = count is null
+            ? P("Profiles", "設定檔")
+            : P($"{count} profile(s)", $"{count} 個設定檔");
+    }
+
+    private void SetEngineChip(bool installed)
+    {
+        EngineChipText.Text = installed ? P("Engine ready", "引擎就緒") : P("Engine not installed", "引擎未安裝");
+        var key = installed ? "SystemFillColorSuccessBrush" : "SystemFillColorCautionBrush";
+        try { EngineDot.Fill = (Brush)Application.Current.Resources[key]; } catch { }
+    }
+
+    private async Task ProbeEngineChipAsync()
+    {
+        try
+        {
+            var exe = await Task.Run(() => CamoufoxService.LocateExecutable());
+            SetEngineChip(exe is not null);
+        }
+        catch (Exception ex) { CrashLogger.Log("camoufox.chip", ex); }
+    }
+
+    private void SetProfilesLoading(bool on)
+    {
+        ProfilesLoading.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
+        if (on) ProfilesEmpty.Visibility = Visibility.Collapsed;
     }
 
     // ───────────────────────── result/output plumbing ─────────────────────────
@@ -254,7 +316,7 @@ public sealed partial class CamoufoxModule : Page
     {
         if (_busy) return;
         _busy = true;
-        try { Show(await op(), verb, outputTarget); }
+        try { Show(await Task.Run(op), verb, outputTarget); }
         catch (Exception ex)
         {
             ResultBar.Severity = InfoBarSeverity.Error;
@@ -272,18 +334,29 @@ public sealed partial class CamoufoxModule : Page
     {
         try
         {
-            var profiles = await CamoufoxService.ListProfilesAsync();
+            SetProfilesLoading(true);
+            // Offload the git EnsureRepo + manifest reads to the pool so the UI thread stays responsive.
+            var profiles = await Task.Run(() => CamoufoxService.ListProfilesAsync());
             ProfileList.ItemsSource = profiles;
             ProfilesEmpty.Visibility = profiles.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+            UpdateCountChip(profiles.Count);
             await RefreshPending();
         }
         catch (Exception ex) { CrashLogger.Log("camoufox.refresh", ex); }
+        finally { SetProfilesLoading(false); }
     }
 
     private async void RefreshProfiles_Click(object sender, RoutedEventArgs e) => await RefreshProfiles();
 
     private List<CamoufoxProfile> Selected() =>
         ProfileList.SelectedItems.OfType<CamoufoxProfile>().ToList();
+
+    /// <summary>Git 歷史過時就重載（或標記待重載）· Reload commit history now if the Git tab is showing, else on next view.</summary>
+    private void InvalidateCommits()
+    {
+        _commitsLoaded = false;
+        if (ReferenceEquals(MainPivot.SelectedItem, TabGit)) { _commitsLoaded = true; _ = RefreshCommits(); }
+    }
 
     private async void New_Click(object sender, RoutedEventArgs e)
     {
@@ -292,7 +365,7 @@ public sealed partial class CamoufoxModule : Page
         if (edited is null) return;
         await Run(() => CamoufoxService.SaveProfileAsync(edited), P("Create profile", "新增設定檔"));
         await RefreshProfiles();
-        await RefreshCommits();
+        InvalidateCommits();
     }
 
     private async void Edit_Click(object sender, RoutedEventArgs e)
@@ -303,11 +376,21 @@ public sealed partial class CamoufoxModule : Page
             Warn(P("Select exactly one profile to edit.", "請揀一個設定檔嚟編輯。"));
             return;
         }
-        var edited = await EditProfileDialog(sel[0], isNew: false);
+        await EditOne(sel[0]);
+    }
+
+    private async void RowEdit_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement fe && fe.DataContext is CamoufoxProfile p) await EditOne(p);
+    }
+
+    private async Task EditOne(CamoufoxProfile profile)
+    {
+        var edited = await EditProfileDialog(profile, isNew: false);
         if (edited is null) return;
         await Run(() => CamoufoxService.SaveProfileAsync(edited), P("Edit profile", "編輯設定檔"));
         await RefreshProfiles();
-        await RefreshCommits();
+        InvalidateCommits();
     }
 
     private async void Delete_Click(object sender, RoutedEventArgs e)
@@ -330,15 +413,25 @@ public sealed partial class CamoufoxModule : Page
         foreach (var p in sel)
             await Run(() => CamoufoxService.DeleteProfileAsync(p), P("Delete profile", "刪除設定檔"));
         await RefreshProfiles();
-        await RefreshCommits();
+        InvalidateCommits();
     }
 
     private async void Launch_Click(object sender, RoutedEventArgs e)
     {
         var sel = Selected();
         if (sel.Count != 1) { Warn(P("Select exactly one profile to launch.", "請揀一個設定檔嚟啟動。")); return; }
-        await Run(() => CamoufoxService.LaunchProfileAsync(sel[0]), P("Launch profile", "啟動設定檔"));
-        await RefreshCommits();
+        await LaunchOne(sel[0]);
+    }
+
+    private async void RowLaunch_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement fe && fe.DataContext is CamoufoxProfile p) await LaunchOne(p);
+    }
+
+    private async Task LaunchOne(CamoufoxProfile profile)
+    {
+        await Run(() => CamoufoxService.LaunchProfileAsync(profile), P("Launch profile", "啟動設定檔"));
+        InvalidateCommits();
     }
 
     private async void ExportSelected_Click(object sender, RoutedEventArgs e)
@@ -363,7 +456,7 @@ public sealed partial class CamoufoxModule : Page
         if (path is null) return;
         await Run(() => CamoufoxService.ImportAsync(path), P("Import profiles", "匯入設定檔"));
         await RefreshProfiles();
-        await RefreshCommits();
+        InvalidateCommits();
     }
 
     // ───────────────────────── editor dialog ─────────────────────────
@@ -387,7 +480,7 @@ public sealed partial class CamoufoxModule : Page
             AcceptsReturn = multiline,
             TextWrapping = multiline ? TextWrapping.Wrap : TextWrapping.NoWrap,
             Height = multiline ? 90 : double.NaN,
-            FontFamily = multiline ? new Microsoft.UI.Xaml.Media.FontFamily("Consolas") : FontFamily,
+            FontFamily = multiline ? new FontFamily("Consolas") : FontFamily,
         };
 
         var nameBox = MakeBox(p.Name, P("Profile name", "設定檔名稱"));
@@ -458,7 +551,7 @@ public sealed partial class CamoufoxModule : Page
     {
         try
         {
-            int pending = await CamoufoxService.PendingChangesAsync();
+            int pending = await Task.Run(() => CamoufoxService.PendingChangesAsync());
             PendingStatus.Text = pending == 0
                 ? P("In sync — no pending changes.", "已同步 — 冇待處理改動。")
                 : P($"{pending} pending change(s) not yet committed.", $"有 {pending} 項改動仲未 commit。");
@@ -470,7 +563,7 @@ public sealed partial class CamoufoxModule : Page
     {
         try
         {
-            var commits = await CamoufoxService.ListCommitsAsync();
+            var commits = await Task.Run(() => CamoufoxService.ListCommitsAsync());
             CommitList.ItemsSource = commits;
             CommitsEmpty.Visibility = commits.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
             await RefreshPending();
@@ -541,7 +634,7 @@ public sealed partial class CamoufoxModule : Page
     {
         try
         {
-            var exe = CamoufoxService.LocateExecutable();
+            var exe = await Task.Run(() => CamoufoxService.LocateExecutable());
             if (exe is not null)
             {
                 EngineStatusBar.Severity = InfoBarSeverity.Success;
@@ -556,9 +649,9 @@ public sealed partial class CamoufoxModule : Page
                 EngineStatusBar.Message = P("Clone & build from source to enable launching.", "Clone 並由原始碼建置先可以啟動。");
                 ExePath.Text = P("(not found)", "（搵唔到）");
             }
+            SetEngineChip(exe is not null);
         }
         catch (Exception ex) { CrashLogger.Log("camoufox.engine", ex); }
-        await Task.CompletedTask;
     }
 
     private async void Detect_Click(object sender, RoutedEventArgs e) => await RefreshEngine();
@@ -581,7 +674,7 @@ public sealed partial class CamoufoxModule : Page
                     BuildLogScroller.ChangeView(null, BuildLogScroller.ScrollableHeight, null);
                 });
             }
-            var r = await CamoufoxService.CloneAndBuildAsync(Log);
+            var r = await Task.Run(() => CamoufoxService.CloneAndBuildAsync(Log));
             Show(r, P("Clone & build", "Clone 並建置"));
         }
         catch (Exception ex)
