@@ -652,12 +652,18 @@ public static class TabSessionService
             foreach (var arg in args) psi.ArgumentList.Add(arg);
             using var p = Process.Start(psi);
             if (p is null) return string.Empty;
+            // Drain both pipes concurrently BEFORE waiting — with both redirected, a child that fills
+            // one pipe blocks on write and never exits, so WaitForExit always timed out and the
+            // post-exit ReadToEnd could hang on the other stream.
+            var so = p.StandardOutput.ReadToEndAsync();
+            var se = p.StandardError.ReadToEndAsync();
             if (!p.WaitForExit(8000))
             {
                 try { p.Kill(entireProcessTree: true); } catch { }
                 return string.Empty;
             }
-            return (p.StandardOutput.ReadToEnd() + p.StandardError.ReadToEnd()).Trim();
+            try { System.Threading.Tasks.Task.WaitAll(new System.Threading.Tasks.Task[] { so, se }, 2000); } catch { }
+            return ((so.IsCompletedSuccessfully ? so.Result : "") + (se.IsCompletedSuccessfully ? se.Result : "")).Trim();
         }
         catch { return string.Empty; }
     }
