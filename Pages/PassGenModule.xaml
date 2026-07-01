@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.PassGenModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="760" Spacing="14">
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE928;" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <!-- Mode selector -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="ModeLabel" FontWeight="SemiBold" FontSize="15" />
+                    <RadioButtons x:Name="ModeRadios" SelectedIndex="0" MaxColumns="2" SelectionChanged="Mode_Changed">
+                        <RadioButton x:Name="ModePasswordRadio" />
+                        <RadioButton x:Name="ModePassphraseRadio" />
+                    </RadioButtons>
+                </StackPanel>
+            </Border>
+
+            <!-- Password options -->
+            <Border x:Name="PasswordCard" Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <TextBlock x:Name="PasswordCardTitle" FontWeight="SemiBold" FontSize="15" />
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <TextBlock x:Name="LengthLabel" VerticalAlignment="Center" />
+                        <NumberBox x:Name="LengthBox" Value="16" Minimum="4" Maximum="128" SpinButtonPlacementMode="Inline" MinWidth="150" ValueChanged="Options_Changed" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="4">
+                        <CheckBox x:Name="LowerChk" IsChecked="True" Checked="Options_Changed" Unchecked="Options_Changed" />
+                        <CheckBox x:Name="UpperChk" IsChecked="True" Checked="Options_Changed" Unchecked="Options_Changed" />
+                        <CheckBox x:Name="DigitsChk" IsChecked="True" Checked="Options_Changed" Unchecked="Options_Changed" />
+                        <CheckBox x:Name="SymbolsChk" IsChecked="True" Checked="Options_Changed" Unchecked="Options_Changed" />
+                    </StackPanel>
+
+                    <ToggleSwitch x:Name="AmbiguousSwitch" Toggled="Options_Changed" />
+                    <ToggleSwitch x:Name="NoRepeatSwitch" Toggled="Options_Changed" />
+                </StackPanel>
+            </Border>
+
+            <!-- Passphrase options -->
+            <Border x:Name="PassphraseCard" Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Visibility="Collapsed">
+                <StackPanel Spacing="12">
+                    <TextBlock x:Name="PassphraseCardTitle" FontWeight="SemiBold" FontSize="15" />
+                    <TextBlock x:Name="DictInfo" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <TextBlock x:Name="WordCountLabel" VerticalAlignment="Center" />
+                        <NumberBox x:Name="WordCountBox" Value="4" Minimum="3" Maximum="10" SpinButtonPlacementMode="Inline" MinWidth="150" ValueChanged="Options_Changed" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <TextBlock x:Name="SeparatorLabel" VerticalAlignment="Center" />
+                        <ComboBox x:Name="SeparatorCombo" SelectedIndex="0" MinWidth="180" SelectionChanged="Options_Changed" />
+                    </StackPanel>
+                    <ToggleSwitch x:Name="CapitalizeSwitch" Toggled="Options_Changed" />
+                    <ToggleSwitch x:Name="AppendDigitSwitch" Toggled="Options_Changed" />
+                </StackPanel>
+            </Border>
+
+            <!-- Bulk + generate -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <TextBlock x:Name="CountLabel" VerticalAlignment="Center" />
+                        <NumberBox x:Name="CountBox" Value="1" Minimum="1" Maximum="100" SpinButtonPlacementMode="Inline" MinWidth="150" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button x:Name="GenerateBtn" Click="Generate_Click" Style="{ThemeResource AccentButtonStyle}" />
+                        <Button x:Name="CopyBtn" Click="Copy_Click" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="4">
+                        <TextBlock x:Name="EntropyLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <ProgressBar x:Name="EntropyBar" Minimum="0" Maximum="128" Value="0" />
+                    </StackPanel>
+
+                    <TextBox x:Name="OutputBox" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" FontFamily="Consolas" MinHeight="120" IsSpellCheckEnabled="False" />
+                    <TextBlock x:Name="StatusText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

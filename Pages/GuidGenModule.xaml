@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.GuidGenModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="760" Spacing="14">
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE943;" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <!-- GUID -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <TextBlock x:Name="GuidTitle" FontWeight="SemiBold" FontSize="15" />
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <TextBlock x:Name="FormatLabel" VerticalAlignment="Center" />
+                        <ComboBox x:Name="FormatCombo" MinWidth="220" SelectionChanged="Guid_OptionChanged">
+                            <ComboBoxItem Content="D — 32 digits + hyphens" Tag="D" />
+                            <ComboBoxItem Content="N — 32 digits, no hyphens" Tag="N" />
+                            <ComboBoxItem Content="B — {braces}" Tag="B" />
+                            <ComboBoxItem Content="P — (parentheses)" Tag="P" />
+                            <ComboBoxItem Content="X — hex object" Tag="X" />
+                        </ComboBox>
+                        <ToggleSwitch x:Name="UpperSwitch" Toggled="Guid_OptionChanged" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <TextBox x:Name="GuidBox" IsReadOnly="True" IsSpellCheckEnabled="False" FontFamily="Consolas" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="GuidGenBtn" Click="GenGuid_Click" />
+                        <Button x:Name="GuidCopyBtn" Click="CopyGuid_Click" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Bulk -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <TextBlock x:Name="BulkTitle" FontWeight="SemiBold" FontSize="15" />
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <TextBlock x:Name="CountLabel" VerticalAlignment="Center" />
+                        <NumberBox x:Name="CountBox" Value="10" Minimum="1" Maximum="1000" SpinButtonPlacementMode="Inline" MinWidth="150" />
+                        <Button x:Name="BulkGenBtn" Click="GenBulk_Click" />
+                        <Button x:Name="BulkCopyBtn" Click="CopyBulk_Click" />
+                    </StackPanel>
+                    <TextBox x:Name="BulkBox" IsReadOnly="True" IsSpellCheckEnabled="False" AcceptsReturn="True" TextWrapping="NoWrap" FontFamily="Consolas" Height="180" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Auto" />
+                </StackPanel>
+            </Border>
+
+            <!-- ULID + nanoid -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <TextBlock x:Name="OtherTitle" FontWeight="SemiBold" FontSize="15" />
+                    <TextBox x:Name="UlidBox" IsReadOnly="True" IsSpellCheckEnabled="False" FontFamily="Consolas" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="UlidGenBtn" Click="GenUlid_Click" />
+                        <Button x:Name="UlidCopyBtn" Click="CopyUlid_Click" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <TextBlock x:Name="NanoLenLabel" VerticalAlignment="Center" />
+                        <NumberBox x:Name="NanoLenBox" Value="21" Minimum="4" Maximum="64" SpinButtonPlacementMode="Inline" MinWidth="150" />
+                    </StackPanel>
+                    <TextBox x:Name="NanoBox" IsReadOnly="True" IsSpellCheckEnabled="False" FontFamily="Consolas" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="NanoGenBtn" Click="GenNano_Click" />
+                        <Button x:Name="NanoCopyBtn" Click="CopyNano_Click" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Inspector -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <TextBlock x:Name="InspectTitle" FontWeight="SemiBold" FontSize="15" />
+                    <TextBox x:Name="InspectInput" IsSpellCheckEnabled="False" FontFamily="Consolas" TextChanged="Inspect_Changed" />
+                    <TextBlock x:Name="InspectHexLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBox x:Name="InspectHexBox" IsReadOnly="True" IsSpellCheckEnabled="False" FontFamily="Consolas" />
+                    <TextBlock x:Name="InspectMeta" FontSize="13" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <TextBlock x:Name="StatusText" FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+        </StackPanel>
+    </ScrollViewer>
+</Page>

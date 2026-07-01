@@ -77,6 +77,7 @@ public static class UnitConvertService
                 new UnitDef { Id = "c", En = "Celsius (°C)",    Zh = "攝氏 (°C)", Factor = 1.0,        Offset = 0.0 },
                 new UnitDef { Id = "f", En = "Fahrenheit (°F)", Zh = "華氏 (°F)", Factor = 5.0 / 9.0,  Offset = -160.0 / 9.0 },
                 new UnitDef { Id = "k", En = "Kelvin (K)",      Zh = "開爾文 (K)", Factor = 1.0,       Offset = -273.15 },
+                new UnitDef { Id = "r", En = "Rankine (°R)",    Zh = "蘭氏 (°R)",  Factor = 5.0 / 9.0,  Offset = -273.15 },
             },
         },
         new UnitCategory
@@ -84,6 +85,7 @@ public static class UnitConvertService
             Id = "data", En = "Data size", Zh = "資料大小",
             Units = new[]
             {
+                new UnitDef { Id = "bit", En = "Bit (bit)",      Zh = "位元 (bit)",  Factor = 0.125 },
                 new UnitDef { Id = "b",   En = "Byte (B)",       Zh = "位元組 (B)",  Factor = 1.0 },
                 new UnitDef { Id = "kb",  En = "Kilobyte (KB)",  Zh = "KB",          Factor = 1000.0 },
                 new UnitDef { Id = "mb",  En = "Megabyte (MB)",  Zh = "MB",          Factor = 1e6 },
@@ -92,6 +94,7 @@ public static class UnitConvertService
                 new UnitDef { Id = "kib", En = "Kibibyte (KiB)", Zh = "KiB",         Factor = 1024.0 },
                 new UnitDef { Id = "mib", En = "Mebibyte (MiB)", Zh = "MiB",         Factor = 1048576.0 },
                 new UnitDef { Id = "gib", En = "Gibibyte (GiB)", Zh = "GiB",         Factor = 1073741824.0 },
+                new UnitDef { Id = "tib", En = "Tebibyte (TiB)", Zh = "TiB",         Factor = 1099511627776.0 },
             },
         },
         new UnitCategory
@@ -131,6 +134,33 @@ public static class UnitConvertService
                 new UnitDef { Id = "cup", En = "Cup (US)",         Zh = "杯（美）",  Factor = 0.2365882365 },
                 new UnitDef { Id = "galus", En = "Gallon (US)",    Zh = "加侖（美）", Factor = 3.785411784 },
                 new UnitDef { Id = "galuk", En = "Gallon (UK)",    Zh = "加侖（英）", Factor = 4.54609 },
+            },
+        },
+        new UnitCategory
+        {
+            Id = "time", En = "Time", Zh = "時間",
+            Units = new[]
+            {
+                new UnitDef { Id = "ms",   En = "Millisecond (ms)", Zh = "毫秒 (ms)",  Factor = 0.001 },
+                new UnitDef { Id = "s",    En = "Second (s)",       Zh = "秒 (s)",     Factor = 1.0 },
+                new UnitDef { Id = "min",  En = "Minute (min)",     Zh = "分鐘 (min)", Factor = 60.0 },
+                new UnitDef { Id = "h",    En = "Hour (h)",         Zh = "小時 (h)",   Factor = 3600.0 },
+                new UnitDef { Id = "day",  En = "Day",              Zh = "日",         Factor = 86400.0 },
+                new UnitDef { Id = "week", En = "Week",             Zh = "星期",       Factor = 604800.0 },
+                new UnitDef { Id = "year", En = "Year (365.25 d)",  Zh = "年（365.25 日）", Factor = 31557600.0 },
+            },
+        },
+        new UnitCategory
+        {
+            Id = "pressure", En = "Pressure", Zh = "壓力",
+            Units = new[]
+            {
+                new UnitDef { Id = "pa",   En = "Pascal (Pa)",      Zh = "帕斯卡 (Pa)", Factor = 1.0 },
+                new UnitDef { Id = "kpa",  En = "Kilopascal (kPa)", Zh = "千帕 (kPa)",  Factor = 1000.0 },
+                new UnitDef { Id = "bar",  En = "Bar",              Zh = "巴 (bar)",    Factor = 100000.0 },
+                new UnitDef { Id = "atm",  En = "Atmosphere (atm)", Zh = "標準大氣壓 (atm)", Factor = 101325.0 },
+                new UnitDef { Id = "psi",  En = "PSI",              Zh = "磅／平方吋 (psi)", Factor = 6894.757293168 },
+                new UnitDef { Id = "mmhg", En = "mmHg (Torr)",      Zh = "毫米汞柱 (mmHg)",  Factor = 133.322387415 },
             },
         },
     };

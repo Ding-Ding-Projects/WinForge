@@ -62,25 +62,29 @@ public sealed partial class ProcessExplorerModule : Page
     private double _intervalSec = 2.0;
     private string _filter = "";
     private bool _firstFill = true;
+    private bool _busy;
 
     public ProcessExplorerModule()
     {
         InitializeComponent();
         Tree.ItemsSource = _roots;
-        _timer.Tick += (_, _) => Tick();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        _timer.Tick += (_, _) => _ = Tick();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += OnLoaded;
-        Unloaded += (_, _) => _timer.Stop();
+        Unloaded += (_, _) => { _timer.Stop(); Loc.I.LanguageChanged -= OnLanguageChanged; };
     }
+
+    private void OnLanguageChanged(object? s, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
-    private void OnLoaded(object sender, RoutedEventArgs e)
+    private async void OnLoaded(object sender, RoutedEventArgs e)
     {
         Render();
-        // Prime the CPU delta sampler so the first visible tick has real percentages.
-        ProcessExplorerService.Snapshot();
-        Tick();
+        // Prime the CPU delta sampler (off the UI thread) so the first visible tick has real percentages.
+        try { await System.Threading.Tasks.Task.Run(() => ProcessExplorerService.Snapshot()); }
+        catch { /* ignore priming failures */ }
+        await Tick();
         _timer.Start();
     }
 
@@ -140,23 +144,39 @@ public sealed partial class ProcessExplorerModule : Page
     private void Search_Changed(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
     {
         _filter = sender.Text?.Trim() ?? "";
-        if (IsLoaded) Tick();
+        if (IsLoaded) _ = Tick();
     }
 
     // ---------------- Sampling ----------------
-    private void Tick()
+    // The WMI + per-process GetOwner snapshot is heavy; run it off the UI thread and
+    // guard against re-entrancy so slow snapshots don't pile up.
+    private async System.Threading.Tasks.Task Tick()
     {
-        var snapshot = ProcessExplorerService.Snapshot();
+        if (_busy) return;
+        _busy = true;
+        try
+        {
+            var snapshot = await System.Threading.Tasks.Task.Run(() => ProcessExplorerService.Snapshot());
 
-        // Header summary.
-        double totalCpu = snapshot.Sum(p => p.CpuPercent);
-        long totalMem = snapshot.Sum(p => p.WorkingSetBytes);
-        SumProcValue.Text = snapshot.Count.ToString();
-        SumCpuValue.Text = $"{Math.Round(Math.Clamp(totalCpu, 0, 100))}%";
-        SumMemValue.Text = ProcessExplorerService.Bytes(totalMem);
+            // Back on the UI thread after the await — safe to touch the tree/controls.
+            // Header summary.
+            double totalCpu = snapshot.Sum(p => p.CpuPercent);
+            long totalMem = snapshot.Sum(p => p.WorkingSetBytes);
+            SumProcValue.Text = snapshot.Count.ToString();
+            SumCpuValue.Text = $"{Math.Round(Math.Clamp(totalCpu, 0, 100))}%";
+            SumMemValue.Text = ProcessExplorerService.Bytes(totalMem);
 
-        if (_filter.Length > 0) RenderFlat(snapshot);
-        else RenderTree(snapshot);
+            if (_filter.Length > 0) RenderFlat(snapshot);
+            else RenderTree(snapshot);
+        }
+        catch
+        {
+            // Never let a sampling failure crash the tick / take down the page.
+        }
+        finally
+        {
+            _busy = false;
+        }
     }
 
     private bool Matches(ProcEntry e) =>
@@ -297,7 +317,7 @@ public sealed partial class ProcessExplorerModule : Page
         if (n is null) { await Toast(P("Select a process first.", "請先揀一個程序。")); return; }
         if (!ProcessExplorerService.Kill(n.Pid))
             await Toast(P($"Could not end {n.Name} (PID {n.Pid}). Access may be denied.", $"無法結束 {n.Name}（PID {n.Pid}）。可能權限不足。"));
-        Tick();
+        await Tick();
     }
 
     private async void EndTree_Click(object sender, RoutedEventArgs e)
@@ -318,7 +338,7 @@ public sealed partial class ProcessExplorerModule : Page
         if (await dlg.ShowAsync() != ContentDialogResult.Primary) return;
 
         int killed = ProcessExplorerService.KillTree(n.Pid);
-        Tick();
+        await Tick();
         await Toast(P($"Ended {killed} process(es).", $"已結束 {killed} 個程序。"));
     }
 
@@ -332,7 +352,7 @@ public sealed partial class ProcessExplorerModule : Page
         {
             var item = new MenuFlyoutItem { Text = label };
             int pid = n.Pid;
-            item.Click += (_, _) => { ProcessExplorerService.SetPriority(pid, cls); Tick(); };
+            item.Click += (_, _) => { ProcessExplorerService.SetPriority(pid, cls); _ = Tick(); };
             mf.Items.Add(item);
         }
         mf.ShowAt(b);

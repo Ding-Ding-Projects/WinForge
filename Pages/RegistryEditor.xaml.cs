@@ -31,10 +31,16 @@ public sealed partial class RegistryEditor : Page
     private readonly Dictionary<TreeViewNode, RegNode> _info = new();
     private RegNode? _current;
 
+    // Nodes whose children are currently being enumerated off-thread — guards against
+    // a second Expanding for the same node double-populating it.
+    private readonly HashSet<TreeViewNode> _expanding = new();
+    // Monotonic token so a slow value-load for an old key can't overwrite a newer one.
+    private int _valuesLoadToken;
+
     public RegistryEditor()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) =>
         {
             Render();
@@ -42,9 +48,12 @@ public sealed partial class RegistryEditor : Page
             // 預設載入一個有值嘅機碼 · preload a populated key so values are visible immediately.
             LoadValues(new RegNode(RegRoot.HKCU, @"Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"));
         };
+        Unloaded += (_, _) => Loc.I.LanguageChanged -= OnLanguageChanged;
     }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private void Render()
     {
@@ -77,20 +86,47 @@ public sealed partial class RegistryEditor : Page
         }
     }
 
-    private void Tree_Expanding(TreeView sender, TreeViewExpandingEventArgs args)
+    private async void Tree_Expanding(TreeView sender, TreeViewExpandingEventArgs args)
     {
         var node = args.Node;
         if (!node.HasUnrealizedChildren || node.Children.Count > 0) return;
         if (!_info.TryGetValue(node, out var info)) return;
+        // Guard: a rapid second Expanding for the same node must not double-populate.
+        if (!_expanding.Add(node)) return;
 
-        foreach (var name in RegistryHelper.GetSubKeyNames(info.Root, info.Path).OrderBy(n => n, StringComparer.OrdinalIgnoreCase))
+        try
         {
-            var childPath = string.IsNullOrEmpty(info.Path) ? name : info.Path + "\\" + name;
-            var child = new TreeViewNode { Content = name, HasUnrealizedChildren = true };
-            _info[child] = new RegNode(info.Root, childPath);
-            node.Children.Add(child);
+            // Enumerating a large hive (HKCR, HKLM Uninstall) can block for a beat —
+            // do the subkey walk off the UI thread. Inaccessible keys are skipped.
+            List<string> names;
+            try
+            {
+                names = await Task.Run(() =>
+                {
+                    try
+                    {
+                        return RegistryHelper.GetSubKeyNames(info.Root, info.Path)
+                            .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+                            .ToList();
+                    }
+                    catch { return new List<string>(); }
+                });
+            }
+            catch { names = new List<string>(); }
+
+            // If torn down or already realized by another path while awaiting, stop.
+            if (!IsLoaded || node.Children.Count > 0) return;
+
+            foreach (var name in names)
+            {
+                var childPath = string.IsNullOrEmpty(info.Path) ? name : info.Path + "\\" + name;
+                var child = new TreeViewNode { Content = name, HasUnrealizedChildren = true };
+                _info[child] = new RegNode(info.Root, childPath);
+                node.Children.Add(child);
+            }
+            node.HasUnrealizedChildren = false;
         }
-        node.HasUnrealizedChildren = false;
+        finally { _expanding.Remove(node); }
     }
 
     private void Tree_ItemInvoked(TreeView sender, TreeViewItemInvokedEventArgs args)
@@ -99,23 +135,44 @@ public sealed partial class RegistryEditor : Page
             LoadValues(info);
     }
 
-    private void LoadValues(RegNode info)
+    private async void LoadValues(RegNode info)
     {
         _current = info;
         PathBar.Text = Prefix(info.Root) + (string.IsNullOrEmpty(info.Path) ? "" : "\\" + info.Path);
-        var rows = new List<ValueRow>();
-        foreach (var (name, kind, data) in RegistryHelper.GetValues(info.Root, info.Path))
+        int token = ++_valuesLoadToken;
+
+        // Reading a key's values can block on large / access-restricted keys — do it
+        // off the UI thread. Access failures are handled gracefully (empty list).
+        List<ValueRow> rows;
+        try
         {
-            rows.Add(new ValueRow
+            rows = await Task.Run(() =>
             {
-                RealName = name,
-                Name = string.IsNullOrEmpty(name) ? "(Default · 預設)" : name,
-                Kind = kind,
-                Data = data,
-                TypeText = TypeText(kind),
-                DataText = DataText(kind, data),
+                var list = new List<ValueRow>();
+                try
+                {
+                    foreach (var (name, kind, data) in RegistryHelper.GetValues(info.Root, info.Path))
+                    {
+                        list.Add(new ValueRow
+                        {
+                            RealName = name,
+                            Name = string.IsNullOrEmpty(name) ? "(Default · 預設)" : name,
+                            Kind = kind,
+                            Data = data,
+                            TypeText = TypeText(kind),
+                            DataText = DataText(kind, data),
+                        });
+                    }
+                }
+                catch { /* inaccessible key — show nothing rather than crash */ }
+                return list;
             });
         }
+        catch { rows = new List<ValueRow>(); }
+
+        // A newer key selection superseded this one, or we were torn down — discard.
+        if (token != _valuesLoadToken || !IsLoaded) return;
+
         ValuesList.ItemsSource = rows;
         EditBtn.IsEnabled = false;
         DeleteBtn.IsEnabled = false;

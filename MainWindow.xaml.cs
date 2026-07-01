@@ -298,6 +298,44 @@ public sealed partial class MainWindow : Window
         }
         switch (App.StartPage)
         {
+            case "guidgen":
+                Navigator.GoToModule?.Invoke("module.guidgen");
+                break;
+            case "hasher":
+                Navigator.GoToModule?.Invoke("module.hasher");
+                break;
+            case "encoder":
+                Navigator.GoToModule?.Invoke("module.encoder");
+                break;
+            case "jsontools":
+                Navigator.GoToModule?.Invoke("module.jsontools");
+                break;
+            case "regextester":
+            case "regex":
+                Navigator.GoToModule?.Invoke("module.regextester");
+                break;
+            case "passgen":
+            case "password":
+                Navigator.GoToModule?.Invoke("module.passgen");
+                break;
+            case "texttools":
+                Navigator.GoToModule?.Invoke("module.texttools");
+                break;
+            case "baseconvert":
+                Navigator.GoToModule?.Invoke("module.baseconvert");
+                break;
+            case "epoch":
+                Navigator.GoToModule?.Invoke("module.epoch");
+                break;
+            case "unitconvert":
+                Navigator.GoToModule?.Invoke("module.unitconvert");
+                break;
+            case "charmap":
+                Navigator.GoToModule?.Invoke("module.charmap");
+                break;
+            case "colortools":
+                Navigator.GoToModule?.Invoke("module.colortools");
+                break;
             case "git":
             case "github":
                 Navigator.GoToModule?.Invoke("module.git");
@@ -1541,6 +1579,18 @@ public sealed partial class MainWindow : Window
         "module.diffmerge" => typeof(DiffMergeModule),
         "module.apiclient" => typeof(ApiClientModule),
         "module.connectors" => typeof(ConnectorsModule),
+        "module.guidgen" => typeof(GuidGenModule),
+        "module.hasher" => typeof(HasherModule),
+        "module.encoder" => typeof(EncoderModule),
+        "module.jsontools" => typeof(JsonToolsModule),
+        "module.regextester" => typeof(RegexTesterModule),
+        "module.passgen" => typeof(PassGenModule),
+        "module.texttools" => typeof(TextToolsModule),
+        "module.baseconvert" => typeof(BaseConvertModule),
+        "module.epoch" => typeof(EpochModule),
+        "module.unitconvert" => typeof(UnitConvertModule),
+        "module.charmap" => typeof(CharMapModule),
+        "module.colortools" => typeof(ColorToolsModule),
         _ => typeof(DashboardPage),
     };
 
@@ -1789,6 +1839,18 @@ public sealed partial class MainWindow : Window
             En = "Security & privacy",
             Zh = "安全與私隱",
             Keys = new[] { "module.vault-volumes", "module.bitwarden", "module.keepass", "module.camoufox" },
+        },
+        new()
+        {
+            Id = "dev",
+            En = "Developer tools",
+            Zh = "開發者工具",
+            Keys = new[]
+            {
+                "module.guidgen", "module.hasher", "module.encoder", "module.jsontools", "module.regextester",
+                "module.passgen", "module.texttools", "module.baseconvert", "module.epoch", "module.unitconvert",
+                "module.charmap", "module.colortools",
+            },
         },
     };
 

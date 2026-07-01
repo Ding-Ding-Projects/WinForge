@@ -283,6 +283,24 @@
                     </NavigationViewItem.MenuItems>
                 </NavigationViewItem>
 
+                <NavigationViewItem Content="Developer Tools · 開發者工具" SelectsOnInvoked="False">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon>
+                    <NavigationViewItem.MenuItems>
+                        <NavigationViewItem Content="GUID &amp; ID Generator · GUID 同 ID 產生器" Tag="module.guidgen"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Hash &amp; Checksum · 雜湊與校驗和" Tag="module.hasher"><NavigationViewItem.Icon><FontIcon Glyph="&#xE9A9;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Encode / Decode · 編碼 / 解碼" Tag="module.encoder"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8C8;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="JSON &amp; XML Tools · JSON 同 XML 工具" Tag="module.jsontools"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Regex Tester · 正則表達式測試" Tag="module.regextester"><NavigationViewItem.Icon><FontIcon Glyph="&#xE773;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Password Generator · 密碼產生器" Tag="module.passgen"><NavigationViewItem.Icon><FontIcon Glyph="&#xE928;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Text Tools · 文字工具" Tag="module.texttools"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Base Converter · 進位轉換" Tag="module.baseconvert"><NavigationViewItem.Icon><FontIcon Glyph="&#xE1D0;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Epoch Converter · 紀元轉換器" Tag="module.epoch"><NavigationViewItem.Icon><FontIcon Glyph="&#xEC92;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Unit Converter · 單位換算" Tag="module.unitconvert"><NavigationViewItem.Icon><FontIcon Glyph="&#xE9CE;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Character Map · 字元對照表" Tag="module.charmap"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8D2;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Color Tools · 色彩工具" Tag="module.colortools"><NavigationViewItem.Icon><FontIcon Glyph="&#xE790;" /></NavigationViewItem.Icon></NavigationViewItem>
+                    </NavigationViewItem.MenuItems>
+                </NavigationViewItem>
+
                 <NavigationViewItemHeader Content="Windows 11 · 視窗 11" />
                 <NavigationViewItem x:Name="TweaksGroup" Content="All Tweaks · 全部調校" SelectsOnInvoked="False">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE713;" /></NavigationViewItem.Icon>

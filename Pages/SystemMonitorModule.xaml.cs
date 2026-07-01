@@ -66,19 +66,22 @@ public sealed partial class SystemMonitorModule : Page
     private string _filter = "";
     private double _intervalSec = 1.0;
     private double _maxNetSeen = 1024 * 64; // adaptive network graph scale (start ~64 KB/s)
+    private bool _busy;
 
     public SystemMonitorModule()
     {
         InitializeComponent();
         ProcList.ItemsSource = _rows;
-        _timer.Tick += (_, _) => Tick();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        _timer.Tick += (_, _) => _ = Tick();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         ActualThemeChanged += (_, _) => ApplyGraphTheme();
         Loaded += OnLoaded;
-        Unloaded += (_, _) => _timer.Stop();
+        Unloaded += (_, _) => { _timer.Stop(); Loc.I.LanguageChanged -= OnLanguageChanged; };
     }
 
-    private void OnLoaded(object sender, RoutedEventArgs e)
+    private void OnLanguageChanged(object? s, EventArgs e) => Render();
+
+    private async void OnLoaded(object sender, RoutedEventArgs e)
     {
         CoreBarsCtl.Build(SystemMonitor.CoreCount, ColumnsForCores(SystemMonitor.CoreCount));
         CpuGraph.Capacity = 90;
@@ -87,11 +90,18 @@ public sealed partial class SystemMonitorModule : Page
         ApplyGraphTheme();
 
         Render();
-        // Prime the delta-based samplers so the first visible tick has real values.
-        SystemMonitor.CpuPercent();
-        SystemMonitor.Network(_intervalSec);
-        SystemMonitor.Sample(TopN, true);
-        Tick();
+        // Prime the delta-based samplers (off the UI thread) so the first visible tick has real values.
+        try
+        {
+            await System.Threading.Tasks.Task.Run(() =>
+            {
+                SystemMonitor.CpuPercent();
+                SystemMonitor.Network(_intervalSec);
+                SystemMonitor.Sample(TopN, true);
+            });
+        }
+        catch { /* ignore priming failures */ }
+        await Tick();
         _timer.Start();
     }
 
@@ -163,62 +173,101 @@ public sealed partial class SystemMonitorModule : Page
         if (_sort == key) _sortDesc = !_sortDesc;
         else { _sort = key; _sortDesc = key is SortKey.Cpu or SortKey.Mem; } // numbers default high→low, names low→high
         RenderSortHeaders();
-        if (IsLoaded) Tick();
+        if (IsLoaded) _ = Tick();
     }
 
     private void Search_Changed(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
     {
         _filter = sender.Text?.Trim() ?? "";
-        if (IsLoaded) Tick();
+        if (IsLoaded) _ = Tick();
+    }
+
+    // Snapshot of one sampling pass, gathered off the UI thread.
+    private sealed class Sampled
+    {
+        public double Cpu;
+        public double? Temp;
+        public double[] PerCore = Array.Empty<double>();
+        public (double pct, long used, long total) Mem;
+        public (double pct, long used, long total) Swap;
+        public (double down, double up) Net;
+        public string Uptime = "";
+        public List<ProcInfo> Procs = new();
     }
 
     // ---------------- Sampling tick ----------------
-    private void Tick()
+    // Sampling (SystemMonitor.Sample + LibreHardwareMonitor CpuTemperature) is heavy; do all of
+    // it off the UI thread and guard against re-entrancy so slow samples don't pile up.
+    private async System.Threading.Tasks.Task Tick()
     {
-        var cpu = SystemMonitor.CpuPercent();
-        CpuValue.Text = $"{Math.Round(cpu)}%";
-        CpuGraph.Push(cpu);
-
-        var temp = SystemMonitor.CpuTemperature();
-        CpuTemp.Text = temp is { } t ? $"{Math.Round(t)}°C" : "";
-
-        CoreBarsCtl.Update(SystemMonitor.PerCoreLoad());
-
-        var (memPct, used, total) = SystemMonitor.Memory();
-        RamValue.Text = $"{Math.Round(memPct)}%";
-        RamBar.Width = (RamTrackBg.ActualWidth > 0 ? RamTrackBg.ActualWidth : RamTrack) * memPct / 100.0;
-        RamBar.Background = new SolidColorBrush(CoreBars.LoadColor(memPct));
-        RamSub.Text = $"{SystemMonitor.Bytes(used)} / {SystemMonitor.Bytes(total)}";
-
-        var (swPct, swUsed, swTotal) = SystemMonitor.Swap();
-        if (swTotal > 0)
+        if (_busy) return;
+        _busy = true;
+        try
         {
-            SwapValue.Text = $"{Math.Round(swPct)}%";
-            SwapBar.Width = (RamTrackBg.ActualWidth > 0 ? RamTrackBg.ActualWidth : RamTrack) * swPct / 100.0;
-            SwapBar.Background = new SolidColorBrush(CoreBars.LoadColor(swPct));
-            SwapSub.Text = $"{SystemMonitor.Bytes(swUsed)} / {SystemMonitor.Bytes(swTotal)}";
+            bool cpuSort = _sort == SortKey.Cpu;
+            var s = await System.Threading.Tasks.Task.Run(() => new Sampled
+            {
+                Cpu = SystemMonitor.CpuPercent(),
+                Temp = SystemMonitor.CpuTemperature(),
+                PerCore = SystemMonitor.PerCoreLoad(),
+                Mem = SystemMonitor.Memory(),
+                Swap = SystemMonitor.Swap(),
+                Net = SystemMonitor.Network(_intervalSec),
+                Uptime = SystemMonitor.Uptime(),
+                Procs = SystemMonitor.Sample(TopN, cpuSort),
+            });
+
+            // Back on the UI thread after the await — safe to touch controls.
+            CpuValue.Text = $"{Math.Round(s.Cpu)}%";
+            CpuGraph.Push(s.Cpu);
+
+            CpuTemp.Text = s.Temp is { } t ? $"{Math.Round(t)}°C" : "";
+
+            CoreBarsCtl.Update(s.PerCore);
+
+            var (memPct, used, total) = s.Mem;
+            RamValue.Text = $"{Math.Round(memPct)}%";
+            RamBar.Width = (RamTrackBg.ActualWidth > 0 ? RamTrackBg.ActualWidth : RamTrack) * memPct / 100.0;
+            RamBar.Background = new SolidColorBrush(CoreBars.LoadColor(memPct));
+            RamSub.Text = $"{SystemMonitor.Bytes(used)} / {SystemMonitor.Bytes(total)}";
+
+            var (swPct, swUsed, swTotal) = s.Swap;
+            if (swTotal > 0)
+            {
+                SwapValue.Text = $"{Math.Round(swPct)}%";
+                SwapBar.Width = (RamTrackBg.ActualWidth > 0 ? RamTrackBg.ActualWidth : RamTrack) * swPct / 100.0;
+                SwapBar.Background = new SolidColorBrush(CoreBars.LoadColor(swPct));
+                SwapSub.Text = $"{SystemMonitor.Bytes(swUsed)} / {SystemMonitor.Bytes(swTotal)}";
+            }
+            else
+            {
+                SwapValue.Text = P("off", "關");
+                SwapBar.Width = 0;
+                SwapSub.Text = P("No page file", "冇頁面檔");
+            }
+
+            var (down, up) = s.Net;
+            _maxNetSeen = Math.Max(_maxNetSeen, Math.Max(down, up));
+            DownGraph.Max = _maxNetSeen;
+            UpGraph.Max = _maxNetSeen;
+            DownGraph.Push(down);
+            UpGraph.Push(up);
+            NetDown.Text = $"↓ {SystemMonitor.Bytes(down)}/s";
+            NetUp.Text = $"↑ {SystemMonitor.Bytes(up)}/s";
+
+            UpValue.Text = s.Uptime;
+
+            // Sort/filter the sampled set for display (light, on the UI thread).
+            Reconcile(SortAndFilter(s.Procs));
         }
-        else
+        catch
         {
-            SwapValue.Text = P("off", "關");
-            SwapBar.Width = 0;
-            SwapSub.Text = P("No page file", "冇頁面檔");
+            // Never let a sampling failure crash the tick / take down the page.
         }
-
-        var (down, up) = SystemMonitor.Network(_intervalSec);
-        _maxNetSeen = Math.Max(_maxNetSeen, Math.Max(down, up));
-        DownGraph.Max = _maxNetSeen;
-        UpGraph.Max = _maxNetSeen;
-        DownGraph.Push(down);
-        UpGraph.Push(up);
-        NetDown.Text = $"↓ {SystemMonitor.Bytes(down)}/s";
-        NetUp.Text = $"↑ {SystemMonitor.Bytes(up)}/s";
-
-        UpValue.Text = SystemMonitor.Uptime();
-
-        // Sample more than we show (TopN), then sort/filter for display.
-        var sample = SystemMonitor.Sample(TopN, _sort == SortKey.Cpu);
-        Reconcile(SortAndFilter(sample));
+        finally
+        {
+            _busy = false;
+        }
     }
 
     private List<ProcInfo> SortAndFilter(List<ProcInfo> sample)
@@ -354,7 +403,7 @@ public sealed partial class SystemMonitorModule : Page
         if ((sender as FrameworkElement)?.DataContext is ProcRow row)
         {
             SystemMonitor.Kill(row.Pid);
-            Tick();
+            _ = Tick();
         }
     }
 }

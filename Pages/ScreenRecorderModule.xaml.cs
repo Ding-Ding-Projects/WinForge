@@ -20,11 +20,15 @@ public sealed partial class ScreenRecorderModule : Page
     {
         InitializeComponent();
         _timer.Tick += (_, _) => { _elapsed++; UpdateStatus(); };
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) => { Render(); DefaultOutput(); SyncButtons(); };
+        // Fallback teardown: navigating away mid-recording must not leak the poll timer.
+        Unloaded += (_, _) => { _timer.Stop(); Loc.I.LanguageChanged -= OnLanguageChanged; };
     }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private void Render()
     {

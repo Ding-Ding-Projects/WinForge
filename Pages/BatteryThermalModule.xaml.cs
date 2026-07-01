@@ -59,19 +59,20 @@ public sealed partial class BatteryThermalModule : Page
     private readonly BatteryThermal _engine = new();
     private const double BattTrack = 228;
     private bool _sensorsReady;
-    private bool _busy;
+    private bool _busy;      // guards the powercfg report actions (buttons)
+    private bool _ticking;   // guards the sampling tick against re-entrancy
 
     public BatteryThermalModule()
     {
         InitializeComponent();
         SensorList.ItemsSource = _rows;
-        _timer.Tick += (_, _) => Tick();
+        _timer.Tick += (_, _) => _ = Tick();
         Loc.I.LanguageChanged += OnLanguageChanged;
-        Loaded += (_, _) =>
+        Loaded += async (_, _) =>
         {
             Render();
             _sensorsReady = _engine.OpenSensors();
-            Tick();
+            await Tick();
             _timer.Start();
         };
         Unloaded += (_, _) =>
@@ -82,7 +83,7 @@ public sealed partial class BatteryThermalModule : Page
         };
     }
 
-    private void OnLanguageChanged(object? s, EventArgs e) { Render(); Tick(); }
+    private void OnLanguageChanged(object? s, EventArgs e) { Render(); _ = Tick(); }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
@@ -119,15 +120,42 @@ public sealed partial class BatteryThermalModule : Page
             "搵唔到由驅動支援嘅 CPU／GPU／風扇感測器。以管理員身分執行可取得完整感測器。上面卡片會顯示粗略嘅熱區溫度（如有）。");
     }
 
-    private void Tick()
+    // ReadBattery (WMI Win32_Battery) and the sensor reads (LibreHardwareMonitor hw.Update() /
+    // WMI thermal zones) are heavy; gather them off the UI thread and update the UI after the await.
+    private async System.Threading.Tasks.Task Tick()
     {
-        UpdateBattery();
-        UpdateThermal();
+        if (_ticking) return;
+        _ticking = true;
+        try
+        {
+            bool sensorsReady = _sensorsReady;
+            BatterySnapshot? battery = null;
+            List<SensorReading>? sensors = null;
+            List<double>? zones = null;
+
+            await System.Threading.Tasks.Task.Run(() =>
+            {
+                battery = BatteryThermal.ReadBattery();
+                if (sensorsReady) sensors = _engine.ReadSensors();
+                else zones = BatteryThermal.ReadThermalZonesCelsius();
+            });
+
+            // Back on the UI thread after the await.
+            if (battery is not null) UpdateBattery(battery);
+            UpdateThermal(sensors, zones);
+        }
+        catch
+        {
+            // Never let a sampling failure crash the tick / take down the page.
+        }
+        finally
+        {
+            _ticking = false;
+        }
     }
 
-    private void UpdateBattery()
+    private void UpdateBattery(BatterySnapshot b)
     {
-        var b = BatteryThermal.ReadBattery();
         if (!b.Present)
         {
             BattValue.Text = P("No battery", "冇電池");
@@ -152,12 +180,12 @@ public sealed partial class BatteryThermalModule : Page
         }
     }
 
-    private void UpdateThermal()
+    private void UpdateThermal(List<SensorReading>? sensors, List<double>? zones)
     {
         if (_sensorsReady)
         {
             EmptyState.Visibility = Visibility.Collapsed;
-            Reconcile(_engine.ReadSensors());
+            Reconcile(sensors ?? new List<SensorReading>());
 
             var temps = _rows.Where(r => r.TypeText == TypeName(LHM.SensorType.Temperature)).ToList();
             // pick max temperature by parsing the leading number
@@ -178,7 +206,7 @@ public sealed partial class BatteryThermalModule : Page
             // WMI thermal-zone fallback
             _rows.Clear();
             EmptyState.Visibility = Visibility.Visible;
-            var zones = BatteryThermal.ReadThermalZonesCelsius();
+            zones ??= new List<double>();
             if (zones.Count > 0)
             {
                 double max = zones.Max();

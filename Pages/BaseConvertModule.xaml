@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.BaseConvertModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="760" Spacing="14">
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE1D0;" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <!-- Input card -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <TextBlock x:Name="InputTitle" FontWeight="SemiBold" FontSize="15" />
+                    <Grid ColumnSpacing="10" RowSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="ValueBox" Grid.Column="0" TextChanged="Input_Changed" FontFamily="Consolas" VerticalAlignment="Center" />
+                        <ComboBox x:Name="BaseCombo" Grid.Column="1" MinWidth="150" SelectionChanged="Base_Changed" VerticalAlignment="Center" />
+                    </Grid>
+                    <StackPanel x:Name="CustomBasePanel" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center" Visibility="Collapsed">
+                        <TextBlock x:Name="CustomBaseLabel" VerticalAlignment="Center" />
+                        <NumberBox x:Name="CustomBaseBox" Value="36" Minimum="2" Maximum="36" SpinButtonPlacementMode="Inline" MinWidth="140" ValueChanged="CustomBase_Changed" />
+                    </StackPanel>
+                    <TextBlock x:Name="StatusText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <!-- Outputs card -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <TextBlock x:Name="OutputsTitle" FontWeight="SemiBold" FontSize="15" />
+
+                    <StackPanel Spacing="4">
+                        <TextBlock x:Name="BinLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="BinOut" Grid.Column="0" IsReadOnly="True" FontFamily="Consolas" />
+                            <Button x:Name="BinCopy" Grid.Column="1" Click="Copy_Bin" VerticalAlignment="Stretch" />
+                        </Grid>
+                    </StackPanel>
+
+                    <StackPanel Spacing="4">
+                        <TextBlock x:Name="OctLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="OctOut" Grid.Column="0" IsReadOnly="True" FontFamily="Consolas" />
+                            <Button x:Name="OctCopy" Grid.Column="1" Click="Copy_Oct" VerticalAlignment="Stretch" />
+                        </Grid>
+                    </StackPanel>
+
+                    <StackPanel Spacing="4">
+                        <TextBlock x:Name="DecLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="DecOut" Grid.Column="0" IsReadOnly="True" FontFamily="Consolas" />
+                            <Button x:Name="DecCopy" Grid.Column="1" Click="Copy_Dec" VerticalAlignment="Stretch" />
+                        </Grid>
+                    </StackPanel>
+
+                    <StackPanel Spacing="4">
+                        <TextBlock x:Name="HexLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="HexOut" Grid.Column="0" IsReadOnly="True" FontFamily="Consolas" />
+                            <Button x:Name="HexCopy" Grid.Column="1" Click="Copy_Hex" VerticalAlignment="Stretch" />
+                        </Grid>
+                    </StackPanel>
+
+                    <StackPanel Spacing="4">
+                        <TextBlock x:Name="CustomOutLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="CustomOut" Grid.Column="0" IsReadOnly="True" FontFamily="Consolas" />
+                            <Button x:Name="CustomCopy" Grid.Column="1" Click="Copy_Custom" VerticalAlignment="Stretch" />
+                        </Grid>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Bit-info card -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="8">
+                    <TextBlock x:Name="BitInfoTitle" FontWeight="SemiBold" FontSize="15" />
+                    <TextBlock x:Name="BitLengthText" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBlock x:Name="Bit64Label" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBox x:Name="Bit64Out" IsReadOnly="True" FontFamily="Consolas" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <!-- Bitwise card -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <TextBlock x:Name="BitwiseTitle" FontWeight="SemiBold" FontSize="15" />
+                    <TextBlock x:Name="BitwiseBlurb" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="OperandA" Grid.Column="0" TextChanged="Bitwise_Changed" FontFamily="Consolas" VerticalAlignment="Center" />
+                        <ComboBox x:Name="OpCombo" Grid.Column="1" MinWidth="130" SelectionChanged="Op_Changed" VerticalAlignment="Center" />
+                        <TextBox x:Name="OperandB" Grid.Column="2" TextChanged="Bitwise_Changed" FontFamily="Consolas" VerticalAlignment="Center" />
+                    </Grid>
+
+                    <StackPanel x:Name="ShiftPanel" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center" Visibility="Collapsed">
+                        <TextBlock x:Name="ShiftLabel" VerticalAlignment="Center" />
+                        <NumberBox x:Name="ShiftBox" Value="1" Minimum="0" Maximum="4096" SpinButtonPlacementMode="Inline" MinWidth="140" ValueChanged="Shift_Changed" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="2">
+                        <TextBlock x:Name="BitwiseResultLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock x:Name="BitwiseResultText" FontFamily="Consolas" FontSize="14" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

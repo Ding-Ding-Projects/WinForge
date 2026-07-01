@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.RegexTesterModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="760" Spacing="14">
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE773;" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <!-- Pattern + options -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <TextBox x:Name="PatternBox" TextChanged="Input_Changed" FontFamily="Consolas" AcceptsReturn="False" />
+                    <StackPanel x:Name="OptionsPanel" Orientation="Horizontal" Spacing="16">
+                        <CheckBox x:Name="IgnoreCaseChk" Checked="Option_Changed" Unchecked="Option_Changed" />
+                        <CheckBox x:Name="MultilineChk" Checked="Option_Changed" Unchecked="Option_Changed" />
+                        <CheckBox x:Name="SinglelineChk" Checked="Option_Changed" Unchecked="Option_Changed" />
+                        <CheckBox x:Name="IgnoreWsChk" Checked="Option_Changed" Unchecked="Option_Changed" />
+                        <CheckBox x:Name="ExplicitCaptureChk" Checked="Option_Changed" Unchecked="Option_Changed" />
+                    </StackPanel>
+                    <TextBlock x:Name="StatusText" TextWrapping="Wrap" FontSize="13" />
+                </StackPanel>
+            </Border>
+
+            <!-- Test input -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="8">
+                    <TextBlock x:Name="InputLabel" FontWeight="SemiBold" />
+                    <TextBox x:Name="InputBox" TextChanged="Input_Changed" AcceptsReturn="True" TextWrapping="Wrap" FontFamily="Consolas" Height="140" ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                </StackPanel>
+            </Border>
+
+            <!-- Results -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="8">
+                    <TextBlock x:Name="MatchCountText" FontWeight="SemiBold" />
+                    <ItemsControl x:Name="ResultsList">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Margin="0,4,0,0" Padding="10,8,10,8" Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" CornerRadius="6">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="{Binding Heading}" FontWeight="SemiBold" FontSize="13" TextWrapping="Wrap" />
+                                        <TextBlock Text="{Binding Value}" FontFamily="Consolas" FontSize="13" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                                        <TextBlock Text="{Binding Groups}" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" Visibility="{Binding GroupsVisible}" />
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <!-- Replacement -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="8">
+                    <TextBlock x:Name="ReplacementLabel" FontWeight="SemiBold" />
+                    <TextBox x:Name="ReplacementBox" TextChanged="Input_Changed" FontFamily="Consolas" AcceptsReturn="False" />
+                    <TextBlock x:Name="ResultLabel" FontWeight="SemiBold" Margin="0,4,0,0" />
+                    <TextBox x:Name="ResultBox" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" FontFamily="Consolas" Height="100" ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                </StackPanel>
+            </Border>
+
+            <!-- Cheat sheet -->
+            <Expander x:Name="CheatExpander" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                <TextBlock x:Name="CheatText" FontFamily="Consolas" FontSize="13" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+            </Expander>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

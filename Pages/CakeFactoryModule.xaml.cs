@@ -26,7 +26,7 @@ public sealed partial class CakeFactoryModule : Page
 {
     private readonly CakeFactoryService _sim = new();
     private readonly CakeFileService _cakeFiles = new();
-    private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(80) };
+    private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(200) };
     private DateTime _lastTick = DateTime.UtcNow;
     private bool _coreReady;
     private bool _webReady;
