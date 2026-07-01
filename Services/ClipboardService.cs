@@ -171,9 +171,19 @@ public static class ClipboardService
             };
             using var p = Process.Start(psi);
             if (p is null) return "";
-            string outp = p.StandardOutput.ReadToEnd();
-            p.WaitForExit(timeoutMs);
-            return outp;
+            // Drain BOTH pipes concurrently and make the timeout real. The old code read stdout to
+            // EOF before WaitForExit with stderr also redirected — a chatty child (npm/winget/opencode
+            // spew progress to stderr) fills the 64 KB stderr pipe, blocks on write, never exits, and
+            // ReadToEnd() then hangs this thread FOREVER (with _gitGate held → every later clipboard
+            // commit piles onto the pool → app-wide freeze).
+            var so = p.StandardOutput.ReadToEndAsync();
+            var se = p.StandardError.ReadToEndAsync();
+            if (!p.WaitForExit(timeoutMs))
+            {
+                try { p.Kill(entireProcessTree: true); } catch { }
+            }
+            try { Task.WaitAll(new Task[] { so, se }, 3000); } catch { }
+            return so.IsCompletedSuccessfully ? so.Result : "";
         }
         catch { return ""; }
     }
@@ -193,7 +203,17 @@ public static class ClipboardService
                 RedirectStandardError = true,
             };
             using var p = Process.Start(psi);
-            p?.WaitForExit(8000);
+            if (p is null) return;
+            // Redirected pipes MUST be drained: a git that prints more than the pipe buffer blocks on
+            // write and never exits; the old WaitForExit(8000) then timed out and LEAKED a live git
+            // still holding the repo lock, wedging every later commit.
+            var so = p.StandardOutput.ReadToEndAsync();
+            var se = p.StandardError.ReadToEndAsync();
+            if (!p.WaitForExit(8000))
+            {
+                try { p.Kill(entireProcessTree: true); } catch { }
+            }
+            try { Task.WaitAll(new Task[] { so, se }, 2000); } catch { }
         }
         catch { }
     }

@@ -36,6 +36,11 @@ public sealed partial class SettingsHubModule : Page
         Loc.I.LanguageChanged += OnLanguageChanged;
         Unloaded += OnUnloaded;
         Loaded += (_, _) => { Render(); BuildModeCombo(); ModeCombo.SelectedIndex = 0; Apply(""); };
+        // Expanding a section must not yank the page down: WinUI Expanders BringIntoView their freshly
+        // expanded content panel, which scrolls the viewport far past where the user clicked. Focus-driven
+        // requests (keyboard tabbing) target a Control; expansion requests target the content panel —
+        // swallow only the latter so accessibility scrolling keeps working.
+        Sections.BringIntoViewRequested += (_, e) => { if (e.TargetElement is not Control) e.Handled = true; };
     }
 
     private void OnLanguageChanged(object? sender, EventArgs e)

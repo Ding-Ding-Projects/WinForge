@@ -319,8 +319,15 @@ public static class ShellRunner
             };
             using var p = Process.Start(psi);
             if (p is null) return null;
-            var outp = p.StandardOutput.ReadToEnd();
-            p.WaitForExit(4000);
+            // Drain stderr too — it is redirected, and an undrained pipe can wedge the child.
+            var soTask = p.StandardOutput.ReadToEndAsync();
+            _ = p.StandardError.ReadToEndAsync();
+            if (!p.WaitForExit(4000))
+            {
+                try { p.Kill(entireProcessTree: true); } catch { }
+            }
+            try { soTask.Wait(1000); } catch { }
+            var outp = soTask.IsCompletedSuccessfully ? soTask.Result : "";
             foreach (var raw in outp.Replace("\r", "").Split('\n'))
             {
                 var ln = raw.Trim();

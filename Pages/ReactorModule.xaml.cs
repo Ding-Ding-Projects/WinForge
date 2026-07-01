@@ -167,11 +167,11 @@ public sealed partial class ReactorModule : Page
     public ReactorModule()
     {
         InitializeComponent();
+        // _sim is a long-lived singleton: every handler must be NAMED and unsubscribed on Unloaded,
+        // or each visit to this page roots another dead ReactorModule (and doubles the audio pops).
         _sim.MeltdownOccurred += OnMeltdown;
-        // Audible "pop" cue each time a pressurizer code safety valve lifts (uses the existing relay-click voice).
-        _sim.PzrCodeSafetyLifted += () => ReactorAudioEngine.I.RelayClick();
-        // Same audible pop each time a Main Steam Safety Valve lifts on the secondary side.
-        _sim.MssvValveLifted += () => ReactorAudioEngine.I.RelayClick();
+        _sim.PzrCodeSafetyLifted += OnSafetyValveLift;
+        _sim.MssvValveLifted += OnSafetyValveLift;
         Loc.I.LanguageChanged += OnLanguageChanged;
 
         Loaded += async (_, _) =>
@@ -238,6 +238,9 @@ public sealed partial class ReactorModule : Page
             _timer.Tick -= Tick;
             _countdownTimer?.Stop();
             _renderClock.Stop();
+            _sim.MeltdownOccurred -= OnMeltdown;
+            _sim.PzrCodeSafetyLifted -= OnSafetyValveLift;
+            _sim.MssvValveLifted -= OnSafetyValveLift;
             // Persist current reactor state one last time, then stop listening. This must be
             // synchronous so navigating away and immediately back restores the state just left.
             // We keep the provider registered so a final app-exit/crash flush still captures it.
@@ -3501,6 +3504,9 @@ public sealed partial class ReactorModule : Page
     }
 
     // ================================================================ MELTDOWN ====
+    // Audible "pop" cue each time a pressurizer code safety / MSSV valve lifts (relay-click voice).
+    private void OnSafetyValveLift() => ReactorAudioEngine.I.RelayClick();
+
     private void OnMeltdown()
     {
         if (_meltdownHandled) return;
