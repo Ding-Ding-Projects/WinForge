@@ -108,7 +108,25 @@
             <!-- Advanced operations -->
             <TextBlock x:Name="AdvancedHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
             <AutoSuggestBox x:Name="OpsFilter" MaxWidth="420" HorizontalAlignment="Left" QueryIcon="Find" TextChanged="OpsFilter_TextChanged" />
-            <StackPanel x:Name="OpsPanel" />
+
+            <!-- One persistent result bar for advanced operations (not per-row) -->
+            <InfoBar x:Name="OpsResultBar" IsClosable="True" IsOpen="False" />
+
+            <!-- Advanced-operation output -->
+            <Border x:Name="OpsOutBorder" Padding="12" Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="6" Visibility="Collapsed">
+                <ScrollViewer MaxHeight="240" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                    <TextBlock x:Name="OpsOutText" FontFamily="Consolas" FontSize="12" IsTextSelectionEnabled="True" TextWrapping="Wrap" />
+                </ScrollViewer>
+            </Border>
+
+            <!-- Control-based operation rows (no TweakCard) with a subtle Fluent entrance animation -->
+            <StackPanel x:Name="OpsPanel">
+                <StackPanel.ChildrenTransitions>
+                    <TransitionCollection>
+                        <EntranceThemeTransition IsStaggeringEnabled="True" />
+                    </TransitionCollection>
+                </StackPanel.ChildrenTransitions>
+            </StackPanel>
         </StackPanel>
     </ScrollViewer>
 </Page>

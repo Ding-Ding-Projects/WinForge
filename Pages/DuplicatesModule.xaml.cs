@@ -29,7 +29,8 @@ public sealed partial class DuplicatesModule : Page
     public DuplicatesModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; };
         Loaded += async (_, _) =>
         {
             Render();
@@ -41,6 +42,8 @@ public sealed partial class DuplicatesModule : Page
             await DoScan();
         };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 

@@ -29,11 +29,13 @@ public sealed partial class DiskBenchmarkModule : Page
     public DiskBenchmarkModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         ResultsList.Header = ""; // header bound via Render
         Loaded += OnLoaded;
-        Unloaded += (_, _) => _cts?.Cancel();
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; _cts?.Cancel(); };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 

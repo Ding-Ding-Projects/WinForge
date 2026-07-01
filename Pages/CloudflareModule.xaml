@@ -19,6 +19,12 @@
 
             <InfoBar x:Name="EngineBar" IsClosable="False" IsOpen="False" Severity="Warning" />
 
+            <!-- One persistent result / status area for action results & errors -->
+            <InfoBar
+                x:Name="ResultBar"
+                IsClosable="True"
+                IsOpen="False" />
+
             <!-- Quick actions -->
             <StackPanel x:Name="QuickActions" Orientation="Horizontal" Spacing="8" />
 
@@ -50,7 +56,15 @@
                 HorizontalAlignment="Left"
                 QueryIcon="Find"
                 TextChanged="OpsFilter_TextChanged" />
-            <StackPanel x:Name="OpsPanel" Spacing="2" />
+
+            <!-- Hand-built control rows with a subtle Fluent entrance animation. -->
+            <StackPanel x:Name="OpsPanel" Spacing="0">
+                <StackPanel.ChildrenTransitions>
+                    <TransitionCollection>
+                        <EntranceThemeTransition FromVerticalOffset="24" IsStaggeringEnabled="True" />
+                    </TransitionCollection>
+                </StackPanel.ChildrenTransitions>
+            </StackPanel>
         </StackPanel>
     </ScrollViewer>
 </Page>

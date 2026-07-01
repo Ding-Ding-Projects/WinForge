@@ -44,9 +44,12 @@ public sealed partial class DiffMergeModule : Page
     {
         InitializeComponent();
         FolderList.ItemsSource = _folderRows;
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; };
         Loaded += (_, _) => { BuildDirFilterCombo(); Render(); UpdateTextEmpty(); UpdateFolderEmpty(); };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 

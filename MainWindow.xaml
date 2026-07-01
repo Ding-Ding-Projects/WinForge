@@ -369,6 +369,18 @@
                     </NavigationViewItem.MenuItems>
                 </NavigationViewItem>
 
+                <NavigationViewItem Content="More Tools · 更多工具" SelectsOnInvoked="False">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE712;" /></NavigationViewItem.Icon>
+                    <NavigationViewItem.MenuItems>
+                        <NavigationViewItem Content="Case Converter · 大小寫轉換" Tag="module.caseconvert"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Find &amp; Replace · 尋找及取代" Tag="module.textreplace"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="HTML to Markdown · HTML 轉 Markdown" Tag="module.htmltomd"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A1;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Number Sequence · 數字序列" Tag="module.numseq"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8EF;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Duration Calculator · 時長計算器" Tag="module.durationcalc"><NavigationViewItem.Icon><FontIcon Glyph="&#xE917;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Color Palette · 色彩調色板" Tag="module.colorpalette"><NavigationViewItem.Icon><FontIcon Glyph="&#xE790;" /></NavigationViewItem.Icon></NavigationViewItem>
+                    </NavigationViewItem.MenuItems>
+                </NavigationViewItem>
+
                 <NavigationViewItemHeader Content="Windows 11 · 視窗 11" />
                 <NavigationViewItem x:Name="TweaksGroup" Content="All Tweaks · 全部調校" SelectsOnInvoked="False">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE713;" /></NavigationViewItem.Icon>

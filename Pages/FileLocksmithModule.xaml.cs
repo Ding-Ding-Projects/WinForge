@@ -55,10 +55,12 @@ public sealed partial class FileLocksmithModule : Page
     public FileLocksmithModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) => Render();
-        Unloaded += (_, _) => { try { _cts?.Cancel(); } catch { } };
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; try { _cts?.Cancel(); } catch { } };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 

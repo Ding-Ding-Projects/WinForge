@@ -23,9 +23,12 @@ public sealed partial class EmulatorModule : Page
     public EmulatorModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; };
         Loaded += async (_, _) => { Render(); InitChannel(); InitQuickInstall(); CheckEngine(); await RefreshAvds(); RenderSdkRoot(); };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
     private string? SelectedAvd => (AvdList.SelectedItem as Avd)?.Name;

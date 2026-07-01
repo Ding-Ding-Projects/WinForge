@@ -228,6 +228,12 @@ public static class ModuleRegistry
         new() { Tag = "module.bmi", En = "Health Calculators", Zh = "健康計算器", Glyph = ((char)0xE95E).ToString(), Keywords = "bmi bmr calorie tdee body fat navy mifflin health weight height 健康 計算器 體重 身高 體脂 熱量 代謝 卡路里" },
         new() { Tag = "module.asciiart", En = "ASCII Banner", Zh = "ASCII 橫幅", Glyph = ((char)0xE8D2).ToString(), Keywords = "ascii art banner text figlet monospace 橫幅 文字 藝術 標題 大字" },
         new() { Tag = "module.mimetypes", En = "MIME Type Lookup", Zh = "MIME 類型查詢", Glyph = ((char)0xE8A5).ToString(), Keywords = "mime content-type extension media type header upload web server octet-stream MIME 類型 內容類型 副檔名 檔名 偵測 上載 標頭" },
+        new() { Tag = "module.caseconvert", En = "Case Converter", Zh = "大小寫轉換", Glyph = ((char)0xE8A5).ToString(), Keywords = "case convert camel pascal snake kebab constant title sentence dot path train naming identifier variable rename 大小寫 命名 轉換 駝峰 蛇形 烤串 常數 標題 變數 識別碼" },
+        new() { Tag = "module.htmltomd", En = "HTML to Markdown", Zh = "HTML 轉 Markdown", Glyph = ((char)0xE8A1).ToString(), Keywords = "html markdown md convert converter web strip tags entities decode 轉換 標記 網頁 標籤 實體 剝除" },
+        new() { Tag = "module.colorpalette", En = "Color Palette", Zh = "色彩調色板", Glyph = ((char)0xE790).ToString(), Keywords = "color palette scheme hex rgb hsl complementary analogous triadic tetradic monochromatic shades tints swatch css json 色彩 調色板 配色 顏色 色板 十六進位 互補色 類似色 三等分色 單色系 匯出" },
+        new() { Tag = "module.numseq", En = "Number Sequence", Zh = "數字序列", Glyph = ((char)0xE8EF).ToString(), Keywords = "number sequence generator arithmetic geometric fibonacci prime primes range squares cubes triangular powers series list 數字 序列 產生器 等差 等比 斐波那契 質數 範圍 平方 立方 三角數 次方" },
+        new() { Tag = "module.textreplace", En = "Find & Replace", Zh = "尋找及取代", Glyph = ((char)0xE8A5).ToString(), Keywords = "find replace regex text substitute multi-rule pattern 尋找 取代 替換 正規表達式 批量 文字" },
+        new() { Tag = "module.durationcalc", En = "Duration Calculator", Zh = "時長計算器", Glyph = ((char)0xE917).ToString(), Keywords = "duration time calculator timespan add subtract sum convert hours minutes seconds days 時長 時間 計算器 計算 加 減 加總 換算 小時 分鐘 秒 日 乘 除" },
     };
 
     public static IEnumerable<ModuleInfo> Search(string query)

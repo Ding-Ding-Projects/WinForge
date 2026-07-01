@@ -38,13 +38,16 @@ public sealed partial class EverythingSearchModule : Page
     public EverythingSearchModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; _debounce?.Stop(); };
         Loaded += async (_, _) =>
         {
             Render();
             if (!_indexReady && !_building) await BuildIndex();
         };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 

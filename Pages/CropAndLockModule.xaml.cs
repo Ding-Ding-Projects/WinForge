@@ -232,7 +232,7 @@ public sealed partial class CropAndLockModule : Page
         PickRegionAndSpawn(info.Handle, info.Title, thumbnail);
     }
 
-    private void PickRegionAndSpawn(IntPtr source, string title, bool thumbnail)
+    private async void PickRegionAndSpawn(IntPtr source, string title, bool thumbnail)
     {
         // Bring the target window forward so the user can see what they're cropping, then drag a region.
         try { WindowManager.Focus(source); } catch { }
@@ -240,7 +240,8 @@ public sealed partial class CropAndLockModule : Page
         var rect = RegionSelector.PickRegion();
         if (rect is null) { return; } // cancelled (Esc / right-click)
 
-        var ok = CropAndLockService.CreateFromScreenRect(source, title, rect.Value, thumbnail);
+        // Await the async create so the UI thread never blocks waiting for the STA pump thread.
+        var ok = await CropAndLockService.CreateFromScreenRectAsync(source, title, rect.Value, thumbnail);
         if (ok)
             Info(thumbnail ? P("Thumbnail created", "已建立縮圖") : P("Cropped view created", "已建立裁切檢視"),
                  CropAndLockService.LastEvent);

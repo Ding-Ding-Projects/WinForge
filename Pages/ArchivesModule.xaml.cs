@@ -1,12 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using WinForge.Catalog;
-using WinForge.Controls;
 using WinForge.Models;
 using WinForge.Services;
 
@@ -24,8 +25,22 @@ public sealed partial class ArchivesModule : Page
     {
         InitializeComponent();
         Loc.I.LanguageChanged += OnLang;
-        Unloaded += (_, _) => Loc.I.LanguageChanged -= OnLang;
-        Loaded += (_, _) => { Render(); BuildQuickOps(); PopulateOps(string.Empty); RefreshSelection(); };
+        Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
+    }
+
+    private void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        Render();
+        BuildQuickOps();
+        PopulateOps(string.Empty);
+        RefreshSelection();
+    }
+
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        // Fix the leak: unsubscribe the named handler when the page is torn down.
+        Loc.I.LanguageChanged -= OnLang;
     }
 
     private void OnLang(object? sender, EventArgs e) { Render(); BuildQuickOps(); PopulateOps(OpsFilter.Text ?? string.Empty); }
@@ -172,11 +187,319 @@ public sealed partial class ArchivesModule : Page
             var f = filter.Trim().ToLowerInvariant();
             shown = _ops.Where(t => t.SearchHaystack.Contains(f));
         }
+
+        bool first = true;
         foreach (var op in shown)
         {
-            var card = new TweakCard();
-            card.SetTweak(op);
-            OpsPanel.Children.Add(card);
+            if (!first) OpsPanel.Children.Add(MakeDivider());
+            OpsPanel.Children.Add(BuildOpRow(op));
+            first = false;
         }
+    }
+
+    // ================================================================
+    //  Hand-built control rows (replaces TweakCard) · 手砌控件列
+    //  Each tweak → one Grid: bilingual title/description on the left,
+    //  the matching WinUI control on the right. No card chrome.
+    // ================================================================
+
+    private Border MakeDivider() => new Border
+    {
+        Height = 1,
+        Margin = new Thickness(0, 8, 0, 8),
+        Background = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"],
+    };
+
+    private Grid BuildOpRow(TweakDefinition def)
+    {
+        var row = new Grid { Padding = new Thickness(2, 6, 2, 6), ColumnSpacing = 16 };
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        // ---- Left: bilingual title + description (Loc.I.Pick) ----
+        var text = new StackPanel { Spacing = 2, VerticalAlignment = VerticalAlignment.Center };
+        var title = new TextBlock
+        {
+            Text = P(def.Title.En, def.Title.Zh),
+            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+            TextWrapping = TextWrapping.Wrap,
+        };
+        text.Children.Add(title);
+        var descText = P(def.Description.En, def.Description.Zh);
+        if (!string.IsNullOrWhiteSpace(descText))
+        {
+            text.Children.Add(new TextBlock
+            {
+                Text = descText,
+                FontSize = 12,
+                TextWrapping = TextWrapping.Wrap,
+                Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+            });
+        }
+        Grid.SetColumn(text, 0);
+        row.Children.Add(text);
+
+        // ---- Right: the matching control for this kind ----
+        var control = BuildControl(def);
+        control.VerticalAlignment = VerticalAlignment.Center;
+        Grid.SetColumn(control, 1);
+        row.Children.Add(control);
+        return row;
+    }
+
+    /// <summary>把一個 TweakDefinition 揀啱嘅控件砌出嚟 · Build the right control for a tweak's Kind.</summary>
+    private FrameworkElement BuildControl(TweakDefinition def)
+    {
+        switch (def.Kind)
+        {
+            case TweakKind.Toggle: return BuildToggle(def);
+            case TweakKind.Choice: return BuildChoice(def);
+            case TweakKind.RadioGroup: return BuildChoice(def); // reuses Choices; ComboBox is fine here
+            case TweakKind.Slider: return BuildSlider(def);
+            case TweakKind.Number: return BuildNumber(def);
+            case TweakKind.Info: return BuildInfo(def);
+            case TweakKind.Action:
+            case TweakKind.Wizard:
+            default:
+                return BuildAction(def);
+        }
+    }
+
+    // ---------------- Action → Button ----------------
+    private Button BuildAction(TweakDefinition def)
+    {
+        var label = def.ActionLabel is not null ? P(def.ActionLabel.En, def.ActionLabel.Zh) : P("Run", "執行");
+        var btn = new Button { MinWidth = 110, Content = label };
+        ToolTipService.SetToolTip(btn, def.ActionLabel is null ? label : $"{def.ActionLabel.En} · {def.ActionLabel.Zh}");
+        btn.Click += async (_, _) => await RunOp(btn, def, label);
+        return btn;
+    }
+
+    private async Task RunOp(Button btn, TweakDefinition def, object label)
+    {
+        if (_busy || def.RunAsync is null) return;
+        if (def.Destructive && !await ConfirmOp(def)) return;
+
+        _busy = true;
+        btn.IsEnabled = false;
+        btn.Content = new ProgressRing { IsActive = true, Width = 18, Height = 18 };
+        OpsResultBar.IsOpen = false;
+        OpsOutBorder.Visibility = Visibility.Collapsed;
+        try
+        {
+            var r = await def.RunAsync(CancellationToken.None);
+            OpsResultBar.Severity = r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error;
+            OpsResultBar.Title = r.Success ? P("Done", "完成") : P("Failed", "失敗");
+            OpsResultBar.Message = r.Message is null ? string.Empty : (Loc.I.IsCantonesePrimary ? r.Message.Zh : r.Message.En);
+            OpsResultBar.IsOpen = true;
+
+            if (!string.IsNullOrWhiteSpace(r.Output))
+            {
+                OpsOutText.Text = r.Output;
+                OpsOutBorder.Visibility = Visibility.Visible;
+            }
+        }
+        catch (Exception ex)
+        {
+            OpsResultBar.Severity = InfoBarSeverity.Error;
+            OpsResultBar.Title = P("Failed", "失敗");
+            OpsResultBar.Message = ex.Message;
+            OpsResultBar.IsOpen = true;
+        }
+        finally
+        {
+            btn.Content = label;
+            btn.IsEnabled = true;
+            _busy = false;
+            RefreshSelection();
+        }
+    }
+
+    private async Task<bool> ConfirmOp(TweakDefinition def)
+    {
+        var dlg = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = P("Are you sure?", "確定嗎？"),
+            Content = $"{def.Title.En}\n{def.Title.Zh}\n\n" + P("This action may be hard to undo.", "呢個動作可能難以復原。"),
+            PrimaryButtonText = P("Proceed", "繼續"),
+            CloseButtonText = P("Cancel", "取消"),
+            DefaultButton = ContentDialogButton.Close,
+        };
+        return await dlg.ShowAsync() == ContentDialogResult.Primary;
+    }
+
+    // ---------------- Toggle → ToggleSwitch ----------------
+    private ToggleSwitch BuildToggle(TweakDefinition def)
+    {
+        var ts = new ToggleSwitch { OnContent = "On · 開", OffContent = "Off · 熄" };
+        bool suppress = true;
+        try { ts.IsOn = def.GetIsOn?.Invoke() ?? false; } catch { /* show off */ }
+        suppress = false;
+        ts.Toggled += (_, _) =>
+        {
+            if (suppress || def.SetIsOn is null) return;
+            try { def.SetIsOn(ts.IsOn); ShowApplied(def); }
+            catch (Exception ex)
+            {
+                suppress = true;
+                try { ts.IsOn = def.GetIsOn?.Invoke() ?? false; } catch { /* ignore */ }
+                suppress = false;
+                ShowOpError(ex);
+            }
+        };
+        return ts;
+    }
+
+    // ---------------- Choice / RadioGroup → ComboBox ----------------
+    private ComboBox BuildChoice(TweakDefinition def)
+    {
+        var cb = new ComboBox { MinWidth = 170 };
+        if (def.Choices is not null)
+            foreach (var c in def.Choices)
+                cb.Items.Add(new ComboBoxItem { Content = P(c.Label.En, c.Label.Zh), Tag = c.Value });
+
+        bool suppress = true;
+        try
+        {
+            var cur = def.GetCurrentChoice?.Invoke();
+            if (cur is not null && def.Choices is not null)
+                for (int i = 0; i < def.Choices.Count; i++)
+                    if (string.Equals(def.Choices[i].Value, cur, StringComparison.OrdinalIgnoreCase))
+                    { cb.SelectedIndex = i; break; }
+        }
+        catch { /* leave unselected */ }
+        suppress = false;
+
+        cb.SelectionChanged += (_, _) =>
+        {
+            if (suppress || def.SetChoice is null) return;
+            if (cb.SelectedItem is ComboBoxItem item && item.Tag is string val)
+            {
+                try { def.SetChoice(val); ShowApplied(def); }
+                catch (Exception ex) { ShowOpError(ex); }
+            }
+        };
+        return cb;
+    }
+
+    // ---------------- Slider → Slider + live value ----------------
+    private FrameworkElement BuildSlider(TweakDefinition def)
+    {
+        var panel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, VerticalAlignment = VerticalAlignment.Center };
+        var slider = new Slider { Minimum = def.Min, Maximum = def.Max, StepFrequency = def.Step, Width = 160 };
+        var valueLabel = new TextBlock
+        {
+            MinWidth = 56,
+            VerticalAlignment = VerticalAlignment.Center,
+            Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+        };
+        string Fmt(double v)
+        {
+            bool whole = def.Step >= 1 && Math.Abs(def.Step % 1) < 1e-9;
+            string num = whole ? Math.Round(v).ToString(CultureInfo.InvariantCulture) : v.ToString("0.###", CultureInfo.InvariantCulture);
+            return def.Unit is null ? num : $"{num} {def.Unit.Primary}";
+        }
+        double Clamp(double v) => Math.Max(def.Min, Math.Min(def.Max, v));
+
+        bool suppress = true;
+        try { slider.Value = Clamp(def.GetNumber?.Invoke() ?? def.Min); } catch { slider.Value = def.Min; }
+        suppress = false;
+        valueLabel.Text = Fmt(slider.Value);
+
+        slider.ValueChanged += (_, e) =>
+        {
+            valueLabel.Text = Fmt(e.NewValue);
+            if (suppress || def.SetNumber is null) return;
+            try { def.SetNumber(e.NewValue); ShowApplied(def); }
+            catch (Exception ex)
+            {
+                ShowOpError(ex);
+                suppress = true;
+                try { slider.Value = Clamp(def.GetNumber?.Invoke() ?? def.Min); } catch { /* ignore */ }
+                suppress = false;
+            }
+        };
+        panel.Children.Add(slider);
+        panel.Children.Add(valueLabel);
+        return panel;
+    }
+
+    // ---------------- Number → NumberBox ----------------
+    private NumberBox BuildNumber(TweakDefinition def)
+    {
+        var nb = new NumberBox
+        {
+            Minimum = def.Min,
+            Maximum = def.Max,
+            SmallChange = def.Step,
+            LargeChange = def.Step,
+            SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Inline,
+            MinWidth = 140,
+            ValidationMode = NumberBoxValidationMode.InvalidInputOverwritten,
+        };
+        double Clamp(double v) => Math.Max(def.Min, Math.Min(def.Max, v));
+        bool suppress = true;
+        try { nb.Value = Clamp(def.GetNumber?.Invoke() ?? def.Min); } catch { nb.Value = def.Min; }
+        suppress = false;
+        nb.ValueChanged += (_, e) =>
+        {
+            if (suppress || def.SetNumber is null || double.IsNaN(e.NewValue)) return;
+            try { def.SetNumber(e.NewValue); ShowApplied(def); }
+            catch (Exception ex)
+            {
+                ShowOpError(ex);
+                suppress = true;
+                try { nb.Value = Clamp(def.GetNumber?.Invoke() ?? def.Min); } catch { /* ignore */ }
+                suppress = false;
+            }
+        };
+        return nb;
+    }
+
+    // ---------------- Info → refreshable TextBlock ----------------
+    private FrameworkElement BuildInfo(TweakDefinition def)
+    {
+        string Safe() { try { return def.GetInfo?.Invoke() ?? "—"; } catch { return "—"; } }
+        var panel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, VerticalAlignment = VerticalAlignment.Center };
+        var info = new TextBlock
+        {
+            Text = Safe(),
+            IsTextSelectionEnabled = true,
+            TextWrapping = TextWrapping.Wrap,
+            MaxWidth = 300,
+            HorizontalTextAlignment = TextAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        var refresh = new Button { Content = new FontIcon { Glyph = "", FontSize = 14 }, Padding = new Thickness(8) };
+        ToolTipService.SetToolTip(refresh, "Refresh · 重新整理");
+        refresh.Click += (_, _) => info.Text = Safe();
+        panel.Children.Add(info);
+        panel.Children.Add(refresh);
+        return panel;
+    }
+
+    // ---------------- Shared status surfacing (one persistent bar) ----------------
+    private void ShowApplied(TweakDefinition def)
+    {
+        OpsResultBar.Severity = InfoBarSeverity.Success;
+        OpsResultBar.Title = P("Done", "完成");
+        string en = "Applied.", zh = "已套用。";
+        switch (def.Restart)
+        {
+            case RestartScope.Explorer: en = "Applied. Restart Explorer to see the change."; zh = "已套用。重啟檔案總管就睇到變化。"; break;
+            case RestartScope.SignOut: en = "Applied. Sign out and back in to take effect."; zh = "已套用。登出再登入後生效。"; break;
+            case RestartScope.Reboot: en = "Applied. Reboot to take effect."; zh = "已套用。重新開機後生效。"; break;
+        }
+        OpsResultBar.Message = P(en, zh);
+        OpsResultBar.IsOpen = true;
+    }
+
+    private void ShowOpError(Exception ex)
+    {
+        OpsResultBar.Severity = InfoBarSeverity.Error;
+        OpsResultBar.Title = P("Failed", "失敗");
+        OpsResultBar.Message = ex.Message;
+        OpsResultBar.IsOpen = true;
     }
 }

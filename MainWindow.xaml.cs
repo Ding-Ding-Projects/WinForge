@@ -298,6 +298,30 @@ public sealed partial class MainWindow : Window
         }
         switch (App.StartPage)
         {
+            case "caseconvert":
+            case "casing":
+                Navigator.GoToModule?.Invoke("module.caseconvert");
+                break;
+            case "htmltomd":
+            case "html2md":
+                Navigator.GoToModule?.Invoke("module.htmltomd");
+                break;
+            case "colorpalette":
+            case "palettegen":
+                Navigator.GoToModule?.Invoke("module.colorpalette");
+                break;
+            case "numseq":
+            case "sequence":
+                Navigator.GoToModule?.Invoke("module.numseq");
+                break;
+            case "textreplace":
+            case "findreplace":
+                Navigator.GoToModule?.Invoke("module.textreplace");
+                break;
+            case "durationcalc":
+            case "duration":
+                Navigator.GoToModule?.Invoke("module.durationcalc");
+                break;
             case "jsonpath":
                 Navigator.GoToModule?.Invoke("module.jsonpath");
                 break;
@@ -1801,6 +1825,12 @@ public sealed partial class MainWindow : Window
         "module.bmi" => typeof(BmiModule),
         "module.asciiart" => typeof(AsciiArtModule),
         "module.mimetypes" => typeof(MimeTypesModule),
+        "module.caseconvert" => typeof(CaseConvertModule),
+        "module.htmltomd" => typeof(HtmlToMdModule),
+        "module.colorpalette" => typeof(ColorPaletteModule),
+        "module.numseq" => typeof(NumSeqModule),
+        "module.textreplace" => typeof(TextReplaceModule),
+        "module.durationcalc" => typeof(DurationCalcModule),
         _ => typeof(DashboardPage),
     };
 
@@ -2107,6 +2137,17 @@ public sealed partial class MainWindow : Window
             {
                 "module.percentcalc", "module.loancalc", "module.bmi", "module.textstats", "module.asciiart",
                 "module.mimetypes", "module.recyclebin", "module.filesplit",
+            },
+        },
+        new()
+        {
+            Id = "moretools",
+            En = "More tools",
+            Zh = "更多工具",
+            Keys = new[]
+            {
+                "module.caseconvert", "module.htmltomd", "module.textreplace", "module.numseq",
+                "module.durationcalc", "module.colorpalette",
             },
         },
     };

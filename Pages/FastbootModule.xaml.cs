@@ -20,9 +20,12 @@ public sealed partial class FastbootModule : Page
     public FastbootModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; };
         Loaded += async (_, _) => { Render(); await CheckEngine(); await RefreshDevices(); };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
     private string? Serial => (DeviceBox.SelectedItem as FastbootDevice)?.Serial;
