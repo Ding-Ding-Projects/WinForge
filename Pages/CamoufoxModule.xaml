@@ -254,6 +254,11 @@
                                 <TextBlock x:Name="EngineDesc" FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                 <InfoBar x:Name="EngineStatusBar" IsClosable="False" IsOpen="True" />
                                 <TextBlock x:Name="ExePath" FontFamily="Consolas" FontSize="11" IsTextSelectionEnabled="True" Foreground="{ThemeResource TextFillColorTertiaryBrush}" TextWrapping="Wrap" />
+
+                                <!-- Build prerequisite: git (auto-install via winget with live progress). -->
+                                <InfoBar x:Name="GitBar" IsClosable="False" IsOpen="False" />
+                                <StackPanel x:Name="GitInstallHost" />
+
                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                     <Button x:Name="BuildBtn" Style="{StaticResource AccentButtonStyle}" Click="Build_Click" />
                                     <Button x:Name="DetectBtn" Click="Detect_Click" />

@@ -139,10 +139,11 @@ public sealed partial class VaultVolumesModule : Page
             "未安裝 WinForge 保險庫引擎（連已簽署嘅核心驅動程式）。建立／掛載需要佢同管理員工作階段。");
         EngineBar.IsOpen = true;
         // Fallback installer points at the upstream package only if the bundled binary is absent.
-        EngineActionHost.Children.Add(EngineBars.AutoInstallButton(
+        // Rich progress bar + live status + real error/exit code on failure, then re-detect.
+        EngineActionHost.Children.Add(EngineBars.AutoInstallProgress(
             "VeraCrypt.VeraCrypt",
             "Install engine", "安裝引擎",
-            async () => { await Task.CompletedTask; CheckEngine(); Reload(); }));
+            recheck: async () => { await Task.CompletedTask; CheckEngine(); Reload(); }));
     }
 
     private void Reload()

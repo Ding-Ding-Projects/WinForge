@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.System;
+using WinForge.Controls;
 using WinForge.Services;
 
 namespace WinForge.Pages;
@@ -113,20 +114,16 @@ public sealed partial class AndroidAdbModule : Page
         {
             EngineBar.Severity = InfoBarSeverity.Warning;
             EngineBar.Title = P("adb not found", "搵唔到 adb");
-            EngineBar.Message = P("Click to install it automatically (Google Platform Tools via winget) — no restart needed.",
-                "撳一下自動安裝（用 winget 裝 Google Platform Tools）— 唔使重啟。");
-            var btn = new Button { Content = P("Install adb automatically", "自動安裝 adb") };
-            btn.Click += async (_, _) =>
-            {
-                btn.IsEnabled = false;
-                btn.Content = P("Installing…", "安裝緊…");
-                await PackageService.AutoInstall("Google.PlatformTools");
-                await CheckEngine();
-                if (await AdbService.IsAvailable()) await RefreshDevices();
-            };
-            EngineBar.ActionButton = btn;
+            EngineBar.Message = P("Install it automatically (Google Platform Tools via winget) — live progress, no restart needed.",
+                "自動安裝（用 winget 裝 Google Platform Tools）— 即時進度，唔使重啟。");
+            // Rich install control: real progress bar + live bilingual status + % + Cancel + success/error animation.
+            EngineBar.ActionButton = null;
+            if (EngineBar.Content is not InstallProgress)
+                EngineBar.Content = EngineBars.AutoInstallProgress(
+                    "Google.PlatformTools", "Install adb automatically", "自動安裝 adb",
+                    recheck: async () => { await CheckEngine(); if (await AdbService.IsAvailable()) await RefreshDevices(); });
         }
-        else EngineBar.ActionButton = null;
+        else { EngineBar.ActionButton = null; EngineBar.Content = null; }
         await CheckScrcpy();
     }
 
@@ -138,19 +135,15 @@ public sealed partial class AndroidAdbModule : Page
         {
             ScrcpyBar.Severity = InfoBarSeverity.Warning;
             ScrcpyBar.Title = P("scrcpy not found", "搵唔到 scrcpy");
-            ScrcpyBar.Message = P("Screen mirroring needs scrcpy. Click to install it automatically (Genymobile.scrcpy via winget).",
-                "螢幕鏡像需要 scrcpy。撳一下自動安裝（用 winget 裝 Genymobile.scrcpy）。");
-            var btn = new Button { Content = P("Install scrcpy automatically", "自動安裝 scrcpy") };
-            btn.Click += async (_, _) =>
-            {
-                btn.IsEnabled = false;
-                btn.Content = P("Installing…", "安裝緊…");
-                await PackageService.AutoInstall(ScrcpyService.WingetId);
-                await CheckScrcpy();
-            };
-            ScrcpyBar.ActionButton = btn;
+            ScrcpyBar.Message = P("Screen mirroring needs scrcpy. Install it automatically (Genymobile.scrcpy via winget) — live progress.",
+                "螢幕鏡像需要 scrcpy。自動安裝（用 winget 裝 Genymobile.scrcpy）— 即時進度。");
+            ScrcpyBar.ActionButton = null;
+            if (ScrcpyBar.Content is not InstallProgress)
+                ScrcpyBar.Content = EngineBars.AutoInstallProgress(
+                    ScrcpyService.WingetId, "Install scrcpy automatically", "自動安裝 scrcpy",
+                    recheck: async () => await CheckScrcpy());
         }
-        else ScrcpyBar.ActionButton = null;
+        else { ScrcpyBar.ActionButton = null; ScrcpyBar.Content = null; }
     }
 
     private async Task RefreshDevices()

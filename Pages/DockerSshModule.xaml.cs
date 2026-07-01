@@ -291,11 +291,15 @@ public sealed partial class DockerSshModule : Page
     {
         DockerBar.IsOpen = true;
         DockerBar.Severity = InfoBarSeverity.Warning;
-        DockerBar.Title = P("Docker not available", "Docker 用唔到");
+        DockerBar.Title = P("Docker not available on the remote host", "遠端主機冇 Docker");
+        // This module drives docker on the REMOTE machine over SSH — there is nothing to install locally.
+        // We give clear, actionable remote-side guidance instead of a nonsensical local installer.
+        var guidance = P(
+            "docker was not found on the remote host. On that machine, install Docker (e.g. `curl -fsSL https://get.docker.com | sh`), then make sure this SSH user can run it (`sudo usermod -aG docker $USER` and re-login). WinForge runs the docker CLI over SSH; nothing is installed on this PC.",
+            "喺遠端主機搵唔到 docker。喺嗰部機安裝 Docker（例如 `curl -fsSL https://get.docker.com | sh`），再確保呢個 SSH 使用者可以執行（`sudo usermod -aG docker $USER` 然後重新登入）。WinForge 經 SSH 跑 docker CLI；本機唔會安裝任何嘢。");
         DockerBar.Message = string.IsNullOrWhiteSpace(raw)
-            ? P("docker was not found on the remote host. Install Docker there, or make sure the SSH user can run docker (e.g. in the 'docker' group).",
-                "喺遠端主機搵唔到 docker。請喺嗰部機安裝 Docker，或者確保該 SSH 使用者可以執行 docker（例如加入 'docker' 群組）。")
-            : P($"docker could not be used on the remote host: {raw}", $"喺遠端主機用唔到 docker：{raw}");
+            ? guidance
+            : $"{P("docker could not be used on the remote host:", "喺遠端主機用唔到 docker：")} {raw}\n\n{guidance}";
     }
 
     // ── search / refresh ────────────────────────────────────────────────────

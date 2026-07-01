@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using WinForge.Controls;
 using WinForge.Models;
 using WinForge.Services;
 
@@ -60,20 +61,16 @@ public sealed partial class FastbootModule : Page
         {
             EngineBar.Severity = InfoBarSeverity.Warning;
             EngineBar.Title = P("fastboot not found", "搵唔到 fastboot");
-            EngineBar.Message = P("fastboot ships with Google Platform Tools. Click to install it automatically (no restart).",
-                "fastboot 隨 Google Platform Tools 一齊嚟。撳一下自動安裝（唔使重啟）。");
-            var btn = new Button { Content = P("Install Platform Tools automatically", "自動安裝 Platform Tools") };
-            btn.Click += async (_, _) =>
-            {
-                btn.IsEnabled = false;
-                btn.Content = P("Installing…", "安裝緊…");
-                await PackageService.AutoInstall("Google.PlatformTools");
-                await CheckEngine();
-                if (await FastbootService.IsAvailable()) await RefreshDevices();
-            };
-            EngineBar.ActionButton = btn;
+            EngineBar.Message = P("fastboot ships with Google Platform Tools. Install it automatically (winget) — live progress, no restart.",
+                "fastboot 隨 Google Platform Tools 一齊嚟。自動安裝（winget）— 即時進度，唔使重啟。");
+            // Rich install control: real progress bar + live bilingual status + % + Cancel + success/error animation.
+            EngineBar.ActionButton = null;
+            if (EngineBar.Content is not InstallProgress)
+                EngineBar.Content = EngineBars.AutoInstallProgress(
+                    "Google.PlatformTools", "Install Platform Tools automatically", "自動安裝 Platform Tools",
+                    recheck: async () => { await CheckEngine(); if (await FastbootService.IsAvailable()) await RefreshDevices(); });
         }
-        else EngineBar.ActionButton = null;
+        else { EngineBar.ActionButton = null; EngineBar.Content = null; }
     }
 
     private async Task RefreshDevices()

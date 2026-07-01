@@ -650,8 +650,50 @@ public sealed partial class CamoufoxModule : Page
                 ExePath.Text = P("(not found)", "（搵唔到）");
             }
             SetEngineChip(exe is not null);
+            RefreshGitPrereq(exe is not null);
         }
         catch (Exception ex) { CrashLogger.Log("camoufox.engine", ex); }
+    }
+
+    /// <summary>
+    /// git 係「clone &amp; build」嘅前置條件 · git is a prerequisite for the clone-and-build step. When the
+    /// engine isn't installed yet and git is missing, offer a one-click winget install with a rich progress
+    /// control (bar + live status + % + Cancel + success/error animation); hide it once git is present.
+    /// </summary>
+    private void RefreshGitPrereq(bool engineInstalled)
+    {
+        bool hasGit = HasGit();
+        if (engineInstalled || hasGit)
+        {
+            GitBar.IsOpen = false;
+            GitInstallHost.Children.Clear();
+            return;
+        }
+        GitBar.IsOpen = true;
+        GitBar.Severity = InfoBarSeverity.Warning;
+        GitBar.Title = P("Git not found", "搵唔到 Git");
+        GitBar.Message = P("Building Camoufox from source needs Git. Install it automatically (winget) — live progress below.",
+            "由原始碼建置 Camoufox 需要 Git。自動安裝（winget）— 下面有即時進度。");
+        GitInstallHost.Children.Clear();
+        GitInstallHost.Children.Add(EngineBars.AutoInstallProgress(
+            "Git.Git", "Install Git", "安裝 Git",
+            recheck: async () => { PackageService.RefreshProcessPath(); await RefreshEngine(); },
+            rescan: PackageService.RefreshProcessPath));
+    }
+
+    /// <summary>PATH 上有冇 git · Whether a git executable is resolvable on PATH.</summary>
+    private static bool HasGit()
+    {
+        try
+        {
+            foreach (var dir in (Environment.GetEnvironmentVariable("PATH") ?? "").Split(';', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var p = System.IO.Path.Combine(dir.Trim(), "git.exe");
+                if (System.IO.File.Exists(p)) return true;
+            }
+        }
+        catch { }
+        return false;
     }
 
     private async void Detect_Click(object sender, RoutedEventArgs e) => await RefreshEngine();

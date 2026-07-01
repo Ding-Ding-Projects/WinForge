@@ -170,11 +170,13 @@ public sealed partial class VpnMeshModule : Page
             NordEngineBar.IsOpen = true;
             NordEngineBar.Severity = InfoBarSeverity.Warning;
             NordEngineBar.Title = P("NordVPN not found", "搵唔到 NordVPN");
-            NordEngineBar.Message = P("Click to install NordVPN automatically (winget), then sign in once.",
-                "撳一下自動安裝 NordVPN（winget），再登入一次。");
-            NordEngineBar.ActionButton = AutoInstallButton("NordVPN.NordVPN", "Install NordVPN automatically", "自動安裝 NordVPN");
+            NordEngineBar.Message = P("Install NordVPN automatically (winget), then sign in once.",
+                "自動安裝 NordVPN（winget），再登入一次。");
+            NordEngineBar.Content = EngineBars.AutoInstallProgress(
+                "NordVPN.NordVPN", "Install NordVPN", "安裝 NordVPN",
+                recheck: async () => { await CheckEngines(); });
         }
-        else { NordEngineBar.IsOpen = false; NordEngineBar.ActionButton = null; }
+        else { NordEngineBar.IsOpen = false; NordEngineBar.Content = null; }
 
         _tsAvailable = await TailscaleService.IsAvailable();
         if (!_tsAvailable)
@@ -182,35 +184,25 @@ public sealed partial class VpnMeshModule : Page
             TsEngineBar.IsOpen = true;
             TsEngineBar.Severity = InfoBarSeverity.Warning;
             TsEngineBar.Title = P("Tailscale not found", "搵唔到 Tailscale");
-            TsEngineBar.Message = P("Click to install Tailscale automatically (winget), then sign in once.",
-                "撳一下自動安裝 Tailscale（winget），再登入一次。");
-            TsEngineBar.ActionButton = AutoInstallButton("tailscale.tailscale", "Install Tailscale automatically", "自動安裝 Tailscale");
+            TsEngineBar.Message = P("Install Tailscale automatically (winget), then sign in once.",
+                "自動安裝 Tailscale（winget），再登入一次。");
+            TsEngineBar.Content = EngineBars.AutoInstallProgress(
+                "tailscale.tailscale", "Install Tailscale", "安裝 Tailscale",
+                recheck: async () => { await CheckEngines(); if (_tsAvailable) await RefreshTailscale(); });
         }
-        else { TsEngineBar.IsOpen = false; TsEngineBar.ActionButton = null; }
+        else { TsEngineBar.IsOpen = false; TsEngineBar.Content = null; }
 
         if (!WireGuardService.Installed)
         {
             WgEngineBar.IsOpen = true;
             WgEngineBar.Severity = InfoBarSeverity.Warning;
             WgEngineBar.Title = P("WireGuard not found", "搵唔到 WireGuard");
-            WgEngineBar.Message = P("Click to install WireGuard automatically (winget).", "撳一下自動安裝 WireGuard（winget）。");
-            WgEngineBar.ActionButton = AutoInstallButton("WireGuard.WireGuard", "Install WireGuard automatically", "自動安裝 WireGuard");
+            WgEngineBar.Message = P("Install WireGuard automatically (winget).", "自動安裝 WireGuard（winget）。");
+            WgEngineBar.Content = EngineBars.AutoInstallProgress(
+                "WireGuard.WireGuard", "Install WireGuard", "安裝 WireGuard",
+                recheck: async () => { await CheckEngines(); await RefreshWireGuard(); });
         }
-        else { WgEngineBar.IsOpen = false; WgEngineBar.ActionButton = null; }
-    }
-
-    private Button AutoInstallButton(string wingetId, string en, string zh)
-    {
-        var btn = new Button { Content = P(en, zh) };
-        btn.Click += async (_, _) =>
-        {
-            btn.IsEnabled = false;
-            btn.Content = P("Installing…", "安裝緊…");
-            await PackageService.AutoInstall(wingetId);
-            await CheckEngines();
-            await RefreshWireGuard();
-        };
-        return btn;
+        else { WgEngineBar.IsOpen = false; WgEngineBar.Content = null; }
     }
 
     // ---- NordVPN ----

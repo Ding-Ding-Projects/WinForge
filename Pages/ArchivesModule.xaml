@@ -15,6 +15,8 @@
             <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
 
             <InfoBar x:Name="EngineBar" IsClosable="False" IsOpen="False" />
+            <!-- Rich install-progress host for the 7-Zip prerequisite (bar + live status + % + Cancel). -->
+            <StackPanel x:Name="EngineInstallHost" />
 
             <!-- Selection -->
             <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"

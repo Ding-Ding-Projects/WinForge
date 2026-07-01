@@ -53,7 +53,7 @@
                             <TextBlock x:Name="PwshTitle" FontWeight="SemiBold" />
                             <TextBlock x:Name="PwshDetail" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" TextWrapping="Wrap" />
                         </StackPanel>
-                        <Button x:Name="PwshActionBtn" Grid.Column="2" VerticalAlignment="Center" Click="PwshAction_Click" Visibility="Collapsed" />
+                        <StackPanel x:Name="PwshActionHost" Grid.Column="2" VerticalAlignment="Center" />
                     </Grid>
 
                     <!-- CNF module -->
@@ -68,10 +68,7 @@
                             <TextBlock x:Name="ModuleTitle" FontWeight="SemiBold" />
                             <TextBlock x:Name="ModuleDetail" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" TextWrapping="Wrap" />
                         </StackPanel>
-                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                            <Button x:Name="InstallModuleBtn" Click="InstallModule_Click" Visibility="Collapsed" />
-                            <Button x:Name="UpdateModuleBtn" Click="UpdateModule_Click" Visibility="Collapsed" />
-                        </StackPanel>
+                        <StackPanel x:Name="ModuleActionHost" Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" />
                     </Grid>
 
                     <!-- Profile hook -->

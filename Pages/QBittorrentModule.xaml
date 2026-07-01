@@ -22,6 +22,8 @@
             <controls:ModuleHeader x:Name="Header" Glyph="&#xE896;" />
             <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
             <InfoBar x:Name="EngineBar" IsClosable="False" IsOpen="False" Severity="Warning" />
+            <!-- Rich install-progress host for the local qBittorrent client prerequisite. -->
+            <StackPanel x:Name="EngineInstallHost" />
         </StackPanel>
 
         <!-- Connection -->

@@ -21,11 +21,11 @@
         <controls:ModuleHeader x:Name="Header" Grid.Row="0" Glyph="&#xE7BA;" />
 
         <!-- Engine / install banner -->
-        <InfoBar x:Name="EngineBar" Grid.Row="1" IsClosable="False" IsOpen="False" Severity="Warning">
-            <InfoBar.ActionButton>
-                <Button x:Name="DownloadBtn" Click="Download_Click" />
-            </InfoBar.ActionButton>
-        </InfoBar>
+        <StackPanel Grid.Row="1" Spacing="6">
+            <InfoBar x:Name="EngineBar" IsClosable="False" IsOpen="False" Severity="Warning" />
+            <!-- Rich install-progress host: real bar + live bilingual status + % + Cancel + success/error animation. -->
+            <StackPanel x:Name="DownloadHost" />
+        </StackPanel>
 
         <!-- Configuration card -->
         <Border

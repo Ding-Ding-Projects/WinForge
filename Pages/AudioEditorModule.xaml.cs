@@ -13,6 +13,7 @@ using Microsoft.UI.Xaml.Media;
 using Windows.Media.Core;
 using Windows.Media.Playback;
 using WinForge.Catalog;
+using WinForge.Controls;
 using WinForge.Models;
 using WinForge.Services;
 
@@ -153,13 +154,17 @@ public sealed partial class AudioEditorModule : Page
             EngineBar.IsOpen = true;
             EngineBar.Severity = InfoBarSeverity.Warning;
             EngineBar.Title = P("ffmpeg not found", "搵唔到 ffmpeg");
-            EngineBar.Message = P("Recording, playback decoding and all effects need ffmpeg. Click to install it automatically (winget) — no restart needed.",
-                "錄音、解碼播放同所有效果都要 ffmpeg。撳一下自動安裝（winget）— 唔使重開。");
-            EngineBar.ActionButton = EngineBars.AutoInstallButton(
-                "Gyan.FFmpeg", "Install ffmpeg automatically", "自動安裝 ffmpeg",
-                async () => { FfmpegAudioService.Rescan(); Render(); await RefreshDevicesAsync(); }, FfmpegAudioService.Rescan);
+            EngineBar.Message = P("Recording, playback decoding and all effects need ffmpeg. Install it automatically (winget) — live progress, no restart needed.",
+                "錄音、解碼播放同所有效果都要 ffmpeg。自動安裝（winget）— 即時進度，唔使重開。");
+            // Rich install control: real progress bar + live bilingual status + % + Cancel + success/error animation.
+            EngineBar.ActionButton = null;
+            if (EngineBar.Content is not InstallProgress)
+                EngineBar.Content = EngineBars.AutoInstallProgress(
+                    "Gyan.FFmpeg", "Install ffmpeg automatically", "自動安裝 ffmpeg",
+                    recheck: async () => { Render(); await RefreshDevicesAsync(); },
+                    rescan: FfmpegAudioService.Rescan);
         }
-        else { EngineBar.IsOpen = false; EngineBar.ActionButton = null; }
+        else { EngineBar.IsOpen = false; EngineBar.ActionButton = null; EngineBar.Content = null; }
     }
 
     private void UpdateSliderLabels()

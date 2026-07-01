@@ -284,11 +284,42 @@ public sealed partial class RichPreviewModule : Page
     private async Task EnsureWebAsync()
     {
         if (_webReady) return;
-        try { _ = CoreWebView2Environment.GetAvailableBrowserVersionString(); }
-        catch { throw new InvalidOperationException(P("WebView2 Runtime not found. It ships with Windows 11; install it to preview SVG, Markdown, code and PDF.",
-            "搵唔到 WebView2 執行階段。Windows 11 一般已內建；安裝後先可以預覽 SVG、Markdown、程式碼同 PDF。")); }
+        try
+        {
+            var ver = CoreWebView2Environment.GetAvailableBrowserVersionString();
+            if (string.IsNullOrWhiteSpace(ver)) throw new InvalidOperationException();
+        }
+        catch
+        {
+            ShowWebView2Missing();
+            throw new InvalidOperationException(P("WebView2 Runtime not found. It ships with Windows 11; install it to preview SVG, Markdown, code and PDF.",
+                "搵唔到 WebView2 執行階段。Windows 11 一般已內建；安裝後先可以預覽 SVG、Markdown、程式碼同 PDF。"));
+        }
         await Web.EnsureCoreWebView2Async();
         _webReady = true;
+    }
+
+    /// <summary>
+    /// WebView2 執行階段安裝按鈕 · Surface a rich auto-install control for the WebView2 Runtime
+    /// (winget: Microsoft.EdgeWebView2Runtime — usually preinstalled on Windows 11). On success it
+    /// re-renders the current file so the preview appears without a restart.
+    /// </summary>
+    private void ShowWebView2Missing()
+    {
+        try
+        {
+            WebView2InstallHost.Children.Clear();
+            WebView2InstallHost.Children.Add(EngineBars.AutoInstallProgress(
+                "Microsoft.EdgeWebView2Runtime", "Install WebView2 Runtime", "安裝 WebView2 執行階段",
+                recheck: async () =>
+                {
+                    _webReady = false;
+                    WebView2InstallHost.Visibility = Visibility.Collapsed;
+                    if (_current is not null) await RenderCurrentAsync();
+                }));
+            WebView2InstallHost.Visibility = Visibility.Visible;
+        }
+        catch { /* never throw from prerequisite UI */ }
     }
 
     private void Web_CoreWebView2Initialized(WebView2 sender, CoreWebView2InitializedEventArgs args)

@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Windows.ApplicationModel.DataTransfer;
+using WinForge.Controls;
 using WinForge.Models;
 using WinForge.Services;
 
@@ -124,14 +125,14 @@ public sealed partial class CmdNotFoundModule : Page
     private void RenderStatus(CmdNotFoundService.CnfStatus s)
     {
         // pwsh row
+        PwshActionHost.Children.Clear();
         if (!s.PwshPresent)
         {
             PwshIcon.Glyph = ""; // error circle
             PwshTitle.Text = P("PowerShell 7 (pwsh): not found", "PowerShell 7（pwsh）：搵唔到");
             PwshDetail.Text = P("Install PowerShell 7.4 or newer to use Command Not Found.",
                 "請安裝 PowerShell 7.4 或更新版本先可以用「搵唔到指令」。");
-            PwshActionBtn.Content = P("Install pwsh…", "安裝 pwsh…");
-            PwshActionBtn.Visibility = Visibility.Visible;
+            PwshActionHost.Children.Add(BuildPwshInstall(P("Install pwsh…", "安裝 pwsh…")));
         }
         else if (!s.PwshOk)
         {
@@ -139,8 +140,7 @@ public sealed partial class CmdNotFoundModule : Page
             PwshTitle.Text = P($"PowerShell {s.PwshVersion}: too old", $"PowerShell {s.PwshVersion}：太舊");
             PwshDetail.Text = P("Version 7.4 or newer is required. Please update PowerShell.",
                 "需要 7.4 或更新版本，請更新 PowerShell。");
-            PwshActionBtn.Content = P("Update pwsh…", "更新 pwsh…");
-            PwshActionBtn.Visibility = Visibility.Visible;
+            PwshActionHost.Children.Add(BuildPwshInstall(P("Update pwsh…", "更新 pwsh…")));
         }
         else
         {
@@ -153,10 +153,10 @@ public sealed partial class CmdNotFoundModule : Page
                        "啟用掛鈎時會一併開啟實驗功能。"),
             };
             PwshDetail.Text = feats;
-            PwshActionBtn.Visibility = Visibility.Collapsed;
         }
 
         // module row
+        ModuleActionHost.Children.Clear();
         if (s.CnfModulePresent)
         {
             ModuleIcon.Glyph = "";
@@ -167,9 +167,8 @@ public sealed partial class CmdNotFoundModule : Page
                     : P("WinGet client module should be updated.", "WinGet 客戶端模組建議更新。"))
                 : P("WinGet client dependency missing.", "缺少 WinGet 客戶端相依模組。");
             ModuleDetail.Text = client;
-            InstallModuleBtn.Visibility = Visibility.Collapsed;
-            UpdateModuleBtn.Content = P("Update", "更新");
-            UpdateModuleBtn.Visibility = Visibility.Visible;
+            if (s.PwshPresent)
+                ModuleActionHost.Children.Add(BuildModuleInstall(P("Update", "更新"), update: true));
         }
         else
         {
@@ -177,12 +176,9 @@ public sealed partial class CmdNotFoundModule : Page
             ModuleTitle.Text = P("Microsoft.WinGet.CommandNotFound: not installed", "Microsoft.WinGet.CommandNotFound：未安裝");
             ModuleDetail.Text = P("Install the suggestion module from the PowerShell Gallery.",
                 "由 PowerShell Gallery 安裝建議模組。");
-            InstallModuleBtn.Content = P("Install module", "安裝模組");
-            InstallModuleBtn.Visibility = Visibility.Visible;
-            UpdateModuleBtn.Visibility = Visibility.Collapsed;
+            if (s.PwshPresent)
+                ModuleActionHost.Children.Add(BuildModuleInstall(P("Install module", "安裝模組"), update: false));
         }
-        InstallModuleBtn.IsEnabled = s.PwshPresent;
-        UpdateModuleBtn.IsEnabled = s.PwshPresent;
 
         // hook row
         if (s.HookEnabled && !s.LegacyHookPresent)
@@ -240,62 +236,50 @@ public sealed partial class CmdNotFoundModule : Page
 
     private async void Refresh_Click(object sender, RoutedEventArgs e) => await ReloadAsync();
 
-    private async void PwshAction_Click(object sender, RoutedEventArgs e)
+    /// <summary>
+    /// 砌 PowerShell 7 安裝控件（真進度條 + 即時狀態 + 取消 + 成功／失敗動畫）·
+    /// Build a rich InstallProgress control that installs PowerShell 7 via winget (streaming), then re-detects.
+    /// </summary>
+    private InstallProgress BuildPwshInstall(string label)
     {
-        // 經 winget 安裝 PowerShell 7 · install PowerShell 7 via winget.
-        if (_busy) return;
-        SetBusy(true, P("Installing PowerShell 7 via winget…", "正在用 winget 安裝 PowerShell 7…"));
-        try
+        return InstallProgress.Create(label, label, async (progress, ct) =>
         {
-            var r = await ShellRunner.Run("winget",
-                "install --id Microsoft.PowerShell --source winget --accept-source-agreements --accept-package-agreements --disable-interactivity",
-                false, _cts?.Token ?? default);
+            var onLine = new Progress<string>(l => progress.Report(InstallProgressReport.FromLine(l)));
+            TweakResult r;
+            try { r = await PackageService.AutoInstallDetailed("Microsoft.PowerShell", onLine, ct); }
+            catch (Exception ex) { r = TweakResult.Fail(ex.Message, $"出錯：{ex.Message}"); }
             CmdNotFoundService.Rescan();
-            ShowResult(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Warning,
-                P("PowerShell 7 install finished. Refreshing…", "PowerShell 7 安裝完成，正在重新整理…"),
-                r.Output);
-        }
-        catch (Exception ex)
-        {
-            ShowResult(InfoBarSeverity.Error, P($"Install failed: {ex.Message}", $"安裝失敗：{ex.Message}"));
-        }
-        finally
-        {
-            SetBusy(false);
-            await ReloadAsync();
-        }
+            if (r.Success) { try { await ReloadAsync(); } catch { } }
+            return r;
+        });
     }
 
-    private async void InstallModule_Click(object sender, RoutedEventArgs e)
+    /// <summary>
+    /// 砌 Microsoft.WinGet.CommandNotFound 模組安裝／更新控件 · Build a rich InstallProgress control that
+    /// installs (or updates) the suggestion module from the PowerShell Gallery with live status, then re-detects.
+    /// 模組經 PSGallery（非 winget）安裝，所以直接串流 CmdNotFoundService 嘅 pwsh 記錄行。
+    /// </summary>
+    private InstallProgress BuildModuleInstall(string label, bool update)
     {
-        if (_busy) return;
-        SetBusy(true, P("Installing the suggestion module…", "正在安裝建議模組…"));
-        try
+        return InstallProgress.Create(label, label, async (progress, ct) =>
         {
-            var r = await CmdNotFoundService.InstallModuleAsync(_cts?.Token ?? default);
-            ShowResult(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error, ResultText(r), r.Output);
-        }
-        finally
-        {
-            SetBusy(false);
-            await ReloadAsync();
-        }
-    }
-
-    private async void UpdateModule_Click(object sender, RoutedEventArgs e)
-    {
-        if (_busy) return;
-        SetBusy(true, P("Updating modules…", "正在更新模組…"));
-        try
-        {
-            var r = await CmdNotFoundService.UpdateModuleAsync(_cts?.Token ?? default);
-            ShowResult(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error, ResultText(r), r.Output);
-        }
-        finally
-        {
-            SetBusy(false);
-            await ReloadAsync();
-        }
+            progress.Report(update
+                ? InstallProgressReport.Status("Updating the modules from the PowerShell Gallery…", "正在由 PowerShell Gallery 更新模組…")
+                : InstallProgressReport.Status("Installing the suggestion module from the PowerShell Gallery…", "正在由 PowerShell Gallery 安裝建議模組…"));
+            TweakResult r;
+            try
+            {
+                r = update
+                    ? await CmdNotFoundService.UpdateModuleAsync(ct)
+                    : await CmdNotFoundService.InstallModuleAsync(ct);
+            }
+            catch (Exception ex) { r = TweakResult.Fail(ex.Message, $"出錯：{ex.Message}"); }
+            // Surface the captured pwsh transcript line-by-line into the status area.
+            if (!string.IsNullOrWhiteSpace(r.Output))
+                progress.Report(InstallProgressReport.FromLine(r.Output!.Trim()));
+            if (r.Success) { try { await ReloadAsync(); } catch { } }
+            return r;
+        });
     }
 
     private async void Enable_Click(object sender, RoutedEventArgs e)
@@ -427,8 +411,6 @@ public sealed partial class CmdNotFoundModule : Page
         RefreshBtn.IsEnabled = !on;
         EnableBtn.IsEnabled = !on && (_status?.PwshPresent ?? false);
         DisableBtn.IsEnabled = !on && (_status?.PwshPresent ?? false);
-        InstallModuleBtn.IsEnabled = !on && (_status?.PwshPresent ?? false);
-        UpdateModuleBtn.IsEnabled = !on && (_status?.PwshPresent ?? false);
         TestBtn.IsEnabled = !on;
         LookupBtn.IsEnabled = !on;
         if (on && message is not null)

@@ -26,6 +26,15 @@
                 IsOpen="True"
                 Severity="Warning" />
 
+            <!-- WebView2 Runtime notice + auto-installer (only when missing; enables rendered-DOM capture + in-app preview) -->
+            <InfoBar
+                x:Name="WebView2Bar"
+                IsClosable="False"
+                IsOpen="False"
+                Severity="Warning">
+                <StackPanel x:Name="WebView2InstallHost" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8" />
+            </InfoBar>
+
             <!-- URL input -->
             <Border
                 Padding="14"

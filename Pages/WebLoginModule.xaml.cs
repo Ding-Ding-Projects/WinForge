@@ -174,6 +174,18 @@ public sealed partial class WebLoginModule : Page
         EngineBar.Message = P(
             "The Microsoft Edge WebView2 Runtime is required for in-app login. It ships with Windows 11; on older images install the Evergreen Runtime.",
             "內置登入需要 Microsoft Edge WebView2 執行階段。Windows 11 已內附；舊版系統請安裝 Evergreen Runtime。");
+
+        // Rich one-click auto-install of the WebView2 Runtime (winget: Microsoft.EdgeWebView2Runtime).
+        // On success re-detect + start the embedded browser without an app restart.
+        try
+        {
+            EngineBar.Content = EngineBars.AutoInstallProgress(
+                "Microsoft.EdgeWebView2Runtime", "Install WebView2 Runtime", "安裝 WebView2 執行階段",
+                recheck: async () => { await EnsureWebAsync(); });
+        }
+        catch { /* never throw from prerequisite UI */ }
+
+        // Keep the manual link as a fallback action.
         var btn = new Button
         {
             Content = P("Copy download URL", "複製下載網址"),

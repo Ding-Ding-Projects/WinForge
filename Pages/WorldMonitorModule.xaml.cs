@@ -253,9 +253,21 @@ public sealed partial class WorldMonitorModule : Page
     {
         RuntimeBar.Title = P("WebView2 Runtime not found", "搵唔到 WebView2 執行階段");
         RuntimeBar.Message = P(
-            "World Monitor is embedded via WebView2, which ships with Windows 11. Copy the runtime link, install it, then reload.",
-            "World Monitor 經 WebView2 內嵌，Windows 11 一般已內建。請複製執行階段連結，安裝後再重新載入。")
+            "World Monitor is embedded via WebView2, which ships with Windows 11. Install it below (or copy the link), then reload.",
+            "World Monitor 經 WebView2 內嵌，Windows 11 一般已內建。請喺下面安裝（或複製連結），再重新載入。")
             + (string.IsNullOrEmpty(detail) ? "" : "\n" + detail);
+
+        // Rich one-click auto-install of the WebView2 Runtime (winget: Microsoft.EdgeWebView2Runtime).
+        // Usually preinstalled on Windows 11; on older images this installs the Evergreen Runtime.
+        try
+        {
+            RuntimeInstallHost.Children.Clear();
+            RuntimeInstallHost.Children.Add(EngineBars.AutoInstallProgress(
+                "Microsoft.EdgeWebView2Runtime", "Install WebView2 Runtime", "安裝 WebView2 執行階段",
+                recheck: async () => { await Task.CompletedTask; HideOverlays(); _ = InitWebViewAsync(); }));
+        }
+        catch { /* never throw from prerequisite UI */ }
+
         RuntimePanel.Visibility = Visibility.Visible;
     }
 

@@ -77,12 +77,17 @@ public sealed partial class ArchivesModule : Page
             EngineBar.IsOpen = true;
             EngineBar.Severity = InfoBarSeverity.Warning;
             EngineBar.Title = P("7-Zip not found", "搵唔到 7-Zip");
-            EngineBar.Message = P("Click to install 7-Zip automatically (winget) — no restart needed.", "撳一下自動安裝 7-Zip（winget）— 唔使重開。");
-            EngineBar.ActionButton = EngineBars.AutoInstallButton(
+            EngineBar.Message = P("Install 7-Zip automatically (winget) — live progress below, no restart needed.", "自動安裝 7-Zip（winget）— 下面有即時進度，唔使重開。");
+            EngineBar.ActionButton = null;
+            // Rich install-progress control: real bar + live bilingual winget status + % + Cancel +
+            // flashy success/error animation, surfacing the real exit code on failure.
+            EngineInstallHost.Children.Clear();
+            EngineInstallHost.Children.Add(EngineBars.AutoInstallProgress(
                 "7zip.7zip", "Install 7-Zip automatically", "自動安裝 7-Zip",
-                () => { Render(); return Task.CompletedTask; }, ArchiveService.Rescan);
+                recheck: () => { Render(); return Task.CompletedTask; },
+                rescan: ArchiveService.Rescan));
         }
-        else { EngineBar.IsOpen = false; EngineBar.ActionButton = null; }
+        else { EngineBar.IsOpen = false; EngineBar.ActionButton = null; EngineInstallHost.Children.Clear(); }
     }
 
     private int GitOpsCount() => (_ops ??= ArchiveOperations.All().ToList()).Count;

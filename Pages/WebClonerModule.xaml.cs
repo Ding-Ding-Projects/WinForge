@@ -32,6 +32,7 @@ public sealed partial class WebClonerModule : Page
         {
             Render();
             FolderBox.Text = DisplayPath(DefaultDest());
+            CheckWebView2();
             await DetectAgentAsync();
         };
         Unloaded += (_, _) => { try { _cts?.Cancel(); } catch { } Loc.I.LanguageChanged -= OnLanguageChanged; };
@@ -56,6 +57,39 @@ public sealed partial class WebClonerModule : Page
     }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
+
+    /// <summary>
+    /// WebView2 執行階段偵測 · Detect the WebView2 Runtime; when missing, surface a rich one-click
+    /// auto-installer (winget: Microsoft.EdgeWebView2Runtime — usually preinstalled on Windows 11).
+    /// The native clone works without it; WebView2 only powers the optional rendered-DOM capture and
+    /// the in-app preview.
+    /// </summary>
+    private void CheckWebView2()
+    {
+        bool present;
+        try
+        {
+            var ver = Microsoft.Web.WebView2.Core.CoreWebView2Environment.GetAvailableBrowserVersionString();
+            present = !string.IsNullOrWhiteSpace(ver);
+        }
+        catch { present = false; }
+
+        if (present) { WebView2Bar.IsOpen = false; return; }
+
+        WebView2Bar.Title = P("WebView2 Runtime not found (optional)", "搵唔到 WebView2 執行階段（選用）");
+        WebView2Bar.Message = P(
+            "The native clone works without it. Install the WebView2 Runtime to enable JS-rendered DOM capture and the in-app preview.",
+            "冇佢原生複製都用得。安裝 WebView2 執行階段就可以擷取 JS 渲染後嘅 DOM 同喺 app 內預覽。");
+        try
+        {
+            WebView2InstallHost.Children.Clear();
+            WebView2InstallHost.Children.Add(EngineBars.AutoInstallProgress(
+                "Microsoft.EdgeWebView2Runtime", "Install WebView2 Runtime", "安裝 WebView2 執行階段",
+                recheck: async () => { await Task.CompletedTask; CheckWebView2(); }));
+        }
+        catch { /* never throw from prerequisite UI */ }
+        WebView2Bar.IsOpen = true;
+    }
 
     private static string DefaultDest()
     {

@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Windows.System;
 using WinForge.Catalog;
+using WinForge.Controls;
 using WinForge.Models;
 using WinForge.Services;
 
@@ -125,23 +126,41 @@ public sealed partial class SshModule : Page
 
     private async Task CheckEngine()
     {
-        if (SshService.OpenSshClientPresent()) { EngineBar.IsOpen = false; EngineBar.ActionButton = null; return; }
+        if (SshService.OpenSshClientPresent()) { EngineBar.IsOpen = false; EngineBar.ActionButton = null; EngineBar.Content = null; return; }
         EngineBar.IsOpen = true;
         EngineBar.Severity = InfoBarSeverity.Warning;
         EngineBar.Title = P("OpenSSH client not found", "搵唔到 OpenSSH 客戶端");
         EngineBar.Message = P(
-            "ssh-keygen.exe (key generation) is missing. Connect/SFTP still work via SSH.NET, but click to enable the OpenSSH Client optional feature.",
-            "搵唔到 ssh-keygen.exe（產生金鑰用）。連線／SFTP 仍可經 SSH.NET 運作，撳一下啟用 OpenSSH 客戶端可選功能。");
-        var btn = new Button { Content = P("Enable OpenSSH Client", "啟用 OpenSSH 客戶端") };
-        btn.Click += async (_, _) =>
-        {
-            btn.IsEnabled = false;
-            btn.Content = P("Enabling…", "啟用緊…");
-            var r = await SshService.EnableOpenSshClientAsync();
-            await CheckEngine();
-            if (!SshService.OpenSshClientPresent()) { btn.IsEnabled = true; btn.Content = P("Retry", "再試"); }
-        };
-        EngineBar.ActionButton = btn;
+            "ssh-keygen.exe (key generation) is missing. Connect/SFTP still work via SSH.NET, but enable the OpenSSH Client optional Windows feature below.",
+            "搵唔到 ssh-keygen.exe（產生金鑰用）。連線／SFTP 仍可經 SSH.NET 運作，喺下面啟用 OpenSSH 客戶端可選 Windows 功能。");
+
+        // Not a winget package — the OpenSSH client is a Windows optional capability. Stream the
+        // DISM/Add-WindowsCapability output into a rich InstallProgress bar (progress + live status +
+        // Cancel + success/error animation) so the real result/error is surfaced, then re-detect.
+        var install = InstallProgress.Create(
+            "Enable OpenSSH Client", "啟用 OpenSSH 客戶端",
+            async (progress, ct) =>
+            {
+                progress.Report(InstallProgressReport.Status(
+                    "Enabling the OpenSSH.Client optional feature… (may prompt for admin)",
+                    "正在啟用 OpenSSH.Client 可選功能…（可能需要管理員權限）"));
+                var onLine = new Progress<string>(l => progress.Report(InstallProgressReport.FromLine(l)));
+                var r = await ShellRunner.RunPowershellStreaming(
+                    "Add-WindowsCapability -Online -Name OpenSSH.Client~~~~0.0.1.0",
+                    onLine, elevated: true, ct);
+                if (SshService.OpenSshClientPresent())
+                {
+                    await CheckEngine();
+                    return TweakResult.Ok("OpenSSH client enabled.", "已啟用 OpenSSH 客戶端。", r.Output);
+                }
+                return r.Success
+                    ? TweakResult.Ok("OpenSSH client feature enabled.", "已啟用 OpenSSH 客戶端功能。", r.Output)
+                    : TweakResult.Fail("Could not enable the OpenSSH client — see the output.",
+                        "未能啟用 OpenSSH 客戶端 — 請睇輸出。", r.Output);
+            });
+        EngineBar.ActionButton = null;
+        EngineBar.Content = install;
+        await Task.CompletedTask;
     }
 
     // ================= profiles =================

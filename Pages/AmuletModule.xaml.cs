@@ -111,11 +111,20 @@ public sealed partial class AmuletModule : Page
                 : P($"Amulet zip not found. Expected at {AmuletService.ExpectedZipPath}. Use “Locate zip…”.",
                     $"搵唔到 Amulet 壓縮檔。預期喺 {AmuletService.ExpectedZipPath}。用「指定壓縮檔…」。");
 
-            var extractBtn = new Button { Content = P("Extract Amulet", "解壓 Amulet") };
-            extractBtn.Click += async (_, _) => await DoExtract();
-            AmuletActionRow.Children.Add(extractBtn);
+            // Rich progress control: extract the bundled zip with a live bilingual status +
+            // flashy success/error animation, and surface the real error if extraction fails.
+            var extract = Controls.InstallProgress.Create(
+                "Extract Amulet", "解壓 Amulet",
+                async (progress, ct) =>
+                {
+                    progress.Report(Controls.InstallProgressReport.Status("Extracting Amulet…", "解壓 Amulet 中…"));
+                    var r = await AmuletService.EnsureExtracted(ct);
+                    DispatcherQueue.TryEnqueue(() => { AppendLog(Msg(r)); RefreshEngines(); });
+                    return r;
+                });
+            AmuletActionRow.Children.Add(extract);
 
-            var locateBtn = new Button { Content = P("Locate zip…", "指定壓縮檔…") };
+            var locateBtn = new Button { Content = P("Locate zip…", "指定壓縮檔…"), VerticalAlignment = VerticalAlignment.Top };
             locateBtn.Click += async (_, _) => await LocateZip();
             AmuletActionRow.Children.Add(locateBtn);
         }
@@ -134,7 +143,8 @@ public sealed partial class AmuletModule : Page
                 : P("Amulet (Python source) needs Python 3. Install it to continue.", "Amulet（Python 源碼）需要 Python 3。請安裝以繼續。");
             if (!hasPy)
             {
-                PythonActionRow.Children.Add(EngineBars.AutoInstallButton(
+                // Rich progress control: real bar + live winget status + % + Cancel + success/error animation.
+                PythonActionRow.Children.Add(EngineBars.AutoInstallProgress(
                     "Python.Python.3.12", "Install Python", "安裝 Python",
                     recheck: async () => { RefreshEngines(); BuildOps(); await Task.CompletedTask; },
                     rescan: PackageService.RefreshProcessPath));
@@ -154,18 +164,6 @@ public sealed partial class AmuletModule : Page
         var rows = new ControlRowList();
         rows.SetTweaks(AmuletOperations.All);
         OpsList.Children.Add(rows);
-    }
-
-    private async Task DoExtract()
-    {
-        Busy.IsActive = true;
-        AppendLog(P("[extracting Amulet…]", "[解壓 Amulet 中…]"));
-        var r = await AmuletService.EnsureExtracted();
-        Busy.IsActive = false;
-        Notify(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error,
-            r.Success ? P("Extracted", "已解壓") : P("Extract failed", "解壓失敗"), Msg(r));
-        AppendLog(Msg(r));
-        RefreshEngines();
     }
 
     private async Task LocateZip()

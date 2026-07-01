@@ -229,11 +229,13 @@ public sealed partial class GitHubModule : Page
             GitBar.Title = P("git not found", "搵唔到 git");
             GitBar.Message = P("git is the core engine here — install it automatically (Git.Git via winget), no restart needed.",
                 "git 係呢度嘅核心引擎 — 自動安裝（用 winget 裝 Git.Git），唔使重啟。");
-            GitBar.ActionButton = EngineBars.AutoInstallButton("Git.Git", "Install git", "安裝 git",
-                async () => { GitDeskService.ResetEngineCache(); await CheckEngines(); await Refresh(); },
+            // Rich install control: progress bar + live bilingual status + Cancel + success/error animation.
+            GitBar.ActionButton = null;
+            GitBar.Content = EngineBars.AutoInstallProgress("Git.Git", "Install git", "安裝 git",
+                recheck: async () => { GitDeskService.ResetEngineCache(); await CheckEngines(); await Refresh(); },
                 rescan: GitDeskService.ResetEngineCache);
         }
-        else GitBar.ActionButton = null;
+        else { GitBar.ActionButton = null; GitBar.Content = null; }
 
         bool gh = await GitDeskService.GhAvailable();
         GhBar.IsOpen = !gh;
@@ -243,20 +245,22 @@ public sealed partial class GitHubModule : Page
             GhBar.Title = P("GitHub CLI (gh) not found", "搵唔到 GitHub CLI（gh）");
             GhBar.Message = P("gh powers pull-request creation and the GitHub operations — install it automatically (GitHub.cli via winget).",
                 "gh 負責建立 pull request 同 GitHub 操作 — 自動安裝（用 winget 裝 GitHub.cli）。");
-            GhBar.ActionButton = EngineBars.AutoInstallButton("GitHub.cli", "Install gh", "安裝 gh",
-                async () => { GitDeskService.ResetEngineCache(); await CheckEngines(); },
+            GhBar.ActionButton = null;
+            GhBar.Content = EngineBars.AutoInstallProgress("GitHub.cli", "Install gh", "安裝 gh",
+                recheck: async () => { GitDeskService.ResetEngineCache(); await CheckEngines(); },
                 rescan: GitDeskService.ResetEngineCache);
         }
-        else GhBar.ActionButton = null;
+        else { GhBar.ActionButton = null; GhBar.Content = null; }
 
         // GitHub Desktop fallback — always offered as an alternative thick client.
         DesktopBar.IsOpen = true;
         DesktopBar.Title = P("Prefer the real GitHub Desktop?", "想用真嘅 GitHub Desktop？");
         DesktopBar.Message = P("WinForge ports the workflow natively, but you can also install the official GitHub Desktop app as a fallback.",
             "WinForge 原生重做咗個工作流程，不過你都可以裝官方 GitHub Desktop 應用程式做後備。");
-        DesktopBar.ActionButton = EngineBars.AutoInstallButton("GitHub.GitHubDesktop",
+        DesktopBar.ActionButton = null;
+        DesktopBar.Content = EngineBars.AutoInstallProgress("GitHub.GitHubDesktop",
             "Install GitHub Desktop", "安裝 GitHub Desktop",
-            async () => { Notify(InfoBarSeverity.Success, P("GitHub Desktop installed", "已安裝 GitHub Desktop"), ""); await Task.CompletedTask; });
+            recheck: async () => { Notify(InfoBarSeverity.Success, P("GitHub Desktop installed", "已安裝 GitHub Desktop"), ""); await Task.CompletedTask; });
     }
 
     // ===== repository list =====

@@ -121,6 +121,7 @@ public sealed partial class AwsCliModule : Page
         {
             EngineBar.IsOpen = false;
             EngineBar.ActionButton = null;
+            EngineBar.Content = null;
             var ver = await AwsCliService.VersionAsync();
             if (!string.IsNullOrWhiteSpace(ver))
             {
@@ -134,12 +135,15 @@ public sealed partial class AwsCliModule : Page
         EngineBar.IsOpen = true;
         EngineBar.Severity = InfoBarSeverity.Warning;
         EngineBar.Title = P("aws CLI not found", "搵唔到 aws CLI");
-        EngineBar.Message = P("Click to install the AWS CLI automatically (winget) — no restart needed.",
-            "撳一下自動安裝 AWS CLI（winget）— 唔使重開。");
-        EngineBar.ActionButton = EngineBars.AutoInstallButton(
+        EngineBar.Message = P("Install the AWS CLI automatically (winget) — a real progress bar, live status and no restart needed.",
+            "自動安裝 AWS CLI（winget）— 有真進度條、即時狀態，唔使重開。");
+        EngineBar.ActionButton = null;
+        // Rich progress control (progress bar + live bilingual status + Cancel + success/error animation),
+        // hosted in the bar's Content so real winget output/errors are surfaced.
+        EngineBar.Content = EngineBars.AutoInstallProgress(
             AwsCliService.WingetId, "Install AWS CLI automatically", "自動安裝 AWS CLI",
-            async () => { await CheckEngine(); await RefreshProfiles(); await LoadServices(); },
-            AwsCliService.Rescan);
+            recheck: async () => { await CheckEngine(); await RefreshProfiles(); await LoadServices(); },
+            rescan: AwsCliService.Rescan);
     }
 
     // ── Context (profile / region / output) ──────────────────────────────────────────────

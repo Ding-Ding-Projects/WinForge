@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Imaging;
+using WinForge.Controls;
 using WinForge.Models;
 using WinForge.Services;
 
@@ -68,10 +69,17 @@ public sealed partial class CaptureStudioModule : Page
             EngineBar.IsOpen = true;
             EngineBar.Severity = InfoBarSeverity.Warning;
             EngineBar.Title = P("ffmpeg not found", "搵唔到 ffmpeg");
-            EngineBar.Message = P("Install ffmpeg (winget install Gyan.FFmpeg) to record video and make GIFs. Snip and OCR still work without it.",
-                "請安裝 ffmpeg（winget install Gyan.FFmpeg）先錄到片同整 GIF。截圖同 OCR 唔使佢都用得。");
+            EngineBar.Message = P("Install ffmpeg to record video and make GIFs — live progress, no restart needed. Snip and OCR still work without it.",
+                "安裝 ffmpeg 先錄到片同整 GIF — 即時進度，唔使重開。截圖同 OCR 唔使佢都用得。");
+            // Rich install control: real progress bar + live bilingual status + % + Cancel + success/error animation.
+            EngineBar.ActionButton = null;
+            if (EngineBar.Content is not InstallProgress)
+                EngineBar.Content = EngineBars.AutoInstallProgress(
+                    "Gyan.FFmpeg", "Install ffmpeg automatically", "自動安裝 ffmpeg",
+                    recheck: async () => { await Task.Yield(); Render(); SyncButtons(); },
+                    rescan: MediaService.Rescan);
         }
-        else { EngineBar.IsOpen = false; }
+        else { EngineBar.IsOpen = false; EngineBar.ActionButton = null; EngineBar.Content = null; }
 
         RefreshOcrLangs();
     }

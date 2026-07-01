@@ -430,15 +430,18 @@ public sealed partial class ConfigBackupModule : Page
                 GitMissingBar.Message = P("Auto-sync needs the git CLI on PATH. Install it to enable scheduling.",
                     "自動同步需要 PATH 上有 git CLI。安裝後即可排程。");
                 GitMissingBar.IsOpen = true;
-                // Offer a one-click winget install that re-checks afterwards.
-                GitMissingBar.ActionButton = EngineBars.AutoInstallButton(
+                // Rich auto-install: real progress bar + live bilingual status + Cancel + success/error
+                // animation, hosted in the bar Content so winget's real output/exit code is surfaced.
+                GitMissingBar.ActionButton = null;
+                GitMissingBar.Content = EngineBars.AutoInstallProgress(
                     "Git.Git", "Install Git", "安裝 Git",
-                    async () => { GitMissingBar.IsOpen = false; await LoadAutoSyncState(); });
+                    recheck: async () => { GitMissingBar.IsOpen = false; await LoadAutoSyncState(); });
             }
             else
             {
                 GitMissingBar.IsOpen = false;
                 GitMissingBar.ActionButton = null;
+                GitMissingBar.Content = null;
             }
             bool controlsEnabled = gitOk;
             AutoSyncToggle.IsEnabled = controlsEnabled;

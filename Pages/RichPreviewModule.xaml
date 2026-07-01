@@ -135,6 +135,8 @@
                         <TextBlock x:Name="EmptyTitle" HorizontalAlignment="Center" Style="{StaticResource SubtitleTextBlockStyle}" />
                         <TextBlock x:Name="EmptyBlurb" HorizontalAlignment="Center" TextAlignment="Center"
                                    TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <!-- WebView2 Runtime auto-installer (shown only when the runtime is missing) -->
+                        <StackPanel x:Name="WebView2InstallHost" HorizontalAlignment="Center" Visibility="Collapsed" />
                     </StackPanel>
 
                     <!-- WebView2 (SVG / Markdown / PDF / code) -->

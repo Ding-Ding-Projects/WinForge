@@ -88,14 +88,34 @@ public sealed partial class TextOcrModule : Page
         if (OcrService.IsAvailable())
         {
             EngineBar.IsOpen = false;
+            EngineBar.ActionButton = null;
+            EngineBar.Content = null;
             return;
         }
         EngineBar.IsOpen = true;
         EngineBar.Severity = InfoBarSeverity.Warning;
         EngineBar.Title = P("No OCR language installed", "未安裝 OCR 語言");
         EngineBar.Message = P(
-            "Windows has no OCR language pack installed. Open Settings → Time & language → Language & region, add or open a language's options, and install its optional OCR feature. Then come back here.",
-            "Windows 未裝任何 OCR 語言包。開 設定 → 時間與語言 → 語言與地區，加入或開啟某語言嘅選項，安裝其可選嘅 OCR 功能，再返嚟呢度。");
+            "Windows has no OCR language pack installed. OCR language packs are a built-in Windows optional feature — they aren't a winget package, so open Windows Language settings, add or open a language's options, install its optional OCR feature, then re-check here.",
+            "Windows 未裝任何 OCR 語言包。OCR 語言包係 Windows 內置嘅可選功能，唔係 winget 套件；請開 Windows 語言設定，加入或開啟某語言嘅選項，安裝其可選嘅 OCR 功能，再喺呢度重新檢查。");
+
+        // No local winget install exists for OCR language packs (they're a Windows optional feature),
+        // so we surface a clear action: open the exact Settings page + a re-check, rather than faking an install.
+        var panel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        var openBtn = new Button { Content = P("Open Language settings", "開啟語言設定") };
+        openBtn.Click += OpenLanguageSettings_Click;
+        var recheckBtn = new Button { Content = P("Re-check", "重新檢查") };
+        recheckBtn.Click += (_, _) => { BuildLanguageList(); CheckEngine(); };
+        panel.Children.Add(openBtn);
+        panel.Children.Add(recheckBtn);
+        EngineBar.ActionButton = null;
+        EngineBar.Content = panel;
+    }
+
+    private async void OpenLanguageSettings_Click(object sender, RoutedEventArgs e)
+    {
+        try { await Windows.System.Launcher.LaunchUriAsync(new Uri("ms-settings:regionlanguage")); }
+        catch { /* best effort — never throw from a click handler */ }
     }
 
     private Language? SelectedLanguage() => (LangBox.SelectedItem as ComboBoxItem)?.Tag as Language;
