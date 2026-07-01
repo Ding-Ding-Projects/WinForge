@@ -322,6 +322,13 @@ public static class ModuleRegistry
         new() { Tag = "module.slugify", En = "Slugify", Zh = "網址別名", Glyph = ((char)0xE943).ToString(), Keywords = "slug slugify url permalink kebab hyphen diacritics transliterate case seo 網址 別名 短網址 連字號 去重音 大小寫" },
         new() { Tag = "module.diceware", En = "Passphrase Generator", Zh = "密語產生器", Glyph = ((char)0xE72E).ToString(), Keywords = "diceware passphrase password words memorable entropy random generator secure 密語 通行短語 密碼 詞語 熵 隨機 產生器" },
         new() { Tag = "module.textsort", En = "Line Sort & Dedupe", Zh = "行排序同去重", Glyph = ((char)0xE8A5).ToString(), Keywords = "sort lines dedupe duplicate unique reverse shuffle natural order alphabetical trim blank 排序 去重 重複 反轉 打亂 自然排序 行" },
+        new() { Tag = "module.districtheat", En = "District Heating", Zh = "區域供熱", Glyph = ((char)0xE945).ToString(), Keywords = "district heating cogeneration chp hot water city network homes thermal reactor nuclear waste heat 區域供熱 熱電聯產 供暖 熱網 反應堆 核電 廢熱" },
+        new() { Tag = "module.dac", En = "Carbon Capture (DAC)", Zh = "碳捕集", Glyph = ((char)0xE945).ToString(), Keywords = "direct air capture dac carbon dioxide co2 climate scrubber tonnes reactor nuclear energy credits 直接空氣捕集 碳捕集 二氧化碳 氣候 反應堆 核電 碳信用" },
+        new() { Tag = "module.hexdump", En = "Hex Dump", Zh = "十六進位傾印", Glyph = ((char)0xE7C3).ToString(), Keywords = "hex dump hexdump bytes offset ascii binary view file text utf-8 十六進位 傾印 位元組 偏移 二進位 檢視" },
+        new() { Tag = "module.envsubst", En = "Variable Substitute", Zh = "變數代入", Glyph = ((char)0xE943).ToString(), Keywords = "envsubst variable substitution template placeholder dollar brace default environment interpolate 變數 代入 範本 佔位符 預設值 環境變數 插值" },
+        new() { Tag = "module.unicodeinspect", En = "Unicode Inspector", Zh = "Unicode 檢查器", Glyph = ((char)0xE943).ToString(), Keywords = "unicode inspector codepoint character utf-8 utf-16 category combining zero-width confusable rune 統一碼 字元 碼位 類別 組合 零寬 檢查" },
+        new() { Tag = "module.regexcheat", En = "Regex Cheatsheet", Zh = "正則速查", Glyph = ((char)0xE943).ToString(), Keywords = "regex regular expression cheatsheet reference tokens character class anchor quantifier lookaround flags .net 正則 正規表達式 速查 參考 字元類 錨點 量詞" },
+        new() { Tag = "module.dnsref", En = "DNS Records Reference", Zh = "DNS 記錄參考", Glyph = ((char)0xEB41).ToString(), Keywords = "dns records reference a aaaa cname mx txt ns soa srv caa dmarc spf dkim zone file 域名 記錄 參考 區域檔 郵件 解析" },
     };
 
     public static IEnumerable<ModuleInfo> Search(string query)

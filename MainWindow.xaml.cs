@@ -478,6 +478,29 @@ public sealed partial class MainWindow : Window
             case "textsort":
                 Navigator.GoToModule?.Invoke("module.textsort");
                 break;
+            case "districtheat":
+                Navigator.GoToModule?.Invoke("module.districtheat");
+                break;
+            case "dac":
+            case "carboncapture":
+                Navigator.GoToModule?.Invoke("module.dac");
+                break;
+            case "hexdump":
+                Navigator.GoToModule?.Invoke("module.hexdump");
+                break;
+            case "envsubst":
+                Navigator.GoToModule?.Invoke("module.envsubst");
+                break;
+            case "unicodeinspect":
+            case "unicode":
+                Navigator.GoToModule?.Invoke("module.unicodeinspect");
+                break;
+            case "regexcheat":
+                Navigator.GoToModule?.Invoke("module.regexcheat");
+                break;
+            case "dnsref":
+                Navigator.GoToModule?.Invoke("module.dnsref");
+                break;
             case "uuidv7":
                 Navigator.GoToModule?.Invoke("module.uuidv7");
                 break;
@@ -2310,6 +2333,13 @@ public sealed partial class MainWindow : Window
         "module.slugify" => typeof(SlugifyModule),
         "module.diceware" => typeof(DicewareModule),
         "module.textsort" => typeof(TextSortModule),
+        "module.districtheat" => typeof(DistrictHeatModule),
+        "module.dac" => typeof(DacModule),
+        "module.hexdump" => typeof(HexDumpModule),
+        "module.envsubst" => typeof(EnvSubstModule),
+        "module.unicodeinspect" => typeof(UnicodeInspectModule),
+        "module.regexcheat" => typeof(RegexCheatModule),
+        "module.dnsref" => typeof(DnsRefModule),
         "module.uuidv7" => typeof(UuidV7Module),
         "module.jsonschema" => typeof(JsonSchemaModule),
         "module.htmlentities" => typeof(HtmlEntitiesModule),
@@ -2725,6 +2755,7 @@ public sealed partial class MainWindow : Window
                 "module.griddispatch", "module.h2plant", "module.aicluster", "module.hpc",
                 "module.computemine", "module.smelter", "module.datacenter", "module.collider",
                 "module.reactorbank", "module.desal", "module.evcharge", "module.pumpedhydro",
+                "module.districtheat", "module.dac",
             },
         },
         new()
@@ -2736,7 +2767,8 @@ public sealed partial class MainWindow : Window
             {
                 "module.uuidv7", "module.jsonschema", "module.htmlentities", "module.queryedit",
                 "module.morse", "module.romannum", "module.yamljson", "module.slugify",
-                "module.diceware", "module.textsort",
+                "module.diceware", "module.textsort", "module.hexdump", "module.envsubst",
+                "module.unicodeinspect", "module.regexcheat", "module.dnsref",
             },
         },
     };

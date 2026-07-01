@@ -139,6 +139,12 @@
                 <NavigationViewItem Content="Pumped-Storage Hydro · 抽水蓄能" Tag="module.pumpedhydro">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE945;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
+                <NavigationViewItem Content="District Heating · 區域供熱" Tag="module.districtheat">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE945;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Carbon Capture (DAC) · 碳捕集" Tag="module.dac">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE945;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
                 <NavigationViewItem Content="All Apps · 所有 app" Tag="shell.allapps">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE71D;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
@@ -514,6 +520,11 @@
                         <NavigationViewItem Content="Slugify · 網址別名" Tag="module.slugify"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Passphrase Generator · 密語產生器" Tag="module.diceware"><NavigationViewItem.Icon><FontIcon Glyph="&#xE72E;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Line Sort &amp; Dedupe · 行排序同去重" Tag="module.textsort"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Hex Dump · 十六進位傾印" Tag="module.hexdump"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7C3;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Variable Substitute · 變數代入" Tag="module.envsubst"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Unicode Inspector · Unicode 檢查器" Tag="module.unicodeinspect"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Regex Cheatsheet · 正則速查" Tag="module.regexcheat"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="DNS Records Reference · DNS 記錄參考" Tag="module.dnsref"><NavigationViewItem.Icon><FontIcon Glyph="&#xEB41;" /></NavigationViewItem.Icon></NavigationViewItem>
                     </NavigationViewItem.MenuItems>
                 </NavigationViewItem>
 
