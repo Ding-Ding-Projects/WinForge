@@ -336,6 +336,12 @@ public static class ModuleRegistry
         new() { Tag = "module.htmltable", En = "HTML Table Convert", Zh = "HTML 表格轉換", Glyph = ((char)0xE943).ToString(), Keywords = "html table csv tsv markdown convert thead tbody tr td parse generate 表格 轉換 逗號 標記 解析 產生" },
         new() { Tag = "module.barcode", En = "Barcode Generator", Zh = "條碼產生器", Glyph = ((char)0xE91B).ToString(), Keywords = "barcode code128 code39 ean-13 ean13 1d symbology svg generate scan retail 條碼 條形碼 產生 掃描 零售" },
         new() { Tag = "module.jsonpointer", En = "JSON Pointer", Zh = "JSON 指標", Glyph = ((char)0xE943).ToString(), Keywords = "json pointer rfc 6901 path resolve query escape tilde slash index 指標 路徑 解析 逃逸 索引" },
+        new() { Tag = "module.cementkiln", En = "Electric Cement Kiln", Zh = "電熱水泥迴轉窯", Glyph = ((char)0xE945).ToString(), Keywords = "cement kiln rotary clinker limestone calcination electric heat concrete tonnes reactor nuclear co2 decarbonise 水泥 迴轉窯 熟料 石灰石 煅燒 電熱 混凝土 反應堆 核電 減碳" },
+        new() { Tag = "module.colormix", En = "Colour Mixer", Zh = "混色器", Glyph = ((char)0xE790).ToString(), Keywords = "color colour mix blend gradient srgb linear hsl ratio swatch hex css steps 顏色 混色 漸變 漸層 色板 比例 調色" },
+        new() { Tag = "module.jsonsort", En = "JSON Key Sorter", Zh = "JSON 鍵排序", Glyph = ((char)0xE943).ToString(), Keywords = "json sort keys normalise normalize alphabetical order pretty print minify indent recursive 排序 鍵 正規化 美化 壓縮 縮排 遞迴" },
+        new() { Tag = "module.loremtext", En = "Lorem Ipsum Generator", Zh = "假文產生器", Glyph = ((char)0xE8D2).ToString(), Keywords = "lorem ipsum placeholder text dummy filler paragraphs sentences words html generator 假文 佔位文字 填充 段落 句子 產生器" },
+        new() { Tag = "module.phonetic", En = "Phonetic Speller", Zh = "拼讀字母表", Glyph = ((char)0xE720).ToString(), Keywords = "phonetic alphabet nato icao alpha bravo charlie spell radio callsign police speller 拼讀 字母表 無線電 呼號 拼寫 讀音" },
+        new() { Tag = "module.wordfreq", En = "Word Frequency", Zh = "詞頻統計", Glyph = ((char)0xE721).ToString(), Keywords = "word frequency count bigram character stop words rank text analysis csv 詞頻 字頻 統計 排名 文字 分析 計數" },
     };
 
     public static IEnumerable<ModuleInfo> Search(string query)
