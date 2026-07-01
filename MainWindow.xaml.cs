@@ -454,6 +454,30 @@ public sealed partial class MainWindow : Window
             case "watts":
                 Navigator.GoToModule?.Invoke("module.reactorbank");
                 break;
+            case "desal":
+                Navigator.GoToModule?.Invoke("module.desal");
+                break;
+            case "evcharge":
+                Navigator.GoToModule?.Invoke("module.evcharge");
+                break;
+            case "pumpedhydro":
+                Navigator.GoToModule?.Invoke("module.pumpedhydro");
+                break;
+            case "yamljson":
+            case "yaml":
+                Navigator.GoToModule?.Invoke("module.yamljson");
+                break;
+            case "slugify":
+            case "slug":
+                Navigator.GoToModule?.Invoke("module.slugify");
+                break;
+            case "diceware":
+            case "passphrase":
+                Navigator.GoToModule?.Invoke("module.diceware");
+                break;
+            case "textsort":
+                Navigator.GoToModule?.Invoke("module.textsort");
+                break;
             case "uuidv7":
                 Navigator.GoToModule?.Invoke("module.uuidv7");
                 break;
@@ -2279,6 +2303,13 @@ public sealed partial class MainWindow : Window
         "module.datacenter" => typeof(DataCenterModule),
         "module.collider" => typeof(ColliderModule),
         "module.reactorbank" => typeof(ReactorBankModule),
+        "module.desal" => typeof(DesalModule),
+        "module.evcharge" => typeof(EvChargeModule),
+        "module.pumpedhydro" => typeof(PumpedHydroModule),
+        "module.yamljson" => typeof(YamlJsonModule),
+        "module.slugify" => typeof(SlugifyModule),
+        "module.diceware" => typeof(DicewareModule),
+        "module.textsort" => typeof(TextSortModule),
         "module.uuidv7" => typeof(UuidV7Module),
         "module.jsonschema" => typeof(JsonSchemaModule),
         "module.htmlentities" => typeof(HtmlEntitiesModule),
@@ -2693,7 +2724,7 @@ public sealed partial class MainWindow : Window
             {
                 "module.griddispatch", "module.h2plant", "module.aicluster", "module.hpc",
                 "module.computemine", "module.smelter", "module.datacenter", "module.collider",
-                "module.reactorbank",
+                "module.reactorbank", "module.desal", "module.evcharge", "module.pumpedhydro",
             },
         },
         new()
@@ -2704,7 +2735,8 @@ public sealed partial class MainWindow : Window
             Keys = new[]
             {
                 "module.uuidv7", "module.jsonschema", "module.htmlentities", "module.queryedit",
-                "module.morse", "module.romannum",
+                "module.morse", "module.romannum", "module.yamljson", "module.slugify",
+                "module.diceware", "module.textsort",
             },
         },
     };

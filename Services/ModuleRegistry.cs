@@ -315,6 +315,13 @@ public static class ModuleRegistry
         new() { Tag = "module.datacenter", En = "Nuclear Data Center", Zh = "核能資料中心", Glyph = ((char)0xE968).ToString(), Keywords = "data center datacenter hyperscale server rack cooling pue uptime sla requests reactor nuclear load heavy 核能 資料中心 數據中心 伺服器 機櫃 散熱 用電 負載 反應堆 核電 重負載" },
         new() { Tag = "module.collider", En = "Particle Collider", Zh = "粒子對撞機", Glyph = ((char)0xEA86).ToString(), Keywords = "particle collider accelerator beam energy tev magnet luminosity physics reactor nuclear heavy load megawatt 粒子 對撞機 加速器 束能 磁鐵 亮度 物理 核電 反應堆 重負載" },
         new() { Tag = "module.reactorbank", En = "Reactor Bank", Zh = "反應堆銀行", Glyph = ((char)0xE1D6).ToString(), Keywords = "reactor bank wallet currency watts economy mint earn spend store perk unlock ledger nuclear power 反應堆 銀行 錢包 貨幣 瓦特幣 經濟 鑄幣 賺取 花費 商店 解鎖 賬簿 核電" },
+        new() { Tag = "module.desal", En = "Seawater Desalination", Zh = "海水淡化廠", Glyph = ((char)0xE945).ToString(), Keywords = "desalination seawater fresh water reverse osmosis reactor nuclear mwe power m3 海水 淡化 食水 反滲透 反應堆 核電 重負載 儲水" },
+        new() { Tag = "module.evcharge", En = "EV Fast-Charge Depot", Zh = "電動車快充站", Glyph = ((char)0xE945).ToString(), Keywords = "ev electric vehicle fast charge depot charger stall kw fleet soc reactor nuclear mwe power 電動車 充電 快充 車隊 反應堆 核電 重負載" },
+        new() { Tag = "module.pumpedhydro", En = "Pumped-Storage Hydro", Zh = "抽水蓄能", Glyph = ((char)0xE945).ToString(), Keywords = "pumped storage hydro reservoir energy grid buffer pump generate turbine reactor nuclear mwe surplus 抽水蓄能 水力 水塘 儲能 電網 反應堆 核電" },
+        new() { Tag = "module.yamljson", En = "YAML ↔ JSON", Zh = "YAML ↔ JSON 轉換", Glyph = ((char)0xE943).ToString(), Keywords = "yaml json convert parse config serialize 轉換 解析 設定檔 序列化 互轉" },
+        new() { Tag = "module.slugify", En = "Slugify", Zh = "網址別名", Glyph = ((char)0xE943).ToString(), Keywords = "slug slugify url permalink kebab hyphen diacritics transliterate case seo 網址 別名 短網址 連字號 去重音 大小寫" },
+        new() { Tag = "module.diceware", En = "Passphrase Generator", Zh = "密語產生器", Glyph = ((char)0xE72E).ToString(), Keywords = "diceware passphrase password words memorable entropy random generator secure 密語 通行短語 密碼 詞語 熵 隨機 產生器" },
+        new() { Tag = "module.textsort", En = "Line Sort & Dedupe", Zh = "行排序同去重", Glyph = ((char)0xE8A5).ToString(), Keywords = "sort lines dedupe duplicate unique reverse shuffle natural order alphabetical trim blank 排序 去重 重複 反轉 打亂 自然排序 行" },
     };
 
     public static IEnumerable<ModuleInfo> Search(string query)

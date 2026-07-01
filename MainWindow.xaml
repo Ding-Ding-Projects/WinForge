@@ -130,6 +130,15 @@
                 <NavigationViewItem Content="Reactor Bank (⚡ Watts) · 反應堆銀行" Tag="module.reactorbank">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE1D6;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
+                <NavigationViewItem Content="Seawater Desalination · 海水淡化廠" Tag="module.desal">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE945;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="EV Fast-Charge Depot · 電動車快充站" Tag="module.evcharge">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE945;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Pumped-Storage Hydro · 抽水蓄能" Tag="module.pumpedhydro">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE945;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
                 <NavigationViewItem Content="All Apps · 所有 app" Tag="shell.allapps">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE71D;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
@@ -501,6 +510,10 @@
                         <NavigationViewItem Content="URL Query Editor · 網址查詢編輯器" Tag="module.queryedit"><NavigationViewItem.Icon><FontIcon Glyph="&#xEB41;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Morse Code · 摩斯電碼" Tag="module.morse"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8D6;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Roman Numerals · 羅馬數字" Tag="module.romannum"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="YAML ↔ JSON · YAML ↔ JSON 轉換" Tag="module.yamljson"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Slugify · 網址別名" Tag="module.slugify"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Passphrase Generator · 密語產生器" Tag="module.diceware"><NavigationViewItem.Icon><FontIcon Glyph="&#xE72E;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Line Sort &amp; Dedupe · 行排序同去重" Tag="module.textsort"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>
                     </NavigationViewItem.MenuItems>
                 </NavigationViewItem>
 

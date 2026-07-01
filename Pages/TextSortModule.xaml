@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.TextSortModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="900" Spacing="14">
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE8A5;" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="14">
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <TextBlock x:Name="ModeLabel" VerticalAlignment="Center" />
+                        <ComboBox x:Name="ModeCombo" MinWidth="220" SelectionChanged="Options_Changed" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="8">
+                        <ToggleSwitch x:Name="CaseChk" Toggled="Options_Changed" />
+                        <ToggleSwitch x:Name="DedupeChk" Toggled="Options_Changed" />
+                        <ToggleSwitch x:Name="TrimCompareChk" Toggled="Options_Changed" />
+                        <ToggleSwitch x:Name="ReverseChk" Toggled="Options_Changed" />
+                        <ToggleSwitch x:Name="ShuffleChk" Toggled="Options_Changed" />
+                        <ToggleSwitch x:Name="RemoveBlankChk" Toggled="Options_Changed" />
+                        <ToggleSwitch x:Name="TrimEachChk" Toggled="Options_Changed" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button x:Name="ApplyBtn" Click="Apply_Click" Style="{ThemeResource AccentButtonStyle}" />
+                        <Button x:Name="ReshuffleBtn" Click="Reshuffle_Click" />
+                        <Button x:Name="CopyBtn" Click="Copy_Click" />
+                        <Button x:Name="ClearBtn" Click="Clear_Click" />
+                    </StackPanel>
+
+                    <TextBlock x:Name="StatsText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </StackPanel>
+            </Border>
+
+            <Grid ColumnSpacing="14">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Spacing="6">
+                    <TextBlock x:Name="InputLabel" FontWeight="SemiBold" />
+                    <TextBox x:Name="InputBox"
+                             AcceptsReturn="True"
+                             TextWrapping="NoWrap"
+                             MinHeight="320"
+                             FontFamily="Consolas"
+                             TextChanged="Input_Changed"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                             ScrollViewer.HorizontalScrollBarVisibility="Auto" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Spacing="6">
+                    <TextBlock x:Name="OutputLabel" FontWeight="SemiBold" />
+                    <TextBox x:Name="OutputBox"
+                             AcceptsReturn="True"
+                             IsReadOnly="True"
+                             TextWrapping="NoWrap"
+                             MinHeight="320"
+                             FontFamily="Consolas"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                             ScrollViewer.HorizontalScrollBarVisibility="Auto" />
+                </StackPanel>
+            </Grid>
+        </StackPanel>
+    </ScrollViewer>
+</Page>
