@@ -270,6 +270,13 @@ public static class ModuleRegistry
         new() { Tag = "module.textcolumns", En = "Column Tools", Zh = "欄位文字工具", Glyph = ((char)0xE8A5).ToString(), Keywords = "columns column text delimited split tab csv comma extract delete reorder align transpose trim 欄位 欄 分隔符 分割 表格 抽取 刪除 重排 對齊 行列互換 修剪" },
         new() { Tag = "module.jsonflatten", En = "JSON Flatten", Zh = "JSON 扁平化", Glyph = ((char)0xE943).ToString(), Keywords = "json flatten unflatten nested dotted path keys array index expand collapse 扁平化 還原 巢狀 點分隔 路徑 陣列 索引 展開 摺疊" },
         new() { Tag = "module.unitprice", En = "Unit Price", Zh = "單位價格", Glyph = ((char)0xE7BF).ToString(), Keywords = "unit price per unit compare value cheapest best deal grocery shopping 單位價格 格價 比較 最抵 每單位 買嘢 慳錢" },
+        new() { Tag = "module.curlgen", En = "cURL Generator", Zh = "cURL 產生器", Glyph = ((char)0xEB41).ToString(), Keywords = "curl fetch powershell invoke-restmethod http request api snippet code generator header bearer basic auth 產生器 請求 標頭 代碼 片段 網絡 呼叫" },
+        new() { Tag = "module.clipinspect", En = "Clipboard Inspector", Zh = "剪貼簿檢查器", Glyph = ((char)0xE77F).ToString(), Keywords = "clipboard formats inspect paste data package 剪貼簿 剪貼板 格式 檢查 貼上 資料" },
+        new() { Tag = "module.tzplanner", En = "Timezone Planner", Zh = "時區會議規劃", Glyph = ((char)0xE774).ToString(), Keywords = "timezone time zone meeting planner world clock utc offset working hours dst 時區 時間 會議 規劃 世界時鐘 辦公時間 跨時區 UTC" },
+        new() { Tag = "module.httpstatus", En = "HTTP Status Codes", Zh = "HTTP 狀態碼", Glyph = ((char)0xEB41).ToString(), Keywords = "http status code reference response 1xx 2xx 3xx 4xx 5xx 404 500 web api 狀態碼 回應碼 網頁 錯誤碼" },
+        new() { Tag = "module.contrastgrid", En = "Contrast Grid", Zh = "對比度網格", Glyph = ((char)0xE790).ToString(), Keywords = "contrast wcag accessibility ratio color colour hex rgb aa aaa a11y 對比度 無障礙 顏色 色彩 可讀性" },
+        new() { Tag = "module.entropy", En = "Entropy Analyzer", Zh = "熵值分析", Glyph = ((char)0xE9D9).ToString(), Keywords = "entropy shannon randomness bits information chi-square histogram frequency hex utf-8 熵 隨機 隨機度 資訊 亂度 卡方 直方圖 頻率 十六進位" },
+        new() { Tag = "module.subnetv6", En = "IPv6 Tools", Zh = "IPv6 工具", Glyph = ((char)0xE968).ToString(), Keywords = "ipv6 subnet prefix cidr eui-64 mac address expand compress link-local unique-local multicast global network mask 位址 子網 前綴 遮罩 展開 壓縮 多播 鏈路本地 唯一本地 全球單播 介面識別碼" },
     };
 
     public static IEnumerable<ModuleInfo> Search(string query)

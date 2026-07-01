@@ -30,7 +30,9 @@ Guardrail: nothing merges/deploys unless `dotnet build WinForge.sln -c Debug -p:
   Markdown TOC, JSON→Types (TS/C#), Named Colors (nearest of 148 CSS colours), Number Formatter, Text Redactor (PII masking), String Compare (Levenshtein/Jaro-Winkler/LCS). Also tidied the last dangling `<see cref="…TweakCard"/>` doc-comments.
 - **Batch 12 — DONE: +8 modules → 242 (pure depth phase).**
   Password Strength, Habit Tracker (persisted), Expense Splitter (settle-up), Name Generator, Event Countdown (persisted), Column Tools, JSON Flatten/Unflatten, Unit Price comparison. (Fixed 2 agent slips pre-merge: unqualified `Color.FromArgb` under `using Microsoft.UI` in HabitTracker/UnitPrice → `Windows.UI.Color`.)
-- **Next focus:** depth toward **1000+ working features** (extend existing modules, theme C). **UI overhaul DONE — zero tweak cards reached.** Remaining cleanup: delete the now-unused `Controls/TweakCard.xaml(.cs)` and its `App.xaml` style refs (a dedicated low-risk iteration). Freeze rounds essentially done (~3 accepted-risk pages). Keep adding modules opportunistically.
+- **Batch 13 — DONE: +7 modules → 249.**
+  cURL/fetch/PowerShell Generator, Clipboard Inspector, Timezone Planner, HTTP Status Codes reference, WCAG Contrast Grid, Entropy Analyzer, IPv6 Tools. (Fixed 1 agent slip: `ScrollBarVisibility` on a TextBox → attached `ScrollViewer.*` form in CurlGen.)
+- **Next focus:** keep the depth cadence toward **1000+ working features** (add ~6-8 modules/iteration + extend existing modules, theme C). Big epics DONE: zero tweak cards (TweakCard deleted), freeze rounds essentially complete (~3 accepted-risk pages). At **249 modules** / ~13 iterations.
 
 ## Bug / hardening priorities (fold into every iteration)
 - [x] **Freezes — round 1:** offloaded WMI/PDH/`Process.GetProcesses`/sensor ticks to `Task.Run` (SystemMonitor, ProcessExplorer, Connections, BatteryThermal, NativeUtilities); off-thread registry-hive enumeration; Unloaded timer stops (ScreenRecorder); calmed CakeFactory 80ms→200ms; fixed `LanguageChanged` leaks on the hot pages.

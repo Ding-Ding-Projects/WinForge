@@ -298,6 +298,34 @@ public sealed partial class MainWindow : Window
         }
         switch (App.StartPage)
         {
+            case "curlgen":
+            case "curlcmd":
+                Navigator.GoToModule?.Invoke("module.curlgen");
+                break;
+            case "clipinspect":
+            case "clipformats":
+                Navigator.GoToModule?.Invoke("module.clipinspect");
+                break;
+            case "tzplanner":
+            case "meetingtime":
+                Navigator.GoToModule?.Invoke("module.tzplanner");
+                break;
+            case "httpstatus":
+            case "statuscode":
+                Navigator.GoToModule?.Invoke("module.httpstatus");
+                break;
+            case "contrastgrid":
+            case "wcaggrid":
+                Navigator.GoToModule?.Invoke("module.contrastgrid");
+                break;
+            case "entropy":
+            case "shannon":
+                Navigator.GoToModule?.Invoke("module.entropy");
+                break;
+            case "subnetv6":
+            case "ipv6":
+                Navigator.GoToModule?.Invoke("module.subnetv6");
+                break;
             case "passwordstrength":
             case "pwstrength":
                 Navigator.GoToModule?.Invoke("module.passwordstrength");
@@ -2007,6 +2035,13 @@ public sealed partial class MainWindow : Window
         "module.textcolumns" => typeof(TextColumnsModule),
         "module.jsonflatten" => typeof(JsonFlattenModule),
         "module.unitprice" => typeof(UnitPriceModule),
+        "module.curlgen" => typeof(CurlGenModule),
+        "module.clipinspect" => typeof(ClipInspectModule),
+        "module.tzplanner" => typeof(TzPlannerModule),
+        "module.httpstatus" => typeof(HttpStatusModule),
+        "module.contrastgrid" => typeof(ContrastGridModule),
+        "module.entropy" => typeof(EntropyModule),
+        "module.subnetv6" => typeof(SubnetV6Module),
         _ => typeof(DashboardPage),
     };
 
@@ -2360,6 +2395,17 @@ public sealed partial class MainWindow : Window
             {
                 "module.habittracker", "module.countdownevent", "module.expensesplit", "module.unitprice",
                 "module.namegen", "module.passwordstrength", "module.textcolumns", "module.jsonflatten",
+            },
+        },
+        new()
+        {
+            Id = "webnet2",
+            En = "Web & network extras",
+            Zh = "網頁與網絡工具",
+            Keys = new[]
+            {
+                "module.curlgen", "module.httpstatus", "module.subnetv6", "module.tzplanner",
+                "module.contrastgrid", "module.entropy", "module.clipinspect",
             },
         },
     };
