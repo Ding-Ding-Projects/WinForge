@@ -460,6 +460,14 @@
                         <NavigationViewItem Content="iCalendar Builder · 日曆檔產生器" Tag="module.icalendar"><NavigationViewItem.Icon><FontIcon Glyph="&#xE787;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Hosts File Editor · 主機檔編輯器" Tag="module.hostsedit"><NavigationViewItem.Icon><FontIcon Glyph="&#xE968;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Security Header Score · 安全標頭計分" Tag="module.headerscore"><NavigationViewItem.Icon><FontIcon Glyph="&#xEB41;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="CSV Linter · CSV 檢查修復" Tag="module.csvlint"><NavigationViewItem.Icon><FontIcon Glyph="&#xE9F9;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="JWT Builder · JWT 建立同驗證" Tag="module.jwtbuild"><NavigationViewItem.Icon><FontIcon Glyph="&#xE72E;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="TOML ↔ JSON · TOML ↔ JSON 轉換" Tag="module.tomljson"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Cron Next Runs · Cron 下次執行時間" Tag="module.cronnext"><NavigationViewItem.Icon><FontIcon Glyph="&#xE787;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Markdown Table · Markdown 表格" Tag="module.mdtable"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Semver Range Tester · 語意化版本範圍" Tag="module.semverrange"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Glob Tester · Glob 樣式測試器" Tag="module.globtester"><NavigationViewItem.Icon><FontIcon Glyph="&#xE71C;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="HAR Analyzer · HAR 分析器" Tag="module.haranalyzer"><NavigationViewItem.Icon><FontIcon Glyph="&#xEB41;" /></NavigationViewItem.Icon></NavigationViewItem>
                     </NavigationViewItem.MenuItems>
                 </NavigationViewItem>
 

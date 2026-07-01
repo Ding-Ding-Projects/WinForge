@@ -292,6 +292,14 @@ public static class ModuleRegistry
         new() { Tag = "module.headerscore", En = "Security Header Score", Zh = "安全標頭計分", Glyph = ((char)0xEB41).ToString(), Keywords = "http header security score csp hsts x-frame-options referrer permissions coop coep scorecard grade 安全 標頭 計分 網頁 安全性 標頭評分 版本洩露" },
         new() { Tag = "module.boxtext", En = "Box & Banner Text", Zh = "文字方框 / 橫幅", Glyph = ((char)0xE8A5).ToString(), Keywords = "box banner ascii border frame comment block banner text wrap 文字方框 橫幅 邊框 框框 註解 ASCII 標題" },
         new() { Tag = "module.numwordsx", En = "Number to Words+", Zh = "數字轉文字（加強版）", Glyph = ((char)0xE7BF).ToString(), Keywords = "number words spell cardinal ordinal currency dollars cents pounds pence chinese uppercase financial daxie 數字 轉 文字 大寫 小寫 中文 貨幣 元角分 序數 基數 一百二十三 壹佰貳拾參" },
+        new() { Tag = "module.csvlint", En = "CSV Linter", Zh = "CSV 檢查修復", Glyph = ((char)0xE9F9).ToString(), Keywords = "csv lint linter rfc 4180 repair fix quote delimiter ragged bom validate clean 檢查 修復 逗號 分隔符 引號 欄位 換行 驗證" },
+        new() { Tag = "module.jwtbuild", En = "JWT Builder", Zh = "JWT 建立同驗證", Glyph = ((char)0xE72E).ToString(), Keywords = "jwt json web token hmac sign verify hs256 hs384 hs512 base64url claims exp nbf iat 權杖 簽名 驗證 宣告 密鑰" },
+        new() { Tag = "module.tomljson", En = "TOML ↔ JSON", Zh = "TOML ↔ JSON 轉換", Glyph = ((char)0xE943).ToString(), Keywords = "toml json convert parse config 轉換 解析 設定檔 配置 互轉" },
+        new() { Tag = "module.cronnext", En = "Cron Next Runs", Zh = "Cron 下次執行時間", Glyph = ((char)0xE787).ToString(), Keywords = "cron schedule crontab next run fire time timezone quartz job 排程 定時 下次執行 時區 運算式 觸發時間" },
+        new() { Tag = "module.mdtable", En = "Markdown Table", Zh = "Markdown 表格", Glyph = ((char)0xE8A5).ToString(), Keywords = "markdown table csv tsv pipe grid align github gfm reformat convert 表格 標記 逗號 定位鍵 直線 對齊 轉換 重排" },
+        new() { Tag = "module.semverrange", En = "Semver Range Tester", Zh = "語意化版本範圍測試器", Glyph = ((char)0xE943).ToString(), Keywords = "semver semantic version range node-semver caret tilde prerelease 語意化 版本 範圍 測試 相容 依賴" },
+        new() { Tag = "module.globtester", En = "Glob Tester", Zh = "Glob 樣式測試器", Glyph = ((char)0xE71C).ToString(), Keywords = "glob pattern wildcard regex match path filter minimatch 樣式 萬用字元 配對 路徑 正則" },
+        new() { Tag = "module.haranalyzer", En = "HAR Analyzer", Zh = "HAR 分析器", Glyph = ((char)0xEB41).ToString(), Keywords = "har http archive network requests waterfall performance analyze json 網絡 請求 分析 效能 瀑布圖 狀態碼 傳輸" },
     };
 
     public static IEnumerable<ModuleInfo> Search(string query)

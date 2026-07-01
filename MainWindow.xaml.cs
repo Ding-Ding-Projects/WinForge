@@ -382,6 +382,35 @@ public sealed partial class MainWindow : Window
             case "moneywords":
                 Navigator.GoToModule?.Invoke("module.numwordsx");
                 break;
+            case "csvlint":
+                Navigator.GoToModule?.Invoke("module.csvlint");
+                break;
+            case "jwtbuild":
+            case "jwtsign":
+                Navigator.GoToModule?.Invoke("module.jwtbuild");
+                break;
+            case "tomljson":
+            case "toml":
+                Navigator.GoToModule?.Invoke("module.tomljson");
+                break;
+            case "cronnext":
+                Navigator.GoToModule?.Invoke("module.cronnext");
+                break;
+            case "mdtable":
+                Navigator.GoToModule?.Invoke("module.mdtable");
+                break;
+            case "semverrange":
+            case "semver":
+                Navigator.GoToModule?.Invoke("module.semverrange");
+                break;
+            case "globtester":
+            case "glob":
+                Navigator.GoToModule?.Invoke("module.globtester");
+                break;
+            case "haranalyzer":
+            case "har":
+                Navigator.GoToModule?.Invoke("module.haranalyzer");
+                break;
             case "passwordstrength":
             case "pwstrength":
                 Navigator.GoToModule?.Invoke("module.passwordstrength");
@@ -2113,6 +2142,14 @@ public sealed partial class MainWindow : Window
         "module.headerscore" => typeof(HeaderScoreModule),
         "module.boxtext" => typeof(BoxTextModule),
         "module.numwordsx" => typeof(NumWordsXModule),
+        "module.csvlint" => typeof(CsvLintModule),
+        "module.jwtbuild" => typeof(JwtBuildModule),
+        "module.tomljson" => typeof(TomlJsonModule),
+        "module.cronnext" => typeof(CronNextModule),
+        "module.mdtable" => typeof(MdTableModule),
+        "module.semverrange" => typeof(SemverRangeModule),
+        "module.globtester" => typeof(GlobTesterModule),
+        "module.haranalyzer" => typeof(HarAnalyzerModule),
         _ => typeof(DashboardPage),
     };
 
@@ -2499,6 +2536,17 @@ public sealed partial class MainWindow : Window
             {
                 "module.jsonmergepatch", "module.ulid", "module.ascii85", "module.numwordsx",
                 "module.boxtext", "module.icalendar", "module.hostsedit", "module.headerscore",
+            },
+        },
+        new()
+        {
+            Id = "devdata4",
+            En = "Config, web & dev tools",
+            Zh = "設定、網頁與開發工具",
+            Keys = new[]
+            {
+                "module.csvlint", "module.jwtbuild", "module.tomljson", "module.cronnext",
+                "module.mdtable", "module.semverrange", "module.globtester", "module.haranalyzer",
             },
         },
     };
