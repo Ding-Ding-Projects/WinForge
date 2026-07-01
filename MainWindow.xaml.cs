@@ -298,6 +298,38 @@ public sealed partial class MainWindow : Window
         }
         switch (App.StartPage)
         {
+            case "passwordstrength":
+            case "pwstrength":
+                Navigator.GoToModule?.Invoke("module.passwordstrength");
+                break;
+            case "habittracker":
+            case "habits":
+                Navigator.GoToModule?.Invoke("module.habittracker");
+                break;
+            case "expensesplit":
+            case "splitbill":
+                Navigator.GoToModule?.Invoke("module.expensesplit");
+                break;
+            case "namegen":
+            case "namegenerator":
+                Navigator.GoToModule?.Invoke("module.namegen");
+                break;
+            case "countdownevent":
+            case "eventcountdown":
+                Navigator.GoToModule?.Invoke("module.countdownevent");
+                break;
+            case "textcolumns":
+            case "columns":
+                Navigator.GoToModule?.Invoke("module.textcolumns");
+                break;
+            case "jsonflatten":
+            case "flatten":
+                Navigator.GoToModule?.Invoke("module.jsonflatten");
+                break;
+            case "unitprice":
+            case "priceper":
+                Navigator.GoToModule?.Invoke("module.unitprice");
+                break;
             case "markdowntoc":
             case "toc":
                 Navigator.GoToModule?.Invoke("module.markdowntoc");
@@ -1967,6 +1999,14 @@ public sealed partial class MainWindow : Window
         "module.numberformat" => typeof(NumberFormatModule),
         "module.textredact" => typeof(TextRedactModule),
         "module.stringcompare" => typeof(StringCompareModule),
+        "module.passwordstrength" => typeof(PasswordStrengthModule),
+        "module.habittracker" => typeof(HabitTrackerModule),
+        "module.expensesplit" => typeof(ExpenseSplitModule),
+        "module.namegen" => typeof(NameGenModule),
+        "module.countdownevent" => typeof(CountdownEventModule),
+        "module.textcolumns" => typeof(TextColumnsModule),
+        "module.jsonflatten" => typeof(JsonFlattenModule),
+        "module.unitprice" => typeof(UnitPriceModule),
         _ => typeof(DashboardPage),
     };
 
@@ -2309,6 +2349,17 @@ public sealed partial class MainWindow : Window
             {
                 "module.markdowntoc", "module.jsontots", "module.numberformat", "module.stringcompare",
                 "module.textredact", "module.colorname",
+            },
+        },
+        new()
+        {
+            Id = "productivity",
+            En = "Productivity & life",
+            Zh = "生產力與生活",
+            Keys = new[]
+            {
+                "module.habittracker", "module.countdownevent", "module.expensesplit", "module.unitprice",
+                "module.namegen", "module.passwordstrength", "module.textcolumns", "module.jsonflatten",
             },
         },
     };

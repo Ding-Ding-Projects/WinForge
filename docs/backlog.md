@@ -28,6 +28,8 @@ Guardrail: nothing merges/deploys unless `dotnet build WinForge.sln -c Debug -p:
   JSON Analyzer, Aspect Ratio, Scientific Notation, Color Blindness Sim. Plus the **FINAL 6 tweak-card conversions → 🎉 ZERO TWEAK CARDS** (see below).
 - **Batch 11 — DONE: +6 modules → 234; `Controls/TweakCard.xaml(.cs)` DELETED (dead code gone).**
   Markdown TOC, JSON→Types (TS/C#), Named Colors (nearest of 148 CSS colours), Number Formatter, Text Redactor (PII masking), String Compare (Levenshtein/Jaro-Winkler/LCS). Also tidied the last dangling `<see cref="…TweakCard"/>` doc-comments.
+- **Batch 12 — DONE: +8 modules → 242 (pure depth phase).**
+  Password Strength, Habit Tracker (persisted), Expense Splitter (settle-up), Name Generator, Event Countdown (persisted), Column Tools, JSON Flatten/Unflatten, Unit Price comparison. (Fixed 2 agent slips pre-merge: unqualified `Color.FromArgb` under `using Microsoft.UI` in HabitTracker/UnitPrice → `Windows.UI.Color`.)
 - **Next focus:** depth toward **1000+ working features** (extend existing modules, theme C). **UI overhaul DONE — zero tweak cards reached.** Remaining cleanup: delete the now-unused `Controls/TweakCard.xaml(.cs)` and its `App.xaml` style refs (a dedicated low-risk iteration). Freeze rounds essentially done (~3 accepted-risk pages). Keep adding modules opportunistically.
 
 ## Bug / hardening priorities (fold into every iteration)
@@ -69,3 +71,9 @@ Append new ideas here as they surface; promote to a batch when scoped. Keep each
 - (C) Hasher: add xxHash/BLAKE2 (managed); (C) Encoder: add Base32/Base58/Ascii85.
 - (C) Text Tools: add JSON-path extract, column select, find/replace-regex.
 - (A) Env-var diff between snapshots; (A) Services dependency grapher.
+- (C) Extend Hasher with xxHash/BLAKE2; extend Encoder with Base45/Z85; extend Calculator with variables + unit-aware mode.
+- (C) Cron → human-readable + timezone-aware next runs; (C) Regex → sample-string generator.
+- (A) Scheduled-task quick-creator wizard; (A) Firewall rule viewer/toggler; (A) Restore-point create/list.
+- (B) Managed EPUB/CBZ reader (System.IO.Compression, own render — record license); (B) QR encoder written from scratch (own code).
+- (C) Time-zone meeting planner (overlap finder); (C) Pomodoro stats/history; (C) Text → speech via Windows.Media.SpeechSynthesis.
+- (A) Clipboard-format inspector (what formats are on the clipboard); (C) URL → cURL / fetch snippet generator.

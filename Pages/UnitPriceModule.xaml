@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.UnitPriceModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="820" Spacing="14">
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE7BF;" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <TextBlock x:Name="CurrencyLabel" VerticalAlignment="Center" />
+                        <TextBox x:Name="CurrencyBox" Text="$" MaxWidth="80" TextChanged="Currency_Changed" />
+                    </StackPanel>
+
+                    <ListView x:Name="ItemsList" SelectionMode="None" IsItemClickEnabled="False">
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="ListViewItem">
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                <Setter Property="Padding" Value="0,4,0,4" />
+                            </Style>
+                        </ListView.ItemContainerStyle>
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="1.6*" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="0.8*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Grid.Column="0" Text="{Binding Label, Mode=TwoWay}" PlaceholderText="{Binding LabelPlaceholder}" VerticalAlignment="Center" />
+                                    <NumberBox Grid.Column="1" Value="{Binding Price, Mode=TwoWay}" Minimum="0" SpinButtonPlacementMode="Hidden" VerticalAlignment="Center" />
+                                    <NumberBox Grid.Column="2" Value="{Binding Quantity, Mode=TwoWay}" Minimum="0" SpinButtonPlacementMode="Hidden" VerticalAlignment="Center" />
+                                    <TextBox Grid.Column="3" Text="{Binding Unit, Mode=TwoWay}" PlaceholderText="g" VerticalAlignment="Center" />
+                                    <StackPanel Grid.Column="4" MinWidth="120" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding PerUnitText}" FontWeight="SemiBold" />
+                                        <TextBlock Text="{Binding BadgeText}" FontSize="12" Foreground="{Binding BadgeBrush}" />
+                                    </StackPanel>
+                                    <Button Grid.Column="5" Content="&#xE711;" FontFamily="Segoe MDL2 Assets" Tag="{Binding}" Click="Remove_Click" VerticalAlignment="Center" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button x:Name="AddBtn" Click="Add_Click" />
+                        <Button x:Name="CopyBtn" Click="Copy_Click" />
+                    </StackPanel>
+
+                    <TextBlock x:Name="StatusText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

@@ -262,6 +262,14 @@ public static class ModuleRegistry
         new() { Tag = "module.numberformat", En = "Number Formatter", Zh = "數字格式化", Glyph = ((char)0xE8EF).ToString(), Keywords = "number format formatter thousands separator decimal currency percent scientific accounting zero-pad culture globalization 數字 格式 格式化 千分位 小數 貨幣 百分比 科學記數 會計 補零 地區" },
         new() { Tag = "module.textredact", En = "Text Redactor", Zh = "文字遮蔽", Glyph = ((char)0xE72E).ToString(), Keywords = "redact mask pii privacy email phone credit card ip address censor scrub 遮蔽 遮罩 個資 私隱 電郵 電話 信用卡 IP 打格 過濾" },
         new() { Tag = "module.stringcompare", En = "String Compare", Zh = "字串相似度", Glyph = ((char)0xE8A5).ToString(), Keywords = "string compare similarity levenshtein edit distance damerau hamming jaro winkler substring subsequence diff text 字串 相似度 比較 編輯距離 差異 文字" },
+        new() { Tag = "module.passwordstrength", En = "Password Strength", Zh = "密碼強度", Glyph = ((char)0xE928).ToString(), Keywords = "password strength entropy crack time secure passphrase check 密碼 強度 熵值 破解時間 安全 檢查 通行密碼" },
+        new() { Tag = "module.habittracker", En = "Habit Tracker", Zh = "習慣追蹤器", Glyph = ((char)0xE73E).ToString(), Keywords = "habit tracker streak daily routine checklist weekly goals 習慣 追蹤 打卡 連續 每日 例行 目標 週" },
+        new() { Tag = "module.expensesplit", En = "Expense Splitter", Zh = "夾錢分帳", Glyph = ((char)0xE8EF).ToString(), Keywords = "expense split settle bill share money owe balance transfer trip dinner 夾錢 分帳 找數 埋單 均分 結餘 欠錢 AA制" },
+        new() { Tag = "module.namegen", En = "Name Generator", Zh = "名稱產生器", Glyph = ((char)0xE897).ToString(), Keywords = "name generator username project company startup fantasy band slug random codename 名稱 產生器 隨機 用戶名 專案 公司 初創 奇幻 樂隊 代號" },
+        new() { Tag = "module.countdownevent", En = "Event Countdown", Zh = "事件倒數", Glyph = ((char)0xE787).ToString(), Keywords = "countdown event timer date deadline days remaining 事件 倒數 計時 日期 死線 剩餘" },
+        new() { Tag = "module.textcolumns", En = "Column Tools", Zh = "欄位文字工具", Glyph = ((char)0xE8A5).ToString(), Keywords = "columns column text delimited split tab csv comma extract delete reorder align transpose trim 欄位 欄 分隔符 分割 表格 抽取 刪除 重排 對齊 行列互換 修剪" },
+        new() { Tag = "module.jsonflatten", En = "JSON Flatten", Zh = "JSON 扁平化", Glyph = ((char)0xE943).ToString(), Keywords = "json flatten unflatten nested dotted path keys array index expand collapse 扁平化 還原 巢狀 點分隔 路徑 陣列 索引 展開 摺疊" },
+        new() { Tag = "module.unitprice", En = "Unit Price", Zh = "單位價格", Glyph = ((char)0xE7BF).ToString(), Keywords = "unit price per unit compare value cheapest best deal grocery shopping 單位價格 格價 比較 最抵 每單位 買嘢 慳錢" },
     };
 
     public static IEnumerable<ModuleInfo> Search(string query)

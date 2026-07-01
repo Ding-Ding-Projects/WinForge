@@ -421,6 +421,20 @@
                     </NavigationViewItem.MenuItems>
                 </NavigationViewItem>
 
+                <NavigationViewItem Content="Productivity &amp; Life · 生產力與生活" SelectsOnInvoked="False">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE8FD;" /></NavigationViewItem.Icon>
+                    <NavigationViewItem.MenuItems>
+                        <NavigationViewItem Content="Habit Tracker · 習慣追蹤器" Tag="module.habittracker"><NavigationViewItem.Icon><FontIcon Glyph="&#xE73E;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Event Countdown · 事件倒數" Tag="module.countdownevent"><NavigationViewItem.Icon><FontIcon Glyph="&#xE787;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Expense Splitter · 夾錢分帳" Tag="module.expensesplit"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8EF;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Unit Price · 單位價格" Tag="module.unitprice"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7BF;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Name Generator · 名稱產生器" Tag="module.namegen"><NavigationViewItem.Icon><FontIcon Glyph="&#xE897;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Password Strength · 密碼強度" Tag="module.passwordstrength"><NavigationViewItem.Icon><FontIcon Glyph="&#xE928;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Column Tools · 欄位文字工具" Tag="module.textcolumns"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="JSON Flatten · JSON 扁平化" Tag="module.jsonflatten"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                    </NavigationViewItem.MenuItems>
+                </NavigationViewItem>
+
                 <NavigationViewItemHeader Content="Windows 11 · 視窗 11" />
                 <NavigationViewItem x:Name="TweaksGroup" Content="All Tweaks · 全部調校" SelectsOnInvoked="False">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE713;" /></NavigationViewItem.Icon>
