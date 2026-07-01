@@ -17,16 +17,25 @@ namespace WinForge.Pages;
 /// </summary>
 public sealed partial class DashboardPage : Page
 {
+    // One reused row list for the live search preview (replaces per-result TweakCards).
+    private readonly ControlRowList _searchList = new();
+
     public DashboardPage()
     {
         InitializeComponent();
         Loc.I.LanguageChanged += OnLanguageChanged;
-        BrandingService.Changed += (_, _) => { try { Render(); } catch { } };
+        BrandingService.Changed += OnBrandingChanged;
         Loaded += (_, _) => Render();
-        Unloaded += (_, _) => Loc.I.LanguageChanged -= OnLanguageChanged;
+        Unloaded += (_, _) =>
+        {
+            Loc.I.LanguageChanged -= OnLanguageChanged;
+            BrandingService.Changed -= OnBrandingChanged;
+        };
     }
 
     private void OnLanguageChanged(object? sender, EventArgs e) => Render();
+
+    private void OnBrandingChanged(object? sender, EventArgs e) { try { Render(); } catch { } }
 
     private void Render()
     {
@@ -424,6 +433,7 @@ ModuleTile(((char)0xE83E).ToString(), "Battery & Thermal", "電池與散熱",
         {
             SearchResults.Visibility = Visibility.Collapsed;
             BrowseSection.Visibility = Visibility.Visible;
+            _searchList.Clear();
             SearchResults.Children.Clear();
             return;
         }
@@ -441,11 +451,8 @@ ModuleTile(((char)0xE83E).ToString(), "Battery & Thermal", "電池與散熱",
         };
         SearchResults.Children.Add(header);
 
-        foreach (var t in matches)
-        {
-            var card = new TweakCard();
-            card.SetTweak(t);
-            SearchResults.Children.Add(card);
-        }
+        // Reuse the single ControlRowList instance; feed it the same matches.
+        _searchList.SetTweaks(matches);
+        SearchResults.Children.Add(_searchList);
     }
 }

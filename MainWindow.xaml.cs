@@ -298,6 +298,22 @@ public sealed partial class MainWindow : Window
         }
         switch (App.StartPage)
         {
+            case "jsonstat":
+            case "jsonanalyze":
+                Navigator.GoToModule?.Invoke("module.jsonstat");
+                break;
+            case "aspectratio":
+            case "aspect":
+                Navigator.GoToModule?.Invoke("module.aspectratio");
+                break;
+            case "scinotation":
+            case "scinot":
+                Navigator.GoToModule?.Invoke("module.scinotation");
+                break;
+            case "colorblind":
+            case "cvd":
+                Navigator.GoToModule?.Invoke("module.colorblind");
+                break;
             case "texttemplate":
             case "template":
                 Navigator.GoToModule?.Invoke("module.texttemplate");
@@ -1917,6 +1933,10 @@ public sealed partial class MainWindow : Window
         "module.asciitable" => typeof(AsciiTableModule),
         "module.metatags" => typeof(MetaTagsModule),
         "module.unixperm" => typeof(UnixPermModule),
+        "module.jsonstat" => typeof(JsonStatModule),
+        "module.aspectratio" => typeof(AspectRatioModule),
+        "module.scinotation" => typeof(SciNotationModule),
+        "module.colorblind" => typeof(ColorBlindModule),
         _ => typeof(DashboardPage),
     };
 
@@ -2247,6 +2267,7 @@ public sealed partial class MainWindow : Window
             {
                 "module.htmlformat", "module.cssformat", "module.binarytext", "module.emoji", "module.symbols",
                 "module.metatags", "module.texttemplate", "module.asciitable", "module.unixperm",
+                "module.jsonstat", "module.aspectratio", "module.scinotation", "module.colorblind",
             },
         },
     };

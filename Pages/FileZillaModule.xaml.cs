@@ -12,6 +12,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Windows.System;
+using WinForge.Controls;
 using WinForge.Services;
 
 namespace WinForge.Pages;
@@ -96,12 +97,9 @@ public sealed partial class FileZillaModule : Page
     private void BuildOpsCards()
     {
         if (OpsPanel.Children.Count > 0) return;
-        foreach (var op in Catalog.FileZillaOperations.All())
-        {
-            var card = new Controls.TweakCard();
-            card.SetTweak(op);
-            OpsPanel.Children.Add(card);
-        }
+        var rows = new Controls.ControlRowList();
+        rows.SetTweaks(Catalog.FileZillaOperations.All());
+        OpsPanel.Children.Add(rows);
     }
 
     private void BuildProtocolCombo()

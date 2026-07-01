@@ -24,7 +24,9 @@ Guardrail: nothing merges/deploys unless `dotnet build WinForge.sln -c Debug -p:
   HTML Formatter, CSS Formatter, Emoji Picker (~300 emoji), Symbols Palette, Text↔Binary. Plus **6 more tweak-card conversions** and **freeze round 2** (see below).
 - **Batch 9 — DONE: +4 dev modules → 224.**
   Template Renderer, ASCII Table, Meta Tag Generator, chmod Calculator. Plus the **`Controls/ControlRowList` renderer + SettingsHub + GitHub/AudioEditor/Ollama conversions**, and **freeze round 2 essentially finished** (see below).
-- **Next focus:** depth toward **1000+ working features** (extend existing modules, theme C). Zero-tweak-card is nearly done — **only CategoryPage/SearchResultsPage/DashboardPage remain** (point them at `ControlRowList`). Freeze round 2 is essentially complete (~3 accepted-risk pages). Keep adding modules opportunistically.
+- **Batch 10 — DONE: +4 modules → 228.**
+  JSON Analyzer, Aspect Ratio, Scientific Notation, Color Blindness Sim. Plus the **FINAL 6 tweak-card conversions → 🎉 ZERO TWEAK CARDS** (see below).
+- **Next focus:** depth toward **1000+ working features** (extend existing modules, theme C). **UI overhaul DONE — zero tweak cards reached.** Remaining cleanup: delete the now-unused `Controls/TweakCard.xaml(.cs)` and its `App.xaml` style refs (a dedicated low-risk iteration). Freeze rounds essentially done (~3 accepted-risk pages). Keep adding modules opportunistically.
 
 ## Bug / hardening priorities (fold into every iteration)
 - [x] **Freezes — round 1:** offloaded WMI/PDH/`Process.GetProcesses`/sensor ticks to `Task.Run` (SystemMonitor, ProcessExplorer, Connections, BatteryThermal, NativeUtilities); off-thread registry-hive enumeration; Unloaded timer stops (ScreenRecorder); calmed CakeFactory 80ms→200ms; fixed `LanguageChanged` leaks on the hot pages.
@@ -34,7 +36,9 @@ Guardrail: nothing merges/deploys unless `dotnet build WinForge.sln -c Debug -p:
 ## UI overhaul epic — ZERO tweak cards (theme C)
 Replace `Controls/TweakCard` (generic `TweakDefinition` renderer, 11 Kinds) with structured, animated, real-control UI (NOT card chrome). Data model: `Catalog/TweakCatalog.cs` → `TweakDefinition`.
 **Phase 1 — 20 modules + SettingsHub converted; shared renderer built.** Converted off TweakCard: Archives, Cloudflare, TaskbarTweaker, Media, Rainmeter, GlazeWm, Windhawk, ShellMenu, Nmap, NilesoftShell, LibreOffice, FancyZones, Packer, Komorebi, VsCode, Wireshark, Terminal, GitHub, AudioEditor, Ollama — each tweak → a Grid row (Action→Button awaiting RunAsync, Toggle→ToggleSwitch, Choice/RadioGroup→ComboBox/RadioButtons, Slider/Number→Slider/NumberBox, Info→refreshable TextBlock), one persistent `InfoBar`, `EntranceThemeTransition`, subtle dividers (no card chrome), behavior preserved.
-**`Controls/ControlRowList.cs` — DONE:** a reusable pure-C# `UserControl` with `SetTweaks(IEnumerable<TweakDefinition>)`/`Clear()` that renders control rows (the row logic, centralized). **SettingsHubModule now uses it** (per-category expanders + search). **ONLY 3 TweakCard-using files remain — CategoryPage, SearchResultsPage, DashboardPage** — point each at `ControlRowList` (feed it the same TweakDefinitions they show). Then TweakCard can be deleted and CLAUDE.md updated. Zero-tweak-cards is one iteration away.
+**`Controls/ControlRowList.cs` — the reusable renderer** (`SetTweaks`/`Clear`) now backs the catalog-driven pages **SettingsHub, CategoryPage, SearchResultsPage, DashboardPage**, and the last stragglers **Amulet, Blender, FileZilla** (which used the fully-qualified `new Controls.TweakCard()` form) were converted too.
+## 🎉 ZERO TWEAK CARDS — DONE.
+No page instantiates `TweakCard` anymore (grep-verified: 0 `new TweakCard`/`new Controls.TweakCard`/`SetTweak` across Pages/). Every tweak now renders as a real, animated control row via per-module builders or the shared `ControlRowList`. **Cleanup left:** `Controls/TweakCard.xaml(.cs)` is now dead code — delete it (+ its `App.xaml` resource refs, and stale mentions in AGENTS.md) in a dedicated low-risk iteration.
 Conversion order (lowest risk first):
 1. Info/status catalogs (read-only) → structured status sections.
 2. Simple toggle catalogs (Appearance, Explorer) → labelled `ToggleSwitch` rows.

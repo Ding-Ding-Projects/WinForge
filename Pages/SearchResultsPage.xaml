@@ -46,7 +46,7 @@
                 </GridView>
 
                 <TextBlock x:Name="TweaksLabel" FontWeight="SemiBold" FontSize="14" Margin="0,6,0,0" />
-                <StackPanel x:Name="TweaksPanel" Spacing="8" />
+                <controls:ControlRowList x:Name="TweaksList" />
 
                 <TextBlock x:Name="EmptyText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="0,8,0,0" />
             </StackPanel>

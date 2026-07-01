@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.SciNotationModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="760" Spacing="14">
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE8EF;" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="14">
+                    <StackPanel Spacing="4">
+                        <TextBlock x:Name="InputLabel" FontWeight="SemiBold" />
+                        <TextBox x:Name="InputBox" TextChanged="Input_Changed" PlaceholderText="12345.678" />
+                        <TextBlock x:Name="InputHint" FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <TextBlock x:Name="SigLabel" VerticalAlignment="Center" />
+                        <NumberBox x:Name="SigBox" Value="6" Minimum="1" Maximum="15" SpinButtonPlacementMode="Inline" MinWidth="140" ValueChanged="Sig_Changed" />
+                    </StackPanel>
+
+                    <TextBlock x:Name="StatusText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="200" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="StdLabel" Grid.Column="0" VerticalAlignment="Center" FontWeight="SemiBold" />
+                        <TextBlock x:Name="StdValue" Grid.Column="1" VerticalAlignment="Center" TextWrapping="Wrap" IsTextSelectionEnabled="True" FontFamily="Consolas" />
+                        <Button x:Name="StdCopy" Grid.Column="2" Tag="std" Click="Copy_Click" Content="&#xE8C8;" FontFamily="Segoe MDL2 Assets" />
+                    </Grid>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="200" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="SciLabel" Grid.Column="0" VerticalAlignment="Center" FontWeight="SemiBold" />
+                        <TextBlock x:Name="SciValue" Grid.Column="1" VerticalAlignment="Center" TextWrapping="Wrap" IsTextSelectionEnabled="True" FontFamily="Consolas" />
+                        <Button x:Name="SciCopy" Grid.Column="2" Tag="sci" Click="Copy_Click" Content="&#xE8C8;" FontFamily="Segoe MDL2 Assets" />
+                    </Grid>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="200" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="EngLabel" Grid.Column="0" VerticalAlignment="Center" FontWeight="SemiBold" />
+                        <TextBlock x:Name="EngValue" Grid.Column="1" VerticalAlignment="Center" TextWrapping="Wrap" IsTextSelectionEnabled="True" FontFamily="Consolas" />
+                        <Button x:Name="EngCopy" Grid.Column="2" Tag="eng" Click="Copy_Click" Content="&#xE8C8;" FontFamily="Segoe MDL2 Assets" />
+                    </Grid>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="200" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="ENotLabel" Grid.Column="0" VerticalAlignment="Center" FontWeight="SemiBold" />
+                        <TextBlock x:Name="ENotValue" Grid.Column="1" VerticalAlignment="Center" TextWrapping="Wrap" IsTextSelectionEnabled="True" FontFamily="Consolas" />
+                        <Button x:Name="ENotCopy" Grid.Column="2" Tag="enot" Click="Copy_Click" Content="&#xE8C8;" FontFamily="Segoe MDL2 Assets" />
+                    </Grid>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="200" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="SiLabel" Grid.Column="0" VerticalAlignment="Center" FontWeight="SemiBold" />
+                        <TextBlock x:Name="SiValue" Grid.Column="1" VerticalAlignment="Center" TextWrapping="Wrap" IsTextSelectionEnabled="True" FontFamily="Consolas" />
+                        <Button x:Name="SiCopy" Grid.Column="2" Tag="si" Click="Copy_Click" Content="&#xE8C8;" FontFamily="Segoe MDL2 Assets" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

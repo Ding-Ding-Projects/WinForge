@@ -402,6 +402,10 @@
                         <NavigationViewItem Content="Template Renderer · 模板渲染器" Tag="module.texttemplate"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="ASCII Table · ASCII 表" Tag="module.asciitable"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8D2;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="chmod Calculator · chmod 計算機" Tag="module.unixperm"><NavigationViewItem.Icon><FontIcon Glyph="&#xE72E;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="JSON Analyzer · JSON 分析器" Tag="module.jsonstat"><NavigationViewItem.Icon><FontIcon Glyph="&#xE9D9;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Aspect Ratio · 長寬比計算" Tag="module.aspectratio"><NavigationViewItem.Icon><FontIcon Glyph="&#xE799;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Scientific Notation · 科學記數法" Tag="module.scinotation"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8EF;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Color Blindness Sim · 色盲模擬" Tag="module.colorblind"><NavigationViewItem.Icon><FontIcon Glyph="&#xE790;" /></NavigationViewItem.Icon></NavigationViewItem>
                     </NavigationViewItem.MenuItems>
                 </NavigationViewItem>
 

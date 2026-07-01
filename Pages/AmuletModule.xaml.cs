@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using WinForge.Catalog;
+using WinForge.Controls;
 using WinForge.Models;
 using WinForge.Services;
 
@@ -144,12 +145,9 @@ public sealed partial class AmuletModule : Page
     private void BuildOps()
     {
         OpsList.Children.Clear();
-        foreach (var op in AmuletOperations.All)
-        {
-            var card = new Controls.TweakCard();
-            card.SetTweak(op);
-            OpsList.Children.Add(card);
-        }
+        var rows = new ControlRowList();
+        rows.SetTweaks(AmuletOperations.All);
+        OpsList.Children.Add(rows);
     }
 
     private async Task DoExtract()

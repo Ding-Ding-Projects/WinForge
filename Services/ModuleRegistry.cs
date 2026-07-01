@@ -252,6 +252,10 @@ public static class ModuleRegistry
         new() { Tag = "module.asciitable", En = "ASCII Table", Zh = "ASCII 表", Glyph = ((char)0xE8D2).ToString(), Keywords = "ascii table character codes control codes hex octal binary latin-1 charset reference 字元 字元碼 控制碼 十六進 八進 二進 參考表" },
         new() { Tag = "module.metatags", En = "Meta Tag Generator", Zh = "Meta 標籤產生器", Glyph = ((char)0xE12B).ToString(), Keywords = "meta tag html head seo open graph twitter card canonical viewport theme charset og description keywords 標籤 網頁 元資料 搜尋引擎 分享 預覽 標題 描述" },
         new() { Tag = "module.unixperm", En = "chmod Calculator", Zh = "chmod 計算機", Glyph = ((char)0xE72E).ToString(), Keywords = "chmod unix permission octal symbolic rwx setuid setgid sticky linux file mode 權限 八進位 符號 檔案模式" },
+        new() { Tag = "module.jsonstat", En = "JSON Analyzer", Zh = "JSON 分析器", Glyph = ((char)0xE9D9).ToString(), Keywords = "json analyzer stats structure keys depth nodes parse validate 分析 統計 結構 鍵 深度 節點 解析 驗證" },
+        new() { Tag = "module.aspectratio", En = "Aspect Ratio", Zh = "長寬比計算", Glyph = ((char)0xE799).ToString(), Keywords = "aspect ratio resolution 16:9 scale gcd megapixels dimensions widescreen 長寬比 解析度 比例 縮放 像素 闊高 畫面比" },
+        new() { Tag = "module.scinotation", En = "Scientific Notation", Zh = "科學記數法", Glyph = ((char)0xE8EF).ToString(), Keywords = "scientific engineering notation exponent mantissa significant figures SI prefix E-notation kilo mega giga 科學 工程 記數法 指數 有效數字 前綴 換算" },
+        new() { Tag = "module.colorblind", En = "Color Blindness Sim", Zh = "色盲模擬", Glyph = ((char)0xE790).ToString(), Keywords = "color blindness colour blind cvd protanopia deuteranopia tritanopia achromatopsia grayscale accessibility contrast hex rgb 色盲 色覺 色弱 紅綠色盲 灰階 無障礙 對比 顏色 模擬" },
     };
 
     public static IEnumerable<ModuleInfo> Search(string query)

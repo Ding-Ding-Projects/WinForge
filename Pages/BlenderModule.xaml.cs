@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using WinForge.Catalog;
+using WinForge.Controls;
 using WinForge.Models;
 using WinForge.Services;
 
@@ -140,12 +141,9 @@ public sealed partial class BlenderModule : Page
     {
         _ops ??= BlenderOperations.All().ToList();
         OpsPanel.Children.Clear();
-        foreach (var op in _ops)
-        {
-            var card = new Controls.TweakCard();
-            card.SetTweak(op);
-            OpsPanel.Children.Add(card);
-        }
+        var rows = new ControlRowList();
+        rows.SetTweaks(_ops);
+        OpsPanel.Children.Add(rows);
     }
 
     private void BuildScriptList()
