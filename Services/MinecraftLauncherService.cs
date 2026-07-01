@@ -286,7 +286,7 @@ public static class MinecraftLauncherService
                 ["auth_access_token"] = account.AccessToken,
                 ["auth_xuid"] = "",
                 ["clientid"] = "",
-                ["user_type"] = "msa",
+                ["user_type"] = account.IsOffline ? "legacy" : "msa",
                 ["user_properties"] = "{}",
                 ["version_name"] = instance.VersionId,
                 ["version_type"] = Str(vroot, "type"),

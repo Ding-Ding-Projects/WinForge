@@ -69,6 +69,11 @@ public sealed partial class MinecraftLauncherModule : Page
         DeviceCodeBtn.Content = P("Sign in (device code)", "登入（裝置碼）");
         SignOutBtn.Content = P("Sign out", "登出");
 
+        OfflineLabel.Text = P("Offline:", "離線：");
+        OfflineBtn.Content = P("Use offline account", "用離線帳戶");
+        OfflineHint.Text = P("No Mojang sign-in — for accounts you own / offline & LAN play.",
+            "唔使 Mojang 登入 — 適用於你擁有嘅帳戶／離線同區域網遊玩。");
+
         InstancesHeader.Text = P("Instances", "Instance");
         ToolTipService.SetToolTip(AddInstanceBtn, P("New instance", "新增 instance"));
 
@@ -223,12 +228,33 @@ public sealed partial class MinecraftLauncherModule : Page
     private void UpdateAccountUi()
     {
         bool signedIn = _account is { OwnsGame: true };
-        if (signedIn)
+        bool offline = _account is { IsOffline: true };
+        if (offline)
+            AccountText.Text = P($"Offline as {_account!.Name}", $"離線：{_account!.Name}");
+        else if (signedIn)
             AccountText.Text = P($"Signed in as {_account!.Name}", $"已以 {_account!.Name} 登入");
         else
             AccountText.Text = P("Not signed in", "未登入");
         SignOutBtn.IsEnabled = signedIn;
         if (PlayBtn is not null) PlayBtn.IsEnabled = signedIn && _editing is not null;
+    }
+
+    /// <summary>離線模式：唔使 Mojang 登入就用一個名開機 · Set an offline account (no Mojang sign-in).</summary>
+    private void Offline_Click(object sender, RoutedEventArgs e)
+    {
+        var name = OfflineNameBox.Text?.Trim() ?? "";
+        if (!MinecraftAccount.IsValidOfflineName(name))
+        {
+            ShowStatus(InfoBarSeverity.Warning, P("Enter a valid name", "請輸入合法名稱"),
+                P("Offline names are 3–16 characters: letters, numbers and underscore.",
+                  "離線名稱要 3–16 個字元：英文字母、數字同底線。"));
+            return;
+        }
+        _account = MinecraftAccount.Offline(name);
+        UpdateAccountUi();
+        ShowStatus(InfoBarSeverity.Success, P("Offline mode ready", "離線模式已就緒"),
+            P($"Playing offline as {name}. Online servers and skins won't work; LAN and singleplayer will.",
+              $"以 {name} 離線遊玩。線上伺服器同面板唔會用到；區域網同單人可以。"));
     }
 
     // ----------------------------------------------------------------- instances

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
@@ -39,7 +40,40 @@ public sealed class MinecraftAccount
     /// <summary>係咪擁有遊戲 · True when entitlements confirm game ownership.</summary>
     public bool OwnsGame { get; set; }
 
+    /// <summary>係咪離線帳戶（無 Mojang 驗證）· True for an offline account (no Mojang auth; local/LAN play).</summary>
+    public bool IsOffline { get; set; }
+
     public bool IsExpired => DateTimeOffset.UtcNow >= Expiry.AddMinutes(-2);
+
+    /// <summary>
+    /// 建立一個離線帳戶 · Build an offline account for a username. The UUID matches the vanilla server's
+    /// offline scheme — <c>UUID.nameUUIDFromBytes(("OfflinePlayer:"+name).getBytes(UTF_8))</c> (an MD5-based
+    /// v3 UUID) — so the same name maps to the same player/world data as any other offline launcher.
+    /// No Mojang sign-in; access token is "0". Intended for accounts you own / offline &amp; LAN play.
+    /// </summary>
+    public static MinecraftAccount Offline(string name)
+    {
+        name = string.IsNullOrWhiteSpace(name) ? "Player" : name.Trim();
+        using var md5 = System.Security.Cryptography.MD5.Create();
+        var hash = md5.ComputeHash(System.Text.Encoding.UTF8.GetBytes("OfflinePlayer:" + name));
+        hash[6] = (byte)((hash[6] & 0x0f) | 0x30); // version 3 (name-based, MD5)
+        hash[8] = (byte)((hash[8] & 0x3f) | 0x80); // RFC 4122 variant
+        return new MinecraftAccount
+        {
+            Name = name,
+            Uuid = Convert.ToHexString(hash).ToLowerInvariant(), // 32 hex, no dashes (as the launcher expects)
+            AccessToken = "0",
+            OwnsGame = true,      // offline accounts bypass the entitlement gate
+            IsOffline = true,
+            Expiry = DateTimeOffset.MaxValue,
+        };
+    }
+
+    /// <summary>合法離線名（3–16 個 [A-Za-z0-9_]）· Whether a name is a valid offline username.</summary>
+    public static bool IsValidOfflineName(string name)
+        => !string.IsNullOrWhiteSpace(name)
+           && name.Trim().Length is >= 3 and <= 16
+           && name.Trim().All(c => char.IsLetterOrDigit(c) || c == '_');
 }
 
 /// <summary>登入結果 · The outcome of a sign-in / refresh attempt.</summary>
