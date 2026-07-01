@@ -37,10 +37,12 @@ public sealed partial class ProxmoxModule : Page
         InitializeComponent();
         GuestList.ItemsSource = _rows;
         _timer.Tick += async (_, _) => await RefreshTick(silent: true);
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
@@ -71,6 +73,7 @@ public sealed partial class ProxmoxModule : Page
 
     private void OnUnloaded(object? s, RoutedEventArgs e)
     {
+        Loc.I.LanguageChanged -= OnLanguageChanged;
         _timer.Stop();
         _cts?.Cancel();
     }

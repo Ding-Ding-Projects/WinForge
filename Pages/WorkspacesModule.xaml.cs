@@ -26,11 +26,18 @@ public sealed partial class WorkspacesModule : Page
     public WorkspacesModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => { Render(); Reload(); };
+        Loc.I.LanguageChanged += OnLanguageChanged;
         WorkspacesService.Changed += OnStoreChanged;
         Loaded += (_, _) => { Render(); Reload(); };
-        Unloaded += (_, _) => WorkspacesService.Changed -= OnStoreChanged;
+        Unloaded += (_, _) =>
+        {
+            Loc.I.LanguageChanged -= OnLanguageChanged;
+            WorkspacesService.Changed -= OnStoreChanged;
+            _launchCts?.Cancel();
+        };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) { Render(); Reload(); }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 

@@ -390,6 +390,17 @@
                     </NavigationViewItem.MenuItems>
                 </NavigationViewItem>
 
+                <NavigationViewItem Content="Web, Text &amp; Symbols · 網頁文字符號" SelectsOnInvoked="False">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon>
+                    <NavigationViewItem.MenuItems>
+                        <NavigationViewItem Content="HTML Formatter · HTML 格式化" Tag="module.htmlformat"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="CSS Formatter · CSS 格式化" Tag="module.cssformat"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Text to Binary · 文字轉二進位" Tag="module.binarytext"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Emoji Picker · Emoji 選擇器" Tag="module.emoji"><NavigationViewItem.Icon><FontIcon Glyph="&#xE76E;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Symbols Palette · 特殊符號調色盤" Tag="module.symbols"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8D2;" /></NavigationViewItem.Icon></NavigationViewItem>
+                    </NavigationViewItem.MenuItems>
+                </NavigationViewItem>
+
                 <NavigationViewItemHeader Content="Windows 11 · 視窗 11" />
                 <NavigationViewItem x:Name="TweaksGroup" Content="All Tweaks · 全部調校" SelectsOnInvoked="False">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE713;" /></NavigationViewItem.Icon>

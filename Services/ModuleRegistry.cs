@@ -243,6 +243,11 @@ public static class ModuleRegistry
         new() { Tag = "module.gradient", En = "Gradient Generator", Zh = "漸變產生器", Glyph = ((char)0xE790).ToString(), Keywords = "gradient css linear radial colour color stops hex angle 漸變 顏色 色標 線性 放射 CSS 十六進位" },
         new() { Tag = "module.leet", En = "Fancy Text", Zh = "花式文字", Glyph = ((char)0xE8A5).ToString(), Keywords = "fancy text unicode font styler bold italic fraktur script circled fullwidth strikethrough underline leetspeak upside down 花式文字 特殊字體 粗體 斜體 花體 圓圈 全形 刪除線 底線 火星文 倒轉字" },
         new() { Tag = "module.tallycounter", En = "Tally Counter", Zh = "點數計數器", Glyph = ((char)0xE8EF).ToString(), Keywords = "tally counter count clicker increment score reps 點數 計數器 計數 數數 點算 分數 加減" },
+        new() { Tag = "module.htmlformat", En = "HTML Formatter", Zh = "HTML 格式化", Glyph = ((char)0xE943).ToString(), Keywords = "html format formatter beautify prettify minify minifier indent tidy markup tags web HTML 格式化 美化 壓縮 縮排 標籤 網頁 排版" },
+        new() { Tag = "module.cssformat", En = "CSS Formatter", Zh = "CSS 格式化", Glyph = ((char)0xE943).ToString(), Keywords = "css format beautify minify prettify stylesheet compress whitespace indent 格式化 美化 壓縮 精簡 樣式表 縮排 排版" },
+        new() { Tag = "module.emoji", En = "Emoji Picker", Zh = "Emoji 選擇器", Glyph = ((char)0xE76E).ToString(), Keywords = "emoji smiley face symbol copy clipboard picker 表情 符號 貼圖 複製 剪貼簿 選擇器" },
+        new() { Tag = "module.symbols", En = "Symbols Palette", Zh = "特殊符號調色盤", Glyph = ((char)0xE8D2).ToString(), Keywords = "symbols special characters unicode glyph arrows math currency greek punctuation box drawing stars fractions superscript subscript copy 符號 特殊字元 統一碼 箭嘴 數學 貨幣 希臘 標點 框線 星 分數 上下標 複製" },
+        new() { Tag = "module.binarytext", En = "Text to Binary", Zh = "文字轉二進位", Glyph = ((char)0xE943).ToString(), Keywords = "binary text codes utf-8 encode decode ascii hex octal decimal base converter 二進位 文字 編碼 解碼 十六進位 八進位 十進位 位元組 轉換" },
     };
 
     public static IEnumerable<ModuleInfo> Search(string query)

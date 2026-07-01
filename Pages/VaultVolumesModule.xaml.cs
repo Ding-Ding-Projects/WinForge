@@ -30,13 +30,16 @@ public sealed partial class VaultVolumesModule : Page
     public VaultVolumesModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) =>
-        {
-            Render();
-            if (_hasScanned) Reload();
-            else ShowUnscannedState();
-        };
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) => { Render(); FillCombos(); ShowUnscannedState(); CheckEngine(); };
+        Unloaded += (_, _) => Loc.I.LanguageChanged -= OnLanguageChanged;
+    }
+
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        Render();
+        if (_hasScanned) Reload();
+        else ShowUnscannedState();
     }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);

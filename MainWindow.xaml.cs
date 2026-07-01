@@ -298,6 +298,24 @@ public sealed partial class MainWindow : Window
         }
         switch (App.StartPage)
         {
+            case "htmlformat":
+            case "htmltidy":
+                Navigator.GoToModule?.Invoke("module.htmlformat");
+                break;
+            case "cssformat":
+                Navigator.GoToModule?.Invoke("module.cssformat");
+                break;
+            case "emoji":
+                Navigator.GoToModule?.Invoke("module.emoji");
+                break;
+            case "symbols":
+            case "glyphs":
+                Navigator.GoToModule?.Invoke("module.symbols");
+                break;
+            case "binarytext":
+            case "textbinary":
+                Navigator.GoToModule?.Invoke("module.binarytext");
+                break;
             case "textescape":
             case "escape":
                 Navigator.GoToModule?.Invoke("module.textescape");
@@ -1874,6 +1892,11 @@ public sealed partial class MainWindow : Window
         "module.gradient" => typeof(GradientModule),
         "module.leet" => typeof(LeetModule),
         "module.tallycounter" => typeof(TallyCounterModule),
+        "module.htmlformat" => typeof(HtmlFormatModule),
+        "module.cssformat" => typeof(CssFormatModule),
+        "module.emoji" => typeof(EmojiModule),
+        "module.symbols" => typeof(SymbolsModule),
+        "module.binarytext" => typeof(BinaryTextModule),
         _ => typeof(DashboardPage),
     };
 
@@ -2193,6 +2216,16 @@ public sealed partial class MainWindow : Window
                 "module.durationcalc", "module.colorpalette",
                 "module.jsondiff", "module.textdiff", "module.iniedit", "module.imgbase64",
                 "module.textescape", "module.linetools", "module.leet", "module.gradient", "module.tallycounter",
+            },
+        },
+        new()
+        {
+            Id = "webtext",
+            En = "Web, text & symbols",
+            Zh = "網頁文字符號",
+            Keys = new[]
+            {
+                "module.htmlformat", "module.cssformat", "module.binarytext", "module.emoji", "module.symbols",
             },
         },
     };

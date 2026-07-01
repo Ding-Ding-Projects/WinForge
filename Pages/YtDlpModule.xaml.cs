@@ -38,10 +38,12 @@ public sealed partial class YtDlpModule : Page
     {
         InitializeComponent();
         _ui = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += async (_, _) => { Render(); await CheckEngines(); };
-        Unloaded += (_, _) => { try { _cts?.Cancel(); } catch { } YtDlpService.Cancel(); };
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; try { _cts?.Cancel(); } catch { } YtDlpService.Cancel(); };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 

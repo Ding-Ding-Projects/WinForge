@@ -191,7 +191,14 @@
             <!-- ============ QUICK LAUNCH TAB ============ -->
             <PivotItem x:Name="LaunchTab">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel x:Name="OpsPanel" Spacing="8" />
+                    <!-- Hand-built control rows with a subtle Fluent entrance animation (no TweakCard chrome). -->
+                    <StackPanel x:Name="OpsPanel" Spacing="0">
+                        <StackPanel.ChildrenTransitions>
+                            <TransitionCollection>
+                                <EntranceThemeTransition FromVerticalOffset="24" IsStaggeringEnabled="True" />
+                            </TransitionCollection>
+                        </StackPanel.ChildrenTransitions>
+                    </StackPanel>
                 </ScrollViewer>
             </PivotItem>
         </Pivot>

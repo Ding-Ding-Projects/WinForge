@@ -185,7 +185,7 @@
                 </Border>
             </StackPanel>
 
-            <!-- operations (TweakCards) -->
+            <!-- operations (hand-built control rows — no TweakCard) -->
             <TextBlock x:Name="OpsHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
             <AutoSuggestBox
                 x:Name="OpsFilter"
@@ -193,11 +193,37 @@
                 HorizontalAlignment="Left"
                 QueryIcon="Find"
                 TextChanged="OpsFilter_TextChanged" />
-            <StackPanel x:Name="OpsPanel" Spacing="2" />
+
+            <!-- optional scrollable command output for operation rows -->
+            <Border
+                x:Name="OpsOutBorder"
+                Padding="12"
+                Background="{ThemeResource LayerFillColorDefaultBrush}"
+                CornerRadius="6"
+                Visibility="Collapsed">
+                <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                    <TextBlock
+                        x:Name="OpsOutText"
+                        FontFamily="Consolas"
+                        FontSize="12"
+                        IsTextSelectionEnabled="True"
+                        TextWrapping="Wrap" />
+                </ScrollViewer>
+            </Border>
+
+            <!-- Hand-built control rows with a subtle Fluent entrance animation. -->
+            <StackPanel x:Name="OpsPanel" Spacing="0">
+                <StackPanel.ChildrenTransitions>
+                    <TransitionCollection>
+                        <EntranceThemeTransition FromVerticalOffset="24" IsStaggeringEnabled="True" />
+                    </TransitionCollection>
+                </StackPanel.ChildrenTransitions>
+            </StackPanel>
 
             <!-- hotkeys note -->
             <InfoBar x:Name="HotkeyBar" IsClosable="False" IsOpen="True" Severity="Informational" />
 
+            <!-- ONE persistent result / status area — shared by lifecycle handlers and operation rows -->
             <InfoBar x:Name="ResultBar" IsClosable="True" IsOpen="False" />
         </StackPanel>
     </ScrollViewer>

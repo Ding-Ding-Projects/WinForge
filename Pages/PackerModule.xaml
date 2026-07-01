@@ -170,7 +170,7 @@
                 </StackPanel>
             </Border>
 
-            <!-- ===== Operations (TweakCards) ===== -->
+            <!-- ===== Operations (control rows, no TweakCard chrome) ===== -->
             <TextBlock x:Name="OpsHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
             <AutoSuggestBox
                 x:Name="OpsFilter"
@@ -178,7 +178,16 @@
                 HorizontalAlignment="Left"
                 QueryIcon="Find"
                 TextChanged="OpsFilter_TextChanged" />
-            <StackPanel x:Name="OpsPanel" Spacing="2" />
+            <!-- ONE persistent InfoBar for operation results. -->
+            <InfoBar x:Name="OpsStatusBar" IsClosable="True" IsOpen="False" />
+            <!-- Hand-built control rows with a subtle Fluent entrance animation. -->
+            <StackPanel x:Name="OpsPanel" Spacing="0">
+                <StackPanel.ChildrenTransitions>
+                    <TransitionCollection>
+                        <EntranceThemeTransition FromVerticalOffset="24" IsStaggeringEnabled="True" />
+                    </TransitionCollection>
+                </StackPanel.ChildrenTransitions>
+            </StackPanel>
         </StackPanel>
     </ScrollViewer>
 </Page>

@@ -54,10 +54,12 @@ public sealed partial class DockerModule : Page
         VolumeList.ItemsSource = _volumes;
         NetworkList.ItemsSource = _networks;
         _statsTimer.Tick += async (_, _) => await StatsTick();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
@@ -71,6 +73,7 @@ public sealed partial class DockerModule : Page
 
     private void OnUnloaded(object? s, RoutedEventArgs e)
     {
+        Loc.I.LanguageChanged -= OnLanguageChanged;
         _statsTimer.Stop();
         _statsCts?.Cancel();
         _docker.Dispose();

@@ -37,7 +37,7 @@ public sealed partial class OneDriveModule : Page
     public OneDriveModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => { Render(); Reload(); };
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) =>
         {
             Render();
@@ -45,7 +45,10 @@ public sealed partial class OneDriveModule : Page
             LoadThreshold();
             Reload();
         };
+        Unloaded += (_, _) => Loc.I.LanguageChanged -= OnLanguageChanged;
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) { Render(); Reload(); }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 

@@ -41,10 +41,12 @@ public sealed partial class TorrentModule : Page
         InitializeComponent();
         TorrentList.ItemsSource = _rows;
         _timer.Tick += (_, _) => RefreshTick();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
@@ -67,6 +69,7 @@ public sealed partial class TorrentModule : Page
 
     private async void OnUnloaded(object? s, RoutedEventArgs e)
     {
+        Loc.I.LanguageChanged -= OnLanguageChanged;
         _timer.Stop();
         try { await _eng.SaveStateAsync(); } catch { }
     }

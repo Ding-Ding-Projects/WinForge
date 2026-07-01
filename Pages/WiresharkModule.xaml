@@ -318,7 +318,14 @@
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel Spacing="8">
                         <AutoSuggestBox x:Name="OpsFilter" TextChanged="OpsFilter_TextChanged" />
-                        <StackPanel x:Name="OpsPanel" Spacing="8" />
+                        <!-- Hand-built control rows with a subtle Fluent entrance animation. -->
+                        <StackPanel x:Name="OpsPanel" Spacing="0">
+                            <StackPanel.ChildrenTransitions>
+                                <TransitionCollection>
+                                    <EntranceThemeTransition FromVerticalOffset="24" IsStaggeringEnabled="True" />
+                                </TransitionCollection>
+                            </StackPanel.ChildrenTransitions>
+                        </StackPanel>
                     </StackPanel>
                 </ScrollViewer>
             </PivotItem>

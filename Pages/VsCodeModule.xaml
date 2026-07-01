@@ -24,12 +24,17 @@
                 TextWrapping="Wrap" />
         </StackPanel>
 
-        <!-- Engine / install bar -->
-        <InfoBar
-            x:Name="EngineBar"
-            Grid.Row="1"
-            IsClosable="False"
-            IsOpen="False" />
+        <!-- Engine / install bar + persistent status bar for operation results -->
+        <StackPanel Grid.Row="1" Spacing="8">
+            <InfoBar
+                x:Name="EngineBar"
+                IsClosable="False"
+                IsOpen="False" />
+            <InfoBar
+                x:Name="StatusBar"
+                IsClosable="True"
+                IsOpen="False" />
+        </StackPanel>
 
         <!-- Body: left actions/extensions, right ops library -->
         <Grid Grid.Row="2" ColumnSpacing="14">
@@ -239,7 +244,14 @@
                         QueryIcon="Find"
                         TextChanged="OpsFilter_TextChanged" />
                     <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
-                        <StackPanel x:Name="OpsPanel" Spacing="2" />
+                        <!-- Hand-built control rows with a subtle Fluent entrance animation. -->
+                        <StackPanel x:Name="OpsPanel" Spacing="0">
+                            <StackPanel.ChildrenTransitions>
+                                <TransitionCollection>
+                                    <EntranceThemeTransition FromVerticalOffset="24" IsStaggeringEnabled="True" />
+                                </TransitionCollection>
+                            </StackPanel.ChildrenTransitions>
+                        </StackPanel>
                     </ScrollViewer>
                 </Grid>
             </Border>
