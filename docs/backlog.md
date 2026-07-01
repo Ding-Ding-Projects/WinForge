@@ -26,6 +26,8 @@ Guardrail: nothing merges/deploys unless `dotnet build WinForge.sln -c Debug -p:
   Template Renderer, ASCII Table, Meta Tag Generator, chmod Calculator. Plus the **`Controls/ControlRowList` renderer + SettingsHub + GitHub/AudioEditor/Ollama conversions**, and **freeze round 2 essentially finished** (see below).
 - **Batch 10 — DONE: +4 modules → 228.**
   JSON Analyzer, Aspect Ratio, Scientific Notation, Color Blindness Sim. Plus the **FINAL 6 tweak-card conversions → 🎉 ZERO TWEAK CARDS** (see below).
+- **Batch 11 — DONE: +6 modules → 234; `Controls/TweakCard.xaml(.cs)` DELETED (dead code gone).**
+  Markdown TOC, JSON→Types (TS/C#), Named Colors (nearest of 148 CSS colours), Number Formatter, Text Redactor (PII masking), String Compare (Levenshtein/Jaro-Winkler/LCS). Also tidied the last dangling `<see cref="…TweakCard"/>` doc-comments.
 - **Next focus:** depth toward **1000+ working features** (extend existing modules, theme C). **UI overhaul DONE — zero tweak cards reached.** Remaining cleanup: delete the now-unused `Controls/TweakCard.xaml(.cs)` and its `App.xaml` style refs (a dedicated low-risk iteration). Freeze rounds essentially done (~3 accepted-risk pages). Keep adding modules opportunistically.
 
 ## Bug / hardening priorities (fold into every iteration)

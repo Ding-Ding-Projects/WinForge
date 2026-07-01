@@ -10,7 +10,7 @@ namespace WinForge.Catalog;
 
 /// <summary>
 /// Amulet 設定／維護操作目錄 · Catalog of Amulet setup / maintenance operations rendered as self-contained
-/// <see cref="Controls.TweakCard"/> action rows: extract the bundled zip, install Python deps, open the
+/// control rows: extract the bundled zip, install Python deps, open the
 /// managed app-data dir, and open the default .minecraft\saves folder. Each action drives
 /// <see cref="AmuletService"/> directly and returns a bilingual result. No redirect.
 /// </summary>

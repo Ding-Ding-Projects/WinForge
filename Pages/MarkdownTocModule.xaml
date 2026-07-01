@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.MarkdownTocModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="900" Spacing="14">
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE8A1;" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <TextBlock x:Name="OptionsTitle" FontWeight="SemiBold" FontSize="15" />
+
+                    <StackPanel Orientation="Horizontal" Spacing="16">
+                        <StackPanel Spacing="4">
+                            <TextBlock x:Name="MinLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <NumberBox x:Name="MinBox" Value="1" Minimum="1" Maximum="6" SpinButtonPlacementMode="Inline" MinWidth="120" ValueChanged="Options_Changed" />
+                        </StackPanel>
+                        <StackPanel Spacing="4">
+                            <TextBlock x:Name="MaxLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <NumberBox x:Name="MaxBox" Value="6" Minimum="1" Maximum="6" SpinButtonPlacementMode="Inline" MinWidth="120" ValueChanged="Options_Changed" />
+                        </StackPanel>
+                        <StackPanel Spacing="4">
+                            <TextBlock x:Name="StyleLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <ComboBox x:Name="StyleCombo" MinWidth="160" SelectionChanged="Options_Changed" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <CheckBox x:Name="IncludeH1Chk" IsChecked="True" Checked="Options_Changed" Unchecked="Options_Changed" />
+                </StackPanel>
+            </Border>
+
+            <Grid ColumnSpacing="14">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Spacing="6">
+                    <TextBlock x:Name="InputLabel" FontWeight="SemiBold" />
+                    <TextBox x:Name="InputBox"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             Height="360"
+                             FontFamily="Consolas"
+                             VerticalContentAlignment="Top"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                             TextChanged="Input_Changed" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Spacing="6">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="OutputLabel" Grid.Column="0" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <Button x:Name="CopyButton" Grid.Column="1" Click="Copy_Click" />
+                    </Grid>
+                    <TextBox x:Name="OutputBox"
+                             AcceptsReturn="True"
+                             TextWrapping="NoWrap"
+                             IsReadOnly="True"
+                             Height="360"
+                             FontFamily="Consolas"
+                             VerticalContentAlignment="Top"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                             ScrollViewer.HorizontalScrollBarVisibility="Auto" />
+                </StackPanel>
+            </Grid>
+
+            <TextBlock x:Name="StatusText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+        </StackPanel>
+    </ScrollViewer>
+</Page>

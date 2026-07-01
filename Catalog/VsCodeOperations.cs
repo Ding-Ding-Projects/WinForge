@@ -7,7 +7,7 @@ namespace WinForge.Catalog;
 
 /// <summary>
 /// VS Code 操作目錄 · Catalog of parameterless / reference <c>code</c> CLI operations rendered as
-/// <see cref="TweakCard"/>s in the VS Code module's operation library (and surfaced in master search).
+/// control rows in the VS Code module's operation library (and surfaced in master search).
 /// 需要揀檔案／資料夾嘅動作住喺頁面上面（用 FileDialogs）· Actions needing a file/folder picker live on the
 /// page itself; this list is the no-argument and informational commands.
 /// </summary>

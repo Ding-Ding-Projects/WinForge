@@ -298,6 +298,30 @@ public sealed partial class MainWindow : Window
         }
         switch (App.StartPage)
         {
+            case "markdowntoc":
+            case "toc":
+                Navigator.GoToModule?.Invoke("module.markdowntoc");
+                break;
+            case "jsontots":
+            case "jsontype":
+                Navigator.GoToModule?.Invoke("module.jsontots");
+                break;
+            case "colorname":
+            case "namedcolors":
+                Navigator.GoToModule?.Invoke("module.colorname");
+                break;
+            case "numberformat":
+            case "numfmt":
+                Navigator.GoToModule?.Invoke("module.numberformat");
+                break;
+            case "textredact":
+            case "redact":
+                Navigator.GoToModule?.Invoke("module.textredact");
+                break;
+            case "stringcompare":
+            case "similarity":
+                Navigator.GoToModule?.Invoke("module.stringcompare");
+                break;
             case "jsonstat":
             case "jsonanalyze":
                 Navigator.GoToModule?.Invoke("module.jsonstat");
@@ -1937,6 +1961,12 @@ public sealed partial class MainWindow : Window
         "module.aspectratio" => typeof(AspectRatioModule),
         "module.scinotation" => typeof(SciNotationModule),
         "module.colorblind" => typeof(ColorBlindModule),
+        "module.markdowntoc" => typeof(MarkdownTocModule),
+        "module.jsontots" => typeof(JsonToTsModule),
+        "module.colorname" => typeof(ColorNameModule),
+        "module.numberformat" => typeof(NumberFormatModule),
+        "module.textredact" => typeof(TextRedactModule),
+        "module.stringcompare" => typeof(StringCompareModule),
         _ => typeof(DashboardPage),
     };
 
@@ -2268,6 +2298,17 @@ public sealed partial class MainWindow : Window
                 "module.htmlformat", "module.cssformat", "module.binarytext", "module.emoji", "module.symbols",
                 "module.metatags", "module.texttemplate", "module.asciitable", "module.unixperm",
                 "module.jsonstat", "module.aspectratio", "module.scinotation", "module.colorblind",
+            },
+        },
+        new()
+        {
+            Id = "textcode",
+            En = "Text & code",
+            Zh = "文字與程式碼",
+            Keys = new[]
+            {
+                "module.markdowntoc", "module.jsontots", "module.numberformat", "module.stringcompare",
+                "module.textredact", "module.colorname",
             },
         },
     };

@@ -256,6 +256,12 @@ public static class ModuleRegistry
         new() { Tag = "module.aspectratio", En = "Aspect Ratio", Zh = "長寬比計算", Glyph = ((char)0xE799).ToString(), Keywords = "aspect ratio resolution 16:9 scale gcd megapixels dimensions widescreen 長寬比 解析度 比例 縮放 像素 闊高 畫面比" },
         new() { Tag = "module.scinotation", En = "Scientific Notation", Zh = "科學記數法", Glyph = ((char)0xE8EF).ToString(), Keywords = "scientific engineering notation exponent mantissa significant figures SI prefix E-notation kilo mega giga 科學 工程 記數法 指數 有效數字 前綴 換算" },
         new() { Tag = "module.colorblind", En = "Color Blindness Sim", Zh = "色盲模擬", Glyph = ((char)0xE790).ToString(), Keywords = "color blindness colour blind cvd protanopia deuteranopia tritanopia achromatopsia grayscale accessibility contrast hex rgb 色盲 色覺 色弱 紅綠色盲 灰階 無障礙 對比 顏色 模擬" },
+        new() { Tag = "module.markdowntoc", En = "Markdown TOC", Zh = "Markdown 目錄", Glyph = ((char)0xE8A1).ToString(), Keywords = "markdown toc table of contents heading anchor slug outline github 目錄 標題 錨點 大綱 連結" },
+        new() { Tag = "module.jsontots", En = "JSON to Types", Zh = "JSON 轉型別", Glyph = ((char)0xE943).ToString(), Keywords = "json typescript interface csharp class type generate convert schema model dto 型別 型態 類別 介面 轉換 生成 產生" },
+        new() { Tag = "module.colorname", En = "Named Colors", Zh = "命名色彩", Glyph = ((char)0xE790).ToString(), Keywords = "color colour name named css x11 hex rgb nearest swatch palette 色彩 顏色 命名色 具名色 十六進位 網頁色" },
+        new() { Tag = "module.numberformat", En = "Number Formatter", Zh = "數字格式化", Glyph = ((char)0xE8EF).ToString(), Keywords = "number format formatter thousands separator decimal currency percent scientific accounting zero-pad culture globalization 數字 格式 格式化 千分位 小數 貨幣 百分比 科學記數 會計 補零 地區" },
+        new() { Tag = "module.textredact", En = "Text Redactor", Zh = "文字遮蔽", Glyph = ((char)0xE72E).ToString(), Keywords = "redact mask pii privacy email phone credit card ip address censor scrub 遮蔽 遮罩 個資 私隱 電郵 電話 信用卡 IP 打格 過濾" },
+        new() { Tag = "module.stringcompare", En = "String Compare", Zh = "字串相似度", Glyph = ((char)0xE8A5).ToString(), Keywords = "string compare similarity levenshtein edit distance damerau hamming jaro winkler substring subsequence diff text 字串 相似度 比較 編輯距離 差異 文字" },
     };
 
     public static IEnumerable<ModuleInfo> Search(string query)

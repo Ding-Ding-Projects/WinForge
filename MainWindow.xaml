@@ -409,6 +409,18 @@
                     </NavigationViewItem.MenuItems>
                 </NavigationViewItem>
 
+                <NavigationViewItem Content="Text &amp; Code · 文字與程式碼" SelectsOnInvoked="False">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon>
+                    <NavigationViewItem.MenuItems>
+                        <NavigationViewItem Content="JSON to Types · JSON 轉型別" Tag="module.jsontots"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Markdown TOC · Markdown 目錄" Tag="module.markdowntoc"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A1;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Number Formatter · 數字格式化" Tag="module.numberformat"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8EF;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="String Compare · 字串相似度" Tag="module.stringcompare"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Text Redactor · 文字遮蔽" Tag="module.textredact"><NavigationViewItem.Icon><FontIcon Glyph="&#xE72E;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Named Colors · 命名色彩" Tag="module.colorname"><NavigationViewItem.Icon><FontIcon Glyph="&#xE790;" /></NavigationViewItem.Icon></NavigationViewItem>
+                    </NavigationViewItem.MenuItems>
+                </NavigationViewItem>
+
                 <NavigationViewItemHeader Content="Windows 11 · 視窗 11" />
                 <NavigationViewItem x:Name="TweaksGroup" Content="All Tweaks · 全部調校" SelectsOnInvoked="False">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE713;" /></NavigationViewItem.Icon>
