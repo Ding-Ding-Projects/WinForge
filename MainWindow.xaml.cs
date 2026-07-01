@@ -1819,6 +1819,44 @@ public sealed partial class MainWindow : Window
             }
             NavigateActive(key);
         };
+
+        // Global "open module" hotkeys (HotkeyMacroModule → action = Open module): bring WinForge to the
+        // front from the tray/background and navigate to the bound module. Fires on the hotkey pump thread,
+        // so marshal onto the UI dispatcher before touching the window.
+        HotkeyMacroService.OpenModuleRequested = tag =>
+        {
+            try
+            {
+                DispatcherQueue.TryEnqueue(() =>
+                {
+                    try
+                    {
+                        BringToForeground();
+                        Navigator.GoToModule?.Invoke(tag);
+                    }
+                    catch (Exception ex) { CrashLogger.Log("hotkey.openmodule.ui", ex); }
+                });
+            }
+            catch (Exception ex) { CrashLogger.Log("hotkey.openmodule", ex); }
+        };
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    /// <summary>由匣或背景將視窗帶返出嚟並搶到前景 · Un-hide, restore and force the window to the foreground.</summary>
+    private void BringToForeground()
+    {
+        try
+        {
+            AppWindow.Show();
+            if (AppWindow.Presenter is Microsoft.UI.Windowing.OverlappedPresenter op && op.State == Microsoft.UI.Windowing.OverlappedPresenterState.Minimized)
+                op.Restore();
+            Activate();
+            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+            SetForegroundWindow(hwnd);
+        }
+        catch (Exception ex) { CrashLogger.Log("bringtofront", ex); }
     }
 
     /// <summary>Resolve a nav item by Tag, searching nested groups recursively (pane + footer).</summary>
