@@ -544,6 +544,27 @@ public sealed partial class MainWindow : Window
             case "roman":
                 Navigator.GoToModule?.Invoke("module.romannum");
                 break;
+            case "cementkiln":
+            case "cement":
+                Navigator.GoToModule?.Invoke("module.cementkiln");
+                break;
+            case "colormix":
+            case "colourmix":
+                Navigator.GoToModule?.Invoke("module.colormix");
+                break;
+            case "jsonsort":
+                Navigator.GoToModule?.Invoke("module.jsonsort");
+                break;
+            case "loremtext":
+                Navigator.GoToModule?.Invoke("module.loremtext");
+                break;
+            case "phonetic":
+            case "nato":
+                Navigator.GoToModule?.Invoke("module.phonetic");
+                break;
+            case "wordfreq":
+                Navigator.GoToModule?.Invoke("module.wordfreq");
+                break;
             case "passwordstrength":
             case "pwstrength":
                 Navigator.GoToModule?.Invoke("module.passwordstrength");
@@ -2380,6 +2401,12 @@ public sealed partial class MainWindow : Window
         "module.queryedit" => typeof(QueryEditModule),
         "module.morse" => typeof(MorseModule),
         "module.romannum" => typeof(RomanNumModule),
+        "module.cementkiln" => typeof(CementKilnModule),
+        "module.colormix" => typeof(ColorMixModule),
+        "module.jsonsort" => typeof(JsonSortModule),
+        "module.loremtext" => typeof(LoremTextModule),
+        "module.phonetic" => typeof(PhoneticModule),
+        "module.wordfreq" => typeof(WordFreqModule),
         _ => typeof(DashboardPage),
     };
 
@@ -2790,6 +2817,7 @@ public sealed partial class MainWindow : Window
                 "module.computemine", "module.smelter", "module.datacenter", "module.collider",
                 "module.reactorbank", "module.desal", "module.evcharge", "module.pumpedhydro",
                 "module.districtheat", "module.dac", "module.vertfarm", "module.steelmill",
+                "module.cementkiln",
             },
         },
         new()
@@ -2804,6 +2832,8 @@ public sealed partial class MainWindow : Window
                 "module.diceware", "module.textsort", "module.hexdump", "module.envsubst",
                 "module.unicodeinspect", "module.regexcheat", "module.dnsref", "module.cssunits",
                 "module.loremimg", "module.htmltable", "module.barcode", "module.jsonpointer",
+                "module.colormix", "module.jsonsort", "module.loremtext", "module.phonetic",
+                "module.wordfreq",
             },
         },
     };

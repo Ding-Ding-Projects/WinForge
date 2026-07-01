@@ -120,6 +120,7 @@
                         <NavigationViewItem Content="Carbon Capture (DAC) · 碳捕集" Tag="module.dac"><NavigationViewItem.Icon><FontIcon Glyph="&#xEDA3;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Vertical Farm · 垂直農場" Tag="module.vertfarm"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8FD;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Arc-Furnace Steel Mill · 電弧爐煉鋼廠" Tag="module.steelmill"><NavigationViewItem.Icon><FontIcon Glyph="&#xE90F;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Electric Cement Kiln · 電熱水泥迴轉窯" Tag="module.cementkiln"><NavigationViewItem.Icon><FontIcon Glyph="&#xE945;" /></NavigationViewItem.Icon></NavigationViewItem>
                     </NavigationViewItem.MenuItems>
                 </NavigationViewItem>
                 <NavigationViewItem Content="All Apps · 所有 app" Tag="shell.allapps">
@@ -507,6 +508,11 @@
                         <NavigationViewItem Content="HTML Table Convert · HTML 表格轉換" Tag="module.htmltable"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Barcode Generator · 條碼產生器" Tag="module.barcode"><NavigationViewItem.Icon><FontIcon Glyph="&#xE91B;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="JSON Pointer · JSON 指標" Tag="module.jsonpointer"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Colour Mixer · 混色器" Tag="module.colormix"><NavigationViewItem.Icon><FontIcon Glyph="&#xE790;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="JSON Key Sorter · JSON 鍵排序" Tag="module.jsonsort"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Lorem Ipsum Generator · 假文產生器" Tag="module.loremtext"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8D2;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Phonetic Speller · 拼讀字母表" Tag="module.phonetic"><NavigationViewItem.Icon><FontIcon Glyph="&#xE720;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Word Frequency · 詞頻統計" Tag="module.wordfreq"><NavigationViewItem.Icon><FontIcon Glyph="&#xE721;" /></NavigationViewItem.Icon></NavigationViewItem>
                     </NavigationViewItem.MenuItems>
                 </NavigationViewItem>
 
