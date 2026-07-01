@@ -96,6 +96,7 @@ public sealed partial class PgAdminModule : Page
         {
             EngineBar.IsOpen = false;
             EngineBar.ActionButton = null;
+            EngineBar.Content = null;
             return;
         }
         EngineBar.IsOpen = true;
@@ -104,8 +105,9 @@ public sealed partial class PgAdminModule : Page
         EngineBar.Message = P(
             "WinForge talks to Postgres natively (Npgsql) — no install needed. For full administration (roles, backups, dashboards) you can install the pgAdmin 4 desktop app.",
             "WinForge 用原生 Npgsql 直接連 Postgres — 唔使裝嘢。如需完整管理（角色、備份、儀表板），可安裝 pgAdmin 4 桌面版。");
-        EngineBar.ActionButton = EngineBars.AutoInstallButton(
-            PostgresService.PgAdminWingetId, "Install pgAdmin 4", "安裝 pgAdmin 4",
+        EngineBar.ActionButton = null;
+        EngineBar.Content = EngineBars.AutoInstallProgress(
+            PostgresService.PgAdminWingetId, "Install pgAdmin 4 (optional)", "安裝 pgAdmin 4（選用）",
             async () => { await CheckEngine(); },
             null);
     }

@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using WinForge.Catalog;
+using WinForge.Controls;
 using WinForge.Models;
 using WinForge.Services;
 
@@ -107,6 +108,9 @@ public sealed partial class EmulatorModule : Page
 
     private void CheckEngine()
     {
+        // Don't disturb a live install control while it's streaming its own progress.
+        if (EngineBar.Content is InstallProgress running && running.IsRunning) return;
+
         var (ok, en, zh) = EmulatorService.Health();
         EngineBar.IsOpen = !ok || !EmulatorService.HasJava();
         EngineBar.ActionButton = null;
@@ -116,10 +120,10 @@ public sealed partial class EmulatorModule : Page
             EngineBar.Severity = InfoBarSeverity.Warning;
             EngineBar.Title = P("Android SDK not ready", "Android SDK 未準備好");
             EngineBar.Message = P(en, zh);
-            EngineBar.ActionButton = EngineBars.AutoInstallButton(
+            EngineBar.Content = EngineBars.AutoInstallProgress(
                 "Google.AndroidStudio",
                 "Install Android Studio / SDK automatically", "自動安裝 Android Studio／SDK",
-                async () => { CheckEngine(); RenderSdkRoot(); await RefreshAvds(); });
+                recheck: async () => { CheckEngine(); RenderSdkRoot(); await RefreshAvds(); });
             return;
         }
 
@@ -127,11 +131,17 @@ public sealed partial class EmulatorModule : Page
         {
             EngineBar.Severity = InfoBarSeverity.Warning;
             EngineBar.Title = P("Java (JDK) not found", "搵唔到 Java（JDK）");
-            EngineBar.Message = P("sdkmanager / avdmanager are .bat wrappers that need a JDK. Set JAVA_HOME or install a JDK, otherwise package operations will fail.",
-                "sdkmanager／avdmanager 係 .bat 包裝，需要 JDK。請設定 JAVA_HOME 或安裝 JDK，否則套件操作會失敗。");
+            EngineBar.Message = P("sdkmanager / avdmanager are .bat wrappers that need a JDK. Install a JDK below (winget · live progress), then set JAVA_HOME if it is not picked up automatically.",
+                "sdkmanager／avdmanager 係 .bat 包裝，需要 JDK。喺下面安裝 JDK（winget · 即時進度），如果冇自動偵測到，請設定 JAVA_HOME。");
+            // Microsoft Build of OpenJDK 17 is a reliable LTS for Android command-line tooling.
+            EngineBar.Content = EngineBars.AutoInstallProgress(
+                "Microsoft.OpenJDK.17",
+                "Install JDK (OpenJDK 17)", "安裝 JDK（OpenJDK 17）",
+                recheck: async () => { await System.Threading.Tasks.Task.Yield(); CheckEngine(); });
             return;
         }
 
+        EngineBar.Content = null;
         EngineBar.Severity = InfoBarSeverity.Success;
         EngineBar.Title = P("Android SDK found", "搵到 Android SDK");
         EngineBar.Message = P(en, zh);
@@ -417,6 +427,9 @@ public sealed partial class EmulatorModule : Page
 
     private void Notify(InfoBarSeverity sev, string title, string msg)
     {
-        EngineBar.IsOpen = true; EngineBar.Severity = sev; EngineBar.Title = title; EngineBar.Message = msg; EngineBar.ActionButton = null;
+        // Never overwrite a live install control's progress UI with a transient status.
+        if (EngineBar.Content is InstallProgress ip && ip.IsRunning) return;
+        EngineBar.IsOpen = true; EngineBar.Severity = sev; EngineBar.Title = title; EngineBar.Message = msg;
+        EngineBar.ActionButton = null; EngineBar.Content = null;
     }
 }

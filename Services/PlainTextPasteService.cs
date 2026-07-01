@@ -52,12 +52,12 @@ public static class PlainTextPasteService
     /// 將剪貼簿淨返純文字 · Replace the clipboard with a plain-text-only copy of its text.
     /// Returns false if the clipboard has no text.
     /// </summary>
-    public static bool StripToPlainText()
+    public static async System.Threading.Tasks.Task<bool> StripToPlainTextAsync()
     {
         var view = Clipboard.GetContent();
         if (view is null || !view.Contains(StandardDataFormats.Text)) return false;
         string text;
-        try { text = view.GetTextAsync().AsTask().GetAwaiter().GetResult(); }
+        try { text = await view.GetTextAsync(); }
         catch { return false; }
         var dp = new DataPackage { RequestedOperation = DataPackageOperation.Copy };
         dp.SetText(text);
@@ -103,9 +103,9 @@ public static class PlainTextPasteService
                 if (data.vkCode == VK_V && ctrl && shift)
                 {
                     // Strip on the UI thread, then synthesise a normal Ctrl+V.
-                    _ui?.TryEnqueue(() =>
+                    _ui?.TryEnqueue(async () =>
                     {
-                        try { StripToPlainText(); } catch { }
+                        try { await StripToPlainTextAsync(); } catch { }
                         InjectCtrlV();
                     });
                     return (IntPtr)1; // swallow the original Ctrl+Shift+V

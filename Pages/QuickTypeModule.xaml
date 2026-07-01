@@ -23,12 +23,8 @@
         <!-- Node not found banner -->
         <InfoBar x:Name="NodeBar" Grid.Row="1" IsClosable="False" IsOpen="False" Severity="Warning" />
 
-        <!-- quicktype CLI not found banner -->
-        <InfoBar x:Name="CliBar" Grid.Row="2" IsClosable="False" IsOpen="False" Severity="Warning">
-            <InfoBar.ActionButton>
-                <Button x:Name="InstallCliBtn" Click="InstallCli_Click" />
-            </InfoBar.ActionButton>
-        </InfoBar>
+        <!-- quicktype CLI not found banner (rich install control injected at runtime) -->
+        <InfoBar x:Name="CliBar" Grid.Row="2" IsClosable="False" IsOpen="False" Severity="Warning" />
 
         <!-- Main two-pane area -->
         <Grid Grid.Row="3" ColumnSpacing="12">

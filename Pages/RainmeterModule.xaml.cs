@@ -11,6 +11,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Windows.ApplicationModel.DataTransfer;
 using WinForge.Catalog;
+using WinForge.Controls;
 using WinForge.Models;
 using WinForge.Services;
 
@@ -104,16 +105,18 @@ public sealed partial class RainmeterModule : Page
     private async Task CheckEngine()
     {
         await Task.Yield();
-        if (_rm.IsInstalled) { EngineBar.IsOpen = false; EngineBar.ActionButton = null; return; }
+        if (_rm.IsInstalled) { EngineBar.IsOpen = false; EngineBar.ActionButton = null; EngineBar.Content = null; return; }
         EngineBar.IsOpen = true;
         EngineBar.Severity = InfoBarSeverity.Warning;
         EngineBar.Title = P("Rainmeter not found", "搵唔到 Rainmeter");
-        EngineBar.Message = P("Click to install Rainmeter automatically (winget) — no restart needed.",
-            "撳一下自動安裝 Rainmeter（winget）— 唔使重開。");
-        EngineBar.ActionButton = EngineBars.AutoInstallButton(
-            RainmeterService.WingetId, "Install Rainmeter", "安裝 Rainmeter",
-            async () => { await CheckEngine(); await ReloadSkins(); ReloadLayouts(); },
-            () => _rm.Rescan());
+        EngineBar.Message = P("Install Rainmeter automatically (winget) — live progress, no restart needed.",
+            "自動安裝 Rainmeter（winget）— 即時進度，唔使重開。");
+        EngineBar.ActionButton = null;
+        if (EngineBar.Content is not InstallProgress)
+            EngineBar.Content = EngineBars.AutoInstallProgress(
+                RainmeterService.WingetId, "Install Rainmeter", "安裝 Rainmeter",
+                recheck: async () => { await CheckEngine(); await ReloadSkins(); ReloadLayouts(); },
+                rescan: () => _rm.Rescan());
     }
 
     // ── Skins ──────────────────────────────────────────────────────────────────

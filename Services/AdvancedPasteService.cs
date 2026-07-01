@@ -398,13 +398,13 @@ public static class AdvancedPasteService
     // ===================== Clipboard read =====================
 
     /// <summary>讀取剪貼簿文字 · Read clipboard text (empty when none).</summary>
-    public static string ReadText()
+    public static async Task<string> ReadTextAsync()
     {
         try
         {
             var view = Clipboard.GetContent();
             if (view is null || !view.Contains(StandardDataFormats.Text)) return "";
-            return view.GetTextAsync().AsTask().GetAwaiter().GetResult() ?? "";
+            return await view.GetTextAsync().AsTask() ?? "";
         }
         catch { return ""; }
     }
@@ -483,9 +483,9 @@ public static class AdvancedPasteService
             return await ClipboardImageToTextAsync(ct);
 
         if (action.RequiresAi)
-            return await RunAiAsync(ReadText(), aiInstruction ?? "", ct);
+            return await RunAiAsync(await ReadTextAsync(), aiInstruction ?? "", ct);
 
-        var text = ReadText();
+        var text = await ReadTextAsync();
         if (action.TextFn is not null)
         {
             try { return action.TextFn(text); }

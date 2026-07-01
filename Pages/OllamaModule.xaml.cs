@@ -140,6 +140,7 @@ public sealed partial class OllamaModule : Page
         {
             EngineBar.IsOpen = false;
             EngineBar.ActionButton = null;
+            EngineBar.Content = null;
             await Task.WhenAll(LoadModels(), LoadRunning());
             SyncChatModels();
         }
@@ -150,7 +151,8 @@ public sealed partial class OllamaModule : Page
             EngineBar.Title = P("Ollama not found", "搵唔到 Ollama");
             EngineBar.Message = P("Click to install Ollama automatically (winget) — no restart needed.",
                 "撳一下自動安裝 Ollama（winget）— 唔使重開。");
-            EngineBar.ActionButton = EngineBars.AutoInstallButton(
+            EngineBar.ActionButton = null;
+            EngineBar.Content = EngineBars.AutoInstallProgress(
                 OllamaService.WingetId, "Install Ollama automatically", "自動安裝 Ollama",
                 async () => { PackageService.RefreshProcessPath(); await ProbeAndRefresh(); }, null);
         }
@@ -172,6 +174,7 @@ public sealed partial class OllamaModule : Page
                 await ProbeAndRefresh();
             };
             EngineBar.ActionButton = start;
+            EngineBar.Content = null;
             _models.Clear(); _running.Clear(); SyncChatModels(); UpdateCounts();
         }
     }

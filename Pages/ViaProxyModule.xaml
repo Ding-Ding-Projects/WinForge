@@ -29,12 +29,8 @@
 
         <!-- Toolbar -->
         <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="8" Margin="0,2,0,0">
-            <Button x:Name="DownloadBtn" Click="Download_Click">
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                    <FontIcon Glyph="&#xE896;" FontSize="14" />
-                    <TextBlock x:Name="DownloadText" />
-                </StackPanel>
-            </Button>
+            <!-- Rich install-progress control for downloading ViaProxy.jar is injected here -->
+            <ContentControl x:Name="DownloadHost" VerticalAlignment="Center" />
             <Button x:Name="PickJarBtn" Click="PickJar_Click" />
             <ProgressRing x:Name="Busy" IsActive="False" Width="20" Height="20" VerticalAlignment="Center" />
             <Button x:Name="SourceBtn" Click="Source_Click" />

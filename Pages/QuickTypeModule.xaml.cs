@@ -82,7 +82,6 @@ public sealed partial class QuickTypeModule : Page
         CliBar.Message = P(
             "The quicktype command-line tool is required. Install it globally with npm, then it is detected automatically.",
             "需要 quicktype 命令列工具。用 npm 全域安裝後會自動偵測到。");
-        InstallCliBtn.Content = P("Install quicktype (npm -g)", "安裝 quicktype（npm -g）");
 
         UpdateCSharpVisibility();
     }
@@ -104,7 +103,7 @@ public sealed partial class QuickTypeModule : Page
 
     private async Task Detect()
     {
-        // Node check.
+        // Node check — offer a rich auto-install (real progress bar + live status + Cancel + animation).
         bool node = await QuickTypeService.NodeAvailableAsync();
         if (!node)
         {
@@ -113,52 +112,44 @@ public sealed partial class QuickTypeModule : Page
             NodeBar.Title = P("Node.js not found", "搵唔到 Node.js");
             NodeBar.Message = P("quicktype installs via npm, which needs Node.js. Install Node.js once, then install quicktype.",
                 "quicktype 用 npm 安裝，npm 需要 Node.js。先裝一次 Node.js，再裝 quicktype。");
-            NodeBar.ActionButton = EngineBars.AutoInstallButton(
+            NodeBar.ActionButton = null;
+            NodeBar.Content = EngineBars.AutoInstallProgress(
                 "OpenJS.NodeJS.LTS", "Install Node.js automatically", "自動安裝 Node.js",
-                async () => { await Detect(); }, QuickTypeService.Rescan);
+                recheck: async () => { await Detect(); }, rescan: QuickTypeService.Rescan);
         }
         else
         {
             NodeBar.IsOpen = false;
             NodeBar.ActionButton = null;
+            NodeBar.Content = null;
         }
 
-        // quicktype CLI check.
+        // quicktype CLI check — install via a streaming npm install with live status.
         bool cli = await QuickTypeService.IsAvailableAsync();
         CliBar.IsOpen = !cli;
+        if (!cli)
+        {
+            CliBar.Content = Controls.InstallProgress.Create(
+                "Install quicktype (npm -g)", "安裝 quicktype（npm -g）",
+                async (progress, ct) =>
+                {
+                    var onLine = new Progress<string>(l => progress.Report(Controls.InstallProgressReport.FromLine(l)));
+                    progress.Report(Controls.InstallProgressReport.Status(
+                        "Installing quicktype via npm…", "用 npm 安裝 quicktype…"));
+                    var r = await QuickTypeService.InstallViaNpmAsync(onLine, ct);
+                    if (r.Success)
+                    {
+                        // Recheck so the banner closes and Generate re-enables.
+                        DispatcherQueue.TryEnqueue(async () => await Detect());
+                    }
+                    return r;
+                });
+        }
+        else
+        {
+            CliBar.Content = null;
+        }
         GenerateBtn.IsEnabled = cli && !_busy;
-    }
-
-    private async void InstallCli_Click(object sender, RoutedEventArgs e)
-    {
-        if (_busy) return;
-        _busy = true;
-        InstallCliBtn.IsEnabled = false;
-        InstallCliBtn.Content = P("Installing…", "安裝緊…");
-        Busy.IsActive = true;
-        try
-        {
-            var r = await QuickTypeService.InstallViaNpmAsync();
-            if (r.Success)
-            {
-                Info(InfoBarSeverity.Success, P("quicktype installed", "已安裝 quicktype"),
-                    P("The quicktype CLI is ready.", "quicktype CLI 已就緒。"));
-            }
-            else
-            {
-                Info(InfoBarSeverity.Error, P("Install failed", "安裝失敗"),
-                    r.Output ?? P("npm install -g quicktype failed. Is Node.js installed?",
-                        "npm install -g quicktype 失敗。Node.js 裝咗未？"));
-            }
-        }
-        finally
-        {
-            _busy = false;
-            Busy.IsActive = false;
-            InstallCliBtn.IsEnabled = true;
-            InstallCliBtn.Content = P("Install quicktype (npm -g)", "安裝 quicktype（npm -g）");
-        }
-        await Detect();
     }
 
     // ---- input -----------------------------------------------------------------------------

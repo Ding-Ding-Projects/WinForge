@@ -6,6 +6,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using WinForge.Controls;
+using WinForge.Models;
 using WinForge.Services;
 
 namespace WinForge.Pages;
@@ -85,9 +87,8 @@ public sealed partial class MinecraftLauncherModule : Page
         ExtraArgsBox.Header = P("Extra JVM arguments", "額外 JVM 參數");
 
         SaveInstanceBtn.Content = P("Save instance", "儲存 instance");
-        InstallBtn.Content = P("Download / verify files", "下載／校驗檔案");
+        EnsureInstallControl();
         PlayBtn.Content = P("Play", "遊玩");
-        CancelDownloadBtn.Content = P("Cancel", "取消");
         DeleteInstanceBtn.Content = P("Delete", "刪除");
 
         EulaNote.Text = P(
@@ -429,8 +430,55 @@ public sealed partial class MinecraftLauncherModule : Page
 
     // ----------------------------------------------------------------- install / play
 
-    private async void Install_Click(object sender, RoutedEventArgs e) => await InstallAsync();
+    private InstallProgress? _installControl;
 
+    /// <summary>建立「下載／校驗檔案」嘅豐富進度控件 · Build the rich install-progress control for the game-file download.</summary>
+    private void EnsureInstallControl()
+    {
+        if (_installControl is not null)
+        {
+            _installControl.SetAction(P("Download / verify files", "下載／校驗檔案"), P("Download / verify files", "下載／校驗檔案"), InstallDownloadAsync);
+            return;
+        }
+        _installControl = InstallProgress.Create(P("Download / verify files", "下載／校驗檔案"), P("Download / verify files", "下載／校驗檔案"), InstallDownloadAsync);
+        if (InstallHost is not null) InstallHost.Content = _installControl;
+    }
+
+    /// <summary>InstallProgress 委派：下載並校驗遊戲檔案 · InstallProgress delegate: download + verify game files with live progress.</summary>
+    private async Task<TweakResult> InstallDownloadAsync(IProgress<InstallProgressReport> progress, CancellationToken ct)
+    {
+        if (_editing is null)
+            return TweakResult.Fail("Select or create an instance first.", "請先選擇或建立一個 instance。");
+        SaveEditing();
+        if (string.IsNullOrWhiteSpace(_editing.VersionId))
+            return TweakResult.Fail("Pick a version first.", "請先揀版本。");
+
+        var verRef = _versions.FirstOrDefault(v => v.Id == _editing.VersionId);
+        if (verRef is null)
+        {
+            await RefreshVersionsAsync();
+            verRef = _versions.FirstOrDefault(v => v.Id == _editing.VersionId);
+            if (verRef is null) return TweakResult.Fail("Version not found.", "搵唔到版本。");
+        }
+
+        var root = MinecraftLauncherService.DefaultRoot;
+        var launcherProgress = new Progress<LauncherProgress>(p =>
+        {
+            if (p.Total > 0)
+                progress.Report(InstallProgressReport.Progress(p.Fraction * 100.0,
+                    $"Downloading {p.Done}/{p.Total}", $"下載中 {p.Done}/{p.Total}"));
+            else
+                progress.Report(InstallProgressReport.Status("Preparing…", "準備中…"));
+        });
+        progress.Report(InstallProgressReport.Status("Downloading game files (verified by SHA1)…", "下載遊戲檔案中（用 SHA1 校驗）…"));
+
+        bool ok = await Task.Run(() => MinecraftLauncherService.InstallVersionAsync(root, verRef!, launcherProgress, ct), ct);
+        if (!ok) return TweakResult.Fail("Download failed.", "下載失敗。");
+        var note = NoteJreIfNeeded(root, verRef!.Id);
+        return TweakResult.Ok(note.Length > 0 ? note : "Download complete.", note.Length > 0 ? note : "下載完成。");
+    }
+
+    /// <summary>Play 路徑用嘅靜默安裝（用狀態列進度）· Silent install used by the Play path (drives the shared status progress bar).</summary>
     private async Task<bool> InstallAsync()
     {
         if (_busy || _editing is null) return false;
@@ -450,7 +498,6 @@ public sealed partial class MinecraftLauncherModule : Page
 
         _busy = true;
         _downloadCts = new CancellationTokenSource();
-        CancelDownloadBtn.Visibility = Visibility.Visible;
         DownloadProgress.Visibility = Visibility.Visible;
         ProgressText.Visibility = Visibility.Visible;
         var progress = new Progress<LauncherProgress>(p =>
@@ -489,7 +536,6 @@ public sealed partial class MinecraftLauncherModule : Page
         finally
         {
             _busy = false;
-            CancelDownloadBtn.Visibility = Visibility.Collapsed;
             DownloadProgress.Visibility = Visibility.Collapsed;
             ProgressText.Visibility = Visibility.Collapsed;
             _downloadCts?.Dispose();
@@ -510,11 +556,6 @@ public sealed partial class MinecraftLauncherModule : Page
             return P("Ready to play.", "可以開始遊玩。");
         }
         catch { return ""; }
-    }
-
-    private void CancelDownload_Click(object sender, RoutedEventArgs e)
-    {
-        try { _downloadCts?.Cancel(); } catch { }
     }
 
     private async void Play_Click(object sender, RoutedEventArgs e)

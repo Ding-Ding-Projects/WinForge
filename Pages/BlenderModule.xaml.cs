@@ -162,6 +162,7 @@ public sealed partial class BlenderModule : Page
         if (ok)
         {
             EngineBar.IsOpen = false;
+            EngineBar.Content = null;
             VersionText.Text = await BlenderService.GetVersion();
         }
         else
@@ -170,9 +171,12 @@ public sealed partial class BlenderModule : Page
             EngineBar.Severity = InfoBarSeverity.Warning;
             EngineBar.Title = P("Blender not found", "搵唔到 Blender");
             EngineBar.Message = P(en, zh);
-            EngineBar.ActionButton = EngineBars.AutoInstallButton(
-                "BlenderFoundation.Blender", "Install Blender", "安裝 Blender",
-                async () => { await CheckEngine(); }, BlenderService.Rescan);
+            EngineBar.ActionButton = null;
+            if (EngineBar.Content is not InstallProgress)
+                EngineBar.Content = EngineBars.AutoInstallProgress(
+                    "BlenderFoundation.Blender", "Install Blender", "安裝 Blender",
+                    recheck: async () => { await CheckEngine(); },
+                    rescan: BlenderService.Rescan);
             VersionText.Text = "";
         }
     }
@@ -421,7 +425,14 @@ public sealed partial class BlenderModule : Page
 
     private async void McpDeploy_Click(object sender, RoutedEventArgs e)
     {
-        Report(P("Blender MCP", "Blender MCP"), await BlenderService.DeployBlenderMcpServer());
+        if (sender is Button b) b.IsEnabled = false;
+        try
+        {
+            AppendLog(P("[deploy: installing uv / verifying blender-mcp…]", "[部署：安裝 uv／驗證 blender-mcp…]"));
+            var onLine = new Progress<string>(line => DispatcherQueue.TryEnqueue(() => AppendLog(line)));
+            Report(P("Blender MCP", "Blender MCP"), await BlenderService.DeployBlenderMcpServer(onLine));
+        }
+        finally { if (sender is Button bb) bb.IsEnabled = true; }
     }
 
     private async void McpAddon_Click(object sender, RoutedEventArgs e)
@@ -514,8 +525,11 @@ public sealed partial class BlenderModule : Page
 
     private void Report(string title, TweakResult r)
     {
+        // Don't clobber a live install control while it's running its own progress UI.
+        if (EngineBar.Content is InstallProgress ip && ip.IsRunning) return;
         EngineBar.IsOpen = true;
         EngineBar.ActionButton = null;
+        EngineBar.Content = null;
         EngineBar.Severity = r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error;
         EngineBar.Title = title;
         EngineBar.Message = (Loc.I.IsCantonesePrimary ? r.Message?.Zh : r.Message?.En) ?? "";

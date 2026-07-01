@@ -10,6 +10,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
 using WinForge.Catalog;
+using WinForge.Controls;
 using WinForge.Models;
 using WinForge.Services;
 
@@ -592,35 +593,30 @@ public sealed partial class TaskbarTweakerModule : Page
         // 7+TT is deliberately never offered for auto-install (closed-source freeware, no winget id).
         if (_windhawk.Installed)
         {
+            WindhawkInstallHost.Children.Clear();
             WindhawkInstallHost.Visibility = Visibility.Collapsed;
             return;
         }
 
-        WindhawkInstallHost.Content = P("Install Windhawk", "安裝 Windhawk");
-        WindhawkInstallHost.IsEnabled = true;
+        // Rich install control: real progress bar + live streamed winget output + % + Cancel + success/error
+        // animation; the real exit code / captured output is surfaced (no more silent failure).
+        WindhawkInstallHost.Children.Clear();
+        var install = InstallProgress.Create(
+            "Install Windhawk", "安裝 Windhawk",
+            async (progress, ct) =>
+            {
+                var onLine = new Progress<string>(l => progress.Report(InstallProgressReport.FromLine(l)));
+                TweakResult r;
+                try { r = await PackageService.AutoInstallDetailed("RamenSoftware.Windhawk", onLine, ct); }
+                catch (Exception ex) { r = TweakResult.Fail(ex.Message, $"出錯：{ex.Message}"); }
+                if (r.Success)
+                {
+                    try { RefreshDetection(); } catch { /* best effort */ }
+                }
+                return r;
+            });
+        WindhawkInstallHost.Children.Add(install);
         WindhawkInstallHost.Visibility = Visibility.Visible;
-        WindhawkInstallHost.Click -= WindhawkInstall_Click;
-        WindhawkInstallHost.Click += WindhawkInstall_Click;
-    }
-
-    private async void WindhawkInstall_Click(object sender, RoutedEventArgs e)
-    {
-        var b = (Button)sender;
-        b.IsEnabled = false;
-        b.Content = P("Installing…", "安裝緊…");
-        bool ok;
-        try { ok = await PackageService.AutoInstall("RamenSoftware.Windhawk"); }
-        catch { ok = false; }
-        if (ok)
-        {
-            b.Content = P("Installed ✓", "已安裝 ✓");
-            RefreshDetection();
-        }
-        else
-        {
-            b.Content = P("Install failed — retry", "安裝失敗 — 再試");
-            b.IsEnabled = true;
-        }
     }
 
     private async void RestartExplorer_Click(object sender, RoutedEventArgs e)

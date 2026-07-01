@@ -48,11 +48,10 @@
                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                     <ComboBox x:Name="PaperVersionBox" Width="200" PlaceholderText="—" />
                                     <Button x:Name="PaperRefreshBtn" Click="PaperRefresh_Click" />
-                                    <Button x:Name="PaperDownloadBtn" Click="PaperDownload_Click" Style="{StaticResource AccentButtonStyle}" />
                                     <ProgressRing x:Name="PaperRing" IsActive="False" Width="20" Height="20" VerticalAlignment="Center" />
                                 </StackPanel>
-                                <ProgressBar x:Name="PaperProgress" Minimum="0" Maximum="100" Value="0" Visibility="Collapsed" />
-                                <TextBlock x:Name="PaperProgressText" FontSize="12" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                                <!-- Rich install-progress control for the Paper download is injected here -->
+                                <ContentControl x:Name="PaperDownloadHost" HorizontalAlignment="Left" />
                             </StackPanel>
                         </Border>
 
@@ -63,7 +62,8 @@
                                 <TextBlock x:Name="SpigotBlurb" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                     <TextBox x:Name="SpigotVersionBox" Width="160" Text="latest" />
-                                    <Button x:Name="BuildToolsBtn" Click="DownloadBuildTools_Click" />
+                                    <!-- Rich install-progress control for the BuildTools download is injected here -->
+                                    <ContentControl x:Name="BuildToolsHost" VerticalAlignment="Center" />
                                     <Button x:Name="SpigotBuildBtn" Click="SpigotBuild_Click" />
                                     <Button x:Name="SpigotCancelBtn" Click="SpigotCancel_Click" IsEnabled="False" />
                                     <ProgressRing x:Name="SpigotRing" IsActive="False" Width="20" Height="20" VerticalAlignment="Center" />

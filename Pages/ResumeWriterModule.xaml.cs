@@ -240,6 +240,8 @@ public sealed partial class ResumeWriterModule : Page
         {
             AgentCombo.SelectedItem = AgentCombo.Items[0];
             AgentBar.IsOpen = false;
+            AgentBar.Content = null;
+            AgentBar.ActionButton = null;
             GenerateBtn.IsEnabled = true;
             RegenCoverBtn.IsEnabled = true;
         }
@@ -250,14 +252,48 @@ public sealed partial class ResumeWriterModule : Page
             AgentBar.IsOpen = true;
             AgentBar.Severity = InfoBarSeverity.Warning;
             AgentBar.Title = P("No supported AI agent installed", "未安裝支援嘅 AI 代理");
-            AgentBar.Message = P(
-                "Install Claude Code, opencode, Codex or Pi from the AI Agents module, then come back here.",
-                "請喺「AI 代理」模組安裝 Claude Code、opencode、Codex 或 Pi，然後返嚟呢度。");
 
             bool node = await AiAgentService.NodeAvailableAsync();
-            AgentBar.ActionButton = node ? null : EngineBars.AutoInstallButton(
-                "OpenJS.NodeJS.LTS", "Install Node.js", "安裝 Node.js",
-                async () => { await RefreshAgentsAsync(); }, null);
+            AgentBar.ActionButton = null;
+            if (!node)
+            {
+                // Node.js missing → offer a rich auto-install; agents install via npm afterwards.
+                AgentBar.Message = P(
+                    "Node.js is required to install a terminal AI agent (Claude Code, opencode, Codex, Pi). Install it once, then install an agent below.",
+                    "安裝終端機 AI 代理（Claude Code、opencode、Codex、Pi）需要 Node.js。裝一次之後就可以喺下面裝代理。");
+                AgentBar.Content = EngineBars.AutoInstallProgress(
+                    "OpenJS.NodeJS.LTS", "Install Node.js", "安裝 Node.js",
+                    recheck: async () => { await RefreshAgentsAsync(); });
+            }
+            else
+            {
+                // Node.js present → one-click install Claude Code (npm) right here, or point at AI Agents.
+                AgentBar.Message = P(
+                    "No supported agent found. Install Claude Code below, or install opencode / Codex / Pi from the AI Agents module.",
+                    "搵唔到支援嘅代理。可以喺下面安裝 Claude Code，或者喺「AI 代理」模組安裝 opencode／Codex／Pi。");
+                var claude = AiAgentService.All.FirstOrDefault(a => a.Key == "claude");
+                var npm = claude?.InstallMethods.FirstOrDefault(m => m.Label == "npm");
+                if (claude is not null && npm is not null)
+                {
+                    AgentBar.Content = Controls.InstallProgress.Create(
+                        "Install Claude Code (npm)", "安裝 Claude Code（npm）",
+                        async (progress, ct) =>
+                        {
+                            var onLine = new Progress<string>(l => progress.Report(Controls.InstallProgressReport.FromLine(l)));
+                            progress.Report(Controls.InstallProgressReport.Status(
+                                "Installing Claude Code via npm…", "用 npm 安裝 Claude Code…"));
+                            TweakResult r;
+                            try { r = await npm.RunStreamingOrPlain(onLine, ct); }
+                            catch (Exception ex) { r = TweakResult.Fail(ex.Message, $"出錯：{ex.Message}"); }
+                            if (r.Success)
+                            {
+                                try { PackageService.RefreshProcessPath(); } catch { }
+                                await RefreshAgentsAsync();
+                            }
+                            return r;
+                        });
+                }
+            }
         }
     }
 

@@ -234,7 +234,7 @@ public sealed partial class ICalendarModule : Page
                 P("Save calendar event", "儲存日曆活動"));
             if (string.IsNullOrEmpty(path)) return;
 
-            System.IO.File.WriteAllText(path, text, new System.Text.UTF8Encoding(false));
+            await System.IO.File.WriteAllTextAsync(path, text, new System.Text.UTF8Encoding(false));
             ShowStatus(P("Saved: ", "已儲存：") + path, InfoBarSeverity.Success);
         }
         catch (Exception ex)
@@ -259,14 +259,14 @@ public sealed partial class ICalendarModule : Page
 
     private void Parse_Click(object sender, RoutedEventArgs e) => RunParse(ParseInput.Text ?? "");
 
-    private void Paste_Click(object sender, RoutedEventArgs e)
+    private async void Paste_Click(object sender, RoutedEventArgs e)
     {
         try
         {
             var view = Clipboard.GetContent();
             if (view is not null && view.Contains(StandardDataFormats.Text))
             {
-                string text = view.GetTextAsync().AsTask().GetAwaiter().GetResult() ?? "";
+                string text = await view.GetTextAsync() ?? "";
                 ParseInput.Text = text;
                 RunParse(text);
             }

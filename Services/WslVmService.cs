@@ -163,6 +163,20 @@ public static class WslVmService
     public static Task<TweakResult> InstallDistro(string distro, CancellationToken ct = default)
         => ShellRunner.RunPowershell($"$env:WSL_UTF8=1; wsl.exe --install -d {Quote(distro)} --no-launch", false, ct);
 
+    /// <summary>安裝 WSL 功能（串流輸出）· Install the WSL feature itself (no distro), streaming each output line.</summary>
+    public static Task<TweakResult> InstallWslFeatureStreaming(IProgress<string>? onLine = null, CancellationToken ct = default)
+        => ShellRunner.RunPowershellStreaming("$env:WSL_UTF8=1; wsl.exe --install --no-distribution", onLine, false, ct);
+
+    /// <summary>安裝一個發行版（串流輸出）· Install a distro, streaming each output line to the progress bar.</summary>
+    public static Task<TweakResult> InstallDistroStreaming(string distro, IProgress<string>? onLine = null, CancellationToken ct = default)
+        => ShellRunner.RunPowershellStreaming($"$env:WSL_UTF8=1; wsl.exe --install -d {Quote(distro)} --no-launch", onLine, false, ct);
+
+    /// <summary>啟用 Windows 沙盒功能（串流輸出，要管理員）· Enable the Windows Sandbox feature via DISM, streaming output (admin, reboot).</summary>
+    public static Task<TweakResult> EnableSandboxFeatureStreaming(IProgress<string>? onLine = null, CancellationToken ct = default)
+        => ShellRunner.RunStreaming("dism.exe",
+            "/Online /Enable-Feature /FeatureName:Containers-DisposableClientVM /All /NoRestart",
+            onLine, elevated: true, workingDirectory: null, ct);
+
     public static Task<TweakResult> SetDefault(string distro, CancellationToken ct = default)
         => ShellRunner.RunPowershell($"$env:WSL_UTF8=1; wsl.exe --set-default {Quote(distro)}", false, ct);
 

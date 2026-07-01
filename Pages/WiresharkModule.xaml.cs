@@ -135,12 +135,13 @@ public sealed partial class WiresharkModule : Page
             EngineBar.Title = P("Wireshark not found", "搵唔到 Wireshark");
             EngineBar.Message = P("Click to install Wireshark (with Npcap) automatically via winget — no restart needed.",
                 "撳一下用 winget 自動安裝 Wireshark（含 Npcap）— 唔使重啟。");
-            EngineBar.ActionButton = EngineBars.AutoInstallButton(
+            EngineBar.ActionButton = null;
+            EngineBar.Content = EngineBars.AutoInstallProgress(
                 WiresharkService.WingetId, "Install Wireshark (+ Npcap)", "安裝 Wireshark（含 Npcap）",
                 async () => { await CheckEngine(); await RefreshInterfaces(); },
                 WiresharkService.Rescan);
         }
-        else EngineBar.ActionButton = null;
+        else { EngineBar.ActionButton = null; EngineBar.Content = null; }
 
         // Npcap bar.
         bool npcap = WiresharkService.IsNpcapInstalled();
@@ -151,12 +152,12 @@ public sealed partial class WiresharkModule : Page
             NpcapBar.Title = P("Npcap driver missing", "缺少 Npcap 驅動");
             NpcapBar.Message = P("Live capture needs the Npcap driver. Reinstall Wireshark and enable Npcap during setup.",
                 "即時擷取需要 Npcap 驅動。請重裝 Wireshark 並喺安裝時啟用 Npcap。");
-            var btn = EngineBars.AutoInstallButton(
+            NpcapBar.ActionButton = null;
+            NpcapBar.Content = EngineBars.AutoInstallProgress(
                 WiresharkService.WingetId, "Reinstall Wireshark (+ Npcap)", "重裝 Wireshark（含 Npcap）",
                 async () => { await CheckEngine(); await RefreshInterfaces(); }, WiresharkService.Rescan);
-            NpcapBar.ActionButton = btn;
         }
-        else NpcapBar.ActionButton = null;
+        else { NpcapBar.ActionButton = null; NpcapBar.Content = null; }
 
         // Admin bar (only matters once installed).
         AdminBar.IsOpen = installed && !WiresharkService.IsElevated;

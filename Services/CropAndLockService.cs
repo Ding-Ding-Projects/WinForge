@@ -149,6 +149,9 @@ public static class CropAndLockService
 
     private static Thread? _pumpThread;
     private static uint _pumpThreadId;
+    // Signalled by the pump thread once _pumpThreadId is populated, so callers can wait for
+    // readiness WITHOUT a Thread.Sleep spin on the UI thread.
+    private static readonly ManualResetEventSlim _pumpReady = new(false);
     private static bool _running;
     private static WndProc? _wndProc;             // keep the delegate alive
     private static bool _classRegistered;
@@ -190,12 +193,19 @@ public static class CropAndLockService
     {
         if (_running) return;
         _running = true;
+        _pumpReady.Reset();
         _pumpThread = new Thread(PumpLoop) { IsBackground = true, Name = "WinForge-CropAndLock" };
         _pumpThread.SetApartmentState(ApartmentState.STA);
         _pumpThread.Start();
-        // wait briefly for the thread id so hotkeys can be posted immediately after
-        for (int i = 0; i < 50 && _pumpThreadId == 0; i++) Thread.Sleep(5);
-        ReloadHotkeys();
+        // Wait for the pump thread to publish its id, then (re)apply hotkeys — but do it OFF the
+        // calling (UI) thread so we never Thread.Sleep-spin the dispatcher waiting for the STA pump
+        // to spin up. ReloadHotkeys() just PostThreadMessages the (now-ready) pump, so it is safe
+        // to run from a background task.
+        Task.Run(() =>
+        {
+            _pumpReady.Wait(TimeSpan.FromMilliseconds(250));
+            ReloadHotkeys();
+        });
     }
 
     /// <summary>
@@ -318,6 +328,7 @@ public static class CropAndLockService
     private static void PumpLoop()
     {
         _pumpThreadId = GetCurrentThreadId();
+        _pumpReady.Set(); // let EnsureStarted's waiter proceed without a UI-thread sleep-spin
         PeekMessage(out _, IntPtr.Zero, 0, 0, 0); // force a message queue
         EnsureClassRegistered();
         RegisterHotkeysOnThread();

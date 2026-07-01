@@ -143,11 +143,21 @@ public static class QuickTypeService
     /// then refresh this process's PATH so the new shim resolves immediately.
     /// </summary>
     public static async Task<TweakResult> InstallViaNpmAsync(CancellationToken ct = default)
+        => await InstallViaNpmAsync(null, ct);
+
+    /// <summary>
+    /// 用 npm 全域安裝 quicktype（串流版）· Streaming variant: reports each raw npm output line via
+    /// <paramref name="onLine"/> so a progress control can show live status, then refreshes PATH and the
+    /// cached CLI path. Surfaces the real exit code + captured output. Never throws.
+    /// </summary>
+    public static async Task<TweakResult> InstallViaNpmAsync(IProgress<string>? onLine, CancellationToken ct = default)
     {
-        var r = await ShellRunner.RunCmd("npm install -g quicktype", false, ct);
+        TweakResult r;
+        try { r = await ShellRunner.RunCmdStreaming("npm install -g quicktype", onLine, false, ct); }
+        catch (Exception ex) { return TweakResult.Fail(ex.Message, $"出錯：{ex.Message}"); }
         if (r.Success)
         {
-            PackageService.RefreshProcessPath();
+            try { PackageService.RefreshProcessPath(); } catch { }
             Rescan();
         }
         return r;

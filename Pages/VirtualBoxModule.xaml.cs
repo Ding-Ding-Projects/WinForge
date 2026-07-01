@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using WinForge.Controls;
 using WinForge.Services;
 
 namespace WinForge.Pages;
@@ -68,16 +69,19 @@ public sealed partial class VirtualBoxModule : Page
         {
             EngineBar.Severity = InfoBarSeverity.Warning;
             EngineBar.Title = P("VirtualBox not found", "搵唔到 VirtualBox");
-            EngineBar.Message = P("VBoxManage.exe was not located. Install Oracle VirtualBox to manage virtual machines. Note: VirtualBox can conflict with Hyper-V / WSL2; if VMs fail to start with a VT-x error, disable the Windows hypervisor.",
-                "搵唔到 VBoxManage.exe。安裝 Oracle VirtualBox 嚟管理虛擬機。注意：VirtualBox 可能同 Hyper-V／WSL2 衝突；如果開機出現 VT-x 錯誤，請停用 Windows hypervisor。");
-            EngineBar.ActionButton = EngineBars.AutoInstallButton(
-                "Oracle.VirtualBox", "Install VirtualBox", "安裝 VirtualBox",
-                async () => { await CheckEngine(); await Refresh(); },
-                VirtualBoxService.Rescan);
+            EngineBar.Message = P("VBoxManage.exe was not located. Install Oracle VirtualBox below (live progress) to manage virtual machines. Note: VirtualBox can conflict with Hyper-V / WSL2; if VMs fail to start with a VT-x error, disable the Windows hypervisor.",
+                "搵唔到 VBoxManage.exe。喺下面安裝 Oracle VirtualBox（即時進度）嚟管理虛擬機。注意：VirtualBox 可能同 Hyper-V／WSL2 衝突；如果開機出現 VT-x 錯誤，請停用 Windows hypervisor。");
+            EngineBar.ActionButton = null;
+            if (EngineBar.Content is not InstallProgress)
+                EngineBar.Content = EngineBars.AutoInstallProgress(
+                    "Oracle.VirtualBox", "Install VirtualBox", "安裝 VirtualBox",
+                    recheck: async () => { await CheckEngine(); await Refresh(); },
+                    rescan: VirtualBoxService.Rescan);
         }
         else
         {
             EngineBar.ActionButton = null;
+            EngineBar.Content = null;
             var ver = await VirtualBoxService.GetVersion();
             if (ver is not null)
             {

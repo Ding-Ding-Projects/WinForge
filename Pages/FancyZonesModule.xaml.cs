@@ -104,6 +104,7 @@ public sealed partial class FancyZonesModule : Page
         {
             EngineBar.IsOpen = false;
             EngineBar.ActionButton = null;
+            EngineBar.Content = null;
         }
         else
         {
@@ -113,11 +114,15 @@ public sealed partial class FancyZonesModule : Page
             EngineBar.Message = P(
                 "Click to install PowerToys automatically (winget). The installer adds an elevated runner and may prompt for UAC.",
                 "撳一下自動安裝 PowerToys（winget）。安裝程式會加入需要提權嘅 runner，可能會彈 UAC。");
-            EngineBar.ActionButton = EngineBars.AutoInstallButton(
+            // Rich install control: real progress bar + live streamed status + % + Cancel + success/error animation.
+            EngineBar.ActionButton = null;
+            var install = EngineBars.AutoInstallProgress(
                 FancyZonesService.WingetId,
                 "Install PowerToys automatically", "自動安裝 PowerToys",
                 async () => { await Refresh(); },
                 FancyZonesService.Rescan);
+            install.Margin = new Thickness(0, 4, 0, 8);
+            EngineBar.Content = install;
         }
 
         UpdateStatus();

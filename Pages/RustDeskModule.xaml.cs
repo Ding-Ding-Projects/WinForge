@@ -94,7 +94,7 @@ public sealed partial class RustDeskModule : Page
     private void BuildInstallButton()
     {
         InstallButtonHost.Children.Clear();
-        InstallButtonHost.Children.Add(EngineBars.AutoInstallButton(
+        InstallButtonHost.Children.Add(EngineBars.AutoInstallProgress(
             "RustDesk.RustDesk",
             "Install RustDesk", "安裝 RustDesk",
             async () => await RefreshStatus()));

@@ -82,7 +82,8 @@
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <ComboBox x:Name="OnlineBox" Grid.Column="0" HorizontalAlignment="Stretch" />
-                            <Button x:Name="InstallBtn" Grid.Column="1" Click="Install_Click" Style="{StaticResource AccentButtonStyle}" />
+                            <!-- Rich install-progress control is injected here at runtime -->
+                            <ContentControl x:Name="InstallHost" Grid.Column="1" VerticalAlignment="Center" />
                         </Grid>
                     </StackPanel>
                 </Border>

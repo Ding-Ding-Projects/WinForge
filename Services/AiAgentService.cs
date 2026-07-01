@@ -25,6 +25,17 @@ public sealed class AiInstallMethod
     /// <summary>執行安裝 · Performs the install and returns a TweakResult.</summary>
     public Func<CancellationToken, Task<TweakResult>> Run { get; init; }
         = _ => Task.FromResult(TweakResult.Fail("Not implemented.", "未實作。"));
+
+    /// <summary>
+    /// 串流安裝 · Performs the install while streaming each raw output line via <paramref name="onLine"/>,
+    /// surfacing the real exit code + captured output. Falls back to the non-streaming <see cref="Run"/>
+    /// when a method has no streaming path. Never throws.
+    /// </summary>
+    public Func<IProgress<string>?, CancellationToken, Task<TweakResult>>? RunStreaming { get; init; }
+
+    /// <summary>用串流方法（有就用，冇就退回 Run）· Run with streaming if available, else the plain runner.</summary>
+    public Task<TweakResult> RunStreamingOrPlain(IProgress<string>? onLine, CancellationToken ct)
+        => RunStreaming is not null ? RunStreaming(onLine, ct) : Run(ct);
 }
 
 /// <summary>
@@ -101,25 +112,28 @@ public sealed class AiAgent
 /// </summary>
 public static class AiAgentService
 {
-    /// <summary>npm 安裝方法 · Build an npm-based global install method.</summary>
+    /// <summary>npm 安裝方法（串流）· Build an npm-based global install method that streams output.</summary>
     private static AiInstallMethod Npm(string package) => new()
     {
         Label = "npm",
         Run = ct => ShellRunner.RunCmd($"npm install -g {package}", false, ct),
+        RunStreaming = (onLine, ct) => ShellRunner.RunCmdStreaming($"npm install -g {package}", onLine, false, ct),
     };
 
-    /// <summary>winget 安裝方法 · Build a winget-based install method.</summary>
+    /// <summary>winget 安裝方法（串流）· Build a winget-based install method that streams output.</summary>
     private static AiInstallMethod Winget(string wingetId) => new()
     {
         Label = "winget",
         Run = ct => PackageService.Install(wingetId, ct),
+        RunStreaming = (onLine, ct) => PackageService.AutoInstallDetailed(wingetId, onLine, ct),
     };
 
-    /// <summary>官方 PowerShell 安裝器 · Build an official PowerShell installer method (best-effort).</summary>
+    /// <summary>官方 PowerShell 安裝器（串流）· Build an official PowerShell installer method that streams output.</summary>
     private static AiInstallMethod Official(string script) => new()
     {
         Label = "official installer",
         Run = ct => ShellRunner.RunPowershell(script, false, ct),
+        RunStreaming = (onLine, ct) => ShellRunner.RunPowershellStreaming(script, onLine, false, ct),
     };
 
     public sealed record YoloApplyResult(bool Success, string ReportEn, string ReportZh, string ReportPath);

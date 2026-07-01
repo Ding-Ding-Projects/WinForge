@@ -6,6 +6,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.UI;
+using WinForge.Controls;
 using WinForge.Models;
 using WinForge.Services;
 
@@ -39,7 +40,7 @@ public sealed partial class ViaProxyModule : Page
         HeaderBlurb.Text = P("Run the ViaProxy Java proxy so one Minecraft client can join servers of almost any version (and vice-versa). Detect Java, download the jar, set your target server + version, start the proxy and connect Minecraft to the local address.",
             "行 ViaProxy Java 代理，等一個 Minecraft 客戶端可以連去差唔多任何版本嘅伺服器（反之亦然）。偵測 Java、下載 jar、設定目標伺服器同版本、啟動代理，再用 Minecraft 連去本機位址。");
 
-        DownloadText.Text = P("Download latest jar", "下載最新 jar");
+        EnsureDownloadControl();
         PickJarBtn.Content = P("Use custom jar…", "用自訂 jar…");
         SourceBtn.Content = P("Source · GPL-3.0", "原始碼 · GPL-3.0");
 
@@ -99,11 +100,13 @@ public sealed partial class ViaProxyModule : Page
         JavaBar.Title = hasJava ? P("Java found", "搵到 Java") : P("Java not found", "搵唔到 Java");
         JavaBar.Message = hasJava
             ? P("A JDK is available to run ViaProxy.", "已有 JDK 可以行 ViaProxy。")
-            : P("ViaProxy needs a JDK (21+). Install one with one click.", "ViaProxy 需要 JDK（21+）。一鍵安裝。");
-        JavaBar.ActionButton = hasJava ? null : EngineBars.AutoInstallButton(
+            : P("ViaProxy needs a JDK (21+). Install one below.", "ViaProxy 需要 JDK（21+）。喺下面安裝。");
+        JavaBar.ActionButton = null;
+        // Rich install-progress control (real bar + live winget output + Cancel + success/error animation).
+        JavaBar.Content = hasJava ? null : EngineBars.AutoInstallProgress(
             "Microsoft.OpenJDK.21",
             "Install JDK 21", "安裝 JDK 21",
-            async () => { RefreshEngine(); await System.Threading.Tasks.Task.CompletedTask; });
+            recheck: async () => { RefreshEngine(); await System.Threading.Tasks.Task.CompletedTask; });
 
         var jar = ViaProxyService.FindJar();
         JarBar.IsOpen = true;
@@ -118,19 +121,30 @@ public sealed partial class ViaProxyModule : Page
 
     // ── Toolbar actions ──────────────────────────────────────────────────────
 
-    private async void Download_Click(object sender, RoutedEventArgs e)
+    private InstallProgress? _downloadControl;
+
+    /// <summary>建立「下載 ViaProxy.jar」嘅豐富進度控件 · Build the rich install-progress control for the jar download.</summary>
+    private void EnsureDownloadControl()
     {
-        DownloadBtn.IsEnabled = false;
-        Busy.IsActive = true;
-        AppendLog(P("Downloading ViaProxy.jar…", "下載緊 ViaProxy.jar…"));
+        if (_downloadControl is not null)
+        {
+            _downloadControl.SetAction(P("Download latest jar", "下載最新 jar"), P("Download latest jar", "下載最新 jar"), DownloadJarAsync);
+            return;
+        }
+        _downloadControl = InstallProgress.Create(P("Download latest jar", "下載最新 jar"), P("Download latest jar", "下載最新 jar"), DownloadJarAsync);
+        if (DownloadHost is not null) DownloadHost.Content = _downloadControl;
+    }
+
+    private async System.Threading.Tasks.Task<TweakResult> DownloadJarAsync(
+        IProgress<InstallProgressReport> progress, System.Threading.CancellationToken ct)
+    {
+        progress.Report(InstallProgressReport.Status("Downloading ViaProxy.jar…", "下載緊 ViaProxy.jar…"));
         var (ok, jar, log) = await ViaProxyService.DownloadLatestJar(
-            s => DispatcherQueue.TryEnqueue(() => AppendLog(s)));
-        Busy.IsActive = false;
-        DownloadBtn.IsEnabled = true;
-        AppendLog(log);
-        Notify(StatusBar, ok ? InfoBarSeverity.Success : InfoBarSeverity.Error,
-            ok ? P("Download complete", "下載完成") : P("Download failed", "下載失敗"), log);
+            s => { DispatcherQueue.TryEnqueue(() => AppendLog(s)); progress.Report(InstallProgressReport.FromLine(s)); }, ct);
         RefreshEngine();
+        return ok
+            ? TweakResult.Ok(log, log)
+            : TweakResult.Fail(log, log);
     }
 
     private async void PickJar_Click(object sender, RoutedEventArgs e)

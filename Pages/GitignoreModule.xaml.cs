@@ -141,7 +141,7 @@ public sealed partial class GitignoreModule : Page
                 StatusText.Text = P("Save cancelled.", "已取消儲存。");
                 return;
             }
-            System.IO.File.WriteAllText(path, text);
+            await System.IO.File.WriteAllTextAsync(path, text);
             StatusText.Text = P("Saved to ", "已儲存到 ") + path;
         }
         catch (Exception ex)

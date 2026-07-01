@@ -138,17 +138,19 @@ public sealed partial class TerminalModule : Page
         if (wt || settings)
         {
             InstallBar.IsOpen = false;
+            InstallBar.Content = null;
             return;
         }
 
         InstallBar.Severity = Microsoft.UI.Xaml.Controls.InfoBarSeverity.Warning;
         InstallBar.Title = P("Windows Terminal not found", "搵唔到 Windows 終端機");
-        InstallBar.Message = P("The profiles editor and wt.exe launch need Windows Terminal. The embedded ConPTY terminal works without it.",
-            "設定檔編輯器同 wt.exe 啟動需要 Windows 終端機。內嵌 ConPTY 終端機冇佢都用得。");
-        InstallBar.ActionButton = EngineBars.AutoInstallButton(WingetId,
-            "Install Windows Terminal", "安裝 Windows 終端機",
-            async () => { await System.Threading.Tasks.Task.Yield(); UpdateInstallBar(); ReloadProfiles(); },
-            () => WindowsTerminalService.Resolve());
+        InstallBar.Message = P("The profiles editor and wt.exe launch need Windows Terminal. Install it below with live progress; the embedded ConPTY terminal works without it.",
+            "設定檔編輯器同 wt.exe 啟動需要 Windows 終端機。喺下面安裝（即時進度）；內嵌 ConPTY 終端機冇佢都用得。");
+        if (InstallBar.Content is not InstallProgress)
+            InstallBar.Content = EngineBars.AutoInstallProgress(WingetId,
+                "Install Windows Terminal", "安裝 Windows 終端機",
+                recheck: async () => { await System.Threading.Tasks.Task.Yield(); UpdateInstallBar(); ReloadProfiles(); },
+                rescan: () => WindowsTerminalService.Resolve());
         InstallBar.IsOpen = true;
     }
 

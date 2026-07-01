@@ -95,6 +95,7 @@ public sealed partial class PackerModule : Page
         {
             EngineBar.IsOpen = false;
             EngineBar.ActionButton = null;
+            EngineBar.Content = null;
             var v = await PackerService.VersionAsync();
             if (!string.IsNullOrWhiteSpace(v))
             {
@@ -111,7 +112,8 @@ public sealed partial class PackerModule : Page
         EngineBar.Title = P("Packer not found", "搵唔到 Packer");
         EngineBar.Message = P("Click to install HashiCorp Packer automatically (winget) — no restart needed.",
             "撳一下自動安裝 HashiCorp Packer（winget）— 唔使重開。");
-        EngineBar.ActionButton = EngineBars.AutoInstallButton(
+        EngineBar.ActionButton = null;
+        EngineBar.Content = EngineBars.AutoInstallProgress(
             PackerService.WingetId, "Install Packer automatically", "自動安裝 Packer",
             async () => { await CheckEngine(); });
     }

@@ -147,7 +147,8 @@ public sealed partial class VsCodeModule : Page
             EngineBar.Title = P("VS Code not found", "搵唔到 VS Code");
             EngineBar.Message = P("The code CLI isn't on PATH. Install Visual Studio Code to use this module.",
                 "PATH 上面搵唔到 code CLI。安裝 Visual Studio Code 先可以用呢個模組。");
-            EngineBar.ActionButton = EngineBars.AutoInstallButton(
+            EngineBar.ActionButton = null;
+            EngineBar.Content = EngineBars.AutoInstallProgress(
                 "Microsoft.VisualStudioCode", "Install VS Code", "安裝 VS Code",
                 async () => await Recheck(), VsCodeService.Rescan);
             EngineBar.IsOpen = true;
@@ -157,6 +158,7 @@ public sealed partial class VsCodeModule : Page
 
         EngineBar.IsOpen = false;
         EngineBar.ActionButton = null;
+        EngineBar.Content = null;
         var ver = await VsCodeService.Version();
         VersionText.Text = P($"Visual Studio Code {ver} detected.", $"偵測到 Visual Studio Code {ver}。");
         await LoadExtensions();

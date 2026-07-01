@@ -130,8 +130,13 @@ public sealed class PersistenceService
         catch (Exception ex) { CrashLogger.Log("persistence:notechanged", ex); }
     }
 
-    /// <summary>即時同步儲存（畀死亡鈎同關機前用）· Immediate synchronous save (used by death hooks).</summary>
-    public void Flush() => SaveAll();
+    /// <summary>
+    /// 儲存（互動路徑用）· Save from interactive paths (window close / hide-to-tray / quit /
+    /// page unload). Runs the disk write on a worker thread so a locked state file (AV or the
+    /// search indexer) can never freeze the dispatcher on the WriteAtomic retry loop.
+    /// Death hooks bypass this and call SaveAll() directly for a fully synchronous crash flush.
+    /// </summary>
+    public void Flush() => _ = FlushAsync();
 
     /// <summary>非同步儲存（畀 UI 互動路徑用）· Save without blocking UI interactions.</summary>
     public Task FlushAsync() => Task.Run(SaveAll);

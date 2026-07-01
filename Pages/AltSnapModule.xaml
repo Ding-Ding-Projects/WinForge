@@ -15,11 +15,11 @@
             <controls:ModuleHeader x:Name="Header" Glyph="&#xE737;" />
             <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
 
-            <!-- Install bar (shown when AltSnap is missing) -->
+            <!-- Install bar (shown when AltSnap is missing) — hosts a rich InstallProgress control -->
             <InfoBar x:Name="InstallBar" IsClosable="False" IsOpen="False" Severity="Warning">
-                <InfoBar.ActionButton>
-                    <Button x:Name="InstallBtn" Click="Install_Click" />
-                </InfoBar.ActionButton>
+                <InfoBar.Content>
+                    <StackPanel x:Name="InstallHost" Margin="0,4,0,8" />
+                </InfoBar.Content>
             </InfoBar>
 
             <!-- Conflict warning (legacy AltDrag etc.) -->

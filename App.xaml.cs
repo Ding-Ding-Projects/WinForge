@@ -114,7 +114,9 @@ public partial class App : Application
         // Headless mode: take one config snapshot then exit (used by the daily scheduled backup).
         if (_takeSnapshot)
         {
-            try { WinForge.Services.ConfigBackupService.TakeSnapshot("scheduled").GetAwaiter().GetResult(); }
+            // Run on a thread-pool thread so the awaited continuations do NOT marshal back onto the
+            // app's dispatcher context — a plain .GetResult() on the UI thread can deadlock there.
+            try { System.Threading.Tasks.Task.Run(() => WinForge.Services.ConfigBackupService.TakeSnapshot("scheduled")).GetAwaiter().GetResult(); }
             catch { /* best effort */ }
             Exit();
             return;

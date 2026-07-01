@@ -89,13 +89,15 @@ public sealed partial class MediaModule : Page
             EngineBar.IsOpen = true;
             EngineBar.Severity = InfoBarSeverity.Warning;
             EngineBar.Title = P("ffmpeg not found", "搵唔到 ffmpeg");
-            EngineBar.Message = P("Click to install ffmpeg automatically (winget) — no restart needed.",
-                "撳一下自動安裝 ffmpeg（winget）— 唔使重開。");
-            EngineBar.ActionButton = EngineBars.AutoInstallButton(
+            EngineBar.Message = P("Install ffmpeg automatically (winget) with live progress — no restart needed.",
+                "自動安裝 ffmpeg（winget），即時睇住進度 — 唔使重開。");
+            // Rich install control: real progress bar + live bilingual status + % + Cancel + success/error animation.
+            EngineBar.Content = EngineBars.AutoInstallProgress(
                 "Gyan.FFmpeg", "Install ffmpeg automatically", "自動安裝 ffmpeg",
-                () => { Render(); return Task.CompletedTask; }, MediaService.Rescan);
+                recheck: () => { Render(); BuildQuickOps(); return Task.CompletedTask; },
+                rescan: MediaService.Rescan);
         }
-        else { EngineBar.IsOpen = false; EngineBar.ActionButton = null; }
+        else { EngineBar.IsOpen = false; EngineBar.Content = null; }
     }
 
     private void RefreshSelection()

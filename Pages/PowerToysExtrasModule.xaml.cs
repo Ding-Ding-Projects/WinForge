@@ -294,9 +294,9 @@ public sealed partial class PowerToysExtrasModule : Page
 
     // ===================== Paste as Plain Text =====================
 
-    private void PasteStrip_Click(object sender, RoutedEventArgs e)
+    private async void PasteStrip_Click(object sender, RoutedEventArgs e)
     {
-        bool ok = PlainTextPasteService.StripToPlainText();
+        bool ok = await PlainTextPasteService.StripToPlainTextAsync();
         if (ok) Info(InfoBarSeverity.Success, P("Stripped", "已淨化"), P("Clipboard is now plain text — paste anywhere.", "剪貼簿而家係純文字 — 隨處貼上即可。"));
         else Info(InfoBarSeverity.Warning, P("No text", "冇文字"), P("The clipboard has no text to strip.", "剪貼簿冇文字可以淨化。"));
     }

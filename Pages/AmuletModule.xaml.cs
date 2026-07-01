@@ -24,7 +24,8 @@ public sealed partial class AmuletModule : Page
     public AmuletModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => { Render(); RefreshEngines(); RefreshRunState(); BuildOps(); };
+        Loc.I.LanguageChanged += OnLanguageChanged;
+        Unloaded += (_, _) => Loc.I.LanguageChanged -= OnLanguageChanged;
         Loaded += async (_, _) =>
         {
             Render();
@@ -36,6 +37,11 @@ public sealed partial class AmuletModule : Page
             BuildOps();
             await Task.CompletedTask;
         };
+    }
+
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        Render(); RefreshEngines(); RefreshRunState(); BuildOps();
     }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);

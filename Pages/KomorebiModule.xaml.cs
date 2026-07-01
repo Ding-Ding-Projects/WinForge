@@ -175,16 +175,20 @@ public sealed partial class KomorebiModule : Page
     private async Task CheckEngine()
     {
         bool ok = await KomorebiService.IsInstalledAsync();
-        if (ok) { EngineBar.IsOpen = false; EngineBar.ActionButton = null; SetControlsEnabled(true); return; }
+        if (ok) { EngineBar.IsOpen = false; EngineBar.ActionButton = null; EngineBar.Content = null; SetControlsEnabled(true); return; }
         SetControlsEnabled(false);
         EngineBar.IsOpen = true;
         EngineBar.Severity = InfoBarSeverity.Warning;
         EngineBar.Title = P("Komorebi not found", "搵唔到 Komorebi");
         EngineBar.Message = P("Click to install Komorebi automatically (winget) — no restart needed.",
             "撳一下自動安裝 Komorebi（winget）— 唔使重開。");
-        EngineBar.ActionButton = EngineBars.AutoInstallButton(
+        // Rich install control: real progress bar + live streamed status + % + Cancel + success/error animation.
+        EngineBar.ActionButton = null;
+        var install = EngineBars.AutoInstallProgress(
             KomorebiService.WingetId, "Install Komorebi", "安裝 Komorebi",
             async () => { await CheckEngine(); await RefreshStatus(); }, null);
+        install.Margin = new Thickness(0, 4, 0, 8);
+        EngineBar.Content = install;
     }
 
     private void SetControlsEnabled(bool on)

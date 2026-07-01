@@ -413,17 +413,33 @@ public static class BlenderService
     }
 
     /// <summary>安裝 uv（如可用）同預熱 blender-mcp · Install uv if possible and warm the blender-mcp package.</summary>
-    public static async Task<TweakResult> DeployBlenderMcpServer(CancellationToken ct = default)
+    public static Task<TweakResult> DeployBlenderMcpServer(CancellationToken ct = default)
+        => DeployBlenderMcpServer(null, ct);
+
+    /// <summary>
+    /// 安裝 uv（如可用）同預熱 blender-mcp · Install uv (astral-sh.uv) via winget with LIVE streaming output
+    /// (bridged through <paramref name="onLine"/>), then probe the blender-mcp package. Never throws.
+    /// </summary>
+    public static async Task<TweakResult> DeployBlenderMcpServer(IProgress<string>? onLine, CancellationToken ct = default)
     {
         var uv = ResolveOnPath("uvx") ?? ResolveOnPath("uv");
         if (uv is null)
         {
             var winget = ResolveOnPath("winget");
-            if (winget is not null)
-            {
-                var r = await ShellRunner.Run("winget.exe", "install --id astral-sh.uv -e --accept-package-agreements --accept-source-agreements", false, ct);
-                if (!r.Success) return r;
-            }
+            if (winget is null)
+                return TweakResult.Fail(
+                    "winget was not found, so uv (needed by blender-mcp) cannot be installed automatically. Install 'astral-sh.uv' manually, then retry.",
+                    "搵唔到 winget，所以無法自動安裝 blender-mcp 需要嘅 uv。請手動安裝「astral-sh.uv」再試。");
+
+            onLine?.Report("Installing uv (astral-sh.uv) via winget… · 用 winget 安裝 uv…");
+            var r = await ShellRunner.RunStreaming("winget.exe",
+                "install --id astral-sh.uv -e --accept-package-agreements --accept-source-agreements",
+                onLine, elevated: false, workingDirectory: null, ct);
+            if (!r.Success) return r;
+        }
+        else
+        {
+            onLine?.Report("uv already present — verifying blender-mcp… · uv 已存在 — 驗證 blender-mcp…");
         }
 
         var probe = await ProbeBlenderMcp(DefaultMcpConfig(), ct);

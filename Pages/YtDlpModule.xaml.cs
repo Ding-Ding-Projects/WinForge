@@ -119,26 +119,28 @@ public sealed partial class YtDlpModule : Page
         if (!ok)
         {
             EngineBar.Title = P("yt-dlp not found", "搵唔到 yt-dlp");
-            EngineBar.Message = P("Click to install it automatically (yt-dlp.yt-dlp via winget) — no restart needed.",
-                "撳一下自動安裝（用 winget 裝 yt-dlp.yt-dlp）— 唔使重啟。");
-            EngineBar.ActionButton = EngineBars.AutoInstallButton(
+            EngineBar.Message = P("Install it automatically (yt-dlp.yt-dlp via winget) with live progress — no restart needed.",
+                "自動安裝（用 winget 裝 yt-dlp.yt-dlp），即時睇住進度 — 唔使重啟。");
+            // Rich install control: real progress bar + live bilingual status + % + Cancel + success/error animation.
+            EngineBar.Content = EngineBars.AutoInstallProgress(
                 YtDlpService.WingetId, "Install yt-dlp", "安裝 yt-dlp",
-                CheckEngines, YtDlpService.Rescan);
+                recheck: CheckEngines, rescan: YtDlpService.Rescan);
         }
-        else EngineBar.ActionButton = null;
+        else EngineBar.Content = null;
 
         bool hasFfmpeg = YtDlpService.HasFfmpeg;
         FfmpegBar.IsOpen = !hasFfmpeg;
         if (!hasFfmpeg)
         {
             FfmpegBar.Title = P("ffmpeg not found", "搵唔到 ffmpeg");
-            FfmpegBar.Message = P("ffmpeg is needed to merge separate video+audio streams and to convert audio. Click to install it (Gyan.FFmpeg via winget).",
-                "合併分開嘅影片＋音訊串流同轉檔音訊都需要 ffmpeg。撳一下自動安裝（用 winget 裝 Gyan.FFmpeg）。");
-            FfmpegBar.ActionButton = EngineBars.AutoInstallButton(
+            FfmpegBar.Message = P("ffmpeg is needed to merge separate video+audio streams and to convert audio. Install it (Gyan.FFmpeg via winget) with live progress.",
+                "合併分開嘅影片＋音訊串流同轉檔音訊都需要 ffmpeg。自動安裝（用 winget 裝 Gyan.FFmpeg），即時睇住進度。");
+            // Rich install control: real progress bar + live bilingual status + % + Cancel + success/error animation.
+            FfmpegBar.Content = EngineBars.AutoInstallProgress(
                 YtDlpService.FfmpegWingetId, "Install ffmpeg", "安裝 ffmpeg",
-                CheckEngines, MediaService.Rescan);
+                recheck: CheckEngines, rescan: MediaService.Rescan);
         }
-        else FfmpegBar.ActionButton = null;
+        else FfmpegBar.Content = null;
 
         SyncRunning();
     }

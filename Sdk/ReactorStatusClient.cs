@@ -85,7 +85,8 @@ public sealed class ReactorStatus
 ///  • <see cref="SubscribeAsync(CancellationToken)"/> — a streamed snapshot every ~500 ms (pipe SUBSCRIBE).
 ///
 /// Plus convenience helpers to "depend on the reactor":
-///  • <see cref="IsReactorGenerating"/> — synchronous one-shot boolean.
+///  • <see cref="IsReactorGeneratingAsync(CancellationToken)"/> — non-blocking one-shot boolean (prefer this).
+///  • <see cref="IsReactorGenerating"/> — synchronous one-shot boolean (background threads only).
 ///  • <see cref="WaitForGeneratingAsync(CancellationToken, int)"/> — await until the reactor is generating.
 ///
 /// The client is thread-safe and holds no unmanaged state between calls (the MMF/pipe are opened and
@@ -234,8 +235,23 @@ public sealed class ReactorStatusClient
 
     // ---------------------------------------------------------------- convenience ----
     /// <summary>
+    /// 反應堆是否正在發電（非同步一次性）· Is the reactor currently generating? Tries the MMF fast path
+    /// first, then falls back to a short pipe GET. Returns false if the reactor is offline.
+    /// Prefer this over <see cref="IsReactorGenerating"/> — it never blocks a thread on the pipe GET.
+    /// </summary>
+    public async Task<bool> IsReactorGeneratingAsync(CancellationToken ct = default)
+    {
+        if (TryReadShared(out var s)) return s.IsGenerating;
+        var snap = await RequestAsync(1000, ct).ConfigureAwait(false);
+        return snap?.IsGenerating ?? false;
+    }
+
+    /// <summary>
     /// 反應堆是否正在發電（同步一次性）· Is the reactor currently generating? Tries the MMF fast path first,
     /// then falls back to a short pipe GET. Returns false if the reactor is offline.
+    /// WARNING · 警告: the fallback blocks on an async pipe GET, so this MUST be called from a background
+    /// thread — never from the UI thread (it will deadlock the dispatcher). UI callers should
+    /// <c>await</c> <see cref="IsReactorGeneratingAsync"/> instead.
     /// </summary>
     public bool IsReactorGenerating()
     {

@@ -6,6 +6,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using WinForge.Catalog;
+using WinForge.Controls;
 using WinForge.Models;
 using WinForge.Services;
 
@@ -47,7 +48,6 @@ public sealed partial class AltSnapModule : Page
             "Move and resize any window by holding a modifier key (Alt by default) and dragging anywhere inside it — classic Linux-style alt-drag. WinForge installs the official AltSnap, controls it, and edits its configuration.",
             "撳住一個修飾鍵（預設 Alt）就可以喺視窗任何位置拖動嚟移動同縮放 — 經典 Linux 式 alt 拖曳。WinForge 會安裝官方 AltSnap、控制佢、並編輯佢嘅設定。");
 
-        InstallBtn.Content = P("Install via winget", "用 winget 安裝");
         RefreshBtn.Content = P("Refresh", "重新整理");
 
         LifecycleTitle.Text = P("AltSnap engine", "AltSnap 引擎");
@@ -92,6 +92,7 @@ public sealed partial class AltSnapModule : Page
                 InstallBar.Message = P(
                     "AltSnap (RamonUnch.AltSnap) is required. Install it below, then it appears here. The install may prompt for UAC.",
                     "需要 AltSnap（RamonUnch.AltSnap）。喺下面安裝，之後就會喺度顯示。安裝可能會彈 UAC。");
+                BuildInstallControl();
                 InstallBar.IsOpen = true;
                 SetEnabled(false);
             }
@@ -468,19 +469,26 @@ public sealed partial class AltSnapModule : Page
 
     // ===================== install =====================
 
-    private async void Install_Click(object sender, RoutedEventArgs e)
+    /// <summary>
+    /// 砌一個豐富安裝控件（進度條＋即時狀態＋動畫）· Build the rich InstallProgress control for the missing-
+    /// prerequisite bar: streams winget output, surfaces the real exit code, and re-detects on success.
+    /// </summary>
+    private void BuildInstallControl()
     {
-        if (_busy) return;
-        _busy = true;
-        InstallBtn.IsEnabled = false;
-        InstallBtn.Content = P("Installing…", "安裝緊…");
-        bool ok;
-        try { ok = await AltSnapService.InstallViaWinget(); }
-        catch { ok = false; }
-        InstallBtn.Content = ok ? P("Installed ✓", "已安裝 ✓") : P("Install failed — retry", "安裝失敗 — 再試");
-        InstallBtn.IsEnabled = !ok;
-        _busy = false;
-        if (ok) await DetectAndLoad();
+        InstallHost.Children.Clear();
+        var install = InstallProgress.Create(
+            "Install via winget", "用 winget 安裝",
+            async (progress, ct) =>
+            {
+                var onLine = new Progress<string>(l => progress.Report(InstallProgressReport.FromLine(l)));
+                var r = await AltSnapService.InstallViaWingetDetailed(onLine, ct);
+                if (r.Success)
+                {
+                    try { await DetectAndLoad(); } catch { /* best effort */ }
+                }
+                return r;
+            });
+        InstallHost.Children.Add(install);
     }
 
     // ===================== feedback =====================

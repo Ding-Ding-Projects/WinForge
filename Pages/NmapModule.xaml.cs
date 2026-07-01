@@ -126,11 +126,12 @@ public sealed partial class NmapModule : Page
             EngineBar.Title = P("Nmap not found", "搵唔到 Nmap");
             EngineBar.Message = P("Click to install Nmap automatically (winget · Insecure.Nmap, bundles the Npcap driver) — no restart needed.",
                 "撳一下自動安裝 Nmap（winget · Insecure.Nmap，附帶 Npcap 驅動）— 唔使重啟。");
-            EngineBar.ActionButton = EngineBars.AutoInstallButton(
+            EngineBar.ActionButton = null;
+            EngineBar.Content = EngineBars.AutoInstallProgress(
                 NmapService.WingetId, "Install Nmap automatically", "自動安裝 Nmap",
                 async () => { await CheckEngine(); }, NmapService.Rescan);
         }
-        else EngineBar.ActionButton = null;
+        else { EngineBar.ActionButton = null; EngineBar.Content = null; }
 
         RunBtn.IsEnabled = ok && _cts is null;
     }

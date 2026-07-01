@@ -849,15 +849,31 @@ public sealed partial class AiChatModule : Page
         var ollamaBar = new InfoBar { IsClosable = false, IsOpen = false };
         root.Children.Add(ollamaBar);
 
+        // Declared early so the auto-install recheck closure below can capture it
+        // before it's added to the tree (its position in `root` is set later).
+        var modelsPanel = new StackPanel { Spacing = 6 };
+
         bool running = await _svc.OllamaRunningAsync(ollamaUrl);
         if (!running)
         {
             ollamaBar.IsOpen = true;
             ollamaBar.Severity = InfoBarSeverity.Warning;
             ollamaBar.Title = P("Ollama not running", "Ollama 未運行");
-            ollamaBar.Message = P("Install Ollama to run local models.", "安裝 Ollama 嚟行本機模型。");
-            ollamaBar.ActionButton = EngineBars.AutoInstallButton("Ollama.Ollama",
-                "Install Ollama", "安裝 Ollama", async () => { ollamaBar.IsOpen = false; }, null);
+            ollamaBar.Message = P("Install Ollama to run local models. (If it's already installed, make sure the Ollama service is running.)",
+                "安裝 Ollama 嚟行本機模型。（如果已經裝咗，請確認 Ollama 服務有喺度行。）");
+            // Rich auto-install: real progress bar + live streaming status + Cancel + success/error animation.
+            // On success we re-probe Ollama and refresh the installed-models list.
+            ollamaBar.ActionButton = null;
+            ollamaBar.Content = EngineBars.AutoInstallProgress("Ollama.Ollama",
+                "Install Ollama", "安裝 Ollama",
+                recheck: async () =>
+                {
+                    if (await _svc.OllamaRunningAsync(ollamaUrl))
+                    {
+                        ollamaBar.IsOpen = false;
+                        try { await RefreshModelsListAsync(); await RefreshModelsAsync(); } catch { }
+                    }
+                });
         }
 
         var pullRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
@@ -872,7 +888,6 @@ public sealed partial class AiChatModule : Page
         root.Children.Add(pullProgress);
         root.Children.Add(pullStatus);
 
-        var modelsPanel = new StackPanel { Spacing = 6 };
         root.Children.Add(modelsPanel);
 
         async Task RefreshModelsListAsync()

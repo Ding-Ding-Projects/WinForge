@@ -104,15 +104,19 @@ public sealed partial class NilesoftShellModule : Page
     private async Task CheckEngine()
     {
         bool ok = await NilesoftShellService.IsInstalledAsync();
-        if (ok) { EngineBar.IsOpen = false; EngineBar.ActionButton = null; SetLifecycleEnabled(true); return; }
+        if (ok) { EngineBar.IsOpen = false; EngineBar.ActionButton = null; EngineBar.Content = null; SetLifecycleEnabled(true); return; }
         EngineBar.IsOpen = true;
         EngineBar.Severity = InfoBarSeverity.Warning;
         EngineBar.Title = P("Nilesoft Shell not found", "搵唔到 Nilesoft Shell");
         EngineBar.Message = P("Click to install Nilesoft Shell automatically (winget) — no app restart needed.",
             "撳一下自動安裝 Nilesoft Shell（winget）— 唔使重開程式。");
-        EngineBar.ActionButton = EngineBars.AutoInstallButton(
+        // Rich install control: real progress bar + live streamed status + % + Cancel + success/error animation.
+        EngineBar.ActionButton = null;
+        var install = EngineBars.AutoInstallProgress(
             NilesoftShellService.WingetId, "Install Nilesoft Shell automatically", "自動安裝 Nilesoft Shell",
             async () => { await CheckEngine(); LoadConfigIntoEditor(); RefreshStatus(); });
+        install.Margin = new Thickness(0, 4, 0, 8);
+        EngineBar.Content = install;
         SetLifecycleEnabled(false);
     }
 
@@ -167,7 +171,7 @@ public sealed partial class NilesoftShellModule : Page
         if (path is null) return;
         try
         {
-            ConfigBox.Text = File.ReadAllText(path);
+            ConfigBox.Text = await File.ReadAllTextAsync(path);
             _loadedPath = path;
             ConfigPathLine.Text = P($"Editing: {path}", $"正在編輯：{path}");
             Show(InfoBarSeverity.Informational, P("Opened (not the live config)", "已開啟（並非生效中設定）"),
@@ -178,17 +182,17 @@ public sealed partial class NilesoftShellModule : Page
 
     private void ReloadFile_Click(object sender, RoutedEventArgs e) => LoadConfigIntoEditor();
 
-    private void Save_Click(object sender, RoutedEventArgs e) => DoSave(reload: false);
+    private async void Save_Click(object sender, RoutedEventArgs e) => await DoSave(reload: false);
 
     private async void SaveReload_Click(object sender, RoutedEventArgs e)
     {
-        if (!DoSave(reload: false)) return;
+        if (!await DoSave(reload: false)) return;
         var r = await NilesoftShellService.ReloadAsync();
         ShowResult(r, P("Reloaded", "已重新載入"));
         RefreshStatus();
     }
 
-    private bool DoSave(bool reload)
+    private async Task<bool> DoSave(bool reload)
     {
         // If the user opened a different file, save there as plain text; otherwise use the service
         // (which backs up the live shell.nss and handles elevation messaging).
@@ -198,7 +202,7 @@ public sealed partial class NilesoftShellModule : Page
         {
             try
             {
-                File.WriteAllText(_loadedPath, ConfigBox.Text);
+                await File.WriteAllTextAsync(_loadedPath, ConfigBox.Text);
                 Show(InfoBarSeverity.Success, P("Saved", "已儲存"), _loadedPath);
                 return true;
             }

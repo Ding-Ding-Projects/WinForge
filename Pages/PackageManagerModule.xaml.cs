@@ -44,7 +44,10 @@ public sealed partial class PackageManagerModule : Page
     {
         InitializeComponent();
         foreach (var m in PackageManagerRegistry.All) _selected.Add(m.Key);
-        Loc.I.LanguageChanged += (_, _) => { Render(); BuildManagerFilters(); BuildViewCombo(); UpdateBatchBar(); };
+        // 具名處理器＋Unloaded 退訂，唔好用內嵌 lambda（會漏，令每次切語言都重跑重活）·
+        // named handler + unsubscribe on Unloaded (inline lambda leaks and re-runs heavy work per switch).
+        Loc.I.LanguageChanged += OnLanguageChanged;
+        Unloaded += (_, _) => Loc.I.LanguageChanged -= OnLanguageChanged;
         Loaded += async (_, _) =>
         {
             Render();
@@ -56,6 +59,14 @@ public sealed partial class PackageManagerModule : Page
             try { PackageUpdateScheduler.Start(); } catch { }
             await CheckAvailability();
         };
+    }
+
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        Render();
+        BuildManagerFilters();
+        BuildViewCombo();
+        UpdateBatchBar();
     }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);

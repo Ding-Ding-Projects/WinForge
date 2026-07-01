@@ -88,16 +88,20 @@ public sealed partial class WindhawkModule : Page
     {
         bool ok = await WindhawkService.IsInstalledAsync();
         RenderStatus();
-        if (ok) { EngineBar.IsOpen = false; EngineBar.ActionButton = null; return; }
+        if (ok) { EngineBar.IsOpen = false; EngineBar.ActionButton = null; EngineBar.Content = null; return; }
         EngineBar.IsOpen = true;
         EngineBar.Severity = InfoBarSeverity.Warning;
         EngineBar.Title = P("Windhawk not found", "搵唔到 Windhawk");
         EngineBar.Message = P(
             "Click to install Windhawk automatically (winget). It installs an elevated service, so Windows may prompt for UAC.",
             "撳一下自動安裝 Windhawk（winget）。佢會安裝一個提權服務，所以 Windows 可能會彈 UAC。");
-        EngineBar.ActionButton = EngineBars.AutoInstallButton(
+        // Rich install control: real progress bar + live streamed status + % + Cancel + success/error animation.
+        EngineBar.ActionButton = null;
+        var install = EngineBars.AutoInstallProgress(
             WindhawkService.WingetId, "Install Windhawk automatically", "自動安裝 Windhawk",
             async () => { await CheckEngine(); }, WindhawkService.Rescan);
+        install.Margin = new Thickness(0, 4, 0, 8);
+        EngineBar.Content = install;
     }
 
     // ── Primary action buttons ───────────────────────────────────────────────────

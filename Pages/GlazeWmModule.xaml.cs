@@ -126,15 +126,19 @@ public sealed partial class GlazeWmModule : Page
     private async Task CheckEngine()
     {
         bool ok = await GlazeWmService.IsInstalledAsync();
-        if (ok) { EngineBar.IsOpen = false; EngineBar.ActionButton = null; WarnBar.IsOpen = true; return; }
+        if (ok) { EngineBar.IsOpen = false; EngineBar.ActionButton = null; EngineBar.Content = null; WarnBar.IsOpen = true; return; }
         EngineBar.IsOpen = true;
         EngineBar.Severity = InfoBarSeverity.Warning;
         EngineBar.Title = P("GlazeWM not found", "搵唔到 GlazeWM");
         EngineBar.Message = P("Click to install GlazeWM automatically (winget) — no restart needed.",
             "撳一下自動安裝 GlazeWM（winget）— 唔使重開。");
-        EngineBar.ActionButton = EngineBars.AutoInstallButton(
+        // Rich install control: real progress bar + live streamed status + % + Cancel + success/error animation.
+        EngineBar.ActionButton = null;
+        var install = EngineBars.AutoInstallProgress(
             GlazeWmService.WingetId, "Install GlazeWM automatically", "自動安裝 GlazeWM",
             async () => { await CheckEngine(); RefreshStatus(); }, null);
+        install.Margin = new Thickness(0, 4, 0, 8);
+        EngineBar.Content = install;
     }
 
     // ===== status =====

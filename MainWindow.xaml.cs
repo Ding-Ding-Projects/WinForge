@@ -50,7 +50,7 @@ public sealed partial class MainWindow : Window
         BuildTitleMap();
         WireNavigator();
         Loc.I.LanguageChanged += OnLanguageChanged;
-        BrandingService.Changed += (_, _) => { try { ApplyLanguageToShell(); } catch { } };
+        BrandingService.Changed += OnBrandingChanged;
         ApplyLanguageToShell();
         CrashLogger.Mark("MW: after WireNavigator");
 
@@ -201,7 +201,15 @@ public sealed partial class MainWindow : Window
         if (_reallyQuit || !TrayService.IsInstalled)
         {
             CloseDetachedTabs();
-            // Genuinely closing → flush all volatile state before the process tears down.
+            // Genuinely closing → stop the pill timer and detach long-lived handlers, then flush all
+            // volatile state before the process tears down.
+            CrashLogger.Guard("reactorpill:stop", () =>
+            {
+                _reactorPillTimer.Stop();
+                _reactorPillTimer.Tick -= OnReactorPillTick;
+            });
+            Loc.I.LanguageChanged -= OnLanguageChanged;
+            BrandingService.Changed -= OnBrandingChanged;
             CrashLogger.Guard("activity:close", () => Services.ActivityTrackerService.I.FlushForShutdown());
             CrashLogger.Guard("persistence:close", () => Services.PersistenceService.I.Flush());
             return;
@@ -1600,6 +1608,11 @@ public sealed partial class MainWindow : Window
         RefreshAllTabHeaders();
     }
 
+    private void OnBrandingChanged(object? sender, EventArgs e)
+    {
+        try { ApplyLanguageToShell(); } catch { }
+    }
+
     private void ApplyLanguageToShell()
     {
         AppTitleBar.Title = BrandingService.Display;
@@ -1841,6 +1854,9 @@ public sealed partial class MainWindow : Window
 
     // ───────────────────────── reactor status pill (title bar) ─────────────────────────
     private readonly Microsoft.UI.Xaml.DispatcherTimer _reactorPillTimer = new();
+    // Cache the last rendered pill state so we only touch the tree (and only allocate the four
+    // brushes) when the state actually changes — the 2 s tick otherwise churns GC/UI forever.
+    private int _reactorPillState = -1;
 
     private void StartReactorPill()
     {
@@ -1848,11 +1864,13 @@ public sealed partial class MainWindow : Window
         {
             UpdateReactorPill();
             _reactorPillTimer.Interval = TimeSpan.FromSeconds(2);
-            _reactorPillTimer.Tick += (_, _) => UpdateReactorPill();
+            _reactorPillTimer.Tick += OnReactorPillTick;
             _reactorPillTimer.Start();
         }
         catch (Exception ex) { CrashLogger.Log("reactorpill.start", ex); }
     }
+
+    private void OnReactorPillTick(object? sender, object e) => UpdateReactorPill();
 
     private void UpdateReactorPill()
     {
@@ -1860,12 +1878,20 @@ public sealed partial class MainWindow : Window
         {
             if (ReactorPillText is null) return;
             var snap = ReactorStatusApiService.I.LastSnapshot;
+            // 0 = meltdown, 1 = scram, 2 = generating, 3 = standby.
+            int state = snap.IsMeltdown ? 0 : snap.IsScrammed ? 1 : snap.IsGenerating ? 2 : 3;
+            if (state == _reactorPillState) return; // nothing changed → no allocation, no tree writes
+            _reactorPillState = state;
+
             string text;
             Windows.UI.Color color;
-            if (snap.IsMeltdown) { text = "REACTOR MELTDOWN"; color = Windows.UI.Color.FromArgb(255, 0xFF, 0x5F, 0x5F); }
-            else if (snap.IsScrammed) { text = "REACTOR SCRAM"; color = Windows.UI.Color.FromArgb(255, 0xF7, 0xB0, 0x34); }
-            else if (snap.IsGenerating) { text = "REACTOR ONLINE"; color = Windows.UI.Color.FromArgb(255, 0x54, 0xE0, 0x7E); }
-            else { text = "REACTOR STANDBY"; color = Windows.UI.Color.FromArgb(255, 0xF7, 0xB0, 0x34); }
+            switch (state)
+            {
+                case 0: text = "REACTOR MELTDOWN"; color = Windows.UI.Color.FromArgb(255, 0xFF, 0x5F, 0x5F); break;
+                case 1: text = "REACTOR SCRAM"; color = Windows.UI.Color.FromArgb(255, 0xF7, 0xB0, 0x34); break;
+                case 2: text = "REACTOR ONLINE"; color = Windows.UI.Color.FromArgb(255, 0x54, 0xE0, 0x7E); break;
+                default: text = "REACTOR STANDBY"; color = Windows.UI.Color.FromArgb(255, 0xF7, 0xB0, 0x34); break;
+            }
 
             ReactorPillText.Text = text;
             var solid = new Microsoft.UI.Xaml.Media.SolidColorBrush(color);

@@ -13,6 +13,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using WinForge.Catalog;
+using WinForge.Controls;
 using WinForge.Models;
 using WinForge.Services;
 
@@ -97,17 +98,21 @@ public sealed partial class LibreOfficeModule : Page
             EngineBar.IsOpen = true;
             EngineBar.Severity = InfoBarSeverity.Warning;
             EngineBar.Title = P("LibreOffice not found", "搵唔到 LibreOffice");
-            EngineBar.Message = P("Click to install LibreOffice automatically (winget) — no restart needed.",
-                "撳一下自動安裝 LibreOffice（winget）— 唔使重開。");
-            EngineBar.ActionButton = EngineBars.AutoInstallButton(
-                "TheDocumentFoundation.LibreOffice", "Install LibreOffice", "安裝 LibreOffice",
-                () => { Render(); return Task.CompletedTask; }, LibreOfficeService.Rescan);
+            EngineBar.Message = P("Install LibreOffice automatically (winget) — live progress, no restart needed.",
+                "自動安裝 LibreOffice（winget）— 即時進度，唔使重開。");
+            EngineBar.ActionButton = null;
+            if (EngineBar.Content is not InstallProgress)
+                EngineBar.Content = EngineBars.AutoInstallProgress(
+                    "TheDocumentFoundation.LibreOffice", "Install LibreOffice", "安裝 LibreOffice",
+                    recheck: () => { Render(); return Task.CompletedTask; },
+                    rescan: LibreOfficeService.Rescan);
             ConvertBtn.IsEnabled = false;
         }
         else
         {
             EngineBar.IsOpen = false;
             EngineBar.ActionButton = null;
+            EngineBar.Content = null;
             ConvertBtn.IsEnabled = !_busy;
         }
     }

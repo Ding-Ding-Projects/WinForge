@@ -84,15 +84,17 @@ public sealed partial class AiAgentsModule : Page
     private async Task CheckNode()
     {
         bool node = await AiAgentService.NodeAvailableAsync();
-        if (node) { NodeBar.IsOpen = false; NodeBar.ActionButton = null; return; }
+        if (node) { NodeBar.IsOpen = false; NodeBar.Content = null; return; }
         NodeBar.IsOpen = true;
         NodeBar.Severity = InfoBarSeverity.Warning;
         NodeBar.Title = P("Node.js not found", "搵唔到 Node.js");
         NodeBar.Message = P("npm-based agents (Claude, Codex, opencode, Pi, OpenClaw) need Node.js. Install it once, then install any agent.",
             "用 npm 嘅代理（Claude、Codex、opencode、Pi、OpenClaw）需要 Node.js。裝一次之後就可以裝任何代理。");
-        NodeBar.ActionButton = EngineBars.AutoInstallButton(
+        // Rich install control: real progress bar + live status + Cancel + success/error animation.
+        NodeBar.ActionButton = null;
+        NodeBar.Content = EngineBars.AutoInstallProgress(
             "OpenJS.NodeJS.LTS", "Install Node.js automatically", "自動安裝 Node.js",
-            async () => { await CheckNode(); }, null);
+            recheck: async () => { await CheckNode(); await BuildCards(); });
     }
 
     private async void WorkDir_Click(object sender, RoutedEventArgs e)
@@ -161,29 +163,39 @@ public sealed partial class AiAgentsModule : Page
         };
         actions.Children.Add(launch);
 
-        foreach (var method in agent.InstallMethods)
-        {
-            var m = method;
-            var btn = new Button { Content = $"{P("Install", "安裝")} ({m.Label})" };
-            btn.Click += async (_, _) =>
-            {
-                btn.IsEnabled = false; var lbl = btn.Content; btn.Content = P("Installing…", "安裝緊…");
-                try
-                {
-                    var r = await m.Run(CancellationToken.None);
-                    ShowResult(r.Success, r);
-                    if (r.Success) await BuildCards();
-                }
-                catch (Exception ex) { ResultBar.IsOpen = true; ResultBar.Severity = InfoBarSeverity.Error; ResultBar.Title = P("Failed", "失敗"); ResultBar.Message = ex.Message; }
-                finally { btn.Content = lbl; btn.IsEnabled = true; }
-            };
-            actions.Children.Add(btn);
-        }
-
         var docs = new Button { Content = P("Copy docs URL", "複製文件網址") };
         docs.Click += (_, _) => CopyText(agent.DocsUrl);
         actions.Children.Add(docs);
         panel.Children.Add(actions);
+
+        // Rich install controls — one per install method — each with a real progress bar, live
+        // bilingual streaming status, percentage, Cancel and a flashy success/error animation.
+        // 每個安裝方法一個豐富安裝控件：真進度條 + 即時雙語串流狀態 + Cancel + 成功／失敗動畫。
+        var installRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+        foreach (var method in agent.InstallMethods)
+        {
+            var m = method;
+            var install = Controls.InstallProgress.Create(
+                $"Install ({m.Label})",
+                $"安裝（{m.Label}）",
+                async (progress, ct) =>
+                {
+                    var onLine = new Progress<string>(l => progress.Report(Controls.InstallProgressReport.FromLine(l)));
+                    progress.Report(Controls.InstallProgressReport.Status(
+                        $"Installing {agent.NameEn} via {m.Label}…", $"用 {m.Label} 安裝 {agent.NameZh}…"));
+                    Models.TweakResult r;
+                    try { r = await m.RunStreamingOrPlain(onLine, ct); }
+                    catch (Exception ex) { r = Models.TweakResult.Fail(ex.Message, $"出錯：{ex.Message}"); }
+                    if (r.Success)
+                    {
+                        try { PackageService.RefreshProcessPath(); } catch { }
+                        await BuildCards();
+                    }
+                    return r;
+                });
+            installRow.Children.Add(install);
+        }
+        panel.Children.Add(installRow);
 
         // Config editor expander
         if (agent.ConfigFiles.Count > 0)
