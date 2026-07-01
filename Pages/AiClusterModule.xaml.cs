@@ -27,6 +27,7 @@ public sealed partial class AiClusterModule : Page
         InitializeComponent();
         _timer.Tick += OnTick;
         Loc.I.LanguageChanged += OnLang;
+        ReactorEconomyService.I.Changed += OnEconomyChanged;
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
     }
@@ -36,6 +37,7 @@ public sealed partial class AiClusterModule : Page
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
         try { ReactorStatusApiService.I.Start(); } catch { }
+        SyncOverclock();
         BuildModelCombo();
         Render();
         UpdateStep();
@@ -46,6 +48,18 @@ public sealed partial class AiClusterModule : Page
     {
         _timer.Stop();
         Loc.I.LanguageChanged -= OnLang;
+        ReactorEconomyService.I.Changed -= OnEconomyChanged;
+    }
+
+    private void OnEconomyChanged()
+    {
+        // Economy fires off the UI thread; marshal back before touching XAML.
+        try { DispatcherQueue.TryEnqueue(() => { SyncOverclock(); UpdateOverclockNote(); }); } catch { }
+    }
+
+    private void SyncOverclock()
+    {
+        try { _cluster.OverclockActive = ReactorEconomyService.I.IsUnlocked("perk.aicluster.overclock"); } catch { }
     }
 
     private void OnLang(object? sender, EventArgs e)
@@ -113,8 +127,26 @@ public sealed partial class AiClusterModule : Page
 
             ResetButton.Content = P("Reset", "重設");
             NewRunButton.Content = P("New run", "新訓練");
+            EarnCaption.Text = P("⚡ earned this run", "本次訓練賺取 ⚡");
             UpdateRunButton();
+            UpdateOverclockNote();
             UpdateStep();
+        }
+        catch { }
+    }
+
+    private void UpdateOverclockNote()
+    {
+        try
+        {
+            bool owned = _cluster.OverclockActive;
+            OverclockNote.Text = owned
+                ? P("⚡ Overclock active (+30%)", "⚡ 超頻生效（+30%）")
+                : P("⚡ Unlock Overclock (+30% throughput) in the Reactor Bank.",
+                    "⚡ 喺反應堆銀行解鎖超頻（+30% 吞吐）。");
+            OverclockNote.Foreground = new SolidColorBrush(owned
+                ? Color.FromArgb(0xFF, 0x3D, 0xD5, 0x6A)   // reactor-green when owned
+                : Color.FromArgb(0xFF, 0x9A, 0x9A, 0x9A));  // grey hint otherwise
         }
         catch { }
     }
@@ -213,6 +245,19 @@ public sealed partial class AiClusterModule : Page
 
             _cluster.Tick(requested, available, generating);
 
+            // EARN Watts (⚡) for compute output — award once per whole PFLOP-day produced, never per tick.
+            int wholeDays = _cluster.ClaimWholePflopDays();
+            if (wholeDays > 0)
+            {
+                try
+                {
+                    ReactorEconomyService.I.Earn(
+                        wholeDays * AiClusterService.WattsPerPflopDay,
+                        P("AI compute output", "AI 運算產出"));
+                }
+                catch { }
+            }
+
             // Live reactor output meter + colour.
             OutputBar.Value = Math.Clamp(available, 0, OutputBar.Maximum);
             OutputValue.Text = $"{available:0.0} MWe";
@@ -288,6 +333,10 @@ public sealed partial class AiClusterModule : Page
 
             DrawnValue.Text = $"{_cluster.DrawnMW:0.0} MW";
             CheckpointValue.Text = $"{_cluster.Checkpoints}";
+
+            // ⚡ earned so far this run (whole PFLOP-days awarded × rate).
+            double earnedWatts = _cluster.PflopDaysAwarded * AiClusterService.WattsPerPflopDay;
+            EarnValue.Text = $"{earnedWatts:0.0} ⚡";
         }
         catch { }
     }

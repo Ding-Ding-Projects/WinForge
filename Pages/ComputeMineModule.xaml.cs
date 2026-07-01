@@ -199,6 +199,32 @@ public sealed partial class ComputeMineModule : Page
                 ? Color.FromArgb(0xFF, 0x3D, 0xD5, 0x6A)
                 : Color.FromArgb(0xFF, 0x9A, 0x9A, 0x9A);
             HashValue.Foreground = new SolidColorBrush(hashColor);
+
+            UpdateTurboNote();
+        }
+        catch { }
+    }
+
+    /// <summary>
+    /// Reflects the spend-gated Reactor-Bank turbo perk: a green "active" badge when owned (rigs get a
+    /// permanent +25% hashrate in the service), otherwise a hint to unlock it. Refreshed each tick since the
+    /// perk can be bought while this page is open.
+    /// </summary>
+    private void UpdateTurboNote()
+    {
+        try
+        {
+            if (_mine.TurboActive)
+            {
+                TurboNote.Text = P("⚡ Turbo rigs active (+25%)", "⚡ 渦輪機組運作中（+25%）");
+                TurboNote.Foreground = new SolidColorBrush(Color.FromArgb(0xFF, 0x3D, 0xD5, 0x6A));
+            }
+            else
+            {
+                TurboNote.Text = P("⚡ Unlock the turbo-rigs perk in the Reactor Bank for a permanent +25% hashrate.",
+                                   "⚡ 喺反應堆銀行解鎖渦輪機組特權，永久 +25% 算力。");
+                TurboNote.Foreground = new SolidColorBrush(Color.FromArgb(0xFF, 0x9A, 0x9A, 0x9A));
+            }
         }
         catch { }
     }

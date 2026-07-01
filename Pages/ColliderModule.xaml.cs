@@ -21,6 +21,8 @@ namespace WinForge.Pages;
 /// </summary>
 public sealed partial class ColliderModule : Page
 {
+    private const string PriorityPerkId = "perk.collider.priority";
+
     private readonly ColliderService _sim = new();
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(500) };
     private bool _suppress;
@@ -30,6 +32,7 @@ public sealed partial class ColliderModule : Page
         InitializeComponent();
         _timer.Tick += OnTick;
         Loc.I.LanguageChanged += OnLang;
+        ReactorEconomyService.I.Changed += OnEconomyChanged;
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
     }
@@ -48,9 +51,33 @@ public sealed partial class ColliderModule : Page
     {
         _timer.Stop();
         Loc.I.LanguageChanged -= OnLang;
+        ReactorEconomyService.I.Changed -= OnEconomyChanged;
     }
 
     private void OnLang(object? sender, EventArgs e) => Render();
+
+    // Perk ownership can change while the page is open (e.g. bought in the Reactor Bank) — refresh the note.
+    private void OnEconomyChanged() { try { UpdatePriorityNote(); } catch { } }
+
+    private void UpdatePriorityNote()
+    {
+        bool priority = false;
+        try { priority = ReactorEconomyService.I.IsUnlocked(PriorityPerkId); } catch { }
+        _sim.PriorityBeam = priority;
+
+        if (priority)
+        {
+            PriorityNote.Text = P("⚡ Priority beam time active — faster ramp, higher luminosity.",
+                                   "⚡ 優先束流時間啟用中 — 加速推升，亮度更高。");
+            PriorityNote.Foreground = new SolidColorBrush(Color.FromArgb(0xFF, 0x3D, 0xD5, 0x6A));
+        }
+        else
+        {
+            PriorityNote.Text = P("Unlock ⚡ Priority beam time in the Reactor Bank for a faster ramp and higher luminosity.",
+                                   "喺反應堆銀行解鎖 ⚡ 優先束流時間，可加速推升同提升亮度。");
+            PriorityNote.Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"];
+        }
+    }
 
     private void Render()
     {
@@ -74,6 +101,7 @@ public sealed partial class ColliderModule : Page
             ResetButton.Content = P("Reset", "重設");
 
             UpdateRampButton();
+            UpdatePriorityNote();
             UpdateStep();
         }
         catch { }
@@ -139,8 +167,20 @@ public sealed partial class ColliderModule : Page
                             || mode.IndexOf("cold", StringComparison.OrdinalIgnoreCase) >= 0;
             bool generating = snap.IsGenerating && available > 1.0 && !scrammed && !meltdown && !coldMode;
 
+            // Keep the priority-beam perk in sync (cheap; ownership may change while open).
+            try { _sim.PriorityBeam = ReactorEconomyService.I.IsUnlocked(PriorityPerkId); } catch { }
+
             // Advance the simulation one tick.
             string? discovery = _sim.Tick(available, generating);
+
+            // EARN: pay the reactor economy a fixed Watts bounty per discovery milestone — once each.
+            try
+            {
+                double bounty = _sim.ClaimDiscoveryBounty();
+                if (bounty > 0)
+                    ReactorEconomyService.I.Earn(bounty, P("Collider discovery", "對撞機發現"));
+            }
+            catch { }
 
             // ── Available reactor output meter ────────────────────────────────────────────────────
             OutputBar.Value = Math.Clamp(available, 0, OutputBar.Maximum);

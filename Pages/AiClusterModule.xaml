@@ -59,6 +59,8 @@
                         <Button x:Name="NewRunButton" Click="NewRun_Click" />
                         <Button x:Name="ResetButton" Click="Reset_Click" />
                     </StackPanel>
+
+                    <TextBlock x:Name="OverclockNote" FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap" />
                 </StackPanel>
             </Border>
 
@@ -85,6 +87,7 @@
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
@@ -129,6 +132,11 @@
                         <StackPanel Grid.Row="2" Grid.Column="1" Spacing="1">
                             <TextBlock x:Name="CheckpointCaption" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                             <TextBlock x:Name="CheckpointValue" FontWeight="SemiBold" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="3" Grid.Column="0" Spacing="1">
+                            <TextBlock x:Name="EarnCaption" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock x:Name="EarnValue" FontWeight="SemiBold" />
                         </StackPanel>
                     </Grid>
                 </StackPanel>

@@ -18,6 +18,16 @@ public sealed class ComputeMineService
     private const double BasePriceUsdPerThHour = 0.42; // baseline earnings rate per TH/s per hour
     private const double JoulesPerMWs = 1_000_000.0; // 1 MW for 1 s = 1e6 J
 
+    // Reactor-economy wallet hook.
+    public const string TurboPerkId = "perk.mine.turbo";  // Reactor-Bank perk → permanent +25% hashrate
+    private const double TurboMultiplier = 1.25;
+    private const double DepositThreshold = 1.0;          // deposit once un-banked earnings reach ≥ 1 ⚡
+    private const double DepositEverySeconds = 3.0;        // …or at least once per ~3 s of mining
+
+    private double _pendingDeposit;   // earnings earned but not yet banked into the Watts wallet
+    private double _depositTimer;      // seconds of mining since the last wallet deposit
+    private double _bankedTotalUsd;    // lifetime earnings already deposited (guards against double-count)
+
     private bool _mining;
     private long _ticks;                 // internal integer tick counter (sim clock)
     private double _difficulty = 1.00;   // slow random-ish walk, [0.6 .. 1.8]
@@ -39,6 +49,16 @@ public sealed class ComputeMineService
     public double TotalEarnedUsd => _totalEarnedUsd;
     public double Difficulty => _difficulty;
     public long Ticks => _ticks;
+
+    /// <summary>渦輪機組 · Whether the Reactor-Bank "turbo rigs" perk is owned (permanent +25% hashrate).</summary>
+    public bool TurboActive
+    {
+        get
+        {
+            try { return ReactorEconomyService.I.IsUnlocked(TurboPerkId); }
+            catch { return false; }
+        }
+    }
 
     /// <summary>Current spot price per TH/s per hour, softened by difficulty (higher difficulty = lower yield).</summary>
     public double PriceUsdPerThHour
@@ -65,10 +85,29 @@ public sealed class ComputeMineService
     }
 
     public void StartMining() => _mining = true;
-    public void StopMining() => _mining = false;
+    public void StopMining() { _mining = false; FlushDeposit(); }
 
     /// <summary>Cash out — bank nothing, just reset the running earnings counter.</summary>
-    public void Sell() => _totalEarnedUsd = 0;
+    public void Sell() { FlushDeposit(); _totalEarnedUsd = 0; }
+
+    /// <summary>
+    /// 存入錢包 · Deposit any staged (un-banked) earnings into the shared reactor-backed Watts wallet.
+    /// Guards against double-counting via a running banked total; never throws. Called on cadence from
+    /// <see cref="Tick"/> (≥ 1 ⚡ or ~3 s) and on stop/sell so no earnings are stranded.
+    /// </summary>
+    private void FlushDeposit()
+    {
+        try
+        {
+            _depositTimer = 0;
+            double delta = _pendingDeposit;
+            if (double.IsNaN(delta) || double.IsInfinity(delta) || delta <= 0) { _pendingDeposit = 0; return; }
+            _pendingDeposit = 0;
+            _bankedTotalUsd += delta; // lifetime deposited (double-count guard / audit)
+            ReactorEconomyService.I.Earn(delta, Loc.I.Pick("Compute Mine", "運算礦場"));
+        }
+        catch { _pendingDeposit = 0; }
+    }
 
     /// <summary>Full reset — clears mining state, earnings, difficulty and the tick counter.</summary>
     public void Reset()
@@ -82,6 +121,9 @@ public sealed class ComputeMineService
         _totalEarnedUsd = 0;
         _totalThHashed = 0;
         _generating = false;
+        _pendingDeposit = 0;
+        _depositTimer = 0;
+        _bankedTotalUsd = 0;
     }
 
     /// <summary>
@@ -121,20 +163,32 @@ public sealed class ComputeMineService
                 return;
             }
 
+            // Spend-gated perk: owning the Reactor-Bank turbo perk permanently boosts hashrate +25%.
+            double boost = TurboActive ? TurboMultiplier : 1.0;
+
             _drawnMW = target;
-            _hashrateThs = Math.Max(0, target * ThPerMW);
+            _hashrateThs = Math.Max(0, target * ThPerMW * boost);
 
             // Earnings = hashrate (TH/s) * price (USD per TH/s per hour) * elapsed hours.
             double hours = dt / 3600.0;
             double earned = _hashrateThs * PriceUsdPerThHour * hours;
             if (!double.IsNaN(earned) && !double.IsInfinity(earned) && earned > 0)
+            {
                 _totalEarnedUsd += earned;
+                _pendingDeposit += earned;   // stage for wallet deposit
+            }
 
             double thisHash = _hashrateThs * dt; // TH hashed this tick
             if (!double.IsNaN(thisHash) && !double.IsInfinity(thisHash) && thisHash > 0)
                 _totalThHashed += thisHash;
 
             if (_totalEarnedUsd > 1e12) _totalEarnedUsd = 1e12; // sanity cap
+
+            // Deposit staged earnings into the shared Watts wallet in sensible increments —
+            // when ≥ 1 ⚡ has accrued, or at least once per ~3 s of mining — never every tick.
+            _depositTimer += dt;
+            if (_pendingDeposit >= DepositThreshold || _depositTimer >= DepositEverySeconds)
+                FlushDeposit();
         }
         catch
         {

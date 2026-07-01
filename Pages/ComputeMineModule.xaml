@@ -37,6 +37,7 @@
                 <StackPanel Spacing="12">
                     <TextBlock x:Name="MineTitle" FontWeight="SemiBold" FontSize="15" />
                     <TextBlock x:Name="MineHint" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    <TextBlock x:Name="TurboNote" FontSize="13" TextWrapping="Wrap" />
                     <StackPanel Spacing="2">
                         <TextBlock x:Name="DrawLabel" />
                         <Slider x:Name="DrawSlider" Minimum="0" Maximum="600" Value="0" StepFrequency="5" ValueChanged="DrawSlider_ValueChanged" />

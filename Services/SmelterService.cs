@@ -64,6 +64,17 @@ public sealed class SmelterService
     /// <summary>Whether the reactor was generating enough on the last tick.</summary>
     public bool Powered { get; private set; }
 
+    /// <summary>⚡ 預熱器 · Reactor-Bank perk: when true the pots are far more freeze-resistant —
+    /// they cool much slower when power is short and the freeze point is lowered by a safety margin,
+    /// so they stay effectively "freeze-proof" within reason. Toggled by the UI from the economy service.</summary>
+    public bool PreheatersActive { get; set; }
+
+    /// <summary>Extra margin (°C) subtracted from the freeze threshold when pre-heaters are active.</summary>
+    private const double PreheatFreezeMarginC = 120.0;
+
+    /// <summary>Effective freeze temperature this tick — lowered when the pre-heater perk is owned.</summary>
+    public double EffectiveFreezeTempC => PreheatersActive ? FreezeTempC - PreheatFreezeMarginC : FreezeTempC;
+
     private int _lastTick;
     private bool _first = true;
 
@@ -144,22 +155,29 @@ public sealed class SmelterService
                 // Cooling: partial power slows the cooling; no power cools fastest toward ambient.
                 double powerHelp = Math.Clamp(got / Math.Max(1.0, heatFloor), 0, 1); // 0..1
                 double coolRate = 6.0 * (1.0 - 0.7 * powerHelp); // °C per tick
+                // ⚡ Pre-heaters (Reactor-Bank perk): keep the bath warm when power is short —
+                // cooling is dramatically slowed and it never sinks below the lowered freeze margin.
+                if (PreheatersActive) coolRate *= 0.15;
                 PotTempC -= coolRate * perTick;
-                if (PotTempC < AmbientTempC) PotTempC = AmbientTempC;
+                double floorTemp = PreheatersActive
+                    ? Math.Max(AmbientTempC, EffectiveFreezeTempC + 8.0) // stay above the (lowered) freeze point
+                    : AmbientTempC;
+                if (PotTempC < floorTemp) PotTempC = floorTemp;
             }
 
-            // --- Freeze / thaw logic ---
-            if (!Frozen && PotTempC <= FreezeTempC)
+            // --- Freeze / thaw logic (freeze point is lowered while pre-heaters are owned) ---
+            double freezeAt = EffectiveFreezeTempC;
+            if (!Frozen && PotTempC <= freezeAt)
                 Frozen = true;
             else if (Frozen && PotTempC >= OperatingTempC - 5.0)
                 Frozen = false; // fully re-melted
 
             // --- Production (Faraday-lumped): only real when hot, powered and NOT frozen. ---
-            bool producing = Powered && !Frozen && PotTempC >= FreezeTempC + 10.0;
+            bool producing = Powered && !Frozen && PotTempC >= freezeAt + 10.0;
             if (producing)
             {
                 // Efficiency tapers off if the bath is cooler than operating temp.
-                double tempEff = Math.Clamp((PotTempC - FreezeTempC) / Math.Max(1.0, OperatingTempC - FreezeTempC), 0, 1);
+                double tempEff = Math.Clamp((PotTempC - freezeAt) / Math.Max(1.0, OperatingTempC - freezeAt), 0, 1);
                 TonnesPerDay = got * TonnesPerDayPerMW * tempEff;
                 // A tick is treated as ~0.5 s; convert tonnes/day into tonnes for the elapsed ticks.
                 double days = (perTick * 0.5) / 86400.0;

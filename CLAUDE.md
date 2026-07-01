@@ -3,7 +3,7 @@
 Guidance for AI agents working in this repo. Keep it current.
 
 ## What this is
-WinForge (a.k.a. 視窗調校) is an all-in-one, **fully bilingual (English + 繁體中文/粵語)** Windows 11 control center — ~283 in-app modules plus a large Windows-tweak catalog — with a **hyper-realistic nuclear-reactor simulator** as its flagship. **.NET `net11.0-windows10.0.26100.0`, WinUI 3**, self-contained, unpackaged.
+WinForge (a.k.a. 視窗調校) is an all-in-one, **fully bilingual (English + 繁體中文/粵語)** Windows 11 control center — ~284 in-app modules plus a large Windows-tweak catalog — with a **hyper-realistic nuclear-reactor simulator** as its flagship. **.NET `net11.0-windows10.0.26100.0`, WinUI 3**, self-contained, unpackaged.
 
 ## Build / run / drive
 - **Compile check:** `dotnet build WinForge.sln -c Debug -p:Platform=x64` (0 errors; ~300 pre-existing warnings).

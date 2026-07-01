@@ -103,6 +103,35 @@
                     <InfoBar x:Name="FreezeBar" IsOpen="False" IsClosable="False" Severity="Error" />
                 </StackPanel>
             </Border>
+
+            <!-- Reactor-Bank economy: aluminium sales + pre-heater perk -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="EconTitle" Grid.Column="0" FontWeight="SemiBold" FontSize="15" VerticalAlignment="Center" />
+                        <TextBlock x:Name="EconBalance" Grid.Column="1" FontWeight="SemiBold" FontSize="15" VerticalAlignment="Center" />
+                    </Grid>
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Spacing="1">
+                            <TextBlock x:Name="SalesCaption" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock x:Name="SalesValue" FontWeight="SemiBold" FontSize="16" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Spacing="1">
+                            <TextBlock x:Name="PriceCaption" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock x:Name="PriceValue" FontWeight="SemiBold" FontSize="16" />
+                        </StackPanel>
+                    </Grid>
+                    <InfoBar x:Name="PreheatBar" IsOpen="False" IsClosable="False" />
+                </StackPanel>
+            </Border>
         </StackPanel>
     </ScrollViewer>
 </Page>

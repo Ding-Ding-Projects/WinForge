@@ -25,11 +25,23 @@ public sealed partial class SmelterModule : Page
     private int _tick;
     private bool _suppress;
 
+    // --- Reactor-Bank economy: sell aluminium output for Watts (⚡) ---
+    private const string PreheatPerkId = "perk.smelter.preheat";
+    /// <summary>Watts (⚡) earned per whole tonne of aluminium sold.</summary>
+    private const double PricePerTonne = 6.0;
+    /// <summary>Lifetime tonnes we've already deposited to the bank — prevents double counting.</summary>
+    private double _tonnesDeposited;
+    /// <summary>Watts credited to the smelter this session (display only).</summary>
+    private double _salesEarned;
+    /// <summary>Tick of the last deposit so we bank at most ~once per 3 s, not every tick.</summary>
+    private int _lastDepositTick;
+
     public SmelterModule()
     {
         InitializeComponent();
         _timer.Tick += OnTick;
         Loc.I.LanguageChanged += OnLang;
+        ReactorEconomyService.I.Changed += OnEconomyChanged;
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
     }
@@ -48,9 +60,16 @@ public sealed partial class SmelterModule : Page
     {
         _timer.Stop();
         Loc.I.LanguageChanged -= OnLang;
+        ReactorEconomyService.I.Changed -= OnEconomyChanged;
     }
 
     private void OnLang(object? sender, EventArgs e) => Render();
+
+    private void OnEconomyChanged()
+    {
+        // The economy service raises Changed off arbitrary threads; marshal to the UI thread.
+        try { DispatcherQueue?.TryEnqueue(UpdateEconomy); } catch { }
+    }
 
     private void Render()
     {
@@ -71,10 +90,15 @@ public sealed partial class SmelterModule : Page
             RateCaption.Text = P("Production rate", "生產率");
             TotalCaption.Text = P("Total produced (lifetime)", "累計產量（總計）");
 
+            EconTitle.Text = P("Reactor Bank · aluminium sales", "反應堆銀行 · 鋁材銷售");
+            SalesCaption.Text = P("Earned from sales (session)", "銷售收入（本次）");
+            PriceCaption.Text = P("Sale price", "售價");
+
             UpdateRunButton();
             ResetButton.Content = P("Reset", "重設");
 
             UpdateStep();
+            UpdateEconomy();
         }
         catch { }
     }
@@ -147,8 +171,18 @@ public sealed partial class SmelterModule : Page
                             || mode.IndexOf("cold", StringComparison.OrdinalIgnoreCase) >= 0;
             bool generating = snap.IsGenerating && available > 1.0 && !scrammed && !meltdown && !coldMode;
 
+            // --- Reactor-Bank perk: pre-heaters make the pots freeze-resistant (spend-gated) ---
+            bool preheat = false;
+            try { preheat = ReactorEconomyService.I.IsUnlocked(PreheatPerkId); } catch { }
+            _smelter.PreheatersActive = preheat;
+
             // Advance the smelter simulation (uses the internal tick counter for ramps).
             _smelter.Step(_tick, available, generating);
+
+            // --- EARN: sell newly-produced aluminium to the Reactor Bank for Watts (⚡). ---
+            // Accumulate produced tonnes and deposit in whole-tonne increments, at most ~once per 3 s,
+            // tracking the deposited total so we never double-count.
+            SellAluminium();
 
             // --- Live reactor output meter ---
             OutputBar.Value = Math.Clamp(available, 0, OutputBar.Maximum);
@@ -234,6 +268,68 @@ public sealed partial class SmelterModule : Page
             {
                 FreezeBar.IsOpen = false;
             }
+
+            UpdateEconomy();
+        }
+        catch { }
+    }
+
+    /// <summary>
+    /// Sell newly-produced aluminium to the Reactor Bank. We bank in whole-tonne increments and throttle
+    /// to at most once per ~3 s (6 ticks) so we don't call <see cref="ReactorEconomyService.Earn"/> every
+    /// tick. <c>_tonnesDeposited</c> tracks the lifetime total already sold, so re-selling never double-counts.
+    /// </summary>
+    private void SellAluminium()
+    {
+        try
+        {
+            double produced = _smelter.TonnesProduced;
+            // Reset guard: if the line was reset (lifetime total dropped), re-baseline the deposited counter.
+            if (produced < _tonnesDeposited) _tonnesDeposited = produced;
+
+            double pending = produced - _tonnesDeposited;
+            bool throttleOk = (_tick - _lastDepositTick) >= 6; // ~3 s at 500 ms ticks
+            // Deposit once we have at least a whole tonne pending AND the throttle window has elapsed.
+            if (pending >= 1.0 && throttleOk)
+            {
+                double tonnesToSell = Math.Floor(pending); // whole tonnes only; keep the fractional remainder
+                double watts = tonnesToSell * PricePerTonne;
+                ReactorEconomyService.I.Earn(watts, P("Aluminium sales", "鋁材銷售"));
+                _tonnesDeposited += tonnesToSell;
+                _salesEarned += watts;
+                _lastDepositTick = _tick;
+            }
+        }
+        catch { }
+    }
+
+    private void UpdateEconomy()
+    {
+        try
+        {
+            EconBalance.Text = $"{ReactorEconomyService.I.Balance:N1} {ReactorEconomyService.Symbol}";
+            SalesValue.Text = $"+{_salesEarned:N1} {ReactorEconomyService.Symbol}";
+            PriceValue.Text = P($"{PricePerTonne:0} ⚡ / tonne", $"{PricePerTonne:0} ⚡ / 噸");
+
+            bool owned = false;
+            try { owned = ReactorEconomyService.I.IsUnlocked(PreheatPerkId); } catch { }
+            if (owned)
+            {
+                PreheatBar.Severity = InfoBarSeverity.Success;
+                PreheatBar.Title = P("⚡ Pre-heaters active (freeze-proof)", "⚡ 預熱器已啟動（防凍結）");
+                PreheatBar.Message = P(
+                    "Reactor-Bank pre-heaters keep the pot bath warm when power runs short — the pots resist freezing within reason.",
+                    "反應堆銀行預熱器喺缺電時保持電解槽溫暖 — 電解槽喺合理範圍內抗凍結。");
+            }
+            else
+            {
+                PreheatBar.Severity = InfoBarSeverity.Informational;
+                PreheatBar.Title = P("Pre-heaters available in the Reactor Bank", "反應堆銀行有預熱器可解鎖");
+                PreheatBar.Message = P(
+                    "Unlock the ⚡ pre-heater perk in the Reactor Bank to make the pots freeze-proof when power is short.",
+                    "喺反應堆銀行解鎖 ⚡ 預熱器，令電解槽喺缺電時防凍結。");
+            }
+            PreheatBar.IsOpen = true;
         }
         catch { }
     }

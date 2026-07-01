@@ -127,6 +127,9 @@
                 <NavigationViewItem Content="Particle Collider · 粒子對撞機" Tag="module.collider">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xEA86;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
+                <NavigationViewItem Content="Reactor Bank (⚡ Watts) · 反應堆銀行" Tag="module.reactorbank">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE1D6;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
                 <NavigationViewItem Content="All Apps · 所有 app" Tag="shell.allapps">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE71D;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>

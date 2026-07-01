@@ -448,6 +448,12 @@ public sealed partial class MainWindow : Window
             case "fusion":
                 Navigator.GoToModule?.Invoke("module.collider");
                 break;
+            case "reactorbank":
+            case "bank":
+            case "wallet":
+            case "watts":
+                Navigator.GoToModule?.Invoke("module.reactorbank");
+                break;
             case "uuidv7":
                 Navigator.GoToModule?.Invoke("module.uuidv7");
                 break;
@@ -2272,6 +2278,7 @@ public sealed partial class MainWindow : Window
         "module.smelter" => typeof(SmelterModule),
         "module.datacenter" => typeof(DataCenterModule),
         "module.collider" => typeof(ColliderModule),
+        "module.reactorbank" => typeof(ReactorBankModule),
         "module.uuidv7" => typeof(UuidV7Module),
         "module.jsonschema" => typeof(JsonSchemaModule),
         "module.htmlentities" => typeof(HtmlEntitiesModule),
@@ -2686,6 +2693,7 @@ public sealed partial class MainWindow : Window
             {
                 "module.griddispatch", "module.h2plant", "module.aicluster", "module.hpc",
                 "module.computemine", "module.smelter", "module.datacenter", "module.collider",
+                "module.reactorbank",
             },
         },
         new()

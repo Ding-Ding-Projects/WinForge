@@ -18,6 +18,10 @@ public sealed class AiClusterService
     private const double PflopsPerMW = 0.05;             // PFLOP/s delivered per MW actually drawn
     private const double SecondsPerTick = 0.5;           // timer cadence (informational; ramps use tick counter)
 
+    // ---- Reactor economy (Watts ⚡) ------------------------------------------
+    public const double WattsPerPflopDay = 12.0;         // ⚡ awarded per whole PFLOP-day of compute output
+    public const double OverclockMultiplier = 1.30;      // +30% throughput when the perk is owned
+
     // ---- Model-size presets (target PFLOP-days for a full training run) -------
     public enum ModelSize { Small, Medium, Large, Frontier }
 
@@ -42,6 +46,12 @@ public sealed class AiClusterService
     public double RackTempC { get; private set; } = 24.0;// idle ambient
     public long Checkpoints { get; private set; }        // how many times we checkpointed on a stall
 
+    /// <summary>由反應堆銀行擁有嘅永久 +30% 超頻 · Permanent +30% throughput perk (owned via the Reactor Bank).</summary>
+    public bool OverclockActive { get; set; }
+
+    /// <summary>已入賬俾經濟系統嘅 PFLOP-日 · PFLOP-days already awarded to the reactor economy.</summary>
+    public double PflopDaysAwarded { get; private set; }
+
     private long _ticks;                                 // internal deterministic counter
     private double _rampUtil;                             // smoothed utilisation ramp 0..1
 
@@ -60,6 +70,26 @@ public sealed class AiClusterService
 
     public bool Complete => PflopDaysDone >= TargetPflopDaysCurrent && TargetPflopDaysCurrent > 0;
 
+    /// <summary>
+    /// 攞出未入賬嘅整數 PFLOP-日 · Claim any WHOLE PFLOP-days of compute produced since the last claim,
+    /// marking them as awarded. The UI multiplies the returned count by <see cref="WattsPerPflopDay"/> and
+    /// calls <c>ReactorEconomyService.I.Earn</c>. Returns 0 when less than a whole PFLOP-day is pending, so
+    /// Watts are minted in sensible increments (never every tick). Never throws.
+    /// </summary>
+    public int ClaimWholePflopDays()
+    {
+        try
+        {
+            double pending = PflopDaysDone - PflopDaysAwarded;
+            if (double.IsNaN(pending) || pending < 1.0) return 0;
+            int whole = (int)Math.Floor(pending);
+            if (whole <= 0) return 0;
+            PflopDaysAwarded += whole;
+            return whole;
+        }
+        catch { return 0; }
+    }
+
     // ---- Operator actions ----------------------------------------------------
     public void Start() { Running = true; }
 
@@ -74,6 +104,7 @@ public sealed class AiClusterService
     {
         Size = size;
         PflopDaysDone = 0;
+        PflopDaysAwarded = 0;
         Running = false;
         Stalled = false;
         _ticks = 0;
@@ -90,6 +121,7 @@ public sealed class AiClusterService
         Stalled = false;
         Size = ModelSize.Medium;
         PflopDaysDone = 0;
+        PflopDaysAwarded = 0;
         Checkpoints = 0;
         _ticks = 0;
         _rampUtil = 0;
@@ -132,7 +164,7 @@ public sealed class AiClusterService
                 if (_rampUtil > 1) _rampUtil = 1;
 
                 GpuUtilPct = Math.Round(_rampUtil * 100.0, 1);
-                PflopsNow = DrawnMW * PflopsPerMW * _rampUtil;
+                PflopsNow = DrawnMW * PflopsPerMW * _rampUtil * (OverclockActive ? OverclockMultiplier : 1.0);
 
                 // PFLOP-days accrual: PFLOP/s * elapsed seconds -> PFLOP-seconds, /86400 -> PFLOP-days.
                 double pflopSeconds = PflopsNow * SecondsPerTick;

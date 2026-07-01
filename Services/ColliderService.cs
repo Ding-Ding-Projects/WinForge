@@ -22,6 +22,22 @@ public sealed class ColliderService
     private const double RampPerTick = 0.06;    // TeV gained per tick when fully powered
     private const double DecayPerTick = 0.10;   // TeV lost per tick when starved of power
 
+    // ── Reactor-economy integration (Watts ⚡) ──────────────────────────────────────────────────────
+    /// <summary>Fixed Watts bounty awarded to the reactor economy per discovery milestone.</summary>
+    public const double DiscoveryBounty = 250.0;
+
+    /// <summary>
+    /// "Priority beam time" perk (bought in the Reactor Bank): a faster energy ramp and a higher
+    /// luminosity multiplier. Toggled by the UI from <c>ReactorEconomyService.I.IsUnlocked(...)</c>.
+    /// </summary>
+    public bool PriorityBeam { get; set; }
+
+    private const double PriorityRampMultiplier = 1.6;   // faster ramp when priority beam time is owned
+    private const double PriorityLumiMultiplier = 1.5;   // higher luminosity when priority beam time is owned
+
+    // Number of discovery milestones already paid out to the economy — never double-pay.
+    public int DiscoveriesAwarded { get; private set; }
+
     // Luminosity thresholds (fb^-1) at which a discovery milestone fires.
     private static readonly double[] DiscoveryMarks = { 5.0, 25.0, 75.0, 150.0, 300.0, 600.0, 1200.0 };
 
@@ -78,6 +94,7 @@ public sealed class ColliderService
         BeamDumped = false;
         PowerStarved = false;
         Colliding = false;
+        DiscoveriesAwarded = 0;
         _tick = 0;
         _nextDiscoveryIdx = 0;
     }
@@ -116,7 +133,8 @@ public sealed class ColliderService
             if (target > BeamEnergyTeV)
             {
                 // Ramping up costs power. Work out the highest energy the reactor can currently sustain.
-                double nextWanted = Math.Min(target, BeamEnergyTeV + RampPerTick);
+                double rampStep = RampPerTick * (PriorityBeam ? PriorityRampMultiplier : 1.0);
+                double nextWanted = Math.Min(target, BeamEnergyTeV + rampStep);
                 double neededForNext = RequiredMagnetPower(nextWanted);
 
                 if (neededForNext <= availableMW)
@@ -164,6 +182,7 @@ public sealed class ColliderService
                 double over = (BeamEnergyTeV - CollisionThresholdTeV) / (MaxBeamTeV - CollisionThresholdTeV);
                 over = Clamp(over, 0, 1);
                 double lumiRate = 0.05 + 0.45 * over;      // fb^-1 per tick
+                if (PriorityBeam) lumiRate *= PriorityLumiMultiplier; // priority beam time → higher luminosity
                 IntegratedLuminosity += lumiRate;
                 EventsRecorded += (long)Math.Round(1000 + 90000 * over);
 
@@ -183,6 +202,19 @@ public sealed class ColliderService
         {
             return null;
         }
+    }
+
+    /// <summary>
+    /// Claim the Watts bounty for any discovery milestones that have fired but not yet been paid to the
+    /// reactor economy. Returns the total <c>⚡</c> owed this call (bounty × newly-earned discoveries) and
+    /// marks them as awarded so they are never double-paid. Returns 0 when nothing is owed.
+    /// </summary>
+    public double ClaimDiscoveryBounty()
+    {
+        int owed = Discoveries - DiscoveriesAwarded;
+        if (owed <= 0) return 0;
+        DiscoveriesAwarded = Discoveries;
+        return owed * DiscoveryBounty;
     }
 
     private static string DiscoveryName(int n)

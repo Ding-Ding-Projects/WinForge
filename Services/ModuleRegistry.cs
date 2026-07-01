@@ -314,6 +314,7 @@ public static class ModuleRegistry
         new() { Tag = "module.smelter", En = "Aluminium Smelter", Zh = "鋁冶煉廠", Glyph = ((char)0xEA0C).ToString(), Keywords = "aluminium aluminum smelter hall-heroult pot-line electrolysis reactor nuclear heavy load industrial molten freeze tonnes 鋁 冶煉 電解 電解槽 核電 重負載 熔融 凍結 產量" },
         new() { Tag = "module.datacenter", En = "Nuclear Data Center", Zh = "核能資料中心", Glyph = ((char)0xE968).ToString(), Keywords = "data center datacenter hyperscale server rack cooling pue uptime sla requests reactor nuclear load heavy 核能 資料中心 數據中心 伺服器 機櫃 散熱 用電 負載 反應堆 核電 重負載" },
         new() { Tag = "module.collider", En = "Particle Collider", Zh = "粒子對撞機", Glyph = ((char)0xEA86).ToString(), Keywords = "particle collider accelerator beam energy tev magnet luminosity physics reactor nuclear heavy load megawatt 粒子 對撞機 加速器 束能 磁鐵 亮度 物理 核電 反應堆 重負載" },
+        new() { Tag = "module.reactorbank", En = "Reactor Bank", Zh = "反應堆銀行", Glyph = ((char)0xE1D6).ToString(), Keywords = "reactor bank wallet currency watts economy mint earn spend store perk unlock ledger nuclear power 反應堆 銀行 錢包 貨幣 瓦特幣 經濟 鑄幣 賺取 花費 商店 解鎖 賬簿 核電" },
     };
 
     public static IEnumerable<ModuleInfo> Search(string query)
