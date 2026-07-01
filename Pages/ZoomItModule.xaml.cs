@@ -31,11 +31,13 @@ public sealed partial class ZoomItModule : Page
     public ZoomItModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         ZoomItService.Fired += OnServiceFired;
         Loaded += (_, _) => { ZoomItService.Load(); ZoomItService.StartHotkeys(); PopulateKeys(); Render(); SyncFromState(); };
-        Unloaded += (_, _) => ZoomItService.Fired -= OnServiceFired;
+        Unloaded += (_, _) => { ZoomItService.Fired -= OnServiceFired; Loc.I.LanguageChanged -= OnLanguageChanged; };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 

@@ -27,14 +27,17 @@ public sealed partial class WebClonerModule : Page
     public WebClonerModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += async (_, _) =>
         {
             Render();
             FolderBox.Text = DisplayPath(DefaultDest());
             await DetectAgentAsync();
         };
+        Unloaded += (_, _) => { try { _cts?.Cancel(); } catch { } Loc.I.LanguageChanged -= OnLanguageChanged; };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     /// <summary>背景偵測有冇可用代理，更新提示 · Detect an available agent off the UI thread, refresh the hint.</summary>
     private async Task DetectAgentAsync()

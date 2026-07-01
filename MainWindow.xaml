@@ -378,6 +378,10 @@
                         <NavigationViewItem Content="Number Sequence · 數字序列" Tag="module.numseq"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8EF;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Duration Calculator · 時長計算器" Tag="module.durationcalc"><NavigationViewItem.Icon><FontIcon Glyph="&#xE917;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Color Palette · 色彩調色板" Tag="module.colorpalette"><NavigationViewItem.Icon><FontIcon Glyph="&#xE790;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Text Diff · 文字差異比對" Tag="module.textdiff"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="JSON Diff · JSON 比對" Tag="module.jsondiff"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="INI Editor · INI 編輯器" Tag="module.iniedit"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Image / Base64 · 圖片 ↔ Base64" Tag="module.imgbase64"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8B9;" /></NavigationViewItem.Icon></NavigationViewItem>
                     </NavigationViewItem.MenuItems>
                 </NavigationViewItem>
 

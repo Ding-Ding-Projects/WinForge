@@ -298,6 +298,21 @@ public sealed partial class MainWindow : Window
         }
         switch (App.StartPage)
         {
+            case "jsondiff":
+            case "jsoncompare":
+                Navigator.GoToModule?.Invoke("module.jsondiff");
+                break;
+            case "textdiff":
+                Navigator.GoToModule?.Invoke("module.textdiff");
+                break;
+            case "iniedit":
+            case "ini":
+                Navigator.GoToModule?.Invoke("module.iniedit");
+                break;
+            case "imgbase64":
+            case "base64img":
+                Navigator.GoToModule?.Invoke("module.imgbase64");
+                break;
             case "caseconvert":
             case "casing":
                 Navigator.GoToModule?.Invoke("module.caseconvert");
@@ -1831,6 +1846,10 @@ public sealed partial class MainWindow : Window
         "module.numseq" => typeof(NumSeqModule),
         "module.textreplace" => typeof(TextReplaceModule),
         "module.durationcalc" => typeof(DurationCalcModule),
+        "module.jsondiff" => typeof(JsonDiffModule),
+        "module.textdiff" => typeof(TextDiffModule),
+        "module.iniedit" => typeof(IniEditModule),
+        "module.imgbase64" => typeof(ImgBase64Module),
         _ => typeof(DashboardPage),
     };
 
@@ -2148,6 +2167,7 @@ public sealed partial class MainWindow : Window
             {
                 "module.caseconvert", "module.htmltomd", "module.textreplace", "module.numseq",
                 "module.durationcalc", "module.colorpalette",
+                "module.jsondiff", "module.textdiff", "module.iniedit", "module.imgbase64",
             },
         },
     };

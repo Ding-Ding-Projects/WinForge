@@ -29,10 +29,12 @@ public sealed partial class TestDiskModule : Page
     public TestDiskModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += async (_, _) => { Render(); await Init(); };
-        Unloaded += (_, _) => { try { _cts?.Cancel(); } catch { } };
+        Unloaded += (_, _) => { try { _cts?.Cancel(); } catch { } Loc.I.LanguageChanged -= OnLanguageChanged; };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 

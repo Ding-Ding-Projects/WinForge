@@ -39,10 +39,12 @@ public sealed partial class HexEditorModule : Page
     {
         InitializeComponent();
         RowList.ItemsSource = _rows;
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) => Render();
-        Unloaded += (_, _) => _svc.Dispose();
+        Unloaded += (_, _) => { _svc.Dispose(); Loc.I.LanguageChanged -= OnLanguageChanged; };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 

@@ -234,6 +234,10 @@ public static class ModuleRegistry
         new() { Tag = "module.numseq", En = "Number Sequence", Zh = "數字序列", Glyph = ((char)0xE8EF).ToString(), Keywords = "number sequence generator arithmetic geometric fibonacci prime primes range squares cubes triangular powers series list 數字 序列 產生器 等差 等比 斐波那契 質數 範圍 平方 立方 三角數 次方" },
         new() { Tag = "module.textreplace", En = "Find & Replace", Zh = "尋找及取代", Glyph = ((char)0xE8A5).ToString(), Keywords = "find replace regex text substitute multi-rule pattern 尋找 取代 替換 正規表達式 批量 文字" },
         new() { Tag = "module.durationcalc", En = "Duration Calculator", Zh = "時長計算器", Glyph = ((char)0xE917).ToString(), Keywords = "duration time calculator timespan add subtract sum convert hours minutes seconds days 時長 時間 計算器 計算 加 減 加總 換算 小時 分鐘 秒 日 乘 除" },
+        new() { Tag = "module.jsondiff", En = "JSON Diff", Zh = "JSON 比對", Glyph = ((char)0xE8A5).ToString(), Keywords = "json diff compare difference merge path added removed changed multiset 比對 差異 比較 對比 合併 路徑 新增 刪除 改變" },
+        new() { Tag = "module.textdiff", En = "Text Diff", Zh = "文字差異比對", Glyph = ((char)0xE8A5).ToString(), Keywords = "diff compare text lines lcs unified merge changes 文字 差異 比較 對比 逐行 合併" },
+        new() { Tag = "module.iniedit", En = "INI Editor", Zh = "INI 編輯器", Glyph = ((char)0xE8A5).ToString(), Keywords = "ini config configuration parser editor section key value comment settings 設定 組態 解析 分區 鍵 值 註解 編輯器" },
+        new() { Tag = "module.imgbase64", En = "Image / Base64", Zh = "圖片 ↔ Base64", Glyph = ((char)0xE8B9).ToString(), Keywords = "image base64 data uri encode decode png jpg gif webp clipboard 圖片 圖像 編碼 解碼 資料 網址 剪貼簿" },
     };
 
     public static IEnumerable<ModuleInfo> Search(string query)

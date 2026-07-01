@@ -24,9 +24,12 @@ public sealed partial class PdfToolkitModule : Page
     public PdfToolkitModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) => Render();
+        Unloaded += (_, _) => Loc.I.LanguageChanged -= OnLanguageChanged;
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private static string P(string en, string zh) => Loc.I.Pick(en, zh);
 

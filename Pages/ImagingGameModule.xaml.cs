@@ -27,7 +27,7 @@ public sealed partial class ImagingGameModule : Page
     public ImagingGameModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += async (_, _) =>
         {
             Render();
@@ -37,7 +37,10 @@ public sealed partial class ImagingGameModule : Page
             RefreshMcEngine();
             RefreshMcRunState();
         };
+        Unloaded += (_, _) => { try { _writeCts?.Cancel(); } catch { } Loc.I.LanguageChanged -= OnLanguageChanged; };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
     private static string Msg(TweakResult r) => (Loc.I.IsCantonesePrimary ? r.Message?.Zh : r.Message?.En) ?? "";

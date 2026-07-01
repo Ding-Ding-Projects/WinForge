@@ -8,8 +8,16 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
+    <!--
+        工作列調校 · Taskbar Tweaker. 每個調校用手砌嘅控件列渲染（唔再用 Controls/TweakCard）：
+        左邊雙語標題／說明，右邊對應控件；結果／錯誤集中喺一個常駐 InfoBar。
+        Each tweak is rendered as a hand-built control row (no Controls/TweakCard): bilingual
+        title/description on the left, matching WinUI control on the right; results & errors go to
+        one persistent InfoBar.
+    -->
     <Grid Style="{StaticResource WinForgePageGridStyle}">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -42,12 +50,21 @@
             </StackPanel>
         </Border>
 
-        <!-- Filter -->
-        <AutoSuggestBox x:Name="FilterBox" Grid.Row="5" QueryIcon="Find" TextChanged="FilterBox_TextChanged" Margin="0,2,0,0" />
+        <!-- One persistent result / status area for tweak results & errors -->
+        <InfoBar x:Name="ResultBar" Grid.Row="5" IsClosable="True" IsOpen="False" Margin="0,2,0,0" />
 
-        <!-- Tweak cards -->
-        <ScrollViewer Grid.Row="6" VerticalScrollBarVisibility="Auto" VerticalScrollMode="Auto" Padding="0,0,4,0">
-            <StackPanel x:Name="CardsPanel" />
+        <!-- Filter -->
+        <AutoSuggestBox x:Name="FilterBox" Grid.Row="6" QueryIcon="Find" TextChanged="FilterBox_TextChanged" Margin="0,2,0,0" />
+
+        <!-- Hand-built control rows (no TweakCard) with a subtle Fluent entrance animation -->
+        <ScrollViewer Grid.Row="7" VerticalScrollBarVisibility="Auto" VerticalScrollMode="Auto" Padding="0,0,4,0">
+            <StackPanel x:Name="RowsPanel" Spacing="0">
+                <StackPanel.ChildrenTransitions>
+                    <TransitionCollection>
+                        <EntranceThemeTransition FromVerticalOffset="24" IsStaggeringEnabled="True" />
+                    </TransitionCollection>
+                </StackPanel.ChildrenTransitions>
+            </StackPanel>
         </ScrollViewer>
     </Grid>
 </Page>
