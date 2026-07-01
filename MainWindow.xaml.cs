@@ -411,6 +411,35 @@ public sealed partial class MainWindow : Window
             case "har":
                 Navigator.GoToModule?.Invoke("module.haranalyzer");
                 break;
+            case "griddispatch":
+            case "grid":
+                Navigator.GoToModule?.Invoke("module.griddispatch");
+                break;
+            case "h2plant":
+            case "hydrogen":
+                Navigator.GoToModule?.Invoke("module.h2plant");
+                break;
+            case "uuidv7":
+                Navigator.GoToModule?.Invoke("module.uuidv7");
+                break;
+            case "jsonschema":
+            case "schema":
+                Navigator.GoToModule?.Invoke("module.jsonschema");
+                break;
+            case "htmlentities":
+            case "entities":
+                Navigator.GoToModule?.Invoke("module.htmlentities");
+                break;
+            case "queryedit":
+                Navigator.GoToModule?.Invoke("module.queryedit");
+                break;
+            case "morse":
+                Navigator.GoToModule?.Invoke("module.morse");
+                break;
+            case "romannum":
+            case "roman":
+                Navigator.GoToModule?.Invoke("module.romannum");
+                break;
             case "passwordstrength":
             case "pwstrength":
                 Navigator.GoToModule?.Invoke("module.passwordstrength");
@@ -2188,6 +2217,14 @@ public sealed partial class MainWindow : Window
         "module.semverrange" => typeof(SemverRangeModule),
         "module.globtester" => typeof(GlobTesterModule),
         "module.haranalyzer" => typeof(HarAnalyzerModule),
+        "module.griddispatch" => typeof(GridDispatchModule),
+        "module.h2plant" => typeof(H2PlantModule),
+        "module.uuidv7" => typeof(UuidV7Module),
+        "module.jsonschema" => typeof(JsonSchemaModule),
+        "module.htmlentities" => typeof(HtmlEntitiesModule),
+        "module.queryedit" => typeof(QueryEditModule),
+        "module.morse" => typeof(MorseModule),
+        "module.romannum" => typeof(RomanNumModule),
         _ => typeof(DashboardPage),
     };
 
@@ -2585,6 +2622,27 @@ public sealed partial class MainWindow : Window
             {
                 "module.csvlint", "module.jwtbuild", "module.tomljson", "module.cronnext",
                 "module.mdtable", "module.semverrange", "module.globtester", "module.haranalyzer",
+            },
+        },
+        new()
+        {
+            Id = "reactorloads",
+            En = "Reactor-powered loads",
+            Zh = "反應堆供電負載",
+            Keys = new[]
+            {
+                "module.griddispatch", "module.h2plant",
+            },
+        },
+        new()
+        {
+            Id = "devtext5",
+            En = "IDs, data & text",
+            Zh = "識別碼、資料與文字",
+            Keys = new[]
+            {
+                "module.uuidv7", "module.jsonschema", "module.htmlentities", "module.queryedit",
+                "module.morse", "module.romannum",
             },
         },
     };

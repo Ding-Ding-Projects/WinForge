@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.QueryEditModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="820" Spacing="14">
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xEB41;" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="InputLabel" FontWeight="SemiBold" />
+                    <TextBox x:Name="InputBox" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="70"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="ParseBtn" Click="Parse_Click" Style="{ThemeResource AccentButtonStyle}" />
+                        <Button x:Name="AddBtn" Click="Add_Click" />
+                        <Button x:Name="SortBtn" Click="Sort_Click" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <InfoBar x:Name="Info" IsOpen="False" IsClosable="True" Severity="Informational" />
+
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="ParamsLabel" FontWeight="SemiBold" />
+
+                    <Grid Padding="4,0,4,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="ColOn" Grid.Column="0" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Width="44" />
+                        <TextBlock x:Name="ColKey" Grid.Column="1" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock x:Name="ColValue" Grid.Column="2" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </Grid>
+
+                    <ListView x:Name="PairsList" SelectionMode="None" MaxHeight="360"
+                              ScrollViewer.VerticalScrollBarVisibility="Auto">
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="ListViewItem">
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                <Setter Property="Padding" Value="4,2,4,2" />
+                                <Setter Property="MinHeight" Value="0" />
+                            </Style>
+                        </ListView.ItemContainerStyle>
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <ToggleSwitch Grid.Column="0" IsOn="{Binding Enabled, Mode=TwoWay}" OnContent="" OffContent="" MinWidth="44" VerticalAlignment="Center" />
+                                    <TextBox Grid.Column="1" Text="{Binding Key, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" />
+                                    <TextBox Grid.Column="2" Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" />
+                                    <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                                        <Button Content="&#xE70E;" FontFamily="{ThemeResource SymbolThemeFontFamily}" Tag="{Binding}" Click="Up_Click" ToolTipService.ToolTip="Up" Padding="8,4,8,4" />
+                                        <Button Content="&#xE70D;" FontFamily="{ThemeResource SymbolThemeFontFamily}" Tag="{Binding}" Click="Down_Click" ToolTipService.ToolTip="Down" Padding="8,4,8,4" />
+                                        <Button Content="&#xE74D;" FontFamily="{ThemeResource SymbolThemeFontFamily}" Tag="{Binding}" Click="Remove_Click" ToolTipService.ToolTip="Remove" Padding="8,4,8,4" />
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+
+                    <TextBlock x:Name="EmptyHint" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" Visibility="Collapsed" />
+                </StackPanel>
+            </Border>
+
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="ResultLabel" FontWeight="SemiBold" />
+                    <TextBox x:Name="ResultBox" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="60"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="CopyUrlBtn" Click="CopyUrl_Click" Style="{ThemeResource AccentButtonStyle}" />
+                        <Button x:Name="CopyQueryBtn" Click="CopyQuery_Click" />
+                        <ToggleButton x:Name="DecodedToggle" Click="DecodedToggle_Click" />
+                    </StackPanel>
+
+                    <Grid ColumnSpacing="16" RowSpacing="4" Margin="0,4,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <TextBlock x:Name="SchemeLbl" Grid.Row="0" Grid.Column="0" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock x:Name="SchemeVal" Grid.Row="0" Grid.Column="1" FontSize="12" IsTextSelectionEnabled="True" TextWrapping="Wrap" />
+                        <TextBlock x:Name="HostLbl" Grid.Row="1" Grid.Column="0" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock x:Name="HostVal" Grid.Row="1" Grid.Column="1" FontSize="12" IsTextSelectionEnabled="True" TextWrapping="Wrap" />
+                        <TextBlock x:Name="PathLbl" Grid.Row="2" Grid.Column="0" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock x:Name="PathVal" Grid.Row="2" Grid.Column="1" FontSize="12" IsTextSelectionEnabled="True" TextWrapping="Wrap" />
+                        <TextBlock x:Name="FragLbl" Grid.Row="3" Grid.Column="0" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock x:Name="FragVal" Grid.Row="3" Grid.Column="1" FontSize="12" IsTextSelectionEnabled="True" TextWrapping="Wrap" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

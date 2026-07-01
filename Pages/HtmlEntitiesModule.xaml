@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.HtmlEntitiesModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="820" Spacing="14">
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE943;" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="14">
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <TextBlock x:Name="ModeLabel" VerticalAlignment="Center" />
+                        <ComboBox x:Name="ModeBox" MinWidth="180" SelectionChanged="Mode_Changed">
+                            <ComboBoxItem x:Name="ModeEncodeItem" />
+                            <ComboBoxItem x:Name="ModeDecodeItem" />
+                        </ComboBox>
+                    </StackPanel>
+
+                    <CheckBox x:Name="NonAsciiChk" Checked="Options_Changed" Unchecked="Options_Changed" />
+
+                    <StackPanel Spacing="4">
+                        <TextBlock x:Name="InputLabel" FontWeight="SemiBold" />
+                        <TextBox x:Name="InputBox"
+                                 AcceptsReturn="True"
+                                 TextWrapping="Wrap"
+                                 MinHeight="120"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                 TextChanged="Input_Changed" />
+                        <TextBlock x:Name="InputCount" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="4">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="OutputLabel" Grid.Column="0" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            <Button x:Name="CopyBtn" Grid.Column="1" Click="Copy_Click" />
+                        </Grid>
+                        <TextBox x:Name="OutputBox"
+                                 AcceptsReturn="True"
+                                 TextWrapping="Wrap"
+                                 MinHeight="120"
+                                 IsReadOnly="True"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                        <TextBlock x:Name="OutputCount" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="8">
+                    <TextBlock x:Name="RefTitle" FontWeight="SemiBold" FontSize="15" />
+                    <TextBlock x:Name="RefBlurb" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    <ListView x:Name="RefList" SelectionMode="None" IsItemClickEnabled="True" ItemClick="Ref_ItemClick" MaxHeight="360">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Padding="0,6,0,6" ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="160" />
+                                        <ColumnDefinition Width="44" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="{Binding Name}" FontFamily="Consolas" VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="1" Text="{Binding Char}" FontSize="18" VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="2" Text="{Binding Description}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </StackPanel>
+            </Border>
+
+            <InfoBar x:Name="Info" IsClosable="True" IsOpen="False" />
+        </StackPanel>
+    </ScrollViewer>
+</Page>

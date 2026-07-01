@@ -300,6 +300,14 @@ public static class ModuleRegistry
         new() { Tag = "module.semverrange", En = "Semver Range Tester", Zh = "語意化版本範圍測試器", Glyph = ((char)0xE943).ToString(), Keywords = "semver semantic version range node-semver caret tilde prerelease 語意化 版本 範圍 測試 相容 依賴" },
         new() { Tag = "module.globtester", En = "Glob Tester", Zh = "Glob 樣式測試器", Glyph = ((char)0xE71C).ToString(), Keywords = "glob pattern wildcard regex match path filter minimatch 樣式 萬用字元 配對 路徑 正則" },
         new() { Tag = "module.haranalyzer", En = "HAR Analyzer", Zh = "HAR 分析器", Glyph = ((char)0xEB41).ToString(), Keywords = "har http archive network requests waterfall performance analyze json 網絡 請求 分析 效能 瀑布圖 狀態碼 傳輸" },
+        new() { Tag = "module.griddispatch", En = "Grid Dispatch Center", Zh = "電網調度中心", Glyph = ((char)0xE945).ToString(), Keywords = "grid dispatch electricity sell power reactor mwe spot price frequency load-follow nuclear 電網 調度 售電 電力 反應堆 頻率 電價 核能" },
+        new() { Tag = "module.h2plant", En = "Hydrogen Electrolysis", Zh = "氫電解制氫廠", Glyph = ((char)0xE945).ToString(), Keywords = "hydrogen electrolysis h2 plant reactor mwe power water splitting green fuel nuclear 氫 電解 制氫 反應堆 電力 綠氫 儲氫 核能" },
+        new() { Tag = "module.uuidv7", En = "UUID v7", Zh = "UUID v7 識別碼", Glyph = ((char)0xE943).ToString(), Keywords = "uuid v7 guid time-ordered sortable rfc 9562 timestamp generate decode 識別碼 時間排序 產生 解碼" },
+        new() { Tag = "module.jsonschema", En = "JSON Schema Validator", Zh = "JSON 結構描述驗證器", Glyph = ((char)0xE943).ToString(), Keywords = "json schema validate draft-07 validator required properties type enum pattern 結構描述 驗證 綱要 類型" },
+        new() { Tag = "module.htmlentities", En = "HTML Entities", Zh = "HTML 實體", Glyph = ((char)0xE943).ToString(), Keywords = "html entities encode decode escape named numeric nbsp copy 實體 編碼 解碼 跳脫 具名 數字" },
+        new() { Tag = "module.queryedit", En = "URL Query Editor", Zh = "網址查詢編輯器", Glyph = ((char)0xEB41).ToString(), Keywords = "url query string parameters edit encode decode percent key value querystring 網址 查詢 參數 編碼 解碼" },
+        new() { Tag = "module.morse", En = "Morse Code", Zh = "摩斯電碼", Glyph = ((char)0xE8D6).ToString(), Keywords = "morse code encode decode dots dashes international telegraph flash 摩斯 密碼 電碼 點 劃 電報" },
+        new() { Tag = "module.romannum", En = "Roman Numerals", Zh = "羅馬數字", Glyph = ((char)0xE943).ToString(), Keywords = "roman numerals number convert MCMXCIV validate 羅馬 數字 轉換 大寫 驗證" },
     };
 
     public static IEnumerable<ModuleInfo> Search(string query)
