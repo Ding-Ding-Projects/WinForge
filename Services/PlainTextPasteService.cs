@@ -57,7 +57,13 @@ public static class PlainTextPasteService
         var view = Clipboard.GetContent();
         if (view is null || !view.Contains(StandardDataFormats.Text)) return false;
         string text;
-        try { text = view.GetTextAsync().AsTask().GetAwaiter().GetResult(); }
+        try
+        {
+            // Bound the wait so a locked clipboard can't hang the hotkey thread.
+            var t = view.GetTextAsync().AsTask();
+            if (!t.Wait(TimeSpan.FromMilliseconds(600))) return false;
+            text = t.Result;
+        }
         catch { return false; }
         var dp = new DataPackage { RequestedOperation = DataPackageOperation.Copy };
         dp.SetText(text);

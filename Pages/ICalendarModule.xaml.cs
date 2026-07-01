@@ -259,14 +259,14 @@ public sealed partial class ICalendarModule : Page
 
     private void Parse_Click(object sender, RoutedEventArgs e) => RunParse(ParseInput.Text ?? "");
 
-    private void Paste_Click(object sender, RoutedEventArgs e)
+    private async void Paste_Click(object sender, RoutedEventArgs e)
     {
         try
         {
             var view = Clipboard.GetContent();
             if (view is not null && view.Contains(StandardDataFormats.Text))
             {
-                string text = view.GetTextAsync().AsTask().GetAwaiter().GetResult() ?? "";
+                string text = await view.GetTextAsync() ?? "";
                 ParseInput.Text = text;
                 RunParse(text);
             }

@@ -404,7 +404,9 @@ public static class AdvancedPasteService
         {
             var view = Clipboard.GetContent();
             if (view is null || !view.Contains(StandardDataFormats.Text)) return "";
-            return view.GetTextAsync().AsTask().GetAwaiter().GetResult() ?? "";
+            // Bound the wait: a clipboard momentarily locked by another app must not hang the UI thread.
+            var task = view.GetTextAsync().AsTask();
+            return task.Wait(TimeSpan.FromMilliseconds(600)) ? (task.Result ?? "") : "";
         }
         catch { return ""; }
     }

@@ -167,7 +167,7 @@ public sealed partial class NilesoftShellModule : Page
         if (path is null) return;
         try
         {
-            ConfigBox.Text = File.ReadAllText(path);
+            ConfigBox.Text = await File.ReadAllTextAsync(path);
             _loadedPath = path;
             ConfigPathLine.Text = P($"Editing: {path}", $"正在編輯：{path}");
             Show(InfoBarSeverity.Informational, P("Opened (not the live config)", "已開啟（並非生效中設定）"),
