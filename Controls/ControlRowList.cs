@@ -196,13 +196,36 @@ public sealed class ControlRowList : UserControl
         _ => BuildAction(op), // Action (and any other kind) → button
     };
 
-    // ---------------- Action → Button awaiting RunAsync ----------------
+    // ---------------- Action → Button awaiting RunAsync (with live progress + flashy result) ----------------
     private FrameworkElement BuildAction(TweakDefinition op)
     {
         var label = op.ActionLabel?.Get(Loc.I.Language) ?? P("Run", "執行");
+
+        // Root swaps between the button and a running affordance (bar + status + spinner).
+        var host = new StackPanel { Spacing = 4, HorizontalAlignment = HorizontalAlignment.Right };
+
         var btn = new Button { Content = label, MinWidth = 110 };
         if (op.ActionLabel is not null)
             ToolTipService.SetToolTip(btn, $"{op.ActionLabel.En} · {op.ActionLabel.Zh}");
+
+        // Running affordance: a real ProgressBar + a live status line (hidden until running).
+        var bar = new ProgressBar { Minimum = 0, Maximum = 100, IsIndeterminate = true, Width = 160 };
+        var running = new StackPanel { Spacing = 2, Visibility = Visibility.Collapsed, HorizontalAlignment = HorizontalAlignment.Right };
+        var statusRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Right };
+        var statusText = new TextBlock
+        {
+            FontSize = 11,
+            TextWrapping = TextWrapping.Wrap,
+            MaxWidth = 220,
+            HorizontalTextAlignment = TextAlignment.Right,
+            Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+        };
+        statusRow.Children.Add(statusText);
+        running.Children.Add(bar);
+        running.Children.Add(statusRow);
+
+        host.Children.Add(btn);
+        host.Children.Add(running);
 
         btn.Click += async (_, _) =>
         {
@@ -210,12 +233,18 @@ public sealed class ControlRowList : UserControl
             if (op.Destructive && !await ConfirmAsync(op)) return;
 
             _busy = true;
-            btn.IsEnabled = false;
-            var restore = btn.Content;
-            btn.Content = new ProgressRing { IsActive = true, Width = 18, Height = 18 };
+            btn.Visibility = Visibility.Collapsed;
+            running.Visibility = Visibility.Visible;
+            bar.IsIndeterminate = true;
+            bar.Value = 0;
+            bar.ShowError = false;
+            statusText.Text = P("Working…", "處理緊…");
+            StartRowPulse(bar);
+
+            TweakResult? result = null;
             try
             {
-                var result = await op.RunAsync(CancellationToken.None);
+                result = await op.RunAsync(CancellationToken.None);
                 ShowResult(result);
             }
             catch (Exception ex)
@@ -224,12 +253,110 @@ public sealed class ControlRowList : UserControl
             }
             finally
             {
-                btn.Content = restore;
-                btn.IsEnabled = true;
+                StopRowPulse(bar);
+                running.Visibility = Visibility.Collapsed;
+                btn.Visibility = Visibility.Visible;
                 _busy = false;
+                // Flashy result cue on the button itself.
+                if (result is not null)
+                {
+                    if (result.Success) AnimatePop(btn);
+                    else AnimateShake(btn);
+                }
+                else AnimateShake(btn);
             }
         };
-        return btn;
+        return host;
+    }
+
+    // ── Row-level flashy animation helpers (created in C#) ───────────────────────
+
+    private static void StartRowPulse(ProgressBar bar)
+    {
+        try
+        {
+            var a = new DoubleAnimation
+            {
+                From = 1.0,
+                To = 0.55,
+                Duration = new Duration(TimeSpan.FromMilliseconds(900)),
+                AutoReverse = true,
+                RepeatBehavior = RepeatBehavior.Forever,
+                EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut },
+            };
+            Storyboard.SetTarget(a, bar);
+            Storyboard.SetTargetProperty(a, "Opacity");
+            var sb = new Storyboard();
+            sb.Children.Add(a);
+            bar.Tag = sb;                 // stash so we can stop it
+            sb.Begin();
+        }
+        catch { /* decorative */ }
+    }
+
+    private static void StopRowPulse(ProgressBar bar)
+    {
+        try { if (bar.Tag is Storyboard sb) sb.Stop(); } catch { }
+        try { bar.Tag = null; bar.Opacity = 1.0; } catch { }
+    }
+
+    private static void AnimatePop(FrameworkElement el)
+    {
+        try
+        {
+            var scale = new ScaleTransform { CenterX = el.ActualWidth / 2, CenterY = el.ActualHeight / 2 };
+            el.RenderTransform = scale;
+            var sb = new Storyboard();
+            foreach (var path in new[]
+            {
+                "(UIElement.RenderTransform).(ScaleTransform.ScaleX)",
+                "(UIElement.RenderTransform).(ScaleTransform.ScaleY)",
+            })
+            {
+                var a = new DoubleAnimationUsingKeyFrames();
+                Storyboard.SetTarget(a, el);
+                Storyboard.SetTargetProperty(a, path);
+                a.KeyFrames.Add(new EasingDoubleKeyFrame { KeyTime = KeyTime.FromTimeSpan(TimeSpan.Zero), Value = 1.0 });
+                a.KeyFrames.Add(new EasingDoubleKeyFrame
+                {
+                    KeyTime = KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(150)),
+                    Value = 1.12,
+                    EasingFunction = new BackEase { Amplitude = 0.5, EasingMode = EasingMode.EaseOut },
+                });
+                a.KeyFrames.Add(new EasingDoubleKeyFrame
+                {
+                    KeyTime = KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(300)),
+                    Value = 1.0,
+                    EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseInOut },
+                });
+                sb.Children.Add(a);
+            }
+            sb.Begin();
+        }
+        catch { /* decorative */ }
+    }
+
+    private static void AnimateShake(FrameworkElement el)
+    {
+        try
+        {
+            var t = new TranslateTransform();
+            el.RenderTransform = t;
+            var a = new DoubleAnimationUsingKeyFrames();
+            Storyboard.SetTarget(a, el);
+            Storyboard.SetTargetProperty(a, "(UIElement.RenderTransform).(TranslateTransform.X)");
+            double[] xs = { 0, -7, 7, -5, 5, -2, 0 };
+            for (int i = 0; i < xs.Length; i++)
+                a.KeyFrames.Add(new EasingDoubleKeyFrame
+                {
+                    KeyTime = KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(i * 55)),
+                    Value = xs[i],
+                });
+            var sb = new Storyboard();
+            sb.Children.Add(a);
+            sb.Begin();
+        }
+        catch { /* decorative */ }
     }
 
     // ---------------- Toggle → ToggleSwitch ----------------

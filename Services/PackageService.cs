@@ -83,16 +83,66 @@ public static class PackageService
         return outp.Contains(id, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// Touchless winget install of a known engine id. Resolves winget's absolute path (so a
+    /// refreshed/elevated PATH can't cause a silent 9009), prefers a user-scope install when the app is
+    /// not elevated (so no UAC prompt is needed and no --silent machine-scope silent failure occurs), and
+    /// falls back to a scopeless retry. Streams output via <paramref name="onLine"/> when provided.
+    /// Never throws — returns a TweakResult carrying the real exit code + captured winget output.
+    /// </summary>
+    /// <summary>
+    /// Streaming winget install of a known engine id. Resolves winget's absolute path (so a
+    /// refreshed/elevated PATH can't cause a silent 9009), prefers a user-scope install when the app is
+    /// not elevated (so no UAC prompt is needed and no --silent machine-scope silent failure occurs), and
+    /// falls back to a scopeless retry. Reports output via <paramref name="onLine"/>.
+    /// Never throws — returns a TweakResult carrying the real exit code + captured winget output.
+    /// </summary>
+    public static async Task<TweakResult> InstallStreaming(string id, IProgress<string>? onLine, CancellationToken ct = default)
+    {
+        var winget = ShellRunner.ResolveExe("winget");
+        // 未提權時優先 user scope（唔使 UAC，唔會靜靜 machine-scope 失敗）· Prefer user scope when not elevated.
+        string scope = AdminHelper.IsElevated ? "" : " --scope user";
+
+        var baseArgs = $"install --id {id} -e --silent --accept-source-agreements --accept-package-agreements --disable-interactivity";
+        var r = await ShellRunner.RunStreaming(winget, baseArgs + scope, onLine, elevated: false, workingDirectory: null, ct);
+        // 如果 user scope 唔存在（某些套件淨係 machine scope），去掉 scope 再試一次。
+        // If a user-scope variant doesn't exist, retry once without --scope (still non-elevated; the error
+        // is now surfaced either way).
+        if (!r.Success && scope.Length > 0 && LooksLikeScopeMiss(r.Output))
+            r = await ShellRunner.RunStreaming(winget, baseArgs, onLine, elevated: false, workingDirectory: null, ct);
+        return r;
+    }
+
     public static Task<TweakResult> Install(string id, CancellationToken ct = default)
-        => ShellRunner.RunCmd($"winget install --id {id} -e --silent --accept-source-agreements --accept-package-agreements --disable-interactivity", false, ct);
+        => InstallStreaming(id, onLine: null, ct);
+
+    private static bool LooksLikeScopeMiss(string? output)
+    {
+        if (string.IsNullOrWhiteSpace(output)) return true;   // no detail ⇒ safe to retry scopeless
+        var o = output.ToLowerInvariant();
+        return o.Contains("no applicable") || o.Contains("scope") || o.Contains("no package found")
+            || o.Contains("matching") && o.Contains("no");
+    }
 
     /// <summary>Touchless install of a known engine by winget id, then refresh this process's PATH so the
     /// freshly-installed CLI works immediately (no app restart). Returns true on success.</summary>
     public static async Task<bool> AutoInstall(string id, CancellationToken ct = default)
     {
-        var r = await Install(id, ct);
+        var r = await InstallStreaming(id, onLine: null, ct);
         if (r.Success) RefreshProcessPath();
         return r.Success;
+    }
+
+    /// <summary>
+    /// Same as <see cref="AutoInstall(string,CancellationToken)"/> but returns the full
+    /// <see cref="TweakResult"/> (so the caller can SURFACE the real error/output instead of a bare bool),
+    /// and streams live output lines via <paramref name="onLine"/>. Refreshes PATH on success.
+    /// </summary>
+    public static async Task<TweakResult> AutoInstallDetailed(string id, IProgress<string>? onLine = null, CancellationToken ct = default)
+    {
+        var r = await InstallStreaming(id, onLine, ct);
+        if (r.Success) RefreshProcessPath();
+        return r;
     }
 
     /// <summary>Re-read PATH from the registry into this process so newly-installed tools resolve at once.</summary>

@@ -356,7 +356,16 @@ public static class PackageOperations
     /// and a best-effort post-hook. Elevation follows <see cref="InstallOptions.RunAsAdministrator"/>.
     /// 永遠唔擲例外 · Never throws — wrapped and returned as TweakResult.
     /// </summary>
-    public static async Task<TweakResult> RunAsync(string managerKey, string id, Op op, InstallOptions o, CancellationToken ct)
+    public static Task<TweakResult> RunAsync(string managerKey, string id, Op op, InstallOptions o, CancellationToken ct)
+        => RunAsync(managerKey, id, op, o, onLine: null, ct);
+
+    /// <summary>
+    /// 同上，但逐行串流輸出畀進度／狀態 UI · Same as <see cref="RunAsync(string,string,Op,InstallOptions,CancellationToken)"/>
+    /// but reports each output line via <paramref name="onLine"/> so a progress / status UI can show live output.
+    /// 永遠唔擲例外 · Never throws — wrapped and returned as a TweakResult carrying the real exit code + output.
+    /// </summary>
+    public static async Task<TweakResult> RunAsync(string managerKey, string id, Op op, InstallOptions o,
+        IProgress<string>? onLine, CancellationToken ct)
     {
         try
         {
@@ -401,14 +410,14 @@ public static class PackageOperations
                 }
             }
 
-            // (c) 主要操作 · The main command.
-            var cmd = BuildCommandPreview(key, id, op, o);
+            // (c) 主要操作 · The main command (with absolute-path resolution for the CLI token).
+            var cmd = ResolveCliToken(key, BuildCommandPreview(key, id, op, o));
             TweakResult main;
             try
             {
                 main = IsPowershellEngine(key)
-                    ? await ShellRunner.RunPowershell(cmd, elevated, ct)
-                    : await ShellRunner.RunCmd(cmd, elevated, ct);
+                    ? await ShellRunner.RunPowershellStreaming(cmd, onLine, elevated, ct)
+                    : await ShellRunner.RunCmdStreaming(cmd, onLine, elevated, ct);
             }
             catch (Exception ex) { main = TweakResult.Fail(ex.Message, $"出錯：{ex.Message}"); }
 
@@ -423,6 +432,37 @@ public static class PackageOperations
             return main;
         }
         catch (Exception ex) { return TweakResult.Fail(ex.Message, $"出錯：{ex.Message}"); }
+    }
+
+    /// <summary>
+    /// 將命令開頭嘅裸 CLI token（winget/choco/scoop）換成解析到嘅絕對路徑，避免提權後 PATH 唔同而「唔識」。
+    /// Replace the leading bare CLI token (winget/choco/scoop) with its resolved absolute path so a
+    /// different (elevated / refreshed) PATH can't cause a silent "not recognized" (9009) failure.
+    /// PowerShell 引擎唔改（scoop 係 shim，PowerShell 會自己搵）· Leaves PowerShell engines untouched.
+    /// </summary>
+    private static string ResolveCliToken(string key, string cmd)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(cmd)) return cmd;
+            // Only the cmd.exe engines benefit here; PowerShell engines resolve via their own module logic.
+            string? tool = key switch { "winget" => "winget", "choco" => "choco", _ => null };
+            if (tool is null) return cmd;
+
+            var trimmed = cmd.TrimStart();
+            if (!trimmed.StartsWith(tool + " ", StringComparison.OrdinalIgnoreCase)
+                && !trimmed.Equals(tool, StringComparison.OrdinalIgnoreCase))
+                return cmd;
+
+            var resolved = ShellRunner.ResolveExe(tool);
+            if (string.IsNullOrEmpty(resolved) || string.Equals(resolved, tool, StringComparison.OrdinalIgnoreCase))
+                return cmd;                    // nothing better than the bare token — leave as-is
+
+            var rest = trimmed.Length > tool.Length ? trimmed[tool.Length..] : "";
+            var quoted = resolved.Contains(' ') ? $"\"{resolved}\"" : resolved;
+            return quoted + rest;
+        }
+        catch { return cmd; }
     }
 
     private static (string cmd, bool abort) PreHookFor(InstallOptions o, Op op) => op switch
