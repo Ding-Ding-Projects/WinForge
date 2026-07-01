@@ -32,7 +32,9 @@ Guardrail: nothing merges/deploys unless `dotnet build WinForge.sln -c Debug -p:
   Password Strength, Habit Tracker (persisted), Expense Splitter (settle-up), Name Generator, Event Countdown (persisted), Column Tools, JSON Flatten/Unflatten, Unit Price comparison. (Fixed 2 agent slips pre-merge: unqualified `Color.FromArgb` under `using Microsoft.UI` in HabitTracker/UnitPrice → `Windows.UI.Color`.)
 - **Batch 13 — DONE: +7 modules → 249.**
   cURL/fetch/PowerShell Generator, Clipboard Inspector, Timezone Planner, HTTP Status Codes reference, WCAG Contrast Grid, Entropy Analyzer, IPv6 Tools. (Fixed 1 agent slip: `ScrollBarVisibility` on a TextBox → attached `ScrollViewer.*` form in CurlGen.)
-- **Next focus:** keep the depth cadence toward **1000+ working features** (add ~6-8 modules/iteration + extend existing modules, theme C). Big epics DONE: zero tweak cards (TweakCard deleted), freeze rounds essentially complete (~3 accepted-risk pages). At **249 modules** / ~13 iterations.
+- **Batch 14 — DONE: +7 modules → 256 🎉 (crossed 250).**
+  JSON Patch (RFC 6902 diff+apply), JSONL/NDJSON Tools, Text Wrap/Reflow, Short ID Encoder (Base62/58/36/Crockford + NanoID), Dotenv Editor (parse/validate/convert to shell·JSON·docker), HTTP Headers Reference (~80 headers), Calendar (month grid + ISO weeks). Clean pitfall-scan — no agent slips this batch; build 0 errors, tests 62/62.
+- **Next focus:** keep the depth cadence toward **1000+ working features** (add ~6-8 modules/iteration + extend existing modules, theme C). Big epics DONE: zero tweak cards (TweakCard deleted), freeze rounds essentially complete (~3 accepted-risk pages). At **256 modules** / 14 iterations.
 
 ## Bug / hardening priorities (fold into every iteration)
 - [x] **Freezes — round 1:** offloaded WMI/PDH/`Process.GetProcesses`/sensor ticks to `Task.Run` (SystemMonitor, ProcessExplorer, Connections, BatteryThermal, NativeUtilities); off-thread registry-hive enumeration; Unloaded timer stops (ScreenRecorder); calmed CakeFactory 80ms→200ms; fixed `LanguageChanged` leaks on the hot pages.
@@ -79,3 +81,11 @@ Append new ideas here as they surface; promote to a batch when scoped. Keep each
 - (B) Managed EPUB/CBZ reader (System.IO.Compression, own render — record license); (B) QR encoder written from scratch (own code).
 - (C) Time-zone meeting planner (overlap finder); (C) Pomodoro stats/history; (C) Text → speech via Windows.Media.SpeechSynthesis.
 - (A) Clipboard-format inspector (what formats are on the clipboard); (C) URL → cURL / fetch snippet generator.
+- Batch-14 fresh ideas (never stop):
+  - (C) JSON Patch: add merge-patch (RFC 7386) mode; (C) JSONL Tools: add sort-by-key + jq-lite field select.
+  - (A) HOSTS-file editor with block-list presets; (A) Windows scheduled-task viewer (read-only) → toggle enabled.
+  - (B) Managed diff-match-patch text merge (own port, record license); (B) Base-N big-file encoder (Ascii85/Z85) streaming.
+  - (C) Calendar: add iCal (.ics) event export + recurrence preview; (C) Dotenv: add .env ↔ appsettings.json bridge.
+  - (C) Short ID: add ULID + Snowflake decode (timestamp/machine/seq breakdown); (A) GUID/ULID timestamp extractor.
+  - (A) Reg-hive value search across HKCU/HKLM; (C) HTTP Headers: add security-header scorecard (given a paste of a response).
+  - (C) Text Wrap: add box-drawing/banner mode; (C) Number → words: add currency + ordinal + Chinese-numeral modes.

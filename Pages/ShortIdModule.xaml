@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.ShortIdModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="760" Spacing="14">
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE943;" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <!-- Card 1: Number <-> short code -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <TextBlock x:Name="ConvertTitle" FontWeight="SemiBold" FontSize="15" />
+
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <TextBlock x:Name="AlphabetLabel" VerticalAlignment="Center" />
+                        <ComboBox x:Name="AlphabetCombo" MinWidth="220" SelectionChanged="Alphabet_Changed" />
+                    </StackPanel>
+
+                    <!-- Encode: number -> code -->
+                    <TextBlock x:Name="EncodeLabel" FontWeight="SemiBold" FontSize="13" />
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBox x:Name="NumberBox" MinWidth="300" InputScope="Number" TextChanged="Encode_Changed" />
+                        <Button x:Name="CopyCodeBtn" Click="CopyCode_Click" />
+                    </StackPanel>
+                    <TextBox x:Name="CodeOut" IsReadOnly="True" FontFamily="Consolas" />
+
+                    <!-- Decode: code -> number -->
+                    <TextBlock x:Name="DecodeLabel" FontWeight="SemiBold" FontSize="13" Margin="0,4,0,0" />
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBox x:Name="CodeIn" MinWidth="300" FontFamily="Consolas" TextChanged="Decode_Changed" />
+                        <Button x:Name="CopyNumberBtn" Click="CopyNumber_Click" />
+                    </StackPanel>
+                    <TextBox x:Name="NumberOut" IsReadOnly="True" FontFamily="Consolas" />
+
+                    <TextBlock x:Name="ConvertStatus" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <!-- Card 2: Random short IDs -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <TextBlock x:Name="RandomTitle" FontWeight="SemiBold" FontSize="15" />
+
+                    <StackPanel Orientation="Horizontal" Spacing="14">
+                        <StackPanel Spacing="4">
+                            <TextBlock x:Name="LengthLabel" FontSize="12" />
+                            <NumberBox x:Name="LengthBox" Value="21" Minimum="4" Maximum="32" SpinButtonPlacementMode="Inline" MinWidth="130" />
+                        </StackPanel>
+                        <StackPanel Spacing="4">
+                            <TextBlock x:Name="CountLabel" FontSize="12" />
+                            <NumberBox x:Name="CountBox" Value="5" Minimum="1" Maximum="200" SpinButtonPlacementMode="Inline" MinWidth="130" />
+                        </StackPanel>
+                        <StackPanel Spacing="4">
+                            <TextBlock x:Name="RandomAlphabetLabel" FontSize="12" />
+                            <ComboBox x:Name="RandomAlphabetCombo" MinWidth="180" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button x:Name="GenerateBtn" Click="Generate_Click" Style="{ThemeResource AccentButtonStyle}" />
+                        <Button x:Name="CopyRandomBtn" Click="CopyRandom_Click" />
+                    </StackPanel>
+
+                    <TextBox x:Name="RandomOut" IsReadOnly="True" AcceptsReturn="True" FontFamily="Consolas" MinHeight="140" TextWrapping="NoWrap"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Auto" />
+
+                    <TextBlock x:Name="RandomStatus" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

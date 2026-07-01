@@ -277,6 +277,13 @@ public static class ModuleRegistry
         new() { Tag = "module.contrastgrid", En = "Contrast Grid", Zh = "對比度網格", Glyph = ((char)0xE790).ToString(), Keywords = "contrast wcag accessibility ratio color colour hex rgb aa aaa a11y 對比度 無障礙 顏色 色彩 可讀性" },
         new() { Tag = "module.entropy", En = "Entropy Analyzer", Zh = "熵值分析", Glyph = ((char)0xE9D9).ToString(), Keywords = "entropy shannon randomness bits information chi-square histogram frequency hex utf-8 熵 隨機 隨機度 資訊 亂度 卡方 直方圖 頻率 十六進位" },
         new() { Tag = "module.subnetv6", En = "IPv6 Tools", Zh = "IPv6 工具", Glyph = ((char)0xE968).ToString(), Keywords = "ipv6 subnet prefix cidr eui-64 mac address expand compress link-local unique-local multicast global network mask 位址 子網 前綴 遮罩 展開 壓縮 多播 鏈路本地 唯一本地 全球單播 介面識別碼" },
+        new() { Tag = "module.jsonpatch", En = "JSON Patch", Zh = "JSON 修補", Glyph = ((char)0xE943).ToString(), Keywords = "json patch rfc 6902 diff apply pointer merge operations add remove replace test copy move 修補 差異 比較 套用 運算 指標 陣列" },
+        new() { Tag = "module.textwrap", En = "Text Wrap", Zh = "文字換行", Glyph = ((char)0xE8A5).ToString(), Keywords = "text wrap reflow rewrap unwrap column width word boundary hanging indent prefix comment commit message readme 文字 換行 重排 拉直 縮排 前綴 闊度 段落 註解" },
+        new() { Tag = "module.shortid", En = "Short ID Encoder", Zh = "短碼編碼器", Glyph = ((char)0xE943).ToString(), Keywords = "short id encoder base62 base58 base36 crockford base32 nanoid random id url-safe encode decode bigint 短碼 編碼 解碼 隨機 隨機ID 進制 位元組 URL安全" },
+        new() { Tag = "module.envfile", En = "Dotenv Editor", Zh = ".env 編輯器", Glyph = ((char)0xE7C3).ToString(), Keywords = "env dotenv environment variables editor convert shell json docker export KEY=VALUE 環境變數 編輯器 轉換" },
+        new() { Tag = "module.httpheaderref", En = "HTTP Headers Ref", Zh = "HTTP 標頭參考", Glyph = ((char)0xEB41).ToString(), Keywords = "http header headers request response cache cors security cookie auth reference mime standard 標頭 標頭參考 請求 回應 快取 安全 曲奇 參考" },
+        new() { Tag = "module.calendarmonth", En = "Calendar", Zh = "月曆", Glyph = ((char)0xE787).ToString(), Keywords = "calendar month week iso weekday date day-of-year today 月曆 日曆 月份 星期 週數 日期 今日" },
+        new() { Tag = "module.jsonltools", En = "JSONL Tools", Zh = "JSONL 工具", Glyph = ((char)0xE943).ToString(), Keywords = "jsonl ndjson json lines array validate minify pretty convert JSONL 換行 分行 陣列 驗證 壓縮 美化 轉換" },
     };
 
     public static IEnumerable<ModuleInfo> Search(string query)

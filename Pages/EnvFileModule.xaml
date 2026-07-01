@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.EnvFileModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="900" Spacing="14">
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE7C3;" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <!-- Raw input -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="RawTitle" FontWeight="SemiBold" FontSize="15" />
+                    <TextBox x:Name="RawBox" AcceptsReturn="True" TextWrapping="NoWrap" IsSpellCheckEnabled="False"
+                             FontFamily="Consolas" MinHeight="150"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                             ScrollViewer.HorizontalScrollBarVisibility="Auto" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="ParseBtn" Click="Parse_Click" Style="{ThemeResource AccentButtonStyle}" />
+                        <Button x:Name="LoadBtn" Click="Load_Click" />
+                        <Button x:Name="SaveBtn" Click="Save_Click" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Pairs editor -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="PairsTitle" Grid.Column="0" FontWeight="SemiBold" FontSize="15" VerticalAlignment="Center" />
+                        <Button x:Name="AddBtn" Grid.Column="1" Click="Add_Click" />
+                    </Grid>
+
+                    <ListView x:Name="PairsList" SelectionMode="None" MaxHeight="320"
+                              ScrollViewer.VerticalScrollBarVisibility="Auto">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnSpacing="8" Padding="0,4,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="220" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Grid.Column="0" Text="{Binding Key, Mode=TwoWay}" FontFamily="Consolas" PlaceholderText="KEY" />
+                                    <TextBox Grid.Column="1" Text="{Binding Value, Mode=TwoWay}" FontFamily="Consolas" PlaceholderText="value" />
+                                    <Button Grid.Column="2" Click="Remove_Click" Tag="{Binding}"
+                                            FontFamily="Segoe Fluent Icons" Content="&#xE74D;">
+                                        <ToolTipService.ToolTip>
+                                            <TextBlock Text="Remove · 移除" />
+                                        </ToolTipService.ToolTip>
+                                    </Button>
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+
+                    <TextBlock x:Name="WarningsBlock" Foreground="{ThemeResource SystemFillColorCautionBrush}"
+                               TextWrapping="Wrap" FontSize="12" Visibility="Collapsed" />
+                </StackPanel>
+            </Border>
+
+            <!-- Convert -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="ConvertTitle" FontWeight="SemiBold" FontSize="15" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="ShellBtn" Click="Shell_Click" />
+                        <Button x:Name="JsonBtn" Click="Json_Click" />
+                        <Button x:Name="DockerBtn" Click="Docker_Click" />
+                        <Button x:Name="EnvBtn" Click="Env_Click" />
+                        <Button x:Name="CopyBtn" Click="Copy_Click" />
+                    </StackPanel>
+                    <TextBox x:Name="OutputBox" AcceptsReturn="True" IsReadOnly="True" TextWrapping="NoWrap"
+                             IsSpellCheckEnabled="False" FontFamily="Consolas" MinHeight="150"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                             ScrollViewer.HorizontalScrollBarVisibility="Auto" />
+                </StackPanel>
+            </Border>
+
+            <TextBlock x:Name="StatusText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+        </StackPanel>
+    </ScrollViewer>
+</Page>

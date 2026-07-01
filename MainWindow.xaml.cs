@@ -326,6 +326,31 @@ public sealed partial class MainWindow : Window
             case "ipv6":
                 Navigator.GoToModule?.Invoke("module.subnetv6");
                 break;
+            case "jsonpatch":
+                Navigator.GoToModule?.Invoke("module.jsonpatch");
+                break;
+            case "textwrap":
+                Navigator.GoToModule?.Invoke("module.textwrap");
+                break;
+            case "shortid":
+                Navigator.GoToModule?.Invoke("module.shortid");
+                break;
+            case "envfile":
+            case "dotenv":
+                Navigator.GoToModule?.Invoke("module.envfile");
+                break;
+            case "httpheaderref":
+            case "headerref":
+                Navigator.GoToModule?.Invoke("module.httpheaderref");
+                break;
+            case "calendarmonth":
+            case "calendar":
+                Navigator.GoToModule?.Invoke("module.calendarmonth");
+                break;
+            case "jsonltools":
+            case "ndjson":
+                Navigator.GoToModule?.Invoke("module.jsonltools");
+                break;
             case "passwordstrength":
             case "pwstrength":
                 Navigator.GoToModule?.Invoke("module.passwordstrength");
@@ -2042,6 +2067,13 @@ public sealed partial class MainWindow : Window
         "module.contrastgrid" => typeof(ContrastGridModule),
         "module.entropy" => typeof(EntropyModule),
         "module.subnetv6" => typeof(SubnetV6Module),
+        "module.jsonpatch" => typeof(JsonPatchModule),
+        "module.textwrap" => typeof(TextWrapModule),
+        "module.shortid" => typeof(ShortIdModule),
+        "module.envfile" => typeof(EnvFileModule),
+        "module.httpheaderref" => typeof(HttpHeaderRefModule),
+        "module.calendarmonth" => typeof(CalendarMonthModule),
+        "module.jsonltools" => typeof(JsonlToolsModule),
         _ => typeof(DashboardPage),
     };
 
@@ -2406,6 +2438,17 @@ public sealed partial class MainWindow : Window
             {
                 "module.curlgen", "module.httpstatus", "module.subnetv6", "module.tzplanner",
                 "module.contrastgrid", "module.entropy", "module.clipinspect",
+            },
+        },
+        new()
+        {
+            Id = "devdata2",
+            En = "Data & dev extras",
+            Zh = "資料與開發工具",
+            Keys = new[]
+            {
+                "module.jsonpatch", "module.jsonltools", "module.textwrap", "module.shortid",
+                "module.envfile", "module.httpheaderref", "module.calendarmonth",
             },
         },
     };
