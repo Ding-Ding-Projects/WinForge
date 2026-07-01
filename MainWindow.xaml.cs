@@ -419,6 +419,27 @@ public sealed partial class MainWindow : Window
             case "hydrogen":
                 Navigator.GoToModule?.Invoke("module.h2plant");
                 break;
+            case "aicluster":
+                Navigator.GoToModule?.Invoke("module.aicluster");
+                break;
+            case "hpc":
+            case "supercomputer":
+                Navigator.GoToModule?.Invoke("module.hpc");
+                break;
+            case "computemine":
+            case "mine":
+                Navigator.GoToModule?.Invoke("module.computemine");
+                break;
+            case "smelter":
+                Navigator.GoToModule?.Invoke("module.smelter");
+                break;
+            case "datacenter":
+                Navigator.GoToModule?.Invoke("module.datacenter");
+                break;
+            case "collider":
+            case "fusion":
+                Navigator.GoToModule?.Invoke("module.collider");
+                break;
             case "uuidv7":
                 Navigator.GoToModule?.Invoke("module.uuidv7");
                 break;
@@ -2219,6 +2240,12 @@ public sealed partial class MainWindow : Window
         "module.haranalyzer" => typeof(HarAnalyzerModule),
         "module.griddispatch" => typeof(GridDispatchModule),
         "module.h2plant" => typeof(H2PlantModule),
+        "module.aicluster" => typeof(AiClusterModule),
+        "module.hpc" => typeof(HpcModule),
+        "module.computemine" => typeof(ComputeMineModule),
+        "module.smelter" => typeof(SmelterModule),
+        "module.datacenter" => typeof(DataCenterModule),
+        "module.collider" => typeof(ColliderModule),
         "module.uuidv7" => typeof(UuidV7Module),
         "module.jsonschema" => typeof(JsonSchemaModule),
         "module.htmlentities" => typeof(HtmlEntitiesModule),
@@ -2631,7 +2658,8 @@ public sealed partial class MainWindow : Window
             Zh = "反應堆供電負載",
             Keys = new[]
             {
-                "module.griddispatch", "module.h2plant",
+                "module.griddispatch", "module.h2plant", "module.aicluster", "module.hpc",
+                "module.computemine", "module.smelter", "module.datacenter", "module.collider",
             },
         },
         new()

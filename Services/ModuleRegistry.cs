@@ -308,6 +308,12 @@ public static class ModuleRegistry
         new() { Tag = "module.queryedit", En = "URL Query Editor", Zh = "網址查詢編輯器", Glyph = ((char)0xEB41).ToString(), Keywords = "url query string parameters edit encode decode percent key value querystring 網址 查詢 參數 編碼 解碼" },
         new() { Tag = "module.morse", En = "Morse Code", Zh = "摩斯電碼", Glyph = ((char)0xE8D6).ToString(), Keywords = "morse code encode decode dots dashes international telegraph flash 摩斯 密碼 電碼 點 劃 電報" },
         new() { Tag = "module.romannum", En = "Roman Numerals", Zh = "羅馬數字", Glyph = ((char)0xE943).ToString(), Keywords = "roman numerals number convert MCMXCIV validate 羅馬 數字 轉換 大寫 驗證" },
+        new() { Tag = "module.aicluster", En = "AI Training Cluster", Zh = "AI 訓練叢集", Glyph = ((char)0xE99A).ToString(), Keywords = "ai training cluster gpu pflop compute machine learning model reactor nuclear power load megawatt heavy 人工智能 訓練 叢集 運算 深度學習 模型 核電 反應堆 供電 重負載" },
+        new() { Tag = "module.hpc", En = "Supercomputer (HPC)", Zh = "超級電腦（HPC）", Glyph = ((char)0xE9D9).ToString(), Keywords = "hpc supercomputer compute cluster nodes job queue pflops high performance computing reactor nuclear load heavy 超級電腦 高效能運算 運算叢集 節點 作業佇列 核電 反應堆 重負載" },
+        new() { Tag = "module.computemine", En = "Compute Mine", Zh = "運算礦場", Glyph = ((char)0xE945).ToString(), Keywords = "compute mine mining crypto hashrate rig power draw megawatt reactor nuclear load earnings efficiency 運算 礦場 挖礦 礦機 算力 加密貨幣 核電 核能 反應堆 耗電 重負載 收益" },
+        new() { Tag = "module.smelter", En = "Aluminium Smelter", Zh = "鋁冶煉廠", Glyph = ((char)0xEA0C).ToString(), Keywords = "aluminium aluminum smelter hall-heroult pot-line electrolysis reactor nuclear heavy load industrial molten freeze tonnes 鋁 冶煉 電解 電解槽 核電 重負載 熔融 凍結 產量" },
+        new() { Tag = "module.datacenter", En = "Nuclear Data Center", Zh = "核能資料中心", Glyph = ((char)0xE968).ToString(), Keywords = "data center datacenter hyperscale server rack cooling pue uptime sla requests reactor nuclear load heavy 核能 資料中心 數據中心 伺服器 機櫃 散熱 用電 負載 反應堆 核電 重負載" },
+        new() { Tag = "module.collider", En = "Particle Collider", Zh = "粒子對撞機", Glyph = ((char)0xEA86).ToString(), Keywords = "particle collider accelerator beam energy tev magnet luminosity physics reactor nuclear heavy load megawatt 粒子 對撞機 加速器 束能 磁鐵 亮度 物理 核電 反應堆 重負載" },
     };
 
     public static IEnumerable<ModuleInfo> Search(string query)
