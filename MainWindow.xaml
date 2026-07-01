@@ -109,6 +109,24 @@
                 <NavigationViewItem Content="Hydrogen Electrolysis · 氫電解制氫廠" Tag="module.h2plant">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE945;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
+                <NavigationViewItem Content="AI Training Cluster · AI 訓練叢集" Tag="module.aicluster">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE99A;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Supercomputer (HPC) · 超級電腦" Tag="module.hpc">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE9D9;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Compute Mine · 運算礦場" Tag="module.computemine">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE945;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Aluminium Smelter · 鋁冶煉廠" Tag="module.smelter">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xEA0C;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Nuclear Data Center · 核能資料中心" Tag="module.datacenter">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE968;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Particle Collider · 粒子對撞機" Tag="module.collider">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xEA86;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
                 <NavigationViewItem Content="All Apps · 所有 app" Tag="shell.allapps">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE71D;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
