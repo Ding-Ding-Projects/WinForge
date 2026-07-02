@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.diagram</code> |
+| Deep-link alias · 深層連結別名 | <code>diagram</code> |
 | Category · 分類 | Apps & Git · 程式與 Git |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>DiagramEditorModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/DiagramEditorModule.xaml</code> |
 | Button docs · 按鈕文件 | 20 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Diagram Editor is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Diagram Editor is registered in WinForge search and navigation with these keywords: <code>diagram drawio draw.io diagrams.net flowchart flow chart shapes shape rectangle rounded ellipse circle diamond text node connector arrow edge link canvas whiteboard mind map mindmap org chart graph vector editor zoom snap grid duplicate z-order bring front send back png export json save load 圖表 流程圖 圖 形狀 矩形 圓角 橢圓 菱形 文字 節點 連線 箭咀 畫布 白板 心智圖 組織圖 向量 縮放 貼齊 格線 複製 層次 匯出 儲存</code>.
 
-**粵語 —** 圖表編輯器 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 圖表編輯器 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>diagram drawio draw.io diagrams.net flowchart flow chart shapes shape rectangle rounded ellipse circle diamond text node connector arrow edge link canvas whiteboard mind map mindmap org chart graph vector editor zoom snap grid duplicate z-order bring front send back png export json save load 圖表 流程圖 圖 形狀 矩形 圓角 橢圓 菱形 文字 節點 連線 箭咀 畫布 白板 心智圖 組織圖 向量 縮放 貼齊 格線 複製 層次 匯出 儲存</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.hexeditor</code> |
+| Deep-link alias · 深層連結別名 | <code>hex</code> |
 | Category · 分類 | Files & Disks · 檔案與磁碟 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>HexEditorModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/HexEditorModule.xaml</code> |
 | Button docs · 按鈕文件 | 7 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Hex Editor is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Hex Editor is registered in WinForge search and navigation with these keywords: <code>hex editor hexeditor hxd binary editor byte bytes offset ascii hexadecimal view edit overwrite insert delete find search go to goto md5 sha1 sha-1 sha256 sha-256 hash checksum memory mapped large file dump raw 十六進位 二進位 編輯器 位元組 位移 雜湊 校驗 搜尋 跳到 覆寫 插入 刪除 記憶體對應 大檔</code>.
 
-**粵語 —** 十六進位編輯器 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 十六進位編輯器 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>hex editor hexeditor hxd binary editor byte bytes offset ascii hexadecimal view edit overwrite insert delete find search go to goto md5 sha1 sha-1 sha256 sha-256 hash checksum memory mapped large file dump raw 十六進位 二進位 編輯器 位元組 位移 雜湊 校驗 搜尋 跳到 覆寫 插入 刪除 記憶體對應 大檔</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

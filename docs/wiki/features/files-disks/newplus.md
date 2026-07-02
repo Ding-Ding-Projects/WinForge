@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.newplus</code> |
+| Deep-link alias · 深層連結別名 | <code>newplus</code> |
 | Category · 分類 | Files & Disks · 檔案與磁碟 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>NewPlusModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/NewPlusModule.xaml</code> |
 | Button docs · 按鈕文件 | 11 |
 
 ## What It Covers · 功能範圍
 
-**EN —** New+ is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** New+ is registered in WinForge search and navigation with these keywords: <code>new plus newplus powertoys template templates create file folder new menu shellnew context menu date variable substitution scaffold blank boilerplate 範本 新增 範本新增 建立 檔案 資料夾 新增選單 變數 日期 樣板 鷹架</code>.
 
-**粵語 —** 範本新增 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 範本新增 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>new plus newplus powertoys template templates create file folder new menu shellnew context menu date variable substitution scaffold blank boilerplate 範本 新增 範本新增 建立 檔案 資料夾 新增選單 變數 日期 樣板 鷹架</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

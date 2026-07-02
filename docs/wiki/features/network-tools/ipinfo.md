@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.ipinfo</code> |
+| Deep-link alias · 深層連結別名 | <code>ipinfo</code> |
 | Category · 分類 | Network Tools · 網絡工具 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>IpInfoModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/IpInfoModule.xaml</code> |
 | Button docs · 按鈕文件 | 2 |
 
 ## What It Covers · 功能範圍
 
-**EN —** IP & Network Info is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** IP & Network Info is registered in WinForge search and navigation with these keywords: <code>ip network adapter mac ipv4 ipv6 gateway dns public ip lan wifi ethernet 網絡 網卡 位址 閘道 公開ip 網絡資訊</code>.
 
-**粵語 —** IP 同網絡資訊 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** IP 同網絡資訊 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>ip network adapter mac ipv4 ipv6 gateway dns public ip lan wifi ethernet 網絡 網卡 位址 閘道 公開ip 網絡資訊</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

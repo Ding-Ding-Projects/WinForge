@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.fileserver</code> |
+| Deep-link alias · 深層連結別名 | <code>fileserver</code> |
 | Category · 分類 | Apps & Git · 程式與 Git |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>FileServerModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/FileServerModule.xaml</code> |
 | Button docs · 按鈕文件 | 6 |
 
 ## What It Covers · 功能範圍
 
-**EN —** File Server (FTP/SFTP host) is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** File Server (FTP/SFTP host) is registered in WinForge search and navigation with these keywords: <code>file server host share folder ftp sftp ftps serve expose docker atmoz sftp alpine ftp server passive port range lan connection string self host multiple shares 檔案伺服器 主機 分享 資料夾 對外 共享 連接埠 被動 區域網 連線字串 多分享 自託管</code>.
 
-**粵語 —** 檔案伺服器（FTP／SFTP 主機） 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 檔案伺服器（FTP／SFTP 主機） 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>file server host share folder ftp sftp ftps serve expose docker atmoz sftp alpine ftp server passive port range lan connection string self host multiple shares 檔案伺服器 主機 分享 資料夾 對外 共享 連接埠 被動 區域網 連線字串 多分享 自託管</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

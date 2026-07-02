@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.proxmox</code> |
+| Deep-link alias · 深層連結別名 | <code>proxmox</code> |
 | Category · 分類 | Apps & Git · 程式與 Git |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>ProxmoxModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/ProxmoxModule.xaml</code> |
 | Button docs · 按鈕文件 | 10 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Proxmox VE is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Proxmox VE is registered in WinForge search and navigation with these keywords: <code>proxmox pve vmhost hypervisor virtualization rest api token ticket node nodes cluster qemu kvm lxc container vm virtual machine guest start stop shutdown reboot suspend resume power on off status running stopped self-signed certificate trust datacenter homelab 虛擬化 虛擬機 容器 節點 叢集 電源 啟動 關機 停止 重新開機 暫停 繼續 自簽憑證 權杖 同主機</code>.
 
-**粵語 —** Proxmox VE 虛擬化 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** Proxmox VE 虛擬化 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>proxmox pve vmhost hypervisor virtualization rest api token ticket node nodes cluster qemu kvm lxc container vm virtual machine guest start stop shutdown reboot suspend resume power on off status running stopped self-signed certificate trust datacenter homelab 虛擬化 虛擬機 容器 節點 叢集 電源 啟動 關機 停止 重新開機 暫停 繼續 自簽憑證 權杖 同主機</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

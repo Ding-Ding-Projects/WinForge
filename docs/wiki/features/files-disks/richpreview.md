@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.richpreview</code> |
+| Deep-link alias · 深層連結別名 | <code>richpreview</code> |
 | Category · 分類 | Files & Disks · 檔案與磁碟 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>RichPreviewModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/RichPreviewModule.xaml</code> |
 | Button docs · 按鈕文件 | 8 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Rich Preview is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Rich Preview is registered in WinForge search and navigation with these keywords: <code>rich preview preview pane peek file explorer add-ons handlers svg markdown md pdf source code json xml yaml toml gcode g-code 3d print qoi image thumbnail metadata render viewer webview2 monaco powertoys file preview drop open prev next 預覽 預覽窗格 檔案 渲染 縮圖 圖片 原始碼 開發 拖放</code>.
 
-**粵語 —** 豐富預覽 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 豐富預覽 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>rich preview preview pane peek file explorer add-ons handlers svg markdown md pdf source code json xml yaml toml gcode g-code 3d print qoi image thumbnail metadata render viewer webview2 monaco powertoys file preview drop open prev next 預覽 預覽窗格 檔案 渲染 縮圖 圖片 原始碼 開發 拖放</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.regexcheat</code> |
+| Deep-link alias · 深層連結別名 | <code>regexcheat</code> |
 | Category · 分類 | Dev Helpers · 開發小工具 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>RegexCheatModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/RegexCheatModule.xaml</code> |
 | Button docs · 按鈕文件 | 0 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Regex Cheatsheet is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Regex Cheatsheet is registered in WinForge search and navigation with these keywords: <code>regex regular expression cheatsheet reference tokens character class anchor quantifier lookaround flags .net 正則 正規表達式 速查 參考 字元類 錨點 量詞</code>.
 
-**粵語 —** 正則速查 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 正則速查 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>regex regular expression cheatsheet reference tokens character class anchor quantifier lookaround flags .net 正則 正規表達式 速查 參考 字元類 錨點 量詞</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

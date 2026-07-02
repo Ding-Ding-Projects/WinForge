@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.komorebi</code> |
+| Deep-link alias · 深層連結別名 | <code>komorebi</code> |
 | Category · 分類 | Tweaks & Input · 調校與輸入 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>KomorebiModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/KomorebiModule.xaml</code> |
 | Button docs · 按鈕文件 | 19 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Komorebi (Tiling WM) is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Komorebi (Tiling WM) is registered in WinForge search and navigation with these keywords: <code>komorebi komorebic tiling window manager tile bsp columns rows stack grid monocle float workspace monitor layout daemon wm whkd gaps padding 平鋪 視窗管理 排版 工作區 守護程序 間距</code>.
 
-**粵語 —** Komorebi 平鋪視窗管理 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** Komorebi 平鋪視窗管理 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>komorebi komorebic tiling window manager tile bsp columns rows stack grid monocle float workspace monitor layout daemon wm whkd gaps padding 平鋪 視窗管理 排版 工作區 守護程序 間距</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

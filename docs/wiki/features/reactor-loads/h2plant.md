@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.h2plant</code> |
+| Deep-link alias · 深層連結別名 | <code>h2plant</code> |
 | Category · 分類 | Reactor Loads · 反應堆負載 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>H2PlantModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/H2PlantModule.xaml</code> |
 | Button docs · 按鈕文件 | 2 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Hydrogen Electrolysis is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Hydrogen Electrolysis is registered in WinForge search and navigation with these keywords: <code>hydrogen electrolysis h2 plant reactor mwe power water splitting green fuel nuclear 氫 電解 制氫 反應堆 電力 綠氫 儲氫 核能</code>.
 
-**粵語 —** 氫電解制氫廠 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 氫電解制氫廠 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>hydrogen electrolysis h2 plant reactor mwe power water splitting green fuel nuclear 氫 電解 制氫 反應堆 電力 綠氫 儲氫 核能</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

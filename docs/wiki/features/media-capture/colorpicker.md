@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.colorpicker</code> |
+| Deep-link alias · 深層連結別名 | <code>colorpicker</code> |
 | Category · 分類 | Media & Capture · 媒體與擷取 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>ColorPickerModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/ColorPickerModule.xaml</code> |
 | Button docs · 按鈕文件 | 5 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Color Picker is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Color Picker is registered in WinForge search and navigation with these keywords: <code>color picker hex rgb hsl eyedropper 取色 顏色</code>.
 
-**粵語 —** 螢幕取色 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 螢幕取色 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>color picker hex rgb hsl eyedropper 取色 顏色</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

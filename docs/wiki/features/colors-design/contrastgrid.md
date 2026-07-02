@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.contrastgrid</code> |
+| Deep-link alias · 深層連結別名 | <code>contrastgrid</code> |
 | Category · 分類 | Colors & Design · 色彩與設計 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>ContrastGridModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/ContrastGridModule.xaml</code> |
 | Button docs · 按鈕文件 | 3 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Contrast Grid is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Contrast Grid is registered in WinForge search and navigation with these keywords: <code>contrast wcag accessibility ratio color colour hex rgb aa aaa a11y 對比度 無障礙 顏色 色彩 可讀性</code>.
 
-**粵語 —** 對比度網格 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 對比度網格 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>contrast wcag accessibility ratio color colour hex rgb aa aaa a11y 對比度 無障礙 顏色 色彩 可讀性</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

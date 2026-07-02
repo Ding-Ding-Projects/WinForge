@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.keepass</code> |
+| Deep-link alias · 深層連結別名 | <code>keepass</code> |
 | Category · 分類 | Apps & Git · 程式與 Git |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>KeePassModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/KeePassModule.xaml</code> |
 | Button docs · 按鈕文件 | 13 |
 
 ## What It Covers · 功能範圍
 
-**EN —** KeePass Vault is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** KeePass Vault is registered in WinForge search and navigation with these keywords: <code>keepass kdbx kee pass password vault local offline manager database master password key file open create entry group tree generator generate clipboard auto clear search lock unlock aes chacha20 argon2 salsa20 native encrypt decrypt 密碼保險庫 密碼庫 密碼 管理 本機 離線 主密碼 鎖匙檔 群組 項目 產生器 搜尋 鎖定 解鎖 加密 解密 原生</code>.
 
-**粵語 —** 密碼保險庫 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 密碼保險庫 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>keepass kdbx kee pass password vault local offline manager database master password key file open create entry group tree generator generate clipboard auto clear search lock unlock aes chacha20 argon2 salsa20 native encrypt decrypt 密碼保險庫 密碼庫 密碼 管理 本機 離線 主密碼 鎖匙檔 群組 項目 產生器 搜尋 鎖定 解鎖 加密 解密 原生</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

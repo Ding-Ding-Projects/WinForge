@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.headerscore</code> |
+| Deep-link alias · 深層連結別名 | <code>headerscore</code> |
 | Category · 分類 | Web & HTTP · 網頁與 HTTP |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>HeaderScoreModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/HeaderScoreModule.xaml</code> |
 | Button docs · 按鈕文件 | 3 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Security Header Score is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Security Header Score is registered in WinForge search and navigation with these keywords: <code>http header security score csp hsts x-frame-options referrer permissions coop coep scorecard grade 安全 標頭 計分 網頁 安全性 標頭評分 版本洩露</code>.
 
-**粵語 —** 安全標頭計分 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 安全標頭計分 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>http header security score csp hsts x-frame-options referrer permissions coop coep scorecard grade 安全 標頭 計分 網頁 安全性 標頭評分 版本洩露</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

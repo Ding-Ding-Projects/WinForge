@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.terminal</code> |
+| Deep-link alias · 深層連結別名 | <code>terminal</code> |
 | Category · 分類 | Apps & Git · 程式與 Git |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>TerminalModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/TerminalModule.xaml</code> |
 | Button docs · 按鈕文件 | 13 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Windows Terminal is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Windows Terminal is registered in WinForge search and navigation with these keywords: <code>windows terminal wt settings.json profiles profile editor conpty pseudo console embedded shell pwsh powershell cmd wsl color scheme font default duplicate launch new tab pane 終端機 設定檔 內嵌 偽終端機 殼層 預設 複製 啟動 分頁 窗格 色彩配置 字型</code>.
 
-**粵語 —** Windows 終端機 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** Windows 終端機 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>windows terminal wt settings.json profiles profile editor conpty pseudo console embedded shell pwsh powershell cmd wsl color scheme font default duplicate launch new tab pane 終端機 設定檔 內嵌 偽終端機 殼層 預設 複製 啟動 分頁 窗格 色彩配置 字型</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

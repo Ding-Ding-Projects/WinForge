@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.blender</code> |
+| Deep-link alias · 深層連結別名 | <code>blender</code> |
 | Category · 分類 | Media & Capture · 媒體與擷取 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>BlenderModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/BlenderModule.xaml</code> |
 | Button docs · 按鈕文件 | 23 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Blender (3D / Render) is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Blender (3D / Render) is registered in WinForge search and navigation with these keywords: <code>blender 3d render rendering cycles eevee headless animation frame gltf fbx obj python script batch queue cpu gpu samples output mcp blender-mcp model context protocol codex claude opencode agents skills multi agent 算圖 渲染 動畫 影格 匯出 批次 佇列 agent skill</code>.
 
-**粵語 —** Blender（3D／算圖） 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** Blender（3D／算圖） 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>blender 3d render rendering cycles eevee headless animation frame gltf fbx obj python script batch queue cpu gpu samples output mcp blender-mcp model context protocol codex claude opencode agents skills multi agent 算圖 渲染 動畫 影格 匯出 批次 佇列 agent skill</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

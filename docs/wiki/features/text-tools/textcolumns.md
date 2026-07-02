@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.textcolumns</code> |
+| Deep-link alias · 深層連結別名 | <code>textcolumns</code> |
 | Category · 分類 | Text Tools · 文字工具 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>TextColumnsModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/TextColumnsModule.xaml</code> |
 | Button docs · 按鈕文件 | 7 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Column Tools is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Column Tools is registered in WinForge search and navigation with these keywords: <code>columns column text delimited split tab csv comma extract delete reorder align transpose trim 欄位 欄 分隔符 分割 表格 抽取 刪除 重排 對齊 行列互換 修剪</code>.
 
-**粵語 —** 欄位文字工具 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 欄位文字工具 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>columns column text delimited split tab csv comma extract delete reorder align transpose trim 欄位 欄 分隔符 分割 表格 抽取 刪除 重排 對齊 行列互換 修剪</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

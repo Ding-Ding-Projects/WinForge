@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.imageeditor</code> |
+| Deep-link alias · 深層連結別名 | <code>imageeditor</code> |
 | Category · 分類 | Media & Capture · 媒體與擷取 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>ImageEditorModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/ImageEditorModule.xaml</code> |
 | Button docs · 按鈕文件 | 29 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Image Editor is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Image Editor is registered in WinForge search and navigation with these keywords: <code>image editor photo editor raster paint.net gimp photoshop alternative imagesharp png jpg jpeg bmp gif webp open save export quality canvas zoom pan brightness contrast saturation hue gamma adjust grayscale invert sepia gaussian blur sharpen edge detect filter crop resize rotate flip aspect brush pencil fill bucket eraser eyedropper text tool layers opacity show hide undo redo 影像 影像編輯 相片 點陣圖 編輯器 開啟 儲存 匯出 品質 畫布 縮放 平移 亮度 對比 飽和度 色相 伽瑪 灰階 反相 棕褐 高斯模糊 銳化 邊緣偵測 濾鏡 裁切 旋轉 翻轉 長寬比 筆刷 鉛筆 填色 橡皮 吸色 文字 圖層 不透明度 顯示 隱藏 復原 重做</code>.
 
-**粵語 —** 點陣圖影像編輯器 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 點陣圖影像編輯器 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>image editor photo editor raster paint.net gimp photoshop alternative imagesharp png jpg jpeg bmp gif webp open save export quality canvas zoom pan brightness contrast saturation hue gamma adjust grayscale invert sepia gaussian blur sharpen edge detect filter crop resize rotate flip aspect brush pencil fill bucket eraser eyedropper text tool layers opacity show hide undo redo 影像 影像編輯 相片 點陣圖 編輯器 開啟 儲存 匯出 品質 畫布 縮放 平移 亮度 對比 飽和度 色相 伽瑪 灰階 反相 棕褐 高斯模糊 銳化 邊緣偵測 濾鏡 裁切 旋轉 翻轉 長寬比 筆刷 鉛筆 填色 橡皮 吸色 文字 圖層 不透明度 顯示 隱藏 復原 重做</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

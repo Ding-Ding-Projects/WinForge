@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.textreplace</code> |
+| Deep-link alias · 深層連結別名 | <code>textreplace</code> |
 | Category · 分類 | Text Tools · 文字工具 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>TextReplaceModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/TextReplaceModule.xaml</code> |
 | Button docs · 按鈕文件 | 3 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Find & Replace is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Find & Replace is registered in WinForge search and navigation with these keywords: <code>find replace regex text substitute multi-rule pattern 尋找 取代 替換 正規表達式 批量 文字</code>.
 
-**粵語 —** 尋找及取代 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 尋找及取代 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>find replace regex text substitute multi-rule pattern 尋找 取代 替換 正規表達式 批量 文字</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.mouseutils</code> |
+| Deep-link alias · 深層連結別名 | <code>mouseutils</code> |
 | Category · 分類 | Tweaks & Input · 調校與輸入 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>MouseUtilsModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/MouseUtilsModule.xaml</code> |
 | Button docs · 按鈕文件 | 0 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Mouse Utilities is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Mouse Utilities is registered in WinForge search and navigation with these keywords: <code>mouse utilities utils powertoys find my mouse findmymouse spotlight sonar double ctrl shake highlighter highlight click circle crosshairs crosshair lines pointer jump teleport screenshot overlay hook cursor locate ring 滑鼠 工具 搵滑鼠 聚光燈 標示 點擊 十字線 指標 跳轉 傳送 截圖 覆蓋層 游標 光圈</code>.
 
-**粵語 —** 滑鼠工具 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 滑鼠工具 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>mouse utilities utils powertoys find my mouse findmymouse spotlight sonar double ctrl shake highlighter highlight click circle crosshairs crosshair lines pointer jump teleport screenshot overlay hook cursor locate ring 滑鼠 工具 搵滑鼠 聚光燈 標示 點擊 十字線 指標 跳轉 傳送 截圖 覆蓋層 游標 光圈</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

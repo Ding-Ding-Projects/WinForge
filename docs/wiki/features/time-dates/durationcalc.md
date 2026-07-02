@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.durationcalc</code> |
+| Deep-link alias · 深層連結別名 | <code>durationcalc</code> |
 | Category · 分類 | Time & Dates · 時間與日期 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>DurationCalcModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/DurationCalcModule.xaml</code> |
 | Button docs · 按鈕文件 | 8 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Duration Calculator is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Duration Calculator is registered in WinForge search and navigation with these keywords: <code>duration time calculator timespan add subtract sum convert hours minutes seconds days 時長 時間 計算器 計算 加 減 加總 換算 小時 分鐘 秒 日 乘 除</code>.
 
-**粵語 —** 時長計算器 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 時長計算器 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>duration time calculator timespan add subtract sum convert hours minutes seconds days 時長 時間 計算器 計算 加 減 加總 換算 小時 分鐘 秒 日 乘 除</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

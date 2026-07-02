@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.configbackup</code> |
+| Deep-link alias · 深層連結別名 | <code>configbackup</code> |
 | Category · 分類 | Apps & Git · 程式與 Git |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>ConfigBackupModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/ConfigBackupModule.xaml</code> |
 | Button docs · 按鈕文件 | 17 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Config & Backup is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Config & Backup is registered in WinForge search and navigation with these keywords: <code>config backup snapshot restore export import bundle zip git schedule mirror reg winget integrity secrets ssh api key encrypt aes password 設定 備份 快照 還原 匯出 匯入 排程 鏡像 加密 密鑰 機密</code>.
 
-**粵語 —** 設定與備份 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 設定與備份 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>config backup snapshot restore export import bundle zip git schedule mirror reg winget integrity secrets ssh api key encrypt aes password 設定 備份 快照 還原 匯出 匯入 排程 鏡像 加密 密鑰 機密</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

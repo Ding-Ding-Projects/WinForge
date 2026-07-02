@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.media</code> |
+| Deep-link alias · 深層連結別名 | <code>media</code> |
 | Category · 分類 | Media & Capture · 媒體與擷取 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>MediaModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/MediaModule.xaml</code> |
 | Button docs · 按鈕文件 | 6 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Media is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Media is registered in WinForge search and navigation with these keywords: <code>ffmpeg video audio convert trim gif 影片 音訊 轉檔</code>.
 
-**粵語 —** 媒體 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 媒體 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>ffmpeg video audio convert trim gif 影片 音訊 轉檔</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.resume</code> |
+| Deep-link alias · 深層連結別名 | <code>resume</code> |
 | Category · 分類 | Apps & Git · 程式與 Git |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>ResumeWriterModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/ResumeWriterModule.xaml</code> |
 | Button docs · 按鈕文件 | 12 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Resume Writer is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Resume Writer is registered in WinForge search and navigation with these keywords: <code>resume cv cover letter job application tailor ai writer generate export base history docx pdf markdown 履歷 求職信 應徵 工作 職位 自我推薦 度身 生成 匯出</code>.
 
-**粵語 —** 履歷與求職信寫手 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 履歷與求職信寫手 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>resume cv cover letter job application tailor ai writer generate export base history docx pdf markdown 履歷 求職信 應徵 工作 職位 自我推薦 度身 生成 匯出</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

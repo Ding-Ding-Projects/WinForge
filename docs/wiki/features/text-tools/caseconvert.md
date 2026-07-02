@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.caseconvert</code> |
+| Deep-link alias · 深層連結別名 | <code>caseconvert</code> |
 | Category · 分類 | Text Tools · 文字工具 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>CaseConvertModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/CaseConvertModule.xaml</code> |
 | Button docs · 按鈕文件 | 1 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Case Converter is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Case Converter is registered in WinForge search and navigation with these keywords: <code>case convert camel pascal snake kebab constant title sentence dot path train naming identifier variable rename 大小寫 命名 轉換 駝峰 蛇形 烤串 常數 標題 變數 識別碼</code>.
 
-**粵語 —** 大小寫轉換 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 大小寫轉換 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>case convert camel pascal snake kebab constant title sentence dot path train naming identifier variable rename 大小寫 命名 轉換 駝峰 蛇形 烤串 常數 標題 變數 識別碼</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

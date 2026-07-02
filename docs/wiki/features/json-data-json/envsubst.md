@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.envsubst</code> |
+| Deep-link alias · 深層連結別名 | <code>envsubst</code> |
 | Category · 分類 | JSON & Data · JSON 與資料 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>EnvSubstModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/EnvSubstModule.xaml</code> |
 | Button docs · 按鈕文件 | 6 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Variable Substitute is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Variable Substitute is registered in WinForge search and navigation with these keywords: <code>envsubst variable substitution template placeholder dollar brace default environment interpolate 變數 代入 範本 佔位符 預設值 環境變數 插值</code>.
 
-**粵語 —** 變數代入 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 變數代入 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>envsubst variable substitution template placeholder dollar brace default environment interpolate 變數 代入 範本 佔位符 預設值 環境變數 插值</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

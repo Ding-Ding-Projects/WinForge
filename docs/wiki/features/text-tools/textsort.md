@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.textsort</code> |
+| Deep-link alias · 深層連結別名 | <code>textsort</code> |
 | Category · 分類 | Text Tools · 文字工具 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>TextSortModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/TextSortModule.xaml</code> |
 | Button docs · 按鈕文件 | 4 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Line Sort & Dedupe is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Line Sort & Dedupe is registered in WinForge search and navigation with these keywords: <code>sort lines dedupe duplicate unique reverse shuffle natural order alphabetical trim blank 排序 去重 重複 反轉 打亂 自然排序 行</code>.
 
-**粵語 —** 行排序同去重 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 行排序同去重 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>sort lines dedupe duplicate unique reverse shuffle natural order alphabetical trim blank 排序 去重 重複 反轉 打亂 自然排序 行</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

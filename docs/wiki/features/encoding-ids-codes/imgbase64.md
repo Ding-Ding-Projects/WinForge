@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.imgbase64</code> |
+| Deep-link alias · 深層連結別名 | <code>imgbase64</code> |
 | Category · 分類 | Encoding, IDs & Codes · 編碼識別碼與條碼 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>ImgBase64Module</code> |
+| Page XAML · 頁面 XAML | <code>Pages/ImgBase64Module.xaml</code> |
 | Button docs · 按鈕文件 | 4 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Image / Base64 is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Image / Base64 is registered in WinForge search and navigation with these keywords: <code>image base64 data uri encode decode png jpg gif webp clipboard 圖片 圖像 編碼 解碼 資料 網址 剪貼簿</code>.
 
-**粵語 —** 圖片 ↔ Base64 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 圖片 ↔ Base64 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>image base64 data uri encode decode png jpg gif webp clipboard 圖片 圖像 編碼 解碼 資料 網址 剪貼簿</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

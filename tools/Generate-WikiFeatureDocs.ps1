@@ -223,6 +223,11 @@ foreach ($tag in @($modules.Keys)) {
         "| None detected from XAML · XAML 未偵測到 |  |  |  |"
     }
 
+    $moduleTag = Escape-Md ($module["Tag"])
+    $moduleAlias = Escape-Md ($module["Alias"])
+    $moduleClass = Escape-Md ($module["Class"])
+    $modulePageFile = Escape-Md ($module["PageFile"])
+    $moduleKeywords = Escape-Md ($module["Keywords"])
     $featureDoc = @"
 # $($module["En"]) · $($module["Zh"])
 
@@ -231,18 +236,18 @@ foreach ($tag in @($modules.Keys)) {
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | `$($module["Tag"])` |
-| Deep-link alias · 深層連結別名 | `$($module["Alias"])` |
+| Tag · 標籤 | <code>$moduleTag</code> |
+| Deep-link alias · 深層連結別名 | <code>$moduleAlias</code> |
 | Category · 分類 | $($module["Category"]) |
-| Page class · 頁面類別 | `$($module["Class"])` |
-| Page XAML · 頁面 XAML | `$($module["PageFile"])` |
+| Page class · 頁面類別 | <code>$moduleClass</code> |
+| Page XAML · 頁面 XAML | <code>$modulePageFile</code> |
 | Button docs · 按鈕文件 | $($module["Buttons"].Count) |
 
 ## What It Covers · 功能範圍
 
-**EN —** $($module["En"]) is registered in WinForge search and navigation with these keywords: `$($module["Keywords"])`.
+**EN —** $($module["En"]) is registered in WinForge search and navigation with these keywords: <code>$moduleKeywords</code>.
 
-**粵語 —** $($module["Zh"]) 已登記喺 WinForge 搜尋同導覽，關鍵字包括：`$($module["Keywords"])`。
+**粵語 —** $($module["Zh"]) 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>$moduleKeywords</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

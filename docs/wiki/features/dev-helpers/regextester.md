@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.regextester</code> |
+| Deep-link alias · 深層連結別名 | <code>regextester</code> |
 | Category · 分類 | Dev Helpers · 開發小工具 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>RegexTesterModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/RegexTesterModule.xaml</code> |
 | Button docs · 按鈕文件 | 0 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Regex Tester is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Regex Tester is registered in WinForge search and navigation with these keywords: <code>regex regular expression tester match groups replace pattern dotnet regexoptions ignorecase multiline timeout 正則 正規表達式 表達式 測試 比對 群組 取代 樣式</code>.
 
-**粵語 —** 正則表達式測試 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 正則表達式測試 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>regex regular expression tester match groups replace pattern dotnet regexoptions ignorecase multiline timeout 正則 正規表達式 表達式 測試 比對 群組 取代 樣式</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.connectors</code> |
+| Deep-link alias · 深層連結別名 | <code>connectors</code> |
 | Category · 分類 | Apps & Git · 程式與 Git |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>ConnectorsModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/ConnectorsModule.xaml</code> |
 | Button docs · 按鈕文件 | 5 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Connectors is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Connectors is registered in WinForge search and navigation with these keywords: <code>connector connectors integration integrations mcp model context protocol server rest api webhook database endpoint external service auth bearer api key basic credential token secret dpapi connect link enable disable test reachability 連接器 整合 外部服務 端點 驗證 權杖 密鑰 連接 啟用 停用 測試 可達性</code>.
 
-**粵語 —** 連接器 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 連接器 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>connector connectors integration integrations mcp model context protocol server rest api webhook database endpoint external service auth bearer api key basic credential token secret dpapi connect link enable disable test reachability 連接器 整合 外部服務 端點 驗證 權杖 密鑰 連接 啟用 停用 測試 可達性</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

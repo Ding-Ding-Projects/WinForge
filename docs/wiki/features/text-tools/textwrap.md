@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.textwrap</code> |
+| Deep-link alias · 深層連結別名 | <code>textwrap</code> |
 | Category · 分類 | Text Tools · 文字工具 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>TextWrapModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/TextWrapModule.xaml</code> |
 | Button docs · 按鈕文件 | 6 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Text Wrap is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Text Wrap is registered in WinForge search and navigation with these keywords: <code>text wrap reflow rewrap unwrap column width word boundary hanging indent prefix comment commit message readme 文字 換行 重排 拉直 縮排 前綴 闊度 段落 註解</code>.
 
-**粵語 —** 文字換行 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 文字換行 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>text wrap reflow rewrap unwrap column width word boundary hanging indent prefix comment commit message readme 文字 換行 重排 拉直 縮排 前綴 闊度 段落 註解</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

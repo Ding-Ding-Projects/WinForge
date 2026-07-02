@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.feedreader</code> |
+| Deep-link alias · 深層連結別名 | <code>rss</code> |
 | Category · 分類 | Apps & Git · 程式與 Git |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>FeedReaderModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/FeedReaderModule.xaml</code> |
 | Button docs · 按鈕文件 | 4 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Feed Reader is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Feed Reader is registered in WinForge search and navigation with these keywords: <code>feed reader rss atom quiterss fluent reader news subscriptions articles summary xml httpclient local json offline in-app native 閱讀器 RSS Atom Feed 訂閱 新聞 文章 摘要 原生 app內 本機</code>.
 
-**粵語 —** RSS 閱讀器 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** RSS 閱讀器 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>feed reader rss atom quiterss fluent reader news subscriptions articles summary xml httpclient local json offline in-app native 閱讀器 RSS Atom Feed 訂閱 新聞 文章 摘要 原生 app內 本機</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

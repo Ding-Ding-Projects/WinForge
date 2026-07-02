@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.textescape</code> |
+| Deep-link alias · 深層連結別名 | <code>textescape</code> |
 | Category · 分類 | Text Tools · 文字工具 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>TextEscapeModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/TextEscapeModule.xaml</code> |
 | Button docs · 按鈕文件 | 4 |
 
 ## What It Covers · 功能範圍
 
-**EN —** String Escaper is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** String Escaper is registered in WinForge search and navigation with these keywords: <code>escape unescape string json csharp javascript java python xml html url regex csv sql shell encode decode 字串 跳脫 還原 轉義 逃逸 編碼 解碼 正則 網址</code>.
 
-**粵語 —** 字串跳脫 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 字串跳脫 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>escape unescape string json csharp javascript java python xml html url regex csv sql shell encode decode 字串 跳脫 還原 轉義 逃逸 編碼 解碼 正則 網址</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

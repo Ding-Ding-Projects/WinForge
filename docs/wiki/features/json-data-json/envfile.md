@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.envfile</code> |
+| Deep-link alias · 深層連結別名 | <code>envfile</code> |
 | Category · 分類 | JSON & Data · JSON 與資料 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>EnvFileModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/EnvFileModule.xaml</code> |
 | Button docs · 按鈕文件 | 10 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Dotenv Editor is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Dotenv Editor is registered in WinForge search and navigation with these keywords: <code>env dotenv environment variables editor convert shell json docker export KEY=VALUE 環境變數 編輯器 轉換</code>.
 
-**粵語 —** .env 編輯器 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** .env 編輯器 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>env dotenv environment variables editor convert shell json docker export KEY=VALUE 環境變數 編輯器 轉換</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.decompiler</code> |
+| Deep-link alias · 深層連結別名 | <code>decompiler</code> |
 | Category · 分類 | Apps & Git · 程式與 Git |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>DecompilerModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/DecompilerModule.xaml</code> |
 | Button docs · 按鈕文件 | 5 |
 
 ## What It Covers · 功能範圍
 
-**EN —** .NET Decompiler is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** .NET Decompiler is registered in WinForge search and navigation with these keywords: <code>decompiler decompile dotnet .net assembly browser ilspy il disassembler disassemble cil msil reverse engineer csharp c# managed dll exe metadata public key token target framework referenced assemblies resources namespace type member method property field event icsharpcode decompiler reflection metadata save cs view source 反編譯器 反編譯 反組譯 組件 瀏覽 程式集 中間語言 逆向工程 受控 後設資料 公開金鑰權杖 目標框架 參考組件 資源 命名空間 型別 成員 另存原始碼</code>.
 
-**粵語 —** .NET 反編譯器 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** .NET 反編譯器 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>decompiler decompile dotnet .net assembly browser ilspy il disassembler disassemble cil msil reverse engineer csharp c# managed dll exe metadata public key token target framework referenced assemblies resources namespace type member method property field event icsharpcode decompiler reflection metadata save cs view source 反編譯器 反編譯 反組譯 組件 瀏覽 程式集 中間語言 逆向工程 受控 後設資料 公開金鑰權杖 目標框架 參考組件 資源 命名空間 型別 成員 另存原始碼</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

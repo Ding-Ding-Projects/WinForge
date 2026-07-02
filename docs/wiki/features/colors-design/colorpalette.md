@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.colorpalette</code> |
+| Deep-link alias · 深層連結別名 | <code>colorpalette</code> |
 | Category · 分類 | Colors & Design · 色彩與設計 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>ColorPaletteModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/ColorPaletteModule.xaml</code> |
 | Button docs · 按鈕文件 | 3 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Color Palette is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Color Palette is registered in WinForge search and navigation with these keywords: <code>color palette scheme hex rgb hsl complementary analogous triadic tetradic monochromatic shades tints swatch css json 色彩 調色板 配色 顏色 色板 十六進位 互補色 類似色 三等分色 單色系 匯出</code>.
 
-**粵語 —** 色彩調色板 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 色彩調色板 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>color palette scheme hex rgb hsl complementary analogous triadic tetradic monochromatic shades tints swatch css json 色彩 調色板 配色 顏色 色板 十六進位 互補色 類似色 三等分色 單色系 匯出</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

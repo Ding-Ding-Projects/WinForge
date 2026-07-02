@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.screenruler</code> |
+| Deep-link alias · 深層連結別名 | <code>screenruler</code> |
 | Category · 分類 | Media & Capture · 媒體與擷取 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>ScreenRulerModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/ScreenRulerModule.xaml</code> |
 | Button docs · 按鈕文件 | 6 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Screen Ruler is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Screen Ruler is registered in WinForge search and navigation with these keywords: <code>screen ruler measure tool measurement powertoys distance horizontal vertical cross crosshair bounds pixel px coordinate angle line color thickness overlay clipboard 間尺 度尺 量度 量尺 螢幕度尺 像素 距離 水平 垂直 十字 邊界 座標 角度 覆蓋層</code>.
 
-**粵語 —** 螢幕間尺 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 螢幕間尺 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>screen ruler measure tool measurement powertoys distance horizontal vertical cross crosshair bounds pixel px coordinate angle line color thickness overlay clipboard 間尺 度尺 量度 量尺 螢幕度尺 像素 距離 水平 垂直 十字 邊界 座標 角度 覆蓋層</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

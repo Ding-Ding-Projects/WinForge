@@ -56,15 +56,19 @@ $wikiDir = Join-Path $root 'docs/wiki'
 $wikiIndex = @()
 $wikiMap = [ordered]@{}
 if (Test-Path $wikiDir) {
-  $wikiFiles = Get-ChildItem -LiteralPath $wikiDir -Filter '*.md' -File |
+  $wikiFiles = Get-ChildItem -LiteralPath $wikiDir -Filter '*.md' -File -Recurse |
     Where-Object { $_.Name -ne 'README.md' } |
-    Sort-Object Name
+    Sort-Object FullName
   foreach ($file in $wikiFiles) {
-    $slug = [System.IO.Path]::GetFileNameWithoutExtension($file.Name)
+    $relative = [System.IO.Path]::GetRelativePath($wikiDir, $file.FullName).Replace('\', '/')
+    $relativeNoExt = [System.IO.Path]::ChangeExtension($relative, $null).TrimEnd('.')
+    $slug = $relativeNoExt -replace '/', '--'
     $body = Get-Content -LiteralPath $file.FullName -Raw
     $title = $slug
     if ($body -match '(?m)^#\s+(.+?)\s*$') { $title = $Matches[1].Trim() }
-    $wikiIndex += [ordered]@{ slug = $slug; title = $title }
+    $entry = [ordered]@{ slug = $slug; title = $title; path = $relative }
+    if ($body -match '(?m)^\| Tag .*?\| <code>([^<]+)</code> \|') { $entry.moduleTag = $Matches[1] }
+    $wikiIndex += $entry
     $wikiMap[$slug] = $body
   }
 }

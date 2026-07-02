@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.packer</code> |
+| Deep-link alias · 深層連結別名 | <code>packer</code> |
 | Category · 分類 | Apps & Git · 程式與 Git |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>PackerModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/PackerModule.xaml</code> |
 | Button docs · 按鈕文件 | 14 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Packer (Image Builder) is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Packer (Image Builder) is registered in WinForge search and navigation with these keywords: <code>packer hashicorp image builder template hcl pkr.hcl json init validate fmt format build inspect plugin plugins var var-file variables provisioner builder source qemu docker aws azure vsphere amazon ami vm machine devops 映像 範本 建置 變數 插件</code>.
 
-**粵語 —** Packer（映像建置器） 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** Packer（映像建置器） 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>packer hashicorp image builder template hcl pkr.hcl json init validate fmt format build inspect plugin plugins var var-file variables provisioner builder source qemu docker aws azure vsphere amazon ami vm machine devops 映像 範本 建置 變數 插件</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

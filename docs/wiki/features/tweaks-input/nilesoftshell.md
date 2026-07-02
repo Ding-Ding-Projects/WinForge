@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.nilesoftshell</code> |
+| Deep-link alias · 深層連結別名 | <code>nilesoftshell</code> |
 | Category · 分類 | Tweaks & Input · 調校與輸入 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>NilesoftShellModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/NilesoftShellModule.xaml</code> |
 | Button docs · 按鈕文件 | 13 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Nilesoft Shell is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Nilesoft Shell is registered in WinForge search and navigation with these keywords: <code>nilesoft shell context menu nss shell.nss register unregister reload theme modern dark snippet template explorer customize right click 右鍵 選單 主題 註冊 設定 範本 片語 客製化</code>.
 
-**粵語 —** Nilesoft 右鍵選單 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** Nilesoft 右鍵選單 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>nilesoft shell context menu nss shell.nss register unregister reload theme modern dark snippet template explorer customize right click 右鍵 選單 主題 註冊 設定 範本 片語 客製化</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

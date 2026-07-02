@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.connections</code> |
+| Deep-link alias · 深層連結別名 | <code>connections</code> |
 | Category · 分類 | System · 系統 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>ConnectionsModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/ConnectionsModule.xaml</code> |
 | Button docs · 按鈕文件 | 3 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Connections is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Connections is registered in WinForge search and navigation with these keywords: <code>tcp udp connections netstat tcpview port 連線</code>.
 
-**粵語 —** 連線 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 連線 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>tcp udp connections netstat tcpview port 連線</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

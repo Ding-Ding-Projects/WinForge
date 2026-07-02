@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.webcloner</code> |
+| Deep-link alias · 深層連結別名 | <code>webcloner</code> |
 | Category · 分類 | Apps & Git · 程式與 Git |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>WebClonerModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/WebClonerModule.xaml</code> |
 | Button docs · 按鈕文件 | 5 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Website Cloner is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Website Cloner is registered in WinForge search and navigation with these keywords: <code>website cloner clone copy site web page scrape download fetch assets html css js mirror rebuild reverse engineer ai agent webview2 design tokens 網站 複製 抓取 下載 鏡像 重建 設計符記</code>.
 
-**粵語 —** 網站複製器 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 網站複製器 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>website cloner clone copy site web page scrape download fetch assets html css js mirror rebuild reverse engineer ai agent webview2 design tokens 網站 複製 抓取 下載 鏡像 重建 設計符記</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

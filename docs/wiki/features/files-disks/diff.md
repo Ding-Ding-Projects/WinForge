@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.diffmerge</code> |
+| Deep-link alias · 深層連結別名 | <code>diff</code> |
 | Category · 分類 | Files & Disks · 檔案與磁碟 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>DiffMergeModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/DiffMergeModule.xaml</code> |
 | Button docs · 按鈕文件 | 12 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Diff & Merge (WinMerge) is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Diff & Merge (WinMerge) is registered in WinForge search and navigation with these keywords: <code>diff merge winmerge compare comparison file folder directory side by side three way two way text line word intra-line myers lcs hash content sha256 only left only right different identical changed added removed unchanged synchronized scroll ignore whitespace next previous difference copy left right save patch beyond compare meld kdiff 比對 合併 比較 差異 檔案 資料夾 並排 逐行 逐字 雜湊 內容 相同 不同 只在左邊 只在右邊 新增 刪除 改動 忽略空白 下一處 上一處 抄左 抄右 儲存</code>.
 
-**粵語 —** 比對與合併 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 比對與合併 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>diff merge winmerge compare comparison file folder directory side by side three way two way text line word intra-line myers lcs hash content sha256 only left only right different identical changed added removed unchanged synchronized scroll ignore whitespace next previous difference copy left right save patch beyond compare meld kdiff 比對 合併 比較 差異 檔案 資料夾 並排 逐行 逐字 雜湊 內容 相同 不同 只在左邊 只在右邊 新增 刪除 改動 忽略空白 下一處 上一處 抄左 抄右 儲存</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

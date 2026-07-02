@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.symbols</code> |
+| Deep-link alias · 深層連結別名 | <code>symbols</code> |
 | Category · 分類 | Markup, Docs & Symbols · 標記文件與符號 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>SymbolsModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/SymbolsModule.xaml</code> |
 | Button docs · 按鈕文件 | 0 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Symbols Palette is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Symbols Palette is registered in WinForge search and navigation with these keywords: <code>symbols special characters unicode glyph arrows math currency greek punctuation box drawing stars fractions superscript subscript copy 符號 特殊字元 統一碼 箭嘴 數學 貨幣 希臘 標點 框線 星 分數 上下標 複製</code>.
 
-**粵語 —** 特殊符號調色盤 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 特殊符號調色盤 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>symbols special characters unicode glyph arrows math currency greek punctuation box drawing stars fractions superscript subscript copy 符號 特殊字元 統一碼 箭嘴 數學 貨幣 希臘 標點 框線 星 分數 上下標 複製</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

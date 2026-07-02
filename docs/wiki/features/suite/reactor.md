@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.reactor</code> |
+| Deep-link alias · 深層連結別名 | <code>reactor</code> |
 | Category · 分類 | Suite |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>ReactorModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/ReactorModule.xaml</code> |
 | Button docs · 按鈕文件 | 19 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Nuclear Reactor is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Nuclear Reactor is registered in WinForge search and navigation with these keywords: <code>nuclear reactor npp pwr pressurized water reactor simulation simulator meltdown scram control rod boron xenon doppler reactivity pcm point kinetics neutron flux fuel temperature coolant tavg thot tcold primary pressure pressurizer steam generator turbine generator condenser rcp pump feedwater eccs relief valve gauge mimic diagram trend chart annunciator alarm core damage explosion physics 核反應堆 核電廠 壓水堆 模擬 熔毀 緊急停堆 控制棒 硼 氙 反應性 中子 通量 燃料溫度 冷卻劑 壓力 穩壓器 蒸汽發生器 汽輪機 發電機 冷凝器 主泵 給水 應急冷卻 釋壓閥 儀表 流程圖 趨勢 警報 爐心 爆炸 物理</code>.
 
-**粵語 —** 核反應堆 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 核反應堆 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>nuclear reactor npp pwr pressurized water reactor simulation simulator meltdown scram control rod boron xenon doppler reactivity pcm point kinetics neutron flux fuel temperature coolant tavg thot tcold primary pressure pressurizer steam generator turbine generator condenser rcp pump feedwater eccs relief valve gauge mimic diagram trend chart annunciator alarm core damage explosion physics 核反應堆 核電廠 壓水堆 模擬 熔毀 緊急停堆 控制棒 硼 氙 反應性 中子 通量 燃料溫度 冷卻劑 壓力 穩壓器 蒸汽發生器 汽輪機 發電機 冷凝器 主泵 給水 應急冷卻 釋壓閥 儀表 流程圖 趨勢 警報 爐心 爆炸 物理</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

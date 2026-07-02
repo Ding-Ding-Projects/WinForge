@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.worldmonitor</code> |
+| Deep-link alias · 深層連結別名 | <code>worldmonitor</code> |
 | Category · 分類 | Apps & Git · 程式與 Git |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>WorldMonitorModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/WorldMonitorModule.xaml</code> |
 | Button docs · 按鈕文件 | 12 |
 
 ## What It Covers · 功能範圍
 
-**EN —** World Monitor is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** World Monitor is registered in WinForge search and navigation with these keywords: <code>world monitor worldmonitor news geopolitics finance commodity energy happy instability index intelligence dashboard globe map webview variant 世界 監察 新聞 地緣政治 金融 商品 能源 情報 儀表板 地球 不穩定指數</code>.
 
-**粵語 —** 世界監察 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 世界監察 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>world monitor worldmonitor news geopolitics finance commodity energy happy instability index intelligence dashboard globe map webview variant 世界 監察 新聞 地緣政治 金融 商品 能源 情報 儀表板 地球 不穩定指數</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

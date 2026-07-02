@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.virtualbox</code> |
+| Deep-link alias · 深層連結別名 | <code>virtualbox</code> |
 | Category · 分類 | Apps & Git · 程式與 Git |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>VirtualBoxModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/VirtualBoxModule.xaml</code> |
 | Button docs · 按鈕文件 | 21 |
 
 ## What It Covers · 功能範圍
 
-**EN —** VirtualBox Manager is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** VirtualBox Manager is registered in WinForge search and navigation with these keywords: <code>virtualbox vbox vboxmanage vm virtual machine snapshot clone ova headless oracle 虛擬機 虛擬機器 快照 複製 匯入 匯出</code>.
 
-**粵語 —** VirtualBox 管理 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** VirtualBox 管理 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>virtualbox vbox vboxmanage vm virtual machine snapshot clone ova headless oracle 虛擬機 虛擬機器 快照 複製 匯入 匯出</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 
