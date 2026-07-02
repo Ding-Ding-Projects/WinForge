@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.packages</code> |
+| Deep-link alias · 深層連結別名 | <code>packages</code> |
 | Category · 分類 | Apps & Git · 程式與 Git |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>PackageManagerModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/PackageManagerModule.xaml</code> |
 | Button docs · 按鈕文件 | 9 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Package Manager is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Package Manager is registered in WinForge search and navigation with these keywords: <code>winget package install uninstall upgrade update scoop choco chocolatey pip python npm node dotnet tool powershell gallery psgallery pwsh pwsh7 psresource cargo rust bun javascript vcpkg dependencies unigetui discover bundle export import batch select selected multi 套件 安裝 更新 解除安裝 相依 清單 批次 多選 匯出 匯入</code>.
 
-**粵語 —** 套件管理 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 套件管理 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>winget package install uninstall upgrade update scoop choco chocolatey pip python npm node dotnet tool powershell gallery psgallery pwsh pwsh7 psresource cargo rust bun javascript vcpkg dependencies unigetui discover bundle export import batch select selected multi 套件 安裝 更新 解除安裝 相依 清單 批次 多選 匯出 匯入</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

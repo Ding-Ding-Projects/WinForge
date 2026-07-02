@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.rainmeter</code> |
+| Deep-link alias · 深層連結別名 | <code>rainmeter</code> |
 | Category · 分類 | Tweaks & Input · 調校與輸入 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>RainmeterModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/RainmeterModule.xaml</code> |
 | Button docs · 按鈕文件 | 10 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Rainmeter Widgets is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Rainmeter Widgets is registered in WinForge search and navigation with these keywords: <code>rainmeter skin skins widget widgets desktop gadget bang activate deactivate toggle refresh hide show rmskin skininstaller layout illustro clock cpu monitor personalization 桌面 小工具 皮膚 桌面美化 個人化 時鐘 監察</code>.
 
-**粵語 —** Rainmeter 桌面小工具 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** Rainmeter 桌面小工具 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>rainmeter skin skins widget widgets desktop gadget bang activate deactivate toggle refresh hide show rmskin skininstaller layout illustro clock cpu monitor personalization 桌面 小工具 皮膚 桌面美化 個人化 時鐘 監察</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

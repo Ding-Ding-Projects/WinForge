@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.timeunit</code> |
+| Deep-link alias · 深層連結別名 | <code>time</code> |
 | Category · 分類 | Media & Capture · 媒體與擷取 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>TimeUnitModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/TimeUnitModule.xaml</code> |
 | Button docs · 按鈕文件 | 2 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Time & Unit Tools is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Time & Unit Tools is registered in WinForge search and navigation with these keywords: <code>time zone timezone world clock converter convert unit length mass temperature 時間 時區 世界時鐘 換算 單位</code>.
 
-**粵語 —** 時間與單位工具 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 時間與單位工具 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>time zone timezone world clock converter convert unit length mass temperature 時間 時區 世界時鐘 換算 單位</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

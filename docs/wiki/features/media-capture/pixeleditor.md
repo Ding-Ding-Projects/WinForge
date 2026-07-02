@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.pixeleditor</code> |
+| Deep-link alias · 深層連結別名 | <code>pixeleditor</code> |
 | Category · 分類 | Media & Capture · 媒體與擷取 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>PixelEditorModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/PixelEditorModule.xaml</code> |
 | Button docs · 按鈕文件 | 18 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Pixel Editor is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Pixel Editor is registered in WinForge search and navigation with these keywords: <code>pixel editor aseprite sprite pixel art draw paint canvas palette layers frames animation gif png pencil eraser fill bucket eyedropper undo redo 像素 像素畫 精靈 繪圖 畫布 調色盤 圖層 影格 動畫 鉛筆 橡皮 填色 吸色</code>.
 
-**粵語 —** 像素畫編輯器 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 像素畫編輯器 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>pixel editor aseprite sprite pixel art draw paint canvas palette layers frames animation gif png pencil eraser fill bucket eyedropper undo redo 像素 像素畫 精靈 繪圖 畫布 調色盤 圖層 影格 動畫 鉛筆 橡皮 填色 吸色</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.apiclient</code> |
+| Deep-link alias · 深層連結別名 | <code>api</code> |
 | Category · 分類 | Apps & Git · 程式與 Git |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>ApiClientModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/ApiClientModule.xaml</code> |
 | Button docs · 按鈕文件 | 14 |
 
 ## What It Covers · 功能範圍
 
-**EN —** API Client is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** API Client is registered in WinForge search and navigation with these keywords: <code>api client rest http postman insomnia request response get post put patch delete head options url query params headers body json raw form url encoded x-www-form-urlencoded bearer token basic auth authorization collections environment variables substitute send httpclient status code response time size pretty print curl endpoint webhook REST 用戶端 客戶端 請求 回應 標頭 內文 查詢參數 驗證 權杖 基本驗證 集合 環境 變數 發送 狀態碼 美化 端點</code>.
 
-**粵語 —** REST API 用戶端 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** REST API 用戶端 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>api client rest http postman insomnia request response get post put patch delete head options url query params headers body json raw form url encoded x-www-form-urlencoded bearer token basic auth authorization collections environment variables substitute send httpclient status code response time size pretty print curl endpoint webhook REST 用戶端 客戶端 請求 回應 標頭 內文 查詢參數 驗證 權杖 基本驗證 集合 環境 變數 發送 狀態碼 美化 端點</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

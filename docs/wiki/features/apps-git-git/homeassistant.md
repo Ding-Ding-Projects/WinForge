@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.homeassistant</code> |
+| Deep-link alias · 深層連結別名 | <code>homeassistant</code> |
 | Category · 分類 | Apps & Git · 程式與 Git |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>HomeAssistantModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/HomeAssistantModule.xaml</code> |
 | Button docs · 按鈕文件 | 42 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Home Assistant is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Home Assistant is registered in WinForge search and navigation with these keywords: <code>home assistant ha smart home rest api template scene script light climate thermostat camera notify intent calendar 智能家居 家居助理</code>.
 
-**粵語 —** 家居助理 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 家居助理 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>home assistant ha smart home rest api template scene script light climate thermostat camera notify intent calendar 智能家居 家居助理</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

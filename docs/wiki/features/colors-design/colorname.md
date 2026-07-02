@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.colorname</code> |
+| Deep-link alias · 深層連結別名 | <code>colorname</code> |
 | Category · 分類 | Colors & Design · 色彩與設計 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>ColorNameModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/ColorNameModule.xaml</code> |
 | Button docs · 按鈕文件 | 0 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Named Colors is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Named Colors is registered in WinForge search and navigation with these keywords: <code>color colour name named css x11 hex rgb nearest swatch palette 色彩 顏色 命名色 具名色 十六進位 網頁色</code>.
 
-**粵語 —** 命名色彩 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 命名色彩 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>color colour name named css x11 hex rgb nearest swatch palette 色彩 顏色 命名色 具名色 十六進位 網頁色</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

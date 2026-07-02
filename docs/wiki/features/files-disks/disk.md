@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.disk</code> |
+| Deep-link alias · 深層連結別名 | <code>disk</code> |
 | Category · 分類 | Files & Disks · 檔案與磁碟 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>DiskAnalyzerModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/DiskAnalyzerModule.xaml</code> |
 | Button docs · 按鈕文件 | 5 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Disk Analyser is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Disk Analyser is registered in WinForge search and navigation with these keywords: <code>disk space treemap analyse folder size 磁碟 空間</code>.
 
-**粵語 —** 磁碟分析 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 磁碟分析 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>disk space treemap analyse folder size 磁碟 空間</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.ping</code> |
+| Deep-link alias · 深層連結別名 | <code>ping</code> |
 | Category · 分類 | Network Tools · 網絡工具 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>PingModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/PingModule.xaml</code> |
 | Button docs · 按鈕文件 | 4 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Ping & Traceroute is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Ping & Traceroute is registered in WinForge search and navigation with these keywords: <code>ping traceroute tracert icmp latency rtt ttl packet loss network diagnose reachability dns 網路 測試 延遲 丟包 路由 追蹤 躍點 主機 連線</code>.
 
-**粵語 —** 網路測試（Ping・路由追蹤） 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 網路測試（Ping・路由追蹤） 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>ping traceroute tracert icmp latency rtt ttl packet loss network diagnose reachability dns 網路 測試 延遲 丟包 路由 追蹤 躍點 主機 連線</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

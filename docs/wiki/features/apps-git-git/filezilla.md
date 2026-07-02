@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.filezilla</code> |
+| Deep-link alias · 深層連結別名 | <code>filezilla</code> |
 | Category · 分類 | Apps & Git · 程式與 Git |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>FileZillaModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/FileZillaModule.xaml</code> |
 | Button docs · 按鈕文件 | 23 |
 
 ## What It Covers · 功能範圍
 
-**EN —** FTP / SFTP is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** FTP / SFTP is registered in WinForge search and navigation with these keywords: <code>ftp sftp ftps filezilla file transfer client site manager upload download dual pane transfer queue resume tls ssh private key dpapi 檔案傳輸 上載 下載 站台 佇列 續傳 私鑰</code>.
 
-**粵語 —** FTP／SFTP 檔案傳輸 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** FTP／SFTP 檔案傳輸 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>ftp sftp ftps filezilla file transfer client site manager upload download dual pane transfer queue resume tls ssh private key dpapi 檔案傳輸 上載 下載 站台 佇列 續傳 私鑰</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

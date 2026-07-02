@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.icalendar</code> |
+| Deep-link alias · 深層連結別名 | <code>icalendar</code> |
 | Category · 分類 | Time & Dates · 時間與日期 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>ICalendarModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/ICalendarModule.xaml</code> |
 | Button docs · 按鈕文件 | 4 |
 
 ## What It Covers · 功能範圍
 
-**EN —** iCalendar Builder is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** iCalendar Builder is registered in WinForge search and navigation with these keywords: <code>icalendar ics calendar event vevent vcalendar rrule valarm reminder recurrence appointment meeting invite 日曆 行事曆 活動 提醒 重複 會議 邀請 匯出</code>.
 
-**粵語 —** 日曆檔產生器 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 日曆檔產生器 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>icalendar ics calendar event vevent vcalendar rrule valarm reminder recurrence appointment meeting invite 日曆 行事曆 活動 提醒 重複 會議 邀請 匯出</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

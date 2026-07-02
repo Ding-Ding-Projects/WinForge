@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.audioeditor</code> |
+| Deep-link alias · 深層連結別名 | <code>audioeditor</code> |
 | Category · 分類 | Media & Capture · 媒體與擷取 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>AudioEditorModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/AudioEditorModule.xaml</code> |
 | Button docs · 按鈕文件 | 24 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Audio Editor is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Audio Editor is registered in WinForge search and navigation with these keywords: <code>audio editor audacity waveform record mic microphone play playback trim fade normalize gain volume speed tempo pitch shift noise reduction denoise reverb echo compressor eq equalizer mix concat export wav mp3 flac 音訊 編輯 波形 錄音 播放 剪裁 淡入 淡出 正規化 增益 變速 變調 降噪 混音 匯出</code>.
 
-**粵語 —** 音訊編輯器 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 音訊編輯器 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>audio editor audacity waveform record mic microphone play playback trim fade normalize gain volume speed tempo pitch shift noise reduction denoise reverb echo compressor eq equalizer mix concat export wav mp3 flac 音訊 編輯 波形 錄音 播放 剪裁 淡入 淡出 正規化 增益 變速 變調 降噪 混音 匯出</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

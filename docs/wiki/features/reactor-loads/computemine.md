@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.computemine</code> |
+| Deep-link alias · 深層連結別名 | <code>computemine</code> |
 | Category · 分類 | Reactor Loads · 反應堆負載 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>ComputeMineModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/ComputeMineModule.xaml</code> |
 | Button docs · 按鈕文件 | 3 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Compute Mine is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Compute Mine is registered in WinForge search and navigation with these keywords: <code>compute mine mining crypto hashrate rig power draw megawatt reactor nuclear load earnings efficiency 運算 礦場 挖礦 礦機 算力 加密貨幣 核電 核能 反應堆 耗電 重負載 收益</code>.
 
-**粵語 —** 運算礦場 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 運算礦場 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>compute mine mining crypto hashrate rig power draw megawatt reactor nuclear load earnings efficiency 運算 礦場 挖礦 礦機 算力 加密貨幣 核電 核能 反應堆 耗電 重負載 收益</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

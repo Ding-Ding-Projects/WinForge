@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.dnslookup</code> |
+| Deep-link alias · 深層連結別名 | <code>dnslookup</code> |
 | Category · 分類 | Network Tools · 網絡工具 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>DnsLookupModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/DnsLookupModule.xaml</code> |
 | Button docs · 按鈕文件 | 1 |
 
 ## What It Covers · 功能範圍
 
-**EN —** DNS Lookup is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** DNS Lookup is registered in WinForge search and navigation with these keywords: <code>dns lookup resolve record a aaaa mx txt ns cname ptr nslookup dig doh DNS 查詢 域名 解析 記錄 反向 郵件伺服器 名稱伺服器</code>.
 
-**粵語 —** DNS 查詢 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** DNS 查詢 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>dns lookup resolve record a aaaa mx txt ns cname ptr nslookup dig doh DNS 查詢 域名 解析 記錄 反向 郵件伺服器 名稱伺服器</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

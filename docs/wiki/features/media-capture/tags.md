@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.audiotagger</code> |
+| Deep-link alias · 深層連結別名 | <code>tags</code> |
 | Category · 分類 | Media & Capture · 媒體與擷取 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>AudioTaggerModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/AudioTaggerModule.xaml</code> |
 | Button docs · 按鈕文件 | 11 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Audio Tagger is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Audio Tagger is registered in WinForge search and navigation with these keywords: <code>audio tagger tags tagging mp3tag id3 id3v2 metadata tag editor taglib taglibsharp title artist album album artist track number year genre comment composer disc cover art album art picture batch edit multi select rename from tags tag from filename pattern mp3 flac m4a ogg opus wav aac wma aiff bitrate sample rate duration 音訊 標籤 標籤編輯 中繼資料 標題 演出者 專輯 專輯演出者 曲目 年份 類型 備註 作曲 封面 封面圖 批次 改名 檔名 樣式 位元率 取樣率 時長</code>.
 
-**粵語 —** 音訊標籤編輯器 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 音訊標籤編輯器 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>audio tagger tags tagging mp3tag id3 id3v2 metadata tag editor taglib taglibsharp title artist album album artist track number year genre comment composer disc cover art album art picture batch edit multi select rename from tags tag from filename pattern mp3 flac m4a ogg opus wav aac wma aiff bitrate sample rate duration 音訊 標籤 標籤編輯 中繼資料 標題 演出者 專輯 專輯演出者 曲目 年份 類型 備註 作曲 封面 封面圖 批次 改名 檔名 樣式 位元率 取樣率 時長</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

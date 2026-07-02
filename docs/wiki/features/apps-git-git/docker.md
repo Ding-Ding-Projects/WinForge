@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.docker</code> |
+| Deep-link alias · 深層連結別名 | <code>docker</code> |
 | Category · 分類 | Apps & Git · 程式與 Git |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>DockerModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/DockerModule.xaml</code> |
 | Button docs · 按鈕文件 | 22 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Docker is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Docker is registered in WinForge search and navigation with these keywords: <code>docker container containers image images volume volumes network networks compose docker-compose stack engine daemon npipe pipe rest api portainer pull run start stop restart pause unpause remove logs exec stats inspect prune dangling registry nginx bridge 容器 映像 磁碟區 網路 堆疊 引擎 守護程序 拉取 啟動 停止 重啟 暫停 移除 日誌 執行 統計 清理</code>.
 
-**粵語 —** Docker 容器管理 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** Docker 容器管理 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>docker container containers image images volume volumes network networks compose docker-compose stack engine daemon npipe pipe rest api portainer pull run start stop restart pause unpause remove logs exec stats inspect prune dangling registry nginx bridge 容器 映像 磁碟區 網路 堆疊 引擎 守護程序 拉取 啟動 停止 重啟 暫停 移除 日誌 執行 統計 清理</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

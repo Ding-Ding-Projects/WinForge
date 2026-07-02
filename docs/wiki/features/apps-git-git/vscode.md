@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.vscode</code> |
+| Deep-link alias · 深層連結別名 | <code>vscode</code> |
 | Category · 分類 | Apps & Git · 程式與 Git |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>VsCodeModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/VsCodeModule.xaml</code> |
 | Button docs · 按鈕文件 | 14 |
 
 ## What It Covers · 功能範圍
 
-**EN —** VS Code is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** VS Code is registered in WinForge search and navigation with these keywords: <code>vscode vs code visual studio code editor cli open file folder workspace new window reuse diff merge goto line extension install uninstall list profile insiders tunnel remote settings keybindings code-workspace 編輯器 擴充功能 比對 合併 設定 遠端 隧道</code>.
 
-**粵語 —** VS Code 編輯器 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** VS Code 編輯器 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>vscode vs code visual studio code editor cli open file folder workspace new window reuse diff merge goto line extension install uninstall list profile insiders tunnel remote settings keybindings code-workspace 編輯器 擴充功能 比對 合併 設定 遠端 隧道</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

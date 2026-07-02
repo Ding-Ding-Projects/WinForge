@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.texttools</code> |
+| Deep-link alias · 深層連結別名 | <code>texttools</code> |
 | Category · 分類 | Text Tools · 文字工具 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>TextToolsModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/TextToolsModule.xaml</code> |
 | Button docs · 按鈕文件 | 17 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Text Tools is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Text Tools is registered in WinForge search and navigation with these keywords: <code>text case upper lower title slug sort dedupe shuffle reverse trim lines words count stats 文字 大細楷 排序 去重複 打亂 倒轉 修剪 統計 字數 slug</code>.
 
-**粵語 —** 文字工具 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 文字工具 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>text case upper lower title slug sort dedupe shuffle reverse trim lines words count stats 文字 大細楷 排序 去重複 打亂 倒轉 修剪 統計 字數 slug</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

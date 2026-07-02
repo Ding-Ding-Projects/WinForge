@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.altsnap</code> |
+| Deep-link alias · 深層連結別名 | <code>altsnap</code> |
 | Category · 分類 | Tweaks & Input · 調校與輸入 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>AltSnapModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/AltSnapModule.xaml</code> |
 | Button docs · 按鈕文件 | 10 |
 
 ## What It Covers · 功能範圍
 
-**EN —** AltSnap is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** AltSnap is registered in WinForge search and navigation with these keywords: <code>altsnap alt drag move resize window modifier key altdrag snap aero hook ramonunch alt 拖曳 移動 縮放 修飾鍵 貼齊 視窗</code>.
 
-**粵語 —** Alt 拖曳視窗 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** Alt 拖曳視窗 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>altsnap alt drag move resize window modifier key altdrag snap aero hook ramonunch alt 拖曳 移動 縮放 修飾鍵 貼齊 視窗</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

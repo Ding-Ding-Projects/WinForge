@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.loancalc</code> |
+| Deep-link alias · 深層連結別名 | <code>loan</code> |
 | Category · 分類 | Calculators & Numbers · 計算與數字 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>LoanCalcModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/LoanCalcModule.xaml</code> |
 | Button docs · 按鈕文件 | 2 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Loan Calculator is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Loan Calculator is registered in WinForge search and navigation with these keywords: <code>loan mortgage amortization interest payment finance emi principal rate 貸款 按揭 供樓 攤還 利息 還款 月供 本金 年利率</code>.
 
-**粵語 —** 貸款計算 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 貸款計算 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>loan mortgage amortization interest payment finance emi principal rate 貸款 按揭 供樓 攤還 利息 還款 月供 本金 年利率</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

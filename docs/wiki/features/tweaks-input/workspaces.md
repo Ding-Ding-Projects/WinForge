@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.workspaces</code> |
+| Deep-link alias · 深層連結別名 | <code>workspaces</code> |
 | Category · 分類 | Tweaks & Input · 調校與輸入 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>WorkspacesModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/WorkspacesModule.xaml</code> |
 | Button docs · 按鈕文件 | 8 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Workspaces is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Workspaces is registered in WinForge search and navigation with these keywords: <code>workspaces workspace powertoys app layout desktop layout capture snapshot restore relaunch launch window position size monitor maximized minimized set of apps project save named scene session arrange reopen 工作區 應用程式佈局 桌面佈局 擷取 快照 還原 重新啟動 啟動 視窗位置 大細 螢幕 場景 工作階段 一組應用程式 儲存 重開</code>.
 
-**粵語 —** 工作區 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 工作區 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>workspaces workspace powertoys app layout desktop layout capture snapshot restore relaunch launch window position size monitor maximized minimized set of apps project save named scene session arrange reopen 工作區 應用程式佈局 桌面佈局 擷取 快照 還原 重新啟動 啟動 視窗位置 大細 螢幕 場景 工作階段 一組應用程式 儲存 重開</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

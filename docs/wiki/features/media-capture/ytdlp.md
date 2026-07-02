@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.ytdlp</code> |
+| Deep-link alias · 深層連結別名 | <code>ytdlp</code> |
 | Category · 分類 | Media & Capture · 媒體與擷取 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>YtDlpModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/YtDlpModule.xaml</code> |
 | Button docs · 按鈕文件 | 9 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Media Downloader is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Media Downloader is registered in WinForge search and navigation with these keywords: <code>yt-dlp ytdlp youtube download downloader video audio mp3 m4a playlist subtitles subs format quality 1080p 720p thumbnail metadata sponsorblock cookies twitch vimeo soundcloud bilibili 下載 影片 音訊 字幕 播放清單 畫質 縮圖</code>.
 
-**粵語 —** 媒體下載器 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 媒體下載器 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>yt-dlp ytdlp youtube download downloader video audio mp3 m4a playlist subtitles subs format quality 1080p 720p thumbnail metadata sponsorblock cookies twitch vimeo soundcloud bilibili 下載 影片 音訊 字幕 播放清單 畫質 縮圖</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

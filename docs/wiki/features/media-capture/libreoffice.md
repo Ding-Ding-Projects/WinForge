@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.libreoffice</code> |
+| Deep-link alias · 深層連結別名 | <code>libreoffice</code> |
 | Category · 分類 | Media & Capture · 媒體與擷取 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>LibreOfficeModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/LibreOfficeModule.xaml</code> |
 | Button docs · 按鈕文件 | 11 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Document Converter is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Document Converter is registered in WinForge search and navigation with these keywords: <code>libreoffice soffice document converter convert batch pdf docx xlsx odt ods pptx csv txt office writer calc impress headless 文件 轉換 轉檔 批次 辦公</code>.
 
-**粵語 —** 文件轉換器 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 文件轉換器 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>libreoffice soffice document converter convert batch pdf docx xlsx odt ods pptx csv txt office writer calc impress headless 文件 轉換 轉檔 批次 辦公</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

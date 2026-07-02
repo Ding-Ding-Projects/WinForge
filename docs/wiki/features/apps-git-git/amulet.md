@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.amulet</code> |
+| Deep-link alias · 深層連結別名 | <code>amulet</code> |
 | Category · 分類 | Apps & Git · 程式與 Git |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>AmuletModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/AmuletModule.xaml</code> |
 | Button docs · 按鈕文件 | 10 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Minecraft World Editor (Amulet) is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Minecraft World Editor (Amulet) is registered in WinForge search and navigation with these keywords: <code>amulet minecraft world editor map editor java bedrock level dat nbt python wxpython launch backup saves chunk dimension 世界 編輯器 我的世界 地圖 備份 存檔 維度</code>.
 
-**粵語 —** Minecraft 世界編輯器（Amulet） 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** Minecraft 世界編輯器（Amulet） 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>amulet minecraft world editor map editor java bedrock level dat nbt python wxpython launch backup saves chunk dimension 世界 編輯器 我的世界 地圖 備份 存檔 維度</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

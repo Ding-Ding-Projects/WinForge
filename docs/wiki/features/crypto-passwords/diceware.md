@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.diceware</code> |
+| Deep-link alias · 深層連結別名 | <code>diceware</code> |
 | Category · 分類 | Crypto & Passwords · 加密與密碼 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>DicewareModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/DicewareModule.xaml</code> |
 | Button docs · 按鈕文件 | 2 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Passphrase Generator is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Passphrase Generator is registered in WinForge search and navigation with these keywords: <code>diceware passphrase password words memorable entropy random generator secure 密語 通行短語 密碼 詞語 熵 隨機 產生器</code>.
 
-**粵語 —** 密語產生器 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 密語產生器 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>diceware passphrase password words memorable entropy random generator secure 密語 通行短語 密碼 詞語 熵 隨機 產生器</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

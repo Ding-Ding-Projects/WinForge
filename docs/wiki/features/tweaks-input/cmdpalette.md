@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.cmdpalette</code> |
+| Deep-link alias · 深層連結別名 | <code>cmdpalette</code> |
 | Category · 分類 | Tweaks & Input · 調校與輸入 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>CommandPaletteModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/CommandPaletteModule.xaml</code> |
 | Button docs · 按鈕文件 | 1 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Command Palette is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Command Palette is registered in WinForge search and navigation with these keywords: <code>command palette powertoys run launcher quick launch alt space search box global hotkey app launcher calculator run command open url system action lock sleep shutdown restart web search fuzzy spotlight wox flow 指令面板 快速啟動 啟動器 搜尋框 全域熱鍵 計算機 執行 開網址 系統動作 鎖定 睡眠 關機 重啟 網絡搜尋 模糊搜尋</code>.
 
-**粵語 —** 指令面板 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 指令面板 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>command palette powertoys run launcher quick launch alt space search box global hotkey app launcher calculator run command open url system action lock sleep shutdown restart web search fuzzy spotlight wox flow 指令面板 快速啟動 啟動器 搜尋框 全域熱鍵 計算機 執行 開網址 系統動作 鎖定 睡眠 關機 重啟 網絡搜尋 模糊搜尋</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

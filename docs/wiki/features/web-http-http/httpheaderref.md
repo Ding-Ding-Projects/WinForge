@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.httpheaderref</code> |
+| Deep-link alias · 深層連結別名 | <code>httpheaderref</code> |
 | Category · 分類 | Web & HTTP · 網頁與 HTTP |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>HttpHeaderRefModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/HttpHeaderRefModule.xaml</code> |
 | Button docs · 按鈕文件 | 0 |
 
 ## What It Covers · 功能範圍
 
-**EN —** HTTP Headers Ref is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** HTTP Headers Ref is registered in WinForge search and navigation with these keywords: <code>http header headers request response cache cors security cookie auth reference mime standard 標頭 標頭參考 請求 回應 快取 安全 曲奇 參考</code>.
 
-**粵語 —** HTTP 標頭參考 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** HTTP 標頭參考 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>http header headers request response cache cors security cookie auth reference mime standard 標頭 標頭參考 請求 回應 快取 安全 曲奇 參考</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

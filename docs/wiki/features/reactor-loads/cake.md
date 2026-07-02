@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.cakefactory</code> |
+| Deep-link alias · 深層連結別名 | <code>cake</code> |
 | Category · 分類 | Reactor Loads · 反應堆負載 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>CakeFactoryModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/CakeFactoryModule.xaml</code> |
 | Button docs · 按鈕文件 | 17 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Cake Factory & Farm is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Cake Factory & Farm is registered in WinForge search and navigation with these keywords: <code>cake factory bakery farm simulator ingredients wheat flour sugar beet sugarcane eggs milk butter dairy vanilla cocoa leavening baking powder salt mixer depositor tunnel oven cooling icing packaging sanitation haccp food safety reactor nuclear power supply chain 蛋糕 工廠 農場 模擬 原料 小麥 麵粉 糖 雞蛋 牛奶 牛油 雲呢拿 可可 發粉 鹽 攪拌 焗爐 冷卻 裝飾 包裝 衛生 食物安全 反應堆 核能 供電</code>.
 
-**粵語 —** 蛋糕工廠與農場 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 蛋糕工廠與農場 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>cake factory bakery farm simulator ingredients wheat flour sugar beet sugarcane eggs milk butter dairy vanilla cocoa leavening baking powder salt mixer depositor tunnel oven cooling icing packaging sanitation haccp food safety reactor nuclear power supply chain 蛋糕 工廠 農場 模擬 原料 小麥 麵粉 糖 雞蛋 牛奶 牛油 雲呢拿 可可 發粉 鹽 攪拌 焗爐 冷卻 裝飾 包裝 衛生 食物安全 反應堆 核能 供電</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

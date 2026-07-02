@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.cropandlock</code> |
+| Deep-link alias · 深層連結別名 | <code>cropandlock</code> |
 | Category · 分類 | Media & Capture · 媒體與擷取 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>CropAndLockModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/CropAndLockModule.xaml</code> |
 | Button docs · 按鈕文件 | 7 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Crop And Lock is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Crop And Lock is registered in WinForge search and navigation with these keywords: <code>crop and lock croplock cropandlock window crop thumbnail reparent always on top topmost dwm thumbnail live mirror region pin floating powertoys windowcrop 裁切 鎖定 視窗 縮圖 置頂 浮窗 即時 鏡像 範圍 釘選</code>.
 
-**粵語 —** 裁切與鎖定 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 裁切與鎖定 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>crop and lock croplock cropandlock window crop thumbnail reparent always on top topmost dwm thumbnail live mirror region pin floating powertoys windowcrop 裁切 鎖定 視窗 縮圖 置頂 浮窗 即時 鏡像 範圍 釘選</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

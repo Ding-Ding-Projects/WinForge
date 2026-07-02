@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.mimetypes</code> |
+| Deep-link alias · 深層連結別名 | <code>mimetype</code> |
 | Category · 分類 | Encoding, IDs & Codes · 編碼識別碼與條碼 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>MimeTypesModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/MimeTypesModule.xaml</code> |
 | Button docs · 按鈕文件 | 1 |
 
 ## What It Covers · 功能範圍
 
-**EN —** MIME Type Lookup is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** MIME Type Lookup is registered in WinForge search and navigation with these keywords: <code>mime content-type extension media type header upload web server octet-stream MIME 類型 內容類型 副檔名 檔名 偵測 上載 標頭</code>.
 
-**粵語 —** MIME 類型查詢 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** MIME 類型查詢 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>mime content-type extension media type header upload web server octet-stream MIME 類型 內容類型 副檔名 檔名 偵測 上載 標頭</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

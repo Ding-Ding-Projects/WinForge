@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.datecalc</code> |
+| Deep-link alias · 深層連結別名 | <code>datecalc</code> |
 | Category · 分類 | Time & Dates · 時間與日期 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>DateCalcModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/DateCalcModule.xaml</code> |
 | Button docs · 按鈕文件 | 4 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Date Calculator is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Date Calculator is registered in WinForge search and navigation with these keywords: <code>date days weeks age birthday countdown business days iso week leap year difference add subtract 日期 計算 日數 週數 年齡 生日 倒數 工作日 閏年 星期</code>.
 
-**粵語 —** 日期計算器 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 日期計算器 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>date days weeks age birthday countdown business days iso week leap year difference add subtract 日期 計算 日數 週數 年齡 生日 倒數 工作日 閏年 星期</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

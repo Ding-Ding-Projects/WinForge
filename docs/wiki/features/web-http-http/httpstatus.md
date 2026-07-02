@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.httpstatus</code> |
+| Deep-link alias · 深層連結別名 | <code>httpstatus</code> |
 | Category · 分類 | Web & HTTP · 網頁與 HTTP |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>HttpStatusModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/HttpStatusModule.xaml</code> |
 | Button docs · 按鈕文件 | 1 |
 
 ## What It Covers · 功能範圍
 
-**EN —** HTTP Status Codes is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** HTTP Status Codes is registered in WinForge search and navigation with these keywords: <code>http status code reference response 1xx 2xx 3xx 4xx 5xx 404 500 web api 狀態碼 回應碼 網頁 錯誤碼</code>.
 
-**粵語 —** HTTP 狀態碼 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** HTTP 狀態碼 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>http status code reference response 1xx 2xx 3xx 4xx 5xx 404 500 web api 狀態碼 回應碼 網頁 錯誤碼</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

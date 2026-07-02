@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.peek</code> |
+| Deep-link alias · 深層連結別名 | <code>peek</code> |
 | Category · 分類 | Files & Disks · 檔案與磁碟 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>PeekModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/PeekModule.xaml</code> |
 | Button docs · 按鈕文件 | 10 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Peek is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Peek is registered in WinForge search and navigation with these keywords: <code>peek preview quick look quicklook file viewer image text code markdown pdf audio video archive metadata previewer prev next folder navigate hotkey 快速預覽 預覽 檔案 圖片 文字 程式碼 影片 音訊 壓縮檔 中繼資料 熱鍵 上一個 下一個</code>.
 
-**粵語 —** 快速預覽 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 快速預覽 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>peek preview quick look quicklook file viewer image text code markdown pdf audio video archive metadata previewer prev next folder navigate hotkey 快速預覽 預覽 檔案 圖片 文字 程式碼 影片 音訊 壓縮檔 中繼資料 熱鍵 上一個 下一個</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

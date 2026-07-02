@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.jsonsort</code> |
+| Deep-link alias · 深層連結別名 | <code>jsonsort</code> |
 | Category · 分類 | JSON & Data · JSON 與資料 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>JsonSortModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/JsonSortModule.xaml</code> |
 | Button docs · 按鈕文件 | 2 |
 
 ## What It Covers · 功能範圍
 
-**EN —** JSON Key Sorter is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** JSON Key Sorter is registered in WinForge search and navigation with these keywords: <code>json sort keys normalise normalize alphabetical order pretty print minify indent recursive 排序 鍵 正規化 美化 壓縮 縮排 遞迴</code>.
 
-**粵語 —** JSON 鍵排序 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** JSON 鍵排序 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>json sort keys normalise normalize alphabetical order pretty print minify indent recursive 排序 鍵 正規化 美化 壓縮 縮排 遞迴</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

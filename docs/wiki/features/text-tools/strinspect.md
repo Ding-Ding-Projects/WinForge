@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.stringinspector</code> |
+| Deep-link alias · 深層連結別名 | <code>strinspect</code> |
 | Category · 分類 | Text Tools · 文字工具 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>StringInspectorModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/StringInspectorModule.xaml</code> |
 | Button docs · 按鈕文件 | 11 |
 
 ## What It Covers · 功能範圍
 
-**EN —** String Inspector is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** String Inspector is registered in WinForge search and navigation with these keywords: <code>string text unicode utf8 utf16 utf32 codepoint grapheme normalize nfc nfd escape unescape diacritics ascii reverse length bytes 字串 文字 統計 碼位 字素 正規化 轉義 音標 位元組 反轉</code>.
 
-**粵語 —** 字串檢查器 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 字串檢查器 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>string text unicode utf8 utf16 utf32 codepoint grapheme normalize nfc nfd escape unescape diacritics ascii reverse length bytes 字串 文字 統計 碼位 字素 正規化 轉義 音標 位元組 反轉</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

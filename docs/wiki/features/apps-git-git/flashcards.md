@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.flashcards</code> |
+| Deep-link alias · 深層連結別名 | <code>flashcards</code> |
 | Category · 分類 | Apps & Git · 程式與 Git |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>FlashcardsModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/FlashcardsModule.xaml</code> |
 | Button docs · 按鈕文件 | 17 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Flashcards is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Flashcards is registered in WinForge search and navigation with these keywords: <code>flashcards flash cards anki srs spaced repetition study deck decks card front back review grade again hard good easy sm-2 sm2 ease interval due new mature memorize memorise learn quiz vocabulary csv import export 記憶卡 閃卡 間隔重複 學習 牌組 卡片 正面 背面 複習 評分 到期 成熟 背誦 記憶 默書 詞彙 匯入 匯出</code>.
 
-**粵語 —** 間隔重複記憶卡 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 間隔重複記憶卡 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>flashcards flash cards anki srs spaced repetition study deck decks card front back review grade again hard good easy sm-2 sm2 ease interval due new mature memorize memorise learn quiz vocabulary csv import export 記憶卡 閃卡 間隔重複 學習 牌組 卡片 正面 背面 複習 評分 到期 成熟 背誦 記憶 默書 詞彙 匯入 匯出</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

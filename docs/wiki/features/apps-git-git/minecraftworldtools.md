@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.minecraftworldtools</code> |
+| Deep-link alias · 深層連結別名 | <code>minecraftworldtools</code> |
 | Category · 分類 | Apps & Git · 程式與 Git |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>MinecraftWorldToolsModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/MinecraftWorldToolsModule.xaml</code> |
 | Button docs · 按鈕文件 | 19 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Minecraft World Tools is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Minecraft World Tools is registered in WinForge search and navigation with these keywords: <code>minecraft world tools chunker converter convert java bedrock batch 500mb memory leak bluemap render map web server config region mca level dat 世界 工具 轉換 分批 記憶體 漏洞 算圖 地圖 網頁 設定</code>.
 
-**粵語 —** Minecraft 世界工具 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** Minecraft 世界工具 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>minecraft world tools chunker converter convert java bedrock batch 500mb memory leak bluemap render map web server config region mca level dat 世界 工具 轉換 分批 記憶體 漏洞 算圖 地圖 網頁 設定</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

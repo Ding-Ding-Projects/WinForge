@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.diskbench</code> |
+| Deep-link alias · 深層連結別名 | <code>diskbench</code> |
 | Category · 分類 | Files & Disks · 檔案與磁碟 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>DiskBenchmarkModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/DiskBenchmarkModule.xaml</code> |
 | Button docs · 按鈕文件 | 3 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Disk Benchmark is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Disk Benchmark is registered in WinForge search and navigation with these keywords: <code>disk benchmark crystaldiskmark cdm speed test read write sequential random seq1m rnd4k iops mbps queue depth ssd nvme hdd throughput latency direct io no buffering 硬碟 磁碟 速度測試 讀寫 循序 隨機 佇列 深度 跑分 效能 固態硬碟</code>.
 
-**粵語 —** 硬碟速度測試 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 硬碟速度測試 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>disk benchmark crystaldiskmark cdm speed test read write sequential random seq1m rnd4k iops mbps queue depth ssd nvme hdd throughput latency direct io no buffering 硬碟 磁碟 速度測試 讀寫 循序 隨機 佇列 深度 跑分 效能 固態硬碟</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

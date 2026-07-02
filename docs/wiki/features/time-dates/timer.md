@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.timer</code> |
+| Deep-link alias · 深層連結別名 | <code>timer</code> |
 | Category · 分類 | Time & Dates · 時間與日期 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>TimerModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/TimerModule.xaml</code> |
 | Button docs · 按鈕文件 | 7 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Timer & Stopwatch is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Timer & Stopwatch is registered in WinForge search and navigation with these keywords: <code>timer stopwatch countdown pomodoro focus lap clock 計時器 碼錶 秒錶 倒數 倒數計時 番茄鐘 專注 分段 時鐘</code>.
 
-**粵語 —** 計時器・碼錶・番茄鐘 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 計時器・碼錶・番茄鐘 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>timer stopwatch countdown pomodoro focus lap clock 計時器 碼錶 秒錶 倒數 倒數計時 番茄鐘 專注 分段 時鐘</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

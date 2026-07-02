@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.bmi</code> |
+| Deep-link alias · 深層連結別名 | <code>bmi</code> |
 | Category · 分類 | Calculators & Numbers · 計算與數字 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>BmiModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/BmiModule.xaml</code> |
 | Button docs · 按鈕文件 | 0 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Health Calculators is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Health Calculators is registered in WinForge search and navigation with these keywords: <code>bmi bmr calorie tdee body fat navy mifflin health weight height 健康 計算器 體重 身高 體脂 熱量 代謝 卡路里</code>.
 
-**粵語 —** 健康計算器 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 健康計算器 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>bmi bmr calorie tdee body fat navy mifflin health weight height 健康 計算器 體重 身高 體脂 熱量 代謝 卡路里</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

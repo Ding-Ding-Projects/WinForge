@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.tzplanner</code> |
+| Deep-link alias · 深層連結別名 | <code>tzplanner</code> |
 | Category · 分類 | Time & Dates · 時間與日期 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>TzPlannerModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/TzPlannerModule.xaml</code> |
 | Button docs · 按鈕文件 | 2 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Timezone Planner is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Timezone Planner is registered in WinForge search and navigation with these keywords: <code>timezone time zone meeting planner world clock utc offset working hours dst 時區 時間 會議 規劃 世界時鐘 辦公時間 跨時區 UTC</code>.
 
-**粵語 —** 時區會議規劃 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 時區會議規劃 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>timezone time zone meeting planner world clock utc offset working hours dst 時區 時間 會議 規劃 世界時鐘 辦公時間 跨時區 UTC</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

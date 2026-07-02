@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.torrent</code> |
+| Deep-link alias · 深層連結別名 | <code>torrent</code> |
 | Category · 分類 | Apps & Git · 程式與 Git |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>TorrentModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/TorrentModule.xaml</code> |
 | Button docs · 按鈕文件 | 8 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Native Torrent is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Native Torrent is registered in WinForge search and navigation with these keywords: <code>native torrent bittorrent monotorrent magnet link dht pex local peer discovery udp http tracker in-process managed pure c# download seed leech file priority sequential recheck ratio eta peers seeds pieces fast resume session restore downloads 原生 種子 磁力 下載 做種 追蹤器 對等 內建 受控 引擎 檔案優先 順序 重新檢查 比率 片段 還原</code>.
 
-**粵語 —** 原生種子下載 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 原生種子下載 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>native torrent bittorrent monotorrent magnet link dht pex local peer discovery udp http tracker in-process managed pure c# download seed leech file priority sequential recheck ratio eta peers seeds pieces fast resume session restore downloads 原生 種子 磁力 下載 做種 追蹤器 對等 內建 受控 引擎 檔案優先 順序 重新檢查 比率 片段 還原</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

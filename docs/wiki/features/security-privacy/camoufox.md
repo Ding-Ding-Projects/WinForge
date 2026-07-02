@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.camoufox</code> |
+| Deep-link alias · 深層連結別名 | <code>camoufox</code> |
 | Category · 分類 | Security & Privacy · 安全與私隱 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>CamoufoxModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/CamoufoxModule.xaml</code> |
 | Button docs · 按鈕文件 | 19 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Camoufox Profiles is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Camoufox Profiles is registered in WinForge search and navigation with these keywords: <code>camoufox anti detect antidetect browser firefox fingerprint spoof profile profiles cookies user agent useragent timezone locale proxy multi account multiaccount stealth automation playwright launch export import git commit history version control clone build from source 指紋 瀏覽器 反偵測 防偵測 設定檔 多帳號 代理 時區 匯出 匯入 歷史 版本控制 由原始碼建置</code>.
 
-**粵語 —** Camoufox 指紋設定檔 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** Camoufox 指紋設定檔 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>camoufox anti detect antidetect browser firefox fingerprint spoof profile profiles cookies user agent useragent timezone locale proxy multi account multiaccount stealth automation playwright launch export import git commit history version control clone build from source 指紋 瀏覽器 反偵測 防偵測 設定檔 多帳號 代理 時區 匯出 匯入 歷史 版本控制 由原始碼建置</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

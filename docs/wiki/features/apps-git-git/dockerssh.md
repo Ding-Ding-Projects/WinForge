@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.dockerssh</code> |
+| Deep-link alias · 深層連結別名 | <code>dockerssh</code> |
 | Category · 分類 | Apps & Git · 程式與 Git |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>DockerSshModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/DockerSshModule.xaml</code> |
 | Button docs · 按鈕文件 | 12 |
 
 ## What It Covers · 功能範圍
 
-**EN —** Docker over SSH is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Docker over SSH is registered in WinForge search and navigation with these keywords: <code>docker ssh remote container containers power start stop restart pause unpause remove rm logs exec ps image daemon host remotedocker dockerssh containers-ssh ssh.net portainer compose 容器 遠端 控制 啟動 停止 重啟 暫停 移除 日誌 執行 鏡像 主機 遙距 碼頭</code>.
 
-**粵語 —** 透過 SSH 控制 Docker 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 透過 SSH 控制 Docker 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>docker ssh remote container containers power start stop restart pause unpause remove rm logs exec ps image daemon host remotedocker dockerssh containers-ssh ssh.net portainer compose 容器 遠端 控制 啟動 停止 重啟 暫停 移除 日誌 執行 鏡像 主機 遙距 碼頭</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.quicktype</code> |
+| Deep-link alias · 深層連結別名 | <code>quicktype</code> |
 | Category · 分類 | Apps & Git · 程式與 Git |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>QuickTypeModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/QuickTypeModule.xaml</code> |
 | Button docs · 按鈕文件 | 5 |
 
 ## What It Covers · 功能範圍
 
-**EN —** quicktype is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** quicktype is registered in WinForge search and navigation with these keywords: <code>quicktype json schema typescript graphql postman code generator type csharp c# python go rust java kotlin swift objective-c c++ dart ruby elm php scala types just-types namespace newtonsoft system.text.json npm node jsontotype codegen 程式碼產生 型別 產生 轉換 結構</code>.
 
-**粵語 —** JSON 轉型別 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** JSON 轉型別 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>quicktype json schema typescript graphql postman code generator type csharp c# python go rust java kotlin swift objective-c c++ dart ruby elm php scala types just-types namespace newtonsoft system.text.json npm node jsontotype codegen 程式碼產生 型別 產生 轉換 結構</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

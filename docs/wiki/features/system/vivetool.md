@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.vivetool</code> |
+| Deep-link alias · 深層連結別名 | <code>vivetool</code> |
 | Category · 分類 | System · 系統 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>ViveToolModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/ViveToolModule.xaml</code> |
 | Button docs · 按鈕文件 | 11 |
 
 ## What It Covers · 功能範圍
 
-**EN —** ViVeTool is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** ViVeTool is registered in WinForge search and navigation with these keywords: <code>vivetool vive feature flag experiment hidden file explorer tabs new start menu modern context menu snap layouts energy saver click to do 功能 旗標 實驗 隱藏 分頁 開始功能表</code>.
 
-**粵語 —** 功能旗標 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 功能旗標 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>vivetool vive feature flag experiment hidden file explorer tabs new start menu modern context menu snap layouts energy saver click to do 功能 旗標 實驗 隱藏 分頁 開始功能表</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 

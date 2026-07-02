@@ -5,18 +5,18 @@
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Tag · 標籤 | <code>module.filesplit</code> |
+| Deep-link alias · 深層連結別名 | <code>filesplit</code> |
 | Category · 分類 | Everyday & Life · 日常生活 |
-| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Page class · 頁面類別 | <code>FileSplitModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/FileSplitModule.xaml</code> |
 | Button docs · 按鈕文件 | 5 |
 
 ## What It Covers · 功能範圍
 
-**EN —** File Split & Join is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** File Split & Join is registered in WinForge search and navigation with these keywords: <code>split join file parts chunk merge concatenate 001 002 sha256 切割 合併 分割 檔案 部件 分片 併合 重組</code>.
 
-**粵語 —** 檔案切割／合併 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
+**粵語 —** 檔案切割／合併 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>split join file parts chunk merge concatenate 001 002 sha256 切割 合併 分割 檔案 部件 分片 併合 重組</code>。
 
 ## Buttons And Controls · 按鈕與控制項
 
