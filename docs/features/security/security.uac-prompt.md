@@ -4,7 +4,7 @@
 |---|---|
 | **ID** | `security.uac-prompt` |
 | **Module · 模組** | Security · 安全 |
-| **Type · 種類** | Choice |
+| **Type · 種類** | RadioGroup |
 | **Administrator · 管理員** | Yes · 需要 |
 | **Destructive · 具破壞性** | No · 唔係 |
 | **Restart · 重啟** | None |

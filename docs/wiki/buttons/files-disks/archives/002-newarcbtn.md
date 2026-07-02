@@ -1,20 +1,20 @@
-# NewArcBtn Â· Button
+# NewArcBtn · Button
 
-**EN â€”** Action/control documented from the WinUI XAML source for **Archives**.
-**ç²µèªž â€”** å‘¢å€‹å‹•ä½œï¼æŽ§åˆ¶é …ä¿‚ç”± **å£“ç¸®æª”** å˜… WinUI XAML ä¾†æºæ•´ç†å‡ºåšŸã€‚
+**EN —** Action/control documented from the WinUI XAML source for **Archives**.
+**粵語 —** 呢個動作／控制項係由 **壓縮檔** 嘅 WinUI XAML 來源整理出嚟。
 
-| Field Â· æ¬„ä½ | Value Â· å€¼ |
+| Field · 欄位 | Value · 值 |
 |---|---|
-| Module Â· æ¨¡çµ„ | [Archives Â· å£“ç¸®æª”](../../../features/files-disks/archives.md) |
-| Category Â· åˆ†é¡ž | Files & Disks Â· æª”æ¡ˆèˆ‡ç£ç¢Ÿ |
-| Control type Â· æŽ§åˆ¶é¡žåž‹ | $(System.Collections.Specialized.OrderedDictionary["Type"]) |
-| XAML name Â· XAML åç¨± | $(System.Collections.Specialized.OrderedDictionary["Name"]) |
-| Label / tooltip Â· æ¨™ç±¤ï¼æç¤º | NewArcBtn |
-| Handler Â· è™•ç†å‡½å¼ | $(System.Collections.Specialized.OrderedDictionary["Handler"]) |
-| Source Â· ä¾†æº | $(System.Collections.Specialized.OrderedDictionary["Source"]) |
+| Module · 模組 | [Archives · 壓縮檔](../../../features/files-disks/archives.md) |
+| Category · 分類 | Files & Disks · 檔案與磁碟 |
+| Control type · 控制類型 | <code>Button</code> |
+| XAML name · XAML 名稱 | <code>NewArcBtn</code> |
+| Label / tooltip · 標籤／提示 | NewArcBtn |
+| Handler · 處理函式 | <code>NewArchive_Click</code> |
+| Source · 來源 | <code>Pages/ArchivesModule.xaml</code> |
 
-## Operator Notes Â· æ“ä½œå‚™è¨»
+## Operator Notes · 操作備註
 
-**EN â€”** Use this control from the module page shown above. If the handler is blank, the action is represented by binding or template state rather than a direct click handler in XAML.
+**EN —** Use this control from the module page shown above. If the handler is blank, the action is represented by binding or template state rather than a direct click handler in XAML.
 
-**ç²µèªž â€”** å–ºä¸Šé¢æ¨¡çµ„é é¢ä½¿ç”¨å‘¢å€‹æŽ§åˆ¶é …ã€‚å¦‚æžœè™•ç†å‡½å¼ä¿‚ç©ºç™½ï¼Œä»£è¡¨å‹•ä½œå¯èƒ½ç”± binding æˆ–æ¨£æ¿ç‹€æ…‹è™•ç†ï¼Œè€Œå””ä¿‚ XAML å…¥é¢ç›´æŽ¥å¯« click handlerã€‚
+**粵語 —** 喺上面模組頁面使用呢個控制項。如果處理函式係空白，代表動作可能由 binding 或樣板狀態處理，而唔係 XAML 入面直接寫 click handler。

@@ -80,9 +80,10 @@ public static class DocsExporter
             // REAL module/category/feature data actually changes (not on every run).
             meta = new
             {
-                totalFeatures = TweakCatalog.Count,
-                categoryCount = Categories.All.Length,
-                moduleCount = ModuleRegistry.All.Count,
+                totalFeatures = FeatureCountService.FullFeatureCount,
+                tweakFeatureCount = FeatureCountService.TweakFeatureCount,
+                categoryCount = FeatureCountService.CategoryCount,
+                moduleCount = FeatureCountService.ModuleCount,
             },
             categories,
             modules,

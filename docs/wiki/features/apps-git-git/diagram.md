@@ -1,35 +1,35 @@
-# Diagram Editor Â· åœ–è¡¨ç·¨è¼¯å™¨
+# Diagram Editor · 圖表編輯器
 
-**EN â€”** Feature reference generated from the WinForge module registry, navigation map, and page XAML.
-**ç²µèªž â€”** å‘¢ä»½åŠŸèƒ½åƒè€ƒç”± WinForge æ¨¡çµ„ç™»è¨˜ã€å°Žè¦½åœ°åœ–åŒé é¢ XAML ç”Ÿæˆã€‚
+**EN —** Feature reference generated from the WinForge module registry, navigation map, and page XAML.
+**粵語 —** 呢份功能參考由 WinForge 模組登記、導覽地圖同頁面 XAML 生成。
 
-| Field Â· æ¬„ä½ | Value Â· å€¼ |
+| Field · 欄位 | Value · 值 |
 |---|---|
-| Tag Â· æ¨™ç±¤ | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias Â· æ·±å±¤é€£çµåˆ¥å | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
-| Category Â· åˆ†é¡ž | Apps & Git Â· ç¨‹å¼èˆ‡ Git |
-| Page class Â· é é¢é¡žåˆ¥ | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML Â· é é¢ XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
-| Button docs Â· æŒ‰éˆ•æ–‡ä»¶ | 20 |
+| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
+| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Category · 分類 | Apps & Git · 程式與 Git |
+| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
+| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Button docs · 按鈕文件 | 20 |
 
-## What It Covers Â· åŠŸèƒ½ç¯„åœ
+## What It Covers · 功能範圍
 
-**EN â€”** Diagram Editor is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Diagram Editor is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
 
-**ç²µèªž â€”** åœ–è¡¨ç·¨è¼¯å™¨ å·²ç™»è¨˜å–º WinForge æœå°‹åŒå°Žè¦½ï¼Œé—œéµå­—åŒ…æ‹¬ï¼š$(System.Collections.Specialized.OrderedDictionary["Keywords"])ã€‚
+**粵語 —** 圖表編輯器 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
 
-## Buttons And Controls Â· æŒ‰éˆ•èˆ‡æŽ§åˆ¶é …
+## Buttons And Controls · 按鈕與控制項
 
-| Button Â· æŒ‰éˆ• | Type Â· é¡žåž‹ | XAML name Â· åç¨± | Handler Â· è™•ç†å‡½å¼ |
+| Button · 按鈕 | Type · 類型 | XAML name · 名稱 | Handler · 處理函式 |
 |---|---|---|---|
 | [NewBtn](../../buttons/apps-git-git/diagram/001-newbtn.md) | `Button` | `NewBtn` | `New_Click` |
 | [OpenBtn](../../buttons/apps-git-git/diagram/002-openbtn.md) | `Button` | `OpenBtn` | `Open_Click` |
 | [SaveBtn](../../buttons/apps-git-git/diagram/003-savebtn.md) | `Button` | `SaveBtn` | `Save_Click` |
 | [ExportBtn](../../buttons/apps-git-git/diagram/004-exportbtn.md) | `Button` | `ExportBtn` | `Export_Click` |
-| [Duplicate Â· è¤‡è£½](../../buttons/apps-git-git/diagram/005-duplicatebtn.md) | `Button` | `DuplicateBtn` | `Duplicate_Click` |
-| [Delete Â· åˆªé™¤](../../buttons/apps-git-git/diagram/006-deletebtn.md) | `Button` | `DeleteBtn` | `Delete_Click` |
-| [Bring to front Â· ç§»åˆ°æœ€å‰](../../buttons/apps-git-git/diagram/007-frontbtn.md) | `Button` | `FrontBtn` | `BringFront_Click` |
-| [Send to back Â· ç§»åˆ°æœ€å¾Œ](../../buttons/apps-git-git/diagram/008-backbtn.md) | `Button` | `BackBtn` | `SendBack_Click` |
+| [Duplicate · 複製](../../buttons/apps-git-git/diagram/005-duplicatebtn.md) | `Button` | `DuplicateBtn` | `Duplicate_Click` |
+| [Delete · 刪除](../../buttons/apps-git-git/diagram/006-deletebtn.md) | `Button` | `DeleteBtn` | `Delete_Click` |
+| [Bring to front · 移到最前](../../buttons/apps-git-git/diagram/007-frontbtn.md) | `Button` | `FrontBtn` | `BringFront_Click` |
+| [Send to back · 移到最後](../../buttons/apps-git-git/diagram/008-backbtn.md) | `Button` | `BackBtn` | `SendBack_Click` |
 | [ConnectModeBtn](../../buttons/apps-git-git/diagram/009-connectmodebtn.md) | `ToggleButton` | `ConnectModeBtn` | `ConnectMode_Click` |
 | [ZoomOutBtn](../../buttons/apps-git-git/diagram/010-zoomoutbtn.md) | `Button` | `ZoomOutBtn` | `ZoomOut_Click` |
 | [ZoomInBtn](../../buttons/apps-git-git/diagram/011-zoominbtn.md) | `Button` | `ZoomInBtn` | `ZoomIn_Click` |

@@ -1,43 +1,26 @@
-# Home Assistant Â· å®¶å±…åŠ©ç†
+# Home Assistant · 家居助理
 
-**EN â€”** Feature reference generated from the WinForge module registry, navigation map, and page XAML.
-**ç²µèªž â€”** å‘¢ä»½åŠŸèƒ½åƒè€ƒç”± WinForge æ¨¡çµ„ç™»è¨˜ã€å°Žè¦½åœ°åœ–åŒé é¢ XAML ç”Ÿæˆã€‚
+**EN —** Feature reference generated from the WinForge module registry, navigation map, and page XAML.
+**粵語 —** 呢份功能參考由 WinForge 模組登記、導覽地圖同頁面 XAML 生成。
 
-| Field Â· æ¬„ä½ | Value Â· å€¼ |
+| Field · 欄位 | Value · 值 |
 |---|---|
-| Tag Â· æ¨™ç±¤ | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias Â· æ·±å±¤é€£çµåˆ¥å | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
-| Category Â· åˆ†é¡ž | Apps & Git Â· ç¨‹å¼èˆ‡ Git |
-| Page class Â· é é¢é¡žåˆ¥ | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML Â· é é¢ XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
-| Button docs Â· æŒ‰éˆ•æ–‡ä»¶ | 35 |
+| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
+| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Category · 分類 | Apps & Git · 程式與 Git |
+| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
+| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Button docs · 按鈕文件 | 42 |
 
-## What It Covers Â· åŠŸèƒ½ç¯„åœ
+## What It Covers · 功能範圍
 
-**EN â€”** Home Assistant is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Home Assistant is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
 
-**ç²µèªž â€”** å®¶å±…åŠ©ç† å·²ç™»è¨˜å–º WinForge æœå°‹åŒå°Žè¦½ï¼Œé—œéµå­—åŒ…æ‹¬ï¼š$(System.Collections.Specialized.OrderedDictionary["Keywords"])ã€‚
+**粵語 —** 家居助理 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
 
-## Climate and AC Defender · 冷氣與 AC Defender
+## Buttons And Controls · 按鈕與控制項
 
-**EN —** WinForge talks to Home Assistant through the REST API. For AC Defender-style cooling control, use the AC Defender tab to generate a Docker/Compose bundle, export it for an SSH Docker host, or start/stop/status the local stack through WinForge's managed Docker client. The deployment watches Home Assistant entities such as `climate.*`, `sensor.*`, `switch.*` or `notify.*` and deliberately turns HVAC off instead of auto-adjusting the set temperature.
-
-**粵語 —** WinForge 係透過 Home Assistant REST API 溝通。要做 AC Defender 式冷氣防護，可以用 AC Defender 分頁產生 Docker/Compose bundle、匯出畀 SSH Docker 主機，或者透過 WinForge managed Docker client 本機啟停同睇狀態。部署會監察 `climate.*`、`sensor.*`、`switch.*` 或 `notify.*` 等 Home Assistant 實體，而且只會關 HVAC，唔會自動調整設定溫度。
-
-| Step · 步驟 | Operator action · 操作 |
-|---|---|
-| Deploy · 部署 | Run AC Defender with Docker/Compose on the Home Assistant host or another reachable Docker host. |
-| Expose entities · 暴露實體 | Confirm Home Assistant can see the AC/thermostat entity and any sensors, switches or notification targets. |
-| Connect WinForge · 連接 WinForge | Save the Home Assistant base URL and a long-lived access token in this module. The token is stored DPAPI-encrypted. |
-| Operate · 操作 | Use **Lights & Climate** to select a `climate.*` entity, set target temperature and set HVAC mode. Use **Notify** to load and send to Home Assistant notification targets. |
-
-**EN —** The relevant REST calls are `climate/set_temperature`, `climate/set_hvac_mode` and `notify/<target>`. Use the Docker module or Docker over SSH module only when you need to inspect or manage the container host; the Home Assistant module only needs the HA REST endpoint.
-
-**粵語 —** 相關 REST 呼叫係 `climate/set_temperature`、`climate/set_hvac_mode` 同 `notify/<target>`。只有需要檢查或管理容器主機時，先用 Docker 模組或 Docker over SSH 模組；Home Assistant 模組只需要 HA REST endpoint。
-
-## Buttons And Controls Â· æŒ‰éˆ•èˆ‡æŽ§åˆ¶é …
-
-| Button Â· æŒ‰éˆ• | Type Â· é¡žåž‹ | XAML name Â· åç¨± | Handler Â· è™•ç†å‡½å¼ |
+| Button · 按鈕 | Type · 類型 | XAML name · 名稱 | Handler · 處理函式 |
 |---|---|---|---|
 | [SaveCfgBtn](../../buttons/apps-git-git/homeassistant/001-savecfgbtn.md) | `Button` | `SaveCfgBtn` | `SaveCfg_Click` |
 | [TestBtn](../../buttons/apps-git-git/homeassistant/002-testbtn.md) | `Button` | `TestBtn` | `Test_Click` |
@@ -57,11 +40,11 @@
 | [RefreshTogglesBtn](../../buttons/apps-git-git/homeassistant/016-refreshtogglesbtn.md) | `Button` | `RefreshTogglesBtn` | `RefreshToggles_Click` |
 | [AllLightsOnBtn](../../buttons/apps-git-git/homeassistant/017-alllightsonbtn.md) | `Button` | `AllLightsOnBtn` | `AllLightsOn_Click` |
 | [AllLightsOffBtn](../../buttons/apps-git-git/homeassistant/018-alllightsoffbtn.md) | `Button` | `AllLightsOffBtn` | `AllLightsOff_Click` |
-| [param($m) "[icon U+$($m.Groups[1].Value.ToUpperInvariant())]"](../../buttons/apps-git-git/homeassistant/019-rowon-click.md) | `Button` | `` | `RowOn_Click` |
-| [param($m) "[icon U+$($m.Groups[1].Value.ToUpperInvariant())]"](../../buttons/apps-git-git/homeassistant/020-rowoff-click.md) | `Button` | `` | `RowOff_Click` |
+| [[icon U+E7E8]](../../buttons/apps-git-git/homeassistant/019-rowon-click.md) | `Button` | `` | `RowOn_Click` |
+| [[icon U+E711]](../../buttons/apps-git-git/homeassistant/020-rowoff-click.md) | `Button` | `` | `RowOff_Click` |
 | [binding:ApplyBrightnessLabel](../../buttons/apps-git-git/homeassistant/021-rowapplybrightness-click.md) | `Button` | `` | `RowApplyBrightness_Click` |
-| [param($m) "[icon U+$($m.Groups[1].Value.ToUpperInvariant())]"](../../buttons/apps-git-git/homeassistant/022-rowon-click.md) | `Button` | `` | `RowOn_Click` |
-| [param($m) "[icon U+$($m.Groups[1].Value.ToUpperInvariant())]"](../../buttons/apps-git-git/homeassistant/023-rowoff-click.md) | `Button` | `` | `RowOff_Click` |
+| [[icon U+E7E8]](../../buttons/apps-git-git/homeassistant/022-rowon-click.md) | `Button` | `` | `RowOn_Click` |
+| [[icon U+E711]](../../buttons/apps-git-git/homeassistant/023-rowoff-click.md) | `Button` | `` | `RowOff_Click` |
 | [LightOnBtn](../../buttons/apps-git-git/homeassistant/024-lightonbtn.md) | `Button` | `LightOnBtn` | `LightOn_Click` |
 | [LightOffBtn](../../buttons/apps-git-git/homeassistant/025-lightoffbtn.md) | `Button` | `LightOffBtn` | `LightOff_Click` |
 | [SetTempBtn](../../buttons/apps-git-git/homeassistant/026-settempbtn.md) | `Button` | `SetTempBtn` | `SetTemp_Click` |
@@ -72,5 +55,12 @@
 | [SaveSnapBtn](../../buttons/apps-git-git/homeassistant/031-savesnapbtn.md) | `Button` | `SaveSnapBtn` | `SaveSnap_Click` |
 | [LoadCalsBtn](../../buttons/apps-git-git/homeassistant/032-loadcalsbtn.md) | `Button` | `LoadCalsBtn` | `LoadCals_Click` |
 | [TodayBtn](../../buttons/apps-git-git/homeassistant/033-todaybtn.md) | `Button` | `TodayBtn` | `Today_Click` |
-| [TailBtn](../../buttons/apps-git-git/homeassistant/034-tailbtn.md) | `Button` | `TailBtn` | `Tail_Click` |
-| [CopyLogBtn](../../buttons/apps-git-git/homeassistant/035-copylogbtn.md) | `Button` | `CopyLogBtn` | `CopyLog_Click` |
+| [AcLocateBtn](../../buttons/apps-git-git/homeassistant/034-aclocatebtn.md) | `Button` | `AcLocateBtn` | `AcLocate_Click` |
+| [AcBrowseBtn](../../buttons/apps-git-git/homeassistant/035-acbrowsebtn.md) | `Button` | `AcBrowseBtn` | `AcBrowse_Click` |
+| [AcGenerateBtn](../../buttons/apps-git-git/homeassistant/036-acgeneratebtn.md) | `Button` | `AcGenerateBtn` | `AcGenerate_Click` |
+| [AcExportBtn](../../buttons/apps-git-git/homeassistant/037-acexportbtn.md) | `Button` | `AcExportBtn` | `AcExport_Click` |
+| [AcStartBtn](../../buttons/apps-git-git/homeassistant/038-acstartbtn.md) | `Button` | `AcStartBtn` | `AcStart_Click` |
+| [AcStopBtn](../../buttons/apps-git-git/homeassistant/039-acstopbtn.md) | `Button` | `AcStopBtn` | `AcStop_Click` |
+| [AcStatusBtn](../../buttons/apps-git-git/homeassistant/040-acstatusbtn.md) | `Button` | `AcStatusBtn` | `AcStatus_Click` |
+| [TailBtn](../../buttons/apps-git-git/homeassistant/041-tailbtn.md) | `Button` | `TailBtn` | `Tail_Click` |
+| [CopyLogBtn](../../buttons/apps-git-git/homeassistant/042-copylogbtn.md) | `Button` | `CopyLogBtn` | `CopyLog_Click` |

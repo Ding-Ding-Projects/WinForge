@@ -1,20 +1,20 @@
-# ExportBtn Â· Button
+# ExportBtn · Button
 
-**EN â€”** Action/control documented from the WinUI XAML source for **Activity Timeline**.
-**ç²µèªž â€”** å‘¢å€‹å‹•ä½œï¼æŽ§åˆ¶é …ä¿‚ç”± **æ´»å‹•æ™‚é–“è»¸** å˜… WinUI XAML ä¾†æºæ•´ç†å‡ºåšŸã€‚
+**EN —** Action/control documented from the WinUI XAML source for **Activity Timeline**.
+**粵語 —** 呢個動作／控制項係由 **活動時間軸** 嘅 WinUI XAML 來源整理出嚟。
 
-| Field Â· æ¬„ä½ | Value Â· å€¼ |
+| Field · 欄位 | Value · 值 |
 |---|---|
-| Module Â· æ¨¡çµ„ | [Activity Timeline Â· æ´»å‹•æ™‚é–“è»¸](../../../features/media-capture/timelens.md) |
-| Category Â· åˆ†é¡ž | Media & Capture Â· åª’é«”èˆ‡æ“·å– |
-| Control type Â· æŽ§åˆ¶é¡žåž‹ | $(System.Collections.Specialized.OrderedDictionary["Type"]) |
-| XAML name Â· XAML åç¨± | $(System.Collections.Specialized.OrderedDictionary["Name"]) |
-| Label / tooltip Â· æ¨™ç±¤ï¼æç¤º | ExportBtn |
-| Handler Â· è™•ç†å‡½å¼ | $(System.Collections.Specialized.OrderedDictionary["Handler"]) |
-| Source Â· ä¾†æº | $(System.Collections.Specialized.OrderedDictionary["Source"]) |
+| Module · 模組 | [Activity Timeline · 活動時間軸](../../../features/media-capture/timelens.md) |
+| Category · 分類 | Media & Capture · 媒體與擷取 |
+| Control type · 控制類型 | <code>Button</code> |
+| XAML name · XAML 名稱 | <code>ExportBtn</code> |
+| Label / tooltip · 標籤／提示 | ExportBtn |
+| Handler · 處理函式 | <code>Export_Click</code> |
+| Source · 來源 | <code>Pages/TimeLensModule.xaml</code> |
 
-## Operator Notes Â· æ“ä½œå‚™è¨»
+## Operator Notes · 操作備註
 
-**EN â€”** Use this control from the module page shown above. If the handler is blank, the action is represented by binding or template state rather than a direct click handler in XAML.
+**EN —** Use this control from the module page shown above. If the handler is blank, the action is represented by binding or template state rather than a direct click handler in XAML.
 
-**ç²µèªž â€”** å–ºä¸Šé¢æ¨¡çµ„é é¢ä½¿ç”¨å‘¢å€‹æŽ§åˆ¶é …ã€‚å¦‚æžœè™•ç†å‡½å¼ä¿‚ç©ºç™½ï¼Œä»£è¡¨å‹•ä½œå¯èƒ½ç”± binding æˆ–æ¨£æ¿ç‹€æ…‹è™•ç†ï¼Œè€Œå””ä¿‚ XAML å…¥é¢ç›´æŽ¥å¯« click handlerã€‚
+**粵語 —** 喺上面模組頁面使用呢個控制項。如果處理函式係空白，代表動作可能由 binding 或樣板狀態處理，而唔係 XAML 入面直接寫 click handler。

@@ -1,20 +1,20 @@
-# Terminate (stop) Â· çµ‚æ­¢ï¼ˆåœæ­¢ï¼‰ Â· Button
+# Terminate (stop) · 終止（停止） · Button
 
-**EN â€”** Action/control documented from the WinUI XAML source for **WSL & VM Launcher**.
-**ç²µèªž â€”** å‘¢å€‹å‹•ä½œï¼æŽ§åˆ¶é …ä¿‚ç”± **WSL èˆ‡ VM å•Ÿå‹•å™¨** å˜… WinUI XAML ä¾†æºæ•´ç†å‡ºåšŸã€‚
+**EN —** Action/control documented from the WinUI XAML source for **WSL & VM Launcher**.
+**粵語 —** 呢個動作／控制項係由 **WSL 與 VM 啟動器** 嘅 WinUI XAML 來源整理出嚟。
 
-| Field Â· æ¬„ä½ | Value Â· å€¼ |
+| Field · 欄位 | Value · 值 |
 |---|---|
-| Module Â· æ¨¡çµ„ | [WSL & VM Launcher Â· WSL èˆ‡ VM å•Ÿå‹•å™¨](../../../features/apps-git-git/wsl.md) |
-| Category Â· åˆ†é¡ž | Apps & Git Â· ç¨‹å¼èˆ‡ Git |
-| Control type Â· æŽ§åˆ¶é¡žåž‹ | $(System.Collections.Specialized.OrderedDictionary["Type"]) |
-| XAML name Â· XAML åç¨± | $(System.Collections.Specialized.OrderedDictionary["Name"]) |
-| Label / tooltip Â· æ¨™ç±¤ï¼æç¤º | Terminate (stop) Â· çµ‚æ­¢ï¼ˆåœæ­¢ï¼‰ |
-| Handler Â· è™•ç†å‡½å¼ | $(System.Collections.Specialized.OrderedDictionary["Handler"]) |
-| Source Â· ä¾†æº | $(System.Collections.Specialized.OrderedDictionary["Source"]) |
+| Module · 模組 | [WSL & VM Launcher · WSL 與 VM 啟動器](../../../features/apps-git-git/wsl.md) |
+| Category · 分類 | Apps & Git · 程式與 Git |
+| Control type · 控制類型 | <code>MenuFlyoutItem</code> |
+| XAML name · XAML 名稱 | <code></code> |
+| Label / tooltip · 標籤／提示 | Terminate (stop) · 終止（停止） |
+| Handler · 處理函式 | <code>DistroTerminate_Click</code> |
+| Source · 來源 | <code>Pages/WslVmModule.xaml</code> |
 
-## Operator Notes Â· æ“ä½œå‚™è¨»
+## Operator Notes · 操作備註
 
-**EN â€”** Use this control from the module page shown above. If the handler is blank, the action is represented by binding or template state rather than a direct click handler in XAML.
+**EN —** Use this control from the module page shown above. If the handler is blank, the action is represented by binding or template state rather than a direct click handler in XAML.
 
-**ç²µèªž â€”** å–ºä¸Šé¢æ¨¡çµ„é é¢ä½¿ç”¨å‘¢å€‹æŽ§åˆ¶é …ã€‚å¦‚æžœè™•ç†å‡½å¼ä¿‚ç©ºç™½ï¼Œä»£è¡¨å‹•ä½œå¯èƒ½ç”± binding æˆ–æ¨£æ¿ç‹€æ…‹è™•ç†ï¼Œè€Œå””ä¿‚ XAML å…¥é¢ç›´æŽ¥å¯« click handlerã€‚
+**粵語 —** 喺上面模組頁面使用呢個控制項。如果處理函式係空白，代表動作可能由 binding 或樣板狀態處理，而唔係 XAML 入面直接寫 click handler。

@@ -1,26 +1,26 @@
-# Git & GitHub Â· Git èˆ‡ GitHub
+# Git & GitHub · Git 與 GitHub
 
-**EN â€”** Feature reference generated from the WinForge module registry, navigation map, and page XAML.
-**ç²µèªž â€”** å‘¢ä»½åŠŸèƒ½åƒè€ƒç”± WinForge æ¨¡çµ„ç™»è¨˜ã€å°Žè¦½åœ°åœ–åŒé é¢ XAML ç”Ÿæˆã€‚
+**EN —** Feature reference generated from the WinForge module registry, navigation map, and page XAML.
+**粵語 —** 呢份功能參考由 WinForge 模組登記、導覽地圖同頁面 XAML 生成。
 
-| Field Â· æ¬„ä½ | Value Â· å€¼ |
+| Field · 欄位 | Value · 值 |
 |---|---|
-| Tag Â· æ¨™ç±¤ | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias Â· æ·±å±¤é€£çµåˆ¥å | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
-| Category Â· åˆ†é¡ž | Apps & Git Â· ç¨‹å¼èˆ‡ Git |
-| Page class Â· é é¢é¡žåˆ¥ | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML Â· é é¢ XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
-| Button docs Â· æŒ‰éˆ•æ–‡ä»¶ | 27 |
+| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
+| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Category · 分類 | Apps & Git · 程式與 Git |
+| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
+| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Button docs · 按鈕文件 | 34 |
 
-## What It Covers Â· åŠŸèƒ½ç¯„åœ
+## What It Covers · 功能範圍
 
-**EN â€”** Git & GitHub is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** Git & GitHub is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
 
-**ç²µèªž â€”** Git èˆ‡ GitHub å·²ç™»è¨˜å–º WinForge æœå°‹åŒå°Žè¦½ï¼Œé—œéµå­—åŒ…æ‹¬ï¼š$(System.Collections.Specialized.OrderedDictionary["Keywords"])ã€‚
+**粵語 —** Git 與 GitHub 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
 
-## Buttons And Controls Â· æŒ‰éˆ•èˆ‡æŽ§åˆ¶é …
+## Buttons And Controls · 按鈕與控制項
 
-| Button Â· æŒ‰éˆ• | Type Â· é¡žåž‹ | XAML name Â· åç¨± | Handler Â· è™•ç†å‡½å¼ |
+| Button · 按鈕 | Type · 類型 | XAML name · 名稱 | Handler · 處理函式 |
 |---|---|---|---|
 | [AddRepoBtn](../../buttons/apps-git-git/git/001-addrepobtn.md) | `Button` | `AddRepoBtn` | `AddRepo_Click` |
 | [ScanReposBtn](../../buttons/apps-git-git/git/002-scanreposbtn.md) | `Button` | `ScanReposBtn` | `ScanRepos_Click` |
@@ -49,3 +49,10 @@
 | [PrViewBtn](../../buttons/apps-git-git/git/025-prviewbtn.md) | `Button` | `PrViewBtn` | `ViewPr_Click` |
 | [ChunkUploadBtn](../../buttons/apps-git-git/git/026-chunkuploadbtn.md) | `Button` | `ChunkUploadBtn` | `ChunkUpload_Click` |
 | [RunnerBtn](../../buttons/apps-git-git/git/027-runnerbtn.md) | `Button` | `RunnerBtn` | `Runner_Click` |
+| [UpBtn](../../buttons/apps-git-git/git/028-upbtn.md) | `Button` | `UpBtn` | `Up_Click` |
+| [UndoBtn](../../buttons/apps-git-git/git/029-undobtn.md) | `Button` | `UndoBtn` | `Undo_Click` |
+| [ShareBtn](../../buttons/apps-git-git/git/030-sharebtn.md) | `Button` | `ShareBtn` | `Share_Click` |
+| [PrLinkBtn](../../buttons/apps-git-git/git/031-prlinkbtn.md) | `Button` | `PrLinkBtn` | `PrLink_Click` |
+| [CheckpointBtn](../../buttons/apps-git-git/git/032-checkpointbtn.md) | `Button` | `CheckpointBtn` | `Checkpoint_Click` |
+| [RestoreBtn](../../buttons/apps-git-git/git/033-restorebtn.md) | `Button` | `RestoreBtn` | `Restore_Click` |
+| [AliasSaveBtn](../../buttons/apps-git-git/git/034-aliassavebtn.md) | `Button` | `AliasSaveBtn` | `AliasSave_Click` |

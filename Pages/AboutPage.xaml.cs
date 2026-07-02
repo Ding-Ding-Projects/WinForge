@@ -35,7 +35,7 @@ public sealed partial class AboutPage : Page
         });
         Root.Children.Add(new TextBlock
         {
-            Text = $"Windows 11 · {TweakCatalog.Count} {Loc.I.Pick("features", "項功能")} · {Categories.All.Length} {Loc.I.Pick("categories", "個分類")} · WinUI 3",
+            Text = $"Windows 11 · {FeatureCountService.FullFeatureCount} {Loc.I.Pick("features", "項功能")} · {FeatureCountService.ModuleCount} {Loc.I.Pick("modules", "個模組")} · {FeatureCountService.CategoryCount} {Loc.I.Pick("categories", "個分類")} · WinUI 3",
             Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
         });
 

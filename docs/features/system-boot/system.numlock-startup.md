@@ -4,7 +4,7 @@
 |---|---|
 | **ID** | `system.numlock-startup` |
 | **Module · 模組** | System & Boot · 系統與開機 |
-| **Type · 種類** | Choice |
+| **Type · 種類** | RadioGroup |
 | **Administrator · 管理員** | Yes · 需要 |
 | **Destructive · 具破壞性** | No · 唔係 |
 | **Restart · 重啟** | Reboot |
