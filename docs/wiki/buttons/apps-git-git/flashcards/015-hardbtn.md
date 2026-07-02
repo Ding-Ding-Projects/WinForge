@@ -1,20 +1,20 @@
-# HardBtn Â· Button
+# HardBtn · Button
 
-**EN â€”** Action/control documented from the WinUI XAML source for **Flashcards**.
-**ç²µèªž â€”** å‘¢å€‹å‹•ä½œï¼æŽ§åˆ¶é …ä¿‚ç”± **é–“éš”é‡è¤‡è¨˜æ†¶å¡** å˜… WinUI XAML ä¾†æºæ•´ç†å‡ºåšŸã€‚
+**EN —** Action/control documented from the WinUI XAML source for **Flashcards**.
+**粵語 —** 呢個動作／控制項係由 **間隔重複記憶卡** 嘅 WinUI XAML 來源整理出嚟。
 
-| Field Â· æ¬„ä½ | Value Â· å€¼ |
+| Field · 欄位 | Value · 值 |
 |---|---|
-| Module Â· æ¨¡çµ„ | [Flashcards Â· é–“éš”é‡è¤‡è¨˜æ†¶å¡](../../../features/apps-git-git/flashcards.md) |
-| Category Â· åˆ†é¡ž | Apps & Git Â· ç¨‹å¼èˆ‡ Git |
-| Control type Â· æŽ§åˆ¶é¡žåž‹ | $(System.Collections.Specialized.OrderedDictionary["Type"]) |
-| XAML name Â· XAML åç¨± | $(System.Collections.Specialized.OrderedDictionary["Name"]) |
-| Label / tooltip Â· æ¨™ç±¤ï¼æç¤º | HardBtn |
-| Handler Â· è™•ç†å‡½å¼ | $(System.Collections.Specialized.OrderedDictionary["Handler"]) |
-| Source Â· ä¾†æº | $(System.Collections.Specialized.OrderedDictionary["Source"]) |
+| Module · 模組 | [Flashcards · 間隔重複記憶卡](../../../features/apps-git-git/flashcards.md) |
+| Category · 分類 | Apps & Git · 程式與 Git |
+| Control type · 控制類型 | <code>Button</code> |
+| XAML name · XAML 名稱 | <code>HardBtn</code> |
+| Label / tooltip · 標籤／提示 | HardBtn |
+| Handler · 處理函式 | <code>Grade_Hard</code> |
+| Source · 來源 | <code>Pages/FlashcardsModule.xaml</code> |
 
-## Operator Notes Â· æ“ä½œå‚™è¨»
+## Operator Notes · 操作備註
 
-**EN â€”** Use this control from the module page shown above. If the handler is blank, the action is represented by binding or template state rather than a direct click handler in XAML.
+**EN —** Use this control from the module page shown above. If the handler is blank, the action is represented by binding or template state rather than a direct click handler in XAML.
 
-**ç²µèªž â€”** å–ºä¸Šé¢æ¨¡çµ„é é¢ä½¿ç”¨å‘¢å€‹æŽ§åˆ¶é …ã€‚å¦‚æžœè™•ç†å‡½å¼ä¿‚ç©ºç™½ï¼Œä»£è¡¨å‹•ä½œå¯èƒ½ç”± binding æˆ–æ¨£æ¿ç‹€æ…‹è™•ç†ï¼Œè€Œå””ä¿‚ XAML å…¥é¢ç›´æŽ¥å¯« click handlerã€‚
+**粵語 —** 喺上面模組頁面使用呢個控制項。如果處理函式係空白，代表動作可能由 binding 或樣板狀態處理，而唔係 XAML 入面直接寫 click handler。

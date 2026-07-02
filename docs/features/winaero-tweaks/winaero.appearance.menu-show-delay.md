@@ -4,16 +4,16 @@
 |---|---|
 | **ID** | `winaero.appearance.menu-show-delay` |
 | **Module · 模組** | Winaero Tweaks · Winaero 進階調校 |
-| **Type · 種類** | Toggle |
+| **Type · 種類** | Slider |
 | **Administrator · 管理員** | No · 唔使 |
 | **Destructive · 具破壞性** | No · 唔係 |
 | **Restart · 重啟** | SignOut |
 
 ## English
-Milliseconds Windows waits before opening cascaded/submenus. Default '400'; set to '0' (or a small value) to make menus appear instantly. Stored as a string.
+Milliseconds Windows waits before opening cascaded/submenus. Default 400; drag to 0 to make menus appear instantly. Stored as a string under Control Panel\Desktop\MenuShowDelay.
 
 ## 粵語
-Windows 喺彈出層疊／子選單之前等幾多毫秒。預設「400」；設做「0」（或者細數值）令選單即時彈出。以字串儲存。
+Windows 喺彈出層疊／子選單之前等幾多毫秒。預設 400；拉到 0 令選單即時彈出。以字串儲存於 Control Panel\Desktop\MenuShowDelay。
 
 ---
 _Keywords · 關鍵字: menu show delay MenuShowDelay snappy fast menus submenu 選單 延遲 速度 子選單_

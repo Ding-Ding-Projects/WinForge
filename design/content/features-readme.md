@@ -1,6 +1,6 @@
 # WinForge — Feature Reference · 功能總覽
 
-**1174** features, each with its own page. · **1174** 項功能，每項一頁。
+**1154** features, each with its own page. · **1154** 項功能，每項一頁。
 
 ## Appearance & Personalisation · 外觀與個人化 (16)
 - [Accent colour · 主題色](appearance-personalisation/appearance.accent-colour.md)

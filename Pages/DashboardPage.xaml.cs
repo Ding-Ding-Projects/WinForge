@@ -43,9 +43,9 @@ public sealed partial class DashboardPage : Page
         HeroNameZh.Text = BrandingService.NameZh;
         HeroSubEn.Text = "An all-in-one, fully bilingual control center that genuinely tunes Windows 11.";
         HeroSubZh.Text = "全方位、全雙語嘅控制中心，真係會幫你調校 Windows 11。";
-        StatFeatures.Text = TweakCatalog.Count.ToString();
-        StatCategories.Text = Categories.All.Length.ToString();
-        StatModules.Text = ModuleRegistry.All.Count.ToString();
+        StatFeatures.Text = FeatureCountService.FullFeatureCount.ToString();
+        StatCategories.Text = FeatureCountService.CategoryCount.ToString();
+        StatModules.Text = FeatureCountService.ModuleCount.ToString();
 
         RenderAdminBar();
         RenderModuleTiles();
@@ -55,7 +55,7 @@ public sealed partial class DashboardPage : Page
         ModulesHeader.Text = "Suite modules · 套件模組";
         StatsHeader.Text = "System at a glance · 系統一覽";
         BrowseHeader.Text = "Browse categories · 瀏覽分類";
-        SearchBox.PlaceholderText = "Search all features · 搜尋全部功能 (EN / 粵語)…";
+        SearchBox.PlaceholderText = "Search all modules and features · 搜尋全部模組同功能 (EN / 粵語)…";
     }
 
     private void RenderAdminBar()

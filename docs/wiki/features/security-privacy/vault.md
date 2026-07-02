@@ -1,26 +1,26 @@
-# WinForge Vault Â· WinForge ä¿éšªåº«
+# WinForge Vault · WinForge 保險庫
 
-**EN â€”** Feature reference generated from the WinForge module registry, navigation map, and page XAML.
-**ç²µèªž â€”** å‘¢ä»½åŠŸèƒ½åƒè€ƒç”± WinForge æ¨¡çµ„ç™»è¨˜ã€å°Žè¦½åœ°åœ–åŒé é¢ XAML ç”Ÿæˆã€‚
+**EN —** Feature reference generated from the WinForge module registry, navigation map, and page XAML.
+**粵語 —** 呢份功能參考由 WinForge 模組登記、導覽地圖同頁面 XAML 生成。
 
-| Field Â· æ¬„ä½ | Value Â· å€¼ |
+| Field · 欄位 | Value · 值 |
 |---|---|
-| Tag Â· æ¨™ç±¤ | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
-| Deep-link alias Â· æ·±å±¤é€£çµåˆ¥å | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
-| Category Â· åˆ†é¡ž | Security & Privacy Â· å®‰å…¨èˆ‡ç§éš± |
-| Page class Â· é é¢é¡žåˆ¥ | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
-| Page XAML Â· é é¢ XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
-| Button docs Â· æŒ‰éˆ•æ–‡ä»¶ | 14 |
+| Tag · 標籤 | $(System.Collections.Specialized.OrderedDictionary["Tag"]) |
+| Deep-link alias · 深層連結別名 | $(System.Collections.Specialized.OrderedDictionary["Alias"]) |
+| Category · 分類 | Security & Privacy · 安全與私隱 |
+| Page class · 頁面類別 | $(System.Collections.Specialized.OrderedDictionary["Class"]) |
+| Page XAML · 頁面 XAML | $(System.Collections.Specialized.OrderedDictionary["PageFile"]) |
+| Button docs · 按鈕文件 | 14 |
 
-## What It Covers Â· åŠŸèƒ½ç¯„åœ
+## What It Covers · 功能範圍
 
-**EN â€”** WinForge Vault is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
+**EN —** WinForge Vault is registered in WinForge search and navigation with these keywords: $(System.Collections.Specialized.OrderedDictionary["Keywords"]).
 
-**ç²µèªž â€”** WinForge ä¿éšªåº« å·²ç™»è¨˜å–º WinForge æœå°‹åŒå°Žè¦½ï¼Œé—œéµå­—åŒ…æ‹¬ï¼š$(System.Collections.Specialized.OrderedDictionary["Keywords"])ã€‚
+**粵語 —** WinForge 保險庫 已登記喺 WinForge 搜尋同導覽，關鍵字包括：$(System.Collections.Specialized.OrderedDictionary["Keywords"])。
 
-## Buttons And Controls Â· æŒ‰éˆ•èˆ‡æŽ§åˆ¶é …
+## Buttons And Controls · 按鈕與控制項
 
-| Button Â· æŒ‰éˆ• | Type Â· é¡žåž‹ | XAML name Â· åç¨± | Handler Â· è™•ç†å‡½å¼ |
+| Button · 按鈕 | Type · 類型 | XAML name · 名稱 | Handler · 處理函式 |
 |---|---|---|---|
 | [RefreshBtn](../../buttons/security-privacy/vault/001-refreshbtn.md) | `Button` | `RefreshBtn` | `Refresh_Click` |
 | [ChangePwdBtn](../../buttons/security-privacy/vault/002-changepwdbtn.md) | `Button` | `ChangePwdBtn` | `ChangePwd_Click` |
@@ -33,6 +33,6 @@
 | [MountPathBtn](../../buttons/security-privacy/vault/009-mountpathbtn.md) | `Button` | `MountPathBtn` | `PickMountPath_Click` |
 | [MountKeyfileBtn](../../buttons/security-privacy/vault/010-mountkeyfilebtn.md) | `Button` | `MountKeyfileBtn` | `PickKeyfile_Click` |
 | [MountBtn](../../buttons/security-privacy/vault/011-mountbtn.md) | `Button` | `MountBtn` | `Mount_Click` |
-| [Explore Â· ç€è¦½](../../buttons/security-privacy/vault/012-explore-click.md) | `Button` | `` | `Explore_Click` |
-| [Dismount Â· å¸è¼‰](../../buttons/security-privacy/vault/013-dismount-click.md) | `Button` | `` | `Dismount_Click` |
-| [Force dismount Â· å¼·åˆ¶å¸è¼‰](../../buttons/security-privacy/vault/014-forcedismount-click.md) | `Button` | `` | `ForceDismount_Click` |
+| [Explore · 瀏覽](../../buttons/security-privacy/vault/012-explore-click.md) | `Button` | `` | `Explore_Click` |
+| [Dismount · 卸載](../../buttons/security-privacy/vault/013-dismount-click.md) | `Button` | `` | `Dismount_Click` |
+| [Force dismount · 強制卸載](../../buttons/security-privacy/vault/014-forcedismount-click.md) | `Button` | `` | `ForceDismount_Click` |

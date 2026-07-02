@@ -5,17 +5,17 @@
 
 | Reference · 參考 | Contents · 內容 |
 |---|---|
-| [Feature Reference](features/README.md) | 139 generated module pages · 139 份生成模組頁 |
-| [Button Reference](buttons/README.md) | Generated button/control pages · 生成按鈕／控制項頁 |
+| [Feature Reference](features/README.md) | 314 generated module pages · 314 份生成模組頁 |
+| [Button Reference](buttons/README.md) | 1815 generated button/control pages · 1815 份生成按鈕／控制項頁 |
 | [Generation Summary](generated-docs-summary.json) | Counts and generated output paths · 數量同生成輸出路徑 |
 
 ## Generator · 生成器
 
 **EN —** Regenerate the references after module or XAML changes:
 
-```powershell
-powershell -ExecutionPolicy Bypass -File tools\Generate-WikiFeatureDocs.ps1
-```
+~~~~powershell
+pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File tools\Generate-WikiFeatureDocs.ps1
+~~~~
 
 **粵語 —** 模組或者 XAML 改完之後，用上面指令重新生成參考。
 

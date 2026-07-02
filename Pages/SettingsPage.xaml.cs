@@ -247,8 +247,8 @@ public sealed partial class SettingsPage : Page
         var panel = new StackPanel { Spacing = 4 };
         panel.Children.Add(Heading("WinForge · 視窗調校", null));
         panel.Children.Add(Muted(Loc.I.Pick(
-            $"{TweakCatalog.Count} bilingual features for Windows 11.",
-            $"{TweakCatalog.Count} 項 Windows 11 雙語功能。")));
+            $"{FeatureCountService.FullFeatureCount} bilingual features for Windows 11 ({FeatureCountService.ModuleCount} modules + {FeatureCountService.TweakFeatureCount} tweaks and ops).",
+            $"{FeatureCountService.FullFeatureCount} 項 Windows 11 雙語功能（{FeatureCountService.ModuleCount} 個模組 + {FeatureCountService.TweakFeatureCount} 項調校／操作）。")));
         panel.Children.Add(Muted("Version 1.0.0"));
         panel.Children.Add(Muted(Loc.I.Pick(
             "Always review what a tweak does before applying it.",

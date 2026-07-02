@@ -11,12 +11,12 @@
 | **Action · 動作** | Ping · 測試 |
 
 ## English
-Sends four ICMP pings to 1.1.1.1 to check internet reachability.
+Sends 10 ICMP pings to 1.1.1.1; the chart below plots each reply's latency.
 
 ## 粵語
-Ping 1.1.1.1 四次，睇下上唔上到網。
+Ping 1.1.1.1 共 10 次，下面圖表會畫出每次回覆嘅延遲。
 
 ---
-_Keywords · 關鍵字: ping, latency, test, 測試_
+_Keywords · 關鍵字: ping, latency, test, 測試, 延遲_
 
 _Part of WinForge · WinForge 套件嘅一部分_

@@ -25,7 +25,7 @@ function Normalize-Label([string]$Text) {
     $value = $value -replace "&amp;", "&"
     $value = $value -replace "&lt;", "<"
     $value = $value -replace "&gt;", ">"
-    $value = $value -replace "&#x([0-9A-Fa-f]+);", { param($m) "[icon U+$($m.Groups[1].Value.ToUpperInvariant())]" }
+    $value = [regex]::Replace($value, "&#x([0-9A-Fa-f]+);", { param($m) "[icon U+$($m.Groups[1].Value.ToUpperInvariant())]" })
     $value = $value -replace "\{Binding\s+([^,\}]+).*?\}", 'binding:$1'
     $value = $value -replace "\{x:Bind\s+([^,\}]+).*?\}", 'xbind:$1'
     $value = $value -replace "\{StaticResource\s+([^,\}]+).*?\}", 'resource:$1'
@@ -50,6 +50,11 @@ function Write-Utf8NoBom([string]$Path, [string]$Value) {
 $wiki = Join-Path $Root "docs/wiki"
 $featuresRoot = Join-Path $wiki "features"
 $buttonsRoot = Join-Path $wiki "buttons"
+foreach ($generatedRoot in @($featuresRoot, $buttonsRoot)) {
+    if (Test-Path -LiteralPath $generatedRoot) {
+        Remove-Item -LiteralPath $generatedRoot -Recurse -Force
+    }
+}
 New-Item -ItemType Directory -Force -Path $featuresRoot, $buttonsRoot | Out-Null
 
 $registryText = Get-Content -LiteralPath (Join-Path $Root "Services/ModuleRegistry.cs") -Raw
@@ -176,6 +181,10 @@ foreach ($tag in @($modules.Keys)) {
             Path = $buttonRel
         })
 
+        $buttonType = Escape-Md $button["Type"]
+        $buttonName = Escape-Md $button["Name"]
+        $buttonHandler = Escape-Md $button["Handler"]
+        $buttonSource = Escape-Md $button["Source"]
         $buttonDoc = @"
 # $($button["Label"]) · Button
 
@@ -186,11 +195,11 @@ foreach ($tag in @($modules.Keys)) {
 |---|---|
 | Module · 模組 | [$($module["En"]) · $($module["Zh"])](../../../$featureRel) |
 | Category · 分類 | $($module["Category"]) |
-| Control type · 控制類型 | `$($button["Type"])` |
-| XAML name · XAML 名稱 | `$($button["Name"])` |
+| Control type · 控制類型 | <code>$buttonType</code> |
+| XAML name · XAML 名稱 | <code>$buttonName</code> |
 | Label / tooltip · 標籤／提示 | $($button["Label"]) |
-| Handler · 處理函式 | `$($button["Handler"])` |
-| Source · 來源 | `$($button["Source"])` |
+| Handler · 處理函式 | <code>$buttonHandler</code> |
+| Source · 來源 | <code>$buttonSource</code> |
 
 ## Operator Notes · 操作備註
 
@@ -299,5 +308,66 @@ $summary = [ordered]@{
     ButtonIndex = "docs/wiki/buttons/README.md"
 }
 Write-Utf8NoBom -Path (Join-Path $wiki "generated-docs-summary.json") -Value ($summary | ConvertTo-Json)
+
+$categoryRows = foreach ($group in $categoryGroups) {
+    $category = Escape-Md $group.Name
+    $slug = ConvertTo-Slug $group.Name
+    $count = $group.Count
+    $examples = ($group.Group | Sort-Object { $_["En"] } | Select-Object -First 8 | ForEach-Object {
+        $name = Escape-Md "$($_["En"]) · $($_["Zh"])"
+        "[$name](features/$($_["CategorySlug"])/$($_["Alias"]).md)"
+    }) -join ", "
+    "| $category | ``$slug`` | $count | $examples |"
+}
+
+$moduleCategories = @"
+# Module Categories · 模組分類
+
+**EN —** This page is generated from the live WinForge module registry and navigation map.
+**粵語 —** 呢頁由 WinForge 即時模組登記同導覽地圖生成。
+
+| Category · 分類 | Slug · 別名 | Modules · 模組 | Examples · 例子 |
+|---|---|---:|---|
+$($categoryRows -join "`n")
+
+## More Indexes · 更多索引
+
+- [Generated feature reference](features/README.md) · 生成功能參考
+- [Generated button reference](buttons/README.md) · 生成按鈕參考
+- [Generated references](Generated-References.md) · 生成參考總覽
+- [Screenshots](Screenshots.md) · 截圖集
+- [Home](Home.md) · 首頁
+"@
+Write-Utf8NoBom -Path (Join-Path $wiki "Module-Categories.md") -Value $moduleCategories
+
+$generatedRefs = @"
+# Generated References · 生成參考
+
+**EN —** These pages are generated from source metadata and XAML so operators can jump from wiki entries to modules, page classes, and controls.
+**粵語 —** 呢啲頁由來源 metadata 同 XAML 生成，方便操作員由 wiki 跳去模組、頁面類別同控制項。
+
+| Reference · 參考 | Contents · 內容 |
+|---|---|
+| [Feature Reference](features/README.md) | $($modules.Count) generated module pages · $($modules.Count) 份生成模組頁 |
+| [Button Reference](buttons/README.md) | $($allButtons.Count) generated button/control pages · $($allButtons.Count) 份生成按鈕／控制項頁 |
+| [Generation Summary](generated-docs-summary.json) | Counts and generated output paths · 數量同生成輸出路徑 |
+
+## Generator · 生成器
+
+**EN —** Regenerate the references after module or XAML changes:
+
+~~~~powershell
+pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File tools\Generate-WikiFeatureDocs.ps1
+~~~~
+
+**粵語 —** 模組或者 XAML 改完之後，用上面指令重新生成參考。
+
+## Related · 相關
+
+- [Module Categories](Module-Categories.md) · 模組分類
+- [Screenshots](Screenshots.md) · 截圖集
+- [Home](Home.md) · 首頁
+"@
+Write-Utf8NoBom -Path (Join-Path $wiki "Generated-References.md") -Value $generatedRefs
 
 Write-Host "Generated $($modules.Count) feature docs and $($allButtons.Count) button docs."

@@ -186,7 +186,7 @@ class Component extends DCLogic {
         launch('cakefactory','🍰','Cake Factory & Farm','蛋糕工廠','var(--accent)'),
         launch('fuelfactory','⬡','Fuel Factory','核燃料工廠','var(--green)'),
         launch('aiagents','🤖','AI Agents','AI 代理','var(--violet)')),
-      h('h3',{style:{margin:'26px 0 12px',fontSize:16,fontWeight:600}},'Browse '+(M.totalFeatures||1174)+' tweaks across '+(this.D.categories||[]).length+' categories'),
+      h('h3',{style:{margin:'26px 0 12px',fontSize:16,fontWeight:600}},'Browse '+(M.tweakFeatureCount||895)+' tweaks across '+(this.D.categories||[]).length+' categories'),
       h('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(190px,1fr))',gap:9}},
         (this.D.categories||[]).slice(0,12).map((c,i)=>h('a',{key:i,href:'#/cat/'+this.slug(c.en),className:'app-btn',style:{display:'flex',justifyContent:'space-between',alignItems:'center',background:'var(--card)',border:'1px solid var(--line)',borderRadius:9,padding:'11px 13px',textDecoration:'none',color:'var(--text)',fontSize:13}}, h('span',null,c.en), h('span',{style:{fontFamily:'var(--mono)',fontSize:11,color:'var(--dim)'}},c.count))))));
   }
