@@ -61,6 +61,16 @@ public sealed class FtpService : IDisposable
     /// <summary>當使用者揀「永遠信任」· Raised (fingerprint) when the user chose "always trust".</summary>
     public event Action<string>? FingerprintTrusted;
 
+    // ── TOFU 決定，喺 connect 前預先解決 · Trust decision pre-resolved before the (re)connect ──
+    // 第一次 connect 嘅驗證回呼只係擷取未知指紋（唔 await UI、唔阻塞連線執行緒），
+    // 之後喺 ConnectAsync 非阻塞式問 UI，最後帶住已批准嘅指紋重連。
+    // The first connect's validation callback merely *captures* the unknown fingerprint (no awaiting a
+    // UI callback, no blocking the connect thread); ConnectAsync then prompts the UI without blocking and,
+    // if approved, reconnects with the approved fingerprint so the callback can decide synchronously.
+    private string? _capturedFingerprint;   // set by the validation callback when an unknown key/cert appears
+    private TrustPrompt? _capturedPrompt;    // details for the UI prompt
+    private string? _approvedFingerprint;    // a fingerprint the user approved for this connect attempt
+
     public FtpService(FtpSite site, string password)
     {
         _site = site;
@@ -74,6 +84,34 @@ public sealed class FtpService : IDisposable
 
     public async Task ConnectAsync(CancellationToken ct)
     {
+        // 第一次嘗試；遇到未知指紋會擷取並拋錯（唔阻塞）· First attempt: an unknown key/cert is captured
+        // and the handshake fails fast without ever blocking the connect thread on a UI round-trip.
+        try
+        {
+            if (IsSftp) await ConnectSftpAsync(ct);
+            else await ConnectFtpAsync(ct);
+            return;
+        }
+        catch when (_capturedFingerprint is not null)
+        {
+            // fall through to prompt + reconnect
+        }
+
+        // 而家喺連線執行緒以外、非阻塞式問 UI · Now, off the handshake, await the UI decision (non-blocking).
+        var prompt = _capturedPrompt!;
+        var fp = _capturedFingerprint!;
+        var decision = TrustCallback is null
+            ? TrustDecision.Reject
+            : await TrustCallback(prompt).ConfigureAwait(false);
+        if (decision == TrustDecision.Reject)
+            throw new OperationCanceledException("Host key / certificate rejected · 主機金鑰／憑證被拒絕");
+        if (decision == TrustDecision.Always) FingerprintTrusted?.Invoke(fp);
+
+        // 帶住已批准嘅指紋重連；回呼今次可以同步批准 · Reconnect with the approved fingerprint so the
+        // validation callback can now decide synchronously (no awaiting, no blocking).
+        _approvedFingerprint = fp;
+        _capturedFingerprint = null;
+        _capturedPrompt = null;
         if (IsSftp) await ConnectSftpAsync(ct);
         else await ConnectFtpAsync(ct);
     }
@@ -97,21 +135,19 @@ public sealed class FtpService : IDisposable
         {
             if (e.PolicyErrors == SslPolicyErrors.None) { e.Accept = true; return; }
             var fp = e.Certificate is null ? "" : e.Certificate.GetCertHashString();
-            if (!string.IsNullOrEmpty(_site.TrustedFingerprint) &&
-                string.Equals(fp, _site.TrustedFingerprint, StringComparison.OrdinalIgnoreCase))
-            {
-                e.Accept = true; return;
-            }
-            // 同步回呼入面唔可以 await；用阻塞式等 UI 決定 · synchronous callback: block on the UI prompt.
-            var decision = AskTrust(new TrustPrompt
+            if (IsTrustedFingerprint(fp)) { e.Accept = true; return; }
+            // 唔喺呢個同步回呼度阻塞問 UI；擷取指紋，之後喺 ConnectAsync 非阻塞式問，再重連。
+            // Don't block this synchronous callback on a UI prompt: capture the fingerprint and reject now;
+            // ConnectAsync prompts the UI without blocking, then reconnects with an approved fingerprint.
+            _capturedFingerprint = fp;
+            _capturedPrompt = new TrustPrompt
             {
                 Kind = "FTPS certificate · FTPS 憑證",
                 Host = _site.Host,
                 Fingerprint = fp,
                 Detail = e.PolicyErrorMessage ?? e.PolicyErrors.ToString(),
-            });
-            if (decision == TrustDecision.Always) FingerprintTrusted?.Invoke(fp);
-            e.Accept = decision != TrustDecision.Reject;
+            };
+            e.Accept = false;
         };
 
         await client.Connect(ct);
@@ -148,20 +184,19 @@ public sealed class FtpService : IDisposable
         client.HostKeyReceived += (s, e) =>
         {
             var fp = e.FingerPrintSHA256 ?? "";
-            if (!string.IsNullOrEmpty(_site.TrustedFingerprint) &&
-                string.Equals(fp, _site.TrustedFingerprint, StringComparison.OrdinalIgnoreCase))
-            {
-                e.CanTrust = true; return;
-            }
-            var decision = AskTrust(new TrustPrompt
+            if (IsTrustedFingerprint(fp)) { e.CanTrust = true; return; }
+            // 同上：唔阻塞回呼問 UI，擷取指紋然後拒絕；ConnectAsync 之後非阻塞式問再重連。
+            // As above: don't block this callback on a UI prompt — capture the fingerprint and reject;
+            // ConnectAsync prompts the UI without blocking, then reconnects with an approved fingerprint.
+            _capturedFingerprint = fp;
+            _capturedPrompt = new TrustPrompt
             {
                 Kind = "SFTP host key · SFTP 主機金鑰",
                 Host = _site.Host,
                 Fingerprint = fp,
                 Detail = $"{e.HostKeyName}, {e.KeyLength}-bit",
-            });
-            if (decision == TrustDecision.Always) FingerprintTrusted?.Invoke(fp);
-            e.CanTrust = decision != TrustDecision.Reject;
+            };
+            e.CanTrust = false;
         };
 
         await client.ConnectAsync(ct);
@@ -173,12 +208,21 @@ public sealed class FtpService : IDisposable
         }
     }
 
-    /// <summary>喺非同步回呼度阻塞式問 UI · Synchronously resolve the async UI trust prompt.</summary>
-    private TrustDecision AskTrust(TrustPrompt prompt)
+    /// <summary>
+    /// 呢個指紋係咪已受信任（唔使問 UI）· Is this fingerprint already trusted, so the validation callback can
+    /// approve it synchronously? True for the site's stored TOFU fingerprint or one the user just approved
+    /// on this connect attempt. No awaiting, no blocking — safe to call from a library validation callback.
+    /// </summary>
+    private bool IsTrustedFingerprint(string fp)
     {
-        if (TrustCallback is null) return TrustDecision.Reject;
-        try { return TrustCallback(prompt).GetAwaiter().GetResult(); }
-        catch { return TrustDecision.Reject; }
+        if (string.IsNullOrEmpty(fp)) return false;
+        if (!string.IsNullOrEmpty(_site.TrustedFingerprint) &&
+            string.Equals(fp, _site.TrustedFingerprint, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (!string.IsNullOrEmpty(_approvedFingerprint) &&
+            string.Equals(fp, _approvedFingerprint, StringComparison.OrdinalIgnoreCase))
+            return true;
+        return false;
     }
 
     // ============================ List ============================

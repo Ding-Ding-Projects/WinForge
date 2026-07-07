@@ -28,16 +28,19 @@ public sealed partial class EnvVarsModule : Page
     {
         InitializeComponent();
         List.ItemsSource = _rows;
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) => { Render(); RefreshList(); };
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
     private bool Machine => TargetBox.SelectedIndex == 1;
 
     private void Render()
     {
-        HeaderTitle.Text = "Environment Variables · 環境變數";
+        Header.Title = "Environment Variables · 環境變數";
         HeaderBlurb.Text = P("View, add, edit and delete environment variables. User variables apply without admin; System variables need WinForge running as administrator.",
             "檢視、新增、編輯同刪除環境變數。使用者變數唔使管理員；系統變數要 WinForge 以管理員身分執行。");
         NameBox.PlaceholderText = P("Variable name", "變數名稱");

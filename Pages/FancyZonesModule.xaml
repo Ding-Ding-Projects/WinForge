@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
@@ -11,10 +12,7 @@
         <StackPanel MaxWidth="1000" Spacing="14">
 
             <!-- Header -->
-            <StackPanel Orientation="Horizontal" Spacing="12">
-                <FontIcon FontSize="24" Glyph="&#xE737;" VerticalAlignment="Center" />
-                <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
-            </StackPanel>
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE737;" />
             <TextBlock
                 x:Name="HeaderBlurb"
                 Foreground="{ThemeResource TextFillColorSecondaryBrush}"
@@ -143,7 +141,14 @@
                 HorizontalAlignment="Left"
                 QueryIcon="Find"
                 TextChanged="OpsFilter_TextChanged" />
-            <StackPanel x:Name="OpsPanel" Spacing="2" />
+            <!-- Hand-built control rows with a subtle Fluent entrance animation; no card chrome. -->
+            <StackPanel x:Name="OpsPanel" Spacing="0">
+                <StackPanel.ChildrenTransitions>
+                    <TransitionCollection>
+                        <EntranceThemeTransition FromVerticalOffset="24" IsStaggeringEnabled="True" />
+                    </TransitionCollection>
+                </StackPanel.ChildrenTransitions>
+            </StackPanel>
         </StackPanel>
     </ScrollViewer>
 </Page>

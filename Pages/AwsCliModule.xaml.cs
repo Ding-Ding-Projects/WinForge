@@ -52,7 +52,7 @@ public sealed partial class AwsCliModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "AWS CLI · AWS 命令列";
+        Header.Title = "AWS CLI · AWS 命令列";
         HeaderBlurb.Text = P(
             "Drive the entire AWS CLI from inside WinForge. Browse every service and operation, auto-build a parameter form from --generate-cli-skeleton, or type any raw aws command. Manage profiles, region, output format and SSO. Friendly panels for S3, EC2, IAM, Lambda and CloudWatch sit on top of the same generic runner.",
             "喺 WinForge 直接駕馭成個 AWS CLI。瀏覽每個服務同操作、由 --generate-cli-skeleton 自動砌參數表單，或者打任何原始 aws 指令。管理 profile、region、輸出格式同 SSO。S3、EC2、IAM、Lambda、CloudWatch 都有貼心面板，全部都係同一個通用引擎之上。");
@@ -121,6 +121,7 @@ public sealed partial class AwsCliModule : Page
         {
             EngineBar.IsOpen = false;
             EngineBar.ActionButton = null;
+            EngineBar.Content = null;
             var ver = await AwsCliService.VersionAsync();
             if (!string.IsNullOrWhiteSpace(ver))
             {
@@ -134,12 +135,15 @@ public sealed partial class AwsCliModule : Page
         EngineBar.IsOpen = true;
         EngineBar.Severity = InfoBarSeverity.Warning;
         EngineBar.Title = P("aws CLI not found", "搵唔到 aws CLI");
-        EngineBar.Message = P("Click to install the AWS CLI automatically (winget) — no restart needed.",
-            "撳一下自動安裝 AWS CLI（winget）— 唔使重開。");
-        EngineBar.ActionButton = EngineBars.AutoInstallButton(
+        EngineBar.Message = P("Install the AWS CLI automatically (winget) — a real progress bar, live status and no restart needed.",
+            "自動安裝 AWS CLI（winget）— 有真進度條、即時狀態，唔使重開。");
+        EngineBar.ActionButton = null;
+        // Rich progress control (progress bar + live bilingual status + Cancel + success/error animation),
+        // hosted in the bar's Content so real winget output/errors are surfaced.
+        EngineBar.Content = EngineBars.AutoInstallProgress(
             AwsCliService.WingetId, "Install AWS CLI automatically", "自動安裝 AWS CLI",
-            async () => { await CheckEngine(); await RefreshProfiles(); await LoadServices(); },
-            AwsCliService.Rescan);
+            recheck: async () => { await CheckEngine(); await RefreshProfiles(); await LoadServices(); },
+            rescan: AwsCliService.Rescan);
     }
 
     // ── Context (profile / region / output) ──────────────────────────────────────────────

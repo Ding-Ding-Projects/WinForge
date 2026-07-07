@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="winforge-data.js"></script>
+<style>
+  :root{
+    --bg:#0b0d11; --panel:#13161c; --panel2:#181c23; --panel3:#1e232b;
+    --line:#262c36; --line2:#333b47;
+    --text:#e9edf3; --muted:#99a2b0; --dim:#697080;
+    --amber:#ff7a1a; --amber2:#ffb066; --cyan:#33d6e0; --green:#5fd37a; --red:#ff5d52; --violet:#9b8cff;
+    --mono:'JetBrains Mono',ui-monospace,monospace; --disp:'Space Grotesk',sans-serif; --body:'IBM Plex Sans',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--body);-webkit-font-smoothing:antialiased;}
+  a{color:inherit;text-decoration:none}
+  ::selection{background:rgba(255,122,26,.3)}
+  ::-webkit-scrollbar{width:11px;height:11px}
+  ::-webkit-scrollbar-track{background:var(--bg)}
+  ::-webkit-scrollbar-thumb{background:var(--line2);border-radius:6px;border:3px solid var(--bg)}
+  @keyframes wf-pulse{0%,100%{opacity:.55}50%{opacity:1}}
+  @keyframes wf-blink{0%,49%{opacity:1}50%,100%{opacity:.15}}
+  @keyframes wf-rise{from{transform:translateY(12px)}to{transform:none}}
+  @keyframes wf-scan{from{transform:translateY(-100%)}to{transform:translateY(100%)}}
+  @keyframes wf-spin{to{transform:rotate(360deg)}}
+  .wf-rise{animation:wf-rise .6s cubic-bezier(.2,.7,.3,1) both}
+  .wf-md h1,.wf-md h2,.wf-md h3,.wf-md h4{font-family:var(--disp);line-height:1.2;margin:1.6em 0 .6em;font-weight:600}
+  .wf-md h1{font-size:clamp(26px,4vw,38px);margin-top:0;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  .wf-md h2{font-size:clamp(21px,3vw,27px);color:var(--amber2)}
+  .wf-md h3{font-size:clamp(18px,2.4vw,21px);color:var(--cyan)}
+  .wf-md h4{font-size:16px;color:var(--text)}
+  .wf-md p{margin:.8em 0;color:#c8ced7}
+  .wf-md ul,.wf-md ol{margin:.7em 0;padding-left:1.4em;color:#c8ced7}
+  .wf-md li{margin:.32em 0}
+  .wf-md a{color:var(--cyan);border-bottom:1px solid rgba(51,214,224,.3)}
+  .wf-md a:hover{color:var(--amber2);border-color:var(--amber2)}
+  .wf-md code{font-family:var(--mono);font-size:.86em;background:var(--panel3);padding:.12em .42em;border-radius:4px;color:var(--amber2);border:1px solid var(--line)}
+  .wf-md pre{background:#0a0c10;border:1px solid var(--line);border-radius:8px;padding:14px 16px;overflow:auto}
+  .wf-md pre code{background:none;border:none;padding:0;color:#c8ced7}
+  .wf-md blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--amber);background:var(--panel);border-radius:0 8px 8px 0;color:var(--muted)}
+  .wf-md table{border-collapse:collapse;width:100%;margin:1.1em 0;font-size:14px;display:block;overflow-x:auto}
+  .wf-md th,.wf-md td{border:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
+  .wf-md th{background:var(--panel2);font-family:var(--disp);font-weight:600;color:var(--text)}
+  .wf-md tr:nth-child(even) td{background:rgba(255,255,255,.018)}
+  .wf-md img{max-width:100%;border-radius:8px;border:1px solid var(--line);margin:.6em 0;display:block}
+  .wf-md hr{border:none;border-top:1px solid var(--line);margin:1.6em 0}
+  .wf-card-h:hover{border-color:var(--line2);transform:translateY(-3px);box-shadow:0 14px 34px -18px rgba(0,0,0,.8)}
+  .wf-row-h:hover{background:var(--panel2);border-color:var(--line2)}
+  .wf-row-h:hover .wf-arrow{transform:translateX(3px);opacity:1}
+  .wf-nav-h:hover{color:var(--amber2)}
+  .wf-btn-h:hover{filter:brightness(1.08);transform:translateY(-2px)}
+  .wf-chip-h:hover{border-color:var(--amber);color:var(--amber2)}
+  input::placeholder{color:var(--dim)}
+  @keyframes wf-spin{to{transform:rotate(360deg)}}
+  @keyframes wf-spinr{to{transform:rotate(-360deg)}}
+  @keyframes wf-corepulse{0%,100%{opacity:.9;transform:scale(1)}50%{opacity:1;transform:scale(1.05)}}
+  @keyframes wf-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+  @keyframes wf-dash{to{stroke-dashoffset:-300}}
+  @keyframes wf-glow{0%,100%{filter:brightness(1) drop-shadow(0 0 14px rgba(255,122,26,.5))}50%{filter:brightness(1.25) drop-shadow(0 0 26px rgba(255,122,26,.8))}}
+  @keyframes wf-flowdash{to{background-position:34px 0}}
+  @keyframes wf-shimmer{to{background-position:200% 0}}
+  .wf-flowline{background-image:repeating-linear-gradient(90deg,currentColor 0 9px,transparent 9px 17px);background-size:34px 100%;animation:wf-flowdash .7s linear infinite}
+  .wf-eco-h:hover{transform:translateY(-4px) scale(1.02)}
+  .wf-shot-h:hover img{transform:scale(1.06)}
+  @media(max-width:1000px){ .wf-desktop-nav{display:none!important} }
+  @media(min-width:1001px){ .wf-menu-btn{display:none!important} .wf-mobile-nav{display:none!important} }
+  @media(max-width:880px){
+    .wf-hero-grid{grid-template-columns:1fr!important}
+    .wf-try-grid{grid-template-columns:1fr!important}
+  }
+  @media(max-width:820px){ .wf-wiki-layout{grid-template-columns:1fr!important} .wf-wiki-layout aside{position:static!important;max-height:none!important;border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--panel)} }
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;flex-direction:column;position:relative;z-index:1">
+  <div aria-hidden="true" style="position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(1100px 600px at 78% -8%,rgba(255,122,26,.10),transparent 60%),radial-gradient(900px 520px at 8% 8%,rgba(51,214,224,.07),transparent 55%),linear-gradient(transparent 0,transparent calc(100% - 1px),rgba(255,255,255,.018) 100%) 0 0/100% 46px,linear-gradient(90deg,transparent 0,transparent calc(100% - 1px),rgba(255,255,255,.018) 100%) 0 0/46px 100%"></div>
+
+  <header style="position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:18px;padding:11px clamp(14px,3vw,30px);background:rgba(11,13,17,.82);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)">
+    <a href="#/" class="wf-nav-h" style="display:flex;align-items:center;gap:11px;flex-shrink:0">
+      <span style="width:30px;height:30px;border-radius:7px;background:linear-gradient(135deg,var(--amber),#c43d00);display:grid;place-items:center;font-size:17px;box-shadow:0 0 18px -4px var(--amber)">⚒</span>
+      <span style="display:flex;flex-direction:column;line-height:1.05">
+        <span style="font-family:var(--disp);font-weight:700;font-size:18px;letter-spacing:.5px">WinForge</span>
+        <span style="font-family:var(--mono);font-size:9.5px;color:var(--dim);letter-spacing:1.5px">視窗鑄造 · DOCS</span>
+      </span>
+    </a>
+    <nav class="wf-desktop-nav" style="display:flex;gap:22px;font-family:var(--disp);font-size:14.5px;font-weight:500;margin-left:6px">
+      <a class="wf-nav-h" href="#/manual">Manual</a>
+      <a class="wf-nav-h" href="#/wiki">Wiki</a>
+      <a class="wf-nav-h" href="#/pricing">Pricing</a>
+      <a class="wf-nav-h" href="#/reactor" style="color:var(--cyan)">Reactor</a>
+      <a class="wf-nav-h" href="#/cake" style="color:var(--amber2)">Cake</a>
+      <a class="wf-nav-h" href="#/fuel" style="color:var(--green)">Fuel</a>
+      <a class="wf-nav-h" href="#/app" style="color:var(--amber)">⊞&nbsp;App</a>
+    </nav>
+    <div style="flex:1;max-width:440px;margin-left:auto;position:relative">
+      <div style="display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:8px 11px">
+        <span style="color:var(--dim);font-size:14px">⌕</span>
+        <input value="{{ q }}" onInput="{{ onSearch }}" onKeyDown="{{ onSearchKey }}" onFocus="{{ onSearchFocus }}" placeholder="Search 1,209 features, modules, wiki…" style="flex:1;background:none;border:none;outline:none;color:var(--text);font-family:var(--body);font-size:13.5px"/>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--dim);border:1px solid var(--line);border-radius:4px;padding:1px 5px">/</span>
+      </div>
+      {{ searchDropdown }}
+    </div>
+    <a class="wf-desktop-nav wf-btn-h" href="https://github.com/codingmachineedge/WinForge" target="_blank" rel="noopener" style="flex-shrink:0;display:inline-flex;align-items:center;gap:7px;background:linear-gradient(135deg,var(--amber),#d24500);color:#1a0e00;font-family:var(--disp);font-weight:600;font-size:13.5px;padding:8px 15px;border-radius:9px">⭳ Install</a>
+    <a class="wf-menu-btn wf-nav-h" href="#/menu" onClick="{{ toggleMenu }}" style="font-size:22px;line-height:1;flex-shrink:0">≡</a>
+  </header>
+
+  {{ mobileNav }}
+
+  <main style="flex:1;position:relative;z-index:1">{{ view }}</main>
+  {{ appRunner }}
+
+  <footer style="border-top:1px solid var(--line);background:var(--panel);padding:34px clamp(16px,4vw,60px);position:relative;z-index:1">
+    <div style="max-width:1180px;margin:0 auto;display:flex;flex-wrap:wrap;gap:30px;justify-content:space-between;align-items:flex-start">
+      <div style="max-width:340px">
+        <div style="display:flex;align-items:center;gap:9px;margin-bottom:10px">
+          <span style="width:24px;height:24px;border-radius:6px;background:linear-gradient(135deg,var(--amber),#c43d00);display:grid;place-items:center;font-size:13px">⚒</span>
+          <span style="font-family:var(--disp);font-weight:700;font-size:16px">WinForge · 視窗鑄造</span>
+        </div>
+        <p style="color:var(--muted);font-size:13px;line-height:1.6;margin:0">A fully bilingual (English + 粵語) Windows 11 control center — 314 in-app modules, 895 tweak-catalog items, and 1,209 total features. Built with WinUI 3 / .NET 11.</p>
+      </div>
+      <div style="display:flex;gap:46px;flex-wrap:wrap;font-size:13px">
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <span style="font-family:var(--mono);font-size:10px;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase">Docs</span>
+          <a class="wf-nav-h" href="#/manual" style="color:var(--muted)">Module manual</a>
+          <a class="wf-nav-h" href="#/wiki" style="color:var(--muted)">Wiki</a>
+          <a class="wf-nav-h" href="#/pricing" style="color:var(--muted)">Pricing & requirements</a>
+          <a class="wf-nav-h" href="#/wiki/Nuclear-Reactor-Operating-Manual" style="color:var(--muted)">Reactor manual</a>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <span style="font-family:var(--mono);font-size:10px;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase">Try in browser</span>
+          <a class="wf-nav-h" href="#/reactor" style="color:var(--muted)">Nuclear reactor</a>
+          <a class="wf-nav-h" href="#/cake" style="color:var(--muted)">Cake factory & farm</a>
+        </div>
+      </div>
+    </div>
+    <div style="max-width:1180px;margin:26px auto 0;padding-top:18px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--dim)">
+      <span>NO REDIRECTS · every feature wraps a real engine in-app</span>
+      <span>Sim-only · controls no real hardware</span>
+    </div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:&quot;100%&quot;}}">
+class Component extends DCLogic {
+  state = { route: this.parse(), q: '', lang: 'both', menuOpen: false, dropOpen: false, catFilter: '', toasts: [], appMounted: false, appDrawer: false };
+
+  silentRun(href, label){
+    const i=(href||'').indexOf('#'); const hash = i>=0 ? href.slice(i) : '#/page/dashboard';
+    this._pendingHash = hash;
+    if(this._appLoaded && this.appIframe && this.appIframe.contentWindow){ try{ this.appIframe.contentWindow.postMessage({type:'winforge-deeplink',hash},'*'); }catch(e){} }
+    this.toast('Running in WinForge — silently in the background. Tap to view.');
+    if(!this.state.appMounted) this.setState({appMounted:true});
+  }
+  toast(msg){ const t={msg,id:Math.random()}; this.setState(s=>({toasts:[t,...s.toasts].slice(0,4)})); setTimeout(()=>{ this.setState(s=>({toasts:s.toasts.filter(x=>x!==t)})); }, 5000); }
+  appRunnerView(){
+    const h=React.createElement;
+    const toasts = this.state.toasts.length ? h('div',{style:{position:'fixed',right:16,bottom:this.state.appDrawer?'calc(min(620px,84vh) + 28px)':16,zIndex:210,display:'flex',flexDirection:'column',gap:9,alignItems:'flex-end'}},
+      this.state.toasts.map(t=>h('button',{key:t.id,onClick:()=>this.setState({appDrawer:true}),className:'wf-btn-h',style:{display:'flex',alignItems:'center',gap:10,background:'var(--panel2)',border:'1px solid var(--amber)',borderRadius:10,padding:'11px 15px',boxShadow:'0 16px 40px -18px #000',maxWidth:330,textAlign:'left',cursor:'pointer'}},
+        h('span',{style:{color:'var(--amber2)',fontSize:15}},'⊞'), h('span',{style:{fontSize:12.5,color:'var(--text)',lineHeight:1.4}},t.msg)))) : null;
+    let drawer=null;
+    if(this.state.appMounted){
+      const open=this.state.appDrawer;
+      drawer=h('div',{style:{position:'fixed',right:open?16:0,bottom:open?16:0,zIndex:205,width:open?'min(460px,94vw)':1,height:open?'min(620px,84vh)':1,opacity:open?1:0,pointerEvents:open?'auto':'none',background:'var(--panel)',border:open?'1px solid var(--line2)':'none',borderRadius:14,overflow:'hidden',boxShadow:open?'0 30px 80px -24px #000':'none',display:'flex',flexDirection:'column',transition:'opacity .2s'}},
+        h('div',{style:{display:open?'flex':'none',alignItems:'center',gap:10,padding:'9px 13px',borderBottom:'1px solid var(--line)',background:'var(--panel2)',flexShrink:0}},
+          h('span',{style:{width:18,height:18,borderRadius:5,background:'linear-gradient(135deg,var(--amber),#c43d00)',display:'grid',placeItems:'center',fontSize:11}},'⚒'),
+          h('span',{style:{fontFamily:'var(--disp)',fontWeight:600,fontSize:13,flex:1}},'WinForge app · running silently'),
+          h('a',{href:'App.dc.html',target:'_blank',rel:'noopener',style:{fontFamily:'var(--mono)',fontSize:10.5,color:'var(--muted)',marginRight:4}},'pop out ↗'),
+          h('button',{onClick:()=>this.setState({appDrawer:false}),className:'wf-nav-h',style:{background:'none',border:'none',color:'var(--dim)',fontSize:16,cursor:'pointer'}},'×')),
+        h('iframe',{ref:n=>{this.appIframe=n;}, src:'App.dc.html', title:'WinForge app',
+          onLoad:()=>{ this._appLoaded=true; if(this._pendingHash && this.appIframe && this.appIframe.contentWindow){ try{ this.appIframe.contentWindow.postMessage({type:'winforge-deeplink',hash:this._pendingHash},'*'); }catch(e){} } },
+          style:{flex:1,width:'100%',border:'none',background:'var(--bg)'}}));
+    }
+    return h(React.Fragment,null, toasts, drawer);
+  }
+
+  parse(){
+    let h = (location.hash || '').replace(/^#\/?/, '');
+    const parts = h.split('/').filter(Boolean).map(decodeURIComponent);
+    return { page: parts[0] || 'home', a: parts[1] || '', b: parts[2] || '' };
+  }
+  componentDidMount(){
+    this._onHash = () => {
+      const r = this.parse();
+      if (r.page === 'menu'){ return; }
+      window.scrollTo(0,0);
+      this.setState({ route: r, menuOpen:false, dropOpen:false, catFilter:'' });
+    };
+    window.addEventListener('hashchange', this._onHash);
+    this.D = window.WINFORGE_DATA || {categories:[],modules:[],wikiIndex:[],wiki:{},meta:{}};
+    // flagship modules (not in the handoff table) + their in-app requirement ("pricing")
+    const flag = [
+      {en:'Nuclear Reactor',zh:'核反應堆',page:'reactor',pageFile:'Pages/NuclearReactorModule',service:'Services/ReactorSim, ReactorStatusApiService',engine:'PWR point-kinetics control room — 6-group kinetics, RPS, steam/turbine; burns .fuel assemblies',status:'✅',requires:'fuel',playable:'#/reactor'},
+      {en:'Nuclear Fuel Factory',zh:'核燃料工廠',page:'fuelfactory',pageFile:'Pages/FuelFactoryModule',service:'Services/FuelFabService',engine:'UF6 → centrifuge enrichment → pellets → assemblies; mints signed .fuel files',status:'✅',requires:null,playable:'#/fuel'},
+      {en:'Cake Factory & Farm',zh:'蛋糕工廠與農場',page:'cakefactory',pageFile:'Pages/CakeFactoryModule',service:'Services/CakeFactoryService',engine:'reactor-powered HTML5 ingredient farm + bakery line, signed .cake files',status:'✅',requires:'power',playable:'#/cake'},
+      {en:'AI Agents',zh:'AI 代理',page:'aiagents',pageFile:'Pages/AiAgentsModule',service:'Services/AgentRunner',engine:'autonomous agent runner — YOLO mode consumes one signed .cake per run',status:'✅',requires:'cake'},
+      {en:'AI Chat',zh:'AI 對話',page:'aichat',pageFile:'Pages/AiChatModule',service:'Services/AiService',engine:'local / remote LLM chat with tools',status:'✅',requires:'cake'},
+    ];
+    this.D.modules = flag.concat(this.D.modules||[]);
+    this.buildIndex();
+    this.forceUpdate();
+  }
+  componentWillUnmount(){ window.removeEventListener('hashchange', this._onHash); }
+
+  slug(s){ return (s||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''); }
+
+  buildIndex(){
+    const idx = [];
+    (this.D.modules||[]).forEach(m=>idx.push({type:'module',title:m.en,zh:m.zh,sub:m.engine,route:'#/module/'+m.page,hay:(m.en+' '+m.zh+' '+m.page+' '+m.engine+' '+m.service).toLowerCase()}));
+    (this.D.categories||[]).forEach((c,i)=>{
+      idx.push({type:'category',title:c.en,zh:c.zh,sub:c.count+' features',route:'#/category/'+this.slug(c.en),hay:(c.en+' '+c.zh).toLowerCase()});
+      c.features.forEach(f=>idx.push({type:'feature',title:f.en,zh:f.zh,sub:c.en,route:'#/category/'+this.slug(c.en)+'/'+f.id,hay:(f.en+' '+f.zh+' '+f.id).toLowerCase()}));
+    });
+    (this.D.wikiIndex||[]).forEach(w=>idx.push({type:'wiki',title:w.title.replace(/[·].*$/,'').trim(),zh:'',sub:'Wiki',route:'#/wiki/'+w.slug,hay:(w.title+' '+w.slug).toLowerCase()}));
+    this.index = idx;
+  }
+  search(q, limit){
+    q = (q||'').trim().toLowerCase();
+    if(!q) return [];
+    const terms = q.split(/\s+/);
+    const scored = [];
+    for(const it of this.index){
+      let ok = true, score = 0;
+      for(const t of terms){ const p = it.hay.indexOf(t); if(p<0){ok=false;break;} score += p===0?0:(p<20?6:12); }
+      if(!ok) continue;
+      const w = {module:0,category:1,wiki:2,feature:5}[it.type]||5;
+      scored.push([score+w, it]);
+    }
+    scored.sort((a,b)=>a[0]-b[0]);
+    return scored.slice(0, limit||scored.length).map(s=>s[1]);
+  }
+
+  // ---- requirements ("pricing") + deep links ----
+  reqMeta(t){
+    if(t==='power') return {icon:'⚡',label:'Needs reactor power',zh:'需要反應堆電力',color:'var(--cyan)',bg:'rgba(51,214,224,.12)'};
+    if(t==='cake') return {icon:'🍰',label:'Costs 1 signed cake',zh:'消耗 1 個已簽署蛋糕',color:'var(--amber2)',bg:'rgba(255,176,102,.13)'};
+    if(t==='fuel') return {icon:'⬡',label:'Needs fuel assemblies',zh:'需要燃料組件',color:'var(--green)',bg:'rgba(95,211,122,.12)'};
+    return null;
+  }
+  catReq(cat){ return cat && cat.en==='AI' ? 'cake' : null; }
+  reqBadge(t, small){
+    const m=this.reqMeta(t); if(!m) return null; const h=React.createElement;
+    return h('a',{href:'#/pricing',onClick:e=>e.stopPropagation(),title:m.label,style:{display:'inline-flex',alignItems:'center',gap:5,fontFamily:'var(--mono)',fontSize:small?10:11,fontWeight:600,color:m.color,background:m.bg,border:'1px solid '+m.color,borderRadius:999,padding:small?'2px 7px':'4px 10px',whiteSpace:'nowrap'}}, m.icon, this.state.lang==='zh'?m.zh:m.label);
+  }
+  appLink(page){ return 'App.dc.html#/page/'+page; }
+  appRun(cat, feat){ return 'App.dc.html#/run/'+cat+'/'+feat; }
+  appSearch(q){ return 'App.dc.html#/search/'+encodeURIComponent(q); }
+  openChip(href, label, color){
+    const h=React.createElement;
+    return h('button',{onClick:(e)=>{e.preventDefault();e.stopPropagation();this.silentRun(href,label);},className:'wf-chip-h',title:'Runs in the WinForge app replica — silently, without stealing focus',style:{display:'inline-flex',alignItems:'center',gap:6,background:'var(--panel3)',border:'1px solid var(--line2)',borderRadius:7,padding:'6px 11px',fontFamily:'var(--mono)',fontSize:11.5,color:color||'var(--muted)',cursor:'pointer',transition:'all .15s'}}, '⊞ ', label);
+  }
+
+  reqBanner(t){
+    const m=this.reqMeta(t); if(!m) return null; const h=React.createElement;
+    const body = t==='power'
+      ? 'This module is gated by the reactor bus. It only runs while the Nuclear Reactor is synchronized and generating — if the reactor is offline or in meltdown, powered work locks out, and below demand every process is slowed by the available-power fraction.'
+      : 'This feature spends one signed .cake file per run. Bake cakes in the Cake Factory (which itself needs reactor power); forged, tampered, expired or already-eaten cakes are rejected. It is WinForge\u2019s in-app credit — not real money.';
+    return h('div',{style:{display:'flex',gap:13,alignItems:'flex-start',background:m.bg,border:'1px solid '+m.color,borderRadius:11,padding:'14px 16px',margin:'4px 0 20px',maxWidth:720}},
+      h('span',{style:{fontSize:22,lineHeight:1}},m.icon),
+      h('div',null,
+        h('div',{style:{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}},
+          h('span',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:14,color:m.color}}, t==='power'?'Requires reactor power · 需要反應堆電力':'Requires a cake · 需要蛋糕'),
+          h('a',{href:'#/pricing',className:'wf-nav-h',style:{fontFamily:'var(--mono)',fontSize:11,color:'var(--muted)'}},'see pricing →')),
+        h('p',{style:{margin:'5px 0 0',fontSize:13.5,color:'#c8ced7',lineHeight:1.55}}, body)));
+  }
+  go(h){ location.hash = h; }
+  onSearch = (e)=>{ this.setState({q:e.target.value, dropOpen:true}); };
+  onSearchFocus = ()=>{ if(this.state.q) this.setState({dropOpen:true}); };
+  onSearchKey = (e)=>{ if(e.key==='Enter'){ const q=this.state.q.trim(); if(q){ this.setState({dropOpen:false}); this.go('#/search/'+encodeURIComponent(q)); } } else if(e.key==='Escape'){ this.setState({dropOpen:false}); } };
+  toggleMenu = (e)=>{ e.preventDefault(); this.setState(s=>({menuOpen:!s.menuOpen})); };
+  setLang = (l)=>(e)=>{ e.preventDefault(); this.setState({lang:l}); };
+
+  // bilingual text helper -> React node
+  bi(en, zh, sep){
+    const L = this.state.lang;
+    if(L==='en' || !zh) return en;
+    if(L==='zh') return zh || en;
+    return React.createElement(React.Fragment,null, en, React.createElement('span',{style:{color:'var(--dim)'}}, (sep||' · ')+zh));
+  }
+
+  // ---------- Markdown ----------
+  esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  inline(s){
+    s = this.esc(s);
+    s = s.replace(/`([^`]+)`/g,(m,c)=>'<code>'+c+'</code>');
+    s = s.replace(/!\[([^\]]*)\]\(([^)]+)\)/g,(m,a,u)=>{ u=this.imgsrc(u); return '<img alt="'+a+'" src="'+u+'" loading="lazy" onerror="this.style.display=\'none\'">'; });
+    s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g,(m,t,u)=>{ const r=this.linkrw(u); return '<a href="'+r.href+'"'+(r.ext?' target="_blank" rel="noopener"':'')+'>'+t+'</a>'; });
+    s = s.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
+    s = s.replace(/(^|[^*])\*([^*]+)\*(?!\*)/g,'$1<em>$2</em>');
+    return s;
+  }
+  imgsrc(u){ if(/^https?:/.test(u)) return u; const base=u.split('/').pop(); return 'assets/'+base; }
+  wikiSlugFromPath(u){
+    const bits=String(u||'').split('#');
+    let clean=bits[0].replace(/\\/g,'/').replace(/^docs\/wiki\//,'').replace(/^wiki\//,'');
+    clean=clean.split('/').filter(p=>p&&p!=='.'&&p!=='..').join('/');
+    if(!/\.md$/i.test(clean)) return null;
+    return clean.replace(/\.md$/i,'').replace(/\//g,'--')+(bits[1]?('#'+bits[1]):'');
+  }
+  linkrw(u){
+    if(/^https?:/.test(u)) return {href:u, ext:true};
+    if(/^#/.test(u)) return {href:u, ext:false};
+    const slug=this.wikiSlugFromPath(u);
+    if(slug) return {href:'#/wiki/'+slug, ext:false};
+    return {href:u, ext:false};
+  }
+  md(src){
+    const lines = src.replace(/\r/g,'').split('\n');
+    let html = '', i=0;
+    const flushPara=(buf)=>{ if(buf.length){ html+='<p>'+this.inline(buf.join(' '))+'</p>'; } };
+    while(i<lines.length){
+      let ln = lines[i];
+      if(/^```/.test(ln)){ let code=''; i++; while(i<lines.length && !/^```/.test(lines[i])){ code+=this.esc(lines[i])+'\n'; i++; } i++; html+='<pre><code>'+code+'</code></pre>'; continue; }
+      const hm = ln.match(/^(#{1,6})\s+(.*)$/);
+      if(hm){ const lv=hm[1].length; html+='<h'+lv+'>'+this.inline(hm[2].replace(/\s*#+\s*$/,''))+'</h'+lv+'>'; i++; continue; }
+      if(/^\s*---+\s*$/.test(ln)){ html+='<hr>'; i++; continue; }
+      if(/^\s*>/.test(ln)){ let buf=[]; while(i<lines.length && /^\s*>/.test(lines[i])){ buf.push(lines[i].replace(/^\s*>\s?/,'')); i++; } html+='<blockquote>'+this.inline(buf.join(' '))+'</blockquote>'; continue; }
+      if(/^\s*\|.*\|\s*$/.test(ln)){
+        const tbl=[]; while(i<lines.length && /^\s*\|.*\|\s*$/.test(lines[i])){ tbl.push(lines[i]); i++; }
+        const rows = tbl.map(r=>r.trim().replace(/^\||\|$/g,'').split('|').map(c=>c.trim()));
+        let sep=1; if(rows[1] && rows[1].every(c=>/^:?-+:?$/.test(c))) sep=1; else sep=-1;
+        html+='<table>';
+        if(sep===1){ html+='<thead><tr>'+rows[0].map(c=>'<th>'+this.inline(c)+'</th>').join('')+'</tr></thead>'; }
+        html+='<tbody>';
+        rows.forEach((r,ri)=>{ if(sep===1 && (ri===0||ri===1)) return; html+='<tr>'+r.map(c=>'<td>'+this.inline(c)+'</td>').join('')+'</tr>'; });
+        html+='</tbody></table>'; continue;
+      }
+      if(/^\s*[-*]\s+/.test(ln)){ let buf=[]; while(i<lines.length && /^\s*[-*]\s+/.test(lines[i])){ buf.push('<li>'+this.inline(lines[i].replace(/^\s*[-*]\s+/,''))+'</li>'); i++; } html+='<ul>'+buf.join('')+'</ul>'; continue; }
+      if(/^\s*\d+\.\s+/.test(ln)){ let buf=[]; while(i<lines.length && /^\s*\d+\.\s+/.test(lines[i])){ buf.push('<li>'+this.inline(lines[i].replace(/^\s*\d+\.\s+/,''))+'</li>'); i++; } html+='<ol>'+buf.join('')+'</ol>'; continue; }
+      if(/^\s*$/.test(ln)){ i++; continue; }
+      let buf=[]; while(i<lines.length && !/^\s*$/.test(lines[i]) && !/^(#{1,6}\s|```|\s*>|\s*[-*]\s|\s*\d+\.\s|\s*\|)/.test(lines[i])){ buf.push(lines[i]); i++; } flushPara(buf);
+    }
+    return html;
+  }
+
+  renderVals(){
+    if(!this.D) return { q:'', view:null, searchDropdown:null, mobileNav:null };
+    const r = this.state.route;
+    let view;
+    switch(r.page){
+      case 'manual': view = this.vManual(); break;
+      case 'category': view = this.vCategory(r.a, r.b); break;
+      case 'module': view = this.vModule(r.a); break;
+      case 'wiki': view = r.a ? this.vWikiPage(r.a) : this.vWikiIndex(); break;
+      case 'pricing': view = this.vPricing(); break;
+      case 'search': view = this.vSearch(r.a); break;
+      case 'reactor': view = this.vSim('Reactor.dc.html#guide','Nuclear Reactor · 核反應堆','Full PWR control room — start-up checklist on screen. Your plant state is saved.'); break;
+      case 'cake': view = this.vSim('CakeFarm.dc.html#guide','Cake Factory & Farm · 蛋糕工廠與農場','Reactor-powered ingredient chain — bakery checklist on screen. Treasury & orders saved.'); break;
+      case 'fuel': view = this.vSim('FuelFactory.dc.html#guide','Nuclear Fuel Factory · 核燃料工廠','Fabricate enriched assemblies and export signed .fuel files. Fabrication checklist on screen.'); break;
+      case 'app': view = this.vSim('App.dc.html','WinForge App Replica · app 復刻','The full WinUI-style app, in your browser. Deep links land here and press the button.'); break;
+      default: view = this.vHome();
+    }
+    return {
+      q: this.state.q,
+      onSearch: this.onSearch, onSearchKey: this.onSearchKey, onSearchFocus: this.onSearchFocus,
+      toggleMenu: this.toggleMenu,
+      view,
+      searchDropdown: this.dropdown(),
+      mobileNav: this.state.menuOpen ? this.mobile() : null,
+      appRunner: this.appRunnerView(),
+    };
+  }
+
+  dropdown(){
+    if(!this.state.dropOpen || this.state.q.trim().length<1) return null;
+    const res = this.search(this.state.q, 8);
+    const h=React.createElement;
+    const items = res.length ? res.map((it,i)=>h('a',{key:i,href:it.route,onClick:()=>this.setState({dropOpen:false}),className:'wf-row-h',style:{display:'flex',alignItems:'center',gap:10,padding:'9px 12px',borderBottom:'1px solid var(--line)',cursor:'pointer'}},
+        h('span',{style:{fontFamily:'var(--mono)',fontSize:9,padding:'2px 6px',borderRadius:4,background:'var(--panel3)',color:this.typeColor(it.type),flexShrink:0,textTransform:'uppercase',letterSpacing:'.5px'}}, it.type),
+        h('span',{style:{flex:1,minWidth:0}},
+          h('div',{style:{fontSize:13,fontWeight:500,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, it.title),
+          h('div',{style:{fontSize:11,color:'var(--dim)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, it.zh||it.sub)
+        )
+      )) : [h('div',{key:'no',style:{padding:'14px',color:'var(--dim)',fontSize:13}},'No matches.')];
+    if(res.length) items.push(h('a',{key:'all',href:'#/search/'+encodeURIComponent(this.state.q),onClick:()=>this.setState({dropOpen:false}),style:{display:'block',padding:'10px 12px',fontFamily:'var(--mono)',fontSize:11,color:'var(--amber2)',textAlign:'center'}},'See all results →'));
+    return h('div',{style:{position:'absolute',top:'calc(100% + 8px)',left:0,right:0,background:'var(--panel)',border:'1px solid var(--line2)',borderRadius:10,overflow:'hidden',boxShadow:'0 24px 60px -20px rgba(0,0,0,.9)',zIndex:60,maxHeight:'70vh',overflowY:'auto'}}, items);
+  }
+  typeColor(t){ return {module:'var(--amber2)',category:'var(--cyan)',wiki:'var(--violet)',feature:'var(--green)'}[t]||'var(--muted)'; }
+
+  mobile(){
+    const h=React.createElement;
+    const ln=(href,label,c)=>h('a',{href,onClick:()=>this.setState({menuOpen:false}),style:{padding:'14px 4px',borderBottom:'1px solid var(--line)',fontFamily:'var(--disp)',fontSize:18,fontWeight:500,color:c||'var(--text)'}},label);
+    return h('div',{style:{position:'sticky',top:55,zIndex:49,background:'var(--panel)',borderBottom:'1px solid var(--line2)',padding:'8px clamp(14px,3vw,30px) 16px',display:'flex',flexDirection:'column'}},
+      ln('#/manual','Manual · 手冊'), ln('#/wiki','Wiki'), ln('#/pricing','Pricing · 收費'), ln('#/app','⊞ Open the app replica','var(--amber)'), ln('#/reactor','Reactor · 核反應堆','var(--cyan)'), ln('#/cake','Cake Farm · 蛋糕農場','var(--amber2)'), ln('#/fuel','Fuel Factory · 核燃料','var(--green)'),
+      h('a',{href:'https://github.com/codingmachineedge/WinForge',target:'_blank',rel:'noopener',onClick:()=>this.setState({menuOpen:false}),style:{padding:'14px 4px',fontFamily:'var(--disp)',fontSize:18,fontWeight:600,color:'var(--amber)'}},'⭳ Install WinForge'));
+  }
+
+  // ---------- shared bits ----------
+  langToggle(){
+    const h=React.createElement; const L=this.state.lang;
+    const b=(v,t)=>h('button',{onClick:this.setLang(v),style:{background:L===v?'var(--amber)':'transparent',color:L===v?'#1a0e00':'var(--muted)',border:'none',borderRadius:6,padding:'5px 11px',fontFamily:'var(--mono)',fontSize:11,fontWeight:600,cursor:'pointer'}},t);
+    return h('div',{style:{display:'inline-flex',gap:3,background:'var(--panel2)',border:'1px solid var(--line)',borderRadius:8,padding:3}}, b('both','BOTH'), b('en','EN'), b('zh','粵'));
+  }
+  crumb(items){
+    const h=React.createElement;
+    const out=[]; items.forEach((it,i)=>{ if(i) out.push(h('span',{key:'s'+i,style:{color:'var(--dim)',margin:'0 8px'}},'/')); out.push(it[1]?h('a',{key:i,href:it[1],className:'wf-nav-h',style:{color:'var(--muted)'}},it[0]):h('span',{key:i,style:{color:'var(--text)'}},it[0])); });
+    return h('div',{style:{fontFamily:'var(--mono)',fontSize:12,marginBottom:18,display:'flex',flexWrap:'wrap',alignItems:'center'}}, out);
+  }
+  page(children, max){ return React.createElement('div',{className:'wf-rise',style:{maxWidth:max||1180,margin:'0 auto',padding:'clamp(26px,5vw,52px) clamp(16px,4vw,40px)'}}, children); }
+
+  // ---------- HOME ----------
+  GH(){ return 'https://github.com/codingmachineedge/WinForge'; }
+  PS(){ return 'irm https://get.winforge.app | iex'; }
+  copyCmd(text){ try{ navigator.clipboard.writeText(text); this.toast('Copied — paste into PowerShell.'); }catch(e){ this.toast('Select the command and copy it manually.'); } }
+  vHome(){
+    const h=React.createElement;
+    return h('div',null, this.heroV2(), this.ecosystem(), this.trySec(), this.homeRequirements(), this.homeCategories(), this.homeWiki(), this.installSection());
+  }
+  heroCore(){
+    const h=React.createElement;
+    const ring=(r,w,col,dur,rev,dash)=>h('circle',{cx:180,cy:180,r:r,fill:'none',stroke:col,strokeWidth:w,strokeDasharray:dash,strokeLinecap:'round',opacity:.85,style:{transformOrigin:'180px 180px',animation:'wf-spin'+(rev?'r':'')+' '+dur+'s linear infinite'}});
+    const orbit=(r,size,col,dur,rev)=>h('g',{style:{transformOrigin:'180px 180px',animation:'wf-spin'+(rev?'r':'')+' '+dur+'s linear infinite'}},h('circle',{cx:180,cy:180-r,r:size,fill:col,style:{filter:'drop-shadow(0 0 7px '+col+')'}}));
+    return h('div',{style:{position:'relative'}},
+      h('div',{style:{position:'absolute',inset:'8%',background:'radial-gradient(circle at 50% 50%,rgba(255,122,26,.30),transparent 62%)',filter:'blur(26px)',pointerEvents:'none'}}),
+      h('svg',{viewBox:'0 0 360 360',role:'img','aria-label':'Reactor core',style:{width:'100%',maxWidth:430,display:'block',margin:'0 auto',position:'relative',animation:'wf-float 7s ease-in-out infinite'}},
+        h('defs',null,h('radialGradient',{id:'wfcore'},h('stop',{offset:'0%',stopColor:'#fff6e0'}),h('stop',{offset:'45%',stopColor:'var(--amber)'}),h('stop',{offset:'100%',stopColor:'#7a1f00',stopOpacity:0}))),
+        h('circle',{cx:180,cy:180,r:152,fill:'none',stroke:'var(--line2)',strokeWidth:1,opacity:.45}),
+        ring(152,2,'var(--cyan)',30,false,'2 16'),
+        ring(124,3,'var(--amber)',17,true,'34 18'),
+        ring(98,2,'var(--cyan)',12,false,'2 11'),
+        h('circle',{cx:180,cy:180,r:64,fill:'url(#wfcore)',style:{transformOrigin:'180px 180px',animation:'wf-corepulse 3s ease-in-out infinite'}}),
+        h('circle',{cx:180,cy:180,r:30,fill:'#fff7e6',opacity:.92,style:{transformOrigin:'180px 180px',animation:'wf-corepulse 2s ease-in-out infinite'}}),
+        h('text',{x:180,y:188,textAnchor:'middle',style:{font:'700 26px var(--disp)',fill:'#3a1500'}},'⚒'),
+        orbit(152,5,'var(--cyan)',9,false), orbit(124,6,'var(--amber2)',6,true), orbit(98,4,'var(--green)',5,false)));
+  }
+  heroV2(){
+    const h=React.createElement;
+    const stat=(n,l)=>h('div',{style:{display:'flex',flexDirection:'column',gap:3}}, h('span',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:'clamp(24px,4vw,38px)',color:'var(--amber2)',lineHeight:1}},n), h('span',{style:{fontFamily:'var(--mono)',fontSize:10.5,color:'var(--dim)',letterSpacing:'.5px'}},l));
+    return h('section',{style:{position:'relative',overflow:'hidden'}},
+      h('div',{'aria-hidden':'true',style:{position:'absolute',inset:0,background:'radial-gradient(680px 420px at 82% 18%,rgba(255,122,26,.16),transparent 60%),radial-gradient(560px 360px at 10% 90%,rgba(51,214,224,.10),transparent 60%)',pointerEvents:'none'}}),
+      h('div',{style:{position:'relative',maxWidth:1180,margin:'0 auto',padding:'clamp(30px,6vw,72px) clamp(16px,4vw,40px) clamp(18px,4vw,38px)'}},
+        h('div',{className:'wf-hero-grid',style:{display:'grid',gridTemplateColumns:'1.12fr .88fr',gap:'clamp(20px,4vw,48px)',alignItems:'center'}},
+          h('div',null,
+            h('div',{style:{display:'inline-flex',alignItems:'center',gap:8,fontFamily:'var(--mono)',fontSize:11,letterSpacing:'1px',color:'var(--cyan)',border:'1px solid var(--line2)',borderRadius:999,padding:'6px 13px',marginBottom:20,background:'rgba(20,23,29,.6)'}},
+              h('span',{style:{width:7,height:7,borderRadius:'50%',background:'var(--green)',animation:'wf-pulse 2s infinite'}}), 'WinUI 3 · .NET 11 · WINDOWS 11'),
+            h('h1',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:'clamp(38px,7vw,76px)',lineHeight:1,margin:'0 0 18px',letterSpacing:'-1.5px'}},'Forge your',h('br'),h('span',{style:{background:'linear-gradient(100deg,var(--amber),var(--amber2) 55%,var(--cyan))',WebkitBackgroundClip:'text',backgroundClip:'text',color:'transparent'}},'whole machine.')),
+            h('p',{style:{fontSize:'clamp(15px,2vw,18px)',color:'var(--muted)',lineHeight:1.6,maxWidth:540,margin:'0 0 22px'}},'A bilingual Windows 11 control center — 1,209 total features across 314 modules, including 895 tweak-catalog items, each wrapping a real engine in-app. Powered by its own nuclear reactor, fuel factory and cake economy you can run right here in the browser.'),
+            this.installCluster(),
+            h('div',{style:{display:'flex',gap:'clamp(18px,5vw,44px)',flexWrap:'wrap',marginTop:30}}, stat('314','MODULES'), stat('1,209','FEATURES'), stat('895','TWEAKS & OPS'), stat('100%','BILINGUAL'))
+          ),
+          h('div',{style:{minWidth:0}}, this.heroCore())
+        )));
+  }
+  installCluster(){
+    const h=React.createElement; const GH=this.GH(), PS=this.PS();
+    return h('div',null,
+      h('div',{style:{display:'flex',flexWrap:'wrap',gap:11,marginBottom:14}},
+        h('a',{href:GH+'/releases/latest',target:'_blank',rel:'noopener',className:'wf-btn-h',style:{display:'inline-flex',alignItems:'center',gap:9,background:'linear-gradient(135deg,var(--amber),#d24500)',color:'#1a0e00',fontFamily:'var(--disp)',fontWeight:700,fontSize:15.5,padding:'13px 24px',borderRadius:11,boxShadow:'0 14px 34px -14px var(--amber)'}},'⭳ Install WinForge'),
+        h('a',{href:'#/app',className:'wf-btn-h',style:{display:'inline-flex',alignItems:'center',gap:8,background:'var(--panel2)',border:'1px solid var(--line2)',color:'var(--text)',fontFamily:'var(--disp)',fontWeight:600,fontSize:15.5,padding:'13px 22px',borderRadius:11}},'⊞ Open the app replica')),
+      h('div',{onClick:()=>this.copyCmd('irm https://get.winforge.app | iex'),title:'Click to copy',style:{display:'flex',alignItems:'center',gap:10,background:'#0a0c10',border:'1px solid var(--line2)',borderRadius:10,padding:'11px 14px',maxWidth:440,cursor:'pointer'}},
+        h('span',{style:{fontFamily:'var(--mono)',fontSize:11,color:'var(--green)'}},'PS>'),
+        h('code',{style:{flex:1,fontFamily:'var(--mono)',fontSize:13,color:'var(--text)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}},PS),
+        h('span',{style:{fontFamily:'var(--mono)',fontSize:10,color:'var(--dim)',border:'1px solid var(--line2)',borderRadius:5,padding:'3px 7px'}},'COPY')),
+      h('div',{style:{display:'flex',gap:16,flexWrap:'wrap',marginTop:11,fontFamily:'var(--mono)',fontSize:12.5}},
+        h('a',{href:GH+'/releases',target:'_blank',rel:'noopener',className:'wf-nav-h',style:{color:'var(--muted)'}},'↺ Older versions'),
+        h('a',{href:GH,target:'_blank',rel:'noopener',className:'wf-nav-h',style:{color:'var(--muted)'}},'⟨⟩ Source on GitHub'),
+        h('a',{href:'#/manual',className:'wf-nav-h',style:{color:'var(--muted)'}},'📖 Read the manual')));
+  }
+  ecosystem(){
+    const h=React.createElement;
+    const node=(href,icon,t,sub,col)=>h('a',{href,className:'wf-eco-h',style:{flex:'1 1 130px',minWidth:120,display:'flex',flexDirection:'column',alignItems:'center',gap:7,textAlign:'center',padding:'18px 12px',background:'var(--panel)',border:'1px solid '+col,borderRadius:14,textDecoration:'none',transition:'transform .2s',boxShadow:'0 0 40px -30px '+col}},
+      h('span',{style:{width:52,height:52,borderRadius:'50%',display:'grid',placeItems:'center',fontSize:25,background:'radial-gradient(circle,'+col+'33,transparent 70%)',border:'1px solid '+col}},icon),
+      h('span',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:14,color:col}},t),
+      h('span',{style:{fontFamily:'var(--mono)',fontSize:10,color:'var(--dim)'}},sub));
+    const link=(label,col)=>h('div',{style:{flex:'0 1 70px',minWidth:40,display:'flex',flexDirection:'column',alignItems:'center',gap:4}},
+      h('span',{style:{fontFamily:'var(--mono)',fontSize:9.5,color:col,whiteSpace:'nowrap'}},label),
+      h('div',{className:'wf-flowline',style:{height:4,width:'100%',borderRadius:3,color:col}}));
+    return h('section',{style:{maxWidth:1180,margin:'0 auto',padding:'clamp(16px,3vw,30px) clamp(16px,4vw,40px)'}},
+      h('div',{style:{background:'linear-gradient(180deg,var(--panel),rgba(20,23,29,.4))',border:'1px solid var(--line)',borderRadius:18,padding:'clamp(18px,3vw,28px)'}},
+        h('div',{style:{display:'flex',alignItems:'baseline',gap:12,flexWrap:'wrap',marginBottom:18}},
+          h('h2',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:'clamp(20px,3vw,28px)',margin:0}},'One closed economy'),
+          h('span',{style:{fontFamily:'var(--mono)',fontSize:12,color:'var(--dim)'}},'燃料 → 電力 → 蛋糕 → AI')),
+        h('div',{style:{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap',justifyContent:'center'}},
+          node('#/fuel','⬡','Fuel Factory','mints .fuel','var(--green)'), link('.fuel →','var(--green)'),
+          node('#/reactor','☢','Reactor','makes power','var(--cyan)'), link('power →','var(--cyan)'),
+          node('#/cake','🍰','Cake Factory','bakes cakes','var(--amber2)'), link('cakes $ →','var(--amber2)'),
+          node('#/pricing','🤖','AI Agents','billed in cakes','var(--violet)'))));
+  }
+  tryCard(href,emoji,title,zh,desc,img,accent,badge){
+    const h=React.createElement;
+    return h('a',{href,className:'wf-card-h wf-shot-h',style:{display:'flex',flexDirection:'column',background:'var(--panel)',border:'1px solid var(--line)',borderRadius:14,overflow:'hidden',transition:'all .2s',textDecoration:'none'}},
+      h('div',{style:{position:'relative',aspectRatio:'16/10',overflow:'hidden',background:'radial-gradient(circle at 50% 38%,'+accent+'2e,var(--panel2))',display:'grid',placeItems:'center'}},
+        h('span',{style:{position:'absolute',fontSize:84,opacity:.16}},emoji),
+        img?h('img',{src:img,alt:title,loading:'lazy',style:{width:'100%',height:'100%',objectFit:'cover',position:'relative',transition:'transform .4s'},onError:e=>{e.target.style.display='none';}}):null,
+        h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180deg,transparent 38%,rgba(11,13,17,.88))'}}),
+        h('span',{style:{position:'absolute',top:12,left:12,fontFamily:'var(--mono)',fontSize:10,letterSpacing:'1px',color:accent,border:'1px solid '+accent,borderRadius:999,padding:'4px 10px',background:'rgba(11,13,17,.65)'}},badge||'PLAYABLE IN BROWSER')),
+      h('div',{style:{padding:'17px 19px 21px'}},
+        h('div',{style:{fontSize:24,marginBottom:5}},emoji),
+        h('div',{style:{fontFamily:'var(--disp)',fontWeight:600,fontSize:19}},title),
+        h('div',{style:{fontFamily:'var(--mono)',fontSize:11.5,color:'var(--dim)',margin:'2px 0 9px'}},zh),
+        h('p',{style:{color:'var(--muted)',fontSize:13.5,lineHeight:1.5,margin:0}},desc),
+        h('div',{style:{marginTop:13,fontFamily:'var(--disp)',fontWeight:600,fontSize:14,color:accent}},'Launch →')));
+  }
+  trySec(){
+    const h=React.createElement;
+    return h('section',{style:{maxWidth:1180,margin:'0 auto',padding:'clamp(20px,4vw,40px) clamp(16px,4vw,40px)'}},
+      this.sectionHead('Run the whole suite in your browser','喺瀏覽器運行成個套件','Four full HTML5 builds — not demos. State saves to your browser; close the tab and pick up where you left off.'),
+      h('div',{className:'wf-try-grid',style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:18,marginTop:24}},
+        this.tryCard('#/reactor','☢','Nuclear Reactor','核反應堆 · PWR 控制室','A pressurized-water control room — establish flow, pull rods, ride the ascension to the grid, burn fuel, avoid a SCRAM. Objectives, score, meltdown.','assets/screenshot-reactor-gauges.png','var(--cyan)'),
+        this.tryCard('#/cake','🍰','Cake Factory & Farm','蛋糕工廠與農場','Reactor-powered. Grow, mill, churn, bake through the kill step, ship orders and mint signed cakes worth real money.','assets/screenshot-cakefactory-scene.png','var(--amber2)'),
+        this.tryCard('#/fuel','⬡','Nuclear Fuel Factory','核燃料工廠','Convert UF6 → centrifuge enrichment → pellets → assemblies. Fabricate signed .fuel files and load them straight into the reactor.',null,'var(--green)'),
+        this.tryCard('#/app','⊞','The app, in your browser','app 復刻','The full WinUI-style WinForge replica: NavigationView, master search, live tweak toggles with real engine output. Deep links land here.','assets/screenshot-dashboard.png','var(--amber)','LIVE REPLICA')));
+  }
+  installSection(){
+    const h=React.createElement; const GH=this.GH();
+    const opt=(icon,t,sub,cmd,href,col)=>h('div',{style:{flex:'1 1 240px',minWidth:0,background:'var(--panel)',border:'1px solid var(--line)',borderRadius:13,padding:'17px 18px',display:'flex',flexDirection:'column',gap:9}},
+      h('div',{style:{display:'flex',alignItems:'center',gap:10}}, h('span',{style:{fontSize:20}},icon), h('span',{style:{fontFamily:'var(--disp)',fontWeight:600,fontSize:15.5,color:col}},t)),
+      h('p',{style:{margin:0,fontSize:13,color:'var(--muted)',lineHeight:1.5,flex:1}},sub),
+      cmd?h('div',{onClick:()=>this.copyCmd(cmd),title:'Click to copy',style:{display:'flex',alignItems:'center',gap:8,background:'#0a0c10',border:'1px solid var(--line2)',borderRadius:8,padding:'9px 11px',cursor:'pointer'}},
+        h('code',{style:{flex:1,fontFamily:'var(--mono)',fontSize:12,color:'var(--text)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}},cmd),
+        h('span',{style:{fontFamily:'var(--mono)',fontSize:9.5,color:'var(--dim)'}},'COPY'))
+        :h('a',{href:href,target:'_blank',rel:'noopener',className:'wf-chip-h',style:{fontFamily:'var(--mono)',fontSize:12,color:col,border:'1px solid var(--line2)',borderRadius:8,padding:'9px 11px',textAlign:'center'}},'Open ↗'));
+    return h('section',{id:'install',style:{maxWidth:1180,margin:'0 auto',padding:'clamp(20px,4vw,46px) clamp(16px,4vw,40px) clamp(40px,6vw,72px)'}},
+      this.sectionHead('Get WinForge','安裝 WinForge','Self-contained · no install dependencies · auto-updated on every push.'),
+      h('div',{style:{display:'flex',gap:14,flexWrap:'wrap',marginTop:24}},
+        opt('⊞','winget','The simplest install — one command in any terminal.','winget install WinForge.WinForge',null,'var(--cyan)'),
+        opt('⚡','PowerShell','Bootstrapping script — downloads and runs the latest installer.','irm https://get.winforge.app | iex',null,'var(--amber2)'),
+        opt('⭳','Installer & portable','Inno Setup installer or a portable zip from GitHub Releases.',null,GH+'/releases/latest','var(--green)'),
+        opt('↺','Older versions','Every build is published as v1.0.<run#> on GitHub Releases.',null,GH+'/releases','var(--violet)')),
+      h('div',{style:{marginTop:16,display:'flex',gap:10,alignItems:'center',flexWrap:'wrap',fontFamily:'var(--mono)',fontSize:12,color:'var(--dim)',background:'var(--panel)',border:'1px dashed var(--line2)',borderRadius:10,padding:'12px 15px'}},
+        h('span',{style:{color:'var(--green)'}},'CI'),'GitHub Actions builds + publishes a new release on every push — portable zip + installer.',
+        h('a',{href:GH,target:'_blank',rel:'noopener',className:'wf-nav-h',style:{color:'var(--cyan)',marginLeft:'auto'}},'⟨⟩ View source →')));
+  }
+  sectionHead(t,zh,sub){
+    const h=React.createElement;
+    return h('div',null,
+      h('div',{style:{display:'flex',alignItems:'baseline',gap:14,flexWrap:'wrap'}},
+        h('h2',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:'clamp(24px,3.4vw,34px)',margin:0,letterSpacing:'-.5px'}},t),
+        h('span',{style:{fontFamily:'var(--mono)',fontSize:13,color:'var(--dim)'}},zh)),
+      sub?h('p',{style:{color:'var(--muted)',fontSize:15,margin:'8px 0 0',maxWidth:680}},sub):null);
+  }
+  homeCategories(){
+    const h=React.createElement;
+    const cards=(this.D.categories||[]).map((c,i)=>h('a',{key:i,href:'#/category/'+this.slug(c.en),className:'wf-card-h',style:{display:'flex',flexDirection:'column',gap:6,padding:'16px 17px',background:'var(--panel)',border:'1px solid var(--line)',borderRadius:11,transition:'all .2s'}},
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
+        h('span',{style:{fontFamily:'var(--mono)',fontSize:11,color:'var(--cyan)'}},String(i+1).padStart(2,'0')),
+        h('span',{style:{fontFamily:'var(--mono)',fontSize:11,color:'var(--dim)',border:'1px solid var(--line)',borderRadius:999,padding:'2px 8px'}},c.count)),
+      h('div',{style:{fontFamily:'var(--disp)',fontWeight:600,fontSize:15.5,lineHeight:1.2}},c.en),
+      h('div',{style:{fontFamily:'var(--mono)',fontSize:11.5,color:'var(--dim)'}},c.zh)));
+    return h('section',{style:{maxWidth:1180,margin:'0 auto',padding:'clamp(20px,4vw,46px) clamp(16px,4vw,40px)'}},
+      this.sectionHead('Every module, documented','逐個模組 · 完整手冊','Browse all 314 modules and 895 tweak-catalog items. Each opens to its full reference.'),
+      h('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:13,marginTop:24}}, cards));
+  }
+  homeWiki(){
+    const h=React.createElement;
+    const picks=['Nuclear-Reactor','Cake-Factory-and-Farm','Reactor-Operating-Procedures','Dashboard','Package-Manager','AI-Agents'];
+    const map={}; (this.D.wikiIndex||[]).forEach(w=>map[w.slug]=w);
+    const cards=picks.filter(s=>map[s]).map(s=>{ const w=map[s]; return h('a',{key:s,href:'#/wiki/'+s,className:'wf-row-h',style:{display:'flex',alignItems:'center',gap:12,padding:'14px 16px',background:'var(--panel)',border:'1px solid var(--line)',borderRadius:10,transition:'all .15s'}},
+      h('span',{style:{fontFamily:'var(--mono)',fontSize:10,color:'var(--violet)',border:'1px solid var(--line2)',borderRadius:5,padding:'3px 7px'}},'WIKI'),
+      h('span',{style:{flex:1,fontFamily:'var(--disp)',fontWeight:500,fontSize:14.5}}, w.title.replace(/·.*$/,'').trim()),
+      h('span',{className:'wf-arrow',style:{color:'var(--dim)',opacity:.6,transition:'all .15s'}},'→')); });
+    return h('section',{style:{maxWidth:1180,margin:'0 auto',padding:'clamp(20px,4vw,46px) clamp(16px,4vw,40px) clamp(40px,6vw,70px)'}},
+      this.sectionHead('From the wiki','知識庫精選',null),
+      h('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(290px,1fr))',gap:13,marginTop:24}}, cards),
+      h('a',{href:'#/wiki',className:'wf-chip-h',style:{display:'inline-block',marginTop:18,fontFamily:'var(--mono)',fontSize:13,color:'var(--muted)',border:'1px solid var(--line2)',borderRadius:8,padding:'9px 16px',transition:'all .15s'}},'Open the full wiki →'));
+  }
+
+  // ---------- REQUIREMENTS / PRICING ----------
+  homeRequirements(){
+    const h=React.createElement;
+    const card=(icon,t,zh,desc,color,bg,cta,href)=>h('a',{href,className:'wf-card-h',style:{display:'flex',flexDirection:'column',gap:9,padding:'20px 21px',background:'var(--panel)',border:'1px solid '+color,borderRadius:14,transition:'all .2s',boxShadow:'0 0 40px -28px '+color}},
+      h('div',{style:{display:'flex',alignItems:'center',gap:11}}, h('span',{style:{fontSize:30}},icon), h('div',null, h('div',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:19,color:color}},t), h('div',{style:{fontFamily:'var(--mono)',fontSize:12,color:'var(--dim)'}},zh))),
+      h('p',{style:{margin:0,fontSize:14,color:'var(--muted)',lineHeight:1.55}},desc),
+      h('span',{style:{marginTop:4,fontFamily:'var(--disp)',fontWeight:600,fontSize:13.5,color:color}},cta));
+    return h('section',{style:{maxWidth:1180,margin:'0 auto',padding:'clamp(20px,4vw,46px) clamp(16px,4vw,40px)'}},
+      this.sectionHead('Two in-app currencies','兩種 app 內「貨幣」','Most of WinForge is free. But the powered and AI features run on an in-app economy — not money. This is the "pricing" you actually pay.'),
+      h('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(280px,1fr))',gap:16,marginTop:24}},
+        card('⚡','Reactor Power','反應堆電力 · MWe','The Cake Factory and its farm automation only run while the Nuclear Reactor is synchronized and generating. Offline or melted → powered work locks out. Below demand → everything slows by the available-power fraction.','var(--cyan)','',' See what needs power →','#/pricing'),
+        card('🍰','Cakes','蛋糕 · the currency','Cakes are WinForge\u2019s money — each signed .cake is worth real value. AI Agents YOLO mode is billed one cake per run. You mint your own treasury in the Cake Factory (which needs reactor power).','var(--amber2)','',' See what costs cakes →','#/pricing')),
+      h('div',{style:{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap',marginTop:18,fontFamily:'var(--mono)',fontSize:12.5,color:'var(--muted)',background:'var(--panel)',border:'1px dashed var(--line2)',borderRadius:10,padding:'13px 16px'}},
+        h('span',{style:{color:'var(--green)'}},'⬡ Fuel'),h('span',{style:{color:'var(--dim)'}},'→'),
+        h('span',{style:{color:'var(--cyan)'}},'☢ Reactor'),h('span',{style:{color:'var(--dim)'}},'— power →'),
+        h('span',{style:{color:'var(--amber2)'}},'🍰 Cake Factory'),h('span',{style:{color:'var(--dim)'}},'— cakes ($) →'),
+        h('span',{style:{color:'var(--violet)'}},'🤖 AI Agents'),
+        h('span',{style:{color:'var(--dim)',marginLeft:'auto'}},'cakes = the currency · 蛋糕即貨幣')));
+  }
+  vPricing(){
+    const h=React.createElement;
+    const tier=(badge,bcol,title,zh,price,priceUnit,desc,bullets,cta,href,featured)=>h('div',{style:{display:'flex',flexDirection:'column',gap:13,padding:'22px 22px 24px',background:'var(--panel)',border:'1px solid '+(featured?bcol:'var(--line)'),borderRadius:16,position:'relative',boxShadow:featured?'0 0 50px -26px '+bcol:'none'}},
+      h('div',{style:{display:'inline-flex',alignSelf:'flex-start',whiteSpace:'nowrap',fontFamily:'var(--mono)',fontSize:10.5,letterSpacing:'1px',color:bcol,border:'1px solid '+bcol,borderRadius:999,padding:'4px 11px'}},badge),
+      h('div',null, h('div',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:21}},title), h('div',{style:{fontFamily:'var(--mono)',fontSize:12,color:'var(--dim)'}},zh)),
+      h('div',{style:{display:'flex',alignItems:'baseline',gap:7}}, h('span',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:36,color:bcol,lineHeight:1}},price), h('span',{style:{fontFamily:'var(--mono)',fontSize:12,color:'var(--dim)'}},priceUnit)),
+      h('p',{style:{margin:0,fontSize:13.5,color:'var(--muted)',lineHeight:1.55}},desc),
+      h('div',{style:{display:'flex',flexDirection:'column',gap:8,marginTop:2}}, bullets.map((b,i)=>h('div',{key:i,style:{display:'flex',gap:9,fontSize:13,color:'#c8ced7',lineHeight:1.45}}, h('span',{style:{color:bcol,flexShrink:0}},'›'), b))),
+      cta?h('a',{href,className:'wf-btn-h',style:{marginTop:'auto',textAlign:'center',background:featured?bcol:'var(--panel3)',color:featured?'#04120a':bcol,border:'1px solid '+bcol,borderRadius:10,padding:'11px',fontFamily:'var(--disp)',fontWeight:600,fontSize:14}},cta):null);
+    return this.page(h('div',null,
+      this.crumb([['Home','#/'],['Pricing']]),
+      h('div',{style:{textAlign:'center',maxWidth:680,margin:'0 auto 8px'}},
+        h('div',{style:{display:'inline-flex',alignItems:'center',gap:8,fontFamily:'var(--mono)',fontSize:11,letterSpacing:'1px',color:'var(--amber2)',border:'1px solid var(--line2)',borderRadius:999,padding:'6px 13px',marginBottom:16}},'PRICING · 收費 · REQUIREMENTS'),
+        h('h1',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:'clamp(30px,5vw,46px)',margin:'0 0 12px'}},'Priced in ',h('span',{style:{color:'var(--amber2)'}},'power and cakes.')),
+        h('p',{style:{color:'var(--muted)',fontSize:16,lineHeight:1.6}},'WinForge\u2019s powered and AI features run on a closed economy: electricity from your reactor, and cakes \u2014 the suite\u2019s unit of account, worth real money. You generate both yourself.')),
+      h('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(270px,1fr))',gap:16,marginTop:30}},
+        tier('CORE · 核心','var(--green)','The control center','核心控制中心','Bundled','with every install','The full suite — 314 modules, 895 tweak-catalog items, and 1,209 total features, every one wrapping a real engine in-app. No redirects, no account, no nag screens.',
+          ['All system, file, network, dev, media & security modules','Full tweak catalog incl. Winaero & debloat','Bilingual English + 粵語 everywhere','Master search & one-click recipes'],'Browse the manual →','#/manual',false),
+        tier('⚡ REACTOR POWER','var(--cyan)','Powered features','需要電力','MWe','generated, not bought','Gated by the live reactor bus. The Cake Factory and its farm automation only run while the reactor is synchronized and generating electrical power.',
+          ['Cake Factory & Farm simulator','Farm growth, milling, mixing, ovens, cooling','Offline / meltdown → powered work locks out','Below demand → slowed by available-power fraction'],'☢ Start the reactor →','#/reactor',true),
+        tier('🍰 CAKES · 蛋糕','var(--amber2)','AI features','需要蛋糕','≈ $9','per cake','Cakes are WinForge\u2019s money — each signed .cake carries real value. AI Agents YOLO mode is billed one cake per run; cakes are baked in the Cake Factory and cryptographically validated.',
+          ['AI Agents — autonomous YOLO runs, billed in cakes','Signed, trusted, single-use .cake files','Forged / tampered / expired cakes rejected','Mint your own treasury in the Cake Factory'],'🍰 Run the bakery →','#/cake',false)),
+      h('div',{style:{marginTop:30,background:'var(--panel)',border:'1px solid var(--line)',borderRadius:14,padding:'clamp(18px,3vw,28px)'}},
+        h('h3',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:20,margin:'0 0 6px'}},'How the economy connects · 經濟循環'),
+        h('p',{style:{color:'var(--muted)',fontSize:14,margin:'0 0 20px',maxWidth:640}},'The reactor makes power; power runs the bakery; the bakery makes cakes; cakes pay for AI. Break the chain anywhere and everything downstream stalls — exactly like the app.'),
+        h('div',{style:{display:'flex',alignItems:'stretch',gap:0,flexWrap:'wrap'}},
+          this.flowNode('⬡','Fuel Factory','fabricates','var(--green)','#/fuel'),
+          this.flowArrow('.fuel assemblies','var(--green)'),
+          this.flowNode('☢','Nuclear Reactor','burns fuel → generates','var(--cyan)','#/reactor'),
+          this.flowArrow('electrical power','var(--cyan)'),
+          this.flowNode('🍰','Cake Factory','bakes','var(--amber2)','#/cake'),
+          this.flowArrow('cakes ($)','var(--amber2)'),
+          this.flowNode('🤖','AI Agents','billed in cakes','var(--violet)','#/module/aiagents'))),
+      h('p',{style:{textAlign:'center',marginTop:24,fontFamily:'var(--mono)',fontSize:12,color:'var(--dim)'}},'Cakes are the unit of account across WinForge — earned by baking, spent on AI. The reactor and plants are training simulators; the .cake and .fuel files they mint are real, signed files.')
+    ));
+  }
+  flowNode(icon,t,sub,col,href){
+    const h=React.createElement;
+    return h('a',{href,className:'wf-card-h',style:{flex:'1 1 160px',minWidth:140,display:'flex',flexDirection:'column',alignItems:'center',gap:5,textAlign:'center',padding:'16px 12px',background:'var(--panel2)',border:'1px solid '+col,borderRadius:12,transition:'all .2s'}},
+      h('span',{style:{fontSize:28}},icon),
+      h('span',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:14,color:col}},t),
+      h('span',{style:{fontFamily:'var(--mono)',fontSize:10.5,color:'var(--dim)'}},sub));
+  }
+  flowArrow(label,col){
+    const h=React.createElement;
+    return h('div',{style:{flex:'0 1 110px',minWidth:80,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'0 4px'}},
+      h('span',{style:{fontFamily:'var(--mono)',fontSize:10,color:col,marginBottom:3}},label),
+      h('span',{style:{color:col,fontSize:18}},'→'));
+  }
+
+  // ---------- MANUAL ----------
+  vManual(){
+    const h=React.createElement;
+    const modCards=(this.D.modules||[]).map((m,i)=>h('a',{key:i,href:'#/module/'+m.page,className:'wf-card-h',style:{display:'flex',flexDirection:'column',gap:8,padding:'15px 16px',background:'var(--panel)',border:'1px solid var(--line)',borderRadius:11,transition:'all .2s'}},
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
+        h('code',{style:{fontFamily:'var(--mono)',fontSize:11,color:'var(--amber2)',background:'var(--panel3)',padding:'2px 7px',borderRadius:5,border:'1px solid var(--line)'}},'--page '+m.page),
+        h('span',{style:{fontSize:12}}, m.status||'')),
+      h('div',{style:{fontFamily:'var(--disp)',fontWeight:600,fontSize:15}}, this.bi(m.en,m.zh)),
+      h('div',{style:{fontSize:12.5,color:'var(--dim)',lineHeight:1.4,flex:1}}, m.engine),
+      h('div',{style:{display:'flex',gap:7,alignItems:'center',flexWrap:'wrap',marginTop:2}},
+        m.requires?this.reqBadge(m.requires,true):null,
+        m.playable?h('span',{style:{fontFamily:'var(--mono)',fontSize:10.5,color:'var(--green)'}},'▶ playable in browser'):null,
+        this.openChip(this.appLink(m.page),'Open',m.requires==='power'?'var(--cyan)':(m.requires==='cake'?'var(--amber2)':'var(--muted)')))));
+    const catRows=(this.D.categories||[]).map((c,i)=>h('a',{key:i,href:'#/category/'+this.slug(c.en),className:'wf-row-h',style:{display:'flex',alignItems:'center',gap:13,padding:'13px 15px',background:'var(--panel)',border:'1px solid var(--line)',borderRadius:10,transition:'all .15s'}},
+      h('span',{style:{fontFamily:'var(--mono)',fontSize:12,color:'var(--cyan)',width:24}},String(i+1).padStart(2,'0')),
+      h('span',{style:{flex:1}}, h('span',{style:{fontFamily:'var(--disp)',fontWeight:500,fontSize:14.5}}, this.bi(c.en,c.zh))),
+      h('span',{style:{fontFamily:'var(--mono)',fontSize:11,color:'var(--dim)',border:'1px solid var(--line)',borderRadius:999,padding:'2px 9px'}}, c.count+' items'),
+      h('span',{className:'wf-arrow',style:{color:'var(--dim)',opacity:.6,transition:'all .15s'}},'→')));
+    return this.page(h('div',null,
+      this.crumb([['Home','#/'],['Manual']]),
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-end',gap:16,flexWrap:'wrap',marginBottom:6}},
+        this.sectionHead('Module manual','模組手冊','Every WinForge module and feature, in English and 粵語.'), this.langToggle()),
+      h('h3',{style:{fontFamily:'var(--disp)',fontSize:18,color:'var(--amber2)',margin:'34px 0 14px'}},'Core modules · 核心模組'),
+      h('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:13}}, modCards),
+      h('h3',{style:{fontFamily:'var(--disp)',fontSize:18,color:'var(--cyan)',margin:'40px 0 14px'}},'Feature categories · 功能分類'),
+      h('div',{style:{display:'grid',gap:9}}, catRows)
+    ));
+  }
+
+  // ---------- CATEGORY ----------
+  vCategory(slug, featId){
+    const h=React.createElement;
+    const cat=(this.D.categories||[]).find(c=>this.slug(c.en)===slug);
+    if(!cat) return this.notFound('Category');
+    const creq=this.catReq(cat);
+    const q=(this.state.catFilter||'').trim().toLowerCase();
+    const feats = q ? cat.features.filter(f=>(f.en+' '+f.zh+' '+f.id).toLowerCase().includes(q)) : cat.features;
+    const rows=feats.map((f,i)=>{
+      const open = featId===f.id;
+      return h('div',{key:f.id,id:f.id,style:{background:open?'var(--panel2)':'var(--panel)',border:'1px solid '+(open?'var(--amber)':'var(--line)'),borderRadius:9,padding:'11px 14px',transition:'all .15s'},className:open?'':'wf-row-h'},
+        h('div',{style:{display:'flex',alignItems:'center',gap:11}},
+          h('span',{style:{fontFamily:'var(--mono)',fontSize:11,color:'var(--green)',flexShrink:0}},'✓'),
+          h('span',{style:{flex:1,minWidth:0}},
+            h('div',{style:{fontFamily:'var(--disp)',fontWeight:500,fontSize:14.5}}, this.bi(f.en,f.zh)),
+            h('code',{style:{fontFamily:'var(--mono)',fontSize:10.5,color:'var(--dim)'}}, f.folder+' / '+f.id)),
+          creq?this.reqBadge(creq,true):null,
+          this.openChip(this.appRun(slug,f.id),'Open & run',creq==='cake'?'var(--amber2)':'var(--green)')));
+    });
+    return this.page(h('div',null,
+      this.crumb([['Home','#/'],['Manual','#/manual'],[cat.en]]),
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-end',gap:16,flexWrap:'wrap'}},
+        h('div',null,
+          h('h1',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:'clamp(26px,4vw,38px)',margin:0}}, cat.en),
+          h('div',{style:{fontFamily:'var(--mono)',fontSize:14,color:'var(--dim)',marginTop:4}}, cat.zh+' · '+cat.features.length+' features')),
+        this.langToggle()),
+      creq?h('div',{style:{marginTop:16}}, this.reqBanner(creq)):null,
+      h('div',{style:{display:'flex',alignItems:'center',gap:9,background:'var(--panel2)',border:'1px solid var(--line)',borderRadius:9,padding:'9px 13px',margin:'22px 0 16px',maxWidth:420}},
+        h('span',{style:{color:'var(--dim)'}},'⌕'),
+        h('input',{value:this.state.catFilter,onInput:e=>this.setState({catFilter:e.target.value}),placeholder:'Filter in this category…',style:{flex:1,background:'none',border:'none',outline:'none',color:'var(--text)',fontFamily:'var(--body)',fontSize:13.5}})),
+      h('div',{style:{display:'grid',gap:7}}, rows.length?rows:h('div',{style:{color:'var(--dim)',padding:20}},'No features match your filter.'))
+    ));
+  }
+
+  // ---------- MODULE DETAIL ----------
+  vModule(page){
+    const h=React.createElement;
+    const m=(this.D.modules||[]).find(x=>x.page===page);
+    if(!m) return this.notFound('Module');
+    const wikiGuess=(this.D.wikiIndex||[]).find(w=>w.moduleTag===m.tag) || (this.D.wikiIndex||[]).find(w=>(w.slug||'').endsWith('--'+m.page)) || (this.D.wikiIndex||[]).find(w=>this.slug(w.title.replace(/·.*$/,''))===this.slug(m.en));
+    const field=(k,v,mono)=>h('div',{style:{display:'flex',flexDirection:'column',gap:4,padding:'13px 15px',background:'var(--panel)',border:'1px solid var(--line)',borderRadius:9}},
+      h('span',{style:{fontFamily:'var(--mono)',fontSize:10,letterSpacing:'1px',color:'var(--dim)',textTransform:'uppercase'}},k),
+      h('span',{style:{fontSize:14,fontFamily:mono?'var(--mono)':'var(--body)',color:mono?'var(--amber2)':'var(--text)',wordBreak:'break-word'}},v||'—'));
+    return this.page(h('div',null,
+      this.crumb([['Home','#/'],['Manual','#/manual'],[m.en]]),
+      h('div',{style:{display:'inline-flex',alignItems:'center',gap:8,fontFamily:'var(--mono)',fontSize:11,color:'var(--green)',border:'1px solid var(--line2)',borderRadius:999,padding:'5px 12px',marginBottom:16}},h('span',{style:{width:7,height:7,borderRadius:'50%',background:'var(--green)'}}),'STATUS '+(m.status||'✅')+' · SHIPPING'),
+      h('h1',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:'clamp(30px,5vw,46px)',margin:'0 0 6px'}}, m.en),
+      h('div',{style:{fontFamily:'var(--mono)',fontSize:16,color:'var(--muted)',marginBottom:16}}, m.zh),
+      m.requires?this.reqBanner(m.requires):null,
+      h('p',{style:{fontSize:16,color:'#c8ced7',lineHeight:1.6,maxWidth:720}}, 'The '+m.en+' module runs entirely inside WinForge — no redirects. It wraps '+m.engine+'. Open it in the app with the deep link, launch it from a terminal, or jump to it from the dashboard search.'),
+      h('div',{style:{display:'flex',alignItems:'center',gap:10,background:'#0a0c10',border:'1px solid var(--line2)',borderRadius:10,padding:'14px 16px',margin:'20px 0',maxWidth:520,fontFamily:'var(--mono)'}},
+        h('span',{style:{color:'var(--green)'}},'›'),
+        h('span',{style:{color:'var(--text)',fontSize:14}},'WinForge.exe --page '),h('span',{style:{color:'var(--amber2)',fontSize:14}}, m.page)),
+      h('div',{style:{display:'flex',gap:10,flexWrap:'wrap',margin:'0 0 6px'}},
+        this.openChip(this.appLink(m.page),'Open in WinForge',m.requires==='power'?'var(--cyan)':(m.requires==='cake'?'var(--amber2)':'var(--green)')),
+        m.playable?h('a',{href:m.playable,className:'wf-btn-h',style:{display:'inline-flex',alignItems:'center',gap:7,background:'var(--panel3)',border:'1px solid var(--line2)',borderRadius:8,padding:'7px 13px',fontFamily:'var(--mono)',fontSize:12,color:'var(--green)'}},'▶ Try it in the browser'):null),
+      h('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:12,marginTop:8}},
+        field('Open command','--page '+m.page,true),
+        field('Page','/'+m.pageFile,true),
+        field('Service(s)',m.service||'—',true),
+        field('Engine / mechanism',m.engine),
+        field('Bilingual','English + 粵語')),
+      wikiGuess?h('a',{href:'#/wiki/'+wikiGuess.slug,className:'wf-chip-h',style:{display:'inline-block',marginTop:26,fontFamily:'var(--mono)',fontSize:13,color:'var(--violet)',border:'1px solid var(--line2)',borderRadius:8,padding:'10px 16px',transition:'all .15s'}},'Read the wiki page · '+wikiGuess.title.replace(/·.*$/,'').trim()+' →'):null
+    ),900);
+  }
+
+  // ---------- WIKI ----------
+  vWikiIndex(){
+    const h=React.createElement;
+    const rows=(this.D.wikiIndex||[]).map(w=>h('a',{key:w.slug,href:'#/wiki/'+w.slug,className:'wf-row-h',style:{display:'flex',alignItems:'center',gap:12,padding:'13px 15px',background:'var(--panel)',border:'1px solid var(--line)',borderRadius:9,transition:'all .15s'}},
+      h('span',{style:{fontFamily:'var(--mono)',fontSize:10,color:'var(--violet)',border:'1px solid var(--line2)',borderRadius:5,padding:'3px 7px'}},'WIKI'),
+      h('span',{style:{flex:1,fontFamily:'var(--disp)',fontWeight:500,fontSize:14.5}}, w.title.replace(/·.*$/,'').trim()),
+      h('span',{className:'wf-arrow',style:{color:'var(--dim)',opacity:.6,transition:'all .15s'}},'→')));
+    return this.page(h('div',null,
+      this.crumb([['Home','#/'],['Wiki']]),
+      this.sectionHead('WinForge Wiki','視窗鑄造知識庫','Operating guides, module deep-dives, the reactor manual, and more.'),
+      h('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))',gap:10,marginTop:24}}, rows)));
+  }
+  wikiAppMap(slug){
+    const m={Dashboard:'dashboard','Git-and-GitHub':'git','Package-Manager':'packages','System-Monitor':'monitor',Connections:'connections',Clipboard:'clipboard','Cake-Factory-and-Farm':'cakefactory','Nuclear-Reactor':'reactor','Nuclear-Reactor-Operating-Manual':'reactor','AI-Agents':'aiagents',AI:'aichat',Media:'media','Window-Management':'windows','Files-and-Disks':'disk','Security-and-Vaults':'vault','Settings-and-Control-Panel':'settings'};
+    if(m[slug]) return m[slug];
+    if(/^Reactor-/.test(slug)) return 'reactor';
+    return null;
+  }
+  wikiOpenBar(slug){
+    const h=React.createElement; const page=this.wikiAppMap(slug);
+    const play = slug==='Cake-Factory-and-Farm'?'#/cake':(/(^Reactor-|^Nuclear-Reactor)/.test(slug)?'#/reactor':null);
+    return h('div',{style:{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap',background:'var(--panel2)',border:'1px solid var(--line)',borderRadius:11,padding:'11px 14px',marginBottom:16}},
+      h('span',{style:{fontFamily:'var(--mono)',fontSize:11,color:'var(--dim)',flex:1,minWidth:140}}, 'Deep link · 喺 WinForge 開啟'),
+      play?h('a',{href:play,className:'wf-btn-h',style:{display:'inline-flex',alignItems:'center',gap:6,background:'var(--panel3)',border:'1px solid var(--line2)',borderRadius:8,padding:'7px 13px',fontFamily:'var(--mono)',fontSize:12,color:'var(--green)'}},'▶ Try in browser'):null,
+      this.openChip(this.appLink(page||'dashboard'), page?('Open '+page):'Open WinForge', 'var(--cyan)'));
+  }
+  vWikiPage(slug){
+    const h=React.createElement;
+    const src=(this.D.wiki||{})[slug];
+    if(!src) return this.notFound('Wiki page');
+    const html=this.md(src);
+    const others=(this.D.wikiIndex||[]).filter(w=>w.slug!==slug);
+    const toc=others.slice(0,40).map(w=>h('a',{key:w.slug,href:'#/wiki/'+w.slug,className:'wf-nav-h',style:{display:'block',padding:'6px 0',fontSize:13,color:'var(--muted)',borderBottom:'1px solid var(--line)'}}, w.title.replace(/·.*$/,'').trim()));
+    return h('div',{className:'wf-rise',style:{maxWidth:1180,margin:'0 auto',padding:'clamp(22px,4vw,40px) clamp(16px,4vw,40px)'}},
+      this.crumb([['Home','#/'],['Wiki','#/wiki'],[slug.replace(/-/g,' ')]]),
+      h('div',{style:{display:'grid',gridTemplateColumns:'minmax(0,1fr)',gap:30}},
+        h('div',{style:{display:'grid',gridTemplateColumns:'220px minmax(0,1fr)',gap:34,alignItems:'start'},className:'wf-wiki-layout'},
+          h('aside',{style:{position:'sticky',top:80,maxHeight:'calc(100vh - 100px)',overflowY:'auto'}},
+            h('div',{style:{fontFamily:'var(--mono)',fontSize:10,letterSpacing:'1px',color:'var(--dim)',marginBottom:8,textTransform:'uppercase'}},'All wiki pages'),
+            toc),
+          h('div',{style:{minWidth:0}}, this.wikiOpenBar(slug),
+            h('article',{className:'wf-md',style:{minWidth:0,background:'var(--panel)',border:'1px solid var(--line)',borderRadius:14,padding:'clamp(20px,4vw,40px)'},dangerouslySetInnerHTML:{__html:html}})))));
+  }
+
+  // ---------- SEARCH ----------
+  vSearch(q){
+    const h=React.createElement;
+    q=q||this.state.q;
+    const res=this.search(q, 400);
+    const rows=res.map((it,i)=>h('a',{key:i,href:it.route,className:'wf-row-h',style:{display:'flex',alignItems:'center',gap:12,padding:'12px 15px',background:'var(--panel)',border:'1px solid var(--line)',borderRadius:9,transition:'all .15s'}},
+      h('span',{style:{fontFamily:'var(--mono)',fontSize:9.5,padding:'3px 7px',borderRadius:5,background:'var(--panel3)',color:this.typeColor(it.type),textTransform:'uppercase',letterSpacing:'.5px',flexShrink:0}}, it.type),
+      h('span',{style:{flex:1,minWidth:0}},
+        h('div',{style:{fontFamily:'var(--disp)',fontWeight:500,fontSize:14.5}}, it.title, it.zh?h('span',{style:{color:'var(--dim)',fontWeight:400}},'  ·  '+it.zh):null),
+        h('div',{style:{fontSize:12,color:'var(--dim)'}}, it.sub)),
+      h('span',{className:'wf-arrow',style:{color:'var(--dim)',opacity:.5,transition:'all .15s'}},'→')));
+    return this.page(h('div',null,
+      this.crumb([['Home','#/'],['Search']]),
+      h('h1',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:'clamp(24px,4vw,34px)',margin:'0 0 6px'}},'Search'),
+      h('p',{style:{fontFamily:'var(--mono)',fontSize:13,color:'var(--dim)',marginBottom:22}}, res.length+' result'+(res.length===1?'':'s')+' for \u201c'+q+'\u201d'),
+      h('div',{style:{display:'grid',gap:8}}, rows.length?rows:h('div',{style:{color:'var(--dim)',padding:24}},'Nothing matched. Try fewer or different words.'))));
+  }
+
+  // ---------- SIM ----------
+  vSim(file,title,desc){
+    const h=React.createElement;
+    return h('div',{style:{display:'flex',flexDirection:'column'}},
+      h('div',{style:{display:'flex',alignItems:'center',gap:14,padding:'12px clamp(16px,4vw,30px)',borderBottom:'1px solid var(--line)',flexWrap:'wrap',background:'var(--panel)'}},
+        h('a',{href:'#/',className:'wf-nav-h',style:{fontFamily:'var(--mono)',fontSize:12,color:'var(--muted)'}},'← Back to docs'),
+        h('span',{style:{fontFamily:'var(--disp)',fontWeight:600,fontSize:15}},title),
+        h('span',{style:{fontSize:12.5,color:'var(--dim)',flex:1,minWidth:0}},desc),
+        h('a',{href:file,target:'_blank',rel:'noopener',className:'wf-chip-h',style:{fontFamily:'var(--mono)',fontSize:11,color:'var(--muted)',border:'1px solid var(--line2)',borderRadius:7,padding:'6px 11px',transition:'all .15s'}},'Open fullscreen ↗')),
+      h('iframe',{src:file,title:title,style:{width:'100%',height:'calc(100vh - 56px)',border:'none',display:'block',background:'var(--bg)'}}));
+  }
+
+  notFound(what){
+    const h=React.createElement;
+    return this.page(h('div',{style:{textAlign:'center',padding:'60px 0'}},
+      h('div',{style:{fontFamily:'var(--mono)',fontSize:60,color:'var(--line2)'}},'404'),
+      h('p',{style:{color:'var(--muted)',fontSize:16}}, what+' not found.'),
+      h('a',{href:'#/',className:'wf-chip-h',style:{display:'inline-block',marginTop:14,fontFamily:'var(--mono)',fontSize:13,color:'var(--muted)',border:'1px solid var(--line2)',borderRadius:8,padding:'10px 18px'}},'← Home')));
+  }
+}
+</script>
+<!-- Passkey account entry (sits above the design canvas, independent of the framework) -->
+<a href="./account.html" title="Sign in / create account with a passkey · 用通行密鑰登入／建立帳戶"
+   style="position:fixed;top:9px;right:14px;z-index:9999;display:flex;align-items:center;gap:7px;padding:6px 12px;border-radius:20px;background:rgba(84,224,126,.13);border:1px solid rgba(84,224,126,.32);color:#54e07e;font-family:'Space Grotesk',system-ui,sans-serif;font-size:12.5px;font-weight:600;text-decoration:none;backdrop-filter:blur(6px)">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 11V7a5 5 0 0 1 10 0v4"></path><rect x="4" y="11" width="16" height="10" rx="2"></rect><circle cx="12" cy="16" r="1.4"></circle></svg>
+  Account · 帳戶
+</a>
+</body>
+</html>

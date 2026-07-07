@@ -46,7 +46,7 @@ public sealed partial class NewPlusModule : Page
     public NewPlusModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => { Render(); Reload(); };
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) =>
         {
             Render();
@@ -59,13 +59,20 @@ public sealed partial class NewPlusModule : Page
             SeedDefaultTemplatesIfEmpty();
             Reload();
         };
+        Unloaded += (_, _) => Loc.I.LanguageChanged -= OnLanguageChanged;
+    }
+
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        Render();
+        Reload();
     }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
     private void Render()
     {
-        HeaderTitle.Text = "New+ · 範本新增";
+        Header.Title = "New+ · 範本新增";
         HeaderBlurb.Text = P("Define templates (files or whole folders) once, then create copies anywhere — with optional rename and date/variable substitution like $YYYY-$MM-$DD.",
             "一次過定義範本（檔案或者成個資料夾），之後喺任何地方複製建立 — 可以改名同做日期／變數替換，例如 $YYYY-$MM-$DD。");
 

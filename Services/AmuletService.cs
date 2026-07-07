@@ -38,6 +38,11 @@ public static class AmuletService
     /// <summary>解壓後嘅 Amulet 內容資料夾 · Where the Amulet zip is extracted to.</summary>
     public static string ExtractDir => Path.Combine(AppDir, "app");
 
+    public const string SourceRepoUrl = "https://github.com/Amulet-Team/Amulet-Map-Editor.git";
+
+    /// <summary>原始 git source clone 位置 · Managed clone of the upstream Amulet source.</summary>
+    public static string SourceDir => Path.Combine(AppDir, "source");
+
     // ── Locate the bundled zip ───────────────────────────────────────────────
 
     /// <summary>常見搵 amulet_map_editor.zip 嘅位置 · Likely locations of the bundled Amulet zip.</summary>
@@ -122,11 +127,23 @@ public static class AmuletService
     /// </summary>
     public static EntryPoint? FindEntryPoint()
     {
-        if (!Directory.Exists(ExtractDir)) return null;
+        var savedSource = SettingsStore.Get("amulet.source", "");
+        foreach (var root in new[] { savedSource, SourceDir, ExtractDir })
+        {
+            if (string.IsNullOrWhiteSpace(root)) continue;
+            var ep = FindEntryPointIn(root);
+            if (ep is not null) return ep;
+        }
+        return null;
+    }
+
+    private static EntryPoint? FindEntryPointIn(string root)
+    {
+        if (!Directory.Exists(root)) return null;
         try
         {
             // 1. A frozen .exe shipped in the zip (self-contained — no Python needed).
-            var exe = Directory.EnumerateFiles(ExtractDir, "*.exe", SearchOption.AllDirectories)
+            var exe = Directory.EnumerateFiles(root, "*.exe", SearchOption.AllDirectories)
                 .FirstOrDefault(f =>
                 {
                     var n = Path.GetFileNameWithoutExtension(f).ToLowerInvariant();
@@ -135,7 +152,7 @@ public static class AmuletService
             if (exe is not null) return new EntryPoint(LaunchMode.FrozenExe, exe, null);
 
             // 2. A Python source package (run with python -m amulet_map_editor).
-            var pkg = Directory.EnumerateDirectories(ExtractDir, "amulet_map_editor", SearchOption.AllDirectories)
+            var pkg = Directory.EnumerateDirectories(root, "amulet_map_editor", SearchOption.AllDirectories)
                 .FirstOrDefault(d => File.Exists(Path.Combine(d, "__main__.py")));
             if (pkg is not null)
             {
@@ -146,6 +163,44 @@ public static class AmuletService
         }
         catch { }
         return null;
+    }
+
+    public static bool IsSourceCloned()
+    {
+        try { return Directory.Exists(Path.Combine(SourceDir, ".git")); }
+        catch { return false; }
+    }
+
+    public static async Task<TweakResult> CloneOrUpdateSource(Action<string>? onOutput = null, CancellationToken ct = default)
+    {
+        var git = FindOnPath("git") ?? "git";
+        Directory.CreateDirectory(AppDir);
+        if (IsSourceCloned())
+        {
+            return await StreamProcess(git, "pull --ff-only", SourceDir, onOutput,
+                okEn: "Amulet source updated.", okZh: "Amulet source 已更新。",
+                failEn: "git pull failed — use manual folder or zip fallback.", failZh: "git pull 失敗 — 可用手動資料夾或 zip 後備。", ct);
+        }
+
+        return await StreamProcess(git, $"clone --recursive \"{SourceRepoUrl}\" \"{SourceDir}\"", AppDir, onOutput,
+            okEn: "Amulet source cloned.", okZh: "Amulet source 已 clone。",
+            failEn: "git clone failed — use manual folder or zip fallback.", failZh: "git clone 失敗 — 可用手動資料夾或 zip 後備。", ct);
+    }
+
+    public static TweakResult UseExistingSourceFolder(string folder)
+    {
+        if (string.IsNullOrWhiteSpace(folder) || !Directory.Exists(folder))
+            return TweakResult.Fail("Folder not found.", "搵唔到資料夾。");
+        var ep = FindEntryPointIn(folder);
+        if (ep is null)
+            return TweakResult.Fail("That folder does not look like Amulet source.", "嗰個資料夾唔似 Amulet source。");
+        try
+        {
+            Directory.CreateDirectory(AppDir);
+            SettingsStore.Set("amulet.source", folder);
+            return TweakResult.Ok($"Using Amulet source folder: {folder}", $"使用 Amulet source 資料夾：{folder}");
+        }
+        catch (Exception ex) { return TweakResult.Fail(ex.Message, $"出錯：{ex.Message}"); }
     }
 
     // ── Python detection / install ───────────────────────────────────────────
@@ -242,6 +297,25 @@ public static class AmuletService
     /// <summary>If we resolved the <c>py</c> launcher, pass <c>-3</c> so it picks Python 3.</summary>
     private static string PyPrefix(string py)
         => Path.GetFileName(py).Equals("py.exe", StringComparison.OrdinalIgnoreCase) ? "-3 " : "";
+
+    private static string? FindOnPath(string exe)
+    {
+        try
+        {
+            foreach (var dir in (Environment.GetEnvironmentVariable("PATH") ?? "").Split(';', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var p = Path.Combine(dir.Trim(), exe);
+                if (File.Exists(p)) return p;
+                if (!exe.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                {
+                    p = Path.Combine(dir.Trim(), exe + ".exe");
+                    if (File.Exists(p)) return p;
+                }
+            }
+        }
+        catch { }
+        return null;
+    }
 
     private static async Task<TweakResult> StreamProcess(string file, string args, string workdir,
         Action<string>? onOutput, string okEn, string okZh, string failEn, string failZh, CancellationToken ct)
@@ -353,24 +427,42 @@ public static class AmuletService
             workdir = entry.Path; // parent of the package dir
         }
 
+        // 凍結 GUI .exe（PyInstaller --windowed）唔好重新導向 stdout/stderr：佢哋成日會因為被導向去管道
+        // 而卡死或者開唔到視窗，睇落就好似「launch 唔到」。只有 Python 模組模式先需要串流 console 輸出。
+        // A frozen GUI .exe (PyInstaller --windowed) must NOT have its stdio redirected — windowed builds
+        // routinely hang or never show a window when stdout/stderr are piped, which looks exactly like
+        // "Amulet won't launch". Only the Python-module path benefits from streaming console output.
+        bool redirect = entry.Mode == LaunchMode.PythonModule;
+
+        if (redirect && !File.Exists(file))
+            return TweakResult.Fail("Python executable went missing.", "Python 執行檔唔見咗。");
+        if (!redirect && !File.Exists(file))
+            return TweakResult.Fail("Amulet executable went missing — re-extract it.", "Amulet 執行檔唔見咗 — 請重新解壓。");
+
         var psi = new ProcessStartInfo
         {
             FileName = file,
             Arguments = args,
             WorkingDirectory = workdir,
             UseShellExecute = false,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            CreateNoWindow = true,
-            StandardOutputEncoding = Encoding.UTF8,
-            StandardErrorEncoding = Encoding.UTF8,
+            RedirectStandardOutput = redirect,
+            RedirectStandardError = redirect,
+            CreateNoWindow = redirect,
         };
+        if (redirect)
+        {
+            psi.StandardOutputEncoding = Encoding.UTF8;
+            psi.StandardErrorEncoding = Encoding.UTF8;
+        }
 
         try
         {
             var p = new Process { StartInfo = psi, EnableRaisingEvents = true };
-            p.OutputDataReceived += (_, e) => { if (e.Data is not null) onOutput(e.Data); };
-            p.ErrorDataReceived += (_, e) => { if (e.Data is not null) onOutput(e.Data); };
+            if (redirect)
+            {
+                p.OutputDataReceived += (_, e) => { if (e.Data is not null) onOutput(e.Data); };
+                p.ErrorDataReceived += (_, e) => { if (e.Data is not null) onOutput(e.Data); };
+            }
             p.Exited += (_, _) =>
             {
                 lock (_gate) { _proc = null; }
@@ -378,8 +470,16 @@ public static class AmuletService
             };
             if (!p.Start())
                 return TweakResult.Fail("Failed to start Amulet.", "啟動 Amulet 失敗。");
-            p.BeginOutputReadLine();
-            p.BeginErrorReadLine();
+            if (redirect)
+            {
+                p.BeginOutputReadLine();
+                p.BeginErrorReadLine();
+            }
+            else
+            {
+                onOutput(Loc.I.Pick("Amulet (frozen build) launched in its own window.",
+                                    "Amulet（凍結版本）已喺自己嘅視窗開啟。"));
+            }
             lock (_gate) { _proc = p; }
 
             if (!string.IsNullOrWhiteSpace(worldFolder)) LastWorld = worldFolder!;

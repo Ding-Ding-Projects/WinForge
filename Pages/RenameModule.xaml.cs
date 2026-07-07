@@ -38,7 +38,8 @@ public sealed partial class RenameModule : Page
     public RenameModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; };
         Loaded += (_, _) =>
         {
             Render();
@@ -57,9 +58,11 @@ public sealed partial class RenameModule : Page
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
+
     private void Render()
     {
-        HeaderTitle.Text = "Batch Rename · 批次改名";
+        Header.Title = "Batch Rename · 批次改名";
         HeaderBlurb.Text = P("Pick a folder, type a find & replace (plain or regex), preview, then apply.",
             "揀一個資料夾，輸入搵同換（純文字或正則），預覽，再套用。");
         FolderCap.Text = P("Folder", "資料夾");

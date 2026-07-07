@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.DesalModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="760" Spacing="14">
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE945;" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <!-- Empty-state: reactor not generating -->
+            <InfoBar x:Name="IdleBar" IsClosable="False" IsOpen="False" />
+
+            <!-- Reactor availability -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="8">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="ReactorTitle" Grid.Column="0" FontWeight="SemiBold" FontSize="15" VerticalAlignment="Center" />
+                        <TextBlock x:Name="ReactorModeText" Grid.Column="1" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                    </Grid>
+                    <ProgressBar x:Name="AvailableBar" Minimum="0" Maximum="1150" Value="0" Height="8" />
+                    <TextBlock x:Name="AvailableText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <!-- Operator controls -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="14">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Spacing="1" VerticalAlignment="Center">
+                            <TextBlock x:Name="RunTitle" FontWeight="SemiBold" FontSize="15" />
+                            <TextBlock x:Name="RunStatus" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <ToggleSwitch x:Name="RunSwitch" Grid.Column="1" Toggled="Run_Toggled" VerticalAlignment="Center" />
+                    </Grid>
+
+                    <StackPanel Spacing="4">
+                        <TextBlock x:Name="LoadLabel" />
+                        <Slider x:Name="LoadSlider" Minimum="0" Maximum="400" StepFrequency="5" ValueChanged="Load_Changed" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button x:Name="EmptyButton" Click="Empty_Click" />
+                        <Button x:Name="ResetButton" Click="Reset_Click" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Readouts -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="ReadoutTitle" FontWeight="SemiBold" FontSize="15" />
+                    <TextBlock x:Name="DrawnValue" />
+                    <TextBlock x:Name="RateValue" />
+                    <TextBlock x:Name="EnergyValue" />
+
+                    <TextBlock x:Name="TankLabel" Margin="0,4,0,0" />
+                    <ProgressBar x:Name="TankBar" Minimum="0" Maximum="100" Value="0" Height="8" />
+
+                    <TextBlock x:Name="TotalValue" Margin="0,4,0,0" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

@@ -11,12 +11,12 @@
 | **Action · 動作** | Mount PIM · PIM 掛載 |
 
 ## English
-Open VeraCrypt where the PIM field is available in the password prompt.
+Open WinForge Vault where the PIM field is available in the password prompt.
 
 ## 粵語
-打開 VeraCrypt，密碼提示度可以輸入 PIM。
+打開 WinForge 保險庫，密碼提示度可以輸入 PIM。
 
 ---
-_Keywords · 關鍵字: veracrypt, pim, 掛載, iterations_
+_Keywords · 關鍵字: vault, pim, 掛載, iterations, 保險庫_
 
 _Part of WinForge · WinForge 套件嘅一部分_

@@ -56,7 +56,7 @@ public sealed partial class PgAdminModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Postgres Tool · Postgres 工具 / pgAdmin";
+        Header.Title = "Postgres Tool · Postgres 工具 / pgAdmin";
         HeaderBlurb.Text = P(
             "A native PostgreSQL client: save connections, browse databases / schemas / tables, run SQL and view results. Launch the full pgAdmin 4 desktop app for advanced administration.",
             "原生 PostgreSQL 用戶端：儲存連線、瀏覽資料庫／結構描述／表、跑 SQL 睇結果。需要進階管理時可啟動完整 pgAdmin 4 桌面版。");
@@ -90,12 +90,36 @@ public sealed partial class PgAdminModule : Page
 
     private async Task CheckEngine()
     {
-        bool installed = await Task.Run(() => PostgresService.IsPgAdminInstalled());
-        LaunchPgAdminBtn.Visibility = installed ? Visibility.Visible : Visibility.Collapsed;
-        if (installed)
+        // Probe (off the UI thread) for a local PostgreSQL server and for the pgAdmin 4 desktop app.
+        var (localPg, pgAdmin) = await Task.Run(() =>
+            (PostgresService.IsLocalPostgresInstalled(), PostgresService.IsPgAdminInstalled()));
+
+        LaunchPgAdminBtn.Visibility = pgAdmin ? Visibility.Visible : Visibility.Collapsed;
+
+        // No local Postgres server detected → offer the one-click prerequisite install
+        // (PostgreSQL.PostgreSQL — this winget package bundles the server + pgAdmin 4).
+        if (!localPg)
+        {
+            EngineBar.IsOpen = true;
+            EngineBar.Severity = InfoBarSeverity.Warning;
+            EngineBar.Title = P("No local PostgreSQL found", "搵唔到本機 PostgreSQL");
+            EngineBar.Message = P(
+                "WinForge can connect to any Postgres server natively (Npgsql), but none was detected on this PC (no psql, no service). Install PostgreSQL + pgAdmin locally to get started — no restart needed. You can still connect to a remote server using the fields below.",
+                "WinForge 可以用原生 Npgsql 連任何 Postgres 伺服器，但喺呢部電腦搵唔到（冇 psql、冇服務）。撳一下喺本機裝 PostgreSQL + pgAdmin 就用得 — 唔使重啟。你亦可以用下面嘅欄位連遠端伺服器。");
+            EngineBar.ActionButton = EngineBars.AutoInstallButton(
+                PostgresService.PostgresWingetId, "Install PostgreSQL + pgAdmin", "安裝 PostgreSQL + pgAdmin",
+                async () => { await CheckEngine(); },
+                PostgresService.RescanLocal);
+            return;
+        }
+
+        // Local Postgres present. If the full pgAdmin 4 desktop is installed we're done; otherwise
+        // offer the (optional) pgAdmin-only install for advanced administration.
+        if (pgAdmin)
         {
             EngineBar.IsOpen = false;
             EngineBar.ActionButton = null;
+            EngineBar.Content = null;
             return;
         }
         EngineBar.IsOpen = true;
@@ -104,8 +128,9 @@ public sealed partial class PgAdminModule : Page
         EngineBar.Message = P(
             "WinForge talks to Postgres natively (Npgsql) — no install needed. For full administration (roles, backups, dashboards) you can install the pgAdmin 4 desktop app.",
             "WinForge 用原生 Npgsql 直接連 Postgres — 唔使裝嘢。如需完整管理（角色、備份、儀表板），可安裝 pgAdmin 4 桌面版。");
-        EngineBar.ActionButton = EngineBars.AutoInstallButton(
-            PostgresService.PgAdminWingetId, "Install pgAdmin 4", "安裝 pgAdmin 4",
+        EngineBar.ActionButton = null;
+        EngineBar.Content = EngineBars.AutoInstallProgress(
+            PostgresService.PgAdminWingetId, "Install pgAdmin 4 (optional)", "安裝 pgAdmin 4（選用）",
             async () => { await CheckEngine(); },
             null);
     }

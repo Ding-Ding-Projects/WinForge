@@ -25,6 +25,14 @@ public sealed class ActivitySegment
     public double Seconds => Math.Max(0, EndUnix - StartUnix);
 }
 
+internal sealed class ActivityOpenCheckpoint
+{
+    public string Process { get; set; } = "";
+    public string Title { get; set; } = "";
+    public long StartUnix { get; set; }
+    public long LastSeenUnix { get; set; }
+}
+
 /// <summary>
 /// 活動資料庫（本機 JSONL，永不離開裝置）· Local activity store.
 /// <para>
@@ -45,6 +53,7 @@ public static class ActivityStore
     private static readonly object Gate = new();
 
     private static readonly JsonSerializerOptions JsonOpts = new() { WriteIndented = false };
+    private static string CheckpointPath => Path.Combine(Dir, "current.json");
 
     private static string FileFor(DateOnly day) =>
         Path.Combine(Dir, $"{day:yyyy-MM-dd}.jsonl");
@@ -58,12 +67,94 @@ public static class ActivityStore
             lock (Gate)
             {
                 Directory.CreateDirectory(Dir);
-                var day = DateOnly.FromDateTime(seg.Start);
-                var line = JsonSerializer.Serialize(seg, JsonOpts);
-                File.AppendAllText(FileFor(day), line + Environment.NewLine, Encoding.UTF8);
+                foreach (var piece in SplitByLocalDay(Sanitize(seg)))
+                {
+                    var day = DateOnly.FromDateTime(piece.Start);
+                    var line = JsonSerializer.Serialize(piece, JsonOpts);
+                    File.AppendAllText(FileFor(day), line + Environment.NewLine, Encoding.UTF8);
+                }
             }
         }
         catch { /* best effort — never crash tracking on a write error */ }
+    }
+
+    /// <summary>
+    /// 儲存目前未完成嘅時段 · Persist the in-memory open segment so a crash/kill loses at most one poll.
+    /// </summary>
+    public static void SaveOpenCheckpoint(string process, string title, long startUnix, long lastSeenUnix)
+    {
+        try
+        {
+            if (startUnix <= 0) return;
+            if (lastSeenUnix < startUnix) lastSeenUnix = startUnix;
+            var cp = new ActivityOpenCheckpoint
+            {
+                Process = Clean(process, "Unknown"),
+                Title = Clean(title, ""),
+                StartUnix = startUnix,
+                LastSeenUnix = lastSeenUnix,
+            };
+            lock (Gate)
+            {
+                Directory.CreateDirectory(Dir);
+                WriteTextAtomic(CheckpointPath, JsonSerializer.Serialize(cp, JsonOpts));
+            }
+        }
+        catch { /* best effort */ }
+    }
+
+    /// <summary>刪除未完成時段 checkpoint · Remove the pending open-segment checkpoint.</summary>
+    public static void ClearOpenCheckpoint()
+    {
+        try
+        {
+            lock (Gate)
+            {
+                if (File.Exists(CheckpointPath)) File.Delete(CheckpointPath);
+                var tmp = CheckpointPath + ".tmp";
+                if (File.Exists(tmp)) File.Delete(tmp);
+            }
+        }
+        catch { /* best effort */ }
+    }
+
+    /// <summary>
+    /// 還原上次非正常退出前嘅未完成時段 · Recover the last open segment after an unexpected close.
+    /// Returns true when a recovered segment was appended.
+    /// </summary>
+    public static bool RecoverOpenCheckpoint(long nowUnix)
+    {
+        ActivityOpenCheckpoint? cp = null;
+        try
+        {
+            lock (Gate)
+            {
+                if (!File.Exists(CheckpointPath)) return false;
+                try { cp = JsonSerializer.Deserialize<ActivityOpenCheckpoint>(File.ReadAllText(CheckpointPath, Encoding.UTF8)); }
+                catch { cp = null; }
+                try { File.Delete(CheckpointPath); } catch { }
+                try
+                {
+                    var tmp = CheckpointPath + ".tmp";
+                    if (File.Exists(tmp)) File.Delete(tmp);
+                }
+                catch { }
+            }
+        }
+        catch { return false; }
+
+        if (cp is null || cp.StartUnix <= 0) return false;
+        long endUnix = cp.LastSeenUnix <= 0 ? cp.StartUnix : cp.LastSeenUnix;
+        if (nowUnix > 0) endUnix = Math.Min(endUnix, nowUnix);
+        if (endUnix <= cp.StartUnix) return false;
+        Append(new ActivitySegment
+        {
+            Process = cp.Process,
+            Title = cp.Title,
+            StartUnix = cp.StartUnix,
+            EndUnix = endUnix,
+        });
+        return true;
     }
 
     /// <summary>讀取某一日嘅全部時段 · Load every segment recorded for a given local day.</summary>
@@ -184,5 +275,71 @@ public static class ActivityStore
         if (v.Contains(',') || v.Contains('"') || v.Contains('\n'))
             return "\"" + v.Replace("\"", "\"\"") + "\"";
         return v;
+    }
+
+    private static ActivitySegment Sanitize(ActivitySegment seg)
+    {
+        long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        long start = seg.StartUnix;
+        long end = seg.EndUnix;
+        if (end > now + 60) end = now;
+        if (end - start > TimeSpan.FromDays(31).TotalSeconds)
+            end = start + (long)TimeSpan.FromDays(31).TotalSeconds;
+        return new ActivitySegment
+        {
+            Process = Clean(seg.Process, "Unknown"),
+            Title = Clean(seg.Title, ""),
+            StartUnix = start,
+            EndUnix = end,
+        };
+    }
+
+    private static IEnumerable<ActivitySegment> SplitByLocalDay(ActivitySegment seg)
+    {
+        if (seg.EndUnix <= seg.StartUnix) yield break;
+        DateTime start = seg.Start;
+        DateTime end = seg.End;
+        while (DateOnly.FromDateTime(start) < DateOnly.FromDateTime(end))
+        {
+            DateTime nextMidnight = DateOnly.FromDateTime(start).AddDays(1).ToDateTime(TimeOnly.MinValue);
+            long pieceEnd = UnixFromLocal(nextMidnight);
+            if (pieceEnd > seg.StartUnix)
+            {
+                yield return new ActivitySegment
+                {
+                    Process = seg.Process,
+                    Title = seg.Title,
+                    StartUnix = seg.StartUnix,
+                    EndUnix = pieceEnd,
+                };
+            }
+            start = nextMidnight;
+            seg = new ActivitySegment
+            {
+                Process = seg.Process,
+                Title = seg.Title,
+                StartUnix = pieceEnd,
+                EndUnix = seg.EndUnix,
+            };
+        }
+        if (seg.EndUnix > seg.StartUnix) yield return seg;
+    }
+
+    private static long UnixFromLocal(DateTime local) => new DateTimeOffset(local).ToUnixTimeSeconds();
+
+    private static string Clean(string? value, string fallback)
+    {
+        value = string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
+        return value.Length <= 512 ? value : value[..512];
+    }
+
+    private static void WriteTextAtomic(string path, string text)
+    {
+        var tmp = path + ".tmp";
+        File.WriteAllText(tmp, text, Encoding.UTF8);
+        if (File.Exists(path))
+            File.Replace(tmp, path, null);
+        else
+            File.Move(tmp, path);
     }
 }

@@ -15,8 +15,8 @@ namespace WinForge.Services;
 ///
 /// All coordinates are PHYSICAL virtual-screen pixels (the low-level hooks report physical pixels and
 /// the process is PerMonitorV2-aware), so overlays line up across mixed-DPI multi-monitor setups.
-/// Hooks are installed from the UI thread (which pumps messages), so the callbacks are UI-safe; the
-/// overlay windows run their own GDI paint via a 60 Hz timer started with SetTimer.
+/// Hooks, overlay windows, and the 60 Hz paint timer run on a private STA message-pump thread, so
+/// expensive full-screen GDI work cannot starve the WinUI dispatcher.
 /// </summary>
 public static class MouseUtilsService
 {
@@ -110,6 +110,7 @@ public static class MouseUtilsService
     private static IntPtr _mouseHook = IntPtr.Zero, _keyHook = IntPtr.Zero;
     private static HookProc? _mouseProc, _keyProc;     // keep alive while hooked
     private static WndProc? _wndProc;                  // keep alive while windows exist
+    private static readonly NativeMessagePump Pump = new("WinForge-MouseUtils");
     private static bool _classRegistered;
     private const string ClassName = "WinForgeMouseUtilsOverlay";
     private static Action? _renderTick;                // bound by Start; drives the 60 Hz redraw
@@ -249,8 +250,11 @@ public static class MouseUtilsService
     /// </summary>
     public static void Sync()
     {
-        bool any = FindMyMouse.Enabled || Highlighter.Enabled || Crosshairs.Enabled || MouseJump.Enabled;
-        if (any) Start(); else Stop();
+        Pump.Post(() =>
+        {
+            bool any = FindMyMouse.Enabled || Highlighter.Enabled || Crosshairs.Enabled || MouseJump.Enabled;
+            if (any) Start(); else Stop();
+        });
     }
 
     private static void Start()

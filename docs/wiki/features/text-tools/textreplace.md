@@ -1,0 +1,27 @@
+# Find & Replace · 尋找及取代
+
+**EN —** Feature reference generated from the WinForge module registry, navigation map, and page XAML.
+**粵語 —** 呢份功能參考由 WinForge 模組登記、導覽地圖同頁面 XAML 生成。
+
+| Field · 欄位 | Value · 值 |
+|---|---|
+| Tag · 標籤 | <code>module.textreplace</code> |
+| Deep-link alias · 深層連結別名 | <code>textreplace</code> |
+| Category · 分類 | Text Tools · 文字工具 |
+| Page class · 頁面類別 | <code>TextReplaceModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/TextReplaceModule.xaml</code> |
+| Button docs · 按鈕文件 | 3 |
+
+## What It Covers · 功能範圍
+
+**EN —** Find & Replace is registered in WinForge search and navigation with these keywords: <code>find replace regex text substitute multi-rule pattern 尋找 取代 替換 正規表達式 批量 文字</code>.
+
+**粵語 —** 尋找及取代 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>find replace regex text substitute multi-rule pattern 尋找 取代 替換 正規表達式 批量 文字</code>。
+
+## Buttons And Controls · 按鈕與控制項
+
+| Button · 按鈕 | Type · 類型 | XAML name · 名稱 | Handler · 處理函式 |
+|---|---|---|---|
+| [AddRuleBtn](../../buttons/text-tools/textreplace/001-addrulebtn.md) | `Button` | `AddRuleBtn` | `AddRule_Click` |
+| [binding:RemoveLabel](../../buttons/text-tools/textreplace/002-removerule-click.md) | `Button` | `` | `RemoveRule_Click` |
+| [CopyBtn](../../buttons/text-tools/textreplace/003-copybtn.md) | `Button` | `CopyBtn` | `Copy_Click` |

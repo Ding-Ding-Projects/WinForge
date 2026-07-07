@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
@@ -11,19 +12,19 @@
         <StackPanel MaxWidth="1040" Spacing="14">
 
             <!-- Header -->
-            <StackPanel Orientation="Horizontal" Spacing="12">
-                <FontIcon FontSize="24" Glyph="&#xE7B8;" VerticalAlignment="Center" />
-                <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
-                <Border
-                    x:Name="VersionPill"
-                    Padding="8,2"
-                    VerticalAlignment="Center"
-                    Background="{ThemeResource LayerFillColorDefaultBrush}"
-                    CornerRadius="10"
-                    Visibility="Collapsed">
-                    <TextBlock x:Name="VersionText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                </Border>
-            </StackPanel>
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE7B8;">
+                <controls:ModuleHeader.ActionContent>
+                    <Border
+                        x:Name="VersionPill"
+                        Padding="8,2"
+                        VerticalAlignment="Center"
+                        Background="{ThemeResource LayerFillColorDefaultBrush}"
+                        CornerRadius="10"
+                        Visibility="Collapsed">
+                        <TextBlock x:Name="VersionText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </Border>
+                </controls:ModuleHeader.ActionContent>
+            </controls:ModuleHeader>
             <TextBlock
                 x:Name="HeaderBlurb"
                 Foreground="{ThemeResource TextFillColorSecondaryBrush}"
@@ -169,7 +170,7 @@
                 </StackPanel>
             </Border>
 
-            <!-- ===== Operations (TweakCards) ===== -->
+            <!-- ===== Operations (control rows, no TweakCard chrome) ===== -->
             <TextBlock x:Name="OpsHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
             <AutoSuggestBox
                 x:Name="OpsFilter"
@@ -177,7 +178,16 @@
                 HorizontalAlignment="Left"
                 QueryIcon="Find"
                 TextChanged="OpsFilter_TextChanged" />
-            <StackPanel x:Name="OpsPanel" Spacing="2" />
+            <!-- ONE persistent InfoBar for operation results. -->
+            <InfoBar x:Name="OpsStatusBar" IsClosable="True" IsOpen="False" />
+            <!-- Hand-built control rows with a subtle Fluent entrance animation. -->
+            <StackPanel x:Name="OpsPanel" Spacing="0">
+                <StackPanel.ChildrenTransitions>
+                    <TransitionCollection>
+                        <EntranceThemeTransition FromVerticalOffset="24" IsStaggeringEnabled="True" />
+                    </TransitionCollection>
+                </StackPanel.ChildrenTransitions>
+            </StackPanel>
         </StackPanel>
     </ScrollViewer>
 </Page>

@@ -113,6 +113,9 @@ public static class ViveToolService
     public static async Task<bool> IsAvailable(CancellationToken ct = default)
         => await LocateAsync(ct) is not null;
 
+    /// <summary>清快取，等啱啱裝完即刻搵到 · Clear the cached path so a just-installed ViVeTool is re-located.</summary>
+    public static void Rescan() => _cachedPath = null;
+
     /// <summary>用 winget 安裝 ViVeTool · Install ViVeTool via winget (thebookisclosed.ViVeTool).</summary>
     public static async Task<TweakResult> InstallViaWinget(CancellationToken ct = default)
     {

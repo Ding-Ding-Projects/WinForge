@@ -6,6 +6,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="using:WinForge"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:automation="using:Microsoft.UI.Xaml.Automation"
     Title="WinForge · 視窗調校"
     mc:Ignorable="d">
     <Window.SystemBackdrop>
@@ -20,37 +21,113 @@
 
         <TitleBar
             x:Name="AppTitleBar"
+            FontFamily="{StaticResource WinForgeUiFont}"
             Title="WinForge · 視窗調校"
             BackRequested="TitleBar_BackRequested"
             IsBackButtonVisible="False"
             IsPaneToggleButtonVisible="True"
-            PaneToggleRequested="TitleBar_PaneToggleRequested">
+            PaneToggleRequested="TitleBar_PaneToggleRequested"
+            automation:AutomationProperties.Name="WinForge title bar · WinForge 標題列">
             <TitleBar.IconSource>
                 <ImageIconSource ImageSource="Assets/AppIcon.ico" />
             </TitleBar.IconSource>
+            <TitleBar.Content>
+                <Border
+                    x:Name="ReactorPill"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Padding="9,3,11,3"
+                    CornerRadius="20"
+                    Background="#1454E07E"
+                    BorderBrush="#4054E07E"
+                    BorderThickness="1">
+                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <Ellipse x:Name="ReactorPillDot" Width="6" Height="6" Fill="{StaticResource WinForgeBrandBrush}" />
+                        <TextBlock x:Name="ReactorPillText" Text="REACTOR" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource WinForgeBrandBrush}" />
+                    </StackPanel>
+                </Border>
+            </TitleBar.Content>
         </TitleBar>
 
         <NavigationView
             x:Name="NavView"
             Grid.Row="1"
+            FontFamily="{StaticResource WinForgeUiFont}"
             IsBackButtonVisible="Collapsed"
             IsPaneToggleButtonVisible="False"
             IsSettingsVisible="True"
-            SelectionChanged="NavView_SelectionChanged">
+            SelectionChanged="NavView_SelectionChanged"
+            automation:AutomationProperties.AutomationId="ShellNavigationView"
+            automation:AutomationProperties.Name="WinForge navigation · WinForge 導航">
             <NavigationView.AutoSuggestBox>
                 <AutoSuggestBox
                     x:Name="SearchBox"
                     QueryIcon="Find"
                     PlaceholderText="Search everything · 搜尋全部"
+                    MaxSuggestionListHeight="420"
+                    TextMemberPath="Title"
                     QuerySubmitted="SearchBox_QuerySubmitted"
-                    TextChanged="SearchBox_TextChanged" />
+                    TextChanged="SearchBox_TextChanged"
+                    automation:AutomationProperties.AutomationId="ShellSearchBox"
+                    automation:AutomationProperties.Name="Search all WinForge modules · 搜尋全部 WinForge 模組">
+                    <AutoSuggestBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Padding="0,4" Spacing="2">
+                                <TextBlock
+                                    Text="{Binding Title}"
+                                    FontWeight="SemiBold"
+                                    MaxLines="1"
+                                    TextTrimming="CharacterEllipsis" />
+                                <TextBlock
+                                    Text="{Binding Subtitle}"
+                                    FontSize="12"
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                    MaxLines="1"
+                                    TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </AutoSuggestBox.ItemTemplate>
+                </AutoSuggestBox>
             </NavigationView.AutoSuggestBox>
             <NavigationView.MenuItems>
                 <NavigationViewItemHeader Content="Suite · 套件" />
                 <NavigationViewItem Content="Dashboard · 概覽" Tag="dashboard">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE80F;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
+                <NavigationViewItem Content="★ Nuclear Reactor · 核反應堆" Tag="module.reactor">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xEBC0;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="⚙ Reactor Settings · 反應堆設定" Tag="module.reactorsettings">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE713;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Reactor Loads · 反應堆負載" SelectsOnInvoked="False">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE945;" /></NavigationViewItem.Icon>
+                    <NavigationViewItem.MenuItems>
+                        <NavigationViewItem Content="Cake Factory &amp; Farm · 蛋糕工廠與農場" Tag="module.cakefactory"><NavigationViewItem.Icon><FontIcon Glyph="&#xECA5;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Grid Dispatch Center · 電網調度中心" Tag="module.griddispatch"><NavigationViewItem.Icon><FontIcon Glyph="&#xE839;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Hydrogen Electrolysis · 氫電解制氫廠" Tag="module.h2plant"><NavigationViewItem.Icon><FontIcon Glyph="&#xE9CE;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="AI Training Cluster · AI 訓練叢集" Tag="module.aicluster"><NavigationViewItem.Icon><FontIcon Glyph="&#xE99A;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Supercomputer (HPC) · 超級電腦" Tag="module.hpc"><NavigationViewItem.Icon><FontIcon Glyph="&#xE9D9;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Compute Mine · 運算礦場" Tag="module.computemine"><NavigationViewItem.Icon><FontIcon Glyph="&#xE950;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Aluminium Smelter · 鋁冶煉廠" Tag="module.smelter"><NavigationViewItem.Icon><FontIcon Glyph="&#xEA0C;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Nuclear Data Center · 核能資料中心" Tag="module.datacenter"><NavigationViewItem.Icon><FontIcon Glyph="&#xE968;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Particle Collider · 粒子對撞機" Tag="module.collider"><NavigationViewItem.Icon><FontIcon Glyph="&#xEA86;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Reactor Bank (⚡ Watts) · 反應堆銀行" Tag="module.reactorbank"><NavigationViewItem.Icon><FontIcon Glyph="&#xE1D6;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Seawater Desalination · 海水淡化廠" Tag="module.desal"><NavigationViewItem.Icon><FontIcon Glyph="&#xE774;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="EV Fast-Charge Depot · 電動車快充站" Tag="module.evcharge"><NavigationViewItem.Icon><FontIcon Glyph="&#xE83E;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Pumped-Storage Hydro · 抽水蓄能" Tag="module.pumpedhydro"><NavigationViewItem.Icon><FontIcon Glyph="&#xEC4A;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="District Heating · 區域供熱" Tag="module.districtheat"><NavigationViewItem.Icon><FontIcon Glyph="&#xE793;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Carbon Capture (DAC) · 碳捕集" Tag="module.dac"><NavigationViewItem.Icon><FontIcon Glyph="&#xEDA3;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Vertical Farm · 垂直農場" Tag="module.vertfarm"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8FD;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Arc-Furnace Steel Mill · 電弧爐煉鋼廠" Tag="module.steelmill"><NavigationViewItem.Icon><FontIcon Glyph="&#xE90F;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Electric Cement Kiln · 電熱水泥迴轉窯" Tag="module.cementkiln"><NavigationViewItem.Icon><FontIcon Glyph="&#xE945;" /></NavigationViewItem.Icon></NavigationViewItem>
+                    </NavigationViewItem.MenuItems>
+                </NavigationViewItem>
+                <NavigationViewItem Content="All Apps · 所有 app" Tag="shell.allapps">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE71D;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
 
+                <NavigationViewItemHeader Content="Categories · 分類" />
                 <NavigationViewItem Content="Files &amp; Disks · 檔案與磁碟" SelectsOnInvoked="False">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE8B7;" /></NavigationViewItem.Icon>
                     <NavigationViewItem.MenuItems>
@@ -60,9 +137,14 @@
                         <NavigationViewItem Content="Bulk File Ops · 批次檔案操作" Tag="module.bulkops"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8B7;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Batch Rename · 批次改名" Tag="module.rename"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8AC;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Duplicate Finder · 重複檔案搜尋" Tag="module.duplicates"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8C8;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Instant File Search · 即時檔案搜尋" Tag="module.everything"><NavigationViewItem.Icon><FontIcon Glyph="&#xE721;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="File Locksmith · 檔案鎖偵測" Tag="module.filelocksmith"><NavigationViewItem.Icon><FontIcon Glyph="&#xE72E;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Diff &amp; Merge (WinMerge) · 比對與合併" Tag="module.diffmerge"><NavigationViewItem.Icon><FontIcon Glyph="&#xE1AD;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Hex Editor · 十六進位編輯器" Tag="module.hexeditor"><NavigationViewItem.Icon><FontIcon Glyph="&#xE964;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Disk Analyser · 磁碟分析" Tag="module.disk"><NavigationViewItem.Icon><FontIcon Glyph="&#xEDA2;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Drives · 磁碟機" Tag="module.drives"><NavigationViewItem.Icon><FontIcon Glyph="&#xEDA2;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Disk Health (SMART) · 硬碟健康（SMART）" Tag="module.diskhealth"><NavigationViewItem.Icon><FontIcon Glyph="&#xEDA8;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Disk Benchmark · 硬碟速度測試" Tag="module.diskbench"><NavigationViewItem.Icon><FontIcon Glyph="&#xEC4A;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="TestDisk / PhotoRec · 資料救援" Tag="module.testdisk"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7BA;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="OneDrive · OneDrive" Tag="module.onedrive"><NavigationViewItem.Icon><FontIcon Glyph="&#xE753;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Rich Preview · 豐富預覽" Tag="module.richpreview"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A1;" /></NavigationViewItem.Icon></NavigationViewItem>
@@ -81,6 +163,7 @@
                         <NavigationViewItem Content="Startup Apps · 開機程式" Tag="module.startup"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7B5;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Event Viewer · 事件檢視器" Tag="module.events"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7C3;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="System Monitor · 系統監察" Tag="module.monitor"><NavigationViewItem.Icon><FontIcon Glyph="&#xE9D9;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Process Explorer · 程序總管" Tag="module.procexp"><NavigationViewItem.Icon><FontIcon Glyph="&#xEC4A;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="System Info (Winfetch) · 系統資訊" Tag="module.winfetch"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7F4;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Battery &amp; Thermal · 電池與散熱" Tag="module.battery"><NavigationViewItem.Icon><FontIcon Glyph="&#xE83E;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Connections · 連線" Tag="module.connections"><NavigationViewItem.Icon><FontIcon Glyph="&#xE968;" /></NavigationViewItem.Icon></NavigationViewItem>
@@ -98,12 +181,15 @@
                     <NavigationViewItem.MenuItems>
                         <NavigationViewItem Content="Media · 媒體" Tag="module.media"><NavigationViewItem.Icon><FontIcon Glyph="&#xE714;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Audio Editor · 音訊編輯器" Tag="module.audioeditor"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8D6;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Audio Tagger · 音訊標籤編輯器" Tag="module.audiotagger"><NavigationViewItem.Icon><FontIcon Glyph="&#xEC4F;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Media Player · 媒體播放器" Tag="module.mediaplayer"><NavigationViewItem.Icon><FontIcon Glyph="&#xE714;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Media Downloader · 媒體下載器" Tag="module.ytdlp"><NavigationViewItem.Icon><FontIcon Glyph="&#xE896;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Blender (3D / Render) · Blender（3D／算圖）" Tag="module.blender"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7F4;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Document Converter · 文件轉換器" Tag="module.libreoffice"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="PDF Toolkit · PDF 工具箱" Tag="module.pdftoolkit"><NavigationViewItem.Icon><FontIcon Glyph="&#xEA90;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Screen Recorder · 螢幕錄影" Tag="module.recorder"><NavigationViewItem.Icon><FontIcon Glyph="&#xE714;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Capture Studio · 擷取工作室" Tag="module.capture"><NavigationViewItem.Icon><FontIcon Glyph="&#xE722;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Text Extractor (OCR) · 原生文字辨識" Tag="module.textocr"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8C1;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Crop And Lock · 裁切與鎖定" Tag="module.cropandlock"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7A8;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="GIF Studio · 螢幕轉 GIF" Tag="module.giflab"><NavigationViewItem.Icon><FontIcon Glyph="&#xE786;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="ZoomIt · 螢幕放大與標註" Tag="module.zoomit"><NavigationViewItem.Icon><FontIcon Glyph="&#xE71E;" /></NavigationViewItem.Icon></NavigationViewItem>
@@ -111,6 +197,7 @@
                         <NavigationViewItem Content="Color Picker · 螢幕取色" Tag="module.colorpicker"><NavigationViewItem.Icon><FontIcon Glyph="&#xE790;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Screen Ruler · 螢幕間尺" Tag="module.screenruler"><NavigationViewItem.Icon><FontIcon Glyph="&#xE1A6;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Pixel Editor · 像素畫編輯器" Tag="module.pixeleditor"><NavigationViewItem.Icon><FontIcon Glyph="&#xE790;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Image Editor · 點陣圖影像編輯器" Tag="module.imageeditor"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7C5;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Time &amp; Unit Tools · 時間與單位工具" Tag="module.timeunit"><NavigationViewItem.Icon><FontIcon Glyph="&#xE823;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Activity Timeline · 活動時間軸" Tag="module.timelens"><NavigationViewItem.Icon><FontIcon Glyph="&#xE81C;" /></NavigationViewItem.Icon></NavigationViewItem>
                     </NavigationViewItem.MenuItems>
@@ -129,6 +216,7 @@
                         <NavigationViewItem Content="Shortcut Guide · 快捷鍵指南" Tag="module.shortcutguide"><NavigationViewItem.Icon><FontIcon Glyph="&#xE765;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Command Palette · 指令面板" Tag="module.cmdpalette"><NavigationViewItem.Icon><FontIcon Glyph="&#xE773;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Context Menu · 右鍵選單" Tag="module.contextmenu"><NavigationViewItem.Icon><FontIcon Glyph="&#xEDE3;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Explorer Right-Click · 檔案總管右鍵選單" Tag="module.shellmenu"><NavigationViewItem.Icon><FontIcon Glyph="&#xE712;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Taskbar Tweaker · 工作列調校" Tag="module.taskbar-tweaker"><NavigationViewItem.Icon><FontIcon Glyph="&#xE71D;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="LightSwitch · 自動深淺色" Tag="module.lightswitch"><NavigationViewItem.Icon><FontIcon Glyph="&#xE793;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Nilesoft Shell · Nilesoft 右鍵選單" Tag="module.nilesoftshell"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7BA;" /></NavigationViewItem.Icon></NavigationViewItem>
@@ -144,6 +232,7 @@
                         <NavigationViewItem Content="PowerToys Extras · PowerToys 額外工具" Tag="module.powertoys"><NavigationViewItem.Icon><FontIcon Glyph="&#xE945;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Windhawk Mods · Windhawk 模組" Tag="module.windhawk"><NavigationViewItem.Icon><FontIcon Glyph="&#xE945;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Voice &amp; Read-Aloud · 語音朗讀" Tag="module.voice"><NavigationViewItem.Icon><FontIcon Glyph="&#xE767;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="PA Announcements · 喇叭語音廣播" Tag="module.announcements"><NavigationViewItem.Icon><FontIcon Glyph="&#xEC42;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Rainmeter Widgets · Rainmeter 桌面小工具" Tag="module.rainmeter"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7F4;" /></NavigationViewItem.Icon></NavigationViewItem>
                     </NavigationViewItem.MenuItems>
                 </NavigationViewItem>
@@ -152,23 +241,32 @@
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE71D;" /></NavigationViewItem.Icon>
                     <NavigationViewItem.MenuItems>
                         <NavigationViewItem Content="Package Manager · 套件管理" Tag="module.packages"><NavigationViewItem.Icon><FontIcon Glyph="&#xECAA;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Native OSS Clones · 開源原生分頁" Tag="module.ossapps"><NavigationViewItem.Icon><FontIcon Glyph="&#xE71D;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Android (ADB) · Android（ADB）" Tag="module.adb"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8EA;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Fastboot / Flasher · Fastboot／刷機" Tag="module.fastboot"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7BA;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Android Emulator · Android 模擬器" Tag="module.emulator"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8EA;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="VPN &amp; Mesh · VPN 與網狀網" Tag="module.vpn"><NavigationViewItem.Icon><FontIcon Glyph="&#xE945;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="qBittorrent · 種子下載" Tag="module.qbittorrent"><NavigationViewItem.Icon><FontIcon Glyph="&#xE896;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Native Torrent · 原生種子下載" Tag="module.torrent"><NavigationViewItem.Icon><FontIcon Glyph="&#xE118;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Docker over SSH · 透過 SSH 控制 Docker" Tag="module.dockerssh"><NavigationViewItem.Icon><FontIcon Glyph="&#xEA86;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Docker · Docker 容器管理" Tag="module.docker"><NavigationViewItem.Icon><FontIcon Glyph="&#xEC7A;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Diagram Editor · 圖表編輯器" Tag="module.diagram"><NavigationViewItem.Icon><FontIcon Glyph="&#xE9F9;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Flashcards · 間隔重複記憶卡" Tag="module.flashcards"><NavigationViewItem.Icon><FontIcon Glyph="&#xE82D;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="RustDesk · 遠端桌面" Tag="module.rustdesk"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8AF;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Home Assistant · 家居助理" Tag="module.homeassistant"><NavigationViewItem.Icon><FontIcon Glyph="&#xE80F;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Communications · 通訊" Tag="module.comms"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8BD;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Mail · 電郵" Tag="module.mail"><NavigationViewItem.Icon><FontIcon Glyph="&#xE715;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="WSL &amp; VM Launcher · WSL 與 VM 啟動器" Tag="module.wslvm"><NavigationViewItem.Icon><FontIcon Glyph="&#xEC7A;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="VirtualBox Manager · VirtualBox 管理" Tag="module.virtualbox"><NavigationViewItem.Icon><FontIcon Glyph="&#xEC7A;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Proxmox VE · Proxmox VE 虛擬化" Tag="module.proxmox"><NavigationViewItem.Icon><FontIcon Glyph="&#xE83B;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Windows Terminal · Windows 終端機" Tag="module.terminal"><NavigationViewItem.Icon><FontIcon Glyph="&#xE756;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="App Uninstaller · 應用程式解除安裝" Tag="module.uninstall"><NavigationViewItem.Icon><FontIcon Glyph="&#xE74D;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Imaging &amp; Game Tools · 燒錄與遊戲工具" Tag="module.imaging"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7F4;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Minecraft World Editor (Amulet) · Minecraft 世界編輯器（Amulet）" Tag="module.amulet"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7FC;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Minecraft World Tools · Minecraft 世界工具" Tag="module.minecraftworldtools"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7FC;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="ViaProxy · Minecraft 版本代理" Tag="module.viaproxy"><NavigationViewItem.Icon><FontIcon Glyph="&#xE990;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Minecraft Server · Minecraft 伺服器" Tag="module.minecraftserver"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7FC;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Minecraft Launcher · Minecraft 啟動器" Tag="module.minecraftlauncher"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7FC;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Git &amp; GitHub · Git 與 GitHub" Tag="module.git"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8AB;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="VS Code · VS Code 編輯器" Tag="module.vscode"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="AI Agents · AI 代理" Tag="module.aiagents"><NavigationViewItem.Icon><FontIcon Glyph="&#xE99A;" /></NavigationViewItem.Icon></NavigationViewItem>
@@ -178,13 +276,20 @@
                         <NavigationViewItem Content="Cloudflare &amp; Tunnel · Cloudflare 與 Tunnel" Tag="module.cloudflare"><NavigationViewItem.Icon><FontIcon Glyph="&#xE753;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="In-App Login · 內置登入" Tag="module.weblogin"><NavigationViewItem.Icon><FontIcon Glyph="&#xE77B;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="SSH Toolset · SSH 工具" Tag="module.ssh"><NavigationViewItem.Icon><FontIcon Glyph="&#xE756;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="API Client · REST API 用戶端" Tag="module.apiclient"><NavigationViewItem.Icon><FontIcon Glyph="&#xEB41;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Connectors · 連接器" Tag="module.connectors"><NavigationViewItem.Icon><FontIcon Glyph="&#xE71B;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Packer (Image Builder) · Packer（映像建置器）" Tag="module.packer"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7B8;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="World Monitor · 世界監察" Tag="module.worldmonitor"><NavigationViewItem.Icon><FontIcon Glyph="&#xE909;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Website Cloner · 網站複製器" Tag="module.webcloner"><NavigationViewItem.Icon><FontIcon Glyph="&#xE774;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Postgres Tool · Postgres 工具 / pgAdmin" Tag="module.pgadmin"><NavigationViewItem.Icon><FontIcon Glyph="&#xE94D;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="SQLite Browser · SQLite 資料庫瀏覽器" Tag="module.sqlitebrowser"><NavigationViewItem.Icon><FontIcon Glyph="&#xEC0A;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="FTP / SFTP · FTP／SFTP 檔案傳輸" Tag="module.filezilla"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8B7;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="File Server (FTP/SFTP host) · 檔案伺服器" Tag="module.fileserver"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8CE;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Bitwarden Vault · Bitwarden 密碼庫" Tag="module.bitwarden"><NavigationViewItem.Icon><FontIcon Glyph="&#xE72E;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="KeePass Vault · 密碼保險庫" Tag="module.keepass"><NavigationViewItem.Icon><FontIcon Glyph="&#xE192;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Feed Reader · RSS 閱讀器" Tag="module.feedreader"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A7;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="quicktype · JSON 轉型別" Tag="module.quicktype"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content=".NET Decompiler · .NET 反編譯器" Tag="module.decompiler"><NavigationViewItem.Icon><FontIcon Glyph="&#xEC4F;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="AWS CLI · AWS 命令列" Tag="module.aws"><NavigationViewItem.Icon><FontIcon Glyph="&#xE753;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Command Not Found · 搵唔到指令" Tag="module.cmdnotfound"><NavigationViewItem.Icon><FontIcon Glyph="&#xE756;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Config &amp; Backup · 設定與備份" Tag="module.configbackup"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8F7;" /></NavigationViewItem.Icon></NavigationViewItem>
@@ -195,6 +300,233 @@
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE72E;" /></NavigationViewItem.Icon>
                     <NavigationViewItem.MenuItems>
                         <NavigationViewItem Content="WinForge Vault · WinForge 保險庫" Tag="module.vault-volumes"><NavigationViewItem.Icon><FontIcon Glyph="&#xE72E;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Camoufox Profiles · Camoufox 指紋設定檔" Tag="module.camoufox"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7B3;" /></NavigationViewItem.Icon></NavigationViewItem>
+                    </NavigationViewItem.MenuItems>
+                </NavigationViewItem>
+
+                <NavigationViewItemHeader Content="Toolbox · 工具箱" />
+                <NavigationViewItem Content="JSON &amp; Data · JSON 與資料" SelectsOnInvoked="False">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE9F9;" /></NavigationViewItem.Icon>
+                    <NavigationViewItem.MenuItems>
+                        <NavigationViewItem Content="JSON &amp; XML Tools · JSON 同 XML 工具" Tag="module.jsontools"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="JSON Query · JSON 查詢" Tag="module.jsonpath"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="JSON Diff · JSON 比對" Tag="module.jsondiff"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="JSON Flatten · JSON 扁平化" Tag="module.jsonflatten"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="JSON Patch · JSON 修補" Tag="module.jsonpatch"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="JSONL Tools · JSONL 工具" Tag="module.jsonltools"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="JSON Merge Patch · JSON 合併修補" Tag="module.jsonmergepatch"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="JSON Schema Validator · JSON 結構描述驗證器" Tag="module.jsonschema"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="JSON Pointer · JSON 指標" Tag="module.jsonpointer"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="JSON Analyzer · JSON 分析器" Tag="module.jsonstat"><NavigationViewItem.Icon><FontIcon Glyph="&#xE9D9;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="JSON Key Sorter · JSON 鍵排序" Tag="module.jsonsort"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="JSON to Types · JSON 轉型別" Tag="module.jsontots"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="CSV / JSON · CSV/JSON 轉換" Tag="module.csvjson"><NavigationViewItem.Icon><FontIcon Glyph="&#xE9F9;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="CSV Linter · CSV 檢查修復" Tag="module.csvlint"><NavigationViewItem.Icon><FontIcon Glyph="&#xE9F9;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="TOML ↔ JSON · TOML ↔ JSON 轉換" Tag="module.tomljson"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="YAML ↔ JSON · YAML ↔ JSON 轉換" Tag="module.yamljson"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Table Formatter · 表格排版" Tag="module.tableformat"><NavigationViewItem.Icon><FontIcon Glyph="&#xE9F9;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="HTML Table Convert · HTML 表格轉換" Tag="module.htmltable"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="INI Editor · INI 編輯器" Tag="module.iniedit"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Dotenv Editor · .env 編輯器" Tag="module.envfile"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7C3;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Variable Substitute · 變數代入" Tag="module.envsubst"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Data Faker · 假資料產生器" Tag="module.faker"><NavigationViewItem.Icon><FontIcon Glyph="&#xE897;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="SQL Formatter · SQL 格式化" Tag="module.sqlformat"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="XPath Tester · XPath 測試器" Tag="module.xpathtester"><NavigationViewItem.Icon><FontIcon Glyph="&#xE773;" /></NavigationViewItem.Icon></NavigationViewItem>
+                    </NavigationViewItem.MenuItems>
+                </NavigationViewItem>
+
+                <NavigationViewItem Content="Text Tools · 文字工具" SelectsOnInvoked="False">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon>
+                    <NavigationViewItem.MenuItems>
+                        <NavigationViewItem Content="Text Tools · 文字工具" Tag="module.texttools"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Case Converter · 大小寫轉換" Tag="module.caseconvert"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Find &amp; Replace · 尋找及取代" Tag="module.textreplace"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Text Diff · 文字差異比對" Tag="module.textdiff"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Text Statistics · 文字統計" Tag="module.textstats"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="String Inspector · 字串檢查器" Tag="module.stringinspector"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8C1;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="String Compare · 字串相似度" Tag="module.stringcompare"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Text Redactor · 文字遮蔽" Tag="module.textredact"><NavigationViewItem.Icon><FontIcon Glyph="&#xE72E;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="String Escaper · 字串跳脫" Tag="module.textescape"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8C8;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Line Tools · 行工具" Tag="module.linetools"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Line Sort &amp; Dedupe · 行排序同去重" Tag="module.textsort"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Text Wrap · 文字換行" Tag="module.textwrap"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Column Tools · 欄位文字工具" Tag="module.textcolumns"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Template Renderer · 模板渲染器" Tag="module.texttemplate"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Fancy Text · 花式文字" Tag="module.leet"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Box &amp; Banner Text · 文字方框 / 橫幅" Tag="module.boxtext"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Lorem Ipsum Generator · 假文產生器" Tag="module.loremtext"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8D2;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Word Frequency · 詞頻統計" Tag="module.wordfreq"><NavigationViewItem.Icon><FontIcon Glyph="&#xE721;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Phonetic Speller · 拼讀字母表" Tag="module.phonetic"><NavigationViewItem.Icon><FontIcon Glyph="&#xE720;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Number Formatter · 數字格式化" Tag="module.numberformat"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8EF;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Number to Words · 數字轉文字" Tag="module.numwords"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8EF;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Number to Words+ · 數字轉文字" Tag="module.numwordsx"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7BF;" /></NavigationViewItem.Icon></NavigationViewItem>
+                    </NavigationViewItem.MenuItems>
+                </NavigationViewItem>
+
+                <NavigationViewItem Content="Markup, Docs &amp; Symbols · 標記文件與符號" SelectsOnInvoked="False">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE8A1;" /></NavigationViewItem.Icon>
+                    <NavigationViewItem.MenuItems>
+                        <NavigationViewItem Content="Markdown Preview · Markdown 預覽" Tag="module.markdown"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A1;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Markdown TOC · Markdown 目錄" Tag="module.markdowntoc"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A1;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Markdown Table · Markdown 表格" Tag="module.mdtable"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="HTML to Markdown · HTML 轉 Markdown" Tag="module.htmltomd"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A1;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="HTML Preview · HTML 預覽" Tag="module.htmlpreview"><NavigationViewItem.Icon><FontIcon Glyph="&#xE12B;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="HTML Formatter · HTML 格式化" Tag="module.htmlformat"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="CSS Formatter · CSS 格式化" Tag="module.cssformat"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="HTML Entities · HTML 實體" Tag="module.htmlentities"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Meta Tag Generator · Meta 標籤產生器" Tag="module.metatags"><NavigationViewItem.Icon><FontIcon Glyph="&#xE12B;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="ASCII Banner · ASCII 橫幅" Tag="module.asciiart"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8D2;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="ASCII Table · ASCII 表" Tag="module.asciitable"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8D2;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Emoji Picker · Emoji 選擇器" Tag="module.emoji"><NavigationViewItem.Icon><FontIcon Glyph="&#xE76E;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Symbols Palette · 特殊符號調色盤" Tag="module.symbols"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8D2;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Character Map · 字元對照表" Tag="module.charmap"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8D2;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Unicode Inspector · Unicode 檢查器" Tag="module.unicodeinspect"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Text to Binary · 文字轉二進位" Tag="module.binarytext"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                    </NavigationViewItem.MenuItems>
+                </NavigationViewItem>
+
+                <NavigationViewItem Content="Encoding, IDs &amp; Codes · 編碼識別碼與條碼" SelectsOnInvoked="False">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE8C8;" /></NavigationViewItem.Icon>
+                    <NavigationViewItem.MenuItems>
+                        <NavigationViewItem Content="Encode / Decode · 編碼 / 解碼" Tag="module.encoder"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8C8;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Encoding Converter · 編碼轉換" Tag="module.encodingconv"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8C8;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Base32 / 58 / 85 · 編解碼" Tag="module.base32"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8C8;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Ascii85 / Base85 · 八十五進位編碼" Tag="module.ascii85"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Image / Base64 · 圖片 ↔ Base64" Tag="module.imgbase64"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8B9;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Morse Code · 摩斯電碼" Tag="module.morse"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8D6;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Roman Numerals · 羅馬數字" Tag="module.romannum"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="GUID &amp; ID Generator · GUID 同 ID 產生器" Tag="module.guidgen"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Namespaced UUID · 具名空間 UUID" Tag="module.uuidv5"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="UUID v7 · UUID v7 識別碼" Tag="module.uuidv7"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="ULID / Snowflake · ULID／Snowflake 工具" Tag="module.ulid"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Short ID Encoder · 短碼編碼器" Tag="module.shortid"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Slugify · 網址別名" Tag="module.slugify"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Check Digit Validator · 檢查碼驗證器" Tag="module.checkdigit"><NavigationViewItem.Icon><FontIcon Glyph="&#xE73E;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Hex Dump · 十六進位傾印" Tag="module.hexdump"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7C3;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="MIME Type Lookup · MIME 類型查詢" Tag="module.mimetypes"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Barcode Generator · 條碼產生器" Tag="module.barcode"><NavigationViewItem.Icon><FontIcon Glyph="&#xE91B;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Placeholder Image · 佔位圖" Tag="module.loremimg"><NavigationViewItem.Icon><FontIcon Glyph="&#xE91B;" /></NavigationViewItem.Icon></NavigationViewItem>
+                    </NavigationViewItem.MenuItems>
+                </NavigationViewItem>
+
+                <NavigationViewItem Content="Crypto &amp; Passwords · 加密與密碼" SelectsOnInvoked="False">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE72E;" /></NavigationViewItem.Icon>
+                    <NavigationViewItem.MenuItems>
+                        <NavigationViewItem Content="Hash &amp; Checksum · 雜湊與校驗和" Tag="module.hasher"><NavigationViewItem.Icon><FontIcon Glyph="&#xE9A9;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="JWT Inspector · JWT 檢查器" Tag="module.jwtinspect"><NavigationViewItem.Icon><FontIcon Glyph="&#xE72E;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="JWT Builder · JWT 建立同驗證" Tag="module.jwtbuild"><NavigationViewItem.Icon><FontIcon Glyph="&#xE72E;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="TOTP Authenticator · TOTP 驗證器" Tag="module.totp"><NavigationViewItem.Icon><FontIcon Glyph="&#xE72E;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Classic Ciphers · 經典密碼" Tag="module.ciphers"><NavigationViewItem.Icon><FontIcon Glyph="&#xE72E;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Password Generator · 密碼產生器" Tag="module.passgen"><NavigationViewItem.Icon><FontIcon Glyph="&#xE928;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Passphrase Generator · 密語產生器" Tag="module.diceware"><NavigationViewItem.Icon><FontIcon Glyph="&#xE72E;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Password Strength · 密碼強度" Tag="module.passwordstrength"><NavigationViewItem.Icon><FontIcon Glyph="&#xE928;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Entropy Analyzer · 熵值分析" Tag="module.entropy"><NavigationViewItem.Icon><FontIcon Glyph="&#xE9D9;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="chmod Calculator · chmod 計算機" Tag="module.unixperm"><NavigationViewItem.Icon><FontIcon Glyph="&#xE72E;" /></NavigationViewItem.Icon></NavigationViewItem>
+                    </NavigationViewItem.MenuItems>
+                </NavigationViewItem>
+
+                <NavigationViewItem Content="Web &amp; HTTP · 網頁與 HTTP" SelectsOnInvoked="False">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xEB41;" /></NavigationViewItem.Icon>
+                    <NavigationViewItem.MenuItems>
+                        <NavigationViewItem Content="URL Tools · 網址工具" Tag="module.urltools"><NavigationViewItem.Icon><FontIcon Glyph="&#xE71B;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="URL Query Editor · 網址查詢編輯器" Tag="module.queryedit"><NavigationViewItem.Icon><FontIcon Glyph="&#xEB41;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="cURL Generator · cURL 產生器" Tag="module.curlgen"><NavigationViewItem.Icon><FontIcon Glyph="&#xEB41;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="HTTP Status Codes · HTTP 狀態碼" Tag="module.httpstatus"><NavigationViewItem.Icon><FontIcon Glyph="&#xEB41;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="HTTP Header Inspector · HTTP 標頭檢測" Tag="module.httpheaders"><NavigationViewItem.Icon><FontIcon Glyph="&#xEB41;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="HTTP Headers Ref · HTTP 標頭參考" Tag="module.httpheaderref"><NavigationViewItem.Icon><FontIcon Glyph="&#xEB41;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Security Header Score · 安全標頭計分" Tag="module.headerscore"><NavigationViewItem.Icon><FontIcon Glyph="&#xEB41;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="HAR Analyzer · HAR 分析器" Tag="module.haranalyzer"><NavigationViewItem.Icon><FontIcon Glyph="&#xEB41;" /></NavigationViewItem.Icon></NavigationViewItem>
+                    </NavigationViewItem.MenuItems>
+                </NavigationViewItem>
+
+                <NavigationViewItem Content="Network Tools · 網絡工具" SelectsOnInvoked="False">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE968;" /></NavigationViewItem.Icon>
+                    <NavigationViewItem.MenuItems>
+                        <NavigationViewItem Content="Ping &amp; Traceroute · 網路測試" Tag="module.ping"><NavigationViewItem.Icon><FontIcon Glyph="&#xEB41;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="DNS Lookup · DNS 查詢" Tag="module.dnslookup"><NavigationViewItem.Icon><FontIcon Glyph="&#xE774;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="DNS Records Reference · DNS 記錄參考" Tag="module.dnsref"><NavigationViewItem.Icon><FontIcon Glyph="&#xEB41;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Port Scanner · 連接埠掃描" Tag="module.portscan"><NavigationViewItem.Icon><FontIcon Glyph="&#xE968;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Subnet Calculator · 子網計算器" Tag="module.subnetcalc"><NavigationViewItem.Icon><FontIcon Glyph="&#xE968;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="IPv6 Tools · IPv6 工具" Tag="module.subnetv6"><NavigationViewItem.Icon><FontIcon Glyph="&#xE968;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="IP &amp; Network Info · IP 網絡資訊" Tag="module.ipinfo"><NavigationViewItem.Icon><FontIcon Glyph="&#xE968;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Wake-on-LAN · 網絡喚醒" Tag="module.wol"><NavigationViewItem.Icon><FontIcon Glyph="&#xE839;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="MAC Address Tools · MAC 位址工具" Tag="module.mactools"><NavigationViewItem.Icon><FontIcon Glyph="&#xE839;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Hosts File Editor · 主機檔編輯器" Tag="module.hostsedit"><NavigationViewItem.Icon><FontIcon Glyph="&#xE968;" /></NavigationViewItem.Icon></NavigationViewItem>
+                    </NavigationViewItem.MenuItems>
+                </NavigationViewItem>
+
+                <NavigationViewItem Content="Dev Helpers · 開發小工具" SelectsOnInvoked="False">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon>
+                    <NavigationViewItem.MenuItems>
+                        <NavigationViewItem Content="Regex Tester · 正則表達式測試" Tag="module.regextester"><NavigationViewItem.Icon><FontIcon Glyph="&#xE773;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Regex Cheatsheet · 正則速查" Tag="module.regexcheat"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Glob Tester · Glob 樣式測試器" Tag="module.globtester"><NavigationViewItem.Icon><FontIcon Glyph="&#xE71C;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Semver Range Tester · 語意化版本範圍" Tag="module.semverrange"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Gitignore Generator · .gitignore 產生器" Tag="module.gitignore"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7C3;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="PATH Doctor · PATH 醫生" Tag="module.pathdoctor"><NavigationViewItem.Icon><FontIcon Glyph="&#xE9D5;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Env Snapshot &amp; Diff · 環境變數快照" Tag="module.envdiff"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8F7;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Clipboard Inspector · 剪貼簿檢查器" Tag="module.clipinspect"><NavigationViewItem.Icon><FontIcon Glyph="&#xE77F;" /></NavigationViewItem.Icon></NavigationViewItem>
+                    </NavigationViewItem.MenuItems>
+                </NavigationViewItem>
+
+                <NavigationViewItem Content="Time &amp; Dates · 時間與日期" SelectsOnInvoked="False">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE787;" /></NavigationViewItem.Icon>
+                    <NavigationViewItem.MenuItems>
+                        <NavigationViewItem Content="Timer &amp; Stopwatch · 計時器・碼錶" Tag="module.timer"><NavigationViewItem.Icon><FontIcon Glyph="&#xE916;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="World Clock · 世界時鐘" Tag="module.worldclock"><NavigationViewItem.Icon><FontIcon Glyph="&#xE774;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Date Calculator · 日期計算器" Tag="module.datecalc"><NavigationViewItem.Icon><FontIcon Glyph="&#xE163;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Duration Calculator · 時長計算器" Tag="module.durationcalc"><NavigationViewItem.Icon><FontIcon Glyph="&#xE917;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Epoch Converter · 紀元轉換器" Tag="module.epoch"><NavigationViewItem.Icon><FontIcon Glyph="&#xEC92;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Cron Builder · Cron 建構器" Tag="module.cronbuilder"><NavigationViewItem.Icon><FontIcon Glyph="&#xE787;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Cron Next Runs · Cron 下次執行時間" Tag="module.cronnext"><NavigationViewItem.Icon><FontIcon Glyph="&#xE787;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Timezone Planner · 時區會議規劃" Tag="module.tzplanner"><NavigationViewItem.Icon><FontIcon Glyph="&#xE774;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="iCalendar Builder · 日曆檔產生器" Tag="module.icalendar"><NavigationViewItem.Icon><FontIcon Glyph="&#xE787;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Calendar · 月曆" Tag="module.calendarmonth"><NavigationViewItem.Icon><FontIcon Glyph="&#xE787;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Event Countdown · 事件倒數" Tag="module.countdownevent"><NavigationViewItem.Icon><FontIcon Glyph="&#xE787;" /></NavigationViewItem.Icon></NavigationViewItem>
+                    </NavigationViewItem.MenuItems>
+                </NavigationViewItem>
+
+                <NavigationViewItem Content="Calculators &amp; Numbers · 計算與數字" SelectsOnInvoked="False">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE8EF;" /></NavigationViewItem.Icon>
+                    <NavigationViewItem.MenuItems>
+                        <NavigationViewItem Content="Calculator · 計數機" Tag="module.calculator"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8EF;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Percentage Calculator · 百分比計算器" Tag="module.percentcalc"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8EF;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Loan Calculator · 貸款計算" Tag="module.loancalc"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8EF;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Health Calculators · 健康計算器" Tag="module.bmi"><NavigationViewItem.Icon><FontIcon Glyph="&#xE95E;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Unit Converter · 單位換算" Tag="module.unitconvert"><NavigationViewItem.Icon><FontIcon Glyph="&#xE9CE;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Base Converter · 進位轉換" Tag="module.baseconvert"><NavigationViewItem.Icon><FontIcon Glyph="&#xE1D0;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Scientific Notation · 科學記數法" Tag="module.scinotation"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8EF;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Aspect Ratio · 長寬比計算" Tag="module.aspectratio"><NavigationViewItem.Icon><FontIcon Glyph="&#xE799;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Number Sequence · 數字序列" Tag="module.numseq"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8EF;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Tally Counter · 點數計數器" Tag="module.tallycounter"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8EF;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Randomizer · 隨機工具箱" Tag="module.randomizer"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8B1;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Expense Splitter · 夾錢分帳" Tag="module.expensesplit"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8EF;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Unit Price · 單位價格" Tag="module.unitprice"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7BF;" /></NavigationViewItem.Icon></NavigationViewItem>
+                    </NavigationViewItem.MenuItems>
+                </NavigationViewItem>
+
+                <NavigationViewItem Content="Colors &amp; Design · 色彩與設計" SelectsOnInvoked="False">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE790;" /></NavigationViewItem.Icon>
+                    <NavigationViewItem.MenuItems>
+                        <NavigationViewItem Content="Color Tools · 色彩工具" Tag="module.colortools"><NavigationViewItem.Icon><FontIcon Glyph="&#xE790;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Color Palette · 色彩調色板" Tag="module.colorpalette"><NavigationViewItem.Icon><FontIcon Glyph="&#xE790;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Colour Mixer · 混色器" Tag="module.colormix"><NavigationViewItem.Icon><FontIcon Glyph="&#xE790;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Named Colors · 命名色彩" Tag="module.colorname"><NavigationViewItem.Icon><FontIcon Glyph="&#xE790;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Color Blindness Sim · 色盲模擬" Tag="module.colorblind"><NavigationViewItem.Icon><FontIcon Glyph="&#xE790;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Contrast Grid · 對比度網格" Tag="module.contrastgrid"><NavigationViewItem.Icon><FontIcon Glyph="&#xE790;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Gradient Generator · 漸變產生器" Tag="module.gradient"><NavigationViewItem.Icon><FontIcon Glyph="&#xE790;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="CSS Unit Converter · CSS 單位換算" Tag="module.cssunits"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
+                    </NavigationViewItem.MenuItems>
+                </NavigationViewItem>
+
+                <NavigationViewItem Content="Everyday &amp; Life · 日常生活" SelectsOnInvoked="False">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE8FD;" /></NavigationViewItem.Icon>
+                    <NavigationViewItem.MenuItems>
+                        <NavigationViewItem Content="Scratchpad · 便箋" Tag="module.notes"><NavigationViewItem.Icon><FontIcon Glyph="&#xE70B;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Habit Tracker · 習慣追蹤器" Tag="module.habittracker"><NavigationViewItem.Icon><FontIcon Glyph="&#xE73E;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Name Generator · 名稱產生器" Tag="module.namegen"><NavigationViewItem.Icon><FontIcon Glyph="&#xE897;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Recycle Bin Manager · 回收筒管理" Tag="module.recyclebin"><NavigationViewItem.Icon><FontIcon Glyph="&#xE74D;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="File Split &amp; Join · 檔案切割／合併" Tag="module.filesplit"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>
                     </NavigationViewItem.MenuItems>
                 </NavigationViewItem>
 
@@ -213,6 +545,9 @@
                 <NavigationViewItem Content="Manual · 使用手冊" Tag="manual">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE82D;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
+                <NavigationViewItem Content="Licenses · 授權" Tag="licenses">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE8D7;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
                 <NavigationViewItem Content="About · 關於" Tag="about">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE946;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
@@ -221,34 +556,59 @@
                 x:Name="Tabs"
                 IsAddTabButtonVisible="True"
                 AddTabButtonClick="Tabs_AddTabButtonClick"
+                CanDragTabs="True"
                 CanReorderTabs="True"
                 SelectionChanged="Tabs_SelectionChanged"
-                TabCloseRequested="Tabs_TabCloseRequested">
+                TabCloseRequested="Tabs_TabCloseRequested"
+                TabDroppedOutside="Tabs_TabDroppedOutside"
+                automation:AutomationProperties.AutomationId="ShellTabs"
+                automation:AutomationProperties.Name="Open WinForge module tabs · 已開啟 WinForge 模組分頁">
                 <TabView.TabStripFooter>
                     <Button
                         x:Name="SessionBtn"
                         Margin="6,0"
                         Padding="9,5"
                         VerticalAlignment="Center"
-                        ToolTipService.ToolTip="Tab session · 分頁工作階段（匯出／匯入／還原）">
+                        ToolTipService.ToolTip="Tab session · 分頁工作階段（匯出／匯入／還原）"
+                        automation:AutomationProperties.AutomationId="ShellSessionButton"
+                        automation:AutomationProperties.Name="Tab session actions · 分頁工作階段動作">
                         <FontIcon FontSize="15" Glyph="&#xE74E;" />
                         <Button.Flyout>
                             <MenuFlyout>
-                                <MenuFlyoutItem Click="Session_NewTab" Text="New tab · 新分頁">
+                                <MenuFlyoutItem Click="Session_NewTab" Text="New tab · 新分頁" automation:AutomationProperties.AutomationId="ShellSessionAction_NewTab">
                                     <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE710;" /></MenuFlyoutItem.Icon>
                                 </MenuFlyoutItem>
+                                <MenuFlyoutItem Click="Session_CustomizeTab" Text="Rename/style current tab… · 重新命名／樣式目前分頁…" automation:AutomationProperties.AutomationId="ShellSessionAction_CustomizeTab">
+                                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8D2;" /></MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
                                 <MenuFlyoutSeparator />
-                                <MenuFlyoutItem Click="Session_Export" Text="Export session… · 匯出工作階段…">
+                                <MenuFlyoutItem Click="Session_NewGroup" Text="New group from current tab… · 由目前分頁新增分組…" automation:AutomationProperties.AutomationId="ShellSessionAction_NewGroup">
+                                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8A5;" /></MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                                <MenuFlyoutItem Click="Session_CustomizeGroup" Text="Rename/style current group… · 重新命名／樣式目前分組…" automation:AutomationProperties.AutomationId="ShellSessionAction_CustomizeGroup">
+                                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE713;" /></MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                                <MenuFlyoutItem Click="Session_UngroupTab" Text="Remove current tab from group · 目前分頁移出分組" automation:AutomationProperties.AutomationId="ShellSessionAction_UngroupTab">
+                                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE711;" /></MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                                <MenuFlyoutSeparator />
+                                <MenuFlyoutItem Click="Session_Export" Text="Export session… · 匯出工作階段…" automation:AutomationProperties.AutomationId="ShellSessionAction_ExportSession">
                                     <MenuFlyoutItem.Icon><FontIcon Glyph="&#xEDE1;" /></MenuFlyoutItem.Icon>
                                 </MenuFlyoutItem>
-                                <MenuFlyoutItem Click="Session_Import" Text="Import session… · 匯入工作階段…">
+                                <MenuFlyoutItem Click="Session_Import" Text="Import session… · 匯入工作階段…" automation:AutomationProperties.AutomationId="ShellSessionAction_ImportSession">
                                     <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8E5;" /></MenuFlyoutItem.Icon>
                                 </MenuFlyoutItem>
-                                <MenuFlyoutItem Click="Session_Restore" Text="Restore last saved · 還原上次">
+                                <MenuFlyoutItem Click="Session_ExportGroup" Text="Export current group… · 匯出目前分組…" automation:AutomationProperties.AutomationId="ShellSessionAction_ExportGroup">
+                                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xEDE1;" /></MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                                <MenuFlyoutItem Click="Session_ImportGroup" Text="Import group… · 匯入分組…" automation:AutomationProperties.AutomationId="ShellSessionAction_ImportGroup">
+                                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8E5;" /></MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                                <MenuFlyoutItem Click="Session_Restore" Text="Restore last saved · 還原上次" automation:AutomationProperties.AutomationId="ShellSessionAction_RestoreLastSaved">
                                     <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE777;" /></MenuFlyoutItem.Icon>
                                 </MenuFlyoutItem>
                                 <MenuFlyoutSeparator />
-                                <MenuFlyoutItem Click="Session_OpenFolder" Text="Open session repo · 開啟工作階段倉">
+                                <MenuFlyoutItem Click="Session_OpenFolder" Text="Open session repo · 開啟工作階段倉" automation:AutomationProperties.AutomationId="ShellSessionAction_OpenSessionRepo">
                                     <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE838;" /></MenuFlyoutItem.Icon>
                                 </MenuFlyoutItem>
                             </MenuFlyout>
@@ -257,5 +617,27 @@
                 </TabView.TabStripFooter>
             </TabView>
         </NavigationView>
+
+        <InfoBar
+            x:Name="AppUpdateBar"
+            Grid.Row="0"
+            Grid.RowSpan="2"
+            Canvas.ZIndex="999"
+            Margin="16,54,16,0"
+            MaxWidth="880"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Top"
+            IsClosable="True"
+            IsOpen="False"
+            automation:AutomationProperties.AutomationId="ShellAppUpdateBar"
+            automation:AutomationProperties.Name="WinForge update notice · WinForge 更新通知">
+            <InfoBar.Content>
+                <ProgressBar
+                    x:Name="AppUpdateProgress"
+                    Margin="0,4,0,10"
+                    IsIndeterminate="True"
+                    Visibility="Collapsed" />
+            </InfoBar.Content>
+        </InfoBar>
     </Grid>
 </Window>

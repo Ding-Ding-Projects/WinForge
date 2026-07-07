@@ -63,7 +63,7 @@ public sealed partial class RichPreviewModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Rich Preview · 豐富預覽";
+        Header.Title = "Rich Preview · 豐富預覽";
         HeaderBlurb.Text = P(
             "Pick or drop a file for a rich, type-aware preview — SVG, Markdown, PDF, source code, developer data (JSON/XML/YAML/TOML), G-code, QOI and ordinary images. The same file types PowerToys' File Explorer add-ons cover, rendered right here.",
             "揀檔或者拖入檔案，即時得到按類型嘅豐富預覽 — SVG、Markdown、PDF、原始碼、開發者資料（JSON／XML／YAML／TOML）、G-code、QOI 同一般圖片。等同 PowerToys 檔案總管增益所涵蓋嘅類型，喺呢度直接渲染。");
@@ -145,10 +145,7 @@ public sealed partial class RichPreviewModule : Page
     private void Open_Click(object sender, RoutedEventArgs e)
     {
         if (_current is null) return;
-        try
-        {
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(_current) { UseShellExecute = true });
-        }
+        try { CopyText(_current); Note(P("File path copied.", "已複製檔案路徑。")); }
         catch (Exception ex) { Warn(ex.Message); }
     }
 
@@ -157,8 +154,9 @@ public sealed partial class RichPreviewModule : Page
         if (_current is null) return;
         try
         {
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe")
-            { Arguments = $"/select,\"{_current}\"", UseShellExecute = true });
+            var folder = Path.GetDirectoryName(_current) ?? _current;
+            CopyText(folder);
+            Note(P("Folder path copied.", "已複製資料夾路徑。"));
         }
         catch (Exception ex) { Warn(ex.Message); }
     }
@@ -178,9 +176,8 @@ public sealed partial class RichPreviewModule : Page
 
     private void OpenPreviewSettings_Click(object sender, RoutedEventArgs e)
     {
-        // Open the classic File Explorer Options (Folder Options) where the preview pane is configured.
-        try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("control.exe") { Arguments = "folders", UseShellExecute = true }); }
-        catch (Exception ex) { Warn(ex.Message); }
+        CopyText("control.exe folders");
+        Note(P("Folder Options command copied.", "已複製資料夾選項命令。"));
     }
 
     private void OpenFolderOptions_Click(object sender, RoutedEventArgs e)
@@ -287,11 +284,42 @@ public sealed partial class RichPreviewModule : Page
     private async Task EnsureWebAsync()
     {
         if (_webReady) return;
-        try { _ = CoreWebView2Environment.GetAvailableBrowserVersionString(); }
-        catch { throw new InvalidOperationException(P("WebView2 Runtime not found. It ships with Windows 11; install it to preview SVG, Markdown, code and PDF.",
-            "搵唔到 WebView2 執行階段。Windows 11 一般已內建；安裝後先可以預覽 SVG、Markdown、程式碼同 PDF。")); }
+        try
+        {
+            var ver = CoreWebView2Environment.GetAvailableBrowserVersionString();
+            if (string.IsNullOrWhiteSpace(ver)) throw new InvalidOperationException();
+        }
+        catch
+        {
+            ShowWebView2Missing();
+            throw new InvalidOperationException(P("WebView2 Runtime not found. It ships with Windows 11; install it to preview SVG, Markdown, code and PDF.",
+                "搵唔到 WebView2 執行階段。Windows 11 一般已內建；安裝後先可以預覽 SVG、Markdown、程式碼同 PDF。"));
+        }
         await Web.EnsureCoreWebView2Async();
         _webReady = true;
+    }
+
+    /// <summary>
+    /// WebView2 執行階段安裝按鈕 · Surface a rich auto-install control for the WebView2 Runtime
+    /// (winget: Microsoft.EdgeWebView2Runtime — usually preinstalled on Windows 11). On success it
+    /// re-renders the current file so the preview appears without a restart.
+    /// </summary>
+    private void ShowWebView2Missing()
+    {
+        try
+        {
+            WebView2InstallHost.Children.Clear();
+            WebView2InstallHost.Children.Add(EngineBars.AutoInstallProgress(
+                "Microsoft.EdgeWebView2Runtime", "Install WebView2 Runtime", "安裝 WebView2 執行階段",
+                recheck: async () =>
+                {
+                    _webReady = false;
+                    WebView2InstallHost.Visibility = Visibility.Collapsed;
+                    if (_current is not null) await RenderCurrentAsync();
+                }));
+            WebView2InstallHost.Visibility = Visibility.Visible;
+        }
+        catch { /* never throw from prerequisite UI */ }
     }
 
     private void Web_CoreWebView2Initialized(WebView2 sender, CoreWebView2InitializedEventArgs args)
@@ -301,12 +329,20 @@ public sealed partial class RichPreviewModule : Page
         s.AreDefaultContextMenusEnabled = true;
         s.AreDevToolsEnabled = false;
         s.IsZoomControlEnabled = true;
-        // Open clicked links in the default browser, not inside the preview.
+        // Keep clicked links inside WinForge by copying them instead of opening the default browser.
         sender.CoreWebView2.NewWindowRequested += (_, e) =>
         {
             e.Handled = true;
-            try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(e.Uri) { UseShellExecute = true }); } catch { }
+            try { CopyText(e.Uri); Note(P("Link copied.", "已複製連結。")); } catch { }
         };
+    }
+
+    private static void CopyText(string text)
+    {
+        var dp = new DataPackage { RequestedOperation = DataPackageOperation.Copy };
+        dp.SetText(text);
+        Clipboard.SetContent(dp);
+        Clipboard.Flush();
     }
 
     private async Task ShowHtmlAsync(string html)

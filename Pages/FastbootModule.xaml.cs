@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using WinForge.Controls;
 using WinForge.Models;
 using WinForge.Services;
 
@@ -20,9 +21,12 @@ public sealed partial class FastbootModule : Page
     public FastbootModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; };
         Loaded += async (_, _) => { Render(); await CheckEngine(); await RefreshDevices(); };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
     private string? Serial => (DeviceBox.SelectedItem as FastbootDevice)?.Serial;
@@ -30,7 +34,7 @@ public sealed partial class FastbootModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Fastboot / Flasher · Fastboot／刷機";
+        Header.Title = "Fastboot / Flasher · Fastboot／刷機";
         HeaderBlurb.Text = P("A native PixelFlasher-style workflow over fastboot — unlock/lock the bootloader, flash boot.img, test a patched image with 'boot', flash a factory image, or sideload an OTA. Put the phone in bootloader mode first (Reboot → bootloader on the ADB page).",
             "原生 PixelFlasher 式 fastboot 流程 — 解鎖／上鎖 bootloader、flash boot.img、用「boot」試一張 patched image、刷原廠 image，或者 sideload OTA。先將手機入 bootloader 模式（ADB 頁 → 重啟入 bootloader）。");
 
@@ -51,26 +55,28 @@ public sealed partial class FastbootModule : Page
 
     private async Task CheckEngine()
     {
+        // Rescan the resolved path (PATH may have changed since last check / after an install).
+        FastbootService.ClearCache();
         bool ok = await FastbootService.IsAvailable();
         EngineBar.IsOpen = !ok;
         if (!ok)
         {
             EngineBar.Severity = InfoBarSeverity.Warning;
             EngineBar.Title = P("fastboot not found", "搵唔到 fastboot");
-            EngineBar.Message = P("fastboot ships with Google Platform Tools. Click to install it automatically (no restart).",
-                "fastboot 隨 Google Platform Tools 一齊嚟。撳一下自動安裝（唔使重啟）。");
-            var btn = new Button { Content = P("Install Platform Tools automatically", "自動安裝 Platform Tools") };
-            btn.Click += async (_, _) =>
-            {
-                btn.IsEnabled = false;
-                btn.Content = P("Installing…", "安裝緊…");
-                await PackageService.AutoInstall("Google.PlatformTools");
-                await CheckEngine();
-                if (await FastbootService.IsAvailable()) await RefreshDevices();
-            };
-            EngineBar.ActionButton = btn;
+            EngineBar.Message = P("fastboot ships with the Android SDK Platform-Tools (alongside adb). Install it automatically below (winget) — live progress, no restart.",
+                "fastboot 隨 Android SDK Platform-Tools（同 adb 一齊）嚟。喺下面自動安裝（winget）— 即時進度，唔使重啟。");
+            // Rich install control: real progress bar + live bilingual status + % + Cancel + success/error animation.
+            // recheck = re-detect and refresh the UI; rescan = drop the cached fastboot.exe path.
+            EngineBar.ActionButton = null;
+            if (EngineBar.Content is not InstallProgress)
+                EngineBar.Content = EngineBars.AutoInstallProgress(
+                    "Google.PlatformTools",
+                    "Install Android Platform-Tools (adb + fastboot)",
+                    "安裝 Android Platform-Tools（adb + fastboot）",
+                    recheck: async () => { await CheckEngine(); if (await FastbootService.IsAvailable()) await RefreshDevices(); },
+                    rescan: FastbootService.ClearCache);
         }
-        else EngineBar.ActionButton = null;
+        else { EngineBar.ActionButton = null; EngineBar.Content = null; }
     }
 
     private async Task RefreshDevices()

@@ -4,16 +4,14 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
     <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
         <StackPanel MaxWidth="980" Spacing="14">
 
-            <StackPanel Orientation="Horizontal" Spacing="12">
-                <FontIcon FontSize="22" Glyph="&#xE765;" VerticalAlignment="Center" />
-                <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
-            </StackPanel>
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE765;" />
             <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
 
             <InfoBar x:Name="ResultBar" IsClosable="True" IsOpen="False" />
@@ -58,6 +56,9 @@
 
                     <!-- SendKeys field -->
                     <TextBox x:Name="KeysBox" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="60" Visibility="Collapsed" />
+
+                    <!-- Open-module field: pick any WinForge module to activate from a global hotkey -->
+                    <ComboBox x:Name="ModuleBox" MinWidth="340" Visibility="Collapsed" />
 
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <Button x:Name="AddBindingBtn" Click="AddBinding_Click" Style="{StaticResource AccentButtonStyle}" />

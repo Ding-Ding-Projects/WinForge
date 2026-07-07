@@ -5,10 +5,11 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:controls="using:Microsoft.UI.Xaml.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:wfcontrols="using:WinForge.Controls"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid Padding="24,16,24,16" RowSpacing="12">
+    <Grid Style="{StaticResource WinForgePageGridStyle}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -19,10 +20,7 @@
 
         <!-- Header -->
         <StackPanel Grid.Row="0" Spacing="6">
-            <StackPanel Orientation="Horizontal" Spacing="12">
-                <FontIcon FontSize="24" Glyph="&#xE77B;" VerticalAlignment="Center" />
-                <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
-            </StackPanel>
+            <wfcontrols:ModuleHeader x:Name="Header" Glyph="&#xE77B;" />
             <TextBlock
                 x:Name="HeaderBlurb"
                 Foreground="{ThemeResource TextFillColorSecondaryBrush}"
@@ -90,7 +88,7 @@
         <!-- Embedded browser -->
         <Grid Grid.Row="4" RowSpacing="8">
             <Grid.RowDefinitions>
-                <RowDefinition Height="*" />
+                <RowDefinition Height="*" MinHeight="520" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 

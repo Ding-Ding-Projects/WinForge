@@ -1,0 +1,82 @@
+<svg viewBox="0 0 760 420" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#5a6b80"/>
+    </marker>
+  </defs>
+  <style>
+    .pipe { fill:none; stroke:#3a4656; stroke-width:7; stroke-linecap:round; }
+    .flow { fill:none; stroke-width:4; stroke-linecap:round; stroke-dasharray:10 12; }
+    .comp { fill:#1a2030; stroke:#3a4656; stroke-width:2; }
+    .lbl  { fill:#93a2b5; font-size:11px; text-anchor:middle; }
+    .lblz { fill:#6b7787; font-size:9px; text-anchor:middle; }
+  </style>
+
+  <!-- Reactor vessel -->
+  <rect id="vessel" class="comp" x="60" y="150" width="90" height="160" rx="14"/>
+  <rect id="coreGlow" x="78" y="200" width="54" height="80" rx="6" fill="#16202e"/>
+  <text class="lbl" x="105" y="330">RPV</text>
+  <text class="lblz" x="105" y="342">壓力容器</text>
+
+  <!-- Hot leg to SG1 -->
+  <path id="pipe-hot1" class="pipe" d="M150,180 H300"/>
+  <path id="flow-hot1" class="flow" d="M150,180 H300"/>
+  <!-- Hot leg to SG2 -->
+  <path id="pipe-hot2" class="pipe" d="M150,280 H300"/>
+  <path id="flow-hot2" class="flow" d="M150,280 H300"/>
+
+  <!-- Steam generator 1 -->
+  <rect id="sg1" class="comp" x="300" y="120" width="70" height="120" rx="10"/>
+  <text class="lbl" x="335" y="258">SG-1</text>
+  <text class="lblz" x="335" y="270">蒸發器</text>
+  <!-- Steam generator 2 -->
+  <rect id="sg2" class="comp" x="300" y="270" width="70" height="120" rx="10"/>
+  <text class="lbl" x="335" y="408">SG-2</text>
+
+  <!-- Cold legs back through RCPs -->
+  <path id="pipe-cold1" class="pipe" d="M300,150 H210 V150"/>
+  <path id="pipe-cold1b" class="pipe" d="M210,150 V200 H150"/>
+  <path id="flow-cold1" class="flow" d="M300,150 H210 V200 H150"/>
+  <path id="pipe-cold2" class="pipe" d="M300,360 H210 V260 H150"/>
+  <path id="flow-cold2" class="flow" d="M300,360 H210 V260 H150"/>
+
+  <!-- RCPs -->
+  <circle id="rcp1" class="comp" cx="210" cy="150" r="14"/>
+  <text class="lbl" x="210" y="128">RCP-1</text>
+  <circle id="rcp2" class="comp" cx="210" cy="360" r="14"/>
+  <text class="lbl" x="210" y="392">RCP-2</text>
+
+  <!-- Pressurizer + surge line -->
+  <rect id="pzr" class="comp" x="225" y="40" width="34" height="80" rx="8"/>
+  <rect id="pzrLevel" x="229" y="80" width="26" height="36" fill="#1b6cff" opacity="0.7"/>
+  <path id="pipe-surge" class="pipe" d="M242,120 V180" />
+  <text class="lbl" x="242" y="32">PZR</text>
+
+  <!-- Steam line to turbine -->
+  <path id="pipe-steam" class="pipe" d="M370,160 H470"/>
+  <path id="flow-steam" class="flow" d="M370,160 H470" marker-end="url(#arrow)"/>
+
+  <!-- Turbine -->
+  <polygon id="turbine" class="comp" points="470,140 540,125 540,195 470,180"/>
+  <text class="lbl" x="505" y="215">TURBINE</text>
+  <text class="lblz" x="505" y="227">汽輪機</text>
+
+  <!-- Generator -->
+  <circle id="gen" class="comp" cx="590" cy="160" r="26"/>
+  <text class="lbl" x="590" y="205">GEN</text>
+  <path id="pipe-shaft" class="pipe" d="M540,160 H564"/>
+
+  <!-- Grid -->
+  <path id="pipe-grid" class="pipe" d="M616,160 H690"/>
+  <rect id="grid" class="comp" x="690" y="140" width="40" height="40" rx="6"/>
+  <text class="lbl" x="710" y="200">GRID</text>
+  <text class="lblz" x="710" y="212">電網</text>
+
+  <!-- Condenser + feed -->
+  <rect id="condenser" class="comp" x="470" y="250" width="120" height="50" rx="8"/>
+  <text class="lbl" x="530" y="318">CONDENSER 凝汽器</text>
+  <path id="pipe-exhaust" class="pipe" d="M505,195 V250"/>
+  <path id="flow-exhaust" class="flow" d="M505,195 V250"/>
+  <path id="pipe-feed" class="pipe" d="M470,275 H360 V200"/>
+  <path id="flow-feed" class="flow" d="M470,275 H360 V200"/>
+</svg>

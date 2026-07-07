@@ -41,15 +41,18 @@ public sealed partial class EventViewerModule : Page
     {
         InitializeComponent();
         List.ItemsSource = _rows;
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; };
         Loaded += async (_, _) => { Render(); _ready = true; await Reload(); };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
     private void Render()
     {
-        HeaderTitle.Text = "Event Viewer · 事件檢視器";
+        Header.Title = "Event Viewer · 事件檢視器";
         HeaderBlurb.Text = P("Browse the Windows event logs in-app — pick a log and severity, filter, and read the full message. No eventvwr.msc.",
             "喺 app 內睇 Windows 事件記錄 — 揀記錄同嚴重程度、篩選、睇完整訊息。唔使開 eventvwr.msc。");
         FilterBox.PlaceholderText = P("Filter by provider, message or ID…", "用來源、訊息或 ID 篩選…");

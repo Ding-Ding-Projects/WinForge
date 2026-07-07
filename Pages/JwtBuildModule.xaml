@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.JwtBuildModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="820" Spacing="14">
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE72E;" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <!-- BUILD CARD -->
+            <Border Padding="16,14,16,16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <TextBlock x:Name="BuildTitle" FontWeight="SemiBold" FontSize="16" />
+
+                    <StackPanel Spacing="10" Orientation="Horizontal">
+                        <StackPanel Spacing="4">
+                            <TextBlock x:Name="AlgLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <ComboBox x:Name="AlgBox" MinWidth="140" SelectionChanged="Alg_Changed">
+                                <ComboBoxItem Content="HS256" />
+                                <ComboBoxItem Content="HS384" />
+                                <ComboBoxItem Content="HS512" />
+                            </ComboBox>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <StackPanel Spacing="4">
+                        <TextBlock x:Name="HeaderLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBox x:Name="HeaderJsonBox" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="72"
+                                 FontFamily="Consolas" IsSpellCheckEnabled="False"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="4">
+                        <TextBlock x:Name="PayloadLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBox x:Name="PayloadJsonBox" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="120"
+                                 FontFamily="Consolas" IsSpellCheckEnabled="False"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="4">
+                        <TextBlock x:Name="QuickAddLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <Button x:Name="IatBtn" Content="iat" Tag="iat" Click="QuickAdd_Click" />
+                            <Button x:Name="ExpBtn" Content="exp" Tag="exp" Click="QuickAdd_Click" />
+                            <Button x:Name="NbfBtn" Content="nbf" Tag="nbf" Click="QuickAdd_Click" />
+                            <Button x:Name="SubBtn" Content="sub" Tag="sub" Click="QuickAdd_Click" />
+                            <Button x:Name="IssBtn" Content="iss" Tag="iss" Click="QuickAdd_Click" />
+                            <Button x:Name="AudBtn" Content="aud" Tag="aud" Click="QuickAdd_Click" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <StackPanel Spacing="4">
+                        <TextBlock x:Name="SecretLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBox x:Name="SecretBox" FontFamily="Consolas" IsSpellCheckEnabled="False" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="SignBtn" Style="{ThemeResource AccentButtonStyle}" Click="Sign_Click" />
+                        <Button x:Name="CopyTokenBtn" Click="CopyToken_Click" IsEnabled="False" />
+                    </StackPanel>
+
+                    <InfoBar x:Name="BuildInfo" IsClosable="False" IsOpen="False" />
+
+                    <StackPanel Spacing="4">
+                        <TextBlock x:Name="OutputLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBox x:Name="TokenBox" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="72"
+                                 FontFamily="Consolas" IsSpellCheckEnabled="False"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- VERIFY CARD -->
+            <Border Padding="16,14,16,16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <TextBlock x:Name="VerifyTitle" FontWeight="SemiBold" FontSize="16" />
+
+                    <StackPanel Spacing="4">
+                        <TextBlock x:Name="TokenInLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBox x:Name="VerifyTokenBox" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="90"
+                                 FontFamily="Consolas" IsSpellCheckEnabled="False"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <StackPanel Spacing="4">
+                            <TextBlock x:Name="VerifyAlgLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <ComboBox x:Name="VerifyAlgBox" MinWidth="140">
+                                <ComboBoxItem Content="HS256" />
+                                <ComboBoxItem Content="HS384" />
+                                <ComboBoxItem Content="HS512" />
+                            </ComboBox>
+                        </StackPanel>
+                        <StackPanel Spacing="4" MinWidth="220">
+                            <TextBlock x:Name="VerifySecretLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBox x:Name="VerifySecretBox" FontFamily="Consolas" IsSpellCheckEnabled="False" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <Button x:Name="VerifyBtn" Style="{ThemeResource AccentButtonStyle}" Click="Verify_Click" />
+
+                    <InfoBar x:Name="VerifyInfo" IsClosable="False" IsOpen="False" />
+
+                    <StackPanel x:Name="DecodedPanel" Spacing="8" Visibility="Collapsed">
+                        <StackPanel Spacing="4">
+                            <TextBlock x:Name="DecHeaderLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBox x:Name="DecHeaderBox" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="64"
+                                     FontFamily="Consolas" IsSpellCheckEnabled="False"
+                                     ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                        </StackPanel>
+                        <StackPanel Spacing="4">
+                            <TextBlock x:Name="DecPayloadLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBox x:Name="DecPayloadBox" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="120"
+                                     FontFamily="Consolas" IsSpellCheckEnabled="False"
+                                     ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                        </StackPanel>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

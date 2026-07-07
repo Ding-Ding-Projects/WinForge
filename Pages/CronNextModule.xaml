@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.CronNextModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="820" Spacing="14">
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE787;" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="14">
+                    <StackPanel Spacing="4">
+                        <TextBlock x:Name="ExprLabel" FontWeight="SemiBold" />
+                        <TextBox x:Name="ExprBox"
+                                 FontFamily="Consolas"
+                                 PlaceholderText="*/15 * * * *"
+                                 TextChanged="Input_Changed" />
+                        <TextBlock x:Name="ExprHint" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="Preset15" Click="Preset15_Click" />
+                        <Button x:Name="PresetWeekdays" Click="PresetWeekdays_Click" />
+                        <Button x:Name="PresetFirst" Click="PresetFirst_Click" />
+                    </StackPanel>
+
+                    <Grid ColumnSpacing="14" RowSpacing="6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Spacing="4">
+                            <TextBlock x:Name="TzLabel" FontWeight="SemiBold" />
+                            <ComboBox x:Name="TzBox" HorizontalAlignment="Stretch" SelectionChanged="Input_Changed" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Spacing="4">
+                            <TextBlock x:Name="CountLabel" FontWeight="SemiBold" />
+                            <NumberBox x:Name="CountBox" Value="10" Minimum="1" Maximum="200"
+                                       SpinButtonPlacementMode="Inline" MinWidth="140"
+                                       ValueChanged="Count_Changed" />
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <InfoBar x:Name="Status" IsOpen="False" IsClosable="False" />
+
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="8">
+                    <TextBlock x:Name="DescTitle" FontWeight="SemiBold" />
+                    <TextBlock x:Name="DescEn" TextWrapping="Wrap" />
+                    <TextBlock x:Name="DescZh" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </StackPanel>
+            </Border>
+
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Name="RunsTitle" Grid.Column="0" FontWeight="SemiBold" VerticalAlignment="Center" />
+                <Button x:Name="CopyBtn" Grid.Column="1" Click="Copy_Click" />
+            </Grid>
+
+            <Border Padding="4" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <ListView x:Name="RunsList" SelectionMode="None" MaxHeight="420">
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Padding="8,6,8,6" ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="{Binding Index}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" MinWidth="28" />
+                                <TextBlock Grid.Column="1" Text="{Binding Iso}" FontFamily="Consolas" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="2" Text="{Binding Relative}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

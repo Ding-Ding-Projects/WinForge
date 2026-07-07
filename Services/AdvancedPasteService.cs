@@ -103,7 +103,8 @@ public static class AdvancedPasteService
     private static IntPtr _hook = IntPtr.Zero;
     private static LowLevelKeyboardProc? _proc;
     private static DispatcherQueue? _ui;
-    private static bool _injecting;
+    private static readonly NativeMessagePump HookPump = new("WinForge-AdvancedPasteHook");
+    private static volatile bool _injecting;
 
     /// <summary>熱鍵描述（顯示用）· Hotkey label shown in the UI.</summary>
     public const string HotkeyText = "Win + Shift + V";
@@ -344,16 +345,25 @@ public static class AdvancedPasteService
 
     public static void EnableHotkey(DispatcherQueue uiQueue)
     {
-        if (HotkeyActive) return;
         _ui = uiQueue;
+        HookPump.Post(InstallHotkey);
+    }
+
+    private static void InstallHotkey()
+    {
+        if (_hook != IntPtr.Zero || _ui is null) return;
         _proc = HookProc;
         _hook = SetWindowsHookEx(WH_KEYBOARD_LL, _proc, GetModuleHandle(null), 0);
     }
 
     public static void DisableHotkey()
     {
-        if (_hook != IntPtr.Zero) { UnhookWindowsHookEx(_hook); _hook = IntPtr.Zero; }
-        _proc = null;
+        HookPump.Post(() =>
+        {
+            if (_hook != IntPtr.Zero) { UnhookWindowsHookEx(_hook); _hook = IntPtr.Zero; }
+            _proc = null;
+            _ui = null;
+        });
     }
 
     private static IntPtr HookProc(int nCode, IntPtr wParam, IntPtr lParam)
@@ -388,13 +398,13 @@ public static class AdvancedPasteService
     // ===================== Clipboard read =====================
 
     /// <summary>讀取剪貼簿文字 · Read clipboard text (empty when none).</summary>
-    public static string ReadText()
+    public static async Task<string> ReadTextAsync()
     {
         try
         {
             var view = Clipboard.GetContent();
             if (view is null || !view.Contains(StandardDataFormats.Text)) return "";
-            return view.GetTextAsync().AsTask().GetAwaiter().GetResult() ?? "";
+            return await view.GetTextAsync().AsTask() ?? "";
         }
         catch { return ""; }
     }
@@ -473,9 +483,9 @@ public static class AdvancedPasteService
             return await ClipboardImageToTextAsync(ct);
 
         if (action.RequiresAi)
-            return await RunAiAsync(ReadText(), aiInstruction ?? "", ct);
+            return await RunAiAsync(await ReadTextAsync(), aiInstruction ?? "", ct);
 
-        var text = ReadText();
+        var text = await ReadTextAsync();
         if (action.TextFn is not null)
         {
             try { return action.TextFn(text); }
@@ -509,10 +519,19 @@ public static class AdvancedPasteService
         });
 
         var sb = new StringBuilder();
+        bool? creditOk = null;
+        LocalizedText? creditMessage = null;
         await AiChatService.I.StreamChatAsync(chat, provider, chunk =>
         {
             if (!string.IsNullOrEmpty(chunk.Delta)) sb.Append(chunk.Delta);
+            if (chunk.CreditMessage is not null)
+            {
+                creditOk = chunk.CreditSuccess;
+                creditMessage = chunk.CreditMessage;
+            }
         }, ct);
+        if (creditOk == false && creditMessage is not null)
+            throw new InvalidOperationException(creditMessage.Primary);
         return sb.ToString().Trim();
     }
 

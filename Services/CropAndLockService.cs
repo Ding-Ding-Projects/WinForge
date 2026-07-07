@@ -5,6 +5,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace WinForge.Services;
 
@@ -148,6 +149,9 @@ public static class CropAndLockService
 
     private static Thread? _pumpThread;
     private static uint _pumpThreadId;
+    // Signalled by the pump thread once _pumpThreadId is populated, so callers can wait for
+    // readiness WITHOUT a Thread.Sleep spin on the UI thread.
+    private static readonly ManualResetEventSlim _pumpReady = new(false);
     private static bool _running;
     private static WndProc? _wndProc;             // keep the delegate alive
     private static bool _classRegistered;
@@ -169,7 +173,11 @@ public static class CropAndLockService
         public RECT Crop;          // in source client-area space (physical px relative to client origin)
         public bool Thumbnail;
         public IntPtr Result;       // filled in by the pump thread
-        public readonly ManualResetEventSlim Done = new(false);
+        // Completed by the pump thread once the host is created (or failed). Awaited by the caller
+        // instead of blocking, so the UI thread never stalls waiting for the STA pump. Runs
+        // continuations asynchronously to avoid ever resuming the awaiter on the pump thread.
+        public readonly TaskCompletionSource<IntPtr> Done =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
     }
     private static readonly object _reqLock = new();
     private static readonly Queue<CreateRequest> _pending = new();
@@ -185,12 +193,19 @@ public static class CropAndLockService
     {
         if (_running) return;
         _running = true;
+        _pumpReady.Reset();
         _pumpThread = new Thread(PumpLoop) { IsBackground = true, Name = "WinForge-CropAndLock" };
         _pumpThread.SetApartmentState(ApartmentState.STA);
         _pumpThread.Start();
-        // wait briefly for the thread id so hotkeys can be posted immediately after
-        for (int i = 0; i < 50 && _pumpThreadId == 0; i++) Thread.Sleep(5);
-        ReloadHotkeys();
+        // Wait for the pump thread to publish its id, then (re)apply hotkeys — but do it OFF the
+        // calling (UI) thread so we never Thread.Sleep-spin the dispatcher waiting for the STA pump
+        // to spin up. ReloadHotkeys() just PostThreadMessages the (now-ready) pump, so it is safe
+        // to run from a background task.
+        Task.Run(() =>
+        {
+            _pumpReady.Wait(TimeSpan.FromMilliseconds(250));
+            ReloadHotkeys();
+        });
     }
 
     /// <summary>
@@ -198,62 +213,81 @@ public static class CropAndLockService
     /// and a chosen region. <paramref name="screenRect"/> is in PHYSICAL screen pixels (as returned by
     /// RegionSelector). Returns true on success.
     /// </summary>
-    public static bool CreateFromScreenRect(IntPtr source, string title, (int x, int y, int w, int h) screenRect, bool thumbnail)
+    public static async Task<bool> CreateFromScreenRectAsync(IntPtr source, string title, (int x, int y, int w, int h) screenRect, bool thumbnail)
     {
-        if (source == IntPtr.Zero || !IsWindow(source)) { Note("Invalid window.", "視窗無效。"); return false; }
-        if (screenRect.w < 8 || screenRect.h < 8) { Note("Region too small.", "區域太細。"); return false; }
-        EnsureStarted();
-
-        // DWM's rcSource (with fSourceClientAreaOnly = false) is interpreted relative to the source
-        // window's DWM-composited surface — i.e. its EXTENDED FRAME BOUNDS, the rectangle DWM actually
-        // renders. Translate the picked physical-screen rect into that space by subtracting the frame's
-        // top-left. Fall back to GetWindowRect if the DWM attribute is unavailable.
-        RECT frame;
-        if (DwmGetWindowAttribute(source, DWMWA_EXTENDED_FRAME_BOUNDS, out frame, Marshal.SizeOf<RECT>()) != 0
-            || frame.Width <= 0 || frame.Height <= 0)
+        try
         {
-            if (!GetWindowRect(source, out frame)) { Note("Could not read the window bounds.", "讀唔到視窗邊界。"); return false; }
+            if (source == IntPtr.Zero || !IsWindow(source)) { Note("Invalid window.", "視窗無效。"); return false; }
+            if (screenRect.w < 8 || screenRect.h < 8) { Note("Region too small.", "區域太細。"); return false; }
+            EnsureStarted();
+
+            // DWM's rcSource (with fSourceClientAreaOnly = false) is interpreted relative to the source
+            // window's DWM-composited surface — i.e. its EXTENDED FRAME BOUNDS, the rectangle DWM actually
+            // renders. Translate the picked physical-screen rect into that space by subtracting the frame's
+            // top-left. Fall back to GetWindowRect if the DWM attribute is unavailable.
+            RECT frame;
+            if (DwmGetWindowAttribute(source, DWMWA_EXTENDED_FRAME_BOUNDS, out frame, Marshal.SizeOf<RECT>()) != 0
+                || frame.Width <= 0 || frame.Height <= 0)
+            {
+                if (!GetWindowRect(source, out frame)) { Note("Could not read the window bounds.", "讀唔到視窗邊界。"); return false; }
+            }
+
+            var crop = new RECT
+            {
+                Left = screenRect.x - frame.Left,
+                Top = screenRect.y - frame.Top,
+                Right = screenRect.x - frame.Left + screenRect.w,
+                Bottom = screenRect.y - frame.Top + screenRect.h,
+            };
+            // Clamp into the frame so we never feed DWM a source rect outside the composited surface.
+            int fw = frame.Width, fh = frame.Height;
+            crop.Left = Math.Clamp(crop.Left, 0, Math.Max(0, fw));
+            crop.Top = Math.Clamp(crop.Top, 0, Math.Max(0, fh));
+            crop.Right = Math.Clamp(crop.Right, crop.Left + 1, Math.Max(crop.Left + 1, fw));
+            crop.Bottom = Math.Clamp(crop.Bottom, crop.Top + 1, Math.Max(crop.Top + 1, fh));
+            // Explicitly guard against an inverted / zero crop before it ever reaches DWM. A degenerate
+            // source rect (Right<=Left or Bottom<=Top) makes DwmRegisterThumbnail/UpdateThumbnailProperties crash.
+            if (crop.Right <= crop.Left || crop.Bottom <= crop.Top
+                || crop.Width < 8 || crop.Height < 8)
+            { Note("Region is outside the window.", "區域喺視窗範圍以外。"); return false; }
+
+            var req = new CreateRequest { Source = source, Title = title, Crop = crop, Thumbnail = thumbnail };
+            lock (_reqLock) _pending.Enqueue(req);
+            PostThreadMessage(_pumpThreadId, WM_APP_CREATE, IntPtr.Zero, IntPtr.Zero);
+
+            // Await (with a 4s guard) for the host to be created on the pump thread — never block the
+            // calling (UI) thread. Same timeout semantics as before: on timeout we treat it as a failure.
+            // No ConfigureAwait(false): the continuation must resume on the caller's (UI) context so the
+            // post-await mutation of the UI-bound Active collection stays on the UI thread, matching the
+            // original synchronous behaviour.
+            var completed = await Task.WhenAny(req.Done.Task, Task.Delay(4000));
+            IntPtr result = completed == req.Done.Task ? req.Done.Task.Result : IntPtr.Zero;
+
+            if (result == IntPtr.Zero)
+            {
+                Note("Could not create the window.", "無法建立視窗。");
+                return false;
+            }
+
+            var entry = new CropLockEntry
+            {
+                HostHandle = result,
+                SourceHandle = source,
+                SourceTitle = string.IsNullOrWhiteSpace(title) ? Loc.I.Pick("(untitled)", "（無標題）") : title,
+                Thumbnail = thumbnail,
+            };
+            Active.Add(entry);
+            Note(thumbnail ? "Created a live thumbnail." : "Created a cropped view.",
+                 thumbnail ? "已建立即時縮圖。" : "已建立裁切檢視。");
+            Changed?.Invoke();
+            return true;
         }
-
-        var crop = new RECT
+        catch
         {
-            Left = screenRect.x - frame.Left,
-            Top = screenRect.y - frame.Top,
-            Right = screenRect.x - frame.Left + screenRect.w,
-            Bottom = screenRect.y - frame.Top + screenRect.h,
-        };
-        // Clamp into the frame so we never feed DWM a source rect outside the composited surface.
-        int fw = frame.Width, fh = frame.Height;
-        crop.Left = Math.Clamp(crop.Left, 0, Math.Max(0, fw));
-        crop.Top = Math.Clamp(crop.Top, 0, Math.Max(0, fh));
-        crop.Right = Math.Clamp(crop.Right, crop.Left + 1, Math.Max(crop.Left + 1, fw));
-        crop.Bottom = Math.Clamp(crop.Bottom, crop.Top + 1, Math.Max(crop.Top + 1, fh));
-        if (crop.Width < 8 || crop.Height < 8) { Note("Region is outside the window.", "區域喺視窗範圍以外。"); return false; }
-
-        var req = new CreateRequest { Source = source, Title = title, Crop = crop, Thumbnail = thumbnail };
-        lock (_reqLock) _pending.Enqueue(req);
-        PostThreadMessage(_pumpThreadId, WM_APP_CREATE, IntPtr.Zero, IntPtr.Zero);
-        // block (with a guard) for the host to be created on the pump thread
-        req.Done.Wait(4000);
-
-        if (req.Result == IntPtr.Zero)
-        {
+            // Never throw to the UI — surface a friendly note and report failure.
             Note("Could not create the window.", "無法建立視窗。");
             return false;
         }
-
-        var entry = new CropLockEntry
-        {
-            HostHandle = req.Result,
-            SourceHandle = source,
-            SourceTitle = string.IsNullOrWhiteSpace(title) ? Loc.I.Pick("(untitled)", "（無標題）") : title,
-            Thumbnail = thumbnail,
-        };
-        Active.Add(entry);
-        Note(thumbnail ? "Created a live thumbnail." : "Created a cropped view.",
-             thumbnail ? "已建立即時縮圖。" : "已建立裁切檢視。");
-        Changed?.Invoke();
-        return true;
     }
 
     /// <summary>關閉一個裁切視窗 · Close one host window and drop it from the active set.</summary>
@@ -294,6 +328,7 @@ public static class CropAndLockService
     private static void PumpLoop()
     {
         _pumpThreadId = GetCurrentThreadId();
+        _pumpReady.Set(); // let EnsureStarted's waiter proceed without a UI-thread sleep-spin
         PeekMessage(out _, IntPtr.Zero, 0, 0, 0); // force a message queue
         EnsureClassRegistered();
         RegisterHotkeysOnThread();
@@ -350,9 +385,13 @@ public static class CropAndLockService
             CreateRequest? req;
             lock (_reqLock) req = _pending.Count > 0 ? _pending.Dequeue() : null;
             if (req is null) break;
-            try { req.Result = SpawnHost(req); }
-            catch { req.Result = IntPtr.Zero; }
-            finally { req.Done.Set(); }
+            IntPtr result;
+            try { result = SpawnHost(req); }
+            catch { result = IntPtr.Zero; }
+            req.Result = result;
+            // Signal the awaiting caller. TrySetResult so a timed-out (already-abandoned) request
+            // never faults the pump thread.
+            req.Done.TrySetResult(result);
         }
     }
 
@@ -482,8 +521,11 @@ public static class CropAndLockService
         float scale = ww / cw;
         if (ww / wh > cw / ch) scale = wh / ch;
         float dw = cw * scale, dh = ch * scale;
-        int left = (int)((ww - dw) / 2f), top = (int)((wh - dh) / 2f);
-        return new RECT { Left = left, Top = top, Right = left + (int)dw, Bottom = top + (int)dh };
+        // Fractional scaled dims can floor to 0 → a zero-size / inverted rcDestination crashes DWM
+        // (DwmUpdateThumbnailProperties). Clamp to at least 1px and build the rect from the clamped ints.
+        int dwInt = Math.Max(1, (int)dw), dhInt = Math.Max(1, (int)dh);
+        int left = (int)((ww - dwInt) / 2f), top = (int)((wh - dhInt) / 2f);
+        return new RECT { Left = left, Top = top, Right = left + dwInt, Bottom = top + dhInt };
     }
 
     // ===================== global hotkeys =====================

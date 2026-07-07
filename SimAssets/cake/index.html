@@ -1,0 +1,1957 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nuclear Cake Factory</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #151413;
+      --panel: #24211d;
+      --panel-2: #2d3028;
+      --line: #514a3f;
+      --text: #f4eee4;
+      --muted: #c9beb0;
+      --green: #6fb464;
+      --leaf: #96c96f;
+      --amber: #e8b75d;
+      --red: #df6a58;
+      --steel: #9eabb4;
+      --blue: #78c7dd;
+      --cream: #f1dbb3;
+      --shadow: rgba(0, 0, 0, 0.35);
+    }
+
+    * { box-sizing: border-box; }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font: 14px/1.35 "Segoe UI", system-ui, sans-serif;
+    }
+
+    button,
+    select,
+    input {
+      font: inherit;
+    }
+
+    .app {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      height: 100vh;
+      min-width: 760px;
+      background:
+        linear-gradient(90deg, rgba(111, 180, 100, 0.08), transparent 26%),
+        linear-gradient(180deg, rgba(232, 183, 93, 0.10), transparent 44%),
+        #151413;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 14px;
+      align-items: center;
+      padding: 10px 12px;
+      border-bottom: 1px solid #3b352d;
+      background: #1d1a17;
+    }
+
+    .title {
+      display: grid;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .title strong {
+      overflow: hidden;
+      font-size: 18px;
+      line-height: 1.15;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .title span {
+      overflow: hidden;
+      color: var(--muted);
+      font-size: 12px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 178px;
+      height: 36px;
+      padding: 0 12px;
+      border: 1px solid #5e4f36;
+      border-radius: 8px;
+      background: #2d261b;
+      color: var(--cream);
+      font-weight: 600;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+    }
+
+    .lamp {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--red);
+      box-shadow: 0 0 14px var(--red);
+    }
+
+    .lamp.on {
+      background: var(--green);
+      box-shadow: 0 0 14px var(--green);
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: 64px minmax(500px, 1fr) minmax(300px, 368px);
+      gap: 10px;
+      min-height: 0;
+      padding: 10px;
+    }
+
+    .station-rail {
+      display: grid;
+      align-content: start;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .station-rail button {
+      display: grid;
+      place-items: center;
+      height: 52px;
+      border: 1px solid #453f37;
+      border-radius: 8px;
+      background: #211e1a;
+      color: #cfc5b7;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .station-rail button.active {
+      border-color: #c89843;
+      background: #352817;
+      color: #ffe1a1;
+    }
+
+    .scene-panel {
+      display: grid;
+      grid-template-rows: minmax(390px, 1fr) auto;
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #1d1c19;
+      box-shadow: 0 10px 28px var(--shadow);
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      min-height: 390px;
+      display: block;
+      background: #171614;
+    }
+
+    .telemetry {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 8px;
+      padding: 8px;
+      border-top: 1px solid #3c372f;
+      background: #201d19;
+    }
+
+    .readout {
+      min-width: 0;
+      padding: 8px;
+      border: 1px solid #443d34;
+      border-radius: 8px;
+      background: #28241f;
+    }
+
+    .readout label {
+      display: block;
+      overflow: hidden;
+      color: var(--muted);
+      font-size: 11px;
+      text-overflow: ellipsis;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .readout b {
+      display: block;
+      overflow: hidden;
+      margin-top: 2px;
+      color: var(--text);
+      font-family: "Cascadia Mono", Consolas, monospace;
+      font-size: 15px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .control-panel {
+      display: grid;
+      align-content: start;
+      gap: 10px;
+      min-width: 0;
+      min-height: 0;
+      overflow: auto;
+      padding-right: 2px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: 0 10px 24px var(--shadow);
+    }
+
+    .panel header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      border-bottom: 1px solid #403a32;
+      color: #ffe0a3;
+      font-weight: 700;
+    }
+
+    .panel-body {
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+    }
+
+    .field {
+      display: grid;
+      gap: 5px;
+    }
+
+    .field label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    select {
+      width: 100%;
+      min-height: 34px;
+      border: 1px solid #5b5349;
+      border-radius: 6px;
+      background: #181715;
+      color: var(--text);
+      padding: 4px 8px;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--amber);
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: 1fr 56px;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .value {
+      color: var(--cream);
+      font-family: "Cascadia Mono", Consolas, monospace;
+      text-align: right;
+    }
+
+    .button-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .button-grid.single {
+      grid-template-columns: 1fr;
+    }
+
+    .control-bank {
+      display: grid;
+      gap: 6px;
+    }
+
+    .control-bank + .control-bank {
+      padding-top: 2px;
+      border-top: 1px solid #3d362e;
+    }
+
+    .control-bank h3 {
+      margin: 0;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    button.action {
+      min-height: 38px;
+      border: 1px solid #605747;
+      border-radius: 8px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 42%),
+        #343026;
+      color: var(--text);
+      cursor: pointer;
+      font-weight: 700;
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        inset 0 -3px 0 rgba(0, 0, 0, 0.28),
+        0 2px 0 rgba(0, 0, 0, 0.35);
+    }
+
+    button.action:hover:not(:disabled) {
+      border-color: #d4ad66;
+      background: #433722;
+    }
+
+    button.action.primary {
+      border-color: #d0a04e;
+      background: #6d481a;
+      color: #fff3d6;
+    }
+
+    button.action.danger {
+      border-color: #a55b4e;
+      background: #55302a;
+    }
+
+    button.action.guard {
+      border-color: #957442;
+      background:
+        repeating-linear-gradient(135deg, rgba(255, 220, 120, 0.15) 0 7px, transparent 7px 14px),
+        #3b2d1a;
+      color: #ffe5aa;
+    }
+
+    button.action.file {
+      border-color: #5c8d99;
+      background: #243b3f;
+      color: #d9f8ff;
+    }
+
+    .status-row {
+      display: grid;
+      grid-template-columns: 82px 1fr;
+      gap: 8px;
+      align-items: center;
+      min-width: 0;
+      padding: 8px;
+      border: 1px solid #443d34;
+      border-radius: 8px;
+      background: #211f1b;
+    }
+
+    .status-row span {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .status-row b {
+      overflow: hidden;
+      color: var(--text);
+      font-family: "Cascadia Mono", Consolas, monospace;
+      font-size: 12px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+    }
+
+    .prompt {
+      min-height: 48px;
+      padding: 9px 10px;
+      border: 1px solid #5d4e34;
+      border-radius: 8px;
+      background: #2d2418;
+      color: #ffdda0;
+    }
+
+    .bar {
+      overflow: hidden;
+      height: 9px;
+      border-radius: 999px;
+      background: #171615;
+    }
+
+    .bar > span {
+      display: block;
+      width: 0;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--green);
+      transition: width 120ms linear;
+    }
+
+    .bar.amber > span { background: var(--amber); }
+    .bar.red > span { background: var(--red); }
+    .bar.blue > span { background: var(--blue); }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .metric {
+      min-width: 0;
+      padding: 8px;
+      border: 1px solid #443d34;
+      border-radius: 8px;
+      background: #211f1b;
+    }
+
+    .metric span {
+      display: block;
+      overflow: hidden;
+      color: var(--muted);
+      font-size: 11px;
+      text-overflow: ellipsis;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .metric b {
+      display: block;
+      overflow: hidden;
+      margin-top: 2px;
+      color: var(--text);
+      font-family: "Cascadia Mono", Consolas, monospace;
+      font-size: 14px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    td {
+      overflow: hidden;
+      padding: 4px 0;
+      border-bottom: 1px solid #3d362e;
+      color: var(--muted);
+      font-size: 12px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    td:last-child {
+      color: var(--text);
+      font-family: "Cascadia Mono", Consolas, monospace;
+      text-align: right;
+    }
+
+    .notice {
+      display: none;
+      padding: 9px 10px;
+      border-radius: 8px;
+      border: 1px solid #5d4e34;
+      background: #2d2418;
+      color: #ffe4ad;
+    }
+
+    .notice.show { display: block; }
+    .notice.success { border-color: #548a58; background: #1f3020; color: #d6f2cf; }
+    .notice.warning { border-color: #a97b35; background: #362615; color: #ffd899; }
+    .notice.info { border-color: #528b9c; background: #1d2d31; color: #d4f3fb; }
+
+    @media (max-width: 900px) {
+      .workspace {
+        grid-template-columns: 60px minmax(0, 1fr);
+        overflow: auto;
+      }
+
+      .control-panel {
+        grid-column: 2;
+        grid-row: 2;
+        grid-template-columns: repeat(2, minmax(300px, 1fr));
+        overflow: visible;
+      }
+
+      .telemetry {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="title">
+        <strong>Nuclear Cake Factory & Farm</strong>
+        <span id="subtitle">Manual batch line tied to live reactor power</span>
+      </div>
+      <div class="status-pill"><span id="busLamp" class="lamp"></span><span id="busText">Waiting for bus</span></div>
+      <button id="openReactor" class="action" type="button">Open reactor</button>
+    </header>
+
+    <main class="workspace">
+      <nav class="station-rail" aria-label="Stations">
+        <button type="button" class="active" data-focus="all">All</button>
+        <button type="button" data-focus="farm">Farm</button>
+        <button type="button" data-focus="prep">Prep</button>
+        <button type="button" data-focus="oven">Bake</button>
+        <button type="button" data-focus="qa">QA</button>
+      </nav>
+
+      <section class="scene-panel">
+        <canvas id="scene" width="1320" height="760"></canvas>
+        <div class="telemetry">
+          <div class="readout"><label>Power</label><b id="roPower">0%</b></div>
+          <div class="readout"><label>Stage</label><b id="roStage">Idle</b></div>
+          <div class="readout"><label>Oven</label><b id="roOven">24 degC</b></div>
+          <div class="readout"><label>Quality</label><b id="roQuality">0%</b></div>
+          <div class="readout"><label>Sanitation</label><b id="roSanitation">0%</b></div>
+          <div class="readout"><label>Packed</label><b id="roPacked">0</b></div>
+        </div>
+      </section>
+
+      <aside class="control-panel">
+        <section class="panel">
+          <header><span>Recipe + demand</span><span id="recipeSize">0 cakes</span></header>
+          <div class="panel-body">
+            <div class="field">
+              <label for="recipeSelect">Recipe</label>
+              <select id="recipeSelect"></select>
+            </div>
+            <div class="field">
+              <label for="farmRange">Farm intensity</label>
+              <div class="split">
+                <input id="farmRange" type="range" min="0" max="100" value="78">
+                <span id="farmValue" class="value">78%</span>
+              </div>
+            </div>
+            <div class="field">
+              <label for="lineRange">Line speed</label>
+              <div class="split">
+                <input id="lineRange" type="range" min="0" max="120" value="72">
+                <span id="lineValue" class="value">72%</span>
+              </div>
+            </div>
+            <div class="metric-grid">
+              <div class="metric"><span>Plant load</span><b id="loadMetric">0.0 MW</b></div>
+              <div class="metric"><span>Reactor MWe</span><b id="mweMetric">0.0</b></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <header><span>Operator station</span><span id="gateState">Hold</span></header>
+          <div class="panel-body">
+            <div class="control-bank">
+              <h3>Receiving</h3>
+              <div class="button-grid">
+                <button class="action file" type="button" data-action="orderSupplyDelivery">Order supplies</button>
+                <button class="action guard" type="button" data-action="unloadSupplyDelivery">Unload delivery</button>
+              </div>
+            </div>
+            <div class="control-bank">
+              <h3>Farm</h3>
+              <div class="button-grid">
+                <button class="action" type="button" data-action="harvest">Harvest</button>
+                <button class="action" type="button" data-action="harvestFeedCrops">Harvest feed</button>
+                <button class="action" type="button" data-action="harvestCocoa">Harvest cocoa</button>
+                <button class="action" type="button" data-action="collect">Milk + eggs</button>
+                <button class="action" type="button" data-action="getCowFromPetStore">Get cow</button>
+                <button class="action" type="button" data-action="mixDairyRation">Mix dairy ration</button>
+                <button class="action guard" type="button" data-action="washDairyParlor">Wash parlor</button>
+                <button class="action guard" type="button" data-action="washPoultryHouse">Wash poultry</button>
+              </div>
+            </div>
+            <div class="control-bank">
+              <h3>Ingredient factories</h3>
+              <div class="button-grid">
+                <button class="action" type="button" data-action="runUtilityPlant">Run utilities</button>
+                <button class="action" type="button" data-action="runFeedMill">Mill feed</button>
+                <button class="action" type="button" data-action="runCompostPlant">Compost fertilizer</button>
+                <button class="action" type="button" data-action="runBeddingPlant">Make bedding</button>
+                <button class="action" type="button" data-action="runMineralPlant">Blend minerals</button>
+                <button class="action" type="button" data-action="mill">Mill flour</button>
+                <button class="action" type="button" data-action="refine">Refine sugar</button>
+                <button class="action" type="button" data-action="pasteurizeMilk">Pasteurize milk</button>
+                <button class="action" type="button" data-action="churn">Churn butter</button>
+                <button class="action" type="button" data-action="extractVanilla">Extract vanilla</button>
+                <button class="action" type="button" data-action="processCocoa">Roast cocoa</button>
+                <button class="action" type="button" data-action="runSaltWorks">Salt works</button>
+                <button class="action" type="button" data-action="runStarchPlant">Starch plant</button>
+                <button class="action" type="button" data-action="runBakingSodaPlant">Baking soda</button>
+                <button class="action" type="button" data-action="runLeaveningPlant">Leavening plant</button>
+                <button class="action" type="button" data-action="runPackagingPlant">Packaging plant</button>
+                <button class="action" type="button" data-action="prepareIcing">Prepare icing</button>
+                <button class="action guard" type="button" data-action="releaseLabLot">Release lab lot</button>
+                <button class="action guard" type="button" data-action="serviceFactories">Service plants</button>
+                <button class="action guard" type="button" data-action="haulByproducts">Haul byproducts</button>
+                <button class="action guard" type="button" data-action="treatEffluent">Treat effluent</button>
+              </div>
+            </div>
+            <div class="control-bank">
+              <h3>Bakery line</h3>
+              <div class="button-grid">
+                <button class="action guard" type="button" data-action="stageBatchKit">Stage kit</button>
+                <button class="action primary" type="button" data-action="startBatch">Start batch</button>
+                <button class="action primary guard" type="button" data-action="advance">Release step</button>
+                <button class="action danger" type="button" data-action="clean">CIP clean</button>
+              </div>
+            </div>
+            <div class="control-bank">
+              <h3>Shipping</h3>
+              <div class="button-grid single">
+                <button class="action file" type="button" data-action="dispatchOrder">Dispatch order</button>
+              </div>
+            </div>
+            <div id="prompt" class="prompt">Waiting for reactor bus.</div>
+            <div id="notice" class="notice"></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <header><span>Batch state</span><span id="haccpText">HACCP</span></header>
+          <div class="panel-body">
+            <div class="field">
+              <label>Stage progress</label>
+              <div class="bar amber"><span id="stageFill"></span></div>
+            </div>
+            <div class="field">
+              <label>Product core</label>
+              <div class="bar red"><span id="coreFill"></span></div>
+            </div>
+            <div class="field">
+              <label>CIP / sanitation</label>
+              <div class="bar blue"><span id="cipFill"></span></div>
+            </div>
+            <div class="metric-grid">
+              <div class="metric"><span>Specific gravity</span><b id="gravityMetric">1.00</b></div>
+              <div class="metric"><span>Waste</span><b id="wasteMetric">0.0 kg</b></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <header><span>Inventory</span><span id="missingText">Ready</span></header>
+          <div class="panel-body">
+            <table aria-label="Ingredient inventory">
+              <tbody id="inventoryRows"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel">
+          <header><span>Supply chain inputs</span><span id="resourceText">Inputs</span></header>
+          <div class="panel-body">
+            <table aria-label="Supply chain inputs">
+              <tbody id="resourceRows"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel">
+          <header><span>Process telemetry</span><span id="factoryText">Factories</span></header>
+          <div class="panel-body">
+            <table aria-label="Process telemetry">
+              <tbody id="factoryRows"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel">
+          <header><span>Signed cake files</span><span id="cakeFileCount">0 files</span></header>
+          <div class="panel-body">
+            <div class="status-row"><span>Bakery key</span><b id="bakeryKey">-</b></div>
+            <div class="status-row"><span>Latest</span><b id="latestCake">No cake file</b></div>
+            <div class="status-row"><span>Validation</span><b id="cakeFileStatus">No cake file is ready.</b></div>
+            <div class="button-grid">
+              <button class="action file" type="button" data-action="trustCakeKey">Trust key</button>
+              <button class="action file" type="button" data-action="validateCake">Validate cake</button>
+              <button class="action danger" type="button" data-action="eatCake">Eat + delete</button>
+              <button class="action" type="button" data-action="openCakeFolder">Open folder</button>
+            </div>
+          </div>
+        </section>
+      </aside>
+    </main>
+  </div>
+
+  <script>
+    const LOGICAL_W = 1320;
+    const LOGICAL_H = 760;
+    const canvas = document.getElementById('scene');
+    const ctx = canvas.getContext('2d');
+    const recipeSelect = document.getElementById('recipeSelect');
+    const farmRange = document.getElementById('farmRange');
+    const lineRange = document.getElementById('lineRange');
+    const notice = document.getElementById('notice');
+    const webview = window.chrome && window.chrome.webview;
+
+    let recipes = [];
+    let latest = null;
+    let activeFocus = 'all';
+    let noticeTimer = 0;
+
+    const sample = {
+      Recipe: { Name: 'White layer cake', NameZh: 'white', BatchSize: 12, TargetSpecificGravity: 0.82 },
+      ReactorOnline: false,
+      ReactorMode: 'Offline',
+      ReactorElectricMW: 0,
+      PowerDemandMW: 23.4,
+      PowerAvailability: 0,
+      PowerStatus: 'Waiting for nuclear reactor generation',
+      StageKey: 'Idle',
+      StageName: 'Idle',
+      StageProgress: 0,
+      MixerSpecificGravity: 1.00,
+      OvenTemperatureC: 24,
+      ProductInternalC: 22,
+      QualityScore: 96,
+      SanitationScore: 94,
+      HaccpStatus: 'Waiting for power',
+      CipActive: false,
+      CipProgress: 1,
+      CanStartBatch: false,
+      StageReadyForOperator: false,
+      CanAdvanceStage: false,
+      OperatorPrompt: 'Waiting for reactor bus.',
+      MissingIngredients: '',
+      CanHarvest: false,
+      CanHarvestFeedCrops: false,
+      CanHarvestCocoa: false,
+      CanCollectDairy: false,
+      CanPasteurizeMilk: false,
+      CanMixDairyRation: false,
+      CanWashDairyParlor: false,
+      CanGetCowFromPetStore: false,
+      CanWashPoultryHouse: false,
+      CanMillWheat: false,
+      CanRefineSugar: false,
+      CanChurnButter: false,
+      CanExtractVanilla: false,
+      CanReceiveSupplies: false,
+      CanOrderSupplyDelivery: false,
+      CanUnloadSupplyDelivery: false,
+      SupplyTruckEnRoute: false,
+      SupplyTruckArrived: false,
+      SupplyTruckEtaSeconds: 0,
+      SupplyOrderCost: 260,
+      InboundSupplyManifestId: '',
+      SupplyOrderStatus: 'No supplier delivery scheduled.',
+      CanProcessCocoa: false,
+      CanRunSaltWorks: false,
+      CanRunStarchPlant: false,
+      CanRunBakingSodaPlant: false,
+      CanRunLeaveningPlant: false,
+      CanRunPackagingPlant: false,
+      CanPrepareIcing: false,
+      CanRunFeedMill: false,
+      CanRunCompostPlant: false,
+      CanRunBeddingPlant: false,
+      CanRunMineralPlant: false,
+      CanReleaseLabLot: false,
+      CanStageBatchKit: false,
+      WheatGrowth: 64,
+      BeetGrowth: 58,
+      PastureHealth: 76,
+      VanillaGrowth: 34,
+      CocoaGrowth: 52,
+      DairyReadyL: 18,
+      EggsReady: 42,
+      DairyCowCount: 18,
+      LactatingCowCount: 14,
+      LayingHenCount: 72,
+      CowComfort: 82,
+      AverageLactationDays: 142,
+      DryMatterIntakeKgPerCowDay: 21.4,
+      RumenPh: 6.32,
+      BodyConditionScore: 3.18,
+      MilkUreaNitrogenMgDl: 12.6,
+      MilkProductionLPerHour: 15.5,
+      MilkParlorThroughputLPerHour: 720,
+      MilkSourceStatus: 'Milk comes from the lactating cow herd after feed, water, pasture and powered milking.',
+      CowPickupActive: false,
+      GuestCowActive: false,
+      CowPickupEtaSeconds: 0,
+      GuestCowSecondsRemaining: 0,
+      GuestCowTagId: '',
+      CowAcquisitionStatus: 'Pet-store livestock counter idle: reserve one cow, inspect/transport it, care for it in the barn, then release it back into the wild after 1 hour.',
+      BulkMilkTankC: 3.6,
+      BulkTankAgitationRpm: 36,
+      BulkTankCoolingLoadKw: 0.8,
+      MilkBacteriaCfuPerMl: 8500,
+      MilkSomaticCellCountKPerMl: 145,
+      MilkFatPct: 3.8,
+      MilkProteinPct: 3.25,
+      MilkingVacuumKPa: 42,
+      MilkQaStatus: 'Raw milk QA in spec',
+      EggProductionPerHour: 2.5,
+      HenHouseHygienePct: 86,
+      PoultryManureKg: 95,
+      EggShellQualityPct: 94,
+      EggWasherTemperatureC: 41,
+      EggSourceStatus: 'Eggs come from laying hens after feed, water, bedding, nest labor and egg-room grading.',
+      EggQaStatus: 'Egg QA in spec',
+      ForageKg: 260,
+      GrainKg: 180,
+      DairyMineralKg: 35,
+      MixedRationKg: 90,
+      BeddingKg: 160,
+      BarnLaborHours: 32,
+      ManureKg: 240,
+      DairyParlorHygienePct: 88,
+      RationEnergyPct: 94,
+      RationProteinPct: 92,
+      RationStatus: 'Total mixed ration TMR-OPENING loaded for the lactating cow herd.',
+      FeedCropStatus: 'Feed crop header idle: pasture and feed-grain lots can be harvested for the TMR mixer.',
+      CocoaGreenhouseStatus: 'Cocoa greenhouse idle: cacao pods are growing under irrigation, fertilizer and shade-house controls.',
+      ForageLotId: 'FORAGE-OPENING',
+      GrainLotId: 'GRAIN-OPENING',
+      MixedRationLotId: 'TMR-OPENING',
+      DairyMineralLotId: 'DAIRYMIN-OPENING',
+      BeddingLotId: 'BEDDING-OPENING',
+      TraceabilityStatus: 'Opening audited lots loaded for farm, dairy, ingredient and packaging inventory.',
+      TraceabilityScorePct: 100,
+      LastSupplyManifestId: 'RCV-OPENING-2400',
+      CurrentBatchLotId: '',
+      CurrentBatchTrace: 'No batch has been started.',
+      BatchKitStaged: false,
+      BatchKitLotId: '',
+      BatchKitStatus: 'No staged batch kit.',
+      BatchKitMassKg: 0,
+      ForkliftBatteryPct: 88,
+      WarehousePalletSpacePct: 62,
+      WarehouseStatus: 'Warehouse ready: no staged kit on the line.',
+      IngredientLabStatus: 'Factory QA lab released opening ingredient lots.',
+      PendingLabLotId: '',
+      PendingLabProductName: '',
+      PendingLabQualityPct: 0,
+      WheatLotId: 'WHEAT-OPENING',
+      SugarCropLotId: 'SUGARCROP-OPENING',
+      VanillaBeanLotId: 'VANILLABEAN-OPENING',
+      VanillaLotId: 'VANILLA-OPENING',
+      RawMilkLotId: 'RAWMILK-OPENING',
+      MilkLotId: 'MILK-OPENING',
+      EggLotId: 'EGG-OPENING',
+      FlourLotId: 'FLOUR-OPENING',
+      SugarLotId: 'SUGAR-OPENING',
+      ButterLotId: 'BUTTER-OPENING',
+      CocoaBeansLotId: 'COCOA-BEAN-OPENING',
+      CocoaLotId: 'COCOA-OPENING',
+      BrineLotId: 'BRINE-OPENING',
+      SaltLotId: 'SALT-OPENING',
+      StarchLotId: 'STARCH-OPENING',
+      BakingSodaLotId: 'BAKESODA-OPENING',
+      LeaveningLotId: 'LEAVEN-OPENING',
+      PackagingLotId: 'PACK-OPENING',
+      IcingLotId: 'ICING-OPENING',
+      FeedLotId: 'FEED-OPENING',
+      FertilizerLotId: 'FERT-OPENING',
+      StrawLotId: 'STRAW-OPENING',
+      LimestoneLotId: 'LIMESTONE-OPENING',
+      TraceMineralLotId: 'TRACE-MIN-OPENING',
+      SodaAshLotId: 'SODA-OPENING',
+      PhosphateLotId: 'PHOSPHATE-OPENING',
+      WheatKg: 260,
+      WheatMoisturePct: 12.7,
+      WheatForeignMaterialPct: 0.8,
+      WheatProteinPct: 8.4,
+      SugarCropKg: 380,
+      SugarCropSugarPct: 16.8,
+      SugarCropSoilTarePct: 2.4,
+      FlourKg: 120,
+      SugarKg: 92,
+      Eggs: 240,
+      RawMilkL: 90,
+      MilkL: 140,
+      ButterKg: 28,
+      BakingPowderKg: 14,
+      SaltKg: 18,
+      VanillaL: 2.8,
+      VanillaBeansKg: 9.5,
+      CocoaBeansKg: 60,
+      CocoaKg: 20,
+      CocoaBeanMoisturePct: 6.8,
+      CocoaFermentationPct: 91,
+      BrineL: 900,
+      SodaAshKg: 28,
+      BakingSodaKg: 22,
+      PhosphateKg: 30,
+      SodaAshAssayPct: 99.2,
+      BakingSodaPurityPct: 99.3,
+      BakingSodaMoisturePct: 0.22,
+      PhosphateAcidValuePct: 98.4,
+      StarchKg: 24,
+      StrawKg: 170,
+      ForageMoisturePct: 13.8,
+      FeedGrainMoisturePct: 12.4,
+      LimestoneKg: 46,
+      TraceMineralKg: 22,
+      WheatSeedKg: 18,
+      BeetSeedKg: 16,
+      IrrigationWaterL: 16000,
+      FertilizerKg: 120,
+      AnimalFeedKg: 420,
+      PackagingUnits: 160,
+      PaperboardKg: 96,
+      LabelStockM: 360,
+      PackagingInkL: 8.5,
+      AdhesiveKg: 18,
+      IcingKg: 8,
+      ResourceStatus: 'Inputs stocked',
+      ProcessWaterL: 6000,
+      CulinarySteamKg: 2600,
+      CompressedAirNm3: 900,
+      FilterMediaPct: 100,
+      FactoryUtilityStatus: 'Utilities ready',
+      CanRunUtilityPlant: false,
+      UtilityPlantActive: false,
+      UtilityPlantPhase: '',
+      UtilityPlantProgress: 0,
+      UtilityPlantPowerMW: 0,
+      UtilityPlantSecondsRemaining: 0,
+      UtilityPlantStatus: 'Utility plant idle: RO skid, clean-steam boiler and compressor stand ready.',
+      ProcessWaterConductivityUsCm: 0.35,
+      BoilerPressureBar: 3.2,
+      AirHeaderPressureBar: 6.6,
+      FactoryStatus: 'Ingredient factories idle.',
+      FactoryRunActive: false,
+      ActiveFactoryName: '',
+      ActiveFactoryPhase: '',
+      FactoryProgress: 0,
+      FactoryRunPowerMW: 0,
+      FactoryRunSecondsRemaining: 0,
+      FactoryRunQualityPct: 100,
+      CanServiceFactories: false,
+      CanHaulByproducts: false,
+      CanTreatFactoryEffluent: false,
+      FactoryMaintenanceStatus: 'Preventive maintenance normal: all ingredient plants within limits.',
+      WasteHandlingStatus: 'Byproduct bins and effluent equalization tank ready.',
+      BranKg: 34,
+      BeetPulpKg: 52,
+      MolassesKg: 12,
+      SkimMilkL: 24,
+      ButtermilkL: 18,
+      VanillaPomaceKg: 2,
+      CocoaShellKg: 6,
+      CocoaButterKg: 3,
+      BrineBlowdownL: 80,
+      LeaveningDustKg: 1.2,
+      PackagingTrimKg: 1.5,
+      FactoryEffluentL: 360,
+      ByproductStoragePct: 0,
+      EffluentTankPct: 0,
+      ActiveFactoryConditionPct: 90,
+      ActiveFactoryCalibrationPct: 94,
+      ActiveFactoryBearingTemperatureC: 38,
+      ActiveFactoryVibrationMmS: 1.9,
+      MillConditionPct: 93,
+      MillCalibrationPct: 96,
+      SugarConditionPct: 91,
+      SugarCalibrationPct: 94,
+      MilkConditionPct: 94,
+      MilkCalibrationPct: 96,
+      ButterConditionPct: 95,
+      ButterCalibrationPct: 97,
+      VanillaConditionPct: 92,
+      VanillaCalibrationPct: 95,
+      CocoaConditionPct: 90,
+      CocoaCalibrationPct: 95,
+      SaltConditionPct: 92,
+      SaltCalibrationPct: 93,
+      StarchConditionPct: 92,
+      StarchCalibrationPct: 95,
+      SodaConditionPct: 92,
+      SodaCalibrationPct: 95,
+      LeaveningConditionPct: 94,
+      LeaveningCalibrationPct: 96,
+      PackagingConditionPct: 91,
+      PackagingCalibrationPct: 94,
+      IcingConditionPct: 92,
+      IcingCalibrationPct: 95,
+      FeedConditionPct: 93,
+      FeedCalibrationPct: 96,
+      MillRollGapMm: 0.32,
+      FlourExtractionPct: 76,
+      WheatTemperMoisturePct: 13.0,
+      MillSifterLoadPct: 0,
+      FlourMoisturePct: 13.1,
+      FlourAshPct: 0.42,
+      FlourProteinPct: 8.1,
+      SugarJuiceBrix: 0,
+      SugarEvaporatorTemperatureC: 24,
+      SugarJuicePurityPct: 88,
+      SugarLimePh: 8.3,
+      SugarPanVacuumKPa: 0,
+      SugarCentrifugeRpm: 0,
+      SugarMoisturePct: 0.05,
+      SugarColorIcumsa: 45,
+      SugarPolarizationPct: 99.8,
+      MilkPasteurizerTemperatureC: 4,
+      MilkHomogenizerPressureBar: 0,
+      MilkPasteurizationHoldSeconds: 0,
+      MilkMicroLogReduction: 0,
+      CreamSeparatorRpm: 0,
+      CreamYieldL: 0,
+      CreamFatPct: 38,
+      CreamPasteurizerTemperatureC: 4,
+      CreamPasteurizationHoldSeconds: 0,
+      ButterChurnTemperatureC: 10,
+      ButterFatPct: 0,
+      ButterMoisturePct: 16,
+      ButterSaltPct: 0.05,
+      ButterWorkingPressureKPa: 0,
+      VanillaExtractorTemperatureC: 24,
+      VanillaExtractStrengthPct: 0,
+      CocoaRoasterTemperatureC: 24,
+      CocoaRoasterAirflowM3Min: 0,
+      CocoaRoastDevelopmentPct: 0,
+      CocoaWinnowerEfficiencyPct: 0,
+      CocoaNibYieldPct: 0,
+      CocoaPressPressureBar: 0,
+      CocoaGrindMicrons: 0,
+      CocoaPowderFatPct: 11,
+      CocoaPowderMoisturePct: 4.2,
+      BrineSalinityPct: 2.6,
+      BrineHardnessPpm: 420,
+      BrineTurbidityNtu: 12,
+      BrineClarifierTurbidityNtu: 12,
+      SaltEvaporatorVacuumKPa: 0,
+      SaltCrystallizerTemperatureC: 24,
+      SaltCentrifugeRpm: 0,
+      SaltDryerTemperatureC: 24,
+      SaltMoisturePct: 0.18,
+      SaltPurityPct: 99.2,
+      SaltScreenPassingPct: 96,
+      StarchSlurryBrix: 0,
+      StarchDryerTemperatureC: 24,
+      StarchMoisturePct: 12.5,
+      SodaCarbonationPressureBar: 0,
+      SodaReactorTemperatureC: 24,
+      SodaCentrifugeRpm: 0,
+      LeaveningMixerRpm: 0,
+      LeaveningHomogeneityPct: 0,
+      LeaveningBlendMoisturePct: 2.8,
+      LeaveningSifterLoadPct: 0,
+      LeaveningDustCollectorPressurePa: 160,
+      CartonFormerSpeedCpm: 0,
+      CartonBoardCaliperMm: 0.42,
+      CartonBoardMoisturePct: 6.4,
+      CartonDieCutWastePct: 0,
+      LabelWebTensionN: 0,
+      PrintRegistrationMm: 0.18,
+      GluePotTemperatureC: 24,
+      GlueBeadGPerCarton: 0,
+      CaseCodeReadRatePct: 100,
+      IcingPrepActive: false,
+      IcingPrepPhase: '',
+      IcingPrepProgress: 0,
+      IcingPrepPowerMW: 0,
+      IcingPrepSecondsRemaining: 0,
+      IcingPrepStatus: 'Icing kitchen idle: 8.0 kg prepared icing in lot ICING-OPENING.',
+      IcingMixerRpm: 0,
+      IcingTemperatureC: 22,
+      IcingViscosityPaS: 7.8,
+      FeedMillHammerRpm: 0,
+      FeedPelletTemperatureC: 24,
+      FeedMoisturePct: 11.5,
+      FertilizerConditionPct: 90,
+      FertilizerCalibrationPct: 94,
+      CompostTemperatureC: 32,
+      CompostMoisturePct: 42,
+      CompostAerationPct: 78,
+      BeddingConditionPct: 92,
+      BeddingCalibrationPct: 95,
+      BeddingChopperRpm: 0,
+      BeddingMoisturePct: 11.8,
+      BeddingDustPct: 3.2,
+      MineralConditionPct: 94,
+      MineralCalibrationPct: 96,
+      MineralMixerRpm: 0,
+      MineralHomogeneityPct: 96,
+      MineralMetalPpm: 12,
+      BatterKg: 0,
+      CakesBaked: 0,
+      CakesPacked: 0,
+      CakesRejected: 0,
+      FinishedGoodsCakes: 0,
+      OrdersFulfilled: 0,
+      CurrentOrderId: 'ORD-005100',
+      OrderCakesRequired: 12,
+      OrderCakesReady: 0,
+      OrderSecondsRemaining: 420,
+      OrderReward: 240,
+      CashBalance: 500,
+      ReputationPct: 84,
+      OrderStatus: 'Order ORD-005100 waiting for 12 packed cakes.',
+      CanDispatchOrder: false,
+      DispatchTruckChargePct: 76,
+      DispatchColdChainC: 4.2,
+      WasteKg: 0,
+      ConveyorPhase: 0,
+      MixerAngle: 0,
+      TractorPhase: 0,
+      OvenGlow: 0
+    };
+
+    function post(message) {
+      if (webview) webview.postMessage(message);
+    }
+
+    function receive(message) {
+      if (typeof message === 'string') {
+        try { message = JSON.parse(message); } catch { return; }
+      }
+      if (!message || !message.type) return;
+
+      if (message.type === 'init') {
+        recipes = Array.isArray(message.recipes) ? message.recipes : [];
+        renderRecipes();
+      } else if (message.type === 'snapshot') {
+        latest = message.snapshot || null;
+        if (latest) {
+          latest.StageKey = message.stageKey || latest.StageKey || 'Idle';
+          latest.RecipeIndex = message.recipeIndex ?? 0;
+          latest.FarmIntensity = message.farmIntensity ?? 0;
+          latest.LineSpeed = message.lineSpeed ?? 0;
+          latest.CleanEnabled = !!message.cleanEnabled;
+          latest.BakeryKeyId = message.bakeryKeyId || '';
+          latest.CakeFileCount = message.cakeFileCount || 0;
+          latest.LatestCakeId = message.latestCakeId || '';
+          latest.LatestCakeFile = message.latestCakeFile || '';
+          latest.LatestCakeValid = !!message.latestCakeValid;
+          latest.LatestCakeStatus = message.latestCakeStatus || 'No cake file is ready.';
+        }
+        updateUi();
+      } else if (message.type === 'notice') {
+        showNotice(message.severity || 'info', message.title || '', message.message || '');
+      }
+    }
+
+    function renderRecipes() {
+      recipeSelect.innerHTML = '';
+      recipes.forEach(r => {
+        const option = document.createElement('option');
+        option.value = String(r.index);
+        option.textContent = `${r.Name} / ${r.NameZh}`;
+        recipeSelect.appendChild(option);
+      });
+      updateUi();
+    }
+
+    function showNotice(severity, title, message) {
+      notice.className = `notice show ${severity}`;
+      notice.textContent = title ? `${title}: ${message}` : message;
+      window.clearTimeout(noticeTimer);
+      noticeTimer = window.setTimeout(() => notice.className = 'notice', 5200);
+    }
+
+    function pct(value, max = 100) {
+      return Math.max(0, Math.min(100, (Number(value) || 0) / max * 100));
+    }
+
+    function n(value, digits = 0) {
+      return (Number(value) || 0).toFixed(digits);
+    }
+
+    function setText(id, value) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = value;
+    }
+
+    function setFill(id, value) {
+      const el = document.getElementById(id);
+      if (el) el.style.width = `${Math.max(0, Math.min(100, value))}%`;
+    }
+
+    function setButton(action, enabled) {
+      const button = document.querySelector(`[data-action="${action}"]`);
+      if (button) button.disabled = !enabled;
+    }
+
+    function updateUi() {
+      const s = latest || sample;
+      const selected = latest ? latest.RecipeIndex : 0;
+      if (recipeSelect.options.length && recipeSelect.value !== String(selected)) {
+        recipeSelect.value = String(selected);
+      }
+
+      if (document.activeElement !== farmRange) farmRange.value = String(Math.round((s.FarmIntensity ?? 0.78) * 100));
+      if (document.activeElement !== lineRange) lineRange.value = String(Math.round((s.LineSpeed ?? 0.72) * 100));
+      setText('farmValue', `${farmRange.value}%`);
+      setText('lineValue', `${lineRange.value}%`);
+
+      document.getElementById('busLamp').classList.toggle('on', !!s.ReactorOnline && s.PowerAvailability > 0.2);
+      setText('busText', s.PowerStatus || 'Waiting for bus');
+      setText('subtitle', `${s.ReactorMode || 'Offline'} bus · ${n(s.ReactorElectricMW, 1)} MWe · ${n(s.PowerDemandMW, 1)} MW load`);
+      setText('recipeSize', `${s.Recipe?.BatchSize || 0} cakes`);
+      setText('gateState', s.StageReadyForOperator ? 'Release' : 'Manual');
+      setText('prompt', s.OperatorPrompt || '');
+      setText('haccpText', s.HaccpStatus || '');
+      setText('missingText', s.MissingIngredients ? 'Missing' : 'Ready');
+      setText('resourceText', s.ResourceStatus || 'Inputs');
+      setText('factoryText', s.FactoryStatus || 'Factories idle');
+      setText('cakeFileCount', `${s.CakeFileCount || 0} files`);
+      setText('bakeryKey', s.BakeryKeyId || '-');
+      setText('latestCake', s.LatestCakeId || 'No cake file');
+      setText('cakeFileStatus', s.LatestCakeStatus || 'No cake file is ready.');
+
+      setText('loadMetric', `${n(s.PowerDemandMW, 1)} MW`);
+      setText('mweMetric', n(s.ReactorElectricMW, 1));
+      setText('gravityMetric', n(s.MixerSpecificGravity, 2));
+      setText('wasteMetric', `${n(s.WasteKg, 1)} kg`);
+
+      setText('roPower', `${n(s.PowerAvailability * 100, 0)}%`);
+      setText('roStage', s.StageReadyForOperator ? `${s.StageName} hold` : s.StageName);
+      setText('roOven', `${n(s.OvenTemperatureC, 0)} degC`);
+      setText('roQuality', `${n(s.QualityScore, 0)}%`);
+      setText('roSanitation', `${n(s.SanitationScore, 0)}%`);
+      setText('roPacked', `${s.CakesPacked || 0}`);
+
+      setFill('stageFill', pct(s.StageProgress, 1));
+      setFill('coreFill', pct(s.ProductInternalC, 100));
+      setFill('cipFill', s.CipActive ? pct(s.CipProgress, 1) : pct(s.SanitationScore));
+
+      setButton('harvest', s.CanHarvest);
+      setButton('harvestFeedCrops', s.CanHarvestFeedCrops);
+      setButton('harvestCocoa', s.CanHarvestCocoa);
+      setButton('collect', s.CanCollectDairy);
+      setButton('getCowFromPetStore', s.CanGetCowFromPetStore);
+      setButton('pasteurizeMilk', s.CanPasteurizeMilk);
+      setButton('mixDairyRation', s.CanMixDairyRation);
+      setButton('washDairyParlor', s.CanWashDairyParlor);
+      setButton('washPoultryHouse', s.CanWashPoultryHouse);
+      setButton('mill', s.CanMillWheat);
+      setButton('refine', s.CanRefineSugar);
+      setButton('churn', s.CanChurnButter);
+      setButton('extractVanilla', s.CanExtractVanilla);
+      setButton('receiveSupplies', s.CanReceiveSupplies);
+      setButton('orderSupplyDelivery', s.CanOrderSupplyDelivery);
+      setButton('unloadSupplyDelivery', s.CanUnloadSupplyDelivery);
+      setButton('runUtilityPlant', s.CanRunUtilityPlant);
+      setButton('runFeedMill', s.CanRunFeedMill);
+      setButton('runCompostPlant', s.CanRunCompostPlant);
+      setButton('runBeddingPlant', s.CanRunBeddingPlant);
+      setButton('runMineralPlant', s.CanRunMineralPlant);
+      setButton('processCocoa', s.CanProcessCocoa);
+      setButton('runSaltWorks', s.CanRunSaltWorks);
+      setButton('runStarchPlant', s.CanRunStarchPlant);
+      setButton('runBakingSodaPlant', s.CanRunBakingSodaPlant);
+      setButton('runLeaveningPlant', s.CanRunLeaveningPlant);
+      setButton('runPackagingPlant', s.CanRunPackagingPlant);
+      setButton('prepareIcing', s.CanPrepareIcing);
+      setButton('releaseLabLot', s.CanReleaseLabLot);
+      setButton('serviceFactories', s.CanServiceFactories);
+      setButton('haulByproducts', s.CanHaulByproducts);
+      setButton('treatEffluent', s.CanTreatFactoryEffluent);
+      setButton('stageBatchKit', s.CanStageBatchKit);
+      setButton('startBatch', s.CanStartBatch);
+      setButton('advance', s.CanAdvanceStage);
+      setButton('clean', s.CleanEnabled);
+      setButton('dispatchOrder', s.CanDispatchOrder);
+      setButton('trustCakeKey', (s.CakeFileCount || 0) > 0);
+      setButton('validateCake', (s.CakeFileCount || 0) > 0);
+      setButton('eatCake', (s.CakeFileCount || 0) > 0 && !!s.LatestCakeValid);
+      setButton('openCakeFolder', true);
+
+      const rows = [
+        ['Cake flour', `${n(s.FlourKg, 1)} kg`],
+        ['Sugar', `${n(s.SugarKg, 1)} kg`],
+        ['Eggs', `${n(s.Eggs, 0)}`],
+        ['Raw milk', `${n(s.RawMilkL, 1)} L`],
+        ['Pasteurized milk', `${n(s.MilkL, 1)} L`],
+        ['Butter', `${n(s.ButterKg, 1)} kg`],
+        ['Vanilla', `${n(s.VanillaL, 2)} L`],
+        ['Vanilla beans', `${n(s.VanillaBeansKg, 1)} kg`],
+        ['Cocoa', `${n(s.CocoaKg, 1)} kg`],
+        ['Prepared icing', `${n(s.IcingKg, 1)} kg`],
+        ['Baking powder', `${n(s.BakingPowderKg, 1)} kg`],
+        ['Salt', `${n(s.SaltKg, 1)} kg`],
+        ['Batter in system', `${n(s.BatterKg, 1)} kg`],
+        ['Finished goods', `${s.FinishedGoodsCakes || 0} cakes`],
+        ['Rejects', `${s.CakesRejected || 0}`]
+      ];
+      document.getElementById('inventoryRows').innerHTML =
+        rows.map(([name, value]) => `<tr><td>${name}</td><td>${value}</td></tr>`).join('');
+
+      const resources = [
+        ['Water', `${n(s.IrrigationWaterL, 0)} L`],
+        ['Fertilizer', `${n(s.FertilizerKg, 1)} kg`],
+        ['Fertilizer lot', s.FertilizerLotId || '-'],
+        ['Wheat seed', `${n(s.WheatSeedKg, 1)} kg`],
+        ['Beet seed', `${n(s.BeetSeedKg, 1)} kg`],
+        ['Animal feed', `${n(s.AnimalFeedKg, 1)} kg`],
+        ['Feed lot', s.FeedLotId || '-'],
+        ['Dairy forage', `${n(s.ForageKg, 1)} kg / ${s.ForageLotId || '-'}`],
+        ['Dairy grain', `${n(s.GrainKg, 1)} kg / ${s.GrainLotId || '-'}`],
+        ['Feed crop moisture', `forage ${n(s.ForageMoisturePct, 1)}% / grain ${n(s.FeedGrainMoisturePct, 1)}%`],
+        ['Wheat quality', `${n(s.WheatMoisturePct, 1)}% moisture / ${n(s.WheatForeignMaterialPct, 1)}% FM / ${n(s.WheatProteinPct, 1)}% protein`],
+        ['Sugar crop quality', `${n(s.SugarCropSugarPct, 1)}% sugar / ${n(s.SugarCropSoilTarePct, 1)}% soil tare`],
+        ['Dairy mineral', `${n(s.DairyMineralKg, 1)} kg / ${s.DairyMineralLotId || '-'}`],
+        ['Mineral raws', `lime ${n(s.LimestoneKg, 1)} kg / trace ${n(s.TraceMineralKg, 1)} kg`],
+        ['Mixed ration', `${n(s.MixedRationKg, 1)} kg`],
+        ['Cow source', s.CowAcquisitionStatus || 'Pet-store livestock counter idle'],
+        ['Cow timer', s.CowPickupActive ? `pickup ETA ${n(s.CowPickupEtaSeconds, 0)}s` : (s.GuestCowActive ? `${s.GuestCowTagId || 'guest cow'} release in ${n((s.GuestCowSecondsRemaining || 0) / 60, 1)} min` : 'No guest cow')],
+        ['Raw milk lot', `${n(s.RawMilkL, 1)} L / ${s.RawMilkLotId || '-'}`],
+        ['Pasteurized milk lot', `${n(s.MilkL, 1)} L / ${s.MilkLotId || '-'}`],
+        ['Straw feedstock', `${n(s.StrawKg, 1)} kg / ${s.StrawLotId || '-'}`],
+        ['Bedding lot', `${n(s.BeddingKg, 1)} kg / ${s.BeddingLotId || '-'}`],
+        ['Barn labor', `${n(s.BarnLaborHours, 1)} h`],
+        ['Vanilla beans', `${n(s.VanillaBeansKg, 1)} kg`],
+        ['Cocoa greenhouse', `${n(s.CocoaGrowth, 0)}% mature / ${s.CocoaGreenhouseStatus || 'idle'}`],
+        ['Cocoa beans', `${n(s.CocoaBeansKg, 1)} kg / ${n(s.CocoaFermentationPct, 0)}% ferment / ${n(s.CocoaBeanMoisturePct, 1)}% moisture`],
+        ['Brine', `${n(s.BrineL, 0)} L / ${s.BrineLotId || '-'} / ${n(s.BrineSalinityPct, 1)}%`],
+        ['Soda ash feedstock', `${n(s.SodaAshKg, 1)} kg / ${s.SodaAshLotId || '-'} / ${n(s.SodaAshAssayPct, 1)}% assay`],
+        ['Baking soda', `${n(s.BakingSodaKg, 1)} kg / ${s.BakingSodaLotId || '-'} / ${n(s.BakingSodaPurityPct, 1)}% purity`],
+        ['Phosphate', `${n(s.PhosphateKg, 1)} kg / ${s.PhosphateLotId || '-'} / ${n(s.PhosphateAcidValuePct, 1)}% acid`],
+        ['Starch carrier', `${n(s.StarchKg, 1)} kg / ${s.StarchLotId || '-'}`],
+        ['Process water', `${n(s.ProcessWaterL, 0)} L`],
+        ['Culinary steam', `${n(s.CulinarySteamKg, 0)} kg`],
+        ['Compressed air', `${n(s.CompressedAirNm3, 0)} Nm3`],
+        ['Filter media', `${n(s.FilterMediaPct, 1)}%`],
+        ['Utility plant', s.UtilityPlantActive ? `${s.UtilityPlantPhase || 'running'} / ${n(s.UtilityPlantProgress * 100, 0)}% / ${n(s.UtilityPlantPowerMW, 1)} MW` : (s.UtilityPlantStatus || 'Idle')],
+        ['Byproduct bins', `${n(s.ByproductStoragePct, 0)}%`],
+        ['Effluent tank', `${n(s.EffluentTankPct, 0)}% / ${n(s.FactoryEffluentL, 0)} L`],
+        ['Coded cartons', `${n(s.PackagingUnits, 0)}`],
+        ['Paperboard', `${n(s.PaperboardKg, 1)} kg`],
+        ['Label stock', `${n(s.LabelStockM, 0)} m`],
+        ['Packaging ink', `${n(s.PackagingInkL, 1)} L`],
+        ['Adhesive', `${n(s.AdhesiveKg, 1)} kg`],
+        ['Forklift battery', `${n(s.ForkliftBatteryPct, 0)}%`],
+        ['Pallet space', `${n(s.WarehousePalletSpacePct, 0)}% free`],
+        ['Dispatch truck', `${n(s.DispatchTruckChargePct, 0)}% / ${n(s.DispatchColdChainC, 1)} degC`],
+        ['Trace score', `${n(s.TraceabilityScorePct, 0)}%`],
+        ['Receiving manifest', s.LastSupplyManifestId || '-'],
+        ['Inbound supply', s.SupplyOrderStatus || 'No supplier delivery scheduled'],
+        ['Supplier ETA', s.SupplyTruckEnRoute ? `${s.InboundSupplyManifestId || '-'} / ${s.SupplyTruckArrived ? 'at dock' : `${n(s.SupplyTruckEtaSeconds, 0)}s`} / $${n(s.SupplyOrderCost, 2)}` : 'No truck']
+      ];
+      document.getElementById('resourceRows').innerHTML =
+        resources.map(([name, value]) => `<tr><td>${name}</td><td>${value}</td></tr>`).join('');
+
+      const factories = [
+        ['Active run', s.FactoryRunActive ? s.ActiveFactoryName : 'Idle'],
+        ['Unit operation', s.FactoryRunActive ? s.ActiveFactoryPhase : 'Idle'],
+        ['Run progress', s.FactoryRunActive ? `${n((s.FactoryProgress || 0) * 100, 0)}% / ${n(s.FactoryRunSecondsRemaining, 1)}s` : '0%'],
+        ['Run load', `${n(s.FactoryRunPowerMW, 1)} MW`],
+        ['Process QA', `${n(s.FactoryRunQualityPct, 0)}%`],
+        ['Maintenance', s.FactoryMaintenanceStatus || 'Maintenance normal'],
+        ['Waste handling', s.WasteHandlingStatus || 'Byproducts clear'],
+        ['Byproducts', `bran ${n(s.BranKg, 0)} kg / pulp ${n(s.BeetPulpKg, 0)} kg / molasses ${n(s.MolassesKg, 1)} kg / skim ${n(s.SkimMilkL, 0)} L / buttermilk ${n(s.ButtermilkL, 0)} L`],
+        ['Vanilla pomace', `${n(s.VanillaPomaceKg, 1)} kg`],
+        ['Residual streams', `shell ${n(s.CocoaShellKg, 0)} kg / butter ${n(s.CocoaButterKg, 1)} kg / brine ${n(s.BrineBlowdownL, 0)} L / dust ${n(s.LeaveningDustKg, 1)} kg / trim ${n(s.PackagingTrimKg, 1)} kg`],
+        ['QA lab', s.IngredientLabStatus || 'Factory QA lab ready'],
+        ['Pending lab lot', s.PendingLabLotId ? `${s.PendingLabProductName || 'lot'} ${s.PendingLabLotId} / QA ${n(s.PendingLabQualityPct, 0)}%` : 'None'],
+        ['Traceability', s.TraceabilityStatus || 'Traceability ready'],
+        ['Warehouse', s.WarehouseStatus || 'Warehouse ready'],
+        ['Batch kit', s.BatchKitStaged ? `${s.BatchKitLotId} / ${n(s.BatchKitMassKg, 1)} kg` : (s.BatchKitStatus || 'No staged kit')],
+        ['Batch lot', s.CurrentBatchLotId || 'No active batch lot'],
+        ['Batch trace', s.CurrentBatchTrace || 'No batch trace'],
+        ['Icing kitchen', s.IcingPrepActive ? `${s.IcingPrepPhase || 'running'} / ${n((s.IcingPrepProgress || 0) * 100, 0)}% / ${n(s.IcingPrepSecondsRemaining, 1)}s / ${n(s.IcingPrepPowerMW, 1)} MW` : (s.IcingPrepStatus || 'Idle')],
+        ['Icing texture', `${n(s.IcingMixerRpm, 0)} rpm / ${n(s.IcingTemperatureC, 0)} degC / ${n(s.IcingViscosityPaS, 1)} Pa-s`],
+        ['Icing lot', `${s.IcingLotId || '-'} / ${n(s.IcingKg, 1)} kg`],
+        ['Feed mill', `${n(s.FeedMillHammerRpm, 0)} rpm / ${n(s.FeedPelletTemperatureC, 0)} degC / ${n(s.FeedMoisturePct, 1)}% moisture`],
+        ['Feed lot', `${s.FeedLotId || '-'} / ${n(s.AnimalFeedKg, 1)} kg`],
+        ['Compost plant', `${n(s.CompostTemperatureC, 0)} degC / ${n(s.CompostMoisturePct, 1)}% moisture / ${n(s.CompostAerationPct, 0)}% air`],
+        ['Fertilizer lot', `${s.FertilizerLotId || '-'} / ${n(s.FertilizerKg, 1)} kg`],
+        ['Bedding plant', `${n(s.BeddingChopperRpm, 0)} rpm / ${n(s.BeddingMoisturePct, 1)}% moisture / ${n(s.BeddingDustPct, 1)}% dust`],
+        ['Bedding lot', `${s.BeddingLotId || '-'} / ${n(s.BeddingKg, 1)} kg`],
+        ['Mineral premix plant', `${n(s.MineralMixerRpm, 0)} rpm / ${n(s.MineralHomogeneityPct, 1)}% blend / ${n(s.MineralMetalPpm, 1)} ppm metal`],
+        ['Mineral premix lot', `${s.DairyMineralLotId || '-'} / ${n(s.DairyMineralKg, 1)} kg`],
+        ['Starch plant', `${n(s.StarchSlurryBrix, 1)} Brix / ${n(s.StarchDryerTemperatureC, 0)} degC / ${n(s.StarchMoisturePct, 1)}% moisture`],
+        ['Starch lot', `${s.StarchLotId || '-'} / ${n(s.StarchKg, 1)} kg`],
+        ['Customer order', s.CurrentOrderId || '-'],
+        ['Order status', s.OrderStatus || 'No active order'],
+        ['Order ready', `${s.OrderCakesReady || 0}/${s.OrderCakesRequired || 0} cakes / ${n(s.OrderSecondsRemaining, 0)}s`],
+        ['Finance', `$${n(s.CashBalance, 2)} / rep ${n(s.ReputationPct, 0)}% / ${s.OrdersFulfilled || 0} shipped`],
+        ['Active condition', `${n(s.ActiveFactoryConditionPct, 0)}% / ${n(s.ActiveFactoryCalibrationPct, 0)}% cal`],
+        ['Active vibration', `${n(s.ActiveFactoryVibrationMmS, 1)} mm/s / ${n(s.ActiveFactoryBearingTemperatureC, 0)} degC`],
+        ['Mill asset', `${n(s.MillConditionPct, 0)}% / ${n(s.MillCalibrationPct, 0)}% cal`],
+        ['Sugar asset', `${n(s.SugarConditionPct, 0)}% / ${n(s.SugarCalibrationPct, 0)}% cal`],
+        ['Milk asset', `${n(s.MilkConditionPct, 0)}% / ${n(s.MilkCalibrationPct, 0)}% cal`],
+        ['Butter asset', `${n(s.ButterConditionPct, 0)}% / ${n(s.ButterCalibrationPct, 0)}% cal`],
+        ['Vanilla asset', `${n(s.VanillaConditionPct, 0)}% / ${n(s.VanillaCalibrationPct, 0)}% cal`],
+        ['Cocoa asset', `${n(s.CocoaConditionPct, 0)}% / ${n(s.CocoaCalibrationPct, 0)}% cal`],
+        ['Salt asset', `${n(s.SaltConditionPct, 0)}% / ${n(s.SaltCalibrationPct, 0)}% cal`],
+        ['Starch asset', `${n(s.StarchConditionPct, 0)}% / ${n(s.StarchCalibrationPct, 0)}% cal`],
+        ['Baking soda asset', `${n(s.SodaConditionPct, 0)}% / ${n(s.SodaCalibrationPct, 0)}% cal`],
+        ['Leavening asset', `${n(s.LeaveningConditionPct, 0)}% / ${n(s.LeaveningCalibrationPct, 0)}% cal`],
+        ['Packaging asset', `${n(s.PackagingConditionPct, 0)}% / ${n(s.PackagingCalibrationPct, 0)}% cal`],
+        ['Icing asset', `${n(s.IcingConditionPct, 0)}% / ${n(s.IcingCalibrationPct, 0)}% cal`],
+        ['Feed mill asset', `${n(s.FeedConditionPct, 0)}% / ${n(s.FeedCalibrationPct, 0)}% cal`],
+        ['Compost asset', `${n(s.FertilizerConditionPct, 0)}% / ${n(s.FertilizerCalibrationPct, 0)}% cal`],
+        ['Bedding asset', `${n(s.BeddingConditionPct, 0)}% / ${n(s.BeddingCalibrationPct, 0)}% cal`],
+        ['Mineral asset', `${n(s.MineralConditionPct, 0)}% / ${n(s.MineralCalibrationPct, 0)}% cal`],
+        ['Utilities', s.FactoryUtilityStatus || 'Utilities ready'],
+        ['Utility status', s.UtilityPlantStatus || 'Utility plant idle'],
+        ['RO / boiler / air', `${n(s.ProcessWaterConductivityUsCm, 3)} uS/cm / ${n(s.BoilerPressureBar, 1)} bar / ${n(s.AirHeaderPressureBar, 1)} bar`],
+        ['Milk source', s.MilkSourceStatus || 'Cow dairy idle'],
+        ['Cow acquisition', s.CowAcquisitionStatus || 'Pet-store livestock counter idle'],
+        ['Raw milk QA', s.MilkQaStatus || 'Raw milk QA in spec'],
+        ['Milk pasteurizer', `${n(s.MilkPasteurizerTemperatureC, 1)} degC / ${n(s.MilkPasteurizationHoldSeconds, 1)}s / ${n(s.MilkMicroLogReduction, 1)} log`],
+        ['Homogenizer', `${n(s.MilkHomogenizerPressureBar, 0)} bar`],
+        ['Egg source', s.EggSourceStatus || 'Poultry house idle'],
+        ['Egg QA', s.EggQaStatus || 'Egg QA in spec'],
+        ['Feed crop harvest', s.FeedCropStatus || 'Feed crop header idle'],
+        ['Cocoa greenhouse', s.CocoaGreenhouseStatus || 'Cocoa greenhouse idle'],
+        ['Dairy ration', s.RationStatus || 'No ration mixed'],
+        ['Ration quality', `${n(s.RationEnergyPct, 0)}% energy / ${n(s.RationProteinPct, 0)}% protein`],
+        ['Cow metabolism', `${n(s.DryMatterIntakeKgPerCowDay, 1)} kg DMI / pH ${n(s.RumenPh, 2)} / MUN ${n(s.MilkUreaNitrogenMgDl, 1)}`],
+        ['Lactation + BCS', `${n(s.AverageLactationDays, 0)} DIM / BCS ${n(s.BodyConditionScore, 2)}`],
+        ['Dairy manure + hygiene', `${n(s.ManureKg, 0)} kg / ${n(s.DairyParlorHygienePct, 0)}%`],
+        ['Poultry manure + hygiene', `${n(s.PoultryManureKg, 0)} kg / ${n(s.HenHouseHygienePct, 0)}%`],
+        ['Raw milk lot', s.RawMilkLotId || '-'],
+        ['Pasteurized milk lot', s.MilkLotId || '-'],
+        ['Ration lot', s.MixedRationLotId || '-'],
+        ['Mineral source lot', `${s.DairyMineralLotId || '-'} / lime ${s.LimestoneLotId || '-'} / trace ${s.TraceMineralLotId || '-'} / phosphate ${s.PhosphateLotId || '-'}`],
+        ['Bedding source lot', `${s.BeddingLotId || '-'} / straw ${s.StrawLotId || '-'}`],
+        ['Flour lot', s.FlourLotId || '-'],
+        ['Sugar lot', s.SugarLotId || '-'],
+        ['Butter lot', s.ButterLotId || '-'],
+        ['Vanilla bean lot', s.VanillaBeanLotId || '-'],
+        ['Vanilla lot', s.VanillaLotId || '-'],
+        ['Cocoa beans', `${s.CocoaBeansLotId || '-'} / ${n(s.CocoaBeansKg, 1)} kg`],
+        ['Cocoa lot', s.CocoaLotId || '-'],
+        ['Salt source lot', `${s.BrineLotId || '-'} / ${n(s.BrineHardnessPpm, 0)} ppm / ${n(s.BrineTurbidityNtu, 1)} NTU`],
+        ['Salt lot', s.SaltLotId || '-'],
+        ['Baking soda lot', `${s.BakingSodaLotId || '-'} / soda ash ${s.SodaAshLotId || '-'}`],
+        ['Leavening source lots', `baking soda ${s.BakingSodaLotId || '-'} / phosphate ${s.PhosphateLotId || '-'} / starch ${s.StarchLotId || '-'}`],
+        ['Leavening lot', s.LeaveningLotId || '-'],
+        ['Packaging lot', s.PackagingLotId || '-'],
+        ['Bulk tank', `${n(s.BulkMilkTankC, 1)} degC / ${n(s.BulkTankAgitationRpm, 0)} rpm / ${n(s.BulkTankCoolingLoadKw, 1)} kW`],
+        ['Bulk tank micro', `${n(s.MilkBacteriaCfuPerMl, 0)} CFU / ${n(s.MilkSomaticCellCountKPerMl, 0)}k SCC`],
+        ['Milk solids', `${n(s.MilkFatPct, 2)}% fat / ${n(s.MilkProteinPct, 2)}% protein`],
+        ['Parlor vacuum', `${n(s.MilkingVacuumKPa, 1)} kPa`],
+        ['Cow herd', `${s.LactatingCowCount || 0}/${s.DairyCowCount || 0} lactating`],
+        ['Cow comfort', `${n(s.CowComfort, 0)}%`],
+        ['Milk rate', `${n(s.MilkProductionLPerHour, 1)} L/h`],
+        ['Parlor capacity', `${n(s.MilkParlorThroughputLPerHour, 0)} L/h`],
+        ['Hen flock', `${s.LayingHenCount || 0} hens / ${n(s.EggProductionPerHour, 1)} eggs/h`],
+        ['Egg grading', `${n(s.EggShellQualityPct, 0)}% shell / ${n(s.EggWasherTemperatureC, 1)} degC`],
+        ['Mill gap', `${n(s.MillRollGapMm, 2)} mm / ${n(s.FlourExtractionPct, 1)}% extraction / ${n(s.MillSifterLoadPct, 0)}% sifter`],
+        ['Wheat temper', `${n(s.WheatTemperMoisturePct, 1)}% moisture / raw ${n(s.WheatMoisturePct, 1)}%`],
+        ['Flour spec', `${n(s.FlourMoisturePct, 1)}% moisture / ${n(s.FlourAshPct, 2)}% ash / ${n(s.FlourProteinPct, 1)}% protein`],
+        ['Sugar juice', `${n(s.SugarJuiceBrix, 1)} Brix / ${n(s.SugarJuicePurityPct, 1)}% purity / pH ${n(s.SugarLimePh, 2)}`],
+        ['Sugar pan', `${n(s.SugarEvaporatorTemperatureC, 0)} degC / ${n(s.SugarPanVacuumKPa, 0)} kPa / ${n(s.SugarCentrifugeRpm, 0)} rpm`],
+        ['Sugar spec', `${n(s.SugarMoisturePct, 3)}% moisture / ${n(s.SugarColorIcumsa, 0)} ICUMSA / ${n(s.SugarPolarizationPct, 2)}% pol`],
+        ['Cream separator', `${n(s.CreamSeparatorRpm, 0)} rpm / ${n(s.CreamYieldL, 1)} L / ${n(s.CreamFatPct, 1)}% fat`],
+        ['Cream pasteurizer', `${n(s.CreamPasteurizerTemperatureC, 1)} degC / ${n(s.CreamPasteurizationHoldSeconds, 1)}s hold`],
+        ['Butter churn', `${n(s.ButterChurnTemperatureC, 1)} degC / ${n(s.ButterFatPct, 1)}% fat / ${n(s.ButterMoisturePct, 1)}% moisture`],
+        ['Butter work', `${n(s.ButterWorkingPressureKPa, 0)} kPa / ${n(s.ButterSaltPct, 2)}% salt`],
+        ['Vanilla extraction', `${n(s.VanillaExtractorTemperatureC, 0)} degC / ${n(s.VanillaExtractStrengthPct, 0)}% strength`],
+        ['Cocoa roast', `${n(s.CocoaRoasterTemperatureC, 0)} degC / ${n(s.CocoaRoasterAirflowM3Min, 1)} m3/min / ${n(s.CocoaRoastDevelopmentPct, 0)}% dev`],
+        ['Cocoa winnow', `${n(s.CocoaWinnowerEfficiencyPct, 1)}% efficient / ${n(s.CocoaNibYieldPct, 1)}% nib yield`],
+        ['Cocoa press', `${n(s.CocoaPressPressureBar, 0)} bar / fat ${n(s.CocoaPowderFatPct, 1)}%`],
+        ['Cocoa powder', `${n(s.CocoaGrindMicrons, 0)} micron / ${n(s.CocoaPowderMoisturePct, 1)}% moisture`],
+        ['Brine clarifier', `${n(s.BrineTurbidityNtu, 1)} -> ${n(s.BrineClarifierTurbidityNtu, 1)} NTU / ${n(s.BrineHardnessPpm, 0)} ppm`],
+        ['Salt evaporator', `${n(s.SaltEvaporatorVacuumKPa, 0)} kPa / ${n(s.SaltCrystallizerTemperatureC, 0)} degC`],
+        ['Salt centrifuge', `${n(s.SaltCentrifugeRpm, 0)} rpm / dryer ${n(s.SaltDryerTemperatureC, 0)} degC`],
+        ['Salt spec', `${n(s.SaltPurityPct, 2)}% purity / ${n(s.SaltMoisturePct, 3)}% moisture / ${n(s.SaltScreenPassingPct, 1)}% screen`],
+        ['Starch plant', `${n(s.StarchSlurryBrix, 1)} Brix / ${n(s.StarchDryerTemperatureC, 0)} degC / ${n(s.StarchMoisturePct, 1)}%`],
+        ['Baking soda reactor', `${n(s.SodaCarbonationPressureBar, 2)} bar / ${n(s.SodaReactorTemperatureC, 1)} degC / ${n(s.SodaCentrifugeRpm, 0)} rpm`],
+        ['Baking soda spec', `${n(s.BakingSodaPurityPct, 2)}% purity / ${n(s.BakingSodaMoisturePct, 2)}% moisture`],
+        ['Leavening assay', `${n(s.BakingSodaPurityPct, 1)}% soda / ${n(s.PhosphateAcidValuePct, 1)}% acid`],
+        ['Leavening blend', `${n(s.LeaveningMixerRpm, 0)} rpm / ${n(s.LeaveningHomogeneityPct, 1)}% / ${n(s.LeaveningBlendMoisturePct, 1)}% moisture`],
+        ['Leavening sifter', `${n(s.LeaveningSifterLoadPct, 0)}% load / ${n(s.LeaveningDustCollectorPressurePa, 0)} Pa dust`],
+        ['Packaging board', `${n(s.CartonBoardCaliperMm, 3)} mm / ${n(s.CartonBoardMoisturePct, 1)}% moisture / ${n(s.CartonDieCutWastePct, 1)}% trim`],
+        ['Packaging web', `${n(s.CartonFormerSpeedCpm, 0)} cpm / ${n(s.LabelWebTensionN, 0)} N / reg ${n(s.PrintRegistrationMm, 2)} mm`],
+        ['Packaging glue', `${n(s.GluePotTemperatureC, 0)} degC / ${n(s.GlueBeadGPerCarton, 2)} g/carton`],
+        ['Packaging code QA', `${n(s.CaseCodeReadRatePct, 1)}% vision read`]
+      ];
+      document.getElementById('factoryRows').innerHTML =
+        factories.map(([name, value]) => `<tr><td>${name}</td><td title="${String(value).replace(/"/g, '&quot;')}">${value}</td></tr>`).join('');
+    }
+
+    recipeSelect.addEventListener('change', () => {
+      post({ type: 'cake', action: 'recipe', index: Number(recipeSelect.value) });
+    });
+
+    farmRange.addEventListener('input', () => {
+      setText('farmValue', `${farmRange.value}%`);
+      post({ type: 'cake', action: 'farmIntensity', value: Number(farmRange.value) / 100 });
+    });
+
+    lineRange.addEventListener('input', () => {
+      setText('lineValue', `${lineRange.value}%`);
+      post({ type: 'cake', action: 'lineSpeed', value: Number(lineRange.value) / 100 });
+    });
+
+    document.querySelectorAll('[data-action]').forEach(button => {
+      button.addEventListener('click', () => post({ type: 'cake', action: button.dataset.action }));
+    });
+
+    document.getElementById('openReactor').addEventListener('click', () => {
+      post({ type: 'cake', action: 'openReactor' });
+    });
+
+    document.querySelectorAll('.station-rail button').forEach(button => {
+      button.addEventListener('click', () => {
+        activeFocus = button.dataset.focus || 'all';
+        document.querySelectorAll('.station-rail button').forEach(b => b.classList.toggle('active', b === button));
+      });
+    });
+
+    function fitCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      const width = Math.max(1, Math.floor(rect.width * dpr));
+      const height = Math.max(1, Math.floor(rect.height * dpr));
+      if (canvas.width !== width || canvas.height !== height) {
+        canvas.width = width;
+        canvas.height = height;
+      }
+      const sx = rect.width / LOGICAL_W;
+      const sy = rect.height / LOGICAL_H;
+      ctx.setTransform(dpr * sx, 0, 0, dpr * sy, 0, 0);
+    }
+
+    function rr(x, y, w, h, r, fill, stroke) {
+      ctx.beginPath();
+      ctx.roundRect(x, y, w, h, r);
+      if (fill) {
+        ctx.fillStyle = fill;
+        ctx.fill();
+      }
+      if (stroke) {
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+    }
+
+    function line(x1, y1, x2, y2, color, width = 2, alpha = 1) {
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function text(value, x, y, size = 14, color = '#f4eee4', weight = 600, align = 'left') {
+      ctx.fillStyle = color;
+      ctx.font = `${weight} ${size}px Segoe UI, sans-serif`;
+      ctx.textAlign = align;
+      ctx.fillText(value, x, y);
+    }
+
+    function drawField(x, y, w, h, soil, crop, growth, label) {
+      rr(x, y, w, h, 10, soil, '#65523e');
+      for (let i = 0; i < 8; i++) {
+        const yy = y + 20 + i * 16;
+        line(x + 16, yy, x + w - 16, yy, '#46382b', 4, 0.75);
+        line(x + 18, yy - 3, x + 18 + (w - 36) * pct(growth) / 100, yy - 3, crop, 6, 0.35 + pct(growth) / 180);
+      }
+      text(`${label} ${n(growth, 0)}%`, x + 16, y + h - 16, 15, '#fff1d0');
+    }
+
+    function drawGauge(x, y, value, label, color) {
+      rr(x, y, 154, 56, 8, '#211f1b', '#4d463c');
+      text(label, x + 12, y + 20, 12, '#c9beb0', 700);
+      rr(x + 12, y + 34, 130, 8, 99, '#151413');
+      rr(x + 12, y + 34, 130 * pct(value) / 100, 8, 99, color);
+      text(`${n(value, 0)}%`, x + 142, y + 22, 14, '#f4eee4', 700, 'right');
+    }
+
+    function drawPowerBus(s) {
+      const on = !!s.ReactorOnline && s.PowerAvailability > 0.2;
+      const bus = on ? '#6bd7f0' : '#9b7254';
+      rr(38, 28, 180, 66, 10, '#202322', bus);
+      text('REACTOR BUS', 54, 52, 14, bus, 800);
+      text(`${n(s.ReactorElectricMW, 1)} MWe`, 54, 78, 20, '#f6f3ec', 800);
+      line(218, 61, 1130, 61, bus, 7, on ? 0.9 : 0.45);
+      line(360, 61, 360, 128, bus, 5, 0.75);
+      line(724, 61, 724, 128, bus, 5, 0.75);
+      line(964, 61, 964, 128, bus, 5, 0.75);
+      for (let i = 0; i < 9; i++) {
+        const x = 245 + ((s.ConveyorPhase * 4 + i * 102) % 830);
+        ctx.beginPath();
+        ctx.fillStyle = bus;
+        ctx.globalAlpha = on ? 0.8 : 0.25;
+        ctx.arc(x, 61, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+      rr(1128, 28, 154, 66, 10, '#332512', '#c79742');
+      text('PLANT LOAD', 1144, 52, 14, '#f0c778', 800);
+      text(`${n(s.PowerDemandMW, 1)} MW`, 1144, 78, 20, '#fff3d8', 800);
+    }
+
+    function drawFarm(s) {
+      const highlight = activeFocus === 'all' || activeFocus === 'farm';
+      text('INGREDIENT FARM', 40, 128, 22, highlight ? '#eef7df' : '#8d877d', 800);
+      rr(36, 150, 500, 530, 14, '#243426', highlight ? '#6fb464' : '#4f5f4b');
+      drawField(58, 176, 205, 126, '#59402c', '#a4d26e', s.WheatGrowth, 'WHEAT');
+      drawField(292, 176, 205, 126, '#533036', '#d36d72', s.BeetGrowth, 'SUGAR CROP');
+
+      rr(58, 332, 205, 182, 10, '#2b633c', '#5c9c61');
+      for (let i = 0; i < 22; i++) {
+        const gx = 72 + (i * 31) % 170;
+        const gy = 354 + (i * 23) % 125;
+        line(gx, gy + 10, gx + 5, gy, '#98d777', 2, s.PastureHealth / 100);
+      }
+      drawCow(92, 405, s.PowerAvailability);
+      drawCow(170, 438, s.PowerAvailability);
+      drawHen(209, 384);
+      drawHen(228, 414);
+      text(`COW MILK ${n(s.DairyReadyL, 0)} L / EGGS ${n(s.EggsReady, 0)}`, 75, 490, 13, '#effbe6', 800);
+      text(`${s.LactatingCowCount || 0}/${s.DairyCowCount || 0} cows - ${n(s.MilkProductionLPerHour, 1)} L/h - ${n(s.AverageLactationDays, 0)} DIM`, 75, 508, 11, '#cfe7c9', 800);
+      text(`${n(s.DryMatterIntakeKgPerCowDay, 1)} kg DMI - rumen pH ${n(s.RumenPh, 2)} - BCS ${n(s.BodyConditionScore, 2)}`, 75, 523, 10, '#d9edc7', 800);
+      text(`Raw ${n(s.RawMilkL, 0)} L / pasteurized ${n(s.MilkL, 0)} L / tank ${n(s.BulkMilkTankC, 1)} degC`, 75, 538, 10, '#d4f3fb', 800);
+      text(s.CowPickupActive ? `Pet-store trailer ETA ${n(s.CowPickupEtaSeconds, 0)}s` : (s.GuestCowActive ? `${s.GuestCowTagId || 'Guest cow'} release ${n((s.GuestCowSecondsRemaining || 0) / 60, 1)} min` : 'Pet-store cow counter ready'), 75, 553, 10, '#f6e8b8', 800);
+      text(`${s.LayingHenCount || 0} hens - ${n(s.EggProductionPerHour, 1)} eggs/h`, 75, 553, 10, '#fff1bf', 800);
+      text(`Poultry house ${n(s.HenHouseHygienePct, 0)}% - manure ${n(s.PoultryManureKg, 0)} kg`, 75, 567, 10, '#ffd6aa', 800);
+
+      rr(292, 354, 205, 160, 10, '#1e4645', '#80d8d8');
+      line(306, 354, 395, 306, '#80d8d8', 3);
+      line(483, 354, 395, 306, '#80d8d8', 3);
+      for (let i = 0; i < 8; i++) {
+        const x = 318 + i * 21;
+        line(x, 482, x + Math.sin(i) * 10, 386, '#65b774', 4);
+        ctx.fillStyle = '#e8e0b5';
+        ctx.beginPath();
+        ctx.ellipse(x + 8, 406 + (i % 3) * 14, 7, 4, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = i % 2 ? '#9b4e2d' : '#d28a43';
+        ctx.beginPath();
+        ctx.ellipse(x + 2, 444 + (i % 3) * 10, 6, 10, 0.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      text(`VANILLA ${n(s.VanillaGrowth, 0)}%`, 315, 493, 13, '#e7fbf8', 800);
+      text(`COCOA ${n(s.CocoaGrowth, 0)}% / beans ${n(s.CocoaBeansKg, 0)} kg`, 315, 509, 11, '#ffd7a3', 800);
+
+      const tx = 70 + (s.TractorPhase || 0) * 390;
+      rr(tx, 304, 56, 24, 5, '#df4535');
+      rr(tx + 12, 286, 26, 22, 5, '#f4773f');
+      wheel(tx + 7, 330, 10);
+      wheel(tx + 44, 330, 12);
+      line(tx + 58, 316, tx + 103, 300, '#d4e7ff', 2, s.PowerAvailability);
+
+      rr(58, 520, 342, 168, 8, '#232621', '#5a6b4d');
+      text('INPUT YARD', 76, 544, 13, '#dceecb', 900);
+      text(`Water ${n(s.IrrigationWaterL, 0)} L`, 76, 566, 12, '#d9f0ff', 800);
+      text(`Seed ${n((s.WheatSeedKg || 0) + (s.BeetSeedKg || 0), 1)} kg`, 76, 588, 12, '#e6ddb6', 800);
+      text(`Forage ${n(s.ForageKg, 0)} / grain ${n(s.GrainKg, 0)} kg`, 198, 566, 12, '#e9e1b8', 800);
+      text(`Feed ${n(s.AnimalFeedKg, 0)} / TMR ${n(s.MixedRationKg, 0)} kg`, 198, 588, 12, '#f1d19c', 800);
+      drawMiniPlant(305, 540, 'SALT', s.CanRunSaltWorks ? '#78c7dd' : '#69716f');
+      drawMiniPlant(305, 588, 'SODA', s.CanRunBakingSodaPlant ? '#e4d9a8' : '#69716f');
+      drawMiniPlant(305, 636, 'LEAVEN', s.CanRunLeaveningPlant ? '#e8b75d' : '#69716f');
+      drawMiniPlant(410, 540, 'PACK', s.CanRunPackagingPlant ? '#dfbd66' : '#69716f');
+      drawMiniPlant(410, 588, 'MIN', s.CanRunMineralPlant ? '#d7d0b1' : '#69716f');
+      drawMiniPlant(410, 636, 'FEED', s.CanRunFeedMill ? '#bfde72' : '#69716f');
+      drawMiniPlant(505, 540, 'VANILLA', s.CanExtractVanilla ? '#c7925b' : '#69716f');
+      drawMiniPlant(505, 588, 'COMP', s.CanRunCompostPlant ? '#9bd06c' : '#69716f');
+      drawMiniPlant(505, 636, 'BED', s.CanRunBeddingPlant ? '#d8c27a' : '#69716f');
+      text(`Brine ${n(s.BrineL, 0)} L`, 76, 612, 12, '#d9f0ff', 800);
+      text(`Soda ash ${n(s.SodaAshKg, 1)} / bicarb ${n(s.BakingSodaKg, 1)} kg`, 198, 612, 12, '#ffe1a1', 800);
+      text(`Mineral premix ${n(s.DairyMineralKg, 1)} kg / raw ${n((s.LimestoneKg || 0) + (s.TraceMineralKg || 0), 1)} kg`, 76, 632, 11, '#ece5c6', 800);
+      text(`Vanilla beans ${n(s.VanillaBeansKg, 1)} kg / extract ${n(s.VanillaL, 2)} L`, 76, 648, 11, '#d4f3fb', 800);
+      text(`Cocoa beans ${n(s.CocoaBeansKg, 1)} kg / cocoa ${n(s.CocoaKg, 1)} kg`, 76, 664, 11, '#ffd7a3', 800);
+      text(`Paper ${n(s.PaperboardKg, 0)} kg / cartons ${n(s.PackagingUnits, 0)}`, 76, 680, 11, '#d4f3fb', 800);
+
+      drawTruck(412, 545, s.ConveyorPhase);
+      line(470, 556, 610, 556, '#80bc74', 4, 0.9);
+    }
+
+    function drawFactory(s) {
+      const highlight = activeFocus === 'all' || activeFocus === 'prep' || activeFocus === 'oven' || activeFocus === 'qa';
+      text('CAKE FACTORY', 600, 128, 22, highlight ? '#f3eee5' : '#8f887d', 800);
+      rr(590, 150, 690, 500, 14, '#2b2c2a', highlight ? '#8a8173' : '#5a554d');
+      rr(612, 176, 646, 440, 10, '#1d1e1c');
+
+      drawSilo(644, 200, 'FLOUR', '#dadfcf');
+      drawSilo(724, 200, 'SUGAR', '#ece6bd');
+      drawSilo(804, 200, 'EGG/MILK', '#f5df91');
+      drawMill(652, 330, s);
+      drawMixer(786, 328, s);
+      drawDepositor(934, 328, s);
+      drawOven(622, 474, s);
+      drawCooler(866, 476, s);
+      drawIcer(1035, 330, s);
+      drawPacker(1118, 474, s);
+      drawConveyor(672, 418, 500, s);
+      drawConveyor(672, 574, 500, s);
+      drawCakes(s);
+
+      if (s.FactoryRunActive) {
+        rr(930, 254, 278, 112, 8, '#1f3335', '#78c7dd');
+        text(s.ActiveFactoryName || 'INGREDIENT FACTORY', 948, 276, 13, '#d4f3fb', 900);
+        text(s.ActiveFactoryPhase || 'processing', 948, 296, 12, '#c9beb0', 800);
+        text(`${n((s.FactoryProgress || 0) * 100, 0)}% - ${n(s.FactoryRunPowerMW, 1)} MW - QA ${n(s.FactoryRunQualityPct, 0)}%`, 948, 314, 12, '#fff3d8', 800);
+        text(`Cond ${n(s.ActiveFactoryConditionPct, 0)}% Cal ${n(s.ActiveFactoryCalibrationPct, 0)}% Vib ${n(s.ActiveFactoryVibrationMmS, 1)} mm/s`, 948, 330, 11, '#d4f3fb', 800);
+        text(`Trace ${n(s.TraceabilityScorePct, 0)}% - ${s.LastSupplyManifestId || 'no manifest'}`, 948, 346, 11, '#c9beb0', 800);
+        text(s.PendingLabLotId ? `Lab hold ${s.PendingLabLotId}` : 'Lab clear', 948, 362, 11, s.PendingLabLotId ? '#ffe1a1' : '#bce1c0', 800);
+      }
+
+      if (s.UtilityPlantActive) {
+        rr(930, 374, 278, 58, 8, '#1f3335', '#7bd3c4');
+        text('UTILITY PLANT', 948, 396, 13, '#d4f3fb', 900);
+        text(`${s.UtilityPlantPhase || 'running'} - ${n((s.UtilityPlantProgress || 0) * 100, 0)}%`, 948, 414, 11, '#fff3d8', 800);
+        text(`RO ${n(s.ProcessWaterConductivityUsCm, 3)} uS/cm / air ${n(s.AirHeaderPressureBar, 1)} bar`, 948, 428, 10, '#c9beb0', 800);
+      }
+
+      if (s.StageReadyForOperator) {
+        rr(930, 202, 278, 44, 8, '#543115', '#e9ae58');
+        text('OPERATOR RELEASE REQUIRED', 948, 230, 15, '#ffe1a1', 900);
+      }
+
+      if (s.BatchKitStaged) {
+        rr(930, 366, 278, 42, 8, '#26301f', '#98c66b');
+        text(`WAREHOUSE KIT ${s.BatchKitLotId || ''}`, 948, 390, 13, '#dff3cd', 900);
+        text(`${n(s.BatchKitMassKg, 1)} kg staged - forklift ${n(s.ForkliftBatteryPct, 0)}%`, 948, 404, 11, '#c9beb0', 800);
+      }
+
+      rr(930, 414, 278, 52, 8, '#28231b', '#c6a15f');
+      text(`ORDER ${s.CurrentOrderId || '-'}`, 948, 438, 13, '#ffe1a1', 900);
+      text(`${s.FinishedGoodsCakes || 0}/${s.OrderCakesRequired || 0} ready - truck ${n(s.DispatchTruckChargePct, 0)}% - ${n(s.DispatchColdChainC, 1)} degC`, 948, 454, 11, '#c9beb0', 800);
+
+      rr(930, 528, 278, 46, 8, '#211d18', '#8b7352');
+      text('BYPRODUCT / EFFLUENT', 948, 550, 12, '#ffe1a1', 900);
+      text(`Bins ${n(s.ByproductStoragePct, 0)}% - effluent ${n(s.EffluentTankPct, 0)}%`, 948, 564, 11, '#c9beb0', 800);
+    }
+
+    function drawSilo(x, y, label, fill) {
+      ctx.fillStyle = '#59616a';
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + 52, y);
+      ctx.lineTo(x + 40, y + 70);
+      ctx.lineTo(x + 12, y + 70);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#8f9aa4';
+      ctx.stroke();
+      rr(x + 10, y + 12, 32, 24, 3, fill);
+      text(label, x - 4, y + 92, 12, '#dfe5e8', 800);
+    }
+
+    function drawMiniPlant(x, y, label, accent) {
+      rr(x, y, 72, 34, 5, '#30383a', accent);
+      rr(x + 8, y - 8, 14, 16, 3, '#556165', '#8f9aa4');
+      rr(x + 42, y - 5, 14, 13, 3, '#556165', '#8f9aa4');
+      line(x + 22, y + 8, x + 42, y + 8, '#b7c5c9', 2, 0.85);
+      text(label, x + 9, y + 23, 10, '#f4eee4', 900);
+    }
+
+    function drawMill(x, y, s) {
+      const active = s.PowerAvailability > 0.2;
+      rr(x, y, 90, 64, 8, '#555d63', '#9ba5ad');
+      wheel(x + 25, y + 27, 15, active ? '#bdc9d4' : '#7a8186');
+      wheel(x + 58, y + 27, 15, active ? '#bdc9d4' : '#7a8186');
+      text('MILL', x + 20, y + 85, 12, '#dfe5e8', 800);
+    }
+
+    function drawMixer(x, y, s) {
+      const active = s.StageKey === 'Mixing';
+      rr(x, y + 10, 116, 76, 12, '#4b5360', '#9aa6b1');
+      ctx.fillStyle = active ? '#e0bd69' : '#7b633d';
+      ctx.beginPath();
+      ctx.ellipse(x + 58, y + 50, 42, 22, 0, 0, Math.PI * 2);
+      ctx.fill();
+      const a = (s.MixerAngle || 0) * Math.PI / 180;
+      line(x + 58, y + 50, x + 58 + Math.cos(a) * 38, y + 50 + Math.sin(a) * 20, '#f3f5f2', 5);
+      line(x + 58, y + 50, x + 58 + Math.cos(a + Math.PI) * 38, y + 50 + Math.sin(a + Math.PI) * 20, '#f3f5f2', 5);
+      text('MIXER', x + 34, y + 108, 12, '#dfe5e8', 800);
+    }
+
+    function drawDepositor(x, y, s) {
+      rr(x, y, 78, 76, 8, '#48606a', '#80a8b9');
+      rr(x + 24, y + 72, 30, 42, 4, '#7d8a90');
+      if (s.StageKey === 'Depositing') {
+        ctx.fillStyle = '#dfba6d';
+        ctx.beginPath();
+        ctx.ellipse(x + 39, y + 118 + Math.sin((s.ConveyorPhase || 0) / 7) * 5, 17, 10, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      text('DEPOSIT', x + 8, y + 136, 12, '#dfe5e8', 800);
+    }
+
+    function drawOven(x, y, s) {
+      const active = activeFocus === 'all' || activeFocus === 'oven';
+      rr(x, y, 230, 78, 8, '#4a362a', active ? '#bd8750' : '#73583e');
+      rr(x + 18, y + 16, 194, 42, 5, '#5a2b1f');
+      ctx.save();
+      ctx.globalAlpha = 0.22 + (s.OvenGlow || 0) * 0.68;
+      rr(x + 18, y + 16, 194, 42, 5, '#ff8a32');
+      ctx.restore();
+      for (let i = 0; i < 6; i++) {
+        const fx = x + 36 + i * 29;
+        ctx.fillStyle = `rgba(255, ${150 + i * 10}, 55, ${0.35 + (s.OvenGlow || 0) * 0.45})`;
+        ctx.beginPath();
+        ctx.moveTo(fx, y + 58);
+        ctx.quadraticCurveTo(fx + 10, y + 30 + Math.sin((s.ConveyorPhase || 0) / 12 + i) * 7, fx + 20, y + 58);
+        ctx.fill();
+      }
+      text(`TUNNEL OVEN ${n(s.OvenTemperatureC, 0)} degC`, x + 42, y + 102, 12, '#f0dfca', 800);
+    }
+
+    function drawCooler(x, y, s) {
+      rr(x, y, 122, 78, 8, '#29484d', '#78c7dd');
+      for (let i = 0; i < 4; i++) {
+        ctx.strokeStyle = '#8ee4f4';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(x + 61, y + 39, 17 + i * 8, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      text('COOLER', x + 34, y + 102, 12, '#d4f3fb', 800);
+    }
+
+    function drawIcer(x, y, s) {
+      rr(x, y, 64, 126, 8, '#4d5063', '#9ca7c9');
+      line(x + 32, y + 14, x + 32, y + 108, '#c7ccdb', 6);
+      ctx.fillStyle = s.StageKey === 'Icing' ? '#fff4ff' : '#8b8d99';
+      ctx.beginPath();
+      ctx.ellipse(x + 32, y + 110, 16, 12, 0, 0, Math.PI * 2);
+      ctx.fill();
+      text('ICING', x + 12, y + 148, 12, '#e4e4f2', 800);
+    }
+
+    function drawPacker(x, y, s) {
+      rr(x, y, 88, 78, 8, '#51442b', '#c9a254');
+      rr(x + 16, y + 20, 56, 34, 4, s.StageKey === 'Packaging' ? '#dfbd66' : '#806a3d');
+      text('PACK', x + 24, y + 102, 12, '#f1e3bf', 800);
+    }
+
+    function drawConveyor(x, y, w, s) {
+      rr(x, y, w, 22, 11, '#3a3d3c', '#69716f');
+      for (let i = 0; i < 26; i++) {
+        const xx = x + ((i * 34 + (s.ConveyorPhase || 0)) % w);
+        line(xx, y + 4, xx + 16, y + 18, '#838b89', 2, 0.75);
+      }
+    }
+
+    function drawCakes(s) {
+      const count = s.StageKey === 'Idle' ? 3 : 9;
+      for (let i = 0; i < count; i++) {
+        const p = (((s.ConveyorPhase || 0) / 80) + i / count) % 1;
+        const x = 694 + p * 454;
+        const lower = ['Baking', 'Cooling', 'Icing', 'Packaging'].includes(s.StageKey);
+        const y = lower ? 574 : 418;
+        ctx.fillStyle = lower ? '#b8773c' : '#dfba6d';
+        ctx.beginPath();
+        ctx.ellipse(x, y - 10, 18, 11, 0, 0, Math.PI * 2);
+        ctx.fill();
+        if (s.StageKey === 'Icing' || s.StageKey === 'Packaging') {
+          ctx.fillStyle = '#fff2f8';
+          ctx.beginPath();
+          ctx.ellipse(x + 1, y - 14, 13, 6, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    }
+
+    function drawTelemetry(s) {
+      rr(36, 674, 1244, 52, 10, '#1f1e1b', '#464036');
+      drawGauge(54, 684, s.PowerAvailability * 100, 'POWER', s.PowerAvailability > 0.95 ? '#6fb464' : '#e8b75d');
+      drawGauge(222, 684, s.QualityScore, 'QUALITY', s.QualityScore > 75 ? '#6fb464' : '#df6a58');
+      drawGauge(390, 684, s.SanitationScore, 'SANITATION', s.SanitationScore > 72 ? '#78c7dd' : '#df6a58');
+      text(`${s.StageName} · ${s.HaccpStatus}`, 584, 707, 17, '#f4eee4', 800);
+      text(s.StageReadyForOperator ? 'Release gate armed' : 'Manual controls active', 1188, 707, 16, s.StageReadyForOperator ? '#ffe1a1' : '#c9beb0', 800, 'right');
+    }
+
+    function drawCow(x, y, power) {
+      ctx.fillStyle = '#eee9dd';
+      ctx.beginPath();
+      ctx.ellipse(x, y, 32, 18, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(x + 28, y - 8, 15, 14, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#272420';
+      ctx.fillRect(x - 10, y - 5, 12, 8);
+      ctx.fillRect(x + 8, y + 3, 11, 8);
+      line(x - 17, y + 16, x - 17, y + 30, '#eee9dd', 4);
+      line(x + 15, y + 16, x + 15, y + 30, '#eee9dd', 4);
+      if (power > 0.5) line(x + 39, y - 8, x + 53, y - 20, '#d8ecff', 2);
+    }
+
+    function drawHen(x, y) {
+      ctx.fillStyle = '#f2d99d';
+      ctx.beginPath();
+      ctx.ellipse(x, y, 12, 9, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(x + 9, y - 5, 6, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#e0892f';
+      ctx.beginPath();
+      ctx.moveTo(x + 15, y - 5);
+      ctx.lineTo(x + 23, y - 2);
+      ctx.lineTo(x + 15, y + 2);
+      ctx.fill();
+    }
+
+    function drawTruck(x, y, phase) {
+      const bob = Math.sin((phase || 0) / 10) * 2;
+      rr(x, y + bob, 78, 30, 5, '#dfe4e6', '#777e82');
+      rr(x + 52, y + 9 + bob, 36, 21, 5, '#678093', '#777e82');
+      wheel(x + 18, y + 32 + bob, 9);
+      wheel(x + 66, y + 32 + bob, 9);
+    }
+
+    function wheel(x, y, r, fill = '#181817') {
+      ctx.fillStyle = fill;
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#7b7f7e';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    function draw() {
+      requestAnimationFrame(draw);
+      fitCanvas();
+      const s = latest || sample;
+      ctx.clearRect(0, 0, LOGICAL_W, LOGICAL_H);
+      ctx.fillStyle = '#171614';
+      ctx.fillRect(0, 0, LOGICAL_W, LOGICAL_H);
+      rr(18, 16, 1284, 728, 18, '#201e1a', '#3e382f');
+      drawPowerBus(s);
+      drawFarm(s);
+      drawFactory(s);
+      drawTelemetry(s);
+    }
+
+    if (webview) {
+      webview.addEventListener('message', event => receive(event.data));
+    }
+
+    updateUi();
+    draw();
+    post({ type: 'ready' });
+  </script>
+</body>
+</html>

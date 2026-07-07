@@ -43,10 +43,12 @@ public sealed partial class PowerToysExtrasModule : Page
     public PowerToysExtrasModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) => { Render(); InitOnce(); };
-        Unloaded += (_, _) => { /* keep hotkey + pins running app-wide; nothing to tear down here */ };
+        Unloaded += (_, _) => Loc.I.LanguageChanged -= OnLanguageChanged; // keep hotkey + pins running app-wide; nothing else to tear down here
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private bool _inited;
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
@@ -81,7 +83,7 @@ public sealed partial class PowerToysExtrasModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "PowerToys Extras · PowerToys 額外工具";
+        Header.Title = "PowerToys Extras · PowerToys 額外工具";
         HeaderBlurb.Text = P("Four native, in-app PowerToys-style utilities — bulk image resizing, on-screen text extraction (OCR), always-on-top, and paste-as-plain-text.",
             "四個原生、應用程式內嘅 PowerToys 式工具 — 圖片批次縮放、螢幕文字擷取（OCR）、視窗置頂、純文字貼上。");
 
@@ -292,9 +294,9 @@ public sealed partial class PowerToysExtrasModule : Page
 
     // ===================== Paste as Plain Text =====================
 
-    private void PasteStrip_Click(object sender, RoutedEventArgs e)
+    private async void PasteStrip_Click(object sender, RoutedEventArgs e)
     {
-        bool ok = PlainTextPasteService.StripToPlainText();
+        bool ok = await PlainTextPasteService.StripToPlainTextAsync();
         if (ok) Info(InfoBarSeverity.Success, P("Stripped", "已淨化"), P("Clipboard is now plain text — paste anywhere.", "剪貼簿而家係純文字 — 隨處貼上即可。"));
         else Info(InfoBarSeverity.Warning, P("No text", "冇文字"), P("The clipboard has no text to strip.", "剪貼簿冇文字可以淨化。"));
     }

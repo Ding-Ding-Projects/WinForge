@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.UrlToolsModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="760" Spacing="14">
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE71B;" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+            <TextBlock x:Name="StatusText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <!-- Parse card -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <TextBlock x:Name="ParseTitle" FontWeight="SemiBold" FontSize="15" />
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBox x:Name="UrlBox" MinWidth="480" TextWrapping="Wrap" AcceptsReturn="False" />
+                        <Button x:Name="ParseBtn" Click="Parse_Click" VerticalAlignment="Bottom" />
+                    </StackPanel>
+
+                    <Grid ColumnSpacing="10" RowSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock x:Name="SchemeLabel" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" />
+                        <TextBox x:Name="SchemeField" Grid.Row="0" Grid.Column="1" IsReadOnly="True" />
+                        <Button Grid.Row="0" Grid.Column="2" Tag="scheme" Click="CopyPart_Click" Content="&#xE8C8;" FontFamily="{ThemeResource SymbolThemeFontFamily}" />
+
+                        <TextBlock x:Name="UserLabel" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" />
+                        <TextBox x:Name="UserField" Grid.Row="1" Grid.Column="1" IsReadOnly="True" />
+                        <Button Grid.Row="1" Grid.Column="2" Tag="user" Click="CopyPart_Click" Content="&#xE8C8;" FontFamily="{ThemeResource SymbolThemeFontFamily}" />
+
+                        <TextBlock x:Name="HostLabel" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" />
+                        <TextBox x:Name="HostField" Grid.Row="2" Grid.Column="1" IsReadOnly="True" />
+                        <Button Grid.Row="2" Grid.Column="2" Tag="host" Click="CopyPart_Click" Content="&#xE8C8;" FontFamily="{ThemeResource SymbolThemeFontFamily}" />
+
+                        <TextBlock x:Name="PortLabel" Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" />
+                        <TextBox x:Name="PortField" Grid.Row="3" Grid.Column="1" IsReadOnly="True" />
+                        <Button Grid.Row="3" Grid.Column="2" Tag="port" Click="CopyPart_Click" Content="&#xE8C8;" FontFamily="{ThemeResource SymbolThemeFontFamily}" />
+
+                        <TextBlock x:Name="PathLabel" Grid.Row="4" Grid.Column="0" VerticalAlignment="Center" />
+                        <TextBox x:Name="PathField" Grid.Row="4" Grid.Column="1" IsReadOnly="True" />
+                        <Button Grid.Row="4" Grid.Column="2" Tag="path" Click="CopyPart_Click" Content="&#xE8C8;" FontFamily="{ThemeResource SymbolThemeFontFamily}" />
+
+                        <TextBlock x:Name="QueryLabel" Grid.Row="5" Grid.Column="0" VerticalAlignment="Center" />
+                        <TextBox x:Name="QueryField" Grid.Row="5" Grid.Column="1" IsReadOnly="True" />
+                        <Button Grid.Row="5" Grid.Column="2" Tag="query" Click="CopyPart_Click" Content="&#xE8C8;" FontFamily="{ThemeResource SymbolThemeFontFamily}" />
+
+                        <TextBlock x:Name="FragLabel" Grid.Row="6" Grid.Column="0" VerticalAlignment="Center" />
+                        <TextBox x:Name="FragField" Grid.Row="6" Grid.Column="1" IsReadOnly="True" />
+                        <Button Grid.Row="6" Grid.Column="2" Tag="frag" Click="CopyPart_Click" Content="&#xE8C8;" FontFamily="{ThemeResource SymbolThemeFontFamily}" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Query params card -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <TextBlock x:Name="ParamsTitle" FontWeight="SemiBold" FontSize="15" />
+                    <ListView x:Name="ParamsList" SelectionMode="Single" MaxHeight="240"
+                              BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="6">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnSpacing="12" Padding="4,6,4,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="2*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="{Binding Key}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                    <TextBlock Grid.Column="1" Text="{Binding Value}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBox x:Name="KeyInput" MinWidth="150" />
+                        <TextBox x:Name="ValInput" MinWidth="200" />
+                        <Button x:Name="AddBtn" Click="Add_Click" />
+                        <Button x:Name="EditBtn" Click="Edit_Click" />
+                        <Button x:Name="RemoveBtn" Click="Remove_Click" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button x:Name="RebuildBtn" Click="Rebuild_Click" Style="{ThemeResource AccentButtonStyle}" />
+                        <Button x:Name="CopyUrlBtn" Click="CopyUrl_Click" />
+                    </StackPanel>
+                    <TextBox x:Name="RebuiltBox" IsReadOnly="True" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <!-- Encode / Decode card -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <TextBlock x:Name="CodecTitle" FontWeight="SemiBold" FontSize="15" />
+                    <TextBox x:Name="CodecBox" TextWrapping="Wrap" AcceptsReturn="True" MinHeight="70" />
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button x:Name="EncodeBtn" Click="Encode_Click" />
+                        <Button x:Name="DecodeBtn" Click="Decode_Click" />
+                        <Button x:Name="CopyCodecBtn" Click="CopyCodec_Click" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

@@ -1,0 +1,27 @@
+# Scratchpad · 便箋
+
+**EN —** Feature reference generated from the WinForge module registry, navigation map, and page XAML.
+**粵語 —** 呢份功能參考由 WinForge 模組登記、導覽地圖同頁面 XAML 生成。
+
+| Field · 欄位 | Value · 值 |
+|---|---|
+| Tag · 標籤 | <code>module.notes</code> |
+| Deep-link alias · 深層連結別名 | <code>notes</code> |
+| Category · 分類 | Everyday & Life · 日常生活 |
+| Page class · 頁面類別 | <code>NotesModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/NotesModule.xaml</code> |
+| Button docs · 按鈕文件 | 3 |
+
+## What It Covers · 功能範圍
+
+**EN —** Scratchpad is registered in WinForge search and navigation with these keywords: <code>notes scratchpad memo jot text save persistent 便箋 筆記 記事 備忘 草稿 儲存</code>.
+
+**粵語 —** 便箋 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>notes scratchpad memo jot text save persistent 便箋 筆記 記事 備忘 草稿 儲存</code>。
+
+## Buttons And Controls · 按鈕與控制項
+
+| Button · 按鈕 | Type · 類型 | XAML name · 名稱 | Handler · 處理函式 |
+|---|---|---|---|
+| [NewBtn](../../buttons/everyday-life/notes/001-newbtn.md) | `Button` | `NewBtn` | `New_Click` |
+| [RenameBtn](../../buttons/everyday-life/notes/002-renamebtn.md) | `Button` | `RenameBtn` | `Rename_Click` |
+| [DeleteBtn](../../buttons/everyday-life/notes/003-deletebtn.md) | `Button` | `DeleteBtn` | `Delete_Click` |

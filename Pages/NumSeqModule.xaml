@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.NumSeqModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="760" Spacing="14">
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE8EF;" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="14">
+                    <StackPanel Spacing="4">
+                        <TextBlock x:Name="TypeLabel" FontWeight="SemiBold" />
+                        <ComboBox x:Name="TypeCombo" MinWidth="240" SelectionChanged="Type_Changed" />
+                    </StackPanel>
+
+                    <!-- start / step / ratio / base -->
+                    <StackPanel x:Name="StartRow" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <TextBlock x:Name="StartLabel" VerticalAlignment="Center" MinWidth="120" />
+                        <NumberBox x:Name="StartBox" Value="1" SpinButtonPlacementMode="Inline" MinWidth="160" />
+                    </StackPanel>
+                    <StackPanel x:Name="SecondRow" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <TextBlock x:Name="SecondLabel" VerticalAlignment="Center" MinWidth="120" />
+                        <NumberBox x:Name="SecondBox" Value="1" SpinButtonPlacementMode="Inline" MinWidth="160" />
+                    </StackPanel>
+                    <!-- count / n / end -->
+                    <StackPanel x:Name="CountRow" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <TextBlock x:Name="CountLabel" VerticalAlignment="Center" MinWidth="120" />
+                        <NumberBox x:Name="CountBox" Value="10" Minimum="0" SpinButtonPlacementMode="Inline" MinWidth="160" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <TextBlock x:Name="SepLabel" VerticalAlignment="Center" MinWidth="120" />
+                        <ComboBox x:Name="SepCombo" MinWidth="160" SelectionChanged="Sep_Changed" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button x:Name="GenBtn" Click="Generate_Click" Style="{ThemeResource AccentButtonStyle}" />
+                        <Button x:Name="CopyBtn" Click="Copy_Click" />
+                    </StackPanel>
+
+                    <TextBlock x:Name="StatusText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+                    <TextBox x:Name="OutputBox" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap"
+                             MinHeight="180" MaxHeight="360" FontFamily="Consolas"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

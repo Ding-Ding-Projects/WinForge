@@ -34,9 +34,12 @@ public sealed partial class ScreenRulerModule : Page
     public ScreenRulerModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) => { LoadSettings(); BuildSwatches(); Render(); UpdateCurrentSwatch(); };
+        Unloaded += (_, _) => Loc.I.LanguageChanged -= OnLanguageChanged;
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
@@ -52,7 +55,7 @@ public sealed partial class ScreenRulerModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Screen Ruler · 螢幕間尺";
+        Header.Title = "Screen Ruler · 螢幕間尺";
         HeaderBlurb.Text = P(
             "Measure anything on screen in pixels — a native clone of PowerToys' Measure Tool. Pick a mode below, then move/drag on screen. Live pixel counts and coordinates show on the overlay; left-click copies the measurement to the clipboard. Esc or right-click closes the overlay.",
             "喺螢幕度度任何嘢嘅像素 — PowerToys Measure Tool 嘅原生複製版。揀下面其中一個模式，然後喺螢幕度移動／拖曳。覆蓋層會即時顯示像素數同座標；撳左鍵會將量度結果複製到剪貼簿。Esc 或右鍵關閉覆蓋層。");

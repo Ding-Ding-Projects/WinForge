@@ -38,16 +38,18 @@ public sealed partial class YtDlpModule : Page
     {
         InitializeComponent();
         _ui = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += async (_, _) => { Render(); await CheckEngines(); };
-        Unloaded += (_, _) => { try { _cts?.Cancel(); } catch { } YtDlpService.Cancel(); };
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; try { _cts?.Cancel(); } catch { } YtDlpService.Cancel(); };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
     private void Render()
     {
-        HeaderTitle.Text = "Media Downloader · 媒體下載器";
+        Header.Title = "Media Downloader · 媒體下載器";
         HeaderBlurb.Text = P(
             "Download video and audio from 1000+ sites with yt-dlp. Paste one or more URLs (one per line), list the available formats, pick a quality, choose a folder, and download with live progress. Audio-only, subtitles, thumbnails, playlists and more are supported.",
             "用 yt-dlp 由 1000+ 個網站下載影片同音訊。貼一條或多條網址（每行一條），列出可用格式，揀畫質，揀資料夾，即時睇住進度下載。支援只要音訊、字幕、縮圖、播放清單等等。");
@@ -117,26 +119,28 @@ public sealed partial class YtDlpModule : Page
         if (!ok)
         {
             EngineBar.Title = P("yt-dlp not found", "搵唔到 yt-dlp");
-            EngineBar.Message = P("Click to install it automatically (yt-dlp.yt-dlp via winget) — no restart needed.",
-                "撳一下自動安裝（用 winget 裝 yt-dlp.yt-dlp）— 唔使重啟。");
-            EngineBar.ActionButton = EngineBars.AutoInstallButton(
+            EngineBar.Message = P("Install it automatically (yt-dlp.yt-dlp via winget) with live progress — no restart needed.",
+                "自動安裝（用 winget 裝 yt-dlp.yt-dlp），即時睇住進度 — 唔使重啟。");
+            // Rich install control: real progress bar + live bilingual status + % + Cancel + success/error animation.
+            EngineBar.Content = EngineBars.AutoInstallProgress(
                 YtDlpService.WingetId, "Install yt-dlp", "安裝 yt-dlp",
-                CheckEngines, YtDlpService.Rescan);
+                recheck: CheckEngines, rescan: YtDlpService.Rescan);
         }
-        else EngineBar.ActionButton = null;
+        else EngineBar.Content = null;
 
         bool hasFfmpeg = YtDlpService.HasFfmpeg;
         FfmpegBar.IsOpen = !hasFfmpeg;
         if (!hasFfmpeg)
         {
             FfmpegBar.Title = P("ffmpeg not found", "搵唔到 ffmpeg");
-            FfmpegBar.Message = P("ffmpeg is needed to merge separate video+audio streams and to convert audio. Click to install it (Gyan.FFmpeg via winget).",
-                "合併分開嘅影片＋音訊串流同轉檔音訊都需要 ffmpeg。撳一下自動安裝（用 winget 裝 Gyan.FFmpeg）。");
-            FfmpegBar.ActionButton = EngineBars.AutoInstallButton(
+            FfmpegBar.Message = P("ffmpeg is needed to merge separate video+audio streams and to convert audio. Install it (Gyan.FFmpeg via winget) with live progress.",
+                "合併分開嘅影片＋音訊串流同轉檔音訊都需要 ffmpeg。自動安裝（用 winget 裝 Gyan.FFmpeg），即時睇住進度。");
+            // Rich install control: real progress bar + live bilingual status + % + Cancel + success/error animation.
+            FfmpegBar.Content = EngineBars.AutoInstallProgress(
                 YtDlpService.FfmpegWingetId, "Install ffmpeg", "安裝 ffmpeg",
-                CheckEngines, MediaService.Rescan);
+                recheck: CheckEngines, rescan: MediaService.Rescan);
         }
-        else FfmpegBar.ActionButton = null;
+        else FfmpegBar.Content = null;
 
         SyncRunning();
     }
@@ -239,7 +243,15 @@ public sealed partial class YtDlpModule : Page
     {
         var dir = (FolderBox.Text ?? "").Trim();
         if (dir.Length == 0 || !Directory.Exists(dir)) return;
-        try { Process.Start(new ProcessStartInfo("explorer.exe", $"\"{dir}\"") { UseShellExecute = true }); } catch { }
+        try
+        {
+            var dp = new DataPackage { RequestedOperation = DataPackageOperation.Copy };
+            dp.SetText(dir);
+            Clipboard.SetContent(dp);
+            Clipboard.Flush();
+            Notify(InfoBarSeverity.Success, P("Folder path copied", "已複製資料夾路徑"), dir);
+        }
+        catch (Exception ex) { Notify(InfoBarSeverity.Error, P("Copy failed", "複製失敗"), ex.Message); }
     }
 
     // ───────────────────────── download ─────────────────────────

@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.HexEditorModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid Style="{StaticResource WinForgePageGridStyle}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Spacing="6">
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE964;" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+            <InfoBar x:Name="StatusBar" IsClosable="True" IsOpen="False" />
+        </StackPanel>
+
+        <!-- Toolbar -->
+        <Grid Grid.Row="1" ColumnSpacing="8" RowSpacing="8">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- File row -->
+            <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8">
+                <Button x:Name="OpenBtn" Click="Open_Click" Style="{StaticResource AccentButtonStyle}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <FontIcon FontSize="14" Glyph="&#xE8E5;" />
+                        <TextBlock x:Name="OpenLbl" />
+                    </StackPanel>
+                </Button>
+                <Button x:Name="SaveBtn" Click="Save_Click" IsEnabled="False">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <FontIcon FontSize="14" Glyph="&#xE74E;" />
+                        <TextBlock x:Name="SaveLbl" />
+                    </StackPanel>
+                </Button>
+                <Button x:Name="SaveAsBtn" Click="SaveAs_Click" IsEnabled="False">
+                    <TextBlock x:Name="SaveAsLbl" />
+                </Button>
+                <AppBarSeparator />
+                <ToggleButton x:Name="InsertModeToggle" IsEnabled="False" Click="InsertMode_Click">
+                    <TextBlock x:Name="InsertModeLbl" />
+                </ToggleButton>
+                <Button x:Name="HashBtn" Click="Hash_Click" IsEnabled="False">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <FontIcon FontSize="14" Glyph="&#xE72E;" />
+                        <TextBlock x:Name="HashLbl" />
+                    </StackPanel>
+                </Button>
+                <ProgressRing x:Name="Busy" IsActive="False" Width="20" Height="20" VerticalAlignment="Center" />
+            </StackPanel>
+
+            <!-- Find / goto row -->
+            <Grid Grid.Row="1" ColumnSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="FindBox" Grid.Column="0" IsEnabled="False" PlaceholderText="Search…" KeyDown="FindBox_KeyDown" />
+                <ComboBox x:Name="FindMode" Grid.Column="1" IsEnabled="False" SelectedIndex="0" MinWidth="120" />
+                <Button x:Name="FindNextBtn" Grid.Column="2" Click="FindNext_Click" IsEnabled="False">
+                    <TextBlock x:Name="FindNextLbl" />
+                </Button>
+                <AppBarSeparator Grid.Column="3" />
+                <TextBox x:Name="GotoBox" Grid.Column="4" IsEnabled="False" MinWidth="140" PlaceholderText="0x0" KeyDown="GotoBox_KeyDown" />
+                <Button x:Name="GotoBtn" Grid.Column="5" Click="Goto_Click" IsEnabled="False">
+                    <TextBlock x:Name="GotoLbl" />
+                </Button>
+            </Grid>
+        </Grid>
+
+        <!-- Hex view -->
+        <Border Grid.Row="2" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!-- Column header -->
+                <Border Grid.Row="0" Padding="12,8,12,8" Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}">
+                    <TextBlock x:Name="ColumnHeader" FontFamily="Consolas" FontSize="13"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </Border>
+
+                <ListView x:Name="RowList" Grid.Row="1" SelectionMode="None"
+                          IsItemClickEnabled="True" ItemClick="RowList_ItemClick"
+                          ItemContainerTransitions="{x:Null}"
+                          ScrollViewer.HorizontalScrollMode="Auto" ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem">
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            <Setter Property="Padding" Value="12,1,12,1" />
+                            <Setter Property="MinHeight" Value="0" />
+                        </Style>
+                    </ListView.ItemContainerStyle>
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal" Spacing="16">
+                                <TextBlock Text="{Binding OffsetText}" FontFamily="Consolas" FontSize="13"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Text="{Binding HexText}" FontFamily="Consolas" FontSize="13" />
+                                <TextBlock Text="{Binding AsciiText}" FontFamily="Consolas" FontSize="13"
+                                           Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+
+                <StackPanel x:Name="EmptyState" Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8">
+                    <FontIcon FontSize="40" Glyph="&#xE964;" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBlock x:Name="EmptyText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Status footer -->
+        <Border Grid.Row="3" Padding="14,8,14,8" Margin="0,0,0,12"
+                Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" CornerRadius="8">
+            <Grid ColumnSpacing="20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Name="StatusOffset" Grid.Column="0" FontSize="12" FontFamily="Consolas" VerticalAlignment="Center" />
+                <TextBlock x:Name="StatusValue" Grid.Column="1" FontSize="12" FontFamily="Consolas" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                <TextBlock x:Name="StatusSelection" Grid.Column="2" FontSize="12" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                <TextBlock x:Name="StatusSize" Grid.Column="4" FontSize="12" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            </Grid>
+        </Border>
+    </Grid>
+</Page>

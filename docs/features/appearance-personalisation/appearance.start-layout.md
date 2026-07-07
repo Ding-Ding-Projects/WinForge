@@ -4,7 +4,7 @@
 |---|---|
 | **ID** | `appearance.start-layout` |
 | **Module · 模組** | Appearance & Personalisation · 外觀與個人化 |
-| **Type · 種類** | Choice |
+| **Type · 種類** | RadioGroup |
 | **Administrator · 管理員** | No · 唔使 |
 | **Destructive · 具破壞性** | No · 唔係 |
 | **Restart · 重啟** | Explorer |

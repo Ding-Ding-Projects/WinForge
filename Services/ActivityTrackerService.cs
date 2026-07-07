@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
+using Microsoft.Win32;
 
 namespace WinForge.Services;
 
@@ -10,7 +11,7 @@ namespace WinForge.Services;
 /// 前景視窗取樣器（單例）· Foreground-window sampler (singleton). While tracking is on it polls the
 /// active window every few seconds, records process name + window title, detects user idle via
 /// GetLastInputInfo, and writes finished time-segments to <see cref="ActivityStore"/>. Everything stays
-/// on-device. Tracking defaults to OFF until the user opts in (privacy-first, per spec).
+/// on-device. Tracking is ON by default, but can be turned off from the TimeLens page.
 /// </summary>
 public sealed class ActivityTrackerService
 {
@@ -29,8 +30,9 @@ public sealed class ActivityTrackerService
     private long _curStartUnix;
     private bool _hasCurrent;
     private bool _wasIdle;
+    private bool _hooksInstalled;
 
-    private ActivityTrackerService() { }
+    private ActivityTrackerService() => InstallDeathHooks();
 
     // ===== state / preferences =====
 
@@ -63,10 +65,13 @@ public sealed class ActivityTrackerService
 
     private void Raise(EventHandler? h) => h?.Invoke(this, EventArgs.Empty);
 
-    /// <summary>App 啟動時按上次偏好恢復追蹤 · Restore tracking on app start if the user had it on.</summary>
+    /// <summary>App 啟動時按偏好恢復追蹤 · Restore tracking on app start. Default is ON unless disabled.</summary>
     public void InitFromPrefs()
     {
-        if (SettingsStore.Get(PrefTracking, "false") == "true")
+        InstallDeathHooks();
+        if (ActivityStore.RecoverOpenCheckpoint(NowUnix()))
+            Raise(SegmentRecorded);
+        if (SettingsStore.Get(PrefTracking, "true") == "true")
             Start();
     }
 
@@ -74,6 +79,7 @@ public sealed class ActivityTrackerService
 
     public void Start()
     {
+        InstallDeathHooks();
         lock (_gate)
         {
             if (IsTracking) return;
@@ -94,6 +100,7 @@ public sealed class ActivityTrackerService
         {
             if (!IsTracking) { return; }
             FlushLocked(NowUnix());
+            ActivityStore.ClearOpenCheckpoint();
             _timer?.Dispose();
             _timer = null;
             IsTracking = false;
@@ -106,6 +113,23 @@ public sealed class ActivityTrackerService
 
     public void Toggle() { if (IsTracking) Stop(); else Start(); }
 
+    /// <summary>
+    /// App 退出／崩潰／關機前嘅同步落盤 · Synchronously flush the open segment without changing
+    /// the user's saved tracking preference, so tracking resumes next launch.
+    /// </summary>
+    public void FlushForShutdown()
+    {
+        lock (_gate)
+        {
+            if (_hasCurrent) FlushLocked(NowUnix());
+            _timer?.Dispose();
+            _timer = null;
+            IsTracking = false;
+            IsPaused = false;
+            IsIdle = false;
+        }
+    }
+
     /// <summary>暫停／繼續取樣（私隱按鈕）· Pause/resume sampling without losing the tracking-on state.</summary>
     public void SetPaused(bool paused)
     {
@@ -114,6 +138,7 @@ public sealed class ActivityTrackerService
             if (!IsTracking || IsPaused == paused) return;
             IsPaused = paused;
             if (paused) FlushLocked(NowUnix()); // close the open segment so the gap is honest
+            if (paused) ActivityStore.ClearOpenCheckpoint();
         }
         Raise(StateChanged);
     }
@@ -166,6 +191,10 @@ public sealed class ActivityTrackerService
                     FlushLocked(now);
                     BeginLocked(proc, title ?? "", now);
                 }
+                else
+                {
+                    ActivityStore.SaveOpenCheckpoint(_curProc, _curTitle, _curStartUnix, now);
+                }
                 // else: same app+title, keep accumulating (end advances at next flush).
             }
         }
@@ -178,14 +207,15 @@ public sealed class ActivityTrackerService
         _curTitle = title;
         _curStartUnix = now;
         _hasCurrent = true;
+        ActivityStore.SaveOpenCheckpoint(_curProc, _curTitle, _curStartUnix, now);
     }
 
     private void FlushLocked(long endUnix)
     {
-        if (!_hasCurrent) return;
+        if (!_hasCurrent) { ActivityStore.ClearOpenCheckpoint(); return; }
         _hasCurrent = false;
         long start = _curStartUnix;
-        if (endUnix <= start) return;
+        if (endUnix <= start) { ActivityStore.ClearOpenCheckpoint(); return; }
         var seg = new ActivitySegment
         {
             Process = _curProc,
@@ -194,7 +224,32 @@ public sealed class ActivityTrackerService
             EndUnix = endUnix,
         };
         ActivityStore.Append(seg);
+        ActivityStore.ClearOpenCheckpoint();
         Raise(SegmentRecorded);
+    }
+
+    private void InstallDeathHooks()
+    {
+        if (_hooksInstalled) return;
+        _hooksInstalled = true;
+        try { AppDomain.CurrentDomain.ProcessExit += (_, _) => FlushFinal("process-exit"); } catch { }
+        try { AppDomain.CurrentDomain.UnhandledException += (_, _) => FlushFinal("unhandled"); } catch { }
+        try { System.Threading.Tasks.TaskScheduler.UnobservedTaskException += (_, _) => FlushFinal("task"); } catch { }
+        try { SystemEvents.SessionEnding += (_, _) => FlushFinal("session-ending"); } catch { }
+        try
+        {
+            SystemEvents.PowerModeChanged += (_, e) =>
+            {
+                if (e.Mode == PowerModes.Suspend) FlushFinal("suspend");
+            };
+        }
+        catch { }
+    }
+
+    private void FlushFinal(string reason)
+    {
+        try { FlushForShutdown(); }
+        catch (Exception ex) { CrashLogger.Log($"activity:flushfinal:{reason}", ex); }
     }
 
     private static long NowUnix() => DateTimeOffset.UtcNow.ToUnixTimeSeconds();

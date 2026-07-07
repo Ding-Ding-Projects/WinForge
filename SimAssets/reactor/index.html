@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reactor Control Room · 反應堆控制室</title>
+  <link rel="stylesheet" href="css/reactor.css" />
+</head>
+<body>
+  <header id="topbar">
+    <div class="brand">
+      <span class="logo">☢</span>
+      <span class="brand-text">
+        <b data-i18n="appTitle">Reactor Control Room</b>
+        <small data-i18n="appSub">OPEN100-class PWR · full-scope simulation</small>
+      </span>
+    </div>
+    <div class="status-strip">
+      <span id="statusDot" class="dot"></span>
+      <span id="statusText" class="status-text">—</span>
+      <span id="modePill" class="mode-pill">—</span>
+    </div>
+    <div class="top-actions">
+      <button id="scramBtn" class="scram">SCRAM<small>緊急停堆</small></button>
+      <button id="langBtn" class="ghost" title="Toggle language">EN / 粵</button>
+      <button id="fullBtn" class="ghost" title="Full screen">⛶</button>
+    </div>
+  </header>
+
+  <nav id="tabstrip" role="tablist"></nav>
+
+  <main id="rooms"></main>
+
+  <footer id="statusbar">
+    <span id="clockReadout">t = 0.0 s</span>
+    <span id="powerReadout">P = — %</span>
+    <span id="mweReadout">— MWe</span>
+    <span id="fuelReadout" class="fuel-pill">—</span>
+    <span class="grow"></span>
+    <span class="offline" data-i18n="offline">Self-contained · no network</span>
+  </footer>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

@@ -34,7 +34,8 @@ public sealed partial class DiskAnalyzerModule : Page
     public DiskAnalyzerModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; };
         Loaded += async (_, _) =>
         {
             Render();
@@ -43,11 +44,13 @@ public sealed partial class DiskAnalyzerModule : Page
         };
     }
 
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
+
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
     private void Render()
     {
-        HeaderTitle.Text = "Disk Analyser · 磁碟分析";
+        Header.Title = "Disk Analyser · 磁碟分析";
         HeaderBlurb.Text = P("See what's using space: size of each folder/file with bars, click a folder to drill in.",
             "睇下啲空間用咗喺邊：每個資料夾／檔案嘅大細連長條，撳資料夾入去再睇。");
         BrowseBtn.Content = P("Browse…", "瀏覽…");

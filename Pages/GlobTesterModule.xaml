@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.GlobTesterModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="820" Spacing="14">
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE71C;" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <StackPanel Spacing="4">
+                        <TextBlock x:Name="PatternLabel" FontWeight="SemiBold" />
+                        <TextBox x:Name="PatternBox" FontFamily="Consolas" TextChanged="Input_Changed" PlaceholderText="src/**/*.{cs,xaml}" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="24">
+                        <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                            <TextBlock x:Name="CaseLabel" VerticalAlignment="Center" />
+                            <ToggleSwitch x:Name="CaseSwitch" Toggled="Input_Changed" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                            <TextBlock x:Name="DotLabel" VerticalAlignment="Center" />
+                            <ToggleSwitch x:Name="DotSwitch" Toggled="Input_Changed" />
+                        </StackPanel>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="8">
+                    <TextBlock x:Name="RegexLabel" FontWeight="SemiBold" />
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="RegexBox" Grid.Column="0" IsReadOnly="True" FontFamily="Consolas"
+                                 TextWrapping="Wrap" AcceptsReturn="False"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                 ScrollViewer.VerticalScrollBarVisibility="Disabled" />
+                        <Button x:Name="CopyBtn" Grid.Column="1" Click="Copy_Click" VerticalAlignment="Stretch" />
+                    </Grid>
+                    <InfoBar x:Name="StatusBar" IsOpen="True" IsClosable="False" Severity="Informational" />
+                </StackPanel>
+            </Border>
+
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <StackPanel Spacing="4">
+                        <TextBlock x:Name="PathsLabel" FontWeight="SemiBold" />
+                        <TextBox x:Name="PathsBox" FontFamily="Consolas" AcceptsReturn="True" MinHeight="120"
+                                 TextWrapping="NoWrap" TextChanged="Input_Changed"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                 PlaceholderText="src/App.cs&#x0a;src/ui/Main.xaml&#x0a;README.md" />
+                    </StackPanel>
+
+                    <TextBlock x:Name="ResultsLabel" FontWeight="SemiBold" />
+                    <ListView x:Name="ResultsList" SelectionMode="None" MaxHeight="360">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnSpacing="12" Padding="0,4,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="{Binding Path}" FontFamily="Consolas" TextWrapping="Wrap" VerticalAlignment="Center" />
+                                    <Border Grid.Column="1" Background="{Binding BadgeBrush}" CornerRadius="10" Padding="10,2,10,2" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding BadgeText}" Foreground="White" FontSize="12" FontWeight="SemiBold" />
+                                    </Border>
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

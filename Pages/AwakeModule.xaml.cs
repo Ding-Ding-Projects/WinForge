@@ -19,15 +19,18 @@ public sealed partial class AwakeModule : Page
     {
         InitializeComponent();
         _timer.Tick += (_, _) => Tick();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) => { Render(); SyncFromState(); };
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; _timer.Stop(); };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
     private void Render()
     {
-        HeaderTitle.Text = "Awake · 保持喚醒";
+        Header.Title = "Awake · 保持喚醒";
         HeaderBlurb.Text = P("Keep this PC awake — no sleep, no screen timeout — while WinForge is running. Great for downloads, installs or presentations.",
             "WinForge 開住嘅時候令電腦保持清醒 — 唔瞓、螢幕唔熄。下載、安裝或者做簡報啱用。");
         ToggleTitle.Text = P("Keep the PC awake", "保持電腦清醒");

@@ -4,10 +4,11 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid Padding="24,16,24,16" RowSpacing="12">
+    <Grid Style="{StaticResource WinForgePageGridStyle}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -16,22 +17,24 @@
 
         <!-- Header -->
         <StackPanel Grid.Row="0" Spacing="6">
-            <StackPanel Orientation="Horizontal" Spacing="12">
-                <FontIcon FontSize="24" Glyph="&#xE943;" VerticalAlignment="Center" />
-                <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
-            </StackPanel>
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE943;" />
             <TextBlock
                 x:Name="HeaderBlurb"
                 Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                 TextWrapping="Wrap" />
         </StackPanel>
 
-        <!-- Engine / install bar -->
-        <InfoBar
-            x:Name="EngineBar"
-            Grid.Row="1"
-            IsClosable="False"
-            IsOpen="False" />
+        <!-- Engine / install bar + persistent status bar for operation results -->
+        <StackPanel Grid.Row="1" Spacing="8">
+            <InfoBar
+                x:Name="EngineBar"
+                IsClosable="False"
+                IsOpen="False" />
+            <InfoBar
+                x:Name="StatusBar"
+                IsClosable="True"
+                IsOpen="False" />
+        </StackPanel>
 
         <!-- Body: left actions/extensions, right ops library -->
         <Grid Grid.Row="2" ColumnSpacing="14">
@@ -241,7 +244,14 @@
                         QueryIcon="Find"
                         TextChanged="OpsFilter_TextChanged" />
                     <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
-                        <StackPanel x:Name="OpsPanel" Spacing="2" />
+                        <!-- Hand-built control rows with a subtle Fluent entrance animation. -->
+                        <StackPanel x:Name="OpsPanel" Spacing="0">
+                            <StackPanel.ChildrenTransitions>
+                                <TransitionCollection>
+                                    <EntranceThemeTransition FromVerticalOffset="24" IsStaggeringEnabled="True" />
+                                </TransitionCollection>
+                            </StackPanel.ChildrenTransitions>
+                        </StackPanel>
                     </ScrollViewer>
                 </Grid>
             </Border>

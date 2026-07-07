@@ -42,6 +42,61 @@ public static class DocsExporter
         return all.Count;
     }
 
+    /// <summary>
+    /// 由真實 app 目錄匯出網站資料 · Export the documentation site's data as JSON straight from the
+    /// LIVE app catalogs — real module list (<see cref="ModuleRegistry"/>), real categories +
+    /// feature counts (<see cref="Categories"/> / <see cref="TweakCatalog"/>) — so the GitHub Pages
+    /// site shows the app's actual capabilities instead of hand-written/stale numbers.
+    /// Writes {meta, categories, modules}; the wiki content is merged in by the publish step.
+    /// </summary>
+    public static void ExportSiteData(string path)
+    {
+        var categories = Categories.All.Select(cat => new
+        {
+            en = cat.Name.En,
+            zh = cat.Name.Zh,
+            count = TweakCatalog.CountFor(cat),
+            features = TweakCatalog.ByCategory(cat).Select(t => new
+            {
+                en = t.Title.En,
+                zh = t.Title.Zh,
+                id = t.Id,
+                folder = Folder($"{cat.Name.En} · {cat.Name.Zh}"),
+            }).ToList(),
+        }).ToList();
+
+        var modules = ModuleRegistry.All.Select(m => new
+        {
+            en = m.En,
+            zh = m.Zh,
+            page = m.Tag.StartsWith("module.", StringComparison.Ordinal) ? m.Tag["module.".Length..] : m.Tag,
+            tag = m.Tag,
+            status = "✅",
+        }).ToList();
+
+        var payload = new
+        {
+            // No timestamp here — keep the output deterministic so CI only commits when the
+            // REAL module/category/feature data actually changes (not on every run).
+            meta = new
+            {
+                totalFeatures = FeatureCountService.FullFeatureCount,
+                tweakFeatureCount = FeatureCountService.TweakFeatureCount,
+                categoryCount = FeatureCountService.CategoryCount,
+                moduleCount = FeatureCountService.ModuleCount,
+            },
+            categories,
+            modules,
+        };
+
+        var json = System.Text.Json.JsonSerializer.Serialize(payload, new System.Text.Json.JsonSerializerOptions
+        {
+            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        });
+        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
+        File.WriteAllText(path, json, Utf8);
+    }
+
     /// <summary>Folder slug from a "English · 粵語" module label, e.g. "Git &amp; GitHub · …" -&gt; "git-github".</summary>
     private static string Folder(string module)
     {

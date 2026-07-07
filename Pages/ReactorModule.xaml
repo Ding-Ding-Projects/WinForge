@@ -1,0 +1,342 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.ReactorModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid>
+        <ScrollViewer x:Name="RootScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <Grid Padding="24,16,24,24" RowSpacing="14">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- header -->
+                <controls:ModuleHeader x:Name="Header" Grid.Row="0" Glyph="&#xEBC0;" />
+
+                <!-- status banner -->
+                <Border x:Name="StatusBanner" Grid.Row="1" CornerRadius="8" Padding="16,10,16,10"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                    <Grid ColumnSpacing="20">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                            <Border x:Name="StatusDot" Width="14" Height="14" CornerRadius="7" Background="#4CAF50" VerticalAlignment="Center" />
+                            <StackPanel>
+                                <TextBlock x:Name="StatusText" FontSize="18" FontWeight="Bold" />
+                                <TextBlock x:Name="ModeText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+                        </StackPanel>
+                        <TextBlock x:Name="BannerWarn" Grid.Column="1" VerticalAlignment="Center" TextWrapping="Wrap"
+                                   Foreground="#FFB300" FontWeight="SemiBold" />
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                            <!-- Crash/shutdown-safe autosave LIVE INDICATOR (the configuration toggle now lives on the Reactor Settings page) -->
+                            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                <Border x:Name="SaveDot" Width="10" Height="10" CornerRadius="5" Background="#4CAF50" VerticalAlignment="Center" />
+                                <TextBlock x:Name="SaveStatusText" FontSize="12" VerticalAlignment="Center"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+                            <TextBlock x:Name="ClockText" FontFamily="Consolas" FontSize="13" VerticalAlignment="Center"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- Keep-awake pill + reactor↔system-settings linkage -->
+                <StackPanel Grid.Row="2" Spacing="14">
+                <Border x:Name="KeepAwakePill" CornerRadius="8" Padding="14,9,14,9"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                    <Grid ColumnSpacing="14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Border x:Name="KeepAwakeDot" Grid.Column="0" Width="14" Height="14" CornerRadius="7"
+                                Background="#757575" VerticalAlignment="Center" />
+                        <TextBlock x:Name="KeepAwakeText" Grid.Column="1" VerticalAlignment="Center"
+                                   TextWrapping="Wrap" FontWeight="SemiBold" />
+                    </Grid>
+                </Border>
+
+                <!-- Reactor ↔ Windows settings linkage (OPT-IN, default OFF, fully reversible) -->
+                <Border x:Name="SysLinkPill" CornerRadius="8" Padding="14,9,14,9"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                    <Grid ColumnSpacing="14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Border x:Name="SysLinkDot" Grid.Column="0" Width="14" Height="14" CornerRadius="7"
+                                Background="#757575" VerticalAlignment="Center" />
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock x:Name="SysLinkText" TextWrapping="Wrap" FontWeight="SemiBold" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+                </StackPanel>
+
+                <!-- Toolbar: control room, widgets, mute, scenario -->
+                <Border Grid.Row="3" CornerRadius="8" Padding="12,8,12,8"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <Button x:Name="ReactorSettingsButton" Click="ReactorSettings_Click" Background="#2FAF57" Foreground="White">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE713;" FontSize="14" Foreground="White" />
+                                <TextBlock x:Name="ReactorSettingsButtonText" />
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="OpenControlRoomButton" Click="OpenControlRoom_Click" />
+                        <Button x:Name="StartupChecklistButton" Click="StartupChecklist_Click" />
+                        <Button x:Name="ChecklistWidgetButton" Click="OpenChecklistWidget_Click" />
+                        <Button x:Name="OpenWidgetsButton" Click="OpenWidgets_Click" />
+                        <ToggleButton x:Name="MuteToggle" Click="MuteToggle_Click" />
+                        <TextBlock x:Name="ScenarioLabel" VerticalAlignment="Center" Margin="8,0,0,0"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <ComboBox x:Name="ScenarioCombo" MinWidth="220" SelectionChanged="Scenario_Changed" />
+                        <ToggleButton x:Name="IsolateSgToggle" Click="IsolateSg_Click" Visibility="Collapsed" />
+                        <ToggleButton x:Name="AmsacDefeatToggle" Click="AmsacDefeat_Click" Visibility="Collapsed" />
+                    </StackPanel>
+                </Border>
+
+                <!-- BIG SCRAM bar -->
+                <Grid Grid.Row="4" ColumnSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Button Grid.Column="0" x:Name="ScramButton" Click="Scram_Click" HorizontalAlignment="Stretch"
+                            Height="56" Background="#C62828" Foreground="White" CornerRadius="8">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <FontIcon Glyph="&#xE7BA;" Foreground="White" />
+                            <TextBlock x:Name="ScramText" FontSize="20" FontWeight="Bold" />
+                        </StackPanel>
+                    </Button>
+                    <Button Grid.Column="1" x:Name="ResetTripButton" Click="ResetTrip_Click" Height="56" CornerRadius="8" />
+                    <ToggleSwitch Grid.Column="2" x:Name="AutoRunToggle" VerticalAlignment="Center" Toggled="AutoRun_Toggled" />
+                </Grid>
+
+                <!-- Mimic diagram with Composition FX layer behind -->
+                <Border Grid.Row="5" CornerRadius="8" Padding="8"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                    <StackPanel Spacing="6">
+                        <TextBlock x:Name="MimicTitle" FontWeight="SemiBold" Margin="8,4,0,0" />
+                        <Grid Width="980" Height="340" HorizontalAlignment="Left">
+                            <Grid x:Name="FxLayer" Width="980" Height="340" IsHitTestVisible="False" />
+                            <Canvas x:Name="MimicCanvas" Width="980" Height="340" HorizontalAlignment="Left" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- NIS log meters + 1/M approach-to-criticality + SPDS critical safety functions -->
+                <Border Grid.Row="6" CornerRadius="8" Padding="12"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                    <StackPanel Spacing="8">
+                        <TextBlock x:Name="NisTitle" FontWeight="SemiBold" />
+                        <VariableSizedWrapGrid Orientation="Horizontal" ItemWidth="340" ItemHeight="166" Margin="0,0,-8,0">
+                            <StackPanel Width="320">
+                                <TextBlock x:Name="NisLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <Canvas x:Name="NisCanvas" Width="320" Height="120" Background="#11000000" />
+                            </StackPanel>
+                            <StackPanel Width="320">
+                                <TextBlock x:Name="OneOverMLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <Canvas x:Name="OneOverMCanvas" Width="320" Height="120" Background="#11000000" />
+                            </StackPanel>
+                            <StackPanel Width="320">
+                                <TextBlock x:Name="CsfTitle" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <VariableSizedWrapGrid x:Name="CsfPanel" Orientation="Horizontal" ItemWidth="100" ItemHeight="58" Width="320" />
+                            </StackPanel>
+                            <StackPanel Width="320" Spacing="2">
+                                <TextBlock x:Name="RevMeterTitle" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                                <Border CornerRadius="6" Padding="8,6" Background="#11000000">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock x:Name="RevMeterRho" FontFamily="Consolas" FontSize="15" FontWeight="Bold" />
+                                        <TextBlock x:Name="RevMeterPeriod" FontFamily="Consolas" FontSize="12"
+                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        <TextBlock x:Name="RevMeterSur" FontFamily="Consolas" FontSize="12"
+                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        <TextBlock x:Name="RevMeterWorth" FontFamily="Consolas" FontSize="12"
+                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                                        <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,4,0,0">
+                                            <Button x:Name="RevMeterMarkButton" Click="OnReactimeterMark" Padding="8,2" FontSize="12" />
+                                            <Button x:Name="RevMeterClearButton" Click="OnReactimeterClearMark" Padding="8,2" FontSize="12" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                            <StackPanel Width="320" Spacing="2">
+                                <TextBlock x:Name="CalMeterTitle" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                                <Border CornerRadius="6" Padding="8,6" Background="#11000000">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock x:Name="CalMeterCal" FontFamily="Consolas" FontSize="15" FontWeight="Bold" />
+                                        <TextBlock x:Name="CalMeterPr" FontFamily="Consolas" FontSize="12"
+                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        <TextBlock x:Name="CalMeterDev" FontFamily="Consolas" FontSize="12" />
+                                        <TextBlock x:Name="CalMeterUncert" FontFamily="Consolas" FontSize="12"
+                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                                        <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,4,0,0">
+                                            <Button x:Name="CalMeterCalibrateButton" Click="OnCalibratePowerRange" Padding="8,2" FontSize="12" />
+                                            <ToggleSwitch x:Name="CalMeterLefmToggle" Toggled="OnLefmToggled" MinWidth="0" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </VariableSizedWrapGrid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Reactor Protection System: 4-channel 2-of-4 coincidence logic -->
+                <Border Grid.Row="7" CornerRadius="8" Padding="12"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                    <StackPanel Spacing="8">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="RpsTitle" Grid.Column="0" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            <StackPanel x:Name="PermissivePanel" Grid.Column="1" Orientation="Horizontal" Spacing="6" />
+                        </Grid>
+                        <TextBlock x:Name="RpsSubtitle" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                        <VariableSizedWrapGrid x:Name="RpsPanel" Orientation="Horizontal" ItemWidth="232" ItemHeight="70" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Gauges -->
+                <Border Grid.Row="8" CornerRadius="8" Padding="12"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                    <StackPanel Spacing="6">
+                        <TextBlock x:Name="GaugesTitle" FontWeight="SemiBold" />
+                        <VariableSizedWrapGrid x:Name="GaugePanel" Orientation="Horizontal" ItemWidth="160" ItemHeight="160" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Trend charts -->
+                <Border Grid.Row="9" CornerRadius="8" Padding="12"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                    <StackPanel Spacing="8">
+                        <TextBlock x:Name="TrendTitle" FontWeight="SemiBold" />
+                        <StackPanel x:Name="StripChartHost" Orientation="Horizontal" Spacing="12" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Alarm panel -->
+                <Border Grid.Row="10" CornerRadius="8" Padding="12"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                    <StackPanel Spacing="6">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="AlarmTitle" Grid.Column="0" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+                                <Button x:Name="AckButton" Click="Ack_Click" />
+                                <Button x:Name="SilenceButton" Click="Silence_Click" />
+                                <Button x:Name="ResetAlarmButton" Click="ResetAlarms_Click" />
+                                <Button x:Name="LampTestButton" Click="LampTest_Click" />
+                            </StackPanel>
+                        </Grid>
+                        <VariableSizedWrapGrid x:Name="AlarmPanel" Orientation="Horizontal" ItemWidth="190" ItemHeight="52" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Controls -->
+                <Border Grid.Row="11" CornerRadius="8" Padding="16"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                    <StackPanel x:Name="ControlsHost" Spacing="14" />
+                </Border>
+
+                <!-- Public status API (named pipe + MMF) — for dependent apps -->
+                <Border Grid.Row="12" CornerRadius="8" Padding="16"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                    <StackPanel x:Name="StatusApiHost" Spacing="8" />
+                </Border>
+            </Grid>
+        </ScrollViewer>
+
+        <!-- Command-line auto-start animation/progress. Non-blocking: the control room stays usable. -->
+        <Border x:Name="AutoStartOverlay" Visibility="Collapsed" IsHitTestVisible="False"
+                HorizontalAlignment="Right" VerticalAlignment="Top" Margin="24"
+                CornerRadius="8" Padding="14,12,14,12" Width="360"
+                Background="#E61B2430" BorderBrush="#FF49CDD9" BorderThickness="1">
+            <Grid ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid Width="44" Height="44" VerticalAlignment="Center">
+                    <Ellipse x:Name="AutoStartPulse" Fill="#3349CDD9" Stroke="#FF49CDD9" StrokeThickness="2" />
+                    <FontIcon Glyph="&#xE9D9;" FontSize="20" Foreground="#FF90CAF9"
+                              HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Grid>
+                <StackPanel Grid.Column="1" Spacing="5" VerticalAlignment="Center">
+                    <TextBlock x:Name="AutoStartText" FontWeight="SemiBold" Foreground="White" TextWrapping="Wrap" />
+                    <TextBlock x:Name="AutoStartSubText" FontSize="11" Foreground="#FFD0E7FF" TextWrapping="Wrap" />
+                    <ProgressBar x:Name="AutoStartProgress" Minimum="0" Maximum="100" Height="6" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- MELTDOWN overlay (dramatic) -->
+        <Grid x:Name="MeltdownOverlay" Visibility="Collapsed" Background="#E6000000">
+            <Border Background="#22FF0000" />
+            <Grid x:Name="MeltdownStrobe" Background="#33FF0000" IsHitTestVisible="False" />
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="20" MaxWidth="640">
+                <FontIcon x:Name="KlaxonIcon" Glyph="&#xE7BA;" FontSize="96" Foreground="#FF1744" HorizontalAlignment="Center" />
+                <TextBlock x:Name="MeltdownTitle" FontSize="48" FontWeight="Bold" Foreground="#FF5252"
+                           HorizontalAlignment="Center" TextAlignment="Center" />
+                <TextBlock x:Name="MeltdownSub" FontSize="20" Foreground="#FFCDD2"
+                           HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" />
+                <Border x:Name="CountdownBox" CornerRadius="10" Padding="20" Background="#33FFFFFF" Visibility="Collapsed">
+                    <StackPanel Spacing="12" HorizontalAlignment="Center">
+                        <TextBlock x:Name="CountdownText" FontSize="22" FontWeight="SemiBold" Foreground="White"
+                                   HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" />
+                        <TextBlock x:Name="CountdownNumber" FontSize="72" FontWeight="Bold" Foreground="#FFEB3B"
+                                   HorizontalAlignment="Center" />
+                        <Button x:Name="AbortButton" Click="Abort_Click" HorizontalAlignment="Center"
+                                Height="64" MinWidth="320" Background="#43A047" Foreground="White" CornerRadius="10">
+                            <TextBlock x:Name="AbortText" FontSize="22" FontWeight="Bold" />
+                        </Button>
+                    </StackPanel>
+                </Border>
+                <Button x:Name="MeltdownCloseButton" Click="MeltdownClose_Click" HorizontalAlignment="Center" Visibility="Collapsed">
+                    <TextBlock x:Name="MeltdownCloseText" />
+                </Button>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Page>

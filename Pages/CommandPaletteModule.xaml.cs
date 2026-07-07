@@ -19,15 +19,18 @@ public sealed partial class CommandPaletteModule : Page
     public CommandPaletteModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) => { Render(); Sync(); };
+        Unloaded += (_, _) => Loc.I.LanguageChanged -= OnLanguageChanged;
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
     private void Render()
     {
-        HeaderTitle.Text = "Command Palette · 指令面板";
+        Header.Title = "Command Palette · 指令面板";
         HeaderBlurb.Text = P(
             "A global quick-launcher (like PowerToys Run). Press the hotkey anywhere to open a centered search box: launch installed apps, jump to WinForge modules, open files & folders, do quick math, run commands or URLs, trigger system actions, or search the web.",
             "全域快速啟動器（似 PowerToys Run）。喺任何地方按熱鍵就會彈出置中嘅搜尋框：啟動已安裝程式、跳去 WinForge 模組、開檔案同資料夾、快速計數、執行指令或網址、觸發系統動作，或者上網搜尋。");

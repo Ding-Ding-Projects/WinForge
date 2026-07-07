@@ -6,8 +6,9 @@ namespace WinForge.Models;
 /// <summary>應用程式語言 · Application language.</summary>
 public enum AppLanguage
 {
-    English,
+    Bilingual,
     Cantonese,
+    English,
 }
 
 /// <summary>調校項目嘅種類 · The kind of tweak / control surface.</summary>
@@ -75,13 +76,21 @@ public sealed class LocalizedText
         Zh = zh;
     }
 
-    public string Get(AppLanguage lang) => lang == AppLanguage.Cantonese ? Zh : En;
+    public string Get(AppLanguage lang) => lang switch
+    {
+        AppLanguage.Bilingual => Services.Loc.Both(En, Zh),
+        AppLanguage.Cantonese => Zh,
+        _ => En,
+    };
 
-    /// <summary>主要語言（跟使用者選擇）· Primary language per the user's choice.</summary>
-    public string Primary => Get(Services.Loc.I.Language);
+    /// <summary>目前語言模式嘅完整顯示文字 · Display text for the current language mode.</summary>
+    public string Display => Get(Services.Loc.I.Language);
 
-    /// <summary>次要語言（另一種，永遠顯示）· Secondary language, always shown alongside.</summary>
-    public string Secondary => Get(Services.Loc.I.Other);
+    /// <summary>主要文字 · Primary text for the user's display mode.</summary>
+    public string Primary => Services.Loc.I.Language == AppLanguage.Cantonese ? Zh : En;
+
+    /// <summary>次要文字；只喺雙語模式顯示 · Secondary text, shown only in bilingual mode.</summary>
+    public string Secondary => Services.Loc.I.IsBilingual ? Zh : "";
 
     public static implicit operator LocalizedText((string en, string zh) t) => new(t.en, t.zh);
 

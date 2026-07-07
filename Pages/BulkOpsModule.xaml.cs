@@ -21,25 +21,22 @@ public sealed partial class BulkOpsModule : Page
     public BulkOpsModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) =>
         {
             Render();
-            if (string.IsNullOrEmpty(_source))
-            {
-                _source = AppContext.BaseDirectory;
-                SourceBox.Text = _source;
-                PatternBox.Text = "*.dll";
-            }
             Recompute();
         };
+        Unloaded += (_, _) => Loc.I.LanguageChanged -= OnLanguageChanged;
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
     private void Render()
     {
-        HeaderTitle.Text = "Bulk File Ops · 批次檔案操作";
+        Header.Title = "Bulk File Ops · 批次檔案操作";
         HeaderBlurb.Text = P("Match files by wildcard, regex or extension, preview them, then copy, move, recycle, flatten or organise by type.",
             "用萬用字元、正則或副檔名比對檔案，預覽之後可以複製、移動、放入回收筒、攤平或者按類型整理。");
         SrcCap.Text = P("Source", "來源");
@@ -66,7 +63,13 @@ public sealed partial class BulkOpsModule : Page
 
     private void Recompute()
     {
-        if (string.IsNullOrEmpty(_source)) { _matches = new(); List.ItemsSource = null; CountText.Text = ""; return; }
+        if (string.IsNullOrEmpty(_source))
+        {
+            _matches = new();
+            List.ItemsSource = new[] { P("Choose a source folder to preview matching files.", "揀來源資料夾後會預覽符合嘅檔案。") };
+            CountText.Text = P("No source selected", "未揀來源");
+            return;
+        }
         _matches = BulkFileOps.Match(_source, PatternBox.Text ?? "", Mode, RecurseCheck.IsChecked == true);
         List.ItemsSource = _matches;
         CountText.Text = P($"{_matches.Count} matched", $"配對到 {_matches.Count} 個");

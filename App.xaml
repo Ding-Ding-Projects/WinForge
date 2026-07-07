@@ -8,9 +8,110 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+                <!-- WinForge shared design system · WinForge 共用設計系統 -->
+                <ResourceDictionary Source="ms-appx:///Themes/WinForgeDesign.xaml" />
                 <!-- Other merged dictionaries here -->
             </ResourceDictionary.MergedDictionaries>
-            <!-- Other app resources here -->
+
+            <!-- ════════════════════════════════════════════════════════════════════
+                 WinForge "Reactor" theme · 反應堆主題 (from WinForge.dc.html design)
+                 Dark-first, reactor-green accent. Tokens: brand #54E07E,
+                 panel #131814 / #1A211B, bg #0A0D0B, spark #F7B034, cyan #49CDD9.
+                 Overriding the SystemAccentColor* palette + Fluent card/layer/text
+                 brushes recolors accent buttons, toggles, selection, progress, links
+                 and every TweakCard across all 138 pages at once.
+                 ═══════════════════════════════════════════════════════════════════ -->
+
+            <!-- Accent palette (dark theme uses Light*, light theme uses Dark*). -->
+            <Color x:Key="SystemAccentColor">#FF54E07E</Color>
+            <Color x:Key="SystemAccentColorLight1">#FF6BE892</Color>
+            <Color x:Key="SystemAccentColorLight2">#FF82EBA4</Color>
+            <Color x:Key="SystemAccentColorLight3">#FF9FF0BA</Color>
+            <Color x:Key="SystemAccentColorDark1">#FF2FAF57</Color>
+            <Color x:Key="SystemAccentColorDark2">#FF279048</Color>
+            <Color x:Key="SystemAccentColorDark3">#FF1F7239</Color>
+
+            <!-- Design fonts: Space Grotesk (UI) + JetBrains Mono (numerals). CJK glyphs fall back to
+                 the system font automatically. Overriding ContentControlThemeFontFamily + setting the
+                 shell root's FontFamily makes Space Grotesk the app-wide UI font. -->
+            <FontFamily x:Key="WinForgeUiFont">ms-appx:///Assets/Fonts/SpaceGrotesk.ttf#Space Grotesk</FontFamily>
+            <FontFamily x:Key="WinForgeMonoFont">ms-appx:///Assets/Fonts/JetBrainsMono.ttf#JetBrains Mono</FontFamily>
+            <FontFamily x:Key="ContentControlThemeFontFamily">ms-appx:///Assets/Fonts/SpaceGrotesk.ttf#Space Grotesk</FontFamily>
+
+            <!-- Make scroll bars clearly visible in dark mode (the default thumb was near-invisible
+                 dark-on-dark, and the auto-hide indicator was too faint). Wider + brighter thumb. -->
+            <x:Double x:Key="ScrollBarSize">14</x:Double>
+
+            <!-- Nav items hold a two-line stacked bilingual label (EN over ZH); the default 40px
+                 row clips the second line in half. 56px fits both lines with breathing room. -->
+            <x:Double x:Key="NavigationViewItemOnLeftMinHeight">56</x:Double>
+
+            <!-- Shared brand brushes pages/cards can reference directly. -->
+            <SolidColorBrush x:Key="WinForgeBrandBrush" Color="#FF54E07E" />
+            <SolidColorBrush x:Key="WinForgeBrandDimBrush" Color="#FF2FAF57" />
+            <SolidColorBrush x:Key="WinForgeSparkBrush" Color="#FFF7B034" />
+            <SolidColorBrush x:Key="WinForgeCyanBrush" Color="#FF49CDD9" />
+            <SolidColorBrush x:Key="WinForgeDangerBrush" Color="#FFFF5F5F" />
+
+            <ResourceDictionary.ThemeDictionaries>
+
+                <!-- DARK (= "Default") — the reactor palette -->
+                <ResourceDictionary x:Key="Default">
+                    <!-- Paneled card surfaces -->
+                    <SolidColorBrush x:Key="CardBackgroundFillColorDefaultBrush" Color="#FF131814" />
+                    <SolidColorBrush x:Key="CardBackgroundFillColorSecondaryBrush" Color="#FF0E120F" />
+                    <SolidColorBrush x:Key="CardStrokeColorDefaultBrush" Color="#14FFFFFF" />
+                    <SolidColorBrush x:Key="CardStrokeColorDefaultSolidBrush" Color="#FF272D28" />
+                    <SolidColorBrush x:Key="LayerFillColorDefaultBrush" Color="#FF1A211B" />
+                    <SolidColorBrush x:Key="LayerFillColorAltBrush" Color="#FF131814" />
+                    <SolidColorBrush x:Key="LayerOnAcrylicFillColorDefaultBrush" Color="#CC1A211B" />
+
+                    <!-- App / page / control backgrounds → flat near-black -->
+                    <SolidColorBrush x:Key="ApplicationPageBackgroundThemeBrush" Color="#FF0A0D0B" />
+                    <SolidColorBrush x:Key="SolidBackgroundFillColorBaseBrush" Color="#FF0A0D0B" />
+                    <SolidColorBrush x:Key="SolidBackgroundFillColorSecondaryBrush" Color="#FF0E120F" />
+                    <SolidColorBrush x:Key="SolidBackgroundFillColorTertiaryBrush" Color="#FF131814" />
+                    <SolidColorBrush x:Key="SolidBackgroundFillColorQuarternaryBrush" Color="#FF1A211B" />
+
+                    <!-- Nav rail + content panes -->
+                    <SolidColorBrush x:Key="NavigationViewDefaultPaneBackground" Color="#FF0E120F" />
+                    <SolidColorBrush x:Key="NavigationViewContentBackground" Color="#FF0A0D0B" />
+                    <SolidColorBrush x:Key="NavigationViewExpandedPaneBackground" Color="#FF0E120F" />
+
+                    <!-- Text ramp — brightened from the raw design tokens for readable contrast on the
+                         near-black background (the #9FAE9F/#6B7A6D dim/faint greys were too dark for
+                         small captions + the ZH nav subtitles). -->
+                    <SolidColorBrush x:Key="TextFillColorPrimaryBrush" Color="#FFEDF3ED" />
+                    <SolidColorBrush x:Key="TextFillColorSecondaryBrush" Color="#FFBFCBBF" />
+                    <SolidColorBrush x:Key="TextFillColorTertiaryBrush" Color="#FF95A395" />
+                    <SolidColorBrush x:Key="TextFillColorDisabledBrush" Color="#FF6E7A6E" />
+
+                    <!-- Accent-tinted subtle fills for nav + list hover/selection -->
+                    <SolidColorBrush x:Key="SubtleFillColorSecondaryBrush" Color="#1454E07E" />
+                    <SolidColorBrush x:Key="SubtleFillColorTertiaryBrush" Color="#0F54E07E" />
+
+                    <!-- Visible scroll bars (thumb + always-present panning indicator) -->
+                    <SolidColorBrush x:Key="ScrollBarPanningThumbBackground" Color="#99B5C2B5" />
+                    <SolidColorBrush x:Key="ScrollBarThumbFill" Color="#FF748576" />
+                    <SolidColorBrush x:Key="ScrollBarThumbFillPointerOver" Color="#FF93A395" />
+                    <SolidColorBrush x:Key="ScrollBarThumbFillPressed" Color="#FFAEC0B0" />
+                    <SolidColorBrush x:Key="ScrollBarThumbFillDisabled" Color="#33FFFFFF" />
+                    <SolidColorBrush x:Key="ScrollBarTrackFill" Color="#FF131814" />
+                    <SolidColorBrush x:Key="ScrollBarTrackFillPointerOver" Color="#FF1A211B" />
+                    <SolidColorBrush x:Key="ScrollBarTrackStroke" Color="#1FFFFFFF" />
+                    <SolidColorBrush x:Key="ScrollBarTrackStrokePointerOver" Color="#2EFFFFFF" />
+                    <SolidColorBrush x:Key="ScrollBarButtonArrowForeground" Color="#FFBFCBBF" />
+                    <SolidColorBrush x:Key="ScrollBarButtonArrowForegroundPointerOver" Color="#FFEDF3ED" />
+                </ResourceDictionary>
+
+                <!-- LIGHT — keep Fluent light, just the green accent (set above) -->
+                <ResourceDictionary x:Key="Light" />
+
+                <!-- HIGH CONTRAST — leave system defaults -->
+                <ResourceDictionary x:Key="HighContrast" />
+
+            </ResourceDictionary.ThemeDictionaries>
+
         </ResourceDictionary>
     </Application.Resources>
 </Application>

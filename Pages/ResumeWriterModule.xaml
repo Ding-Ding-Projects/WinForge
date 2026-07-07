@@ -4,10 +4,11 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid Padding="24,16,24,16" RowSpacing="12">
+    <Grid Style="{StaticResource WinForgePageGridStyle}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -18,10 +19,7 @@
 
         <!-- Header -->
         <StackPanel Grid.Row="0" Spacing="6">
-            <StackPanel Orientation="Horizontal" Spacing="12">
-                <FontIcon FontSize="22" Glyph="&#xE8A5;" VerticalAlignment="Center" />
-                <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
-            </StackPanel>
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE8A5;" />
             <TextBlock
                 x:Name="HeaderBlurb"
                 Foreground="{ThemeResource TextFillColorSecondaryBrush}"
@@ -147,14 +145,17 @@
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <Grid Grid.Column="0" RowSpacing="6">
+            <Grid x:Name="ResumePaneRoot" Grid.Column="0" RowSpacing="6">
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
                 <TextBlock x:Name="ResumePaneLabel" Grid.Row="0" FontWeight="SemiBold" />
+                <!-- Rich-text toolbar (handoff 54) injected here at runtime -->
+                <ContentControl x:Name="ResumeToolbarHost" Grid.Row="1" HorizontalAlignment="Left" Margin="0,0,0,4" />
                 <Border
-                    Grid.Row="1"
+                    Grid.Row="2"
                     Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                     BorderThickness="1"
@@ -170,14 +171,17 @@
                 </Border>
             </Grid>
 
-            <Grid Grid.Column="1" RowSpacing="6">
+            <Grid x:Name="CoverPaneRoot" Grid.Column="1" RowSpacing="6">
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
                 <TextBlock x:Name="CoverPaneLabel" Grid.Row="0" FontWeight="SemiBold" />
+                <!-- Rich-text toolbar (handoff 54) injected here at runtime -->
+                <ContentControl x:Name="CoverToolbarHost" Grid.Row="1" HorizontalAlignment="Left" Margin="0,0,0,4" />
                 <Border
-                    Grid.Row="1"
+                    Grid.Row="2"
                     Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                     BorderThickness="1"

@@ -12,6 +12,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Windows.System;
+using WinForge.Controls;
 using WinForge.Services;
 
 namespace WinForge.Pages;
@@ -77,8 +78,8 @@ public sealed partial class FileZillaModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "FTP / SFTP · FTP／SFTP 檔案傳輸";
-        HeaderBlurb.Text = P(
+        Header.Title = "FTP / SFTP · FTP／SFTP 檔案傳輸";
+        Header.Subtitle = P(
             "Native FileZilla-style transfers: saved sites with encrypted credentials, FTP / FTPS / SFTP, a dual local + remote browser, and a resumable transfer queue.",
             "原生 FileZilla 式傳輸：加密憑證嘅已儲存站台、FTP／FTPS／SFTP、雙窗本機＋遠端瀏覽，仲有可續傳嘅傳輸佇列。");
         SiteMgrHeader.Text = P("Site Manager", "站台管理");
@@ -96,12 +97,9 @@ public sealed partial class FileZillaModule : Page
     private void BuildOpsCards()
     {
         if (OpsPanel.Children.Count > 0) return;
-        foreach (var op in Catalog.FileZillaOperations.All())
-        {
-            var card = new Controls.TweakCard();
-            card.SetTweak(op);
-            OpsPanel.Children.Add(card);
-        }
+        var rows = new Controls.ControlRowList();
+        rows.SetTweaks(Catalog.FileZillaOperations.All());
+        OpsPanel.Children.Add(rows);
     }
 
     private void BuildProtocolCombo()

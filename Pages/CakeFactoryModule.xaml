@@ -1,0 +1,389 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.CakeFactoryModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:Microsoft.UI.Xaml.Controls"
+    xmlns:wf="using:WinForge.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid Style="{StaticResource WinForgePageGridStyle}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <wf:ModuleHeader x:Name="Header" Grid.Row="0" Glyph="&#xECA5;">
+            <wf:ModuleHeader.ActionContent>
+                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <Button x:Name="OpenFullFactoryBtn" Click="OpenFullFactory_Click">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon FontSize="14" Glyph="&#xE80F;" />
+                            <TextBlock x:Name="OpenFullFactoryText" />
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="OpenReactorBtn" Click="OpenReactor_Click">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon FontSize="14" Glyph="&#xEBC0;" />
+                            <TextBlock x:Name="OpenReactorText" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </wf:ModuleHeader.ActionContent>
+        </wf:ModuleHeader>
+
+        <InfoBar
+            x:Name="PowerInfo"
+            Grid.Row="1"
+            IsClosable="False"
+            IsOpen="True" />
+
+        <Grid Grid.Row="2">
+            <ScrollViewer
+                x:Name="NativeFactoryView"
+                HorizontalScrollBarVisibility="Disabled"
+                VerticalScrollBarVisibility="Auto">
+                <Grid RowSpacing="12" Padding="0,0,0,12">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="7*" />
+                            <ColumnDefinition Width="6*" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border
+                            Grid.Column="0"
+                            Padding="14"
+                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8">
+                            <StackPanel Spacing="12">
+                                <TextBlock x:Name="NativeControlsTitle" FontWeight="SemiBold" />
+                                <ComboBox
+                                    x:Name="RecipeBox"
+                                    HorizontalAlignment="Stretch"
+                                    SelectionChanged="RecipeBox_SelectionChanged" />
+
+                                <StackPanel Spacing="4">
+                                    <Grid>
+                                        <TextBlock x:Name="FarmIntensityLabel" />
+                                        <TextBlock
+                                            x:Name="FarmIntensityValue"
+                                            HorizontalAlignment="Right"
+                                            FontWeight="SemiBold" />
+                                    </Grid>
+                                    <Slider
+                                        x:Name="FarmIntensitySlider"
+                                        Maximum="100"
+                                        Minimum="0"
+                                        StepFrequency="1"
+                                        ValueChanged="FarmIntensitySlider_ValueChanged" />
+                                </StackPanel>
+
+                                <StackPanel Spacing="4">
+                                    <Grid>
+                                        <TextBlock x:Name="LineSpeedLabel" />
+                                        <TextBlock
+                                            x:Name="LineSpeedValue"
+                                            HorizontalAlignment="Right"
+                                            FontWeight="SemiBold" />
+                                    </Grid>
+                                    <Slider
+                                        x:Name="LineSpeedSlider"
+                                        Maximum="120"
+                                        Minimum="0"
+                                        StepFrequency="1"
+                                        ValueChanged="LineSpeedSlider_ValueChanged" />
+                                </StackPanel>
+
+                                <InfoBar
+                                    x:Name="NativeActionBar"
+                                    IsClosable="True"
+                                    IsOpen="False" />
+
+                                <VariableSizedWrapGrid
+                                    x:Name="NativeActionGrid"
+                                    ItemHeight="44"
+                                    ItemWidth="164"
+                                    Orientation="Horizontal">
+                                    <Button x:Name="ReceiveSuppliesButton" Width="156" Height="36" Click="ReceiveSupplies_Click">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <FontIcon FontSize="14" Glyph="&#xE7C3;" />
+                                            <TextBlock x:Name="ReceiveSuppliesText" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button x:Name="HarvestButton" Width="156" Height="36" Click="Harvest_Click">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <FontIcon FontSize="14" Glyph="&#xE825;" />
+                                            <TextBlock x:Name="HarvestText" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button x:Name="CollectButton" Width="156" Height="36" Click="Collect_Click">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <FontIcon FontSize="14" Glyph="&#xE8D4;" />
+                                            <TextBlock x:Name="CollectText" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button x:Name="MillButton" Width="156" Height="36" Click="Mill_Click">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <FontIcon FontSize="14" Glyph="&#xE9D9;" />
+                                            <TextBlock x:Name="MillText" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button x:Name="RefineButton" Width="156" Height="36" Click="Refine_Click">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <FontIcon FontSize="14" Glyph="&#xE95E;" />
+                                            <TextBlock x:Name="RefineText" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button x:Name="ChurnButton" Width="156" Height="36" Click="Churn_Click">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <FontIcon FontSize="14" Glyph="&#xE915;" />
+                                            <TextBlock x:Name="ChurnText" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button x:Name="ProcessCocoaButton" Width="156" Height="36" Click="ProcessCocoa_Click">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <FontIcon FontSize="14" Glyph="&#xEC7A;" />
+                                            <TextBlock x:Name="ProcessCocoaText" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button x:Name="StartBatchButton" Width="156" Height="36" Click="StartBatch_Click">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <FontIcon FontSize="14" Glyph="&#xE768;" />
+                                            <TextBlock x:Name="StartBatchText" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button x:Name="AdvanceButton" Width="156" Height="36" Click="Advance_Click">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <FontIcon FontSize="14" Glyph="&#xE72A;" />
+                                            <TextBlock x:Name="AdvanceText" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button x:Name="CleanButton" Width="156" Height="36" Click="Clean_Click">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <FontIcon FontSize="14" Glyph="&#xE75C;" />
+                                            <TextBlock x:Name="CleanText" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                    </Button>
+                                </VariableSizedWrapGrid>
+                            </StackPanel>
+                        </Border>
+
+                        <Border
+                            Grid.Column="1"
+                            Padding="14"
+                            AllowDrop="True"
+                            DragOver="CakeFiles_DragOver"
+                            Drop="CakeFiles_Drop"
+                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8">
+                            <StackPanel Spacing="12">
+                                <TextBlock x:Name="FactoryStatusTitle" FontWeight="SemiBold" />
+                                <Grid ColumnSpacing="12" RowSpacing="10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+
+                                    <StackPanel Grid.Row="0" Grid.Column="0">
+                                        <TextBlock x:Name="StageLabel" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        <TextBlock x:Name="StageValue" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Row="0" Grid.Column="1">
+                                        <TextBlock x:Name="PowerLabel" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        <TextBlock x:Name="PowerValue" FontSize="18" FontWeight="SemiBold" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Row="1" Grid.Column="0">
+                                        <TextBlock x:Name="QualityLabel" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        <TextBlock x:Name="QualityValue" FontSize="18" FontWeight="SemiBold" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Row="1" Grid.Column="1">
+                                        <TextBlock x:Name="SanitationLabel" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        <TextBlock x:Name="SanitationValue" FontSize="18" FontWeight="SemiBold" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Row="2" Grid.Column="0">
+                                        <TextBlock x:Name="OvenLabel" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        <TextBlock x:Name="OvenValue" FontSize="18" FontWeight="SemiBold" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Row="2" Grid.Column="1">
+                                        <TextBlock x:Name="PackedLabel" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        <TextBlock x:Name="PackedValue" FontSize="18" FontWeight="SemiBold" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Row="3" Grid.ColumnSpan="2" Spacing="4">
+                                        <TextBlock x:Name="PromptLabel" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        <TextBlock x:Name="PromptText" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Grid>
+
+                                <StackPanel Spacing="5">
+                                    <TextBlock x:Name="StageProgressLabel" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <ProgressBar x:Name="StageProgressBar" Minimum="0" Maximum="100" />
+                                    <TextBlock x:Name="CoreProgressLabel" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <ProgressBar x:Name="CoreProgressBar" Minimum="0" Maximum="100" />
+                                    <TextBlock x:Name="CipProgressLabel" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <ProgressBar x:Name="CipProgressBar" Minimum="0" Maximum="100" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <Grid Grid.Row="1" ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border
+                            Grid.Column="0"
+                            Padding="14"
+                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8">
+                            <StackPanel Spacing="10">
+                                <TextBlock x:Name="InventoryTitle" FontWeight="SemiBold" />
+                                <Grid ColumnSpacing="12" RowSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <TextBlock x:Name="FlourValue" Grid.Row="0" Grid.Column="0" />
+                                    <TextBlock x:Name="SugarValue" Grid.Row="0" Grid.Column="1" />
+                                    <TextBlock x:Name="EggsValue" Grid.Row="0" Grid.Column="2" />
+                                    <TextBlock x:Name="MilkValue" Grid.Row="1" Grid.Column="0" />
+                                    <TextBlock x:Name="ButterValue" Grid.Row="1" Grid.Column="1" />
+                                    <TextBlock x:Name="CocoaValue" Grid.Row="1" Grid.Column="2" />
+                                    <TextBlock x:Name="FieldValue" Grid.Row="2" Grid.ColumnSpan="3" TextWrapping="Wrap" />
+                                </Grid>
+                                <TextBlock x:Name="ResourceStatusText" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border
+                            Grid.Column="1"
+                            Padding="14"
+                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8">
+                            <StackPanel Spacing="10">
+                                <TextBlock x:Name="CakeFilesTitle" FontWeight="SemiBold" />
+                                <Grid ColumnSpacing="12" RowSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <TextBlock x:Name="BakeryKeyLabel" Grid.Row="0" Grid.Column="0" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock x:Name="BakeryKeyValue" Grid.Row="0" Grid.Column="1" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock x:Name="CakeCountLabel" Grid.Row="1" Grid.Column="0" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock x:Name="CakeCountValue" Grid.Row="1" Grid.Column="1" />
+                                    <TextBlock x:Name="LatestCakeLabel" Grid.Row="2" Grid.Column="0" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock x:Name="LatestCakeValue" Grid.Row="2" Grid.Column="1" TextTrimming="CharacterEllipsis" />
+                                </Grid>
+                                <TextBlock x:Name="CakeValidationText" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <VariableSizedWrapGrid ItemHeight="44" ItemWidth="164" Orientation="Horizontal">
+                                    <Button x:Name="TrustCakeKeyButton" Width="156" Height="36" Click="TrustCakeKey_Click">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <FontIcon FontSize="14" Glyph="&#xE72E;" />
+                                            <TextBlock x:Name="TrustCakeKeyText" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button x:Name="ValidateCakeButton" Width="156" Height="36" Click="ValidateCake_Click">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <FontIcon FontSize="14" Glyph="&#xE930;" />
+                                            <TextBlock x:Name="ValidateCakeText" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button x:Name="EatCakeButton" Width="156" Height="36" Click="EatCake_Click">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <FontIcon FontSize="14" Glyph="&#xE74D;" />
+                                            <TextBlock x:Name="EatCakeText" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button x:Name="OpenCakeFolderButton" Width="156" Height="36" Click="OpenCakeFolder_Click">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <FontIcon FontSize="14" Glyph="&#xE8B7;" />
+                                            <TextBlock x:Name="OpenCakeFolderText" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                    </Button>
+                                </VariableSizedWrapGrid>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </Grid>
+            </ScrollViewer>
+
+            <Border
+                x:Name="FullFactoryPanel"
+                MinHeight="680"
+                Visibility="Collapsed"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Grid Grid.Row="0" Padding="12,8,12,8" ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="FullFactoryTitle" VerticalAlignment="Center" FontWeight="SemiBold" />
+                        <Button x:Name="CloseFullFactoryBtn" Grid.Column="1" Click="CloseFullFactory_Click">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon FontSize="14" Glyph="&#xE711;" />
+                                <TextBlock x:Name="CloseFullFactoryText" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                    <Grid Grid.Row="1">
+                        <controls:WebView2
+                            x:Name="CakeWeb"
+                            MinHeight="640"
+                            HorizontalAlignment="Stretch"
+                            VerticalAlignment="Stretch" />
+                        <ProgressRing
+                            x:Name="LoadingRing"
+                            Width="38"
+                            Height="38"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            IsActive="False" />
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</Page>

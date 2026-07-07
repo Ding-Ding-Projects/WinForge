@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
@@ -11,10 +12,7 @@
         <StackPanel MaxWidth="980" Spacing="14">
 
             <!-- Header -->
-            <StackPanel Orientation="Horizontal" Spacing="12">
-                <FontIcon FontSize="22" Glyph="&#xE823;" VerticalAlignment="Center" />
-                <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
-            </StackPanel>
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE823;" />
             <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
 
             <!-- Privacy notice -->
@@ -51,14 +49,14 @@
                         <StackPanel Grid.Column="0" Spacing="4">
                             <TextBlock x:Name="IdleLabel" FontWeight="SemiBold" />
                             <StackPanel Orientation="Horizontal" Spacing="10">
-                                <Slider x:Name="IdleSlider" Width="180" Minimum="1" Maximum="30" StepFrequency="1" ValueChanged="Idle_Changed" />
+                                <Slider x:Name="IdleSlider" Width="180" Minimum="1" Maximum="30" StepFrequency="1" />
                                 <TextBlock x:Name="IdleValue" VerticalAlignment="Center" />
                             </StackPanel>
                         </StackPanel>
                         <StackPanel Grid.Column="1" Spacing="4">
                             <TextBlock x:Name="PollLabel" FontWeight="SemiBold" />
                             <StackPanel Orientation="Horizontal" Spacing="10">
-                                <Slider x:Name="PollSlider" Width="180" Minimum="1" Maximum="30" StepFrequency="1" ValueChanged="Poll_Changed" />
+                                <Slider x:Name="PollSlider" Width="180" Minimum="1" Maximum="30" StepFrequency="1" />
                                 <TextBlock x:Name="PollValue" VerticalAlignment="Center" />
                             </StackPanel>
                         </StackPanel>

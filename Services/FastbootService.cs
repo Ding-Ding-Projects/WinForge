@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using WinForge.Models;
@@ -24,8 +25,69 @@ public sealed class FastbootDevice
 /// </summary>
 public static class FastbootService
 {
+    // Cached, resolved fastboot.exe path. null = not resolved yet; "" = resolved-but-not-found.
+    private static string? _exeCache;
+
+    /// <summary>
+    /// 搵 fastboot.exe（PATH → 已知 Android SDK 位置）· Resolve fastboot.exe from PATH or the known
+    /// Android SDK Platform-Tools locations (ANDROID_SDK_ROOT / ANDROID_HOME / %LOCALAPPDATA%\Android\Sdk,
+    /// mirroring AdbService/EmulatorService). Cached; call <see cref="ClearCache"/> after an install to rescan.
+    /// Returns "" if not found.
+    /// </summary>
+    public static string ResolveExe()
+    {
+        if (_exeCache is not null) return _exeCache;
+
+        // 1) PATH — the common case once Platform-Tools is installed & PATH refreshed.
+        var pathVar = Environment.GetEnvironmentVariable("PATH") ?? "";
+        foreach (var dir in pathVar.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
+        {
+            try
+            {
+                var cand = Path.Combine(dir.Trim(), "fastboot.exe");
+                if (File.Exists(cand)) return _exeCache = cand;
+            }
+            catch { }
+        }
+
+        // 2) Known SDK locations (same roots EmulatorService uses), under platform-tools/.
+        foreach (var root in SdkRoots())
+        {
+            try
+            {
+                var cand = Path.Combine(root, "platform-tools", "fastboot.exe");
+                if (File.Exists(cand)) return _exeCache = cand;
+            }
+            catch { }
+        }
+
+        return _exeCache = "";
+    }
+
+    /// <summary>清除已快取路徑（安裝後重掃）· Clear the cached fastboot.exe path so the next call re-scans.</summary>
+    public static void ClearCache() => _exeCache = null;
+
+    /// <summary>Candidate Android SDK roots (env vars + the default per-user SDK dir).</summary>
+    private static IEnumerable<string> SdkRoots()
+    {
+        foreach (var v in new[] { "ANDROID_SDK_ROOT", "ANDROID_HOME" })
+        {
+            var p = Environment.GetEnvironmentVariable(v);
+            if (!string.IsNullOrEmpty(p) && Directory.Exists(p)) yield return p;
+        }
+        var def = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Android", "Sdk");
+        if (Directory.Exists(def)) yield return def;
+    }
+
+    /// <summary>The invocation token for fastboot — a resolved full path when known, else the bare command.</summary>
+    private static string Exe()
+    {
+        var p = ResolveExe();
+        return p.Length > 0 ? p : "fastboot";
+    }
+
     private static Task<string> Capture(string args, CancellationToken ct)
-        => ShellRunner.CapturePowershell($"fastboot {args} 2>&1 | Out-String -Width 400", ct);
+        => ShellRunner.CapturePowershell($"& \"{Exe()}\" {args} 2>&1 | Out-String -Width 400", ct);
 
     public static async Task<bool> IsAvailable(CancellationToken ct = default)
     {
@@ -93,9 +155,12 @@ public static class FastbootService
     /// <summary>Run (or, with dryRun, just preview) a raw fastboot command line.</summary>
     private static Task<TweakResult> Exec(string serial, string subcommand, bool dryRun, CancellationToken ct)
     {
-        var cmd = $"fastboot {Sel(serial)}{subcommand}".Trim();
-        if (dryRun) return Task.FromResult(TweakResult.Ok($"[dry-run] {cmd}", $"[試行] {cmd}", cmd));
-        return ShellRunner.RunCmd(cmd, false, ct);
+        // Preview stays readable ("fastboot …"); the real run uses the resolved exe so it works even
+        // before PATH picks up a fresh Platform-Tools install.
+        var preview = $"fastboot {Sel(serial)}{subcommand}".Trim();
+        if (dryRun) return Task.FromResult(TweakResult.Ok($"[dry-run] {preview}", $"[試行] {preview}", preview));
+        var run = $"\"{Exe()}\" {Sel(serial)}{subcommand}".Trim();
+        return ShellRunner.RunCmd(run, false, ct);
     }
 
     // ── Mutating, DANGEROUS operations (all support dryRun) ─────────────────────────────

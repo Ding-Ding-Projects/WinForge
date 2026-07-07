@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
@@ -9,7 +10,7 @@ namespace WinForge.Pages;
 
 /// <summary>
 /// 總搜尋結果 · Master search results — matching module pages (navigable) AND matching settings/tweaks,
-/// the latter rendered as live, working TweakCards so toggles actually work right in the results.
+/// the latter rendered as a live, working ControlRowList so toggles actually work right in the results.
 /// </summary>
 public sealed partial class SearchResultsPage : Page
 {
@@ -18,8 +19,11 @@ public sealed partial class SearchResultsPage : Page
     public SearchResultsPage()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => { RenderLabels(); Run(SearchBox.Text); };
+        Loc.I.LanguageChanged += OnLanguageChanged;
+        Unloaded += (_, _) => Loc.I.LanguageChanged -= OnLanguageChanged;
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) { RenderLabels(); Run(SearchBox.Text); }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
@@ -34,7 +38,7 @@ public sealed partial class SearchResultsPage : Page
 
     private void RenderLabels()
     {
-        HeaderTitle.Text = "Search · 搜尋";
+        Header.Title = "Search · 搜尋";
         SearchBox.PlaceholderText = P("Search every page and setting…", "搜尋所有頁面同設定…");
     }
 
@@ -53,22 +57,17 @@ public sealed partial class SearchResultsPage : Page
         PagesLabel.Text = P($"Pages — {pages.Count}", $"頁面 — {pages.Count}");
 
         // ---- Settings & tweaks (live, working) ----
-        TweaksPanel.Children.Clear();
         int tweakCount = 0;
         if (query.Length >= 2)
         {
             var tweaks = TweakCatalog.Search(query).Take(MaxTweaks).ToList();
             tweakCount = tweaks.Count;
-            foreach (var t in tweaks)
-            {
-                var card = new TweakCard();
-                card.SetTweak(t);
-                TweaksPanel.Children.Add(card);
-            }
+            TweaksList.SetTweaks(tweaks);
             TweaksLabel.Text = P($"Settings & tweaks — {tweakCount} (toggle right here)", $"設定同調校 — {tweakCount}（喺度直接切換）");
         }
         else
         {
+            TweaksList.Clear();
             TweaksLabel.Text = P("Settings & tweaks — type 2+ letters to search settings", "設定同調校 — 打 2 個字以上嚟搜尋設定");
         }
 

@@ -11,12 +11,12 @@
 | **Action · 動作** | Start · 啟動 |
 
 ## English
-Run VeraCrypt silently so the system-tray background task stays active.
+Run WinForge Vault silently so the system-tray background task stays active.
 
 ## 粵語
-靜默執行 VeraCrypt，等系統匣背景工作保持啟用。
+靜默執行 WinForge 保險庫，等系統匣背景工作保持啟用。
 
 ---
-_Keywords · 關鍵字: veracrypt, background, 背景, tray_
+_Keywords · 關鍵字: vault, background, 背景, tray, 保險庫_
 
 _Part of WinForge · WinForge 套件嘅一部分_

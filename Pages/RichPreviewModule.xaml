@@ -5,10 +5,11 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:controls="using:Microsoft.UI.Xaml.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls2="using:WinForge.Controls"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid Padding="24,16,24,16" RowSpacing="10">
+    <Grid Style="{StaticResource WinForgePageGridStyle}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -18,10 +19,7 @@
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="12">
-            <FontIcon FontSize="22" Glyph="&#xE8A1;" VerticalAlignment="Center" />
-            <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
-        </StackPanel>
+        <controls2:ModuleHeader x:Name="Header" Grid.Row="0" Glyph="&#xE8A1;" />
         <TextBlock x:Name="HeaderBlurb" Grid.Row="1" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
 
         <!-- Toolbar -->
@@ -137,6 +135,8 @@
                         <TextBlock x:Name="EmptyTitle" HorizontalAlignment="Center" Style="{StaticResource SubtitleTextBlockStyle}" />
                         <TextBlock x:Name="EmptyBlurb" HorizontalAlignment="Center" TextAlignment="Center"
                                    TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <!-- WebView2 Runtime auto-installer (shown only when the runtime is missing) -->
+                        <StackPanel x:Name="WebView2InstallHost" HorizontalAlignment="Center" Visibility="Collapsed" />
                     </StackPanel>
 
                     <!-- WebView2 (SVG / Markdown / PDF / code) -->

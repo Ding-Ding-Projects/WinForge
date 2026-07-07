@@ -21,16 +21,18 @@ public sealed partial class ColorPickerModule : Page
     public ColorPickerModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) => { Render(); SetColor(0x2D, 0x7D, 0x46); };
-        Unloaded += (_, _) => ColorPickService.StopPick();
+        Unloaded += (_, _) => { ColorPickService.StopPick(); Loc.I.LanguageChanged -= OnLanguageChanged; };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
     private void Render()
     {
-        HeaderTitle.Text = "Color Picker · 螢幕取色";
+        Header.Title = "Color Picker · 螢幕取色";
         HeaderBlurb.Text = P("Click \"Pick\" then click anywhere on screen to grab that pixel's colour. Right-click cancels. Copy HEX, RGB or HSL.",
             "撳「取色」之後喺螢幕任何位置撳一下，就攞到嗰點嘅顏色。右鍵取消。可以複製 HEX、RGB 或 HSL。");
         PickBtn.Content = P("Pick from screen", "螢幕取色");

@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Imaging;
+using WinForge.Controls;
 using WinForge.Models;
 using WinForge.Services;
 
@@ -25,17 +26,19 @@ public sealed partial class CaptureStudioModule : Page
     {
         InitializeComponent();
         _timer.Tick += (_, _) => { _elapsed++; UpdateStatus(); };
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) => { Render(); DefaultOutput(); SyncButtons(); RefreshOcrLangs(); };
-        Unloaded += (_, _) => _timer.Stop();
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; _timer.Stop(); };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
     private string Msg(TweakResult r) => (Loc.I.IsCantonesePrimary ? r.Message?.Zh : r.Message?.En) ?? "";
 
     private void Render()
     {
-        HeaderTitle.Text = "Capture Studio · 擷取工作室";
+        Header.Title = "Capture Studio · 擷取工作室";
         HeaderBlurb.Text = P("Record a region of the screen to MP4 or GIF, snip a rectangle straight to the clipboard, or pull text out of any region or image with OCR. Everything runs in-app — no redirects.",
             "錄螢幕一忽做 MP4 或 GIF、㩒個矩形截圖直入剪貼簿、或者用 OCR 由任何區域／圖片認返啲字出嚟。全部喺 app 內做，唔會跳走。");
 
@@ -66,10 +69,17 @@ public sealed partial class CaptureStudioModule : Page
             EngineBar.IsOpen = true;
             EngineBar.Severity = InfoBarSeverity.Warning;
             EngineBar.Title = P("ffmpeg not found", "搵唔到 ffmpeg");
-            EngineBar.Message = P("Install ffmpeg (winget install Gyan.FFmpeg) to record video and make GIFs. Snip and OCR still work without it.",
-                "請安裝 ffmpeg（winget install Gyan.FFmpeg）先錄到片同整 GIF。截圖同 OCR 唔使佢都用得。");
+            EngineBar.Message = P("Install ffmpeg to record video and make GIFs — live progress, no restart needed. Snip and OCR still work without it.",
+                "安裝 ffmpeg 先錄到片同整 GIF — 即時進度，唔使重開。截圖同 OCR 唔使佢都用得。");
+            // Rich install control: real progress bar + live bilingual status + % + Cancel + success/error animation.
+            EngineBar.ActionButton = null;
+            if (EngineBar.Content is not InstallProgress)
+                EngineBar.Content = EngineBars.AutoInstallProgress(
+                    "Gyan.FFmpeg", "Install ffmpeg automatically", "自動安裝 ffmpeg",
+                    recheck: async () => { await Task.Yield(); Render(); SyncButtons(); },
+                    rescan: MediaService.Rescan);
         }
-        else { EngineBar.IsOpen = false; }
+        else { EngineBar.IsOpen = false; EngineBar.ActionButton = null; EngineBar.Content = null; }
 
         RefreshOcrLangs();
     }

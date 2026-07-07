@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.DnsRefModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="880" Spacing="14">
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xEB41;" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <InfoBar x:Name="Info" IsOpen="False" IsClosable="True" Severity="Success" />
+
+            <!-- Search + filter -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <Grid ColumnSpacing="12" RowSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox x:Name="SearchBox" Grid.Column="0" VerticalAlignment="Center" TextChanged="Filters_Changed" />
+                    <ComboBox x:Name="CategoryCombo" Grid.Column="1" MinWidth="200" VerticalAlignment="Center" SelectionChanged="Filters_Changed" />
+                </Grid>
+            </Border>
+
+            <!-- Records list -->
+            <Border Padding="4" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="6">
+                    <TextBlock x:Name="ListHint" Margin="12,8,12,0" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    <ListView x:Name="RecordsList" SelectionMode="Single" IsItemClickEnabled="True" ItemClick="Record_Click" MaxHeight="520">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Spacing="2" Padding="4,8,4,8">
+                                    <TextBlock Text="{Binding TypeAndCode}" FontWeight="SemiBold" FontSize="15" />
+                                    <TextBlock Text="{Binding Purpose}" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" />
+                                    <TextBlock Text="{Binding Example}" FontFamily="Consolas" TextWrapping="Wrap" FontSize="12" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </StackPanel>
+            </Border>
+
+            <!-- Task cheat-sheet -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="8">
+                    <TextBlock x:Name="HintsTitle" FontWeight="SemiBold" FontSize="15" />
+                    <ListView x:Name="HintsList" SelectionMode="None" IsItemClickEnabled="False">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnSpacing="12" Padding="2,6,2,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="{Binding Task}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                                    <Border Grid.Column="1" Background="{ThemeResource AccentFillColorDefaultBrush}" CornerRadius="4" Padding="8,2,8,2" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Record}" FontFamily="Consolas" FontSize="12" Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}" />
+                                    </Border>
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

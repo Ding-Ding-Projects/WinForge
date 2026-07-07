@@ -20,15 +20,19 @@ public sealed partial class ScreenRecorderModule : Page
     {
         InitializeComponent();
         _timer.Tick += (_, _) => { _elapsed++; UpdateStatus(); };
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) => { Render(); DefaultOutput(); SyncButtons(); };
+        // Fallback teardown: navigating away mid-recording must not leak the poll timer.
+        Unloaded += (_, _) => { _timer.Stop(); Loc.I.LanguageChanged -= OnLanguageChanged; };
     }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
+
     private void Render()
     {
-        HeaderTitle.Text = "Screen Recorder · 螢幕錄影";
+        Header.Title = "Screen Recorder · 螢幕錄影";
         HeaderBlurb.Text = P("Record the whole desktop — including File Explorer and the Start menu — which Xbox Game Bar can't. Saved as MP4 (H.264). Video only for now.",
             "錄成個桌面 — 連檔案總管同開始功能表都得 — Xbox Game Bar 做唔到。存做 MP4 (H.264)。暫時淨係錄畫面。");
         OutCap.Text = P("Save to", "存去");
@@ -42,12 +46,14 @@ public sealed partial class ScreenRecorderModule : Page
             EngineBar.IsOpen = true;
             EngineBar.Severity = InfoBarSeverity.Warning;
             EngineBar.Title = P("ffmpeg not found", "搵唔到 ffmpeg");
-            EngineBar.Message = P("Click to install ffmpeg automatically (winget) — no restart needed.", "撳一下自動安裝 ffmpeg（winget）— 唔使重開。");
-            EngineBar.ActionButton = EngineBars.AutoInstallButton(
+            EngineBar.Message = P("Install ffmpeg automatically (winget) with live progress — no restart needed.", "自動安裝 ffmpeg（winget），即時睇住進度 — 唔使重開。");
+            // Rich install control: real progress bar + live bilingual status + % + Cancel + success/error animation.
+            EngineBar.Content = EngineBars.AutoInstallProgress(
                 "Gyan.FFmpeg", "Install ffmpeg automatically", "自動安裝 ffmpeg",
-                () => { Render(); return Task.CompletedTask; }, MediaService.Rescan);
+                recheck: () => { Render(); SyncButtons(); return System.Threading.Tasks.Task.CompletedTask; },
+                rescan: MediaService.Rescan);
         }
-        else { EngineBar.IsOpen = false; EngineBar.ActionButton = null; }
+        else { EngineBar.IsOpen = false; EngineBar.Content = null; }
     }
 
     private void DefaultOutput()

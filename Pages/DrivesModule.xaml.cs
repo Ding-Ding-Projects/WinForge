@@ -31,15 +31,18 @@ public sealed partial class DrivesModule : Page
     public DrivesModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => { Render(); Reload(); };
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) => { Render(); Reload(); };
+        Unloaded += (_, _) => Loc.I.LanguageChanged -= OnLanguageChanged;
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) { Render(); Reload(); }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
     private void Render()
     {
-        HeaderTitle.Text = "Drives · 磁碟機";
+        Header.Title = "Drives · 磁碟機";
         HeaderBlurb.Text = P("See used/free space on every drive at a glance, mount or eject ISO/VHD images, and create a new VHD.",
             "一眼睇晒每個磁碟機嘅已用／可用空間，掛載或退出 ISO/VHD 映像，仲可以整新 VHD。");
         RefreshBtn.Content = P("Refresh", "重新整理");

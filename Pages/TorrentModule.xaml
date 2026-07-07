@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.TorrentModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid Style="{StaticResource WinForgePageGridStyle}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Spacing="6">
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE118;" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+            <InfoBar x:Name="StatusBar" IsClosable="True" IsOpen="False" />
+        </StackPanel>
+
+        <!-- Toolbar / add bar -->
+        <Grid Grid.Row="1" ColumnSpacing="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Button x:Name="AddMagnetBtn" Grid.Column="0" Click="AddMagnet_Click" Style="{StaticResource AccentButtonStyle}">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <FontIcon FontSize="14" Glyph="&#xE71B;" />
+                    <TextBlock x:Name="AddMagnetLbl" />
+                </StackPanel>
+            </Button>
+            <Button x:Name="AddFileBtn" Grid.Column="1" Click="AddFile_Click">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <FontIcon FontSize="14" Glyph="&#xE8E5;" />
+                    <TextBlock x:Name="AddFileLbl" />
+                </StackPanel>
+            </Button>
+            <AutoSuggestBox x:Name="SearchBox" Grid.Column="2" QueryIcon="Find" TextChanged="Search_Changed" MinWidth="160" />
+            <ComboBox x:Name="FilterBox" Grid.Column="3" SelectionChanged="Filter_Changed" MinWidth="130" />
+            <Button x:Name="SettingsBtn" Grid.Column="4" Click="Settings_Click">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <FontIcon FontSize="14" Glyph="&#xE713;" />
+                    <TextBlock x:Name="SettingsBtnLbl" />
+                </StackPanel>
+            </Button>
+        </Grid>
+
+        <!-- Torrent list -->
+        <Grid Grid.Row="2">
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <!-- Bulk action toolbar -->
+                    <Grid Grid.Row="0" Padding="10,8,10,8" ColumnSpacing="6" Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Button x:Name="ResumeBtn" Grid.Column="0" Click="Resume_Click" ToolTipService.ToolTip="Start / Resume · 開始／繼續"><FontIcon FontSize="14" Glyph="&#xE768;" /></Button>
+                        <Button x:Name="PauseBtn" Grid.Column="1" Click="Pause_Click" ToolTipService.ToolTip="Pause · 暫停"><FontIcon FontSize="14" Glyph="&#xE769;" /></Button>
+                        <Button x:Name="DeleteBtn" Grid.Column="2" Click="Delete_Click" ToolTipService.ToolTip="Remove · 移除"><FontIcon FontSize="14" Glyph="&#xE74D;" /></Button>
+                        <Button x:Name="RecheckBtn" Grid.Column="3" Click="Recheck_Click" ToolTipService.ToolTip="Force recheck · 強制重新檢查"><FontIcon FontSize="14" Glyph="&#xE72C;" /></Button>
+                        <Button x:Name="DetailBtn" Grid.Column="4" Click="Detail_Click">
+                            <StackPanel Orientation="Horizontal" Spacing="4"><FontIcon FontSize="14" Glyph="&#xE946;" /><TextBlock x:Name="DetailBtnLbl" /></StackPanel>
+                        </Button>
+                        <TextBlock x:Name="SelectionInfo" Grid.Column="5" VerticalAlignment="Center" Margin="8,0,0,0" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" />
+                    </Grid>
+
+                    <ListView x:Name="TorrentList" Grid.Row="1" SelectionMode="Extended"
+                              SelectionChanged="TorrentList_SelectionChanged"
+                              DoubleTapped="TorrentList_DoubleTapped"
+                              ScrollViewer.HorizontalScrollMode="Auto" ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="ListViewItem">
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                <Setter Property="Padding" Value="10,8,10,8" />
+                            </Style>
+                        </ListView.ItemContainerStyle>
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" MinWidth="220" />
+                                        <ColumnDefinition Width="160" />
+                                        <ColumnDefinition Width="110" />
+                                        <ColumnDefinition Width="120" />
+                                        <ColumnDefinition Width="90" />
+                                        <ColumnDefinition Width="90" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Name + sub-line -->
+                                    <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" FontWeight="SemiBold" ToolTipService.ToolTip="{Binding Name}" />
+                                        <TextBlock Text="{Binding SubLine}" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+
+                                    <!-- Progress -->
+                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                        <ProgressBar Value="{Binding ProgressPct}" Maximum="100" />
+                                        <TextBlock Text="{Binding ProgressText}" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+
+                                    <!-- State -->
+                                    <TextBlock Grid.Column="2" Text="{Binding StateText}" VerticalAlignment="Center" FontSize="12" Foreground="{Binding StateBrush}" />
+
+                                    <!-- Speeds -->
+                                    <StackPanel Grid.Column="3" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding DlText}" FontSize="12" />
+                                        <TextBlock Text="{Binding UlText}" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+
+                                    <!-- ETA / ratio -->
+                                    <StackPanel Grid.Column="4" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding EtaText}" FontSize="12" />
+                                        <TextBlock Text="{Binding RatioText}" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+
+                                    <!-- Size / peers -->
+                                    <StackPanel Grid.Column="5" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding SizeText}" FontSize="12" />
+                                        <TextBlock Text="{Binding PeersText}" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+
+                    <!-- Empty / placeholder -->
+                    <StackPanel x:Name="EmptyState" Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8" Visibility="Collapsed">
+                        <FontIcon FontSize="40" Glyph="&#xE118;" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock x:Name="EmptyText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" MaxWidth="420" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- Status footer -->
+        <Border Grid.Row="3" Padding="14,8,14,8" Margin="0,0,0,12" Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" CornerRadius="8">
+            <Grid ColumnSpacing="20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6">
+                    <FontIcon FontSize="13" Glyph="&#xE896;" />
+                    <TextBlock x:Name="FooterDl" FontSize="12" VerticalAlignment="Center" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+                    <FontIcon FontSize="13" Glyph="&#xE898;" />
+                    <TextBlock x:Name="FooterUl" FontSize="12" VerticalAlignment="Center" />
+                </StackPanel>
+                <TextBlock x:Name="FooterEngine" Grid.Column="2" FontSize="12" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                <TextBlock x:Name="FooterCount" Grid.Column="4" FontSize="12" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            </Grid>
+        </Border>
+    </Grid>
+</Page>

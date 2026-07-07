@@ -8,6 +8,14 @@ name: Build & Release · 建置同發佈
 on:
   push:
     branches: [ main ]
+    # Docs / design / site-data commits shouldn't cut an app release.
+    paths-ignore:
+      - 'design/**'
+      - 'docs/**'
+      - '.github/workflows/pages.yml'
+      - '.github/workflows/site-data.yml'
+      - 'tools/regen-site-data.ps1'
+      - '**/*.md'
   workflow_dispatch:
 
 permissions:
@@ -36,12 +44,17 @@ jobs:
       - name: Publish self-contained x64 (trimming OFF) · 發佈自包含 x64（關閉裁剪）
         shell: pwsh
         run: |
+          $ver = "1.0.${{ github.run_number }}"
+          "WINFORGE_VERSION=$ver" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           dotnet publish WinForge.csproj `
             -c Release -p:Platform=x64 -r win-x64 --self-contained true `
             -p:WindowsAppSDKSelfContained=true `
             -p:WindowsPackageType=None `
             -p:PublishTrimmed=false `
-            -p:PublishReadyToRun=false
+            -p:PublishReadyToRun=false `
+            -p:Version=$ver `
+            -p:FileVersion=$ver.0 `
+            -p:InformationalVersion=$ver
           if ($LASTEXITCODE -ne 0) { throw "publish failed" }
 
       - name: Locate publish folder · 找出發佈資料夾
@@ -64,12 +77,21 @@ jobs:
           if (-not (Test-Path "${{ steps.pub.outputs.dir }}\WinForgeLauncher.exe")) { throw "WinForgeLauncher.exe not produced" }
           Write-Host "launcher published next to WinForge.exe"
 
+      - name: Publish WinForge Updater into publish folder · 建置更新程式
+        shell: pwsh
+        run: |
+          dotnet publish updater/WinForgeUpdater/WinForgeUpdater.csproj -c Release -p:Platform=x64 -r win-x64 `
+            --self-contained true -p:WindowsAppSDKSelfContained=true -p:WindowsPackageType=None `
+            -o "${{ steps.pub.outputs.dir }}"
+          if ($LASTEXITCODE -ne 0) { throw "updater publish failed" }
+          if (-not (Test-Path "${{ steps.pub.outputs.dir }}\WinForgeUpdater.exe")) { throw "WinForgeUpdater.exe not produced" }
+          Write-Host "WinForgeUpdater published next to WinForge.exe"
+
       - name: Portable zip · 可攜 zip
         shell: pwsh
         run: |
-          $ver = "1.0.${{ github.run_number }}"
+          $ver = $env:WINFORGE_VERSION
           Compress-Archive -Path "${{ steps.pub.outputs.dir }}\*" -DestinationPath "WinForge-portable-x64-$ver.zip" -Force
-          "WINFORGE_VERSION=$ver"               | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           "WINFORGE_PUBLISH=${{ steps.pub.outputs.dir }}" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Build Inno Setup installer · 建置 Inno Setup 安裝程式

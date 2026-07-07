@@ -159,6 +159,19 @@ public static class AltSnapService
         return ok;
     }
 
+    /// <summary>
+    /// 用 winget 安裝 AltSnap（串流輸出＋真實結束碼）· Install AltSnap via winget with live streamed output and
+    /// the real exit code / captured output surfaced in a <see cref="TweakResult"/> (never throws).
+    /// </summary>
+    public static async Task<TweakResult> InstallViaWingetDetailed(IProgress<string>? onLine = null, CancellationToken ct = default)
+    {
+        TweakResult r;
+        try { r = await PackageService.AutoInstallDetailed(WingetId, onLine, ct); }
+        catch (Exception ex) { r = TweakResult.Fail(ex.Message, $"出錯：{ex.Message}"); }
+        InvalidateCache();
+        return r;
+    }
+
     // ===================== lifecycle =====================
 
     /// <summary>AltSnap 而家係咪行緊 · Whether an AltSnap process is currently running.</summary>

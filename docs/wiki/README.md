@@ -18,8 +18,9 @@ resolve from the wiki repo. Keep this folder and the **Module gallery** in
 ```bash
 # 1. Clone the (separate) wiki repo · 複製獨立嘅 wiki repo
 git clone https://github.com/codingmachineedge/WinForge.wiki.git
-# 2. Copy these pages in · 複製呢啲頁入去
-cp docs/wiki/*.md WinForge.wiki/
+# 2. Copy these pages and generated reference folders in · 複製頁面同生成參考資料夾
+Remove-Item -Recurse -Force WinForge.wiki\*
+Copy-Item -Recurse docs\wiki\* WinForge.wiki\
 # 3. Commit & push · 提交同推送
 cd WinForge.wiki
 git add -A
@@ -34,9 +35,15 @@ git push
 
 ## Pages · 頁
 
-- `Home.md` — **categorized index of all 112 modules** (landing page) · **全部 112 個模組嘅分類索引**（首頁）
+- `Home.md` — compact landing page · 精簡首頁
+- `Module-Categories.md` — categorized index of all 314 modules · 全部 314 個模組嘅分類索引
+- `Reactor-Hub.md` — reactor documentation hub · 反應堆文件中心
+- `Generated-References.md` — generated feature/button reference guide · 生成功能／按鈕參考指南
 - `Screenshots.md` — image inventory + capture status · 圖檔清單同擷取狀態
-- One deeper page per headline module · 每個重點模組一頁: Dashboard, Git-and-GitHub, Package-Manager,
+- `features/README.md` — generated one-page-per-feature reference · 生成嘅每功能一頁參考
+- `buttons/README.md` — generated one-page-per-button/control reference · 生成嘅每按鈕／控制項一頁參考
+- `Accessibility.md` — keyboard and screen-reader baseline · 鍵盤同螢幕閱讀器基本標準
+- One deeper page per headline module · 每個重點模組一頁: Dashboard, Git-and-GitHub, Package-Manager, Cake-Factory-and-Farm, Open-Source-App-Hub,
   Cloudflare-and-Tunnel, AI-Agents, Media, Settings-and-Control-Panel, Clipboard, Connections,
   System-Monitor.
 

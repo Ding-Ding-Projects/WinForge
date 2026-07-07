@@ -1,0 +1,255 @@
+<svg id="plantMimicV2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 560" role="img" aria-labelledby="mimicTitle mimicDesc">
+  <title id="mimicTitle">WinForge abstract reactor plant mimic</title>
+  <desc id="mimicDesc">A non-plant-specific teaching mimic showing core heat, primary coolant, steam cycle, containment, heat sink, electrical supply, and chemistry status.</desc>
+  <defs>
+    <radialGradient id="coreGradient" cx="50%" cy="48%" r="62%">
+      <stop offset="0%" stop-color="#ffe39b" stop-opacity="0.95"/>
+      <stop offset="54%" stop-color="#f57c3b" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#33202b" stop-opacity="0.16"/>
+    </radialGradient>
+    <linearGradient id="vesselGradient" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#263241"/>
+      <stop offset="52%" stop-color="#1b2330"/>
+      <stop offset="100%" stop-color="#0f1520"/>
+    </linearGradient>
+    <linearGradient id="waterGradient" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#4dd2ff" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#1c78bd" stop-opacity="0.95"/>
+    </linearGradient>
+    <filter id="softGlow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+      .panel-bg { fill: #0f1520; }
+      .zone { fill: rgba(20, 29, 41, 0.82); stroke: #314055; stroke-width: 1.4; rx: 8; }
+      .zone-title { fill: #dce7f2; font: 700 16px Segoe UI, sans-serif; letter-spacing: 0; }
+      .zone-sub { fill: #91a0b4; font: 600 11px Segoe UI, sans-serif; letter-spacing: 0; }
+      .label { fill: #aab7c9; font: 600 12px Segoe UI, sans-serif; letter-spacing: 0; }
+      .readout { fill: #f6fbff; font: 700 14px Consolas, monospace; letter-spacing: 0; }
+      .small-readout { fill: #d9e4f2; font: 700 12px Consolas, monospace; letter-spacing: 0; }
+      .pipe { fill: none; stroke: #2f3d4f; stroke-width: 10; stroke-linecap: round; stroke-linejoin: round; }
+      .pipe-thin { fill: none; stroke: #2f3d4f; stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; }
+      .flow { fill: none; stroke: #5ed3ff; stroke-width: 4; stroke-dasharray: 18 14; stroke-linecap: round; stroke-linejoin: round; opacity: 0.55; }
+      .vessel { fill: url(#vesselGradient); stroke: #5e748f; stroke-width: 2; }
+      .component { fill: #172130; stroke: #506178; stroke-width: 1.5; }
+      .component-label { fill: #d8e1eb; font: 700 12px Segoe UI, sans-serif; letter-spacing: 0; }
+      .instrument { fill: #101926; stroke: #35475e; stroke-width: 1.2; }
+      .status-card rect { fill: #111a25; stroke: #34465c; stroke-width: 1.2; rx: 7; }
+      .status-card .status-name { fill: #a8b7c8; font: 700 11px Segoe UI, sans-serif; letter-spacing: 0; }
+      .status-card .status-value { fill: #eef6ff; font: 800 13px Segoe UI, sans-serif; letter-spacing: 0; }
+      .status-card.state-normal rect, #containmentBoundary.state-normal, #coreZone.state-normal .zone, #primaryZone.state-normal .zone, #secondaryZone.state-normal .zone, #heatSinkZone.state-normal .zone, #electricalZone.state-normal .zone { stroke: #35d07f; }
+      .status-card.state-watch rect, #containmentBoundary.state-watch, #coreZone.state-watch .zone, #primaryZone.state-watch .zone, #secondaryZone.state-watch .zone, #heatSinkZone.state-watch .zone, #electricalZone.state-watch .zone { stroke: #f2be45; }
+      .status-card.state-challenged rect, #containmentBoundary.state-challenged, #coreZone.state-challenged .zone, #primaryZone.state-challenged .zone, #secondaryZone.state-challenged .zone, #heatSinkZone.state-challenged .zone, #electricalZone.state-challenged .zone { stroke: #ff8a4c; }
+      .status-card.state-trip rect, #containmentBoundary.state-trip, #coreZone.state-trip .zone, #primaryZone.state-trip .zone, #secondaryZone.state-trip .zone, #heatSinkZone.state-trip .zone, #electricalZone.state-trip .zone { stroke: #ff5757; }
+      .status-card.state-unavailable rect, #containmentBoundary.state-unavailable, #coreZone.state-unavailable .zone, #primaryZone.state-unavailable .zone, #secondaryZone.state-unavailable .zone, #heatSinkZone.state-unavailable .zone, #electricalZone.state-unavailable .zone { stroke: #64748b; opacity: 0.6; }
+      .status-card.state-normal .status-value { fill: #8ff0bb; }
+      .status-card.state-watch .status-value { fill: #ffd875; }
+      .status-card.state-challenged .status-value { fill: #ffb284; }
+      .status-card.state-trip .status-value { fill: #ff8a8a; }
+      .status-card.state-unavailable .status-value { fill: #9aa8ba; }
+      .containment { fill: rgba(21, 28, 39, 0.24); stroke: #7a8fa8; stroke-width: 2; stroke-dasharray: 9 7; }
+      .steam-cloud { fill: #dfe9f5; opacity: 0.18; }
+      .spray { fill: #73d7ff; opacity: 0; }
+      .support-path { fill: none; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 12 10; opacity: 0; }
+    </style>
+  </defs>
+
+  <rect class="panel-bg" x="0" y="0" width="1040" height="560" rx="10"/>
+
+  <g id="containmentZone">
+    <title>Conceptual containment envelope with pressure, temperature, spray, and isolation status.</title>
+    <path id="containmentBoundary" class="containment state-normal" d="M54,461 L54,150 C54,82 118,38 202,38 L339,38 C423,38 487,82 487,150 L487,461 Z"/>
+    <text class="zone-title" x="86" y="72">Containment</text>
+    <text class="zone-sub" x="86" y="91">安全殼邊界</text>
+    <text class="small-readout" id="txtContainmentReadout" x="286" y="72" text-anchor="middle">0 kPa · 35 C</text>
+  </g>
+
+  <g id="coreZone" class="state-normal">
+    <title>Reactor vessel and core heat source. This is an abstract training representation, not a plant procedure drawing.</title>
+    <rect class="zone" x="82" y="112" width="224" height="236" rx="8"/>
+    <text class="zone-title" x="105" y="138">Core Heat</text>
+    <text class="zone-sub" x="105" y="156">爐心熱源</text>
+    <g id="reactorVessel">
+      <path class="vessel" d="M166,144 C143,154 130,185 130,232 C130,279 143,310 166,320 L231,320 C254,310 267,279 267,232 C267,185 254,154 231,144 Z"/>
+      <ellipse id="coreGlow" cx="198.5" cy="244" rx="47" ry="50" fill="url(#coreGradient)" filter="url(#softGlow)" opacity="0.95"/>
+      <rect x="161" y="203" width="75" height="80" rx="8" fill="#161f2c" stroke="#556b86" stroke-width="1.5" opacity="0.72"/>
+      <g id="controlRods">
+        <rect x="170" y="155" width="5" height="82" rx="2.5" fill="#c4ccd8"/>
+        <rect x="187" y="155" width="5" height="82" rx="2.5" fill="#c4ccd8"/>
+        <rect x="204" y="155" width="5" height="82" rx="2.5" fill="#c4ccd8"/>
+        <rect x="221" y="155" width="5" height="82" rx="2.5" fill="#c4ccd8"/>
+      </g>
+      <text class="component-label" x="198.5" y="303" text-anchor="middle">Core</text>
+    </g>
+    <text class="label" x="105" y="324">Power</text>
+    <text class="readout" id="txtPower" x="166" y="324">0.0%</text>
+    <text class="label" x="105" y="342">Coolant</text>
+    <text class="readout" id="txtFlow" x="166" y="342">0%</text>
+    <text class="label" x="205" y="342">Rad</text>
+    <text class="readout" id="txtRad" x="240" y="342">normal</text>
+  </g>
+
+  <g id="primaryZone" class="state-normal">
+    <title>Primary coolant loop, pressurizer inventory, and reactor coolant pump state.</title>
+    <rect class="zone" x="320" y="112" width="170" height="236" rx="8"/>
+    <text class="zone-title" x="342" y="138">Primary Loop</text>
+    <text class="zone-sub" x="342" y="156">一次系統</text>
+    <g id="pressurizer">
+      <rect class="component" x="356" y="178" width="50" height="102" rx="14"/>
+      <rect x="366" y="194" width="30" height="70" rx="6" fill="#101722" stroke="#35475e" stroke-width="1"/>
+      <rect id="pzrLevel" x="366" y="218" width="30" height="46" rx="4" fill="url(#waterGradient)" data-y0="194" data-h="70"/>
+      <text class="component-label" x="381" y="299" text-anchor="middle">PZR</text>
+    </g>
+    <g id="rcp1">
+      <circle class="component" cx="444" cy="212" r="22"/>
+      <path d="M434,212 L453,201 L453,223 Z" fill="#7fb7ff" opacity="0.8"/>
+      <text class="component-label" x="444" y="248" text-anchor="middle">RCP A</text>
+    </g>
+    <g id="rcp2">
+      <circle class="component" cx="444" cy="294" r="22"/>
+      <path d="M434,294 L453,283 L453,305 Z" fill="#7fb7ff" opacity="0.8"/>
+      <text class="component-label" x="444" y="330" text-anchor="middle">RCP B</text>
+    </g>
+    <text class="label" x="342" y="330">PZR</text>
+    <text class="readout" id="txtPzr" x="396" y="330">55%</text>
+  </g>
+
+  <g id="secondaryZone" class="state-normal">
+    <title>Steam generator, steam header, turbine-generator, condenser, and feedwater return.</title>
+    <rect class="zone" x="510" y="112" width="276" height="236" rx="8"/>
+    <text class="zone-title" x="532" y="138">Steam Cycle</text>
+    <text class="zone-sub" x="532" y="156">二次系統</text>
+    <g id="steamGenerator">
+      <rect class="component" x="530" y="174" width="72" height="118" rx="20"/>
+      <path d="M548,209 C568,185 583,233 566,254 C556,267 544,253 552,238" fill="none" stroke="#91a0b4" stroke-width="4" stroke-linecap="round"/>
+      <rect x="542" y="207" width="48" height="63" rx="8" fill="#101722" stroke="#35475e" stroke-width="1"/>
+      <rect id="sgLevel" x="542" y="226" width="48" height="44" rx="5" fill="url(#waterGradient)" data-y0="207" data-h="63"/>
+      <text class="component-label" x="566" y="313" text-anchor="middle">SG</text>
+    </g>
+    <g id="turbineGenerator">
+      <rect class="component" x="648" y="190" width="50" height="72" rx="18"/>
+      <g id="turbineRotor">
+        <path d="M673,202 L684,226 L673,250 L662,226 Z" fill="#cbd5e1"/>
+        <path d="M650,226 L673,215 L696,226 L673,237 Z" fill="#89a4c5" opacity="0.85"/>
+      </g>
+      <text class="component-label" x="673" y="282" text-anchor="middle">Turbine</text>
+      <circle id="gen" class="component" cx="741" cy="226" r="34"/>
+      <g id="genRotor">
+        <line x1="720" y1="226" x2="762" y2="226" stroke="#f6d365" stroke-width="4" stroke-linecap="round"/>
+        <line x1="741" y1="205" x2="741" y2="247" stroke="#f6d365" stroke-width="4" stroke-linecap="round"/>
+      </g>
+      <text class="component-label" x="741" y="282" text-anchor="middle">Generator</text>
+    </g>
+    <text class="label" x="532" y="330">SG</text>
+    <text class="readout" id="txtSg" x="584" y="330">50%</text>
+    <text class="label" x="650" y="330">Steam</text>
+    <text class="readout" id="txtSteam" x="714" y="330">0.0 MPa</text>
+  </g>
+
+  <g id="heatSinkZone" class="state-normal">
+    <title>Condenser heat removal and component cooling water availability.</title>
+    <rect class="zone" x="510" y="376" width="276" height="124" rx="8"/>
+    <text class="zone-title" x="532" y="402">Heat Sink</text>
+    <text class="zone-sub" x="532" y="420">冷源與冷卻水</text>
+    <rect class="component" x="532" y="438" width="112" height="34" rx="8"/>
+    <text class="component-label" x="588" y="460" text-anchor="middle">Condenser</text>
+    <circle class="component" cx="694" cy="455" r="20"/>
+    <path d="M684,455 L704,444 L704,466 Z" fill="#7fd6ff" opacity="0.8"/>
+    <text class="component-label" x="694" y="493" text-anchor="middle">CCW</text>
+    <text class="label" x="716" y="460">Cooling</text>
+    <text class="readout" id="txtCcw" x="716" y="482">0%</text>
+  </g>
+
+  <g id="electricalZone" class="state-normal">
+    <title>Abstract AC and DC electrical support state, including emergency diesel and battery indication.</title>
+    <rect class="zone" x="82" y="376" width="408" height="124" rx="8"/>
+    <text class="zone-title" x="105" y="402">Electrical Support</text>
+    <text class="zone-sub" x="105" y="420">供電支援</text>
+    <rect class="instrument" x="108" y="438" width="78" height="36" rx="7"/>
+    <text class="component-label" x="147" y="461" text-anchor="middle">AC Bus</text>
+    <rect class="instrument" x="208" y="438" width="78" height="36" rx="7"/>
+    <text class="component-label" x="247" y="461" text-anchor="middle">EDG</text>
+    <rect class="instrument" x="308" y="438" width="78" height="36" rx="7"/>
+    <text class="component-label" x="347" y="461" text-anchor="middle">Battery</text>
+    <text class="readout" id="txtBattery" x="405" y="461">100%</text>
+  </g>
+
+  <g id="statusStrip">
+    <rect class="zone" x="805" y="38" width="205" height="462" rx="8"/>
+    <text class="zone-title" x="827" y="68">Plant Status</text>
+    <text class="zone-sub" x="827" y="87">整體狀態</text>
+    <text class="label" x="827" y="119">Mode</text>
+    <text class="readout" id="txtMode" x="887" y="119">Cold shutdown</text>
+    <text class="label" x="827" y="143">Scenario</text>
+    <text class="small-readout" id="txtScenario" x="827" y="162">Training baseline</text>
+
+    <g id="cardCoreHeat" class="status-card state-normal" transform="translate(827 188)">
+      <rect width="160" height="48"/>
+      <text class="status-name" x="12" y="18">Core heat</text>
+      <text class="status-value" id="txtCoreHeat" x="12" y="36">stable</text>
+    </g>
+    <g id="cardHeatRemoval" class="status-card state-normal" transform="translate(827 246)">
+      <rect width="160" height="48"/>
+      <text class="status-name" x="12" y="18">Heat removal</text>
+      <text class="status-value" id="txtHeatRemoval" x="12" y="36">available</text>
+    </g>
+    <g id="cardContainment" class="status-card state-normal" transform="translate(827 304)">
+      <rect width="160" height="48"/>
+      <text class="status-name" x="12" y="18">Containment</text>
+      <text class="status-value" id="txtContainment" x="12" y="36">normal</text>
+    </g>
+    <g id="cardElectrical" class="status-card state-normal" transform="translate(827 362)">
+      <rect width="160" height="48"/>
+      <text class="status-name" x="12" y="18">Electrical</text>
+      <text class="status-value" id="txtElectrical" x="12" y="36">AC online</text>
+    </g>
+    <g id="cardChemistry" class="status-card state-normal" transform="translate(827 420)">
+      <rect width="160" height="48"/>
+      <text class="status-name" x="12" y="18">Chemistry</text>
+      <text class="status-value" id="txtChemistry" x="12" y="36">in band</text>
+    </g>
+  </g>
+
+  <g id="mainPipes">
+    <title>Animated flow traces. Colours follow simulated temperatures and availability.</title>
+    <path class="pipe" d="M267,218 C296,206 320,202 356,212"/>
+    <path class="pipe" d="M356,294 C322,294 297,284 267,258"/>
+    <path id="flow-hot-primary" class="flow" d="M267,218 C296,206 320,202 356,212"/>
+    <path id="flow-cold-primary" class="flow" d="M356,294 C322,294 297,284 267,258"/>
+    <path class="pipe" d="M602,216 C624,202 634,198 648,206"/>
+    <path class="pipe" d="M698,226 L707,226"/>
+    <path id="flow-steam-main" class="flow" d="M602,216 C624,202 634,198 648,206"/>
+    <path id="flow-generator" class="flow" d="M698,226 L707,226"/>
+    <path class="pipe" d="M642,455 L674,455"/>
+    <path id="ccwPath" class="flow" d="M642,455 L674,455"/>
+    <path class="pipe-thin" d="M588,438 C600,405 610,362 588,292"/>
+    <path id="flow-feed" class="flow" d="M588,438 C600,405 610,362 588,292"/>
+  </g>
+
+  <g id="supportSystems">
+    <title>Safety and support systems appear when the simulation state calls for injection, auxiliary feedwater, or containment spray.</title>
+    <path id="siPath" class="support-path" d="M105,334 C142,354 188,356 223,320" stroke="#63f2a2"/>
+    <path id="auxFeedPath" class="support-path" d="M522,474 C530,430 548,363 566,292" stroke="#73d7ff"/>
+    <g id="sprayHeader">
+      <path class="support-path" d="M117,116 L427,116" stroke="#73d7ff"/>
+      <circle class="spray" cx="155" cy="135" r="4"/>
+      <circle class="spray" cx="218" cy="137" r="4"/>
+      <circle class="spray" cx="281" cy="135" r="4"/>
+      <circle class="spray" cx="344" cy="137" r="4"/>
+      <circle class="spray" cx="407" cy="135" r="4"/>
+    </g>
+    <g id="steamRelief">
+      <ellipse class="steam-cloud" cx="616" cy="169" rx="24" ry="12"/>
+      <ellipse class="steam-cloud" cx="639" cy="154" rx="34" ry="16"/>
+      <ellipse class="steam-cloud" cx="676" cy="170" rx="30" ry="13"/>
+      <text class="zone-sub" x="620" y="143">steam relief</text>
+    </g>
+  </g>
+</svg>

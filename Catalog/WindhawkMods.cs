@@ -8,9 +8,9 @@ namespace WinForge.Catalog;
 /// <summary>
 /// 精選 Windhawk mod 目錄（資料驅動）· A curated, bilingual catalog of popular Windhawk mods.
 ///
-/// 每個 mod 渲染成一張 <see cref="WinForge.Controls.TweakCard"/>，按鈕「喺 Windhawk 開」會深層連結到
+/// 每個 mod 渲染成一列 control row，按鈕「喺 Windhawk 開」會深層連結到
 /// windhawk.net 上嗰個 mod 嘅頁面（喺 Windhawk 內可一鍵安裝／設定）。
-/// Each mod renders as a TweakCard whose "Open in Windhawk" button deep-links to that mod's page on
+/// Each mod renders as a control row whose "Open in Windhawk" button deep-links to that mod's page on
 /// windhawk.net (where the user installs/configures it inside Windhawk). The list is data only so it is
 /// trivial to update as the upstream catalog evolves.
 /// </summary>

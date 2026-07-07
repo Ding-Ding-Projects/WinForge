@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
@@ -31,6 +33,8 @@ public sealed class CommandPaletteWindow
     private readonly ListView _list;
     private readonly TextBlock _hint;
     private List<CommandPaletteResult> _results = new();
+    private CancellationTokenSource? _refreshCts;
+    private int _refreshVersion;
 
     [DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr hWnd);
 
@@ -194,11 +198,43 @@ public sealed class CommandPaletteWindow
 
     private void Refresh()
     {
-        _results = CommandPaletteService.Query(_search.Text ?? "");
-        _list.ItemsSource = _results;
-        if (_results.Count > 0) { _list.SelectedIndex = 0; }
-        Resize();
-        UpdateHint();
+        string query = _search.Text ?? "";
+        _refreshCts?.Cancel();
+        var cts = new CancellationTokenSource();
+        _refreshCts = cts;
+        int version = Interlocked.Increment(ref _refreshVersion);
+
+        if (query.Trim().Length > 0)
+            _hint.Text = Loc.I.Pick("Searching…", "搜尋中…");
+
+        _ = RefreshAsync(query, version, cts.Token);
+    }
+
+    private async Task RefreshAsync(string query, int version, CancellationToken ct)
+    {
+        try
+        {
+            if (query.Trim().Length > 0)
+                await Task.Delay(80, ct);
+
+            var results = await Task.Run(() => CommandPaletteService.Query(query), ct);
+            if (ct.IsCancellationRequested || version != _refreshVersion) return;
+
+            _results = results;
+            _list.ItemsSource = _results;
+            if (_results.Count > 0) _list.SelectedIndex = 0;
+            Resize();
+            UpdateHint();
+        }
+        catch (OperationCanceledException) { }
+        catch
+        {
+            if (ct.IsCancellationRequested || version != _refreshVersion) return;
+            _results = new List<CommandPaletteResult>();
+            _list.ItemsSource = _results;
+            Resize();
+            UpdateHint();
+        }
     }
 
     private void UpdateHint()

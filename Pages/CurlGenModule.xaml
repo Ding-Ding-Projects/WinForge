@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.CurlGenModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="820" Spacing="14">
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xEB41;" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <ComboBox x:Name="MethodBox" Grid.Column="0" MinWidth="120" SelectionChanged="AnyChanged">
+                            <ComboBoxItem Content="GET" IsSelected="True" />
+                            <ComboBoxItem Content="POST" />
+                            <ComboBoxItem Content="PUT" />
+                            <ComboBoxItem Content="PATCH" />
+                            <ComboBoxItem Content="DELETE" />
+                            <ComboBoxItem Content="HEAD" />
+                        </ComboBox>
+                        <TextBox x:Name="UrlBox" Grid.Column="1" PlaceholderText="https://api.example.com/v1/things" TextChanged="AnyChanged" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="HeadersTitle" FontWeight="SemiBold" />
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="HdrKeyBox" Grid.Column="0" PlaceholderText="Accept" />
+                        <TextBox x:Name="HdrValBox" Grid.Column="1" PlaceholderText="application/json" />
+                        <Button x:Name="AddHdrBtn" Grid.Column="2" Click="AddHeader_Click" />
+                    </Grid>
+                    <ListView x:Name="HeadersList" SelectionMode="None" MaxHeight="180">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnSpacing="8" Padding="0,2,0,2">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" VerticalAlignment="Center" TextWrapping="Wrap" Text="{Binding Display}" />
+                                    <Button Grid.Column="1" Content="&#xE74D;" FontFamily="Segoe MDL2 Assets" Click="RemoveHeader_Click" Tag="{Binding}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </StackPanel>
+            </Border>
+
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="AuthTitle" FontWeight="SemiBold" />
+                    <ComboBox x:Name="AuthBox" MinWidth="220" SelectionChanged="Auth_Changed">
+                        <ComboBoxItem IsSelected="True" />
+                        <ComboBoxItem />
+                        <ComboBoxItem />
+                    </ComboBox>
+                    <TextBox x:Name="BearerBox" PlaceholderText="token" TextChanged="AnyChanged" Visibility="Collapsed" />
+                    <Grid x:Name="BasicPanel" ColumnSpacing="8" Visibility="Collapsed">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="BasicUserBox" Grid.Column="0" PlaceholderText="user" TextChanged="AnyChanged" />
+                        <TextBox x:Name="BasicPassBox" Grid.Column="1" PlaceholderText="pass" TextChanged="AnyChanged" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="BodyTitle" FontWeight="SemiBold" />
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <TextBlock x:Name="CtLabel" VerticalAlignment="Center" />
+                        <TextBox x:Name="ContentTypeBox" Text="application/json" MinWidth="220" TextChanged="AnyChanged" />
+                    </StackPanel>
+                    <TextBox x:Name="BodyBox" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="90" PlaceholderText="{}" TextChanged="AnyChanged" />
+                </StackPanel>
+            </Border>
+
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ComboBox x:Name="OutputBox" Grid.Column="0" MinWidth="220" SelectionChanged="Output_Changed">
+                            <ComboBoxItem Content="curl" IsSelected="True" />
+                            <ComboBoxItem Content="JavaScript fetch()" />
+                            <ComboBoxItem Content="PowerShell" />
+                        </ComboBox>
+                        <Button x:Name="CopyBtn" Grid.Column="1" Click="Copy_Click" />
+                    </Grid>
+                    <TextBox x:Name="OutputText" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
+                             FontFamily="Consolas" MinHeight="180" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                    <TextBlock x:Name="StatusText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

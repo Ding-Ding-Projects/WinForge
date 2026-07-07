@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.CharMapModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="760" Spacing="14">
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE8D2;" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <!--  Block picker + search  -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <StackPanel Spacing="4">
+                        <TextBlock x:Name="BlockLabel" FontWeight="SemiBold" FontSize="13" />
+                        <ComboBox x:Name="BlockCombo" HorizontalAlignment="Stretch" SelectionChanged="Block_SelectionChanged" />
+                    </StackPanel>
+                    <StackPanel Spacing="4">
+                        <TextBlock x:Name="SearchLabel" FontWeight="SemiBold" FontSize="13" />
+                        <TextBox x:Name="SearchBox" TextChanged="Search_TextChanged" />
+                        <TextBlock x:Name="SearchHint" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!--  Details card for the selected glyph  -->
+            <Border x:Name="DetailsCard" Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Visibility="Collapsed">
+                <Grid ColumnSpacing="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" Width="96" Height="96" VerticalAlignment="Top"
+                            Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                        <TextBlock x:Name="BigGlyph" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="52" />
+                    </Border>
+
+                    <StackPanel Grid.Column="1" Spacing="6">
+                        <TextBlock x:Name="DetailName" FontWeight="SemiBold" FontSize="15" TextWrapping="Wrap" />
+                        <TextBlock x:Name="DetailCode" FontFamily="Consolas" FontSize="13" IsTextSelectionEnabled="True" />
+                        <TextBlock x:Name="DetailDec" FontFamily="Consolas" FontSize="13" IsTextSelectionEnabled="True" />
+                        <TextBlock x:Name="DetailUtf8" FontFamily="Consolas" FontSize="13" IsTextSelectionEnabled="True" />
+                        <TextBlock x:Name="DetailUtf16" FontFamily="Consolas" FontSize="13" IsTextSelectionEnabled="True" />
+                        <TextBlock x:Name="DetailHtml" FontFamily="Consolas" FontSize="13" IsTextSelectionEnabled="True" />
+                        <TextBlock x:Name="CopiedText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!--  Character grid  -->
+            <Border Padding="8" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <ListView x:Name="CharList" Height="360" SelectionMode="Single" SelectionChanged="Char_SelectionChanged">
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <Grid ColumnSpacing="12" Padding="4,2,4,2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="52" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="{Binding Glyph}" FontSize="26" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1" Text="{Binding Code}" FontFamily="Consolas" FontSize="13" VerticalAlignment="Center" MinWidth="90" />
+                                <TextBlock Grid.Column="2" Text="{Binding Name}" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

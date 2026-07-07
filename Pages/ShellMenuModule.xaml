@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.ShellMenuModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <!--
+        檔案總管右鍵選單 · Explorer right-click menu. 每個動作用手砌嘅控件列渲染（唔再用 Controls/TweakCard）：
+        左邊雙語標題／說明，右邊一個 ToggleSwitch；結果／錯誤集中喺一個常駐 InfoBar。
+        Each action is rendered as a hand-built control row (no Controls/TweakCard): bilingual
+        title/description on the left, a ToggleSwitch on the right; results & errors go to one
+        persistent InfoBar. Registry writes are unchanged.
+    -->
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="1040" Spacing="14">
+
+            <!-- Header -->
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE712;">
+                <controls:ModuleHeader.ActionContent>
+                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <Border
+                            x:Name="CountPill"
+                            Padding="8,2"
+                            VerticalAlignment="Center"
+                            Background="{ThemeResource LayerFillColorDefaultBrush}"
+                            CornerRadius="10">
+                            <TextBlock x:Name="CountText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </Border>
+                    </StackPanel>
+                </controls:ModuleHeader.ActionContent>
+            </controls:ModuleHeader>
+            <TextBlock
+                x:Name="HeaderBlurb"
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                TextWrapping="Wrap" />
+
+            <!-- One persistent result / status area -->
+            <InfoBar x:Name="ResultBar" IsClosable="True" IsOpen="False" />
+
+            <!-- ===== Master controls ===== -->
+            <Border Padding="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="MasterHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
+                    <TextBlock x:Name="MasterBlurb" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="RegisterAllBtn" Click="RegisterAll_Click" Style="{StaticResource AccentButtonStyle}" />
+                        <Button x:Name="RemoveAllBtn" Click="RemoveAll_Click" />
+                        <Button x:Name="GroupedBtn" Click="Grouped_Click" />
+                        <Button x:Name="RefreshBtn" Click="Refresh_Click" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- ===== Files (*) ===== -->
+            <TextBlock x:Name="FilesHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
+            <StackPanel x:Name="FilesPanel" Spacing="0">
+                <StackPanel.ChildrenTransitions>
+                    <TransitionCollection>
+                        <EntranceThemeTransition FromVerticalOffset="24" IsStaggeringEnabled="True" />
+                    </TransitionCollection>
+                </StackPanel.ChildrenTransitions>
+            </StackPanel>
+
+            <!-- ===== Folders (Directory) ===== -->
+            <TextBlock x:Name="FoldersHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
+            <StackPanel x:Name="FoldersPanel" Spacing="0">
+                <StackPanel.ChildrenTransitions>
+                    <TransitionCollection>
+                        <EntranceThemeTransition FromVerticalOffset="24" IsStaggeringEnabled="True" />
+                    </TransitionCollection>
+                </StackPanel.ChildrenTransitions>
+            </StackPanel>
+
+            <!-- ===== Folder background ===== -->
+            <TextBlock x:Name="BackgroundHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
+            <StackPanel x:Name="BackgroundPanel" Spacing="0">
+                <StackPanel.ChildrenTransitions>
+                    <TransitionCollection>
+                        <EntranceThemeTransition FromVerticalOffset="24" IsStaggeringEnabled="True" />
+                    </TransitionCollection>
+                </StackPanel.ChildrenTransitions>
+            </StackPanel>
+
+            <TextBlock
+                x:Name="FootNote"
+                FontSize="12"
+                Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                TextWrapping="Wrap" />
+        </StackPanel>
+    </ScrollViewer>
+</Page>

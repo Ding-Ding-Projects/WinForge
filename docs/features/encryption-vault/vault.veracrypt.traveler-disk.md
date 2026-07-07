@@ -11,12 +11,12 @@
 | **Action · 動作** | Open · 打開 |
 
 ## English
-Open VeraCrypt to set up a portable Traveler Disk from the Tools menu.
+Open WinForge Vault to set up a portable Traveler Disk from the Tools menu.
 
 ## 粵語
-打開 VeraCrypt，喺工具選單度設定可攜式隨身碟。
+打開 WinForge 保險庫，喺工具選單度設定可攜式隨身碟。
 
 ---
-_Keywords · 關鍵字: veracrypt, traveler, 隨身碟, portable_
+_Keywords · 關鍵字: vault, traveler, 隨身碟, portable, 保險庫_
 
 _Part of WinForge · WinForge 套件嘅一部分_

@@ -416,7 +416,7 @@ public sealed partial class MediaPlayerModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Media Player · 媒體播放器";
+        Header.Title = "Media Player · 媒體播放器";
         HeaderBlurb.Text = P("A real media player powered by the VLC engine (libVLC), embedded inside WinForge — no separate VLC install or redirect. Open files, URLs and streams; manage a playlist; switch audio and subtitle tracks; snapshot a frame; and convert with presets.",
             "用真正 VLC 引擎（libVLC）內嵌喺 WinForge 入面嘅媒體播放器 — 唔使另外裝 VLC，亦唔會跳出去。可以開檔案、URL、串流；管理播放清單；切換音訊同字幕軌；截圖；仲可以用預設轉檔。");
         OpenFileText.Text = P("Open file…", "開檔案…");
@@ -444,11 +444,9 @@ public sealed partial class MediaPlayerModule : Page
         EngineBar.IsOpen = true;
         EngineBar.Severity = InfoBarSeverity.Informational;
         EngineBar.Title = P("VLC engine embedded", "已內嵌 VLC 引擎");
-        EngineBar.Message = P("The native libVLC engine ships with WinForge — no separate install needed. Install the full VLC app only if you want extra codecs.",
-            "原生 libVLC 引擎隨 WinForge 一齊提供 — 唔使另外安裝。淨係想要額外編解碼器先裝完整版 VLC。");
-        EngineBar.ActionButton = EngineBars.AutoInstallButton(
-            "VideoLAN.VLC", "Install full VLC (extra codecs)", "安裝完整版 VLC（額外編解碼器）",
-            () => System.Threading.Tasks.Task.CompletedTask);
+        EngineBar.Message = P("The native libVLC engine ships with WinForge — no separate VLC install or redirect is needed.",
+            "原生 libVLC 引擎隨 WinForge 一齊提供 — 唔使另外安裝 VLC，亦唔會跳出去。");
+        EngineBar.ActionButton = null;
 
         UpdateEmptyHint();
     }

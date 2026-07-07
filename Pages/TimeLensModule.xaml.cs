@@ -15,8 +15,8 @@ namespace WinForge.Pages;
 /// <summary>
 /// 活動時間軸（TimeLens）· Activity Timeline. Passively records which app/window is in the foreground
 /// over the day and shows a 24-hour stacked timeline plus sorted per-app totals — all local, on-device.
-/// Tracking is OFF by default; idle periods are excluded; data can be exported to CSV (FileDialogs, never
-/// WinRT pickers) or cleared. Fully bilingual (English + 粵語).
+/// Tracking is ON by default unless disabled; idle periods are excluded; data can be exported to CSV
+/// (FileDialogs, never WinRT pickers) or cleared. Fully bilingual (English + 粵語).
 /// </summary>
 public sealed partial class TimeLensModule : Page
 {
@@ -26,6 +26,8 @@ public sealed partial class TimeLensModule : Page
     public TimeLensModule()
     {
         InitializeComponent();
+        IdleSlider.ValueChanged += Idle_Changed;
+        PollSlider.ValueChanged += Poll_Changed;
         Loc.I.LanguageChanged += OnLang;
         ActivityTrackerService.I.StateChanged += OnTrackerState;
         ActivityTrackerService.I.SegmentRecorded += OnSegment;
@@ -59,15 +61,15 @@ public sealed partial class TimeLensModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Activity Timeline · 活動時間軸";
+        Header.Title = "Activity Timeline · 活動時間軸";
         HeaderBlurb.Text = P(
-            "See where your time goes. WinForge can quietly record which app is in the foreground while it's running, then show a readable timeline of your day and a sorted list of per-app totals.",
-            "睇下你嘅時間用咗喺邊。WinForge 開住嘅時候，可以靜靜哋記錄前景係邊個 app，然後整理成一條易睇嘅當日時間軸同埋每個 app 嘅總時間排行。");
+            "See where your time goes. WinForge records the foreground app by default while it's running, then shows a readable timeline of your day and sorted per-app totals.",
+            "睇下你嘅時間用咗喺邊。WinForge 開住嘅時候預設會記錄前景係邊個 app，然後整理成一條易睇嘅當日時間軸同每個 app 嘅總時間排行。");
 
-        PrivacyBar.Title = P("Local-only & private", "純本機・私隱優先");
+        PrivacyBar.Title = P("On by default, local-only & resilient", "預設開啟・純本機・有復原保護");
         PrivacyBar.Message = P(
-            "Tracking is off until you turn it on. Window titles can contain sensitive text, so everything stays on this device (under %LOCALAPPDATA%\\WinForge\\activity) and never leaves it. There is no cloud sync.",
-            "未開之前都唔會追蹤。視窗標題有機會含敏感字眼，所以所有資料都只係留喺呢部機（喺 %LOCALAPPDATA%\\WinForge\\activity），唔會傳出去，亦冇雲端同步。");
+            "Tracking starts automatically unless you turn it off. Closing the window to the tray keeps tracking; Quit, sleep, shutdown, or a crash flushes or recovers the current segment on next launch. Window titles can contain sensitive text, so data stays under %LOCALAPPDATA%\\WinForge\\activity and never syncs to cloud.",
+            "除非你手動關閉，追蹤會自動開始。閂視窗收到系統匣會繼續追蹤；Quit、睡眠、關機或者閃退時，會即時落盤，或者下次啟動復原目前時段。視窗標題可能有敏感字眼，所以資料只會留喺 %LOCALAPPDATA%\\WinForge\\activity，唔會雲端同步。");
 
         TrackingLabel.Text = P("Activity tracking", "活動追蹤");
         TimelineTitle.Text = P("Timeline (24 hours)", "時間軸（24 小時）");
@@ -78,8 +80,8 @@ public sealed partial class TimeLensModule : Page
         TodayBtn.Content = P("Today", "今日");
         IdleLabel.Text = P("Pause logging after idle (minutes)", "閒置幾分鐘後停止記錄");
         PollLabel.Text = P("Sample every (seconds)", "每隔幾秒取樣");
-        EmptyText.Text = P("No activity recorded for this day yet. Turn tracking on and use your PC — segments will appear here.",
-            "呢日仲未有任何活動記錄。開咗追蹤再用部電腦，時段就會喺度顯示。");
+        EmptyText.Text = P("No activity recorded for this day yet. Keep tracking on and use your PC — segments will appear here.",
+            "呢日仲未有任何活動記錄。追蹤開住再用部電腦，時段就會喺度顯示。");
     }
 
     private void LoadPrefsIntoControls()
@@ -114,7 +116,7 @@ public sealed partial class TimeLensModule : Page
         }
 
         StatusText.Text = !t.IsTracking
-            ? P("Not tracking. Toggle on to start recording foreground apps.", "未追蹤。撳開就開始記錄前景 app。")
+            ? P("Tracking is off. Toggle on to resume recording foreground apps.", "追蹤已關。撳開就會繼續記錄前景 app。")
             : t.IsPaused
                 ? P("Tracking paused — nothing is being recorded.", "已暫停追蹤 — 而家冇任何記錄。")
                 : t.IsIdle

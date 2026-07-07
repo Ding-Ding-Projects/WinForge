@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="winforge-data.js"></script>
+<style>
+  :root{
+    --bg:#1b1b1f; --nav:#242429; --content:#1a1a1e; --card:#2a2a31; --card2:#31313a;
+    --line:#37373f; --line2:#454550;
+    --text:#f2f2f6; --muted:#a6a6b2; --dim:#71717c;
+    --accent:#ffae57; --accent2:#5fc8ff; --green:#5fd37a; --red:#ff6b61; --amber:#ffce46; --violet:#b3a4ff;
+    --mono:'JetBrains Mono',ui-monospace,monospace; --ui:'Segoe UI Variable','Segoe UI',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#0d0d10;color:var(--text);font-family:var(--ui);-webkit-font-smoothing:antialiased}
+  button{font-family:var(--ui);cursor:pointer}
+  input{font-family:var(--ui)}
+  ::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:var(--line2);border-radius:6px;border:2px solid transparent;background-clip:padding-box}::-webkit-scrollbar-track{background:transparent}
+  @keyframes app-press{0%{box-shadow:0 0 0 0 rgba(255,174,87,.6)}60%{box-shadow:0 0 0 6px rgba(255,174,87,0)}100%{box-shadow:0 0 0 0 rgba(255,174,87,0)}}
+  @keyframes app-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  @keyframes app-toast{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  @keyframes app-pulse{0%,100%{opacity:.5}50%{opacity:1}}
+  .app-in{animation:app-in .3s ease both}
+  .app-navitem:hover{background:var(--card)!important}
+  .app-btn:hover{filter:brightness(1.08)} .app-btn:active{transform:translateY(1px)} .app-btn:disabled{opacity:.45;cursor:not-allowed}
+  .app-card-press{animation:app-press 1.4s ease 2}
+  @media(max-width:860px){ .app-shell{grid-template-columns:1fr!important} .app-nav{position:fixed!important;z-index:60;left:0;top:44px;bottom:0;width:280px;transform:translateX(-100%);transition:transform .22s} .app-nav.open{transform:none} .app-hamb{display:grid!important} }
+  @media(max-width:560px){ .app-tlabel{display:none!important} }
+</style>
+</helmet>
+<div style="height:100vh;display:flex;flex-direction:column;overflow:hidden">{{ view }}</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:&quot;100%&quot;}}">
+class Component extends DCLogic {
+  state = { tk:0, route:this.parse(), q:'', navOpen:false, sq:'', sqOpen:false };
+  KEY='winforge.app.state.v1';
+  constructor(props){ super(props); const L=this.load(); this.tweaks=(L&&L.tweaks)||{}; this.outputs=(L&&L.outputs)||{}; this.openOut=(L&&L.openOut)||{}; this.toasts=[]; this.pressedId=null; this.sys={cpu:14,ram:43,disk:61,net:8,up:'3d 04:12'}; }
+  load(){ try{ return JSON.parse(localStorage.getItem(this.KEY)||'null'); }catch(e){ return null; } }
+  persist(){ try{ localStorage.setItem(this.KEY, JSON.stringify({tweaks:this.tweaks,outputs:this.outputs,openOut:this.openOut})); }catch(e){} }
+
+  parse(){ let hsh=(location.hash||'').replace(/^#\/?/,''); const p=hsh.split('/').filter(Boolean).map(decodeURIComponent); return {kind:p[0]||'page', a:p[1]||'dashboard', b:p[2]||''}; }
+  componentDidMount(){
+    this.D=window.WINFORGE_DATA||{categories:[],modules:[],meta:{}};
+    this._onHash=()=>{ this.setState({route:this.parse(),navOpen:false}); this.maybePress(); };
+    window.addEventListener('hashchange',this._onHash);
+    // silent deep-link runner: site posts a command; we navigate + auto-press WITHOUT stealing focus
+    this._onMsg=(e)=>{ const d=e.data; if(d&&d.type==='winforge-deeplink'&&typeof d.hash==='string'){ if(location.hash===d.hash){ this.maybePress(); } else { location.hash=d.hash; } } };
+    window.addEventListener('message',this._onMsg);
+    try{ if(window.parent!==window) window.parent.postMessage({type:'winforge-app-ready'},'*'); }catch(err){}
+    this.sysTimer=setInterval(()=>{ const w=(v,d,lo,hi)=>this.clamp(v+(Math.random()-0.5)*d,lo,hi); this.sys.cpu=w(this.sys.cpu,8,3,92); this.sys.ram=w(this.sys.ram,3,30,88); this.sys.net=w(this.sys.net,10,0,120); this.setState(s=>({tk:s.tk+1})); },1400);
+    this.forceUpdate(); setTimeout(()=>this.maybePress(),350);
+  }
+  componentWillUnmount(){ window.removeEventListener('hashchange',this._onHash); clearInterval(this.sysTimer); }
+  clamp(v,a,b){ return Math.max(a,Math.min(b,Math.round(v))); }
+  slug(s){ return (s||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''); }
+  go(h){ location.hash=h; }
+  toast(msg,kind){ const t={msg,kind:kind||'ok',id:Math.random()}; this.toasts.unshift(t); this.setState(s=>({tk:s.tk+1})); setTimeout(()=>{ this.toasts=this.toasts.filter(x=>x!==t); this.setState(s=>({tk:s.tk+1})); },3600); }
+
+  // ---- deep-link auto-press ----
+  maybePress(){
+    const r=this.parse();
+    if(r.kind==='run' && r.b){ const cat=(this.D.categories||[]).find(c=>this.slug(c.en)===r.a); const f=cat&&cat.features.find(x=>x.id===r.b); if(f){ setTimeout(()=>this.pressFeature(f,true),300); } }
+    if(r.kind==='page'){ const m=this.findModule(r.a); if(m && !this.isSim(r.a) && r.a!=='dashboard' && r.a!=='settings'){ setTimeout(()=>this.pressModule(m,true),300); } }
+  }
+  isToggle(f){ return !/\b(open|run|list|show|launch|kill|clear|restart|update|scan|flush|empty|rebuild|create|backup|export|import|check|repair|generate|new|view|analyze|benchmark|extract|test|hash|prune|fetch|pull|push)\b/i.test(f.en); }
+  toolFor(folder){ const m={archives:'7z',git:'git','git-github':'git','developer-terminal':'pwsh',media:'ffmpeg','network-pro':'netsh','network-internet':'netsh','encryption-vault':'manage-bde',security:'powershell','maintenance-diagnostics':'DISM',privacy:'reg','cleanup-storage':'cleanmgr'}; return m[folder]||'reg'; }
+  genOutput(f, on){
+    const tool=this.toolFor(f.folder); const ms=(80+Math.random()*900).toFixed(0);
+    if(this.isToggle(f)){
+      return ['› '+tool+' apply "'+f.id+'"','HKCU\\Software\\WinForge\\'+f.id.replace(/[.\-]/g,'_')+'  =  '+(on?'1 (enabled)':'0 (disabled)'),'✓ '+f.en+' — '+(on?'ENABLED':'DISABLED')+'  ·  no restart required','done in '+ms+' ms'];
+    }
+    return ['› '+tool+' '+f.id, this.flavor(f.folder), '✓ '+f.en+' completed','exit code 0  ·  '+ms+' ms'];
+  }
+  flavor(folder){ const m={archives:'Everything is Ok — 1 file, 4.2 MiB → 1.1 MiB (26%)',git:'On branch main · nothing to commit, working tree clean',media:'frame= 1820 fps=121 q=-1.0 Lsize=  9482kB','network-pro':'Reply from 1.1.1.1: bytes=32 time=7ms TTL=58','network-internet':'Reply from 1.1.1.1: bytes=32 time=7ms TTL=58','maintenance-diagnostics':'[==========================100.0%==========================] The operation completed successfully.','encryption-vault':'Conversion Status: Fully Encrypted · Protection On','developer-terminal':'PASS · environment looks healthy'}; return m[folder]||'Operation completed successfully.'; }
+  pressFeature(f, deep){
+    const on = this.isToggle(f) ? !this.tweaks[f.id] : true;
+    if(this.isToggle(f)) this.tweaks[f.id]=on;
+    this.outputs[f.id]=this.genOutput(f,on); this.openOut[f.id]=true; this.pressedId=f.id;
+    this.persist(); this.setState(s=>({tk:s.tk+1}));
+    if(deep) this.toast('Deep link → executed "'+f.en+'"', 'ok');
+    setTimeout(()=>{ if(this.pressedId===f.id){ this.pressedId=null; this.setState(s=>({tk:s.tk+1})); } },1500);
+  }
+  pressModule(m, deep){ this.outputs['__m_'+m.page]=['› WinForge.exe --page '+m.page,'Loaded '+m.pageFile,'Engine: '+m.engine,'✓ '+m.en+' ready']; this.pressedId='__m_'+m.page; this.setState(s=>({tk:s.tk+1})); if(deep) this.toast('Deep link → opened "'+m.en+'" and ran its primary action','ok'); setTimeout(()=>{ if(this.pressedId==='__m_'+m.page){this.pressedId=null;this.setState(s=>({tk:s.tk+1}));} },1500); }
+
+  isSim(id){ return ['reactor','cakefactory','fuelfactory'].includes(id); }
+  findModule(page){ return (this.D.modules||[]).find(m=>m.page===page); }
+
+  renderVals(){ return { view: this.view() }; }
+
+  view(){
+    if(!this.D) return null;
+    const h=React.createElement, r=this.state.route;
+    let body;
+    if(r.kind==='search') body=this.vSearch(r.a);
+    else if(r.kind==='cat'||r.kind==='run') body=this.vCategory(r.a);
+    else { const id=r.a; if(id==='dashboard') body=this.vDashboard(); else if(id==='settings') body=this.vSettings(); else if(this.isSim(id)) body=this.vSim(id); else { const m=this.findModule(id); body=m?this.vModule(m):this.vDashboard(); } }
+    return h(React.Fragment,null,
+      this.titlebar(),
+      h('div',{className:'app-shell',style:{flex:1,display:'grid',gridTemplateColumns:'280px 1fr',minHeight:0,position:'relative'}},
+        this.nav(),
+        this.state.navOpen?h('div',{onClick:()=>this.setState({navOpen:false}),style:{position:'fixed',inset:0,top:44,zIndex:55,background:'rgba(0,0,0,.45)'}}):null,
+        h('main',{style:{minWidth:0,overflowY:'auto',background:'var(--content)'}}, body)),
+      this.toastTray());
+  }
+
+  titlebar(){
+    const h=React.createElement;
+    return h('div',{style:{height:44,flexShrink:0,display:'flex',alignItems:'center',gap:10,padding:'0 12px',background:'var(--nav)',borderBottom:'1px solid var(--line)'}},
+      h('button',{className:'app-hamb app-btn',onClick:()=>this.setState(s=>({navOpen:!s.navOpen})),style:{display:'none',placeItems:'center',width:30,height:30,background:'var(--card)',border:'1px solid var(--line)',borderRadius:7,color:'var(--text)',fontSize:15}},'≡'),
+      h('span',{style:{width:22,height:22,borderRadius:6,background:'linear-gradient(135deg,var(--accent),#c43d00)',display:'grid',placeItems:'center',fontSize:12}},'⚒'),
+      h('span',{style:{fontWeight:600,fontSize:13.5,letterSpacing:'.2px'}},'WinForge'),
+      h('span',{className:'app-tlabel',style:{fontFamily:'var(--mono)',fontSize:10.5,color:'var(--dim)'}},'視窗鑄造'),
+      h('div',{className:'app-tsearch',style:{position:'relative',flex:1,maxWidth:460,margin:'0 10px'}},
+        h('div',{style:{display:'flex',alignItems:'center',gap:8,background:'var(--card)',border:'1px solid var(--line)',borderRadius:8,padding:'6px 11px'}},
+          h('span',{style:{color:'var(--dim)',fontSize:13}},'⌕'),
+          h('input',{value:this.state.sq,onInput:e=>this.setState({sq:e.target.value,sqOpen:true}),onFocus:()=>{ if(this.state.sq) this.setState({sqOpen:true}); },onBlur:()=>{ setTimeout(()=>this.setState({sqOpen:false}),160); },onKeyDown:e=>{ if(e.key==='Enter'&&this.state.sq.trim()){ this.setState({sqOpen:false}); this.go('#/search/'+encodeURIComponent(this.state.sq.trim())); } else if(e.key==='Escape'){ this.setState({sqOpen:false}); } },placeholder:'Search modules, tweaks & pages…',style:{flex:1,background:'none',border:'none',outline:'none',color:'var(--text)',fontSize:13}})),
+        this.searchDropdown()),
+      h('a',{href:'WinForge.dc.html',title:'Back to docs',className:'app-btn',style:{fontFamily:'var(--mono)',fontSize:11,color:'var(--muted)',textDecoration:'none',border:'1px solid var(--line)',borderRadius:6,padding:'5px 9px'}},'← docs'),
+      h('div',{style:{display:'flex',gap:14,marginLeft:6,color:'var(--dim)'}}, h('span',null,'—'),h('span',null,'▢'),h('span',{style:{color:'var(--red)'}},'✕')));
+  }
+
+  nav(){
+    const h=React.createElement;
+    const pin=(id,icon,label,zh,col)=>{ const active=this.state.route.kind==='page'&&this.state.route.a===id; return h('a',{key:id,href:'#/page/'+id,className:'app-navitem',style:{display:'flex',alignItems:'center',gap:11,padding:'9px 12px',borderRadius:7,textDecoration:'none',color:active?'var(--text)':'var(--muted)',background:active?'var(--card)':'transparent',position:'relative'}},
+      active?h('span',{style:{position:'absolute',left:0,top:9,bottom:9,width:3,borderRadius:3,background:col||'var(--accent)'}}):null,
+      h('span',{style:{fontSize:15,width:18,textAlign:'center'}},icon),
+      h('span',{style:{display:'flex',flexDirection:'column',lineHeight:1.15}}, h('span',{style:{fontSize:13.5,fontWeight:active?600:500}},label), h('span',{style:{fontSize:10,color:'var(--dim)',fontFamily:'var(--mono)'}},zh))); };
+    const cats=(this.D.categories||[]).map((c,i)=>{ const sl=this.slug(c.en); const active=(this.state.route.kind==='cat'||this.state.route.kind==='run')&&this.state.route.a===sl; return h('a',{key:i,href:'#/cat/'+sl,className:'app-navitem',style:{display:'flex',alignItems:'center',gap:9,padding:'7px 12px',borderRadius:7,textDecoration:'none',color:active?'var(--text)':'var(--muted)',background:active?'var(--card)':'transparent',position:'relative'}},
+      active?h('span',{style:{position:'absolute',left:0,top:7,bottom:7,width:3,borderRadius:3,background:'var(--accent2)'}}):null,
+      h('span',{style:{flex:1,fontSize:13,fontWeight:active?600:400}},c.en),
+      h('span',{style:{fontFamily:'var(--mono)',fontSize:10,color:'var(--dim)'}},c.count)); });
+    return h('nav',{className:'app-nav'+(this.state.navOpen?' open':''),style:{background:'var(--nav)',borderRight:'1px solid var(--line)',display:'flex',flexDirection:'column',minHeight:0}},
+      h('div',{style:{padding:'12px 12px 8px'}},
+        h('div',{style:{display:'flex',alignItems:'center',gap:8,background:'var(--card)',border:'1px solid var(--line)',borderRadius:8,padding:'8px 11px'}},
+          h('span',{style:{color:'var(--dim)'}},'⌕'),
+          h('input',{value:this.state.q,onInput:e=>this.setState({q:e.target.value}),onKeyDown:e=>{ if(e.key==='Enter'&&this.state.q.trim()) this.go('#/search/'+encodeURIComponent(this.state.q.trim())); },placeholder:'Search modules & tweaks…',style:{flex:1,background:'none',border:'none',outline:'none',color:'var(--text)',fontSize:13}}))),
+      h('div',{style:{flex:1,overflowY:'auto',padding:'4px 8px 16px'}},
+        h('div',{style:{fontFamily:'var(--mono)',fontSize:9.5,letterSpacing:'1px',color:'var(--dim)',padding:'8px 8px 5px'}},'PINNED · 釘選'),
+        pin('dashboard','◫','Dashboard','概覽'),
+        pin('reactor','☢','Nuclear Reactor','核反應堆','var(--accent2)'),
+        pin('cakefactory','🍰','Cake Factory','蛋糕工廠','var(--accent)'),
+        pin('fuelfactory','⬡','Fuel Factory','核燃料','var(--green)'),
+        pin('aiagents','🤖','AI Agents','AI 代理','var(--violet)'),
+        pin('settings','⚙','Settings','設定'),
+        h('div',{style:{fontFamily:'var(--mono)',fontSize:9.5,letterSpacing:'1px',color:'var(--dim)',padding:'14px 8px 5px'}},'TWEAKS & MODULES · 調校'),
+        cats));
+  }
+
+  pageHead(title, zh, sub, right){
+    const h=React.createElement;
+    return h('div',{style:{display:'flex',alignItems:'flex-end',justifyContent:'space-between',gap:14,flexWrap:'wrap',marginBottom:18}},
+      h('div',null,
+        h('h1',{style:{margin:0,fontSize:'clamp(22px,3vw,28px)',fontWeight:600}}, title, zh?h('span',{style:{color:'var(--dim)',fontWeight:400,fontSize:'.62em',marginLeft:10}},zh):null),
+        sub?h('p',{style:{margin:'5px 0 0',color:'var(--muted)',fontSize:14}},sub):null),
+      right||null);
+  }
+  shell(children){ return React.createElement('div',{className:'app-in',style:{padding:'clamp(18px,3vw,30px)',maxWidth:1100,margin:'0 auto'}}, children); }
+
+  // ---- Dashboard ----
+  vDashboard(){
+    const h=React.createElement, s=this.sys, M=this.D.meta||{};
+    const tile=(label,val,unit,frac,col)=>h('div',{style:{background:'var(--card)',border:'1px solid var(--line)',borderRadius:11,padding:'15px 16px'}},
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'baseline'}},h('span',{style:{fontFamily:'var(--mono)',fontSize:10.5,color:'var(--dim)',letterSpacing:'.5px'}},label),h('span',{style:{fontSize:20,fontWeight:600,color:col}},val,h('span',{style:{fontSize:11,color:'var(--dim)',marginLeft:2}},unit))),
+      h('div',{style:{height:6,borderRadius:4,background:'var(--bg)',marginTop:10,overflow:'hidden'}},h('div',{style:{height:'100%',width:frac+'%',background:col,transition:'width .6s'}})));
+    const launch=(id,icon,t,zh,col)=>h('a',{key:id,href:'#/page/'+id,className:'app-btn',style:{display:'flex',alignItems:'center',gap:12,background:'var(--card)',border:'1px solid var(--line)',borderRadius:11,padding:'15px 16px',textDecoration:'none',color:'var(--text)'}},
+      h('span',{style:{fontSize:24}},icon), h('span',null,h('div',{style:{fontWeight:600,fontSize:15}},t),h('div',{style:{fontFamily:'var(--mono)',fontSize:11,color:'var(--dim)'}},zh)), h('span',{style:{marginLeft:'auto',color:col}},'›'));
+    return this.shell(h('div',null,
+      this.pageHead('Dashboard','概覽','System summary · everything runs in-app, no redirects.',
+        h('button',{className:'app-btn',onClick:()=>this.toast('Relaunching as administrator… (simulated)','ok'),style:{background:'var(--accent)',color:'#1a0e00',border:'none',borderRadius:8,padding:'9px 15px',fontWeight:600,fontSize:13}},'⛨ Relaunch as admin')),
+      h('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:12}},
+        tile('CPU',s.cpu,'%',s.cpu,'var(--accent2)'), tile('MEMORY',s.ram,'%',s.ram,'var(--accent)'), tile('DISK C:',s.disk,'%',s.disk,'var(--green)'), tile('NETWORK',s.net,'Mbps',this.clamp(s.net,0,100),'var(--violet)')),
+      h('div',{style:{display:'flex',gap:14,flexWrap:'wrap',marginTop:8,fontFamily:'var(--mono)',fontSize:12,color:'var(--muted)',padding:'4px 2px'}},
+        h('span',null,'Edition: Windows 11 Pro 26100'), h('span',null,'Uptime: '+s.up), h('span',null,'WinForge v1.0 · .NET 11')),
+      h('h3',{style:{margin:'26px 0 12px',fontSize:16,fontWeight:600}},'Flagship modules · 旗艦模組'),
+      h('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:12}},
+        launch('reactor','☢','Nuclear Reactor','核反應堆 · PWR sim','var(--accent2)'),
+        launch('cakefactory','🍰','Cake Factory & Farm','蛋糕工廠','var(--accent)'),
+        launch('fuelfactory','⬡','Fuel Factory','核燃料工廠','var(--green)'),
+        launch('aiagents','🤖','AI Agents','AI 代理','var(--violet)')),
+      h('h3',{style:{margin:'26px 0 12px',fontSize:16,fontWeight:600}},'Browse '+(M.tweakFeatureCount||895)+' tweaks across '+(this.D.categories||[]).length+' categories'),
+      h('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(190px,1fr))',gap:9}},
+        (this.D.categories||[]).slice(0,12).map((c,i)=>h('a',{key:i,href:'#/cat/'+this.slug(c.en),className:'app-btn',style:{display:'flex',justifyContent:'space-between',alignItems:'center',background:'var(--card)',border:'1px solid var(--line)',borderRadius:9,padding:'11px 13px',textDecoration:'none',color:'var(--text)',fontSize:13}}, h('span',null,c.en), h('span',{style:{fontFamily:'var(--mono)',fontSize:11,color:'var(--dim)'}},c.count))))));
+  }
+
+  // ---- Category (tweak cards) ----
+  vCategory(slug){
+    const h=React.createElement; const cat=(this.D.categories||[]).find(c=>this.slug(c.en)===slug);
+    if(!cat) return this.shell(h('p',{style:{color:'var(--muted)'}},'Module not found.'));
+    const q=(this.state.q||'').trim().toLowerCase();
+    const feats= q?cat.features.filter(f=>(f.en+' '+f.zh+' '+f.id).toLowerCase().includes(q)):cat.features;
+    return this.shell(h('div',null,
+      h('div',{style:{fontFamily:'var(--mono)',fontSize:11.5,color:'var(--dim)',marginBottom:10}}, h('a',{href:'#/page/dashboard',style:{color:'var(--muted)'}},'Dashboard'),' / ',cat.en),
+      this.pageHead(cat.en, cat.zh, cat.features.length+' features · toggle or run any of them — each wraps a real engine in-app.'),
+      h('div',{style:{display:'flex',flexDirection:'column',gap:9}}, feats.map(f=>this.tweakCard(f)))));
+  }
+  tweakCard(f){
+    const h=React.createElement; const toggle=this.isToggle(f); const on=!!this.tweaks[f.id]; const pressed=this.pressedId===f.id; const out=this.outputs[f.id]; const open=this.openOut[f.id];
+    return h('div',{key:f.id, className:pressed?'app-card-press':'', style:{background:'var(--card)',border:'1px solid '+(pressed?'var(--accent)':'var(--line)'),borderRadius:11,padding:'13px 15px',transition:'border-color .3s'}},
+      h('div',{style:{display:'flex',alignItems:'center',gap:13}},
+        h('div',{style:{flex:1,minWidth:0}},
+          h('div',{style:{fontWeight:600,fontSize:14.5}}, f.en, pressed?h('span',{style:{marginLeft:8,fontFamily:'var(--mono)',fontSize:10,color:'var(--accent)'}},'⚡ deep-link'):null),
+          h('div',{style:{fontFamily:'var(--mono)',fontSize:11,color:'var(--dim)',marginTop:2}}, f.zh+'  ·  '+f.folder+'/'+f.id)),
+        toggle
+          ? h('button',{onClick:()=>this.pressFeature(f,false),className:'app-btn',role:'switch','aria-checked':on,style:{width:46,height:26,borderRadius:13,border:'1px solid '+(on?'var(--accent)':'var(--line2)'),background:on?'var(--accent)':'var(--bg)',position:'relative',flexShrink:0,transition:'all .18s'}},
+              h('span',{style:{position:'absolute',top:3,left:on?23:3,width:18,height:18,borderRadius:'50%',background:on?'#1a0e00':'var(--muted)',transition:'left .18s'}}))
+          : h('button',{onClick:()=>this.pressFeature(f,false),className:'app-btn',style:{flexShrink:0,background:'var(--card2)',border:'1px solid var(--line2)',borderRadius:8,padding:'8px 16px',color:'var(--accent2)',fontWeight:600,fontSize:13}},'Run ▸')),
+      open&&out?h('pre',{style:{margin:'11px 0 0',background:'#0c0c0f',border:'1px solid var(--line)',borderRadius:8,padding:'11px 13px',fontFamily:'var(--mono)',fontSize:11.5,lineHeight:1.55,color:'var(--muted)',whiteSpace:'pre-wrap',overflow:'auto'}},
+        out.map((l,i)=>h('div',{key:i,style:{color:l[0]==='✓'?'var(--green)':(l[0]==='›'?'var(--accent2)':'var(--muted)')}},l))):null);
+  }
+
+  // ---- Generic module ----
+  vModule(m){
+    const h=React.createElement; const pid='__m_'+m.page; const out=this.outputs[pid]; const pressed=this.pressedId===pid;
+    const actions=['Run','Refresh','Export results'];
+    return this.shell(h('div',null,
+      h('div',{style:{fontFamily:'var(--mono)',fontSize:11.5,color:'var(--dim)',marginBottom:10}}, h('a',{href:'#/page/dashboard',style:{color:'var(--muted)'}},'Dashboard'),' / ',m.en),
+      this.pageHead(m.en, m.zh, 'Wraps '+m.engine+' — entirely in-app, no redirects.'),
+      h('div',{className:pressed?'app-card-press':'',style:{background:'var(--card)',border:'1px solid '+(pressed?'var(--accent)':'var(--line)'),borderRadius:12,padding:'16px 18px'}},
+        h('div',{style:{display:'flex',gap:18,flexWrap:'wrap',fontFamily:'var(--mono)',fontSize:12,color:'var(--muted)',marginBottom:14}},
+          h('span',null,'page: ',h('b',{style:{color:'var(--accent)'}},'--page '+m.page)), h('span',null,'service: '+(m.service||'—')), h('span',null,'status: '+(m.status||'✅'))),
+        h('div',{style:{display:'flex',gap:9,flexWrap:'wrap'}}, actions.map((a,i)=>h('button',{key:i,onClick:()=>this.pressModule(m,false),className:'app-btn',style:{background:i===0?'var(--accent)':'var(--card2)',color:i===0?'#1a0e00':'var(--text)',border:'1px solid '+(i===0?'var(--accent)':'var(--line2)'),borderRadius:8,padding:'9px 16px',fontWeight:600,fontSize:13}},a))),
+        out?h('pre',{style:{margin:'14px 0 0',background:'#0c0c0f',border:'1px solid var(--line)',borderRadius:8,padding:'12px 14px',fontFamily:'var(--mono)',fontSize:12,lineHeight:1.6,whiteSpace:'pre-wrap',overflow:'auto'}}, out.map((l,i)=>h('div',{key:i,style:{color:l[0]==='✓'?'var(--green)':(l[0]==='›'?'var(--accent2)':'var(--muted)')}},l))):null)));
+  }
+
+  // ---- Sim embed ----
+  vSim(id){
+    const h=React.createElement; const map={reactor:['Reactor.dc.html','Nuclear Reactor','核反應堆'],cakefactory:['CakeFarm.dc.html','Cake Factory & Farm','蛋糕工廠與農場'],fuelfactory:['FuelFactory.dc.html','Nuclear Fuel Factory','核燃料工廠']}; const it=map[id];
+    return h('div',{className:'app-in',style:{height:'100%',display:'flex',flexDirection:'column'}},
+      h('div',{style:{display:'flex',alignItems:'center',gap:12,padding:'10px 16px',borderBottom:'1px solid var(--line)',flexShrink:0}},
+        h('span',{style:{fontWeight:600,fontSize:14}},it[1],' ',h('span',{style:{color:'var(--dim)',fontWeight:400,fontSize:12}},it[2])),
+        h('span',{style:{flex:1}}),
+        h('a',{href:it[0],target:'_blank',rel:'noopener',className:'app-btn',style:{fontFamily:'var(--mono)',fontSize:11,color:'var(--muted)',textDecoration:'none',border:'1px solid var(--line)',borderRadius:6,padding:'5px 10px'}},'Pop out ↗')),
+      h('iframe',{src:it[0],title:it[1],style:{flex:1,width:'100%',border:'none',background:'var(--content)'}}));
+  }
+
+  // ---- AI page ----
+  vAi(){ return this.vModule({en:'AI Agents',zh:'AI 代理',page:'aiagents',pageFile:'Pages/AiAgentsModule',service:'Services/AgentRunner',engine:'autonomous agent runner — YOLO mode consumes a signed .cake',status:'✅'}); }
+
+  // ---- Settings ----
+  vSettings(){
+    const h=React.createElement;
+    const row=(t,zh,ctrl)=>h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,padding:'14px 16px',background:'var(--card)',border:'1px solid var(--line)',borderRadius:11}},h('div',null,h('div',{style:{fontWeight:600,fontSize:14}},t),h('div',{style:{fontFamily:'var(--mono)',fontSize:11,color:'var(--dim)'}},zh)),ctrl);
+    const seg=(opts)=>h('div',{style:{display:'inline-flex',background:'var(--bg)',border:'1px solid var(--line)',borderRadius:8,padding:3,gap:3}},opts.map((o,i)=>h('button',{key:i,onClick:()=>this.toast('Setting changed (simulated)','ok'),className:'app-btn',style:{background:i===0?'var(--accent)':'transparent',color:i===0?'#1a0e00':'var(--muted)',border:'none',borderRadius:6,padding:'6px 13px',fontSize:12.5,fontWeight:600}},o)));
+    return this.shell(h('div',null, this.pageHead('Settings','設定','Language, theme and import/export.'),
+      h('div',{style:{display:'flex',flexDirection:'column',gap:10}},
+        row('App theme','應用程式佈景', seg(['Dark','Light','System'])),
+        row('Language','語言', seg(['Bilingual','粵語','English'])),
+        row('Close to system tray','關閉時收入系統匣', seg(['On','Off'])),
+        row('Meltdown → real PC shutdown','熔毀關機', seg(['Off (sim)','On'])))));
+  }
+
+  // ---- Search ----
+  searchDropdown(){
+    if(!this.state.sqOpen || this.state.sq.trim().length<1) return null;
+    const h=React.createElement; const res=this.searchResults(this.state.sq).slice(0,8); const col={module:'var(--accent)',category:'var(--accent2)',tweak:'var(--green)'};
+    const items=res.length?res.map((it,i)=>h('a',{key:i,href:it.go,onMouseDown:()=>this.setState({sqOpen:false,sq:''}),className:'app-navitem',style:{display:'flex',alignItems:'center',gap:10,padding:'9px 12px',borderBottom:'1px solid var(--line)',textDecoration:'none',color:'var(--text)'}},
+      h('span',{style:{fontFamily:'var(--mono)',fontSize:9,padding:'2px 6px',borderRadius:4,background:'var(--bg)',color:col[it.type],textTransform:'uppercase',flexShrink:0}},it.type),
+      h('span',{style:{flex:1,minWidth:0}},h('div',{style:{fontSize:13,fontWeight:500,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}},it.t),h('div',{style:{fontSize:11,color:'var(--dim)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}},it.zh||it.sub)),
+      it.type==='tweak'?h('span',{style:{fontFamily:'var(--mono)',fontSize:10,color:'var(--green)',flexShrink:0}},'run▸'):null)):[h('div',{key:'n',style:{padding:14,color:'var(--dim)',fontSize:13}},'No matches.')];
+    return h('div',{style:{position:'absolute',top:'calc(100% + 6px)',left:0,right:0,background:'var(--card2)',border:'1px solid var(--line2)',borderRadius:10,overflow:'hidden',boxShadow:'0 22px 50px -18px #000',zIndex:80,maxHeight:'70vh',overflowY:'auto'}},items);
+  }
+  searchResults(q){
+    const ql=(q||'').toLowerCase(); const res=[]; if(!ql.trim()) return res;
+    (this.D.modules||[]).forEach(m=>{ if((m.en+m.zh+m.page+m.engine).toLowerCase().includes(ql)) res.push({type:'module',t:m.en,zh:m.zh,sub:m.engine,go:'#/page/'+m.page}); });
+    (this.D.categories||[]).forEach(c=>{ const sl=this.slug(c.en); if((c.en+c.zh).toLowerCase().includes(ql)) res.push({type:'category',t:c.en,zh:c.zh,sub:c.count+' features',go:'#/cat/'+sl}); c.features.forEach(f=>{ if((f.en+f.zh+f.id).toLowerCase().includes(ql)) res.push({type:'tweak',t:f.en,zh:f.zh,sub:c.en,go:'#/run/'+sl+'/'+f.id}); }); });
+    return res;
+  }
+  vSearch(q){
+    const h=React.createElement; q=decodeURIComponent(q||this.state.q);
+    const res=this.searchResults(q);
+    const col={module:'var(--accent)',category:'var(--accent2)',tweak:'var(--green)'};
+    return this.shell(h('div',null,
+      this.pageHead('Search','搜尋', res.length+' results for “'+q+'”'),
+      h('div',{style:{display:'flex',flexDirection:'column',gap:8}}, res.slice(0,300).map((it,i)=>h('a',{key:i,href:it.go,className:'app-btn',style:{display:'flex',alignItems:'center',gap:12,background:'var(--card)',border:'1px solid var(--line)',borderRadius:9,padding:'11px 14px',textDecoration:'none',color:'var(--text)'}},
+        h('span',{style:{fontFamily:'var(--mono)',fontSize:9.5,padding:'3px 7px',borderRadius:5,background:'var(--bg)',color:col[it.type],textTransform:'uppercase'}},it.type),
+        h('span',{style:{flex:1,minWidth:0}},h('div',{style:{fontWeight:600,fontSize:14}},it.t,h('span',{style:{color:'var(--dim)',fontWeight:400}},'  ·  '+it.zh)),h('div',{style:{fontSize:12,color:'var(--dim)'}},it.sub)),
+        it.type==='tweak'?h('span',{style:{fontFamily:'var(--mono)',fontSize:10.5,color:'var(--green)'}},'run ▸'):h('span',{style:{color:'var(--dim)'}},'›'))))));
+  }
+
+  toastTray(){
+    const h=React.createElement;
+    return h('div',{style:{position:'fixed',right:18,bottom:18,zIndex:90,display:'flex',flexDirection:'column',gap:9,alignItems:'flex-end'}},
+      this.toasts.map(t=>h('div',{key:t.id,style:{animation:'app-toast .25s ease both',display:'flex',alignItems:'center',gap:10,background:'var(--card2)',border:'1px solid '+(t.kind==='ok'?'var(--green)':'var(--line2)'),borderRadius:10,padding:'11px 15px',boxShadow:'0 14px 34px -16px #000',maxWidth:340}},
+        h('span',{style:{color:t.kind==='ok'?'var(--green)':'var(--accent)'}},'✓'), h('span',{style:{fontSize:13}},t.msg))));
+  }
+}
+</script>
+</body>
+</html>

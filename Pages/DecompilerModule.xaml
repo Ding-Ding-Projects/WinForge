@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.DecompilerModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid Style="{StaticResource WinForgePageGridStyle}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Spacing="6">
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE943;" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+            <InfoBar x:Name="StatusBar" IsClosable="True" IsOpen="False" />
+        </StackPanel>
+
+        <!-- Toolbar -->
+        <Grid Grid.Row="1" ColumnSpacing="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Button x:Name="OpenBtn" Grid.Column="0" Click="Open_Click" Style="{StaticResource AccentButtonStyle}">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <FontIcon FontSize="14" Glyph="&#xE8E5;" />
+                    <TextBlock x:Name="OpenLbl" />
+                </StackPanel>
+            </Button>
+            <AutoSuggestBox x:Name="SearchBox" Grid.Column="1" QueryIcon="Find" MinWidth="200"
+                            TextChanged="Search_Changed" QuerySubmitted="Search_Submitted" />
+            <ToggleButton x:Name="CSharpToggle" Grid.Column="2" IsChecked="True" Click="ViewMode_Click">
+                <TextBlock x:Name="CSharpLbl" Text="C#" />
+            </ToggleButton>
+            <ToggleButton x:Name="IlToggle" Grid.Column="3" Click="ViewMode_Click">
+                <TextBlock x:Name="IlLbl" Text="IL" />
+            </ToggleButton>
+            <Button x:Name="SaveBtn" Grid.Column="4" Click="Save_Click" IsEnabled="False">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <FontIcon FontSize="14" Glyph="&#xE74E;" />
+                    <TextBlock x:Name="SaveLbl" />
+                </StackPanel>
+            </Button>
+        </Grid>
+
+        <!-- Main split -->
+        <Grid Grid.Row="2" ColumnSpacing="12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="340" MinWidth="240" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" MinWidth="320" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Left: tree + metadata -->
+            <Border Grid.Column="0" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock x:Name="TreeHeader" Grid.Row="0" Margin="12,10,12,6" FontWeight="SemiBold" />
+
+                    <TreeView x:Name="AssemblyTree" Grid.Row="1" Margin="4,0,4,4"
+                              SelectionMode="Single" ItemInvoked="Tree_ItemInvoked"
+                              CanDragItems="False" CanReorderItems="False">
+                        <TreeView.ItemTemplate>
+                            <DataTemplate x:DataType="TreeViewNode">
+                                <TreeViewItem ItemsSource="{Binding Children}">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <FontIcon FontSize="14" Glyph="{Binding Content.Glyph}" Foreground="{Binding Content.Brush}" />
+                                        <TextBlock Text="{Binding Content.Label}" TextTrimming="CharacterEllipsis"
+                                                   ToolTipService.ToolTip="{Binding Content.Tip}" />
+                                    </StackPanel>
+                                </TreeViewItem>
+                            </DataTemplate>
+                        </TreeView.ItemTemplate>
+                    </TreeView>
+
+                    <!-- Metadata + refs + resources -->
+                    <Expander x:Name="MetaExpander" Grid.Row="2" Margin="6" HorizontalAlignment="Stretch"
+                              HorizontalContentAlignment="Stretch" IsExpanded="False">
+                        <Expander.Header>
+                            <TextBlock x:Name="MetaHeader" FontWeight="SemiBold" />
+                        </Expander.Header>
+                        <ScrollViewer MaxHeight="240" VerticalScrollBarVisibility="Auto">
+                            <StackPanel Spacing="6" Margin="0,4,0,0">
+                                <TextBlock x:Name="MetaText" TextWrapping="Wrap" FontSize="12"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <TextBlock x:Name="RefsHeader" FontWeight="SemiBold" FontSize="12" />
+                                <ItemsControl x:Name="RefsList">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="x:String">
+                                            <TextBlock Text="{Binding}" FontSize="12" FontFamily="Consolas"
+                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock x:Name="ResHeader" FontWeight="SemiBold" FontSize="12" />
+                                <ItemsControl x:Name="ResList">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="x:String">
+                                            <TextBlock Text="{Binding}" FontSize="12" FontFamily="Consolas"
+                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Expander>
+                </Grid>
+            </Border>
+
+            <!-- Splitter visual -->
+            <Border Grid.Column="1" Width="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" />
+
+            <!-- Right: code view -->
+            <Border Grid.Column="2" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Padding="12,8,12,8" Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="CodeTitle" VerticalAlignment="Center" FontWeight="SemiBold"
+                                   TextTrimming="CharacterEllipsis" />
+                        <ProgressRing x:Name="CodeBusy" Grid.Column="1" IsActive="False" Width="18" Height="18" VerticalAlignment="Center" />
+                        <Button x:Name="CopyBtn" Grid.Column="2" Click="Copy_Click" IsEnabled="False">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon FontSize="13" Glyph="&#xE8C8;" />
+                                <TextBlock x:Name="CopyLbl" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+
+                    <TextBox x:Name="CodeBox" Grid.Row="1" Margin="0" BorderThickness="0"
+                             IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap" IsSpellCheckEnabled="False"
+                             FontFamily="Consolas" FontSize="13"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                             ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                             VerticalAlignment="Stretch" VerticalContentAlignment="Top" />
+
+                    <StackPanel x:Name="EmptyState" Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="10">
+                        <FontIcon FontSize="40" Glyph="&#xE943;" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock x:Name="EmptyText" Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" MaxWidth="380" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- Footer -->
+        <Border Grid.Row="3" Padding="14,8,14,8" Margin="0,0,0,12"
+                Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" CornerRadius="8">
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <FontIcon FontSize="13" Glyph="&#xE946;" VerticalAlignment="Center" />
+                <TextBlock x:Name="FooterText" FontSize="12" VerticalAlignment="Center"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</Page>

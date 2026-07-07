@@ -13,7 +13,6 @@ using Microsoft.UI.Xaml.Markup;
 using Microsoft.UI.Xaml.Media;
 using Windows.UI;
 using WinForge.Catalog;
-using WinForge.Controls;
 using WinForge.Models;
 using WinForge.Services;
 
@@ -31,6 +30,7 @@ public sealed partial class GitHubModule : Page
 {
     private List<TweakDefinition>? _ops;
     private int _scope; // 0 = all, 1 = git only, 2 = GitHub only
+    private bool _rowBusy; // guard so only one control-row action runs at a time
 
     // currently-selected change in the Changes tab
     private GitDeskService.Change? _selectedChange;
@@ -46,11 +46,13 @@ public sealed partial class GitHubModule : Page
         InitializeComponent();
         Loc.I.LanguageChanged += OnLang;
         RepoStore.Changed += OnReposChanged;
+        GitAliasStore.Changed += OnAliasesChanged;
         WorkTabs.SelectionChanged += async (_, _) => await OnTabChanged();
         Unloaded += (_, _) =>
         {
             Loc.I.LanguageChanged -= OnLang;
             RepoStore.Changed -= OnReposChanged;
+            GitAliasStore.Changed -= OnAliasesChanged;
         };
         Loaded += async (_, _) =>
         {
@@ -74,7 +76,10 @@ public sealed partial class GitHubModule : Page
     }
 
     private void OnReposChanged(object? sender, EventArgs e) =>
-        DispatcherQueue.TryEnqueue(BuildRepoList);
+        DispatcherQueue.TryEnqueue(() => { BuildRepoList(); BuildAliasList(); });
+
+    private void OnAliasesChanged(object? sender, EventArgs e) =>
+        DispatcherQueue.TryEnqueue(BuildAliasList);
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
@@ -82,7 +87,7 @@ public sealed partial class GitHubModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Git & GitHub · Git 與 GitHub";
+        Header.Title = "Git & GitHub · Git 與 GitHub";
         HeaderBlurb.Text = P(
             "GitHub Desktop, reimagined natively: pick a repo, review a colour-coded diff, stage files, commit with a summary + description, browse history, manage branches, open a pull request, and run any git or gh command.",
             "原生重做 GitHub Desktop：揀儲存庫、睇彩色 diff、暫存檔案、用摘要＋描述提交、瀏覽歷史、管理分支、開 pull request，仲可以執行任何 git 或 gh 指令。");
@@ -97,10 +102,31 @@ public sealed partial class GitHubModule : Page
         TerminalBtn.Content = P("Terminal", "終端機");
         BrowserBtn.Content = P("Open on GitHub", "開 GitHub");
 
+        OverviewTab.Header = P("Overview", "概覽");
         ChangesTab.Header = P("Changes", "改動");
         HistoryTab.Header = P("History", "歷史");
         BranchesTab.Header = P("Branches", "分支");
         ToolsTab.Header = P("Tools", "工具");
+        WorkflowsTab.Header = P("Workflows", "工作流程");
+
+        // Overview tab
+        OverviewLabel.Text = P("Repository overview", "儲存庫概覽");
+        RefreshOverviewBtn.Content = P("Refresh", "重新整理");
+        PublishBranchBtn.Content = P("Publish branch", "發佈分支");
+        RemotesLabel.Text = P("Remotes", "Remotes");
+        RemoteNameBox.PlaceholderText = P("name", "名稱");
+        RemoteUrlBox.PlaceholderText = P("fetch / push URL…", "fetch / push 網址…");
+        AddRemoteBtn2.Content = P("Add remote", "新增 remote");
+        StashesLabel.Text = P("Stashes", "Stashes");
+        RefreshStashesBtn.Content = P("Refresh", "重新整理");
+        StashMessageBox.PlaceholderText = P("Stash message…", "Stash 訊息…");
+        StashIncludeUntrackedCheck.Content = P("Include untracked", "包括未追蹤");
+        StashPushBtn.Content = P("Stash changes", "收藏改動");
+        TagsLabel.Text = P("Tags", "Tags");
+        PushTagsBtn.Content = P("Push tags", "推送 tags");
+        TagNameBox.PlaceholderText = P("Tag name…", "Tag 名…");
+        TagMessageBox.PlaceholderText = P("Annotation message (optional)…", "標註訊息（可選）…");
+        CreateTagBtn.Content = P("Create tag", "建立 tag");
 
         // Changes tab
         ChangesLabel.Text = P("Changes", "改動");
@@ -149,6 +175,36 @@ public sealed partial class GitHubModule : Page
         RunnerBtn.Content = P("Run", "執行");
         OpsFilter.PlaceholderText = P("Filter operations…", "篩選操作…");
         AdvancedHeader.Text = P($"Operation library ({GitCatalog.Count})", $"操作庫（{GitCatalog.Count}）");
+
+        // Workflows tab (Gitty)
+        WorkflowsBlurb.Text = P(
+            "Opinionated one-click shortcuts inspired by the Gitty CLI — collapse the everyday add/commit/push, tag checkpoints, undo, and your own saved command sequences into single clicks against the selected repository.",
+            "受 Gitty CLI 啟發嘅一鍵捷徑 — 將日常 add/commit/push、開檢查點 tag、撤回，同你自訂嘅指令序列，喺選中嘅儲存庫上一 click 搞掂。");
+        WorkflowsLabel.Text = P("One-click workflows", "一鍵工作流程");
+        UpHint.Text = P("Up · stage everything, commit, then push in one go (git add -A + commit + push).",
+            "Up · 一次過暫存全部、提交、再推送（git add -A + commit + push）。");
+        UpMessageBox.PlaceholderText = P("Commit message (optional)…", "提交訊息（可選）…");
+        UpBtn.Content = P("Up", "Up");
+        UndoBtn.Content = P("Undo last commit", "撤回上一個提交");
+        ShareBtn.Content = P("Push & share link", "推送並複製連結");
+        PrLinkBtn.Content = P("Copy PR link", "複製 PR 連結");
+
+        CheckpointLabel.Text = P("Checkpoints", "檢查點");
+        CheckpointHint.Text = P("Create a tag at the current branch tip and push it to origin. Restoring checks out the tag (detached HEAD).",
+            "喺目前分支頂點開一個 tag 並推上 origin。還原會 checkout 個 tag（detached HEAD）。");
+        CheckpointNameBox.PlaceholderText = P("Checkpoint / tag name…", "檢查點／tag 名…");
+        CheckpointBtn.Content = P("Checkpoint", "建立檢查點");
+        RestoreBtn.Content = P("Restore", "還原");
+
+        AliasLabel.Text = P("Aliases", "別名");
+        AliasHint.Text = P("Save a named sequence of git/gh steps (one per line) and run it with one click. Each line is \"git …\" or \"gh …\"; a bare line is treated as git. Stops on the first failing step.",
+            "儲存一串具名嘅 git/gh 步驟（每行一個），一 click 執行。每行係「git …」或「gh …」；冇前綴當 git。第一步失敗就停低。");
+        AliasEditorLabel.Text = P("New / edit alias", "新增／編輯別名");
+        AliasNameBox.PlaceholderText = P("Alias name (button label)…", "別名（按鈕標籤）…");
+        AliasStepsBox.PlaceholderText = P("add -A\ncommit -m \"wip\"\npush", "add -A\ncommit -m \"wip\"\npush");
+        AliasSaveBtn.Content = P("Save alias", "儲存別名");
+
+        BuildAliasList();
     }
 
     private void BuildScopeCombo()
@@ -173,11 +229,13 @@ public sealed partial class GitHubModule : Page
             GitBar.Title = P("git not found", "搵唔到 git");
             GitBar.Message = P("git is the core engine here — install it automatically (Git.Git via winget), no restart needed.",
                 "git 係呢度嘅核心引擎 — 自動安裝（用 winget 裝 Git.Git），唔使重啟。");
-            GitBar.ActionButton = EngineBars.AutoInstallButton("Git.Git", "Install git", "安裝 git",
-                async () => { GitDeskService.ResetEngineCache(); await CheckEngines(); await Refresh(); },
+            // Rich install control: progress bar + live bilingual status + Cancel + success/error animation.
+            GitBar.ActionButton = null;
+            GitBar.Content = EngineBars.AutoInstallProgress("Git.Git", "Install git", "安裝 git",
+                recheck: async () => { GitDeskService.ResetEngineCache(); await CheckEngines(); await Refresh(); },
                 rescan: GitDeskService.ResetEngineCache);
         }
-        else GitBar.ActionButton = null;
+        else { GitBar.ActionButton = null; GitBar.Content = null; }
 
         bool gh = await GitDeskService.GhAvailable();
         GhBar.IsOpen = !gh;
@@ -187,20 +245,22 @@ public sealed partial class GitHubModule : Page
             GhBar.Title = P("GitHub CLI (gh) not found", "搵唔到 GitHub CLI（gh）");
             GhBar.Message = P("gh powers pull-request creation and the GitHub operations — install it automatically (GitHub.cli via winget).",
                 "gh 負責建立 pull request 同 GitHub 操作 — 自動安裝（用 winget 裝 GitHub.cli）。");
-            GhBar.ActionButton = EngineBars.AutoInstallButton("GitHub.cli", "Install gh", "安裝 gh",
-                async () => { GitDeskService.ResetEngineCache(); await CheckEngines(); },
+            GhBar.ActionButton = null;
+            GhBar.Content = EngineBars.AutoInstallProgress("GitHub.cli", "Install gh", "安裝 gh",
+                recheck: async () => { GitDeskService.ResetEngineCache(); await CheckEngines(); },
                 rescan: GitDeskService.ResetEngineCache);
         }
-        else GhBar.ActionButton = null;
+        else { GhBar.ActionButton = null; GhBar.Content = null; }
 
         // GitHub Desktop fallback — always offered as an alternative thick client.
         DesktopBar.IsOpen = true;
         DesktopBar.Title = P("Prefer the real GitHub Desktop?", "想用真嘅 GitHub Desktop？");
         DesktopBar.Message = P("WinForge ports the workflow natively, but you can also install the official GitHub Desktop app as a fallback.",
             "WinForge 原生重做咗個工作流程，不過你都可以裝官方 GitHub Desktop 應用程式做後備。");
-        DesktopBar.ActionButton = EngineBars.AutoInstallButton("GitHub.GitHubDesktop",
+        DesktopBar.ActionButton = null;
+        DesktopBar.Content = EngineBars.AutoInstallProgress("GitHub.GitHubDesktop",
             "Install GitHub Desktop", "安裝 GitHub Desktop",
-            async () => { Notify(InfoBarSeverity.Success, P("GitHub Desktop installed", "已安裝 GitHub Desktop"), ""); await Task.CompletedTask; });
+            recheck: async () => { Notify(InfoBarSeverity.Success, P("GitHub Desktop installed", "已安裝 GitHub Desktop"), ""); await Task.CompletedTask; });
     }
 
     // ===== repository list =====
@@ -394,10 +454,12 @@ public sealed partial class GitHubModule : Page
     private async Task Refresh()
     {
         RepoPathBox.Text = AppState.CurrentRepoPath;
+        BuildAliasList();
         if (!GitDeskService.HasRepo)
         {
             RepoStatus.Text = P("No repository selected — add or pick one on the left.",
                 "未揀儲存庫 — 喺左邊加或者揀一個。");
+            ClearOverview();
             ChangesList.Children.Clear();
             BranchCombo.Items.Clear();
             return;
@@ -407,6 +469,7 @@ public sealed partial class GitHubModule : Page
         {
             RepoStatus.Text = P("This folder is not a git repository. Use the “git init” quick action, or pick another.",
                 "呢個資料夾唔係 git 儲存庫。可以用「git init」快捷鍵，或者揀第二個。");
+            ClearOverview();
             ChangesList.Children.Clear();
             BranchCombo.Items.Clear();
             return;
@@ -429,7 +492,8 @@ public sealed partial class GitHubModule : Page
     {
         if (!GitDeskService.HasRepo) return;
         var sel = WorkTabs.SelectedItem as TabViewItem;
-        if (sel == ChangesTab) await LoadChanges();
+        if (sel == OverviewTab) await LoadOverview();
+        else if (sel == ChangesTab) await LoadChanges();
         else if (sel == HistoryTab) await LoadHistory();
         else if (sel == BranchesTab) await LoadGraph();
     }
@@ -487,6 +551,342 @@ public sealed partial class GitHubModule : Page
         if (!GitDeskService.HasRepo) return;
         var r = await ShellRunner.RunIn(GitDeskService.Repo, "gh", "repo view --web", elevated: false, CancellationToken.None);
         if (!r.Success && !string.IsNullOrWhiteSpace(r.Output)) Notify(InfoBarSeverity.Warning, P("Open on GitHub", "開 GitHub"), Msg(r));
+    }
+
+    // ===== OVERVIEW tab =====
+
+    private void ClearOverview()
+    {
+        OverviewSummaryPanel.Children.Clear();
+        RemoteListPanel.Children.Clear();
+        StashListPanel.Children.Clear();
+        TagListPanel.Children.Clear();
+        PublishBranchBtn.IsEnabled = false;
+    }
+
+    private async Task LoadOverview()
+    {
+        ClearOverview();
+        if (!GitDeskService.HasRepo) return;
+
+        var overview = await GitDeskService.Overview(CancellationToken.None);
+        PublishBranchBtn.IsEnabled = !overview.Detached && string.IsNullOrWhiteSpace(overview.Upstream);
+
+        OverviewSummaryPanel.Children.Add(InfoRow(P("Root", "根目錄"), string.IsNullOrWhiteSpace(overview.Root) ? GitDeskService.Repo : overview.Root));
+        OverviewSummaryPanel.Children.Add(InfoRow(P("Branch", "分支"),
+            overview.Detached ? P($"Detached HEAD at {overview.ShortHead}", $"脫離 HEAD：{overview.ShortHead}") : overview.Branch));
+        OverviewSummaryPanel.Children.Add(InfoRow(P("Upstream", "上游"),
+            string.IsNullOrWhiteSpace(overview.Upstream) ? P("Not published yet", "未發佈") : overview.Upstream));
+        OverviewSummaryPanel.Children.Add(InfoRow(P("Sync", "同步"),
+            overview.Ahead is null || overview.Behind is null
+                ? P("No upstream tracking information", "未有上游追蹤資料")
+                : P($"Ahead {overview.Ahead}, behind {overview.Behind}", $"領先 {overview.Ahead}，落後 {overview.Behind}")));
+        OverviewSummaryPanel.Children.Add(InfoRow(P("Changes", "改動"),
+            P($"{overview.TotalChanges} total · {overview.Staged} staged · {overview.Unstaged} unstaged · {overview.Untracked} untracked · {overview.Conflicted} conflicted",
+              $"共 {overview.TotalChanges} 項 · {overview.Staged} 已暫存 · {overview.Unstaged} 未暫存 · {overview.Untracked} 未追蹤 · {overview.Conflicted} 衝突")));
+        OverviewSummaryPanel.Children.Add(InfoRow(P("Identity", "身份"),
+            string.IsNullOrWhiteSpace(overview.UserName + overview.UserEmail)
+                ? P("No repo-specific user.name / user.email", "未設定呢個 repo 專用 user.name / user.email")
+                : $"{overview.UserName} <{overview.UserEmail}>"));
+        OverviewSummaryPanel.Children.Add(InfoRow(P("Last commit", "最後提交"),
+            string.IsNullOrWhiteSpace(overview.LastSubject)
+                ? P("No commits yet", "未有提交")
+                : $"{overview.ShortHead} · {overview.LastSubject} · {overview.LastAuthor} · {overview.LastDate}"));
+
+        await LoadRemotes();
+        await LoadStashes();
+        await LoadTags();
+    }
+
+    private FrameworkElement InfoRow(string label, string value)
+    {
+        var grid = new Grid { ColumnSpacing = 10 };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(130) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.Children.Add(new TextBlock
+        {
+            Text = label,
+            FontSize = 12,
+            Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+            VerticalAlignment = VerticalAlignment.Top,
+        });
+        var val = new TextBlock
+        {
+            Text = value,
+            TextWrapping = TextWrapping.Wrap,
+            IsTextSelectionEnabled = true,
+        };
+        Grid.SetColumn(val, 1);
+        grid.Children.Add(val);
+        return grid;
+    }
+
+    private TextBlock EmptyHint(string text) => new()
+    {
+        Text = text,
+        FontSize = 13,
+        TextWrapping = TextWrapping.Wrap,
+        Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+    };
+
+    private async Task LoadRemotes()
+    {
+        RemoteListPanel.Children.Clear();
+        var remotes = await GitDeskService.Remotes(CancellationToken.None);
+        if (remotes.Count == 0)
+        {
+            RemoteListPanel.Children.Add(EmptyHint(P("No remotes configured.", "未設定 remote。")));
+            return;
+        }
+
+        foreach (var remote in remotes)
+            RemoteListPanel.Children.Add(BuildRemoteRow(remote));
+    }
+
+    private FrameworkElement BuildRemoteRow(GitDeskService.RemoteInfo remote)
+    {
+        var grid = new Grid { ColumnSpacing = 8, Padding = new Thickness(8, 6, 8, 6) };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        var text = new StackPanel { Spacing = 2 };
+        text.Children.Add(new TextBlock { Text = remote.Name, FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis });
+        var fetch = string.IsNullOrWhiteSpace(remote.FetchUrl) ? remote.PushUrl : remote.FetchUrl;
+        text.Children.Add(new TextBlock
+        {
+            Text = fetch,
+            FontSize = 11,
+            Foreground = (Brush)Application.Current.Resources["TextFillColorTertiaryBrush"],
+            TextTrimming = TextTrimming.CharacterEllipsis,
+        });
+        Grid.SetColumn(text, 0);
+        grid.Children.Add(text);
+
+        var fetchBtn = new Button { Content = P("Fetch", "抓取"), Padding = new Thickness(8, 4, 8, 4) };
+        fetchBtn.Click += async (_, _) =>
+        {
+            var r = await GitDeskService.RunRaw($"fetch --prune \"{remote.Name.Replace("\"", "\\\"")}\"");
+            Notify(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error, P("Fetch remote", "抓取 remote"), Msg(r));
+            await Refresh();
+        };
+        Grid.SetColumn(fetchBtn, 1);
+        grid.Children.Add(fetchBtn);
+
+        var removeBtn = new Button { Content = P("Remove", "移除"), Padding = new Thickness(8, 4, 8, 4) };
+        removeBtn.Click += async (_, _) =>
+        {
+            if (!await Confirm(P("Remove remote", "移除 remote"),
+                    P($"Remove remote “{remote.Name}” from this repository?", $"由呢個儲存庫移除 remote「{remote.Name}」？"),
+                    P("Remove", "移除"))) return;
+            var r = await GitDeskService.RemoveRemote(remote.Name);
+            Notify(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error, P("Remove remote", "移除 remote"), Msg(r));
+            await LoadOverview();
+        };
+        Grid.SetColumn(removeBtn, 2);
+        grid.Children.Add(removeBtn);
+
+        return new Border
+        {
+            Background = (Brush)Application.Current.Resources["LayerFillColorDefaultBrush"],
+            CornerRadius = new CornerRadius(6),
+            Child = grid,
+        };
+    }
+
+    private async void AddRemote_Click(object sender, RoutedEventArgs e)
+    {
+        var r = await GitDeskService.AddRemote(RemoteNameBox.Text ?? "", RemoteUrlBox.Text ?? "");
+        if (r.Success)
+        {
+            RemoteNameBox.Text = string.Empty;
+            RemoteUrlBox.Text = string.Empty;
+        }
+        Notify(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error, P("Add remote", "新增 remote"), Msg(r));
+        await LoadOverview();
+    }
+
+    private async Task LoadStashes()
+    {
+        StashListPanel.Children.Clear();
+        var stashes = await GitDeskService.Stashes(CancellationToken.None);
+        if (stashes.Count == 0)
+        {
+            StashListPanel.Children.Add(EmptyHint(P("No stashes saved.", "未有 stash。")));
+            return;
+        }
+
+        foreach (var stash in stashes)
+            StashListPanel.Children.Add(BuildStashRow(stash));
+    }
+
+    private FrameworkElement BuildStashRow(GitDeskService.StashInfo stash)
+    {
+        var grid = new Grid { ColumnSpacing = 8, Padding = new Thickness(8, 6, 8, 6) };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        var text = new StackPanel { Spacing = 2 };
+        text.Children.Add(new TextBlock { Text = stash.Message, FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis });
+        text.Children.Add(new TextBlock
+        {
+            Text = $"{stash.Selector} · {stash.Hash} · {stash.Age}",
+            FontSize = 11,
+            Foreground = (Brush)Application.Current.Resources["TextFillColorTertiaryBrush"],
+        });
+        Grid.SetColumn(text, 0);
+        grid.Children.Add(text);
+
+        var applyBtn = new Button { Content = P("Apply", "套用"), Padding = new Thickness(8, 4, 8, 4) };
+        applyBtn.Click += async (_, _) =>
+        {
+            var r = await GitDeskService.StashApply(stash.Selector);
+            Notify(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error, P("Apply stash", "套用 stash"), Msg(r));
+            await Refresh();
+        };
+        Grid.SetColumn(applyBtn, 1);
+        grid.Children.Add(applyBtn);
+
+        var popBtn = new Button { Content = P("Pop", "彈出"), Padding = new Thickness(8, 4, 8, 4) };
+        popBtn.Click += async (_, _) =>
+        {
+            var r = await GitDeskService.StashPop(stash.Selector);
+            Notify(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error, P("Pop stash", "彈出 stash"), Msg(r));
+            await Refresh();
+        };
+        Grid.SetColumn(popBtn, 2);
+        grid.Children.Add(popBtn);
+
+        var dropBtn = new Button { Content = P("Drop", "刪除"), Padding = new Thickness(8, 4, 8, 4) };
+        dropBtn.Click += async (_, _) =>
+        {
+            if (!await Confirm(P("Drop stash", "刪除 stash"),
+                    P($"Drop {stash.Selector}? This cannot be undone.", $"刪除 {stash.Selector}？呢個動作無法復原。"),
+                    P("Drop", "刪除"))) return;
+            var r = await GitDeskService.StashDrop(stash.Selector);
+            Notify(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error, P("Drop stash", "刪除 stash"), Msg(r));
+            await LoadOverview();
+        };
+        Grid.SetColumn(dropBtn, 3);
+        grid.Children.Add(dropBtn);
+
+        return new Border
+        {
+            Background = (Brush)Application.Current.Resources["LayerFillColorDefaultBrush"],
+            CornerRadius = new CornerRadius(6),
+            Child = grid,
+        };
+    }
+
+    private async void StashPush_Click(object sender, RoutedEventArgs e)
+    {
+        var r = await GitDeskService.StashPush(StashMessageBox.Text ?? "", StashIncludeUntrackedCheck.IsChecked == true);
+        if (r.Success) StashMessageBox.Text = string.Empty;
+        Notify(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error, P("Stash changes", "收藏改動"), Msg(r));
+        await Refresh();
+    }
+
+    private async Task LoadTags()
+    {
+        TagListPanel.Children.Clear();
+        var tags = await GitDeskService.Tags(CancellationToken.None);
+        if (tags.Count == 0)
+        {
+            TagListPanel.Children.Add(EmptyHint(P("No tags yet.", "未有 tag。")));
+            return;
+        }
+
+        foreach (var tag in tags.Take(30))
+            TagListPanel.Children.Add(BuildTagRow(tag));
+    }
+
+    private FrameworkElement BuildTagRow(GitDeskService.TagInfo tag)
+    {
+        var grid = new Grid { ColumnSpacing = 8, Padding = new Thickness(8, 6, 8, 6) };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        var text = new StackPanel { Spacing = 2 };
+        text.Children.Add(new TextBlock { Text = tag.Name, FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis });
+        var sub = string.Join(" · ", new[] { tag.Date, tag.Subject }.Where(s => !string.IsNullOrWhiteSpace(s)));
+        if (!string.IsNullOrWhiteSpace(sub))
+        {
+            text.Children.Add(new TextBlock
+            {
+                Text = sub,
+                FontSize = 11,
+                Foreground = (Brush)Application.Current.Resources["TextFillColorTertiaryBrush"],
+                TextTrimming = TextTrimming.CharacterEllipsis,
+            });
+        }
+        Grid.SetColumn(text, 0);
+        grid.Children.Add(text);
+
+        var deleteBtn = new Button { Content = P("Delete", "刪除"), Padding = new Thickness(8, 4, 8, 4) };
+        deleteBtn.Click += async (_, _) =>
+        {
+            if (!await Confirm(P("Delete tag", "刪除 tag"),
+                    P($"Delete local tag “{tag.Name}”?", $"刪除本機 tag「{tag.Name}」？"),
+                    P("Delete", "刪除"))) return;
+            var r = await GitDeskService.DeleteTag(tag.Name);
+            Notify(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error, P("Delete tag", "刪除 tag"), Msg(r));
+            await LoadOverview();
+        };
+        Grid.SetColumn(deleteBtn, 1);
+        grid.Children.Add(deleteBtn);
+
+        return new Border
+        {
+            Background = (Brush)Application.Current.Resources["LayerFillColorDefaultBrush"],
+            CornerRadius = new CornerRadius(6),
+            Child = grid,
+        };
+    }
+
+    private async void CreateTag_Click(object sender, RoutedEventArgs e)
+    {
+        var r = await GitDeskService.CreateTag(TagNameBox.Text ?? "", TagMessageBox.Text);
+        if (r.Success)
+        {
+            TagNameBox.Text = string.Empty;
+            TagMessageBox.Text = string.Empty;
+        }
+        Notify(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error, P("Create tag", "建立 tag"), Msg(r));
+        await LoadOverview();
+    }
+
+    private async void PushTags_Click(object sender, RoutedEventArgs e)
+    {
+        var r = await GitDeskService.PushTags();
+        Notify(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error, P("Push tags", "推送 tags"), Msg(r));
+        await LoadOverview();
+    }
+
+    private async void RefreshOverview_Click(object sender, RoutedEventArgs e) => await LoadOverview();
+
+    private async void RefreshStashes_Click(object sender, RoutedEventArgs e) => await LoadStashes();
+
+    private async void PublishBranch_Click(object sender, RoutedEventArgs e)
+    {
+        var r = await GitDeskService.PushSetUpstream();
+        Notify(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error, P("Publish branch", "發佈分支"), Msg(r));
+        await Refresh();
+    }
+
+    private async Task<bool> Confirm(string title, string body, string primary)
+    {
+        var dlg = new ContentDialog
+        {
+            Title = title,
+            Content = body,
+            PrimaryButtonText = primary,
+            CloseButtonText = P("Cancel", "取消"),
+            DefaultButton = ContentDialogButton.Close,
+            XamlRoot = this.XamlRoot,
+        };
+        return await dlg.ShowAsync() == ContentDialogResult.Primary;
     }
 
     // ===== CHANGES tab =====
@@ -989,12 +1389,609 @@ public sealed partial class GitHubModule : Page
             shown = shown.Where(t => t.SearchHaystack.Contains(f));
         }
 
+        bool first = true;
         foreach (var op in shown.Take(400))
         {
-            var card = new TweakCard();
-            card.SetTweak(op);
-            OpsPanel.Children.Add(card);
+            if (!first) OpsPanel.Children.Add(BuildDivider());
+            first = false;
+            OpsPanel.Children.Add(BuildOpRow(op));
         }
+    }
+
+    // ---- One clean control row: bilingual title + description on the left, control on the right ----
+    private FrameworkElement BuildOpRow(TweakDefinition op)
+    {
+        var grid = new Grid { Padding = new Thickness(0, 12, 0, 12) };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        var text = new StackPanel { Spacing = 2, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 16, 0) };
+
+        text.Children.Add(new TextBlock { Text = op.Title.Primary, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap });
+
+        if (!string.IsNullOrWhiteSpace(op.Title.Secondary))
+            text.Children.Add(new TextBlock
+            {
+                Text = op.Title.Secondary,
+                FontSize = 12,
+                Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+                TextWrapping = TextWrapping.Wrap,
+            });
+
+        if (!string.IsNullOrWhiteSpace(op.Description.Primary))
+            text.Children.Add(new TextBlock
+            {
+                Text = op.Description.Primary,
+                FontSize = 13,
+                Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 2, 0, 0),
+            });
+        if (!string.IsNullOrWhiteSpace(op.Description.Secondary))
+            text.Children.Add(new TextBlock
+            {
+                Text = op.Description.Secondary,
+                FontSize = 12,
+                Foreground = (Brush)Application.Current.Resources["TextFillColorTertiaryBrush"],
+                TextWrapping = TextWrapping.Wrap,
+            });
+
+        Grid.SetColumn(text, 0);
+        grid.Children.Add(text);
+
+        var control = BuildOpControl(op);
+        control.VerticalAlignment = VerticalAlignment.Center;
+        Grid.SetColumn(control, 1);
+        grid.Children.Add(control);
+
+        return grid;
+    }
+
+    private Border BuildDivider() => new()
+    {
+        Height = 1,
+        Background = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"],
+        Opacity = 0.6,
+    };
+
+    /// <summary>對應每種 Tweak 種類砌一個真控件 · Build the matching WinUI control for the tweak kind.</summary>
+    private FrameworkElement BuildOpControl(TweakDefinition op) => op.Kind switch
+    {
+        TweakKind.Toggle => BuildOpToggle(op),
+        TweakKind.Choice => BuildOpChoice(op),
+        TweakKind.Slider => BuildOpSlider(op),
+        TweakKind.Number => BuildOpNumber(op),
+        TweakKind.Info => BuildOpInfo(op),
+        _ => BuildOpAction(op), // Action (and any other kind) → button
+    };
+
+    // ---------------- Action → Button awaiting RunAsync ----------------
+    private FrameworkElement BuildOpAction(TweakDefinition op)
+    {
+        var label = op.ActionLabel?.Get(Loc.I.Language) ?? P("Run", "執行");
+        var btn = new Button { Content = label, MinWidth = 110 };
+        if (op.ActionLabel is not null)
+            ToolTipService.SetToolTip(btn, $"{op.ActionLabel.En} · {op.ActionLabel.Zh}");
+
+        btn.Click += async (_, _) =>
+        {
+            if (_rowBusy || op.RunAsync is null) return;
+            if (op.Destructive && !await ConfirmAsync(op)) return;
+
+            _rowBusy = true;
+            btn.IsEnabled = false;
+            var restore = btn.Content;
+            btn.Content = new ProgressRing { IsActive = true, Width = 18, Height = 18 };
+            try
+            {
+                var result = await op.RunAsync(CancellationToken.None);
+                Notify(result.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error,
+                    op.Title.Get(Loc.I.Language), Msg(result));
+            }
+            catch (Exception ex)
+            {
+                CrashLogger.Log("GitHubModule.BuildOpAction", ex);
+                ShowOpError(op, ex);
+            }
+            finally
+            {
+                btn.Content = restore;
+                btn.IsEnabled = true;
+                _rowBusy = false;
+            }
+        };
+        return btn;
+    }
+
+    // ---------------- Toggle → ToggleSwitch ----------------
+    private FrameworkElement BuildOpToggle(TweakDefinition op)
+    {
+        var toggle = new ToggleSwitch { OnContent = "On · 開", OffContent = "Off · 熄" };
+        bool suppress = true;
+        try { toggle.IsOn = op.GetIsOn?.Invoke() ?? false; } catch { /* show as off */ }
+        suppress = false;
+
+        toggle.Toggled += (_, _) =>
+        {
+            if (suppress || op.SetIsOn is null) return;
+            try { op.SetIsOn(toggle.IsOn); ShowOpApplied(op); }
+            catch (Exception ex)
+            {
+                suppress = true;
+                try { toggle.IsOn = op.GetIsOn?.Invoke() ?? false; } catch { /* ignore */ }
+                suppress = false;
+                ShowOpError(op, ex);
+            }
+        };
+        return toggle;
+    }
+
+    // ---------------- Choice → ComboBox ----------------
+    private FrameworkElement BuildOpChoice(TweakDefinition op)
+    {
+        var combo = new ComboBox { MinWidth = 170 };
+        if (op.Choices is not null)
+            foreach (var c in op.Choices)
+                combo.Items.Add(new ComboBoxItem { Content = c.Label.Get(Loc.I.Language), Tag = c.Value });
+
+        bool suppress = true;
+        try
+        {
+            var cur = op.GetCurrentChoice?.Invoke();
+            if (cur is not null && op.Choices is not null)
+                for (int i = 0; i < op.Choices.Count; i++)
+                    if (string.Equals(op.Choices[i].Value, cur, StringComparison.OrdinalIgnoreCase))
+                    { combo.SelectedIndex = i; break; }
+        }
+        catch { /* leave unselected */ }
+        suppress = false;
+
+        combo.SelectionChanged += (_, _) =>
+        {
+            if (suppress || op.SetChoice is null) return;
+            if (combo.SelectedItem is ComboBoxItem item && item.Tag is string val)
+            {
+                try { op.SetChoice(val); ShowOpApplied(op); }
+                catch (Exception ex)
+                {
+                    ShowOpError(op, ex);
+                    suppress = true;
+                    try
+                    {
+                        var cur = op.GetCurrentChoice?.Invoke();
+                        if (cur is not null && op.Choices is not null)
+                            for (int i = 0; i < op.Choices.Count; i++)
+                                if (string.Equals(op.Choices[i].Value, cur, StringComparison.OrdinalIgnoreCase))
+                                { combo.SelectedIndex = i; break; }
+                    }
+                    catch { /* ignore */ }
+                    suppress = false;
+                }
+            }
+        };
+        return combo;
+    }
+
+    // ---------------- Slider → Slider + value label ----------------
+    private FrameworkElement BuildOpSlider(TweakDefinition op)
+    {
+        string Format(double v)
+        {
+            bool whole = op.Step >= 1 && Math.Abs(op.Step % 1) < 1e-9;
+            string num = whole ? Math.Round(v).ToString(System.Globalization.CultureInfo.InvariantCulture)
+                               : v.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
+            return op.Unit is null ? num : $"{num} {op.Unit.Primary}";
+        }
+        double Clamp(double v) => Math.Max(op.Min, Math.Min(op.Max, v));
+
+        var panel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, VerticalAlignment = VerticalAlignment.Center };
+        var slider = new Slider { Minimum = op.Min, Maximum = op.Max, StepFrequency = op.Step, Width = 160, VerticalAlignment = VerticalAlignment.Center };
+        var valueText = new TextBlock
+        {
+            MinWidth = 56,
+            VerticalAlignment = VerticalAlignment.Center,
+            Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+        };
+
+        bool suppress = true;
+        try { slider.Value = Clamp(op.GetNumber?.Invoke() ?? op.Min); } catch { slider.Value = op.Min; }
+        suppress = false;
+        valueText.Text = Format(slider.Value);
+
+        slider.ValueChanged += (_, e) =>
+        {
+            valueText.Text = Format(e.NewValue);
+            if (suppress || op.SetNumber is null) return;
+            try { op.SetNumber(e.NewValue); ShowOpApplied(op); }
+            catch (Exception ex)
+            {
+                ShowOpError(op, ex);
+                suppress = true;
+                try { slider.Value = Clamp(op.GetNumber?.Invoke() ?? op.Min); } catch { /* ignore */ }
+                suppress = false;
+            }
+        };
+        panel.Children.Add(slider);
+        panel.Children.Add(valueText);
+        return panel;
+    }
+
+    // ---------------- Number → NumberBox ----------------
+    private FrameworkElement BuildOpNumber(TweakDefinition op)
+    {
+        double Clamp(double v) => Math.Max(op.Min, Math.Min(op.Max, v));
+        var box = new NumberBox
+        {
+            Minimum = op.Min,
+            Maximum = op.Max,
+            SmallChange = op.Step,
+            LargeChange = op.Step,
+            SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Inline,
+            MinWidth = 140,
+            ValidationMode = NumberBoxValidationMode.InvalidInputOverwritten,
+        };
+        bool suppress = true;
+        try { box.Value = Clamp(op.GetNumber?.Invoke() ?? op.Min); } catch { box.Value = op.Min; }
+        suppress = false;
+
+        box.ValueChanged += (_, e) =>
+        {
+            if (suppress || op.SetNumber is null || double.IsNaN(e.NewValue)) return;
+            try { op.SetNumber(e.NewValue); ShowOpApplied(op); }
+            catch (Exception ex)
+            {
+                ShowOpError(op, ex);
+                suppress = true;
+                try { box.Value = Clamp(op.GetNumber?.Invoke() ?? op.Min); } catch { /* ignore */ }
+                suppress = false;
+            }
+        };
+        return box;
+    }
+
+    // ---------------- Info → refreshable TextBlock ----------------
+    private FrameworkElement BuildOpInfo(TweakDefinition op)
+    {
+        string Safe() { try { return op.GetInfo?.Invoke() ?? "—"; } catch { return "—"; } }
+
+        var panel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, VerticalAlignment = VerticalAlignment.Center };
+        var info = new TextBlock
+        {
+            Text = Safe(),
+            IsTextSelectionEnabled = true,
+            TextWrapping = TextWrapping.Wrap,
+            MaxWidth = 300,
+            HorizontalTextAlignment = TextAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        var refresh = new Button { Content = new FontIcon { Glyph = "", FontSize = 14 }, Padding = new Thickness(8) };
+        ToolTipService.SetToolTip(refresh, "Refresh · 重新整理");
+        refresh.Click += (_, _) => info.Text = Safe();
+        panel.Children.Add(info);
+        panel.Children.Add(refresh);
+        return panel;
+    }
+
+    // ---------------- Confirmation for destructive ops ----------------
+    private async Task<bool> ConfirmAsync(TweakDefinition op)
+    {
+        var dlg = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = P("Are you sure?", "確定嗎？"),
+            Content = $"{op.Title.En}\n{op.Title.Zh}\n\n" +
+                      "This action may be hard to undo.\n呢個動作可能難以復原。",
+            PrimaryButtonText = P("Proceed", "繼續"),
+            CloseButtonText = P("Cancel", "取消"),
+            DefaultButton = ContentDialogButton.Close,
+        };
+        try { return await dlg.ShowAsync() == ContentDialogResult.Primary; }
+        catch { return false; }
+    }
+
+    // ---------------- Applied / error status (routes through the persistent ResultBar) ----------------
+    private void ShowOpApplied(TweakDefinition op)
+    {
+        string en = "Applied.", zh = "已套用。";
+        switch (op.Restart)
+        {
+            case RestartScope.Explorer: en = "Applied. Restart Explorer to see the change."; zh = "已套用。重啟檔案總管就睇到變化。"; break;
+            case RestartScope.SignOut: en = "Applied. Sign out and back in to take effect."; zh = "已套用。登出再登入後生效。"; break;
+            case RestartScope.Reboot: en = "Applied. Reboot to take effect."; zh = "已套用。重新開機後生效。"; break;
+        }
+        Notify(InfoBarSeverity.Success, op.Title.Get(Loc.I.Language), P(en, zh));
+    }
+
+    private void ShowOpError(TweakDefinition op, Exception ex)
+    {
+        bool needAdmin = op.RequiresAdmin && !AdminHelper.IsElevated;
+        Notify(InfoBarSeverity.Error, op.Title.Get(Loc.I.Language),
+            needAdmin ? P("This change needs administrator rights.", "呢項更改需要管理員權限。") : ex.Message);
+    }
+
+    // ===== WORKFLOWS / ALIASES (Gitty) tab =====
+
+    private void WfConsole(string text)
+    {
+        WorkflowConsoleBorder.Visibility = Visibility.Visible;
+        WorkflowConsoleLog.Text += text;
+        if (WorkflowConsoleLog.Text.Length > 20000)
+            WorkflowConsoleLog.Text = WorkflowConsoleLog.Text[^20000..];
+    }
+
+    private bool RequireRepo()
+    {
+        if (GitService.HasRepo) return true;
+        Notify(InfoBarSeverity.Warning, P("Pick a repository first.", "請先揀儲存庫。"), "");
+        return false;
+    }
+
+    /// <summary>Run a workflow with its button disabled, streaming to the workflow console.</summary>
+    private async Task RunWorkflow(Button btn, string title, Func<IProgress<string>, Task<TweakResult>> run)
+    {
+        if (!RequireRepo()) return;
+        btn.IsEnabled = false;
+        var progress = new Progress<string>(WfConsole);
+        try
+        {
+            var r = await run(progress);
+            Notify(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error, title, Msg(r));
+            await Refresh();
+        }
+        catch (Exception ex)
+        {
+            CrashLogger.Log("GitHubModule.RunWorkflow", ex);
+            WfConsole("\n" + ex.Message + "\n");
+            Notify(InfoBarSeverity.Error, title, ex.Message);
+        }
+        finally { btn.IsEnabled = true; }
+    }
+
+    private async void Up_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var msg = UpMessageBox.Text ?? string.Empty;
+            await RunWorkflow(UpBtn, P("Up", "Up"),
+                p => GitWorkflows.Up(msg, p, CancellationToken.None));
+            UpMessageBox.Text = string.Empty;
+        }
+        catch (Exception ex) { CrashLogger.Log("GitHubModule.Up_Click", ex); }
+    }
+
+    private async void Undo_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (!RequireRepo()) return;
+            if (!await Confirm(P("Undo last commit", "撤回上一個提交"),
+                    P("Soft-reset the last commit (git reset --soft HEAD~1)? Its changes stay staged so you can re-commit.",
+                      "軟重設上一個提交（git reset --soft HEAD~1）？改動會留喺暫存區，可以再提交。"),
+                    P("Undo", "撤回"))) return;
+            await RunWorkflow(UndoBtn, P("Undo last commit", "撤回上一個提交"),
+                p => GitWorkflows.Undo(p, CancellationToken.None));
+        }
+        catch (Exception ex) { CrashLogger.Log("GitHubModule.Undo_Click", ex); }
+    }
+
+    private async void Share_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (!RequireRepo()) return;
+            ShareBtn.IsEnabled = false;
+            var progress = new Progress<string>(WfConsole);
+            try
+            {
+                var r = await GitWorkflows.PushAndShare(progress, CancellationToken.None);
+                if (r.Success && !string.IsNullOrWhiteSpace(r.Output))
+                    CopyToClipboard(r.Output!);
+                Notify(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error,
+                    P("Push & share link", "推送並複製連結"), Msg(r));
+                await Refresh();
+            }
+            finally { ShareBtn.IsEnabled = true; }
+        }
+        catch (Exception ex)
+        {
+            CrashLogger.Log("GitHubModule.Share_Click", ex);
+            Notify(InfoBarSeverity.Error, P("Push & share link", "推送並複製連結"), ex.Message);
+        }
+    }
+
+    private async void PrLink_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (!RequireRepo()) return;
+            PrLinkBtn.IsEnabled = false;
+            try
+            {
+                var r = await GitWorkflows.PrUrl(CancellationToken.None);
+                if (r.Success && !string.IsNullOrWhiteSpace(r.Output))
+                    CopyToClipboard(r.Output!);
+                Notify(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Warning,
+                    P("Copy PR link", "複製 PR 連結"), Msg(r));
+            }
+            finally { PrLinkBtn.IsEnabled = true; }
+        }
+        catch (Exception ex)
+        {
+            CrashLogger.Log("GitHubModule.PrLink_Click", ex);
+            Notify(InfoBarSeverity.Error, P("Copy PR link", "複製 PR 連結"), ex.Message);
+        }
+    }
+
+    private async void Checkpoint_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var name = CheckpointNameBox.Text?.Trim() ?? string.Empty;
+            if (string.IsNullOrEmpty(name))
+            {
+                Notify(InfoBarSeverity.Warning, P("Enter a checkpoint name first.", "請先輸入檢查點名稱。"), "");
+                return;
+            }
+            var branch = await GitDeskService.CurrentBranch();
+            await RunWorkflow(CheckpointBtn, P("Checkpoint", "建立檢查點"),
+                p => GitWorkflows.Checkpoint(name, branch, p, CancellationToken.None));
+            CheckpointNameBox.Text = string.Empty;
+        }
+        catch (Exception ex) { CrashLogger.Log("GitHubModule.Checkpoint_Click", ex); }
+    }
+
+    private async void Restore_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var name = CheckpointNameBox.Text?.Trim() ?? string.Empty;
+            if (string.IsNullOrEmpty(name))
+            {
+                Notify(InfoBarSeverity.Warning, P("Enter a checkpoint name first.", "請先輸入檢查點名稱。"), "");
+                return;
+            }
+            if (!RequireRepo()) return;
+            if (!await Confirm(P("Restore checkpoint", "還原檢查點"),
+                    P($"Check out tag “{name}”? This leaves you in a detached HEAD — create a branch to keep working.",
+                      $"Checkout tag「{name}」？呢個會令你進入 detached HEAD — 想繼續開發請開新分支。"),
+                    P("Restore", "還原"))) return;
+            await RunWorkflow(RestoreBtn, P("Restore checkpoint", "還原檢查點"),
+                p => GitWorkflows.Restore(name, p, CancellationToken.None));
+        }
+        catch (Exception ex) { CrashLogger.Log("GitHubModule.Restore_Click", ex); }
+    }
+
+    private void BuildAliasList()
+    {
+        if (AliasListPanel is null) return;
+        AliasListPanel.Children.Clear();
+        if (!GitService.HasRepo)
+        {
+            AliasListPanel.Children.Add(EmptyHint(P("Pick a repository to see its saved aliases.",
+                "揀一個儲存庫去睇佢儲存咗嘅別名。")));
+            return;
+        }
+        List<GitAlias> aliases;
+        try { aliases = GitAliasStore.Load(GitService.Repo); }
+        catch (Exception ex) { CrashLogger.Log("GitHubModule.BuildAliasList", ex); aliases = new(); }
+        if (aliases.Count == 0)
+        {
+            AliasListPanel.Children.Add(EmptyHint(P("No saved aliases yet — add one below.",
+                "未有儲存別名 — 喺下面加一個。")));
+            return;
+        }
+        foreach (var alias in aliases)
+            AliasListPanel.Children.Add(BuildAliasRow(alias));
+    }
+
+    private FrameworkElement BuildAliasRow(GitAlias alias)
+    {
+        var grid = new Grid { ColumnSpacing = 8, Padding = new Thickness(8, 6, 8, 6) };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        var text = new StackPanel { Spacing = 2 };
+        text.Children.Add(new TextBlock { Text = alias.Name, FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis });
+        text.Children.Add(new TextBlock
+        {
+            Text = string.Join("  ·  ", alias.Steps),
+            FontSize = 11,
+            Foreground = (Brush)Application.Current.Resources["TextFillColorTertiaryBrush"],
+            TextTrimming = TextTrimming.CharacterEllipsis,
+        });
+        Grid.SetColumn(text, 0);
+        grid.Children.Add(text);
+
+        var runBtn = new Button { Content = P("Run", "執行"), Padding = new Thickness(8, 4, 8, 4) };
+        runBtn.Click += async (_, _) =>
+        {
+            try
+            {
+                await RunWorkflow(runBtn, P($"Alias · {alias.Name}", $"別名 · {alias.Name}"),
+                    p => GitAliasStore.Run(alias, p, CancellationToken.None));
+            }
+            catch (Exception ex) { CrashLogger.Log("GitHubModule.AliasRun", ex); }
+        };
+        Grid.SetColumn(runBtn, 1);
+        grid.Children.Add(runBtn);
+
+        var editBtn = new Button { Content = P("Edit", "編輯"), Padding = new Thickness(8, 4, 8, 4) };
+        editBtn.Click += (_, _) =>
+        {
+            AliasNameBox.Text = alias.Name;
+            AliasStepsBox.Text = string.Join("\n", alias.Steps);
+        };
+        Grid.SetColumn(editBtn, 2);
+        grid.Children.Add(editBtn);
+
+        var deleteBtn = new Button { Content = P("Delete", "刪除"), Padding = new Thickness(8, 4, 8, 4) };
+        deleteBtn.Click += async (_, _) =>
+        {
+            try
+            {
+                if (!await Confirm(P("Delete alias", "刪除別名"),
+                        P($"Delete alias “{alias.Name}”?", $"刪除別名「{alias.Name}」？"),
+                        P("Delete", "刪除"))) return;
+                GitAliasStore.Remove(GitService.Repo, alias.Name);
+            }
+            catch (Exception ex) { CrashLogger.Log("GitHubModule.AliasDelete", ex); }
+        };
+        Grid.SetColumn(deleteBtn, 3);
+        grid.Children.Add(deleteBtn);
+
+        return new Border
+        {
+            Background = (Brush)Application.Current.Resources["LayerFillColorDefaultBrush"],
+            CornerRadius = new CornerRadius(6),
+            Child = grid,
+        };
+    }
+
+    private void AliasSave_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (!RequireRepo()) return;
+            var name = AliasNameBox.Text?.Trim() ?? string.Empty;
+            if (string.IsNullOrEmpty(name))
+            {
+                Notify(InfoBarSeverity.Warning, P("Enter an alias name first.", "請先輸入別名。"), "");
+                return;
+            }
+            var steps = GitAliasStore.ParseSteps(AliasStepsBox.Text ?? string.Empty);
+            if (steps.Count == 0)
+            {
+                Notify(InfoBarSeverity.Warning, P("Add at least one step.", "請加最少一個步驟。"), "");
+                return;
+            }
+            GitAliasStore.Save(GitService.Repo, new GitAlias { Name = name, Steps = steps });
+            AliasNameBox.Text = string.Empty;
+            AliasStepsBox.Text = string.Empty;
+            Notify(InfoBarSeverity.Success, P("Alias saved", "已儲存別名"),
+                P($"“{name}” saved with {steps.Count} step(s).", $"「{name}」已儲存（{steps.Count} 步）。"));
+        }
+        catch (Exception ex)
+        {
+            CrashLogger.Log("GitHubModule.AliasSave_Click", ex);
+            Notify(InfoBarSeverity.Error, P("Save alias", "儲存別名"), ex.Message);
+        }
+    }
+
+    private void CopyToClipboard(string text)
+    {
+        try
+        {
+            var dp = new Windows.ApplicationModel.DataTransfer.DataPackage
+            {
+                RequestedOperation = Windows.ApplicationModel.DataTransfer.DataPackageOperation.Copy,
+            };
+            dp.SetText(text);
+            Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(dp);
+            Windows.ApplicationModel.DataTransfer.Clipboard.Flush();
+        }
+        catch (Exception ex) { CrashLogger.Log("GitHubModule.CopyToClipboard", ex); }
     }
 
     // ===== helpers =====

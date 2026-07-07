@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.IniEditModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="860" Spacing="14">
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE8A5;" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+            <TextBlock x:Name="StatusText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <!-- Raw text -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="RawTitle" FontWeight="SemiBold" FontSize="15" />
+                    <TextBox x:Name="RawBox" AcceptsReturn="True" TextWrapping="NoWrap" MinHeight="180"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                             FontFamily="Consolas" />
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button x:Name="ParseBtn" Click="Parse_Click" />
+                        <Button x:Name="LoadBtn" Click="Load_Click" />
+                        <Button x:Name="ClipBtn" Click="Clip_Click" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Entries -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="ListTitle" FontWeight="SemiBold" FontSize="15" />
+                    <ListView x:Name="EntriesList" MaxHeight="260" SelectionMode="Single"
+                              BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                              ScrollViewer.VerticalScrollBarVisibility="Auto">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnSpacing="8" Padding="2">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="0.9*" />
+                                        <ColumnDefinition Width="1*" />
+                                        <ColumnDefinition Width="1.4*" />
+                                        <ColumnDefinition Width="1*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="{Binding Section}" TextTrimming="CharacterEllipsis" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock Grid.Column="1" Text="{Binding Key}" TextTrimming="CharacterEllipsis" FontWeight="SemiBold" />
+                                    <TextBlock Grid.Column="2" Text="{Binding Value}" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Grid.Column="3" Text="{Binding Note}" TextTrimming="CharacterEllipsis" Foreground="{ThemeResource SystemFillColorCautionBrush}" FontSize="11" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button x:Name="ToRawBtn" Click="ToRaw_Click" />
+                        <Button x:Name="SaveBtn" Click="Save_Click" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Add / edit / remove -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="EditTitle" FontWeight="SemiBold" FontSize="15" />
+                    <Grid ColumnSpacing="10" RowSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="1.4*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="SectionBox" Grid.Column="0" />
+                        <TextBox x:Name="KeyBox" Grid.Column="1" />
+                        <TextBox x:Name="ValueBox" Grid.Column="2" />
+                    </Grid>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button x:Name="SetBtn" Click="Set_Click" />
+                        <Button x:Name="RemoveBtn" Click="Remove_Click" />
+                        <Button x:Name="GetBtn" Click="Get_Click" />
+                    </StackPanel>
+                    <TextBlock x:Name="GetResult" FontFamily="Consolas" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

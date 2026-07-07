@@ -341,14 +341,47 @@ public sealed class AiChatService
             return "";
         }
 
+        var creditReady = CakeCreditService.I.CheckCanStartGeneration("Communication AI", "通訊 AI");
+        if (!creditReady.Success)
+        {
+            onChunk(new ChatStreamChunk
+            {
+                Done = true,
+                CreditSuccess = false,
+                CreditUnits = creditReady.UnitsRequested,
+                CreditMessage = creditReady.Message,
+            });
+            return "";
+        }
+
         var msgs = BuildMessages(chat);
+        int? completionTokens = null;
+        void Capture(ChatStreamChunk chunk)
+        {
+            if (chunk.CompletionTokens is int ctok) completionTokens = ctok;
+            onChunk(chunk);
+        }
 
-        if (provider.Kind == AiProviderKind.Cli)
-            return await StreamCliAsync(chat, model, onChunk, ct);
+        string output = provider.Kind == AiProviderKind.Cli
+            ? await StreamCliAsync(chat, model, Capture, ct)
+            : provider.Kind == AiProviderKind.Ollama
+                ? await StreamOllamaAsync(provider, model, chat, msgs, Capture, ct)
+                : await StreamOpenAiAsync(provider, model, chat, msgs, Capture, ct);
 
-        return provider.Kind == AiProviderKind.Ollama
-            ? await StreamOllamaAsync(provider, model, chat, msgs, onChunk, ct)
-            : await StreamOpenAiAsync(provider, model, chat, msgs, onChunk, ct);
+        if (!string.IsNullOrWhiteSpace(output))
+        {
+            var units = CakeCreditService.GeneratedUnitsFrom(completionTokens, output);
+            var charge = CakeCreditService.I.TryChargeGeneratedUnits("Communication AI", "通訊 AI", units);
+            onChunk(new ChatStreamChunk
+            {
+                Done = true,
+                CreditSuccess = charge.Success,
+                CreditUnits = units,
+                CreditMessage = charge.Message,
+            });
+        }
+
+        return output;
     }
 
     private static List<(string role, string content)> BuildMessages(ChatConversation chat)

@@ -11,12 +11,12 @@
 | **Action · 動作** | Mount RO · 唯讀掛載 |
 
 ## English
-Open VeraCrypt and use Mount Options to mount as read-only.
+Open WinForge Vault and use Mount Options to mount as read-only.
 
 ## 粵語
-打開 VeraCrypt，喺掛載選項度以唯讀方式掛載。
+打開 WinForge 保險庫，喺掛載選項度以唯讀方式掛載。
 
 ---
-_Keywords · 關鍵字: veracrypt, readonly, 唯讀, mount_
+_Keywords · 關鍵字: vault, readonly, 唯讀, mount, 保險庫_
 
 _Part of WinForge · WinForge 套件嘅一部分_

@@ -16,6 +16,8 @@ namespace WinForge.Pages;
 /// </summary>
 public sealed partial class VaultVolumesModule : Page
 {
+    private bool _hasScanned;
+
     public sealed class Row
     {
         public string Letter { get; init; } = "";   // "X:"
@@ -28,15 +30,23 @@ public sealed partial class VaultVolumesModule : Page
     public VaultVolumesModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => { Render(); Reload(); };
-        Loaded += (_, _) => { Render(); FillCombos(); Reload(); CheckEngine(); };
+        Loc.I.LanguageChanged += OnLanguageChanged;
+        Loaded += (_, _) => { Render(); FillCombos(); ShowUnscannedState(); CheckEngine(); };
+        Unloaded += (_, _) => Loc.I.LanguageChanged -= OnLanguageChanged;
+    }
+
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        Render();
+        if (_hasScanned) Reload();
+        else ShowUnscannedState();
     }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
     private void Render()
     {
-        HeaderTitle.Text = "WinForge Vault · WinForge 保險庫";
+        Header.Title = "WinForge Vault · WinForge 保險庫";
         HeaderBlurb.Text = P("Create encrypted containers and mount them as a drive. Everything in a container is encrypted on the fly — files are only readable while mounted with the correct password. Mounting needs administrator rights.",
             "建立加密容器並掛載成磁碟機。容器內所有嘢都即時加密 — 只有用正確密碼掛載時先讀得到。掛載需要管理員權限。");
 
@@ -55,6 +65,8 @@ public sealed partial class VaultVolumesModule : Page
         CreateHashBox.Header = P("Hash (PRF)", "雜湊（PRF）");
         CreateFsBox.Header = P("File system", "檔案系統");
         CreatePimBox.Header = P("PIM (0 = default)", "PIM（0 = 預設）");
+        CreateKeyfileBox.PlaceholderText = P("Keyfile (optional)", "鎖匙檔（選填）");
+        CreateKeyfileBtn.Content = P("Browse…", "瀏覽…");
         CreatePwdBox.Header = P("Password", "密碼");
         CreatePwdBox.PlaceholderText = P("Volume password", "磁碟區密碼");
         CreateDynamicChk.Content = P("Dynamic", "動態");
@@ -76,8 +88,11 @@ public sealed partial class VaultVolumesModule : Page
         MountBtn.Content = P("Mount", "掛載");
 
         MountedHeader.Text = P("Mounted volumes", "已掛載磁碟區");
-        EmptyHint.Text = P("No mountable volumes detected. Mount a container above; mounted drives appear here so you can browse, dismount or force-dismount them.",
-            "未偵測到可卸載嘅磁碟區。喺上面掛載容器；掛載咗嘅磁碟機會喺呢度出現，方便瀏覽、卸載或強制卸載。");
+        EmptyHint.Text = _hasScanned
+            ? P("No mountable volumes detected. Mount a container above; mounted drives appear here so you can browse, dismount or force-dismount them.",
+                "未偵測到可卸載嘅磁碟區。喺上面掛載容器；掛載咗嘅磁碟機會喺呢度出現，方便瀏覽、卸載或強制卸載。")
+            : P("Mounted volumes are hidden until you refresh. This avoids showing local drive labels in screenshots.",
+                "已掛載磁碟區會隱藏到你重新整理為止，避免截圖顯示本機磁碟標籤。");
     }
 
     private void FillCombos()
@@ -124,14 +139,16 @@ public sealed partial class VaultVolumesModule : Page
             "未安裝 WinForge 保險庫引擎（連已簽署嘅核心驅動程式）。建立／掛載需要佢同管理員工作階段。");
         EngineBar.IsOpen = true;
         // Fallback installer points at the upstream package only if the bundled binary is absent.
-        EngineActionHost.Children.Add(EngineBars.AutoInstallButton(
+        // Rich progress bar + live status + real error/exit code on failure, then re-detect.
+        EngineActionHost.Children.Add(EngineBars.AutoInstallProgress(
             "VeraCrypt.VeraCrypt",
             "Install engine", "安裝引擎",
-            async () => { await Task.CompletedTask; CheckEngine(); Reload(); }));
+            recheck: async () => { await Task.CompletedTask; CheckEngine(); Reload(); }));
     }
 
     private void Reload()
     {
+        _hasScanned = true;
         var mounted = VaultVolumeService.ListMounted();
         var rows = mounted.Select(m => new Row
         {
@@ -144,6 +161,16 @@ public sealed partial class VaultVolumesModule : Page
         EmptyHint.Visibility = rows.Count > 0 ? Visibility.Collapsed : Visibility.Visible;
     }
 
+    private void ShowUnscannedState()
+    {
+        _hasScanned = false;
+        List.ItemsSource = Array.Empty<Row>();
+        List.Visibility = Visibility.Collapsed;
+        EmptyHint.Visibility = Visibility.Visible;
+        EmptyHint.Text = P("Mounted volumes are hidden until you refresh. This avoids showing local drive labels in screenshots.",
+            "已掛載磁碟區會隱藏到你重新整理為止，避免截圖顯示本機磁碟標籤。");
+    }
+
     private void Refresh_Click(object sender, RoutedEventArgs e) => Reload();
 
     // ===================== pickers =====================
@@ -153,6 +180,12 @@ public sealed partial class VaultVolumesModule : Page
         var path = await FileDialogs.SaveFileAsync("vault" + VaultVolumeService.ContainerExtension,
             VaultVolumeService.ContainerExtension, ".hc", ".tc");
         if (path is not null) CreatePathBox.Text = path;
+    }
+
+    private async void PickCreateKeyfile_Click(object sender, RoutedEventArgs e)
+    {
+        var path = await FileDialogs.OpenFileAsync();
+        if (path is not null) CreateKeyfileBox.Text = path;
     }
 
     private async void PickMountPath_Click(object sender, RoutedEventArgs e)
@@ -198,7 +231,9 @@ public sealed partial class VaultVolumesModule : Page
 
         await Run(() => VaultVolumeService.CreateContainerAsync(
             CreatePathBox.Text, bytes, CreatePwdBox.Password, algo, hash, fs,
-            (int)CreatePimBox.Value, null, CreateDynamicChk.IsChecked == true, CreateQuickChk.IsChecked == true),
+            (int)CreatePimBox.Value,
+            string.IsNullOrWhiteSpace(CreateKeyfileBox.Text) ? null : CreateKeyfileBox.Text,
+            CreateDynamicChk.IsChecked == true, CreateQuickChk.IsChecked == true),
             P("Create", "建立"));
 
         // Pre-fill the mount box with what we just created for a smooth create → mount flow.

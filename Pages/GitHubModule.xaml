@@ -4,10 +4,11 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid Padding="24,16,24,16" RowSpacing="12">
+    <Grid Style="{StaticResource WinForgePageGridStyle}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -16,10 +17,7 @@
 
         <!-- Header -->
         <StackPanel Grid.Row="0" Spacing="6">
-            <StackPanel Orientation="Horizontal" Spacing="12">
-                <FontIcon FontSize="24" Glyph="&#xE8AB;" VerticalAlignment="Center" />
-                <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
-            </StackPanel>
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE8AB;" />
             <TextBlock
                 x:Name="HeaderBlurb"
                 Foreground="{ThemeResource TextFillColorSecondaryBrush}"
@@ -127,6 +125,135 @@
                     CanDragTabs="False"
                     VerticalAlignment="Stretch">
                     <TabView.TabItems>
+
+                        <!-- ===== OVERVIEW ===== -->
+                        <TabViewItem x:Name="OverviewTab" IsClosable="False">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,8,8,0">
+                                <Grid ColumnSpacing="14" RowSpacing="14" MaxWidth="1180">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+
+                                    <!-- repository health -->
+                                    <Border
+                                        Grid.Row="0"
+                                        Grid.Column="0"
+                                        Padding="16,14,16,14"
+                                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8">
+                                        <StackPanel Spacing="10">
+                                            <Grid ColumnSpacing="8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock x:Name="OverviewLabel" Grid.Column="0" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                                <Button x:Name="PublishBranchBtn" Grid.Column="1" Click="PublishBranch_Click" />
+                                                <Button x:Name="RefreshOverviewBtn" Grid.Column="2" Click="RefreshOverview_Click" />
+                                            </Grid>
+                                            <StackPanel x:Name="OverviewSummaryPanel" Spacing="6" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- remotes -->
+                                    <Border
+                                        Grid.Row="0"
+                                        Grid.Column="1"
+                                        Padding="16,14,16,14"
+                                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8">
+                                        <StackPanel Spacing="10">
+                                            <TextBlock x:Name="RemotesLabel" FontWeight="SemiBold" />
+                                            <StackPanel x:Name="RemoteListPanel" Spacing="6" />
+                                            <Grid ColumnSpacing="8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="140" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBox x:Name="RemoteNameBox" Grid.Column="0" />
+                                                <TextBox x:Name="RemoteUrlBox" Grid.Column="1" />
+                                                <Button x:Name="AddRemoteBtn2" Grid.Column="2" Click="AddRemote_Click" />
+                                            </Grid>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- stashes -->
+                                    <Border
+                                        Grid.Row="1"
+                                        Grid.Column="0"
+                                        Padding="16,14,16,14"
+                                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8">
+                                        <StackPanel Spacing="10">
+                                            <Grid ColumnSpacing="8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock x:Name="StashesLabel" Grid.Column="0" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                                <Button x:Name="RefreshStashesBtn" Grid.Column="1" Click="RefreshStashes_Click" />
+                                            </Grid>
+                                            <Grid ColumnSpacing="8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBox x:Name="StashMessageBox" Grid.Column="0" />
+                                                <CheckBox x:Name="StashIncludeUntrackedCheck" Grid.Column="1" VerticalAlignment="Center" />
+                                                <Button x:Name="StashPushBtn" Grid.Column="2" Click="StashPush_Click" />
+                                            </Grid>
+                                            <StackPanel x:Name="StashListPanel" Spacing="6" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- tags -->
+                                    <Border
+                                        Grid.Row="1"
+                                        Grid.Column="1"
+                                        Padding="16,14,16,14"
+                                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8">
+                                        <StackPanel Spacing="10">
+                                            <Grid ColumnSpacing="8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock x:Name="TagsLabel" Grid.Column="0" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                                <Button x:Name="PushTagsBtn" Grid.Column="1" Click="PushTags_Click" />
+                                            </Grid>
+                                            <Grid ColumnSpacing="8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="160" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBox x:Name="TagNameBox" Grid.Column="0" />
+                                                <TextBox x:Name="TagMessageBox" Grid.Column="1" />
+                                                <Button x:Name="CreateTagBtn" Grid.Column="2" Click="CreateTag_Click" />
+                                            </Grid>
+                                            <StackPanel x:Name="TagListPanel" Spacing="6" />
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+                            </ScrollViewer>
+                        </TabViewItem>
 
                         <!-- ===== CHANGES ===== -->
                         <TabViewItem x:Name="ChangesTab" IsClosable="False">
@@ -472,7 +599,141 @@
                                             QueryIcon="Find"
                                             TextChanged="OpsFilter_TextChanged" />
                                     </Grid>
-                                    <StackPanel x:Name="OpsPanel" Spacing="2" />
+                                    <StackPanel x:Name="OpsPanel" Spacing="0">
+                                        <StackPanel.ChildrenTransitions>
+                                            <TransitionCollection>
+                                                <EntranceThemeTransition />
+                                            </TransitionCollection>
+                                        </StackPanel.ChildrenTransitions>
+                                    </StackPanel>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </TabViewItem>
+
+                        <!-- ===== WORKFLOWS / ALIASES (Gitty) ===== -->
+                        <TabViewItem x:Name="WorkflowsTab" IsClosable="False">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,8,8,0">
+                                <StackPanel MaxWidth="1000" Spacing="14">
+
+                                    <TextBlock
+                                        x:Name="WorkflowsBlurb"
+                                        FontSize="13"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                        TextWrapping="Wrap" />
+
+                                    <!-- One-click workflows -->
+                                    <Border
+                                        Padding="16,14,16,14"
+                                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8">
+                                        <StackPanel Spacing="10">
+                                            <TextBlock x:Name="WorkflowsLabel" FontWeight="SemiBold" />
+
+                                            <!-- Up -->
+                                            <StackPanel Spacing="6">
+                                                <TextBlock x:Name="UpHint" FontSize="12"
+                                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                           TextWrapping="Wrap" />
+                                                <Grid ColumnSpacing="8">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBox x:Name="UpMessageBox" Grid.Column="0" />
+                                                    <Button x:Name="UpBtn" Grid.Column="1" Click="Up_Click"
+                                                            Style="{StaticResource AccentButtonStyle}" />
+                                                </Grid>
+                                            </StackPanel>
+
+                                            <!-- Undo + Push & share -->
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <Button x:Name="UndoBtn" Click="Undo_Click" />
+                                                <Button x:Name="ShareBtn" Click="Share_Click" />
+                                                <Button x:Name="PrLinkBtn" Click="PrLink_Click" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Checkpoints -->
+                                    <Border
+                                        Padding="16,14,16,14"
+                                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8">
+                                        <StackPanel Spacing="10">
+                                            <TextBlock x:Name="CheckpointLabel" FontWeight="SemiBold" />
+                                            <TextBlock x:Name="CheckpointHint" FontSize="12"
+                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                       TextWrapping="Wrap" />
+                                            <Grid ColumnSpacing="8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBox x:Name="CheckpointNameBox" Grid.Column="0" />
+                                                <Button x:Name="CheckpointBtn" Grid.Column="1" Click="Checkpoint_Click" />
+                                                <Button x:Name="RestoreBtn" Grid.Column="2" Click="Restore_Click" />
+                                            </Grid>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Aliases -->
+                                    <Border
+                                        Padding="16,14,16,14"
+                                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8">
+                                        <StackPanel Spacing="10">
+                                            <TextBlock x:Name="AliasLabel" FontWeight="SemiBold" />
+                                            <TextBlock x:Name="AliasHint" FontSize="12"
+                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                       TextWrapping="Wrap" />
+
+                                            <!-- saved alias buttons -->
+                                            <StackPanel x:Name="AliasListPanel" Spacing="6" />
+
+                                            <!-- editor -->
+                                            <Border
+                                                Padding="12"
+                                                Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                                CornerRadius="6">
+                                                <StackPanel Spacing="8">
+                                                    <TextBlock x:Name="AliasEditorLabel" FontWeight="SemiBold" FontSize="13" />
+                                                    <TextBox x:Name="AliasNameBox" />
+                                                    <TextBox
+                                                        x:Name="AliasStepsBox"
+                                                        AcceptsReturn="True"
+                                                        TextWrapping="Wrap"
+                                                        FontFamily="Consolas"
+                                                        Height="100" />
+                                                    <Button x:Name="AliasSaveBtn" Click="AliasSave_Click"
+                                                            Style="{StaticResource AccentButtonStyle}" />
+                                                </StackPanel>
+                                            </Border>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Workflow console -->
+                                    <Border
+                                        x:Name="WorkflowConsoleBorder"
+                                        Padding="12"
+                                        Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                        CornerRadius="6"
+                                        Visibility="Collapsed">
+                                        <ScrollViewer MaxHeight="240" VerticalScrollBarVisibility="Auto">
+                                            <TextBlock
+                                                x:Name="WorkflowConsoleLog"
+                                                FontFamily="Consolas"
+                                                FontSize="12"
+                                                IsTextSelectionEnabled="True"
+                                                TextWrapping="Wrap" />
+                                        </ScrollViewer>
+                                    </Border>
                                 </StackPanel>
                             </ScrollViewer>
                         </TabViewItem>

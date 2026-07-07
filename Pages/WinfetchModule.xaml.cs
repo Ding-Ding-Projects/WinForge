@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.UI;
+using WinForge.Controls;
 using WinForge.Services;
 
 namespace WinForge.Pages;
@@ -23,22 +24,31 @@ public sealed partial class WinfetchModule : Page
     private FetchSnapshot? _snap;
     private CancellationTokenSource? _cts;
 
+    // 每實例富文字工具列（格式只影響呢個 ASCII 面）· per-instance rich-text toolbar for the ASCII surface.
+    private RichTextToolbar? _asciiToolbar;
+
     // Windows-console accent used to colour the info-row titles.
     private static readonly Color Accent = Color.FromArgb(0xFF, 0x3A, 0x96, 0xDD);
 
     public WinfetchModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => { RenderText(); if (_snap is not null) RenderSnapshot(_snap); };
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += async (_, _) => { RenderText(); await ReloadAsync(); };
-        Unloaded += (_, _) => _cts?.Cancel();
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; _cts?.Cancel(); };
+    }
+
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        RenderText();
+        if (_snap is not null) RenderSnapshot(_snap);
     }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
     private void RenderText()
     {
-        HeaderTitle.Text = "System Info · 系統資訊 (Winfetch)";
+        Header.Title = "System Info · 系統資訊 (Winfetch)";
         HeaderBlurb.Text = P(
             "A native winfetch — your machine at a glance beside the Windows logo. Toggle ASCII for the classic console look, then copy or export.",
             "原生版 winfetch — 喺 Windows 標誌旁邊一眼睇晒部機嘅資料。撳 ASCII 切換經典主控台外觀，再複製或匯出。");
@@ -183,10 +193,26 @@ public sealed partial class WinfetchModule : Page
     private void Ascii_Toggled(object sender, RoutedEventArgs e)
     {
         bool ascii = AsciiToggle.IsOn;
-        AsciiPanel.Visibility = ascii ? Visibility.Visible : Visibility.Collapsed;
+        AsciiHost.Visibility = ascii ? Visibility.Visible : Visibility.Collapsed;
         UiScroller.Visibility = ascii ? Visibility.Collapsed : Visibility.Visible;
-        if (ascii && _snap is not null)
-            AsciiText.Text = WinfetchService.ToAsciiText(_snap, !Loc.I.IsCantonesePrimary);
+        if (ascii)
+        {
+            EnsureAsciiToolbar();
+            if (_snap is not null)
+                AsciiText.Text = WinfetchService.ToAsciiText(_snap, !Loc.I.IsCantonesePrimary);
+        }
+    }
+
+    /// <summary>第一次切去 ASCII 模式時，建立自己嘅富文字工具列（主題只影響 AsciiHost）· lazily build a per-instance toolbar.</summary>
+    private void EnsureAsciiToolbar()
+    {
+        if (_asciiToolbar is not null) return;
+        try
+        {
+            _asciiToolbar = new RichTextToolbar(AsciiText, RichTextToolbar.Mode.Editable, themeScope: AsciiHost);
+            AsciiToolbarHost.Content = _asciiToolbar;
+        }
+        catch (Exception ex) { CrashLogger.Log("winfetch:toolbar", ex); }
     }
 
     private void Copy_Click(object sender, RoutedEventArgs e)

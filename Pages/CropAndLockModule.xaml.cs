@@ -19,7 +19,7 @@ public sealed partial class CropAndLockModule : Page
     public CropAndLockModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         CropAndLockService.Changed += OnServiceChanged;
         CropAndLockService.HotkeyPickRequested += OnHotkeyPick;
         Loaded += (_, _) =>
@@ -31,10 +31,13 @@ public sealed partial class CropAndLockModule : Page
         };
         Unloaded += (_, _) =>
         {
+            Loc.I.LanguageChanged -= OnLanguageChanged;
             CropAndLockService.Changed -= OnServiceChanged;
             CropAndLockService.HotkeyPickRequested -= OnHotkeyPick;
         };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
@@ -46,7 +49,7 @@ public sealed partial class CropAndLockModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Crop And Lock · 裁切與鎖定";
+        Header.Title = "Crop And Lock · 裁切與鎖定";
         HeaderBlurb.Text = P(
             "Pick a window and drag a region, then float a small always-on-top window of just that part. Thumbnail mode keeps it live-mirroring the source; Crop mode shows only that slice. The floating windows are movable, resizable and closable.",
             "揀一個視窗、拖一個範圍，就會浮出一個細細嘅置頂視窗，只顯示嗰一忽。縮圖模式會即時鏡像來源；裁切模式只顯示揀咗嗰一片。浮窗可以移動、縮放同關閉。");
@@ -229,7 +232,7 @@ public sealed partial class CropAndLockModule : Page
         PickRegionAndSpawn(info.Handle, info.Title, thumbnail);
     }
 
-    private void PickRegionAndSpawn(IntPtr source, string title, bool thumbnail)
+    private async void PickRegionAndSpawn(IntPtr source, string title, bool thumbnail)
     {
         // Bring the target window forward so the user can see what they're cropping, then drag a region.
         try { WindowManager.Focus(source); } catch { }
@@ -237,7 +240,8 @@ public sealed partial class CropAndLockModule : Page
         var rect = RegionSelector.PickRegion();
         if (rect is null) { return; } // cancelled (Esc / right-click)
 
-        var ok = CropAndLockService.CreateFromScreenRect(source, title, rect.Value, thumbnail);
+        // Await the async create so the UI thread never blocks waiting for the STA pump thread.
+        var ok = await CropAndLockService.CreateFromScreenRectAsync(source, title, rect.Value, thumbnail);
         if (ok)
             Info(thumbnail ? P("Thumbnail created", "已建立縮圖") : P("Cropped view created", "已建立裁切檢視"),
                  CropAndLockService.LastEvent);

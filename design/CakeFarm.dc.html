@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#13110d; --panel:#1c1913; --panel2:#231f17; --panel3:#2b261c;
+    --line:#3a342a; --line2:#4d4538;
+    --text:#f4eee4; --muted:#c6bba9; --dim:#897f6c;
+    --green:#7fc06a; --leaf:#9bcf73; --amber:#e8b75d; --gold:#f1c873; --red:#df6a58; --blue:#74c4dd; --cream:#f1dbb3; --choco:#b07a4e;
+    --mono:'JetBrains Mono',ui-monospace,monospace; --disp:'Space Grotesk',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--disp);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  button{font-family:var(--disp);cursor:pointer}
+  ::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-thumb{background:var(--line2);border-radius:6px}::-webkit-scrollbar-track{background:transparent}
+  @keyframes ck-spin{to{transform:rotate(360deg)}}
+  @keyframes ck-pulse{0%,100%{opacity:.5}50%{opacity:1}}
+  @keyframes ck-blink{0%,49%{opacity:1}50%,100%{opacity:.25}}
+  @keyframes ck-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+  @keyframes ck-grow{from{transform:scaleY(.4);opacity:.5}to{transform:scaleY(1);opacity:1}}
+  @keyframes ck-flow{to{background-position:-26px 0}}
+  .ck-flow{background-image:repeating-linear-gradient(90deg,currentColor 0 6px,transparent 6px 13px);background-size:26px 100%;animation:ck-flow .6s linear infinite}
+  .ck-btn:hover{filter:brightness(1.1)} .ck-btn:active{transform:translateY(1px)}
+  .ck-btn:disabled{opacity:.4;cursor:not-allowed;filter:none;transform:none}
+  @media(max-width:1040px){ .ck-grid{grid-template-columns:1fr!important} }
+  @media(max-width:680px){ .ck-ctrls{grid-template-columns:1fr 1fr!important} .ck-inv{grid-template-columns:1fr 1fr!important} .ck-scene{grid-template-columns:repeat(2,1fr)!important} }
+</style>
+</helmet>
+<div style="min-height:100vh">{{ view }}</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:&quot;100%&quot;}}">
+class Component extends DCLogic {
+  state = { tk:0, speed:4, showGuide:true, recipe:'white', confirm:null };
+  KEY='winforge.cake.state.v2';
+
+  constructor(props){ super(props); const L=this.load(); this.P=(L&&L.P)?L.P:this.fresh(); this.log=(L&&L.log)||[]; this._restored=!!(L&&L.P); if(L&&L.speed)this.state.speed=L.speed; if(L&&L.recipe)this.state.recipe=L.recipe; this.cakeInput=React.createRef(); this._saveN=0; }
+  load(){ try{ return JSON.parse(localStorage.getItem(this.KEY)||'null'); }catch(e){ return null; } }
+  persist(){ try{ localStorage.setItem(this.KEY, JSON.stringify({P:this.P, log:this.log.slice(0,40), speed:this.state.speed, recipe:this.state.recipe})); }catch(e){} }
+  askConfirm(msg,onYes){ this.setState({confirm:{msg,onYes}}); }
+  cakeValue(q){ return +(2.5 + (q||75)*0.09).toFixed(2); }
+  treasury(){ return this.P.cakeFiles.filter(c=>!c.eaten).reduce((a,c)=>a+(c.value||this.cakeValue(c.quality)),0); }
+  fresh(){
+    return {
+      cash:520, rep:3, cakesMinted:0, cakesEaten:0,
+      bus:{generating:false,mw:0,pct:0,melted:false}, avail:0,
+      seed:40, water:60, feed:40,
+      wheatGrow:0.2, caneGrow:0.1, milk:0, eggs:0,
+      cows:1, hens:3, milkBuf:0, eggBuf:0,
+      flour:8, sugar:6, butter:3, recipeMilk:5, cocoa:2, eggsReady:6,
+      jobs:[], delivery:null,
+      batch:null, finished:0, rejects:0, waste:0, sanitation:100,
+      cakeFiles:[], lastVal:null, score:0, mIdx:0, ordersFilled:0,
+      orders:[ this.mkOrder(0) ],
+      intensity:1, line:1, elapsed:0, orderClock:38,
+    };
+  }
+  mkOrder(seed){ const q=2+Math.floor(Math.random()*4); return {id:'CO-'+(1000+Math.floor(Math.random()*9000)), qty:q, due:60+q*22, reward:q*48+40, rep:1, t:0 }; }
+
+  componentDidMount(){
+    this.logEvent(this._restored ? 'Session restored — bakery state, treasury and orders preserved.' : 'Bakery cold. The line is reactor-powered — bring the reactor online to begin.','info');
+    if((location.hash||'').toLowerCase().includes('guide')) this.setState({showGuide:true});
+    this.timer=setInterval(()=>this.step(),100);
+  }
+  componentWillUnmount(){ clearInterval(this.timer); }
+  logEvent(msg,kind){ this.log.unshift({t:this.fmtT(this.P.elapsed),msg,kind:kind||'info',id:Math.random()}); if(this.log.length>120)this.log.pop(); }
+  fmtT(s){ s=Math.floor(s); return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); }
+  clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+
+  readBus(){
+    try{ const r=JSON.parse(localStorage.getItem('winforge.reactor.v1')||'null'); if(r && (Date.now()-r.ts)<5000) return r; }catch(e){}
+    return null;
+  }
+
+  // ---------------- SIM ----------------
+  step(){
+    const P=this.P, dt=0.1*this.state.speed; P.elapsed+=dt;
+    // reactor bus
+    const r=this.readBus();
+    if(r){ P.bus={generating:r.generating&&!r.melted, mw:r.mw, pct:r.pct, melted:r.melted, live:true}; }
+    else { P.bus={generating:false, mw:0, pct:0, melted:false}; }
+    P.avail = P.bus.generating ? this.clamp(P.bus.mw/600,0,1) : 0;
+    const pw = P.avail; // power fraction for all powered work
+
+    if(pw>0){
+      // farm growth (needs water)
+      if(P.water>0){
+        P.wheatGrow=this.clamp(P.wheatGrow+0.018*pw*P.intensity*dt,0,1.2);
+        P.caneGrow =this.clamp(P.caneGrow +0.015*pw*P.intensity*dt,0,1.2);
+        P.water=Math.max(0,P.water-0.05*P.intensity*dt);
+      }
+      // animals (need feed)
+      if(P.feed>0){
+        P.milkBuf=this.clamp(P.milkBuf+0.05*P.cows*pw*dt,0,P.cows*4);
+        P.eggBuf =this.clamp(P.eggBuf +0.07*P.hens*pw*dt,0,P.hens*4);
+        P.feed=Math.max(0,P.feed-0.02*(P.cows+P.hens)*dt);
+      }
+      // factory jobs
+      P.jobs.forEach(j=>{ j.t+=pw*P.line*dt; });
+      const done=P.jobs.filter(j=>j.t>=j.dur);
+      done.forEach(j=>this.finishJob(j));
+      P.jobs=P.jobs.filter(j=>j.t<j.dur);
+      // bakery batch
+      if(P.batch) this.stepBatch(P.batch, pw, dt);
+      // sanitation slowly drops while producing
+      if(P.batch) P.sanitation=Math.max(0,P.sanitation-0.06*dt);
+    }
+    // delivery ETA
+    if(P.delivery){ P.delivery.eta-=dt; }
+    // orders countdown + spawn
+    P.orders.forEach(o=>{ o.t+=dt; });
+    const expired=P.orders.filter(o=>o.t>o.due);
+    expired.forEach(()=>{ P.rep=Math.max(0,P.rep-1); this.logEvent('Order expired — reputation down.','warn'); });
+    P.orders=P.orders.filter(o=>o.t<=o.due);
+    P.orderClock-=dt;
+    if(P.orderClock<=0 && P.orders.length<3){ P.orders.push(this.mkOrder()); P.orderClock=55+Math.random()*30; this.logEvent('New customer order received.','info'); }
+
+    this.checkMissions();
+    if((++this._saveN)%15===0) this.persist();
+    this.bump();
+  }
+  missions(){ return [
+    {label:'Bring the bakery online',zh:'通電',check:P=>P.bus.generating,reward:80},
+    {label:'Mill a batch of cake flour',zh:'磨粉',check:P=>P.flour>=12,reward:120},
+    {label:'Pack your first cakes',zh:'首批蛋糕',check:P=>P.cakesMinted>=1,reward:180},
+    {label:'Fulfil a customer order',zh:'完成訂單',check:P=>(P.ordersFilled||0)>=1,reward:250},
+    {label:'Build a $60 cake treasury',zh:'$60 庫存',check:P=>this.treasury()>=60,reward:350},
+    {label:'Mint 12 signed cakes',zh:'鑄 12 蛋糕',check:P=>P.cakesMinted>=12,reward:600},
+  ]; }
+  checkMissions(){ const ms=this.missions(),P=this.P; while(P.mIdx<ms.length && ms[P.mIdx].check(P)){ const m=ms[P.mIdx]; P.score+=m.reward; this.logEvent('🏆 Objective complete: '+m.label+'  +'+m.reward+' pts','good'); P.mIdx++; } }
+  missionBar(){
+    const h=React.createElement,P=this.P,ms=this.missions(); const m=ms[P.mIdx]; const all=P.mIdx>=ms.length;
+    return h('div',{style:{display:'flex',alignItems:'center',gap:13,flexWrap:'wrap',background:'var(--panel)',border:'1px solid var(--line)',borderRadius:11,padding:'9px 14px',marginTop:14}},
+      h('span',{style:{fontFamily:'var(--mono)',fontSize:10,letterSpacing:'1px',color:all?'var(--green)':'var(--amber)'}},all?'★ ALL ORDERS MASTERED':'OBJECTIVE '+(P.mIdx+1)+'/'+ms.length),
+      h('span',{style:{flex:1,minWidth:160,fontFamily:'var(--disp)',fontWeight:600,fontSize:14}}, all?'Every objective cleared — keep the treasury growing.':m.label, m&&!all?h('span',{style:{color:'var(--dim)',fontWeight:400,fontSize:12,marginLeft:8}},m.zh):null),
+      m&&!all?h('span',{style:{fontFamily:'var(--mono)',fontSize:11,color:'var(--amber)'}},'+'+m.reward+' pts'):null,
+      h('span',{style:{fontFamily:'var(--mono)',fontSize:12,color:'var(--green)'}},'SCORE ',h('b',{style:{color:'var(--text)'}},P.score)));
+  }
+  bump(){ this.setState(s=>({tk:s.tk+1})); }
+
+  finishJob(j){
+    const P=this.P;
+    if(j.type==='mill'){ P.flour+=j.out; this.logEvent('Flour mill released lot FL-'+this.lot()+' — '+j.out+' units cake flour.','good'); }
+    if(j.type==='sugar'){ P.sugar+=j.out; this.logEvent('Sugar house released lot SG-'+this.lot()+' — '+j.out+' units sugar.','good'); }
+    if(j.type==='butter'){ P.butter+=Math.round(j.out*0.6); P.recipeMilk+=Math.round(j.out*0.8); this.logEvent('Butter room released BT-'+this.lot()+' (+pasteurized milk).','good'); }
+    if(j.type==='cocoa'){ P.cocoa+=j.out; this.logEvent('Cocoa line released CC-'+this.lot()+'.','good'); }
+  }
+  lot(){ return (1000+Math.floor(Math.random()*9000)); }
+
+  recipeDef(){
+    const r=this.state.recipe;
+    if(r==='pound') return {name:'Butter pound',zh:'牛油磅蛋糕',flour:3,sugar:2,eggs:3,milk:1,butter:3,cocoa:0,sg:0.82,size:3};
+    if(r==='choc') return {name:'Chocolate layer',zh:'朱古力夾心',flour:3,sugar:3,eggs:2,milk:2,butter:2,cocoa:2,sg:0.78,size:4};
+    return {name:'White layer',zh:'白色夾心',flour:3,sugar:2,eggs:2,milk:2,butter:1,cocoa:0,sg:0.80,size:4};
+  }
+  stages(){ return [
+    {key:'mix',name:'Mix & aerate',zh:'攪拌充氣',dur:7},
+    {key:'bake',name:'Tunnel bake — kill step',zh:'隧道焗 — 殺菌',dur:11},
+    {key:'cool',name:'Spiral cool',zh:'螺旋冷卻',dur:7},
+    {key:'ice',name:'Ice & decorate',zh:'裝飾糖霜',dur:6},
+    {key:'pack',name:'Pack & code',zh:'包裝編碼',dur:5},
+  ]; }
+  stepBatch(b,pw,dt){
+    const st=this.stages()[b.idx]; b.t+=pw*this.P.line*dt;
+    if(b.idx===0){ b.sg += (this.recipeDef().sg - b.sg)*0.06*dt; }
+    if(b.idx===1){ b.core += (200*pw - b.core)*0.05*dt; } // oven heat
+    if(b.idx===2){ b.core += (24 - b.core)*0.05*dt; } // cooling
+  }
+  gateOk(b){
+    const st=this.stages()[b.idx];
+    if(b.t<st.dur) return false;
+    if(b.idx===0) return Math.abs(b.sg-this.recipeDef().sg)<0.04;
+    if(b.idx===1) return b.core>=88; // kill step
+    if(b.idx===2) return b.core<=40;
+    if(b.idx===3) return this.P.sanitation>35;
+    return true;
+  }
+
+  // ---------------- ACTIONS ----------------
+  act(fn){ return (e)=>{ if(e&&e.preventDefault)e.preventDefault(); fn(); this.bump(); }; }
+  needPower(){ if(this.P.avail<=0){ this.logEvent('No reactor power — bring the reactor online.','warn'); return true;} return false; }
+
+  orderSupplies(){ if(this.P.cash<80){this.logEvent('Not enough cash for a purchase order.','warn');return;} if(this.P.delivery){this.logEvent('A delivery is already inbound.','warn');return;} this.P.cash-=80; this.P.delivery={eta:this.P.bus.generating?14:18}; this.logEvent('Purchase order placed ($80). Truck en route — ETA on the dock.','info'); }
+  unload(){ const d=this.P.delivery; if(!d){return;} if(d.eta>0){this.logEvent('Truck still en route — wait for the ETA.','warn');return;} this.P.seed+=30; this.P.water+=50; this.P.feed+=30; this.P.delivery=null; this.logEvent('Delivery unloaded — booked seed, water and feed (manifest RC-'+this.lot()+').','good'); }
+  harvest(){ if(this.needPower())return; const P=this.P; let got=false; if(P.wheatGrow>=1){ P.flourWheat=(P.flourWheat||0); P.wheatRaw=(P.wheatRaw||0)+6; P.wheatGrow=0.05; got=true; } if(P.caneGrow>=1){ P.caneRaw=(P.caneRaw||0)+6; P.caneGrow=0.05; got=true; } if(got) this.logEvent('Harvested fields — wheat & cane to receiving (lots stamped).','good'); else this.logEvent('Fields not mature yet.','warn'); }
+  collect(){ if(this.needPower())return; const P=this.P; if(P.milkBuf<1&&P.eggBuf<1){this.logEvent('Dairy/egg buffers empty.','warn');return;} P.milk+=Math.floor(P.milkBuf); P.eggsReady+=Math.floor(P.eggBuf); this.logEvent('Collected '+Math.floor(P.milkBuf)+' milk, '+Math.floor(P.eggBuf)+' eggs.','good'); P.milkBuf=0; P.eggBuf=0; }
+  buyAnimal(kind){ const cost=kind==='cow'?120:35; if(this.P.cash<cost){this.logEvent('Not enough cash.','warn');return;} this.P.cash-=cost; if(kind==='cow')this.P.cows++; else this.P.hens++; this.logEvent('Pet-store livestock counter: added 1 '+kind+'.','good'); }
+  startJob(type){
+    if(this.needPower())return; const P=this.P;
+    if(P.jobs.find(j=>j.type===type)){this.logEvent('That plant is already running.','warn');return;}
+    if(type==='mill'){ if((P.wheatRaw||0)<3){this.logEvent('Need harvested wheat to mill.','warn');return;} P.wheatRaw-=3; P.jobs.push({type,t:0,dur:9,out:6}); this.logEvent('Flour mill started — clean, temper, sift…','info'); }
+    if(type==='sugar'){ if((P.caneRaw||0)<3){this.logEvent('Need harvested cane to refine.','warn');return;} P.caneRaw-=3; P.jobs.push({type,t:0,dur:10,out:6}); this.logEvent('Sugar house started — diffuse, crystallize…','info'); }
+    if(type==='butter'){ if(P.milk<3){this.logEvent('Need raw milk to churn.','warn');return;} P.milk-=3; P.jobs.push({type,t:0,dur:8,out:5}); this.logEvent('Butter room started — separate, pasteurize, churn…','info'); }
+    if(type==='cocoa'){ if(P.cash<20){this.logEvent('Need $20 for cocoa beans.','warn');return;} P.cash-=20; P.jobs.push({type,t:0,dur:9,out:3}); this.logEvent('Cocoa line started — roast, winnow, press…','info'); }
+  }
+  canStartBatch(){ const P=this.P,d=this.recipeDef(); return P.avail>0 && !P.batch && P.flour>=d.flour && P.sugar>=d.sugar && P.eggsReady>=d.eggs && P.recipeMilk>=d.milk && P.butter>=d.butter && (d.cocoa===0||P.cocoa>=d.cocoa) && P.sanitation>35; }
+  startBatch(){ if(!this.canStartBatch()){ if(this.needPower())return; this.logEvent('Cannot stage kit — missing released ingredients or sanitation low.','warn'); return; } const P=this.P,d=this.recipeDef(); P.flour-=d.flour;P.sugar-=d.sugar;P.eggsReady-=d.eggs;P.recipeMilk-=d.milk;P.butter-=d.butter; if(d.cocoa)P.cocoa-=d.cocoa; P.batch={idx:0,t:0,sg:0.95,core:24,recipe:d,id:'BATCH-'+this.lot()}; this.logEvent('Warehouse kit staged & batch started ('+d.name+', '+d.size+' cakes). Manifest '+P.batch.id+'.','good'); }
+  releaseStep(){ const P=this.P,b=P.batch; if(!b)return; if(this.needPower())return; if(!this.gateOk(b)){ this.logEvent('Release gate not satisfied — wait for the stage to complete.','warn'); return; } const st=this.stages()[b.idx]; if(b.idx>=this.stages().length-1){ const d=b.recipe; const q=(b.sg && Math.abs(b.sg-d.sg)<0.03 && P.sanitation>60)?d.size:Math.max(1,d.size-1); const rej=d.size-q; P.finished+=q; P.rejects+=rej; P.cakesMinted+=q; const quality=Math.round(this.clamp(72+(P.sanitation-60)*0.4+(0.06-Math.abs(b.sg-d.sg))*200,55,99)); for(let i=0;i<q;i++) this.mintCake(quality); P.batch=null; this.logEvent('★ Batch packed — '+q+' cakes (Q'+quality+') to finished goods'+(rej?(' ('+rej+' rejected)'):'')+'. Minted '+q+' signed .cake files — download them below.','good'); } else { this.logEvent('Released: '+st.name+' → '+this.stages()[b.idx+1].name+'.','good'); b.idx++; b.t=0; } }
+  dispatch(o){ const P=this.P; if(P.avail<=0){this.logEvent('No reactor power for cold-chain dispatch.','warn');return;} if(P.finished<o.qty){this.logEvent('Not enough finished cakes for this order.','warn');return;} P.finished-=o.qty; P.cash+=o.reward; P.rep=Math.min(5,P.rep+o.rep); P.ordersFilled=(P.ordersFilled||0)+1; P.orders=P.orders.filter(x=>x!==o); this.logEvent('Dispatched '+o.id+' — '+o.qty+' cakes for $'+o.reward+'. Reputation up.','good'); }
+  feedAI(){ const P=this.P; if(P.finished<1){this.logEvent('No cake to feed — bake one first.','warn');return;} const c=P.cakeFiles.find(x=>!x.eaten); const val=c?(c.value||this.cakeValue(c.quality)):this.cakeValue(80); P.finished--; P.cakesEaten++; if(c){ c.eaten=true; } this.logEvent('Spent 1 cake ($'+val.toFixed(2)+') on an AI agent run (YOLO). Signed .cake validated, charged & burned.','info'); }
+  cip(){ if(this.needPower())return; this.P.sanitation=100; this.logEvent('CIP clean-in-place complete — sanitation restored to 100%.','good'); }
+  reset(){ this.P=this.fresh(); this.log=[]; this.logEvent('Bakery reset.','info'); }
+  // ---- real .cake files (signed, downloadable) ----
+  hash(s){ let h=5381; for(let i=0;i<s.length;i++){ h=((h<<5)+h+s.charCodeAt(i))>>>0; } return 'WF'+h.toString(16); }
+  canonCake(o){ return ['winforge.cake.v1',o.id,o.recipe,o.quality,o.baked,o.expires,o.issuer].join('|'); }
+  mintCake(quality){
+    const now=Date.now();
+    const o={ format:'winforge.cake.v1', id:'CAKE-'+this.lot(), recipe:this.recipeDef().name, quality, baked:now, expires:now+7*864e5, issuer:'WinForge Bakery', origin:'web-sim', eaten:false };
+    o.sig=this.hash(this.canonCake(o)+'WINFORGE-CAKE');
+    o.value=this.cakeValue(quality);
+    this.P.cakeFiles.unshift(o); if(this.P.cakeFiles.length>40) this.P.cakeFiles.pop();
+    return o;
+  }
+  downloadFile(name, text, mime){
+    try{ const blob=new Blob([text],{type:mime||'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(url); a.remove();},800); }
+    catch(e){ this.logEvent('Download blocked by the browser sandbox — open this page on GitHub Pages to save files.','warn'); }
+  }
+  downloadCake(o){ const {eaten,...pub}=o; this.downloadFile(o.id+'.cake', JSON.stringify(pub,null,2)); this.logEvent('Saved '+o.id+'.cake to your device — a real signed file.','good'); }
+  importCake(e){
+    const f=e.target.files&&e.target.files[0]; e.target.value=''; if(!f) return; const r=new FileReader();
+    r.onload=()=>{ try{
+      const o=JSON.parse(r.result);
+      let msg, ok=false;
+      if(o.format!=='winforge.cake.v1') msg='Not a .cake file.';
+      else if(o.sig!==this.hash(this.canonCake(o)+'WINFORGE-CAKE')) msg='Signature invalid — forged or tampered.';
+      else if(o.expires && Date.now()>o.expires) msg='Cake expired.';
+      else { ok=true; msg='Valid — '+o.id+' ('+o.recipe+', Q'+o.quality+') trusted & added to finished goods.'; o.eaten=false; this.P.cakeFiles.unshift(o); this.P.finished+=1; }
+      this.P.lastVal={ok,msg};
+      this.logEvent((ok?'✓ Cake validated: ':'⛔ Cake rejected: ')+msg, ok?'good':'crit');
+    }catch(err){ this.P.lastVal={ok:false,msg:'Unreadable file.'}; this.logEvent('⛔ Cake rejected — unreadable file.','crit'); } this.bump(); };
+    r.readAsText(f);
+  }
+
+  // ---------------- RENDER ----------------
+  renderVals(){ return { view:this.view() }; }
+  mode(){ const P=this.P; if(P.bus.melted)return{t:'REACTOR MELTDOWN — LOCKED',c:'var(--red)'}; if(!P.bus.generating)return{t:'WAITING FOR REACTOR POWER',c:'var(--amber)'}; if(P.avail<0.6)return{t:'BROWN-OUT · reduced power',c:'var(--amber)'}; if(P.batch)return{t:'PRODUCING',c:'var(--green)'}; return{t:'POWERED · idle',c:'var(--green)'}; }
+
+  view(){
+    const h=React.createElement,P=this.P,m=this.mode();
+    return h('div',{style:{maxWidth:1320,margin:'0 auto',padding:'14px clamp(10px,2.5vw,22px) 40px'}},
+      this.header(m),
+      (!P.bus.generating)?this.powerBanner():null,
+      this.missionBar(),
+      h('div',{className:'ck-grid',style:{display:'grid',gridTemplateColumns:'1.5fr 1fr',gap:14,marginTop:14,alignItems:'start'}},
+        h('div',{style:{display:'flex',flexDirection:'column',gap:14,minWidth:0}}, this.scene(), this.bakeryLine(), this.inventory(), this.cakeFilesPanel()),
+        h('div',{style:{display:'flex',flexDirection:'column',gap:14,minWidth:0}}, this.controls(), this.orderBoard(), this.console())),
+      this.state.showGuide?this.guide():null,
+      this.state.confirm?this.confirmModal():null);
+  }
+  confirmModal(){
+    const h=React.createElement, c=this.state.confirm;
+    return h('div',{style:{position:'fixed',inset:0,zIndex:130,background:'rgba(8,6,4,.72)',display:'grid',placeItems:'center',padding:20},onClick:()=>this.setState({confirm:null})},
+      h('div',{onClick:e=>e.stopPropagation(),style:{maxWidth:380,background:'var(--panel)',border:'1px solid var(--line2)',borderRadius:14,padding:'22px 22px 18px',boxShadow:'0 30px 70px -24px #000'}},
+        h('div',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:17,marginBottom:8}},'Confirm reset'),
+        h('p',{style:{color:'var(--muted)',fontSize:14,lineHeight:1.55,margin:'0 0 18px'}},c.msg),
+        h('div',{style:{display:'flex',gap:10,justifyContent:'flex-end'}},
+          h('button',{onClick:()=>this.setState({confirm:null}),className:'ck-btn',style:{background:'var(--panel3)',color:'var(--muted)',border:'1px solid var(--line2)',borderRadius:8,padding:'9px 16px',fontFamily:'var(--disp)',fontWeight:600,fontSize:13}},'Cancel'),
+          h('button',{onClick:()=>{ const f=c.onYes; this.setState({confirm:null}); if(f)f(); },className:'ck-btn',style:{background:'var(--red)',color:'#fff',border:'none',borderRadius:8,padding:'9px 16px',fontFamily:'var(--disp)',fontWeight:700,fontSize:13}},'Reset'))));
+  }
+  panel(title,right,body,accent){
+    const h=React.createElement;
+    return h('div',{style:{background:'var(--panel)',border:'1px solid var(--line)',borderRadius:12,overflow:'hidden'}},
+      h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,padding:'9px 13px',borderBottom:'1px solid var(--line)',background:'var(--panel2)'}},
+        h('span',{style:{fontFamily:'var(--mono)',fontSize:11,letterSpacing:'1.2px',color:accent||'var(--amber)',textTransform:'uppercase'}},title), right||null),
+      h('div',{style:{padding:13}},body));
+  }
+
+  header(m){
+    const h=React.createElement,P=this.P;
+    const spd=(v)=>h('button',{key:v,onClick:this.act(()=>this.setState({speed:v})),className:'ck-btn',style:{background:this.state.speed===v?'var(--amber)':'var(--panel3)',color:this.state.speed===v?'#1c1306':'var(--muted)',border:'none',borderRadius:6,padding:'5px 9px',fontFamily:'var(--mono)',fontSize:11,fontWeight:700}},v+'×');
+    const stat=(label,val,col)=>h('div',{style:{textAlign:'right'}},h('div',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:16,color:col||'var(--text)',lineHeight:1}},val),h('div',{style:{fontFamily:'var(--mono)',fontSize:9,color:'var(--dim)',letterSpacing:'.5px'}},label));
+    return h('div',{style:{display:'flex',alignItems:'center',gap:12,flexWrap:'wrap',background:'var(--panel)',border:'1px solid var(--line)',borderRadius:12,padding:'10px 14px'}},
+      h('div',{style:{display:'flex',alignItems:'center',gap:10,flex:1,minWidth:200}},
+        h('span',{style:{fontSize:24}},'🍰'),
+        h('div',null,
+          h('div',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:16,lineHeight:1}},'Cake Factory & Farm ',h('span',{style:{color:'var(--dim)',fontSize:12,fontWeight:500}},'蛋糕工廠與農場')),
+          h('div',{style:{fontFamily:'var(--mono)',fontSize:11,color:m.c,marginTop:3,display:'flex',alignItems:'center',gap:6}}, h('span',{style:{width:8,height:8,borderRadius:'50%',background:m.c,animation:P.bus.generating?'ck-pulse 2s infinite':'ck-blink .7s infinite'}}), m.t, h('span',{style:{color:'var(--dim)'}},' · T+'+this.fmtT(P.elapsed))))),
+      h('div',{style:{display:'flex',alignItems:'center',gap:7,background:'var(--panel2)',border:'1px solid var(--line)',borderRadius:9,padding:'6px 11px'}},
+        h('span',{style:{fontSize:14,color:P.bus.generating?'var(--blue)':'var(--dim)'}},'☢'),
+        h('div',null,h('div',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:14,color:P.bus.generating?'var(--blue)':'var(--dim)'}},Math.round(P.bus.mw)+' MWe'),h('div',{style:{fontFamily:'var(--mono)',fontSize:8.5,color:'var(--dim)'}},(P.bus.live?'REACTOR BUS':'OFFLINE')))),
+      stat('CASH','$'+Math.round(P.cash),'var(--gold)'), stat('REP','★'.repeat(P.rep)||'—','var(--amber)'), stat('TREASURY','$'+this.treasury().toFixed(0),'var(--cream)'),
+      h('div',{style:{display:'flex',gap:4,alignItems:'center'}}, spd(1),spd(4),spd(16)),
+      h('button',{onClick:this.act(()=>this.setState(s=>({showGuide:!s.showGuide}))),className:'ck-btn',style:{background:'var(--panel3)',color:'var(--muted)',border:'1px solid var(--line2)',borderRadius:7,padding:'7px 11px',fontFamily:'var(--mono)',fontSize:11}},'? GUIDE'),
+      h('button',{onClick:this.act(()=>this.askConfirm('Reset the bakery? Your treasury, orders, ingredients and signed cakes will be cleared.', ()=>this.reset())),className:'ck-btn',style:{background:'var(--panel3)',color:'var(--muted)',border:'1px solid var(--line2)',borderRadius:7,padding:'7px 11px',fontFamily:'var(--mono)',fontSize:11}},'↺'));
+  }
+
+  powerBanner(){
+    const h=React.createElement,P=this.P;
+    return h('div',{style:{display:'flex',gap:13,alignItems:'center',flexWrap:'wrap',background:P.bus.melted?'rgba(223,106,88,.14)':'rgba(232,183,93,.12)',border:'1px solid '+(P.bus.melted?'var(--red)':'var(--amber)'),borderRadius:12,padding:'13px 16px',marginTop:14}},
+      h('span',{style:{fontSize:24}},P.bus.melted?'☢':'⚡'),
+      h('div',{style:{flex:1,minWidth:200}},
+        h('div',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:14,color:P.bus.melted?'var(--red)':'var(--amber)'}}, P.bus.melted?'Reactor in meltdown — powered work locked out':'Waiting for nuclear reactor generation · 等待反應堆供電'),
+        h('div',{style:{fontSize:13,color:'var(--muted)',marginTop:3,lineHeight:1.5}},'The whole plant runs on the reactor bus. Open the reactor and synchronize it to the grid to power the line.')),
+      h('a',{href:'Reactor.dc.html',target:'_blank',rel:'noopener',className:'ck-btn',style:{background:'var(--panel3)',border:'1px solid var(--blue)',color:'var(--blue)',borderRadius:9,padding:'9px 14px',fontFamily:'var(--disp)',fontWeight:600,fontSize:13}},'☢ Open reactor ↗'));
+  }
+
+  // ----- Scene -----
+  scene(){
+    const h=React.createElement,P=this.P,on=P.avail>0;
+    const tile=(emoji,label,sub,col,anim)=>h('div',{style:{background:'var(--panel2)',border:'1px solid var(--line)',borderRadius:10,padding:'10px 8px',textAlign:'center',minWidth:0}},
+      h('div',{style:{fontSize:26,lineHeight:1,animation:anim&&on?anim:'none'}},emoji),
+      h('div',{style:{fontFamily:'var(--disp)',fontWeight:600,fontSize:12,marginTop:5,color:col||'var(--text)'}},label),
+      h('div',{style:{fontFamily:'var(--mono)',fontSize:9.5,color:'var(--dim)',marginTop:1}},sub));
+    const grow=(g)=>g>=1?'ready':Math.round(g*100)+'%';
+    const jobOf=(t)=>P.jobs.find(j=>j.type===t);
+    const jobSub=(t,idle)=>{ const j=jobOf(t); return j?Math.round(j.t/j.dur*100)+'% running':idle; };
+    return this.panel('Farm → Factory → Bakery · 農場到工廠', h('span',{style:{fontFamily:'var(--mono)',fontSize:10,color:on?'var(--green)':'var(--dim)'}}, on?('◉ '+Math.round(P.avail*100)+'% power'):'○ no power'),
+      h('div',{className:'ck-scene',style:{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:8}},
+        tile('🌾','Wheat',grow(P.wheatGrow),'var(--gold)','ck-bob 2.5s ease-in-out infinite'),
+        tile('🎋','Cane',grow(P.caneGrow),'var(--leaf)','ck-bob 2.8s ease-in-out infinite'),
+        tile('🐄','Dairy',Math.floor(P.milkBuf)+' milk · '+P.cows,'var(--cream)','ck-bob 3s ease-in-out infinite'),
+        tile('🐔','Hens',Math.floor(P.eggBuf)+' eggs · '+P.hens,'var(--amber)','ck-bob 2.2s ease-in-out infinite'),
+        tile('⚙️','Mill',jobSub('mill','flour '+P.flour),'var(--muted)',jobOf('mill')?'ck-spin 1.4s linear infinite':null),
+        tile('🏭','Sugar',jobSub('sugar','sugar '+P.sugar),'var(--muted)',null),
+        tile('🧈','Butter',jobSub('butter','butter '+P.butter),'var(--gold)',jobOf('butter')?'ck-spin 1.2s linear infinite':null)),
+      'var(--leaf)');
+  }
+
+  // ----- Bakery line -----
+  bakeryLine(){
+    const h=React.createElement,P=this.P,b=P.batch,stages=this.stages();
+    const d=this.recipeDef();
+    const seg=(st,i)=>{ const active=b&&b.idx===i, done=b&&b.idx>i; const frac=active?this.clamp(b.t/st.dur,0,1):(done?1:0);
+      return h('div',{key:st.key,style:{flex:'1 1 0',minWidth:0,background:active?'var(--panel3)':'var(--panel2)',border:'1px solid '+(active?'var(--amber)':'var(--line)'),borderRadius:9,padding:'9px 7px',opacity:b?(done?.55:1):.8}},
+        h('div',{style:{fontFamily:'var(--mono)',fontSize:9,color:'var(--dim)'}},'0'+(i+1)),
+        h('div',{style:{fontFamily:'var(--disp)',fontWeight:600,fontSize:11.5,lineHeight:1.15,margin:'2px 0 5px',color:active?'var(--amber)':'var(--text)'}},st.name),
+        h('div',{style:{height:5,borderRadius:3,background:'var(--bg)',overflow:'hidden'}},h('div',{style:{height:'100%',width:(frac*100)+'%',background:done?'var(--green)':'var(--amber)',transition:'width .2s'}})),
+        active&&i===1?h('div',{style:{fontFamily:'var(--mono)',fontSize:9.5,marginTop:4,color:b.core>=88?'var(--green)':'var(--red)'}},'core '+Math.round(b.core)+'°C / 88'):null,
+        active&&i===0?h('div',{style:{fontFamily:'var(--mono)',fontSize:9.5,marginTop:4,color:Math.abs(b.sg-d.sg)<0.04?'var(--green)':'var(--amber)'}},'SG '+b.sg.toFixed(2)+'/'+d.sg):null);
+    };
+    const right = b? h('span',{style:{fontFamily:'var(--mono)',fontSize:10,color:'var(--amber)'}}, b.recipe.name+' · '+b.id) : h('span',{style:{fontFamily:'var(--mono)',fontSize:10,color:'var(--dim)'}},'idle');
+    return this.panel('Bakery Line · 烘焙生產線 (HACCP gates)', right,
+      h('div',null,
+        h('div',{style:{display:'flex',gap:6,marginBottom:11}}, stages.map(seg)),
+        h('div',{style:{display:'flex',gap:9,flexWrap:'wrap',alignItems:'center'}},
+          h('button',{onClick:this.act(()=>this.startBatch()),disabled:!this.canStartBatch(),className:'ck-btn',style:{background:'var(--green)',color:'#0c1c08',border:'none',borderRadius:8,padding:'9px 15px',fontFamily:'var(--disp)',fontWeight:700,fontSize:13}}, b?'Batch running…':'Stage kit & start batch'),
+          h('button',{onClick:this.act(()=>this.releaseStep()),disabled:!b||!this.gateOk(b),className:'ck-btn',style:{background:b&&this.gateOk(b)?'var(--amber)':'var(--panel3)',color:b&&this.gateOk(b)?'#1c1306':'var(--dim)',border:'1px solid var(--line2)',borderRadius:8,padding:'9px 15px',fontFamily:'var(--disp)',fontWeight:700,fontSize:13}}, b&&b.idx>=stages.length-1?'Release → pack':'Release step ▸'),
+          h('span',{style:{fontFamily:'var(--mono)',fontSize:11,color:'var(--dim)'}},'recipe needs: '+d.flour+'F '+d.sugar+'S '+d.eggs+'E '+d.milk+'M '+d.butter+'B'+(d.cocoa?' '+d.cocoa+'C':'')))
+      ),'var(--gold)');
+  }
+
+  // ----- Inventory -----
+  inventory(){
+    const h=React.createElement,P=this.P;
+    const cell=(label,val,col,danger)=>h('div',{style:{background:'var(--panel2)',border:'1px solid '+(danger?'var(--red)':'var(--line)'),borderRadius:8,padding:'8px 10px'}},
+      h('div',{style:{fontFamily:'var(--mono)',fontSize:9,color:'var(--dim)',letterSpacing:'.4px'}},label),
+      h('div',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:15,color:danger?'var(--red)':(col||'var(--text)')}},val));
+    return this.panel('Inventory & QA · 庫存與品檢', h('span',{style:{fontFamily:'var(--mono)',fontSize:10,color:P.sanitation<40?'var(--red)':'var(--green)'}},'SANITATION '+Math.round(P.sanitation)+'%'),
+      h('div',{className:'ck-inv',style:{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:7}},
+        cell('SEED',Math.round(P.seed),'var(--leaf)',P.seed<6), cell('WATER',Math.round(P.water),'var(--blue)',P.water<6), cell('FEED',Math.round(P.feed),'var(--gold)',P.feed<6),
+        cell('WHEAT RAW',Math.round(P.wheatRaw||0),'var(--gold)'), cell('FLOUR',P.flour,'var(--cream)'), cell('SUGAR',P.sugar,'var(--cream)'), cell('BUTTER',P.butter,'var(--gold)'),
+        cell('R.MILK',P.recipeMilk,'var(--cream)'), cell('EGGS',P.eggsReady,'var(--amber)'), cell('COCOA',P.cocoa,'var(--choco)'),
+        cell('FINISHED',P.finished,'var(--green)'), cell('REJECTS',P.rejects,'var(--red)',P.rejects>0), cell('MINTED .cake',P.cakesMinted,'var(--cream)'), cell('EATEN',P.cakesEaten,'var(--dim)')),
+      'var(--blue)');
+  }
+
+  // ----- Controls -----
+  controls(){
+    const h=React.createElement,P=this.P,on=P.avail>0;
+    const btn=(label,sub,fn,col,disabled)=>h('button',{onClick:this.act(fn),disabled:disabled,className:'ck-btn',style:{background:'var(--panel3)',border:'1px solid var(--line2)',borderRadius:8,padding:'9px 8px',textAlign:'left',color:'var(--text)'}},
+      h('div',{style:{fontFamily:'var(--disp)',fontWeight:600,fontSize:12.5,color:col||'var(--text)'}},label),
+      h('div',{style:{fontFamily:'var(--mono)',fontSize:9.5,color:'var(--dim)',marginTop:1}},sub));
+    const rec=(v,t)=>h('button',{key:v,onClick:this.act(()=>this.setState({recipe:v})),className:'ck-btn',style:{flex:1,background:this.state.recipe===v?'var(--amber)':'var(--panel3)',color:this.state.recipe===v?'#1c1306':'var(--muted)',border:'1px solid '+(this.state.recipe===v?'var(--amber)':'var(--line2)'),borderRadius:7,padding:'6px 4px',fontFamily:'var(--mono)',fontSize:10.5,fontWeight:700}},t);
+    return this.panel('Operator Controls · 操作控制',null,
+      h('div',null,
+        h('div',{style:{display:'flex',gap:5,marginBottom:9}}, rec('white','WHITE'),rec('pound','POUND'),rec('choc','CHOC')),
+        h('div',{className:'ck-ctrls',style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:7}},
+          btn('Order supplies','$80 · seed/water/feed',()=>this.orderSupplies(),'var(--gold)',!!P.delivery),
+          btn(P.delivery?(P.delivery.eta>0?'Truck en route…':'Unload delivery ▸'):'Unload','dock '+(P.delivery?Math.max(0,Math.ceil(P.delivery.eta))+'s':'—'),()=>this.unload(),'var(--leaf)',!P.delivery),
+          btn('Harvest fields','wheat & cane',()=>this.harvest(),'var(--gold)',!on),
+          btn('Collect milk/eggs','from buffers',()=>this.collect(),'var(--cream)',!on),
+          btn('Mill flour','wheat → flour',()=>this.startJob('mill'),'var(--muted)',!on),
+          btn('Refine sugar','cane → sugar',()=>this.startJob('sugar'),'var(--muted)',!on),
+          btn('Churn butter','milk → butter',()=>this.startJob('butter'),'var(--gold)',!on),
+          btn('Roast cocoa','$20 · beans → cocoa',()=>this.startJob('cocoa'),'var(--choco)',!on),
+          btn('Buy cow','$120',()=>this.buyAnimal('cow'),'var(--cream)'),
+          btn('Buy hen','$35',()=>this.buyAnimal('hen'),'var(--amber)')),
+        h('div',{style:{display:'flex',gap:7,marginTop:9}},
+          h('button',{onClick:this.act(()=>this.cip()),disabled:!on,className:'ck-btn',style:{flex:1,background:'var(--panel3)',border:'1px solid var(--line2)',borderRadius:8,padding:'9px',fontFamily:'var(--mono)',fontSize:11.5,color:'var(--blue)'}},'🧼 CIP clean'),
+          h('button',{onClick:this.act(()=>this.feedAI()),disabled:P.finished<1,className:'ck-btn',style:{flex:1,background:'var(--panel3)',border:'1px solid var(--line2)',borderRadius:8,padding:'9px',fontFamily:'var(--mono)',fontSize:11.5,color:'var(--violet,#9b8cff)'}},'🤖 Feed AI a cake')))
+      ,'var(--green)');
+  }
+
+  // ----- Orders -----
+  orderBoard(){
+    const h=React.createElement,P=this.P;
+    const rows=P.orders.map(o=>{ const left=Math.max(0,o.due-o.t); const urgent=left<15; return h('div',{key:o.id,style:{display:'flex',alignItems:'center',gap:10,padding:'9px 11px',background:'var(--panel2)',border:'1px solid '+(urgent?'var(--red)':'var(--line)'),borderRadius:9}},
+      h('div',{style:{flex:1,minWidth:0}},
+        h('div',{style:{fontFamily:'var(--disp)',fontWeight:600,fontSize:13}}, o.qty+' cakes · ',h('span',{style:{color:'var(--gold)'}},'$'+o.reward)),
+        h('div',{style:{fontFamily:'var(--mono)',fontSize:10,color:urgent?'var(--red)':'var(--dim)'}}, o.id+' · '+Math.ceil(left)+'s left')),
+      h('button',{onClick:this.act(()=>this.dispatch(o)),disabled:P.finished<o.qty||P.avail<=0,className:'ck-btn',style:{background:P.finished>=o.qty&&P.avail>0?'var(--green)':'var(--panel3)',color:P.finished>=o.qty&&P.avail>0?'#0c1c08':'var(--dim)',border:'1px solid var(--line2)',borderRadius:7,padding:'7px 12px',fontFamily:'var(--disp)',fontWeight:700,fontSize:12}},'Dispatch')); });
+    return this.panel('Customer Orders · 客戶訂單', h('span',{style:{fontFamily:'var(--mono)',fontSize:10,color:'var(--dim)'}},P.orders.length+' active'),
+      rows.length?h('div',{style:{display:'flex',flexDirection:'column',gap:7}},rows):h('div',{style:{color:'var(--dim)',fontSize:13,padding:'6px 0'}},'No active orders. New ones arrive over time.'),'var(--amber)');
+  }
+
+  cakeFilesPanel(){
+    const h=React.createElement,P=this.P;
+    const files=P.cakeFiles.slice(0,6);
+    const rows=files.length?files.map(o=>h('div',{key:o.id,style:{display:'flex',alignItems:'center',gap:9,padding:'8px 10px',background:'var(--panel2)',border:'1px solid '+(o.eaten?'var(--line)':'var(--line2)'),borderRadius:8,opacity:o.eaten?.5:1}},
+      h('span',{style:{fontSize:16}},'🍰'),
+      h('div',{style:{flex:1,minWidth:0}},
+        h('div',{style:{fontFamily:'var(--mono)',fontSize:11,color:'var(--cream)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}},o.id+'.cake'),
+        h('div',{style:{fontFamily:'var(--mono)',fontSize:9.5,color:'var(--dim)'}},o.recipe+' · Q'+o.quality+(o.eaten?' · spent':' · signed'))),
+      h('span',{style:{fontFamily:'var(--mono)',fontSize:11,fontWeight:700,color:o.eaten?'var(--dim)':'var(--gold)'}}, o.eaten?'spent':('$'+(o.value||this.cakeValue(o.quality)).toFixed(2))),
+      o.eaten?null:h('button',{onClick:this.act(()=>this.downloadCake(o)),className:'ck-btn',style:{background:'var(--panel3)',border:'1px solid var(--line2)',borderRadius:7,padding:'6px 10px',fontFamily:'var(--mono)',fontSize:10.5,color:'var(--green)'}},'⤓ Save')))
+      :h('div',{style:{color:'var(--dim)',fontSize:13,padding:'4px 0'}},'No cakes baked yet. Pack a batch to mint signed .cake files.');
+    return this.panel('Signed Cake Files · .cake', h('span',{style:{fontFamily:'var(--mono)',fontSize:10,color:'var(--dim)'}},P.cakeFiles.length+' minted'),
+      h('div',null,
+        h('div',{style:{display:'flex',flexDirection:'column',gap:7,marginBottom:11}},rows),
+        h('div',{style:{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}},
+          h('input',{ref:this.cakeInput,type:'file',accept:'.cake,.json',style:{display:'none'},onChange:e=>this.importCake(e)}),
+          h('button',{onClick:this.act(()=>{ if(this.cakeInput.current) this.cakeInput.current.click(); }),className:'ck-btn',style:{background:'var(--panel3)',border:'1px solid var(--line2)',borderRadius:8,padding:'8px 13px',fontFamily:'var(--mono)',fontSize:11.5,color:'var(--cream)'}},'⤒ Import & validate .cake'),
+          P.lastVal?h('span',{style:{fontFamily:'var(--mono)',fontSize:11,color:P.lastVal.ok?'var(--green)':'var(--red)'}}, (P.lastVal.ok?'✓ ':'⛔ ')+P.lastVal.msg):h('span',{style:{fontFamily:'var(--mono)',fontSize:10.5,color:'var(--dim)'}},'Save a .cake, then re-import it here to verify the signature.'))),
+      'var(--cream)');
+  }
+  console(){
+    const h=React.createElement; const kc={info:'var(--muted)',warn:'var(--amber)',crit:'var(--red)',good:'var(--green)'};
+    const rows=this.log.slice(0,40).map(e=>h('div',{key:e.id,style:{display:'flex',gap:8,padding:'4px 0',borderBottom:'1px solid var(--line)',fontFamily:'var(--mono)',fontSize:11,lineHeight:1.35}},
+      h('span',{style:{color:'var(--dim)',flexShrink:0}},e.t), h('span',{style:{color:kc[e.kind]||'var(--muted)'}},e.msg)));
+    return this.panel('Event Log · 事件記錄',h('span',{style:{fontFamily:'var(--mono)',fontSize:10,color:'var(--dim)'}},this.log.length),
+      h('div',{style:{maxHeight:190,overflowY:'auto'}},rows),'var(--leaf)');
+  }
+
+  guide(){
+    const h=React.createElement,P=this.P,d=this.recipeDef();
+    const steps=[
+      ['Get reactor power','Open the reactor and sync to grid. Nothing runs without the bus.', P.bus.generating],
+      ['Keep supplies stocked','Order supplies → wait for the truck → Unload. Water feeds crops; feed feeds animals.', P.water>5&&P.feed>5],
+      ['Harvest & collect','Press Harvest when fields are ready and Collect for milk/eggs.', (P.wheatRaw||0)>0||P.milk>0],
+      ['Run the ingredient factories','Mill flour, refine sugar, churn butter. Each is a timed, powered, QA-released lot.', P.flour>=d.flour&&P.sugar>=d.sugar&&P.butter>=d.butter],
+      ['Stage a kit & start a batch','Once you have the released ingredients, start the bakery line.', !!P.batch||P.finished>0],
+      ['Release each HACCP gate','Mix to target SG, bake past the 88°C kill step, cool, ice, pack. Release only when the gate is green.', P.finished>0],
+      ['Ship orders for cash','Dispatch finished cakes to fill customer orders. Bake extra to feed AI agents.', P.cakesMinted>0],
+    ];
+    let next=steps.findIndex(s=>!s[2]); if(next<0)next=steps.length;
+    return h('div',{style:{position:'fixed',right:'clamp(10px,2vw,22px)',bottom:'clamp(10px,2vw,22px)',width:'min(340px,92vw)',background:'var(--panel)',border:'1px solid var(--line2)',borderRadius:14,boxShadow:'0 24px 60px -20px #000',zIndex:80,overflow:'hidden'}},
+      h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 13px',borderBottom:'1px solid var(--line)',background:'var(--panel2)'}},
+        h('span',{style:{fontFamily:'var(--mono)',fontSize:11,letterSpacing:'1px',color:'var(--amber)'}},'BAKERY CHECKLIST · 操作程序'),
+        h('button',{onClick:this.act(()=>this.setState({showGuide:false})),className:'ck-btn',style:{background:'none',border:'none',color:'var(--dim)',fontSize:16}},'×')),
+      h('div',{style:{padding:'10px 13px',maxHeight:'46vh',overflowY:'auto'}},
+        steps.map((s,i)=>h('div',{key:i,style:{display:'flex',gap:9,padding:'7px 0',opacity:s[2]?.6:(i===next?1:.85)}},
+          h('span',{style:{width:18,height:18,borderRadius:'50%',flexShrink:0,display:'grid',placeItems:'center',fontFamily:'var(--mono)',fontSize:10,fontWeight:700,background:s[2]?'var(--green)':(i===next?'var(--amber)':'var(--panel3)'),color:s[2]||i===next?'#1c1306':'var(--dim)'}}, s[2]?'✓':(i+1)),
+          h('div',null, h('div',{style:{fontFamily:'var(--disp)',fontWeight:600,fontSize:13,color:i===next?'var(--amber)':'var(--text)'}},s[0]), h('div',{style:{fontSize:11.5,color:'var(--muted)',lineHeight:1.4}},s[1]))))));
+  }
+}
+</script>
+</body>
+</html>

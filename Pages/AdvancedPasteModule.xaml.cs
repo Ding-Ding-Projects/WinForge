@@ -26,15 +26,18 @@ public sealed partial class AdvancedPasteModule : Page
     public AdvancedPasteModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => { Render(); BuildLists(); };
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) => { Render(); BuildLists(); SyncFromState(); };
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; _cts?.Cancel(); };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) { Render(); BuildLists(); }
 
     private static string P(string en, string zh) => Loc.I.Pick(en, zh);
 
     private void Render()
     {
-        HeaderTitle.Text = "Advanced Paste · 進階貼上";
+        Header.Title = "Advanced Paste · 進階貼上";
         HeaderBlurb.Text = P(
             "Transform whatever you copied and paste it in a different format. Press the global hotkey anywhere to open a palette near the cursor, pick a transform, and it pastes straight into the active app — or run any transform here on the current clipboard.",
             "把你複製到嘅嘢即時轉換成另一種格式再貼上。喺任何地方撳全域熱鍵，喺滑鼠附近彈出面板，揀一個轉換，就會直接貼落作用中嘅 app — 又或者喺呢度對目前剪貼簿試跑任何轉換。");
@@ -73,14 +76,14 @@ public sealed partial class AdvancedPasteModule : Page
         DefaultCombo.Items.Clear();
         var defaultable = AdvancedPasteService.All.Where(a => !a.RequiresAi).ToList();
         foreach (var a in defaultable)
-            DefaultCombo.Items.Add(new ComboBoxItem { Content = a.Name.Primary + " · " + a.Name.Secondary, Tag = a.Id });
+            DefaultCombo.Items.Add(new ComboBoxItem { Content = a.Name.Display, Tag = a.Id });
         var curDef = AdvancedPasteService.DefaultActionId;
         DefaultCombo.SelectedIndex = Math.Max(0, defaultable.FindIndex(a => a.Id == curDef));
 
         // Try combo (all actions).
         TryCombo.Items.Clear();
         foreach (var a in AdvancedPasteService.All)
-            TryCombo.Items.Add(new ComboBoxItem { Content = a.Name.Primary + " · " + a.Name.Secondary, Tag = a.Id });
+            TryCombo.Items.Add(new ComboBoxItem { Content = a.Name.Display, Tag = a.Id });
         if (TryCombo.SelectedIndex < 0) TryCombo.SelectedIndex = 0;
         TryCombo.SelectionChanged -= Try_Changed;
         TryCombo.SelectionChanged += Try_Changed;
@@ -93,7 +96,7 @@ public sealed partial class AdvancedPasteModule : Page
             var local = a;
             var cb = new CheckBox
             {
-                Content = a.Name.Primary + " · " + a.Name.Secondary + (a.RequiresAi ? "  (AI)" : ""),
+                Content = a.Name.Display + (a.RequiresAi ? "  (AI)" : ""),
                 IsChecked = AdvancedPasteService.IsActionEnabled(a.Id),
                 IsEnabled = !a.RequiresAi || AdvancedPasteService.AiAvailable,
             };

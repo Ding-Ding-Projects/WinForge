@@ -1,0 +1,64 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    反應堆引擎情景測試套件 · Standalone reactor scenario test harness.
+
+    A PURE net8.0 console project that compiles ONLY the genuinely pure C# engine and service
+    source files from the main repo via Compile Include relative links. It has NO WinUI / WinRT
+    dependency, so it runs headless (the main app is WinUI3 and cannot run headless).
+
+    IMPORTANT: this project is deliberately NOT part of WinForge.sln. The solution's project
+    configurations are x64/x86/ARM64 only; this net8.0 console is built and run on its own with
+    the dotnet run command, so the WinUI solution build stays completely untouched.
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>ReactorSim.Tests</AssemblyName>
+    <RootNamespace>ReactorSim.Tests</RootNamespace>
+    <!-- We compile linked sources by hand; don't auto-glob the parent repo. -->
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <Platforms>AnyCPU</Platforms>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- DPAPI (System.Security.Cryptography.ProtectedData) used by FuelFactoryService for the
+         signing-key at-rest. Windows-only, hence net8.0-windows above. -->
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="System.Collections.Generic" />
+
+    <!-- The local test harness sources. -->
+    <Compile Include="Program.cs" />
+
+    <!-- Linked PURE engine / service sources from the main repo (no WinUI types in any of these). -->
+    <Compile Include="..\..\Models\Core.cs"                    Link="Engine\Core.cs" />
+    <Compile Include="..\..\Services\Loc.cs"                   Link="Engine\Loc.cs" />
+    <Compile Include="..\..\Services\ReactorSimService.cs"      Link="Engine\ReactorSimService.cs" />
+    <Compile Include="..\..\Services\ReactorStatusApiService.cs" Link="Engine\ReactorStatusApiService.cs" />
+    <Compile Include="..\..\Services\ReactorRps.cs"             Link="Engine\ReactorRps.cs" />
+    <Compile Include="..\..\Services\ReactorElectrical.cs"      Link="Engine\ReactorElectrical.cs" />
+    <Compile Include="..\..\Services\ReactorReactivityMeter.cs" Link="Engine\ReactorReactivityMeter.cs" />
+    <Compile Include="..\..\Services\ReactorScenarios.cs"       Link="Engine\ReactorScenarios.cs" />
+    <Compile Include="..\..\Services\ReactorElectrical.cs"      Link="Engine\ReactorElectrical.cs" />
+    <Compile Include="..\..\Services\ReactorReactivityMeter.cs" Link="Engine\ReactorReactivityMeter.cs" />
+    <Compile Include="..\..\Services\ReactorDependencyService.cs" Link="Engine\ReactorDependencyService.cs" />
+    <Compile Include="..\..\Services\FuelFactoryService.cs"     Link="Engine\FuelFactoryService.cs" />
+    <Compile Include="..\..\Services\NuclearWasteService.cs"    Link="Engine\NuclearWasteService.cs" />
+    <Compile Include="..\..\Services\WaterTreatmentService.cs"  Link="Engine\WaterTreatmentService.cs" />
+    <Compile Include="..\..\Services\CakeFactoryService.cs"     Link="Engine\CakeFactoryService.cs" />
+    <Compile Include="..\..\Services\CakeFileService.cs"        Link="Engine\CakeFileService.cs" />
+    <Compile Include="..\..\Services\CakeCreditService.cs"      Link="Engine\CakeCreditService.cs" />
+    <Compile Include="..\..\Services\SettingsStore.cs"          Link="Engine\SettingsStore.cs" />
+    <Compile Include="..\..\Services\Loc.cs"                    Link="Engine\Loc.cs" />
+    <Compile Include="..\..\Models\Core.cs"                     Link="Engine\Core.cs" />
+  </ItemGroup>
+
+</Project>

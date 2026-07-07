@@ -111,4 +111,7 @@ public sealed class ChatStreamChunk
     public bool Done { get; set; }
     public int? PromptTokens { get; set; }
     public int? CompletionTokens { get; set; }
+    public bool? CreditSuccess { get; set; }
+    public long? CreditUnits { get; set; }
+    public LocalizedText? CreditMessage { get; set; }
 }

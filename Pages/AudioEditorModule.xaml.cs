@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.UI;
+using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
@@ -19,7 +20,7 @@ using WinForge.Services;
 namespace WinForge.Pages;
 
 /// <summary>
-/// 音訊編輯器（Audacity 風格）· Audacity-style audio editor: open/record a clip, view + select its waveform,
+/// 音訊編輯器 · In-app audio editor: open/record a clip, view + select its waveform,
 /// apply ffmpeg-backed effects (trim/fade/normalize/gain/speed/pitch/noise + ~40 more), mix/concat, and export.
 /// 原生波形繪製 + 內建 MediaPlayer 播放 + ffmpeg 效果引擎。Native waveform render, in-box MediaPlayer playback,
 /// ffmpeg effects engine — no GPL linking, no extra NuGet. All strings bilingual (English · 粵語).
@@ -39,10 +40,14 @@ public sealed partial class AudioEditorModule : Page
     private bool _dragging;
     private double _dragAnchorX;
     private bool _busy;
+    private bool _rowBusy;   // guard so only one effect-row action runs at a time
 
     public AudioEditorModule()
     {
         InitializeComponent();
+        GainSlider.ValueChanged += GainSlider_ValueChanged;
+        SpeedSlider.ValueChanged += SpeedSlider_ValueChanged;
+        PitchSlider.ValueChanged += PitchSlider_ValueChanged;
         Loc.I.LanguageChanged += OnLang;
         AppState.AudioClipChanged += OnClipChanged;
         Loaded += OnLoaded;
@@ -75,7 +80,7 @@ public sealed partial class AudioEditorModule : Page
 
     private async void OnClipChanged(object? sender, EventArgs e)
     {
-        // An effect (from a TweakCard or a button) swapped in a new clip — reload the waveform.
+        // An effect (from an effect row or a transport button) swapped in a new clip — reload the waveform.
         if (DispatcherQueue.HasThreadAccess) await ReloadClipAsync();
         else DispatcherQueue.TryEnqueue(async () => await ReloadClipAsync());
     }
@@ -84,13 +89,13 @@ public sealed partial class AudioEditorModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Audio Editor · 音訊編輯器";
+        Header.Title = "Audio Editor · 音訊編輯器";
         HeaderBlurb.Text = P("Open or record a clip, see and select its waveform, apply effects (trim, fade, normalize, gain, speed, pitch, noise reduction and more) and export — all in-app.",
             "開檔或者錄音、睇同揀波形、套效果（剪裁、淡入淡出、正規化、增益、變速、變調、降噪等等）再匯出 — 全部喺 app 內。");
 
-        ScopeBar.Title = P("Focused editor — not a full Audacity clone", "精簡編輯器 — 唔係完整 Audacity");
-        ScopeBar.Message = P("Effects are destructive and operate on a working copy; use Revert to reload the original. For multitrack, label tracks and plug-ins, launch real Audacity below.",
-            "效果係破壞性嘅，喺工作副本上做；撳「還原」可重載原檔。要多軌、標籤軌或外掛，請喺下面開真正嘅 Audacity。");
+        ScopeBar.Title = P("Focused in-app editor", "精簡 app 內編輯器");
+        ScopeBar.Message = P("Effects are destructive and operate on a working copy; use Revert to reload the original. Advanced multitrack, label-track and plug-in workflows are outside this focused in-app editor.",
+            "效果係破壞性嘅，喺工作副本上做；撳「還原」可重載原檔。進階多軌、標籤軌同外掛流程唔屬於呢個精簡 app 內編輯器。");
 
         SourceLabel.Text = P("Source — open a file or record", "來源 — 開檔或錄音");
         OpenBtn.Content = P("Open audio…", "開啟音訊…");
@@ -139,13 +144,7 @@ public sealed partial class AudioEditorModule : Page
             "每個效果套用喺成段目前嘅 clip，並接喺上一個之後。");
         FxFilter.PlaceholderText = P("Filter effects…", "篩選效果…");
 
-        FallbackLabel.Text = P("Need the full Audacity?", "需要完整 Audacity？");
-        FallbackBlurb.Text = P("For multitrack timelines, spectrograms, label tracks, EQ curves and plug-ins, install or launch the real Audacity.",
-            "要多軌時間軸、頻譜圖、標籤軌、EQ 曲線同外掛，請安裝或開啟真正嘅 Audacity。");
-        LaunchAudacityBtn.Content = P("Launch Audacity", "開啟 Audacity");
-
         UpdateEngineBar();
-        BuildAudacityBar();
     }
 
     private void UpdateEngineBar()
@@ -155,23 +154,17 @@ public sealed partial class AudioEditorModule : Page
             EngineBar.IsOpen = true;
             EngineBar.Severity = InfoBarSeverity.Warning;
             EngineBar.Title = P("ffmpeg not found", "搵唔到 ffmpeg");
-            EngineBar.Message = P("Recording, playback decoding and all effects need ffmpeg. Click to install it automatically (winget) — no restart needed.",
-                "錄音、解碼播放同所有效果都要 ffmpeg。撳一下自動安裝（winget）— 唔使重開。");
-            EngineBar.ActionButton = EngineBars.AutoInstallButton(
-                "Gyan.FFmpeg", "Install ffmpeg automatically", "自動安裝 ffmpeg",
-                async () => { FfmpegAudioService.Rescan(); Render(); await RefreshDevicesAsync(); }, FfmpegAudioService.Rescan);
+            EngineBar.Message = P("Recording, playback decoding and all effects need ffmpeg. Install it automatically (winget) — live progress, no restart needed.",
+                "錄音、解碼播放同所有效果都要 ffmpeg。自動安裝（winget）— 即時進度，唔使重開。");
+            // Rich install control: real progress bar + live bilingual status + % + Cancel + success/error animation.
+            EngineBar.ActionButton = null;
+            if (EngineBar.Content is not InstallProgress)
+                EngineBar.Content = EngineBars.AutoInstallProgress(
+                    "Gyan.FFmpeg", "Install ffmpeg automatically", "自動安裝 ffmpeg",
+                    recheck: async () => { Render(); await RefreshDevicesAsync(); },
+                    rescan: FfmpegAudioService.Rescan);
         }
-        else { EngineBar.IsOpen = false; EngineBar.ActionButton = null; }
-    }
-
-    private Button? _audacityInstaller;
-    private void BuildAudacityBar()
-    {
-        // Re-use the touchless winget install button to fetch Audacity for the advanced fallback.
-        if (_audacityInstaller is not null) AudacityActions.Children.Remove(_audacityInstaller);
-        _audacityInstaller = EngineBars.AutoInstallButton("Audacity.Audacity", "Install Audacity", "安裝 Audacity",
-            () => Task.CompletedTask, null);
-        AudacityActions.Children.Insert(0, _audacityInstaller);
+        else { EngineBar.IsOpen = false; EngineBar.ActionButton = null; EngineBar.Content = null; }
     }
 
     private void UpdateSliderLabels()
@@ -613,39 +606,6 @@ public sealed partial class AudioEditorModule : Page
         else AppState.CurrentAudioClip = path;
     }
 
-    // ===================== Audacity fallback launch =====================
-
-    private void LaunchAudacity_Click(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-            {
-                FileName = "audacity",
-                UseShellExecute = true,
-            });
-        }
-        catch
-        {
-            try
-            {
-                // try common install path / via cmd resolving PATH
-                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = "cmd.exe",
-                    Arguments = "/c start \"\" audacity",
-                    UseShellExecute = true,
-                    CreateNoWindow = true,
-                });
-            }
-            catch (Exception ex)
-            {
-                ShowStatus(TweakResult.Fail("Could not launch Audacity — install it first. " + ex.Message,
-                    "開唔到 Audacity — 請先安裝。" + ex.Message));
-            }
-        }
-    }
-
     // ===================== effects list =====================
 
     private void FxFilter_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
@@ -664,12 +624,348 @@ public sealed partial class AudioEditorModule : Page
             var f = filter.Trim().ToLowerInvariant();
             shown = _fx.Where(t => t.SearchHaystack.Contains(f));
         }
+
+        bool first = true;
         foreach (var op in shown)
         {
-            var card = new TweakCard();
-            card.SetTweak(op);
-            FxPanel.Children.Add(card);
+            if (!first) FxPanel.Children.Add(BuildDivider());
+            first = false;
+            FxPanel.Children.Add(BuildRow(op));
         }
+    }
+
+    // ---- One clean row: bilingual title + description on the left, control on the right ----
+    private FrameworkElement BuildRow(TweakDefinition op)
+    {
+        var grid = new Grid { Padding = new Thickness(0, 12, 0, 12) };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        var text = new StackPanel { Spacing = 2, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 16, 0) };
+
+        text.Children.Add(new TextBlock { Text = op.Title.Primary, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap });
+
+        if (!string.IsNullOrWhiteSpace(op.Title.Secondary))
+            text.Children.Add(new TextBlock
+            {
+                Text = op.Title.Secondary,
+                FontSize = 12,
+                Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+                TextWrapping = TextWrapping.Wrap,
+            });
+
+        if (!string.IsNullOrWhiteSpace(op.Description.Primary))
+            text.Children.Add(new TextBlock
+            {
+                Text = op.Description.Primary,
+                FontSize = 13,
+                Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 2, 0, 0),
+            });
+        if (!string.IsNullOrWhiteSpace(op.Description.Secondary))
+            text.Children.Add(new TextBlock
+            {
+                Text = op.Description.Secondary,
+                FontSize = 12,
+                Foreground = (Brush)Application.Current.Resources["TextFillColorTertiaryBrush"],
+                TextWrapping = TextWrapping.Wrap,
+            });
+
+        Grid.SetColumn(text, 0);
+        grid.Children.Add(text);
+
+        var control = BuildControl(op);
+        control.VerticalAlignment = VerticalAlignment.Center;
+        Grid.SetColumn(control, 1);
+        grid.Children.Add(control);
+
+        return grid;
+    }
+
+    private Border BuildDivider() => new()
+    {
+        Height = 1,
+        Background = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"],
+        Opacity = 0.6,
+    };
+
+    /// <summary>對應每種 Tweak 種類砌一個真控件 · Build the matching WinUI control for the tweak kind.</summary>
+    private FrameworkElement BuildControl(TweakDefinition op) => op.Kind switch
+    {
+        TweakKind.Toggle => BuildToggle(op),
+        TweakKind.Choice => BuildChoice(op),
+        TweakKind.Slider => BuildSlider(op),
+        TweakKind.Number => BuildNumber(op),
+        TweakKind.Info => BuildInfo(op),
+        _ => BuildAction(op), // Action (and any other kind) → button
+    };
+
+    // ---------------- Action → Button awaiting RunAsync ----------------
+    private FrameworkElement BuildAction(TweakDefinition op)
+    {
+        var label = op.ActionLabel?.Get(Loc.I.Language) ?? P("Run", "執行");
+        var btn = new Button { Content = label, MinWidth = 110 };
+        if (op.ActionLabel is not null)
+            ToolTipService.SetToolTip(btn, $"{op.ActionLabel.En} · {op.ActionLabel.Zh}");
+
+        btn.Click += async (_, _) =>
+        {
+            if (_rowBusy || op.RunAsync is null) return;
+            if (op.Destructive && !await ConfirmAsync(op)) return;
+
+            _rowBusy = true;
+            btn.IsEnabled = false;
+            var restore = btn.Content;
+            btn.Content = new ProgressRing { IsActive = true, Width = 18, Height = 18 };
+            StopPlayback();
+            try
+            {
+                var result = await op.RunAsync(System.Threading.CancellationToken.None);
+                ShowResult(op, result);   // effect's RunAsync swaps AppState.CurrentAudioClip → reloads waveform
+            }
+            catch (Exception ex)
+            {
+                ShowError(op, ex);
+            }
+            finally
+            {
+                btn.Content = restore;
+                btn.IsEnabled = true;
+                _rowBusy = false;
+            }
+        };
+        return btn;
+    }
+
+    // ---------------- Toggle → ToggleSwitch ----------------
+    private FrameworkElement BuildToggle(TweakDefinition op)
+    {
+        var toggle = new ToggleSwitch { OnContent = "On · 開", OffContent = "Off · 熄" };
+        bool suppress = true;
+        try { toggle.IsOn = op.GetIsOn?.Invoke() ?? false; } catch { /* show as off */ }
+        suppress = false;
+
+        toggle.Toggled += (_, _) =>
+        {
+            if (suppress || op.SetIsOn is null) return;
+            try { op.SetIsOn(toggle.IsOn); ShowApplied(op); }
+            catch (Exception ex)
+            {
+                suppress = true;
+                try { toggle.IsOn = op.GetIsOn?.Invoke() ?? false; } catch { /* ignore */ }
+                suppress = false;
+                ShowError(op, ex);
+            }
+        };
+        return toggle;
+    }
+
+    // ---------------- Choice → ComboBox ----------------
+    private FrameworkElement BuildChoice(TweakDefinition op)
+    {
+        var combo = new ComboBox { MinWidth = 170 };
+        if (op.Choices is not null)
+            foreach (var c in op.Choices)
+                combo.Items.Add(new ComboBoxItem { Content = c.Label.Get(Loc.I.Language), Tag = c.Value });
+
+        bool suppress = true;
+        try
+        {
+            var cur = op.GetCurrentChoice?.Invoke();
+            if (cur is not null && op.Choices is not null)
+                for (int i = 0; i < op.Choices.Count; i++)
+                    if (string.Equals(op.Choices[i].Value, cur, StringComparison.OrdinalIgnoreCase))
+                    { combo.SelectedIndex = i; break; }
+        }
+        catch { /* leave unselected */ }
+        suppress = false;
+
+        combo.SelectionChanged += (_, _) =>
+        {
+            if (suppress || op.SetChoice is null) return;
+            if (combo.SelectedItem is ComboBoxItem item && item.Tag is string val)
+            {
+                try { op.SetChoice(val); ShowApplied(op); }
+                catch (Exception ex)
+                {
+                    ShowError(op, ex);
+                    suppress = true;
+                    try
+                    {
+                        var cur = op.GetCurrentChoice?.Invoke();
+                        if (cur is not null && op.Choices is not null)
+                            for (int i = 0; i < op.Choices.Count; i++)
+                                if (string.Equals(op.Choices[i].Value, cur, StringComparison.OrdinalIgnoreCase))
+                                { combo.SelectedIndex = i; break; }
+                    }
+                    catch { /* ignore */ }
+                    suppress = false;
+                }
+            }
+        };
+        return combo;
+    }
+
+    // ---------------- Slider → Slider + value label ----------------
+    private FrameworkElement BuildSlider(TweakDefinition op)
+    {
+        string Format(double v)
+        {
+            bool whole = op.Step >= 1 && Math.Abs(op.Step % 1) < 1e-9;
+            string num = whole ? Math.Round(v).ToString(System.Globalization.CultureInfo.InvariantCulture)
+                               : v.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
+            return op.Unit is null ? num : $"{num} {op.Unit.Primary}";
+        }
+        double Clamp(double v) => Math.Max(op.Min, Math.Min(op.Max, v));
+
+        var panel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, VerticalAlignment = VerticalAlignment.Center };
+        var slider = new Slider { Minimum = op.Min, Maximum = op.Max, StepFrequency = op.Step > 0 ? op.Step : 1, Width = 160, VerticalAlignment = VerticalAlignment.Center };
+        var valueText = new TextBlock
+        {
+            MinWidth = 56,
+            VerticalAlignment = VerticalAlignment.Center,
+            Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+        };
+
+        bool suppress = true;
+        try { slider.Value = Clamp(op.GetNumber?.Invoke() ?? op.Min); } catch { slider.Value = op.Min; }
+        suppress = false;
+        valueText.Text = Format(slider.Value);
+
+        slider.ValueChanged += (_, e) =>
+        {
+            valueText.Text = Format(e.NewValue);
+            if (suppress || op.SetNumber is null) return;
+            try { op.SetNumber(e.NewValue); ShowApplied(op); }
+            catch (Exception ex)
+            {
+                ShowError(op, ex);
+                suppress = true;
+                try { slider.Value = Clamp(op.GetNumber?.Invoke() ?? op.Min); } catch { /* ignore */ }
+                valueText.Text = Format(slider.Value);
+                suppress = false;
+            }
+        };
+        panel.Children.Add(slider);
+        panel.Children.Add(valueText);
+        return panel;
+    }
+
+    // ---------------- Number → NumberBox ----------------
+    private FrameworkElement BuildNumber(TweakDefinition op)
+    {
+        double Clamp(double v) => Math.Max(op.Min, Math.Min(op.Max, v));
+        var box = new NumberBox
+        {
+            Minimum = op.Min,
+            Maximum = op.Max,
+            SmallChange = op.Step > 0 ? op.Step : 1,
+            LargeChange = op.Step > 0 ? op.Step : 1,
+            SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Inline,
+            MinWidth = 140,
+            ValidationMode = NumberBoxValidationMode.InvalidInputOverwritten,
+        };
+        bool suppress = true;
+        try { box.Value = Clamp(op.GetNumber?.Invoke() ?? op.Min); } catch { box.Value = op.Min; }
+        suppress = false;
+
+        box.ValueChanged += (_, e) =>
+        {
+            if (suppress || op.SetNumber is null || double.IsNaN(e.NewValue)) return;
+            try { op.SetNumber(e.NewValue); ShowApplied(op); }
+            catch (Exception ex)
+            {
+                ShowError(op, ex);
+                suppress = true;
+                try { box.Value = Clamp(op.GetNumber?.Invoke() ?? op.Min); } catch { /* ignore */ }
+                suppress = false;
+            }
+        };
+        return box;
+    }
+
+    // ---------------- Info → refreshable TextBlock ----------------
+    private FrameworkElement BuildInfo(TweakDefinition op)
+    {
+        string Safe() { try { return op.GetInfo?.Invoke() ?? "—"; } catch { return "—"; } }
+
+        var panel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, VerticalAlignment = VerticalAlignment.Center };
+        var info = new TextBlock
+        {
+            Text = Safe(),
+            IsTextSelectionEnabled = true,
+            TextWrapping = TextWrapping.Wrap,
+            MaxWidth = 300,
+            HorizontalTextAlignment = TextAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        var refresh = new Button { Content = new FontIcon { Glyph = "", FontSize = 14 }, Padding = new Thickness(8) };
+        ToolTipService.SetToolTip(refresh, "Refresh · 重新整理");
+        refresh.Click += (_, _) => info.Text = Safe();
+        panel.Children.Add(info);
+        panel.Children.Add(refresh);
+        return panel;
+    }
+
+    // ---------------- Confirmation for destructive actions ----------------
+    private async Task<bool> ConfirmAsync(TweakDefinition op)
+    {
+        var dlg = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = P("Are you sure?", "確定嗎？"),
+            Content = $"{op.Title.En}\n{op.Title.Zh}\n\n" +
+                      "This action may be hard to undo.\n呢個動作可能難以復原。",
+            PrimaryButtonText = P("Proceed", "繼續"),
+            CloseButtonText = P("Cancel", "取消"),
+            DefaultButton = ContentDialogButton.Close,
+        };
+        try { return await dlg.ShowAsync() == ContentDialogResult.Primary; }
+        catch { return false; }
+    }
+
+    // ---------------- Shared result / status (persistent InfoBar) ----------------
+    private void ShowResult(TweakDefinition op, TweakResult result)
+    {
+        FxResultBar.Severity = result.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error;
+        FxResultBar.Title = result.Success ? P("Done", "完成") : P("Failed", "失敗");
+        FxResultBar.Message = result.Message is null ? string.Empty : result.Message.Get(Loc.I.Language);
+        FxResultBar.IsOpen = true;
+
+        // Mirror any raw output into the existing monospace status pane.
+        if (!string.IsNullOrWhiteSpace(result.Output))
+        {
+            StatusBorder.Visibility = Visibility.Visible;
+            var body = result.Output!;
+            StatusText.Text = body.Length > 4000 ? body[^4000..] : body;
+        }
+    }
+
+    private void ShowApplied(TweakDefinition op)
+    {
+        string en = "Applied.", zh = "已套用。";
+        switch (op.Restart)
+        {
+            case RestartScope.Explorer: en = "Applied. Restart Explorer to see the change."; zh = "已套用。重啟檔案總管就睇到變化。"; break;
+            case RestartScope.SignOut: en = "Applied. Sign out and back in to take effect."; zh = "已套用。登出再登入後生效。"; break;
+            case RestartScope.Reboot: en = "Applied. Reboot to take effect."; zh = "已套用。重新開機後生效。"; break;
+        }
+        FxResultBar.Severity = InfoBarSeverity.Success;
+        FxResultBar.Title = P("Done", "完成");
+        FxResultBar.Message = P(en, zh);
+        FxResultBar.IsOpen = true;
+    }
+
+    private void ShowError(TweakDefinition op, Exception ex)
+    {
+        bool needAdmin = op.RequiresAdmin && !AdminHelper.IsElevated;
+        FxResultBar.Severity = InfoBarSeverity.Error;
+        FxResultBar.Title = P("Failed", "失敗");
+        FxResultBar.Message = needAdmin
+            ? P("This change needs administrator rights.", "呢項更改需要管理員權限。")
+            : ex.Message;
+        FxResultBar.IsOpen = true;
     }
 
     // ===================== status =====================

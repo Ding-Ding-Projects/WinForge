@@ -31,7 +31,7 @@ public sealed partial class ConfigBackupModule : Page
     public ConfigBackupModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         _syncTimer.Tick += async (_, _) => await OnTimerTick();
         Loaded += async (_, _) =>
         {
@@ -40,14 +40,16 @@ public sealed partial class ConfigBackupModule : Page
             await RefreshScheduleStatus();
             await LoadAutoSyncState();
         };
-        Unloaded += (_, _) => _syncTimer.Stop();
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; _syncTimer.Stop(); };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
     private void Render()
     {
-        HeaderTitle.Text = "Config & Backup · 設定與備份";
+        Header.Title = "Config & Backup · 設定與備份";
         HeaderBlurb.Text = P(
             "Snapshot, back up and restore your whole WinForge configuration — all in-app.",
             "影快照、備份同還原成個 WinForge 設定 — 全程喺 app 內。");
@@ -428,15 +430,18 @@ public sealed partial class ConfigBackupModule : Page
                 GitMissingBar.Message = P("Auto-sync needs the git CLI on PATH. Install it to enable scheduling.",
                     "自動同步需要 PATH 上有 git CLI。安裝後即可排程。");
                 GitMissingBar.IsOpen = true;
-                // Offer a one-click winget install that re-checks afterwards.
-                GitMissingBar.ActionButton = EngineBars.AutoInstallButton(
+                // Rich auto-install: real progress bar + live bilingual status + Cancel + success/error
+                // animation, hosted in the bar Content so winget's real output/exit code is surfaced.
+                GitMissingBar.ActionButton = null;
+                GitMissingBar.Content = EngineBars.AutoInstallProgress(
                     "Git.Git", "Install Git", "安裝 Git",
-                    async () => { GitMissingBar.IsOpen = false; await LoadAutoSyncState(); });
+                    recheck: async () => { GitMissingBar.IsOpen = false; await LoadAutoSyncState(); });
             }
             else
             {
                 GitMissingBar.IsOpen = false;
                 GitMissingBar.ActionButton = null;
+                GitMissingBar.Content = null;
             }
             bool controlsEnabled = gitOk;
             AutoSyncToggle.IsEnabled = controlsEnabled;

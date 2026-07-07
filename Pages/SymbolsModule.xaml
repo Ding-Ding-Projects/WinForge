@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.SymbolsModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid Padding="24,16,24,24" RowSpacing="14">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Spacing="6">
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE8D2;" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+        </StackPanel>
+
+        <Grid Grid.Row="1" ColumnSpacing="10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <ComboBox x:Name="CategoryBox" Grid.Column="0" MinWidth="180" SelectionChanged="Category_Changed" />
+            <TextBox x:Name="SearchBox" Grid.Column="1" TextChanged="Search_Changed" />
+            <TextBlock x:Name="StatusText" Grid.Column="2" VerticalAlignment="Center"
+                       FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+        </Grid>
+
+        <Border Grid.Row="2" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+            <ListView x:Name="SymbolList" SelectionMode="Single" SelectionChanged="Symbol_Selected"
+                      IsItemClickEnabled="True" ItemClick="Symbol_Clicked" Padding="6">
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <Grid ColumnSpacing="14" Padding="4,6,4,6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="52" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="{Binding Symbol}" FontSize="24"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center"
+                                       TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </Grid>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+        </Border>
+    </Grid>
+</Page>

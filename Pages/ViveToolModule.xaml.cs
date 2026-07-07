@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using WinForge.Controls;
 using WinForge.Models;
 using WinForge.Services;
 
@@ -24,15 +25,18 @@ public sealed partial class ViveToolModule : Page
     public ViveToolModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += async (_, _) => { Render(); await DetectAndLoad(); };
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
     private void Render()
     {
-        HeaderTitle.Text = "ViVeTool · 功能旗標";
+        Header.Title = "ViVeTool · 功能旗標";
         FilterBox.PlaceholderText = P("Filter by name or id…", "用名或 ID 篩選…");
         RefreshBtn.Content = P("Refresh", "重新整理");
         MoreText.Text = P("More", "更多");
@@ -58,8 +62,16 @@ public sealed partial class ViveToolModule : Page
         {
             InstallBar.Title = P("ViVeTool not found", "搵唔到 ViVeTool");
             InstallBar.Message = P(
-                "ViVeTool.exe is required to manage feature flags. Install it (thebookisclosed.ViVeTool), then Refresh.",
-                "管理功能旗標需要 ViVeTool.exe。請安裝（thebookisclosed.ViVeTool），然後重新整理。");
+                "ViVeTool.exe is required to manage feature flags. Install it below (winget · live progress), then it auto-refreshes.",
+                "管理功能旗標需要 ViVeTool.exe。喺下面安裝（winget · 即時進度），完成後會自動重新整理。");
+            // Hide the plain XAML action button and mount the rich progress control instead.
+            InstallBtn.Visibility = Visibility.Collapsed;
+            InstallBar.ActionButton = null;
+            if (InstallBar.Content is not InstallProgress)
+                InstallBar.Content = EngineBars.AutoInstallProgress(
+                    "thebookisclosed.ViVeTool", "Install via winget", "用 winget 安裝",
+                    recheck: DetectAndLoad,
+                    rescan: () => ViveToolService.Rescan());
             InstallBar.IsOpen = true;
             SetEnabled(false);
             CountText.Text = "";
@@ -69,6 +81,7 @@ public sealed partial class ViveToolModule : Page
             return;
         }
         InstallBar.IsOpen = false;
+        InstallBar.Content = null;
         SetEnabled(true);
         await Reload();
     }

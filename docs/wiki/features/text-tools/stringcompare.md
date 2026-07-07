@@ -1,0 +1,25 @@
+# String Compare · 字串相似度
+
+**EN —** Feature reference generated from the WinForge module registry, navigation map, and page XAML.
+**粵語 —** 呢份功能參考由 WinForge 模組登記、導覽地圖同頁面 XAML 生成。
+
+| Field · 欄位 | Value · 值 |
+|---|---|
+| Tag · 標籤 | <code>module.stringcompare</code> |
+| Deep-link alias · 深層連結別名 | <code>stringcompare</code> |
+| Category · 分類 | Text Tools · 文字工具 |
+| Page class · 頁面類別 | <code>StringCompareModule</code> |
+| Page XAML · 頁面 XAML | <code>Pages/StringCompareModule.xaml</code> |
+| Button docs · 按鈕文件 | 1 |
+
+## What It Covers · 功能範圍
+
+**EN —** String Compare is registered in WinForge search and navigation with these keywords: <code>string compare similarity levenshtein edit distance damerau hamming jaro winkler substring subsequence diff text 字串 相似度 比較 編輯距離 差異 文字</code>.
+
+**粵語 —** 字串相似度 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>string compare similarity levenshtein edit distance damerau hamming jaro winkler substring subsequence diff text 字串 相似度 比較 編輯距離 差異 文字</code>。
+
+## Buttons And Controls · 按鈕與控制項
+
+| Button · 按鈕 | Type · 類型 | XAML name · 名稱 | Handler · 處理函式 |
+|---|---|---|---|
+| [CopyButton](../../buttons/text-tools/stringcompare/001-copybutton.md) | `Button` | `CopyButton` | `Copy_Click` |

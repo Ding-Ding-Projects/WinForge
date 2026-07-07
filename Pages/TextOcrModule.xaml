@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.TextOcrModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid Style="{StaticResource WinForgePageGridStyle}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Spacing="6">
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE8C1;" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+            <InfoBar x:Name="EngineBar" IsClosable="False" IsOpen="False" Severity="Warning" />
+        </StackPanel>
+
+        <!-- Toolbar -->
+        <Grid Grid.Row="1" ColumnSpacing="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <Button x:Name="CaptureBtn" Grid.Column="0" Click="Capture_Click" Style="{StaticResource AccentButtonStyle}">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <FontIcon FontSize="14" Glyph="&#xE7B3;" />
+                    <TextBlock x:Name="CaptureLbl" />
+                </StackPanel>
+            </Button>
+            <Button x:Name="FileBtn" Grid.Column="1" Click="File_Click">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <FontIcon FontSize="14" Glyph="&#xEB9F;" />
+                    <TextBlock x:Name="FileLbl" />
+                </StackPanel>
+            </Button>
+
+            <StackPanel Grid.Column="3" Orientation="Vertical" VerticalAlignment="Bottom">
+                <TextBlock x:Name="LangLbl" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="2,0,0,2" />
+                <ComboBox x:Name="LangBox" MinWidth="200" />
+            </StackPanel>
+            <ProgressRing x:Name="Busy" Grid.Column="4" IsActive="False" Width="22" Height="22" VerticalAlignment="Bottom" Margin="4,0,0,6" />
+        </Grid>
+
+        <InfoBar x:Name="StatusBar" Grid.Row="2" IsClosable="True" IsOpen="False" />
+
+        <!-- Body: result + history -->
+        <Grid Grid.Row="3" ColumnSpacing="12" Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*" />
+                <ColumnDefinition Width="*" MinWidth="220" MaxWidth="360" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Recognised text -->
+            <Border Grid.Column="0" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Padding="12,8,12,8" ColumnSpacing="8" Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="ResultHeader" VerticalAlignment="Center" FontWeight="SemiBold" />
+                        <Button x:Name="CopyBtn" Grid.Column="1" Click="Copy_Click">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon FontSize="14" Glyph="&#xE8C8;" />
+                                <TextBlock x:Name="CopyLbl" />
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="ClearBtn" Grid.Column="2" Click="Clear_Click">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon FontSize="14" Glyph="&#xE74D;" />
+                                <TextBlock x:Name="ClearLbl" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+
+                    <TextBox x:Name="ResultBox" Grid.Row="1" Margin="12"
+                             AcceptsReturn="True" TextWrapping="Wrap"
+                             IsSpellCheckEnabled="False"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                             FontFamily="Consolas"
+                             PlaceholderText="" />
+
+                    <TextBlock x:Name="StatsText" Grid.Row="2" Margin="12,0,12,10" FontSize="12"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </Grid>
+            </Border>
+
+            <!-- History -->
+            <Border Grid.Column="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Padding="12,8,12,8" ColumnSpacing="8" Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="HistoryHeader" VerticalAlignment="Center" FontWeight="SemiBold" />
+                        <Button x:Name="HistoryClearBtn" Grid.Column="1" Click="HistoryClear_Click">
+                            <FontIcon FontSize="13" Glyph="&#xE74D;" />
+                        </Button>
+                    </Grid>
+
+                    <ListView x:Name="HistoryList" Grid.Row="1" SelectionMode="Single"
+                              SelectionChanged="History_SelectionChanged">
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="ListViewItem">
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                <Setter Property="Padding" Value="12,8,12,8" />
+                            </Style>
+                        </ListView.ItemContainerStyle>
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Spacing="2">
+                                    <TextBlock Text="{Binding Preview}" TextTrimming="CharacterEllipsis" MaxLines="2" TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding Meta}" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+
+                    <StackPanel x:Name="HistoryEmpty" Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8">
+                        <FontIcon FontSize="32" Glyph="&#xE823;" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock x:Name="HistoryEmptyText" Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" MaxWidth="200" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</Page>

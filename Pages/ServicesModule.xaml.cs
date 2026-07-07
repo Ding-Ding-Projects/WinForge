@@ -21,15 +21,18 @@ public sealed partial class ServicesModule : Page
     public ServicesModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += async (_, _) => { Render(); await Reload(); };
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
     private void Render()
     {
-        HeaderTitle.Text = "Services · 服務";
+        Header.Title = "Services · 服務";
         FilterBox.PlaceholderText = P("Filter services…", "篩選服務…");
         RefreshBtn.Content = P("Refresh", "重新整理");
         if (!AdminHelper.IsElevated)

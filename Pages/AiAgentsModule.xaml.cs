@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -6,6 +7,7 @@ using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Windows.ApplicationModel.DataTransfer;
 using WinForge.Services;
 
 namespace WinForge.Pages;
@@ -16,12 +18,17 @@ namespace WinForge.Pages;
 /// </summary>
 public sealed partial class AiAgentsModule : Page
 {
+    private readonly CakeFileService _cakeFiles = new();
+
     public AiAgentsModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => { Render(); _ = BuildCards(); };
-        Loaded += async (_, _) => { Render(); WorkDirBox.Text = DefaultWorkDir(); await CheckNode(); await BuildCards(); };
+        Loc.I.LanguageChanged += OnLanguageChanged;
+        Loaded += async (_, _) => { Render(); WorkDirBox.Text = DisplayPath(DefaultWorkDir()); await CheckNode(); await BuildCards(); };
+        Unloaded += (_, _) => Loc.I.LanguageChanged -= OnLanguageChanged;
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) { Render(); _ = BuildCards(); }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
@@ -30,34 +37,70 @@ public sealed partial class AiAgentsModule : Page
         try { return Environment.GetFolderPath(Environment.SpecialFolder.UserProfile); } catch { return ""; }
     }
 
+    private static string DisplayPath(string path)
+    {
+        try
+        {
+            var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile).TrimEnd('\\');
+            if (!string.IsNullOrWhiteSpace(home) &&
+                path.StartsWith(home, StringComparison.OrdinalIgnoreCase))
+                return "%USERPROFILE%" + path[home.Length..];
+        }
+        catch { }
+        return path;
+    }
+
+    private static string ExpandDisplayPath(string path)
+    {
+        if (path.StartsWith("%USERPROFILE%", StringComparison.OrdinalIgnoreCase))
+        {
+            var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile).TrimEnd('\\');
+            return home + path["%USERPROFILE%".Length..];
+        }
+        return Environment.ExpandEnvironmentVariables(path);
+    }
+
     private void Render()
     {
-        HeaderTitle.Text = "AI Agents · AI 代理";
+        Header.Title = "AI Agents · AI 代理";
         HeaderBlurb.Text = P(
             "Install, configure and launch terminal AI coding agents — one click each. Most install via npm (Node.js); some via an official installer.",
             "一鍵安裝、設定同啟動終端機 AI 編程代理。大部分用 npm（Node.js）安裝，部分用官方安裝器。");
+        CreditTitle.Text = P("Cake generation credits", "蛋糕生成額度");
+        CreditRuleText.Text = P(
+            "AI Agents, Communication AI and Ollama share this wallet. 1 packed cake deposits 1,000,000 generated units; in-app generations spend credits on usage.",
+            "AI 代理、通訊 AI 同 Ollama 共用呢個錢包。1 個已包裝蛋糕會存入 1,000,000 個生成單位；App 內生成會按用量扣額。");
+        FeedCreditBtn.Content = P("Feed cake", "餵蛋糕");
+        YoloTitle.Text = P("Cake-gated YOLO mode", "蛋糕閘門 YOLO 模式");
+        YoloText.Text = P(
+            "Consumes one packed cake, backs up known agent config files, then writes best-effort permissive local settings for Claude Code, Codex, opencode, Pi and other configured agents.",
+            "會消耗一個已包裝蛋糕、備份已知 agent 設定檔，然後為 Claude Code、Codex、opencode、Pi 同其他已設定 agent 寫入盡量寬鬆嘅本機設定。");
+        YoloBtn.Content = P("Feed chocolate cake + enable", "餵朱古力蛋糕 + 啟用");
         WorkDirLabel.Text = P("Launch in folder", "啟動目錄");
         WorkDirBtn.Content = P("Browse…", "瀏覽…");
+        RefreshCreditStatus();
     }
 
     private async Task CheckNode()
     {
         bool node = await AiAgentService.NodeAvailableAsync();
-        if (node) { NodeBar.IsOpen = false; NodeBar.ActionButton = null; return; }
+        if (node) { NodeBar.IsOpen = false; NodeBar.Content = null; return; }
         NodeBar.IsOpen = true;
         NodeBar.Severity = InfoBarSeverity.Warning;
         NodeBar.Title = P("Node.js not found", "搵唔到 Node.js");
         NodeBar.Message = P("npm-based agents (Claude, Codex, opencode, Pi, OpenClaw) need Node.js. Install it once, then install any agent.",
             "用 npm 嘅代理（Claude、Codex、opencode、Pi、OpenClaw）需要 Node.js。裝一次之後就可以裝任何代理。");
-        NodeBar.ActionButton = EngineBars.AutoInstallButton(
+        // Rich install control: real progress bar + live status + Cancel + success/error animation.
+        NodeBar.ActionButton = null;
+        NodeBar.Content = EngineBars.AutoInstallProgress(
             "OpenJS.NodeJS.LTS", "Install Node.js automatically", "自動安裝 Node.js",
-            async () => { await CheckNode(); }, null);
+            recheck: async () => { await CheckNode(); await BuildCards(); });
     }
 
     private async void WorkDir_Click(object sender, RoutedEventArgs e)
     {
         var folder = await FileDialogs.OpenFolderAsync();
-        if (folder is not null) WorkDirBox.Text = folder;
+        if (folder is not null) WorkDirBox.Text = DisplayPath(folder);
     }
 
     private async Task BuildCards()
@@ -110,34 +153,49 @@ public sealed partial class AiAgentsModule : Page
         var launch = new Button { Content = P("Launch", "啟動"), IsEnabled = installed };
         launch.Click += (_, _) =>
         {
-            var dir = string.IsNullOrWhiteSpace(WorkDirBox.Text) ? null : WorkDirBox.Text;
+            if (!EnsureLaunchCredits(agent))
+                return;
+
+            var dir = string.IsNullOrWhiteSpace(WorkDirBox.Text) ? null : ExpandDisplayPath(WorkDirBox.Text);
             var r = AiAgentService.Launch(agent, dir);
             ShowResult(r.Success, r);
+            RefreshCreditStatus();
         };
         actions.Children.Add(launch);
 
+        var docs = new Button { Content = P("Copy docs URL", "複製文件網址") };
+        docs.Click += (_, _) => CopyText(agent.DocsUrl);
+        actions.Children.Add(docs);
+        panel.Children.Add(actions);
+
+        // Rich install controls — one per install method — each with a real progress bar, live
+        // bilingual streaming status, percentage, Cancel and a flashy success/error animation.
+        // 每個安裝方法一個豐富安裝控件：真進度條 + 即時雙語串流狀態 + Cancel + 成功／失敗動畫。
+        var installRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
         foreach (var method in agent.InstallMethods)
         {
             var m = method;
-            var btn = new Button { Content = $"{P("Install", "安裝")} ({m.Label})" };
-            btn.Click += async (_, _) =>
-            {
-                btn.IsEnabled = false; var lbl = btn.Content; btn.Content = P("Installing…", "安裝緊…");
-                try
+            var install = Controls.InstallProgress.Create(
+                $"Install ({m.Label})",
+                $"安裝（{m.Label}）",
+                async (progress, ct) =>
                 {
-                    var r = await m.Run(CancellationToken.None);
-                    ShowResult(r.Success, r);
-                    if (r.Success) await BuildCards();
-                }
-                catch (Exception ex) { ResultBar.IsOpen = true; ResultBar.Severity = InfoBarSeverity.Error; ResultBar.Title = P("Failed", "失敗"); ResultBar.Message = ex.Message; }
-                finally { btn.Content = lbl; btn.IsEnabled = true; }
-            };
-            actions.Children.Add(btn);
+                    var onLine = new Progress<string>(l => progress.Report(Controls.InstallProgressReport.FromLine(l)));
+                    progress.Report(Controls.InstallProgressReport.Status(
+                        $"Installing {agent.NameEn} via {m.Label}…", $"用 {m.Label} 安裝 {agent.NameZh}…"));
+                    Models.TweakResult r;
+                    try { r = await m.RunStreamingOrPlain(onLine, ct); }
+                    catch (Exception ex) { r = Models.TweakResult.Fail(ex.Message, $"出錯：{ex.Message}"); }
+                    if (r.Success)
+                    {
+                        try { PackageService.RefreshProcessPath(); } catch { }
+                        await BuildCards();
+                    }
+                    return r;
+                });
+            installRow.Children.Add(install);
         }
-
-        var docs = new HyperlinkButton { Content = P("Docs", "文件"), NavigateUri = SafeUri(agent.DocsUrl) };
-        actions.Children.Add(docs);
-        panel.Children.Add(actions);
+        panel.Children.Add(installRow);
 
         // Config editor expander
         if (agent.ConfigFiles.Count > 0)
@@ -373,15 +431,172 @@ public sealed partial class AiAgentsModule : Page
         };
     }
 
-    private static Uri? SafeUri(string url)
-    {
-        try { return new Uri(url); } catch { return null; }
-    }
-
     private void ShowOk(string msg)
     {
         ResultBar.IsOpen = true; ResultBar.Severity = InfoBarSeverity.Success;
         ResultBar.Title = P("Done", "完成"); ResultBar.Message = msg;
+    }
+
+    private bool EnsureLaunchCredits(AiAgent agent)
+    {
+        var snap = CakeCreditService.I.Snapshot;
+        if (snap.BalanceUnits > 0)
+            return true;
+
+        var feed = CakeCreditService.I.FeedOneCake(
+            $"{agent.NameEn} launch credits",
+            $"{agent.NameZh} 啟動額度");
+        RefreshCreditStatus();
+        if (feed.Success)
+        {
+            ResultBar.IsOpen = true;
+            ResultBar.Severity = InfoBarSeverity.Informational;
+            ResultBar.Title = P("Cake fed", "已餵蛋糕");
+            ResultBar.Message = P(
+                $"{feed.Message.En} External terminal usage cannot be metered after launch; in-app generations still spend credits on output.",
+                $"{feed.Message.Zh} 啟動外部終端機之後嘅用量無法由 WinForge 逐 token 計量；App 內生成仍然會按輸出扣額。");
+            return true;
+        }
+
+        ResultBar.IsOpen = true;
+        ResultBar.Severity = InfoBarSeverity.Warning;
+        ResultBar.Title = P("Cake credits required", "需要蛋糕額度");
+        ResultBar.Message = feed.Message.Primary;
+        return false;
+    }
+
+    private async void FeedCredit_Click(object sender, RoutedEventArgs e)
+    {
+        var ok = await ShowCakeTransactionAsync(
+            P("Feed cake credits", "餵入蛋糕額度"),
+            P("Drop or bake a signed .cake file, then feed exactly one cake into the AI credit wallet.",
+                "拖入或者焗好一個已簽署 .cake 檔，然後餵入剛好一個蛋糕做 AI 額度。"),
+            "AI generation credits",
+            "AI 生成額度");
+        if (!ok) return;
+
+        RefreshCreditStatus();
+    }
+
+    private async void Yolo_Click(object sender, RoutedEventArgs e)
+    {
+        var ok = await ShowCakeTransactionAsync(
+            P("YOLO mode cake transaction", "YOLO 模式蛋糕交易"),
+            P("This waits for a signed cake file, consumes one cake, then writes permissive best-effort agent configs with backups.",
+                "呢度會等已簽署蛋糕檔，消耗一個蛋糕，然後備份並寫入寬鬆嘅代理設定。"),
+            "AI agent YOLO mode",
+            "AI agent YOLO 模式");
+        if (!ok) return;
+
+        var r = AiAgentService.EnableCakeGatedYoloMode(consumeCake: false);
+        RefreshCreditStatus();
+        ResultBar.IsOpen = true;
+        ResultBar.Severity = r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Warning;
+        ResultBar.Title = r.Success ? P("YOLO mode config written", "YOLO 模式設定已寫入") : P("YOLO mode failed", "YOLO 模式失敗");
+        ResultBar.Message = Loc.I.IsCantonesePrimary ? r.ReportZh : r.ReportEn;
+    }
+
+    private async Task<bool> ShowCakeTransactionAsync(string title, string body, string reasonEn, string reasonZh)
+    {
+        var status = new TextBlock
+        {
+            TextWrapping = TextWrapping.Wrap,
+            Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+        };
+        var openFolder = new Button
+        {
+            Content = P("Open cakes folder", "開蛋糕資料夾"),
+            HorizontalAlignment = HorizontalAlignment.Left,
+        };
+        openFolder.Click += (_, _) =>
+        {
+            try { Process.Start(new ProcessStartInfo { FileName = _cakeFiles.CakeDir, UseShellExecute = true }); }
+            catch { }
+        };
+
+        var panel = new StackPanel { Spacing = 10 };
+        panel.Children.Add(new TextBlock { Text = body, TextWrapping = TextWrapping.Wrap });
+        panel.Children.Add(status);
+        panel.Children.Add(openFolder);
+
+        var dlg = new ContentDialog
+        {
+            Title = title,
+            Content = panel,
+            PrimaryButtonText = P("Feed one cake", "餵一個蛋糕"),
+            SecondaryButtonText = P("Refresh", "重新整理"),
+            CloseButtonText = P("Cancel", "取消"),
+            DefaultButton = ContentDialogButton.Primary,
+            XamlRoot = XamlRoot,
+        };
+
+        void Refresh()
+        {
+            var snap = CakeCreditService.I.Snapshot;
+            status.Text = P(
+                $"Ready cakes: {snap.CakeFilesAvailable}. Current balance: {CakeCreditService.FormatUnits(snap.BalanceUnits)}. Add .cake files to: {_cakeFiles.CakeDir}",
+                $"可用蛋糕：{snap.CakeFilesAvailable}。目前餘額：{CakeCreditService.FormatUnits(snap.BalanceUnits)}。請將 .cake 檔放入：{_cakeFiles.CakeDir}");
+            dlg.IsPrimaryButtonEnabled = snap.CakeFilesAvailable > 0;
+        }
+
+        dlg.Opened += (_, _) => Refresh();
+        dlg.SecondaryButtonClick += (s, args) =>
+        {
+            args.Cancel = true;
+            Refresh();
+        };
+        dlg.PrimaryButtonClick += (s, args) =>
+        {
+            var deferral = args.GetDeferral();
+            try
+            {
+                var r = CakeCreditService.I.FeedOneCake(reasonEn, reasonZh);
+                RefreshCreditStatus();
+                if (!r.Success)
+                {
+                    args.Cancel = true;
+                    Refresh();
+                    ResultBar.IsOpen = true;
+                    ResultBar.Severity = InfoBarSeverity.Warning;
+                    ResultBar.Title = P("Cake required", "需要蛋糕");
+                    ResultBar.Message = r.Message.Primary;
+                    return;
+                }
+
+                ResultBar.IsOpen = true;
+                ResultBar.Severity = InfoBarSeverity.Success;
+                ResultBar.Title = P("Cake fed", "已餵蛋糕");
+                ResultBar.Message = r.Message.Primary;
+            }
+            finally
+            {
+                deferral.Complete();
+            }
+        };
+
+        var result = await dlg.ShowAsync();
+        return result == ContentDialogResult.Primary;
+    }
+
+    private void FeedCredit_Click_Legacy(object sender, RoutedEventArgs e)
+    {
+        var r = CakeCreditService.I.FeedOneCake(
+            "AI generation credits",
+            "AI 生成額度");
+        RefreshCreditStatus();
+        ResultBar.IsOpen = true;
+        ResultBar.Severity = r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Warning;
+        ResultBar.Title = r.Success ? P("Cake fed", "已餵蛋糕") : P("No cake available", "無可用蛋糕");
+        ResultBar.Message = r.Message.Primary;
+    }
+
+    private void RefreshCreditStatus()
+    {
+        var s = CakeCreditService.I.Snapshot;
+        CreditBalanceText.Text = P(
+            $"Balance: {CakeCreditService.FormatUnits(s.BalanceUnits)} · packed cakes ready: {s.CakeFilesAvailable} · spent: {CakeCreditService.FormatUnits(s.LifetimeSpentUnits)}",
+            $"餘額：{CakeCreditService.FormatUnits(s.BalanceUnits)} · 可用已包裝蛋糕：{s.CakeFilesAvailable} · 已使用：{CakeCreditService.FormatUnits(s.LifetimeSpentUnits)}");
+        FeedCreditBtn.IsEnabled = s.CakeFilesAvailable > 0;
     }
 
     private void ShowResult(bool ok, Models.TweakResult r)
@@ -390,5 +605,17 @@ public sealed partial class AiAgentsModule : Page
         ResultBar.Severity = ok ? InfoBarSeverity.Success : InfoBarSeverity.Error;
         ResultBar.Title = ok ? P("Done", "完成") : P("Failed", "失敗");
         ResultBar.Message = (Loc.I.IsCantonesePrimary ? r.Message?.Zh : r.Message?.En) ?? (r.Output ?? "");
+    }
+
+    private void CopyText(string text)
+    {
+        var dp = new DataPackage { RequestedOperation = DataPackageOperation.Copy };
+        dp.SetText(text ?? "");
+        Clipboard.SetContent(dp);
+        Clipboard.Flush();
+        ResultBar.IsOpen = true;
+        ResultBar.Severity = InfoBarSeverity.Success;
+        ResultBar.Title = P("Copied", "已複製");
+        ResultBar.Message = text ?? "";
     }
 }

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.JwtInspectModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="820" Spacing="14">
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE72E;" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <!-- Input -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="TokenLabel" FontWeight="SemiBold" FontSize="15" />
+                    <TextBox x:Name="TokenBox" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="96" FontFamily="Consolas" TextChanged="Token_TextChanged" />
+                    <TextBlock x:Name="StatusText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <!-- Validity badge + standard claims -->
+            <Border x:Name="ClaimsCard" Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Visibility="Collapsed">
+                <StackPanel Spacing="10">
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <TextBlock x:Name="ClaimsTitle" FontWeight="SemiBold" FontSize="15" VerticalAlignment="Center" />
+                        <Border x:Name="ValidityBadge" CornerRadius="4" Padding="8,2,8,2" VerticalAlignment="Center">
+                            <TextBlock x:Name="ValidityText" FontSize="12" FontWeight="SemiBold" Foreground="White" />
+                        </Border>
+                    </StackPanel>
+                    <TextBlock x:Name="ClaimsBlock" FontFamily="Consolas" FontSize="13" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                </StackPanel>
+            </Border>
+
+            <!-- Header JSON -->
+            <Border x:Name="HeaderJsonCard" Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Visibility="Collapsed">
+                <StackPanel Spacing="8">
+                    <TextBlock x:Name="HeaderJsonTitle" FontWeight="SemiBold" FontSize="15" />
+                    <TextBlock x:Name="HeaderJsonBlock" FontFamily="Consolas" FontSize="13" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                </StackPanel>
+            </Border>
+
+            <!-- Payload JSON -->
+            <Border x:Name="PayloadJsonCard" Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Visibility="Collapsed">
+                <StackPanel Spacing="8">
+                    <TextBlock x:Name="PayloadJsonTitle" FontWeight="SemiBold" FontSize="15" />
+                    <TextBlock x:Name="PayloadJsonBlock" FontFamily="Consolas" FontSize="13" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                </StackPanel>
+            </Border>
+
+            <!-- Signature -->
+            <Border x:Name="SignatureCard" Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Visibility="Collapsed">
+                <StackPanel Spacing="8">
+                    <TextBlock x:Name="SignatureTitle" FontWeight="SemiBold" FontSize="15" />
+                    <TextBlock x:Name="SignatureBlock" FontFamily="Consolas" FontSize="13" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                </StackPanel>
+            </Border>
+
+            <!-- HMAC verify -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="VerifyTitle" FontWeight="SemiBold" FontSize="15" />
+                    <TextBlock x:Name="VerifyNote" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <TextBlock x:Name="AlgLabel" VerticalAlignment="Center" />
+                        <ComboBox x:Name="AlgBox" MinWidth="120" SelectionChanged="Verify_Changed">
+                            <ComboBoxItem Content="HS256" />
+                            <ComboBoxItem Content="HS384" />
+                            <ComboBoxItem Content="HS512" />
+                        </ComboBox>
+                    </StackPanel>
+                    <TextBox x:Name="SecretBox" TextChanged="Verify_Changed" FontFamily="Consolas" />
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <Border x:Name="VerifyBadge" CornerRadius="4" Padding="8,2,8,2" VerticalAlignment="Center" Visibility="Collapsed">
+                            <TextBlock x:Name="VerifyBadgeText" FontSize="12" FontWeight="SemiBold" Foreground="White" />
+                        </Border>
+                        <TextBlock x:Name="VerifyStatus" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

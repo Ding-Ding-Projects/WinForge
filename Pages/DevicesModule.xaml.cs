@@ -22,15 +22,18 @@ public sealed partial class DevicesModule : Page
     public DevicesModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += async (_, _) => { Render(); await Reload(); };
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
     private void Render()
     {
-        HeaderTitle.Text = "Devices · 裝置";
+        Header.Title = "Devices · 裝置";
         FilterBox.PlaceholderText = P("Filter devices (e.g. Bluetooth, Audio)…", "篩選裝置（例如 Bluetooth、Audio）…");
         RefreshBtn.Content = P("Refresh", "重新整理");
         if (!AdminHelper.IsElevated)

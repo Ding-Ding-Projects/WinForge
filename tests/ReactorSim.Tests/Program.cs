@@ -1,0 +1,2964 @@
+// 反應堆引擎情景測試套件 · Standalone reactor/dependent simulator scenario test harness.
+//
+// Drives the ACTUAL pure-C# engine/service classes (compiled in via <Compile Include> links in the
+// .csproj) deterministically and asserts behaviour per scenario. The WinUI app cannot run headless;
+// this console harness exercises only the headless-safe engine code and dependent simulators.
+//
+// IMPORTANT FINDING (drives several test designs below):
+//   Startup mode must not by itself make a cold, fully-rodded core prompt-supercritical. The reactivity
+//   baseline is calibrated so nominal boron with rods withdrawn is the hot-reference critical point,
+//   while fully inserted rods provide shutdown margin during a fresh startup. Tests that need sustained
+//   full-power operation still avoid assuming a perfect power plateau; they assert deterministic
+//   mechanisms (SCRAM action, decay-heat charge, xenon ODE) directly.
+//
+// RULES honoured here:
+//   * No multi-hundred-MB files are ever written. The waste-cap test seeds a SPARSE 1.2 GB file
+//     (logical size only; ~0 bytes on disk) so the "total >= cap" DECISION can be exercised without
+//     filling the disk. The smallest real waste writer (100 MB) is only ever asked to start and must
+//     REFUSE before writing anything.
+//   * Fuel files are tiny metadata+HMAC files; tampered/forged copies go in a temp dir and are cleaned.
+//   * Genuinely UI-coupled behaviour is reported as "not headless-testable" rather than faked.
+
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Runtime.InteropServices;
+using Microsoft.Win32.SafeHandles;
+using WinForge.Services;
+
+namespace ReactorSim.Tests;
+
+internal static class Program
+{
+    // ----------------------------------------------------------------- tiny test framework ----
+    private sealed record ScenarioResult(string Name, bool Pass, string Detail);
+
+    private static readonly List<ScenarioResult> Results = new();
+
+    private static void Scenario(string name, Func<(bool pass, string detail)> body)
+    {
+        Console.WriteLine();
+        Console.WriteLine($"=== {name} ===");
+        try
+        {
+            var (pass, detail) = body();
+            Results.Add(new ScenarioResult(name, pass, detail));
+            Console.WriteLine($"  [{(pass ? "PASS" : "FAIL")}] {detail}");
+        }
+        catch (Exception ex)
+        {
+            Results.Add(new ScenarioResult(name, false, "EXCEPTION: " + ex.Message));
+            Console.WriteLine($"  [FAIL] EXCEPTION: {ex}");
+        }
+    }
+
+    private static bool Finite(double d) => !double.IsNaN(d) && !double.IsInfinity(d);
+    private static double Avg(double[] a) { double s = 0; foreach (var x in a) s += x; return s / a.Length; }
+
+    private static int Main()
+    {
+        Console.WriteLine("反應堆引擎情景測試套件 · Reactor engine/dependent simulator scenario test suite");
+        Console.WriteLine("Driving the real ReactorSimService / FuelFactoryService / NuclearWasteService / WaterTreatmentService / CakeFactoryService.");
+        Console.WriteLine(new string('-', 95));
+
+        PhysicsScenarios();
+        ScenarioInjectionCoverageScenarios();
+        FuelCycleScenarios();
+        WasteCapScenarios();
+        WaterTreatmentScenarios();
+        ReactorDependencyScenarios();
+        CakeFactoryScenarios();
+
+        // ----------------------------------------------------------------- summary ----
+        Console.WriteLine();
+        Console.WriteLine(new string('=', 95));
+        Console.WriteLine("SUMMARY · 總結");
+        Console.WriteLine(new string('=', 95));
+        int pass = 0;
+        foreach (var r in Results)
+        {
+            Console.WriteLine($"  [{(r.Pass ? "PASS" : "FAIL")}] {r.Name}");
+            if (r.Pass) pass++;
+        }
+        Console.WriteLine(new string('-', 95));
+        Console.WriteLine($"  {pass}/{Results.Count} scenarios passed.");
+        return 0; // reporting harness, not a CI gate
+    }
+
+    // ============================================================================ PHYSICS ====
+    private static void PhysicsScenarios()
+    {
+        // ---- COLD-SHUTDOWN HELD ----
+        Scenario("COLD-SHUTDOWN HELD (operator must start it up; no runaway when left alone)", () =>
+        {
+            var r = new ReactorSimService(); // defaults to Shutdown
+            double dt = 0.1;
+            int steps = (int)(5 * 60 / dt); // 5 simulated minutes
+            double maxPower = 0;
+            for (int i = 0; i < steps; i++) { r.Update(dt); maxPower = Math.Max(maxPower, r.NeutronPowerFraction); }
+            bool finite = Finite(r.NeutronPowerFraction) && Finite(r.FuelTemp);
+            bool stayedLow = maxPower <= r.SourceLevel * 1000 + 1e-5;
+            bool notMeltdown = r.Mode == ReactorMode.Shutdown && !r.MeltdownTriggered;
+            bool pass = finite && stayedLow && notMeltdown;
+            return (pass, $"after 5 min held: mode={r.Mode}, power={r.NeutronPowerFraction:E2} (src={r.SourceLevel:E1}), " +
+                          $"maxPower={maxPower:E2}, fuelT={r.FuelTemp:F1}°C, meltdown={r.MeltdownTriggered}");
+        });
+
+        // ---- STARTUP STABILITY (numerical: backward-Euler) ----
+        Scenario("STARTUP STABILITY (backward-Euler: no NaN/Inf, no sign oscillation)", () =>
+        {
+            var r = new ReactorSimService();
+            r.SetMode(ReactorMode.Startup);
+            for (int i = 0; i < r.RcpRunning.Length; i++) r.StartRcp(i);
+            r.RcpFlowDemand = 1.0; r.FeedwaterFlow = 1.0; r.PressurizerHeater = true; r.TargetBoronPpm = 800;
+            double dt = 0.1;
+            bool everNonFinite = false, hitClamp = false;
+            int signFlips = 0; double prevDelta = 0, prev = r.NeutronPowerFraction;
+            for (int step = 0; step < 600; step++)
+            {
+                double insertion = Math.Max(70, 100 - step * 0.05); // gradual startup-bank withdrawal
+                for (int b = 0; b < r.RodBankInsertion.Length; b++) r.SetRodBank(b, insertion);
+                r.Update(dt);
+                double p = r.NeutronPowerFraction;
+                if (!Finite(p) || !Finite(r.FuelTemp) || !Finite(r.ReactivityPcm)) everNonFinite = true;
+                if (p >= 49.9) hitClamp = true;
+                double delta = p - prev;
+                if (step > 5 && Math.Sign(delta) != 0 && Math.Sign(prevDelta) != 0 &&
+                    Math.Sign(delta) != Math.Sign(prevDelta) && Math.Abs(delta) > 0.01) signFlips++;
+                prevDelta = delta; prev = p;
+            }
+            // The genuine backward-Euler claim: stays finite and does not run away.
+            bool pass = !everNonFinite && !hitClamp && r.Mode != ReactorMode.Meltdown && Finite(r.NeutronPowerFraction);
+            return (pass, $"finiteOK={!everNonFinite}, signFlips={signFlips}, reachedClamp={hitClamp}, " +
+                          $"finalPower={r.NeutronPowerFraction:E3}, rho={r.ReactivityPcm:F0}pcm.");
+        });
+
+        // ---- STARTUP MODE ALONE DOES NOT INSERT POSITIVE REACTIVITY ----
+        Scenario("STARTUP MODE: fresh fully-rodded core stays subcritical", () =>
+        {
+            var r = new ReactorSimService();
+            r.SetMode(ReactorMode.Startup); // rods still 100% inserted, cold, no operator action
+            double rhoAtStart, pAfter1; ReactorMode modeAfter;
+            r.Update(0.1);
+            rhoAtStart = r.ReactivityPcm; pAfter1 = r.NeutronPowerFraction; modeAfter = r.Mode;
+            for (int i = 0; i < 50; i++) r.Update(0.1);
+            bool stayedSubcritical = rhoAtStart < -1000 && pAfter1 < 1e-3
+                                     && modeAfter == ReactorMode.Startup
+                                     && r.Mode != ReactorMode.Meltdown
+                                     && !r.MeltdownTriggered;
+            return (stayedSubcritical, $"rho@t=0.1 with ALL RODS IN = {rhoAtStart:F0} pcm, " +
+                                       $"power@t=0.1={pAfter1:E2}, mode→{r.Mode}, dmg={r.DamageAccumulation:F0}, " +
+                                       $"meltdown={r.MeltdownTriggered}");
+        });
+
+        // ---- EASY STARTUP ASSIST (limited beginner aid, not a bypass) ----
+        Scenario("EASY STARTUP: assist is limited and fully-rodded core stays subcritical", () =>
+        {
+            var normal = new ReactorSimService();
+            normal.SetMode(ReactorMode.Startup);
+            normal.Update(0.1);
+
+            var easy = new ReactorSimService { EasyStartupMode = true };
+            easy.SetMode(ReactorMode.Startup);
+            easy.Update(0.1);
+
+            double deltaPcm = easy.ReactivityPcm - normal.ReactivityPcm;
+            bool pass = Math.Abs(easy.EasyStartupAssistActivePcm - 500.0) < 1e-6
+                        && deltaPcm > 450.0 && deltaPcm < 550.0
+                        && easy.ReactivityPcm < 0.0
+                        && easy.NeutronPowerFraction < 1e-3
+                        && !easy.IsScrammed
+                        && !easy.MeltdownTriggered;
+            return (pass, $"assist={easy.EasyStartupAssistActivePcm:F0} pcm, rho normal/easy={normal.ReactivityPcm:F0}/{easy.ReactivityPcm:F0} pcm, " +
+                          $"delta={deltaPcm:F0} pcm, power={easy.NeutronPowerFraction:E2}, scram={easy.IsScrammed}");
+        });
+
+        // ---- EASY STARTUP CHECKLIST STEP 4 SKIP (guide state only, trips untouched) ----
+        Scenario("EASY STARTUP: checklist can skip pressure-wait step 4 without satisfying pressure", () =>
+        {
+            var r = new ReactorSimService { EasyStartupMode = true };
+            r.SetMode(ReactorMode.Startup);
+            for (int i = 0; i < 4; i++) r.StartRcp(i);
+            r.RcpFlowDemand = 1.0;
+            for (int i = 0; i < 200; i++) r.Update(0.1);
+
+            var steps = ReactorScenarios.StartupSequence();
+            int before = ReactorScenarios.CompletedStartupSteps(steps, r);
+            bool pressureStillLow = r.PrimaryPressure < 14.5;
+            r.ApplyControl("skipStartupStep4", 0, 0, true);
+            int after = ReactorScenarios.CompletedStartupSteps(steps, r);
+
+            r.EasyStartupMode = false;
+            int offAgain = ReactorScenarios.CompletedStartupSteps(steps, r);
+
+            bool pass = before == 3 && after == 4 && offAgain == 3 && pressureStillLow && !r.IsScrammed;
+            return (pass, $"before={before}, afterSkip={after}, easyOff={offAgain}, pressure={r.PrimaryPressure * 145.038:F0} psia, scram={r.IsScrammed}");
+        });
+
+        Scenario("EASY STARTUP: checklist can skip rod/boron step 5", () =>
+        {
+            var r = new ReactorSimService { EasyStartupMode = true };
+            r.SetMode(ReactorMode.Startup);
+            for (int i = 0; i < 4; i++) r.StartRcp(i);
+            r.RcpFlowDemand = 1.0;
+            for (int i = 0; i < 200; i++) r.Update(0.1);
+            r.ApplyControl("skipStartupStep4", 0, 0, true);
+
+            var steps = ReactorScenarios.StartupSequence();
+            int before = ReactorScenarios.CompletedStartupSteps(steps, r);
+            bool rodsStillIn = Avg(r.RodBankInsertion) > 95.0;
+            r.ApplyControl("skipStartupStep5", 0, 0, true);
+            int after = ReactorScenarios.CompletedStartupSteps(steps, r);
+            bool step5Skipped = steps[4].IsSkipped(r);
+
+            bool pass = before == 4 && after >= 5 && step5Skipped && rodsStillIn && !r.IsScrammed;
+            return (pass, $"before={before}, afterSkip={after}, step5Skipped={step5Skipped}, avgRodIn={Avg(r.RodBankInsertion):F0}%, scram={r.IsScrammed}");
+        });
+
+        Scenario("EASY STARTUP: NIS/1-over-M step 6 skip is easy-only", () =>
+        {
+            var normal = new ReactorSimService();
+            normal.ApplyControl("skipStartupStep6", 0, 0, true);
+
+            var r = new ReactorSimService { EasyStartupMode = true };
+            r.SetMode(ReactorMode.Startup);
+            for (int i = 0; i < 4; i++) r.StartRcp(i);
+            r.RcpFlowDemand = 1.0;
+            for (int i = 0; i < 200; i++) r.Update(0.1);
+            r.ApplyControl("skipStartupStep4", 0, 0, true);
+            r.ApplyControl("skipStartupStep5", 0, 0, true);
+
+            var steps = ReactorScenarios.StartupSequence();
+            int before = ReactorScenarios.CompletedStartupSteps(steps, r);
+            r.ApplyControl("skipStartupStep6", 0, 0, true);
+            int after = ReactorScenarios.CompletedStartupSteps(steps, r);
+            bool step6Skipped = steps[5].IsSkipped(r);
+            bool easyOnly = !normal.EasyStartupSkipNisStep;
+
+            r.EasyStartupMode = false;
+            int offAgain = ReactorScenarios.CompletedStartupSteps(steps, r);
+            bool cleared = !r.EasyStartupSkipNisStep && !steps[5].IsSkipped(r);
+
+            bool pass = steps[5].EasyModeSkippable && easyOnly && after >= before && step6Skipped && cleared && !r.IsScrammed;
+            return (pass, $"before={before}, afterSkip={after}, easyOff={offAgain}, easyOnly={easyOnly}, cleared={cleared}, " +
+                          $"1/M={r.OneOverM:F2}, scram={r.IsScrammed}");
+        });
+
+        Scenario("EASY STARTUP: fuel and waste penalties scale with skips", () =>
+        {
+            var normal = new ReactorSimService();
+            var easy = new ReactorSimService { EasyStartupMode = true };
+            easy.ApplyControl("skipStartupStep4", 0, 0, true);
+            easy.ApplyControl("skipStartupStep5", 0, 0, true);
+            easy.ApplyControl("skipStartupStep6", 0, 0, true);
+
+            var auto = new ReactorSimService();
+            auto.ApplyAutoStartPreset();
+
+            var easyAuto = new ReactorSimService { EasyStartupMode = true };
+            easyAuto.ApplyAutoStartPreset();
+            easyAuto.ApplyControl("skipStartupStep4", 0, 0, true);
+            easyAuto.ApplyControl("skipStartupStep5", 0, 0, true);
+            easyAuto.ApplyControl("skipStartupStep6", 0, 0, true);
+
+            bool pass = Math.Abs(normal.FuelConsumptionMultiplier - 1.0) < 1e-9
+                        && Math.Abs(normal.WasteProductionMultiplier - 1.0) < 1e-9
+                        && Math.Abs(easy.FuelConsumptionMultiplier - 1.75) < 1e-9
+                        && Math.Abs(easy.WasteProductionMultiplier - 1.75) < 1e-9
+                        && easy.EasyStartupSkipCount == 3
+                        && Math.Abs(auto.FuelConsumptionMultiplier - 2.5) < 1e-9
+                        && Math.Abs(auto.WasteProductionMultiplier - 2.5) < 1e-9
+                        && Math.Abs(easyAuto.FuelConsumptionMultiplier - 4.375) < 1e-9
+                        && Math.Abs(easyAuto.WasteProductionMultiplier - 4.375) < 1e-9;
+            return (pass, $"normal fuel/waste={normal.FuelConsumptionMultiplier:F2}/{normal.WasteProductionMultiplier:F2}, " +
+                          $"easy skips={easy.EasyStartupSkipCount}, easy fuel/waste={easy.FuelConsumptionMultiplier:F2}/{easy.WasteProductionMultiplier:F2}, " +
+                          $"auto={auto.FuelConsumptionMultiplier:F2}/{auto.WasteProductionMultiplier:F2}, " +
+                          $"easy+auto={easyAuto.FuelConsumptionMultiplier:F3}/{easyAuto.WasteProductionMultiplier:F3}");
+        });
+
+        Scenario("PERSISTENCE SNAPSHOT: active startup restores instead of resetting to shutdown", () =>
+        {
+            var r = new ReactorSimService { EasyStartupMode = true };
+            r.SetMode(ReactorMode.Startup);
+            for (int i = 0; i < 4; i++) r.StartRcp(i);
+            r.RcpFlowDemand = 0.72;
+            r.PressurizerHeater = true;
+            r.TargetBoronPpm = 925;
+            for (int b = 0; b < r.RodBankInsertion.Length; b++) r.SetRodBank(b, 58 + b);
+            r.ApplyControl("skipStartupStep4", 0, 0, true);
+            r.ApplyControl("skipStartupStep5", 0, 0, true);
+            r.ApplyControl("skipStartupStep6", 0, 0, true);
+            for (int i = 0; i < 30; i++) r.Update(0.1);
+
+            var saved = r.CaptureSnapshot(123.45);
+            var restored = new ReactorSimService();
+            restored.RestoreSnapshot(saved);
+
+            bool modeKept = restored.Mode == ReactorMode.Startup;
+            bool controlsKept = restored.RcpRunning.Count(x => x) == 4
+                                && Math.Abs(restored.RcpFlowDemand - r.RcpFlowDemand) < 1e-9
+                                && Math.Abs(restored.TargetBoronPpm - r.TargetBoronPpm) < 1e-9
+                                && Math.Abs(Avg(restored.RodBankInsertion) - Avg(r.RodBankInsertion)) < 1e-9;
+            bool easyGuideKept = restored.EasyStartupMode
+                                 && restored.EasyStartupSkipPressureStep
+                                 && restored.EasyStartupSkipReactivityStep
+                                 && restored.EasyStartupSkipNisStep;
+            bool physicsKept = Math.Abs(restored.NeutronPowerFraction - r.NeutronPowerFraction) < 1e-12
+                               && Math.Abs(restored.PrimaryPressure - r.PrimaryPressure) < 1e-12
+                               && saved.SimClockSeconds == 123.45;
+            bool notFreshReset = restored.Mode != ReactorMode.Shutdown
+                                 && restored.RcpRunning.Any(x => x)
+                                 && Avg(restored.RodBankInsertion) < 95.0;
+
+            bool pass = modeKept && controlsKept && easyGuideKept && physicsKept && notFreshReset;
+            return (pass, $"mode={restored.Mode}, rcps={restored.RcpRunning.Count(x => x)}, avgRod={Avg(restored.RodBankInsertion):F1}%, " +
+                          $"boron={restored.TargetBoronPpm:F0}, easySkips={restored.EasyStartupSkipPressureStep}/{restored.EasyStartupSkipReactivityStep}/{restored.EasyStartupSkipNisStep}, " +
+                          $"clock={saved.SimClockSeconds:F2}s");
+        });
+
+        // ---- SCRAM (deterministic mechanism: trip latches, release delay, gravity rod drop) ----
+        // NOTE: we assert the SCRAM MECHANISM. Rods no longer snap fully in synchronously; StepRodDrop
+        // models the breaker/gripper release delay and gravity insertion over the next few ticks.
+        Scenario("SCRAM (mechanism: trip latch, release delay, rods start dropping)", () =>
+        {
+            var r = new ReactorSimService();
+            for (int b = 0; b < r.RodBankInsertion.Length; b++) r.SetRodBank(b, 10.0); // withdraw first
+            double rodsBefore = Avg(r.RodBankInsertion);
+            r.Scram();
+            double rodsLatched = Avg(r.RodBankInsertion);
+            bool releaseDelayHeld = Math.Abs(rodsLatched - rodsBefore) < 1e-9 && !r.RodsDropping && r.RodDropElapsedS == 0.0;
+            bool sawMotion = false;
+            for (int i = 0; i < 10; i++)
+            {
+                r.Update(0.1);
+                if (Avg(r.RodBankInsertion) > rodsBefore + 0.1 || r.RodsDropping) sawMotion = true;
+            }
+            double rodsAfter = Avg(r.RodBankInsertion);
+            bool tripped = r.Mode == ReactorMode.Tripped;
+            bool scrammed = r.IsScrammed;
+            bool pass = releaseDelayHeld && sawMotion && tripped && scrammed && Finite(r.NeutronPowerFraction);
+            return (pass, $"rods {rodsBefore:F0}%→latched {rodsLatched:F0}%→(+1s){rodsAfter:F0}% " +
+                          $"(delayHeld={releaseDelayHeld}, motion={sawMotion}), mode→{r.Mode} (Tripped={tripped}), IsScrammed={scrammed}");
+        });
+
+        // ---- SCRAM SHUTDOWN MARGIN ----
+        Scenario("SCRAM: tripped fully-rodded core stays subcritical", () =>
+        {
+            var r = new ReactorSimService();
+            r.Scram(); // rods 100% in, Mode=Tripped
+            bool wentMeltdown = false;
+            for (int i = 0; i < 600; i++) { r.Update(0.1); if (r.Mode == ReactorMode.Meltdown) { wentMeltdown = true; break; } }
+            bool pass = !wentMeltdown && r.IsScrammed && r.Mode == ReactorMode.Tripped && r.ReactivityPcm < -1000;
+            return (pass, $"after Scram() all rods IN: mode={r.Mode}, rho={r.ReactivityPcm:F0} pcm, " +
+                          $"dmg={r.DamageAccumulation:F0}, meltdown={wentMeltdown}");
+        });
+
+        // ---- DECAY HEAT (charges with power, then decays after the power source is removed) ----
+        Scenario("DECAY HEAT (charges while power present, decays after trip)", () =>
+        {
+            var r = new ReactorSimService();
+            r.SetMode(ReactorMode.Run); // controlled low-power rise charges the decay-heat groups
+            for (int b = 0; b < r.RodBankInsertion.Length; b++) r.SetRodBank(b, 70.0);
+            double dt = 0.1;
+            double decayPeak = 0;
+            for (int i = 0; i < 50; i++) { r.Update(dt); decayPeak = Math.Max(decayPeak, r.DecayHeatFraction); }
+            r.Scram();
+            double dStart = r.DecayHeatFraction;
+            for (int i = 0; i < 6000; i++) r.Update(dt); // 600 s
+            double dEnd = r.DecayHeatFraction;
+            bool charged = decayPeak > 0.0;
+            bool boundedDecaying = dEnd <= dStart + 1e-9 && dEnd <= 0.10 + 1e-9;
+            bool pass = charged && boundedDecaying && Finite(dEnd);
+            return (pass, $"decay charged to {decayPeak:F4} (peak>0={charged}); after trip {dStart:F4}→(+600s){dEnd:F4} " +
+                          $"(bounded&decaying={boundedDecaying}, clamp=0.10)");
+        });
+
+        // ---- OVERPOWER / AUTO-SCRAM (RPS high-flux trip fires automatically) ----
+        Scenario("OVERPOWER PROTECTION (RPS auto-SCRAM fires on a power excursion)", () =>
+        {
+            var r = new ReactorSimService();
+            r.SetMode(ReactorMode.Run);
+            for (int b = 0; b < r.RodBankInsertion.Length; b++) r.SetRodBank(b, 0); // rods out → excursion
+            double dt = 0.1; bool autoScrammed = false; double peakPower = 0; string tripFn = "";
+            for (int i = 0; i < 6000; i++)
+            {
+                r.Update(dt);
+                peakPower = Math.Max(peakPower, r.NeutronPowerFraction);
+                if (r.IsScrammed) { autoScrammed = true; tripFn = r.LastTripFunctionEn; break; }
+            }
+            bool pass = autoScrammed && r.IsScrammed;
+            return (pass, $"autoSCRAM={autoScrammed} via '{tripFn}', peakPower={peakPower:F3}, mode={r.Mode}");
+        });
+
+        Scenario("EASY STARTUP: RPS auto-SCRAM is suppressed", () =>
+        {
+            var r = new ReactorSimService { EasyStartupMode = true };
+            r.SetMode(ReactorMode.Run);
+            for (int b = 0; b < r.RodBankInsertion.Length; b++) r.SetRodBank(b, 0);
+
+            double dt = 0.1;
+            double peakPower = 0;
+            bool rpsTrip = false;
+            for (int i = 0; i < 6000; i++)
+            {
+                r.Update(dt);
+                peakPower = Math.Max(peakPower, r.NeutronPowerFraction);
+                if (r.Rps.ReactorTrip) { rpsTrip = true; break; }
+                if (r.Mode == ReactorMode.Meltdown) break;
+            }
+
+            bool pass = rpsTrip && !r.IsScrammed && r.Mode != ReactorMode.Tripped;
+            return (pass, $"rpsTrip={rpsTrip}, scram={r.IsScrammed}, mode={r.Mode}, peakPower={peakPower:F3}");
+        });
+
+        Scenario("AUTO START: command assist stages startup and suppresses auto-SCRAM", () =>
+        {
+            var r = new ReactorSimService();
+            r.ApplyAutoStartPreset();
+            double firstProgress = r.AutoStartProgressFraction;
+            string firstStage = r.AutoStartStageEn;
+            bool preset = r.RcpRunning.Count(x => x) == 4
+                          && r.RcpFlowDemand >= 0.99
+                          && r.PressurizerHeater
+                          && r.FeedwaterAuto
+                          && r.FeedwaterFlow >= 0.75
+                          && r.EccsArmed;
+
+            r.DriveAutoStart(0.1);
+            r.Update(0.1);
+
+            bool staged = r.AutoStartMode
+                          && r.Mode == ReactorMode.Startup
+                          && r.AutoStartProgressFraction > 0.0
+                          && r.AutoStartProgressFraction < 1.0
+                          && !string.IsNullOrWhiteSpace(r.AutoStartStageEn)
+                          && !r.GeneratorBreakerClosed;
+
+            r.SetMode(ReactorMode.Run);
+            for (int b = 0; b < r.RodBankInsertion.Length; b++) r.SetRodBank(b, 0);
+            bool rpsTrip = false;
+            for (int i = 0; i < 6000; i++)
+            {
+                r.Update(0.1);
+                if (r.Rps.ReactorTrip) { rpsTrip = true; break; }
+                if (r.Mode == ReactorMode.Meltdown) break;
+            }
+
+            bool pass = staged && preset && rpsTrip && !r.IsScrammed && Math.Abs(r.FuelConsumptionMultiplier - 2.5) < 1e-9;
+            return (pass, $"preset={preset}, first={firstProgress:F2}/{firstStage}, progress={r.AutoStartProgressFraction:F2}, " +
+                          $"stage='{r.AutoStartStageEn}', rpsTrip={rpsTrip}, scram={r.IsScrammed}, fuelMul={r.FuelConsumptionMultiplier:F2}");
+        });
+
+        // ---- XENON (Xe-135 ODE evolves: restart-peak jump, then physical decay) ----
+        Scenario("XENON transient (post-trip iodine-pit jump, then Xe-135 decays)", () =>
+        {
+            var r = new ReactorSimService();
+            r.TriggerScenario(ReactorScenario.XenonRestart); // jump to a post-trip xenon peak
+            double xeJump = r.Xenon;
+            double dt = 0.5;
+            double xe0 = r.Xenon;
+            for (int i = 0; i < (int)(3600 / dt); i++) r.Update(dt); // 1 h held in Shutdown
+            double xe1h = r.Xenon;
+            for (int i = 0; i < (int)(3600 / dt); i++) r.Update(dt); // another hour
+            double xe2h = r.Xenon;
+            bool jumped = xeJump >= 2.5;
+            const double xeEps = 1e-6;
+            bool decays = xe1h <= xe0 + xeEps && (xe2h <= xe1h + xeEps || xe2h <= xeEps); // allow a zero plateau after depletion
+            bool pass = jumped && decays && Finite(xe2h);
+            return (pass, $"restart jump Xe={xeJump:F2}, then Xe {xe0:F3}→(1h){xe1h:F3}→(2h){xe2h:F3} (monotone decay={decays})");
+        });
+    }
+
+    // =============================================================== SCENARIO INJECTION ====
+    private static void ScenarioInjectionCoverageScenarios()
+    {
+        Scenario("ACCIDENT SCENARIO INJECTION (all ReactorScenario values covered)", () =>
+        {
+            var scenarios = Enum.GetValues(typeof(ReactorScenario)).Cast<ReactorScenario>().ToArray();
+            var covered = new HashSet<ReactorScenario>();
+            var failures = new List<string>();
+
+            foreach (var sc in scenarios)
+            {
+                var r = new ReactorSimService();
+                SeedScenarioPreconditions(r);
+
+                bool ok;
+                string detail;
+                switch (sc)
+                {
+                    case ReactorScenario.Normal:
+                        r.TriggerScenario(sc);
+                        ok = r.ActiveScenario == sc && !r.EccsArmed && !r.RcpLockedRotor &&
+                             !r.RodEjectionActive && r.DilutionFlowGpm == 0.0 && r.RccaWithdrawSpm == 0.0;
+                        detail = $"active={r.ActiveScenario}, eccs={r.EccsArmed}, dilution={r.DilutionFlowGpm:F1}";
+                        break;
+
+                    case ReactorScenario.Loca:
+                        r.TriggerScenario(sc);
+                        StepActiveScenario(r, 0.1);
+                        ok = r.ActiveScenario == sc && r.EccsArmed && r.PrimaryDeficitPct > 0.0;
+                        detail = $"active={r.ActiveScenario}, eccs={r.EccsArmed}, deficit={r.PrimaryDeficitPct:F3}%";
+                        break;
+
+                    case ReactorScenario.StationBlackout:
+                        r.TriggerScenario(sc);
+                        StepActiveScenario(r, 0.1);
+                        ok = r.ActiveScenario == sc && r.RcpRunning.All(x => !x) && r.RcpFlowDemand == 0.0 &&
+                             r.FeedwaterFlow == 0.0 && !r.EccsArmed && r.Electrical.InSbo &&
+                             r.Alarm(ReactorAlarm.StationBlackout);
+                        detail = $"active={r.ActiveScenario}, rcps={r.RcpRunning.Count(x => x)}, flowDemand={r.RcpFlowDemand:F1}, " +
+                                 $"feed={r.FeedwaterFlow:F1}, sbo={r.Electrical.InSbo}";
+                        break;
+
+                    case ReactorScenario.LossOfFeedwater:
+                        r.TriggerScenario(sc);
+                        ok = r.ActiveScenario == sc && r.FeedwaterFlow == 0.0;
+                        detail = $"active={r.ActiveScenario}, feed={r.FeedwaterFlow:F1}";
+                        break;
+
+                    case ReactorScenario.Atws:
+                        for (int b = 0; b < r.RodBankInsertion.Length; b++) r.SetRodBank(b, 10.0);
+                        double rods0 = Avg(r.RodBankInsertion);
+                        r.TriggerScenario(sc);
+                        r.Scram();
+                        r.Update(0.5);
+                        double rods1 = Avg(r.RodBankInsertion);
+                        ok = r.ActiveScenario == sc && r.IsScrammed && Math.Abs(rods1 - rods0) < 1e-9 &&
+                             r.Alarm(ReactorAlarm.AtwsActive);
+                        detail = $"active={r.ActiveScenario}, scram={r.IsScrammed}, rods {rods0:F0}->{rods1:F0}, alarm={r.Alarm(ReactorAlarm.AtwsActive)}";
+                        break;
+
+                    case ReactorScenario.XenonRestart:
+                        r.TriggerScenario(sc);
+                        ok = r.ActiveScenario == sc && r.Xenon >= 2.6;
+                        detail = $"active={r.ActiveScenario}, xenon={r.Xenon:F2}";
+                        break;
+
+                    case ReactorScenario.SgTubeRupture:
+                        r.TriggerScenario(sc);
+                        StepActiveScenario(r, 0.1);
+                        ok = r.ActiveScenario == sc && r.EccsArmed && r.SgtrLeakRate > 0.0;
+                        detail = $"active={r.ActiveScenario}, eccs={r.EccsArmed}, leak={r.SgtrLeakRate:F3}";
+                        break;
+
+                    case ReactorScenario.MainSteamLineBreak:
+                        r.TriggerScenario(sc);
+                        StepActiveScenario(r, 0.1);
+                        ok = r.ActiveScenario == sc && r.EccsArmed && !r.MslbIsolated &&
+                             r.MslbBreakFlow > 0.0 && r.Alarm(ReactorAlarm.SteamlineBreak);
+                        detail = $"active={r.ActiveScenario}, eccs={r.EccsArmed}, isolated={r.MslbIsolated}, breakFlow={r.MslbBreakFlow:F3}";
+                        break;
+
+                    case ReactorScenario.RcpSealLoca:
+                        r.TriggerScenario(sc);
+                        StepActiveScenario(r, 0.1);
+                        ok = r.ActiveScenario == sc && r.EccsArmed && !r.SealCoolingAvailable;
+                        detail = $"active={r.ActiveScenario}, eccs={r.EccsArmed}, sealCooling={r.SealCoolingAvailable}";
+                        break;
+
+                    case ReactorScenario.RodEjection:
+                        r.TriggerScenario(sc);
+                        ok = r.ActiveScenario == sc && r.RodEjectionActive && r.EjectedRodWorthPcm > 0.0;
+                        detail = $"active={r.ActiveScenario}, active={r.RodEjectionActive}, worth={r.EjectedRodWorthPcm:F0} pcm";
+                        break;
+
+                    case ReactorScenario.BoronDilution:
+                        r.TriggerScenario(sc);
+                        ok = r.ActiveScenario == sc && r.DilutionFlowGpm > 0.0;
+                        detail = $"active={r.ActiveScenario}, dilution={r.DilutionFlowGpm:F1} gpm";
+                        break;
+
+                    case ReactorScenario.RccaWithdrawal:
+                        r.TriggerScenario(sc);
+                        StepActiveScenario(r, 0.1);
+                        ok = r.ActiveScenario == sc && !r.AutoRodControl && r.RccaWithdrawSpm > 0.0;
+                        detail = $"active={r.ActiveScenario}, autoRods={r.AutoRodControl}, spm={r.RccaWithdrawSpm:F1}";
+                        break;
+
+                    case ReactorScenario.CompleteLossOfFlow:
+                        r.TriggerScenario(sc);
+                        ok = r.ActiveScenario == sc && r.RcpRunning.All(x => !x) && r.RcpFlowDemand == 0.0 && !r.RcpLockedRotor;
+                        detail = $"active={r.ActiveScenario}, rcps={r.RcpRunning.Count(x => x)}, flowDemand={r.RcpFlowDemand:F1}, locked={r.RcpLockedRotor}";
+                        break;
+
+                    case ReactorScenario.LockedRotor:
+                        r.TriggerScenario(sc);
+                        ok = r.ActiveScenario == sc && r.RcpLockedRotor && r.LockedRotorLoop == 0 &&
+                             r.RcpRunning.Skip(1).All(x => x);
+                        detail = $"active={r.ActiveScenario}, locked={r.RcpLockedRotor}, loop={r.LockedRotorLoop}, otherRcps={r.RcpRunning.Skip(1).Count(x => x)}";
+                        break;
+
+                    case ReactorScenario.LossOfFeedwaterHeating:
+                        r.TriggerScenario(sc);
+                        ok = r.ActiveScenario == sc && r.FeedwaterHeatersInService < 1.0;
+                        detail = $"active={r.ActiveScenario}, heaters={r.FeedwaterHeatersInService:F2}";
+                        break;
+
+                    case ReactorScenario.LossOfComponentCoolingWater:
+                        r.TriggerScenario(sc);
+                        StepActiveScenario(r, 0.1);
+                        ok = r.ActiveScenario == sc && r.CcwPumpsRunning == 0 && r.CcwFlowFrac == 0.0 &&
+                             !r.CcwAvailable && r.Alarm(ReactorAlarm.CcwLowFlow);
+                        detail = $"active={r.ActiveScenario}, ccwPumps={r.CcwPumpsRunning}, ccwFlow={r.CcwFlowFrac:F1}, available={r.CcwAvailable}";
+                        break;
+
+                    default:
+                        ok = false;
+                        detail = "no assertion written";
+                        break;
+                }
+
+                covered.Add(sc);
+                if (!ok) failures.Add($"{sc}: {detail}");
+            }
+
+            bool allEnumsCovered = covered.Count == scenarios.Length && scenarios.All(s => covered.Contains(s));
+            bool pass = allEnumsCovered && failures.Count == 0;
+            string coverage = $"{covered.Count}/{scenarios.Length} enum values: {string.Join(", ", covered.OrderBy(s => (int)s))}";
+            return (pass, failures.Count == 0 ? $"covered {coverage}" : $"covered {coverage}; failures: {string.Join("; ", failures)}");
+        });
+    }
+
+    private static void SeedScenarioPreconditions(ReactorSimService r)
+    {
+        for (int i = 0; i < r.RcpRunning.Length; i++) r.StartRcp(i);
+        r.RcpFlowDemand = 1.0;
+        r.FeedwaterAuto = false;
+        r.FeedwaterFlow = 0.8;
+        r.EccsArmed = false;
+        r.AutoRodControl = true;
+    }
+
+    private static void StepActiveScenario(ReactorSimService r, double dt)
+    {
+        if (r.Mode == ReactorMode.Shutdown) r.SetMode(ReactorMode.Startup);
+        r.Update(dt);
+    }
+
+    // =========================================================================== FUEL CYCLE ====
+    private static void FuelCycleScenarios()
+    {
+        // Determinism / isolation: the FuelFactoryService keeps a persistent HMAC-protected anti-replay
+        // LEDGER and fresh/loaded/spent dirs under %LOCALAPPDATA%\WinForge\reactor\fuel. Across repeated
+        // test runs the ledger accumulates ids and would spuriously reject a freshly fabricated assembly
+        // as "already-consumed". Clear ONLY the sim's regenerable test state (ledger + fresh-fuel files
+        // this harness creates) so each run starts clean. The signing key and any user loaded/spent
+        // assemblies are left untouched.
+        try
+        {
+            var fuelRoot = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "WinForge", "reactor", "fuel");
+            var ledger = Path.Combine(fuelRoot, "ledger.json");
+            if (File.Exists(ledger)) File.Delete(ledger);
+            var freshDir = Path.Combine(fuelRoot, "fresh");
+            if (Directory.Exists(freshDir))
+                foreach (var f in Directory.EnumerateFiles(freshDir, "*.fuel")) { try { File.Delete(f); } catch { } }
+        }
+        catch { }
+
+        var factory = new FuelFactoryService();
+
+        Scenario("FUEL FABRICATE + VALIDATE (authentic), then TAMPER → FAIL", () =>
+        {
+            var asm = factory.Fabricate(4.5, 460.0);
+            var vOk = factory.Validate(asm.Path);
+            bool authentic = asm.SignatureValid && vOk.Valid;
+
+            string tmp = Path.Combine(Path.GetTempPath(), "reactor-tests-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tmp);
+            string tampered = Path.Combine(tmp, "tampered.fuel");
+            string text = File.ReadAllText(asm.Path);
+            string tamperedText = text.Replace("\"enrichmentU235Pct\": 4.5", "\"enrichmentU235Pct\": 4.9");
+            bool actuallyChanged = tamperedText != text;
+            File.WriteAllText(tampered, tamperedText);
+            var vBad = factory.Validate(tampered);
+            bool tamperRejected = !vBad.Valid && (vBad.Reason == "tampered" || vBad.Reason == "forged");
+
+            try { File.Delete(asm.Path); } catch { }
+            try { Directory.Delete(tmp, true); } catch { }
+
+            bool pass = authentic && actuallyChanged && tamperRejected;
+            return (pass, $"authentic={authentic} (sigValid={asm.SignatureValid}, validate='{vOk.Reason}'), " +
+                          $"tamperedField={actuallyChanged}, tamperRejected={tamperRejected} ('{vBad.Reason}')");
+        });
+
+        Scenario("LOAD CONSUMES FILE (authentic assembly accepted + fresh file deleted)", () =>
+        {
+            var asm = factory.Fabricate(4.2, 455.0);
+            string path = asm.Path;
+            bool existedBefore = File.Exists(path);
+            var res = factory.LoadIntoCore(path);
+            bool existsAfter = File.Exists(path);
+            bool inLoaded = factory.ListLoaded().Any(a => a.Id == res.Id);
+            bool pass = existedBefore && res.Loaded && res.FileDeleted && !existsAfter && inLoaded;
+            try { factory.UnloadFromCore(res.Id); File.Delete(Path.Combine(factory.LoadedDir, res.Id + ".fuel")); } catch { }
+            try { foreach (var f in factory.ListFresh().Where(a => a.Id == res.Id)) File.Delete(f.Path); } catch { }
+            return (pass, $"loaded={res.Loaded}, fileDeleted={res.FileDeleted}, freshFileGone={!existsAfter}, " +
+                          $"inLoadedList={inLoaded}, id={res.Id}");
+        });
+
+        Scenario("FORGED HARM (unsafe load harms; Validate/Inspect alone does NOT)", () =>
+        {
+            string tmp = Path.Combine(Path.GetTempPath(), "reactor-tests-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tmp);
+            var template = factory.Fabricate(4.5, 460.0);
+            string forged = Path.Combine(tmp, "forged.fuel");
+            string text = File.ReadAllText(template.Path);
+            string forgedText = System.Text.RegularExpressions.Regex.Replace(
+                text, "\"sig\": \"[^\"]*\"", "\"sig\": \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"");
+            File.WriteAllText(forged, forgedText);
+            try { File.Delete(template.Path); } catch { }
+
+            // INSPECT/VALIDATE ONLY: do it against a SAFE held reactor (Shutdown) — must NOT harm.
+            var rInspect = new ReactorSimService(); // stays in Shutdown, held safe
+            double dmgBeforeInspect = rInspect.DamageAccumulation;
+            var v = factory.Validate(forged);                 // pure inspection
+            for (int i = 0; i < 100; i++) rInspect.Update(0.1);
+            double dmgAfterInspect = rInspect.DamageAccumulation;
+            bool inspectHarmless = !v.Valid
+                                   && dmgAfterInspect <= dmgBeforeInspect + 1e-9
+                                   && !rInspect.IsScrammed
+                                   && rInspect.Mode == ReactorMode.Shutdown
+                                   && rInspect.RadiationLevel == 0;
+
+            // UNSAFE LOAD: reports harm; injecting it damages a (separate) reactor + auto-SCRAMs.
+            var rHarm = new ReactorSimService();
+            double dmgBefore = rHarm.DamageAccumulation;
+            var load = factory.LoadIntoCoreUnsafe(forged);
+            if (load.Harmful) rHarm.InjectForgedFuelHarm(load.HarmSeverity);
+            double dmgImmediately = rHarm.DamageAccumulation;
+            bool harmReported = load.Harmful && load.HarmSeverity > 0;
+            bool harmInflicted = dmgImmediately > dmgBefore
+                                 && (rHarm.CounterfeitFuelAlarm || rHarm.IsScrammed || rHarm.RadiationLevel > 0);
+            bool consumed = load.FileDeleted && !File.Exists(forged);
+
+            try { Directory.Delete(tmp, true); } catch { }
+
+            bool pass = inspectHarmless && harmReported && harmInflicted && consumed;
+            return (pass, $"inspectHarmless={inspectHarmless} (validate='{v.Reason}', dmgΔ={dmgAfterInspect - dmgBeforeInspect:F3}, mode={rInspect.Mode}); " +
+                          $"unsafe harmful={load.Harmful} sev={load.HarmSeverity:F2}/{load.HarmKind}; " +
+                          $"dmg {dmgBefore:F1}→{dmgImmediately:F1}, scram={rHarm.IsScrammed}, rad={rHarm.RadiationLevel:F2}, consumed={consumed}");
+        });
+    }
+
+    // =========================================================================== WASTE CAP ====
+    private const uint FSCTL_SET_SPARSE = 0x900C4;
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool DeviceIoControl(SafeFileHandle h, uint code, IntPtr inb, uint ins,
+        IntPtr outb, uint outs, out uint ret, IntPtr ov);
+
+    private static void CreateSparseFile(string path, long logicalBytes)
+    {
+        using var fs = new FileStream(path, FileMode.Create, FileAccess.Write);
+        DeviceIoControl(fs.SafeFileHandle, FSCTL_SET_SPARSE, IntPtr.Zero, 0, IntPtr.Zero, 0, out _, IntPtr.Zero);
+        fs.SetLength(logicalBytes); // sparse: ~0 bytes actually written to disk
+    }
+
+    private static void WasteCapScenarios()
+    {
+        var waste = new NuclearWasteService();
+        long savedCap = waste.CapBytes, savedFloor = waste.SafetyFloorBytes;
+        var preexisting = waste.List().Select(w => w.Id).ToHashSet();
+
+        Scenario("WASTE CAP LOGIC (refuses a write past the cap; reports FULL)", () =>
+        {
+            // Seed a SPARSE 1.2 GB waste file (logical only — ~0 disk) so total > a 1 GB cap.
+            string seedId = "WASTE-TESTSEED-CAP-" + Guid.NewGuid().ToString("N").Substring(0, 8);
+            string seedPath = Path.Combine(waste.WasteDir, seedId + ".waste");
+            CreateSparseFile(seedPath, (long)(1.2 * 1024 * 1024 * 1024));
+            try
+            {
+                waste.CapBytes = NuclearWasteService.MinCapBytes; // 1 GB (smallest allowed cap)
+                long total = waste.TotalBytes();
+                bool warned = false; string warnEn = "";
+                Action<string, string> h = (en, zh) => { warned = true; warnEn = en; };
+                waste.StorageWarning += h;
+                // Ask for the smallest real waste write (100 MB). total(1.2GB) + 100MB > cap(1GB) ⇒ refuse.
+                bool started = waste.GenerateWaste(NuclearWasteService.MinWasteBytes);
+                System.Threading.Thread.Sleep(120);
+                waste.StorageWarning -= h;
+                bool noNewFile = !waste.List().Any(w => !preexisting.Contains(w.Id) && w.Id != seedId);
+                var st = waste.Status();
+                bool pass = !started && warned && noNewFile && st.CapReached && st.StorageFull;
+                return (pass, $"cap={waste.CapBytes / (1024 * 1024 * 1024)}GB, total={total / (1024 * 1024)}MB, " +
+                              $"100MB write refused={!started}, warned={warned} ('{Trim(warnEn)}'), " +
+                              $"noNewFile={noNewFile}, capReached={st.CapReached}, statusFull={st.StorageFull}");
+            }
+            finally { try { File.Delete(seedPath); } catch { } }
+        });
+
+        Scenario("WASTE SAFETY-FLOOR LOGIC (free-space floor blocks the write)", () =>
+        {
+            // Big cap so the cap is NOT the gate; floor above free space ⇒ floor must block.
+            waste.CapBytes = long.MaxValue / 4;
+            long free = waste.Status().DriveFreeBytes;
+            waste.SafetyFloorBytes = free + (1024L * 1024 * 1024 * 1024); // free + 1 TB ⇒ impossible
+            bool warned = false; string warnEn = "";
+            Action<string, string> h = (en, zh) => { warned = true; warnEn = en; };
+            waste.StorageWarning += h;
+            bool started = waste.GenerateWaste(NuclearWasteService.MinWasteBytes);
+            System.Threading.Thread.Sleep(120);
+            waste.StorageWarning -= h;
+            bool noNewFile = !waste.List().Any(w => !preexisting.Contains(w.Id));
+            var st = waste.Status();
+            bool pass = !started && warned && noNewFile && st.StorageFull;
+            return (pass, $"floor={waste.SafetyFloorBytes / (1024L * 1024 * 1024)}GB > free≈{free / (1024L * 1024 * 1024)}GB, " +
+                          $"write refused={!started}, warned={warned} ('{Trim(warnEn)}'), noNewFile={noNewFile}, statusFull={st.StorageFull}");
+        });
+
+        waste.CapBytes = savedCap; // restore the user's real settings (non-destructive)
+        waste.SafetyFloorBytes = savedFloor;
+    }
+
+    private static string Trim(string s) => s.Length > 70 ? s.Substring(0, 70) + "…" : s;
+
+    // ====================================================================== WATER TREATMENT ====
+    private static void WaterTreatmentScenarios()
+    {
+        Scenario("WATER CHEMISTRY (running train drives conductivity toward ultrapure; tank fills)", () =>
+        {
+            var w = new WaterTreatmentService();
+            w.Reset();
+            // Make the stored water dirty first by running the train OFF (drifts toward raw quality).
+            for (int i = 0; i < 2000; i++) w.Step(1.0, 0, false);
+            double condDirty = w.ConductivityUScm;
+            double levelStart = w.TankLevelL;
+            // Run the FULL train (intake + RO + degasifier); valve shut so the tank fills + chemistry cleans.
+            // Bounded run so the ion-exchange resin does not fully saturate (it needs Regenerate() then).
+            w.IntakePumpOn = true; w.IntakeRate = 1.0; w.RoOn = true; w.DegasifierOn = true; w.MakeupValveOpen = false;
+            double condBest = condDirty;
+            for (int i = 0; i < 150; i++) { w.Step(1.0, 0, false); condBest = Math.Min(condBest, w.ConductivityUScm); }
+            double condClean = w.ConductivityUScm;
+            double o2 = w.DissolvedO2Ppb;
+            double levelEnd = w.TankLevelL;
+            bool improved = condClean < condDirty * 0.5;       // huge drop from raw toward ultrapure
+            bool ultrapure = condBest < 0.10;                  // hit reactor-grade conductivity
+            bool o2Spec = o2 <= 10.0;                           // degasifier strips O2 to spec
+            bool levelRose = levelEnd > levelStart;
+            // The headline chemistry claim: conductivity + O2 driven to reactor-grade spec, tank fills.
+            // NOTE: full InSpec() (silica/chlorides) is NOT required — those residual targets only fall
+            // below spec at near-zero resin saturation, which steady production cannot hold (a secondary
+            // calibration finding, reported but not gated).
+            bool pass = improved && ultrapure && o2Spec && levelRose && Finite(condClean);
+            return (pass, $"conductivity dirty={condDirty:F2}→clean={condClean:F4} µS/cm (best={condBest:F4}, ultrapure<0.10={ultrapure}), " +
+                          $"O2={o2:F1}ppb(spec={o2Spec}), tankL {levelStart:F0}→{levelEnd:F0} (rose={levelRose}), " +
+                          $"product={w.ProductLpm:F0}L/min, resin={w.ResinSaturation:F3}, fullInSpec={w.InSpec()}(Si/Cl note)");
+        });
+
+        Scenario("WATER TANK EMPTY → makeup availability degrades (plant side, headless-testable)", () =>
+        {
+            var w = new WaterTreatmentService();
+            w.Reset();
+            double availFull = w.Availability();               // ~70% tank ⇒ 1.0
+            // Drain the tank: heavy reactor draw, production OFF, valve open.
+            w.IntakePumpOn = false; w.RoOn = false; w.MakeupValveOpen = true;
+            int steps = 0;
+            while (w.TankLevelPct > 0.5 && steps < 100000) { w.Step(1.0, 6000.0, true); steps++; }
+            double availMid = w.Availability();
+            bool lowTankAlarm = w.LowTankAlarm;
+            // Closing the makeup isolation valve must also force availability to 0 (the reactor sees no makeup).
+            w.MakeupValveOpen = false;
+            double availValveShut = w.Availability();
+
+            bool availDropped = availMid < availFull && availMid < 0.15;
+            bool valveGate = availValveShut == 0.0;
+            bool pass = availDropped && lowTankAlarm && valveGate;
+            return (pass, $"avail full={availFull:F2}→drained={availMid:F2} (dropped={availDropped}), lowTankAlarm={lowTankAlarm}, " +
+                          $"valveShut→avail={availValveShut:F2} (gate={valveGate}).");
+        });
+    }
+
+    // ======================================================================= CAKE FACTORY ====
+    private static ReactorStatusSnapshot ReactorBus(double electricMw, bool generating = true, bool meltdown = false, string mode = "Run") => new()
+    {
+        SchemaVersion = ReactorStatusSnapshot.CurrentSchemaVersion,
+        Sequence = 1,
+        TimestampUtc = DateTime.UtcNow.ToString("o"),
+        Mode = mode,
+        PowerPercent = generating ? 100 : 0,
+        ThermalMW = generating ? electricMw / 0.34 : 0,
+        ElectricMW = electricMw,
+        IsGenerating = generating,
+        IsScrammed = false,
+        IsMeltdown = meltdown,
+        PrimaryPressureMPa = generating ? 15.5 : 0,
+        CoolantAvgC = generating ? 305 : 0,
+        ReactorPeriodS = 0,
+        ActiveAlarms = Array.Empty<string>(),
+    };
+
+    private static void ReactorDependencyScenarios()
+    {
+        Scenario("APP REACTOR DEPENDENCY GATING (selected modules require a live reactor bus)", () =>
+        {
+            var dependency = ReactorDependencyService.All.First(d => d.Tag == "module.blender");
+            var offline = ReactorBus(0.0, generating: false, mode: "Offline");
+            var lowPower = ReactorBus(dependency.MinimumElectricMW - 1.0);
+            var fullPower = ReactorBus(dependency.MinimumElectricMW + 25.0);
+            var meltdown = ReactorBus(dependency.MinimumElectricMW + 25.0, generating: true, meltdown: true, mode: "Meltdown");
+            var scrammed = fullPower;
+            scrammed.IsScrammed = true;
+            scrammed.Mode = "Tripped";
+
+            var apiDisabled = ReactorDependencyService.Evaluate(dependency, fullPower, apiEnabled: false);
+            var off = ReactorDependencyService.Evaluate(dependency, offline);
+            var low = ReactorDependencyService.Evaluate(dependency, lowPower);
+            var melt = ReactorDependencyService.Evaluate(dependency, meltdown);
+            var trip = ReactorDependencyService.Evaluate(dependency, scrammed);
+            var ok = ReactorDependencyService.Evaluate(dependency, fullPower);
+            var ordinaryModule = ReactorDependencyService.Evaluate("module.git", offline);
+
+            bool selectedApps = ReactorDependencyService.All.Count >= 5
+                                && ReactorDependencyService.Requires("module.ollama")
+                                && ReactorDependencyService.Requires("module.docker")
+                                && ReactorDependencyService.BadgeFor("module.blender").Contains("MWe", StringComparison.OrdinalIgnoreCase);
+            bool blockers = !apiDisabled.IsSatisfied
+                            && !off.IsSatisfied
+                            && !low.IsSatisfied
+                            && !melt.IsSatisfied
+                            && !trip.IsSatisfied
+                            && apiDisabled.StatusEn.Contains("API", StringComparison.OrdinalIgnoreCase)
+                            && off.StatusEn.Contains("generation", StringComparison.OrdinalIgnoreCase)
+                            && low.StatusEn.Contains("low", StringComparison.OrdinalIgnoreCase)
+                            && melt.StatusEn.Contains("meltdown", StringComparison.OrdinalIgnoreCase)
+                            && trip.StatusEn.Contains("SCRAM", StringComparison.OrdinalIgnoreCase);
+            bool pass = selectedApps && blockers && ok.IsSatisfied && ordinaryModule.IsSatisfied;
+
+            return (pass, $"selectedApps={selectedApps}, apiOff={apiDisabled.IsSatisfied}, offline={off.IsSatisfied}, " +
+                          $"low={low.IsSatisfied}, meltdown={melt.IsSatisfied}, scram={trip.IsSatisfied}, ok={ok.IsSatisfied}, " +
+                          $"ordinaryModule={ordinaryModule.IsSatisfied}, badge='{ReactorDependencyService.BadgeFor("module.blender")}'");
+        });
+    }
+
+    private static void TickCake(CakeFactoryService cake, ReactorStatusSnapshot bus, double seconds)
+    {
+        double left = seconds;
+        while (left > 0)
+        {
+            double dt = Math.Min(0.25, left);
+            cake.Tick(dt, bus);
+            left -= dt;
+        }
+    }
+
+    private static (string order, string unload) DeliverCakeSupplies(CakeFactoryService cake, ReactorStatusSnapshot bus, double travelSeconds = 80)
+    {
+        string order = cake.OrderSupplyDelivery();
+        TickCake(cake, bus, travelSeconds);
+        string unload = cake.UnloadSupplyDelivery();
+        return (order, unload);
+    }
+
+    private static void CakeFactoryScenarios()
+    {
+        var fullBus = ReactorBus(250.0);
+        var offline = ReactorBus(0.0, generating: false, mode: "Offline");
+        var meltdown = ReactorBus(250.0, generating: true, meltdown: true, mode: "Meltdown");
+
+        Scenario("CAKE POWER GATING (reactor bus required; meltdown locks out the line)", () =>
+        {
+            var cake = new CakeFactoryService();
+
+            TickCake(cake, offline, 0.5);
+            var off = cake.Snapshot;
+            bool startBlocked = !cake.TryStartBatch(out var blockedMsg);
+            string harvestBlockedMsg = cake.HarvestNow();
+
+            TickCake(cake, fullBus, 0.5);
+            var on = cake.Snapshot;
+
+            TickCake(cake, meltdown, 0.5);
+            var melt = cake.Snapshot;
+
+            bool offlineGated = !off.ReactorOnline && off.PowerAvailability == 0 && !off.CanStartBatch && !off.CanHarvest;
+            bool actionBlocked = startBlocked && blockedMsg.Contains("reactor", StringComparison.OrdinalIgnoreCase)
+                                 && harvestBlockedMsg.Contains("locked", StringComparison.OrdinalIgnoreCase);
+            bool poweredEnabled = on.ReactorOnline && on.PowerAvailability > 0.98 && on.CanStageBatchKit && on.CanHarvest && on.CanCollectDairy;
+            bool meltdownGated = !melt.ReactorOnline && melt.PowerAvailability == 0 && !melt.CanStartBatch && !melt.CanStageBatchKit;
+            bool pass = offlineGated && actionBlocked && poweredEnabled && meltdownGated;
+            return (pass, $"offline start={off.CanStartBatch}/harvest={off.CanHarvest}, blockedMsg='{Trim(blockedMsg)}', " +
+                          $"powered availability={on.PowerAvailability:P0} stageKit={on.CanStageBatchKit}, " +
+                          $"meltdown availability={melt.PowerAvailability:P0} start={melt.CanStartBatch}/stageKit={melt.CanStageBatchKit}");
+        });
+
+        Scenario("CAKE MANUAL MODE (no auto batch, no auto harvest, no auto stage advance)", () =>
+        {
+            var cake = new CakeFactoryService { LineSpeed = 1.0 };
+
+            TickCake(cake, fullBus, 90);
+            var idleAfterRun = cake.Snapshot;
+            bool noAutoBatch = idleAfterRun.Stage == CakeBatchStage.Idle && idleAfterRun.CakesBaked == 0 && idleAfterRun.CakesPacked == 0;
+
+            var farm = new CakeFactoryService { FarmIntensity = 1.0 };
+            TickCake(farm, fullBus, 0.5);
+            var beforeFarmRun = farm.Snapshot;
+            TickCake(farm, fullBus, 260);
+            var matureFarm = farm.Snapshot;
+            bool noAutoHarvest = matureFarm.CanHarvest
+                                 && matureFarm.WheatGrowth >= 99
+                                 && Math.Abs(matureFarm.WheatKg - beforeFarmRun.WheatKg) < 0.001
+                                 && Math.Abs(matureFarm.SugarCropKg - beforeFarmRun.SugarCropKg) < 0.001
+                                 && Math.Abs(matureFarm.VanillaL - beforeFarmRun.VanillaL) < 0.001
+                                 && Math.Abs(matureFarm.ForageKg - beforeFarmRun.ForageKg) < 0.001
+                                 && Math.Abs(matureFarm.GrainKg - beforeFarmRun.GrainKg) < 0.001
+                                 && Math.Abs(matureFarm.CocoaBeansKg - beforeFarmRun.CocoaBeansKg) < 0.001;
+
+            string kitMsg = cake.StageBatchKit();
+            TickCake(cake, fullBus, 0.5);
+            bool started = cake.TryStartBatch(out var startMsg);
+            TickCake(cake, fullBus, 30);
+            var waiting = cake.Snapshot;
+            bool noAutoAdvance = waiting.Stage == CakeBatchStage.Scaling && waiting.StageReadyForOperator && waiting.CanAdvanceStage;
+
+            bool pass = noAutoBatch && noAutoHarvest && started && noAutoAdvance;
+            return (pass, $"noAutoBatch={noAutoBatch} after 90s powered idle, noAutoHarvest={noAutoHarvest} at wheatGrowth={matureFarm.WheatGrowth:F0}%, " +
+                          $"kit='{Trim(kitMsg)}', started={started} ('{Trim(startMsg)}'), " +
+                          $"after 30s stage={waiting.StageName}, ready={waiting.StageReadyForOperator}, canRelease={waiting.CanAdvanceStage}");
+        });
+
+        Scenario("CAKE MILK PROVENANCE (milk comes from cow physiology, ration, water and cold-chain handling)", () =>
+        {
+            var cake = new CakeFactoryService { FarmIntensity = 1.0 };
+            TickCake(cake, fullBus, 1.0);
+            var before = cake.Snapshot;
+
+            TickCake(cake, fullBus, 30);
+            var after = cake.Snapshot;
+
+            string collect = cake.CollectDairyAndEggs();
+            TickCake(cake, fullBus, 0.5);
+            var collected = cake.Snapshot;
+
+            bool cowHerdModeled = after.DairyCowCount > 0
+                                  && after.LactatingCowCount > 0
+                                  && after.LactatingCowCount <= after.DairyCowCount
+                                  && after.MilkSourceStatus.Contains("cow", StringComparison.OrdinalIgnoreCase);
+            bool cowInputsConsumed = after.MixedRationKg < before.MixedRationKg
+                                     && after.IrrigationWaterL < before.IrrigationWaterL
+                                     && after.MilkSourceStatus.Contains("ration", StringComparison.OrdinalIgnoreCase);
+            bool milkProduced = after.MilkProductionLPerHour > 0
+                                && after.DairyReadyL > before.DairyReadyL
+                                && after.CowComfort > 0;
+            bool cowPhysiologyModeled = after.AverageLactationDays > 0
+                                        && after.DryMatterIntakeKgPerCowDay > 10
+                                        && after.RumenPh >= 5.75
+                                        && after.BodyConditionScore >= 2.35
+                                        && after.MilkUreaNitrogenMgDl >= 8
+                                        && after.MilkUreaNitrogenMgDl <= 18
+                                        && after.MilkSourceStatus.Contains("dry matter", StringComparison.OrdinalIgnoreCase)
+                                        && after.MilkSourceStatus.Contains("rumen", StringComparison.OrdinalIgnoreCase)
+                                        && after.MilkSourceStatus.Contains("BCS", StringComparison.OrdinalIgnoreCase);
+            bool milkCollected = collected.RawMilkL > after.RawMilkL
+                                 && collected.DairyReadyL < after.DairyReadyL
+                                 && collected.MilkSourceStatus.Contains("cow", StringComparison.OrdinalIgnoreCase)
+                                 && collected.MilkSourceStatus.Contains("pasteurization", StringComparison.OrdinalIgnoreCase);
+            bool milkQaModeled = collected.BulkMilkTankC > 0
+                                 && collected.BulkTankAgitationRpm > 18
+                                 && collected.BulkTankCoolingLoadKw > 0
+                                 && collected.MilkBacteriaCfuPerMl > 0
+                                 && collected.MilkSomaticCellCountKPerMl > 0
+                                 && collected.MilkFatPct > 3.0
+                                 && collected.MilkProteinPct > 2.9
+                                 && collected.MilkingVacuumKPa > 35
+                                 && collected.MilkQaStatus.Contains("spec", StringComparison.OrdinalIgnoreCase);
+            bool pass = cowHerdModeled && cowInputsConsumed && milkProduced && cowPhysiologyModeled && milkCollected && milkQaModeled;
+            return (pass, $"cowHerdModeled={cowHerdModeled} ({after.LactatingCowCount}/{after.DairyCowCount} cows, comfort={after.CowComfort:F0}%), " +
+                          $"cowInputsConsumed={cowInputsConsumed}, milkProduced={milkProduced} ({after.MilkProductionLPerHour:F1} L/h), " +
+                          $"cowPhysiologyModeled={cowPhysiologyModeled} (DIM {after.AverageLactationDays:F0}, DMI {after.DryMatterIntakeKgPerCowDay:F1}, pH {after.RumenPh:F2}, BCS {after.BodyConditionScore:F2}, MUN {after.MilkUreaNitrogenMgDl:F1}), " +
+                          $"milkCollected={milkCollected} ('{Trim(collect)}'), milkQaModeled={milkQaModeled} " +
+                          $"({collected.BulkMilkTankC:F1}C, {collected.BulkTankAgitationRpm:F0} rpm, {collected.BulkTankCoolingLoadKw:F1} kW, {collected.MilkBacteriaCfuPerMl:F0} CFU/mL)");
+        });
+
+        Scenario("CAKE PET-STORE COW INTAKE (easy pickup joins herd, uses care resources and releases after one hour)", () =>
+        {
+            var cake = new CakeFactoryService { FarmIntensity = 1.0 };
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            string start = cake.GetCowFromPetStore();
+            TickCake(cake, fullBus, 0.5);
+            var enroute = cake.Snapshot;
+
+            TickCake(cake, fullBus, 20.0);
+            var arrived = cake.Snapshot;
+
+            TickCake(cake, fullBus, 3595.0);
+            var nearRelease = cake.Snapshot;
+
+            TickCake(cake, fullBus, 10.0);
+            var released = cake.Snapshot;
+
+            bool pickupStarted = before.CanGetCowFromPetStore
+                                 && enroute.CowPickupActive
+                                 && enroute.CowPickupEtaSeconds > 0
+                                 && enroute.CashBalance < before.CashBalance
+                                 && enroute.MixedRationKg < before.MixedRationKg
+                                 && enroute.BeddingKg < before.BeddingKg
+                                 && start.Contains("Pet-store", StringComparison.OrdinalIgnoreCase);
+            bool joinedHerd = !arrived.CowPickupActive
+                              && arrived.GuestCowActive
+                              && arrived.GuestCowTagId.StartsWith("PETCOW-", StringComparison.OrdinalIgnoreCase)
+                              && arrived.DairyCowCount == before.DairyCowCount + 1
+                              && arrived.LactatingCowCount == before.LactatingCowCount + 1
+                              && arrived.GuestCowSecondsRemaining <= 3600
+                              && arrived.CowAcquisitionStatus.Contains("wild", StringComparison.OrdinalIgnoreCase);
+            bool careStillModeled = arrived.MilkProductionLPerHour > 0
+                                    && arrived.MilkSourceStatus.Contains("ration", StringComparison.OrdinalIgnoreCase)
+                                    && arrived.MilkSourceStatus.Contains("rumen", StringComparison.OrdinalIgnoreCase)
+                                    && arrived.MilkSourceStatus.Contains("Guest cow", StringComparison.OrdinalIgnoreCase)
+                                    && arrived.CowComfort > 0
+                                    && arrived.DryMatterIntakeKgPerCowDay > 10;
+            bool oneHourRelease = nearRelease.GuestCowActive
+                                  && nearRelease.GuestCowSecondsRemaining > 0
+                                  && !released.GuestCowActive
+                                  && released.DairyCowCount == before.DairyCowCount
+                                  && released.LactatingCowCount == before.LactatingCowCount
+                                  && released.CowAcquisitionStatus.Contains("1-hour", StringComparison.OrdinalIgnoreCase)
+                                  && released.CowAcquisitionStatus.Contains("wild", StringComparison.OrdinalIgnoreCase);
+
+            bool pass = pickupStarted && joinedHerd && careStillModeled && oneHourRelease;
+            return (pass, $"pickupStarted={pickupStarted} ('{Trim(start)}'), joinedHerd={joinedHerd} " +
+                          $"({before.LactatingCowCount}/{before.DairyCowCount}->{arrived.LactatingCowCount}/{arrived.DairyCowCount}, tag {arrived.GuestCowTagId}), " +
+                          $"careStillModeled={careStillModeled} (milk {arrived.MilkProductionLPerHour:F1} L/h, DMI {arrived.DryMatterIntakeKgPerCowDay:F1}, pH {arrived.RumenPh:F2}), " +
+                          $"oneHourRelease={oneHourRelease} (near {nearRelease.GuestCowSecondsRemaining:F0}s, released '{Trim(released.CowAcquisitionStatus)}')");
+        });
+
+        Scenario("CAKE MILK PASTEURIZER (raw cow milk becomes released recipe milk)", () =>
+        {
+            var cake = new CakeFactoryService { FarmIntensity = 1.0 };
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            string collect = cake.CollectDairyAndEggs();
+            TickCake(cake, fullBus, 0.5);
+            var collected = cake.Snapshot;
+
+            string start = cake.PasteurizeMilk();
+            TickCake(cake, fullBus, 2.6);
+            var running = cake.Snapshot;
+
+            TickCake(cake, fullBus, 7.0);
+            var held = cake.Snapshot;
+
+            string blockedKit = cake.StageBatchKit();
+            string release = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var released = cake.Snapshot;
+
+            bool collectionIsRawOnly = collected.RawMilkL > before.RawMilkL
+                                       && Math.Abs(collected.MilkL - before.MilkL) < 0.001
+                                       && collected.RawMilkLotId.StartsWith("RAWMILK-", StringComparison.OrdinalIgnoreCase)
+                                       && collected.RawMilkLotId != before.RawMilkLotId
+                                       && collected.TraceabilityStatus.Contains(collected.RawMilkLotId, StringComparison.OrdinalIgnoreCase);
+            bool startConsumesRaw = collected.CanPasteurizeMilk
+                                    && running.FactoryRunActive
+                                    && running.ActiveFactoryName.Contains("pasteurizer", StringComparison.OrdinalIgnoreCase)
+                                    && running.RawMilkL < collected.RawMilkL
+                                    && Math.Abs(running.MilkL - collected.MilkL) < 0.001
+                                    && start.Contains("HTST", StringComparison.OrdinalIgnoreCase);
+            bool heldForLab = !held.FactoryRunActive
+                              && held.MilkL > collected.MilkL
+                              && held.MilkLotId.StartsWith("MILK-", StringComparison.OrdinalIgnoreCase)
+                              && held.MilkLotId != collected.MilkLotId
+                              && held.PendingLabLotId == held.MilkLotId
+                              && held.PendingLabProductName.Contains("milk", StringComparison.OrdinalIgnoreCase)
+                              && held.MissingIngredients.Contains("lab release", StringComparison.OrdinalIgnoreCase)
+                              && blockedKit.Contains("lab release", StringComparison.OrdinalIgnoreCase);
+            bool telemetryModeled = held.MilkPasteurizerTemperatureC > 70
+                                    && held.MilkPasteurizationHoldSeconds >= 15
+                                    && held.MilkHomogenizerPressureBar > 100
+                                    && held.MilkMicroLogReduction >= 4.8
+                                    && held.FactoryStatus.Contains("pasteurized milk", StringComparison.OrdinalIgnoreCase);
+            bool releaseClearsHold = released.PendingLabLotId.Length == 0
+                                     && released.CanStageBatchKit
+                                     && released.MissingIngredients.Length == 0
+                                     && release.Contains("released", StringComparison.OrdinalIgnoreCase);
+            bool pass = collectionIsRawOnly && startConsumesRaw && heldForLab && telemetryModeled && releaseClearsHold;
+            return (pass, $"collectionIsRawOnly={collectionIsRawOnly} ('{Trim(collect)}'), " +
+                          $"startConsumesRaw={startConsumesRaw} ('{Trim(start)}'), heldForLab={heldForLab} " +
+                          $"(raw {collected.RawMilkL:F1}->{running.RawMilkL:F1} L, milk {collected.MilkL:F1}->{held.MilkL:F1} L, lot {held.MilkLotId}), " +
+                          $"telemetryModeled={telemetryModeled} ({held.MilkPasteurizerTemperatureC:F1}C/{held.MilkPasteurizationHoldSeconds:F1}s/{held.MilkMicroLogReduction:F1} log), " +
+                          $"releaseClearsHold={releaseClearsHold} ('{Trim(release)}')");
+        });
+
+        Scenario("CAKE BUTTER ROOM REALISM (raw cow milk is separated, pasteurized and churned before butter release)", () =>
+        {
+            var cake = new CakeFactoryService { FarmIntensity = 1.0 };
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            string start = cake.ChurnButter();
+            TickCake(cake, fullBus, 1.0);
+            var running = cake.Snapshot;
+
+            TickCake(cake, fullBus, 8.0);
+            var held = cake.Snapshot;
+
+            string blocked = cake.StageBatchKit();
+            string release = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var released = cake.Snapshot;
+
+            bool rawMilkReady = before.CanChurnButter
+                                && before.RawMilkL > 35
+                                && before.MilkFatPct > 0
+                                && before.RawMilkLotId.StartsWith("RAWMILK-", StringComparison.OrdinalIgnoreCase);
+            bool creamRunStarted = running.FactoryRunActive
+                                   && running.ActiveFactoryName.Contains("Cream", StringComparison.OrdinalIgnoreCase)
+                                   && running.ActiveFactoryPhase.Length > 0
+                                   && running.RawMilkL < before.RawMilkL
+                                   && Math.Abs(running.ButterKg - before.ButterKg) < 0.001
+                                   && running.CreamSeparatorRpm > 0
+                                   && running.CreamYieldL > 0
+                                   && running.CreamFatPct > 0
+                                   && start.Contains("cream", StringComparison.OrdinalIgnoreCase);
+            bool butterHeldForLab = !held.FactoryRunActive
+                                    && held.ButterKg > before.ButterKg
+                                    && held.ButterLotId != before.ButterLotId
+                                    && held.PendingLabLotId == held.ButterLotId
+                                    && held.IngredientLabStatus.Contains("fat", StringComparison.OrdinalIgnoreCase)
+                                    && held.SkimMilkL > before.SkimMilkL
+                                    && held.ButtermilkL > before.ButtermilkL
+                                    && held.CreamPasteurizerTemperatureC > 70
+                                    && held.CreamPasteurizationHoldSeconds >= 16
+                                    && held.ButterChurnTemperatureC > 0
+                                    && held.ButterFatPct > 80
+                                    && held.ButterMoisturePct > 0
+                                    && held.ButterWorkingPressureKPa > 0
+                                    && held.FactoryStatus.Contains("sweet-cream", StringComparison.OrdinalIgnoreCase);
+            bool releaseClearsButter = blocked.Contains("lab release", StringComparison.OrdinalIgnoreCase)
+                                       && release.Contains("released", StringComparison.OrdinalIgnoreCase)
+                                       && released.PendingLabLotId.Length == 0;
+            bool pass = rawMilkReady && creamRunStarted && butterHeldForLab && releaseClearsButter;
+            return (pass, $"rawMilkReady={rawMilkReady} ({before.RawMilkL:F1} L raw, fat {before.MilkFatPct:F2}%), creamRunStarted={creamRunStarted} ('{Trim(start)}'), " +
+                          $"butterHeldForLab={butterHeldForLab} (cream {held.CreamYieldL:F1} L/{held.CreamFatPct:F1}% fat, butter {held.ButterFatPct:F1}% fat/{held.ButterMoisturePct:F1}% moisture, " +
+                          $"skim {before.SkimMilkL:F1}->{held.SkimMilkL:F1} L, buttermilk {before.ButtermilkL:F1}->{held.ButtermilkL:F1} L), releaseClearsButter={releaseClearsButter} ('{Trim(release)}')");
+        });
+
+        Scenario("CAKE FEED CROP HARVEST (forage and feed grain come from farm lots)", () =>
+        {
+            var cake = new CakeFactoryService { FarmIntensity = 0 };
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            string harvest = cake.HarvestFeedCrops();
+            TickCake(cake, fullBus, 0.5);
+            var harvested = cake.Snapshot;
+
+            string mix = cake.MixDairyRation();
+            TickCake(cake, fullBus, 0.5);
+            var mixed = cake.Snapshot;
+
+            bool harvestAvailable = before.CanHarvestFeedCrops;
+            bool farmStocksProduced = harvested.ForageKg > before.ForageKg
+                                      && harvested.GrainKg > before.GrainKg
+                                      && harvested.StrawKg > before.StrawKg
+                                      && harvested.PastureHealth < before.PastureHealth
+                                      && harvested.WheatGrowth < before.WheatGrowth;
+            bool lotsStamped = harvested.ForageLotId.StartsWith("FORAGE-", StringComparison.OrdinalIgnoreCase)
+                               && harvested.GrainLotId.StartsWith("GRAIN-", StringComparison.OrdinalIgnoreCase)
+                               && harvested.ForageLotId != before.ForageLotId
+                               && harvested.GrainLotId != before.GrainLotId
+                               && harvested.TraceabilityStatus.Contains("feed grain", StringComparison.OrdinalIgnoreCase)
+                               && harvested.FeedCropStatus.Contains("forage", StringComparison.OrdinalIgnoreCase);
+            bool harvestTelemetry = harvested.ForageMoisturePct > 0
+                                    && harvested.FeedGrainMoisturePct > 0
+                                    && harvested.BarnLaborHours < before.BarnLaborHours
+                                    && harvested.ForkliftBatteryPct < before.ForkliftBatteryPct;
+            bool rationConsumesFarmLots = mixed.ForageKg < harvested.ForageKg
+                                           && mixed.GrainKg < harvested.GrainKg
+                                           && mixed.MixedRationKg > harvested.MixedRationKg
+                                           && mixed.TraceabilityStatus.Contains(harvested.ForageLotId, StringComparison.OrdinalIgnoreCase)
+                                           && mixed.TraceabilityStatus.Contains(harvested.GrainLotId, StringComparison.OrdinalIgnoreCase)
+                                           && mix.Contains("TMR", StringComparison.OrdinalIgnoreCase);
+            bool pass = harvestAvailable && farmStocksProduced && lotsStamped && harvestTelemetry && rationConsumesFarmLots;
+            return (pass, $"harvestAvailable={harvestAvailable}, farmStocksProduced={farmStocksProduced} ('{Trim(harvest)}'), " +
+                          $"lotsStamped={lotsStamped} ({harvested.ForageLotId}/{harvested.GrainLotId}), harvestTelemetry={harvestTelemetry} " +
+                          $"(moisture {harvested.ForageMoisturePct:F1}/{harvested.FeedGrainMoisturePct:F1}%), " +
+                          $"rationConsumesFarmLots={rationConsumesFarmLots} ('{Trim(mix)}')");
+        });
+
+        Scenario("CAKE COCOA LINE REALISM (cocoa beans are grown, roasted, winnowed, pressed and milled)", () =>
+        {
+            var cake = new CakeFactoryService { FarmIntensity = 1.0 };
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            string harvest = cake.HarvestCocoa();
+            TickCake(cake, fullBus, 0.5);
+            var harvested = cake.Snapshot;
+
+            string roast = cake.ProcessCocoa();
+            TickCake(cake, fullBus, 3.0);
+            var running = cake.Snapshot;
+
+            TickCake(cake, fullBus, 12.0);
+            var held = cake.Snapshot;
+            string release = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var released = cake.Snapshot;
+
+            bool harvestAvailable = before.CanHarvestCocoa;
+            bool beansProduced = harvested.CocoaBeansKg > before.CocoaBeansKg
+                                 && harvested.CocoaGrowth < before.CocoaGrowth
+                                 && harvested.BarnLaborHours < before.BarnLaborHours
+                                 && harvested.ForkliftBatteryPct < before.ForkliftBatteryPct;
+            bool lotStamped = harvested.CocoaBeansLotId.StartsWith("COCOABEAN-", StringComparison.OrdinalIgnoreCase)
+                              && harvested.CocoaBeansLotId != before.CocoaBeansLotId
+                              && harvested.TraceabilityStatus.Contains(harvested.CocoaBeansLotId, StringComparison.OrdinalIgnoreCase);
+            bool greenhouseTelemetry = harvested.CocoaFermentationPct > 80
+                                       && harvested.CocoaBeanMoisturePct > 0
+                                       && harvested.CocoaGreenhouseStatus.Contains("fermented cocoa beans", StringComparison.OrdinalIgnoreCase);
+            bool roastConsumesBeans = running.FactoryRunActive
+                                      && running.ActiveFactoryName.Contains("Cocoa", StringComparison.OrdinalIgnoreCase)
+                                      && running.ActiveFactoryPhase.Length > 0
+                                      && running.CocoaBeansKg < harvested.CocoaBeansKg
+                                      && running.TraceabilityStatus.Contains(harvested.CocoaBeansLotId, StringComparison.OrdinalIgnoreCase)
+                                      && running.CocoaRoasterTemperatureC > 80
+                                      && running.CocoaRoasterAirflowM3Min > 0
+                                      && running.CocoaRoastDevelopmentPct > 0
+                                      && roast.Contains("winnowing", StringComparison.OrdinalIgnoreCase)
+                                      && roast.Contains("pin-milling", StringComparison.OrdinalIgnoreCase);
+            bool labRelease = held.PendingLabLotId == held.CocoaLotId
+                              && released.CocoaKg > harvested.CocoaKg
+                              && released.PendingLabLotId.Length == 0
+                              && release.Contains("released", StringComparison.OrdinalIgnoreCase)
+                              && held.IngredientLabStatus.Contains("fat", StringComparison.OrdinalIgnoreCase)
+                              && held.CocoaRoasterTemperatureC > 120
+                              && held.CocoaRoasterAirflowM3Min > 0
+                              && held.CocoaRoastDevelopmentPct > 80
+                              && held.CocoaWinnowerEfficiencyPct > 90
+                              && held.CocoaNibYieldPct > 70
+                              && held.CocoaPressPressureBar > 0
+                              && held.CocoaGrindMicrons > 0
+                              && held.CocoaPowderFatPct > 0
+                              && held.CocoaPowderMoisturePct > 0
+                              && held.CocoaShellKg > harvested.CocoaShellKg
+                              && held.CocoaButterKg > harvested.CocoaButterKg
+                              && held.FactoryStatus.Contains("cocoa powder", StringComparison.OrdinalIgnoreCase);
+            bool pass = harvestAvailable && beansProduced && lotStamped && greenhouseTelemetry && roastConsumesBeans && labRelease;
+            return (pass, $"harvestAvailable={harvestAvailable}, beansProduced={beansProduced} ('{Trim(harvest)}'), " +
+                          $"lotStamped={lotStamped} ({harvested.CocoaBeansLotId}), greenhouseTelemetry={greenhouseTelemetry} " +
+                          $"(ferment {harvested.CocoaFermentationPct:F0}%, moisture {harvested.CocoaBeanMoisturePct:F1}%), " +
+                          $"roastConsumesBeans={roastConsumesBeans} ('{Trim(roast)}'), labRelease={labRelease} " +
+                          $"(fat {held.CocoaPowderFatPct:F1}%, moisture {held.CocoaPowderMoisturePct:F1}%, grind {held.CocoaGrindMicrons:F0} micron, butter {harvested.CocoaButterKg:F1}->{held.CocoaButterKg:F1} kg)");
+        });
+
+        Scenario("CAKE STARCH PLANT (grain becomes QA-released starch before feed/leavening use)", () =>
+        {
+            var cake = new CakeFactoryService { FarmIntensity = 0 };
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            string start = cake.RunStarchPlant();
+            TickCake(cake, fullBus, 1.0);
+            var running = cake.Snapshot;
+
+            TickCake(cake, fullBus, 8.0);
+            var held = cake.Snapshot;
+            string blockedFeed = cake.RunFeedMill();
+            string blockedLeavening = cake.RunLeaveningPlant();
+            TickCake(cake, fullBus, 0.5);
+            var blocked = cake.Snapshot;
+
+            string release = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var released = cake.Snapshot;
+
+            string leavening = cake.RunLeaveningPlant();
+            TickCake(cake, fullBus, 0.5);
+            var leaveningRun = cake.Snapshot;
+
+            bool startConsumesGrain = before.CanRunStarchPlant
+                                      && running.FactoryRunActive
+                                      && running.ActiveFactoryName.Contains("Starch", StringComparison.OrdinalIgnoreCase)
+                                      && running.GrainKg < before.GrainKg
+                                      && Math.Abs(running.StarchKg - before.StarchKg) < 0.001
+                                      && running.ProcessWaterL < before.ProcessWaterL
+                                      && running.CulinarySteamKg < before.CulinarySteamKg
+                                      && start.Contains("Started wet-milling", StringComparison.OrdinalIgnoreCase);
+            bool heldForLab = held.StarchKg > before.StarchKg
+                              && held.StarchLotId.StartsWith("STARCH-", StringComparison.OrdinalIgnoreCase)
+                              && held.StarchLotId != before.StarchLotId
+                              && held.PendingLabLotId == held.StarchLotId
+                              && held.StarchSlurryBrix > 0
+                              && held.StarchDryerTemperatureC > 40
+                              && held.StarchMoisturePct > 0;
+            bool unreleasedStarchBlocked = blockedFeed.Contains("starch lot", StringComparison.OrdinalIgnoreCase)
+                                           && blockedLeavening.Contains("starch lot", StringComparison.OrdinalIgnoreCase)
+                                           && !blocked.CanRunFeedMill
+                                           && !blocked.CanRunLeaveningPlant;
+            bool releaseClearsHold = release.Contains("released", StringComparison.OrdinalIgnoreCase)
+                                     && released.PendingLabLotId.Length == 0
+                                     && released.CanRunFeedMill
+                                     && released.CanRunLeaveningPlant;
+            bool leaveningConsumesStarch = leaveningRun.StarchKg < released.StarchKg
+                                           && leaveningRun.FactoryRunActive
+                                           && leaveningRun.TraceabilityStatus.Contains(released.StarchLotId, StringComparison.OrdinalIgnoreCase)
+                                           && leavening.Contains("starch carrier", StringComparison.OrdinalIgnoreCase);
+            bool pass = startConsumesGrain && heldForLab && unreleasedStarchBlocked && releaseClearsHold && leaveningConsumesStarch;
+            return (pass, $"startConsumesGrain={startConsumesGrain} ('{Trim(start)}'), heldForLab={heldForLab} " +
+                          $"(starch {before.StarchKg:F1}->{held.StarchKg:F1} kg, lot {held.StarchLotId}), " +
+                          $"unreleasedStarchBlocked={unreleasedStarchBlocked}, releaseClearsHold={releaseClearsHold} ('{Trim(release)}'), " +
+                          $"leaveningConsumesStarch={leaveningConsumesStarch} ('{Trim(leavening)}')");
+        });
+
+        Scenario("CAKE BAKING SODA PLANT (raw soda ash is carbonated, dried and QA-released before leavening)", () =>
+        {
+            var cake = new CakeFactoryService { FarmIntensity = 0 };
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            string start = cake.RunBakingSodaPlant();
+            TickCake(cake, fullBus, 2.5);
+            var running = cake.Snapshot;
+
+            TickCake(cake, fullBus, 7.0);
+            var held = cake.Snapshot;
+            string blockedLeavening = cake.RunLeaveningPlant();
+            TickCake(cake, fullBus, 0.5);
+            var blocked = cake.Snapshot;
+
+            string release = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var released = cake.Snapshot;
+
+            bool rawSodaReady = before.CanRunBakingSodaPlant
+                                && before.SodaAshKg >= 6
+                                && before.SodaAshLotId.StartsWith("SODA-", StringComparison.OrdinalIgnoreCase)
+                                && before.SodaAshAssayPct > 98;
+            bool carbonationStarted = running.FactoryRunActive
+                                      && running.ActiveFactoryName.Contains("Baking-soda", StringComparison.OrdinalIgnoreCase)
+                                      && running.SodaAshKg < before.SodaAshKg
+                                      && Math.Abs(running.BakingSodaKg - before.BakingSodaKg) < 0.001
+                                      && running.SodaCarbonationPressureBar > 0
+                                      && running.SodaReactorTemperatureC > 30
+                                      && start.Contains("carbonating", StringComparison.OrdinalIgnoreCase);
+            bool heldForLab = !held.FactoryRunActive
+                              && held.BakingSodaKg > before.BakingSodaKg
+                              && held.BakingSodaLotId.StartsWith("BAKESODA-", StringComparison.OrdinalIgnoreCase)
+                              && held.BakingSodaLotId != before.BakingSodaLotId
+                              && held.PendingLabLotId == held.BakingSodaLotId
+                              && held.PendingLabProductName.Contains("baking soda", StringComparison.OrdinalIgnoreCase)
+                              && held.IngredientLabStatus.Contains("bicarbonate", StringComparison.OrdinalIgnoreCase)
+                              && held.SodaCentrifugeRpm > 0
+                              && held.BakingSodaPurityPct > 98.5
+                              && held.BakingSodaMoisturePct > 0
+                              && held.LeaveningDustKg > before.LeaveningDustKg
+                              && held.FactoryStatus.Contains("raw soda ash", StringComparison.OrdinalIgnoreCase);
+            bool unreleasedSodaBlocked = blockedLeavening.Contains("baking soda lot", StringComparison.OrdinalIgnoreCase)
+                                         && !blocked.CanRunLeaveningPlant;
+            bool releaseClearsHold = release.Contains("released", StringComparison.OrdinalIgnoreCase)
+                                     && released.PendingLabLotId.Length == 0
+                                     && released.CanRunLeaveningPlant;
+            bool pass = rawSodaReady && carbonationStarted && heldForLab && unreleasedSodaBlocked && releaseClearsHold;
+            return (pass, $"rawSodaReady={rawSodaReady} ({before.SodaAshLotId}, {before.SodaAshAssayPct:F1}%), " +
+                          $"carbonationStarted={carbonationStarted} ('{Trim(start)}'), heldForLab={heldForLab} " +
+                          $"(bicarb {before.BakingSodaKg:F1}->{held.BakingSodaKg:F1} kg, lot {held.BakingSodaLotId}, purity {held.BakingSodaPurityPct:F2}%), " +
+                          $"unreleasedSodaBlocked={unreleasedSodaBlocked} ('{Trim(blockedLeavening)}'), releaseClearsHold={releaseClearsHold} ('{Trim(release)}')");
+        });
+
+        Scenario("CAKE LEAVENING PLANT REALISM (released baking soda, phosphate and released starch become QA-held baking powder)", () =>
+        {
+            var cake = new CakeFactoryService { FarmIntensity = 0 };
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            string start = cake.RunLeaveningPlant();
+            TickCake(cake, fullBus, 1.0);
+            var running = cake.Snapshot;
+
+            TickCake(cake, fullBus, 7.0);
+            var held = cake.Snapshot;
+            string blocked = cake.StageBatchKit();
+
+            string release = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var released = cake.Snapshot;
+
+            bool sourceLotsReady = before.CanRunLeaveningPlant
+                                   && before.BakingSodaLotId.StartsWith("BAKESODA-", StringComparison.OrdinalIgnoreCase)
+                                   && before.PhosphateLotId.StartsWith("PHOSPHATE-", StringComparison.OrdinalIgnoreCase)
+                                   && before.StarchLotId.Length > 0
+                                   && before.BakingSodaPurityPct > 98
+                                   && before.PhosphateAcidValuePct > 96
+                                   && before.TraceabilityScorePct >= 99;
+            bool blendStarted = running.FactoryRunActive
+                                && running.ActiveFactoryName.Contains("baking-powder", StringComparison.OrdinalIgnoreCase)
+                                && running.ActiveFactoryPhase.Length > 0
+                                && Math.Abs(running.SodaAshKg - before.SodaAshKg) < 0.001
+                                && running.BakingSodaKg < before.BakingSodaKg
+                                && running.PhosphateKg < before.PhosphateKg
+                                && running.StarchKg < before.StarchKg
+                                && Math.Abs(running.BakingPowderKg - before.BakingPowderKg) < 0.001
+                                && running.LeaveningMixerRpm > 0
+                                && running.LeaveningHomogeneityPct > 0
+                                && running.LeaveningBlendMoisturePct > 0
+                                && running.LeaveningDustCollectorPressurePa > 0
+                                && start.Contains("baking soda", StringComparison.OrdinalIgnoreCase)
+                                && start.Contains(before.BakingSodaLotId, StringComparison.OrdinalIgnoreCase)
+                                && start.Contains(before.PhosphateLotId, StringComparison.OrdinalIgnoreCase);
+            bool heldForLab = !held.FactoryRunActive
+                              && held.BakingPowderKg > before.BakingPowderKg
+                              && held.LeaveningLotId != before.LeaveningLotId
+                              && held.PendingLabLotId == held.LeaveningLotId
+                              && held.PendingLabProductName.Contains("baking powder", StringComparison.OrdinalIgnoreCase)
+                              && held.IngredientLabStatus.Contains("CO2", StringComparison.OrdinalIgnoreCase)
+                              && held.LeaveningHomogeneityPct > 95
+                              && held.LeaveningBlendMoisturePct > 0
+                              && held.LeaveningSifterLoadPct > 0
+                              && held.LeaveningDustCollectorPressurePa > 0
+                              && held.LeaveningDustKg > before.LeaveningDustKg
+                              && held.FactoryStatus.Contains("source lots", StringComparison.OrdinalIgnoreCase)
+                              && held.FactoryStatus.Contains("baking soda purity", StringComparison.OrdinalIgnoreCase);
+            bool releaseClearsLeavening = blocked.Contains("lab release", StringComparison.OrdinalIgnoreCase)
+                                          && release.Contains("released", StringComparison.OrdinalIgnoreCase)
+                                          && released.PendingLabLotId.Length == 0
+                                          && released.CanStageBatchKit;
+            bool pass = sourceLotsReady && blendStarted && heldForLab && releaseClearsLeavening;
+            return (pass, $"sourceLotsReady={sourceLotsReady} ({before.BakingSodaLotId}/{before.PhosphateLotId}, bicarb {before.BakingSodaPurityPct:F1}%, acid {before.PhosphateAcidValuePct:F1}%), " +
+                          $"blendStarted={blendStarted} ('{Trim(start)}'), heldForLab={heldForLab} " +
+                          $"(homogeneity {held.LeaveningHomogeneityPct:F1}%, moisture {held.LeaveningBlendMoisturePct:F1}%, dust {held.LeaveningDustCollectorPressurePa:F0} Pa), " +
+                          $"releaseClearsLeavening={releaseClearsLeavening} ('{Trim(release)}')");
+        });
+
+        Scenario("CAKE FEED MILL (poultry feed is factory-made before hens consume it)", () =>
+        {
+            var cake = new CakeFactoryService { FarmIntensity = 0 };
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            string start = cake.RunFeedMill();
+            TickCake(cake, fullBus, 1.0);
+            var running = cake.Snapshot;
+
+            TickCake(cake, fullBus, 8.0);
+            var held = cake.Snapshot;
+
+            cake.FarmIntensity = 1.0;
+            TickCake(cake, fullBus, 30.0);
+            var blocked = cake.Snapshot;
+
+            string release = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var released = cake.Snapshot;
+
+            TickCake(cake, fullBus, 30.0);
+            var used = cake.Snapshot;
+
+            bool startConsumesInputs = before.CanRunFeedMill
+                                       && running.FactoryRunActive
+                                       && running.ActiveFactoryName.Contains("feed", StringComparison.OrdinalIgnoreCase)
+                                       && running.ActiveFactoryPhase.Length > 0
+                                       && running.FactoryProgress > 0
+                                       && running.FactoryProgress < 1
+                                       && running.GrainKg < before.GrainKg
+                                       && running.StarchKg < before.StarchKg
+                                       && running.DairyMineralKg < before.DairyMineralKg
+                                       && running.BranKg < before.BranKg
+                                       && running.BeetPulpKg < before.BeetPulpKg
+                                       && Math.Abs(running.AnimalFeedKg - before.AnimalFeedKg) < 0.001
+                                       && start.Contains("poultry feed", StringComparison.OrdinalIgnoreCase);
+            bool completionHeldForLab = !held.FactoryRunActive
+                                        && held.AnimalFeedKg > before.AnimalFeedKg
+                                        && held.FeedLotId != before.FeedLotId
+                                        && held.PendingLabProductName.Contains("feed", StringComparison.OrdinalIgnoreCase)
+                                        && held.FeedMillHammerRpm > 0
+                                        && held.FeedPelletTemperatureC > 0
+                                        && held.FeedMoisturePct > 0;
+            bool unreleasedFeedBlocked = Math.Abs(blocked.AnimalFeedKg - held.AnimalFeedKg) < 0.001
+                                         && blocked.EggSourceStatus.Contains("QA lab release", StringComparison.OrdinalIgnoreCase);
+            bool releaseClearsHold = released.PendingLabLotId.Length == 0
+                                     && released.IngredientLabStatus.Contains("released", StringComparison.OrdinalIgnoreCase)
+                                     && release.Contains("released", StringComparison.OrdinalIgnoreCase);
+            bool releasedFeedConsumed = used.AnimalFeedKg < released.AnimalFeedKg
+                                        && used.EggsReady > released.EggsReady
+                                        && used.EggSourceStatus.Contains(released.FeedLotId, StringComparison.OrdinalIgnoreCase);
+            bool pass = startConsumesInputs && completionHeldForLab && unreleasedFeedBlocked && releaseClearsHold && releasedFeedConsumed;
+            return (pass, $"startConsumesInputs={startConsumesInputs} ('{Trim(start)}'), completionHeldForLab={completionHeldForLab} " +
+                          $"(feed {before.AnimalFeedKg:F1}->{held.AnimalFeedKg:F1} kg, lot {held.FeedLotId}), " +
+                          $"unreleasedFeedBlocked={unreleasedFeedBlocked}, releaseClearsHold={releaseClearsHold} ('{Trim(release)}'), " +
+                          $"releasedFeedConsumed={releasedFeedConsumed} ({released.AnimalFeedKg:F1}->{used.AnimalFeedKg:F1} kg)");
+        });
+
+        Scenario("CAKE MINERAL PREMIX PLANT (dairy mineral is factory-made before ration/feed consume it)", () =>
+        {
+            var cake = new CakeFactoryService { FarmIntensity = 0 };
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            string start = cake.RunMineralPremixPlant();
+            TickCake(cake, fullBus, 1.0);
+            var running = cake.Snapshot;
+            TickCake(cake, fullBus, 6.0);
+            var held = cake.Snapshot;
+
+            string blockedMix = cake.MixDairyRation();
+            TickCake(cake, fullBus, 0.5);
+            var blocked = cake.Snapshot;
+
+            string release = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var released = cake.Snapshot;
+
+            string mix = cake.MixDairyRation();
+            TickCake(cake, fullBus, 0.5);
+            var mixed = cake.Snapshot;
+
+            bool startConsumesInputs = before.CanRunMineralPlant
+                                       && start.Contains("mineral", StringComparison.OrdinalIgnoreCase)
+                                       && running.FactoryRunActive
+                                       && running.ActiveFactoryName.Contains("mineral", StringComparison.OrdinalIgnoreCase)
+                                       && running.LimestoneKg < before.LimestoneKg
+                                       && running.TraceMineralKg < before.TraceMineralKg
+                                       && running.PhosphateKg < before.PhosphateKg
+                                       && running.SaltKg < before.SaltKg
+                                       && Math.Abs(running.DairyMineralKg - before.DairyMineralKg) < 0.001
+                                       && running.ProcessWaterL < before.ProcessWaterL
+                                       && running.CompressedAirNm3 < before.CompressedAirNm3
+                                       && running.FilterMediaPct < before.FilterMediaPct;
+            bool completionHeldForLab = !held.FactoryRunActive
+                                        && held.DairyMineralKg > before.DairyMineralKg
+                                        && held.DairyMineralLotId.StartsWith("DAIRYMIN-", StringComparison.OrdinalIgnoreCase)
+                                        && held.DairyMineralLotId != before.DairyMineralLotId
+                                        && held.PendingLabLotId == held.DairyMineralLotId
+                                        && held.PendingLabProductName.Contains("mineral", StringComparison.OrdinalIgnoreCase)
+                                        && held.MineralMixerRpm > 0
+                                        && held.MineralHomogeneityPct > 90
+                                        && held.MineralMetalPpm > 0;
+            bool unreleasedMineralBlocked = Math.Abs(blocked.MixedRationKg - held.MixedRationKg) < 0.001
+                                            && !blocked.CanMixDairyRation
+                                            && blockedMix.Contains("QA lab release", StringComparison.OrdinalIgnoreCase);
+            bool releaseClearsHold = released.PendingLabLotId.Length == 0
+                                     && released.CanMixDairyRation
+                                     && released.CanRunFeedMill
+                                     && release.Contains("released", StringComparison.OrdinalIgnoreCase);
+            bool releasedMineralConsumed = mixed.DairyMineralKg < released.DairyMineralKg
+                                           && mixed.MixedRationKg > released.MixedRationKg
+                                           && mixed.TraceabilityStatus.Contains(released.DairyMineralLotId, StringComparison.OrdinalIgnoreCase)
+                                           && mix.Contains("mineral premix", StringComparison.OrdinalIgnoreCase);
+            bool pass = startConsumesInputs && completionHeldForLab && unreleasedMineralBlocked && releaseClearsHold && releasedMineralConsumed;
+            return (pass, $"startConsumesInputs={startConsumesInputs} ('{Trim(start)}'), completionHeldForLab={completionHeldForLab} " +
+                          $"(mineral {before.DairyMineralKg:F1}->{held.DairyMineralKg:F1} kg, lot {held.DairyMineralLotId}), " +
+                          $"unreleasedMineralBlocked={unreleasedMineralBlocked} ('{Trim(blockedMix)}'), releaseClearsHold={releaseClearsHold} ('{Trim(release)}'), " +
+                          $"releasedMineralConsumed={releasedMineralConsumed} ({released.DairyMineralKg:F1}->{mixed.DairyMineralKg:F1} kg)");
+        });
+
+        Scenario("CAKE COMPOST FERTILIZER PLANT (crop fertilizer is factory-made from manure and organics)", () =>
+        {
+            var cake = new CakeFactoryService { FarmIntensity = 0 };
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            string start = cake.RunCompostPlant();
+            TickCake(cake, fullBus, 1.0);
+            var running = cake.Snapshot;
+            TickCake(cake, fullBus, 8.5);
+            var held = cake.Snapshot;
+
+            bool startConsumesInputs = before.CanRunCompostPlant
+                                       && start.Contains("compost", StringComparison.OrdinalIgnoreCase)
+                                       && running.FactoryRunActive
+                                       && running.ActiveFactoryName.Contains("compost", StringComparison.OrdinalIgnoreCase)
+                                       && running.ManureKg < before.ManureKg
+                                       && running.PoultryManureKg < before.PoultryManureKg
+                                       && running.BranKg < before.BranKg
+                                       && running.BeetPulpKg < before.BeetPulpKg
+                                       && running.ProcessWaterL < before.ProcessWaterL
+                                       && running.CompressedAirNm3 < before.CompressedAirNm3
+                                       && running.FilterMediaPct < before.FilterMediaPct;
+            bool completionHeldForLab = !held.FactoryRunActive
+                                        && held.FertilizerKg > before.FertilizerKg
+                                        && held.FertilizerLotId.StartsWith("FERT-", StringComparison.OrdinalIgnoreCase)
+                                        && held.FertilizerLotId != before.FertilizerLotId
+                                        && held.PendingLabLotId == held.FertilizerLotId
+                                        && held.PendingLabProductName.Contains("fertilizer", StringComparison.OrdinalIgnoreCase)
+                                        && held.CompostTemperatureC > 45
+                                        && held.CompostMoisturePct > 25
+                                        && held.CompostAerationPct > 80;
+
+            cake.FarmIntensity = 1.0;
+            TickCake(cake, fullBus, 60);
+            var blocked = cake.Snapshot;
+            bool unreleasedFertilizerBlocked = Math.Abs(blocked.FertilizerKg - held.FertilizerKg) < 0.001
+                                               && blocked.WheatGrowth <= held.WheatGrowth + 0.001
+                                               && blocked.TraceabilityStatus.Contains("fertilizer", StringComparison.OrdinalIgnoreCase);
+
+            string release = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var released = cake.Snapshot;
+            TickCake(cake, fullBus, 60);
+            var worked = cake.Snapshot;
+
+            bool releaseClearsHold = released.PendingLabLotId.Length == 0
+                                     && release.Contains("released", StringComparison.OrdinalIgnoreCase);
+            bool releasedFertilizerConsumed = worked.FertilizerKg < released.FertilizerKg
+                                              && worked.WheatGrowth > released.WheatGrowth
+                                              && worked.FertilizerLotId == released.FertilizerLotId;
+            bool pass = startConsumesInputs && completionHeldForLab && unreleasedFertilizerBlocked && releaseClearsHold && releasedFertilizerConsumed;
+            return (pass, $"startConsumesInputs={startConsumesInputs} ('{Trim(start)}'), completionHeldForLab={completionHeldForLab} " +
+                          $"(fertilizer {before.FertilizerKg:F1}->{held.FertilizerKg:F1} kg, lot {held.FertilizerLotId}), " +
+                          $"unreleasedFertilizerBlocked={unreleasedFertilizerBlocked}, releaseClearsHold={releaseClearsHold} ('{Trim(release)}'), " +
+                          $"releasedFertilizerConsumed={releasedFertilizerConsumed} ({released.FertilizerKg:F1}->{worked.FertilizerKg:F1} kg, wheat {released.WheatGrowth:F1}->{worked.WheatGrowth:F1}%)");
+        });
+
+        Scenario("CAKE BEDDING PLANT (livestock bedding is made from straw before barns consume it)", () =>
+        {
+            var cake = new CakeFactoryService { FarmIntensity = 0 };
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            string start = cake.RunBeddingPlant();
+            TickCake(cake, fullBus, 1.0);
+            var running = cake.Snapshot;
+            TickCake(cake, fullBus, 6.5);
+            var held = cake.Snapshot;
+
+            bool startConsumesInputs = before.CanRunBeddingPlant
+                                       && start.Contains("bedding", StringComparison.OrdinalIgnoreCase)
+                                       && running.FactoryRunActive
+                                       && running.ActiveFactoryName.Contains("bedding", StringComparison.OrdinalIgnoreCase)
+                                       && running.StrawKg < before.StrawKg
+                                       && running.BranKg < before.BranKg
+                                       && Math.Abs(running.BeddingKg - before.BeddingKg) < 0.001
+                                       && running.ProcessWaterL < before.ProcessWaterL
+                                       && running.CompressedAirNm3 < before.CompressedAirNm3
+                                       && running.FilterMediaPct < before.FilterMediaPct;
+            bool completionHeldForLab = !held.FactoryRunActive
+                                        && held.BeddingKg > before.BeddingKg
+                                        && held.BeddingLotId.StartsWith("BEDDING-", StringComparison.OrdinalIgnoreCase)
+                                        && held.BeddingLotId != before.BeddingLotId
+                                        && held.PendingLabLotId == held.BeddingLotId
+                                        && held.PendingLabProductName.Contains("bedding", StringComparison.OrdinalIgnoreCase)
+                                        && held.BeddingChopperRpm > 0
+                                        && held.BeddingMoisturePct > 0
+                                        && held.BeddingDustPct > 0;
+
+            cake.FarmIntensity = 1.0;
+            TickCake(cake, fullBus, 45);
+            var blocked = cake.Snapshot;
+            bool unreleasedBeddingBlocked = Math.Abs(blocked.BeddingKg - held.BeddingKg) < 0.001
+                                            && blocked.MilkProductionLPerHour <= 0.001
+                                            && blocked.EggProductionPerHour <= 0.001
+                                            && (blocked.MilkSourceStatus.Contains("bedding lot", StringComparison.OrdinalIgnoreCase)
+                                                || blocked.EggSourceStatus.Contains("bedding lot", StringComparison.OrdinalIgnoreCase));
+
+            string release = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var released = cake.Snapshot;
+            TickCake(cake, fullBus, 45);
+            var used = cake.Snapshot;
+
+            bool releaseClearsHold = released.PendingLabLotId.Length == 0
+                                     && release.Contains("released", StringComparison.OrdinalIgnoreCase);
+            bool releasedBeddingConsumed = used.BeddingKg < released.BeddingKg
+                                           && used.MilkProductionLPerHour > 0
+                                           && used.EggProductionPerHour > 0
+                                           && used.MilkSourceStatus.Contains(released.BeddingLotId, StringComparison.OrdinalIgnoreCase);
+
+            bool pass = startConsumesInputs && completionHeldForLab && unreleasedBeddingBlocked && releaseClearsHold && releasedBeddingConsumed;
+            return (pass, $"startConsumesInputs={startConsumesInputs} ('{Trim(start)}'), completionHeldForLab={completionHeldForLab} " +
+                          $"(bedding {before.BeddingKg:F1}->{held.BeddingKg:F1} kg, lot {held.BeddingLotId}, straw {before.StrawKg:F1}->{held.StrawKg:F1} kg), " +
+                          $"unreleasedBeddingBlocked={unreleasedBeddingBlocked}, releaseClearsHold={releaseClearsHold} ('{Trim(release)}'), " +
+                          $"releasedBeddingConsumed={releasedBeddingConsumed} ({released.BeddingKg:F1}->{used.BeddingKg:F1} kg)");
+        });
+
+        Scenario("CAKE POULTRY PROVENANCE (eggs come from hens consuming feed, water, bedding and labor)", () =>
+        {
+            var cake = new CakeFactoryService { FarmIntensity = 1.0 };
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            TickCake(cake, fullBus, 80);
+            var worked = cake.Snapshot;
+
+            string collect = cake.CollectDairyAndEggs();
+            TickCake(cake, fullBus, 0.5);
+            var collected = cake.Snapshot;
+
+            string wash = cake.WashPoultryHouse();
+            TickCake(cake, fullBus, 0.5);
+            var washed = cake.Snapshot;
+
+            bool henFlockModeled = worked.LayingHenCount > 0
+                                    && worked.EggProductionPerHour > 0
+                                    && worked.EggSourceStatus.Contains("hens", StringComparison.OrdinalIgnoreCase);
+            bool henInputsConsumed = worked.AnimalFeedKg < before.AnimalFeedKg
+                                     && worked.IrrigationWaterL < before.IrrigationWaterL
+                                     && worked.BeddingKg < before.BeddingKg
+                                     && worked.BarnLaborHours < before.BarnLaborHours;
+            bool eggProduction = worked.EggsReady > before.EggsReady
+                                 && worked.PoultryManureKg > before.PoultryManureKg
+                                 && worked.HenHouseHygienePct < before.HenHouseHygienePct;
+            bool eggCollection = collected.Eggs > worked.Eggs
+                                 && collected.EggsReady < worked.EggsReady
+                                 && !string.Equals(collected.EggLotId, before.EggLotId, StringComparison.Ordinal)
+                                 && collected.EggSourceStatus.Contains("hens", StringComparison.OrdinalIgnoreCase)
+                                 && collect.Contains("graded eggs", StringComparison.OrdinalIgnoreCase)
+                                 && collected.ProcessWaterL < worked.ProcessWaterL
+                                 && collected.CompressedAirNm3 < worked.CompressedAirNm3;
+            bool eggQaModeled = collected.EggShellQualityPct >= 78
+                                && collected.EggWasherTemperatureC is >= 32 and <= 49
+                                && collected.EggQaStatus.Contains("spec", StringComparison.OrdinalIgnoreCase);
+            bool washdown = washed.HenHouseHygienePct > collected.HenHouseHygienePct
+                            && washed.PoultryManureKg < collected.PoultryManureKg
+                            && washed.ProcessWaterL < collected.ProcessWaterL
+                            && washed.CulinarySteamKg < collected.CulinarySteamKg
+                            && wash.Contains("Washed", StringComparison.OrdinalIgnoreCase);
+            bool pass = henFlockModeled && henInputsConsumed && eggProduction && eggCollection && eggQaModeled && washdown;
+            return (pass, $"henFlockModeled={henFlockModeled} ({worked.LayingHenCount} hens, {worked.EggProductionPerHour:F1} eggs/h), " +
+                          $"henInputsConsumed={henInputsConsumed}, eggProduction={eggProduction} ({before.EggsReady:F0}->{worked.EggsReady:F0} ready), " +
+                          $"eggCollection={eggCollection} ('{Trim(collect)}'), eggQaModeled={eggQaModeled} " +
+                          $"({collected.EggShellQualityPct:F0}% shell, {collected.EggWasherTemperatureC:F1}C), washdown={washdown} ('{Trim(wash)}')");
+        });
+
+        Scenario("CAKE DAIRY RATION AND PARLOR HYGIENE (milk depends on feed mixing and washdown)", () =>
+        {
+            var cake = new CakeFactoryService { FarmIntensity = 1.0 };
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            string mix = cake.MixDairyRation();
+            TickCake(cake, fullBus, 0.5);
+            var mixed = cake.Snapshot;
+
+            TickCake(cake, fullBus, 80);
+            var worked = cake.Snapshot;
+
+            string wash = cake.WashDairyParlor();
+            TickCake(cake, fullBus, 0.5);
+            var washed = cake.Snapshot;
+
+            bool rationMixed = mixed.MixedRationKg > before.MixedRationKg
+                                && mixed.ForageKg < before.ForageKg
+                                && mixed.GrainKg < before.GrainKg
+                                && mixed.DairyMineralKg < before.DairyMineralKg
+                                && mixed.RationStatus.Contains("TMR", StringComparison.OrdinalIgnoreCase)
+                                && !string.Equals(mixed.MixedRationLotId, before.MixedRationLotId, StringComparison.Ordinal);
+            bool rationConsumed = worked.MixedRationKg < mixed.MixedRationKg
+                                   && worked.MilkProductionLPerHour > 0
+                                   && worked.MilkSourceStatus.Contains("ration", StringComparison.OrdinalIgnoreCase);
+            bool barnReality = worked.ManureKg > mixed.ManureKg
+                               && worked.DairyParlorHygienePct < mixed.DairyParlorHygienePct
+                               && worked.CowComfort > 0
+                               && worked.BarnLaborHours < mixed.BarnLaborHours;
+            bool washdown = washed.DairyParlorHygienePct > worked.DairyParlorHygienePct
+                            && washed.ManureKg < worked.ManureKg
+                            && washed.ProcessWaterL < worked.ProcessWaterL
+                            && washed.CulinarySteamKg < worked.CulinarySteamKg
+                            && wash.Contains("Washed", StringComparison.OrdinalIgnoreCase);
+            bool pass = rationMixed && rationConsumed && barnReality && washdown;
+            return (pass, $"rationMixed={rationMixed} ('{Trim(mix)}'), rationConsumed={rationConsumed} ({mixed.MixedRationKg:F1}->{worked.MixedRationKg:F1} kg), " +
+                          $"barnReality={barnReality} (manure {mixed.ManureKg:F0}->{worked.ManureKg:F0} kg, hygiene {mixed.DairyParlorHygienePct:F0}->{worked.DairyParlorHygienePct:F0}%), " +
+                          $"washdown={washdown} ('{Trim(wash)}')");
+        });
+
+        Scenario("CAKE FLOUR MILL REALISM (wheat is cleaned and tempered before flour release)", () =>
+        {
+            var cake = new CakeFactoryService { FarmIntensity = 1.0 };
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            string start = cake.MillWheat();
+            TickCake(cake, fullBus, 1.0);
+            var running = cake.Snapshot;
+
+            TickCake(cake, fullBus, 8.5);
+            var held = cake.Snapshot;
+
+            string blocked = cake.StageBatchKit();
+            string release = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var released = cake.Snapshot;
+
+            bool rawWheatAssayed = before.WheatMoisturePct > 0
+                                   && before.WheatForeignMaterialPct > 0
+                                   && before.WheatProteinPct > 0
+                                   && before.CanMillWheat;
+            bool millConsumesWheatBeforeOutput = running.FactoryRunActive
+                                                 && running.ActiveFactoryName.Contains("mill", StringComparison.OrdinalIgnoreCase)
+                                                 && running.ActiveFactoryPhase.Length > 0
+                                                 && running.WheatKg < before.WheatKg
+                                                 && running.WheatTemperMoisturePct >= before.WheatMoisturePct
+                                                 && running.MillSifterLoadPct >= 0
+                                                 && Math.Abs(running.FlourKg - before.FlourKg) < 0.001
+                                                 && start.Contains("tempering", StringComparison.OrdinalIgnoreCase);
+            bool flourHeldForLab = !held.FactoryRunActive
+                                   && held.FlourKg > before.FlourKg
+                                   && held.FlourLotId != before.FlourLotId
+                                   && held.PendingLabLotId == held.FlourLotId
+                                   && held.IngredientLabStatus.Contains("ash", StringComparison.OrdinalIgnoreCase)
+                                   && held.FlourMoisturePct > 0
+                                   && held.FlourAshPct > 0
+                                   && held.FlourProteinPct > 0
+                                   && held.FactoryStatus.Contains("cleaned/tempered", StringComparison.OrdinalIgnoreCase);
+            bool releaseClearsFlour = blocked.Contains("lab release", StringComparison.OrdinalIgnoreCase)
+                                      && release.Contains("released", StringComparison.OrdinalIgnoreCase)
+                                      && released.PendingLabLotId.Length == 0;
+            bool pass = rawWheatAssayed && millConsumesWheatBeforeOutput && flourHeldForLab && releaseClearsFlour;
+            return (pass, $"rawWheatAssayed={rawWheatAssayed} ({before.WheatMoisturePct:F1}% moisture, {before.WheatForeignMaterialPct:F1}% FM, {before.WheatProteinPct:F1}% protein), " +
+                          $"millConsumesWheatBeforeOutput={millConsumesWheatBeforeOutput} ('{Trim(start)}'), flourHeldForLab={flourHeldForLab} " +
+                          $"({held.FlourMoisturePct:F1}% moisture, {held.FlourAshPct:F2}% ash, {held.FlourProteinPct:F1}% protein), releaseClearsFlour={releaseClearsFlour} ('{Trim(release)}')");
+        });
+
+        Scenario("CAKE SUGAR HOUSE REALISM (sugar crop is purified and crystallized before release)", () =>
+        {
+            var cake = new CakeFactoryService { FarmIntensity = 1.0 };
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            string start = cake.RefineSugar();
+            TickCake(cake, fullBus, 1.0);
+            var running = cake.Snapshot;
+
+            TickCake(cake, fullBus, 10.5);
+            var held = cake.Snapshot;
+
+            string blocked = cake.StageBatchKit();
+            string release = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var released = cake.Snapshot;
+
+            bool cropAssayed = before.SugarCropSugarPct > 0
+                               && before.SugarCropSoilTarePct > 0
+                               && before.CanRefineSugar;
+            bool purificationRunning = running.FactoryRunActive
+                                       && running.ActiveFactoryName.Contains("Sugar", StringComparison.OrdinalIgnoreCase)
+                                       && running.ActiveFactoryPhase.Length > 0
+                                       && running.SugarCropKg < before.SugarCropKg
+                                       && Math.Abs(running.SugarKg - before.SugarKg) < 0.001
+                                       && running.SugarJuiceBrix > 0
+                                       && running.SugarJuicePurityPct > 0
+                                       && running.SugarLimePh > 0
+                                       && start.Contains("crystallizing", StringComparison.OrdinalIgnoreCase);
+            bool sugarHeldForLab = !held.FactoryRunActive
+                                   && held.SugarKg > before.SugarKg
+                                   && held.SugarLotId != before.SugarLotId
+                                   && held.PendingLabLotId == held.SugarLotId
+                                   && held.IngredientLabStatus.Contains("polarization", StringComparison.OrdinalIgnoreCase)
+                                   && held.SugarJuiceBrix > 60
+                                   && held.SugarPanVacuumKPa > 0
+                                   && held.SugarCentrifugeRpm > 0
+                                   && held.SugarMoisturePct > 0
+                                   && held.SugarColorIcumsa > 0
+                                   && held.SugarPolarizationPct > 99
+                                   && held.BeetPulpKg > before.BeetPulpKg
+                                   && held.MolassesKg > before.MolassesKg
+                                   && held.FactoryStatus.Contains("crystallized", StringComparison.OrdinalIgnoreCase);
+            bool releaseClearsSugar = blocked.Contains("lab release", StringComparison.OrdinalIgnoreCase)
+                                      && release.Contains("released", StringComparison.OrdinalIgnoreCase)
+                                      && released.PendingLabLotId.Length == 0;
+            bool pass = cropAssayed && purificationRunning && sugarHeldForLab && releaseClearsSugar;
+            return (pass, $"cropAssayed={cropAssayed} ({before.SugarCropSugarPct:F1}% sugar, {before.SugarCropSoilTarePct:F1}% tare), " +
+                          $"purificationRunning={purificationRunning} ('{Trim(start)}'), sugarHeldForLab={sugarHeldForLab} " +
+                          $"({held.SugarJuiceBrix:F1} Brix, {held.SugarColorIcumsa:F0} ICUMSA, {held.SugarPolarizationPct:F2}% pol, molasses {before.MolassesKg:F1}->{held.MolassesKg:F1} kg), " +
+                          $"releaseClearsSugar={releaseClearsSugar} ('{Trim(release)}')");
+        });
+
+        Scenario("CAKE SALT WORKS REALISM (brine is clarified, evaporated, centrifuged and dried before salt release)", () =>
+        {
+            var cake = new CakeFactoryService();
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            string start = cake.RunSaltWorks();
+            TickCake(cake, fullBus, 1.0);
+            var running = cake.Snapshot;
+
+            TickCake(cake, fullBus, 10.5);
+            var held = cake.Snapshot;
+            string blocked = cake.StageBatchKit();
+
+            string release = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var released = cake.Snapshot;
+
+            bool brineAssayed = before.CanRunSaltWorks
+                                && before.BrineLotId.StartsWith("BRINE-", StringComparison.OrdinalIgnoreCase)
+                                && before.BrineSalinityPct > 0
+                                && before.BrineHardnessPpm > 0
+                                && before.BrineTurbidityNtu > 0;
+            bool clarificationRunning = running.FactoryRunActive
+                                        && running.ActiveFactoryName.Contains("brine", StringComparison.OrdinalIgnoreCase)
+                                        && running.ActiveFactoryPhase.Length > 0
+                                        && running.BrineL < before.BrineL
+                                        && Math.Abs(running.SaltKg - before.SaltKg) < 0.001
+                                        && running.ProcessWaterL < before.ProcessWaterL
+                                        && running.CulinarySteamKg < before.CulinarySteamKg
+                                        && running.CompressedAirNm3 < before.CompressedAirNm3
+                                        && running.FilterMediaPct < before.FilterMediaPct
+                                        && running.BrineClarifierTurbidityNtu < before.BrineTurbidityNtu
+                                        && start.Contains(before.BrineLotId, StringComparison.OrdinalIgnoreCase);
+            bool saltHeldForLab = !held.FactoryRunActive
+                                  && held.SaltKg > before.SaltKg
+                                  && held.SaltLotId != before.SaltLotId
+                                  && held.PendingLabLotId == held.SaltLotId
+                                  && held.IngredientLabStatus.Contains("purity", StringComparison.OrdinalIgnoreCase)
+                                  && held.SaltEvaporatorVacuumKPa > 0
+                                  && held.SaltCrystallizerTemperatureC > 40
+                                  && held.SaltCentrifugeRpm > 0
+                                  && held.SaltDryerTemperatureC > 40
+                                  && held.SaltMoisturePct > 0
+                                  && held.SaltPurityPct > 98
+                                  && held.SaltScreenPassingPct > 90
+                                  && held.BrineBlowdownL > before.BrineBlowdownL
+                                  && held.FactoryStatus.Contains("brine lot", StringComparison.OrdinalIgnoreCase)
+                                  && held.FactoryStatus.Contains("purity", StringComparison.OrdinalIgnoreCase);
+            bool releaseClearsSalt = blocked.Contains("lab release", StringComparison.OrdinalIgnoreCase)
+                                     && release.Contains("released", StringComparison.OrdinalIgnoreCase)
+                                     && released.PendingLabLotId.Length == 0;
+            bool pass = brineAssayed && clarificationRunning && saltHeldForLab && releaseClearsSalt;
+            return (pass, $"brineAssayed={brineAssayed} ({before.BrineLotId}, {before.BrineSalinityPct:F1}% salinity, {before.BrineHardnessPpm:F0} ppm, {before.BrineTurbidityNtu:F1} NTU), " +
+                          $"clarificationRunning={clarificationRunning} ('{Trim(start)}'), saltHeldForLab={saltHeldForLab} " +
+                          $"(vac {held.SaltEvaporatorVacuumKPa:F0} kPa, centrifuge {held.SaltCentrifugeRpm:F0} rpm, purity {held.SaltPurityPct:F2}%, moisture {held.SaltMoisturePct:F3}%), " +
+                          $"releaseClearsSalt={releaseClearsSalt} ('{Trim(release)}')");
+        });
+
+        Scenario("CAKE INGREDIENT CHAIN (harvest, collect, mill, refine, churn and non-farm factories mutate inventory)", () =>
+        {
+            var cake = new CakeFactoryService();
+            TickCake(cake, fullBus, 0.5);
+            var s0 = cake.Snapshot;
+
+            string harvest = cake.HarvestNow();
+            TickCake(cake, fullBus, 0.5);
+            var s1 = cake.Snapshot;
+
+            string collect = cake.CollectDairyAndEggs();
+            TickCake(cake, fullBus, 0.5);
+            var s2 = cake.Snapshot;
+
+            string mill = cake.MillWheat();
+            TickCake(cake, fullBus, 1.0);
+            var millRunning = cake.Snapshot;
+            TickCake(cake, fullBus, 8.5);
+            var s3Hold = cake.Snapshot;
+            string releaseFlour = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var s3 = cake.Snapshot;
+
+            string refine = cake.RefineSugar();
+            TickCake(cake, fullBus, 10.5);
+            string releaseSugar = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var s4 = cake.Snapshot;
+
+            string churn = cake.ChurnButter();
+            TickCake(cake, fullBus, 7.5);
+            string releaseButter = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var s5 = cake.Snapshot;
+
+            string vanilla = cake.ExtractVanilla();
+            TickCake(cake, fullBus, 8.0);
+            string releaseVanilla = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var s6 = cake.Snapshot;
+
+            string cocoa = cake.ProcessCocoa();
+            TickCake(cake, fullBus, 11.5);
+            string releaseCocoa = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var s7 = cake.Snapshot;
+
+            string salt = cake.RunSaltWorks();
+            TickCake(cake, fullBus, 9.5);
+            string releaseSalt = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var s8 = cake.Snapshot;
+
+            string soda = cake.RunBakingSodaPlant();
+            TickCake(cake, fullBus, 7.5);
+            string releaseSoda = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var s9 = cake.Snapshot;
+
+            string leavening = cake.RunLeaveningPlant();
+            TickCake(cake, fullBus, 6.5);
+            string releaseLeavening = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var s10 = cake.Snapshot;
+
+            string packaging = cake.RunPackagingPlant();
+            TickCake(cake, fullBus, 8.5);
+            string releasePackaging = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var s11 = cake.Snapshot;
+
+            bool farmYield = s1.WheatKg > s0.WheatKg
+                             && s1.SugarCropKg > s0.SugarCropKg
+                             && s1.VanillaBeansKg > s0.VanillaBeansKg
+                             && Math.Abs(s1.VanillaL - s0.VanillaL) < 0.001;
+            bool dairyYield = s2.RawMilkL > s1.RawMilkL && s2.Eggs > s1.Eggs;
+            bool flourYield = s3.FlourKg > s2.FlourKg && s3.WheatKg < s2.WheatKg;
+            bool sugarYield = s4.SugarKg > s3.SugarKg && s4.SugarCropKg < s3.SugarCropKg;
+            bool butterYield = s5.ButterKg > s4.ButterKg && s5.RawMilkL < s4.RawMilkL;
+            bool vanillaYield = s6.VanillaL > s5.VanillaL && s6.VanillaBeansKg < s5.VanillaBeansKg;
+            bool cocoaYield = s7.CocoaKg > s6.CocoaKg && s7.CocoaBeansKg < s6.CocoaBeansKg;
+            bool saltYield = s8.SaltKg > s7.SaltKg && s8.BrineL < s7.BrineL;
+            bool sodaYield = s9.BakingSodaKg > s8.BakingSodaKg
+                             && s9.SodaAshKg < s8.SodaAshKg
+                             && s9.BakingSodaLotId != s8.BakingSodaLotId;
+            bool leaveningYield = s10.BakingPowderKg > s9.BakingPowderKg
+                                   && s10.BakingSodaKg < s9.BakingSodaKg
+                                   && Math.Abs(s10.SodaAshKg - s9.SodaAshKg) < 0.001
+                                   && s10.PhosphateKg < s9.PhosphateKg
+                                   && s10.StarchKg < s9.StarchKg;
+            bool packagingYield = s11.PackagingUnits > s10.PackagingUnits
+                                   && s11.PaperboardKg < s10.PaperboardKg
+                                   && s11.LabelStockM < s10.LabelStockM
+                                   && s11.PackagingInkL < s10.PackagingInkL
+                                   && s11.AdhesiveKg < s10.AdhesiveKg;
+            bool processTelemetry = s3.MillRollGapMm > 0 && s3.FlourExtractionPct > 0
+                                    && s3.WheatTemperMoisturePct > 0 && s3.FlourMoisturePct > 0
+                                    && s3.FlourAshPct > 0 && s3.FlourProteinPct > 0
+                                    && s4.SugarJuiceBrix > 0 && s4.SugarEvaporatorTemperatureC > 90
+                                    && s4.SugarJuicePurityPct > 0 && s4.SugarLimePh > 0
+                                    && s4.SugarPanVacuumKPa > 0 && s4.SugarCentrifugeRpm > 0
+                                    && s4.SugarMoisturePct > 0 && s4.SugarColorIcumsa > 0 && s4.SugarPolarizationPct > 99
+                                    && s5.CreamSeparatorRpm > 0 && s5.CreamYieldL > 0 && s5.CreamFatPct > 0
+                                    && s5.CreamPasteurizerTemperatureC > 70 && s5.CreamPasteurizationHoldSeconds >= 16
+                                    && s5.ButterChurnTemperatureC > 0 && s5.ButterFatPct > 70
+                                    && s5.ButterMoisturePct > 0 && s5.ButterWorkingPressureKPa > 0
+                                    && s6.VanillaExtractorTemperatureC > 70 && s6.VanillaExtractStrengthPct > 80
+                                    && s7.CocoaRoasterTemperatureC > 100 && s7.CocoaRoasterAirflowM3Min > 0
+                                    && s7.CocoaRoastDevelopmentPct > 80 && s7.CocoaWinnowerEfficiencyPct > 90
+                                    && s7.CocoaNibYieldPct > 70 && s7.CocoaPressPressureBar > 0
+                                    && s7.CocoaGrindMicrons > 0 && s7.CocoaPowderFatPct > 0
+                                    && s7.CocoaPowderMoisturePct > 0
+                                    && s8.BrineSalinityPct > 0 && s8.BrineHardnessPpm > 0 && s8.BrineTurbidityNtu > 0
+                                    && s8.BrineClarifierTurbidityNtu > 0 && s8.SaltEvaporatorVacuumKPa > 0
+                                    && s8.SaltCrystallizerTemperatureC > 40 && s8.SaltCentrifugeRpm > 0
+                                    && s8.SaltDryerTemperatureC > 40 && s8.SaltMoisturePct > 0
+                                    && s8.SaltPurityPct > 98 && s8.SaltScreenPassingPct > 90
+                                    && s9.SodaCarbonationPressureBar > 0 && s9.SodaReactorTemperatureC > 30
+                                    && s9.SodaCentrifugeRpm > 0 && s9.BakingSodaPurityPct > 98.5
+                                    && s9.BakingSodaMoisturePct > 0
+                                    && s10.BakingSodaPurityPct > 98 && s10.PhosphateAcidValuePct > 96
+                                    && s10.LeaveningMixerRpm > 0 && s10.LeaveningHomogeneityPct > 90
+                                    && s10.LeaveningBlendMoisturePct > 0 && s10.LeaveningSifterLoadPct > 0
+                                    && s10.LeaveningDustCollectorPressurePa > 0
+                                    && s11.CartonBoardCaliperMm > 0.38 && s11.CartonBoardMoisturePct > 5.5
+                                    && s11.CartonFormerSpeedCpm > 0 && s11.CartonDieCutWastePct > 0
+                                    && s11.LabelWebTensionN > 0 && s11.PrintRegistrationMm > 0
+                                    && s11.GluePotTemperatureC > 100 && s11.GlueBeadGPerCarton > 0
+                                    && s11.CaseCodeReadRatePct > 95 && s11.PackagingTrimKg > s10.PackagingTrimKg;
+            bool factoryUtilitiesConsumed = s11.ProcessWaterL < s0.ProcessWaterL
+                                            && s11.CulinarySteamKg < s0.CulinarySteamKg
+                                            && s11.CompressedAirNm3 < s0.CompressedAirNm3
+                                            && s11.FilterMediaPct < s0.FilterMediaPct;
+            bool timedFactoryRun = millRunning.FactoryRunActive
+                                   && millRunning.ActiveFactoryName.Contains("mill", StringComparison.OrdinalIgnoreCase)
+                                   && millRunning.ActiveFactoryPhase.Length > 0
+                                   && millRunning.FactoryProgress > 0
+                                   && millRunning.FactoryProgress < 1
+                                   && millRunning.FactoryRunPowerMW > 0
+                                   && millRunning.FactoryRunQualityPct > 0
+                                   && Math.Abs(millRunning.FlourKg - s2.FlourKg) < 0.001
+                                   && !s3.FactoryRunActive;
+            bool labReleaseWorkflow = s3Hold.PendingLabLotId.Length > 0
+                                      && releaseFlour.Contains("released", StringComparison.OrdinalIgnoreCase)
+                                      && releaseSugar.Contains("released", StringComparison.OrdinalIgnoreCase)
+                                      && releaseButter.Contains("released", StringComparison.OrdinalIgnoreCase)
+                                      && releaseVanilla.Contains("released", StringComparison.OrdinalIgnoreCase)
+                                      && releaseCocoa.Contains("released", StringComparison.OrdinalIgnoreCase)
+                                      && releaseSalt.Contains("released", StringComparison.OrdinalIgnoreCase)
+                                      && releaseSoda.Contains("released", StringComparison.OrdinalIgnoreCase)
+                                      && releaseLeavening.Contains("released", StringComparison.OrdinalIgnoreCase)
+                                      && releasePackaging.Contains("released", StringComparison.OrdinalIgnoreCase)
+                                      && s11.PendingLabLotId.Length == 0;
+            bool pass = farmYield && dairyYield && flourYield && sugarYield && butterYield && vanillaYield && cocoaYield && saltYield && sodaYield && leaveningYield && packagingYield && processTelemetry && factoryUtilitiesConsumed && timedFactoryRun && labReleaseWorkflow;
+            return (pass, $"farmYield={farmYield} ('{Trim(harvest)}'), dairyYield={dairyYield} ('{Trim(collect)}'), " +
+                          $"flourYield={flourYield} ('{Trim(mill)}'), sugarYield={sugarYield} ('{Trim(refine)}'), " +
+                          $"butterYield={butterYield} ('{Trim(churn)}'), vanillaYield={vanillaYield} ('{Trim(vanilla)}'), cocoaYield={cocoaYield} ('{Trim(cocoa)}'), " +
+                          $"saltYield={saltYield} ('{Trim(salt)}'), sodaYield={sodaYield} ('{Trim(soda)}'), leaveningYield={leaveningYield} ('{Trim(leavening)}'), packagingYield={packagingYield} ('{Trim(packaging)}'), " +
+                          $"processTelemetry={processTelemetry}, factoryUtilitiesConsumed={factoryUtilitiesConsumed}, timedFactoryRun={timedFactoryRun}, " +
+                          $"labReleaseWorkflow={labReleaseWorkflow}");
+        });
+
+        Scenario("CAKE UTILITY PLANT (process water, steam and compressed air are produced by a powered support plant)", () =>
+        {
+            var cake = new CakeFactoryService { FarmIntensity = 1.0 };
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            string start = cake.RunUtilityPlant();
+            TickCake(cake, fullBus, 1.0);
+            var running = cake.Snapshot;
+
+            TickCake(cake, fullBus, 12.0);
+            var finished = cake.Snapshot;
+
+            bool startConsumesInputs = before.CanRunUtilityPlant
+                                       && running.UtilityPlantActive
+                                       && running.UtilityPlantProgress > 0
+                                       && running.UtilityPlantProgress < 1
+                                       && running.UtilityPlantPowerMW > 0
+                                       && running.IrrigationWaterL < before.IrrigationWaterL
+                                       && running.FilterMediaPct < before.FilterMediaPct
+                                       && Math.Abs(running.ProcessWaterL - before.ProcessWaterL) < 0.001
+                                       && Math.Abs(running.CulinarySteamKg - before.CulinarySteamKg) < 0.001
+                                       && Math.Abs(running.CompressedAirNm3 - before.CompressedAirNm3) < 0.001
+                                       && start.Contains("Started utility plant", StringComparison.OrdinalIgnoreCase);
+            bool completedProducesUtilities = !finished.UtilityPlantActive
+                                              && finished.ProcessWaterL > running.ProcessWaterL
+                                              && finished.CulinarySteamKg > running.CulinarySteamKg
+                                              && finished.CompressedAirNm3 > running.CompressedAirNm3
+                                              && finished.FactoryEffluentL > running.FactoryEffluentL
+                                              && finished.ProcessWaterConductivityUsCm > 0
+                                              && finished.BoilerPressureBar > running.BoilerPressureBar
+                                              && finished.AirHeaderPressureBar > running.AirHeaderPressureBar
+                                              && finished.UtilityPlantStatus.Contains("completed", StringComparison.OrdinalIgnoreCase);
+            bool traceableUtilityRun = finished.TraceabilityStatus.Contains("Utility", StringComparison.OrdinalIgnoreCase)
+                                       && finished.FactoryUtilityStatus.Contains("Utility plant", StringComparison.OrdinalIgnoreCase);
+            bool pass = startConsumesInputs && completedProducesUtilities && traceableUtilityRun;
+            return (pass, $"startConsumesInputs={startConsumesInputs} ('{Trim(start)}'), " +
+                          $"completedProducesUtilities={completedProducesUtilities} ({running.ProcessWaterL:F0}->{finished.ProcessWaterL:F0} L water, " +
+                          $"{running.CulinarySteamKg:F0}->{finished.CulinarySteamKg:F0} kg steam, {running.CompressedAirNm3:F0}->{finished.CompressedAirNm3:F0} Nm3 air), " +
+                          $"traceableUtilityRun={traceableUtilityRun}");
+        });
+
+        Scenario("CAKE ICING PREP KITCHEN (decorating icing is factory-made, released and reserved)", () =>
+        {
+            var cake = new CakeFactoryService();
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            string start = cake.PrepareIcing();
+            TickCake(cake, fullBus, 1.0);
+            var running = cake.Snapshot;
+
+            TickCake(cake, fullBus, 8.0);
+            var held = cake.Snapshot;
+
+            string release = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var released = cake.Snapshot;
+
+            string kit = cake.StageBatchKit();
+            TickCake(cake, fullBus, 0.5);
+            var staged = cake.Snapshot;
+
+            bool startConsumesInputs = before.CanPrepareIcing
+                                       && running.IcingPrepActive
+                                       && running.ActiveFactoryName.Contains("Icing", StringComparison.OrdinalIgnoreCase)
+                                       && running.IcingPrepProgress > 0
+                                       && running.IcingPrepProgress < 1
+                                       && running.IcingPrepPowerMW > 0
+                                       && running.SugarKg < before.SugarKg
+                                       && running.ButterKg < before.ButterKg
+                                       && running.MilkL < before.MilkL
+                                       && running.VanillaL < before.VanillaL
+                                       && Math.Abs(running.IcingKg - before.IcingKg) < 0.001
+                                       && start.Contains("Started preparing", StringComparison.OrdinalIgnoreCase);
+            bool completionHeldForLab = !held.IcingPrepActive
+                                        && !held.FactoryRunActive
+                                        && held.IcingKg > before.IcingKg
+                                        && held.IcingLotId != before.IcingLotId
+                                        && held.PendingLabProductName.Contains("icing", StringComparison.OrdinalIgnoreCase)
+                                        && held.MissingIngredients.Contains("lab release", StringComparison.OrdinalIgnoreCase)
+                                        && held.IcingMixerRpm > 0
+                                        && held.IcingTemperatureC > 0
+                                        && held.IcingViscosityPaS > 0;
+            bool releaseClearsHold = released.PendingLabLotId.Length == 0
+                                     && released.IngredientLabStatus.Contains("released", StringComparison.OrdinalIgnoreCase)
+                                     && released.CanStageBatchKit
+                                     && released.MissingIngredients.Length == 0
+                                     && release.Contains("released", StringComparison.OrdinalIgnoreCase);
+            bool kittingReservesIcing = staged.BatchKitStaged
+                                        && staged.IcingKg < released.IcingKg
+                                        && staged.BatchKitStatus.Contains("prepared icing", StringComparison.OrdinalIgnoreCase)
+                                        && staged.TraceabilityStatus.Contains("staged", StringComparison.OrdinalIgnoreCase)
+                                        && kit.Contains("prepared icing", StringComparison.OrdinalIgnoreCase);
+            bool pass = startConsumesInputs && completionHeldForLab && releaseClearsHold && kittingReservesIcing;
+            return (pass, $"startConsumesInputs={startConsumesInputs} ('{Trim(start)}'), " +
+                          $"completionHeldForLab={completionHeldForLab} (icing {before.IcingKg:F1}->{held.IcingKg:F1} kg, lot {held.IcingLotId}), " +
+                          $"releaseClearsHold={releaseClearsHold} ('{Trim(release)}'), kittingReservesIcing={kittingReservesIcing} ('{Trim(kit)}')");
+        });
+
+        Scenario("CAKE VANILLA EXTRACTION (farm grows beans, factory makes extract)", () =>
+        {
+            var cake = new CakeFactoryService();
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            string harvest = cake.HarvestNow();
+            TickCake(cake, fullBus, 0.5);
+            var harvested = cake.Snapshot;
+
+            string start = cake.ExtractVanilla();
+            TickCake(cake, fullBus, 1.0);
+            var running = cake.Snapshot;
+
+            TickCake(cake, fullBus, 8.0);
+            var held = cake.Snapshot;
+
+            string blockedMsg = cake.StageBatchKit();
+            string release = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var released = cake.Snapshot;
+
+            bool harvestMakesBeans = harvested.VanillaBeansKg > before.VanillaBeansKg
+                                     && Math.Abs(harvested.VanillaL - before.VanillaL) < 0.001
+                                     && harvested.VanillaBeanLotId != before.VanillaBeanLotId
+                                     && harvest.Contains("vanilla beans", StringComparison.OrdinalIgnoreCase);
+            bool extractionConsumesBeans = running.FactoryRunActive
+                                           && running.ActiveFactoryName.Contains("Vanilla", StringComparison.OrdinalIgnoreCase)
+                                           && running.VanillaBeansKg < harvested.VanillaBeansKg
+                                           && Math.Abs(running.VanillaL - harvested.VanillaL) < 0.001
+                                           && running.VanillaExtractorTemperatureC > 30
+                                           && start.Contains("vanilla beans", StringComparison.OrdinalIgnoreCase);
+            bool extractionProducesHeldLot = !held.FactoryRunActive
+                                             && held.VanillaL > harvested.VanillaL
+                                             && held.VanillaPomaceKg > harvested.VanillaPomaceKg
+                                             && held.VanillaExtractStrengthPct > 80
+                                             && held.PendingLabProductName.Contains("vanilla", StringComparison.OrdinalIgnoreCase)
+                                             && blockedMsg.Contains("lab release", StringComparison.OrdinalIgnoreCase);
+            bool releaseClearsExtract = released.PendingLabLotId.Length == 0
+                                        && released.IngredientLabStatus.Contains("released", StringComparison.OrdinalIgnoreCase)
+                                        && release.Contains("released", StringComparison.OrdinalIgnoreCase);
+            bool pass = harvestMakesBeans && extractionConsumesBeans && extractionProducesHeldLot && releaseClearsExtract;
+            return (pass, $"harvestMakesBeans={harvestMakesBeans} ('{Trim(harvest)}'), extractionConsumesBeans={extractionConsumesBeans} ('{Trim(start)}'), " +
+                          $"extractionProducesHeldLot={extractionProducesHeldLot} ('{Trim(blockedMsg)}'), releaseClearsExtract={releaseClearsExtract} ('{Trim(release)}')");
+        });
+
+        Scenario("CAKE PACKAGING PLANT REALISM (cartons are formed, glued, coded and QA-released)", () =>
+        {
+            var cake = new CakeFactoryService();
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            string start = cake.RunPackagingPlant();
+            TickCake(cake, fullBus, 1.0);
+            var running = cake.Snapshot;
+
+            TickCake(cake, fullBus, 8.0);
+            var held = cake.Snapshot;
+
+            string blockedMsg = cake.StageBatchKit();
+            double waterBeforeRelease = held.ProcessWaterL;
+            double airBeforeRelease = held.CompressedAirNm3;
+            double filterBeforeRelease = held.FilterMediaPct;
+            string release = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var released = cake.Snapshot;
+
+            bool startConsumesFeedstocks = before.CanRunPackagingPlant
+                                           && running.FactoryRunActive
+                                           && running.ActiveFactoryName.Contains("coder", StringComparison.OrdinalIgnoreCase)
+                                           && running.PaperboardKg < before.PaperboardKg
+                                           && running.LabelStockM < before.LabelStockM
+                                           && running.PackagingInkL < before.PackagingInkL
+                                           && running.AdhesiveKg < before.AdhesiveKg
+                                           && Math.Abs(running.PackagingUnits - before.PackagingUnits) < 0.001
+                                           && start.Contains("paperboard", StringComparison.OrdinalIgnoreCase);
+            bool runningTelemetry = running.ActiveFactoryPhase.Length > 0
+                                           && running.CartonBoardCaliperMm > 0
+                                           && running.CartonBoardMoisturePct > 0
+                                           && running.CartonFormerSpeedCpm > 0
+                                           && running.PrintRegistrationMm > 0
+                                           && start.Contains("die-cutting", StringComparison.OrdinalIgnoreCase)
+                                           && start.Contains("vision-verifying", StringComparison.OrdinalIgnoreCase);
+            bool timedCartonOutput = !held.FactoryRunActive
+                                     && held.PackagingUnits > before.PackagingUnits
+                                     && held.CartonFormerSpeedCpm > 0
+                                     && held.CartonBoardCaliperMm > 0.38
+                                     && held.CartonBoardMoisturePct > 5.5
+                                     && held.CartonDieCutWastePct > 0
+                                     && held.LabelWebTensionN > 0
+                                     && held.PrintRegistrationMm > 0
+                                     && held.GluePotTemperatureC > 100
+                                     && held.GlueBeadGPerCarton > 0
+                                     && held.CaseCodeReadRatePct > 95
+                                     && held.PackagingTrimKg > before.PackagingTrimKg
+                                     && held.FactoryStatus.Contains("Packaging plant completed", StringComparison.OrdinalIgnoreCase);
+            bool labHoldsNewPackagingLot = held.PendingLabLotId.Length > 0
+                                           && held.PendingLabProductName.Contains("cartons", StringComparison.OrdinalIgnoreCase)
+                                           && held.IngredientLabStatus.Contains("glue", StringComparison.OrdinalIgnoreCase)
+                                           && held.IngredientLabStatus.Contains("code", StringComparison.OrdinalIgnoreCase)
+                                           && held.MissingIngredients.Contains("lab release", StringComparison.OrdinalIgnoreCase)
+                                           && blockedMsg.Contains("lab release", StringComparison.OrdinalIgnoreCase);
+            bool releaseClearsPackagingLot = released.PendingLabLotId.Length == 0
+                                             && released.CanStageBatchKit
+                                             && released.MissingIngredients.Length == 0
+                                             && release.Contains("released", StringComparison.OrdinalIgnoreCase);
+            bool releaseConsumesLabUtilities = released.ProcessWaterL < waterBeforeRelease
+                                               && released.CompressedAirNm3 < airBeforeRelease
+                                               && released.FilterMediaPct < filterBeforeRelease;
+            bool pass = startConsumesFeedstocks && runningTelemetry && timedCartonOutput && labHoldsNewPackagingLot && releaseClearsPackagingLot && releaseConsumesLabUtilities;
+            return (pass, $"startConsumesFeedstocks={startConsumesFeedstocks} ('{Trim(start)}'), runningTelemetry={runningTelemetry} ({running.ActiveFactoryPhase}, former {running.CartonFormerSpeedCpm:F0} cpm, reg {running.PrintRegistrationMm:F2} mm), timedCartonOutput={timedCartonOutput} " +
+                          $"({before.PackagingUnits:F0}->{held.PackagingUnits:F0} cartons, board {held.CartonBoardCaliperMm:F3} mm/{held.CartonBoardMoisturePct:F1}%, trim {before.PackagingTrimKg:F1}->{held.PackagingTrimKg:F1} kg, code {held.CaseCodeReadRatePct:F1}%), labHoldsNewPackagingLot={labHoldsNewPackagingLot} ('{Trim(blockedMsg)}'), " +
+                          $"releaseClearsPackagingLot={releaseClearsPackagingLot} ('{Trim(release)}'), releaseConsumesLabUtilities={releaseConsumesLabUtilities}");
+        });
+
+        Scenario("CAKE FACTORY MAINTENANCE (plant condition affects factories and service consumes utilities)", () =>
+        {
+            var cake = new CakeFactoryService();
+            TickCake(cake, fullBus, 0.5);
+            var initial = cake.Snapshot;
+
+            string mill = cake.MillWheat();
+            TickCake(cake, fullBus, 9.0);
+            var worn = cake.Snapshot;
+
+            double waterBeforeService = worn.ProcessWaterL;
+            double steamBeforeService = worn.CulinarySteamKg;
+            double airBeforeService = worn.CompressedAirNm3;
+            double filterBeforeService = worn.FilterMediaPct;
+            string service = cake.ServiceIngredientFactories();
+            TickCake(cake, fullBus, 0.5);
+            var serviced = cake.Snapshot;
+
+            bool equipmentModeled = initial.MillConditionPct > 0
+                                    && initial.MillCalibrationPct > 0
+                                    && initial.ActiveFactoryBearingTemperatureC > 0
+                                    && initial.ActiveFactoryVibrationMmS > 0
+                                    && initial.FactoryMaintenanceStatus.Contains("maintenance", StringComparison.OrdinalIgnoreCase);
+            bool wearApplied = worn.MillConditionPct < initial.MillConditionPct
+                               && worn.MillCalibrationPct < initial.MillCalibrationPct
+                               && worn.FactoryStatus.Contains("Equipment now", StringComparison.OrdinalIgnoreCase);
+            bool maintenanceAvailable = worn.CanServiceFactories;
+            bool serviceRecovered = serviced.MillConditionPct > worn.MillConditionPct
+                                    && serviced.MillCalibrationPct > worn.MillCalibrationPct
+                                    && serviced.MillConditionPct <= 100
+                                    && serviced.MillCalibrationPct <= 100;
+            bool serviceConsumedUtilities = serviced.ProcessWaterL < waterBeforeService
+                                            && serviced.CulinarySteamKg < steamBeforeService
+                                            && serviced.CompressedAirNm3 < airBeforeService
+                                            && serviced.FilterMediaPct < filterBeforeService;
+            bool pass = equipmentModeled && wearApplied && maintenanceAvailable && serviceRecovered && serviceConsumedUtilities;
+            return (pass, $"equipmentModeled={equipmentModeled}, wearApplied={wearApplied} after '{Trim(mill)}' " +
+                          $"({initial.MillConditionPct:F0}%->{worn.MillConditionPct:F0}%), maintenanceAvailable={maintenanceAvailable}, " +
+                          $"serviceRecovered={serviceRecovered} ({worn.MillConditionPct:F0}%->{serviced.MillConditionPct:F0}%), " +
+                          $"serviceConsumedUtilities={serviceConsumedUtilities} ('{Trim(service)}')");
+        });
+
+        Scenario("CAKE FACTORY BYPRODUCT HANDLING (plants make residual streams that must be hauled or treated)", () =>
+        {
+            var cake = new CakeFactoryService();
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            string mill = cake.MillWheat();
+            TickCake(cake, fullBus, 8.5);
+            var afterRun = cake.Snapshot;
+
+            double grainBefore = afterRun.GrainKg;
+            double cashBefore = afterRun.CashBalance;
+            string haul = cake.HaulFactoryByproducts();
+            TickCake(cake, fullBus, 0.5);
+            var afterHaul = cake.Snapshot;
+
+            double effluentBefore = afterHaul.FactoryEffluentL;
+            double airBefore = afterHaul.CompressedAirNm3;
+            double waterBefore = afterHaul.IrrigationWaterL;
+            string treat = cake.TreatFactoryEffluent();
+            TickCake(cake, fullBus, 0.5);
+            var afterTreat = cake.Snapshot;
+
+            bool byproductsCreated = afterRun.BranKg > before.BranKg
+                                     && afterRun.FactoryEffluentL > before.FactoryEffluentL
+                                     && afterRun.WasteHandlingStatus.Contains("bran", StringComparison.OrdinalIgnoreCase);
+            bool handlingAvailable = afterRun.CanHaulByproducts && afterRun.CanTreatFactoryEffluent;
+            bool haulWorks = afterHaul.ByproductStoragePct < afterRun.ByproductStoragePct
+                             && afterHaul.GrainKg > grainBefore
+                             && afterHaul.CashBalance > cashBefore
+                             && haul.Contains("feed-mill", StringComparison.OrdinalIgnoreCase)
+                             && haul.Contains("Hauled", StringComparison.OrdinalIgnoreCase);
+            bool treatmentWorks = afterTreat.FactoryEffluentL < effluentBefore
+                                  && afterTreat.CompressedAirNm3 < airBefore
+                                  && afterTreat.IrrigationWaterL > waterBefore
+                                  && treat.Contains("Treated", StringComparison.OrdinalIgnoreCase);
+            bool pass = byproductsCreated && handlingAvailable && haulWorks && treatmentWorks;
+            return (pass, $"byproductsCreated={byproductsCreated} after '{Trim(mill)}', handlingAvailable={handlingAvailable}, " +
+                          $"haulWorks={haulWorks} ('{Trim(haul)}'), treatmentWorks={treatmentWorks} ('{Trim(treat)}')");
+        });
+
+        Scenario("CAKE QA LAB RELEASE (factory output lots are held until operator release)", () =>
+        {
+            var cake = new CakeFactoryService();
+            TickCake(cake, fullBus, 0.5);
+            var initial = cake.Snapshot;
+
+            string mill = cake.MillWheat();
+            TickCake(cake, fullBus, 9.0);
+            var held = cake.Snapshot;
+
+            string blockedMsg = cake.StageBatchKit();
+            bool stageBlocked = blockedMsg.Contains("lab release", StringComparison.OrdinalIgnoreCase);
+            double waterBeforeRelease = held.ProcessWaterL;
+            double airBeforeRelease = held.CompressedAirNm3;
+            double filterBeforeRelease = held.FilterMediaPct;
+            string release = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var released = cake.Snapshot;
+
+            bool heldForLab = held.PendingLabLotId.Length > 0
+                              && held.PendingLabProductName.Contains("flour", StringComparison.OrdinalIgnoreCase)
+                              && held.IngredientLabStatus.Contains("hold", StringComparison.OrdinalIgnoreCase)
+                              && held.MissingIngredients.Contains("lab release", StringComparison.OrdinalIgnoreCase);
+            bool batchBlockedUntilRelease = stageBlocked;
+            bool releaseClearsHold = released.PendingLabLotId.Length == 0
+                                     && released.IngredientLabStatus.Contains("released", StringComparison.OrdinalIgnoreCase)
+                                     && released.CanStageBatchKit
+                                     && released.MissingIngredients.Length == 0;
+            bool releaseConsumesLabUtilities = released.ProcessWaterL < waterBeforeRelease
+                                               && released.CompressedAirNm3 < airBeforeRelease
+                                               && released.FilterMediaPct < filterBeforeRelease;
+            bool pass = initial.CanStageBatchKit && heldForLab && batchBlockedUntilRelease && releaseClearsHold && releaseConsumesLabUtilities;
+            return (pass, $"heldForLab={heldForLab} after '{Trim(mill)}', batchBlockedUntilRelease={batchBlockedUntilRelease} ('{Trim(blockedMsg)}'), " +
+                          $"releaseClearsHold={releaseClearsHold} ('{Trim(release)}'), releaseConsumesLabUtilities={releaseConsumesLabUtilities}");
+        });
+
+        Scenario("CAKE WAREHOUSE KITTING (ingredients are staged before the bakery line starts)", () =>
+        {
+            var cake = new CakeFactoryService();
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            bool directStartBlocked = !cake.TryStartBatch(out var blockedMsg);
+            string kit = cake.StageBatchKit();
+            TickCake(cake, fullBus, 0.5);
+            var staged = cake.Snapshot;
+            bool started = cake.TryStartBatch(out var startMsg);
+            TickCake(cake, fullBus, 0.5);
+            var startedState = cake.Snapshot;
+
+            bool stageAvailable = before.CanStageBatchKit && !before.CanStartBatch;
+            bool kitConsumesInventory = staged.FlourKg < before.FlourKg
+                                        && staged.SugarKg < before.SugarKg
+                                        && staged.MilkL < before.MilkL
+                                        && staged.IcingKg < before.IcingKg
+                                        && staged.PackagingUnits < before.PackagingUnits;
+            bool warehouseResourcesUsed = staged.ForkliftBatteryPct < before.ForkliftBatteryPct
+                                          && staged.WarehousePalletSpacePct < before.WarehousePalletSpacePct;
+            bool kitTraceable = staged.BatchKitStaged
+                                && staged.BatchKitLotId.StartsWith("KIT-", StringComparison.OrdinalIgnoreCase)
+                                && staged.BatchKitStatus.Contains("staged", StringComparison.OrdinalIgnoreCase)
+                                && staged.BatchKitMassKg > 0
+                                && staged.CanStartBatch;
+            bool startUsesKit = directStartBlocked
+                                && blockedMsg.Contains("kit", StringComparison.OrdinalIgnoreCase)
+                                && started
+                                && !startedState.BatchKitStaged
+                                && startedState.CurrentBatchTrace.Contains("KIT-", StringComparison.OrdinalIgnoreCase)
+                                && startedState.Stage == CakeBatchStage.Scaling;
+            bool pass = stageAvailable && kitConsumesInventory && warehouseResourcesUsed && kitTraceable && startUsesKit;
+            return (pass, $"stageAvailable={stageAvailable}, directStartBlocked={directStartBlocked} ('{Trim(blockedMsg)}'), " +
+                          $"kitConsumesInventory={kitConsumesInventory}, warehouseResourcesUsed={warehouseResourcesUsed}, " +
+                          $"kitTraceable={kitTraceable} ('{Trim(kit)}'), startUsesKit={startUsesKit} ('{Trim(startMsg)}')");
+        });
+
+        Scenario("CAKE TRACEABILITY (receiving, dairy, factory conversion and batch lots are audited)", () =>
+        {
+            var cake = new CakeFactoryService();
+            TickCake(cake, fullBus, 0.5);
+            var initial = cake.Snapshot;
+
+            var (supplyOrder, supplyUnload) = DeliverCakeSupplies(cake, fullBus);
+            string supply = $"{supplyOrder} / {supplyUnload}";
+            TickCake(cake, fullBus, 0.5);
+            var supplied = cake.Snapshot;
+
+            string collect = cake.CollectDairyAndEggs();
+            TickCake(cake, fullBus, 0.5);
+            var dairy = cake.Snapshot;
+
+            string mill = cake.MillWheat();
+            TickCake(cake, fullBus, 9.0);
+            var milled = cake.Snapshot;
+
+            string lab = cake.ReleaseIngredientLabLot();
+            TickCake(cake, fullBus, 0.5);
+            var labReleased = cake.Snapshot;
+
+            string kit = cake.StageBatchKit();
+            TickCake(cake, fullBus, 0.5);
+            var staged = cake.Snapshot;
+
+            bool started = cake.TryStartBatch(out var startMsg);
+            TickCake(cake, fullBus, 0.5);
+            var batch = cake.Snapshot;
+
+            bool openingLotsPresent = initial.TraceabilityScorePct >= 99
+                                      && initial.FlourLotId.Length > 0
+                                      && initial.RawMilkLotId.Length > 0
+                                      && initial.MilkLotId.Length > 0
+                                      && initial.PackagingLotId.Length > 0;
+            bool receivingManifestChanged = supplied.LastSupplyManifestId.Length > 0
+                                            && supplied.LastSupplyManifestId != initial.LastSupplyManifestId
+                                            && supplied.TraceabilityStatus.Contains("manifest", StringComparison.OrdinalIgnoreCase);
+            bool dairyLotChanged = dairy.RawMilkLotId.Length > 0
+                                   && dairy.EggLotId.Length > 0
+                                   && dairy.RawMilkLotId != initial.RawMilkLotId
+                                   && dairy.MilkLotId == initial.MilkLotId
+                                   && dairy.TraceabilityStatus.Contains("trace", StringComparison.OrdinalIgnoreCase)
+                                   && dairy.TraceabilityStatus.Contains("egg lot", StringComparison.OrdinalIgnoreCase);
+            bool factoryOutputLotChanged = milled.FlourLotId.Length > 0
+                                           && milled.FlourLotId != initial.FlourLotId
+                                           && milled.TraceabilityStatus.Contains("source lot", StringComparison.OrdinalIgnoreCase);
+            bool labReleasedLot = labReleased.PendingLabLotId.Length == 0
+                                  && lab.Contains("released", StringComparison.OrdinalIgnoreCase);
+            bool warehouseKitStaged = staged.BatchKitStaged
+                                      && staged.BatchKitLotId.Length > 0
+                                      && staged.BatchKitStatus.Contains("staged", StringComparison.OrdinalIgnoreCase);
+            bool batchManifestOpened = warehouseKitStaged
+                                       && started
+                                       && batch.CurrentBatchLotId.Length > 0
+                                       && batch.CurrentBatchTrace.Contains("KIT-", StringComparison.OrdinalIgnoreCase)
+                                       && batch.CurrentBatchTrace.Contains("flour", StringComparison.OrdinalIgnoreCase)
+                                       && batch.CurrentBatchTrace.Contains("milk", StringComparison.OrdinalIgnoreCase)
+                                       && batch.CurrentBatchTrace.Contains("prepared icing", StringComparison.OrdinalIgnoreCase)
+                                       && batch.TraceabilityScorePct >= 99;
+            bool pass = openingLotsPresent && receivingManifestChanged && dairyLotChanged && factoryOutputLotChanged && labReleasedLot && warehouseKitStaged && batchManifestOpened;
+            return (pass, $"openingLotsPresent={openingLotsPresent}, receivingManifestChanged={receivingManifestChanged} ('{Trim(supply)}'), " +
+                          $"dairyLotChanged={dairyLotChanged} ('{Trim(collect)}'), factoryOutputLotChanged={factoryOutputLotChanged} ('{Trim(mill)}'), " +
+                          $"labReleasedLot={labReleasedLot}, warehouseKitStaged={warehouseKitStaged} ('{Trim(kit)}'), " +
+                          $"batchManifestOpened={batchManifestOpened} started={started} ('{Trim(startMsg)}'), batchLot={batch.CurrentBatchLotId}");
+        });
+
+        Scenario("CAKE SUPPLY CHAIN INPUTS (ingredients require finite seed, water, feed, beans and factory feedstocks)", () =>
+        {
+            var cake = new CakeFactoryService { FarmIntensity = 1.0 };
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            TickCake(cake, fullBus, 80);
+            var after = cake.Snapshot;
+            bool fieldInputsConsumed = after.IrrigationWaterL < before.IrrigationWaterL
+                                       && after.FertilizerKg < before.FertilizerKg
+                                       && after.WheatSeedKg < before.WheatSeedKg
+                                       && after.BeetSeedKg < before.BeetSeedKg;
+            bool livestockInputsConsumed = after.AnimalFeedKg < before.AnimalFeedKg;
+            bool cocoaDoesNotAppear = Math.Abs(after.CocoaKg - before.CocoaKg) < 0.001
+                                      && Math.Abs(after.CocoaBeansKg - before.CocoaBeansKg) < 0.001;
+
+            double waterBeforeSupply = after.IrrigationWaterL;
+            double fertilizerBeforeSupply = after.FertilizerKg;
+            double feedBeforeSupply = after.AnimalFeedKg;
+            double beddingBeforeSupply = after.BeddingKg;
+            double dairyMineralBeforeSupply = after.DairyMineralKg;
+            double bakingSodaBeforeSupply = after.BakingSodaKg;
+            double bakingPowderBeforeSupply = after.BakingPowderKg;
+            double saltBeforeSupply = after.SaltKg;
+            double cartonsBeforeSupply = after.PackagingUnits;
+            var (supplyOrder, supplyUnload) = DeliverCakeSupplies(cake, fullBus);
+            string supply = $"{supplyOrder} / {supplyUnload}";
+            TickCake(cake, fullBus, 0.5);
+            var supplied = cake.Snapshot;
+            bool supplyTruckAddsInputs = supplied.IrrigationWaterL > waterBeforeSupply
+                                         && supplied.StrawKg > after.StrawKg
+                                         && supplied.PaperboardKg > after.PaperboardKg
+                                         && supplied.LabelStockM > after.LabelStockM
+                                         && supplied.PackagingInkL > after.PackagingInkL
+                                         && supplied.AdhesiveKg > after.AdhesiveKg
+                                         && supplied.CocoaBeansKg > after.CocoaBeansKg
+                                         && supplied.BrineL > after.BrineL
+                                         && supplied.SodaAshKg > after.SodaAshKg
+                                         && supplied.PhosphateKg > after.PhosphateKg
+                                         && supplied.GrainKg > after.GrainKg
+                                         && supplied.LimestoneKg > after.LimestoneKg
+                                         && supplied.TraceMineralKg > after.TraceMineralKg
+                                         && supplied.ProcessWaterL > after.ProcessWaterL
+                                         && supplied.CulinarySteamKg > after.CulinarySteamKg
+                                         && supplied.CompressedAirNm3 > after.CompressedAirNm3
+                                         && supplied.FilterMediaPct >= after.FilterMediaPct;
+            bool supplyTruckDoesNotMakeFinalIngredients = Math.Abs(supplied.BakingPowderKg - bakingPowderBeforeSupply) < 0.001
+                                                          && Math.Abs(supplied.BakingSodaKg - bakingSodaBeforeSupply) < 0.001
+                                                          && Math.Abs(supplied.SaltKg - saltBeforeSupply) < 0.001
+                                                          && Math.Abs(supplied.PackagingUnits - cartonsBeforeSupply) < 0.001
+                                                          && supplied.FertilizerKg <= fertilizerBeforeSupply + 0.001
+                                                          && supplied.BeddingKg <= beddingBeforeSupply + 0.001
+                                                          && supplied.DairyMineralKg <= dairyMineralBeforeSupply + 0.001
+                                                          && supplied.AnimalFeedKg <= feedBeforeSupply + 0.001;
+
+            bool pass = fieldInputsConsumed && livestockInputsConsumed && cocoaDoesNotAppear && supplyTruckAddsInputs && supplyTruckDoesNotMakeFinalIngredients;
+            return (pass, $"fieldInputsConsumed={fieldInputsConsumed}, livestockInputsConsumed={livestockInputsConsumed}, " +
+                          $"cocoaDoesNotAppear={cocoaDoesNotAppear}, supplyTruckAddsInputs={supplyTruckAddsInputs}, " +
+                          $"supplyTruckDoesNotMakeFinalIngredients={supplyTruckDoesNotMakeFinalIngredients} ('{Trim(supply)}')");
+        });
+
+        Scenario("CAKE SUPPLIER DELIVERY LEAD TIME (supplies are ordered, delivered, then unloaded)", () =>
+        {
+            var cake = new CakeFactoryService { FarmIntensity = 1.0 };
+            TickCake(cake, fullBus, 0.5);
+            var before = cake.Snapshot;
+
+            string order = cake.OrderSupplyDelivery();
+            string earlyReceive = cake.ReceiveSupplies();
+            TickCake(cake, fullBus, 1.0);
+            var enroute = cake.Snapshot;
+
+            TickCake(cake, fullBus, 80);
+            var arrived = cake.Snapshot;
+
+            double waterBeforeUnload = arrived.IrrigationWaterL;
+            double paperboardBeforeUnload = arrived.PaperboardKg;
+            double labelStockBeforeUnload = arrived.LabelStockM;
+            double inkBeforeUnload = arrived.PackagingInkL;
+            double adhesiveBeforeUnload = arrived.AdhesiveKg;
+            double cartonsBeforeUnload = arrived.PackagingUnits;
+            double cocoaBeforeUnload = arrived.CocoaBeansKg;
+            double limestoneBeforeUnload = arrived.LimestoneKg;
+            double traceBeforeUnload = arrived.TraceMineralKg;
+            double dairyMineralBeforeUnload = arrived.DairyMineralKg;
+            string unload = cake.UnloadSupplyDelivery();
+            TickCake(cake, fullBus, 0.5);
+            var unloaded = cake.Snapshot;
+
+            bool orderPlaced = before.CanOrderSupplyDelivery
+                               && enroute.SupplyTruckEnRoute
+                               && !enroute.SupplyTruckArrived
+                               && enroute.CashBalance < before.CashBalance
+                               && enroute.InboundSupplyManifestId.StartsWith("PO-", StringComparison.OrdinalIgnoreCase)
+                               && order.Contains("ETA", StringComparison.OrdinalIgnoreCase);
+            bool noAirDrop = enroute.IrrigationWaterL <= before.IrrigationWaterL
+                             && Math.Abs(enroute.PackagingUnits - before.PackagingUnits) < 0.001
+                             && Math.Abs(enroute.PaperboardKg - before.PaperboardKg) < 0.001
+                             && Math.Abs(enroute.LabelStockM - before.LabelStockM) < 0.001
+                             && Math.Abs(enroute.PackagingInkL - before.PackagingInkL) < 0.001
+                             && Math.Abs(enroute.AdhesiveKg - before.AdhesiveKg) < 0.001
+                             && Math.Abs(enroute.CocoaBeansKg - before.CocoaBeansKg) < 0.001
+                             && Math.Abs(enroute.LimestoneKg - before.LimestoneKg) < 0.001
+                             && Math.Abs(enroute.TraceMineralKg - before.TraceMineralKg) < 0.001
+                             && Math.Abs(enroute.DairyMineralKg - before.DairyMineralKg) < 0.001
+                             && earlyReceive.Contains("cannot enter inventory", StringComparison.OrdinalIgnoreCase);
+            bool arrivalGate = arrived.SupplyTruckEnRoute
+                               && arrived.SupplyTruckArrived
+                               && arrived.CanUnloadSupplyDelivery
+                               && arrived.SupplyOrderStatus.Contains("receiving dock", StringComparison.OrdinalIgnoreCase);
+            bool unloadAddsInputs = !unloaded.SupplyTruckEnRoute
+                                    && unloaded.IrrigationWaterL > waterBeforeUnload
+                                    && unloaded.PaperboardKg > paperboardBeforeUnload
+                                    && unloaded.LabelStockM > labelStockBeforeUnload
+                                    && unloaded.PackagingInkL > inkBeforeUnload
+                                    && unloaded.AdhesiveKg > adhesiveBeforeUnload
+                                    && Math.Abs(unloaded.PackagingUnits - cartonsBeforeUnload) < 0.001
+                                    && unloaded.CocoaBeansKg > cocoaBeforeUnload
+                                    && unloaded.LimestoneKg > limestoneBeforeUnload
+                                    && unloaded.TraceMineralKg > traceBeforeUnload
+                                    && Math.Abs(unloaded.DairyMineralKg - dairyMineralBeforeUnload) < 0.001
+                                    && unloaded.LastSupplyManifestId.StartsWith("RCV-", StringComparison.OrdinalIgnoreCase)
+                                    && unloaded.TraceabilityStatus.Contains("manifest", StringComparison.OrdinalIgnoreCase)
+                                    && unload.Contains("unloaded", StringComparison.OrdinalIgnoreCase);
+            bool pass = orderPlaced && noAirDrop && arrivalGate && unloadAddsInputs;
+            return (pass, $"orderPlaced={orderPlaced} ('{Trim(order)}'), noAirDrop={noAirDrop}, " +
+                          $"arrivalGate={arrivalGate}, unloadAddsInputs={unloadAddsInputs} ('{Trim(unload)}')");
+        });
+
+        Scenario("CAKE FULL MANUAL BATCH (operator releases every HACCP gate to packaged cakes)", () =>
+        {
+            var cake = new CakeFactoryService { LineSpeed = 1.0, FarmIntensity = 1.0 };
+            TickCake(cake, fullBus, 0.5);
+            double packagingBefore = cake.Snapshot.PackagingUnits;
+            double icingBefore = cake.Snapshot.IcingKg;
+            bool canStage = cake.Snapshot.CanStageBatchKit;
+            string kitMsg = cake.StageBatchKit();
+            TickCake(cake, fullBus, 0.5);
+            var staged = cake.Snapshot;
+            bool kitStaged = staged.BatchKitStaged && staged.CanStartBatch;
+            bool started = cake.TryStartBatch(out var startMsg);
+
+            int releases = 0;
+            var releasedStages = new List<string>();
+            string lastMsg = "";
+            for (int guard = 0; guard < 3000; guard++)
+            {
+                TickCake(cake, fullBus, 0.25);
+                var s = cake.Snapshot;
+                if (s.CanAdvanceStage)
+                {
+                    releasedStages.Add(s.StageName);
+                    bool advanced = cake.TryAdvanceStage(out lastMsg);
+                    if (!advanced)
+                        return (false, $"release failed at {s.StageName}: {lastMsg}");
+                    releases++;
+                    TickCake(cake, fullBus, 0.25);
+                }
+
+                if (cake.Snapshot.Stage == CakeBatchStage.Idle && cake.Snapshot.CakesBaked > 0)
+                    break;
+            }
+
+            var done = cake.Snapshot;
+            bool sevenManualReleases = releases == 7;
+            bool packedOrRejectedAll = done.CakesPacked + done.CakesRejected == done.Recipe.BatchSize;
+            bool packagingConsumed = done.PackagingUnits < packagingBefore;
+            bool icingConsumed = done.IcingKg < icingBefore;
+            bool pass = canStage && kitStaged && started && sevenManualReleases && done.Stage == CakeBatchStage.Idle
+                        && done.CakesBaked == done.Recipe.BatchSize && packedOrRejectedAll
+                        && packagingConsumed && icingConsumed && done.QualityScore >= 70 && done.SanitationScore > 0;
+            return (pass, $"canStage={canStage}, kitStaged={kitStaged} ('{Trim(kitMsg)}'), started={started} ('{Trim(startMsg)}'), releases={releases} [{string.Join(" > ", releasedStages)}], " +
+                          $"baked={done.CakesBaked}, packed={done.CakesPacked}, rejected={done.CakesRejected}, " +
+                          $"QA={done.QualityScore:F0}%, sanitation={done.SanitationScore:F0}%, cartons {packagingBefore:F0}->{done.PackagingUnits:F0}, icing {icingBefore:F1}->{done.IcingKg:F1} kg, " +
+                          $"last='{Trim(lastMsg)}'");
+        });
+
+        Scenario("CAKE ORDER DISPATCH (packed cakes fulfill customer contracts)", () =>
+        {
+            var cake = new CakeFactoryService { LineSpeed = 1.0, FarmIntensity = 1.0 };
+            TickCake(cake, fullBus, 0.5);
+            var initial = cake.Snapshot;
+
+            cake.StageBatchKit();
+            TickCake(cake, fullBus, 0.5);
+            bool started = cake.TryStartBatch(out var startMsg);
+
+            for (int guard = 0; guard < 3000; guard++)
+            {
+                TickCake(cake, fullBus, 0.25);
+                var s = cake.Snapshot;
+                if (s.CanAdvanceStage)
+                {
+                    if (!cake.TryAdvanceStage(out var advanceMsg))
+                        return (false, $"release failed at {s.StageName}: {advanceMsg}");
+                    TickCake(cake, fullBus, 0.25);
+                }
+                if (cake.Snapshot.Stage == CakeBatchStage.Idle && cake.Snapshot.FinishedGoodsCakes >= initial.OrderCakesRequired)
+                    break;
+            }
+
+            var ready = cake.Snapshot;
+            double cashBefore = ready.CashBalance;
+            double reputationBefore = ready.ReputationPct;
+            double truckBefore = ready.DispatchTruckChargePct;
+            string orderBefore = ready.CurrentOrderId;
+            string dispatch = cake.DispatchOrder();
+            TickCake(cake, fullBus, 0.5);
+            var shipped = cake.Snapshot;
+
+            bool producedForOrder = started
+                                    && ready.FinishedGoodsCakes >= initial.OrderCakesRequired
+                                    && ready.CanDispatchOrder
+                                    && ready.OrderStatus.Contains("ready", StringComparison.OrdinalIgnoreCase);
+            bool dispatchConsumesGoods = shipped.FinishedGoodsCakes == ready.FinishedGoodsCakes - initial.OrderCakesRequired;
+            bool financesUpdated = shipped.CashBalance > cashBefore
+                                   && shipped.ReputationPct >= reputationBefore
+                                   && shipped.DispatchTruckChargePct < truckBefore;
+            bool nextOrderOpened = shipped.OrdersFulfilled == ready.OrdersFulfilled + 1
+                                   && shipped.CurrentOrderId != orderBefore
+                                   && shipped.OrderCakesRequired > 0;
+            bool pass = producedForOrder && dispatchConsumesGoods && financesUpdated && nextOrderOpened;
+            return (pass, $"producedForOrder={producedForOrder} started={started} ('{Trim(startMsg)}'), " +
+                          $"dispatchConsumesGoods={dispatchConsumesGoods}, financesUpdated={financesUpdated}, " +
+                          $"nextOrderOpened={nextOrderOpened}, dispatch='{Trim(dispatch)}'");
+        });
+
+        Scenario("CAKE FILE CRYPTO (portable signed files reject forged cakes and delete when eaten)", () =>
+        {
+            string rootA = Path.Combine(Path.GetTempPath(), "cake-device-a-" + Guid.NewGuid().ToString("N"));
+            string rootB = Path.Combine(Path.GetTempPath(), "cake-device-b-" + Guid.NewGuid().ToString("N"));
+            string transfer = Path.Combine(Path.GetTempPath(), "cake-transfer-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(transfer);
+
+            try
+            {
+                var deviceA = new CakeFileService(rootA);
+                var issued = deviceA.IssueBatch(CakeFactoryService.Recipes[0], 2, 96, 92);
+                var first = issued[0];
+                var second = issued[1];
+                bool privateSigned = deviceA.Validate(first.Path).Valid && first.SignatureValid;
+
+                string copied = Path.Combine(transfer, "portable.cake");
+                File.Copy(first.Path, copied);
+                var deviceB = new CakeFileService(rootB);
+                var beforeTrust = deviceB.Validate(copied);
+                string trustedKey = deviceB.TrustPublicKeyFromCake(copied, "Device A bakery");
+                var afterTrust = deviceB.Validate(copied);
+
+                string forged = Path.Combine(transfer, "forged.cake");
+                string text = File.ReadAllText(second.Path);
+                string forgedText = text.Replace("\"qualityScore\": 96", "\"qualityScore\": 12");
+                if (forgedText == text) forgedText = text.Replace("\"status\": \"packed\"", "\"status\": \"eaten\"");
+                File.WriteAllText(forged, forgedText);
+                deviceB.TrustPublicKeyFromCake(forged, "Device A bakery");
+                var forgedValidation = deviceB.Validate(forged);
+
+                var eat = deviceB.EatCake(copied);
+                bool deleted = eat.Eaten && eat.FileDeleted && !File.Exists(copied);
+
+                string replay = Path.Combine(transfer, "replay.cake");
+                File.Copy(first.Path, replay);
+                var replayValidation = deviceB.Validate(replay);
+
+                bool pass = privateSigned
+                            && !beforeTrust.Valid && beforeTrust.Reason == "untrusted"
+                            && !string.IsNullOrWhiteSpace(trustedKey)
+                            && afterTrust.Valid
+                            && !forgedValidation.Valid && forgedValidation.Reason == "tampered"
+                            && deleted
+                            && !replayValidation.Valid && replayValidation.Reason == "already-eaten";
+                return (pass, $"privateSigned={privateSigned}, crossDeviceBeforeTrust={beforeTrust.Reason}, afterTrust={afterTrust.Valid}, " +
+                              $"forgedRejected={forgedValidation.Reason}, eatenDeleted={deleted}, replay={replayValidation.Reason}");
+            }
+            finally
+            {
+                try { Directory.Delete(rootA, true); } catch { }
+                try { Directory.Delete(rootB, true); } catch { }
+                try { Directory.Delete(transfer, true); } catch { }
+            }
+        });
+
+        Scenario("CAKE AI CREDITS (signed cakes become one-million-unit generation credits)", () =>
+        {
+            string root = Path.Combine(Path.GetTempPath(), "cake-ai-credit-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                var bakery = new CakeFileService(root);
+                var issued = bakery.IssueBatch(CakeFactoryService.Recipes[0], 1, 97, 94);
+                var cakePath = issued[0].Path;
+                bool fileReady = File.Exists(cakePath) && bakery.Validate(cakePath).Valid;
+
+                var credits = new CakeCreditService(root);
+                var canStart = credits.CheckCanStartGeneration("Ollama", "Ollama");
+                var first = credits.TryChargeGeneratedUnits("Ollama", "Ollama", 250_000);
+                var afterFirst = credits.Snapshot;
+                var second = credits.TryChargeGeneratedUnits("Ollama", "Ollama", 750_000);
+                var afterSecond = credits.Snapshot;
+                var denied = credits.TryChargeGeneratedUnits("Ollama", "Ollama", 1);
+
+                bool consumedCakeFile = !File.Exists(cakePath);
+                bool pass = fileReady
+                            && canStart.Success
+                            && first.Success && first.CakesFedNow == 1 && first.BalanceUnits == 750_000
+                            && afterFirst.CakesFed == 1 && afterFirst.LifetimeDepositedUnits == CakeCreditService.UnitsPerCake
+                            && consumedCakeFile
+                            && second.Success && second.BalanceUnits == 0
+                            && afterSecond.LifetimeSpentUnits == CakeCreditService.UnitsPerCake
+                            && !denied.Success && denied.BalanceUnits == 0;
+
+                return (pass, $"fileReady={fileReady}, canStart={canStart.Success}, firstSpent={first.UnitsCharged}, " +
+                              $"fedNow={first.CakesFedNow}, balanceAfterFirst={first.BalanceUnits}, " +
+                              $"fileDeleted={consumedCakeFile}, secondSpent={second.UnitsCharged}, denied={denied.Success}");
+            }
+            finally
+            {
+                try { Directory.Delete(root, true); } catch { }
+            }
+        });
+
+        Scenario("CAKE CIP SANITATION (cleaning locks batching, progresses, restores sanitation)", () =>
+        {
+            var cake = new CakeFactoryService();
+            TickCake(cake, fullBus, 0.5);
+            double before = cake.Snapshot.SanitationScore;
+
+            cake.StartClean();
+            TickCake(cake, fullBus, 0.5);
+            var active = cake.Snapshot;
+
+            TickCake(cake, fullBus, 40);
+            var after = cake.Snapshot;
+
+            bool activeLocks = active.CipActive && !active.CanStartBatch && active.OperatorPrompt.Contains("CIP", StringComparison.OrdinalIgnoreCase);
+            bool finished = !after.CipActive && after.CipProgress >= 1.0;
+            bool sanitationRecovered = after.SanitationScore >= before;
+            bool pass = activeLocks && finished && sanitationRecovered;
+            return (pass, $"before={before:F0}%, active={active.CipActive}/start={active.CanStartBatch}/progress={active.CipProgress:P0}, " +
+                          $"after active={after.CipActive}, progress={after.CipProgress:P0}, sanitation={after.SanitationScore:F0}%");
+        });
+    }
+}

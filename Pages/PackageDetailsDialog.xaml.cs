@@ -322,17 +322,14 @@ public sealed partial class PackageDetailsDialog : ContentDialog
     private void AddLinkField(string label, string url)
     {
         if (_fields is null || string.IsNullOrWhiteSpace(url)) return;
-        if (!TryUri(url, out var uri))
+        if (!TryUri(url, out _))
         {
             AddTextField(label, url);
             return;
         }
         var panel = new StackPanel { Spacing = 2 };
         panel.Children.Add(Label(label));
-        panel.Children.Add(new HyperlinkButton
-        {
-            Content = url.Trim(), NavigateUri = uri, Padding = new Thickness(0),
-        });
+        panel.Children.Add(LinkCopyButton(url.Trim(), url.Trim()));
         _fields.Children.Add(panel);
     }
 
@@ -342,13 +339,11 @@ public sealed partial class PackageDetailsDialog : ContentDialog
         if (string.IsNullOrWhiteSpace(license) && string.IsNullOrWhiteSpace(licenseUrl)) return;
         var panel = new StackPanel { Spacing = 2 };
         panel.Children.Add(Label(P("License", "授權條款")));
-        if (!string.IsNullOrWhiteSpace(licenseUrl) && TryUri(licenseUrl, out var uri))
+        if (!string.IsNullOrWhiteSpace(licenseUrl) && TryUri(licenseUrl, out _))
         {
-            panel.Children.Add(new HyperlinkButton
-            {
-                Content = string.IsNullOrWhiteSpace(license) ? licenseUrl.Trim() : license.Trim(),
-                NavigateUri = uri, Padding = new Thickness(0),
-            });
+            panel.Children.Add(LinkCopyButton(
+                string.IsNullOrWhiteSpace(license) ? licenseUrl.Trim() : license.Trim(),
+                licenseUrl.Trim()));
         }
         else
         {
@@ -420,12 +415,9 @@ public sealed partial class PackageDetailsDialog : ContentDialog
                 MaxHeight = 160, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Content = notesBlock,
             });
         }
-        if (!string.IsNullOrWhiteSpace(notesUrl) && TryUri(notesUrl, out var uri))
+        if (!string.IsNullOrWhiteSpace(notesUrl) && TryUri(notesUrl, out _))
         {
-            panel.Children.Add(new HyperlinkButton
-            {
-                Content = P("Open release notes", "開啟發佈說明"), NavigateUri = uri, Padding = new Thickness(0),
-            });
+            panel.Children.Add(LinkCopyButton(P("Copy release-notes URL", "複製發佈說明網址"), notesUrl.Trim()));
         }
         _fields.Children.Add(panel);
     }
@@ -435,6 +427,24 @@ public sealed partial class PackageDetailsDialog : ContentDialog
     private void SetStatus(string text)
     {
         if (_status is not null) _status.Text = text;
+    }
+
+    private Button LinkCopyButton(string content, string url)
+    {
+        var button = new Button { Content = content, Padding = new Thickness(0) };
+        button.Click += (_, _) =>
+        {
+            try
+            {
+                var dp = new DataPackage { RequestedOperation = DataPackageOperation.Copy };
+                dp.SetText(url);
+                Clipboard.SetContent(dp);
+                Clipboard.Flush();
+                SetStatus(P("URL copied.", "已複製網址。"));
+            }
+            catch (Exception ex) { SetStatus(ex.Message); }
+        };
+        return button;
     }
 
     private static TextBlock Label(string text) => new()

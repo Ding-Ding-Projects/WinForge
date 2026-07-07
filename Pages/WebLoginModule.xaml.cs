@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.Web.WebView2.Core;
+using Windows.ApplicationModel.DataTransfer;
 using WinForge.Controls;
 using WinForge.Services;
 
@@ -76,7 +77,7 @@ public sealed partial class WebLoginModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "In-App Login · 內置登入";
+        Header.Title = "In-App Login · 內置登入";
         HeaderBlurb.Text = P(
             "Sign in to web services (GitHub, Cloudflare, OpenAI, Anthropic, Bitwarden…) inside WinForge instead of an external browser. Pick a provider and Capture to drive an OAuth redirect or grab session cookies; the same plumbing is reused by the Git, Cloudflare and AI modules.",
             "喺 WinForge 內置登入各種網頁服務（GitHub、Cloudflare、OpenAI、Anthropic、Bitwarden…），唔使彈出外置瀏覽器。揀一個提供者再撳「捕捉」去跑 OAuth 重新導向或者攞 session cookie；Git、Cloudflare 同 AI 模組都共用同一套底層。");
@@ -173,13 +174,33 @@ public sealed partial class WebLoginModule : Page
         EngineBar.Message = P(
             "The Microsoft Edge WebView2 Runtime is required for in-app login. It ships with Windows 11; on older images install the Evergreen Runtime.",
             "內置登入需要 Microsoft Edge WebView2 執行階段。Windows 11 已內附；舊版系統請安裝 Evergreen Runtime。");
-        var btn = new HyperlinkButton
+
+        // Rich one-click auto-install of the WebView2 Runtime (winget: Microsoft.EdgeWebView2Runtime).
+        // On success re-detect + start the embedded browser without an app restart.
+        try
         {
-            Content = P("Open download page", "開啟下載頁面"),
-            NavigateUri = new Uri("https://developer.microsoft.com/microsoft-edge/webview2/"),
+            EngineBar.Content = EngineBars.AutoInstallProgress(
+                "Microsoft.EdgeWebView2Runtime", "Install WebView2 Runtime", "安裝 WebView2 執行階段",
+                recheck: async () => { await EnsureWebAsync(); });
+        }
+        catch { /* never throw from prerequisite UI */ }
+
+        // Keep the manual link as a fallback action.
+        var btn = new Button
+        {
+            Content = P("Copy download URL", "複製下載網址"),
         };
+        btn.Click += (_, _) => CopyText("https://developer.microsoft.com/microsoft-edge/webview2/");
         EngineBar.ActionButton = btn;
         EngineBar.IsOpen = true;
+    }
+
+    private static void CopyText(string text)
+    {
+        var dp = new DataPackage { RequestedOperation = DataPackageOperation.Copy };
+        dp.SetText(text);
+        Clipboard.SetContent(dp);
+        Clipboard.Flush();
     }
 
     private void Back_Click(object sender, RoutedEventArgs e)

@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using WinForge.Controls;
 using WinForge.Models;
 using WinForge.Services;
 
@@ -23,6 +24,10 @@ public sealed partial class ResumeWriterModule : Page
     private CancellationTokenSource? _cts;
     private string _currentOutputId = "";   // history id of the loaded output, if any
 
+    // 履歷／求職信編輯框各自嘅富文字工具列（每實例獨立，互不影響）· independent per-instance toolbars.
+    private RichTextToolbar? _resumeToolbar;
+    private RichTextToolbar? _coverToolbar;
+
     public ResumeWriterModule()
     {
         InitializeComponent();
@@ -31,6 +36,7 @@ public sealed partial class ResumeWriterModule : Page
         Loaded += async (_, _) =>
         {
             Render();
+            EnsureResumeToolbar();
             RefreshBaseCombo();
             FillToneCombo();
             await RefreshAgentsAsync();
@@ -43,6 +49,25 @@ public sealed partial class ResumeWriterModule : Page
     }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
+
+    /// <summary>建立履歷編輯框嘅富文字工具列；主題只套用喺履歷面容器 · build the resume editor's toolbar once (theme scoped to its pane).</summary>
+    private void EnsureResumeToolbar()
+    {
+        try
+        {
+            if (_resumeToolbar is null)
+            {
+                _resumeToolbar = new RichTextToolbar(ResumeEditor, RichTextToolbar.Mode.Editable, themeScope: ResumePaneRoot);
+                ResumeToolbarHost.Content = _resumeToolbar;
+            }
+            if (_coverToolbar is null)
+            {
+                _coverToolbar = new RichTextToolbar(CoverEditor, RichTextToolbar.Mode.Editable, themeScope: CoverPaneRoot);
+                CoverToolbarHost.Content = _coverToolbar;
+            }
+        }
+        catch (Exception ex) { CrashLogger.Log("resumewriter:toolbar", ex); }
+    }
 
     private void OnLanguageChanged(object? s, EventArgs e)
     {
@@ -57,7 +82,7 @@ public sealed partial class ResumeWriterModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Resume & Cover-letter Writer · 履歷與求職信寫手";
+        Header.Title = "Resume & Cover-letter Writer · 履歷與求職信寫手";
         HeaderBlurb.Text = P(
             "Keep one or more base resumes, paste a target job description, and let an installed AI coding agent tailor a resume and matching cover letter. Edit them, save to history, and export.",
             "儲存一份或多份底稿履歷，貼上目標職位描述，由已安裝嘅 AI 編程代理幫你度身訂造履歷同埋配對嘅求職信。可以手動編輯、存入歷史、匯出。");
@@ -215,6 +240,8 @@ public sealed partial class ResumeWriterModule : Page
         {
             AgentCombo.SelectedItem = AgentCombo.Items[0];
             AgentBar.IsOpen = false;
+            AgentBar.Content = null;
+            AgentBar.ActionButton = null;
             GenerateBtn.IsEnabled = true;
             RegenCoverBtn.IsEnabled = true;
         }
@@ -225,14 +252,48 @@ public sealed partial class ResumeWriterModule : Page
             AgentBar.IsOpen = true;
             AgentBar.Severity = InfoBarSeverity.Warning;
             AgentBar.Title = P("No supported AI agent installed", "未安裝支援嘅 AI 代理");
-            AgentBar.Message = P(
-                "Install Claude Code, opencode, Codex or Pi from the AI Agents module, then come back here.",
-                "請喺「AI 代理」模組安裝 Claude Code、opencode、Codex 或 Pi，然後返嚟呢度。");
 
             bool node = await AiAgentService.NodeAvailableAsync();
-            AgentBar.ActionButton = node ? null : EngineBars.AutoInstallButton(
-                "OpenJS.NodeJS.LTS", "Install Node.js", "安裝 Node.js",
-                async () => { await RefreshAgentsAsync(); }, null);
+            AgentBar.ActionButton = null;
+            if (!node)
+            {
+                // Node.js missing → offer a rich auto-install; agents install via npm afterwards.
+                AgentBar.Message = P(
+                    "Node.js is required to install a terminal AI agent (Claude Code, opencode, Codex, Pi). Install it once, then install an agent below.",
+                    "安裝終端機 AI 代理（Claude Code、opencode、Codex、Pi）需要 Node.js。裝一次之後就可以喺下面裝代理。");
+                AgentBar.Content = EngineBars.AutoInstallProgress(
+                    "OpenJS.NodeJS.LTS", "Install Node.js", "安裝 Node.js",
+                    recheck: async () => { await RefreshAgentsAsync(); });
+            }
+            else
+            {
+                // Node.js present → one-click install Claude Code (npm) right here, or point at AI Agents.
+                AgentBar.Message = P(
+                    "No supported agent found. Install Claude Code below, or install opencode / Codex / Pi from the AI Agents module.",
+                    "搵唔到支援嘅代理。可以喺下面安裝 Claude Code，或者喺「AI 代理」模組安裝 opencode／Codex／Pi。");
+                var claude = AiAgentService.All.FirstOrDefault(a => a.Key == "claude");
+                var npm = claude?.InstallMethods.FirstOrDefault(m => m.Label == "npm");
+                if (claude is not null && npm is not null)
+                {
+                    AgentBar.Content = Controls.InstallProgress.Create(
+                        "Install Claude Code (npm)", "安裝 Claude Code（npm）",
+                        async (progress, ct) =>
+                        {
+                            var onLine = new Progress<string>(l => progress.Report(Controls.InstallProgressReport.FromLine(l)));
+                            progress.Report(Controls.InstallProgressReport.Status(
+                                "Installing Claude Code via npm…", "用 npm 安裝 Claude Code…"));
+                            TweakResult r;
+                            try { r = await npm.RunStreamingOrPlain(onLine, ct); }
+                            catch (Exception ex) { r = TweakResult.Fail(ex.Message, $"出錯：{ex.Message}"); }
+                            if (r.Success)
+                            {
+                                try { PackageService.RefreshProcessPath(); } catch { }
+                                await RefreshAgentsAsync();
+                            }
+                            return r;
+                        });
+                }
+            }
         }
     }
 

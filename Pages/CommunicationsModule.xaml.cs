@@ -17,15 +17,18 @@ public sealed partial class CommunicationsModule : Page
     public CommunicationsModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) => { Render(); ShowOutlookState(); };
+        Unloaded += (_, _) => Loc.I.LanguageChanged -= OnLanguageChanged;
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
     private void Render()
     {
-        HeaderTitle.Text = "Communications · 通訊";
+        Header.Title = "Communications · 通訊";
         HeaderBlurb.Text = P(
             "Build & launch deep links for mail and chat apps — fill in the fields below and click. Everything opens a draft / compose / dialer; nothing is ever sent automatically.",
             "為信件同傾偈 app 砌深層連結 — 填好下面啲格再撳掣。全部只會開草稿／撰寫／撥號介面，永遠唔會自動寄出。");

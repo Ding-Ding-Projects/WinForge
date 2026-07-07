@@ -4,19 +4,19 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
     <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
         <StackPanel MaxWidth="1100" Spacing="14">
 
-            <StackPanel Orientation="Horizontal" Spacing="12">
-                <FontIcon FontSize="24" Glyph="&#xE7B8;" VerticalAlignment="Center" />
-                <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
-            </StackPanel>
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE7B8;" />
             <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
 
             <InfoBar x:Name="EngineBar" IsClosable="False" IsOpen="False" />
+            <!-- Rich install-progress host for the 7-Zip prerequisite (bar + live status + % + Cancel). -->
+            <StackPanel x:Name="EngineInstallHost" />
 
             <!-- Selection -->
             <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
@@ -110,7 +110,25 @@
             <!-- Advanced operations -->
             <TextBlock x:Name="AdvancedHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
             <AutoSuggestBox x:Name="OpsFilter" MaxWidth="420" HorizontalAlignment="Left" QueryIcon="Find" TextChanged="OpsFilter_TextChanged" />
-            <StackPanel x:Name="OpsPanel" />
+
+            <!-- One persistent result bar for advanced operations (not per-row) -->
+            <InfoBar x:Name="OpsResultBar" IsClosable="True" IsOpen="False" />
+
+            <!-- Advanced-operation output -->
+            <Border x:Name="OpsOutBorder" Padding="12" Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="6" Visibility="Collapsed">
+                <ScrollViewer MaxHeight="240" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                    <TextBlock x:Name="OpsOutText" FontFamily="Consolas" FontSize="12" IsTextSelectionEnabled="True" TextWrapping="Wrap" />
+                </ScrollViewer>
+            </Border>
+
+            <!-- Control-based operation rows (no TweakCard) with a subtle Fluent entrance animation -->
+            <StackPanel x:Name="OpsPanel">
+                <StackPanel.ChildrenTransitions>
+                    <TransitionCollection>
+                        <EntranceThemeTransition IsStaggeringEnabled="True" />
+                    </TransitionCollection>
+                </StackPanel.ChildrenTransitions>
+            </StackPanel>
         </StackPanel>
     </ScrollViewer>
 </Page>

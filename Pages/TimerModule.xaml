@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.TimerModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="760" Spacing="14">
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE916;" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <Pivot x:Name="ModePivot" SelectionChanged="Mode_Changed">
+
+                <!-- ========================= STOPWATCH ========================= -->
+                <PivotItem x:Name="SwTab">
+                    <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                        <StackPanel Spacing="14">
+                            <TextBlock x:Name="SwDisplay" Text="00:00:00.00" FontSize="44" FontWeight="SemiBold" FontFamily="Consolas" HorizontalAlignment="Center" />
+                            <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
+                                <Button x:Name="SwStartBtn" Click="Sw_StartStop" MinWidth="96" />
+                                <Button x:Name="SwLapBtn" Click="Sw_Lap" MinWidth="96" />
+                                <Button x:Name="SwResetBtn" Click="Sw_Reset" MinWidth="96" />
+                            </StackPanel>
+                            <ListView x:Name="SwLaps" MaxHeight="220" SelectionMode="None" />
+                        </StackPanel>
+                    </Border>
+                </PivotItem>
+
+                <!-- ========================= COUNTDOWN ========================= -->
+                <PivotItem x:Name="CdTab">
+                    <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                        <StackPanel Spacing="14">
+                            <TextBlock x:Name="CdDisplay" Text="00:00" FontSize="44" FontWeight="SemiBold" FontFamily="Consolas" HorizontalAlignment="Center" />
+                            <StackPanel Orientation="Horizontal" Spacing="14" HorizontalAlignment="Center">
+                                <StackPanel Spacing="2">
+                                    <TextBlock x:Name="CdMinLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <NumberBox x:Name="CdMinBox" Value="5" Minimum="0" Maximum="999" SpinButtonPlacementMode="Inline" MinWidth="120" />
+                                </StackPanel>
+                                <StackPanel Spacing="2">
+                                    <TextBlock x:Name="CdSecLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <NumberBox x:Name="CdSecBox" Value="0" Minimum="0" Maximum="59" SpinButtonPlacementMode="Inline" MinWidth="120" />
+                                </StackPanel>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
+                                <Button x:Name="CdStartBtn" Click="Cd_StartPause" MinWidth="110" />
+                                <Button x:Name="CdResetBtn" Click="Cd_Reset" MinWidth="110" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </PivotItem>
+
+                <!-- ========================= POMODORO ========================= -->
+                <PivotItem x:Name="PomoTab">
+                    <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                        <StackPanel Spacing="14">
+                            <TextBlock x:Name="PomoPhase" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                            <TextBlock x:Name="PomoDisplay" Text="25:00" FontSize="44" FontWeight="SemiBold" FontFamily="Consolas" HorizontalAlignment="Center" />
+                            <TextBlock x:Name="PomoCycles" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Center" />
+                            <StackPanel Orientation="Horizontal" Spacing="14" HorizontalAlignment="Center">
+                                <StackPanel Spacing="2">
+                                    <TextBlock x:Name="PomoWorkLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <NumberBox x:Name="PomoWorkBox" Value="25" Minimum="1" Maximum="180" SpinButtonPlacementMode="Inline" MinWidth="120" />
+                                </StackPanel>
+                                <StackPanel Spacing="2">
+                                    <TextBlock x:Name="PomoBreakLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <NumberBox x:Name="PomoBreakBox" Value="5" Minimum="1" Maximum="180" SpinButtonPlacementMode="Inline" MinWidth="120" />
+                                </StackPanel>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
+                                <Button x:Name="PomoStartBtn" Click="Pomo_StartPause" MinWidth="110" />
+                                <Button x:Name="PomoResetBtn" Click="Pomo_Reset" MinWidth="110" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </PivotItem>
+            </Pivot>
+
+            <TextBlock x:Name="StatusText" FontSize="13" TextWrapping="Wrap" />
+        </StackPanel>
+    </ScrollViewer>
+</Page>

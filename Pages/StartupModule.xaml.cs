@@ -18,15 +18,18 @@ public sealed partial class StartupModule : Page
     public StartupModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) => { Render(); Reload(); };
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
     private void Render()
     {
-        HeaderTitle.Text = "Startup Apps · 開機程式";
+        Header.Title = "Startup Apps · 開機程式";
         FilterBox.PlaceholderText = P("Filter startup apps…", "篩選開機程式…");
         RefreshBtn.Content = P("Refresh", "重新整理");
     }

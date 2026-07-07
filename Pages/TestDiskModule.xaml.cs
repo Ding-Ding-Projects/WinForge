@@ -29,17 +29,19 @@ public sealed partial class TestDiskModule : Page
     public TestDiskModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += async (_, _) => { Render(); await Init(); };
-        Unloaded += (_, _) => { try { _cts?.Cancel(); } catch { } };
+        Unloaded += (_, _) => { try { _cts?.Cancel(); } catch { } Loc.I.LanguageChanged -= OnLanguageChanged; };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
     private void Render()
     {
-        HeaderTitle.Text = "TestDisk / PhotoRec · 資料救援";
-        HeaderSub.Text = P(
+        Header.Title = "TestDisk / PhotoRec · 資料救援";
+        Header.Subtitle = P(
             "Carve lost files (PhotoRec) and scan partitions read-only (TestDisk). Recover to a DIFFERENT disk.",
             "碳化救回遺失檔案（PhotoRec），唯讀掃描分割區（TestDisk）。請救援到另一個磁碟。");
 
@@ -62,8 +64,6 @@ public sealed partial class TestDiskModule : Page
 
         LogTitle.Text = P("Live log", "即時記錄");
         ClearLogBtn.Content = P("Clear", "清除");
-
-        DownloadBtn.Content = P("Download recovery tools", "下載救援工具");
     }
 
     private async Task Init()
@@ -79,35 +79,49 @@ public sealed partial class TestDiskModule : Page
     private async Task RefreshEngine()
     {
         bool ok = await Task.Run(TestDiskService.IsAvailable);
+        // Don't clobber the live "Downloading…/Extracting…" status while a job is running.
+        if (_busy) return;
+
         if (ok)
         {
             EngineBar.IsOpen = false;
+            DownloadHost.Children.Clear();
         }
         else
         {
             EngineBar.Severity = InfoBarSeverity.Warning;
             EngineBar.Title = P("Recovery tools not installed", "未安裝救援工具");
             EngineBar.Message = P(
-                $"PhotoRec / TestDisk v{TestDiskService.Version} (GPLv2, cgsecurity.org) are downloaded on demand — not bundled. Click to fetch + extract (~7 MB).",
-                $"PhotoRec / TestDisk v{TestDiskService.Version}（GPLv2，cgsecurity.org）按需下載，唔會內附。撳一下即可下載＋解壓（約 7 MB）。");
+                $"PhotoRec / TestDisk v{TestDiskService.Version} (GPLv2, cgsecurity.org) are downloaded on demand — not bundled. Fetch + extract (~7 MB) with live progress below.",
+                $"PhotoRec / TestDisk v{TestDiskService.Version}（GPLv2，cgsecurity.org）按需下載，唔會內附。下面有即時進度嘅下載＋解壓（約 7 MB）。");
             EngineBar.IsOpen = true;
+            BuildDownloadControl();
         }
     }
 
-    private async void Download_Click(object sender, RoutedEventArgs e)
+    /// <summary>
+    /// 用共用 InstallProgress 控件下載＋解壓救援工具 · Build the rich install-progress control that
+    /// streams the direct download + extract (real % on the download, live status, Cancel, and a
+    /// flashy success/error animation with the true error surfaced on failure).
+    /// </summary>
+    private void BuildDownloadControl()
     {
-        if (_busy) return;
-        _busy = true;
-        DownloadBtn.IsEnabled = false;
-        var progress = new Progress<string>(s => { EngineBar.Message = s; AppendLog(s); });
-        try
-        {
-            var r = await TestDiskService.DownloadBinaries(progress);
-            ShowResult(r);
-            await RefreshEngine();
-            await LoadTypes();
-        }
-        finally { _busy = false; DownloadBtn.IsEnabled = true; UpdateButtons(); }
+        DownloadHost.Children.Clear();
+        var ctl = Controls.InstallProgress.Create(
+            "Download recovery tools", "下載救援工具",
+            async (progress, ct) =>
+            {
+                // Bridge TestDiskService's bilingual/percent-bearing status lines into the progress bar.
+                var onLine = new Progress<string>(s =>
+                {
+                    progress.Report(Controls.InstallProgressReport.FromLine(s));
+                    DispatcherQueue.TryEnqueue(() => AppendLog(s));
+                });
+                var r = await TestDiskService.DownloadBinaries(onLine, ct);
+                DispatcherQueue.TryEnqueue(async () => { await RefreshEngine(); await LoadTypes(); UpdateButtons(); });
+                return r;
+            });
+        DownloadHost.Children.Add(ctl);
     }
 
     // ───────────────────────── disks / image ─────────────────────────

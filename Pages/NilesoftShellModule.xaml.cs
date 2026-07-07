@@ -2,11 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using WinForge.Catalog;
-using WinForge.Controls;
 using WinForge.Models;
 using WinForge.Services;
 
@@ -28,6 +30,7 @@ public sealed partial class NilesoftShellModule : Page
     }
 
     private List<TweakDefinition>? _ops;
+    private bool _rowBusy; // guard so only one action row runs at a time
 
     public NilesoftShellModule()
     {
@@ -57,7 +60,7 @@ public sealed partial class NilesoftShellModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Nilesoft Shell · Nilesoft 右鍵選單";
+        Header.Title = "Nilesoft Shell · Nilesoft 右鍵選單";
         HeaderBlurb.Text = P(
             "Install and control Nilesoft Shell — a native replacement for the Windows right-click menu — and edit its shell.nss configuration with templates, snippets and automatic backups.",
             "安裝同控制 Nilesoft Shell（Windows 右鍵選單嘅原生替代品），並用範本、片語同自動備份去編輯佢嘅 shell.nss 設定檔。");
@@ -101,15 +104,19 @@ public sealed partial class NilesoftShellModule : Page
     private async Task CheckEngine()
     {
         bool ok = await NilesoftShellService.IsInstalledAsync();
-        if (ok) { EngineBar.IsOpen = false; EngineBar.ActionButton = null; SetLifecycleEnabled(true); return; }
+        if (ok) { EngineBar.IsOpen = false; EngineBar.ActionButton = null; EngineBar.Content = null; SetLifecycleEnabled(true); return; }
         EngineBar.IsOpen = true;
         EngineBar.Severity = InfoBarSeverity.Warning;
         EngineBar.Title = P("Nilesoft Shell not found", "搵唔到 Nilesoft Shell");
         EngineBar.Message = P("Click to install Nilesoft Shell automatically (winget) — no app restart needed.",
             "撳一下自動安裝 Nilesoft Shell（winget）— 唔使重開程式。");
-        EngineBar.ActionButton = EngineBars.AutoInstallButton(
+        // Rich install control: real progress bar + live streamed status + % + Cancel + success/error animation.
+        EngineBar.ActionButton = null;
+        var install = EngineBars.AutoInstallProgress(
             NilesoftShellService.WingetId, "Install Nilesoft Shell automatically", "自動安裝 Nilesoft Shell",
             async () => { await CheckEngine(); LoadConfigIntoEditor(); RefreshStatus(); });
+        install.Margin = new Thickness(0, 4, 0, 8);
+        EngineBar.Content = install;
         SetLifecycleEnabled(false);
     }
 
@@ -164,7 +171,7 @@ public sealed partial class NilesoftShellModule : Page
         if (path is null) return;
         try
         {
-            ConfigBox.Text = File.ReadAllText(path);
+            ConfigBox.Text = await File.ReadAllTextAsync(path);
             _loadedPath = path;
             ConfigPathLine.Text = P($"Editing: {path}", $"正在編輯：{path}");
             Show(InfoBarSeverity.Informational, P("Opened (not the live config)", "已開啟（並非生效中設定）"),
@@ -175,17 +182,17 @@ public sealed partial class NilesoftShellModule : Page
 
     private void ReloadFile_Click(object sender, RoutedEventArgs e) => LoadConfigIntoEditor();
 
-    private void Save_Click(object sender, RoutedEventArgs e) => DoSave(reload: false);
+    private async void Save_Click(object sender, RoutedEventArgs e) => await DoSave(reload: false);
 
     private async void SaveReload_Click(object sender, RoutedEventArgs e)
     {
-        if (!DoSave(reload: false)) return;
+        if (!await DoSave(reload: false)) return;
         var r = await NilesoftShellService.ReloadAsync();
         ShowResult(r, P("Reloaded", "已重新載入"));
         RefreshStatus();
     }
 
-    private bool DoSave(bool reload)
+    private async Task<bool> DoSave(bool reload)
     {
         // If the user opened a different file, save there as plain text; otherwise use the service
         // (which backs up the live shell.nss and handles elevation messaging).
@@ -195,7 +202,7 @@ public sealed partial class NilesoftShellModule : Page
         {
             try
             {
-                File.WriteAllText(_loadedPath, ConfigBox.Text);
+                await File.WriteAllTextAsync(_loadedPath, ConfigBox.Text);
                 Show(InfoBarSeverity.Success, P("Saved", "已儲存"), _loadedPath);
                 return true;
             }
@@ -370,15 +377,334 @@ public sealed partial class NilesoftShellModule : Page
             var f = filter.Trim().ToLowerInvariant();
             shown = _ops.Where(t => t.SearchHaystack.Contains(f));
         }
+
+        bool first = true;
         foreach (var op in shown)
         {
-            var card = new TweakCard();
-            card.SetTweak(op);
-            OpsPanel.Children.Add(card);
+            if (!first) OpsPanel.Children.Add(BuildDivider());
+            first = false;
+            OpsPanel.Children.Add(BuildRow(op));
         }
     }
 
+    // ---- One clean row: bilingual title + description on the left, control on the right ----
+    private FrameworkElement BuildRow(TweakDefinition op)
+    {
+        var grid = new Grid { Padding = new Thickness(0, 12, 0, 12) };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        var text = new StackPanel { Spacing = 2, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 16, 0) };
+
+        text.Children.Add(new TextBlock { Text = op.Title.Primary, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap });
+
+        if (!string.IsNullOrWhiteSpace(op.Title.Secondary))
+            text.Children.Add(new TextBlock
+            {
+                Text = op.Title.Secondary,
+                FontSize = 12,
+                Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+                TextWrapping = TextWrapping.Wrap,
+            });
+
+        if (!string.IsNullOrWhiteSpace(op.Description.Primary))
+            text.Children.Add(new TextBlock
+            {
+                Text = op.Description.Primary,
+                FontSize = 13,
+                Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 2, 0, 0),
+            });
+        if (!string.IsNullOrWhiteSpace(op.Description.Secondary))
+            text.Children.Add(new TextBlock
+            {
+                Text = op.Description.Secondary,
+                FontSize = 12,
+                Foreground = (Brush)Application.Current.Resources["TextFillColorTertiaryBrush"],
+                TextWrapping = TextWrapping.Wrap,
+            });
+
+        Grid.SetColumn(text, 0);
+        grid.Children.Add(text);
+
+        var control = BuildControl(op);
+        control.VerticalAlignment = VerticalAlignment.Center;
+        Grid.SetColumn(control, 1);
+        grid.Children.Add(control);
+
+        return grid;
+    }
+
+    private Border BuildDivider() => new()
+    {
+        Height = 1,
+        Background = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"],
+        Opacity = 0.6,
+    };
+
+    /// <summary>對應每種 Tweak 種類砌一個真控件 · Build the matching WinUI control for the tweak kind.</summary>
+    private FrameworkElement BuildControl(TweakDefinition op) => op.Kind switch
+    {
+        TweakKind.Toggle => BuildToggle(op),
+        TweakKind.Choice => BuildChoice(op),
+        TweakKind.Slider => BuildSlider(op),
+        TweakKind.Number => BuildNumber(op),
+        TweakKind.Info => BuildInfo(op),
+        _ => BuildAction(op), // Action (and any other kind) → button
+    };
+
+    // ---------------- Action → Button awaiting RunAsync ----------------
+    private FrameworkElement BuildAction(TweakDefinition op)
+    {
+        var label = op.ActionLabel?.Get(Loc.I.Language) ?? P("Run", "執行");
+        var btn = new Button { Content = label, MinWidth = 110 };
+        if (op.ActionLabel is not null)
+            ToolTipService.SetToolTip(btn, $"{op.ActionLabel.En} · {op.ActionLabel.Zh}");
+
+        btn.Click += async (_, _) =>
+        {
+            if (_rowBusy || op.RunAsync is null) return;
+            if (op.Destructive && !await ConfirmAsync(op)) return;
+
+            _rowBusy = true;
+            btn.IsEnabled = false;
+            var restore = btn.Content;
+            btn.Content = new ProgressRing { IsActive = true, Width = 18, Height = 18 };
+            try
+            {
+                var result = await op.RunAsync(CancellationToken.None);
+                ShowResult(result);
+            }
+            catch (Exception ex)
+            {
+                ShowError(op, ex);
+            }
+            finally
+            {
+                btn.Content = restore;
+                btn.IsEnabled = true;
+                _rowBusy = false;
+            }
+        };
+        return btn;
+    }
+
+    // ---------------- Toggle → ToggleSwitch ----------------
+    private FrameworkElement BuildToggle(TweakDefinition op)
+    {
+        var toggle = new ToggleSwitch { OnContent = "On · 開", OffContent = "Off · 熄" };
+        bool suppress = true;
+        try { toggle.IsOn = op.GetIsOn?.Invoke() ?? false; } catch { /* show as off */ }
+        suppress = false;
+
+        toggle.Toggled += (_, _) =>
+        {
+            if (suppress || op.SetIsOn is null) return;
+            try { op.SetIsOn(toggle.IsOn); ShowApplied(op); }
+            catch (Exception ex)
+            {
+                suppress = true;
+                try { toggle.IsOn = op.GetIsOn?.Invoke() ?? false; } catch { /* ignore */ }
+                suppress = false;
+                ShowError(op, ex);
+            }
+        };
+        return toggle;
+    }
+
+    // ---------------- Choice → ComboBox ----------------
+    private FrameworkElement BuildChoice(TweakDefinition op)
+    {
+        var combo = new ComboBox { MinWidth = 170 };
+        if (op.Choices is not null)
+            foreach (var c in op.Choices)
+                combo.Items.Add(new ComboBoxItem { Content = c.Label.Get(Loc.I.Language), Tag = c.Value });
+
+        bool suppress = true;
+        try
+        {
+            var cur = op.GetCurrentChoice?.Invoke();
+            if (cur is not null && op.Choices is not null)
+                for (int i = 0; i < op.Choices.Count; i++)
+                    if (string.Equals(op.Choices[i].Value, cur, StringComparison.OrdinalIgnoreCase))
+                    { combo.SelectedIndex = i; break; }
+        }
+        catch { /* leave unselected */ }
+        suppress = false;
+
+        combo.SelectionChanged += (_, _) =>
+        {
+            if (suppress || op.SetChoice is null) return;
+            if (combo.SelectedItem is ComboBoxItem item && item.Tag is string val)
+            {
+                try { op.SetChoice(val); ShowApplied(op); }
+                catch (Exception ex)
+                {
+                    ShowError(op, ex);
+                    suppress = true;
+                    try
+                    {
+                        var cur = op.GetCurrentChoice?.Invoke();
+                        if (cur is not null && op.Choices is not null)
+                            for (int i = 0; i < op.Choices.Count; i++)
+                                if (string.Equals(op.Choices[i].Value, cur, StringComparison.OrdinalIgnoreCase))
+                                { combo.SelectedIndex = i; break; }
+                    }
+                    catch { /* ignore */ }
+                    suppress = false;
+                }
+            }
+        };
+        return combo;
+    }
+
+    // ---------------- Slider → Slider + value label ----------------
+    private FrameworkElement BuildSlider(TweakDefinition op)
+    {
+        string Format(double v)
+        {
+            bool whole = op.Step >= 1 && Math.Abs(op.Step % 1) < 1e-9;
+            string num = whole ? Math.Round(v).ToString(System.Globalization.CultureInfo.InvariantCulture)
+                               : v.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
+            return op.Unit is null ? num : $"{num} {op.Unit.Primary}";
+        }
+        double Clamp(double v) => Math.Max(op.Min, Math.Min(op.Max, v));
+
+        var panel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, VerticalAlignment = VerticalAlignment.Center };
+        var slider = new Slider { Minimum = op.Min, Maximum = op.Max, StepFrequency = op.Step, Width = 160, VerticalAlignment = VerticalAlignment.Center };
+        var valueText = new TextBlock
+        {
+            MinWidth = 56,
+            VerticalAlignment = VerticalAlignment.Center,
+            Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+        };
+
+        bool suppress = true;
+        try { slider.Value = Clamp(op.GetNumber?.Invoke() ?? op.Min); } catch { slider.Value = op.Min; }
+        suppress = false;
+        valueText.Text = Format(slider.Value);
+
+        slider.ValueChanged += (_, e) =>
+        {
+            valueText.Text = Format(e.NewValue);
+            if (suppress || op.SetNumber is null) return;
+            try { op.SetNumber(e.NewValue); ShowApplied(op); }
+            catch (Exception ex)
+            {
+                ShowError(op, ex);
+                suppress = true;
+                try { slider.Value = Clamp(op.GetNumber?.Invoke() ?? op.Min); } catch { /* ignore */ }
+                suppress = false;
+            }
+        };
+        panel.Children.Add(slider);
+        panel.Children.Add(valueText);
+        return panel;
+    }
+
+    // ---------------- Number → NumberBox ----------------
+    private FrameworkElement BuildNumber(TweakDefinition op)
+    {
+        double Clamp(double v) => Math.Max(op.Min, Math.Min(op.Max, v));
+        var box = new NumberBox
+        {
+            Minimum = op.Min,
+            Maximum = op.Max,
+            SmallChange = op.Step,
+            LargeChange = op.Step,
+            SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Inline,
+            MinWidth = 140,
+            ValidationMode = NumberBoxValidationMode.InvalidInputOverwritten,
+        };
+        bool suppress = true;
+        try { box.Value = Clamp(op.GetNumber?.Invoke() ?? op.Min); } catch { box.Value = op.Min; }
+        suppress = false;
+
+        box.ValueChanged += (_, e) =>
+        {
+            if (suppress || op.SetNumber is null || double.IsNaN(e.NewValue)) return;
+            try { op.SetNumber(e.NewValue); ShowApplied(op); }
+            catch (Exception ex)
+            {
+                ShowError(op, ex);
+                suppress = true;
+                try { box.Value = Clamp(op.GetNumber?.Invoke() ?? op.Min); } catch { /* ignore */ }
+                suppress = false;
+            }
+        };
+        return box;
+    }
+
+    // ---------------- Info → refreshable TextBlock ----------------
+    private FrameworkElement BuildInfo(TweakDefinition op)
+    {
+        string Safe() { try { return op.GetInfo?.Invoke() ?? "—"; } catch { return "—"; } }
+
+        var panel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, VerticalAlignment = VerticalAlignment.Center };
+        var info = new TextBlock
+        {
+            Text = Safe(),
+            IsTextSelectionEnabled = true,
+            TextWrapping = TextWrapping.Wrap,
+            MaxWidth = 300,
+            HorizontalTextAlignment = TextAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        var refresh = new Button { Content = new FontIcon { Glyph = "", FontSize = 14 }, Padding = new Thickness(8) };
+        ToolTipService.SetToolTip(refresh, "Refresh · 重新整理");
+        refresh.Click += (_, _) => info.Text = Safe();
+        panel.Children.Add(info);
+        panel.Children.Add(refresh);
+        return panel;
+    }
+
+    // ---------------- Confirmation for destructive actions ----------------
+    private async Task<bool> ConfirmAsync(TweakDefinition op)
+    {
+        var dlg = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = P("Are you sure?", "確定嗎？"),
+            Content = $"{op.Title.En}\n{op.Title.Zh}\n\n" +
+                      "This action may be hard to undo.\n呢個動作可能難以復原。",
+            PrimaryButtonText = P("Proceed", "繼續"),
+            CloseButtonText = P("Cancel", "取消"),
+            DefaultButton = ContentDialogButton.Close,
+        };
+        try { return await dlg.ShowAsync() == ContentDialogResult.Primary; }
+        catch { return false; }
+    }
+
     // ===================== helpers =====================
+
+    /// <summary>套用後經持久 InfoBar 顯示 · Report an apply through the persistent InfoBar.</summary>
+    private void ShowApplied(TweakDefinition op)
+    {
+        string en = "Applied.", zh = "已套用。";
+        switch (op.Restart)
+        {
+            case RestartScope.Explorer: en = "Applied. Restart Explorer to see the change."; zh = "已套用。重啟檔案總管就睇到變化。"; break;
+            case RestartScope.SignOut: en = "Applied. Sign out and back in to take effect."; zh = "已套用。登出再登入後生效。"; break;
+            case RestartScope.Reboot: en = "Applied. Reboot to take effect."; zh = "已套用。重新開機後生效。"; break;
+        }
+        Show(InfoBarSeverity.Success, P("Done", "完成"), P(en, zh));
+    }
+
+    private void ShowError(TweakDefinition op, Exception ex)
+    {
+        bool needAdmin = op.RequiresAdmin && !AdminHelper.IsElevated;
+        Show(InfoBarSeverity.Error, P("Failed", "失敗"),
+            needAdmin ? P("This change needs administrator rights.", "呢項更改需要管理員權限。") : ex.Message);
+    }
+
+    private void ShowResult(TweakResult r)
+    {
+        var msg = (Loc.I.IsCantonesePrimary ? r.Message?.Zh : r.Message?.En) ?? "";
+        if (!string.IsNullOrWhiteSpace(r.Output)) msg = string.IsNullOrWhiteSpace(msg) ? r.Output! : $"{msg}\n{r.Output}";
+        Show(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error,
+            r.Success ? P("Done", "完成") : P("Failed", "失敗"), msg);
+    }
 
     private void ShowResult(TweakResult r, string okTitle)
     {

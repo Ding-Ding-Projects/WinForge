@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.ProcessExplorerModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:local="using:WinForge.Pages"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid Style="{StaticResource WinForgePageGridStyle}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!--  Header  -->
+        <controls:ModuleHeader x:Name="Header" Grid.Row="0" Glyph="&#xEC4A;">
+            <controls:ModuleHeader.ActionContent>
+                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <TextBlock x:Name="IntervalLabel" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <ComboBox x:Name="IntervalBox" SelectionChanged="Interval_Changed" MinWidth="92" />
+                </StackPanel>
+            </controls:ModuleHeader.ActionContent>
+        </controls:ModuleHeader>
+        <TextBlock x:Name="HeaderBlurb" Grid.Row="1" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+        <!--  Summary cards  -->
+        <Grid Grid.Row="2" ColumnSpacing="12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Border
+                Grid.Column="0"
+                Padding="16,10,16,10"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <StackPanel Spacing="2">
+                    <TextBlock x:Name="SumProcLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBlock x:Name="SumProcValue" FontSize="22" FontWeight="Bold" Text="—" />
+                </StackPanel>
+            </Border>
+            <Border
+                Grid.Column="1"
+                Padding="16,10,16,10"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <StackPanel Spacing="2">
+                    <TextBlock x:Name="SumCpuLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBlock x:Name="SumCpuValue" FontSize="22" FontWeight="Bold" Text="—" />
+                </StackPanel>
+            </Border>
+            <Border
+                Grid.Column="2"
+                Padding="16,10,16,10"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <StackPanel Spacing="2">
+                    <TextBlock x:Name="SumMemLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBlock x:Name="SumMemValue" FontSize="22" FontWeight="Bold" Text="—" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!--  Toolbar: search + actions  -->
+        <Grid Grid.Row="3" ColumnSpacing="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <AutoSuggestBox
+                x:Name="SearchBox"
+                Grid.Column="0"
+                MaxWidth="360"
+                HorizontalAlignment="Left"
+                QueryIcon="Find"
+                TextChanged="Search_Changed" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+                <Button x:Name="DetailsBtn" Click="Details_Click" />
+                <Button x:Name="LocationBtn" Click="Location_Click" />
+                <Button x:Name="CopyBtn" Click="Copy_Click" />
+                <Button x:Name="PriorityBtn" Click="Priority_Click" />
+                <Button x:Name="EndBtn" Click="End_Click" />
+                <Button x:Name="EndTreeBtn" Click="EndTree_Click" />
+            </StackPanel>
+        </Grid>
+
+        <!--  Elevation note  -->
+        <InfoBar
+            x:Name="ElevNote"
+            Grid.Row="4"
+            IsClosable="False"
+            IsOpen="False"
+            Severity="Informational" />
+
+        <!--  Process tree  -->
+        <Border
+            Grid.Row="5"
+            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            CornerRadius="8">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!--  Column headers  -->
+                <Grid Grid.Row="0" Padding="40,8,16,8" ColumnSpacing="10" Background="{ThemeResource SubtleFillColorSecondaryBrush}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="64" />
+                        <ColumnDefinition Width="64" />
+                        <ColumnDefinition Width="96" />
+                        <ColumnDefinition Width="56" />
+                        <ColumnDefinition Width="140" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock x:Name="ColName" Grid.Column="0" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBlock x:Name="ColPid" Grid.Column="1" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Right" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBlock x:Name="ColCpu" Grid.Column="2" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Right" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBlock x:Name="ColMem" Grid.Column="3" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Right" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBlock x:Name="ColThreads" Grid.Column="4" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Right" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBlock x:Name="ColUser" Grid.Column="5" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </Grid>
+
+                <TreeView
+                    x:Name="Tree"
+                    Grid.Row="1"
+                    CanDragItems="False"
+                    CanReorderItems="False"
+                    SelectionMode="Single"
+                    ItemInvoked="Tree_ItemInvoked"
+                    SelectionChanged="Tree_SelectionChanged">
+                    <TreeView.ItemTemplate>
+                        <DataTemplate x:DataType="local:ProcNode">
+                            <TreeViewItem
+                                AutomationProperties.Name="{x:Bind Name, Mode=OneWay}"
+                                IsExpanded="True"
+                                ItemsSource="{x:Bind Children}">
+                                <Grid ColumnSpacing="10" Padding="0,2,16,2" HorizontalAlignment="Stretch">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="64" />
+                                        <ColumnDefinition Width="64" />
+                                        <ColumnDefinition Width="96" />
+                                        <ColumnDefinition Width="56" />
+                                        <ColumnDefinition Width="140" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                        <TextBlock Text="{x:Bind Name, Mode=OneWay}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{x:Bind Description, Mode=OneWay}" VerticalAlignment="Center" FontSize="11" TextTrimming="CharacterEllipsis" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="1" Text="{x:Bind PidText, Mode=OneWay}" HorizontalTextAlignment="Right" VerticalAlignment="Center" FontFamily="Consolas" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock Grid.Column="2" Text="{x:Bind CpuText, Mode=OneWay}" HorizontalTextAlignment="Right" VerticalAlignment="Center" FontFamily="Consolas" FontSize="12" />
+                                    <TextBlock Grid.Column="3" Text="{x:Bind MemText, Mode=OneWay}" HorizontalTextAlignment="Right" VerticalAlignment="Center" FontFamily="Consolas" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock Grid.Column="4" Text="{x:Bind ThreadText, Mode=OneWay}" HorizontalTextAlignment="Right" VerticalAlignment="Center" FontFamily="Consolas" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock Grid.Column="5" Text="{x:Bind Owner, Mode=OneWay}" VerticalAlignment="Center" FontSize="12" TextTrimming="CharacterEllipsis" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                </Grid>
+                            </TreeViewItem>
+                        </DataTemplate>
+                    </TreeView.ItemTemplate>
+                </TreeView>
+            </Grid>
+        </Border>
+    </Grid>
+</Page>

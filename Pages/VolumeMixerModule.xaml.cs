@@ -26,9 +26,12 @@ public sealed partial class VolumeMixerModule : Page
     public VolumeMixerModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Build();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) => Build();
+        Unloaded += (_, _) => Loc.I.LanguageChanged -= OnLanguageChanged;
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Build();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
@@ -72,7 +75,7 @@ public sealed partial class VolumeMixerModule : Page
 
     private void Build()
     {
-        HeaderTitle.Text = "Volume Mixer · 音量混合器";
+        Header.Title = "Volume Mixer · 音量混合器";
         HeaderBlurb.Text = P("Pick a playback device, set the master level and every app's volume independently, make any device the system default, or move an app's stream to another device — like EarTrumpet, in-app.",
             "揀一個播放裝置，獨立設定主音量同每個 app 嘅音量，將任何裝置設為系統預設，或者將某個 app 嘅串流移去另一個裝置 — 好似 EarTrumpet 咁，但喺 app 內。");
         RefreshText.Text = P("Rescan", "重新掃描");

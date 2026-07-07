@@ -37,7 +37,7 @@ public sealed partial class OneDriveModule : Page
     public OneDriveModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => { Render(); Reload(); };
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) =>
         {
             Render();
@@ -45,13 +45,16 @@ public sealed partial class OneDriveModule : Page
             LoadThreshold();
             Reload();
         };
+        Unloaded += (_, _) => Loc.I.LanguageChanged -= OnLanguageChanged;
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) { Render(); Reload(); }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
     private void Render()
     {
-        HeaderTitle.Text = "OneDrive · OneDrive";
+        Header.Title = "OneDrive · OneDrive";
         HeaderBlurb.Text = P(
             "Control OneDrive Files-On-Demand. Pin items to keep them always on this PC, or dehydrate them to free space (online-only). Pause sync, and set how many days until unused files are auto-freed.",
             "控制 OneDrive 檔案隨選。釘選項目令佢哋永遠留喺呢部電腦，或者脫水變返只在雲端嚟釋放空間。可以暫停同步，仲可以設定幾多日後自動釋放未用嘅檔案。");

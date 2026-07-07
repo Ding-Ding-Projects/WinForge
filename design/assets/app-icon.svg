@@ -1,0 +1,28 @@
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#46955a"></stop>
+      <stop offset="1" stop-color="#1f5a30"></stop>
+    </linearGradient>
+    <linearGradient id="spark" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe08a"></stop>
+      <stop offset="1" stop-color="#e3873b"></stop>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="240" height="240" rx="52" fill="url(#bg)"></rect>
+  <rect x="8" y="8" width="240" height="240" rx="52" fill="none" stroke="#ffffff" stroke-opacity="0.14" stroke-width="3"></rect>
+  
+  <g>
+    <rect x="66" y="62" width="124" height="86" rx="12" fill="#ffffff" fill-opacity="0.18" stroke="#ffffff" stroke-opacity="0.6" stroke-width="5"></rect>
+    <line x1="128" y1="62" x2="128" y2="148" stroke="#ffffff" stroke-opacity="0.6" stroke-width="5"></line>
+    <line x1="66" y1="105" x2="190" y2="105" stroke="#ffffff" stroke-opacity="0.6" stroke-width="5"></line>
+  </g>
+  
+  <g fill="#0e2c18">
+    <path d="M70 170 h116 v18 a14 14 0 0 1 -14 14 H84 a14 14 0 0 1 -14 -14 z"></path>
+    <path d="M58 154 h74 a20 14 0 0 1 -20 14 H96 v10 H82 v-10 a18 12 0 0 1 -16 -14 z"></path>
+    <rect x="108" y="196" width="40" height="14" rx="3"></rect>
+  </g>
+  
+  <path d="M196 56 l6 16 l16 6 l-16 6 l-6 16 l-6 -16 l-16 -6 l16 -6 z" fill="url(#spark)"></path>
+</svg>

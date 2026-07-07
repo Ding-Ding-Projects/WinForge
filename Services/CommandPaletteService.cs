@@ -105,6 +105,7 @@ public static class CommandPaletteService
     private static IntPtr _hook = IntPtr.Zero;
     private static LowLevelKeyboardProc? _proc;
     private static DispatcherQueue? _ui;
+    private static readonly NativeMessagePump HookPump = new("WinForge-CommandPaletteHook");
 
     // Parsed hotkey: required modifiers + the main virtual key.
     private static bool _needCtrl, _needAlt, _needShift, _needWin;
@@ -116,14 +117,17 @@ public static class CommandPaletteService
     public static void Start(DispatcherQueue uiQueue)
     {
         _ui = uiQueue;
-        if (Enabled) InstallHotkey();
+        if (Enabled) HookPump.Post(InstallHotkey);
     }
 
     /// <summary>重新套用設定（啟用狀態／熱鍵改變後）· Re-apply settings after the user toggles or rebinds.</summary>
     public static void Reapply()
     {
-        RemoveHotkey();
-        if (Enabled) InstallHotkey();
+        HookPump.Post(() =>
+        {
+            RemoveHotkey();
+            if (Enabled) InstallHotkey();
+        });
     }
 
     private static void InstallHotkey()
@@ -307,41 +311,45 @@ public static class CommandPaletteService
     // ----- Installed apps (Start Menu .lnk + UWP) · 已安裝程式 -----
     private static List<(string name, string path)>? _appCache;
     private static DateTime _appCacheAt;
+    private static readonly object _appCacheGate = new();
 
     private static List<(string name, string path)> Apps()
     {
-        if (_appCache is not null && (DateTime.UtcNow - _appCacheAt).TotalMinutes < 5) return _appCache;
-        var apps = new List<(string, string)>();
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var root in new[]
+        lock (_appCacheGate)
         {
-            Environment.GetFolderPath(Environment.SpecialFolder.CommonStartMenu),
-            Environment.GetFolderPath(Environment.SpecialFolder.StartMenu),
-        })
-        {
-            try
+            if (_appCache is not null && (DateTime.UtcNow - _appCacheAt).TotalMinutes < 5) return _appCache;
+            var apps = new List<(string, string)>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var root in new[]
             {
-                if (string.IsNullOrEmpty(root) || !Directory.Exists(root)) continue;
-                foreach (var lnk in Directory.EnumerateFiles(root, "*.lnk", SearchOption.AllDirectories))
+                Environment.GetFolderPath(Environment.SpecialFolder.CommonStartMenu),
+                Environment.GetFolderPath(Environment.SpecialFolder.StartMenu),
+            })
+            {
+                try
                 {
-                    var name = Path.GetFileNameWithoutExtension(lnk);
-                    if (seen.Add(name)) apps.Add((name, lnk));
+                    if (string.IsNullOrEmpty(root) || !Directory.Exists(root)) continue;
+                    foreach (var lnk in Directory.EnumerateFiles(root, "*.lnk", SearchOption.AllDirectories))
+                    {
+                        var name = Path.GetFileNameWithoutExtension(lnk);
+                        if (seen.Add(name)) apps.Add((name, lnk));
+                    }
+                    foreach (var url in Directory.EnumerateFiles(root, "*.url", SearchOption.AllDirectories))
+                    {
+                        var name = Path.GetFileNameWithoutExtension(url);
+                        if (seen.Add(name)) apps.Add((name, url));
+                    }
                 }
-                foreach (var url in Directory.EnumerateFiles(root, "*.url", SearchOption.AllDirectories))
-                {
-                    var name = Path.GetFileNameWithoutExtension(url);
-                    if (seen.Add(name)) apps.Add((name, url));
-                }
+                catch { /* skip unreadable roots */ }
             }
-            catch { /* skip unreadable roots */ }
-        }
-        // UWP apps via AppsFolder shell namespace → launched by AUMID through explorer.
-        foreach (var (name, aumid) in UwpApps())
-            if (seen.Add(name)) apps.Add((name, "shell:AppsFolder\\" + aumid));
+            // UWP apps via AppsFolder shell namespace → launched by AUMID through explorer.
+            foreach (var (name, aumid) in UwpApps())
+                if (seen.Add(name)) apps.Add((name, "shell:AppsFolder\\" + aumid));
 
-        _appCache = apps;
-        _appCacheAt = DateTime.UtcNow;
-        return apps;
+            _appCache = apps;
+            _appCacheAt = DateTime.UtcNow;
+            return apps;
+        }
     }
 
     private static void AddApps(string query, List<CommandPaletteResult> list)
@@ -657,11 +665,11 @@ public static class CommandPaletteService
         list.Add(new CommandPaletteResult
         {
             Title = Loc.I.Pick($"Search the web for \"{q}\"", $"喺網上搜尋「{q}」"),
-            Subtitle = Loc.I.Pick("Open a web search in your browser", "用瀏覽器開啟網絡搜尋"),
+            Subtitle = Loc.I.Pick("Copy the web-search URL", "複製網絡搜尋網址"),
             Glyph = ((char)0xE721).ToString(),
             ProviderTag = Loc.I.Pick("Web", "網絡"),
             Score = 10, // always last unless nothing else matches
-            Invoke = () => { LaunchPath("https://www.bing.com/search?q=" + encoded); return true; },
+            Invoke = () => { CopyText("https://www.bing.com/search?q=" + encoded); return true; },
         });
     }
 
@@ -671,11 +679,7 @@ public static class CommandPaletteService
     {
         try
         {
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = path,
-                UseShellExecute = true,
-            });
+            CopyText(path);
         }
         catch { /* best effort */ }
     }
@@ -684,12 +688,7 @@ public static class CommandPaletteService
     {
         try
         {
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = file,
-                Arguments = args,
-                UseShellExecute = true,
-            });
+            CopyText($"{file} {args}".Trim());
         }
         catch { /* best effort */ }
     }

@@ -42,23 +42,28 @@ public sealed partial class ConnectionsModule : Page
 
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromSeconds(2) };
     private readonly ObservableCollection<ConnView> _rows = new();
+    private bool _rendering;
+    private bool _busy;
     private string _filter = "";
 
     public ConnectionsModule()
     {
         InitializeComponent();
         List.ItemsSource = _rows;
-        _timer.Tick += (_, _) => Refresh();
-        Loc.I.LanguageChanged += (_, _) => Render();
-        Loaded += (_, _) => { Render(); Refresh(); if (AutoSwitch.IsOn) _timer.Start(); };
-        Unloaded += (_, _) => _timer.Stop();
+        _timer.Tick += (_, _) => _ = Refresh();
+        Loc.I.LanguageChanged += OnLanguageChanged;
+        Loaded += (_, _) => Render();
+        Unloaded += (_, _) => { _timer.Stop(); Loc.I.LanguageChanged -= OnLanguageChanged; };
     }
+
+    private void OnLanguageChanged(object? s, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
     private void Render()
     {
-        HeaderTitle.Text = "Connections · 連線";
+        _rendering = true;
+        Header.Title = "Connections · 連線";
         HeaderBlurb.Text = P("Every live TCP/UDP socket and the app that owns it. Drop a single connection or end the process — no resmon needed.",
             "每一條即時 TCP/UDP 連線同擁有佢嘅程式。可以單獨切斷一條連線或者結束程序 — 唔使開資源監視器。");
         FilterBox.PlaceholderText = P("Filter by process, address or port…", "用程序、位址或連接埠篩選…");
@@ -68,7 +73,9 @@ public sealed partial class ConnectionsModule : Page
         ColLocal.Text = P("Local address", "本機位址");
         ColRemote.Text = P("Remote address", "遠端位址");
         ColState.Text = P("State", "狀態");
-        ColProc.Text = P("Process · PID", "程序 · PID");
+        ColProc.Text = _rows.Count == 0
+            ? P("Process · PID — not scanned", "程序 · PID — 未掃描")
+            : P($"Process · PID — {_rows.Count} shown", $"程序 · PID — 顯示 {_rows.Count} 條");
 
         int sel = ProtoBox.SelectedIndex < 0 ? 0 : ProtoBox.SelectedIndex;
         ProtoBox.Items.Clear();
@@ -76,49 +83,82 @@ public sealed partial class ConnectionsModule : Page
         ProtoBox.Items.Add("TCP");
         ProtoBox.Items.Add("UDP");
         ProtoBox.SelectedIndex = sel;
+        _rendering = false;
     }
 
     private void Auto_Toggled(object sender, RoutedEventArgs e)
     {
         if (!IsLoaded) return;
-        if (AutoSwitch.IsOn) _timer.Start(); else _timer.Stop();
+        if (AutoSwitch.IsOn)
+        {
+            _ = Refresh();
+            _timer.Start();
+        }
+        else
+        {
+            _timer.Stop();
+        }
     }
 
-    private void Refresh_Click(object sender, RoutedEventArgs e) => Refresh();
+    private void Refresh_Click(object sender, RoutedEventArgs e) => _ = Refresh();
 
     private void Filter_Changed(object sender, object e)
     {
+        if (_rendering) return;
         _filter = (FilterBox.Text ?? "").Trim();
-        if (IsLoaded) Refresh();
+        if (IsLoaded) _ = Refresh();
     }
 
-    private void Refresh()
+    // ConnectionsService.Snapshot walks the iphlpapi TCP/UDP tables and resolves owning
+    // processes — heavy enough to freeze the UI. Run it off the UI thread with a re-entrancy guard.
+    private async System.Threading.Tasks.Task Refresh()
     {
-        bool tcp = ProtoBox.SelectedIndex != 2; // not UDP-only
-        bool udp = ProtoBox.SelectedIndex != 1; // not TCP-only
-        List<ConnRow> snap;
-        try { snap = ConnectionsService.Snapshot(tcp, udp); }
-        catch { return; }
-
-        if (_filter.Length > 0)
+        if (_busy) return;
+        _busy = true;
+        try
         {
-            var f = _filter;
-            snap = snap.Where(r =>
-                r.Process.Contains(f, StringComparison.OrdinalIgnoreCase) ||
-                r.Local.Contains(f, StringComparison.OrdinalIgnoreCase) ||
-                r.Remote.Contains(f, StringComparison.OrdinalIgnoreCase) ||
-                r.State.Contains(f, StringComparison.OrdinalIgnoreCase) ||
-                r.Pid.ToString().Contains(f)).ToList();
+            bool tcp = ProtoBox.SelectedIndex != 2; // not UDP-only
+            bool udp = ProtoBox.SelectedIndex != 1; // not TCP-only
+            string filter = _filter;
+
+            var snap = await System.Threading.Tasks.Task.Run(() =>
+            {
+                List<ConnRow> list;
+                try { list = ConnectionsService.Snapshot(tcp, udp); }
+                catch { return null; }
+
+                if (filter.Length > 0)
+                {
+                    var f = filter;
+                    list = list.Where(r =>
+                        r.Process.Contains(f, StringComparison.OrdinalIgnoreCase) ||
+                        r.Local.Contains(f, StringComparison.OrdinalIgnoreCase) ||
+                        r.Remote.Contains(f, StringComparison.OrdinalIgnoreCase) ||
+                        r.State.Contains(f, StringComparison.OrdinalIgnoreCase) ||
+                        r.Pid.ToString().Contains(f)).ToList();
+                }
+
+                return list
+                    .OrderBy(r => r.Process, StringComparer.OrdinalIgnoreCase)
+                    .ThenBy(r => r.Proto, StringComparer.Ordinal)
+                    .ThenBy(r => r.Local, StringComparer.Ordinal)
+                    .ToList();
+            });
+
+            // Back on the UI thread after the await.
+            if (snap is null) return; // snapshot failed; leave the current view untouched
+
+            Reconcile(snap);
+            ColProc.Text = P($"Process · PID — {snap.Count} shown", $"程序 · PID — 顯示 {snap.Count} 條");
         }
-
-        snap = snap
-            .OrderBy(r => r.Process, StringComparer.OrdinalIgnoreCase)
-            .ThenBy(r => r.Proto, StringComparer.Ordinal)
-            .ThenBy(r => r.Local, StringComparer.Ordinal)
-            .ToList();
-
-        Reconcile(snap);
-        ColProc.Text = P($"Process · PID — {snap.Count} shown", $"程序 · PID — 顯示 {snap.Count} 條");
+        catch
+        {
+            // Never let a sampling failure crash the tick / take down the page.
+        }
+        finally
+        {
+            _busy = false;
+        }
     }
 
     private void Reconcile(List<ConnRow> snap)
@@ -159,7 +199,7 @@ public sealed partial class ConnectionsModule : Page
                 : P("Dropping a connection needs administrator rights — relaunch WinForge as admin.", "切斷連線要管理員權限 — 請以管理員身分重開 WinForge。");
         }
         ResultBar.IsOpen = true;
-        Refresh();
+        _ = Refresh();
     }
 
     private void EndProc_Click(object sender, RoutedEventArgs e)
@@ -171,6 +211,6 @@ public sealed partial class ConnectionsModule : Page
         ResultBar.Title = ok ? P("Process ended", "已結束程序") : P("Could not end it", "結束唔到");
         ResultBar.Message = ok ? v.ProcPid : P("Access denied — try running WinForge as admin.", "拒絕存取 — 試吓以管理員身分執行。");
         ResultBar.IsOpen = true;
-        Refresh();
+        _ = Refresh();
     }
 }

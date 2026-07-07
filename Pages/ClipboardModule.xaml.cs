@@ -31,17 +31,19 @@ public sealed partial class ClipboardModule : Page
     public ClipboardModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => { Render(); Build(); };
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) => { Render(); Build(); ClipboardService.Changed += OnChanged; };
-        Unloaded += (_, _) => ClipboardService.Changed -= OnChanged;
+        Unloaded += (_, _) => { ClipboardService.Changed -= OnChanged; Loc.I.LanguageChanged -= OnLanguageChanged; };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) { Render(); Build(); }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
     private void OnChanged() => DispatcherQueue.TryEnqueue(Build);
 
     private void Render()
     {
-        HeaderTitle.Text = "Clipboard · 剪貼簿";
+        Header.Title = "Clipboard · 剪貼簿";
         HeaderBlurb.Text = P("Everything you copy — text, images and files — kept here automatically. Click to copy back, paste as plain text, make a QR code, or convert images and media to another format.",
             "你複製過嘅嘢 — 文字、圖片同檔案 — 自動留喺度。撳一下複製返、貼為純文字、整 QR 碼，或者將圖片同媒體轉做另一種格式。");
         ClearText.Text = P("Clear all", "清除全部");
@@ -168,7 +170,13 @@ public sealed partial class ClipboardModule : Page
             var conv = new Button { Padding = new Thickness(8, 3, 8, 3), Content = P("Convert", "轉檔") };
             conv.Click += async (_, _) =>
             {
-                if (!MediaService.IsInstalled) { Notify(InfoBarSeverity.Warning, P("ffmpeg not found", "搵唔到 ffmpeg"), ""); return; }
+                // Media auto-convert needs ffmpeg. If it's missing, offer a first-class in-place install
+                // (real progress bar + live status + % + Cancel + animation) instead of a dead-end warning.
+                if (!MediaService.IsInstalled)
+                {
+                    await PromptInstallFfmpegAsync();
+                    if (!MediaService.IsInstalled) return; // user cancelled or install failed
+                }
                 var ext = "." + (fmt.SelectedItem as string ?? "mp3");
                 var outp = Path.Combine(Path.GetDirectoryName(target) ?? ".", Path.GetFileNameWithoutExtension(target) + "-wt" + ext);
                 Notify(InfoBarSeverity.Informational, P("Converting…", "轉緊…"), Path.GetFileName(outp));
@@ -281,6 +289,42 @@ public sealed partial class ClipboardModule : Page
         };
 
         await dialog.ShowAsync();
+    }
+
+    /// <summary>
+    /// 缺 ffmpeg 時彈出即場安裝流程 · When ffmpeg is missing, pop a dialog hosting the rich install control
+    /// (real progress bar + live bilingual status + % + Cancel + success/error animation) so the user can
+    /// install it (winget Gyan.FFmpeg) without leaving the module, then retry the conversion. Never throws.
+    /// </summary>
+    private async System.Threading.Tasks.Task PromptInstallFfmpegAsync()
+    {
+        try
+        {
+            var install = WinForge.Services.EngineBars.AutoInstallProgress(
+                "Gyan.FFmpeg", P("Install ffmpeg automatically", "自動安裝 ffmpeg"),
+                P("Install ffmpeg automatically", "自動安裝 ffmpeg"),
+                rescan: MediaService.Rescan);
+
+            var panel = new StackPanel { Spacing = 10 };
+            panel.Children.Add(new TextBlock
+            {
+                Text = P("ffmpeg is required to convert this media file. Install it with live progress — no restart needed.",
+                         "轉呢個媒體檔需要 ffmpeg。即時睇住進度自動安裝 — 唔使重開。"),
+                TextWrapping = TextWrapping.Wrap,
+            });
+            panel.Children.Add(install);
+
+            var dialog = new ContentDialog
+            {
+                XamlRoot = this.XamlRoot,
+                Title = P("ffmpeg not found", "搵唔到 ffmpeg"),
+                Content = panel,
+                CloseButtonText = P("Close", "關閉"),
+                DefaultButton = ContentDialogButton.Close,
+            };
+            await dialog.ShowAsync();
+        }
+        catch (Exception ex) { Notify(InfoBarSeverity.Error, P("Failed", "失敗"), ex.Message); }
     }
 
     private void Notify(InfoBarSeverity sev, string title, string msg)

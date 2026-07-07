@@ -14,15 +14,18 @@ public sealed partial class HostsEditorModule : Page
     public HostsEditorModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) => { Render(); Reload(); };
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
     private void Render()
     {
-        HeaderTitle.Text = "Hosts Editor · hosts 編輯器";
+        Header.Title = "Hosts Editor · hosts 編輯器";
         HeaderBlurb.Text = P("Edit the hosts file in-app to block or redirect domains (use 0.0.0.0). Saving needs admin. Note: browsers using DNS-over-HTTPS ignore the hosts file.",
             "喺 app 內編輯 hosts 檔嚟封鎖或重新導向域名（用 0.0.0.0）。儲存需要管理員。注意：用緊 DNS-over-HTTPS 嘅瀏覽器會無視 hosts 檔。");
         ReloadBtn.Content = P("Reload", "重新載入");

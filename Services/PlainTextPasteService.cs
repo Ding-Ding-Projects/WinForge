@@ -40,7 +40,8 @@ public static class PlainTextPasteService
     private static IntPtr _hook = IntPtr.Zero;
     private static LowLevelKeyboardProc? _proc;
     private static DispatcherQueue? _ui;
-    private static bool _injecting;
+    private static readonly NativeMessagePump HookPump = new("WinForge-PlainTextPasteHook");
+    private static volatile bool _injecting;
 
     public static bool HotkeyActive => _hook != IntPtr.Zero;
 
@@ -51,12 +52,12 @@ public static class PlainTextPasteService
     /// 將剪貼簿淨返純文字 · Replace the clipboard with a plain-text-only copy of its text.
     /// Returns false if the clipboard has no text.
     /// </summary>
-    public static bool StripToPlainText()
+    public static async System.Threading.Tasks.Task<bool> StripToPlainTextAsync()
     {
         var view = Clipboard.GetContent();
         if (view is null || !view.Contains(StandardDataFormats.Text)) return false;
         string text;
-        try { text = view.GetTextAsync().AsTask().GetAwaiter().GetResult(); }
+        try { text = await view.GetTextAsync(); }
         catch { return false; }
         var dp = new DataPackage { RequestedOperation = DataPackageOperation.Copy };
         dp.SetText(text);
@@ -68,16 +69,25 @@ public static class PlainTextPasteService
     /// <summary>啟用全域熱鍵 · Enable the Ctrl+Shift+V global hotkey. UI queue is needed for clipboard work.</summary>
     public static void EnableHotkey(DispatcherQueue uiQueue)
     {
-        if (HotkeyActive) return;
         _ui = uiQueue;
+        HookPump.Post(InstallHotkey);
+    }
+
+    private static void InstallHotkey()
+    {
+        if (_hook != IntPtr.Zero || _ui is null) return;
         _proc = HookProc;
         _hook = SetWindowsHookEx(WH_KEYBOARD_LL, _proc, GetModuleHandle(null), 0);
     }
 
     public static void DisableHotkey()
     {
-        if (_hook != IntPtr.Zero) { UnhookWindowsHookEx(_hook); _hook = IntPtr.Zero; }
-        _proc = null; _ui = null;
+        HookPump.Post(() =>
+        {
+            if (_hook != IntPtr.Zero) { UnhookWindowsHookEx(_hook); _hook = IntPtr.Zero; }
+            _proc = null;
+            _ui = null;
+        });
     }
 
     private static IntPtr HookProc(int nCode, IntPtr wParam, IntPtr lParam)
@@ -93,9 +103,9 @@ public static class PlainTextPasteService
                 if (data.vkCode == VK_V && ctrl && shift)
                 {
                     // Strip on the UI thread, then synthesise a normal Ctrl+V.
-                    _ui?.TryEnqueue(() =>
+                    _ui?.TryEnqueue(async () =>
                     {
-                        try { StripToPlainText(); } catch { }
+                        try { await StripToPlainTextAsync(); } catch { }
                         InjectCtrlV();
                     });
                     return (IntPtr)1; // swallow the original Ctrl+Shift+V

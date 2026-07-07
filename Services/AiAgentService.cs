@@ -1,6 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 using WinForge.Models;
@@ -20,6 +25,17 @@ public sealed class AiInstallMethod
     /// <summary>執行安裝 · Performs the install and returns a TweakResult.</summary>
     public Func<CancellationToken, Task<TweakResult>> Run { get; init; }
         = _ => Task.FromResult(TweakResult.Fail("Not implemented.", "未實作。"));
+
+    /// <summary>
+    /// 串流安裝 · Performs the install while streaming each raw output line via <paramref name="onLine"/>,
+    /// surfacing the real exit code + captured output. Falls back to the non-streaming <see cref="Run"/>
+    /// when a method has no streaming path. Never throws.
+    /// </summary>
+    public Func<IProgress<string>?, CancellationToken, Task<TweakResult>>? RunStreaming { get; init; }
+
+    /// <summary>用串流方法（有就用，冇就退回 Run）· Run with streaming if available, else the plain runner.</summary>
+    public Task<TweakResult> RunStreamingOrPlain(IProgress<string>? onLine, CancellationToken ct)
+        => RunStreaming is not null ? RunStreaming(onLine, ct) : Run(ct);
 }
 
 /// <summary>
@@ -96,26 +112,31 @@ public sealed class AiAgent
 /// </summary>
 public static class AiAgentService
 {
-    /// <summary>npm 安裝方法 · Build an npm-based global install method.</summary>
+    /// <summary>npm 安裝方法（串流）· Build an npm-based global install method that streams output.</summary>
     private static AiInstallMethod Npm(string package) => new()
     {
         Label = "npm",
         Run = ct => ShellRunner.RunCmd($"npm install -g {package}", false, ct),
+        RunStreaming = (onLine, ct) => ShellRunner.RunCmdStreaming($"npm install -g {package}", onLine, false, ct),
     };
 
-    /// <summary>winget 安裝方法 · Build a winget-based install method.</summary>
+    /// <summary>winget 安裝方法（串流）· Build a winget-based install method that streams output.</summary>
     private static AiInstallMethod Winget(string wingetId) => new()
     {
         Label = "winget",
         Run = ct => PackageService.Install(wingetId, ct),
+        RunStreaming = (onLine, ct) => PackageService.AutoInstallDetailed(wingetId, onLine, ct),
     };
 
-    /// <summary>官方 PowerShell 安裝器 · Build an official PowerShell installer method (best-effort).</summary>
+    /// <summary>官方 PowerShell 安裝器（串流）· Build an official PowerShell installer method that streams output.</summary>
     private static AiInstallMethod Official(string script) => new()
     {
         Label = "official installer",
         Run = ct => ShellRunner.RunPowershell(script, false, ct),
+        RunStreaming = (onLine, ct) => ShellRunner.RunPowershellStreaming(script, onLine, false, ct),
     };
+
+    public sealed record YoloApplyResult(bool Success, string ReportEn, string ReportZh, string ReportPath);
 
     /// <summary>六個內建代理 · The six built-in agents.</summary>
     public static readonly IReadOnlyList<AiAgent> All = new[]
@@ -242,6 +263,183 @@ public static class AiAgentService
             },
         },
     };
+
+    /// <summary>
+    /// Cake-gated permissive config helper · 蛋糕閘門嘅寬鬆權限設定輔助。
+    /// Writes best-effort local config for known terminal agents and backs up every touched file.
+    /// </summary>
+    public static YoloApplyResult EnableCakeGatedYoloMode(bool consumeCake = true)
+    {
+        CakeCreditChargeResult? cake = null;
+        if (consumeCake)
+        {
+            cake = CakeCreditService.I.FeedOneCake("AI agent YOLO mode", "AI agent YOLO 模式");
+            if (!cake.Success)
+                return new(false, cake.Message.En, cake.Message.Zh, "");
+        }
+
+        var lines = new List<string>
+        {
+            "WinForge AI agent YOLO mode report",
+            $"Generated: {DateTimeOffset.Now:O}",
+            "",
+            consumeCake
+                ? "One packed cake was consumed before writing these settings."
+                : "The UI cake transaction consumed one packed cake before this config writer ran.",
+            "Backups use the .winforge-bak timestamp suffix.",
+            "This is best-effort config writing; verify each agent before relying on bypass behavior.",
+            "",
+        };
+
+        foreach (var agent in All)
+        {
+            try
+            {
+                var touched = ApplyYoloForAgent(agent);
+                lines.Add($"{agent.NameEn}: {touched}");
+            }
+            catch (Exception ex)
+            {
+                lines.Add($"{agent.NameEn}: failed - {ex.Message}");
+            }
+        }
+
+        var reportDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WinForge", "ai-agents");
+        Directory.CreateDirectory(reportDir);
+        var reportPath = Path.Combine(reportDir, $"yolo-mode-{DateTime.Now:yyyyMMdd-HHmmss}.txt");
+        File.WriteAllLines(reportPath, lines, new UTF8Encoding(false));
+
+        return new(true,
+            $"YOLO config helper ran. Review report: {reportPath}",
+            $"YOLO 設定輔助已執行。請查看報告：{reportPath}",
+            reportPath);
+    }
+
+    private static string ApplyYoloForAgent(AiAgent agent)
+    {
+        return agent.Key switch
+        {
+            "codex" => ApplyCodexYolo(agent),
+            "claude" => ApplyClaudeYolo(agent),
+            "opencode" => ApplyOpenCodeYolo(agent),
+            "pi" => ApplyJsonYolo(agent, "permissions", "allowAll", true),
+            "openclaw" => ApplyJsonYolo(agent, "permissions", "allowAll", true),
+            "hermes" => ApplyJsonYolo(agent, "permissions", "allowAll", true),
+            _ => "no known config writer",
+        };
+    }
+
+    private static string ApplyCodexYolo(AiAgent agent)
+    {
+        var file = agent.ConfigFiles.First(f => f.Kind == AiConfigKind.Toml);
+        var path = AiAgentConfigService.Resolve(file) ?? throw new InvalidOperationException("Could not resolve Codex config.");
+        BackupIfExists(path);
+        var text = File.Exists(path) ? File.ReadAllText(path) : "";
+        text = SetTomlScalar(text, "approval_policy", "\"never\"");
+        text = SetTomlScalar(text, "sandbox_mode", "\"danger-full-access\"");
+        text = SetTomlScalar(text, "hide_agent_reasoning", "false");
+        WriteText(path, text.TrimEnd() + Environment.NewLine);
+        return path;
+    }
+
+    private static string ApplyClaudeYolo(AiAgent agent)
+    {
+        var file = agent.ConfigFiles.First(f => f.Kind == AiConfigKind.Json);
+        var path = AiAgentConfigService.Resolve(file) ?? throw new InvalidOperationException("Could not resolve Claude settings.");
+        var root = ReadJsonObject(path);
+        var permissions = root["permissions"] as JsonObject ?? new JsonObject();
+        permissions["defaultMode"] = "acceptEdits";
+        permissions["allow"] = new JsonArray("Bash(*)", "Edit(*)", "Write(*)", "Read(*)", "WebFetch(*)", "WebSearch(*)");
+        permissions["deny"] = new JsonArray();
+        root["permissions"] = permissions;
+        root["dangerouslySkipPermissions"] = true;
+        WriteJson(path, root);
+        return path;
+    }
+
+    private static string ApplyOpenCodeYolo(AiAgent agent)
+    {
+        var file = agent.ConfigFiles.First(f => f.Kind == AiConfigKind.Json);
+        var path = AiAgentConfigService.Resolve(file) ?? throw new InvalidOperationException("Could not resolve OpenCode config.");
+        var root = ReadJsonObject(path);
+        var permission = root["permission"] as JsonObject ?? new JsonObject();
+        permission["edit"] = "allow";
+        permission["bash"] = "allow";
+        permission["webfetch"] = "allow";
+        root["permission"] = permission;
+        root["dangerouslySkipPermissions"] = true;
+        WriteJson(path, root);
+        return path;
+    }
+
+    private static string ApplyJsonYolo(AiAgent agent, string objectName, string flagName, bool value)
+    {
+        var file = agent.ConfigFiles.FirstOrDefault(f => f.Kind == AiConfigKind.Json);
+        if (file is null) return "no JSON config file";
+        var path = AiAgentConfigService.Resolve(file) ?? throw new InvalidOperationException($"Could not resolve {agent.NameEn} config.");
+        var root = ReadJsonObject(path);
+        var obj = root[objectName] as JsonObject ?? new JsonObject();
+        obj[flagName] = value;
+        obj["bash"] = "allow";
+        obj["desktop"] = "allow";
+        obj["filesystem"] = "allow";
+        root[objectName] = obj;
+        root["dangerouslySkipPermissions"] = true;
+        WriteJson(path, root);
+        return path;
+    }
+
+    private static JsonObject ReadJsonObject(string path)
+    {
+        BackupIfExists(path);
+        if (!File.Exists(path) || new FileInfo(path).Length == 0) return new JsonObject();
+        try
+        {
+            return JsonNode.Parse(File.ReadAllText(path), documentOptions: new JsonDocumentOptions
+            {
+                AllowTrailingCommas = true,
+                CommentHandling = JsonCommentHandling.Skip,
+            }) as JsonObject ?? new JsonObject();
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Could not parse JSON config; original file was not rewritten. {ex.Message}", ex);
+        }
+    }
+
+    private static void WriteJson(string path, JsonObject root)
+        => WriteText(path, root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) + Environment.NewLine);
+
+    private static void WriteText(string path, string text)
+    {
+        var dir = Path.GetDirectoryName(path);
+        if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+        File.WriteAllText(path, text, new UTF8Encoding(false));
+    }
+
+    private static void BackupIfExists(string path)
+    {
+        if (!File.Exists(path)) return;
+        var backup = $"{path}.winforge-bak-{DateTime.Now:yyyyMMddHHmmss}";
+        File.Copy(path, backup, overwrite: false);
+    }
+
+    private static string SetTomlScalar(string text, string key, string value)
+    {
+        var lines = (text ?? "").Replace("\r", "").Split('\n').ToList();
+        var found = false;
+        for (var i = 0; i < lines.Count; i++)
+        {
+            var trim = lines[i].TrimStart();
+            if (trim.StartsWith("[", StringComparison.Ordinal)) break;
+            if (!trim.StartsWith(key + " ", StringComparison.OrdinalIgnoreCase) &&
+                !trim.StartsWith(key + "=", StringComparison.OrdinalIgnoreCase)) continue;
+            lines[i] = $"{key} = {value}";
+            found = true;
+        }
+        if (!found) lines.Add($"{key} = {value}");
+        return string.Join(Environment.NewLine, lines);
+    }
 
     /// <summary>
     /// 偵測代理係咪已安裝 · Is the agent installed?

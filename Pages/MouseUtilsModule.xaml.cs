@@ -24,9 +24,12 @@ public sealed partial class MouseUtilsModule : Page
     {
         InitializeComponent();
         Svc.LoadSettings();
-        Loc.I.LanguageChanged += (_, _) => Build();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) => Build();
+        Unloaded += (_, _) => Loc.I.LanguageChanged -= OnLanguageChanged;
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Build();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
@@ -38,7 +41,7 @@ public sealed partial class MouseUtilsModule : Page
 
     private void Build()
     {
-        HeaderTitle.Text = "Mouse Utilities · 滑鼠工具";
+        Header.Title = "Mouse Utilities · 滑鼠工具";
         HeaderBlurb.Text = P(
             "Native PowerToys-style mouse helpers — find the cursor, highlight clicks, draw crosshairs, and jump the pointer across displays. Each runs on a global hook with a transparent click-through overlay.",
             "原生 PowerToys 式滑鼠小工具 — 搵游標、標示點擊、畫十字線、喺多個螢幕之間跳轉指標。每個都用全域掛鈎加透明穿透覆蓋層運作。");

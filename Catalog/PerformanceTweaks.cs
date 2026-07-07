@@ -139,6 +139,19 @@ public static class PerformanceTweaks
                     _ => ("Sluggish", "偏慢", StatusColor.Warn),
                 };
             },
+            // Rich: a half-circle gauge that fills as the delay grows (live as you drag).
+            // 豐富化：半圓量錶，延遲愈大填得愈滿（拖動時即時更新）。
+            VisualLiveUpdate = true,
+            VisualBuilder = _ =>
+            {
+                int ms = (int)Math.Round(Read());
+                var color = ms <= 100 ? StatusColor.Good : ms <= 400 ? StatusColor.Neutral : StatusColor.Warn;
+                return TweakVisuals.Gauge(
+                    () => Read() / 600.0,
+                    () => $"{ms} {Loc.I.Pick("ms", "毫秒")}",
+                    color,
+                    "Menu responsiveness", "選單反應感");
+            },
         };
     }
 }

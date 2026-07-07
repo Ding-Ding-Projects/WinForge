@@ -18,15 +18,23 @@ public sealed partial class KeyboardModule : Page
     public KeyboardModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => { Render(); FillCombos(); RefreshList(); };
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) => { Render(); FillCombos(); _maps = KeyboardRemapper.GetCurrent(); RefreshList(); };
+        Unloaded += (_, _) => Loc.I.LanguageChanged -= OnLanguageChanged;
+    }
+
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        Render();
+        FillCombos();
+        RefreshList();
     }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
     private void Render()
     {
-        HeaderTitle.Text = "Keyboard Remapper · 鍵盤重新對應";
+        Header.Title = "Keyboard Remapper · 鍵盤重新對應";
         HeaderBlurb.Text = P("Remap one key to another, or disable it entirely. Writes the system Scancode Map — needs administrator and a reboot to take effect.",
             "將一個鍵改做另一個，或者完全停用佢。會寫入系統 Scancode Map — 需要管理員權限，重新開機先生效。");
         FromCap.Text = P("Map", "對應");

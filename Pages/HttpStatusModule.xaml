@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.HttpStatusModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="820" Spacing="14">
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xEB41;" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="SearchBox" Grid.Column="0" TextChanged="Search_Changed" />
+                        <ComboBox x:Name="CategoryBox" Grid.Column="1" MinWidth="160" SelectionChanged="Category_Changed" />
+                    </Grid>
+
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <TextBlock x:Name="LookupLabel" VerticalAlignment="Center" />
+                        <NumberBox x:Name="LookupBox" Value="0" Minimum="0" Maximum="599" SpinButtonPlacementMode="Compact" MinWidth="140" ValueChanged="Lookup_Changed" />
+                        <Button x:Name="ClearLookupBtn" Click="ClearLookup_Click" />
+                    </StackPanel>
+
+                    <TextBlock x:Name="StatusText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <ListView x:Name="CodesList" SelectionMode="Single" IsItemClickEnabled="True" ItemClick="Codes_ItemClick"
+                      MaxHeight="560" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <Grid ColumnSpacing="12" Padding="0,6,0,6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" Width="52" Height="30" VerticalAlignment="Top" CornerRadius="6"
+                                    Background="{Binding Accent}">
+                                <TextBlock Text="{Binding CodeText}" FontWeight="SemiBold" FontSize="14"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" />
+                            </Border>
+                            <StackPanel Grid.Column="1" Spacing="1">
+                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="14" TextWrapping="Wrap" />
+                                <TextBlock Text="{Binding Desc}" FontSize="12.5" TextWrapping="Wrap"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+                        </Grid>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

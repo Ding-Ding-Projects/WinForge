@@ -6,7 +6,7 @@ using WinForge.Services;
 namespace WinForge.Catalog;
 
 /// <summary>
-/// 建立音訊效果操作 · Factory for Audio-Editor effect operations rendered as <see cref="Controls.TweakCard"/>s.
+/// 建立音訊效果操作 · Factory for Audio-Editor effect operations rendered as control rows.
 /// 每個操作喺 <see cref="AppState.CurrentAudioClip"/> 上跑一條 ffmpeg -af 濾鏡，成功就將結果換做新嘅工作 clip。
 /// Each op runs an ffmpeg audio filter on the editor's current clip and, on success, swaps the produced
 /// scratch WAV in as the new working clip — so applying ops chains like an edit history.

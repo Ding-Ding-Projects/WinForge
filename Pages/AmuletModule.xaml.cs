@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using WinForge.Catalog;
+using WinForge.Controls;
 using WinForge.Models;
 using WinForge.Services;
 
@@ -23,7 +24,8 @@ public sealed partial class AmuletModule : Page
     public AmuletModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => { Render(); RefreshEngines(); RefreshRunState(); BuildOps(); };
+        Loc.I.LanguageChanged += OnLanguageChanged;
+        Unloaded += (_, _) => Loc.I.LanguageChanged -= OnLanguageChanged;
         Loaded += async (_, _) =>
         {
             Render();
@@ -37,6 +39,11 @@ public sealed partial class AmuletModule : Page
         };
     }
 
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        Render(); RefreshEngines(); RefreshRunState(); BuildOps();
+    }
+
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
     private string Msg(TweakResult r) => (Loc.I.IsCantonesePrimary ? r.Message?.Zh : r.Message?.En) ?? "";
 
@@ -44,7 +51,7 @@ public sealed partial class AmuletModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Minecraft World Editor (Amulet) · Minecraft 世界編輯器（Amulet）";
+        Header.Title = "Minecraft World Editor (Amulet) · Minecraft 世界編輯器（Amulet）";
         HeaderBlurb.Text = P(
             "Bundle, install and launch the Amulet Minecraft world editor. Pick a Java/Bedrock world, preview its level.dat metadata, then open it in Amulet — with tracked Start/Stop and a live log. Amulet runs as its own process.",
             "打包、安裝同啟動 Amulet Minecraft 世界編輯器。揀一個 Java／Bedrock 世界，預覽佢嘅 level.dat 資料，然後喺 Amulet 入面開 — 有追蹤式開始／停止同即時記錄。Amulet 以獨立程序運行。");
@@ -67,6 +74,9 @@ public sealed partial class AmuletModule : Page
         BackupBtn.Content = P("Backup world…", "備份世界…");
 
         SetupHeader.Text = P("Setup & maintenance", "設定與維護");
+        CloneSourceBtn.Content = P("Clone / update original source", "Clone／更新原始 source");
+        UseSourceFolderBtn.Content = P("Use source folder…", "使用 source 資料夾…");
+        LocateZipBtn.Content = P("Locate zip fallback…", "指定 zip 後備…");
         LogHeader.Text = P("Live log", "即時記錄");
         ClearLogBtn.Content = P("Clear log", "清除記錄");
     }
@@ -101,11 +111,20 @@ public sealed partial class AmuletModule : Page
                 : P($"Amulet zip not found. Expected at {AmuletService.ExpectedZipPath}. Use “Locate zip…”.",
                     $"搵唔到 Amulet 壓縮檔。預期喺 {AmuletService.ExpectedZipPath}。用「指定壓縮檔…」。");
 
-            var extractBtn = new Button { Content = P("Extract Amulet", "解壓 Amulet") };
-            extractBtn.Click += async (_, _) => await DoExtract();
-            AmuletActionRow.Children.Add(extractBtn);
+            // Rich progress control: extract the bundled zip with a live bilingual status +
+            // flashy success/error animation, and surface the real error if extraction fails.
+            var extract = Controls.InstallProgress.Create(
+                "Extract Amulet", "解壓 Amulet",
+                async (progress, ct) =>
+                {
+                    progress.Report(Controls.InstallProgressReport.Status("Extracting Amulet…", "解壓 Amulet 中…"));
+                    var r = await AmuletService.EnsureExtracted(ct);
+                    DispatcherQueue.TryEnqueue(() => { AppendLog(Msg(r)); RefreshEngines(); });
+                    return r;
+                });
+            AmuletActionRow.Children.Add(extract);
 
-            var locateBtn = new Button { Content = P("Locate zip…", "指定壓縮檔…") };
+            var locateBtn = new Button { Content = P("Locate zip…", "指定壓縮檔…"), VerticalAlignment = VerticalAlignment.Top };
             locateBtn.Click += async (_, _) => await LocateZip();
             AmuletActionRow.Children.Add(locateBtn);
         }
@@ -124,7 +143,8 @@ public sealed partial class AmuletModule : Page
                 : P("Amulet (Python source) needs Python 3. Install it to continue.", "Amulet（Python 源碼）需要 Python 3。請安裝以繼續。");
             if (!hasPy)
             {
-                PythonActionRow.Children.Add(EngineBars.AutoInstallButton(
+                // Rich progress control: real bar + live winget status + % + Cancel + success/error animation.
+                PythonActionRow.Children.Add(EngineBars.AutoInstallProgress(
                     "Python.Python.3.12", "Install Python", "安裝 Python",
                     recheck: async () => { RefreshEngines(); BuildOps(); await Task.CompletedTask; },
                     rescan: PackageService.RefreshProcessPath));
@@ -141,24 +161,9 @@ public sealed partial class AmuletModule : Page
     private void BuildOps()
     {
         OpsList.Children.Clear();
-        foreach (var op in AmuletOperations.All)
-        {
-            var card = new Controls.TweakCard();
-            card.SetTweak(op);
-            OpsList.Children.Add(card);
-        }
-    }
-
-    private async Task DoExtract()
-    {
-        Busy.IsActive = true;
-        AppendLog(P("[extracting Amulet…]", "[解壓 Amulet 中…]"));
-        var r = await AmuletService.EnsureExtracted();
-        Busy.IsActive = false;
-        Notify(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error,
-            r.Success ? P("Extracted", "已解壓") : P("Extract failed", "解壓失敗"), Msg(r));
-        AppendLog(Msg(r));
-        RefreshEngines();
+        var rows = new ControlRowList();
+        rows.SetTweaks(AmuletOperations.All);
+        OpsList.Children.Add(rows);
     }
 
     private async Task LocateZip()
@@ -169,6 +174,32 @@ public sealed partial class AmuletModule : Page
         AmuletService.SetZip(path!);
         Notify(InfoBarSeverity.Success, P("Zip set", "已設定壓縮檔"), path!);
         RefreshEngines();
+    }
+
+    private async void LocateZip_Click(object sender, RoutedEventArgs e) => await LocateZip();
+
+    private async void CloneSource_Click(object sender, RoutedEventArgs e)
+    {
+        Busy.IsActive = true;
+        AppendLog(P("[cloning/updating Amulet source…]", "[clone／更新 Amulet source 中…]"));
+        var r = await AmuletService.CloneOrUpdateSource(line => DispatcherQueue.TryEnqueue(() => AppendLog(line)));
+        Busy.IsActive = false;
+        Notify(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error,
+            r.Success ? P("Source ready", "Source 已就緒") : P("Source clone failed", "Source clone 失敗"), Msg(r));
+        AppendLog(Msg(r));
+        RefreshEngines();
+        BuildOps();
+    }
+
+    private async void UseSourceFolder_Click(object sender, RoutedEventArgs e)
+    {
+        var folder = await FileDialogs.OpenFolderAsync(P("Pick Amulet source folder", "揀 Amulet source 資料夾"));
+        if (string.IsNullOrWhiteSpace(folder)) return;
+        var r = AmuletService.UseExistingSourceFolder(folder!);
+        Notify(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error,
+            r.Success ? P("Source folder set", "Source 資料夾已設定") : P("Invalid source folder", "Source 資料夾無效"), Msg(r));
+        RefreshEngines();
+        BuildOps();
     }
 
     // ── World picker ──────────────────────────────────────────────────────────

@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.ContrastGridModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="820" Spacing="14">
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE790;" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBox x:Name="ColorInput" MinWidth="220" PlaceholderText="#3366CC" />
+                        <Button x:Name="AddBtn" Click="Add_Click" />
+                        <Button x:Name="CopyBtn" Click="Copy_Click" />
+                    </StackPanel>
+                    <TextBlock x:Name="StatusText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+                    <TextBlock x:Name="ColorsLabel" FontWeight="SemiBold" FontSize="13" />
+                    <ItemsControl x:Name="ColorsList">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Padding="0,4,0,4" ColumnSpacing="10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Width="34" Height="22" CornerRadius="4" Background="{Binding Swatch}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" />
+                                    <TextBlock Grid.Column="1" Text="{Binding Hex}" VerticalAlignment="Center" FontFamily="Consolas" />
+                                    <Button Grid.Column="2" Content="&#xE74D;" Tag="{Binding Hex}" Click="Remove_Click" FontFamily="Segoe MDL2 Assets" FontSize="12" Padding="8,4,8,4" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <TextBlock x:Name="PairsLabel" FontWeight="SemiBold" FontSize="13" />
+            <ListView x:Name="PairsList" SelectionMode="None" IsItemClickEnabled="False">
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <Border Padding="12,10,12,10" Margin="0,0,0,6" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                            <Grid ColumnSpacing="12" RowSpacing="6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <!-- Swatch preview: B text on A background -->
+                                <Border Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Width="88" Height="52" CornerRadius="6" Background="{Binding ColorA}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                                    <TextBlock Text="Aa" FontSize="20" FontWeight="SemiBold" Foreground="{Binding ColorB}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+
+                                <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding PairText}" FontFamily="Consolas" VerticalAlignment="Center" />
+                                </StackPanel>
+                                <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding RatioText}" FontWeight="SemiBold" FontSize="16" VerticalAlignment="Center" />
+
+                                <StackPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="6">
+                                    <Border Background="{Binding AaNormalBrush}" CornerRadius="4" Padding="8,3,8,3">
+                                        <TextBlock Text="{Binding AaNormalText}" FontSize="11" Foreground="White" />
+                                    </Border>
+                                    <Border Background="{Binding AaaNormalBrush}" CornerRadius="4" Padding="8,3,8,3">
+                                        <TextBlock Text="{Binding AaaNormalText}" FontSize="11" Foreground="White" />
+                                    </Border>
+                                    <Border Background="{Binding AaLargeBrush}" CornerRadius="4" Padding="8,3,8,3">
+                                        <TextBlock Text="{Binding AaLargeText}" FontSize="11" Foreground="White" />
+                                    </Border>
+                                    <Border Background="{Binding AaaLargeBrush}" CornerRadius="4" Padding="8,3,8,3">
+                                        <TextBlock Text="{Binding AaaLargeText}" FontSize="11" Foreground="White" />
+                                    </Border>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

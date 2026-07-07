@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.Web.WebView2.Core;
+using Windows.ApplicationModel.DataTransfer;
 using WinForge.Services;
 
 namespace WinForge.Pages;
@@ -38,15 +39,22 @@ public sealed partial class MailModule : Page
         InitializeComponent();
         FolderList.ItemsSource = Folders;
         MessageList.ItemsSource = Messages;
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += async (_, _) => { Render(); await ReloadAccountsAsync(); };
+        Unloaded += (_, _) =>
+        {
+            Loc.I.LanguageChanged -= OnLanguageChanged;
+            try { _cts?.Cancel(); } catch { }
+        };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
     private void Render()
     {
-        HeaderTitle.Text = "Mail · 電郵";
+        Header.Title = "Mail · 電郵";
         HeaderBlurb.Text = P(
             "A native multi-account email client. Add IMAP/SMTP accounts (auto-detects Gmail/Outlook/iCloud), browse folders, read mail with attachments, and compose / reply / forward — all in-app. Credentials are DPAPI-encrypted.",
             "原生多帳戶電郵客戶端。加 IMAP／SMTP 帳戶（自動偵測 Gmail／Outlook／iCloud），瀏覽資料夾、睇郵件同附件，撰寫／回覆／轉寄全部喺 app 內。憑證以 DPAPI 加密。");
@@ -264,7 +272,7 @@ public sealed partial class MailModule : Page
                 e.Handled = true;
                 if (Uri.TryCreate(e.Uri, UriKind.Absolute, out var uri) &&
                     (uri.Scheme == "http" || uri.Scheme == "https" || uri.Scheme == "mailto"))
-                    try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(e.Uri) { UseShellExecute = true }); } catch { }
+                    try { CopyText(e.Uri); Done(true, "Link copied", "已複製連結", e.Uri); } catch { }
             };
             _webReady = true;
         }
@@ -285,6 +293,14 @@ public sealed partial class MailModule : Page
         "<meta http-equiv=\"Content-Security-Policy\" content=\"script-src 'none'; object-src 'none';\">" +
         "<style>body{font-family:Segoe UI,Arial,sans-serif;margin:12px;color:#1a1a1a;background:#fff;word-wrap:break-word;}img{max-width:100%;height:auto;}</style></head><body>" +
         body + "</body></html>";
+
+    private static void CopyText(string text)
+    {
+        var dp = new DataPackage { RequestedOperation = DataPackageOperation.Copy };
+        dp.SetText(text);
+        Clipboard.SetContent(dp);
+        Clipboard.Flush();
+    }
 
     private void RemoteToggle_Click(object sender, RoutedEventArgs e)
     {

@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using WinForge.Catalog;
+using WinForge.Controls;
 using WinForge.Models;
 using WinForge.Services;
 
@@ -29,7 +30,7 @@ public sealed partial class MinecraftServerModule : Page
     public MinecraftServerModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) =>
         {
             Render();
@@ -41,14 +42,23 @@ public sealed partial class MinecraftServerModule : Page
             RefreshRunState();
             EulaToggle.IsOn = MinecraftServerService.IsEulaAccepted();
         };
+        Unloaded += (_, _) =>
+        {
+            Loc.I.LanguageChanged -= OnLanguageChanged;
+            try { _paperCts?.Cancel(); } catch { }
+            try { _spigotCts?.Cancel(); } catch { }
+            try { _pluginCts?.Cancel(); } catch { }
+        };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
     private static string Msg(TweakResult r) => (Loc.I.IsCantonesePrimary ? r.Message?.Zh : r.Message?.En) ?? "";
 
     private void Render()
     {
-        HeaderTitle.Text = "Minecraft Server · Minecraft 伺服器";
+        Header.Title = "Minecraft Server · Minecraft 伺服器";
         HeaderBlurb.Text = P("Stand up a Paper or Spigot server: download/build the jar, accept the EULA, edit server.properties, run it with a live console, and build plugins from git source.",
             "架設 Paper 或 Spigot 伺服器：下載／編譯 jar、接受 EULA、編輯 server.properties、用即時主控台執行，並由 git 原始碼建置外掛。");
 
@@ -66,12 +76,12 @@ public sealed partial class MinecraftServerModule : Page
         PaperBlurb.Text = P("Pick a Minecraft version; WinForge downloads the latest stable Paper build into server.jar via the PaperMC API.",
             "揀一個 Minecraft 版本；WinForge 會經 PaperMC API 下載最新穩定嘅 Paper build 做 server.jar。");
         PaperRefreshBtn.Content = P("Load versions", "載入版本");
-        PaperDownloadBtn.Content = P("Download Paper", "下載 Paper");
+        EnsurePaperControl();
 
         SpigotLbl.Text = P("Spigot (compile from source via BuildTools)", "Spigot（用 BuildTools 由原始碼編譯）");
         SpigotBlurb.Text = P("Spigot is built locally with BuildTools.jar (slow — minutes). Enter a version (e.g. 1.21.4) or 'latest'.",
             "Spigot 用 BuildTools.jar 喺本機建置（慢，要幾分鐘）。輸入版本（例如 1.21.4）或 'latest'。");
-        BuildToolsBtn.Content = P("Get BuildTools", "取得 BuildTools");
+        EnsureBuildToolsControl();
         SpigotBuildBtn.Content = P("Build Spigot", "建置 Spigot");
         SpigotCancelBtn.Content = P("Cancel", "取消");
 
@@ -141,15 +151,17 @@ public sealed partial class MinecraftServerModule : Page
             JavaBar.Message = P("Modern Minecraft needs a JDK. Install Microsoft OpenJDK 21 to enable the server.",
                 "現代 Minecraft 需要 JDK。安裝 Microsoft OpenJDK 21 以啟用伺服器。");
             JavaBar.IsOpen = true;
-            // attach a one-click installer
-            JavaBar.ActionButton = EngineBars.AutoInstallButton("Microsoft.OpenJDK.21",
+            // attach a rich one-click installer (real progress + live winget output + Cancel + animation)
+            JavaBar.ActionButton = null;
+            JavaBar.Content = EngineBars.AutoInstallProgress("Microsoft.OpenJDK.21",
                 "Install JDK 21", "安裝 JDK 21",
-                async () => { await Task.Yield(); RefreshEngine(); });
+                recheck: async () => { await Task.Yield(); RefreshEngine(); RefreshRunState(); });
         }
         else
         {
             JavaBar.IsOpen = false;
             JavaBar.ActionButton = null;
+            JavaBar.Content = null;
         }
 
         var parts = new List<string>
@@ -208,60 +220,57 @@ public sealed partial class MinecraftServerModule : Page
         ServerNotify(InfoBarSeverity.Success, P("Versions loaded", "已載入版本"), $"{versions.Count} versions");
     }
 
-    private async void PaperDownload_Click(object sender, RoutedEventArgs e)
+    private InstallProgress? _paperControl;
+    private InstallProgress? _buildToolsControl;
+
+    /// <summary>建立「下載 Paper」嘅豐富進度控件 · Build the rich install-progress control for the Paper download.</summary>
+    private void EnsurePaperControl()
     {
-        if (_busy) return;
-        var version = PaperVersionBox.SelectedItem as string;
-        if (string.IsNullOrWhiteSpace(version))
-        {
-            ServerNotify(InfoBarSeverity.Warning, P("Pick a version first", "請先揀版本"), P("Load versions, then choose one.", "先載入版本，再揀一個。"));
-            return;
-        }
-        _busy = true;
-        _paperCts = new CancellationTokenSource();
-        PaperDownloadBtn.IsEnabled = false;
-        PaperRing.IsActive = true;
-        PaperProgress.Visibility = Visibility.Visible;
-        PaperProgress.Value = 0;
-        PaperProgressText.Text = P("Downloading…", "下載緊…");
-
-        var r = await MinecraftServerService.DownloadPaper(version, (read, total) =>
-        {
-            DispatcherQueue.TryEnqueue(() =>
-            {
-                if (total > 0)
-                {
-                    PaperProgress.IsIndeterminate = false;
-                    PaperProgress.Value = read * 100.0 / total;
-                    PaperProgressText.Text = $"{read / 1024 / 1024} / {total / 1024 / 1024} MB";
-                }
-                else { PaperProgress.IsIndeterminate = true; PaperProgressText.Text = $"{read / 1024 / 1024} MB"; }
-            });
-        }, _paperCts.Token);
-
-        PaperDownloadBtn.IsEnabled = true;
-        PaperRing.IsActive = false;
-        PaperProgress.Visibility = Visibility.Collapsed;
-        _busy = false;
-        ServerNotify(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error,
-            r.Success ? P("Download complete", "下載完成") : P("Download failed", "下載失敗"), Msg(r));
-        RefreshEngine();
+        if (_paperControl is not null) { _paperControl.SetAction(P("Download Paper", "下載 Paper"), P("Download Paper", "下載 Paper"), DownloadPaperAsync); return; }
+        _paperControl = InstallProgress.Create(P("Download Paper", "下載 Paper"), P("Download Paper", "下載 Paper"), DownloadPaperAsync);
+        if (PaperDownloadHost is not null) PaperDownloadHost.Content = _paperControl;
     }
 
-    private async void DownloadBuildTools_Click(object sender, RoutedEventArgs e)
+    private async Task<TweakResult> DownloadPaperAsync(IProgress<InstallProgressReport> progress, CancellationToken ct)
     {
-        if (_busy) return;
-        _busy = true;
-        BuildToolsBtn.IsEnabled = false;
-        SpigotRing.IsActive = true;
-        AppendSpigot(P("Downloading BuildTools.jar…", "下載 BuildTools.jar 緊…"));
-        var r = await MinecraftServerService.DownloadBuildTools();
-        SpigotRing.IsActive = false;
-        BuildToolsBtn.IsEnabled = true;
-        _busy = false;
-        AppendSpigot(Msg(r));
-        ServerNotify(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error,
-            r.Success ? P("BuildTools ready", "BuildTools 已就緒") : P("Failed", "失敗"), Msg(r));
+        var version = PaperVersionBox.SelectedItem as string;
+        if (string.IsNullOrWhiteSpace(version))
+            return TweakResult.Fail("Pick a version first — load versions, then choose one.", "請先揀版本 — 先載入版本，再揀一個。");
+
+        progress.Report(InstallProgressReport.Status($"Downloading Paper {version}…", $"下載 Paper {version} 緊…"));
+        var r = await MinecraftServerService.DownloadPaper(version, (read, total) =>
+        {
+            if (total > 0)
+                progress.Report(InstallProgressReport.Progress(read * 100.0 / total,
+                    $"{read / 1024 / 1024} / {total / 1024 / 1024} MB", $"{read / 1024 / 1024} / {total / 1024 / 1024} MB"));
+            else
+                progress.Report(InstallProgressReport.Status($"{read / 1024 / 1024} MB", $"{read / 1024 / 1024} MB"));
+        }, ct);
+        DispatcherQueue.TryEnqueue(() => RefreshEngine());
+        return r;
+    }
+
+    /// <summary>建立「取得 BuildTools」嘅豐富進度控件 · Build the rich install-progress control for the BuildTools download.</summary>
+    private void EnsureBuildToolsControl()
+    {
+        if (_buildToolsControl is not null) { _buildToolsControl.SetAction(P("Get BuildTools", "取得 BuildTools"), P("Get BuildTools", "取得 BuildTools"), DownloadBuildToolsAsync); return; }
+        _buildToolsControl = InstallProgress.Create(P("Get BuildTools", "取得 BuildTools"), P("Get BuildTools", "取得 BuildTools"), DownloadBuildToolsAsync);
+        if (BuildToolsHost is not null) BuildToolsHost.Content = _buildToolsControl;
+    }
+
+    private async Task<TweakResult> DownloadBuildToolsAsync(IProgress<InstallProgressReport> progress, CancellationToken ct)
+    {
+        progress.Report(InstallProgressReport.Status("Downloading BuildTools.jar…", "下載 BuildTools.jar 緊…"));
+        var r = await MinecraftServerService.DownloadBuildTools((read, total) =>
+        {
+            if (total > 0)
+                progress.Report(InstallProgressReport.Progress(read * 100.0 / total,
+                    $"{read / 1024 / 1024} / {total / 1024 / 1024} MB", $"{read / 1024 / 1024} / {total / 1024 / 1024} MB"));
+            else
+                progress.Report(InstallProgressReport.Status($"{read / 1024 / 1024} MB", $"{read / 1024 / 1024} MB"));
+        }, ct);
+        DispatcherQueue.TryEnqueue(() => AppendSpigot(Msg(r)));
+        return r;
     }
 
     private async void SpigotBuild_Click(object sender, RoutedEventArgs e)

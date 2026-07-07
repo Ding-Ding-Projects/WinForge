@@ -83,16 +83,107 @@ public static class PackageService
         return outp.Contains(id, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// Touchless winget install of a known engine id. Resolves winget's absolute path (so a
+    /// refreshed/elevated PATH can't cause a silent 9009), prefers a user-scope install when the app is
+    /// not elevated (so no UAC prompt is needed and no --silent machine-scope silent failure occurs), and
+    /// falls back to a scopeless retry. Streams output via <paramref name="onLine"/> when provided.
+    /// Never throws — returns a TweakResult carrying the real exit code + captured winget output.
+    /// </summary>
+    /// <summary>
+    /// Streaming winget install of a known engine id. Resolves winget's absolute path (so a
+    /// refreshed/elevated PATH can't cause a silent 9009), prefers a user-scope install when the app is
+    /// not elevated (so no UAC prompt is needed and no --silent machine-scope silent failure occurs), and
+    /// falls back to a scopeless retry. Reports output via <paramref name="onLine"/>.
+    /// Never throws — returns a TweakResult carrying the real exit code + captured winget output.
+    /// </summary>
+    public static async Task<TweakResult> InstallStreaming(string id, IProgress<string>? onLine, CancellationToken ct = default)
+    {
+        var winget = ShellRunner.ResolveExe("winget");
+        // 未提權時優先 user scope（唔使 UAC，唔會靜靜 machine-scope 失敗）· Prefer user scope when not elevated.
+        string scope = AdminHelper.IsElevated ? "" : " --scope user";
+
+        var baseArgs = $"install --id {id} -e --silent --accept-source-agreements --accept-package-agreements --disable-interactivity";
+        var r = await ShellRunner.RunStreaming(winget, baseArgs + scope, onLine, elevated: false, workingDirectory: null, ct);
+        // 如果 user scope 唔存在（某些套件淨係 machine scope），去掉 scope 再試一次。
+        // If a user-scope variant doesn't exist, retry once without --scope (still non-elevated; the error
+        // is now surfaced either way).
+        if (!r.Success && scope.Length > 0 && LooksLikeScopeMiss(r.Output))
+            r = await ShellRunner.RunStreaming(winget, baseArgs, onLine, elevated: false, workingDirectory: null, ct);
+        // 用 InterpretWinget 解讀輸出，令「已安裝／要重開機」等良性結果當成成功（沿用另一分支嘅智能判斷）。
+        // Route through InterpretWinget so benign winget results (already installed, reboot required) count as success.
+        return InterpretWinget(r.Success ? 0 : 1, r.Output ?? string.Empty, started: true, verb: "install");
+    }
+
     public static Task<TweakResult> Install(string id, CancellationToken ct = default)
-        => ShellRunner.RunCmd($"winget install --id {id} -e --silent --accept-source-agreements --accept-package-agreements --disable-interactivity", false, ct);
+        => InstallStreaming(id, onLine: null, ct);
+
+    private static bool LooksLikeScopeMiss(string? output)
+    {
+        if (string.IsNullOrWhiteSpace(output)) return true;   // no detail ⇒ safe to retry scopeless
+        var o = output.ToLowerInvariant();
+        return o.Contains("no applicable") || o.Contains("scope") || o.Contains("no package found")
+            || o.Contains("matching") && o.Contains("no");
+    }
+
+    /// <summary>解讀 winget 結束代碼／輸出（唔好將「已安裝」當失敗）· Interpret winget's exit code + output so
+    /// benign non-zero results (already installed, no newer version, reboot required) count as success and a
+    /// real failure carries winget's actual message.</summary>
+    private static TweakResult InterpretWinget(int code, string output, bool started, string verb)
+    {
+        output = (output ?? "").Trim();
+        if (!started)
+            return TweakResult.Fail(
+                string.IsNullOrWhiteSpace(output) ? "Couldn't start the installer (was the UAC prompt declined?)." : output,
+                string.IsNullOrWhiteSpace(output) ? "無法啟動安裝程式（係咪拒絕咗 UAC？）。" : output, output);
+
+        bool ok = code == 0
+            || output.Contains("Successfully installed", StringComparison.OrdinalIgnoreCase)
+            || output.Contains("已成功安裝", StringComparison.OrdinalIgnoreCase)
+            || output.Contains("already installed", StringComparison.OrdinalIgnoreCase)
+            || output.Contains("No newer package versions", StringComparison.OrdinalIgnoreCase)
+            || output.Contains("No available upgrade", StringComparison.OrdinalIgnoreCase)
+            || output.Contains("No installed package", StringComparison.OrdinalIgnoreCase) && verb == "uninstall"
+            || (uint)code == 0x8A15002B   // APPINSTALLER_CLI_ERROR_UPDATE_NOT_APPLICABLE / already installed
+            || (uint)code == 0x8A150061;  // package already installed
+        bool reboot = output.Contains("restart", StringComparison.OrdinalIgnoreCase)
+            || output.Contains("reboot", StringComparison.OrdinalIgnoreCase)
+            || (uint)code == 0x8A15003D;  // reboot required to finish
+
+        if (ok)
+            return TweakResult.Ok(
+                reboot ? "Done — a restart may be needed to finish." : "Done.",
+                reboot ? "完成 — 可能要重新開機先生效。" : "完成。", output);
+
+        return TweakResult.Fail(
+            string.IsNullOrWhiteSpace(output) ? $"winget exit code 0x{(uint)code:X8}." : output,
+            string.IsNullOrWhiteSpace(output) ? $"winget 結束代碼 0x{(uint)code:X8}。" : output, output);
+    }
 
     /// <summary>Touchless install of a known engine by winget id, then refresh this process's PATH so the
     /// freshly-installed CLI works immediately (no app restart). Returns true on success.</summary>
     public static async Task<bool> AutoInstall(string id, CancellationToken ct = default)
+        => (await AutoInstallResult(id, ct)).Success;
+
+    /// <summary>同 AutoInstall 但回傳完整結果（畀 UI 顯示真實錯誤）· Like AutoInstall but returns the full
+    /// TweakResult so the UI can show the real error text + output.</summary>
+    public static async Task<TweakResult> AutoInstallResult(string id, CancellationToken ct = default)
     {
-        var r = await Install(id, ct);
+        var r = await InstallStreaming(id, onLine: null, ct);
         if (r.Success) RefreshProcessPath();
-        return r.Success;
+        return r;
+    }
+
+    /// <summary>
+    /// Same as <see cref="AutoInstall(string,CancellationToken)"/> but returns the full
+    /// <see cref="TweakResult"/> (so the caller can SURFACE the real error/output instead of a bare bool),
+    /// and streams live output lines via <paramref name="onLine"/>. Refreshes PATH on success.
+    /// </summary>
+    public static async Task<TweakResult> AutoInstallDetailed(string id, IProgress<string>? onLine = null, CancellationToken ct = default)
+    {
+        var r = await InstallStreaming(id, onLine, ct);
+        if (r.Success) RefreshProcessPath();
+        return r;
     }
 
     /// <summary>Re-read PATH from the registry into this process so newly-installed tools resolve at once.</summary>
@@ -107,11 +198,21 @@ public static class PackageService
         catch { }
     }
 
-    public static Task<TweakResult> Uninstall(string id, CancellationToken ct = default)
-        => ShellRunner.RunCmd($"winget uninstall --id {id} -e --silent --disable-interactivity", false, ct);
+    public static async Task<TweakResult> Uninstall(string id, CancellationToken ct = default)
+    {
+        var (code, outp, started) = await ShellRunner.RunElevatedCaptureAsync(
+            $"winget uninstall --id {id} -e --silent --disable-interactivity", ct);
+        return InterpretWinget(code, outp, started, "uninstall");
+    }
 
-    public static Task<TweakResult> Upgrade(string id, CancellationToken ct = default)
-        => ShellRunner.RunCmd($"winget upgrade --id {id} -e --silent --accept-source-agreements --accept-package-agreements --disable-interactivity", false, ct);
+    public static async Task<TweakResult> Upgrade(string id, CancellationToken ct = default)
+    {
+        var (code, outp, started) = await ShellRunner.RunElevatedCaptureAsync(
+            $"winget upgrade --id {id} -e --silent --accept-source-agreements --accept-package-agreements --disable-interactivity", ct);
+        var r = InterpretWinget(code, outp, started, "upgrade");
+        if (r.Success) RefreshProcessPath();
+        return r;
+    }
 
     /// <summary>Parse winget's column table using the header's column start positions (best-effort for ASCII names).</summary>
     private static List<PkgResult> ParseTable(string outp)

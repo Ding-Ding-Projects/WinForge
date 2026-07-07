@@ -24,6 +24,9 @@ public sealed partial class PackageManagerModule : Page
     private int _view; // 0 Discover, 1 Updates, 2 Installed, 3 Bundles, 4 Sources, 5 Ignored, 6 Setup
     private HashSet<string> _wingetInstalled = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, PackageItem> _selectedPkgs = new(StringComparer.OrdinalIgnoreCase); // 已勾選套件 · checked packages keyed by "manager|id"
+    private readonly List<PackageItem> _lastDiscoverResults = new();
+    private string _lastDiscoverQuery = "";
+    private bool _syncingSearchOptions;
 
     private static string PkgKey(PackageItem i) => $"{i.ManagerKey}|{i.Id}";
 
@@ -31,12 +34,20 @@ public sealed partial class PackageManagerModule : Page
     private const string IgnoreNotApplicableKey = "pkg.ignore.notapplicable";
     private static bool IgnoreNotApplicable =>
         SettingsStore.Get(IgnoreNotApplicableKey, "false") == "true";
+    private const string SearchModeKey = "pkg.search.mode";
+    private const string SearchCaseSensitiveKey = "pkg.search.caseSensitive";
+    private const string SearchIgnoreSpecialKey = "pkg.search.ignoreSpecial";
+
+    private enum PackageSearchMode { Both, Name, Id, Exact, Similar }
 
     public PackageManagerModule()
     {
         InitializeComponent();
         foreach (var m in PackageManagerRegistry.All) _selected.Add(m.Key);
-        Loc.I.LanguageChanged += (_, _) => { Render(); BuildManagerFilters(); BuildViewCombo(); UpdateBatchBar(); };
+        // 具名處理器＋Unloaded 退訂，唔好用內嵌 lambda（會漏，令每次切語言都重跑重活）·
+        // named handler + unsubscribe on Unloaded (inline lambda leaks and re-runs heavy work per switch).
+        Loc.I.LanguageChanged += OnLanguageChanged;
+        Unloaded += (_, _) => Loc.I.LanguageChanged -= OnLanguageChanged;
         Loaded += async (_, _) =>
         {
             Render();
@@ -50,19 +61,91 @@ public sealed partial class PackageManagerModule : Page
         };
     }
 
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        Render();
+        BuildManagerFilters();
+        BuildViewCombo();
+        UpdateBatchBar();
+    }
+
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
     private void Render()
     {
-        HeaderTitle.Text = "Package Manager · 套件管理";
+        Header.Title = "Package Manager · 套件管理";
         HeaderBlurb.Text = P(
             "A UniGetUI-style hub over winget, Scoop, Chocolatey, pip, npm, .NET tools, PowerShell Gallery, PowerShell 7, Cargo, Bun and vcpkg — discover, multi-select, batch install/update/uninstall, and export/import bundles, all in-app.",
             "UniGetUI 式總管，統一 winget、Scoop、Chocolatey、pip、npm、.NET 工具、PowerShell Gallery、PowerShell 7、Cargo、Bun 同 vcpkg — 搜尋、多選、批次安裝／更新／解除安裝，仲可以匯出／匯入清單，全部喺 app 內。");
         ManagersLabel.Text = P("Package managers", "套件管理器");
         SearchBox.PlaceholderText = P("Search packages (e.g. vscode, vlc, obs)…", "搜尋套件（例如 vscode、vlc、obs）…");
+        SearchOptionsText.Text = P("Filters", "篩選");
+        SearchOptionsTitle.Text = P("Search filters", "搜尋篩選");
+        SearchModeLabel.Text = P("Search mode", "搜尋模式");
+        SearchModeBoth.Content = P("Both", "兩者");
+        SearchModeName.Content = P("Package Name", "套件名稱");
+        SearchModeId.Content = P("Package ID", "套件 ID");
+        SearchModeExact.Content = P("Exact match", "完全符合");
+        SearchModeSimilar.Content = P("Show similar packages", "顯示相似套件");
+        SearchCaseToggle.Header = P("Distinguish between uppercase and lowercase", "區分大小寫");
+        SearchIgnoreSpecialToggle.Header = P("Ignore special characters", "忽略特殊字元");
         TerminalBtnText.Text = P("Terminal", "終端機");
+        ToolTipService.SetToolTip(SearchOptionsBtn, P("UniGetUI-style search mode and filter options.",
+            "UniGetUI 式搜尋模式同篩選選項。"));
         ToolTipService.SetToolTip(TerminalBtn, P("Open a shell for manual winget / scoop / choco / pip / npm",
             "開一個 shell 手動執行 winget／scoop／choco／pip／npm"));
+        RefreshSearchOptionControls();
+    }
+
+    private PackageSearchMode CurrentSearchMode()
+        => Enum.TryParse<PackageSearchMode>(SettingsStore.Get(SearchModeKey, PackageSearchMode.Both.ToString()), true, out var mode)
+            ? mode
+            : PackageSearchMode.Both;
+
+    private bool SearchCaseSensitive => SettingsStore.Get(SearchCaseSensitiveKey, "false") == "true";
+    private bool SearchIgnoreSpecial => SettingsStore.Get(SearchIgnoreSpecialKey, "false") == "true";
+
+    private void RefreshSearchOptionControls()
+    {
+        _syncingSearchOptions = true;
+        try
+        {
+            var mode = CurrentSearchMode();
+            SearchModeBoth.IsChecked = mode == PackageSearchMode.Both;
+            SearchModeName.IsChecked = mode == PackageSearchMode.Name;
+            SearchModeId.IsChecked = mode == PackageSearchMode.Id;
+            SearchModeExact.IsChecked = mode == PackageSearchMode.Exact;
+            SearchModeSimilar.IsChecked = mode == PackageSearchMode.Similar;
+            SearchCaseToggle.IsOn = SearchCaseSensitive;
+            SearchIgnoreSpecialToggle.IsOn = SearchIgnoreSpecial;
+        }
+        finally { _syncingSearchOptions = false; }
+    }
+
+    private void SearchMode_Checked(object sender, RoutedEventArgs e)
+    {
+        if (_syncingSearchOptions) return;
+        if (sender is RadioButton { Tag: string tag }
+            && Enum.TryParse<PackageSearchMode>(tag, true, out var mode))
+        {
+            SettingsStore.Set(SearchModeKey, mode.ToString());
+            RenderCachedDiscoverResults();
+        }
+    }
+
+    private void SearchOption_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (_syncingSearchOptions) return;
+        SettingsStore.Set(SearchCaseSensitiveKey, SearchCaseToggle.IsOn ? "true" : "false");
+        SettingsStore.Set(SearchIgnoreSpecialKey, SearchIgnoreSpecialToggle.IsOn ? "true" : "false");
+        RenderCachedDiscoverResults();
+    }
+
+    private void RenderCachedDiscoverResults()
+    {
+        if (_view != 0 || _lastDiscoverResults.Count == 0 || string.IsNullOrWhiteSpace(_lastDiscoverQuery))
+            return;
+        RenderDiscoverResults(_lastDiscoverQuery, _lastDiscoverResults);
     }
 
     /// <summary>
@@ -145,6 +228,7 @@ public sealed partial class PackageManagerModule : Page
     {
         ResultsPanel.Children.Clear();
         ResultsHeader.Text = "";
+        SearchOptionsBtn.Visibility = _view == 0 ? Visibility.Visible : Visibility.Collapsed;
         ClearSelection(); // 切換檢視就清空多選 · switching views clears the multi-select set
         switch (_view)
         {
@@ -273,7 +357,39 @@ public sealed partial class PackageManagerModule : Page
         catch { results = new(); }
         Busy.IsActive = false;
 
-        ResultsHeader.Text = P($"Results — {results.Count}", $"結果 — {results.Count}");
+        _lastDiscoverQuery = query;
+        _lastDiscoverResults.Clear();
+        _lastDiscoverResults.AddRange(results);
+        RenderDiscoverResults(query, _lastDiscoverResults);
+    }
+
+    private void RenderDiscoverResults(string query, IReadOnlyList<PackageItem> rawResults)
+    {
+        ResultsPanel.Children.Clear();
+        var results = FilterDiscoverResults(query, rawResults);
+        var mode = CurrentSearchMode();
+        var modeLabel = SearchModeDisplay(mode);
+        var extra = SearchIgnoreSpecial
+            ? P(" · ignoring special characters", " · 忽略特殊字元")
+            : "";
+        extra += SearchCaseSensitive
+            ? P(" · case-sensitive", " · 區分大小寫")
+            : "";
+        ResultsHeader.Text = results.Count == rawResults.Count
+            ? P($"Results — {results.Count} · {modeLabel}{extra}", $"結果 — {results.Count} · {modeLabel}{extra}")
+            : P($"Results — {results.Count}/{rawResults.Count} · {modeLabel}{extra}", $"結果 — {results.Count}/{rawResults.Count} · {modeLabel}{extra}");
+
+        if (results.Count == 0)
+        {
+            ResultsPanel.Children.Add(Card(new TextBlock
+            {
+                Text = P("No packages match the current search filters.", "冇套件符合目前搜尋篩選。"),
+                TextWrapping = TextWrapping.Wrap,
+                Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+            }));
+            return;
+        }
+
         foreach (var item in results)
         {
             var extras = new List<(string, Func<Button, Task>)>
@@ -281,9 +397,49 @@ public sealed partial class PackageManagerModule : Page
                 (P("Options…", "選項…"), async _ => await ShowOptionsDialog(item)),
                 (P("More ▾", "更多 ▾"), btn => { ShowMoreFlyout(btn, item, RowExtraScope.Discover); return Task.CompletedTask; }),
             };
-            ResultsPanel.Children.Add(RowFor(item, P("Install", "安裝"), async btn => await ActionInstall(item, btn), extras));
+            ResultsPanel.Children.Add(RowFor(item, P("Install", "安裝"), async btn => await ActionInstall(item, btn),
+                extras, RowExtraScope.Discover, PackageOperations.Op.Install));
         }
     }
+
+    private List<PackageItem> FilterDiscoverResults(string query, IReadOnlyList<PackageItem> rawResults)
+    {
+        var mode = CurrentSearchMode();
+        if (mode == PackageSearchMode.Similar) return rawResults.ToList();
+
+        var q = NormalizeSearchText(query, SearchIgnoreSpecial, SearchCaseSensitive);
+        if (string.IsNullOrWhiteSpace(q)) return rawResults.ToList();
+
+        bool Contains(string value)
+            => NormalizeSearchText(value, SearchIgnoreSpecial, SearchCaseSensitive).Contains(q, StringComparison.Ordinal);
+        bool Exact(string value)
+            => string.Equals(NormalizeSearchText(value, SearchIgnoreSpecial, SearchCaseSensitive), q, StringComparison.Ordinal);
+
+        return rawResults.Where(item => mode switch
+        {
+            PackageSearchMode.Name => Contains(item.Name),
+            PackageSearchMode.Id => Contains(item.Id),
+            PackageSearchMode.Exact => Exact(item.Name) || Exact(item.Id),
+            _ => Contains(item.Name) || Contains(item.Id),
+        }).ToList();
+    }
+
+    private static string NormalizeSearchText(string text, bool ignoreSpecial, bool caseSensitive)
+    {
+        var value = text ?? "";
+        if (ignoreSpecial)
+            value = new string(value.Where(char.IsLetterOrDigit).ToArray());
+        return caseSensitive ? value : value.ToUpperInvariant();
+    }
+
+    private string SearchModeDisplay(PackageSearchMode mode) => mode switch
+    {
+        PackageSearchMode.Name => P("Package Name", "套件名稱"),
+        PackageSearchMode.Id => P("Package ID", "套件 ID"),
+        PackageSearchMode.Exact => P("Exact match", "完全符合"),
+        PackageSearchMode.Similar => P("Show similar packages", "顯示相似套件"),
+        _ => P("Both", "兩者"),
+    };
 
     // ===== Updates =====
 
@@ -339,7 +495,8 @@ public sealed partial class PackageManagerModule : Page
                 (P("Ignore ▾", "忽略 ▾"), btn => { ShowIgnoreFlyout(btn, pkg); return Task.CompletedTask; }),
                 (P("More ▾", "更多 ▾"), btn => { ShowMoreFlyout(btn, item, RowExtraScope.Updates); return Task.CompletedTask; }),
             };
-            ResultsPanel.Children.Add(RowFor(item, label, async btn => await ActionUpdate(item, btn), extras));
+            ResultsPanel.Children.Add(RowFor(item, label, async btn => await ActionUpdate(item, btn),
+                extras, RowExtraScope.Updates, PackageOperations.Op.Update));
         }
     }
 
@@ -350,14 +507,19 @@ public sealed partial class PackageManagerModule : Page
     private void ShowIgnoreFlyout(Button anchor, PackageItem item)
     {
         var flyout = new MenuFlyout();
+        AddIgnoreMenuItems(flyout.Items, item);
+        flyout.ShowAt(anchor);
+    }
 
+    private void AddIgnoreMenuItems(IList<MenuFlyoutItemBase> items, PackageItem item)
+    {
         var skip = new MenuFlyoutItem { Text = P("Skip this version", "跳過此版本") };
         skip.Click += async (_, _) => { IgnoredUpdates.PinThisVersion(item); await LoadUpdates(); };
-        flyout.Items.Add(skip);
+        items.Add(skip);
 
         var all = new MenuFlyoutItem { Text = P("Ignore all versions", "忽略所有版本") };
         all.Click += async (_, _) => { IgnoredUpdates.PinAllVersions(item); await LoadUpdates(); };
-        flyout.Items.Add(all);
+        items.Add(all);
 
         var pause = new MenuFlyoutSubItem { Text = P("Pause updates for…", "暫停更新…") };
         void AddPause(string en, string zh, TimeSpan d)
@@ -370,9 +532,7 @@ public sealed partial class PackageManagerModule : Page
         AddPause("1 week", "1 個星期", TimeSpan.FromDays(7));
         AddPause("1 month", "1 個月", TimeSpan.FromDays(30));
         AddPause("3 months", "3 個月", TimeSpan.FromDays(90));
-        flyout.Items.Add(pause);
-
-        flyout.ShowAt(anchor);
+        items.Add(pause);
     }
 
     private async Task UpdateAll()
@@ -414,7 +574,8 @@ public sealed partial class PackageManagerModule : Page
             {
                 (P("More ▾", "更多 ▾"), btn => { ShowMoreFlyout(btn, item, RowExtraScope.Installed); return Task.CompletedTask; }),
             };
-            ResultsPanel.Children.Add(RowFor(item, P("Uninstall", "解除安裝"), async btn => await ActionUninstall(item, btn), extras));
+            ResultsPanel.Children.Add(RowFor(item, P("Uninstall", "解除安裝"), async btn => await ActionUninstall(item, btn),
+                extras, RowExtraScope.Installed, PackageOperations.Op.Uninstall));
         }
     }
 
@@ -616,7 +777,7 @@ public sealed partial class PackageManagerModule : Page
         {
             lines.Add(P($"Security — {report.Warnings.Count} package(s) run custom commands/args/kill-lists:",
                         $"安全 — {report.Warnings.Count} 個套件會執行自訂指令／參數／kill-list："));
-            foreach (var w in report.Warnings.Take(10)) lines.Add("• " + w.Primary + "  ·  " + w.Secondary);
+            foreach (var w in report.Warnings.Take(10)) lines.Add("• " + w.Display);
         }
         lines.Add(P($"Install {bundle.packages.Count} compatible package(s)?{(bundle.incompatible_packages.Count > 0 ? $" ({bundle.incompatible_packages.Count} incompatible skipped)" : "")}",
                     $"安裝 {bundle.packages.Count} 個相容套件？{(bundle.incompatible_packages.Count > 0 ? $"（略過 {bundle.incompatible_packages.Count} 個不相容）" : "")}"));
@@ -954,26 +1115,110 @@ public sealed partial class PackageManagerModule : Page
     /// (reinstall / uninstall-then-X). Bilingual throughout.
     /// </summary>
     private void ShowMoreFlyout(Button btn, PackageItem item, RowExtraScope scope)
+        => BuildMoreFlyout(item, scope).ShowAt(btn);
+
+    private MenuFlyout BuildMoreFlyout(PackageItem item, RowExtraScope scope)
     {
         var flyout = new MenuFlyout();
 
         // Copy install command.
+        AddCopyInstallCommandItem(flyout.Items, item);
+
+        // Download installer…
+        AddDownloadInstallerItem(flyout.Items, item);
+
+        // Chained ops vary per view.
+        AddChainedOperationItems(flyout.Items, item, scope);
+
+        return flyout;
+    }
+
+    private MenuFlyout BuildPackageContextFlyout(PackageItem item, RowExtraScope scope, string actionLabel, PackageOperations.Op op)
+    {
+        var flyout = new MenuFlyout();
+
+        var details = new MenuFlyoutItem { Text = P("Details", "詳情") };
+        details.Click += async (_, _) => await ShowDetails(item);
+        flyout.Items.Add(details);
+
+        var run = new MenuFlyoutItem { Text = actionLabel };
+        run.Click += async (_, _) => await RunOperationFromMenu(item, op);
+        flyout.Items.Add(run);
+
+        var options = new MenuFlyoutItem
+        {
+            Text = op switch
+            {
+                PackageOperations.Op.Update => P("Update options…", "更新選項…"),
+                PackageOperations.Op.Uninstall => P("Uninstall options…", "解除安裝選項…"),
+                _ => P("Install options…", "安裝選項…"),
+            },
+        };
+        options.Click += async (_, _) => await ShowOperationOptionsDialog(item, op);
+        flyout.Items.Add(options);
+
+        if (scope is RowExtraScope.Updates)
+        {
+            var ignore = new MenuFlyoutSubItem { Text = P("Ignore updates", "忽略更新") };
+            AddIgnoreMenuItems(ignore.Items, item);
+            flyout.Items.Add(ignore);
+        }
+
+        flyout.Items.Add(new MenuFlyoutSeparator());
+        AddCopyOperationCommandItem(flyout.Items, item, op);
+        AddCopyInstallCommandItem(flyout.Items, item);
+
+        var copyId = new MenuFlyoutItem { Text = P("Copy package ID", "複製套件 ID") };
+        copyId.Click += (_, _) => CopyText(item.Id, P("package ID", "套件 ID"));
+        flyout.Items.Add(copyId);
+
+        var copyName = new MenuFlyoutItem { Text = P("Copy package name", "複製套件名稱") };
+        copyName.Click += (_, _) => CopyText(item.Name, P("package name", "套件名稱"));
+        flyout.Items.Add(copyName);
+
+        var copyRef = new MenuFlyoutItem { Text = P("Copy package reference", "複製套件參照") };
+        copyRef.Click += (_, _) => CopyText(
+            $"manager={item.ManagerKey}\nid={item.Id}\nname={item.Name}\nversion={item.Version}\nsource={item.Source}",
+            P("package reference", "套件參照"));
+        flyout.Items.Add(copyRef);
+
+        AddDownloadInstallerItem(flyout.Items, item);
+        AddChainedOperationItems(flyout.Items, item, scope);
+
+        return flyout;
+    }
+
+    private void AddCopyInstallCommandItem(IList<MenuFlyoutItemBase> items, PackageItem item)
+    {
         var copy = new MenuFlyoutItem { Text = P("Copy install command", "複製安裝指令") };
         copy.Click += (_, _) =>
         {
-            try
-            {
-                var cmd = PackageDetails.BuildInstallCommand(item);
-                var dp = new Windows.ApplicationModel.DataTransfer.DataPackage();
-                dp.SetText(cmd);
-                Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(dp);
-                ResultsHeader.Text = P($"Copied: {cmd}", $"已複製：{cmd}");
-            }
+            try { CopyText(PackageDetails.BuildInstallCommand(item), P("install command", "安裝指令")); }
             catch (Exception ex) { ResultsHeader.Text = ex.Message; }
         };
-        flyout.Items.Add(copy);
+        items.Add(copy);
+    }
 
-        // Download installer…
+    private void AddCopyOperationCommandItem(IList<MenuFlyoutItemBase> items, PackageItem item, PackageOperations.Op op)
+    {
+        var label = op switch
+        {
+            PackageOperations.Op.Update => P("Copy update command", "複製更新指令"),
+            PackageOperations.Op.Uninstall => P("Copy uninstall command", "複製解除安裝指令"),
+            _ => P("Copy install command with options", "複製含選項安裝指令"),
+        };
+        var copy = new MenuFlyoutItem { Text = label };
+        copy.Click += (_, _) =>
+        {
+            var opts = InstallOptions.Load(item.ManagerKey, item.Id);
+            var cmd = PackageOperations.BuildCommandPreview(item.ManagerKey, item.Id, op, opts);
+            CopyText(cmd, P("operation command", "操作指令"));
+        };
+        items.Add(copy);
+    }
+
+    private void AddDownloadInstallerItem(IList<MenuFlyoutItemBase> items, PackageItem item)
+    {
         var download = new MenuFlyoutItem { Text = P("Download installer…", "下載安裝程式…") };
         download.Click += async (_, _) =>
         {
@@ -987,12 +1232,14 @@ public sealed partial class PackageManagerModule : Page
             }
             catch (Exception ex) { ResultsHeader.Text = ex.Message; }
         };
-        flyout.Items.Add(download);
+        items.Add(download);
+    }
 
-        // Chained ops vary per view.
+    private void AddChainedOperationItems(IList<MenuFlyoutItemBase> items, PackageItem item, RowExtraScope scope)
+    {
         if (scope is RowExtraScope.Installed)
         {
-            flyout.Items.Add(new MenuFlyoutSeparator());
+            items.Add(new MenuFlyoutSeparator());
             var reinstall = new MenuFlyoutItem { Text = P("Reinstall", "重新安裝") };
             reinstall.Click += async (_, _) => await RunChainedFromRow(item,
                 P("Reinstall", "重新安裝"),
@@ -1001,7 +1248,7 @@ public sealed partial class PackageManagerModule : Page
                     ("Uninstall", "解除安裝", (m, c) => m.UninstallAsync(item.Id, c)),
                     ("Install", "安裝", (m, c) => m.InstallAsync(item.Id, c)),
                 });
-            flyout.Items.Add(reinstall);
+            items.Add(reinstall);
 
             var unRe = new MenuFlyoutItem { Text = P("Uninstall then reinstall", "解除後重裝") };
             unRe.Click += async (_, _) => await RunChainedFromRow(item,
@@ -1011,11 +1258,11 @@ public sealed partial class PackageManagerModule : Page
                     ("Uninstall", "解除安裝", (m, c) => m.UninstallAsync(item.Id, c)),
                     ("Install", "安裝", (m, c) => m.InstallAsync(item.Id, c)),
                 });
-            flyout.Items.Add(unRe);
+            items.Add(unRe);
         }
         else if (scope is RowExtraScope.Updates)
         {
-            flyout.Items.Add(new MenuFlyoutSeparator());
+            items.Add(new MenuFlyoutSeparator());
             var unUp = new MenuFlyoutItem { Text = P("Uninstall then update", "解除後更新") };
             unUp.Click += async (_, _) => await RunChainedFromRow(item,
                 P("Uninstall then update", "解除後更新"),
@@ -1025,10 +1272,8 @@ public sealed partial class PackageManagerModule : Page
                     ("Install", "安裝", (m, c) => m.InstallAsync(item.Id, c)),
                     ("Update", "更新", (m, c) => m.UpdateAsync(item.Id, c)),
                 });
-            flyout.Items.Add(unUp);
+            items.Add(unUp);
         }
-
-        flyout.ShowAt(btn);
     }
 
     /// <summary>由行內鏈式操作執行並更新表頭 · Run a chained sequence of manager ops from a row, surfacing progress in the header.</summary>
@@ -1060,27 +1305,60 @@ public sealed partial class PackageManagerModule : Page
     }
 
     private async Task ShowOptionsDialog(PackageItem item)
+        => await ShowOperationOptionsDialog(item, PackageOperations.Op.Install);
+
+    private async Task ShowOperationOptionsDialog(PackageItem item, PackageOperations.Op op)
     {
         // 載入每個套件嘅選項（無覆寫就跟全域）· Load per-package options (follows global if no override).
         var opts = InstallOptions.Load(item.ManagerKey, item.Id);
         var confirmed = await InstallOptionsDialog.ShowAsync(
-            this.XamlRoot, item, opts, PackageOperations.Op.Install);
+            this.XamlRoot, item, opts, op);
         if (!confirmed) return;
 
         // 確認後重新載入（對話框已經寫咗覆寫或重設）· Reload after confirm; dialog persisted the choice.
+        await RunOperationFromMenu(item, op);
+    }
+
+    private async Task RunOperationFromMenu(PackageItem item, PackageOperations.Op op)
+    {
+        var action = op switch
+        {
+            PackageOperations.Op.Update => P("Updating", "更新緊"),
+            PackageOperations.Op.Uninstall => P("Uninstalling", "解除安裝緊"),
+            _ => P("Installing", "安裝緊"),
+        };
         var effective = InstallOptions.Load(item.ManagerKey, item.Id);
-        ResultsHeader.Text = P($"Installing {item.Name}…", $"安裝緊 {item.Name}…");
+        ResultsHeader.Text = $"{action} {item.Name}…";
         Busy.IsActive = true;
         try
         {
             var r = await PackageOperations.RunAsync(
-                item.ManagerKey, item.Id, PackageOperations.Op.Install, effective, CancellationToken.None);
+                item.ManagerKey, item.Id, op, effective, CancellationToken.None);
             ResultsHeader.Text = r.Success
-                ? P($"Installed {item.Name}.", $"已安裝 {item.Name}。")
-                : P($"Install failed for {item.Name}.", $"{item.Name} 安裝失敗。");
+                ? op switch
+                {
+                    PackageOperations.Op.Update => P($"Updated {item.Name}.", $"已更新 {item.Name}。"),
+                    PackageOperations.Op.Uninstall => P($"Uninstalled {item.Name}.", $"已解除安裝 {item.Name}。"),
+                    _ => P($"Installed {item.Name}.", $"已安裝 {item.Name}。"),
+                }
+                : r.Message?.Primary ?? op switch
+                {
+                    PackageOperations.Op.Update => P($"Update failed for {item.Name}.", $"{item.Name} 更新失敗。"),
+                    PackageOperations.Op.Uninstall => P($"Uninstall failed for {item.Name}.", $"{item.Name} 解除安裝失敗。"),
+                    _ => P($"Install failed for {item.Name}.", $"{item.Name} 安裝失敗。"),
+                };
         }
         catch (Exception ex) { ResultsHeader.Text = ex.Message; }
         finally { Busy.IsActive = false; }
+    }
+
+    private void CopyText(string text, string label)
+    {
+        var dp = new Windows.ApplicationModel.DataTransfer.DataPackage();
+        dp.SetText(text ?? "");
+        Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(dp);
+        Windows.ApplicationModel.DataTransfer.Clipboard.Flush();
+        ResultsHeader.Text = P($"Copied {label}.", $"已複製{label}。");
     }
 
     // ===== Row builders =====
@@ -1124,7 +1402,9 @@ public sealed partial class PackageManagerModule : Page
     };
 
     private Border RowFor(PackageItem item, string actionLabel, Func<Button, Task> action,
-        List<(string label, Func<Button, Task> run)>? extras = null)
+        List<(string label, Func<Button, Task> run)>? extras = null,
+        RowExtraScope? contextScope = null,
+        PackageOperations.Op? contextOperation = null)
     {
         var grid = new Grid { ColumnSpacing = 10 };
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // checkbox
@@ -1180,7 +1460,10 @@ public sealed partial class PackageManagerModule : Page
         Grid.SetColumn(buttons, 3);
         grid.Children.Add(buttons);
 
-        return Card(grid);
+        var card = Card(grid);
+        if (contextScope is { } scope && contextOperation is { } op)
+            card.ContextFlyout = BuildPackageContextFlyout(item, scope, actionLabel, op);
+        return card;
     }
 
     private Border StatusRow(string title, string id, string status, bool ok, (string label, Func<Task> action)? action)

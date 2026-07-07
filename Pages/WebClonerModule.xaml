@@ -5,6 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:controls="using:Microsoft.UI.Xaml.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:winforge="using:WinForge.Controls"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
@@ -12,10 +13,7 @@
         <StackPanel MaxWidth="1000" Spacing="14">
 
             <!-- Header -->
-            <StackPanel Orientation="Horizontal" Spacing="12">
-                <FontIcon FontSize="24" Glyph="&#xE774;" VerticalAlignment="Center" />
-                <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
-            </StackPanel>
+            <winforge:ModuleHeader x:Name="Header" Glyph="&#xE774;" />
             <TextBlock
                 x:Name="HeaderBlurb"
                 Foreground="{ThemeResource TextFillColorSecondaryBrush}"
@@ -27,6 +25,15 @@
                 IsClosable="False"
                 IsOpen="True"
                 Severity="Warning" />
+
+            <!-- WebView2 Runtime notice + auto-installer (only when missing; enables rendered-DOM capture + in-app preview) -->
+            <InfoBar
+                x:Name="WebView2Bar"
+                IsClosable="False"
+                IsOpen="False"
+                Severity="Warning">
+                <StackPanel x:Name="WebView2InstallHost" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8" />
+            </InfoBar>
 
             <!-- URL input -->
             <Border
@@ -54,27 +61,21 @@
                         <TextBlock x:Name="OptionsLabel" FontWeight="SemiBold" />
                         <CheckBox x:Name="AssetsCheck" IsChecked="True" />
                         <CheckBox x:Name="RenderedCheck" />
-                        <RadioButtons x:Name="ModeRadios" />
+                        <CheckBox x:Name="AiCheck" />
+                        <TextBlock
+                            x:Name="AiHint"
+                            Margin="28,0,0,0"
+                            FontSize="12"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            TextWrapping="Wrap" />
                     </StackPanel>
-
-                    <!-- AI agent picker (only relevant in AI mode) -->
-                    <Grid x:Name="AgentRow" ColumnSpacing="8" Visibility="Collapsed">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock x:Name="AgentLabel" Grid.Column="0" VerticalAlignment="Center" FontWeight="SemiBold" />
-                        <ComboBox x:Name="AgentCombo" Grid.Column="1" HorizontalAlignment="Stretch" />
-                    </Grid>
-
-                    <InfoBar x:Name="AgentBar" IsClosable="False" IsOpen="False" Severity="Informational" />
 
                     <!-- Action buttons -->
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <Button x:Name="CloneBtn" Style="{StaticResource AccentButtonStyle}" Click="Clone_Click" />
                         <Button x:Name="CancelBtn" Click="Cancel_Click" IsEnabled="False" />
-                        <Button x:Name="OpenFolderBtn" Click="OpenFolder_Click" IsEnabled="False" />
-                        <Button x:Name="OpenBrowserBtn" Click="OpenBrowser_Click" IsEnabled="False" />
+                        <Button x:Name="CopyFolderBtn" Click="CopyFolder_Click" IsEnabled="False" />
+                        <Button x:Name="PreviewBtn" Click="Preview_Click" IsEnabled="False" />
                     </StackPanel>
 
                     <ProgressBar x:Name="Progress" IsIndeterminate="True" Visibility="Collapsed" />
@@ -83,6 +84,25 @@
 
             <!-- Result -->
             <InfoBar x:Name="ResultBar" IsClosable="True" IsOpen="False" />
+
+            <!-- In-app preview of the cloned index.html -->
+            <Border
+                x:Name="PreviewCard"
+                Padding="14"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Visibility="Collapsed">
+                <Grid RowSpacing="8">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="420" />
+                    </Grid.RowDefinitions>
+                    <TextBlock x:Name="PreviewTitle" FontWeight="SemiBold" />
+                    <controls:WebView2 x:Name="PreviewWeb" Grid.Row="1" />
+                </Grid>
+            </Border>
 
             <!-- Design-token summary -->
             <Border

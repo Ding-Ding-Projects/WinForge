@@ -1,0 +1,321 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.FlashcardsModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid Style="{StaticResource WinForgePageGridStyle}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Spacing="6">
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE82D;" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+        </StackPanel>
+
+        <!-- Main pivot -->
+        <Pivot x:Name="MainPivot" Grid.Row="1">
+
+            <!-- ===== Decks ===== -->
+            <PivotItem x:Name="DecksTab">
+                <Grid RowSpacing="12">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="NewDeckBtn" Click="NewDeck_Click" Style="{StaticResource AccentButtonStyle}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon FontSize="14" Glyph="&#xE710;" />
+                                <TextBlock x:Name="NewDeckLbl" />
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="ImportDeckBtn" Click="ImportDeck_Click">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon FontSize="14" Glyph="&#xE8E5;" />
+                                <TextBlock x:Name="ImportDeckLbl" />
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="RefreshDecksBtn" Click="RefreshDecks_Click">
+                            <FontIcon FontSize="14" Glyph="&#xE72C;" />
+                        </Button>
+                    </StackPanel>
+
+                    <Grid Grid.Row="1">
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                            <ListView x:Name="DeckList" SelectionMode="Single" DoubleTapped="DeckList_DoubleTapped">
+                                <ListView.ItemContainerStyle>
+                                    <Style TargetType="ListViewItem">
+                                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                        <Setter Property="Padding" Value="14,10,14,10" />
+                                    </Style>
+                                </ListView.ItemContainerStyle>
+                                <ListView.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid ColumnSpacing="12">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="15" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Text="{Binding CountsLine}" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                            </StackPanel>
+                                            <Border Grid.Column="1" CornerRadius="10" Padding="10,3,10,3" VerticalAlignment="Center"
+                                                    Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}">
+                                                <TextBlock Text="{Binding DuePill}" FontSize="12" />
+                                            </Border>
+                                            <Button Grid.Column="2" VerticalAlignment="Center" Padding="6">
+                                                <FontIcon FontSize="14" Glyph="&#xE712;" />
+                                                <Button.Flyout>
+                                                    <MenuFlyout>
+                                                        <MenuFlyoutItem Text="{Binding StudyText}" Click="DeckStudy_Click" Tag="{Binding Id}" />
+                                                        <MenuFlyoutItem Text="{Binding CardsText}" Click="DeckCards_Click" Tag="{Binding Id}" />
+                                                        <MenuFlyoutSeparator />
+                                                        <MenuFlyoutItem Text="{Binding RenameText}" Click="DeckRename_Click" Tag="{Binding Id}" />
+                                                        <MenuFlyoutItem Text="{Binding ExportText}" Click="DeckExport_Click" Tag="{Binding Id}" />
+                                                        <MenuFlyoutItem Text="{Binding DeleteText}" Click="DeckDelete_Click" Tag="{Binding Id}" />
+                                                    </MenuFlyout>
+                                                </Button.Flyout>
+                                            </Button>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+                        </Border>
+                        <StackPanel x:Name="DecksEmpty" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8" Visibility="Collapsed">
+                            <FontIcon FontSize="40" Glyph="&#xE82D;" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock x:Name="DecksEmptyText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Center" TextAlignment="Center" />
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </PivotItem>
+
+            <!-- ===== Cards ===== -->
+            <PivotItem x:Name="CardsTab">
+                <Grid RowSpacing="12">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <ComboBox x:Name="CardsDeckBox" Grid.Column="0" MinWidth="200" SelectionChanged="CardsDeck_Changed" />
+                        <TextBlock x:Name="CardsDeckHint" Grid.Column="1" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" />
+                    </Grid>
+
+                    <Grid Grid.Row="1" ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Button x:Name="AddCardBtn" Grid.Column="0" Click="AddCard_Click" Style="{StaticResource AccentButtonStyle}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon FontSize="14" Glyph="&#xE710;" />
+                                <TextBlock x:Name="AddCardLbl" />
+                            </StackPanel>
+                        </Button>
+                        <AutoSuggestBox x:Name="CardSearchBox" Grid.Column="1" QueryIcon="Find" TextChanged="CardSearch_Changed" />
+                    </Grid>
+
+                    <Grid Grid.Row="2">
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                            <ListView x:Name="CardList" SelectionMode="Single" DoubleTapped="CardList_DoubleTapped">
+                                <ListView.ItemContainerStyle>
+                                    <Style TargetType="ListViewItem">
+                                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                        <Setter Property="Padding" Value="14,10,14,10" />
+                                    </Style>
+                                </ListView.ItemContainerStyle>
+                                <ListView.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid ColumnSpacing="12">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="{Binding Front}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" ToolTipService.ToolTip="{Binding Front}" />
+                                            <TextBlock Grid.Column="1" Text="{Binding Back}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" ToolTipService.ToolTip="{Binding Back}" />
+                                            <TextBlock Grid.Column="2" Text="{Binding SchedLine}" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                                            <Button Grid.Column="3" VerticalAlignment="Center" Padding="6">
+                                                <FontIcon FontSize="14" Glyph="&#xE712;" />
+                                                <Button.Flyout>
+                                                    <MenuFlyout>
+                                                        <MenuFlyoutItem Text="{Binding EditText}" Click="CardEdit_Click" Tag="{Binding Id}" />
+                                                        <MenuFlyoutItem Text="{Binding DeleteText}" Click="CardDelete_Click" Tag="{Binding Id}" />
+                                                    </MenuFlyout>
+                                                </Button.Flyout>
+                                            </Button>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+                        </Border>
+                        <StackPanel x:Name="CardsEmpty" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8" Visibility="Collapsed">
+                            <FontIcon FontSize="40" Glyph="&#xE8FD;" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock x:Name="CardsEmptyText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Center" TextAlignment="Center" />
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </PivotItem>
+
+            <!-- ===== Study ===== -->
+            <PivotItem x:Name="StudyTab">
+                <Grid RowSpacing="12">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <ComboBox x:Name="StudyDeckBox" Grid.Column="0" MinWidth="200" SelectionChanged="StudyDeck_Changed" />
+                        <Button x:Name="StartStudyBtn" Grid.Column="1" Click="StartStudy_Click" Style="{StaticResource AccentButtonStyle}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon FontSize="14" Glyph="&#xE768;" />
+                                <TextBlock x:Name="StartStudyLbl" />
+                            </StackPanel>
+                        </Button>
+                        <TextBlock x:Name="StudyProgress" Grid.Column="2" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="13" />
+                    </Grid>
+
+                    <Grid Grid.Row="1">
+                        <!-- Study card surface -->
+                        <Border x:Name="StudyCard" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="1" CornerRadius="12" Padding="28" Visibility="Collapsed">
+                            <Grid RowSpacing="16">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <!-- Rich-text toolbar (handoff 54) injected here at runtime -->
+                                <ContentControl x:Name="StudyToolbarHost" Grid.Row="0" HorizontalAlignment="Left" />
+
+                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                    <StackPanel Spacing="16">
+                                        <StackPanel Spacing="4">
+                                            <TextBlock x:Name="StudyFrontLbl" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                            <TextBlock x:Name="StudyFront" FontSize="22" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                        <Border x:Name="StudyDivider" Height="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" Visibility="Collapsed" />
+                                        <StackPanel x:Name="StudyBackPanel" Spacing="4" Visibility="Collapsed">
+                                            <TextBlock x:Name="StudyBackLbl" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                            <TextBlock x:Name="StudyBack" FontSize="20" TextWrapping="Wrap" />
+                                            <TextBlock x:Name="StudyTags" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Visibility="Collapsed" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </ScrollViewer>
+
+                                <Button x:Name="ShowAnswerBtn" Grid.Row="2" Click="ShowAnswer_Click" HorizontalAlignment="Stretch" Style="{StaticResource AccentButtonStyle}" />
+
+                                <StackPanel x:Name="GradeRow" Grid.Row="3" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Stretch" Visibility="Collapsed">
+                                    <Button x:Name="AgainBtn" Click="Grade_Again" HorizontalAlignment="Stretch" />
+                                    <Button x:Name="HardBtn" Click="Grade_Hard" HorizontalAlignment="Stretch" />
+                                    <Button x:Name="GoodBtn" Click="Grade_Good" HorizontalAlignment="Stretch" />
+                                    <Button x:Name="EasyBtn" Click="Grade_Easy" HorizontalAlignment="Stretch" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <!-- Study idle / done state -->
+                        <StackPanel x:Name="StudyIdle" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="10">
+                            <FontIcon FontSize="44" Glyph="&#xE82D;" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock x:Name="StudyIdleText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" MaxWidth="420" />
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </PivotItem>
+
+            <!-- ===== Stats ===== -->
+            <PivotItem x:Name="StatsTab">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Spacing="14">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="10" Padding="16">
+                                <StackPanel Spacing="4">
+                                    <TextBlock x:Name="StatStudiedNum" FontSize="28" FontWeight="SemiBold" />
+                                    <TextBlock x:Name="StatStudiedLbl" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                </StackPanel>
+                            </Border>
+                            <Border Grid.Column="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="10" Padding="16">
+                                <StackPanel Spacing="4">
+                                    <TextBlock x:Name="StatTomorrowNum" FontSize="28" FontWeight="SemiBold" />
+                                    <TextBlock x:Name="StatTomorrowLbl" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                </StackPanel>
+                            </Border>
+                            <Border Grid.Column="2" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="10" Padding="16">
+                                <StackPanel Spacing="4">
+                                    <TextBlock x:Name="StatMatureNum" FontSize="28" FontWeight="SemiBold" />
+                                    <TextBlock x:Name="StatMatureLbl" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                </StackPanel>
+                            </Border>
+                            <Border Grid.Column="3" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="10" Padding="16">
+                                <StackPanel Spacing="4">
+                                    <TextBlock x:Name="StatTotalNum" FontSize="28" FontWeight="SemiBold" />
+                                    <TextBlock x:Name="StatTotalLbl" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <TextBlock x:Name="StatsDeckHeader" FontWeight="SemiBold" FontSize="15" Margin="0,6,0,0" />
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                            <ListView x:Name="StatsList" SelectionMode="None">
+                                <ListView.ItemContainerStyle>
+                                    <Style TargetType="ListViewItem">
+                                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                        <Setter Property="Padding" Value="14,10,14,10" />
+                                    </Style>
+                                </ListView.ItemContainerStyle>
+                                <ListView.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid ColumnSpacing="12">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="{Binding Name}" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Grid.Column="1" Text="{Binding CountsLine}" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                                            <Border Grid.Column="2" CornerRadius="10" Padding="10,3,10,3" VerticalAlignment="Center" Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}">
+                                                <TextBlock Text="{Binding MaturityPill}" FontSize="12" />
+                                            </Border>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </PivotItem>
+        </Pivot>
+    </Grid>
+</Page>

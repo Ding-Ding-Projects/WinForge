@@ -26,7 +26,7 @@ public sealed partial class TimeUnitModule : Page
         InitializeComponent();
         _boardIds.AddRange(TimeZoneService.DefaultBoardIds);
         _timer.Tick += (_, _) => Tick();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) =>
         {
             BuildZoneCombos();
@@ -39,8 +39,10 @@ public sealed partial class TimeUnitModule : Page
             Tick();
             _timer.Start();
         };
-        Unloaded += (_, _) => _timer.Stop();
+        Unloaded += (_, _) => { _timer.Stop(); Loc.I.LanguageChanged -= OnLanguageChanged; };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
@@ -48,7 +50,7 @@ public sealed partial class TimeUnitModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Time & Unit Tools · 時間與單位工具";
+        Header.Title = "Time & Unit Tools · 時間與單位工具";
         HeaderBlurb.Text = P("A live world clock, a timezone converter and handy unit conversions — all offline, straight from Windows' own time-zone data.",
             "即時世界時鐘、時區換算同常用單位轉換 — 全部離線，直接用 Windows 自己嘅時區資料。");
 
@@ -113,7 +115,7 @@ public sealed partial class TimeUnitModule : Page
         var now = TimeZoneService.Now(z);
         LocalZone.Text = ZoneText(z) + (TimeZoneService.IsDst(z) ? P("  (DST)", "（夏令時間）") : "");
         LocalTime.Text = now.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
-        var culture = CultureInfo.GetCultureInfo(Loc.I.Pick("en-US", "zh-HK"));
+        var culture = CultureInfo.GetCultureInfo(Loc.I.PickSingle("en-US", "zh-HK"));
         LocalDate.Text = now.ToString("dddd, dd MMM yyyy", culture);
     }
 

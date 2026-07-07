@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.OpenSourceAppHubModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:automation="using:Microsoft.UI.Xaml.Automation"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="1160" Spacing="14">
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE71D;">
+                <controls:ModuleHeader.ActionContent>
+                    <StackPanel
+                        x:Name="NativeOnlyMarker"
+                        Orientation="Horizontal"
+                        Spacing="6"
+                        VerticalAlignment="Center"
+                        automation:AutomationProperties.Name="Native-only open-source clone catalog · 只限原生開源分頁目錄">
+                        <FontIcon FontSize="14" Glyph="&#xE73E;" />
+                        <TextBlock x:Name="NativeOnlyLabel" />
+                    </StackPanel>
+                </controls:ModuleHeader.ActionContent>
+            </controls:ModuleHeader>
+
+            <TextBlock
+                x:Name="HeaderBlurb"
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                TextWrapping="Wrap" />
+
+            <Border
+                Padding="14"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <Grid ColumnSpacing="10" RowSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <AutoSuggestBox
+                        x:Name="SearchBox"
+                        Grid.Row="0"
+                        Grid.Column="0"
+                        QueryIcon="Find"
+                        TextChanged="SearchBox_TextChanged"
+                        QuerySubmitted="SearchBox_QuerySubmitted"
+                        automation:AutomationProperties.Name="Search native open-source clone tabs · 搜尋開源原生分頁" />
+
+                    <ComboBox
+                        x:Name="CategoryBox"
+                        Grid.Row="0"
+                        Grid.Column="1"
+                        MinWidth="230"
+                        SelectionChanged="CategoryBox_Changed"
+                        automation:AutomationProperties.Name="Filter native clone category · 篩選原生分頁分類" />
+
+                    <Button
+                        x:Name="ClearBtn"
+                        Grid.Row="0"
+                        Grid.Column="2"
+                        Click="Clear_Click"
+                        automation:AutomationProperties.Name="Clear native clone filters · 清除原生分頁篩選">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon FontSize="14" Glyph="&#xE894;" />
+                            <TextBlock x:Name="ClearLabel" />
+                        </StackPanel>
+                    </Button>
+
+                    <TextBlock
+                        x:Name="SummaryText"
+                        Grid.Row="1"
+                        Grid.Column="0"
+                        Grid.ColumnSpan="3"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        TextWrapping="Wrap" />
+                </Grid>
+            </Border>
+
+            <StackPanel x:Name="AppsPanel" Spacing="8" />
+        </StackPanel>
+    </ScrollViewer>
+</Page>

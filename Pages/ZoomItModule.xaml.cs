@@ -31,11 +31,13 @@ public sealed partial class ZoomItModule : Page
     public ZoomItModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         ZoomItService.Fired += OnServiceFired;
         Loaded += (_, _) => { ZoomItService.Load(); ZoomItService.StartHotkeys(); PopulateKeys(); Render(); SyncFromState(); };
-        Unloaded += (_, _) => ZoomItService.Fired -= OnServiceFired;
+        Unloaded += (_, _) => { ZoomItService.Fired -= OnServiceFired; Loc.I.LanguageChanged -= OnLanguageChanged; };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
@@ -57,7 +59,7 @@ public sealed partial class ZoomItModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "ZoomIt · 螢幕放大與標註";
+        Header.Title = "ZoomIt · 螢幕放大與標註";
         HeaderBlurb.Text = P("Zoom into any part of the screen, draw freehand or shapes on top, and run a full-screen break-timer countdown — a native clone of Sysinternals ZoomIt. Press a hotkey anywhere, even over other apps.",
             "放大螢幕任何位置、喺上面手畫或者畫圖形、仲有全螢幕小休倒數 —— Sysinternals ZoomIt 嘅原生克隆。喺任何地方（甚至蓋住其他 app）㩒熱鍵即用。");
 

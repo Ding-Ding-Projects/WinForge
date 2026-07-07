@@ -212,17 +212,29 @@ public static class ZoomItService
 
     /// <summary>
     /// 由 UI 執行緒手動開覆蓋層 · Manually open an overlay from the UI thread (control-page buttons).
-    /// Runs a private modal message loop, so it returns only after the user exits the overlay.
+    /// Runs the private modal message loop on a dedicated STA worker so the WinUI dispatcher stays clickable.
     /// </summary>
     public static void OpenOverlay(ZoomItMode mode)
     {
-        Load();
         if (_sessionOpen) return;
-        LastEvent = Loc.I.Pick($"Opened {mode} overlay", $"已開啟{ModeZh(mode)}覆蓋層");
-        try { Fired?.Invoke(); } catch { }
-        RunOverlay(mode);
-        LastEvent = Loc.I.Pick($"Closed {mode} overlay", $"已關閉{ModeZh(mode)}覆蓋層");
-        try { Fired?.Invoke(); } catch { }
+        var t = new Thread(() =>
+        {
+            try
+            {
+                Load();
+                TriggerOnThisThread(mode);
+            }
+            catch (Exception ex)
+            {
+                CrashLogger.Log("zoomit:manual-overlay", ex);
+            }
+        })
+        {
+            IsBackground = true,
+            Name = $"WinForge-ZoomIt-Manual-{mode}",
+        };
+        try { t.SetApartmentState(ApartmentState.STA); } catch { }
+        t.Start();
     }
 
     // ====================== Win32 plumbing for the overlay ======================

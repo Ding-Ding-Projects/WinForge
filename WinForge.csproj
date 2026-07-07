@@ -4,6 +4,9 @@
     <TargetFramework>net11.0-windows10.0.26100.0</TargetFramework>
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
     <RootNamespace>WinForge</RootNamespace>
+    <Version>1.0.0</Version>
+    <FileVersion>1.0.0.0</FileVersion>
+    <InformationalVersion>1.0.0</InformationalVersion>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <Platforms>x86;x64;ARM64</Platforms>
     <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">win-$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString().ToLowerInvariant())</RuntimeIdentifier>
@@ -21,19 +24,55 @@
     <!-- ConPtySession 用 P/Invoke 嘅 STARTUPINFOEX／指標操作需要 unsafe ·
          The embedded ConPTY terminal (Services/ConPtySession.cs) needs unsafe pointer code. -->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <!-- Vendored upstream sources under external/ (git submodules) must NEVER be compiled into WinForge;
-         exclude them from all default item globs so a 'git submodule update' can't break the build. -->
-    <DefaultItemExcludes>$(DefaultItemExcludes);external\**;launcher\**</DefaultItemExcludes>
+    <!-- External upstream source checkouts must NEVER be compiled into WinForge; keep the exclusion so
+         any local reference copies under external/ cannot be pulled in by default item globs. -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);external\**;launcher\**;updater\**;tools\**</DefaultItemExcludes>
   </PropertyGroup>
+
+  <!-- Sdk/** is a STANDALONE, drop-in client SDK that OTHER apps copy into their own projects.
+       It defines its own ReactorStatus DTO in the WinForge.Reactor.Sdk namespace and must NOT be
+       compiled into WinForge itself (it would duplicate types / pull a sample into the app). Keep
+       it in the repo for others to copy, but exclude every Sdk item from the app build. -->
+  <ItemGroup>
+    <Compile Remove="Sdk\**" />
+    <Content Remove="Sdk\**" />
+    <None Remove="Sdk\**" />
+    <Page Remove="Sdk\**" />
+  </ItemGroup>
+
+  <!-- tests/** is a STANDALONE net8.0 console test harness (ReactorSim.Tests) that links the pure
+       engine source files itself. It has its own Main() and must NOT be compiled into the WinUI app
+       (the recursive **/*.cs glob would otherwise pull in a second entry point). Exclude every test
+       item from the app build; the harness is built and run on its own with the standalone
+       dotnet run command against tests/ReactorSim.Tests. -->
+  <ItemGroup>
+    <Compile Remove="tests\**" />
+    <Content Remove="tests\**" />
+    <None Remove="tests\**" />
+    <Page Remove="tests\**" />
+  </ItemGroup>
 
   <!-- 未封裝執行時，ms-appx:/// 未必靠得住，所以所有資產 PNG 都要複製到輸出目錄，
        等 UriToImageConverter 可以用 file:/// 由 AppContext.BaseDirectory 載入。
        Unpackaged runs can't rely on ms-appx:///, so every asset PNG (including loose ones not in the
        original explicit list) is copied to the output dir via a wildcard, letting the converter load
        them as file:/// from AppContext.BaseDirectory. -->
+  <!-- The repo-root SDK project globs **/*.cs; keep the standalone tools/ projects out of it. -->
+  <ItemGroup>
+    <Compile Remove="tools\**\*.cs" />
+    <Content Remove="tools\**\*" />
+    <None Remove="tools\**\*" />
+    <Page Remove="tools\**\*" />
+  </ItemGroup>
+
   <ItemGroup>
     <Content Include="Assets\**\*.png" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Assets\AppIcon.ico" CopyToOutputDirectory="PreserveNewest" />
+    <!-- WinForge "Reactor" design fonts (OFL) — Space Grotesk (UI) + JetBrains Mono (numerals). -->
+    <Content Include="Assets\Fonts\*.ttf" CopyToOutputDirectory="PreserveNewest" />
+    <!-- 反應堆 HTML5/WebView2 控制室資產（自包含，無 CDN）· Self-contained HTML5 reactor control-room
+         assets served via SetVirtualHostNameToFolderMapping at https://reactor.assets/. -->
+    <Content Include="SimAssets\**\*.*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
@@ -98,6 +137,59 @@
          DPAPI (ProtectedData) for encrypting saved Postgres connection passwords at rest. -->
     <!-- FTP／FTPS 客戶端（MIT）· FluentFTP: managed FTP/FTPS client for the FTP/SFTP module. -->
     <PackageReference Include="FluentFTP" Version="52.1.0" />
+    <!-- MonoTorrent (MIT)：完全受控（managed）嘅 BitTorrent 協定實作 — 喺程序內直接行 DHT／PEX／本地
+         探索／UDP+HTTP 追蹤器，並非包裝 qBittorrent 或任何外部程式。畀原生種子下載模組
+         (module.torrent / Pages/TorrentModule) 用。MonoTorrent: a fully managed BitTorrent protocol
+         engine (ClientEngine) — DHT, PEX, local peer discovery, UDP/HTTP trackers all run in-process.
+         This is NOT a wrapper around qBittorrent or any external binary; the protocol is implemented in C#. -->
+    <PackageReference Include="MonoTorrent" Version="3.0.2" />
+    <!-- Konscious.Security.Cryptography.Argon2 (MIT): pure-managed Argon2id KDF for the native
+         Bitwarden vault client (accounts that use Argon2id instead of PBKDF2 for master-key derivation).
+         All other Bitwarden crypto (PBKDF2-SHA256, HKDF, AES-256-CBC, HMAC-SHA256, TOTP) uses the
+         built-in System.Security.Cryptography. No bw CLI, no desktop app, no browser. -->
+    <!-- Konscious.Security.Cryptography.Argon2（純受管理，MIT）· pure-managed Argon2 (Argon2d/Argon2id)
+         for the native KDBX password-vault module (module.keepass). Argon2 is not in the BCL; this is a
+         compiled-in NuGet package, never a native exe. AES/ChaCha20/SHA/HMAC come from the BCL. -->
+    <PackageReference Include="Konscious.Security.Cryptography.Argon2" Version="1.3.1" />
+    <!-- Docker.DotNet (MIT)：純 managed Docker Engine REST API 客戶端，畀原生 Docker 容器管理模組用
+         （行 Windows 具名管道 npipe://./pipe/docker_engine 或 tcp://localhost:2375）。同 qBittorrent 一樣
+         係「原生客戶端對本機 API」嘅做法 — 絕對唔會 shell out 去 docker / docker compose CLI。
+         Docker.DotNet: managed Docker Engine REST API client for the native Docker module — talks to the
+         local engine over the named pipe (or TCP), never shelling out to the docker CLI. -->
+    <PackageReference Include="Docker.DotNet" Version="3.125.15" />
+    <!-- YamlDotNet (MIT)：純 C# 解析 docker-compose.yml，再經 Docker.DotNet API 起服務（唔行 docker compose）。
+         YamlDotNet: managed C# parser for docker-compose.yml; the stack is created via the Docker.DotNet API. -->
+    <PackageReference Include="YamlDotNet" Version="16.3.0" />
+    <!-- Microsoft.Data.Sqlite：純託管 SQLite 用戶端（透過 SQLitePCLRaw 內附 SQLite 原生引擎）。
+         畀原生 SQLite 資料庫瀏覽器模組（開檔／結構／瀏覽編輯／跑 SQL／CSV）用 — 唔啟動任何外部程式。
+         Microsoft.Data.Sqlite: managed SQLite client bundling the SQLite native engine via SQLitePCLRaw.
+         Powers the native SQLite Browser module — no external tool (DB Browser, sqlite3.exe) is launched. -->
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.0" />
+    <!-- PDFsharp（MIT）：純 C# PDF 操作（合併／分割／旋轉／浮水印／加密）— 無任何外部工具。
+         PDFsharp: fully-managed PDF manipulation (merge / split / rotate / watermark / encrypt)
+         for the native PDF Toolkit module. No Stirling-PDF / Ghostscript / external binary. -->
+    <PackageReference Include="PdfSharp" Version="6.2.1" />
+    <!-- PdfPig (UglyToad.PdfPig, Apache-2.0)：純 C# PDF 文字抽取，畀「抽取全部文字」用。
+         PdfPig: fully-managed PDF text extraction for the "extract all text" tool. -->
+    <PackageReference Include="PdfPig" Version="0.1.10" />
+    <!-- TagLib#（TagLibSharp，LGPL-2.1）：純託管音訊中繼資料讀寫引擎，畀「音訊標籤編輯器」模組用 —
+         讀寫 ID3v1/v2、APE、Xiph（FLAC/OGG）、MP4/iTunes 標籤同封面圖，全部喺程序內，唔使外部工具。
+         TagLib# (TagLibSharp): fully-managed audio tag read/write engine for the Audio Tagger module
+         (ID3v1/v2, APE, Xiph for FLAC/OGG, MP4/iTunes tags + cover art) — all in-process, no external tool. -->
+    <PackageReference Include="TagLibSharp" Version="2.3.0" />
+    <!-- SixLabors.ImageSharp（純託管，Apache-2.0 OSS 授權）：點陣圖影像編輯器模組嘅引擎 —
+         解碼／編碼 PNG/JPG/BMP/GIF/WebP、亮度／對比／飽和度／色相／伽瑪調整、灰階／反相／棕褐／高斯模糊／銳化／邊緣偵測濾鏡、縮放／旋轉／翻轉。完全 in-process，唔 shell 任何外部工具。
+         SixLabors.ImageSharp (pure-managed, OSS): the engine for the raster Image Editor module —
+         decode/encode PNG/JPG/BMP/GIF/WebP, adjustments, filters and transforms, all in-process.
+         ImageSharp.Drawing adds managed glyph rendering for the text tool (DrawText). -->
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" />
+    <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.7" />
+    <!-- ICSharpCode.Decompiler (MIT)：ILSpy 自己嘅完全受控 .NET 反編譯引擎，畀原生 .NET 組件
+         反編譯器模組（module.decompiler）做 IL→C# 反編譯同 IL 反組譯。純受控、無外部工具
+         （唔會 shell／bundle ILSpy／ildasm）。ICSharpCode.Decompiler: ILSpy's own fully-managed
+         decompiler engine powering the native .NET assembly decompiler module — IL→C# decompilation
+         and IL disassembly entirely in-process. Pure managed, no external tool launched/bundled. -->
+    <PackageReference Include="ICSharpCode.Decompiler" Version="10.1.0.8386" />
   </ItemGroup>
 
   <!--

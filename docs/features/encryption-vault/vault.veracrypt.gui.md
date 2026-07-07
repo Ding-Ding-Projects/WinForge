@@ -1,4 +1,4 @@
-# Launch VeraCrypt · 啟動 VeraCrypt
+# Launch WinForge Vault · 啟動 WinForge 保險庫
 
 | Field · 欄位 | Value · 值 |
 |---|---|
@@ -11,12 +11,12 @@
 | **Action · 動作** | Open · 打開 |
 
 ## English
-Open the VeraCrypt main window.
+Open the WinForge Vault main window (mount, settings and benchmark live here).
 
 ## 粵語
-打開 VeraCrypt 主視窗。
+打開 WinForge 保險庫主視窗（掛載、設定同效能測試都喺度）。
 
 ---
-_Keywords · 關鍵字: veracrypt, launch, 啟動, 加密_
+_Keywords · 關鍵字: vault, launch, 啟動, 加密, 保險庫_
 
 _Part of WinForge · WinForge 套件嘅一部分_

@@ -34,9 +34,16 @@ public sealed partial class AiChatModule : Page
     public AiChatModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += async (_, _) => { Render(); await InitAsync(); };
+        Unloaded += (_, _) =>
+        {
+            Loc.I.LanguageChanged -= OnLanguageChanged;
+            try { _streamCts?.Cancel(); } catch { }
+        };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
@@ -48,6 +55,10 @@ public sealed partial class AiChatModule : Page
         SysPromptLabel.Text = P("System prompt", "系統提示");
         TempLabel.Text = P("Temperature", "溫度");
         MaxTokLabel.Text = P("Max tokens (0 = model default)", "最大 token 數（0 = 模型預設）");
+        ToolTipService.SetToolTip(CreditBtn, P(
+            "Cake generation credits: 1 cake = 1,000,000 generated units. Click to feed one packed cake.",
+            "蛋糕生成額度：1 個蛋糕 = 1,000,000 個生成單位。撳一下餵入 1 個已包裝蛋糕。"));
+        RefreshCreditStatus();
     }
 
     private async Task InitAsync()
@@ -629,6 +640,9 @@ public sealed partial class AiChatModule : Page
         ToggleSending(true);
         var sb = new StringBuilder();
         int? promptTok = null, compTok = null;
+        bool? creditOk = null;
+        long? creditUnits = null;
+        LocalizedText? creditMessage = null;
 
         try
         {
@@ -645,6 +659,12 @@ public sealed partial class AiChatModule : Page
                     }
                     if (chunk.PromptTokens is int pt) promptTok = pt;
                     if (chunk.CompletionTokens is int ct2) compTok = ct2;
+                    if (chunk.CreditMessage is not null)
+                    {
+                        creditOk = chunk.CreditSuccess;
+                        creditUnits = chunk.CreditUnits;
+                        creditMessage = chunk.CreditMessage;
+                    }
                 });
             }, _streamCts.Token);
         }
@@ -661,11 +681,42 @@ public sealed partial class AiChatModule : Page
         _svc.SaveConversation(_active);
         RenderMessages();
 
-        if (compTok is int c)
-            ShowInfo(InfoBarSeverity.Informational, P("Done", "完成"),
-                promptTok is int p
+        if (creditMessage is not null)
+        {
+            var units = creditUnits ?? CakeCreditService.GeneratedUnitsFrom(compTok, assistant.Content);
+            var tokenText = !string.IsNullOrWhiteSpace(assistant.Content) && compTok is int c
+                ? (promptTok is int p
                     ? P($"Prompt {p} tok · response {c} tok", $"提示 {p} tok · 回應 {c} tok")
-                    : P($"Response {c} tokens", $"回應 {c} 個 token"));
+                    : P($"Response {c} tokens", $"回應 {c} 個 token"))
+                : P($"Estimated {CakeCreditService.FormatUnits(units)}", $"估算 {CakeCreditService.FormatUnits(units)}");
+            var detail = string.IsNullOrWhiteSpace(assistant.Content) && creditOk != true
+                ? creditMessage.Primary
+                : $"{tokenText} · {creditMessage.Primary}";
+            ShowInfo(creditOk == true ? InfoBarSeverity.Informational : InfoBarSeverity.Warning,
+                creditOk == true ? P("Done · cake credits spent", "完成 · 已使用蛋糕額度") : P("Cake credits required", "需要蛋糕額度"),
+                detail);
+            RefreshCreditStatus();
+        }
+    }
+
+    private void Credit_Click(object sender, RoutedEventArgs e)
+    {
+        var r = CakeCreditService.I.FeedOneCake(
+            "Communication AI credits",
+            "通訊 AI 額度");
+        RefreshCreditStatus();
+        ShowInfo(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Warning,
+            r.Success ? P("Cake fed", "已餵蛋糕") : P("No cake available", "無可用蛋糕"),
+            r.Message.Primary);
+    }
+
+    private void RefreshCreditStatus()
+    {
+        var s = CakeCreditService.I.Snapshot;
+        CreditText.Text = CakeCreditService.FormatUnits(s.BalanceUnits);
+        ToolTipService.SetToolTip(CreditBtn, P(
+            $"Cake generation credits\nBalance: {CakeCreditService.FormatUnits(s.BalanceUnits)}\nPacked cakes ready: {s.CakeFilesAvailable}\nSpent: {CakeCreditService.FormatUnits(s.LifetimeSpentUnits)}\n1 cake = 1,000,000 generated units.",
+            $"蛋糕生成額度\n餘額：{CakeCreditService.FormatUnits(s.BalanceUnits)}\n可用已包裝蛋糕：{s.CakeFilesAvailable}\n已使用：{CakeCreditService.FormatUnits(s.LifetimeSpentUnits)}\n1 個蛋糕 = 1,000,000 個生成單位。"));
     }
 
     private void UpdateBubble(FrameworkElement bubbleRoot, ChatMessage m)
@@ -798,15 +849,31 @@ public sealed partial class AiChatModule : Page
         var ollamaBar = new InfoBar { IsClosable = false, IsOpen = false };
         root.Children.Add(ollamaBar);
 
+        // Declared early so the auto-install recheck closure below can capture it
+        // before it's added to the tree (its position in `root` is set later).
+        var modelsPanel = new StackPanel { Spacing = 6 };
+
         bool running = await _svc.OllamaRunningAsync(ollamaUrl);
         if (!running)
         {
             ollamaBar.IsOpen = true;
             ollamaBar.Severity = InfoBarSeverity.Warning;
             ollamaBar.Title = P("Ollama not running", "Ollama 未運行");
-            ollamaBar.Message = P("Install Ollama to run local models.", "安裝 Ollama 嚟行本機模型。");
-            ollamaBar.ActionButton = EngineBars.AutoInstallButton("Ollama.Ollama",
-                "Install Ollama", "安裝 Ollama", async () => { ollamaBar.IsOpen = false; }, null);
+            ollamaBar.Message = P("Install Ollama to run local models. (If it's already installed, make sure the Ollama service is running.)",
+                "安裝 Ollama 嚟行本機模型。（如果已經裝咗，請確認 Ollama 服務有喺度行。）");
+            // Rich auto-install: real progress bar + live streaming status + Cancel + success/error animation.
+            // On success we re-probe Ollama and refresh the installed-models list.
+            ollamaBar.ActionButton = null;
+            ollamaBar.Content = EngineBars.AutoInstallProgress("Ollama.Ollama",
+                "Install Ollama", "安裝 Ollama",
+                recheck: async () =>
+                {
+                    if (await _svc.OllamaRunningAsync(ollamaUrl))
+                    {
+                        ollamaBar.IsOpen = false;
+                        try { await RefreshModelsListAsync(); await RefreshModelsAsync(); } catch { }
+                    }
+                });
         }
 
         var pullRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
@@ -821,7 +888,6 @@ public sealed partial class AiChatModule : Page
         root.Children.Add(pullProgress);
         root.Children.Add(pullStatus);
 
-        var modelsPanel = new StackPanel { Spacing = 6 };
         root.Children.Add(modelsPanel);
 
         async Task RefreshModelsListAsync()

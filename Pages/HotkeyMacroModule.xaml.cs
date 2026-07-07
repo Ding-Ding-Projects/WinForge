@@ -34,6 +34,7 @@ public sealed partial class HotkeyMacroModule : Page
         HotkeyMacroService.Load();
         HotkeyMacroService.StartHotkeys();
         FillKeyBox();
+        FillModuleBox();
         FillActionBox();
         Render();
         BindLists();
@@ -43,6 +44,7 @@ public sealed partial class HotkeyMacroModule : Page
 
     private void OnLang(object? s, EventArgs e)
     {
+        FillModuleBox();
         FillActionBox();
         Render();
         BindLists();
@@ -62,10 +64,10 @@ public sealed partial class HotkeyMacroModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Hotkey & Macro Runner · 熱鍵與巨集";
+        Header.Title = "Hotkey & Macro Runner · 熱鍵與巨集";
         HeaderBlurb.Text = P(
-            "Register global keyboard chords that launch an app, run a PowerShell snippet, or type text. Plus a text expander that turns typed triggers into snippets. Everything runs in-app and keeps working in the tray.",
-            "登記全域鍵盤組合鍵，用嚟開程式、執行 PowerShell 片段，或者自動打字。仲有文字展開：將你打嘅縮寫變成片語。全部喺 app 內運行，收入系統匣都繼續運作。");
+            "Register global keyboard chords that open any WinForge module (give PowerToys-style tools a Windows shortcut), launch an app, run a PowerShell snippet, or type text. Plus a text expander that turns typed triggers into snippets. Everything runs in-app and keeps working in the tray.",
+            "登記全域鍵盤組合鍵，用嚟開任何 WinForge 模組（畀 PowerToys 式工具一個 Windows 快捷鍵）、開程式、執行 PowerShell 片段，或者自動打字。仲有文字展開：將你打嘅縮寫變成片語。全部喺 app 內運行，收入系統匣都繼續運作。");
 
         HotkeysHeader.Text = P("Global hotkeys · 全域熱鍵", "全域熱鍵 · Global hotkeys");
         ChordLabel.Text = P("Chord", "組合鍵");
@@ -103,10 +105,26 @@ public sealed partial class HotkeyMacroModule : Page
     {
         int sel = ActionBox.SelectedIndex;
         ActionBox.Items.Clear();
+        ActionBox.Items.Add(new ComboBoxItem { Content = P("Open a WinForge module", "開啟 WinForge 模組"), Tag = MacroActionKind.OpenModule });
         ActionBox.Items.Add(new ComboBoxItem { Content = P("Launch an app / file / URL", "開啟程式／檔案／網址"), Tag = MacroActionKind.LaunchApp });
         ActionBox.Items.Add(new ComboBoxItem { Content = P("Run a PowerShell snippet", "執行 PowerShell 片段"), Tag = MacroActionKind.RunPowerShell });
         ActionBox.Items.Add(new ComboBoxItem { Content = P("Type text (SendInput)", "自動打字（SendInput）"), Tag = MacroActionKind.SendKeys });
         ActionBox.SelectedIndex = sel >= 0 ? sel : 0;
+    }
+
+    /// <summary>用註冊表填模組揀選清單 · Populate the module picker from the registry (tag in each item's Tag).</summary>
+    private void FillModuleBox()
+    {
+        object? prevTag = (ModuleBox.SelectedItem as ComboBoxItem)?.Tag;
+        ModuleBox.Items.Clear();
+        ModuleBox.PlaceholderText = P("Pick a module to open…", "揀一個要開嘅模組…");
+        foreach (var m in ModuleRegistry.All.OrderBy(m => Loc.I.Pick(m.En, m.Zh), StringComparer.CurrentCultureIgnoreCase))
+            ModuleBox.Items.Add(new ComboBoxItem { Content = $"{Loc.I.Pick(m.En, m.Zh)}", Tag = m.Tag });
+        if (prevTag is string t)
+        {
+            var match = ModuleBox.Items.OfType<ComboBoxItem>().FirstOrDefault(i => (i.Tag as string) == t);
+            if (match is not null) ModuleBox.SelectedItem = match;
+        }
     }
 
     private void ActionBox_Changed(object sender, SelectionChangedEventArgs e)
@@ -115,6 +133,7 @@ public sealed partial class HotkeyMacroModule : Page
         LaunchPanel.Visibility = kind == MacroActionKind.LaunchApp ? Visibility.Visible : Visibility.Collapsed;
         ScriptBox.Visibility = kind == MacroActionKind.RunPowerShell ? Visibility.Visible : Visibility.Collapsed;
         KeysBox.Visibility = kind == MacroActionKind.SendKeys ? Visibility.Visible : Visibility.Collapsed;
+        ModuleBox.Visibility = kind == MacroActionKind.OpenModule ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void BindLists()
@@ -191,6 +210,9 @@ public sealed partial class HotkeyMacroModule : Page
         var kind = (ActionBox.SelectedItem as ComboBoxItem)?.Tag as MacroActionKind? ?? MacroActionKind.LaunchApp;
         var keyName = (KeyBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "";
 
+        // OpenModule stores the chosen module tag in Target.
+        var moduleTag = (ModuleBox.SelectedItem as ComboBoxItem)?.Tag as string ?? "";
+
         var binding = new HotkeyBinding
         {
             Modifiers = mods,
@@ -198,7 +220,7 @@ public sealed partial class HotkeyMacroModule : Page
             KeyName = keyName,
             Action = kind,
             Name = NameBox.Text?.Trim() ?? "",
-            Target = TargetBox.Text?.Trim() ?? "",
+            Target = kind == MacroActionKind.OpenModule ? moduleTag : (TargetBox.Text?.Trim() ?? ""),
             Arguments = ArgsBox.Text?.Trim() ?? "",
             Script = ScriptBox.Text ?? "",
             Keys = KeysBox.Text ?? "",
@@ -211,6 +233,8 @@ public sealed partial class HotkeyMacroModule : Page
         { Warn(P("Enter a PowerShell command.", "請輸入 PowerShell 指令。")); return; }
         if (kind == MacroActionKind.SendKeys && string.IsNullOrEmpty(binding.Keys))
         { Warn(P("Enter the text to type.", "請輸入要打嘅文字。")); return; }
+        if (kind == MacroActionKind.OpenModule && string.IsNullOrWhiteSpace(binding.Target))
+        { Warn(P("Pick a module to open.", "請揀一個要開嘅模組。")); return; }
 
         if (HotkeyMacroService.Bindings.Any(x => x.Modifiers == mods && x.VirtualKey == vk))
         { Warn(P("That chord is already used.", "呢個組合鍵已經用咗。")); return; }
@@ -219,7 +243,7 @@ public sealed partial class HotkeyMacroModule : Page
         BindLists();
 
         // reset inputs
-        NameBox.Text = ""; TargetBox.Text = ""; ArgsBox.Text = ""; ScriptBox.Text = ""; KeysBox.Text = "";
+        NameBox.Text = ""; TargetBox.Text = ""; ArgsBox.Text = ""; ScriptBox.Text = ""; KeysBox.Text = ""; ModuleBox.SelectedItem = null;
         Info(P("Added", "已加入"), P($"Hotkey {binding.ChordText()} registered.", $"已登記熱鍵 {binding.ChordText()}。"));
     }
 

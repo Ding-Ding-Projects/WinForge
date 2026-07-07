@@ -1,13 +1,20 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.Json.Nodes;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Media;
 using WinForge.Catalog;
 using WinForge.Controls;
+using WinForge.Models;
 using WinForge.Services;
 
 namespace WinForge.Pages;
@@ -19,7 +26,9 @@ namespace WinForge.Pages;
 ///      safe save (backup + atomic write).
 ///   2. Embedded terminal: a real shell (pwsh / cmd / wsl) hosted via ConPTY and rendered in the
 ///      shared <see cref="TerminalView"/> control (reused by the SSH module).
-///   3. Quick launch: wt.exe convenience actions as TweakCards.
+///   3. Quick launch: wt.exe convenience actions as hand-built control rows (no Controls/TweakCard):
+///      bilingual title/description on the left, the matching WinUI control on the right; results and
+///      errors go to the one persistent InfoBar shared with the profiles tab.
 /// Missing Windows Terminal is detected and offered for one-click winget install.
 /// 全部介面文字雙語（英文＋廣東話）。 All UI strings are bilingual (English + Cantonese).
 /// </summary>
@@ -31,6 +40,7 @@ public sealed partial class TerminalModule : Page
     private JsonObject? _root;
     private bool _dirty;
     private bool _loadingFields;
+    private bool _rowBusy; // guard so only one quick-launch action runs at a time
     private readonly ObservableCollection<ProfileRow> _rows = new();
 
     private ConPtySession? _pty;
@@ -38,14 +48,43 @@ public sealed partial class TerminalModule : Page
     public TerminalModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += OnLoaded;
-        Unloaded += (_, _) => StopTerminal();
+        Unloaded += OnUnloaded;
         Term.SizeChangedCols += (cols, rows) => _pty?.Resize((short)cols, (short)rows);
         Term.SendInput += t => _pty?.Write(t);
     }
 
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        Render();
+        BuildOps(); // rebuild the quick-launch rows so their labels re-localise
+    }
+
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        Loc.I.LanguageChanged -= OnLanguageChanged;
+        Loaded -= OnLoaded;
+        Unloaded -= OnUnloaded;
+        StopTerminal();
+    }
+
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
+
+    private static string DisplayPath(string path)
+    {
+        var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        if (!string.IsNullOrWhiteSpace(local) &&
+            path.StartsWith(local, StringComparison.OrdinalIgnoreCase))
+            return "%LOCALAPPDATA%" + path[local.Length..];
+
+        var profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        if (!string.IsNullOrWhiteSpace(profile) &&
+            path.StartsWith(profile, StringComparison.OrdinalIgnoreCase))
+            return "%USERPROFILE%" + path[profile.Length..];
+
+        return path;
+    }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
@@ -60,7 +99,7 @@ public sealed partial class TerminalModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "Windows Terminal · Windows 終端機";
+        Header.Title = "Windows Terminal · Windows 終端機";
         HeaderBlurb.Text = P("Edit Windows Terminal profiles natively (settings.json — backed up and written atomically so unknown keys are preserved), run a real shell embedded via ConPTY, and quick-launch wt.exe.",
             "原生編輯 Windows 終端機 profile（settings.json，會備份同原子寫入，保留未知欄位），用 ConPTY 喺 app 內開真正嘅 shell，仲可以快捷啟動 wt.exe。");
 
@@ -99,17 +138,19 @@ public sealed partial class TerminalModule : Page
         if (wt || settings)
         {
             InstallBar.IsOpen = false;
+            InstallBar.Content = null;
             return;
         }
 
         InstallBar.Severity = Microsoft.UI.Xaml.Controls.InfoBarSeverity.Warning;
         InstallBar.Title = P("Windows Terminal not found", "搵唔到 Windows 終端機");
-        InstallBar.Message = P("The profiles editor and wt.exe launch need Windows Terminal. The embedded ConPTY terminal works without it.",
-            "設定檔編輯器同 wt.exe 啟動需要 Windows 終端機。內嵌 ConPTY 終端機冇佢都用得。");
-        InstallBar.ActionButton = EngineBars.AutoInstallButton(WingetId,
-            "Install Windows Terminal", "安裝 Windows 終端機",
-            async () => { await System.Threading.Tasks.Task.Yield(); UpdateInstallBar(); ReloadProfiles(); },
-            () => WindowsTerminalService.Resolve());
+        InstallBar.Message = P("The profiles editor and wt.exe launch need Windows Terminal. Install it below with live progress; the embedded ConPTY terminal works without it.",
+            "設定檔編輯器同 wt.exe 啟動需要 Windows 終端機。喺下面安裝（即時進度）；內嵌 ConPTY 終端機冇佢都用得。");
+        if (InstallBar.Content is not InstallProgress)
+            InstallBar.Content = EngineBars.AutoInstallProgress(WingetId,
+                "Install Windows Terminal", "安裝 Windows 終端機",
+                recheck: async () => { await System.Threading.Tasks.Task.Yield(); UpdateInstallBar(); ReloadProfiles(); },
+                rescan: () => WindowsTerminalService.Resolve());
         InstallBar.IsOpen = true;
     }
 
@@ -135,7 +176,7 @@ public sealed partial class TerminalModule : Page
         try
         {
             _root = WindowsTerminalService.Load(_settingsPath);
-            PathText.Text = _settingsPath;
+            PathText.Text = DisplayPath(_settingsPath);
             PopulateList();
             Info(InfoBarSeverity.Informational, P("Loaded", "已載入"),
                 $"{_rows.Count} " + P("profiles", "個設定檔"));
@@ -238,7 +279,7 @@ public sealed partial class TerminalModule : Page
                 ["schemes"] = new JsonArray(),
                 ["actions"] = new JsonArray(),
             };
-            PathText.Text = _settingsPath;
+            PathText.Text = DisplayPath(_settingsPath);
         }
 
         var prof = WindowsTerminalService.NewProfile(P("New profile", "新設定檔"),
@@ -466,12 +507,368 @@ public sealed partial class TerminalModule : Page
     private void BuildOps()
     {
         OpsPanel.Children.Clear();
+        bool first = true;
         foreach (var op in TerminalOperations.All())
         {
-            var card = new TweakCard();
-            card.SetTweak(op);
-            OpsPanel.Children.Add(card);
+            if (!first) OpsPanel.Children.Add(BuildDivider());
+            first = false;
+            OpsPanel.Children.Add(BuildRow(op));
         }
+    }
+
+    // ---- One clean row: bilingual title + description on the left, control on the right ----
+    private FrameworkElement BuildRow(TweakDefinition op)
+    {
+        var grid = new Grid { Padding = new Thickness(0, 12, 0, 12) };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        var text = new StackPanel { Spacing = 2, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 16, 0) };
+
+        text.Children.Add(new TextBlock { Text = op.Title.Primary, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap });
+
+        if (!string.IsNullOrWhiteSpace(op.Title.Secondary))
+            text.Children.Add(new TextBlock
+            {
+                Text = op.Title.Secondary,
+                FontSize = 12,
+                Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+                TextWrapping = TextWrapping.Wrap,
+            });
+
+        if (!string.IsNullOrWhiteSpace(op.Description.Primary))
+            text.Children.Add(new TextBlock
+            {
+                Text = op.Description.Primary,
+                FontSize = 13,
+                Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 2, 0, 0),
+            });
+        if (!string.IsNullOrWhiteSpace(op.Description.Secondary))
+            text.Children.Add(new TextBlock
+            {
+                Text = op.Description.Secondary,
+                FontSize = 12,
+                Foreground = (Brush)Application.Current.Resources["TextFillColorTertiaryBrush"],
+                TextWrapping = TextWrapping.Wrap,
+            });
+
+        // Small admin / restart hints so nothing from the card chrome is lost.
+        var hint = HintText(op);
+        if (hint is not null)
+            text.Children.Add(new TextBlock
+            {
+                Text = hint,
+                FontSize = 11,
+                Foreground = (Brush)Application.Current.Resources["TextFillColorTertiaryBrush"],
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 2, 0, 0),
+            });
+
+        Grid.SetColumn(text, 0);
+        grid.Children.Add(text);
+
+        var control = BuildControl(op);
+        control.VerticalAlignment = VerticalAlignment.Center;
+        Grid.SetColumn(control, 1);
+        grid.Children.Add(control);
+
+        return grid;
+    }
+
+    private string? HintText(TweakDefinition op)
+    {
+        var parts = new List<string>();
+        if (op.RequiresAdmin) parts.Add(P("Admin", "管理員"));
+        switch (op.Restart)
+        {
+            case RestartScope.Explorer: parts.Add(P("Restart Explorer", "重啟檔案總管")); break;
+            case RestartScope.SignOut: parts.Add(P("Sign out", "登出")); break;
+            case RestartScope.Reboot: parts.Add(P("Reboot", "重新開機")); break;
+        }
+        return parts.Count == 0 ? null : string.Join(" · ", parts);
+    }
+
+    private Border BuildDivider() => new()
+    {
+        Height = 1,
+        Background = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"],
+        Opacity = 0.6,
+    };
+
+    /// <summary>對應每種 Tweak 種類砌一個真控件 · Build the matching WinUI control for the tweak kind.</summary>
+    private FrameworkElement BuildControl(TweakDefinition op) => op.Kind switch
+    {
+        TweakKind.Toggle => BuildToggle(op),
+        TweakKind.Choice => BuildChoice(op),
+        TweakKind.Slider => BuildSlider(op),
+        TweakKind.Number => BuildNumber(op),
+        TweakKind.Info => BuildInfo(op),
+        _ => BuildAction(op), // Action (and any other kind) → button
+    };
+
+    // ---------------- Action → Button awaiting RunAsync ----------------
+    private FrameworkElement BuildAction(TweakDefinition op)
+    {
+        var label = op.ActionLabel?.Get(Loc.I.Language) ?? P("Run", "執行");
+        var btn = new Button { Content = label, MinWidth = 110 };
+        if (op.ActionLabel is not null)
+            ToolTipService.SetToolTip(btn, $"{op.ActionLabel.En} · {op.ActionLabel.Zh}");
+
+        btn.Click += async (_, _) =>
+        {
+            if (_rowBusy || op.RunAsync is null) return;
+            if (op.Destructive && !await ConfirmAsync(op)) return;
+
+            _rowBusy = true;
+            btn.IsEnabled = false;
+            var restore = btn.Content;
+            btn.Content = new ProgressRing { IsActive = true, Width = 18, Height = 18 };
+            try
+            {
+                var result = await op.RunAsync(CancellationToken.None);
+                ShowResult(op, result);
+            }
+            catch (Exception ex)
+            {
+                ShowError(op, ex);
+            }
+            finally
+            {
+                btn.Content = restore;
+                btn.IsEnabled = true;
+                _rowBusy = false;
+            }
+        };
+        return btn;
+    }
+
+    // ---------------- Toggle → ToggleSwitch ----------------
+    private FrameworkElement BuildToggle(TweakDefinition op)
+    {
+        var toggle = new ToggleSwitch { OnContent = "On · 開", OffContent = "Off · 熄" };
+        bool suppress = true;
+        try { toggle.IsOn = op.GetIsOn?.Invoke() ?? false; } catch { /* show as off */ }
+        suppress = false;
+
+        toggle.Toggled += (_, _) =>
+        {
+            if (suppress || op.SetIsOn is null) return;
+            try { op.SetIsOn(toggle.IsOn); ShowApplied(op); }
+            catch (Exception ex)
+            {
+                suppress = true;
+                try { toggle.IsOn = op.GetIsOn?.Invoke() ?? false; } catch { /* ignore */ }
+                suppress = false;
+                ShowError(op, ex);
+            }
+        };
+        return toggle;
+    }
+
+    // ---------------- Choice → ComboBox ----------------
+    private FrameworkElement BuildChoice(TweakDefinition op)
+    {
+        var combo = new ComboBox { MinWidth = 170 };
+        if (op.Choices is not null)
+            foreach (var c in op.Choices)
+                combo.Items.Add(new ComboBoxItem { Content = c.Label.Get(Loc.I.Language), Tag = c.Value });
+
+        bool suppress = true;
+        try { SelectComboToCurrent(combo, op); }
+        catch { /* leave unselected */ }
+        suppress = false;
+
+        combo.SelectionChanged += (_, _) =>
+        {
+            if (suppress || op.SetChoice is null) return;
+            if (combo.SelectedItem is ComboBoxItem item && item.Tag is string val)
+            {
+                try { op.SetChoice(val); ShowApplied(op); }
+                catch (Exception ex)
+                {
+                    ShowError(op, ex);
+                    suppress = true;
+                    try { SelectComboToCurrent(combo, op); } catch { /* ignore */ }
+                    suppress = false;
+                }
+            }
+        };
+        return combo;
+    }
+
+    private static void SelectComboToCurrent(ComboBox combo, TweakDefinition op)
+    {
+        var cur = op.GetCurrentChoice?.Invoke();
+        if (cur is null || op.Choices is null) return;
+        for (int i = 0; i < op.Choices.Count; i++)
+            if (string.Equals(op.Choices[i].Value, cur, StringComparison.OrdinalIgnoreCase))
+            { combo.SelectedIndex = i; return; }
+    }
+
+    // ---------------- Slider → Slider + value label ----------------
+    private FrameworkElement BuildSlider(TweakDefinition op)
+    {
+        var panel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, VerticalAlignment = VerticalAlignment.Center };
+        var slider = new Slider
+        {
+            Minimum = op.Min,
+            Maximum = op.Max,
+            StepFrequency = op.Step,
+            Width = 160,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        var valueLabel = new TextBlock
+        {
+            MinWidth = 56,
+            VerticalAlignment = VerticalAlignment.Center,
+            Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+        };
+
+        string Fmt(double v)
+        {
+            bool whole = op.Step >= 1 && Math.Abs(op.Step % 1) < 1e-9;
+            string num = whole ? Math.Round(v).ToString(CultureInfo.InvariantCulture)
+                               : v.ToString("0.###", CultureInfo.InvariantCulture);
+            return op.Unit is null ? num : $"{num} {op.Unit.Primary}";
+        }
+        double Clamp(double v) => Math.Max(op.Min, Math.Min(op.Max, v));
+
+        bool suppress = true;
+        try { slider.Value = Clamp(op.GetNumber?.Invoke() ?? op.Min); } catch { slider.Value = op.Min; }
+        suppress = false;
+        valueLabel.Text = Fmt(slider.Value);
+
+        slider.ValueChanged += (_, e) =>
+        {
+            valueLabel.Text = Fmt(e.NewValue);
+            if (suppress || op.SetNumber is null) return;
+            try { op.SetNumber(e.NewValue); ShowApplied(op); }
+            catch (Exception ex)
+            {
+                ShowError(op, ex);
+                suppress = true;
+                try { slider.Value = Clamp(op.GetNumber?.Invoke() ?? op.Min); } catch { /* ignore */ }
+                suppress = false;
+            }
+        };
+
+        panel.Children.Add(slider);
+        panel.Children.Add(valueLabel);
+        return panel;
+    }
+
+    // ---------------- Number → NumberBox ----------------
+    private FrameworkElement BuildNumber(TweakDefinition op)
+    {
+        var box = new NumberBox
+        {
+            Minimum = op.Min,
+            Maximum = op.Max,
+            SmallChange = op.Step,
+            LargeChange = op.Step,
+            SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Inline,
+            MinWidth = 140,
+            ValidationMode = NumberBoxValidationMode.InvalidInputOverwritten,
+        };
+        double Clamp(double v) => Math.Max(op.Min, Math.Min(op.Max, v));
+
+        bool suppress = true;
+        try { box.Value = Clamp(op.GetNumber?.Invoke() ?? op.Min); } catch { box.Value = op.Min; }
+        suppress = false;
+
+        box.ValueChanged += (_, e) =>
+        {
+            if (suppress || op.SetNumber is null) return;
+            if (double.IsNaN(e.NewValue)) return;
+            try { op.SetNumber(e.NewValue); ShowApplied(op); }
+            catch (Exception ex)
+            {
+                ShowError(op, ex);
+                suppress = true;
+                try { box.Value = Clamp(op.GetNumber?.Invoke() ?? op.Min); } catch { /* ignore */ }
+                suppress = false;
+            }
+        };
+        return box;
+    }
+
+    // ---------------- Info → refreshable TextBlock ----------------
+    private FrameworkElement BuildInfo(TweakDefinition op)
+    {
+        string Safe() { try { return op.GetInfo?.Invoke() ?? "—"; } catch { return "—"; } }
+
+        var panel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, VerticalAlignment = VerticalAlignment.Center };
+        var info = new TextBlock
+        {
+            Text = Safe(),
+            IsTextSelectionEnabled = true,
+            TextWrapping = TextWrapping.Wrap,
+            MaxWidth = 300,
+            HorizontalTextAlignment = TextAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        var refresh = new Button { Content = new FontIcon { Glyph = "", FontSize = 14 }, Padding = new Thickness(8) };
+        ToolTipService.SetToolTip(refresh, "Refresh · 重新整理");
+        refresh.Click += (_, _) => info.Text = Safe();
+        panel.Children.Add(info);
+        panel.Children.Add(refresh);
+        return panel;
+    }
+
+    // ---------------- Confirmation for destructive actions ----------------
+    private async Task<bool> ConfirmAsync(TweakDefinition op)
+    {
+        var dlg = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = P("Are you sure?", "確定嗎？"),
+            Content = $"{op.Title.En}\n{op.Title.Zh}\n\n" +
+                      "This action may be hard to undo.\n呢個動作可能難以復原。",
+            PrimaryButtonText = P("Proceed", "繼續"),
+            CloseButtonText = P("Cancel", "取消"),
+            DefaultButton = ContentDialogButton.Close,
+        };
+        try { return await dlg.ShowAsync() == ContentDialogResult.Primary; }
+        catch { return false; }
+    }
+
+    // ---------------- Shared row result / status (routes through the persistent ResultBar) ----------------
+    private void ShowResult(TweakDefinition op, TweakResult result)
+    {
+        ResultBar.Severity = result.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error;
+        ResultBar.Title = result.Success ? P("Done", "完成") : P("Failed", "失敗");
+        ResultBar.Message = result.Message is null
+            ? (result.Output ?? string.Empty)
+            : result.Message.Get(Loc.I.Language);
+        ResultBar.IsOpen = true;
+    }
+
+    private void ShowApplied(TweakDefinition op)
+    {
+        string en = "Applied.", zh = "已套用。";
+        switch (op.Restart)
+        {
+            case RestartScope.Explorer: en = "Applied. Restart Explorer to see the change."; zh = "已套用。重啟檔案總管就睇到變化。"; break;
+            case RestartScope.SignOut: en = "Applied. Sign out and back in to take effect."; zh = "已套用。登出再登入後生效。"; break;
+            case RestartScope.Reboot: en = "Applied. Reboot to take effect."; zh = "已套用。重新開機後生效。"; break;
+        }
+        ResultBar.Severity = InfoBarSeverity.Success;
+        ResultBar.Title = P("Done", "完成");
+        ResultBar.Message = P(en, zh);
+        ResultBar.IsOpen = true;
+    }
+
+    private void ShowError(TweakDefinition op, Exception ex)
+    {
+        bool needAdmin = op.RequiresAdmin && !AdminHelper.IsElevated;
+        ResultBar.Severity = InfoBarSeverity.Error;
+        ResultBar.Title = P("Failed", "失敗");
+        ResultBar.Message = needAdmin
+            ? P("This change needs administrator rights.", "呢項更改需要管理員權限。")
+            : ex.Message;
+        ResultBar.IsOpen = true;
     }
 
     // ===================== Helpers =====================

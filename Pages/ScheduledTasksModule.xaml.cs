@@ -21,15 +21,18 @@ public sealed partial class ScheduledTasksModule : Page
     public ScheduledTasksModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += async (_, _) => { Render(); await Reload(); };
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
     private void Render()
     {
-        HeaderTitle.Text = "Scheduled Tasks · 排程工作";
+        Header.Title = "Scheduled Tasks · 排程工作";
         FilterBox.PlaceholderText = P("Filter tasks (e.g. Appraiser, Consolidator)…", "篩選工作（例如 Appraiser、Consolidator）…");
         RefreshBtn.Content = P("Refresh", "重新整理");
         if (!AdminHelper.IsElevated)

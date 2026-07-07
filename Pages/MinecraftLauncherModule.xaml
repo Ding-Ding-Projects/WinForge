@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.MinecraftLauncherModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid Padding="24,16,24,16" RowSpacing="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="12">
+            <FontIcon FontSize="22" Glyph="&#xE7FC;" VerticalAlignment="Center" />
+            <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
+        </StackPanel>
+        <TextBlock x:Name="HeaderBlurb" Grid.Row="1" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+        <!-- Status / progress / prerequisite -->
+        <StackPanel Grid.Row="2" Spacing="8">
+            <InfoBar x:Name="PrereqBar" IsClosable="False" IsOpen="True" Severity="Warning" />
+            <InfoBar x:Name="StatusBar" IsClosable="True" IsOpen="False" />
+            <ProgressBar x:Name="DownloadProgress" Visibility="Collapsed" Minimum="0" Maximum="1" />
+            <TextBlock x:Name="ProgressText" Visibility="Collapsed" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+        </StackPanel>
+
+        <!-- Azure client ID + account toolbar -->
+        <StackPanel Grid.Row="3" Spacing="8">
+            <Expander x:Name="ClientIdExpander" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                <Expander.Header>
+                    <TextBlock x:Name="ClientIdHeader" />
+                </Expander.Header>
+                <StackPanel Spacing="8" Margin="0,4,0,4">
+                    <TextBlock x:Name="ClientIdNote" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBox x:Name="ClientIdBox" MinWidth="380" />
+                        <Button x:Name="SaveClientIdBtn" Click="SaveClientId_Click" />
+                    </StackPanel>
+                </StackPanel>
+            </Expander>
+
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button x:Name="SignInBtn" Click="SignIn_Click" Style="{StaticResource AccentButtonStyle}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <FontIcon Glyph="&#xE77B;" FontSize="14" />
+                        <TextBlock x:Name="SignInText" />
+                    </StackPanel>
+                </Button>
+                <Button x:Name="DeviceCodeBtn" Click="DeviceCode_Click" />
+                <Button x:Name="SignOutBtn" Click="SignOut_Click" />
+                <TextBlock x:Name="AccountText" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            </StackPanel>
+
+            <!-- Offline mode: play without Mojang sign-in (accounts you own / offline &amp; LAN) -->
+            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <FontIcon Glyph="&#xE977;" FontSize="14" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                <TextBlock x:Name="OfflineLabel" VerticalAlignment="Center" />
+                <TextBox x:Name="OfflineNameBox" MinWidth="180" MaxLength="16" PlaceholderText="Player" />
+                <Button x:Name="OfflineBtn" Click="Offline_Click" />
+                <TextBlock x:Name="OfflineHint" VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource TextFillColorTertiaryBrush}" TextWrapping="Wrap" MaxWidth="360" />
+            </StackPanel>
+        </StackPanel>
+
+        <!-- Instances + editor -->
+        <Grid Grid.Row="4" ColumnSpacing="16" Margin="0,4,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="260" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0" Spacing="8">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock x:Name="InstancesHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
+                    <Button x:Name="AddInstanceBtn" Click="AddInstance_Click">
+                        <FontIcon Glyph="&#xE710;" FontSize="14" />
+                    </Button>
+                </StackPanel>
+                <ListView x:Name="InstanceList" SelectionChanged="InstanceList_SelectionChanged"
+                          BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                          CornerRadius="6" Height="380" />
+            </StackPanel>
+
+            <ScrollViewer Grid.Column="1">
+                <StackPanel x:Name="EditorPanel" Spacing="10" Visibility="Collapsed">
+                    <TextBox x:Name="NameBox" />
+                    <ComboBox x:Name="VersionBox" HorizontalAlignment="Stretch" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <CheckBox x:Name="SnapshotsCheck" Click="Snapshots_Click" />
+                        <Button x:Name="RefreshVersionsBtn" Click="RefreshVersions_Click" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBox x:Name="GameDirBox" MinWidth="320" IsReadOnly="True" />
+                        <Button x:Name="PickGameDirBtn" Click="PickGameDir_Click" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBox x:Name="JavaPathBox" MinWidth="320" IsReadOnly="True" />
+                        <Button x:Name="PickJavaBtn" Click="PickJava_Click" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <NumberBox x:Name="MaxMemBox" Minimum="512" Maximum="65536" SpinButtonPlacementMode="Inline" />
+                        <NumberBox x:Name="MinMemBox" Minimum="256" Maximum="65536" SpinButtonPlacementMode="Inline" />
+                    </StackPanel>
+                    <TextBox x:Name="ExtraArgsBox" />
+
+                    <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
+                        <Button x:Name="SaveInstanceBtn" Click="SaveInstance_Click" />
+                        <!-- Rich install-progress control for downloading/verifying game files is injected here -->
+                        <ContentControl x:Name="InstallHost" VerticalAlignment="Center" />
+                        <Button x:Name="PlayBtn" Click="Play_Click" Style="{StaticResource AccentButtonStyle}" />
+                        <Button x:Name="DeleteInstanceBtn" Click="DeleteInstance_Click" />
+                    </StackPanel>
+
+                    <TextBlock x:Name="EulaNote" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="0,8,0,0" />
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</Page>

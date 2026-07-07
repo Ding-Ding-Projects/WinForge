@@ -4,6 +4,8 @@ using System.IO;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using WinForge.Controls;
+using WinForge.Models;
 using WinForge.Services;
 
 namespace WinForge.Pages;
@@ -18,15 +20,18 @@ public sealed partial class WslVmModule : Page
     public WslVmModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += async (_, _) => { Render(); await CheckEngines(); await RefreshDistros(); await RefreshOnline(); };
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
     private void Render()
     {
-        HeaderTitle.Text = "WSL & VM Launcher · WSL 與 VM 啟動器";
+        Header.Title = "WSL & VM Launcher · WSL 與 VM 啟動器";
         HeaderBlurb.Text = P("Manage Windows Subsystem for Linux distros (list, install, export/import, set default, shut down) and launch Windows Sandbox from a generated .wsb config with mapped folders. Everything runs in-app via wsl.exe and WindowsSandbox.exe.",
             "管理 Windows Subsystem for Linux 發行版（列出、安裝、匯出／匯入、設預設、關閉），並用自動產生嘅 .wsb 設定（含對應資料夾）啟動 Windows 沙盒。全部喺 app 內經 wsl.exe 同 WindowsSandbox.exe 運行。");
 
@@ -35,7 +40,7 @@ public sealed partial class WslVmModule : Page
         WslShutdownBtn.Content = P("Shut down WSL (free RAM)", "關閉 WSL（釋放記憶體）");
         WslImportBtn.Content = P("Import from .tar…", "從 .tar 匯入…");
         InstallTitle.Text = P("Install a new distribution", "安裝新發行版");
-        InstallBtn.Content = P("Install", "安裝");
+        EnsureInstallControl();
 
         SandboxSectionTitle.Text = P("Windows Sandbox", "Windows 沙盒");
         MapTitle.Text = P("Mapped folder (shared into the sandbox)", "對應資料夾（分享入沙盒）");
@@ -59,22 +64,26 @@ public sealed partial class WslVmModule : Page
         {
             WslEngineBar.Severity = InfoBarSeverity.Warning;
             WslEngineBar.Title = P("WSL not found", "搵唔到 WSL");
-            WslEngineBar.Message = P("Windows Subsystem for Linux is not installed. Click to install it (wsl --install). A restart may be required. You can also enable it from the Package Manager.",
-                "未安裝 Windows Subsystem for Linux。撳一下安裝（wsl --install），可能要重啟。你亦可以喺套件管理啟用。");
-            var btn = new Button { Content = P("Install WSL", "安裝 WSL") };
-            btn.Click += async (_, _) =>
+            WslEngineBar.Message = P("Windows Subsystem for Linux is not installed. Install it below (wsl --install). A restart may be required.",
+                "未安裝 Windows Subsystem for Linux。喺下面安裝（wsl --install），可能要重啟。");
+            // Rich install-progress control: real progress + live streaming status + Cancel + success/error animation.
+            var ip = InstallProgress.Create("Install WSL", "安裝 WSL", async (progress, ct) =>
             {
-                btn.IsEnabled = false;
-                btn.Content = P("Installing…", "安裝緊…");
-                var r = await ShellRunner.RunPowershell("wsl.exe --install --no-distribution", false);
-                Notify(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Warning,
-                    P("Install WSL", "安裝 WSL"), Msg(r));
-                await CheckEngines();
-                if (await WslVmService.IsWslAvailable()) { await RefreshDistros(); await RefreshOnline(); }
-            };
-            WslEngineBar.ActionButton = btn;
+                var onLine = new Progress<string>(l => progress.Report(InstallProgressReport.FromLine(l)));
+                progress.Report(InstallProgressReport.Status("Installing WSL feature…", "安裝 WSL 功能緊…"));
+                var r = await WslVmService.InstallWslFeatureStreaming(onLine, ct);
+                if (r.Success)
+                {
+                    // re-detect and refresh lists without an app restart
+                    await CheckEngines();
+                    if (await WslVmService.IsWslAvailable()) { await RefreshDistros(); await RefreshOnline(); }
+                }
+                return r;
+            });
+            WslEngineBar.Content = ip;
+            WslEngineBar.ActionButton = null;
         }
-        else WslEngineBar.ActionButton = null;
+        else { WslEngineBar.Content = null; WslEngineBar.ActionButton = null; }
 
         bool sandbox = WslVmService.IsSandboxAvailable();
         SandboxEngineBar.IsOpen = !sandbox;
@@ -83,22 +92,25 @@ public sealed partial class WslVmModule : Page
         {
             SandboxEngineBar.Severity = InfoBarSeverity.Warning;
             SandboxEngineBar.Title = P("Windows Sandbox not enabled", "未啟用 Windows 沙盒");
-            SandboxEngineBar.Message = P("WindowsSandbox.exe was not found. Click to enable the optional feature (DISM, requires admin + restart). Available on Windows Pro/Enterprise/Education.",
-                "搵唔到 WindowsSandbox.exe。撳一下啟用呢個選用功能（DISM，需要管理員 + 重啟）。只限 Windows 專業版／企業版／教育版。");
-            var btn = new Button { Content = P("Enable Windows Sandbox", "啟用 Windows 沙盒") };
-            btn.Click += async (_, _) =>
+            SandboxEngineBar.Message = P("WindowsSandbox.exe was not found. Enable the optional feature below (DISM, requires admin + restart). Available on Windows Pro/Enterprise/Education.",
+                "搵唔到 WindowsSandbox.exe。喺下面啟用呢個選用功能（DISM，需要管理員 + 重啟）。只限 Windows 專業版／企業版／教育版。");
+            var ip = InstallProgress.Create("Enable Windows Sandbox", "啟用 Windows 沙盒", async (progress, ct) =>
             {
-                btn.IsEnabled = false;
-                btn.Content = P("Enabling…", "啟用緊…");
-                var r = await WslVmService.EnableSandboxFeature();
-                Notify(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error,
-                    P("Enable Windows Sandbox", "啟用 Windows 沙盒"),
-                    r.Success ? P("Enabled. Restart Windows to finish.", "已啟用。重啟 Windows 完成。") : Msg(r));
-                await CheckEngines();
-            };
-            SandboxEngineBar.ActionButton = btn;
+                var onLine = new Progress<string>(l => progress.Report(InstallProgressReport.FromLine(l)));
+                progress.Report(InstallProgressReport.Status("Enabling the Windows Sandbox feature (admin)…", "啟用 Windows 沙盒功能緊（管理員）…"));
+                var r = await WslVmService.EnableSandboxFeatureStreaming(onLine, ct);
+                if (r.Success)
+                {
+                    // DISM enables the feature but a reboot is needed before WindowsSandbox.exe exists.
+                    r = TweakResult.Ok("Enabled. Restart Windows to finish.", "已啟用。重啟 Windows 完成。");
+                    await CheckEngines();
+                }
+                return r;
+            });
+            SandboxEngineBar.Content = ip;
+            SandboxEngineBar.ActionButton = null;
         }
-        else SandboxEngineBar.ActionButton = null;
+        else { SandboxEngineBar.Content = null; SandboxEngineBar.ActionButton = null; }
     }
 
     // ── WSL: installed distros ───────────────────────────────────────────────
@@ -223,14 +235,25 @@ public sealed partial class WslVmModule : Page
         OnlineBox.DisplayMemberPath = "Display";
     }
 
-    private async void Install_Click(object sender, RoutedEventArgs e)
+    private InstallProgress? _installControl;
+
+    /// <summary>建立「安裝發行版」嘅豐富進度控件 · Build the rich install-progress control for installing a distro.</summary>
+    private void EnsureInstallControl()
     {
-        if (OnlineBox.SelectedItem is not WslOnlineDistro d) return;
-        WslBusy.IsActive = true;
-        var r = await WslVmService.InstallDistro(d.Name);
-        WslBusy.IsActive = false;
-        Notify(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error, P("Install", "安裝"), r.Success ? d.Name : Msg(r));
-        await RefreshDistros();
+        if (_installControl is not null) { _installControl.SetAction(P("Install", "安裝"), P("Install", "安裝"), InstallDistroAsync); return; }
+        _installControl = InstallProgress.Create(P("Install", "安裝"), P("Install", "安裝"), InstallDistroAsync);
+        if (InstallHost is not null) InstallHost.Content = _installControl;
+    }
+
+    private async Task<TweakResult> InstallDistroAsync(IProgress<InstallProgressReport> progress, System.Threading.CancellationToken ct)
+    {
+        if (OnlineBox.SelectedItem is not WslOnlineDistro d)
+            return TweakResult.Fail("Pick a distribution to install first.", "請先揀一個要安裝嘅發行版。");
+        var onLine = new Progress<string>(l => progress.Report(InstallProgressReport.FromLine(l)));
+        progress.Report(InstallProgressReport.Status($"Installing {d.Name}…", $"安裝 {d.Name} 緊…"));
+        var r = await WslVmService.InstallDistroStreaming(d.Name, onLine, ct);
+        if (r.Success) await RefreshDistros();
+        return r;
     }
 
     private async void WslImport_Click(object sender, RoutedEventArgs e)

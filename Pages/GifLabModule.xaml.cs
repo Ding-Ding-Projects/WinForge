@@ -54,17 +54,19 @@ public sealed partial class GifLabModule : Page
         FrameStrip.ItemsSource = _frames;
         _capTimer.Tick += (_, _) => { _elapsed++; UpdateStatus(); };
         _playTimer.Tick += PlayTick;
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) => { Render(); SyncButtons(); RefreshFrames(); };
-        Unloaded += (_, _) => { _capTimer.Stop(); _playTimer.Stop(); };
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; _capTimer.Stop(); _playTimer.Stop(); _busyCts?.Cancel(); };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
     private string Msg(TweakResult r) => (Loc.I.IsCantonesePrimary ? r.Message?.Zh : r.Message?.En) ?? "";
 
     private void Render()
     {
-        HeaderTitle.Text = "GIF Studio · 螢幕轉 GIF";
+        Header.Title = "GIF Studio · 螢幕轉 GIF";
         HeaderBlurb.Text = P("Record a screen region, window or the whole screen into frames, tidy them up — delete, reorder (drag or move buttons), uniform crop — preview the loop, then export to GIF, MP4 or APNG. Everything runs in-app via ffmpeg.",
             "錄一忽螢幕、一個視窗或者成個畫面做一格格畫面，再執靚佢 — 刪格、調次序（拖或者用按鈕）、統一裁切 — 預覽個循環，最後匯出做 GIF、MP4 或 APNG。全部喺 app 內用 ffmpeg 做。");
 
@@ -114,13 +116,15 @@ public sealed partial class GifLabModule : Page
             EngineBar.IsOpen = true;
             EngineBar.Severity = InfoBarSeverity.Warning;
             EngineBar.Title = P("ffmpeg not found", "搵唔到 ffmpeg");
-            EngineBar.Message = P("Click to install ffmpeg automatically (winget) — needed to capture and export. No restart needed.",
-                "撳一下自動安裝 ffmpeg（winget）— 擷取同匯出都要佢。唔使重開。");
-            EngineBar.ActionButton = EngineBars.AutoInstallButton(
+            EngineBar.Message = P("Install ffmpeg automatically (winget) with live progress — needed to capture and export. No restart needed.",
+                "自動安裝 ffmpeg（winget），即時睇住進度 — 擷取同匯出都要佢。唔使重開。");
+            // Rich install control: real progress bar + live bilingual status + % + Cancel + success/error animation.
+            EngineBar.Content = EngineBars.AutoInstallProgress(
                 "Gyan.FFmpeg", "Install ffmpeg automatically", "自動安裝 ffmpeg",
-                () => { Render(); return Task.CompletedTask; }, MediaService.Rescan);
+                recheck: () => { Render(); SyncButtons(); return Task.CompletedTask; },
+                rescan: MediaService.Rescan);
         }
-        else { EngineBar.IsOpen = false; EngineBar.ActionButton = null; }
+        else { EngineBar.IsOpen = false; EngineBar.Content = null; }
     }
 
     // ===================== Capture =====================

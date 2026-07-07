@@ -1,0 +1,84 @@
+name: Regenerate real site data from the app
+
+# Keeps the GitHub Pages site's data REAL: whenever the app's module/category/feature
+# surface changes, build WinForge on Windows, run its --export-site-data exporter, and
+# commit the regenerated design/winforge-data.js. That commit touches design/** which
+# triggers the Pages deploy workflow — so the published site always reflects the app's
+# actual capabilities (no hand-written numbers). Simulators are untouched.
+#
+# Loop-safe: triggers ONLY on app-source paths (not design/**), and the data commit it
+# pushes only touches design/** — so it never re-triggers itself, and release.yml
+# ignores design/** so a data commit doesn't cut a release.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Services/ModuleRegistry.cs'
+      - 'Services/DocsExporter.cs'
+      - 'Catalog/**'
+      - 'Models/Core.cs'
+      - 'tools/regen-site-data.ps1'
+      - '.github/workflows/site-data.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: site-data
+  cancel-in-progress: true
+
+jobs:
+  regen:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 11
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '11.0.x'
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Publish WinForge (self-contained x64)
+        shell: pwsh
+        run: |
+          dotnet publish WinForge.csproj -c Release -p:Platform=x64 -r win-x64 --self-contained true `
+            -p:WindowsAppSDKSelfContained=true -p:WindowsPackageType=None -p:PublishTrimmed=false
+          if ($LASTEXITCODE -ne 0) { throw "publish failed" }
+
+      - name: Locate publish folder
+        id: pub
+        shell: pwsh
+        run: |
+          $pub = Get-ChildItem -Path bin -Recurse -Directory -Filter publish |
+            Where-Object { $_.FullName -match 'Release' -and $_.FullName -match 'win-x64' } |
+            Select-Object -First 1 -ExpandProperty FullName
+          if (-not $pub -or -not (Test-Path "$pub\WinForge.exe")) { throw "publish folder / WinForge.exe not found" }
+          "dir=$pub" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Regenerate real site data (tolerant)
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          try { & "$PWD/tools/regen-site-data.ps1" -ExePath "${{ steps.pub.outputs.dir }}\WinForge.exe" }
+          catch { Write-Warning "Regen failed; keeping committed data. $_" }
+
+      - name: Commit refreshed data if it changed
+        shell: pwsh
+        run: |
+          git config user.name  "winforge-bot"
+          git config user.email "winforge@users.noreply.github.com"
+          if (-not (git status --porcelain design/winforge-data.js)) {
+            Write-Host "No change to design/winforge-data.js."
+            exit 0
+          }
+          git add design/winforge-data.js
+          git commit -m "chore: regenerate real site data from the app [auto]"
+          # Rebase onto any commits that landed while we were building, then push.
+          git pull --rebase origin main
+          git push

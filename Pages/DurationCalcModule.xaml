@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.DurationCalcModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="760" Spacing="14">
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE917;" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+            <TextBlock x:Name="FormatsHint" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+            <!-- (a) Add / subtract two durations -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="AddTitle" FontWeight="SemiBold" FontSize="15" />
+                    <Grid ColumnSpacing="10" RowSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="AddA" Grid.Column="0" />
+                        <ComboBox x:Name="AddOp" Grid.Column="1" VerticalAlignment="Center" MinWidth="64">
+                            <ComboBoxItem Content="+" IsSelected="True" />
+                            <ComboBoxItem Content="&#x2212;" />
+                        </ComboBox>
+                        <TextBox x:Name="AddB" Grid.Column="2" />
+                    </Grid>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="AddBtn" Click="Add_Click" />
+                        <Button x:Name="AddCopyBtn" Click="AddCopy_Click" IsEnabled="False" />
+                    </StackPanel>
+                    <TextBlock x:Name="AddResult" FontFamily="Consolas" TextWrapping="Wrap" />
+                    <TextBlock x:Name="AddStatus" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <!-- (b) Sum a list of durations -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="SumTitle" FontWeight="SemiBold" FontSize="15" />
+                    <TextBox x:Name="SumBox" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="110" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="SumBtn" Click="Sum_Click" />
+                        <Button x:Name="SumCopyBtn" Click="SumCopy_Click" IsEnabled="False" />
+                    </StackPanel>
+                    <TextBlock x:Name="SumResult" FontFamily="Consolas" TextWrapping="Wrap" />
+                    <TextBlock x:Name="SumStatus" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <!-- (c) Convert a duration -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="ConvTitle" FontWeight="SemiBold" FontSize="15" />
+                    <TextBox x:Name="ConvBox" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="ConvBtn" Click="Convert_Click" />
+                        <Button x:Name="ConvCopyBtn" Click="ConvCopy_Click" IsEnabled="False" />
+                    </StackPanel>
+                    <TextBlock x:Name="ConvResult" FontFamily="Consolas" TextWrapping="Wrap" />
+                    <TextBlock x:Name="ConvStatus" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <!-- (d) Multiply / divide -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="ScaleTitle" FontWeight="SemiBold" FontSize="15" />
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="ScaleDur" Grid.Column="0" />
+                        <ComboBox x:Name="ScaleOp" Grid.Column="1" VerticalAlignment="Center" MinWidth="64">
+                            <ComboBoxItem Content="&#x00D7;" IsSelected="True" />
+                            <ComboBoxItem Content="&#x00F7;" />
+                        </ComboBox>
+                        <NumberBox x:Name="ScaleNum" Grid.Column="2" Value="2" MinWidth="120" SpinButtonPlacementMode="Inline" />
+                    </Grid>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="ScaleBtn" Click="Scale_Click" />
+                        <Button x:Name="ScaleCopyBtn" Click="ScaleCopy_Click" IsEnabled="False" />
+                    </StackPanel>
+                    <TextBlock x:Name="ScaleResult" FontFamily="Consolas" TextWrapping="Wrap" />
+                    <TextBlock x:Name="ScaleStatus" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

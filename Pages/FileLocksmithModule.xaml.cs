@@ -55,16 +55,18 @@ public sealed partial class FileLocksmithModule : Page
     public FileLocksmithModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) => Render();
-        Unloaded += (_, _) => { try { _cts?.Cancel(); } catch { } };
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; try { _cts?.Cancel(); } catch { } };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
     private void Render()
     {
-        HeaderTitle.Text = "File Locksmith · 檔案鎖偵測";
+        Header.Title = "File Locksmith · 檔案鎖偵測";
         HeaderBlurb.Text = P(
             "Find out which process is locking a file or folder. Powered by the Windows Restart Manager — pick a target (or type a path), then end the offending task or open its location.",
             "查出邊個程序鎖住緊一個檔案或者資料夾。用 Windows 重新啟動管理員 API — 揀一個目標（或者打字輸入路徑），然後可以結束嗰個程序或者開啟佢嘅位置。");

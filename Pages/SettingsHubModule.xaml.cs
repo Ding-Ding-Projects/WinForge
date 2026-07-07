@@ -33,15 +33,34 @@ public sealed partial class SettingsHubModule : Page
     public SettingsHubModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => { Render(); BuildModeCombo(); Apply(FilterBox.Text ?? ""); };
+        Loc.I.LanguageChanged += OnLanguageChanged;
+        Unloaded += OnUnloaded;
         Loaded += (_, _) => { Render(); BuildModeCombo(); ModeCombo.SelectedIndex = 0; Apply(""); };
+        // Expanding a section must not yank the page down: WinUI Expanders BringIntoView their freshly
+        // expanded content panel, which scrolls the viewport far past where the user clicked. Focus-driven
+        // requests (keyboard tabbing) target a Control; expansion requests target the content panel —
+        // swallow only the latter so accessibility scrolling keeps working.
+        Sections.BringIntoViewRequested += (_, e) => { if (e.TargetElement is not Control) e.Handled = true; };
+    }
+
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        Render();
+        BuildModeCombo();
+        Apply(FilterBox.Text ?? "");
+    }
+
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        Loc.I.LanguageChanged -= OnLanguageChanged;
+        Unloaded -= OnUnloaded;
     }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
     private void Render()
     {
-        HeaderTitle.Text = "Settings & Control Panel · 設定與控制台";
+        Header.Title = "Settings & Control Panel · 設定與控制台";
         HeaderBlurb.Text = P(
             "Change Windows settings right here — the in-app catalog reads each setting's current value before showing it — or open any Settings page / Control Panel applet, grouped and searchable.",
             "喺呢度直接改 Windows 設定 — 應用程式內目錄顯示前會先讀取每項設定嘅目前值 — 又或者打開任何設定頁／控制台 applet，已分類同可搜尋。");
@@ -121,12 +140,10 @@ public sealed partial class SettingsHubModule : Page
         {
             if (built) return;
             built = true;
-            foreach (var t in TweakCatalog.ByCategory(cat))
-            {
-                var card = new TweakCard();
-                card.SetTweak(t);   // reads the setting's current value on load
-                inner.Children.Add(card);
-            }
+            // One control-row list per category — reads each setting's current value as it renders.
+            var list = new ControlRowList();
+            list.SetTweaks(TweakCatalog.ByCategory(cat));
+            inner.Children.Add(list);
         };
         return exp;
     }
@@ -165,13 +182,11 @@ public sealed partial class SettingsHubModule : Page
         var f = filter.ToLowerInvariant();
         var hits = TweakCatalog.All.Where(t => t.SearchHaystack.Contains(f)).Take(300).ToList();
         CountText.Text = P($"{hits.Count} settings", $"{hits.Count} 項設定");
-        foreach (var t in hits)
-        {
-            var card = new TweakCard();
-            card.SetTweak(t);
-            Sections.Children.Add(card);
-        }
-        if (hits.Count == 0) Sections.Children.Add(EmptyNote());
+        if (hits.Count == 0) { Sections.Children.Add(EmptyNote()); return; }
+        // A single control-row list holds the whole flat, filtered result set.
+        var list = new ControlRowList();
+        list.SetTweaks(hits);
+        Sections.Children.Add(list);
     }
 
     private void BuildLauncherSearch(string filter)

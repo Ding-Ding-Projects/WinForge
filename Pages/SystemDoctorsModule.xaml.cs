@@ -25,9 +25,12 @@ public sealed partial class SystemDoctorsModule : Page
     public SystemDoctorsModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += (_, _) => Build();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) => Build();
+        Unloaded += (_, _) => Loc.I.LanguageChanged -= OnLanguageChanged;
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Build();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
     private static Brush Sub => (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"];
@@ -35,8 +38,8 @@ public sealed partial class SystemDoctorsModule : Page
 
     private void Build()
     {
-        HeaderTitle.Text = "System Doctors · 系統醫生";
-        HeaderSub.Text = P("Guided rescue routines that really fix Windows 11 — diagnose, then repair, all in-app.",
+        Header.Title = "System Doctors · 系統醫生";
+        Header.Subtitle = P("Guided rescue routines that really fix Windows 11 — diagnose, then repair, all in-app.",
             "真正修復 Windows 11 嘅引導式急救流程 — 先診斷、再修復，全程喺 app 內。");
 
         if (!AdminHelper.IsElevated)

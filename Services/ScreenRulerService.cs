@@ -220,15 +220,18 @@ public static class ScreenRulerService
         _cx = cp.X - _vx; _cy = cp.Y - _vy;
         InvalidateRect(_hwnd, IntPtr.Zero, true);
 
-        // local modal message loop
-        while (GetMessage(out var msg, IntPtr.Zero, 0, 0) > 0)
+        // local modal message loop — wrap so an unexpected fault in a paint/bounds callback
+        // tears the overlay down cleanly instead of crashing the process.
+        try
         {
-            TranslateMessage(ref msg);
-            DispatchMessage(ref msg);
-            if (_hwnd == IntPtr.Zero) break;
+            while (GetMessage(out var msg, IntPtr.Zero, 0, 0) > 0)
+            {
+                TranslateMessage(ref msg);
+                DispatchMessage(ref msg);
+                if (_hwnd == IntPtr.Zero) break;
+            }
         }
-
-        Cleanup();
+        finally { Cleanup(); }
     }
 
     [DllImport("user32.dll")] private static extern bool SetLayeredWindowAttributes(IntPtr hWnd, uint crKey, byte alpha, uint flags);
@@ -374,14 +377,20 @@ public static class ScreenRulerService
 
             SetBkMode(hdc, TRANSPARENT_BK);
 
-            switch (_mode)
+            // Never let a paint helper throw across the native DispatchMessage boundary (that crashes
+            // the process); swallow and just skip this frame's overlay drawing.
+            try
             {
-                case RulerMode.Distance: PaintDistance(hdc); break;
-                case RulerMode.Horizontal: PaintHorizontal(hdc); break;
-                case RulerMode.Vertical: PaintVertical(hdc); break;
-                case RulerMode.Cross: PaintCross(hdc); break;
-                case RulerMode.Bounds: PaintBounds(hdc); break;
+                switch (_mode)
+                {
+                    case RulerMode.Distance: PaintDistance(hdc); break;
+                    case RulerMode.Horizontal: PaintHorizontal(hdc); break;
+                    case RulerMode.Vertical: PaintVertical(hdc); break;
+                    case RulerMode.Cross: PaintCross(hdc); break;
+                    case RulerMode.Bounds: PaintBounds(hdc); break;
+                }
             }
+            catch (Exception) { /* skip this frame */ }
         }
         finally { EndPaint(hWnd, ref ps); }
     }
@@ -444,6 +453,14 @@ public static class ScreenRulerService
         if (!_haveBounds) { DrawHint(hdc, "Hover a region · scroll = tolerance · click to lock · 移到區域上，滾輪調容差，撳一下鎖定"); return; }
         int w = _bounds.Right - _bounds.Left + 1;
         int h = _bounds.Bottom - _bounds.Top + 1;
+        // An inverted / zero-size bounds rect would make GDI Rectangle() draw garbage (or crash on some
+        // drivers). Treat it as "no bounds" and fall back to the hint instead of drawing.
+        if (w < 1 || h < 1)
+        {
+            _haveBounds = false;
+            DrawHint(hdc, "Hover a region · scroll = tolerance · click to lock · 移到區域上，滾輪調容差，撳一下鎖定");
+            return;
+        }
         var pen = UsePen(hdc, PS_SOLID, Math.Max(2, _thickness), _lineColor, out var old);
         var nb = SelectObject(hdc, GetStockObject(NULL_BRUSH));
         Rectangle(hdc, _bounds.Left, _bounds.Top, _bounds.Right + 1, _bounds.Bottom + 1);

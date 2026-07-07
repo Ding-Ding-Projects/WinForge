@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -78,6 +79,7 @@ public sealed partial class NativeUtilitiesModule : Page
     private List<MonitorBrightness> _monitors = new();
     private PdhCounters? _pdh;
     private readonly DispatcherTimer _countersTimer = new() { Interval = TimeSpan.FromSeconds(1) };
+    private bool _busy; // reentrancy guard for the (async) counters tick
 
     public NativeUtilitiesModule()
     {
@@ -91,17 +93,19 @@ public sealed partial class NativeUtilitiesModule : Page
         ModList.ItemsSource = _modules;
         BtList.ItemsSource = _bt;
 
-        _countersTimer.Tick += (_, _) => CollectCounters();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        _countersTimer.Tick += CountersTimer_Tick;
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) => { Render(); WifiSaved_Refresh(null!, null!); };
         Unloaded += (_, _) => Cleanup();
     }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
+
     private void Render()
     {
-        HeaderTitle.Text = "Native Utilities · 原生工具";
+        Header.Title = "Native Utilities · 原生工具";
         HeaderBlurb.Text = P("In-app tools built straight on documented Windows APIs — no external tools, no redirects.",
             "直接建喺有文件記載嘅 Windows API 之上嘅應用程式內工具 — 唔使外部工具、唔會跳走。");
 
@@ -382,11 +386,31 @@ public sealed partial class NativeUtilitiesModule : Page
         else _countersTimer.Stop();
     }
 
-    private void CollectCounters()
+    private async void CountersTimer_Tick(object? sender, object e)
     {
-        if (_pdh == null) return;
-        _pdh.Collect();
-        var samples = _pdh.Read();
+        // Never let a tick throw (unhandled DispatcherTimer exceptions crash the app),
+        // and never let two collections overlap — PDH .Collect()/.Read() are done off-thread.
+        if (_busy || _pdh == null) return;
+        _busy = true;
+        try
+        {
+            var pdh = _pdh;
+            var samples = await Task.Run(() =>
+            {
+                try { pdh.Collect(); return pdh.Read(); }
+                catch { return null; }
+            });
+
+            // Bail if torn down / disposed while awaiting.
+            if (samples == null || _pdh == null || !IsLoaded) return;
+            RenderCounters(samples);
+        }
+        catch { /* swallow — a tick must never surface an exception */ }
+        finally { _busy = false; }
+    }
+
+    private void RenderCounters(IEnumerable<CounterSample> samples)
+    {
         CountersPanel.Children.Clear();
         foreach (var s in samples)
         {
@@ -419,30 +443,47 @@ public sealed partial class NativeUtilitiesModule : Page
     }
 
     // ===== 8. Process modules =============================================
-    private void PopulateProcesses()
+    private async void PopulateProcesses(int? keepPid = null)
     {
-        ProcBox.Items.Clear();
-        var items = new List<ProcItem>();
-        foreach (var p in Process.GetProcesses())
+        // Enumerating every process (and touching each one's name/id) can block the
+        // UI thread for a noticeable beat, so do the walk off-thread and bind after.
+        List<ProcItem> items;
+        try
         {
-            try { items.Add(new ProcItem { Pid = p.Id, Display = $"{p.ProcessName} · {p.Id}" }); }
-            catch { }
-            finally { p.Dispose(); }
+            items = await Task.Run(() =>
+            {
+                var list = new List<ProcItem>();
+                foreach (var p in Process.GetProcesses())
+                {
+                    try { list.Add(new ProcItem { Pid = p.Id, Display = $"{p.ProcessName} · {p.Id}" }); }
+                    catch { }
+                    finally { p.Dispose(); }
+                }
+                list.Sort((a, b) => string.Compare(a.Display, b.Display, StringComparison.OrdinalIgnoreCase));
+                return list;
+            });
         }
-        foreach (var it in items.OrderBy(i => i.Display, StringComparer.OrdinalIgnoreCase))
+        catch { items = new List<ProcItem>(); }
+
+        // If we were torn down (or navigated away) while awaiting, bail out.
+        if (!IsLoaded) return;
+
+        ProcBox.Items.Clear();
+        foreach (var it in items)
             ProcBox.Items.Add(it);
+
+        if (keepPid is int pid)
+        {
+            var match = ProcBox.Items.OfType<ProcItem>().FirstOrDefault(i => i.Pid == pid);
+            if (match != null) { ProcBox.SelectedItem = match; return; }
+        }
         if (ProcBox.Items.Count > 0) ProcBox.SelectedIndex = 0;
     }
 
     private void Proc_Reload(object sender, RoutedEventArgs e)
     {
         int? keep = (ProcBox.SelectedItem as ProcItem)?.Pid;
-        PopulateProcesses();
-        if (keep is int pid)
-        {
-            var match = ProcBox.Items.OfType<ProcItem>().FirstOrDefault(i => i.Pid == pid);
-            if (match != null) ProcBox.SelectedItem = match;
-        }
+        PopulateProcesses(keep);
     }
 
     private void ProcBox_Changed(object sender, SelectionChangedEventArgs e)
@@ -505,6 +546,8 @@ public sealed partial class NativeUtilitiesModule : Page
     private void Cleanup()
     {
         _countersTimer.Stop();
+        _countersTimer.Tick -= CountersTimer_Tick;
+        Loc.I.LanguageChanged -= OnLanguageChanged;
         _pdh?.Dispose(); _pdh = null;
         ReleaseMonitors();
     }

@@ -4,15 +4,13 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
     <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
         <StackPanel MaxWidth="980" Spacing="14">
-            <StackPanel Orientation="Horizontal" Spacing="12">
-                <FontIcon FontSize="22" Glyph="&#xE80F;" VerticalAlignment="Center" />
-                <TextBlock x:Name="HeaderTitle" Style="{StaticResource TitleTextBlockStyle}" />
-            </StackPanel>
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE80F;" />
             <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
 
             <!-- Connection / config -->
@@ -161,7 +159,118 @@
                 <!-- Lights / climate -->
                 <PivotItem x:Name="TabDevices">
                     <StackPanel Spacing="10" Margin="0,12,0,0">
-                        <TextBlock x:Name="LightLbl" FontWeight="SemiBold" FontSize="13" />
+                        <!-- Native toggle list: lights + plugs/switches + input_boolean -->
+                        <TextBlock x:Name="TogglesLbl" FontWeight="SemiBold" FontSize="13" />
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <AutoSuggestBox x:Name="ToggleSearch" Grid.Column="0" QueryIcon="Find"
+                                            TextChanged="ToggleSearch_TextChanged" />
+                            <Button x:Name="RefreshTogglesBtn" Grid.Column="1" Click="RefreshToggles_Click" Style="{StaticResource AccentButtonStyle}" />
+                            <ToggleSwitch x:Name="AutoRefreshToggle" Grid.Column="2" VerticalAlignment="Center"
+                                          Toggled="AutoRefresh_Toggled" />
+                        </Grid>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button x:Name="AllLightsOnBtn" Click="AllLightsOn_Click" />
+                            <Button x:Name="AllLightsOffBtn" Click="AllLightsOff_Click" />
+                            <ProgressRing x:Name="TogglesBusy" IsActive="False" Width="20" Height="20" VerticalAlignment="Center" />
+                        </StackPanel>
+
+                        <!-- Lights group -->
+                        <TextBlock x:Name="GroupLightsLbl" FontWeight="SemiBold" FontSize="13" Margin="0,6,0,0" />
+                        <ItemsControl x:Name="LightsList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Padding="12,8,12,8" Margin="0,0,0,6"
+                                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="6">
+                                        <StackPanel Spacing="6">
+                                            <Grid ColumnSpacing="10">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <FontIcon Grid.Column="0" Glyph="&#xE781;" FontSize="16" VerticalAlignment="Center"
+                                                          Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Text="{Binding EntityId}" FontFamily="Consolas" FontSize="11"
+                                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
+                                                </StackPanel>
+                                                <ToggleSwitch Grid.Column="2" VerticalAlignment="Center" MinWidth="0"
+                                                              IsOn="{Binding IsOn, Mode=TwoWay}" Toggled="RowToggle_Toggled" Tag="{Binding}" />
+                                                <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                                    <Button Content="&#xE7E8;" FontFamily="Segoe MDL2 Assets" Click="RowOn_Click" Tag="{Binding}"
+                                                            ToolTipService.ToolTip="On · 開" />
+                                                    <Button Content="&#xE711;" FontFamily="Segoe MDL2 Assets" Click="RowOff_Click" Tag="{Binding}"
+                                                            ToolTipService.ToolTip="Off · 熄" />
+                                                </StackPanel>
+                                            </Grid>
+                                            <Grid ColumnSpacing="8" Visibility="{Binding IsLightVisibility}">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <Slider Grid.Column="0" Minimum="0" Maximum="100" StepFrequency="1"
+                                                        Value="{Binding BrightnessPctValue, Mode=TwoWay}"
+                                                        ManipulationMode="None"
+                                                        Tag="{Binding}" />
+                                                <TextBlock Grid.Column="1" Text="{Binding BrightnessLabel}" VerticalAlignment="Center"
+                                                           FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" MinWidth="44" />
+                                            </Grid>
+                                            <Button Content="{Binding ApplyBrightnessLabel}" Click="RowApplyBrightness_Click" Tag="{Binding}"
+                                                    Visibility="{Binding IsLightVisibility}" HorizontalAlignment="Left" />
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <!-- Plugs / switches group -->
+                        <TextBlock x:Name="GroupPlugsLbl" FontWeight="SemiBold" FontSize="13" Margin="0,6,0,0" />
+                        <ItemsControl x:Name="PlugsList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Padding="12,8,12,8" Margin="0,0,0,6"
+                                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="6">
+                                        <Grid ColumnSpacing="10">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <FontIcon Grid.Column="0" Glyph="&#xE83D;" FontSize="16" VerticalAlignment="Center"
+                                                      Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Text="{Binding EntityId}" FontFamily="Consolas" FontSize="11"
+                                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
+                                            </StackPanel>
+                                            <ToggleSwitch Grid.Column="2" VerticalAlignment="Center" MinWidth="0"
+                                                          IsOn="{Binding IsOn, Mode=TwoWay}" Toggled="RowToggle_Toggled" Tag="{Binding}" />
+                                            <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                                <Button Content="&#xE7E8;" FontFamily="Segoe MDL2 Assets" Click="RowOn_Click" Tag="{Binding}"
+                                                        ToolTipService.ToolTip="On · 開" />
+                                                <Button Content="&#xE711;" FontFamily="Segoe MDL2 Assets" Click="RowOff_Click" Tag="{Binding}"
+                                                        ToolTipService.ToolTip="Off · 熄" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <InfoBar x:Name="ToggleResult" IsClosable="True" IsOpen="False" />
+
+                        <!-- Advanced single-light control (colour temp / RGB) -->
+                        <TextBlock x:Name="LightLbl" FontWeight="SemiBold" FontSize="13" Margin="0,10,0,0" />
                         <ComboBox x:Name="LightBox" HorizontalAlignment="Stretch" />
                         <Grid ColumnSpacing="12">
                             <Grid.ColumnDefinitions>
@@ -266,6 +375,55 @@
                             </ListView.ItemTemplate>
                         </ListView>
                         <InfoBar x:Name="CalResult" IsClosable="True" IsOpen="False" />
+                    </StackPanel>
+                </PivotItem>
+
+                <!-- AC Defender Docker deployment -->
+                <PivotItem x:Name="TabAcDefender">
+                    <StackPanel Spacing="10" Margin="0,12,0,0">
+                        <TextBlock x:Name="AcBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="AcRepoBox" Grid.Column="0" FontFamily="Consolas" />
+                            <Button x:Name="AcLocateBtn" Grid.Column="1" Click="AcLocate_Click" />
+                            <Button x:Name="AcBrowseBtn" Grid.Column="2" Click="AcBrowse_Click" />
+                        </Grid>
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="AcProjectBox" Grid.Column="0" Text="ha-ac-defender" />
+                            <TextBox x:Name="AcClimateBox" Grid.Column="1" PlaceholderText="climate.living_room" FontFamily="Consolas" />
+                            <NumberBox x:Name="AcPollBox" Grid.Column="2" Value="60" Minimum="10" Maximum="3600" SpinButtonPlacementMode="Inline" />
+                        </Grid>
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <NumberBox x:Name="AcCoolAboveBox" Grid.Column="0" Value="28" SmallChange="0.5" SpinButtonPlacementMode="Inline" />
+                            <NumberBox x:Name="AcHeatBelowBox" Grid.Column="1" Value="16" SmallChange="0.5" SpinButtonPlacementMode="Inline" />
+                            <ToggleSwitch x:Name="AcDryRunToggle" Grid.Column="2" IsOn="True" VerticalAlignment="Bottom" />
+                        </Grid>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button x:Name="AcGenerateBtn" Click="AcGenerate_Click" Style="{StaticResource AccentButtonStyle}" />
+                            <Button x:Name="AcExportBtn" Click="AcExport_Click" />
+                            <Button x:Name="AcStartBtn" Click="AcStart_Click" />
+                            <Button x:Name="AcStopBtn" Click="AcStop_Click" />
+                            <Button x:Name="AcStatusBtn" Click="AcStatus_Click" />
+                            <ProgressRing x:Name="AcBusy" IsActive="False" Width="20" Height="20" VerticalAlignment="Center" />
+                        </StackPanel>
+                        <InfoBar x:Name="AcResult" IsClosable="True" IsOpen="False" />
+                        <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="6" Padding="10">
+                            <TextBox x:Name="AcOut" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap" FontFamily="Consolas" FontSize="12" BorderThickness="0" Background="Transparent" MinHeight="160" MaxHeight="320" />
+                        </Border>
                     </StackPanel>
                 </PivotItem>
 

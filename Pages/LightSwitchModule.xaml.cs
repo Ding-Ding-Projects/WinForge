@@ -22,11 +22,15 @@ public sealed partial class LightSwitchModule : Page
     public LightSwitchModule()
     {
         InitializeComponent();
+        SunriseOffBox.ValueChanged += Offsets_Changed;
+        SunsetOffBox.ValueChanged += Offsets_Changed;
         _timer.Tick += (_, _) => OnTick();
-        Loc.I.LanguageChanged += (_, _) => Render();
+        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) => { Render(); LoadFromSettings(); RefreshBackgroundState(); _timer.Start(); };
-        Unloaded += (_, _) => _timer.Stop();
+        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; _timer.Stop(); };
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Render();
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
@@ -34,7 +38,7 @@ public sealed partial class LightSwitchModule : Page
 
     private void Render()
     {
-        HeaderTitle.Text = "LightSwitch · 自動深淺色";
+        Header.Title = "LightSwitch · 自動深淺色";
         HeaderBlurb.Text = P(
             "Automatically switch Windows between light and dark theme on a schedule — at fixed times, or following sunrise and sunset for your location.",
             "按排程自動喺淺色同深色主題之間切換 — 可以揀固定時間，或者跟你所在位置嘅日出日落。");
