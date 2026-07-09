@@ -15,7 +15,12 @@ public sealed record GitHubDesktopProfileStatus(
     bool IsDefault,
     bool IsActive,
     bool DataExists,
-    bool ShortcutExists);
+    bool StartMenuShortcutExists,
+    bool DesktopShortcutExists,
+    bool ShortcutsReady)
+{
+    public bool ShortcutExists => StartMenuShortcutExists || DesktopShortcutExists;
+}
 
 public sealed record GitHubDesktopProfilesStatus(
     bool DesktopInstalled,
@@ -23,6 +28,8 @@ public sealed record GitHubDesktopProfilesStatus(
     bool IsConfigured,
     bool BrokerReady,
     bool HandlersOwned,
+    bool ShortcutsReady,
+    bool CreateStartMenuShortcuts,
     bool CreateDesktopShortcuts,
     string ActiveProfileId,
     IReadOnlyList<GitHubDesktopProfileStatus> Profiles);
@@ -44,40 +51,83 @@ public static class GitHubDesktopProfilesService
             string active = GitHubDesktopProfilesCore.ReadActiveProfile();
             string? broker = GitHubDesktopProfilesCore.FindBrokerExecutable();
             string? desktop = ResolveDesktop();
-            bool OwnsShortcut(GitHubDesktopProfilesCore.Profile profile) => broker is not null &&
-                (GitHubDesktopProfilesCore.ShortcutOwned(
-                    GitHubDesktopProfilesCore.GetShortcutPath(GitHubDesktopProfilesCore.StartMenuDirectory, profile.Name), broker)
-                 || GitHubDesktopProfilesCore.ShortcutOwned(
-                    GitHubDesktopProfilesCore.GetShortcutPath(GitHubDesktopProfilesCore.DesktopDirectory, profile.Name), broker));
-            var profiles = config.Profiles.Select((profile, index) => new GitHubDesktopProfileStatus(
-                profile.Id,
-                profile.Name,
-                profile.DataPath,
-                profile.GitConfigPath,
-                profile.UsesDefaultGitConfig || index == 0,
-                string.Equals(profile.Id, active, StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(profile.Name, active, StringComparison.OrdinalIgnoreCase),
-                Directory.Exists(profile.DataPath),
-                OwnsShortcut(profile)))
-                .ToArray();
+            bool handlersOwned = broker is not null && GitHubDesktopProfilesCore.HandlersOwned(broker);
+            bool OwnsStartShortcut(GitHubDesktopProfilesCore.Profile profile) => broker is not null &&
+                GitHubDesktopProfilesCore.ShortcutMatchesProfile(
+                    GitHubDesktopProfilesCore.GetShortcutPath(GitHubDesktopProfilesCore.StartMenuDirectory, profile.Name),
+                    broker,
+                    profile.Id,
+                    profile.Name);
+            bool OwnsDesktopShortcut(GitHubDesktopProfilesCore.Profile profile) => broker is not null &&
+                GitHubDesktopProfilesCore.ShortcutMatchesProfile(
+                    GitHubDesktopProfilesCore.GetShortcutPath(GitHubDesktopProfilesCore.DesktopDirectory, profile.Name),
+                    broker,
+                    profile.Id,
+                    profile.Name);
+            bool HasManagedStartShortcut(GitHubDesktopProfilesCore.Profile profile) => broker is not null &&
+                GitHubDesktopProfilesCore.ShortcutOwned(
+                    GitHubDesktopProfilesCore.GetShortcutPath(GitHubDesktopProfilesCore.StartMenuDirectory, profile.Name),
+                    broker);
+            bool HasManagedDesktopShortcut(GitHubDesktopProfilesCore.Profile profile) => broker is not null &&
+                GitHubDesktopProfilesCore.ShortcutOwned(
+                    GitHubDesktopProfilesCore.GetShortcutPath(GitHubDesktopProfilesCore.DesktopDirectory, profile.Name),
+                    broker);
+            bool OwnsBrokerShortcut(GitHubDesktopProfilesCore.Profile profile) => broker is not null &&
+                (GitHubDesktopProfilesCore.ShortcutMatchesBrokerProfile(
+                    GitHubDesktopProfilesCore.GetShortcutPath(GitHubDesktopProfilesCore.StartMenuDirectory, profile.Name),
+                    broker,
+                    profile.Id)
+                 || GitHubDesktopProfilesCore.ShortcutMatchesBrokerProfile(
+                    GitHubDesktopProfilesCore.GetShortcutPath(GitHubDesktopProfilesCore.DesktopDirectory, profile.Name),
+                    broker,
+                    profile.Id));
+            var profiles = config.Profiles.Select((profile, index) =>
+            {
+                bool startExact = OwnsStartShortcut(profile);
+                bool desktopExact = OwnsDesktopShortcut(profile);
+                bool profileShortcutsReady =
+                    (config.CreateStartMenuShortcuts ? startExact : !HasManagedStartShortcut(profile))
+                    && (config.CreateDesktopShortcuts ? desktopExact : !HasManagedDesktopShortcut(profile));
+                return new GitHubDesktopProfileStatus(
+                    profile.Id,
+                    profile.Name,
+                    profile.DataPath,
+                    profile.GitConfigPath,
+                    profile.UsesDefaultGitConfig || index == 0,
+                    string.Equals(profile.Id, active, StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(profile.Name, active, StringComparison.OrdinalIgnoreCase),
+                    Directory.Exists(profile.DataPath),
+                    startExact,
+                    desktopExact,
+                    profileShortcutsReady);
+            }).ToArray();
+            bool shortcutsReady = config.PendingShortcutCleanup.Count == 0
+                && GitHubDesktopProfilesCore.OfficialShortcutStateReady(config.CreateStartMenuShortcuts)
+                && profiles.All(profile => profile.ShortcutsReady);
+            bool isConfigured = config.ManagedByWinForge ||
+                (File.Exists(GitHubDesktopProfilesCore.ConfigPath)
+                 && handlersOwned
+                 && config.Profiles.Any(OwnsBrokerShortcut));
 
             return new GitHubDesktopProfilesStatus(
                 DesktopInstalled: desktop is not null,
                 DesktopExe: desktop,
-                IsConfigured: File.Exists(GitHubDesktopProfilesCore.ConfigPath) && profiles.Any(p => p.ShortcutExists),
+                IsConfigured: isConfigured,
                 BrokerReady: broker is not null,
-                HandlersOwned: broker is not null && GitHubDesktopProfilesCore.HandlersOwned(broker),
+                HandlersOwned: handlersOwned,
+                ShortcutsReady: shortcutsReady,
+                CreateStartMenuShortcuts: config.CreateStartMenuShortcuts,
                 CreateDesktopShortcuts: config.CreateDesktopShortcuts,
                 ActiveProfileId: active,
                 Profiles: profiles);
         }
         catch
         {
-            return new GitHubDesktopProfilesStatus(false, null, false, false, false, true, "", Array.Empty<GitHubDesktopProfileStatus>());
+            return new GitHubDesktopProfilesStatus(false, null, false, false, false, false, true, true, "", Array.Empty<GitHubDesktopProfileStatus>());
         }
     }
 
-    public static TweakResult Configure(IReadOnlyList<string> names, bool desktopShortcuts)
+    public static TweakResult Configure(IReadOnlyList<string> names, bool startMenuShortcuts, bool desktopShortcuts)
     {
         var guard = GuardInteractive();
         if (guard is not null) return guard;
@@ -92,20 +142,20 @@ public static class GitHubDesktopProfilesService
 
         lock (Gate)
         {
-            var result = GitHubDesktopProfilesCore.Configure(names, desktopShortcuts, broker, desktop);
+            var result = GitHubDesktopProfilesCore.Configure(names, startMenuShortcuts, desktopShortcuts, broker, desktop);
             return Convert(result,
                 "GitHub Desktop profiles and callback routing are ready.",
                 "GitHub Desktop 設定檔同登入回調路由已經就緒。");
         }
     }
 
-    public static TweakResult Repair(bool desktopShortcuts)
+    public static TweakResult Repair(bool startMenuShortcuts, bool desktopShortcuts)
     {
         var names = GitHubDesktopProfilesCore.LoadConfig().Profiles.Select(p => p.Name).ToArray();
-        return Configure(names, desktopShortcuts);
+        return Configure(names, startMenuShortcuts, desktopShortcuts);
     }
 
-    public static TweakResult Add(string name, bool desktopShortcuts)
+    public static TweakResult Add(string name, bool startMenuShortcuts, bool desktopShortcuts)
     {
         var guard = GuardInteractive();
         if (guard is not null) return guard;
@@ -113,13 +163,13 @@ public static class GitHubDesktopProfilesService
         string? desktop = ResolveDesktop();
         if (broker is null) return TweakResult.Fail("WinForgeLauncher.exe was not found.", "搵唔到 WinForgeLauncher.exe。");
         if (desktop is null) return TweakResult.Fail("GitHub Desktop is not installed yet.", "GitHub Desktop 仲未安裝。");
-        var result = GitHubDesktopProfilesCore.AddProfile(name, desktopShortcuts, broker, desktop);
+        var result = GitHubDesktopProfilesCore.AddProfile(name, startMenuShortcuts, desktopShortcuts, broker, desktop);
         return result.Success
             ? TweakResult.Ok("Profile added without changing existing profile data.", "已新增設定檔，現有設定檔資料冇被更改。")
             : Convert(result, "Profile added.", "已新增設定檔。");
     }
 
-    public static TweakResult Remove(string profileId, bool desktopShortcuts)
+    public static TweakResult Remove(string profileId, bool startMenuShortcuts, bool desktopShortcuts)
     {
         var guard = GuardInteractive();
         if (guard is not null) return guard;
@@ -136,7 +186,7 @@ public static class GitHubDesktopProfilesService
             // Adopt/repair every existing shortcut first. This keeps removal safe when the
             // shared config was originally created by the reusable PowerShell package.
             var result = GitHubDesktopProfilesCore.AdoptAndRemoveProfile(
-                profileId, desktopShortcuts, broker, desktop);
+                profileId, startMenuShortcuts, desktopShortcuts, broker, desktop);
             return Convert(result,
                 "Profile removed from WinForge. Its data folder was kept.",
                 "已經喺 WinForge 移除設定檔；資料夾會保留。");
@@ -169,7 +219,7 @@ public static class GitHubDesktopProfilesService
         }
     }
 
-    public static TweakResult Rename(string profileId, string name, bool desktopShortcuts)
+    public static TweakResult Rename(string profileId, string name, bool startMenuShortcuts, bool desktopShortcuts)
     {
         var guard = GuardInteractive();
         if (guard is not null) return guard;
@@ -179,7 +229,7 @@ public static class GitHubDesktopProfilesService
         if (desktop is null) return TweakResult.Fail("GitHub Desktop is not installed yet.", "GitHub Desktop 仲未安裝。");
         lock (Gate)
         {
-            var result = GitHubDesktopProfilesCore.Rename(profileId, name, desktopShortcuts, broker, desktop);
+            var result = GitHubDesktopProfilesCore.Rename(profileId, name, startMenuShortcuts, desktopShortcuts, broker, desktop);
             return Convert(result, "Profile renamed and shortcuts refreshed.", "設定檔已改名，捷徑亦已更新。");
         }
     }

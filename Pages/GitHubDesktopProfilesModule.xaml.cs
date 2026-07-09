@@ -80,9 +80,12 @@ public sealed partial class GitHubDesktopProfilesModule : Page
 
         SetupTitle.Text = P("One-time profile setup", "一次性設定多帳戶");
         RefreshButtonText.Text = P("Refresh", "重新整理");
+        StartMenuShortcutsToggle.Header = P("Start Menu shortcuts", "開始功能表捷徑");
+        StartMenuShortcutsToggle.OnContent = P("Create", "建立");
+        StartMenuShortcutsToggle.OffContent = P("Do not create", "唔建立");
         DesktopShortcutsToggle.Header = P("Desktop shortcuts", "桌面捷徑");
         DesktopShortcutsToggle.OnContent = P("Create", "建立");
-        DesktopShortcutsToggle.OffContent = P("Start menu only", "只放開始功能表");
+        DesktopShortcutsToggle.OffContent = P("Do not create", "唔建立");
         ConfigureButton.Content = P("Configure profiles", "設定帳戶");
         RepairButton.Content = P("Repair routing", "修復路由");
 
@@ -218,6 +221,7 @@ public sealed partial class GitHubDesktopProfilesModule : Page
 
     private void BindStatus(GitHubDesktopProfilesStatus status)
     {
+        StartMenuShortcutsToggle.IsOn = status.CreateStartMenuShortcuts;
         DesktopShortcutsToggle.IsOn = status.CreateDesktopShortcuts;
         EngineBar.IsOpen = !status.DesktopInstalled;
         if (!status.DesktopInstalled)
@@ -258,9 +262,17 @@ public sealed partial class GitHubDesktopProfilesModule : Page
         {
             SetupStatusText.Text = P("Profiles exist, but callback routing needs repair.", "設定檔已存在，但回呼路由需要修復。");
         }
+        else if (!status.ShortcutsReady)
+        {
+            SetupStatusText.Text = P(
+                "The selected shortcut locations need repair. Run Repair routing.",
+                "所選捷徑位置需要修復；請執行「修復路由」。");
+        }
         else
         {
-            SetupStatusText.Text = P("All profiles and callback routes are ready.", "全部設定檔同回呼路由都已就緒。");
+            SetupStatusText.Text = P(
+                "All profiles, selected shortcuts, and callback routes are ready.",
+                "全部設定檔、所選捷徑同回呼路由都已就緒。");
         }
 
         var active = status.Profiles.FirstOrDefault(p => p.IsActive)
@@ -271,7 +283,15 @@ public sealed partial class GitHubDesktopProfilesModule : Page
 
         _profiles.Clear();
         foreach (var profile in status.Profiles)
-            _profiles.Add(ProfileRow.From(profile, P, status.Profiles.Count > 1));
+        {
+            _profiles.Add(ProfileRow.From(
+                profile,
+                P,
+                status.Profiles.Count > 1,
+                status.IsConfigured,
+                profile.ShortcutsReady,
+                status.CreateStartMenuShortcuts || status.CreateDesktopShortcuts));
+        }
 
         int ready = status.Profiles.Count(p => p.DataExists);
         ProfilesSummaryText.Text = P(
@@ -316,7 +336,8 @@ public sealed partial class GitHubDesktopProfilesModule : Page
                 return;
             }
 
-            await RunActionAsync(() => GitHubDesktopProfilesService.Add(name, DesktopShortcutsToggle.IsOn));
+            await RunActionAsync(() => GitHubDesktopProfilesService.Add(
+                name, StartMenuShortcutsToggle.IsOn, DesktopShortcutsToggle.IsOn));
         }
         catch (Exception ex)
         {
@@ -333,10 +354,12 @@ public sealed partial class GitHubDesktopProfilesModule : Page
     }
 
     private async void Configure_Click(object sender, RoutedEventArgs e)
-        => await RunActionAsync(() => GitHubDesktopProfilesService.Configure(CurrentNames(), DesktopShortcutsToggle.IsOn));
+        => await RunActionAsync(() => GitHubDesktopProfilesService.Configure(
+            CurrentNames(), StartMenuShortcutsToggle.IsOn, DesktopShortcutsToggle.IsOn));
 
     private async void Repair_Click(object sender, RoutedEventArgs e)
-        => await RunActionAsync(() => GitHubDesktopProfilesService.Repair(DesktopShortcutsToggle.IsOn));
+        => await RunActionAsync(() => GitHubDesktopProfilesService.Repair(
+            StartMenuShortcutsToggle.IsOn, DesktopShortcutsToggle.IsOn));
 
     private async void LaunchProfile_Click(object sender, RoutedEventArgs e)
     {
@@ -377,7 +400,8 @@ public sealed partial class GitHubDesktopProfilesModule : Page
         try
         {
             if (await dialog.ShowAsync() == ContentDialogResult.Primary)
-                await RunActionAsync(() => GitHubDesktopProfilesService.Remove(id, DesktopShortcutsToggle.IsOn));
+                await RunActionAsync(() => GitHubDesktopProfilesService.Remove(
+                    id, StartMenuShortcutsToggle.IsOn, DesktopShortcutsToggle.IsOn));
         }
         catch (Exception ex)
         {
@@ -406,7 +430,8 @@ public sealed partial class GitHubDesktopProfilesModule : Page
             return;
         }
 
-        await RunActionAsync(() => GitHubDesktopProfilesService.Rename(id, next, DesktopShortcutsToggle.IsOn));
+        await RunActionAsync(() => GitHubDesktopProfilesService.Rename(
+            id, next, StartMenuShortcutsToggle.IsOn, DesktopShortcutsToggle.IsOn));
     }
 
     private async void Uninstall_Click(object sender, RoutedEventArgs e)
@@ -550,6 +575,7 @@ public sealed partial class GitHubDesktopProfilesModule : Page
         RepairButton.IsEnabled = !busy && (_status?.DesktopInstalled ?? false);
         AddProfileButton.IsEnabled = !busy && (_status?.DesktopInstalled ?? false);
         ProfileList.IsEnabled = !busy;
+        StartMenuShortcutsToggle.IsEnabled = !busy;
         DesktopShortcutsToggle.IsEnabled = !busy;
         UninstallButton.IsEnabled = !busy;
         GhRefreshButton.IsEnabled = !busy;
@@ -602,11 +628,27 @@ public sealed partial class GitHubDesktopProfilesModule : Page
         public static ProfileRow From(
             GitHubDesktopProfileStatus profile,
             Func<string, string, string> pick,
-            bool canRemove)
+            bool canRemove,
+            bool configured,
+            bool selectedShortcutsReady,
+            bool shortcutsRequested)
         {
             string initial = string.IsNullOrWhiteSpace(profile.Name)
                 ? "?"
                 : char.ToUpperInvariant(profile.Name.Trim()[0]).ToString();
+            string stateText = !configured
+                ? pick("Not configured", "未設定")
+                : !selectedShortcutsReady
+                    ? profile.IsActive
+                        ? pick("Active; shortcut repair needed", "回呼使用中；捷徑要修復")
+                        : pick("Shortcut repair needed", "捷徑需要修復")
+                    : !shortcutsRequested
+                        ? profile.IsActive
+                            ? pick("Active; no shortcuts selected", "回呼使用中；未有選擇捷徑")
+                            : pick("Managed without shortcuts", "已管理但冇捷徑")
+                        : profile.IsActive
+                            ? pick("Active for callbacks", "回呼使用中")
+                            : pick("Selected shortcuts ready", "所選捷徑已就緒");
             return new ProfileRow
             {
                 Id = profile.Id,
@@ -617,11 +659,7 @@ public sealed partial class GitHubDesktopProfilesModule : Page
                 DataPathText = pick($"App data  {profile.DataPath}", $"程式資料  {profile.DataPath}"),
                 GitConfigText = pick($"Git config  {profile.GitConfigPath}", $"Git 設定  {profile.GitConfigPath}"),
                 StateGlyph = profile.IsActive ? ((char)0xE73E).ToString() : ((char)0xE8B7).ToString(),
-                StateText = profile.IsActive
-                    ? pick("Active for callbacks", "回呼使用中")
-                    : profile.ShortcutExists
-                        ? pick("Shortcut ready", "捷徑已就緒")
-                        : pick("Not configured", "未設定"),
+                StateText = stateText,
                 LaunchLabel = pick("Launch", "開啟"),
                 ActivateLabel = profile.IsActive ? pick("Active", "使用中") : pick("Activate", "設為使用中"),
                 OpenFolderLabel = pick("Folder", "資料夾"),
