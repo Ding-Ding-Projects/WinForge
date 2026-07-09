@@ -26,7 +26,8 @@ public static class AdminHelper
             }
             catch
             {
-                _isElevated = false;
+                // All privileged operations fail closed if token inspection is unavailable.
+                _isElevated = true;
             }
             return _isElevated.Value;
         }

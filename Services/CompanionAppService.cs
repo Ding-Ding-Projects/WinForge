@@ -102,7 +102,9 @@ public static class CompanionAppService
     private const string MonacoIntegrityBase64 =
         "GEQWEZmfkOGLdd3XK8ryrfWz3AIP8YymVXiPHEdewrUq7mh0qrKrfHLNCXcbB6sTnMLnOZ3ztSiKcciFUkIJwQ==";
     private const long MonacoMaxDownloadBytes = 64L * 1024 * 1024;
+    private const long MonacoMaxArchiveBytes = 192L * 1024 * 1024;
     private const long MonacoMaxExtractedBytes = 160L * 1024 * 1024;
+    private const int MonacoMaxArchiveEntries = 10000;
     private const int MonacoMaxExtractedFiles = 5000;
     private static readonly SemaphoreSlim MonacoGate = new(1, 1);
     private static readonly ConcurrentDictionary<string, SemaphoreSlim> NativeBuildGates =
@@ -131,6 +133,10 @@ public static class CompanionAppService
     public static async Task<TweakResult> EnsureMonacoAsync(IProgress<InstallProgressReport>? progress,
         CancellationToken ct = default)
     {
+        if (AdminHelper.IsElevated && !MonacoInstalled)
+            return TweakResult.Fail(
+                "The editor engine cannot be installed while WinForge is running as administrator. Restart WinForge normally and retry.",
+                "WinForge 以系統管理員身分運行時唔會安裝編輯器引擎。請以一般權限重開 WinForge 再試。");
         await MonacoGate.WaitAsync(ct);
         try
         {
@@ -177,7 +183,8 @@ public static class CompanionAppService
             }
 
             byte[] actualHash;
-            await using (var package = File.OpenRead(tmpTgz))
+            await using var package = new FileStream(tmpTgz, FileMode.Open, FileAccess.Read, FileShare.None,
+                bufferSize: 81920, useAsync: true);
             using (var sha512 = SHA512.Create())
                 actualHash = await sha512.ComputeHashAsync(package, ct);
             var expectedHash = Convert.FromBase64String(MonacoIntegrityBase64);
@@ -195,16 +202,22 @@ public static class CompanionAppService
             Directory.CreateDirectory(staging);
             var stagingRoot = Path.GetFullPath(staging) + Path.DirectorySeparatorChar;
             long extractedBytes = 0;
+            int archiveEntries = 0;
             int extractedFiles = 0;
 
             const string prefix = "package/min/vs/";
-            await using (var fs = File.OpenRead(tmpTgz))
-            await using (var gz = new GZipStream(fs, CompressionMode.Decompress))
-            using (var tar = new TarReader(gz))
+            package.Position = 0;
+            await using (var gz = new GZipStream(package, CompressionMode.Decompress, leaveOpen: true))
+            using (var bounded = new BoundedReadStream(gz, MonacoMaxArchiveBytes, leaveOpen: true))
+            using (var tar = new TarReader(bounded, leaveOpen: true))
             {
                 TarEntry? entry;
                 while ((entry = await tar.GetNextEntryAsync(cancellationToken: ct)) is not null)
                 {
+                    archiveEntries++;
+                    if (archiveEntries > MonacoMaxArchiveEntries)
+                        return TweakResult.Fail("The editor-engine archive contains too many entries.",
+                            "編輯器引擎壓縮檔項目數量超過安全上限。");
                     if (entry.EntryType != TarEntryType.RegularFile) continue;
                     var name = entry.Name.Replace('\\', '/');
                     if (!name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) continue;
@@ -521,7 +534,7 @@ public static class CompanionAppService
     private static Task<TweakResult> CompileMinGw(string gpp, string src, string outExe, string libs,
         IProgress<string> onLine, CancellationToken ct) =>
         ShellRunner.RunStreaming(gpp,
-            $"-std=c++17 -O2 -municode -mwindows \"{src}\" -o \"{outExe}\" {libs}",
+            $"-std=c++17 -O2 -municode -mwindows -static \"{src}\" -o \"{outExe}\" {libs}",
             onLine, elevated: false, workingDirectory: Path.GetDirectoryName(outExe), ct: ct);
 
     private static Task<TweakResult> CompileMsvc(string vsDevCmd, string src, string outExe, string libs,
@@ -534,5 +547,61 @@ public static class CompanionAppService
                   $"/Fo:\"{workDir}\\\\\" /link {libs} /SUBSYSTEM:WINDOWS";
         return ShellRunner.RunStreaming("cmd.exe", $"/s /c \"{cmd}\"",
             onLine, elevated: false, workingDirectory: workDir, ct: ct);
+    }
+
+    /// <summary>Bounds every decompressed byte TarReader scans, including entries we do not extract.</summary>
+    private sealed class BoundedReadStream : Stream
+    {
+        private readonly Stream _inner;
+        private readonly long _maximum;
+        private readonly bool _leaveOpen;
+        private long _read;
+
+        public BoundedReadStream(Stream inner, long maximum, bool leaveOpen)
+        {
+            _inner = inner;
+            _maximum = maximum;
+            _leaveOpen = leaveOpen;
+        }
+
+        private int Count(int count)
+        {
+            if (count > 0 && _read > _maximum - count)
+                throw new InvalidDataException($"Decompressed archive exceeded {_maximum} bytes.");
+            _read += count;
+            return count;
+        }
+
+        public override int Read(byte[] buffer, int offset, int count) =>
+            Count(_inner.Read(buffer, offset, count));
+        public override int Read(Span<byte> buffer) => Count(_inner.Read(buffer));
+        public override int ReadByte()
+        {
+            int value = _inner.ReadByte();
+            if (value >= 0) Count(1);
+            return value;
+        }
+        public override async ValueTask<int> ReadAsync(Memory<byte> buffer,
+            CancellationToken cancellationToken = default) =>
+            Count(await _inner.ReadAsync(buffer, cancellationToken));
+        public override async Task<int> ReadAsync(byte[] buffer, int offset, int count,
+            CancellationToken cancellationToken) =>
+            Count(await _inner.ReadAsync(buffer, offset, count, cancellationToken));
+
+        public override bool CanRead => _inner.CanRead;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position { get => _read; set => throw new NotSupportedException(); }
+        public override void Flush() { }
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && !_leaveOpen) _inner.Dispose();
+            base.Dispose(disposing);
+        }
     }
 }

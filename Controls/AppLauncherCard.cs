@@ -94,11 +94,12 @@ public sealed class AppLauncherCard : UserControl
         root.Children.Add(_includes);
 
         // ── One-click install of the WHOLE chain (streaming progress) ──
-        _install = InstallProgress.Create("Install & launch", "安裝並啟動", async (progress, ct) =>
+        _install = InstallProgress.Create("Install everything", "全部安裝", async (progress, ct) =>
         {
             var r = await ExternalAppService.InstallAllAsync(_spec, progress, ct);
+            ct.ThrowIfCancellationRequested();
             try { DispatcherQueue?.TryEnqueue(RefreshStatus); } catch { }
-            return r.Success ? ExternalAppService.Launch(_spec) : r;
+            return r;
         });
         root.Children.Add(_install);
 

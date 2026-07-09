@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!--
     WinForge Updater · WinForge 更新程式 — a dedicated WinUI 3 app whose ONLY job is to apply a WinForge
-    update with a VISIBLE progress UI: download the installer (with a real progress bar), wait for the
-    running WinForge to close, run the installer silently, then relaunch WinForge. WinForge launches this
-    app instead of a hidden PowerShell script so updates never look "silent".
+    update with a VISIBLE progress UI: download and verify the installer, wait for the running WinForge to
+    close, then hand off to a copied single-file launcher outside the install folder. That helper waits for
+    this UI to exit, runs Inno Setup with persistent logs, and relaunches WinForge without locking its files.
   -->
   <PropertyGroup>
     <OutputType>WinExe</OutputType>

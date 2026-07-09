@@ -9,7 +9,7 @@
 //       /link winmm.lib gdi32.lib user32.lib comdlg32.lib comctl32.lib ^
 //       shell32.lib ole32.lib /SUBSYSTEM:WINDOWS
 //  Build (MinGW):
-//    g++ -std=c++17 -O2 -municode -mwindows main.cpp -o WinForgeAudioEditor.exe ^
+//    g++ -std=c++17 -O2 -municode -mwindows -static main.cpp -o WinForgeAudioEditor.exe ^
 //       -lwinmm -lgdi32 -lcomdlg32 -lcomctl32 -lshell32 -lole32
 //
 //  No CDN, no network, no telemetry. Pure Win32 + waveOut. One translation unit.

@@ -24,10 +24,16 @@ $ErrorActionPreference = "Stop"
 $root = (Resolve-Path (Join-Path $PSScriptRoot "..\..\..")).Path
 $exe  = Join-Path $root "bin\x64\Debug\net11.0-windows10.0.26100.0\win-x64\publish\WinForge.exe"
 
+# A running self-contained app locks publish\WinForge.dll. Stop it before the publish decision so a
+# requested rebuild can never silently fall through to launching stale output.
+Get-Process WinForge -ErrorAction SilentlyContinue | Stop-Process -Force
+Start-Sleep -Milliseconds 800
+
 if ($Publish -or -not (Test-Path $exe)) {
   Write-Host "Publishing self-contained (this takes a few minutes)..."
   & dotnet publish (Join-Path $root "WinForge.csproj") -c Debug -r win-x64 --self-contained true `
       -p:Platform=x64 -p:WindowsAppSDKSelfContained=true -v quiet
+  if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed with exit code $LASTEXITCODE" }
   if (-not (Test-Path $exe)) { throw "publish did not produce $exe" }
 }
 
@@ -45,8 +51,6 @@ public class WfCap {
 }
 "@
 
-Get-Process WinForge -ErrorAction SilentlyContinue | Stop-Process -Force
-Start-Sleep -Milliseconds 800
 Start-Process -FilePath $exe -ArgumentList "--page", $Page
 Start-Sleep -Milliseconds $WaitMs
 

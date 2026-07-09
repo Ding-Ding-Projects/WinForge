@@ -9,7 +9,7 @@
 //       /Fe:WinForgeImageEditor.exe /link gdiplus.lib gdi32.lib user32.lib ^
 //       comdlg32.lib ole32.lib shell32.lib comctl32.lib /SUBSYSTEM:WINDOWS
 //  Build (MinGW):
-//    g++ -std=c++17 -O2 -municode -mwindows main.cpp ^
+//    g++ -std=c++17 -O2 -municode -mwindows -static main.cpp ^
 //       -o WinForgeImageEditor.exe -lgdiplus -lgdi32 -lcomdlg32 -lole32 ^
 //       -lshell32 -lcomctl32
 //

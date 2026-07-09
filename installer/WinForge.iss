@@ -19,6 +19,7 @@
 
 [Setup]
 AppId={{B7A1C0E2-7C2E-4E8A-9C7E-0F1A2B3C4D5E}
+SetupMutex=WinForgeSetupMutex
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
@@ -36,6 +37,8 @@ SolidCompression=yes
 WizardStyle=modern
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
+CloseApplications=force
+RestartApplications=no
 UninstallDisplayIcon={app}\{#MyAppExe}
 ; A bilingual one-line summary shown in Add/Remove Programs.
 AppComments=Windows 11 convenience suite · Windows 11 便利套件
@@ -47,7 +50,8 @@ Name: "en"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "Create a desktop shortcut · 建立桌面捷徑"; GroupDescription: "Shortcuts · 捷徑"
 
 [Files]
-Source: "{#MyPublishDir}\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion
+Source: "{#MyPublishDir}\*"; DestDir: "{app}"; Excludes: "WinForgeLauncher.exe"; Flags: recursesubdirs createallsubdirs
+Source: "{#MyPublishDir}\WinForgeLauncher.exe"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\WinForge"; Filename: "{app}\{#MyAppLauncher}"; IconFilename: "{app}\{#MyAppExe}"
@@ -55,4 +59,5 @@ Name: "{group}\Uninstall WinForge · 解除安裝 WinForge"; Filename: "{uninsta
 Name: "{autodesktop}\WinForge"; Filename: "{app}\{#MyAppLauncher}"; IconFilename: "{app}\{#MyAppExe}"; Tasks: desktopicon
 
 [Run]
+Filename: "{app}\{#MyAppLauncher}"; Flags: nowait runasoriginaluser; Check: WizardSilent
 Filename: "{app}\{#MyAppLauncher}"; Description: "Launch WinForge · 啟動 WinForge"; Flags: nowait postinstall skipifsilent

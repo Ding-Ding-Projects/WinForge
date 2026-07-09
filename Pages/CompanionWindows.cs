@@ -70,11 +70,14 @@ public sealed class WebAppWindow : Window
     private readonly CompanionSpec _spec;
     private readonly WebView2 _web = new();
     private readonly OverlappedPresenter _presenter = OverlappedPresenter.Create();
+    private readonly SemaphoreSlim _saveGate = new(1, 1);
+    private readonly CancellationTokenSource _windowCts = new();
     private bool _initializing;
     private bool _ready;
     private bool _full;
     private bool _coreEventsAttached;
     private bool _enginePageActive;
+    private bool _closed;
     private CancellationTokenSource? _engineCts;
 
     private WebAppWindow(CompanionSpec spec)
@@ -108,6 +111,8 @@ public sealed class WebAppWindow : Window
         _web.Loaded += async (_, _) => await InitWebAsync();
         Closed += (_, _) =>
         {
+            _closed = true;
+            try { _windowCts.Cancel(); } catch { }
             Loc.I.LanguageChanged -= OnLanguageChanged;
             try { _engineCts?.Cancel(); } catch { }
             try
@@ -143,6 +148,10 @@ public sealed class WebAppWindow : Window
         _initializing = true;
         try
         {
+            if (AdminHelper.IsElevated)
+                throw new InvalidOperationException(Loc.I.Pick(
+                    "Companion apps are disabled while WinForge is running as administrator. Restart WinForge normally and retry.",
+                    "WinForge 以系統管理員身分運行時會停用隨附 app。請以一般權限重開 WinForge 再試。"));
             var userData = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "WinForge", "WebView2", "companions-userdata");
@@ -152,6 +161,7 @@ public sealed class WebAppWindow : Window
                 userDataFolder: userData,
                 options: new CoreWebView2EnvironmentOptions());
             await _web.EnsureCoreWebView2Async(env);
+            if (_closed) return;
 
             var core = _web.CoreWebView2;
             core.Settings.IsWebMessageEnabled = true;
@@ -186,7 +196,7 @@ public sealed class WebAppWindow : Window
         {
             CrashLogger.Log($"companion:{_spec.Id}:init", ex);
             _ready = false;
-            Content = BuildInitError(ex.Message);
+            if (!_closed) Content = BuildInitError(ex.Message);
         }
         finally { _initializing = false; }
     }
@@ -210,6 +220,7 @@ public sealed class WebAppWindow : Window
         try { result = await CompanionAppService.EnsureMonacoAsync(progress, _engineCts.Token); }
         catch (OperationCanceledException) { return; }
         catch (Exception ex) { result = TweakResult.Fail(ex.Message, $"出錯：{ex.Message}"); }
+        if (_closed) return;
 
         if (result.Success)
         {
@@ -255,9 +266,7 @@ public sealed class WebAppWindow : Window
 
     private void OnNavigationStarting(CoreWebView2 sender, CoreWebView2NavigationStartingEventArgs e)
     {
-        if (Uri.TryCreate(e.Uri, UriKind.Absolute, out var uri)
-            && uri.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase)
-            && uri.Host.Equals("app.winforge", StringComparison.OrdinalIgnoreCase))
+        if (IsAppOrigin(e.Uri))
             return;
         if (_enginePageActive && string.Equals(e.Uri, "about:blank", StringComparison.OrdinalIgnoreCase))
             return;
@@ -267,11 +276,16 @@ public sealed class WebAppWindow : Window
     private static void OnNewWindowRequested(CoreWebView2 sender, CoreWebView2NewWindowRequestedEventArgs e)
         => e.Handled = true;
 
+    private static bool IsAppOrigin(string? value) =>
+        Uri.TryCreate(value, UriKind.Absolute, out var uri)
+        && uri.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase)
+        && uri.Host.Equals("app.winforge", StringComparison.OrdinalIgnoreCase)
+        && uri.IsDefaultPort
+        && string.IsNullOrEmpty(uri.UserInfo);
+
     private void OnWebMessage(CoreWebView2 sender, CoreWebView2WebMessageReceivedEventArgs e)
     {
-        bool appOrigin = Uri.TryCreate(e.Source, UriKind.Absolute, out var source)
-            && source.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase)
-            && source.Host.Equals("app.winforge", StringComparison.OrdinalIgnoreCase);
+        bool appOrigin = IsAppOrigin(e.Source);
         bool engineOrigin = _enginePageActive
             && string.Equals(e.Source, "about:blank", StringComparison.OrdinalIgnoreCase);
         if (!appOrigin && !engineOrigin) return;
@@ -285,6 +299,7 @@ public sealed class WebAppWindow : Window
         }
         catch { return; }
         if (msg is null) return;
+        if ((msg.Type?.Length ?? 0) > 32) return;
 
         if (engineOrigin)
         {
@@ -299,12 +314,16 @@ public sealed class WebAppWindow : Window
                 PostTheme();
                 break;
             case "save":
-                _ = HandleSaveAsync(msg);
+                if (string.IsNullOrWhiteSpace(msg.RequestId) || msg.RequestId.Length > 128
+                    || (msg.Name?.Length ?? 0) > 512 || (msg.Mime?.Length ?? 0) > 128)
+                    return;
+                _ = HandleSaveAsync(msg, _windowCts.Token);
                 break;
             case "setTitle":
                 if (!string.IsNullOrWhiteSpace(msg.Text))
                 {
-                    var t = msg.Text!.Trim();
+                    var raw = msg.Text!.Length > 256 ? msg.Text[..256] : msg.Text;
+                    var t = raw.Trim();
                     if (t.Length > 60) t = t[..60] + "…";
                     Title = $"{_spec.TitleEn} · {_spec.TitleZh} — {t}";
                 }
@@ -313,10 +332,16 @@ public sealed class WebAppWindow : Window
     }
 
     /// <summary>bridge save：JS 畀 base64，經 FileDialogs 儲存 · Bridge save: decode base64, save via FileDialogs.</summary>
-    private async Task HandleSaveAsync(BridgeMsg msg)
+    private async Task HandleSaveAsync(BridgeMsg msg, CancellationToken ct)
     {
+        bool entered = false;
         try
         {
+            await _saveGate.WaitAsync(ct);
+            entered = true;
+            ct.ThrowIfCancellationRequested();
+            if (_closed) return;
+
             if ((msg.DataBase64?.Length ?? 0) > MaxBridgeBase64Chars)
             {
                 PostToPage(new { type = "saveDone", requestId = msg.RequestId, ok = false,
@@ -330,6 +355,8 @@ public sealed class WebAppWindow : Window
             var ext = Path.GetExtension(name);
             if (string.IsNullOrEmpty(ext)) ext = ".txt";
             var dest = await FileDialogs.SaveFileAsync(name, ext);
+            ct.ThrowIfCancellationRequested();
+            if (_closed) return;
             if (dest is null)
             {
                 PostToPage(new { type = "saveDone", requestId = msg.RequestId, ok = false, cancelled = true });
@@ -342,12 +369,19 @@ public sealed class WebAppWindow : Window
                     error = "The file exceeds the 64 MB companion-save limit." });
                 return;
             }
-            await File.WriteAllBytesAsync(dest, bytes);
+            ct.ThrowIfCancellationRequested();
+            await File.WriteAllBytesAsync(dest, bytes, ct);
+            ct.ThrowIfCancellationRequested();
             PostToPage(new { type = "saveDone", requestId = msg.RequestId, ok = true, path = dest });
         }
+        catch (OperationCanceledException) { }
         catch (Exception ex)
         {
             PostToPage(new { type = "saveDone", requestId = msg.RequestId, ok = false, error = ex.Message });
+        }
+        finally
+        {
+            if (entered) _saveGate.Release();
         }
     }
 
@@ -378,6 +412,7 @@ public sealed class WebAppWindow : Window
 
     private void PostToPage(object o)
     {
+        if (_closed) return;
         try { _web.CoreWebView2?.PostWebMessageAsJson(JsonSerializer.Serialize(o, PostOpts)); } catch { }
     }
 
@@ -460,6 +495,7 @@ public sealed class CompanionPrepWindow : Window
     private readonly Button _cancel = new() { MinWidth = 110 };
     private CancellationTokenSource? _cts;
     private bool _running;
+    private bool _closed;
 
     private CompanionPrepWindow(CompanionSpec spec)
     {
@@ -517,6 +553,7 @@ public sealed class CompanionPrepWindow : Window
 
         Closed += (_, _) =>
         {
+            _closed = true;
             try { _cts?.Cancel(); } catch { }
             if (Open.TryGetValue(_spec.Id, out var current) && ReferenceEquals(current, this))
                 Open.Remove(_spec.Id);
@@ -539,7 +576,7 @@ public sealed class CompanionPrepWindow : Window
 
     private async Task RunAsync()
     {
-        if (_running) return;
+        if (_running || _closed) return;
         _running = true;
         _retry.Visibility = Visibility.Collapsed;
         _bar.IsIndeterminate = true;
@@ -550,6 +587,7 @@ public sealed class CompanionPrepWindow : Window
         _cts = new CancellationTokenSource();
         var progress = new Progress<InstallProgressReport>(r =>
         {
+            if (_closed) return;
             if (r.Percent is double p) { _bar.IsIndeterminate = false; _bar.Value = p; }
             var text = (Loc.I.IsCantonesePrimary ? r.StatusZh : r.StatusEn) ?? r.StatusEn;
             if (!string.IsNullOrWhiteSpace(text)) _status.Text = text;
@@ -560,6 +598,7 @@ public sealed class CompanionPrepWindow : Window
         catch (OperationCanceledException) { _running = false; return; }
         catch (Exception ex) { result = TweakResult.Fail(ex.Message, $"出錯：{ex.Message}"); }
         _running = false;
+        if (_closed || _cts?.IsCancellationRequested == true) return;
 
         if (result.Success)
         {
