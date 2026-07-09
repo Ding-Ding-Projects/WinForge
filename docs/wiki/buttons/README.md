@@ -72,6 +72,7 @@
 | [Save to collection · 儲存到集合](apps-git-git/api/005-savebtn.md) | API Client · REST API 用戶端 | Apps & Git · 程式與 Git | `Button` | `SaveRequest_Click` |
 | [SaveRespBtn](apps-git-git/api/014-saverespbtn.md) | API Client · REST API 用戶端 | Apps & Git · 程式與 Git | `Button` | `SaveResponse_Click` |
 | [SendBtn](apps-git-git/api/004-sendbtn.md) | API Client · REST API 用戶端 | Apps & Git · 程式與 Git | `Button` | `Send_Click` |
+| [ClearBtn](apps-git-git/applauncher/001-clearbtn.md) | App Launcher · 原生 App 啟動器 | Apps & Git · 程式與 Git | `Button` | `Clear_Click` |
 | [Actions_Click](apps-git-git/uninstall/002-actions-click.md) | App Uninstaller · 應用程式解除安裝 | Apps & Git · 程式與 Git | `Button` | `Actions_Click` |
 | [RefreshBtn](apps-git-git/uninstall/001-refreshbtn.md) | App Uninstaller · 應用程式解除安裝 | Apps & Git · 程式與 Git | `Button` | `Refresh_Click` |
 | [BuildRunBtn](apps-git-git/aws/006-buildrunbtn.md) | AWS CLI · AWS 命令列 | Apps & Git · 程式與 Git | `Button` | `BuildRun_Click` |
@@ -233,23 +234,23 @@
 | [CancelTransferBtn](apps-git-git/filezilla/022-canceltransferbtn.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `CancelTransfer_Click` |
 | [ClearQueueBtn](apps-git-git/filezilla/023-clearqueuebtn.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `ClearQueue_Click` |
 | [Connect · 連線](apps-git-git/filezilla/006-connectsitebtn.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `ConnectSite_Click` |
-| [Delete · 刪除](apps-git-git/filezilla/021-remotedeletemenu.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `MenuFlyoutItem` | `RemoteDelete_Click` |
 | [Delete · 刪除](apps-git-git/filezilla/013-localdeletemenu.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `MenuFlyoutItem` | `LocalDelete_Click` |
+| [Delete · 刪除](apps-git-git/filezilla/021-remotedeletemenu.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `MenuFlyoutItem` | `RemoteDelete_Click` |
 | [Delete site · 刪除站台](apps-git-git/filezilla/005-deletesitebtn.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `DeleteSite_Click` |
 | [DisconnectBtn](apps-git-git/filezilla/002-disconnectbtn.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `Disconnect_Click` |
 | [Download · 下載](apps-git-git/filezilla/019-remotedownloadmenu.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `MenuFlyoutItem` | `Download_Click` |
 | [Download selected · 下載所選](apps-git-git/filezilla/015-downloadbtn.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `Download_Click` |
 | [Edit site · 編輯站台](apps-git-git/filezilla/004-editsitebtn.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `EditSite_Click` |
-| [New folder · 新資料夾](apps-git-git/filezilla/017-remotemkdir-click.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `RemoteMkdir_Click` |
 | [New folder · 新資料夾](apps-git-git/filezilla/009-localmkdir-click.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `LocalMkdir_Click` |
+| [New folder · 新資料夾](apps-git-git/filezilla/017-remotemkdir-click.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `RemoteMkdir_Click` |
 | [New site · 新增站台](apps-git-git/filezilla/003-newsitebtn.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `NewSite_Click` |
 | [QcConnectBtn](apps-git-git/filezilla/001-qcconnectbtn.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `QuickConnect_Click` |
 | [Refresh · 重新整理](apps-git-git/filezilla/010-localrefresh-click.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `LocalRefresh_Click` |
 | [Refresh · 重新整理](apps-git-git/filezilla/018-remoterefresh-click.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `RemoteRefresh_Click` |
-| [Rename · 重新命名](apps-git-git/filezilla/012-localrenamemenu.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `MenuFlyoutItem` | `LocalRename_Click` |
 | [Rename · 重新命名](apps-git-git/filezilla/020-remoterenamemenu.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `MenuFlyoutItem` | `RemoteRename_Click` |
-| [Up · 上層](apps-git-git/filezilla/007-localup-click.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `LocalUp_Click` |
+| [Rename · 重新命名](apps-git-git/filezilla/012-localrenamemenu.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `MenuFlyoutItem` | `LocalRename_Click` |
 | [Up · 上層](apps-git-git/filezilla/016-remoteup-click.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `RemoteUp_Click` |
+| [Up · 上層](apps-git-git/filezilla/007-localup-click.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `LocalUp_Click` |
 | [Upload · 上載](apps-git-git/filezilla/011-localuploadmenu.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `MenuFlyoutItem` | `Upload_Click` |
 | [Upload selected · 上載所選](apps-git-git/filezilla/014-uploadbtn.md) | FTP / SFTP · FTP／SFTP 檔案傳輸 | Apps & Git · 程式與 Git | `Button` | `Upload_Click` |
 | [AddRemoteBtn2](apps-git-git/git/009-addremotebtn2.md) | Git & GitHub · Git 與 GitHub | Apps & Git · 程式與 Git | `Button` | `AddRemote_Click` |
@@ -286,10 +287,23 @@
 | [TerminalBtn](apps-git-git/git/005-terminalbtn.md) | Git & GitHub · Git 與 GitHub | Apps & Git · 程式與 Git | `Button` | `Terminal_Click` |
 | [UndoBtn](apps-git-git/git/029-undobtn.md) | Git & GitHub · Git 與 GitHub | Apps & Git · 程式與 Git | `Button` | `Undo_Click` |
 | [UpBtn](apps-git-git/git/028-upbtn.md) | Git & GitHub · Git 與 GitHub | Apps & Git · 程式與 Git | `Button` | `Up_Click` |
-| [[icon U+E711]](apps-git-git/homeassistant/023-rowoff-click.md) | Home Assistant · 家居助理 | Apps & Git · 程式與 Git | `Button` | `RowOff_Click` |
+| [AddProfileButton](apps-git-git/githubdesktopprofiles/004-addprofilebutton.md) | GitHub Desktop Profiles · GitHub Desktop 多帳戶設定檔 | Apps & Git · 程式與 Git | `Button` | `AddProfile_Click` |
+| [binding:ActivateLabel](apps-git-git/githubdesktopprofiles/006-activateprofile-click.md) | GitHub Desktop Profiles · GitHub Desktop 多帳戶設定檔 | Apps & Git · 程式與 Git | `Button` | `ActivateProfile_Click` |
+| [binding:LaunchLabel](apps-git-git/githubdesktopprofiles/005-launchprofile-click.md) | GitHub Desktop Profiles · GitHub Desktop 多帳戶設定檔 | Apps & Git · 程式與 Git | `Button` | `LaunchProfile_Click` |
+| [binding:OpenFolderLabel](apps-git-git/githubdesktopprofiles/007-openprofilefolder-click.md) | GitHub Desktop Profiles · GitHub Desktop 多帳戶設定檔 | Apps & Git · 程式與 Git | `Button` | `OpenProfileFolder_Click` |
+| [binding:RemoveLabel](apps-git-git/githubdesktopprofiles/008-removeprofile-click.md) | GitHub Desktop Profiles · GitHub Desktop 多帳戶設定檔 | Apps & Git · 程式與 Git | `Button` | `RemoveProfile_Click` |
+| [ConfigureButton](apps-git-git/githubdesktopprofiles/002-configurebutton.md) | GitHub Desktop Profiles · GitHub Desktop 多帳戶設定檔 | Apps & Git · 程式與 Git | `Button` | `Configure_Click` |
+| [GhLoginButton](apps-git-git/githubdesktopprofiles/010-ghloginbutton.md) | GitHub Desktop Profiles · GitHub Desktop 多帳戶設定檔 | Apps & Git · 程式與 Git | `Button` | `GhLogin_Click` |
+| [GhLogoutButton](apps-git-git/githubdesktopprofiles/012-ghlogoutbutton.md) | GitHub Desktop Profiles · GitHub Desktop 多帳戶設定檔 | Apps & Git · 程式與 Git | `Button` | `GhLogout_Click` |
+| [GhRefreshButton](apps-git-git/githubdesktopprofiles/009-ghrefreshbutton.md) | GitHub Desktop Profiles · GitHub Desktop 多帳戶設定檔 | Apps & Git · 程式與 Git | `Button` | `GhRefresh_Click` |
+| [GhSwitchButton](apps-git-git/githubdesktopprofiles/011-ghswitchbutton.md) | GitHub Desktop Profiles · GitHub Desktop 多帳戶設定檔 | Apps & Git · 程式與 Git | `Button` | `GhSwitch_Click` |
+| [RefreshButton](apps-git-git/githubdesktopprofiles/001-refreshbutton.md) | GitHub Desktop Profiles · GitHub Desktop 多帳戶設定檔 | Apps & Git · 程式與 Git | `Button` | `Refresh_Click` |
+| [RepairButton](apps-git-git/githubdesktopprofiles/003-repairbutton.md) | GitHub Desktop Profiles · GitHub Desktop 多帳戶設定檔 | Apps & Git · 程式與 Git | `Button` | `Repair_Click` |
+| [UninstallButton](apps-git-git/githubdesktopprofiles/013-uninstallbutton.md) | GitHub Desktop Profiles · GitHub Desktop 多帳戶設定檔 | Apps & Git · 程式與 Git | `Button` | `Uninstall_Click` |
 | [[icon U+E711]](apps-git-git/homeassistant/020-rowoff-click.md) | Home Assistant · 家居助理 | Apps & Git · 程式與 Git | `Button` | `RowOff_Click` |
-| [[icon U+E7E8]](apps-git-git/homeassistant/019-rowon-click.md) | Home Assistant · 家居助理 | Apps & Git · 程式與 Git | `Button` | `RowOn_Click` |
+| [[icon U+E711]](apps-git-git/homeassistant/023-rowoff-click.md) | Home Assistant · 家居助理 | Apps & Git · 程式與 Git | `Button` | `RowOff_Click` |
 | [[icon U+E7E8]](apps-git-git/homeassistant/022-rowon-click.md) | Home Assistant · 家居助理 | Apps & Git · 程式與 Git | `Button` | `RowOn_Click` |
+| [[icon U+E7E8]](apps-git-git/homeassistant/019-rowon-click.md) | Home Assistant · 家居助理 | Apps & Git · 程式與 Git | `Button` | `RowOn_Click` |
 | [AcBrowseBtn](apps-git-git/homeassistant/035-acbrowsebtn.md) | Home Assistant · 家居助理 | Apps & Git · 程式與 Git | `Button` | `AcBrowse_Click` |
 | [AcExportBtn](apps-git-git/homeassistant/037-acexportbtn.md) | Home Assistant · 家居助理 | Apps & Git · 程式與 Git | `Button` | `AcExport_Click` |
 | [AcGenerateBtn](apps-git-git/homeassistant/036-acgeneratebtn.md) | Home Assistant · 家居助理 | Apps & Git · 程式與 Git | `Button` | `AcGenerate_Click` |
@@ -615,8 +629,8 @@
 | [binding:ActionsLabel](apps-git-git/vpn/018-binding-actionslabel.md) | VPN & Mesh · VPN 與網狀網 | Apps & Git · 程式與 Git | `Button` | `` |
 | [binding:ConnectLabel](apps-git-git/vpn/019-winvpnconnect-click.md) | VPN & Mesh · VPN 與網狀網 | Apps & Git · 程式與 Git | `MenuFlyoutItem` | `WinVpnConnect_Click` |
 | [binding:DisconnectLabel](apps-git-git/vpn/020-winvpndisconnect-click.md) | VPN & Mesh · VPN 與網狀網 | Apps & Git · 程式與 Git | `MenuFlyoutItem` | `WinVpnDisconnect_Click` |
-| [binding:RemoveLabel](apps-git-git/vpn/024-wgremove-click.md) | VPN & Mesh · VPN 與網狀網 | Apps & Git · 程式與 Git | `Button` | `WgRemove_Click` |
 | [binding:RemoveLabel](apps-git-git/vpn/021-winvpnremove-click.md) | VPN & Mesh · VPN 與網狀網 | Apps & Git · 程式與 Git | `MenuFlyoutItem` | `WinVpnRemove_Click` |
+| [binding:RemoveLabel](apps-git-git/vpn/024-wgremove-click.md) | VPN & Mesh · VPN 與網狀網 | Apps & Git · 程式與 Git | `Button` | `WgRemove_Click` |
 | [NordConnectBtn](apps-git-git/vpn/001-nordconnectbtn.md) | VPN & Mesh · VPN 與網狀網 | Apps & Git · 程式與 Git | `Button` | `NordConnect_Click` |
 | [NordDisconnectBtn](apps-git-git/vpn/002-norddisconnectbtn.md) | VPN & Mesh · VPN 與網狀網 | Apps & Git · 程式與 Git | `Button` | `NordDisconnect_Click` |
 | [NordGroupBtn](apps-git-git/vpn/003-nordgroupbtn.md) | VPN & Mesh · VPN 與網狀網 | Apps & Git · 程式與 Git | `Button` | `NordGroup_Click` |
@@ -636,9 +650,9 @@
 | [WgImportBtn](apps-git-git/vpn/022-wgimportbtn.md) | VPN & Mesh · VPN 與網狀網 | Apps & Git · 程式與 Git | `Button` | `WgImport_Click` |
 | [WgRefreshBtn](apps-git-git/vpn/023-wgrefreshbtn.md) | VPN & Mesh · VPN 與網狀網 | Apps & Git · 程式與 Git | `Button` | `WgRefresh_Click` |
 | [WinVpnAddBtn](apps-git-git/vpn/017-winvpnaddbtn.md) | VPN & Mesh · VPN 與網狀網 | Apps & Git · 程式與 Git | `Button` | `WinVpnAdd_Click` |
+| […](apps-git-git/vscode/002-diffapick.md) | VS Code · VS Code 編輯器 | Apps & Git · 程式與 Git | `Button` | `DiffAPick_Click` |
 | […](apps-git-git/vscode/005-gotopick.md) | VS Code · VS Code 編輯器 | Apps & Git · 程式與 Git | `Button` | `GotoPick_Click` |
 | […](apps-git-git/vscode/003-diffbpick.md) | VS Code · VS Code 編輯器 | Apps & Git · 程式與 Git | `Button` | `DiffBPick_Click` |
-| […](apps-git-git/vscode/002-diffapick.md) | VS Code · VS Code 編輯器 | Apps & Git · 程式與 Git | `Button` | `DiffAPick_Click` |
 | [DiffBtn](apps-git-git/vscode/004-diffbtn.md) | VS Code · VS Code 編輯器 | Apps & Git · 程式與 Git | `Button` | `Diff_Click` |
 | [ExtExportBtn](apps-git-git/vscode/012-extexportbtn.md) | VS Code · VS Code 編輯器 | Apps & Git · 程式與 Git | `Button` | `ExtExport_Click` |
 | [ExtImportBtn](apps-git-git/vscode/013-extimportbtn.md) | VS Code · VS Code 編輯器 | Apps & Git · 程式與 Git | `Button` | `ExtImport_Click` |
@@ -724,11 +738,11 @@
 | [ListCopyBtn](calculators-numbers/randomizer/008-listcopybtn.md) | Randomizer · 隨機工具箱 | Calculators & Numbers · 計算與數字 | `Button` | `ListCopy_Click` |
 | [ListPickBtn](calculators-numbers/randomizer/006-listpickbtn.md) | Randomizer · 隨機工具箱 | Calculators & Numbers · 計算與數字 | `Button` | `ListPick_Click` |
 | [ListShuffleBtn](calculators-numbers/randomizer/007-listshufflebtn.md) | Randomizer · 隨機工具箱 | Calculators & Numbers · 計算與數字 | `Button` | `ListShuffle_Click` |
-| [[icon U+E8C8]](calculators-numbers/scinotation/004-enotcopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
 | [[icon U+E8C8]](calculators-numbers/scinotation/005-sicopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
-| [[icon U+E8C8]](calculators-numbers/scinotation/002-scicopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
+| [[icon U+E8C8]](calculators-numbers/scinotation/004-enotcopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
 | [[icon U+E8C8]](calculators-numbers/scinotation/003-engcopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
 | [[icon U+E8C8]](calculators-numbers/scinotation/001-stdcopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
+| [[icon U+E8C8]](calculators-numbers/scinotation/002-scicopy.md) | Scientific Notation · 科學記數法 | Calculators & Numbers · 計算與數字 | `Button` | `Copy_Click` |
 | [[icon U+2212]](calculators-numbers/tally/002-minus-click.md) | Tally Counter · 點數計數器 | Calculators & Numbers · 計算與數字 | `Button` | `Minus_Click` |
 | [[icon U+2B]](calculators-numbers/tally/003-plus-click.md) | Tally Counter · 點數計數器 | Calculators & Numbers · 計算與數字 | `Button` | `Plus_Click` |
 | [AddBtn](calculators-numbers/tally/001-addbtn.md) | Tally Counter · 點數計數器 | Calculators & Numbers · 計算與數字 | `Button` | `Add_Click` |
@@ -1314,13 +1328,13 @@
 | [WriteBackBtn](network-tools/hostsedit/009-writebackbtn.md) | Hosts File Editor · 主機檔編輯器 | Network Tools · 網絡工具 | `Button` | `WriteBack_Click` |
 | [CopyBtn](network-tools/ipinfo/002-copybtn.md) | IP & Network Info · IP 同網絡資訊 | Network Tools · 網絡工具 | `Button` | `Copy_Click` |
 | [RefreshBtn](network-tools/ipinfo/001-refreshbtn.md) | IP & Network Info · IP 同網絡資訊 | Network Tools · 網絡工具 | `Button` | `Refresh_Click` |
-| [[icon U+E8C8]](network-tools/subnetv6/007-euicopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Eui` |
-| [[icon U+E8C8]](network-tools/subnetv6/006-lastcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Last` |
-| [[icon U+E8C8]](network-tools/subnetv6/005-firstcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_First` |
-| [[icon U+E8C8]](network-tools/subnetv6/003-netcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Net` |
-| [[icon U+E8C8]](network-tools/subnetv6/002-compressedcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Compressed` |
 | [[icon U+E8C8]](network-tools/subnetv6/004-countcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Count` |
 | [[icon U+E8C8]](network-tools/subnetv6/001-expandedcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Expanded` |
+| [[icon U+E8C8]](network-tools/subnetv6/002-compressedcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Compressed` |
+| [[icon U+E8C8]](network-tools/subnetv6/003-netcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Net` |
+| [[icon U+E8C8]](network-tools/subnetv6/007-euicopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Eui` |
+| [[icon U+E8C8]](network-tools/subnetv6/005-firstcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_First` |
+| [[icon U+E8C8]](network-tools/subnetv6/006-lastcopy.md) | IPv6 Tools · IPv6 工具 | Network Tools · 網絡工具 | `Button` | `Copy_Last` |
 | [RandomBtn](network-tools/mactools/001-randombtn.md) | MAC Address Tools · MAC 位址工具 | Network Tools · 網絡工具 | `Button` | `Random_Click` |
 | [PingStartBtn](network-tools/ping/001-pingstartbtn.md) | Ping & Traceroute · 網路測試（Ping・路由追蹤） | Network Tools · 網絡工具 | `Button` | `PingStart_Click` |
 | [PingStopBtn](network-tools/ping/002-pingstopbtn.md) | Ping & Traceroute · 網路測試（Ping・路由追蹤） | Network Tools · 網絡工具 | `Button` | `PingStop_Click` |
@@ -1395,8 +1409,8 @@
 | [Export all · 全部匯出](security-privacy/camoufox/006-exportallbtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `ExportAll_Click` |
 | [Export selected · 匯出已選](security-privacy/camoufox/005-exportselbtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `ExportSelected_Click` |
 | [Import · 匯入](security-privacy/camoufox/007-importbtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `Import_Click` |
-| [Launch · 啟動](security-privacy/camoufox/009-rowlaunch-click.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `RowLaunch_Click` |
 | [Launch · 啟動](security-privacy/camoufox/003-launchbtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `Launch_Click` |
+| [Launch · 啟動](security-privacy/camoufox/009-rowlaunch-click.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `RowLaunch_Click` |
 | [NewBtn](security-privacy/camoufox/001-newbtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `New_Click` |
 | [PushNowBtn](security-privacy/camoufox/015-pushnowbtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `PushNow_Click` |
 | [Refresh · 重新整理](security-privacy/camoufox/008-refreshprofilesbtn.md) | Camoufox Profiles · Camoufox 指紋設定檔 | Security & Privacy · 安全與私隱 | `Button` | `RefreshProfiles_Click` |
@@ -1804,13 +1818,13 @@
 | [DecodedToggle](web-http-http/queryedit/009-decodedtoggle.md) | URL Query Editor · 網址查詢編輯器 | Web & HTTP · 網頁與 HTTP | `ToggleButton` | `DecodedToggle_Click` |
 | [ParseBtn](web-http-http/queryedit/001-parsebtn.md) | URL Query Editor · 網址查詢編輯器 | Web & HTTP · 網頁與 HTTP | `Button` | `Parse_Click` |
 | [SortBtn](web-http-http/queryedit/003-sortbtn.md) | URL Query Editor · 網址查詢編輯器 | Web & HTTP · 網頁與 HTTP | `Button` | `Sort_Click` |
-| [[icon U+E8C8]](web-http-http/urltools/002-copypart-click.md) | URL Tools · 網址工具 | Web & HTTP · 網頁與 HTTP | `Button` | `CopyPart_Click` |
-| [[icon U+E8C8]](web-http-http/urltools/003-copypart-click.md) | URL Tools · 網址工具 | Web & HTTP · 網頁與 HTTP | `Button` | `CopyPart_Click` |
-| [[icon U+E8C8]](web-http-http/urltools/004-copypart-click.md) | URL Tools · 網址工具 | Web & HTTP · 網頁與 HTTP | `Button` | `CopyPart_Click` |
 | [[icon U+E8C8]](web-http-http/urltools/005-copypart-click.md) | URL Tools · 網址工具 | Web & HTTP · 網頁與 HTTP | `Button` | `CopyPart_Click` |
+| [[icon U+E8C8]](web-http-http/urltools/004-copypart-click.md) | URL Tools · 網址工具 | Web & HTTP · 網頁與 HTTP | `Button` | `CopyPart_Click` |
+| [[icon U+E8C8]](web-http-http/urltools/008-copypart-click.md) | URL Tools · 網址工具 | Web & HTTP · 網頁與 HTTP | `Button` | `CopyPart_Click` |
 | [[icon U+E8C8]](web-http-http/urltools/006-copypart-click.md) | URL Tools · 網址工具 | Web & HTTP · 網頁與 HTTP | `Button` | `CopyPart_Click` |
 | [[icon U+E8C8]](web-http-http/urltools/007-copypart-click.md) | URL Tools · 網址工具 | Web & HTTP · 網頁與 HTTP | `Button` | `CopyPart_Click` |
-| [[icon U+E8C8]](web-http-http/urltools/008-copypart-click.md) | URL Tools · 網址工具 | Web & HTTP · 網頁與 HTTP | `Button` | `CopyPart_Click` |
+| [[icon U+E8C8]](web-http-http/urltools/002-copypart-click.md) | URL Tools · 網址工具 | Web & HTTP · 網頁與 HTTP | `Button` | `CopyPart_Click` |
+| [[icon U+E8C8]](web-http-http/urltools/003-copypart-click.md) | URL Tools · 網址工具 | Web & HTTP · 網頁與 HTTP | `Button` | `CopyPart_Click` |
 | [AddBtn](web-http-http/urltools/009-addbtn.md) | URL Tools · 網址工具 | Web & HTTP · 網頁與 HTTP | `Button` | `Add_Click` |
 | [CopyCodecBtn](web-http-http/urltools/016-copycodecbtn.md) | URL Tools · 網址工具 | Web & HTTP · 網頁與 HTTP | `Button` | `CopyCodec_Click` |
 | [CopyUrlBtn](web-http-http/urltools/013-copyurlbtn.md) | URL Tools · 網址工具 | Web & HTTP · 網頁與 HTTP | `Button` | `CopyUrl_Click` |

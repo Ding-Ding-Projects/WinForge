@@ -36,14 +36,14 @@ git push
 ## Pages · 頁
 
 - `Home.md` — compact landing page · 精簡首頁
-- `Module-Categories.md` — categorized index of all 314 modules · 全部 314 個模組嘅分類索引
+- `Module-Categories.md` — categorized index of all 315 modules · 全部 315 個模組嘅分類索引
 - `Reactor-Hub.md` — reactor documentation hub · 反應堆文件中心
 - `Generated-References.md` — generated feature/button reference guide · 生成功能／按鈕參考指南
 - `Screenshots.md` — image inventory + capture status · 圖檔清單同擷取狀態
 - `features/README.md` — generated one-page-per-feature reference · 生成嘅每功能一頁參考
 - `buttons/README.md` — generated one-page-per-button/control reference · 生成嘅每按鈕／控制項一頁參考
 - `Accessibility.md` — keyboard and screen-reader baseline · 鍵盤同螢幕閱讀器基本標準
-- One deeper page per headline module · 每個重點模組一頁: Dashboard, Git-and-GitHub, Package-Manager, Cake-Factory-and-Farm, Open-Source-App-Hub,
+- One deeper page per headline module · 每個重點模組一頁: Dashboard, Git-and-GitHub, GitHub-Desktop-Profiles, Package-Manager, Cake-Factory-and-Farm, Open-Source-App-Hub,
   Cloudflare-and-Tunnel, AI-Agents, Media, Settings-and-Control-Panel, Clipboard, Connections,
   System-Monitor.
 

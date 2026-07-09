@@ -11,6 +11,7 @@
 | [Android (ADB) · Android（ADB）](apps-git-git/adb.md) | `module.adb` | `adb` | 24 |
 | [Android Emulator & SDK · Android 模擬器與 SDK](apps-git-git/emulator.md) | `module.emulator` | `emulator` | 14 |
 | [API Client · REST API 用戶端](apps-git-git/api.md) | `module.apiclient` | `api` | 14 |
+| [App Launcher · 原生 App 啟動器](apps-git-git/applauncher.md) | `module.applauncher` | `applauncher` | 1 |
 | [App Uninstaller · 應用程式解除安裝](apps-git-git/uninstall.md) | `module.uninstall` | `uninstall` | 2 |
 | [AWS CLI · AWS 命令列](apps-git-git/aws.md) | `module.aws` | `aws` | 14 |
 | [Bitwarden Vault · Bitwarden 密碼庫](apps-git-git/bitwarden.md) | `module.bitwarden` | `bitwarden` | 2 |
@@ -28,6 +29,7 @@
 | [Flashcards · 間隔重複記憶卡](apps-git-git/flashcards.md) | `module.flashcards` | `flashcards` | 17 |
 | [FTP / SFTP · FTP／SFTP 檔案傳輸](apps-git-git/filezilla.md) | `module.filezilla` | `filezilla` | 23 |
 | [Git & GitHub · Git 與 GitHub](apps-git-git/git.md) | `module.git` | `git` | 34 |
+| [GitHub Desktop Profiles · GitHub Desktop 多帳戶設定檔](apps-git-git/githubdesktopprofiles.md) | `module.githubdesktopprofiles` | `githubdesktopprofiles` | 13 |
 | [Home Assistant · 家居助理](apps-git-git/homeassistant.md) | `module.homeassistant` | `homeassistant` | 42 |
 | [Imaging & Game Tools · 燒錄與遊戲工具](apps-git-git/imaging.md) | `module.imaging` | `imaging` | 17 |
 | [In-App Login · 內置登入](apps-git-git/weblogin.md) | `module.weblogin` | `weblogin` | 6 |

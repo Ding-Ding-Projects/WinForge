@@ -1,7 +1,7 @@
 # WinForge Wiki · 視窗鑄造 Wiki
 
-**EN —** WinForge is a fully bilingual Windows 11 control center with 314 registered in-app modules, 895 tweak-catalog items, and 1,209 total app features including the flagship nuclear-reactor simulator.
-**粵語 —** WinForge 係全程雙語嘅 Windows 11 控制中心，有 314 個已登記 app 內模組、895 項調校目錄項目，同 1,209 項總功能，包括旗艦核反應堆模擬器。
+**EN —** WinForge is a fully bilingual Windows 11 control center with 315 registered in-app modules, 895 tweak-catalog items, and 1,210 total app features including the flagship nuclear-reactor simulator.
+**粵語 —** WinForge 係全程雙語嘅 Windows 11 控制中心，有 315 個已登記 app 內模組、895 項調校目錄項目，同 1,210 項總功能，包括旗艦核反應堆模擬器。
 
 ## Start Here · 由呢度開始
 
@@ -17,6 +17,7 @@
 
 - [Dashboard](Dashboard.md) · 概覽
 - [Git & GitHub](Git-and-GitHub.md) · Git 與 GitHub
+- [GitHub Desktop Profiles](GitHub-Desktop-Profiles.md) · GitHub Desktop 多帳戶設定檔
 - [Package Manager](Package-Manager.md) · 套件管理
 - [AI Agents](AI-Agents.md) · AI 代理
 - [Cake Factory & Farm](Cake-Factory-and-Farm.md) · 蛋糕工廠與農場
