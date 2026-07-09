@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WinForge Code Editor · 程式碼編輯器</title>
+<style>
+/* ============================================================
+   WinForge CodeForge — theme variables (default: dark)
+   ============================================================ */
+:root{
+  --bg:        #15171c;
+  --bg2:       #1d2026;
+  --bg3:       #262a32;
+  --bg4:       #2e333d;
+  --fg:        #e8eaf0;
+  --fg-dim:    #9aa1af;
+  --border:    #333845;
+  --accent:    #f08c3c;
+  --accent2:   #ffb36b;
+  --accent-soft: rgba(240,140,60,.16);
+  --danger:    #e5534b;
+  --ok:        #4cc38a;
+  --warn:      #d9a53a;
+  --tab-bg:    #1a1d23;
+  --tab-active:#262a32;
+  --shadow:    0 12px 44px rgba(0,0,0,.55);
+  --hdr-grad:  linear-gradient(90deg,#22252d 0%,#1d2026 55%,#26221c 100%);
+}
+html.light{
+  --bg:        #f2f3f6;
+  --bg2:       #ffffff;
+  --bg3:       #e9ebef;
+  --bg4:       #dfe2e8;
+  --fg:        #1c1f26;
+  --fg-dim:    #5c6470;
+  --border:    #d4d8e0;
+  --accent:    #c96a1e;
+  --accent2:   #a95510;
+  --accent-soft: rgba(201,106,30,.12);
+  --danger:    #c9372f;
+  --ok:        #1f9e63;
+  --warn:      #a97c14;
+  --tab-bg:    #e7e9ee;
+  --tab-active:#ffffff;
+  --shadow:    0 12px 44px rgba(20,24,32,.18);
+  --hdr-grad:  linear-gradient(90deg,#ffffff 0%,#f7f4ef 60%,#f6ecdf 100%);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; overflow:hidden;
+  background:var(--bg); color:var(--fg);
+  font-family:'Segoe UI Variable Text','Segoe UI','Microsoft JhengHei UI','Microsoft JhengHei',sans-serif;
+  font-size:13px;
+  display:flex; flex-direction:column;
+}
+button{font-family:inherit}
+
+/* ---------- header / branding strip ---------- */
+#hdr{
+  height:48px; flex:0 0 auto;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 12px 0 10px;
+  background:var(--hdr-grad);
+  border-bottom:2px solid var(--accent);
+  user-select:none;
+}
+.brand{display:flex; align-items:center; gap:10px; min-width:0}
+.mark{
+  width:30px;height:30px;border-radius:8px;flex:0 0 auto;
+  background:linear-gradient(135deg,var(--accent) 0%,var(--accent2) 100%);
+  color:#fff;display:flex;align-items:center;justify-content:center;
+  font-family:Consolas,'Cascadia Code',monospace;font-weight:700;font-size:12px;
+  box-shadow:0 2px 8px rgba(0,0,0,.35);
+}
+.titles{min-width:0}
+.t1{font-size:14px;font-weight:600;letter-spacing:.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t2{font-size:10.5px;color:var(--fg-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hdr-right{display:flex;align-items:center;gap:6px}
+.hbtn{
+  height:28px;min-width:28px;padding:0 9px;border-radius:6px;
+  border:1px solid var(--border);background:var(--bg3);color:var(--fg);
+  cursor:pointer;font-size:12px;
+  transition:background .12s,border-color .12s;
+}
+.hbtn:hover{background:var(--bg4);border-color:var(--accent)}
+
+/* ---------- toolbar ---------- */
+#toolbar{
+  flex:0 0 auto;display:flex;align-items:center;gap:4px;flex-wrap:wrap;
+  padding:6px 8px;background:var(--bg2);border-bottom:1px solid var(--border);
+  user-select:none;
+}
+#toolbar.disabled{opacity:.45;pointer-events:none}
+.tbtn{
+  display:inline-flex;align-items:center;gap:6px;
+  height:30px;padding:0 10px;border-radius:6px;
+  border:1px solid transparent;background:transparent;color:var(--fg);
+  cursor:pointer;font-size:12px;white-space:nowrap;
+  transition:background .12s,border-color .12s;
+}
+.tbtn:hover{background:var(--bg3);border-color:var(--border)}
+.tbtn.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent2)}
+html.light .tbtn.on{color:var(--accent)}
+.tbtn svg{flex:0 0 auto;stroke:currentColor;fill:none;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+.tsep{width:1px;height:20px;background:var(--border);margin:0 4px;flex:0 0 auto}
+#selLang{
+  height:30px;max-width:200px;padding:0 8px;border-radius:6px;
+  background:var(--bg3);color:var(--fg);border:1px solid var(--border);
+  font-size:12px;outline:none;cursor:pointer;
+}
+#selLang:disabled{opacity:.5;cursor:default}
+#icoSun{display:none}
+html.light #icoSun{display:block}
+html.light #icoMoon{display:none}
+
+/* ---------- tab strip ---------- */
+#tabbar{
+  flex:0 0 auto;display:flex;align-items:stretch;
+  background:var(--tab-bg);border-bottom:1px solid var(--border);
+  user-select:none;min-height:35px;
+}
+#tabs{display:flex;overflow-x:auto;overflow-y:hidden;flex:1 1 auto;scrollbar-width:thin}
+#tabs::-webkit-scrollbar{height:4px}
+#tabs::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.tab{
+  display:flex;align-items:center;gap:6px;
+  padding:0 10px;height:34px;max-width:210px;min-width:90px;
+  border-right:1px solid var(--border);
+  background:var(--tab-bg);cursor:pointer;position:relative;
+  transition:background .1s;
+}
+.tab:hover{background:var(--bg3)}
+.tab.active{background:var(--tab-active);box-shadow:inset 0 2px 0 var(--accent)}
+.tab .name{flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px}
+.tab .badge{
+  flex:0 0 auto;background:var(--accent);color:#fff;border-radius:4px;
+  font-size:10px;font-weight:700;padding:1px 5px;line-height:1.3;
+}
+.tab .dot{
+  flex:0 0 auto;width:8px;height:8px;border-radius:50%;
+  background:var(--accent2);display:none;
+}
+.tab .close{
+  flex:0 0 auto;width:17px;height:17px;border-radius:4px;
+  display:none;align-items:center;justify-content:center;
+  font-size:14px;line-height:1;color:var(--fg-dim);
+}
+.tab .close:hover{background:var(--bg4);color:var(--fg)}
+.tab:hover .close, .tab.active .close{display:flex}
+.tab.dirty .close{display:none}
+.tab.dirty:hover .close{display:flex}
+.tab.dirty .dot{display:inline-block}
+.tab.dirty:hover .dot{display:none}
+#tabAdd{
+  flex:0 0 auto;width:32px;height:34px;border:none;background:transparent;
+  color:var(--fg-dim);font-size:17px;cursor:pointer;
+}
+#tabAdd:hover{color:var(--accent2);background:var(--bg3)}
+
+/* ---------- editor area ---------- */
+#main{flex:1 1 auto;position:relative;min-height:0}
+#editor,#diff{position:absolute;inset:0}
+#diff{display:none}
+
+/* ---------- status bar ---------- */
+#status{
+  flex:0 0 auto;height:25px;display:flex;align-items:center;justify-content:space-between;
+  background:var(--bg2);border-top:1px solid var(--border);
+  padding:0 10px;font-size:11.5px;color:var(--fg-dim);user-select:none;
+}
+.st-left,.st-right{display:flex;align-items:center;gap:2px;min-width:0;overflow:hidden}
+.st-item{padding:0 8px;white-space:nowrap}
+.st-item.clickable{cursor:pointer;border-radius:4px}
+.st-item.clickable:hover{background:var(--bg3);color:var(--fg)}
+.st-brand{color:var(--accent);font-weight:600}
+
+/* ---------- overlays ---------- */
+.overlay{
+  position:fixed;inset:0;z-index:50;background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:16px;text-align:center;padding:24px;
+}
+.overlay.hide{display:none}
+.spinner{
+  width:38px;height:38px;border-radius:50%;
+  border:3px solid var(--border);border-top-color:var(--accent);
+  animation:spin .9s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ov-msg{font-size:15px;line-height:1.7;max-width:560px;color:var(--fg)}
+.ov-sub{font-size:12px;color:var(--fg-dim)}
+.ov-icon{font-size:34px;color:var(--warn);font-weight:700}
+
+/* ---------- modal ---------- */
+#modalOverlay{
+  position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.5);
+  display:none;align-items:center;justify-content:center;padding:20px;
+}
+#modalOverlay.show{display:flex}
+#modalBox{
+  background:var(--bg2);border:1px solid var(--border);border-radius:12px;
+  width:min(460px,92vw);max-height:82vh;overflow:auto;
+  box-shadow:var(--shadow);padding:18px 18px 14px;
+  animation:pop .14s ease-out;
+}
+@keyframes pop{from{transform:scale(.96);opacity:0}to{transform:scale(1);opacity:1}}
+.m-title{font-size:15px;font-weight:600;margin-bottom:12px;color:var(--fg)}
+.m-body{font-size:13px;line-height:1.65;color:var(--fg);white-space:pre-line;margin-bottom:14px}
+.m-foot{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.m-btn{
+  height:30px;padding:0 14px;border-radius:6px;font-size:12.5px;cursor:pointer;
+  border:1px solid var(--border);background:var(--bg3);color:var(--fg);
+  transition:background .12s,border-color .12s;
+}
+.m-btn:hover{background:var(--bg4);border-color:var(--accent)}
+.m-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.m-btn.primary:hover{background:var(--accent2);border-color:var(--accent2);color:#1c1006}
+.m-btn.danger{border-color:var(--danger);color:var(--danger)}
+.m-btn.danger:hover{background:var(--danger);color:#fff}
+.m-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.m-row label{flex:0 0 150px;font-size:12.5px;color:var(--fg-dim)}
+.m-row select{
+  flex:1 1 auto;height:30px;padding:0 8px;border-radius:6px;min-width:0;
+  background:var(--bg3);color:var(--fg);border:1px solid var(--border);font-size:12.5px;
+}
+.m-hint{font-size:12px;color:var(--warn);margin-top:4px}
+.h-row{display:flex;align-items:center;gap:12px;padding:4px 0;border-bottom:1px solid var(--border)}
+.h-row:last-of-type{border-bottom:none}
+.h-row kbd{
+  flex:0 0 150px;background:var(--bg3);border:1px solid var(--border);border-bottom-width:2px;
+  border-radius:5px;padding:2px 7px;font-family:Consolas,monospace;font-size:11.5px;color:var(--fg);
+  text-align:center;white-space:nowrap;
+}
+.h-row span{font-size:12.5px}
+.h-note{margin-top:12px;font-size:11.5px;color:var(--fg-dim);line-height:1.6;white-space:pre-line}
+
+/* ---------- toast ---------- */
+#toast{
+  position:fixed;right:16px;bottom:38px;z-index:70;
+  background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--accent);
+  border-radius:8px;padding:9px 14px;font-size:12.5px;max-width:min(380px,80vw);
+  box-shadow:var(--shadow);opacity:0;transform:translateY(8px);pointer-events:none;
+  transition:opacity .18s,transform .18s;
+}
+#toast.show{opacity:1;transform:translateY(0)}
+#toast.warn{border-left-color:var(--warn)}
+#toast.error{border-left-color:var(--danger)}
+</style>
+</head>
+<body>
+
+<!-- ============ header / branding ============ -->
+<header id="hdr">
+  <div class="brand">
+    <div class="mark">&lt;/&gt;</div>
+    <div class="titles">
+      <div class="t1">WinForge Code Editor · 程式碼編輯器</div>
+      <div class="t2">CodeForge — powered by Monaco (VS Code engine)</div>
+    </div>
+  </div>
+  <div class="hdr-right">
+    <button id="btnLangMode" class="hbtn" data-tip="langModeTip">EN·中</button>
+    <button id="btnHelp" class="hbtn" data-tip="helpTip">?</button>
+  </div>
+</header>
+
+<!-- ============ toolbar ============ -->
+<div id="toolbar" class="disabled">
+  <button class="tbtn" id="btnNew" data-tip="newFileTip">
+    <svg viewBox="0 0 16 16" width="15" height="15"><path d="M9.5 1.5h-6a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1V5.5z"/><path d="M9.5 1.5v4h4"/><path d="M8 8v4M6 10h4"/></svg>
+    <span data-i="new"></span>
+  </button>
+  <button class="tbtn" id="btnOpen" data-tip="openTip">
+    <svg viewBox="0 0 16 16" width="15" height="15"><path d="M1.5 3.5h4l1.5 2h7.5v7a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1z"/></svg>
+    <span data-i="open"></span>
+  </button>
+  <button class="tbtn" id="btnSave" data-tip="saveTip">
+    <svg viewBox="0 0 16 16" width="15" height="15"><path d="M2.5 2.5h9l2 2v9h-11z"/><path d="M5 2.5v3.5h5V2.5"/><path d="M4.5 13.5V9h7v4.5"/></svg>
+    <span data-i="save"></span>
+  </button>
+  <div class="tsep"></div>
+  <button class="tbtn" id="btnDiff" data-tip="diffTip">
+    <svg viewBox="0 0 16 16" width="15" height="15"><rect x="1.5" y="2.5" width="5.5" height="11" rx="1"/><rect x="9" y="2.5" width="5.5" height="11" rx="1"/></svg>
+    <span id="lblDiff"></span>
+  </button>
+  <div class="tsep"></div>
+  <select id="selLang" data-tip="langPickTip"></select>
+  <div class="tsep"></div>
+  <button class="tbtn" id="btnWrap" data-tip="wrapTip">
+    <svg viewBox="0 0 16 16" width="15" height="15"><path d="M2 4h12"/><path d="M2 8h9a2.5 2.5 0 1 1 0 5H9"/><path d="M10.5 11.5 9 13l1.5 1.5"/><path d="M2 12h4"/></svg>
+    <span data-i="wrap"></span>
+  </button>
+  <button class="tbtn" id="btnMinimap" data-tip="minimapTip">
+    <svg viewBox="0 0 16 16" width="15" height="15"><rect x="1.5" y="2.5" width="13" height="11" rx="1"/><path d="M10.5 2.5v11"/><path d="M3.5 5h4M3.5 7.5h5M3.5 10h3.5"/></svg>
+    <span data-i="minimap"></span>
+  </button>
+  <button class="tbtn" id="btnTheme" data-tip="themeTip">
+    <svg id="icoMoon" viewBox="0 0 16 16" width="15" height="15"><path d="M13.5 9.5A6 6 0 0 1 6.5 2.5a6 6 0 1 0 7 7z"/></svg>
+    <svg id="icoSun" viewBox="0 0 16 16" width="15" height="15"><circle cx="8" cy="8" r="3"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M12.6 3.4l-1.4 1.4M4.8 11.2l-1.4 1.4"/></svg>
+    <span data-i="theme"></span>
+  </button>
+</div>
+
+<!-- ============ tab strip ============ -->
+<div id="tabbar">
+  <div id="tabs"></div>
+  <button id="tabAdd" data-tip="newFileTip">+</button>
+</div>
+
+<!-- ============ editor / diff ============ -->
+<div id="main">
+  <div id="editor"></div>
+  <div id="diff"></div>
+</div>
+
+<!-- ============ status bar ============ -->
+<footer id="status">
+  <div class="st-left">
+    <span class="st-item st-brand">WinForge</span>
+    <span id="stPos" class="st-item"></span>
+  </div>
+  <div class="st-right">
+    <span id="stLang" class="st-item" data-tip="language"></span>
+    <span id="stTab" class="st-item clickable" data-tip="tabTip"></span>
+    <span id="stChars" class="st-item"></span>
+    <span class="st-item">UTF-8</span>
+  </div>
+</footer>
+
+<!-- ============ overlays / modal / toast ============ -->
+<div id="bootOverlay" class="overlay">
+  <div class="spinner"></div>
+  <div class="ov-msg">Loading editor engine… · 編輯器引擎載入緊…</div>
+  <div class="ov-sub">WinForge CodeForge</div>
+</div>
+<div id="failOverlay" class="overlay hide">
+  <div class="ov-icon">!</div>
+  <div class="ov-msg">Editor engine not installed yet — close this window and reopen. · 編輯器引擎仲未安裝好 — 請閂咗呢個視窗再開過。</div>
+</div>
+<div id="modalOverlay"><div id="modalBox"></div></div>
+<div id="toast"></div>
+<input type="file" id="fileInput" multiple hidden>
+
+<script src="https://libs.winforge/monaco/vs/loader.js" onerror="window.__monacoLoadFailed=true"></script>
+<script>
+'use strict';
+/* ================================================================
+   WinForge CodeForge — main application script
+   Fully offline. Bridge contract with the WinForge WebView2 host.
+   ================================================================ */
+
+/* ---------------- tiny helpers ---------------- */
+function $(id){ return document.getElementById(id); }
+function el(tag, cls){ var e=document.createElement(tag); if(cls) e.className=cls; return e; }
+
+/* ---------------- state ---------------- */
+var mode='Bilingual';          // 'En' | 'Zh' | 'Bilingual'
+var dark=true;
+var wrap=false, minimapOn=true, tabSize=4;
+var tabs=[], activeId=null, seq=1, nextUntitled=1;
+var editor=null, diffEditor=null, inDiff=false, diffIds=[null,null];
+var monacoReady=false;
+var lastPos={l:1,c:1};
+var langIndex={};              // language id -> display alias
+var wv=(window.chrome && window.chrome.webview) ? window.chrome.webview : null;
+
+/* persisted editor preferences (theme + language come from the host) */
+try{
+  var st=JSON.parse(localStorage.getItem('winforge.codeforge')||'{}');
+  wrap=!!st.wrap;
+  minimapOn=(st.minimap!==false);
+  if(st.tabSize===2||st.tabSize===4||st.tabSize===8) tabSize=st.tabSize;
+}catch(e){}
+function saveSettings(){
+  try{ localStorage.setItem('winforge.codeforge', JSON.stringify({wrap:wrap,minimap:minimapOn,tabSize:tabSize})); }catch(e){}
+}
+
+/* ---------------- bilingual strings (English / 粵語) ---------------- */
+var S={
+  new:            ['New','新增'],
+  open:           ['Open','開啟'],
+  save:           ['Save','儲存'],
+  diff:           ['Diff','比對'],
+  exitDiff:       ['Exit diff','退出比對'],
+  wrap:           ['Wrap','換行'],
+  minimap:        ['Minimap','縮圖'],
+  theme:          ['Theme','主題'],
+  language:       ['Language','語言'],
+  newFileTip:     ['New file (Ctrl+N)','新增檔案 (Ctrl+N)'],
+  openTip:        ['Open files (Ctrl+O)','開啟檔案 (Ctrl+O)'],
+  saveTip:        ['Save current file (Ctrl+S)','儲存目前檔案 (Ctrl+S)'],
+  diffTip:        ['Compare two open tabs side by side','並排比對兩個已開嘅分頁'],
+  langPickTip:    ['Set language for the current file','幫目前檔案揀語言'],
+  wrapTip:        ['Toggle word wrap','切換自動換行'],
+  minimapTip:     ['Toggle code minimap','切換程式碼縮圖'],
+  themeTip:       ['Toggle light / dark editor theme','切換淺色／深色主題'],
+  helpTip:        ['Keyboard shortcuts & help','鍵盤快捷鍵同幫助'],
+  langModeTip:    ['Display language (set by WinForge; click to cycle)','介面語言（由 WinForge 控制；撳一下切換）'],
+  closeTabTip:    ['Close tab (middle-click also works)','閂咗個分頁（中鍵都得）'],
+  tabTip:         ['Click to change indent size (2 / 4 / 8)','撳一下改縮排大小（2／4／8）'],
+  confirmCloseTitle:['Unsaved changes','未儲存嘅變更'],
+  btnSaveClose:   ['Save & close','儲存再閂'],
+  btnCloseNoSave: ['Close without saving','唔儲存直接閂'],
+  cancel:         ['Cancel','取消'],
+  diffTitle:      ['Compare files','比對檔案'],
+  original:       ['Original (left)','原始（左邊）'],
+  modified:       ['Modified (right)','修改後（右邊）'],
+  startDiff:      ['Compare','開始比對'],
+  needTwoTabs:    ['Open at least two tabs to compare.','要比對就需要至少開兩個分頁。'],
+  diffSame:       ['Pick two different tabs.','要揀兩個唔同嘅分頁。'],
+  openMore:       ['Open files…','開啟檔案…'],
+  helpTitle:      ['Keyboard shortcuts','鍵盤快捷鍵'],
+  helpClose:      ['Got it','明白喇'],
+  saveReq:        ['Save dialog opened','已彈出儲存視窗'],
+  saved:          ['Downloaded','已下載'],
+  openFailed:     ['Could not read file','讀唔到個檔案'],
+  tooBig:         ['File too big to open (max 50 MB)','檔案太大開唔到（上限 50 MB）'],
+  binaryWarn:     ['This file looks binary — it may not display correctly.','呢個檔案似乎係二進位 — 可能顯示唔正確。'],
+  diffOn:         ['Diff mode — editing the right side','比對模式 — 右邊嗰份可以編輯'],
+  helpNote:       ['CodeForge uses Monaco — the editor engine that powers VS Code. Fully offline, no telemetry.','CodeForge 用緊 Monaco — 即係 VS Code 嘅編輯器引擎。完全離線，冇任何遙測。']
+};
+function tp(pair){ return mode==='En' ? pair[0] : (mode==='Zh' ? pair[1] : pair[0]+' · '+pair[1]); }
+function t(key){ var s=S[key]; return s ? tp(s) : key; }
+
+var HELP_ROWS=[
+  ['Ctrl+N',          ['New file','新增檔案']],
+  ['Ctrl+O',          ['Open files','開啟檔案']],
+  ['Ctrl+S',          ['Save current file','儲存目前檔案']],
+  ['Ctrl+F',          ['Find','搵嘢']],
+  ['Ctrl+H',          ['Replace','取代']],
+  ['Ctrl+G',          ['Go to line','跳去指定行']],
+  ['F1',              ['Command palette (every editor command)','指令面板（所有編輯器指令）']],
+  ['Alt+Click',       ['Add another cursor (multi-cursor)','加多個游標（多游標編輯）']],
+  ['Shift+Alt+F',     ['Format document (where supported)','格式化文件（支援嘅語言先得）']],
+  ['Ctrl+Mouse wheel',['Zoom editor font','縮放編輯器字體']],
+  ['Middle-click tab',['Close that tab','閂咗嗰個分頁']]
+];
+
+/* ---------------- extension -> Monaco language ---------------- */
+var EXT_LANG={
+  js:'javascript', mjs:'javascript', cjs:'javascript', jsx:'javascript',
+  ts:'typescript', tsx:'typescript',
+  json:'json', jsonc:'json',
+  html:'html', htm:'html',
+  css:'css', scss:'scss', less:'less',
+  md:'markdown', markdown:'markdown',
+  xml:'xml', svg:'xml', xaml:'xml', csproj:'xml',
+  yaml:'yaml', yml:'yaml',
+  py:'python', pyw:'python',
+  cs:'csharp',
+  c:'c', h:'c',
+  cpp:'cpp', cc:'cpp', cxx:'cpp', hpp:'cpp',
+  java:'java',
+  go:'go',
+  rs:'rust',
+  php:'php',
+  rb:'ruby',
+  sql:'sql',
+  sh:'shell', bash:'shell', zsh:'shell',
+  ps1:'powershell', psm1:'powershell', psd1:'powershell',
+  bat:'bat', cmd:'bat',
+  ini:'ini', cfg:'ini', conf:'ini', toml:'ini',
+  dockerfile:'dockerfile',
+  lua:'lua', swift:'swift', kt:'kotlin', kts:'kotlin',
+  r:'r', vb:'vb', txt:'plaintext', log:'plaintext'
+};
+function extOf(name){
+  var n=String(name||'').toLowerCase();
+  if(n==='dockerfile') return 'dockerfile';
+  var i=n.lastIndexOf('.');
+  return i>=0 ? n.slice(i+1) : '';
+}
+function detectLang(name){
+  var lang=EXT_LANG[extOf(name)]||'plaintext';
+  return langIndex[lang]!==undefined ? lang : 'plaintext';
+}
+function mimeFor(name){
+  var m={ json:'application/json', html:'text/html', htm:'text/html',
+          js:'text/javascript', mjs:'text/javascript', css:'text/css',
+          svg:'image/svg+xml', md:'text/markdown', xml:'text/xml', csv:'text/csv' };
+  return m[extOf(name)]||'text/plain';
+}
+
+/* ---------------- toast ---------------- */
+var toastTimer=null;
+function toast(msg, kind){
+  var tEl=$('toast');
+  tEl.textContent=msg;
+  tEl.className='show'+(kind&&kind!=='info' ? ' '+kind : '');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(function(){ tEl.className=''; }, 2800);
+}
+
+/* ---------------- modal infrastructure ---------------- */
+var modalDismiss=null;
+function buildModal(title, body, buttons, onDismiss){
+  var box=$('modalBox'); box.innerHTML='';
+  var h=el('div','m-title'); h.textContent=title; box.appendChild(h);
+  var b=el('div','m-body');
+  if(typeof body==='string'){ b.textContent=body; } else { b.appendChild(body); }
+  box.appendChild(b);
+  var f=el('div','m-foot');
+  buttons.forEach(function(bt){
+    var btn=el('button','m-btn'+(bt.cls?' '+bt.cls:''));
+    btn.textContent=bt.label;
+    btn.addEventListener('click',bt.fn);
+    f.appendChild(btn);
+  });
+  box.appendChild(f);
+  $('modalOverlay').classList.add('show');
+  modalDismiss=onDismiss||closeModal;
+}
+function closeModal(){
+  $('modalOverlay').classList.remove('show');
+  $('modalBox').innerHTML='';
+  modalDismiss=null;
+  window.__diffRefresh=null;
+}
+$('modalOverlay').addEventListener('click',function(e){
+  if(e.target===$('modalOverlay') && modalDismiss) modalDismiss();
+});
+
+/* ---------------- tabs ---------------- */
+function activeTab(){ for(var i=0;i<tabs.length;i++) if(tabs[i].id===activeId) return tabs[i]; return null; }
+function tabById(id){ for(var i=0;i<tabs.length;i++) if(tabs[i].id===id) return tabs[i]; return null; }
+function isDirty(tab){ return tab.model.getAlternativeVersionId()!==tab.savedVersionId; }
+
+function createTab(name, content, langId, isUntitled){
+  var model=monaco.editor.createModel(content||'', langId||'plaintext');
+  model.updateOptions({tabSize:tabSize});
+  var tab={ id:'t'+(seq++), name:name, model:model,
+            savedVersionId:model.getAlternativeVersionId(),
+            viewState:null, isUntitled:!!isUntitled };
+  model.onDidChangeContent(function(){
+    updateDirtyDom(tab);
+    if(tab.id===activeId) renderStatus();
+  });
+  tabs.push(tab);
+  return tab;
+}
+function updateDirtyDom(tab){
+  var elTab=document.querySelector('.tab[data-id="'+tab.id+'"]');
+  if(elTab) elTab.classList.toggle('dirty', isDirty(tab));
+}
+function renderTabs(){
+  var strip=$('tabs'); strip.innerHTML='';
+  tabs.forEach(function(tab){
+    var d=el('div','tab'); d.dataset.id=tab.id;
+    if(tab.id===activeId) d.classList.add('active');
+    if(isDirty(tab)) d.classList.add('dirty');
+    if(inDiff){
+      if(tab.id===diffIds[0]){ var bA=el('span','badge'); bA.textContent='A'; d.appendChild(bA); }
+      if(tab.id===diffIds[1]){ var bB=el('span','badge'); bB.textContent='B'; d.appendChild(bB); }
+    }
+    var nm=el('span','name'); nm.textContent=tab.name; nm.title=tab.name; d.appendChild(nm);
+    var dot=el('span','dot'); d.appendChild(dot);
+    var x=el('span','close'); x.textContent='×'; x.title=t('closeTabTip'); d.appendChild(x);
+    d.addEventListener('click',function(ev){
+      if(ev.target===x){ closeTab(tab.id); }
+      else { if(inDiff) exitDiff(); activateTab(tab.id); }
+    });
+    d.addEventListener('mousedown',function(ev){ if(ev.button===1) ev.preventDefault(); });
+    d.addEventListener('auxclick',function(ev){
+      if(ev.button===1){ ev.preventDefault(); closeTab(tab.id); }
+    });
+    strip.appendChild(d);
+  });
+  var act=strip.querySelector('.tab.active');
+  if(act && act.scrollIntoView) act.scrollIntoView({block:'nearest',inline:'nearest'});
+}
+function activateTab(id){
+  if(!monacoReady) return;
+  if(inDiff) exitDiff();
+  var prev=activeTab();
+  if(prev && editor && editor.getModel()===prev.model) prev.viewState=editor.saveViewState();
+  activeId=id;
+  var tab=activeTab(); if(!tab) return;
+  editor.setModel(tab.model);
+  if(tab.viewState) editor.restoreViewState(tab.viewState);
+  editor.focus();
+  var sel=$('selLang');
+  if(sel.options.length) sel.value=tab.model.getLanguageId();
+  renderTabs();
+  updateStatusAll();
+  postTitle();
+}
+function newUntitled(){
+  if(!monacoReady) return;
+  var tab=createTab('untitled-'+(nextUntitled++)+'.txt','','plaintext',true);
+  activateTab(tab.id);
+}
+function confirmClose(name){
+  return new Promise(function(resolve){
+    function done(v){ closeModal(); resolve(v); }
+    var body;
+    if(mode==='En')      body='"'+name+'" has unsaved changes. Close it anyway?';
+    else if(mode==='Zh') body='「'+name+'」有未儲存嘅變更，真係要閉咗佢？';
+    else body='"'+name+'" has unsaved changes. Close it anyway?\n「'+name+'」有未儲存嘅變更，真係要閉咗佢？';
+    buildModal(t('confirmCloseTitle'), body, [
+      {label:t('btnSaveClose'), cls:'primary', fn:function(){ done('save'); }},
+      {label:t('btnCloseNoSave'), cls:'danger', fn:function(){ done('close'); }},
+      {label:t('cancel'), fn:function(){ done('cancel'); }}
+    ], function(){ done('cancel'); });
+  });
+}
+async function closeTab(id){
+  var idx=-1;
+  for(var i=0;i<tabs.length;i++) if(tabs[i].id===id){ idx=i; break; }
+  if(idx<0) return;
+  var tab=tabs[idx];
+  if(isDirty(tab)){
+    var choice=await confirmClose(tab.name);
+    if(choice==='cancel') return;
+    if(choice==='save') saveTab(tab);
+  }
+  if(inDiff && (diffIds[0]===id || diffIds[1]===id)) exitDiff();
+  tabs.splice(idx,1);
+  if(activeId===id){
+    activeId=null;
+    var next=tabs[Math.min(idx,tabs.length-1)];
+    if(next){ activateTab(next.id); }
+    else { if(editor) editor.setModel(null); newUntitled(); }
+  } else {
+    renderTabs();
+  }
+  tab.model.dispose();
+}
+
+/* ---------------- open files ---------------- */
+function readFileText(f){
+  return new Promise(function(res,rej){
+    var r=new FileReader();
+    r.onload=function(){ res(String(r.result)); };
+    r.onerror=function(){ rej(r.error||new Error('read failed')); };
+    r.readAsText(f);
+  });
+}
+async function handleFiles(list){
+  var files=Array.prototype.slice.call(list||[]);
+  if(!files.length || !monacoReady) return;
+  var pristine=null;
+  if(tabs.length===1 && tabs[0].isUntitled && !isDirty(tabs[0]) && tabs[0].model.getValueLength()===0)
+    pristine=tabs[0];
+  var opened=[];
+  for(var i=0;i<files.length;i++){
+    var f=files[i];
+    if(f.size>50*1024*1024){ toast(t('tooBig')+': '+f.name,'error'); continue; }
+    try{
+      var text=await readFileText(f);
+      if(text.indexOf(' ')!==-1) toast(t('binaryWarn'),'warn');
+      opened.push(createTab(f.name, text, detectLang(f.name), false));
+    }catch(err){
+      toast(t('openFailed')+': '+f.name,'error');
+    }
+  }
+  if(opened.length){
+    activateTab(opened[opened.length-1].id);
+    if(pristine){
+      var pi=tabs.indexOf(pristine);
+      if(pi>=0){ tabs.splice(pi,1); pristine.model.dispose(); renderTabs(); }
+    }
+  }
+  if(window.__diffRefresh) window.__diffRefresh();
+}
+$('fileInput').addEventListener('change',function(){
+  handleFiles(this.files);
+  this.value='';
+});
+function openFilesDialog(){ if(monacoReady) $('fileInput').click(); }
+
+/* drag & drop files onto the window */
+document.addEventListener('dragover',function(e){
+  if(e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types||[],'Files')>=0) e.preventDefault();
+});
+document.addEventListener('drop',function(e){
+  if(e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length){
+    e.preventDefault();
+    handleFiles(e.dataTransfer.files);
+  }
+});
+
+/* ---------------- save ---------------- */
+function bytesToBase64(bytes){
+  var bin='', CH=0x8000;
+  for(var i=0;i<bytes.length;i+=CH)
+    bin+=String.fromCharCode.apply(null, bytes.subarray(i, Math.min(i+CH, bytes.length)));
+  return btoa(bin);
+}
+function saveTab(tab){
+  if(!tab) return;
+  try{
+    var text=tab.model.getValue();
+    if(wv){
+      var b64=bytesToBase64(new TextEncoder().encode(text));
+      wv.postMessage({type:'save', name:tab.name, mime:mimeFor(tab.name), dataBase64:b64});
+      toast(t('saveReq')+': '+tab.name);
+    }else{
+      var blob=new Blob([text],{type:mimeFor(tab.name)});
+      var url=URL.createObjectURL(blob);
+      var a=document.createElement('a');
+      a.href=url; a.download=tab.name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function(){ URL.revokeObjectURL(url); },4000);
+      toast(t('saved')+': '+tab.name);
+    }
+    tab.savedVersionId=tab.model.getAlternativeVersionId();
+    updateDirtyDom(tab);
+  }catch(err){
+    toast(t('openFailed'),'error');
+  }
+}
+function saveActive(){ saveTab(activeTab()); }
+
+/* ---------------- diff mode ---------------- */
+function updateDiffBtn(){
+  $('lblDiff').textContent=inDiff ? t('exitDiff') : t('diff');
+  $('btnDiff').classList.toggle('on', inDiff);
+}
+function enterDiff(aId,bId){
+  var A=tabById(aId), B=tabById(bId);
+  if(!A||!B||A===B) return;
+  var cur=activeTab();
+  if(cur && editor && editor.getModel()===cur.model) cur.viewState=editor.saveViewState();
+  inDiff=true; diffIds=[aId,bId]; activeId=bId;
+  $('editor').style.display='none';
+  $('diff').style.display='block';
+  diffEditor=monaco.editor.createDiffEditor($('diff'),{
+    automaticLayout:true, renderSideBySide:true, originalEditable:false,
+    wordWrap:wrap?'on':'off', minimap:{enabled:minimapOn},
+    fontSize:14, fontFamily:"'Cascadia Code',Consolas,'Courier New',monospace",
+    fontLigatures:true, smoothScrolling:true, theme:dark?'vs-dark':'vs'
+  });
+  diffEditor.setModel({original:A.model, modified:B.model});
+  diffEditor.getModifiedEditor().onDidChangeCursorPosition(function(e){
+    lastPos={l:e.position.lineNumber,c:e.position.column};
+    renderStatus();
+  });
+  $('selLang').disabled=true;
+  updateDiffBtn(); renderTabs(); updateStatusAll();
+  toast(t('diffOn'));
+}
+function exitDiff(){
+  if(!inDiff) return;
+  inDiff=false; diffIds=[null,null];
+  if(diffEditor){ diffEditor.dispose(); diffEditor=null; }
+  $('diff').style.display='none';
+  $('editor').style.display='block';
+  $('selLang').disabled=false;
+  var tab=activeTab()||tabs[0];
+  if(tab){
+    activeId=tab.id;
+    editor.setModel(tab.model);
+    if(tab.viewState) editor.restoreViewState(tab.viewState);
+    editor.focus();
+    if($('selLang').options.length) $('selLang').value=tab.model.getLanguageId();
+  }
+  updateDiffBtn(); renderTabs(); updateStatusAll();
+}
+function openDiffModal(){
+  if(!monacoReady) return;
+  if(inDiff){ exitDiff(); return; }
+  var body=el('div');
+  function mkRow(pair){
+    var row=el('div','m-row');
+    var lab=el('label'); lab.textContent=tp(pair); row.appendChild(lab);
+    var sel=el('select'); row.appendChild(sel);
+    return {row:row, sel:sel};
+  }
+  var rowO=mkRow(S.original), rowM=mkRow(S.modified);
+  var hint=el('div','m-hint');
+  body.appendChild(rowO.row); body.appendChild(rowM.row); body.appendChild(hint);
+  function repop(){
+    [rowO.sel,rowM.sel].forEach(function(sel){
+      sel.innerHTML='';
+      tabs.forEach(function(tb){
+        var o=document.createElement('option');
+        o.value=tb.id; o.textContent=tb.name+(isDirty(tb)?' ●':'');
+        sel.appendChild(o);
+      });
+    });
+    if(tabs.length>=2){
+      rowO.sel.value=tabs[0].id;
+      rowM.sel.value=(activeId && activeId!==tabs[0].id) ? activeId : tabs[1].id;
+      hint.style.display='none';
+    }else{
+      hint.textContent=t('needTwoTabs');
+      hint.style.display='block';
+    }
+  }
+  repop();
+  window.__diffRefresh=repop;
+  buildModal(t('diffTitle'), body, [
+    {label:t('openMore'), fn:function(){ $('fileInput').click(); }},
+    {label:t('cancel'), fn:closeModal},
+    {label:t('startDiff'), cls:'primary', fn:function(){
+      if(tabs.length<2){ toast(t('needTwoTabs'),'warn'); return; }
+      var a=rowO.sel.value, b=rowM.sel.value;
+      if(a===b){ toast(t('diffSame'),'warn'); return; }
+      closeModal();
+      enterDiff(a,b);
+    }}
+  ], closeModal);
+}
+
+/* ---------------- help ---------------- */
+function openHelpModal(){
+  var body=el('div');
+  HELP_ROWS.forEach(function(row){
+    var r=el('div','h-row');
+    var k=el('kbd'); k.textContent=row[0]; r.appendChild(k);
+    var d=el('span'); d.textContent=tp(row[1]); r.appendChild(d);
+    body.appendChild(r);
+  });
+  var note=el('div','h-note'); note.textContent=t('helpNote'); body.appendChild(note);
+  buildModal(t('helpTitle'), body, [
+    {label:t('helpClose'), cls:'primary', fn:closeModal}
+  ], closeModal);
+}
+
+/* ---------------- status bar ---------------- */
+function fmtPos(l,c){
+  if(mode==='En') return 'Ln '+l+', Col '+c;
+  if(mode==='Zh') return '第 '+l+' 行，第 '+c+' 欄';
+  return 'Ln '+l+', Col '+c+' · 第 '+l+' 行 第 '+c+' 欄';
+}
+function fmtChars(n){
+  if(mode==='En') return n+' chars';
+  if(mode==='Zh') return n+' 個字元';
+  return n+' chars · 字元';
+}
+function fmtTab(n){
+  if(mode==='En') return 'Spaces: '+n;
+  if(mode==='Zh') return '縮排：'+n;
+  return 'Spaces · 縮排: '+n;
+}
+function fmtLang(id){
+  var label=langIndex[id]||id;
+  if(mode==='En') return label;
+  if(mode==='Zh') return '語言：'+label;
+  return label;
+}
+function curEditor(){ return (inDiff && diffEditor) ? diffEditor.getModifiedEditor() : editor; }
+function renderStatus(){
+  var m=null, tab=activeTab();
+  if(tab) m=tab.model;
+  $('stPos').textContent=fmtPos(lastPos.l,lastPos.c);
+  $('stLang').textContent=fmtLang(m?m.getLanguageId():'plaintext');
+  $('stTab').textContent=fmtTab(tabSize);
+  $('stChars').textContent=fmtChars(m?m.getValueLength():0);
+}
+function updateStatusAll(){
+  var ed=curEditor();
+  if(ed){
+    var p=ed.getPosition()||{lineNumber:1,column:1};
+    lastPos={l:p.lineNumber,c:p.column};
+  }
+  renderStatus();
+}
+function cycleTabSize(){
+  tabSize = tabSize===2 ? 4 : (tabSize===4 ? 8 : 2);
+  tabs.forEach(function(tb){ tb.model.updateOptions({tabSize:tabSize}); });
+  saveSettings();
+  renderStatus();
+}
+$('stTab').addEventListener('click',cycleTabSize);
+
+/* ---------------- theme + language mode ---------------- */
+function setTheme(d){
+  dark=!!d;
+  document.documentElement.classList.toggle('light',!dark);
+  if(monacoReady) monaco.editor.setTheme(dark?'vs-dark':'vs');
+}
+function langModeLabel(){ return mode==='En' ? 'EN' : (mode==='Zh' ? '中' : 'EN·中'); }
+function renderAllLabels(){
+  document.querySelectorAll('[data-i]').forEach(function(n){ n.textContent=t(n.dataset.i); });
+  document.querySelectorAll('[data-tip]').forEach(function(n){ n.title=t(n.dataset.tip); });
+  $('btnLangMode').textContent=langModeLabel();
+  updateDiffBtn();
+  renderStatus();
+  renderTabs();
+}
+function applyLanguageMode(lang){
+  mode=(lang==='En'||lang==='Zh') ? lang : 'Bilingual';
+  renderAllLabels();
+}
+$('btnLangMode').addEventListener('click',function(){
+  applyLanguageMode(mode==='Bilingual' ? 'En' : (mode==='En' ? 'Zh' : 'Bilingual'));
+});
+
+/* ---------------- host bridge ---------------- */
+function postTitle(){
+  if(!wv) return;
+  var tab=activeTab();
+  var text='WinForge Code Editor · 程式碼編輯器'+(tab ? ' — '+tab.name : '');
+  try{ wv.postMessage({type:'setTitle', text:text}); }catch(e){}
+}
+if(wv){
+  wv.addEventListener('message',function(e){
+    var d=e.data;
+    if(!d || typeof d!=='object') return;
+    if(d.type==='language') applyLanguageMode(d.lang);
+    else if(d.type==='theme') setTheme(!!d.dark);
+  });
+  try{ wv.postMessage({type:'ready'}); }catch(e){}
+}
+
+/* ---------------- toolbar wiring ---------------- */
+$('btnNew').addEventListener('click',newUntitled);
+$('tabAdd').addEventListener('click',newUntitled);
+$('btnOpen').addEventListener('click',openFilesDialog);
+$('btnSave').addEventListener('click',saveActive);
+$('btnDiff').addEventListener('click',openDiffModal);
+$('btnHelp').addEventListener('click',openHelpModal);
+$('btnWrap').addEventListener('click',function(){
+  wrap=!wrap;
+  if(editor) editor.updateOptions({wordWrap:wrap?'on':'off'});
+  if(diffEditor) diffEditor.updateOptions({wordWrap:wrap?'on':'off'});
+  this.classList.toggle('on',wrap);
+  saveSettings();
+});
+$('btnMinimap').addEventListener('click',function(){
+  minimapOn=!minimapOn;
+  if(editor) editor.updateOptions({minimap:{enabled:minimapOn}});
+  if(diffEditor) diffEditor.updateOptions({minimap:{enabled:minimapOn}});
+  this.classList.toggle('on',minimapOn);
+  saveSettings();
+});
+$('btnTheme').addEventListener('click',function(){ setTheme(!dark); });
+$('selLang').addEventListener('change',function(){
+  var tab=activeTab();
+  if(tab && monacoReady){
+    monaco.editor.setModelLanguage(tab.model,this.value);
+    renderStatus();
+  }
+});
+
+/* ---------------- global shortcuts ---------------- */
+window.addEventListener('keydown',function(e){
+  if(e.key==='Escape' && modalDismiss){ e.preventDefault(); modalDismiss(); return; }
+  if(e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey){
+    var k=(e.key||'').toLowerCase();
+    if(k==='s'){ e.preventDefault(); e.stopPropagation(); saveActive(); }
+    else if(k==='o'){ e.preventDefault(); e.stopPropagation(); openFilesDialog(); }
+    else if(k==='n'){ e.preventDefault(); e.stopPropagation(); newUntitled(); }
+  }
+},true);
+
+/* ---------------- Monaco boot ---------------- */
+function showFail(){
+  $('bootOverlay').classList.add('hide');
+  $('failOverlay').classList.remove('hide');
+}
+function onMonacoReady(){
+  monacoReady=true;
+  /* language picker from the live Monaco registry */
+  var sel=$('selLang');
+  var langs=monaco.languages.getLanguages()
+    .map(function(l){ return {id:l.id, label:(l.aliases&&l.aliases[0])||l.id}; })
+    .sort(function(a,b){ return a.label.toLowerCase()<b.label.toLowerCase()?-1:1; });
+  langs.forEach(function(l){
+    langIndex[l.id]=l.label;
+    var o=document.createElement('option');
+    o.value=l.id; o.textContent=l.label;
+    sel.appendChild(o);
+  });
+
+  var first=createTab('untitled-'+(nextUntitled++)+'.txt','','plaintext',true);
+  editor=monaco.editor.create($('editor'),{
+    model:first.model,
+    theme:dark?'vs-dark':'vs',
+    automaticLayout:true,
+    fontSize:14,
+    fontFamily:"'Cascadia Code',Consolas,'Courier New',monospace",
+    fontLigatures:true,
+    minimap:{enabled:minimapOn},
+    wordWrap:wrap?'on':'off',
+    smoothScrolling:true,
+    cursorBlinking:'smooth',
+    cursorSmoothCaretAnimation:'on',
+    renderWhitespace:'selection',
+    mouseWheelZoom:true,
+    padding:{top:8},
+    scrollBeyondLastLine:false
+  });
+  editor.onDidChangeCursorPosition(function(e){
+    lastPos={l:e.position.lineNumber,c:e.position.column};
+    renderStatus();
+  });
+  activeId=first.id;
+  sel.value='plaintext';
+
+  $('btnWrap').classList.toggle('on',wrap);
+  $('btnMinimap').classList.toggle('on',minimapOn);
+  $('toolbar').classList.remove('disabled');
+  $('bootOverlay').classList.add('hide');
+
+  renderAllLabels();
+  renderTabs();
+  updateStatusAll();
+  postTitle();
+  editor.focus();
+}
+function bootMonaco(){
+  if(window.__monacoLoadFailed || typeof require==='undefined'){ showFail(); return; }
+  try{
+    require.config({ paths: { vs: 'https://libs.winforge/monaco/vs' } });
+    require(['vs/editor/editor.main'], onMonacoReady, function(){ showFail(); });
+    setTimeout(function(){ if(!monacoReady) showFail(); }, 20000);
+  }catch(err){
+    showFail();
+  }
+}
+
+/* initial paint of static labels (before Monaco arrives), then boot */
+renderAllLabels();
+bootMonaco();
+</script>
+</body>
+</html>

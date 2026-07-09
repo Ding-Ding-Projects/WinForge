@@ -57,6 +57,7 @@ public sealed partial class BlenderModule : Page
     private void Render()
     {
         Header.Title = "Blender · 3D / 算圖";
+        Header.ActionContent = HeaderActions.NativeWindowButton("blender");
         HeaderBlurb.Text = P("Launch Blender, open .blend files, run headless renders and Python scripts, and batch-render — WinForge drives the installed blender.exe; the 3D suite itself is never reimplemented.",
             "啟動 Blender、開 .blend、跑 headless 算圖同 Python script、批次算圖 — WinForge 驅動已安裝嘅 blender.exe；3D 套件本身唔會重寫。");
         QuickHeader.Text = P("Quick actions", "快速動作");

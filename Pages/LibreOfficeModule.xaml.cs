@@ -61,6 +61,7 @@ public sealed partial class LibreOfficeModule : Page
     private void Render()
     {
         Header.Title = "Document Converter · 文件轉換器";
+        Header.ActionContent = HeaderActions.NativeWindowButton("libreoffice");
         HeaderBlurb.Text = P("Batch-convert documents with LibreOffice (headless soffice) — pick a target format, choose an output folder, and convert with per-file status. Also opens files for editing.",
             "用 LibreOffice（無介面 soffice）批次轉換文件 — 揀目標格式、選輸出資料夾，逐個檔案顯示狀態。亦可開檔編輯。");
 

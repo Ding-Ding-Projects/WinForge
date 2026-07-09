@@ -242,6 +242,7 @@
                     <NavigationViewItem.MenuItems>
                         <NavigationViewItem Content="Package Manager · 套件管理" Tag="module.packages"><NavigationViewItem.Icon><FontIcon Glyph="&#xECAA;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Native OSS Clones · 開源原生分頁" Tag="module.ossapps"><NavigationViewItem.Icon><FontIcon Glyph="&#xE71D;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="App Launcher · 原生 App 啟動器" Tag="module.applauncher"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A7;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Android (ADB) · Android（ADB）" Tag="module.adb"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8EA;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Fastboot / Flasher · Fastboot／刷機" Tag="module.fastboot"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7BA;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Android Emulator · Android 模擬器" Tag="module.emulator"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8EA;" /></NavigationViewItem.Icon></NavigationViewItem>

@@ -76,6 +76,7 @@ public sealed partial class DiagramEditorModule : Page
     private void Render()
     {
         Header.Title = "Diagram Editor · 圖表編輯器";
+        Header.ActionContent = HeaderActions.FullFeaturesButton("diagramforge");
         HeaderBlurb.Text = P("A native flowchart / diagram editor on a WinUI canvas — add shapes, drag to move, resize with handles, double-click to rename, connect shapes with arrows, restyle, then save to JSON or export a PNG. Everything runs in-app; nothing leaves your machine.",
             "喺 WinUI 畫布上嘅原生流程圖／圖表編輯器 — 加形狀、拖曳移動、用拉柄縮放、雙擊改字、用箭咀連接形狀、改樣式，再存做 JSON 或者匯出 PNG。全部喺 app 內運行，唔會離開你部機。");
 

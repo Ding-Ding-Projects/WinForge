@@ -1391,6 +1391,14 @@ public sealed partial class MainWindow : Window
             case "foss":
                 Navigator.GoToModule?.Invoke("module.ossapps");
                 break;
+            case "applauncher":
+            case "app-launcher":
+            case "nativeapps":
+            case "native-apps":
+            case "external":
+            case "externalapps":
+                Navigator.GoToModule?.Invoke("module.applauncher");
+                break;
             case "packages":
             case "winget":
             case "install":
@@ -2193,6 +2201,7 @@ public sealed partial class MainWindow : Window
         "module.advancedpaste" => typeof(AdvancedPasteModule),
         "module.packages" => typeof(PackageManagerModule),
         "module.ossapps" => typeof(OpenSourceAppHubModule),
+        "module.applauncher" => typeof(AppLauncherModule),
         "module.adb" => typeof(AndroidAdbModule),
         "module.fastboot" => typeof(FastbootModule),
         "module.emulator" => typeof(EmulatorModule),

@@ -85,6 +85,7 @@ public sealed partial class ImageEditorModule : Page
     private void RenderText()
     {
         Header.Title = "Image Editor · 點陣圖影像編輯器";
+        Header.ActionContent = HeaderActions.FullFeaturesButton("imageforge");
         HeaderBlurb.Text = P("A native raster photo editor — open PNG/JPG/BMP/GIF/WebP, then adjust, filter, transform, paint and layer your image. All processing runs in-app on managed code; no Paint.NET, GIMP or external tool is launched.",
             "原生點陣圖相片編輯器 — 開 PNG/JPG/BMP/GIF/WebP，再調色、套濾鏡、變形、繪畫同分層。所有處理喺 app 內用託管程式碼完成；唔會啟動 Paint.NET、GIMP 或任何外部工具。");
 

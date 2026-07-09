@@ -55,6 +55,11 @@ public sealed partial class VsCodeModule : Page
     private void Render()
     {
         Header.Title = "VS Code · VS Code 編輯器";
+        // Full features = the Monaco companion (VS Code's real editor engine, TS/JS — still WinForge);
+        // Native window = auto-install + launch the actual VS Code product.
+        Header.ActionContent = HeaderActions.Combine(
+            HeaderActions.FullFeaturesButton("codeforge"),
+            HeaderActions.NativeWindowButton("vscode"));
         HeaderBlurb.Text = P(
             "Drive Visual Studio Code from WinForge: open files/folders/workspaces, new windows, diff & merge, go-to line, profiles, settings, the remote tunnel, and a full extension manager — all through the code CLI.",
             "由 WinForge 操控 Visual Studio Code：開檔案／資料夾／工作區、開新視窗、比對與合併、跳去指定行、profile、設定、遠端 tunnel，仲有完整擴充功能管理 — 全部經 code CLI。");

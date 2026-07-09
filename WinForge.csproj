@@ -73,6 +73,12 @@
     <!-- 反應堆 HTML5/WebView2 控制室資產（自包含，無 CDN）· Self-contained HTML5 reactor control-room
          assets served via SetVirtualHostNameToFolderMapping at https://reactor.assets/. -->
     <Content Include="SimAssets\**\*.*" CopyToOutputDirectory="PreserveNewest" />
+    <!-- 隨附 app（上游原語言）· Companion apps in their upstream languages: web (JS/Monaco) apps served
+         via SetVirtualHostNameToFolderMapping at https://app.winforge/, and shipped C++ sources compiled
+         on demand by CompanionAppService (prebuilt exes under native\bin ship when present). -->
+    <Content Include="WebApps\**\*.*" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="native\**\*.cpp" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="native\bin\*.exe" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
