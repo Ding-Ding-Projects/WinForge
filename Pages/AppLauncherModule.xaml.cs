@@ -23,21 +23,35 @@ public sealed partial class AppLauncherModule : Page
     private string _query = "";
     private string _category = "";
     private bool _buildingCategories;
+    private bool _locSubscribed;
 
     public AppLauncherModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += OnLanguageChanged;
-        Loaded += (_, _) =>
-        {
-            RenderText();
-            BuildCategories();
-            RenderApps();
-        };
-        Unloaded += (_, _) => Loc.I.LanguageChanged -= OnLanguageChanged;
+        Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
     }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
+
+    private void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        if (!_locSubscribed)
+        {
+            Loc.I.LanguageChanged += OnLanguageChanged;
+            _locSubscribed = true;
+        }
+        RenderText();
+        BuildCategories();
+        RenderApps();
+    }
+
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        if (!_locSubscribed) return;
+        Loc.I.LanguageChanged -= OnLanguageChanged;
+        _locSubscribed = false;
+    }
 
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
@@ -200,7 +214,7 @@ public sealed partial class AppLauncherModule : Page
                     new TextBlock { Text = P("Launch", "啟動") },
                 },
             };
-            launch.Click += (_, _) => ExternalAppService.Launch(app);
+            launch.Click += (_, _) => AppLauncherWindow.Show(app, launch: true);
             buttons.Children.Add(launch);
         }
 

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Formats.Tar;
@@ -97,6 +98,15 @@ public static class CompanionAppService
     private const string MonacoVersion = "0.52.2";
     private const string MonacoTgzUrl =
         "https://registry.npmjs.org/monaco-editor/-/monaco-editor-" + MonacoVersion + ".tgz";
+    // npm registry dist.integrity for monaco-editor@0.52.2 (SHA-512, verified before extraction).
+    private const string MonacoIntegrityBase64 =
+        "GEQWEZmfkOGLdd3XK8ryrfWz3AIP8YymVXiPHEdewrUq7mh0qrKrfHLNCXcbB6sTnMLnOZ3ztSiKcciFUkIJwQ==";
+    private const long MonacoMaxDownloadBytes = 64L * 1024 * 1024;
+    private const long MonacoMaxExtractedBytes = 160L * 1024 * 1024;
+    private const int MonacoMaxExtractedFiles = 5000;
+    private static readonly SemaphoreSlim MonacoGate = new(1, 1);
+    private static readonly ConcurrentDictionary<string, SemaphoreSlim> NativeBuildGates =
+        new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>weblibs 根（虛擬主機 libs.winforge 映射呢度）· Root mapped to https://libs.winforge .</summary>
     public static string WebLibsDir
@@ -121,10 +131,21 @@ public static class CompanionAppService
     public static async Task<TweakResult> EnsureMonacoAsync(IProgress<InstallProgressReport>? progress,
         CancellationToken ct = default)
     {
-        if (MonacoInstalled)
-            return TweakResult.Ok("Editor engine ready.", "編輯器引擎已就緒。");
+        await MonacoGate.WaitAsync(ct);
+        try
+        {
+            if (MonacoInstalled)
+                return TweakResult.Ok("Editor engine ready.", "編輯器引擎已就緒。");
+            return await EnsureMonacoCoreAsync(progress, ct);
+        }
+        finally { MonacoGate.Release(); }
+    }
 
+    private static async Task<TweakResult> EnsureMonacoCoreAsync(
+        IProgress<InstallProgressReport>? progress, CancellationToken ct)
+    {
         var tmpTgz = Path.Combine(Path.GetTempPath(), $"winforge-monaco-{Guid.NewGuid():N}.tgz");
+        string? stagingToClean = null;
         try
         {
             progress?.Report(InstallProgressReport.Status(
@@ -143,6 +164,10 @@ public static class CompanionAppService
                 int n;
                 while ((n = await body.ReadAsync(buf, ct)) > 0)
                 {
+                    if (done + n > MonacoMaxDownloadBytes)
+                        return TweakResult.Fail(
+                            "The editor-engine download exceeded the 64 MB safety limit.",
+                            "編輯器引擎下載超過 64 MB 安全上限。");
                     await file.WriteAsync(buf.AsMemory(0, n), ct);
                     done += n;
                     if (total > 0)
@@ -151,13 +176,26 @@ public static class CompanionAppService
                 }
             }
 
+            byte[] actualHash;
+            await using (var package = File.OpenRead(tmpTgz))
+            using (var sha512 = SHA512.Create())
+                actualHash = await sha512.ComputeHashAsync(package, ct);
+            var expectedHash = Convert.FromBase64String(MonacoIntegrityBase64);
+            if (!CryptographicOperations.FixedTimeEquals(actualHash, expectedHash))
+                return TweakResult.Fail(
+                    "The editor-engine package failed its pinned SHA-512 integrity check.",
+                    "編輯器引擎套件未能通過已固定嘅 SHA-512 完整性檢查。");
+
             progress?.Report(InstallProgressReport.Progress(92, "Extracting engine…", "解壓緊引擎…"));
 
             // Extract only package/min/vs/** → weblibs\monaco\vs\**
             var vsRoot = Path.Combine(WebLibsDir, "monaco", "vs");
-            var staging = vsRoot + ".staging";
-            try { if (Directory.Exists(staging)) Directory.Delete(staging, true); } catch { }
+            var staging = vsRoot + $".staging-{Guid.NewGuid():N}";
+            stagingToClean = staging;
             Directory.CreateDirectory(staging);
+            var stagingRoot = Path.GetFullPath(staging) + Path.DirectorySeparatorChar;
+            long extractedBytes = 0;
+            int extractedFiles = 0;
 
             const string prefix = "package/min/vs/";
             await using (var fs = File.OpenRead(tmpTgz))
@@ -171,11 +209,35 @@ public static class CompanionAppService
                     var name = entry.Name.Replace('\\', '/');
                     if (!name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) continue;
                     var rel = name[prefix.Length..];
-                    if (rel.Length == 0 || rel.Contains("..")) continue;
-                    var dest = Path.Combine(staging, rel.Replace('/', Path.DirectorySeparatorChar));
+                    var relPath = rel.Replace('/', Path.DirectorySeparatorChar);
+                    if (relPath.Length == 0 || Path.IsPathRooted(relPath))
+                        return TweakResult.Fail("Unsafe path in the editor-engine package.",
+                            "編輯器引擎套件含有不安全路徑。");
+                    var dest = Path.GetFullPath(Path.Combine(staging, relPath));
+                    if (!dest.StartsWith(stagingRoot, StringComparison.OrdinalIgnoreCase))
+                        return TweakResult.Fail("Unsafe path in the editor-engine package.",
+                            "編輯器引擎套件含有不安全路徑。");
+
+                    extractedFiles++;
+                    if (extractedFiles > MonacoMaxExtractedFiles)
+                        return TweakResult.Fail("The editor-engine package contains too many files.",
+                            "編輯器引擎套件檔案數量超過安全上限。");
                     Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
                     await using var os = File.Create(dest);
-                    if (entry.DataStream is not null) await entry.DataStream.CopyToAsync(os, ct);
+                    if (entry.DataStream is not null)
+                    {
+                        var copyBuffer = new byte[81920];
+                        int copied;
+                        while ((copied = await entry.DataStream.ReadAsync(copyBuffer, ct)) > 0)
+                        {
+                            extractedBytes += copied;
+                            if (extractedBytes > MonacoMaxExtractedBytes)
+                                return TweakResult.Fail(
+                                    "The extracted editor engine exceeded the 160 MB safety limit.",
+                                    "解壓後嘅編輯器引擎超過 160 MB 安全上限。");
+                            await os.WriteAsync(copyBuffer.AsMemory(0, copied), ct);
+                        }
+                    }
                 }
             }
 
@@ -184,9 +246,22 @@ public static class CompanionAppService
                     "下載返嚟嘅引擎套件唔對辦（冇 loader.js）。");
 
             // Atomic-ish swap into place.
-            try { if (Directory.Exists(vsRoot)) Directory.Delete(vsRoot, true); } catch { }
-            Directory.CreateDirectory(Path.GetDirectoryName(vsRoot)!);
-            Directory.Move(staging, vsRoot);
+            try
+            {
+                // Another WinForge process may have completed the same pinned install while this process
+                // was extracting. A valid winner is reusable; otherwise replace the incomplete directory.
+                if (!File.Exists(Path.Combine(vsRoot, "loader.js")))
+                {
+                    try { if (Directory.Exists(vsRoot)) Directory.Delete(vsRoot, true); } catch { }
+                    Directory.CreateDirectory(Path.GetDirectoryName(vsRoot)!);
+                    Directory.Move(staging, vsRoot);
+                    stagingToClean = null;
+                }
+            }
+            catch when (File.Exists(Path.Combine(vsRoot, "loader.js")))
+            {
+                // Lost a cross-process race to a complete, integrity-identical installation.
+            }
 
             progress?.Report(InstallProgressReport.Progress(100, "Editor engine ready.", "編輯器引擎已就緒。"));
             return TweakResult.Ok("Editor engine installed.", "編輯器引擎已安裝。");
@@ -199,6 +274,7 @@ public static class CompanionAppService
         finally
         {
             try { if (File.Exists(tmpTgz)) File.Delete(tmpTgz); } catch { }
+            try { if (stagingToClean is not null && Directory.Exists(stagingToClean)) Directory.Delete(stagingToClean, true); } catch { }
         }
     }
 
@@ -253,6 +329,15 @@ public static class CompanionAppService
     public static async Task<TweakResult> EnsureNativeAsync(CompanionSpec spec,
         IProgress<InstallProgressReport>? progress, CancellationToken ct = default)
     {
+        var gate = NativeBuildGates.GetOrAdd(spec.Id, static _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync(ct);
+        try { return await EnsureNativeCoreAsync(spec, progress, ct); }
+        finally { gate.Release(); }
+    }
+
+    private static async Task<TweakResult> EnsureNativeCoreAsync(CompanionSpec spec,
+        IProgress<InstallProgressReport>? progress, CancellationToken ct)
+    {
         var existing = ResolveNativeExe(spec);
         if (existing is not null)
             return TweakResult.Ok("Ready.", "已就緒。", existing);
@@ -261,6 +346,14 @@ public static class CompanionAppService
         if (!File.Exists(src))
             return TweakResult.Fail($"Shipped source not found: {spec.SourceRel}",
                 $"搵唔到隨附原始碼：{spec.SourceRel}");
+
+        // Never execute a compiler discovered in PATH/LocalAppData at high integrity. The normal app does
+        // not require elevation; asking for a normal restart is safer than turning a user-writable compiler
+        // path into an administrator code-execution primitive.
+        if (AdminHelper.IsElevated)
+            return TweakResult.Fail(
+                "Native companions cannot be compiled while WinForge is running as administrator. Restart WinForge normally and retry.",
+                "WinForge 以系統管理員身分運行時唔會編譯原生隨附 app。請以一般權限重開 WinForge 再試。");
 
         // 1) Find (or auto-install) a compiler — the app's literal dependency.
         progress?.Report(InstallProgressReport.Progress(5,
@@ -287,6 +380,7 @@ public static class CompanionAppService
         var outDir = Path.Combine(NativeCacheDir(spec), SourceHash(src));
         Directory.CreateDirectory(outDir);
         var outExe = Path.Combine(outDir, spec.ExeName);
+        var tempExe = Path.Combine(outDir, $".{Path.GetFileNameWithoutExtension(spec.ExeName)}-{Guid.NewGuid():N}.tmp.exe");
         progress?.Report(InstallProgressReport.Progress(35,
             $"Compiling {spec.TitleEn} from source ({compiler.Value.kind})…",
             $"由原始碼編譯緊 {spec.TitleZh}（{compiler.Value.kind}）…"));
@@ -294,15 +388,23 @@ public static class CompanionAppService
         var lineSink = new Progress<string>(l => progress?.Report(InstallProgressReport.FromLine(l)));
         TweakResult built = compiler.Value.kind switch
         {
-            "msvc" => await CompileMsvc(compiler.Value.path, src, outExe, spec.MsvcLibs, lineSink, ct),
-            _ => await CompileMinGw(compiler.Value.path, src, outExe, spec.MinGwLibs, lineSink, ct),
+            "msvc" => await CompileMsvc(compiler.Value.path, src, tempExe, spec.MsvcLibs, lineSink, ct),
+            _ => await CompileMinGw(compiler.Value.path, src, tempExe, spec.MinGwLibs, lineSink, ct),
         };
 
-        if (!built.Success || !File.Exists(outExe))
+        if (!built.Success || !File.Exists(tempExe))
         {
-            try { if (File.Exists(outExe)) File.Delete(outExe); } catch { }
+            try { if (File.Exists(tempExe)) File.Delete(tempExe); } catch { }
             return TweakResult.Fail(
                 $"Compilation failed. {built.Message?.En}", $"編譯失敗。{built.Message?.Zh}", built.Output);
+        }
+
+        try { File.Move(tempExe, outExe, overwrite: true); }
+        catch (Exception ex)
+        {
+            try { if (File.Exists(tempExe)) File.Delete(tempExe); } catch { }
+            return TweakResult.Fail($"Couldn't publish the compiled app: {ex.Message}",
+                $"無法發佈已編譯 app：{ex.Message}", ex.ToString());
         }
 
         progress?.Report(InstallProgressReport.Progress(100,
@@ -318,12 +420,10 @@ public static class CompanionAppService
             return TweakResult.Fail($"{spec.TitleEn} is not built yet.", $"{spec.TitleZh} 仲未編譯好。");
         try
         {
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = exe,
-                UseShellExecute = true,
-                WorkingDirectory = Path.GetDirectoryName(exe) ?? "",
-            });
+            if (!UserProcessLauncher.TryStart(exe, "", Path.GetDirectoryName(exe), out var error))
+                return TweakResult.Fail(
+                    $"Couldn't launch {spec.TitleEn} without administrator rights: {error}",
+                    $"無法以一般使用者權限啟動 {spec.TitleZh}：{error}");
             return TweakResult.Ok($"Launched {spec.TitleEn}.", $"已啟動 {spec.TitleZh}。", exe);
         }
         catch (Exception ex) { return TweakResult.Fail(ex.Message, $"出錯：{ex.Message}"); }

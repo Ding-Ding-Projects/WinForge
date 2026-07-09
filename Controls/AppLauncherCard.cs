@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.Linq;
 using Microsoft.UI;
 using Microsoft.UI.Text;
@@ -32,8 +31,10 @@ public sealed class AppLauncherCard : UserControl
     private readonly TextBlock _statusPillText;
     private readonly InstallProgress _install;
     private readonly Button _launch;
+    private readonly Button _browse;
     private readonly Button _homepage;
     private readonly InfoBar _info;
+    private bool _locSubscribed;
 
     public AppLauncherCard(ExternalAppSpec spec)
     {
@@ -93,11 +94,11 @@ public sealed class AppLauncherCard : UserControl
         root.Children.Add(_includes);
 
         // ── One-click install of the WHOLE chain (streaming progress) ──
-        _install = InstallProgress.Create("Install everything", "全部安裝", async (progress, ct) =>
+        _install = InstallProgress.Create("Install & launch", "安裝並啟動", async (progress, ct) =>
         {
             var r = await ExternalAppService.InstallAllAsync(_spec, progress, ct);
             try { DispatcherQueue?.TryEnqueue(RefreshStatus); } catch { }
-            return r;
+            return r.Success ? ExternalAppService.Launch(_spec) : r;
         });
         root.Children.Add(_install);
 
@@ -105,9 +106,12 @@ public sealed class AppLauncherCard : UserControl
         var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
         _launch = new Button { MinWidth = 150, Style = TrySafeStyle("AccentButtonStyle") };
         _launch.Click += OnLaunchClick;
+        _browse = new Button();
+        _browse.Click += OnBrowseClick;
         _homepage = new Button();
         _homepage.Click += OnHomepageClick;
         actions.Children.Add(_launch);
+        actions.Children.Add(_browse);
         if (!string.IsNullOrWhiteSpace(spec.Homepage)) actions.Children.Add(_homepage);
         root.Children.Add(actions);
 
@@ -120,14 +124,22 @@ public sealed class AppLauncherCard : UserControl
         RenderText();
         RefreshStatus();
 
-        Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
     }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
-    private void OnLoaded(object sender, RoutedEventArgs e) => RefreshStatus();
+    private void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        if (!_locSubscribed)
+        {
+            Loc.I.LanguageChanged += OnLanguageChanged;
+            _locSubscribed = true;
+        }
+        RenderText();
+        RefreshStatus();
+    }
 
     private void RenderText()
     {
@@ -143,6 +155,7 @@ public sealed class AppLauncherCard : UserControl
             : P("Auto-installs: ", "自動安裝：") + string.Join(" → ", deps);
 
         _launch.Content = P($"Launch {_spec.NameEn}", $"啟動 {_spec.NameZh}");
+        _browse.Content = P("Locate executable", "指定執行檔");
         _homepage.Content = new StackPanel
         {
             Orientation = Orientation.Horizontal,
@@ -190,18 +203,31 @@ public sealed class AppLauncherCard : UserControl
     }
 
     private void OnLaunchClick(object sender, RoutedEventArgs e)
+        => Launch();
+
+    public TweakResult Launch()
     {
         var r = ExternalAppService.Launch(_spec);
         _info.Severity = r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error;
         _info.Message = r.Message?.Get(Loc.I.Language) ?? "";
         _info.IsOpen = true;
+        return r;
+    }
+
+    private async void OnBrowseClick(object sender, RoutedEventArgs e)
+    {
+        var path = await FileDialogs.OpenFileAsync(".exe");
+        if (path is null) return;
+        ExternalAppService.SetPathOverride(_spec, path);
+        RefreshStatus();
     }
 
     private void OnHomepageClick(object sender, RoutedEventArgs e)
     {
         try
         {
-            Process.Start(new ProcessStartInfo { FileName = _spec.Homepage, UseShellExecute = true });
+            if (!UserProcessLauncher.TryStart(_spec.Homepage, "", "", out var error))
+                throw new InvalidOperationException(error);
         }
         catch (Exception ex)
         {
@@ -213,11 +239,11 @@ public sealed class AppLauncherCard : UserControl
 
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
-        Loc.I.LanguageChanged -= OnLanguageChanged;
-        _launch.Click -= OnLaunchClick;
-        _homepage.Click -= OnHomepageClick;
-        Loaded -= OnLoaded;
-        Unloaded -= OnUnloaded;
+        if (_locSubscribed)
+        {
+            Loc.I.LanguageChanged -= OnLanguageChanged;
+            _locSubscribed = false;
+        }
     }
 
     // ── helpers ──

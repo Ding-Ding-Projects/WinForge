@@ -1248,11 +1248,12 @@ static bool ShowGainDialog(double& dbOut)
     SetFocus(ctx.track);
     GainUpdateLabel(&ctx);
 
-    MSG msg;
+    MSG msg{};
     bool quit = false;
     while (!ctx.done) {
         BOOL r = GetMessageW(&msg, nullptr, 0, 0);
-        if (r <= 0) { quit = true; break; }
+        if (r == 0) { quit = true; break; }
+        if (r == -1) break;
         if (msg.message == WM_KEYDOWN && msg.wParam == VK_RETURN) { ctx.ok = true; ctx.done = true; continue; }
         if (msg.message == WM_KEYDOWN && msg.wParam == VK_ESCAPE) { ctx.done = true; continue; }
         if (!IsDialogMessageW(dlg, &msg)) {
@@ -1323,8 +1324,8 @@ static bool AskSavePath(std::wstring& out)
     wchar_t buf[1024]; buf[0] = 0;
     if (!g_doc.path.empty()) {
         std::wstring name = FileNameOf(g_doc.path);
-        wcsncpy(buf, name.c_str(), 1000);
-        buf[1000] = 0;
+        const size_t copied = name.copy(buf, 1000);
+        buf[copied] = L'\0';
     }
     OPENFILENAMEW ofn;
     ZeroMemory(&ofn, sizeof(ofn));
@@ -1921,7 +1922,7 @@ static void OnSize(HWND hwnd)
     InvalidateRect(hwnd, nullptr, FALSE);
 }
 
-static void OnHScroll(HWND hwnd, WPARAM wParam)
+static void OnHScroll(HWND, WPARAM wParam)
 {
     SCROLLINFO si;
     ZeroMemory(&si, sizeof(si));

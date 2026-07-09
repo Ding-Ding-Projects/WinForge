@@ -4,14 +4,14 @@
   WinForge is a .NET (net11.0-windows) WinUI 3 desktop app. It cannot run framework-dependent
   here (no matching desktop runtime installed -> it shows a "You must install .NET" dialog), so
   this driver runs a SELF-CONTAINED publish and launches THAT exe. The app exposes deep-links
-  (`WinForge.exe --page <alias>`) so any of its ~130 module pages can be opened directly, and we
+  (`WinForge.exe --page <alias>`) so any of its 315 registered module pages can be opened directly, and we
   capture the live window to a PNG via DWM bounds + Graphics.CopyFromScreen (the app is not a
   Start-menu app, so computer-use/desktop-screenshot can't target it — this self-capture is the
   reliable path).
 
   Usage (run from the repo root):
-    powershell -ExecutionPolicy Bypass -File .claude/skills/run-winforge/driver.ps1 -Page reactor -Out shot.png
-    powershell -ExecutionPolicy Bypass -File .claude/skills/run-winforge/driver.ps1 -Page dashboard -Out dash.png -Publish
+    powershell -ExecutionPolicy Bypass -File .agents/skills/run-winforge/driver.ps1 -Page reactor -Out shot.png
+    powershell -ExecutionPolicy Bypass -File .agents/skills/run-winforge/driver.ps1 -Page dashboard -Out dash.png -Publish
 #>
 param(
   [string]$Page = "dashboard",          # deep-link alias (see MainWindow.ApplyStartPage), e.g. reactor, monitor, docker
@@ -20,7 +20,7 @@ param(
   [int]$WaitMs  = 12000                  # ms to wait for the window to render before capturing
 )
 $ErrorActionPreference = "Stop"
-# repo root = three levels up from .claude/skills/run-winforge/
+# repo root = three levels up from .agents/skills/run-winforge/
 $root = (Resolve-Path (Join-Path $PSScriptRoot "..\..\..")).Path
 $exe  = Join-Path $root "bin\x64\Debug\net11.0-windows10.0.26100.0\win-x64\publish\WinForge.exe"
 
@@ -51,7 +51,7 @@ Start-Process -FilePath $exe -ArgumentList "--page", $Page
 Start-Sleep -Milliseconds $WaitMs
 
 $p = Get-Process WinForge -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1
-if (-not $p) { throw "no WinForge window appeared for page '$Page' (some pages crash on load; check %LOCALAPPDATA%\WinForge\crash.log)" }
+if (-not $p) { throw "no WinForge window appeared for page '$Page' (raise -WaitMs or check %LOCALAPPDATA%\WinForge\crash.log)" }
 $h = $p.MainWindowHandle
 if ([WfCap]::IsIconic($h)) { [WfCap]::ShowWindow($h, 9) | Out-Null }   # SW_RESTORE
 [WfCap]::SetForegroundWindow($h) | Out-Null

@@ -170,7 +170,10 @@
          畀原生 SQLite 資料庫瀏覽器模組（開檔／結構／瀏覽編輯／跑 SQL／CSV）用 — 唔啟動任何外部程式。
          Microsoft.Data.Sqlite: managed SQLite client bundling the SQLite native engine via SQLitePCLRaw.
          Powers the native SQLite Browser module — no external tool (DB Browser, sqlite3.exe) is launched. -->
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.9" />
+    <!-- Pin the current native SQLite bundle instead of accepting Microsoft.Data.Sqlite's vulnerable
+         minimum SQLitePCLRaw 2.1.11 resolution (GHSA-2m69-gcr7-jv3q). -->
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.3" />
     <!-- PDFsharp（MIT）：純 C# PDF 操作（合併／分割／旋轉／浮水印／加密）— 無任何外部工具。
          PDFsharp: fully-managed PDF manipulation (merge / split / rotate / watermark / encrypt)
          for the native PDF Toolkit module. No Stirling-PDF / Ghostscript / external binary. -->
@@ -215,4 +218,13 @@
     <PublishReadyToRun>False</PublishReadyToRun>
     <PublishTrimmed>False</PublishTrimmed>
   </PropertyGroup>
+
+  <!-- Keep catalog entries and shipped companion assets atomic: a missing source/index otherwise builds
+       successfully but guarantees that the corresponding “Open full features” button fails at runtime. -->
+  <Target Name="ValidateCompanionAssets" BeforeTargets="PrepareForBuild">
+    <Error Condition="!Exists('WebApps\codeforge\index.html')" Text="Missing companion asset: WebApps\codeforge\index.html" />
+    <Error Condition="!Exists('WebApps\diagramforge\index.html')" Text="Missing companion asset: WebApps\diagramforge\index.html" />
+    <Error Condition="!Exists('native\audioforge\main.cpp')" Text="Missing companion asset: native\audioforge\main.cpp" />
+    <Error Condition="!Exists('native\imageforge\main.cpp')" Text="Missing companion asset: native\imageforge\main.cpp" />
+  </Target>
 </Project>

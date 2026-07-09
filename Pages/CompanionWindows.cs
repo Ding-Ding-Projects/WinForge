@@ -39,17 +39,16 @@ public static class CompanionLauncher
     {
         if (spec.Kind == CompanionKind.Web)
         {
-            new WebAppWindow(spec).Activate();
+            WebAppWindow.Show(spec);
             return;
         }
         // Native: instant launch when a compiled exe already exists; otherwise show the prep popup
         // (toolchain auto-install + compile with live streaming output), which launches on success.
         if (CompanionAppService.NativeReady(spec))
         {
-            CompanionAppService.LaunchNative(spec);
-            return;
+            if (CompanionAppService.LaunchNative(spec).Success) return;
         }
-        new CompanionPrepWindow(spec).Activate();
+        CompanionPrepWindow.Show(spec);
     }
 }
 
@@ -61,9 +60,12 @@ public static class CompanionLauncher
 /// </summary>
 public sealed class WebAppWindow : Window
 {
-    private static readonly HashSet<WebAppWindow> Open = new();
+    private static readonly Dictionary<string, WebAppWindow> Open = new(StringComparer.OrdinalIgnoreCase);
 
     private static readonly JsonSerializerOptions JsonOpts = new() { PropertyNameCaseInsensitive = true };
+    private const int MaxBridgeJsonChars = 96 * 1024 * 1024;
+    private const int MaxBridgeBase64Chars = 88 * 1024 * 1024;
+    private const int MaxBridgeDecodedBytes = 64 * 1024 * 1024;
 
     private readonly CompanionSpec _spec;
     private readonly WebView2 _web = new();
@@ -71,9 +73,11 @@ public sealed class WebAppWindow : Window
     private bool _initializing;
     private bool _ready;
     private bool _full;
+    private bool _coreEventsAttached;
+    private bool _enginePageActive;
     private CancellationTokenSource? _engineCts;
 
-    public WebAppWindow(CompanionSpec spec)
+    private WebAppWindow(CompanionSpec spec)
     {
         _spec = spec;
         Title = $"{spec.TitleEn} · {spec.TitleZh} — WinForge";
@@ -100,17 +104,37 @@ public sealed class WebAppWindow : Window
         }
         catch { }
 
-        Open.Add(this);
         Loc.I.LanguageChanged += OnLanguageChanged;
         _web.Loaded += async (_, _) => await InitWebAsync();
         Closed += (_, _) =>
         {
             Loc.I.LanguageChanged -= OnLanguageChanged;
             try { _engineCts?.Cancel(); } catch { }
-            try { if (_web.CoreWebView2 is not null) _web.CoreWebView2.WebMessageReceived -= OnWebMessage; }
+            try
+            {
+                if (_web.CoreWebView2 is not null && _coreEventsAttached)
+                {
+                    _web.CoreWebView2.WebMessageReceived -= OnWebMessage;
+                    _web.CoreWebView2.NavigationStarting -= OnNavigationStarting;
+                    _web.CoreWebView2.NewWindowRequested -= OnNewWindowRequested;
+                }
+            }
             catch { }
-            Open.Remove(this);
+            if (Open.TryGetValue(_spec.Id, out var current) && ReferenceEquals(current, this))
+                Open.Remove(_spec.Id);
         };
+    }
+
+    public static void Show(CompanionSpec spec)
+    {
+        if (Open.TryGetValue(spec.Id, out var existing))
+        {
+            existing.Activate();
+            return;
+        }
+        var window = new WebAppWindow(spec);
+        Open[spec.Id] = window;
+        window.Activate();
     }
 
     private async Task InitWebAsync()
@@ -119,9 +143,13 @@ public sealed class WebAppWindow : Window
         _initializing = true;
         try
         {
+            var userData = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "WinForge", "WebView2", "companions-userdata");
+            Directory.CreateDirectory(userData);
             var env = await CoreWebView2Environment.CreateWithOptionsAsync(
                 browserExecutableFolder: string.Empty,
-                userDataFolder: Path.Combine(AppContext.BaseDirectory, "WebView2", "companions-userdata"),
+                userDataFolder: userData,
                 options: new CoreWebView2EnvironmentOptions());
             await _web.EnsureCoreWebView2Async(env);
 
@@ -130,24 +158,35 @@ public sealed class WebAppWindow : Window
             core.Settings.AreDevToolsEnabled = false;
             core.Settings.AreDefaultContextMenusEnabled = true;  // editors want cut/copy/paste
             core.Settings.IsZoomControlEnabled = false;
-            core.WebMessageReceived += OnWebMessage;             // subscribe BEFORE navigate
+            if (!_coreEventsAttached)
+            {
+                core.WebMessageReceived += OnWebMessage;         // subscribe BEFORE navigate
+                core.NavigationStarting += OnNavigationStarting;
+                core.NewWindowRequested += OnNewWindowRequested;
+                _coreEventsAttached = true;
+            }
 
             var appDir = Path.Combine(AppContext.BaseDirectory, "WebApps", _spec.WebFolder);
             core.SetVirtualHostNameToFolderMapping("app.winforge", appDir,
                 CoreWebView2HostResourceAccessKind.DenyCors);
             core.SetVirtualHostNameToFolderMapping("libs.winforge", CompanionAppService.WebLibsDir,
-                CoreWebView2HostResourceAccessKind.DenyCors);
+                CoreWebView2HostResourceAccessKind.Allow);
 
             _ready = true;
 
             if (_spec.NeedsMonaco && !CompanionAppService.MonacoInstalled)
                 await PrepareEngineThenNavigate();
             else
+            {
+                _enginePageActive = false;
                 core.Navigate("https://app.winforge/index.html");
+            }
         }
         catch (Exception ex)
         {
             CrashLogger.Log($"companion:{_spec.Id}:init", ex);
+            _ready = false;
+            Content = BuildInitError(ex.Message);
         }
         finally { _initializing = false; }
     }
@@ -156,6 +195,7 @@ public sealed class WebAppWindow : Window
     /// engine downloads, then navigate to the app. Retry stays inside the page.</summary>
     private async Task PrepareEngineThenNavigate()
     {
+        _enginePageActive = true;
         _web.CoreWebView2.NavigateToString(EngineProgressHtml());
         _engineCts?.Dispose();
         _engineCts = new CancellationTokenSource();
@@ -172,17 +212,85 @@ public sealed class WebAppWindow : Window
         catch (Exception ex) { result = TweakResult.Fail(ex.Message, $"出錯：{ex.Message}"); }
 
         if (result.Success)
+        {
+            _enginePageActive = false;
             _web.CoreWebView2?.Navigate("https://app.winforge/index.html");
+        }
         else
             PostToPage(new { type = "prepError", text = result.Message?.Get(Loc.I.Language) ?? "" });
     }
 
+    private FrameworkElement BuildInitError(string detail)
+    {
+        var retry = new Button { Content = Loc.I.Pick("Retry", "再試"), MinWidth = 110 };
+        retry.Click += async (_, _) =>
+        {
+            Content = _web;
+            await InitWebAsync();
+        };
+        return new Border
+        {
+            Padding = new Thickness(32),
+            Child = new StackPanel
+            {
+                MaxWidth = 620,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Spacing = 12,
+                Children =
+                {
+                    new TextBlock
+                    {
+                        Text = Loc.I.Pick("The companion window could not start.", "隨附 app 視窗無法啟動。"),
+                        FontSize = 20,
+                        FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+                        TextWrapping = TextWrapping.Wrap,
+                    },
+                    new TextBlock { Text = detail, TextWrapping = TextWrapping.Wrap },
+                    retry,
+                },
+            },
+        };
+    }
+
+    private void OnNavigationStarting(CoreWebView2 sender, CoreWebView2NavigationStartingEventArgs e)
+    {
+        if (Uri.TryCreate(e.Uri, UriKind.Absolute, out var uri)
+            && uri.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase)
+            && uri.Host.Equals("app.winforge", StringComparison.OrdinalIgnoreCase))
+            return;
+        if (_enginePageActive && string.Equals(e.Uri, "about:blank", StringComparison.OrdinalIgnoreCase))
+            return;
+        e.Cancel = true;
+    }
+
+    private static void OnNewWindowRequested(CoreWebView2 sender, CoreWebView2NewWindowRequestedEventArgs e)
+        => e.Handled = true;
+
     private void OnWebMessage(CoreWebView2 sender, CoreWebView2WebMessageReceivedEventArgs e)
     {
+        bool appOrigin = Uri.TryCreate(e.Source, UriKind.Absolute, out var source)
+            && source.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase)
+            && source.Host.Equals("app.winforge", StringComparison.OrdinalIgnoreCase);
+        bool engineOrigin = _enginePageActive
+            && string.Equals(e.Source, "about:blank", StringComparison.OrdinalIgnoreCase);
+        if (!appOrigin && !engineOrigin) return;
+
         BridgeMsg? msg;
-        try { msg = JsonSerializer.Deserialize<BridgeMsg>(e.WebMessageAsJson, JsonOpts); }
+        try
+        {
+            var json = e.WebMessageAsJson;
+            if (json.Length > MaxBridgeJsonChars) return;
+            msg = JsonSerializer.Deserialize<BridgeMsg>(json, JsonOpts);
+        }
         catch { return; }
         if (msg is null) return;
+
+        if (engineOrigin)
+        {
+            if (msg.Type == "retryEngine") _ = PrepareEngineThenNavigate();
+            return;
+        }
 
         switch (msg.Type)
         {
@@ -201,9 +309,6 @@ public sealed class WebAppWindow : Window
                     Title = $"{_spec.TitleEn} · {_spec.TitleZh} — {t}";
                 }
                 break;
-            case "retryEngine":
-                _ = PrepareEngineThenNavigate();
-                break;
         }
     }
 
@@ -212,22 +317,37 @@ public sealed class WebAppWindow : Window
     {
         try
         {
-            var name = string.IsNullOrWhiteSpace(msg.Name) ? "untitled.txt" : msg.Name!.Trim();
+            if ((msg.DataBase64?.Length ?? 0) > MaxBridgeBase64Chars)
+            {
+                PostToPage(new { type = "saveDone", requestId = msg.RequestId, ok = false,
+                    error = "The file exceeds the 64 MB companion-save limit." });
+                return;
+            }
+
+            var name = string.IsNullOrWhiteSpace(msg.Name) ? "untitled.txt" : Path.GetFileName(msg.Name!.Trim());
+            if (string.IsNullOrWhiteSpace(name)) name = "untitled.txt";
+            if (name.Length > 128) name = name[..128];
             var ext = Path.GetExtension(name);
             if (string.IsNullOrEmpty(ext)) ext = ".txt";
             var dest = await FileDialogs.SaveFileAsync(name, ext);
             if (dest is null)
             {
-                PostToPage(new { type = "saveDone", ok = false, cancelled = true });
+                PostToPage(new { type = "saveDone", requestId = msg.RequestId, ok = false, cancelled = true });
                 return;
             }
             var bytes = Convert.FromBase64String(msg.DataBase64 ?? "");
+            if (bytes.Length > MaxBridgeDecodedBytes)
+            {
+                PostToPage(new { type = "saveDone", requestId = msg.RequestId, ok = false,
+                    error = "The file exceeds the 64 MB companion-save limit." });
+                return;
+            }
             await File.WriteAllBytesAsync(dest, bytes);
-            PostToPage(new { type = "saveDone", ok = true, path = dest });
+            PostToPage(new { type = "saveDone", requestId = msg.RequestId, ok = true, path = dest });
         }
         catch (Exception ex)
         {
-            PostToPage(new { type = "saveDone", ok = false, error = ex.Message });
+            PostToPage(new { type = "saveDone", requestId = msg.RequestId, ok = false, error = ex.Message });
         }
     }
 
@@ -315,7 +435,8 @@ public sealed class WebAppWindow : Window
 </body></html>
 """;
 
-    private sealed record BridgeMsg(string? Type, string? Name, string? Mime, string? DataBase64, string? Text);
+    private sealed record BridgeMsg(
+        string? Type, string? Name, string? Mime, string? DataBase64, string? Text, string? RequestId);
 }
 
 /// <summary>
@@ -325,7 +446,7 @@ public sealed class WebAppWindow : Window
 /// </summary>
 public sealed class CompanionPrepWindow : Window
 {
-    private static readonly HashSet<CompanionPrepWindow> Open = new();
+    private static readonly Dictionary<string, CompanionPrepWindow> Open = new(StringComparer.OrdinalIgnoreCase);
 
     private readonly CompanionSpec _spec;
     private readonly ProgressBar _bar = new() { Minimum = 0, Maximum = 100, IsIndeterminate = true };
@@ -340,7 +461,7 @@ public sealed class CompanionPrepWindow : Window
     private CancellationTokenSource? _cts;
     private bool _running;
 
-    public CompanionPrepWindow(CompanionSpec spec)
+    private CompanionPrepWindow(CompanionSpec spec)
     {
         _spec = spec;
         Title = $"{spec.TitleEn} · {spec.TitleZh} — WinForge";
@@ -394,14 +515,26 @@ public sealed class CompanionPrepWindow : Window
         }
         catch { }
 
-        Open.Add(this);
         Closed += (_, _) =>
         {
             try { _cts?.Cancel(); } catch { }
-            Open.Remove(this);
+            if (Open.TryGetValue(_spec.Id, out var current) && ReferenceEquals(current, this))
+                Open.Remove(_spec.Id);
         };
 
-        _ = RunAsync();
+    }
+
+    public static void Show(CompanionSpec spec)
+    {
+        if (Open.TryGetValue(spec.Id, out var existing))
+        {
+            existing.Activate();
+            return;
+        }
+        var window = new CompanionPrepWindow(spec);
+        Open[spec.Id] = window;
+        window.Activate();
+        _ = window.RunAsync();
     }
 
     private async Task RunAsync()
@@ -430,9 +563,13 @@ public sealed class CompanionPrepWindow : Window
 
         if (result.Success)
         {
-            CompanionAppService.LaunchNative(_spec);
-            Close();
-            return;
+            var launched = CompanionAppService.LaunchNative(_spec);
+            if (launched.Success)
+            {
+                Close();
+                return;
+            }
+            result = launched;
         }
 
         _bar.IsIndeterminate = false;

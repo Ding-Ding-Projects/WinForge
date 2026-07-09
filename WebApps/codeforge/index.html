@@ -343,6 +343,18 @@ html.light #icoMoon{display:none}
 <div id="toast"></div>
 <input type="file" id="fileInput" multiple hidden>
 
+<script>
+/* Workers must bootstrap from the app origin before importing Monaco from libs.winforge. */
+window.MonacoEnvironment = {
+  getWorkerUrl: function(){
+    var baseUrl='https://libs.winforge/monaco/';
+    var workerMain=baseUrl+'vs/base/worker/workerMain.js';
+    var source='self.MonacoEnvironment={baseUrl:'+JSON.stringify(baseUrl)+'};'+
+      'importScripts('+JSON.stringify(workerMain)+');';
+    return 'data:text/javascript;charset=utf-8,'+encodeURIComponent(source);
+  }
+};
+</script>
 <script src="https://libs.winforge/monaco/vs/loader.js" onerror="window.__monacoLoadFailed=true"></script>
 <script>
 'use strict';
@@ -414,7 +426,10 @@ var S={
   helpTitle:      ['Keyboard shortcuts','鍵盤快捷鍵'],
   helpClose:      ['Got it','明白喇'],
   saveReq:        ['Save dialog opened','已彈出儲存視窗'],
-  saved:          ['Downloaded','已下載'],
+  saved:          ['Saved','已儲存'],
+  saveCancelled:  ['Save cancelled','已取消儲存'],
+  saveFailed:     ['Save failed','儲存失敗'],
+  changedDuringSave:['The file changed while it was being saved; the tab was kept open.','儲存期間檔案有變更；分頁會保持開啟。'],
   openFailed:     ['Could not read file','讀唔到個檔案'],
   tooBig:         ['File too big to open (max 50 MB)','檔案太大開唔到（上限 50 MB）'],
   binaryWarn:     ['This file looks binary — it may not display correctly.','呢個檔案似乎係二進位 — 可能顯示唔正確。'],
@@ -613,8 +628,17 @@ async function closeTab(id){
   if(isDirty(tab)){
     var choice=await confirmClose(tab.name);
     if(choice==='cancel') return;
-    if(choice==='save') saveTab(tab);
+    if(choice==='save'){
+      var saved=await saveTab(tab);
+      if(!saved) return;
+      if(isDirty(tab)){
+        toast(t('changedDuringSave'),'warn');
+        return;
+      }
+    }
   }
+  idx=tabs.indexOf(tab);
+  if(idx<0) return;
   if(inDiff && (diffIds[0]===id || diffIds[1]===id)) exitDiff();
   tabs.splice(idx,1);
   if(activeId===id){
@@ -649,7 +673,7 @@ async function handleFiles(list){
     if(f.size>50*1024*1024){ toast(t('tooBig')+': '+f.name,'error'); continue; }
     try{
       var text=await readFileText(f);
-      if(text.indexOf(' ')!==-1) toast(t('binaryWarn'),'warn');
+      if(text.indexOf('\0')!==-1) toast(t('binaryWarn'),'warn');
       opened.push(createTab(f.name, text, detectLang(f.name), false));
     }catch(err){
       toast(t('openFailed')+': '+f.name,'error');
@@ -682,20 +706,76 @@ document.addEventListener('drop',function(e){
 });
 
 /* ---------------- save ---------------- */
+var hostSaveQueue=[];
+var activeHostSave=null;
+var nextHostSaveRequestId=1;
+
 function bytesToBase64(bytes){
   var bin='', CH=0x8000;
   for(var i=0;i<bytes.length;i+=CH)
     bin+=String.fromCharCode.apply(null, bytes.subarray(i, Math.min(i+CH, bytes.length)));
   return btoa(bin);
 }
-function saveTab(tab){
-  if(!tab) return;
+function pumpHostSave(){
+  if(!wv || activeHostSave || !hostSaveQueue.length) return;
+  activeHostSave=hostSaveQueue.shift();
+  try{
+    wv.postMessage({
+      type:'save',
+      requestId:activeHostSave.requestId,
+      name:activeHostSave.name,
+      mime:activeHostSave.mime,
+      dataBase64:activeHostSave.dataBase64
+    });
+    toast(t('saveReq')+': '+activeHostSave.name);
+  }catch(err){
+    var failed=activeHostSave;
+    activeHostSave=null;
+    toast(t('saveFailed')+': '+err.message,'error');
+    failed.resolve(false);
+    pumpHostSave();
+  }
+}
+function queueHostSave(tab,text,versionId){
+  return new Promise(function(resolve){
+    hostSaveQueue.push({
+      requestId:'codeforge-save-'+(nextHostSaveRequestId++),
+      tab:tab,
+      name:tab.name,
+      mime:mimeFor(tab.name),
+      dataBase64:bytesToBase64(new TextEncoder().encode(text)),
+      versionId:versionId,
+      resolve:resolve
+    });
+    pumpHostSave();
+  });
+}
+function completeHostSave(d){
+  if(!activeHostSave || d.requestId!==activeHostSave.requestId) return;
+  var done=activeHostSave;
+  activeHostSave=null;
+  if(d.ok){
+    if(tabs.indexOf(done.tab)>=0){
+      done.tab.savedVersionId=done.versionId;
+      updateDirtyDom(done.tab);
+    }
+    toast(t('saved')+': '+done.name);
+    done.resolve(true);
+  }else{
+    var msg=d.cancelled ? t('saveCancelled') : t('saveFailed');
+    if(!d.cancelled && d.error) msg+=': '+d.error;
+    toast(msg,d.cancelled?'warn':'error');
+    done.resolve(false);
+  }
+  pumpHostSave();
+}
+async function saveTab(tab){
+  if(!tab) return false;
   try{
     var text=tab.model.getValue();
+    var versionId=tab.model.getAlternativeVersionId();
     if(wv){
-      var b64=bytesToBase64(new TextEncoder().encode(text));
-      wv.postMessage({type:'save', name:tab.name, mime:mimeFor(tab.name), dataBase64:b64});
-      toast(t('saveReq')+': '+tab.name);
+      return await queueHostSave(tab,text,versionId);
     }else{
       var blob=new Blob([text],{type:mimeFor(tab.name)});
       var url=URL.createObjectURL(blob);
@@ -705,13 +785,15 @@ function saveTab(tab){
       setTimeout(function(){ URL.revokeObjectURL(url); },4000);
       toast(t('saved')+': '+tab.name);
     }
-    tab.savedVersionId=tab.model.getAlternativeVersionId();
+    tab.savedVersionId=versionId;
     updateDirtyDom(tab);
+    return true;
   }catch(err){
-    toast(t('openFailed'),'error');
+    toast(t('saveFailed')+': '+err.message,'error');
+    return false;
   }
 }
-function saveActive(){ saveTab(activeTab()); }
+async function saveActive(){ await saveTab(activeTab()); }
 
 /* ---------------- diff mode ---------------- */
 function updateDiffBtn(){
@@ -902,6 +984,7 @@ if(wv){
     if(!d || typeof d!=='object') return;
     if(d.type==='language') applyLanguageMode(d.lang);
     else if(d.type==='theme') setTheme(!!d.dark);
+    else if(d.type==='saveDone') completeHostSave(d);
   });
   try{ wv.postMessage({type:'ready'}); }catch(e){}
 }
