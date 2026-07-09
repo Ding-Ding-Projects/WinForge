@@ -21,13 +21,15 @@ namespace WinForge.Pages;
 public sealed class AppLauncherWindow : Window
 {
     // Keep references so open windows are not collected (WinUI does not root secondary windows for us).
-    private static readonly HashSet<AppLauncherWindow> Open = new();
+    private static readonly Dictionary<string, AppLauncherWindow> Open = new(StringComparer.OrdinalIgnoreCase);
 
     private readonly ExternalAppSpec _spec;
+    private readonly AppLauncherCard _launcherCard;
 
     private AppLauncherWindow(ExternalAppSpec spec)
     {
         _spec = spec;
+        _launcherCard = new AppLauncherCard(spec);
         Title = $"{spec.NameEn} · {spec.NameZh}";
         try { AppWindow.SetIcon("Assets/AppIcon.ico"); } catch { }
         ExtendsContentIntoTitleBar = false;
@@ -49,12 +51,12 @@ public sealed class AppLauncherWindow : Window
         }
         catch { }
 
-        Open.Add(this);
         Loc.I.LanguageChanged += OnLanguageChanged;
         Closed += (_, _) =>
         {
             Loc.I.LanguageChanged -= OnLanguageChanged;
-            Open.Remove(this);
+            if (Open.TryGetValue(_spec.Id, out var current) && ReferenceEquals(current, this))
+                Open.Remove(_spec.Id);
         };
     }
 
@@ -77,7 +79,7 @@ public sealed class AppLauncherWindow : Window
             BorderBrush = Brush("CardStrokeColorDefaultBrush"),
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(10),
-            Child = new AppLauncherCard(_spec),
+            Child = _launcherCard,
         };
 
         scroller.Content = new StackPanel
@@ -102,10 +104,15 @@ public sealed class AppLauncherWindow : Window
     // ── Public entry points ──
 
     /// <summary>開一個 app 啟動彈窗 · Open a launcher popup for the given app spec (activates it).</summary>
-    public static void Show(ExternalAppSpec spec)
+    public static void Show(ExternalAppSpec spec, bool launch = false)
     {
-        var w = new AppLauncherWindow(spec);
-        w.Activate();
+        if (!Open.TryGetValue(spec.Id, out var window))
+        {
+            window = new AppLauncherWindow(spec);
+            Open[spec.Id] = window;
+        }
+        window.Activate();
+        if (launch) window._launcherCard.Launch();
     }
 
     /// <summary>依 id 開彈窗（搵唔到就靜靜返回）· Open a launcher popup by app id (no-op if unknown).</summary>

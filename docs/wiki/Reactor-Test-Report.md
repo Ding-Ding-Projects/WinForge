@@ -1,58 +1,72 @@
 # Reactor Test Report · 反應堆測試報告
 
-**EN —** Standalone scenario test suite for the reactor engine and the fuel / waste / water services, run headless against the real C# code. Harness: `tests/ReactorSim.Tests` — run with `dotnet run --project tests/ReactorSim.Tests`.
+**EN —** This is the current headless verification report for the real C# reactor engine and its dependent fuel, waste, water, app-gating, and cake-factory services. The harness compiles the production service sources directly; it does not substitute a mock reactor.
 
-**粵語 —** 反應堆引擎同燃料／廢料／水服務嘅獨立情景測試套件，針對真實 C# 程式碼以無介面方式運行。測試框架：`tests/ReactorSim.Tests` — 用 `dotnet run --project tests/ReactorSim.Tests` 執行。
+**粵語 —** 呢份係現時真實 C# 反應堆引擎，同燃料、廢料、水處理、app 供電閘門、蛋糕工廠相依服務嘅無介面驗證報告。測試框架直接編譯正式服務程式碼，唔係用假反應堆代替。
 
-**Latest run · 最新運行:** 2026-06-26 · `dotnet run --project tests\ReactorSim.Tests\ReactorSim.Tests.csproj`
+**Latest verified run · 最新已驗證執行：** 2026-07-09
 
-**Build / harness · 建置／測試框架:** 0 compile errors · 0 個編譯錯誤. **Result · 結果: 16 / 16 scenarios PASS · 16 / 16 情景通過.**
+```powershell
+dotnet run --project tests/ReactorSim.Tests -c Debug
+```
 
-> **Headline · 重點:** **EN —** The headless reactor suite now covers every `ReactorScenario` enum value directly. SCRAM testing matches the current release-delay / gravity-drop rod model, and the `XenonRestart` scenario now preserves its axial xenon state instead of being wiped on the first ODE tick. The known P1-P3 reactivity-calibration defect is still reproduced and tracked separately. · **粵語 —** 無介面反應堆測試套件而家直接覆蓋每個 `ReactorScenario` enum 值。SCRAM 測試已配合現時嘅釋放延遲／重力落棒模型；`XenonRestart` 情景亦會保存軸向氙狀態，唔會喺第一個 ODE tick 被清走。已知 P1-P3 反應性校準缺陷仍然被重現並另行追蹤。
+**Build / harness · 建置／測試框架：** 0 compile errors · 0 個編譯錯誤
 
----
+**Result · 結果： 63 / 63 scenarios PASS · 63 / 63 個情景全部通過**
 
-## Results · 結果
-
-| # | Scenario · 情景 | Result · 結果 | Key evidence · 關鍵證據 |
-|---|---|---|---|
-| 1 | Cold-shutdown held · 冷停堆保持 | PASS · 通過 | 5 min held: stays Shutdown, power flat at source level, fuel 35 °C, no meltdown · 保持 5 分鐘：維持停堆，功率維持源中子水平，燃料 35 °C，冇熔毀 |
-| 2 | Startup integrator stability · 起動積分穩定 | PASS · 通過 | finite, 0 sign-flips; known runaway reaches clamp but no NaN/oscillation · 有限值、0 次正負反轉；已知失控達上限但冇 NaN／振盪 |
-| 3 | Known P1-P3 bug reproduced · 重現已知缺陷 | PASS · 通過 | fresh core is positive-reactivity when leaving Shutdown, reproducing the tracked calibration defect · 一離開停堆即呈正反應性，重現已追蹤校準缺陷 |
-| 4 | SCRAM mechanism · 緊急停堆機構 | PASS · 通過 | trip latches, release delay holds, rods start dropping over the next second · 跳脫鎖定、釋放延遲成立、控制棒於下一秒開始下插 |
-| 5 | SCRAM cannot hold due P1-P3 symptom · 停堆仍受 P1-P3 症狀影響 | PASS · 通過 | fully-rodded tripped core still melts, intentionally documenting the calibration symptom · 全棒插入且已跳脫仍熔毀，刻意記錄校準症狀 |
-| 6 | Decay heat · 衰變熱 | PASS · 通過 | decay heat charges during power excursion and decays after trip · 衰變熱於功率暫態累積，跳脫後衰減 |
-| 7 | Overpower auto-SCRAM · 超功率自動停堆 | PASS · 通過 | RPS auto-trips via Power Range Flux Hi · RPS 經功率區中子通量過高自動跳脫 |
-| 8 | Xenon transient · 氙暫態 | PASS · 通過 | `XenonRestart` jumps to a post-trip peak and decays through the axial-node ODE · `XenonRestart` 跳至跳堆後峰值，並經軸向節點 ODE 衰減 |
-| 9 | Accident scenario injection coverage · 事故情景注入覆蓋 | PASS · 通過 | all 16 `ReactorScenario` enum values exercised and asserted · 全部 16 個 `ReactorScenario` enum 值均已運行及斷言 |
-| 10 | Fuel fabricate + validate / tamper · 燃料製造與驗證 | PASS · 通過 | authentic fuel validates; tampered fuel is rejected · 真品燃料驗證通過；竄改燃料被拒 |
-| 11 | Load consumes file · 入料即刪檔 | PASS · 通過 | authentic assembly loads, fresh file is consumed, loaded list updates · 真品燃料組件入堆、原始檔被消耗、已載入列表更新 |
-| 12 | Forged harm vs inspect · 偽冒損堆 vs 檢查 | PASS · 通過 | validate/inspect is harmless; unsafe load damages core and SCRAMs · 驗證／檢查無損；不安全入料會損堆並 SCRAM |
-| 13 | Waste cap logic · 廢料上限 | PASS · 通過 | sparse-file cap test refuses write past cap without filling disk · 稀疏檔上限測試拒絕超限寫入，唔會填滿磁碟 |
-| 14 | Waste safety floor · 磁碟安全下限 | PASS · 通過 | free-space floor blocks waste write safely · 剩餘空間安全下限安全阻止廢料寫入 |
-| 15 | Water chemistry · 水質 | PASS · 通過 | treatment train drives conductivity to ultrapure range and tank inventory rises · 水處理列車令電導率達超純範圍，水箱存量上升 |
-| 16 | Water tank empty · 水箱耗盡 | PASS · 通過 | makeup availability degrades and low-tank alarm gates plant-side availability · 補給可用率劣化，低水位警報限制機組側可用性 |
+> **EN —** The original P1–P5 realism findings are resolved. The suite now proves both ends of the operating envelope: a fresh fully-rodded core stays subcritical at **−1018 pcm**, and a fully hot plant sustains a high-power thermal equilibrium without emergency cooling, SCRAM, runaway, or meltdown.
+>
+> **粵語 —** 最初 P1–P5 寫實度問題已解決。測試而家驗證運行範圍兩端：新鮮爐心全棒插入時保持 **−1018 pcm** 次臨界；全熱機組亦可以持續維持高功率熱平衡，唔需要應急冷卻、唔會 SCRAM、唔會失控、唔會熔毀。
 
 ---
 
-## Audit Changes · 審核變更
+## Coverage summary · 覆蓋摘要
 
-- The test project now links the current pure-C# reactor dependencies: core models, localization helpers, electrical model, and reactivity meter. · 測試專案已連結現行純 C# 反應堆依賴：核心模型、本地化 helper、電氣模型、反應性儀。
-- SCRAM assertions now test release delay and rod motion rather than expecting rods to snap to 100% insertion on the same tick. · SCRAM 斷言而家測試釋放延遲同落棒動作，而唔係假設同一 tick 即 100% 插入。
-- `XenonRestart` now seeds the axial top/bottom xenon nodes so the scalar xenon peak persists into the ODE update. · `XenonRestart` 而家會設定頂／底軸向氙節點，令標量氙峰值可持續進入 ODE 更新。
-- A direct scenario-injection coverage test now enumerates and asserts every reactor accident/training scenario. · 新增直接情景注入覆蓋測試，列舉並斷言每個反應堆事故／訓練情景。
+| Group · 組別 | Passing scenarios · 通過數目 | What is covered · 覆蓋內容 |
+|---|---:|---|
+| Reactor physics, startup, persistence, and protection · 反應堆物理、起動、持久化、保護 | **17** | Cold hold, backward-Euler stability, normal/easy/automatic startup, sustained at-power balance, snapshot restore, SCRAM, shutdown margin, decay heat, overpower, and xenon. · 冷停堆保持、後向歐拉穩定性、正常／簡易／自動起動、持續高功率平衡、快照還原、SCRAM、停堆裕度、衰變熱、超功率同氙暫態。 |
+| Accident injection coverage · 事故注入覆蓋 | **1** | Directly exercises and asserts all **16** `ReactorScenario` enum values. · 直接執行同斷言全部 **16** 個 `ReactorScenario` enum 值。 |
+| Fuel lifecycle · 燃料生命週期 | **3** | Fabricate/validate/tamper, load-consumes-file, and forged-fuel harm versus safe inspection. · 製造／驗證／竄改、入料即刪檔、偽冒燃料損堆同安全檢查。 |
+| Waste storage safety · 廢料儲存安全 | **2** | Capacity cap and disk free-space floor. · 容量上限同磁碟剩餘空間安全下限。 |
+| Water treatment · 水處理 | **2** | Ultrapure chemistry and empty-tank availability degradation. · 超純水化學同水箱耗盡後可用性下降。 |
+| Reactor-dependent app gating · 反應堆相依 app 閘門 | **1** | Live reactor-bus availability and ordinary-module exemption. · 即時反應堆母線可用性，同普通模組豁免。 |
+| Cake-factory dependency chain · 蛋糕工廠相依鏈 | **37** | Reactor power gate, manual production, ingredient provenance, factory processes, QA, maintenance, dispatch, signed files, credits, and sanitation. · 反應堆供電閘門、手動生產、原料來源、工廠流程、品質檢驗、維修、出貨、簽署檔案、額度同清潔。 |
+| **Total · 總數** | **63** | **All pass · 全部通過** |
 
 ---
 
-## Known Defect · 已知缺陷
+## Key reactor evidence · 主要反應堆證據
 
-**EN —** The P1-P3 reactivity-calibration defect is intentionally still reproduced by scenarios 3 and 5: once the cold core leaves held Shutdown, the current reactivity budget can overpower full rod insertion. This is a calibration issue, not a numerical-instability issue; the integrator remains finite and deterministic.
+| Scenario · 情景 | Result · 結果 | Measured evidence · 量度證據 |
+|---|---|---|
+| Cold-shutdown held · 冷停堆保持 | PASS · 通過 | Five minutes at source level; MODE 5, 35 °C fuel, no meltdown. · 五分鐘維持源中子水平；MODE 5、燃料 35 °C、冇熔毀。 |
+| Startup integrator stability · 起動積分穩定性 | PASS · 通過 | Backward-Euler remains finite, has no sign oscillation, and does not hit the numerical clamp. · 後向歐拉保持有限值、冇正負振盪、冇撞數值上限。 |
+| Fully-rodded startup margin · 全棒插入起動裕度 | PASS · 通過 | Fresh core reads **−1018 pcm**, remains subcritical, and accumulates no damage. · 新鮮爐心讀數 **−1018 pcm**，保持次臨界，冇累積損傷。 |
+| Sustained high-power equilibrium · 持續高功率平衡 | PASS · 通過 | After full-plant settling, **0.836→0.835 RTP** over eight observed minutes; fuel **992.4→992.5 °C**; Tavg **293.4 °C**; RCS **15.46 MPa**; reactivity approximately 0 pcm. No ECCS, accumulator injection, SCRAM, or meltdown. · 全機組穩定後觀察八分鐘：**0.836→0.835 RTP**；燃料 **992.4→992.5 °C**；Tavg **293.4 °C**；RCS **15.46 MPa**；反應性約 0 pcm。冇 ECCS、冇蓄壓器注入、冇 SCRAM、冇熔毀。 |
+| SCRAM mechanism · 緊急停堆機構 | PASS · 通過 | Trip latches, release delay holds, then gravity rod-drop begins; rods do not unrealistically snap in on one tick. · 跳脫鎖定、釋放延遲成立，之後控制棒靠重力落下；唔會一個 tick 瞬間全插。 |
+| SCRAM shutdown margin · SCRAM 停堆裕度 | PASS · 通過 | Fully-rodded tripped core remains **−1018 pcm** and does not melt. · 跳堆後全棒插入保持 **−1018 pcm**，唔會熔毀。 |
+| Decay heat and xenon · 衰變熱同氙 | PASS · 通過 | Decay heat charges at power and decays after trip; `XenonRestart` preserves and decays the axial xenon peak. · 衰變熱喺功率運行時累積、跳堆後衰減；`XenonRestart` 會保留並衰減軸向氙峰。 |
+| Protection and accidents · 保護同事故 | PASS · 通過 | Power Range Flux Hi initiates automatic SCRAM; every one of the 16 accident/training enum values is exercised. · 高功率量程中子通量會自動 SCRAM；全部 16 個事故／訓練 enum 值都有執行。 |
 
-**粵語 —** P1-P3 反應性校準缺陷仍然由情景 3 同 5 刻意重現：冷態爐心一離開保持停堆，現時反應性預算可壓過全棒插入。呢個係校準問題，唔係數值不穩定問題；積分器仍然保持有限值同可重現。
+---
+
+## Thermal-balance regression · 熱平衡回歸
+
+**EN —** The P3 correction uses engineering-unit aggregate coefficients: fuel→coolant conductance **4.3 MW/°C**, four-loop steam-generator conductance **4 + 39·RCS-flow MW/°C** (43 MW/°C at full flow), fuel heat capacity **30 MW·s/°C**, and coolant heat capacity **60 MW·s/°C**. At the rated design point these terms can carry the 3411 MW core output across plausible temperature gradients. The sustained test then verifies the coupled model actually settles rather than merely matching a static calculation.
+
+**粵語 —** P3 修正採用有工程單位嘅總體係數：燃料→冷卻劑熱導 **4.3 MW/°C**、四迴路蒸汽產生器熱導 **4 + 39·RCS 流量 MW/°C**（滿流量係 43 MW/°C）、燃料熱容量 **30 MW·s/°C**、冷卻劑熱容量 **60 MW·s/°C**。喺額定設計點，呢啲項目可以用合理溫差帶走 3411 MW 爐心輸出；持續測試再驗證耦合模型真係會穩定落嚟，唔係只啱一條靜態算式。
+
+---
+
+## Historical defect status · 歷史缺陷狀態
+
+**EN —** Older lower-count and open-defect status reports are obsolete. The original technical findings are retained only as an archival baseline in [Reactor Realism Review #001](../reactor-realism-review-001.md), with a current P1–P5 disposition at the top.
+
+**粵語 —** 舊有較低通過數目同未完成缺陷狀態已經過時。原始技術發現只保留喺 [Reactor Realism Review #001](../reactor-realism-review-001.md) 做歷史基準，文件頂部已有現時 P1–P5 處理狀態。
 
 ---
 
 ### Reactor pages · 反應堆頁面導覽
-[Reactor Hub · 反應堆總覽](Nuclear-Reactor.md) · [Overview · 總覽](Reactor-Overview.md) · [Control Room · 控制室](Reactor-Control-Room.md) · [Operating Procedures · 操作程序](Reactor-Operating-Procedures.md) · [Emergencies & Scenarios · 緊急與情景](Reactor-Emergencies-and-Scenarios.md) · [Fuel & Waste · 燃料與廢料](Reactor-Fuel-and-Waste.md) · [Water Treatment · 水處理](Reactor-Water-Treatment.md) · [Safety & Integrations · 安全與整合](Reactor-Safety-and-Integrations.md) · [Operating Manual · 操作手冊](Nuclear-Reactor-Operating-Manual.md) · [Test Report · 測試報告](Reactor-Test-Report.md)
+[Reactor Hub · 反應堆總覽](Nuclear-Reactor.md) · [Overview · 總覽](Reactor-Overview.md) · [Control Room · 控制室](Reactor-Control-Room.md) · [Operating Procedures · 操作程序](Reactor-Operating-Procedures.md) · [Emergencies & Scenarios · 緊急與情景](Reactor-Emergencies-and-Scenarios.md) · [Fuel & Waste · 燃料與廢料](Reactor-Fuel-and-Waste.md) · [Water Treatment · 水處理](Reactor-Water-Treatment.md) · [Safety & Integrations · 安全與整合](Reactor-Safety-and-Integrations.md) · [Operating Manual · 操作手冊](Nuclear-Reactor-Operating-Manual.md)
 
 *English + 繁體中文／粵語*

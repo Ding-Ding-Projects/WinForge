@@ -282,6 +282,8 @@ function syncToggleButtons() {
 }
 
 /* ---------------- WebView2 bridge ---------------- */
+let nextSaveRequestId = 1;
+const pendingSaves = new Map();
 const bridge = (window.chrome && window.chrome.webview) ? window.chrome.webview : null;
 if (bridge) {
   bridge.addEventListener('message', ev => {
@@ -293,14 +295,28 @@ if (bridge) {
       } else if (d.type === 'theme') {
         document.documentElement.classList.toggle('light', !d.dark);
         render(); // node label contrast + edge label halos depend on theme
+      } else if (d.type === 'saveDone') {
+        const name = pendingSaves.get(d.requestId);
+        if (!name) return;
+        pendingSaves.delete(d.requestId);
+        if (d.ok) {
+          toast(L('Saved', '已儲存') + ': ' + name);
+        } else if (d.cancelled) {
+          toast(L('Save cancelled', '已取消儲存') + ': ' + name);
+        } else {
+          toast(L('Save failed', '儲存失敗') + ': ' + name + (d.error ? ' — ' + d.error : ''));
+        }
       }
     } catch (err) { /* never crash on host messages */ }
   });
 }
 function hostSave(name, mime, dataBase64) {
+  let requestId = null;
   try {
     if (bridge) {
-      bridge.postMessage({ type: 'save', name: name, mime: mime, dataBase64: dataBase64 });
+      requestId = 'diagramforge-save-' + (nextSaveRequestId++);
+      pendingSaves.set(requestId, name);
+      bridge.postMessage({ type: 'save', requestId: requestId, name: name, mime: mime, dataBase64: dataBase64 });
     } else {
       const a = document.createElement('a');
       a.href = 'data:' + mime + ';base64,' + dataBase64;
@@ -308,7 +324,10 @@ function hostSave(name, mime, dataBase64) {
       document.body.appendChild(a); a.click(); a.remove();
     }
     toast(L('Saving', '儲存緊') + ': ' + name);
-  } catch (err) { toast(L('Save failed', '儲存失敗') + ': ' + err.message); }
+  } catch (err) {
+    if (requestId) pendingSaves.delete(requestId);
+    toast(L('Save failed', '儲存失敗') + ': ' + err.message);
+  }
 }
 const b64 = s => btoa(unescape(encodeURIComponent(s)));
 
@@ -1247,11 +1266,18 @@ function sanitizeDoc(o) {
   const rn = Array.isArray(o.nodes) ? o.nodes : null;
   const re = Array.isArray(o.edges) ? o.edges : [];
   if (!rn) throw new Error('bad');
+  // IDs are later placed in SVG data-id/id/marker attributes. Keep imported identifiers
+  // deliberately boring so a crafted diagram cannot break out of an attribute and execute
+  // markup in the trusted app.winforge origin.
+  const safeImportedId = value => {
+    const s = typeof value === 'string' ? value.trim() : '';
+    return /^[A-Za-z0-9_-]{1,64}$/.test(s) ? s : '';
+  };
   const nodes = [], ids = new Set();
   for (const r of rn) {
     if (!r || typeof r !== 'object') continue;
     const type = SHAPES[r.type] ? String(r.type) : 'rect';
-    let id = (typeof r.id === 'string' && r.id) ? r.id : ('n_' + Math.random().toString(36).slice(2, 8));
+    let id = safeImportedId(r.id) || ('n_' + Math.random().toString(36).slice(2, 8));
     while (ids.has(id)) id += 'x';
     ids.add(id);
     nodes.push({
@@ -1268,7 +1294,7 @@ function sanitizeDoc(o) {
     if (!r || typeof r !== 'object' || !r.from || !r.to) continue;
     const fn = String(r.from.node || ''), tn = String(r.to.node || '');
     if (!ids.has(fn) || !ids.has(tn)) continue;
-    let id = (typeof r.id === 'string' && r.id) ? r.id : ('e_' + Math.random().toString(36).slice(2, 8));
+    let id = safeImportedId(r.id) || ('e_' + Math.random().toString(36).slice(2, 8));
     while (eids.has(id) || ids.has(id)) id += 'x';
     eids.add(id);
     edges.push({

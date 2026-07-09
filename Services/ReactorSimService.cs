@@ -410,6 +410,18 @@ public sealed class ReactorSimService
     private const double NominalSteamPressure = 6.9; // MPa secondary
     private const double NominalBoron = 1200.0;    // ppm at BOL hot-zero-power-ish
 
+    // Aggregate core / four-loop steam-generator heat transfer. At rated power the fuel conductance
+    // rejects 3411 MW across an approximately 800 °C fuel-to-coolant gradient, while the SG conductance
+    // rejects the same heat across the model's approximately 79 °C primary-to-secondary gradient
+    // (Tavg 305 °C, secondary saturation approximately 226 °C at 6.9 MPa). Keeping these as explicit
+    // engineering-unit coefficients makes the full-power energy balance close instead of requiring
+    // impossible fuel temperatures to drive the old 0.06 MW/°C coupling.
+    private const double FuelCoolantConductanceMWPerC = 4.3;
+    private const double FuelHeatCapacityMWsPerC = 30.0;
+    private const double SgNaturalConductanceMWPerC = 4.0;
+    private const double SgForcedConductanceMWPerC = 39.0;
+    private const double CoolantHeatCapacityMWsPerC = 60.0;
+
     // ---- Tech-Spec OPERATIONAL MODE determination (NUREG-1431 Table 1.1-1) ----
     // The MODE 1/2-vs-3 split is the criticality boundary Keff = 0.99. With net reactivity ρ in pcm,
     // Keff = 1/(1 − ρ·1e-5); Keff = 0.99 ⇒ ρ = (0.99−1)/0.99 ·1e5 = −1010.1 pcm (NOT −1000). The 1/2-vs-3
@@ -4591,14 +4603,17 @@ public sealed class ReactorSimService
         // Fuel heats from fission power PLUS decay heat (present even after SCRAM — this is what makes
         // station-blackout / loss-of-feedwater emergent: the core keeps heating with no heat sink).
         double q = (_power + DecayHeatFraction) * RatedThermalMW; // MW generated in fuel
-        // Heat-transfer fuel->coolant proportional to (Tfuel - Tcoolant).
-        double fuelToCoolant = 0.06 * (FuelTemp - Tavg); // MW per °C scaling (lumped)
-        double fuelHeatCap = 35.0; // MW·s per °C (fuel lump)
-        FuelTemp += (q - fuelToCoolant) / fuelHeatCap * h;
+        // Heat-transfer fuel->coolant proportional to (Tfuel - Tcoolant). The aggregate conductance
+        // closes the rated 3411 MW balance at a plausible core-average fuel temperature near 1100 °C.
+        double fuelToCoolant = FuelCoolantConductanceMWPerC * Math.Max(0.0, FuelTemp - Tavg);
+        FuelTemp += (q - fuelToCoolant) / FuelHeatCapacityMWsPerC * h;
         if (FuelTemp < ColdTemp) FuelTemp = ColdTemp;
 
-        // Coolant: receives fuelToCoolant, rejects heat to SG proportional to flow & secondary delta.
-        double sgRemoval = (8.0 + 90.0 * CoolantFlowFraction) * Math.Max(0, Tavg - SecondarySatTemp()) * 0.01;
+        // Coolant: receives fuel heat and rejects it through all four SGs. The 4 MW/°C natural-circulation
+        // floor plus 39 MW/°C forced-flow term gives 43 MW/°C at full RCS flow; unlike the previous
+        // expression, this is already in MW/°C and therefore must not be multiplied by 0.01.
+        double sgRemoval = (SgNaturalConductanceMWPerC + SgForcedConductanceMWPerC * CoolantFlowFraction)
+                         * Math.Max(0.0, Tavg - SecondarySatTemp());
         sgRemoval *= (0.3 + 0.7 * FeedwaterFlow); // feedwater enables heat sink
         // Steam dump heat sink: up to 40% main-steam bypass to the condenser. Reuses the primary-to-secondary
         // head and the condenser-feed gate; reads the per-tick cached demand. This is what keeps removing
@@ -4617,9 +4632,8 @@ public sealed class ReactorSimService
         // and steam-flow-weighted — the deficit is ~0 with the full heater train in service (so the calibrated
         // full-power steady state is untouched) and self-zeros at low/zero load (SteamFlow → 0).
         sgRemoval += FwOvercoolGain * SteamFlow * FeedwaterTempDeficitC;
-        double coolantHeatCap = 60.0; // MW·s per °C
         double netCoolant = fuelToCoolant - sgRemoval;
-        double avg = Tavg + netCoolant / coolantHeatCap * h;
+        double avg = Tavg + netCoolant / CoolantHeatCapacityMWsPerC * h;
 
         // Flow sets the Thot-Tcold spread for a given power: deltaT ~ power / flow.
         double flow = Math.Max(CoolantFlowFraction, 0.02);

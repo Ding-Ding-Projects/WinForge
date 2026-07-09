@@ -23,21 +23,35 @@ public sealed partial class AppLauncherModule : Page
     private string _query = "";
     private string _category = "";
     private bool _buildingCategories;
+    private bool _locSubscribed;
 
     public AppLauncherModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += OnLanguageChanged;
-        Loaded += (_, _) =>
-        {
-            RenderText();
-            BuildCategories();
-            RenderApps();
-        };
-        Unloaded += (_, _) => Loc.I.LanguageChanged -= OnLanguageChanged;
+        Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
     }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
+
+    private void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        if (!_locSubscribed)
+        {
+            Loc.I.LanguageChanged += OnLanguageChanged;
+            _locSubscribed = true;
+        }
+        RenderText();
+        BuildCategories();
+        RenderApps();
+    }
+
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        if (!_locSubscribed) return;
+        Loc.I.LanguageChanged -= OnLanguageChanged;
+        _locSubscribed = false;
+    }
 
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
@@ -50,8 +64,8 @@ public sealed partial class AppLauncherModule : Page
     {
         Header.Title = "App Launcher · 原生 App 啟動器";
         HeaderBlurb.Text = P(
-            "Apps that are too large to reimplement inside WinForge are launched in their own native window. Pick one and WinForge fully-automatically installs the app AND all its dependencies (via winget), then launches the real program — no 'go download X' detour. The native OSS Clones hub covers the apps WinForge remade as in-app C# tabs instead.",
-            "有啲 app 太龐大，無法喺 WinForge 內重製，就以佢哋自己嘅原生視窗啟動。揀一個，WinForge 就會全自動安裝 app 同埋佢所有相依項（經 winget），再啟動真正嘅程式 — 唔使自己去下載。至於 WinForge 重製成 app 內 C# 分頁嘅 app，就喺「開源原生分頁」中心。");
+            "Apps that are too large to reimplement inside WinForge are launched in their own native window. Pick one and WinForge fully-automatically installs the app AND all its dependencies (via winget), then enables an explicit Launch button — no 'go download X' detour and no surprise process after cancellation. The native OSS Clones hub covers the apps WinForge remade as in-app C# tabs instead.",
+            "有啲 app 太龐大，無法喺 WinForge 內重製，就以佢哋自己嘅原生視窗啟動。揀一個，WinForge 會全自動安裝 app 同埋佢所有相依項（經 winget），完成後先啟用明確嘅「啟動」按鈕 — 唔使自己去下載，取消後亦唔會突然開程式。至於 WinForge 重製成 app 內 C# 分頁嘅 app，就喺「開源原生分頁」中心。");
         ClearLabel.Text = P("Clear", "清除");
         SearchBox.PlaceholderText = P("Search launchable native apps…", "搜尋可啟動嘅原生 app…");
     }
@@ -200,7 +214,7 @@ public sealed partial class AppLauncherModule : Page
                     new TextBlock { Text = P("Launch", "啟動") },
                 },
             };
-            launch.Click += (_, _) => ExternalAppService.Launch(app);
+            launch.Click += (_, _) => AppLauncherWindow.Show(app, launch: true);
             buttons.Children.Add(launch);
         }
 
@@ -216,7 +230,7 @@ public sealed partial class AppLauncherModule : Page
             Children =
             {
                 new FontIcon { Glyph = ((char)0xE8A7).ToString(), FontSize = 13 },
-                new TextBlock { Text = installed ? P("Manage", "管理") : P("Install & launch", "安裝並啟動") },
+                new TextBlock { Text = installed ? P("Manage", "管理") : P("Install", "安裝") },
             },
         };
         AutomationProperties.SetName(open, P($"Open the {app.NameEn} launcher popup", $"開啟 {app.NameZh} 啟動彈窗"));

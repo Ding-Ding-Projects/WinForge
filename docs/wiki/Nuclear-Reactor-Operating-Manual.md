@@ -1,8 +1,8 @@
 # Nuclear Reactor — Operating Manual · 核反應堆操作手冊
 
-**EN —** The Nuclear Reactor is WinForge's flagship: a hyper-realistic **Pressurized Water Reactor (PWR)** control room rendered entirely in WinUI 3, modeling 6-group point kinetics, reactivity feedback (Doppler / moderator / boron / xenon), thermal-hydraulics, a steam/turbine secondary plant, a Westinghouse-style protection system, synthesized control-room audio, and a live plant mimic. It is a **simulation / training toy** — it controls no real hardware.
+**EN —** The Nuclear Reactor is WinForge's flagship: a hyper-realistic **Pressurized Water Reactor (PWR)** simulator with a WinUI 3 operating shell and an HTML5/WebView2 room-tabbed control-room window. The physics remains in managed C#: 6-group point kinetics, Doppler / moderator / boron / xenon feedback, thermal-hydraulics, steam/turbine secondary plant, Westinghouse-style protection, synthesized control-room audio, and a live plant mimic. It is a **simulation / training toy** — it controls no real reactor hardware.
 
-**粵語 —** 核反應堆係 WinForge 嘅旗艦模組：一個完全用 WinUI 3 繪製、超寫實嘅**壓水式反應堆（PWR）**控制室，模擬六組點動力學、反應性回饋（都卜勒／緩和劑／硼／氙）、熱工水力、蒸汽渦輪二次側、西屋式保護系統、合成控制室音效，同即時機組流程圖。佢只係一個**模擬／訓練玩具**，唔會控制任何真實硬件。
+**粵語 —** 核反應堆係 WinForge 嘅旗艦模組：一個超寫實**壓水式反應堆（PWR）**模擬器，外殼用 WinUI 3，另有 HTML5／WebView2 房間分頁控制室視窗。物理仍然全部喺受控 C# 入面：六組點動力學、都卜勒／緩和劑／硼／氙反應性回饋、熱工水力、蒸汽渦輪二次側、西屋式保護、合成控制室音效，同即時機組流程圖。佢只係一個**模擬／訓練玩具**，唔會控制任何真實反應堆硬件。
 
 > **EN —** This manual has been **split into focused pages** so it is no longer one long page. This page is now a **manual index** — pick a section below. · **粵語 —** 本手冊已**拆分為多個聚焦頁面**，唔再係一條長頁。呢頁而家係**手冊索引**——喺下面揀一個章節。
 
@@ -32,11 +32,11 @@
 
 ---
 
-## Realism roadmap · 寫實度路線圖
+## Realism verification · 寫實度驗證
 
-**EN —** WinForge's first multi-agent realism review found the instrumentation complete but the **core physics needs foundational fixes** before at-power scenarios behave correctly — currently the core runs away to meltdown if started up. Backward-Euler kinetics (P1) landed; the **reactivity calibration (P2)** is still unfinished, so the reactor is **safe at rest in cold shutdown but melts if started up**. Tracked in [reactor-realism-review-001.md](../reactor-realism-review-001.md); validation status in the [Test Report](Reactor-Test-Report.md).
+**EN —** The first multi-agent realism review is now an **archival baseline**, not an open-defect list. P1–P5 are implemented: stable backward-Euler kinetics, verified shutdown margin, a closed fuel/steam-generator energy balance, ANS-5.1 decay heat, corrected xenon and saturated-pressurizer behavior, wired 2-of-4 RPS protection, and 1/M startup guidance. The current headless suite is **63/63 green**. Its sustained high-power regression holds **0.836→0.835 RTP**, fuel near **992.5 °C**, Tavg **293.4 °C**, and RCS pressure **15.46 MPa**, with no emergency cooling, SCRAM, runaway, or meltdown. Historical analysis: [Reactor Realism Review #001](../reactor-realism-review-001.md); live evidence: [Test Report](Reactor-Test-Report.md).
 
-**粵語 —** WinForge 首次多代理寫實度審查發現儀表已完整，但**核心物理需要基礎修正**，滿載情景先會正確運作——目前一起動就會失控走向熔毀。後向歐拉動力學（P1）已落地；**反應性校準（P2）**仍未完成，所以反應堆**靜止於冷停堆時安全，但一起動就會熔毀**。詳見[reactor-realism-review-001.md](../reactor-realism-review-001.md)；驗證狀態見[測試報告](Reactor-Test-Report.md)。
+**粵語 —** 首次多代理寫實度審查而家係**歷史基準**，唔再係未完成缺陷清單。P1–P5 已經實作：穩定後向歐拉動力學、已驗證停堆裕度、閉合嘅燃料／蒸汽產生器能量平衡、ANS-5.1 衰變熱、已修正氙同飽和穩壓器行為、已接駁四取二 RPS 保護，同 1/M 起動指引。現時無介面測試 **63/63** 全綠；持續高功率回歸維持 **0.836→0.835 RTP**、燃料約 **992.5 °C**、Tavg **293.4 °C**、RCS 壓力 **15.46 MPa**，冇應急冷卻、冇 SCRAM、冇失控、冇熔毀。歷史分析見 [Reactor Realism Review #001](../reactor-realism-review-001.md)；現時證據見[測試報告](Reactor-Test-Report.md)。
 
 ---
 

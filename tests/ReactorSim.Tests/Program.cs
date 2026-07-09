@@ -7,9 +7,9 @@
 // IMPORTANT FINDING (drives several test designs below):
 //   Startup mode must not by itself make a cold, fully-rodded core prompt-supercritical. The reactivity
 //   baseline is calibrated so nominal boron with rods withdrawn is the hot-reference critical point,
-//   while fully inserted rods provide shutdown margin during a fresh startup. Tests that need sustained
-//   full-power operation still avoid assuming a perfect power plateau; they assert deterministic
-//   mechanisms (SCRAM action, decay-heat charge, xenon ODE) directly.
+//   while fully inserted rods provide shutdown margin during a fresh startup. The suite includes one
+//   deliberately seeded, sustained high-power plateau to regress the coupled thermal energy balance;
+//   transient tests continue to assert their deterministic mechanisms directly.
 //
 // RULES honoured here:
 //   * No multi-hundred-MB files are ever written. The waste-cap test seeds a SPARSE 1.2 GB file
@@ -132,6 +132,89 @@ internal static class Program
             bool pass = !everNonFinite && !hitClamp && r.Mode != ReactorMode.Meltdown && Finite(r.NeutronPowerFraction);
             return (pass, $"finiteOK={!everNonFinite}, signFlips={signFlips}, reachedClamp={hitClamp}, " +
                           $"finalPower={r.NeutronPowerFraction:E3}, rho={r.ReactivityPcm:F0}pcm.");
+        });
+
+        // ---- SUSTAINED AT-POWER THERMAL EQUILIBRIUM ----
+        // Seed a self-consistent beginning-of-life operating point through the public persistence surface.
+        // The fixture keeps the secondary boundary at full feedwater with the turbine unloaded so steam
+        // pressure settles at its 8.3 MPa no-load cap. At 83% RTP that gives approximately 65 °C across the
+        // aggregate SG conductance and approximately 659 °C from coolant to average fuel: both carry about
+        // 2.83 GW. Auto-start mode suppresses unrelated trips while cold-only internal pressurizer state
+        // catches up; the assertions below are solely about the coupled kinetics/thermal energy balance.
+        Scenario("AT-POWER THERMAL EQUILIBRIUM (sustained high power, heat balance closes)", () =>
+        {
+            var r = new ReactorSimService();
+            r.ApplyAutoStartPreset();
+            for (int i = 0; i < 600; i++) r.Update(0.1); // establish four-loop forced flow before hot seeding
+
+            const double seededPower = 0.83;
+            var state = r.CaptureSnapshot(0.0);
+            double precursorScale = seededPower / Math.Max(state.Power, 1e-12);
+            state.Power = seededPower;
+            state.Precursor = state.Precursor.Select(c => c * precursorScale).ToArray();
+            state.FuelTemp = 968.0;
+            state.Tcold = 294.5;
+            state.Thot = 323.5;
+            state.PrimaryPressure = 15.5;
+            state.PressurizerLevel = 55.0;
+            state.SteamPressure = 8.3;
+            state.SteamGenLevel = 50.0;
+            state.ElectricPowerMW = 0.0;
+            state.TurbineRPM = 0.0;
+            state.CoolantFlowFraction = 1.0;
+            state.RodBankInsertion = new[] { 0.0, 0.0, 0.0, 0.0 };
+            state.BoronPpm = 100.0;
+            state.TargetBoronPpm = 100.0;
+            state.AutoStartMode = true;
+            state.RcpFlowDemand = 1.0;
+            state.RcpRunning = new[] { true, true, true, true };
+            state.FeedwaterFlow = 1.0;
+            state.TurbineLoadSetpoint = 0.0;
+            state.GeneratorBreakerClosed = false;
+            state.EccsArmed = false;
+            state.AutoRodControl = false;
+            state.Mode = (int)ReactorMode.Run;
+            r.RestoreSnapshot(state);
+            r.FeedwaterAuto = false;
+
+            const double dt = 0.1;
+            const int settleSteps = 30000; // 50 min also lets the cold-only pressurizer liquid state catch up
+            const int observeSteps = 4800; // then hold another 8 min at power
+            for (int i = 0; i < settleSteps; i++) r.Update(dt);
+
+            // The operating point is now fully hot and pressurized. Re-enable the normal RPS for the actual
+            // observation window; a valid equilibrium must hold without ECCS or passive-accumulator cooling.
+            r.AutoStartMode = false;
+            r.ResetTrip();
+
+            double startPower = r.NeutronPowerFraction;
+            double startFuel = r.FuelTemp;
+            double startTavg = r.Tavg;
+            double minPower = startPower, maxPower = startPower;
+            bool finite = true, emergencyCooling = r.EccsInjecting || r.AccumulatorInjecting;
+            for (int i = 0; i < observeSteps; i++)
+            {
+                r.Update(dt);
+                minPower = Math.Min(minPower, r.NeutronPowerFraction);
+                maxPower = Math.Max(maxPower, r.NeutronPowerFraction);
+                finite &= Finite(r.NeutronPowerFraction) && Finite(r.FuelTemp) && Finite(r.Tavg);
+                emergencyCooling |= r.EccsInjecting || r.AccumulatorInjecting;
+            }
+
+            double powerDrift = Math.Abs(r.NeutronPowerFraction - startPower);
+            double fuelDrift = Math.Abs(r.FuelTemp - startFuel);
+            double tavgDrift = Math.Abs(r.Tavg - startTavg);
+            bool atPower = minPower >= 0.60 && maxPower <= 1.09;
+            bool plausibleTemps = r.FuelTemp is >= 750.0 and <= 1400.0
+                                  && r.Tavg is >= 260.0 and <= 340.0;
+            bool equilibrium = powerDrift <= 0.08 && fuelDrift <= 40.0 && tavgDrift <= 8.0;
+            bool pass = finite && atPower && plausibleTemps && equilibrium
+                        && !emergencyCooling && !r.IsScrammed
+                        && !r.MeltdownTriggered && r.Mode != ReactorMode.Meltdown;
+            return (pass, $"power {startPower:F3}→{r.NeutronPowerFraction:F3} (range {minPower:F3}-{maxPower:F3}, Δ={powerDrift:F3}); " +
+                          $"fuel {startFuel:F1}→{r.FuelTemp:F1}°C (Δ={fuelDrift:F1}); Tavg {startTavg:F1}→{r.Tavg:F1}°C (Δ={tavgDrift:F1}); " +
+                          $"Prcs={r.PrimaryPressure:F2} MPa, rho={r.ReactivityPcm:F0} pcm, emergencyCooling={emergencyCooling}, " +
+                          $"scram={r.IsScrammed}, finite={finite}, meltdown={r.MeltdownTriggered}");
         });
 
         // ---- STARTUP MODE ALONE DOES NOT INSERT POSITIVE REACTIVITY ----

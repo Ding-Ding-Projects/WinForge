@@ -200,9 +200,19 @@ public static class ExternalAppService
 
         Rescan(spec);
         bool installed = IsInstalled(spec);
+        if (!installed)
+        {
+            progress?.Report(InstallProgressReport.Status(
+                $"{spec.NameEn} installed, but its executable could not be located.",
+                $"{spec.NameZh} 已安裝，但搵唔到佢嘅執行檔。"));
+            return TweakResult.Fail(
+                $"{spec.NameEn} and its dependencies installed, but WinForge could not locate the executable. Use “Locate executable” and select it once.",
+                $"{spec.NameZh} 同相依項已安裝，但 WinForge 搵唔到執行檔。請用「指定執行檔」揀一次。",
+                log.ToString());
+        }
+
         progress?.Report(InstallProgressReport.Progress(100,
-            installed ? $"{spec.NameEn} is ready to launch." : $"{spec.NameEn} installed.",
-            installed ? $"{spec.NameZh} 已可啟動。" : $"{spec.NameZh} 已安裝。"));
+            $"{spec.NameEn} is ready to launch.", $"{spec.NameZh} 已可啟動。"));
 
         string note = optionalSkipped > 0 ? $" ({optionalSkipped} optional skipped)" : "";
         string noteZh = optionalSkipped > 0 ? $"（略過 {optionalSkipped} 個可選項）" : "";
@@ -228,13 +238,10 @@ public static class ExternalAppService
         {
             var args = string.Join(" ",
                 new[] { spec.LaunchArgs, extraArgs }.Where(a => !string.IsNullOrWhiteSpace(a)));
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = exe,
-                Arguments = args,
-                UseShellExecute = true,
-                WorkingDirectory = Path.GetDirectoryName(exe) ?? "",
-            });
+            if (!UserProcessLauncher.TryStart(exe, args, Path.GetDirectoryName(exe), out var error))
+                return TweakResult.Fail(
+                    $"Couldn't launch {spec.NameEn} without administrator rights: {error}",
+                    $"無法以一般使用者權限啟動 {spec.NameZh}：{error}");
             return TweakResult.Ok($"Launched {spec.NameEn}.", $"已啟動 {spec.NameZh}。", exe);
         }
         catch (Exception ex) { return TweakResult.Fail(ex.Message, $"出錯：{ex.Message}", ex.Message); }

@@ -47,8 +47,6 @@
     <Compile Include="..\..\Services\ReactorElectrical.cs"      Link="Engine\ReactorElectrical.cs" />
     <Compile Include="..\..\Services\ReactorReactivityMeter.cs" Link="Engine\ReactorReactivityMeter.cs" />
     <Compile Include="..\..\Services\ReactorScenarios.cs"       Link="Engine\ReactorScenarios.cs" />
-    <Compile Include="..\..\Services\ReactorElectrical.cs"      Link="Engine\ReactorElectrical.cs" />
-    <Compile Include="..\..\Services\ReactorReactivityMeter.cs" Link="Engine\ReactorReactivityMeter.cs" />
     <Compile Include="..\..\Services\ReactorDependencyService.cs" Link="Engine\ReactorDependencyService.cs" />
     <Compile Include="..\..\Services\FuelFactoryService.cs"     Link="Engine\FuelFactoryService.cs" />
     <Compile Include="..\..\Services\NuclearWasteService.cs"    Link="Engine\NuclearWasteService.cs" />
@@ -57,8 +55,6 @@
     <Compile Include="..\..\Services\CakeFileService.cs"        Link="Engine\CakeFileService.cs" />
     <Compile Include="..\..\Services\CakeCreditService.cs"      Link="Engine\CakeCreditService.cs" />
     <Compile Include="..\..\Services\SettingsStore.cs"          Link="Engine\SettingsStore.cs" />
-    <Compile Include="..\..\Services\Loc.cs"                    Link="Engine\Loc.cs" />
-    <Compile Include="..\..\Models\Core.cs"                     Link="Engine\Core.cs" />
   </ItemGroup>
 
 </Project>
