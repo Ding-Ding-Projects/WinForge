@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Formats.Tar;
@@ -107,8 +106,13 @@ public static class CompanionAppService
     private const int MonacoMaxArchiveEntries = 10000;
     private const int MonacoMaxExtractedFiles = 5000;
     private static readonly SemaphoreSlim MonacoGate = new(1, 1);
-    private static readonly ConcurrentDictionary<string, SemaphoreSlim> NativeBuildGates =
-        new(StringComparer.OrdinalIgnoreCase);
+    // Native toolchain discovery/install/compile is process-wide serialized. Besides avoiding redundant
+    // toolchain work, this makes the quarantine transition atomic: no second companion can pass the check
+    // while a cancelled compiler or installer is still being drained and may become unconfirmed.
+    private static readonly SemaphoreSlim NativeBuildGate = new(1, 1);
+    // If Windows refuses to stop a cancelled compiler/installer, its process may outlive the service call.
+    // Quarantine every further native build in this WinForge process so another companion cannot overlap it.
+    private static string? _nativeBuildQuarantine;
 
     /// <summary>weblibs 根（虛擬主機 libs.winforge 映射呢度）· Root mapped to https://libs.winforge .</summary>
     public static string WebLibsDir
@@ -340,17 +344,46 @@ public static class CompanionAppService
     /// (streaming compiler output) and cache the exe by source hash. Returns the exe path in Output.
     /// </summary>
     public static async Task<TweakResult> EnsureNativeAsync(CompanionSpec spec,
-        IProgress<InstallProgressReport>? progress, CancellationToken ct = default)
+        IProgress<InstallProgressReport>? progress, CancellationToken ct = default,
+        Action<InstallProgressReport>? audit = null)
     {
-        var gate = NativeBuildGates.GetOrAdd(spec.Id, static _ => new SemaphoreSlim(1, 1));
-        await gate.WaitAsync(ct);
-        try { return await EnsureNativeCoreAsync(spec, progress, ct); }
-        finally { gate.Release(); }
+        if (Volatile.Read(ref _nativeBuildQuarantine) is string quarantined)
+            return NativeBuildQuarantined(quarantined);
+
+        await NativeBuildGate.WaitAsync(ct);
+        try
+        {
+            // Recheck after the gate: another build may have entered quarantine while this call waited.
+            if (Volatile.Read(ref _nativeBuildQuarantine) is string waitingQuarantine)
+                return NativeBuildQuarantined(waitingQuarantine);
+            var result = await EnsureNativeCoreAsync(spec, progress, audit, ct);
+            if (result.Code == ShellRunner.ProcessCleanupTimeoutCode)
+            {
+                var reason = result.Message?.En ?? "A cancelled compiler or installer may still be running.";
+                Interlocked.CompareExchange(ref _nativeBuildQuarantine, reason, null);
+            }
+            return result;
+        }
+        finally { NativeBuildGate.Release(); }
     }
 
+    private static TweakResult NativeBuildQuarantined(string reason) => TweakResult.Fail(
+        "Native companion builds are blocked because a previous compiler or installer could not be confirmed stopped. Check Task Manager, then restart WinForge before trying again.",
+        "之前嘅編譯器或安裝程式無法確認已停止，所以而家已封鎖原生隨附 app 編譯。請檢查工作管理員，再重開 WinForge 先重試。",
+        reason) with { Code = ShellRunner.ProcessCleanupTimeoutCode };
+
     private static async Task<TweakResult> EnsureNativeCoreAsync(CompanionSpec spec,
-        IProgress<InstallProgressReport>? progress, CancellationToken ct)
+        IProgress<InstallProgressReport>? progress, Action<InstallProgressReport>? audit,
+        CancellationToken ct)
     {
+        void Report(InstallProgressReport report)
+        {
+            // Audit is synchronous so the durable log owns every line before the process can finish. The UI
+            // progress reporter may post asynchronously to the dispatcher and is intentionally separate.
+            try { audit?.Invoke(report); } catch { }
+            try { progress?.Report(report); } catch { }
+        }
+
         var existing = ResolveNativeExe(spec);
         if (existing is not null)
             return TweakResult.Ok("Ready.", "已就緒。", existing);
@@ -369,36 +402,42 @@ public static class CompanionAppService
                 "WinForge 以系統管理員身分運行時唔會編譯原生隨附 app。請以一般權限重開 WinForge 再試。");
 
         // 1) Find (or auto-install) a compiler — the app's literal dependency.
-        progress?.Report(InstallProgressReport.Progress(5,
+        Report(InstallProgressReport.Progress(5,
             "Looking for a C++ toolchain…", "搵緊 C++ 工具鏈…"));
-        var compiler = FindCompiler();
+        // Compiler discovery includes a bounded vswhere probe; keep it off the UI thread so the preparation
+        // window paints and remains responsive on first run.
+        var compiler = await Task.Run(() => FindCompiler(ct), ct);
+        ct.ThrowIfCancellationRequested();
         if (compiler is null)
         {
-            progress?.Report(InstallProgressReport.Progress(10,
+            Report(InstallProgressReport.Progress(10,
                 "No C++ toolchain — installing llvm-mingw automatically…",
                 "冇 C++ 工具鏈 — 自動安裝緊 llvm-mingw…"));
-            var onLine = new Progress<string>(l => progress?.Report(InstallProgressReport.FromLine(l)));
+            var onLine = new InlineProgress<string>(line => Report(InstallProgressReport.FromLine(line)));
             var inst = await PackageService.AutoInstallDetailed(ToolchainWingetId, onLine, ct);
             if (!inst.Success)
                 return TweakResult.Fail(
                     $"Couldn't install the C++ toolchain ({ToolchainWingetId}). {inst.Message?.En}",
-                    $"安裝唔到 C++ 工具鏈（{ToolchainWingetId}）。{inst.Message?.Zh}", inst.Output);
-            compiler = FindCompiler();
+                    $"安裝唔到 C++ 工具鏈（{ToolchainWingetId}）。{inst.Message?.Zh}", inst.Output)
+                    with { Code = inst.Code };
+            compiler = await Task.Run(() => FindCompiler(ct), ct);
+            ct.ThrowIfCancellationRequested();
             if (compiler is null)
                 return TweakResult.Fail("Toolchain installed but no g++/clang++ was found — restart WinForge and retry.",
                     "工具鏈已安裝但搵唔到 g++／clang++ — 請重開 WinForge 再試。");
         }
 
         // 2) Compile the shipped WinForge source.
+        ct.ThrowIfCancellationRequested();
         var outDir = Path.Combine(NativeCacheDir(spec), SourceHash(src));
         Directory.CreateDirectory(outDir);
         var outExe = Path.Combine(outDir, spec.ExeName);
         var tempExe = Path.Combine(outDir, $".{Path.GetFileNameWithoutExtension(spec.ExeName)}-{Guid.NewGuid():N}.tmp.exe");
-        progress?.Report(InstallProgressReport.Progress(35,
+        Report(InstallProgressReport.Progress(35,
             $"Compiling {spec.TitleEn} from source ({compiler.Value.kind})…",
             $"由原始碼編譯緊 {spec.TitleZh}（{compiler.Value.kind}）…"));
 
-        var lineSink = new Progress<string>(l => progress?.Report(InstallProgressReport.FromLine(l)));
+        var lineSink = new InlineProgress<string>(line => Report(InstallProgressReport.FromLine(line)));
         TweakResult built = compiler.Value.kind switch
         {
             "msvc" => await CompileMsvc(compiler.Value.path, src, tempExe, spec.MsvcLibs, lineSink, ct),
@@ -409,7 +448,8 @@ public static class CompanionAppService
         {
             try { if (File.Exists(tempExe)) File.Delete(tempExe); } catch { }
             return TweakResult.Fail(
-                $"Compilation failed. {built.Message?.En}", $"編譯失敗。{built.Message?.Zh}", built.Output);
+                $"Compilation failed. {built.Message?.En}", $"編譯失敗。{built.Message?.Zh}", built.Output)
+                with { Code = built.Code };
         }
 
         try { File.Move(tempExe, outExe, overwrite: true); }
@@ -420,7 +460,7 @@ public static class CompanionAppService
                 $"無法發佈已編譯 app：{ex.Message}", ex.ToString());
         }
 
-        progress?.Report(InstallProgressReport.Progress(100,
+        Report(InstallProgressReport.Progress(100,
             $"{spec.TitleEn} compiled and ready.", $"{spec.TitleZh} 已編譯完成，可以啟動。"));
         return TweakResult.Ok("Compiled.", "已編譯。", outExe);
     }
@@ -446,11 +486,12 @@ public static class CompanionAppService
 
     /// <summary>搵編譯器 · Find a compiler: g++/clang++ on PATH → winget Links → winget Packages (llvm-mingw)
     /// → MSVC (vswhere → VsDevCmd). Returns (kind, path) or null.</summary>
-    private static (string kind, string path)? FindCompiler()
+    private static (string kind, string path)? FindCompiler(CancellationToken ct)
     {
         // PATH + winget Links: g++ / c++ / clang++
         foreach (var stem in new[] { "g++", "clang++", "c++" })
         {
+            ct.ThrowIfCancellationRequested();
             var hit = ProbePath(stem);
             if (hit is not null) return ("mingw", hit);
         }
@@ -463,20 +504,24 @@ public static class CompanionAppService
                      Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "WinGet", "Packages"),
                  })
         {
+            ct.ThrowIfCancellationRequested();
             try
             {
                 if (!Directory.Exists(pkgRoot)) continue;
                 foreach (var dir in Directory.EnumerateDirectories(pkgRoot, "MartinStorsjo.LLVM-MinGW*"))
                 {
+                    ct.ThrowIfCancellationRequested();
                     var direct = Path.Combine(dir, "bin", "g++.exe");
                     if (File.Exists(direct)) return ("mingw", direct);
                     foreach (var sub in Directory.EnumerateDirectories(dir))
                     {
+                        ct.ThrowIfCancellationRequested();
                         var nested = Path.Combine(sub, "bin", "g++.exe");
                         if (File.Exists(nested)) return ("mingw", nested);
                     }
                 }
             }
+            catch (OperationCanceledException) { throw; }
             catch { }
         }
 
@@ -497,8 +542,26 @@ public static class CompanionAppService
                     CreateNoWindow = true,
                 };
                 using var p = Process.Start(psi);
-                var outp = p?.StandardOutput.ReadToEnd() ?? "";
-                p?.WaitForExit(8000);
+                if (p is null) return null;
+                var wait = Stopwatch.StartNew();
+                try
+                {
+                    while (!p.WaitForExit(100))
+                    {
+                        ct.ThrowIfCancellationRequested();
+                        if (wait.Elapsed >= TimeSpan.FromSeconds(8))
+                        {
+                            try { p.Kill(entireProcessTree: true); } catch { }
+                            return null;
+                        }
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    try { if (!p.HasExited) p.Kill(entireProcessTree: true); } catch { }
+                    throw;
+                }
+                var outp = p.StandardOutput.ReadToEnd();
                 var install = outp.Replace("\r", "").Split('\n', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?.Trim();
                 if (!string.IsNullOrEmpty(install))
                 {
@@ -507,6 +570,7 @@ public static class CompanionAppService
                 }
             }
         }
+        catch (OperationCanceledException) { throw; }
         catch { }
 
         return null;
@@ -547,6 +611,17 @@ public static class CompanionAppService
                   $"/Fo:\"{workDir}\\\\\" /link {libs} /SUBSYSTEM:WINDOWS";
         return ShellRunner.RunStreaming("cmd.exe", $"/s /c \"{cmd}\"",
             onLine, elevated: false, workingDirectory: workDir, ct: ct);
+    }
+
+    /// <summary>
+    /// 同步轉送 progress，避免 <see cref="Progress{T}"/> 捕捉 UI context 再排多一層 callback · Inline
+    /// progress adapter used for process lines so durable logging happens before the process completes.
+    /// </summary>
+    private sealed class InlineProgress<T> : IProgress<T>
+    {
+        private readonly Action<T> _report;
+        public InlineProgress(Action<T> report) => _report = report;
+        public void Report(T value) => _report(value);
     }
 
     /// <summary>Bounds every decompressed byte TarReader scans, including entries we do not extract.</summary>

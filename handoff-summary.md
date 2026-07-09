@@ -295,28 +295,36 @@ Possible future safe alternative:
 
 ---
 
-# Remaining Work / Future Tasks
+# Continuation Update — Visible First-Run Compiler UX
 
-## First Run Compiler Experience
+Completed and committed on 2026-07-09:
 
-Requested but not completed:
+- Expanded the native companion preparation popup into a resizable, bilingual terminal-style build window.
+- Added separate phase/status UI, indeterminate progress, live batched stdout/stderr, selectable scrollback,
+  Retry/Close states, and stable automation IDs.
+- Blocked title-bar close while preparation is active. Cancel now waits for compiler process-tree cleanup before
+  the window closes; a bounded cleanup-timeout state prevents an unclosable trap, disables unsafe Retry, and
+  quarantines later native builds in that WinForge process until restart. Native preparation is process-wide
+  serialized so a second companion cannot overlap cleanup or race the quarantine transition.
+- Moved compiler discovery off the UI thread and made its filesystem/vswhere probes cancellation-aware.
+- Added durable per-attempt logs under `%LOCALAPPDATA%\WinForge\logs\companion-builds`, with UTF-8 output,
+  per-companion retention, log-folder access, complete result diagnostics, and fail-open disk-error handling.
+- Preserved the prebuilt/source-hash cache fast paths, temporary-exe cleanup, atomic publication, normal-integrity
+  execution, and static MinGW linking.
+- Added `tests/CompanionBuildLog.Tests` and registered it in `WinForge.sln`.
 
-Create a visible compilation experience.
+Validation completed:
 
-Possible implementation:
-
-- Embedded terminal-style window.
-- Live compiler output.
-- Progress indicator.
-- Non-closable while critical compilation is active.
-- Full log file storage.
-
-Suggested files to inspect:
-- `Services`
-- `Pages`
-- launcher/updater projects
+- `dotnet build WinForge.sln -c Debug -p:Platform=x64` — 0 errors.
+- `dotnet run --project tests/CompanionBuildLog.Tests -c Debug` — 4/4 passed.
+- Self-contained publish and Image Editor module render — passed.
+- Injected compiler failure — live stdout/stderr, blocked close, failure UI, Retry, and persistent log passed.
+- Explicit Cancel — compiler exited before the preparation window closed; cancellation log passed.
+- Genuine MSVC build — ImageForge compiled, cached, launched, and logged `SUCCESS`; prior cache was restored.
 
 ---
+
+# Remaining Work / Future Tasks
 
 ## Updater UX Improvements
 
@@ -354,12 +362,11 @@ Potential:
 
 # Recommended Next Session Start
 
-1. Pull latest `main`.
-2. Run:
+1. Review the committed visible compiler/log UX changes.
+2. Re-run:
    - `git status`
    - build validation.
-3. Review first-run compiler UX requirements.
-4. Implement visible compiler/log experience.
-5. Add tests for new UX behavior.
+3. Continue with updater UX improvements (retry, richer errors, update history/recovery diagnostics).
+4. Consider a central application log viewer and diagnostics-bundle export.
 
 End state: WinForge is in a completed hardened state with remaining work focused mainly on UX improvements.

@@ -108,10 +108,11 @@ public static class PackageService
         // 如果 user scope 唔存在（某些套件淨係 machine scope），去掉 scope 再試一次。
         // If a user-scope variant doesn't exist, retry once without --scope (still non-elevated; the error
         // is now surfaced either way).
-        if (!r.Success && scope.Length > 0 && LooksLikeScopeMiss(r.Output))
+        if (r.Code is null && !r.Success && scope.Length > 0 && LooksLikeScopeMiss(r.Output))
             r = await ShellRunner.RunStreaming(winget, baseArgs, onLine, elevated: false, workingDirectory: null, ct);
         // 用 InterpretWinget 解讀輸出，令「已安裝／要重開機」等良性結果當成成功（沿用另一分支嘅智能判斷）。
         // Route through InterpretWinget so benign winget results (already installed, reboot required) count as success.
+        if (r.Code is not null) return r; // preserve machine-coded cancellation/cleanup failures verbatim
         return InterpretWinget(r.Success ? 0 : 1, r.Output ?? string.Empty, started: true, verb: "install");
     }
 

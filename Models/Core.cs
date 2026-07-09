@@ -135,6 +135,9 @@ public sealed record WizardStep
 /// <summary>動作執行結果 · Result of running an action.</summary>
 public sealed record TweakResult(bool Success, LocalizedText? Message = null, string? Output = null)
 {
+    /// <summary>可選機器可讀結果碼 · Optional machine-readable result code for exceptional control flow.</summary>
+    public string? Code { get; init; }
+
     public static TweakResult Ok(string en, string zh, string? output = null)
         => new(true, new LocalizedText(en, zh), output);
 

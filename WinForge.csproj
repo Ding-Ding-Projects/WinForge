@@ -40,11 +40,10 @@
     <Page Remove="Sdk\**" />
   </ItemGroup>
 
-  <!-- tests/** is a STANDALONE net8.0 console test harness (ReactorSim.Tests) that links the pure
-       engine source files itself. It has its own Main() and must NOT be compiled into the WinUI app
-       (the recursive **/*.cs glob would otherwise pull in a second entry point). Exclude every test
-       item from the app build; the harness is built and run on its own with the standalone
-       dotnet run command against tests/ReactorSim.Tests. -->
+  <!-- tests/** contains standalone console test harnesses that link pure service/engine source files.
+       They have their own Main() methods and must NOT be compiled into the WinUI app (the recursive
+       **/*.cs glob would otherwise pull in extra entry points). Exclude every test item from the app;
+       the harnesses build/run independently and selected ones are also registered in WinForge.sln. -->
   <ItemGroup>
     <Compile Remove="tests\**" />
     <Content Remove="tests\**" />

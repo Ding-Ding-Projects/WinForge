@@ -16,6 +16,9 @@ namespace WinForge.Services;
 /// </summary>
 public static class ShellRunner
 {
+    /// <summary>程序取消後仍未退出 · Process did not exit within the bounded cancellation cleanup window.</summary>
+    public const string ProcessCleanupTimeoutCode = "process-cleanup-timeout";
+
     /// <summary>
     /// 執行一個程序並擷取輸出 · Run a process and capture stdout/stderr.
     /// elevated=true 且未提權時，會經 UAC 但將輸出導向臨時 log 讀返（唔再靜靜吞掉錯誤）。
@@ -111,6 +114,7 @@ public static class ShellRunner
         p.OutputDataReceived += (_, e) => Handle(e.Data);
         p.ErrorDataReceived += (_, e) => Handle(e.Data);
 
+        ct.ThrowIfCancellationRequested();
         if (!p.Start()) return TweakResult.Fail("Failed to start process.", "無法啟動程序。");
         p.BeginOutputReadLine();
         p.BeginErrorReadLine();
@@ -122,6 +126,33 @@ public static class ShellRunner
         catch (OperationCanceledException)
         {
             try { if (!p.HasExited) p.Kill(entireProcessTree: true); } catch { /* best effort */ }
+            // Cancellation is not complete until the child is actually gone and the async stdout/stderr
+            // readers have drained. Bound that wait so a protected/hung child cannot trap a non-closable UI.
+            bool exited = false;
+            try
+            {
+                var exitTask = p.WaitForExitAsync(CancellationToken.None);
+                exited = await Task.WhenAny(exitTask, Task.Delay(TimeSpan.FromSeconds(10))) == exitTask;
+                if (exited)
+                {
+                    await exitTask;
+                    p.WaitForExit();
+                }
+            }
+            catch { exited = false; }
+
+            if (!exited)
+            {
+                int processId = 0;
+                try { processId = p.Id; } catch { }
+                var captured = string.Join("\n", lines).Trim();
+                var detail = $"Process ID {processId} did not exit after cancellation."
+                    + (captured.Length > 0 ? $"\n{captured}" : "");
+                return TweakResult.Fail(
+                    $"Cancellation was requested, but process {processId} did not exit within 10 seconds. It may still be running.",
+                    $"已要求取消，但程序 {processId} 喺 10 秒內未有退出，可能仍然運行緊。", detail)
+                    with { Code = ProcessCleanupTimeoutCode };
+            }
             throw;
         }
 

@@ -26,8 +26,14 @@ public readonly struct InstallProgressReport
     public string? StatusEn { get; init; }
     /// <summary>粵語狀態 · Cantonese status line (optional).</summary>
     public string? StatusZh { get; init; }
+    /// <summary>
+    /// 呢個回報係原始程序輸出，而唔係高階狀態 · This report is a raw process-output line rather than a
+    /// high-level status update. Rich hosts can append it to a terminal without replacing their phase label.
+    /// </summary>
+    public bool IsOutputLine { get; init; }
 
-    public InstallProgressReport(double? percent = null, string? statusEn = null, string? statusZh = null)
+    public InstallProgressReport(double? percent = null, string? statusEn = null, string? statusZh = null,
+        bool isOutputLine = false)
     {
         // Accept either a 0–1 fraction or a 0–100 percent; normalise to 0–100.
         if (percent is double p)
@@ -38,6 +44,7 @@ public readonly struct InstallProgressReport
         else Percent = null;
         StatusEn = statusEn;
         StatusZh = statusZh;
+        IsOutputLine = isOutputLine;
     }
 
     /// <summary>由一段純文字狀態砌 · Build from a plain status line shown in both languages.</summary>
@@ -48,7 +55,7 @@ public readonly struct InstallProgressReport
         => new(percent, en, zh);
 
     /// <summary>由一行原始 stdout 砌（兩語都顯示同一行）· Build from a raw stdout line (shown in both languages).</summary>
-    public static InstallProgressReport FromLine(string line) => new(null, line, line);
+    public static InstallProgressReport FromLine(string line) => new(null, line, line, isOutputLine: true);
 }
 
 /// <summary>
