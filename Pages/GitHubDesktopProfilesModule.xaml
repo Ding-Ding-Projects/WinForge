@@ -1,0 +1,428 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="WinForge.Pages.GitHubDesktopProfilesModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:WinForge.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel x:Name="PageContent" MaxWidth="1000" Spacing="14">
+            <StackPanel.ChildrenTransitions>
+                <TransitionCollection>
+                    <EntranceThemeTransition FromVerticalOffset="24" IsStaggeringEnabled="True" />
+                </TransitionCollection>
+            </StackPanel.ChildrenTransitions>
+
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE716;" />
+            <TextBlock
+                x:Name="HeaderBlurb"
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                TextWrapping="Wrap" />
+
+            <InfoBar
+                x:Name="EngineBar"
+                IsClosable="False"
+                IsOpen="False"
+                Severity="Warning" />
+            <InfoBar
+                x:Name="ResultBar"
+                IsClosable="True"
+                IsOpen="False" />
+
+            <Border
+                Padding="18,16"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <Grid ColumnSpacing="18" RowSpacing="14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Grid.Column="0" Spacing="3">
+                        <TextBlock x:Name="SetupTitle" FontSize="16" FontWeight="SemiBold" />
+                        <TextBlock
+                            x:Name="SetupStatusText"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            TextWrapping="Wrap" />
+                        <TextBlock
+                            x:Name="ActiveProfileText"
+                            FontSize="12"
+                            Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <StackPanel
+                        Grid.Row="0"
+                        Grid.Column="1"
+                        Orientation="Horizontal"
+                        Spacing="8"
+                        VerticalAlignment="Center">
+                        <ProgressRing x:Name="BusyRing" Width="20" Height="20" IsActive="False" />
+                        <Button x:Name="RefreshButton" Click="Refresh_Click">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon FontSize="13" Glyph="&#xE72C;" />
+                                <TextBlock x:Name="RefreshButtonText" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+
+                    <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <ToggleSwitch
+                            x:Name="DesktopShortcutsToggle"
+                            Grid.Column="0"
+                            IsOn="True"
+                            VerticalAlignment="Center" />
+
+                        <StackPanel
+                            x:Name="SetupActions"
+                            Grid.Column="1"
+                            Orientation="Horizontal"
+                            Spacing="8">
+                            <Button
+                                x:Name="ConfigureButton"
+                                Click="Configure_Click"
+                                Style="{StaticResource AccentButtonStyle}" />
+                            <Button x:Name="RepairButton" Click="Repair_Click" />
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <Grid ColumnSpacing="10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Spacing="2">
+                    <TextBlock x:Name="ProfilesTitle" FontSize="18" FontWeight="SemiBold" />
+                    <TextBlock
+                        x:Name="ProfilesBlurb"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        TextWrapping="Wrap" />
+                </StackPanel>
+                <StackPanel
+                    Grid.Column="1"
+                    Margin="12,0,0,0"
+                    Orientation="Horizontal"
+                    Spacing="10"
+                    VerticalAlignment="Bottom">
+                    <TextBlock
+                        x:Name="ProfilesSummaryText"
+                        VerticalAlignment="Center"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <Button
+                        x:Name="AddProfileButton"
+                        Click="AddProfile_Click"
+                        Style="{StaticResource AccentButtonStyle}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon FontSize="13" Glyph="&#xE710;" />
+                            <TextBlock x:Name="AddProfileButtonText" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <ListView
+                x:Name="ProfileList"
+                MaxHeight="560"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                SelectionMode="None">
+                <ListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem">
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                        <Setter Property="Padding" Value="4" />
+                    </Style>
+                </ListView.ItemContainerStyle>
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <Border
+                            Padding="14,12"
+                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            CornerRadius="6">
+                            <Grid ColumnSpacing="12" RowSpacing="6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="42" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <Border
+                                    Grid.Row="0"
+                                    Grid.RowSpan="3"
+                                    Grid.Column="0"
+                                    Width="38"
+                                    Height="38"
+                                    VerticalAlignment="Top"
+                                    Background="{ThemeResource AccentFillColorSecondaryBrush}"
+                                    CornerRadius="19">
+                                    <TextBlock
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        FontSize="16"
+                                        FontWeight="SemiBold"
+                                        Text="{Binding Initial}" />
+                                </Border>
+
+                                <StackPanel
+                                    Grid.Row="0"
+                                    Grid.Column="1"
+                                    Orientation="Horizontal"
+                                    Spacing="10">
+                                    <TextBox
+                                        Width="270"
+                                        MaxLength="48"
+                                        LostFocus="ProfileName_LostFocus"
+                                        Tag="{Binding Id}"
+                                        Text="{Binding Name, Mode=OneWay}" />
+                                    <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                                        <FontIcon FontSize="12" Glyph="{Binding StateGlyph}" />
+                                        <TextBlock
+                                            FontSize="12"
+                                            FontWeight="SemiBold"
+                                            Text="{Binding StateText}" />
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <TextBlock
+                                    Grid.Row="1"
+                                    Grid.Column="1"
+                                    FontFamily="Consolas"
+                                    FontSize="11"
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                    Text="{Binding DataPathText}"
+                                    TextTrimming="CharacterEllipsis"
+                                    ToolTipService.ToolTip="{Binding DataPath}" />
+                                <TextBlock
+                                    Grid.Row="2"
+                                    Grid.Column="1"
+                                    FontFamily="Consolas"
+                                    FontSize="11"
+                                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                    Text="{Binding GitConfigText}"
+                                    TextTrimming="CharacterEllipsis"
+                                    ToolTipService.ToolTip="{Binding GitConfigPath}" />
+
+                                <StackPanel
+                                    Grid.Row="0"
+                                    Grid.RowSpan="3"
+                                    Grid.Column="2"
+                                    Orientation="Horizontal"
+                                    Spacing="6"
+                                    VerticalAlignment="Center">
+                                    <Button
+                                        Click="LaunchProfile_Click"
+                                        Content="{Binding LaunchLabel}"
+                                        Style="{StaticResource AccentButtonStyle}"
+                                        Tag="{Binding Id}" />
+                                    <Button
+                                        Click="ActivateProfile_Click"
+                                        Content="{Binding ActivateLabel}"
+                                        IsEnabled="{Binding CanActivate}"
+                                        Tag="{Binding Id}" />
+                                    <Button
+                                        Click="OpenProfileFolder_Click"
+                                        Content="{Binding OpenFolderLabel}"
+                                        Tag="{Binding Id}" />
+                                    <Button
+                                        Click="RemoveProfile_Click"
+                                        Content="{Binding RemoveLabel}"
+                                        Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                                        IsEnabled="{Binding CanRemove}"
+                                        Tag="{Binding Id}" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+
+            <InfoBar
+                x:Name="GhEngineBar"
+                IsClosable="False"
+                IsOpen="False"
+                Severity="Warning" />
+
+            <Border
+                Padding="18,16"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <Grid ColumnSpacing="18" RowSpacing="14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Grid.Column="0" Spacing="3">
+                        <StackPanel Orientation="Horizontal" Spacing="9">
+                            <FontIcon
+                                FontSize="18"
+                                Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
+                                Glyph="&#xE943;" />
+                            <TextBlock
+                                x:Name="GhTitle"
+                                FontSize="17"
+                                FontWeight="SemiBold" />
+                            <TextBlock
+                                x:Name="GhVersionText"
+                                VerticalAlignment="Center"
+                                FontFamily="Consolas"
+                                FontSize="12"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+                        <TextBlock
+                            x:Name="GhBlurb"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            TextWrapping="Wrap" />
+                        <TextBlock
+                            x:Name="GhEnvironmentText"
+                            FontSize="12"
+                            Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <Button
+                        x:Name="GhRefreshButton"
+                        Grid.Row="0"
+                        Grid.Column="1"
+                        Click="GhRefresh_Click"
+                        VerticalAlignment="Top">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon FontSize="13" Glyph="&#xE72C;" />
+                            <TextBlock x:Name="GhRefreshButtonText" />
+                        </StackPanel>
+                    </Button>
+
+                    <Grid
+                        Grid.Row="1"
+                        Grid.Column="0"
+                        Grid.ColumnSpan="2"
+                        ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="280" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <ComboBox
+                            x:Name="GhAccountCombo"
+                            Grid.Column="0"
+                            HorizontalAlignment="Stretch"
+                            SelectionChanged="GhAccountCombo_SelectionChanged">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <FontIcon FontSize="12" Glyph="{Binding Glyph}" />
+                                        <TextBlock FontWeight="SemiBold" Text="{Binding Login}" />
+                                        <TextBlock
+                                            FontSize="12"
+                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                            Text="{Binding Host}" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <TextBlock
+                            x:Name="GhAccountDetailsText"
+                            Grid.Column="1"
+                            VerticalAlignment="Center"
+                            FontFamily="Consolas"
+                            FontSize="11"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            TextWrapping="Wrap" />
+                    </Grid>
+
+                    <Grid
+                        Grid.Row="2"
+                        Grid.Column="0"
+                        Grid.ColumnSpan="2"
+                        ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock
+                            x:Name="GhStatusText"
+                            Grid.Column="0"
+                            VerticalAlignment="Center"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            TextWrapping="Wrap" />
+                        <StackPanel
+                            Grid.Column="1"
+                            Orientation="Horizontal"
+                            Spacing="8">
+                            <Button
+                                x:Name="GhLoginButton"
+                                Click="GhLogin_Click"
+                                Style="{StaticResource AccentButtonStyle}" />
+                            <Button
+                                x:Name="GhSwitchButton"
+                                Click="GhSwitch_Click" />
+                            <Button
+                                x:Name="GhLogoutButton"
+                                Click="GhLogout_Click"
+                                Foreground="{ThemeResource SystemFillColorCriticalBrush}" />
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <Border
+                Padding="18,16"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <Grid ColumnSpacing="18">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Spacing="3">
+                        <TextBlock x:Name="RoutingTitle" FontWeight="SemiBold" />
+                        <TextBlock
+                            x:Name="RoutingBlurb"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            TextWrapping="Wrap" />
+                        <TextBlock
+                            x:Name="SafetyBlurb"
+                            FontSize="12"
+                            Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                    <Button
+                        x:Name="UninstallButton"
+                        Grid.Column="1"
+                        Click="Uninstall_Click"
+                        VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

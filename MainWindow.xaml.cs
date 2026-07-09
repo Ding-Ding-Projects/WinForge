@@ -938,6 +938,12 @@ public sealed partial class MainWindow : Window
             case "github":
                 Navigator.GoToModule?.Invoke("module.git");
                 break;
+            case "githubdesktopprofiles":
+            case "githubprofiles":
+            case "ghprofiles":
+            case "desktopprofiles":
+                Navigator.GoToModule?.Invoke("module.githubdesktopprofiles");
+                break;
             case "ai":
             case "aiagents":
             case "claude":
@@ -2106,6 +2112,7 @@ public sealed partial class MainWindow : Window
         "module.reactorsettings" => typeof(ReactorSettingsModule),
         "module.cakefactory" => typeof(CakeFactoryModule),
         "module.git" => typeof(GitHubModule),
+        "module.githubdesktopprofiles" => typeof(GitHubDesktopProfilesModule),
         "module.vscode" => typeof(VsCodeModule),
         "module.aiagents" => typeof(AiAgentsModule),
         "module.resume" => typeof(ResumeWriterModule),
@@ -2651,6 +2658,7 @@ public sealed partial class MainWindow : Window
                 "module.comms", "module.mail", "module.wslvm", "module.virtualbox", "module.proxmox",
                 "module.terminal", "module.uninstall", "module.imaging", "module.amulet",
                 "module.minecraftworldtools", "module.viaproxy", "module.minecraftserver", "module.minecraftlauncher", "module.git",
+                "module.githubdesktopprofiles",
                 "module.vscode", "module.aiagents", "module.resume", "module.ollama", "module.aichat",
                 "module.cloudflare", "module.weblogin", "module.ssh", "module.apiclient", "module.connectors", "module.packer",
                 "module.worldmonitor", "module.webcloner", "module.pgadmin", "module.sqlitebrowser",

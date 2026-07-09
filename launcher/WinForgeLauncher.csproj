@@ -23,4 +23,8 @@
     <AssemblyName>WinForgeLauncher</AssemblyName>
     <RootNamespace>WinForgeLauncher</RootNamespace>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Services\GitHubDesktopProfilesCore.cs" Link="Services\GitHubDesktopProfilesCore.cs" />
+  </ItemGroup>
 </Project>

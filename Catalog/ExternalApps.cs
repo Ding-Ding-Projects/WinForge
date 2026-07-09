@@ -96,6 +96,24 @@ public static class ExternalApps
         },
         new()
         {
+            Id = "githubdesktop", NameEn = "GitHub Desktop", NameZh = "GitHub Desktop 桌面用戶端", Glyph = G(0xE716),
+            CategoryEn = CatDev, CategoryZh = CatDevZh,
+            DescriptionEn = "GitHub's native desktop client for repositories, branches, commits, and pull requests.",
+            DescriptionZh = "GitHub 原生桌面用戶端，用嚟管理儲存庫、分支、提交同 pull request。",
+            Homepage = "https://desktop.github.com/",
+            Dependencies = new AppDependency[]
+            {
+                new("GitHub.GitHubDesktop", "GitHub Desktop", "GitHub Desktop 桌面用戶端"),
+            },
+            AppPathsExe = new[] { "GitHubDesktop.exe" },
+            Candidates = new[]
+            {
+                @"%LOCALAPPDATA%\GitHubDesktop\app-*\GitHubDesktop.exe",
+                @"%LOCALAPPDATA%\GitHubDesktop\GitHubDesktop.exe",
+            },
+        },
+        new()
+        {
             Id = "libreoffice", NameEn = "LibreOffice", NameZh = "LibreOffice 辦公套件", Glyph = G(0xE8A5),
             CategoryEn = CatDocs, CategoryZh = CatDocsZh,
             DescriptionEn = "The full LibreOffice suite (Writer / Calc / Impress) in its own window; WinForge also drives soffice headless for conversion.",

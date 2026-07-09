@@ -269,6 +269,7 @@
                         <NavigationViewItem Content="Minecraft Server · Minecraft 伺服器" Tag="module.minecraftserver"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7FC;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Minecraft Launcher · Minecraft 啟動器" Tag="module.minecraftlauncher"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7FC;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Git &amp; GitHub · Git 與 GitHub" Tag="module.git"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8AB;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="GitHub Desktop Profiles · GitHub Desktop 多帳戶設定檔" Tag="module.githubdesktopprofiles"><NavigationViewItem.Icon><FontIcon Glyph="&#xE716;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="VS Code · VS Code 編輯器" Tag="module.vscode"><NavigationViewItem.Icon><FontIcon Glyph="&#xE943;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="AI Agents · AI 代理" Tag="module.aiagents"><NavigationViewItem.Icon><FontIcon Glyph="&#xE99A;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Resume Writer · 履歷與求職信寫手" Tag="module.resume"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon></NavigationViewItem>

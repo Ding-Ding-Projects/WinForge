@@ -7,6 +7,7 @@ using System.Security.Cryptography;
 using System.Security.Principal;
 using System.Text.Json;
 using System.Threading;
+using WinForge.Services;
 
 namespace WinForgeLauncher;
 
@@ -34,6 +35,8 @@ internal static class Program
     {
         if (Array.Exists(args, a => string.Equals(a, "--apply-update", StringComparison.OrdinalIgnoreCase)))
             return ApplyUpdate(args);
+
+        if (TryGitHubDesktopProfileMode(args, out int profileResult)) return profileResult;
 
         string dir = AppContext.BaseDirectory;
         string app = Path.Combine(dir, "WinForge.exe");
@@ -374,6 +377,48 @@ internal static class Program
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode, EntryPoint = "MessageBoxW")]
     private static extern int MessageBox(IntPtr owner, string text, string caption, uint type);
+
+    private static bool TryGitHubDesktopProfileMode(string[] args, out int result)
+    {
+        result = 0;
+        for (int i = 0; i < args.Length; i++)
+        {
+            bool profileMode = string.Equals(args[i], "--github-desktop-profile", StringComparison.OrdinalIgnoreCase);
+            bool protocolMode = string.Equals(args[i], "--github-desktop-protocol", StringComparison.OrdinalIgnoreCase);
+            if (!profileMode && !protocolMode) continue;
+
+            if (IsElevated())
+            {
+                LogCrash("GitHub Desktop profile broker refused elevated execution");
+                try
+                {
+                    MessageBox(IntPtr.Zero,
+                        "GitHub Desktop profiles cannot be launched as administrator. Restart WinForge normally.\n\nGitHub Desktop 設定檔唔可以用系統管理員身分啟動，請以一般權限重開 WinForge。",
+                        "WinForge · GitHub Desktop Profiles", 0x00000010);
+                }
+                catch { }
+                result = 1;
+                return true;
+            }
+
+            if (i + 1 >= args.Length || string.IsNullOrWhiteSpace(args[i + 1]) || args[i + 1].StartsWith("--", StringComparison.Ordinal))
+            {
+                LogCrash("GitHub Desktop profile broker argument was missing");
+                result = 1;
+                return true;
+            }
+
+            // Deliberately do not log callback URLs or operation errors: OAuth callbacks may contain secrets.
+            GitHubDesktopProfilesCore.Result operation = profileMode
+                ? GitHubDesktopProfilesCore.LaunchProfile(args[i + 1])
+                : GitHubDesktopProfilesCore.HandleProtocol(args[i + 1]);
+
+            result = operation.Success ? 0 : 1;
+            if (!operation.Success) LogCrash("GitHub Desktop profile broker operation failed");
+            return true;
+        }
+        return false;
+    }
 
     private static int LaunchWithRetry(string app, string dir, List<string> args)
     {
