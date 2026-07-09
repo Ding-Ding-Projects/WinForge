@@ -40,6 +40,9 @@ internal static class Program
         if (!File.Exists(app)) app = "WinForge.exe";
 
         bool reactor = false;
+        bool updated = Array.Exists(args, a => string.Equals(a, "--updated", StringComparison.OrdinalIgnoreCase));
+        if (updated && IsElevated()) return 1;
+        if (updated && SameInstallAlreadyRunning()) return 0;
         var passthrough = new List<string>();
         foreach (var a in args)
         {
@@ -85,6 +88,23 @@ internal static class Program
             int childRc = LaunchAndWait(app, dir, passthrough);
             if (childRc == UserQuit || UserQuitFlagPresent()) return 0;
         }
+    }
+
+    private static bool SameInstallAlreadyRunning()
+    {
+        string dir = Path.GetFullPath(AppContext.BaseDirectory).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        foreach (var process in Process.GetProcessesByName("WinForge"))
+        {
+            try
+            {
+                if (process.Id == Environment.ProcessId) continue;
+                string? path = process.MainModule?.FileName;
+                if (!string.IsNullOrWhiteSpace(path) && path.StartsWith(dir, StringComparison.OrdinalIgnoreCase)) return true;
+            }
+            catch { }
+            finally { process.Dispose(); }
+        }
+        return false;
     }
 
     /// <summary>

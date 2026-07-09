@@ -50,7 +50,7 @@ Name: "en"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "Create a desktop shortcut · 建立桌面捷徑"; GroupDescription: "Shortcuts · 捷徑"
 
 [Files]
-Source: "{#MyPublishDir}\*"; DestDir: "{app}"; Excludes: "WinForgeLauncher.exe"; Flags: recursesubdirs createallsubdirs
+Source: "{#MyPublishDir}\*"; DestDir: "{app}"; Excludes: "WinForgeLauncher.exe"; Flags: recursesubdirs createallsubdirs replacesameversion
 Source: "{#MyPublishDir}\WinForgeLauncher.exe"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
@@ -59,5 +59,5 @@ Name: "{group}\Uninstall WinForge · 解除安裝 WinForge"; Filename: "{uninsta
 Name: "{autodesktop}\WinForge"; Filename: "{app}\{#MyAppLauncher}"; IconFilename: "{app}\{#MyAppExe}"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\{#MyAppLauncher}"; Flags: nowait runasoriginaluser; Check: WizardSilent
+Filename: "{app}\{#MyAppLauncher}"; Parameters: "--updated"; Flags: nowait runasoriginaluser; Check: WizardSilent
 Filename: "{app}\{#MyAppLauncher}"; Description: "Launch WinForge · 啟動 WinForge"; Flags: nowait postinstall skipifsilent
