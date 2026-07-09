@@ -19,7 +19,7 @@ namespace WinForge.Services;
 /// </summary>
 public static class GitHubDesktopProfilesCore
 {
-    public const int CurrentSchema = 2;
+    public const int CurrentSchema = 3;
     public const string StateKeyPath = @"Software\GitHubDesktopProfiles";
     public static readonly string[] Protocols = ["x-github-client", "github-windows", "x-github-desktop-auth"];
     private static readonly Semaphore ConfigSemaphore = new(1, 1, "Local\\WinForge.GitHubDesktopProfiles.Config");
@@ -46,8 +46,11 @@ public static class GitHubDesktopProfilesCore
     {
         public int SchemaVersion { get; set; } = CurrentSchema;
         public List<Profile> Profiles { get; set; } = [];
+        public List<string> PendingShortcutCleanup { get; set; } = [];
         public Dictionary<string, string?> OriginalHandlers { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+        public bool CreateStartMenuShortcuts { get; set; } = true;
         public bool CreateDesktopShortcuts { get; set; } = true;
+        public bool ManagedByWinForge { get; set; }
         public string DesktopExePath { get; set; } = "";
     }
 
@@ -74,6 +77,7 @@ public static class GitHubDesktopProfilesCore
 
         config ??= new Config();
         config.Profiles ??= [];
+        config.PendingShortcutCleanup ??= [];
         if (config.Profiles.Count == 0) config.Profiles = DefaultProfiles();
         if (config.OriginalHandlers is null)
             config.OriginalHandlers = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
@@ -108,26 +112,27 @@ public static class GitHubDesktopProfilesCore
         catch (Exception ex) { return Result.Fail(ex.Message); }
     }
 
-    public static Result Configure(IReadOnlyList<string> names, bool createDesktopShortcuts, string brokerExe, string desktopExe) =>
-        WithConfigLock(() => ConfigureCore(names, createDesktopShortcuts, brokerExe, desktopExe));
+    public static Result Configure(IReadOnlyList<string> names, bool createStartMenuShortcuts, bool createDesktopShortcuts, string brokerExe, string desktopExe) =>
+        WithConfigLock(() => ConfigureCore(names, createStartMenuShortcuts, createDesktopShortcuts, brokerExe, desktopExe));
 
-    public static Result AddProfile(string name, bool createDesktopShortcuts, string brokerExe, string desktopExe) =>
+    public static Result AddProfile(string name, bool createStartMenuShortcuts, bool createDesktopShortcuts, string brokerExe, string desktopExe) =>
         WithConfigLock(() =>
         {
             var names = LoadConfig().Profiles.Select(p => p.Name).ToArray();
-            var adopted = ConfigureCore(names, createDesktopShortcuts, brokerExe, desktopExe);
+            var adopted = ConfigureCore(names, createStartMenuShortcuts, createDesktopShortcuts, brokerExe, desktopExe);
             return adopted.Success
-                ? AddProfileCore(name, createDesktopShortcuts, brokerExe, desktopExe)
+                ? AddProfileCore(name, createStartMenuShortcuts, createDesktopShortcuts, brokerExe, desktopExe)
                 : adopted;
         });
 
-    private static Result AddProfileCore(string name, bool createDesktopShortcuts, string brokerExe, string desktopExe)
+    private static Result AddProfileCore(string name, bool createStartMenuShortcuts, bool createDesktopShortcuts, string brokerExe, string desktopExe)
     {
         var error = ValidateName(name);
         if (error is not null) return Result.Fail(error);
         if (!File.Exists(brokerExe)) return Result.Fail("WinForgeLauncher.exe could not be located.");
         if (!File.Exists(desktopExe)) return Result.Fail("GitHub Desktop is not installed.");
 
+        bool configSaved = false;
         try
         {
             var config = LoadConfig();
@@ -145,27 +150,28 @@ public static class GitHubDesktopProfilesCore
                 GitConfigPath = Path.Combine(dataPath, "gitconfig"),
                 UsesDefaultGitConfig = false,
             };
+            if (createStartMenuShortcuts)
+                EnsureShortcutReplaceable(ShortcutPath(StartMenuDirectory, profile.Name), brokerExe);
+            if (createDesktopShortcuts)
+                EnsureShortcutReplaceable(ShortcutPath(DesktopDirectory, profile.Name), brokerExe);
             EnsureProfileFiles(profile);
             config.Profiles.Add(profile);
+            config.CreateStartMenuShortcuts = createStartMenuShortcuts;
             config.CreateDesktopShortcuts = createDesktopShortcuts;
+            config.ManagedByWinForge = true;
             config.DesktopExePath = desktopExe;
 
             var saved = SaveConfig(config);
             if (!saved.Success) return saved;
+            configSaved = true;
 
-            CreateShortcut(ShortcutPath(StartMenuDirectory, profile.Name), brokerExe,
-                $"--github-desktop-profile \"{profile.Id}\"", Path.GetDirectoryName(brokerExe) ?? "", desktopExe,
-                $"GitHub Desktop profile: {profile.Name}");
-            if (createDesktopShortcuts)
-                CreateShortcut(ShortcutPath(DesktopDirectory, profile.Name), brokerExe,
-                    $"--github-desktop-profile \"{profile.Id}\"", Path.GetDirectoryName(brokerExe) ?? "", desktopExe,
-                    $"GitHub Desktop profile: {profile.Name}");
+            ReconcileProfileShortcuts(profile, createStartMenuShortcuts, createDesktopShortcuts, brokerExe, desktopExe);
             return Result.Ok();
         }
-        catch (Exception ex) { return Result.Fail(ex.Message); }
+        catch (Exception ex) { return OperationFailure(ex, configSaved); }
     }
 
-    private static Result ConfigureCore(IReadOnlyList<string> names, bool createDesktopShortcuts, string brokerExe, string desktopExe)
+    private static Result ConfigureCore(IReadOnlyList<string> names, bool createStartMenuShortcuts, bool createDesktopShortcuts, string brokerExe, string desktopExe)
     {
         if (names.Count == 0) return Result.Fail("At least one profile is required.");
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -178,11 +184,15 @@ public static class GitHubDesktopProfilesCore
         if (!File.Exists(brokerExe)) return Result.Fail("WinForgeLauncher.exe could not be located.");
         if (!File.Exists(desktopExe)) return Result.Fail("GitHub Desktop is not installed.");
 
+        bool configSaved = false;
         try
         {
             var config = LoadConfig();
             string activeBefore = ReadActiveProfile();
-            var previousNames = config.Profiles.Select(p => p.Name).ToArray();
+            var previousNames = config.Profiles.Select(p => p.Name)
+                .Concat(config.PendingShortcutCleanup)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
             foreach (var protocol in Protocols)
             {
                 if (!config.OriginalHandlers.ContainsKey(protocol)) config.OriginalHandlers[protocol] = ReadHandler(protocol);
@@ -211,45 +221,61 @@ public static class GitHubDesktopProfilesCore
                 config.Profiles[i].UsesDefaultGitConfig = i == 0;
                 EnsureProfileFiles(config.Profiles[i]);
             }
+            config.CreateStartMenuShortcuts = createStartMenuShortcuts;
             config.CreateDesktopShortcuts = createDesktopShortcuts;
+            config.ManagedByWinForge = true;
             config.DesktopExePath = desktopExe;
+            config.PendingShortcutCleanup = previousNames.ToList();
 
-            Directory.CreateDirectory(StartMenuDirectory);
+            EnsureOfficialShortcutStateCanBeManaged(createStartMenuShortcuts);
+            foreach (var profile in config.Profiles)
+            {
+                if (createStartMenuShortcuts)
+                    EnsureShortcutReplaceable(ShortcutPath(StartMenuDirectory, profile.Name), brokerExe);
+                if (createDesktopShortcuts)
+                    EnsureShortcutReplaceable(ShortcutPath(DesktopDirectory, profile.Name), brokerExe);
+            }
+
+            // Save the complete desired state before touching links. If a later
+            // COM or filesystem operation fails, Repair routing can finish the
+            // same target configuration deterministically.
+            var save = SaveConfig(config);
+            if (!save.Success) return save;
+            configSaved = true;
+
+            ReconcileOfficialShortcut(createStartMenuShortcuts);
             foreach (var oldName in previousNames)
             {
                 DeleteShortcutIfOwned(ShortcutPath(StartMenuDirectory, oldName), brokerExe);
                 DeleteShortcutIfOwned(ShortcutPath(DesktopDirectory, oldName), brokerExe);
             }
             foreach (var profile in config.Profiles)
-            {
-                CreateShortcut(ShortcutPath(StartMenuDirectory, profile.Name), brokerExe,
-                    $"--github-desktop-profile \"{profile.Id}\"", Path.GetDirectoryName(brokerExe) ?? "", desktopExe,
-                    $"GitHub Desktop profile: {profile.Name}");
-                if (createDesktopShortcuts)
-                    CreateShortcut(ShortcutPath(DesktopDirectory, profile.Name), brokerExe,
-                        $"--github-desktop-profile \"{profile.Id}\"", Path.GetDirectoryName(brokerExe) ?? "", desktopExe,
-                        $"GitHub Desktop profile: {profile.Name}");
-                else
-                    DeleteShortcutIfOwned(ShortcutPath(DesktopDirectory, profile.Name), brokerExe);
-            }
+                ReconcileProfileShortcuts(profile, createStartMenuShortcuts, createDesktopShortcuts, brokerExe, desktopExe);
 
-            var save = SaveConfig(config);
-            if (!save.Success) return save;
+            config.PendingShortcutCleanup.Clear();
+            var cleanupSave = SaveConfig(config);
+            if (!cleanupSave.Success)
+                return Result.Fail(cleanupSave.Error + " Shortcuts are ready, but cleanup state could not be cleared; run Repair routing.");
+
             var activeProfile = config.Profiles.FirstOrDefault(p => IdEquals(p, activeBefore)) ?? config.Profiles[0];
-            return SetActiveCore(activeProfile.Id, brokerExe, reassert: false);
+            var activeResult = SetActiveCore(activeProfile.Id, brokerExe, reassert: false);
+            return activeResult.Success
+                ? activeResult
+                : Result.Fail(activeResult.Error + " Configuration was saved; run Repair routing to complete the operation.");
         }
-        catch (Exception ex) { return Result.Fail(ex.Message); }
+        catch (Exception ex) { return OperationFailure(ex, configSaved); }
     }
 
-    public static Result Rename(string profileId, string newName, bool createDesktopShortcuts, string brokerExe, string desktopExe) =>
-        WithConfigLock(() => RenameCore(profileId, newName, createDesktopShortcuts, brokerExe, desktopExe));
+    public static Result Rename(string profileId, string newName, bool createStartMenuShortcuts, bool createDesktopShortcuts, string brokerExe, string desktopExe) =>
+        WithConfigLock(() => RenameCore(profileId, newName, createStartMenuShortcuts, createDesktopShortcuts, brokerExe, desktopExe));
 
-    private static Result RenameCore(string profileId, string newName, bool createDesktopShortcuts, string brokerExe, string desktopExe)
+    private static Result RenameCore(string profileId, string newName, bool createStartMenuShortcuts, bool createDesktopShortcuts, string brokerExe, string desktopExe)
     {
         var error = ValidateName(newName);
         if (error is not null) return Result.Fail(error);
         if (!File.Exists(brokerExe)) return Result.Fail("WinForgeLauncher.exe could not be located.");
         if (!File.Exists(desktopExe)) return Result.Fail("GitHub Desktop is not installed.");
+        bool configSaved = false;
         try
         {
             var config = LoadConfig();
@@ -257,34 +283,56 @@ public static class GitHubDesktopProfilesCore
                 return Result.Fail("Profile names must be unique.");
             var profile = config.Profiles.FirstOrDefault(p => IdEquals(p, profileId));
             if (profile is null) return Result.Fail("Profile not found.");
-            DeleteShortcutIfOwned(ShortcutPath(StartMenuDirectory, profile.Name), brokerExe);
-            DeleteShortcutIfOwned(ShortcutPath(DesktopDirectory, profile.Name), brokerExe);
+            var previousNames = config.Profiles.Select(p => p.Name)
+                .Concat(config.PendingShortcutCleanup)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
             profile.Name = newName.Trim();
+            config.CreateStartMenuShortcuts = createStartMenuShortcuts;
             config.CreateDesktopShortcuts = createDesktopShortcuts;
+            config.ManagedByWinForge = true;
             config.DesktopExePath = desktopExe;
+            config.PendingShortcutCleanup = previousNames.ToList();
+
+            EnsureOfficialShortcutStateCanBeManaged(createStartMenuShortcuts);
+            foreach (var current in config.Profiles)
+            {
+                if (createStartMenuShortcuts)
+                    EnsureShortcutReplaceable(ShortcutPath(StartMenuDirectory, current.Name), brokerExe);
+                if (createDesktopShortcuts)
+                    EnsureShortcutReplaceable(ShortcutPath(DesktopDirectory, current.Name), brokerExe);
+            }
+
             var saved = SaveConfig(config);
             if (!saved.Success) return saved;
-            CreateShortcut(ShortcutPath(StartMenuDirectory, profile.Name), brokerExe,
-                $"--github-desktop-profile \"{profile.Id}\"", Path.GetDirectoryName(brokerExe) ?? "", desktopExe,
-                $"GitHub Desktop profile: {profile.Name}");
-            if (createDesktopShortcuts)
-                CreateShortcut(ShortcutPath(DesktopDirectory, profile.Name), brokerExe,
-                    $"--github-desktop-profile \"{profile.Id}\"", Path.GetDirectoryName(brokerExe) ?? "", desktopExe,
-                    $"GitHub Desktop profile: {profile.Name}");
+            configSaved = true;
+
+            ReconcileOfficialShortcut(createStartMenuShortcuts);
+            foreach (var previousName in previousNames)
+            {
+                DeleteShortcutIfOwned(ShortcutPath(StartMenuDirectory, previousName), brokerExe);
+                DeleteShortcutIfOwned(ShortcutPath(DesktopDirectory, previousName), brokerExe);
+            }
+            foreach (var current in config.Profiles)
+                ReconcileProfileShortcuts(current, createStartMenuShortcuts, createDesktopShortcuts, brokerExe, desktopExe);
+            config.PendingShortcutCleanup.Clear();
+            var cleanupSave = SaveConfig(config);
+            if (!cleanupSave.Success)
+                return Result.Fail(cleanupSave.Error + " Shortcuts are ready, but cleanup state could not be cleared; run Repair routing.");
             return Result.Ok();
         }
-        catch (Exception ex) { return Result.Fail(ex.Message); }
+        catch (Exception ex) { return OperationFailure(ex, configSaved); }
     }
 
     public static Result RemoveProfile(string profileId, string brokerExe) =>
         WithConfigLock(() => RemoveProfileCore(profileId, brokerExe));
 
     public static Result AdoptAndRemoveProfile(
-        string profileId, bool createDesktopShortcuts, string brokerExe, string desktopExe) =>
+        string profileId, bool createStartMenuShortcuts, bool createDesktopShortcuts, string brokerExe, string desktopExe) =>
         WithConfigLock(() =>
         {
             var names = LoadConfig().Profiles.Select(p => p.Name).ToArray();
-            var adopted = ConfigureCore(names, createDesktopShortcuts, brokerExe, desktopExe);
+            var adopted = ConfigureCore(names, createStartMenuShortcuts, createDesktopShortcuts, brokerExe, desktopExe);
             return adopted.Success ? RemoveProfileCore(profileId, brokerExe) : adopted;
         });
 
@@ -437,11 +485,18 @@ public static class GitHubDesktopProfilesCore
                 else if (FindGitHubDesktopExecutable() is string desktop)
                     WriteHandler(protocol, $"\"{desktop}\" --protocol-launcher \"%1\"");
             }
-            foreach (var profile in config.Profiles)
+            foreach (var profileName in config.Profiles.Select(p => p.Name)
+                .Concat(config.PendingShortcutCleanup)
+                .Distinct(StringComparer.OrdinalIgnoreCase))
             {
-                DeleteShortcutIfOwned(ShortcutPath(StartMenuDirectory, profile.Name), brokerExe);
-                DeleteShortcutIfOwned(ShortcutPath(DesktopDirectory, profile.Name), brokerExe);
+                DeleteShortcutIfOwned(ShortcutPath(StartMenuDirectory, profileName), brokerExe);
+                DeleteShortcutIfOwned(ShortcutPath(DesktopDirectory, profileName), brokerExe);
             }
+            ReconcileOfficialShortcut(createStartMenuShortcuts: false);
+            config.ManagedByWinForge = false;
+            config.PendingShortcutCleanup.Clear();
+            var saved = SaveConfig(config);
+            if (!saved.Success) return saved;
             try { Registry.CurrentUser.DeleteSubKeyTree(StateKeyPath, false); } catch { }
             return Result.Ok();
         }
@@ -511,6 +566,27 @@ public static class GitHubDesktopProfilesCore
         string.Equals(ReadHandler(p), HandlerCommand(brokerExe), StringComparison.OrdinalIgnoreCase));
 
     public static bool ShortcutOwned(string path, string brokerExe) => IsShortcutOwned(path, brokerExe);
+
+    public static bool ShortcutMatchesProfile(
+        string path, string brokerExe, string profileId, string profileName) =>
+        IsShortcutForProfile(path, brokerExe, profileId, profileName);
+
+    public static bool ShortcutMatchesBrokerProfile(
+        string path, string brokerExe, string profileId) =>
+        IsShortcutForBrokerProfile(path, brokerExe, profileId);
+
+    public static bool OfficialShortcutStateReady(bool createStartMenuShortcuts)
+    {
+        if (createStartMenuShortcuts)
+        {
+            bool backupReady = !File.Exists(OfficialShortcutBackupPath)
+                || IsStandardGitHubDesktopShortcut(OfficialShortcutBackupPath);
+            return backupReady && !File.Exists(OfficialShortcutPath);
+        }
+
+        if (File.Exists(OfficialShortcutPath)) return true;
+        return !File.Exists(OfficialShortcutBackupPath);
+    }
 
     public static bool IsAllowedProtocolUrl(string value)
     {
@@ -630,6 +706,11 @@ public static class GitHubDesktopProfilesCore
         }
     }
 
+    private static Result OperationFailure(Exception exception, bool configSaved) =>
+        Result.Fail(configSaved
+            ? exception.Message + " Configuration was saved; run Repair routing to complete the operation."
+            : exception.Message);
+
     private static string? ValidateName(string name)
     {
         string n = name.Trim();
@@ -664,41 +745,270 @@ public static class GitHubDesktopProfilesCore
     }
 
     private static string ShortcutPath(string folder, string name) => Path.Combine(folder, $"GitHub Desktop - {name}.lnk");
+    private static string OfficialShortcutPath => Path.Combine(StartMenuDirectory, "GitHub Desktop.lnk");
+    private static string OfficialShortcutBackupPath => Path.Combine(InstallRoot, "Original GitHub Desktop.lnk");
+
+    private static void ReconcileProfileShortcuts(
+        Profile profile,
+        bool createStartMenuShortcuts,
+        bool createDesktopShortcuts,
+        string brokerExe,
+        string desktopExe)
+    {
+        string arguments = $"--github-desktop-profile \"{profile.Id}\"";
+        string workingDirectory = Path.GetDirectoryName(brokerExe) ?? "";
+        string description = $"GitHub Desktop profile: {profile.Name}";
+        ReconcileProfileShortcut(
+            ShortcutPath(StartMenuDirectory, profile.Name),
+            createStartMenuShortcuts,
+            profile,
+            brokerExe,
+            desktopExe,
+            arguments,
+            workingDirectory,
+            description);
+        ReconcileProfileShortcut(
+            ShortcutPath(DesktopDirectory, profile.Name),
+            createDesktopShortcuts,
+            profile,
+            brokerExe,
+            desktopExe,
+            arguments,
+            workingDirectory,
+            description);
+    }
+
+    private static void ReconcileProfileShortcut(
+        string path,
+        bool create,
+        Profile profile,
+        string brokerExe,
+        string desktopExe,
+        string arguments,
+        string workingDirectory,
+        string description)
+    {
+        if (create)
+        {
+            CreateShortcut(path, brokerExe, arguments, workingDirectory, desktopExe, description);
+            if (!IsShortcutForProfile(path, brokerExe, profile.Id, profile.Name))
+                throw new IOException($"Shortcut verification failed: {Path.GetFileName(path)}");
+        }
+        else
+        {
+            DeleteShortcutIfOwned(path, brokerExe);
+            if (IsShortcutOwned(path, brokerExe))
+                throw new IOException($"Could not remove managed shortcut: {Path.GetFileName(path)}");
+        }
+    }
+
+    private static void EnsureOfficialShortcutStateCanBeManaged(bool createStartMenuShortcuts)
+    {
+        if (File.Exists(OfficialShortcutBackupPath) &&
+            (createStartMenuShortcuts || !File.Exists(OfficialShortcutPath)) &&
+            !IsStandardGitHubDesktopShortcut(OfficialShortcutBackupPath))
+        {
+            throw new InvalidOperationException("The saved GitHub Desktop shortcut backup is not recognized.");
+        }
+
+        if (createStartMenuShortcuts && File.Exists(OfficialShortcutPath) &&
+            !IsStandardGitHubDesktopShortcut(OfficialShortcutPath))
+        {
+            throw new InvalidOperationException(
+                "GitHub Desktop.lnk already exists and is not the standard GitHub Desktop shortcut.");
+        }
+    }
+
+    private static void ReconcileOfficialShortcut(bool createStartMenuShortcuts)
+    {
+        EnsureOfficialShortcutStateCanBeManaged(createStartMenuShortcuts);
+        if (createStartMenuShortcuts)
+        {
+            if (!File.Exists(OfficialShortcutPath)) return;
+            Directory.CreateDirectory(InstallRoot);
+            if (!File.Exists(OfficialShortcutBackupPath))
+                File.Copy(OfficialShortcutPath, OfficialShortcutBackupPath, overwrite: false);
+            File.Delete(OfficialShortcutPath);
+            if (File.Exists(OfficialShortcutPath))
+                throw new IOException("Could not remove the standard GitHub Desktop shortcut.");
+            return;
+        }
+
+        if (File.Exists(OfficialShortcutPath) || !File.Exists(OfficialShortcutBackupPath)) return;
+        Directory.CreateDirectory(StartMenuDirectory);
+        File.Copy(OfficialShortcutBackupPath, OfficialShortcutPath, overwrite: false);
+        if (!IsStandardGitHubDesktopShortcut(OfficialShortcutPath))
+            throw new IOException("The standard GitHub Desktop shortcut could not be restored safely.");
+    }
 
     private static void CreateShortcut(string path, string target, string arguments, string workingDirectory, string icon, string description)
     {
+        EnsureShortcutReplaceable(path, target);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        var link = (IShellLinkW)(object)new ShellLink();
-        link.SetPath(target);
-        link.SetArguments(arguments);
-        link.SetWorkingDirectory(workingDirectory);
-        link.SetDescription(description);
-        link.SetIconLocation(icon, 0);
-        ((IPersistFile)link).Save(path, true);
-        Marshal.FinalReleaseComObject(link);
+        IShellLinkW? link = null;
+        try
+        {
+            link = (IShellLinkW)(object)new ShellLink();
+            link.SetPath(target);
+            link.SetArguments(arguments);
+            link.SetWorkingDirectory(workingDirectory);
+            link.SetDescription(description);
+            link.SetIconLocation(icon, 0);
+            ((IPersistFile)link).Save(path, true);
+        }
+        finally
+        {
+            if (link is not null && Marshal.IsComObject(link)) Marshal.FinalReleaseComObject(link);
+        }
+    }
+
+    private static void EnsureShortcutReplaceable(string path, string brokerExe)
+    {
+        if (File.Exists(path) && !IsShortcutOwned(path, brokerExe))
+            throw new InvalidOperationException(
+                $"A shortcut named '{Path.GetFileName(path)}' already exists and is not managed by WinForge.");
     }
 
     private static void DeleteShortcutIfOwned(string path, string brokerExe)
     {
         if (IsShortcutOwned(path, brokerExe))
         {
-            try { File.Delete(path); } catch { }
+            File.Delete(path);
+            if (File.Exists(path))
+                throw new IOException($"Could not remove managed shortcut: {Path.GetFileName(path)}");
         }
     }
 
     private static bool IsShortcutOwned(string path, string brokerExe)
     {
-        if (!File.Exists(path)) return false;
+        _ = brokerExe;
+        if (!TryReadShortcut(path, out string target, out string arguments)) return false;
+        bool winForgeOwned = string.Equals(
+                Path.GetFileName(target), "WinForgeLauncher.exe", StringComparison.OrdinalIgnoreCase)
+            && TryGetSingleOptionValue(arguments, "--github-desktop-profile", out _);
+        return winForgeOwned || IsReusableProfileShortcut(target, arguments, out _);
+    }
+
+    private static bool IsShortcutForProfile(
+        string path, string brokerExe, string profileId, string profileName)
+    {
+        if (!TryReadShortcut(path, out string target, out string arguments)) return false;
+        bool brokerMatch = PathsEqual(target, brokerExe)
+            && TryGetSingleOptionValue(arguments, "--github-desktop-profile", out string actualId)
+            && string.Equals(actualId, profileId, StringComparison.OrdinalIgnoreCase);
+        bool reusableMatch = IsReusableProfileShortcut(target, arguments, out string actualName)
+            && string.Equals(actualName, profileName, StringComparison.OrdinalIgnoreCase);
+        return brokerMatch || reusableMatch;
+    }
+
+    private static bool IsShortcutForBrokerProfile(
+        string path, string brokerExe, string profileId)
+    {
+        return TryReadShortcut(path, out string target, out string arguments)
+            && PathsEqual(target, brokerExe)
+            && TryGetSingleOptionValue(arguments, "--github-desktop-profile", out string actualId)
+            && string.Equals(actualId, profileId, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsReusableProfileShortcut(
+        string target, string arguments, out string profileName)
+    {
+        profileName = "";
+        string launcher = Path.Combine(InstallRoot, "Launch-GitHubDesktopProfile.ps1");
+        return string.Equals(Path.GetFileName(target), "powershell.exe", StringComparison.OrdinalIgnoreCase)
+            && arguments.Contains($"-File \"{launcher}\"", StringComparison.OrdinalIgnoreCase)
+            && TryGetTrailingOptionValue(arguments, "-ProfileName", out profileName);
+    }
+
+    private static bool IsStandardGitHubDesktopShortcut(string path)
+    {
+        if (!TryReadShortcut(path, out string target, out string arguments) ||
+            !string.IsNullOrWhiteSpace(arguments) ||
+            !string.Equals(Path.GetFileName(target), "GitHubDesktop.exe", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
         try
         {
-            var link = (IShellLinkW)(object)new ShellLink();
-            ((IPersistFile)link).Load(path, 0);
-            var target = new StringBuilder(1024);
-            link.GetPath(target, target.Capacity, IntPtr.Zero, 0);
-            Marshal.FinalReleaseComObject(link);
-            return string.Equals(Path.GetFullPath(target.ToString()), Path.GetFullPath(brokerExe), StringComparison.OrdinalIgnoreCase);
+            string root = Path.GetFullPath(Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "GitHubDesktop")).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+            return Path.GetFullPath(target).StartsWith(root, StringComparison.OrdinalIgnoreCase);
         }
         catch { return false; }
+    }
+
+    private static bool TryReadShortcut(string path, out string target, out string arguments)
+    {
+        target = "";
+        arguments = "";
+        if (!File.Exists(path)) return false;
+        IShellLinkW? link = null;
+        try
+        {
+            link = (IShellLinkW)(object)new ShellLink();
+            ((IPersistFile)link).Load(path, 0);
+            var targetBuffer = new StringBuilder(1024);
+            var argumentBuffer = new StringBuilder(4096);
+            link.GetPath(targetBuffer, targetBuffer.Capacity, IntPtr.Zero, 0);
+            link.GetArguments(argumentBuffer, argumentBuffer.Capacity);
+            target = targetBuffer.ToString();
+            arguments = argumentBuffer.ToString();
+            return !string.IsNullOrWhiteSpace(target);
+        }
+        catch { return false; }
+        finally
+        {
+            if (link is not null && Marshal.IsComObject(link)) Marshal.FinalReleaseComObject(link);
+        }
+    }
+
+    private static bool PathsEqual(string left, string right)
+    {
+        try
+        {
+            return !string.IsNullOrWhiteSpace(left)
+                && !string.IsNullOrWhiteSpace(right)
+                && string.Equals(Path.GetFullPath(left), Path.GetFullPath(right), StringComparison.OrdinalIgnoreCase);
+        }
+        catch { return false; }
+    }
+
+    private static bool TryGetSingleOptionValue(
+        string arguments, string option, out string value)
+    {
+        value = "";
+        string text = arguments.Trim();
+        if (!text.StartsWith(option, StringComparison.OrdinalIgnoreCase) ||
+            text.Length == option.Length ||
+            !char.IsWhiteSpace(text[option.Length]))
+        {
+            return false;
+        }
+
+        string remainder = text[option.Length..].Trim();
+        if (remainder.Length >= 2 && remainder[0] == '"' && remainder[^1] == '"')
+        {
+            remainder = remainder[1..^1];
+            if (remainder.Contains('"')) return false;
+        }
+        else if (remainder.Any(char.IsWhiteSpace))
+        {
+            return false;
+        }
+
+        value = remainder;
+        return value.Length > 0;
+    }
+
+    private static bool TryGetTrailingOptionValue(
+        string arguments, string option, out string value)
+    {
+        value = "";
+        int index = arguments.IndexOf(option, StringComparison.OrdinalIgnoreCase);
+        if (index < 0 || (index > 0 && !char.IsWhiteSpace(arguments[index - 1]))) return false;
+        return TryGetSingleOptionValue(arguments[index..], option, out value);
     }
 
     [ComImport, Guid("00021401-0000-0000-C000-000000000046")]
