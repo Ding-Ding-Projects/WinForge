@@ -111,6 +111,14 @@ launch, retry, and screenshot-blocker evidence.
 確實 build、launch、retry 同截圖阻礙證據請睇
 [冒煙測試清單](docs/wiki/Smoke-Test-Campaign.md)。
 
+**EN —** Launch-only batches 01–04 now provide current process-level route
+evidence for the first 100 of 321 manifest routes. Screenshot capture remains
+blocked in this desktop session, so this is not a visual-completion claim.
+
+**粵語 —** 淨 launch batches 01–04 而家為 321 條 manifest routes 入面頭 100 條
+提供咗最新嘅 process-level route 證據。呢個 desktop session 影截圖仍然受阻，
+所以唔係 visual-completion 聲稱。
+
 ---
 
 ## ✨ Highlights · 重點
