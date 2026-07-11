@@ -14,8 +14,8 @@ Open in-app: `WinForge.exe --page dashboard`
 
 ## Registry Editor · 登錄編輯器
 
-Browse and edit the live Windows registry (hives, keys, values).
-瀏覽同編輯實時 Windows 登錄檔（hive、機碼、值）。
+Browse and edit the live Windows registry (hives, keys, values); deletion notices reflect the actual registry write outcome.
+瀏覽同編輯實時 Windows 登錄檔（hive、機碼、值）；刪除通知會反映真正嘅登錄檔寫入結果。
 
 Open in-app: `WinForge.exe --page regedit`
 

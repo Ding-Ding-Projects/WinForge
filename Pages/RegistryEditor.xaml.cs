@@ -316,13 +316,15 @@ public sealed partial class RegistryEditor : Page
         };
         if (await dlg.ShowAsync() != ContentDialogResult.Primary) return;
 
-        try
+        var result = RegistryHelper.TryDeleteValue(_current.Root, _current.Path, row.RealName);
+        if (!result.Success)
         {
-            RegistryHelper.DeleteValue(_current.Root, _current.Path, row.RealName);
-            LoadValues(_current);
-            ShowOk(P("Value deleted.", "已刪除值。"));
+            ShowErr(result.Error ?? new InvalidOperationException(P("The registry did not confirm the deletion.", "登錄檔未確認刪除操作。")));
+            return;
         }
-        catch (Exception ex) { ShowErr(ex); }
+
+        LoadValues(_current);
+        ShowOk(P("Value deleted.", "已刪除值。"));
     }
 
     private void ShowOk(string msg)

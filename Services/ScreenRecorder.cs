@@ -11,7 +11,7 @@ namespace WinForge.Services;
 /// </summary>
 public static class ScreenRecorder
 {
-    private static Process? _proc;
+    private static IScreenRecorderProcess? _proc;
 
     public static bool IsRecording => _proc is { HasExited: false };
 
@@ -33,8 +33,23 @@ public static class ScreenRecorder
                 RedirectStandardError = true,
                 CreateNoWindow = true,
             };
-            _proc = Process.Start(psi);
-            if (_proc is null) return TweakResult.Fail("Failed to start ffmpeg.", "無法啟動 ffmpeg。");
+            var process = Process.Start(psi);
+            if (process is null) return TweakResult.Fail("Failed to start ffmpeg.", "無法啟動 ffmpeg。");
+
+            var recorderProcess = new ProcessScreenRecorderProcess(process);
+            try
+            {
+                // Continuously drain redirected stderr before exposing the recording session. ffmpeg emits
+                // progress there; an unread pipe can otherwise block both encoder work and its q command.
+                ScreenRecorderProcessLifecycle.Begin(recorderProcess);
+                _proc = recorderProcess;
+            }
+            catch
+            {
+                recorderProcess.TryKill();
+                recorderProcess.Dispose();
+                throw;
+            }
             return TweakResult.Ok("Recording…", "錄緊…");
         }
         catch (Exception ex)
@@ -47,20 +62,34 @@ public static class ScreenRecorder
     public static async Task<TweakResult> Stop()
     {
         var p = _proc;
+        if (p is null || p.HasExited)
+        {
+            ReleaseExited(p);
+            return TweakResult.Fail("Not recording.", "冇喺度錄。");
+        }
+
+        var result = await ScreenRecorderProcessLifecycle.StopAsync(p).ConfigureAwait(false);
+        if (result.Exited || p.HasExited) ReleaseExited(p);
+
+        return result.Status switch
+        {
+            ScreenRecorderStopStatus.Saved => TweakResult.Ok("Saved the recording.", "已儲存錄影。"),
+            ScreenRecorderStopStatus.StopCommandFailed => TweakResult.Fail(
+                "Could not ask ffmpeg to stop; it was terminated and the recording may be incomplete.",
+                "無法叫 ffmpeg 停止；已終止，錄影檔可能唔完整。"),
+            ScreenRecorderStopStatus.ForcedStop => TweakResult.Fail(
+                "ffmpeg did not stop in time and was terminated; the recording may be incomplete.",
+                "ffmpeg 未能及時停止，已終止；錄影檔可能唔完整。"),
+            _ => TweakResult.Fail(
+                "ffmpeg did not exit after the stop timeout. It is still running; try Stop again.",
+                "ffmpeg 停止逾時之後仲未退出；佢仲喺度行緊，請再撳停止。"),
+        };
+    }
+
+    private static void ReleaseExited(IScreenRecorderProcess? process)
+    {
+        if (process is null || !process.HasExited || !ReferenceEquals(_proc, process)) return;
         _proc = null;
-        if (p is null || p.HasExited) return TweakResult.Fail("Not recording.", "冇喺度錄。");
-        try
-        {
-            await p.StandardInput.WriteLineAsync("q"); // tell ffmpeg to finish cleanly
-            await p.StandardInput.FlushAsync();
-            p.StandardInput.Close();
-            await p.WaitForExitAsync();
-            return TweakResult.Ok("Saved the recording.", "已儲存錄影。");
-        }
-        catch (Exception ex)
-        {
-            try { if (!p.HasExited) p.Kill(); } catch { }
-            return TweakResult.Fail(ex.Message, $"出錯：{ex.Message}");
-        }
+        process.Dispose();
     }
 }

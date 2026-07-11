@@ -7,6 +7,9 @@ namespace WinForge.Services;
 /// <summary>登錄檔根 · Registry hive roots.</summary>
 public enum RegRoot { HKCU, HKLM, HKCR, HKU }
 
+/// <summary>Outcome for a user-visible registry-value deletion attempt.</summary>
+public sealed record RegistryValueDeleteResult(bool Success, Exception? Error = null);
+
 /// <summary>
 /// 安全嘅登錄檔讀寫包裝 · Thin, exception-safe wrapper around the Windows registry.
 /// 全部用 64-bit view，呢個係 Windows 11 真正改設定嘅地方。
@@ -14,6 +17,13 @@ public enum RegRoot { HKCU, HKLM, HKCR, HKU }
 /// </summary>
 public static class RegistryHelper
 {
+    // Keep this small seam beside the native wrapper: focused tests can prove the UI result mapping without
+    // opening or modifying the real registry.
+    internal interface IValueDeleteBackend
+    {
+        void DeleteValue(RegRoot root, string path, string name);
+    }
+
     private static RegistryKey BaseKey(RegRoot root) => root switch
     {
         RegRoot.HKCU => RegistryKey.OpenBaseKey(RegistryHive.CurrentUser, RegistryView.Registry64),
@@ -47,13 +57,52 @@ public static class RegistryHelper
 
     public static void DeleteValue(RegRoot root, string path, string name)
     {
+        // Existing callers intentionally use best-effort deletion for reversible tweaks and cleanup.
+        // Preserve that behavior while allowing interactive editors to ask for a truthful result below.
+        _ = TryDeleteValue(root, path, name);
+    }
+
+    /// <summary>
+    /// Deletes a value and reports whether the registry accepted the write. Unlike <see cref="DeleteValue"/>,
+    /// this is for UI that must not claim a deletion after an access or concurrency failure.
+    /// </summary>
+    public static RegistryValueDeleteResult TryDeleteValue(RegRoot root, string path, string name)
+        => TryDeleteValue(new NativeValueDeleteBackend(), root, path, name);
+
+    internal static RegistryValueDeleteResult TryDeleteValue(IValueDeleteBackend backend, RegRoot root, string path, string name)
+    {
+        ArgumentNullException.ThrowIfNull(backend);
         try
         {
-            using var bk = BaseKey(root);
-            using var key = bk.OpenSubKey(path, writable: true);
-            key?.DeleteValue(name, throwOnMissingValue: false);
+            backend.DeleteValue(root, path, name);
+            return new RegistryValueDeleteResult(true);
         }
-        catch { /* missing is fine */ }
+        catch (Exception ex)
+        {
+            return new RegistryValueDeleteResult(false, ex);
+        }
+    }
+
+    // Test seam for the original best-effort semantics; production callers stay on the three-argument API.
+    internal static void DeleteValue(IValueDeleteBackend backend, RegRoot root, string path, string name)
+        => _ = TryDeleteValue(backend, root, path, name);
+
+    private sealed class NativeValueDeleteBackend : IValueDeleteBackend
+    {
+        public void DeleteValue(RegRoot root, string path, string name)
+        {
+            using var bk = BaseKey(root);
+            using var key = bk.OpenSubKey(path, writable: true)
+                ?? throw new InvalidOperationException($"Cannot open {root}\\{path} for deletion.");
+
+            // A selected UI row may race with another editor. Do not report success merely because
+            // DeleteValue(..., false) would silently accept an already-missing value.
+            var missing = new object();
+            if (ReferenceEquals(key.GetValue(name, missing, RegistryValueOptions.DoNotExpandEnvironmentNames), missing))
+                throw new InvalidOperationException($"Registry value '{name}' no longer exists.");
+
+            key.DeleteValue(name, throwOnMissingValue: true);
+        }
     }
 
     /// <summary>
