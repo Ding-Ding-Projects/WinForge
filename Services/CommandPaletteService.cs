@@ -36,11 +36,11 @@ public static class CommandPaletteService
     private const string KeyRemoteDesktopProfiles = "cmdpal.rdp.profiles";
 
     // ===================== Provider identity · 提供者識別 =====================
-    public enum Provider { Apps, Bookmarks, RemoteDesktop, Performance, Windows, Modules, Files, Clipboard, Calculator, TimeDate, Settings, Services, Terminal, Run, System, Web }
+    public enum Provider { Apps, Bookmarks, RemoteDesktop, Performance, Registry, Windows, Modules, Files, Clipboard, Calculator, TimeDate, Settings, Services, Terminal, Run, System, Web }
 
     public static IReadOnlyList<Provider> AllProviders { get; } = new[]
     {
-        Provider.Apps, Provider.Bookmarks, Provider.RemoteDesktop, Provider.Performance, Provider.Windows, Provider.Modules, Provider.Files, Provider.Clipboard,
+        Provider.Apps, Provider.Bookmarks, Provider.RemoteDesktop, Provider.Performance, Provider.Registry, Provider.Windows, Provider.Modules, Provider.Files, Provider.Clipboard,
         Provider.Calculator, Provider.TimeDate, Provider.Settings, Provider.Services, Provider.Terminal,
         Provider.Run, Provider.System, Provider.Web,
     };
@@ -52,6 +52,7 @@ public static class CommandPaletteService
         Provider.Bookmarks => ("Bookmarks", "書籤"),
         Provider.RemoteDesktop => ("Remote Desktop", "遠端桌面"),
         Provider.Performance => ("Performance metrics", "效能指標"),
+        Provider.Registry => ("Registry", "登錄檔"),
         Provider.Windows => ("Open windows", "已開啟視窗"),
         Provider.Modules => ("WinForge modules", "WinForge 模組"),
         Provider.Files => ("Files & folders", "檔案與資料夾"),
@@ -477,6 +478,7 @@ public static class CommandPaletteService
         if (IsProviderEnabled(Provider.Bookmarks)) AddBookmarks(query, results);
         if (IsProviderEnabled(Provider.RemoteDesktop)) AddRemoteDesktopProfiles(query, results);
         if (IsProviderEnabled(Provider.Performance)) AddPerformanceMetrics(query, results);
+        if (IsProviderEnabled(Provider.Registry)) AddRegistry(query, results);
         if (IsProviderEnabled(Provider.Windows)) AddOpenWindows(query, results);
         if (IsProviderEnabled(Provider.Modules)) AddModules(query, results);
         if (IsProviderEnabled(Provider.Files)) AddFiles(query, results);
@@ -864,6 +866,82 @@ public static class CommandPaletteService
             Score = score,
             Invoke = () => { CopyText(copyValue); return true; },
         });
+    }
+
+    // ----- Registry navigation · 登錄檔導覽 -----
+    private static void AddRegistry(string query, List<CommandPaletteResult> list)
+    {
+        string raw = query.Trim();
+        bool isReg = raw.Equals("reg", StringComparison.OrdinalIgnoreCase);
+        bool isRegistry = raw.Equals("registry", StringComparison.OrdinalIgnoreCase);
+        bool hasRegPath = raw.StartsWith("reg ", StringComparison.OrdinalIgnoreCase);
+        bool hasRegistryPath = raw.StartsWith("registry ", StringComparison.OrdinalIgnoreCase);
+        if (!isReg && !isRegistry && !hasRegPath && !hasRegistryPath) return;
+
+        string requestedPath = hasRegistryPath ? raw.Substring("registry".Length).Trim()
+            : hasRegPath ? raw.Substring("reg".Length).Trim()
+            : "";
+        if (string.IsNullOrWhiteSpace(requestedPath))
+        {
+            list.Add(new CommandPaletteResult
+            {
+                Title = "Registry Editor · 登錄編輯器",
+                Subtitle = Loc.I.Pick("Open the in-app editor. Try: reg HKCU\\Software", "開啟 app 內編輯器。試下：reg HKCU\\Software"),
+                Glyph = ((char)0xE8F1).ToString(),
+                ProviderTag = Loc.I.Pick("Registry", "登錄檔"),
+                Score = 185,
+                Invoke = () => { OpenRegistryEditor(null); return true; },
+            });
+            return;
+        }
+
+        if (!RegistryNavigationService.TryParse(requestedPath, out var location))
+        {
+            list.Add(new CommandPaletteResult
+            {
+                Title = Loc.I.Pick("Enter a full registry path", "輸入完整登錄檔路徑"),
+                Subtitle = Loc.I.Pick("Example: reg HKCU\\Software\\Microsoft", "例如：reg HKCU\\Software\\Microsoft"),
+                Glyph = ((char)0xE8F1).ToString(),
+                ProviderTag = Loc.I.Pick("Registry", "登錄檔"),
+                Score = 180,
+                Invoke = () => false,
+            });
+            return;
+        }
+
+        string displayPath = RegistryNavigationService.Format(location);
+        bool exists = string.IsNullOrEmpty(location.Path) || RegistryHelper.KeyExists(location.Root, location.Path);
+        list.Add(new CommandPaletteResult
+        {
+            Title = displayPath,
+            Subtitle = exists
+                ? Loc.I.Pick("Press Enter to browse and edit this key in WinForge", "按 Enter 喺 WinForge 瀏覽同編輯呢個機碼")
+                : Loc.I.Pick("Key not found yet · Press Enter to open it in WinForge", "仲未搵到機碼 · 按 Enter 喺 WinForge 開啟"),
+            Glyph = ((char)0xE8F1).ToString(),
+            ProviderTag = Loc.I.Pick("Registry", "登錄檔"),
+            Score = 195,
+            Invoke = () => { OpenRegistryEditor(location); return true; },
+        });
+        list.Add(new CommandPaletteResult
+        {
+            Title = Loc.I.Pick("Copy registry path", "複製登錄檔路徑"),
+            Subtitle = displayPath,
+            Glyph = ((char)0xE8A5).ToString(),
+            ProviderTag = Loc.I.Pick("Registry", "登錄檔"),
+            Score = 175,
+            Invoke = () => { CopyText(displayPath); return true; },
+        });
+    }
+
+    private static void OpenRegistryEditor(RegistryLocation? location)
+    {
+        try
+        {
+            if (location is { } target) RegistryNavigationService.Request(target);
+            Navigator.GoToModule?.Invoke("module.regedit");
+            ShowShell();
+        }
+        catch { }
     }
 
     // ----- Remote Desktop · 遠端桌面 -----
