@@ -305,31 +305,18 @@ public static class PackageManagerSettings
         if (string.IsNullOrWhiteSpace(url)) return "";
 
         // 將帳密塞入 URL（如有）· Fold credentials into the URL when provided, for managers that
-        // only take a single proxy URL (npm/pip/etc.).
-        string urlWithCreds = url;
-        var user = ProxyUser;
-        if (!string.IsNullOrWhiteSpace(user))
-        {
-            try
-            {
-                var u = new Uri(url);
-                var pass = ProxyPassword;
-                var creds = string.IsNullOrEmpty(pass)
-                    ? Uri.EscapeDataString(user)
-                    : $"{Uri.EscapeDataString(user)}:{Uri.EscapeDataString(pass)}";
-                urlWithCreds = $"{u.Scheme}://{creds}@{u.Authority}{u.PathAndQuery}";
-            }
-            catch { urlWithCreds = url; }
-        }
-
+        // Security note: credentials are intentionally never folded into CLI arguments. Command previews,
+        // diagnostics, and OS process listings must not disclose the DPAPI-protected proxy password.
         return (managerKey ?? "").ToLowerInvariant() switch
         {
             // winget 有第一方 --proxy 旗標 · winget has a first-party --proxy flag.
             "winget" => $"--proxy \"{url}\"",
             // npm / bun（食 npm 設定）· npm and Bun (which reads npm config) accept --proxy/--https-proxy.
-            "npm" or "bun" => $"--proxy \"{urlWithCreds}\" --https-proxy \"{urlWithCreds}\"",
+            // Never put proxy credentials on a command line: previews, diagnostics, and process listings
+            // must remain secret-free. Authenticated proxies use the manager or OS credential store.
+            "npm" or "bun" => $"--proxy \"{url}\" --https-proxy \"{url}\"",
             // pip 用 --proxy · pip uses --proxy.
-            "pip" => $"--proxy \"{urlWithCreds}\"",
+            "pip" => $"--proxy \"{url}\"",
             // cargo / choco / scoop / dotnet / cargo / psgallery 多數靠環境變數，CLI 旗標不一，留空。
             // The rest mostly rely on env vars; no reliable inline flag — return "".
             _ => "",

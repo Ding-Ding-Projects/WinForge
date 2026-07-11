@@ -183,8 +183,7 @@
   - _Wrap DISM (Dism.exe confirmed at System32): 'Dism /Online /Cleanup-Image /AnalyzeComponentStore' reports reclaimable size & recommendation; 'Dism /Online /Cleanup-Image /StartComponentCleanup' trims superseded components; add '/ResetBase' to also drop superseded update backups (surface the warning that this blocks uninstalling installed updates). Requires elevation._
 - [ ] **System file & image integrity repair** · 修復系統檔同系統映像
   - _Wrap built-ins (sfc.exe & Dism.exe confirmed present): 'sfc /scannow' verifies/repairs protected system files; 'Dism /Online /Cleanup-Image /CheckHealth' quick-checks, '/ScanHealth' deep-scans, '/RestoreHealth' repairs from Windows Update. Parse %WINDIR%\Logs\CBS\CBS.log for sfc results. Requires elevation._
-- [ ] **Bulk update all apps (winget upgrade)** · 一次過更新晒啲App
-  - _Wrap winget (v1.28 confirmed): 'winget upgrade' lists upgradable packages; 'winget upgrade --all --include-unknown --accept-source-agreements --accept-package-agreements' updates everything; per-app 'winget upgrade --id <Pkg.Id>'. Pin volatile apps via 'winget pin add --id <Pkg.Id>' (winget pin sub-command confirmed present)._
+- [x] **Bulk update all apps** · 一次過更新晒啲App — DONE in Package Manager: the Updates view collects eligible updates across the selected managers and queues per-manager or all-manager batches through the shared operation coordinator; ignored, pinned and snoozed updates are excluded.
 - [ ] **Reset / re-register a stuck Store app** · 重設或重新註冊死咗嘅Store App
   - _PowerShell Appx: re-register a broken package via 'Get-AppxPackage <name> | Foreach {Add-AppxPackage -DisableDevelopmentMode -Register "$($_.InstallLocation)\AppXManifest.xml"}'; list with 'Get-AppxPackage -AllUsers'. Soft reset = the documented Reset button reached by the 'ms-settings:appsfeatures' deep link; hard clear = remove the data folder under %LocalAppData%\Packages\<PackageFamilyName>._
 
@@ -195,10 +194,8 @@
   - _Read/write registry: HKCU\Environment value 'Path' (user, REG_EXPAND_SZ) and HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment value 'Path' (system). After editing, broadcast WM_SETTINGCHANGE via SendMessageTimeout(HWND_BROADCAST, WM_SETTINGCHANGE, 0, 'Environment') so new shells pick it up. Dedupe/reorder in the UI._
 - [ ] **Edit user & system environment variables** · 改環境變數
   - _Get/set arbitrary vars via [Environment]::GetEnvironmentVariable(name,'User'/'Machine') and SetEnvironmentVariable(name,value,scope) (writes HKCU\Environment / HKLM Session Manager\Environment); broadcast WM_SETTINGCHANGE 'Environment' after. Open the OS dialog with rundll32 sysdm.cpl,EditEnvironmentVariables. Machine scope needs elevation (route via existing no-UAC scheduled-task launcher)._
-- [ ] **Export & restore winget package set** · 匯出同還原 winget 套件清單
-  - _winget export -o packages.json --include-versions; on a new machine winget import -i packages.json --accept-package-agreements --accept-source-agreements --ignore-versions._
-- [ ] **Upgrade all outdated packages** · 一次過更新晒啲套件
-  - _winget upgrade --all --include-unknown --silent; for scoop: scoop update; scoop update *. Show the pending list first via winget upgrade (table) and scoop status._
+- [x] **Export & restore package sets** · 匯出同還原套件清單 — DONE in Bundles: editable JSON/`.ubundle`, YAML and XML bundles preserve manager, ID, version, source and explicit per-package options; imports run compatibility and security review before queueing installs.
+- [x] **Upgrade all outdated packages** · 一次過更新晒啲套件 — DONE across the available WinGet, Scoop, Chocolatey, pip, npm, .NET tool, PowerShell Gallery/PSResourceGet, Cargo, Bun and vcpkg engines, subject to each installed CLI's capabilities.
 - [ ] **Docker container & image dashboard** · 睇住 Docker 容器同 image
   - _docker ps -a --format '{{json .}}' and docker images --format '{{json .}}' for the grid; row actions docker start/stop/restart/rm <id>, docker logs -f <id>, docker exec -it <id> sh into the terminal panel; reclaim space with docker system df then docker system prune -f._
 - [ ] **Switch Node version (per-shell)** · 切換 Node 版本
@@ -783,7 +780,7 @@ Shipped as a single **PowerToys Extras** module (`module.powertoys` / `--page po
 - [x] **Quick Accent** · 快速重音 — already shipped in `Pages/QuickAccentModule.xaml(.cs)` and linked from the PowerToys hub.
 - [x] **OCR region select** · OCR 區域選取 — already shipped in `Pages/TextOcrModule.xaml(.cs)` via `RegionSelector.PickRegion()` and linked from the PowerToys hub.
 - [x] **Peek / Workspaces / FancyZones / New+ / Advanced Paste / Command Not Found** — already present as native WinForge clones and now discoverable from the PowerToys hub's "More" tab.
-- [x] **Hosts/Registry/Keyboard/Rename** � already in WinForge and now linked from the PowerToys hub.
+- [x] **Hosts/Registry/Keyboard/Rename** — already in WinForge and now linked from the PowerToys hub.
 
 ## 🛠️ Winaero-Tweaker functions · Winaero 調校功能 (user-requested)
 A large generate+verify catalog batch is being produced (advanced appearance, behaviour, boot/logon,
@@ -806,8 +803,8 @@ launching the other app.
 - [x] **Background Clipboard manager + tray** · 背景剪貼簿 + 系統匣 — DONE (text/image/file history, auto-convert, keep-running-when-closed via Shell_NotifyIcon).
 
 ### Package management (covers "clone UniGetUI" + "auto-install common deps")
-- [ ] **Package Manager (UniGetUI-style)** · 套件管理員 — one GUI over winget + scoop + choco + pip + npm: search, install, update-all, uninstall, export/import a package list. Mechanism: wrap each CLI (`winget search/install/upgrade --id`, `scoop`, `choco`, `pip`, `npm -g`), parse to a unified list; bundle = JSON of {manager,id} re-installed on another PC.
-- [ ] **Auto-install common deps** · 一鍵安裝常用相依 — one-click winget-install of WinForge's own engines + common dev tools: ffmpeg (Gyan.FFmpeg), 7-Zip, Git, adb (Google.PlatformTools), Python, Node, .NET, OpenSSH. Detect-then-install with progress.
+- [x] **Native Package Manager with UniGetUI-informed parity** · 原生套件管理員 — DONE: 11 managers and nine views (Discover, Updates, Installed, Bundles, Sources, Ignored, Setup, Settings, Operations); shared queue/history/output/cancel/retry; row and multi-select operations; saved global/per-package options; ignored/pinned/snoozed updates; secure bundle import/export; guarded background scheduling and source management.
+- [x] **Auto-install common deps** · 一鍵安裝常用相依 — DONE: the Setup view detects common WinForge engines/developer tools and installs missing winget dependencies with progress; other modules retain the shared `PackageService.AutoInstall` bootstrap path.
 
 ### Dev environment
 - [ ] **Visual Studio installer panel (export/import .vsconfig)** · VS 安裝器面板 — wrap the VS bootstrapper / winget (`winget install Microsoft.VisualStudio.2022.Community --override "--config <file>"`); export the current install's .vsconfig and re-apply it; list/modify workloads. (Flashing/installer = real engine, in-app UI.)
@@ -857,7 +854,8 @@ launching the other app.
 - [x] **Clipboard = local git repo** · 剪貼簿 = 本地 git repo — `%LocalAppData%\WinForge\clipboard` is `git init`'d; commits on every entry/remove; **Clear all only adds a commit (never touches .git) so the full history stays recoverable via git log**.
 - [x] **opencode AI commit messages** · opencode AI commit 訊息 — best-effort `opencode run …` (background, CreateNoWindow) writes the commit message from the copied content, falling back to a descriptive message; **auto-installs nodejs (winget) + opencode (npm) once if absent**.
 - [ ] **Export/import must include the clipboard git repo** · 匯出匯入要包埋剪貼簿 git repo — bundle %LocalAppData%\WinForge\clipboard (incl .git) into the full export/import.
-- [ ] **Clone UniGetUI from GitHub, port every line via ultracode** · 由 GitHub clone UniGetUI、用 ultracode 逐行移植 — user wants the full UniGetUI source ported in. HUGE multi-iteration; use a fan-out workflow per file/area. (Note: still prefer native reimplementation over window-embedding per rule a.)
+- [x] **Vendor a complete pinned UniGetUI source snapshot for provenance** · 保存完整固定 UniGetUI 原始碼快照作依據 — DONE: `ThirdParty/UniGetUI` contains the tracked tree at Devolutions/UniGetUI commit `21116375c8299d1db38a3c3b4c2eb7e18bc97c4e`, including its MIT license and separately noticed third-party material. The tree is excluded from WinForge build/publish inputs and is used for audit and native parity work only; upstream UI/framework, IPC and telemetry are not compiled, embedded or launched.
+- [ ] **Continue native feature-parity review against the pinned snapshot** · 繼續按固定快照做原生功能對等檢視 — port useful behaviour deliberately into WinForge-owned WinUI/services with licensing, security and bilingual UX review; do not claim or create literal UniGetUI runtime identity.
 
 ### Program-wide goals
 - [ ] **1000-feature goal** · 1000 功能目標 — keep the loop discovering REAL features (no padding). Current: ~30 modules + 1140 catalog tweaks/ops + 17 recipes. Track the real total in About.

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -69,6 +70,7 @@ public static class PackageOperations
                 _ => $"{(string.IsNullOrEmpty(key) ? "?" : key)} {op.ToString().ToLowerInvariant()} {Q(id)}",
             };
             if (extra.Length > 0) cmd += " " + extra;
+            cmd = ApplyManagerSettings(key, cmd);
             return cmd.Trim();
         }
         catch (Exception ex) { return $"# {ex.Message}"; }
@@ -235,28 +237,40 @@ public static class PackageOperations
         {
             case Op.Install:
             {
-                var sb = new StringBuilder($"dotnet tool install -g {id}");
+                var sb = new StringBuilder($"dotnet tool install {id}");
+                AppendDotnetTarget(sb, o);
                 if (!string.IsNullOrWhiteSpace(o.Version)) sb.Append($" --version {o.Version}");
                 if (o.PreRelease) sb.Append(" --prerelease");
-                if (!string.IsNullOrWhiteSpace(o.CustomInstallLocation)) sb.Append($" --tool-path {QP(o.CustomInstallLocation)}");
                 return sb.ToString();
             }
             case Op.Update:
             {
-                var sb = new StringBuilder($"dotnet tool update -g {id}");
+                var sb = new StringBuilder($"dotnet tool update {id}");
+                AppendDotnetTarget(sb, o);
                 if (!string.IsNullOrWhiteSpace(o.Version)) sb.Append($" --version {o.Version}");
                 if (o.PreRelease) sb.Append(" --prerelease");
-                if (!string.IsNullOrWhiteSpace(o.CustomInstallLocation)) sb.Append($" --tool-path {QP(o.CustomInstallLocation)}");
                 return sb.ToString();
             }
             case Op.Uninstall:
             {
-                var sb = new StringBuilder($"dotnet tool uninstall -g {id}");
-                if (!string.IsNullOrWhiteSpace(o.CustomInstallLocation)) sb.Append($" --tool-path {QP(o.CustomInstallLocation)}");
+                var sb = new StringBuilder($"dotnet tool uninstall {id}");
+                AppendDotnetTarget(sb, o);
                 return sb.ToString();
             }
         }
         return $"dotnet tool {id}";
+    }
+
+    /// <summary>
+    /// .NET tool scope flags are mutually exclusive: a custom tool path must never be combined with
+    /// --global/-g. Keep the choice in one helper so install, update and uninstall stay symmetrical.
+    /// </summary>
+    private static void AppendDotnetTarget(StringBuilder sb, InstallOptions o)
+    {
+        if (!string.IsNullOrWhiteSpace(o.CustomInstallLocation))
+            sb.Append($" --tool-path {QP(o.CustomInstallLocation)}");
+        else
+            sb.Append(" --global");
     }
 
     private static string Cargo(string id, Op op, InstallOptions o)
@@ -332,10 +346,18 @@ public static class PackageOperations
             }
             case Op.Update:
             {
-                // UninstallPreviousOnUpdate: pwsh7 does Update then removes the older version.
-                var sb = new StringBuilder($"Update-PSResource -Name {Q(id)} -TrustRepository");
+                var sb = new StringBuilder(
+                    $"$ErrorActionPreference = 'Stop'; Update-PSResource -Name {Q(id)} -TrustRepository -Force -ErrorAction Stop");
+                if (!string.IsNullOrWhiteSpace(o.Version)) sb.Append($" -Version {Q(o.Version)}");
                 if (o.PreRelease) sb.Append(" -Prerelease");
-                if (o.UninstallPreviousOnUpdate) sb.Append($"; Uninstall-PSResource -Name {Q(id)} -Version '(,<current>)'");
+                if (o.UninstallPreviousOnUpdate)
+                {
+                    // Query the real post-update state and retain its newest version. This avoids a placeholder
+                    // range and never removes anything unless Update-PSResource completed successfully.
+                    sb.Append($"; $installed = @(Get-InstalledPSResource -Name {Q(id)} -ErrorAction SilentlyContinue | Sort-Object Version -Descending)");
+                    sb.Append("; if ($installed.Count -gt 1) { $keepVersion = $installed[0].Version.ToString()");
+                    sb.Append($"; $installed | Select-Object -Skip 1 | ForEach-Object {{ $oldVersion = $_.Version.ToString(); if ($oldVersion -ne $keepVersion) {{ Uninstall-PSResource -Name {Q(id)} -Version $oldVersion -Confirm:$false -ErrorAction Stop }} }} }}");
+                }
                 return sb.ToString();
             }
             case Op.Uninstall:
@@ -347,6 +369,28 @@ public static class PackageOperations
     /// <summary>邊啲引擎係經 PowerShell 執行 · Which engines run as PowerShell cmdlets rather than cmd.exe.</summary>
     private static bool IsPowershellEngine(string key)
         => key is "scoop" or "psgallery" or "pwsh7";
+
+    /// <summary>Apply global per-manager arguments, proxy flags, and vcpkg settings.</summary>
+    private static string ApplyManagerSettings(string key, string cmd)
+    {
+        try
+        {
+            if (key == "vcpkg")
+            {
+                var triplet = PackageManagerSettings.VcpkgTriplet.Trim();
+                if (triplet.Length > 0 && !cmd.Contains("--triplet", StringComparison.OrdinalIgnoreCase))
+                    cmd += $" --triplet {triplet.Replace("\"", "").Replace("`", "")}";
+            }
+
+            var managerArgs = PackageManagerSettings.GetManagerExecutableArgs(key).Trim();
+            if (managerArgs.Length > 0) cmd += " " + managerArgs;
+
+            var proxyArgs = PackageManagerSettings.ProxyArgsFor(key).Trim();
+            if (proxyArgs.Length > 0) cmd += " " + proxyArgs;
+        }
+        catch { /* settings are best-effort; preserve the base command */ }
+        return cmd;
+    }
 
     // ===================== runner =====================
 
@@ -416,7 +460,7 @@ public static class PackageOperations
             try
             {
                 main = IsPowershellEngine(key)
-                    ? await ShellRunner.RunPowershellStreaming(cmd, onLine, elevated, ct)
+                    ? await RunPowerShellEngineAsync(key, cmd, onLine, elevated, ct)
                     : await ShellRunner.RunCmdStreaming(cmd, onLine, elevated, ct);
             }
             catch (Exception ex) { main = TweakResult.Fail(ex.Message, $"出錯：{ex.Message}"); }
@@ -445,8 +489,19 @@ public static class PackageOperations
         try
         {
             if (string.IsNullOrWhiteSpace(cmd)) return cmd;
-            // Only the cmd.exe engines benefit here; PowerShell engines resolve via their own module logic.
-            string? tool = key switch { "winget" => "winget", "choco" => "choco", _ => null };
+            string? tool = key switch
+            {
+                "winget" => "winget",
+                "scoop" => "scoop",
+                "choco" => "choco",
+                "pip" => "pip",
+                "npm" => "npm",
+                "bun" => "bun",
+                "dotnet" => "dotnet",
+                "cargo" => "cargo",
+                "vcpkg" => "vcpkg",
+                _ => null,
+            };
             if (tool is null) return cmd;
 
             var trimmed = cmd.TrimStart();
@@ -454,15 +509,44 @@ public static class PackageOperations
                 && !trimmed.Equals(tool, StringComparison.OrdinalIgnoreCase))
                 return cmd;
 
-            var resolved = ShellRunner.ResolveExe(tool);
+            var resolved = PackageManagerSettings.GetManagerExecutablePath(key).Trim();
+            if (resolved.Length == 0 && key == "vcpkg")
+            {
+                var root = PackageManagerSettings.VcpkgRoot.Trim();
+                var candidate = root.Length == 0 ? "" : Path.Combine(root, "vcpkg.exe");
+                if (File.Exists(candidate)) resolved = candidate;
+            }
+            if (resolved.Length == 0) resolved = ShellRunner.ResolveExe(tool);
             if (string.IsNullOrEmpty(resolved) || string.Equals(resolved, tool, StringComparison.OrdinalIgnoreCase))
                 return cmd;                    // nothing better than the bare token — leave as-is
 
             var rest = trimmed.Length > tool.Length ? trimmed[tool.Length..] : "";
             var quoted = resolved.Contains(' ') ? $"\"{resolved}\"" : resolved;
+            if (key == "scoop" && quoted.StartsWith('"')) quoted = "& " + quoted;
             return quoted + rest;
         }
         catch { return cmd; }
+    }
+
+    /// <summary>Run package-manager scripts in the correct PowerShell host. Windows PowerShell owns
+    /// PowerShellGet, while PSResourceGet requires PowerShell 7. A configured executable overrides it.</summary>
+    private static Task<TweakResult> RunPowerShellEngineAsync(string key, string script,
+        IProgress<string>? onLine, bool elevated, CancellationToken ct)
+    {
+        if (key == "scoop")
+            return ShellRunner.RunPowershellStreaming(script, onLine, elevated, ct);
+
+        var configured = PackageManagerSettings.GetManagerExecutablePath(key).Trim();
+        var host = configured.Length > 0
+            ? configured
+            : key == "pwsh7" ? ShellRunner.ResolveExe("pwsh") : "powershell.exe";
+        if (string.IsNullOrWhiteSpace(host)) host = key == "pwsh7" ? "pwsh.exe" : "powershell.exe";
+
+        var bytes = Encoding.Unicode.GetBytes(script);
+        var encoded = Convert.ToBase64String(bytes);
+        return ShellRunner.RunStreaming(host,
+            $"-NoProfile -NonInteractive -ExecutionPolicy Bypass -EncodedCommand {encoded}",
+            onLine, elevated, workingDirectory: null, ct);
     }
 
     private static (string cmd, bool abort) PreHookFor(InstallOptions o, Op op) => op switch

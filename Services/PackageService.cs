@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using WinForge.Models;
@@ -29,8 +31,22 @@ public sealed class DepInfo
 /// </summary>
 public static class PackageService
 {
-    /// <summary>winget ships with Windows 11; assume present and surface any real error from the command.</summary>
-    public static bool WingetAvailable => true;
+    /// <summary>Detect the real App Installer CLI instead of assuming every Windows 11 image has it.</summary>
+    public static bool WingetAvailable
+    {
+        get
+        {
+            try
+            {
+                var resolved = ShellRunner.ResolveExe("winget");
+                return !string.IsNullOrWhiteSpace(resolved)
+                    && (!string.Equals(resolved, "winget", StringComparison.OrdinalIgnoreCase)
+                        || Environment.GetEnvironmentVariable("PATH")?.Split(';')
+                            .Any(p => File.Exists(Path.Combine(p.Trim(), "winget.exe"))) == true);
+            }
+            catch { return false; }
+        }
+    }
 
     /// <summary>Engines WinForge itself uses, plus common dev tools — exact winget IDs (reliable).</summary>
     public static readonly DepInfo[] Deps =
@@ -48,7 +64,6 @@ public static class PackageService
         new() { En = "Notepad++", Zh = "Notepad++", Id = "Notepad++.Notepad++" },
         new() { En = "Docker Desktop", Zh = "Docker Desktop", Id = "Docker.DockerDesktop" },
         new() { En = "VeraCrypt (encryption)", Zh = "VeraCrypt（加密）", Id = "IDRIX.VeraCrypt" },
-        new() { En = "scrcpy (Android mirror)", Zh = "scrcpy（Android 投屏）", Id = "Genymobile.scrcpy" },
         new() { En = "SQL Server Management Studio (SSMS)", Zh = "SQL Server 管理工具（SSMS）", Id = "Microsoft.SQLServerManagementStudio" },
     };
 

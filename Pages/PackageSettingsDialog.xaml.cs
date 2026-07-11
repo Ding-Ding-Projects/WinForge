@@ -226,7 +226,11 @@ public sealed partial class PackageSettingsDialog : ContentDialog
         int idx = counts.IndexOf(PackageManagerSettings.ParallelOperationCount);
         var combo = Combo(P("Parallel operations", "同時操作數"),
             counts.Select(n => n.ToString()).ToList(), idx < 0 ? 1 : idx,
-            i => PackageManagerSettings.ParallelOperationCount = counts[i]);
+            i =>
+            {
+                PackageManagerSettings.ParallelOperationCount = counts[i];
+                PackageOperationCoordinator.RefreshConcurrency();
+            });
 
         AddGroup(P("Operations", "操作"),
             combo,

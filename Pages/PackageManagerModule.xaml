@@ -51,6 +51,7 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <ComboBox x:Name="ViewCombo" Grid.Column="0" MinWidth="160" SelectionChanged="View_Changed" />
             <AutoSuggestBox
@@ -90,7 +91,13 @@
                     <TextBlock x:Name="TerminalBtnText" />
                 </StackPanel>
             </Button>
-            <ProgressRing x:Name="Busy" Grid.Column="6" Width="22" Height="22" IsActive="False" VerticalAlignment="Center" />
+            <Button x:Name="OperationsBtn" Grid.Column="6" Click="Operations_Click">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <FontIcon FontSize="14" Glyph="&#xE945;" />
+                    <TextBlock x:Name="OperationsBtnText" />
+                </StackPanel>
+            </Button>
+            <ProgressRing x:Name="Busy" Grid.Column="7" Width="22" Height="22" IsActive="False" VerticalAlignment="Center" />
         </Grid>
 
         <!-- Results -->

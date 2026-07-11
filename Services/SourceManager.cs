@@ -29,8 +29,29 @@ public static class SourceManager
     /// </summary>
     public sealed record KnownSource(string Name, string Url);
 
-    /// <summary>安全去掉引號／反引號避免 shell 出事 · Strip quotes/backticks so input can't break the shell line.</summary>
-    private static string San(string s) => (s ?? "").Replace("\"", "").Replace("`", "").Replace("'", "").Trim();
+    /// <summary>Validate a source name before it reaches cmd/PowerShell. Reject control and shell syntax
+    /// instead of silently stripping it, because imported or pasted values are an execution boundary.</summary>
+    private static string SafeName(string value)
+    {
+        var s = (value ?? "").Trim();
+        if (s.Length is 0 or > 128) return "";
+        foreach (var c in s)
+            if (!(char.IsLetterOrDigit(c) || c is ' ' or '.' or '_' or '-')) return "";
+        return s;
+    }
+
+    /// <summary>Accept only credential-free HTTP(S) source URLs.</summary>
+    private static string SafeUrl(string value)
+    {
+        var s = (value ?? "").Trim();
+        if (s.Length is 0 or > 2048) return "";
+        if (!Uri.TryCreate(s, UriKind.Absolute, out var uri)
+            || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
+            || !string.IsNullOrEmpty(uri.UserInfo)) return "";
+        return uri.AbsoluteUri;
+    }
+
+    private static string PsLiteral(string value) => "'" + (value ?? "").Replace("'", "''") + "'";
 
     /// <summary>切成一行行 · Split text into trimmed-of-CR lines.</summary>
     private static string[] Lines(string s)
@@ -317,33 +338,35 @@ public static class SourceManager
     {
         try
         {
-            string n = San(name);
-            string u = San(url);
-            if (n.Length == 0) return TweakResult.Fail("Name is required.", "請填寫名稱。");
+            string n = SafeName(name);
+            string u = SafeUrl(url);
+            if (n.Length == 0) return TweakResult.Fail(
+                "Use a source name containing only letters, numbers, spaces, dots, dashes or underscores.",
+                "來源名稱只可以用字母、數字、空格、點、橫線或底線。");
 
             switch (managerKey)
             {
                 case "winget":
-                    if (u.Length == 0) return TweakResult.Fail("URL is required.", "請填寫 URL。");
+                    if (u.Length == 0) return TweakResult.Fail("A valid HTTP(S) URL without embedded credentials is required.", "請填寫有效而且唔內嵌帳密嘅 HTTP(S) URL。");
                     return await ShellRunner.RunCmd(
                         $"winget source add --name \"{n}\" --arg \"{u}\" --accept-source-agreements --disable-interactivity",
                         elevated: true, ct);
                 case "scoop":
                     return await ShellRunner.RunPowershell(
-                        $"scoop bucket add {n}{(u.Length == 0 ? "" : " " + u)}", elevated: false, ct);
+                        $"scoop bucket add {PsLiteral(n)}{(u.Length == 0 ? "" : " " + PsLiteral(u))}", elevated: false, ct);
                 case "choco":
-                    if (u.Length == 0) return TweakResult.Fail("URL is required.", "請填寫 URL。");
+                    if (u.Length == 0) return TweakResult.Fail("A valid HTTP(S) URL without embedded credentials is required.", "請填寫有效而且唔內嵌帳密嘅 HTTP(S) URL。");
                     return await ShellRunner.RunCmd($"choco source add -n=\"{n}\" -s=\"{u}\" -y", elevated: true, ct);
                 case "dotnet":
-                    if (u.Length == 0) return TweakResult.Fail("URL is required.", "請填寫 URL。");
+                    if (u.Length == 0) return TweakResult.Fail("A valid HTTP(S) URL without embedded credentials is required.", "請填寫有效而且唔內嵌帳密嘅 HTTP(S) URL。");
                     return await ShellRunner.RunCmd($"dotnet nuget add source \"{u}\" --name \"{n}\"", elevated: false, ct);
                 case "psgallery":
-                    if (u.Length == 0) return TweakResult.Fail("URL is required.", "請填寫 URL。");
+                    if (u.Length == 0) return TweakResult.Fail("A valid HTTP(S) URL without embedded credentials is required.", "請填寫有效而且唔內嵌帳密嘅 HTTP(S) URL。");
                     return await ShellRunner.RunPowershell(
-                        $"Register-PSRepository -Name '{n}' -SourceLocation '{u}' -InstallationPolicy Trusted", elevated: false, ct);
+                        $"Register-PSRepository -Name {PsLiteral(n)} -SourceLocation {PsLiteral(u)} -InstallationPolicy Untrusted", elevated: false, ct);
                 case "pwsh7":
-                    if (u.Length == 0) return TweakResult.Fail("URL is required.", "請填寫 URL。");
-                    return await RunPwsh7($"Register-PSResourceRepository -Name '{n}' -Uri '{u}' -Trusted", ct);
+                    if (u.Length == 0) return TweakResult.Fail("A valid HTTP(S) URL without embedded credentials is required.", "請填寫有效而且唔內嵌帳密嘅 HTTP(S) URL。");
+                    return await RunPwsh7($"Register-PSResourceRepository -Name {PsLiteral(n)} -Uri {PsLiteral(u)}", ct);
                 default:
                     return TweakResult.Fail("This manager does not support adding sources.", "呢個管理器唔支援加來源。");
             }
@@ -358,8 +381,8 @@ public static class SourceManager
     {
         try
         {
-            string n = San(name);
-            if (n.Length == 0) return TweakResult.Fail("Name is required.", "請填寫名稱。");
+            string n = SafeName(name);
+            if (n.Length == 0) return TweakResult.Fail("The source name is invalid.", "來源名稱無效。");
 
             switch (managerKey)
             {
@@ -367,15 +390,15 @@ public static class SourceManager
                     return await ShellRunner.RunCmd(
                         $"winget source remove --name \"{n}\" --disable-interactivity", elevated: true, ct);
                 case "scoop":
-                    return await ShellRunner.RunPowershell($"scoop bucket rm {n}", elevated: false, ct);
+                    return await ShellRunner.RunPowershell($"scoop bucket rm {PsLiteral(n)}", elevated: false, ct);
                 case "choco":
                     return await ShellRunner.RunCmd($"choco source remove -n=\"{n}\" -y", elevated: true, ct);
                 case "dotnet":
                     return await ShellRunner.RunCmd($"dotnet nuget remove source \"{n}\"", elevated: false, ct);
                 case "psgallery":
-                    return await ShellRunner.RunPowershell($"Unregister-PSRepository -Name '{n}'", elevated: false, ct);
+                    return await ShellRunner.RunPowershell($"Unregister-PSRepository -Name {PsLiteral(n)}", elevated: false, ct);
                 case "pwsh7":
-                    return await RunPwsh7($"Unregister-PSResourceRepository -Name '{n}'", ct);
+                    return await RunPwsh7($"Unregister-PSResourceRepository -Name {PsLiteral(n)}", ct);
                 default:
                     return TweakResult.Fail("This manager does not support removing sources.", "呢個管理器唔支援移除來源。");
             }

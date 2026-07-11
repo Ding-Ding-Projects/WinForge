@@ -48,7 +48,7 @@ A complete map of every module/feature: what it does, how to open it, the page +
 | Color Picker · 螢幕取色 | `colorpicker` | `Pages/ColorPickerModule` | `Services/ColorPickService` | WH_MOUSE_LL hook + GetPixel | ✅ |
 | Environment Variables · 環境變數 | `envvars` | `Pages/EnvVarsModule` | `Services/EnvVarService` | Environment.*Variable; per-entry PATH editor | ✅ |
 | Clipboard · 剪貼簿 | `clipboard` | `Pages/ClipboardModule` | `Services/ClipboardService` | Clipboard.ContentChanged + **local git repo** + opencode commit msgs | ✅ |
-| Package Manager · 套件管理 | `packages` | `Pages/PackageManagerModule` | `Services/PackageService` | winget (UniGetUI-style) + `AutoInstall` | ✅ |
+| Package Manager · 套件管理 | `packages` | `Pages/PackageManagerModule`, `Pages/PackageDetailsDialog`, `Pages/PackageSettingsDialog`, `Pages/BundleWorkspaceDialog` | `Services/PackageManagers`, `Services/PackageOperationCoordinator`, `Services/PackageOperations`, `Services/InstallOptions`, `Services/BundleService`, `Services/PackageUpdateScheduler`, `Services/SourceManager` | Native WinUI workspace over 11 manager CLIs; 9 views; shared queue/history/cancel/retry; saved options; secure bundles/scheduler/sources. Pinned `ThirdParty/UniGetUI` is provenance only, not runtime. | ✅ |
 | Android (ADB) · Android（ADB） | `adb` | `Pages/AndroidAdbModule` | `Services/AdbService` | adb (devices/APK/shell/logcat/screencap/reboot); auto-installs adb | ✅ |
 | VPN & Mesh · VPN 與網狀網 | `vpn` | `Pages/VpnMeshModule` | `Services/NordVpnService`, `Services/TailscaleService` | NordVPN.exe + tailscale CLIs; auto-install | ✅ |
 | Search results · 搜尋結果 | `search:<q>` | `Pages/SearchResultsPage` | `Services/ModuleRegistry` | master search — pages + live tweak toggles | ✅ |
@@ -65,10 +65,11 @@ Data-driven: `Catalog/*Tweaks.cs` files build `TweakDefinition`s via the `Servic
 - **Registry:** `Services/RegistryHelper` (RegRoot HKCU/HKLM/HKCR/HKU, Get/Set/Delete/SubKeys).
 - **Shell:** `Services/ShellRunner` (Run/RunCmd/RunPowershell/CapturePowershell).
 - **Nav:** `MainWindow` NavigationView with collapsible groups; `Navigator.GoToModule/GoToCategory` resolve tags **recursively**; `MapType` fallback. `Services/ModuleRegistry` powers page-search.
-- **Touchless install:** `PackageService.AutoInstall(id)` = winget silent + refresh process PATH; wired into engine-bars (adb, NordVPN, Tailscale).
+- **Package operations:** all package row, batch, bundle and scheduled install/update/uninstall paths use `PackageOperationCoordinator`, which applies saved global/per-package `InstallOptions`, bounded concurrency, duplicate suppression, cancellation, notifications and history. `PackageService.AutoInstall(id)` remains the winget bootstrap path used by other modules' engine bars.
+- **UniGetUI provenance:** the complete tracked upstream tree is pinned under `ThirdParty/UniGetUI` at `21116375c8299d1db38a3c3b4c2eb7e18bc97c4e` and excluded from build/publish inputs. UniGetUI carries its MIT license; bundled third-party material retains separate notices. Its upstream UI/framework, IPC and telemetry are not compiled, embedded or launched.
 - **Docs:** `Services/DocsExporter` writes per-feature Markdown into **per-module subfolders** under `docs/features/`.
 
 ## Pending queue · 待辦 (see `docs/ROADMAP.md`)
-UX pass (remaining: Devices Actions dropdown, parse tabular command output into tables) → Smart App Uninstaller (icons + size + deep clean) → auto-install everywhere + kill remaining redirects → more 7z/zip features → custom-program runner → full export/import incl. the clipboard git repo → Docker/GitHub config sync → app logo → UniGetUI source port. The 5-min loop builds these one tested+pushed module at a time.
+UX pass (remaining: parse tabular command output into tables) → more 7z/zip features → custom-program runner → full export/import incl. the clipboard git repo → Docker/GitHub config sync → app logo → continued native package-manager parity review against the pinned UniGetUI provenance snapshot. The build loop delivers these as tested WinForge features without compiling or launching the upstream application.
 
 _Auto-maintained alongside the WinForge build loop · 由 WinForge 建置迴圈一齊維護_

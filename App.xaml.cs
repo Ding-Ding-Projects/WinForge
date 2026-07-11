@@ -249,6 +249,10 @@ public partial class App : Application
 
             await Task.Delay(100);
             CrashLogger.Guard("startup:app-update", () => Services.AppUpdateService.StartAutomaticChecks(dq));
+
+            // 套件背景檢查係 app 級服務，唔應該要用戶先開套件管理頁先至啟動。
+            // Package checks are app-global; they must run even when the Package Manager page was never opened.
+            CrashLogger.Guard("startup:package-updates", Services.PackageUpdateScheduler.Start);
         }
         catch (Exception ex)
         {

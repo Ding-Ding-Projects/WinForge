@@ -319,7 +319,9 @@ public sealed partial class BundleWorkspaceDialog : ContentDialog
             StatusText.Text = P("Nothing selected to add.", "冇所選項目可以加入。");
             return;
         }
-        var add = BundleService.ToBundle(_seed);
+        // 只附加真正儲存咗嘅逐套件覆寫；冇覆寫時唔好將全域預設冒充為套件設定。
+        // Attach only a real saved per-package override; do not serialize global defaults as package options.
+        var add = BundleService.ToBundle(_seed, SavedPackageOptions);
         // 去重（按 manager|id）· de-dupe by manager|id.
         var existing = new HashSet<string>(_bundle.packages.Select(p => $"{p.ManagerName}|{p.Id}"), StringComparer.OrdinalIgnoreCase);
         var existingInc = new HashSet<string>(_bundle.incompatible_packages.Select(p => $"{p.Source}|{p.Id}"), StringComparer.OrdinalIgnoreCase);
@@ -331,6 +333,17 @@ public sealed partial class BundleWorkspaceDialog : ContentDialog
         if (added > 0) SetDirty(true);
         RebuildRows();
         StatusText.Text = P($"Added {added} new package(s).", $"加入咗 {added} 個新套件。");
+    }
+
+    /// <summary>讀已儲存嘅逐套件覆寫，畀清單匯出用 · Load a saved per-package override for bundle export.</summary>
+    private static InstallOptions? SavedPackageOptions(PackageItem item)
+    {
+        try
+        {
+            if (!InstallOptions.HasOverride(item.ManagerKey, item.Id)) return null;
+            return InstallOptions.Load(item.ManagerKey, item.Id).Clone();
+        }
+        catch { return null; }
     }
 
     private async void ExportScript_Click(object sender, RoutedEventArgs e)
@@ -386,21 +399,49 @@ public sealed partial class BundleWorkspaceDialog : ContentDialog
 
         InstallAllBtn.IsEnabled = false;
         Busy.IsActive = true;
-        int done = 0, fail = 0, skipped = _bundle.incompatible_packages.Count;
+        int done = 0, fail = 0, skipped = _bundle.incompatible_packages.Count, processed = 0;
         var pkgs = _bundle.packages.ToList();
         foreach (var p in pkgs)
         {
-            var mgr = PackageManagerRegistry.ByKey(p.ManagerName);
-            if (mgr is null) { fail++; continue; }
-            StatusText.Text = P($"Installing {(string.IsNullOrEmpty(p.Name) ? p.Id : p.Name)}… ({done + fail + 1}/{pkgs.Count})",
-                                $"安裝緊 {(string.IsNullOrEmpty(p.Name) ? p.Id : p.Name)}…（{done + fail + 1}/{pkgs.Count}）");
-            try { var r = await mgr.InstallAsync(p.Id, CancellationToken.None); if (r.Success) done++; else fail++; }
+            var displayName = string.IsNullOrEmpty(p.Name) ? p.Id : p.Name;
+            StatusText.Text = P($"Installing {displayName}… ({processed + 1}/{pkgs.Count})",
+                                $"安裝緊 {displayName}…（{processed + 1}/{pkgs.Count}）");
+
+            // 清單設定係今次匯入嘅權威來源；明確傳入選項，避免 coordinator 讀本機舊覆寫。
+            // Bundle options are authoritative for this import. Pass them explicitly so the coordinator
+            // never substitutes an unrelated local saved override. A package Version is the fallback pin.
+            var options = (p.InstallationOptions ?? new InstallOptions()).Clone();
+            if (string.IsNullOrWhiteSpace(options.Version) && !string.IsNullOrWhiteSpace(p.Version))
+                options.Version = p.Version.Trim();
+
+            var item = new PackageItem
+            {
+                ManagerKey = p.ManagerName ?? "",
+                Id = p.Id ?? "",
+                Name = displayName ?? "",
+                Version = p.Version ?? "",
+                Source = p.Source ?? "",
+            };
+
+            try
+            {
+                var result = await PackageOperationCoordinator.RunAsync(
+                    item, PackageOperations.Op.Install, options, CancellationToken.None);
+                switch (result.Status)
+                {
+                    case PackageOperationStatus.Succeeded: done++; break;
+                    case PackageOperationStatus.Skipped:
+                    case PackageOperationStatus.Cancelled: skipped++; break;
+                    default: fail++; break;
+                }
+            }
             catch { fail++; }
+            processed++;
         }
         Busy.IsActive = false;
         InstallAllBtn.IsEnabled = true;
         StatusText.Text = skipped > 0
-            ? P($"Done — {done} ok, {fail} failed, {skipped} incompatible skipped.", $"完成 — {done} 成功、{fail} 失敗、{skipped} 個不相容已略過。")
+            ? P($"Done — {done} ok, {fail} failed, {skipped} skipped or incompatible.", $"完成 — {done} 成功、{fail} 失敗、{skipped} 個已略過或不相容。")
             : P($"Done — {done} ok, {fail} failed.", $"完成 — {done} 成功、{fail} 失敗。");
     }
 }

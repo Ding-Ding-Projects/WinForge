@@ -6,7 +6,6 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using WinForge.Models;
 
 namespace WinForge.Services;
 
@@ -17,17 +16,18 @@ namespace WinForge.Services;
 ///   1) 跨管理器收集更新（<see cref="PackageManagerRegistry.AllUpdatesAsync"/>）
 ///   2) 套用「最少更新年齡」過濾（盡力而為；唔知日期就唔扣起）
 ///   3) winget 安裝程式來源主機改變檢查（盡力而為，標記警告旗標）
-///   4) 更新系統匣數量 + 發「有更新」通知
-///   5) 若 AutoInstallUpdates 而又冇被流量／電池／慳電閘住，按 ParallelOperationCount 並行安裝
+///   4) 過濾已忽略更新，再更新系統匣數量 + 發「有更新」通知
+///   5) 若全域自動更新或逐套件 AutoUpdate 開咗，而且冇被流量／電池／慳電閘住，交畀全域操作隊列安裝
 ///   6) 每日寫一次本地備份（已安裝清單）
 /// 所有嘢都包住，永遠唔會擲返去 UI 執行緒。
 ///
 /// A single <see cref="PeriodicTimer"/>-driven background task that honours
 /// <see cref="PackageManagerSettings.CheckIntervalMinutes"/> when AutoCheckEnabled. Each tick collects
 /// updates, applies the minimum-update-age filter and the winget installer-host-change check (both
-/// best-effort), updates the tray count + fires the "updates available" toast, optionally auto-installs
-/// (respecting the parallel-op count and the metered/battery/battery-saver gates), and runs the optional
-/// daily local backup. Everything is wrapped — it never throws onto the UI thread.
+/// best-effort), filters ignored updates before updating the tray count, fires the "updates available"
+/// toast, optionally auto-installs globally enabled or per-package enabled updates through the shared
+/// operation coordinator (respecting metered/battery/battery-saver gates), and runs the optional daily
+/// local backup. Everything is wrapped — it never throws onto the UI thread.
 /// </summary>
 public static class PackageUpdateScheduler
 {
@@ -125,32 +125,57 @@ public static class PackageUpdateScheduler
         int minAge = PackageManagerSettings.MinimumUpdateAgeDays;
         var aged = minAge <= 0 ? raw : await FilterByAgeAsync(raw, minAge, ct);
 
+        // 已忽略／暫停嘅更新唔應該入系統匣數量，亦唔應該觸發主機警告或自動更新。
+        // Ignored/snoozed updates do not count in the tray and must not trigger host warnings or automation.
+        var visible = aged
+            .Where(item => PackageOperationCoordinator.IsSafePackageId(item.Id))
+            .Where(item => !IgnoredUpdates.IsIgnored(item))
+            .Where(item => !PackageOperationCoordinator.IsMinorUpdateSuppressed(item))
+            .ToList();
+
         // 3) winget 安裝來源主機改變檢查（盡力而為）· installer-host-change check for winget (best-effort).
-        var scanned = new List<ScannedUpdate>(aged.Count);
+        var scanned = new List<ScannedUpdate>(visible.Count);
         bool checkHost = PackageManagerSettings.WarnInstallerHostChange;
-        foreach (var item in aged)
+        foreach (var item in visible)
         {
             if (ct.IsCancellationRequested) return;
             bool changed = false;
             if (checkHost && string.Equals(item.ManagerKey, "winget", StringComparison.OrdinalIgnoreCase))
             {
                 try { changed = await InstallerHostChangedAsync(item, ct); } catch { changed = false; }
+                if (ct.IsCancellationRequested) return;
+                if (changed)
+                {
+                    // PackageNotifier 冇獨立 warning 類型；用可見嘅一般通知清楚標示安全警告。
+                    // PackageNotifier has no warning channel, so surface an explicit security warning
+                    // through its visible generic notification path.
+                    PackageNotifier.ShowProgress(
+                        Loc.I.Pick(
+                            $"Security warning: {item.Name}'s installer host changed. Automatic update was blocked.",
+                            $"安全警告：{item.Name} 嘅安裝程式主機有變，自動更新已被封鎖。"),
+                        item.ManagerKey);
+                }
             }
             scanned.Add(new ScannedUpdate { Item = item, InstallerHostChanged = changed });
         }
+
+        if (ct.IsCancellationRequested) return;
 
         // 4) 更新系統匣 + 通知 · update the tray count + fire "updates available".
         int count = scanned.Count;
         MarshalToUi(() => TrayService.SetUpdateCount(count));
         if (count > 0) PackageNotifier.ShowUpdatesAvailable(count);
 
-        // 5) 自動安裝（若開咗而又冇被閘住）· auto-install when enabled and not gated.
-        if (PackageManagerSettings.AutoInstallUpdates && count > 0 && !AutoOperationsGated())
+        // 5) 自動安裝（全域或逐套件開咗，而且冇被閘住）· auto-install globally or per-package when not gated.
+        if (count > 0 && !AutoOperationsGated())
         {
+            if (ct.IsCancellationRequested) return;
             // 跳過會改安裝來源主機嘅 winget 套件（安全閘）· skip winget packages whose installer host changed.
+            bool autoInstallAll = PackageManagerSettings.AutoInstallUpdates;
             var installable = scanned
-                .Where(s => !(s.InstallerHostChanged))
+                .Where(s => !s.InstallerHostChanged)
                 .Select(s => s.Item)
+                .Where(item => autoInstallAll || IsPerPackageAutoUpdateEnabled(item))
                 .ToList();
             if (installable.Count > 0)
                 await InstallUpdatesAsync(installable, ct);
@@ -159,6 +184,7 @@ public static class PackageUpdateScheduler
         // 6) 每日本地備份 · run the optional local backup on a daily cadence.
         if (PackageManagerSettings.LocalBackupEnabled && (DateTime.UtcNow - _lastBackupUtc).TotalHours >= 24)
         {
+            if (ct.IsCancellationRequested) return;
             try { await RunLocalBackupAsync(ct); _lastBackupUtc = DateTime.UtcNow; } catch { }
         }
     }
@@ -270,43 +296,37 @@ public static class PackageUpdateScheduler
         return "";
     }
 
-    // ===== auto-install with bounded parallelism =====
+    // ===== auto-install through the shared global coordinator =====
+
+    /// <summary>讀逐套件自動更新偏好（失敗就安全地當關閉）· Read a per-package auto-update preference; fail closed.</summary>
+    private static bool IsPerPackageAutoUpdateEnabled(PackageItem item)
+    {
+        try { return InstallOptions.Load(item.ManagerKey, item.Id).AutoUpdate; }
+        catch { return false; }
+    }
 
     private static async Task InstallUpdatesAsync(List<PackageItem> items, CancellationToken ct)
     {
-        int parallel = Math.Max(1, Math.Min(10, PackageManagerSettings.ParallelOperationCount));
-        using var sem = new SemaphoreSlim(parallel, parallel);
-
-        var tasks = items.Select(async item =>
+        // The coordinator loads each package's saved options, enforces the configured global concurrency,
+        // de-duplicates operations, re-checks ignore/minor policies, and owns progress/success/error notices.
+        try
         {
-            await sem.WaitAsync(ct);
-            try
-            {
-                if (ct.IsCancellationRequested) return;
-                var mgr = PackageManagerRegistry.ByKey(item.ManagerKey);
-                if (mgr is null) return;
-
-                PackageNotifier.ShowUpgrading(item.Name, item.ManagerKey);
-                TweakResult r;
-                try { r = await mgr.UpdateAsync(item.Id, ct); }
-                catch (OperationCanceledException) { return; }
-                catch (Exception ex) { r = TweakResult.Fail(ex.Message, ex.Message); }
-
-                if (r.Success) PackageNotifier.ShowSuccess(item.Name, item.ManagerKey);
-                else PackageNotifier.ShowError(item.Name, r.Message?.Primary, item.ManagerKey);
-            }
-            catch (OperationCanceledException) { }
-            catch { /* per-item failures must not crash the batch */ }
-            finally { try { sem.Release(); } catch { } }
-        });
-
-        try { await Task.WhenAll(tasks); } catch { }
+            await PackageOperationCoordinator.RunManyAsync(
+                items, PackageOperations.Op.Update, options: null, ct: ct);
+        }
+        catch (OperationCanceledException) { }
+        catch { /* per-item failures are represented by coordinator snapshots */ }
 
         // 安裝完重新整理系統匣計數 · refresh the tray count after installing.
         try
         {
             var remaining = await PackageManagerRegistry.AllUpdatesAsync(null, ct);
-            MarshalToUi(() => TrayService.SetUpdateCount(remaining.Count));
+            int minAge = PackageManagerSettings.MinimumUpdateAgeDays;
+            var aged = minAge <= 0 ? remaining : await FilterByAgeAsync(remaining, minAge, ct);
+            int visibleCount = aged.Count(item => PackageOperationCoordinator.IsSafePackageId(item.Id)
+                && !IgnoredUpdates.IsIgnored(item)
+                && !PackageOperationCoordinator.IsMinorUpdateSuppressed(item));
+            MarshalToUi(() => TrayService.SetUpdateCount(visibleCount));
         }
         catch { }
     }

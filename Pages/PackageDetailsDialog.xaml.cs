@@ -26,6 +26,7 @@ public sealed partial class PackageDetailsDialog : ContentDialog
     private readonly IPackageManager? _mgr;
     private TextBlock? _status;          // 底部狀態列 · footer status line
     private ComboBox? _versionCombo;     // 可安裝版本 · installable-versions picker
+    private Button? _installVersionButton;
     private StackPanel? _fields;         // 欄位容器 · field list container
 
     private PackageDetailsDialog(PackageItem item)
@@ -117,7 +118,9 @@ public sealed partial class PackageDetailsDialog : ContentDialog
         {
             try
             {
-                var cmd = PackageDetails.BuildInstallCommand(_item);
+                var options = InstallOptions.Load(_item.ManagerKey, _item.Id);
+                var cmd = PackageOperations.BuildCommandPreview(
+                    _item.ManagerKey, _item.Id, PackageOperations.Op.Install, options);
                 var dp = new DataPackage();
                 dp.SetText(cmd);
                 Clipboard.SetContent(dp);
@@ -143,6 +146,14 @@ public sealed partial class PackageDetailsDialog : ContentDialog
             finally { downloadBtn.IsEnabled = true; }
         };
         row1.Children.Add(downloadBtn);
+
+        var optionsBtn = new Button { Content = P("Install options…", "安裝選項…") };
+        optionsBtn.Click += async (_, _) =>
+        {
+            var options = InstallOptions.Load(_item.ManagerKey, _item.Id);
+            await InstallOptionsDialog.ShowAsync(XamlRoot, _item, options, PackageOperations.Op.Install);
+        };
+        row1.Children.Add(optionsBtn);
         wrap.Children.Add(row1);
 
         // Row 2: chained operations.
@@ -151,31 +162,31 @@ public sealed partial class PackageDetailsDialog : ContentDialog
         var reinstallBtn = new Button { Content = P("Reinstall", "重新安裝") };
         reinstallBtn.Click += async (_, _) => await ChainedAsync(reinstallBtn,
             P("Reinstalling…", "重新安裝緊…"),
-            new (string en, string zh, Func<IPackageManager, CancellationToken, Task<TweakResult>> op)[]
+            new (string en, string zh, PackageOperations.Op op)[]
             {
-                ("Uninstall", "解除安裝", (m, c) => m.UninstallAsync(_item.Id, c)),
-                ("Install", "安裝", (m, c) => m.InstallAsync(_item.Id, c)),
+                ("Uninstall", "解除安裝", PackageOperations.Op.Uninstall),
+                ("Install", "安裝", PackageOperations.Op.Install),
             });
         row2.Children.Add(reinstallBtn);
 
         var unReBtn = new Button { Content = P("Uninstall then reinstall", "解除後重裝") };
         unReBtn.Click += async (_, _) => await ChainedAsync(unReBtn,
             P("Uninstall then reinstall…", "解除後重裝緊…"),
-            new (string en, string zh, Func<IPackageManager, CancellationToken, Task<TweakResult>> op)[]
+            new (string en, string zh, PackageOperations.Op op)[]
             {
-                ("Uninstall", "解除安裝", (m, c) => m.UninstallAsync(_item.Id, c)),
-                ("Install", "安裝", (m, c) => m.InstallAsync(_item.Id, c)),
+                ("Uninstall", "解除安裝", PackageOperations.Op.Uninstall),
+                ("Install", "安裝", PackageOperations.Op.Install),
             });
         row2.Children.Add(unReBtn);
 
         var unUpBtn = new Button { Content = P("Uninstall then update", "解除後更新") };
         unUpBtn.Click += async (_, _) => await ChainedAsync(unUpBtn,
             P("Uninstall then update…", "解除後更新緊…"),
-            new (string en, string zh, Func<IPackageManager, CancellationToken, Task<TweakResult>> op)[]
+            new (string en, string zh, PackageOperations.Op op)[]
             {
-                ("Uninstall", "解除安裝", (m, c) => m.UninstallAsync(_item.Id, c)),
-                ("Install", "安裝", (m, c) => m.InstallAsync(_item.Id, c)),
-                ("Update", "更新", (m, c) => m.UpdateAsync(_item.Id, c)),
+                ("Uninstall", "解除安裝", PackageOperations.Op.Uninstall),
+                ("Install", "安裝", PackageOperations.Op.Install),
+                ("Update", "更新", PackageOperations.Op.Update),
             });
         row2.Children.Add(unUpBtn);
 
@@ -187,7 +198,7 @@ public sealed partial class PackageDetailsDialog : ContentDialog
     /// 順序執行一連串操作並即時報告進度 · Run a sequence of manager ops in order, surfacing progress.
     /// </summary>
     private async Task ChainedAsync(Button btn, string busyText,
-        (string en, string zh, Func<IPackageManager, CancellationToken, Task<TweakResult>> op)[] steps)
+        (string en, string zh, PackageOperations.Op op)[] steps)
     {
         if (_mgr is null) { SetStatus(P("Manager not available.", "管理器唔可用。")); return; }
         btn.IsEnabled = false;
@@ -200,12 +211,17 @@ public sealed partial class PackageDetailsDialog : ContentDialog
             {
                 i++;
                 SetStatus(P($"[{i}/{steps.Length}] {step.en} {_item.Name}…", $"[{i}/{steps.Length}] {step.zh} {_item.Name}…"));
-                TweakResult r;
-                try { r = await step.op(_mgr, CancellationToken.None); }
-                catch (Exception ex) { r = TweakResult.Fail(ex.Message, ex.Message); }
-                if (!r.Success)
+                PackageOperationSnapshot snapshot;
+                try { snapshot = await PackageOperationCoordinator.RunAsync(_item, step.op, ct: CancellationToken.None); }
+                catch (Exception ex)
                 {
-                    SetStatus(P($"Step '{step.en}' failed: {r.Message?.En}", $"步驟「{step.zh}」失敗：{r.Message?.Zh}"));
+                    SetStatus(ex.Message);
+                    return;
+                }
+                if (snapshot.Status != PackageOperationStatus.Succeeded)
+                {
+                    SetStatus(P($"Step '{step.en}' failed: {snapshot.Result?.Message?.En}",
+                        $"步驟「{step.zh}」失敗：{snapshot.Result?.Message?.Zh}"));
                     return;
                 }
             }
@@ -269,6 +285,7 @@ public sealed partial class PackageDetailsDialog : ContentDialog
             _versionCombo.Items.Add(P("(no other versions)", "（冇其他版本）"));
             _versionCombo.SelectedIndex = 0;
             _versionCombo.IsEnabled = false;
+            if (_installVersionButton is not null) _installVersionButton.IsEnabled = false;
             return;
         }
         _versionCombo.Items.Clear();
@@ -277,6 +294,7 @@ public sealed partial class PackageDetailsDialog : ContentDialog
         int idx = versions.FindIndex(v => string.Equals(v, _item.Version, StringComparison.OrdinalIgnoreCase));
         _versionCombo.SelectedIndex = idx >= 0 ? idx : 0;
         _versionCombo.IsEnabled = true;
+        if (_installVersionButton is not null) _installVersionButton.IsEnabled = true;
     }
 
     // ===== field builders =====
@@ -302,9 +320,40 @@ public sealed partial class PackageDetailsDialog : ContentDialog
         _versionCombo.IsEnabled = false;
         ToolTipService.SetToolTip(_versionCombo, P("Installable versions", "可安裝版本"));
         row.Children.Add(_versionCombo);
+
+        _installVersionButton = new Button
+        {
+            Content = P("Install selected", "安裝所選版本"),
+            IsEnabled = false,
+        };
+        _installVersionButton.Click += async (_, _) =>
+        {
+            if (_versionCombo?.SelectedItem is not string selected || string.IsNullOrWhiteSpace(selected)) return;
+            _installVersionButton.IsEnabled = false;
+            SetStatus(P($"Installing version {selected}…", $"安裝緊版本 {selected}…"));
+            try
+            {
+                var options = InstallOptions.Load(_item.ManagerKey, _item.Id).Clone();
+                options.Version = selected;
+                var snapshot = await PackageOperationCoordinator.RunAsync(
+                    _item, PackageOperations.Op.Install, options, CancellationToken.None);
+                SetStatus(snapshot.Result?.Message?.Display ?? OperationStatus(snapshot.Status));
+            }
+            catch (Exception ex) { SetStatus(ex.Message); }
+            finally { _installVersionButton.IsEnabled = _versionCombo?.IsEnabled == true; }
+        };
+        row.Children.Add(_installVersionButton);
         panel.Children.Add(row);
         _fields.Children.Add(panel);
     }
+
+    private static string OperationStatus(PackageOperationStatus status) => status switch
+    {
+        PackageOperationStatus.Succeeded => P("Installed.", "已安裝。"),
+        PackageOperationStatus.Skipped => P("Skipped.", "已略過。"),
+        PackageOperationStatus.Cancelled => P("Cancelled.", "已取消。"),
+        _ => P("Installation failed.", "安裝失敗。"),
+    };
 
     private void AddTextField(string label, string value, bool wrap = false)
     {

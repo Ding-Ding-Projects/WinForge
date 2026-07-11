@@ -9,6 +9,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WinForgeLauncher", "launche
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CompanionBuildLog.Tests", "tests\CompanionBuildLog.Tests\CompanionBuildLog.Tests.csproj", "{B5D4C5A4-7B9C-4D2A-9A12-35A5DDA2AA73}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PackageManagerCore.Tests", "tests\PackageManagerCore.Tests\PackageManagerCore.Tests.csproj", "{D7E3C944-31CB-4A2B-9F9E-6B2A2DCC83A7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -55,6 +57,18 @@ Global
 		{B5D4C5A4-7B9C-4D2A-9A12-35A5DDA2AA73}.Release|x86.Build.0 = Release|Any CPU
 		{B5D4C5A4-7B9C-4D2A-9A12-35A5DDA2AA73}.Release|ARM64.ActiveCfg = Release|Any CPU
 		{B5D4C5A4-7B9C-4D2A-9A12-35A5DDA2AA73}.Release|ARM64.Build.0 = Release|Any CPU
+		{D7E3C944-31CB-4A2B-9F9E-6B2A2DCC83A7}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D7E3C944-31CB-4A2B-9F9E-6B2A2DCC83A7}.Debug|x64.Build.0 = Debug|Any CPU
+		{D7E3C944-31CB-4A2B-9F9E-6B2A2DCC83A7}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{D7E3C944-31CB-4A2B-9F9E-6B2A2DCC83A7}.Debug|x86.Build.0 = Debug|Any CPU
+		{D7E3C944-31CB-4A2B-9F9E-6B2A2DCC83A7}.Debug|ARM64.ActiveCfg = Debug|Any CPU
+		{D7E3C944-31CB-4A2B-9F9E-6B2A2DCC83A7}.Debug|ARM64.Build.0 = Debug|Any CPU
+		{D7E3C944-31CB-4A2B-9F9E-6B2A2DCC83A7}.Release|x64.ActiveCfg = Release|Any CPU
+		{D7E3C944-31CB-4A2B-9F9E-6B2A2DCC83A7}.Release|x64.Build.0 = Release|Any CPU
+		{D7E3C944-31CB-4A2B-9F9E-6B2A2DCC83A7}.Release|x86.ActiveCfg = Release|Any CPU
+		{D7E3C944-31CB-4A2B-9F9E-6B2A2DCC83A7}.Release|x86.Build.0 = Release|Any CPU
+		{D7E3C944-31CB-4A2B-9F9E-6B2A2DCC83A7}.Release|ARM64.ActiveCfg = Release|Any CPU
+		{D7E3C944-31CB-4A2B-9F9E-6B2A2DCC83A7}.Release|ARM64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

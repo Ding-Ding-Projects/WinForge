@@ -25,8 +25,8 @@
          The embedded ConPTY terminal (Services/ConPtySession.cs) needs unsafe pointer code. -->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!-- External and vendored upstream source trees must NEVER be compiled into WinForge. ThirdParty/
-         contains exact, reviewable source snapshots (including UniGetUI's complete MIT-licensed tree),
-         while WinForge ports the useful behaviour into its native WinUI services and controls. -->
+         contains exact, reviewable tracked snapshots (including UniGetUI under its project license plus
+         separately noticed third-party material), while WinForge ports useful behaviour into native services. -->
     <DefaultItemExcludes>$(DefaultItemExcludes);external\**;ThirdParty\**;launcher\**;updater\**;tools\**</DefaultItemExcludes>
   </PropertyGroup>
 

@@ -12,7 +12,9 @@ Open in-app: `WinForge.exe --page git`
 
 ## Package Manager · 套件管理
 
-One front-end over winget, scoop, choco, pip, npm and more. · 統一前端操作 winget、scoop、choco、pip、npm 等。
+Native WinForge workspace for 11 managers — WinGet, Scoop, Chocolatey, pip, npm, .NET tools, Windows PowerShell Gallery, PowerShell 7 PSResourceGet, Cargo, Bun and vcpkg — with nine views for discovery, updates, installed packages, bundles, sources, ignored rules, setup, settings and operations. A shared queue provides history, output, cancel and retry; global/per-package options flow through row, batch, bundle and scheduled operations. · WinForge 原生工作區支援 11 個管理器 — WinGet、Scoop、Chocolatey、pip、npm、.NET 工具、Windows PowerShell Gallery、PowerShell 7 PSResourceGet、Cargo、Bun 同 vcpkg — 並有九個檢視處理搜尋、更新、已安裝套件、清單、來源、忽略規則、引擎設定、背景設定同操作。共用佇列提供歷史、輸出、取消同重試；全域／逐套件選項會套用到單列、批次、清單同排程操作。
+
+The pinned source snapshot at `ThirdParty/UniGetUI` is provenance for audit and parity work only. UniGetUI's upstream UI/framework, IPC and telemetry are not compiled or launched; the running feature is WinForge's own bilingual WinUI 3 implementation. · `ThirdParty/UniGetUI` 入面嘅固定原始碼快照只作審核同功能對等參考；UniGetUI 上游 UI／framework、IPC 同 telemetry 唔會被編譯或啟動，實際執行嘅係 WinForge 自己嘅雙語 WinUI 3 實作。
 
 Open in-app: `WinForge.exe --page packages`
 

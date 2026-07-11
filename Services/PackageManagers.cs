@@ -83,6 +83,9 @@ internal static class PkgParse
     /// <summary>安全去掉引號避免 shell 出事 · Strip quotes so a query can't break the shell line.</summary>
     public static string Q(string s) => (s ?? "").Replace("\"", "").Replace("`", "").Trim();
 
+    /// <summary>PowerShell single-quoted literal, safe for user search text and package IDs.</summary>
+    public static string Ps(string s) => "'" + (s ?? "").Replace("'", "''") + "'";
+
     /// <summary>切成一行行（統一換行）· Split text into lines on any newline.</summary>
     public static string[] Lines(string s)
         => string.IsNullOrEmpty(s) ? Array.Empty<string>() : s.Replace("\r", "").Split('\n');
@@ -130,7 +133,7 @@ public sealed class WingetManager : IPackageManager
         try
         {
             var o = await ShellRunner.CapturePowershell(
-                $"winget search --query \"{PkgParse.Q(query)}\" --accept-source-agreements --disable-interactivity | Out-String -Width 400", ct);
+                $"winget search --query {PkgParse.Ps(query.Trim())} --accept-source-agreements --disable-interactivity | Out-String -Width 400", ct);
             return ParseTable(o);
         }
         catch { return new List<PackageItem>(); }
@@ -263,7 +266,7 @@ public sealed class ScoopManager : IPackageManager
         var res = new List<PackageItem>();
         try
         {
-            var o = await ShellRunner.CapturePowershell($"scoop search {PkgParse.Q(query)} | Out-String -Width 400", ct);
+            var o = await ShellRunner.CapturePowershell($"scoop search {PkgParse.Ps(query.Trim())} | Out-String -Width 400", ct);
             foreach (var raw in PkgParse.Lines(o))
             {
                 var ln = raw.Trim();
@@ -503,6 +506,13 @@ public sealed class PipManager : IPackageManager
     public string NameZh => "pip（Python）";
     public string Cli => "pip";
 
+    private static readonly HttpClient PyPiHttp = CreatePyPiClient();
+    private static readonly SemaphoreSlim PyPiIndexGate = new(1, 1);
+    private static readonly SemaphoreSlim PyPiVersionGate = new(6, 6);
+    private static readonly object PyPiCacheLock = new();
+    private static string[]? _pyPiProjectNames;
+    private static DateTimeOffset _pyPiProjectNamesAt;
+
     public async Task<bool> IsAvailableAsync(CancellationToken ct)
     {
         try
@@ -513,9 +523,48 @@ public sealed class PipManager : IPackageManager
         catch { return false; }
     }
 
-    /// <summary>現代 pip 唔再支援 search · Modern pip no longer supports search — return empty.</summary>
-    public Task<List<PackageItem>> SearchAsync(string query, CancellationToken ct)
-        => Task.FromResult(new List<PackageItem>());
+    /// <summary>
+    /// 經 PyPI Simple JSON API 搜尋；索引快取 24 小時，再有限度並行攞最新版本。
+    /// Search the PyPI Simple JSON API, cache its index for 24 hours, then fetch latest versions
+    /// with bounded concurrency. Modern pip deliberately has no search command.
+    /// </summary>
+    public async Task<List<PackageItem>> SearchAsync(string query, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(query)) return new List<PackageItem>();
+
+        try
+        {
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeout.CancelAfter(TimeSpan.FromSeconds(60));
+
+            var names = await GetPyPiProjectNamesAsync(timeout.Token);
+            var q = query.Trim();
+            var matches = names
+                .Where(n => n.Contains(q, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(n => n.StartsWith(q, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+                .ThenBy(n => n.Length)
+                .ThenBy(n => n, StringComparer.OrdinalIgnoreCase)
+                .Take(20)
+                .ToArray();
+            if (matches.Length == 0) return new List<PackageItem>();
+
+            var versions = await Task.WhenAll(matches.Select(n => GetLatestPyPiVersionAsync(n, timeout.Token)));
+            var result = new List<PackageItem>(matches.Length);
+            for (int i = 0; i < matches.Length; i++)
+            {
+                result.Add(new PackageItem
+                {
+                    Name = matches[i],
+                    Id = matches[i],
+                    Version = versions[i],
+                    Source = "pypi.org",
+                    ManagerKey = Key,
+                });
+            }
+            return result;
+        }
+        catch { return new List<PackageItem>(); }
+    }
 
     public async Task<List<PackageItem>> ListInstalledAsync(CancellationToken ct)
     {
@@ -596,6 +645,81 @@ public sealed class PipManager : IPackageManager
         int a = raw.IndexOf('['), b = raw.LastIndexOf(']');
         if (a >= 0 && b > a) return raw.Substring(a, b - a + 1);
         return "[]";
+    }
+
+    private static HttpClient CreatePyPiClient()
+    {
+        var client = new HttpClient { Timeout = TimeSpan.FromSeconds(40) };
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("WinForge/1.0");
+        return client;
+    }
+
+    private static async Task<string[]> GetPyPiProjectNamesAsync(CancellationToken ct)
+    {
+        lock (PyPiCacheLock)
+        {
+            if (_pyPiProjectNames is not null
+                && DateTimeOffset.UtcNow - _pyPiProjectNamesAt < TimeSpan.FromHours(24))
+                return _pyPiProjectNames;
+        }
+
+        await PyPiIndexGate.WaitAsync(ct);
+        try
+        {
+            lock (PyPiCacheLock)
+            {
+                if (_pyPiProjectNames is not null
+                    && DateTimeOffset.UtcNow - _pyPiProjectNamesAt < TimeSpan.FromHours(24))
+                    return _pyPiProjectNames;
+            }
+
+            using var request = new HttpRequestMessage(HttpMethod.Get, "https://pypi.org/simple/");
+            request.Headers.Accept.ParseAdd("application/vnd.pypi.simple.v1+json");
+            using var response = await PyPiHttp.SendAsync(
+                request, HttpCompletionOption.ResponseHeadersRead, ct);
+            if (!response.IsSuccessStatusCode) return Array.Empty<string>();
+
+            await using var stream = await response.Content.ReadAsStreamAsync(ct);
+            using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
+            if (!doc.RootElement.TryGetProperty("projects", out var projects)
+                || projects.ValueKind != JsonValueKind.Array)
+                return Array.Empty<string>();
+
+            var names = projects.EnumerateArray()
+                .Select(p => PkgParse.Str(p, "name"))
+                .Where(n => n.Length > 0)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            if (names.Length == 0) return names;
+
+            lock (PyPiCacheLock)
+            {
+                _pyPiProjectNames = names;
+                _pyPiProjectNamesAt = DateTimeOffset.UtcNow;
+            }
+            return names;
+        }
+        finally { PyPiIndexGate.Release(); }
+    }
+
+    private static async Task<string> GetLatestPyPiVersionAsync(string packageName, CancellationToken ct)
+    {
+        bool entered = false;
+        try
+        {
+            await PyPiVersionGate.WaitAsync(ct);
+            entered = true;
+            var id = Uri.EscapeDataString(packageName);
+            using var response = await PyPiHttp.GetAsync($"https://pypi.org/pypi/{id}/json", ct);
+            if (!response.IsSuccessStatusCode) return "";
+            await using var stream = await response.Content.ReadAsStreamAsync(ct);
+            using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
+            return doc.RootElement.TryGetProperty("info", out var info)
+                ? PkgParse.Str(info, "version")
+                : "";
+        }
+        catch { return ""; }
+        finally { if (entered) PyPiVersionGate.Release(); }
     }
 }
 
@@ -746,6 +870,9 @@ public sealed class DotnetToolManager : IPackageManager
     public string NameZh => ".NET 工具";
     public string Cli => "dotnet";
 
+    private static readonly HttpClient NuGetHttp = CreateNuGetClient();
+    private static readonly SemaphoreSlim NuGetLookupGate = new(6, 6);
+
     public async Task<bool> IsAvailableAsync(CancellationToken ct)
     {
         try
@@ -826,9 +953,25 @@ public sealed class DotnetToolManager : IPackageManager
         return res;
     }
 
-    /// <summary>dotnet 冇內建 outdated，盡力而為 -> 回空 · No built-in outdated; best-effort empty.</summary>
-    public Task<List<PackageItem>> ListUpdatesAsync(CancellationToken ct)
-        => Task.FromResult(new List<PackageItem>());
+    /// <summary>
+    /// dotnet 冇 outdated 子命令；用已安裝清單配 NuGet V3 版本索引比較。
+    /// dotnet has no outdated command, so compare installed tools with NuGet's V3 version index.
+    /// </summary>
+    public async Task<List<PackageItem>> ListUpdatesAsync(CancellationToken ct)
+    {
+        try
+        {
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeout.CancelAfter(TimeSpan.FromSeconds(35));
+            var installed = await ListInstalledAsync(timeout.Token);
+            if (installed.Count == 0) return new List<PackageItem>();
+
+            var candidates = await Task.WhenAll(
+                installed.Select(p => GetDotnetToolUpdateAsync(p, timeout.Token)));
+            return candidates.Where(p => p is not null).Select(p => p!).ToList();
+        }
+        catch { return new List<PackageItem>(); }
+    }
 
     public Task<TweakResult> InstallAsync(string id, CancellationToken ct)
         => SafeRun($"dotnet tool install -g {PkgParse.Q(id)}", ct);
@@ -843,6 +986,71 @@ public sealed class DotnetToolManager : IPackageManager
     {
         try { return await ShellRunner.RunCmd(cmd, false, ct); }
         catch (Exception ex) { return TweakResult.Fail(ex.Message, $"出錯：{ex.Message}"); }
+    }
+
+    private static HttpClient CreateNuGetClient()
+    {
+        var client = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("WinForge/1.0");
+        return client;
+    }
+
+    private async Task<PackageItem?> GetDotnetToolUpdateAsync(PackageItem installed, CancellationToken ct)
+    {
+        bool entered = false;
+        try
+        {
+            await NuGetLookupGate.WaitAsync(ct);
+            entered = true;
+            var id = Uri.EscapeDataString(installed.Id.ToLowerInvariant());
+            using var response = await NuGetHttp.GetAsync(
+                $"https://api.nuget.org/v3-flatcontainer/{id}/index.json", ct);
+            if (!response.IsSuccessStatusCode) return null;
+
+            await using var stream = await response.Content.ReadAsStreamAsync(ct);
+            using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
+            if (!doc.RootElement.TryGetProperty("versions", out var versions)
+                || versions.ValueKind != JsonValueKind.Array)
+                return null;
+
+            string latestStable = "";
+            foreach (var value in versions.EnumerateArray())
+            {
+                var version = value.GetString() ?? "";
+                if (version.Length == 0 || version.Contains('-')) continue;
+                if (latestStable.Length == 0 || IsNewerVersion(version, latestStable))
+                    latestStable = version;
+            }
+            if (latestStable.Length == 0 || !IsNewerVersion(latestStable, installed.Version))
+                return null;
+
+            return new PackageItem
+            {
+                Name = installed.Name,
+                Id = installed.Id,
+                Version = installed.Version,
+                AvailableVersion = latestStable,
+                Source = "nuget.org",
+                ManagerKey = Key,
+            };
+        }
+        catch { return null; }
+        finally { if (entered) NuGetLookupGate.Release(); }
+    }
+
+    private static bool IsNewerVersion(string available, string current)
+    {
+        if (SemverRangeService.TryParse(available, out var a, out _)
+            && SemverRangeService.TryParse(current, out var c, out _))
+            return a.CompareTo(c) > 0;
+
+        var availableCore = available.Split(new[] { '-', '+' }, 2)[0];
+        var currentCore = current.Split(new[] { '-', '+' }, 2)[0];
+        if (!Version.TryParse(availableCore, out var av) || !Version.TryParse(currentCore, out var cv))
+            return false;
+        int comparison = av.CompareTo(cv);
+        return comparison > 0
+            || (comparison == 0 && current.Contains('-') && !available.Contains('-'));
     }
 }
 
@@ -868,9 +1076,9 @@ public sealed class PsGalleryManager : IPackageManager
     {
         try
         {
-            var q = PkgParse.Q(query);
+            var q = PkgParse.Ps("*" + query.Trim() + "*");
             var json = await ShellRunner.CapturePowershellJson(
-                $"Find-Module -Name *{q}* -ErrorAction SilentlyContinue | Select-Object Name,Version | ConvertTo-Json", ct);
+                $"Find-Module -Name {q} -ErrorAction SilentlyContinue | Select-Object Name,Version | ConvertTo-Json", ct);
             return FromNameVersionJson(json);
         }
         catch { return new List<PackageItem>(); }
@@ -887,18 +1095,35 @@ public sealed class PsGalleryManager : IPackageManager
         catch { return new List<PackageItem>(); }
     }
 
-    /// <summary>盡力而為，回空 · Best-effort empty (no cheap built-in outdated).</summary>
-    public Task<List<PackageItem>> ListUpdatesAsync(CancellationToken ct)
-        => Task.FromResult(new List<PackageItem>());
+    public async Task<List<PackageItem>> ListUpdatesAsync(CancellationToken ct)
+    {
+        try
+        {
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeout.CancelAfter(TimeSpan.FromSeconds(45));
+            const string script =
+                "$ErrorActionPreference = 'SilentlyContinue'; " +
+                "$updates = @(Get-InstalledModule -ErrorAction SilentlyContinue | Group-Object Name | ForEach-Object { " +
+                "$installed = $_.Group | Sort-Object Version -Descending | Select-Object -First 1; " +
+                "$available = Find-Module -Name $installed.Name -ErrorAction SilentlyContinue | Sort-Object Version -Descending | Select-Object -First 1; " +
+                "if ($null -ne $available -and $available.Version -gt $installed.Version) { " +
+                "[pscustomobject]@{ Name = $installed.Name; Version = $installed.Version.ToString(); " +
+                "AvailableVersion = $available.Version.ToString(); Repository = $available.Repository } } }); " +
+                "ConvertTo-Json -InputObject @($updates) -Depth 3 -Compress";
+            var json = await ShellRunner.CapturePowershellJson(script, timeout.Token);
+            return FromNameVersionJson(json);
+        }
+        catch { return new List<PackageItem>(); }
+    }
 
     public Task<TweakResult> InstallAsync(string id, CancellationToken ct)
-        => SafePwsh($"Install-Module -Name {PkgParse.Q(id)} -Force -Scope CurrentUser", ct);
+        => SafePwsh($"Install-Module -Name {PkgParse.Ps(id)} -Force -Scope CurrentUser", ct);
 
     public Task<TweakResult> UninstallAsync(string id, CancellationToken ct)
-        => SafePwsh($"Uninstall-Module -Name {PkgParse.Q(id)}", ct);
+        => SafePwsh($"Uninstall-Module -Name {PkgParse.Ps(id)}", ct);
 
     public Task<TweakResult> UpdateAsync(string id, CancellationToken ct)
-        => SafePwsh($"Update-Module -Name {PkgParse.Q(id)}", ct);
+        => SafePwsh($"Update-Module -Name {PkgParse.Ps(id)}", ct);
 
     private List<PackageItem> FromNameVersionJson(string json)
     {
@@ -929,6 +1154,8 @@ public sealed class PsGalleryManager : IPackageManager
             Name = name,
             Id = name,
             Version = PkgParse.Str(el, "Version"),
+            AvailableVersion = PkgParse.Str(el, "AvailableVersion"),
+            Source = PkgParse.Str(el, "Repository"),
             ManagerKey = Key,
         });
     }
@@ -1009,9 +1236,49 @@ public sealed class CargoManager : IPackageManager
         return res;
     }
 
-    /// <summary>cargo 冇內建 outdated -> 回空 · No built-in outdated; return empty.</summary>
-    public Task<List<PackageItem>> ListUpdatesAsync(CancellationToken ct)
-        => Task.FromResult(new List<PackageItem>());
+    /// <summary>
+    /// Cargo 本身冇可靠 outdated；只會喺用戶已裝 cargo-update 時讀佢嘅清單，絕不靜默加裝 helper。
+    /// Cargo has no reliable built-in outdated command. Use cargo-update only when already installed;
+    /// never install the optional helper implicitly.
+    /// </summary>
+    public async Task<List<PackageItem>> ListUpdatesAsync(CancellationToken ct)
+    {
+        var result = new List<PackageItem>();
+        try
+        {
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeout.CancelAfter(TimeSpan.FromSeconds(30));
+            var output = await ShellRunner.Capture("cargo", "install-update --list", timeout.Token);
+            foreach (var raw in PkgParse.Lines(output))
+            {
+                var parts = raw.Trim().Split(
+                    new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length < 3) continue;
+
+                var versions = parts
+                    .Where(p => p.Length > 1 && (p[0] == 'v' || p[0] == 'V'))
+                    .Select(p => p.TrimStart('v', 'V').TrimEnd(',', ':'))
+                    .Where(p => SemverRangeService.TryParse(p, out _, out _))
+                    .Take(2)
+                    .ToArray();
+                if (versions.Length < 2 || versions[0] == versions[1]) continue;
+
+                var id = parts[0].TrimEnd(':');
+                if (id.Length == 0 || id.Equals("Package", StringComparison.OrdinalIgnoreCase)) continue;
+                result.Add(new PackageItem
+                {
+                    Name = id,
+                    Id = id,
+                    Version = versions[0],
+                    AvailableVersion = versions[1],
+                    Source = "crates.io",
+                    ManagerKey = Key,
+                });
+            }
+        }
+        catch { return new List<PackageItem>(); }
+        return result;
+    }
 
     public Task<TweakResult> InstallAsync(string id, CancellationToken ct)
         => SafeRun($"cargo install {PkgParse.Q(id)}", ct);
@@ -1092,8 +1359,52 @@ public sealed class VcpkgManager : IPackageManager
         return res;
     }
 
-    public Task<List<PackageItem>> ListUpdatesAsync(CancellationToken ct)
-        => Task.FromResult(new List<PackageItem>());
+    public async Task<List<PackageItem>> ListUpdatesAsync(CancellationToken ct)
+    {
+        var result = new List<PackageItem>();
+        try
+        {
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeout.CancelAfter(TimeSpan.FromSeconds(30));
+            // `vcpkg update` is the non-mutating, built-in outdated check; `upgrade` performs changes.
+            var output = await ShellRunner.Capture("vcpkg", "update", timeout.Token);
+            foreach (var raw in PkgParse.Lines(output))
+            {
+                var line = raw.Trim();
+                int arrow = line.IndexOf("->", StringComparison.Ordinal);
+                if (arrow <= 0) continue;
+
+                var left = line.Substring(0, arrow).Trim();
+                var right = line.Substring(arrow + 2).Trim();
+                var leftParts = left.Split(
+                    new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                var rightParts = right.Split(
+                    new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                if (leftParts.Length < 2 || rightParts.Length < 1) continue;
+
+                var id = leftParts[0];
+                var current = leftParts[^1];
+                var available = rightParts[0];
+                if (!id.Contains(':') || current.Length == 0 || available.Length == 0
+                    || current == available) continue;
+
+                int tripletSeparator = id.LastIndexOf(':');
+                result.Add(new PackageItem
+                {
+                    Name = tripletSeparator > 0 ? id.Substring(0, tripletSeparator) : id,
+                    Id = id,
+                    Version = current,
+                    AvailableVersion = available,
+                    Source = tripletSeparator >= 0 && tripletSeparator + 1 < id.Length
+                        ? id.Substring(tripletSeparator + 1)
+                        : "vcpkg",
+                    ManagerKey = Key,
+                });
+            }
+        }
+        catch { return new List<PackageItem>(); }
+        return result;
+    }
 
     public Task<TweakResult> InstallAsync(string id, CancellationToken ct)
         => SafeRun($"vcpkg install {PkgParse.Q(id)}", ct);
@@ -1119,6 +1430,8 @@ public sealed class BunManager : IPackageManager
     public string NameZh => "Bun（全域）";
     public string Cli => "bun";
 
+    private static readonly HttpClient NpmRegistryHttp = CreateNpmRegistryClient();
+
     public async Task<bool> IsAvailableAsync(CancellationToken ct)
     {
         try { var o = await ShellRunner.Capture("bun", "--version", ct); return !string.IsNullOrWhiteSpace(o); }
@@ -1129,19 +1442,38 @@ public sealed class BunManager : IPackageManager
     public async Task<List<PackageItem>> SearchAsync(string query, CancellationToken ct)
     {
         var res = new List<PackageItem>();
+        if (string.IsNullOrWhiteSpace(query)) return res;
         try
         {
-            // bun 冇 search，借 npm 嘅 registry 結果 · Bun has no search; reuse npm's registry results.
-            var json = await ShellRunner.Capture("npm", $"search {PkgParse.Q(query)} --json", ct);
-            json = NpmJson(json, '[', ']');
-            using var doc = JsonDocument.Parse(json);
-            if (doc.RootElement.ValueKind == JsonValueKind.Array)
-                foreach (var el in doc.RootElement.EnumerateArray())
+            // Bun consumes npm packages but does not require npm itself. Query the registry API directly.
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeout.CancelAfter(TimeSpan.FromSeconds(20));
+            var url = "https://registry.npmjs.org/-/v1/search?size=100&text="
+                + Uri.EscapeDataString(query.Trim());
+            using var response = await NpmRegistryHttp.GetAsync(url, timeout.Token);
+            if (!response.IsSuccessStatusCode) return res;
+            await using var stream = await response.Content.ReadAsStreamAsync(timeout.Token);
+            using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: timeout.Token);
+            if (doc.RootElement.ValueKind == JsonValueKind.Object
+                && doc.RootElement.TryGetProperty("objects", out var objects)
+                && objects.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var entry in objects.EnumerateArray())
                 {
-                    var name = PkgParse.Str(el, "name");
+                    if (!entry.TryGetProperty("package", out var package)
+                        || package.ValueKind != JsonValueKind.Object) continue;
+                    var name = PkgParse.Str(package, "name");
                     if (name.Length == 0) continue;
-                    res.Add(new PackageItem { Name = name, Id = name, Version = PkgParse.Str(el, "version"), Source = "npmjs.org", ManagerKey = Key });
+                    res.Add(new PackageItem
+                    {
+                        Name = name,
+                        Id = name,
+                        Version = PkgParse.Str(package, "version"),
+                        Source = "npmjs.org",
+                        ManagerKey = Key,
+                    });
                 }
+            }
         }
         catch { return new List<PackageItem>(); }
         return res;
@@ -1152,27 +1484,84 @@ public sealed class BunManager : IPackageManager
         var res = new List<PackageItem>();
         try
         {
-            // "bun pm ls -g" 列出全域套件 · "bun pm ls -g" lists global packages ("name@version" lines).
-            var o = await ShellRunner.Capture("bun", "pm ls -g", ct);
+            // Bun's global flag is ignored by `pm ls`; run from its dedicated global package manifest.
+            var globalDir = GetGlobalPackagesDirectory();
+            if (!File.Exists(Path.Combine(globalDir, "package.json"))) return res;
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeout.CancelAfter(TimeSpan.FromSeconds(30));
+            var run = await ShellRunner.RunIn(globalDir, "bun", "pm ls", false, timeout.Token);
+            var o = run.Output ?? "";
             foreach (var raw in PkgParse.Lines(o))
             {
-                var ln = raw.Trim().TrimStart('├', '└', '─', '│', ' ');
-                if (ln.Length == 0 || ln.StartsWith("/") || ln.Contains("node_modules")) continue;
-                int at = ln.LastIndexOf('@');
+                int tree = raw.IndexOf("──", StringComparison.Ordinal);
+                if (tree < 0) continue;
+                var entry = raw.Substring(tree + 2).Trim();
+                int at = entry.LastIndexOf('@');
                 string name, ver;
-                if (at > 0) { name = ln.Substring(0, at).Trim(); ver = ln.Substring(at + 1).Trim(); }
-                else { name = ln; ver = ""; }
+                if (at > 0) { name = entry.Substring(0, at).Trim(); ver = entry.Substring(at + 1).Trim(); }
+                else { name = entry; ver = ""; }
                 if (name.Length == 0 || name.Contains(' ')) continue;
-                res.Add(new PackageItem { Name = name, Id = name, Version = ver, ManagerKey = Key });
+                res.Add(new PackageItem
+                {
+                    Name = name,
+                    Id = name,
+                    Version = ver,
+                    Source = "npmjs.org",
+                    ManagerKey = Key,
+                });
             }
         }
         catch { }
         return res;
     }
 
-    /// <summary>Bun 冇方便嘅全域 outdated -> 回空 · No convenient global outdated; return empty.</summary>
-    public Task<List<PackageItem>> ListUpdatesAsync(CancellationToken ct)
-        => Task.FromResult(new List<PackageItem>());
+    /// <summary>
+    /// Bun 嘅 outdated 只睇目前 project；喺專用全域 package.json 資料夾執行，先至真係查全域套件。
+    /// Bun outdated is project-scoped, so run it from Bun's dedicated global package directory.
+    /// </summary>
+    public async Task<List<PackageItem>> ListUpdatesAsync(CancellationToken ct)
+    {
+        var result = new List<PackageItem>();
+        try
+        {
+            var globalDir = GetGlobalPackagesDirectory();
+            if (!File.Exists(Path.Combine(globalDir, "package.json"))) return result;
+
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeout.CancelAfter(TimeSpan.FromSeconds(30));
+            var run = await ShellRunner.RunIn(globalDir, "bun", "outdated", false, timeout.Token);
+            var output = run.Output ?? "";
+
+            foreach (var raw in PkgParse.Lines(output))
+            {
+                var trimmed = raw.TrimStart();
+                if (!trimmed.StartsWith('│') && !trimmed.StartsWith('|')) continue;
+                var parts = raw.Split(new[] { '│', '|' }, StringSplitOptions.None);
+                if (parts.Length < 5) continue;
+
+                var id = parts[1].Trim();
+                var current = parts[2].Trim();
+                // UpdateAsync explicitly installs @latest, so report the Latest column when present.
+                var available = parts.Length > 4 ? parts[4].Trim() : parts[3].Trim();
+                if (id.Length == 0 || id.Equals("Package", StringComparison.OrdinalIgnoreCase)
+                    || current.Length == 0 || available.Length == 0 || current == available
+                    || id.All(c => c is '-' or '─' or '┬' or '┼' or '┴' or '├' or '┤' or '┌' or '└' or '┘' or '┐'))
+                    continue;
+
+                result.Add(new PackageItem
+                {
+                    Name = id,
+                    Id = id,
+                    Version = current,
+                    AvailableVersion = available,
+                    Source = "npmjs.org",
+                    ManagerKey = Key,
+                });
+            }
+        }
+        catch { return new List<PackageItem>(); }
+        return result;
+    }
 
     public Task<TweakResult> InstallAsync(string id, CancellationToken ct)
         => SafeRun($"bun add -g {PkgParse.Q(id)}", ct);
@@ -1189,14 +1578,16 @@ public sealed class BunManager : IPackageManager
         catch (Exception ex) { return TweakResult.Fail(ex.Message, $"出錯：{ex.Message}"); }
     }
 
-    private static string NpmJson(string raw, char open, char close)
+    private static HttpClient CreateNpmRegistryClient()
     {
-        if (string.IsNullOrWhiteSpace(raw)) return open == '[' ? "[]" : "{}";
-        raw = raw.Trim().TrimStart('﻿');
-        int a = raw.IndexOf(open), b = raw.LastIndexOf(close);
-        if (a >= 0 && b > a) return raw.Substring(a, b - a + 1);
-        return open == '[' ? "[]" : "{}";
+        var client = new HttpClient { Timeout = TimeSpan.FromSeconds(20) };
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("WinForge/1.0");
+        return client;
     }
+
+    private static string GetGlobalPackagesDirectory()
+        => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            ".bun", "install", "global");
 }
 
 /// <summary>PowerShell 7（pwsh）資源庫管理器 · PowerShell 7 (pwsh) PSResource manager (UniGetUI parity).</summary>
@@ -1217,8 +1608,8 @@ public sealed class PowerShell7Manager : IPackageManager
     {
         try
         {
-            var q = PkgParse.Q(query);
-            var json = await CapturePwshJson($"Find-PSResource -Name *{q}* -ErrorAction SilentlyContinue | Select-Object Name,Version | ConvertTo-Json", ct);
+            var q = PkgParse.Ps("*" + query.Trim() + "*");
+            var json = await CapturePwshJson($"Find-PSResource -Name {q} -ErrorAction SilentlyContinue | Select-Object Name,Version | ConvertTo-Json", ct);
             return FromNameVersionJson(json);
         }
         catch { return new List<PackageItem>(); }
@@ -1234,17 +1625,35 @@ public sealed class PowerShell7Manager : IPackageManager
         catch { return new List<PackageItem>(); }
     }
 
-    public Task<List<PackageItem>> ListUpdatesAsync(CancellationToken ct)
-        => Task.FromResult(new List<PackageItem>());
+    public async Task<List<PackageItem>> ListUpdatesAsync(CancellationToken ct)
+    {
+        try
+        {
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeout.CancelAfter(TimeSpan.FromSeconds(45));
+            const string script =
+                "$ErrorActionPreference = 'SilentlyContinue'; " +
+                "$updates = @(Get-InstalledPSResource -ErrorAction SilentlyContinue | Group-Object Name | ForEach-Object { " +
+                "$installed = $_.Group | Sort-Object Version -Descending | Select-Object -First 1; " +
+                "$available = Find-PSResource -Name $installed.Name -ErrorAction SilentlyContinue | Sort-Object Version -Descending | Select-Object -First 1; " +
+                "if ($null -ne $available -and $available.Version -gt $installed.Version) { " +
+                "[pscustomobject]@{ Name = $installed.Name; Version = $installed.Version.ToString(); " +
+                "AvailableVersion = $available.Version.ToString(); Repository = $available.Repository } } }); " +
+                "ConvertTo-Json -InputObject @($updates) -Depth 3 -Compress";
+            var json = await CapturePwshJson(script, timeout.Token);
+            return FromNameVersionJson(json);
+        }
+        catch { return new List<PackageItem>(); }
+    }
 
     public Task<TweakResult> InstallAsync(string id, CancellationToken ct)
-        => SafePwsh($"Install-PSResource -Name {PkgParse.Q(id)} -TrustRepository -Scope CurrentUser", ct);
+        => SafePwsh($"Install-PSResource -Name {PkgParse.Ps(id)} -TrustRepository -Scope CurrentUser", ct);
 
     public Task<TweakResult> UninstallAsync(string id, CancellationToken ct)
-        => SafePwsh($"Uninstall-PSResource -Name {PkgParse.Q(id)}", ct);
+        => SafePwsh($"Uninstall-PSResource -Name {PkgParse.Ps(id)}", ct);
 
     public Task<TweakResult> UpdateAsync(string id, CancellationToken ct)
-        => SafePwsh($"Update-PSResource -Name {PkgParse.Q(id)} -TrustRepository", ct);
+        => SafePwsh($"Update-PSResource -Name {PkgParse.Ps(id)} -TrustRepository", ct);
 
     private static async Task<string> CapturePwshJson(string script, CancellationToken ct)
     {
@@ -1291,7 +1700,15 @@ public sealed class PowerShell7Manager : IPackageManager
     {
         var name = PkgParse.Str(el, "Name");
         if (name.Length == 0) return;
-        res.Add(new PackageItem { Name = name, Id = name, Version = PkgParse.Str(el, "Version"), ManagerKey = Key });
+        res.Add(new PackageItem
+        {
+            Name = name,
+            Id = name,
+            Version = PkgParse.Str(el, "Version"),
+            AvailableVersion = PkgParse.Str(el, "AvailableVersion"),
+            Source = PkgParse.Str(el, "Repository"),
+            ManagerKey = Key,
+        });
     }
 }
 
@@ -1396,6 +1813,8 @@ public static class PackageManagerRegistry
         try
         {
             var id = item.Id;
+            if (!PackageOperationCoordinator.IsSafePackageId(id))
+                return Loc.I.Pick("The package ID contains unsafe characters.", "套件 ID 含有唔安全字元。");
             return item.ManagerKey switch
             {
                 "winget" => await ShellRunner.CapturePowershell($"winget show --id \"{id}\" -e --accept-source-agreements --disable-interactivity | Out-String -Width 200", ct),
@@ -1446,71 +1865,26 @@ public static class PackageManagerRegistry
     public static async Task<TweakResult> InstallAdvancedAsync(string key, string id, string? version,
         string? scope, string? arch, bool interactive, string? customArgs, CancellationToken ct = default)
     {
-        string q = $"\"{id}\"";
-        string extra = string.IsNullOrWhiteSpace(customArgs) ? "" : " " + customArgs.Trim();
         try
         {
-            switch (key)
+            // Keep this compatibility entry point, but route it through the same global coordinator as
+            // every row, batch, bundle and scheduled operation. This preserves validation, cancellation,
+            // history, bounded concurrency and the caller's explicit advanced options.
+            var options = InstallOptions.Load(key, id).Clone();
+            if (!string.IsNullOrWhiteSpace(version)) options.Version = version.Trim();
+            if (!string.IsNullOrWhiteSpace(scope)) options.Scope = scope.Trim();
+            if (!string.IsNullOrWhiteSpace(arch)) options.Architecture = arch.Trim();
+            options.Interactive = interactive;
+            if (!string.IsNullOrWhiteSpace(customArgs)) options.CustomArgsInstall = customArgs.Trim();
+
+            var snapshot = await PackageOperationCoordinator.RunAsync(new PackageItem
             {
-                case "winget":
-                {
-                    var cmd = $"winget install --id {q} -e --accept-source-agreements --accept-package-agreements";
-                    if (!string.IsNullOrWhiteSpace(version)) cmd += $" --version {version}";
-                    if (!string.IsNullOrWhiteSpace(scope)) cmd += $" --scope {scope}";
-                    if (!string.IsNullOrWhiteSpace(arch)) cmd += $" --architecture {arch}";
-                    cmd += interactive ? " --interactive" : " --silent --disable-interactivity";
-                    return await ShellRunner.RunCmd(cmd + extra, false, ct);
-                }
-                case "scoop":
-                    return await ShellRunner.RunCmd($"scoop install {id}{(string.IsNullOrWhiteSpace(version) ? "" : "@" + version)}{extra}", false, ct);
-                case "choco":
-                {
-                    var cmd = $"choco install {id} -y";
-                    if (!string.IsNullOrWhiteSpace(version)) cmd += $" --version {version}";
-                    if (interactive) cmd += " --notsilent";
-                    return await ShellRunner.RunCmd(cmd + extra, false, ct);
-                }
-                case "pip":
-                    return await ShellRunner.RunCmd($"pip install {id}{(string.IsNullOrWhiteSpace(version) ? "" : "==" + version)}{extra}", false, ct);
-                case "npm":
-                    return await ShellRunner.RunCmd($"npm install -g {id}{(string.IsNullOrWhiteSpace(version) ? "" : "@" + version)}{extra}", false, ct);
-                case "dotnet":
-                {
-                    var cmd = $"dotnet tool install -g {id}";
-                    if (!string.IsNullOrWhiteSpace(version)) cmd += $" --version {version}";
-                    return await ShellRunner.RunCmd(cmd + extra, false, ct);
-                }
-                case "cargo":
-                {
-                    var cmd = $"cargo install {id}";
-                    if (!string.IsNullOrWhiteSpace(version)) cmd += $" --version {version}";
-                    return await ShellRunner.RunCmd(cmd + extra, false, ct);
-                }
-                case "vcpkg":
-                    return await ShellRunner.RunCmd($"vcpkg install {id}{extra}", false, ct);
-                case "bun":
-                    return await ShellRunner.RunCmd($"bun add -g {id}{(string.IsNullOrWhiteSpace(version) ? "" : "@" + version)}{extra}", false, ct);
-                case "psgallery":
-                {
-                    var ps = $"Install-Module -Name {q} -Force -Scope CurrentUser";
-                    if (!string.IsNullOrWhiteSpace(version)) ps += $" -RequiredVersion {version}";
-                    return await ShellRunner.RunPowershell(ps, false, ct);
-                }
-                case "pwsh7":
-                {
-                    var ps = $"Install-PSResource -Name {q} -TrustRepository -Scope CurrentUser";
-                    if (!string.IsNullOrWhiteSpace(version)) ps += $" -Version {version}";
-                    var bytes = System.Text.Encoding.Unicode.GetBytes(ps);
-                    var enc = Convert.ToBase64String(bytes);
-                    return await ShellRunner.Run("pwsh", $"-NoProfile -NonInteractive -ExecutionPolicy Bypass -EncodedCommand {enc}", false, ct);
-                }
-                default:
-                {
-                    var m = ByKey(key);
-                    return m is not null ? await m.InstallAsync(id, ct)
-                                         : TweakResult.Fail("Unknown manager.", "未知管理器。");
-                }
-            }
+                ManagerKey = key ?? "",
+                Id = id ?? "",
+                Name = id ?? "",
+            }, PackageOperations.Op.Install, options, ct);
+
+            return snapshot.Result ?? TweakResult.Fail("The package operation did not return a result.", "套件操作冇回傳結果。");
         }
         catch (Exception ex) { return TweakResult.Fail(ex.Message, $"出錯：{ex.Message}"); }
     }
@@ -1526,38 +1900,10 @@ public static class PackageManagerRegistry
         if (m is null) return (0, 0);
         List<PackageItem> ups;
         try { ups = await m.ListUpdatesAsync(ct); } catch { ups = new(); }
-        int done = 0;
-        foreach (var item in ups)
-        {
-            progress?.Report(item);
-            try { var r = await m.UpdateAsync(item.Id, ct); if (r.Success) done++; } catch { }
-        }
-        return (done, ups.Count);
+        foreach (var item in ups) progress?.Report(item);
+        var results = await PackageOperationCoordinator.RunManyAsync(
+            ups, PackageOperations.Op.Update, ct: ct);
+        return (results.Count(r => r.Status == PackageOperationStatus.Succeeded), results.Count);
     }
 
-    /// <summary>
-    /// 啟動 UniGetUI（裝咗就開，否則經 winget 裝）· Launch UniGetUI for power features; install it via winget first
-    /// if it is not present. Provides the "fallback to UniGetUI" escape hatch the native wrapper can't cover.
-    /// </summary>
-    public static async Task<TweakResult> LaunchUniGetUIAsync(CancellationToken ct = default)
-    {
-        try
-        {
-            // 嘗試直接啟動已安裝嘅 UniGetUI · Try to start an already-installed UniGetUI.
-            var start = await ShellRunner.RunCmd("start \"\" \"UniGetUI\"", false, ct);
-            if (start.Success) return TweakResult.Ok("Launched UniGetUI.", "已啟動 UniGetUI。");
-
-            // 否則經 winget 安裝（兩個常見 id）· Otherwise install via winget (two known ids).
-            var r = await ShellRunner.RunCmd(
-                "winget install --id MartiCliment.UniGetUI -e --accept-source-agreements --accept-package-agreements --silent --disable-interactivity", false, ct);
-            if (!r.Success)
-                r = await ShellRunner.RunCmd(
-                    "winget install --id SomePythonThings.WingetUIStore -e --accept-source-agreements --accept-package-agreements --silent --disable-interactivity", false, ct);
-            PackageService.RefreshProcessPath();
-            return r.Success
-                ? TweakResult.Ok("UniGetUI installed — relaunch it from Start.", "已安裝 UniGetUI — 由開始功能表啟動。")
-                : TweakResult.Fail("Could not install UniGetUI.", "無法安裝 UniGetUI。");
-        }
-        catch (Exception ex) { return TweakResult.Fail(ex.Message, $"出錯：{ex.Message}"); }
-    }
 }

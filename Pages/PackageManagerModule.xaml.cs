@@ -21,12 +21,14 @@ public sealed partial class PackageManagerModule : Page
 {
     private readonly HashSet<string> _selected = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, bool> _available = new(StringComparer.OrdinalIgnoreCase);
-    private int _view; // 0 Discover, 1 Updates, 2 Installed, 3 Bundles, 4 Sources, 5 Ignored, 6 Setup
+    private int _view; // 0 Discover, 1 Updates, 2 Installed, 3 Bundles, 4 Sources, 5 Ignored, 6 Setup, 7 Settings, 8 Operations
     private HashSet<string> _wingetInstalled = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, PackageItem> _selectedPkgs = new(StringComparer.OrdinalIgnoreCase); // 已勾選套件 · checked packages keyed by "manager|id"
     private readonly List<PackageItem> _lastDiscoverResults = new();
     private string _lastDiscoverQuery = "";
     private bool _syncingSearchOptions;
+    private bool _eventsSubscribed;
+    private int _operationRefreshPending;
 
     private static string PkgKey(PackageItem i) => $"{i.ManagerKey}|{i.Id}";
 
@@ -46,19 +48,46 @@ public sealed partial class PackageManagerModule : Page
         foreach (var m in PackageManagerRegistry.All) _selected.Add(m.Key);
         // 具名處理器＋Unloaded 退訂，唔好用內嵌 lambda（會漏，令每次切語言都重跑重活）·
         // named handler + unsubscribe on Unloaded (inline lambda leaks and re-runs heavy work per switch).
-        Loc.I.LanguageChanged += OnLanguageChanged;
-        Unloaded += (_, _) => Loc.I.LanguageChanged -= OnLanguageChanged;
-        Loaded += async (_, _) =>
+        Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
+    }
+
+    private async void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        if (!_eventsSubscribed)
         {
-            Render();
-            BuildManagerFilters();
-            BuildViewCombo();
-            UpdateBatchBar();
-            ViewCombo.SelectedIndex = 0;
-            // 啟動背景更新排程器（按設定行；冇開 AutoCheck 就閒置）· start the background update scheduler.
-            try { PackageUpdateScheduler.Start(); } catch { }
-            await CheckAvailability();
-        };
+            Loc.I.LanguageChanged += OnLanguageChanged;
+            PackageOperationCoordinator.Changed += OnOperationChanged;
+            _eventsSubscribed = true;
+        }
+        Render();
+        BuildManagerFilters();
+        BuildViewCombo();
+        UpdateBatchBar();
+        UpdateOperationsButton();
+        await CheckAvailability();
+    }
+
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        if (!_eventsSubscribed) return;
+        Loc.I.LanguageChanged -= OnLanguageChanged;
+        PackageOperationCoordinator.Changed -= OnOperationChanged;
+        _eventsSubscribed = false;
+    }
+
+    private void OnOperationChanged(object? sender, PackageOperationChangedEventArgs e)
+    {
+        if (Interlocked.Exchange(ref _operationRefreshPending, 1) != 0) return;
+        if (!DispatcherQueue.TryEnqueue(async () =>
+        {
+            await Task.Delay(100);
+            Interlocked.Exchange(ref _operationRefreshPending, 0);
+            UpdateOperationsButton();
+            if (_view == 8)
+                LoadOperationsView();
+        }))
+            Interlocked.Exchange(ref _operationRefreshPending, 0);
     }
 
     private void OnLanguageChanged(object? sender, EventArgs e)
@@ -67,6 +96,7 @@ public sealed partial class PackageManagerModule : Page
         BuildManagerFilters();
         BuildViewCombo();
         UpdateBatchBar();
+        UpdateOperationsButton();
     }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
@@ -90,6 +120,7 @@ public sealed partial class PackageManagerModule : Page
         SearchCaseToggle.Header = P("Distinguish between uppercase and lowercase", "區分大小寫");
         SearchIgnoreSpecialToggle.Header = P("Ignore special characters", "忽略特殊字元");
         TerminalBtnText.Text = P("Terminal", "終端機");
+        UpdateOperationsButton();
         ToolTipService.SetToolTip(SearchOptionsBtn, P("UniGetUI-style search mode and filter options.",
             "UniGetUI 式搜尋模式同篩選選項。"));
         ToolTipService.SetToolTip(TerminalBtn, P("Open a shell for manual winget / scoop / choco / pip / npm",
@@ -158,6 +189,9 @@ public sealed partial class PackageManagerModule : Page
             commandLine: null,
             workingDir: Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
 
+    private void Operations_Click(object sender, RoutedEventArgs e)
+        => ViewCombo.SelectedIndex = 8;
+
     private void BuildViewCombo()
     {
         int sel = ViewCombo.SelectedIndex;
@@ -170,6 +204,7 @@ public sealed partial class PackageManagerModule : Page
         ViewCombo.Items.Add(P("Ignored", "已忽略"));
         ViewCombo.Items.Add(P("Setup", "設定引擎"));
         ViewCombo.Items.Add(P("Settings", "設定")); // 背景／通知／系統匣設定（index 7）· background/notify/tray settings.
+        ViewCombo.Items.Add(P("Operations", "操作佇列"));
         ViewCombo.SelectedIndex = sel < 0 ? 0 : sel;
     }
 
@@ -291,6 +326,14 @@ public sealed partial class PackageManagerModule : Page
                 SecondaryActionBtn.Visibility = Visibility.Collapsed;
                 LoadSettingsView();
                 break;
+            case 8: // Operations · 操作佇列／歷史
+                SearchBox.IsEnabled = false;
+                PrimaryActionBtn.Content = P("Refresh", "重新整理");
+                PrimaryActionBtn.Visibility = Visibility.Visible;
+                SecondaryActionBtn.Content = P("Clear completed", "清除已完成");
+                SecondaryActionBtn.Visibility = Visibility.Visible;
+                LoadOperationsView();
+                break;
         }
     }
 
@@ -307,6 +350,162 @@ public sealed partial class PackageManagerModule : Page
             TextWrapping = TextWrapping.Wrap, FontSize = 13,
         }));
     }
+
+    private void UpdateOperationsButton()
+    {
+        int active = PackageOperationCoordinator.GetActiveSnapshots().Count;
+        OperationsBtnText.Text = active > 0
+            ? P($"Operations ({active})", $"操作（{active}）")
+            : P("Operations", "操作");
+        ToolTipService.SetToolTip(OperationsBtn, P(
+            "Open the package operation queue, output and history.",
+            "開啟套件操作佇列、輸出同歷史。"));
+    }
+
+    private void LoadOperationsView()
+    {
+        ResultsPanel.Children.Clear();
+        var (active, history) = PackageOperationCoordinator.GetSnapshotSet();
+        ResultsHeader.Text = P(
+            $"Operations — {active.Count} active, {history.Count} completed",
+            $"操作 — {active.Count} 個進行中、{history.Count} 個已完成");
+        UpdateOperationsButton();
+
+        if (active.Count == 0 && history.Count == 0)
+        {
+            ResultsPanel.Children.Add(Card(new TextBlock
+            {
+                Text = P("No package operations yet.", "未有套件操作。"),
+                Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+                TextWrapping = TextWrapping.Wrap,
+            }));
+            return;
+        }
+
+        if (active.Count > 0)
+        {
+            ResultsPanel.Children.Add(SectionLabel(P("Active & queued", "進行中同排隊")));
+            foreach (var snapshot in active) ResultsPanel.Children.Add(OperationCard(snapshot));
+        }
+
+        if (history.Count > 0)
+        {
+            ResultsPanel.Children.Add(SectionLabel(P("Completed history", "已完成歷史")));
+            foreach (var snapshot in history) ResultsPanel.Children.Add(OperationCard(snapshot));
+        }
+    }
+
+    private Border OperationCard(PackageOperationSnapshot snapshot)
+    {
+        var root = new StackPanel { Spacing = 7 };
+        var header = new Grid { ColumnSpacing = 10 };
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        FrameworkElement stateIcon = snapshot.Status == PackageOperationStatus.Running
+            ? new ProgressRing { Width = 18, Height = 18, IsActive = true, VerticalAlignment = VerticalAlignment.Center }
+            : new FontIcon
+            {
+                Glyph = snapshot.Status switch
+                {
+                    PackageOperationStatus.Succeeded => "\uE73E",
+                    PackageOperationStatus.Failed => "\uEA39",
+                    PackageOperationStatus.Cancelled => "\uE711",
+                    PackageOperationStatus.Skipped => "\uE72A",
+                    _ => "\uE823",
+                },
+                FontSize = 15,
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+        Grid.SetColumn(stateIcon, 0);
+        header.Children.Add(stateIcon);
+
+        var text = new StackPanel { Spacing = 1 };
+        text.Children.Add(new TextBlock
+        {
+            Text = $"{OperationVerb(snapshot.Operation)} · {snapshot.PackageName}",
+            FontWeight = FontWeights.SemiBold,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+        });
+        text.Children.Add(new TextBlock
+        {
+            Text = $"{snapshot.ManagerKey} · {snapshot.PackageId} · {OperationStatusLabel(snapshot.Status)}",
+            FontFamily = new FontFamily("Consolas"),
+            FontSize = 11,
+            Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+            TextTrimming = TextTrimming.CharacterEllipsis,
+        });
+        Grid.SetColumn(text, 1);
+        header.Children.Add(text);
+
+        var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+        if (snapshot.Status is PackageOperationStatus.Queued or PackageOperationStatus.Running)
+        {
+            var cancel = new Button { Content = P("Cancel", "取消"), Padding = new Thickness(10, 4, 10, 4) };
+            cancel.Click += (_, _) =>
+            {
+                cancel.IsEnabled = false;
+                PackageOperationCoordinator.Cancel(snapshot.OperationId);
+            };
+            actions.Children.Add(cancel);
+        }
+        else if (snapshot.Status is PackageOperationStatus.Failed or PackageOperationStatus.Cancelled)
+        {
+            var retry = new Button { Content = P("Retry", "重試"), Padding = new Thickness(10, 4, 10, 4) };
+            retry.Click += (_, _) =>
+            {
+                retry.IsEnabled = false;
+                PackageOperationCoordinator.Retry(snapshot.OperationId);
+                ViewCombo.SelectedIndex = 8;
+            };
+            actions.Children.Add(retry);
+        }
+        Grid.SetColumn(actions, 2);
+        header.Children.Add(actions);
+        root.Children.Add(header);
+
+        if (!string.IsNullOrWhiteSpace(snapshot.OutputTail))
+        {
+            var output = new TextBox
+            {
+                Text = snapshot.OutputTail,
+                IsReadOnly = true,
+                AcceptsReturn = true,
+                TextWrapping = TextWrapping.Wrap,
+                FontFamily = new FontFamily("Consolas"),
+                FontSize = 11,
+                MaxHeight = 220,
+            };
+            root.Children.Add(new Expander
+            {
+                Header = P("Output", "輸出"),
+                Content = output,
+                IsExpanded = snapshot.Status == PackageOperationStatus.Failed,
+            });
+        }
+
+        return Card(root);
+    }
+
+    private string OperationVerb(PackageOperations.Op op) => op switch
+    {
+        PackageOperations.Op.Install => P("Install", "安裝"),
+        PackageOperations.Op.Update => P("Update", "更新"),
+        PackageOperations.Op.Uninstall => P("Uninstall", "解除安裝"),
+        _ => P("Operation", "操作"),
+    };
+
+    private string OperationStatusLabel(PackageOperationStatus status) => status switch
+    {
+        PackageOperationStatus.Queued => P("Queued", "排隊中"),
+        PackageOperationStatus.Running => P("Running", "執行中"),
+        PackageOperationStatus.Succeeded => P("Succeeded", "成功"),
+        PackageOperationStatus.Failed => P("Failed", "失敗"),
+        PackageOperationStatus.Cancelled => P("Cancelled", "已取消"),
+        PackageOperationStatus.Skipped => P("Skipped", "已略過"),
+        _ => status.ToString(),
+    };
 
     private async void Search_Submitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
     {
@@ -325,6 +524,7 @@ public sealed partial class PackageManagerModule : Page
             case 5: LoadIgnoredView(); break;
             case 6: await InstallAllDeps(); break;
             case 7: await PackageSettingsDialog.ShowAsync(this.XamlRoot); break;
+            case 8: LoadOperationsView(); break;
         }
     }
 
@@ -334,6 +534,10 @@ public sealed partial class PackageManagerModule : Page
         {
             case 1: await UpdateAll(); break;
             case 3: await ImportBundle(); break;
+            case 8:
+                PackageOperationCoordinator.ClearHistory();
+                LoadOperationsView();
+                break;
         }
     }
 
@@ -455,10 +659,11 @@ public sealed partial class PackageManagerModule : Page
         Busy.IsActive = false;
         bool hideNotApplicable = IgnoreNotApplicable;
         var shown = ups.Where(u => !IgnoredUpdates.IsIgnored(u)
+            && !PackageOperationCoordinator.IsMinorUpdateSuppressed(u)
             && !(hideNotApplicable && string.IsNullOrWhiteSpace(u.AvailableVersion))).ToList();
         int hidden = ups.Count - shown.Count;
         ResultsHeader.Text = hidden > 0
-            ? P($"Updatable — {shown.Count} ({hidden} ignored)", $"可更新 — {shown.Count}（已忽略 {hidden}）")
+            ? P($"Updatable — {shown.Count} ({hidden} hidden by policy)", $"可更新 — {shown.Count}（政策隱藏 {hidden}）")
             : P($"Updatable — {shown.Count}", $"可更新 — {shown.Count}");
 
         // 每個管理器一個「全部更新」捷徑 · per-manager "update all" shortcuts (UniGetUI parity).
@@ -470,13 +675,19 @@ public sealed partial class PackageManagerModule : Page
             foreach (var g in byMgr)
             {
                 string mk = g.Key;
+                var managerItems = g.ToList();
                 var m = PackageManagerRegistry.ByKey(mk);
                 var b = new Button { Content = $"{m?.NameEn ?? mk} ({g.Count()})", Padding = new Thickness(10, 4, 10, 4) };
                 b.Click += async (_, _) =>
                 {
                     b.IsEnabled = false; b.Content = P("Updating…", "更新緊…");
-                    var (d, t) = await PackageManagerRegistry.UpdateAllForManagerAsync(mk, null, CancellationToken.None);
-                    ResultsHeader.Text = P($"{mk}: updated {d}/{t}.", $"{mk}：更新咗 {d}/{t}。");
+                    var results = await PackageOperationCoordinator.RunManyAsync(
+                        managerItems, PackageOperations.Op.Update, ct: CancellationToken.None);
+                    int d = results.Count(s => s.Status == PackageOperationStatus.Succeeded);
+                    int skipped = results.Count(s => s.Status == PackageOperationStatus.Skipped);
+                    ResultsHeader.Text = skipped > 0
+                        ? P($"{mk}: updated {d}/{results.Count}; {skipped} skipped.", $"{mk}：更新咗 {d}/{results.Count}；略過 {skipped} 個。")
+                        : P($"{mk}: updated {d}/{results.Count}.", $"{mk}：更新咗 {d}/{results.Count}。");
                     await LoadUpdates();
                 };
                 bar.Children.Add(b);
@@ -543,15 +754,15 @@ public sealed partial class PackageManagerModule : Page
         try { ups = await PackageManagerRegistry.AllUpdatesAsync(keys, CancellationToken.None); }
         catch { ups = new(); }
         Busy.IsActive = false;
-        int done = 0;
-        foreach (var item in ups)
-        {
-            var mgr = PackageManagerRegistry.ByKey(item.ManagerKey);
-            if (mgr is null) continue;
-            ResultsHeader.Text = P($"Updating {item.Name}… ({done + 1}/{ups.Count})", $"更新緊 {item.Name}…（{done + 1}/{ups.Count}）");
-            try { var r = await mgr.UpdateAsync(item.Id, CancellationToken.None); if (r.Success) done++; } catch { }
-        }
-        ResultsHeader.Text = P($"Updated {done}/{ups.Count}.", $"更新咗 {done}/{ups.Count}。");
+        var eligible = ups.Where(u => !IgnoredUpdates.IsIgnored(u)).ToList();
+        ResultsHeader.Text = P($"Queued {eligible.Count} update(s)…", $"已排隊 {eligible.Count} 個更新…");
+        var results = await PackageOperationCoordinator.RunManyAsync(
+            eligible, PackageOperations.Op.Update, ct: CancellationToken.None);
+        int done = results.Count(s => s.Status == PackageOperationStatus.Succeeded);
+        int skipped = results.Count(s => s.Status == PackageOperationStatus.Skipped);
+        ResultsHeader.Text = skipped > 0
+            ? P($"Updated {done}/{results.Count}; {skipped} skipped.", $"更新咗 {done}/{results.Count}；略過 {skipped} 個。")
+            : P($"Updated {done}/{results.Count}.", $"更新咗 {done}/{results.Count}。");
         await LoadUpdates();
     }
 
@@ -620,15 +831,15 @@ public sealed partial class PackageManagerModule : Page
 
     private async void BatchInstall_Click(object sender, RoutedEventArgs e)
         => await RunBatchWithLog(P("Install selected", "安裝所選"),
-            _selectedPkgs.Values.ToList(), (m, id, ct) => m.InstallAsync(id, ct));
+            _selectedPkgs.Values.ToList(), PackageOperations.Op.Install);
 
     private async void BatchUpdate_Click(object sender, RoutedEventArgs e)
         => await RunBatchWithLog(P("Update selected", "更新所選"),
-            _selectedPkgs.Values.ToList(), (m, id, ct) => m.UpdateAsync(id, ct));
+            _selectedPkgs.Values.ToList(), PackageOperations.Op.Update);
 
     private async void BatchUninstall_Click(object sender, RoutedEventArgs e)
         => await RunBatchWithLog(P("Uninstall selected", "解除所選"),
-            _selectedPkgs.Values.ToList(), (m, id, ct) => m.UninstallAsync(id, ct));
+            _selectedPkgs.Values.ToList(), PackageOperations.Op.Uninstall);
 
     private async void BatchExport_Click(object sender, RoutedEventArgs e)
         => await ExportEntries(_selectedPkgs.Values.ToList());
@@ -637,8 +848,7 @@ public sealed partial class PackageManagerModule : Page
     /// 跑一批操作並即時顯示進度同輸出 · Run a batch op over the selected packages, streaming progress and
     /// the CLI output into a live log dialog (UniGetUI-style operation feed). Cancellable.
     /// </summary>
-    private async Task RunBatchWithLog(string title, List<PackageItem> items,
-        Func<IPackageManager, string, CancellationToken, Task<TweakResult>> op)
+    private async Task RunBatchWithLog(string title, List<PackageItem> items, PackageOperations.Op op)
     {
         if (items.Count == 0) return;
 
@@ -667,27 +877,54 @@ public sealed partial class PackageManagerModule : Page
 
         var run = Task.Run(async () =>
         {
-            int done = 0, fail = 0, idx = 0;
-            foreach (var item in items)
+            int done = 0, fail = 0, skipped = 0;
+            var pending = items.Select((item, index) =>
             {
-                if (cts.IsCancellationRequested) break;
-                idx++;
-                var mgr = PackageManagerRegistry.ByKey(item.ManagerKey);
-                DispatcherQueue.TryEnqueue(() => Append(P($"[{idx}/{items.Count}] {item.Name} ({item.ManagerKey})…", $"[{idx}/{items.Count}] {item.Name}（{item.ManagerKey}）…")));
-                if (mgr is null) { fail++; continue; }
-                TweakResult r;
-                try { r = await op(mgr, item.Id, cts.Token); }
-                catch (Exception ex) { r = TweakResult.Fail(ex.Message, ex.Message); }
-                if (r.Success) done++; else fail++;
-                var tail = string.IsNullOrWhiteSpace(r.Output) ? "" : "\n    " + r.Output.Replace("\n", "\n    ");
-                DispatcherQueue.TryEnqueue(() => Append((r.Success ? P("  ✓ OK", "  ✓ 完成") : P("  ✗ failed", "  ✗ 失敗")) + tail));
+                int displayIndex = index + 1;
+                DispatcherQueue.TryEnqueue(() => Append(P(
+                    $"[{displayIndex}/{items.Count}] queued {item.Name} ({item.ManagerKey})",
+                    $"[{displayIndex}/{items.Count}] 已排隊 {item.Name}（{item.ManagerKey}）")));
+                var ticket = PackageOperationCoordinator.Enqueue(item, op, ct: cts.Token);
+                return (item, ticket.Completion);
+            }).ToList();
+
+            while (pending.Count > 0)
+            {
+                var finishedTask = await Task.WhenAny(pending.Select(p => p.Completion));
+                int found = pending.FindIndex(p => ReferenceEquals(p.Completion, finishedTask));
+                if (found < 0) break;
+                var current = pending[found];
+                pending.RemoveAt(found);
+                PackageOperationSnapshot snap;
+                try { snap = await current.Completion; }
+                catch (Exception ex)
+                {
+                    fail++;
+                    DispatcherQueue.TryEnqueue(() => Append(P($"  ✗ failed: {ex.Message}", $"  ✗ 失敗：{ex.Message}")));
+                    continue;
+                }
+
+                if (snap.Status == PackageOperationStatus.Succeeded) done++;
+                else if (snap.Status == PackageOperationStatus.Skipped) skipped++;
+                else fail++;
+                var tail = string.IsNullOrWhiteSpace(snap.OutputTail) ? "" : "\n    " + snap.OutputTail.Replace("\n", "\n    ");
+                var status = snap.Status switch
+                {
+                    PackageOperationStatus.Succeeded => P("  ✓ OK", "  ✓ 完成"),
+                    PackageOperationStatus.Skipped => P("  ↷ skipped", "  ↷ 已略過"),
+                    PackageOperationStatus.Cancelled => P("  ■ cancelled", "  ■ 已取消"),
+                    _ => P("  ✗ failed", "  ✗ 失敗"),
+                };
+                DispatcherQueue.TryEnqueue(() => Append($"{status} — {snap.PackageName}{tail}"));
             }
             DispatcherQueue.TryEnqueue(() =>
             {
-                Append(P($"Done — {done} ok, {fail} failed.", $"完成 — {done} 成功、{fail} 失敗。"));
-                ResultsHeader.Text = P($"Batch: {done} ok, {fail} failed.", $"批次：{done} 成功、{fail} 失敗。");
+                Append(P($"Done — {done} ok, {fail} failed, {skipped} skipped.",
+                    $"完成 — {done} 成功、{fail} 失敗、{skipped} 略過。"));
+                ResultsHeader.Text = P($"Batch: {done} ok, {fail} failed, {skipped} skipped.",
+                    $"批次：{done} 成功、{fail} 失敗、{skipped} 略過。");
             });
-        }, cts.Token);
+        });
 
         await dlg.ShowAsync();
         // 對話框關閉後唔阻塞操作（PrimaryButton = 背景執行）· keep running after dialog closes.
@@ -732,7 +969,10 @@ public sealed partial class PackageManagerModule : Page
                 "json",
                 P("Export bundle as…", "匯出清單…"));
             if (path is null) return;
-            var bundle = BundleService.ToBundle(items);
+            var bundle = BundleService.ToBundle(items, item =>
+                InstallOptions.HasOverride(item.ManagerKey, item.Id)
+                    ? InstallOptions.Load(item.ManagerKey, item.Id)
+                    : null);
             await BundleService.SaveAsync(bundle, path);
             int comp = bundle.packages.Count, inc = bundle.incompatible_packages.Count;
             ResultsHeader.Text = inc > 0
@@ -800,11 +1040,28 @@ public sealed partial class PackageManagerModule : Page
         Busy.IsActive = true;
         foreach (var en in pkgs)
         {
-            var mgr = PackageManagerRegistry.ByKey(en.ManagerName);
-            if (mgr is null || !(_available.TryGetValue(en.ManagerName, out var a) && a)) continue;
+            if (PackageManagerRegistry.ByKey(en.ManagerName) is null
+                || !(_available.TryGetValue(en.ManagerName, out var a) && a)) continue;
             var label = string.IsNullOrEmpty(en.Name) ? en.Id : en.Name;
             ResultsHeader.Text = P($"Installing {label}… ({done + 1}/{pkgs.Count})", $"安裝緊 {label}…（{done + 1}/{pkgs.Count}）");
-            try { var r = await mgr.InstallAsync(en.Id, CancellationToken.None); if (r.Success) done++; } catch { }
+            var item = new PackageItem
+            {
+                ManagerKey = en.ManagerName,
+                Id = en.Id,
+                Name = en.Name,
+                Version = en.Version,
+                Source = en.Source,
+            };
+            var opts = en.InstallationOptions?.Clone() ?? InstallOptions.Load(en.ManagerName, en.Id);
+            if (string.IsNullOrWhiteSpace(opts.Version) && !string.IsNullOrWhiteSpace(en.Version))
+                opts.Version = en.Version;
+            try
+            {
+                var snap = await PackageOperationCoordinator.RunAsync(
+                    item, PackageOperations.Op.Install, opts, CancellationToken.None);
+                if (snap.Status == PackageOperationStatus.Succeeded) done++;
+            }
+            catch { }
         }
         Busy.IsActive = false;
         ResultsHeader.Text = P($"Installed {done}/{pkgs.Count} from bundle.", $"由清單安裝咗 {done}/{pkgs.Count}。");
@@ -836,19 +1093,17 @@ public sealed partial class PackageManagerModule : Page
             bool installed = _wingetInstalled.Contains(dep.Id);
             ResultsPanel.Children.Add(StatusRow($"{dep.En} · {dep.Zh}", dep.Id,
                 installed ? P("Installed", "已安裝") : P("Missing", "欠缺"), installed,
-                installed ? null : (P("Install", "安裝"), async () => { await PackageService.Install(dep.Id); _wingetInstalled.Add(dep.Id); })));
+                installed ? null : (P("Install", "安裝"),
+                    async () => await InstallSetupPackageOrThrowAsync(dep.Id, dep.En))));
         }
 
-        // UniGetUI 後備：原生包唔到嘅進階功能可以開返 UniGetUI 本體 · Fallback to UniGetUI itself for power features.
-        ResultsPanel.Children.Add(SectionLabel(P("UniGetUI (power features)", "UniGetUI（進階功能）")));
+        // 完整上游原始碼已隨附作審核／移植基準；WinForge 唔會啟動外部 UniGetUI 程式。
+        // The complete upstream source is vendored for audit/porting; WinForge never launches UniGetUI.
+        ResultsPanel.Children.Add(SectionLabel(P("UniGetUI source parity", "UniGetUI 原始碼對等")));
         ResultsPanel.Children.Add(StatusRow(
-            "UniGetUI · 統一套件管理 GUI", "MartiCliment.UniGetUI",
-            P("Open or install the full UniGetUI app", "開啟或安裝完整 UniGetUI 應用程式"), false,
-            (P("Launch / Install", "啟動／安裝"), async () =>
-            {
-                var r = await PackageManagerRegistry.LaunchUniGetUIAsync(CancellationToken.None);
-                ResultsHeader.Text = r.Message?.Primary ?? (r.Success ? P("Done.", "完成。") : P("Failed.", "失敗。"));
-            })));
+            "Devolutions/UniGetUI · 21116375", "ThirdParty/UniGetUI",
+            P("Complete pinned source included for provenance; WinForge's package features run natively without launching upstream.",
+                "已收錄完整釘選原始碼作來源依據；WinForge 套件功能原生運行，唔會啟動上游程式。"), true, null));
     }
 
     private async Task InstallAllDeps()
@@ -861,8 +1116,7 @@ public sealed partial class PackageManagerModule : Page
             {
                 if (_wingetInstalled.Contains(dep.Id)) continue;
                 ResultsHeader.Text = P($"Installing {dep.En}…", $"安裝緊 {dep.En}…");
-                var r = await PackageService.Install(dep.Id);
-                if (r.Success) _wingetInstalled.Add(dep.Id);
+                await InstallSetupPackageAsync(dep.Id, dep.En);
             }
         }
         finally { Busy.IsActive = false; PrimaryActionBtn.IsEnabled = true; }
@@ -872,18 +1126,67 @@ public sealed partial class PackageManagerModule : Page
     /// <summary>Per-manager bootstrap so users can install a missing engine in one click.</summary>
     private (bool, Func<Task>) Bootstrap(string key) => key switch
     {
-        "scoop" => (true, async () => await ShellRunner.RunPowershell(
-            "Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force; Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression", false)),
-        "choco" => (true, async () => await ShellRunner.RunPowershell(
-            "Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = 3072; Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))", true)),
-        "pip" => (true, async () => await PackageService.Install("Python.Python.3.12")),
-        "npm" => (true, async () => await PackageService.Install("OpenJS.NodeJS.LTS")),
-        "dotnet" => (true, async () => await PackageService.Install("Microsoft.DotNet.SDK.9")),
-        "cargo" => (true, async () => await PackageService.Install("Rustlang.Rustup")),
-        "bun" => (true, async () => await PackageService.Install("Oven-sh.Bun")),
-        "pwsh7" => (true, async () => await PackageService.Install("Microsoft.PowerShell")),
+        "scoop" => (true, async () => await RunBootstrapScriptOrThrowAsync(
+            "scoop", "Scoop",
+            "Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force; Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression",
+            elevated: false)),
+        "choco" => (true, async () => await InstallSetupPackageOrThrowAsync("Chocolatey.Chocolatey", "Chocolatey")),
+        "pip" => (true, async () => await InstallSetupPackageOrThrowAsync("Python.Python.3.12", "Python 3")),
+        "npm" => (true, async () => await InstallSetupPackageOrThrowAsync("OpenJS.NodeJS.LTS", "Node.js LTS")),
+        "dotnet" => (true, async () => await InstallSetupPackageOrThrowAsync("Microsoft.DotNet.SDK.9", ".NET SDK 9")),
+        "cargo" => (true, async () => await InstallSetupPackageOrThrowAsync("Rustlang.Rustup", "Rustup")),
+        "bun" => (true, async () => await InstallSetupPackageOrThrowAsync("Oven-sh.Bun", "Bun")),
+        "pwsh7" => (true, async () => await InstallSetupPackageOrThrowAsync("Microsoft.PowerShell", "PowerShell 7")),
         _ => (false, () => Task.CompletedTask),
     };
+
+    private async Task RunBootstrapScriptOrThrowAsync(
+        string managerKey, string displayName, string script, bool elevated)
+    {
+        var snapshot = await PackageOperationCoordinator.RunCustomAsync(new PackageItem
+        {
+            ManagerKey = managerKey,
+            Id = managerKey,
+            Name = displayName,
+            Source = "official-bootstrap",
+        }, $"bootstrap-{managerKey}-v1",
+            (progress, ct) => ShellRunner.RunPowershellStreaming(script, progress, elevated, ct),
+            CancellationToken.None);
+
+        if (snapshot.Status != PackageOperationStatus.Succeeded)
+            throw new InvalidOperationException(snapshot.Result?.Message?.Display
+                ?? P($"Could not install {displayName}.", $"無法安裝 {displayName}。"));
+        PackageService.RefreshProcessPath();
+    }
+
+    /// <summary>Install a Setup-page winget dependency through the shared operation queue.</summary>
+    private async Task<bool> InstallSetupPackageAsync(string id, string displayName)
+    {
+        var snapshot = await PackageOperationCoordinator.RunAsync(new PackageItem
+        {
+            ManagerKey = "winget",
+            Id = id,
+            Name = displayName,
+            Source = "winget",
+        }, PackageOperations.Op.Install, ct: CancellationToken.None);
+
+        if (snapshot.Status == PackageOperationStatus.Succeeded)
+        {
+            _wingetInstalled.Add(id);
+            PackageService.RefreshProcessPath();
+            return true;
+        }
+
+        ResultsHeader.Text = snapshot.Result?.Message?.Display
+            ?? P($"Could not install {displayName}.", $"無法安裝 {displayName}。");
+        return false;
+    }
+
+    private async Task InstallSetupPackageOrThrowAsync(string id, string displayName)
+    {
+        if (!await InstallSetupPackageAsync(id, displayName))
+            throw new InvalidOperationException(P($"Could not install {displayName}.", $"無法安裝 {displayName}。"));
+    }
 
     // ===== Sources =====
 
@@ -988,6 +1291,27 @@ public sealed partial class PackageManagerModule : Page
             var removeBtn = new Button { Content = P("Remove", "移除"), Padding = new Thickness(12, 4, 12, 4), VerticalAlignment = VerticalAlignment.Center };
             removeBtn.Click += async (_, _) =>
             {
+                bool known = SourceManager.KnownSourcesFor(managerKey)
+                    .Any(k => string.Equals(k.Name, src.Name, StringComparison.OrdinalIgnoreCase));
+                var confirm = new ContentDialog
+                {
+                    Title = P($"Remove source '{src.Name}'?", $"移除來源「{src.Name}」？"),
+                    Content = new TextBlock
+                    {
+                        Text = known
+                            ? P("This is a standard source. Packages from it will disappear until the source is restored.",
+                                "呢個係標準來源；還原來源之前，當中嘅套件會消失。")
+                            : P("Packages from this source will no longer be discoverable or updateable.",
+                                "之後唔可以再搜尋或更新呢個來源嘅套件。"),
+                        TextWrapping = TextWrapping.Wrap,
+                    },
+                    PrimaryButtonText = P("Remove source", "移除來源"),
+                    CloseButtonText = P("Cancel", "取消"),
+                    DefaultButton = ContentDialogButton.Close,
+                    XamlRoot = this.XamlRoot,
+                };
+                if (await confirm.ShowAsync() != ContentDialogResult.Primary) return;
+
                 removeBtn.IsEnabled = false; removeBtn.Content = P("Removing…", "移除緊…");
                 ResultsHeader.Text = P($"Removing {src.Name}…", $"移除緊 {src.Name}…");
                 TweakResult r;
@@ -1193,7 +1517,13 @@ public sealed partial class PackageManagerModule : Page
         var copy = new MenuFlyoutItem { Text = P("Copy install command", "複製安裝指令") };
         copy.Click += (_, _) =>
         {
-            try { CopyText(PackageDetails.BuildInstallCommand(item), P("install command", "安裝指令")); }
+            try
+            {
+                var options = InstallOptions.Load(item.ManagerKey, item.Id);
+                CopyText(PackageOperations.BuildCommandPreview(
+                    item.ManagerKey, item.Id, PackageOperations.Op.Install, options),
+                    P("install command", "安裝指令"));
+            }
             catch (Exception ex) { ResultsHeader.Text = ex.Message; }
         };
         items.Add(copy);
@@ -1243,20 +1573,20 @@ public sealed partial class PackageManagerModule : Page
             var reinstall = new MenuFlyoutItem { Text = P("Reinstall", "重新安裝") };
             reinstall.Click += async (_, _) => await RunChainedFromRow(item,
                 P("Reinstall", "重新安裝"),
-                new (string, string, Func<IPackageManager, CancellationToken, Task<TweakResult>>)[]
+                new (string, string, PackageOperations.Op)[]
                 {
-                    ("Uninstall", "解除安裝", (m, c) => m.UninstallAsync(item.Id, c)),
-                    ("Install", "安裝", (m, c) => m.InstallAsync(item.Id, c)),
+                    ("Uninstall", "解除安裝", PackageOperations.Op.Uninstall),
+                    ("Install", "安裝", PackageOperations.Op.Install),
                 });
             items.Add(reinstall);
 
             var unRe = new MenuFlyoutItem { Text = P("Uninstall then reinstall", "解除後重裝") };
             unRe.Click += async (_, _) => await RunChainedFromRow(item,
                 P("Uninstall then reinstall", "解除後重裝"),
-                new (string, string, Func<IPackageManager, CancellationToken, Task<TweakResult>>)[]
+                new (string, string, PackageOperations.Op)[]
                 {
-                    ("Uninstall", "解除安裝", (m, c) => m.UninstallAsync(item.Id, c)),
-                    ("Install", "安裝", (m, c) => m.InstallAsync(item.Id, c)),
+                    ("Uninstall", "解除安裝", PackageOperations.Op.Uninstall),
+                    ("Install", "安裝", PackageOperations.Op.Install),
                 });
             items.Add(unRe);
         }
@@ -1266,11 +1596,11 @@ public sealed partial class PackageManagerModule : Page
             var unUp = new MenuFlyoutItem { Text = P("Uninstall then update", "解除後更新") };
             unUp.Click += async (_, _) => await RunChainedFromRow(item,
                 P("Uninstall then update", "解除後更新"),
-                new (string, string, Func<IPackageManager, CancellationToken, Task<TweakResult>>)[]
+                new (string, string, PackageOperations.Op)[]
                 {
-                    ("Uninstall", "解除安裝", (m, c) => m.UninstallAsync(item.Id, c)),
-                    ("Install", "安裝", (m, c) => m.InstallAsync(item.Id, c)),
-                    ("Update", "更新", (m, c) => m.UpdateAsync(item.Id, c)),
+                    ("Uninstall", "解除安裝", PackageOperations.Op.Uninstall),
+                    ("Install", "安裝", PackageOperations.Op.Install),
+                    ("Update", "更新", PackageOperations.Op.Update),
                 });
             items.Add(unUp);
         }
@@ -1278,10 +1608,10 @@ public sealed partial class PackageManagerModule : Page
 
     /// <summary>由行內鏈式操作執行並更新表頭 · Run a chained sequence of manager ops from a row, surfacing progress in the header.</summary>
     private async Task RunChainedFromRow(PackageItem item, string title,
-        (string en, string zh, Func<IPackageManager, CancellationToken, Task<TweakResult>> op)[] steps)
+        (string en, string zh, PackageOperations.Op op)[] steps)
     {
-        var mgr = PackageManagerRegistry.ByKey(item.ManagerKey);
-        if (mgr is null) { ResultsHeader.Text = P("Manager not available.", "管理器唔可用。"); return; }
+        if (PackageManagerRegistry.ByKey(item.ManagerKey) is null)
+        { ResultsHeader.Text = P("Manager not available.", "管理器唔可用。"); return; }
         Busy.IsActive = true;
         try
         {
@@ -1290,10 +1620,14 @@ public sealed partial class PackageManagerModule : Page
             {
                 i++;
                 ResultsHeader.Text = P($"{title}: [{i}/{steps.Length}] {step.en} {item.Name}…", $"{title}：[{i}/{steps.Length}] {step.zh} {item.Name}…");
-                TweakResult r;
-                try { r = await step.op(mgr, CancellationToken.None); }
-                catch (Exception ex) { r = TweakResult.Fail(ex.Message, ex.Message); }
-                if (!r.Success)
+                PackageOperationSnapshot snap;
+                try { snap = await PackageOperationCoordinator.RunAsync(item, step.op, ct: CancellationToken.None); }
+                catch (Exception ex)
+                {
+                    ResultsHeader.Text = ex.Message;
+                    return;
+                }
+                if (snap.Status != PackageOperationStatus.Succeeded)
                 {
                     ResultsHeader.Text = P($"{title}: '{step.en}' failed.", $"{title}：「{step.zh}」失敗。");
                     return;
@@ -1332,16 +1666,17 @@ public sealed partial class PackageManagerModule : Page
         Busy.IsActive = true;
         try
         {
-            var r = await PackageOperations.RunAsync(
-                item.ManagerKey, item.Id, op, effective, CancellationToken.None);
-            ResultsHeader.Text = r.Success
+            var snap = await PackageOperationCoordinator.RunAsync(
+                item, op, effective, CancellationToken.None);
+            var r = snap.Result;
+            ResultsHeader.Text = snap.Status == PackageOperationStatus.Succeeded
                 ? op switch
                 {
                     PackageOperations.Op.Update => P($"Updated {item.Name}.", $"已更新 {item.Name}。"),
                     PackageOperations.Op.Uninstall => P($"Uninstalled {item.Name}.", $"已解除安裝 {item.Name}。"),
                     _ => P($"Installed {item.Name}.", $"已安裝 {item.Name}。"),
                 }
-                : r.Message?.Primary ?? op switch
+                : r?.Message?.Primary ?? op switch
                 {
                     PackageOperations.Op.Update => P($"Update failed for {item.Name}.", $"{item.Name} 更新失敗。"),
                     PackageOperations.Op.Uninstall => P($"Uninstall failed for {item.Name}.", $"{item.Name} 解除安裝失敗。"),
@@ -1365,32 +1700,30 @@ public sealed partial class PackageManagerModule : Page
 
     private async Task ActionInstall(PackageItem item, Button btn)
     {
-        var mgr = PackageManagerRegistry.ByKey(item.ManagerKey);
-        if (mgr is null) return;
         btn.IsEnabled = false; btn.Content = P("Installing…", "安裝緊…");
-        var r = await mgr.InstallAsync(item.Id, CancellationToken.None);
-        btn.Content = r.Success ? P("Installed", "已安裝") : P("Retry", "重試");
-        btn.IsEnabled = !r.Success;
+        var snap = await PackageOperationCoordinator.RunAsync(item, PackageOperations.Op.Install, ct: CancellationToken.None);
+        bool ok = snap.Status == PackageOperationStatus.Succeeded;
+        btn.Content = ok ? P("Installed", "已安裝") : P("Retry", "重試");
+        btn.IsEnabled = !ok;
     }
 
     private async Task ActionUpdate(PackageItem item, Button btn)
     {
-        var mgr = PackageManagerRegistry.ByKey(item.ManagerKey);
-        if (mgr is null) return;
         btn.IsEnabled = false; btn.Content = P("Updating…", "更新緊…");
-        var r = await mgr.UpdateAsync(item.Id, CancellationToken.None);
-        btn.Content = r.Success ? P("Updated", "已更新") : P("Retry", "重試");
-        btn.IsEnabled = !r.Success;
+        var snap = await PackageOperationCoordinator.RunAsync(item, PackageOperations.Op.Update, ct: CancellationToken.None);
+        bool ok = snap.Status == PackageOperationStatus.Succeeded;
+        btn.Content = ok ? P("Updated", "已更新") : snap.Status == PackageOperationStatus.Skipped
+            ? P("Skipped", "已略過") : P("Retry", "重試");
+        btn.IsEnabled = !ok && snap.Status != PackageOperationStatus.Skipped;
     }
 
     private async Task ActionUninstall(PackageItem item, Button btn)
     {
-        var mgr = PackageManagerRegistry.ByKey(item.ManagerKey);
-        if (mgr is null) return;
         btn.IsEnabled = false; btn.Content = P("Removing…", "移除緊…");
-        var r = await mgr.UninstallAsync(item.Id, CancellationToken.None);
-        btn.Content = r.Success ? P("Removed", "已移除") : P("Retry", "重試");
-        btn.IsEnabled = !r.Success;
+        var snap = await PackageOperationCoordinator.RunAsync(item, PackageOperations.Op.Uninstall, ct: CancellationToken.None);
+        bool ok = snap.Status == PackageOperationStatus.Succeeded;
+        btn.Content = ok ? P("Removed", "已移除") : P("Retry", "重試");
+        btn.IsEnabled = !ok;
     }
 
     private TextBlock SectionLabel(string text) => new()

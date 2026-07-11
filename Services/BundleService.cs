@@ -1,9 +1,7 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -109,6 +107,11 @@ public static class BundleService
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 
+    private static readonly JsonSerializerOptions OptionJsonOpts = new()
+    {
+        PropertyNameCaseInsensitive = true,
+    };
+
     // ===== 格式偵測 · Format detection by extension =====
 
     private enum BundleFormat { Json, Yaml, Xml }
@@ -142,7 +145,8 @@ public static class BundleService
             foreach (var i in items)
             {
                 if (i is null) continue;
-                if (IsIncompatibleSource(i.Source))
+                if (IsIncompatibleSource(i.Source)
+                    || !TryValidatePackageReference(i.ManagerKey, i.Id, out _, out _))
                 {
                     bundle.incompatible_packages.Add(new SerializableIncompatiblePackage
                     {
@@ -172,12 +176,14 @@ public static class BundleService
         return bundle;
     }
 
-    /// <summary>來源係本機／未知 · True when a package's source is local / unknown / store-fallback.</summary>
+    /// <summary>
+    /// 來源明確標示為本機／未知 · True when a source is explicitly local / unknown / store-fallback.
+    /// A blank source is normal for valid pip/npm/Cargo/.NET packages and is not incompatible by itself.
+    /// </summary>
     private static bool IsIncompatibleSource(string? source)
     {
         var s = (source ?? "").Trim().ToLowerInvariant();
-        return s.Length == 0
-            || s == "local"
+        return s == "local"
             || s == "local pc"
             || s == "msstore-fallback"
             || s == "unknown";
@@ -261,7 +267,7 @@ public static class BundleService
                     Source = src,
                     ManagerName = mgr,
                 };
-                if (IsIncompatibleSource(src) && mgr.Length == 0)
+                if (mgr.Length == 0 || IsIncompatibleSource(src))
                     bundle.incompatible_packages.Add(new SerializableIncompatiblePackage { Id = pkg.Id, Name = pkg.Name, Version = pkg.Version, Source = pkg.Source });
                 else
                     bundle.packages.Add(pkg);
@@ -293,25 +299,20 @@ public static class BundleService
 
     private static InstallOptions ReadInstallOptions(JsonElement io)
     {
-        var o = new InstallOptions();
-        TrySetBool(o, "SkipHashCheck", io);
-        TrySetBool(o, "InteractiveInstallation", io);
-        TrySetBool(o, "RunAsAdministrator", io);
-        TrySetBool(o, "PreRelease", io);
-        TrySetStr(o, "Architecture", io);
-        TrySetStr(o, "InstallationScope", io);
-        TrySetStr(o, "CustomInstallLocation", io);
-        TrySetStr(o, "Version", io);
-        TrySetStr(o, "PreInstallCommand", io);
-        TrySetStr(o, "PostInstallCommand", io);
-        TrySetStr(o, "PreUpdateCommand", io);
-        TrySetStr(o, "PostUpdateCommand", io);
-        TrySetStr(o, "PreUninstallCommand", io);
-        TrySetStr(o, "PostUninstallCommand", io);
-        TrySetList(o, "CustomParameters_Install", io);
-        TrySetList(o, "CustomParameters_Update", io);
-        TrySetList(o, "CustomParameters_Uninstall", io);
-        TrySetList(o, "KillBeforeOperation", io);
+        InstallOptions o;
+        try
+        {
+            o = JsonSerializer.Deserialize<InstallOptions>(io.GetRawText(), OptionJsonOpts)
+                ?? new InstallOptions();
+        }
+        catch { o = new InstallOptions(); }
+
+        ApplyLegacyJsonBool(io, o, nameof(InstallOptions.Interactive), "InteractiveInstallation");
+        ApplyLegacyJsonString(io, o, nameof(InstallOptions.Scope), "InstallationScope");
+        ApplyLegacyJsonString(io, o, nameof(InstallOptions.CustomArgsInstall), "CustomParameters_Install");
+        ApplyLegacyJsonString(io, o, nameof(InstallOptions.CustomArgsUpdate), "CustomParameters_Update");
+        ApplyLegacyJsonString(io, o, nameof(InstallOptions.CustomArgsUninstall), "CustomParameters_Uninstall");
+        o.KillBeforeOperation ??= new List<string>();
         return o;
     }
 
@@ -392,7 +393,7 @@ public static class BundleService
             //   0  export_version / packages / incompatible_packages
             //   2  "- Id: ..." (start of a package/incompatible item)
             //   4  package fields + "InstallationOptions:"
-            //   6  option scalars + list-option headers ("CustomParameters_Install:")
+            //   6  option scalars + list-option headers ("KillBeforeOperation:")
             //   8  "- value" entries of a list-valued option
             foreach (var raw in lines)
             {
@@ -606,25 +607,30 @@ public static class BundleService
         var o = new InstallOptions();
         try
         {
-            foreach (var (name, _) in BoolOptions(o))
+            foreach (var option in io.Elements())
             {
-                var v = io.Element(name)?.Value;
-                if (v is not null) SetBool(o, name, string.Equals(v.Trim(), "true", StringComparison.OrdinalIgnoreCase));
-            }
-            foreach (var (name, _) in StringOptions(o))
-            {
-                var v = io.Element(name)?.Value;
-                if (v is not null) SetStr(o, name, v);
-            }
-            foreach (var (name, _) in ListOptions(o))
-            {
-                var listEl = io.Element(name);
-                if (listEl is null) continue;
-                var items = listEl.Elements("item").Select(x => x.Value ?? "").Where(x => x.Length > 0).ToList();
-                if (items.Count > 0) SetList(o, name, items);
+                var name = CanonicalOptionName(option.Name.LocalName);
+                if (IsBoolOption(name))
+                {
+                    SetBool(o, name, string.Equals(option.Value.Trim(), "true", StringComparison.OrdinalIgnoreCase));
+                    continue;
+                }
+                if (IsListOption(name))
+                {
+                    var items = option.Elements("item").Select(x => x.Value ?? "").Where(x => x.Length > 0).ToList();
+                    if (items.Count == 0 && !string.IsNullOrWhiteSpace(option.Value)) items.Add(option.Value);
+                    SetList(o, name, items);
+                    continue;
+                }
+                if (IsStringOption(name))
+                {
+                    var items = option.Elements("item").Select(x => x.Value ?? "").Where(x => x.Length > 0).ToList();
+                    SetStr(o, name, items.Count > 0 ? string.Join(" ", items) : option.Value);
+                }
             }
         }
         catch { }
+        o.KillBeforeOperation ??= new List<string>();
         return o;
     }
 
@@ -677,35 +683,23 @@ public static class BundleService
     /// </summary>
     public static string InstallCommandFor(string managerKey, string id, InstallOptions? opts = null)
     {
-        var q = Sanitize(id);
-        if (q.Length == 0) return "";
-        // 來自安裝選項嘅自訂安裝參數 · custom install-time params from options.
-        var extra = "";
         try
         {
-            if (opts is not null)
+            if (!TryValidatePackageReference(managerKey, id, out var key, out var packageId)) return "";
+            var effective = opts ?? new InstallOptions();
+            if (!TryValidateStructuredOptions(effective, out _)) return "";
+            var command = PackageOperations.BuildCommandPreview(
+                key, packageId, PackageOperations.Op.Install, effective);
+            if (string.IsNullOrWhiteSpace(command) || command.StartsWith('#')) return "";
+            if (key is "psgallery" or "pwsh7")
             {
-                var custom = ReadStringList(opts, "CustomParameters_Install");
-                if (custom.Count > 0) extra = " " + string.Join(" ", custom);
+                var encoded = Convert.ToBase64String(Encoding.Unicode.GetBytes(command));
+                var shell = key == "pwsh7" ? "pwsh" : "powershell";
+                return $"{shell} -NoProfile -NonInteractive -ExecutionPolicy Bypass -EncodedCommand {encoded}";
             }
+            return command;
         }
-        catch { }
-
-        return (managerKey ?? "").ToLowerInvariant() switch
-        {
-            "winget" => $"winget install --id {q} -e --silent --accept-source-agreements --accept-package-agreements --disable-interactivity{extra}",
-            "scoop" => $"scoop install {q}{extra}",
-            "choco" => $"choco install {q} -y{extra}",
-            "pip" => $"pip install {q}{extra}",
-            "npm" => $"npm install -g {q}{extra}",
-            "dotnet" => $"dotnet tool install -g {q}{extra}",
-            "psgallery" => $"powershell -NoProfile -Command \"Install-Module -Name {q} -Force -Scope CurrentUser\"{extra}",
-            "pwsh7" => $"pwsh -NoProfile -Command \"Install-PSResource -Name {q} -TrustRepository -Scope CurrentUser\"{extra}",
-            "cargo" => $"cargo install {q}{extra}",
-            "bun" => $"bun add -g {q}{extra}",
-            "vcpkg" => $"vcpkg install {q}{extra}",
-            _ => "",
-        };
+        catch { return ""; }
     }
 
     // ===== 安裝指令稿（.ps1）· Standalone PowerShell install script =====
@@ -760,22 +754,24 @@ public static class BundleService
 
             b.Append("$success_count = 0\n");
             b.Append("$failure_count = 0\n");
-            b.Append("$commands = @(\n");
+            b.Append("$packages = @(\n");
             for (int i = 0; i < entries.Count; i++)
             {
-                b.Append("    '").Append(PsLit(entries[i].cmd)).Append('\'');
+                b.Append("    @{ Name = '").Append(PsLit(entries[i].name)).Append("'; Command = '")
+                    .Append(PsLit(entries[i].cmd)).Append("' }");
                 b.Append(i < entries.Count - 1 ? ",\n" : "\n");
             }
             b.Append(")\n\n");
 
-            b.Append("foreach ($command in $commands) {\n");
-            b.Append("    Write-Host \"Running · 執行緊: $command\" -ForegroundColor Yellow\n");
+            b.Append("foreach ($package in $packages) {\n");
+            b.Append("    $command = $package.Command\n");
+            b.Append("    Write-Host \"Installing · 安裝緊: $($package.Name)\" -ForegroundColor Yellow\n");
             b.Append("    cmd.exe /C $command\n");
             b.Append("    if ($LASTEXITCODE -eq 0) {\n");
-            b.Append("        Write-Host \"[  OK  ] $command\" -ForegroundColor Green\n");
+            b.Append("        Write-Host \"[  OK  ] $($package.Name)\" -ForegroundColor Green\n");
             b.Append("        $success_count++\n");
             b.Append("    } else {\n");
-            b.Append("        Write-Host \"[ FAIL ] $command\" -ForegroundColor Red\n");
+            b.Append("        Write-Host \"[ FAIL ] $($package.Name)\" -ForegroundColor Red\n");
             b.Append("        $failure_count++\n");
             b.Append("    }\n");
             b.Append("    Write-Host ''\n");
@@ -812,18 +808,33 @@ public static class BundleService
             if (bundle is null) return report;
             foreach (var p in bundle.packages)
             {
-                var o = p.InstallationOptions;
-                if (o is null) continue;
                 var name = string.IsNullOrEmpty(p.Name) ? p.Id : p.Name;
 
+                if (!TryValidatePackageReference(p.ManagerName, p.Id, out _, out _))
+                    report.Warnings.Add(new LocalizedText(
+                        $"“{name}” has an invalid manager or package ID and will not be scripted.",
+                        $"「{name}」嘅管理器或套件 ID 無效，唔會寫入安裝指令稿。"));
+
+                var o = p.InstallationOptions;
+                if (o is null) continue;
+
+                if (!TryValidateStructuredOptions(o, out var optionError))
+                    report.Warnings.Add(new LocalizedText(
+                        $"“{name}” has unsafe structured install options ({optionError}) and will not be scripted or queued.",
+                        $"「{name}」嘅結構化安裝選項唔安全（{optionError}），唔會寫入指令稿或者排隊。"));
+
                 // 自訂 CLI 參數 · custom CLI args
-                foreach (var key in new[] { "CustomParameters_Install", "CustomParameters_Update", "CustomParameters_Uninstall" })
+                foreach (var key in new[]
                 {
-                    var list = ReadStringList(o, key);
-                    if (list.Count > 0)
+                    nameof(InstallOptions.CustomArgsInstall), nameof(InstallOptions.CustomArgsUpdate),
+                    nameof(InstallOptions.CustomArgsUninstall),
+                })
+                {
+                    var value = ReadString(o, key);
+                    if (!string.IsNullOrWhiteSpace(value))
                         report.Warnings.Add(new LocalizedText(
-                            $"“{name}” carries custom CLI arguments ({key}): {string.Join(" ", list)}",
-                            $"「{name}」帶有自訂命令列參數（{key}）：{string.Join(" ", list)}"));
+                            $"“{name}” carries custom CLI arguments ({key}); review the bundle source before running it.",
+                            $"「{name}」帶有自訂命令列參數（{key}）；執行之前請檢查清單來源。"));
                 }
 
                 // 前／後置指令 · pre/post commands
@@ -832,16 +843,16 @@ public static class BundleService
                     var cmd = ReadString(o, key);
                     if (!string.IsNullOrWhiteSpace(cmd))
                         report.Warnings.Add(new LocalizedText(
-                            $"“{name}” runs a custom command ({key}): {cmd}",
-                            $"「{name}」會執行自訂指令（{key}）：{cmd}"));
+                            $"“{name}” runs a custom command ({key}); its contents are hidden to avoid exposing embedded secrets.",
+                            $"「{name}」會執行自訂指令（{key}）；內容已隱藏，避免洩漏內嵌機密。"));
                 }
 
                 // kill-list
                 var kill = ReadStringList(o, "KillBeforeOperation");
                 if (kill.Count > 0)
                     report.Warnings.Add(new LocalizedText(
-                        $"“{name}” will terminate processes before installing: {string.Join(", ", kill)}",
-                        $"「{name}」安裝前會終止程序：{string.Join("、", kill)}"));
+                        $"“{name}” will terminate processes before installing ({kill.Count} name(s)); inspect the bundle before continuing.",
+                        $"「{name}」安裝前會終止 {kill.Count} 個程序名稱；繼續之前請檢查清單。"));
             }
         }
         catch { }
@@ -863,24 +874,41 @@ public static class BundleService
         return false;
     }
 
-    // ===== InstallOptions 反射存取（兼容真假兩種型別）· Reflective access to InstallOptions =====
-    // 用反射讀寫，等真嘅 install-options-core 型別同呢度嘅佔位都用得到。
-    // Reflection keeps this working against both the placeholder and the real install-options-core type.
+    // ===== InstallOptions schema + legacy aliases · 安裝選項結構與舊名兼容 =====
 
     private static readonly string[] BoolNames =
     {
-        "SkipHashCheck", "InteractiveInstallation", "RunAsAdministrator", "PreRelease",
+        nameof(InstallOptions.RunAsAdministrator), nameof(InstallOptions.Interactive),
+        nameof(InstallOptions.SkipHashCheck), nameof(InstallOptions.PreRelease),
+        nameof(InstallOptions.RemoveDataOnUninstall), nameof(InstallOptions.UninstallPreviousOnUpdate),
+        nameof(InstallOptions.SkipMinorUpdates), nameof(InstallOptions.AutoUpdate),
+        nameof(InstallOptions.AbortOnPreInstallFail), nameof(InstallOptions.AbortOnPreUpdateFail),
+        nameof(InstallOptions.AbortOnPreUninstallFail), nameof(InstallOptions.ForceKill),
     };
     private static readonly string[] StringNames =
     {
-        "Architecture", "InstallationScope", "CustomInstallLocation", "Version",
-        "PreInstallCommand", "PostInstallCommand", "PreUpdateCommand", "PostUpdateCommand",
-        "PreUninstallCommand", "PostUninstallCommand",
+        nameof(InstallOptions.CustomArgsInstall), nameof(InstallOptions.CustomArgsUpdate),
+        nameof(InstallOptions.CustomArgsUninstall), nameof(InstallOptions.Scope),
+        nameof(InstallOptions.Architecture), nameof(InstallOptions.Version),
+        nameof(InstallOptions.CustomInstallLocation), nameof(InstallOptions.PreInstallCommand),
+        nameof(InstallOptions.PostInstallCommand), nameof(InstallOptions.PreUpdateCommand),
+        nameof(InstallOptions.PostUpdateCommand), nameof(InstallOptions.PreUninstallCommand),
+        nameof(InstallOptions.PostUninstallCommand),
     };
     private static readonly string[] ListNames =
     {
-        "CustomParameters_Install", "CustomParameters_Update", "CustomParameters_Uninstall", "KillBeforeOperation",
+        nameof(InstallOptions.KillBeforeOperation),
     };
+
+    private static readonly IReadOnlyDictionary<string, string> LegacyOptionAliases =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["InteractiveInstallation"] = nameof(InstallOptions.Interactive),
+            ["InstallationScope"] = nameof(InstallOptions.Scope),
+            ["CustomParameters_Install"] = nameof(InstallOptions.CustomArgsInstall),
+            ["CustomParameters_Update"] = nameof(InstallOptions.CustomArgsUpdate),
+            ["CustomParameters_Uninstall"] = nameof(InstallOptions.CustomArgsUninstall),
+        };
 
     private static IEnumerable<(string name, bool val)> BoolOptions(InstallOptions o)
     {
@@ -897,77 +925,262 @@ public static class BundleService
 
     private static bool ReadBool(InstallOptions o, string prop)
     {
-        try { var p = o.GetType().GetProperty(prop); if (p?.GetValue(o) is bool b) return b; } catch { }
-        return false;
+        return prop switch
+        {
+            nameof(InstallOptions.RunAsAdministrator) => o.RunAsAdministrator,
+            nameof(InstallOptions.Interactive) => o.Interactive,
+            nameof(InstallOptions.SkipHashCheck) => o.SkipHashCheck,
+            nameof(InstallOptions.PreRelease) => o.PreRelease,
+            nameof(InstallOptions.RemoveDataOnUninstall) => o.RemoveDataOnUninstall,
+            nameof(InstallOptions.UninstallPreviousOnUpdate) => o.UninstallPreviousOnUpdate,
+            nameof(InstallOptions.SkipMinorUpdates) => o.SkipMinorUpdates,
+            nameof(InstallOptions.AutoUpdate) => o.AutoUpdate,
+            nameof(InstallOptions.AbortOnPreInstallFail) => o.AbortOnPreInstallFail,
+            nameof(InstallOptions.AbortOnPreUpdateFail) => o.AbortOnPreUpdateFail,
+            nameof(InstallOptions.AbortOnPreUninstallFail) => o.AbortOnPreUninstallFail,
+            nameof(InstallOptions.ForceKill) => o.ForceKill,
+            _ => false,
+        };
     }
     private static string ReadString(InstallOptions o, string prop)
     {
-        try { var p = o.GetType().GetProperty(prop); if (p?.GetValue(o) is string s) return s ?? ""; } catch { }
-        return "";
+        return prop switch
+        {
+            nameof(InstallOptions.CustomArgsInstall) => o.CustomArgsInstall ?? "",
+            nameof(InstallOptions.CustomArgsUpdate) => o.CustomArgsUpdate ?? "",
+            nameof(InstallOptions.CustomArgsUninstall) => o.CustomArgsUninstall ?? "",
+            nameof(InstallOptions.Scope) => o.Scope ?? "",
+            nameof(InstallOptions.Architecture) => o.Architecture ?? "",
+            nameof(InstallOptions.Version) => o.Version ?? "",
+            nameof(InstallOptions.CustomInstallLocation) => o.CustomInstallLocation ?? "",
+            nameof(InstallOptions.PreInstallCommand) => o.PreInstallCommand ?? "",
+            nameof(InstallOptions.PostInstallCommand) => o.PostInstallCommand ?? "",
+            nameof(InstallOptions.PreUpdateCommand) => o.PreUpdateCommand ?? "",
+            nameof(InstallOptions.PostUpdateCommand) => o.PostUpdateCommand ?? "",
+            nameof(InstallOptions.PreUninstallCommand) => o.PreUninstallCommand ?? "",
+            nameof(InstallOptions.PostUninstallCommand) => o.PostUninstallCommand ?? "",
+            _ => "",
+        };
     }
     private static List<string> ReadStringList(InstallOptions o, string prop)
     {
-        var res = new List<string>();
-        try
-        {
-            var p = o.GetType().GetProperty(prop);
-            if (p?.GetValue(o) is IEnumerable en && p.PropertyType != typeof(string))
-                foreach (var item in en)
-                    if (item is string s && s.Length > 0) res.Add(s);
-        }
-        catch { }
-        return res;
+        return prop == nameof(InstallOptions.KillBeforeOperation)
+            ? new List<string>(o.KillBeforeOperation ?? new List<string>())
+            : new List<string>();
     }
     private static void SetBool(InstallOptions o, string prop, bool val)
     {
-        try { o.GetType().GetProperty(prop)?.SetValue(o, val); } catch { }
+        switch (prop)
+        {
+            case nameof(InstallOptions.RunAsAdministrator): o.RunAsAdministrator = val; break;
+            case nameof(InstallOptions.Interactive): o.Interactive = val; break;
+            case nameof(InstallOptions.SkipHashCheck): o.SkipHashCheck = val; break;
+            case nameof(InstallOptions.PreRelease): o.PreRelease = val; break;
+            case nameof(InstallOptions.RemoveDataOnUninstall): o.RemoveDataOnUninstall = val; break;
+            case nameof(InstallOptions.UninstallPreviousOnUpdate): o.UninstallPreviousOnUpdate = val; break;
+            case nameof(InstallOptions.SkipMinorUpdates): o.SkipMinorUpdates = val; break;
+            case nameof(InstallOptions.AutoUpdate): o.AutoUpdate = val; break;
+            case nameof(InstallOptions.AbortOnPreInstallFail): o.AbortOnPreInstallFail = val; break;
+            case nameof(InstallOptions.AbortOnPreUpdateFail): o.AbortOnPreUpdateFail = val; break;
+            case nameof(InstallOptions.AbortOnPreUninstallFail): o.AbortOnPreUninstallFail = val; break;
+            case nameof(InstallOptions.ForceKill): o.ForceKill = val; break;
+        }
     }
     private static void SetStr(InstallOptions o, string prop, string val)
     {
-        try { o.GetType().GetProperty(prop)?.SetValue(o, val ?? ""); } catch { }
+        val ??= "";
+        switch (prop)
+        {
+            case nameof(InstallOptions.CustomArgsInstall): o.CustomArgsInstall = val; break;
+            case nameof(InstallOptions.CustomArgsUpdate): o.CustomArgsUpdate = val; break;
+            case nameof(InstallOptions.CustomArgsUninstall): o.CustomArgsUninstall = val; break;
+            case nameof(InstallOptions.Scope): o.Scope = val; break;
+            case nameof(InstallOptions.Architecture): o.Architecture = val; break;
+            case nameof(InstallOptions.Version): o.Version = val; break;
+            case nameof(InstallOptions.CustomInstallLocation): o.CustomInstallLocation = val; break;
+            case nameof(InstallOptions.PreInstallCommand): o.PreInstallCommand = val; break;
+            case nameof(InstallOptions.PostInstallCommand): o.PostInstallCommand = val; break;
+            case nameof(InstallOptions.PreUpdateCommand): o.PreUpdateCommand = val; break;
+            case nameof(InstallOptions.PostUpdateCommand): o.PostUpdateCommand = val; break;
+            case nameof(InstallOptions.PreUninstallCommand): o.PreUninstallCommand = val; break;
+            case nameof(InstallOptions.PostUninstallCommand): o.PostUninstallCommand = val; break;
+        }
     }
     private static void SetList(InstallOptions o, string prop, List<string> val)
     {
-        try { o.GetType().GetProperty(prop)?.SetValue(o, val ?? new List<string>()); } catch { }
+        if (prop == nameof(InstallOptions.KillBeforeOperation)) o.KillBeforeOperation = val ?? new List<string>();
     }
+    private static string CanonicalOptionName(string key)
+    {
+        key = (key ?? "").Trim();
+        if (LegacyOptionAliases.TryGetValue(key, out var canonical)) return canonical;
+        foreach (var name in BoolNames) if (string.Equals(name, key, StringComparison.OrdinalIgnoreCase)) return name;
+        foreach (var name in StringNames) if (string.Equals(name, key, StringComparison.OrdinalIgnoreCase)) return name;
+        foreach (var name in ListNames) if (string.Equals(name, key, StringComparison.OrdinalIgnoreCase)) return name;
+        return "";
+    }
+
+    private static bool IsBoolOption(string name) => BoolNames.Any(x => string.Equals(x, name, StringComparison.OrdinalIgnoreCase));
+    private static bool IsStringOption(string name) => StringNames.Any(x => string.Equals(x, name, StringComparison.OrdinalIgnoreCase));
+    private static bool IsListOption(string name) => ListNames.Any(x => string.Equals(x, name, StringComparison.OrdinalIgnoreCase));
+
     private static void ApplyOptionScalar(InstallOptions o, string key, string val)
     {
-        if (Array.IndexOf(BoolNames, key) >= 0)
-            SetBool(o, key, string.Equals(val.Trim(), "true", StringComparison.OrdinalIgnoreCase));
-        else if (Array.IndexOf(StringNames, key) >= 0)
-            SetStr(o, key, val);
+        key = CanonicalOptionName(key);
+        if (IsBoolOption(key)) SetBool(o, key, string.Equals(val.Trim(), "true", StringComparison.OrdinalIgnoreCase));
+        else if (IsStringOption(key)) SetStr(o, key, val);
+        else if (IsListOption(key) && val.Length > 0) SetList(o, key, new List<string> { val });
     }
+
     private static void AddToOptionList(InstallOptions o, string key, string val)
     {
-        if (Array.IndexOf(ListNames, key) < 0 || val.Length == 0) return;
-        var list = ReadStringList(o, key);
-        list.Add(val);
-        SetList(o, key, list);
-    }
-    private static void TrySetBool(InstallOptions o, string prop, JsonElement io)
-    {
-        try { if (io.TryGetProperty(prop, out var v) && (v.ValueKind == JsonValueKind.True || v.ValueKind == JsonValueKind.False)) SetBool(o, prop, v.GetBoolean()); } catch { }
-    }
-    private static void TrySetStr(InstallOptions o, string prop, JsonElement io)
-    {
-        try { if (io.TryGetProperty(prop, out var v) && v.ValueKind == JsonValueKind.String) SetStr(o, prop, v.GetString() ?? ""); } catch { }
-    }
-    private static void TrySetList(InstallOptions o, string prop, JsonElement io)
-    {
-        try
+        key = CanonicalOptionName(key);
+        if (val.Length == 0 || key.Length == 0) return;
+        if (IsListOption(key))
         {
-            if (io.TryGetProperty(prop, out var v) && v.ValueKind == JsonValueKind.Array)
-            {
-                var list = new List<string>();
-                foreach (var el in v.EnumerateArray())
-                    if (el.ValueKind == JsonValueKind.String) { var s = el.GetString(); if (!string.IsNullOrEmpty(s)) list.Add(s); }
-                if (list.Count > 0) SetList(o, prop, list);
-            }
+            var list = ReadStringList(o, key);
+            list.Add(val);
+            SetList(o, key, list);
         }
-        catch { }
+        else if (key is nameof(InstallOptions.CustomArgsInstall)
+                 or nameof(InstallOptions.CustomArgsUpdate)
+                 or nameof(InstallOptions.CustomArgsUninstall))
+        {
+            var current = ReadString(o, key);
+            SetStr(o, key, current.Length == 0 ? val : current + " " + val);
+        }
+    }
+
+    private static void ApplyLegacyJsonBool(JsonElement io, InstallOptions o, string canonical, string legacy)
+    {
+        if (HasJsonProperty(io, canonical) || !TryGetJsonProperty(io, legacy, out var value)) return;
+        if (value.ValueKind is JsonValueKind.True or JsonValueKind.False) SetBool(o, canonical, value.GetBoolean());
+        else if (value.ValueKind == JsonValueKind.String && bool.TryParse(value.GetString(), out var parsed)) SetBool(o, canonical, parsed);
+    }
+
+    private static void ApplyLegacyJsonString(JsonElement io, InstallOptions o, string canonical, string legacy)
+    {
+        if (HasJsonProperty(io, canonical) || !TryGetJsonProperty(io, legacy, out var value)) return;
+        if (value.ValueKind == JsonValueKind.String) { SetStr(o, canonical, value.GetString() ?? ""); return; }
+        if (value.ValueKind == JsonValueKind.Array)
+        {
+            var parts = value.EnumerateArray().Where(x => x.ValueKind == JsonValueKind.String)
+                .Select(x => x.GetString() ?? "").Where(x => x.Length > 0);
+            SetStr(o, canonical, string.Join(" ", parts));
+        }
+    }
+
+    private static bool HasJsonProperty(JsonElement obj, string name) => TryGetJsonProperty(obj, name, out _);
+
+    private static bool TryGetJsonProperty(JsonElement obj, string name, out JsonElement value)
+    {
+        if (obj.ValueKind == JsonValueKind.Object)
+            foreach (var property in obj.EnumerateObject())
+                if (string.Equals(property.Name, name, StringComparison.OrdinalIgnoreCase))
+                { value = property.Value; return true; }
+        value = default;
+        return false;
     }
 
     // ===== 小工具 · Small helpers =====
+
+    private static readonly HashSet<string> SupportedManagerKeys = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "winget", "scoop", "choco", "pip", "npm", "dotnet",
+        "psgallery", "pwsh7", "cargo", "bun", "vcpkg",
+    };
+
+    private static bool TryValidatePackageReference(
+        string? managerKey, string? id, out string normalizedManager, out string normalizedId)
+    {
+        normalizedManager = (managerKey ?? "").Trim().ToLowerInvariant();
+        normalizedId = (id ?? "").Trim();
+        if (!SupportedManagerKeys.Contains(normalizedManager) || normalizedId.Length is < 1 or > 256) return false;
+        return normalizedManager switch
+        {
+            "npm" or "bun" => IsSafeNpmPackageId(normalizedId),
+            "scoop" => IsSafeScoopPackageId(normalizedId),
+            "vcpkg" => IsSafeVcpkgPackageId(normalizedId),
+            _ => IsSafePackageSegment(normalizedId, false),
+        };
+    }
+
+    private static bool TryValidateStructuredOptions(InstallOptions options, out string error)
+    {
+        error = "";
+        var version = (options.Version ?? "").Trim();
+        if (version.Length > 128 || version.Any(c => !(char.IsLetterOrDigit(c)
+                || c is '.' or '_' or '-' or '+' or ':' or '!' or '~' or '*')))
+        {
+            error = "version";
+            return false;
+        }
+
+        var scope = (options.Scope ?? "").Trim().ToLowerInvariant();
+        if (scope.Length > 0 && scope is not ("user" or "machine" or "currentuser" or "allusers"))
+        {
+            error = "scope";
+            return false;
+        }
+
+        var architecture = (options.Architecture ?? "").Trim().ToLowerInvariant();
+        if (architecture.Length > 0 && architecture is not ("x64" or "x86" or "arm64" or "arm" or "neutral"))
+        {
+            error = "architecture";
+            return false;
+        }
+
+        var location = (options.CustomInstallLocation ?? "").Trim();
+        if (location.Length > 1024 || location.Any(char.IsControl)
+            || location.IndexOfAny(new[] { '"', '`', '%', '!', '&', '|', '<', '>' }) >= 0)
+        {
+            error = "install location";
+            return false;
+        }
+        return true;
+    }
+
+    private static bool IsSafeNpmPackageId(string id)
+    {
+        if (!id.StartsWith('@')) return !id.Contains('/') && IsSafePackageSegment(id, true);
+        int slash = id.IndexOf('/');
+        return slash > 1 && slash == id.LastIndexOf('/') && slash < id.Length - 1
+            && IsSafePackageSegment(id.Substring(1, slash - 1), true)
+            && IsSafePackageSegment(id[(slash + 1)..], true);
+    }
+
+    private static bool IsSafeScoopPackageId(string id)
+    {
+        var parts = id.Split('/');
+        return parts.Length is 1 or 2 && parts.All(x => IsSafePackageSegment(x, false));
+    }
+
+    private static bool IsSafeVcpkgPackageId(string id)
+    {
+        var target = id.Split(':');
+        if (target.Length > 2 || target.Length == 2 && !IsSafePackageSegment(target[1], false)) return false;
+        var spec = target[0];
+        int open = spec.IndexOf('['), close = spec.IndexOf(']');
+        if (open < 0 && close < 0) return IsSafePackageSegment(spec, false);
+        if (open <= 0 || close != spec.Length - 1 || close <= open + 1
+            || open != spec.LastIndexOf('[') || close != spec.LastIndexOf(']')) return false;
+        if (!IsSafePackageSegment(spec[..open], false)) return false;
+        return spec.Substring(open + 1, close - open - 1).Split(',').All(x => IsSafePackageSegment(x, false));
+    }
+
+    private static bool IsSafePackageSegment(string value, bool allowTilde)
+    {
+        if (string.IsNullOrEmpty(value) || !IsAsciiAlphaNumeric(value[0])) return false;
+        foreach (var c in value)
+        {
+            if (IsAsciiAlphaNumeric(c) || c is '.' or '_' or '-' or '+' || allowTilde && c == '~') continue;
+            return false;
+        }
+        return true;
+    }
+
+    private static bool IsAsciiAlphaNumeric(char c)
+        => c is >= 'a' and <= 'z' or >= 'A' and <= 'Z' or >= '0' and <= '9';
 
     private static int ReadInt(JsonElement obj, string prop, int fallback)
     {
@@ -1009,9 +1222,6 @@ public static class BundleService
         return fallback;
     }
 
-    /// <summary>去掉危險嘅 shell 字元 · Strip quotes/backticks so an id can't break the command line.</summary>
-    private static string Sanitize(string? s) => (s ?? "").Replace("\"", "").Replace("`", "").Replace("\n", "").Replace("\r", "").Trim();
-
     /// <summary>PowerShell 單引號字串內跳脫 · Escape for a PowerShell single-quoted literal.</summary>
     private static string PsLit(string? s) => (s ?? "").Replace("'", "''").Replace("\r", "").Replace("\n", " ");
 
@@ -1020,10 +1230,21 @@ public static class BundleService
     {
         s ??= "";
         if (s.Length == 0) return "\"\"";
-        bool needs = s.IndexOfAny(new[] { ':', '#', '\'', '"', '\n', '\t', '-', '{', '}', '[', ']', ',', '&', '*', '?', '|', '>', '%', '@', '`' }) >= 0
+        bool needs = s.IndexOfAny(new[] { ':', '#', '\'', '"', '\r', '\n', '\t', '-', '{', '}', '[', ']', ',', '&', '*', '?', '|', '>', '%', '@', '`' }) >= 0
                      || s.StartsWith(" ") || s.EndsWith(" ");
         if (!needs) return s;
-        return "\"" + s.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\n", " ").Replace("\t", " ") + "\"";
+        var b = new StringBuilder(s.Length + 8).Append('"');
+        foreach (var c in s)
+            switch (c)
+            {
+                case '\\': b.Append("\\\\"); break;
+                case '"': b.Append("\\\""); break;
+                case '\r': b.Append("\\r"); break;
+                case '\n': b.Append("\\n"); break;
+                case '\t': b.Append("\\t"); break;
+                default: b.Append(c); break;
+            }
+        return b.Append('"').ToString();
     }
 
     /// <summary>去掉 YAML 引號 · Unquote a YAML scalar.</summary>
@@ -1031,7 +1252,18 @@ public static class BundleService
     {
         s = (s ?? "").Trim();
         if (s.Length >= 2 && s[0] == '"' && s[^1] == '"')
-            return s.Substring(1, s.Length - 2).Replace("\\\"", "\"").Replace("\\\\", "\\");
+        {
+            var inner = s.Substring(1, s.Length - 2);
+            var b = new StringBuilder(inner.Length);
+            for (int i = 0; i < inner.Length; i++)
+            {
+                var c = inner[i];
+                if (c != '\\' || i + 1 >= inner.Length) { b.Append(c); continue; }
+                var escaped = inner[++i];
+                b.Append(escaped switch { 'r' => '\r', 'n' => '\n', 't' => '\t', '"' => '"', '\\' => '\\', _ => escaped });
+            }
+            return b.ToString();
+        }
         if (s.Length >= 2 && s[0] == '\'' && s[^1] == '\'')
             return s.Substring(1, s.Length - 2).Replace("''", "'");
         return s;
