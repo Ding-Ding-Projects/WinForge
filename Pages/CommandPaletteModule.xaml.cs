@@ -42,6 +42,12 @@ public sealed partial class CommandPaletteModule : Page
         ProvidersTitle.Text = P("Result providers", "結果提供者");
         ProvidersBlurb.Text = P("Choose which sources contribute results. Disable any you don't want.",
             "揀邊啲來源會貢獻結果。唔想用嘅可以關閉。");
+        DockTitle.Text = P("Command Palette Dock", "指令面板 Dock");
+        DockBlurb.Text = P(
+            "Keep a compact launcher on any screen edge. In the palette, press Ctrl+P to pin or unpin the selected result; saved pins stay on the Dock.",
+            "喺任何螢幕邊緣保留精簡啟動器。喺指令面板入面按 Ctrl+P 就可以釘選或者取消釘選所揀結果；已儲存嘅釘選會留喺 Dock。");
+        DockSideLabel.Text = P("Dock edge", "Dock 位置");
+        DockOpenButton.Content = P("Show Dock", "顯示 Dock");
 
         // Hotkey choices (preserve current).
         var cur = CommandPaletteService.HotkeyText;
@@ -53,6 +59,7 @@ public sealed partial class CommandPaletteModule : Page
         _suppress = false;
 
         BuildProviders();
+        BuildDockSides();
         UpdateStatus();
     }
 
@@ -79,6 +86,8 @@ public sealed partial class CommandPaletteModule : Page
         _suppress = true;
         EnableSwitch.IsOn = CommandPaletteService.Enabled;
         MaxBox.Value = CommandPaletteService.MaxResults;
+        DockSwitch.IsOn = CommandPaletteDockService.Enabled;
+        SelectDockSide();
         _suppress = false;
         UpdateStatus();
     }
@@ -91,6 +100,11 @@ public sealed partial class CommandPaletteModule : Page
                 $"已開 — 喺任何地方按 {CommandPaletteService.HotkeyText} 打開。")
             : P("Off — the global hotkey is not registered.", "已關 — 全域熱鍵未註冊。");
         OpenNowButton.IsEnabled = on;
+        DockOpenButton.IsEnabled = on;
+        var side = DockSideName(CommandPaletteDockService.Side);
+        DockStatus.Text = CommandPaletteDockService.Enabled && on
+            ? P($"On — docked at the {side.En} edge. Ctrl+P pins palette results.", $"已開 — 停靠喺{side.Zh}邊。Ctrl+P 可以釘選指令面板結果。")
+            : P("Off — enable the palette and Dock to keep the edge launcher visible.", "已關 — 啟用指令面板同 Dock 後，邊緣啟動器先會保持顯示。");
     }
 
     private void Enable_Toggled(object sender, RoutedEventArgs e)
@@ -128,5 +142,77 @@ public sealed partial class CommandPaletteModule : Page
     private void OpenNow_Click(object sender, RoutedEventArgs e)
     {
         try { CommandPaletteWindow.Open(); } catch { }
+    }
+
+    private void BuildDockSides()
+    {
+        _suppress = true;
+        DockSideCombo.Items.Clear();
+        AddDockSide(CommandPaletteDockSide.Top, "Top", "頂部");
+        AddDockSide(CommandPaletteDockSide.Bottom, "Bottom", "底部");
+        AddDockSide(CommandPaletteDockSide.Left, "Left", "左邊");
+        AddDockSide(CommandPaletteDockSide.Right, "Right", "右邊");
+        SelectDockSide();
+        _suppress = false;
+    }
+
+    private void AddDockSide(CommandPaletteDockSide side, string en, string zh)
+        => DockSideCombo.Items.Add(new ComboBoxItem { Content = $"{en} · {zh}", Tag = side });
+
+    private void SelectDockSide()
+    {
+        for (int i = 0; i < DockSideCombo.Items.Count; i++)
+        {
+            if (DockSideCombo.Items[i] is ComboBoxItem { Tag: CommandPaletteDockSide side } && side == CommandPaletteDockService.Side)
+            {
+                DockSideCombo.SelectedIndex = i;
+                return;
+            }
+        }
+    }
+
+    private (string En, string Zh) DockSideName(CommandPaletteDockSide side) => side switch
+    {
+        CommandPaletteDockSide.Top => ("top", "頂部"),
+        CommandPaletteDockSide.Left => ("left", "左"),
+        CommandPaletteDockSide.Right => ("right", "右"),
+        _ => ("bottom", "底部"),
+    };
+
+    private void Dock_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (_suppress) return;
+        CommandPaletteDockService.Enabled = DockSwitch.IsOn;
+        CommandPaletteDockService.Reapply();
+        UpdateStatus();
+    }
+
+    private void DockSide_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suppress) return;
+        if (DockSideCombo.SelectedItem is ComboBoxItem { Tag: CommandPaletteDockSide side })
+        {
+            CommandPaletteDockService.Side = side;
+            CommandPaletteDockService.Reapply();
+            UpdateStatus();
+        }
+    }
+
+    private void DockOpen_Click(object sender, RoutedEventArgs e)
+    {
+        if (!CommandPaletteService.Enabled)
+        {
+            CommandPaletteService.Enabled = true;
+            CommandPaletteService.Reapply();
+            _suppress = true;
+            EnableSwitch.IsOn = true;
+            _suppress = false;
+        }
+        CommandPaletteDockService.Enabled = true;
+        _suppress = true;
+        DockSwitch.IsOn = true;
+        _suppress = false;
+        CommandPaletteDockService.Reapply();
+        UpdateStatus();
     }
 }
