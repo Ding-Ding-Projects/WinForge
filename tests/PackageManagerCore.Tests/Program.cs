@@ -11,7 +11,10 @@ Run("YAML legacy aliases", LegacyYaml);
 Run("XML legacy aliases", LegacyXml);
 Run("blank source compatibility", BlankSource);
 Run("explicit local-source incompatibility", LocalSource);
+Run("default source command compatibility", DefaultSourceCommandCompatibility);
+Run("valid source preview and identity forwarding", ValidSourcePreviewAndIdentity);
 Run("malicious package-reference rejection", RejectsMaliciousReferences);
+Run("malicious source rejection", RejectsMaliciousSource);
 Run("malicious structured-option rejection", RejectsMaliciousStructuredOptions);
 Run("valid manager-specific references", AcceptsValidReferences);
 Run("security warnings use current fields", SecurityWarnings);
@@ -19,6 +22,8 @@ Run("HasOptions uses current schema", HasOptions);
 await RunAsyncCase("coordinator rejects unsafe options", CoordinatorRejectsUnsafeOptions);
 await RunAsyncCase("minor-update policy matches UniGetUI", MinorUpdatePolicy);
 await RunAsyncCase("option-sensitive duplicate suppression", OptionSensitiveDeduplication);
+await RunAsyncCase("source-sensitive duplicate suppression", SourceSensitiveDeduplication);
+await RunAsyncCase("known source uninstall remains operable", KnownSourceUninstallCompatibility);
 await RunAsyncCase("queued caller cancellation completes promptly", QueuedCancellation);
 await RunAsyncCase("conflicting package operations serialize", ConflictingOperationsSerialize);
 await RunAsyncCase("cancel all never starts queued work", CancelAllIsAtomic);
@@ -134,6 +139,41 @@ static void LocalSource()
     Equal(1, bundle.incompatible_packages.Count, "local incompatible count");
 }
 
+static void DefaultSourceCommandCompatibility()
+{
+    PackageOperations.Reset();
+    var command = BundleService.InstallCommandFor("winget", "Example.Tool", new InstallOptions(), source: "");
+    Assert(command.Length > 0, "blank source did not preserve default command behavior");
+    Equal("", PackageOperations.LastPreviewSource, "blank source changed preview input");
+    Equal(1, PackageOperations.BuildCalls, "default source did not reach command builder");
+
+    Assert(PackageSourcePolicy.TryResolve("dotnet", "Example.Tool", "nuget.org",
+        PackageOperations.Op.Uninstall, out var dotnetUninstall, out _), "known dotnet uninstall source was rejected");
+    Equal("", dotnetUninstall.CommandSuffix, "dotnet uninstall invented an unsupported source flag");
+}
+
+static void ValidSourcePreviewAndIdentity()
+{
+    PackageOperations.Reset();
+    Assert(PackageSourcePolicy.TryResolve("winget", "Example.Tool", "msstore",
+        PackageOperations.Op.Install, out var resolved, out _), "known winget source was rejected");
+    Equal("--source msstore", resolved.CommandSuffix, "winget source suffix");
+
+    var command = BundleService.InstallCommandFor("winget", "Example.Tool", new InstallOptions(), "msstore");
+    AssertContains(command, "--source msstore");
+    Equal("msstore", PackageOperations.LastPreviewSource, "source was dropped before preview");
+
+    var wingetKey = PackageSourcePolicy.IdentityKey("winget", "Example.Tool", "winget", PackageOperations.Op.Install);
+    var storeKey = PackageSourcePolicy.IdentityKey("winget", "Example.Tool", "msstore", PackageOperations.Op.Install);
+    var storeCaseKey = PackageSourcePolicy.IdentityKey("winget", "Example.Tool", "MSStore", PackageOperations.Op.Install);
+    Assert(wingetKey != storeKey, "different valid sources collapsed in shared identity");
+    Equal(storeKey, storeCaseKey, "source identity was not canonicalized");
+
+    Assert(PackageSourcePolicy.TryResolve("scoop", "7zip", "extras", PackageOperations.Op.Install,
+        out var scoop, out _), "known Scoop bucket was rejected");
+    Equal("extras/7zip", scoop.PackageId, "Scoop source did not qualify the package reference");
+}
+
 static void RejectsMaliciousReferences()
 {
     PackageOperations.Reset();
@@ -152,6 +192,32 @@ static void RejectsMaliciousReferences()
     });
     AssertNotContains(script, "safe & calc");
     Equal(0, PackageOperations.BuildCalls, "invalid scripted reference reached command builder");
+}
+
+static void RejectsMaliciousSource()
+{
+    const string malicious = "winget & calc";
+    PackageOperations.Reset();
+    Equal("", BundleService.InstallCommandFor("winget", "Example.Tool", new InstallOptions(), malicious),
+        "accepted malicious source");
+    Equal(0, PackageOperations.BuildCalls, "malicious source reached command builder");
+
+    var bundle = BundleService.ToBundle(new[]
+    {
+        new PackageItem { ManagerKey = "winget", Id = "Example.Tool", Source = malicious },
+    });
+    Equal(0, bundle.packages.Count, "malicious source stayed compatible in bundle");
+    Equal(1, bundle.incompatible_packages.Count, "malicious source was not logged incompatible");
+
+    var script = BundleService.GenerateInstallScript(new SerializableBundle
+    {
+        packages = new()
+        {
+            new() { ManagerName = "winget", Id = "Example.Tool", Name = "Unsafe source", Source = malicious },
+        },
+    });
+    AssertNotContains(script, malicious);
+    Equal(0, PackageOperations.BuildCalls, "malicious scripted source reached command builder");
 }
 
 static void AcceptsValidReferences()
@@ -288,6 +354,50 @@ static async Task OptionSensitiveDeduplication()
     release.TrySetResult(true);
     await Task.WhenAll(first.Completion, duplicate.Completion, distinct.Completion).WaitAsync(TimeSpan.FromSeconds(5));
     Equal(2, PackageOperations.RunCalls, "distinct operation count");
+    PackageOperationCoordinator.ClearHistory();
+}
+
+static async Task SourceSensitiveDeduplication()
+{
+    PackageOperations.Reset();
+    PackageManagerSettings.ParallelOperationCount = 1;
+    var release = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+    PackageOperations.Runner = async (_, _, _, _, _, ct) =>
+    {
+        await release.Task.WaitAsync(ct);
+        return WinForge.Models.TweakResult.Ok("ok", "成功");
+    };
+
+    var id = UniqueId("source-dedupe");
+    var winget = Item("winget", id); winget.Source = "winget";
+    var store = Item("winget", id); store.Source = "msstore";
+    var first = PackageOperationCoordinator.Enqueue(winget, PackageOperations.Op.Install);
+    await WaitUntil(() => PackageOperations.RunCalls == 1);
+    var sameSourceDifferentCase = PackageOperationCoordinator.Enqueue(
+        new PackageItem { ManagerKey = "winget", Id = id, Name = id, Source = "WINGET" },
+        PackageOperations.Op.Install);
+    var distinctSource = PackageOperationCoordinator.Enqueue(store, PackageOperations.Op.Install);
+    Equal(first.Id, sameSourceDifferentCase.Id, "equivalent source operation was not deduplicated");
+    Assert(distinctSource.Id != first.Id, "same ID from a distinct source was silently deduplicated");
+
+    release.TrySetResult(true);
+    await Task.WhenAll(first.Completion, sameSourceDifferentCase.Completion, distinctSource.Completion)
+        .WaitAsync(TimeSpan.FromSeconds(5));
+    Equal(2, PackageOperations.RunCalls, "distinct source operation count");
+    Assert(PackageOperations.RunSources.Contains("winget"), "winget source was not forwarded to runner");
+    Assert(PackageOperations.RunSources.Contains("msstore"), "msstore source was not forwarded to runner");
+    PackageOperationCoordinator.ClearHistory();
+}
+
+static async Task KnownSourceUninstallCompatibility()
+{
+    PackageOperations.Reset();
+    var item = Item("dotnet", UniqueId("known-source-uninstall"));
+    item.Source = "nuget.org";
+    var snapshot = await PackageOperationCoordinator.RunAsync(item, PackageOperations.Op.Uninstall);
+    Equal(PackageOperationStatus.Succeeded, snapshot.Status, "known source uninstall status");
+    Equal("nuget.org", snapshot.Source, "queue snapshot lost source metadata");
+    Equal("nuget.org", PackageOperations.LastRunSource, "known source was dropped before runner");
     PackageOperationCoordinator.ClearHistory();
 }
 

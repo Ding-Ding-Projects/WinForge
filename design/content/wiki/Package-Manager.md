@@ -13,6 +13,7 @@
 - PowerShell 7 honors requested versions and removes older versions only after a successful update. · PowerShell 7 會跟指定版本，亦只會喺更新成功後先清走舊版本。
 - Bun searches the npm registry directly and reads global state from `~/.bun/install/global`, without requiring npm. · Bun 直接搜尋 npm registry，再由 `~/.bun/install/global` 讀取全域狀態，唔需要 npm。
 - Safe IDs include vcpkg feature commas and npm tildes, while shell metacharacters stay blocked. · 安全 ID 支援 vcpkg feature 逗號同 npm 波浪號，shell 特殊字元仍然會被阻擋。
+- Selected package sources are preserved through preview, multi-select/bundle identity, queueing and execution by `PackageSourcePolicy`. It emits only manager-valid source forms (`--source`, a Scoop bucket-qualified id, fixed trusted registry endpoints, or supported PowerShell repository parameters); empty sources keep the configured default, and no-selector update/remove operations retain validated source metadata without inventing a flag. Local, unknown, malformed and unsupported source text is rejected before it can reach a command. · `PackageSourcePolicy` 會保留所揀套件來源，經過預覽、多選／清單身份、排隊同執行。佢只會輸出管理器有效嘅來源形式（`--source`、Scoop bucket-qualified id、固定可信 registry endpoint，或者支援嘅 PowerShell repository 參數）；空白來源保留已設定預設，冇來源選擇器嘅更新／移除操作會保留已驗證來源中繼資料而唔會亂加旗標。本機、未知、格式錯誤同唔支援嘅來源文字未到指令之前就會被拒絕。
 
 The complete pinned `ThirdParty/UniGetUI` source remains provenance for audit and native parity work only. Its UI, IPC and telemetry are not compiled or launched. · 完整釘選嘅 `ThirdParty/UniGetUI` 原始碼只作審核同原生功能對等參考；上游 UI、IPC 同 telemetry 唔會被編譯或啟動。
 

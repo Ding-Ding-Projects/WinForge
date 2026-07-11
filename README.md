@@ -142,6 +142,18 @@ generation cases.
 專注 crypto／clipboard regression 會檢查相同、替換、null、空白文字同 stale-timer
 generation 情況。
 
+**EN —** Package Manager now preserves a selected package or bundle source through
+the command preview, multi-select identity, shared queue and runner. A single
+policy turns only validated manager-specific sources into real flags or trusted
+registry endpoints; an empty source keeps the manager default, no-selector
+uninstall/update paths retain safe source metadata, and local, unknown or unsafe
+source text is rejected before it reaches a command.
+
+**粵語 —** 套件管理器而家會將所揀套件或者清單來源一路保留到指令預覽、多選身份、
+共用佇列同 runner。單一政策只會將已驗證、管理器專用嘅來源變成真實旗標或者可信
+registry endpoint；空白來源會保留管理器預設，冇來源選擇器嘅解除安裝／更新路徑會
+保留安全來源中繼資料，而本機、未知或者唔安全來源文字未到指令之前已經拒絕。
+
 **EN —** The latest checkpoints fixed Base Converter and CSV ⇄ JSON startup
 faults exposed by the route sweep; fresh self-contained `--page baseconvert`
 and `--page csvjson` launches now pass. See the

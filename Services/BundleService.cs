@@ -27,7 +27,7 @@ namespace WinForge.Services;
 
 /// <summary>
 /// 一個套件清單（版本化）· One versioned bundle: compatible packages + a separate
-/// list of incompatible ones (local / unknown source) kept for logging only.
+/// list of incompatible ones (local / unknown / unsupported source) kept for logging only.
 /// </summary>
 public sealed class SerializableBundle
 {
@@ -52,7 +52,7 @@ public sealed class SerializablePackage
 }
 
 /// <summary>
-/// 不相容套件（本機／未知來源）· An incompatible package (local / unknown source) — kept
+/// 不相容套件（本機／未知／唔支援來源）· An incompatible package (local / unknown / unsupported source) — kept
 /// for logging only; it cannot be reinstalled from the bundle.
 /// </summary>
 public sealed class SerializableIncompatiblePackage
@@ -146,8 +146,7 @@ public static class BundleService
             foreach (var i in items)
             {
                 if (i is null) continue;
-                if (IsIncompatibleSource(i.Source)
-                    || !TryValidatePackageReference(i.ManagerKey, i.Id, out _, out _))
+                if (!CanInstallPackage(i.ManagerKey, i.Id, i.Source))
                 {
                     bundle.incompatible_packages.Add(new SerializableIncompatiblePackage
                     {
@@ -183,11 +182,7 @@ public static class BundleService
     /// </summary>
     private static bool IsIncompatibleSource(string? source)
     {
-        var s = (source ?? "").Trim().ToLowerInvariant();
-        return s == "local"
-            || s == "local pc"
-            || s == "msstore-fallback"
-            || s == "unknown";
+        return PackageSourcePolicy.IsExplicitlyIncompatible(source);
     }
 
     // ===== JSON =====
@@ -233,6 +228,7 @@ public static class BundleService
                     });
         }
         catch { /* defensive — return whatever parsed */ }
+        NormalizeBundleCompatibility(bundle);
         return bundle;
     }
 
@@ -268,13 +264,14 @@ public static class BundleService
                     Source = src,
                     ManagerName = mgr,
                 };
-                if (mgr.Length == 0 || IsIncompatibleSource(src))
+                if (!CanInstallPackage(mgr, pkg.Id, src))
                     bundle.incompatible_packages.Add(new SerializableIncompatiblePackage { Id = pkg.Id, Name = pkg.Name, Version = pkg.Version, Source = pkg.Source });
                 else
                     bundle.packages.Add(pkg);
             }
         }
         catch { }
+        NormalizeBundleCompatibility(bundle);
         return bundle;
     }
 
@@ -470,6 +467,7 @@ public static class BundleService
             Flush();
         }
         catch { }
+        NormalizeBundleCompatibility(bundle);
         return bundle;
     }
 
@@ -600,6 +598,7 @@ public static class BundleService
                     });
         }
         catch { }
+        NormalizeBundleCompatibility(bundle);
         return bundle;
     }
 
@@ -682,15 +681,17 @@ public static class BundleService
     /// Build the install command line for one package, mirroring what the app's
     /// per-manager InstallAsync drivers run. Returns "" if the manager is unknown.
     /// </summary>
-    public static string InstallCommandFor(string managerKey, string id, InstallOptions? opts = null)
+    public static string InstallCommandFor(string managerKey, string id, InstallOptions? opts = null, string? source = null)
     {
         try
         {
             if (!TryValidatePackageReference(managerKey, id, out var key, out var packageId)) return "";
+            if (!PackageSourcePolicy.TryResolve(key, packageId, source, PackageOperations.Op.Install,
+                out _, out _)) return "";
             var effective = opts ?? new InstallOptions();
             if (!TryValidateStructuredOptions(effective, out _)) return "";
             var command = PackageOperations.BuildCommandPreview(
-                key, packageId, PackageOperations.Op.Install, effective);
+                key, packageId, source, PackageOperations.Op.Install, effective);
             if (string.IsNullOrWhiteSpace(command) || command.StartsWith('#')) return "";
             if (key is "psgallery" or "pwsh7")
             {
@@ -719,7 +720,7 @@ public static class BundleService
             var entries = new List<(string name, string cmd)>();
             foreach (var p in bundle.packages)
             {
-                var cmd = InstallCommandFor(p.ManagerName, p.Id, p.InstallationOptions);
+                var cmd = InstallCommandFor(p.ManagerName, p.Id, p.InstallationOptions, p.Source);
                 if (cmd.Length == 0) continue;
                 entries.Add((string.IsNullOrEmpty(p.Name) ? p.Id : p.Name, cmd));
             }
@@ -809,10 +810,15 @@ public static class BundleService
             {
                 var name = string.IsNullOrEmpty(p.Name) ? p.Id : p.Name;
 
-                if (!TryValidatePackageReference(p.ManagerName, p.Id, out _, out _))
+                if (!TryValidatePackageReference(p.ManagerName, p.Id, out var managerKey, out var packageId))
                     report.Warnings.Add(new LocalizedText(
                         $"“{name}” has an invalid manager or package ID and will not be scripted.",
                         $"「{name}」嘅管理器或套件 ID 無效，唔會寫入安裝指令稿。"));
+                else if (!PackageSourcePolicy.TryResolve(managerKey, packageId, p.Source,
+                    PackageOperations.Op.Install, out _, out _))
+                    report.Warnings.Add(new LocalizedText(
+                        $"“{name}” has a source that is unsafe or unsupported for installation and will not be scripted.",
+                        $"「{name}」嘅來源對安裝嚟講唔安全或者唔支援，唔會寫入安裝指令稿。"));
 
                 var o = p.InstallationOptions;
                 if (o is null) continue;
@@ -1060,6 +1066,43 @@ public static class BundleService
         "winget", "scoop", "choco", "pip", "npm", "dotnet",
         "psgallery", "pwsh7", "cargo", "bun", "vcpkg",
     };
+
+    /// <summary>
+    /// A bundle package is compatible only when both its manager/id reference and its selected
+    /// install source can be represented safely by the native command policy.
+    /// </summary>
+    private static bool CanInstallPackage(string? managerKey, string? id, string? source)
+    {
+        if (!TryValidatePackageReference(managerKey, id, out var normalizedManager, out var normalizedId))
+            return false;
+        return PackageSourcePolicy.TryResolve(normalizedManager, normalizedId, source,
+            PackageOperations.Op.Install, out _, out _);
+    }
+
+    /// <summary>
+    /// Imported JSON/YAML/XML may contain source labels that cannot safely select a package. Keep
+    /// them as logged incompatibles instead of leaving a later UI/import path to discard the source.
+    /// </summary>
+    private static void NormalizeBundleCompatibility(SerializableBundle bundle)
+    {
+        try
+        {
+            if (bundle is null) return;
+            foreach (var package in bundle.packages.ToList())
+            {
+                if (CanInstallPackage(package.ManagerName, package.Id, package.Source)) continue;
+                bundle.packages.Remove(package);
+                bundle.incompatible_packages.Add(new SerializableIncompatiblePackage
+                {
+                    Id = package.Id ?? "",
+                    Name = package.Name ?? "",
+                    Version = package.Version ?? "",
+                    Source = package.Source ?? "",
+                });
+            }
+        }
+        catch { /* retain parsed packages rather than throwing from an import boundary */ }
+    }
 
     private static bool TryValidatePackageReference(
         string? managerKey, string? id, out string normalizedManager, out string normalizedId)

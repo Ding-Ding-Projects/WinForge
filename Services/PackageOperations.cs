@@ -48,27 +48,41 @@ public static class PackageOperations
     /// For PowerShell-backed engines this returns the equivalent cmdlet line.
     /// </summary>
     public static string BuildCommandPreview(string managerKey, string id, Op op, InstallOptions o)
+        => BuildCommandPreview(managerKey, id, "", op, o);
+
+    /// <summary>
+    /// Build the exact operation command while preserving a selected package source. The source is
+    /// resolved solely by <see cref="PackageSourcePolicy"/>; callers never get to append arbitrary
+    /// source text to a command line.
+    /// </summary>
+    public static string BuildCommandPreview(string managerKey, string id, string? source, Op op, InstallOptions o)
     {
         try
         {
             o ??= new InstallOptions();
             var key = (managerKey ?? "").ToLowerInvariant();
+            if (!PackageSourcePolicy.TryResolve(key, id, source, op, out var resolvedSource, out var sourceFailure))
+                return "# " + PackageSourcePolicy.MessageFor(sourceFailure).Code;
+            var packageId = resolvedSource.PackageId;
             var extra = (CustomArgsFor(o, op) ?? "").Trim();
             string cmd = key switch
             {
-                "winget" => Winget(id, op, o),
-                "scoop" => Scoop(id, op, o),
-                "choco" => Choco(id, op, o),
-                "pip" => Pip(id, op, o),
-                "npm" => Npm(id, op, o),
-                "bun" => Bun(id, op, o),
-                "dotnet" => Dotnet(id, op, o),
-                "cargo" => Cargo(id, op, o),
-                "vcpkg" => Vcpkg(id, op, o),
-                "psgallery" => PsGallery(id, op, o),
-                "pwsh7" => Pwsh7(id, op, o),
-                _ => $"{(string.IsNullOrEmpty(key) ? "?" : key)} {op.ToString().ToLowerInvariant()} {Q(id)}",
+                "winget" => Winget(packageId, op, o),
+                "scoop" => Scoop(packageId, op, o),
+                "choco" => Choco(packageId, op, o),
+                "pip" => Pip(packageId, op, o),
+                "npm" => Npm(packageId, op, o),
+                "bun" => Bun(packageId, op, o),
+                "dotnet" => Dotnet(packageId, op, o),
+                "cargo" => Cargo(packageId, op, o),
+                "vcpkg" => Vcpkg(packageId, op, o),
+                "psgallery" => PsGallery(packageId, op, o),
+                "pwsh7" => Pwsh7(packageId, op, o),
+                _ => $"{(string.IsNullOrEmpty(key) ? "?" : key)} {op.ToString().ToLowerInvariant()} {Q(packageId)}",
             };
+            // CommandSuffix can only come from PackageSourcePolicy: a fixed manager flag paired
+            // with a validated source token or a trusted built-in registry endpoint.
+            if (!string.IsNullOrWhiteSpace(resolvedSource.CommandSuffix)) cmd += " " + resolvedSource.CommandSuffix;
             if (extra.Length > 0) cmd += " " + extra;
             cmd = ApplyManagerSettings(key, cmd);
             return cmd.Trim();
@@ -401,20 +415,38 @@ public static class PackageOperations
     /// 永遠唔擲例外 · Never throws — wrapped and returned as TweakResult.
     /// </summary>
     public static Task<TweakResult> RunAsync(string managerKey, string id, Op op, InstallOptions o, CancellationToken ct)
-        => RunAsync(managerKey, id, op, o, onLine: null, ct);
+        => RunAsync(managerKey, id, "", op, o, null, ct);
+
+    /// <summary>Run an operation with a selected source retained from its package row/bundle.</summary>
+    public static Task<TweakResult> RunAsync(string managerKey, string id, string? source, Op op,
+        InstallOptions o, CancellationToken ct)
+        => RunAsync(managerKey, id, source, op, o, null, ct);
 
     /// <summary>
     /// 同上，但逐行串流輸出畀進度／狀態 UI · Same as <see cref="RunAsync(string,string,Op,InstallOptions,CancellationToken)"/>
     /// but reports each output line via <paramref name="onLine"/> so a progress / status UI can show live output.
     /// 永遠唔擲例外 · Never throws — wrapped and returned as a TweakResult carrying the real exit code + output.
     /// </summary>
-    public static async Task<TweakResult> RunAsync(string managerKey, string id, Op op, InstallOptions o,
+    public static Task<TweakResult> RunAsync(string managerKey, string id, Op op, InstallOptions o,
+        IProgress<string>? onLine, CancellationToken ct)
+        => RunAsync(managerKey, id, "", op, o, onLine, ct);
+
+    /// <summary>
+    /// Same as the streaming overload above, with an explicit package source validated before any
+    /// hook or shell process can run.
+    /// </summary>
+    public static async Task<TweakResult> RunAsync(string managerKey, string id, string? source, Op op, InstallOptions o,
         IProgress<string>? onLine, CancellationToken ct)
     {
         try
         {
             o ??= new InstallOptions();
             var key = (managerKey ?? "").ToLowerInvariant();
+            if (!PackageSourcePolicy.TryResolve(key, id, source, op, out _, out var sourceFailure))
+            {
+                var message = PackageSourcePolicy.MessageFor(sourceFailure);
+                return TweakResult.Fail(message.En, message.Zh) with { Code = message.Code };
+            }
             bool elevated = o.RunAsAdministrator;
 
             // (a) 操作前關閉程序 · Kill processes before the operation.
@@ -455,7 +487,7 @@ public static class PackageOperations
             }
 
             // (c) 主要操作 · The main command (with absolute-path resolution for the CLI token).
-            var cmd = ResolveCliToken(key, BuildCommandPreview(key, id, op, o));
+            var cmd = ResolveCliToken(key, BuildCommandPreview(key, id, source, op, o));
             TweakResult main;
             try
             {

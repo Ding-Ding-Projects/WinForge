@@ -23,14 +23,17 @@ public sealed partial class PackageManagerModule : Page
     private readonly Dictionary<string, bool> _available = new(StringComparer.OrdinalIgnoreCase);
     private int _view; // 0 Discover, 1 Updates, 2 Installed, 3 Bundles, 4 Sources, 5 Ignored, 6 Setup, 7 Settings, 8 Operations
     private HashSet<string> _wingetInstalled = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, PackageItem> _selectedPkgs = new(StringComparer.OrdinalIgnoreCase); // 已勾選套件 · checked packages keyed by "manager|id"
+    private readonly Dictionary<string, PackageItem> _selectedPkgs = new(StringComparer.OrdinalIgnoreCase); // 已勾選套件 · checked packages keyed by "manager|id|source"
     private readonly List<PackageItem> _lastDiscoverResults = new();
     private string _lastDiscoverQuery = "";
     private bool _syncingSearchOptions;
     private bool _eventsSubscribed;
     private int _operationRefreshPending;
 
-    private static string PkgKey(PackageItem i) => $"{i.ManagerKey}|{i.Id}";
+    /// <summary>Selection identity includes the validated source so two same-ID search results do not collapse.</summary>
+    private static string PkgKey(PackageItem i)
+        => PackageSourcePolicy.IdentityKey(i?.ManagerKey, i?.Id, i?.Source,
+            PackageOperations.Op.Install);
 
     // 更新忽略／釘版改由 IgnoredUpdates 服務（UniGetUI 式釘版）處理 · ignore/pin now delegated to IgnoredUpdates.
     private const string IgnoreNotApplicableKey = "pkg.ignore.notapplicable";
@@ -1521,7 +1524,7 @@ public sealed partial class PackageManagerModule : Page
             {
                 var options = InstallOptions.Load(item.ManagerKey, item.Id);
                 CopyText(PackageOperations.BuildCommandPreview(
-                    item.ManagerKey, item.Id, PackageOperations.Op.Install, options),
+                    item.ManagerKey, item.Id, item.Source, PackageOperations.Op.Install, options),
                     P("install command", "安裝指令"));
             }
             catch (Exception ex) { ResultsHeader.Text = ex.Message; }
@@ -1541,7 +1544,7 @@ public sealed partial class PackageManagerModule : Page
         copy.Click += (_, _) =>
         {
             var opts = InstallOptions.Load(item.ManagerKey, item.Id);
-            var cmd = PackageOperations.BuildCommandPreview(item.ManagerKey, item.Id, op, opts);
+            var cmd = PackageOperations.BuildCommandPreview(item.ManagerKey, item.Id, item.Source, op, opts);
             CopyText(cmd, P("operation command", "操作指令"));
         };
         items.Add(copy);

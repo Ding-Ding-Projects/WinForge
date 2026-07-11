@@ -25,6 +25,7 @@ Fuel Factory → .fuel → Reactor → electrical power → Cake Factory → cak
 - The fuel factory and cake factory mint **real, signed, downloadable files** (`.fuel` / `.cake`). Load a `.fuel` into the reactor to refuel; import a `.cake` to validate/eat it.
 - All simulator state is saved to `localStorage`, so closing the tab does not lose progress.
 - Site deep links open the app replica **silently** (background iframe) and press the target control.
+- Package Manager documentation is authored under `docs/wiki/` and embedded into `winforge-data.js` by `tools/regen-site-data.ps1`; its source-selection contract is therefore kept in the GitHub Pages wiki as well as the shipped README. · 套件管理器文件會喺 `docs/wiki/` 編寫，再由 `tools/regen-site-data.ps1` 嵌入 `winforge-data.js`；所以來源揀選契約會同時保留喺 GitHub Pages wiki 同 shipped README。
 
 ## Deploy to GitHub Pages
 

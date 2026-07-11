@@ -322,18 +322,23 @@ public sealed partial class BundleWorkspaceDialog : ContentDialog
         // 只附加真正儲存咗嘅逐套件覆寫；冇覆寫時唔好將全域預設冒充為套件設定。
         // Attach only a real saved per-package override; do not serialize global defaults as package options.
         var add = BundleService.ToBundle(_seed, SavedPackageOptions);
-        // 去重（按 manager|id）· de-dupe by manager|id.
-        var existing = new HashSet<string>(_bundle.packages.Select(p => $"{p.ManagerName}|{p.Id}"), StringComparer.OrdinalIgnoreCase);
+        // 去重（按 manager|id|source）· de-dupe by manager|id|source. A same-ID package
+        // from a second registered source is a distinct, intentional bundle entry.
+        var existing = new HashSet<string>(_bundle.packages.Select(BundleKey), StringComparer.OrdinalIgnoreCase);
         var existingInc = new HashSet<string>(_bundle.incompatible_packages.Select(p => $"{p.Source}|{p.Id}"), StringComparer.OrdinalIgnoreCase);
         int added = 0;
         foreach (var p in add.packages)
-            if (existing.Add($"{p.ManagerName}|{p.Id}")) { _bundle.packages.Add(p); added++; }
+            if (existing.Add(BundleKey(p))) { _bundle.packages.Add(p); added++; }
         foreach (var p in add.incompatible_packages)
             if (existingInc.Add($"{p.Source}|{p.Id}")) { _bundle.incompatible_packages.Add(p); added++; }
         if (added > 0) SetDirty(true);
         RebuildRows();
         StatusText.Text = P($"Added {added} new package(s).", $"加入咗 {added} 個新套件。");
     }
+
+    private static string BundleKey(SerializablePackage package)
+        => PackageSourcePolicy.IdentityKey(package?.ManagerName, package?.Id, package?.Source,
+            PackageOperations.Op.Install);
 
     /// <summary>讀已儲存嘅逐套件覆寫，畀清單匯出用 · Load a saved per-package override for bundle export.</summary>
     private static InstallOptions? SavedPackageOptions(PackageItem item)
