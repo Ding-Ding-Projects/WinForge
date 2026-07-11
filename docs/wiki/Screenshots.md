@@ -106,6 +106,10 @@ not visual verification.
 新嘅 Package Manager PNG。之後 `-NoCapture` launch 通過，但呢份證據係
 `capture-blocked`，唔係視覺驗證。
 
+**EN —** The Pumped-Hydro state-integrity repair is nonvisual service/code-behind work: no XAML layout or control surface changed. To avoid interfering with the active Batch 09 route sweep, no competing GUI, screenshot attempt, PNG creation/replacement, or visual-pass claim was made; screenshot replacement is not applicable.
+
+**粵語 —** 抽水蓄能狀態完整性修正係非視覺嘅 service／code-behind 工作：冇改 XAML 排版或者控制介面。為咗唔干擾進行中嘅 Batch 09 route sweep，冇開另一個 GUI、冇試截圖、冇產生／替換 PNG，亦冇聲稱 visual-pass；唔適用截圖替換。
+
 ## Redaction Rules · 遮蔽規則
 
 **EN —** Before adding screenshots, redact or avoid personal data: Windows usernames, home-folder paths, repo paths outside WinForge, hostnames, IPs that identify private networks, account names, emails, API keys, tokens, session cookies, vault item names, SSH profiles, and real package/source credentials. Use `winforge-shot --redact "x|y|w|h|box|blur|pixelate"` to obscure regions irreversibly; see the [Wiki Screenshot Workflow](Wiki-Screenshot-Workflow.md).
