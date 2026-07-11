@@ -1,16 +1,16 @@
-# RefreshProfilesBtn · Button
+# RawStopBtn · Button
 
-**EN —** Action/control documented from the WinUI XAML source for **AWS CLI**.
-**粵語 —** 呢個動作／控制項係由 **AWS 命令列** 嘅 WinUI XAML 來源整理出嚟。
+**EN —** Action/control documented from the WinUI XAML source for **AWS Manager**.
+**粵語 —** 呢個動作／控制項係由 **AWS 管理中心** 嘅 WinUI XAML 來源整理出嚟。
 
 | Field · 欄位 | Value · 值 |
 |---|---|
-| Module · 模組 | [AWS CLI · AWS 命令列](../../../features/apps-git-git/aws.md) |
+| Module · 模組 | [AWS Manager · AWS 管理中心](../../../features/apps-git-git/aws.md) |
 | Category · 分類 | Apps & Git · 程式與 Git |
 | Control type · 控制類型 | <code>Button</code> |
-| XAML name · XAML 名稱 | <code>RefreshProfilesBtn</code> |
-| Label / tooltip · 標籤／提示 | RefreshProfilesBtn |
-| Handler · 處理函式 | <code>RefreshProfiles_Click</code> |
+| XAML name · XAML 名稱 | <code>RawStopBtn</code> |
+| Label / tooltip · 標籤／提示 | RawStopBtn |
+| Handler · 處理函式 | <code>RawStop_Click</code> |
 | Source · 來源 | <code>Pages/AwsCliModule.xaml</code> |
 
 ## Operator Notes · 操作備註
