@@ -18,7 +18,7 @@ public sealed partial class MarkdownTocModule : Page
     public MarkdownTocModule()
     {
         InitializeComponent();
-        // The self-contained runtime cannot reliably convert these NumberBox
+        // The self-contained runtime cannot reliably convert these typed
         // defaults from XAML. Preserve them without firing live regeneration.
         _suppress = true;
         MinBox.Value = 1;
