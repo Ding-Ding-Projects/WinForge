@@ -16,9 +16,9 @@ Generated on 2026-07-11 from the live source:
 | Deep-link aliases · 深層連結別名 | 785 |
 | Companion specifications · Companion 規格 | 4 |
 | External-app launcher specifications · 外部 app launcher 規格 | 15 |
-| First-party source files in review queue · source files 審查佇列 | 1,246 |
-| First-party source lines in review queue · source lines 審查佇列 | 335,243 |
-| Test projects · 測試專案 | 5 |
+| First-party source files in review queue · source files 審查佇列 | 1,251 |
+| First-party source lines in review queue · source lines 審查佇列 | 336,087 |
+| Test projects · 測試專案 | 7 |
 | Wiki pages · Wiki 頁面 | 2,192 |
 
 **EN —** Counts are regenerated when registry, navigation, pages, or source files change; they are a point-in-time audit snapshot rather than a permanent product claim.
@@ -198,5 +198,35 @@ self-contained `--page csvjson` launch 同 focused runner retest 都通過，令
 
 - No screenshot is claimed: the desktop capture environment remains blocked,
   so the retest supplies launch evidence rather than visual evidence.
+
+## AI Chat DPAPI persistence regression · AI Chat DPAPI 持久化回歸
+
+**EN —** The source review found that a DPAPI protect or unprotect failure could
+previously collapse an existing provider API key to an empty string on a later
+save. `AiProviderPersistence` now receives an injectable secret protector. An
+unreadable `dpapi:` blob is retained verbatim while unrelated provider fields
+are edited; a failed protect aborts the complete provider-file write; and a
+user-entered non-empty replacement is the only path that replaces an unreadable
+key. `AiChatPersistence.Tests` exercised these branches with a fake protector:
+**5/5 passed** on 2026-07-11. A full Debug x64 solution build also passed with
+0 errors (318 warnings).
+
+**粵語 —** source review 發現，以前 DPAPI protect 或 unprotect 失敗之後，下一次
+save 有機會將已有嘅供應商 API 金鑰變成空字串。`AiProviderPersistence` 而家會收一個
+可以注入嘅 secret protector。讀唔到嘅 `dpapi:` blob 喺改其他供應商欄位嗰陣會原封不動
+保留；protect 失敗會取消成份供應商檔案寫入；而只有人手輸入嘅非空白替代金鑰先可以取代
+讀唔到嘅金鑰。`AiChatPersistence.Tests` 用 fake protector 跑過呢啲 branches：2026-07-11
+**5/5 通過**。完整 Debug x64 solution build 都以 0 errors 通過（318 warnings）。
+
+- **Visual evidence · 視覺證據：** The warning/error is a failure-only AI Chat
+  state, so no real credential or DPAPI failure was induced. A safe capture
+  attempt published the current self-contained build, then
+  `driver.ps1 -Page aichat -WaitMs 8000` stopped before capture because no
+  dedicated WinForge window appeared; an existing instance may have intercepted
+  the launch. Therefore this state is `capture-blocked`, no screenshot was
+  created or replaced, and no visual-pass claim is made.
+- **Safety disposition · 安全處置：** The regression test uses an isolated
+  temporary provider file and fake protector only. It never writes a real API
+  key or invokes a provider network request.
 
 [← Wiki Home](Home.md) · [Developer](Developer.md) · [Screenshots](Screenshots.md)

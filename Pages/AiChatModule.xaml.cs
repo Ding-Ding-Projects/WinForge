@@ -820,19 +820,19 @@ public sealed partial class AiChatModule : Page
         var addOllama = new Button { Content = "+ Ollama" };
         addOllama.Click += (_, _) =>
         {
-            _svc.UpsertProvider(new AiProvider { Name = "Ollama", Kind = AiProviderKind.Ollama, BaseUrl = "http://localhost:11434" });
+            SaveProvider(new AiProvider { Name = "Ollama", Kind = AiProviderKind.Ollama, BaseUrl = "http://localhost:11434" });
             RefreshProvidersPanel(); RefreshProviderPicker();
         };
         var addOpenAi = new Button { Content = "+ OpenAI-compatible" };
         addOpenAi.Click += (_, _) =>
         {
-            _svc.UpsertProvider(new AiProvider { Name = "OpenAI-compatible", Kind = AiProviderKind.OpenAiCompatible, BaseUrl = "https://api.openai.com" });
+            SaveProvider(new AiProvider { Name = "OpenAI-compatible", Kind = AiProviderKind.OpenAiCompatible, BaseUrl = "https://api.openai.com" });
             RefreshProvidersPanel(); RefreshProviderPicker();
         };
         var addCli = new Button { Content = "+ CLI agents" };
         addCli.Click += (_, _) =>
         {
-            _svc.UpsertProvider(new AiProvider { Name = "CLI agents · CLI 代理", Kind = AiProviderKind.Cli });
+            SaveProvider(new AiProvider { Name = "CLI agents · CLI 代理", Kind = AiProviderKind.Cli });
             RefreshProvidersPanel(); RefreshProviderPicker();
         };
         addRow.Children.Add(addOllama);
@@ -963,15 +963,35 @@ public sealed partial class AiChatModule : Page
     private FrameworkElement BuildProviderEditor(AiProvider p, Action refresh)
     {
         var panel = new StackPanel { Spacing = 6 };
+        bool SaveEditor()
+        {
+            if (SaveProvider(p))
+            {
+                RefreshProviderPicker();
+                return true;
+            }
+            // Keep the user's pending edit visible after an error. A later edit can retry
+            // the save, while the service and the on-disk snapshot remain unchanged.
+            return false;
+        }
+
         var head = new Grid { ColumnSpacing = 8 };
         head.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         head.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
         var nameBox = new TextBox { Text = p.Name, PlaceholderText = P("Name", "名稱") };
-        nameBox.LostFocus += (_, _) => { p.Name = nameBox.Text?.Trim() ?? p.Name; _svc.UpsertProvider(p); RefreshProviderPicker(); };
+        nameBox.LostFocus += (_, _) => { p.Name = nameBox.Text?.Trim() ?? p.Name; SaveEditor(); };
         head.Children.Add(nameBox);
         var delBtn = new Button { Content = new FontIcon { FontSize = 12, Glyph = "" } };
-        delBtn.Click += (_, _) => { _svc.DeleteProvider(p.Id); RefreshProviderPicker(); refresh(); };
+        delBtn.Click += (_, _) =>
+        {
+            if (_svc.DeleteProvider(p.Id))
+            {
+                RefreshProviderPicker();
+                refresh();
+            }
+            else ShowProviderSaveFailure();
+        };
         Grid.SetColumn(delBtn, 1);
         head.Children.Add(delBtn);
         panel.Children.Add(head);
@@ -991,19 +1011,32 @@ public sealed partial class AiChatModule : Page
         if (p.Kind != AiProviderKind.Cli)
         {
             var urlBox = new TextBox { Text = p.BaseUrl, PlaceholderText = "https://… / http://localhost:11434", Header = P("Base URL", "基底網址") };
-            urlBox.LostFocus += (_, _) => { p.BaseUrl = urlBox.Text?.Trim() ?? ""; _svc.UpsertProvider(p); };
+            urlBox.LostFocus += (_, _) => { p.BaseUrl = urlBox.Text?.Trim() ?? ""; SaveEditor(); };
             panel.Children.Add(urlBox);
         }
 
         if (p.Kind == AiProviderKind.OpenAiCompatible)
         {
             var keyBox = new PasswordBox { Password = p.ApiKey, Header = P("API key (stored encrypted · DPAPI)", "API 金鑰（加密儲存 · DPAPI）") };
-            keyBox.LostFocus += (_, _) => { p.ApiKey = keyBox.Password ?? ""; _svc.UpsertProvider(p); };
+            keyBox.LostFocus += (_, _) => { p.ApiKey = keyBox.Password ?? ""; SaveEditor(); };
             panel.Children.Add(keyBox);
+            if (_svc.HasUnreadableProviderSecret(p.Id))
+            {
+                panel.Children.Add(new InfoBar
+                {
+                    IsOpen = true,
+                    IsClosable = false,
+                    Severity = InfoBarSeverity.Warning,
+                    Title = P("Saved API key is unavailable", "已儲存嘅 API 金鑰而家用唔到"),
+                    Message = P(
+                        "The encrypted key could not be read in this Windows user context. It remains preserved on disk; enter a replacement key only if you intend to replace it.",
+                        "加密金鑰喺而家呢個 Windows 用戶環境讀唔到，但磁碟上嘅資料已保留；只喺你真係想換匙時先輸入替代金鑰。"),
+                });
+            }
         }
 
         var defModelBox = new TextBox { Text = p.DefaultModel, PlaceholderText = P("default model id (optional)", "預設模型 id（可選）"), Header = P("Default model", "預設模型") };
-        defModelBox.LostFocus += (_, _) => { p.DefaultModel = defModelBox.Text?.Trim() ?? ""; _svc.UpsertProvider(p); };
+        defModelBox.LostFocus += (_, _) => { p.DefaultModel = defModelBox.Text?.Trim() ?? ""; SaveEditor(); };
         panel.Children.Add(defModelBox);
 
         return new Border
@@ -1015,6 +1048,21 @@ public sealed partial class AiChatModule : Page
             CornerRadius = new CornerRadius(8),
             Child = panel,
         };
+    }
+
+    private bool SaveProvider(AiProvider provider)
+    {
+        if (_svc.UpsertProvider(provider)) return true;
+        ShowProviderSaveFailure();
+        return false;
+    }
+
+    private void ShowProviderSaveFailure()
+    {
+        ShowInfo(InfoBarSeverity.Error,
+            P("Provider settings were not saved", "供應商設定未能儲存"),
+            P("The existing encrypted API key was kept unchanged. Check Windows data-protection availability, then try again.",
+                "原有加密 API 金鑰已原封不動保留。請檢查 Windows 資料保護係咪可用，之後再試。"));
     }
 
     // ===================== status =====================

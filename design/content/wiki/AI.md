@@ -23,6 +23,12 @@ Open in-app · 喺 App 內開啟: `WinForge.exe --page ai`
 OpenWebUI-style chat over local and cloud LLMs.
 OpenWebUI 式聊天，連接本機同雲端大模型。
 
+### Provider key protection · 供應商金鑰保護
+
+**EN —** OpenAI-compatible provider API keys are stored in `%LOCALAPPDATA%\WinForge\ai-providers.json` under CurrentUser DPAPI. If that Windows user context cannot decrypt an existing key, the opaque encrypted value stays on disk during unrelated provider edits. If DPAPI cannot encrypt a changed non-empty key, WinForge aborts the complete provider-file write and shows a save error; it never replaces the prior encrypted value with an empty key. Entering a new non-empty key is the explicit recovery path.
+
+**粵語 —** OpenAI-compatible 供應商嘅 API 金鑰會用 CurrentUser DPAPI 存喺 `%LOCALAPPDATA%\WinForge\ai-providers.json`。如果而家嘅 Windows 用戶環境解唔到原有金鑰，改其他供應商設定時磁碟上嗰個加密值會原封不動保留。DPAPI 加密改過而又唔係空白嘅金鑰失敗時，WinForge 會取消成份供應商檔案嘅寫入並顯示儲存錯誤；絕對唔會用空白金鑰蓋過舊有加密值。輸入新嘅非空白金鑰先係明確嘅復原方法。
+
 Open in-app · 喺 App 內開啟: `WinForge.exe --page aichat`
 
 ![AI Chat](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-aichat.png)

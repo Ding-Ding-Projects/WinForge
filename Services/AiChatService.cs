@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -27,8 +26,6 @@ namespace WinForge.Services;
 /// </summary>
 public sealed class AiChatService
 {
-    public static AiChatService I { get; } = new();
-
     private static readonly string Root =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WinForge");
     private static readonly string ChatDir = Path.Combine(Root, "chats");
@@ -38,12 +35,18 @@ public sealed class AiChatService
 
     private static readonly JsonSerializerOptions JsonOpts = new() { WriteIndented = true };
 
+    // Must follow Root/ProvidersFile initialization: the singleton loads persisted
+    // providers in its constructor.
+    public static AiChatService I { get; } = new();
+
     private readonly object _gate = new();
+    private readonly AiProviderPersistence _providerPersistence;
     private List<AiProvider> _providers;
 
     private AiChatService()
     {
-        _providers = LoadProviders();
+        _providerPersistence = new AiProviderPersistence(ProvidersFile, new DpapiAiProviderSecretProtector());
+        _providers = _providerPersistence.Load();
         if (_providers.Count == 0)
         {
             // 預設加入本機 Ollama · Seed a default local Ollama provider.
@@ -61,87 +64,75 @@ public sealed class AiChatService
 
     public IReadOnlyList<AiProvider> Providers
     {
-        get { lock (_gate) return _providers.ToList(); }
+        get { lock (_gate) return _providers.Select(CloneProvider).ToList(); }
     }
 
     public AiProvider? GetProvider(string id)
     {
-        lock (_gate) return _providers.FirstOrDefault(p => p.Id == id);
-    }
-
-    public void UpsertProvider(AiProvider p)
-    {
-        if (p is null) return;
         lock (_gate)
         {
-            var idx = _providers.FindIndex(x => x.Id == p.Id);
-            if (idx >= 0) _providers[idx] = p; else _providers.Add(p);
-            SaveProviders();
+            var provider = _providers.FirstOrDefault(p => p.Id == id);
+            return provider is null ? null : CloneProvider(provider);
         }
     }
 
-    public void DeleteProvider(string id)
+    /// <summary>
+    /// Saves a provider only when all non-empty API keys can be DPAPI-protected.
+    /// A <c>false</c> result leaves both disk and the service's provider snapshot unchanged.
+    /// </summary>
+    public bool UpsertProvider(AiProvider p)
+    {
+        if (p is null) return false;
+        lock (_gate)
+        {
+            var next = _providers.Select(CloneProvider).ToList();
+            var candidate = CloneProvider(p);
+            var idx = next.FindIndex(x => x.Id == candidate.Id);
+            if (idx >= 0) next[idx] = candidate; else next.Add(candidate);
+            if (!SaveProviders(next)) return false;
+            _providers = next;
+            return true;
+        }
+    }
+
+    public bool DeleteProvider(string id)
     {
         lock (_gate)
         {
-            _providers.RemoveAll(p => p.Id == id);
-            SaveProviders();
+            var next = _providers.Where(p => p.Id != id).Select(CloneProvider).ToList();
+            if (!SaveProviders(next)) return false;
+            _providers = next;
+            return true;
         }
     }
 
-    private List<AiProvider> LoadProviders()
+    /// <summary>Whether a provider's DPAPI-encrypted key could not be read in this user context.</summary>
+    public bool HasUnreadableProviderSecret(string id)
     {
-        try
-        {
-            if (File.Exists(ProvidersFile))
-            {
-                var list = JsonSerializer.Deserialize<List<AiProvider>>(File.ReadAllText(ProvidersFile)) ?? new();
-                foreach (var p in list) p.ApiKey = Unprotect(p.ApiKey);
-                return list;
-            }
-        }
-        catch { }
-        return new();
+        lock (_gate) return _providerPersistence.HasUnreadableSecret(id);
+    }
+
+    private bool SaveProviders(IEnumerable<AiProvider> providers)
+    {
+        return _providerPersistence.TrySave(providers);
     }
 
     private void SaveProviders()
     {
-        try
-        {
-            Directory.CreateDirectory(Root);
-            // 拷貝一份，金鑰加密後先寫盤 · Write a copy with keys DPAPI-encrypted.
-            var copy = _providers.Select(p => new AiProvider
-            {
-                Id = p.Id, Name = p.Name, Kind = p.Kind, BaseUrl = p.BaseUrl,
-                DefaultModel = p.DefaultModel, ApiKey = Protect(p.ApiKey),
-            }).ToList();
-            File.WriteAllText(ProvidersFile, JsonSerializer.Serialize(copy, JsonOpts));
-        }
-        catch { }
+        _ = SaveProviders(_providers);
     }
 
-    /// <summary>DPAPI 加密（CurrentUser）· DPAPI-encrypt a secret for the current user; "" stays "".</summary>
-    private static string Protect(string plain)
+    private static AiProvider CloneProvider(AiProvider provider)
     {
-        if (string.IsNullOrEmpty(plain)) return "";
-        try
+        return new AiProvider
         {
-            var enc = ProtectedData.Protect(Encoding.UTF8.GetBytes(plain), null, DataProtectionScope.CurrentUser);
-            return "dpapi:" + Convert.ToBase64String(enc);
-        }
-        catch { return ""; }
-    }
-
-    private static string Unprotect(string stored)
-    {
-        if (string.IsNullOrEmpty(stored)) return "";
-        if (!stored.StartsWith("dpapi:", StringComparison.Ordinal)) return stored; // 向後相容明文
-        try
-        {
-            var raw = Convert.FromBase64String(stored.Substring("dpapi:".Length));
-            return Encoding.UTF8.GetString(ProtectedData.Unprotect(raw, null, DataProtectionScope.CurrentUser));
-        }
-        catch { return ""; }
+            Id = provider.Id,
+            Name = provider.Name,
+            Kind = provider.Kind,
+            BaseUrl = provider.BaseUrl,
+            ApiKey = provider.ApiKey,
+            DefaultModel = provider.DefaultModel,
+        };
     }
 
     // ===================== Conversations =====================

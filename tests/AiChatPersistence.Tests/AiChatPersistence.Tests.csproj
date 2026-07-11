@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net11.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Link the production persistence boundary; the harness injects a fake DPAPI adapter. -->
+    <Compile Include="..\..\Models\AiChat.cs" Link="AiChat.cs" />
+    <Compile Include="..\..\Services\AiProviderPersistence.cs" Link="AiProviderPersistence.cs" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="9.0.0" />
+  </ItemGroup>
+</Project>
