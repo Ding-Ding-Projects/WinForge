@@ -35,8 +35,12 @@ public static class CommandPaletteService
     private const string KeyDockPins = "cmdpal.dock.pins";
     private const string KeyBookmarks = "cmdpal.bookmarks";
     private const string KeyRemoteDesktopProfiles = "cmdpal.rdp.profiles";
+    private const string KeyAppearanceBackdrop = "cmdpal.appearance.backdrop";
+    private const string KeyAppearanceImage = "cmdpal.appearance.image";
 
     // ===================== Provider identity · 提供者識別 =====================
+    public enum CommandPaletteBackdrop { Solid, Mica, Acrylic }
+
     public enum Provider { Apps, Bookmarks, RemoteDesktop, Performance, Registry, Theme, Windows, Modules, Files, Clipboard, Calculator, TimeDate, Settings, Services, Terminal, Run, System, Web }
 
     public static IReadOnlyList<Provider> AllProviders { get; } = new[]
@@ -89,6 +93,21 @@ public static class CommandPaletteService
     {
         get => SettingsStore.Get(KeyHotkey, "Alt+Space");
         set { SettingsStore.Set(KeyHotkey, string.IsNullOrWhiteSpace(value) ? "Alt+Space" : value.Trim()); }
+    }
+
+    /// <summary>Palette backdrop preference; Solid preserves the established launcher surface.</summary>
+    public static CommandPaletteBackdrop AppearanceBackdrop
+    {
+        get => Enum.TryParse<CommandPaletteBackdrop>(SettingsStore.Get(KeyAppearanceBackdrop, "Solid"), true, out var value)
+            ? value : CommandPaletteBackdrop.Solid;
+        set => SettingsStore.Set(KeyAppearanceBackdrop, value.ToString());
+    }
+
+    /// <summary>Optional local image rendered behind the palette's contrast-preserving surface.</summary>
+    public static string BackgroundImagePath
+    {
+        get => SettingsStore.Get(KeyAppearanceImage, "");
+        set => SettingsStore.Set(KeyAppearanceImage, value?.Trim() ?? "");
     }
 
     public static bool IsProviderEnabled(Provider p)
@@ -999,6 +1018,7 @@ public static class CommandPaletteService
     {
         SettingsStore.Set("theme", key);
         App.SetTheme(theme);
+        CommandPaletteWindow.RefreshAppearance();
     }
 
     // ----- Remote Desktop · 遠端桌面 -----

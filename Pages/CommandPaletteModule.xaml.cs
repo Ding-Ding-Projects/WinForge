@@ -39,6 +39,14 @@ public sealed partial class CommandPaletteModule : Page
         HotkeyLabel.Text = P("Hotkey", "熱鍵");
         OpenNowButton.Content = P("Open now", "立即打開");
         MaxLabel.Text = P("Max results", "最多結果數");
+        AppearanceTitle.Text = P("Palette appearance", "指令面板外觀");
+        AppearanceBlurb.Text = P(
+            "Choose a Solid, Mica or Acrylic backdrop. An optional local image stays behind the palette's contrast-preserving surface.",
+            "揀 Solid、Mica 或 Acrylic 背景效果。可選本機圖片會放喺指令面板保留對比度嘅表面後面。");
+        BackdropLabel.Text = P("Backdrop", "背景效果");
+        BackgroundImageLabel.Text = P("Optional background image", "可選背景圖片");
+        BackgroundImageBrowseButton.Content = P("Browse", "瀏覽");
+        BackgroundImageClearButton.Content = P("Clear", "清除");
         ProvidersTitle.Text = P("Result providers", "結果提供者");
         ProvidersBlurb.Text = P("Choose which sources contribute results. Disable any you don't want.",
             "揀邊啲來源會貢獻結果。唔想用嘅可以關閉。");
@@ -74,6 +82,7 @@ public sealed partial class CommandPaletteModule : Page
         BuildBookmarks();
         BuildRemoteDesktopProfiles();
         BuildDockSides();
+        BuildAppearance();
         UpdateStatus();
     }
 
@@ -279,6 +288,36 @@ public sealed partial class CommandPaletteModule : Page
             CommandPaletteService.SetProviderEnabled(p, chk.IsChecked == true);
     }
 
+    private void Backdrop_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suppress) return;
+        if (BackdropCombo.SelectedItem is ComboBoxItem { Tag: CommandPaletteService.CommandPaletteBackdrop backdrop })
+        {
+            CommandPaletteService.AppearanceBackdrop = backdrop;
+            CommandPaletteWindow.RefreshAppearance();
+        }
+    }
+
+    private async void BackgroundImageBrowse_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var path = await FileDialogs.OpenFileAsync(".png", ".jpg", ".jpeg", ".bmp", ".gif", ".webp");
+            if (string.IsNullOrWhiteSpace(path)) return;
+            BackgroundImageBox.Text = path;
+            CommandPaletteService.BackgroundImagePath = path;
+            CommandPaletteWindow.RefreshAppearance();
+        }
+        catch { }
+    }
+
+    private void BackgroundImageClear_Click(object sender, RoutedEventArgs e)
+    {
+        BackgroundImageBox.Text = "";
+        CommandPaletteService.BackgroundImagePath = "";
+        CommandPaletteWindow.RefreshAppearance();
+    }
+
     private void OpenNow_Click(object sender, RoutedEventArgs e)
     {
         try { CommandPaletteWindow.Open(); } catch { }
@@ -295,6 +334,29 @@ public sealed partial class CommandPaletteModule : Page
         SelectDockSide();
         _suppress = false;
     }
+
+    private void BuildAppearance()
+    {
+        _suppress = true;
+        BackdropCombo.Items.Clear();
+        AddBackdrop(CommandPaletteService.CommandPaletteBackdrop.Solid, "Solid", "實色");
+        AddBackdrop(CommandPaletteService.CommandPaletteBackdrop.Mica, "Mica", "雲母");
+        AddBackdrop(CommandPaletteService.CommandPaletteBackdrop.Acrylic, "Acrylic", "壓克力");
+        for (int i = 0; i < BackdropCombo.Items.Count; i++)
+        {
+            if (BackdropCombo.Items[i] is ComboBoxItem { Tag: CommandPaletteService.CommandPaletteBackdrop backdrop }
+                && backdrop == CommandPaletteService.AppearanceBackdrop)
+            {
+                BackdropCombo.SelectedIndex = i;
+                break;
+            }
+        }
+        BackgroundImageBox.Text = CommandPaletteService.BackgroundImagePath;
+        _suppress = false;
+    }
+
+    private void AddBackdrop(CommandPaletteService.CommandPaletteBackdrop backdrop, string en, string zh)
+        => BackdropCombo.Items.Add(new ComboBoxItem { Content = $"{en} · {zh}", Tag = backdrop });
 
     private void AddDockSide(CommandPaletteDockSide side, string en, string zh)
         => DockSideCombo.Items.Add(new ComboBoxItem { Content = $"{en} · {zh}", Tag = side });
