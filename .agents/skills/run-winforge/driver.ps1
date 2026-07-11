@@ -80,6 +80,7 @@ public class WfCap {
   [DllImport("user32.dll")] public static extern bool IsIconic(IntPtr h);
   [DllImport("dwmapi.dll")] public static extern int DwmGetWindowAttribute(IntPtr h, int a, out RECT r, int s);
   [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h, out RECT r);
+  [DllImport("user32.dll", SetLastError=true)] public static extern bool PrintWindow(IntPtr h, IntPtr dc, uint flags);
   public struct RECT { public int Left, Top, Right, Bottom; }
 }
 "@
@@ -107,8 +108,42 @@ try {
   if ($w -le 0 -or $hgt -le 0) { throw "bad window rect $w x $hgt" }
   $bmp = New-Object System.Drawing.Bitmap($w, $hgt)
   $g = [System.Drawing.Graphics]::FromImage($bmp)
+  $usedPrintWindow = $false
   try {
-    $g.CopyFromScreen($r.Left, $r.Top, 0, 0, (New-Object System.Drawing.Size($w, $hgt)))
+    try {
+      $g.CopyFromScreen($r.Left, $r.Top, 0, 0, (New-Object System.Drawing.Size($w, $hgt)))
+    }
+    catch {
+      $screenCaptureError = $_.Exception.Message
+      $dc = $g.GetHdc()
+      $printed = $false
+      $printError = 0
+      try {
+        $printed = [WfCap]::PrintWindow($h, $dc, 2) # PW_RENDERFULLCONTENT
+        if (-not $printed) { $printError = [Runtime.InteropServices.Marshal]::GetLastWin32Error() }
+      }
+      finally {
+        $g.ReleaseHdc($dc)
+      }
+      if (-not $printed) {
+        throw "CopyFromScreen failed: $screenCaptureError. PrintWindow fallback failed with Win32 error $printError."
+      }
+      $usedPrintWindow = $true
+      Write-Host "CopyFromScreen unavailable; captured the window through PrintWindow instead."
+    }
+    if ($usedPrintWindow) {
+      $uniqueColors = New-Object 'System.Collections.Generic.HashSet[int]'
+      $stepX = [Math]::Max(1, [int][Math]::Floor($w / 24))
+      $stepY = [Math]::Max(1, [int][Math]::Floor($hgt / 24))
+      for ($y = 0; $y -lt $hgt; $y += $stepY) {
+        for ($x = 0; $x -lt $w; $x += $stepX) {
+          $uniqueColors.Add($bmp.GetPixel($x, $y).ToArgb()) | Out-Null
+        }
+      }
+      if ($uniqueColors.Count -lt 2) {
+        throw "CopyFromScreen is unavailable and the PrintWindow fallback produced a uniform frame; graphics capture is unavailable in this desktop session."
+      }
+    }
     $bmp.Save($Out, [System.Drawing.Imaging.ImageFormat]::Png)
   }
   finally {

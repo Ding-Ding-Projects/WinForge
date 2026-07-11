@@ -11,7 +11,7 @@
     <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
         <StackPanel MaxWidth="820" Spacing="14">
             <controls:ModuleHeader x:Name="Header" Glyph="&#xE962;" />
-            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
             <StackPanel x:Name="Root" Spacing="16" Margin="0,4,0,0" />
         </StackPanel>
     </ScrollViewer>
