@@ -114,6 +114,22 @@ Open in-app: `WinForge.exe --page resume`
 
 ![Resume Writer](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-resume.png)
 
+## Settings Store Integrity Regression · 設定儲存完整性回歸測試
+
+**EN —** Run the focused storage regression after changing `SettingsStore`, import/export, or configuration backup behavior. It exercises valid load/write compatibility, atomic backup rotation, truncated/missing-primary recovery, fail-closed ordinary writes, and explicit-import repair.
+
+**粵語 —** 改咗 `SettingsStore`、匯入／匯出或者設定備份行為之後，要行呢個專注嘅儲存回歸測試。佢會驗證有效讀寫相容性、原子式備份輪替、截斷／唔見咗主檔案嘅復原、平常寫入 fail closed，同埋明確匯入修復。
+
+```powershell
+dotnet run --project tests/SettingsStore.Tests -c Debug
+```
+
+**EN —** The harness uses disposable `%TEMP%\WinForge.SettingsStore.Tests\<guid>` fixtures only; it never reads or writes the real `%LOCALAPPDATA%\WinForge\settings.json`.
+
+**粵語 —** harness 只會用可刪除嘅 `%TEMP%\WinForge.SettingsStore.Tests\<guid>` fixtures；佢絕對唔會讀寫真正嘅 `%LOCALAPPDATA%\WinForge\settings.json`。
+
+**Visual evidence · 視覺證據：** This is storage-only code with no XAML/page-layout change, so screenshot capture/replacement is not applicable. · 呢個係純儲存程式碼，冇 XAML／頁面排版改動，所以唔適用截圖擷取／替換。
+
 ## Exhaustive Smoke Verification · 全面冒煙驗證
 
 **EN —** Contributors verifying WinForge broadly use the repository-local [WinForge Exhaustive Smoke skill](../../.agents/skills/winforge-exhaustive-smoke/SKILL.md). It inventories the actual module registry, navigation, deep links, XAML controls, companions, external launchers, tests and source files before any route is marked complete.
