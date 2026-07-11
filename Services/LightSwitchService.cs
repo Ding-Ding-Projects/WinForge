@@ -123,6 +123,11 @@ public static class LightSwitchService
             RegistryHelper.SetValue(RegRoot.HKCU, PersonalizePath, "ColorPrevalence", 0, RegistryValueKind.DWord);
 
         BroadcastThemeChange();
+
+        // Opt-in display profiles are applied after the theme transition.
+        // 只會喺用家選咗設定檔之後先於主題轉換後套用螢幕設定。
+        try { PowerDisplayService.ApplyThemeProfile(light); }
+        catch { /* a DDC/CI failure must never block a theme transition */ }
     }
 
     /// <summary>即刻切去淺色 · Manually switch to light now (uses the saved scope).</summary>

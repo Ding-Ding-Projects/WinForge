@@ -219,6 +219,7 @@
                         <NavigationViewItem Content="Explorer Right-Click · 檔案總管右鍵選單" Tag="module.shellmenu"><NavigationViewItem.Icon><FontIcon Glyph="&#xE712;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Taskbar Tweaker · 工作列調校" Tag="module.taskbar-tweaker"><NavigationViewItem.Icon><FontIcon Glyph="&#xE71D;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="LightSwitch · 自動深淺色" Tag="module.lightswitch"><NavigationViewItem.Icon><FontIcon Glyph="&#xE793;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Power Display · 顯示器控制" Tag="module.powerdisplay"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7F8;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Nilesoft Shell · Nilesoft 右鍵選單" Tag="module.nilesoftshell"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7BA;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Window Manager · 視窗管理" Tag="module.windows"><NavigationViewItem.Icon><FontIcon Glyph="&#xE737;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Workspaces · 工作區" Tag="module.workspaces"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7C4;" /></NavigationViewItem.Icon></NavigationViewItem>
