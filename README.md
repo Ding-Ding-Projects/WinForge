@@ -191,6 +191,30 @@ launch evidence only and no stale screenshot was replaced.
 （`CopyFromScreen`：`The handle is invalid`），所以只係 launch 證據，冇聲稱 visual pass，
 亦冇用舊截圖頂替。
 
+**EN —** A bounded typed-literal audit then exercised all 78 deep-linkable
+pages that declare a direct `NumberBox.Value` default: 72 launched unchanged;
+six reproduced `XamlParseException` failures (Markdown TOC, Name Generator,
+Number Formatter, Scientific Notation, Subnet Calculator, and Unit Converter).
+Only those six pages moved their ten numeric defaults into guarded managed
+initialization. The repaired Markdown TOC route then exposed one separate
+`CheckBox.IsChecked` conversion failure, so its one existing default moved too.
+The literal-safety guard protects these page-local defaults without banning
+passing NumberBox or CheckBox literals; a forced self-contained publish and
+fresh `--page` retest passed all six routes. Each changed-page capture again
+stopped at `CopyFromScreen`: `The handle is invalid`, so no canonical image was
+created or replaced.
+
+**粵語 —** 之後一個受限嘅 typed-literal 審查跑晒 78 個有 direct
+`NumberBox.Value` 預設、亦有 deep link 嘅頁面：72 個冇改動都成功開到；6 個重現
+`XamlParseException`（Markdown 目錄、名稱產生器、數字格式化、科學記數法、子網
+計算器同單位換算器）。只有呢 6 個頁面嘅 10 個數值預設搬去有 guard 嘅 managed
+initialization。修好後嘅 Markdown 目錄 route 再揭示咗一個獨立嘅
+`CheckBox.IsChecked` conversion failure，所以只搬咗佢一個既有預設。literal-safety
+guard 會保護呢啲 page-local default，但唔會禁止已經通過嘅 NumberBox 或 CheckBox
+literal；forced self-contained publish 同新鮮 `--page` retest 全部 6 條 route 都通過。
+每個改過嘅頁面都再試過截圖，但一樣喺 `CopyFromScreen`：`The handle is invalid`
+停咗；所以冇建立或者替換 canonical image。
+
 ## ✨ Highlights · 重點
 
 **EN —**

@@ -20,11 +20,11 @@
                     <StackPanel Orientation="Horizontal" Spacing="16">
                         <StackPanel Spacing="4">
                             <TextBlock x:Name="MinLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                            <NumberBox x:Name="MinBox" Value="1" Minimum="1" Maximum="6" SpinButtonPlacementMode="Inline" MinWidth="120" ValueChanged="Options_Changed" />
+                            <NumberBox x:Name="MinBox" Minimum="1" Maximum="6" SpinButtonPlacementMode="Inline" MinWidth="120" ValueChanged="Options_Changed" />
                         </StackPanel>
                         <StackPanel Spacing="4">
                             <TextBlock x:Name="MaxLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                            <NumberBox x:Name="MaxBox" Value="6" Minimum="1" Maximum="6" SpinButtonPlacementMode="Inline" MinWidth="120" ValueChanged="Options_Changed" />
+                            <NumberBox x:Name="MaxBox" Minimum="1" Maximum="6" SpinButtonPlacementMode="Inline" MinWidth="120" ValueChanged="Options_Changed" />
                         </StackPanel>
                         <StackPanel Spacing="4">
                             <TextBlock x:Name="StyleLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
@@ -32,7 +32,7 @@
                         </StackPanel>
                     </StackPanel>
 
-                    <CheckBox x:Name="IncludeH1Chk" IsChecked="True" Checked="Options_Changed" Unchecked="Options_Changed" />
+                    <CheckBox x:Name="IncludeH1Chk" Checked="Options_Changed" Unchecked="Options_Changed" />
                 </StackPanel>
             </Border>
 

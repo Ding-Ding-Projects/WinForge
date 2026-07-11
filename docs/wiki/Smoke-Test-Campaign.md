@@ -13,11 +13,11 @@ Generated on 2026-07-11 from the live source:
 | Coverage surface · 涵蓋範圍 | Baseline count · 基線數量 |
 | --- | ---: |
 | Registered/map/navigation route records · 已登記／對映／導航 routes | 321 |
-| Deep-link aliases · 深層連結別名 | 785 |
+| Deep-link aliases · 深層連結別名 | 790 |
 | Companion specifications · Companion 規格 | 4 |
 | External-app launcher specifications · 外部 app launcher 規格 | 15 |
-| First-party source files in review queue · source files 審查佇列 | 1,256 |
-| First-party source lines in review queue · source lines 審查佇列 | 341,965 |
+| First-party source files in review queue · source files 審查佇列 | 1,257 |
+| First-party source lines in review queue · source lines 審查佇列 | 342,740 |
 | Test projects · 測試專案 | 7 |
 | Wiki pages · Wiki 頁面 | 2,217 |
 
@@ -431,7 +431,7 @@ Base Converter reproduction remains fixed, while focused numeric candidates
 (`aspectratio`, `ciphers`, `giflab`, `passgen`, and `virtualbox`) reached their
 dedicated windows unchanged.
 
-A full Debug x64 solution build passed with 0 errors (318 warnings). A fresh
+A full Debug x64 solution build passed with 0 errors. A fresh
 self-contained 7-second launch-only sweep passed for all affected aliases:
 `apiclient`, `httpheaders`, `htmltable`, `proxmox`, `homeassistant`, `hexdump`,
 `loremtext`, `native`, `mdtable`, `connections`, `minecraftserver`, and
@@ -455,7 +455,7 @@ canonical image replacement, or stale-image substitution is recorded.
 重現已修好，而 focused numeric candidates（`aspectratio`、`ciphers`、`giflab`、
 `passgen`、`virtualbox`）冇改動都成功開到自己嘅視窗。
 
-完整 Debug x64 solution build 以 0 errors（318 warnings）通過。全新
+完整 Debug x64 solution build 以 0 errors 通過。全新
 self-contained、7 秒 launch-only sweep 入面全部受影響 alias 都通過：
 `apiclient`、`httpheaders`、`htmltable`、`proxmox`、`homeassistant`、`hexdump`、
 `loremtext`、`native`、`mdtable`、`connections`、`minecraftserver` 同
@@ -542,6 +542,75 @@ errors（318 warnings）通過，修正後專注嘅 `--page keepass -NoCapture` 
 替換或者重用；Batch 07 係 `capture-blocked`，唔係 visual-pass。呢批令 campaign
 對 321 條 manifest route 入面頭 175 條有 current process-level route-launch
 證據。
+## XAML Numeric-Literal Reliability Audit · XAML 數值 Literal 可靠性審查
+
+**EN —** On 2026-07-11, a bounded runtime audit generated a fresh
+321-route / 785-alias manifest, then statically found direct
+`NumberBox.Value` defaults in 79 XAML files. Seventy-eight of those pages have
+a deep link. Fresh self-contained launch checks exercised all 78: 72 reached
+`launch-pass` unchanged, while six routes failed twice after the 4-second /
+12-second retry protocol. Their crash-log first-property failures were
+`MarkdownTocModule` line 23 (`MinBox`), `NameGenModule` line 25 (`CountBox`),
+`NumberFormatModule` line 36 (`DecimalsBox`), `SciNotationModule` line 26
+(`SigBox`), `SubnetCalcModule` line 27 (`CidrBox`), and `UnitConvertModule`
+line 25 (`ValueBox`): each was `XamlParseException` assigning
+`Microsoft.UI.Xaml.Controls.NumberBox.Value`.
+
+The parser reports only the first failing property, so the related direct
+numeric defaults on each already-proven page were moved together as a small
+page-local batch: ten defaults across Markdown TOC, Name Generator, Number
+Formatter, Scientific Notation, Subnet Calculator, and Unit Converter. No
+bindings changed, and the 72 passing routes were not migrated. After the
+Markdown numeric defaults were removed, its next fresh launch exposed one
+separate `ToggleButton.IsChecked` XAML conversion failure at line 35 for
+`IncludeH1Chk`; that one existing CheckBox default was also moved under the
+same suppression guard. The guard now blocks direct `IsOn="True|False"`
+globally, and explicitly protects the 16 ToggleSwitch defaults, the one
+Markdown TOC CheckBox default, and the ten demonstrated NumberBox defaults;
+it deliberately does not prohibit unproven numeric or CheckBox literals.
+
+`Test-WinForgeXamlLiteralSafety.ps1 -RepoRoot .` passed. A forced
+self-contained publish launched `--page markdowntoc`, followed by a fresh
+6-second launch-only retest of `markdowntoc`, `namegen`, `numberformat`,
+`scinotation`, `subnetcalc`, and `unitconvert`: all six were `launch-pass`
+without retry or failure. A bounded single-worker Debug x64 solution build
+also passed with 0 errors. The prior unrestricted build command exceeded its
+execution window without an error result and is recorded as inconclusive, not
+as a pass. Each of the six pages then received a current 12-second capture
+attempt; every `CopyFromScreen` call returned `The handle is invalid`. No PNG
+was produced or substituted, so this batch is launch evidence plus
+`capture-blocked`, never a visual-pass claim.
+
+**粵語 —** 2026-07-11 做咗一個受限嘅 runtime 審查：先產生新鮮嘅
+321-route／785-alias manifest，再由 static search 搵到 79 個 XAML 檔有 direct
+`NumberBox.Value` 預設；當中 78 個頁面有 deep link。用新鮮 self-contained
+launch check 跑晒 78 個：72 個冇改動都係 `launch-pass`；6 條 route 經過 4 秒／
+12 秒 retry protocol 後都失敗兩次。crash log 報嘅第一個 property failure 係
+`MarkdownTocModule` 第 23 行（`MinBox`）、`NameGenModule` 第 25 行
+（`CountBox`）、`NumberFormatModule` 第 36 行（`DecimalsBox`）、
+`SciNotationModule` 第 26 行（`SigBox`）、`SubnetCalcModule` 第 27 行
+（`CidrBox`）同 `UnitConvertModule` 第 25 行（`ValueBox`）；全部都係將
+`Microsoft.UI.Xaml.Controls.NumberBox.Value` 賦值時嘅 `XamlParseException`。
+
+個 parser 只會報第一個失敗 property，所以每個已經證實會出事嘅頁面入面、相關嘅
+direct 數值預設一齊用細小 page-local batch 搬走：Markdown 目錄、名稱產生器、數字
+格式化、科學記數法、子網計算器同單位換算器一共 10 個預設。冇改 bindings，72 條
+已經通過嘅 route 都冇搬。移走 Markdown 嘅數值預設後，下一次新鮮 launch 顯示咗另一個
+獨立嘅 XAML conversion failure：第 35 行 `IncludeH1Chk` 嘅
+`ToggleButton.IsChecked`；所以只將呢一個 CheckBox 原有預設用同一個 suppression
+guard 搬走。guard 而家全域阻止 direct `IsOn="True|False"`，同時明確保護 16 個
+ToggleSwitch 預設、Markdown 目錄一個 CheckBox 預設，同埋 10 個已證實嘅 NumberBox
+預設；佢刻意唔會禁止未證實有問題嘅數值或 CheckBox literal。
+
+`Test-WinForgeXamlLiteralSafety.ps1 -RepoRoot .` 通過。forced self-contained
+publish 成功開到 `--page markdowntoc`，之後新鮮 6 秒 launch-only retest 跑咗
+`markdowntoc`、`namegen`、`numberformat`、`scinotation`、`subnetcalc` 同
+`unitconvert`：6 條全部 `launch-pass`，冇 retry 或 failure。受限 single-worker
+Debug x64 solution build 都以 0 errors 通過。之前 unrestricted build command 過咗
+execution window 都冇 error result，係 inconclusive，唔可以當 pass。之後 6 個頁面
+逐個用最新 12 秒 capture 嘗試；每次 `CopyFromScreen` 都回傳 `The handle is invalid`。
+冇 PNG 產生或者頂替，所以呢批係 launch evidence 加 `capture-blocked`，絕對唔係
+visual-pass 聲稱。
 
 
 [← Wiki Home](Home.md) · [Developer](Developer.md) · [Screenshots](Screenshots.md)

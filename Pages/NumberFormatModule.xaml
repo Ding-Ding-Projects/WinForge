@@ -33,12 +33,12 @@
 
                         <StackPanel Grid.Row="0" Grid.Column="0" Spacing="4">
                             <TextBlock x:Name="DecimalsLabel" />
-                            <NumberBox x:Name="DecimalsBox" Value="2" Minimum="0" Maximum="10" SpinButtonPlacementMode="Inline" ValueChanged="Options_Changed" />
+                            <NumberBox x:Name="DecimalsBox" Minimum="0" Maximum="10" SpinButtonPlacementMode="Inline" ValueChanged="Options_Changed" />
                         </StackPanel>
 
                         <StackPanel Grid.Row="0" Grid.Column="1" Spacing="4">
                             <TextBlock x:Name="PadLabel" />
-                            <NumberBox x:Name="PadBox" Value="8" Minimum="0" Maximum="40" SpinButtonPlacementMode="Inline" ValueChanged="Options_Changed" />
+                            <NumberBox x:Name="PadBox" Minimum="0" Maximum="40" SpinButtonPlacementMode="Inline" ValueChanged="Options_Changed" />
                         </StackPanel>
 
                         <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Spacing="4">

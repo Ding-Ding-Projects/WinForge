@@ -47,6 +47,19 @@ the route has `capture-blocked`, not visual-pass, status.
 `driver.ps1 -Out` 嘗試又喺 `CopyFromScreen` 停咗：`The handle is invalid`。
 冇產生 `keepass-clipboard-safety.png`，所以既有 canonical KeePass 圖冇換、亦
 冇當新證據使用；呢條 route 係 `capture-blocked`，唔係 visual-pass。
+**EN —** The subsequent numeric-literal reliability audit attempted a fresh
+12-second `driver.ps1 -Out` capture for each changed page: Markdown TOC, Name
+Generator, Number Formatter, Scientific Notation, Subnet Calculator, and Unit
+Converter. Every route reached the capture step but each `CopyFromScreen` call
+returned `The handle is invalid`. No page produced a valid PNG, no stale
+canonical screenshot was substituted, and these six pages are
+`capture-blocked`, not visual-pass.
+
+**粵語 —** 跟住嘅 numeric-literal reliability 審查，為每個改過頁面都用新鮮
+12 秒 `driver.ps1 -Out` 試過截圖：Markdown 目錄、名稱產生器、數字格式化、科學
+記數法、子網計算器同單位換算器。每條 route 都去到 capture step，但每次
+`CopyFromScreen` 都回傳 `The handle is invalid`。冇一頁產生有效 PNG、冇用舊
+canonical 截圖頂替，呢 6 頁係 `capture-blocked`，唔係 visual-pass。
 
 ## Redaction Rules · 遮蔽規則
 

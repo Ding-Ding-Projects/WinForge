@@ -23,7 +23,7 @@
 
                     <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                         <TextBlock x:Name="SigLabel" VerticalAlignment="Center" />
-                        <NumberBox x:Name="SigBox" Value="6" Minimum="1" Maximum="15" SpinButtonPlacementMode="Inline" MinWidth="140" ValueChanged="Sig_Changed" />
+                        <NumberBox x:Name="SigBox" Minimum="1" Maximum="15" SpinButtonPlacementMode="Inline" MinWidth="140" ValueChanged="Sig_Changed" />
                     </StackPanel>
 
                     <TextBlock x:Name="StatusText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
