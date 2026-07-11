@@ -6,6 +6,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
+using Windows.ApplicationModel.DataTransfer;
 using WinForge.Services;
 
 namespace WinForge.Pages;
@@ -24,6 +25,7 @@ public sealed partial class ClipboardModule : Page
     private static readonly string GlyphDelete = ((char)0xE74D).ToString();
     private static readonly string GlyphQr = ((char)0xED14).ToString();      // QR code glyph
     private static readonly string GlyphPlain = ((char)0xE8E9).ToString();   // "paste as plain" (Font)
+    private static readonly string GlyphRestore = ((char)0xE72A).ToString();
 
     private static readonly string[] MediaExt =
         { ".mp3", ".wav", ".flac", ".m4a", ".aac", ".ogg", ".opus", ".wma",
@@ -33,11 +35,11 @@ public sealed partial class ClipboardModule : Page
     {
         InitializeComponent();
         Loc.I.LanguageChanged += OnLanguageChanged;
-        Loaded += (_, _) => { Render(); Build(); ClipboardService.Changed += OnChanged; };
+        Loaded += (_, _) => { Render(); Build(); _ = RefreshNativeHistoryAsync(); ClipboardService.Changed += OnChanged; };
         Unloaded += (_, _) => { ClipboardService.Changed -= OnChanged; Loc.I.LanguageChanged -= OnLanguageChanged; };
     }
 
-    private void OnLanguageChanged(object? sender, EventArgs e) { Render(); Build(); }
+    private void OnLanguageChanged(object? sender, EventArgs e) { Render(); Build(); _ = RefreshNativeHistoryAsync(); }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
     private void OnChanged() => DispatcherQueue.TryEnqueue(Build);
@@ -48,6 +50,7 @@ public sealed partial class ClipboardModule : Page
         HeaderBlurb.Text = P("Everything you copy — text, images and files — kept here automatically. Click to copy back, paste as plain text, make a QR code, or convert images and media to another format.",
             "你複製過嘅嘢 — 文字、圖片同檔案 — 自動留喺度。撳一下複製返、貼為純文字、整 QR 碼，或者將圖片同媒體轉做另一種格式。");
         QrText.Text = P("QR from clipboard", "剪貼簿整 QR");
+        NativeRefreshText.Text = P("Refresh Windows history", "重新整理 Windows 歷史");
         ClearText.Text = P("Clear all", "清除全部");
         BgBar.Title = P("Running in the background", "喺背景運行緊");
         BgBar.Message = P("The monitor keeps capturing even when the window is closed to the tray. Right-click the tray icon to Quit.",
@@ -93,6 +96,7 @@ public sealed partial class ClipboardModule : Page
         {
             ClipboardService.ClearWindowsHistory();
             Notify(InfoBarSeverity.Success, P("Windows clipboard history cleared", "已清除 Windows 剪貼簿歷史"), "");
+            _ = RefreshNativeHistoryAsync();
         };
 
         BgBar.Content = new StackPanel
@@ -123,6 +127,128 @@ public sealed partial class ClipboardModule : Page
         }
         foreach (var item in ClipboardService.History.ToList())
             Root.Children.Add(Card(item));
+    }
+
+    private async void RefreshNativeHistory_Click(object sender, RoutedEventArgs e)
+        => await RefreshNativeHistoryAsync();
+
+    private async System.Threading.Tasks.Task RefreshNativeHistoryAsync()
+    {
+        NativeHistoryRoot.Children.Clear();
+        NativeHistoryRoot.Children.Add(new TextBlock
+        {
+            Text = P("Windows clipboard history", "Windows 剪貼簿歷史"),
+            FontSize = 16,
+            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+            Margin = new Thickness(0, 2, 0, 0),
+        });
+
+        try
+        {
+            if (!ClipboardService.IsWindowsHistoryEnabled())
+            {
+                NativeHistoryRoot.Children.Add(new TextBlock
+                {
+                    Text = P("Windows clipboard history is off. Turn it on above or in Settings.", "Windows 剪貼簿歷史未開。喺上面或者設定度開返。"),
+                    Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+                });
+                return;
+            }
+
+            var result = await Clipboard.GetHistoryItemsAsync();
+            if (result.Status != ClipboardHistoryItemsResultStatus.Success)
+            {
+                NativeHistoryRoot.Children.Add(new TextBlock
+                {
+                    Text = P("Could not load Windows clipboard history right now.", "而家攞唔到 Windows 剪貼簿歷史。"),
+                    Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+                });
+                return;
+            }
+
+            var items = result.Items?.ToList() ?? new System.Collections.Generic.List<ClipboardHistoryItem>();
+            if (items.Count == 0)
+            {
+                NativeHistoryRoot.Children.Add(new TextBlock
+                {
+                    Text = P("No Windows clipboard history items found.", "冇搵到 Windows 剪貼簿歷史項目。"),
+                    Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+                });
+                return;
+            }
+
+            NativeHistoryRoot.Children.Add(new TextBlock
+            {
+                Text = P("Tap one item to restore it to the clipboard.", "撳一個項目就可以還原返去剪貼簿。"),
+                Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+            });
+
+            foreach (var item in items)
+                NativeHistoryRoot.Children.Add(await NativeCardAsync(item));
+        }
+        catch (Exception ex)
+        {
+            NativeHistoryRoot.Children.Add(new TextBlock
+            {
+                Text = ex.Message,
+                Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+            });
+        }
+    }
+
+    private async System.Threading.Tasks.Task<Border> NativeCardAsync(ClipboardHistoryItem item)
+    {
+        string preview = await ClipboardPreviewAsync(item.Content);
+        string stamp = item.Timestamp.ToString("yyyy-MM-dd HH:mm:ss");
+
+        var grid = new Grid { ColumnSpacing = 12 };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        grid.Children.Add(Col(new FontIcon { Glyph = GlyphRestore, FontSize = 16, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 2, 0, 0) }, 0));
+
+        var content = new StackPanel { Spacing = 4 };
+        content.Children.Add(new TextBlock
+        {
+            Text = preview,
+            FontFamily = new FontFamily("Consolas"),
+            FontSize = 12,
+            TextWrapping = TextWrapping.Wrap,
+            MaxLines = 4,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+        });
+        content.Children.Add(new TextBlock { Text = stamp, FontSize = 11, Foreground = (Brush)Application.Current.Resources["TextFillColorTertiaryBrush"] });
+        grid.Children.Add(Col(content, 1));
+
+        var restoreBtn = new Button { Padding = new Thickness(8, 3, 8, 3), Content = P("Restore", "還原") };
+        restoreBtn.Click += (_, _) =>
+        {
+            try
+            {
+                var status = Clipboard.SetHistoryItemAsContent(item);
+                if (status == SetHistoryItemAsContentStatus.Success)
+                    Notify(InfoBarSeverity.Success, P("Restored Windows history item", "已還原 Windows 歷史項目"), "");
+                else
+                    Notify(InfoBarSeverity.Warning, P("Could not restore that item", "還原唔到嗰個項目"), status.ToString());
+            }
+            catch (Exception ex)
+            {
+                Notify(InfoBarSeverity.Error, P("Restore failed", "還原失敗"), ex.Message);
+            }
+        };
+
+        grid.Children.Add(Col(restoreBtn, 2));
+
+        return new Border
+        {
+            Padding = new Thickness(14, 10, 14, 10),
+            Background = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"],
+            BorderBrush = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"],
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(8),
+            Child = grid,
+        };
     }
 
     private Border Card(ClipItem item)
@@ -293,6 +419,29 @@ public sealed partial class ClipboardModule : Page
         ClipKind.Files => string.Join(Environment.NewLine, item.Files),
         _ => "",
     };
+
+    private async System.Threading.Tasks.Task<string> ClipboardPreviewAsync(DataPackageView content)
+    {
+        try
+        {
+            if (content.Contains(StandardDataFormats.Text))
+            {
+                var text = await content.GetTextAsync();
+                return text.Length > 180 ? text.Substring(0, 180) + "…" : text;
+            }
+            if (content.Contains(StandardDataFormats.WebLink))
+            {
+                var link = await content.GetWebLinkAsync();
+                return link?.ToString() ?? P("Web link", "網頁連結");
+            }
+            if (content.Contains(StandardDataFormats.Bitmap))
+                return P("Image", "圖片");
+            if (content.Contains(StandardDataFormats.StorageItems))
+                return P("Files", "檔案");
+        }
+        catch { }
+        return P("Clipboard item", "剪貼簿項目");
+    }
 
     private static async System.Threading.Tasks.Task<string> ReadClipboardTextOrUrlAsync()
     {
