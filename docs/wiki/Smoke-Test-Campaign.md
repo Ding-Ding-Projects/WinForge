@@ -794,7 +794,7 @@ for the complete boundary and test record. · 完整邊界同測試記錄請睇[
 ## Launch-only Batch 09 · 第九批淨啟動測試
 
 **EN —** The final post-merge inventory records **323 routes**, **805 deep-link
-aliases**, 1,274 source-review files, 346,609 source-review lines, 10 test
+aliases**, 1,274 source-review files, 346,641 source-review lines, 10 test
 projects, and no structural routing mismatch. Batch 09 covers launchable indices
 200–224: numseq, numwords, numwordsx, ollama, onedrive, ossapps, packages,
 packer, passgen, passwordstrength, pathdoctor, pdftoolkit, peek, percentcalc,
@@ -844,7 +844,7 @@ these pages are `capture-blocked`, never visual-pass. Batch 09 brings current
 process-level launch evidence to the first **225 of 323** routes.
 
 **粵語 —** 最後合併後嘅 inventory 記錄咗 **323 條 routes**、**805 個 deep-link
-aliases**、1,274 個來源審查檔、346,609 行來源審查程式、10 個 test projects，亦都冇
+aliases**、1,274 個來源審查檔、346,641 行來源審查程式、10 個 test projects，亦都冇
 structural routing mismatch。Batch 09 覆蓋 launchable indices 200–224：numseq、
 numwords、numwordsx、ollama、onedrive、ossapps、packages、packer、passgen、
 passwordstrength、pathdoctor、pdftoolkit、peek、percentcalc、pgadmin、phonetic、
