@@ -50,6 +50,7 @@ Bilingual wiki under `docs/wiki/` (Home → category pages, generated feature/bu
 
 ## Gotchas
 - `audioeditor`, `lightswitch`, and `timelens` were fixed after the original Omega audit; if one captures blank via the driver, rerun with a longer `-WaitMs`.
+- The current self-contained runtime has thrown `XamlParseException` for typed `NumberBox.Value` and `ToggleSwitch.IsOn` literals. Set those defaults in code-behind under the page's suppression guard, then deep-link smoke-test the page.
 - `--page <alias>` is reliable; bare `--reactor` can land on the Dashboard if a session was restored.
 - Reactor restoring a stale/melted autosave → delete `%LOCALAPPDATA%\WinForge\state` (+ `…\session\tabs.json`).
 - Git: branch + merge into `main`; never force-push; never touch unrelated personal remotes. Commit messages are bilingual.

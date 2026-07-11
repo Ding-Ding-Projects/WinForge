@@ -177,4 +177,26 @@ build 以 0 errors 通過（318 warnings），強制新 self-contained
 - Routing-review diagnostics now use ASCII-safe separators, so evidence files
   stay parseable across PowerShell host encodings.
 
+## Launch-only Batch 03 · 第三批淨啟動測試
+
+**EN —** On 2026-07-11, manifest launchable-route indices 50–74 were run
+through the 5-second/15-second isolated protocol. Twenty-four routes reached
+their dedicated windows. `module.csvjson` failed both attempts; the exact
+crash log was a `XamlParseException` assigning `ToggleSwitch.IsOn` from XAML.
+The default “first row is header” state was moved into guarded managed
+initialization, preserving behavior without relying on the failing XAML
+conversion. A fresh self-contained `--page csvjson` launch and the focused
+runner retest both passed, bringing the batch to 25/25 launch-pass routes.
+
+**粵語 —** 2026-07-11 用 5 秒／15 秒嘅獨立 protocol 跑咗 manifest
+launchable-route indices 50–74。有 24 條開到自己嘅視窗。`module.csvjson`
+兩次都失敗；確實 crash log 係由 XAML 設定 `ToggleSwitch.IsOn` 引起嘅
+`XamlParseException`。預設「第一行係標題」狀態已搬去有 guard 嘅 managed
+initialization，保留原本行為但唔再依賴失敗嘅 XAML conversion。新嘅
+self-contained `--page csvjson` launch 同 focused runner retest 都通過，令呢批
+變成 25/25 launch-pass routes。
+
+- No screenshot is claimed: the desktop capture environment remains blocked,
+  so the retest supplies launch evidence rather than visual evidence.
+
 [← Wiki Home](Home.md) · [Developer](Developer.md) · [Screenshots](Screenshots.md)

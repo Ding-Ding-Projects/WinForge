@@ -160,7 +160,11 @@ For each page/service batch:
    exceptions, NotImplementedException, unbounded loops, unsafe shell
    interpolation, and missing cancellation paths. Investigate findings rather
    than counting them as defects automatically.
-5. Add findings to the ledger with severity, reproduction, source location,
+5. Treat typed XAML property literals as runtime evidence, not just build
+   evidence. In the current self-contained runtime, failing `NumberBox.Value`
+   or `ToggleSwitch.IsOn` literals must move to guarded managed initialization
+   and receive a fresh deep-link launch check.
+6. Add findings to the ledger with severity, reproduction, source location,
    owner/status, and retest evidence.
 
 ### 5. Fix, retest, and preserve evidence
