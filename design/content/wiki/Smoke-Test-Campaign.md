@@ -228,5 +228,28 @@ save 有機會將已有嘅供應商 API 金鑰變成空字串。`AiProviderPersi
 - **Safety disposition · 安全處置：** The regression test uses an isolated
   temporary provider file and fake protector only. It never writes a real API
   key or invokes a provider network request.
+- **Launch confirmation · 啟動確認：** Merge validation later ran the freshly
+  published build with `driver.ps1 -Page aichat -NoCapture -WaitMs 15000` and
+  received `OK launch-only`. That is route-launch evidence only; it does not
+  replace the capture-blocked visual state above. 合併驗證其後用同一條命令跑新發佈
+  build 並收到 `OK launch-only`；只係 route-launch 證據，唔會取代上面
+  capture-blocked 嘅視覺狀態。
+
+## Launch-only Batch 04 · 第四批淨啟動測試
+
+**EN —** On 2026-07-11, launchable-route indices 75–99 were exercised using
+the isolated 5-second/15-second protocol. All 25 routes returned
+`launch-pass` on the initial attempt; no retry, failure, or manual-routing
+entry remained. The generated evidence is retained under the ignored
+`artifacts/smoke/launch-batches/batch-04/` directory. This brings the
+campaign’s current route-launch evidence to the first 100 of 321 manifest
+routes; it remains launch-only, not visual or behavioral completion.
+
+**粵語 —** 2026-07-11 用獨立 5 秒／15 秒 protocol 測咗 launchable-route
+indices 75–99。25 條全部喺第一次就 `launch-pass`；冇 retry、failure 或者
+manual-routing entry 留低。產生嘅證據保留喺 Git 忽略嘅
+`artifacts/smoke/launch-batches/batch-04/` 目錄。依家 campaign 對 321 條
+manifest routes 入面頭 100 條有 current route-launch 證據；佢仍然只係 launch，
+唔係 visual 或 behavioral completion。
 
 [← Wiki Home](Home.md) · [Developer](Developer.md) · [Screenshots](Screenshots.md)
