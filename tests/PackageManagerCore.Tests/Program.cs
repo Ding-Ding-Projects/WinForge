@@ -459,7 +459,7 @@ static SerializableBundle FullBundle() => new()
                 RemoveDataOnUninstall = true, UninstallPreviousOnUpdate = true, SkipMinorUpdates = true, AutoUpdate = true,
                 Scope = "machine", Architecture = "arm64", Version = "1.2.3-preview.4",
                 CustomInstallLocation = @"C:\Program Files\Example",
-                PreInstallCommand = "Write-Host before\nWrite-Host second", PostInstallCommand = "Write-Host after",
+                PreInstallCommand = "Write-Host before\nWrite-Host second", PostInstallCommand = "Write-Host\tafter",
                 PreUpdateCommand = "pre-update", PostUpdateCommand = "post-update",
                 PreUninstallCommand = "pre-uninstall", PostUninstallCommand = "post-uninstall",
                 AbortOnPreInstallFail = true, AbortOnPreUpdateFail = true, AbortOnPreUninstallFail = true,
