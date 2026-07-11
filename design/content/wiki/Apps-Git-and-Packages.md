@@ -52,7 +52,7 @@ Open in-app: `WinForge.exe --page uninstall`
 
 ## Android (ADB) · Android（ADB）
 
-adb devices, APK install, shell, logcat and scrcpy mirroring. · adb 裝置、安裝 APK、shell、logcat 同 scrcpy 鏡像。
+adb devices, APK install, shell, logcat and scrcpy mirroring. Device input is passed as isolated adb arguments, never through a local command shell. · adb 裝置、安裝 APK、shell、logcat 同 scrcpy 鏡像。裝置輸入會用獨立 adb 參數傳遞，唔會經本機命令 shell。
 
 Open in-app: `WinForge.exe --page adb`
 

@@ -41,12 +41,66 @@ public sealed class AdbPackage
 /// </summary>
 public static class AdbService
 {
-    private static Task<string> Capture(string args, CancellationToken ct)
-        => ShellRunner.CapturePowershell($"adb {args} 2>&1 | Out-String -Width 400", ct);
+    private const string InvalidDeviceMessage = "Invalid Android device identifier · Android 裝置識別碼無效。";
+
+    private static Task<string> Capture(IReadOnlyList<string> args, CancellationToken ct)
+        => ShellRunner.CaptureArguments("adb", args, ct);
+
+    private static bool IsSafeDeviceToken(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value) || value.Length > 255) return false;
+        foreach (char c in value)
+        {
+            bool allowed = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+                (c >= '0' && c <= '9') || c is '.' or '-' or '_' or ':' or '[' or ']' or '%';
+            if (!allowed) return false;
+        }
+        return true;
+    }
+
+    private static string[]? DeviceArgs(string serial, params string[] args)
+    {
+        serial = (serial ?? "").Trim();
+        if (!IsSafeDeviceToken(serial)) return null;
+        var result = new string[args.Length + 2];
+        result[0] = "-s";
+        result[1] = serial;
+        Array.Copy(args, 0, result, 2, args.Length);
+        return result;
+    }
+
+    private static Task<TweakResult> InvalidDevice() => Task.FromResult(
+        TweakResult.Fail("Invalid Android device identifier.", "Android 裝置識別碼無效。"));
+
+    private static Task<TweakResult> RunDevice(string serial, CancellationToken ct, params string[] args)
+    {
+        var fullArgs = DeviceArgs(serial, args);
+        return fullArgs is null ? InvalidDevice() : ShellRunner.RunArguments("adb", fullArgs, false, ct);
+    }
+
+    private static Task<string> CaptureDevice(string serial, CancellationToken ct, params string[] args)
+    {
+        var fullArgs = DeviceArgs(serial, args);
+        return fullArgs is null ? Task.FromResult(InvalidDeviceMessage) : Capture(fullArgs, ct);
+    }
+
+    // adb shell forwards a command string to the Android shell. Keep its quoting separate from Windows
+    // process construction: the resulting string is one argument in ProcessStartInfo.ArgumentList, so it
+    // cannot be interpreted by a local Windows shell.
+    private static string RemoteCommand(params string[] args)
+    {
+        var command = new StringBuilder();
+        foreach (var arg in args)
+        {
+            if (command.Length > 0) command.Append(' ');
+            command.Append('\'').Append((arg ?? "").Replace("'", "'\"'\"'")).Append('\'');
+        }
+        return command.ToString();
+    }
 
     public static async Task<bool> IsAvailable(CancellationToken ct = default)
     {
-        try { return (await Capture("version", ct)).Contains("Android Debug Bridge", StringComparison.OrdinalIgnoreCase); }
+        try { return (await Capture(new[] { "version" }, ct)).Contains("Android Debug Bridge", StringComparison.OrdinalIgnoreCase); }
         catch { return false; }
     }
 
@@ -54,7 +108,7 @@ public static class AdbService
     {
         var list = new List<AdbDevice>();
         string outp;
-        try { outp = await Capture("devices -l", ct); } catch { return list; }
+        try { outp = await Capture(new[] { "devices", "-l" }, ct); } catch { return list; }
 
         bool started = false;
         foreach (var raw in outp.Replace("\r", "").Split('\n'))
@@ -75,40 +129,58 @@ public static class AdbService
     }
 
     public static Task<TweakResult> Install(string serial, string apkPath, CancellationToken ct = default)
-        => ShellRunner.RunCmd($"adb -s {serial} install -r \"{apkPath}\"", false, ct);
+        => RunDevice(serial, ct, "install", "-r", apkPath ?? "");
 
     public static Task<TweakResult> Uninstall(string serial, string package, CancellationToken ct = default)
-        => ShellRunner.RunCmd($"adb -s {serial} uninstall {package}", false, ct);
+        => RunDevice(serial, ct, "uninstall", package ?? "");
 
     /// <param name="mode">"" (system), "bootloader" or "recovery".</param>
     public static Task<TweakResult> Reboot(string serial, string mode, CancellationToken ct = default)
-        => ShellRunner.RunCmd($"adb -s {serial} reboot {mode}".TrimEnd(), false, ct);
+        => string.IsNullOrWhiteSpace(mode)
+            ? RunDevice(serial, ct, "reboot")
+            : RunDevice(serial, ct, "reboot", mode.Trim());
 
     public static Task<TweakResult> Connect(string ipPort, CancellationToken ct = default)
-        => ShellRunner.RunCmd($"adb connect {ipPort}", false, ct);
+    {
+        var endpoint = (ipPort ?? "").Trim();
+        return !IsSafeDeviceToken(endpoint)
+            ? Task.FromResult(TweakResult.Fail(
+                "Enter an ADB host or IP address with an optional port.",
+                "請輸入 ADB 主機或 IP 位址（可加連接埠）。"))
+            : ShellRunner.RunArguments("adb", new[] { "connect", endpoint }, false, ct);
+    }
 
     public static Task<TweakResult> Disconnect(string ipPort, CancellationToken ct = default)
-        => ShellRunner.RunCmd($"adb disconnect {ipPort}", false, ct);
+    {
+        var endpoint = (ipPort ?? "").Trim();
+        return !IsSafeDeviceToken(endpoint)
+            ? Task.FromResult(TweakResult.Fail(
+                "Enter an ADB host or IP address with an optional port.",
+                "請輸入 ADB 主機或 IP 位址（可加連接埠）。"))
+            : ShellRunner.RunArguments("adb", new[] { "disconnect", endpoint }, false, ct);
+    }
 
     public static Task<TweakResult> KillServer(CancellationToken ct = default)
-        => ShellRunner.RunCmd("adb kill-server", false, ct);
+        => ShellRunner.RunArguments("adb", new[] { "kill-server" }, false, ct);
 
     public static Task<string> Shell(string serial, string command, CancellationToken ct = default)
-        => Capture($"-s {serial} shell {command}", ct);
+        // The remote command intentionally remains one ADB argument. It is interpreted only by the
+        // Android shell after adb connects; it is never parsed by local cmd.exe or PowerShell.
+        => CaptureDevice(serial, ct, "shell", command ?? "");
 
     public static Task<string> Logcat(string serial, int lines, CancellationToken ct = default)
-        => Capture($"-s {serial} logcat -d -t {lines}", ct);
+        => CaptureDevice(serial, ct, "logcat", "-d", "-t", Math.Max(1, lines).ToString());
 
     public static Task<string> Packages(string serial, CancellationToken ct = default)
-        => Capture($"-s {serial} shell pm list packages", ct);
+        => CaptureDevice(serial, ct, "shell", RemoteCommand("pm", "list", "packages"));
 
     /// <summary>Capture a device screenshot to a local PNG (screencap on the device, then pull).</summary>
     public static async Task<TweakResult> Screenshot(string serial, string localPath, CancellationToken ct = default)
     {
         const string remote = "/sdcard/winforge_screen.png";
-        var cap = await ShellRunner.RunCmd($"adb -s {serial} shell screencap -p {remote}", false, ct);
+        var cap = await RunDevice(serial, ct, "shell", RemoteCommand("screencap", "-p", remote));
         if (!cap.Success) return cap;
-        return await ShellRunner.RunCmd($"adb -s {serial} pull {remote} \"{localPath}\"", false, ct);
+        return await RunDevice(serial, ct, "pull", remote, localPath ?? "");
     }
 
     // ── File browser (push / pull) · 檔案瀏覽（推送／拉取） ───────────────────────────────
@@ -119,7 +191,7 @@ public static class AdbService
         var list = new List<AdbFileEntry>();
         // -F appends a type indicator: '/' dir, '*' exec, '@' symlink, '|' fifo, '=' socket.
         string outp;
-        try { outp = await Capture($"-s {serial} shell ls -1aF \"{ShellEscape(path)}\"", ct); }
+        try { outp = await CaptureDevice(serial, ct, "shell", RemoteCommand("ls", "-1aF", path ?? "")); }
         catch { return list; }
 
         foreach (var raw in outp.Replace("\r", "").Split('\n'))
@@ -144,17 +216,15 @@ public static class AdbService
 
     /// <summary>Pull a file/folder from the device to a local path.</summary>
     public static Task<TweakResult> Pull(string serial, string remotePath, string localPath, CancellationToken ct = default)
-        => ShellRunner.RunCmd($"adb -s {serial} pull \"{remotePath}\" \"{localPath}\"", false, ct);
+        => RunDevice(serial, ct, "pull", remotePath ?? "", localPath ?? "");
 
     /// <summary>Push a local file/folder to the device.</summary>
     public static Task<TweakResult> Push(string serial, string localPath, string remotePath, CancellationToken ct = default)
-        => ShellRunner.RunCmd($"adb -s {serial} push \"{localPath}\" \"{remotePath}\"", false, ct);
+        => RunDevice(serial, ct, "push", localPath ?? "", remotePath ?? "");
 
     /// <summary>Delete a file/folder on the device (rm -rf). Caller must confirm.</summary>
     public static Task<TweakResult> Delete(string serial, string remotePath, CancellationToken ct = default)
-        => ShellRunner.RunCmd($"adb -s {serial} shell rm -rf \"{ShellEscape(remotePath)}\"", false, ct);
-
-    private static string ShellEscape(string p) => p.Replace("\"", "\\\"");
+        => RunDevice(serial, ct, "shell", RemoteCommand("rm", "-rf", remotePath ?? ""));
 
     // ── APK backup (pm path + pull) · 備份已裝 APK ──────────────────────────────────────
 
@@ -162,9 +232,12 @@ public static class AdbService
     public static async Task<List<AdbPackage>> InstalledApks(string serial, bool includeSystem, CancellationToken ct = default)
     {
         var res = new List<AdbPackage>();
-        var flag = includeSystem ? "" : "-3"; // -3 = third-party only
+        var args = includeSystem
+            ? DeviceArgs(serial, "shell", RemoteCommand("pm", "list", "packages"))
+            : DeviceArgs(serial, "shell", RemoteCommand("pm", "list", "packages", "-3")); // -3 = third-party only
+        if (args is null) return res;
         string list;
-        try { list = await Capture($"-s {serial} shell pm list packages {flag}", ct); }
+        try { list = await Capture(args, ct); }
         catch { return res; }
 
         foreach (var raw in list.Replace("\r", "").Split('\n'))
@@ -182,7 +255,7 @@ public static class AdbService
     /// <summary>Resolve the base APK path for a package via `pm path`.</summary>
     public static async Task<string> ApkPath(string serial, string package, CancellationToken ct = default)
     {
-        var outp = await Capture($"-s {serial} shell pm path {package}", ct);
+        var outp = await CaptureDevice(serial, ct, "shell", RemoteCommand("pm", "path", package ?? ""));
         foreach (var raw in outp.Replace("\r", "").Split('\n'))
         {
             var line = raw.Trim();
@@ -213,19 +286,8 @@ public static class AdbService
         if (IsStreamingLogcat) return true;
         try
         {
-            // clear the buffer first so we stream fresh lines, then follow.
-            var args = $"-s {serial} logcat {filter}".Trim();
-            var psi = new ProcessStartInfo
-            {
-                FileName = "adb",
-                Arguments = args,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true,
-                StandardOutputEncoding = Encoding.UTF8,
-                StandardErrorEncoding = Encoding.UTF8,
-            };
+            var psi = CreateLogcatStartInfo(serial, filter);
+            if (psi is null) return false;
             _logcatProc = Process.Start(psi);
             if (_logcatProc is null) return false;
             _logcatProc.OutputDataReceived += (_, e) => { if (e.Data is not null) onLine(e.Data); };
@@ -235,6 +297,27 @@ public static class AdbService
             return true;
         }
         catch { _logcatProc = null; return false; }
+    }
+
+    /// <summary>Builds the tracked logcat process without passing user text through a command shell.</summary>
+    internal static ProcessStartInfo? CreateLogcatStartInfo(string serial, string filter)
+    {
+        var args = DeviceArgs(serial, "logcat");
+        if (args is null) return null;
+        var psi = new ProcessStartInfo
+        {
+            FileName = "adb",
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true,
+            StandardOutputEncoding = Encoding.UTF8,
+            StandardErrorEncoding = Encoding.UTF8,
+        };
+        foreach (var arg in args) psi.ArgumentList.Add(arg);
+        foreach (var part in (filter ?? "").Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
+            psi.ArgumentList.Add(part);
+        return psi;
     }
 
     public static void StopLogcatStream()

@@ -18,6 +18,12 @@
 
 **粵語 —** Android（ADB） 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>android adb apk logcat shell screenshot reboot fastboot scrcpy push pull file backup mirror 手機 安卓 鏡像 備份</code>。
 
+## Command Safety · 指令安全
+
+**EN —** Device IDs, wireless `host:port` targets, paths, logcat filters, and remote-shell text are sent to `adb` as separate process arguments. WinForge never passes these values through local `cmd.exe` or PowerShell. Wireless targets accept a host/IP address with an optional port; a malformed value is rejected before `adb` starts. A command entered in the Shell tab is still intentionally executed by the selected Android device, not by the Windows host.
+
+**粵語 —** 裝置識別碼、無線 `host:port` 目標、路徑、logcat 篩選同遠端 shell 文字，都會當做獨立程序參數傳畀 `adb`。WinForge 絕對唔會將呢啲值交畀本機 `cmd.exe` 或 PowerShell。無線目標只接受主機／IP 加可選連接埠；格式唔啱會喺啟動 `adb` 前拒絕。Shell 分頁輸入嘅指令仍然會刻意喺所選 Android 裝置執行，唔會喺 Windows 主機執行。
+
 ## Buttons And Controls · 按鈕與控制項
 
 | Button · 按鈕 | Type · 類型 | XAML name · 名稱 | Handler · 處理函式 |
