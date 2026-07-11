@@ -1,0 +1,87 @@
+<Page
+    x:Class="WinForge.Pages.VideoConferenceMuteModule"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:WinForge.Controls">
+    <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="900" Spacing="14">
+            <controls:ModuleHeader x:Name="Header" Glyph="&#xE720;" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
+            <InfoBar x:Name="ResultBar" IsClosable="True" IsOpen="False" />
+
+            <Border Padding="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Spacing="3">
+                        <TextBlock x:Name="EnableTitle" FontSize="16" FontWeight="SemiBold" />
+                        <TextBlock x:Name="EnableBlurb" Foreground="{ThemeResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <ToggleSwitch x:Name="EnableSwitch" Grid.Column="1" Toggled="Enable_Toggled" VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+
+            <Border Padding="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="StatusTitle" FontSize="16" FontWeight="SemiBold" />
+                    <TextBlock x:Name="StatusText" Foreground="{ThemeResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="AllButton" Click="All_Click" Style="{StaticResource AccentButtonStyle}" />
+                        <Button x:Name="MicrophoneButton" Click="Microphone_Click" />
+                        <Button x:Name="CameraButton" Click="Camera_Click" />
+                        <Button x:Name="RefreshButton" Click="Refresh_Click" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Border Padding="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="HotkeyTitle" FontSize="16" FontWeight="SemiBold" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="190" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="AllHotkeyLabel" Grid.Column="0" VerticalAlignment="Center" />
+                        <TextBlock x:Name="AllHotkeyText" Grid.Column="1" FontFamily="Consolas" VerticalAlignment="Center" />
+                        <Button x:Name="AllHotkeyButton" Grid.Column="2" Click="AllHotkey_Click" />
+                    </Grid>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="190" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="MicrophoneHotkeyLabel" Grid.Column="0" VerticalAlignment="Center" />
+                        <TextBlock x:Name="MicrophoneHotkeyText" Grid.Column="1" FontFamily="Consolas" VerticalAlignment="Center" />
+                        <Button x:Name="MicrophoneHotkeyButton" Grid.Column="2" Click="MicrophoneHotkey_Click" />
+                    </Grid>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="190" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="CameraHotkeyLabel" Grid.Column="0" VerticalAlignment="Center" />
+                        <TextBlock x:Name="CameraHotkeyText" Grid.Column="1" FontFamily="Consolas" VerticalAlignment="Center" />
+                        <Button x:Name="CameraHotkeyButton" Grid.Column="2" Click="CameraHotkey_Click" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <Border Padding="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="8">
+                    <TextBlock x:Name="PrivacyTitle" FontSize="16" FontWeight="SemiBold" />
+                    <ToggleSwitch x:Name="CameraPrivacySwitch" Toggled="CameraPrivacy_Toggled" />
+                    <TextBlock x:Name="CameraPrivacyBlurb" Foreground="{ThemeResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
+                    <ToggleSwitch x:Name="TraySwitch" Toggled="Tray_Toggled" />
+                </StackPanel>
+            </Border>
+
+            <InfoBar x:Name="PrivacyBar" IsClosable="False" IsOpen="True" Severity="Informational" />
+        </StackPanel>
+    </ScrollViewer>
+</Page>
