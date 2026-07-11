@@ -105,6 +105,18 @@ powershell -ExecutionPolicy Bypass -File .agents\skills\winforge-exhaustive-smok
 - Full Debug x64 solution build with the local .NET 11 SDK: passed with 0 errors; the current compiler reported 318 warnings.
 - ReactorSim headless scenarios: 63/63 passed with the installed net8 runtime.
 - Package-manager core tests: 21/21 passed with the local .NET 11 SDK.
+- **2026-07-11 — YAML current-option regression:** a clean `origin/main`
+  run proved the `\\n` assertion was intentional: a multiline pre-install
+  command was flattened to a space by YAML serialization, so the current
+  option did not round-trip. `BundleService` now emits and restores YAML
+  double-quoted `\\n`, `\\r`, and `\\t` escapes; the complete package-manager
+  core harness passes 21/21. This is a nonvisual serialization correction, so
+  no package-manager screenshot was changed or claimed.
+  **粵語 —** 乾淨嘅 `origin/main` run 證明 `\\n` 斷言本身係有意義：多行嘅
+  pre-install 指令喺 YAML 序列化時被壓平做一個空格，所以 current option
+  round-trip 唔完整。`BundleService` 而家會寫出同還原 YAML 雙引號嘅
+  `\\n`、`\\r` 同 `\\t` escapes；完整套件管理核心 harness 21/21 通過。
+  呢個係非視覺嘅序列化修正，所以冇更新亦冇聲稱套件管理截圖。
 - Companion build-log tests: 4/4 passed with the installed net8 runtime.
 - Launch-only route-smoke pilot: Dashboard and Nuclear Reactor reached dedicated launched windows, 2/2 passed. This proves process-level route launch only, not visual or behavioral completion.
 - Dashboard capture is currently capture-blocked in this desktop session: a
