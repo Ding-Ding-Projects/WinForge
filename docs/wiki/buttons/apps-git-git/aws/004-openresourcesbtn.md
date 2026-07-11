@@ -1,4 +1,4 @@
-# WhoAmIBtn · Button
+# OpenResourcesBtn · Button
 
 **EN —** Action/control documented from the WinUI XAML source for **AWS Manager**.
 **粵語 —** 呢個動作／控制項係由 **AWS 管理中心** 嘅 WinUI XAML 來源整理出嚟。
@@ -8,9 +8,9 @@
 | Module · 模組 | [AWS Manager · AWS 管理中心](../../../features/apps-git-git/aws.md) |
 | Category · 分類 | Apps & Git · 程式與 Git |
 | Control type · 控制類型 | <code>Button</code> |
-| XAML name · XAML 名稱 | <code>WhoAmIBtn</code> |
-| Label / tooltip · 標籤／提示 | WhoAmIBtn |
-| Handler · 處理函式 | <code>WhoAmI_Click</code> |
+| XAML name · XAML 名稱 | <code>OpenResourcesBtn</code> |
+| Label / tooltip · 標籤／提示 | OpenResourcesBtn |
+| Handler · 處理函式 | <code>OpenResources_Click</code> |
 | Source · 來源 | <code>Pages/AwsCliModule.xaml</code> |
 
 ## Operator Notes · 操作備註

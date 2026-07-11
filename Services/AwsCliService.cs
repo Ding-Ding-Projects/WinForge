@@ -5,8 +5,11 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Amazon;
+using Amazon.Runtime.CredentialManagement;
 using WinForge.Models;
 
 namespace WinForge.Services;
@@ -112,13 +115,40 @@ public static class AwsCliService
             sb.Append(" --region ").Append(ActiveRegion);
         if (!string.IsNullOrWhiteSpace(ActiveOutput) && !ContainsFlag(args, "--output"))
             sb.Append(" --output ").Append(ActiveOutput);
+        if (!ContainsFlag(args, "--no-cli-pager"))
+            sb.Append(" --no-cli-pager");
+        if (!ContainsFlag(args, "--no-cli-auto-prompt"))
+            sb.Append(" --no-cli-auto-prompt");
         return sb.ToString();
     }
 
     private static bool ContainsFlag(string? args, string flag)
         => args is not null && args.Contains(flag, StringComparison.OrdinalIgnoreCase);
 
-    private static string Quote(string v) => v.Contains(' ') ? $"\"{v}\"" : v;
+    private static string Quote(string value)
+    {
+        if (value.Length > 0 && !value.Any(char.IsWhiteSpace) && !value.Contains('"')) return value;
+        var quoted = new StringBuilder(value.Length + 2).Append('"');
+        var slashes = 0;
+        foreach (var c in value)
+        {
+            if (c == '\\')
+            {
+                slashes++;
+                continue;
+            }
+            if (c == '"')
+            {
+                quoted.Append('\\', slashes * 2 + 1).Append('"');
+                slashes = 0;
+                continue;
+            }
+            quoted.Append('\\', slashes).Append(c);
+            slashes = 0;
+        }
+        quoted.Append('\\', slashes * 2).Append('"');
+        return quoted.ToString();
+    }
 
     // ── Active context (profile / region / output) · 目前情境 ──────────────────────────
 
@@ -134,22 +164,24 @@ public static class AwsCliService
     }
 
     /// <summary>輸出格式選項 · Output format options.</summary>
-    public static readonly string[] OutputFormats = { "json", "text", "table", "yaml", "yaml-stream" };
+    public static readonly string[] OutputFormats = { "json", "text", "table", "yaml", "yaml-stream", "off" };
 
     /// <summary>所有 AWS 區域（商業＋GovCloud＋中國）· Every AWS region code.</summary>
     public static readonly string[] AllRegions =
     {
         "us-east-1", "us-east-2", "us-west-1", "us-west-2",
         "af-south-1",
-        "ap-east-1", "ap-south-1", "ap-south-2",
+        "ap-east-1", "ap-east-2", "ap-south-1", "ap-south-2",
         "ap-northeast-1", "ap-northeast-2", "ap-northeast-3",
         "ap-southeast-1", "ap-southeast-2", "ap-southeast-3", "ap-southeast-4",
+        "ap-southeast-5", "ap-southeast-6", "ap-southeast-7",
         "ca-central-1", "ca-west-1",
         "eu-central-1", "eu-central-2",
         "eu-west-1", "eu-west-2", "eu-west-3",
         "eu-north-1", "eu-south-1", "eu-south-2",
         "il-central-1",
         "me-central-1", "me-south-1",
+        "mx-central-1",
         "sa-east-1",
         "us-gov-east-1", "us-gov-west-1",
         "cn-north-1", "cn-northwest-1",
@@ -238,96 +270,126 @@ public static class AwsCliService
     }
 
     /// <summary>
-    /// 寫一個 profile 嘅憑證／設定 · Write a profile's credentials + config via the aws CLI.
-    /// 用 stdin 餵 access key／secret 落 "aws configure"，避免 secret 出現喺指令列或記錄。
-    /// Feeds the access-key id / secret to "aws configure set" so the secret never appears on a
-    /// command line or in any log. Region/output go to config; keys go to credentials.
+    /// 寫一個 profile 嘅憑證／設定 · Write a profile's credentials + config through the AWS SDK.
+    /// Secret 直接交畀 shared credentials store，唔會經 child-process command line 或記錄。
+    /// Secrets go directly to the shared credentials store and never cross a child-process command line or log.
     /// </summary>
-    public static async Task<TweakResult> ConfigureProfile(string profile, string accessKeyId, string secretKey,
+    public static Task<TweakResult> ConfigureProfile(string profile, string accessKeyId, string secretKey,
         string region, string output, CancellationToken ct = default)
     {
         try
         {
+            ct.ThrowIfCancellationRequested();
             if (string.IsNullOrWhiteSpace(profile))
-                return TweakResult.Fail("Profile name is required.", "需要 profile 名稱。");
+                return Task.FromResult(TweakResult.Fail("Profile name is required.", "需要 profile 名稱。"));
 
-            // 用 "aws configure set" 逐項寫，唔會喺記錄印 secret · write each key; secret via SetValue helper.
-            var p = Quote(profile);
-            if (!string.IsNullOrWhiteSpace(accessKeyId))
+            profile = profile.Trim();
+            if (profile.IndexOfAny(new[] { '\r', '\n', '[', ']' }) >= 0)
+                return Task.FromResult(TweakResult.Fail("The profile name contains invalid characters.", "Profile 名稱包含無效字元。"));
+
+            var hasAccessKey = !string.IsNullOrWhiteSpace(accessKeyId);
+            var hasSecretKey = !string.IsNullOrWhiteSpace(secretKey);
+            if (hasAccessKey != hasSecretKey)
+                return Task.FromResult(TweakResult.Fail(
+                    "Enter both the access key ID and secret access key, or leave both blank to retain existing credentials.",
+                    "請同時輸入 access key ID 同 secret access key，或者兩者留空以保留現有憑證。"));
+
+            var store = new SharedCredentialsFile();
+            var exists = store.TryGetProfile(profile, out var savedProfile);
+            savedProfile ??= new CredentialProfile(profile, new CredentialProfileOptions());
+
+            if (hasAccessKey)
             {
-                var r1 = await RunExact($"configure set aws_access_key_id {Quote(accessKeyId)} --profile {p}", ct);
-                if (!r1.Success) return r1;
+                savedProfile.Options.AccessKey = accessKeyId.Trim();
+                savedProfile.Options.SecretKey = secretKey;
+                savedProfile.Options.Token = null;
             }
-            if (!string.IsNullOrWhiteSpace(secretKey))
+            else if (!exists && string.IsNullOrWhiteSpace(region) && string.IsNullOrWhiteSpace(output))
             {
-                // 用 process stdin 餵 secret（透過環境）· secret passed as an arg to the local CLI only,
-                // never echoed by us. aws stores it in ~/.aws/credentials.
-                var r2 = await RunSecret($"configure set aws_secret_access_key", secretKey, profile, ct);
-                if (!r2.Success) return r2;
+                return Task.FromResult(TweakResult.Fail(
+                    "Enter credentials, a Region, or an output format for the new profile.",
+                    "新 profile 請輸入憑證、區域或者輸出格式。"));
             }
+
             if (!string.IsNullOrWhiteSpace(region))
-                await RunExact($"configure set region {region} --profile {p}", ct);
+                savedProfile.Region = RegionEndpoint.GetBySystemName(region.Trim());
             if (!string.IsNullOrWhiteSpace(output))
-                await RunExact($"configure set output {output} --profile {p}", ct);
-
-            return TweakResult.Ok($"Profile '{profile}' saved.", $"已儲存 profile「{profile}」。");
-        }
-        catch (Exception ex) { return TweakResult.Fail(ex.Message, $"出錯：{ex.Message}"); }
-    }
-
-    /// <summary>
-    /// 行一句帶 secret 嘅 "configure set"，secret 經參數傳俾本機 aws，唔會印出 · Run a configure-set that
-    /// carries a secret value; the value is passed only to the local aws process and never logged.
-    /// </summary>
-    private static async Task<TweakResult> RunSecret(string subCommand, string secretValue, string profile, CancellationToken ct)
-    {
-        try
-        {
-            var psi = new ProcessStartInfo
             {
-                FileName = ExePath,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true,
-                StandardOutputEncoding = Encoding.UTF8,
-                StandardErrorEncoding = Encoding.UTF8,
-            };
-            // Build args via ArgumentList so the secret is not subject to shell quoting issues.
-            foreach (var tok in subCommand.Split(' ', StringSplitOptions.RemoveEmptyEntries))
-                psi.ArgumentList.Add(tok);
-            psi.ArgumentList.Add(secretValue);
-            psi.ArgumentList.Add("--profile");
-            psi.ArgumentList.Add(profile);
+                ActiveOutput = output.Trim();
+                PersistContext();
+            }
 
-            using var pr = Process.Start(psi);
-            if (pr is null) return TweakResult.Fail("Failed to start aws.", "無法啟動 aws。");
-            var err = await pr.StandardError.ReadToEndAsync(ct);
-            await pr.WaitForExitAsync(ct);
-            // 注意：我哋唔回傳輸出（可能含敏感資料）· deliberately do not surface output here.
-            return pr.ExitCode == 0
-                ? TweakResult.Ok("Secret stored.", "已儲存密鑰。")
-                : TweakResult.Fail($"aws configure failed (exit {pr.ExitCode}).",
-                    $"aws configure 失敗（結束代碼 {pr.ExitCode}）。", Redact(err));
+            ct.ThrowIfCancellationRequested();
+            store.RegisterProfile(savedProfile);
+            return Task.FromResult(TweakResult.Ok($"Profile '{profile}' saved.", $"已儲存 profile「{profile}」。"));
         }
-        catch (Exception ex) { return TweakResult.Fail(ex.Message, $"出錯：{ex.Message}"); }
+        catch (OperationCanceledException)
+        {
+            return Task.FromResult(TweakResult.Fail("Profile save cancelled.", "已取消儲存 profile。"));
+        }
+        catch (Exception ex)
+        {
+            var safe = Redact(ex.Message);
+            return Task.FromResult(TweakResult.Fail(safe, $"出錯：{safe}"));
+        }
     }
 
-    /// <summary>把可能嘅密鑰遮蔽（保險）· Best-effort redaction of anything key-shaped.</summary>
+    private static readonly Regex AccessKeyIdPattern = new(
+        @"\b(?:A3T[A-Z0-9]|ABIA|ACCA|AGPA|AIDA|AIPA|AKIA|ANPA|ANVA|APKA|AROA|ASCA|ASIA)[A-Z0-9]{16}\b",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    private static readonly Regex SensitiveAssignmentPattern = new(
+        @"(?ix)(?<key>[""']?(?:aws_)?(?:secret_access_key|session_token|security_token|client_secret|password|authorization|x-amz-signature|x-amz-security-token)[""']?\s*[:=]\s*[""']?)(?<value>[^""'\s,}&]+)",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    private static readonly Regex SensitiveOptionValuePattern = new(
+        @"(?ix)(?<key>--(?:secret|secret-access-key|session-token|security-token|client-secret|password|auth-token|secret-string|secret-binary)\s+)(?<value>""(?:\\.|[^""])*""|'(?:\\.|[^'])*'|\S+)",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    private static readonly Regex ConfigureSetSecretPattern = new(
+        @"(?ix)(?<key>\bconfigure\s+set\s+(?:aws_)?(?:access_key_id|secret_access_key|session_token|security_token)\s+)(?<value>""(?:\\.|[^""])*""|'(?:\\.|[^'])*'|\S+)",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    private static readonly Regex SsmSecureStringCommandPattern = new(
+        @"(?is)\A(?=.*\bssm\s+put-parameter\b)(?=.*--type\s+[""']?SecureString\b).+\z",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    private static readonly Regex ValueOptionPattern = new(
+        @"(?ix)(?<key>--value\s+)(?<value>""(?:\\.|[^""])*""|'(?:\\.|[^'])*'|\S+)",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    private static readonly Regex AuthorizationHeaderPattern = new(
+        @"(?im)(?<key>^\s*authorization\s*:\s*)(?<value>.+)$",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    private static readonly Regex SensitiveCommandPattern = new(
+        @"(?ix)(?:--(?:secret|secret-access-key|session-token|security-token|client-secret|password|auth-token|secret-string|secret-binary)\b|aws_(?:access_key_id|secret_access_key|session_token)\s*=|x-amz-(?:signature|security-token)\s*=)",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    /// <summary>把可能嘅密鑰遮蔽（保險）· Best-effort redaction of credential-shaped material.</summary>
     public static string Redact(string? text)
     {
         if (string.IsNullOrEmpty(text)) return string.Empty;
-        // AWS access key ids start with AKIA/ASIA; secrets are 40-char base64-ish.
-        var sb = new StringBuilder(text!.Length);
-        foreach (var token in text.Split(' '))
-        {
-            if (token.StartsWith("AKIA", StringComparison.Ordinal) || token.StartsWith("ASIA", StringComparison.Ordinal))
-                sb.Append("AKIA****************");
-            else sb.Append(token);
-            sb.Append(' ');
-        }
-        return sb.ToString().TrimEnd();
+        var redacted = AccessKeyIdPattern.Replace(text!, "AKIA****************");
+        redacted = SensitiveAssignmentPattern.Replace(redacted, m => m.Groups["key"].Value + "***");
+        redacted = SensitiveOptionValuePattern.Replace(redacted, m => m.Groups["key"].Value + "***");
+        redacted = ConfigureSetSecretPattern.Replace(redacted, m => m.Groups["key"].Value + "***");
+        if (SsmSecureStringCommandPattern.IsMatch(redacted))
+            redacted = ValueOptionPattern.Replace(redacted, m => m.Groups["key"].Value + "***");
+        redacted = AuthorizationHeaderPattern.Replace(redacted, m => m.Groups["key"].Value + "***");
+        return redacted;
     }
+
+    /// <summary>
+    /// True when a command appears to contain inline credential material and therefore must not be
+    /// persisted in history/favorites. This is deliberately conservative.
+    /// </summary>
+    public static bool ContainsSensitiveMaterial(string? command)
+        => !string.IsNullOrWhiteSpace(command)
+           && (SensitiveCommandPattern.IsMatch(command!)
+               || ConfigureSetSecretPattern.IsMatch(command!)
+               || SensitiveOptionValuePattern.IsMatch(command!)
+               || SsmSecureStringCommandPattern.IsMatch(command!));
 
     /// <summary>確認身份（sts get-caller-identity）· Who am I — confirm the active identity.</summary>
     public static Task<TweakResult> GetCallerIdentity(CancellationToken ct = default)
@@ -336,38 +398,52 @@ public static class AwsCliService
     /// <summary>SSO 登入（開終端機，因要互動）· SSO login (opens a terminal — it's interactive).</summary>
     public static TweakResult SsoLogin(string profile)
     {
-        var args = string.IsNullOrWhiteSpace(profile) ? "sso login" : $"sso login --profile {Quote(profile)}";
+        var args = new List<string> { "sso", "login" };
+        if (!string.IsNullOrWhiteSpace(profile))
+        {
+            args.Add("--profile");
+            args.Add(profile.Trim());
+        }
         return LaunchInTerminal(args);
     }
 
     /// <summary>為互動指令開一個睇得到嘅終端機 · Open a visible terminal for interactive commands.</summary>
-    public static TweakResult LaunchInTerminal(string awsArgs)
+    public static TweakResult LaunchInTerminal(IReadOnlyList<string> awsArgs)
     {
+        var shown = Redact(string.Join(" ", awsArgs.Select(Quote)));
         try
         {
             var wt = new ProcessStartInfo
             {
                 FileName = "wt.exe",
-                Arguments = $"{ExePath} {awsArgs}",
-                UseShellExecute = true,
+                UseShellExecute = false,
             };
+            wt.ArgumentList.Add("new-tab");
+            wt.ArgumentList.Add("--");
+            wt.ArgumentList.Add(ExePath);
+            foreach (var argument in awsArgs) wt.ArgumentList.Add(argument);
             if (Process.Start(wt) is not null)
-                return TweakResult.Ok($"Launched: aws {awsArgs}", $"已開：aws {awsArgs}");
+                return TweakResult.Ok($"Launched: aws {shown}", $"已開：aws {shown}");
         }
         catch { /* fall through */ }
         try
         {
-            var cmd = new ProcessStartInfo
+            var direct = new ProcessStartInfo
             {
-                FileName = "cmd.exe",
-                Arguments = $"/k \"{ExePath}\" {awsArgs}",
+                FileName = ExePath,
                 UseShellExecute = true,
+                CreateNoWindow = false,
             };
-            if (Process.Start(cmd) is not null)
-                return TweakResult.Ok($"Launched: aws {awsArgs}", $"已開：aws {awsArgs}");
+            foreach (var argument in awsArgs) direct.ArgumentList.Add(argument);
+            if (Process.Start(direct) is not null)
+                return TweakResult.Ok($"Launched: aws {shown}", $"已開：aws {shown}");
             return TweakResult.Fail("Failed to start a terminal.", "無法啟動終端機。");
         }
-        catch (Exception ex) { return TweakResult.Fail(ex.Message, $"出錯：{ex.Message}"); }
+        catch (Exception ex)
+        {
+            var safe = Redact(ex.Message);
+            return TweakResult.Fail(safe, $"出錯：{safe}");
+        }
     }
 
     // ── 動態服務／操作枚舉 · Dynamic service & operation enumeration ─────────────────────
@@ -381,7 +457,7 @@ public static class AwsCliService
     {
         try
         {
-            var help = await ShellRunner.Capture(ExePath, "help", ct);
+            var help = await ShellRunner.Capture(ExePath, "help --no-cli-pager --no-cli-auto-prompt", ct);
             var services = ParseHelpItems(help, "AVAILABLE SERVICES", "SEE ALSO");
             if (services.Count > 0) return services;
         }
@@ -397,7 +473,7 @@ public static class AwsCliService
     {
         try
         {
-            var help = await ShellRunner.Capture(ExePath, $"{service} help", ct);
+            var help = await ShellRunner.Capture(ExePath, $"{service} help --no-cli-pager --no-cli-auto-prompt", ct);
             return ParseHelpItems(help, "AVAILABLE COMMANDS", "SEE ALSO");
         }
         catch { return new List<string>(); }
@@ -411,7 +487,8 @@ public static class AwsCliService
     {
         try
         {
-            var raw = await ShellRunner.Capture(ExePath, $"{service} {operation} --generate-cli-skeleton input", ct);
+            var raw = await ShellRunner.Capture(ExePath,
+                $"{service} {operation} --generate-cli-skeleton input --no-cli-pager --no-cli-auto-prompt", ct);
             raw = raw.Trim();
             int a = raw.IndexOf('{');
             int b = raw.LastIndexOf('}');
@@ -444,7 +521,14 @@ public static class AwsCliService
                 && trimmed.ToUpperInvariant() == trimmed && trimmed.All(c => char.IsLetter(c) || c == ' '))
                 break;
             // items look like "o  servicename" or "       servicename"
-            var token = trimmed.TrimStart('o', '*', '+', '-', ' ', '\t').Trim();
+            var token = trimmed;
+            // Help uses explicit bullet prefixes such as "o  name". Remove a complete bullet token,
+            // never a character set: TrimStart('o', ...) corrupts real names like organizations.
+            if (token.StartsWith("o ", StringComparison.Ordinal)
+                || token.StartsWith("* ", StringComparison.Ordinal)
+                || token.StartsWith("+ ", StringComparison.Ordinal)
+                || token.StartsWith("- ", StringComparison.Ordinal))
+                token = token[2..].TrimStart();
             if (token.Length == 0) continue;
             // keep only a single bare token (service/op names have no spaces)
             token = token.Split(' ', '\t')[0].Trim();
@@ -470,7 +554,16 @@ public static class AwsCliService
     // ── 串流執行（raw command box / 長輸出）· Streaming run with a Stop button ───────────
 
     private static Process? _streamProc;
-    public static bool IsStreaming => _streamProc is { HasExited: false };
+    public static bool IsStreaming
+    {
+        get
+        {
+            var process = Volatile.Read(ref _streamProc);
+            if (process is null) return false;
+            try { return !process.HasExited; }
+            catch { return false; }
+        }
+    }
 
     /// <summary>
     /// 串流行一句 aws · Run an aws command, streaming each stdout/stderr line via <paramref name="onLine"/>.
@@ -480,6 +573,7 @@ public static class AwsCliService
     public static bool StartStream(string args, bool decorate, Action<string> onLine, Action<int> onDone)
     {
         if (IsStreaming) return false;
+        Process? process = null;
         try
         {
             var finalArgs = decorate ? Decorate(args) : args;
@@ -494,31 +588,47 @@ public static class AwsCliService
                 StandardOutputEncoding = Encoding.UTF8,
                 StandardErrorEncoding = Encoding.UTF8,
             };
-            // Disable the CLI pager so output streams instead of opening less/more.
+            // Disable the CLI pager and interactive auto-prompt so output always streams in-app.
             psi.Environment["AWS_PAGER"] = "";
-            _streamProc = new Process { StartInfo = psi, EnableRaisingEvents = true };
-            _streamProc.OutputDataReceived += (_, e) => { if (e.Data is not null) onLine(e.Data); };
-            _streamProc.ErrorDataReceived += (_, e) => { if (e.Data is not null) onLine(e.Data); };
-            _streamProc.Exited += (_, _) =>
+            psi.Environment["AWS_CLI_AUTO_PROMPT"] = "off";
+            process = new Process { StartInfo = psi, EnableRaisingEvents = true };
+            if (Interlocked.CompareExchange(ref _streamProc, process, null) is not null)
+            {
+                process.Dispose();
+                return false;
+            }
+            process.OutputDataReceived += (_, e) => { if (e.Data is not null) onLine(Redact(e.Data)); };
+            process.ErrorDataReceived += (_, e) => { if (e.Data is not null) onLine(Redact(e.Data)); };
+            process.Exited += (_, _) =>
             {
                 var code = -1;
-                try { code = _streamProc?.ExitCode ?? -1; } catch { }
-                _streamProc = null;
+                try { code = process.ExitCode; } catch { }
+                Interlocked.CompareExchange(ref _streamProc, null, process);
                 onDone(code);
+                try { process.Dispose(); } catch { }
             };
-            if (!_streamProc.Start()) { _streamProc = null; return false; }
-            _streamProc.BeginOutputReadLine();
-            _streamProc.BeginErrorReadLine();
+            if (!process.Start())
+            {
+                Interlocked.CompareExchange(ref _streamProc, null, process);
+                process.Dispose();
+                return false;
+            }
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
             return true;
         }
-        catch { _streamProc = null; return false; }
+        catch
+        {
+            if (process is not null) Interlocked.CompareExchange(ref _streamProc, null, process);
+            try { process?.Dispose(); } catch { }
+            return false;
+        }
     }
 
     /// <summary>停止串流（殺埋子程序）· Stop the streaming process tree.</summary>
     public static void StopStream()
     {
-        var p = _streamProc;
-        _streamProc = null;
+        var p = Interlocked.Exchange(ref _streamProc, null);
         try { if (p is { HasExited: false }) p.Kill(true); } catch { }
         try { p?.Dispose(); } catch { }
     }
@@ -533,7 +643,7 @@ public static class AwsCliService
 
     public static void AddHistory(string command)
     {
-        if (string.IsNullOrWhiteSpace(command)) return;
+        if (string.IsNullOrWhiteSpace(command) || ContainsSensitiveMaterial(command)) return;
         var list = LoadList(HistKey);
         list.RemoveAll(c => c.Equals(command, StringComparison.OrdinalIgnoreCase));
         list.Insert(0, command.Trim());
@@ -545,7 +655,7 @@ public static class AwsCliService
 
     public static void ToggleFavorite(string command)
     {
-        if (string.IsNullOrWhiteSpace(command)) return;
+        if (string.IsNullOrWhiteSpace(command) || ContainsSensitiveMaterial(command)) return;
         var list = LoadList(FavKey);
         var existing = list.FirstOrDefault(c => c.Equals(command, StringComparison.OrdinalIgnoreCase));
         if (existing is not null) list.Remove(existing);

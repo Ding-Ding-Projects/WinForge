@@ -394,26 +394,28 @@ public static partial class ManualContent
         new ManualEntry
         {
             Tag = "module.aws", Glyph = "",
-            TitleEn = "AWS CLI", TitleZh = "AWS 命令列",
-            SummaryEn = "A guided front end for the AWS CLI — pick a profile and region, browse services and operations, or run raw aws commands.",
-            SummaryZh = "AWS CLI 嘅引導式前端 — 揀設定檔同區域、瀏覽服務同操作，又或者直接跑 aws 指令。",
+            TitleEn = "AWS Manager", TitleZh = "AWS 管理中心",
+            SummaryEn = "An AWS Console-style manager with unified account context, resource discovery, a 149-service catalog, native S3 controls, Cloud Control lifecycle APIs, and an optional CLI workbench.",
+            SummaryZh = "AWS Console 式管理中心，整合帳戶情境、資源探索、149 個服務目錄、原生 S3 控制、Cloud Control 生命週期 API，同選用 CLI 工作台。",
             StepsEn = new[]
             {
-                "In the Auth & context card, pick a Profile, Region and output format; click WhoAmI to confirm you're signed in.",
-                "Use the command browser: pick a service, then an operation, and fill the parameter fields.",
-                "Click Build & Run, or type a raw command after the aws prefix and Run it.",
-                "Reuse commands from the History and Favorites tabs.",
+                "Choose a shared AWS Profile and Region in the top context bar, then use Who am I to verify the account before changing resources.",
+                "Use Console home and All resources to search Resource Explorer inventory; if it is unavailable, WinForge labels the narrower tag-inventory fallback.",
+                "Open All services to browse 149 curated services plus live services discovered from the installed AWS CLI. Most services currently use the shared resource workspace.",
+                "Use the native S3 workspace for buckets, objects, transfers, versioning, encryption, public-access settings, policies, lifecycle, CORS and tags.",
+                "Open CLI workbench only when you need exact command coverage, streaming output, generated forms, history or favorites.",
             },
             StepsZh = new[]
             {
-                "喺 Auth & context 卡揀 Profile、Region 同輸出格式；撳 WhoAmI 確認你登咗入。",
-                "用指令瀏覽器：揀個服務、再揀操作，然後填參數欄位。",
-                "撳 Build & Run，或者喺 aws 前綴後面打原始指令再 Run。",
-                "喺 History 同 Favorites 分頁重用之前嘅指令。",
+                "喺頂部情境列揀 shared AWS Profile 同 Region，再用「我係邊個」核對帳戶，先至改資源。",
+                "用 Console 首頁同所有資源搜尋 Resource Explorer 清單；如果用唔到，WinForge 會清楚標示範圍較窄嘅標籤清單後備。",
+                "開所有服務，瀏覽 149 個精選服務同由已安裝 AWS CLI 即時探索嘅服務。其他大部分服務目前會用共用資源工作區。",
+                "用原生 S3 工作區管理儲存桶、物件、傳輸、版本控制、加密、公開存取設定、政策、生命週期、CORS 同標籤。",
+                "只有需要精確指令覆蓋、即時輸出、生成表單、歷史或者收藏時，先開 CLI 工作台。",
             },
-            TipEn = "Requires the AWS CLI installed and a configured profile — use Configure or SSO to set up credentials.",
-            TipZh = "要裝咗 AWS CLI 同有設定好嘅 profile — 用 Configure 或者 SSO 設定憑證。",
-            Keywords = "aws amazon cli s3 ec2 iam lambda profile credentials region sso configure favorites history 雲端 命令列 設定檔 憑證 區域",
+            TipEn = "The primary manager uses AWS SDK for .NET v4 and does not require aws.exe. WinForge stores only non-secret context; credentials remain with standard AWS providers. IAM permissions still apply, and raw CLI commands may be destructive.",
+            TipZh = "主要管理中心用 AWS SDK for .NET v4，唔需要 aws.exe。WinForge 只保存非機密情境；憑證會留喺標準 AWS provider。IAM 權限仍然生效，而原始 CLI 指令可能有破壞性。",
+            Keywords = "aws amazon manager console sdk cli s3 resource explorer cloud control crudl services profile credentials region sso configure favorites history 雲端 管理中心 命令列 設定檔 憑證 區域 資源",
         },
         new ManualEntry
         {
