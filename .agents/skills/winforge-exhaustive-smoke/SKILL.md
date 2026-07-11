@@ -174,8 +174,9 @@ For each page/service batch:
 
    It blocks direct XAML `IsOn="True|False"` values while allowing bindings,
    and verifies the 16 migrated ToggleSwitch defaults, the reproduced Markdown
-   TOC `CheckBox.IsChecked` default, and ten page-local NumberBox defaults.
-   The latter two checks are deliberately scoped to proven failures; default
+   TOC `CheckBox.IsChecked` and Percentage Calculator `RadioButton.IsChecked`
+   defaults, and ten page-local NumberBox defaults. The latter two checks are
+   deliberately scoped to proven failures; default
    state belongs in code-behind after `InitializeComponent`.
 6. Add findings to the ledger with severity, reproduction, source location,
    owner/status, and retest evidence.
@@ -237,7 +238,8 @@ An exhaustive smoke campaign is complete only when:
   validates the direct All Apps modal route with UI Automation.
 - [scripts/Test-WinForgeXamlLiteralSafety.ps1](scripts/Test-WinForgeXamlLiteralSafety.ps1)
   blocks direct Boolean `IsOn` XAML literals and protects the explicitly
-  reproduced Markdown TOC CheckBox and six-page NumberBox managed defaults;
-  it does not prohibit unproven numeric literals.
+  reproduced Markdown TOC CheckBox, Percentage Calculator RadioButton, and
+  six-page NumberBox managed defaults; it does not prohibit unproven numeric
+  or `IsChecked` literals.
 - [references/coverage-schema.md](references/coverage-schema.md) defines the
   ledger states and required evidence.
