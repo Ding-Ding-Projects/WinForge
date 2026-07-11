@@ -166,6 +166,20 @@ foreach ($line in ($startPageText -split "\r?\n")) {
         continue
     }
 
+    # Package Manager view aliases resolve through the shared managed routing helper
+    # rather than a string literal. They are still aliases of the module.packages
+    # route, so preserve them in its inventory entry instead of flagging them unmapped.
+    $packageViewTargetMatch = [System.Text.RegularExpressions.Regex]::Match($line, 'Navigator\.GoToModule\?\.Invoke\(PackageManagerViewRouting\.NavigationKey\(PackageManagerViewTarget\.(?<view>Discover|Updates|Installed)\)\)')
+    if ($packageViewTargetMatch.Success) {
+        $target = 'module.packages'
+        if (-not $aliasesByTarget.ContainsKey($target)) {
+            $aliasesByTarget[$target] = @()
+        }
+        $aliasesByTarget[$target] += $pendingAliases
+        $pendingAliases = @()
+        continue
+    }
+
     $navigateMatch = [System.Text.RegularExpressions.Regex]::Match($line, 'NavigateActive\("(?<tag>[^"]+)"\)')
     if ($navigateMatch.Success -and $pendingAliases.Count -gt 0) {
         $target = $navigateMatch.Groups['tag'].Value

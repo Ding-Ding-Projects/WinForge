@@ -208,19 +208,19 @@ public static class TrayService
         {
             case IDM_OPEN: _onOpen?.Invoke(); break;
             case IDM_QUIT: _onQuit?.Invoke(); break;
-            case IDM_DISCOVER: NavigateToPackages(); break;
-            case IDM_UPDATES: NavigateToPackages(); break;
-            case IDM_INSTALLED: NavigateToPackages(); break;
+            case IDM_DISCOVER: NavigateToPackages(PackageManagerViewTarget.Discover); break;
+            case IDM_UPDATES: NavigateToPackages(PackageManagerViewTarget.Updates); break;
+            case IDM_INSTALLED: NavigateToPackages(PackageManagerViewTarget.Installed); break;
         }
     }
 
-    /// <summary>顯示視窗並導覽去套件管理模組（ADDITIVE）· Show the window then navigate to the package-manager module.</summary>
-    private static void NavigateToPackages()
+    /// <summary>顯示視窗並導覽去指定套件管理檢視（ADDITIVE）· Show the window then navigate to a specific Package Manager view.</summary>
+    private static void NavigateToPackages(PackageManagerViewTarget target)
     {
         try
         {
             _onOpen?.Invoke();
-            Navigator.GoToModule?.Invoke("module.packages");
+            Navigator.GoToModule?.Invoke(PackageManagerViewRouting.NavigationKey(target));
         }
         catch { /* navigation is best-effort */ }
     }
