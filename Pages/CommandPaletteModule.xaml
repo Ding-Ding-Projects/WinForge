@@ -49,6 +49,47 @@
                     <StackPanel x:Name="ProvidersPanel" Spacing="6" />
                 </StackPanel>
             </Border>
+
+            <!-- Bookmarks -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="BookmarksTitle" FontWeight="SemiBold" FontSize="15" />
+                    <TextBlock x:Name="BookmarksBlurb" FontSize="12" Foreground="{ThemeResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
+                    <InfoBar x:Name="BookmarkInfo" IsOpen="False" IsClosable="False" />
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2*" />
+                            <ColumnDefinition Width="3*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="BookmarkNameBox" />
+                        <TextBox x:Name="BookmarkUrlBox" Grid.Column="1" />
+                        <Button x:Name="BookmarkAddButton" Grid.Column="2" Click="BookmarkAdd_Click" />
+                    </Grid>
+                    <StackPanel x:Name="BookmarksPanel" Spacing="6" />
+                </StackPanel>
+            </Border>
+
+            <!-- Persistent Dock -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="DockTitle" FontWeight="SemiBold" FontSize="15" />
+                    <TextBlock x:Name="DockBlurb" FontSize="12" Foreground="{ThemeResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="DockStatus" FontSize="12" TextWrapping="Wrap" VerticalAlignment="Center" />
+                        <ToggleSwitch x:Name="DockSwitch" Grid.Column="1" Toggled="Dock_Toggled" />
+                    </Grid>
+                    <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                        <TextBlock x:Name="DockSideLabel" VerticalAlignment="Center" />
+                        <ComboBox x:Name="DockSideCombo" MinWidth="180" SelectionChanged="DockSide_Changed" />
+                        <Button x:Name="DockOpenButton" Click="DockOpen_Click" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
         </StackPanel>
     </ScrollViewer>
 </Page>

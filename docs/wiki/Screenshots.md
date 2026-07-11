@@ -106,6 +106,9 @@ not visual verification.
 新嘅 Package Manager PNG。之後 `-NoCapture` launch 通過，但呢份證據係
 `capture-blocked`，唔係視覺驗證。
 
+**EN —** The Pumped-Hydro state-integrity repair is nonvisual service/code-behind work: no XAML layout or control surface changed. To avoid interfering with the active Batch 09 route sweep, no competing GUI, screenshot attempt, PNG creation/replacement, or visual-pass claim was made; screenshot replacement is not applicable.
+
+**粵語 —** 抽水蓄能狀態完整性修正係非視覺嘅 service／code-behind 工作：冇改 XAML 排版或者控制介面。為咗唔干擾進行中嘅 Batch 09 route sweep，冇開另一個 GUI、冇試截圖、冇產生／替換 PNG，亦冇聲稱 visual-pass；唔適用截圖替換。
 **EN —** Batch 09 made fresh 15-second capture attempts after the Percentage
 Calculator typed-default repair, the qBittorrent lifecycle repair, and the
 Pixel Editor and Proxmox safety repairs. Every changed route reached its
@@ -493,7 +496,7 @@ Fresh capture is pending because the current desktop capture host rejects `CopyF
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-shortcutguide.png)
 
 ### Command Palette · 指令面板
-> Screenshot refresh is blocked in this desktop session: `CopyFromScreen` is unavailable and the `PrintWindow` fallback produces a uniform frame. The `cmdpalette` deep link remains launch-verified. · 呢個桌面工作階段未能更新截圖：`CopyFromScreen` 未可用，而且 `PrintWindow` 後備方案會產生單一畫面。`cmdpalette` 深層連結仍已驗證可以啟動。
+> Screenshot refresh is blocked in this desktop session: `CopyFromScreen` is unavailable and the `PrintWindow` fallback produces a uniform frame. The `cmdpalette` deep link, bookmarks, Window Walker provider, and persistent Dock remain launch-verified. · 呢個桌面工作階段未能更新截圖：`CopyFromScreen` 未可用，而且 `PrintWindow` 後備方案會產生單一畫面。`cmdpalette` 深層連結、書籤、Window Walker 提供者同常駐 Dock 仍已驗證可以啟動。
 
 ### Color Picker · 螢幕取色
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-colorpicker.png)

@@ -132,6 +132,18 @@ dotnet run --project tests/SettingsStore.Tests -c Debug
 
 **Visual evidence · 視覺證據：** This is storage-only code with no XAML/page-layout change, so screenshot capture/replacement is not applicable. · 呢個係純儲存程式碼，冇 XAML／頁面排版改動，所以唔適用截圖擷取／替換。
 
+## Pumped-Hydro State Integrity Regression · 抽水蓄能狀態完整性回歸測試
+
+**EN —** Run this platform-neutral harness after changing the Pumped-Storage Hydro service or page lifecycle. It verifies explicit-only state progression, charge/discharge efficiency, the `0.036 ⚡/MWh` delivered-energy conversion, and the source-level guarantee that load, render, and language refresh do not advance the simulation.
+
+**粵語 —** 改咗抽水蓄能 service 或頁面生命週期之後，要跑呢個 platform-neutral 框架。佢會驗證只可以明確 tick 先推進狀態、充／放電效率、`0.036 ⚡/MWh` 已送出能量轉換，同埋 source-level 保證 load、render 同轉語言都唔會推進模擬。
+
+```powershell
+dotnet run --project tests/PumpedHydroService.Tests -c Debug
+```
+
+**Visual evidence · 視覺證據：** The repair is nonvisual service/code-behind state ownership; no XAML layout changed, so screenshot replacement is not applicable. See [Pumped-Hydro State Integrity](Pumped-Hydro-State-Integrity.md). · 呢次修正係非視覺嘅 service／code-behind 狀態所屬；冇 XAML 排版改變，所以唔適用截圖替換。詳情請睇[抽水蓄能狀態完整性](Pumped-Hydro-State-Integrity.md)。
+
 ## Exhaustive Smoke Verification · 全面冒煙驗證
 
 **EN —** Contributors verifying WinForge broadly use the repository-local [WinForge Exhaustive Smoke skill](../../../.agents/skills/winforge-exhaustive-smoke/SKILL.md). It inventories the actual module registry, navigation, deep links, XAML controls, companions, external launchers, tests and source files before any route is marked complete.

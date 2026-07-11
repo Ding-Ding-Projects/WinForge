@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.Json;
 using Microsoft.UI.Dispatching;
 using WinForge.Models;
 
@@ -30,13 +31,15 @@ public static class CommandPaletteService
     private const string KeyHotkey = "cmdpal.hotkey";        // e.g. "Alt+Space"
     private const string KeyMaxResults = "cmdpal.maxResults";
     private const string KeyProviderPrefix = "cmdpal.provider."; // + provider id
+    private const string KeyDockPins = "cmdpal.dock.pins";
+    private const string KeyBookmarks = "cmdpal.bookmarks";
 
     // ===================== Provider identity · 提供者識別 =====================
-    public enum Provider { Apps, Modules, Files, Clipboard, Calculator, TimeDate, Settings, Services, Terminal, Run, System, Web }
+    public enum Provider { Apps, Bookmarks, Windows, Modules, Files, Clipboard, Calculator, TimeDate, Settings, Services, Terminal, Run, System, Web }
 
     public static IReadOnlyList<Provider> AllProviders { get; } = new[]
     {
-        Provider.Apps, Provider.Modules, Provider.Files, Provider.Clipboard,
+        Provider.Apps, Provider.Bookmarks, Provider.Windows, Provider.Modules, Provider.Files, Provider.Clipboard,
         Provider.Calculator, Provider.TimeDate, Provider.Settings, Provider.Services, Provider.Terminal,
         Provider.Run, Provider.System, Provider.Web,
     };
@@ -45,6 +48,8 @@ public static class CommandPaletteService
     public static (string En, string Zh) ProviderName(Provider p) => p switch
     {
         Provider.Apps => ("Installed apps", "已安裝程式"),
+        Provider.Bookmarks => ("Bookmarks", "書籤"),
+        Provider.Windows => ("Open windows", "已開啟視窗"),
         Provider.Modules => ("WinForge modules", "WinForge 模組"),
         Provider.Files => ("Files & folders", "檔案與資料夾"),
         Provider.Clipboard => ("Clipboard history", "剪貼簿記錄"),
@@ -86,6 +91,161 @@ public static class CommandPaletteService
     public static void SetProviderEnabled(Provider p, bool on)
         => SettingsStore.Set(KeyProviderPrefix + p, on.ToString());
 
+    // ===================== Bookmarks · 書籤 =====================
+    /// <summary>A user-managed web bookmark surfaced by Command Palette and eligible for Dock pins.</summary>
+    public sealed class PaletteBookmark
+    {
+        public string Name { get; set; } = "";
+        public string Url { get; set; } = "";
+    }
+
+    public static IReadOnlyList<PaletteBookmark> Bookmarks => ReadBookmarks();
+
+    public static bool TryAddBookmark(string? name, string? url, out PaletteBookmark bookmark)
+    {
+        bookmark = new PaletteBookmark();
+        string normalized = NormalizeBookmarkUrl(url);
+        if (string.IsNullOrEmpty(normalized)) return false;
+        var bookmarks = ReadBookmarks();
+        int existing = bookmarks.FindIndex(b => string.Equals(b.Url, normalized, StringComparison.OrdinalIgnoreCase));
+        string label = (name ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(label) && Uri.TryCreate(normalized, UriKind.Absolute, out var uri)) label = uri.Host;
+        if (string.IsNullOrWhiteSpace(label)) label = normalized;
+        bookmark = new PaletteBookmark { Name = label, Url = normalized };
+        if (existing >= 0) bookmarks[existing] = bookmark;
+        else
+        {
+            if (bookmarks.Count >= 100) bookmarks.RemoveAt(0);
+            bookmarks.Add(bookmark);
+        }
+        SaveBookmarks(bookmarks);
+        return true;
+    }
+
+    public static void RemoveBookmark(PaletteBookmark bookmark)
+    {
+        if (bookmark is null || string.IsNullOrWhiteSpace(bookmark.Url)) return;
+        var bookmarks = ReadBookmarks();
+        bookmarks.RemoveAll(b => string.Equals(b.Url, bookmark.Url, StringComparison.OrdinalIgnoreCase));
+        SaveBookmarks(bookmarks);
+    }
+
+    private static List<PaletteBookmark> ReadBookmarks()
+    {
+        try
+        {
+            return (JsonSerializer.Deserialize<List<PaletteBookmark>>(SettingsStore.Get(KeyBookmarks, "[]")) ?? new List<PaletteBookmark>())
+                .Where(b => !string.IsNullOrWhiteSpace(b.Name) && !string.IsNullOrWhiteSpace(NormalizeBookmarkUrl(b.Url)))
+                .Select(b => new PaletteBookmark { Name = b.Name.Trim(), Url = NormalizeBookmarkUrl(b.Url) })
+                .ToList();
+        }
+        catch { return new List<PaletteBookmark>(); }
+    }
+
+    private static void SaveBookmarks(List<PaletteBookmark> bookmarks)
+    {
+        try { SettingsStore.Set(KeyBookmarks, JsonSerializer.Serialize(bookmarks.Take(100).ToList())); }
+        catch { }
+    }
+
+    private static string NormalizeBookmarkUrl(string? value)
+    {
+        string url = (value ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(url)) return "";
+        if (!url.Contains("://", StringComparison.Ordinal)) url = "https://" + url;
+        return Uri.TryCreate(url, UriKind.Absolute, out var uri) && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
+            ? uri.AbsoluteUri : "";
+    }
+
+    // ===================== Dock pins · Dock 釘選 =====================
+    /// <summary>A persistent Dock entry captured from a Command Palette result.</summary>
+    public sealed class DockPin
+    {
+        public string Query { get; set; } = "";
+        public string Title { get; set; } = "";
+        public string Subtitle { get; set; } = "";
+        public string Glyph { get; set; } = "";
+        public string ProviderTag { get; set; } = "";
+    }
+
+    private static readonly DockPin[] DefaultDockPins =
+    {
+        new() { Query = "time", Title = "Time & date · 時間與日期", Glyph = ((char)0xE823).ToString(), ProviderTag = "Time" },
+        new() { Query = "$display", Title = "Display · 顯示器", Glyph = ((char)0xE713).ToString(), ProviderTag = "Settings" },
+        new() { Query = "terminal", Title = "Windows Terminal · Windows 終端機", Glyph = ((char)0xE756).ToString(), ProviderTag = "Terminal" },
+    };
+
+    /// <summary>Saved pins, or a small safe starter set until the user pins results.</summary>
+    public static IReadOnlyList<DockPin> EffectiveDockPins
+    {
+        get
+        {
+            var pins = ReadDockPins();
+            return pins.Count > 0 ? pins : DefaultDockPins;
+        }
+    }
+
+    /// <summary>Toggle the selected result in the persistent Dock. Returns true when it was pinned.</summary>
+    public static bool ToggleDockPin(CommandPaletteResult result, string? query)
+    {
+        if (result is null || string.IsNullOrWhiteSpace(result.Title)) return false;
+        string normalizedQuery = string.IsNullOrWhiteSpace(query) ? result.Title : query.Trim();
+        var pins = ReadDockPins();
+        int existing = pins.FindIndex(p => string.Equals(p.Query, normalizedQuery, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(p.Title, result.Title, StringComparison.Ordinal)
+            && string.Equals(p.ProviderTag, result.ProviderTag, StringComparison.Ordinal));
+        if (existing >= 0)
+        {
+            pins.RemoveAt(existing);
+            SaveDockPins(pins);
+            CommandPaletteDockService.Refresh();
+            return false;
+        }
+
+        if (pins.Count >= 8) pins.RemoveAt(0);
+        pins.Add(new DockPin
+        {
+            Query = normalizedQuery,
+            Title = result.Title,
+            Subtitle = result.Subtitle,
+            Glyph = result.Glyph,
+            ProviderTag = result.ProviderTag,
+        });
+        SaveDockPins(pins);
+        CommandPaletteDockService.Refresh();
+        return true;
+    }
+
+    /// <summary>Invoke a dock pin by resolving its original query again; fall back to the palette if it changed.</summary>
+    public static bool InvokeDockPin(DockPin pin)
+    {
+        try
+        {
+            var result = Query(pin.Query).FirstOrDefault(r => string.Equals(r.Title, pin.Title, StringComparison.Ordinal)
+                && string.Equals(r.ProviderTag, pin.ProviderTag, StringComparison.Ordinal));
+            if (result is not null) return result.Invoke();
+        }
+        catch { }
+
+        try { CommandPaletteWindow.OpenWithQuery(pin.Query); } catch { }
+        return false;
+    }
+
+    private static List<DockPin> ReadDockPins()
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<List<DockPin>>(SettingsStore.Get(KeyDockPins, "[]")) ?? new List<DockPin>();
+        }
+        catch { return new List<DockPin>(); }
+    }
+
+    private static void SaveDockPins(List<DockPin> pins)
+    {
+        try { SettingsStore.Set(KeyDockPins, JsonSerializer.Serialize(pins.Take(8).ToList())); }
+        catch { }
+    }
+
     // ===================== Global hotkey (low-level keyboard hook) · 全域熱鍵 =====================
     [DllImport("user32.dll", SetLastError = true)]
     private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelKeyboardProc lpfn, IntPtr hMod, uint dwThreadId);
@@ -123,6 +283,7 @@ public static class CommandPaletteService
     public static void Start(DispatcherQueue uiQueue)
     {
         _ui = uiQueue;
+        CommandPaletteDockService.Initialize(uiQueue);
         if (Enabled)
         {
             HookPump.Post(InstallHotkey);
@@ -138,6 +299,7 @@ public static class CommandPaletteService
             RemoveHotkey();
             if (Enabled) InstallHotkey();
         });
+        CommandPaletteDockService.Reapply();
     }
 
     private static void InstallHotkey()
@@ -244,6 +406,8 @@ public static class CommandPaletteService
 
         if (IsProviderEnabled(Provider.Calculator)) AddCalculator(query, results);
         if (IsProviderEnabled(Provider.Apps)) AddApps(query, results);
+        if (IsProviderEnabled(Provider.Bookmarks)) AddBookmarks(query, results);
+        if (IsProviderEnabled(Provider.Windows)) AddOpenWindows(query, results);
         if (IsProviderEnabled(Provider.Modules)) AddModules(query, results);
         if (IsProviderEnabled(Provider.Files)) AddFiles(query, results);
         if (IsProviderEnabled(Provider.Clipboard)) AddClipboard(query, results);
@@ -519,6 +683,73 @@ public static class CommandPaletteService
             || token.EndsWith(".cpl", StringComparison.OrdinalIgnoreCase)) return true;
         if (token.Contains('\\') || token.Contains('/')) return File.Exists(Environment.ExpandEnvironmentVariables(token));
         return false;
+    }
+
+    // ----- Bookmarks · 書籤 -----
+    private static void AddBookmarks(string query, List<CommandPaletteResult> list)
+    {
+        var raw = query.Trim();
+        bool mode = raw.Equals("bookmark", StringComparison.OrdinalIgnoreCase)
+            || raw.Equals("bookmarks", StringComparison.OrdinalIgnoreCase)
+            || raw.StartsWith("bookmark ", StringComparison.OrdinalIgnoreCase)
+            || raw.StartsWith("bookmarks ", StringComparison.OrdinalIgnoreCase);
+        if (!mode) return;
+
+        string needle = raw.StartsWith("bookmarks", StringComparison.OrdinalIgnoreCase) ? raw.Substring("bookmarks".Length).Trim()
+            : raw.Substring("bookmark".Length).Trim();
+        int rank = 0;
+        foreach (var bookmark in Bookmarks)
+        {
+            double score = string.IsNullOrWhiteSpace(needle) ? 88 - rank
+                : Math.Max(Fuzzy(needle, bookmark.Name), Fuzzy(needle, bookmark.Url));
+            if (score <= 0) { rank++; continue; }
+            list.Add(new CommandPaletteResult
+            {
+                Title = bookmark.Name,
+                Subtitle = bookmark.Url,
+                Glyph = ((char)0xE774).ToString(),
+                ProviderTag = Loc.I.Pick("Bookmark", "書籤"),
+                Score = 150 + score * 0.15,
+                Invoke = () => { LaunchPath(bookmark.Url); return true; },
+            });
+            rank++;
+        }
+    }
+
+    // ----- Window Walker · 視窗切換器 -----
+    private static void AddOpenWindows(string query, List<CommandPaletteResult> list)
+    {
+        var raw = query.Trim();
+        bool mode = raw.Equals("window", StringComparison.OrdinalIgnoreCase)
+            || raw.Equals("windows", StringComparison.OrdinalIgnoreCase)
+            || raw.Equals("win", StringComparison.OrdinalIgnoreCase)
+            || raw.StartsWith("window ", StringComparison.OrdinalIgnoreCase)
+            || raw.StartsWith("windows ", StringComparison.OrdinalIgnoreCase)
+            || raw.StartsWith("win ", StringComparison.OrdinalIgnoreCase);
+        if (!mode) return;
+
+        string needle = raw.StartsWith("windows", StringComparison.OrdinalIgnoreCase) ? raw.Substring("windows".Length).Trim()
+            : raw.StartsWith("window", StringComparison.OrdinalIgnoreCase) ? raw.Substring("window".Length).Trim()
+            : raw.Substring("win".Length).Trim();
+        int rank = 0;
+        foreach (var window in WindowWalkerService.List())
+        {
+            double score = string.IsNullOrWhiteSpace(needle) ? 88 - rank
+                : Math.Max(Fuzzy(needle, window.Title), Fuzzy(needle, window.ProcessName));
+            if (score <= 0) { rank++; continue; }
+            list.Add(new CommandPaletteResult
+            {
+                Title = window.Title,
+                Subtitle = Loc.I.Pick($"{window.ProcessName} · Press Enter to switch to this window",
+                    $"{window.ProcessName} · 按 Enter 切換到呢個視窗"),
+                Glyph = ((char)0xE7F4).ToString(),
+                ProviderTag = Loc.I.Pick("Window", "視窗"),
+                Score = 145 + score * 0.15,
+                Invoke = () => { WindowWalkerService.Activate(window.Handle); return true; },
+            });
+            rank++;
+            if (rank >= 32) break;
+        }
     }
 
     // ----- Files & folders · 檔案與資料夾 -----

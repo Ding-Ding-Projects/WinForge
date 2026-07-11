@@ -37,6 +37,8 @@ public sealed class CommandPaletteWindow
     private int _refreshVersion;
 
     [DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr hWnd);
+    [DllImport("user32.dll")] private static extern short GetAsyncKeyState(int vKey);
+    private const int VK_CONTROL = 0x11;
 
     /// <summary>切換顯示／隱藏（畀全域熱鍵呼叫）· Toggle the palette open/closed (called by the global hotkey).</summary>
     public static void Toggle()
@@ -48,6 +50,9 @@ public sealed class CommandPaletteWindow
 
     /// <summary>由設定頁「試打開」按鈕呼叫 · Open the palette directly (used by the settings preview button).</summary>
     public static void Open() { _instance ??= new CommandPaletteWindow(); _instance.ShowInternal(); }
+
+    /// <summary>Open the palette with a prefilled query, used when a saved Dock pin no longer resolves.</summary>
+    public static void OpenWithQuery(string query) { _instance ??= new CommandPaletteWindow(); _instance.ShowInternal(query); }
 
     private void Show() => ShowInternal();
 
@@ -122,7 +127,7 @@ public sealed class CommandPaletteWindow
             Margin = new Thickness(6, 8, 6, 0),
             FontSize = 11,
             Foreground = ResBrush("TextFillColorSecondaryBrush", Color.FromArgb(0xC0, 0xFF, 0xFF, 0xFF)),
-            Text = Loc.I.Pick("Enter launch · ↑↓ navigate · Esc close", "Enter 啟動 · ↑↓ 選擇 · Esc 關閉"),
+            Text = Loc.I.Pick("Enter launch · ↑↓ navigate · Ctrl+P pin · Esc close", "Enter 啟動 · ↑↓ 選擇 · Ctrl+P 釘選 · Esc 關閉"),
         };
         Grid.SetRow(_hint, 2);
 
@@ -146,10 +151,10 @@ public sealed class CommandPaletteWindow
             Hide();
     }
 
-    private void ShowInternal()
+    private void ShowInternal(string? initialQuery = null)
     {
         _open = true;
-        _search.Text = "";
+        _search.Text = initialQuery ?? "";
         Refresh();
         Resize();
         CenterOnCursorMonitor();
@@ -241,11 +246,17 @@ public sealed class CommandPaletteWindow
     {
         _hint.Text = _results.Count == 0
             ? Loc.I.Pick("No results · type to search", "無結果 · 輸入以搜尋")
-            : Loc.I.Pick("Enter launch · ↑↓ navigate · Esc close", "Enter 啟動 · ↑↓ 選擇 · Esc 關閉");
+            : Loc.I.Pick("Enter launch · ↑↓ navigate · Ctrl+P pin · Esc close", "Enter 啟動 · ↑↓ 選擇 · Ctrl+P 釘選 · Esc 關閉");
     }
 
     private void OnSearchKeyDown(object sender, KeyRoutedEventArgs e)
     {
+        if (e.Key == VirtualKey.P && CtrlDown)
+        {
+            TogglePinSelected();
+            e.Handled = true;
+            return;
+        }
         switch (e.Key)
         {
             case VirtualKey.Escape:
@@ -261,8 +272,22 @@ public sealed class CommandPaletteWindow
 
     private void OnListKeyDown(object sender, KeyRoutedEventArgs e)
     {
-        if (e.Key == VirtualKey.Enter) { InvokeSelected(); e.Handled = true; }
+        if (e.Key == VirtualKey.P && CtrlDown) { TogglePinSelected(); e.Handled = true; }
+        else if (e.Key == VirtualKey.Enter) { InvokeSelected(); e.Handled = true; }
         else if (e.Key == VirtualKey.Escape) { Hide(); e.Handled = true; }
+    }
+
+    private static bool CtrlDown => (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
+
+    private void TogglePinSelected()
+    {
+        var result = _list.SelectedItem as CommandPaletteResult;
+        if (result is null && _results.Count > 0) result = _results[0];
+        if (result is null) return;
+        bool pinned = CommandPaletteService.ToggleDockPin(result, _search.Text);
+        _hint.Text = pinned
+            ? Loc.I.Pick("Pinned to Dock · Ctrl+P again to unpin", "已釘選到 Dock · 再按 Ctrl+P 取消釘選")
+            : Loc.I.Pick("Removed from Dock", "已由 Dock 移除");
     }
 
     private void Move(int delta)
