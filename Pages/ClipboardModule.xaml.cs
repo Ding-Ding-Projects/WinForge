@@ -2,8 +2,6 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
-using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -46,14 +44,11 @@ public sealed partial class ClipboardModule : Page
 
     private void Render()
     {
-        Header.Title = "Clipboard Â· å‰ªè²¼ç°¿";
-        HeaderBlurb.Text = P("Everything you copy â€” text, images and files â€” kept here automatically. Click to copy back, paste as plain text, make a QR code, or convert images and media to another format.",
-            "ä½ è¤‡è£½éŽå˜…å˜¢ â€” æ–‡å­—ã€åœ–ç‰‡åŒæª”æ¡ˆ â€” è‡ªå‹•ç•™å–ºåº¦ã€‚æ’³ä¸€ä¸‹è¤‡è£½è¿”ã€è²¼ç‚ºç´”æ–‡å­—ã€æ•´ QR ç¢¼ï¼Œæˆ–è€…å°‡åœ–ç‰‡åŒåª’é«”è½‰åšå¦ä¸€ç¨®æ ¼å¼ã€‚");
+        Header.Title = "Clipboard · 剪貼簿";
+        HeaderBlurb.Text = P("Everything you copy — text, images and files — kept here automatically. Click to copy back, paste as plain text, make a QR code, or convert images and media to another format.",
+            "你複製過嘅嘢 — 文字、圖片同檔案 — 自動留喺度。撳一下複製返、貼為純文字、整 QR 碼，或者將圖片同媒體轉做另一種格式。");
         QrText.Text = P("QR from clipboard", "剪貼簿整 QR");
-        ClearText.Text = P("Clear all", "æ¸…é™¤å…¨éƒ¨");
-        BgBar.Title = P("Running in the background", "å–ºèƒŒæ™¯é‹è¡Œç·Š");
-        BgBar.Message = P("The monitor keeps capturing even when the window is closed to the tray. Right-click the tray icon to Quit.",
-            "å°±ç®—é—œçª—æ”¶å…¥ç³»çµ±åŒ£ï¼Œç›£å¯Ÿéƒ½æœƒç¹¼çºŒæ•æ‰ã€‚å³éµç³»çµ±åŒ£åœ–ç¤ºå°±å¯ä»¥çµæŸã€‚");
+        ClearText.Text = P("Clear all", "清除全部");
         BgBar.Title = P("Running in the background", "喺背景運行緊");
         BgBar.Message = P("The monitor keeps capturing even when the window is closed to the tray. Right-click the tray icon to Quit.",
             "就算關窗收入系統匣，監察都會繼續捕捉。右鍵系統匣圖示就可以結束。");
@@ -227,25 +222,9 @@ public sealed partial class ClipboardModule : Page
         };
     }
 
-    private void Clear_Click(object sender, RoutedEventArgs e) => ClipboardService.Clear();
+    private static bool IsMedia(string path) => MediaExt.Contains(Path.GetExtension(path).ToLowerInvariant());
 
-    private async void MakeQrFromClipboard_Click(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            var text = await ReadClipboardTextOrUrlAsync();
-            if (string.IsNullOrWhiteSpace(text))
-            {
-                Notify(InfoBarSeverity.Warning, P("No text or URL on the clipboard", "剪貼簿冇文字或者網址"), "");
-                return;
-            }
-            await ShowQrDialog(text);
-        }
-        catch (Exception ex)
-        {
-            Notify(InfoBarSeverity.Error, P("Could not make QR code", "整唔到 QR 碼"), ex.Message);
-        }
-    }
+    private static FrameworkElement Col(FrameworkElement el, int col) { Grid.SetColumn(el, col); return el; }
 
     private void Clear_Click(object sender, RoutedEventArgs e) => ClipboardService.Clear();
 
@@ -297,20 +276,20 @@ public sealed partial class ClipboardModule : Page
     {
         if (string.IsNullOrWhiteSpace(text))
         {
-            Notify(InfoBarSeverity.Warning, P("Nothing to encode", "å†‡å˜¢å¯ä»¥ç·¨ç¢¼"), "");
+            Notify(InfoBarSeverity.Warning, P("Nothing to encode", "冇嘢可以編碼"), "");
             return;
         }
         // QR (alphanumeric/byte) tops out around ~2.9 KB; guard so we give a friendly message.
         if (text.Length > 2900)
         {
-            Notify(InfoBarSeverity.Warning, P("Too much text for a QR code", "æ–‡å­—å¤ªå¤šï¼Œæ•´å””åˆ° QR ç¢¼"),
-                P("QR codes hold roughly 2,900 characters. Shorten the text and try again.", "QR ç¢¼å¤§ç´„åªèƒ½æ”¾ 2,900 å€‹å­—å…ƒã€‚è«‹ç¸®çŸ­æ–‡å­—å†è©¦ã€‚"));
+            Notify(InfoBarSeverity.Warning, P("Too much text for a QR code", "文字太多，整唔到 QR 碼"),
+                P("QR codes hold roughly 2,900 characters. Shorten the text and try again.", "QR 碼大約只能放 2,900 個字元。請縮短文字再試。"));
             return;
         }
 
         byte[] png;
         try { png = ClipboardService.GenerateQrPng(text); }
-        catch (Exception ex) { Notify(InfoBarSeverity.Error, P("Could not make QR code", "æ•´å””åˆ° QR ç¢¼"), ex.Message); return; }
+        catch (Exception ex) { Notify(InfoBarSeverity.Error, P("Could not make QR code", "整唔到 QR 碼"), ex.Message); return; }
 
         var image = new Image { Stretch = Stretch.Uniform, MaxHeight = 320, MaxWidth = 320 };
         var bmp = new BitmapImage();
@@ -321,7 +300,7 @@ public sealed partial class ClipboardModule : Page
 
         var caption = new TextBlock
         {
-            Text = text.Length > 120 ? text.Substring(0, 120) + "â€¦" : text,
+            Text = text.Length > 120 ? text.Substring(0, 120) + "…" : text,
             FontFamily = new FontFamily("Consolas"),
             FontSize = 12,
             TextWrapping = TextWrapping.Wrap,
@@ -339,11 +318,11 @@ public sealed partial class ClipboardModule : Page
         var dialog = new ContentDialog
         {
             XamlRoot = this.XamlRoot,
-            Title = P("QR code Â· QR ç¢¼", "QR ç¢¼ Â· QR code"),
+            Title = P("QR code · QR 碼", "QR 碼 · QR code"),
             Content = panel,
-            PrimaryButtonText = P("Save PNGâ€¦", "å„²å­˜ PNGâ€¦"),
-            SecondaryButtonText = P("Copy image", "è¤‡è£½åœ–ç‰‡"),
-            CloseButtonText = P("Close", "é—œé–‰"),
+            PrimaryButtonText = P("Save PNG…", "儲存 PNG…"),
+            SecondaryButtonText = P("Copy image", "複製圖片"),
+            CloseButtonText = P("Close", "關閉"),
             DefaultButton = ContentDialogButton.Primary,
         };
 
@@ -351,14 +330,14 @@ public sealed partial class ClipboardModule : Page
         dialog.PrimaryButtonClick += (_, args) =>
         {
             args.Cancel = true;
-            try { var p = ClipboardService.SaveQrPng(text); Notify(InfoBarSeverity.Success, P("Saved", "å·²å„²å­˜"), p); }
-            catch (Exception ex) { Notify(InfoBarSeverity.Error, P("Failed", "å¤±æ•—"), ex.Message); }
+            try { var p = ClipboardService.SaveQrPng(text); Notify(InfoBarSeverity.Success, P("Saved", "已儲存"), p); }
+            catch (Exception ex) { Notify(InfoBarSeverity.Error, P("Failed", "失敗"), ex.Message); }
         };
         dialog.SecondaryButtonClick += (_, args) =>
         {
             args.Cancel = true;
-            try { ClipboardService.CopyQrToClipboard(text); Notify(InfoBarSeverity.Success, P("QR copied to clipboard", "QR ç¢¼å·²è¤‡è£½åˆ°å‰ªè²¼ç°¿"), ""); }
-            catch (Exception ex) { Notify(InfoBarSeverity.Error, P("Failed", "å¤±æ•—"), ex.Message); }
+            try { ClipboardService.CopyQrToClipboard(text); Notify(InfoBarSeverity.Success, P("QR copied to clipboard", "QR 碼已複製到剪貼簿"), ""); }
+            catch (Exception ex) { Notify(InfoBarSeverity.Error, P("Failed", "失敗"), ex.Message); }
         };
 
         await dialog.ShowAsync();
