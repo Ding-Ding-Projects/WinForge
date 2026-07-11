@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -686,8 +687,10 @@ public static class BundleService
         try
         {
             if (!TryValidatePackageReference(managerKey, id, out var key, out var packageId)) return "";
+            var effective = opts ?? new InstallOptions();
+            if (!TryValidateStructuredOptions(effective, out _)) return "";
             var command = PackageOperations.BuildCommandPreview(
-                key, packageId, PackageOperations.Op.Install, opts ?? new InstallOptions());
+                key, packageId, PackageOperations.Op.Install, effective);
             if (string.IsNullOrWhiteSpace(command) || command.StartsWith('#')) return "";
             if (key is "psgallery" or "pwsh7")
             {
@@ -814,6 +817,11 @@ public static class BundleService
                 var o = p.InstallationOptions;
                 if (o is null) continue;
 
+                if (!TryValidateStructuredOptions(o, out var optionError))
+                    report.Warnings.Add(new LocalizedText(
+                        $"“{name}” has unsafe structured install options ({optionError}) and will not be scripted or queued.",
+                        $"「{name}」嘅結構化安裝選項唔安全（{optionError}），唔會寫入指令稿或者排隊。"));
+
                 // 自訂 CLI 參數 · custom CLI args
                 foreach (var key in new[]
                 {
@@ -825,8 +833,8 @@ public static class BundleService
                     var value = ReadString(o, key);
                     if (!string.IsNullOrWhiteSpace(value))
                         report.Warnings.Add(new LocalizedText(
-                            $"“{name}” carries custom CLI arguments ({key}): {value}",
-                            $"「{name}」帶有自訂命令列參數（{key}）：{value}"));
+                            $"“{name}” carries custom CLI arguments ({key}); review the bundle source before running it.",
+                            $"「{name}」帶有自訂命令列參數（{key}）；執行之前請檢查清單來源。"));
                 }
 
                 // 前／後置指令 · pre/post commands
@@ -835,16 +843,16 @@ public static class BundleService
                     var cmd = ReadString(o, key);
                     if (!string.IsNullOrWhiteSpace(cmd))
                         report.Warnings.Add(new LocalizedText(
-                            $"“{name}” runs a custom command ({key}): {cmd}",
-                            $"「{name}」會執行自訂指令（{key}）：{cmd}"));
+                            $"“{name}” runs a custom command ({key}); its contents are hidden to avoid exposing embedded secrets.",
+                            $"「{name}」會執行自訂指令（{key}）；內容已隱藏，避免洩漏內嵌機密。"));
                 }
 
                 // kill-list
                 var kill = ReadStringList(o, "KillBeforeOperation");
                 if (kill.Count > 0)
                     report.Warnings.Add(new LocalizedText(
-                        $"“{name}” will terminate processes before installing: {string.Join(", ", kill)}",
-                        $"「{name}」安裝前會終止程序：{string.Join("、", kill)}"));
+                        $"“{name}” will terminate processes before installing ({kill.Count} name(s)); inspect the bundle before continuing.",
+                        $"「{name}」安裝前會終止 {kill.Count} 個程序名稱；繼續之前請檢查清單。"));
             }
         }
         catch { }
@@ -952,17 +960,91 @@ public static class BundleService
     }
     private static void ApplyOptionScalar(InstallOptions o, string key, string val)
     {
-        if (Array.IndexOf(BoolNames, key) >= 0)
+        key = CanonicalOptionName(key);
+        if (IsBoolOption(key))
             SetBool(o, key, string.Equals(val.Trim(), "true", StringComparison.OrdinalIgnoreCase));
-        else if (Array.IndexOf(StringNames, key) >= 0)
+        else if (IsStringOption(key))
             SetStr(o, key, val);
+        else if (IsListOption(key) && val.Length > 0)
+            SetList(o, key, new List<string> { val });
     }
     private static void AddToOptionList(InstallOptions o, string key, string val)
     {
-        if (Array.IndexOf(ListNames, key) < 0 || val.Length == 0) return;
-        var list = ReadStringList(o, key);
-        list.Add(val);
-        SetList(o, key, list);
+        key = CanonicalOptionName(key);
+        if (val.Length == 0 || key.Length == 0) return;
+        if (IsListOption(key))
+        {
+            var list = ReadStringList(o, key);
+            list.Add(val);
+            SetList(o, key, list);
+        }
+        else if (key is nameof(InstallOptions.CustomArgsInstall)
+                 or nameof(InstallOptions.CustomArgsUpdate)
+                 or nameof(InstallOptions.CustomArgsUninstall))
+        {
+            var current = ReadString(o, key);
+            SetStr(o, key, current.Length == 0 ? val : current + " " + val);
+        }
+    }
+
+    private static string CanonicalOptionName(string key)
+    {
+        key = (key ?? "").Trim();
+        if (LegacyOptionAliases.TryGetValue(key, out var canonical)) return canonical;
+        foreach (var name in BoolNames) if (string.Equals(name, key, StringComparison.OrdinalIgnoreCase)) return name;
+        foreach (var name in StringNames) if (string.Equals(name, key, StringComparison.OrdinalIgnoreCase)) return name;
+        foreach (var name in ListNames) if (string.Equals(name, key, StringComparison.OrdinalIgnoreCase)) return name;
+        return "";
+    }
+
+    private static bool IsBoolOption(string name)
+        => BoolNames.Any(x => string.Equals(x, name, StringComparison.OrdinalIgnoreCase));
+
+    private static bool IsStringOption(string name)
+        => StringNames.Any(x => string.Equals(x, name, StringComparison.OrdinalIgnoreCase));
+
+    private static bool IsListOption(string name)
+        => ListNames.Any(x => string.Equals(x, name, StringComparison.OrdinalIgnoreCase));
+
+    private static void ApplyLegacyJsonBool(JsonElement io, InstallOptions o, string canonical, string legacy)
+    {
+        if (HasJsonProperty(io, canonical) || !TryGetJsonProperty(io, legacy, out var value)) return;
+        if (value.ValueKind is JsonValueKind.True or JsonValueKind.False)
+            SetBool(o, canonical, value.GetBoolean());
+        else if (value.ValueKind == JsonValueKind.String && bool.TryParse(value.GetString(), out var parsed))
+            SetBool(o, canonical, parsed);
+    }
+
+    private static void ApplyLegacyJsonString(JsonElement io, InstallOptions o, string canonical, string legacy)
+    {
+        if (HasJsonProperty(io, canonical) || !TryGetJsonProperty(io, legacy, out var value)) return;
+        if (value.ValueKind == JsonValueKind.String)
+        {
+            SetStr(o, canonical, value.GetString() ?? "");
+            return;
+        }
+        if (value.ValueKind == JsonValueKind.Array)
+        {
+            var parts = value.EnumerateArray().Where(x => x.ValueKind == JsonValueKind.String)
+                .Select(x => x.GetString() ?? "").Where(x => x.Length > 0);
+            SetStr(o, canonical, string.Join(" ", parts));
+        }
+    }
+
+    private static bool HasJsonProperty(JsonElement obj, string name)
+        => TryGetJsonProperty(obj, name, out _);
+
+    private static bool TryGetJsonProperty(JsonElement obj, string name, out JsonElement value)
+    {
+        if (obj.ValueKind == JsonValueKind.Object)
+            foreach (var property in obj.EnumerateObject())
+                if (string.Equals(property.Name, name, StringComparison.OrdinalIgnoreCase))
+                {
+                    value = property.Value;
+                    return true;
+                }
+        value = default;
+        return false;
     }
     private static void TrySetBool(InstallOptions o, string prop, JsonElement io)
     {
@@ -988,6 +1070,106 @@ public static class BundleService
     }
 
     // ===== 小工具 · Small helpers =====
+
+    private static readonly HashSet<string> SupportedManagerKeys = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "winget", "scoop", "choco", "pip", "npm", "dotnet",
+        "psgallery", "pwsh7", "cargo", "bun", "vcpkg",
+    };
+
+    private static bool TryValidatePackageReference(
+        string? managerKey, string? id, out string normalizedManager, out string normalizedId)
+    {
+        normalizedManager = (managerKey ?? "").Trim().ToLowerInvariant();
+        normalizedId = (id ?? "").Trim();
+        if (!SupportedManagerKeys.Contains(normalizedManager) || normalizedId.Length is < 1 or > 256)
+            return false;
+        return normalizedManager switch
+        {
+            "npm" or "bun" => IsSafeNpmPackageId(normalizedId),
+            "scoop" => IsSafeScoopPackageId(normalizedId),
+            "vcpkg" => IsSafeVcpkgPackageId(normalizedId),
+            _ => IsSafePackageSegment(normalizedId, false),
+        };
+    }
+
+    private static bool TryValidateStructuredOptions(InstallOptions options, out string error)
+    {
+        error = "";
+        var version = (options.Version ?? "").Trim();
+        if (version.Length > 128 || version.Any(c => !(char.IsLetterOrDigit(c)
+                || c is '.' or '_' or '-' or '+' or ':' or '!' or '~' or '*')))
+        {
+            error = "version";
+            return false;
+        }
+
+        var scope = (options.Scope ?? "").Trim().ToLowerInvariant();
+        if (scope.Length > 0 && scope is not ("user" or "machine" or "currentuser" or "allusers"))
+        {
+            error = "scope";
+            return false;
+        }
+
+        var architecture = (options.Architecture ?? "").Trim().ToLowerInvariant();
+        if (architecture.Length > 0 && architecture is not ("x64" or "x86" or "arm64" or "arm" or "neutral"))
+        {
+            error = "architecture";
+            return false;
+        }
+
+        var location = (options.CustomInstallLocation ?? "").Trim();
+        if (location.Length > 1024 || location.Any(char.IsControl)
+            || location.IndexOfAny(new[] { '"', '`', '%', '!', '&', '|', '<', '>' }) >= 0)
+        {
+            error = "install location";
+            return false;
+        }
+        return true;
+    }
+
+    private static bool IsSafeNpmPackageId(string id)
+    {
+        if (!id.StartsWith('@')) return !id.Contains('/') && IsSafePackageSegment(id, true);
+        int slash = id.IndexOf('/');
+        return slash > 1 && slash == id.LastIndexOf('/') && slash < id.Length - 1
+            && IsSafePackageSegment(id.Substring(1, slash - 1), true)
+            && IsSafePackageSegment(id[(slash + 1)..], true);
+    }
+
+    private static bool IsSafeScoopPackageId(string id)
+    {
+        var parts = id.Split('/');
+        return parts.Length is 1 or 2 && parts.All(x => IsSafePackageSegment(x, false));
+    }
+
+    private static bool IsSafeVcpkgPackageId(string id)
+    {
+        var target = id.Split(':');
+        if (target.Length > 2 || target.Length == 2 && !IsSafePackageSegment(target[1], false)) return false;
+        var spec = target[0];
+        int open = spec.IndexOf('['), close = spec.IndexOf(']');
+        if (open < 0 && close < 0) return IsSafePackageSegment(spec, false);
+        if (open <= 0 || close != spec.Length - 1 || close <= open + 1
+            || open != spec.LastIndexOf('[') || close != spec.LastIndexOf(']')) return false;
+        if (!IsSafePackageSegment(spec[..open], false)) return false;
+        return spec.Substring(open + 1, close - open - 1).Split(',')
+            .All(x => IsSafePackageSegment(x, false));
+    }
+
+    private static bool IsSafePackageSegment(string value, bool allowTilde)
+    {
+        if (string.IsNullOrEmpty(value) || !IsAsciiAlphaNumeric(value[0])) return false;
+        foreach (var c in value)
+        {
+            if (IsAsciiAlphaNumeric(c) || c is '.' or '_' or '-' or '+' || allowTilde && c == '~') continue;
+            return false;
+        }
+        return true;
+    }
+
+    private static bool IsAsciiAlphaNumeric(char c)
+        => c is >= 'a' and <= 'z' or >= 'A' and <= 'Z' or >= '0' and <= '9';
 
     private static int ReadInt(JsonElement obj, string prop, int fallback)
     {
@@ -1040,10 +1222,21 @@ public static class BundleService
     {
         s ??= "";
         if (s.Length == 0) return "\"\"";
-        bool needs = s.IndexOfAny(new[] { ':', '#', '\'', '"', '\n', '\t', '-', '{', '}', '[', ']', ',', '&', '*', '?', '|', '>', '%', '@', '`' }) >= 0
+        bool needs = s.IndexOfAny(new[] { ':', '#', '\'', '"', '\r', '\n', '\t', '-', '{', '}', '[', ']', ',', '&', '*', '?', '|', '>', '%', '@', '`' }) >= 0
                      || s.StartsWith(" ") || s.EndsWith(" ");
         if (!needs) return s;
-        return "\"" + s.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\n", " ").Replace("\t", " ") + "\"";
+        var b = new StringBuilder(s.Length + 8).Append('"');
+        foreach (var c in s)
+            switch (c)
+            {
+                case '\\': b.Append("\\\\"); break;
+                case '"': b.Append("\\\""); break;
+                case '\r': b.Append("\\r"); break;
+                case '\n': b.Append("\\n"); break;
+                case '\t': b.Append("\\t"); break;
+                default: b.Append(c); break;
+            }
+        return b.Append('"').ToString();
     }
 
     /// <summary>去掉 YAML 引號 · Unquote a YAML scalar.</summary>
@@ -1051,7 +1244,30 @@ public static class BundleService
     {
         s = (s ?? "").Trim();
         if (s.Length >= 2 && s[0] == '"' && s[^1] == '"')
-            return s.Substring(1, s.Length - 2).Replace("\\\"", "\"").Replace("\\\\", "\\");
+        {
+            var inner = s.Substring(1, s.Length - 2);
+            var b = new StringBuilder(inner.Length);
+            for (int i = 0; i < inner.Length; i++)
+            {
+                var c = inner[i];
+                if (c != '\\' || i + 1 >= inner.Length)
+                {
+                    b.Append(c);
+                    continue;
+                }
+                var escaped = inner[++i];
+                b.Append(escaped switch
+                {
+                    'r' => '\r',
+                    'n' => '\n',
+                    't' => '\t',
+                    '"' => '"',
+                    '\\' => '\\',
+                    _ => escaped,
+                });
+            }
+            return b.ToString();
+        }
         if (s.Length >= 2 && s[0] == '\'' && s[^1] == '\'')
             return s.Substring(1, s.Length - 2).Replace("''", "'");
         return s;

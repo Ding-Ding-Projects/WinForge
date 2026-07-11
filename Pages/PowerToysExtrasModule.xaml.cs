@@ -84,7 +84,9 @@ public sealed partial class PowerToysExtrasModule : Page
     private void Render()
     {
         Header.Title = "PowerToys Extras · PowerToys 額外工具";
-                HeaderBlurb.Text = P("Four native, in-app PowerToys-style utilities plus a discoverability tab for the rest of WinForge's PowerToys-equivalent pages.",`r`n            "四個原生、應用程式內嘅 PowerToys 式工具，再加一個索引分頁去搵 WinForge 其餘同 PowerToys 對應嘅頁面。");
+        HeaderBlurb.Text = P(
+            "Four native, in-app PowerToys-style utilities plus a discoverability tab for the rest of WinForge's PowerToys-equivalent pages.",
+            "四個原生、應用程式內嘅 PowerToys 式工具，再加一個索引分頁去搵 WinForge 其餘同 PowerToys 對應嘅頁面。");
 
         TabResize.Header = P("Image Resizer", "圖片縮放");
         TabOcr.Header = P("Text Extractor (OCR)", "文字擷取（OCR）");
