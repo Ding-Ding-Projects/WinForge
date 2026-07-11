@@ -179,24 +179,27 @@ launch, retry, and screenshot-blocker evidence.
 確實 build、launch、retry 同截圖阻礙證據請睇
 [冒煙測試清單](docs/wiki/Smoke-Test-Campaign.md)。
 
-**EN —** Launch-only batches 01–09 now provide current process-level route
-evidence for the first 225 of 323 manifest routes. Batch 09 exercised indices
-200–224: 24 passed at five seconds and Percent Calculator first exposed a
-reproducible typed `IsChecked` startup fault; its guarded managed default and
-fresh deep-link retest completed the batch at 25/25 launch-pass. The same
-review also added focused Pixel Editor (5/5) and Proxmox certificate-policy
-(6/6) regression harnesses. Fresh screenshot attempts for every changed page
-remain capture-blocked: `CopyFromScreen` is unavailable and PrintWindow is
-uniform, so no PNG was created, replaced, or treated as visual completion.
+**EN —** Launch-only batches 01–10 now provide current process-level route
+evidence for the first **250 of 323** manifest routes. Batch 10 exercised
+indices 225–249: all 25 passed their initial five-second launch after a fresh
+self-contained publish, with no retry. Source review replaced QuickType’s
+user-controlled cmd string with an argument vector; repaired Randomizer’s
+full-Int32 sampling/dice arithmetic, Quick Accent’s corrupt-settings recovery,
+Screen Recorder’s stderr/stop lifecycle, Registry Editor failure reporting, and
+Rainmeter’s copy-link wording. Focused harnesses passed 9/9 across those
+repairs. Fresh capture attempts for every changed page remain
+capture-blocked: `CopyFromScreen` is unavailable and PrintWindow is uniform, so
+no PNG was created, replaced, or treated as visual completion.
 
-**粵語 —** 淨 launch batches 01–09 而家為 323 條 manifest routes 入面頭 225 條
-提供最新嘅 process-level route 證據。Batch 09 測咗 indices 200–224：24 條五秒
-通過，而 Percentage Calculator 第一次揭示咗可重現嘅 typed `IsChecked` startup
-fault；受 guard 保護嘅 managed default 加新鮮 deep-link retest 令呢批最後係
-25/25 launch-pass。今次審查亦新增 Pixel Editor（5/5）同 Proxmox certificate-policy
-（6/6）專注 regression harnesses。每個改過頁面嘅最新 screenshot 嘗試仍然係
-capture-blocked：`CopyFromScreen` 唔可用，而 PrintWindow 係 uniform，所以冇 PNG
-產生、替換或者當成 visual completion。
+**粵語 —** 淨 launch batches 01–10 而家為 323 條 manifest routes 入面頭
+**250 條**提供最新嘅 process-level route 證據。Batch 10 測咗 indices 225–249：
+合併後新 self-contained publish 之後，25 條第一次五秒 launch 全部通過，冇 retry。
+來源審查將 QuickType 嘅 user-controlled cmd string 換成 argument vector；修正
+Randomizer full-Int32 sampling／骰仔運算、Quick Accent corrupt-settings recovery、
+Screen Recorder stderr／stop lifecycle、Registry Editor failure reporting，同埋
+Rainmeter copy-link wording。呢啲修正嘅 focused harnesses 合共 9/9 通過。每個改過
+頁面嘅最新 capture 嘗試仍然係 capture-blocked：`CopyFromScreen` 唔可用，而
+PrintWindow 係 uniform，所以冇 PNG 產生、替換或者當成 visual completion。
 
 ---
 
@@ -438,7 +441,7 @@ literal；forced self-contained publish 同新鮮 `--page` retest 全部 6 條 r
 | **Keyboard Remapper · 鍵盤重新對應** | Remap keys via the Scancode Map (SharpKeys-style). <br> 用 Scancode Map 重新對應按鍵（SharpKeys 式）。 | `keyboard` |
 | **Hotkey & Macro Runner · 熱鍵與巨集** | Run hotkeys, macros and text expansion snippets. <br> 執行熱鍵、巨集同文字展開片語。 | `hotkeys` |
 | **Shortcut Guide · 快捷鍵指南** | Hold-Win overlay cheat sheet of Windows shortcuts. <br> 揿住 Win 鍵顯示快捷鍵速查覆蓋層。 | `shortcutguide` |
-| **Command Palette · 指令面板** | Global launcher / PowerToys Run compatibility with apps, open-window switching, files, calc, local clipboard history, saved bookmarks, Remote Desktop profiles, time/date, `$` Windows Settings, explicit `>` command mode, service actions, Terminal profiles, and a persistent edge Dock with `Ctrl+P`-pinned results. <br> 全域啟動器／PowerToys Run 相容功能：程式、切換已開啟視窗、檔案、計算、本機剪貼簿記錄、已儲存書籤、遠端桌面設定檔、時間／日期、`$` Windows 設定、明確 `>` 指令模式、服務動作、終端機設定檔，同埋可用 `Ctrl+P` 釘選結果嘅常駐邊緣 Dock。 | `cmdpalette` |
+| **Command Palette · 指令面板** | Global launcher / PowerToys Run compatibility with apps, open-window switching, files, calc, local clipboard history, saved bookmarks, Remote Desktop profiles, time/date, `perf` system metrics, direct `reg HKCU\\...` registry navigation/editing, `$` Windows Settings, explicit `>` command mode, service actions, Terminal profiles, and a persistent edge Dock with `Ctrl+P`-pinned results. <br> 全域啟動器／PowerToys Run 相容功能：程式、切換已開啟視窗、檔案、計算、本機剪貼簿記錄、已儲存書籤、遠端桌面設定檔、時間／日期、`perf` 系統指標、直接 `reg HKCU\\...` 登錄檔導覽／編輯、`$` Windows 設定、明確 `>` 指令模式、服務動作、終端機設定檔，同埋可用 `Ctrl+P` 釘選結果嘅常駐邊緣 Dock。 | `cmdpalette` |
 | **Color Picker · 螢幕取色** | System-wide color picker with hex/RGB/HSL output. <br> 全系統取色器，輸出 hex／RGB／HSL。 | `colorpicker` |
 | **Screen Ruler · 螢幕間尺** | Measure distances and pixels on screen. <br> 喺螢幕量度距離同像素。 | `screenruler` |
 | **Mouse Utilities · 滑鼠工具** | Find My Mouse, highlighter, crosshairs, pointer jump, CursorWrap and Grab and Move. <br> 搵滑鼠、點擊標示、十字線、指標跳轉、游標環繞同拖曳移動視窗。 | `mouseutils` |
@@ -453,7 +456,7 @@ literal；forced self-contained publish 同新鮮 `--page` retest 全部 6 條 r
 | **Taskbar Tweaker · 工作列調校** | Tweak taskbar alignment, button combining, tray and clock. <br> 調校工作列對齊、合併按鈕、系統匣同時鐘。 | `taskbar-tweaker` |
 | **Windhawk Mods · Windhawk 模組** | Manage Windhawk mods that customize the taskbar, clock and shell. <br> 管理 Windhawk 模組，自訂工作列、時鐘同殼層。 | `windhawk` |
 | **LightSwitch (Auto Dark Mode) · 自動深淺色** | Automatically switch light/dark theme on a sunrise/sunset schedule. <br> 按日出日落排程自動切換深淺色主題。 | `lightswitch` |
-| **Rainmeter Widgets · Rainmeter 桌面小工具** | Install and toggle Rainmeter desktop skins and widgets. <br> 安裝同切換 Rainmeter 桌面皮膚同小工具。 | `taskbar` |
+| **Rainmeter Widgets · Rainmeter 桌面小工具** | Install and toggle Rainmeter desktop skins and widgets; copy curated skin-pack links for user-controlled downloads. <br> 安裝同切換 Rainmeter 桌面皮膚同小工具；複製精選皮膚套裝連結，再由你自己控制下載。 | `taskbar` |
 | **Time & Unit Tools · 時間與單位工具** | World clock, time-zone converter and unit converters. <br> 世界時鐘、時區換算同單位換算。 | `time` |
 | **Flashcards · 間隔重複記憶卡** | Spaced-repetition flashcard study with SM-2 scheduling. <br> 用 SM-2 排程嘅間隔重複記憶卡學習。 | `flashcards` |
 

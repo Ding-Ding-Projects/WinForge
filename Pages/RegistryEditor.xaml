@@ -17,13 +17,19 @@
 
         <controls:ModuleHeader x:Name="Header" Grid.Row="0" Glyph="&#xE74C;" />
 
-        <TextBlock
-            x:Name="PathBar"
-            Grid.Row="1"
-            FontFamily="Consolas"
-            IsTextSelectionEnabled="True"
-            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-            TextWrapping="Wrap" />
+        <Grid Grid.Row="1" Margin="0,0,0,12" ColumnSpacing="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBox
+                x:Name="PathBar"
+                Grid.Column="0"
+                FontFamily="Consolas"
+                Foreground="{ThemeResource TextFillColorPrimaryBrush}"
+                TextWrapping="NoWrap" />
+            <Button x:Name="GoBtn" Grid.Column="1" Click="Go_Click" />
+        </Grid>
 
         <Grid Grid.Row="2" ColumnSpacing="12">
             <Grid.ColumnDefinitions>

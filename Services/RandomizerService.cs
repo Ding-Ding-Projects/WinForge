@@ -1,4 +1,5 @@
 using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
@@ -16,11 +17,10 @@ public static class RandomizerService
     public static int Next(int minInclusive, int maxInclusive)
     {
         if (maxInclusive < minInclusive) (minInclusive, maxInclusive) = (maxInclusive, minInclusive);
-        // GetInt32's upper bound is exclusive; guard against overflow at int.MaxValue.
         long span = (long)maxInclusive - minInclusive + 1;
         if (span <= 1) return minInclusive;
-        int offset = RandomNumberGenerator.GetInt32(0, (int)Math.Min(span, int.MaxValue));
-        return minInclusive + offset;
+        long offset = NextOffset(span);
+        return (int)((long)minInclusive + offset);
     }
 
     /// <summary>Generate <paramref name="count"/> integers in [min,max]. When <paramref name="unique"/>,
@@ -35,13 +35,13 @@ public static class RandomizerService
         if (unique && span >= count)
         {
             // Partial Fisher–Yates over a virtual [min..max] range using a dictionary swap map.
-            var swap = new Dictionary<int, int>();
+            var swap = new Dictionary<long, long>();
             for (int i = 0; i < count; i++)
             {
-                int j = i + RandomNumberGenerator.GetInt32(0, (int)Math.Min(span - i, int.MaxValue));
-                int vi = swap.TryGetValue(i, out var a) ? a : i;
-                int vj = swap.TryGetValue(j, out var b) ? b : j;
-                result.Add(min + vj);
+                long j = i + NextOffset(span - i);
+                long vi = swap.TryGetValue(i, out var a) ? a : i;
+                long vj = swap.TryGetValue(j, out var b) ? b : j;
+                result.Add((int)((long)min + vj));
                 swap[j] = vi;
             }
         }
@@ -50,6 +50,29 @@ public static class RandomizerService
             for (int i = 0; i < count; i++) result.Add(Next(min, max));
         }
         return result;
+    }
+
+    /// <summary>Uniform offset in [0, exclusiveUpperBound) for every inclusive Int32 span.</summary>
+    private static long NextOffset(long exclusiveUpperBound)
+    {
+        if (exclusiveUpperBound <= 1) return 0;
+
+        // Int32 can span 2^32 distinct values, while GetInt32 only exposes an Int32-sized
+        // exclusive upper bound. Sample a UInt32 and use rejection sampling to keep every
+        // reachable range unbiased (including [int.MinValue, int.MaxValue]).
+        const ulong UInt32Range = 1UL << 32;
+        ulong bound = (ulong)exclusiveUpperBound;
+        ulong limit = UInt32Range - UInt32Range % bound;
+        Span<byte> bytes = stackalloc byte[sizeof(uint)];
+        ulong sample;
+        do
+        {
+            RandomNumberGenerator.Fill(bytes);
+            sample = BinaryPrimitives.ReadUInt32LittleEndian(bytes);
+        }
+        while (sample >= limit);
+
+        return (long)(sample % bound);
     }
 
     /// <summary>Flip a fair coin. true = heads.</summary>
@@ -97,18 +120,24 @@ public static class RandomizerService
         if (!int.TryParse(sidesPart, out int sides)) { r.Error = "bad"; return r; }
         if (count <= 0 || count > 1000 || sides <= 0 || sides > 1_000_000) { r.Error = "bad"; return r; }
 
+        // Dice totals are stored as Int32. Reject a modifier whose possible result range would
+        // overflow instead of occasionally wrapping negative for an otherwise valid notation.
+        long minTotal = (long)count + modifier;
+        long maxTotal = (long)count * sides + modifier;
+        if (minTotal < int.MinValue || maxTotal > int.MaxValue) { r.Error = "bad"; return r; }
+
         r.Ok = true;
         r.Count = count;
         r.Sides = sides;
         r.Modifier = modifier;
-        int total = 0;
+        long total = 0;
         for (int i = 0; i < count; i++)
         {
             int roll = Next(1, sides);
             r.Rolls.Add(roll);
             total += roll;
         }
-        r.Total = total + modifier;
+        r.Total = (int)(total + modifier);
         return r;
     }
 

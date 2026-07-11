@@ -41,14 +41,23 @@ public sealed partial class RegistryEditor : Page
     {
         InitializeComponent();
         Loc.I.LanguageChanged += OnLanguageChanged;
-        Loaded += (_, _) =>
-        {
-            Render();
-            BuildRoots();
-            // 預設載入一個有值嘅機碼 · preload a populated key so values are visible immediately.
-            LoadValues(new RegNode(RegRoot.HKCU, @"Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"));
-        };
-        Unloaded += (_, _) => Loc.I.LanguageChanged -= OnLanguageChanged;
+        Loaded += RegistryEditor_Loaded;
+        Unloaded += RegistryEditor_Unloaded;
+    }
+
+    private void RegistryEditor_Loaded(object sender, RoutedEventArgs e)
+    {
+        Render();
+        BuildRoots();
+        // Command Palette can request an exact key; otherwise preload a populated useful key.
+        var initial = RegistryNavigationService.ConsumeRequest()
+            ?? new RegistryLocation(RegRoot.HKCU, @"Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced");
+        LoadValues(new RegNode(initial.Root, initial.Path));
+    }
+
+    private void RegistryEditor_Unloaded(object sender, RoutedEventArgs e)
+    {
+        Loc.I.LanguageChanged -= OnLanguageChanged;
     }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
@@ -58,6 +67,8 @@ public sealed partial class RegistryEditor : Page
     private void Render()
     {
         Header.Title = "Registry Editor · 登錄編輯器";
+        GoBtn.Content = P("Go", "前往");
+        PathBar.PlaceholderText = P("Enter a full registry path, e.g. HKCU\\Software", "輸入完整登錄檔路徑，例如 HKCU\\Software");
         NewBtn.Content = P("New value", "新增值");
         EditBtn.Content = P("Edit", "編輯");
         DeleteBtn.Content = P("Delete", "刪除");
@@ -181,6 +192,16 @@ public sealed partial class RegistryEditor : Page
     private void Refresh_Click(object sender, RoutedEventArgs e)
     {
         if (_current is not null) LoadValues(_current);
+    }
+
+    private void Go_Click(object sender, RoutedEventArgs e)
+    {
+        if (!RegistryNavigationService.TryParse(PathBar.Text, out var location))
+        {
+            ShowErr(P("Use a full path such as HKCU\\Software\\Microsoft.", "請使用完整路徑，例如 HKCU\\Software\\Microsoft。"));
+            return;
+        }
+        LoadValues(new RegNode(location.Root, location.Path));
     }
 
     private void ValuesList_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -316,15 +337,19 @@ public sealed partial class RegistryEditor : Page
         };
         if (await dlg.ShowAsync() != ContentDialogResult.Primary) return;
 
-        var result = RegistryHelper.TryDeleteValue(_current.Root, _current.Path, row.RealName);
-        if (!result.Success)
+        try
         {
-            ShowErr(result.Error ?? new InvalidOperationException(P("The registry did not confirm the deletion.", "登錄檔未確認刪除操作。")));
-            return;
-        }
+            var result = RegistryHelper.TryDeleteValue(_current.Root, _current.Path, row.RealName);
+            if (!result.Success)
+            {
+                ShowErr(result.Error ?? new InvalidOperationException(P("The registry did not confirm the deletion.", "登錄檔未確認刪除操作。")));
+                return;
+            }
 
-        LoadValues(_current);
-        ShowOk(P("Value deleted.", "已刪除值。"));
+            LoadValues(_current);
+            ShowOk(P("Value deleted.", "已刪除值。"));
+        }
+        catch (Exception ex) { ShowErr(ex); }
     }
 
     private void ShowOk(string msg)

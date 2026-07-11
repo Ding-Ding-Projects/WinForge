@@ -79,10 +79,10 @@ public static class ScreenRecorder
                 "無法叫 ffmpeg 停止；已終止，錄影檔可能唔完整。"),
             ScreenRecorderStopStatus.ForcedStop => TweakResult.Fail(
                 "ffmpeg did not stop in time and was terminated; the recording may be incomplete.",
-                "ffmpeg 未能及時停止，已終止；錄影檔可能唔完整。"),
+                "ffmpeg 未能及時停止，已終止，錄影檔可能唔完整。"),
             _ => TweakResult.Fail(
                 "ffmpeg did not exit after the stop timeout. It is still running; try Stop again.",
-                "ffmpeg 停止逾時之後仲未退出；佢仲喺度行緊，請再撳停止。"),
+                "ffmpeg 停止逾時之後仲喺度行緊，請再撳停止。"),
         };
     }
 
