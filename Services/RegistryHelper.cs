@@ -57,6 +57,34 @@ public static class RegistryHelper
     }
 
     /// <summary>
+    /// Deletes a registry value while preserving the actual error for an interactive editor.
+    /// The legacy fire-and-forget <see cref="DeleteValue"/> remains intentionally best-effort for
+    /// catalog toggles that treat an already-absent value as the desired state.
+    /// </summary>
+    public static bool TryDeleteValue(RegRoot root, string path, string name, out Exception? error)
+    {
+        try
+        {
+            using var bk = BaseKey(root);
+            using var key = bk.OpenSubKey(path, writable: true);
+            if (key is null)
+            {
+                error = new InvalidOperationException($"Cannot open {root}\\{path} for writing.");
+                return false;
+            }
+
+            key.DeleteValue(name, throwOnMissingValue: false);
+            error = null;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            error = ex;
+            return false;
+        }
+    }
+
+    /// <summary>
     /// 比較現值同期望值（數值會做型別正規化）。
     /// Compares the current value with the expected one (numeric values are normalised).
     /// </summary>

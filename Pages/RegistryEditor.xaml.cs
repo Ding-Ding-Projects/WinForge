@@ -318,7 +318,12 @@ public sealed partial class RegistryEditor : Page
 
         try
         {
-            RegistryHelper.DeleteValue(_current.Root, _current.Path, row.RealName);
+            if (!RegistryHelper.TryDeleteValue(_current.Root, _current.Path, row.RealName, out var error))
+            {
+                ShowErr(error ?? new InvalidOperationException(P("Could not delete this registry value.", "無法刪除呢個登錄值。")));
+                return;
+            }
+
             LoadValues(_current);
             ShowOk(P("Value deleted.", "已刪除值。"));
         }
