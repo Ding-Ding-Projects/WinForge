@@ -13,11 +13,11 @@ Generated on 2026-07-11 from the live source:
 | Coverage surface · 涵蓋範圍 | Baseline count · 基線數量 |
 | --- | ---: |
 | Registered/map/navigation route records · 已登記／對映／導航 routes | 321 |
-| Deep-link aliases · 深層連結別名 | 785 |
+| Deep-link aliases · 深層連結別名 | 790 |
 | Companion specifications · Companion 規格 | 4 |
 | External-app launcher specifications · 外部 app launcher 規格 | 15 |
-| First-party source files in review queue · source files 審查佇列 | 1,256 |
-| First-party source lines in review queue · source lines 審查佇列 | 342,007 |
+| First-party source files in review queue · source files 審查佇列 | 1,257 |
+| First-party source lines in review queue · source lines 審查佇列 | 342,740 |
 | Test projects · 測試專案 | 7 |
 | Wiki pages · Wiki 頁面 | 2,217 |
 

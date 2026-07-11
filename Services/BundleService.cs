@@ -851,8 +851,8 @@ public static class BundleService
                 var kill = ReadStringList(o, "KillBeforeOperation");
                 if (kill.Count > 0)
                     report.Warnings.Add(new LocalizedText(
-                        $"“{name}” will terminate processes before installing ({kill.Count} name(s)); inspect the bundle before continuing.",
-                        $"「{name}」安裝前會終止 {kill.Count} 個程序名稱；繼續之前請檢查清單。"));
+                        $"“{name}” will terminate processes before installing: {string.Join(", ", kill)}",
+                        $"「{name}」安裝前會終止程序：{string.Join("、", kill)}"));
             }
         }
         catch { }
@@ -986,7 +986,6 @@ public static class BundleService
             SetStr(o, key, current.Length == 0 ? val : current + " " + val);
         }
     }
-
     private static string CanonicalOptionName(string key)
     {
         key = (key ?? "").Trim();
@@ -997,32 +996,21 @@ public static class BundleService
         return "";
     }
 
-    private static bool IsBoolOption(string name)
-        => BoolNames.Any(x => string.Equals(x, name, StringComparison.OrdinalIgnoreCase));
-
-    private static bool IsStringOption(string name)
-        => StringNames.Any(x => string.Equals(x, name, StringComparison.OrdinalIgnoreCase));
-
-    private static bool IsListOption(string name)
-        => ListNames.Any(x => string.Equals(x, name, StringComparison.OrdinalIgnoreCase));
+    private static bool IsBoolOption(string name) => BoolNames.Any(x => string.Equals(x, name, StringComparison.OrdinalIgnoreCase));
+    private static bool IsStringOption(string name) => StringNames.Any(x => string.Equals(x, name, StringComparison.OrdinalIgnoreCase));
+    private static bool IsListOption(string name) => ListNames.Any(x => string.Equals(x, name, StringComparison.OrdinalIgnoreCase));
 
     private static void ApplyLegacyJsonBool(JsonElement io, InstallOptions o, string canonical, string legacy)
     {
         if (HasJsonProperty(io, canonical) || !TryGetJsonProperty(io, legacy, out var value)) return;
-        if (value.ValueKind is JsonValueKind.True or JsonValueKind.False)
-            SetBool(o, canonical, value.GetBoolean());
-        else if (value.ValueKind == JsonValueKind.String && bool.TryParse(value.GetString(), out var parsed))
-            SetBool(o, canonical, parsed);
+        if (value.ValueKind is JsonValueKind.True or JsonValueKind.False) SetBool(o, canonical, value.GetBoolean());
+        else if (value.ValueKind == JsonValueKind.String && bool.TryParse(value.GetString(), out var parsed)) SetBool(o, canonical, parsed);
     }
 
     private static void ApplyLegacyJsonString(JsonElement io, InstallOptions o, string canonical, string legacy)
     {
         if (HasJsonProperty(io, canonical) || !TryGetJsonProperty(io, legacy, out var value)) return;
-        if (value.ValueKind == JsonValueKind.String)
-        {
-            SetStr(o, canonical, value.GetString() ?? "");
-            return;
-        }
+        if (value.ValueKind == JsonValueKind.String) { SetStr(o, canonical, value.GetString() ?? ""); return; }
         if (value.ValueKind == JsonValueKind.Array)
         {
             var parts = value.EnumerateArray().Where(x => x.ValueKind == JsonValueKind.String)
@@ -1031,18 +1019,14 @@ public static class BundleService
         }
     }
 
-    private static bool HasJsonProperty(JsonElement obj, string name)
-        => TryGetJsonProperty(obj, name, out _);
+    private static bool HasJsonProperty(JsonElement obj, string name) => TryGetJsonProperty(obj, name, out _);
 
     private static bool TryGetJsonProperty(JsonElement obj, string name, out JsonElement value)
     {
         if (obj.ValueKind == JsonValueKind.Object)
             foreach (var property in obj.EnumerateObject())
                 if (string.Equals(property.Name, name, StringComparison.OrdinalIgnoreCase))
-                {
-                    value = property.Value;
-                    return true;
-                }
+                { value = property.Value; return true; }
         value = default;
         return false;
     }
@@ -1082,8 +1066,7 @@ public static class BundleService
     {
         normalizedManager = (managerKey ?? "").Trim().ToLowerInvariant();
         normalizedId = (id ?? "").Trim();
-        if (!SupportedManagerKeys.Contains(normalizedManager) || normalizedId.Length is < 1 or > 256)
-            return false;
+        if (!SupportedManagerKeys.Contains(normalizedManager) || normalizedId.Length is < 1 or > 256) return false;
         return normalizedManager switch
         {
             "npm" or "bun" => IsSafeNpmPackageId(normalizedId),
@@ -1153,8 +1136,7 @@ public static class BundleService
         if (open <= 0 || close != spec.Length - 1 || close <= open + 1
             || open != spec.LastIndexOf('[') || close != spec.LastIndexOf(']')) return false;
         if (!IsSafePackageSegment(spec[..open], false)) return false;
-        return spec.Substring(open + 1, close - open - 1).Split(',')
-            .All(x => IsSafePackageSegment(x, false));
+        return spec.Substring(open + 1, close - open - 1).Split(',').All(x => IsSafePackageSegment(x, false));
     }
 
     private static bool IsSafePackageSegment(string value, bool allowTilde)
@@ -1222,21 +1204,10 @@ public static class BundleService
     {
         s ??= "";
         if (s.Length == 0) return "\"\"";
-        bool needs = s.IndexOfAny(new[] { ':', '#', '\'', '"', '\r', '\n', '\t', '-', '{', '}', '[', ']', ',', '&', '*', '?', '|', '>', '%', '@', '`' }) >= 0
+        bool needs = s.IndexOfAny(new[] { ':', '#', '\'', '"', '\n', '\t', '-', '{', '}', '[', ']', ',', '&', '*', '?', '|', '>', '%', '@', '`' }) >= 0
                      || s.StartsWith(" ") || s.EndsWith(" ");
         if (!needs) return s;
-        var b = new StringBuilder(s.Length + 8).Append('"');
-        foreach (var c in s)
-            switch (c)
-            {
-                case '\\': b.Append("\\\\"); break;
-                case '"': b.Append("\\\""); break;
-                case '\r': b.Append("\\r"); break;
-                case '\n': b.Append("\\n"); break;
-                case '\t': b.Append("\\t"); break;
-                default: b.Append(c); break;
-            }
-        return b.Append('"').ToString();
+        return "\"" + s.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\n", " ").Replace("\t", " ") + "\"";
     }
 
     /// <summary>去掉 YAML 引號 · Unquote a YAML scalar.</summary>
@@ -1244,30 +1215,7 @@ public static class BundleService
     {
         s = (s ?? "").Trim();
         if (s.Length >= 2 && s[0] == '"' && s[^1] == '"')
-        {
-            var inner = s.Substring(1, s.Length - 2);
-            var b = new StringBuilder(inner.Length);
-            for (int i = 0; i < inner.Length; i++)
-            {
-                var c = inner[i];
-                if (c != '\\' || i + 1 >= inner.Length)
-                {
-                    b.Append(c);
-                    continue;
-                }
-                var escaped = inner[++i];
-                b.Append(escaped switch
-                {
-                    'r' => '\r',
-                    'n' => '\n',
-                    't' => '\t',
-                    '"' => '"',
-                    '\\' => '\\',
-                    _ => escaped,
-                });
-            }
-            return b.ToString();
-        }
+            return s.Substring(1, s.Length - 2).Replace("\\\"", "\"").Replace("\\\\", "\\");
         if (s.Length >= 2 && s[0] == '\'' && s[^1] == '\'')
             return s.Substring(1, s.Length - 2).Replace("''", "'");
         return s;
