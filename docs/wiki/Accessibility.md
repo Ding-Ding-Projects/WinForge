@@ -19,3 +19,9 @@ WinForge follows a keyboard-first, screen-reader-aware baseline for the main she
 ## Standard For New Tabs · 新分頁標準
 
 Every new WinForge tab should keep user workflows in-app and include automation names for icon-only or ambiguous controls, heading levels for screen-reader navigation, keyboard access for primary actions, and visible enabled/disabled states while work is running. · 每個新 WinForge 分頁都應保持流程喺 app 內完成，並為純圖示或容易混淆嘅控制項加入 automation 名稱、為螢幕閱讀器導航加入標題層級、為主要動作提供鍵盤操作，以及喺工作執行中顯示清楚啟用／停用狀態。
+
+## Light and Dark Contrast · 淺色與深色對比
+
+**EN —** The reactor-green palette is selected through theme resources, not a fixed foreground color. Dark mode uses `#54E07E` on near-black surfaces with dark on-brand ink; Light mode uses `#0F6B3A` for readable accent text and `#FFFFFF` on green-filled cards. The shared primary, secondary, and tertiary text brushes are also explicitly contrast-safe for the light shell.
+
+**粵語 —** 反應堆綠色調色板而家會經主題資源選取，唔會再固定做前景色。深色模式喺近黑表面用 `#54E07E`，並喺品牌色卡片用深色字；淺色模式就用易讀嘅 `#0F6B3A` 做強調文字，同時喺綠色卡片用 `#FFFFFF`。共用主要、次要同第三層文字筆刷亦都為淺色殼明確設定咗安全對比。
