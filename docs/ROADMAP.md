@@ -21,7 +21,7 @@
 
 ## 🎯 Requested big features (queued) · 已點名嘅大功能（排緊隊）
 - [x] **Settings & Control Panel hub** · 設定與控制台總匯 — bilingual searchable launcher for every `ms-settings:` page + every Control Panel applet (`control /name`, `*.cpl`). Implemented as the SettingsHub module (allowed launcher-style exception — many applets have no in-app equivalent).
-- [x] **Interactive Registry Editor** · 互動式登錄編輯器 — bespoke in-app tree browser + value view/add/edit/delete over RegistryHelper, bilingual. (no regedit.exe redirect)
+- [x] **Interactive Registry Editor** · 互動式登錄編輯器 — bespoke in-app tree browser + full-path navigation + value view/add/edit/delete over RegistryHelper, bilingual; Command Palette `reg` handoff included. (no regedit.exe redirect)
 
 > **Design rule (user directive):** everything must run **purely in-app, NOT as redirects** to external
 > Windows UI. Replace "Open X.msc / start ms-settings: / launch editor" features with native in-app
@@ -783,7 +783,7 @@ Shipped as a single **PowerToys Extras** module (`module.powertoys` / `--page po
 - [x] **Quick Accent** · 快速重音 — already shipped in `Pages/QuickAccentModule.xaml(.cs)` and linked from the PowerToys hub.
 - [x] **OCR region select** · OCR 區域選取 — already shipped in `Pages/TextOcrModule.xaml(.cs)` via `RegionSelector.PickRegion()` and linked from the PowerToys hub.
 - [x] **Peek / Workspaces / FancyZones / New+ / Advanced Paste / Command Not Found / Mouse Without Borders / Command Palette** — already present as native WinForge clones and now discoverable from the PowerToys hub's "More" tab.
-- [x] **Command Palette extensions · 指令面板擴展** — Window Walker-style open-window switching, editable saved bookmarks and credential-free Remote Desktop profiles, local clipboard history, time/date, on-demand system performance metrics, `$` Windows Settings navigation, explicit `>` command mode, managed Windows service actions, Windows Terminal profile launch, and a persistent edge Dock with `Ctrl+P` result pins are native capabilities.
+- [x] **Command Palette extensions · 指令面板擴展** — Window Walker-style open-window switching, editable saved bookmarks and credential-free Remote Desktop profiles, local clipboard history, time/date, on-demand system performance metrics, direct `reg HKCU\\...` registry-path handoff, `$` Windows Settings navigation, explicit `>` command mode, managed Windows service actions, Windows Terminal profile launch, and a persistent edge Dock with `Ctrl+P` result pins are native capabilities.
 - [x] **Hosts/Registry/Keyboard/Rename** — already in WinForge and now linked from the PowerToys hub.
 
 ## 🛠️ Winaero-Tweaker functions · Winaero 調校功能 (user-requested)
