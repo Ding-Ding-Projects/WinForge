@@ -13,11 +13,17 @@ namespace WinForge.Pages;
 /// </summary>
 public sealed partial class PercentCalcModule : Page
 {
+    private bool _initializing;
     private string _c1, _c2, _c3, _c4, _c5, _c6 = "";
 
     public PercentCalcModule()
     {
         InitializeComponent();
+        // The self-contained runtime cannot reliably convert this typed
+        // RadioButton default from XAML. Preserve it without an early recalc.
+        _initializing = true;
+        C4Inc.IsChecked = true;
+        _initializing = false;
         _c1 = _c2 = _c3 = _c4 = _c5 = _c6 = "";
         Loc.I.LanguageChanged += OnLang;
         Loaded += OnLoaded;
@@ -64,6 +70,8 @@ public sealed partial class PercentCalcModule : Page
 
     private void Recalc(object sender, object e)
     {
+        if (_initializing) return;
+
         // Cards may not be built yet during early InitializeComponent parsing.
         if (C1Out == null) return;
 

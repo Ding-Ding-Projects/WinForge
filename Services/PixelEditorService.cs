@@ -77,6 +77,7 @@ public sealed class PixelEditorService
         Frames.Insert(ActiveFrameIndex + 1, f);
         ActiveFrameIndex++;
         ClampLayer();
+        InvalidateHistoryForStructureChange();
     }
 
     /// <summary>複製目前影格（連像素）· Duplicate the active frame, pixels and all.</summary>
@@ -85,6 +86,7 @@ public sealed class PixelEditorService
         var f = ActiveFrame.Clone();
         Frames.Insert(ActiveFrameIndex + 1, f);
         ActiveFrameIndex++;
+        InvalidateHistoryForStructureChange();
     }
 
     public void DeleteFrame()
@@ -93,6 +95,7 @@ public sealed class PixelEditorService
         Frames.RemoveAt(ActiveFrameIndex);
         ActiveFrameIndex = Math.Clamp(ActiveFrameIndex, 0, Frames.Count - 1);
         ClampLayer();
+        InvalidateHistoryForStructureChange();
     }
 
     public void MoveFrame(int from, int to)
@@ -102,6 +105,7 @@ public sealed class PixelEditorService
         Frames.RemoveAt(from);
         Frames.Insert(to, f);
         ActiveFrameIndex = to;
+        InvalidateHistoryForStructureChange();
     }
 
     // ===================== Layers =====================
@@ -113,6 +117,7 @@ public sealed class PixelEditorService
         foreach (var f in Frames)
             f.Layers.Add(new PixelLayer(name, Width, Height));
         ActiveLayerIndex = ActiveFrame.Layers.Count - 1;
+        InvalidateHistoryForStructureChange();
     }
 
     public void DeleteLayer()
@@ -122,6 +127,7 @@ public sealed class PixelEditorService
         foreach (var f in Frames)
             if (idx < f.Layers.Count) f.Layers.RemoveAt(idx);
         ActiveLayerIndex = Math.Clamp(ActiveLayerIndex, 0, ActiveFrame.Layers.Count - 1);
+        InvalidateHistoryForStructureChange();
     }
 
     /// <summary>圖層上移／下移（喺所有影格同步）· Reorder the active layer across all frames.</summary>
@@ -139,9 +145,19 @@ public sealed class PixelEditorService
             }
         }
         ActiveLayerIndex = to;
+        InvalidateHistoryForStructureChange();
     }
 
     private void ClampLayer() => ActiveLayerIndex = Math.Clamp(ActiveLayerIndex, 0, ActiveFrame.Layers.Count - 1);
+
+    // EditAction stores frame/layer indices. Any timeline or layer-structure
+    // mutation can remap those indices, so never replay a stroke onto a wrong
+    // target (or into a deleted one).
+    private void InvalidateHistoryForStructureChange()
+    {
+        _undo.Clear();
+        _redo.Clear();
+    }
 
     // ===================== Pixel ops (with undo deltas) =====================
 
@@ -240,8 +256,11 @@ public sealed class PixelEditorService
     public void MoveRect(int x0, int y0, int x1, int y1, int dx, int dy)
     {
         if (dx == 0 && dy == 0) return;
-        int xa = Math.Min(x0, x1), xb = Math.Max(x0, x1);
-        int ya = Math.Min(y0, y1), yb = Math.Max(y0, y1);
+        int rawXa = Math.Min(x0, x1), rawXb = Math.Max(x0, x1);
+        int rawYa = Math.Min(y0, y1), rawYb = Math.Max(y0, y1);
+        if (rawXb < 0 || rawXa >= Width || rawYb < 0 || rawYa >= Height) return;
+        int xa = Math.Max(0, rawXa), xb = Math.Min(Width - 1, rawXb);
+        int ya = Math.Max(0, rawYa), yb = Math.Min(Height - 1, rawYb);
         var layer = ActiveLayer;
         // Snapshot the source block.
         var grab = new List<(int x, int y, uint c)>();
