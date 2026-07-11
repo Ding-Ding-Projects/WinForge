@@ -1,9 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-    <PropertyGroup>
-        <TargetFrameworks>$(SharedTargetFrameworks)</TargetFrameworks>
-    </PropertyGroup>
-
-    <ItemGroup>
-        <Compile Include="..\SharedAssemblyInfo.cs" Link="SharedAssemblyInfo.cs" />
-    </ItemGroup>
-</Project>

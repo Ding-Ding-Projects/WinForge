@@ -1,2 +1,0 @@
-src/UniGetUI.PackageEngine.Managers.Chocolatey/choco-cli/** linguist-vendored
-.githooks/* text eol=lf

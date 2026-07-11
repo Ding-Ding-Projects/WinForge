@@ -1,3 +1,0 @@
-Name              Id             Version
-----------------------------------------
-Contoso Tool      Contoso.Tool   1.2.3

@@ -24,10 +24,9 @@
     <!-- ConPtySession 用 P/Invoke 嘅 STARTUPINFOEX／指標操作需要 unsafe ·
          The embedded ConPTY terminal (Services/ConPtySession.cs) needs unsafe pointer code. -->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <!-- External and vendored upstream source trees must NEVER be compiled into WinForge. ThirdParty/
-         contains exact, reviewable source snapshots (including UniGetUI's complete MIT-licensed tree),
-         while WinForge ports the useful behaviour into its native WinUI services and controls. -->
-    <DefaultItemExcludes>$(DefaultItemExcludes);external\**;ThirdParty\**;launcher\**;updater\**;tools\**</DefaultItemExcludes>
+    <!-- External upstream source checkouts must NEVER be compiled into WinForge; keep the exclusion so
+         any local reference copies under external/ cannot be pulled in by default item globs. -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);external\**;launcher\**;updater\**;tools\**</DefaultItemExcludes>
   </PropertyGroup>
 
   <!-- Sdk/** is a STANDALONE, drop-in client SDK that OTHER apps copy into their own projects.

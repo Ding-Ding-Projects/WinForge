@@ -1,5 +1,0 @@
-Name      Version  Source
-----      -------  ------
-git       2.47.1   main
-pwsh      7.4.6    versions Global install
-No        packages installed

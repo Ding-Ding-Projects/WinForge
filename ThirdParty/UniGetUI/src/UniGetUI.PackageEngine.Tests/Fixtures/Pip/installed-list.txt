@@ -1,6 +1,0 @@
-Package            Version
------------------- ----------
-requests           2.31.0
-[notice]           invalid
-django-reqtools    1.0.0
-DEPRECATION:       ignored

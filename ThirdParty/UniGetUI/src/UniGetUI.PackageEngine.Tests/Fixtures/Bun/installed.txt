@@ -1,6 +1,0 @@
-/home/user/.bun/install/global node_modules (5)
-├── typescript@5.7.3
-├── @devcontainers/cli@0.81.1
-├── esbuild@0.19.11
-├── @swc/cli@0.1.62
-└── bunx@1.0.24

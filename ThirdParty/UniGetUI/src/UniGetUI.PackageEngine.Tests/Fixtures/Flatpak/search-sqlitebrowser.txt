@@ -1,2 +1,0 @@
-Name                            Description                                     Application ID                            Version          Branch          Remotes
-DB Browser for SQLite           light GUI editor for SQLite databases           org.sqlitebrowser.sqlitebrowser           3.13.1           stable          flathub
