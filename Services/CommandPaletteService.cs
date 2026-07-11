@@ -36,11 +36,11 @@ public static class CommandPaletteService
     private const string KeyRemoteDesktopProfiles = "cmdpal.rdp.profiles";
 
     // ===================== Provider identity · 提供者識別 =====================
-    public enum Provider { Apps, Bookmarks, RemoteDesktop, Windows, Modules, Files, Clipboard, Calculator, TimeDate, Settings, Services, Terminal, Run, System, Web }
+    public enum Provider { Apps, Bookmarks, RemoteDesktop, Performance, Windows, Modules, Files, Clipboard, Calculator, TimeDate, Settings, Services, Terminal, Run, System, Web }
 
     public static IReadOnlyList<Provider> AllProviders { get; } = new[]
     {
-        Provider.Apps, Provider.Bookmarks, Provider.RemoteDesktop, Provider.Windows, Provider.Modules, Provider.Files, Provider.Clipboard,
+        Provider.Apps, Provider.Bookmarks, Provider.RemoteDesktop, Provider.Performance, Provider.Windows, Provider.Modules, Provider.Files, Provider.Clipboard,
         Provider.Calculator, Provider.TimeDate, Provider.Settings, Provider.Services, Provider.Terminal,
         Provider.Run, Provider.System, Provider.Web,
     };
@@ -51,6 +51,7 @@ public static class CommandPaletteService
         Provider.Apps => ("Installed apps", "已安裝程式"),
         Provider.Bookmarks => ("Bookmarks", "書籤"),
         Provider.RemoteDesktop => ("Remote Desktop", "遠端桌面"),
+        Provider.Performance => ("Performance metrics", "效能指標"),
         Provider.Windows => ("Open windows", "已開啟視窗"),
         Provider.Modules => ("WinForge modules", "WinForge 模組"),
         Provider.Files => ("Files & folders", "檔案與資料夾"),
@@ -475,6 +476,7 @@ public static class CommandPaletteService
         if (IsProviderEnabled(Provider.Apps)) AddApps(query, results);
         if (IsProviderEnabled(Provider.Bookmarks)) AddBookmarks(query, results);
         if (IsProviderEnabled(Provider.RemoteDesktop)) AddRemoteDesktopProfiles(query, results);
+        if (IsProviderEnabled(Provider.Performance)) AddPerformanceMetrics(query, results);
         if (IsProviderEnabled(Provider.Windows)) AddOpenWindows(query, results);
         if (IsProviderEnabled(Provider.Modules)) AddModules(query, results);
         if (IsProviderEnabled(Provider.Files)) AddFiles(query, results);
@@ -809,6 +811,59 @@ public static class CommandPaletteService
             });
             rank++;
         }
+    }
+
+    // ----- Performance metrics · 效能指標 -----
+    private static void AddPerformanceMetrics(string query, List<CommandPaletteResult> list)
+    {
+        var raw = query.Trim();
+        bool mode = raw.Equals("perf", StringComparison.OrdinalIgnoreCase)
+            || raw.Equals("performance", StringComparison.OrdinalIgnoreCase)
+            || raw.Equals("metrics", StringComparison.OrdinalIgnoreCase)
+            || raw.StartsWith("perf ", StringComparison.OrdinalIgnoreCase)
+            || raw.StartsWith("performance ", StringComparison.OrdinalIgnoreCase);
+        if (!mode) return;
+
+        var snapshot = PerformanceSnapshotService.Get();
+        string cpu = snapshot.CpuPercent is double percent ? $"{percent:0.0}%" : Loc.I.Pick("Sampling...", "正在取樣...");
+        AddMetric(list, Loc.I.Pick($"CPU: {cpu}", $"CPU：{cpu}"), Loc.I.Pick("System CPU utilization", "系統 CPU 使用率"), cpu, 190);
+
+        ulong usedMemory = snapshot.TotalPhysicalMemory > snapshot.AvailablePhysicalMemory
+            ? snapshot.TotalPhysicalMemory - snapshot.AvailablePhysicalMemory : 0;
+        string memory = $"{PerformanceSnapshotService.FormatBytes(usedMemory)} / {PerformanceSnapshotService.FormatBytes(snapshot.TotalPhysicalMemory)}";
+        AddMetric(list, Loc.I.Pick($"Memory: {memory}", $"記憶體：{memory}"), Loc.I.Pick("Used / total physical memory", "已用／總實體記憶體"), memory, 185);
+
+        string uptime = PerformanceSnapshotService.FormatUptime(snapshot.Uptime);
+        AddMetric(list, Loc.I.Pick($"Uptime: {uptime}", $"運作時間：{uptime}"), Loc.I.Pick("Time since Windows started", "Windows 開機後時間"), uptime, 180);
+
+        if (snapshot.SystemDriveTotal > 0)
+        {
+            string disk = $"{PerformanceSnapshotService.FormatBytes(snapshot.SystemDriveFree)} free / {PerformanceSnapshotService.FormatBytes(snapshot.SystemDriveTotal)}";
+            AddMetric(list, Loc.I.Pick($"System drive: {disk}", $"系統磁碟：{disk}"), snapshot.SystemDriveName, disk, 175);
+        }
+
+        list.Add(new CommandPaletteResult
+        {
+            Title = Loc.I.Pick("Open Task Manager", "開啟工作管理員"),
+            Subtitle = Loc.I.Pick("Inspect live processes and performance", "檢查即時程序同效能"),
+            Glyph = ((char)0xE9D9).ToString(),
+            ProviderTag = Loc.I.Pick("Performance", "效能"),
+            Score = 150,
+            Invoke = () => { RunCommand("taskmgr.exe", ""); return true; },
+        });
+    }
+
+    private static void AddMetric(List<CommandPaletteResult> list, string title, string subtitle, string copyValue, double score)
+    {
+        list.Add(new CommandPaletteResult
+        {
+            Title = title,
+            Subtitle = Loc.I.Pick($"{subtitle} · Press Enter to copy", $"{subtitle} · 按 Enter 複製"),
+            Glyph = ((char)0xE9D9).ToString(),
+            ProviderTag = Loc.I.Pick("Performance", "效能"),
+            Score = score,
+            Invoke = () => { CopyText(copyValue); return true; },
+        });
     }
 
     // ----- Remote Desktop · 遠端桌面 -----
