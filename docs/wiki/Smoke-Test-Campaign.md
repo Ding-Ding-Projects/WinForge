@@ -252,6 +252,51 @@ manual-routing entry 留低。產生嘅證據保留喺 Git 忽略嘅
 manifest routes 入面頭 100 條有 current route-launch 證據；佢仍然只係 launch，
 唔係 visual 或 behavioral completion。
 
+## Launch-only Batch 05 · 第五批淨啟動測試
+
+**EN —** On 2026-07-11, launchable-route indices 100–124 were exercised with
+the isolated 5-second/15-second protocol. All 25 routes returned
+`launch-pass` on their initial attempt; no retry, failure, or manual-routing
+entry remained. The batch covered `envvars`, `epoch`, `evcharge`, `events`,
+`everything`, `expensesplit`, `faker`, `fancyzones`, `fastboot`, `feedreader`,
+`filelocksmith`, `fileserver`, `filesplit`, `filezilla`, `flashcards`, `fonts`,
+`giflab`, `git`, `githubdesktopprofiles`, `gitignore`, `glazewm`, `globtester`,
+`gradient`, `griddispatch`, and `guidgen`. Generated route evidence is retained
+under the ignored `artifacts/smoke/launch-batches/batch-05/` directory. After
+the final XAML-literal audit sync, the same current-manifest slice was rerun:
+all 25 again returned `launch-pass` on the initial attempt, with no retry,
+failure, or manual-routing entry. That final evidence is retained under
+`artifacts/smoke/launch-batches/batch-05-final/`.
+
+**Visual evidence · 視覺證據：** Initial `envvars` and final-current-build
+`githubdesktopprofiles` `driver.ps1 -Out ...` capture attempts launched their
+routes but both failed at `CopyFromScreen` with `The handle is invalid`,
+leaving no PNG. The documented desktop-session capture fallback remains
+unavailable as well, so the batch has `capture-blocked` visual evidence: no
+screenshot was created or replaced, and no visual-pass claim is made. Page
+actions were intentionally not invoked; this batch is route-launch evidence
+only. It brings the campaign to the first 125 of 321 manifest routes with
+current process-level launch evidence.
+
+**粵語 —** 2026-07-11 用獨立 5 秒／15 秒 protocol 測咗 launchable-route
+indices 100–124。25 條全部喺第一次就 `launch-pass`；冇 retry、failure 或者
+manual-routing entry 留低。呢批包括 `envvars`、`epoch`、`evcharge`、`events`、
+`everything`、`expensesplit`、`faker`、`fancyzones`、`fastboot`、`feedreader`、
+`filelocksmith`、`fileserver`、`filesplit`、`filezilla`、`flashcards`、`fonts`、
+`giflab`、`git`、`githubdesktopprofiles`、`gitignore`、`glazewm`、`globtester`、
+`gradient`、`griddispatch` 同 `guidgen`。產生嘅 route 證據保留喺 Git 忽略嘅
+`artifacts/smoke/launch-batches/batch-05/` 目錄。最終 XAML-literal audit sync
+之後，用同一個 current-manifest slice 再跑一次：25 條再次全部第一次就
+`launch-pass`，冇 retry、failure 或者 manual-routing entry。最終證據保留喺
+`artifacts/smoke/launch-batches/batch-05-final/`。
+
+**視覺證據 · Visual evidence：** 初始 `envvars` 同最終 current-build
+`githubdesktopprofiles` 嘅 `driver.ps1 -Out ...` 截圖嘗試都有開到 route，但兩次
+都喺 `CopyFromScreen` 報 `The handle is invalid`，所以冇 PNG。已記錄嘅
+desktop-session 截圖 fallback 都仲係用唔到，因此呢批嘅視覺證據係
+`capture-blocked`：冇建立或替換截圖，亦唔會聲稱 visual pass。頁面 actions 有意
+冇執行；呢批只係 route-launch 證據。依家 campaign 對 321 條 manifest routes
+入面頭 125 條有 current process-level launch 證據。
 ## Reactor Harness Exit-Code Gate · 反應堆測試框架退出碼閘門
 
 **EN —** On 2026-07-11 the focused `ReactorSim.Tests` console harness was changed from a reporting-only summary to a CI gate. It now prints the existing per-scenario result and summary, returns **0 only for a complete pass**, and returns **1** if any scenario fails or throws. The fast `--verify-exit-code-contract` mode checks the all-pass and partial-failure mappings without running simulator scenarios.
