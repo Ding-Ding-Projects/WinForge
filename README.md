@@ -28,7 +28,7 @@
 | | |
 |---|---|
 | ![Dashboard · 概覽](docs/screenshot-dashboard.png) <br> **Dashboard · 概覽** — Master search and home overview across every module. <br> 跨晒所有模組嘅總搜尋同主頁概覽。 | ![Nuclear Reactor · 核反應堆](docs/screenshot-reactor.png) <br> **Nuclear Reactor · 核反應堆** — The flagship hyper-realistic PWR control-room simulator. <br> 旗艦超寫實壓水堆控制室模擬器。 |
-| ![Git & GitHub · Git 與 GitHub](docs/screenshot-git.png) <br> **Git & GitHub · Git 與 GitHub** — Multi-repo workbench for git and gh with a chunked uploader. <br> 多儲存庫工作台，操作 git 同 gh，附分塊上傳器。 | ![Package Manager · 套件管理](docs/screenshot-packages.png) <br> **Package Manager · 套件管理** — Native workspace for 11 managers with a shared operation queue and UniGetUI-informed safeguards. <br> 原生工作區統管 11 個管理器，附共用操作佇列同參考 UniGetUI 整好嘅安全保障。 |
+| ![Git & GitHub · Git 與 GitHub](docs/screenshot-git.png) <br> **Git & GitHub · Git 與 GitHub** — Multi-repo workbench for git and gh with a chunked uploader. <br> 多儲存庫工作台，操作 git 同 gh，附分塊上傳器。 | ![Package Manager · 套件管理](docs/screenshot-packages.png) <br> **Package Manager · 套件管理** — One front-end over winget, scoop, choco, pip and npm. <br> 統一前端操作 winget、scoop、choco、pip 同 npm。 |
 | ![Cloudflare & Tunnel · Cloudflare 與 Tunnel](docs/screenshot-cloudflare.png) <br> **Cloudflare & Tunnel · Cloudflare 與 Tunnel** — Tunnels, DNS routing, Access, DoH and WARP. <br> 隧道、DNS 路由、Access、DoH 同 WARP。 | ![AI Agents · AI 代理](docs/screenshot-aiagents.png) <br> **AI Agents · AI 代理** — Install and launch terminal AI coding agents. <br> 安裝同啟動終端機 AI 編程代理。 |
 | ![Media · 媒體](docs/screenshot-media.png) <br> **Media · 媒體** — ffmpeg-powered video/audio convert, trim and GIF making. <br> 用 ffmpeg 轉檔、剪裁影音同整 GIF。 | ![Settings & Control Panel · 設定與控制台](docs/screenshot-settingshub.png) <br> **Settings & Control Panel · 設定與控制台** — In-app launcher for ms-settings and Control Panel applets. <br> app 內啟動 ms-settings 頁面同控制台小程式。 |
 | ![Clipboard · 剪貼簿](docs/screenshot-clipboard.png) <br> **Clipboard · 剪貼簿** — Richer clipboard history with QR-code generation. <br> 更豐富嘅剪貼簿歷史，附二維碼產生。 | ![Connections · 連線](docs/screenshot-connections.png) <br> **Connections · 連線** — Live TCP/UDP socket list with owning processes. <br> 即時 TCP／UDP 連線清單同擁有程序。 |
@@ -55,10 +55,6 @@
 **粵語 —** 需求：**.NET 11 SDK** 同 **Windows App SDK** 工作負載（Visual Studio 2022 加 *.NET 桌面* + *Windows App SDK*，或者淨係裝 SDK）。建置成個方案：
 
 ```powershell
-# Select the required .NET 11 SDK when the machine-wide dotnet command is older.
-$env:DOTNET_ROOT = "$env:USERPROFILE\.dotnet"
-$env:PATH = "$env:DOTNET_ROOT;$env:PATH"
-
 # Build the solution (Debug, x64) · 建置方案（Debug、x64）
 dotnet build WinForge.sln -c Debug -p:Platform=x64
 ```
@@ -344,12 +340,12 @@ launch evidence only and no stale screenshot was replaced.
 | Module · 模組 | Description · 說明 | `--page` |
 |---|---|---|
 | **Git & GitHub · Git 與 GitHub** | Multi-repo workbench for git and gh operations with a chunked uploader. <br> 多儲存庫工作台，操作 git 同 gh，附分塊上傳器。 | `git` |
-| **Package Manager · 套件管理** | Native workspace for 11 managers with discovery, updates, bundles, setup, scheduling and a shared operation queue. <br> 原生工作區統管 11 個管理器，提供搜尋、更新、清單、引擎設定、排程同共用操作佇列。 | `packages` |
+| **Package Manager · 套件管理** | One front-end over winget, scoop, choco, pip, npm and more. <br> 統一前端操作 winget、scoop、choco、pip、npm 等。 | `packages` |
 | **Native OSS Clones · 開源原生分頁** | Map of open-source app ideas remade as native C# WinForge tabs. <br> 將開源 app 想法重製成 WinForge 原生 C# 分頁嘅索引。 | `ossapps` |
 | **Cake Factory & Farm · 蛋糕工廠與農場** | HTML5 reactor-powered cake factory game with cow milk provenance, laying-hen egg provenance, supplier delivery lead times, mixed dairy ration, parlor/poultry-house hygiene, an operator-run utility plant, audited ingredient lots, QA lab release, warehouse batch kitting, finite supplies/utilities, timed ingredient factories, vanilla extraction, a carton packaging plant, named byproduct/effluent handling, plant maintenance, manual HACCP gates, customer order dispatch and signed `.cake` files. <br> HTML5 反應堆供電蛋糕工廠遊戲，附牛奶來源、蛋來源、供應商送貨等候時間、混合奶牛飼料、擠奶間／禽舍衛生、操作員運行嘅公用工程廠、已審核原料批號、QA 實驗室放行、倉庫批次備料、有限補給／公用工程、計時原料工廠、雲呢拿萃取、紙盒包裝廠、具名副產物／廢水處理、廠房維修、手動 HACCP 放行關卡、客戶訂單出貨同已簽署 `.cake` 檔。 | `cakefactory` |
 | **Feed Reader · RSS 閱讀器** | Native RSS/Atom reader inspired by QuiteRSS and Fluent Reader. <br> 受 QuiteRSS 同 Fluent Reader 啟發嘅原生 RSS／Atom 閱讀器。 | `rss` |
 | **App Uninstaller · 應用程式解除安裝** | Remove apps and Appx packages via winget. <br> 用 winget 移除應用程式同 Appx 套件。 | `uninstall` |
-| **Android (ADB) · Android（ADB）** | adb devices, APK install, shell, logcat and scrcpy mirroring; device input is passed to adb as isolated arguments, never through a local command shell. <br> adb 裝置、安裝 APK、shell、logcat 同 scrcpy 鏡像；裝置輸入會用獨立參數傳畀 adb，唔會經本機命令 shell。 | `adb` |
+| **Android (ADB) · Android（ADB）** | adb devices, APK install, shell, logcat and scrcpy mirroring. <br> adb 裝置、安裝 APK、shell、logcat 同 scrcpy 鏡像。 | `adb` |
 | **Fastboot / Flasher · Fastboot／刷機** | Unlock bootloaders and flash factory/boot images. <br> 解鎖 bootloader 同刷入原廠／boot 映像。 | `fastboot` |
 | **Android Emulator & SDK · Android 模擬器與 SDK** | Manage AVDs and the Android SDK manager. <br> 管理 AVD 虛擬裝置同 Android SDK 管理員。 | `emulator` |
 | **qBittorrent · 種子下載** | Drive the qBittorrent Web API for torrents. <br> 驅動 qBittorrent Web API 做種子下載。 | `qbittorrent` |
@@ -386,7 +382,7 @@ launch evidence only and no stale screenshot was replaced.
 | **Command Palette · 指令面板** | Global launcher and Run box for apps, calc and system actions. <br> 全域啟動器同執行框，啟動應用程式、計算同系統動作。 | `cmdpalette` |
 | **Color Picker · 螢幕取色** | System-wide color picker with hex/RGB/HSL output. <br> 全系統取色器，輸出 hex／RGB／HSL。 | `colorpicker` |
 | **Screen Ruler · 螢幕間尺** | Measure distances and pixels on screen. <br> 喺螢幕量度距離同像素。 | `screenruler` |
-| **Mouse Utilities · 滑鼠工具** | Find My Mouse, highlighter, crosshairs and pointer jump. <br> 搵滑鼠、點擊標示、十字線同指標跳轉。 | `mouseutils` |
+| **Mouse Utilities · 滑鼠工具** | Find My Mouse, highlighter, crosshairs, pointer jump, CursorWrap and Grab and Move. <br> 搵滑鼠、點擊標示、十字線、指標跳轉、游標環繞同拖曳移動視窗。 | `mouseutils` |
 | **Mouse & Pointer · 滑鼠與指標** | Adjust pointer speed, acceleration and behaviour. <br> 調整指標速度、加速同行為。 | `mouse` |
 | **Mouse Without Borders · 無界滑鼠** | Share one keyboard and mouse across multiple PCs (software KVM). <br> 跨多部電腦共享一套鍵盤滑鼠（軟件 KVM）。 | `mwb` |
 | **Quick Accent · 快速重音符** | Insert accented and special characters by holding a letter. <br> 揿住字母快速插入重音同特殊字元。 | `quickaccent` |
@@ -416,7 +412,7 @@ launch evidence only and no stale screenshot was replaced.
 |---|---|---|
 | **WinForge Vault · WinForge 保險庫** | On-the-fly encrypted volume containers (VeraCrypt-derived). <br> 即時加密嘅磁碟區容器（源自 VeraCrypt）。 | `vault-volumes` |
 | **Bitwarden Vault · Bitwarden 密碼庫** | Drive the Bitwarden CLI for logins, TOTP and generators. <br> 驅動 Bitwarden CLI 管理登入、TOTP 同密碼產生。 | `bitwarden` |
-| **KeePass Vault · 密碼保險庫** | Local offline KeePass (kdbx) password vault with native KDBX AES-KDF, Argon2d, and Argon2id compatibility. <br> 本機離線 KeePass（kdbx）密碼庫，原生加密，支援 KDBX AES-KDF、Argon2d 同 Argon2id。 | `keepass` |
+| **KeePass Vault · 密碼保險庫** | Local offline KeePass (kdbx) password vault, natively encrypted. <br> 本機離線 KeePass（kdbx）密碼庫，原生加密。 | `keepass` |
 
 ### Gaming & Emulation · 遊戲與模擬
 

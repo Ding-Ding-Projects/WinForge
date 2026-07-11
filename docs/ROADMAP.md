@@ -775,7 +775,7 @@ Shipped as a single **PowerToys Extras** module (`module.powertoys` / `--page po
 - [x] **Paste as Plain Text** · 純文字貼上 — one-shot strip-clipboard + Ctrl+Shift+V global low-level-keyboard-hook hotkey (strip then re-inject Ctrl+V). `PlainTextPasteService`.
 
 ### Next PowerToys batches · 之後嘅批次
-- [x] **Find My Mouse / crosshairs** · 搵滑鼠／十字準星 — already shipped in `Pages/MouseUtilsModule.xaml(.cs)` and linked from the PowerToys hub.
+- [x] **Find My Mouse / crosshairs / CursorWrap / Grab and Move** · 搵滑鼠／十字準星／游標環繞／拖曳移動視窗 — shipped in `Pages/MouseUtilsModule.xaml(.cs)` with active-display wrapping, Ctrl/Shift hold activation, horizontal/vertical modes, single-monitor pausing, and managed modifier-drag window move/nearest-edge resize controls; linked from the PowerToys hub.
 - [x] **Screen Ruler** · 螢幕間尺 — already shipped in `Pages/ScreenRulerModule.xaml(.cs)` and linked from the PowerToys hub.
 - [x] **Quick Accent** · 快速重音 — already shipped in `Pages/QuickAccentModule.xaml(.cs)` and linked from the PowerToys hub.
 - [x] **OCR region select** · OCR 區域選取 — already shipped in `Pages/TextOcrModule.xaml(.cs)` via `RegionSelector.PickRegion()` and linked from the PowerToys hub.
@@ -803,8 +803,8 @@ launching the other app.
 - [x] **Background Clipboard manager + tray** · 背景剪貼簿 + 系統匣 — DONE (text/image/file history, auto-convert, keep-running-when-closed via Shell_NotifyIcon).
 
 ### Package management (covers "clone UniGetUI" + "auto-install common deps")
-- [x] **Native Package Manager with UniGetUI-informed parity** · 原生套件管理員 — DONE: 11 managers and nine views (Discover, Updates, Installed, Bundles, Sources, Ignored, Setup, Settings, Operations); shared queue/history/output/cancel/retry; row and multi-select operations; saved global/per-package options; ignored/pinned/snoozed updates; secure bundle import/export; guarded background scheduling and source management. Manager-specific command handling keeps .NET global/tool-path targets exclusive, honors PowerShell 7 requested versions and safely prunes older versions, gives Bun npm-registry search and its real global manifest directory, and accepts vcpkg feature commas/npm tildes without admitting shell separators.
-- [x] **Auto-install common deps** · 一鍵安裝常用相依 — DONE: the Setup view detects common WinForge engines/developer tools and installs missing winget dependencies through the shared operation coordinator; it marks them installed and refreshes `PATH` only after success. Other modules retain the shared `PackageService.AutoInstall` bootstrap path.
+- [x] **Native Package Manager with UniGetUI-informed parity** · 原生套件管理員 — DONE: 11 managers and nine views (Discover, Updates, Installed, Bundles, Sources, Ignored, Setup, Settings, Operations); shared queue/history/output/cancel/retry; row and multi-select operations; saved global/per-package options; ignored/pinned/snoozed updates; secure bundle import/export; guarded background scheduling and source management.
+- [x] **Auto-install common deps** · 一鍵安裝常用相依 — DONE: the Setup view detects common WinForge engines/developer tools and installs missing winget dependencies with progress; other modules retain the shared `PackageService.AutoInstall` bootstrap path.
 
 ### Dev environment
 - [x] **Visual Studio installer panel (export/import .vsconfig)** · VS 安裝器面板 — wrap the VS bootstrapper / winget (`winget install Microsoft.VisualStudio.2022.Community --override "--config <file>"`); export the current install's .vsconfig and re-apply it; list/modify workloads. (Flashing/installer = real engine, in-app UI.)
