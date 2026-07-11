@@ -177,4 +177,12 @@ build 以 0 errors 通過（318 warnings），強制新 self-contained
 - Routing-review diagnostics now use ASCII-safe separators, so evidence files
   stay parseable across PowerShell host encodings.
 
+## Reactor Harness Exit-Code Gate · 反應堆測試框架退出碼閘門
+
+**EN —** On 2026-07-11 the focused `ReactorSim.Tests` console harness was changed from a reporting-only summary to a CI gate. It now prints the existing per-scenario result and summary, returns **0 only for a complete pass**, and returns **1** if any scenario fails or throws. The fast `--verify-exit-code-contract` mode checks the all-pass and partial-failure mappings without running simulator scenarios.
+
+**粵語 —** 2026-07-11 專注嘅 `ReactorSim.Tests` console 測試框架由淨係報告結果，改成 CI gate。佢而家會保留原本每個情景嘅結果同總結，**完全通過**先會回傳 **0**；任何情景失敗或者拋出例外就會回傳 **1**。快速嘅 `--verify-exit-code-contract` 模式會唔跑模擬器情景、驗證全部通過同部分失敗嘅 mapping。
+
+- Visual evidence: not applicable. This task changes a headless console harness and documentation only; no WinUI page or canonical screenshot changed, and no screenshot replacement is claimed.
+
 [← Wiki Home](Home.md) · [Developer](Developer.md) · [Screenshots](Screenshots.md)

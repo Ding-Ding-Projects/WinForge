@@ -92,6 +92,22 @@ dotnet publish WinForge.csproj -c Release -p:Platform=x64 -r win-x64 ^
 
 **粵語 —** 有改視覺介面就一定要有最新截圖；影唔到就記低確實阻礙，唔可以當視覺驗證通過。系統、網絡、套件、認證同整合嘅實際副作用，除非有明確授權，否則只會用安全同可還原嘅路徑測試。
 
+### Focused Reactor Harness · 專注反應堆測試框架
+
+**EN —** The `net8.0-windows` reactor/dependent console harness prints a result for every scenario and is a real CI gate: it exits **0 only when all scenarios pass**; any failed assertion or caught scenario exception exits **1**. On machines where the app build overrides `DOTNET_ROOT` to the local .NET 11 SDK, clear that override or use an installed .NET 8 runtime for this focused harness.
+
+**粵語 —** `net8.0-windows` 嘅反應堆／相依服務 console 測試框架會列印每個情景嘅結果，而且係真正嘅 CI gate：**全部情景通過**先會退出 **0**；任何斷言失敗或者捉到嘅情景例外都會退出 **1**。如果 app build 將 `DOTNET_ROOT` 指去本機 .NET 11 SDK，跑呢個專注測試前要清除覆寫，或者用已安裝嘅 .NET 8 runtime。
+
+```powershell
+# ReactorSim.Tests targets net8.0-windows.
+Remove-Item Env:DOTNET_ROOT -ErrorAction Ignore
+& "$env:ProgramFiles\dotnet\dotnet.exe" run --project tests/ReactorSim.Tests -c Debug
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+# Fast self-test of the pass/fail exit-code mapping (no simulator scenarios run).
+& "$env:ProgramFiles\dotnet\dotnet.exe" run --project tests/ReactorSim.Tests -c Debug -- --verify-exit-code-contract
+```
+
 **EN —** The latest checkpoint fixed a Base Converter startup fault exposed by
 the route sweep; its fresh self-contained `--page baseconvert` launch now
 passes. See the [smoke campaign ledger](docs/wiki/Smoke-Test-Campaign.md) for

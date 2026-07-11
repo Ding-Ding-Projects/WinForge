@@ -22,7 +22,7 @@ Open in-app · 喺 app 內開啟：`WinForge.exe --reactor` (or `--page reactor`
 | [Reactor Water Treatment · 反應堆水處理](Reactor-Water-Treatment.md) | Intake → clarifier → filter → RO → demin → degasifier → ultrapure; chemistry; reactor dependency. · 取水 → 澄清 → 過濾 → RO → 除鹽 → 除氣 → 超純；水質；反應堆依賴。 |
 | [Reactor Safety & Integrations · 反應堆安全與整合](Reactor-Safety-and-Integrations.md) | ARM real-shutdown toggle, keep-awake, Windows linkage, crash-safe autosave, public status API. · ARM 真實關機開關、保持喚醒、Windows 連動、防崩潰自動儲存、公開狀態 API。 |
 | [Nuclear Reactor — Operating Manual · 核反應堆操作手冊](Nuclear-Reactor-Operating-Manual.md) | Manual index linking the focused pages above. · 連結上述聚焦頁面嘅手冊索引。 |
-| [Reactor Test Report · 反應堆測試報告](Reactor-Test-Report.md) | Latest headless run: 16 / 16 scenarios pass + calibration caveat. · 最新無介面運行：16／16 情景通過＋校準注意事項。 |
+| [Reactor Test Report · 反應堆測試報告](Reactor-Test-Report.md) | Latest headless run: **63 / 63** scenarios pass. The harness exits 0 only for a complete pass and 1 on any scenario failure or exception. · 最新無介面運行：**63／63** 情景通過；測試框架只會喺完全通過時退出 0，任何情景失敗或例外都退出 1。 |
 
 ---
 
