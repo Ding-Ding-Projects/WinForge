@@ -90,13 +90,15 @@ Open in-app: `WinForge.exe --page packer`
 
 ![Packer (Image Builder)](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-packer.png)
 
-## AWS CLI · AWS 命令列
+## AWS Manager · AWS 管理中心
 
-Drive the AWS CLI for S3, EC2, IAM, Lambda and more. · 驅動 AWS CLI 操作 S3、EC2、IAM、Lambda 等。
+Manage AWS through a Console-style shell with 149 curated services plus live CLI discovery, cross-service resource search, Cloud Control lifecycle APIs, a native S3 workspace, and an optional advanced CLI workbench. · 透過 Console 式介面管理 AWS：149 個精選服務加即時 CLI 探索、跨服務資源搜尋、Cloud Control 生命週期 API、原生 S3 工作區，同選用進階 CLI 工作台。
+
+[Full AWS Manager guide · 完整 AWS 管理中心指南](AWS-Manager.md)
 
 Open in-app: `WinForge.exe --page aws`
 
-![AWS CLI](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-aws.png)
+![AWS Manager](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-aws.png)
 
 ## Website Cloner · 網站複製器
 

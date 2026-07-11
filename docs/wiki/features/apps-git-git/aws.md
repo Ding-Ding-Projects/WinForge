@@ -1,4 +1,4 @@
-# AWS CLI · AWS 命令列
+# AWS Manager · AWS 管理中心
 
 **EN —** Feature reference generated from the WinForge module registry, navigation map, and page XAML.
 **粵語 —** 呢份功能參考由 WinForge 模組登記、導覽地圖同頁面 XAML 生成。
