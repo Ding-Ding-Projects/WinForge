@@ -237,50 +237,66 @@ public sealed class BatteryThermal : IDisposable
     }
 
     // ----------------------------------------------------------- thermal sensors ----
-    private LHM.Computer? _computer;
+    private LibreHardwareMonitorLease? _sensorLease;
     private readonly object _gate = new();
     private bool _useFallback;
 
-    /// <summary>Open the LibreHardwareMonitor computer for CPU/GPU/motherboard sensors.</summary>
+    /// <summary>
+    /// Acquire the shared LibreHardwareMonitor computer for CPU/GPU/motherboard sensors. A page gets
+    /// one lease; the exact Computer opened by WinForge closes only after every monitoring page has
+    /// released its lease.
+    /// </summary>
     public bool OpenSensors()
     {
         lock (_gate)
         {
-            if (_computer is not null) return !_useFallback;
+            if (_sensorLease is not null) return !_useFallback;
+            _useFallback = true;
+
+            var lease = LibreHardwareMonitorLifecycle.Acquire();
+            if (lease is null) return false;
+
             try
             {
-                _computer = new LHM.Computer
-                {
-                    IsCpuEnabled = true,
-                    IsGpuEnabled = true,
-                    IsMotherboardEnabled = true,
-                    IsControllerEnabled = true,
-                };
-                _computer.Open();
+                _sensorLease = lease;
                 // Probe: if no temperature sensors are visible (no admin driver), use WMI fallback.
-                _useFallback = !HasAnyTemperature();
+                _useFallback = !HasAnyTemperature(lease);
+                if (_useFallback)
+                {
+                    // Keeping a driver-backed computer open cannot help the WMI fallback. Release it
+                    // immediately, unless System Monitor still has its own shared lease.
+                    _sensorLease = null;
+                    lease.Dispose();
+                }
                 return !_useFallback;
             }
             catch
             {
-                _computer = null;
+                _sensorLease = null;
+                try { lease.Dispose(); } catch { }
                 _useFallback = true;
                 return false;
             }
         }
     }
 
-    private bool HasAnyTemperature()
+    private static bool HasAnyTemperature(LibreHardwareMonitorLease lease)
     {
-        if (_computer is null) return false;
-        foreach (var hw in _computer.Hardware)
+        bool found = false;
+        bool sampled = lease.TryUse(computer =>
         {
-            hw.Update();
-            foreach (var s in hw.Sensors)
-                if (s.SensorType == LHM.SensorType.Temperature && s.Value is > 0)
-                    return true;
-        }
-        return false;
+            foreach (var hw in computer.Hardware)
+            {
+                hw.Update();
+                foreach (var s in hw.Sensors)
+                {
+                    if (s.SensorType != LHM.SensorType.Temperature || s.Value is null or <= 0) continue;
+                    found = true;
+                    return;
+                }
+            }
+        });
+        return sampled && found;
     }
 
     /// <summary>True when no driver-backed sensors were found and we are on the WMI thermal-zone fallback.</summary>
@@ -292,16 +308,20 @@ public sealed class BatteryThermal : IDisposable
         var list = new List<SensorReading>();
         lock (_gate)
         {
-            if (_computer is null) return list;
+            var lease = _sensorLease;
+            if (lease is null) return list;
             try
             {
-                foreach (var hw in _computer.Hardware)
+                lease.TryUse(computer =>
                 {
-                    hw.Update();
-                    foreach (var sub in hw.SubHardware) sub.Update();
-                    Collect(hw, list);
-                    foreach (var sub in hw.SubHardware) Collect(sub, list);
-                }
+                    foreach (var hw in computer.Hardware)
+                    {
+                        hw.Update();
+                        foreach (var sub in hw.SubHardware) sub.Update();
+                        Collect(hw, list);
+                        foreach (var sub in hw.SubHardware) Collect(sub, list);
+                    }
+                });
             }
             catch { }
         }
@@ -353,10 +373,13 @@ public sealed class BatteryThermal : IDisposable
 
     public void Dispose()
     {
+        LibreHardwareMonitorLease? lease;
         lock (_gate)
         {
-            try { _computer?.Close(); } catch { }
-            _computer = null;
+            lease = _sensorLease;
+            _sensorLease = null;
+            _useFallback = true;
         }
+        try { lease?.Dispose(); } catch { }
     }
 }
