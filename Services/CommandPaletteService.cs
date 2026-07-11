@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.Json;
 using Microsoft.UI.Dispatching;
 using WinForge.Models;
 
@@ -30,6 +31,7 @@ public static class CommandPaletteService
     private const string KeyHotkey = "cmdpal.hotkey";        // e.g. "Alt+Space"
     private const string KeyMaxResults = "cmdpal.maxResults";
     private const string KeyProviderPrefix = "cmdpal.provider."; // + provider id
+    private const string KeyDockPins = "cmdpal.dock.pins";
 
     // ===================== Provider identity · 提供者識別 =====================
     public enum Provider { Apps, Modules, Files, Clipboard, Calculator, TimeDate, Settings, Services, Terminal, Run, System, Web }
@@ -86,6 +88,95 @@ public static class CommandPaletteService
     public static void SetProviderEnabled(Provider p, bool on)
         => SettingsStore.Set(KeyProviderPrefix + p, on.ToString());
 
+    // ===================== Dock pins · Dock 釘選 =====================
+    /// <summary>A persistent Dock entry captured from a Command Palette result.</summary>
+    public sealed class DockPin
+    {
+        public string Query { get; set; } = "";
+        public string Title { get; set; } = "";
+        public string Subtitle { get; set; } = "";
+        public string Glyph { get; set; } = "";
+        public string ProviderTag { get; set; } = "";
+    }
+
+    private static readonly DockPin[] DefaultDockPins =
+    {
+        new() { Query = "time", Title = "Time & date · 時間與日期", Glyph = ((char)0xE823).ToString(), ProviderTag = "Time" },
+        new() { Query = "$display", Title = "Display · 顯示器", Glyph = ((char)0xE713).ToString(), ProviderTag = "Settings" },
+        new() { Query = "terminal", Title = "Windows Terminal · Windows 終端機", Glyph = ((char)0xE756).ToString(), ProviderTag = "Terminal" },
+    };
+
+    /// <summary>Saved pins, or a small safe starter set until the user pins results.</summary>
+    public static IReadOnlyList<DockPin> EffectiveDockPins
+    {
+        get
+        {
+            var pins = ReadDockPins();
+            return pins.Count > 0 ? pins : DefaultDockPins;
+        }
+    }
+
+    /// <summary>Toggle the selected result in the persistent Dock. Returns true when it was pinned.</summary>
+    public static bool ToggleDockPin(CommandPaletteResult result, string? query)
+    {
+        if (result is null || string.IsNullOrWhiteSpace(result.Title)) return false;
+        string normalizedQuery = string.IsNullOrWhiteSpace(query) ? result.Title : query.Trim();
+        var pins = ReadDockPins();
+        int existing = pins.FindIndex(p => string.Equals(p.Query, normalizedQuery, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(p.Title, result.Title, StringComparison.Ordinal)
+            && string.Equals(p.ProviderTag, result.ProviderTag, StringComparison.Ordinal));
+        if (existing >= 0)
+        {
+            pins.RemoveAt(existing);
+            SaveDockPins(pins);
+            CommandPaletteDockService.Refresh();
+            return false;
+        }
+
+        if (pins.Count >= 8) pins.RemoveAt(0);
+        pins.Add(new DockPin
+        {
+            Query = normalizedQuery,
+            Title = result.Title,
+            Subtitle = result.Subtitle,
+            Glyph = result.Glyph,
+            ProviderTag = result.ProviderTag,
+        });
+        SaveDockPins(pins);
+        CommandPaletteDockService.Refresh();
+        return true;
+    }
+
+    /// <summary>Invoke a dock pin by resolving its original query again; fall back to the palette if it changed.</summary>
+    public static bool InvokeDockPin(DockPin pin)
+    {
+        try
+        {
+            var result = Query(pin.Query).FirstOrDefault(r => string.Equals(r.Title, pin.Title, StringComparison.Ordinal)
+                && string.Equals(r.ProviderTag, pin.ProviderTag, StringComparison.Ordinal));
+            if (result is not null) return result.Invoke();
+        }
+        catch { }
+
+        try { CommandPaletteWindow.OpenWithQuery(pin.Query); } catch { }
+        return false;
+    }
+
+    private static List<DockPin> ReadDockPins()
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<List<DockPin>>(SettingsStore.Get(KeyDockPins, "[]")) ?? new List<DockPin>();
+        }
+        catch { return new List<DockPin>(); }
+    }
+
+    private static void SaveDockPins(List<DockPin> pins)
+    {
+        try { SettingsStore.Set(KeyDockPins, JsonSerializer.Serialize(pins.Take(8).ToList())); }
+        catch { }
+    }
+
     // ===================== Global hotkey (low-level keyboard hook) · 全域熱鍵 =====================
     [DllImport("user32.dll", SetLastError = true)]
     private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelKeyboardProc lpfn, IntPtr hMod, uint dwThreadId);
@@ -123,6 +214,7 @@ public static class CommandPaletteService
     public static void Start(DispatcherQueue uiQueue)
     {
         _ui = uiQueue;
+        CommandPaletteDockService.Initialize(uiQueue);
         if (Enabled)
         {
             HookPump.Post(InstallHotkey);
@@ -138,6 +230,7 @@ public static class CommandPaletteService
             RemoveHotkey();
             if (Enabled) InstallHotkey();
         });
+        CommandPaletteDockService.Reapply();
     }
 
     private static void InstallHotkey()
