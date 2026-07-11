@@ -126,6 +126,25 @@ capture 亦唔可用。Percentage Calculator、qBittorrent、Pixel Editor 同 Pr
 PNG 產生；冇 canonical image 被替換或者重用。呢啲係 `capture-blocked` 結果，
 絕對唔係 visual-pass 聲稱。
 
+**EN —** Batch 10 made fresh 15-second `driver.ps1 -Out` attempts after the
+Quick Accent persistence, quicktype argument-vector, Rainmeter copy-link,
+Randomizer, Screen Recorder, and Registry Editor repairs. Every changed route
+reached its capture step; `CopyFromScreen` was unavailable and the
+`PrintWindow` fallback produced a uniform frame while graphics capture remained
+unavailable in this desktop session. No PNG was created for Quick Accent,
+quicktype, Rainmeter, Randomizer, Screen Recorder, or Registry Editor; no
+canonical image was replaced or reused. These are `capture-blocked` results,
+never visual-pass claims.
+
+**粵語 —** Batch 10 喺 Quick Accent persistence、quicktype argument-vector、
+Rainmeter copy-link、Randomizer、Screen Recorder 同 Registry Editor 修正之後，
+為每條改過 route 做咗新鮮 15 秒 `driver.ps1 -Out` 嘗試。全部都到咗 capture step；
+`CopyFromScreen` 唔可用，而 `PrintWindow` fallback 產生 uniform frame，呢個
+desktop session 嘅 graphics capture 仍然唔可用。Quick Accent、quicktype、
+Rainmeter、Randomizer、Screen Recorder 同 Registry Editor 都冇 PNG 產生；
+冇 canonical image 被替換或者重用。呢啲係 `capture-blocked` 結果，絕對唔係
+visual-pass 聲稱。
+
 ## Redaction Rules · 遮蔽規則
 
 **EN —** Before adding screenshots, redact or avoid personal data: Windows usernames, home-folder paths, repo paths outside WinForge, hostnames, IPs that identify private networks, account names, emails, API keys, tokens, session cookies, vault item names, SSH profiles, and real package/source credentials. Use `winforge-shot --redact "x|y|w|h|box|blur|pixelate"` to obscure regions irreversibly; see the [Wiki Screenshot Workflow](Wiki-Screenshot-Workflow.md).
@@ -535,7 +554,12 @@ Fresh capture is pending because the current desktop capture host rejects `CopyF
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-lightswitch.png)
 
 ### Rainmeter Widgets · Rainmeter 桌面小工具
-![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-taskbar.png)
+> Fresh Batch 10 capture is blocked: `CopyFromScreen` is unavailable and the
+> `PrintWindow` fallback produced a uniform frame. No current Rainmeter PNG was
+> created, so the superseded Rainmeter screenshots were removed rather than
+> reused as visual evidence. · Batch 10 新截圖受阻：`CopyFromScreen` 未可用，而
+> `PrintWindow` 後備方案產生 uniform frame。冇建立最新 Rainmeter PNG，所以已移除
+> 過時 Rainmeter 截圖，唔會重用做視覺證據。
 
 ### Time & Unit Tools · 時間與單位工具
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-time.png)

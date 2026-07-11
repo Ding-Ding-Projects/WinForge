@@ -120,10 +120,11 @@ public static class QuickTypeService
         }
         catch { /* ignore */ }
 
-        // 3) Last resort: probe "quicktype --version" via cmd (resolves .cmd shims on PATH).
+        // 3) Last resort: probe the PATH invocation with a real argument vector. This also confirms
+        // that a bare quicktype.cmd shim can be launched without a cmd.exe command string.
         try
         {
-            var r = await ShellRunner.RunCmd("quicktype --version", false, ct);
+            var r = await ShellRunner.RunArguments("quicktype", new[] { "--version" }, false, ct);
             if (r.Success) return _cachedCli = "quicktype";
         }
         catch { /* ignore */ }
@@ -208,14 +209,12 @@ public static class QuickTypeService
 
         try
         {
-            var args = BuildArgs(inPath, opt);
-            // Invoke through the resolved shim. If it's a bare "quicktype" we go via cmd /c so the
-            // .cmd shim on PATH is found; otherwise call the resolved .cmd directly via cmd /c too
-            // (Node .cmd shims need a shell host).
-            string quoted = NeedsQuote(cli) ? $"\"{cli}\"" : cli;
-            var r = await ShellRunner.RunCmd($"{quoted} {args}", false, ct);
+            var args = BuildArguments(inPath, opt);
+            // Top-level names and namespaces originate in editable UI fields. Preserve each value as
+            // one ProcessStartInfo.ArgumentList entry so cmd.exe never parses user-provided text.
+            var r = await ShellRunner.RunArguments(cli, args, false, ct);
 
-            string cmdLine = $"quicktype {args}";
+            string cmdLine = $"quicktype {string.Join(" ", args.Select(QuoteForDisplay))}";
             if (r.Success)
                 return new GenResult(true, (r.Output ?? "").TrimEnd() + "\n", "", cmdLine);
 
@@ -228,44 +227,54 @@ public static class QuickTypeService
         }
     }
 
-    private static bool NeedsQuote(string s) => s.Contains(' ') && !s.StartsWith("\"");
-
-    /// <summary>砌 quicktype 命令列引數 · Build the quicktype CLI argument string from options.</summary>
-    private static string BuildArgs(string inPath, GenOptions opt)
+    /// <summary>砌 quicktype 參數清單 · Build a shell-free quicktype argument vector from options.</summary>
+    private static IReadOnlyList<string> BuildArguments(string inPath, GenOptions opt)
     {
-        var sb = new StringBuilder();
-
-        // Source language + input file.
-        sb.Append("--src-lang ").Append(opt.Input.SrcLang).Append(' ');
-
-        // Target language.
-        sb.Append("--lang ").Append(Quote(opt.Target.Lang)).Append(' ');
+        var args = new List<string>
+        {
+            "--src-lang", opt.Input.SrcLang,
+            "--lang", opt.Target.Lang,
+        };
 
         // Top-level type name.
         var topName = string.IsNullOrWhiteSpace(opt.TopLevelName) ? "Root" : opt.TopLevelName.Trim();
-        sb.Append("--top-level ").Append(Quote(topName)).Append(' ');
+        args.Add("--top-level");
+        args.Add(topName);
 
         if (opt.JustTypes)
-            sb.Append("--just-types ");
+            args.Add("--just-types");
 
         // C#-specific options.
         if (opt.Target.Lang == "csharp")
         {
             if (!string.IsNullOrWhiteSpace(opt.Namespace))
-                sb.Append("--namespace ").Append(Quote(opt.Namespace!.Trim())).Append(' ');
+            {
+                args.Add("--namespace");
+                args.Add(opt.Namespace!.Trim());
+            }
             if (!string.IsNullOrWhiteSpace(opt.CSharpFramework))
-                sb.Append("--framework ").Append(opt.CSharpFramework).Append(' ');
+            {
+                args.Add("--framework");
+                args.Add(opt.CSharpFramework);
+            }
             if (opt.CSharpArrayType)
-                sb.Append("--array-type list ");
+            {
+                args.Add("--array-type");
+                args.Add("list");
+            }
         }
 
         if (opt.AcronymStyle)
-            sb.Append("--acronym-style original ");
+        {
+            args.Add("--acronym-style");
+            args.Add("original");
+        }
 
         // The input file always comes last (positional).
-        sb.Append(Quote(inPath));
-        return sb.ToString();
+        args.Add(inPath);
+        return args;
     }
 
-    private static string Quote(string s) => s.Contains(' ') ? $"\"{s}\"" : s;
+    private static string QuoteForDisplay(string value)
+        => value.Any(char.IsWhiteSpace) ? $"\"{value.Replace("\"", "\\\"")}\"" : value;
 }

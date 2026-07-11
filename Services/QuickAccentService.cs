@@ -68,32 +68,50 @@ public static class QuickAccentService
     {
         if (_loaded) return;
         _loaded = true;
+        QuickAccentSettings? loaded = null;
         try
         {
             var raw = SettingsStore.Get(SettingsKey, "");
             if (!string.IsNullOrWhiteSpace(raw))
-            {
-                var s = JsonSerializer.Deserialize<QuickAccentSettings>(raw, JsonOpts);
-                if (s is not null) Settings = s;
-            }
+                loaded = JsonSerializer.Deserialize<QuickAccentSettings>(raw, JsonOpts);
         }
         catch { /* corrupt → defaults */ }
 
-        if (Settings.SelectedSets.Count == 0) Settings.SelectedSets.Add("ALL");
+        Settings = NormalizeSettings(loaded ?? Settings);
     }
 
     public static void Save()
     {
+        Settings = NormalizeSettings(Settings);
         try { SettingsStore.Set(SettingsKey, JsonSerializer.Serialize(Settings, JsonOpts)); }
         catch { }
         QuickAccentData.InvalidateCache();
         Changed?.Invoke();
     }
 
+    /// <summary>Repair nullable or malformed persisted collection data before UI or hook code reads it.</summary>
+    internal static QuickAccentSettings NormalizeSettings(QuickAccentSettings? settings)
+    {
+        var normalized = settings ?? new QuickAccentSettings();
+        normalized.SelectedSets = (normalized.SelectedSets ?? new List<string>())
+            .Where(set => !string.IsNullOrWhiteSpace(set))
+            .Select(set => set.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        if (normalized.SelectedSets.Count == 0) normalized.SelectedSets.Add("ALL");
+
+        if (!Enum.IsDefined(normalized.ActivationKey))
+            normalized.ActivationKey = QuickAccentActivationKey.Both;
+        if (!Enum.IsDefined(normalized.Position))
+            normalized.Position = QuickAccentPosition.Caret;
+        normalized.InputDelayMs = Math.Clamp(normalized.InputDelayMs, 0, 2_000);
+        return normalized;
+    }
+
     /// <summary>由設定攞返實際要用嘅語言集識別碼（處理 "ALL"）· Resolve the effective set ids (handles "ALL").</summary>
     private static IReadOnlyCollection<string> EffectiveSets()
     {
-        if (Settings.SelectedSets.Any(s => s.Equals("ALL", StringComparison.OrdinalIgnoreCase)))
+        if (Settings.SelectedSets.Any(s => string.Equals(s, "ALL", StringComparison.OrdinalIgnoreCase)))
             return QuickAccentData.All.Select(l => l.Id).ToList();
         return Settings.SelectedSets;
     }

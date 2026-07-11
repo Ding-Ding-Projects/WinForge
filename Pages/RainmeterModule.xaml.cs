@@ -90,8 +90,8 @@ public sealed partial class RainmeterModule : Page
         ReloadLayoutsBtn.Content = P("Reload list · 重載清單", "重載清單");
 
         PacksBlurb.Text = P(
-            "A hand-picked starter list of popular skin suites. Open a page, download its .rmskin, then install it here. (v1 has no in-app online catalog — that's a later feature.)",
-            "精選嘅熱門皮膚套裝清單。開啟頁面、下載佢嘅 .rmskin，再喺呢度安裝。（v1 未有內建線上目錄 — 屬後續功能。）");
+            "A hand-picked starter list of popular skin suites. Copy a page link, download its .rmskin, then install it here. (v1 has no in-app online catalog — that's a later feature.)",
+            "精選嘅熱門皮膚套裝清單。複製網站連結、下載佢嘅 .rmskin，再喺呢度安裝。（v1 未有內建線上目錄 — 屬後續功能。）");
         InstallRmskin2Btn.Content = P("Install a .rmskin file… · 安裝 .rmskin 檔…", "安裝 .rmskin 檔…");
 
         OpsBlurb.Text = P("Global one-shot operations against the Rainmeter engine.", "對 Rainmeter 引擎嘅全域一鍵操作。");
@@ -279,18 +279,18 @@ public sealed partial class RainmeterModule : Page
             Grid.SetColumn(info, 0);
             grid.Children.Add(info);
 
-            var open = new Button { Content = P("Open page", "開啟頁面"), VerticalAlignment = VerticalAlignment.Center };
+            var copyLink = new Button { Content = P("Copy link", "複製連結"), VerticalAlignment = VerticalAlignment.Center };
             var url = pack.Url;
-            open.Click += (_, _) => OpenUrl(url);
-            Grid.SetColumn(open, 1);
-            grid.Children.Add(open);
+            copyLink.Click += (_, _) => CopyUrl(url);
+            Grid.SetColumn(copyLink, 1);
+            grid.Children.Add(copyLink);
 
             border.Child = grid;
             PacksPanel.Children.Add(border);
         }
     }
 
-    private void OpenUrl(string url)
+    private void CopyUrl(string url)
     {
         try
         {

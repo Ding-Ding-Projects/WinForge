@@ -158,7 +158,7 @@ public sealed partial class RandomizerModule : Page
             }
 
             string rolls = RandomizerService.Join(r.Rolls);
-            string mod = r.Modifier == 0 ? "" : (r.Modifier > 0 ? $" + {r.Modifier}" : $" - {Math.Abs(r.Modifier)}");
+            string mod = r.Modifier == 0 ? "" : (r.Modifier > 0 ? $" + {r.Modifier}" : $" - {-(long)r.Modifier}");
             DiceResult.Text = P(
                 $"Rolls: {rolls}{mod}\nTotal: {r.Total}",
                 $"每粒：{rolls}{mod}\n總和：{r.Total}");

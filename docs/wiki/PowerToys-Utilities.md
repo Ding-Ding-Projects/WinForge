@@ -158,11 +158,15 @@ Open in-app: `WinForge.exe --page lightswitch`
 
 ## Rainmeter Widgets · Rainmeter 桌面小工具
 
-Install and toggle Rainmeter desktop skins and widgets. · 安裝同切換 Rainmeter 桌面皮膚同小工具。
+Install and toggle Rainmeter desktop skins and widgets; curated skin-pack actions copy a link for a user-controlled download. · 安裝同切換 Rainmeter 桌面皮膚同小工具；精選皮膚套裝動作會複製連結，下載由你自己控制。
 
 Open in-app: `WinForge.exe --page rainmeter`
 
-![Rainmeter Widgets](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-taskbar.png)
+> Screenshot refresh is capture-blocked in this desktop session: `CopyFromScreen`
+> is unavailable and `PrintWindow` returns a uniform frame. The stale Rainmeter
+> image was removed; no visual-pass claim is made. · 呢個 desktop session 未能更新
+> 截圖：`CopyFromScreen` 未可用，而 `PrintWindow` 會回傳 uniform frame。已移除過時
+> Rainmeter 圖片，唔會聲稱 visual-pass。
 
 ## Time & Unit Tools · 時間與單位工具
 
