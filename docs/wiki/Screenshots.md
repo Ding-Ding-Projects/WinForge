@@ -379,6 +379,9 @@ Fresh capture is pending because the current desktop capture host rejects `CopyF
 ### Resume Writer · 履歷與求職信寫手
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-resume.png)
 
+### Regex Cheatsheet · 正則速查
+> **Capture status · 截圖狀態：** Fresh `regexcheat` capture is `capture-blocked`: `CopyFromScreen` was unavailable, the `PrintWindow` fallback was uniform, and graphics capture was unavailable in this desktop session. The route passed a launch-only check, but no PNG was created, inspected, or claimed as visual verification. · 新嘅 `regexcheat` 截圖係 `capture-blocked`：呢個 desktop session 嘅 `CopyFromScreen` 唔可用、`PrintWindow` 後備畫面係 uniform，而 graphics capture 亦唔可用。route launch-only check 通過，但冇 PNG 產生、檢查或者當成視覺驗證。
+
 ---
 
 ## Network · 網絡
@@ -597,6 +600,9 @@ Fresh capture is pending because the current desktop capture host rejects `CopyF
 
 ### Nuclear Reactor · 核反應堆
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-reactor.png)
+
+### Reactor Settings · 反應堆設定
+> **Capture status · 截圖狀態：** Fresh `reactorsettings` capture is `capture-blocked`: `CopyFromScreen` was unavailable, the `PrintWindow` fallback was uniform, and graphics capture was unavailable in this desktop session. The prior Reactor Settings image was removed rather than reused as current evidence; the route passed a no-control launch-only check. · 新嘅 `reactorsettings` 截圖係 `capture-blocked`：呢個 desktop session 嘅 `CopyFromScreen` 唔可用、`PrintWindow` 後備畫面係 uniform，而 graphics capture 亦唔可用。之前嘅 Reactor Settings 圖片已移除，唔會當成最新證據重用；route 冇操作控制項嘅 launch-only check 通過。
 
 ### Reactor Gauges · 反應堆儀表
 ![](images/screenshot-reactor-gauges.png)
