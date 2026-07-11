@@ -22,7 +22,7 @@
 
                     <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                         <TextBlock x:Name="CountLabel" VerticalAlignment="Center" />
-                        <NumberBox x:Name="CountBox" Value="10" Minimum="1" Maximum="100" SpinButtonPlacementMode="Inline" MinWidth="140" ValueChanged="Count_Changed" />
+                        <NumberBox x:Name="CountBox" Minimum="1" Maximum="100" SpinButtonPlacementMode="Inline" MinWidth="140" ValueChanged="Count_Changed" />
                     </StackPanel>
 
                     <StackPanel Orientation="Horizontal" Spacing="10">

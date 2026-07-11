@@ -19,6 +19,11 @@ public sealed partial class UnitConvertModule : Page
     public UnitConvertModule()
     {
         InitializeComponent();
+        // Retain the one-unit default without the self-contained runtime's
+        // unreliable XAML NumberBox.Value conversion or eager recomputation.
+        _suppress = true;
+        ValueBox.Value = 1;
+        _suppress = false;
         Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) => { RenderStatics(); PopulateCategories(); };
         Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLanguageChanged; };

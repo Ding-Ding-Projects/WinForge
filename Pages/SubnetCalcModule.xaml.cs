@@ -18,6 +18,13 @@ public sealed partial class SubnetCalcModule : Page
     public SubnetCalcModule()
     {
         InitializeComponent();
+        // Preserve the CIDR/split defaults without triggering the CidrBox
+        // synchronization while the page is still constructing.
+        _suppress = true;
+        CidrBox.Value = 24;
+        NewPrefixBox.Value = 26;
+        CountBox.Value = 0;
+        _suppress = false;
         Loc.I.LanguageChanged += OnLang;
         Unloaded += (_, _) => Loc.I.LanguageChanged -= OnLang;
         Loaded += (_, _) => Render();

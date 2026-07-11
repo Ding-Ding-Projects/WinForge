@@ -52,6 +52,20 @@ Automation 成功揀到搜尋安裝、可更新同已安裝。指定嘅 `package
 fallback produced a uniform frame; graphics capture is unavailable in this desktop
 session.` 冇建立或者替換 PNG，亦唔係 visual-pass 聲稱。
 
+**EN —** The subsequent numeric-literal reliability audit attempted a fresh
+12-second `driver.ps1 -Out` capture for each changed page: Markdown TOC, Name
+Generator, Number Formatter, Scientific Notation, Subnet Calculator, and Unit
+Converter. Every route reached the capture step but each `CopyFromScreen` call
+returned `The handle is invalid`. No page produced a valid PNG, no stale
+canonical screenshot was substituted, and these six pages are
+`capture-blocked`, not visual-pass.
+
+**粵語 —** 跟住嘅 numeric-literal reliability 審查，為每個改過頁面都用新鮮
+12 秒 `driver.ps1 -Out` 試過截圖：Markdown 目錄、名稱產生器、數字格式化、科學
+記數法、子網計算器同單位換算器。每條 route 都去到 capture step，但每次
+`CopyFromScreen` 都回傳 `The handle is invalid`。冇一頁產生有效 PNG、冇用舊
+canonical 截圖頂替，呢 6 頁係 `capture-blocked`，唔係 visual-pass。
+
 ## Redaction Rules · 遮蔽規則
 
 **EN —** Before adding screenshots, redact or avoid personal data: Windows usernames, home-folder paths, repo paths outside WinForge, hostnames, IPs that identify private networks, account names, emails, API keys, tokens, session cookies, vault item names, SSH profiles, and real package/source credentials. Use `winforge-shot --redact "x|y|w|h|box|blur|pixelate"` to obscure regions irreversibly; see the [Wiki Screenshot Workflow](Wiki-Screenshot-Workflow.md).
