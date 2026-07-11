@@ -177,6 +177,16 @@ foreach ($line in ($startPageText -split "\r?\n")) {
         continue
     }
 
+    if ($line -match 'QueueAllAppsPickerFromStartPage\(\)' -and $pendingAliases.Count -gt 0) {
+        $target = 'shell.allapps'
+        if (-not $aliasesByTarget.ContainsKey($target)) {
+            $aliasesByTarget[$target] = @()
+        }
+        $aliasesByTarget[$target] += $pendingAliases
+        $pendingAliases = @()
+        continue
+    }
+
     if ($line -match '^\s*break;' -and $pendingAliases.Count -gt 0) {
         $unmappedAliases += $pendingAliases
         $pendingAliases = @()
@@ -210,6 +220,15 @@ $controlNames = @(
     'TabView', 'NavigationView', 'HyperlinkButton', 'AppBarButton',
     'MenuFlyoutItem', 'TeachingTip', 'InfoBar', 'WebView2'
 )
+
+# Shell routes can render a modal surface instead of navigating a Frame. Keep that
+# distinction in the manifest so a launch-only run is never mistaken for page evidence.
+$shellDialogRoutes = @{
+    'shell.allapps' = [pscustomobject]@{
+        expectedSurface = 'NewTabPickerDialog'
+        detail = 'Modal All Apps picker; verify the dialog rather than a tab page.'
+    }
+}
 
 $routeRecords = @()
 $allRouteTags = @($registryByTag.Keys + $typeByTag.Keys + $navTags | Sort-Object -Unique)
@@ -255,11 +274,15 @@ foreach ($tag in $allRouteTags) {
         $relatedSource += $service
     }
 
+    $shellDialog = if ($shellDialogRoutes.ContainsKey($tag)) { $shellDialogRoutes[$tag] } else { $null }
+
     $routeRecords += [pscustomobject]@{
         id = $tag
-        kind = if ($tag -like 'module.*') { 'module' } else { 'route' }
+        kind = if ($shellDialog) { 'shell-dialog' } elseif ($tag -like 'module.*') { 'module' } else { 'route' }
         name = if ($registryByTag.ContainsKey($tag)) { $registryByTag[$tag].en } else { $null }
         pageType = $type
+        expectedSurface = if ($shellDialog) { $shellDialog.expectedSurface } else { $type }
+        launchDisposition = if ($shellDialog) { $shellDialog.detail } else { 'Frame/page route or route-level surface.' }
         source = @($relatedSource | Where-Object { $_ } | Select-Object -Unique)
         aliases = $aliases
         routing = $routingState
@@ -389,7 +412,7 @@ $summaryPath = Join-Path $OutputDirectory 'summary.md'
 $manifest | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath $jsonPath -Encoding UTF8
 $routeRecords |
     Sort-Object id |
-    Select-Object id, kind, name, pageType,
+    Select-Object id, kind, name, pageType, expectedSurface, launchDisposition,
         @{ Name = 'aliases'; Expression = { $_.aliases -join ';' } },
         @{ Name = 'routing'; Expression = { $_.routing -join ';' } },
         @{ Name = 'source'; Expression = { $_.source -join ';' } },

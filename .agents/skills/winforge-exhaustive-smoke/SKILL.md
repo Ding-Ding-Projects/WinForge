@@ -116,6 +116,20 @@ Use the manifest aliases in batches, then inspect each produced image. Capture
 additional focused screenshots for changed states, dialogs, error states, and
 long surfaces; one launch image is not enough for a multi-state feature.
 
+`shell.allapps` is a **shell-dialog route**, not a Frame page. Its direct
+alias is `shell.allapps`; it must open the modal All Apps / Open new tab picker
+(automation ID `NewTabPickerDialog`). Record dialog-specific launch and visual
+evidence, rather than calling the Dashboard behind it a route pass.
+
+After a self-contained publish, run its focused UI-automation regression:
+
+~~~powershell
+powershell -ExecutionPolicy Bypass -File .agents\skills\winforge-exhaustive-smoke\scripts\Test-WinForgeShellAllAppsRoute.ps1 -RepoRoot .
+~~~
+
+It checks the picker dialog, search box, and selected All Apps navigation item
+without choosing a module or causing a feature side effect.
+
 If screenshot capture fails, record capture-blocked with the exact command,
 error, attempted fallback, and environment constraint. A route may be
 launch-pass without visual evidence, but it must never be visual-pass.
@@ -199,5 +213,7 @@ An exhaustive smoke campaign is complete only when:
 - [scripts/Invoke-WinForgeRouteSmoke.ps1](scripts/Invoke-WinForgeRouteSmoke.ps1)
   launches manifest routes in safe, isolated, no-capture batches when visual
   capture is blocked.
+- [scripts/Test-WinForgeShellAllAppsRoute.ps1](scripts/Test-WinForgeShellAllAppsRoute.ps1)
+  validates the direct All Apps modal route with UI Automation.
 - [references/coverage-schema.md](references/coverage-schema.md) defines the
   ledger states and required evidence.
