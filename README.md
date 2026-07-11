@@ -131,6 +131,17 @@ if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 **粵語 —** AI Chat 嘅供應商 API 金鑰會用 CurrentUser DPAPI 保護。Windows 讀唔到原有加密金鑰時，WinForge 會保留原封不動嘅 ciphertext；保護改過嘅金鑰失敗時，就會取消成份供應商檔案嘅寫入。兩種失敗都唔會清空已儲存嘅金鑰。
 
+**EN —** KeePass secret clipboard cleanup now clears only text that still exactly
+matches WinForge’s own delayed secret copy. A generation guard prevents an
+older cleanup timer from erasing a newer user copy; focused crypto/clipboard
+regression coverage checks matching, replacement, null, empty, and stale-timer
+generation cases.
+
+**粵語 —** KeePass 嘅密碼剪貼簿清除而家只會清除仲同 WinForge 延遲複製嘅密碼
+完全一樣嘅文字。generation guard 會阻止舊 timer 抹走使用者之後複製嘅新內容；
+專注 crypto／clipboard regression 會檢查相同、替換、null、空白文字同 stale-timer
+generation 情況。
+
 **EN —** The latest checkpoints fixed Base Converter and CSV ⇄ JSON startup
 faults exposed by the route sweep; fresh self-contained `--page baseconvert`
 and `--page csvjson` launches now pass. See the
@@ -142,19 +153,19 @@ launch, retry, and screenshot-blocker evidence.
 確實 build、launch、retry 同截圖阻礙證據請睇
 [冒煙測試清單](docs/wiki/Smoke-Test-Campaign.md)。
 
-**EN —** Launch-only batches 01–06 now provide current process-level route
-evidence for the first 150 of 321 manifest routes. Batch 06 exercised indices
-125–149: all 25 reached `launch-pass`; `h2plant` used its bounded 15-second
-retry after the initial 5-second observation, while the other 24 passed first
-attempt. Its fresh capture attempt again reached `CopyFromScreen` but returned
-`The handle is invalid`, so no screenshot was created or replaced and this is
-not a visual-completion claim.
+**EN —** Launch-only batches 01–07 now provide current process-level route
+evidence for the first 175 of 321 manifest routes. Batch 07 exercised indices
+150–174: all 25 reached `launch-pass` on their initial 5-second observation,
+with no retry or failure. The focused post-fix `keepass` launch also passed;
+its fresh 15-second capture reached `CopyFromScreen` but returned `The handle
+is invalid`, so no screenshot was created or replaced and this is not a
+visual-completion claim.
 
-**粵語 —** 淨 launch batches 01–06 而家為 321 條 manifest routes 入面頭 150 條
-提供咗最新嘅 process-level route 證據。Batch 06 測咗 indices 125–149：25 條都
-`launch-pass`；`h2plant` 喺初始 5 秒 observation 後用咗受限嘅 15 秒 retry，其餘
-24 條都係第一次通過。最新截圖嘗試同樣開到 `CopyFromScreen`，但回傳
-`The handle is invalid`；所以冇新增或替換截圖，亦唔係 visual-completion 聲稱。
+**粵語 —** 淨 launch batches 01–07 而家為 321 條 manifest routes 入面頭 175 條
+提供咗最新嘅 process-level route 證據。Batch 07 測咗 indices 150–174：25 條都
+喺第一次 5 秒 observation `launch-pass`，冇 retry、冇 failure。修正後專注嘅
+`keepass` launch 都通過；佢嘅新 15 秒 capture 開到 `CopyFromScreen`，但回傳
+`The handle is invalid`，所以冇新增或替換截圖，亦唔係 visual-completion 聲稱。
 
 ---
 

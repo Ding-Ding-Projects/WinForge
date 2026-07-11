@@ -52,6 +52,16 @@ Automation 成功揀到搜尋安裝、可更新同已安裝。指定嘅 `package
 fallback produced a uniform frame; graphics capture is unavailable in this desktop
 session.` 冇建立或者替換 PNG，亦唔係 visual-pass 聲稱。
 
+**EN —** Batch 07’s post-fix KeePass launch succeeded, then its fresh
+15-second `driver.ps1 -Out` attempt again stopped at `CopyFromScreen`: `The
+handle is invalid`. No `keepass-clipboard-safety.png` was produced, so the
+existing canonical KeePass image was neither replaced nor reused as evidence;
+the route has `capture-blocked`, not visual-pass, status.
+
+**粵語 —** Batch 07 修正後嘅 KeePass launch 通過，之後新嘅 15 秒
+`driver.ps1 -Out` 嘗試又喺 `CopyFromScreen` 停咗：`The handle is invalid`。
+冇產生 `keepass-clipboard-safety.png`，所以既有 canonical KeePass 圖冇換、亦
+冇當新證據使用；呢條 route 係 `capture-blocked`，唔係 visual-pass。
 **EN —** The subsequent numeric-literal reliability audit attempted a fresh
 12-second `driver.ps1 -Out` capture for each changed page: Markdown TOC, Name
 Generator, Number Formatter, Scientific Notation, Subnet Calculator, and Unit
