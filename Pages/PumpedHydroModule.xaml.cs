@@ -18,16 +18,32 @@ namespace WinForge.Pages;
 /// </summary>
 public sealed partial class PumpedHydroModule : Page
 {
+    private const double SimulationTickSeconds = 0.5;
+
+    private readonly struct ReactorReadout
+    {
+        public ReactorReadout(double mw, string mode, bool generating)
+        {
+            MW = mw;
+            Mode = mode;
+            Generating = generating;
+        }
+
+        public double MW { get; }
+        public string Mode { get; }
+        public bool Generating { get; }
+    }
+
     private readonly PumpedHydroService _hydro = new();
-    private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(500) };
-    private int _ticks;          // integer tick counter (no DateTime.Now)
+    private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromSeconds(SimulationTickSeconds) };
     private bool _suppress;
+    private bool _isLoaded;
+    private ReactorReadout _reactor = new(0, "?", false);
 
     public PumpedHydroModule()
     {
         InitializeComponent();
         _timer.Tick += OnTick;
-        Loc.I.LanguageChanged += OnLang;
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
     }
@@ -36,6 +52,9 @@ public sealed partial class PumpedHydroModule : Page
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
+        if (_isLoaded) return;
+        _isLoaded = true;
+        Loc.I.LanguageChanged += OnLang;
         try { ReactorStatusApiService.I.Start(); } catch { }
         try
         {
@@ -50,20 +69,25 @@ public sealed partial class PumpedHydroModule : Page
             _suppress = false;
         }
         catch { _suppress = false; }
+        RefreshReactorReadout();
         Render();
-        UpdateStep();
         _timer.Start();
     }
 
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
+        if (!_isLoaded) return;
+        _isLoaded = false;
         _timer.Stop();
         Loc.I.LanguageChanged -= OnLang;
     }
 
-    private void OnLang(object? sender, EventArgs e) => Render();
+    private void OnLang(object? sender, EventArgs e)
+    {
+        if (_isLoaded) Render();
+    }
 
-    private void Render()
+    private void RenderText()
     {
         try
         {
@@ -91,9 +115,6 @@ public sealed partial class PumpedHydroModule : Page
             InCaption.Text = P("Pumping (draw)", "抽水（耗電）");
             OutCaption.Text = P("Generating (output)", "發電（輸出）");
             EarnedCaption.Text = P("Earned this session", "今次賺到");
-
-            SyncModeCombo();
-            UpdateStep();
         }
         catch { }
     }
@@ -130,7 +151,7 @@ public sealed partial class PumpedHydroModule : Page
                 2 => HydroMode.Generate,
                 _ => HydroMode.Hold,
             });
-            UpdateStep();
+            Render();
         }
         catch { }
     }
@@ -138,7 +159,7 @@ public sealed partial class PumpedHydroModule : Page
     private void Pump_Changed(object sender, RangeBaseValueChangedEventArgs e)
     {
         if (_suppress) return;
-        UpdateStep();
+        Render();
     }
 
     private void Auto_Toggled(object sender, RoutedEventArgs e)
@@ -148,7 +169,7 @@ public sealed partial class PumpedHydroModule : Page
         {
             _hydro.SetAuto(AutoSwitch.IsOn);
             SyncModeCombo();
-            UpdateStep();
+            Render();
         }
         catch { }
     }
@@ -163,41 +184,61 @@ public sealed partial class PumpedHydroModule : Page
             PumpSlider.Value = 200;
             _suppress = false;
             SyncModeCombo();
-            UpdateStep();
+            Render();
         }
         catch { }
     }
 
     private void OnTick(object? sender, object e)
     {
-        _ticks++;
-        UpdateStep();
+        if (!_isLoaded) return;
+        AdvanceSimulation();
     }
 
-    private void UpdateStep()
+    /// <summary>
+    /// The sole page path that advances reservoir state. Rendering, load, language, and input
+    /// handlers remain observational so they cannot create energy or currency between timer ticks.
+    /// </summary>
+    private void AdvanceSimulation()
     {
         try
         {
-            // ReactorStatusSnapshot is a value struct — LastSnapshot is always present (defaults to Offline).
-            ReactorStatusSnapshot snap;
-            try { snap = ReactorStatusApiService.I.LastSnapshot; } catch { snap = default; }
-
-            double reactorMW = double.IsNaN(snap.ElectricMW) || snap.ElectricMW < 0 ? 0 : snap.ElectricMW;
-            string mode = string.IsNullOrWhiteSpace(snap.Mode) ? "?" : snap.Mode;
-            bool coldMode = mode.IndexOf("5", StringComparison.OrdinalIgnoreCase) >= 0
-                            || mode.IndexOf("cold", StringComparison.OrdinalIgnoreCase) >= 0;
-            bool reactorGenerating = snap.IsGenerating && reactorMW > 1.0 && !snap.IsScrammed && !snap.IsMeltdown && !coldMode;
-
-            // Fixed dt per tick from the timer interval (integer counter, no wall clock).
-            const double dt = 0.5;
+            RefreshReactorReadout();
             double requestPump = double.IsNaN(PumpSlider.Value) ? 0 : PumpSlider.Value;
 
-            double earned = _hydro.Tick(dt, reactorMW, reactorGenerating, requestPump);
+            double earned = _hydro.Tick(SimulationTickSeconds, _reactor.MW, _reactor.Generating, requestPump);
             if (earned >= 1)
             {
                 try { ReactorEconomyService.I.Earn(earned, P("Hydro peaking revenue", "抽水蓄能收入")); } catch { }
             }
+        }
+        catch { }
+        Render();
+    }
 
+    private void RefreshReactorReadout()
+    {
+        // ReactorStatusSnapshot is a value struct — LastSnapshot is always present (defaults to Offline).
+        ReactorStatusSnapshot snap;
+        try { snap = ReactorStatusApiService.I.LastSnapshot; } catch { snap = default; }
+
+        double reactorMW = double.IsNaN(snap.ElectricMW) || snap.ElectricMW < 0 ? 0 : snap.ElectricMW;
+        string mode = string.IsNullOrWhiteSpace(snap.Mode) ? "?" : snap.Mode;
+        bool coldMode = mode.IndexOf("5", StringComparison.OrdinalIgnoreCase) >= 0
+                        || mode.IndexOf("cold", StringComparison.OrdinalIgnoreCase) >= 0;
+        bool reactorGenerating = snap.IsGenerating && reactorMW > 1.0 && !snap.IsScrammed && !snap.IsMeltdown && !coldMode;
+        _reactor = new ReactorReadout(reactorMW, mode, reactorGenerating);
+    }
+
+    private void Render()
+    {
+        try
+        {
+            RenderText();
+            double reactorMW = _reactor.MW;
+            string mode = _reactor.Mode;
+            bool reactorGenerating = _reactor.Generating;
+            double requestPump = double.IsNaN(PumpSlider.Value) ? 0 : PumpSlider.Value;
             // Reactor meter.
             ReactorBar.Value = Math.Clamp(reactorMW, 0, ReactorBar.Maximum);
             ReactorValue.Text = $"{reactorMW:0.0} MWe";

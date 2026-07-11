@@ -24,6 +24,9 @@ public sealed class PumpedHydroService
     public const double MaxPumpMW = 400.0;       // max electrical draw while pumping
     public const double MaxGenMW = 350.0;        // max electrical output while generating
     public const double RoundTripEfficiency = 0.80; // stored energy returned on discharge
+    // The economy mint rate is expressed in ⚡ per MW-second. One MWh is 3,600 MW-seconds;
+    // do not apply a kWh conversion here or generation would mint 1,000× too much.
+    public const double WattsPerDeliveredMWh = ReactorEconomyService.MintPerMWSecond * 3600.0;
 
     // Split the round-trip loss across the two legs (√0.80 ≈ 0.894 each way).
     private static readonly double LegEff = Math.Sqrt(RoundTripEfficiency);
@@ -45,6 +48,14 @@ public sealed class PumpedHydroService
     public double LevelPercent => LevelFraction * 100.0;
     public bool IsFull => LevelFraction >= 0.999;
     public bool IsEmpty => _stored <= 0.0001;
+
+    /// <summary>Convert delivered grid energy (MWh) to the matching reactor-economy mint amount.</summary>
+    public static double WattsFromDeliveredMWh(double deliveredMWh)
+    {
+        if (double.IsNaN(deliveredMWh) || double.IsInfinity(deliveredMWh) || deliveredMWh <= 0) return 0;
+        double watts = deliveredMWh * WattsPerDeliveredMWh;
+        return double.IsNaN(watts) || double.IsInfinity(watts) ? 0 : watts;
+    }
 
     public void SetMode(HydroMode mode) { Mode = mode; }
     public void SetAuto(bool on) { Auto = on; }
@@ -129,7 +140,7 @@ public sealed class PumpedHydroService
                             GenOutMW = outMW;
                             // Earn ⚡ for the electricity returned to the grid (generate-leg loss folded in).
                             double delivered = drawn * LegEff;
-                            _earnAccum += delivered * 1000.0 * ReactorEconomyService.MintPerMWSecond * 3600.0;
+                            _earnAccum += WattsFromDeliveredMWh(delivered);
                             StatusNote = Loc.I.Pick("Generating — releasing water to back up the grid.",
                                                     "發電中 — 放水撐住電網。");
                         }
