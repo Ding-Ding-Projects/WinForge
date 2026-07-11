@@ -36,7 +36,7 @@
                         </StackPanel>
                         <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Bottom">
                             <TextBlock x:Name="RedirectLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                            <ToggleSwitch x:Name="RedirectSwitch" IsOn="True" />
+                            <ToggleSwitch x:Name="RedirectSwitch" />
                         </StackPanel>
                     </Grid>
 

@@ -28,8 +28,8 @@
                             <TextBlock x:Name="DelimLabel" VerticalAlignment="Center" />
                             <ComboBox x:Name="DelimCombo" MinWidth="160" SelectionChanged="Opt_Changed" />
                         </StackPanel>
-                        <ToggleSwitch x:Name="HeaderSwitch" IsOn="True" Toggled="Opt_Changed" />
-                        <ToggleSwitch x:Name="EscapeSwitch" IsOn="True" Toggled="Opt_Changed" />
+                        <ToggleSwitch x:Name="HeaderSwitch" Toggled="Opt_Changed" />
+                        <ToggleSwitch x:Name="EscapeSwitch" Toggled="Opt_Changed" />
                         <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                             <TextBlock x:Name="ClassLabel" VerticalAlignment="Center" />
                             <TextBox x:Name="ClassBox" MinWidth="220" TextChanged="Opt_Changed" />

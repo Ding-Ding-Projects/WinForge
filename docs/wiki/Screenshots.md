@@ -4,6 +4,20 @@ Canonical screenshots live in `docs/` and are embedded here through raw GitHub U
 
 正式截圖放喺 `docs/`，呢度用 raw GitHub URL 嵌入。截圖由 [`winforge-shot`](https://github.com/codingmachineedge/WinForge/tree/main/tools/WinForgeShot) 擷取，並裁切、加強調、標註同遮蔽。完整做法見 [Wiki 截圖工作流程](Wiki-Screenshot-Workflow.md)。
 
+## Current Capture Status · 目前擷取狀態
+
+**EN —** On 2026-07-11, the repaired HTML Table Convert page was launched from
+a fresh self-contained build and a current capture was attempted. The driver
+reached the page, but `CopyFromScreen` returned `The handle is invalid`. The
+startup repair does not intentionally change page layout; no visual-pass claim,
+canonical-image replacement, or stale-image substitution is published while
+this desktop capture blocker remains.
+
+**粵語 —** 2026-07-11 已經用新 self-contained build 開咗修好後嘅 HTML 表格轉換
+頁面，亦試過攞最新截圖。driver 開到頁面，但 `CopyFromScreen` 回傳
+`The handle is invalid`。啟動修復本身冇刻意改頁面排版；呢個 desktop 截圖阻礙未解決前，
+唔會聲稱 visual pass、唔會換 canonical image，亦唔會用舊圖頂替。
+
 ## Redaction Rules · 遮蔽規則
 
 **EN —** Before adding screenshots, redact or avoid personal data: Windows usernames, home-folder paths, repo paths outside WinForge, hostnames, IPs that identify private networks, account names, emails, API keys, tokens, session cookies, vault item names, SSH profiles, and real package/source credentials. Use `winforge-shot --redact "x|y|w|h|box|blur|pixelate"` to obscure regions irreversibly; see the [Wiki Screenshot Workflow](Wiki-Screenshot-Workflow.md).

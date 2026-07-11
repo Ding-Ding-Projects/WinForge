@@ -49,6 +49,8 @@ public sealed partial class ConnectionsModule : Page
     public ConnectionsModule()
     {
         InitializeComponent();
+        // Keep the default out of XAML: typed IsOn literals are unreliable here.
+        AutoSwitch.IsOn = false;
         List.ItemsSource = _rows;
         _timer.Tick += (_, _) => _ = Refresh();
         Loc.I.LanguageChanged += OnLanguageChanged;

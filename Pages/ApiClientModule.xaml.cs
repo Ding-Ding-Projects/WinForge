@@ -41,6 +41,8 @@ public sealed partial class ApiClientModule : Page
     public ApiClientModule()
     {
         InitializeComponent();
+        // The self-contained XAML runtime can reject typed IsOn literals.
+        PrettyToggle.IsOn = true;
         ParamsList.ItemsSource = _params;
         HeadersList.ItemsSource = _headers;
         FormList.ItemsSource = _form;

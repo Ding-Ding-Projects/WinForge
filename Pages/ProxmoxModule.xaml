@@ -127,7 +127,7 @@
                     <StackPanel Orientation="Horizontal" Spacing="6"><FontIcon FontSize="14" Glyph="&#xE768;" /><TextBlock x:Name="ResumeLbl" /></StackPanel>
                 </Button>
                 <TextBlock x:Name="SelectionInfo" Grid.Column="6" VerticalAlignment="Center" Margin="8,0,0,0" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" TextTrimming="CharacterEllipsis" />
-                <ToggleSwitch x:Name="AutoRefreshToggle" Grid.Column="7" IsOn="True" OnContent="" OffContent="" MinWidth="0" VerticalAlignment="Center" Toggled="AutoRefresh_Toggled" />
+                <ToggleSwitch x:Name="AutoRefreshToggle" Grid.Column="7" OnContent="" OffContent="" MinWidth="0" VerticalAlignment="Center" Toggled="AutoRefresh_Toggled" />
                 <TextBlock x:Name="AutoRefreshLbl" Grid.Column="8" VerticalAlignment="Center" FontSize="12" Margin="0,0,8,0" />
                 <Button x:Name="RefreshBtn" Grid.Column="9" Click="Refresh_Click">
                     <StackPanel Orientation="Horizontal" Spacing="6"><FontIcon FontSize="14" Glyph="&#xE72C;" /><ProgressRing x:Name="Busy" IsActive="False" Width="16" Height="16" /></StackPanel>

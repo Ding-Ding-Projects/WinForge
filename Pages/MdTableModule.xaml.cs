@@ -38,6 +38,11 @@ public sealed partial class MdTableModule : Page
     public MdTableModule()
     {
         InitializeComponent();
+        // The self-contained XAML runtime can reject typed IsOn literals.
+        _suppress = true;
+        HeaderSwitch.IsOn = true;
+        PadSwitch.IsOn = true;
+        _suppress = false;
         AlignHost.ItemsSource = _cols;
         Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += OnLoaded;

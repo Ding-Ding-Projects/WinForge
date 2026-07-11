@@ -199,4 +199,58 @@ self-contained `--page csvjson` launch 同 focused runner retest 都通過，令
 - No screenshot is claimed: the desktop capture environment remains blocked,
   so the retest supplies launch evidence rather than visual evidence.
 
+## XAML Boolean-Literal Reliability Audit · XAML Boolean Literal 可靠性審查
+
+**EN —** On 2026-07-11, a focused audit found that `module.htmltable` failed
+twice through `--page htmltable`; the crash log identified
+`XamlParseException` while assigning `ToggleSwitch.IsOn` at
+`Pages/HtmlTableModule.xaml:31`. This is the same self-contained runtime path
+previously observed for CSV ⇄ JSON. The audit therefore removed every direct
+`IsOn="True|False"` literal from source XAML (16 defaults across 12 pages),
+left all bindings intact, and restored each exact default in managed
+initialization after `InitializeComponent` (with the existing suppression
+guard where an immediate `Toggled` handler requires it).
+
+The new focused guard
+`Test-WinForgeXamlLiteralSafety.ps1 -RepoRoot .` passed; it blocks direct
+Boolean `IsOn` XAML literals under `Pages/` and `Controls/` and confirms all
+16 migrated defaults. It intentionally
+does not treat every typed `NumberBox.Value` as a proven defect: the existing
+Base Converter reproduction remains fixed, while focused numeric candidates
+(`aspectratio`, `ciphers`, `giflab`, `passgen`, and `virtualbox`) reached their
+dedicated windows unchanged.
+
+A full Debug x64 solution build passed with 0 errors (318 warnings). A fresh
+self-contained 7-second launch-only sweep passed for all affected aliases:
+`apiclient`, `httpheaders`, `htmltable`, `proxmox`, `homeassistant`, `hexdump`,
+`loremtext`, `native`, `mdtable`, `connections`, `minecraftserver`, and
+`githubdesktopprofiles`. A current HTML Table screenshot was attempted, but
+`CopyFromScreen` returned `The handle is invalid`; no visual-pass claim,
+canonical image replacement, or stale-image substitution is recorded.
+
+**粵語 —** 2026-07-11 做 focused 審查時，`module.htmltable` 用
+`--page htmltable` 連續兩次失敗；crash log 指出
+`Pages/HtmlTableModule.xaml:31` 設定 `ToggleSwitch.IsOn` 時有
+`XamlParseException`。呢個就係之前 CSV ⇄ JSON 見過嘅 self-contained runtime
+路徑。所以審查將 source XAML 入面所有 direct `IsOn="True|False"` literal
+移走（12 個頁面共 16 個預設），bindings 一個都冇掂，並喺
+`InitializeComponent` 後用 managed initialization 還原每個原本預設；要即時
+處理 `Toggled` 嘅頁面就用返既有 suppression guard。
+
+新 focused guard `Test-WinForgeXamlLiteralSafety.ps1 -RepoRoot .` 已通過，
+會阻止 `Pages/` 同 `Controls/` 入面 direct Boolean `IsOn` XAML literal，亦確認
+全部 16 個搬咗位嘅預設。
+佢刻意唔會當每一個 typed `NumberBox.Value` 都已證明有問題：既有 Base Converter
+重現已修好，而 focused numeric candidates（`aspectratio`、`ciphers`、`giflab`、
+`passgen`、`virtualbox`）冇改動都成功開到自己嘅視窗。
+
+完整 Debug x64 solution build 以 0 errors（318 warnings）通過。全新
+self-contained、7 秒 launch-only sweep 入面全部受影響 alias 都通過：
+`apiclient`、`httpheaders`、`htmltable`、`proxmox`、`homeassistant`、`hexdump`、
+`loremtext`、`native`、`mdtable`、`connections`、`minecraftserver` 同
+`githubdesktopprofiles`。已嘗試攞最新 HTML Table 截圖，但
+`CopyFromScreen` 回傳 `The handle is invalid`；所以冇 visual-pass 聲稱、冇換
+canonical image，亦冇用舊圖頂替。
+
+
 [← Wiki Home](Home.md) · [Developer](Developer.md) · [Screenshots](Screenshots.md)

@@ -84,6 +84,8 @@ public sealed partial class NativeUtilitiesModule : Page
     public NativeUtilitiesModule()
     {
         InitializeComponent();
+        // Keep the default out of XAML: typed IsOn literals are unreliable here.
+        CountersSwitch.IsOn = true;
         WifiSavedList.ItemsSource = _wifiSaved;
         WifiScanList.ItemsSource = _wifiScan;
         SmbSharesList.ItemsSource = _shares;

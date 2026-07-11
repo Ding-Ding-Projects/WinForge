@@ -41,7 +41,7 @@
                             </ComboBox>
                         </StackPanel>
                         <ToggleSwitch x:Name="UpperSwitch" Toggled="Options_Changed" />
-                        <ToggleSwitch x:Name="OffsetSwitch" IsOn="True" Toggled="Options_Changed" />
+                        <ToggleSwitch x:Name="OffsetSwitch" Toggled="Options_Changed" />
                     </StackPanel>
 
                     <TextBlock x:Name="CountText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
