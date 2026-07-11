@@ -32,13 +32,15 @@ public static class CommandPaletteService
     private const string KeyMaxResults = "cmdpal.maxResults";
     private const string KeyProviderPrefix = "cmdpal.provider."; // + provider id
     private const string KeyDockPins = "cmdpal.dock.pins";
+    private const string KeyBookmarks = "cmdpal.bookmarks";
+    private const string KeyRemoteDesktopProfiles = "cmdpal.rdp.profiles";
 
     // ===================== Provider identity · 提供者識別 =====================
-    public enum Provider { Apps, Modules, Files, Clipboard, Calculator, TimeDate, Settings, Services, Terminal, Run, System, Web }
+    public enum Provider { Apps, Bookmarks, RemoteDesktop, Windows, Modules, Files, Clipboard, Calculator, TimeDate, Settings, Services, Terminal, Run, System, Web }
 
     public static IReadOnlyList<Provider> AllProviders { get; } = new[]
     {
-        Provider.Apps, Provider.Modules, Provider.Files, Provider.Clipboard,
+        Provider.Apps, Provider.Bookmarks, Provider.RemoteDesktop, Provider.Windows, Provider.Modules, Provider.Files, Provider.Clipboard,
         Provider.Calculator, Provider.TimeDate, Provider.Settings, Provider.Services, Provider.Terminal,
         Provider.Run, Provider.System, Provider.Web,
     };
@@ -47,6 +49,9 @@ public static class CommandPaletteService
     public static (string En, string Zh) ProviderName(Provider p) => p switch
     {
         Provider.Apps => ("Installed apps", "已安裝程式"),
+        Provider.Bookmarks => ("Bookmarks", "書籤"),
+        Provider.RemoteDesktop => ("Remote Desktop", "遠端桌面"),
+        Provider.Windows => ("Open windows", "已開啟視窗"),
         Provider.Modules => ("WinForge modules", "WinForge 模組"),
         Provider.Files => ("Files & folders", "檔案與資料夾"),
         Provider.Clipboard => ("Clipboard history", "剪貼簿記錄"),
@@ -87,6 +92,137 @@ public static class CommandPaletteService
 
     public static void SetProviderEnabled(Provider p, bool on)
         => SettingsStore.Set(KeyProviderPrefix + p, on.ToString());
+
+    // ===================== Bookmarks · 書籤 =====================
+    /// <summary>A user-managed web bookmark surfaced by Command Palette and eligible for Dock pins.</summary>
+    public sealed class PaletteBookmark
+    {
+        public string Name { get; set; } = "";
+        public string Url { get; set; } = "";
+    }
+
+    public static IReadOnlyList<PaletteBookmark> Bookmarks => ReadBookmarks();
+
+    public static bool TryAddBookmark(string? name, string? url, out PaletteBookmark bookmark)
+    {
+        bookmark = new PaletteBookmark();
+        string normalized = NormalizeBookmarkUrl(url);
+        if (string.IsNullOrEmpty(normalized)) return false;
+        var bookmarks = ReadBookmarks();
+        int existing = bookmarks.FindIndex(b => string.Equals(b.Url, normalized, StringComparison.OrdinalIgnoreCase));
+        string label = (name ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(label) && Uri.TryCreate(normalized, UriKind.Absolute, out var uri)) label = uri.Host;
+        if (string.IsNullOrWhiteSpace(label)) label = normalized;
+        bookmark = new PaletteBookmark { Name = label, Url = normalized };
+        if (existing >= 0) bookmarks[existing] = bookmark;
+        else
+        {
+            if (bookmarks.Count >= 100) bookmarks.RemoveAt(0);
+            bookmarks.Add(bookmark);
+        }
+        SaveBookmarks(bookmarks);
+        return true;
+    }
+
+    public static void RemoveBookmark(PaletteBookmark bookmark)
+    {
+        if (bookmark is null || string.IsNullOrWhiteSpace(bookmark.Url)) return;
+        var bookmarks = ReadBookmarks();
+        bookmarks.RemoveAll(b => string.Equals(b.Url, bookmark.Url, StringComparison.OrdinalIgnoreCase));
+        SaveBookmarks(bookmarks);
+    }
+
+    private static List<PaletteBookmark> ReadBookmarks()
+    {
+        try
+        {
+            return (JsonSerializer.Deserialize<List<PaletteBookmark>>(SettingsStore.Get(KeyBookmarks, "[]")) ?? new List<PaletteBookmark>())
+                .Where(b => !string.IsNullOrWhiteSpace(b.Name) && !string.IsNullOrWhiteSpace(NormalizeBookmarkUrl(b.Url)))
+                .Select(b => new PaletteBookmark { Name = b.Name.Trim(), Url = NormalizeBookmarkUrl(b.Url) })
+                .ToList();
+        }
+        catch { return new List<PaletteBookmark>(); }
+    }
+
+    private static void SaveBookmarks(List<PaletteBookmark> bookmarks)
+    {
+        try { SettingsStore.Set(KeyBookmarks, JsonSerializer.Serialize(bookmarks.Take(100).ToList())); }
+        catch { }
+    }
+
+    private static string NormalizeBookmarkUrl(string? value)
+    {
+        string url = (value ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(url)) return "";
+        if (!url.Contains("://", StringComparison.Ordinal)) url = "https://" + url;
+        return Uri.TryCreate(url, UriKind.Absolute, out var uri) && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
+            ? uri.AbsoluteUri : "";
+    }
+
+    // ===================== Remote Desktop profiles · 遠端桌面設定檔 =====================
+    /// <summary>RDP endpoint metadata only. Credentials remain with the Windows Remote Desktop client.</summary>
+    public sealed class RemoteDesktopProfile
+    {
+        public string Name { get; set; } = "";
+        public string Host { get; set; } = "";
+    }
+
+    public static IReadOnlyList<RemoteDesktopProfile> RemoteDesktopProfiles => ReadRemoteDesktopProfiles();
+
+    public static bool TryAddRemoteDesktopProfile(string? name, string? host, out RemoteDesktopProfile profile)
+    {
+        profile = new RemoteDesktopProfile();
+        string endpoint = NormalizeRemoteDesktopHost(host);
+        if (string.IsNullOrWhiteSpace(endpoint)) return false;
+        string label = (name ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(label)) label = endpoint;
+        var profiles = ReadRemoteDesktopProfiles();
+        profile = new RemoteDesktopProfile { Name = label, Host = endpoint };
+        int existing = profiles.FindIndex(p => string.Equals(p.Host, endpoint, StringComparison.OrdinalIgnoreCase));
+        if (existing >= 0) profiles[existing] = profile;
+        else
+        {
+            if (profiles.Count >= 100) profiles.RemoveAt(0);
+            profiles.Add(profile);
+        }
+        SaveRemoteDesktopProfiles(profiles);
+        return true;
+    }
+
+    public static void RemoveRemoteDesktopProfile(RemoteDesktopProfile profile)
+    {
+        if (profile is null || string.IsNullOrWhiteSpace(profile.Host)) return;
+        var profiles = ReadRemoteDesktopProfiles();
+        profiles.RemoveAll(p => string.Equals(p.Host, profile.Host, StringComparison.OrdinalIgnoreCase));
+        SaveRemoteDesktopProfiles(profiles);
+    }
+
+    private static List<RemoteDesktopProfile> ReadRemoteDesktopProfiles()
+    {
+        try
+        {
+            return (JsonSerializer.Deserialize<List<RemoteDesktopProfile>>(SettingsStore.Get(KeyRemoteDesktopProfiles, "[]")) ?? new List<RemoteDesktopProfile>())
+                .Where(p => !string.IsNullOrWhiteSpace(p.Name) && !string.IsNullOrWhiteSpace(NormalizeRemoteDesktopHost(p.Host)))
+                .Select(p => new RemoteDesktopProfile { Name = p.Name.Trim(), Host = NormalizeRemoteDesktopHost(p.Host) })
+                .ToList();
+        }
+        catch { return new List<RemoteDesktopProfile>(); }
+    }
+
+    private static void SaveRemoteDesktopProfiles(List<RemoteDesktopProfile> profiles)
+    {
+        try { SettingsStore.Set(KeyRemoteDesktopProfiles, JsonSerializer.Serialize(profiles.Take(100).ToList())); }
+        catch { }
+    }
+
+    private static string NormalizeRemoteDesktopHost(string? value)
+    {
+        string endpoint = (value ?? "").Trim();
+        if (endpoint.StartsWith("rdp://", StringComparison.OrdinalIgnoreCase)) endpoint = endpoint.Substring("rdp://".Length);
+        if (string.IsNullOrWhiteSpace(endpoint) || endpoint.Any(char.IsWhiteSpace)
+            || endpoint.IndexOfAny(new[] { '/', '\\', '"', '\'' }) >= 0) return "";
+        return endpoint;
+    }
 
     // ===================== Dock pins · Dock 釘選 =====================
     /// <summary>A persistent Dock entry captured from a Command Palette result.</summary>
@@ -337,6 +473,9 @@ public static class CommandPaletteService
 
         if (IsProviderEnabled(Provider.Calculator)) AddCalculator(query, results);
         if (IsProviderEnabled(Provider.Apps)) AddApps(query, results);
+        if (IsProviderEnabled(Provider.Bookmarks)) AddBookmarks(query, results);
+        if (IsProviderEnabled(Provider.RemoteDesktop)) AddRemoteDesktopProfiles(query, results);
+        if (IsProviderEnabled(Provider.Windows)) AddOpenWindows(query, results);
         if (IsProviderEnabled(Provider.Modules)) AddModules(query, results);
         if (IsProviderEnabled(Provider.Files)) AddFiles(query, results);
         if (IsProviderEnabled(Provider.Clipboard)) AddClipboard(query, results);
@@ -553,6 +692,33 @@ public static class CommandPaletteService
     private static void AddRunOrUrl(string query, List<CommandPaletteResult> list)
     {
         var q = query.Trim();
+        if (q.StartsWith(">", StringComparison.Ordinal))
+        {
+            string command = q.Substring(1).Trim();
+            if (string.IsNullOrWhiteSpace(command))
+            {
+                list.Add(new CommandPaletteResult
+                {
+                    Title = Loc.I.Pick("Command mode", "指令模式"),
+                    Subtitle = Loc.I.Pick("Type > followed by a command to run it as the current user.", "輸入 > 再加指令，就會以目前使用者身分執行。"),
+                    Glyph = ((char)0xE756).ToString(),
+                    ProviderTag = Loc.I.Pick("Run", "執行"),
+                    Score = 180,
+                    Invoke = () => false,
+                });
+                return;
+            }
+            list.Add(new CommandPaletteResult
+            {
+                Title = Loc.I.Pick($"Run command: {command}", $"執行指令：{command}"),
+                Subtitle = Loc.I.Pick("Explicit command mode · runs as the current user", "明確指令模式 · 以目前使用者身分執行"),
+                Glyph = ((char)0xE756).ToString(),
+                ProviderTag = Loc.I.Pick("Run", "執行"),
+                Score = 220,
+                Invoke = () => { RunExplicitCommand(command); return true; },
+            });
+            return;
+        }
         bool isUrl = LooksLikeUrl(q);
         if (isUrl)
         {
@@ -612,6 +778,106 @@ public static class CommandPaletteService
             || token.EndsWith(".cpl", StringComparison.OrdinalIgnoreCase)) return true;
         if (token.Contains('\\') || token.Contains('/')) return File.Exists(Environment.ExpandEnvironmentVariables(token));
         return false;
+    }
+
+    // ----- Bookmarks · 書籤 -----
+    private static void AddBookmarks(string query, List<CommandPaletteResult> list)
+    {
+        var raw = query.Trim();
+        bool mode = raw.Equals("bookmark", StringComparison.OrdinalIgnoreCase)
+            || raw.Equals("bookmarks", StringComparison.OrdinalIgnoreCase)
+            || raw.StartsWith("bookmark ", StringComparison.OrdinalIgnoreCase)
+            || raw.StartsWith("bookmarks ", StringComparison.OrdinalIgnoreCase);
+        if (!mode) return;
+
+        string needle = raw.StartsWith("bookmarks", StringComparison.OrdinalIgnoreCase) ? raw.Substring("bookmarks".Length).Trim()
+            : raw.Substring("bookmark".Length).Trim();
+        int rank = 0;
+        foreach (var bookmark in Bookmarks)
+        {
+            double score = string.IsNullOrWhiteSpace(needle) ? 88 - rank
+                : Math.Max(Fuzzy(needle, bookmark.Name), Fuzzy(needle, bookmark.Url));
+            if (score <= 0) { rank++; continue; }
+            list.Add(new CommandPaletteResult
+            {
+                Title = bookmark.Name,
+                Subtitle = bookmark.Url,
+                Glyph = ((char)0xE774).ToString(),
+                ProviderTag = Loc.I.Pick("Bookmark", "書籤"),
+                Score = 150 + score * 0.15,
+                Invoke = () => { LaunchPath(bookmark.Url); return true; },
+            });
+            rank++;
+        }
+    }
+
+    // ----- Remote Desktop · 遠端桌面 -----
+    private static void AddRemoteDesktopProfiles(string query, List<CommandPaletteResult> list)
+    {
+        var raw = query.Trim();
+        bool mode = raw.Equals("rdp", StringComparison.OrdinalIgnoreCase)
+            || raw.Equals("remote", StringComparison.OrdinalIgnoreCase)
+            || raw.Equals("remote desktop", StringComparison.OrdinalIgnoreCase)
+            || raw.StartsWith("rdp ", StringComparison.OrdinalIgnoreCase)
+            || raw.StartsWith("remote ", StringComparison.OrdinalIgnoreCase);
+        if (!mode) return;
+
+        string needle = raw.StartsWith("rdp", StringComparison.OrdinalIgnoreCase) ? raw.Substring("rdp".Length).Trim()
+            : raw.StartsWith("remote desktop", StringComparison.OrdinalIgnoreCase) ? raw.Substring("remote desktop".Length).Trim()
+            : raw.Substring("remote".Length).Trim();
+        int rank = 0;
+        foreach (var profile in RemoteDesktopProfiles)
+        {
+            double score = string.IsNullOrWhiteSpace(needle) ? 88 - rank
+                : Math.Max(Fuzzy(needle, profile.Name), Fuzzy(needle, profile.Host));
+            if (score <= 0) { rank++; continue; }
+            list.Add(new CommandPaletteResult
+            {
+                Title = profile.Name,
+                Subtitle = Loc.I.Pick($"{profile.Host} · Windows will request credentials if needed", $"{profile.Host} · 如有需要，Windows 會要求登入資料"),
+                Glyph = ((char)0xE7F4).ToString(),
+                ProviderTag = Loc.I.Pick("Remote Desktop", "遠端桌面"),
+                Score = 155 + score * 0.15,
+                Invoke = () => { RunCommand("mstsc.exe", "/v:" + profile.Host); return true; },
+            });
+            rank++;
+        }
+    }
+
+    // ----- Window Walker · 視窗切換器 -----
+    private static void AddOpenWindows(string query, List<CommandPaletteResult> list)
+    {
+        var raw = query.Trim();
+        bool mode = raw.Equals("window", StringComparison.OrdinalIgnoreCase)
+            || raw.Equals("windows", StringComparison.OrdinalIgnoreCase)
+            || raw.Equals("win", StringComparison.OrdinalIgnoreCase)
+            || raw.StartsWith("window ", StringComparison.OrdinalIgnoreCase)
+            || raw.StartsWith("windows ", StringComparison.OrdinalIgnoreCase)
+            || raw.StartsWith("win ", StringComparison.OrdinalIgnoreCase);
+        if (!mode) return;
+
+        string needle = raw.StartsWith("windows", StringComparison.OrdinalIgnoreCase) ? raw.Substring("windows".Length).Trim()
+            : raw.StartsWith("window", StringComparison.OrdinalIgnoreCase) ? raw.Substring("window".Length).Trim()
+            : raw.Substring("win".Length).Trim();
+        int rank = 0;
+        foreach (var window in WindowWalkerService.List())
+        {
+            double score = string.IsNullOrWhiteSpace(needle) ? 88 - rank
+                : Math.Max(Fuzzy(needle, window.Title), Fuzzy(needle, window.ProcessName));
+            if (score <= 0) { rank++; continue; }
+            list.Add(new CommandPaletteResult
+            {
+                Title = window.Title,
+                Subtitle = Loc.I.Pick($"{window.ProcessName} · Press Enter to switch to this window",
+                    $"{window.ProcessName} · 按 Enter 切換到呢個視窗"),
+                Glyph = ((char)0xE7F4).ToString(),
+                ProviderTag = Loc.I.Pick("Window", "視窗"),
+                Score = 145 + score * 0.15,
+                Invoke = () => { WindowWalkerService.Activate(window.Handle); return true; },
+            });
+            rank++;
+            if (rank >= 32) break;
+        }
     }
 
     // ----- Files & folders · 檔案與資料夾 -----
@@ -1143,6 +1409,26 @@ public static class CommandPaletteService
             Process.Start(psi);
         }
         catch { /* best effort */ }
+    }
+
+    private static void RunExplicitCommand(string command)
+    {
+        try
+        {
+            if (command.StartsWith("shell:", StringComparison.OrdinalIgnoreCase))
+            {
+                LaunchPath(command);
+                return;
+            }
+            string comSpec = Environment.GetEnvironmentVariable("ComSpec") ?? "cmd.exe";
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = comSpec,
+                Arguments = "/d /s /c " + command,
+                UseShellExecute = true,
+            });
+        }
+        catch { /* explicit, best-effort user command */ }
     }
 
     private static void CopyText(string text)
