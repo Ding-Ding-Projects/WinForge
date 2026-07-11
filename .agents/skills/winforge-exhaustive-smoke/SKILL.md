@@ -103,6 +103,20 @@ Record exact command, exit code, date/time, test count, and relevant log path
 in the ledger. Do not substitute a broad test suite for a focused regression
 test when one exists.
 
+When a batch includes `monitor`, `battery`, or changes to the
+LibreHardwareMonitor lifecycle, also run the driver-free ownership regression:
+
+~~~powershell
+dotnet run --project tests/HardwareMonitorLifecycle.Tests -c Debug
+~~~
+
+It proves that overlapping System Monitor and Battery & Thermal leases share
+one WinForge-owned monitor object until the final release, failed opens close
+their own candidate, and process shutdown closes once. It is intentionally a
+fake-driver harness: do not use a smoke run to load, stop, delete, or repair
+the real `R0WinForge` service. A stale or externally-created service is a
+documented environmental finding, not permission for global cleanup.
+
 ### 3. Exercise every route and capture visual evidence
 
 Use the repository's run-winforge driver rather than a framework-dependent
@@ -134,6 +148,17 @@ If screenshot capture fails, record capture-blocked with the exact command,
 error, attempted fallback, and environment constraint. A route may be
 launch-pass without visual evidence, but it must never be visual-pass.
 Do not invent or retain stale screenshots as replacements.
+
+### Hardware-monitor driver boundary
+
+LibreHardwareMonitor's `Computer.Close()` is the only permitted cleanup path
+for the object WinForge opened. Before deleting an isolated published tree
+after a `monitor`/`battery` route, let the launched app exit through its normal
+lifecycle and preserve any failure as evidence. Never invoke `sc stop`, `sc
+delete`, registry edits, or a blanket process/service cleanup for
+`R0WinForge`; that could affect a service WinForge did not own. If another
+route sweep is using the desktop session, use the focused harness and source
+review first rather than starting a competing GUI instance.
 
 For pages with actions, cover at least:
 

@@ -215,6 +215,9 @@ public sealed partial class MainWindow : Window
             });
             Loc.I.LanguageChanged -= OnLanguageChanged;
             BrandingService.Changed -= OnBrandingChanged;
+            // LibreHardwareMonitor's Computer.Close() owns its Ring0 cleanup. This only closes the
+            // single Computer WinForge opened; it never performs a machine-wide service cleanup.
+            CrashLogger.Guard("hardwaremonitor:close", LibreHardwareMonitorLifecycle.Shutdown);
             CrashLogger.Guard("activity:close", () => Services.ActivityTrackerService.I.FlushForShutdown());
             CrashLogger.Guard("persistence:close", () => Services.PersistenceService.I.Flush());
             return;
@@ -255,6 +258,7 @@ public sealed partial class MainWindow : Window
         catch { /* best effort */ }
         try { WinForge.Pages.ReactorWindowManager.CloseAll(); } catch { }
         try { WinForge.Services.ReactorAudioEngine.I.Dispose(); } catch { }
+        CrashLogger.Guard("hardwaremonitor:quit", LibreHardwareMonitorLifecycle.Shutdown);
         // Flush volatile state before exiting from the tray (ProcessExit also flushes as a backstop).
         CrashLogger.Guard("activity:quit", () => Services.ActivityTrackerService.I.FlushForShutdown());
         CrashLogger.Guard("persistence:quit", () => Services.PersistenceService.I.Flush());
