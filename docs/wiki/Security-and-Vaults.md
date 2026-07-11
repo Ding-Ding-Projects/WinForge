@@ -22,6 +22,8 @@ Open in-app: `WinForge.exe --page bitwarden`
 
 Local offline KeePass (kdbx) password vault, natively encrypted. · 本機離線 KeePass（kdbx）密碼庫，原生加密。
 
+KDBX 4 reads the KDF UUID in the database header and derives the matching AES-KDF, Argon2d, or Argon2id key; one Argon2 variant is never substituted for another. · KDBX 4 會讀資料庫 header 入面嘅 KDF UUID，再用返相應嘅 AES-KDF、Argon2d 或 Argon2id 衍生金鑰；絕對唔會用一種 Argon2 冒充另一種。
+
 Open in-app: `WinForge.exe --page keepass`
 
 ![KeePass Vault](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-keepass.png)

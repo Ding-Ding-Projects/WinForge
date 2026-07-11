@@ -124,4 +124,14 @@ Open in-app: `WinForge.exe --page resume`
 
 **粵語 —** 建置、啟動、截圖、行為同副作用證據會分開。截圖被阻擋就如實報告，唔會當作視覺通過；有狀態嘅功能會用 fixtures、dry-runs 或者可還原 probe，除非明確批准真實執行。
 
+### KeePass KDF Regression · KeePass KDF 回歸測試
+
+**EN —** Run the focused headless KDBX KDF check after changing the native vault crypto. It verifies that the KDBX Argon2d and Argon2id UUIDs select different, matching derivations without opening a real vault or exposing credentials.
+
+**粵語 —** 改咗原生密碼庫加密之後，要行呢個專注、headless 嘅 KDBX KDF 檢查。佢會驗證 KDBX Argon2d 同 Argon2id UUID 分別揀返正確又唔同嘅衍生方式，唔會開真 vault 或暴露認證資料。
+
+```powershell
+dotnet run --project tests/KeePassCrypto.Tests -c Debug
+```
+
 [← Wiki Home](Home.md)
