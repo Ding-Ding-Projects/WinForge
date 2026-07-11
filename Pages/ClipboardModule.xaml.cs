@@ -65,7 +65,47 @@ public sealed partial class ClipboardModule : Page
         {
             try { StartupManager.SetSelfStartup(startup.IsOn); } catch { /* best effort */ }
         };
-        BgBar.Content = startup;
+
+        var historyToggle = new ToggleSwitch
+        {
+            OnContent = P("Windows clipboard history", "Windows 剪貼簿歷史"),
+            OffContent = P("Windows clipboard history", "Windows 剪貼簿歷史"),
+            Margin = new Thickness(0, 6, 0, 0),
+            IsOn = ClipboardService.IsWindowsHistoryEnabled(),
+        };
+        historyToggle.Toggled += (_, _) => ClipboardService.SetWindowsHistoryEnabled(historyToggle.IsOn);
+
+        var syncToggle = new ToggleSwitch
+        {
+            OnContent = P("Cloud clipboard sync", "雲端剪貼簿同步"),
+            OffContent = P("Cloud clipboard sync", "雲端剪貼簿同步"),
+            Margin = new Thickness(0, 6, 0, 0),
+            IsOn = ClipboardService.IsWindowsCloudSyncEnabled(),
+        };
+        syncToggle.Toggled += (_, _) => ClipboardService.SetWindowsCloudSyncEnabled(syncToggle.IsOn);
+
+        var clearHistoryBtn = new Button
+        {
+            Content = P("Clear Windows history", "清除 Windows 歷史"),
+            Margin = new Thickness(0, 6, 0, 0),
+        };
+        clearHistoryBtn.Click += (_, _) =>
+        {
+            ClipboardService.ClearWindowsHistory();
+            Notify(InfoBarSeverity.Success, P("Windows clipboard history cleared", "已清除 Windows 剪貼簿歷史"), "");
+        };
+
+        BgBar.Content = new StackPanel
+        {
+            Spacing = 4,
+            Children =
+            {
+                startup,
+                historyToggle,
+                syncToggle,
+                clearHistoryBtn,
+            },
+        };
     }
 
     private void Build()

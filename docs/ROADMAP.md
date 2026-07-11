@@ -701,7 +701,7 @@ From a verify+discover workflow (iphlpapi P/Invoke adversarially confirmed `corr
 - [ ] **Ad / Suggestion killer** · 廣告／建議清除 — HKCU\…\ContentDeliveryManager SubscribedContent-33838x/35369x=0, SilentInstalledAppsEnabled=0, OemPreInstalledAppsEnabled=0, SoftLandingEnabled=0; HKLM\…\CloudContent\DisableWindowsConsumerFeatures=1; SettingsPageVisibility="hide:home".
 - [ ] **Remove Bing/web from Search** · 移除搜尋 Bing — HKCU\…\Policies\…\Explorer\DisableSearchBoxSuggestions=1; Search\BingSearchEnabled=0, CortanaConsent=0; restart explorer.
 - [ ] **Classic context menu** · 傳統右鍵選單 — HKCU\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32 (empty default); restart explorer; revert=delete key.
-- [ ] **Clipboard history & cloud-clipboard** · 剪貼簿歷史 — HKCU\…\Clipboard\EnableClipboardHistory + CloudClipboardAutomaticUpload; clear via WinRT Clipboard.ClearHistory().
+- [x] **Clipboard history & cloud-clipboard** · 剪貼簿歷史 — HKCU\…\Clipboard\EnableClipboardHistory + CloudClipboardAutomaticUpload; clear via WinRT Clipboard.ClearHistory().
 - [ ] **Do-Not-Disturb / notification governor** · 通知管控 — HKCU\…\PushNotifications\ToastEnabled + per-app …\Notifications\Settings\<AUMID>\Enabled.
 - [ ] **Long path (MAX_PATH) enabler** · 長路徑 — HKLM\…\FileSystem\LongPathsEnabled=1 (reboot).
 - [ ] **Startup delay / boot accelerator** · 啟動延遲 — HKCU\…\Explorer\Serialize\StartupDelayInMSec=0 (create Serialize).

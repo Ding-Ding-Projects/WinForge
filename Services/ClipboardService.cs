@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.UI.Dispatching;
+using Microsoft.Win32;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Graphics.Imaging;
 
@@ -386,6 +387,53 @@ public static class ClipboardService
         // Commit the cleared state — this does NOT touch .git, so every past entry stays in the git log.
         SaveAndGitCommitAsync("clear all (history preserved in git log)");
         Changed?.Invoke();
+    }
+
+    public static bool IsWindowsHistoryEnabled()
+    {
+        try
+        {
+            var raw = RegistryHelper.GetValue(RegRoot.HKCU, @"Software\Microsoft\Clipboard", "EnableClipboardHistory");
+            if (raw is int i) return i != 0;
+            return Clipboard.IsHistoryEnabled();
+        }
+        catch { return false; }
+    }
+
+    public static bool IsWindowsCloudSyncEnabled()
+    {
+        try
+        {
+            var raw = RegistryHelper.GetValue(RegRoot.HKCU, @"Software\Microsoft\Clipboard", "CloudClipboardAutomaticUpload");
+            if (raw is int i) return i != 0;
+            return Clipboard.IsRoamingEnabled();
+        }
+        catch { return false; }
+    }
+
+    public static void SetWindowsHistoryEnabled(bool enabled)
+    {
+        try
+        {
+            RegistryHelper.SetValue(RegRoot.HKCU, @"Software\Microsoft\Clipboard", "EnableClipboardHistory",
+                enabled ? 1 : 0, RegistryValueKind.DWord);
+        }
+        catch { }
+    }
+
+    public static void SetWindowsCloudSyncEnabled(bool enabled)
+    {
+        try
+        {
+            RegistryHelper.SetValue(RegRoot.HKCU, @"Software\Microsoft\Clipboard", "CloudClipboardAutomaticUpload",
+                enabled ? 1 : 0, RegistryValueKind.DWord);
+        }
+        catch { }
+    }
+
+    public static void ClearWindowsHistory()
+    {
+        try { Clipboard.ClearHistory(); } catch { }
     }
 
     /// <summary>Convert an image item to another format; returns the saved path.</summary>
