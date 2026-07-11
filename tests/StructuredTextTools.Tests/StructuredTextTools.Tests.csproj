@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net11.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>StructuredTextTools.Tests</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\Services\WordFreqService.cs" Link="WordFreqService.cs" />
+    <Compile Include="..\..\Services\WorldClockService.cs" Link="WorldClockService.cs" />
+    <Compile Include="..\..\Services\XPathTesterService.cs" Link="XPathTesterService.cs" />
+    <Compile Include="..\..\Services\YamlJsonService.cs" Link="YamlJsonService.cs" />
+  </ItemGroup>
+</Project>
