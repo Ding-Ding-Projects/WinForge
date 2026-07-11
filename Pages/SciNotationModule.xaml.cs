@@ -13,11 +13,17 @@ namespace WinForge.Pages;
 /// </summary>
 public sealed partial class SciNotationModule : Page
 {
+    private bool _suppress;
     private SciNotationService.Result _last = new();
 
     public SciNotationModule()
     {
+        _suppress = true;
         InitializeComponent();
+        // Use managed initialization for the reproduced NumberBox.Value
+        // parser failure and avoid recomputing before the page is loaded.
+        SigBox.Value = 6;
+        _suppress = false;
         Loc.I.LanguageChanged += OnLang;
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
@@ -46,9 +52,15 @@ public sealed partial class SciNotationModule : Page
         UpdateStatusEmpty();
     }
 
-    private void Input_Changed(object sender, TextChangedEventArgs e) => Recompute();
+    private void Input_Changed(object sender, TextChangedEventArgs e)
+    {
+        if (!_suppress) Recompute();
+    }
 
-    private void Sig_Changed(NumberBox sender, NumberBoxValueChangedEventArgs args) => Recompute();
+    private void Sig_Changed(NumberBox sender, NumberBoxValueChangedEventArgs args)
+    {
+        if (!_suppress) Recompute();
+    }
 
     private void Recompute()
     {

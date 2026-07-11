@@ -20,6 +20,12 @@ public sealed partial class NumberFormatModule : Page
     public NumberFormatModule()
     {
         InitializeComponent();
+        // Avoid the self-contained runtime's failing XAML NumberBox.Value
+        // conversion while keeping both formatting defaults and quiet startup.
+        _suppress = true;
+        DecimalsBox.Value = 2;
+        PadBox.Value = 8;
+        _suppress = false;
         Loc.I.LanguageChanged += OnLang;
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;

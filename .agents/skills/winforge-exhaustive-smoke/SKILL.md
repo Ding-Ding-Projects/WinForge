@@ -161,18 +161,22 @@ For each page/service batch:
    interpolation, and missing cancellation paths. Investigate findings rather
    than counting them as defects automatically.
 5. Treat typed XAML property literals as runtime evidence, not just build
-   evidence. In the current self-contained runtime, failing `NumberBox.Value`
-   or `ToggleSwitch.IsOn` literals must move to guarded managed initialization
-   and receive a fresh deep-link launch check.
+   evidence. In the current self-contained runtime, a **reproduced** failing
+   `NumberBox.Value`, `ToggleSwitch.IsOn`, or closely equivalent typed default
+   must move to guarded managed initialization and receive a fresh deep-link
+   launch check. Preserve bindings and passing literals: do not turn a
+   page-local reproduction into a blanket NumberBox/CheckBox migration.
    Run the literal safety guard after a related change:
 
    ~~~powershell
    powershell -ExecutionPolicy Bypass -File .agents\skills\winforge-exhaustive-smoke\scripts\Test-WinForgeXamlLiteralSafety.ps1 -RepoRoot .
    ~~~
 
-   It blocks direct XAML `IsOn="True|False"` values while allowing bindings
-   and verifies the 16 migrated managed defaults; default state belongs in
-   code-behind after `InitializeComponent`.
+   It blocks direct XAML `IsOn="True|False"` values while allowing bindings,
+   and verifies the 16 migrated ToggleSwitch defaults, the reproduced Markdown
+   TOC `CheckBox.IsChecked` default, and ten page-local NumberBox defaults.
+   The latter two checks are deliberately scoped to proven failures; default
+   state belongs in code-behind after `InitializeComponent`.
 6. Add findings to the ledger with severity, reproduction, source location,
    owner/status, and retest evidence.
 
@@ -232,7 +236,8 @@ An exhaustive smoke campaign is complete only when:
 - [scripts/Test-WinForgeShellAllAppsRoute.ps1](scripts/Test-WinForgeShellAllAppsRoute.ps1)
   validates the direct All Apps modal route with UI Automation.
 - [scripts/Test-WinForgeXamlLiteralSafety.ps1](scripts/Test-WinForgeXamlLiteralSafety.ps1)
-  blocks direct Boolean `IsOn` XAML literals that the self-contained runtime
-  cannot reliably convert.
+  blocks direct Boolean `IsOn` XAML literals and protects the explicitly
+  reproduced Markdown TOC CheckBox and six-page NumberBox managed defaults;
+  it does not prohibit unproven numeric literals.
 - [references/coverage-schema.md](references/coverage-schema.md) defines the
   ledger states and required evidence.
