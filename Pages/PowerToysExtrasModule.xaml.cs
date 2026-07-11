@@ -335,4 +335,6 @@ public sealed partial class PowerToysExtrasModule : Page
     private void MoreKeyboard_Click(object sender, RoutedEventArgs e) => OpenModule("module.keyboard");
     private void MoreHosts_Click(object sender, RoutedEventArgs e) => OpenModule("module.hosts");
     private void MoreEnvVars_Click(object sender, RoutedEventArgs e) => OpenModule("module.envvars");
+    private void MoreMwb_Click(object sender, RoutedEventArgs e) => OpenModule("module.mwb");
+    private void MoreCmdPalette_Click(object sender, RoutedEventArgs e) => OpenModule("module.cmdpalette");
 }

@@ -227,6 +227,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
 
                             <Button Grid.Row="0" Grid.Column="0" Content="Open Screen Ruler · 開啟螢幕間尺" Click="MoreScreenRuler_Click" />
@@ -247,6 +248,8 @@
                             <Button Grid.Row="7" Grid.Column="1" Content="Open Keyboard Remapper · 開啟鍵盤重新對應" Click="MoreKeyboard_Click" />
                             <Button Grid.Row="8" Grid.Column="0" Content="Open Hosts Editor · 開啟 hosts 編輯器" Click="MoreHosts_Click" />
                             <Button Grid.Row="8" Grid.Column="1" Content="Open Environment Variables · 開啟環境變數" Click="MoreEnvVars_Click" />
+                            <Button Grid.Row="9" Grid.Column="0" Content="Open Mouse Without Borders · 開啟無界滑鼠" Click="MoreMwb_Click" />
+                            <Button Grid.Row="9" Grid.Column="1" Content="Open Command Palette · 開啟指令面板" Click="MoreCmdPalette_Click" />
                         </Grid>
                     </StackPanel>
                 </ScrollViewer>
