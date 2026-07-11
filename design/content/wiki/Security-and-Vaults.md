@@ -28,4 +28,12 @@ Open in-app: `WinForge.exe --page keepass`
 
 ![KeePass Vault](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-keepass.png)
 
+## Local Settings Recovery Artifacts · 本機設定復原檔案
+
+`settings.json`, `settings.json.bak`, and any `settings.json.corrupt-*` recovery copy stay inside `%LOCALAPPDATA%\WinForge`. They can contain sensitive configuration or protected credential blobs, so they are not support bundles and must not be shared without review. The store uses flushed, atomic replacement and a previous-snapshot backup; an unrecoverable malformed file blocks routine writes instead of silently discarding it.
+
+`settings.json`、`settings.json.bak` 同任何 `settings.json.corrupt-*` 復原副本都會留喺 `%LOCALAPPDATA%\WinForge`。佢哋可以有敏感設定或者受保護嘅認證 blob，所以唔係支援包，未檢查唔可以分享。儲存層會用 flush 後嘅原子式替換同上一個快照備份；遇到冇得復原嘅壞檔案會封鎖平常寫入，唔會靜雞雞掉走佢。
+
+This is an internal storage safeguard, not a changed vault page; screenshot capture and replacement are not applicable. · 呢個係內部儲存保障，唔係改咗保險庫頁面；唔適用截圖擷取或者替換。
+
 [← Wiki Home](Home.md)

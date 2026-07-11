@@ -150,6 +150,16 @@ Open in-app: `WinForge.exe --page filezilla`
 
 Snapshot, restore and export encrypted configuration bundles. · 快照、還原同匯出加密設定包。
 
+### Settings-file integrity · 設定檔完整性
+
+WinForge writes `%LOCALAPPDATA%\WinForge\settings.json` through a flushed temporary file in the same directory and atomically retains the previous complete snapshot as `settings.json.bak`. If the primary file is truncated or malformed, a valid backup is restored and the broken input is retained as `settings.json.corrupt-*`; if neither copy is valid, routine setting writes fail closed instead of replacing user data with an empty/default cache.
+
+WinForge 會先喺同一個資料夾寫好兼 flush 臨時檔案，先原子式更新 `%LOCALAPPDATA%\WinForge\settings.json`，上一個完整快照會留做 `settings.json.bak`。主檔案截斷或者壞咗就會由有效備份還原，壞咗嘅輸入會保留成 `settings.json.corrupt-*`；兩份都唔有效時，平常設定寫入會 fail closed，唔會用空白／預設 cache 蓋走使用者資料。
+
+These are private local recovery artifacts and may contain sensitive configuration; do not attach them to an issue or share them unreviewed. This is storage-only hardening: no Config & Backup XAML/page layout changed, so no screenshot replacement applies.
+
+呢啲係私人的本機復原檔案，可能有敏感設定；未檢查之前唔好附加去 issue 或者分享。呢次係純儲存層加固，Config & Backup 冇改 XAML／頁面排版，所以唔適用截圖替換。
+
 Open in-app: `WinForge.exe --page configbackup`
 
 ![Config & Backup](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-configbackup.png)

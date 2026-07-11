@@ -16,69 +16,96 @@ public static class SettingsStore
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WinForge");
 
     private static readonly string FilePath = Path.Combine(Dir, "settings.json");
+    private static readonly SettingsStoreSession Session = new(FilePath);
 
-    private static readonly object Gate = new();
-    private static Dictionary<string, string> _cache = Load();
+    public static string Get(string key, string fallback) => Session.Get(key, fallback);
 
-    private static Dictionary<string, string> Load()
+    public static void Set(string key, string value) => Session.Set(key, value);
+
+    /// <summary>匯出所有設定到檔案 · Export all settings to a JSON file.</summary>
+    public static void ExportTo(string path) => Session.ExportTo(path);
+
+    /// <summary>由檔案匯入設定（合併）· Import settings from a JSON file (merge). Returns count imported.</summary>
+    public static int ImportFrom(string path) => Session.ImportFrom(path);
+}
+
+/// <summary>
+/// Testable per-file settings session. The public store owns one session for the user profile;
+/// focused tests create sessions only against disposable temporary fixture directories.
+/// </summary>
+internal sealed class SettingsStoreSession
+{
+    private readonly string _filePath;
+    private readonly object _gate = new();
+    private readonly Dictionary<string, string> _cache;
+    private bool _persistenceEnabled;
+
+    internal SettingsStoreSession(string filePath)
     {
-        try
-        {
-            if (File.Exists(FilePath))
-            {
-                var json = File.ReadAllText(FilePath);
-                return JsonSerializer.Deserialize<Dictionary<string, string>>(json) ?? new();
-            }
-        }
-        catch { /* 損壞就重來 · ignore corrupt file */ }
-        return new();
+        _filePath = filePath;
+        var loaded = SettingsStorePersistence.Load(filePath);
+        _cache = loaded.Values;
+        _persistenceEnabled = loaded.CanPersist;
     }
 
-    public static string Get(string key, string fallback)
+    internal bool PersistenceEnabled
     {
-        lock (Gate)
+        get
         {
-            return _cache.TryGetValue(key, out var v) ? v : fallback;
+            lock (_gate) return _persistenceEnabled;
         }
     }
 
-    public static void Set(string key, string value)
+    internal string Get(string key, string fallback)
     {
-        lock (Gate)
+        lock (_gate)
+        {
+            return _cache.TryGetValue(key, out var value) ? value : fallback;
+        }
+    }
+
+    internal void Set(string key, string value)
+    {
+        lock (_gate)
         {
             _cache[key] = value;
             SaveLocked();
         }
     }
 
-    private static void SaveLocked()
+    internal void ExportTo(string path)
     {
-        try
-        {
-            Directory.CreateDirectory(Dir);
-            File.WriteAllText(FilePath, JsonSerializer.Serialize(_cache,
-                new JsonSerializerOptions { WriteIndented = true }));
-        }
-        catch { /* best effort */ }
-    }
-
-    /// <summary>匯出所有設定到檔案 · Export all settings to a JSON file.</summary>
-    public static void ExportTo(string path)
-    {
-        lock (Gate)
+        lock (_gate)
             File.WriteAllText(path, JsonSerializer.Serialize(_cache, new JsonSerializerOptions { WriteIndented = true }));
     }
 
-    /// <summary>由檔案匯入設定（合併）· Import settings from a JSON file (merge). Returns count imported.</summary>
-    public static int ImportFrom(string path)
+    internal int ImportFrom(string path)
     {
-        var d = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(path));
-        if (d is null) return 0;
-        lock (Gate)
+        var imported = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(path));
+        if (imported is null) return 0;
+
+        lock (_gate)
         {
-            foreach (var kv in d) _cache[kv.Key] = kv.Value;
-            SaveLocked();
+            foreach (var pair in imported) _cache[pair.Key] = pair.Value;
+
+            // A valid, explicit import is a deliberate recovery action. Ordinary Set calls remain
+            // fail-closed after an unrecoverable load so they cannot silently erase damaged data.
+            if (_persistenceEnabled)
+            {
+                SaveLocked();
+            }
+            else if (SettingsStorePersistence.TryRepairFromExplicitImport(_filePath, _cache))
+            {
+                _persistenceEnabled = true;
+            }
         }
-        return d.Count;
+
+        return imported.Count;
+    }
+
+    private void SaveLocked()
+    {
+        if (_persistenceEnabled)
+            SettingsStorePersistence.TryWriteAtomically(_filePath, _cache);
     }
 }
