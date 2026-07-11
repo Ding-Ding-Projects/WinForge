@@ -8,7 +8,9 @@ namespace WinForge.Services;
 /// </summary>
 internal static class ClipboardOwnership
 {
-    internal static bool CanClearText(string? ownedText, string? currentText) =>
+    internal static bool CanClearText(string? ownedText, string? currentText,
+        long ownedGeneration, long currentGeneration) =>
         !string.IsNullOrEmpty(ownedText) &&
+        ownedGeneration == currentGeneration &&
         string.Equals(ownedText, currentText, StringComparison.Ordinal);
 }

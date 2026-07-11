@@ -475,6 +475,11 @@ then ran through the isolated 5-second/15-second protocol: `ipinfo`,
 `loremtext`. All 25 are `launch-pass` from one initial 5,000 ms attempt; there
 were no retries, nonzero initial exits, or failures. Raw per-route logs and the
 manifest stay in ignored `artifacts/smoke/launch-batches/batch-07/`.
+After a normal merge of current `origin/main`, a final inventory retained the
+same 25 route IDs at these indices and found 321 routes / 790 aliases with no
+structural routing mismatch. `tools/regen-site-data.ps1` then wrote the
+GitHub Pages payload from the merged app: 317 modules, 22 categories, 1,212
+features, and 2,214 authored wiki pages.
 
 **Source-review and safety evidence · 來源審查同安全證據：** All 25 direct XAML
 and code-behind surfaces were reviewed. All 164 named XAML handlers resolve,
@@ -490,7 +495,7 @@ explicit authorization. During that review, KeePass’s delayed secret
 clipboard cleanup was corrected: it now compares current clipboard text with
 the owned secret and also checks a copy generation before clearing. The
 focused `KeePassCrypto.Tests` harness passed 4/4, including matching,
-replacement, null, and empty ownership cases. A full Debug x64 solution build
+replacement, null, empty, and stale-generation ownership cases. A full Debug x64 solution build
 passed with 0 errors (318 warnings), and the focused post-fix
 `--page keepass -NoCapture` launch passed.
 
@@ -511,6 +516,10 @@ launchable-route indices 150–174：`ipinfo`、`jsondiff`、`jsonflatten`、
 初始 5,000 ms attempt `launch-pass`；冇 retry、冇 nonzero initial exit、冇
 failure。每條 route 嘅原始 log 同 manifest 放喺 Git 忽略嘅
 `artifacts/smoke/launch-batches/batch-07/`。
+正常合併 current `origin/main` 之後，最終 inventory 仍然喺呢啲 indices 保留同一組
+25 條 route ID，並搵到 321 routes／790 aliases，冇 structural routing mismatch。
+跟住 `tools/regen-site-data.ps1` 用已合併 app 寫咗 GitHub Pages payload：317 個
+modules、22 個 categories、1,212 個 features 同 2,214 個 authored wiki pages。
 
 **來源審查同安全證據 · Source-review and safety evidence：** 已審查晒 25 條
 route 直屬 XAML 同 code-behind surface。164 個有名 XAML handler 全部 resolve，
@@ -523,7 +532,7 @@ Komorebi command、LibreOffice conversion、LightSwitch 主題／排程工作、
 同其他 stateful 或 external control 都冇撳。審查期間修正咗 KeePass 延遲清除
 秘密剪貼簿嘅問題：而家清除前會比較目前文字同 owned secret，仲會檢查 copy
 generation。專注嘅 `KeePassCrypto.Tests` harness 4/4 通過，包括 matching、
-replacement、null 同 empty ownership case。完整 Debug x64 solution build 以 0
+replacement、null、empty 同 stale-generation ownership case。完整 Debug x64 solution build 以 0
 errors（318 warnings）通過，修正後專注嘅 `--page keepass -NoCapture` launch 都
 通過。
 

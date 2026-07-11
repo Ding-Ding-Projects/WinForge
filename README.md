@@ -134,11 +134,13 @@ if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 **EN —** KeePass secret clipboard cleanup now clears only text that still exactly
 matches WinForge’s own delayed secret copy. A generation guard prevents an
 older cleanup timer from erasing a newer user copy; focused crypto/clipboard
-regression coverage checks matching, replacement, null, and empty text cases.
+regression coverage checks matching, replacement, null, empty, and stale-timer
+generation cases.
 
 **粵語 —** KeePass 嘅密碼剪貼簿清除而家只會清除仲同 WinForge 延遲複製嘅密碼
 完全一樣嘅文字。generation guard 會阻止舊 timer 抹走使用者之後複製嘅新內容；
-專注 crypto／clipboard regression 會檢查相同、替換、null 同空白文字情況。
+專注 crypto／clipboard regression 會檢查相同、替換、null、空白文字同 stale-timer
+generation 情況。
 
 **EN —** The latest checkpoints fixed Base Converter and CSV ⇄ JSON startup
 faults exposed by the route sweep; fresh self-contained `--page baseconvert`

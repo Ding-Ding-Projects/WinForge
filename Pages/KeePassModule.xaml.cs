@@ -459,7 +459,7 @@ public sealed partial class KeePassModule : Page
                 var currentText = await view.GetTextAsync();
                 // The text and generation must still be ours. This preserves
                 // clipboard content copied by the user after a secret copy.
-                if (generation == _clipboardGeneration && ClipboardOwnership.CanClearText(ownedText, currentText))
+                if (ClipboardOwnership.CanClearText(ownedText, currentText, generation, _clipboardGeneration))
                     Clipboard.Clear();
             }
         }

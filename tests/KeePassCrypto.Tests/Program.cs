@@ -80,10 +80,11 @@ internal static class Program
 
     private static void ClipboardCleanupRequiresExactOwnedText()
     {
-        Assert(ClipboardOwnership.CanClearText("secret", "secret"), "the owned secret should be eligible for cleanup");
-        Assert(!ClipboardOwnership.CanClearText("secret", "replacement"), "replacement clipboard text must never be cleared");
-        Assert(!ClipboardOwnership.CanClearText("secret", null), "missing clipboard text must not be cleared");
-        Assert(!ClipboardOwnership.CanClearText("", ""), "an empty value is not an owned secret");
+        Assert(ClipboardOwnership.CanClearText("secret", "secret", 4, 4), "the owned secret should be eligible for cleanup");
+        Assert(!ClipboardOwnership.CanClearText("secret", "replacement", 4, 4), "replacement clipboard text must never be cleared");
+        Assert(!ClipboardOwnership.CanClearText("secret", null, 4, 4), "missing clipboard text must not be cleared");
+        Assert(!ClipboardOwnership.CanClearText("", "", 4, 4), "an empty value is not an owned secret");
+        Assert(!ClipboardOwnership.CanClearText("secret", "secret", 4, 5), "a stale cleanup generation must never clear a newer copy");
     }
 
     private static byte[] DeriveReference(Argon2 argon)
