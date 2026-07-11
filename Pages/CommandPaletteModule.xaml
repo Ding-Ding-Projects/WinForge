@@ -41,6 +41,29 @@
                 </StackPanel>
             </Border>
 
+            <!-- Appearance -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="AppearanceTitle" FontWeight="SemiBold" FontSize="15" />
+                    <TextBlock x:Name="AppearanceBlurb" FontSize="12" Foreground="{ThemeResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
+                    <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                        <TextBlock x:Name="BackdropLabel" VerticalAlignment="Center" />
+                        <ComboBox x:Name="BackdropCombo" MinWidth="190" SelectionChanged="Backdrop_Changed" />
+                    </StackPanel>
+                    <TextBlock x:Name="BackgroundImageLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="BackgroundImageBox" IsReadOnly="True" />
+                        <Button x:Name="BackgroundImageBrowseButton" Grid.Column="1" Click="BackgroundImageBrowse_Click" />
+                        <Button x:Name="BackgroundImageClearButton" Grid.Column="2" Click="BackgroundImageClear_Click" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
             <!-- Providers -->
             <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
                 <StackPanel Spacing="10">

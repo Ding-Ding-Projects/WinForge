@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -9,6 +10,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.System;
 using Windows.UI;
 using WinForge.Models;
@@ -29,6 +31,8 @@ public sealed class CommandPaletteWindow
     private static bool _open;
 
     private readonly Window _window;
+    private readonly Grid _root;
+    private readonly Border _surface;
     private readonly TextBox _search;
     private readonly ListView _list;
     private readonly TextBlock _hint;
@@ -54,6 +58,9 @@ public sealed class CommandPaletteWindow
     /// <summary>Open the palette with a prefilled query, used when a saved Dock pin no longer resolves.</summary>
     public static void OpenWithQuery(string query) { _instance ??= new CommandPaletteWindow(); _instance.ShowInternal(query); }
 
+    /// <summary>Refresh the shared launcher after its native appearance settings change.</summary>
+    public static void RefreshAppearance() => _instance?.ApplyAppearance();
+
     private void Show() => ShowInternal();
 
     private CommandPaletteWindow()
@@ -72,7 +79,11 @@ public sealed class CommandPaletteWindow
         try { ap.IsShownInSwitchers = false; } catch { }
 
         // ---- UI ----
-        var root = new Grid
+        _root = new Grid
+        {
+            CornerRadius = new CornerRadius(12),
+        };
+        _surface = new Border
         {
             Padding = new Thickness(14),
             CornerRadius = new CornerRadius(12),
@@ -80,11 +91,13 @@ public sealed class CommandPaletteWindow
             BorderBrush = ResBrush("CardStrokeColorDefaultBrush", Color.FromArgb(0x40, 0xFF, 0xFF, 0xFF)),
             BorderThickness = new Thickness(1),
         };
+        _root.Children.Add(_surface);
         // 跟隨 app 嘅佈景主題 · Follow the app's chosen theme.
-        try { if (App.Shell?.Content is FrameworkElement fe) root.RequestedTheme = fe.RequestedTheme; } catch { }
-        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        try { if (App.Shell?.Content is FrameworkElement fe) _root.RequestedTheme = fe.RequestedTheme; } catch { }
+        var layout = new Grid();
+        layout.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        layout.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        layout.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
         var searchRow = new Grid();
         searchRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -131,10 +144,12 @@ public sealed class CommandPaletteWindow
         };
         Grid.SetRow(_hint, 2);
 
-        root.Children.Add(searchRow);
-        root.Children.Add(_list);
-        root.Children.Add(_hint);
-        _window.Content = root;
+        layout.Children.Add(searchRow);
+        layout.Children.Add(_list);
+        layout.Children.Add(_hint);
+        _surface.Child = layout;
+        _window.Content = _root;
+        ApplyAppearance();
 
         // ---- events ----
         _search.TextChanged += (_, _) => Refresh();
@@ -142,6 +157,39 @@ public sealed class CommandPaletteWindow
         _list.ItemClick += (_, e) => { if (e.ClickedItem is CommandPaletteResult r) InvokeResult(r); };
         _list.KeyDown += OnListKeyDown;
         _window.Activated += OnActivated;
+    }
+
+    private void ApplyAppearance()
+    {
+        try { if (App.Shell?.Content is FrameworkElement fe) _root.RequestedTheme = fe.RequestedTheme; } catch { }
+
+        string imagePath = CommandPaletteService.BackgroundImagePath;
+        if (!string.IsNullOrWhiteSpace(imagePath) && File.Exists(imagePath))
+        {
+            try
+            {
+                _root.Background = new ImageBrush
+                {
+                    ImageSource = new BitmapImage { UriSource = new Uri(imagePath) },
+                    Stretch = Stretch.UniformToFill,
+                };
+            }
+            catch { _root.Background = new SolidColorBrush(Colors.Transparent); }
+        }
+        else _root.Background = new SolidColorBrush(Colors.Transparent);
+
+        // The surface stays on top of any image so palette text retains its established contrast in both themes.
+        _surface.Background = ResBrush("AcrylicInAppFillColorDefaultBrush", Color.FromArgb(0xF2, 0x2B, 0x2B, 0x2B));
+        try
+        {
+            _window.SystemBackdrop = CommandPaletteService.AppearanceBackdrop switch
+            {
+                CommandPaletteService.CommandPaletteBackdrop.Mica => new MicaBackdrop(),
+                CommandPaletteService.CommandPaletteBackdrop.Acrylic => new DesktopAcrylicBackdrop(),
+                _ => null,
+            };
+        }
+        catch { }
     }
 
     private void OnActivated(object sender, WindowActivatedEventArgs args)
