@@ -30,6 +30,8 @@ Local offline KeePass (kdbx) password vault, natively encrypted. · 本機離線
 
 KDBX 4 reads the KDF UUID in the database header and derives the matching AES-KDF, Argon2d, or Argon2id key; one Argon2 variant is never substituted for another. · KDBX 4 會讀資料庫 header 入面嘅 KDF UUID，再用返相應嘅 AES-KDF、Argon2d 或 Argon2id 衍生金鑰；絕對唔會用一種 Argon2 冒充另一種。
 
+Delayed secret-clipboard cleanup first reads the current text and clears it only when it exactly matches the secret WinForge copied; a generation guard also prevents an older timer from clearing a newer copy. This preserves content copied by the user after a password, TOTP, or other secret. · 延遲清除密碼剪貼簿之前會先讀目前文字，只有仲同 WinForge 複製嘅密碼完全一樣先會清除；generation guard 仲會阻止舊 timer 清除較新嘅複製內容。即係使用者複製密碼、TOTP 或其他秘密之後嘅新內容會被保留。
+
 Open in-app: `WinForge.exe --page keepass`
 
 ![KeePass Vault](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-keepass.png)

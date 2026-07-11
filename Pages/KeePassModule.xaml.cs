@@ -39,13 +39,14 @@ public sealed partial class KeePassModule : Page
     // Clipboard auto-clear (~12s).
     private readonly DispatcherTimer _clipTimer = new() { Interval = TimeSpan.FromSeconds(12) };
     private string? _lastCopied;
+    private long _clipboardGeneration;
 
     public KeePassModule()
     {
         InitializeComponent();
         EntryList.ItemsSource = _entryRows;
         Loc.I.LanguageChanged += OnLang;
-        _clipTimer.Tick += (_, _) => ClearClipboardIfOurs();
+        _clipTimer.Tick += async (_, _) => await ClearClipboardIfOursAsync();
         Loaded += (_, _) => Render();
         Unloaded += OnUnloaded;
     }
@@ -220,7 +221,7 @@ public sealed partial class KeePassModule : Page
 
     private void LockNow()
     {
-        ClearClipboardIfOurs();
+        _ = ClearClipboardIfOursAsync();
         _db = null;
         _password = null;
         _keyFileBytes = null;
@@ -431,29 +432,42 @@ public sealed partial class KeePassModule : Page
             var dp = new DataPackage();
             dp.SetText(value);
             Clipboard.SetContent(dp);
+            _clipboardGeneration++;
+            _clipTimer.Stop();
             if (!persistent)
             {
                 _lastCopied = value;
-                _clipTimer.Stop();
                 _clipTimer.Start();
             }
+            else _lastCopied = null;
             Toast(InfoBarSeverity.Success, toast);
         }
         catch (Exception ex) { Toast(InfoBarSeverity.Error, ex.Message); }
     }
 
-    private void ClearClipboardIfOurs()
+    private async Task ClearClipboardIfOursAsync()
     {
         _clipTimer.Stop();
-        if (_lastCopied is null) return;
+        var ownedText = _lastCopied;
+        var generation = _clipboardGeneration;
+        if (string.IsNullOrEmpty(ownedText)) return;
         try
         {
-            var current = Clipboard.GetContent();
-            // Best-effort: only clear if we still appear to own the clipboard.
-            Clipboard.Clear();
+            var view = Clipboard.GetContent();
+            if (view is not null && view.Contains(StandardDataFormats.Text))
+            {
+                var currentText = await view.GetTextAsync();
+                // The text and generation must still be ours. This preserves
+                // clipboard content copied by the user after a secret copy.
+                if (generation == _clipboardGeneration && ClipboardOwnership.CanClearText(ownedText, currentText))
+                    Clipboard.Clear();
+            }
         }
         catch { }
-        _lastCopied = null;
+        finally
+        {
+            if (generation == _clipboardGeneration) _lastCopied = null;
+        }
     }
 
     // ── Add / edit / delete groups & entries ─────────────────────────────────
