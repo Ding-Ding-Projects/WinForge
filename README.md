@@ -496,3 +496,9 @@ literal；forced self-contained publish 同新鮮 `--page` retest 全部 6 條 r
 Made with WinUI 3 · 用 WinUI 3 製作 · `English + 繁體中文／粵語`
 
 </div>
+
+## Theme Contrast · 深淺色對比
+
+**EN —** WinForge's shared reactor accent is theme-aware: Dark mode keeps the vivid green on dark surfaces, while Light mode uses a darker accessible green for text, links, focus rings, status dots, and accent controls. Brand-filled cards automatically switch to white foreground text, and the primary/secondary/tertiary text ramps remain legible in either mode.
+
+**粵語 —** WinForge 共用反應堆強調色會跟主題調整：深色模式會保留深色表面上嘅鮮綠色；淺色模式就會用對比更高嘅深綠色顯示文字、連結、焦點圈、狀態圓點同強調控制項。品牌色卡片會自動轉用白色前景文字，而且主要／次要／第三層文字喺兩個模式都保持清楚易讀。

@@ -42,8 +42,8 @@
                     BorderBrush="#4054E07E"
                     BorderThickness="1">
                     <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                        <Ellipse x:Name="ReactorPillDot" Width="6" Height="6" Fill="{StaticResource WinForgeBrandBrush}" />
-                        <TextBlock x:Name="ReactorPillText" Text="REACTOR" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource WinForgeBrandBrush}" />
+                        <Ellipse x:Name="ReactorPillDot" Width="6" Height="6" Fill="{ThemeResource WinForgeBrandBrush}" />
+                        <TextBlock x:Name="ReactorPillText" Text="REACTOR" FontSize="10.5" FontWeight="SemiBold" Foreground="{ThemeResource WinForgeBrandBrush}" />
                     </StackPanel>
                 </Border>
             </TitleBar.Content>
