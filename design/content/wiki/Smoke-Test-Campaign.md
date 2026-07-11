@@ -1064,5 +1064,63 @@ evidence 去到 **323 條 routes 入面頭 250 條**。
 **專注證據：** `tests/RegexCheatService.Tests` **3/3** 通過，`tests/ReactorSettingsLifecycle.Tests` 都 **3/3** 通過。後者係 source-level 同 headless：佢證明得一個 timer attach、`OnLoaded` 冇 attach、具名語言訂閱平衡、unload 時 timer 會停，同埋每次 timer event 只 refresh 一次 API。Debug x64 solution build 以 **0 errors**（318 個既有 warnings）通過，XAML literal-safety guard 亦通過。
 
 **啟動／截圖證據：** 新鮮 self-contained `regexcheat` 同 `reactorsettings` 15 秒 `driver.ps1 -Out` 嘗試都去到 capture 路徑，但同樣失敗：`CopyFromScreen` 唔可用、`PrintWindow` fallback 產生 uniform frame，而呢個 desktop session 嘅 graphics capture 亦唔可用。冇 PNG 產生、檢查、替換或者重用；兩頁都係 `capture-blocked`，絕對唔係 visual-pass。之後兩個 route 都以 `-NoCapture` 通過，而過程冇操作控制項。之前嘅 Reactor Settings 圖片已移除，唔會當成最新證據展示。
+## Launch-only Batch 11 · 第十一批淨啟動測試
+
+**EN —** The isolated Batch 11 inventory records **323 routes**, **805 deep-link
+aliases**, 1,280 source-review files, 347,984 source lines, 12 test projects, and no
+routing issue or unmapped alias. It covers launchable indices 250–274: shortid,
+slugify, smelter, sqlformat, sqlitebrowser, ssh, startup, steelmill, stringcompare,
+stringinspector, subnetcalc, subnetv6, symbols, tableformat, tallycounter,
+taskbar-tweaker, tasks, terminal, testdisk, textcolumns, textdiff, textescape,
+textocr, textredact, and textreplace. The corrected local batch runner used its
+5-second/15-second protocol and finished **25/25 launch-pass**, all at the first
+five-second attempt with no retry or failure. Raw manifests, logs, and source-review
+tables remain ignored under `artifacts/smoke/batch11/`. This is an independently
+numbered slice; contiguous coverage depends on the companion Batch 10 range 225–249,
+not on a shortcut in this report.
+
+**Static/source and safety evidence · 靜態／來源同安全證據：** The 25 route
+registrations, navigation tags, MapType registrations, and deep-link aliases came from
+the generated manifest. All **171** declared XAML handlers resolve in their matching
+code-behind; `Loc.I.LanguageChanged` subscription counts are balanced; and direct scope
+has no TODO, FIXME, or `NotImplementedException` marker. The literal-safety guard
+passed, and the Debug x64 solution build completed with **0 errors**. This does not
+claim behavior or live side effects: SQLite changes, SSH/network activity, Startup and
+Taskbar registry changes, Scheduled Tasks, Terminal launches, TestDisk recovery, OCR,
+clipboard, and file writes were intentionally not executed without a disposable target
+and explicit authorization.
+
+**Visual evidence · 視覺證據：** A fresh self-contained
+`driver.ps1 -Page shortid -Out artifacts/smoke/batch11/screenshots/shortid-default.png -WaitMs 5000`
+attempt reached the page but could not capture it. `CopyFromScreen` was unavailable;
+the `PrintWindow` fallback produced a uniform frame and stopped with `graphics capture
+is unavailable in this desktop session`. No PNG was created, inspected, replaced, or
+reused. Batch 11 is `capture-blocked`, never visual-pass.
+
+**粵語 —** 隔離嘅 Batch 11 inventory 記錄咗 **323 條 routes**、**805 個 deep-link
+aliases**、1,280 個 source-review files、347,984 行 source 同 12 個 test projects，
+冇 routing issue 或 unmapped alias。佢覆蓋 indices 250–274：shortid、slugify、smelter、
+sqlformat、sqlitebrowser、ssh、startup、steelmill、stringcompare、stringinspector、
+subnetcalc、subnetv6、symbols、tableformat、tallycounter、taskbar-tweaker、tasks、
+terminal、testdisk、textcolumns、textdiff、textescape、textocr、textredact 同 textreplace。
+修正後嘅 local batch runner 用 5 秒／15 秒 protocol，最後係 **25/25 launch-pass**；
+全部第一次五秒已通過，冇 retry 同 failure。原始 manifest、logs 同 source-review tables
+留喺 Git 忽略嘅 `artifacts/smoke/batch11/`。呢個係獨立編號嘅 slice；連續 coverage 要連
+同 Batch 10 嘅 225–249 範圍一齊睇，唔可以由呢份報告走捷徑。
+
+**靜態／來源同安全證據 · Static/source and safety evidence：** 呢 25 條 route 嘅
+registration、navigation tags、MapType registrations 同 deep-link aliases 全部由 generated
+manifest 盤點。全部 **171** 個 XAML handlers 都喺相應 code-behind resolve；
+`Loc.I.LanguageChanged` 訂閱數量平衡；direct scope 冇 TODO、FIXME 或
+`NotImplementedException` marker。literal-safety guard 通過，而 Debug x64 solution build
+以 **0 errors** 完成。呢個唔聲稱行為或者 live side effects：SQLite 變更、SSH／網絡活動、
+Startup 同 Taskbar 登錄檔變更、Scheduled Tasks、Terminal launches、TestDisk recovery、OCR、
+clipboard 同 file writes，冇 disposable target 同明確授權下都刻意冇執行。
+
+**視覺證據 · Visual evidence：** 新嘅 self-contained
+`driver.ps1 -Page shortid -Out artifacts/smoke/batch11/screenshots/shortid-default.png -WaitMs 5000`
+嘗試有開到頁面，但攞唔到 capture。`CopyFromScreen` 唔可用；`PrintWindow` fallback
+產生 uniform frame，然後以 `graphics capture is unavailable in this desktop session` 停止。
+冇 PNG 產生、檢查、替換或者重用。Batch 11 係 `capture-blocked`，絕對唔係 visual-pass。
 
 [← Wiki Home](Home.md) · [Developer](Developer.md) · [Screenshots](Screenshots.md)

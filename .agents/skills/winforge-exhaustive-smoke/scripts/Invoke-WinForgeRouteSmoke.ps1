@@ -144,7 +144,14 @@ if ($RouteId -and $RouteId.Count -gt 0) {
     $candidates = @($candidates | Where-Object { $requestedIds -contains $_.id })
 }
 
-$skipped = @($candidates | Where-Object { [string]::IsNullOrWhiteSpace($_.alias) })
+# Numeric batches are indexed over launchable routes only.  Do not append every
+# unrelated no-alias route (for example shell.allapps) to each batch's results:
+# preserve a skipped row only when the caller explicitly requested that route.
+$skipped = @(
+    $candidates |
+        Where-Object { [string]::IsNullOrWhiteSpace($_.alias) } |
+        Where-Object { $requestedIds.Count -gt 0 -and $requestedIds -contains $_.id }
+)
 $runnable = @($candidates | Where-Object { -not [string]::IsNullOrWhiteSpace($_.alias) })
 if ($StartIndex -lt 0 -or $StartIndex -ge $runnable.Count) {
     throw "StartIndex $StartIndex is outside the $($runnable.Count) launchable routes."
