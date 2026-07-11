@@ -10,6 +10,7 @@ WinForge is a **.NET (net11.0-windows) WinUI 3 desktop app** (`WinForge.csproj`,
 > Why a self-contained publish + self-capture? A plain `dotnet build` produces a **framework-dependent** exe that, with no matching desktop runtime here, just shows a *"You must install or update .NET"* dialog. And the app is **not a Start-menu app**, so desktop/computer-use screenshot tools can't target its window — the driver's `CopyFromScreen` is the reliable capture path.
 
 ## Prerequisites
+- In this workspace, the driver automatically selects USERPROFILE\.dotnet\dotnet.exe when it exposes a .NET 11 SDK. The machine-wide dotnet command can resolve to an older SDK, so direct net11 app build/publish commands must set DOTNET_ROOT to USERPROFILE\.dotnet and prepend that directory to PATH. The ReactorSim focused harness targets net8.0-windows; clear DOTNET_ROOT before running it so its installed net8 runtime remains visible.
 - .NET SDK with WinUI/Windows App SDK support (this repo built on .NET 11 SDK; `dotnet --version` → `11.0.100-preview...`). No extra OS packages needed on Windows.
 
 ## Build (compile check)
@@ -20,6 +21,7 @@ Builds clean (0 errors). This only *compiles* — it does not produce a runnable
 
 ## Run (agent path) — the driver
 One command builds-if-needed, launches a page, and screenshots it:
+For a non-visual route smoke check in a capture-blocked desktop session, add -NoCapture. It waits for the dedicated process window without foregrounding it, prints launch-only evidence, and cleans up only that process.
 ```bash
 powershell -ExecutionPolicy Bypass -File .agents/skills/run-winforge/driver.ps1 -Page monitor -Out shot.png
 ```
@@ -37,6 +39,7 @@ The published exe lands at `bin/x64/Debug/net11.0-windows10.0.26100.0/win-x64/pu
 ## Direct invocation — reactor engine tests (no GUI)
 The reactor physics/services run headless via a console harness (no WinUI):
 ```bash
+Remove-Item Env:DOTNET_ROOT -ErrorAction SilentlyContinue
 dotnet run --project tests/ReactorSim.Tests -c Debug
 ```
 Prints a per-scenario PASS/FAIL table (currently **63/63** across reactor physics, accident injection, fuel/waste/water services, reactor-dependent apps, and the cake-factory dependency chain). It includes a sustained high-power thermal-equilibrium regression. Use this for changes that touch reactor internals or reactor-dependent services — far faster than launching the GUI.
@@ -45,6 +48,8 @@ Prints a per-scenario PASS/FAIL table (currently **63/63** across reactor physic
 `WinForge.exe` with no args opens the Dashboard and waits — useless headless, and the plain Debug exe needs the self-contained publish first. Use the driver instead.
 
 ## Gotchas
+- **Capture must stay process-owned** — the driver launches and cleans up only its own WinForge process; it never terminates or captures another task's instance. If an existing instance intercepts the launch, close only the instance you own or use an isolated desktop session.
+- **Capture can be environment-blocked** — if CopyFromScreen reports an invalid handle or Windows.Graphics.Capture cannot capture the monitor, record the exact failure as capture-blocked. Do not reuse a stale image or claim a visual pass.
 - **Framework-dependent build won't run** → it pops a *"install .NET"* dialog. Always run/launch the **self-contained publish** exe (the driver does this).
 - **App not in the Start menu** → computer-use / desktop screenshot tools mask it. The driver captures via `CopyFromScreen` over the DWM extended-frame bounds (attribute `9`) — accurate and shadow-excluded.
 - **`--page` is reliable; bare `--reactor` is not** — with a restored multi-tab session, `--reactor` can land on the Dashboard. Always prefer `--page reactor`.

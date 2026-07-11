@@ -196,5 +196,8 @@ An exhaustive smoke campaign is complete only when:
 
 - [scripts/New-WinForgeSmokeInventory.ps1](scripts/New-WinForgeSmokeInventory.ps1)
   extracts a route/page/control inventory into a repeatable manifest.
+- [scripts/Invoke-WinForgeRouteSmoke.ps1](scripts/Invoke-WinForgeRouteSmoke.ps1)
+  launches manifest routes in safe, isolated, no-capture batches when visual
+  capture is blocked.
 - [references/coverage-schema.md](references/coverage-schema.md) defines the
   ledger states and required evidence.

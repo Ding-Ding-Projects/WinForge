@@ -63,6 +63,12 @@ ignored by Git until selected evidence is intentionally promoted to docs.
 
 - Repository-local WinForge Exhaustive Smoke skill structure: valid.
 - Inventory extractor: completed successfully with the snapshot above.
+- Full Debug x64 solution build with the local .NET 11 SDK: passed with 0 errors; the current compiler reported 318 warnings.
+- ReactorSim headless scenarios: 63/63 passed with the installed net8 runtime.
+- Package-manager core tests: 21/21 passed with the local .NET 11 SDK.
+- Companion build-log tests: 4/4 passed with the installed net8 runtime.
+- Launch-only route-smoke pilot: Dashboard and Nuclear Reactor reached dedicated launched windows, 2/2 passed. This proves process-level route launch only, not visual or behavioral completion.
+- Dashboard capture is currently capture-blocked in this desktop session: the self-contained publish completed, then CopyFromScreen returned The handle is invalid. A passive Windows.Graphics.Capture retry also failed with IGraphicsCaptureItemInterop.CreateForMonitor error 0x80070057. No visual-pass result is claimed.
 - No WinForge visual surface changed while this verification infrastructure was
   introduced, so this baseline claims no new visual-pass result.
 

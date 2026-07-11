@@ -14,6 +14,8 @@ WinForge (a.k.a. 視窗調校) is an all-in-one, **fully bilingual (English + �
 - **Reactor/dependent headless tests:** `dotnet run --project tests/ReactorSim.Tests -c Debug` (**63/63**).
 - The app is NOT a Start-menu app, so desktop/computer-use screenshot tools mask it — capture via the driver (DWM bounds + `CopyFromScreen`).
 
+- **SDK selection in this workspace:** the WinForge app build/publish targets .NET 11. The machine-wide dotnet command can resolve to SDK 10; before direct app build or publish commands set DOTNET_ROOT to USERPROFILE\.dotnet and prepend it to PATH, or invoke USERPROFILE\.dotnet\dotnet.exe directly. The run-winforge driver performs this selection automatically. The ReactorSim focused harness targets net8.0-windows, so run it with the system dotnet/runtime or clear DOTNET_ROOT first.
+
 ## Architecture & conventions (follow these)
 - **Add a module = touch 4 places:** `Pages/<X>Module.xaml(.cs)` (class `<X>Module : Page`, namespace `WinForge.Pages`) + logic in `Services/<X>Service.cs`; then register in **(1)** `Services/ModuleRegistry.cs` (Tag `module.xxx`, En, Zh, Glyph, Keywords), **(2)** `MainWindow.xaml.cs` `MapType()` (tag→type), **(3)** `MainWindow.xaml.cs` `ApplyStartPage()` (deep-link aliases for `--page`), **(4)** `MainWindow.xaml` `NavigationViewItem`.
 - **Language modes:** all user-facing strings use `Models/Core.cs` `LocalizedText(en, zh)` or `Services/Loc.cs` `Loc.I.Pick(en, zh)`. Cantonese (粵語), not Mandarin. The UI supports Bilingual, Cantonese, and English modes.

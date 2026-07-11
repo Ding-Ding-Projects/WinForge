@@ -55,6 +55,10 @@
 **粵語 —** 需求：**.NET 11 SDK** 同 **Windows App SDK** 工作負載（Visual Studio 2022 加 *.NET 桌面* + *Windows App SDK*，或者淨係裝 SDK）。建置成個方案：
 
 ```powershell
+# Select the required .NET 11 SDK when the machine-wide dotnet command is older.
+$env:DOTNET_ROOT = "$env:USERPROFILE\.dotnet"
+$env:PATH = "$env:DOTNET_ROOT;$env:PATH"
+
 # Build the solution (Debug, x64) · 建置方案（Debug、x64）
 dotnet build WinForge.sln -c Debug -p:Platform=x64
 ```
