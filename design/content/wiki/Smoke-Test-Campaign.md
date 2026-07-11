@@ -321,6 +321,80 @@ desktop-session 截圖 fallback 都仲係用唔到，因此呢批嘅視覺證據
 `capture-blocked`：冇建立或替換截圖，亦唔會聲稱 visual pass。頁面 actions 有意
 冇執行；呢批只係 route-launch 證據。依家 campaign 對 321 條 manifest routes
 入面頭 125 條有 current process-level launch 證據。
+
+## Launch-only Batch 06 · 第六批淨啟動測試
+
+**EN —** On 2026-07-11, a freshly generated 321-route / 785-alias manifest
+reported no structural routing mismatch. Its launchable-route indices 125–149
+were then exercised with the isolated 5-second/15-second protocol. All 25
+routes finished `launch-pass`: `h2plant`, `habittracker`, `haranalyzer`,
+`hasher`, `headerscore`, `hexdump`, `hexeditor`, `homeassistant`, `hosts`,
+`hostsedit`, `hotkeys`, `hpc`, `htmlentities`, `htmlformat`, `htmlpreview`,
+`htmltable`, `htmltomd`, `httpheaderref`, `httpheaders`, `httpstatus`,
+`icalendar`, `imageeditor`, `imaging`, `imgbase64`, and `iniedit`.
+`h2plant` did not expose its dedicated window within the initial 5-second
+observation during the first self-contained-publish run (exit 1), then passed
+the required 15-second retry; a focused post-publish 5-second `-NoCapture`
+retest also passed. The other 24 routes passed on their first attempt. Exact
+launch logs and manifest output are retained under the ignored
+`artifacts/smoke/launch-batches/batch-06/` and
+`artifacts/smoke/baseline-batch06/` directories.
+
+**Source-review and safety evidence · 來源審查同安全證據：** The direct XAML,
+code-behind, and service scope for all 25 routes was reviewed. All 206 XAML
+event-handler references resolve; every page balances its `LanguageChanged`
+subscription; the XAML literal-safety guard passed with all 16 protected
+managed defaults; and no direct-scope `TODO`, `FIXME`, or
+`NotImplementedException` marker was found. Home Assistant, Header/HTTP
+lookups, hosts editing, file writes, hotkey process launches, imaging/USB
+actions, and other stateful or external actions were intentionally not invoked
+without a disposable target and explicit authorization. A full Debug x64
+solution build passed with 0 errors. This is static, build, and route-launch
+evidence only—not behavioral or live-side-effect completion.
+
+**Visual evidence · 視覺證據：** A fresh 15-second H2 Plant `driver.ps1 -Out`
+attempt reached the dedicated page window but `CopyFromScreen` returned `The
+handle is invalid`, producing no PNG. A `WinForgeShot` `PrintWindow` fallback
+attempt launched the same page but stopped with `ERROR: bad window rect`; the
+previous direct `PrintWindow(PW_RENDERFULLCONTENT)` probe remains uniformly
+black and is not valid visual evidence. Therefore Batch 06 is
+`capture-blocked`: no screenshot was created or replaced, and no visual-pass
+claim is made. The batch brings current process-level route-launch evidence to
+the first 150 of 321 manifest routes.
+
+**粵語 —** 2026-07-11 新產生嘅 321-route／785-alias manifest 冇報 structural
+routing mismatch。之後用獨立 5 秒／15 秒 protocol 測咗 launchable-route
+indices 125–149。25 條都最終 `launch-pass`：`h2plant`、`habittracker`、
+`haranalyzer`、`hasher`、`headerscore`、`hexdump`、`hexeditor`、
+`homeassistant`、`hosts`、`hostsedit`、`hotkeys`、`hpc`、`htmlentities`、
+`htmlformat`、`htmlpreview`、`htmltable`、`htmltomd`、`httpheaderref`、
+`httpheaders`、`httpstatus`、`icalendar`、`imageeditor`、`imaging`、
+`imgbase64` 同 `iniedit`。第一次 self-contained-publish run 入面，`h2plant`
+喺初始 5 秒 observation 未顯示到自己嘅 dedicated window（exit 1），之後通過咗
+required 15 秒 retry；發佈完成後再用 5 秒 `-NoCapture` focused retest 都通過。
+其餘 24 條全部第一次通過。確實 launch log 同 manifest output 保留喺 Git 忽略嘅
+`artifacts/smoke/launch-batches/batch-06/` 同
+`artifacts/smoke/baseline-batch06/` 目錄。
+
+**來源審查同安全證據 · Source-review and safety evidence：** 已審查 25 條 route
+直屬嘅 XAML、code-behind 同 service scope。206 個 XAML event-handler reference
+全部 resolve；每頁嘅 `LanguageChanged` subscription 都有對應解除；XAML
+literal-safety guard 連 16 個受保護嘅 managed default 都通過；direct scope 冇搵到
+`TODO`、`FIXME` 或 `NotImplementedException` marker。Home Assistant、
+Header／HTTP lookup、hosts editing、file write、hotkey process launch、
+imaging／USB action 同其他 stateful 或 external action，冇 disposable target 同
+明確授權下有意唔執行。完整 Debug x64 solution build 以 0 errors 通過。呢啲只係
+static、build 同 route-launch 證據，唔係 behavioral 或 live-side-effect completion。
+
+**視覺證據 · Visual evidence：** 最新 15 秒 H2 Plant `driver.ps1 -Out` 嘗試有
+開到 dedicated page window，但 `CopyFromScreen` 回傳 `The handle is invalid`，
+所以冇 PNG。`WinForgeShot` 嘅 `PrintWindow` fallback 嘗試都有開同一頁，但
+`ERROR: bad window rect` 就停咗；之前 direct
+`PrintWindow(PW_RENDERFULLCONTENT)` probe 仍然只係 uniform-black，唔係有效視覺
+證據。所以 Batch 06 係 `capture-blocked`：冇建立或替換截圖，亦唔會聲稱
+visual-pass。依家 campaign 對 321 條 manifest routes 入面頭 150 條有 current
+process-level route-launch 證據。
+
 ## Reactor Harness Exit-Code Gate · 反應堆測試框架退出碼閘門
 
 **EN —** On 2026-07-11 the focused `ReactorSim.Tests` console harness was changed from a reporting-only summary to a CI gate. It now prints the existing per-scenario result and summary, returns **0 only for a complete pass**, and returns **1** if any scenario fails or throws. The fast `--verify-exit-code-contract` mode checks the all-pass and partial-failure mappings without running simulator scenarios.
