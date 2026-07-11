@@ -107,13 +107,31 @@ powershell -ExecutionPolicy Bypass -File .agents\skills\winforge-exhaustive-smok
 - Package-manager core tests: 21/21 passed with the local .NET 11 SDK.
 - Companion build-log tests: 4/4 passed with the installed net8 runtime.
 - Launch-only route-smoke pilot: Dashboard and Nuclear Reactor reached dedicated launched windows, 2/2 passed. This proves process-level route launch only, not visual or behavioral completion.
-- Dashboard capture is currently capture-blocked in this desktop session: the self-contained publish completed, then CopyFromScreen returned The handle is invalid. A passive Windows.Graphics.Capture retry also failed with IGraphicsCaptureItemInterop.CreateForMonitor error 0x80070057. No visual-pass result is claimed.
-- A direct window-render fallback was also probed with
-  `PrintWindow(PW_RENDERFULLCONTENT)`: it returned success but produced a
-  uniform-black 1399×876 bitmap (one sampled colour), so it is not valid visual
-  evidence either. 呢個 desktop session 亦試過直接 window-render fallback
-  `PrintWindow(PW_RENDERFULLCONTENT)`：雖然回傳成功，但只產生全黑
-  1399×876 bitmap（抽樣得一種顏色），同樣唔係有效嘅視覺證據。
+- Dashboard capture is currently capture-blocked in this desktop session: a
+  fresh self-contained `CopyFromScreen` attempt reproduced `The handle is
+  invalid`. A prior passive monitor retry also failed with
+  `IGraphicsCaptureItemInterop.CreateForMonitor` error `0x80070057`. No
+  visual-pass result is claimed.
+- A direct window-render fallback was re-probed with
+  `PrintWindow(PW_RENDERFULLCONTENT)`: it returned success but the inspected
+  682×1311 PNG was uniformly `ARGB #FF000000` across 3,198 sampled pixels.
+  It is therefore not valid visual evidence. 呢個 desktop session 再試咗直接
+  window-render fallback `PrintWindow(PW_RENDERFULLCONTENT)`：雖然回傳成功，
+  但已檢查嘅 682×1311 PNG 喺 3,198 個抽樣像素都係同一隻
+  `ARGB #FF000000`，同樣唔係有效嘅視覺證據。
+- A minimal Windows.Graphics.Capture `CreateForWindow` probe compiled and
+  created items for the launched WinForge HWND (668×1304) and a separate owned
+  coloured WinForms diagnostic HWND (706×473). In both cases,
+  `Direct3D11CaptureFramePool.CreateFreeThreaded` delivered no `FrameArrived`
+  callback in 12 seconds, so it emitted no PNG. This proves a desktop-session
+  frame-delivery block rather than a missing projection/runtime API; do not
+  wire this unverified fallback into the driver. 最小化嘅
+  Windows.Graphics.Capture `CreateForWindow` probe 可以編譯，亦為已開嘅
+  WinForge HWND（668×1304）同另一個自有有色 WinForms 診斷 HWND（706×473）
+  建立到 item；但兩個 `Direct3D11CaptureFramePool.CreateFreeThreaded` 喺 12 秒
+  內都冇 `FrameArrived` callback，亦冇輸出 PNG。呢個證明係 desktop-session
+  frame-delivery 阻礙，唔係 projection/runtime API 缺失；未驗證成功前唔好將呢個
+  fallback 接入 driver。
 - No WinForge visual surface changed while this verification infrastructure was
   introduced, so this baseline claims no new visual-pass result.
 
