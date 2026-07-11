@@ -7,7 +7,10 @@ param(
     [string]$OutputDirectory,
 
     [Parameter()]
-    [int]$WaitMs = 2500,
+    [int]$WaitMs = 5000,
+
+    [Parameter()]
+    [int]$RetryWaitMs = 15000,
 
     [Parameter()]
     [int]$StartIndex = 0,
@@ -56,6 +59,36 @@ function Select-CanonicalAlias {
     return $aliases[0]
 }
 
+function Invoke-DriverLaunchAttempt {
+    param(
+        [Parameter(Mandatory = $true)][string]$DriverPath,
+        [Parameter(Mandatory = $true)][string]$Alias,
+        [Parameter(Mandatory = $true)][int]$AttemptWaitMs
+    )
+
+    $previousErrorActionPreference = $ErrorActionPreference
+    try {
+        # A failed child route must become ledger evidence, not abort an entire
+        # batch through PowerShell's native-command error promotion.
+        $ErrorActionPreference = 'Continue'
+        $output = @(& powershell -NoProfile -ExecutionPolicy Bypass -File $DriverPath -Page $Alias -NoCapture -WaitMs $AttemptWaitMs 2>&1)
+        $exitCode = $LASTEXITCODE
+    }
+    catch {
+        $output = @($_)
+        $exitCode = 1
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+
+    return [pscustomobject]@{
+        waitMs = $AttemptWaitMs
+        exitCode = $exitCode
+        output = @($output)
+    }
+}
+
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..\..')).Path
 $manifestFile = Resolve-FromRepo -Path $ManifestPath -Root $repoRoot
 if (-not (Test-Path -LiteralPath $manifestFile -PathType Leaf)) {
@@ -74,6 +107,12 @@ New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
 $driver = Join-Path $repoRoot '.agents\skills\run-winforge\driver.ps1'
 if (-not (Test-Path -LiteralPath $driver -PathType Leaf)) {
     throw "run-winforge driver was not found: $driver"
+}
+if ($WaitMs -lt 1) {
+    throw 'WaitMs must be at least 1.'
+}
+if ($RetryWaitMs -lt 0) {
+    throw 'RetryWaitMs cannot be negative.'
 }
 
 $manifest = Get-Content -LiteralPath $manifestFile -Raw | ConvertFrom-Json
@@ -123,23 +162,30 @@ for ($index = 0; $index -lt $batch.Count; $index++) {
     $startedUtc = (Get-Date).ToUniversalTime().ToString('o')
     Write-Progress -Activity 'WinForge route launch smoke' -Status "$($index + 1)/$($batch.Count): $($item.id)" -PercentComplete ((($index + 1) / $batch.Count) * 100)
 
-    $previousErrorActionPreference = $ErrorActionPreference
-    try {
-        # A failed child route must become a ledger row, not abort the whole
-        # batch through PowerShell's native-command error promotion.
-        $ErrorActionPreference = 'Continue'
-        $output = @(& powershell -NoProfile -ExecutionPolicy Bypass -File $driver -Page $item.alias -NoCapture -WaitMs $WaitMs 2>&1)
-        $exitCode = $LASTEXITCODE
+    $attempts = @(
+        Invoke-DriverLaunchAttempt -DriverPath $driver -Alias $item.alias -AttemptWaitMs $WaitMs
+    )
+    if ($attempts[0].exitCode -ne 0 -and $RetryWaitMs -gt $WaitMs) {
+        $attempts += Invoke-DriverLaunchAttempt -DriverPath $driver -Alias $item.alias -AttemptWaitMs $RetryWaitMs
     }
-    catch {
-        $output = @($_)
-        $exitCode = 1
-    }
-    finally {
-        $ErrorActionPreference = $previousErrorActionPreference
-    }
-    $text = ($output | Out-String).TrimEnd()
+
+    $finalAttempt = $attempts[$attempts.Count - 1]
+    $retried = $attempts.Count -gt 1
+    $text = @(
+        for ($attemptIndex = 0; $attemptIndex -lt $attempts.Count; $attemptIndex++) {
+            $attempt = $attempts[$attemptIndex]
+            "===== attempt $($attemptIndex + 1) / $($attempts.Count); wait=$($attempt.waitMs) ms; exit=$($attempt.exitCode) ====="
+            ($attempt.output | Out-String).TrimEnd()
+        }
+    ) -join [Environment]::NewLine
     $text | Set-Content -LiteralPath $logPath -Encoding UTF8
+
+    $evidencePrefix = if ($item.kind -eq 'shell-dialog') {
+        "launch-only shell dialog route; expected=$($item.expectedSurface)"
+    }
+    else {
+        'launch-only driver'
+    }
 
     $results += [pscustomobject]@{
         id = $item.id
@@ -150,14 +196,18 @@ for ($index = 0; $index -lt $batch.Count; $index++) {
         source = $item.source
         staticRouting = $item.staticRouting
         startedUtc = $startedUtc
-        waitMs = $WaitMs
-        exitCode = $exitCode
-        status = if ($exitCode -eq 0) { 'launch-pass' } else { 'failed' }
-        evidence = if ($item.kind -eq 'shell-dialog') {
-            "launch-only shell dialog route; expected=$($item.expectedSurface); log=$([System.IO.Path]::GetFileName($logPath))"
+        waitMs = $finalAttempt.waitMs
+        initialWaitMs = $attempts[0].waitMs
+        retryWaitMs = if ($retried) { $finalAttempt.waitMs } else { $null }
+        attemptCount = $attempts.Count
+        initialExitCode = $attempts[0].exitCode
+        exitCode = $finalAttempt.exitCode
+        status = if ($finalAttempt.exitCode -eq 0) { 'launch-pass' } else { 'failed' }
+        evidence = if ($retried) {
+            "$evidencePrefix; initial exit=$($attempts[0].exitCode) at $($attempts[0].waitMs)ms; retry exit=$($finalAttempt.exitCode) at $($finalAttempt.waitMs)ms; log=$([System.IO.Path]::GetFileName($logPath))"
         }
         else {
-            "launch-only driver; log=$([System.IO.Path]::GetFileName($logPath))"
+            "$evidencePrefix; log=$([System.IO.Path]::GetFileName($logPath))"
         }
         log = [System.IO.Path]::GetFileName($logPath)
     }
@@ -175,6 +225,10 @@ foreach ($item in $skipped) {
         staticRouting = $item.staticRouting
         startedUtc = $null
         waitMs = 0
+        initialWaitMs = 0
+        retryWaitMs = $null
+        attemptCount = 0
+        initialExitCode = $null
         exitCode = $null
         status = 'not-launchable'
         evidence = 'No ApplyStartPage alias was discovered; inspect routing manually.'
@@ -189,6 +243,7 @@ $results | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $resultsPath -Enco
 $results | Export-Csv -LiteralPath $csvPath -NoTypeInformation -Encoding UTF8
 
 $passed = @($results | Where-Object { $_.status -eq 'launch-pass' }).Count
+$passedAfterRetry = @($results | Where-Object { $_.status -eq 'launch-pass' -and $_.attemptCount -gt 1 }).Count
 $failed = @($results | Where-Object { $_.status -eq 'failed' }).Count
 $notLaunchable = @($results | Where-Object { $_.status -eq 'not-launchable' }).Count
 $summary = @(
@@ -196,11 +251,13 @@ $summary = @(
     '',
     "Manifest: $manifestFile",
     "Batch: launchable routes $StartIndex through $($StartIndex + $batch.Count - 1)",
-    "Wait per route: $WaitMs ms",
+    "Initial wait per route: $WaitMs ms",
+    "Retry wait after a nonzero route exit: $(if ($RetryWaitMs -gt $WaitMs) { "$RetryWaitMs ms" } else { 'disabled' })",
     '',
     '## Results',
     '',
     "| Launch pass | $passed |",
+    "| Launch pass after retry | $passedAfterRetry |",
     "| Failed | $failed |",
     "| Not launchable from a discovered alias | $notLaunchable |",
     '',

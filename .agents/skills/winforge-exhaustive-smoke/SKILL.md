@@ -212,7 +212,9 @@ An exhaustive smoke campaign is complete only when:
   extracts a route/page/control inventory into a repeatable manifest.
 - [scripts/Invoke-WinForgeRouteSmoke.ps1](scripts/Invoke-WinForgeRouteSmoke.ps1)
   launches manifest routes in safe, isolated, no-capture batches when visual
-  capture is blocked.
+  capture is blocked. It records a bounded, longer retry after a nonzero
+  launch result so slow first renders are evidence rather than silent false
+  failures.
 - [scripts/Test-WinForgeShellAllAppsRoute.ps1](scripts/Test-WinForgeShellAllAppsRoute.ps1)
   validates the direct All Apps modal route with UI Automation.
 - [references/coverage-schema.md](references/coverage-schema.md) defines the
