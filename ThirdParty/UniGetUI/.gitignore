@@ -1,0 +1,99 @@
+/.vscode/
+src/.vscode/
+"UniGetUI Store.exe"
+UniGetUI Store Installer.exe
+UniGetUI Installer.exe
+WingetUI Installer.exe
+UniGetUI Store.exe
+UniGetUI.exe
+installer.iss
+output/
+/artifacts/
+*.old
+vcredist.exe
+unigetui_bin/
+APIKEY.txt
+*.pyc
+WebBasedData/new_urls.txt
+WebBasedData/screenshot-database.json.backup
+pr_body.md
+*.log
+UniGetUI/wingettest.py
+*.nupkg
+
+wui-1.7.0-console.zip
+wui1.7.0-debug2.zip
+env/
+.vs/*
+dllexp.exe
+sign.cmd.lnk
+src/packages/
+
+src/UniGetUI/bin
+src/UniGetUI/obj
+
+src/WindowsPackageManager.Interop/bin
+src/WindowsPackageManager.Interop/obj
+src/WindowsPackageManager.Interop/out
+src/WindowsPackageManager.Interop/outpublish
+
+src/UniGetU*/bin
+src/UniGetU*/obj
+src/UniGetU*/out
+src/UniGetU*/outpublish
+
+src/UniGetUI.Pinget.Cli/bin
+src/UniGetUI.Pinget.Cli/obj
+
+src/ExternalLibraries.*/bin
+src/ExternalLibraries.*/obj
+src/ExternalLibraries.*/out
+src/ExternalLibraries.*/outpublish
+
+src/.vs
+src/.vscode
+new-names.docx
+
+src/UniGetUI/choco-cli/logs/
+src/UniGetUI/choco-cli/lib/
+src/UniGetUI/choco-cli/lib-bad/
+src/UniGetUI/choco-cli/.chocolatey/
+src/UniGetUI/choco-cli/lib/chocolatey-compatibility.extension/*
+src/UniGetUI/choco-cli/extensions/chocolatey-core/*
+src/UniGetUI/choco-cli/extensions/chocolatey-compatibility/*
+src/UniGetUI/choco-cli/lib-bkp/
+src/UniGetUI/choco-cli/extensions/chocolatey-windowsupdate/*
+src/UniGetUI/choco-cli/bin/chocolatey.exe
+src/UniGetUI/choco-cli/redirects/chocolatey.exe
+src/UniGetUI/choco-cli/redirects/chocolatey.exe.ignore
+src/UniGetUI/choco-cli/redirects/cinst.exe
+src/UniGetUI/choco-cli/redirects/cinst.exe.ignore
+src/UniGetUI/choco-cli/redirects/clist.exe
+src/UniGetUI/choco-cli/redirects/clist.exe.ignore
+src/UniGetUI/choco-cli/redirects/cpush.exe
+src/UniGetUI/choco-cli/redirects/cpush.exe.ignore
+src/UniGetUI/choco-cli/redirects/cuninst.exe
+src/UniGetUI/choco-cli/redirects/cuninst.exe.ignore
+src/UniGetUI/choco-cli/redirects/cup.exe
+src/UniGetUI/choco-cli/redirects/cup.exe.ignore
+src/UniGetUI/choco-cli/bin/ssh-copy-id.exe
+src/UniGetUI/choco-cli/extensions/chocolatey-visualstudio/
+src/UniGetUI/choco-cli/extensions/chocolatey-dotnetfx/
+
+*.user
+/src/UniGetUI/Generated Files
+/src/UniGetUI.Avalonia/Infrastructure/Generated Files
+/InstallerExtras/MsiCreator/.vs/MsiInstallerWrapper/CopilotIndices
+/InstallerExtras/MsiCreator/.vs
+InstallerExtras/MsiCreator/setup.exe
+InstallerExtras/MsiCreator/UniGetUI Installer.msi
+InstallerExtras/MsiCreator/UniGetUISetup.msi
+UniGetUI.Installer.ms-store-test.exe
+UniGetUI Installer_winget-fix-test.exe
+InstallerExtras/uninst-*.e32
+src/.idea/
+src/UniGetUI.v3.ncrunchsolution
+
+# macOS Finder metadata
+.DS_Store
+/src/UniGetUI.Avalonia/Generated Files

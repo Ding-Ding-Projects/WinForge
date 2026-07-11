@@ -9,3 +9,7 @@ Pages/PackageManagerModule.xaml      merge=union
 Pages/PackageManagerModule.xaml.cs   merge=union
 Services/PackageManagers.cs          merge=union
 Services/PackageService.cs           merge=union
+
+# Keep the complete upstream snapshot visible and reviewable without letting it dominate GitHub's
+# language statistics or code-review classification for WinForge-owned code.
+ThirdParty/UniGetUI/** linguist-vendored
