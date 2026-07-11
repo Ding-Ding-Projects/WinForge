@@ -16,7 +16,7 @@ using WinForge.Services;
 namespace WinForge.Pages;
 
 /// <summary>
-/// PowerToys 額外工具 · PowerToys extras — four in-app, bilingual utilities:
+/// PowerToys 額外工具 · PowerToys extras — a bilingual hub for the built-in PowerToys-style utilities:
 /// Image Resizer (bulk resize via WinRT imaging), Text Extractor / OCR (Windows.Media.Ocr over a screen
 /// capture → clipboard), Always On Top (SetWindowPos HWND_TOPMOST on a picked window), and
 /// Paste as Plain Text (strip clipboard formatting + a Ctrl+Shift+V global hotkey). No redirects.
@@ -84,8 +84,7 @@ public sealed partial class PowerToysExtrasModule : Page
     private void Render()
     {
         Header.Title = "PowerToys Extras · PowerToys 額外工具";
-        HeaderBlurb.Text = P("Four native, in-app PowerToys-style utilities — bulk image resizing, on-screen text extraction (OCR), always-on-top, and paste-as-plain-text.",
-            "四個原生、應用程式內嘅 PowerToys 式工具 — 圖片批次縮放、螢幕文字擷取（OCR）、視窗置頂、純文字貼上。");
+                HeaderBlurb.Text = P("Four native, in-app PowerToys-style utilities plus a discoverability tab for the rest of WinForge's PowerToys-equivalent pages.",`r`n            "四個原生、應用程式內嘅 PowerToys 式工具，再加一個索引分頁去搵 WinForge 其餘同 PowerToys 對應嘅頁面。");
 
         TabResize.Header = P("Image Resizer", "圖片縮放");
         TabOcr.Header = P("Text Extractor (OCR)", "文字擷取（OCR）");

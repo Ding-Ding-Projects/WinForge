@@ -768,7 +768,7 @@ Bring Microsoft PowerToys utilities in-app, natively + bilingually. Some already
 - [x] **Environment Variables** · 環境變數 — User/System get/add/edit/delete (Environment.*Variable). `--page envvars`.
 
 ### Batch 2 — DONE (feat/powertoys-extras) · 第二批（完成）
-Shipped as a single **PowerToys Extras** module (`module.powertoys` / `--page powertoys`) with a 4-tab pivot:
+Shipped as a single **PowerToys Extras** module (`module.powertoys` / `--page powertoys`) with a 5-tab pivot, where the last tab links the rest of WinForge's PowerToys-equivalent pages:
 - [x] **Image Resizer** · 圖片批次縮放 — bulk resize via Windows.Graphics.Imaging (decode → BitmapTransform scale, aspect kept) with presets (Small/Medium/Large/Phone/Thumbnail) + custom W/H, JPEG quality, filename suffix, output folder, shrink-only. `ImageResizeService`.
 - [x] **Text Extractor (OCR)** · 螢幕文字擷取 — GDI BitBlt capture of the virtual screen → SoftwareBitmap → Windows.Media.Ocr → text shown + auto-copied to clipboard; language picker from installed OCR packs. `TextExtractorService`.
 - [x] **Always On Top** · 視窗置頂 — per-window toggle of SetWindowPos HWND_TOPMOST (reuses WindowManager), tracks pinned set, un-pin-all. `AlwaysOnTopService`.
