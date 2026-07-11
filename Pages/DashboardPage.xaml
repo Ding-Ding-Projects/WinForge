@@ -21,7 +21,7 @@
                         FontWeight="SemiBold"
                         VerticalAlignment="Bottom"
                         Margin="0,0,0,6"
-                        Foreground="{StaticResource WinForgeBrandBrush}" />
+                        Foreground="{ThemeResource WinForgeBrandBrush}" />
                 </StackPanel>
                 <TextBlock
                     x:Name="HeroSubEn"
@@ -38,7 +38,7 @@
                 <!-- Stat row: features · categories · modules -->
                 <StackPanel Orientation="Horizontal" Spacing="28" Margin="0,18,0,0">
                     <StackPanel>
-                        <TextBlock x:Name="StatFeatures" FontFamily="{StaticResource WinForgeMonoFont}" FontSize="24" FontWeight="Bold" Foreground="{StaticResource WinForgeBrandBrush}" />
+                        <TextBlock x:Name="StatFeatures" FontFamily="{StaticResource WinForgeMonoFont}" FontSize="24" FontWeight="Bold" Foreground="{ThemeResource WinForgeBrandBrush}" />
                         <TextBlock Text="FEATURES · 功能" FontSize="10.5" FontFamily="{StaticResource WinForgeMonoFont}" Foreground="{ThemeResource TextFillColorTertiaryBrush}" Margin="0,2,0,0" />
                     </StackPanel>
                     <Border Width="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" />

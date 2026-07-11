@@ -46,7 +46,7 @@
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
-                                        <FontIcon Grid.Column="0" Glyph="&#xE71B;" FontSize="18" Foreground="{StaticResource WinForgeBrandBrush}" VerticalAlignment="Center" />
+                                        <FontIcon Grid.Column="0" Glyph="&#xE71B;" FontSize="18" Foreground="{ThemeResource WinForgeBrandBrush}" VerticalAlignment="Center" />
                                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                             <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="14" />
                                             <TextBlock Text="{Binding Summary}" FontSize="12" FontFamily="Consolas" Foreground="{ThemeResource TextFillColorTertiaryBrush}" TextTrimming="CharacterEllipsis" />
