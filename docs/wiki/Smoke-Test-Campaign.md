@@ -108,6 +108,12 @@ powershell -ExecutionPolicy Bypass -File .agents\skills\winforge-exhaustive-smok
 - Companion build-log tests: 4/4 passed with the installed net8 runtime.
 - Launch-only route-smoke pilot: Dashboard and Nuclear Reactor reached dedicated launched windows, 2/2 passed. This proves process-level route launch only, not visual or behavioral completion.
 - Dashboard capture is currently capture-blocked in this desktop session: the self-contained publish completed, then CopyFromScreen returned The handle is invalid. A passive Windows.Graphics.Capture retry also failed with IGraphicsCaptureItemInterop.CreateForMonitor error 0x80070057. No visual-pass result is claimed.
+- A direct window-render fallback was also probed with
+  `PrintWindow(PW_RENDERFULLCONTENT)`: it returned success but produced a
+  uniform-black 1399×876 bitmap (one sampled colour), so it is not valid visual
+  evidence either. 呢個 desktop session 亦試過直接 window-render fallback
+  `PrintWindow(PW_RENDERFULLCONTENT)`：雖然回傳成功，但只產生全黑
+  1399×876 bitmap（抽樣得一種顏色），同樣唔係有效嘅視覺證據。
 - No WinForge visual surface changed while this verification infrastructure was
   introduced, so this baseline claims no new visual-pass result.
 
