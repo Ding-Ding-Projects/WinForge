@@ -76,7 +76,7 @@ Open in-app: `WinForge.exe --page emulator`
 
 ## qBittorrent · 種子下載
 
-Drive the qBittorrent Web API for torrents. · 驅動 qBittorrent Web API 做種子下載。
+Drive the qBittorrent Web API for torrents. An optional remembered WebUI password is encrypted with current-user Windows DPAPI; legacy plaintext is erased only after its encrypted replacement is verified. Connection, filter, reload and disconnect operations cancel stale refreshes so late results cannot repaint the list. · 驅動 qBittorrent Web API 做種子下載。可選擇記住嘅 WebUI 密碼會用目前 Windows 使用者嘅 DPAPI 加密；舊有明文只會喺驗證好加密替代品之後先刪除。連線、篩選、重新載入同中斷會取消過期刷新，遲到結果唔可以重畫清單。
 
 Open in-app: `WinForge.exe --page qbittorrent`
 
