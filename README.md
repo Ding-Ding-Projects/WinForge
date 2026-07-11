@@ -137,6 +137,28 @@ blocked in this desktop session, so this is not a visual-completion claim.
 
 ---
 
+**EN —** The XAML startup audit reproduced an HTML Table Convert crash while
+the self-contained runtime assigned `ToggleSwitch.IsOn` from XAML. It moves all
+16 direct `IsOn="True|False"` defaults across 12 affected pages into managed
+initialization, preserving their defaults without touching bindings. The new
+`Test-WinForgeXamlLiteralSafety.ps1` guard prevents that unsafe literal form
+from returning and checks all 16 migrated defaults; a fresh self-contained
+launch check passed for all 12 aliases.
+
+**粵語 —** XAML 啟動審查重現咗 HTML 表格轉換喺 self-contained runtime 由 XAML
+設定 `ToggleSwitch.IsOn` 時崩潰。今次將 12 個受影響頁面入面全部 16 個 direct
+`IsOn="True|False"` 預設搬去 managed initialization，保留原本預設而唔掂 bindings。
+新嘅 `Test-WinForgeXamlLiteralSafety.ps1` guard 會阻止呢種唔安全 literal 再返嚟；
+12 個 alias 嘅新 self-contained launch check 都已通過。
+
+**EN —** Screenshot capture for the repaired HTML Table page remains blocked
+in this desktop session (`CopyFromScreen`: `The handle is invalid`), so this is
+launch evidence only and no stale screenshot was replaced.
+
+**粵語 —** 修好後嘅 HTML 表格頁面截圖喺呢個 desktop session 仍然受阻
+（`CopyFromScreen`：`The handle is invalid`），所以只係 launch 證據，冇聲稱 visual pass，
+亦冇用舊截圖頂替。
+
 ## ✨ Highlights · 重點
 
 **EN —**

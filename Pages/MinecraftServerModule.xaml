@@ -130,7 +130,7 @@
                                     <TextBlock x:Name="MaxLbl" Grid.Row="4" Grid.Column="0" VerticalAlignment="Center" />
                                     <NumberBox x:Name="MaxBox" Grid.Row="4" Grid.Column="1" Value="20" Minimum="1" Maximum="1000" SpinButtonPlacementMode="Inline" HorizontalAlignment="Left" Width="200" />
                                     <TextBlock x:Name="OnlineLbl" Grid.Row="5" Grid.Column="0" VerticalAlignment="Center" />
-                                    <ToggleSwitch x:Name="OnlineToggle" Grid.Row="5" Grid.Column="1" IsOn="True" />
+                                    <ToggleSwitch x:Name="OnlineToggle" Grid.Row="5" Grid.Column="1" />
                                     <TextBlock x:Name="SeedLbl" Grid.Row="6" Grid.Column="0" VerticalAlignment="Center" />
                                     <TextBox x:Name="SeedBox" Grid.Row="6" Grid.Column="1" />
                                 </Grid>

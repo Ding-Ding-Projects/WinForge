@@ -30,6 +30,8 @@ public sealed partial class MinecraftServerModule : Page
     public MinecraftServerModule()
     {
         InitializeComponent();
+        // Keep the default out of XAML: typed IsOn literals are unreliable here.
+        OnlineToggle.IsOn = true;
         Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) =>
         {

@@ -16,6 +16,8 @@ public sealed partial class HttpHeadersModule : Page
     public HttpHeadersModule()
     {
         InitializeComponent();
+        // Keep the default out of XAML: typed IsOn literals are unreliable here.
+        RedirectSwitch.IsOn = true;
         Loc.I.LanguageChanged += OnLang;
         Unloaded += OnUnloaded;
         Loaded += (_, _) => Render();

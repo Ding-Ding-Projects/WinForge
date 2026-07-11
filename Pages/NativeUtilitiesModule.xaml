@@ -253,7 +253,7 @@
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
                     <StackPanel Orientation="Horizontal" Spacing="8">
-                        <ToggleSwitch x:Name="CountersSwitch" IsOn="True" Toggled="Counters_Toggled" VerticalAlignment="Center" />
+                        <ToggleSwitch x:Name="CountersSwitch" Toggled="Counters_Toggled" VerticalAlignment="Center" />
                         <TextBlock x:Name="CountersHint" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                     </StackPanel>
                     <StackPanel x:Name="CountersPanel" Grid.Row="1" Spacing="10" />

@@ -32,10 +32,10 @@
                             <ComboBox x:Name="DelimCombo" MinWidth="150" SelectionChanged="OnOptionChanged" />
                         </StackPanel>
                         <StackPanel Spacing="4" VerticalAlignment="Bottom">
-                            <ToggleSwitch x:Name="HeaderSwitch" IsOn="True" Toggled="OnOptionChanged" />
+                            <ToggleSwitch x:Name="HeaderSwitch" Toggled="OnOptionChanged" />
                         </StackPanel>
                         <StackPanel Spacing="4" VerticalAlignment="Bottom">
-                            <ToggleSwitch x:Name="PadSwitch" IsOn="True" Toggled="OnOptionChanged" />
+                            <ToggleSwitch x:Name="PadSwitch" Toggled="OnOptionChanged" />
                         </StackPanel>
                     </StackPanel>
 

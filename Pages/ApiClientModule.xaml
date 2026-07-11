@@ -262,7 +262,7 @@
                                             <RowDefinition Height="*" />
                                         </Grid.RowDefinitions>
                                         <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8">
-                                            <ToggleSwitch x:Name="PrettyToggle" IsOn="True" Toggled="Pretty_Toggled" OnContent="Pretty" OffContent="Raw" MinWidth="0" />
+                                            <ToggleSwitch x:Name="PrettyToggle" Toggled="Pretty_Toggled" OnContent="Pretty" OffContent="Raw" MinWidth="0" />
                                             <Button x:Name="CopyBtn" Click="Copy_Click">
                                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                                     <FontIcon FontSize="13" Glyph="&#xE8C8;" />
