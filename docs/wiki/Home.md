@@ -20,6 +20,7 @@
 - [Git & GitHub](Git-and-GitHub.md) · Git 與 GitHub
 - [GitHub Desktop Profiles](GitHub-Desktop-Profiles.md) · GitHub Desktop 多帳戶設定檔
 - [Package Manager](Package-Manager.md) · 套件管理
+- [AWS Manager](AWS-Manager.md) · AWS 管理中心
 - [AI Agents](AI-Agents.md) · AI 代理
 - [Cake Factory & Farm](Cake-Factory-and-Farm.md) · 蛋糕工廠與農場
 - [No-Redirect Audit](No-Redirect-Audit.md) · 無跳轉審核

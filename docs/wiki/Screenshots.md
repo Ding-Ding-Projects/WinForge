@@ -242,7 +242,7 @@ Canonical screenshots live in `docs/` and are embedded here through raw GitHub U
 ### Packer (Image Builder) · Packer（映像建置器）
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-packer.png)
 
-### AWS CLI · AWS 命令列
+### AWS Manager · AWS 管理中心
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-aws.png)
 
 ### Website Cloner · 網站複製器

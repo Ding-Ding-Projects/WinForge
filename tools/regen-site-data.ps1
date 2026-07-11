@@ -97,13 +97,32 @@ $deadline = (Get-Date).AddSeconds(20)
 while (-not (Test-Path $tmp) -and (Get-Date) -lt $deadline) { Start-Sleep -Milliseconds 300 }
 if (-not (Test-Path $tmp)) { throw 'Export did not produce the data file.' }
 
-$real = Get-Content $tmp -Raw | ConvertFrom-Json
+$jsonSerializer = $null
+try {
+  # Windows PowerShell 5's ConvertTo-Json is extremely slow and memory-hungry for
+  # the thousands of wiki pages below. JavaScriptSerializer keeps the Desktop
+  # edition fast; PowerShell 7 falls back to its improved native JSON cmdlets.
+  Add-Type -AssemblyName System.Web.Extensions -ErrorAction Stop
+  $jsonSerializer = New-Object System.Web.Script.Serialization.JavaScriptSerializer
+  $jsonSerializer.MaxJsonLength = [int]::MaxValue
+  $jsonSerializer.RecursionLimit = 100
+} catch { }
+
+$realJson = [System.IO.File]::ReadAllText($tmp, [System.Text.Encoding]::UTF8)
+$real = if ($jsonSerializer) { $jsonSerializer.DeserializeObject($realJson) } else { $realJson | ConvertFrom-Json }
+$realMeta = if ($real -is [System.Collections.IDictionary]) { $real['meta'] } else { $real.meta }
+$realCategories = if ($real -is [System.Collections.IDictionary]) { $real['categories'] } else { $real.categories }
+$realModules = if ($real -is [System.Collections.IDictionary]) { $real['modules'] } else { $real.modules }
+function Get-JsonField($source, [string]$name) {
+  if ($source -is [System.Collections.IDictionary]) { return $source[$name] }
+  return $source.$name
+}
 
 # Read the canonical wiki Markdown from docs/wiki so GitHub Pages never preserves stale
 # embedded wiki text from an older winforge-data.js.
 $wikiDir = Join-Path $root 'docs/wiki'
 $wikiPrefix = ([System.IO.Path]::GetFullPath($wikiDir)).TrimEnd([char[]]'\/') + [System.IO.Path]::DirectorySeparatorChar
-$wikiIndex = @()
+$wikiIndex = New-Object 'System.Collections.Generic.List[object]'
 $wikiMap = [ordered]@{}
 if (Test-Path $wikiDir) {
   $wikiFiles = Get-ChildItem -LiteralPath $wikiDir -Filter '*.md' -File -Recurse |
@@ -116,12 +135,14 @@ if (Test-Path $wikiDir) {
     $relative = $file.FullName.Substring($wikiPrefix.Length).Replace('\', '/')
     $relativeNoExt = [System.IO.Path]::ChangeExtension($relative, $null).TrimEnd('.')
     $slug = $relativeNoExt -replace '/', '--'
-    $body = Get-Content -LiteralPath $file.FullName -Raw
+    # File.ReadAllText returns a plain String. Get-Content adds PowerShell ETS
+    # metadata that legacy serializers try to walk as a circular object graph.
+    $body = [System.IO.File]::ReadAllText($file.FullName, [System.Text.Encoding]::UTF8)
     $title = $slug
     if ($body -match '(?m)^#\s+(.+?)\s*$') { $title = $Matches[1].Trim() }
     $entry = [ordered]@{ slug = $slug; title = $title; path = $relative }
-    if ($body -match '(?m)^\| Tag .*?\| <code>([^<]+)</code> \|') { $entry.moduleTag = $Matches[1] }
-    $wikiIndex += $entry
+    if ($body -match '(?m)^\| Tag .*?\| <code>([^<]+)</code> \|') { $entry['moduleTag'] = $Matches[1] }
+    [void]$wikiIndex.Add($entry)
     $wikiMap[$slug] = $body
   }
 }
@@ -129,23 +150,28 @@ $wikiCount = $wikiIndex.Count
 
 $merged = [ordered]@{
   meta       = [ordered]@{
-    totalFeatures = $real.meta.totalFeatures
-    tweakFeatureCount = $real.meta.tweakFeatureCount
-    categoryCount = $real.meta.categoryCount
-    moduleCount   = $real.meta.moduleCount
+    totalFeatures = Get-JsonField $realMeta 'totalFeatures'
+    tweakFeatureCount = Get-JsonField $realMeta 'tweakFeatureCount'
+    categoryCount = Get-JsonField $realMeta 'categoryCount'
+    moduleCount   = Get-JsonField $realMeta 'moduleCount'
     wikiCount     = $wikiCount
   }
-  categories = $real.categories
-  modules    = $real.modules
+  categories = $realCategories
+  modules    = $realModules
   wikiIndex  = $wikiIndex
   wiki       = $wikiMap
 }
 
 $plainMerged = ConvertTo-PlainJsonValue -Value $merged
-Add-Type -AssemblyName System.Web.Extensions
-$serializer = New-Object System.Web.Script.Serialization.JavaScriptSerializer
-$serializer.MaxJsonLength = [int]::MaxValue
-$serializer.RecursionLimit = 1000
-$out = 'window.WINFORGE_DATA = ' + $serializer.Serialize($plainMerged) + ';' + "`n"
+$json = if ($jsonSerializer) {
+  $jsonSerializer.RecursionLimit = 1000
+  $jsonSerializer.Serialize($plainMerged)
+} else {
+  $plainMerged | ConvertTo-Json -Depth 40 -Compress
+}
+$out = 'window.WINFORGE_DATA = ' + $json + ';' + "`n"
 Set-Content -Path $data -Value $out -Encoding UTF8 -NoNewline
-Write-Host "Wrote $data - $($real.meta.moduleCount) modules, $($real.meta.categoryCount) categories, $($real.meta.totalFeatures) features, $wikiCount wiki pages."
+$moduleCount = Get-JsonField $realMeta 'moduleCount'
+$categoryCount = Get-JsonField $realMeta 'categoryCount'
+$featureCount = Get-JsonField $realMeta 'totalFeatures'
+Write-Host ('Wrote {0} - {1} modules, {2} categories, {3} features, {4} wiki pages.' -f $data, $moduleCount, $categoryCount, $featureCount, $wikiCount)

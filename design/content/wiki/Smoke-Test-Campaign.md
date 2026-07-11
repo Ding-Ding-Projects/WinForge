@@ -16,10 +16,10 @@ Generated on 2026-07-11 from the live source:
 | Deep-link aliases · 深層連結別名 | 785 |
 | Companion specifications · Companion 規格 | 4 |
 | External-app launcher specifications · 外部 app launcher 規格 | 15 |
-| First-party source files in review queue · source files 審查佇列 | 1,251 |
-| First-party source lines in review queue · source lines 審查佇列 | 336,147 |
+| First-party source files in review queue · source files 審查佇列 | 1,256 |
+| First-party source lines in review queue · source lines 審查佇列 | 341,934 |
 | Test projects · 測試專案 | 7 |
-| Wiki pages · Wiki 頁面 | 2,192 |
+| Wiki pages · Wiki 頁面 | 2,217 |
 
 **EN —** Counts are regenerated when registry, navigation, pages, or source files change; they are a point-in-time audit snapshot rather than a permanent product claim.
 

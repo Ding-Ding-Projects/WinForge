@@ -90,13 +90,15 @@ Open in-app: `WinForge.exe --page packer`
 
 ![Packer (Image Builder)](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-packer.png)
 
-## AWS CLI · AWS 命令列
+## AWS Manager · AWS 管理中心
 
-Drive the AWS CLI for S3, EC2, IAM, Lambda and more. · 驅動 AWS CLI 操作 S3、EC2、IAM、Lambda 等。
+Manage AWS through a Console-style shell with 149 curated services plus live CLI discovery, cross-service resource search, Cloud Control lifecycle APIs, a native S3 workspace, and an optional advanced CLI workbench. · 透過 Console 式介面管理 AWS：149 個精選服務加即時 CLI 探索、跨服務資源搜尋、Cloud Control 生命週期 API、原生 S3 工作區，同選用進階 CLI 工作台。
+
+[Full AWS Manager guide · 完整 AWS 管理中心指南](AWS-Manager.md)
 
 Open in-app: `WinForge.exe --page aws`
 
-![AWS CLI](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-aws.png)
+![AWS Manager](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-aws.png)
 
 ## Website Cloner · 網站複製器
 
@@ -139,6 +141,29 @@ dotnet run --project tests/SettingsStore.Tests -c Debug
 **EN —** Build, launch, screenshot, behavior and side-effect evidence remain separate. A blocked capture is reported as blocked, never as a visual pass; stateful features use fixtures, dry-runs or reversible probes unless live execution is explicitly authorized.
 
 **粵語 —** 建置、啟動、截圖、行為同副作用證據會分開。截圖被阻擋就如實報告，唔會當作視覺通過；有狀態嘅功能會用 fixtures、dry-runs 或者可還原 probe，除非明確批准真實執行。
+
+### GitHub Pages Payload Regeneration · GitHub Pages 資料重建
+
+**EN —** GitHub Pages embeds the authored `docs/wiki` Markdown in
+`design/winforge-data.js`. After any wiki or generated-reference change, run
+the generator so the published site cannot serve stale documentation. The
+script exports the live registry from a self-contained WinForge build, rejects
+wiki paths outside `docs/wiki`, and serializes a plain data graph that works in
+Windows PowerShell 5.1 as well as newer PowerShell versions.
+
+**粵語 —** GitHub Pages 會將寫好嘅 `docs/wiki` Markdown 嵌入
+`design/winforge-data.js`。任何 wiki 或生成 reference 有改之後，都要跑
+generator，避免發佈咗嘅網站仲顯示舊文件。個 script 會由 self-contained
+WinForge build 匯出 live registry、拒絕 `docs/wiki` 以外嘅 wiki path，並將資料
+轉成 Windows PowerShell 5.1 同新版本 PowerShell 都用到嘅普通資料圖。
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\regen-site-data.ps1
+```
+
+**Visual evidence · 視覺證據：** This is a documentation-payload build step;
+no WinUI layout changes, so screenshot replacement is not applicable. · 呢個係
+文件 payload 建置步驟，冇 WinUI 排版改動，所以唔適用截圖替換。
 
 ### Reactor Harness Exit Contract · 反應堆測試框架退出規約
 
