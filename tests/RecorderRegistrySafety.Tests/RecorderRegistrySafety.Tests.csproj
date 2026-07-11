@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net11.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Pure seams only: these regressions never launch ffmpeg or access the live registry. -->
+    <Compile Include="..\..\Services\ScreenRecorderProcessLifecycle.cs" Link="ScreenRecorderProcessLifecycle.cs" />
+    <Compile Include="..\..\Services\RegistryHelper.cs" Link="RegistryHelper.cs" />
+    <None Include="..\..\Services\ScreenRecorder.cs" Link="ScreenRecorder.cs" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\Pages\RegistryEditor.xaml.cs" Link="RegistryEditor.xaml.cs" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

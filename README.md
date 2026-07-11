@@ -289,7 +289,7 @@ literal；forced self-contained publish 同新鮮 `--page` retest 全部 6 條 r
 | Module · 模組 | Description · 說明 | `--page` |
 |---|---|---|
 | **Dashboard · 概覽** | Master search and home overview across every module. <br> 跨晒所有模組嘅總搜尋同主頁概覽。 | `dashboard` |
-| **Registry Editor · 登錄編輯器** | Browse and edit the live Windows registry (hives, keys, values). <br> 瀏覽同編輯實時 Windows 登錄檔（hive、機碼、值）。 | `regedit` |
+| **Registry Editor · 登錄編輯器** | Browse and edit the live Windows registry; deletion success is shown only after the registry confirms the write. <br> 瀏覽同編輯實時 Windows 登錄檔；只會喺登錄檔確認寫入之後先顯示刪除成功。 | `regedit` |
 | **System Doctors · 系統醫生** | One-click repairs for spooler, DNS, taskbar, search, icons and more. <br> 一鍵修復列印、DNS、工作列、搜尋、圖示等問題。 | `doctors` |
 | **Services · 服務** | Start, stop and set the startup type of Windows services. <br> 啟動、停止同設定 Windows 服務嘅啟動類型。 | `services` |
 | **Scheduled Tasks · 排程工作** | View and run entries in the Windows Task Scheduler. <br> 檢視同執行 Windows 排程工作。 | `tasks` |
@@ -348,7 +348,7 @@ literal；forced self-contained publish 同新鮮 `--page` retest 全部 6 條 r
 | **Media Downloader · 媒體下載器** | yt-dlp video/audio downloads with quality and subtitle options. <br> yt-dlp 下載影音，可選畫質同字幕。 | `ytdlp` |
 | **Document Converter · 文件轉換器** | Headless LibreOffice batch conversion between Office and PDF formats. <br> 用無介面 LibreOffice 批次轉換 Office 同 PDF 格式。 | `libreoffice` |
 | **PDF Toolkit · PDF 工具箱** | Merge, split, rotate, watermark, encrypt and extract from PDFs. <br> 合併、分割、旋轉、加浮水印、加密同抽取 PDF。 | `pdf` |
-| **Screen Recorder · 螢幕錄影** | Record the desktop with ffmpeg gdigrab. <br> 用 ffmpeg gdigrab 錄製桌面畫面。 | `recorder` |
+| **Screen Recorder · 螢幕錄影** | Record the desktop with ffmpeg gdigrab, with managed diagnostic draining and a bounded Stop path. <br> 用 ffmpeg gdigrab 錄製桌面畫面，會受管理咁排走診斷輸出，而且停止流程有時間上限。 | `recorder` |
 | **Capture Studio · 擷取工作室** | Snip regions, screenshot, make GIFs and OCR text. <br> 擷取區域、截圖、整 GIF 同 OCR 認字。 | `capture` |
 | **Text Extractor (OCR) · 原生文字辨識** | Extract text from any screen region using the native Windows OCR engine. <br> 用原生 Windows OCR 引擎由螢幕區域抽字。 | `ocr` |
 | **GIF Studio · 螢幕轉 GIF** | Screen-to-GIF recording with a built-in frame editor. <br> 螢幕轉 GIF 錄製，附內建畫面格編輯器。 | `giflab` |

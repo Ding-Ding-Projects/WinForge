@@ -126,6 +126,21 @@ capture 亦唔可用。Percentage Calculator、qBittorrent、Pixel Editor 同 Pr
 PNG 產生；冇 canonical image 被替換或者重用。呢啲係 `capture-blocked` 結果，
 絕對唔係 visual-pass 聲稱。
 
+**EN —** The Screen Recorder and Registry Editor reliability repair received fresh driver
+attempts on 2026-07-11: `recorder` with a self-contained publish and `regedit` from that
+fresh publish. Both reached the capture stage, but `CopyFromScreen` was unavailable and the
+`PrintWindow` fallback produced a uniform frame; graphics capture is unavailable in this
+desktop session. Launch-only follow-ups passed for both routes. No PNG was created,
+inspected, replaced, or reused, so the existing recorder/regedit canonical images are not
+visual evidence for this repair. These are `capture-blocked`, never visual-pass, results.
+
+**粵語 —** 螢幕錄影同登錄編輯器可靠性修正喺 2026-07-11 收到新嘅 driver 嘗試：
+`recorder` 用 self-contained publish，而 `regedit` 用嗰個新 publish。兩條都去到
+capture stage，但 `CopyFromScreen` 未可用，而 `PrintWindow` fallback 產生 uniform frame；
+呢個 desktop session 嘅 graphics capture 未可用。兩條 route 嘅 launch-only 後續都通過。
+冇 PNG 被產生、檢查、替換或者重用，所以既有 recorder/regedit canonical image 唔係
+呢個修正嘅視覺證據。呢啲係 `capture-blocked`，絕對唔係 visual-pass 結果。
+
 ## Redaction Rules · 遮蔽規則
 
 **EN —** Before adding screenshots, redact or avoid personal data: Windows usernames, home-folder paths, repo paths outside WinForge, hostnames, IPs that identify private networks, account names, emails, API keys, tokens, session cookies, vault item names, SSH profiles, and real package/source credentials. Use `winforge-shot --redact "x|y|w|h|box|blur|pixelate"` to obscure regions irreversibly; see the [Wiki Screenshot Workflow](Wiki-Screenshot-Workflow.md).

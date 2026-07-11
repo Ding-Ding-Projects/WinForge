@@ -60,7 +60,7 @@ Open in-app: `WinForge.exe --page pdf`
 
 ## Screen Recorder · 螢幕錄影
 
-Record the desktop with ffmpeg gdigrab. · 用 ffmpeg gdigrab 錄製桌面畫面。
+Record the desktop with ffmpeg gdigrab; diagnostics are drained and Stop is bounded if ffmpeg stalls. · 用 ffmpeg gdigrab 錄製桌面畫面；會排走診斷輸出，ffmpeg 卡住時停止流程亦有時間上限。
 
 Open in-app: `WinForge.exe --page recorder`
 
