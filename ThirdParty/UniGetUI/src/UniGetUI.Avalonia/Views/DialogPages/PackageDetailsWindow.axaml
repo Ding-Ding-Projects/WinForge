@@ -1,0 +1,340 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:automation="clr-namespace:Avalonia.Automation;assembly=Avalonia.Controls"
+        xmlns:vm="using:UniGetUI.Avalonia.ViewModels"
+        xmlns:controls="using:UniGetUI.Avalonia.Views.Controls"
+        xmlns:t="using:UniGetUI.Avalonia.MarkupExtensions"
+        x:Class="UniGetUI.Avalonia.Views.PackageDetailsWindow"
+        x:DataType="vm:PackageDetailsViewModel"
+        Width="1000" MinWidth="640"
+        Height="720" MinHeight="420"
+        CanResize="True"
+        ShowInTaskbar="False"
+        Background="{DynamicResource AppDialogBackground}"
+        WindowStartupLocation="CenterOwner"
+        Title="{Binding PackageName}">
+
+    <Window.Styles>
+        <Style Selector="Expander /template/ ToggleButton#ExpanderHeader">
+            <Setter Property="Background" Value="{DynamicResource SettingsCardBackground}"/>
+        </Style>
+
+        <!-- Tag pill -->
+        <Style Selector="Border.tag-pill">
+            <Setter Property="Height" Value="24"/>
+            <Setter Property="Margin" Value="0,0,6,6"/>
+            <Setter Property="Padding" Value="10,2"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}"/>
+        </Style>
+        <Style Selector="Border.tag-pill > TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+
+        <!-- Split action button: fused look -->
+        <Style Selector="Button.action-main">
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="CornerRadius" Value="8,0,0,8"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        <Style Selector="Button.action-chevron">
+            <Setter Property="Width" Value="34"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="1,0,0,0"/>
+            <Setter Property="CornerRadius" Value="0,8,8,0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+
+        <!-- Screenshot pip dots (Button hosting an Ellipse) -->
+        <Style Selector="Button.pip">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="3,4"/>
+            <Setter Property="Width" Value="18"/>
+            <Setter Property="Height" Value="18"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Ellipse.pip">
+            <Setter Property="Width" Value="8"/>
+            <Setter Property="Height" Value="8"/>
+            <Setter Property="Fill" Value="{DynamicResource TextFillColorTertiaryBrush}"/>
+        </Style>
+        <Style Selector="Ellipse.pip.active">
+            <Setter Property="Fill" Value="{DynamicResource AccentFillColorDefaultBrush}"/>
+            <Setter Property="Width" Value="10"/>
+            <Setter Property="Height" Value="10"/>
+        </Style>
+
+        <!-- Screenshot prev/next chevrons (overlay on hover) -->
+        <Style Selector="Button.carousel-nav">
+            <Setter Property="Width" Value="32"/>
+            <Setter Property="Height" Value="48"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Background" Value="#80000000"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="Opacity" Value="0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.15"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Border#ScreenshotsBorder:pointerover Button.carousel-nav">
+            <Setter Property="Opacity" Value="0.9"/>
+        </Style>
+    </Window.Styles>
+
+    <Grid>
+        <!-- Loading indicator across the very top -->
+        <ProgressBar IsIndeterminate="{Binding IsLoading}"
+                     IsVisible="{Binding IsLoading}"
+                     automation:AutomationProperties.Name="{Binding PackageName}"
+                     VerticalAlignment="Top"
+                     Height="3"/>
+
+        <!-- ── Scrollable content area ── -->
+        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled">
+            <Grid x:Name="MainGrid"
+                  Margin="24,20,24,24"
+                  ColumnSpacing="32">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Left column: title, description, basic info, actions, install options.
+                     Children are reparented by code-behind for the narrow layout. -->
+                <StackPanel x:Name="LeftPanel" Grid.Column="0" Spacing="16" VerticalAlignment="Top">
+
+                    <!-- ── Top: icon + title ── -->
+                    <Grid x:Name="TitlePanel"
+                          ColumnDefinitions="Auto,*"
+                          ColumnSpacing="16">
+                        <Border Width="112" Height="112"
+                                CornerRadius="20"
+                                Background="{DynamicResource AppDialogPanelBackground}"
+                                ClipToBounds="True">
+                            <Image Source="{Binding PackageIcon}"
+                                   Width="72" Height="72"
+                                   Margin="12"
+                                   automation:AutomationProperties.AccessibilityView="Raw"
+                                   Stretch="Uniform"
+                                   RenderOptions.BitmapInterpolationMode="HighQuality"/>
+                        </Border>
+
+                        <StackPanel Grid.Column="1"
+                                    VerticalAlignment="Center"
+                                    Spacing="4">
+                            <TextBlock Text="{Binding PackageName}"
+                                       FontSize="40" FontWeight="Bold"
+                                       FontFamily="Segoe UI Variable Display"
+                                       TextWrapping="Wrap"
+                                       automation:AutomationProperties.HeadingLevel="1"/>
+                            <SelectableTextBlock Text="{Binding SourceDisplay}"
+                                       FontSize="13" Opacity="0.65"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- ── Description: tag pills ── -->
+                    <StackPanel x:Name="DescriptionPanel"
+                                VerticalAlignment="Top"
+                                Spacing="10">
+                        <ItemsControl ItemsSource="{Binding Tags}"
+                                      IsVisible="{Binding HasTags}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="x:String">
+                                    <Border Classes="tag-pill">
+                                        <TextBlock Text="{Binding}"/>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+
+                    <!-- ── Basic info: inline rows built in code-behind ── -->
+                    <StackPanel x:Name="BasicInfoPanel"
+                                VerticalAlignment="Top"
+                                Spacing="6"/>
+
+                    <!-- ── Action button (split: main + chevron dropdown) ── -->
+                    <Grid x:Name="ActionsPanel"
+                          VerticalAlignment="Top"
+                          HorizontalAlignment="Left"
+                          ColumnSpacing="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="10000*" MaxWidth="260"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Button x:Name="MainActionButton"
+                                    Grid.Column="0"
+                                    Classes="accent action-main"
+                                    Content="{Binding MainActionLabel}"
+                                    automation:AutomationProperties.Name="{Binding MainActionLabel}"/>
+                            <Button x:Name="ActionVariantsButton"
+                                    Grid.Column="1"
+                                    Classes="accent action-chevron"
+                                    automation:AutomationProperties.Name="{Binding MainActionLabel}">
+                                <Path Data="M 0,0 L 4,4 L 8,0"
+                                      Stroke="White"
+                                      StrokeThickness="1.5"
+                                      StrokeJoin="Miter"
+                                      Fill="Transparent"
+                                      HorizontalAlignment="Center" VerticalAlignment="Center"
+                                      automation:AutomationProperties.AccessibilityView="Raw"/>
+                            </Button>
+                        </Grid>
+                    </Grid>
+
+                    <!-- ── Installation options (collapsible) ── -->
+                    <Border x:Name="InstallOptionsBorder" VerticalAlignment="Top">
+                        <Expander x:Name="InstallOptionsExpander"
+                                  HorizontalAlignment="Stretch"
+                                  HorizontalContentAlignment="Stretch"
+                                  VerticalAlignment="Top"
+                                  IsExpanded="False"
+                                  CornerRadius="8"
+                                  Padding="4">
+                            <Expander.Header>
+                                <Grid ColumnDefinitions="Auto,*,Auto"
+                                      ColumnSpacing="12">
+                                    <controls:SvgIcon Path="avares://UniGetUI/Assets/Symbols/options.svg"
+                                                      Width="18" Height="18"
+                                                      VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding LabelInstallationOptions}"
+                                               FontSize="16"
+                                               FontWeight="SemiBold"
+                                               VerticalAlignment="Center"/>
+                                    <Button x:Name="InstallOptionsSaveButton"
+                                            Grid.Column="2"
+                                            Content="{Binding LabelSave}"
+                                            Classes="accent"
+                                            Height="32"
+                                            MinWidth="64"
+                                            Padding="12,0"
+                                            CornerRadius="6"
+                                            HorizontalContentAlignment="Center"
+                                            VerticalContentAlignment="Center"/>
+                                </Grid>
+                            </Expander.Header>
+                            <ContentControl x:Name="InstallOptionsHolder"
+                                            Margin="0,8,0,4"/>
+                        </Expander>
+                    </Border>
+                </StackPanel>
+
+                <!-- Right column: screenshots + details. Reparented to LeftPanel in narrow mode. -->
+                <StackPanel x:Name="RightPanel" Grid.Column="1" Spacing="16" VerticalAlignment="Top">
+
+                    <!-- ── Screenshots: Carousel + custom pips ── -->
+                    <StackPanel x:Name="ScreenshotsPanel"
+                                VerticalAlignment="Top"
+                                Spacing="8">
+                        <Border CornerRadius="8" ClipToBounds="True"
+                                x:Name="ScreenshotsBorder"
+                                Height="320">
+                            <Panel>
+                                <!-- Black letterbox only behind actual screenshots; the empty-state
+                                     banner below composites over the themed window background instead. -->
+                                <Border Background="#000000" IsVisible="{Binding HasScreenshots}"/>
+                                <Carousel x:Name="ScreenshotsCarousel"
+                                          IsVisible="{Binding HasScreenshots}"
+                                          ItemsSource="{Binding Screenshots}"
+                                          SelectedIndex="{Binding SelectedScreenshotIndex, Mode=TwoWay}">
+                                    <Carousel.PageTransition>
+                                        <PageSlide Duration="0:0:0.25" Orientation="Horizontal"/>
+                                    </Carousel.PageTransition>
+                                    <Carousel.ItemTemplate>
+                                        <DataTemplate>
+                                            <Image Source="{Binding}"
+                                                   Stretch="Uniform"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"/>
+                                        </DataTemplate>
+                                    </Carousel.ItemTemplate>
+                                </Carousel>
+
+                                <!-- Contributor banner shown when no screenshots -->
+                                <Grid IsVisible="{Binding !HasScreenshots}"
+                                      Background="{DynamicResource AppDialogSubtleBackground}"
+                                      ColumnDefinitions="*,Auto"
+                                      Margin="0"
+                                      ColumnSpacing="12">
+                                    <TextBlock Grid.Column="0"
+                                               Text="{Binding LabelContributorBanner}"
+                                               TextWrapping="Wrap"
+                                               VerticalAlignment="Center"
+                                               Margin="18,12"/>
+                                    <Button Grid.Column="1"
+                                            x:Name="ContributeButton"
+                                            Content="{Binding LabelContribute}"
+                                            VerticalAlignment="Center"
+                                            Margin="0,12,18,12"/>
+                                </Grid>
+
+                                <!-- Prev / next overlay chevrons (only when there are screenshots) -->
+                                <Button x:Name="PrevScreenshotButton"
+                                        Classes="carousel-nav"
+                                        HorizontalAlignment="Left"
+                                        Margin="6,0,0,0"
+                                        Content="‹"
+                                        IsVisible="{Binding HasScreenshots}"/>
+                                <Button x:Name="NextScreenshotButton"
+                                        Classes="carousel-nav"
+                                        HorizontalAlignment="Right"
+                                        Margin="0,0,6,0"
+                                        Content="›"
+                                        IsVisible="{Binding HasScreenshots}"/>
+                            </Panel>
+                        </Border>
+
+                        <!-- Pip indicator (clickable to jump to a screenshot) -->
+                        <ItemsControl x:Name="ScreenshotPips"
+                                      IsVisible="{Binding HasScreenshots}"
+                                      HorizontalAlignment="Center"
+                                      ItemsSource="{Binding Screenshots}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Classes="pip">
+                                        <Ellipse Classes="pip"/>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+
+                    <!-- ── Details: inline rows built in code-behind ── -->
+                    <StackPanel x:Name="DetailsPanel"
+                                VerticalAlignment="Top"
+                                Spacing="6"/>
+                </StackPanel>
+            </Grid>
+        </ScrollViewer>
+    </Grid>
+</Window>

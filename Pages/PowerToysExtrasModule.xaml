@@ -204,6 +204,47 @@
                     </StackPanel>
                 </ScrollViewer>
             </PivotItem>
+
+            <!-- ===== More PowerToys ===== -->
+            <PivotItem x:Name="TabMore" Header="More PowerToys · 更多 PowerToys">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Spacing="12" Padding="0,8,0,0">
+                        <TextBlock
+                            Text="These PowerToys-style utilities already have their own native WinForge pages. Open them here so the whole suite stays discoverable from one hub. · 呢啲 PowerToys 式工具已經有自己嘅原生 WinForge 頁面。喺呢度直接開返，等成套工具可以由一個總入口搵到。"
+                            TextWrapping="Wrap"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <Grid ColumnSpacing="10" RowSpacing="10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <Button Grid.Row="0" Grid.Column="0" Content="Open Screen Ruler � ??????" Click="MoreScreenRuler_Click" />
+                            <Button Grid.Row="0" Grid.Column="1" Content="Open Mouse Utilities � ??????" Click="MoreMouseUtils_Click" />
+                            <Button Grid.Row="1" Grid.Column="0" Content="Open Quick Accent � ???????" Click="MoreQuickAccent_Click" />
+                            <Button Grid.Row="1" Grid.Column="1" Content="Open Shortcut Guide � ???????" Click="MoreShortcutGuide_Click" />
+                            <Button Grid.Row="2" Grid.Column="0" Content="Open Text Extractor (OCR) � ??????(OCR)" Click="MoreTextOcr_Click" />
+                            <Button Grid.Row="2" Grid.Column="1" Content="Open Awake � ??????" Click="MoreAwake_Click" />
+                            <Button Grid.Row="3" Grid.Column="0" Content="Open Color Picker � ??????" Click="MoreColorPicker_Click" />
+                            <Button Grid.Row="3" Grid.Column="1" Content="Open Peek � ??????" Click="MorePeek_Click" />
+                            <Button Grid.Row="4" Grid.Column="0" Content="Open Workspaces � ?????" Click="MoreWorkspaces_Click" />
+                            <Button Grid.Row="4" Grid.Column="1" Content="Open FancyZones � ??????" Click="MoreFancyZones_Click" />
+                            <Button Grid.Row="5" Grid.Column="0" Content="Open New+ � ??????" Click="MoreNewPlus_Click" />
+                            <Button Grid.Row="5" Grid.Column="1" Content="Open Advanced Paste � ??????" Click="MoreAdvancedPaste_Click" />
+                            <Button Grid.Row="6" Grid.Column="0" Content="Open Command Not Found � ???????" Click="MoreCmdNotFound_Click" />
+                        </Grid>
+                    </StackPanel>
+                </ScrollViewer>
+            </PivotItem>
         </Pivot>
 
         <InfoBar x:Name="ResultBar" Grid.Row="3" IsClosable="True" IsOpen="False" />

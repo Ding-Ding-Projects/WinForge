@@ -1,0 +1,624 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:automation="clr-namespace:Avalonia.Automation;assembly=Avalonia.Controls"
+    xmlns:peers="clr-namespace:Avalonia.Automation.Peers;assembly=Avalonia.Controls"
+        xmlns:views="using:UniGetUI.Avalonia.Views"
+        xmlns:vm="using:UniGetUI.Avalonia.ViewModels"
+        xmlns:controls="using:UniGetUI.Avalonia.Views.Controls"
+        xmlns:t="using:UniGetUI.Avalonia.MarkupExtensions"
+        xmlns:infra="using:UniGetUI.Avalonia.Infrastructure"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="750"
+        x:Class="UniGetUI.Avalonia.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="UniGetUI"
+        Width="1450"
+        MinWidth="700"
+        MinHeight="500">
+    <Window.Styles>
+        <!-- Global search box focus: a WinUI-style accent underline that spans the whole box
+             (field + button) along the bottom, instead of recoloring the entire border. Toggled
+             via styles (opacity) so the .focus-within setter wins over the base. -->
+        <Style Selector="Border#SearchFocusUnderline">
+            <Setter Property="Opacity" Value="0"/>
+            <Setter Property="Background" Value="{DynamicResource TextFillColorSecondaryBrush}"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.12"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        <!-- Hover: subtle neutral underline (WinUI shows a lighter line on pointer-over). -->
+        <Style Selector="Border#GlobalSearchContainer:pointerover Border#SearchFocusUnderline">
+            <Setter Property="Opacity" Value="1"/>
+            <Setter Property="Background" Value="{DynamicResource TextFillColorSecondaryBrush}"/>
+        </Style>
+        <!-- Focus: accent underline (declared after hover so it wins when both apply). -->
+        <Style Selector="Border#GlobalSearchContainer:focus-within Border#SearchFocusUnderline">
+            <Setter Property="Opacity" Value="1"/>
+            <Setter Property="Background" Value="{DynamicResource SystemAccentColor}"/>
+        </Style>
+        <!-- Nav flyout cross-fade. The flyout's icons sit exactly over the static rail's icons, so
+             fading (rather than sliding) keeps the icons perfectly aligned — only the labels fade
+             in/out, reading as a clean expand/collapse with no second nav appearing and no gap.
+             Opacity is GPU-composited, so it stays smooth. States are set via styles (not a local
+             value, which would beat the .open setter). -->
+        <Style Selector="Border#NavFlyout">
+            <Setter Property="Opacity" Value="0"/>
+        </Style>
+        <Style Selector="Border#NavFlyout.open">
+            <Setter Property="Opacity" Value="1"/>
+        </Style>
+    </Window.Styles>
+    <Panel>
+        <!-- Main content pushed below the native title bar.
+             Navigation is a static icon rail (always laid out, never animated) plus a sliding
+             flyout (NavFlyout, below) that translates in over the content on the GPU compositor.
+             Nothing re-lays-out during the slide, which keeps it smooth. -->
+        <Grid x:Name="MainContentRoot"
+              Margin="{Binding $parent[Window].WindowDecorationMargin}"
+              Background="{DynamicResource MicaPageBackground}"
+              ColumnDefinitions="Auto,*">
+
+            <!-- ── Icon rail (compact mode ≥800px, or docked-but-collapsed) ── -->
+            <ContentControl x:Name="NavRail"
+                            Grid.Column="0"
+                            Width="64"
+                            ClipToBounds="True"
+                            IsVisible="{Binding Sidebar.RailVisible}"
+                            Content="{Binding Sidebar}"
+                            automation:AutomationProperties.AccessibilityView="Control"
+                            automation:AutomationProperties.Name="{t:Translate Navigation panel}"
+                            automation:AutomationProperties.LandmarkType="{x:Static peers:AutomationLandmarkType.Navigation}"
+                            HorizontalContentAlignment="Stretch"
+                            VerticalContentAlignment="Stretch">
+                <ContentControl.DataTemplates>
+                    <DataTemplate DataType="vm:SidebarViewModel">
+                        <views:SidebarView ShowLabels="False"/>
+                    </DataTemplate>
+                </ContentControl.DataTemplates>
+            </ContentControl>
+
+            <!-- ── Docked labeled pane (Expanded ≥1600px, or NavMenuMode=Docked): sits inline, reflows content. ── -->
+            <ContentControl x:Name="NavDock"
+                            Grid.Column="0"
+                            Width="250"
+                            ClipToBounds="True"
+                            IsVisible="{Binding Sidebar.NavDockVisible}"
+                            BorderBrush="{DynamicResource AppBorderBrush}"
+                            BorderThickness="0,0,1,0"
+                            Content="{Binding Sidebar}"
+                            automation:AutomationProperties.AccessibilityView="Control"
+                            automation:AutomationProperties.Name="{t:Translate Navigation panel}"
+                            automation:AutomationProperties.LandmarkType="{x:Static peers:AutomationLandmarkType.Navigation}"
+                            HorizontalContentAlignment="Stretch"
+                            VerticalContentAlignment="Stretch">
+                <ContentControl.DataTemplates>
+                    <DataTemplate DataType="vm:SidebarViewModel">
+                        <views:SidebarView ShowLabels="True"/>
+                    </DataTemplate>
+                </ContentControl.DataTemplates>
+            </ContentControl>
+
+            <!-- ── Content: banners + page + operations ── -->
+            <Grid x:Name="ContentRoot" Grid.Column="1" RowDefinitions="*,4,Auto">
+
+            <!-- ── Page content (banners now surface as bottom-right toasts; see ToastHost) ── -->
+            <TransitioningContentControl Grid.Row="0"
+                            Margin="0,0,0,10"
+                            Content="{Binding CurrentPageContent}"
+                            automation:AutomationProperties.AccessibilityView="Control"
+                            automation:AutomationProperties.LandmarkType="{x:Static peers:AutomationLandmarkType.Main}"
+                            HorizontalContentAlignment="Stretch"
+                            VerticalContentAlignment="Stretch">
+                <!-- Page-switch animation: fade + subtle slide-up (WinUI Frame entrance feel) -->
+                <TransitioningContentControl.PageTransition>
+                    <infra:EntrancePageTransition Duration="0:0:0.22" VerticalOffset="28"/>
+                </TransitioningContentControl.PageTransition>
+            </TransitioningContentControl>
+
+            <!-- ── GridSplitter (only visible when operations are present) ── -->
+            <GridSplitter Grid.Row="1"
+                          HorizontalAlignment="Stretch"
+                          VerticalAlignment="Stretch"
+                          IsVisible="{Binding OperationsPanelVisible}"
+                          automation:AutomationProperties.AccessibilityView="Raw"
+                          Background="{DynamicResource AppSplitterBackground}"
+                          Opacity="0.8"/>
+
+            <!-- ── Operations panel ── -->
+            <Border Grid.Row="2"
+                    IsVisible="{Binding OperationsPanelVisible}"
+                    BorderThickness="0,1,0,0"
+                    BorderBrush="{DynamicResource AppBorderBrush}"
+                    automation:AutomationProperties.AccessibilityView="Control"
+                    automation:AutomationProperties.Name="{t:Translate Operations}"
+                    automation:AutomationProperties.LandmarkType="{x:Static peers:AutomationLandmarkType.Region}"
+                    Background="{DynamicResource AppOperationsPanelBackground}">
+                <Grid RowDefinitions="Auto,*">
+
+                    <!-- Toolbar: expand/collapse + bulk-ops menu -->
+                    <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto"
+                          Height="28" Margin="4,2,4,2">
+
+                        <!-- Expand/collapse chevron -->
+                        <Button Grid.Column="0"
+                                Width="28" Height="24" Padding="4"
+                                Background="Transparent" BorderThickness="0" CornerRadius="4"
+                                Command="{Binding ToggleOperationsPanelCommand}"
+                                automation:AutomationProperties.Name="{t:Translate Toggle operations panel}"
+                                ToolTip.Tip="{t:Translate Toggle operations panel}">
+                            <Panel Width="10" Height="10">
+                                <PathIcon Width="10" Height="10"
+                                          automation:AutomationProperties.AccessibilityView="Raw"
+                                          IsVisible="{Binding OperationsPanelExpanded}"
+                                          Data="M0,0 L5,6 L10,0"/>
+                                <PathIcon Width="10" Height="10"
+                                          automation:AutomationProperties.AccessibilityView="Raw"
+                                          IsVisible="{Binding !OperationsPanelExpanded}"
+                                          Data="M0,6 L5,0 L10,6"/>
+                                <!-- Failure badge: a failed op while the panel is collapsed -->
+                                <Ellipse Width="7" Height="7"
+                                         Fill="{DynamicResource ToastBadgeBrush}"
+                                         HorizontalAlignment="Left"
+                                         VerticalAlignment="Top"
+                                         Margin="-3,-4,0,0"
+                                         IsVisible="{Binding ShowFailedOperationBadge}"
+                                         automation:AutomationProperties.AccessibilityView="Raw"/>
+                            </Panel>
+                        </Button>
+
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding OperationsHeaderText}"
+                                   FontSize="12" Opacity="0.6"
+                                   VerticalAlignment="Center"
+                                   Margin="4,0,0,0"/>
+
+                        <!-- Bulk-ops menu -->
+                        <Button Grid.Column="2"
+                                Width="28" Height="24" Padding="4"
+                                Background="Transparent" BorderThickness="0" CornerRadius="4"
+                                automation:AutomationProperties.Name="{t:Translate Bulk operations}"
+                                ToolTip.Tip="{t:Translate Bulk operations}">
+                            <TextBlock Text="⋯" FontSize="13"
+                                       automation:AutomationProperties.AccessibilityView="Raw"/>
+                            <Button.Flyout>
+                                <MenuFlyout>
+                                    <MenuItem Header="{t:Translate Retry failed}"
+                                              Command="{Binding RetryFailedOperationsCommand}"/>
+                                    <MenuItem Header="{t:Translate Clear successful}"
+                                              Command="{Binding ClearSuccessfulOperationsCommand}"/>
+                                    <MenuItem Header="{t:Translate Clear finished}"
+                                              Command="{Binding ClearFinishedOperationsCommand}"/>
+                                    <Separator/>
+                                    <MenuItem Header="{t:Translate Cancel all}"
+                                              Command="{Binding CancelAllOperationsCommand}"/>
+                                </MenuFlyout>
+                            </Button.Flyout>
+                        </Button>
+                    </Grid>
+
+                    <!-- Operations list (hidden when panel is collapsed) -->
+                    <ScrollViewer Grid.Row="1"
+                                  IsVisible="{Binding OperationsPanelExpanded}"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  VerticalScrollBarVisibility="Auto">
+                    <ItemsControl x:Name="OperationsList"
+                                  ItemsSource="{Binding Operations}"
+                                  Margin="8,4,8,4">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:OperationViewModel">
+                                <Border Background="{Binding BackgroundBrush}"
+                                        CornerRadius="6"
+                                        Padding="10,6"
+                                        Margin="0,3,0,3">
+                                    <Grid ColumnDefinitions="Auto,*,Auto">
+
+                                        <!-- Package icon -->
+                                        <Image Grid.Column="0"
+                                               Source="{Binding PackageIcon}"
+                                               Width="32" Height="24"
+                                               Margin="0,0,10,0"
+                                                 automation:AutomationProperties.AccessibilityView="Raw"
+                                               VerticalAlignment="Center"
+                                               Stretch="Uniform"/>
+
+                                        <!-- Centre: title, live line, progress, badges -->
+                                        <StackPanel Grid.Column="1"
+                                                    Spacing="3"
+                                                    VerticalAlignment="Center"
+                                                    Margin="0,0,8,0">
+
+                                            <TextBlock Text="{Binding Title}"
+                                                       FontWeight="SemiBold"
+                                                       FontSize="14"
+                                                       TextTrimming="CharacterEllipsis"/>
+
+                                            <Button Content="{Binding LiveLine}"
+                                                    Command="{Binding ShowDetailsCommand}"
+                                                    automation:AutomationProperties.HelpText="{Binding Title}"
+                                                    FontSize="11"
+                                                    Opacity="0.65"
+                                                    HorizontalAlignment="Left"
+                                                    Padding="0"
+                                                    Background="Transparent"
+                                                    BorderThickness="0"
+                                                    CornerRadius="0"
+                                                    Cursor="Hand"/>
+
+                                            <ProgressBar IsIndeterminate="{Binding ProgressIndeterminate}"
+                                                         Value="{Binding ProgressValue}"
+                                                         automation:AutomationProperties.Name="{Binding Title}"
+                                                         automation:AutomationProperties.ItemStatus="{Binding LiveLine}"
+                                                         Minimum="0" Maximum="100"
+                                                         Height="3"
+                                                         CornerRadius="2"
+                                                         Foreground="{Binding ProgressBrush}"/>
+
+                                            <!-- Badge icon-buttons (Admin, Interactive, …) -->
+                                            <ItemsControl ItemsSource="{Binding Badges}">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <StackPanel Orientation="Horizontal" Spacing="4"/>
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate x:DataType="vm:OperationBadgeVm">
+                                                        <Button Background="{DynamicResource AppBadgeBackground}"
+                                                                BorderThickness="0"
+                                                                CornerRadius="4"
+                                                                Padding="5,2"
+                                                                automation:AutomationProperties.Name="{Binding Label}"
+                                                                automation:AutomationProperties.HelpText="{Binding Primary}"
+                                                                ToolTip.Tip="{Binding Primary}">
+                                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                                <controls:SvgIcon Path="{Binding IconPath}"
+                                                                                  Width="12" Height="12"
+                                                                                  Foreground="{DynamicResource AppIconForeground}"/>
+                                                                <TextBlock Text="{Binding Label}"
+                                                                           FontSize="10"
+                                                                           Opacity="0.8"/>
+                                                            </StackPanel>
+                                                            <Button.Flyout>
+                                                                <Flyout>
+                                                                    <StackPanel Spacing="6" MaxWidth="240">
+                                                                        <TextBlock Text="{Binding Label}"
+                                                                                   FontWeight="SemiBold"
+                                                                                   TextWrapping="Wrap"/>
+                                                                        <TextBlock Text="{Binding Primary}"
+                                                                                   Opacity="0.85"
+                                                                                   TextWrapping="Wrap"/>
+                                                                        <TextBlock Text="{Binding Secondary}"
+                                                                                   Opacity="0.7"
+                                                                                   FontSize="11"
+                                                                                   TextWrapping="Wrap"/>
+                                                                    </StackPanel>
+                                                                </Flyout>
+                                                            </Button.Flyout>
+                                                        </Button>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+
+                                        </StackPanel>
+
+                                        <!-- Split-button: Cancel/Close + "…" menu -->
+                                        <Border Grid.Column="2"
+                                                CornerRadius="6"
+                                                ClipToBounds="True"
+                                                VerticalAlignment="Center">
+                                            <StackPanel Orientation="Horizontal" Height="30">
+                                                <Button Content="{Binding ButtonText}"
+                                                        Command="{Binding ButtonCommand}"
+                                                        automation:AutomationProperties.Name="{Binding ButtonText}"
+                                                        Height="30"
+                                                        Padding="14,0"
+                                                        CornerRadius="0"
+                                                        FontSize="12"
+                                                        VerticalContentAlignment="Center"
+                                                        HorizontalContentAlignment="Center"/>
+                                                <Border Width="1"
+                                                        VerticalAlignment="Stretch"
+                                                    automation:AutomationProperties.AccessibilityView="Raw"
+                                                        Background="{DynamicResource AppBorderBrush}"
+                                                        Opacity="0.3"/>
+                                                <Button Width="32"
+                                                        Height="30"
+                                                        Padding="0"
+                                                        CornerRadius="0"
+                                                        VerticalContentAlignment="Center"
+                                                        HorizontalContentAlignment="Center"
+                                                    automation:AutomationProperties.Name="{t:Translate More}"
+                                                        Flyout="{Binding OpMenu}">
+                                                    <TextBlock Text="⋯" FontSize="14"
+                                                               HorizontalAlignment="Center"
+                                                               VerticalAlignment="Center"
+                                                               automation:AutomationProperties.AccessibilityView="Raw"/>
+                                                </Button>
+                                            </StackPanel>
+                                        </Border>
+
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+                </Grid>
+            </Border>
+
+            </Grid>
+
+            <!-- ── Light-dismiss layer: transparent (no darkening), closes the flyout on outside click ── -->
+            <Border x:Name="FlyoutDismiss"
+                    Grid.Column="0" Grid.ColumnSpan="2"
+                    Background="Transparent"
+                    ZIndex="9"
+                    IsVisible="{Binding Sidebar.OverlayActive}"
+                    automation:AutomationProperties.AccessibilityView="Raw"
+                    PointerPressed="FlyoutDismiss_PointerPressed"/>
+
+            <!-- ── Sliding nav flyout: full labeled pane, parked off-screen, slid in via GPU translate ── -->
+            <Border x:Name="NavFlyout"
+                    Grid.Column="0" Grid.ColumnSpan="2"
+                    Width="250"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Stretch"
+                    ZIndex="10"
+                    Background="{DynamicResource AppWindowBackground}"
+                    IsHitTestVisible="{Binding Sidebar.OverlayActive}"
+                    Classes.open="{Binding Sidebar.OverlayActive}">
+                <Border.Transitions>
+                    <Transitions>
+                        <DoubleTransition Property="Opacity" Duration="0:0:0.18">
+                            <DoubleTransition.Easing>
+                                <SplineEasing X1="0.1" Y1="0.9" X2="0.2" Y2="1.0"/>
+                            </DoubleTransition.Easing>
+                        </DoubleTransition>
+                    </Transitions>
+                </Border.Transitions>
+                <ContentControl Content="{Binding Sidebar}"
+                                HorizontalContentAlignment="Stretch"
+                                VerticalContentAlignment="Stretch">
+                    <ContentControl.DataTemplates>
+                        <DataTemplate DataType="vm:SidebarViewModel">
+                            <views:SidebarView ShowLabels="True"/>
+                        </DataTemplate>
+                    </ContentControl.DataTemplates>
+                </ContentControl>
+            </Border>
+
+        </Grid>
+
+        <TextBlock x:Name="LiveAnnouncementHost"
+               Width="1"
+               Height="1"
+               HorizontalAlignment="Left"
+               VerticalAlignment="Bottom"
+               Opacity="0"
+               IsHitTestVisible="False"
+               Text="{Binding AnnouncementText}"
+               automation:AutomationProperties.AccessibilityView="Control"
+               automation:AutomationProperties.Name="{Binding AnnouncementText}"
+               automation:AutomationProperties.LiveSetting="{Binding AnnouncementLiveSetting}"/>
+
+        <!-- ── Title bar: drag area + search box ── -->
+        <Grid x:Name="TitleBarGrid"
+              Height="{Binding $parent[Window].WindowDecorationMargin.Top}"
+              VerticalAlignment="Top"
+              ColumnDefinitions="*,Auto,*">
+
+            <!-- Drag area — sits behind everything so interactive controls still work -->
+            <Border Grid.Column="0" Grid.ColumnSpan="3"
+                    x:Name="TitleBarDragArea"
+                    Background="{DynamicResource MicaPageBackground}"
+                    automation:AutomationProperties.AccessibilityView="Raw"
+                    IsHitTestVisible="True"
+                    PointerPressed="TitleBar_PointerPressed"
+                    PointerMoved="TitleBar_PointerMoved"
+                    PointerReleased="TitleBar_PointerReleased"
+                    PointerCaptureLost="TitleBar_PointerCaptureLost"/>
+
+            <!-- Left: hamburger + app name -->
+            <StackPanel x:Name="HamburgerPanel"
+                        Grid.Column="0"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Center"
+                        Orientation="Horizontal"
+                        Margin="65,0,8,0"
+                        Spacing="8">
+                <!-- Opacity follows window focus (see SetupTitleBarFocusOpacity): white title when active, dimmed when not. -->
+                <!-- Back button — appears once there is navigation history (mirrors WinUI's title-bar back). -->
+                <Button x:Name="BackButton"
+                        Width="32" Height="32"
+                        Padding="4"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        CornerRadius="4"
+                        IsVisible="False"
+                        automation:AutomationProperties.Name="{t:Translate Go back}"
+                        ToolTip.Tip="{t:Translate Go back}"
+                        Click="BackButton_Click">
+                    <Path Width="16" Height="14"
+                          Stroke="{DynamicResource TextFillColorPrimaryBrush}"
+                          StrokeThickness="1.5"
+                          StrokeLineCap="Round"
+                          StrokeJoin="Round"
+                          automation:AutomationProperties.AccessibilityView="Raw"
+                          Data="M7,1 L1,7 L7,13 M1,7 H15"/>
+                </Button>
+                <Button Width="32" Height="32"
+                        Padding="4"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        CornerRadius="4"
+                        automation:AutomationProperties.Name="{t:Translate Toggle navigation panel}"
+                        ToolTip.Tip="{t:Translate Toggle navigation panel}"
+                        Command="{Binding ToggleSidebarCommand}">
+                    <Path Width="16" Height="14"
+                          Stroke="{DynamicResource TextFillColorPrimaryBrush}"
+                          StrokeThickness="1.5"
+                          StrokeLineCap="Round"
+                          automation:AutomationProperties.AccessibilityView="Raw"
+                          Data="M0,1 H16 M0,7 H16 M0,13 H16"/>
+                </Button>
+                <TextBlock Text="{Binding TitleBarText}"
+                           FontSize="13"
+                           FontWeight="SemiBold"
+                           VerticalAlignment="Center"/>
+            </StackPanel>
+
+            <!-- Centre: search box — vertically centred, no platform-specific margin.
+                 Taller, rounded pill; the whole bar (field + button) clips to the rounded
+                 corners and shares a single accent focus border (see Window.Styles). -->
+            <Border Grid.Column="1"
+                    x:Name="GlobalSearchContainer"
+                    VerticalAlignment="Center"
+                    Margin="0,0,40,0"
+                    Height="32"
+                    CornerRadius="5"
+                    BorderBrush="{DynamicResource AppBorderBrush}"
+                    BorderThickness="1"
+                    Background="{DynamicResource AppBadgeBackground}"
+                    ClipToBounds="True"
+                    automation:AutomationProperties.AccessibilityView="Control">
+                <Panel>
+                    <Grid ColumnDefinitions="320,38">
+                        <TextBox x:Name="GlobalSearchBox"
+                                 Grid.Column="0"
+                                 MinHeight="20"
+                                 FontSize="14"
+                                 CornerRadius="0"
+                                 BorderThickness="0"
+                                 VerticalContentAlignment="Center"
+                                 Padding="12,0,4,0"
+                                 Background="Transparent"
+                                 PlaceholderForeground="{DynamicResource SearchBoxPlaceholderForeground}"
+                                 PlaceholderText="{Binding GlobalSearchPlaceholder}"
+                                 IsEnabled="{Binding GlobalSearchEnabled}"
+                                 automation:AutomationProperties.Name="{Binding GlobalSearchPlaceholder}"
+                                 automation:AutomationProperties.AcceleratorKey="Ctrl+F"
+                                 Text="{Binding GlobalSearchText}"
+                                 KeyDown="SearchBox_KeyDown">
+                            <!-- Suppress the TextBox's own focus underline AND its focused/hover
+                                 background swap (which otherwise turns the field black on focus while
+                                 the button keeps the container fill). The container owns the fill and
+                                 the focus highlight (SearchFocusUnderline) instead. -->
+                            <TextBox.Resources>
+                                <Thickness x:Key="TextControlBorderThemeThicknessFocused">0</Thickness>
+                                <SolidColorBrush x:Key="TextControlBackground" Color="Transparent"/>
+                                <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="Transparent"/>
+                                <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="Transparent"/>
+                                <!-- Fluent dims placeholders to 0.5; WinUI showed them at full secondary-text brightness. -->
+                                <x:Double x:Key="TextControlPlaceholderOpacity">1</x:Double>
+                            </TextBox.Resources>
+                        </TextBox>
+                        <Button Grid.Column="1"
+                                HorizontalAlignment="Stretch"
+                                VerticalAlignment="Stretch"
+                                Padding="3"
+                                CornerRadius="0"
+                                BorderThickness="0"
+                                Background="Transparent"
+                                IsEnabled="{Binding GlobalSearchEnabled}"
+                                automation:AutomationProperties.Name="{Binding GlobalSearchPlaceholder}"
+                                Command="{Binding SubmitGlobalSearchCommand}">
+                            <controls:SvgIcon Path="avares://UniGetUI/Assets/Symbols/search.svg"
+                                              Width="18"
+                                              Height="18"/>
+                        </Button>
+                    </Grid>
+                    <!-- WinUI focus underline: 2px accent line across the bottom of the whole box -->
+                    <Border x:Name="SearchFocusUnderline"
+                            VerticalAlignment="Bottom"
+                            Height="2"
+                            Margin="1,0,1,0"
+                            IsHitTestVisible="False"/>
+                </Panel>
+            </Border>
+
+            <!-- Right column: Linux window buttons on the far right -->
+            <Panel Grid.Column="2">
+
+                <!-- Custom min / max / close (shown on Windows, and Linux without native decorations; IsVisible set in code-behind) -->
+                <StackPanel x:Name="WindowButtons"
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                            Margin="0,0,4,0"
+                            Spacing="0"
+                            IsVisible="False">
+                    <!-- Minimize: horizontal line -->
+                    <Button Width="46" Height="32" Padding="0"
+                            Background="Transparent" BorderThickness="0" CornerRadius="0"
+                                                        automation:AutomationProperties.Name="{t:Translate Minimize}"
+                            ToolTip.Tip="{t:Translate Minimize}"
+                            Click="MinimizeButton_Click">
+                        <Path Stroke="{DynamicResource SystemBaseHighColor}"
+                              StrokeThickness="1.5"
+                              StrokeLineCap="Round"
+                                                            automation:AutomationProperties.AccessibilityView="Raw"
+                              Data="M2,0 H10"
+                              Width="12" Height="2"
+                              HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Button>
+                    <!-- Maximize / Restore: square outline, geometry swapped in code-behind -->
+                    <Button x:Name="MaximizeButton"
+                            Width="46" Height="32" Padding="0"
+                            Background="Transparent" BorderThickness="0" CornerRadius="0"
+                                                        automation:AutomationProperties.Name="{t:Translate Maximize}"
+                            ToolTip.Tip="{t:Translate Maximize}"
+                            Click="MaximizeButton_Click">
+                        <Path x:Name="MaximizeIcon"
+                              Stroke="{DynamicResource SystemBaseHighColor}"
+                              StrokeThickness="1.5"
+                              StrokeLineCap="Round"
+                                                            automation:AutomationProperties.AccessibilityView="Raw"
+
+                              Data="M0,0 H10 V10 H0 Z"
+                              Width="12" Height="12"
+                              HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Button>
+                    <!-- Close: X -->
+                    <Button Width="46" Height="32" Padding="0"
+                            Background="Transparent" BorderThickness="0" CornerRadius="0"
+                                                        automation:AutomationProperties.Name="{t:Translate Close}"
+                            ToolTip.Tip="{t:Translate Close}"
+                            Click="CloseButton_Click">
+                        <Path Stroke="{DynamicResource SystemBaseHighColor}"
+                              StrokeThickness="1.5"
+                              StrokeLineCap="Round"
+                                                            automation:AutomationProperties.AccessibilityView="Raw"
+                              Data="M0,0 L10,10 M10,0 L0,10"
+                              Width="12" Height="12"
+                              HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Button>
+                </StackPanel>
+            </Panel>
+        </Grid>
+
+        <!-- ── Toast notifications: floating overlay, stacked bottom-right ──
+             Sized to content and bottom-right aligned, so empty areas stay click-through. -->
+        <ItemsControl x:Name="ToastHost"
+                      ItemsSource="{Binding Toasts}"
+                      Width="380"
+                      HorizontalAlignment="Right"
+                      VerticalAlignment="Bottom"
+                      Margin="0,0,20,20"
+                      ZIndex="1000"
+                      automation:AutomationProperties.AccessibilityView="Control">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel Spacing="8"/>
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.DataTemplates>
+                <DataTemplate DataType="vm:InfoBarViewModel">
+                    <controls:InfoBar PointerEntered="Toast_PointerEntered"
+                                      PointerExited="Toast_PointerExited"/>
+                </DataTemplate>
+            </ItemsControl.DataTemplates>
+        </ItemsControl>
+    </Panel>
+</Window>

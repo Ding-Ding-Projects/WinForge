@@ -1,0 +1,67 @@
+<Project>
+    <PropertyGroup>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <!-- IF BUILD FAILS DUE TO MISSING Microsoft.Management.Deployment NAMESPACE,
+            TOGGLE THE LAST NUMBER OF THE LINE BELOW 1 UNIT UP OR DOWN, AND REBUILD-->
+
+        <SdkVersion>10.0.103</SdkVersion>
+        <Authors>Devolutions Inc. and the contributors</Authors>
+        <PublisherName>Devolutions Inc.</PublisherName>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <PortableTargetFramework>net10.0</PortableTargetFramework>
+        <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
+        <WindowsTargetFramework>$(PortableTargetFramework)-windows$(WindowsTargetPlatformVersion)</WindowsTargetFramework>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <BuildSharedWindowsTargetFrameworks
+            Condition="$([MSBuild]::IsOSPlatform('Windows')) == 'true' or '$(EnableWindowsTargeting)' == 'true'"
+            >true</BuildSharedWindowsTargetFrameworks
+        >
+        <SharedTargetFrameworks Condition="'$(BuildSharedWindowsTargetFrameworks)' == 'true'"
+            >$(PortableTargetFramework);$(WindowsTargetFramework)</SharedTargetFrameworks
+        >
+        <SharedTargetFrameworks Condition="'$(SharedTargetFrameworks)' == ''"
+            >$(PortableTargetFramework)</SharedTargetFrameworks
+        >
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(TargetFramework)' == '' and '$(TargetFrameworks)' == ''">
+        <TargetFrameworks>$(SharedTargetFrameworks)</TargetFrameworks>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="$([System.String]::Copy('$(TargetFramework)').Contains('-windows'))">
+        <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
+        <WindowsSdkPackageVersion>10.0.26100.56</WindowsSdkPackageVersion>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <Platforms>x64;arm64</Platforms>
+        <PublishSelfContained>true</PublishSelfContained>
+        <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+        <Configurations>Debug;Release</Configurations>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <EnableAvaloniaDiagnostics>false</EnableAvaloniaDiagnostics>
+        <EnableAvaloniaDiagnostics Condition="'$(Configuration)' == '' or '$(Configuration)' == 'Debug'">true</EnableAvaloniaDiagnostics>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+        <Optimize>true</Optimize>
+        <WholeProgramOptimization>true</WholeProgramOptimization>
+        <TieredCompilation>true</TieredCompilation>
+        <!-- NativeAOT and ReadyToRun are mutually exclusive; ReadyToRun is only enabled when NativeAOT is not. -->
+        <PublishReadyToRun Condition="'$(PublishAot)' != 'true'">true</PublishReadyToRun>
+        <EnableProfileOptimization>true</EnableProfileOptimization>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <LangVersion>latest</LangVersion>
+        <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+        <NoWarn>$(NoWarn);EnableGenerateDocumentationFile</NoWarn>
+    </PropertyGroup>
+</Project>

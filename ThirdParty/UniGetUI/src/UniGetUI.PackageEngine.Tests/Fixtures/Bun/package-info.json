@@ -1,0 +1,28 @@
+{
+    "name": "example-lib",
+    "version": "2.0.0",
+    "description": "An example library for testing",
+    "license": "MIT",
+    "homepage": "https://example.com/lib",
+    "author": "Example Author",
+    "maintainers": ["maintainer1"],
+    "time": {
+        "2.0.0": "2025-01-15T00:00:00.000Z"
+    },
+    "dist-tags": {
+        "latest": "2.0.0"
+    },
+    "dist": {
+        "tarball": "https://registry.example.com/example-lib/-/example-lib-2.0.0.tgz",
+        "unpackedSize": 12345,
+        "integrity": "sha512-exampleIntegrityHash=="
+    },
+    "dependencies": {
+        "helper-lib": "^1.0.0"
+    },
+    "versions": [
+        "1.0.0",
+        "1.1.0",
+        "2.0.0"
+    ]
+}

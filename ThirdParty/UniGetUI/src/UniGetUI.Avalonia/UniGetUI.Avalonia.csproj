@@ -1,0 +1,376 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <Target Name="GenerateBuildInfo" BeforeTargets="BeforeBuild">
+        <Exec Command="pwsh -File Infrastructure/generate-secrets.ps1 $(IntermediateOutputPath)" Condition="$([MSBuild]::IsOSPlatform('Windows'))"/>
+        <Exec Command="bash Infrastructure/generate-secrets.sh $(IntermediateOutputPath)"         Condition="!$([MSBuild]::IsOSPlatform('Windows'))"/>
+        <ItemGroup>
+            <Compile
+                Include="**/*$(DefaultLanguageSourceExtension)"
+                Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder);$(BaseIntermediateOutputPath)**;$(BaseOutputPath)**;@(Compile)"
+            />
+        </ItemGroup>
+    </Target>
+
+    <PropertyGroup>
+        <TargetFramework Condition="$([MSBuild]::IsOSPlatform('Windows'))">$(WindowsTargetFramework)</TargetFramework>
+        <TargetFramework Condition="!$([MSBuild]::IsOSPlatform('Windows'))">$(PortableTargetFramework)</TargetFramework>
+        <TargetFrameworks />
+        <OutputType>WinExe</OutputType>
+        <RootNamespace>UniGetUI.Avalonia</RootNamespace>
+        <AssemblyName>UniGetUI</AssemblyName>
+        <ApplicationIcon>..\SharedAssets\icon.ico</ApplicationIcon>
+        <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+        <ApplicationManifest Condition="$([MSBuild]::IsOSPlatform('Windows'))">app.manifest</ApplicationManifest>
+        <PublishTrimmed>true</PublishTrimmed>
+        <TrimMode>full</TrimMode>
+        <PublishSingleFile>false</PublishSingleFile>
+        <IncludeAvaloniaPublishSymbols>false</IncludeAvaloniaPublishSymbols>
+    </PropertyGroup>
+
+    <!-- NativeAOT is the default for release packages on all platforms. -->
+    <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+        <PublishAot>true</PublishAot>
+        <!-- NativeAOT and ReadyToRun are mutually exclusive. -->
+        <PublishReadyToRun>false</PublishReadyToRun>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- Let the GC decommit unused heap back to the OS; the app is idle most of the time. -->
+        <RuntimeHostConfigurationOption Include="System.GC.ConserveMemory" Value="5" Trim="false" />
+    </ItemGroup>
+
+    <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+        <!-- Parameterized windows/base views are directly constructed in code, not through the runtime XAML loader. -->
+        <NoWarn>$(NoWarn);MVVMTK0045;AVLN3001</NoWarn>
+        <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
+        <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' and '$(Platform)' == 'arm64'">win-arm64</RuntimeIdentifier>
+        <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' and ('$(Platform)' == 'x64' or '$(Platform)' == 'x86')">win-$(Platform)</RuntimeIdentifier>
+        <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">win-x64</RuntimeIdentifier>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+        <PingetCliRuntimeIdentifier Condition="'$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)</PingetCliRuntimeIdentifier>
+        <PingetCliRuntimeIdentifier Condition="'$(PingetCliRuntimeIdentifier)' == '' and '$(Platform)' == 'arm64'">win-arm64</PingetCliRuntimeIdentifier>
+        <PingetCliRuntimeIdentifier Condition="'$(PingetCliRuntimeIdentifier)' == ''">win-x64</PingetCliRuntimeIdentifier>
+        <PingetCliPackageNativePath>$(PkgDevolutions_Pinget_Cli_Rust)\runtimes\$(PingetCliRuntimeIdentifier)\native</PingetCliPackageNativePath>
+        <PingetCliExecutablePath>$(PingetCliPackageNativePath)\pinget.exe</PingetCliExecutablePath>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+        <ElevatorPackageArchitecture Condition="'$(Platform)' == 'arm64'">arm64</ElevatorPackageArchitecture>
+        <ElevatorPackageArchitecture Condition="'$(ElevatorPackageArchitecture)' == ''">x64</ElevatorPackageArchitecture>
+        <ElevatorPackageNativePath>$(PkgDevolutions_UniGetUI_Elevator)\runtimes\win-$(ElevatorPackageArchitecture)\native</ElevatorPackageNativePath>
+        <ElevatorPackageExePath>$(ElevatorPackageNativePath)\UniGetUI Elevator.exe</ElevatorPackageExePath>
+        <ElevatorPackageDllPath>$(ElevatorPackageNativePath)\getfilesiginforedist.dll</ElevatorPackageDllPath>
+    </PropertyGroup>
+
+    <!-- macOS Debug: build straight into a .app bundle so the Dock icon (and its Default/Dark/
+         Tinted/Clear styling) is provided by the system from the bundle's AppIcon, exactly like a
+         packaged release. Without this a bare-exe dev run has no bundle and shows a blank icon. -->
+    <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('OSX')) And '$(Configuration)' == 'Debug'">
+        <MacAppBundleDir>$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/UniGetUI.app</MacAppBundleDir>
+        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+        <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+        <OutputPath>$(MacAppBundleDir)/Contents/MacOS/</OutputPath>
+    </PropertyGroup>
+
+    <Target Name="AssembleMacDebugAppBundle" AfterTargets="Build"
+            Condition="$([MSBuild]::IsOSPlatform('OSX')) And '$(Configuration)' == 'Debug'">
+        <PropertyGroup>
+            <_MacBundleContents>$(MacAppBundleDir)/Contents</_MacBundleContents>
+            <_MacScriptsDir>$(MSBuildProjectDirectory)/../../scripts/macos</_MacScriptsDir>
+        </PropertyGroup>
+        <MakeDir Directories="$(_MacBundleContents)/Resources" />
+        <!-- Info.plist (declares CFBundleIconName=AppIcon); version is a dev placeholder. -->
+        <Exec Command="sed 's|@VERSION@|0.0.0-dev|g' '$(_MacScriptsDir)/Info.plist' &gt; '$(_MacBundleContents)/Info.plist'" />
+        <!-- Static .icns fallback (CFBundleIconFile) for macOS &lt; 26. -->
+        <Copy SourceFiles="$(_MacScriptsDir)/UniGetUI.icns" DestinationFolder="$(_MacBundleContents)/Resources" />
+        <!-- Compile the Icon Composer icon into Assets.car (+ AppIcon.icns). Needs full Xcode's
+             actool; if it is unavailable the build still succeeds (the icon is just absent). -->
+        <Exec Command="xcrun actool '$(_MacScriptsDir)/AppIcon.icon' --compile '$(_MacBundleContents)/Resources' --app-icon AppIcon --output-partial-info-plist '$(IntermediateOutputPath)appicon-partial.plist' --platform macosx --minimum-deployment-target 12.0 --notices --warnings"
+              ContinueOnError="true" />
+    </Target>
+
+    <PropertyGroup Condition="'$(EnableAvaloniaDiagnostics)' == 'true'">
+        <DefineConstants>$(DefineConstants);AVALONIA_DIAGNOSTICS_ENABLED</DefineConstants>
+    </PropertyGroup>
+
+    <Target
+        Name="PublishBundledPingetCli"
+        AfterTargets="Build;Publish"
+      Condition="'$(DesignTimeBuild)' != 'true' and '$(SkipBundledPingetCli)' != 'true' and $([MSBuild]::IsOSPlatform('Windows'))"
+    >
+        <Error
+            Condition="!Exists('$(PingetCliExecutablePath)')"
+            Text="NuGet pinget executable not found at '$(PingetCliExecutablePath)'. Ensure package restore has completed for Devolutions.Pinget.Cli.Rust."
+        />
+        <ItemGroup>
+            <PingetCliOutputFiles Include="$(PingetCliExecutablePath)" Condition="Exists('$(PingetCliExecutablePath)')" />
+            <PingetCliPublishOutputFiles Include="$(PingetCliExecutablePath)" Condition="Exists('$(PingetCliExecutablePath)')" />
+        </ItemGroup>
+        <Copy
+            SourceFiles="@(PingetCliOutputFiles)"
+            DestinationFolder="$(TargetDir)"
+            SkipUnchangedFiles="true"
+            Condition="'$(TargetDir)' != ''"
+        />
+        <Copy
+            SourceFiles="@(PingetCliPublishOutputFiles)"
+            DestinationFolder="$(PublishDir)"
+            SkipUnchangedFiles="true"
+            Condition="'$(PublishDir)' != '' and Exists('$(PublishDir)')"
+        />
+    </Target>
+
+    <Target
+        Name="EnsureBundledElevatorFromNuGet"
+        BeforeTargets="PrepareForBuild"
+        Condition="'$(DesignTimeBuild)' != 'true' and $([MSBuild]::IsOSPlatform('Windows')) and '$(Configuration)' != 'Debug'"
+    >
+        <Error
+            Condition="!Exists('$(ElevatorPackageExePath)')"
+            Text="NuGet elevator executable not found at '$(ElevatorPackageExePath)'. Ensure package restore has completed for Devolutions.UniGetUI.Elevator."
+        />
+        <Error
+            Condition="!Exists('$(ElevatorPackageDllPath)')"
+            Text="NuGet elevator dependency DLL not found at '$(ElevatorPackageDllPath)'. Ensure package restore has completed for Devolutions.UniGetUI.Elevator."
+        />
+    </Target>
+
+    <Target
+        Name="RemoveAvaloniaPublishSymbols"
+        AfterTargets="ComputeFilesToPublish"
+        Condition="'$(IncludeAvaloniaPublishSymbols)' != 'true'"
+    >
+        <ItemGroup>
+            <ResolvedFileToPublish
+                Remove="@(ResolvedFileToPublish)"
+                Condition="'%(ResolvedFileToPublish.Extension)' == '.pdb'"
+            />
+        </ItemGroup>
+    </Target>
+
+    <ItemGroup>
+        <PackageReference Include="Avalonia" Version="12.0.4" />
+        <PackageReference Include="Avalonia.AvaloniaEdit" Version="12.0.0" />
+        <PackageReference Include="Avalonia.Controls.DataGrid" Version="12.0.0" />
+        <PackageReference Include="Avalonia.Desktop" Version="12.0.4" />
+        <PackageReference Include="Avalonia.Themes.Fluent" Version="12.0.4" />
+        <PackageReference Include="Devolutions.AvaloniaTheme.MacOS" Version="2026.3.13" Condition="$([MSBuild]::IsOSPlatform('OSX'))" />
+        <PackageReference Include="Devolutions.AvaloniaTheme.Linux" Version="2026.3.11" Condition="$([MSBuild]::IsOSPlatform('Linux'))" />
+        <PackageReference Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.0-beta3" Condition="'$(EnableAvaloniaDiagnostics)' == 'true'" />
+        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.*" />
+        <PackageReference Include="Avalonia.Controls.WebView" Version="12.0.0" />
+        <PackageReference Include="Tmds.DBus.Protocol" Version="0.92.0" />
+        <PackageReference Include="Devolutions.UniGetUI.Elevator" Version="2.6.1.3" GeneratePathProperty="true" ExcludeAssets="build;buildTransitive;native" Condition="$([MSBuild]::IsOSPlatform('Windows'))" />
+        <PackageReference Include="Devolutions.Pinget.Cli.Rust" Version="0.10.0" GeneratePathProperty="true" ExcludeAssets="build;buildTransitive;native" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\UniGetUI.Core.Data\UniGetUI.Core.Data.csproj" />
+        <ProjectReference Include="..\UniGetUI.Core.LanguageEngine\UniGetUI.Core.LanguageEngine.csproj" />
+        <ProjectReference Include="..\UniGetUI.Core.Logger\UniGetUI.Core.Logging.csproj" />
+        <ProjectReference Include="..\UniGetUI.Core.SecureSettings\UniGetUI.Core.SecureSettings.csproj" />
+        <ProjectReference Include="..\UniGetUI.Core.Settings\UniGetUI.Core.Settings.csproj" />
+        <ProjectReference Include="..\UniGetUI.Core.Tools\UniGetUI.Core.Tools.csproj" />
+        <ProjectReference Include="..\UniGetUI.Interface.Enums\UniGetUI.Interface.Enums.csproj" />
+        <ProjectReference Include="..\UniGetUI.Interface.IpcApi\UniGetUI.Interface.IpcApi.csproj" />
+        <ProjectReference Include="..\UniGetUI.Interface.Telemetry\UniGetUI.Interface.Telemetry.csproj" />
+        <ProjectReference Include="..\UniGetUI.PackageEngine.PackageEngine\UniGetUI.PackageEngine.PEInterface.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Include="..\SharedAssemblyInfo.cs" Link="SharedAssemblyInfo.cs" />
+      <Compile Include="..\Shared\SharedPreUiCommandDispatcher.cs" Link="Shared\SharedPreUiCommandDispatcher.cs" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <AvaloniaResource Include="..\SharedAssets\Assets\Symbols\*.svg" Link="Assets\Symbols\%(Filename)%(Extension)" />
+
+        <AvaloniaResource Include="..\SharedAssets\icon.ico" Link="Assets\icon.ico" />
+        <AvaloniaResource Include="..\SharedAssets\Assets\Images\icon.png" Link="Assets\icon.png" />
+        <AvaloniaResource Include="..\SharedAssets\Assets\Images\icon_unsquare.png" Link="Assets\icon_unsquare.png" />
+        <AvaloniaResource Include="..\SharedAssets\Assets\Images\package_color.png" Link="Assets\package_color.png" />
+        <AvaloniaResource Include="Assets\Images\maurice_penseur.png" />
+        <AvaloniaResource Include="Assets\Images\launcher.png" />
+        <AvaloniaResource Include="Assets\Images\Trophee.png" />
+        <AvaloniaResource Include="Assets\Images\Empty_inbox.png" />
+        <AvaloniaResource Include="..\SharedAssets\Assets\SplashScreen.png" Link="Assets\SplashScreen.png" />
+        <AvaloniaResource Include="..\SharedAssets\Assets\SplashScreen.theme-dark.png" Link="Assets\SplashScreen.theme-dark.png" />
+        <!-- Tray status icon variants: status colour encoded by the corner dot; light/dark tone per taskbar theme. -->
+        <AvaloniaResource Include="..\SharedAssets\Assets\Images\tray_empty_black_legacy.ico" Link="Assets\tray_empty_black_legacy.ico" />
+        <AvaloniaResource Include="..\SharedAssets\Assets\Images\tray_empty_white_legacy.ico" Link="Assets\tray_empty_white_legacy.ico" />
+        <AvaloniaResource Include="..\SharedAssets\Assets\Images\tray_blue_black_legacy.ico" Link="Assets\tray_blue_black_legacy.ico" />
+        <AvaloniaResource Include="..\SharedAssets\Assets\Images\tray_blue_white_legacy.ico" Link="Assets\tray_blue_white_legacy.ico" />
+        <AvaloniaResource Include="..\SharedAssets\Assets\Images\tray_green_black_legacy.ico" Link="Assets\tray_green_black_legacy.ico" />
+        <AvaloniaResource Include="..\SharedAssets\Assets\Images\tray_green_white_legacy.ico" Link="Assets\tray_green_white_legacy.ico" />
+        <AvaloniaResource Include="..\SharedAssets\Assets\Images\tray_orange_black_legacy.ico" Link="Assets\tray_orange_black_legacy.ico" />
+        <AvaloniaResource Include="..\SharedAssets\Assets\Images\tray_orange_white_legacy.ico" Link="Assets\tray_orange_white_legacy.ico" />
+        <AvaloniaResource Include="..\SharedAssets\Assets\Images\tray_turquoise_black_legacy.ico" Link="Assets\tray_turquoise_black_legacy.ico" />
+        <AvaloniaResource Include="..\SharedAssets\Assets\Images\tray_turquoise_white_legacy.ico" Link="Assets\tray_turquoise_white_legacy.ico" />
+        <AvaloniaResource Remove="Infrastructure\**" />
+    </ItemGroup>
+
+    <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+        <Content Include="..\SharedAssets\Assets\Utilities\*.cmd" Link="Assets\Utilities\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+        <Content Include="..\SharedAssets\Assets\Utilities\*.ps1" Link="Assets\Utilities\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+        <Content Include="$(ElevatorPackageExePath)" Link="Assets\Utilities\UniGetUI Elevator.exe" Condition="Exists('$(ElevatorPackageExePath)')" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Visible="false" Pack="false" />
+        <Content Include="$(ElevatorPackageDllPath)" Link="Assets\Utilities\getfilesiginforedist.dll" Condition="Exists('$(ElevatorPackageDllPath)')" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Visible="false" Pack="false" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <AvaloniaXaml Remove="Infrastructure\**" />
+      <!-- Style-only files have no x:Class; exclude from codegen and embed as plain resources -->
+      <AvaloniaXaml Remove="Assets\Styles\*.axaml" />
+      <AvaloniaResource Include="Assets\Styles\*.axaml" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Remove="Infrastructure\**" />
+      <Compile Include="Infrastructure\AvaloniaOperationRegistry.cs" />
+      <Compile Include="Infrastructure\AppRestartHelper.cs" />
+      <Compile Include="Infrastructure\WindowsAppNotificationBridge.cs" />
+      <Compile Include="Infrastructure\Win32ToastNotifier.cs" />
+      <Compile Include="Infrastructure\AppShortcutAumidStamper.cs" />
+      <Compile Include="Infrastructure\TrayService.cs" />
+      <Compile Include="Infrastructure\MicaWindowHelper.cs" />
+      <Compile Include="Infrastructure\MemoryTrimmer.cs" />
+      <Compile Include="Infrastructure\EntrancePageTransition.cs" />
+      <Compile Include="Infrastructure\DirectionalSlideTransition.cs" />
+      <Compile Include="Infrastructure\MacOsNotificationBridge.cs" />
+      <Compile Include="Infrastructure\Secrets.cs" />
+       <Compile Include="Infrastructure\AsyncCommand.cs" />
+       <Compile Include="Infrastructure\AccessibilityAnnouncementService.cs" />
+       <Compile Include="Infrastructure\AvaloniaAutoUpdater.cs" />
+       <Compile Include="Infrastructure\AvaloniaBootstrapper.cs" />
+       <Compile Include="Infrastructure\AvaloniaPackageOperationHelper.cs" />
+      <Compile Include="Infrastructure\GitHubAuthService.cs" />
+      <Compile Include="Infrastructure\GHAuthApiRunner.cs" />
+      <Compile Include="Infrastructure\GitHubCloudBackupService.cs" />
+      <Compile Include="Infrastructure\HeadlessDaemonHost.cs" />
+      <Compile Include="Infrastructure\HeadlessModeOptions.cs" />
+       <Compile Include="Infrastructure\ProcessEnvironmentConfigurator.cs" />
+       <Compile Include="Infrastructure\RelayCommand.cs" />
+       <Compile Include="Infrastructure\SingleInstanceRedirector.cs" />
+       <Compile Include="Infrastructure\UninstallConfirmationDialog.cs" />
+       <Compile Include="Infrastructure\WindowsAvaloniaRenderingPolicy.cs" />
+       <Compile Update="App.axaml.cs">
+         <DependentUpon>App.axaml</DependentUpon>
+       </Compile>
+      <Compile Update="Views\Controls\UserAvatarControl.axaml.cs">
+        <DependentUpon>UserAvatarControl.axaml</DependentUpon>
+        <SubType>Code</SubType>
+      </Compile>
+      <Compile Update="Views\SidebarView.axaml.cs">
+        <DependentUpon>SidebarView.axaml</DependentUpon>
+      </Compile>
+      <Compile Update="Views\MainWindow.axaml.cs">
+        <DependentUpon>MainWindow.axaml</DependentUpon>
+      </Compile>
+      <Compile Update="Views\SplashWindow.axaml.cs">
+        <DependentUpon>SplashWindow.axaml</DependentUpon>
+      </Compile>
+      <Compile Update="Views\Pages\AbstractPackagesPage.axaml.cs">
+        <DependentUpon>AbstractPackagesPage.axaml</DependentUpon>
+      </Compile>
+      <Compile Update="Views\InstallOptionsWindow.axaml.cs">
+        <DependentUpon>InstallOptionsWindow.axaml</DependentUpon>
+      </Compile>
+      <Compile Update="Views\DialogPages\InstallOptionsWindow.axaml.cs">
+        <DependentUpon>InstallOptionsWindow.axaml</DependentUpon>
+        <SubType>Code</SubType>
+      </Compile>
+      <Compile Update="Views\DialogPages\ManageIgnoredUpdatesWindow.axaml.cs">
+        <DependentUpon>ManageIgnoredUpdatesWindow.axaml</DependentUpon>
+        <SubType>Code</SubType>
+      </Compile>
+      <Compile Update="Views\DialogPages\ManageDesktopShortcutsWindow.axaml.cs">
+        <DependentUpon>ManageDesktopShortcutsWindow.axaml</DependentUpon>
+        <SubType>Code</SubType>
+      </Compile>
+      <Compile Update="Views\DialogPages\PackageDetailsWindow.axaml.cs">
+        <DependentUpon>PackageDetailsWindow.axaml.axaml</DependentUpon>
+        <SubType>Code</SubType>
+      </Compile>
+      <Compile Update="Views\Pages\SettingsPages\SettingsBasePage.axaml.cs">
+        <DependentUpon>SettingsBasePage.axaml</DependentUpon>
+        <SubType>Code</SubType>
+      </Compile>
+      <Compile Update="Views\Pages\SettingsPages\SettingsHomepage.axaml.cs">
+        <DependentUpon>SettingsHomepage.axaml</DependentUpon>
+        <SubType>Code</SubType>
+      </Compile>
+      <Compile Update="Views\Pages\SettingsPages\Notifications.axaml.cs">
+        <DependentUpon>Notifications.axaml</DependentUpon>
+        <SubType>Code</SubType>
+      </Compile>
+      <Compile Update="Views\Pages\SettingsPages\Updates.axaml.cs">
+        <DependentUpon>Updates.axaml</DependentUpon>
+        <SubType>Code</SubType>
+      </Compile>
+      <Compile Update="Views\Pages\SettingsPages\Operations.axaml.cs">
+        <DependentUpon>Operations.axaml</DependentUpon>
+        <SubType>Code</SubType>
+      </Compile>
+      <Compile Update="Views\Pages\SettingsPages\Experimental.axaml.cs">
+        <DependentUpon>Experimental.axaml</DependentUpon>
+        <SubType>Code</SubType>
+      </Compile>
+      <Compile Update="Views\Pages\SettingsPages\Administrator.axaml.cs">
+        <DependentUpon>Administrator.axaml</DependentUpon>
+        <SubType>Code</SubType>
+      </Compile>
+      <Compile Update="Views\Pages\SettingsPages\ManagersHomepage.axaml.cs">
+        <DependentUpon>ManagersHomepage.axaml</DependentUpon>
+        <SubType>Code</SubType>
+      </Compile>
+      <Compile Update="Views\DialogPages\CrashReportWindow.axaml.cs">
+        <DependentUpon>CrashReportWindow.axaml</DependentUpon>
+      </Compile>
+      <Compile Update="Views\DialogPages\OperationOutputWindow.axaml.cs">
+        <DependentUpon>OperationOutputWindow.axaml</DependentUpon>
+      </Compile>
+      <Compile Update="Views\Pages\AboutPages\AboutPage.axaml.cs">
+        <DependentUpon>AboutPage.axaml</DependentUpon>
+      </Compile>
+      <Compile Update="Views\Pages\HelpPage.axaml.cs">
+        <DependentUpon>HelpPage.axaml</DependentUpon>
+        <SubType>Code</SubType>
+      </Compile>
+      <Compile Update="Views\Pages\LogPages\BaseLogPage.axaml.cs">
+        <DependentUpon>BaseLogPage.axaml</DependentUpon>
+        <SubType>Code</SubType>
+      </Compile>
+      <Compile Update="Views\Pages\SettingsPages\PackageManagerPage.axaml.cs">
+        <DependentUpon>PackageManagerPage.axaml</DependentUpon>
+        <SubType>Code</SubType>
+      </Compile>
+      <Compile Update="Views\Pages\SettingsPages\InstallOptionsPanel.axaml.cs">
+        <DependentUpon>InstallOptionsPanel.axaml</DependentUpon>
+        <SubType>Code</SubType>
+      </Compile>
+      <Compile Update="Views\Pages\SettingsPages\SourceManagerCard.axaml.cs">
+        <DependentUpon>SourceManagerCard.axaml</DependentUpon>
+        <SubType>Code</SubType>
+      </Compile>
+      <Compile Update="Views\DialogPages\BundleSecurityReportDialog.axaml.cs">
+        <DependentUpon>BundleSecurityReportDialog.axaml</DependentUpon>
+      </Compile>
+    </ItemGroup>
+
+    <ItemGroup>
+      <EmbeddedResource Remove="Infrastructure\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <AdditionalFiles Remove="Infrastructure\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="Infrastructure\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Models\" />
+    </ItemGroup>
+</Project>
