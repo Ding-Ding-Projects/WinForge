@@ -161,6 +161,9 @@ public sealed partial class MainWindow : Window
             await Task.Delay(75);
             await StartServiceOnUiAsync("svc: powerdisplay", "startup:powerdisplay",
                 () => PowerDisplayService.Initialize(DispatcherQueue, PowerDisplayFlyoutWindow.ShowOrActivate));
+            await Task.Delay(75);
+            await StartServiceOnUiAsync("svc: videoconferencemute", "startup:videoconferencemute",
+                () => VideoConferenceMuteService.Initialize(DispatcherQueue, VideoConferenceMuteOverlay.Show));
 
             await Task.WhenAll(background);
             CrashLogger.Mark("svc: all started");
@@ -1285,6 +1288,13 @@ public sealed partial class MainWindow : Window
             case "windowcrop":
                 Navigator.GoToModule?.Invoke("module.cropandlock");
                 break;
+            case "videoconference":
+            case "videoconferencemute":
+            case "conference-mute":
+            case "vcm":
+            case "micmute":
+                Navigator.GoToModule?.Invoke("module.videoconference");
+                break;
             case "giflab":
             case "gif":
             case "screentogif":
@@ -2217,6 +2227,7 @@ public sealed partial class MainWindow : Window
         "module.capture" => typeof(CaptureStudioModule),
         "module.textocr" => typeof(TextOcrModule),
         "module.cropandlock" => typeof(CropAndLockModule),
+        "module.videoconference" => typeof(VideoConferenceMuteModule),
         "module.giflab" => typeof(GifLabModule),
         "module.zoomit" => typeof(ZoomItModule),
         "module.monitor" => typeof(SystemMonitorModule),
@@ -2660,7 +2671,7 @@ public sealed partial class MainWindow : Window
             {
                 "module.media", "module.audioeditor", "module.audiotagger", "module.mediaplayer", "module.ytdlp",
                 "module.blender", "module.libreoffice", "module.pdftoolkit", "module.recorder", "module.capture",
-                "module.textocr", "module.cropandlock", "module.giflab", "module.zoomit", "module.mixer",
+                "module.textocr", "module.cropandlock", "module.videoconference", "module.giflab", "module.zoomit", "module.mixer",
                 "module.colorpicker", "module.screenruler", "module.pixeleditor", "module.imageeditor",
                 "module.timeunit", "module.timelens",
             },

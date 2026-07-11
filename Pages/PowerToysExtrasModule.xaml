@@ -253,6 +253,7 @@
                             <Button Grid.Row="9" Grid.Column="0" Content="Open Mouse Without Borders · 開啟無界滑鼠" Click="MoreMwb_Click" />
                             <Button Grid.Row="9" Grid.Column="1" Content="Open Command Palette · 開啟指令面板" Click="MoreCmdPalette_Click" />
                             <Button Grid.Row="10" Grid.Column="0" Content="Open Power Display · 開啟顯示器控制" Click="MorePowerDisplay_Click" />
+                            <Button Grid.Row="10" Grid.Column="1" Content="Open Video Conference Mute · 開啟視像會議靜音" Click="MoreVideoConferenceMute_Click" />
                         </Grid>
                     </StackPanel>
                 </ScrollViewer>

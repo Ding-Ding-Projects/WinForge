@@ -776,6 +776,8 @@ Shipped as a single **PowerToys Extras** module (`module.powertoys` / `--page po
 
 ### Next PowerToys batches · 之後嘅批次
 - [x] **Find My Mouse / crosshairs / CursorWrap / Grab and Move** · 搵滑鼠／十字準星／游標環繞／拖曳移動視窗 — shipped in `Pages/MouseUtilsModule.xaml(.cs)` with active-display wrapping, Ctrl/Shift hold activation, horizontal/vertical modes, single-monitor pausing, and managed modifier-drag window move/nearest-edge resize controls; linked from the PowerToys hub.
+- [x] **Crop And Lock screenshot mode** · 裁切與鎖定截圖模式 — the native Crop And Lock clone now has all three PowerToys flows: live Thumbnail, safe reparent-style Crop, and frozen in-process GDI Screenshot, each with a configurable shortcut. `--page cropandlock`.
+- [x] **Video Conference Mute** · 視像會議靜音 — native default-communications microphone mute, explicit reversible per-user webcam privacy gating, all/mic/camera hotkeys, short visible confirmation, and tray access. `--page videoconference`.
 - [x] **Power Display** · 顯示器控制 — managed DDC/CI controls for external monitors: brightness, contrast, volume, input source, rotation, colour temperature, power state, saved profiles, custom VCP mappings, compact activation panel, tray entry, and opt-in Light Switch light/dark profile binding. `--page powerdisplay`.
 - [x] **Screen Ruler** · 螢幕間尺 — already shipped in `Pages/ScreenRulerModule.xaml(.cs)` and linked from the PowerToys hub.
 - [x] **Quick Accent** · 快速重音 — already shipped in `Pages/QuickAccentModule.xaml(.cs)` and linked from the PowerToys hub.

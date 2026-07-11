@@ -91,6 +91,21 @@ canonical screenshot was substituted, and these six pages are
 `CopyFromScreen` 都回傳 `The handle is invalid`。冇一頁產生有效 PNG、冇用舊
 canonical 截圖頂替，呢 6 頁係 `capture-blocked`，唔係 visual-pass。
 
+**EN —** The Package Manager source-preservation P0 change received a fresh
+`driver.ps1 -Page packages -Publish -WaitMs 15000 -Out …` attempt. The driver
+reported `CopyFromScreen unavailable`; its `PrintWindow` fallback produced a
+uniform frame and graphics capture was unavailable in this desktop session.
+No new Package Manager PNG was produced, inspected, replaced or reused. Its
+follow-up `-NoCapture` launch passed, but this evidence is `capture-blocked`,
+not visual verification.
+
+**粵語 —** Package Manager 來源保留 P0 變更已經用新嘅
+`driver.ps1 -Page packages -Publish -WaitMs 15000 -Out …` 嘗試。driver 報
+`CopyFromScreen unavailable`；`PrintWindow` fallback 產生 uniform frame，而
+呢個 desktop session 嘅 graphics capture 亦唔可用。冇產生、檢查、替換或者重用
+新嘅 Package Manager PNG。之後 `-NoCapture` launch 通過，但呢份證據係
+`capture-blocked`，唔係視覺驗證。
+
 ## Redaction Rules · 遮蔽規則
 
 **EN —** Before adding screenshots, redact or avoid personal data: Windows usernames, home-folder paths, repo paths outside WinForge, hostnames, IPs that identify private networks, account names, emails, API keys, tokens, session cookies, vault item names, SSH profiles, and real package/source credentials. Use `winforge-shot --redact "x|y|w|h|box|blur|pixelate"` to obscure regions irreversibly; see the [Wiki Screenshot Workflow](Wiki-Screenshot-Workflow.md).
@@ -168,6 +183,9 @@ canonical 截圖頂替，呢 6 頁係 `capture-blocked`，唔係 visual-pass。
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-powertoys.png)
 
 ### Power Display · 顯示器控制
+Fresh capture is pending because the current desktop capture host rejects `CopyFromScreen` with “The handle is invalid” even for a one-pixel virtual-screen test, while `PrintWindow` returns a uniform black frame. No blank or misleading screenshot is published. · 新截圖暫時未能提供，因為目前桌面擷取主機連一像素虛擬螢幕測試都會令 `CopyFromScreen` 回傳「The handle is invalid」，而 `PrintWindow` 只會回傳全黑畫面；所以唔會發佈空白或者誤導嘅截圖。
+
+### Video Conference Mute · 視像會議靜音
 Fresh capture is pending because the current desktop capture host rejects `CopyFromScreen` with “The handle is invalid” even for a one-pixel virtual-screen test, while `PrintWindow` returns a uniform black frame. No blank or misleading screenshot is published. · 新截圖暫時未能提供，因為目前桌面擷取主機連一像素虛擬螢幕測試都會令 `CopyFromScreen` 回傳「The handle is invalid」，而 `PrintWindow` 只會回傳全黑畫面；所以唔會發佈空白或者誤導嘅截圖。
 
 ### World Monitor · 世界監察
@@ -275,7 +293,7 @@ Fresh capture is pending because the current desktop capture host rejects `CopyF
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-giflab.png)
 
 ### Crop And Lock · 裁切與鎖定
-![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-cropandlock.png)
+Fresh capture is pending because the current desktop capture host rejects `CopyFromScreen` with “The handle is invalid” even for a one-pixel virtual-screen test, while `PrintWindow` returns a uniform black frame. No blank or stale screenshot is published. · 新截圖暫時未能提供，因為目前桌面擷取主機連一像素虛擬螢幕測試都會令 `CopyFromScreen` 回傳「The handle is invalid」，而 `PrintWindow` 只會回傳全黑畫面；所以唔會發佈空白或者過期嘅截圖。
 
 ### ZoomIt · 螢幕放大與標註
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-zoomit.png)

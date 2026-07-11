@@ -17,7 +17,16 @@ public sealed class CropLockEntry
     public IntPtr HostHandle { get; init; }       // our floating host window (HWND)
     public IntPtr SourceHandle { get; init; }      // the window being mirrored
     public string SourceTitle { get; init; } = ""; // title of the source window (for the list)
-    public bool Thumbnail { get; init; }           // true = live thumbnail, false = reparent/crop view
+    public CropLockMode Mode { get; init; }
+    public bool Thumbnail => Mode == CropLockMode.Thumbnail;
+}
+
+/// <summary>PowerToys-compatible crop host modes · PowerToys 相容嘅裁切宿主模式。</summary>
+public enum CropLockMode
+{
+    Thumbnail,
+    Reparent,
+    Screenshot,
 }
 
 /// <summary>
@@ -61,6 +70,17 @@ public static class CropAndLockService
     [StructLayout(LayoutKind.Sequential)]
     private struct MSG { public IntPtr hwnd; public uint message; public IntPtr wParam, lParam; public uint time; public POINT pt; }
 
+    [StructLayout(LayoutKind.Sequential)]
+    private struct PAINTSTRUCT
+    {
+        public IntPtr hdc;
+        public bool fErase;
+        public RECT rcPaint;
+        public bool fRestore;
+        public bool fIncUpdate;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 32)] public byte[] rgbReserved;
+    }
+
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     private struct WNDCLASSEX
     {
@@ -103,11 +123,25 @@ public static class CropAndLockService
     [DllImport("user32.dll")] private static extern bool PostThreadMessage(uint idThread, uint msg, IntPtr wParam, IntPtr lParam);
     [DllImport("user32.dll")] private static extern bool GetClientRect(IntPtr hWnd, out RECT rect);
     [DllImport("user32.dll")] private static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);
+    [DllImport("user32.dll")] private static extern IntPtr BeginPaint(IntPtr hWnd, out PAINTSTRUCT paint);
+    [DllImport("user32.dll")] private static extern bool EndPaint(IntPtr hWnd, ref PAINTSTRUCT paint);
+    [DllImport("user32.dll")] private static extern IntPtr GetDC(IntPtr hWnd);
+    [DllImport("user32.dll")] private static extern int ReleaseDC(IntPtr hWnd, IntPtr hdc);
+    [DllImport("user32.dll")] private static extern bool InvalidateRect(IntPtr hWnd, IntPtr rect, bool erase);
     [DllImport("user32.dll")] private static extern bool SetWindowPos(IntPtr hWnd, IntPtr after, int x, int y, int cx, int cy, uint flags);
     [DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr hWnd);
     [DllImport("user32.dll")] private static extern bool AdjustWindowRectEx(ref RECT rect, uint style, bool menu, uint exStyle);
     [DllImport("user32.dll")] private static extern IntPtr LoadCursor(IntPtr inst, int id);
     [DllImport("gdi32.dll")] private static extern IntPtr GetStockObject(int obj);
+    [DllImport("gdi32.dll")] private static extern IntPtr CreateCompatibleDC(IntPtr hdc);
+    [DllImport("gdi32.dll")] private static extern bool DeleteDC(IntPtr hdc);
+    [DllImport("gdi32.dll")] private static extern IntPtr CreateCompatibleBitmap(IntPtr hdc, int width, int height);
+    [DllImport("gdi32.dll")] private static extern IntPtr SelectObject(IntPtr hdc, IntPtr obj);
+    [DllImport("gdi32.dll")] private static extern bool DeleteObject(IntPtr obj);
+    [DllImport("gdi32.dll")] private static extern bool BitBlt(IntPtr hdcDest, int xDest, int yDest, int width, int height,
+        IntPtr hdcSource, int xSource, int ySource, uint rop);
+    [DllImport("gdi32.dll")] private static extern bool StretchBlt(IntPtr hdcDest, int xDest, int yDest, int widthDest, int heightDest,
+        IntPtr hdcSource, int xSource, int ySource, int widthSource, int heightSource, uint rop);
     [DllImport("user32.dll")] private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
     [DllImport("user32.dll")] private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] private static extern IntPtr GetModuleHandle(string? name);
@@ -126,7 +160,7 @@ public static class CropAndLockService
     private const int IDC_ARROW = 32512;
     private const int BLACK_BRUSH = 4;
 
-    private const uint WM_DESTROY = 0x0002, WM_SIZE = 0x0005, WM_NCDESTROY = 0x0082, WM_HOTKEY = 0x0312;
+    private const uint WM_DESTROY = 0x0002, WM_SIZE = 0x0005, WM_PAINT = 0x000F, WM_NCDESTROY = 0x0082, WM_HOTKEY = 0x0312;
     private const uint WM_APP = 0x8000;
     private const uint WM_APP_CREATE = WM_APP + 1;     // spawn a host window on the pump thread
     private const uint WM_APP_CLOSE = WM_APP + 2;      // close one host window
@@ -142,6 +176,7 @@ public static class CropAndLockService
 
     private static readonly IntPtr HWND_TOPMOST = new(-1);
     private const uint SWP_NOMOVE = 0x0002, SWP_NOSIZE = 0x0001, SWP_NOACTIVATE = 0x0010, SWP_SHOWWINDOW = 0x0040;
+    private const uint SRCCOPY = 0x00CC0020, CAPTUREBLT = 0x40000000;
 
     private const string ClassName = "WinForgeCropAndLockHost";
 
@@ -162,6 +197,9 @@ public static class CropAndLockService
         public IntPtr Thumb;       // HTHUMBNAIL
         public RECT Source;        // crop rect in source-window space
         public IntPtr SourceHwnd;
+        public IntPtr StaticBitmap; // frozen screenshot HBITMAP
+        public int BitmapWidth;
+        public int BitmapHeight;
     }
     private static readonly Dictionary<IntPtr, HostState> _hosts = new();
 
@@ -171,7 +209,8 @@ public static class CropAndLockService
         public IntPtr Source;
         public string Title = "";
         public RECT Crop;          // in source client-area space (physical px relative to client origin)
-        public bool Thumbnail;
+        public RECT ScreenCrop;    // frozen screenshot source in physical screen px
+        public CropLockMode Mode;
         public IntPtr Result;       // filled in by the pump thread
         // Completed by the pump thread once the host is created (or failed). Awaited by the caller
         // instead of blocking, so the UI thread never stalls waiting for the STA pump. Runs
@@ -209,11 +248,11 @@ public static class CropAndLockService
     }
 
     /// <summary>
-    /// 由視窗 + 螢幕區域整一個裁切／縮圖視窗 · Create a cropped/thumbnail host window for a source window
+    /// 由視窗 + 螢幕區域整一個裁切宿主 · Create a cropped, thumbnail, or screenshot host window for a source window
     /// and a chosen region. <paramref name="screenRect"/> is in PHYSICAL screen pixels (as returned by
     /// RegionSelector). Returns true on success.
     /// </summary>
-    public static async Task<bool> CreateFromScreenRectAsync(IntPtr source, string title, (int x, int y, int w, int h) screenRect, bool thumbnail)
+    public static async Task<bool> CreateFromScreenRectAsync(IntPtr source, string title, (int x, int y, int w, int h) screenRect, CropLockMode mode)
     {
         try
         {
@@ -232,6 +271,13 @@ public static class CropAndLockService
                 if (!GetWindowRect(source, out frame)) { Note("Could not read the window bounds.", "讀唔到視窗邊界。"); return false; }
             }
 
+            var screenCrop = new RECT
+            {
+                Left = screenRect.x,
+                Top = screenRect.y,
+                Right = screenRect.x + screenRect.w,
+                Bottom = screenRect.y + screenRect.h,
+            };
             var crop = new RECT
             {
                 Left = screenRect.x - frame.Left,
@@ -251,7 +297,7 @@ public static class CropAndLockService
                 || crop.Width < 8 || crop.Height < 8)
             { Note("Region is outside the window.", "區域喺視窗範圍以外。"); return false; }
 
-            var req = new CreateRequest { Source = source, Title = title, Crop = crop, Thumbnail = thumbnail };
+            var req = new CreateRequest { Source = source, Title = title, Crop = crop, ScreenCrop = screenCrop, Mode = mode };
             lock (_reqLock) _pending.Enqueue(req);
             PostThreadMessage(_pumpThreadId, WM_APP_CREATE, IntPtr.Zero, IntPtr.Zero);
 
@@ -274,11 +320,16 @@ public static class CropAndLockService
                 HostHandle = result,
                 SourceHandle = source,
                 SourceTitle = string.IsNullOrWhiteSpace(title) ? Loc.I.Pick("(untitled)", "（無標題）") : title,
-                Thumbnail = thumbnail,
+                Mode = mode,
             };
             Active.Add(entry);
-            Note(thumbnail ? "Created a live thumbnail." : "Created a cropped view.",
-                 thumbnail ? "已建立即時縮圖。" : "已建立裁切檢視。");
+            var note = mode switch
+            {
+                CropLockMode.Thumbnail => ("Created a live thumbnail.", "已建立即時縮圖。"),
+                CropLockMode.Reparent => ("Created a cropped view.", "已建立裁切檢視。"),
+                _ => ("Created a frozen screenshot.", "已建立靜態截圖。"),
+            };
+            Note(note.Item1, note.Item2);
             Changed?.Invoke();
             return true;
         }
@@ -408,7 +459,8 @@ public static class CropAndLockService
 
     private static IntPtr SpawnHost(CreateRequest req)
     {
-        int w = req.Crop.Width, h = req.Crop.Height;
+        int w = req.Mode == CropLockMode.Screenshot ? req.ScreenCrop.Width : req.Crop.Width;
+        int h = req.Mode == CropLockMode.Screenshot ? req.ScreenCrop.Height : req.Crop.Height;
         // Cap an over-large view so the floating window stays usable; the thumbnail scales to fit.
         int capW = Math.Min(w, 1200), capH = Math.Min(h, 900);
 
@@ -418,9 +470,12 @@ public static class CropAndLockService
         int adjW = rect.Width, adjH = rect.Height;
 
         var inst = GetModuleHandle(null);
-        var title = req.Thumbnail
-            ? $"{Loc.I.Pick("Thumbnail", "縮圖")} · {req.Title}"
-            : $"{Loc.I.Pick("Cropped", "裁切")} · {req.Title}";
+        var title = req.Mode switch
+        {
+            CropLockMode.Thumbnail => $"{Loc.I.Pick("Thumbnail", "縮圖")} · {req.Title}",
+            CropLockMode.Reparent => $"{Loc.I.Pick("Cropped", "裁切")} · {req.Title}",
+            _ => $"{Loc.I.Pick("Screenshot", "截圖")} · {req.Title}",
+        };
 
         IntPtr host = CreateWindowEx(
             WS_EX_TOPMOST | WS_EX_TOOLWINDOW, ClassName, title, style,
@@ -428,16 +483,31 @@ public static class CropAndLockService
             adjW, adjH, IntPtr.Zero, IntPtr.Zero, inst, IntPtr.Zero);
         if (host == IntPtr.Zero) return IntPtr.Zero;
 
-        // Register a DWM thumbnail of the source into our host, sourced to the crop rect.
-        if (DwmRegisterThumbnail(host, req.Source, out var thumb) != 0 || thumb == IntPtr.Zero)
+        var state = new HostState { Source = req.Crop, SourceHwnd = req.Source };
+        if (req.Mode == CropLockMode.Screenshot)
         {
-            DestroyWindow(host);
-            return IntPtr.Zero;
+            state.StaticBitmap = CaptureSnapshot(req.ScreenCrop);
+            state.BitmapWidth = req.ScreenCrop.Width;
+            state.BitmapHeight = req.ScreenCrop.Height;
+            if (state.StaticBitmap == IntPtr.Zero)
+            {
+                DestroyWindow(host);
+                return IntPtr.Zero;
+            }
+        }
+        else
+        {
+            // Live thumbnail and safe reparent-style crop both use DWM rather than fragile SetParent.
+            if (DwmRegisterThumbnail(host, req.Source, out var thumb) != 0 || thumb == IntPtr.Zero)
+            {
+                DestroyWindow(host);
+                return IntPtr.Zero;
+            }
+            state.Thumb = thumb;
         }
 
-        var state = new HostState { Thumb = thumb, Source = req.Crop, SourceHwnd = req.Source };
         _hosts[host] = state;
-        ApplyThumbnail(host, state);
+        if (state.Thumb != IntPtr.Zero) ApplyThumbnail(host, state);
 
         SetWindowPos(host, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW | SWP_NOACTIVATE);
         ShowWindow(host, SW_SHOW);
@@ -470,6 +540,7 @@ public static class CropAndLockService
         if (_hosts.TryGetValue(host, out var st))
         {
             if (st.Thumb != IntPtr.Zero) DwmUnregisterThumbnail(st.Thumb);
+            if (st.StaticBitmap != IntPtr.Zero) DeleteObject(st.StaticBitmap);
             _hosts.Remove(host);
         }
         if (host != IntPtr.Zero && IsWindow(host)) DestroyWindow(host);
@@ -481,20 +552,88 @@ public static class CropAndLockService
         {
             case WM_SIZE:
                 if (_hosts.TryGetValue(hWnd, out var st))
-                    ApplyThumbnail(hWnd, st);
+                {
+                    if (st.Thumb != IntPtr.Zero) ApplyThumbnail(hWnd, st);
+                    else if (st.StaticBitmap != IntPtr.Zero) InvalidateRect(hWnd, IntPtr.Zero, false);
+                }
                 return IntPtr.Zero;
+
+            case WM_PAINT:
+                if (_hosts.TryGetValue(hWnd, out var paintState) && paintState.StaticBitmap != IntPtr.Zero)
+                {
+                    PaintSnapshot(hWnd, paintState);
+                    return IntPtr.Zero;
+                }
+                break;
 
             case WM_DESTROY:
                 // User closed the host window (X / Alt-F4): clean up the thumbnail + active list entry.
                 if (_hosts.TryGetValue(hWnd, out var s2))
                 {
                     if (s2.Thumb != IntPtr.Zero) DwmUnregisterThumbnail(s2.Thumb);
+                    if (s2.StaticBitmap != IntPtr.Zero) DeleteObject(s2.StaticBitmap);
                     _hosts.Remove(hWnd);
                     NotifyClosedFromWndProc(hWnd);
                 }
                 return IntPtr.Zero;
         }
         return DefWindowProc(hWnd, msg, wParam, lParam);
+    }
+
+    /// <summary>Capture the selected desktop pixels once; this is the non-live Screenshot mode.</summary>
+    private static IntPtr CaptureSnapshot(RECT crop)
+    {
+        if (crop.Width < 1 || crop.Height < 1) return IntPtr.Zero;
+        IntPtr screen = GetDC(IntPtr.Zero);
+        if (screen == IntPtr.Zero) return IntPtr.Zero;
+        IntPtr memory = IntPtr.Zero;
+        IntPtr bitmap = IntPtr.Zero;
+        IntPtr old = IntPtr.Zero;
+        try
+        {
+            memory = CreateCompatibleDC(screen);
+            if (memory == IntPtr.Zero) return IntPtr.Zero;
+            bitmap = CreateCompatibleBitmap(screen, crop.Width, crop.Height);
+            if (bitmap == IntPtr.Zero) return IntPtr.Zero;
+            old = SelectObject(memory, bitmap);
+            bool copied = BitBlt(memory, 0, 0, crop.Width, crop.Height, screen, crop.Left, crop.Top, SRCCOPY | CAPTUREBLT);
+            SelectObject(memory, old);
+            old = IntPtr.Zero;
+            if (copied) return bitmap;
+            DeleteObject(bitmap);
+            bitmap = IntPtr.Zero;
+            return IntPtr.Zero;
+        }
+        finally
+        {
+            if (old != IntPtr.Zero && memory != IntPtr.Zero) SelectObject(memory, old);
+            if (memory != IntPtr.Zero) DeleteDC(memory);
+            ReleaseDC(IntPtr.Zero, screen);
+        }
+    }
+
+    /// <summary>Paint and scale a frozen screenshot into its movable host window.</summary>
+    private static void PaintSnapshot(IntPtr host, HostState state)
+    {
+        IntPtr hdc = BeginPaint(host, out var paint);
+        if (hdc == IntPtr.Zero) return;
+        IntPtr memory = IntPtr.Zero;
+        IntPtr old = IntPtr.Zero;
+        try
+        {
+            if (!GetClientRect(host, out var client) || client.Width < 1 || client.Height < 1) return;
+            memory = CreateCompatibleDC(hdc);
+            if (memory == IntPtr.Zero) return;
+            old = SelectObject(memory, state.StaticBitmap);
+            StretchBlt(hdc, 0, 0, client.Width, client.Height, memory, 0, 0,
+                Math.Max(1, state.BitmapWidth), Math.Max(1, state.BitmapHeight), SRCCOPY);
+        }
+        finally
+        {
+            if (old != IntPtr.Zero && memory != IntPtr.Zero) SelectObject(memory, old);
+            if (memory != IntPtr.Zero) DeleteDC(memory);
+            EndPaint(host, ref paint);
+        }
     }
 
     /// <summary>由 WndProc（泵執行緒）通知 UI 一個視窗畀人手動關咗 · Sync the active list after a manual close.</summary>
@@ -533,6 +672,7 @@ public static class CropAndLockService
     public const string EnabledKey = "cropandlock.enabled";
     public const string ThumbHotkeyKey = "cropandlock.hotkey.thumbnail";
     public const string CropHotkeyKey = "cropandlock.hotkey.crop";
+    public const string ScreenshotHotkeyKey = "cropandlock.hotkey.screenshot";
 
     /// <summary>一個熱鍵綁定（修飾鍵 + 按鍵）· One stored hotkey chord (modifiers + virtual-key).</summary>
     public sealed class Chord
@@ -558,12 +698,15 @@ public static class CropAndLockService
 
     private const int HOTKEY_THUMB = 0xC10D;
     private const int HOTKEY_CROP = 0xC10E;
+    private const int HOTKEY_SCREENSHOT = 0xC10F;
     private const uint MOD_NOREPEAT = 0x4000;
 
-    /// <summary>讀取已儲存嘅縮圖熱鍵 · The saved thumbnail-mode hotkey (default Ctrl+Shift+T).</summary>
-    public static Chord ThumbHotkey { get; private set; } = LoadChord(ThumbHotkeyKey, defMods: 0x0002 | 0x0004, defVk: 0x54, defName: "T");
-    /// <summary>讀取已儲存嘅裁切熱鍵 · The saved crop-mode hotkey (default Ctrl+Shift+C).</summary>
-    public static Chord CropHotkey { get; private set; } = LoadChord(CropHotkeyKey, defMods: 0x0002 | 0x0004, defVk: 0x43, defName: "C");
+    /// <summary>讀取已儲存嘅縮圖熱鍵 · The saved thumbnail-mode hotkey (default Win+Ctrl+Shift+T).</summary>
+    public static Chord ThumbHotkey { get; private set; } = LoadChord(ThumbHotkeyKey, defMods: 0x0008 | 0x0002 | 0x0004, defVk: 0x54, defName: "T");
+    /// <summary>讀取已儲存嘅裁切熱鍵 · The saved reparent/crop-mode hotkey (default Win+Ctrl+Shift+R).</summary>
+    public static Chord CropHotkey { get; private set; } = LoadChord(CropHotkeyKey, defMods: 0x0008 | 0x0002 | 0x0004, defVk: 0x52, defName: "R");
+    /// <summary>讀取已儲存嘅截圖熱鍵 · The saved screenshot-mode hotkey (default Win+Ctrl+Shift+S).</summary>
+    public static Chord ScreenshotHotkey { get; private set; } = LoadChord(ScreenshotHotkeyKey, defMods: 0x0008 | 0x0002 | 0x0004, defVk: 0x53, defName: "S");
 
     private static Chord LoadChord(string key, uint defMods, uint defVk, string defName)
     {
@@ -581,10 +724,23 @@ public static class CropAndLockService
     }
 
     /// <summary>儲存並重新登記熱鍵 · Persist a chord and re-register the hotkeys.</summary>
-    public static void SetHotkey(bool thumbnail, Chord chord)
+    public static void SetHotkey(CropLockMode mode, Chord chord)
     {
-        if (thumbnail) { ThumbHotkey = chord; SettingsStore.Set(ThumbHotkeyKey, JsonSerializer.Serialize(chord)); }
-        else { CropHotkey = chord; SettingsStore.Set(CropHotkeyKey, JsonSerializer.Serialize(chord)); }
+        switch (mode)
+        {
+            case CropLockMode.Thumbnail:
+                ThumbHotkey = chord;
+                SettingsStore.Set(ThumbHotkeyKey, JsonSerializer.Serialize(chord));
+                break;
+            case CropLockMode.Reparent:
+                CropHotkey = chord;
+                SettingsStore.Set(CropHotkeyKey, JsonSerializer.Serialize(chord));
+                break;
+            case CropLockMode.Screenshot:
+                ScreenshotHotkey = chord;
+                SettingsStore.Set(ScreenshotHotkeyKey, JsonSerializer.Serialize(chord));
+                break;
+        }
         ReloadHotkeys();
         Changed?.Invoke();
     }
@@ -612,27 +768,37 @@ public static class CropAndLockService
             RegisterHotKey(IntPtr.Zero, HOTKEY_THUMB, ThumbHotkey.Modifiers | MOD_NOREPEAT, ThumbHotkey.VirtualKey);
         if (CropHotkey.IsSet)
             RegisterHotKey(IntPtr.Zero, HOTKEY_CROP, CropHotkey.Modifiers | MOD_NOREPEAT, CropHotkey.VirtualKey);
+        if (ScreenshotHotkey.IsSet)
+            RegisterHotKey(IntPtr.Zero, HOTKEY_SCREENSHOT, ScreenshotHotkey.Modifiers | MOD_NOREPEAT, ScreenshotHotkey.VirtualKey);
     }
 
     private static void UnregisterHotkeysOnThread()
     {
         UnregisterHotKey(IntPtr.Zero, HOTKEY_THUMB);
         UnregisterHotKey(IntPtr.Zero, HOTKEY_CROP);
+        UnregisterHotKey(IntPtr.Zero, HOTKEY_SCREENSHOT);
     }
 
     private static void OnHotkey(int id)
     {
-        bool thumbnail = id == HOTKEY_THUMB;
+        CropLockMode? mode = id switch
+        {
+            HOTKEY_THUMB => CropLockMode.Thumbnail,
+            HOTKEY_CROP => CropLockMode.Reparent,
+            HOTKEY_SCREENSHOT => CropLockMode.Screenshot,
+            _ => null,
+        };
+        if (mode is null) return;
         // Bounce to the UI thread: the pick flow (window pick + region drag) needs a UI message loop.
         var dq = App.Shell?.DispatcherQueue;
         if (dq is not null)
-            dq.TryEnqueue(() => HotkeyPickRequested?.Invoke(thumbnail));
+            dq.TryEnqueue(() => HotkeyPickRequested?.Invoke(mode.Value));
         else
-            HotkeyPickRequested?.Invoke(thumbnail);
+            HotkeyPickRequested?.Invoke(mode.Value);
     }
 
     /// <summary>熱鍵觸發時要求 UI 開始「揀視窗 + 區域」流程 · A hotkey asked the UI to start a pick flow.</summary>
-    public static event Action<bool>? HotkeyPickRequested;
+    public static event Action<CropLockMode>? HotkeyPickRequested;
 
     private static void Note(string en, string zh)
     {

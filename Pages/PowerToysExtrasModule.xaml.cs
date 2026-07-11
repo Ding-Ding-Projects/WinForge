@@ -340,4 +340,5 @@ public sealed partial class PowerToysExtrasModule : Page
     private void MoreMwb_Click(object sender, RoutedEventArgs e) => OpenModule("module.mwb");
     private void MoreCmdPalette_Click(object sender, RoutedEventArgs e) => OpenModule("module.cmdpalette");
     private void MorePowerDisplay_Click(object sender, RoutedEventArgs e) => OpenModule("module.powerdisplay");
+    private void MoreVideoConferenceMute_Click(object sender, RoutedEventArgs e) => OpenModule("module.videoconference");
 }
