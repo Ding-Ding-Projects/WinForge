@@ -35,6 +35,7 @@ public sealed partial class TimerModule : Page
     private bool _pomoRunning;
     private bool _pomoWorkPhase = true;
     private int _pomoCycles;
+    private bool _languageSubscribed;
 
     public TimerModule()
     {
@@ -44,15 +45,56 @@ public sealed partial class TimerModule : Page
         _cdTimer.Tick += (_, _) => CdTick();
         _pomoTimer.Tick += (_, _) => PomoTick();
 
+        Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
+    }
+
+    private void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        SubscribeLanguage();
+        Render();
+    }
+
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        PauseForUnload();
+        UnsubscribeLanguage();
+    }
+
+    private void SubscribeLanguage()
+    {
+        if (_languageSubscribed) return;
         Loc.I.LanguageChanged += OnLang;
-        Loaded += (_, _) => Render();
-        Unloaded += (_, _) =>
+        _languageSubscribed = true;
+    }
+
+    private void UnsubscribeLanguage()
+    {
+        if (!_languageSubscribed) return;
+        Loc.I.LanguageChanged -= OnLang;
+        _languageSubscribed = false;
+    }
+
+    /// <summary>
+    /// Stop every timer at the page boundary and keep each state flag truthful. The stopwatch is
+    /// explicitly accumulated before reset so a later reload shows the paused elapsed time rather
+    /// than continuing invisibly while its UI timer is stopped.
+    /// </summary>
+    private void PauseForUnload()
+    {
+        if (_swRunning)
         {
-            Loc.I.LanguageChanged -= OnLang;
-            _swTimer.Stop();
-            _cdTimer.Stop();
-            _pomoTimer.Stop();
-        };
+            _swAccum += _sw.Elapsed;
+            _sw.Reset();
+            _swRunning = false;
+        }
+        _swTimer.Stop();
+
+        _cdTimer.Stop();
+        _cdRunning = false;
+
+        _pomoTimer.Stop();
+        _pomoRunning = false;
     }
 
     private void OnLang(object? sender, EventArgs e) => Render();
@@ -88,6 +130,12 @@ public sealed partial class TimerModule : Page
             PomoStartBtn.Content = _pomoRunning ? P("Pause", "暫停") : P("Start", "開始");
             PomoResetBtn.Content = P("Reset", "重設");
             RenderPomoPhase();
+
+            // A page can be unloaded while a timer is active. Render the paused snapshot after a
+            // subsequent load so button labels, elapsed values and running flags stay coherent.
+            SwUpdateDisplay();
+            CdUpdateDisplay();
+            PomoUpdateDisplay();
 
             UpdateStatus();
         }
