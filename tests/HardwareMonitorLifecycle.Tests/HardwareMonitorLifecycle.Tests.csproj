@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net11.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>HardwareMonitorLifecycle.Tests</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Keep the driver lifecycle seam platform-neutral: the test never opens a real Ring0 driver. -->
+    <Compile Include="..\..\Services\ResourceLeaseCoordinator.cs" Link="ResourceLeaseCoordinator.cs" />
+  </ItemGroup>
+</Project>

@@ -12,6 +12,7 @@
 | [Generated References](Generated-References.md) | One page per feature and one page per button/control · 每功能一頁、每按鈕／控制項一頁 |
 | [Screenshots](Screenshots.md) | Screenshot gallery and redaction rules · 截圖集同遮蔽規則 |
 | [Smoke Test Campaign](Smoke-Test-Campaign.md) | Whole-app route, source, behavior, and evidence ledger · 全 app route、source、行為同證據清單 |
+| [Hardware Monitor Driver Lifecycle](Hardware-Monitor-Driver-Lifecycle.md) | Scoped LibreHardwareMonitor driver ownership and regression evidence · 有範圍嘅 LibreHardwareMonitor 驅動所屬同回歸證據 |
 
 ## Key Pages · 重點頁
 
