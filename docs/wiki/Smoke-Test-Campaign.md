@@ -174,5 +174,7 @@ build 以 0 errors 通過（318 warnings），強制新 self-contained
 - Screenshot capture remains blocked in this desktop session; no visual-pass
   or replacement screenshot is claimed for the unchanged Base Converter
   layout.
+- Routing-review diagnostics now use ASCII-safe separators, so evidence files
+  stay parseable across PowerShell host encodings.
 
 [← Wiki Home](Home.md) · [Developer](Developer.md) · [Screenshots](Screenshots.md)

@@ -446,7 +446,7 @@ if ($routingIssues.Count -eq 0 -and $unmappedAliases.Count -eq 0) {
 }
 else {
     foreach ($issue in ($routingIssues | Sort-Object kind, tag)) {
-        $summaryLines += "- $($issue.kind): $($issue.tag) â€” $($issue.detail)"
+        $summaryLines += "- $($issue.kind): $($issue.tag): $($issue.detail)"
     }
     foreach ($alias in ($unmappedAliases | Sort-Object -Unique)) {
         $summaryLines += "- unmapped alias: $alias"

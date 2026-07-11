@@ -209,7 +209,8 @@ An exhaustive smoke campaign is complete only when:
 ## Resources
 
 - [scripts/New-WinForgeSmokeInventory.ps1](scripts/New-WinForgeSmokeInventory.ps1)
-  extracts a route/page/control inventory into a repeatable manifest.
+  extracts a route/page/control inventory into a repeatable manifest, using
+  ASCII-safe routing-review diagnostics across PowerShell host encodings.
 - [scripts/Invoke-WinForgeRouteSmoke.ps1](scripts/Invoke-WinForgeRouteSmoke.ps1)
   launches manifest routes in safe, isolated, no-capture batches when visual
   capture is blocked. It records a bounded, longer retry after a nonzero
