@@ -49,15 +49,17 @@ while (-not (Test-Path $tmp) -and (Get-Date) -lt $deadline) { Start-Sleep -Milli
 if (-not (Test-Path $tmp)) { throw 'Export did not produce the data file.' }
 
 $jsonSerializer = $null
-try {
-  # Windows PowerShell 5's ConvertTo-Json is extremely slow and memory-hungry for
-  # the thousands of wiki pages below. JavaScriptSerializer keeps the Desktop
-  # edition fast; PowerShell 7 falls back to its improved native JSON cmdlets.
-  Add-Type -AssemblyName System.Web.Extensions -ErrorAction Stop
-  $jsonSerializer = New-Object System.Web.Script.Serialization.JavaScriptSerializer
-  $jsonSerializer.MaxJsonLength = [int]::MaxValue
-  $jsonSerializer.RecursionLimit = 100
-} catch { }
+if ($PSVersionTable.PSEdition -eq 'Desktop') {
+  try {
+    # Windows PowerShell 5's ConvertTo-Json is extremely slow and memory-hungry for
+    # the thousands of wiki pages below. JavaScriptSerializer is a .NET Framework
+    # dependency, so PowerShell 7 intentionally uses its portable native JSON cmdlets.
+    Add-Type -AssemblyName System.Web.Extensions -ErrorAction Stop
+    $jsonSerializer = New-Object System.Web.Script.Serialization.JavaScriptSerializer
+    $jsonSerializer.MaxJsonLength = [int]::MaxValue
+    $jsonSerializer.RecursionLimit = 100
+  } catch { }
+}
 
 $realJson = [System.IO.File]::ReadAllText($tmp, [System.Text.Encoding]::UTF8)
 $real = if ($jsonSerializer) { $jsonSerializer.DeserializeObject($realJson) } else { $realJson | ConvertFrom-Json }
