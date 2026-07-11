@@ -5,9 +5,9 @@ description: Build, launch, drive and screenshot the WinForge WinUI 3 desktop ap
 
 # Run WinForge
 
-WinForge is a **.NET (net11.0-windows) WinUI 3 desktop app** (`WinForge.csproj`, 315 registered module pages, flagship nuclear-reactor sim). It is driven by a PowerShell driver — **`.agents/skills/run-winforge/driver.ps1`** — that publishes a self-contained build, deep-links any module page via `WinForge.exe --page <alias>`, and captures the live window to a PNG (DWM bounds + `Graphics.CopyFromScreen`). All paths below are relative to the repo root.
+WinForge is a **.NET (net11.0-windows) WinUI 3 desktop app** (`WinForge.csproj`, 315 registered module pages, flagship nuclear-reactor sim). It is driven by a PowerShell driver — **`.agents/skills/run-winforge/driver.ps1`** — that publishes a self-contained build, deep-links any module page via `WinForge.exe --page <alias>`, and attempts a process-owned live capture (DWM bounds + `Graphics.CopyFromScreen`). Treat an output PNG as visual evidence only after inspecting it. All paths below are relative to the repo root.
 
-> Why a self-contained publish + self-capture? A plain `dotnet build` produces a **framework-dependent** exe that, with no matching desktop runtime here, just shows a *"You must install or update .NET"* dialog. And the app is **not a Start-menu app**, so desktop/computer-use screenshot tools can't target its window — the driver's `CopyFromScreen` is the reliable capture path.
+> Why a self-contained publish + self-capture? A plain `dotnet build` produces a **framework-dependent** exe that, with no matching desktop runtime here, just shows a *"You must install or update .NET"* dialog. And the app is **not a Start-menu app**, so desktop/computer-use screenshot tools can't target its window — the driver's process-owned `CopyFromScreen` is the preferred capture path when the desktop session permits it.
 
 ## Prerequisites
 - In this workspace, the driver automatically selects USERPROFILE\.dotnet\dotnet.exe when it exposes a .NET 11 SDK. The machine-wide dotnet command can resolve to an older SDK, so direct net11 app build/publish commands must set DOTNET_ROOT to USERPROFILE\.dotnet and prepend that directory to PATH. The ReactorSim focused harness targets net8.0-windows; clear DOTNET_ROOT before running it so its installed net8 runtime remains visible.
@@ -49,7 +49,7 @@ Prints a per-scenario PASS/FAIL table (currently **63/63** across reactor physic
 
 ## Gotchas
 - **Capture must stay process-owned** — the driver launches and cleans up only its own WinForge process; it never terminates or captures another task's instance. If an existing instance intercepts the launch, close only the instance you own or use an isolated desktop session.
-- **Capture can be environment-blocked** — if CopyFromScreen reports an invalid handle or Windows.Graphics.Capture cannot capture the monitor, record the exact failure as capture-blocked. Do not reuse a stale image or claim a visual pass.
+- **Capture can be environment-blocked** — if CopyFromScreen reports an invalid handle, record the exact failure as capture-blocked. A 2026-07-11 audit also showed that `PrintWindow(PW_RENDERFULLCONTENT)` can return an all-black PNG and that `Windows.Graphics.Capture.CreateForWindow` can create an item but deliver no frame even for an owned coloured diagnostic window. Those are not fallbacks: do not reuse a stale image or claim a visual pass; use `-NoCapture` for launch-only evidence.
 - **Framework-dependent build won't run** → it pops a *"install .NET"* dialog. Always run/launch the **self-contained publish** exe (the driver does this).
 - **App not in the Start menu** → computer-use / desktop screenshot tools mask it. The driver captures via `CopyFromScreen` over the DWM extended-frame bounds (attribute `9`) — accurate and shadow-excluded.
 - **`--page` is reliable; bare `--reactor` is not** — with a restored multi-tab session, `--reactor` can land on the Dashboard. Always prefer `--page reactor`.
