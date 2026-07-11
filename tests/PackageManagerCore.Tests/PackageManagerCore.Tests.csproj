@@ -9,5 +9,6 @@
     <Compile Include="..\..\Services\BundleService.cs" Link="BundleService.cs" />
     <Compile Include="..\..\Services\InstallOptions.cs" Link="InstallOptions.cs" />
     <Compile Include="..\..\Services\PackageOperationCoordinator.cs" Link="PackageOperationCoordinator.cs" />
+    <Compile Include="..\..\Services\PackageManagerViewRouting.cs" Link="PackageManagerViewRouting.cs" />
   </ItemGroup>
 </Project>

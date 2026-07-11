@@ -20,6 +20,12 @@
 | **Settings · 設定** | Configure scheduling, update gates, notifications, concurrency, manager paths/arguments, proxy, backup and global install defaults. · 設定排程、更新閘、通知、同時操作數、管理器路徑／參數、代理、備份同全域安裝預設。 |
 | **Operations · 操作佇列** | Inspect active, queued and completed work, read captured output, cancel queued/running work, and retry failed or cancelled work. · 檢視進行中、排隊同已完成操作、閱讀輸出、取消排隊／執行中操作，以及重試失敗或已取消操作。 |
 
+## Tray shortcuts and deep links · 系統匣捷徑同深層連結
+
+- The system-tray **Discover packages**, **Updates**, and **Installed packages** commands bring WinForge forward and select that exact Package Manager view; they no longer land on the generic default view. · 系統匣嘅 **搜尋安裝**、**可更新** 同 **已安裝** 指令會帶返 WinForge 去前景，並直接揀返對應嘅套件管理檢視；唔會再跌返去一般預設頁。
+- Fresh automation can use `--page package-discover`, `--page package-updates`, or `--page package-installed`. These map to the stable native keys `module.packages#discover`, `module.packages#updates`, and `module.packages#installed`; no upstream executable or UI is launched. · 新嘅自動化可以用 `--page package-discover`、`--page package-updates` 或 `--page package-installed`。佢哋會對應穩定原生 key `module.packages#discover`、`module.packages#updates` 同 `module.packages#installed`；完全唔會啟動上游 executable 或 UI。
+- The smoke inventory records these three additional aliases under `module.packages`, with no unmapped alias or structural routing issue. · Smoke inventory 已將呢三個新增 alias 記錄喺 `module.packages` 之下，冇任何 unmapped alias 或結構導覽問題。
+
 ## Operations and saved options · 操作同已儲存選項
 
 - A shared bounded-concurrency coordinator handles row actions, multi-select batches, bundle installs and scheduled updates. It suppresses duplicate live operations and keeps completion history with status and output. · 共用、有同時操作上限嘅協調器統一處理單列操作、多選批次、清單安裝同排程更新；會避免重複進行相同操作，並保留狀態同輸出歷史。
