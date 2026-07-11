@@ -1204,10 +1204,10 @@ public static class BundleService
     {
         s ??= "";
         if (s.Length == 0) return "\"\"";
-        bool needs = s.IndexOfAny(new[] { ':', '#', '\'', '"', '\n', '\t', '-', '{', '}', '[', ']', ',', '&', '*', '?', '|', '>', '%', '@', '`' }) >= 0
+        bool needs = s.IndexOfAny(new[] { ':', '#', '\'', '"', '\r', '\n', '\t', '-', '{', '}', '[', ']', ',', '&', '*', '?', '|', '>', '%', '@', '`' }) >= 0
                      || s.StartsWith(" ") || s.EndsWith(" ");
         if (!needs) return s;
-        return "\"" + s.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\n", " ").Replace("\t", " ") + "\"";
+        return "\"" + s.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\r", "\\r").Replace("\n", "\\n").Replace("\t", "\\t") + "\"";
     }
 
     /// <summary>去掉 YAML 引號 · Unquote a YAML scalar.</summary>
@@ -1215,10 +1215,31 @@ public static class BundleService
     {
         s = (s ?? "").Trim();
         if (s.Length >= 2 && s[0] == '"' && s[^1] == '"')
-            return s.Substring(1, s.Length - 2).Replace("\\\"", "\"").Replace("\\\\", "\\");
+            return UnescapeYamlDoubleQuoted(s.Substring(1, s.Length - 2));
         if (s.Length >= 2 && s[0] == '\'' && s[^1] == '\'')
             return s.Substring(1, s.Length - 2).Replace("''", "'");
         return s;
+    }
+
+    private static string UnescapeYamlDoubleQuoted(string value)
+    {
+        var result = new StringBuilder(value.Length);
+        for (int i = 0; i < value.Length; i++)
+        {
+            var c = value[i];
+            if (c != '\\' || i + 1 >= value.Length) { result.Append(c); continue; }
+            c = value[++i];
+            switch (c)
+            {
+                case 'n': result.Append('\n'); break;
+                case 'r': result.Append('\r'); break;
+                case 't': result.Append('\t'); break;
+                case '"': result.Append('"'); break;
+                case '\\': result.Append('\\'); break;
+                default: result.Append('\\').Append(c); break;
+            }
+        }
+        return result.ToString();
     }
 
     private static (string key, string val) SplitKv(string line)
