@@ -13,7 +13,7 @@
 
             <!-- Header -->
             <controls:ModuleHeader x:Name="Header" Glyph="&#xE7A8;" />
-            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
 
             <!-- Result feedback -->
             <InfoBar x:Name="ResultBar" IsClosable="True" IsOpen="False" />
@@ -28,7 +28,7 @@
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0" Spacing="1" VerticalAlignment="Center">
                             <TextBlock x:Name="EnableTitle" FontWeight="SemiBold" FontSize="15" />
-                            <TextBlock x:Name="EnableBlurb" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                            <TextBlock x:Name="EnableBlurb" FontSize="12" Foreground="{ThemeResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
                         </StackPanel>
                         <ToggleSwitch x:Name="EnableSwitch" Grid.Column="1" Toggled="Enable_Toggled" VerticalAlignment="Center" />
                     </Grid>
@@ -62,12 +62,27 @@
                         </Border>
                         <Button x:Name="CropHkBtn" Grid.Column="3" Click="CropHk_Click" VerticalAlignment="Center" />
                     </Grid>
+
+                    <!-- Screenshot hotkey -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="ScreenshotHkLabel" Grid.Column="0" VerticalAlignment="Center" MinWidth="170" />
+                        <Border Grid.Column="1" Background="{ThemeResource ControlFillColorDefaultBrush}" CornerRadius="4" Padding="10,4" VerticalAlignment="Center">
+                            <TextBlock x:Name="ScreenshotHkText" FontFamily="Consolas" />
+                        </Border>
+                        <Button x:Name="ScreenshotHkBtn" Grid.Column="3" Click="ScreenshotHk_Click" VerticalAlignment="Center" />
+                    </Grid>
                 </StackPanel>
             </Border>
 
             <!-- ===== Pick window & region ===== -->
             <TextBlock x:Name="PickHeader" FontWeight="SemiBold" FontSize="15" Margin="2,4,0,0" />
-            <TextBlock x:Name="PickBlurb" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" Margin="2,0,0,0" />
+            <TextBlock x:Name="PickBlurb" FontSize="12" Foreground="{ThemeResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" Margin="2,0,0,0" />
 
             <Grid ColumnSpacing="14">
                 <Grid.ColumnDefinitions>
@@ -83,7 +98,7 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock x:Name="CountText" Grid.Column="0" VerticalAlignment="Center" Margin="6,0,0,0" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock x:Name="CountText" Grid.Column="0" VerticalAlignment="Center" Margin="6,0,0,0" FontSize="12" Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
                             <Button x:Name="RefreshBtn" Grid.Column="1" Click="Refresh_Click" />
                         </Grid>
                         <ListView x:Name="WinList" Height="260" SelectionMode="Single">
@@ -91,7 +106,7 @@
                                 <DataTemplate>
                                     <StackPanel Spacing="0" Padding="2,4">
                                         <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
-                                        <TextBlock Text="{Binding Process}" FontSize="11" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                                        <TextBlock Text="{Binding Process}" FontSize="11" Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
                                     </StackPanel>
                                 </DataTemplate>
                             </ListView.ItemTemplate>
@@ -102,9 +117,11 @@
                 <!-- Mode buttons -->
                 <StackPanel Grid.Column="1" Spacing="10" Width="240" VerticalAlignment="Top">
                     <Button x:Name="ThumbBtn" Click="Thumb_Click" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Stretch" />
-                    <TextBlock x:Name="ThumbDesc" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    <TextBlock x:Name="ThumbDesc" FontSize="11" Foreground="{ThemeResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
                     <Button x:Name="CropBtn" Click="Crop_Click" HorizontalAlignment="Stretch" />
-                    <TextBlock x:Name="CropDesc" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    <TextBlock x:Name="CropDesc" FontSize="11" Foreground="{ThemeResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
+                    <Button x:Name="ScreenshotBtn" Click="Screenshot_Click" HorizontalAlignment="Stretch" />
+                    <TextBlock x:Name="ScreenshotDesc" FontSize="11" Foreground="{ThemeResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
                 </StackPanel>
             </Grid>
 
@@ -116,14 +133,14 @@
                 </Grid.ColumnDefinitions>
                 <StackPanel Grid.Column="0" Spacing="1">
                     <TextBlock x:Name="ActiveHeader" FontWeight="SemiBold" FontSize="15" />
-                    <TextBlock x:Name="ActiveBlurb" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    <TextBlock x:Name="ActiveBlurb" FontSize="12" Foreground="{ThemeResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
                 </StackPanel>
                 <Button x:Name="CloseAllBtn" Grid.Column="1" Click="CloseAll_Click" VerticalAlignment="Center" />
             </Grid>
 
             <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="6">
                 <StackPanel Spacing="4">
-                    <TextBlock x:Name="EmptyActive" FontSize="12" Foreground="{ThemeResource TextFillColorTertiaryBrush}" Margin="6,8" Visibility="Collapsed" />
+                    <TextBlock x:Name="EmptyActive" FontSize="12" Foreground="{ThemeResource TextFillColorPrimaryBrush}" Margin="6,8" Visibility="Collapsed" />
                     <ItemsControl x:Name="ActiveList">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
