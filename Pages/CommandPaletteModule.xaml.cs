@@ -32,8 +32,8 @@ public sealed partial class CommandPaletteModule : Page
     {
         Header.Title = "Command Palette · 指令面板";
         HeaderBlurb.Text = P(
-            "A global quick-launcher (like PowerToys Run). Press the hotkey anywhere to open a centered search box: launch installed apps, jump to WinForge modules, open files & folders, do quick math, run commands or URLs, trigger system actions, or search the web.",
-            "全域快速啟動器（似 PowerToys Run）。喺任何地方按熱鍵就會彈出置中嘅搜尋框：啟動已安裝程式、跳去 WinForge 模組、開檔案同資料夾、快速計數、執行指令或網址、觸發系統動作，或者上網搜尋。");
+            "A global quick-launcher (like PowerToys Run and Command Palette). Press the hotkey anywhere to open a centered search box: launch apps, modules, files and Terminal profiles; browse local clipboard history; use time/date; type $display for Windows Settings; or manage services with service start/stop/restart <name>.",
+            "全域快速啟動器（似 PowerToys Run 同 Command Palette）。喺任何地方按熱鍵就會彈出置中搜尋框：啟動程式、模組、檔案同終端機設定檔；瀏覽本機剪貼簿記錄；查時間／日期；輸入 $顯示器 開 Windows 設定；或者用 service start／stop／restart <名稱> 管理服務。");
 
         EnableTitle.Text = P("Enable Command Palette", "啟用指令面板");
         HotkeyLabel.Text = P("Hotkey", "熱鍵");
