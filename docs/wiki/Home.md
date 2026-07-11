@@ -12,6 +12,7 @@
 | [Generated References](Generated-References.md) | One page per feature and one page per button/control · 每功能一頁、每按鈕／控制項一頁 |
 | [Screenshots](Screenshots.md) | Screenshot gallery and redaction rules · 截圖集同遮蔽規則 |
 | [Wiki Screenshot Workflow](Wiki-Screenshot-Workflow.md) | Capture, crop, highlight, annotate, and redact screenshots · 擷取、裁切、強調、標註同遮蔽截圖 |
+| [Smoke Test Campaign](Smoke-Test-Campaign.md) | Whole-app route, source, behavior, and evidence ledger · 全 app route、source、行為同證據清單 |
 
 ## Key Pages · 重點頁
 
