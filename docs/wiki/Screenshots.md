@@ -167,6 +167,9 @@ canonical 截圖頂替，呢 6 頁係 `capture-blocked`，唔係 visual-pass。
 ### PowerToys Extras · PowerToys 額外工具
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-powertoys.png)
 
+### Power Display · 顯示器控制
+Fresh capture is pending because the current desktop capture host rejects `CopyFromScreen` with “The handle is invalid” even for a one-pixel virtual-screen test, while `PrintWindow` returns a uniform black frame. No blank or misleading screenshot is published. · 新截圖暫時未能提供，因為目前桌面擷取主機連一像素虛擬螢幕測試都會令 `CopyFromScreen` 回傳「The handle is invalid」，而 `PrintWindow` 只會回傳全黑畫面；所以唔會發佈空白或者誤導嘅截圖。
+
 ### World Monitor · 世界監察
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-worldmonitor.png)
 

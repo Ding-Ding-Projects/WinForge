@@ -50,6 +50,12 @@ Open in-app: `WinForge.exe --page screenruler`
 
 ![Screen Ruler](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-screenruler.png)
 
+## Power Display · 顯示器控制
+
+Managed DDC/CI controls for external monitors: brightness, contrast, monitor volume, input source, rotation, colour temperature and power state. Save one-click profiles, select a compact activation shortcut, expose selected monitors in the compact panel, add custom VCP mappings, and bind separate light/dark profiles to Light Switch. Hardware probing and writes stay off until the user explicitly enables the module. · 用受管 DDC/CI 控制外置螢幕：亮度、對比、螢幕音量、輸入來源、旋轉、色溫同電源狀態。可以儲存一鍵設定檔、揀精簡面板啟用快捷鍵、揀選邊部螢幕顯示喺精簡面板、加入自訂 VCP 對應，同埋將淺色／深色設定檔綁定 Light Switch。用家未明確開啟模組前，唔會做硬件偵測或者寫入。
+
+Open in-app: `WinForge.exe --page powerdisplay`
+
 ## Mouse Utilities · 滑鼠工具
 
 Find My Mouse, highlighter, crosshairs, pointer jump, CursorWrap and Grab and Move. · 搵滑鼠、點擊標示、十字線、指標跳轉、游標環繞同拖曳移動視窗。

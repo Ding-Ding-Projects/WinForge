@@ -12,12 +12,12 @@ Generated on 2026-07-11 from the live source:
 
 | Coverage surface · 涵蓋範圍 | Baseline count · 基線數量 |
 | --- | ---: |
-| Registered/map/navigation route records · 已登記／對映／導航 routes | 321 |
-| Deep-link aliases · 深層連結別名 | 796 |
+| Registered/map/navigation route records · 已登記／對映／導航 routes | 322 |
+| Deep-link aliases · 深層連結別名 | 800 |
 | Companion specifications · Companion 規格 | 4 |
 | External-app launcher specifications · 外部 app launcher 規格 | 15 |
-| First-party source files in review queue · source files 審查佇列 | 1,259 |
-| First-party source lines in review queue · source lines 審查佇列 | 342,909 |
+| First-party source files in review queue · source files 審查佇列 | 1,264 |
+| First-party source lines in review queue · source lines 審查佇列 | 343,904 |
 | Test projects · 測試專案 | 7 |
 | Wiki pages · Wiki 頁面 | 2,217 |
 
@@ -627,8 +627,8 @@ visual-pass 聲稱。
 
 ## Launch-only Batch 08 · 第八批淨啟動測試
 
-**EN —** On 2026-07-11, the final post-merge inventory recorded **321 routes**,
-**796 deep-link aliases**, 1,259 source-review files, and 342,909 source-review
+**EN —** On 2026-07-11, the final post-merge inventory recorded **322 routes**,
+**800 deep-link aliases**, 1,264 source-review files, and 343,904 source-review
 lines, with no structural routing mismatch. It retained the same 25 route IDs
 at launchable indices 175–199: mactools, mail, markdown, markdowntoc, mdtable,
 media, mediaplayer, metatags, mime, minecraftlauncher, minecraftserver,
@@ -663,10 +663,10 @@ stopped with CopyFromScreen is unavailable and the PrintWindow fallback
 produced a uniform frame; graphics capture is unavailable in this desktop
 session. No PNG was saved, inspected, replaced, or reused. Batch 08 is
 capture-blocked, never visual-pass or behavioral completion. This brings
-current process-level route-launch evidence to the first **200 of 321** routes.
+current process-level route-launch evidence to the first **200 of 322** routes.
 
-**粵語 —** 2026-07-11 合併後嘅最終 inventory 記錄咗 **321 條 routes**、
-**796 個 deep-link aliases**、1,259 個 source-review files 同 342,909 行
+**粵語 —** 2026-07-11 合併後嘅最終 inventory 記錄咗 **322 條 routes**、
+**800 個 deep-link aliases**、1,264 個 source-review files 同 343,904 行
 source-review lines，冇 structural routing mismatch。launchable indices 175–199
 仍然係同一組 25 條：mactools、mail、markdown、markdowntoc、mdtable、media、
 mediaplayer、metatags、mime、minecraftlauncher、minecraftserver、
@@ -696,6 +696,6 @@ PrintWindow、發現係 uniform frame，之後以 CopyFromScreen is unavailable 
 PrintWindow fallback produced a uniform frame; graphics capture is unavailable
 in this desktop session. 停止。冇 PNG 儲存、檢查、替換或者重用。Batch 08 係
 capture-blocked，絕對唔係 visual-pass 或 behavioral completion。依家 current
-process-level route-launch 證據去到 321 條 routes 入面頭 **200** 條。
+process-level route-launch 證據去到 322 條 routes 入面頭 **200** 條。
 
 [← Wiki Home](Home.md) · [Developer](Developer.md) · [Screenshots](Screenshots.md)

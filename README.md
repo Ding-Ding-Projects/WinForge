@@ -5,7 +5,7 @@
 **An all-in-one, fully bilingual Windows 11 control center — every module is real and working — crowned by a hyper-realistic flagship nuclear-reactor simulator.**
 **一個全方位、全程雙語嘅 Windows 11 控制中心 — 每個模組都係真正用得 — 仲有一個超寫實嘅旗艦核反應堆模擬器坐鎮。**
 
-`WinUI 3 · .NET 11` · `English + 繁體中文／粵語` · `x64` · `315 in-app modules` · `1,210 total features` · `everything runs in-app`
+`WinUI 3 · .NET 11` · `English + 繁體中文／粵語` · `x64` · `318 in-app modules` · `1,213 total features` · `everything runs in-app`
 
 </div>
 
@@ -13,9 +13,9 @@
 
 ## 🌏 Overview · 概覽
 
-**EN —** WinForge is an all-in-one, fully bilingual control center for Windows 11. It gathers 315 real, working modules and 1,210 total features — system tweaking, files & disks, media & capture, developer tooling, networking, package management, AI, window management, PowerToys-style utilities, security vaults, virtualization and gaming — into a single **WinUI 3 / .NET 11** app where every English label is paired with **繁體中文／粵語** and every action actually changes the system. Its flagship is a **hyper-realistic Pressurized Water Reactor (PWR) control-room simulator** with full point-kinetics physics, a fuel-and-waste fuel cycle, a water-treatment plant, and Westinghouse-style safety systems.
+**EN —** WinForge is an all-in-one, fully bilingual control center for Windows 11. It gathers 318 real, working modules and 1,213 total features — system tweaking, files & disks, media & capture, developer tooling, networking, package management, AI, window management, PowerToys-style utilities, security vaults, virtualization and gaming — into a single **WinUI 3 / .NET 11** app where every English label is paired with **繁體中文／粵語** and every action actually changes the system. Its flagship is a **hyper-realistic Pressurized Water Reactor (PWR) control-room simulator** with full point-kinetics physics, a fuel-and-waste fuel cycle, a water-treatment plant, and Westinghouse-style safety systems.
 
-**粵語 —** WinForge 係一個畀 Windows 11 用嘅全方位、全程雙語控制中心。佢將 315 個真正用得嘅模組同 1,210 項總功能 — 系統調校、檔案與磁碟、媒體與擷取、開發者工具、網絡、套件管理、AI、視窗管理、PowerToys 式工具、安全保險庫、虛擬化同遊戲 — 全部集合喺一個 **WinUI 3 / .NET 11** app 入面，每個英文標籤都配上**繁體中文／粵語**，而且每個動作都真正改到部機。佢嘅旗艦係一個**超寫實壓水堆（PWR）控制室模擬器**，附完整點動力學物理、燃料與廢料燃料循環、水處理廠同西屋式保護系統。
+**粵語 —** WinForge 係一個畀 Windows 11 用嘅全方位、全程雙語控制中心。佢將 318 個真正用得嘅模組同 1,213 項總功能 — 系統調校、檔案與磁碟、媒體與擷取、開發者工具、網絡、套件管理、AI、視窗管理、PowerToys 式工具、安全保險庫、虛擬化同遊戲 — 全部集合喺一個 **WinUI 3 / .NET 11** app 入面，每個英文標籤都配上**繁體中文／粵語**，而且每個動作都真正改到部機。佢嘅旗艦係一個**超寫實壓水堆（PWR）控制室模擬器**，附完整點動力學物理、燃料與廢料燃料循環、水處理廠同西屋式保護系統。
 
 ---
 
@@ -154,7 +154,7 @@ launch, retry, and screenshot-blocker evidence.
 [冒煙測試清單](docs/wiki/Smoke-Test-Campaign.md)。
 
 **EN —** Launch-only batches 01–08 now provide current process-level route
-evidence for the first 200 of 321 manifest routes. Batch 08 exercised indices
+evidence for the first 200 of 322 manifest routes. Batch 08 exercised indices
 175–199: all 25 ended `launch-pass`. Mac Tools (`mactools`) first returned
 exit 1 after five seconds because no dedicated window was yet observed, then
 passed the required bounded 15-second retry; the other 24 passed at five
@@ -162,7 +162,7 @@ seconds. Its fresh screenshot attempt found `CopyFromScreen` unavailable and
 the `PrintWindow` fallback uniformly blank, so no PNG was created or replaced
 and this remains a capture-blocked—not visual-completion—claim.
 
-**粵語 —** 淨 launch batches 01–08 而家為 321 條 manifest routes 入面頭 200 條
+**粵語 —** 淨 launch batches 01–08 而家為 322 條 manifest routes 入面頭 200 條
 提供咗最新嘅 process-level route 證據。Batch 08 測咗 indices 175–199：25 條最終
 都係 `launch-pass`。Mac Tools（`mactools`）第一次等五秒時因為仲未見到獨立視窗而
 回傳 exit 1，之後按規定做受限嘅 15 秒 retry 就通過；其餘 24 條全部五秒通過。佢嘅
@@ -411,6 +411,7 @@ literal；forced self-contained publish 同新鮮 `--page` retest 全部 6 條 r
 | **Color Picker · 螢幕取色** | System-wide color picker with hex/RGB/HSL output. <br> 全系統取色器，輸出 hex／RGB／HSL。 | `colorpicker` |
 | **Screen Ruler · 螢幕間尺** | Measure distances and pixels on screen. <br> 喺螢幕量度距離同像素。 | `screenruler` |
 | **Mouse Utilities · 滑鼠工具** | Find My Mouse, highlighter, crosshairs, pointer jump, CursorWrap and Grab and Move. <br> 搵滑鼠、點擊標示、十字線、指標跳轉、游標環繞同拖曳移動視窗。 | `mouseutils` |
+| **Power Display · 顯示器控制** | Managed DDC/CI external-monitor controls, profiles, activation panel, tray access and Light Switch profile binding. <br> 受管 DDC/CI 外置螢幕控制、設定檔、啟用面板、系統匣入口同 Light Switch 設定檔綁定。 | `powerdisplay` |
 | **Mouse & Pointer · 滑鼠與指標** | Adjust pointer speed, acceleration and behaviour. <br> 調整指標速度、加速同行為。 | `mouse` |
 | **Mouse Without Borders · 無界滑鼠** | Share one keyboard and mouse across multiple PCs (software KVM). <br> 跨多部電腦共享一套鍵盤滑鼠（軟件 KVM）。 | `mwb` |
 | **Quick Accent · 快速重音符** | Insert accented and special characters by holding a letter. <br> 揿住字母快速插入重音同特殊字元。 | `quickaccent` |

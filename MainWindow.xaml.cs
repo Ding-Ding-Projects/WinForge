@@ -158,6 +158,9 @@ public sealed partial class MainWindow : Window
             await StartServiceOnUiAsync("svc: cmdpalette", "startup:cmdpalette", () => CommandPaletteService.Start(DispatcherQueue));
             await Task.Delay(75);
             await StartServiceOnUiAsync("svc: tray", "startup:tray", () => TrayService.Install(ShowFromTray, QuitFromTray, "WinForge · 視窗調校"));
+            await Task.Delay(75);
+            await StartServiceOnUiAsync("svc: powerdisplay", "startup:powerdisplay",
+                () => PowerDisplayService.Initialize(DispatcherQueue, PowerDisplayFlyoutWindow.ShowOrActivate));
 
             await Task.WhenAll(background);
             CrashLogger.Mark("svc: all started");
@@ -1367,6 +1370,12 @@ public sealed partial class MainWindow : Window
             case "darkmode":
                 Navigator.GoToModule?.Invoke("module.lightswitch");
                 break;
+            case "powerdisplay":
+            case "power-display":
+            case "displaypower":
+            case "monitorcontrols":
+                Navigator.GoToModule?.Invoke("module.powerdisplay");
+                break;
             case "colorpicker":
             case "color":
                 Navigator.GoToModule?.Invoke("module.colorpicker");
@@ -2223,6 +2232,7 @@ public sealed partial class MainWindow : Window
         "module.shellmenu" => typeof(ShellMenuModule),
         "module.taskbar-tweaker" => typeof(TaskbarTweakerModule),
         "module.lightswitch" => typeof(LightSwitchModule),
+        "module.powerdisplay" => typeof(PowerDisplayModule),
         "module.nilesoftshell" => typeof(NilesoftShellModule),
         "module.awake" => typeof(AwakeModule),
         "module.colorpicker" => typeof(ColorPickerModule),
@@ -2665,6 +2675,7 @@ public sealed partial class MainWindow : Window
                 "module.hosts", "module.mouse", "module.mouseutils", "module.mwb", "module.keyboard",
                 "module.hotkeys", "module.quickaccent", "module.shortcutguide", "module.cmdpalette",
                 "module.contextmenu", "module.shellmenu", "module.taskbar-tweaker", "module.lightswitch",
+                "module.powerdisplay",
                 "module.nilesoftshell", "module.windows", "module.workspaces", "module.altsnap",
                 "module.fancyzones", "module.komorebi", "module.glazewm", "module.fonts", "module.awake",
                 "module.advancedpaste", "module.powertoys", "module.windhawk", "module.voice",
