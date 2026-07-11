@@ -198,6 +198,21 @@ fault；受 guard 保護嘅 managed default 加新鮮 deep-link retest 令呢批
 capture-blocked：`CopyFromScreen` 唔可用，而 PrintWindow 係 uniform，所以冇 PNG
 產生、替換或者當成 visual completion。
 
+**EN —** An isolated Batch 11 records a further **25/25** first-attempt deep-link
+launches for indices 250–274 (Short ID through Find & Replace), with 171 matching
+XAML handlers and the literal-safety guard checked. It remains launch/static evidence:
+database, SSH, registry, scheduled-task, terminal, recovery, OCR, clipboard, and file
+actions were not live-run. Its fresh Short ID capture is capture-blocked because
+CopyFromScreen is unavailable and PrintWindow is uniform; no PNG was published or used
+as visual proof. See [Batch 11 evidence](docs/Smoke-Launch-Batch-11.md).
+
+**粵語 —** 隔離嘅 Batch 11 記錄咗 indices 250–274（Short ID 到 Find & Replace）
+另外 **25/25** 第一次 deep-link launch 通過，亦檢查咗 171 個對應 XAML handlers 同
+literal-safety guard。佢仍然只係 launch／static 證據：資料庫、SSH、登錄檔、
+scheduled-task、terminal、recovery、OCR、clipboard 同檔案 actions 都冇 live-run。
+最新 Short ID capture 因為 CopyFromScreen 唔可用、PrintWindow 又係 uniform 而
+capture-blocked；冇 PNG 發佈或者當成 visual proof。請睇 [Batch 11 證據](docs/Smoke-Launch-Batch-11.md)。
+
 ---
 
 **EN —** The XAML startup audit reproduced an HTML Table Convert crash while
