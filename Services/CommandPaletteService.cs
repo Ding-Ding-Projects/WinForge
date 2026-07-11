@@ -8,6 +8,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using Microsoft.UI.Dispatching;
+using Microsoft.UI.Xaml;
 using WinForge.Models;
 
 namespace WinForge.Services;
@@ -36,11 +37,11 @@ public static class CommandPaletteService
     private const string KeyRemoteDesktopProfiles = "cmdpal.rdp.profiles";
 
     // ===================== Provider identity · 提供者識別 =====================
-    public enum Provider { Apps, Bookmarks, RemoteDesktop, Performance, Registry, Windows, Modules, Files, Clipboard, Calculator, TimeDate, Settings, Services, Terminal, Run, System, Web }
+    public enum Provider { Apps, Bookmarks, RemoteDesktop, Performance, Registry, Theme, Windows, Modules, Files, Clipboard, Calculator, TimeDate, Settings, Services, Terminal, Run, System, Web }
 
     public static IReadOnlyList<Provider> AllProviders { get; } = new[]
     {
-        Provider.Apps, Provider.Bookmarks, Provider.RemoteDesktop, Provider.Performance, Provider.Registry, Provider.Windows, Provider.Modules, Provider.Files, Provider.Clipboard,
+        Provider.Apps, Provider.Bookmarks, Provider.RemoteDesktop, Provider.Performance, Provider.Registry, Provider.Theme, Provider.Windows, Provider.Modules, Provider.Files, Provider.Clipboard,
         Provider.Calculator, Provider.TimeDate, Provider.Settings, Provider.Services, Provider.Terminal,
         Provider.Run, Provider.System, Provider.Web,
     };
@@ -53,6 +54,7 @@ public static class CommandPaletteService
         Provider.RemoteDesktop => ("Remote Desktop", "遠端桌面"),
         Provider.Performance => ("Performance metrics", "效能指標"),
         Provider.Registry => ("Registry", "登錄檔"),
+        Provider.Theme => ("App theme", "應用程式主題"),
         Provider.Windows => ("Open windows", "已開啟視窗"),
         Provider.Modules => ("WinForge modules", "WinForge 模組"),
         Provider.Files => ("Files & folders", "檔案與資料夾"),
@@ -479,6 +481,7 @@ public static class CommandPaletteService
         if (IsProviderEnabled(Provider.RemoteDesktop)) AddRemoteDesktopProfiles(query, results);
         if (IsProviderEnabled(Provider.Performance)) AddPerformanceMetrics(query, results);
         if (IsProviderEnabled(Provider.Registry)) AddRegistry(query, results);
+        if (IsProviderEnabled(Provider.Theme)) AddAppTheme(query, results);
         if (IsProviderEnabled(Provider.Windows)) AddOpenWindows(query, results);
         if (IsProviderEnabled(Provider.Modules)) AddModules(query, results);
         if (IsProviderEnabled(Provider.Files)) AddFiles(query, results);
@@ -942,6 +945,60 @@ public static class CommandPaletteService
             ShowShell();
         }
         catch { }
+    }
+
+    // ----- App theme · 應用程式主題 -----
+    private static readonly (string Key, ElementTheme Theme, string En, string Zh, string[] Keywords)[] AppThemes = new[]
+    {
+        ("Default", ElementTheme.Default, "Use system setting", "跟系統設定", new[] { "system", "default", "windows", "follow", "系統", "預設", "跟隨" }),
+        ("Light", ElementTheme.Light, "Light", "淺色", new[] { "light", "bright", "day", "淺色", "光" }),
+        ("Dark", ElementTheme.Dark, "Dark", "深色", new[] { "dark", "night", "reactor", "深色", "夜" }),
+    };
+
+    private static void AddAppTheme(string query, List<CommandPaletteResult> list)
+    {
+        string raw = query.Trim();
+        bool isTheme = raw.Equals("theme", StringComparison.OrdinalIgnoreCase)
+            || raw.Equals("appearance", StringComparison.OrdinalIgnoreCase)
+            || raw.Equals("主題", StringComparison.Ordinal);
+        bool hasTheme = raw.StartsWith("theme ", StringComparison.OrdinalIgnoreCase)
+            || raw.StartsWith("appearance ", StringComparison.OrdinalIgnoreCase)
+            || raw.StartsWith("主題 ", StringComparison.Ordinal);
+        if (!isTheme && !hasTheme) return;
+
+        string needle = raw.StartsWith("theme ", StringComparison.OrdinalIgnoreCase) ? raw.Substring("theme".Length).Trim()
+            : raw.StartsWith("appearance ", StringComparison.OrdinalIgnoreCase) ? raw.Substring("appearance".Length).Trim()
+            : raw.StartsWith("主題 ", StringComparison.Ordinal) ? raw.Substring("主題".Length).Trim()
+            : "";
+        string current = SettingsStore.Get("theme", "Dark");
+        int rank = 0;
+        foreach (var option in AppThemes)
+        {
+            double score = string.IsNullOrWhiteSpace(needle) ? 100 - rank
+                : Math.Max(Fuzzy(needle, option.En), Fuzzy(needle, option.Zh));
+            foreach (var keyword in option.Keywords) score = Math.Max(score, Fuzzy(needle, keyword));
+            if (score <= 0) { rank++; continue; }
+
+            bool selected = string.Equals(current, option.Key, StringComparison.OrdinalIgnoreCase);
+            list.Add(new CommandPaletteResult
+            {
+                Title = $"{option.En} · {option.Zh}",
+                Subtitle = selected
+                    ? Loc.I.Pick("Current WinForge theme", "目前 WinForge 主題")
+                    : Loc.I.Pick("Press Enter to apply this theme across WinForge", "按 Enter 喺全個 WinForge 套用呢個主題"),
+                Glyph = ((char)0xE790).ToString(),
+                ProviderTag = Loc.I.Pick("App theme", "應用程式主題"),
+                Score = (selected ? 205 : 185) + score * 0.15,
+                Invoke = () => { SetAppTheme(option.Key, option.Theme); return true; },
+            });
+            rank++;
+        }
+    }
+
+    private static void SetAppTheme(string key, ElementTheme theme)
+    {
+        SettingsStore.Set("theme", key);
+        App.SetTheme(theme);
     }
 
     // ----- Remote Desktop · 遠端桌面 -----
