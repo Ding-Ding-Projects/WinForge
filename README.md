@@ -153,19 +153,21 @@ launch, retry, and screenshot-blocker evidence.
 確實 build、launch、retry 同截圖阻礙證據請睇
 [冒煙測試清單](docs/wiki/Smoke-Test-Campaign.md)。
 
-**EN —** Launch-only batches 01–07 now provide current process-level route
-evidence for the first 175 of 321 manifest routes. Batch 07 exercised indices
-150–174: all 25 reached `launch-pass` on their initial 5-second observation,
-with no retry or failure. The focused post-fix `keepass` launch also passed;
-its fresh 15-second capture reached `CopyFromScreen` but returned `The handle
-is invalid`, so no screenshot was created or replaced and this is not a
-visual-completion claim.
+**EN —** Launch-only batches 01–08 now provide current process-level route
+evidence for the first 200 of 321 manifest routes. Batch 08 exercised indices
+175–199: all 25 ended `launch-pass`. Mac Tools (`mactools`) first returned
+exit 1 after five seconds because no dedicated window was yet observed, then
+passed the required bounded 15-second retry; the other 24 passed at five
+seconds. Its fresh screenshot attempt found `CopyFromScreen` unavailable and
+the `PrintWindow` fallback uniformly blank, so no PNG was created or replaced
+and this remains a capture-blocked—not visual-completion—claim.
 
-**粵語 —** 淨 launch batches 01–07 而家為 321 條 manifest routes 入面頭 175 條
-提供咗最新嘅 process-level route 證據。Batch 07 測咗 indices 150–174：25 條都
-喺第一次 5 秒 observation `launch-pass`，冇 retry、冇 failure。修正後專注嘅
-`keepass` launch 都通過；佢嘅新 15 秒 capture 開到 `CopyFromScreen`，但回傳
-`The handle is invalid`，所以冇新增或替換截圖，亦唔係 visual-completion 聲稱。
+**粵語 —** 淨 launch batches 01–08 而家為 321 條 manifest routes 入面頭 200 條
+提供咗最新嘅 process-level route 證據。Batch 08 測咗 indices 175–199：25 條最終
+都係 `launch-pass`。Mac Tools（`mactools`）第一次等五秒時因為仲未見到獨立視窗而
+回傳 exit 1，之後按規定做受限嘅 15 秒 retry 就通過；其餘 24 條全部五秒通過。佢嘅
+最新截圖嘗試發現 `CopyFromScreen` 唔可用，`PrintWindow` fallback 亦係全空白，所以冇
+新增或替換 PNG；呢個仍然係 capture-blocked，唔係 visual-completion 聲稱。
 
 ---
 
