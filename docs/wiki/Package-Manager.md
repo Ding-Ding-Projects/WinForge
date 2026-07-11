@@ -26,6 +26,14 @@
 - Install options can be saved as global defaults or per-package overrides. Supported settings include operation-specific custom arguments, elevation, interactive mode, hash/prerelease flags, scope, architecture, version, install location, update/uninstall policy, pre/post hooks and process shutdown rules. · 安裝選項可存成全域預設或逐套件覆寫，包括逐操作自訂參數、管理員權限、互動模式、雜湊／預覽版旗標、範圍、架構、版本、安裝位置、更新／解除安裝政策、前後指令鈎同關閉程序規則。
 - Package rows expose details, operation options and a copyable command preview; saved options are also applied consistently by batches, bundles and automation. · 套件列可開詳細資料、操作選項同複製指令預覽；已儲存選項亦會一致套用到批次、清單同自動化。
 
+## Manager-specific correctness · 各管理器操作保障
+
+- Setup-page WinGet dependencies and one-click manager prerequisites run through the shared coordinator. A dependency is marked installed and the process `PATH` is refreshed only after the operation reports success. · Setup 頁嘅 WinGet 相依同一鍵管理器前置套件都會經共用協調器執行；淨係操作回報成功之後，先會標記做已安裝同重新整理程序 `PATH`。
+- .NET tool commands choose exactly one target: `--global` for the normal global store, or `--tool-path` for a custom location. Install, update and uninstall never combine the mutually exclusive flags. · .NET 工具指令只會揀一個目標：一般全域儲存用 `--global`，自訂位置就用 `--tool-path`；安裝、更新同解除安裝都唔會混用兩個互斥旗標。
+- PowerShell 7 PSResource updates honor the requested version. When removal of previous versions is enabled, WinForge first completes the update, reads the installed versions, keeps the newest one and removes only the older versions—there is no placeholder version range. · PowerShell 7 PSResource 更新會跟指定版本；開咗移除舊版本時，WinForge 會先完成更新，再讀取已安裝版本、保留最新一個，只清走較舊版本，唔會用假嘅版本範圍。
+- Bun search calls the npm registry API directly, so it does not depend on an installed npm CLI. Installed and outdated global packages are read from Bun's own `~/.bun/install/global` manifest directory. · Bun 搜尋會直接查 npm registry API，唔依賴已安裝嘅 npm CLI；全域已安裝同可更新套件會由 Bun 自己嘅 `~/.bun/install/global` manifest 資料夾讀取。
+- The package-ID allow-list accepts vcpkg feature commas such as `port[a,b]` and npm tildes while continuing to reject whitespace, shell separators, command substitution and redirection characters. · 套件 ID 允許清單支援 vcpkg feature 逗號（例如 `port[a,b]`）同 npm 波浪號，同時繼續拒絕空白、shell 分隔符、指令替換同重新導向字元。
+
 ## Bundles, scheduling and source safety · 清單、排程同來源安全
 
 - Bundles support JSON, `.ubundle`, YAML and XML, preserve current per-package options, log explicitly local/incompatible entries, validate manager/package references, and show version or custom-command/argument/process warnings before install. PowerShell install scripts can also be exported. · 清單支援 JSON、`.ubundle`、YAML 同 XML，保留目前逐套件選項、記錄明確本機／不相容項目、驗證管理器同套件參照，並會喺安裝前顯示版本或自訂指令／參數／程序警告；亦可匯出 PowerShell 安裝腳本。
