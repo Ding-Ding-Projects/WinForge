@@ -28,7 +28,7 @@ Open in-app: `WinForge.exe --page shortcutguide`
 
 ## Command Palette · 指令面板
 
-Global launcher and PowerToys Run compatibility with apps, files, calc, local clipboard history, time/date, `$` Windows Settings, service actions and Windows Terminal profiles. Type `clip`, `time`, `$display`, `service start <name>` or `terminal <profile>` for the matching provider. · 全域啟動器同 PowerToys Run 相容功能，支援程式、檔案、計算、本機剪貼簿記錄、時間／日期、`$` Windows 設定、服務動作同 Windows 終端機設定檔。輸入 `clip`、`time`、`$顯示器`、`service start <名稱>` 或 `terminal <設定檔>` 使用對應提供者。
+Global launcher and PowerToys Run compatibility with apps, files, calc, local clipboard history, time/date, `$` Windows Settings, service actions and Windows Terminal profiles. Type `clip`, `time`, `$display`, `service start <name>` or `terminal <profile>` for the matching provider. Enable the persistent edge Dock and press `Ctrl+P` on any selected result to pin or unpin it. · 全域啟動器同 PowerToys Run 相容功能，支援程式、檔案、計算、本機剪貼簿記錄、時間／日期、`$` Windows 設定、服務動作同 Windows 終端機設定檔。輸入 `clip`、`time`、`$顯示器`、`service start <名稱>` 或 `terminal <設定檔>` 使用對應提供者。啟用常駐邊緣 Dock，並喺任何所揀結果按 `Ctrl+P` 釘選或者取消釘選。
 
 Open in-app: `WinForge.exe --page cmdpalette`
 
