@@ -34,7 +34,9 @@ Open in-app: `WinForge.exe --page cmdpalette`
 
 **Appearance · 外觀：** Choose Solid, Mica or Acrylic and optionally select a local background image. The image remains behind the palette's contrast-preserving surface, so light and dark text stay readable. · 揀 Solid、Mica 或 Acrylic，並可以選擇本機背景圖片。圖片會保持喺指令面板保留對比度嘅表面後面，所以淺色同深色文字都會容易閱讀。
 
-> Screenshot refresh is blocked in this desktop session: `CopyFromScreen` is unavailable and the `PrintWindow` fallback produces a uniform frame. The `cmdpalette` and `regedit` deep links, including direct registry-path handoff, native theme switching, and appearance controls, remain launch-verified. · 呢個桌面工作階段未能更新截圖：`CopyFromScreen` 未可用，而且 `PrintWindow` 後備方案會產生單一畫面。`cmdpalette` 同 `regedit` 深層連結（包括直接登錄檔路徑交接、原生主題切換同外觀控制）仍已驗證可以啟動。
+**Search accessibility · 搜尋協助工具：** Fuzzy matching ignores Latin diacritics, so an unaccented query such as `cafe` can find `café`; Chinese text remains unchanged. · 模糊搜尋會忽略拉丁文字嘅重音符號，所以冇重音嘅查詢例如 `cafe` 都可以搵到 `café`；中文文字會保持不變。
+
+> Screenshot refresh is blocked in this desktop session: `CopyFromScreen` is unavailable and the `PrintWindow` fallback produces a uniform frame. The `cmdpalette` and `regedit` deep links, including direct registry-path handoff, native theme switching, appearance controls, and diacritic-insensitive search, remain launch-verified. · 呢個桌面工作階段未能更新截圖：`CopyFromScreen` 未可用，而且 `PrintWindow` 後備方案會產生單一畫面。`cmdpalette` 同 `regedit` 深層連結（包括直接登錄檔路徑交接、原生主題切換、外觀控制同忽略重音符號搜尋）仍已驗證可以啟動。
 
 ## Color Picker · 螢幕取色
 

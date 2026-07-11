@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -526,8 +527,9 @@ public static class CommandPaletteService
     {
         if (string.IsNullOrEmpty(query)) return 1;
         if (string.IsNullOrEmpty(target)) return 0;
-        var q = query.ToLowerInvariant();
-        var t = target.ToLowerInvariant();
+        var q = NormalizeSearchText(query);
+        var t = NormalizeSearchText(target);
+        if (q.Length == 0 || t.Length == 0) return 0;
 
         if (t == q) return 100;
         if (t.StartsWith(q)) return 90 + Math.Min(9, q.Length);
@@ -550,6 +552,25 @@ public static class CommandPaletteService
         if (qi < q.Length) return 0; // not all query chars consumed
         double coverage = (double)matched / Math.Max(1, t.Length);
         return Math.Min(65, 25 + bonus + coverage * 20);
+    }
+
+    /// <summary>
+    /// Normalizes composed Latin characters before fuzzy matching so an unaccented keyboard query
+    /// can find an accented result (for example, cafe → café) without changing CJK text.
+    /// </summary>
+    private static string NormalizeSearchText(string value)
+    {
+        if (string.IsNullOrEmpty(value)) return "";
+        string decomposed = value.Normalize(NormalizationForm.FormD);
+        var builder = new StringBuilder(decomposed.Length);
+        foreach (char ch in decomposed)
+        {
+            var category = CharUnicodeInfo.GetUnicodeCategory(ch);
+            if (category is UnicodeCategory.NonSpacingMark or UnicodeCategory.SpacingCombiningMark or UnicodeCategory.EnclosingMark)
+                continue;
+            builder.Append(ch);
+        }
+        return builder.ToString().Normalize(NormalizationForm.FormC).ToLowerInvariant();
     }
 
     // ----- WinForge modules · WinForge 模組 -----
