@@ -1714,6 +1714,9 @@ public sealed partial class MainWindow : Window
             case null:
             case "":
                 break;
+            case "shell.allapps":
+                QueueAllAppsPickerFromStartPage();
+                break;
             case "dashboard":
                 NavigateActive("dashboard");
                 break;
@@ -3000,6 +3003,30 @@ public sealed partial class MainWindow : Window
     {
         await ShowNewTabPickerAsync();
         SyncNavSelectionToActiveTab();
+    }
+
+    /// <summary>
+    /// Opens the shell-only All Apps picker for <c>--page shell.allapps</c>. This is deliberately
+    /// not a Frame route: the picker is a modal dialog, so select its navigation item without
+    /// triggering the normal SelectionChanged handler and then show the same dialog path.
+    /// </summary>
+    private void QueueAllAppsPickerFromStartPage()
+        => NavView.Loaded += AllAppsPickerFromStartPage_Loaded;
+
+    private async void AllAppsPickerFromStartPage_Loaded(object sender, RoutedEventArgs e)
+    {
+        NavView.Loaded -= AllAppsPickerFromStartPage_Loaded;
+        await Task.Yield();
+
+        var allApps = FindByTag(AllAppsPickerKey);
+        if (allApps is not null)
+        {
+            _syncingTabs = true;
+            try { NavView.SelectedItem = allApps; }
+            finally { _syncingTabs = false; }
+        }
+
+        await OpenAllAppsPickerFromShellAsync();
     }
 
     private void AddPickerSection(StackPanel target, string title, IEnumerable<NewTabEntry> entries, Action<string> open, IList<Button>? renderedButtons = null)

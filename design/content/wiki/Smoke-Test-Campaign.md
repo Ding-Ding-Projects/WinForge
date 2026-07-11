@@ -13,13 +13,13 @@ Generated on 2026-07-11 from the live source:
 | Coverage surface · 涵蓋範圍 | Baseline count · 基線數量 |
 | --- | ---: |
 | Registered/map/navigation route records · 已登記／對映／導航 routes | 321 |
-| Deep-link aliases · 深層連結別名 | 784 |
+| Deep-link aliases · 深層連結別名 | 785 |
 | Companion specifications · Companion 規格 | 4 |
 | External-app launcher specifications · 外部 app launcher 規格 | 15 |
 | First-party source files in review queue · source files 審查佇列 | 1,243 |
-| First-party source lines in review queue · source lines 審查佇列 | 334,567 |
+| First-party source lines in review queue · source lines 審查佇列 | 334,812 |
 | Test projects · 測試專案 | 3 |
-| Wiki pages · Wiki 頁面 | 2,191 |
+| Wiki pages · Wiki 頁面 | 2,192 |
 
 **EN —** Counts are regenerated when registry, navigation, pages, or source files change; they are a point-in-time audit snapshot rather than a permanent product claim.
 
@@ -35,6 +35,45 @@ powershell -ExecutionPolicy Bypass -File .agents\skills\winforge-exhaustive-smok
 
 The command creates manifest.json, manifest.csv, and summary.md. Artifacts are
 ignored by Git until selected evidence is intentionally promoted to docs.
+
+## Shell Dialog Route · Shell 對話框 route
+
+`shell.allapps` is the one tagged navigation route that intentionally renders
+the modal **Open new tab / 開新分頁** picker instead of a Frame page. Launch it
+with `WinForge.exe --page shell.allapps` (or the route driver using the same
+alias), then verify automation ID `NewTabPickerDialog` and a current dialog
+screenshot. Do not treat the Dashboard visible behind the modal as evidence
+that the route fell back successfully.
+
+`shell.allapps` 係唯一有 tag 嘅導航 route，刻意開 modal「**開新分頁／Open new
+tab**」選擇器，而唔係 Frame 頁面。用 `WinForge.exe --page shell.allapps`
+（或者用同一個 alias 嘅 route driver）開佢，之後要驗證 automation ID
+`NewTabPickerDialog` 同最新對話框截圖；唔可以將 modal 後面見到嘅 Dashboard
+當成 route 成功 fallback 證據。
+
+After a self-contained publish, run the focused safe regression check:
+
+~~~powershell
+powershell -ExecutionPolicy Bypass -File .agents\skills\winforge-exhaustive-smoke\scripts\Test-WinForgeShellAllAppsRoute.ps1 -RepoRoot .
+~~~
+
+The check only verifies the dialog, its search box, and the selected navigation
+item; it does not open a module or invoke a side effect. On 2026-07-11, this
+check passed. The driver launch also reached a dedicated WinForge window, but
+the current desktop session blocked its screenshot at `CopyFromScreen` with
+`The handle is invalid`; therefore no visual-pass claim or replacement image
+is recorded for this dialog yet.
+
+self-contained publish 後，請跑呢個安全嘅 focused regression check：
+
+~~~powershell
+powershell -ExecutionPolicy Bypass -File .agents\skills\winforge-exhaustive-smoke\scripts\Test-WinForgeShellAllAppsRoute.ps1 -RepoRoot .
+~~~
+
+個 check 只會驗證對話框、搜尋框同已選取嘅導航項目；唔會開任何模組，亦唔會觸發
+副作用。喺 2026-07-11 呢個 check 已經通過。driver launch 都開到獨立嘅 WinForge
+視窗，但而家 desktop session 喺 `CopyFromScreen` 報 `The handle is invalid`，所以暫時
+唔會聲稱 visual pass，亦未有可替換嘅對話框圖片。
 
 ## Evidence Rules · 證據規則
 
@@ -77,18 +116,19 @@ ignored by Git until selected evidence is intentionally promoted to docs.
 **EN —** On 2026-07-11, manifest route records 0–24 were launched one at a
 time through the isolated self-contained driver with a 2.5-second wait. All
 25 routable records returned `launch-pass`; there were no launch failures.
-`shell.allapps` was also encountered, but it is a NavigationView group tag,
-not a deep-linkable page. It is recorded as `not-launchable` rather than as a
-pass or failure, and needs navigation/search coverage in a later interactive
-batch. The generated batch evidence is retained under the ignored
+At that point, `shell.allapps` was a NavigationView group tag without a
+deep-link alias, so it was recorded as `not-launchable` rather than as a pass
+or failure. That routing defect is now fixed and the **Shell Dialog Route**
+section records its focused safe UI Automation evidence. The generated batch
+evidence is retained under the ignored
 `artifacts/smoke/launch-batches/batch-01/` directory.
 
 **粵語 —** 2026-07-11 用獨立 self-contained driver，逐個以 2.5 秒等待時間
 開 manifest route records 0–24。25 條可以 deep-link 嘅 records 全部係
-`launch-pass`，冇 launch failure。`shell.allapps` 亦有見到，但佢係
-NavigationView 分組 tag，唔係可以 deep-link 嘅 page；所以記做
-`not-launchable`，唔當 pass 或 failure，遲啲要用 navigation/search 做互動測試。
-產生嘅 batch 證據保留喺 Git 忽略嘅
+`launch-pass`，冇 launch failure。嗰陣 `shell.allapps` 亦有見到，但佢係未有
+deep-link alias 嘅 NavigationView 分組 tag，所以記做 `not-launchable`，唔當 pass
+或 failure。呢個 routing defect 而家已經修正，**Shell Dialog Route** 段落有記低
+focused、安全嘅 UI Automation 證據。產生嘅 batch 證據保留喺 Git 忽略嘅
 `artifacts/smoke/launch-batches/batch-01/`。
 
 - The route runner now keeps going when an individual child launch fails and
@@ -98,4 +138,4 @@ NavigationView 分組 tag，唔係可以 deep-link 嘅 page；所以記做
   capture-blocked in this session, so Batch 01 grants neither visual nor
   behavioral completion.
 
-[← Wiki Home](Home.md) · [Developer](Developer.md)
+[← Wiki Home](Home.md) · [Developer](Developer.md) · [Screenshots](Screenshots.md)

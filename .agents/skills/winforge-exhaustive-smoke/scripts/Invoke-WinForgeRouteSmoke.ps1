@@ -86,6 +86,8 @@ $candidates = @(
                 id = $_.id
                 kind = $_.kind
                 alias = $alias
+                expectedSurface = $_.expectedSurface
+                launchDisposition = $_.launchDisposition
                 source = @($_.source) -join ';'
                 staticRouting = @($_.routing) -join ';'
             }
@@ -143,13 +145,20 @@ for ($index = 0; $index -lt $batch.Count; $index++) {
         id = $item.id
         kind = $item.kind
         alias = $item.alias
+        expectedSurface = $item.expectedSurface
+        launchDisposition = $item.launchDisposition
         source = $item.source
         staticRouting = $item.staticRouting
         startedUtc = $startedUtc
         waitMs = $WaitMs
         exitCode = $exitCode
         status = if ($exitCode -eq 0) { 'launch-pass' } else { 'failed' }
-        evidence = "launch-only driver; log=$([System.IO.Path]::GetFileName($logPath))"
+        evidence = if ($item.kind -eq 'shell-dialog') {
+            "launch-only shell dialog route; expected=$($item.expectedSurface); log=$([System.IO.Path]::GetFileName($logPath))"
+        }
+        else {
+            "launch-only driver; log=$([System.IO.Path]::GetFileName($logPath))"
+        }
         log = [System.IO.Path]::GetFileName($logPath)
     }
 }
@@ -160,6 +169,8 @@ foreach ($item in $skipped) {
         id = $item.id
         kind = $item.kind
         alias = $null
+        expectedSurface = $item.expectedSurface
+        launchDisposition = $item.launchDisposition
         source = $item.source
         staticRouting = $item.staticRouting
         startedUtc = $null
