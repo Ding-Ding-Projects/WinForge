@@ -92,6 +92,10 @@ dotnet publish WinForge.csproj -c Release -p:Platform=x64 -r win-x64 ^
 
 **粵語 —** 有改視覺介面就一定要有最新截圖；影唔到就記低確實阻礙，唔可以當視覺驗證通過。系統、網絡、套件、認證同整合嘅實際副作用，除非有明確授權，否則只會用安全同可還原嘅路徑測試。
 
+**EN —** AI Chat keeps provider API keys under CurrentUser DPAPI. If Windows cannot read an existing encrypted key, WinForge retains its opaque ciphertext; if it cannot protect a changed key, it aborts the whole provider-file write. Neither failure path clears a saved key.
+
+**粵語 —** AI Chat 嘅供應商 API 金鑰會用 CurrentUser DPAPI 保護。Windows 讀唔到原有加密金鑰時，WinForge 會保留原封不動嘅 ciphertext；保護改過嘅金鑰失敗時，就會取消成份供應商檔案嘅寫入。兩種失敗都唔會清空已儲存嘅金鑰。
+
 **EN —** The latest checkpoint fixed a Base Converter startup fault exposed by
 the route sweep; its fresh self-contained `--page baseconvert` launch now
 passes. See the [smoke campaign ledger](docs/wiki/Smoke-Test-Campaign.md) for

@@ -2,6 +2,12 @@
 
 Tools for encrypting volumes and managing your passwords and secrets. · 用嚟加密磁碟區同管理你嘅密碼同機密資料嘅工具。
 
+## AI Chat provider credentials · AI Chat 供應商憑證
+
+**EN —** AI Chat stores OpenAI-compatible provider API keys with CurrentUser DPAPI. An unreadable encrypted key is retained as ciphertext, so changing a provider name, URL, or default model cannot erase it. A DPAPI-protect failure cancels the entire provider settings write and reports the error instead of writing an empty secret. Only a deliberately supplied non-empty replacement key can replace an unreadable key.
+
+**粵語 —** AI Chat 會用 CurrentUser DPAPI 儲存 OpenAI-compatible 供應商嘅 API 金鑰。加密金鑰讀唔到時會保留 ciphertext，所以改供應商名稱、網址或者預設模型都唔會抹走佢。DPAPI 保護失敗會取消成份供應商設定寫入並報錯，而唔會寫個空白 secret。只可以由人手輸入、而且唔係空白嘅替代金鑰取代讀唔到嘅金鑰。
+
 ## WinForge Vault · WinForge 保險庫
 
 On-the-fly encrypted volume containers (VeraCrypt-derived). · 即時加密嘅磁碟區容器（源自 VeraCrypt）。
