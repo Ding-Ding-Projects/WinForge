@@ -199,4 +199,21 @@ self-contained `--page csvjson` launch 同 focused runner retest 都通過，令
 - No screenshot is claimed: the desktop capture environment remains blocked,
   so the retest supplies launch evidence rather than visual evidence.
 
+## Launch-only Batch 04 · 第四批淨啟動測試
+
+**EN —** On 2026-07-11, launchable-route indices 75–99 were exercised using
+the isolated 5-second/15-second protocol. All 25 routes returned
+`launch-pass` on the initial attempt; no retry, failure, or manual-routing
+entry remained. The generated evidence is retained under the ignored
+`artifacts/smoke/launch-batches/batch-04/` directory. This brings the
+campaign’s current route-launch evidence to the first 100 of 321 manifest
+routes; it remains launch-only, not visual or behavioral completion.
+
+**粵語 —** 2026-07-11 用獨立 5 秒／15 秒 protocol 測咗 launchable-route
+indices 75–99。25 條全部喺第一次就 `launch-pass`；冇 retry、failure 或者
+manual-routing entry 留低。產生嘅證據保留喺 Git 忽略嘅
+`artifacts/smoke/launch-batches/batch-04/` 目錄。依家 campaign 對 321 條
+manifest routes 入面頭 100 條有 current route-launch 證據；佢仍然只係 launch，
+唔係 visual 或 behavioral completion。
+
 [← Wiki Home](Home.md) · [Developer](Developer.md) · [Screenshots](Screenshots.md)
