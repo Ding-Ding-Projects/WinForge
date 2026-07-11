@@ -46,17 +46,28 @@
                  row clips the second line in half. 56px fits both lines with breathing room. -->
             <x:Double x:Key="NavigationViewItemOnLeftMinHeight">56</x:Double>
 
-            <!-- Shared brand brushes pages/cards can reference directly. -->
+            <!-- Shared brand brushes. Use ThemeResource for anything visible so the
+                 accent and its paired foreground adapt safely to light/dark mode. -->
             <SolidColorBrush x:Key="WinForgeBrandBrush" Color="#FF54E07E" />
             <SolidColorBrush x:Key="WinForgeBrandDimBrush" Color="#FF2FAF57" />
             <SolidColorBrush x:Key="WinForgeSparkBrush" Color="#FFF7B034" />
             <SolidColorBrush x:Key="WinForgeCyanBrush" Color="#FF49CDD9" />
             <SolidColorBrush x:Key="WinForgeDangerBrush" Color="#FFFF5F5F" />
+            <SolidColorBrush x:Key="WinForgeOnBrandBrush" Color="#FF06210F" />
 
             <ResourceDictionary.ThemeDictionaries>
 
                 <!-- DARK (= "Default") — the reactor palette -->
                 <ResourceDictionary x:Key="Default">
+                    <!-- Bright reactor green is readable on the dark shell; pair it with
+                         dark ink when it is used as a filled surface. -->
+                    <SolidColorBrush x:Key="WinForgeBrandBrush" Color="#FF54E07E" />
+                    <SolidColorBrush x:Key="WinForgeBrandDimBrush" Color="#FF2FAF57" />
+                    <SolidColorBrush x:Key="WinForgeSparkBrush" Color="#FFF7B034" />
+                    <SolidColorBrush x:Key="WinForgeCyanBrush" Color="#FF49CDD9" />
+                    <SolidColorBrush x:Key="WinForgeDangerBrush" Color="#FFFF5F5F" />
+                    <SolidColorBrush x:Key="WinForgeOnBrandBrush" Color="#FF06210F" />
+
                     <!-- Paneled card surfaces -->
                     <SolidColorBrush x:Key="CardBackgroundFillColorDefaultBrush" Color="#FF131814" />
                     <SolidColorBrush x:Key="CardBackgroundFillColorSecondaryBrush" Color="#FF0E120F" />
@@ -104,8 +115,29 @@
                     <SolidColorBrush x:Key="ScrollBarButtonArrowForegroundPointerOver" Color="#FFEDF3ED" />
                 </ResourceDictionary>
 
-                <!-- LIGHT — keep Fluent light, just the green accent (set above) -->
-                <ResourceDictionary x:Key="Light" />
+                <!-- LIGHT — darker green and darker text keep labels, links, focus rings
+                     and accent controls legible against Fluent's pale surfaces. -->
+                <ResourceDictionary x:Key="Light">
+                    <Color x:Key="SystemAccentColor">#FF0F6B3A</Color>
+                    <Color x:Key="SystemAccentColorLight1">#FF21824A</Color>
+                    <Color x:Key="SystemAccentColorLight2">#FF429B64</Color>
+                    <Color x:Key="SystemAccentColorLight3">#FF6AB582</Color>
+                    <Color x:Key="SystemAccentColorDark1">#FF0B592F</Color>
+                    <Color x:Key="SystemAccentColorDark2">#FF084824</Color>
+                    <Color x:Key="SystemAccentColorDark3">#FF063A1C</Color>
+
+                    <SolidColorBrush x:Key="WinForgeBrandBrush" Color="#FF0F6B3A" />
+                    <SolidColorBrush x:Key="WinForgeBrandDimBrush" Color="#FF0B592F" />
+                    <SolidColorBrush x:Key="WinForgeSparkBrush" Color="#FF975A00" />
+                    <SolidColorBrush x:Key="WinForgeCyanBrush" Color="#FF006B78" />
+                    <SolidColorBrush x:Key="WinForgeDangerBrush" Color="#FFC42B1C" />
+                    <SolidColorBrush x:Key="WinForgeOnBrandBrush" Color="#FFFFFFFF" />
+
+                    <SolidColorBrush x:Key="TextFillColorPrimaryBrush" Color="#FF17261B" />
+                    <SolidColorBrush x:Key="TextFillColorSecondaryBrush" Color="#FF3D5442" />
+                    <SolidColorBrush x:Key="TextFillColorTertiaryBrush" Color="#FF5A7060" />
+                    <SolidColorBrush x:Key="TextFillColorDisabledBrush" Color="#FF6D7D72" />
+                </ResourceDictionary>
 
                 <!-- HIGH CONTRAST — leave system defaults -->
                 <ResourceDictionary x:Key="HighContrast" />

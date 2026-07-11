@@ -121,7 +121,7 @@ not visual verification.
 ## System & Tweaks · 系統與調校
 
 ### Dashboard · 概覽
-![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-dashboard.png)
+> Screenshot refresh is blocked in this desktop session: `CopyFromScreen` is unavailable and the `PrintWindow` fallback produces a uniform frame. The Dashboard route remains launch-verified. · 呢個桌面工作階段未能更新截圖：`CopyFromScreen` 未可用，而且 `PrintWindow` 後備方案會產生單一畫面。Dashboard 路由仍已驗證可以啟動。
 
 ### Registry Editor · 登錄編輯器
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-regedit.png)

@@ -25,7 +25,7 @@
 
             <Border Grid.Column="0" Width="44" Height="44" CornerRadius="10" VerticalAlignment="Center"
                     Background="{ThemeResource WinForgeBrandBrush}">
-                <FontIcon FontSize="22" Glyph="&#xE7B3;" Foreground="#06210F" />
+                <FontIcon FontSize="22" Glyph="&#xE7B3;" Foreground="{ThemeResource WinForgeOnBrandBrush}" />
             </Border>
 
             <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
@@ -125,7 +125,7 @@
                                             </Grid.ColumnDefinitions>
                                             <Border Grid.Column="0" Width="40" Height="40" CornerRadius="20" VerticalAlignment="Center"
                                                     Background="{ThemeResource WinForgeBrandBrush}">
-                                                <TextBlock Text="{Binding Initial}" FontWeight="Bold" FontSize="16" Foreground="#06210F"
+                                                <TextBlock Text="{Binding Initial}" FontWeight="Bold" FontSize="16" Foreground="{ThemeResource WinForgeOnBrandBrush}"
                                                            HorizontalAlignment="Center" VerticalAlignment="Center" />
                                             </Border>
                                             <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
