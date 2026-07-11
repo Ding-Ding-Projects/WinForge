@@ -52,6 +52,21 @@ Automation 成功揀到搜尋安裝、可更新同已安裝。指定嘅 `package
 fallback produced a uniform frame; graphics capture is unavailable in this desktop
 session.` 冇建立或者替換 PNG，亦唔係 visual-pass 聲稱。
 
+**EN —** Batch 08 made a fresh 15-second mactools capture attempt after its
+bounded launch retry had passed. CopyFromScreen was unavailable; the driver
+then tried PrintWindow, detected a uniform frame, and stopped with
+CopyFromScreen is unavailable and the PrintWindow fallback produced a uniform
+frame; graphics capture is unavailable in this desktop session. No
+mactools-default.png was saved, no canonical image was replaced or reused, and
+the batch is capture-blocked, not visual-pass.
+
+**粵語 —** Batch 08 喺受限 launch retry 通過之後，為 mactools 做咗新嘅 15 秒
+capture 嘗試。CopyFromScreen 唔可用；driver 跟住試 PrintWindow、發現係 uniform
+frame，再以 CopyFromScreen is unavailable and the PrintWindow fallback produced a
+uniform frame; graphics capture is unavailable in this desktop session. 停止。
+冇儲存 mactools-default.png、冇替換或者重用 canonical image，呢一批係
+capture-blocked，唔係 visual-pass。
+
 **EN —** Batch 07’s post-fix KeePass launch succeeded, then its fresh
 15-second `driver.ps1 -Out` attempt again stopped at `CopyFromScreen`: `The
 handle is invalid`. No `keepass-clipboard-safety.png` was produced, so the
