@@ -151,6 +151,12 @@ void RequestGenerationRejectsStaleWork()
     Assert(!requests.IsCurrent(first), "stale generation remained current");
     Assert(requests.IsCurrent(second), "new generation was not current");
     Assert(!requests.TryGetToken(first, out _), "stale generation produced a live token");
+
+    Assert(requests.TryGetToken(second, out var currentToken), "current generation did not provide a token");
+    requests.Invalidate();
+    Assert(currentToken.IsCancellationRequested, "invalidating did not cancel active work");
+    Assert(!requests.IsCurrent(second), "invalidated generation remained current");
+    Assert(!requests.TryGetToken(second, out _), "invalidated generation produced a live token");
 }
 
 void UncategorisedSentinelSourceIsEscaped()
