@@ -37,6 +37,7 @@ public sealed partial class InstallOptionsDialog : UserControl
         var o = (seed ?? new InstallOptions()).Clone();
         var managerKey = item?.ManagerKey ?? "";
         var id = item?.Id ?? "";
+        var source = item?.Source ?? "";
 
         bool followGlobal = !InstallOptions.HasOverride(managerKey, id);
 
@@ -64,7 +65,7 @@ public sealed partial class InstallOptionsDialog : UserControl
         void Refresh()
         {
             foreach (var pull in pullers) pull();
-            preview.Text = PackageOperations.BuildCommandPreview(managerKey, id, op, o);
+            preview.Text = PackageOperations.BuildCommandPreview(managerKey, id, source, op, o);
         }
 
         // ---------- 小工具 · small builders ----------
