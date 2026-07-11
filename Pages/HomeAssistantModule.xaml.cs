@@ -43,6 +43,8 @@ public sealed partial class HomeAssistantModule : Page
     public HomeAssistantModule()
     {
         InitializeComponent();
+        // The safety default must be assigned in managed code, not XAML.
+        AcDryRunToggle.IsOn = true;
         CalList.ItemsSource = _calEvents;
         LightsList.ItemsSource = _lights;
         PlugsList.ItemsSource = _plugs;

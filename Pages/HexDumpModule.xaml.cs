@@ -24,6 +24,10 @@ public sealed partial class HexDumpModule : Page
     public HexDumpModule()
     {
         InitializeComponent();
+        // The self-contained XAML runtime can reject typed IsOn literals.
+        _suppress = true;
+        OffsetSwitch.IsOn = true;
+        _suppress = false;
         Loc.I.LanguageChanged += OnLang;
         Loaded += (_, _) => { InitCombo(); Render(); Recompute(); };
         Unloaded += (_, _) => Loc.I.LanguageChanged -= OnLang;

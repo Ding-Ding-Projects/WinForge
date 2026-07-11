@@ -28,6 +28,9 @@ public sealed partial class GitHubDesktopProfilesModule : Page
     public GitHubDesktopProfilesModule()
     {
         InitializeComponent();
+        // Keep the defaults out of XAML: typed IsOn literals are unreliable here.
+        StartMenuShortcutsToggle.IsOn = true;
+        DesktopShortcutsToggle.IsOn = true;
         ProfileList.ItemsSource = _profiles;
         GhAccountCombo.ItemsSource = _ghAccounts;
         Loaded += OnLoaded;

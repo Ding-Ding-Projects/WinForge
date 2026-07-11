@@ -35,6 +35,8 @@ public sealed partial class ProxmoxModule : Page
     public ProxmoxModule()
     {
         InitializeComponent();
+        // Keep the default out of XAML: typed IsOn literals are unreliable here.
+        AutoRefreshToggle.IsOn = true;
         GuestList.ItemsSource = _rows;
         _timer.Tick += async (_, _) => await RefreshTick(silent: true);
         Loc.I.LanguageChanged += OnLanguageChanged;

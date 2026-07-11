@@ -19,6 +19,8 @@ public sealed partial class LoremTextModule : Page
     public LoremTextModule()
     {
         InitializeComponent();
+        // Keep the default out of XAML: typed IsOn literals are unreliable here.
+        ClassicSwitch.IsOn = true;
         Loc.I.LanguageChanged += OnLang;
         Loaded += (_, _) => { BuildCombos(); Render(); _ready = true; Generate(); };
         Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLang; };

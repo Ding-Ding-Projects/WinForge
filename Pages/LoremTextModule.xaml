@@ -50,7 +50,7 @@
                         </StackPanel>
                     </Grid>
 
-                    <ToggleSwitch x:Name="ClassicSwitch" IsOn="True" />
+                    <ToggleSwitch x:Name="ClassicSwitch" />
                     <ToggleSwitch x:Name="HtmlSwitch" />
 
                     <StackPanel Orientation="Horizontal" Spacing="10">

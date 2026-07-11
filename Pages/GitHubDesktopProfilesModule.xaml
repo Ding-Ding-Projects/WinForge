@@ -87,11 +87,9 @@
                             Spacing="8">
                             <ToggleSwitch
                                 x:Name="StartMenuShortcutsToggle"
-                                IsOn="True"
                                 VerticalAlignment="Center" />
                             <ToggleSwitch
                                 x:Name="DesktopShortcutsToggle"
-                                IsOn="True"
                                 VerticalAlignment="Center" />
                         </StackPanel>
 

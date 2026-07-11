@@ -410,7 +410,7 @@
                             </Grid.ColumnDefinitions>
                             <NumberBox x:Name="AcCoolAboveBox" Grid.Column="0" Value="28" SmallChange="0.5" SpinButtonPlacementMode="Inline" />
                             <NumberBox x:Name="AcHeatBelowBox" Grid.Column="1" Value="16" SmallChange="0.5" SpinButtonPlacementMode="Inline" />
-                            <ToggleSwitch x:Name="AcDryRunToggle" Grid.Column="2" IsOn="True" VerticalAlignment="Bottom" />
+                            <ToggleSwitch x:Name="AcDryRunToggle" Grid.Column="2" VerticalAlignment="Bottom" />
                         </Grid>
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <Button x:Name="AcGenerateBtn" Click="AcGenerate_Click" Style="{StaticResource AccentButtonStyle}" />

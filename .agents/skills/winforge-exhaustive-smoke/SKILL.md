@@ -164,6 +164,15 @@ For each page/service batch:
    evidence. In the current self-contained runtime, failing `NumberBox.Value`
    or `ToggleSwitch.IsOn` literals must move to guarded managed initialization
    and receive a fresh deep-link launch check.
+   Run the literal safety guard after a related change:
+
+   ~~~powershell
+   powershell -ExecutionPolicy Bypass -File .agents\skills\winforge-exhaustive-smoke\scripts\Test-WinForgeXamlLiteralSafety.ps1 -RepoRoot .
+   ~~~
+
+   It blocks direct XAML `IsOn="True|False"` values while allowing bindings
+   and verifies the 16 migrated managed defaults; default state belongs in
+   code-behind after `InitializeComponent`.
 6. Add findings to the ledger with severity, reproduction, source location,
    owner/status, and retest evidence.
 
@@ -222,5 +231,8 @@ An exhaustive smoke campaign is complete only when:
   failures.
 - [scripts/Test-WinForgeShellAllAppsRoute.ps1](scripts/Test-WinForgeShellAllAppsRoute.ps1)
   validates the direct All Apps modal route with UI Automation.
+- [scripts/Test-WinForgeXamlLiteralSafety.ps1](scripts/Test-WinForgeXamlLiteralSafety.ps1)
+  blocks direct Boolean `IsOn` XAML literals that the self-contained runtime
+  cannot reliably convert.
 - [references/coverage-schema.md](references/coverage-schema.md) defines the
   ledger states and required evidence.

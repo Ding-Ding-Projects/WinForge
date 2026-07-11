@@ -128,17 +128,39 @@ launch, retry, and screenshot-blocker evidence.
 [冒煙測試清單](docs/wiki/Smoke-Test-Campaign.md)。
 
 **EN —** Launch-only batches 01–05 now provide current process-level route
-evidence for the first 125 of 321 manifest routes. A fresh Batch 05 driver
-capture reached its route but `CopyFromScreen` returned `The handle is invalid`,
-so no screenshot was created or replaced and this is not a visual-completion
-claim.
+evidence for the first 125 of 321 manifest routes. A fresh final-current-build
+Batch 05 `githubdesktopprofiles` capture reached its route but `CopyFromScreen`
+returned `The handle is invalid`, so no screenshot was created or replaced and
+this is not a visual-completion claim.
 
 **粵語 —** 淨 launch batches 01–05 而家為 321 條 manifest routes 入面頭 125 條
-提供咗最新嘅 process-level route 證據。新嘅 Batch 05 driver 截圖嘗試開到 route，
-但 `CopyFromScreen` 報 `The handle is invalid`；所以冇新增或替換截圖，亦唔係
-visual-completion 聲稱。
+提供咗最新嘅 process-level route 證據。最終 current-build Batch 05
+`githubdesktopprofiles` 截圖嘗試有開到 route，但 `CopyFromScreen` 報
+`The handle is invalid`；所以冇新增或替換截圖，亦唔係 visual-completion 聲稱。
 
 ---
+
+**EN —** The XAML startup audit reproduced an HTML Table Convert crash while
+the self-contained runtime assigned `ToggleSwitch.IsOn` from XAML. It moves all
+16 direct `IsOn="True|False"` defaults across 12 affected pages into managed
+initialization, preserving their defaults without touching bindings. The new
+`Test-WinForgeXamlLiteralSafety.ps1` guard prevents that unsafe literal form
+from returning and checks all 16 migrated defaults; a fresh self-contained
+launch check passed for all 12 aliases.
+
+**粵語 —** XAML 啟動審查重現咗 HTML 表格轉換喺 self-contained runtime 由 XAML
+設定 `ToggleSwitch.IsOn` 時崩潰。今次將 12 個受影響頁面入面全部 16 個 direct
+`IsOn="True|False"` 預設搬去 managed initialization，保留原本預設而唔掂 bindings。
+新嘅 `Test-WinForgeXamlLiteralSafety.ps1` guard 會阻止呢種唔安全 literal 再返嚟；
+12 個 alias 嘅新 self-contained launch check 都已通過。
+
+**EN —** Screenshot capture for the repaired HTML Table page remains blocked
+in this desktop session (`CopyFromScreen`: `The handle is invalid`), so this is
+launch evidence only and no stale screenshot was replaced.
+
+**粵語 —** 修好後嘅 HTML 表格頁面截圖喺呢個 desktop session 仍然受阻
+（`CopyFromScreen`：`The handle is invalid`），所以只係 launch 證據，冇聲稱 visual pass，
+亦冇用舊截圖頂替。
 
 ## ✨ Highlights · 重點
 

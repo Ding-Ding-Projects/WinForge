@@ -18,6 +18,11 @@ public sealed partial class HtmlTableModule : Page
     public HtmlTableModule()
     {
         InitializeComponent();
+        // The self-contained XAML runtime can reject typed IsOn literals.
+        _suppress = true;
+        HeaderSwitch.IsOn = true;
+        EscapeSwitch.IsOn = true;
+        _suppress = false;
         Loc.I.LanguageChanged += OnLang;
         Loaded += (_, _) => { Render(); Convert(); };
         Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLang; };
