@@ -56,6 +56,12 @@ Select an application window and drag a region to create one of three always-on-
 
 Open in-app: `WinForge.exe --page cropandlock`
 
+## Video Conference Mute · 視像會議靜音
+
+Mute the default communications microphone system-wide with a configurable global shortcut. A separate, explicitly enabled camera privacy gate changes only the current user's webcam consent between Allow and Deny; it never disables a driver and can be reversed from the module. Dedicated all-controls, microphone-only and camera-only shortcuts show a brief visible state confirmation, and the existing WinForge tray menu can toggle conference mute. · 用可設定全域快捷鍵將預設通訊咪喺全系統靜音。另一個要明確開啟嘅鏡頭私隱閘只會將目前用戶嘅 webcam 同意喺 Allow 同 Deny 之間切換；絕對唔會停用驅動程式，而且可以喺模組內還原。全部控制、咪專用同鏡頭專用快捷鍵都會顯示短暫可見狀態確認，現有 WinForge 系統匣選單亦可以切換會議靜音。
+
+Open in-app: `WinForge.exe --page videoconference`
+
 ## Power Display · 顯示器控制
 
 Managed DDC/CI controls for external monitors: brightness, contrast, monitor volume, input source, rotation, colour temperature and power state. Save one-click profiles, select a compact activation shortcut, expose selected monitors in the compact panel, add custom VCP mappings, and bind separate light/dark profiles to Light Switch. Hardware probing and writes stay off until the user explicitly enables the module. · 用受管 DDC/CI 控制外置螢幕：亮度、對比、螢幕音量、輸入來源、旋轉、色溫同電源狀態。可以儲存一鍵設定檔、揀精簡面板啟用快捷鍵、揀選邊部螢幕顯示喺精簡面板、加入自訂 VCP 對應，同埋將淺色／深色設定檔綁定 Light Switch。用家未明確開啟模組前，唔會做硬件偵測或者寫入。

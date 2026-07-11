@@ -19,7 +19,7 @@ public static class TrayService
     private const uint NIF_MESSAGE = 0x1, NIF_ICON = 0x2, NIF_TIP = 0x4;
     private const int IDM_OPEN = 1, IDM_QUIT = 2;
     // 套件管理導覽（ADDITIVE — 唔影響既有 Open/Quit）· Package-manager navigation entries (additive).
-    private const int IDM_DISCOVER = 10, IDM_UPDATES = 11, IDM_INSTALLED = 12, IDM_POWERDISPLAY = 13;
+    private const int IDM_DISCOVER = 10, IDM_UPDATES = 11, IDM_INSTALLED = 12, IDM_POWERDISPLAY = 13, IDM_CONFERENCEMUTE = 14;
     private const uint TPM_RIGHTBUTTON = 0x0002, TPM_RETURNCMD = 0x0100;
     private const uint MF_STRING = 0x0, MF_SEPARATOR = 0x800;
 
@@ -198,6 +198,8 @@ public static class TrayService
         AppendMenu(menu, MF_STRING, IDM_INSTALLED, Loc.I.Pick("Installed packages · 已安裝", "已安裝 · Installed packages"));
         if (PowerDisplayService.Enabled && PowerDisplayService.ShowTrayMenuItem)
             AppendMenu(menu, MF_STRING, IDM_POWERDISPLAY, Loc.I.Pick("Power Display · 顯示器控制", "顯示器控制 · Power Display"));
+        if (VideoConferenceMuteService.Enabled && VideoConferenceMuteService.ShowTrayMenuItem)
+            AppendMenu(menu, MF_STRING, IDM_CONFERENCEMUTE, Loc.I.Pick("Toggle conference mute · 切換會議靜音", "切換會議靜音 · Toggle conference mute"));
         AppendMenu(menu, MF_SEPARATOR, 0, "");
 
         AppendMenu(menu, MF_STRING, IDM_QUIT, "Quit · 結束");
@@ -214,6 +216,7 @@ public static class TrayService
             case IDM_UPDATES: NavigateToPackages(PackageManagerViewTarget.Updates); break;
             case IDM_INSTALLED: NavigateToPackages(PackageManagerViewTarget.Installed); break;
             case IDM_POWERDISPLAY: PowerDisplayService.ShowCompactPanel(); break;
+            case IDM_CONFERENCEMUTE: VideoConferenceMuteService.ToggleAllFromTray(); break;
         }
     }
 
