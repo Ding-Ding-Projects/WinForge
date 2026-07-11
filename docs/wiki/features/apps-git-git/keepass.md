@@ -18,6 +18,12 @@
 
 **粵語 —** 密碼保險庫 已登記喺 WinForge 搜尋同導覽，關鍵字包括：<code>keepass kdbx kee pass password vault local offline manager database master password key file open create entry group tree generator generate clipboard auto clear search lock unlock aes chacha20 argon2 salsa20 native encrypt decrypt 密碼保險庫 密碼庫 密碼 管理 本機 離線 主密碼 鎖匙檔 群組 項目 產生器 搜尋 鎖定 解鎖 加密 解密 原生</code>。
 
+## KDBX KDF Compatibility · KDBX KDF 相容性
+
+**EN —** The native KDBX 4 reader follows the database KDF UUID and derives with AES-KDF, Argon2d, or Argon2id as declared. It never treats an Argon2id vault as Argon2d.
+
+**粵語 —** 原生 KDBX 4 讀取器會跟資料庫 KDF UUID，用返聲明咗嘅 AES-KDF、Argon2d 或 Argon2id 衍生金鑰；Argon2id vault 絕對唔會當成 Argon2d。
+
 ## Buttons And Controls · 按鈕與控制項
 
 | Button · 按鈕 | Type · 類型 | XAML name · 名稱 | Handler · 處理函式 |

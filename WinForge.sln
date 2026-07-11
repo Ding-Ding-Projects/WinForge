@@ -11,6 +11,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CompanionBuildLog.Tests", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PackageManagerCore.Tests", "tests\PackageManagerCore.Tests\PackageManagerCore.Tests.csproj", "{D7E3C944-31CB-4A2B-9F9E-6B2A2DCC83A7}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KeePassCrypto.Tests", "tests\KeePassCrypto.Tests\KeePassCrypto.Tests.csproj", "{AAAE0FFA-28CC-4A5B-93E2-73669B3FCE93}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -69,6 +71,18 @@ Global
 		{D7E3C944-31CB-4A2B-9F9E-6B2A2DCC83A7}.Release|x86.Build.0 = Release|Any CPU
 		{D7E3C944-31CB-4A2B-9F9E-6B2A2DCC83A7}.Release|ARM64.ActiveCfg = Release|Any CPU
 		{D7E3C944-31CB-4A2B-9F9E-6B2A2DCC83A7}.Release|ARM64.Build.0 = Release|Any CPU
+		{AAAE0FFA-28CC-4A5B-93E2-73669B3FCE93}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{AAAE0FFA-28CC-4A5B-93E2-73669B3FCE93}.Debug|x64.Build.0 = Debug|Any CPU
+		{AAAE0FFA-28CC-4A5B-93E2-73669B3FCE93}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{AAAE0FFA-28CC-4A5B-93E2-73669B3FCE93}.Debug|x86.Build.0 = Debug|Any CPU
+		{AAAE0FFA-28CC-4A5B-93E2-73669B3FCE93}.Debug|ARM64.ActiveCfg = Debug|Any CPU
+		{AAAE0FFA-28CC-4A5B-93E2-73669B3FCE93}.Debug|ARM64.Build.0 = Debug|Any CPU
+		{AAAE0FFA-28CC-4A5B-93E2-73669B3FCE93}.Release|x64.ActiveCfg = Release|Any CPU
+		{AAAE0FFA-28CC-4A5B-93E2-73669B3FCE93}.Release|x64.Build.0 = Release|Any CPU
+		{AAAE0FFA-28CC-4A5B-93E2-73669B3FCE93}.Release|x86.ActiveCfg = Release|Any CPU
+		{AAAE0FFA-28CC-4A5B-93E2-73669B3FCE93}.Release|x86.Build.0 = Release|Any CPU
+		{AAAE0FFA-28CC-4A5B-93E2-73669B3FCE93}.Release|ARM64.ActiveCfg = Release|Any CPU
+		{AAAE0FFA-28CC-4A5B-93E2-73669B3FCE93}.Release|ARM64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -20,13 +20,13 @@ namespace WinForge.Services;
 /// 支援 · Supported:
 ///   • 容器 · Outer container: KDBX 3.1 (sig2 0x00030001) read/write, KDBX 4.x (0x00040000/0x00040001) read/write.
 ///   • 對稱加密 · Ciphers: AES-256-CBC, ChaCha20 (RFC 7539 / IETF 96-bit nonce + 32-bit counter).
-///   • 金鑰衍生 · KDF: AES-KDF (rounds) for v3; AES-KDF or Argon2d (Konscious) for v4.
+///   • 金鑰衍生 · KDF: AES-KDF (rounds) for v3; AES-KDF, Argon2d or Argon2id (Konscious) for v4.
 ///   • 完整性 · Integrity (v4): HMAC-SHA-256 header HMAC + per-block HMAC stream.
 ///   • 內部串流保護 · Inner random stream for protected fields: Salsa20 (v3) and ChaCha20 (v4).
 ///   • 內部 XML gzip 壓縮 · gzip-compressed inner XML payload.
 ///   • 主鑰 · Composite key from master password and/or key file (XML/v2 hash, 32-byte raw, or hex/SHA-256 fallback).
 ///
-/// 仰賴嘅受管理程式庫 · Managed dependency: Konscious.Security.Cryptography.Argon2 (pure managed, MIT) for Argon2d,
+/// 仰賴嘅受管理程式庫 · Managed dependency: Konscious.Security.Cryptography.Argon2 (pure managed, MIT) for Argon2d/Argon2id,
 /// because Argon2 is not in the BCL. AES/ChaCha20/SHA/HMAC all come from System.Security.Cryptography.
 /// </summary>
 public sealed class KeePassDatabase
@@ -540,14 +540,33 @@ public sealed class KeePassDatabase
     private byte[] Argon2Transform(byte[] compositeKey)
     {
         byte[] salt = _argonSalt ?? throw new InvalidDataException("Missing Argon2 salt · 缺少 Argon2 鹽值");
-        // Konscious.Security.Cryptography — pure managed Argon2d.
-        using var argon = new Konscious.Security.Cryptography.Argon2d(compositeKey)
+        return DeriveArgon2ForKdf(_kdfUuid, compositeKey, salt, _argonMem, _argonIters, _argonParallel);
+    }
+
+    /// <summary>
+    /// Derive an Argon2 KDBX transformed key using the exact variant named by the KDF UUID.
+    /// Argon2d and Argon2id are intentionally not interchangeable: substituting Argon2d for an
+    /// Argon2id header produces a different key and makes an otherwise valid KDBX database unreadable.
+    /// </summary>
+    internal static byte[] DeriveArgon2ForKdf(
+        Guid kdfUuid,
+        byte[] compositeKey,
+        byte[] salt,
+        ulong memoryBytes,
+        ulong iterations,
+        uint parallelism)
+    {
+        using Konscious.Security.Cryptography.Argon2 argon = kdfUuid switch
         {
-            Salt = salt,
-            DegreeOfParallelism = (int)_argonParallel,
-            MemorySize = (int)(_argonMem / 1024), // KiB
-            Iterations = (int)_argonIters,
+            var uuid when uuid == Argon2dKdf => new Konscious.Security.Cryptography.Argon2d(compositeKey),
+            var uuid when uuid == Argon2idKdf => new Konscious.Security.Cryptography.Argon2id(compositeKey),
+            _ => throw new NotSupportedException("Unsupported Argon2 KDF UUID · 唔支援嘅 Argon2 KDF UUID"),
         };
+
+        argon.Salt = salt;
+        argon.DegreeOfParallelism = (int)parallelism;
+        argon.MemorySize = (int)(memoryBytes / 1024); // KiB
+        argon.Iterations = (int)iterations;
         return argon.GetBytes(32);
     }
 

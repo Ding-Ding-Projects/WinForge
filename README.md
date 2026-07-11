@@ -315,7 +315,7 @@ dotnet publish WinForge.csproj -c Release -p:Platform=x64 -r win-x64 ^
 |---|---|---|
 | **WinForge Vault · WinForge 保險庫** | On-the-fly encrypted volume containers (VeraCrypt-derived). <br> 即時加密嘅磁碟區容器（源自 VeraCrypt）。 | `vault-volumes` |
 | **Bitwarden Vault · Bitwarden 密碼庫** | Drive the Bitwarden CLI for logins, TOTP and generators. <br> 驅動 Bitwarden CLI 管理登入、TOTP 同密碼產生。 | `bitwarden` |
-| **KeePass Vault · 密碼保險庫** | Local offline KeePass (kdbx) password vault, natively encrypted. <br> 本機離線 KeePass（kdbx）密碼庫，原生加密。 | `keepass` |
+| **KeePass Vault · 密碼保險庫** | Local offline KeePass (kdbx) password vault with native KDBX AES-KDF, Argon2d, and Argon2id compatibility. <br> 本機離線 KeePass（kdbx）密碼庫，原生加密，支援 KDBX AES-KDF、Argon2d 同 Argon2id。 | `keepass` |
 
 ### Gaming & Emulation · 遊戲與模擬
 
