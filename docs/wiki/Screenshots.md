@@ -18,6 +18,19 @@ this desktop capture blocker remains.
 `The handle is invalid`。啟動修復本身冇刻意改頁面排版；呢個 desktop 截圖阻礙未解決前，
 唔會聲稱 visual pass、唔會換 canonical image，亦唔會用舊圖頂替。
 
+**EN —** Batch 06 repeated the capture check against H2 Plant after its fresh
+self-contained route launch. `driver.ps1 -Out` again stopped at
+`CopyFromScreen`: `The handle is invalid`; a `PrintWindow` fallback attempt
+then reported `ERROR: bad window rect`, while the previously successful-call
+fallback output is uniformly black. No valid PNG exists for this batch, so no
+canonical screenshot was replaced and no visual-pass status is claimed.
+
+**粵語 —** Batch 06 喺新 self-contained route launch 之後，再試咗 H2 Plant
+capture。`driver.ps1 -Out` 又喺 `CopyFromScreen` 報 `The handle is invalid`；
+`PrintWindow` fallback 跟住報 `ERROR: bad window rect`，而之前成功 call 到嘅
+fallback output 仍然係 uniform-black。呢批冇有效 PNG，所以冇換 canonical
+截圖，亦唔會聲稱 visual-pass。
+
 ## Redaction Rules · 遮蔽規則
 
 **EN —** Before adding screenshots, redact or avoid personal data: Windows usernames, home-folder paths, repo paths outside WinForge, hostnames, IPs that identify private networks, account names, emails, API keys, tokens, session cookies, vault item names, SSH profiles, and real package/source credentials. Use `winforge-shot --redact "x|y|w|h|box|blur|pixelate"` to obscure regions irreversibly; see the [Wiki Screenshot Workflow](Wiki-Screenshot-Workflow.md).

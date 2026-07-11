@@ -127,15 +127,18 @@ launch, retry, and screenshot-blocker evidence.
 確實 build、launch、retry 同截圖阻礙證據請睇
 [冒煙測試清單](docs/wiki/Smoke-Test-Campaign.md)。
 
-**EN —** Launch-only batches 01–05 now provide current process-level route
-evidence for the first 125 of 321 manifest routes. A fresh final-current-build
-Batch 05 `githubdesktopprofiles` capture reached its route but `CopyFromScreen`
-returned `The handle is invalid`, so no screenshot was created or replaced and
-this is not a visual-completion claim.
+**EN —** Launch-only batches 01–06 now provide current process-level route
+evidence for the first 150 of 321 manifest routes. Batch 06 exercised indices
+125–149: all 25 reached `launch-pass`; `h2plant` used its bounded 15-second
+retry after the initial 5-second observation, while the other 24 passed first
+attempt. Its fresh capture attempt again reached `CopyFromScreen` but returned
+`The handle is invalid`, so no screenshot was created or replaced and this is
+not a visual-completion claim.
 
-**粵語 —** 淨 launch batches 01–05 而家為 321 條 manifest routes 入面頭 125 條
-提供咗最新嘅 process-level route 證據。最終 current-build Batch 05
-`githubdesktopprofiles` 截圖嘗試有開到 route，但 `CopyFromScreen` 報
+**粵語 —** 淨 launch batches 01–06 而家為 321 條 manifest routes 入面頭 150 條
+提供咗最新嘅 process-level route 證據。Batch 06 測咗 indices 125–149：25 條都
+`launch-pass`；`h2plant` 喺初始 5 秒 observation 後用咗受限嘅 15 秒 retry，其餘
+24 條都係第一次通過。最新截圖嘗試同樣開到 `CopyFromScreen`，但回傳
 `The handle is invalid`；所以冇新增或替換截圖，亦唔係 visual-completion 聲稱。
 
 ---
