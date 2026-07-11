@@ -121,8 +121,21 @@ for ($index = 0; $index -lt $batch.Count; $index++) {
     $startedUtc = (Get-Date).ToUniversalTime().ToString('o')
     Write-Progress -Activity 'WinForge route launch smoke' -Status "$($index + 1)/$($batch.Count): $($item.id)" -PercentComplete ((($index + 1) / $batch.Count) * 100)
 
-    $output = @(& powershell -NoProfile -ExecutionPolicy Bypass -File $driver -Page $item.alias -NoCapture -WaitMs $WaitMs 2>&1)
-    $exitCode = $LASTEXITCODE
+    $previousErrorActionPreference = $ErrorActionPreference
+    try {
+        # A failed child route must become a ledger row, not abort the whole
+        # batch through PowerShell's native-command error promotion.
+        $ErrorActionPreference = 'Continue'
+        $output = @(& powershell -NoProfile -ExecutionPolicy Bypass -File $driver -Page $item.alias -NoCapture -WaitMs $WaitMs 2>&1)
+        $exitCode = $LASTEXITCODE
+    }
+    catch {
+        $output = @($_)
+        $exitCode = 1
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
     $text = ($output | Out-String).TrimEnd()
     $text | Set-Content -LiteralPath $logPath -Encoding UTF8
 
