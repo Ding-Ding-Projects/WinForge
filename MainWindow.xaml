@@ -302,6 +302,7 @@
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE72E;" /></NavigationViewItem.Icon>
                     <NavigationViewItem.MenuItems>
                         <NavigationViewItem Content="WinForge Vault · WinForge 保險庫" Tag="module.vault-volumes"><NavigationViewItem.Icon><FontIcon Glyph="&#xE72E;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Dew Encryption · Dew 加密" Tag="module.dew-encryption"><NavigationViewItem.Icon><FontIcon Glyph="&#xE72E;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Camoufox Profiles · Camoufox 指紋設定檔" Tag="module.camoufox"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7B3;" /></NavigationViewItem.Icon></NavigationViewItem>
                     </NavigationViewItem.MenuItems>
                 </NavigationViewItem>

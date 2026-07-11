@@ -1578,6 +1578,11 @@ public sealed partial class MainWindow : Window
             case "encrypt":
                 Navigator.GoToModule?.Invoke("module.vault-volumes");
                 break;
+            case "dew-encryption":
+            case "dew":
+            case "filehistory":
+                Navigator.GoToModule?.Invoke("module.dew-encryption");
+                break;
             case "qbittorrent":
             case "qbit":
             case "torrents":
@@ -2253,6 +2258,7 @@ public sealed partial class MainWindow : Window
         "module.voice" => typeof(VoiceModule),
         "module.announcements" => typeof(AnnouncementsModule),
         "module.vault-volumes" => typeof(VaultVolumesModule),
+        "module.dew-encryption" => typeof(DewEncryptionModule),
         "module.camoufox" => typeof(CamoufoxModule),
         "module.worldmonitor" => typeof(WorldMonitorModule),
         "module.timelens" => typeof(TimeLensModule),
@@ -2578,6 +2584,7 @@ public sealed partial class MainWindow : Window
         "module.connectors",
         "module.aichat",
         "module.keepass",
+        "module.dew-encryption",
         "module.hexeditor",
         "module.worldmonitor",
         "module.docker",
@@ -2677,7 +2684,7 @@ public sealed partial class MainWindow : Window
             Id = "security",
             En = "Security & privacy",
             Zh = "安全與私隱",
-            Keys = new[] { "module.vault-volumes", "module.bitwarden", "module.keepass", "module.camoufox" },
+            Keys = new[] { "module.vault-volumes", "module.dew-encryption", "module.bitwarden", "module.keepass", "module.camoufox" },
         },
         new()
         {

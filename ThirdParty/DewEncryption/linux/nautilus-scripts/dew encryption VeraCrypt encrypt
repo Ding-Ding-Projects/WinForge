@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [ -n "${NAUTILUS_SCRIPT_SELECTED_FILE_PATHS:-}" ]; then
+  mapfile -t paths <<< "${NAUTILUS_SCRIPT_SELECTED_FILE_PATHS}"
+else
+  paths=("${PWD}")
+fi
+
+for path in "${paths[@]}"; do
+  dew-encryption veracrypt-encrypt "${path}"
+done

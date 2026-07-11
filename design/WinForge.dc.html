@@ -104,7 +104,7 @@
     <div style="flex:1;max-width:440px;margin-left:auto;position:relative">
       <div style="display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:8px 11px">
         <span style="color:var(--dim);font-size:14px">⌕</span>
-        <input value="{{ q }}" onInput="{{ onSearch }}" onKeyDown="{{ onSearchKey }}" onFocus="{{ onSearchFocus }}" placeholder="Search 1,209 features, modules, wiki…" style="flex:1;background:none;border:none;outline:none;color:var(--text);font-family:var(--body);font-size:13.5px"/>
+        <input value="{{ q }}" onInput="{{ onSearch }}" onKeyDown="{{ onSearchKey }}" onFocus="{{ onSearchFocus }}" placeholder="Search 1,213 features, modules, wiki…" style="flex:1;background:none;border:none;outline:none;color:var(--text);font-family:var(--body);font-size:13.5px"/>
         <span style="font-family:var(--mono);font-size:10px;color:var(--dim);border:1px solid var(--line);border-radius:4px;padding:1px 5px">/</span>
       </div>
       {{ searchDropdown }}
@@ -125,7 +125,7 @@
           <span style="width:24px;height:24px;border-radius:6px;background:linear-gradient(135deg,var(--amber),#c43d00);display:grid;place-items:center;font-size:13px">⚒</span>
           <span style="font-family:var(--disp);font-weight:700;font-size:16px">WinForge · 視窗鑄造</span>
         </div>
-        <p style="color:var(--muted);font-size:13px;line-height:1.6;margin:0">A fully bilingual (English + 粵語) Windows 11 control center — 314 in-app modules, 895 tweak-catalog items, and 1,209 total features. Built with WinUI 3 / .NET 11.</p>
+        <p style="color:var(--muted);font-size:13px;line-height:1.6;margin:0">A fully bilingual (English + 粵語) Windows 11 control center — 318 in-app modules, 895 tweak-catalog items, and 1,213 total features. Built with WinUI 3 / .NET 11.</p>
       </div>
       <div style="display:flex;gap:46px;flex-wrap:wrap;font-size:13px">
         <div style="display:flex;flex-direction:column;gap:9px">
@@ -442,9 +442,9 @@ class Component extends DCLogic {
             h('div',{style:{display:'inline-flex',alignItems:'center',gap:8,fontFamily:'var(--mono)',fontSize:11,letterSpacing:'1px',color:'var(--cyan)',border:'1px solid var(--line2)',borderRadius:999,padding:'6px 13px',marginBottom:20,background:'rgba(20,23,29,.6)'}},
               h('span',{style:{width:7,height:7,borderRadius:'50%',background:'var(--green)',animation:'wf-pulse 2s infinite'}}), 'WinUI 3 · .NET 11 · WINDOWS 11'),
             h('h1',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:'clamp(38px,7vw,76px)',lineHeight:1,margin:'0 0 18px',letterSpacing:'-1.5px'}},'Forge your',h('br'),h('span',{style:{background:'linear-gradient(100deg,var(--amber),var(--amber2) 55%,var(--cyan))',WebkitBackgroundClip:'text',backgroundClip:'text',color:'transparent'}},'whole machine.')),
-            h('p',{style:{fontSize:'clamp(15px,2vw,18px)',color:'var(--muted)',lineHeight:1.6,maxWidth:540,margin:'0 0 22px'}},'A bilingual Windows 11 control center — 1,209 total features across 314 modules, including 895 tweak-catalog items, each wrapping a real engine in-app. Powered by its own nuclear reactor, fuel factory and cake economy you can run right here in the browser.'),
+            h('p',{style:{fontSize:'clamp(15px,2vw,18px)',color:'var(--muted)',lineHeight:1.6,maxWidth:540,margin:'0 0 22px'}},'A bilingual Windows 11 control center — 1,213 total features across 318 modules, including 895 tweak-catalog items, each wrapping a real engine in-app. Powered by its own nuclear reactor, fuel factory and cake economy you can run right here in the browser.'),
             this.installCluster(),
-            h('div',{style:{display:'flex',gap:'clamp(18px,5vw,44px)',flexWrap:'wrap',marginTop:30}}, stat('314','MODULES'), stat('1,209','FEATURES'), stat('895','TWEAKS & OPS'), stat('100%','BILINGUAL'))
+            h('div',{style:{display:'flex',gap:'clamp(18px,5vw,44px)',flexWrap:'wrap',marginTop:30}}, stat('318','MODULES'), stat('1,213','FEATURES'), stat('895','TWEAKS & OPS'), stat('100%','BILINGUAL'))
           ),
           h('div',{style:{minWidth:0}}, this.heroCore())
         )));
@@ -546,7 +546,7 @@ class Component extends DCLogic {
       h('div',{style:{fontFamily:'var(--disp)',fontWeight:600,fontSize:15.5,lineHeight:1.2}},c.en),
       h('div',{style:{fontFamily:'var(--mono)',fontSize:11.5,color:'var(--dim)'}},c.zh)));
     return h('section',{style:{maxWidth:1180,margin:'0 auto',padding:'clamp(20px,4vw,46px) clamp(16px,4vw,40px)'}},
-      this.sectionHead('Every module, documented','逐個模組 · 完整手冊','Browse all 314 modules and 895 tweak-catalog items. Each opens to its full reference.'),
+      this.sectionHead('Every module, documented','逐個模組 · 完整手冊','Browse all 318 modules and 895 tweak-catalog items. Each opens to its full reference.'),
       h('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:13,marginTop:24}}, cards));
   }
   homeWiki(){
@@ -598,7 +598,7 @@ class Component extends DCLogic {
         h('h1',{style:{fontFamily:'var(--disp)',fontWeight:700,fontSize:'clamp(30px,5vw,46px)',margin:'0 0 12px'}},'Priced in ',h('span',{style:{color:'var(--amber2)'}},'power and cakes.')),
         h('p',{style:{color:'var(--muted)',fontSize:16,lineHeight:1.6}},'WinForge\u2019s powered and AI features run on a closed economy: electricity from your reactor, and cakes \u2014 the suite\u2019s unit of account, worth real money. You generate both yourself.')),
       h('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(270px,1fr))',gap:16,marginTop:30}},
-        tier('CORE · 核心','var(--green)','The control center','核心控制中心','Bundled','with every install','The full suite — 314 modules, 895 tweak-catalog items, and 1,209 total features, every one wrapping a real engine in-app. No redirects, no account, no nag screens.',
+        tier('CORE · 核心','var(--green)','The control center','核心控制中心','Bundled','with every install','The full suite — 318 modules, 895 tweak-catalog items, and 1,213 total features, every one wrapping a real engine in-app. No redirects, no account, no nag screens.',
           ['All system, file, network, dev, media & security modules','Full tweak catalog incl. Winaero & debloat','Bilingual English + 粵語 everywhere','Master search & one-click recipes'],'Browse the manual →','#/manual',false),
         tier('⚡ REACTOR POWER','var(--cyan)','Powered features','需要電力','MWe','generated, not bought','Gated by the live reactor bus. The Cake Factory and its farm automation only run while the reactor is synchronized and generating electrical power.',
           ['Cake Factory & Farm simulator','Farm growth, milling, mixing, ovens, cooling','Offline / meltdown → powered work locks out','Below demand → slowed by available-power fraction'],'☢ Start the reactor →','#/reactor',true),

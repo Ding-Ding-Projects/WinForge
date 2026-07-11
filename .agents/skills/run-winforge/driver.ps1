@@ -4,7 +4,7 @@
   WinForge is a .NET (net11.0-windows) WinUI 3 desktop app. It cannot run framework-dependent
   here (no matching desktop runtime installed -> it shows a "You must install .NET" dialog), so
   this driver runs a SELF-CONTAINED publish and launches THAT exe. The app exposes deep-links
-  (`WinForge.exe --page <alias>`) so any of its 315 registered module pages can be opened directly, and we
+  (`WinForge.exe --page <alias>`) so any of its 318 registered module pages can be opened directly, and we
   capture the live window to a PNG via DWM bounds + Graphics.CopyFromScreen (the app is not a
   Start-menu app, so computer-use/desktop-screenshot can't target it — this self-capture is the
   reliable path).

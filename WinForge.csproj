@@ -21,6 +21,7 @@
     <EnableMsixTooling>true</EnableMsixTooling>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <ExcludeSevenZipAssemblies>true</ExcludeSevenZipAssemblies>
     <!-- ConPtySession 用 P/Invoke 嘅 STARTUPINFOEX／指標操作需要 unsafe ·
          The embedded ConPTY terminal (Services/ConPtySession.cs) needs unsafe pointer code. -->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -113,6 +114,9 @@
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="9.0.0" />
     <!-- 本地 QR 碼產生（純離線，唔上網）· Local QR-code generation (fully offline, no network). -->
     <PackageReference Include="QRCoder" Version="1.6.0" />
+    <!-- In-process 7z.dll wrapper for Dew encrypted exports. Passwords stay out of child-process
+         command lines, environments and response files. -->
+    <PackageReference Include="SharpSevenZip" Version="2.0.107" />
     <!-- System.Speech: built-in Windows SAPI TTS (read aloud / export WAV) for the Voice module. -->
     <PackageReference Include="System.Speech" Version="9.0.0" />
     <!-- Microsoft.Web.WebView2: embedded Edge/Chromium control for the in-app login / browser

@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [ -n "${NAUTILUS_SCRIPT_SELECTED_FILE_PATHS:-}" ]; then
+  mapfile -t paths <<< "${NAUTILUS_SCRIPT_SELECTED_FILE_PATHS}"
+else
+  paths=("${PWD}")
+fi
+
+nohup dew-encryption watch "${paths[@]}" >/tmp/dew-encryption-watch.log 2>&1 &

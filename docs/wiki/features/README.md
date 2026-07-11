@@ -42,7 +42,7 @@
 | [Native OSS Clones · 開源原生分頁](apps-git-git/ossapps.md) | `module.ossapps` | `ossapps` | 1 |
 | [Native Torrent · 原生種子下載](apps-git-git/torrent.md) | `module.torrent` | `torrent` | 8 |
 | [Ollama · 本地大模型](apps-git-git/ollama.md) | `module.ollama` | `ollama` | 13 |
-| [Package Manager · 套件管理](apps-git-git/packages.md) | `module.packages` | `packages` | 9 |
+| [Package Manager · 套件管理](apps-git-git/packages.md) | `module.packages` | `packages` | 10 |
 | [Packer (Image Builder) · Packer（映像建置器）](apps-git-git/packer.md) | `module.packer` | `packer` | 14 |
 | [Postgres Tool · Postgres 工具 / pgAdmin](apps-git-git/pgadmin.md) | `module.pgadmin` | `pgadmin` | 12 |
 | [Proxmox VE · Proxmox VE 虛擬化](apps-git-git/proxmox.md) | `module.proxmox` | `proxmox` | 10 |
@@ -99,6 +99,7 @@
 | [Regex Cheatsheet · 正則速查](dev-helpers/regexcheat.md) | `module.regexcheat` | `regexcheat` | 0 |
 | [Regex Tester · 正則表達式測試](dev-helpers/regextester.md) | `module.regextester` | `regextester` | 0 |
 | [Semver Range Tester · 語意化版本範圍測試器](dev-helpers/semverrange.md) | `module.semverrange` | `semverrange` | 3 |
+| [Visual Studio Installer · Visual Studio 安裝器](dev-helpers/vsinstaller.md) | `module.vsinstaller` | `vsinstaller` | 0 |
 | [Ascii85 / Base85 · Ascii85 / 八十五進位編碼](encoding-ids-codes/ascii85.md) | `module.ascii85` | `ascii85` | 5 |
 | [Barcode Generator · 條碼產生器](encoding-ids-codes/barcode.md) | `module.barcode` | `barcode` | 2 |
 | [Base32 / 58 / 85 · Base32 / 58 / 85 編解碼](encoding-ids-codes/base32.md) | `module.base32` | `base32` | 4 |
@@ -229,12 +230,13 @@
 | [Supercomputer (HPC) · 超級電腦（HPC）](reactor-loads/hpc.md) | `module.hpc` | `hpc` | 3 |
 | [Vertical Farm · 垂直農場](reactor-loads/vertfarm.md) | `module.vertfarm` | `vertfarm` | 3 |
 | [Camoufox Profiles · Camoufox 指紋設定檔](security-privacy/camoufox.md) | `module.camoufox` | `camoufox` | 19 |
+| [Dew Encryption · Dew 加密](security-privacy/dew-encryption.md) | `module.dew-encryption` | `dew-encryption` | 15 |
 | [WinForge Vault · WinForge 保險庫](security-privacy/vault.md) | `module.vault-volumes` | `vault` | 14 |
 | [Dashboard · 概覽](suite/dashboard.md) | `dashboard` | `dashboard` | 0 |
 | [Nuclear Reactor · 核反應堆](suite/reactor.md) | `module.reactor` | `reactor` | 19 |
 | [Reactor Settings · 反應堆設定](suite/reactorsettings.md) | `module.reactorsettings` | `reactorsettings` | 3 |
 | [Battery & Thermal · 電池與散熱](system/battery.md) | `module.battery` | `battery` | 2 |
-| [Clipboard · 剪貼簿](system/clipboard.md) | `module.clipboard` | `clipboard` | 1 |
+| [Clipboard · 剪貼簿](system/clipboard.md) | `module.clipboard` | `clipboard` | 3 |
 | [Connections · 連線](system/connections.md) | `module.connections` | `connections` | 3 |
 | [Devices · 裝置](system/devices.md) | `module.devices` | `devices` | 2 |
 | [Environment Variables · 環境變數](system/envvars.md) | `module.envvars` | `envvars` | 4 |
@@ -304,7 +306,7 @@
 | [Mouse Without Borders · 無界滑鼠](tweaks-input/mwb.md) | `module.mwb` | `mwb` | 4 |
 | [Nilesoft Shell · Nilesoft 右鍵選單](tweaks-input/nilesoftshell.md) | `module.nilesoftshell` | `nilesoftshell` | 13 |
 | [PA Announcements · 喇叭語音廣播](tweaks-input/announce.md) | `module.announcements` | `announce` | 3 |
-| [PowerToys Extras · PowerToys 額外工具](tweaks-input/powertoys.md) | `module.powertoys` | `powertoys` | 11 |
+| [PowerToys Extras · PowerToys 額外工具](tweaks-input/powertoys.md) | `module.powertoys` | `powertoys` | 31 |
 | [Quick Accent · 快速重音符](tweaks-input/quickaccent.md) | `module.quickaccent` | `quickaccent` | 0 |
 | [Rainmeter Widgets · Rainmeter 桌面小工具](tweaks-input/rainmeter.md) | `module.rainmeter` | `rainmeter` | 10 |
 | [Shortcut Guide · 快捷鍵指南](tweaks-input/shortcutguide.md) | `module.shortcutguide` | `shortcutguide` | 1 |

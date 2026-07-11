@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+dew-encryption dew-drive sync --push

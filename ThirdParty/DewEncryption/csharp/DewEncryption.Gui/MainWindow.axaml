@@ -1,0 +1,379 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:Material.Styles.Controls;assembly=Material.Styles"
+        xmlns:assists="clr-namespace:Material.Styles.Assists;assembly=Material.Styles"
+        xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+        x:Class="DewEncryption.Gui.MainWindow"
+        Title="Dew Encryption"
+        Width="1180"
+        Height="840"
+        MinWidth="980"
+        MinHeight="640"
+        Background="#EFF3F2">
+  <Grid RowDefinitions="Auto,*,Auto">
+
+    <!-- Top app bar -->
+    <controls:ColorZone Grid.Row="0" Mode="PrimaryMid" Padding="20,14">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="14">
+          <icons:MaterialIcon Kind="Water" Width="34" Height="34" Foreground="#FFFFFF" VerticalAlignment="Center" />
+          <StackPanel VerticalAlignment="Center">
+            <TextBlock Text="Dew Encryption" Classes="title" />
+            <TextBlock Text="Protect files, keep history, and stream encrypted folders anywhere" Classes="subtitle" />
+          </StackPanel>
+        </StackPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right" VerticalAlignment="Center">
+          <Border Background="#26FFFFFF" CornerRadius="16" Padding="14,7" VerticalAlignment="Center">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <icons:MaterialIcon Kind="CheckCircleOutline" Width="15" Height="15" Foreground="#D8F2EF" VerticalAlignment="Center" />
+              <TextBlock x:Name="StatusText" Text="Ready" Foreground="#FFFFFF" FontSize="12.5" VerticalAlignment="Center" />
+            </StackPanel>
+          </Border>
+          <Button Click="OpenHelp_Click" Background="#26FFFFFF" Foreground="#FFFFFF" CornerRadius="18" Padding="14,8" ToolTip.Tip="Show the command line help">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <icons:MaterialIcon Kind="HelpCircleOutline" Width="16" Height="16" />
+              <TextBlock Text="CLI Help" />
+            </StackPanel>
+          </Button>
+        </StackPanel>
+      </DockPanel>
+    </controls:ColorZone>
+
+    <!-- Tabs -->
+    <TabControl Grid.Row="1" Margin="16,10,16,6">
+
+      <TabItem>
+        <TabItem.Header>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <icons:MaterialIcon Kind="FileDocumentMultiple" Width="18" Height="18" VerticalAlignment="Center" />
+            <TextBlock Text="Files" VerticalAlignment="Center" />
+          </StackPanel>
+        </TabItem.Header>
+        <Grid ColumnDefinitions="2*,360" Margin="0,12,0,0">
+          <controls:Card Padding="16" Margin="0,0,14,0">
+            <Grid RowDefinitions="Auto,Auto,Auto,*">
+              <TextBlock Text="Protected files" Classes="sectionTitle" />
+              <TextBlock Grid.Row="1" Text="Add files or folders, then snapshot them into a local Git history you can restore from later." Classes="hint" Margin="0,4,0,12" />
+              <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8">
+                <Button Classes="Outline" Click="AddFiles_Click">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <icons:MaterialIcon Kind="FilePlus" Width="16" Height="16" />
+                    <TextBlock Text="Add Files" />
+                  </StackPanel>
+                </Button>
+                <Button Classes="Outline" Click="AddFolder_Click">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <icons:MaterialIcon Kind="FolderPlus" Width="16" Height="16" />
+                    <TextBlock Text="Add Folder" />
+                  </StackPanel>
+                </Button>
+                <Button Classes="Flat" Click="RemoveSelected_Click">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <icons:MaterialIcon Kind="DeleteOutline" Width="16" Height="16" />
+                    <TextBlock Text="Remove" />
+                  </StackPanel>
+                </Button>
+                <Button Click="RunSelected_Click" ToolTip.Tip="Snapshot every listed item into its history repo">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <icons:MaterialIcon Kind="Play" Width="16" Height="16" />
+                    <TextBlock Text="Run" />
+                  </StackPanel>
+                </Button>
+              </StackPanel>
+              <DataGrid x:Name="FilesGrid" Grid.Row="3" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Extended" BorderThickness="0" Margin="0,12,0,0">
+                <DataGrid.Columns>
+                  <DataGridTextColumn Header="Path" Binding="{Binding Path}" Width="*" />
+                  <DataGridTextColumn Header="Type" Binding="{Binding Kind}" Width="120" />
+                </DataGrid.Columns>
+              </DataGrid>
+            </Grid>
+          </controls:Card>
+
+          <controls:Card Grid.Column="1" Padding="16">
+            <StackPanel Spacing="4">
+              <TextBlock Text="Selection" Classes="sectionTitle" />
+              <TextBlock x:Name="SelectionSummaryText" Classes="muted" Margin="0,4,0,12" TextWrapping="Wrap" />
+              <TextBox x:Name="HistoryTargetBox" IsReadOnly="True" UseFloatingWatermark="True" assists:TextFieldAssist.Label="History repo" Watermark="Select an item to see its history repo" Margin="0,0,0,16" />
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Classes="Outline" Click="RefreshHistory_Click">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <icons:MaterialIcon Kind="Refresh" Width="16" Height="16" />
+                    <TextBlock Text="Refresh History" />
+                  </StackPanel>
+                </Button>
+                <Button Click="SnapshotHistory_Click">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <icons:MaterialIcon Kind="History" Width="16" Height="16" />
+                    <TextBlock Text="Snapshot" />
+                  </StackPanel>
+                </Button>
+              </StackPanel>
+              <Button Classes="Flat" Margin="0,10,0,0" Click="OpenPythonHistoryGui_Click">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <icons:MaterialIcon Kind="OpenInNew" Width="16" Height="16" />
+                  <TextBlock Text="Open History Manager" />
+                </StackPanel>
+              </Button>
+            </StackPanel>
+          </controls:Card>
+        </Grid>
+      </TabItem>
+
+      <TabItem>
+        <TabItem.Header>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <icons:MaterialIcon Kind="Safe" Width="18" Height="18" VerticalAlignment="Center" />
+            <TextBlock Text="Containers" VerticalAlignment="Center" />
+          </StackPanel>
+        </TabItem.Header>
+        <Grid ColumnDefinitions="340,*" Margin="0,12,0,0">
+          <controls:Card Padding="16" Margin="0,0,14,0">
+            <Grid RowDefinitions="Auto,Auto,*">
+              <TextBlock Text="Saved containers" Classes="sectionTitle" />
+              <TextBlock Grid.Row="1" Text="Pick a container to load its profile." Classes="hint" Margin="0,4,0,8" />
+              <ListBox x:Name="ContainersList" Grid.Row="2" SelectionChanged="ContainersList_SelectionChanged" />
+            </Grid>
+          </controls:Card>
+
+          <controls:Card Grid.Column="1" Padding="16">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+              <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+                <TextBlock Text="Container profile" Classes="sectionTitle" />
+                <UniformGrid Grid.Row="1" Columns="2" Margin="0,8,0,4">
+                  <TextBox x:Name="ContainerNameBox" UseFloatingWatermark="True" assists:TextFieldAssist.Label="Name" Watermark="Personal Vault" Margin="0,0,8,10" />
+                  <TextBox x:Name="ContainerPathBox" UseFloatingWatermark="True" assists:TextFieldAssist.Label="Container path" Watermark="C:\Vaults\personal.dew.hc" Margin="0,0,0,10" />
+                  <TextBox x:Name="MountPathBox" UseFloatingWatermark="True" assists:TextFieldAssist.Label="Mount path" Watermark="Optional drive letter or folder" Margin="0,0,8,10" />
+                  <TextBox x:Name="FontFamilyBox" UseFloatingWatermark="True" assists:TextFieldAssist.Label="Font family" Text="Segoe UI" Margin="0,0,0,10" />
+                </UniformGrid>
+                <TextBlock Grid.Row="2" Text="Theme" Classes="label" Margin="0,4,0,2" />
+                <UniformGrid Grid.Row="3" Columns="2" Margin="0,6,0,4">
+                  <TextBox x:Name="BackgroundBox" UseFloatingWatermark="True" assists:TextFieldAssist.Label="Background color" Text="#172033" Margin="0,0,8,10" />
+                  <TextBox x:Name="ForegroundBox" UseFloatingWatermark="True" assists:TextFieldAssist.Label="Foreground color" Text="#F8FAFC" Margin="0,0,0,10" />
+                  <TextBox x:Name="AccentBox" UseFloatingWatermark="True" assists:TextFieldAssist.Label="Accent color" Text="#0F766E" Margin="0,0,8,10" />
+                  <TextBox x:Name="FontSizeBox" UseFloatingWatermark="True" assists:TextFieldAssist.Label="Font size" Text="10" Margin="0,0,0,10" />
+                </UniformGrid>
+                <WrapPanel Grid.Row="4" Margin="0,6,0,10">
+                  <Button Click="RegisterContainer_Click" Margin="0,0,8,8">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <icons:MaterialIcon Kind="ContentSave" Width="16" Height="16" />
+                      <TextBlock Text="Save Container" />
+                    </StackPanel>
+                  </Button>
+                  <Button Classes="Outline" Click="SnapshotContainer_Click" Margin="0,0,8,8">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <icons:MaterialIcon Kind="History" Width="16" Height="16" />
+                      <TextBlock Text="Snapshot" />
+                    </StackPanel>
+                  </Button>
+                  <Button Classes="Outline" Click="ViewContainerHistory_Click" Margin="0,0,8,8">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <icons:MaterialIcon Kind="ClockOutline" Width="16" Height="16" />
+                      <TextBlock Text="History" />
+                    </StackPanel>
+                  </Button>
+                  <Button Classes="Flat" Click="TestOpenHooks_Click" Margin="0,0,8,8">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <icons:MaterialIcon Kind="PlayCircleOutline" Width="16" Height="16" />
+                      <TextBlock Text="Test Open" />
+                    </StackPanel>
+                  </Button>
+                  <Button Classes="Flat" Click="TestCloseHooks_Click" Margin="0,0,8,8">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <icons:MaterialIcon Kind="StopCircleOutline" Width="16" Height="16" />
+                      <TextBlock Text="Test Close" />
+                    </StackPanel>
+                  </Button>
+                </WrapPanel>
+                <TextBox Grid.Row="5" x:Name="HookBox" Height="86" AcceptsReturn="True" UseFloatingWatermark="True" assists:TextFieldAssist.Label="Hook notes" Watermark="Notes about open/close automations for this container" TextWrapping="Wrap" />
+                <TextBlock Grid.Row="6" x:Name="ContainerStatusText" Classes="muted" Margin="0,12,0,0" />
+              </Grid>
+            </ScrollViewer>
+          </controls:Card>
+        </Grid>
+      </TabItem>
+
+      <TabItem>
+        <TabItem.Header>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <icons:MaterialIcon Kind="CloudSync" Width="18" Height="18" VerticalAlignment="Center" />
+            <TextBlock Text="Dew Drive" VerticalAlignment="Center" />
+          </StackPanel>
+        </TabItem.Header>
+        <Grid ColumnDefinitions="340,*" Margin="0,12,0,0">
+          <controls:Card Padding="16" Margin="0,0,14,0">
+            <Grid RowDefinitions="Auto,Auto,*">
+              <TextBlock Text="Stream folders" Classes="sectionTitle" />
+              <TextBlock Grid.Row="1" Text="Each profile keeps one local folder synced to an encrypted image in a registry." Classes="hint" Margin="0,4,0,8" />
+              <ListBox x:Name="DriveProfilesList" Grid.Row="2" SelectionChanged="DriveProfilesList_SelectionChanged" />
+            </Grid>
+          </controls:Card>
+
+          <controls:Card Grid.Column="1" Padding="16">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+              <StackPanel Spacing="2">
+                <TextBlock Text="Stream folder" Classes="sectionTitle" />
+                <TextBlock Text="Your files stay in a normal folder; the cloud only ever sees one encrypted payload." Classes="hint" Margin="0,4,0,10" />
+                <UniformGrid Columns="2">
+                  <TextBox x:Name="DriveNameBox" UseFloatingWatermark="True" assists:TextFieldAssist.Label="Drive name" Watermark="Documents" Margin="0,0,8,10" />
+                  <TextBox x:Name="DriveRegistryImageBox" UseFloatingWatermark="True" assists:TextFieldAssist.Label="Upload image tag" Watermark="docker.io/you/dew-drive:latest" ToolTip.Tip="Docker/OCI image tag, for example docker.io/your-name/dew-drive:latest. Use the Docker Hub helper below to build one." Margin="0,0,0,10" />
+                  <TextBox x:Name="DriveFolderBox" UseFloatingWatermark="True" assists:TextFieldAssist.Label="Local stream folder" Watermark="C:\Users\you\Documents\DewDrive" Margin="0,0,8,10" />
+                  <TextBox x:Name="DriveCommitBox" UseFloatingWatermark="True" assists:TextFieldAssist.Label="Restore commit" Text="HEAD" Margin="0,0,0,10" />
+                </UniformGrid>
+                <WrapPanel Margin="0,2,0,4">
+                  <Button Click="NewDrive_Click" Margin="0,0,8,8">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <icons:MaterialIcon Kind="ContentSave" Width="16" Height="16" />
+                      <TextBlock Text="Save Profile" />
+                    </StackPanel>
+                  </Button>
+                  <Button Classes="Flat" Click="DeleteDrive_Click" Margin="0,0,8,8">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <icons:MaterialIcon Kind="DeleteOutline" Width="16" Height="16" />
+                      <TextBlock Text="Delete" />
+                    </StackPanel>
+                  </Button>
+                  <Button Classes="Outline" Click="PickDriveFolder_Click" Margin="0,0,8,8">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <icons:MaterialIcon Kind="FolderOpen" Width="16" Height="16" />
+                      <TextBlock Text="Pick Folder" />
+                    </StackPanel>
+                  </Button>
+                  <Button Classes="Outline" Click="AddDriveFiles_Click" Margin="0,0,8,8">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <icons:MaterialIcon Kind="FilePlus" Width="16" Height="16" />
+                      <TextBlock Text="Add Files" />
+                    </StackPanel>
+                  </Button>
+                  <Button Classes="Outline" Click="AddDriveFolder_Click" Margin="0,0,8,8">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <icons:MaterialIcon Kind="FolderPlus" Width="16" Height="16" />
+                      <TextBlock Text="Add Folder" />
+                    </StackPanel>
+                  </Button>
+                </WrapPanel>
+
+                <Border Background="#0D000000" CornerRadius="10" Padding="12" Margin="0,0,0,12">
+                  <StackPanel Spacing="8">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <icons:MaterialIcon Kind="Docker" Width="16" Height="16" VerticalAlignment="Center" Opacity="0.75" />
+                      <TextBlock Text="Docker Hub helper" Classes="label" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <WrapPanel>
+                      <TextBox x:Name="DockerHubUserBox" UseFloatingWatermark="True" assists:TextFieldAssist.Label="Docker Hub username" Width="200" Margin="0,0,8,0" />
+                      <TextBox x:Name="DockerHubRepoBox" UseFloatingWatermark="True" assists:TextFieldAssist.Label="Repository" Watermark="dew-drive" Width="180" Margin="0,0,8,0" />
+                      <TextBox x:Name="DockerHubTagBox" UseFloatingWatermark="True" assists:TextFieldAssist.Label="Tag" Text="latest" Width="100" Margin="0,0,8,0" />
+                      <Button Classes="Outline" Click="UseDockerHub_Click" VerticalAlignment="Center" ToolTip.Tip="Fill the upload image tag with docker.io/username/repository:tag.">
+                        <TextBlock Text="Use Docker Hub" />
+                      </Button>
+                    </WrapPanel>
+                  </StackPanel>
+                </Border>
+
+                <TextBlock Text="Encryption" Classes="sectionTitle" />
+                <TextBlock Text="The password never leaves this machine; it encrypts the payload before anything is uploaded." Classes="hint" Margin="0,4,0,10" />
+                <Grid ColumnDefinitions="180,*" Margin="0,0,0,4">
+                  <ComboBox x:Name="DriveEncryptionModeBox" SelectedIndex="1" Margin="0,0,8,10" VerticalAlignment="Center">
+                    <ComboBoxItem Content="7zip" />
+                    <ComboBoxItem Content="veracrypt" />
+                  </ComboBox>
+                  <TextBox Grid.Column="1" x:Name="DrivePasswordBox" UseFloatingWatermark="True" assists:TextFieldAssist.Label="Password" Classes="revealPasswordButton" PasswordChar="*" Margin="0,0,0,10" />
+                </Grid>
+                <StackPanel Orientation="Horizontal" Spacing="16" Margin="0,0,0,6">
+                  <CheckBox x:Name="DriveAutoPushBox" Content="Auto push" ToolTip.Tip="Watch this profile when startup auto-sync launches." />
+                  <CheckBox x:Name="DriveStartAtLoginBox" Content="Start at login" ToolTip.Tip="Start Dew Drive auto-sync when this Windows user signs in." Click="DriveStartAtLogin_Click" />
+                </StackPanel>
+
+                <Expander Margin="0,4,0,10">
+                  <Expander.Header>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <icons:MaterialIcon Kind="TuneVariant" Width="16" Height="16" VerticalAlignment="Center" />
+                      <TextBlock Text="Advanced VeraCrypt settings" VerticalAlignment="Center" />
+                    </StackPanel>
+                  </Expander.Header>
+                  <StackPanel Margin="0,10,0,0">
+                    <UniformGrid Columns="2">
+                      <TextBox x:Name="DriveVeraCryptPathBox" UseFloatingWatermark="True" assists:TextFieldAssist.Label="VeraCrypt path" Watermark="Leave empty to auto-detect" Margin="0,0,8,10" />
+                      <TextBox x:Name="DriveVcPimBox" UseFloatingWatermark="True" assists:TextFieldAssist.Label="PIM" Text="0" Margin="0,0,0,10" />
+                      <TextBox x:Name="DriveVcEncryptionBox" UseFloatingWatermark="True" assists:TextFieldAssist.Label="Algorithm" Text="AES" Margin="0,0,8,10" />
+                      <TextBox x:Name="DriveVcHashBox" UseFloatingWatermark="True" assists:TextFieldAssist.Label="Hash" Text="SHA-512" Margin="0,0,0,10" />
+                    </UniformGrid>
+                    <UniformGrid Columns="2">
+                      <TextBox x:Name="DriveVcFilesystemBox" UseFloatingWatermark="True" assists:TextFieldAssist.Label="Filesystem" Text="exFAT" Margin="0,0,8,10" />
+                    </UniformGrid>
+                    <WrapPanel>
+                      <Button Classes="Outline" Click="InstallVeraCrypt_Click" Margin="0,0,8,8">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                          <icons:MaterialIcon Kind="Download" Width="16" Height="16" />
+                          <TextBlock Text="Install VeraCrypt" />
+                        </StackPanel>
+                      </Button>
+                      <Button Classes="Outline" Click="SaveVeraCryptSettings_Click" Margin="0,0,8,8">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                          <icons:MaterialIcon Kind="ContentSaveCog" Width="16" Height="16" />
+                          <TextBlock Text="Save VC Settings" />
+                        </StackPanel>
+                      </Button>
+                    </WrapPanel>
+                  </StackPanel>
+                </Expander>
+
+                <TextBlock Text="Sync" Classes="sectionTitle" Margin="0,2,0,8" />
+                <WrapPanel>
+                  <Button Click="StartDriveAutoSync_Click" Margin="0,0,8,8" ToolTip.Tip="Watch the folder and sync automatically after changes settle.">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <icons:MaterialIcon Kind="Sync" Width="16" Height="16" />
+                      <TextBlock Text="Auto Sync" />
+                    </StackPanel>
+                  </Button>
+                  <Button Classes="Outline" Click="StopDriveAutoSync_Click" Margin="0,0,8,8">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <icons:MaterialIcon Kind="Stop" Width="16" Height="16" />
+                      <TextBlock Text="Stop" />
+                    </StackPanel>
+                  </Button>
+                  <Button Classes="Outline" Click="SyncDrive_Click" Margin="0,0,8,8" ToolTip.Tip="Encrypt and build the image locally without uploading.">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <icons:MaterialIcon Kind="CloudSync" Width="16" Height="16" />
+                      <TextBlock Text="Sync" />
+                    </StackPanel>
+                  </Button>
+                  <Button Click="SyncPushDrive_Click" Margin="0,0,8,8" ToolTip.Tip="Encrypt, build, and upload to the registry.">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <icons:MaterialIcon Kind="CloudUpload" Width="16" Height="16" />
+                      <TextBlock Text="Push" />
+                    </StackPanel>
+                  </Button>
+                  <Button Classes="Outline" Click="PullDrive_Click" Margin="0,0,8,8" ToolTip.Tip="Download the image and restore the decrypted files.">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <icons:MaterialIcon Kind="CloudDownload" Width="16" Height="16" />
+                      <TextBlock Text="Pull" />
+                    </StackPanel>
+                  </Button>
+                  <Button Classes="Flat" Click="RestoreDrive_Click" Margin="0,0,8,8" ToolTip.Tip="Restore the local folder from a history commit.">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <icons:MaterialIcon Kind="History" Width="16" Height="16" />
+                      <TextBlock Text="Restore" />
+                    </StackPanel>
+                  </Button>
+                </WrapPanel>
+                <TextBlock x:Name="DriveStatusText" Classes="muted" />
+                <TextBox x:Name="DriveItemsBox" IsVisible="False" />
+              </StackPanel>
+            </ScrollViewer>
+          </controls:Card>
+        </Grid>
+      </TabItem>
+    </TabControl>
+
+    <!-- Activity -->
+    <controls:Card Grid.Row="2" Padding="16,12" Margin="16,0,16,16">
+      <Grid RowDefinitions="Auto,*">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <icons:MaterialIcon Kind="Console" Width="16" Height="16" VerticalAlignment="Center" Opacity="0.7" />
+          <TextBlock Text="Activity" Classes="sectionTitle" />
+        </StackPanel>
+        <TextBox x:Name="LogBox" Grid.Row="1" Height="64" AcceptsReturn="True" IsReadOnly="True" TextWrapping="Wrap" FontFamily="Cascadia Mono, Consolas, monospace" FontSize="12" Margin="0,8,0,0" />
+      </Grid>
+    </controls:Card>
+  </Grid>
+</Window>

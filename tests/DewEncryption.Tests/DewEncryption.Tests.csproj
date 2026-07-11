@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net11.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <ExcludeSevenZipAssemblies>true</ExcludeSevenZipAssemblies>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="SharpSevenZip" Version="2.0.107" />
+    <Compile Include="..\..\Services\DewSnapshotCore.cs" Link="DewSnapshotCore.cs" />
+    <Compile Include="..\..\Services\DewEncryptionService.cs" Link="DewEncryptionService.cs" />
+  </ItemGroup>
+</Project>

@@ -5,6 +5,7 @@
 **粵語 —** WinForge 套件嘅活動式、會自己生長嘅待辦清單。每 30 分鐘嘅建置迴圈會讀呢個檔、**發掘新嘅真實功能再加落嚟**，跟住深度建置下一個未剔嘅項目再剔走。每項都附上真實機制（登錄檔、指令、深層連結、API 或者要包嘅引擎）。
 
 ## ✅ Done · 已完成
+- [x] **Native Dew Encryption integration** · 原生 Dew 加密整合 — compatible Git-backed file/folder snapshots, history/details, staged rollback-safe restore, debounced auto-history, and secret-safe password/header-encrypted 7z export; pinned MIT upstream reference source, no Python/Avalonia launcher.
 - [x] **Windows 11 control module** · Windows 11 控制模組 — 169 tweaks / 13 categories
 - [x] **Git & GitHub module** · Git 與 GitHub 模組 — repo ops, chunked uploader, 111 git/gh operations
 - [x] **Maintenance & Diagnostics module** · 維護與診斷模組 — 102 real ops (services, disk health, SFC/DISM, drivers, updates, event logs, power reports)

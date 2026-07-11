@@ -1,6 +1,6 @@
 # WinForge · 視窗鑄造 — Documentation, Wiki & Simulators
 
-A bilingual (English + 粵語) documentation site for **WinForge**, a Windows 11 control center with 314 in-app modules, 895 tweak-catalog items, and 1,209 total app features. Includes a searchable module manual, the full wiki, a working in-browser **app replica**, and playable **nuclear reactor**, **fuel factory** and **cake factory & farm** simulators.
+A bilingual (English + 粵語) documentation site for **WinForge**, a Windows 11 control center with 318 in-app modules, 895 tweak-catalog items, and 1,213 total app features. Includes a searchable module manual, the full wiki, a working in-browser **app replica**, and playable **nuclear reactor**, **fuel factory** and **cake factory & farm** simulators.
 
 ## Pages
 

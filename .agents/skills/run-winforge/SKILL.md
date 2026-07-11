@@ -5,7 +5,7 @@ description: Build, launch, drive and screenshot the WinForge WinUI 3 desktop ap
 
 # Run WinForge
 
-WinForge is a **.NET (net11.0-windows) WinUI 3 desktop app** (`WinForge.csproj`, 315 registered module pages, flagship nuclear-reactor sim). It is driven by a PowerShell driver — **`.agents/skills/run-winforge/driver.ps1`** — that publishes a self-contained build, deep-links any module page via `WinForge.exe --page <alias>`, and captures the live window to a PNG (DWM bounds + `Graphics.CopyFromScreen`). All paths below are relative to the repo root.
+WinForge is a **.NET (net11.0-windows) WinUI 3 desktop app** (`WinForge.csproj`, 318 registered module pages, flagship nuclear-reactor sim). It is driven by a PowerShell driver — **`.agents/skills/run-winforge/driver.ps1`** — that publishes a self-contained build, deep-links any module page via `WinForge.exe --page <alias>`, and captures the live window to a PNG (DWM bounds + `Graphics.CopyFromScreen`). All paths below are relative to the repo root.
 
 > Why a self-contained publish + self-capture? A plain `dotnet build` produces a **framework-dependent** exe that, with no matching desktop runtime here, just shows a *"You must install or update .NET"* dialog. And the app is **not a Start-menu app**, so desktop/computer-use screenshot tools can't target its window — the driver's `CopyFromScreen` is the reliable capture path.
 

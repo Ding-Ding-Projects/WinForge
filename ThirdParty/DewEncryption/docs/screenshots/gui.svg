@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="760" viewBox="0 0 1280 760">
+  <defs>
+    <linearGradient id="top" x1="0" x2="1"><stop stop-color="#102033"/><stop offset="1" stop-color="#1b6ca8"/></linearGradient>
+  </defs>
+  <rect width="1280" height="760" fill="#eef3f8"/>
+  <rect x="86" y="54" width="1108" height="652" rx="18" fill="#ffffff" stroke="#9aa7b4"/>
+  <rect x="86" y="54" width="1108" height="54" rx="18" fill="url(#top)"/>
+  <text x="122" y="89" font-family="Segoe UI, Arial" font-size="20" font-weight="700" fill="#ffffff">Dew Encryption</text>
+  <text x="1030" y="88" font-family="Segoe UI, Arial" font-size="14" fill="#d9ecfb">Windows + Linux</text>
+
+  <rect x="120" y="130" width="1040" height="46" rx="10" fill="#edf4fb" stroke="#c3cfda"/>
+  <rect x="132" y="138" width="118" height="30" rx="8" fill="#ffffff" stroke="#c3cfda"/>
+  <text x="166" y="158" font-family="Segoe UI, Arial" font-size="13" fill="#24313d">Files</text>
+  <rect x="260" y="138" width="118" height="30" rx="8" fill="#ffffff" stroke="#c3cfda"/>
+  <text x="295" y="158" font-family="Segoe UI, Arial" font-size="13" fill="#24313d">History</text>
+  <rect x="388" y="138" width="136" height="30" rx="8" fill="#1b6ca8"/>
+  <text x="426" y="158" font-family="Segoe UI, Arial" font-size="13" font-weight="700" fill="#ffffff">Containers</text>
+  <rect x="534" y="138" width="130" height="30" rx="8" fill="#ffffff" stroke="#c3cfda"/>
+  <text x="569" y="158" font-family="Segoe UI, Arial" font-size="13" fill="#24313d">VeraCrypt</text>
+
+  <rect x="120" y="198" width="302" height="462" rx="12" fill="#f7fafc" stroke="#c3cfda"/>
+  <text x="142" y="230" font-family="Segoe UI, Arial" font-size="17" font-weight="700" fill="#15202b">Container profiles</text>
+  <rect x="142" y="252" width="258" height="58" rx="10" fill="#e8f2ff" stroke="#7db5e6"/>
+  <text x="160" y="276" font-family="Segoe UI, Arial" font-size="14" font-weight="700" fill="#0f3557">Secrets.dew.hc</text>
+  <text x="160" y="298" font-family="Consolas, monospace" font-size="12" fill="#52616f">C:\Vaults\Secrets.dew.hc</text>
+  <rect x="142" y="322" width="258" height="58" rx="10" fill="#ffffff" stroke="#d3dde7"/>
+  <text x="160" y="346" font-family="Segoe UI, Arial" font-size="14" font-weight="700" fill="#24313d">Photos.dew.hc</text>
+  <text x="160" y="368" font-family="Consolas, monospace" font-size="12" fill="#52616f">/home/user/vaults/photos.dew.hc</text>
+  <rect x="142" y="592" width="120" height="34" rx="8" fill="#1b6ca8"/>
+  <text x="166" y="614" font-family="Segoe UI, Arial" font-size="13" fill="#ffffff">Add profile</text>
+  <rect x="278" y="592" width="122" height="34" rx="8" fill="#ffffff" stroke="#c3cfda"/>
+  <text x="308" y="614" font-family="Segoe UI, Arial" font-size="13" fill="#24313d">Remove</text>
+
+  <rect x="444" y="198" width="716" height="462" rx="12" fill="#ffffff" stroke="#c3cfda"/>
+  <text x="468" y="230" font-family="Segoe UI, Arial" font-size="18" font-weight="700" fill="#15202b">Secrets.dew.hc manager</text>
+  <text x="468" y="254" font-family="Segoe UI, Arial" font-size="13" fill="#52616f">Themes, open/close automation, and Git-backed container file history.</text>
+
+  <text x="468" y="296" font-family="Segoe UI, Arial" font-size="14" font-weight="700" fill="#15202b">Theme</text>
+  <rect x="468" y="310" width="156" height="44" rx="8" fill="#101820"/><text x="486" y="337" font-family="Segoe UI, Arial" font-size="13" fill="#ffffff">Background #101820</text>
+  <rect x="638" y="310" width="156" height="44" rx="8" fill="#1b6ca8"/><text x="668" y="337" font-family="Segoe UI, Arial" font-size="13" fill="#ffffff">Accent #1b6ca8</text>
+  <rect x="808" y="310" width="156" height="44" rx="8" fill="#f6fbff" stroke="#d3dde7"/><text x="830" y="337" font-family="Segoe UI, Arial" font-size="13" fill="#24313d">Font Segoe UI</text>
+
+  <text x="468" y="394" font-family="Segoe UI, Arial" font-size="14" font-weight="700" fill="#15202b">Open / close actions</text>
+  <rect x="468" y="410" width="648" height="112" rx="10" fill="#f7fafc" stroke="#d3dde7"/>
+  <text x="490" y="440" font-family="Segoe UI, Arial" font-size="13" fill="#24313d">open · Discord webhook · {container_name} mounted by {user}</text>
+  <text x="490" y="470" font-family="Segoe UI, Arial" font-size="13" fill="#24313d">open · Script · backup-mounted-vault.sh {mount_path}</text>
+  <text x="490" y="500" font-family="Segoe UI, Arial" font-size="13" fill="#24313d">close · Home Assistant webhook · dew-container-closed</text>
+  <rect x="970" y="538" width="146" height="34" rx="8" fill="#1b6ca8"/><text x="999" y="560" font-family="Segoe UI, Arial" font-size="13" fill="#ffffff">Test action</text>
+
+  <text x="468" y="586" font-family="Segoe UI, Arial" font-size="14" font-weight="700" fill="#15202b">History</text>
+  <rect x="542" y="566" width="128" height="34" rx="8" fill="#ffffff" stroke="#c3cfda"/><text x="568" y="588" font-family="Segoe UI, Arial" font-size="13" fill="#24313d">Snapshot</text>
+  <rect x="684" y="566" width="126" height="34" rx="8" fill="#ffffff" stroke="#c3cfda"/><text x="716" y="588" font-family="Segoe UI, Arial" font-size="13" fill="#24313d">Refresh</text>
+  <rect x="468" y="610" width="648" height="32" fill="#edf4fb" stroke="#d3dde7"/>
+  <text x="488" y="631" font-family="Consolas, monospace" font-size="12" fill="#24313d">8f31a2c  2026-07-07  Snapshot Secrets.dew.hc</text>
+</svg>
