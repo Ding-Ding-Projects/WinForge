@@ -740,7 +740,7 @@ class Component extends DCLogic {
       h('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))',gap:10,marginTop:24}}, rows)));
   }
   wikiAppMap(slug){
-    const m={Dashboard:'dashboard','Git-and-GitHub':'git','Package-Manager':'packages','System-Monitor':'monitor',Connections:'connections',Clipboard:'clipboard','Cake-Factory-and-Farm':'cakefactory','Nuclear-Reactor':'reactor','Nuclear-Reactor-Operating-Manual':'reactor','AI-Agents':'aiagents',AI:'aichat',Media:'media','Window-Management':'windows','Files-and-Disks':'disk','Security-and-Vaults':'vault','Settings-and-Control-Panel':'settings'};
+    const m={Dashboard:'dashboard','Git-and-GitHub':'git','Package-Manager':'packages','System-Monitor':'monitor',Connections:'connections',Clipboard:'clipboard','Cake-Factory-and-Farm':'cakefactory','Nuclear-Reactor':'reactor','Nuclear-Reactor-Operating-Manual':'reactor','AWS-Manager':'aws','AI-Agents':'aiagents',AI:'aichat',Media:'media','Window-Management':'windows','Files-and-Disks':'disk','Security-and-Vaults':'vault','Settings-and-Control-Panel':'settings'};
     if(m[slug]) return m[slug];
     if(/^Reactor-/.test(slug)) return 'reactor';
     return null;

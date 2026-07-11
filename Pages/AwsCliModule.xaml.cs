@@ -16,9 +16,8 @@ using WinForge.Services;
 namespace WinForge.Pages;
 
 /// <summary>
-/// AWS CLI · 喺 WinForge 直接用 aws CLI 嘅完整包裝 · A full front-end over the official aws CLI.
-/// 涵蓋每個 aws 指令（動態服務／操作瀏覽器 + 原始指令盒），加埋 profile／憑證／region／輸出管理，
-/// 以及 S3／EC2／IAM／Lambda／CloudWatch 嘅貼心面板。Bilingual throughout.
+/// AWS Manager · AWS Console 式資源管理中心，CLI 工作台只保留做進階後備入口。
+/// AWS Console-style resource manager with an advanced CLI workbench kept as the exact-access escape hatch.
 /// </summary>
 public sealed partial class AwsCliModule : Page
 {
@@ -28,48 +27,63 @@ public sealed partial class AwsCliModule : Page
     private string? _selectedService;
     private string? _selectedOperation;
     private Dictionary<string, TextBox> _paramBoxes = new();
+    private readonly HashSet<string> _pendingAwsTempFiles = new(StringComparer.OrdinalIgnoreCase);
     private bool _loadingContext;
 
     public AwsCliModule()
     {
         InitializeComponent();
+        CleanupStaleAwsTempFiles();
         Loc.I.LanguageChanged += OnLang;
-        Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLang; AwsCliService.StopStream(); };
+        Unloaded += (_, _) =>
+        {
+            Loc.I.LanguageChanged -= OnLang;
+            AwsCliService.StopStream();
+            string[] pending;
+            lock (_pendingAwsTempFiles) pending = _pendingAwsTempFiles.ToArray();
+            DeleteAwsTempFiles(pending);
+            DisposeConsoleSession();
+        };
         Loaded += async (_, _) =>
         {
             Render();
-            BuildServicePanels();
+            InitializeConsoleShell();
             await CheckEngine();
             LoadContext();
             await RefreshProfiles();
-            await LoadServices();
             RefreshHistory();
+            await LoadConsoleAsync();
+            await TryWriteAutomationCaptureAsync();
         };
     }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
-    private void OnLang(object? sender, EventArgs e) { Render(); BuildServicePanels(); RefreshHistory(); }
+    private void OnLang(object? sender, EventArgs e) { Render(); RenderConsoleShell(); RefreshHistory(); }
 
     private void Render()
     {
-        Header.Title = "AWS CLI · AWS 命令列";
+        Header.Title = "AWS Manager · AWS 管理中心";
         HeaderBlurb.Text = P(
-            "Drive the entire AWS CLI from inside WinForge. Browse every service and operation, auto-build a parameter form from --generate-cli-skeleton, or type any raw aws command. Manage profiles, region, output format and SSO. Friendly panels for S3, EC2, IAM, Lambda and CloudWatch sit on top of the same generic runner.",
-            "喺 WinForge 直接駕馭成個 AWS CLI。瀏覽每個服務同操作、由 --generate-cli-skeleton 自動砌參數表單，或者打任何原始 aws 指令。管理 profile、region、輸出格式同 SSO。S3、EC2、IAM、Lambda、CloudWatch 都有貼心面板，全部都係同一個通用引擎之上。");
+            "A full AWS Console-style manager inside WinForge: account and Region context, unified resource search, service workspaces, native S3 management, operations dashboards, and an advanced CLI workbench when exact command-level access is needed.",
+            "WinForge 入面嘅完整 AWS Console 式管理中心：帳戶同區域情境、統一資源搜尋、服務工作區、原生 S3 管理、營運儀表板，另加進階 CLI 工作台畀你需要精確指令級控制時使用。");
 
         ContextHeader.Text = P("Profile & context · Profile 同情境", "Profile 同情境 · Profile & context");
         ProfileLabel.Text = P("Profile", "設定檔");
         RegionLabel.Text = P("Region", "區域");
+        ToolTipService.SetToolTip(ProfileContextIcon, ProfileLabel.Text);
+        ToolTipService.SetToolTip(RegionContextIcon, RegionLabel.Text);
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(ProfileBox, ProfileLabel.Text);
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(RegionBox, RegionLabel.Text);
         OutputLabel.Text = P("Output", "輸出格式");
         WhoAmIBtn.Content = P("Who am I", "我係邊個");
         SsoBtn.Content = P("SSO login", "SSO 登入");
         ConfigureBtn.Content = P("Add / edit profile", "新增／編輯 profile");
         RefreshProfilesBtn.Content = P("Refresh", "重新整理");
 
-        BrowserHeader.Text = P("Command browser (every service & operation)", "指令瀏覽器（每個服務同操作）");
+        BrowserHeader.Text = P("Generated command form (advanced)", "生成指令表單（進階）");
         BrowserHint.Text = P(
-            "Pick a service, then an operation. The parameter form is generated live from the CLI skeleton — fill fields or edit the raw JSON, then Build & Run.",
-            "揀一個服務，再揀一個操作。參數表單由 CLI skeleton 即時生成 — 填欄位或者改原始 JSON，再撳 Build & Run。");
+            "This compatibility form is secondary to the resource manager. Pick a service and operation, or use the raw workbench for exact CLI access.",
+            "呢個相容表單只係資源管理中心嘅輔助工具。揀服務同操作，或者用原始工作台做精確 CLI 控制。");
         ServiceLabel.Text = P("Services", "服務");
         OperationLabel.Text = P("Operations", "操作");
         ServiceFilter.PlaceholderText = P("Filter services…", "篩選服務…");
@@ -82,8 +96,8 @@ public sealed partial class AwsCliModule : Page
 
         RawHeader.Text = P("Raw command", "原始指令");
         RawHint.Text = P(
-            "Type any aws command (without the leading 'aws'). Output streams live; use Stop to cancel, Copy / Save to keep it.",
-            "打任何 aws 指令（唔使加開頭嘅 'aws'）。輸出即時串流；用 Stop 取消，Copy／Save 保留。");
+            "Type any aws command (without the leading 'aws'). Output streams live; history is opt-in and commands containing secret material are never persisted.",
+            "打任何 aws 指令（唔使加開頭嘅 'aws'）。輸出即時串流；歷史記錄要自行開啟，而包含密鑰資料嘅指令永遠唔會儲存。");
         RawBox.PlaceholderText = P("s3 ls   ·   ec2 describe-instances   ·   sts get-caller-identity",
             "s3 ls   ·   ec2 describe-instances   ·   sts get-caller-identity");
         RawRunBtn.Content = P("Run", "執行");
@@ -92,6 +106,7 @@ public sealed partial class AwsCliModule : Page
         RawSaveBtn.Content = P("Save output…", "儲存輸出…");
         RawClearBtn.Content = P("Clear", "清除");
         RawFavBtn.Content = P("★ Favorite", "★ 收藏");
+        RawHistoryToggle.Content = P("Save safe commands to history", "將安全指令儲存到歷史");
 
         HistHeader.Text = P("History & favorites", "歷史與收藏");
         ClearHistBtn.Content = P("Clear history", "清除歷史");
@@ -110,6 +125,8 @@ public sealed partial class AwsCliModule : Page
         }
         if (OutputBox.Items.Count == 0)
             foreach (var o in AwsCliService.OutputFormats) OutputBox.Items.Add(o);
+
+        RenderConsoleShell();
     }
 
     // ── Engine detection ───────────────────────────────────────────────────────────────
@@ -117,6 +134,7 @@ public sealed partial class AwsCliModule : Page
     private async Task CheckEngine()
     {
         bool ok = await AwsCliService.IsInstalledAsync();
+        _cliInstalled = ok;
         if (ok)
         {
             EngineBar.IsOpen = false;
@@ -132,18 +150,11 @@ public sealed partial class AwsCliModule : Page
             }
             return;
         }
-        EngineBar.IsOpen = true;
-        EngineBar.Severity = InfoBarSeverity.Warning;
-        EngineBar.Title = P("aws CLI not found", "搵唔到 aws CLI");
-        EngineBar.Message = P("Install the AWS CLI automatically (winget) — a real progress bar, live status and no restart needed.",
-            "自動安裝 AWS CLI（winget）— 有真進度條、即時狀態，唔使重開。");
+        // The managed Console uses the AWS SDK and does not require aws.exe. Surface installation only
+        // inside the Advanced CLI destination instead of blocking the whole manager with a warning.
+        EngineBar.IsOpen = false;
         EngineBar.ActionButton = null;
-        // Rich progress control (progress bar + live bilingual status + Cancel + success/error animation),
-        // hosted in the bar's Content so real winget output/errors are surfaced.
-        EngineBar.Content = EngineBars.AutoInstallProgress(
-            AwsCliService.WingetId, "Install AWS CLI automatically", "自動安裝 AWS CLI",
-            recheck: async () => { await CheckEngine(); await RefreshProfiles(); await LoadServices(); },
-            rescan: AwsCliService.Rescan);
+        EngineBar.Content = null;
     }
 
     // ── Context (profile / region / output) ──────────────────────────────────────────────
@@ -200,6 +211,7 @@ public sealed partial class AwsCliModule : Page
                 _loadingContext = false;
             }
         }
+        ScheduleConsoleContextRefresh();
     }
 
     private void RegionBox_Changed(object sender, SelectionChangedEventArgs e)
@@ -207,6 +219,7 @@ public sealed partial class AwsCliModule : Page
         if (_loadingContext) return;
         AwsCliService.ActiveRegion = RegionBox.SelectedIndex <= 0 ? "" : (RegionBox.SelectedItem as string ?? "");
         AwsCliService.PersistContext();
+        ScheduleConsoleContextRefresh();
     }
 
     private void OutputBox_Changed(object sender, SelectionChangedEventArgs e)
@@ -220,7 +233,7 @@ public sealed partial class AwsCliModule : Page
 
     private async void WhoAmI_Click(object sender, RoutedEventArgs e)
     {
-        await RunToOutput("sts get-caller-identity", decorate: true);
+        await RefreshConsoleContextAsync(loadResources: true);
     }
 
     private void Sso_Click(object sender, RoutedEventArgs e)
@@ -237,7 +250,14 @@ public sealed partial class AwsCliModule : Page
         var region = new TextBox { PlaceholderText = P("Region (optional)", "區域（選填）"), Text = AwsCliService.ActiveRegion };
         var output = new TextBox { PlaceholderText = P("Output (json/text/table/yaml)", "輸出（json/text/table/yaml）"), Text = AwsCliService.ActiveOutput };
         var panel = new StackPanel { Spacing = 8 };
-        panel.Children.Add(new TextBlock { Text = P("Secrets are written via 'aws configure' and never logged.", "密鑰透過 'aws configure' 寫入，絕不記錄。"), TextWrapping = TextWrapping.Wrap, FontSize = 12 });
+        panel.Children.Add(new TextBlock
+        {
+            Text = P(
+                "Secrets go directly to the standard AWS shared credentials store through the SDK; they are never logged or placed on a child-process command line.",
+                "密鑰經 AWS SDK 直接寫入標準 shared credentials store；唔會記錄，亦唔會放落 child-process 指令列。"),
+            TextWrapping = TextWrapping.Wrap,
+            FontSize = 12,
+        });
         panel.Children.Add(profileName);
         panel.Children.Add(keyId);
         panel.Children.Add(secret);
@@ -393,6 +413,7 @@ public sealed partial class AwsCliModule : Page
             return;
         }
         var sb = new StringBuilder($"{_selectedService} {_selectedOperation}");
+        List<string>? cleanupFiles = null;
         if (ParamJsonBox.Visibility == Visibility.Visible && !IsEmptyJson(ParamJsonBox.Text))
         {
             // Use --cli-input-json with the raw JSON (written to a temp file to avoid quoting issues).
@@ -400,6 +421,7 @@ public sealed partial class AwsCliModule : Page
             {
                 var tmp = Path.Combine(Path.GetTempPath(), $"winforge-aws-{Guid.NewGuid():N}.json");
                 await File.WriteAllTextAsync(tmp, ParamJsonBox.Text);
+                cleanupFiles = new List<string> { tmp };
                 sb.Append($" --cli-input-json file://{tmp.Replace('\\', '/')}");
             }
             catch { }
@@ -413,7 +435,7 @@ public sealed partial class AwsCliModule : Page
                 sb.Append(' ').Append(flag).Append(' ').Append(v.Contains(' ') ? $"\"{v}\"" : v);
             }
         }
-        await RunToOutput(sb.ToString(), decorate: true);
+        await RunToOutput(sb.ToString(), decorate: true, cleanupFiles: cleanupFiles);
     }
 
     private async void ShowHelp_Click(object sender, RoutedEventArgs e)
@@ -440,39 +462,46 @@ public sealed partial class AwsCliModule : Page
         StreamRun(args, decorate: true, record: true);
     }
 
-    private async Task RunToOutput(string args, bool decorate)
+    private async Task RunToOutput(string args, bool decorate, IReadOnlyList<string>? cleanupFiles = null)
     {
         // For browser/help actions: stream so long output appears progressively.
-        StreamRun(args, decorate, record: decorate);
+        StreamRun(args, decorate, record: decorate, cleanupFiles: cleanupFiles);
         await Task.CompletedTask;
     }
 
-    private void StreamRun(string args, bool decorate, bool record)
+    private void StreamRun(string args, bool decorate, bool record, IReadOnlyList<string>? cleanupFiles = null)
     {
         if (AwsCliService.IsStreaming)
         {
+            DeleteAwsTempFiles(cleanupFiles);
             ShowResult(TweakResult.Fail("A command is already running — Stop it first.", "已有指令喺度行 — 請先停止。"));
             return;
         }
+        TrackAwsTempFiles(cleanupFiles);
         OutText.Text = "";
         var shown = decorate ? AwsCliService.Decorate(args) : args;
-        AppendLine($"$ aws {shown}");
+        AppendLine($"$ aws {AwsCliService.Redact(shown)}");
         RawRunBtn.IsEnabled = false;
         RawStopBtn.IsEnabled = true;
-        if (record) AwsCliService.AddHistory(args);
+        if (record && RawHistoryToggle.IsChecked == true) AwsCliService.AddHistory(args);
 
         bool started = AwsCliService.StartStream(args, decorate,
             line => DispatcherQueue.TryEnqueue(() => AppendLine(line)),
-            code => DispatcherQueue.TryEnqueue(() =>
+            code =>
             {
-                AppendLine(P($"— done (exit {code}) —", $"— 完成（結束代碼 {code}）—"));
-                RawRunBtn.IsEnabled = true;
-                RawStopBtn.IsEnabled = false;
-                RefreshHistory();
-            }));
+                DeleteAwsTempFiles(cleanupFiles);
+                DispatcherQueue.TryEnqueue(() =>
+                {
+                    AppendLine(P($"— done (exit {code}) —", $"— 完成（結束代碼 {code}）—"));
+                    RawRunBtn.IsEnabled = true;
+                    RawStopBtn.IsEnabled = false;
+                    RefreshHistory();
+                });
+            });
 
         if (!started)
         {
+            DeleteAwsTempFiles(cleanupFiles);
             AppendLine(P("Failed to start aws.", "無法啟動 aws。"));
             RawRunBtn.IsEnabled = true;
             RawStopBtn.IsEnabled = false;
@@ -522,6 +551,13 @@ public sealed partial class AwsCliModule : Page
         var args = (RawBox.Text ?? "").Trim();
         if (args.StartsWith("aws ", StringComparison.OrdinalIgnoreCase)) args = args[4..].Trim();
         if (string.IsNullOrEmpty(args)) return;
+        if (AwsCliService.ContainsSensitiveMaterial(args))
+        {
+            ShowResult(TweakResult.Fail(
+                "Commands containing inline credentials cannot be saved as favorites.",
+                "包含行內憑證嘅指令唔可以儲存做收藏。"));
+            return;
+        }
         AwsCliService.ToggleFavorite(args);
         RefreshHistory();
         ShowResult(AwsCliService.IsFavorite(args)
@@ -715,14 +751,61 @@ public sealed partial class AwsCliModule : Page
         var name = fn.Text?.Trim();
         if (string.IsNullOrEmpty(name)) return;
         var outFile = Path.Combine(Path.GetTempPath(), $"lambda-out-{Guid.NewGuid():N}.json");
+        var cleanupFiles = new List<string> { outFile };
         var args = new StringBuilder($"lambda invoke --function-name {name}");
         if (!string.IsNullOrWhiteSpace(payload.Text))
         {
             var tmp = Path.Combine(Path.GetTempPath(), $"lambda-payload-{Guid.NewGuid():N}.json");
-            try { await File.WriteAllTextAsync(tmp, payload.Text); args.Append($" --payload file://{tmp.Replace('\\', '/')} --cli-binary-format raw-in-base64-out"); } catch { }
+            try
+            {
+                await File.WriteAllTextAsync(tmp, payload.Text);
+                cleanupFiles.Add(tmp);
+                args.Append($" --payload file://{tmp.Replace('\\', '/')} --cli-binary-format raw-in-base64-out");
+            }
+            catch { }
         }
         args.Append($" \"{outFile}\"");
-        StreamRun(args.ToString(), true, true);
+        StreamRun(args.ToString(), true, true, cleanupFiles);
+    }
+
+    private void TrackAwsTempFiles(IEnumerable<string>? paths)
+    {
+        if (paths is null) return;
+        lock (_pendingAwsTempFiles)
+        {
+            foreach (var path in paths.Where(path => !string.IsNullOrWhiteSpace(path)))
+                _pendingAwsTempFiles.Add(path);
+        }
+    }
+
+    private void DeleteAwsTempFiles(IEnumerable<string>? paths)
+    {
+        if (paths is null) return;
+        foreach (var path in paths.ToArray())
+        {
+            try { File.Delete(path); } catch { }
+            lock (_pendingAwsTempFiles) _pendingAwsTempFiles.Remove(path);
+        }
+    }
+
+    private static void CleanupStaleAwsTempFiles()
+    {
+        try
+        {
+            var cutoff = DateTime.UtcNow.AddHours(-1);
+            foreach (var pattern in new[] { "winforge-aws-*.json", "lambda-payload-*.json", "lambda-out-*.json" })
+            {
+                foreach (var path in Directory.EnumerateFiles(Path.GetTempPath(), pattern, SearchOption.TopDirectoryOnly))
+                {
+                    try
+                    {
+                        if (File.GetLastWriteTimeUtc(path) < cutoff) File.Delete(path);
+                    }
+                    catch { }
+                }
+            }
+        }
+        catch { }
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────────────────
