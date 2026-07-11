@@ -17,6 +17,11 @@ public sealed partial class CsvJsonModule : Page
     public CsvJsonModule()
     {
         InitializeComponent();
+        // The self-contained runtime did not reliably convert ToggleSwitch.IsOn
+        // from XAML. Preserve the default under the existing event guard.
+        _suppress = true;
+        HeaderSwitch.IsOn = true;
+        _suppress = false;
         Loc.I.LanguageChanged += OnLang;
         Loaded += (_, _) => Render();
         Unloaded += (_, _) => { Loc.I.LanguageChanged -= OnLang; };
