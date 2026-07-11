@@ -40,6 +40,12 @@ Bilingual wiki under `docs/wiki/` (Home → category pages, generated feature/bu
 - **Visual changes require fresh evidence.** Launch every changed page with `.agents/skills/run-winforge/driver.ps1`, capture a high-detail current screenshot, inspect it, and replace the old canonical screenshot in `docs/` and any corresponding GitHub Pages/wiki image. Do not retain stale screenshots for a changed page. If capture is blocked, document the exact blocker in the task handoff and do not claim visual verification.
 - **Use a final documentation commit if needed.** If the functional implementation was already committed/pushed before docs or screenshots were refreshed, make and push a second bilingual documentation/screenshot commit; the task is not complete until both code and documentation are on `main`.
 
+## Exhaustive smoke verification
+- **Whole-app or feature-completeness requests must use .agents/skills/winforge-exhaustive-smoke/.** Generate its route/page/control manifest before testing; the live registry, deep links, navigation, companions, external launchers, source files, test projects, and documentation form the coverage universe.
+- **Keep evidence dimensions separate.** A build is not a feature pass: record static routing, build, focused tests, launch, inspected screenshot, behavior, side-effect safety disposition, and documentation evidence independently. Never label visual verification as passed when capture is blocked.
+- **Review changed code honestly at source level.** Map meaningful methods and branches to a test, safe manual exercise, or explicit exemption. Do not claim every source line executed without instrumentation.
+- **Default to safe execution.** Use fixtures, dry-runs, validation paths, and reversible probes for privileged, destructive, network, credential, system-tweak, package, and real-world integration features unless the user specifically authorizes live side effects.
+
 ## Gotchas
 - `audioeditor`, `lightswitch`, and `timelens` were fixed after the original Omega audit; if one captures blank via the driver, rerun with a longer `-WaitMs`.
 - `--page <alias>` is reliable; bare `--reactor` can land on the Dashboard if a session was restored.

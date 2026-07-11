@@ -114,4 +114,14 @@ Open in-app: `WinForge.exe --page resume`
 
 ![Resume Writer](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-resume.png)
 
+## Exhaustive Smoke Verification · 全面冒煙驗證
+
+**EN —** Contributors verifying WinForge broadly use the repository-local [WinForge Exhaustive Smoke skill](../../.agents/skills/winforge-exhaustive-smoke/SKILL.md). It inventories the actual module registry, navigation, deep links, XAML controls, companions, external launchers, tests and source files before any route is marked complete.
+
+**粵語 —** 要全面驗證 WinForge 嘅貢獻者會用儲存庫入面嘅 [WinForge Exhaustive Smoke skill](../../.agents/skills/winforge-exhaustive-smoke/SKILL.md)。佢會先盤點真正嘅 module registry、導航、深層連結、XAML 控制項、companions、外部 launcher、測試同 source files，任何路線標示完成之前都要做到。
+
+**EN —** Build, launch, screenshot, behavior and side-effect evidence remain separate. A blocked capture is reported as blocked, never as a visual pass; stateful features use fixtures, dry-runs or reversible probes unless live execution is explicitly authorized.
+
+**粵語 —** 建置、啟動、截圖、行為同副作用證據會分開。截圖被阻擋就如實報告，唔會當作視覺通過；有狀態嘅功能會用 fixtures、dry-runs 或者可還原 probe，除非明確批准真實執行。
+
 [← Wiki Home](Home.md)
