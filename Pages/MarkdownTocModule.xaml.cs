@@ -18,6 +18,13 @@ public sealed partial class MarkdownTocModule : Page
     public MarkdownTocModule()
     {
         InitializeComponent();
+        // The self-contained runtime cannot reliably convert these NumberBox
+        // defaults from XAML. Preserve them without firing live regeneration.
+        _suppress = true;
+        MinBox.Value = 1;
+        MaxBox.Value = 6;
+        IncludeH1Chk.IsChecked = true;
+        _suppress = false;
         Loc.I.LanguageChanged += OnLang;
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;

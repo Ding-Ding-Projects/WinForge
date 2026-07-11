@@ -29,6 +29,11 @@ public sealed partial class NameGenModule : Page
     public NameGenModule()
     {
         InitializeComponent();
+        // Keep the original count default out of the unreliable XAML
+        // NumberBox.Value conversion path and suppress eager generation.
+        _suppress = true;
+        CountBox.Value = 10;
+        _suppress = false;
         Loc.I.LanguageChanged += OnLang;
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;

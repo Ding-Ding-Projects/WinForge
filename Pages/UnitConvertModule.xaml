@@ -22,7 +22,7 @@
 
                     <StackPanel Spacing="4">
                         <TextBlock x:Name="ValueLabel" FontWeight="SemiBold" />
-                        <NumberBox x:Name="ValueBox" Value="1" SpinButtonPlacementMode="Compact" ValueChanged="Any_Changed" HorizontalAlignment="Stretch" />
+                        <NumberBox x:Name="ValueBox" SpinButtonPlacementMode="Compact" ValueChanged="Any_Changed" HorizontalAlignment="Stretch" />
                     </StackPanel>
 
                     <Grid ColumnSpacing="12">

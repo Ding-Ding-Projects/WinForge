@@ -24,7 +24,7 @@
                         </StackPanel>
                         <StackPanel Spacing="2">
                             <TextBlock x:Name="CidrLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                            <NumberBox x:Name="CidrBox" Value="24" Minimum="0" Maximum="32" SpinButtonPlacementMode="Inline" MinWidth="120" ValueChanged="Cidr_Changed" />
+                            <NumberBox x:Name="CidrBox" Minimum="0" Maximum="32" SpinButtonPlacementMode="Inline" MinWidth="120" ValueChanged="Cidr_Changed" />
                         </StackPanel>
                         <StackPanel Spacing="2">
                             <TextBlock x:Name="MaskLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
@@ -51,11 +51,11 @@
                     <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
                         <StackPanel Spacing="2">
                             <TextBlock x:Name="NewPrefixLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                            <NumberBox x:Name="NewPrefixBox" Value="26" Minimum="0" Maximum="32" SpinButtonPlacementMode="Inline" MinWidth="120" />
+                            <NumberBox x:Name="NewPrefixBox" Minimum="0" Maximum="32" SpinButtonPlacementMode="Inline" MinWidth="120" />
                         </StackPanel>
                         <StackPanel Spacing="2">
                             <TextBlock x:Name="CountLabel" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                            <NumberBox x:Name="CountBox" Value="0" Minimum="0" Maximum="65536" SpinButtonPlacementMode="Inline" MinWidth="140" />
+                            <NumberBox x:Name="CountBox" Minimum="0" Maximum="65536" SpinButtonPlacementMode="Inline" MinWidth="140" />
                         </StackPanel>
                         <Button x:Name="SplitBtn" Click="Split_Click" VerticalAlignment="Bottom" />
                     </StackPanel>
