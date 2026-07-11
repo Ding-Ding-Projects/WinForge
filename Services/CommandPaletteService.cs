@@ -624,6 +624,33 @@ public static class CommandPaletteService
     private static void AddRunOrUrl(string query, List<CommandPaletteResult> list)
     {
         var q = query.Trim();
+        if (q.StartsWith(">", StringComparison.Ordinal))
+        {
+            string command = q.Substring(1).Trim();
+            if (string.IsNullOrWhiteSpace(command))
+            {
+                list.Add(new CommandPaletteResult
+                {
+                    Title = Loc.I.Pick("Command mode", "指令模式"),
+                    Subtitle = Loc.I.Pick("Type > followed by a command to run it as the current user.", "輸入 > 再加指令，就會以目前使用者身分執行。"),
+                    Glyph = ((char)0xE756).ToString(),
+                    ProviderTag = Loc.I.Pick("Run", "執行"),
+                    Score = 180,
+                    Invoke = () => false,
+                });
+                return;
+            }
+            list.Add(new CommandPaletteResult
+            {
+                Title = Loc.I.Pick($"Run command: {command}", $"執行指令：{command}"),
+                Subtitle = Loc.I.Pick("Explicit command mode · runs as the current user", "明確指令模式 · 以目前使用者身分執行"),
+                Glyph = ((char)0xE756).ToString(),
+                ProviderTag = Loc.I.Pick("Run", "執行"),
+                Score = 220,
+                Invoke = () => { RunExplicitCommand(command); return true; },
+            });
+            return;
+        }
         bool isUrl = LooksLikeUrl(q);
         if (isUrl)
         {
@@ -1281,6 +1308,26 @@ public static class CommandPaletteService
             Process.Start(psi);
         }
         catch { /* best effort */ }
+    }
+
+    private static void RunExplicitCommand(string command)
+    {
+        try
+        {
+            if (command.StartsWith("shell:", StringComparison.OrdinalIgnoreCase))
+            {
+                LaunchPath(command);
+                return;
+            }
+            string comSpec = Environment.GetEnvironmentVariable("ComSpec") ?? "cmd.exe";
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = comSpec,
+                Arguments = "/d /s /c " + command,
+                UseShellExecute = true,
+            });
+        }
+        catch { /* explicit, best-effort user command */ }
     }
 
     private static void CopyText(string text)
