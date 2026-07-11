@@ -14,6 +14,8 @@ WinForge (a.k.a. 視窗調校) is an all-in-one, **fully bilingual (English + �
 - **Reactor/dependent headless tests:** `dotnet run --project tests/ReactorSim.Tests -c Debug` (**63/63**).
 - The app is NOT a Start-menu app, so desktop/computer-use screenshot tools mask it — capture via the driver (DWM bounds + `CopyFromScreen`).
 
+- **SDK selection in this workspace:** the WinForge app build/publish targets .NET 11. The machine-wide dotnet command can resolve to SDK 10; before direct app build or publish commands set DOTNET_ROOT to USERPROFILE\.dotnet and prepend it to PATH, or invoke USERPROFILE\.dotnet\dotnet.exe directly. The run-winforge driver performs this selection automatically. The ReactorSim focused harness targets net8.0-windows, so run it with the system dotnet/runtime or clear DOTNET_ROOT first.
+
 ## Architecture & conventions (follow these)
 - **Add a module = touch 4 places:** `Pages/<X>Module.xaml(.cs)` (class `<X>Module : Page`, namespace `WinForge.Pages`) + logic in `Services/<X>Service.cs`; then register in **(1)** `Services/ModuleRegistry.cs` (Tag `module.xxx`, En, Zh, Glyph, Keywords), **(2)** `MainWindow.xaml.cs` `MapType()` (tag→type), **(3)** `MainWindow.xaml.cs` `ApplyStartPage()` (deep-link aliases for `--page`), **(4)** `MainWindow.xaml` `NavigationViewItem`.
 - **Language modes:** all user-facing strings use `Models/Core.cs` `LocalizedText(en, zh)` or `Services/Loc.cs` `Loc.I.Pick(en, zh)`. Cantonese (粵語), not Mandarin. The UI supports Bilingual, Cantonese, and English modes.
@@ -39,6 +41,12 @@ Bilingual wiki under `docs/wiki/` (Home → category pages, generated feature/bu
 - **Documentation is part of every feature or page change.** Before declaring a task complete, update the relevant `README.md`, `docs/wiki/`, `docs/`, and GitHub Pages content under `design/content/wiki/` (plus any generated page/reference content that the change affects). Keep English and Cantonese text consistent with the shipped UI.
 - **Visual changes require fresh evidence.** Launch every changed page with `.agents/skills/run-winforge/driver.ps1`, capture a high-detail current screenshot, inspect it, and replace the old canonical screenshot in `docs/` and any corresponding GitHub Pages/wiki image. Do not retain stale screenshots for a changed page. If capture is blocked, document the exact blocker in the task handoff and do not claim visual verification.
 - **Use a final documentation commit if needed.** If the functional implementation was already committed/pushed before docs or screenshots were refreshed, make and push a second bilingual documentation/screenshot commit; the task is not complete until both code and documentation are on `main`.
+
+## Exhaustive smoke verification
+- **Whole-app or feature-completeness requests must use .agents/skills/winforge-exhaustive-smoke/.** Generate its route/page/control manifest before testing; the live registry, deep links, navigation, companions, external launchers, source files, test projects, and documentation form the coverage universe.
+- **Keep evidence dimensions separate.** A build is not a feature pass: record static routing, build, focused tests, launch, inspected screenshot, behavior, side-effect safety disposition, and documentation evidence independently. Never label visual verification as passed when capture is blocked.
+- **Review changed code honestly at source level.** Map meaningful methods and branches to a test, safe manual exercise, or explicit exemption. Do not claim every source line executed without instrumentation.
+- **Default to safe execution.** Use fixtures, dry-runs, validation paths, and reversible probes for privileged, destructive, network, credential, system-tweak, package, and real-world integration features unless the user specifically authorizes live side effects.
 
 ## Gotchas
 - `audioeditor`, `lightswitch`, and `timelens` were fixed after the original Omega audit; if one captures blank via the driver, rerun with a longer `-WaitMs`.
