@@ -121,9 +121,9 @@ public sealed partial class AwsCliModule
         HomeSubtitle.Text = P(
             "Manage the account by resources and services. Search across Regions, open a native service workspace, or inspect operations and governance from one place.",
             "用資源同服務管理帳戶。跨區域搜尋、開原生服務工作區，或者喺同一處檢視營運同管治狀態。");
-        HomeRefreshBtn.Content = P("Refresh dashboard", "重新整理儀表板");
-        OpenS3Btn.Content = P("Open S3", "開啟 S3");
-        OpenResourcesBtn.Content = P("Explore resources", "探索資源");
+        HomeRefreshBtn.Content = P("Refresh", "重新整理");
+        OpenS3Btn.Content = P("S3", "S3");
+        OpenResourcesBtn.Content = P("Resources", "資源");
         IdentityCardTitle.Text = P("Current identity", "目前身份");
         ResourceCountLabel.Text = P("Resources found", "搵到嘅資源");
         BucketCountLabel.Text = P("S3 buckets", "S3 儲存桶");

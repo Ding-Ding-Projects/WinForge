@@ -209,13 +209,13 @@
                     <TextBlock x:Name="ProfileLabel" Foreground="#FFC7D1DB" VerticalAlignment="Center" Visibility="Collapsed" />
                     <ComboBox
                         x:Name="ProfileBox"
-                        Width="225"
+                        Width="180"
                         SelectionChanged="ProfileBox_Changed" />
                     <FontIcon x:Name="RegionContextIcon" FontSize="15" Foreground="#FFC7D1DB" Glyph="&#xE707;" />
                     <TextBlock x:Name="RegionLabel" Foreground="#FFC7D1DB" VerticalAlignment="Center" Visibility="Collapsed" />
                     <ComboBox
                         x:Name="RegionBox"
-                        Width="225"
+                        Width="180"
                         SelectionChanged="RegionBox_Changed" />
                 </StackPanel>
 
