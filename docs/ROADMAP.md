@@ -807,7 +807,7 @@ launching the other app.
 - [x] **Auto-install common deps** · 一鍵安裝常用相依 — DONE: the Setup view detects common WinForge engines/developer tools and installs missing winget dependencies with progress; other modules retain the shared `PackageService.AutoInstall` bootstrap path.
 
 ### Dev environment
-- [ ] **Visual Studio installer panel (export/import .vsconfig)** · VS 安裝器面板 — wrap the VS bootstrapper / winget (`winget install Microsoft.VisualStudio.2022.Community --override "--config <file>"`); export the current install's .vsconfig and re-apply it; list/modify workloads. (Flashing/installer = real engine, in-app UI.)
+- [x] **Visual Studio installer panel (export/import .vsconfig)** · VS 安裝器面板 — wrap the VS bootstrapper / winget (`winget install Microsoft.VisualStudio.2022.Community --override "--config <file>"`); export the current install's .vsconfig and re-apply it; list/modify workloads. (Flashing/installer = real engine, in-app UI.)
 
 ### Android (ADB + emulator + flashing)
 - [x] **Android / ADB console** · Android／ADB 主控台 — DONE (iter 31): wraps adb — devices (`adb devices -l`), install APK, shell, logcat dump, list packages, screencap→pull→show, reboot (system/bootloader/recovery), wireless connect. Detects missing adb → points to Package Manager. `module.adb` / `--page adb`.

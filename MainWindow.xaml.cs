@@ -310,6 +310,11 @@ public sealed partial class MainWindow : Window
             case "curlcmd":
                 Navigator.GoToModule?.Invoke("module.curlgen");
                 break;
+            case "vsinstaller":
+            case "visualstudio":
+            case "vsconfig":
+                Navigator.GoToModule?.Invoke("module.vsinstaller");
+                break;
             case "clipinspect":
             case "clipformats":
                 Navigator.GoToModule?.Invoke("module.clipinspect");
@@ -2114,6 +2119,7 @@ public sealed partial class MainWindow : Window
         "module.git" => typeof(GitHubModule),
         "module.githubdesktopprofiles" => typeof(GitHubDesktopProfilesModule),
         "module.vscode" => typeof(VsCodeModule),
+        "module.vsinstaller" => typeof(VisualStudioInstallerModule),
         "module.aiagents" => typeof(AiAgentsModule),
         "module.resume" => typeof(ResumeWriterModule),
         "module.ollama" => typeof(OllamaModule),

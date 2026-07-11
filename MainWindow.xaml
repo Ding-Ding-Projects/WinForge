@@ -467,6 +467,7 @@
                         <NavigationViewItem Content="Gitignore Generator · .gitignore 產生器" Tag="module.gitignore"><NavigationViewItem.Icon><FontIcon Glyph="&#xE7C3;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="PATH Doctor · PATH 醫生" Tag="module.pathdoctor"><NavigationViewItem.Icon><FontIcon Glyph="&#xE9D5;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Env Snapshot &amp; Diff · 環境變數快照" Tag="module.envdiff"><NavigationViewItem.Icon><FontIcon Glyph="&#xE8F7;" /></NavigationViewItem.Icon></NavigationViewItem>
+                        <NavigationViewItem Content="Visual Studio Installer · Visual Studio 安裝器" Tag="module.vsinstaller"><NavigationViewItem.Icon><FontIcon Glyph="&#xE70C;" /></NavigationViewItem.Icon></NavigationViewItem>
                         <NavigationViewItem Content="Clipboard Inspector · 剪貼簿檢查器" Tag="module.clipinspect"><NavigationViewItem.Icon><FontIcon Glyph="&#xE77F;" /></NavigationViewItem.Icon></NavigationViewItem>
                     </NavigationViewItem.MenuItems>
                 </NavigationViewItem>
