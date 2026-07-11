@@ -60,8 +60,8 @@ public sealed record QbPeer(string IpPort, string Client, double Progress, long 
 /// <summary>
 /// 應用程式內 qBittorrent Web API v2 客戶端 · In-app qBittorrent Web API v2 client.
 /// HttpClient + CookieContainer holds the SID session cookie obtained from /api/v2/auth/login.
-/// Host/port/user persist via SettingsStore (password is NOT persisted by default; the user re-enters
-/// it, or opts in to remember). Everything (login, torrent lifecycle, categories/tags, files/trackers/
+/// Host/port/user persist via SettingsStore (password is NOT persisted by default; an opt-in remembered
+/// password is DPAPI-encrypted for the current Windows user). Everything (login, torrent lifecycle, categories/tags, files/trackers/
 /// peers, speed limits, preferences) runs in-app against the local WebUI — no redirect. Endpoints
 /// verified against the upstream torrentscontroller / transfercontroller / appcontroller sources and
 /// the documented Web API v2 (v4.6 / v5: stop/start are the canonical pause/resume actions).
@@ -71,11 +71,15 @@ public sealed class QBittorrentService
     public const string KeyHost = "qb.host";
     public const string KeyPort = "qb.port";
     public const string KeyUser = "qb.user";
-    public const string KeyPass = "qb.pass";        // only written if "remember" is on
+    /// <summary>Historical plaintext key retained only for one-time migration; never write a new value here.</summary>
+    public const string KeyPass = QBittorrentCredentialStore.LegacyPasswordKey;
+    /// <summary>Current-user DPAPI blob for the remembered WebUI password.</summary>
+    public const string KeyPassEncrypted = QBittorrentCredentialStore.PasswordBlobKey;
     public const string KeyRemember = "qb.remember";
 
     private readonly CookieContainer _cookies = new();
     private readonly HttpClient _http;
+    private readonly QBittorrentCredentialStore _credentials;
 
     public string Host { get; private set; } = "localhost";
     public int Port { get; private set; } = 8080;
@@ -84,6 +88,10 @@ public sealed class QBittorrentService
 
     public QBittorrentService()
     {
+        _credentials = new QBittorrentCredentialStore(new SettingsAdapter(), new DpapiQBittorrentSecretProtector());
+        // Convert the legacy qb.pass value before this service can expose a saved password.
+        // A DPAPI failure intentionally fails closed and leaves the legacy value untouched for recovery.
+        _credentials.MigrateLegacyPassword();
         Host = SettingsStore.Get(KeyHost, "localhost");
         Port = int.TryParse(SettingsStore.Get(KeyPort, "8080"), out var p) ? p : 8080;
         User = SettingsStore.Get(KeyUser, "admin");
@@ -96,11 +104,11 @@ public sealed class QBittorrentService
     public string BaseUrl => $"http://{Host}:{Port}";
     private string Api(string path) => $"{BaseUrl}/api/v2{path}";
 
-    public string SavedPassword => SettingsStore.Get(KeyPass, "");
-    public bool Remember => SettingsStore.Get(KeyRemember, "0") == "1";
+    public string SavedPassword => _credentials.ReadSavedPassword();
+    public bool Remember => _credentials.Remember;
 
     /// <summary>持久化連線設定 · Persist host/port/user (and password only if remember=true).</summary>
-    public void SaveConnection(string host, int port, string user, string password, bool remember)
+    public bool SaveConnection(string host, int port, string user, string password, bool remember)
     {
         Host = string.IsNullOrWhiteSpace(host) ? "localhost" : host.Trim();
         Port = port <= 0 ? 8080 : port;
@@ -108,8 +116,7 @@ public sealed class QBittorrentService
         SettingsStore.Set(KeyHost, Host);
         SettingsStore.Set(KeyPort, Port.ToString(CultureInfo.InvariantCulture));
         SettingsStore.Set(KeyUser, User);
-        SettingsStore.Set(KeyRemember, remember ? "1" : "0");
-        SettingsStore.Set(KeyPass, remember ? (password ?? "") : "");
+        return _credentials.SaveRememberedPassword(password, remember);
     }
 
     private void AddCommonHeaders(HttpRequestMessage req)
@@ -135,6 +142,7 @@ public sealed class QBittorrentService
             });
             using var resp = await _http.SendAsync(req, ct).ConfigureAwait(false);
             var body = (await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false)).Trim();
+            ct.ThrowIfCancellationRequested();
             // qBittorrent returns "Ok." on success, "Fails." on bad creds, and 403 if IP-banned.
             bool ok = resp.IsSuccessStatusCode && body.Equals("Ok.", StringComparison.OrdinalIgnoreCase);
             LoggedIn = ok;
@@ -158,8 +166,16 @@ public sealed class QBittorrentService
     /// <summary>POST /auth/logout — clears the server session.</summary>
     public async Task Logout(CancellationToken ct = default)
     {
-        try { await Post("/auth/logout", null, ct).ConfigureAwait(false); } catch { }
+        // Prevent a racing refresh from treating this client as connected while the best-effort
+        // server logout request is still in flight.
         LoggedIn = false;
+        try { await Post("/auth/logout", null, ct).ConfigureAwait(false); } catch { }
+    }
+
+    private sealed class SettingsAdapter : IQBittorrentSettingsStore
+    {
+        public string Get(string key, string fallback) => SettingsStore.Get(key, fallback);
+        public void Set(string key, string value) => SettingsStore.Set(key, value);
     }
 
     // ── Low-level GET / POST ───────────────────────────────────────────────────
@@ -172,6 +188,7 @@ public sealed class QBittorrentService
             AddCommonHeaders(req);
             using var resp = await _http.SendAsync(req, ct).ConfigureAwait(false);
             var body = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            ct.ThrowIfCancellationRequested();
             if (resp.StatusCode == HttpStatusCode.Forbidden) LoggedIn = false;
             return new QbResult(resp.IsSuccessStatusCode, body, (int)resp.StatusCode);
         }
@@ -187,6 +204,7 @@ public sealed class QBittorrentService
             req.Content = new FormUrlEncodedContent(form ?? Array.Empty<KeyValuePair<string, string>>());
             using var resp = await _http.SendAsync(req, ct).ConfigureAwait(false);
             var body = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            ct.ThrowIfCancellationRequested();
             if (resp.StatusCode == HttpStatusCode.Forbidden) LoggedIn = false;
             return new QbResult(resp.IsSuccessStatusCode, body, (int)resp.StatusCode);
         }
@@ -258,13 +276,14 @@ public sealed class QBittorrentService
 
     /// <summary>
     /// GET /torrents/info → parsed torrent rows. Optional filter ("all"/"downloading"/"completed"/
-    /// "stopped"/"active"/…), category and search string narrow the result.
+    /// "stopped"/"active"/…), category and search string narrow the result. A null category
+    /// requests every category; an empty category requests qBittorrent's uncategorised torrents.
     /// </summary>
     public async Task<List<QbTorrent>> GetTorrents(string filter = "all", string? category = null,
         string? search = null, CancellationToken ct = default)
     {
         var sb = new StringBuilder("/torrents/info?filter=").Append(Uri.EscapeDataString(filter));
-        if (!string.IsNullOrEmpty(category)) sb.Append("&category=").Append(Uri.EscapeDataString(category));
+        if (category is not null) sb.Append("&category=").Append(Uri.EscapeDataString(category));
         var r = await Get(sb.ToString(), ct).ConfigureAwait(false);
         var list = new List<QbTorrent>();
         if (!r.Ok) return list;
@@ -364,6 +383,7 @@ public sealed class QBittorrentService
                 AddCommonHeaders(req);
                 using var resp = await _http.SendAsync(req, ct).ConfigureAwait(false);
                 var body = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+                ct.ThrowIfCancellationRequested();
                 if (resp.StatusCode == HttpStatusCode.Forbidden) LoggedIn = false;
                 return new QbResult(resp.IsSuccessStatusCode, body, (int)resp.StatusCode);
             }
