@@ -67,6 +67,7 @@ public sealed partial class SystemMonitorModule : Page
     private double _intervalSec = 1.0;
     private double _maxNetSeen = 1024 * 64; // adaptive network graph scale (start ~64 KB/s)
     private bool _busy;
+    private LibreHardwareMonitorLease? _hardwareSensors;
 
     public SystemMonitorModule()
     {
@@ -76,13 +77,14 @@ public sealed partial class SystemMonitorModule : Page
         Loc.I.LanguageChanged += OnLanguageChanged;
         ActualThemeChanged += (_, _) => ApplyGraphTheme();
         Loaded += OnLoaded;
-        Unloaded += (_, _) => { _timer.Stop(); Loc.I.LanguageChanged -= OnLanguageChanged; };
+        Unloaded += OnUnloaded;
     }
 
     private void OnLanguageChanged(object? s, EventArgs e) => Render();
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
+        _hardwareSensors ??= SystemMonitor.AcquireHardwareSensors();
         CoreBarsCtl.Build(SystemMonitor.CoreCount, ColumnsForCores(SystemMonitor.CoreCount));
         CpuGraph.Capacity = 90;
         DownGraph.Capacity = 60;
@@ -103,6 +105,14 @@ public sealed partial class SystemMonitorModule : Page
         catch { /* ignore priming failures */ }
         await Tick();
         _timer.Start();
+    }
+
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        _timer.Stop();
+        Loc.I.LanguageChanged -= OnLanguageChanged;
+        _hardwareSensors?.Dispose();
+        _hardwareSensors = null;
     }
 
     private static int ColumnsForCores(int n) => n <= 8 ? 2 : n <= 24 ? 3 : 4;
@@ -205,11 +215,12 @@ public sealed partial class SystemMonitorModule : Page
         try
         {
             bool cpuSort = _sort == SortKey.Cpu;
+            var hardwareSensors = _hardwareSensors;
             var s = await System.Threading.Tasks.Task.Run(() => new Sampled
             {
                 Cpu = SystemMonitor.CpuPercent(),
-                Temp = SystemMonitor.CpuTemperature(),
-                PerCore = SystemMonitor.PerCoreLoad(),
+                Temp = SystemMonitor.CpuTemperature(hardwareSensors),
+                PerCore = SystemMonitor.PerCoreLoad(hardwareSensors),
                 Mem = SystemMonitor.Memory(),
                 Swap = SystemMonitor.Swap(),
                 Net = SystemMonitor.Network(_intervalSec),

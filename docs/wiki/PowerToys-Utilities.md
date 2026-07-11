@@ -28,11 +28,11 @@ Open in-app: `WinForge.exe --page shortcutguide`
 
 ## Command Palette · 指令面板
 
-Global launcher and Run box for apps, calc and system actions. · 全域啟動器同執行框，啟動應用程式、計算同系統動作。
+Global launcher and PowerToys Run compatibility with apps, files, calc, local clipboard history, time/date, `$` Windows Settings, service actions and Windows Terminal profiles. Type `clip`, `time`, `$display`, `service start <name>` or `terminal <profile>` for the matching provider. · 全域啟動器同 PowerToys Run 相容功能，支援程式、檔案、計算、本機剪貼簿記錄、時間／日期、`$` Windows 設定、服務動作同 Windows 終端機設定檔。輸入 `clip`、`time`、`$顯示器`、`service start <名稱>` 或 `terminal <設定檔>` 使用對應提供者。
 
 Open in-app: `WinForge.exe --page cmdpalette`
 
-![Command Palette](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-cmdpalette.png)
+> Screenshot refresh is blocked in this desktop session: `CopyFromScreen` is unavailable and the `PrintWindow` fallback produces a uniform frame. The `cmdpalette` deep link remains launch-verified. · 呢個桌面工作階段未能更新截圖：`CopyFromScreen` 未可用，而且 `PrintWindow` 後備方案會產生單一畫面。`cmdpalette` 深層連結仍已驗證可以啟動。
 
 ## Color Picker · 螢幕取色
 

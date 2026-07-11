@@ -225,41 +225,27 @@ public static class SystemMonitor
     // Per-core %CPU is not exposed by GetSystemTimes, so we lean on LHM's "CPU Core #n" Load sensors.
     // When no driver/elevation is available LHM still reports total + per-thread load on most CPUs;
     // if even that is missing we degrade to spreading the overall CPU% evenly across cores.
-    private static LHM.Computer? _lhm;
-    private static bool _lhmTried;
-    private static readonly object _lhmGate = new();
-
-    private static LHM.Computer? Lhm()
-    {
-        lock (_lhmGate)
-        {
-            if (_lhmTried) return _lhm;
-            _lhmTried = true;
-            try
-            {
-                var c = new LHM.Computer { IsCpuEnabled = true };
-                c.Open();
-                _lhm = c;
-            }
-            catch { _lhm = null; }
-            return _lhm;
-        }
-    }
+    /// <summary>
+    /// Acquire the shared LHM sensor computer for a System Monitor page lifetime. The caller must
+    /// dispose the returned lease on page unload; Battery &amp; Thermal may hold another lease at the
+    /// same time, so neither page can close the upstream Ring0 transport under the other one.
+    /// </summary>
+    internal static LibreHardwareMonitorLease? AcquireHardwareSensors() => LibreHardwareMonitorLifecycle.Acquire();
 
     /// <summary>每個邏輯核心嘅負載百分比 · Per-logical-core load (0–100). Falls back to an even spread of the
     /// overall CPU% when LHM core sensors are unavailable (no admin driver).</summary>
-    public static double[] PerCoreLoad()
+    internal static double[] PerCoreLoad(LibreHardwareMonitorLease? lease)
     {
         int n = CoreCount;
         var result = new double[n];
-        var c = Lhm();
-        if (c is not null)
+        if (lease is not null)
         {
-            lock (_lhmGate)
+            try
             {
-                try
+                bool found = false;
+                lease.TryUse(computer =>
                 {
-                    foreach (var hw in c.Hardware)
+                    foreach (var hw in computer.Hardware)
                     {
                         if (hw.HardwareType != LHM.HardwareType.Cpu) continue;
                         hw.Update();
@@ -272,11 +258,12 @@ public static class SystemMonitor
                             if (s.Value is null) continue;
                             if (idx < n) result[idx++] = Math.Clamp(s.Value.Value, 0, 100);
                         }
-                        if (idx > 0) return result;
+                        if (idx > 0) { found = true; return; }
                     }
-                }
-                catch { }
+                });
+                if (found) return result;
             }
+            catch { }
         }
 
         // Fallback: even spread of the most recent overall CPU reading.
@@ -288,16 +275,16 @@ public static class SystemMonitor
     private static double _lastCpu;
 
     /// <summary>CPU 套件溫度（°C），冇感測器時回傳 null · CPU package temperature in °C, or null when unavailable.</summary>
-    public static double? CpuTemperature()
+    internal static double? CpuTemperature(LibreHardwareMonitorLease? lease)
     {
-        var c = Lhm();
-        if (c is null) return null;
-        lock (_lhmGate)
+        if (lease is null) return null;
+        try
         {
-            try
+            double? temperature = null;
+            lease.TryUse(computer =>
             {
                 double? pkg = null, anyCore = null;
-                foreach (var hw in c.Hardware)
+                foreach (var hw in computer.Hardware)
                 {
                     if (hw.HardwareType != LHM.HardwareType.Cpu) continue;
                     hw.Update();
@@ -309,10 +296,11 @@ public static class SystemMonitor
                         anyCore ??= s.Value.Value;
                     }
                 }
-                return pkg ?? anyCore;
-            }
-            catch { return null; }
+                temperature = pkg ?? anyCore;
+            });
+            return temperature;
         }
+        catch { return null; }
     }
 
     public static string Bytes(double b)
