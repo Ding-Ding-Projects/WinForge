@@ -490,15 +490,28 @@ public sealed partial class PixelEditorModule : Page
     private void EndSelectMove()
     {
         _movingSelection = false;
-        if (_moveDx != 0 || _moveDy != 0)
+        ClampSelectionToCanvas();
+        int xa = Math.Min(_selX0, _selX1), xb = Math.Max(_selX0, _selX1);
+        int ya = Math.Min(_selY0, _selY1), yb = Math.Max(_selY0, _selY1);
+        int dx = Math.Clamp(_moveDx, -xa, _doc.Width - 1 - xb);
+        int dy = Math.Clamp(_moveDy, -ya, _doc.Height - 1 - yb);
+        if (dx != 0 || dy != 0)
         {
-            _doc.MoveRect(_selX0, _selY0, _selX1, _selY1, _moveDx, _moveDy);
-            _selX0 += _moveDx; _selX1 += _moveDx;
-            _selY0 += _moveDy; _selY1 += _moveDy;
+            _doc.MoveRect(_selX0, _selY0, _selX1, _selY1, dx, dy);
+            _selX0 += dx; _selX1 += dx;
+            _selY0 += dy; _selY1 += dy;
             RedrawCanvas();
         }
         _moveDx = _moveDy = 0;
         DrawOverlay();
+    }
+
+    private void ClampSelectionToCanvas()
+    {
+        _selX0 = Math.Clamp(_selX0, 0, _doc.Width - 1);
+        _selX1 = Math.Clamp(_selX1, 0, _doc.Width - 1);
+        _selY0 = Math.Clamp(_selY0, 0, _doc.Height - 1);
+        _selY1 = Math.Clamp(_selY1, 0, _doc.Height - 1);
     }
 
     private void DeleteSelection()

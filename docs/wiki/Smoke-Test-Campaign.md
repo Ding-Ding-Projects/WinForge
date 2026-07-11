@@ -804,5 +804,102 @@ for the complete boundary and test record. · 完整邊界同測試記錄請睇[
 **專注證據：** `tests/PumpedHydroService.Tests` **4/4** 通過：`explicit ticks alone advance stored energy`、`charge and discharge use the documented split round-trip efficiency`、`generation mints from delivered MWh without a kWh multiplier` 同 `page loading and rendering are observational; only the guarded timer advances`。測試直接證明 `WattsFromDeliveredMWh(1) == 0.036`：`0.00001 ⚡/(MWe·s) × 3,600 MW·s/MWh`，冇咗以前 `×1000` kWh 錯誤。佢用 test double，唔會碰使用者 wallet／settings。Debug x64 solution build 以 **0 errors** 完成。
 
 **視覺／截圖狀態：** 呢個係非視覺嘅 service／code-behind 工作，冇 XAML 排版或控制介面變更。Batch 09 進行期間冇開另一個 WinForge GUI；冇嘗試、產生、替換、重用 screenshot，亦冇聲稱係視覺驗證。唔適用截圖替換。
+## Launch-only Batch 09 · 第九批淨啟動測試
+
+**EN —** The final post-merge inventory records **323 routes**, **805 deep-link
+aliases**, 1,274 source-review files, 346,641 source-review lines, 10 test
+projects, and no structural routing mismatch. Batch 09 covers launchable indices
+200–224: numseq, numwords, numwordsx, ollama, onedrive, ossapps, packages,
+packer, passgen, passwordstrength, pathdoctor, pdftoolkit, peek, percentcalc,
+pgadmin, phonetic, ping, pixeleditor, portscan, powerdisplay, powertoys, procexp,
+proxmox, pumpedhydro, and qbittorrent. The original isolated 5-second/15-second
+sweep passed 24/25 at five seconds; Percent Calculator failed both attempts with
+the reproducible `ToggleButton.IsChecked` XAML conversion fault at `C4Inc`.
+Its guarded managed default and fresh 6-second deep-link retest passed, yielding
+**25/25 final launch-pass**. The raw first-attempt logs and focused retests remain
+under ignored `artifacts/smoke/launch-batches/batch-09/`; the runner's auxiliary
+no-alias `shell.allapps` row was outside this numbered slice and was not treated
+as a launch pass.
+
+**Source-review and repair evidence · 來源審查同修正證據：** All **240** named XAML
+handler references in the slice resolve; language subscriptions are balanced after
+the qBittorrent named-handler unsubscribe repair. The direct scope has no unresolved
+TODO, FIXME, or NotImplementedException marker—the only `todo` search hit is Peek's
+intentional well-known filename classifier. Passing, unproven direct `IsChecked`
+literals were deliberately left untouched. The literal-safety guard now verifies 16
+managed ToggleSwitch defaults, two reproduced `IsChecked` defaults (Markdown TOC
+and Percentage Calculator), and 10 reproduced NumberBox defaults. Pixel Editor's
+index-based undo actions could target deleted/reordered frame or layer slots; topology
+changes now invalidate that history and selection movement is bounded before flat-buffer
+access. `PixelEditorCore.Tests` passed **5/5** after a **4/5** failing baseline.
+Proxmox now replaces/cancels a per-page operation token on load, reconnect, disconnect,
+and unload; refresh and config results require the captured generation and selected guest
+key before changing the UI. Its opt-in certificate callback accepts normally trusted TLS,
+or only a current, self-issued one-leaf chain whose sole meaningful status is
+`UntrustedRoot`; missing certificates, hostname mismatch, expiry, and multi-element
+issuer chains remain rejected. `ProxmoxSecurity.Tests` passed **6/6**. Fresh
+self-contained `--page pixeleditor` and `--page proxmox` launches passed. The
+merged Debug x64 solution build completed with **0 errors**.
+
+**Safety disposition · 安全處置：** This is still launch/static/test evidence, not a
+claim that every action passed. No package installation, OneDrive registry or file
+operation, Ollama pull/chat, image build, PDF write, file launch, network scan/ping,
+display or process control, Proxmox connection/power action, pumped-hydro control, or
+qBittorrent credential/download action was live-executed without a disposable target
+and explicit authorization.
+
+**Visual evidence · 視覺證據：** Fresh 15-second `driver.ps1 -Out` attempts for the
+changed Percentage Calculator, qBittorrent, Pixel Editor, and Proxmox pages each reached
+the capture stage but failed identically: `CopyFromScreen` was unavailable and the
+`PrintWindow` fallback produced a uniform frame while graphics capture remained
+unavailable in this desktop session. No PNG was created, inspected, replaced, or reused;
+these pages are `capture-blocked`, never visual-pass. Batch 09 brings current
+process-level launch evidence to the first **225 of 323** routes.
+
+**粵語 —** 最後合併後嘅 inventory 記錄咗 **323 條 routes**、**805 個 deep-link
+aliases**、1,274 個來源審查檔、346,641 行來源審查程式、10 個 test projects，亦都冇
+structural routing mismatch。Batch 09 覆蓋 launchable indices 200–224：numseq、
+numwords、numwordsx、ollama、onedrive、ossapps、packages、packer、passgen、
+passwordstrength、pathdoctor、pdftoolkit、peek、percentcalc、pgadmin、phonetic、
+ping、pixeleditor、portscan、powerdisplay、powertoys、procexp、proxmox、
+pumpedhydro 同 qbittorrent。原本隔離嘅 5 秒／15 秒 sweep 有 24/25 條五秒通過；
+Percentage Calculator 兩次都失敗，重現到 `C4Inc` 嘅
+`ToggleButton.IsChecked` XAML conversion fault。搬咗去受 guard 保護嘅 managed
+default 之後，新鮮 6 秒 deep-link retest 通過，最後係 **25/25 launch-pass**。
+原始 first-attempt logs 同 focused retests 留喺 Git 忽略嘅
+`artifacts/smoke/launch-batches/batch-09/`；runner 額外產生嘅無 alias
+`shell.allapps` row 唔屬於呢個編號範圍，亦冇當成 launch pass。
+
+**來源審查同修正證據 · Source-review and repair evidence：** 呢批全部 **240** 個有名
+XAML handler references 都 resolve；修正 qBittorrent 用有名 handler 解除訂閱後，
+LanguageChanged subscriptions 都平衡。直屬範圍冇未解決 TODO、FIXME 或
+NotImplementedException marker；唯一 `todo` search hit 係 Peek 有意識嘅
+well-known filename classifier。通過 launch、但未證實有問題嘅 direct `IsChecked`
+literals 刻意冇郁。literal-safety guard 而家驗證 16 個 managed ToggleSwitch defaults、
+兩個已重現嘅 `IsChecked` defaults（Markdown TOC 同 Percentage Calculator），同
+10 個已重現嘅 NumberBox defaults。Pixel Editor 嘅 index-based undo actions 以前可能
+指去已刪除／重排咗嘅 frame 或 layer slot；而家一有 topology change 就會作廢舊 history，
+選取移動亦會喺 flat-buffer access 之前限制範圍。`PixelEditorCore.Tests` 由原本
+**4/5** failing baseline 變成 **5/5** 通過。Proxmox 而家喺 load、reconnect、
+disconnect 同 unload 會替換／取消 per-page operation token；refresh 同 config
+results 一定要同 captured generation 同所揀 guest key 相符先可以改 UI。佢嘅 opt-in
+certificate callback 會接受正常受信任嘅 TLS，或者只接受仍然有效、自發、一個 leaf、
+唯一 meaningful status 係 `UntrustedRoot` 嘅 chain；冇 certificate、hostname mismatch、
+過期同 multi-element issuer chain 都會拒絕。`ProxmoxSecurity.Tests` **6/6** 通過。
+新鮮 self-contained `--page pixeleditor` 同 `--page proxmox` launches 都通過。合併後嘅
+Debug x64 solution build 以 **0 errors** 完成。
+
+**安全處置 · Safety disposition：** 呢個仍然係 launch／static／test 證據，唔係聲稱
+每一個 action 都通過。冇 disposable target 同明確授權下，冇 live-run 套件安裝、
+OneDrive registry 或檔案操作、Ollama pull/chat、image build、PDF 寫入、開檔、
+network scan/ping、display 或 process control、Proxmox 連線／電源操作、
+pumped-hydro control，或者 qBittorrent credential/download action。
+
+**視覺證據 · Visual evidence：** 改過嘅 Percentage Calculator、qBittorrent、
+Pixel Editor 同 Proxmox pages 都用咗新鮮 15 秒 `driver.ps1 -Out` 嘗試；全部都到咗
+capture stage，但同樣失敗：`CopyFromScreen` 唔可用，而 `PrintWindow` fallback 產生
+uniform frame，呢個 desktop session 嘅 graphics capture 仍然唔可用。冇 PNG 產生、
+檢查、替換或者重用；呢啲頁面係 `capture-blocked`，絕對唔係 visual-pass。Batch 09
+令到而家 process-level launch evidence 去到 **323 條 routes 入面頭 225 條**。
 
 [← Wiki Home](Home.md) · [Developer](Developer.md) · [Screenshots](Screenshots.md)

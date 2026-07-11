@@ -6,8 +6,9 @@
   in code-behind after InitializeComponent instead, using the page's existing
   suppression/loading guard when the Toggled handler needs one.
 
-  It also protects the one page-local CheckBox.IsChecked failure and six
-  page-local NumberBox.Value failures that were
+  It also protects the reproduced page-local CheckBox.IsChecked and
+  RadioButton.IsChecked failures plus six page-local NumberBox.Value failures
+  that were
   reproduced through fresh --page launches. Other NumberBox literals remain
   allowed until a route proves them unsafe; this is deliberately not a global
   policy for numeric controls.
@@ -80,48 +81,55 @@ if ($missingDefaults.Count -gt 0) {
     exit 1
 }
 
-$protectedCheckBoxDefaults = [ordered]@{
+$protectedCheckedDefaults = [ordered]@{
     'Pages/MarkdownTocModule.xaml' = [pscustomobject]@{
         CodeBehind = 'Pages/MarkdownTocModule.xaml.cs'
+        Element = 'CheckBox'
         Control = 'IncludeH1Chk'
         Assignment = 'IncludeH1Chk.IsChecked = true;'
     }
+    'Pages/PercentCalcModule.xaml' = [pscustomobject]@{
+        CodeBehind = 'Pages/PercentCalcModule.xaml.cs'
+        Element = 'RadioButton'
+        Control = 'C4Inc'
+        Assignment = 'C4Inc.IsChecked = true;'
+    }
 }
 
-$checkBoxFailures = [System.Collections.Generic.List[string]]::new()
-foreach ($relativeXamlPath in $protectedCheckBoxDefaults.Keys) {
-    $entry = $protectedCheckBoxDefaults[$relativeXamlPath]
+$checkedFailures = [System.Collections.Generic.List[string]]::new()
+foreach ($relativeXamlPath in $protectedCheckedDefaults.Keys) {
+    $entry = $protectedCheckedDefaults[$relativeXamlPath]
     $xamlPath = Join-Path $root $relativeXamlPath
     $codeBehindPath = Join-Path $root $entry.CodeBehind
     if (-not (Test-Path -LiteralPath $xamlPath)) {
-        $checkBoxFailures.Add("$relativeXamlPath is missing.")
+        $checkedFailures.Add("$relativeXamlPath is missing.")
         continue
     }
     if (-not (Test-Path -LiteralPath $codeBehindPath)) {
-        $checkBoxFailures.Add("$($entry.CodeBehind) is missing.")
+        $checkedFailures.Add("$($entry.CodeBehind) is missing.")
         continue
     }
 
     $xaml = Get-Content -Raw -LiteralPath $xamlPath
-    $checkBoxTags = [regex]::Matches($xaml, '(?s)<CheckBox\b[^>]*>')
+    $checkableTags = [regex]::Matches($xaml, ('(?s)<' + [regex]::Escape($entry.Element) + '\b[^>]*>'))
     $namePattern = '\bx:Name\s*=\s*"' + [regex]::Escape($entry.Control) + '"'
-    $tags = @($checkBoxTags | Where-Object { $_.Value -match $namePattern })
+    $tags = @($checkableTags | Where-Object { $_.Value -match $namePattern })
     if ($tags.Count -ne 1) {
-        $checkBoxFailures.Add("$relativeXamlPath must retain exactly one CheckBox named '$($entry.Control)'.")
+        $checkedFailures.Add("$relativeXamlPath must retain exactly one $($entry.Element) named '$($entry.Control)'.")
     }
     elseif ($tags[0].Value -match '\bIsChecked\s*=\s*"(?!\{)[^"]+"') {
-        $checkBoxFailures.Add("$relativeXamlPath still assigns direct XAML CheckBox.IsChecked for '$($entry.Control)'.")
+        $checkedFailures.Add("$relativeXamlPath still assigns direct XAML $($entry.Element).IsChecked for '$($entry.Control)'.")
     }
 
     $codeBehind = Get-Content -Raw -LiteralPath $codeBehindPath
     if (-not $codeBehind.Contains($entry.Assignment)) {
-        $checkBoxFailures.Add("$($entry.CodeBehind) is missing '$($entry.Assignment)'.")
+        $checkedFailures.Add("$($entry.CodeBehind) is missing '$($entry.Assignment)'.")
     }
 }
 
-if ($checkBoxFailures.Count -gt 0) {
-    Write-Host 'FAIL: a reproduced CheckBox.IsChecked XAML regression is not safely initialized.' -ForegroundColor Red
-    $checkBoxFailures | ForEach-Object { Write-Host "  $_" }
+if ($checkedFailures.Count -gt 0) {
+    Write-Host 'FAIL: a reproduced IsChecked XAML regression is not safely initialized.' -ForegroundColor Red
+    $checkedFailures | ForEach-Object { Write-Host "  $_" }
     exit 1
 }
 
@@ -200,4 +208,4 @@ if ($numberBoxFailures.Count -gt 0) {
     exit 1
 }
 
-Write-Host 'PASS: no direct XAML IsOn Boolean literals remain, 16 protected ToggleSwitch defaults, one protected CheckBox default, and 10 reproduced NumberBox defaults use managed initialization.' -ForegroundColor Green
+Write-Host 'PASS: no direct XAML IsOn Boolean literals remain, 16 protected ToggleSwitch defaults, two protected IsChecked defaults, and 10 reproduced NumberBox defaults use managed initialization.' -ForegroundColor Green

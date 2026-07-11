@@ -179,21 +179,24 @@ launch, retry, and screenshot-blocker evidence.
 確實 build、launch、retry 同截圖阻礙證據請睇
 [冒煙測試清單](docs/wiki/Smoke-Test-Campaign.md)。
 
-**EN —** Launch-only batches 01–08 now provide current process-level route
-evidence for the first 200 of 322 manifest routes. Batch 08 exercised indices
-175–199: all 25 ended `launch-pass`. Mac Tools (`mactools`) first returned
-exit 1 after five seconds because no dedicated window was yet observed, then
-passed the required bounded 15-second retry; the other 24 passed at five
-seconds. Its fresh screenshot attempt found `CopyFromScreen` unavailable and
-the `PrintWindow` fallback uniformly blank, so no PNG was created or replaced
-and this remains a capture-blocked—not visual-completion—claim.
+**EN —** Launch-only batches 01–09 now provide current process-level route
+evidence for the first 225 of 323 manifest routes. Batch 09 exercised indices
+200–224: 24 passed at five seconds and Percent Calculator first exposed a
+reproducible typed `IsChecked` startup fault; its guarded managed default and
+fresh deep-link retest completed the batch at 25/25 launch-pass. The same
+review also added focused Pixel Editor (5/5) and Proxmox certificate-policy
+(6/6) regression harnesses. Fresh screenshot attempts for every changed page
+remain capture-blocked: `CopyFromScreen` is unavailable and PrintWindow is
+uniform, so no PNG was created, replaced, or treated as visual completion.
 
-**粵語 —** 淨 launch batches 01–08 而家為 322 條 manifest routes 入面頭 200 條
-提供咗最新嘅 process-level route 證據。Batch 08 測咗 indices 175–199：25 條最終
-都係 `launch-pass`。Mac Tools（`mactools`）第一次等五秒時因為仲未見到獨立視窗而
-回傳 exit 1，之後按規定做受限嘅 15 秒 retry 就通過；其餘 24 條全部五秒通過。佢嘅
-最新截圖嘗試發現 `CopyFromScreen` 唔可用，`PrintWindow` fallback 亦係全空白，所以冇
-新增或替換 PNG；呢個仍然係 capture-blocked，唔係 visual-completion 聲稱。
+**粵語 —** 淨 launch batches 01–09 而家為 323 條 manifest routes 入面頭 225 條
+提供最新嘅 process-level route 證據。Batch 09 測咗 indices 200–224：24 條五秒
+通過，而 Percentage Calculator 第一次揭示咗可重現嘅 typed `IsChecked` startup
+fault；受 guard 保護嘅 managed default 加新鮮 deep-link retest 令呢批最後係
+25/25 launch-pass。今次審查亦新增 Pixel Editor（5/5）同 Proxmox certificate-policy
+（6/6）專注 regression harnesses。每個改過頁面嘅最新 screenshot 嘗試仍然係
+capture-blocked：`CopyFromScreen` 唔可用，而 PrintWindow 係 uniform，所以冇 PNG
+產生、替換或者當成 visual completion。
 
 ---
 

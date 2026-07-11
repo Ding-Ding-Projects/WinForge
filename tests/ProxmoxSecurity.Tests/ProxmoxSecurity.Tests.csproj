@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net11.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\Services\ProxmoxService.cs" Link="ProxmoxService.cs" />
+    <Compile Include="..\..\Services\SettingsStore.cs" Link="SettingsStore.cs" />
+    <Compile Include="..\..\Services\SettingsStorePersistence.cs" Link="SettingsStorePersistence.cs" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="9.0.0" />
+  </ItemGroup>
+</Project>
