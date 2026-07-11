@@ -27,7 +27,8 @@ public sealed partial class ProxmoxModule : Page
     private readonly ObservableCollection<GuestVM> _rows = new();
     private readonly Dictionary<string, GuestVM> _byKey = new();
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromSeconds(5) };
-    private CancellationTokenSource? _cts;
+    private CancellationTokenSource? _operationCts;
+    private long _operationGeneration;
     private bool _refreshing;
     private GuestVM? _selected;
     private bool _suppress;
@@ -48,8 +49,45 @@ public sealed partial class ProxmoxModule : Page
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
+    private (long Generation, CancellationTokenSource Source) CaptureOperation()
+    {
+        if (_operationCts is null || _operationCts.IsCancellationRequested)
+        {
+            _operationCts?.Dispose();
+            _operationCts = new CancellationTokenSource();
+        }
+        return (_operationGeneration, _operationCts);
+    }
+
+    private void BeginOperationScope()
+    {
+        InvalidateOperations();
+        _operationCts = new CancellationTokenSource();
+    }
+
+    private void InvalidateOperations()
+    {
+        _operationGeneration++;
+        _refreshing = false;
+        Busy.IsActive = false;
+        ConnBusy.IsActive = false;
+        ConnectBtn.IsEnabled = true;
+        var source = _operationCts;
+        _operationCts = null;
+        if (source is null) return;
+        source.Cancel();
+        source.Dispose();
+    }
+
+    private bool IsCurrentOperation(long generation, CancellationTokenSource source) =>
+        generation == _operationGeneration && ReferenceEquals(source, _operationCts) && !source.IsCancellationRequested;
+
+    private bool IsCurrentConnectedOperation(long generation, CancellationTokenSource source) =>
+        IsCurrentOperation(generation, source) && _pve.Connected;
+
     private async void OnLoaded(object? s, RoutedEventArgs e)
     {
+        BeginOperationScope();
         _suppress = true;
         HostBox.Text = _pve.Host;
         PortBox.Value = _pve.Port;
@@ -77,7 +115,7 @@ public sealed partial class ProxmoxModule : Page
     {
         Loc.I.LanguageChanged -= OnLanguageChanged;
         _timer.Stop();
-        _cts?.Cancel();
+        InvalidateOperations();
     }
 
     private void Render()
@@ -137,6 +175,7 @@ public sealed partial class ProxmoxModule : Page
 
     private async void Connect_Click(object sender, RoutedEventArgs e)
     {
+        BeginOperationScope();
         string authMode = TokenModeRadio.IsChecked == true ? "token" : "ticket";
         _pve.SaveConnection(
             HostBox.Text,
@@ -153,11 +192,13 @@ public sealed partial class ProxmoxModule : Page
 
     private async Task DoConnect(bool silent)
     {
+        var (generation, source) = CaptureOperation();
         ConnBusy.IsActive = true;
         ConnectBtn.IsEnabled = false;
         try
         {
-            var r = await _pve.Connect(TokenSecretBox.Password, PassBox.Password);
+            var r = await _pve.Connect(TokenSecretBox.Password, PassBox.Password, source.Token);
+            if (!IsCurrentOperation(generation, source)) return;
             if (!r.Ok)
             {
                 _timer.Stop();
@@ -170,19 +211,23 @@ public sealed partial class ProxmoxModule : Page
             ShowConnState(PveConnState.Connected, "");
             ConnExpander.IsExpanded = false;
             await RefreshTick(silent: true);
-            if (AutoRefreshToggle.IsOn) _timer.Start();
+            if (IsCurrentConnectedOperation(generation, source) && AutoRefreshToggle.IsOn) _timer.Start();
         }
         finally
         {
-            ConnBusy.IsActive = false;
-            ConnectBtn.IsEnabled = true;
-            UpdateConnUi();
+            if (IsCurrentOperation(generation, source))
+            {
+                ConnBusy.IsActive = false;
+                ConnectBtn.IsEnabled = true;
+                UpdateConnUi();
+            }
         }
     }
 
     private void Disconnect_Click(object sender, RoutedEventArgs e)
     {
         _timer.Stop();
+        InvalidateOperations();
         _pve.Disconnect();
         _rows.Clear(); _byKey.Clear();
         _selected = null;
@@ -238,27 +283,34 @@ public sealed partial class ProxmoxModule : Page
     private async Task RefreshTick(bool silent)
     {
         if (_refreshing || !_pve.Connected) return;
+        var (generation, source) = CaptureOperation();
         _refreshing = true;
         Busy.IsActive = true;
-        _cts ??= new CancellationTokenSource();
-        var ct = _cts.Token;
         try
         {
-            var guests = await _pve.GetAllGuests(ct);
+            var guests = await _pve.GetAllGuests(source.Token);
+            if (!IsCurrentConnectedOperation(generation, source)) return;
             MergeRows(guests);
             UpdateListVisibility();
             SelectionInfo.Text = P($"{_rows.Count} guest(s)", $"{_rows.Count} 個客體");
             if (_selected is not null) RenderSelected();
             UpdateActionButtons();
         }
+        catch (OperationCanceledException) when (source.IsCancellationRequested)
+        {
+        }
         catch (Exception ex)
         {
-            if (!silent) ShowConn(InfoBarSeverity.Error, P("Refresh failed", "重新整理失敗"), ex.Message);
+            if (IsCurrentConnectedOperation(generation, source) && !silent)
+                ShowConn(InfoBarSeverity.Error, P("Refresh failed", "重新整理失敗"), ex.Message);
         }
         finally
         {
-            _refreshing = false;
-            Busy.IsActive = false;
+            if (IsCurrentOperation(generation, source))
+            {
+                _refreshing = false;
+                Busy.IsActive = false;
+            }
         }
     }
 
@@ -324,10 +376,13 @@ public sealed partial class ProxmoxModule : Page
     {
         if (_selected is null) return;
         var g = _selected.Guest;
+        string guestKey = _selected.Key;
+        var (generation, source) = CaptureOperation();
         ConfigBox.Text = P("Loading…", "載入緊…");
         try
         {
-            var cfg = await _pve.GetConfig(g);
+            var cfg = await _pve.GetConfig(g, source.Token);
+            if (!IsCurrentConnectedOperation(generation, source) || _selected?.Key != guestKey) return;
             var lines = new List<string>();
             // Surface the most useful keys first.
             foreach (var key in new[] { "cores", "sockets", "cpu", "memory", "balloon", "boot", "bootdisk", "ostype", "arch", "hostname", "rootfs", "scsi0", "virtio0", "ide0", "sata0", "net0", "net1" })
@@ -339,12 +394,20 @@ public sealed partial class ProxmoxModule : Page
                     if (!new[] { "cores", "sockets", "cpu", "memory", "balloon", "boot", "bootdisk", "ostype", "arch", "hostname", "rootfs", "scsi0", "virtio0", "ide0", "sata0", "net0", "net1" }.Contains(kv.Key))
                         lines.Add($"{kv.Key,-10} {kv.Value}");
 
-            var ip = await _pve.TryGetGuestIp(g);
+            var ip = await _pve.TryGetGuestIp(g, source.Token);
+            if (!IsCurrentConnectedOperation(generation, source) || _selected?.Key != guestKey) return;
             if (!string.IsNullOrEmpty(ip)) lines.Insert(0, P($"IP         {ip}", $"IP         {ip}"));
 
             ConfigBox.Text = lines.Count == 0 ? P("(no configuration available)", "（無設定資料）") : string.Join("\n", lines);
         }
-        catch (Exception ex) { ConfigBox.Text = ex.Message; }
+        catch (OperationCanceledException) when (source.IsCancellationRequested)
+        {
+        }
+        catch (Exception ex)
+        {
+            if (IsCurrentConnectedOperation(generation, source) && _selected?.Key == guestKey)
+                ConfigBox.Text = ex.Message;
+        }
     }
 
     private void UpdateActionButtons()

@@ -128,11 +128,50 @@ public sealed class ProxmoxService
         };
         if (trustCert)
         {
-            // Only when the user has explicitly toggled "trust self-signed certificate" on.
+            // Only when the user has explicitly opted in to a current,
+            // self-signed leaf with an otherwise clean one-element chain.
             handler.ServerCertificateCustomValidationCallback =
-                (HttpRequestMessage _, X509Certificate2? _, X509Chain? _, SslPolicyErrors _) => true;
+                static (HttpRequestMessage _, X509Certificate2? certificate, X509Chain? chain, SslPolicyErrors errors) =>
+                    AcceptServerCertificate(certificate, chain, errors);
         }
         return new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(20) };
+    }
+
+    /// <summary>
+    /// Accept a normally trusted certificate, or the narrow self-signed case the UI promises.
+    /// Name mismatches, missing certificates, expired leaves, non-self-issued leaves, multi-element
+    /// chains, and every chain state other than UntrustedRoot remain rejected.
+    /// </summary>
+    internal static bool AcceptServerCertificate(X509Certificate2? certificate, X509Chain? chain,
+        SslPolicyErrors errors, DateTime? utcNow = null)
+    {
+        if (errors == SslPolicyErrors.None) return true;
+        if ((errors & (SslPolicyErrors.RemoteCertificateNotAvailable | SslPolicyErrors.RemoteCertificateNameMismatch)) != 0)
+            return false;
+        if (errors != SslPolicyErrors.RemoteCertificateChainErrors || certificate is null || chain is null)
+            return false;
+
+        var now = (utcNow ?? DateTime.UtcNow).ToUniversalTime();
+        if (certificate.NotBefore.ToUniversalTime() > now || certificate.NotAfter.ToUniversalTime() < now)
+            return false;
+        if (!CryptographicOperations.FixedTimeEquals(certificate.SubjectName.RawData, certificate.IssuerName.RawData))
+            return false;
+        if (chain.ChainElements.Count != 1 ||
+            !CryptographicOperations.FixedTimeEquals(chain.ChainElements[0].Certificate.RawData, certificate.RawData))
+            return false;
+
+        bool untrustedRoot = false;
+        foreach (var status in chain.ChainStatus)
+        {
+            if (status.Status == X509ChainStatusFlags.NoError) continue;
+            if (status.Status == X509ChainStatusFlags.UntrustedRoot)
+            {
+                untrustedRoot = true;
+                continue;
+            }
+            return false;
+        }
+        return untrustedRoot;
     }
 
     private void RebuildClient()
