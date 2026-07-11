@@ -72,4 +72,30 @@ ignored by Git until selected evidence is intentionally promoted to docs.
 - No WinForge visual surface changed while this verification infrastructure was
   introduced, so this baseline claims no new visual-pass result.
 
+## Launch-only Batch 01 · 第一批淨啟動測試
+
+**EN —** On 2026-07-11, manifest route records 0–24 were launched one at a
+time through the isolated self-contained driver with a 2.5-second wait. All
+25 routable records returned `launch-pass`; there were no launch failures.
+`shell.allapps` was also encountered, but it is a NavigationView group tag,
+not a deep-linkable page. It is recorded as `not-launchable` rather than as a
+pass or failure, and needs navigation/search coverage in a later interactive
+batch. The generated batch evidence is retained under the ignored
+`artifacts/smoke/launch-batches/batch-01/` directory.
+
+**粵語 —** 2026-07-11 用獨立 self-contained driver，逐個以 2.5 秒等待時間
+開 manifest route records 0–24。25 條可以 deep-link 嘅 records 全部係
+`launch-pass`，冇 launch failure。`shell.allapps` 亦有見到，但佢係
+NavigationView 分組 tag，唔係可以 deep-link 嘅 page；所以記做
+`not-launchable`，唔當 pass 或 failure，遲啲要用 navigation/search 做互動測試。
+產生嘅 batch 證據保留喺 Git 忽略嘅
+`artifacts/smoke/launch-batches/batch-01/`。
+
+- The route runner now keeps going when an individual child launch fails and
+  records that outcome in the ledger; native-command error promotion can no
+  longer abort an entire batch before later routes are exercised.
+- This is process-level launch evidence only. Screenshots remain
+  capture-blocked in this session, so Batch 01 grants neither visual nor
+  behavioral completion.
+
 [← Wiki Home](Home.md) · [Developer](Developer.md)
