@@ -11,7 +11,7 @@
     <ScrollViewer Padding="24,16,24,24" VerticalScrollBarVisibility="Auto">
         <StackPanel MaxWidth="820" Spacing="14">
             <controls:ModuleHeader x:Name="Header" Glyph="&#xE773;" />
-            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+            <TextBlock x:Name="HeaderBlurb" Foreground="{ThemeResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
 
             <!-- Enable + open -->
             <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
@@ -23,7 +23,7 @@
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0" Spacing="1" VerticalAlignment="Center">
                             <TextBlock x:Name="EnableTitle" FontWeight="SemiBold" FontSize="15" />
-                            <TextBlock x:Name="EnableStatus" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock x:Name="EnableStatus" FontSize="12" Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
                         </StackPanel>
                         <ToggleSwitch x:Name="EnableSwitch" Grid.Column="1" Toggled="Enable_Toggled" VerticalAlignment="Center" />
                     </Grid>
@@ -45,7 +45,7 @@
             <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
                 <StackPanel Spacing="10">
                     <TextBlock x:Name="ProvidersTitle" FontWeight="SemiBold" FontSize="15" />
-                    <TextBlock x:Name="ProvidersBlurb" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    <TextBlock x:Name="ProvidersBlurb" FontSize="12" Foreground="{ThemeResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
                     <StackPanel x:Name="ProvidersPanel" Spacing="6" />
                 </StackPanel>
             </Border>

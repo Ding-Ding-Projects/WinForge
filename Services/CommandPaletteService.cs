@@ -32,12 +32,13 @@ public static class CommandPaletteService
     private const string KeyProviderPrefix = "cmdpal.provider."; // + provider id
 
     // ===================== Provider identity · 提供者識別 =====================
-    public enum Provider { Apps, Modules, Files, Calculator, Run, System, Web }
+    public enum Provider { Apps, Modules, Files, Clipboard, Calculator, TimeDate, Settings, Services, Terminal, Run, System, Web }
 
     public static IReadOnlyList<Provider> AllProviders { get; } = new[]
     {
-        Provider.Apps, Provider.Modules, Provider.Files,
-        Provider.Calculator, Provider.Run, Provider.System, Provider.Web,
+        Provider.Apps, Provider.Modules, Provider.Files, Provider.Clipboard,
+        Provider.Calculator, Provider.TimeDate, Provider.Settings, Provider.Services, Provider.Terminal,
+        Provider.Run, Provider.System, Provider.Web,
     };
 
     /// <summary>提供者嘅雙語名 · Bilingual display name for a provider.</summary>
@@ -46,7 +47,12 @@ public static class CommandPaletteService
         Provider.Apps => ("Installed apps", "已安裝程式"),
         Provider.Modules => ("WinForge modules", "WinForge 模組"),
         Provider.Files => ("Files & folders", "檔案與資料夾"),
+        Provider.Clipboard => ("Clipboard history", "剪貼簿記錄"),
         Provider.Calculator => ("Calculator", "計算機"),
+        Provider.TimeDate => ("Time & date", "時間與日期"),
+        Provider.Settings => ("Windows Settings", "Windows 設定"),
+        Provider.Services => ("Windows services", "Windows 服務"),
+        Provider.Terminal => ("Terminal profiles", "終端機設定檔"),
         Provider.Run => ("Run / open URL", "執行／開網址"),
         Provider.System => ("System actions", "系統動作"),
         Provider.Web => ("Web search", "網絡搜尋"),
@@ -117,7 +123,11 @@ public static class CommandPaletteService
     public static void Start(DispatcherQueue uiQueue)
     {
         _ui = uiQueue;
-        if (Enabled) HookPump.Post(InstallHotkey);
+        if (Enabled)
+        {
+            HookPump.Post(InstallHotkey);
+            EnsureServiceCache();
+        }
     }
 
     /// <summary>重新套用設定（啟用狀態／熱鍵改變後）· Re-apply settings after the user toggles or rebinds.</summary>
@@ -235,8 +245,13 @@ public static class CommandPaletteService
         if (IsProviderEnabled(Provider.Calculator)) AddCalculator(query, results);
         if (IsProviderEnabled(Provider.Apps)) AddApps(query, results);
         if (IsProviderEnabled(Provider.Modules)) AddModules(query, results);
-        if (IsProviderEnabled(Provider.Run)) AddRunOrUrl(query, results);
         if (IsProviderEnabled(Provider.Files)) AddFiles(query, results);
+        if (IsProviderEnabled(Provider.Clipboard)) AddClipboard(query, results);
+        if (IsProviderEnabled(Provider.TimeDate)) AddTimeAndDate(query, results);
+        if (IsProviderEnabled(Provider.Settings)) AddWindowsSettings(query, results);
+        if (IsProviderEnabled(Provider.Services)) AddWindowsServices(query, results);
+        if (IsProviderEnabled(Provider.Terminal)) AddTerminalProfiles(query, results);
+        if (IsProviderEnabled(Provider.Run)) AddRunOrUrl(query, results);
         if (IsProviderEnabled(Provider.System)) AddSystem(query, results);
         if (IsProviderEnabled(Provider.Web)) AddWeb(query, results);
 
@@ -604,6 +619,330 @@ public static class CommandPaletteService
             else path = Environment.GetFolderPath(f);
             if (!string.IsNullOrEmpty(path)) yield return (n, path);
         }
+    }
+
+    // ----- Clipboard history · 剪貼簿記錄 -----
+    private static void AddClipboard(string query, List<CommandPaletteResult> list)
+    {
+        var raw = query.Trim();
+        bool mode = raw.Equals("clip", StringComparison.OrdinalIgnoreCase)
+            || raw.Equals("clipboard", StringComparison.OrdinalIgnoreCase)
+            || raw.StartsWith("clip ", StringComparison.OrdinalIgnoreCase)
+            || raw.StartsWith("clipboard ", StringComparison.OrdinalIgnoreCase);
+        if (!mode) return;
+
+        string needle = raw.StartsWith("clipboard", StringComparison.OrdinalIgnoreCase)
+            ? raw.Substring("clipboard".Length).Trim()
+            : raw.Substring("clip".Length).Trim();
+        int rank = 0;
+        foreach (var item in ClipboardService.History
+                     .Where(i => i.Kind == ClipKind.Text && !string.IsNullOrWhiteSpace(i.Text))
+                     .Take(16)
+                     .ToList())
+        {
+            string preview = OneLine(item.Text);
+            if (preview.Length > 88) preview = preview.Substring(0, 85) + "...";
+            double score = string.IsNullOrWhiteSpace(needle) ? 82 - rank : Fuzzy(needle, item.Text);
+            if (score <= 0) { rank++; continue; }
+            list.Add(new CommandPaletteResult
+            {
+                Title = preview,
+                Subtitle = Loc.I.Pick($"Clipboard item · {item.Time} · Enter restores it to the clipboard",
+                    $"剪貼簿項目 · {item.Time} · 按 Enter 還原到剪貼簿"),
+                Glyph = ((char)0xE8C1).ToString(),
+                ProviderTag = Loc.I.Pick("Clipboard", "剪貼簿"),
+                Score = 88 + score * 0.1,
+                Invoke = () => { ClipboardService.CopyBack(item); return true; },
+            });
+            rank++;
+        }
+    }
+
+    private static string OneLine(string text)
+        => (text ?? "").Replace("\r", " ").Replace("\n", " ").Replace("\t", " ").Trim();
+
+    // ----- Time & date · 時間與日期 -----
+    private static void AddTimeAndDate(string query, List<CommandPaletteResult> list)
+    {
+        var q = query.Trim();
+        if (!(q.Equals("time", StringComparison.OrdinalIgnoreCase)
+            || q.Equals("date", StringComparison.OrdinalIgnoreCase)
+            || q.Equals("now", StringComparison.OrdinalIgnoreCase)
+            || q.StartsWith("time ", StringComparison.OrdinalIgnoreCase)
+            || q.StartsWith("date ", StringComparison.OrdinalIgnoreCase)
+            || q.StartsWith("timezone", StringComparison.OrdinalIgnoreCase))) return;
+
+        var now = DateTimeOffset.Now;
+        string stamp = now.ToString("yyyy-MM-dd HH:mm:ss zzz");
+        list.Add(new CommandPaletteResult
+        {
+            Title = stamp,
+            Subtitle = Loc.I.Pick($"{TimeZoneInfo.Local.DisplayName} · Enter copies an ISO timestamp",
+                $"{TimeZoneInfo.Local.DisplayName} · 按 Enter 複製 ISO 時間戳記"),
+            Glyph = ((char)0xE823).ToString(),
+            ProviderTag = Loc.I.Pick("Time & date", "時間與日期"),
+            Score = 180,
+            Invoke = () => { CopyText(now.ToString("O")); return true; },
+        });
+        list.Add(new CommandPaletteResult
+        {
+            Title = Loc.I.Pick("Open Date & time settings", "開啟日期與時間設定"),
+            Subtitle = "ms-settings:dateandtime",
+            Glyph = ((char)0xE713).ToString(),
+            ProviderTag = Loc.I.Pick("Windows Settings", "Windows 設定"),
+            Score = 130,
+            Invoke = () => { LaunchPath("ms-settings:dateandtime"); return true; },
+        });
+    }
+
+    // ----- Windows Settings ($ query) · Windows 設定（$ 查詢）-----
+    private static readonly (string En, string Zh, string Uri, string[] Keys)[] SettingsPages = new[]
+    {
+        (En: "Display", Zh: "顯示器", Uri: "ms-settings:display", Keys: new[] { "display", "monitor", "screen", "顯示", "螢幕" }),
+        (En: "Sound", Zh: "音效", Uri: "ms-settings:sound", Keys: new[] { "sound", "audio", "volume", "音效", "音量" }),
+        (En: "Bluetooth & devices", Zh: "藍牙與裝置", Uri: "ms-settings:bluetooth", Keys: new[] { "bluetooth", "device", "藍牙", "裝置" }),
+        (En: "Network & Internet", Zh: "網絡與網際網路", Uri: "ms-settings:network", Keys: new[] { "network", "wifi", "ethernet", "vpn", "網絡", "網路", "無線" }),
+        (En: "Personalization", Zh: "個人化", Uri: "ms-settings:personalization", Keys: new[] { "personalization", "theme", "background", "個人化", "主題", "背景" }),
+        (En: "Apps", Zh: "應用程式", Uri: "ms-settings:appsfeatures", Keys: new[] { "apps", "installed", "uninstall", "應用", "程式", "解除安裝" }),
+        (En: "Power & battery", Zh: "電源與電池", Uri: "ms-settings:powersleep", Keys: new[] { "power", "battery", "sleep", "電源", "電池", "睡眠" }),
+        (En: "Storage", Zh: "儲存空間", Uri: "ms-settings:storagesense", Keys: new[] { "storage", "disk", "儲存", "磁碟" }),
+        (En: "Windows Update", Zh: "Windows 更新", Uri: "ms-settings:windowsupdate", Keys: new[] { "update", "windows update", "更新" }),
+        (En: "Privacy & security", Zh: "私隱與安全性", Uri: "ms-settings:privacy", Keys: new[] { "privacy", "security", "permissions", "私隱", "安全", "權限" }),
+        (En: "Accessibility", Zh: "協助工具", Uri: "ms-settings:easeofaccess", Keys: new[] { "accessibility", "ease", "narrator", "協助", "無障礙" }),
+    };
+
+    private static void AddWindowsSettings(string query, List<CommandPaletteResult> list)
+    {
+        var q = query.Trim();
+        bool mode = q.StartsWith("$", StringComparison.Ordinal)
+            || q.Equals("settings", StringComparison.OrdinalIgnoreCase)
+            || q.StartsWith("settings ", StringComparison.OrdinalIgnoreCase)
+            || q.Equals("設定", StringComparison.Ordinal)
+            || q.StartsWith("設定 ", StringComparison.Ordinal);
+        if (!mode) return;
+
+        string needle = q.StartsWith("$", StringComparison.Ordinal) ? q.Substring(1).Trim()
+            : q.StartsWith("settings", StringComparison.OrdinalIgnoreCase) ? q.Substring("settings".Length).Trim()
+            : q.Substring("設定".Length).Trim();
+        foreach (var page in SettingsPages)
+        {
+            double score = string.IsNullOrWhiteSpace(needle) ? 100 : Math.Max(Fuzzy(needle, page.En), Fuzzy(needle, page.Zh));
+            foreach (var key in page.Keys) score = Math.Max(score, Fuzzy(needle, key));
+            if (score <= 0) continue;
+            list.Add(new CommandPaletteResult
+            {
+                Title = $"{page.En} · {page.Zh}",
+                Subtitle = page.Uri,
+                Glyph = ((char)0xE713).ToString(),
+                ProviderTag = Loc.I.Pick("Windows Settings", "Windows 設定"),
+                Score = 150 + score * 0.2,
+                Invoke = () => { LaunchPath(page.Uri); return true; },
+            });
+        }
+    }
+
+    // ----- Windows services · Windows 服務 -----
+    private static readonly object ServiceCacheGate = new();
+    private static List<ServiceInfo> _serviceCache = new();
+    private static DateTime _serviceCacheUpdated = DateTime.MinValue;
+    private static int _serviceRefreshInProgress;
+
+    private static void EnsureServiceCache(bool force = false)
+    {
+        lock (ServiceCacheGate)
+        {
+            if (!force && _serviceCache.Count > 0 && DateTime.UtcNow - _serviceCacheUpdated < TimeSpan.FromMinutes(2)) return;
+        }
+        if (System.Threading.Interlocked.CompareExchange(ref _serviceRefreshInProgress, 1, 0) != 0) return;
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var services = await ServiceManager.ListAsync();
+                lock (ServiceCacheGate)
+                {
+                    _serviceCache = services;
+                    _serviceCacheUpdated = DateTime.UtcNow;
+                }
+            }
+            catch { }
+            finally { System.Threading.Interlocked.Exchange(ref _serviceRefreshInProgress, 0); }
+        });
+    }
+
+    private static void AddWindowsServices(string query, List<CommandPaletteResult> list)
+    {
+        if (!TryParseServiceQuery(query.Trim(), out var action, out var needle)) return;
+        EnsureServiceCache();
+        List<ServiceInfo> services;
+        lock (ServiceCacheGate) services = _serviceCache.ToList();
+        if (services.Count == 0)
+        {
+            list.Add(new CommandPaletteResult
+            {
+                Title = Loc.I.Pick("Loading Windows services...", "正在載入 Windows 服務..."),
+                Subtitle = Loc.I.Pick("Keep typing or run the query again in a moment.", "稍候繼續輸入或再次執行查詢。"),
+                Glyph = ((char)0xE895).ToString(),
+                ProviderTag = Loc.I.Pick("Windows services", "Windows 服務"),
+                Score = 100,
+                Invoke = () => false,
+            });
+            return;
+        }
+
+        int rank = 0;
+        foreach (var service in services.OrderBy(s => s.DisplayName, StringComparer.OrdinalIgnoreCase))
+        {
+            double score = string.IsNullOrWhiteSpace(needle) ? 80 - rank
+                : Math.Max(Fuzzy(needle, service.DisplayName), Fuzzy(needle, service.Name));
+            if (score <= 0) { rank++; continue; }
+            string actionEn = action switch { "start" => "Start", "stop" => "Stop", "restart" => "Restart", _ => "" };
+            string actionZh = action switch { "start" => "啟動", "stop" => "停止", "restart" => "重新啟動", _ => "" };
+            list.Add(new CommandPaletteResult
+            {
+                Title = string.IsNullOrEmpty(action) ? $"{service.DisplayName} · {service.Name}" : $"{actionEn} {service.DisplayName} · {actionZh}",
+                Subtitle = string.IsNullOrEmpty(action)
+                    ? Loc.I.Pick($"{service.State} · Enter opens Windows Services", $"{service.State} · 按 Enter 開啟 Windows 服務")
+                    : Loc.I.Pick($"{service.State} · Enter {actionEn.ToLowerInvariant()}s this service", $"{service.State} · 按 Enter {actionZh}呢個服務"),
+                Glyph = ((char)0xE9F6).ToString(),
+                ProviderTag = Loc.I.Pick("Windows services", "Windows 服務"),
+                Score = 120 + score * 0.15,
+                Invoke = () =>
+                {
+                    if (string.IsNullOrEmpty(action)) RunCommand("mmc.exe", "services.msc");
+                    else RunServiceAction(action, service.Name);
+                    return true;
+                },
+            });
+            rank++;
+            if (rank >= 24) break;
+        }
+    }
+
+    private static bool TryParseServiceQuery(string query, out string action, out string needle)
+    {
+        action = "";
+        needle = "";
+        string rest;
+        if (query.Equals("service", StringComparison.OrdinalIgnoreCase) || query.Equals("services", StringComparison.OrdinalIgnoreCase) || query.Equals("svc", StringComparison.OrdinalIgnoreCase)) rest = "";
+        else if (query.StartsWith("services ", StringComparison.OrdinalIgnoreCase)) rest = query.Substring("services".Length).Trim();
+        else if (query.StartsWith("service ", StringComparison.OrdinalIgnoreCase)) rest = query.Substring("service".Length).Trim();
+        else if (query.StartsWith("svc ", StringComparison.OrdinalIgnoreCase)) rest = query.Substring("svc".Length).Trim();
+        else return false;
+
+        foreach (var candidate in new[] { "start", "stop", "restart" })
+        {
+            if (rest.Equals(candidate, StringComparison.OrdinalIgnoreCase) || rest.StartsWith(candidate + " ", StringComparison.OrdinalIgnoreCase))
+            {
+                action = candidate;
+                rest = rest.Substring(candidate.Length).Trim();
+                break;
+            }
+        }
+        needle = rest;
+        return true;
+    }
+
+    private static void RunServiceAction(string action, string serviceName)
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                switch (action)
+                {
+                    case "start": await ServiceManager.Start(serviceName); break;
+                    case "stop": await ServiceManager.Stop(serviceName); break;
+                    case "restart": await ServiceManager.Restart(serviceName); break;
+                }
+            }
+            catch { }
+            finally { EnsureServiceCache(force: true); }
+        });
+    }
+
+    // ----- Windows Terminal profiles · Windows 終端機設定檔 -----
+    private static void AddTerminalProfiles(string query, List<CommandPaletteResult> list)
+    {
+        var q = query.Trim();
+        bool mode = q.Equals("terminal", StringComparison.OrdinalIgnoreCase)
+            || q.Equals("wt", StringComparison.OrdinalIgnoreCase)
+            || q.StartsWith("terminal ", StringComparison.OrdinalIgnoreCase)
+            || q.StartsWith("wt ", StringComparison.OrdinalIgnoreCase);
+        if (!mode) return;
+
+        string needle = q.StartsWith("terminal", StringComparison.OrdinalIgnoreCase) ? q.Substring("terminal".Length).Trim()
+            : q.Substring("wt".Length).Trim();
+        string? executable = WindowsTerminalService.ResolveWtExe();
+        if (string.IsNullOrWhiteSpace(executable))
+        {
+            list.Add(new CommandPaletteResult
+            {
+                Title = Loc.I.Pick("Windows Terminal is not available", "Windows 終端機未可用"),
+                Subtitle = Loc.I.Pick("Install Windows Terminal to launch its profiles from Command Palette.", "安裝 Windows 終端機後，就可以喺指令面板啟動設定檔。"),
+                Glyph = ((char)0xE756).ToString(),
+                ProviderTag = Loc.I.Pick("Terminal profiles", "終端機設定檔"),
+                Score = 100,
+                Invoke = () => false,
+            });
+            return;
+        }
+
+        try
+        {
+            string? settingsPath = WindowsTerminalService.Resolve();
+            var profiles = string.IsNullOrWhiteSpace(settingsPath)
+                ? new List<WtProfile>()
+                : WindowsTerminalService.Profiles(WindowsTerminalService.Load(settingsPath));
+            if (profiles.Count == 0)
+            {
+                list.Add(new CommandPaletteResult
+                {
+                    Title = Loc.I.Pick("Open Windows Terminal", "開啟 Windows 終端機"),
+                    Subtitle = Loc.I.Pick("No saved profiles were found.", "搵唔到已儲存設定檔。"),
+                    Glyph = ((char)0xE756).ToString(),
+                    ProviderTag = Loc.I.Pick("Terminal profiles", "終端機設定檔"),
+                    Score = 120,
+                    Invoke = () => { LaunchTerminalProfile(executable, null); return true; },
+                });
+                return;
+            }
+
+            int rank = 0;
+            foreach (var profile in profiles)
+            {
+                if (string.IsNullOrWhiteSpace(profile.Name)) continue;
+                double score = string.IsNullOrWhiteSpace(needle) ? 80 - rank : Fuzzy(needle, profile.Name);
+                if (score <= 0) { rank++; continue; }
+                string profileName = profile.Name;
+                list.Add(new CommandPaletteResult
+                {
+                    Title = profileName,
+                    Subtitle = Loc.I.Pick("Press Enter to launch this Windows Terminal profile", "按 Enter 啟動呢個 Windows 終端機設定檔"),
+                    Glyph = ((char)0xE756).ToString(),
+                    ProviderTag = Loc.I.Pick("Terminal profile", "終端機設定檔"),
+                    Score = 135 + score * 0.15,
+                    Invoke = () => { LaunchTerminalProfile(executable, profileName); return true; },
+                });
+                rank++;
+                if (rank >= 24) break;
+            }
+        }
+        catch { }
+    }
+
+    private static void LaunchTerminalProfile(string executable, string? profileName)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = executable,
+                Arguments = WindowsTerminalService.BuildLaunchArgs(profileName, null, newTab: true),
+                UseShellExecute = true,
+            });
+        }
+        catch { }
     }
 
     // ----- System actions · 系統動作 -----
