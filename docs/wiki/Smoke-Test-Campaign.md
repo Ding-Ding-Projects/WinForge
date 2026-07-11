@@ -12,14 +12,14 @@ Generated on 2026-07-11 from the live source:
 
 | Coverage surface · 涵蓋範圍 | Baseline count · 基線數量 |
 | --- | ---: |
-| Registered/map/navigation route records · 已登記／對映／導航 routes | 322 |
-| Deep-link aliases · 深層連結別名 | 800 |
+| Registered/map/navigation route records · 已登記／對映／導航 routes | 323 |
+| Deep-link aliases · 深層連結別名 | 799 |
 | Companion specifications · Companion 規格 | 4 |
 | External-app launcher specifications · 外部 app launcher 規格 | 15 |
-| First-party source files in review queue · source files 審查佇列 | 1,264 |
-| First-party source lines in review queue · source lines 審查佇列 | 343,904 |
-| Test projects · 測試專案 | 7 |
-| Wiki pages · Wiki 頁面 | 2,217 |
+| First-party source files in review queue · source files 審查佇列 | 1,288 |
+| First-party source lines in review queue · source lines 審查佇列 | 348,711 |
+| Test projects · 測試專案 | 17 |
+| Wiki pages · Wiki 頁面 | 2,219 |
 
 **EN —** Counts are regenerated when registry, navigation, pages, or source files change; they are a point-in-time audit snapshot rather than a permanent product claim.
 
@@ -901,5 +901,111 @@ capture stage，但同樣失敗：`CopyFromScreen` 唔可用，而 `PrintWindow`
 uniform frame，呢個 desktop session 嘅 graphics capture 仍然唔可用。冇 PNG 產生、
 檢查、替換或者重用；呢啲頁面係 `capture-blocked`，絕對唔係 visual-pass。Batch 09
 令到而家 process-level launch evidence 去到 **323 條 routes 入面頭 225 條**。
+
+## Launch-only Batch 10 · 第十批淨啟動測試
+
+**EN —** The final post-merge inventory records **323 routes**, **799 deep-link
+aliases**, 1,288 source-review files, 348,711 source-review lines, 17 test
+projects, and 2,219 wiki pages. It queues six Package Manager tab aliases for
+manual routing review (`package-discover`, `packages-discover`,
+`package-updates`, `packages-updates`, `package-installed`, and
+`packages-installed`); they dispatch through `PackageManagerViewRouting` rather
+than a module tag and are outside this slice. Batch 10 retains launchable
+indices **225–249**:
+queryedit, quickaccent, quicktype, rainmeter, randomizer, reactor, reactorbank,
+reactorsettings, recorder, recyclebin, regedit, regexcheat, regextester, rename,
+resume, richpreview, romannum, rustdesk, scinotation, screenruler, semverrange,
+services, settingshub, shellmenu, and shortcutguide. After a fresh
+self-contained publish on the merged topic, every route passed its initial
+5-second launch; no 15-second retry, failure, or no-alias row remained. Raw
+manifests and every attempt log remain ignored under
+`artifacts/smoke/launch-batch-10-final/` and
+`artifacts/smoke/launch-batches/batch-10-final/`.
+
+**Source-review and repair evidence · 來源審查同修正證據：** All **194** named
+XAML handler references in the slice resolve, all 25 module-page
+`LanguageChanged` subscriptions balance, and the direct batch scope has no
+TODO, FIXME, or NotImplementedException marker. The literal-safety guard passed
+its 16 managed ToggleSwitch defaults, two protected IsChecked defaults, and ten
+managed NumberBox defaults. Review found and repaired six concrete issues:
+QuickType now sends editable top-level/namespace values through
+`ProcessStartInfo.ArgumentList` rather than a user-controlled `cmd.exe` string;
+Randomizer now samples the full Int32 domain without biased capping or
+unique-index overflow and rejects overflowing dice totals; Quick Accent
+normalizes nullable/corrupt selected-set data; Rainmeter accurately labels its
+curated URL action as **Copy link**; Screen Recorder drains ffmpeg stderr and
+bounds stop cleanup; and Registry Editor reports a failed delete instead of
+claiming success. Focused harnesses passed: QuickType Security **1/1**,
+Randomizer Core **3/3**, Quick Accent Settings **3/3**, Screen Recorder
+Lifecycle **1/1**, and Registry Helper Failure **1/1**. A final Debug x64
+solution build passed with **0 errors**.
+
+**Safety disposition · 安全處置：** This remains static, focused-test, and
+launch evidence—not proof that every action was live-tested. No Quick Accent
+global hook, npm install/quicktype generation, Rainmeter skin/layout action,
+ffmpeg recording, recycle-bin empty, registry or shell-menu write, system
+service control, Settings/Control Panel launch, RustDesk operation, resume
+agent/network request, or reactor real-world integration was invoked without a
+disposable target and explicit authorization. The recorder harness uses only a
+temporary batch-file process that writes test stderr; the registry harness only
+opens a unique missing HKCU path and performs no write.
+
+**Visual evidence · 視覺證據：** Fresh 15-second `driver.ps1 -Out` attempts for
+the changed Quick Accent, quicktype, Rainmeter, Randomizer, Screen Recorder,
+and Registry Editor pages each reached capture but failed identically:
+`CopyFromScreen` was unavailable and the `PrintWindow` fallback produced a
+uniform frame while graphics capture remained unavailable in this desktop
+session. No PNG was created, inspected, replaced, or reused; these six pages
+are `capture-blocked`, never visual-pass. Batch 10 brings current
+process-level launch evidence to the first **250 of 323** routes.
+
+**粵語 —** 最後合併後嘅 inventory 記錄咗 **323 條 routes**、**799 個 deep-link
+aliases**、1,288 個來源審查檔、348,711 行來源審查程式、17 個 test projects，同
+2,219 個 wiki pages。當中六個 Package Manager 分頁 aliases
+（`package-discover`、`packages-discover`、`package-updates`、
+`packages-updates`、`package-installed` 同 `packages-installed`）要人手 routing
+review；佢哋係經 `PackageManagerViewRouting` 派發，唔係 module tag，亦唔屬於今批。
+Batch 10 保留 launchable indices **225–249**：queryedit、quickaccent、quicktype、
+rainmeter、randomizer、reactor、reactorbank、reactorsettings、recorder、recyclebin、
+regedit、regexcheat、regextester、rename、resume、richpreview、romannum、rustdesk、
+scinotation、screenruler、semverrange、services、settingshub、shellmenu 同
+shortcutguide。喺合併後 topic 做咗新 self-contained publish，全部 routes 第一次
+5 秒 launch 已經通過；冇 15 秒 retry、failure 或者 no-alias row。原始 manifests
+同每次 attempt log 會留喺 Git 忽略嘅
+`artifacts/smoke/launch-batch-10-final/` 同
+`artifacts/smoke/launch-batches/batch-10-final/`。
+
+**來源審查同修正證據 · Source-review and repair evidence：** 呢批全部 **194** 個
+有名 XAML handler references 都 resolve，25 個 module pages 嘅
+`LanguageChanged` subscriptions 都平衡，而 direct batch scope 冇 TODO、FIXME 或
+NotImplementedException marker。literal-safety guard 通過咗 16 個 managed
+ToggleSwitch defaults、兩個受保護 IsChecked defaults，同十個 managed NumberBox
+defaults。審查搵到並修正咗六個實際問題：QuickType 而家用
+`ProcessStartInfo.ArgumentList` 傳 editable top-level／namespace values，唔再用
+user-controlled `cmd.exe` string；Randomizer 而家可以冇偏差咁抽晒 Int32 domain，
+亦冇 unique-index overflow，同時會拒絕 overflow 嘅骰仔總數；Quick Accent 會正規化
+nullable／壞咗嘅 selected-set data；Rainmeter 正確將精選網址動作標為 **Copy link**；
+Screen Recorder 會 drain ffmpeg stderr 同受限咁清理 stop；Registry Editor 會回報
+delete 失敗，唔會當成功。Focused harnesses 全部通過：QuickType Security **1/1**、
+Randomizer Core **3/3**、Quick Accent Settings **3/3**、Screen Recorder Lifecycle
+**1/1** 同 Registry Helper Failure **1/1**。最後 Debug x64 solution build 以
+**0 errors** 通過。
+
+**安全處置 · Safety disposition：** 呢個仍然係 static、focused-test 同 launch
+evidence，唔係話每個 action 都 live-tested。冇 disposable target 同明確批准下，
+冇啟用 Quick Accent global hook、冇 npm install／quicktype generation、Rainmeter
+skin／layout action、ffmpeg 錄影、清空 recycle bin、registry 或 shell-menu 寫入、
+system service control、Settings／Control Panel launch、RustDesk operation、resume
+agent／network request，或者 reactor real-world integration。recorder harness 只會用
+一個臨時 batch-file process 寫 test stderr；registry harness 只會開一條獨有、唔存在嘅
+HKCU path，完全冇寫入。
+
+**視覺證據 · Visual evidence：** 改過嘅 Quick Accent、quicktype、Rainmeter、
+Randomizer、Screen Recorder 同 Registry Editor pages 都做咗新鮮 15 秒
+`driver.ps1 -Out` 嘗試；每條都去到 capture，但同樣失敗：`CopyFromScreen` 唔可用，
+而 `PrintWindow` fallback 產生 uniform frame，呢個 desktop session 嘅 graphics
+capture 仍然唔可用。冇 PNG 產生、檢查、替換或者重用；呢六頁係
+`capture-blocked`，絕對唔係 visual-pass。Batch 10 令而家 process-level launch
+evidence 去到 **323 條 routes 入面頭 250 條**。
 
 [← Wiki Home](Home.md) · [Developer](Developer.md) · [Screenshots](Screenshots.md)
