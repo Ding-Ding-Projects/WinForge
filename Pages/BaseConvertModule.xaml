@@ -27,7 +27,7 @@
                     </Grid>
                     <StackPanel x:Name="CustomBasePanel" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center" Visibility="Collapsed">
                         <TextBlock x:Name="CustomBaseLabel" VerticalAlignment="Center" />
-                        <NumberBox x:Name="CustomBaseBox" Value="36" Minimum="2" Maximum="36" SpinButtonPlacementMode="Inline" MinWidth="140" ValueChanged="CustomBase_Changed" />
+                        <NumberBox x:Name="CustomBaseBox" Minimum="2" Maximum="36" SpinButtonPlacementMode="Inline" MinWidth="140" ValueChanged="CustomBase_Changed" />
                     </StackPanel>
                     <TextBlock x:Name="StatusText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                 </StackPanel>
@@ -129,7 +129,7 @@
 
                     <StackPanel x:Name="ShiftPanel" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center" Visibility="Collapsed">
                         <TextBlock x:Name="ShiftLabel" VerticalAlignment="Center" />
-                        <NumberBox x:Name="ShiftBox" Value="1" Minimum="0" Maximum="4096" SpinButtonPlacementMode="Inline" MinWidth="140" ValueChanged="Shift_Changed" />
+                        <NumberBox x:Name="ShiftBox" Minimum="0" Maximum="4096" SpinButtonPlacementMode="Inline" MinWidth="140" ValueChanged="Shift_Changed" />
                     </StackPanel>
 
                     <StackPanel Spacing="2">

@@ -90,6 +90,15 @@ dotnet publish WinForge.csproj -c Release -p:Platform=x64 -r win-x64 ^
 
 **粵語 —** 有改視覺介面就一定要有最新截圖；影唔到就記低確實阻礙，唔可以當視覺驗證通過。系統、網絡、套件、認證同整合嘅實際副作用，除非有明確授權，否則只會用安全同可還原嘅路徑測試。
 
+**EN —** The latest checkpoint fixed a Base Converter startup fault exposed by
+the route sweep; its fresh self-contained `--page baseconvert` launch now
+passes. See the [smoke campaign ledger](docs/wiki/Smoke-Test-Campaign.md) for
+the exact build, launch, retry, and screenshot-blocker evidence.
+
+**粵語 —** 最新 checkpoint 修好 route sweep 搵到嘅進位轉換啟動問題；用新嘅
+self-contained `--page baseconvert` 而家可以成功開到。確實 build、launch、retry
+同截圖阻礙證據請睇[冒煙測試清單](docs/wiki/Smoke-Test-Campaign.md)。
+
 ---
 
 ## ✨ Highlights · 重點

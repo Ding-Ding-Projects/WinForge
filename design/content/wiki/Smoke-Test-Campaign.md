@@ -98,4 +98,41 @@ NavigationView 分組 tag，唔係可以 deep-link 嘅 page；所以記做
   capture-blocked in this session, so Batch 01 grants neither visual nor
   behavioral completion.
 
+## Launch-only Batch 02 · 第二批淨啟動測試
+
+**EN —** Manifest launchable-route indices 25–49 were exercised on
+2026-07-11. The first 2.5-second isolated sweep reached 22 routes directly.
+`module.bulkops` and `module.cementkiln` subsequently reached dedicated
+windows in their focused follow-up run, so they have no reproducible route
+defect. The runner now records a bounded longer retry after a nonzero child
+exit, including both waits and exit codes in its JSON/CSV ledger instead of
+silently turning a slow first render into a false result.
+
+`module.baseconvert` continued to fail after the 15-second retry. Its exact
+crash-log reproduction was a `XamlParseException` while assigning
+`NumberBox.Value` from XAML. The numeric defaults were moved to managed
+initialization under the existing suppression guard. A full Debug x64 solution
+build then passed with 0 errors (318 warnings), and a forced fresh
+self-contained `--page baseconvert` launch passed with a dedicated process.
+The generated first sweep and focused retry evidence remain in ignored
+`artifacts/smoke/launch-batches/batch-02*/` directories.
+
+**粵語 —** 2026-07-11 測咗 manifest 入面 launchable-route indices 25–49。第一輪
+每條 2.5 秒嘅獨立 sweep 有 22 條直接開到。`module.bulkops` 同
+`module.cementkiln` 喺 focused follow-up 裏面都開到自己嘅視窗，所以冇可重現嘅
+route defect。runner 而家喺 child exit 非零嗰陣會記錄一個有限時間、較長嘅 retry，
+並將兩次 wait 同 exit code 寫入 JSON/CSV ledger，唔會將慢嘅第一次 render 靜靜地
+誤當成結果。
+
+`module.baseconvert` 喺 15 秒 retry 後仍然失敗。確實 crash-log 重現係由 XAML
+設定 `NumberBox.Value` 引起嘅 `XamlParseException`。數字預設值已搬去既有
+suppression guard 裏面嘅 managed initialization。之後完整 Debug x64 solution
+build 以 0 errors 通過（318 warnings），強制新 self-contained
+`--page baseconvert` launch 亦以獨立 process 通過。第一輪 sweep 同 focused retry
+證據會保留喺 Git 忽略嘅 `artifacts/smoke/launch-batches/batch-02*/` 目錄。
+
+- Screenshot capture remains blocked in this desktop session; no visual-pass
+  or replacement screenshot is claimed for the unchanged Base Converter
+  layout.
+
 [← Wiki Home](Home.md) · [Developer](Developer.md)

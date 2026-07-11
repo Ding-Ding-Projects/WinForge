@@ -15,6 +15,7 @@ CSV, Markdown, or a database as long as each field below is preserved.
 | expected | Concise expected behavior. |
 | status | One of the precise states below. |
 | evidence | Commands, test names, screenshot path/hash, observations, and date. |
+| attempts | For launch evidence, preserve every isolated attempt's wait, exit code, and log so a retry cannot hide a slow render or failure. |
 | notes | Reproduction, exclusion reason, remediation, or follow-up. |
 
 ## Evidence dimensions

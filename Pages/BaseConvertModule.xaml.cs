@@ -19,6 +19,13 @@ public sealed partial class BaseConvertModule : Page
     public BaseConvertModule()
     {
         InitializeComponent();
+        // WinUI's self-contained runtime did not reliably convert
+        // NumberBox.Value from XAML. Initialize numeric defaults in managed
+        // code so the page can always be constructed through --page.
+        _suppress = true;
+        CustomBaseBox.Value = 36;
+        ShiftBox.Value = 1;
+        _suppress = false;
         Loc.I.LanguageChanged += OnLanguageChanged;
         Loaded += (_, _) =>
         {
