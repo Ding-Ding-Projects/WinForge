@@ -255,10 +255,12 @@ An exhaustive smoke campaign is complete only when:
   extracts a route/page/control inventory into a repeatable manifest, using
   ASCII-safe routing-review diagnostics across PowerShell host encodings.
 - [scripts/Invoke-WinForgeRouteSmoke.ps1](scripts/Invoke-WinForgeRouteSmoke.ps1)
-  launches manifest routes in safe, isolated, no-capture batches when visual
-  capture is blocked. It records a bounded, longer retry after a nonzero
-  launch result so slow first renders are evidence rather than silent false
-  failures.
+launches manifest routes in safe, isolated, no-capture batches when visual
+capture is blocked. It records a bounded, longer retry after a nonzero
+launch result so slow first renders are evidence rather than silent false
+failures. Numeric slices contain only their requested launchable aliases;
+a no-alias route is reported only when explicitly requested, so an unrelated
+shell-dialog finding cannot pollute a page-batch result.
 - [scripts/Test-WinForgeShellAllAppsRoute.ps1](scripts/Test-WinForgeShellAllAppsRoute.ps1)
   validates the direct All Apps modal route with UI Automation.
 - [scripts/Test-WinForgeXamlLiteralSafety.ps1](scripts/Test-WinForgeXamlLiteralSafety.ps1)
