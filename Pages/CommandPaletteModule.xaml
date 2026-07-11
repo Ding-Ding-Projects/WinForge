@@ -70,6 +70,26 @@
                 </StackPanel>
             </Border>
 
+            <!-- Remote Desktop profiles -->
+            <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="RemoteDesktopTitle" FontWeight="SemiBold" FontSize="15" />
+                    <TextBlock x:Name="RemoteDesktopBlurb" FontSize="12" Foreground="{ThemeResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
+                    <InfoBar x:Name="RemoteDesktopInfo" IsOpen="False" IsClosable="False" />
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2*" />
+                            <ColumnDefinition Width="3*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="RemoteDesktopNameBox" />
+                        <TextBox x:Name="RemoteDesktopHostBox" Grid.Column="1" />
+                        <Button x:Name="RemoteDesktopAddButton" Grid.Column="2" Click="RemoteDesktopAdd_Click" />
+                    </Grid>
+                    <StackPanel x:Name="RemoteDesktopPanel" Spacing="6" />
+                </StackPanel>
+            </Border>
+
             <!-- Persistent Dock -->
             <Border Padding="16,14,16,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
                 <StackPanel Spacing="10">
