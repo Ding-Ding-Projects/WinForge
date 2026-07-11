@@ -223,15 +223,24 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
 
-                            <Button Grid.Row="0" Grid.Column="0" Content="Open Screen Ruler · 開啟螢幕間尺" Click="MoreScreenRuler_Click" />
-                            <Button Grid.Row="0" Grid.Column="1" Content="Open Mouse Utilities · 開啟滑鼠工具" Click="MoreMouseUtils_Click" />
-                            <Button Grid.Row="1" Grid.Column="0" Content="Open Quick Accent · 開啟快速重音符" Click="MoreQuickAccent_Click" />
-                            <Button Grid.Row="1" Grid.Column="1" Content="Open Shortcut Guide · 開啟快捷鍵指南" Click="MoreShortcutGuide_Click" />
-                            <Button Grid.Row="2" Grid.Column="0" Content="Open Text Extractor (OCR) · 開啟文字擷取（OCR）" Click="MoreTextOcr_Click" />
-                            <Button Grid.Row="2" Grid.Column="1" Content="Open Awake · 開啟保持喚醒" Click="MoreAwake_Click" />
-                            <Button Grid.Row="3" Grid.Column="0" Content="Open Color Picker · 開啟螢幕取色" Click="MoreColorPicker_Click" />
+                            <Button Grid.Row="0" Grid.Column="0" Content="Open Screen Ruler � ??????" Click="MoreScreenRuler_Click" />
+                            <Button Grid.Row="0" Grid.Column="1" Content="Open Mouse Utilities � ??????" Click="MoreMouseUtils_Click" />
+                            <Button Grid.Row="1" Grid.Column="0" Content="Open Quick Accent � ???????" Click="MoreQuickAccent_Click" />
+                            <Button Grid.Row="1" Grid.Column="1" Content="Open Shortcut Guide � ???????" Click="MoreShortcutGuide_Click" />
+                            <Button Grid.Row="2" Grid.Column="0" Content="Open Text Extractor (OCR) � ??????(OCR)" Click="MoreTextOcr_Click" />
+                            <Button Grid.Row="2" Grid.Column="1" Content="Open Awake � ??????" Click="MoreAwake_Click" />
+                            <Button Grid.Row="3" Grid.Column="0" Content="Open Color Picker � ??????" Click="MoreColorPicker_Click" />
+                            <Button Grid.Row="3" Grid.Column="1" Content="Open Peek � ??????" Click="MorePeek_Click" />
+                            <Button Grid.Row="4" Grid.Column="0" Content="Open Workspaces � ?????" Click="MoreWorkspaces_Click" />
+                            <Button Grid.Row="4" Grid.Column="1" Content="Open FancyZones � ??????" Click="MoreFancyZones_Click" />
+                            <Button Grid.Row="5" Grid.Column="0" Content="Open New+ � ??????" Click="MoreNewPlus_Click" />
+                            <Button Grid.Row="5" Grid.Column="1" Content="Open Advanced Paste � ??????" Click="MoreAdvancedPaste_Click" />
+                            <Button Grid.Row="6" Grid.Column="0" Content="Open Command Not Found � ???????" Click="MoreCmdNotFound_Click" />
                         </Grid>
                     </StackPanel>
                 </ScrollViewer>

@@ -325,4 +325,11 @@ public sealed partial class PowerToysExtrasModule : Page
     private void MoreTextOcr_Click(object sender, RoutedEventArgs e) => OpenModule("module.textocr");
     private void MoreAwake_Click(object sender, RoutedEventArgs e) => OpenModule("module.awake");
     private void MoreColorPicker_Click(object sender, RoutedEventArgs e) => OpenModule("module.colorpicker");
+
+    private void MorePeek_Click(object sender, RoutedEventArgs e) => OpenModule("module.peek");
+    private void MoreWorkspaces_Click(object sender, RoutedEventArgs e) => OpenModule("module.workspaces");
+    private void MoreFancyZones_Click(object sender, RoutedEventArgs e) => OpenModule("module.fancyzones");
+    private void MoreNewPlus_Click(object sender, RoutedEventArgs e) => OpenModule("module.newplus");
+    private void MoreAdvancedPaste_Click(object sender, RoutedEventArgs e) => OpenModule("module.advancedpaste");
+    private void MoreCmdNotFound_Click(object sender, RoutedEventArgs e) => OpenModule("module.cmdnotfound");
 }

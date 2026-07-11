@@ -782,7 +782,8 @@ Shipped as a single **PowerToys Extras** module (`module.powertoys` / `--page po
 - [x] **Screen Ruler** · 螢幕間尺 — already shipped in `Pages/ScreenRulerModule.xaml(.cs)` and linked from the PowerToys hub.
 - [x] **Quick Accent** · 快速重音 — already shipped in `Pages/QuickAccentModule.xaml(.cs)` and linked from the PowerToys hub.
 - [x] **OCR region select** · OCR 區域選取 — already shipped in `Pages/TextOcrModule.xaml(.cs)` via `RegionSelector.PickRegion()` and linked from the PowerToys hub.
-- [ ] **Hosts/Registry/Keyboard/Rename** — already in WinForge (note the equivalence in UI).
+- [x] **Peek / Workspaces / FancyZones / New+ / Advanced Paste / Command Not Found** — already present as native WinForge clones and now discoverable from the PowerToys hub.
+- [x] **Hosts/Registry/Keyboard/Rename** — already in WinForge (note the equivalence in UI).
 
 ## 🛠️ Winaero-Tweaker functions · Winaero 調校功能 (user-requested)
 A large generate+verify catalog batch is being produced (advanced appearance, behaviour, boot/logon,
