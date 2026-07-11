@@ -226,6 +226,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
 
                             <Button Grid.Row="0" Grid.Column="0" Content="Open Screen Ruler · 開啟螢幕間尺" Click="MoreScreenRuler_Click" />
@@ -241,6 +242,11 @@
                             <Button Grid.Row="5" Grid.Column="0" Content="Open New+ · 開啟範本新增" Click="MoreNewPlus_Click" />
                             <Button Grid.Row="5" Grid.Column="1" Content="Open Advanced Paste · 開啟進階貼上" Click="MoreAdvancedPaste_Click" />
                             <Button Grid.Row="6" Grid.Column="0" Content="Open Command Not Found · 開啟搵唔到指令" Click="MoreCmdNotFound_Click" />
+                            <Button Grid.Row="6" Grid.Column="1" Content="Open Registry Editor · 開啟登錄編輯器" Click="MoreRegistry_Click" />
+                            <Button Grid.Row="7" Grid.Column="0" Content="Open Batch Rename · 開啟批次改名" Click="MoreRename_Click" />
+                            <Button Grid.Row="7" Grid.Column="1" Content="Open Keyboard Remapper · 開啟鍵盤重新對應" Click="MoreKeyboard_Click" />
+                            <Button Grid.Row="8" Grid.Column="0" Content="Open Hosts Editor · 開啟 hosts 編輯器" Click="MoreHosts_Click" />
+                            <Button Grid.Row="8" Grid.Column="1" Content="Open Environment Variables · 開啟環境變數" Click="MoreEnvVars_Click" />
                         </Grid>
                     </StackPanel>
                 </ScrollViewer>

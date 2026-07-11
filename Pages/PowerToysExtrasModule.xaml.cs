@@ -331,4 +331,9 @@ public sealed partial class PowerToysExtrasModule : Page
     private void MoreNewPlus_Click(object sender, RoutedEventArgs e) => OpenModule("module.newplus");
     private void MoreAdvancedPaste_Click(object sender, RoutedEventArgs e) => OpenModule("module.advancedpaste");
     private void MoreCmdNotFound_Click(object sender, RoutedEventArgs e) => OpenModule("module.cmdnotfound");
+    private void MoreRegistry_Click(object sender, RoutedEventArgs e) => OpenModule("module.regedit");
+    private void MoreRename_Click(object sender, RoutedEventArgs e) => OpenModule("module.rename");
+    private void MoreKeyboard_Click(object sender, RoutedEventArgs e) => OpenModule("module.keyboard");
+    private void MoreHosts_Click(object sender, RoutedEventArgs e) => OpenModule("module.hosts");
+    private void MoreEnvVars_Click(object sender, RoutedEventArgs e) => OpenModule("module.envvars");
 }
