@@ -9,9 +9,9 @@ namespace WinForge.Pages;
 /// <summary>
 /// 裁切與鎖定 · Crop And Lock — a native clone of PowerToys Crop And Lock. Pick a top-level window and
 /// drag a region, then spawn a small always-on-top floating window that either live-mirrors that region
-/// (Thumbnail mode, via DWM thumbnails) or shows only that crop of the window (Crop mode). The spawned
-/// windows are movable, resizable, closable and stay on top. A configurable global hotkey can trigger
-/// either flow. This control page enables the module, edits the two hotkeys, lists open windows to pick
+/// (Thumbnail mode, via DWM thumbnails), shows a safe reparent-style crop, or preserves a frozen Screenshot.
+/// The spawned windows are movable, resizable, closable and stay on top. A configurable global hotkey can trigger
+/// every flow. This control page enables the module, edits the three hotkeys, lists open windows to pick
 /// from, and tracks the active cropped windows with close buttons. Bilingual throughout.
 /// </summary>
 public sealed partial class CropAndLockModule : Page
@@ -51,8 +51,8 @@ public sealed partial class CropAndLockModule : Page
     {
         Header.Title = "Crop And Lock · 裁切與鎖定";
         HeaderBlurb.Text = P(
-            "Pick a window and drag a region, then float a small always-on-top window of just that part. Thumbnail mode keeps it live-mirroring the source; Crop mode shows only that slice. The floating windows are movable, resizable and closable.",
-            "揀一個視窗、拖一個範圍，就會浮出一個細細嘅置頂視窗，只顯示嗰一忽。縮圖模式會即時鏡像來源；裁切模式只顯示揀咗嗰一片。浮窗可以移動、縮放同關閉。");
+            "Pick a window and drag a region, then float an always-on-top thumbnail, safe cropped view, or frozen screenshot. The floating windows are movable, resizable and closable.",
+            "揀一個視窗、拖一個範圍，就會浮出一個置頂縮圖、安全裁切檢視或者靜態截圖。浮窗可以移動、縮放同關閉。");
 
         EnableTitle.Text = P("Enable Crop And Lock", "啟用裁切與鎖定");
         EnableBlurb.Text = P("Turn on the background engine and the global hotkeys below.",
@@ -60,21 +60,26 @@ public sealed partial class CropAndLockModule : Page
         EnableSwitch.IsOn = CropAndLockService.Enabled;
 
         ThumbHkLabel.Text = P("Thumbnail hotkey", "縮圖熱鍵");
-        CropHkLabel.Text = P("Crop hotkey", "裁切熱鍵");
+        CropHkLabel.Text = P("Reparent / crop hotkey", "重新指定父視窗／裁切熱鍵");
+        ScreenshotHkLabel.Text = P("Screenshot hotkey", "截圖熱鍵");
         ThumbHkBtn.Content = P("Change…", "更改…");
         CropHkBtn.Content = P("Change…", "更改…");
+        ScreenshotHkBtn.Content = P("Change…", "更改…");
 
         PickHeader.Text = P("Pick a window & region", "揀視窗同範圍");
-        PickBlurb.Text = P("Select an open window on the left, then choose a mode. You'll drag a rectangle over that window to set the region.",
-            "喺左邊揀一個開住嘅視窗，再揀模式。之後喺嗰個視窗上面拖一個方框去定範圍。");
+        PickBlurb.Text = P("Select an open window on the left, then choose a live thumbnail, safe crop, or frozen screenshot. You'll drag a rectangle over that window to set the region.",
+            "喺左邊揀一個開住嘅視窗，再揀即時縮圖、安全裁切或者靜態截圖。之後喺嗰個視窗上面拖一個方框去定範圍。");
         RefreshBtn.Content = P("Refresh", "重新整理");
 
         ThumbBtn.Content = P("Thumbnail of region", "範圍縮圖");
         ThumbDesc.Text = P("Live always-on-top mirror of the region — great for watching a window behind others.",
             "範圍嘅即時置頂鏡像 — 適合監察被遮住嘅視窗。");
         CropBtn.Content = P("Crop to region", "裁切到範圍");
-        CropDesc.Text = P("A floating window cropped to just that region of the source window.",
-            "一個浮窗，只顯示來源視窗嗰個範圍。");
+        CropDesc.Text = P("A live, safe reparent-style cropped view without fragile cross-process SetParent calls.",
+            "即時、安全、重新指定父視窗風格嘅裁切檢視，唔會做脆弱嘅跨程序 SetParent。");
+        ScreenshotBtn.Content = P("Screenshot of region", "範圍截圖");
+        ScreenshotDesc.Text = P("A frozen snapshot of the selected pixels. It stays on top but does not update with the source.",
+            "所選像素嘅靜態快照。會保持置頂，但唔會跟來源更新。");
 
         ActiveHeader.Text = P("Active windows", "活躍視窗");
         ActiveBlurb.Text = P("Cropped and thumbnail windows you've created. Close them here or from their own title bar.",
@@ -84,8 +89,8 @@ public sealed partial class CropAndLockModule : Page
 
         LimitBar.Title = P("How it works", "運作方式");
         LimitBar.Message = P(
-            "Both modes use DWM thumbnails (DwmRegisterThumbnail) to mirror the chosen crop of the source window, kept always-on-top. True cross-process reparenting of another app's window is fragile and not attempted; the Crop view is a DWM-thumbnail cropped mirror, so it reflects the source live rather than detaching it.",
-            "兩種模式都用 DWM 縮圖（DwmRegisterThumbnail）去鏡像來源視窗揀咗嘅範圍並保持置頂。真正跨程序重新指定父視窗好脆弱，所以唔做；裁切檢視係 DWM 縮圖鏡像，會即時反映來源，而唔係將佢分離出嚟。");
+            "Thumbnail and Crop use DWM thumbnails (DwmRegisterThumbnail) and stay live. True cross-process reparenting is fragile, so Crop remains a safe DWM-thumbnail view; Screenshot uses an in-process GDI capture and is intentionally frozen.",
+            "縮圖同裁切會用 DWM 縮圖（DwmRegisterThumbnail）並保持即時。真正跨程序重新指定父視窗好脆弱，所以裁切保持安全嘅 DWM 縮圖檢視；截圖會用 app 內 GDI 擷取並刻意保持靜態。");
 
         RenderHotkeys();
     }
@@ -94,6 +99,7 @@ public sealed partial class CropAndLockModule : Page
     {
         ThumbHkText.Text = CropAndLockService.ThumbHotkey.Text();
         CropHkText.Text = CropAndLockService.CropHotkey.Text();
+        ScreenshotHkText.Text = CropAndLockService.ScreenshotHotkey.Text();
     }
 
     // ===================== enable + hotkeys =====================
@@ -107,12 +113,18 @@ public sealed partial class CropAndLockModule : Page
                                : P("The global hotkeys are unregistered.", "全域熱鍵已取消登記。"));
     }
 
-    private async void ThumbHk_Click(object sender, RoutedEventArgs e) => await CaptureHotkey(true);
-    private async void CropHk_Click(object sender, RoutedEventArgs e) => await CaptureHotkey(false);
+    private async void ThumbHk_Click(object sender, RoutedEventArgs e) => await CaptureHotkey(CropLockMode.Thumbnail);
+    private async void CropHk_Click(object sender, RoutedEventArgs e) => await CaptureHotkey(CropLockMode.Reparent);
+    private async void ScreenshotHk_Click(object sender, RoutedEventArgs e) => await CaptureHotkey(CropLockMode.Screenshot);
 
-    private async System.Threading.Tasks.Task CaptureHotkey(bool thumbnail)
+    private async System.Threading.Tasks.Task CaptureHotkey(CropLockMode mode)
     {
-        var current = thumbnail ? CropAndLockService.ThumbHotkey : CropAndLockService.CropHotkey;
+        var current = mode switch
+        {
+            CropLockMode.Thumbnail => CropAndLockService.ThumbHotkey,
+            CropLockMode.Reparent => CropAndLockService.CropHotkey,
+            _ => CropAndLockService.ScreenshotHotkey,
+        };
 
         var ctrl = new CheckBox { Content = "Ctrl", IsChecked = (current.Modifiers & 0x0002) != 0 };
         var alt = new CheckBox { Content = "Alt", IsChecked = (current.Modifiers & 0x0001) != 0 };
@@ -141,7 +153,12 @@ public sealed partial class CropAndLockModule : Page
 
         var dlg = new ContentDialog
         {
-            Title = thumbnail ? P("Thumbnail hotkey", "縮圖熱鍵") : P("Crop hotkey", "裁切熱鍵"),
+            Title = mode switch
+            {
+                CropLockMode.Thumbnail => P("Thumbnail hotkey", "縮圖熱鍵"),
+                CropLockMode.Reparent => P("Reparent / crop hotkey", "重新指定父視窗／裁切熱鍵"),
+                _ => P("Screenshot hotkey", "截圖熱鍵"),
+            },
             Content = panel,
             PrimaryButtonText = P("Save", "儲存"),
             SecondaryButtonText = P("Clear", "清除"),
@@ -155,7 +172,7 @@ public sealed partial class CropAndLockModule : Page
 
         if (res == ContentDialogResult.Secondary)
         {
-            CropAndLockService.SetHotkey(thumbnail, new CropAndLockService.Chord());
+            CropAndLockService.SetHotkey(mode, new CropAndLockService.Chord());
             Info(P("Cleared", "已清除"), P("Hotkey removed.", "已移除熱鍵。"));
             return;
         }
@@ -176,7 +193,7 @@ public sealed partial class CropAndLockModule : Page
             return;
         }
 
-        CropAndLockService.SetHotkey(thumbnail, new CropAndLockService.Chord { Modifiers = mods, VirtualKey = vkey, KeyName = keyName });
+        CropAndLockService.SetHotkey(mode, new CropAndLockService.Chord { Modifiers = mods, VirtualKey = vkey, KeyName = keyName });
         if (!CropAndLockService.IsRunning && CropAndLockService.Enabled) CropAndLockService.EnsureStarted();
         Info(P("Saved", "已儲存"), P("Hotkey updated.", "已更新熱鍵。"));
     }
@@ -205,17 +222,18 @@ public sealed partial class CropAndLockModule : Page
 
     // ===================== pick + spawn =====================
 
-    private void Thumb_Click(object sender, RoutedEventArgs e) => StartPick(thumbnail: true);
-    private void Crop_Click(object sender, RoutedEventArgs e) => StartPick(thumbnail: false);
+    private void Thumb_Click(object sender, RoutedEventArgs e) => StartPick(CropLockMode.Thumbnail);
+    private void Crop_Click(object sender, RoutedEventArgs e) => StartPick(CropLockMode.Reparent);
+    private void Screenshot_Click(object sender, RoutedEventArgs e) => StartPick(CropLockMode.Screenshot);
 
-    private void StartPick(bool thumbnail)
+    private void StartPick(CropLockMode mode)
     {
         if (!SelectedWindow(out var info) || info is null) return;
-        PickRegionAndSpawn(info.Handle, info.Title, thumbnail);
+        PickRegionAndSpawn(info.Handle, info.Title, mode);
     }
 
     /// <summary>由熱鍵觸發：用前景視窗（或揀清單第一個）開始流程 · Hotkey flow — use the foreground/selected window.</summary>
-    private void OnHotkeyPick(bool thumbnail)
+    private void OnHotkeyPick(CropLockMode mode)
     {
         // Prefer the currently selected window; otherwise refresh and use the first.
         var info = WinList.SelectedItem as WinInfo;
@@ -229,10 +247,10 @@ public sealed partial class CropAndLockModule : Page
             Warn(P("No window to crop. Open one and try again.", "冇視窗可裁切。開一個再試。"));
             return;
         }
-        PickRegionAndSpawn(info.Handle, info.Title, thumbnail);
+        PickRegionAndSpawn(info.Handle, info.Title, mode);
     }
 
-    private async void PickRegionAndSpawn(IntPtr source, string title, bool thumbnail)
+    private async void PickRegionAndSpawn(IntPtr source, string title, CropLockMode mode)
     {
         // Bring the target window forward so the user can see what they're cropping, then drag a region.
         try { WindowManager.Focus(source); } catch { }
@@ -241,9 +259,14 @@ public sealed partial class CropAndLockModule : Page
         if (rect is null) { return; } // cancelled (Esc / right-click)
 
         // Await the async create so the UI thread never blocks waiting for the STA pump thread.
-        var ok = await CropAndLockService.CreateFromScreenRectAsync(source, title, rect.Value, thumbnail);
+        var ok = await CropAndLockService.CreateFromScreenRectAsync(source, title, rect.Value, mode);
         if (ok)
-            Info(thumbnail ? P("Thumbnail created", "已建立縮圖") : P("Cropped view created", "已建立裁切檢視"),
+            Info(mode switch
+                 {
+                     CropLockMode.Thumbnail => P("Thumbnail created", "已建立縮圖"),
+                     CropLockMode.Reparent => P("Cropped view created", "已建立裁切檢視"),
+                     _ => P("Screenshot created", "已建立截圖"),
+                 },
                  CropAndLockService.LastEvent);
         else
             Warn(CropAndLockService.LastEvent);

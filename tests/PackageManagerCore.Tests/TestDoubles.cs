@@ -44,21 +44,43 @@ namespace WinForge.Services
         public static int BuildCalls { get; private set; }
         private static int _runCalls;
         public static int RunCalls => _runCalls;
+        public static string LastPreviewSource { get; private set; } = "";
+        public static string LastRunSource { get; private set; } = "";
+        public static ConcurrentQueue<string> RunSources { get; } = new();
         public static Func<string, string, Op, InstallOptions, IProgress<string>?, CancellationToken, Task<WinForge.Models.TweakResult>>? Runner { get; set; }
-        public static void Reset() { BuildCalls = 0; _runCalls = 0; Runner = null; }
+        public static void Reset()
+        {
+            BuildCalls = 0;
+            _runCalls = 0;
+            LastPreviewSource = "";
+            LastRunSource = "";
+            while (RunSources.TryDequeue(out _)) { }
+            Runner = null;
+        }
         public static string BuildCommandPreview(string managerKey, string id, Op op, InstallOptions options)
+            => BuildCommandPreview(managerKey, id, "", op, options);
+
+        public static string BuildCommandPreview(string managerKey, string id, string? source, Op op, InstallOptions options)
         {
             BuildCalls++;
+            LastPreviewSource = source ?? "";
             var extra = string.IsNullOrWhiteSpace(options.CustomArgsInstall) ? "" : " " + options.CustomArgsInstall.Trim();
+            var sourcePart = string.IsNullOrWhiteSpace(source) ? "" : " --source " + source.Trim();
             return managerKey is "psgallery" or "pwsh7"
-                ? $"Install-Package -Name \"{id}\"{extra}"
-                : $"{managerKey} {op.ToString().ToLowerInvariant()} {id}{extra}";
+                ? $"Install-Package -Name \"{id}\"{sourcePart}{extra}"
+                : $"{managerKey} {op.ToString().ToLowerInvariant()} {id}{sourcePart}{extra}";
         }
 
         public static Task<WinForge.Models.TweakResult> RunAsync(string managerKey, string id, Op op,
             InstallOptions options, IProgress<string>? progress, CancellationToken ct)
+            => RunAsync(managerKey, id, "", op, options, progress, ct);
+
+        public static Task<WinForge.Models.TweakResult> RunAsync(string managerKey, string id, string? source, Op op,
+            InstallOptions options, IProgress<string>? progress, CancellationToken ct)
         {
             Interlocked.Increment(ref _runCalls);
+            LastRunSource = source ?? "";
+            RunSources.Enqueue(LastRunSource);
             return Runner?.Invoke(managerKey, id, op, options, progress, ct)
                 ?? Task.FromResult(WinForge.Models.TweakResult.Ok("ok", "成功"));
         }

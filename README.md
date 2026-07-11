@@ -142,6 +142,18 @@ generation cases.
 專注 crypto／clipboard regression 會檢查相同、替換、null、空白文字同 stale-timer
 generation 情況。
 
+**EN —** Package Manager now preserves a selected package or bundle source through
+the command preview, multi-select identity, shared queue and runner. A single
+policy turns only validated manager-specific sources into real flags or trusted
+registry endpoints; an empty source keeps the manager default, no-selector
+uninstall/update paths retain safe source metadata, and local, unknown or unsafe
+source text is rejected before it reaches a command.
+
+**粵語 —** 套件管理器而家會將所揀套件或者清單來源一路保留到指令預覽、多選身份、
+共用佇列同 runner。單一政策只會將已驗證、管理器專用嘅來源變成真實旗標或者可信
+registry endpoint；空白來源會保留管理器預設，冇來源選擇器嘅解除安裝／更新路徑會
+保留安全來源中繼資料，而本機、未知或者唔安全來源文字未到指令之前已經拒絕。
+
 **EN —** The latest checkpoints fixed Base Converter and CSV ⇄ JSON startup
 faults exposed by the route sweep; fresh self-contained `--page baseconvert`
 and `--page csvjson` launches now pass. See the
@@ -322,7 +334,7 @@ literal；forced self-contained publish 同新鮮 `--page` retest 全部 6 條 r
 | **Capture Studio · 擷取工作室** | Snip regions, screenshot, make GIFs and OCR text. <br> 擷取區域、截圖、整 GIF 同 OCR 認字。 | `capture` |
 | **Text Extractor (OCR) · 原生文字辨識** | Extract text from any screen region using the native Windows OCR engine. <br> 用原生 Windows OCR 引擎由螢幕區域抽字。 | `ocr` |
 | **GIF Studio · 螢幕轉 GIF** | Screen-to-GIF recording with a built-in frame editor. <br> 螢幕轉 GIF 錄製，附內建畫面格編輯器。 | `giflab` |
-| **Crop And Lock · 裁切與鎖定** | Crop a window into an always-on-top floating live thumbnail. <br> 將視窗裁切成置頂浮動即時縮圖。 | `cropandlock` |
+| **Crop And Lock · 裁切與鎖定** | Create live thumbnails, safe reparent-style cropped views, or frozen screenshots from a selected window region. <br> 由所選視窗範圍建立即時縮圖、安全重新指定父視窗風格裁切檢視或者靜態截圖。 | `cropandlock` |
 | **ZoomIt · 螢幕放大與標註** | On-screen zoom, annotation and presentation break timer. <br> 螢幕放大、標註同簡報小休倒數計時。 | `zoomit` |
 | **Voice & Read-Aloud · 語音朗讀** | SAPI text-to-speech read-aloud with WAV export. <br> SAPI 文字轉語音朗讀，可匯出 WAV。 | `voice` |
 | **PA Announcements · 喇叭語音廣播** | Public-address voice broadcasts with chimes, queue and priority. <br> 公共廣播語音播報，附叮咚、排隊同優先權。 | `announce` |

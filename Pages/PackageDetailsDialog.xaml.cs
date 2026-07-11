@@ -120,7 +120,7 @@ public sealed partial class PackageDetailsDialog : ContentDialog
             {
                 var options = InstallOptions.Load(_item.ManagerKey, _item.Id);
                 var cmd = PackageOperations.BuildCommandPreview(
-                    _item.ManagerKey, _item.Id, PackageOperations.Op.Install, options);
+                    _item.ManagerKey, _item.Id, _item.Source, PackageOperations.Op.Install, options);
                 var dp = new DataPackage();
                 dp.SetText(cmd);
                 Clipboard.SetContent(dp);

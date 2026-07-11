@@ -27,6 +27,7 @@ public sealed record PackageOperationSnapshot(
     Guid OperationId,
     string ManagerKey,
     string PackageId,
+    string Source,
     string PackageName,
     PackageOperations.Op Operation,
     PackageOperationStatus Status,
@@ -115,7 +116,7 @@ public static class PackageOperationCoordinator
     {
         item ??= new PackageItem();
         var copy = CopyItem(item);
-        var validation = ValidateItem(copy);
+        var validation = ValidateItem(copy, operation, hasCustomRunner: runner is not null);
         if (validation is not null)
             return TerminalTicket(copy, operation, PackageOperationStatus.Failed, validation,
                 options, runnerTag, runner);
@@ -350,7 +351,7 @@ public static class PackageOperationCoordinator
         return true;
     }
 
-    private static TweakResult? ValidateItem(PackageItem item)
+    private static TweakResult? ValidateItem(PackageItem item, PackageOperations.Op operation, bool hasCustomRunner)
     {
         if (PackageManagerRegistry.ByKey(item.ManagerKey) is null)
             return TweakResult.Fail($"Unknown package manager '{item.ManagerKey}'.", $"未知套件管理器「{item.ManagerKey}」。")
@@ -358,6 +359,15 @@ public static class PackageOperationCoordinator
         if (!IsSafePackageId(item.Id))
             return TweakResult.Fail("The package ID contains unsafe characters.", "套件 ID 含有唔安全字元。")
                 with { Code = "invalid-package-id" };
+        // Custom bootstrap runners own their command text and use Source only as harmless operation
+        // metadata. Native package-manager operations must always resolve it through the policy.
+        if (!hasCustomRunner
+            && !PackageSourcePolicy.TryResolve(item.ManagerKey, item.Id, item.Source, operation,
+                out _, out var sourceFailure))
+        {
+            var message = PackageSourcePolicy.MessageFor(sourceFailure);
+            return TweakResult.Fail(message.En, message.Zh) with { Code = message.Code };
+        }
         return null;
     }
 
@@ -487,7 +497,7 @@ public static class PackageOperationCoordinator
                 PackageNotifier.ShowUpgrading(DisplayName(entry.Item), entry.Item.ManagerKey);
                 var progress = new InlineProgress<string>(line => AppendOutput(entry.Id, line));
                 result = entry.Runner is null
-                    ? await PackageOperations.RunAsync(entry.Item.ManagerKey, entry.Item.Id,
+                    ? await PackageOperations.RunAsync(entry.Item.ManagerKey, entry.Item.Id, entry.Item.Source,
                         entry.Operation, entry.Options, progress, entry.Cancellation.Token)
                     : await entry.Runner(progress, entry.Cancellation.Token);
                 status = result.Success
@@ -601,7 +611,7 @@ public static class PackageOperationCoordinator
         var safeMessage = result.Message is null ? null : new LocalizedText(
             Redact(result.Message.En), Redact(result.Message.Zh));
         var safeResult = result with { Message = safeMessage, Output = Redact(result.Output ?? "") };
-        var snapshot = new PackageOperationSnapshot(id, item.ManagerKey, item.Id, DisplayName(item), operation,
+        var snapshot = new PackageOperationSnapshot(id, item.ManagerKey, item.Id, item.Source, DisplayName(item), operation,
             status, now, null, now, safeResult.Output ?? "", safeResult);
         Entry terminalEntry;
         lock (Gate)
@@ -676,7 +686,7 @@ public static class PackageOperationCoordinator
     }
 
     private static PackageOperationSnapshot SnapshotLocked(Entry entry)
-        => new(entry.Id, entry.Item.ManagerKey, entry.Item.Id, DisplayName(entry.Item), entry.Operation,
+        => new(entry.Id, entry.Item.ManagerKey, entry.Item.Id, entry.Item.Source, DisplayName(entry.Item), entry.Operation,
             entry.Status, entry.QueuedAt, entry.StartedAt, entry.CompletedAt,
             entry.Output.ToString(), entry.Result);
 
@@ -703,10 +713,13 @@ public static class PackageOperationCoordinator
 
     private static string Key(PackageItem item, PackageOperations.Op operation, InstallOptions options, string runnerTag)
     {
+        // The shared identity makes source-aware UI selection, bundle de-duplication and queue
+        // de-duplication agree. Validation happens before a live key is made.
+        var packageIdentity = PackageSourcePolicy.IdentityKey(item.ManagerKey, item.Id, item.Source, operation);
         var updateVersions = operation == PackageOperations.Op.Update
             ? $"|{item.Version.Length}:{item.Version}|{item.AvailableVersion.Length}:{item.AvailableVersion}"
             : "";
-        return $"{item.ManagerKey}|{item.Id}|{operation}{updateVersions}|{runnerTag}|{OptionsFingerprint(options)}";
+        return $"{packageIdentity}|{operation}{updateVersions}|{runnerTag}|{OptionsFingerprint(options)}";
     }
 
     private static string OptionsFingerprint(InstallOptions options)
