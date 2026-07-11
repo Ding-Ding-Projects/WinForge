@@ -21,15 +21,16 @@ internal static class Program
         Run("Argon2d KDBX UUID keeps Argon2d derivation", Argon2dUuidUsesArgon2d);
         Run("Argon2id KDBX UUID selects Argon2id derivation", Argon2idUuidUsesArgon2id);
         Run("unknown Argon2 KDBX UUID is rejected", UnknownUuidIsRejected);
+        Run("clipboard cleanup clears only the exact owned text", ClipboardCleanupRequiresExactOwnedText);
 
         if (failures.Count == 0)
         {
-            Console.WriteLine($"PASS {passed}/{passed} KeePass KDF tests");
+            Console.WriteLine($"PASS {passed}/{passed} KeePass crypto/clipboard tests");
             return 0;
         }
 
         foreach (var failure in failures) Console.Error.WriteLine(failure);
-        Console.Error.WriteLine($"FAIL {failures.Count}/{passed + failures.Count} KeePass KDF tests");
+        Console.Error.WriteLine($"FAIL {failures.Count}/{passed + failures.Count} KeePass crypto/clipboard tests");
         return 1;
 
         void Run(string name, Action test)
@@ -75,6 +76,15 @@ internal static class Program
         {
             // Expected: callers must not silently substitute a different Argon2 variant.
         }
+    }
+
+    private static void ClipboardCleanupRequiresExactOwnedText()
+    {
+        Assert(ClipboardOwnership.CanClearText("secret", "secret", 4, 4), "the owned secret should be eligible for cleanup");
+        Assert(!ClipboardOwnership.CanClearText("secret", "replacement", 4, 4), "replacement clipboard text must never be cleared");
+        Assert(!ClipboardOwnership.CanClearText("secret", null, 4, 4), "missing clipboard text must not be cleared");
+        Assert(!ClipboardOwnership.CanClearText("", "", 4, 4), "an empty value is not an owned secret");
+        Assert(!ClipboardOwnership.CanClearText("secret", "secret", 4, 5), "a stale cleanup generation must never clear a newer copy");
     }
 
     private static byte[] DeriveReference(Argon2 argon)
