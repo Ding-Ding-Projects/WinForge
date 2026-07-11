@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -12,7 +12,7 @@ using WinForge.Services;
 namespace WinForge.Pages;
 
 /// <summary>
-/// 剪貼簿歷史（背景監察）· Clipboard history — text, images and copied files captured by the background
+/// å‰ªè²¼ç°¿æ­·å²ï¼ˆèƒŒæ™¯ç›£å¯Ÿï¼‰Â· Clipboard history â€” text, images and copied files captured by the background
 /// monitor; copy back, delete, and auto-convert (images via imaging, media via ffmpeg). Bilingual.
 /// </summary>
 public sealed partial class ClipboardModule : Page
@@ -46,21 +46,21 @@ public sealed partial class ClipboardModule : Page
 
     private void Render()
     {
-        Header.Title = "Clipboard · 剪貼簿";
-        HeaderBlurb.Text = P("Everything you copy — text, images and files — kept here automatically. Click to copy back, paste as plain text, make a QR code, or convert images and media to another format.",
-            "你複製過嘅嘢 — 文字、圖片同檔案 — 自動留喺度。撳一下複製返、貼為純文字、整 QR 碼，或者將圖片同媒體轉做另一種格式。");
-        QrText.Text = P("QR from clipboard", "剪貼簿整 QR");
-        NativeRefreshText.Text = P("Refresh Windows history", "重新整理 Windows 歷史");
-        ClearText.Text = P("Clear all", "清除全部");
-        BgBar.Title = P("Running in the background", "喺背景運行緊");
+        Header.Title = "Clipboard Â· å‰ªè²¼ç°¿";
+        HeaderBlurb.Text = P("Everything you copy â€” text, images and files â€” kept here automatically. Click to copy back, paste as plain text, make a QR code, or convert images and media to another format.",
+            "ä½ è¤‡è£½éŽå˜…å˜¢ â€” æ–‡å­—ã€åœ–ç‰‡åŒæª”æ¡ˆ â€” è‡ªå‹•ç•™å–ºåº¦ã€‚æ’³ä¸€ä¸‹è¤‡è£½è¿”ã€è²¼ç‚ºç´”æ–‡å­—ã€æ•´ QR ç¢¼ï¼Œæˆ–è€…å°‡åœ–ç‰‡åŒåª’é«”è½‰åšå¦ä¸€ç¨®æ ¼å¼ã€‚");
+        QrText.Text = P("QR from clipboard", "å‰ªè²¼ç°¿æ•´ QR");
+        NativeRefreshText.Text = P("Refresh Windows history", "é‡æ–°æ•´ç† Windows æ­·å²");
+        ClearText.Text = P("Clear all", "æ¸…é™¤å…¨éƒ¨");
+        BgBar.Title = P("Running in the background", "å–ºèƒŒæ™¯é‹è¡Œç·Š");
         BgBar.Message = P("The monitor keeps capturing even when the window is closed to the tray. Right-click the tray icon to Quit.",
-            "就算關窗收入系統匣，監察都會繼續捕捉。右鍵系統匣圖示就可以結束。");
+            "å°±ç®—é—œçª—æ”¶å…¥ç³»çµ±åŒ£ï¼Œç›£å¯Ÿéƒ½æœƒç¹¼çºŒæ•æ‰ã€‚å³éµç³»çµ±åŒ£åœ–ç¤ºå°±å¯ä»¥çµæŸã€‚");
 
         // Run-on-startup toggle (launches WinForge minimized to the tray at login).
         var startup = new ToggleSwitch
         {
-            OnContent = P("Run on startup", "開機自動執行"),
-            OffContent = P("Run on startup", "開機自動執行"),
+            OnContent = P("Run on startup", "é–‹æ©Ÿè‡ªå‹•åŸ·è¡Œ"),
+            OffContent = P("Run on startup", "é–‹æ©Ÿè‡ªå‹•åŸ·è¡Œ"),
             Margin = new Thickness(0, 6, 0, 0),
         };
         startup.IsOn = StartupManager.IsSelfStartupEnabled();   // set BEFORE wiring so this doesn't fire the handler
@@ -71,8 +71,8 @@ public sealed partial class ClipboardModule : Page
 
         var historyToggle = new ToggleSwitch
         {
-            OnContent = P("Windows clipboard history", "Windows 剪貼簿歷史"),
-            OffContent = P("Windows clipboard history", "Windows 剪貼簿歷史"),
+            OnContent = P("Windows clipboard history", "Windows å‰ªè²¼ç°¿æ­·å²"),
+            OffContent = P("Windows clipboard history", "Windows å‰ªè²¼ç°¿æ­·å²"),
             Margin = new Thickness(0, 6, 0, 0),
             IsOn = ClipboardService.IsWindowsHistoryEnabled(),
         };
@@ -80,8 +80,8 @@ public sealed partial class ClipboardModule : Page
 
         var syncToggle = new ToggleSwitch
         {
-            OnContent = P("Cloud clipboard sync", "雲端剪貼簿同步"),
-            OffContent = P("Cloud clipboard sync", "雲端剪貼簿同步"),
+            OnContent = P("Cloud clipboard sync", "é›²ç«¯å‰ªè²¼ç°¿åŒæ­¥"),
+            OffContent = P("Cloud clipboard sync", "é›²ç«¯å‰ªè²¼ç°¿åŒæ­¥"),
             Margin = new Thickness(0, 6, 0, 0),
             IsOn = ClipboardService.IsWindowsCloudSyncEnabled(),
         };
@@ -89,13 +89,13 @@ public sealed partial class ClipboardModule : Page
 
         var clearHistoryBtn = new Button
         {
-            Content = P("Clear Windows history", "清除 Windows 歷史"),
+            Content = P("Clear Windows history", "æ¸…é™¤ Windows æ­·å²"),
             Margin = new Thickness(0, 6, 0, 0),
         };
         clearHistoryBtn.Click += (_, _) =>
         {
             ClipboardService.ClearWindowsHistory();
-            Notify(InfoBarSeverity.Success, P("Windows clipboard history cleared", "已清除 Windows 剪貼簿歷史"), "");
+            Notify(InfoBarSeverity.Success, P("Windows clipboard history cleared", "å·²æ¸…é™¤ Windows å‰ªè²¼ç°¿æ­·å²"), "");
             _ = RefreshNativeHistoryAsync();
         };
 
@@ -119,7 +119,7 @@ public sealed partial class ClipboardModule : Page
         {
             Root.Children.Add(new TextBlock
             {
-                Text = P("Nothing captured yet — copy some text, an image or a file.", "暫時冇捕捉到 — 複製啲文字、圖片或者檔案吖。"),
+                Text = P("Nothing captured yet â€” copy some text, an image or a file.", "æš«æ™‚å†‡æ•æ‰åˆ° â€” è¤‡è£½å•²æ–‡å­—ã€åœ–ç‰‡æˆ–è€…æª”æ¡ˆå–ã€‚"),
                 Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
                 Margin = new Thickness(4, 8, 0, 0),
             });
@@ -137,7 +137,7 @@ public sealed partial class ClipboardModule : Page
         NativeHistoryRoot.Children.Clear();
         NativeHistoryRoot.Children.Add(new TextBlock
         {
-            Text = P("Windows clipboard history", "Windows 剪貼簿歷史"),
+            Text = P("Windows clipboard history", "Windows å‰ªè²¼ç°¿æ­·å²"),
             FontSize = 16,
             FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
             Margin = new Thickness(0, 2, 0, 0),
@@ -149,7 +149,7 @@ public sealed partial class ClipboardModule : Page
             {
                 NativeHistoryRoot.Children.Add(new TextBlock
                 {
-                    Text = P("Windows clipboard history is off. Turn it on above or in Settings.", "Windows 剪貼簿歷史未開。喺上面或者設定度開返。"),
+                    Text = P("Windows clipboard history is off. Turn it on above or in Settings.", "Windows å‰ªè²¼ç°¿æ­·å²æœªé–‹ã€‚å–ºä¸Šé¢æˆ–è€…è¨­å®šåº¦é–‹è¿”ã€‚"),
                     Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
                 });
                 return;
@@ -160,7 +160,7 @@ public sealed partial class ClipboardModule : Page
             {
                 NativeHistoryRoot.Children.Add(new TextBlock
                 {
-                    Text = P("Could not load Windows clipboard history right now.", "而家攞唔到 Windows 剪貼簿歷史。"),
+                    Text = P("Could not load Windows clipboard history right now.", "è€Œå®¶æ”žå””åˆ° Windows å‰ªè²¼ç°¿æ­·å²ã€‚"),
                     Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
                 });
                 return;
@@ -171,7 +171,7 @@ public sealed partial class ClipboardModule : Page
             {
                 NativeHistoryRoot.Children.Add(new TextBlock
                 {
-                    Text = P("No Windows clipboard history items found.", "冇搵到 Windows 剪貼簿歷史項目。"),
+                    Text = P("No Windows clipboard history items found.", "å†‡æµåˆ° Windows å‰ªè²¼ç°¿æ­·å²é …ç›®ã€‚"),
                     Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
                 });
                 return;
@@ -179,7 +179,7 @@ public sealed partial class ClipboardModule : Page
 
             NativeHistoryRoot.Children.Add(new TextBlock
             {
-                Text = P("Tap one item to restore it to the clipboard.", "撳一個項目就可以還原返去剪貼簿。"),
+                Text = P("Tap one item to restore it to the clipboard.", "æ’³ä¸€å€‹é …ç›®å°±å¯ä»¥é‚„åŽŸè¿”åŽ»å‰ªè²¼ç°¿ã€‚"),
                 Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
             });
 
@@ -221,47 +221,78 @@ public sealed partial class ClipboardModule : Page
         content.Children.Add(new TextBlock { Text = stamp, FontSize = 11, Foreground = (Brush)Application.Current.Resources["TextFillColorTertiaryBrush"] });
         grid.Children.Add(Col(content, 1));
 
-        var restoreBtn = new Button { Padding = new Thickness(8, 3, 8, 3), Content = P("Restore", "還原") };
+        var restoreBtn = new Button { Padding = new Thickness(8, 3, 8, 3), Content = P("Restore", "é‚„åŽŸ") };
         restoreBtn.Click += (_, _) =>
         {
             try
             {
                 var status = Clipboard.SetHistoryItemAsContent(item);
                 if (status == SetHistoryItemAsContentStatus.Success)
-                    Notify(InfoBarSeverity.Success, P("Restored Windows history item", "已還原 Windows 歷史項目"), "");
+                    Notify(InfoBarSeverity.Success, P("Restored Windows history item", "å·²é‚„åŽŸ Windows æ­·å²é …ç›®"), "");
                 else
-                    Notify(InfoBarSeverity.Warning, P("Could not restore that item", "還原唔到嗰個項目"), status.ToString());
+                    Notify(InfoBarSeverity.Warning, P("Could not restore that item", "é‚„åŽŸå””åˆ°å—°å€‹é …ç›®"), status.ToString());
             }
             catch (Exception ex)
             {
-                Notify(InfoBarSeverity.Error, P("Restore failed", "還原失敗"), ex.Message);
+                Notify(InfoBarSeverity.Error, P("Restore failed", "é‚„åŽŸå¤±æ•—"), ex.Message);
+            }
+        };
+
+        var plainBtn = new Button { Padding = new Thickness(8, 3, 8, 3), Content = new FontIcon { Glyph = GlyphPlain, FontSize = 12 } };
+        ToolTipService.SetToolTip(plainBtn, P("Copy as plain text", "è²¼ç‚ºç´”æ–‡å­—"));
+        plainBtn.Click += async (_, _) =>
+        {
+            try
+            {
+                var text = await NativePlainTextAsync(item.Content);
+                if (string.IsNullOrWhiteSpace(text))
+                {
+                    Notify(InfoBarSeverity.Warning, P("That item can't be flattened to plain text", "å—°å€‹é …ç›®å‘¢å–œä¸»ææˆç´”æ–‡å­—"), "");
+                    return;
+                }
+
+                var package = new DataPackage();
+                package.SetText(text);
+                package.RequestedOperation = DataPackageOperation.Copy;
+                Clipboard.SetContentWithOptions(package, new ClipboardContentOptions
+                {
+                    IsAllowedInHistory = false,
+                    IsRoamable = false,
+                });
+
+                Notify(InfoBarSeverity.Success, P("Copied as plain text", "å·²è¤‡è£½åšç´”æ–‡å­—"), P("Formatting stripped â€” paste anywhere.", "å·²å‰èµ°æ ¼å¼ â€” éš¨è™•è²¼ä¸Šã€‚"));
+            }
+            catch (Exception ex)
+            {
+                Notify(InfoBarSeverity.Error, P("Plain-text copy failed", "ç´”æ–‡å­—è¤‡è£½å¤±æ•—"), ex.Message);
             }
         };
 
         var deleteBtn = new Button { Padding = new Thickness(8, 3, 8, 3), Content = new FontIcon { Glyph = GlyphDelete, FontSize = 12 } };
-        ToolTipService.SetToolTip(deleteBtn, P("Delete from history", "由歷史刪除"));
+        ToolTipService.SetToolTip(deleteBtn, P("Delete from history", "ç”±æ­·å²åˆªé™¤"));
         deleteBtn.Click += (_, _) =>
         {
             try
             {
                 if (Clipboard.DeleteItemFromHistory(item))
                 {
-                    Notify(InfoBarSeverity.Success, P("Deleted from Windows history", "已由 Windows 歷史刪除"), "");
+                    Notify(InfoBarSeverity.Success, P("Deleted from Windows history", "å·²ç”± Windows æ­·å²åˆªé™¤"), "");
                     _ = RefreshNativeHistoryAsync();
                 }
                 else
                 {
-                    Notify(InfoBarSeverity.Warning, P("Could not delete that history item", "刪唔到嗰個歷史項目"), "");
+                    Notify(InfoBarSeverity.Warning, P("Could not delete that history item", "åˆªå””åˆ°å—°å€‹æ­·å²é …ç›®"), "");
                 }
             }
             catch (Exception ex)
             {
-                Notify(InfoBarSeverity.Error, P("Delete failed", "刪除失敗"), ex.Message);
+                Notify(InfoBarSeverity.Error, P("Delete failed", "åˆªé™¤å¤±æ•—"), ex.Message);
             }
         };
 
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
         buttons.Children.Add(restoreBtn);
+        buttons.Children.Add(plainBtn);
         buttons.Children.Add(deleteBtn);
         grid.Children.Add(Col(buttons, 2));
 
@@ -289,7 +320,7 @@ public sealed partial class ClipboardModule : Page
         var content = new StackPanel { Spacing = 4 };
         if (item.Kind == ClipKind.Image && File.Exists(item.ImagePath))
         {
-            // 用 UriSource（而唔係 new BitmapImage(uri)）避免 WinUI 靜靜吞咗載入錯誤，PNG 先顯示得到。
+            // ç”¨ UriSourceï¼ˆè€Œå””ä¿‚ new BitmapImage(uri)ï¼‰é¿å… WinUI éœéœåžå’—è¼‰å…¥éŒ¯èª¤ï¼ŒPNG å…ˆé¡¯ç¤ºå¾—åˆ°ã€‚
             // Assign UriSource instead of the (uri) constructor so WinUI doesn't swallow load errors silently.
             var bmp = new BitmapImage { DecodePixelWidth = 180, UriSource = new Uri(item.ImagePath) };
             content.Children.Add(new Image { Source = bmp, MaxHeight = 90, HorizontalAlignment = HorizontalAlignment.Left, Stretch = Stretch.Uniform });
@@ -312,8 +343,8 @@ public sealed partial class ClipboardModule : Page
         var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, VerticalAlignment = VerticalAlignment.Top };
 
         var copyBtn = new Button { Padding = new Thickness(8, 3, 8, 3), Content = new FontIcon { Glyph = GlyphCopy, FontSize = 12 } };
-        ToolTipService.SetToolTip(copyBtn, P("Copy back", "複製返"));
-        copyBtn.Click += (_, _) => { ClipboardService.CopyBack(item); Notify(InfoBarSeverity.Success, P("Copied to clipboard", "已複製到剪貼簿"), ""); };
+        ToolTipService.SetToolTip(copyBtn, P("Copy back", "è¤‡è£½è¿”"));
+        copyBtn.Click += (_, _) => { ClipboardService.CopyBack(item); Notify(InfoBarSeverity.Success, P("Copied to clipboard", "å·²è¤‡è£½åˆ°å‰ªè²¼ç°¿"), ""); };
         actions.Children.Add(copyBtn);
 
         var pinBtn = new Button
@@ -321,12 +352,12 @@ public sealed partial class ClipboardModule : Page
             Padding = new Thickness(8, 3, 8, 3),
             Content = new FontIcon { Glyph = GlyphPin, FontSize = 12 },
         };
-        ToolTipService.SetToolTip(pinBtn, item.Pinned ? P("Unpin", "取消釘選") : P("Pin", "釘選"));
+        ToolTipService.SetToolTip(pinBtn, item.Pinned ? P("Unpin", "å–æ¶ˆé‡˜é¸") : P("Pin", "é‡˜é¸"));
         pinBtn.Click += (_, _) =>
         {
             ClipboardService.TogglePin(item);
             Notify(InfoBarSeverity.Success,
-                item.Pinned ? P("Pinned", "已釘選") : P("Unpinned", "已取消釘選"),
+                item.Pinned ? P("Pinned", "å·²é‡˜é¸") : P("Unpinned", "å·²å–æ¶ˆé‡˜é¸"),
                 "");
         };
         actions.Children.Add(pinBtn);
@@ -335,16 +366,16 @@ public sealed partial class ClipboardModule : Page
         if (item.Kind == ClipKind.Text || item.Kind == ClipKind.Files)
         {
             var plain = new Button { Padding = new Thickness(8, 3, 8, 3), Content = new FontIcon { Glyph = GlyphPlain, FontSize = 12 } };
-            ToolTipService.SetToolTip(plain, P("Paste as plain text", "貼為純文字"));
+            ToolTipService.SetToolTip(plain, P("Paste as plain text", "è²¼ç‚ºç´”æ–‡å­—"));
             plain.Click += (_, _) =>
             {
                 ClipboardService.CopyPlainText(QrPayload(item));
-                Notify(InfoBarSeverity.Success, P("Copied as plain text", "已複製做純文字"), P("Formatting stripped — paste anywhere.", "已剝走格式 — 隨處貼上。"));
+                Notify(InfoBarSeverity.Success, P("Copied as plain text", "å·²è¤‡è£½åšç´”æ–‡å­—"), P("Formatting stripped â€” paste anywhere.", "å·²å‰èµ°æ ¼å¼ â€” éš¨è™•è²¼ä¸Šã€‚"));
             };
             actions.Children.Add(plain);
 
             var qr = new Button { Padding = new Thickness(8, 3, 8, 3), Content = new FontIcon { Glyph = GlyphQr, FontSize = 12 } };
-            ToolTipService.SetToolTip(qr, P("Make QR code", "整 QR 碼"));
+            ToolTipService.SetToolTip(qr, P("Make QR code", "æ•´ QR ç¢¼"));
             qr.Click += async (_, _) => await ShowQrDialog(QrPayload(item));
             actions.Children.Add(qr);
         }
@@ -355,16 +386,16 @@ public sealed partial class ClipboardModule : Page
             foreach (var f in new[] { "PNG", "JPG", "BMP", "GIF" }) fmt.Items.Add(f);
             fmt.SelectedIndex = 1;
             actions.Children.Add(fmt);
-            var save = new Button { Padding = new Thickness(8, 3, 8, 3), Content = P("Save", "儲存") };
+            var save = new Button { Padding = new Thickness(8, 3, 8, 3), Content = P("Save", "å„²å­˜") };
             save.Click += async (_, _) =>
             {
                 try
                 {
                     var ext = "." + (fmt.SelectedItem as string ?? "PNG").ToLowerInvariant();
                     var outp = await ClipboardService.SaveImageAs(item, ext);
-                    Notify(InfoBarSeverity.Success, P("Saved", "已儲存"), outp);
+                    Notify(InfoBarSeverity.Success, P("Saved", "å·²å„²å­˜"), outp);
                 }
-                catch (Exception ex) { Notify(InfoBarSeverity.Error, P("Failed", "失敗"), ex.Message); }
+                catch (Exception ex) { Notify(InfoBarSeverity.Error, P("Failed", "å¤±æ•—"), ex.Message); }
             };
             actions.Children.Add(save);
         }
@@ -375,7 +406,7 @@ public sealed partial class ClipboardModule : Page
             foreach (var f in new[] { "mp3", "wav", "flac", "m4a", "mp4", "mkv", "gif" }) fmt.Items.Add(f);
             fmt.SelectedIndex = 0;
             actions.Children.Add(fmt);
-            var conv = new Button { Padding = new Thickness(8, 3, 8, 3), Content = P("Convert", "轉檔") };
+            var conv = new Button { Padding = new Thickness(8, 3, 8, 3), Content = P("Convert", "è½‰æª”") };
             conv.Click += async (_, _) =>
             {
                 // Media auto-convert needs ffmpeg. If it's missing, offer a first-class in-place install
@@ -387,16 +418,16 @@ public sealed partial class ClipboardModule : Page
                 }
                 var ext = "." + (fmt.SelectedItem as string ?? "mp3");
                 var outp = Path.Combine(Path.GetDirectoryName(target) ?? ".", Path.GetFileNameWithoutExtension(target) + "-wt" + ext);
-                Notify(InfoBarSeverity.Informational, P("Converting…", "轉緊…"), Path.GetFileName(outp));
+                Notify(InfoBarSeverity.Informational, P("Convertingâ€¦", "è½‰ç·Šâ€¦"), Path.GetFileName(outp));
                 var r = await ShellRunner.Run(MediaService.FFmpeg, $"-y -i \"{target}\" \"{outp}\"", false, CancellationToken.None);
                 Notify(r.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error,
-                    r.Success ? P("Converted", "已轉檔") : P("Convert failed", "轉檔失敗"), outp);
+                    r.Success ? P("Converted", "å·²è½‰æª”") : P("Convert failed", "è½‰æª”å¤±æ•—"), outp);
             };
             actions.Children.Add(conv);
         }
 
         var del = new Button { Padding = new Thickness(8, 3, 8, 3), Content = new FontIcon { Glyph = GlyphDelete, FontSize = 12 } };
-        ToolTipService.SetToolTip(del, P("Delete", "刪除"));
+        ToolTipService.SetToolTip(del, P("Delete", "åˆªé™¤"));
         del.Click += (_, _) => ClipboardService.Remove(item);
         actions.Children.Add(del);
 
@@ -426,14 +457,14 @@ public sealed partial class ClipboardModule : Page
             var text = await ReadClipboardTextOrUrlAsync();
             if (string.IsNullOrWhiteSpace(text))
             {
-                Notify(InfoBarSeverity.Warning, P("No text or URL on the clipboard", "剪貼簿冇文字或者網址"), "");
+                Notify(InfoBarSeverity.Warning, P("No text or URL on the clipboard", "å‰ªè²¼ç°¿å†‡æ–‡å­—æˆ–è€…ç¶²å€"), "");
                 return;
             }
             await ShowQrDialog(text);
         }
         catch (Exception ex)
         {
-            Notify(InfoBarSeverity.Error, P("Could not make QR code", "整唔到 QR 碼"), ex.Message);
+            Notify(InfoBarSeverity.Error, P("Could not make QR code", "æ•´å””åˆ° QR ç¢¼"), ex.Message);
         }
     }
 
@@ -452,20 +483,40 @@ public sealed partial class ClipboardModule : Page
             if (content.Contains(StandardDataFormats.Text))
             {
                 var text = await content.GetTextAsync();
-                return text.Length > 180 ? text.Substring(0, 180) + "…" : text;
+                return text.Length > 180 ? text.Substring(0, 180) + "â€¦" : text;
             }
             if (content.Contains(StandardDataFormats.WebLink))
             {
                 var link = await content.GetWebLinkAsync();
-                return link?.ToString() ?? P("Web link", "網頁連結");
+                return link?.ToString() ?? P("Web link", "ç¶²é é€£çµ");
             }
             if (content.Contains(StandardDataFormats.Bitmap))
-                return P("Image", "圖片");
+                return P("Image", "åœ–ç‰‡");
             if (content.Contains(StandardDataFormats.StorageItems))
-                return P("Files", "檔案");
+                return P("Files", "æª”æ¡ˆ");
         }
         catch { }
-        return P("Clipboard item", "剪貼簿項目");
+        return P("Clipboard item", "å‰ªè²¼ç°¿é …ç›®");
+    }
+
+    private static async System.Threading.Tasks.Task<string> NativePlainTextAsync(DataPackageView content)
+    {
+        try
+        {
+            if (content.Contains(StandardDataFormats.Text))
+                return await content.GetTextAsync();
+            if (content.Contains(StandardDataFormats.WebLink))
+                return (await content.GetWebLinkAsync())?.ToString() ?? "";
+            if (content.Contains(StandardDataFormats.StorageItems))
+            {
+                var items = await content.GetStorageItemsAsync();
+                var paths = items.Select(x => x.Path).Where(path => !string.IsNullOrWhiteSpace(path)).ToList();
+                if (paths.Count > 0)
+                    return string.Join(Environment.NewLine, paths);
+            }
+        }
+        catch { }
+        return "";
     }
 
     private static async System.Threading.Tasks.Task<string> ReadClipboardTextOrUrlAsync()
@@ -490,20 +541,20 @@ public sealed partial class ClipboardModule : Page
     {
         if (string.IsNullOrWhiteSpace(text))
         {
-            Notify(InfoBarSeverity.Warning, P("Nothing to encode", "冇嘢可以編碼"), "");
+            Notify(InfoBarSeverity.Warning, P("Nothing to encode", "å†‡å˜¢å¯ä»¥ç·¨ç¢¼"), "");
             return;
         }
         // QR (alphanumeric/byte) tops out around ~2.9 KB; guard so we give a friendly message.
         if (text.Length > 2900)
         {
-            Notify(InfoBarSeverity.Warning, P("Too much text for a QR code", "文字太多，整唔到 QR 碼"),
-                P("QR codes hold roughly 2,900 characters. Shorten the text and try again.", "QR 碼大約只能放 2,900 個字元。請縮短文字再試。"));
+            Notify(InfoBarSeverity.Warning, P("Too much text for a QR code", "æ–‡å­—å¤ªå¤šï¼Œæ•´å””åˆ° QR ç¢¼"),
+                P("QR codes hold roughly 2,900 characters. Shorten the text and try again.", "QR ç¢¼å¤§ç´„åªèƒ½æ”¾ 2,900 å€‹å­—å…ƒã€‚è«‹ç¸®çŸ­æ–‡å­—å†è©¦ã€‚"));
             return;
         }
 
         byte[] png;
         try { png = ClipboardService.GenerateQrPng(text); }
-        catch (Exception ex) { Notify(InfoBarSeverity.Error, P("Could not make QR code", "整唔到 QR 碼"), ex.Message); return; }
+        catch (Exception ex) { Notify(InfoBarSeverity.Error, P("Could not make QR code", "æ•´å””åˆ° QR ç¢¼"), ex.Message); return; }
 
         var image = new Image { Stretch = Stretch.Uniform, MaxHeight = 320, MaxWidth = 320 };
         var bmp = new BitmapImage();
@@ -514,7 +565,7 @@ public sealed partial class ClipboardModule : Page
 
         var caption = new TextBlock
         {
-            Text = text.Length > 120 ? text.Substring(0, 120) + "…" : text,
+            Text = text.Length > 120 ? text.Substring(0, 120) + "â€¦" : text,
             FontFamily = new FontFamily("Consolas"),
             FontSize = 12,
             TextWrapping = TextWrapping.Wrap,
@@ -532,11 +583,11 @@ public sealed partial class ClipboardModule : Page
         var dialog = new ContentDialog
         {
             XamlRoot = this.XamlRoot,
-            Title = P("QR code · QR 碼", "QR 碼 · QR code"),
+            Title = P("QR code Â· QR ç¢¼", "QR ç¢¼ Â· QR code"),
             Content = panel,
-            PrimaryButtonText = P("Save PNG…", "儲存 PNG…"),
-            SecondaryButtonText = P("Copy image", "複製圖片"),
-            CloseButtonText = P("Close", "關閉"),
+            PrimaryButtonText = P("Save PNGâ€¦", "å„²å­˜ PNGâ€¦"),
+            SecondaryButtonText = P("Copy image", "è¤‡è£½åœ–ç‰‡"),
+            CloseButtonText = P("Close", "é—œé–‰"),
             DefaultButton = ContentDialogButton.Primary,
         };
 
@@ -544,21 +595,21 @@ public sealed partial class ClipboardModule : Page
         dialog.PrimaryButtonClick += (_, args) =>
         {
             args.Cancel = true;
-            try { var p = ClipboardService.SaveQrPng(text); Notify(InfoBarSeverity.Success, P("Saved", "已儲存"), p); }
-            catch (Exception ex) { Notify(InfoBarSeverity.Error, P("Failed", "失敗"), ex.Message); }
+            try { var p = ClipboardService.SaveQrPng(text); Notify(InfoBarSeverity.Success, P("Saved", "å·²å„²å­˜"), p); }
+            catch (Exception ex) { Notify(InfoBarSeverity.Error, P("Failed", "å¤±æ•—"), ex.Message); }
         };
         dialog.SecondaryButtonClick += (_, args) =>
         {
             args.Cancel = true;
-            try { ClipboardService.CopyQrToClipboard(text); Notify(InfoBarSeverity.Success, P("QR copied to clipboard", "QR 碼已複製到剪貼簿"), ""); }
-            catch (Exception ex) { Notify(InfoBarSeverity.Error, P("Failed", "失敗"), ex.Message); }
+            try { ClipboardService.CopyQrToClipboard(text); Notify(InfoBarSeverity.Success, P("QR copied to clipboard", "QR ç¢¼å·²è¤‡è£½åˆ°å‰ªè²¼ç°¿"), ""); }
+            catch (Exception ex) { Notify(InfoBarSeverity.Error, P("Failed", "å¤±æ•—"), ex.Message); }
         };
 
         await dialog.ShowAsync();
     }
 
     /// <summary>
-    /// 缺 ffmpeg 時彈出即場安裝流程 · When ffmpeg is missing, pop a dialog hosting the rich install control
+    /// ç¼º ffmpeg æ™‚å½ˆå‡ºå³å ´å®‰è£æµç¨‹ Â· When ffmpeg is missing, pop a dialog hosting the rich install control
     /// (real progress bar + live bilingual status + % + Cancel + success/error animation) so the user can
     /// install it (winget Gyan.FFmpeg) without leaving the module, then retry the conversion. Never throws.
     /// </summary>
@@ -567,15 +618,15 @@ public sealed partial class ClipboardModule : Page
         try
         {
             var install = WinForge.Services.EngineBars.AutoInstallProgress(
-                "Gyan.FFmpeg", P("Install ffmpeg automatically", "自動安裝 ffmpeg"),
-                P("Install ffmpeg automatically", "自動安裝 ffmpeg"),
+                "Gyan.FFmpeg", P("Install ffmpeg automatically", "è‡ªå‹•å®‰è£ ffmpeg"),
+                P("Install ffmpeg automatically", "è‡ªå‹•å®‰è£ ffmpeg"),
                 rescan: MediaService.Rescan);
 
             var panel = new StackPanel { Spacing = 10 };
             panel.Children.Add(new TextBlock
             {
-                Text = P("ffmpeg is required to convert this media file. Install it with live progress — no restart needed.",
-                         "轉呢個媒體檔需要 ffmpeg。即時睇住進度自動安裝 — 唔使重開。"),
+                Text = P("ffmpeg is required to convert this media file. Install it with live progress â€” no restart needed.",
+                         "è½‰å‘¢å€‹åª’é«”æª”éœ€è¦ ffmpegã€‚å³æ™‚ç‡ä½é€²åº¦è‡ªå‹•å®‰è£ â€” å””ä½¿é‡é–‹ã€‚"),
                 TextWrapping = TextWrapping.Wrap,
             });
             panel.Children.Add(install);
@@ -583,14 +634,14 @@ public sealed partial class ClipboardModule : Page
             var dialog = new ContentDialog
             {
                 XamlRoot = this.XamlRoot,
-                Title = P("ffmpeg not found", "搵唔到 ffmpeg"),
+                Title = P("ffmpeg not found", "æµå””åˆ° ffmpeg"),
                 Content = panel,
-                CloseButtonText = P("Close", "關閉"),
+                CloseButtonText = P("Close", "é—œé–‰"),
                 DefaultButton = ContentDialogButton.Close,
             };
             await dialog.ShowAsync();
         }
-        catch (Exception ex) { Notify(InfoBarSeverity.Error, P("Failed", "失敗"), ex.Message); }
+        catch (Exception ex) { Notify(InfoBarSeverity.Error, P("Failed", "å¤±æ•—"), ex.Message); }
     }
 
     private void Notify(InfoBarSeverity sev, string title, string msg)
@@ -598,3 +649,4 @@ public sealed partial class ClipboardModule : Page
         ResultBar.Severity = sev; ResultBar.Title = title; ResultBar.Message = msg; ResultBar.IsOpen = true;
     }
 }
+
