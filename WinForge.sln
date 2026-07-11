@@ -12,6 +12,7 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PackageManagerCore.Tests", "tests\PackageManagerCore.Tests\PackageManagerCore.Tests.csproj", "{D7E3C944-31CB-4A2B-9F9E-6B2A2DCC83A7}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KeePassCrypto.Tests", "tests\KeePassCrypto.Tests\KeePassCrypto.Tests.csproj", "{AAAE0FFA-28CC-4A5B-93E2-73669B3FCE93}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AdbSecurity.Tests", "tests\AdbSecurity.Tests\AdbSecurity.Tests.csproj", "{F0A5B32F-4C4F-4F51-9A3B-6D4EE5C587DA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -83,6 +84,18 @@ Global
 		{AAAE0FFA-28CC-4A5B-93E2-73669B3FCE93}.Release|x86.Build.0 = Release|Any CPU
 		{AAAE0FFA-28CC-4A5B-93E2-73669B3FCE93}.Release|ARM64.ActiveCfg = Release|Any CPU
 		{AAAE0FFA-28CC-4A5B-93E2-73669B3FCE93}.Release|ARM64.Build.0 = Release|Any CPU
+		{F0A5B32F-4C4F-4F51-9A3B-6D4EE5C587DA}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{F0A5B32F-4C4F-4F51-9A3B-6D4EE5C587DA}.Debug|x64.Build.0 = Debug|Any CPU
+		{F0A5B32F-4C4F-4F51-9A3B-6D4EE5C587DA}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{F0A5B32F-4C4F-4F51-9A3B-6D4EE5C587DA}.Debug|x86.Build.0 = Debug|Any CPU
+		{F0A5B32F-4C4F-4F51-9A3B-6D4EE5C587DA}.Debug|ARM64.ActiveCfg = Debug|Any CPU
+		{F0A5B32F-4C4F-4F51-9A3B-6D4EE5C587DA}.Debug|ARM64.Build.0 = Debug|Any CPU
+		{F0A5B32F-4C4F-4F51-9A3B-6D4EE5C587DA}.Release|x64.ActiveCfg = Release|Any CPU
+		{F0A5B32F-4C4F-4F51-9A3B-6D4EE5C587DA}.Release|x64.Build.0 = Release|Any CPU
+		{F0A5B32F-4C4F-4F51-9A3B-6D4EE5C587DA}.Release|x86.ActiveCfg = Release|Any CPU
+		{F0A5B32F-4C4F-4F51-9A3B-6D4EE5C587DA}.Release|x86.Build.0 = Release|Any CPU
+		{F0A5B32F-4C4F-4F51-9A3B-6D4EE5C587DA}.Release|ARM64.ActiveCfg = Release|Any CPU
+		{F0A5B32F-4C4F-4F51-9A3B-6D4EE5C587DA}.Release|ARM64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

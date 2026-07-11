@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
@@ -30,12 +31,53 @@ public static class ShellRunner
         => RunIn(null, fileName, arguments, elevated, ct);
 
     /// <summary>
+    /// Runs a process with a real argument vector rather than a shell-parsed command line.
+    /// This is the safe path for values that originate outside WinForge (for example device addresses,
+    /// file paths, and remote commands). Argument boundaries are preserved with
+    /// <see cref="ProcessStartInfo.ArgumentList"/>.
+    /// </summary>
+    /// <remarks>
+    /// UAC elevation is intentionally not synthesized here. The existing elevated runner must use
+    /// cmd.exe to capture output, which would discard the argument-vector safety guarantee. Callers
+    /// needing elevation must validate and construct their own trusted command instead.
+    /// </remarks>
+    public static Task<TweakResult> RunArguments(string fileName, IReadOnlyList<string> arguments,
+        bool elevated = false, CancellationToken ct = default)
+        => RunArgumentsStreaming(fileName, arguments, onLine: null, elevated: elevated,
+            workingDirectory: null, ct: ct);
+
+    /// <summary>
     /// 喺指定資料夾執行程序 · Run a process with an explicit working directory (used by the Git module).
     /// </summary>
     public static Task<TweakResult> RunIn(string? workingDirectory, string fileName, string arguments,
         bool elevated = false, CancellationToken ct = default)
         => RunStreaming(fileName, arguments, onLine: null, elevated: elevated,
             workingDirectory: workingDirectory, ct: ct);
+
+    /// <summary>Streams a process started with an argument vector. See <see cref="RunArguments"/>.</summary>
+    public static async Task<TweakResult> RunArgumentsStreaming(string fileName, IReadOnlyList<string> arguments,
+        IProgress<string>? onLine, bool elevated = false, string? workingDirectory = null,
+        CancellationToken ct = default)
+    {
+        arguments ??= Array.Empty<string>();
+        try
+        {
+            if (elevated && !AdminHelper.IsElevated)
+                return TweakResult.Fail(
+                    "Safe argument-list execution cannot prompt for elevation. Run WinForge as administrator first.",
+                    "安全參數清單執行唔可以彈出提權提示。請先用管理員身分開啟 WinForge。");
+
+            return await RunRedirected(fileName, arguments, onLine, workingDirectory, ct);
+        }
+        catch (OperationCanceledException)
+        {
+            return TweakResult.Fail("Cancelled.", "已取消。");
+        }
+        catch (Exception ex)
+        {
+            return TweakResult.Fail(ex.Message, $"出錯：{ex.Message}");
+        }
+    }
 
     /// <summary>
     /// 串流執行：逐行報告輸出（畀進度／狀態 UI 用），並擷取完整輸出 + 真正結束代碼。
@@ -82,13 +124,24 @@ public static class ShellRunner
     }
 
     // ── Non-elevated redirected run with live line streaming ─────────────────────
-    private static async Task<TweakResult> RunRedirected(string fileName, string arguments,
+    private static Task<TweakResult> RunRedirected(string fileName, string arguments,
+        IProgress<string>? onLine, string? workingDirectory, CancellationToken ct)
+        => RunRedirected(fileName, info => info.Arguments = arguments, onLine, workingDirectory, ct);
+
+    private static Task<TweakResult> RunRedirected(string fileName, IReadOnlyList<string> arguments,
+        IProgress<string>? onLine, string? workingDirectory, CancellationToken ct)
+        => RunRedirected(fileName, info =>
+        {
+            foreach (var argument in arguments)
+                info.ArgumentList.Add(argument ?? string.Empty);
+        }, onLine, workingDirectory, ct);
+
+    private static async Task<TweakResult> RunRedirected(string fileName, Action<ProcessStartInfo> setArguments,
         IProgress<string>? onLine, string? workingDirectory, CancellationToken ct)
     {
         var info = new ProcessStartInfo
         {
             FileName = fileName,
-            Arguments = arguments,
             UseShellExecute = false,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -96,6 +149,7 @@ public static class ShellRunner
             StandardOutputEncoding = Encoding.UTF8,
             StandardErrorEncoding = Encoding.UTF8,
         };
+        setArguments(info);
         if (!string.IsNullOrEmpty(workingDirectory)) info.WorkingDirectory = workingDirectory;
 
         using var p = new Process { StartInfo = info, EnableRaisingEvents = true };
@@ -452,6 +506,14 @@ public static class ShellRunner
     public static async Task<string> Capture(string fileName, string arguments, CancellationToken ct = default)
     {
         var r = await Run(fileName, arguments, elevated: false, ct);
+        return r.Output ?? string.Empty;
+    }
+
+    /// <summary>Captures output from a process launched with a real argument vector.</summary>
+    public static async Task<string> CaptureArguments(string fileName, IReadOnlyList<string> arguments,
+        CancellationToken ct = default)
+    {
+        var r = await RunArguments(fileName, arguments, elevated: false, ct: ct);
         return r.Output ?? string.Empty;
     }
 
