@@ -382,7 +382,7 @@
   - _PowerShell DnsClient module: Set-DnsClientServerAddress -InterfaceIndex N -ServerAddresses ('1.1.1.1','1.0.0.1'); reset to DHCP with -ResetServerAddresses. Enumerate adapters via Get-DnsClientServerAddress; flush with Clear-DnsClientCache._
 
 ### Clipboard & QR Toolkit · 🆕 new module / 新模組  (2)
-- [ ] **Generate QR code from clipboard text/URL** · 由剪貼簿啲字或者網址整個QR碼
+- [x] **Generate QR code from clipboard text/URL** · 由剪貼簿啲字或者網址整個QR碼
   - _Encode locally with the QRCoder NuGet library: QRCodeGenerator.CreateQrCode(text, ECCLevel.Q) then new PngByteQRCode(data).GetGraphic(20). Save the PNG and/or place the bitmap on the clipboard. No network call._
 - [x] **Clipboard history viewer with pin & paste-as-plain** · 睇返剪貼簿歷史，可以釘住同貼純文字
   - _Enable history first: HKCU\Software\Microsoft\Clipboard value EnableClipboardHistory (REG_DWORD)=1 (or open ms-settings:clipboard). At runtime use Windows.ApplicationModel.DataTransfer.Clipboard.GetHistoryItemsAsync(); re-copy a chosen entry with SetHistoryItemAsContent; 'paste plain' builds a fresh DataPackage with SetText only to drop rich formats._

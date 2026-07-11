@@ -23,12 +23,20 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <controls:ModuleHeader x:Name="Header" Grid.Column="0" Glyph="&#xE77F;" />
-            <Button x:Name="ClearBtn" Grid.Column="1" Click="Clear_Click" VerticalAlignment="Center">
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <FontIcon Glyph="&#xE74D;" FontSize="14" />
-                    <TextBlock x:Name="ClearText" />
-                </StackPanel>
-            </Button>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <Button x:Name="QrBtn" Click="MakeQrFromClipboard_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xED14;" FontSize="14" />
+                        <TextBlock x:Name="QrText" />
+                    </StackPanel>
+                </Button>
+                <Button x:Name="ClearBtn" Click="Clear_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE74D;" FontSize="14" />
+                        <TextBlock x:Name="ClearText" />
+                    </StackPanel>
+                </Button>
+            </StackPanel>
         </Grid>
         <TextBlock x:Name="HeaderBlurb" Grid.Row="1" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
 
