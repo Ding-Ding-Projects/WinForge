@@ -142,6 +142,35 @@ dotnet run --project tests/SettingsStore.Tests -c Debug
 
 **粵語 —** 建置、啟動、截圖、行為同副作用證據會分開。截圖被阻擋就如實報告，唔會當作視覺通過；有狀態嘅功能會用 fixtures、dry-runs 或者可還原 probe，除非明確批准真實執行。
 
+### GitHub Pages Payload Regeneration · GitHub Pages 資料重建
+
+**EN —** GitHub Pages embeds the authored `docs/wiki` Markdown in
+`design/winforge-data.js`. After any wiki or generated-reference change, run
+the generator so the published site cannot serve stale documentation. The
+script exports the live registry from a self-contained WinForge build, rejects
+wiki paths outside `docs/wiki`, and serializes a plain data graph that works in
+Windows PowerShell 5.1 as well as newer PowerShell versions.
+
+**粵語 —** GitHub Pages 會將寫好嘅 `docs/wiki` Markdown 嵌入
+`design/winforge-data.js`。任何 wiki 或生成 reference 有改之後，都要跑
+generator，避免發佈咗嘅網站仲顯示舊文件。個 script 會由 self-contained
+WinForge build 匯出 live registry、拒絕 `docs/wiki` 以外嘅 wiki path，並將資料
+轉成 Windows PowerShell 5.1 同新版本 PowerShell 都用到嘅普通資料圖。
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\regen-site-data.ps1
+```
+
+**Visual evidence · 視覺證據：** This is a documentation-payload build step;
+no WinUI layout changes, so screenshot replacement is not applicable. · 呢個係
+文件 payload 建置步驟，冇 WinUI 排版改動，所以唔適用截圖替換。
+
+### Reactor Harness Exit Contract · 反應堆測試框架退出規約
+
+**EN —** `tests/ReactorSim.Tests` is a focused `net8.0-windows` console harness for the real reactor and dependent services. Its normal run prints every scenario, returns **0 only when every scenario passes**, and returns **1** when any scenario fails or throws; it can therefore be used directly as a CI gate. Run `dotnet run --project tests/ReactorSim.Tests -c Debug -- --verify-exit-code-contract` for the fast deterministic check of that mapping without running the simulator scenarios. If this workspace has `DOTNET_ROOT` pointed at the local .NET 11 SDK, clear it or use the system .NET 8 runtime first.
+
+**粵語 —** `tests/ReactorSim.Tests` 係針對真實反應堆同相依服務嘅 `net8.0-windows` console 測試框架。正常運行會列印每個情景，**全部情景 PASS** 先會回傳 **0**；任何情景失敗或者拋出例外就會回傳 **1**，所以可以直接做 CI gate。用 `dotnet run --project tests/ReactorSim.Tests -c Debug -- --verify-exit-code-contract` 可以唔跑模擬器情景、快速而確定噉驗證呢個 mapping。如果此 workspace 將 `DOTNET_ROOT` 指向本機 .NET 11 SDK，先清除佢或者使用系統 .NET 8 runtime。
+
 ### KeePass KDF Regression · KeePass KDF 回歸測試
 
 **EN —** Run the focused headless KDBX KDF check after changing the native vault crypto. It verifies that the KDBX Argon2d and Argon2id UUIDs select different, matching derivations without opening a real vault or exposing credentials.

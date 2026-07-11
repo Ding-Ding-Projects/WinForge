@@ -4,11 +4,23 @@
 
 **粵語 —** 呢份係現時真實 C# 反應堆引擎，同燃料、廢料、水處理、app 供電閘門、蛋糕工廠相依服務嘅無介面驗證報告。測試框架直接編譯正式服務程式碼，唔係用假反應堆代替。
 
-**Latest verified run · 最新已驗證執行：** 2026-07-09
+**Latest verified run · 最新已驗證執行：** 2026-07-11
 
 ```powershell
 dotnet run --project tests/ReactorSim.Tests -c Debug
 ```
+
+## CI exit-code contract · CI 退出碼規約
+
+**EN —** The normal harness run emits a per-scenario PASS/FAIL line and ends with an explicit summary. It exits **0 only when all scenarios pass**; any failed assertion or caught scenario exception makes the process exit **1**. CI must treat any nonzero exit as a failed reactor verification rather than relying on the printed count alone. For a fast deterministic regression of the mapping itself (without executing reactor scenarios), run:
+
+**粵語 —** 正常測試框架運行會列印每個情景嘅 PASS／FAIL 行，同埋最後清楚嘅總結。**全部情景通過**先會退出 **0**；任何斷言失敗或者捉到嘅情景例外都會令程序退出 **1**。CI 一見到非零 exit 就要當反應堆驗證失敗，唔可以淨係靠睇列印嘅數目。想快速而確定噉回歸 mapping 本身（唔會跑反應堆情景），請行：
+
+```powershell
+dotnet run --project tests/ReactorSim.Tests -c Debug -- --verify-exit-code-contract
+```
+
+**Visual evidence · 視覺證據 —** Not applicable / 不適用. This change touches only the headless console harness and documentation; no WinUI page or visual layout changed, so no screenshot replacement is required or claimed.
 
 **Build / harness · 建置／測試框架：** 0 compile errors · 0 個編譯錯誤
 
