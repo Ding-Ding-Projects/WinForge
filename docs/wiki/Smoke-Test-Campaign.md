@@ -17,7 +17,7 @@ Generated on 2026-07-11 from the live source:
 | Companion specifications · Companion 規格 | 4 |
 | External-app launcher specifications · 外部 app launcher 規格 | 15 |
 | First-party source files in review queue · source files 審查佇列 | 1,251 |
-| First-party source lines in review queue · source lines 審查佇列 | 336,087 |
+| First-party source lines in review queue · source lines 審查佇列 | 336,147 |
 | Test projects · 測試專案 | 7 |
 | Wiki pages · Wiki 頁面 | 2,192 |
 
@@ -251,5 +251,20 @@ manual-routing entry 留低。產生嘅證據保留喺 Git 忽略嘅
 `artifacts/smoke/launch-batches/batch-04/` 目錄。依家 campaign 對 321 條
 manifest routes 入面頭 100 條有 current route-launch 證據；佢仍然只係 launch，
 唔係 visual 或 behavioral completion。
+
+## Reactor Harness Exit-Code Gate · 反應堆測試框架退出碼閘門
+
+**EN —** On 2026-07-11 the focused `ReactorSim.Tests` console harness was changed from a reporting-only summary to a CI gate. It now prints the existing per-scenario result and summary, returns **0 only for a complete pass**, and returns **1** if any scenario fails or throws. The fast `--verify-exit-code-contract` mode checks the all-pass and partial-failure mappings without running simulator scenarios.
+
+**粵語 —** 2026-07-11 專注嘅 `ReactorSim.Tests` console 測試框架由淨係報告結果，改成 CI gate。佢而家會保留原本每個情景嘅結果同總結，**完全通過**先會回傳 **0**；任何情景失敗或者拋出例外就會回傳 **1**。快速嘅 `--verify-exit-code-contract` 模式會唔跑模擬器情景、驗證全部通過同部分失敗嘅 mapping。
+
+- Visual evidence: not applicable. This task changes a headless console harness and documentation only; no WinUI page or canonical screenshot changed, and no screenshot replacement is claimed.
+- **Standalone linkage · 獨立連結：** Merge validation found that this linked-source
+  harness also needs `SettingsStorePersistence.cs` whenever it compiles
+  `SettingsStore.cs`; the project now links both files, and the exit-contract
+  test plus the complete **63/63** suite pass again. 合併驗證亦發現呢個
+  linked-source harness 編譯 `SettingsStore.cs` 時需要一齊連結
+  `SettingsStorePersistence.cs`；而家兩個檔都已連結，exit-contract 測試同完整
+  **63/63** 套件再次通過。
 
 [← Wiki Home](Home.md) · [Developer](Developer.md) · [Screenshots](Screenshots.md)

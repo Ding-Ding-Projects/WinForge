@@ -55,6 +55,7 @@
     <Compile Include="..\..\Services\CakeFileService.cs"        Link="Engine\CakeFileService.cs" />
     <Compile Include="..\..\Services\CakeCreditService.cs"      Link="Engine\CakeCreditService.cs" />
     <Compile Include="..\..\Services\SettingsStore.cs"          Link="Engine\SettingsStore.cs" />
+    <Compile Include="..\..\Services\SettingsStorePersistence.cs" Link="Engine\SettingsStorePersistence.cs" />
   </ItemGroup>
 
 </Project>

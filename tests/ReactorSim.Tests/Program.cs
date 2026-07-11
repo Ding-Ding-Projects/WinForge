@@ -32,6 +32,10 @@ namespace ReactorSim.Tests;
 internal static class Program
 {
     // ----------------------------------------------------------------- tiny test framework ----
+    private const int SuccessExitCode = 0;
+    private const int ScenarioFailureExitCode = 1;
+    private const int UsageExitCode = 2;
+
     private sealed record ScenarioResult(string Name, bool Pass, string Detail);
 
     private static readonly List<ScenarioResult> Results = new();
@@ -56,8 +60,17 @@ internal static class Program
     private static bool Finite(double d) => !double.IsNaN(d) && !double.IsInfinity(d);
     private static double Avg(double[] a) { double s = 0; foreach (var x in a) s += x; return s / a.Length; }
 
-    private static int Main()
+    private static int Main(string[] args)
     {
+        if (args.Length == 1 && string.Equals(args[0], "--verify-exit-code-contract", StringComparison.Ordinal))
+            return VerifyExitCodeContract();
+
+        if (args.Length > 0)
+        {
+            Console.Error.WriteLine("Usage: ReactorSim.Tests [--verify-exit-code-contract]");
+            return UsageExitCode;
+        }
+
         Console.WriteLine("反應堆引擎情景測試套件 · Reactor engine/dependent simulator scenario test suite");
         Console.WriteLine("Driving the real ReactorSimService / FuelFactoryService / NuclearWasteService / WaterTreatmentService / CakeFactoryService.");
         Console.WriteLine(new string('-', 95));
@@ -82,8 +95,55 @@ internal static class Program
             if (r.Pass) pass++;
         }
         Console.WriteLine(new string('-', 95));
-        Console.WriteLine($"  {pass}/{Results.Count} scenarios passed.");
-        return 0; // reporting harness, not a CI gate
+        int failed = Results.Count - pass;
+        Console.WriteLine($"  {pass}/{Results.Count} scenarios passed; {failed} failed.");
+
+        int exitCode = ExitCodeForScenarioSummary(pass, Results.Count);
+        Console.WriteLine(exitCode == SuccessExitCode
+            ? "  Exit code: 0 (all scenarios passed)."
+            : "  Exit code: 1 (one or more scenarios failed).");
+        return exitCode;
+    }
+
+    /// <summary>
+    /// Maps the visible scenario summary to the process contract consumed by CI.
+    /// A partial pass is still a failed harness run; never report it as success.
+    /// </summary>
+    private static int ExitCodeForScenarioSummary(int passed, int total)
+    {
+        if (passed < 0 || total < 0 || passed > total)
+            throw new ArgumentOutOfRangeException(nameof(passed), "Scenario totals must satisfy 0 <= passed <= total.");
+
+        return passed == total ? SuccessExitCode : ScenarioFailureExitCode;
+    }
+
+    /// <summary>
+    /// Fast, deterministic coverage of the exit-code contract. It intentionally avoids executing
+    /// the simulator scenarios so CI can validate the gate itself independently of the long suite.
+    /// </summary>
+    private static int VerifyExitCodeContract()
+    {
+        Console.WriteLine("Reactor scenario harness exit-code contract self-test");
+        var cases = new (int Passed, int Total, int Expected)[]
+        {
+            (63, 63, SuccessExitCode),
+            (62, 63, ScenarioFailureExitCode),
+            (0, 1, ScenarioFailureExitCode),
+        };
+
+        bool allPassed = true;
+        foreach (var test in cases)
+        {
+            int actual = ExitCodeForScenarioSummary(test.Passed, test.Total);
+            bool passed = actual == test.Expected;
+            allPassed &= passed;
+            Console.WriteLine($"  [{(passed ? "PASS" : "FAIL")}] {test.Passed}/{test.Total} scenarios -> exit {actual} (expected {test.Expected})");
+        }
+
+        Console.WriteLine(allPassed
+            ? "  Exit-code contract verified."
+            : "  Exit-code contract verification failed.");
+        return allPassed ? SuccessExitCode : ScenarioFailureExitCode;
     }
 
     // ============================================================================ PHYSICS ====
