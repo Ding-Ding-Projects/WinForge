@@ -92,6 +92,25 @@ dotnet publish WinForge.csproj -c Release -p:Platform=x64 -r win-x64 ^
 
 **粵語 —** 有改視覺介面就一定要有最新截圖；影唔到就記低確實阻礙，唔可以當視覺驗證通過。系統、網絡、套件、認證同整合嘅實際副作用，除非有明確授權，否則只會用安全同可還原嘅路徑測試。
 
+**EN —** A 2026-07-11 capture-fallback audit established that this desktop
+session is capture-blocked end to end: a fresh self-contained Dashboard
+`CopyFromScreen` attempt returned `The handle is invalid`; successful
+`PrintWindow(PW_RENDERFULLCONTENT)` produced an inspected 682×1311 PNG that
+was uniformly `ARGB #FF000000` across 3,198 sampled pixels; and
+Windows.Graphics.Capture `CreateForWindow` created items for both WinForge
+(668×1304) and an owned coloured WinForms diagnostic window (706×473), but
+neither free-threaded frame pool delivered `FrameArrived` within 12 seconds.
+No valid PNG was produced or substituted, so this is never a visual-pass claim.
+
+**粵語 —** 2026-07-11 嘅截圖 fallback 審查證實呢個 desktop session 由頭到尾都擷取
+受阻：新 self-contained Dashboard 嘅 `CopyFromScreen` 嘗試回傳
+`The handle is invalid`；雖然 `PrintWindow(PW_RENDERFULLCONTENT)` 回傳成功，
+但已檢查嘅 682×1311 PNG 係 3,198 個抽樣像素都同一隻 `ARGB #FF000000`；而
+Windows.Graphics.Capture `CreateForWindow` 雖然為 WinForge（668×1304）同自有
+有色 WinForms 診斷視窗（706×473）建立到 item，兩個 free-threaded frame pool
+喺 12 秒內都冇 `FrameArrived`。冇產生或者用其他圖頂替有效 PNG，所以絕對唔係
+visual-pass 聲稱。
+
 **EN —** Settings persistence is integrity-first: `%LOCALAPPDATA%\WinForge\settings.json` is replaced atomically only after a flushed same-directory temporary write, preserving the prior complete snapshot as `settings.json.bak`. A malformed primary restores from a valid backup while retaining a `settings.json.corrupt-*` evidence copy; if neither snapshot is valid, ordinary writes fail closed rather than serializing defaults over user data.
 
 **粵語 —** 設定儲存以完整性行先：`%LOCALAPPDATA%\WinForge\settings.json` 只會喺同一資料夾嘅臨時檔案寫好兼 flush 咗之後先原子式替換，上一個完整快照會保留做 `settings.json.bak`。主檔案壞咗會由有效備份還原，同時留低 `settings.json.corrupt-*` 證據副本；兩份都唔有效就會 fail closed，平常寫入唔會用預設值蓋走使用者資料。
@@ -127,15 +146,18 @@ launch, retry, and screenshot-blocker evidence.
 確實 build、launch、retry 同截圖阻礙證據請睇
 [冒煙測試清單](docs/wiki/Smoke-Test-Campaign.md)。
 
-**EN —** Launch-only batches 01–05 now provide current process-level route
-evidence for the first 125 of 321 manifest routes. A fresh final-current-build
-Batch 05 `githubdesktopprofiles` capture reached its route but `CopyFromScreen`
-returned `The handle is invalid`, so no screenshot was created or replaced and
-this is not a visual-completion claim.
+**EN —** Launch-only batches 01–06 now provide current process-level route
+evidence for the first 150 of 321 manifest routes. Batch 06 exercised indices
+125–149: all 25 reached `launch-pass`; `h2plant` used its bounded 15-second
+retry after the initial 5-second observation, while the other 24 passed first
+attempt. Its fresh capture attempt again reached `CopyFromScreen` but returned
+`The handle is invalid`, so no screenshot was created or replaced and this is
+not a visual-completion claim.
 
-**粵語 —** 淨 launch batches 01–05 而家為 321 條 manifest routes 入面頭 125 條
-提供咗最新嘅 process-level route 證據。最終 current-build Batch 05
-`githubdesktopprofiles` 截圖嘗試有開到 route，但 `CopyFromScreen` 報
+**粵語 —** 淨 launch batches 01–06 而家為 321 條 manifest routes 入面頭 150 條
+提供咗最新嘅 process-level route 證據。Batch 06 測咗 indices 125–149：25 條都
+`launch-pass`；`h2plant` 喺初始 5 秒 observation 後用咗受限嘅 15 秒 retry，其餘
+24 條都係第一次通過。最新截圖嘗試同樣開到 `CopyFromScreen`，但回傳
 `The handle is invalid`；所以冇新增或替換截圖，亦唔係 visual-completion 聲稱。
 
 ---

@@ -6,17 +6,36 @@ Canonical screenshots live in `docs/` and are embedded here through raw GitHub U
 
 ## Current Capture Status · 目前擷取狀態
 
-**EN —** On 2026-07-11, the repaired HTML Table Convert page was launched from
-a fresh self-contained build and a current capture was attempted. The driver
-reached the page, but `CopyFromScreen` returned `The handle is invalid`. The
-startup repair does not intentionally change page layout; no visual-pass claim,
-canonical-image replacement, or stale-image substitution is published while
-this desktop capture blocker remains.
+**EN —** On 2026-07-11, a fresh self-contained Dashboard capture reproduced
+`CopyFromScreen`: `The handle is invalid`. The direct `PrintWindow` fallback
+returned success but its inspected 682×1311 PNG was uniformly
+`ARGB #FF000000` across 3,198 samples. Windows.Graphics.Capture
+`CreateForWindow` could create capture items for both WinForge and an owned
+coloured diagnostic window, but neither free-threaded frame pool received a
+frame within 12 seconds. Therefore this desktop session has no valid capture
+fallback: no PNG was created/replaced, no stale image was substituted, and no
+visual-pass result is published.
 
-**粵語 —** 2026-07-11 已經用新 self-contained build 開咗修好後嘅 HTML 表格轉換
-頁面，亦試過攞最新截圖。driver 開到頁面，但 `CopyFromScreen` 回傳
-`The handle is invalid`。啟動修復本身冇刻意改頁面排版；呢個 desktop 截圖阻礙未解決前，
-唔會聲稱 visual pass、唔會換 canonical image，亦唔會用舊圖頂替。
+**粵語 —** 2026-07-11 嘅新 self-contained Dashboard 截圖重現咗
+`CopyFromScreen`: `The handle is invalid`。直接 `PrintWindow` fallback 雖然
+回傳成功，但已檢查嘅 682×1311 PNG 喺 3,198 個抽樣都係
+`ARGB #FF000000`。Windows.Graphics.Capture `CreateForWindow` 雖然可以為
+WinForge 同自有有色診斷視窗建立 capture item，但兩個 free-threaded frame pool
+喺 12 秒內都收唔到 frame。所以呢個 desktop session 冇有效 capture fallback：
+冇建立／替換 PNG、冇用舊圖頂替，亦冇發佈 visual-pass 結果。
+
+**EN —** Batch 06 repeated the capture check against H2 Plant after its fresh
+self-contained route launch. `driver.ps1 -Out` again stopped at
+`CopyFromScreen`: `The handle is invalid`; a `PrintWindow` fallback attempt
+then reported `ERROR: bad window rect`, while the previously successful-call
+fallback output is uniformly black. No valid PNG exists for this batch, so no
+canonical screenshot was replaced and no visual-pass status is claimed.
+
+**粵語 —** Batch 06 喺新 self-contained route launch 之後，再試咗 H2 Plant
+capture。`driver.ps1 -Out` 又喺 `CopyFromScreen` 報 `The handle is invalid`；
+`PrintWindow` fallback 跟住報 `ERROR: bad window rect`，而之前成功 call 到嘅
+fallback output 仍然係 uniform-black。呢批冇有效 PNG，所以冇換 canonical
+截圖，亦唔會聲稱 visual-pass。
 
 ## Redaction Rules · 遮蔽規則
 
