@@ -7,6 +7,7 @@ using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Navigation;
 using WinForge.Models;
 using WinForge.Services;
 
@@ -29,6 +30,7 @@ public sealed partial class PackageManagerModule : Page
     private bool _syncingSearchOptions;
     private bool _eventsSubscribed;
     private int _operationRefreshPending;
+    private int? _pendingNavigationView;
 
     /// <summary>Selection identity includes the validated source so two same-ID search results do not collapse.</summary>
     private static string PkgKey(PackageItem i)
@@ -55,6 +57,19 @@ public sealed partial class PackageManagerModule : Page
         Unloaded += OnUnloaded;
     }
 
+    /// <summary>
+    /// 接收 <c>module.packages#discover|updates|installed</c> 呢類深層連結。
+    /// Accept Package Manager deep links such as <c>module.packages#discover|updates|installed</c>.
+    /// </summary>
+    protected override void OnNavigatedTo(NavigationEventArgs e)
+    {
+        base.OnNavigatedTo(e);
+        if (!PackageManagerViewRouting.TryGetViewIndex(e.Parameter as string, out var view)) return;
+
+        _pendingNavigationView = view;
+        ApplyPendingNavigationView();
+    }
+
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
         if (!_eventsSubscribed)
@@ -66,6 +81,7 @@ public sealed partial class PackageManagerModule : Page
         Render();
         BuildManagerFilters();
         BuildViewCombo();
+        ApplyPendingNavigationView();
         UpdateBatchBar();
         UpdateOperationsButton();
         await CheckAvailability();
@@ -209,6 +225,21 @@ public sealed partial class PackageManagerModule : Page
         ViewCombo.Items.Add(P("Settings", "設定")); // 背景／通知／系統匣設定（index 7）· background/notify/tray settings.
         ViewCombo.Items.Add(P("Operations", "操作佇列"));
         ViewCombo.SelectedIndex = sel < 0 ? 0 : sel;
+    }
+
+    private void ApplyPendingNavigationView()
+    {
+        if (_pendingNavigationView is not int view || ViewCombo.Items.Count <= view) return;
+
+        _pendingNavigationView = null;
+        _view = view;
+        if (ViewCombo.SelectedIndex == view)
+        {
+            if (IsLoaded) _ = LoadView();
+            return;
+        }
+
+        ViewCombo.SelectedIndex = view;
     }
 
     private void BuildManagerFilters()

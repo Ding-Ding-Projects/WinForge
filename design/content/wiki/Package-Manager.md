@@ -6,6 +6,12 @@
 
 **粵語 —** WinForge 原生套件管理工作區支援 11 個管理器：WinGet、Scoop、Chocolatey、pip、npm、.NET 工具、Windows PowerShell Gallery、PowerShell 7 PSResourceGet、Cargo、Bun 同 vcpkg。九個檢視涵蓋搜尋、更新、已安裝套件、清單、來源、忽略規則、引擎設定、背景設定同共用操作佇列。
 
+## Tray shortcuts and deep links · 系統匣捷徑同深層連結
+
+- The system-tray **Discover packages**, **Updates**, and **Installed packages** commands bring WinForge forward and select that exact Package Manager view, instead of the generic default. · 系統匣嘅 **搜尋安裝**、**可更新** 同 **已安裝** 指令會帶返 WinForge 去前景，並直接揀返對應嘅套件管理檢視，而唔係一般預設頁。
+- Use `--page package-discover`, `--page package-updates`, or `--page package-installed` for fresh automation. They resolve to native `module.packages#discover`, `module.packages#updates`, and `module.packages#installed` routes; no upstream executable or UI is launched. · 自動化可用 `--page package-discover`、`--page package-updates` 或 `--page package-installed`。佢哋會解析去原生 `module.packages#discover`、`module.packages#updates` 同 `module.packages#installed` route；完全唔會啟動上游 executable 或 UI。
+- The smoke inventory records these three additional aliases under `module.packages`, with no unmapped alias or structural routing issue. · Smoke inventory 已將呢三個新增 alias 記錄喺 `module.packages` 之下，冇任何 unmapped alias 或結構導覽問題。
+
 ## Manager-specific correctness · 各管理器操作保障
 
 - Setup dependencies use the shared coordinator and are marked installed only after success. · Setup 相依會經共用協調器執行，淨係成功先標記做已安裝。

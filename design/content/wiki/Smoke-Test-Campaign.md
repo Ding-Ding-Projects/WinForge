@@ -12,12 +12,12 @@ Generated on 2026-07-11 from the live source:
 
 | Coverage surface · 涵蓋範圍 | Baseline count · 基線數量 |
 | --- | ---: |
-| Registered/map/navigation route records · 已登記／對映／導航 routes | 321 |
-| Deep-link aliases · 深層連結別名 | 790 |
+| Registered/map/navigation route records · 已登記／對映／導航 routes | 322 |
+| Deep-link aliases · 深層連結別名 | 800 |
 | Companion specifications · Companion 規格 | 4 |
 | External-app launcher specifications · 外部 app launcher 規格 | 15 |
-| First-party source files in review queue · source files 審查佇列 | 1,257 |
-| First-party source lines in review queue · source lines 審查佇列 | 342,740 |
+| First-party source files in review queue · source files 審查佇列 | 1,264 |
+| First-party source lines in review queue · source lines 審查佇列 | 343,904 |
 | Test projects · 測試專案 | 7 |
 | Wiki pages · Wiki 頁面 | 2,217 |
 
@@ -687,5 +687,78 @@ contract。新嘅 self-contained publish 成功開到 `--page packages`
 `CopyFromScreen` 唔可用；`PrintWindow` fallback 得到 uniform frame，而呢個 desktop
 session 嘅 graphics capture 亦唔可用。輸出 PNG 冇產生、檢查、替換或者重用。之後
 `-NoCapture` launch 通過，但呢個只係 `capture-blocked` launch 證據，絕對唔係視覺驗證。
+
+## Launch-only Batch 08 · 第八批淨啟動測試
+
+**EN —** On 2026-07-11, the final post-merge inventory recorded **322 routes**,
+**800 deep-link aliases**, 1,264 source-review files, and 343,904 source-review
+lines, with no structural routing mismatch. It retained the same 25 route IDs
+at launchable indices 175–199: mactools, mail, markdown, markdowntoc, mdtable,
+media, mediaplayer, metatags, mime, minecraftlauncher, minecraftserver,
+minecraftworldtools, mixer, monitor, morse, mouse, mouseutils, mwb, namegen,
+native, newplus, nilesoftshell, nmap, notes, and numberformat. The isolated
+5-second/15-second protocol ended **25/25 launch-pass**. mactools logged
+initial exit 1 at 5 seconds because no dedicated window was observed, then
+passed the bounded 15-second retry; the other 24 passed on their initial
+five-second attempt. Raw manifests and every attempt log remain in ignored
+artifacts/smoke/launch-batches/batch-08/ and artifacts/smoke/launch-batch-08/
+directories.
+
+**Source-review and safety evidence · 來源審查同安全證據：** The direct XAML,
+code-behind, and service scope for all 25 routes was reviewed. All **201** named
+XAML event-handler references resolve, every route balances its
+LanguageChanged subscription, and direct scope contains no TODO, FIXME, or
+NotImplementedException marker. The focused
+Test-WinForgeXamlLiteralSafety.ps1 -RepoRoot . guard passed its 16 managed
+ToggleSwitch defaults, one protected CheckBox default, and ten reproduced
+NumberBox defaults. The merged full Debug x64 build passed with **0 errors**.
+Mail/IMAP, media conversion and file writes, Minecraft downloads/launches,
+audio and mouse changes, network scanning, shell/configuration changes, and
+note saves were intentionally not invoked without a disposable target and
+explicit authorization. No concrete defect was reproduced; the Mac Tools retry
+is recorded as a slow first-render observation, not an initial-pass result.
+
+**Visual evidence · 視覺證據：** A fresh
+driver.ps1 -Page mactools -Out artifacts/smoke/launch-batches/batch-08/screenshots/mactools-default.png -WaitMs 15000
+attempt reached the page window but could not capture it. CopyFromScreen was
+unavailable; the driver tried PrintWindow, detected a uniform frame, and
+stopped with CopyFromScreen is unavailable and the PrintWindow fallback
+produced a uniform frame; graphics capture is unavailable in this desktop
+session. No PNG was saved, inspected, replaced, or reused. Batch 08 is
+capture-blocked, never visual-pass or behavioral completion. This brings
+current process-level route-launch evidence to the first **200 of 322** routes.
+
+**粵語 —** 2026-07-11 合併後嘅最終 inventory 記錄咗 **322 條 routes**、
+**800 個 deep-link aliases**、1,264 個 source-review files 同 343,904 行
+source-review lines，冇 structural routing mismatch。launchable indices 175–199
+仍然係同一組 25 條：mactools、mail、markdown、markdowntoc、mdtable、media、
+mediaplayer、metatags、mime、minecraftlauncher、minecraftserver、
+minecraftworldtools、mixer、monitor、morse、mouse、mouseutils、mwb、namegen、
+native、newplus、nilesoftshell、nmap、notes 同 numberformat。獨立 5 秒／15 秒
+protocol 最終係 **25/25 launch-pass**。mactools 第一次五秒記錄到 exit 1，因為未
+見到獨立視窗；受限 15 秒 retry 之後通過。其餘 24 條第一次五秒就通過。原始
+manifest 同每次 attempt log 會留喺 Git 忽略嘅
+artifacts/smoke/launch-batches/batch-08/ 同 artifacts/smoke/launch-batch-08/
+目錄。
+
+**來源審查同安全證據 · Source-review and safety evidence：** 已審查晒 25 條
+route 直屬嘅 XAML、code-behind 同 service scope。全部 **201** 個有名 XAML
+event-handler reference 都 resolve，每條 route 嘅 LanguageChanged subscription
+都有對應解除，direct scope 冇 TODO、FIXME 或 NotImplementedException marker。
+專注嘅 Test-WinForgeXamlLiteralSafety.ps1 -RepoRoot . guard 通過咗 16 個 managed
+ToggleSwitch defaults、一個受保護 CheckBox default，同 10 個已重現嘅 NumberBox
+defaults。合併後完整 Debug x64 build 以 **0 errors** 通過。Mail／IMAP、媒體轉檔
+同檔案寫入、Minecraft 下載／啟動、音訊同滑鼠變更、網絡掃描、shell／設定變更，
+同 notes 儲存，冇 disposable target 同明確授權下都刻意冇執行。冇重現到具體
+defect；Mac Tools retry 只記為慢嘅第一次 render observation，唔當第一次 pass。
+
+**視覺證據 · Visual evidence：** 最新
+driver.ps1 -Page mactools -Out artifacts/smoke/launch-batches/batch-08/screenshots/mactools-default.png -WaitMs 15000
+嘗試有開到頁面視窗，但攞唔到截圖。CopyFromScreen 唔可用；driver 試咗
+PrintWindow、發現係 uniform frame，之後以 CopyFromScreen is unavailable and the
+PrintWindow fallback produced a uniform frame; graphics capture is unavailable
+in this desktop session. 停止。冇 PNG 儲存、檢查、替換或者重用。Batch 08 係
+capture-blocked，絕對唔係 visual-pass 或 behavioral completion。依家 current
+process-level route-launch 證據去到 322 條 routes 入面頭 **200** 條。
 
 [← Wiki Home](Home.md) · [Developer](Developer.md) · [Screenshots](Screenshots.md)

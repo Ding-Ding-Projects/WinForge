@@ -19,7 +19,7 @@ public static class TrayService
     private const uint NIF_MESSAGE = 0x1, NIF_ICON = 0x2, NIF_TIP = 0x4;
     private const int IDM_OPEN = 1, IDM_QUIT = 2;
     // 套件管理導覽（ADDITIVE — 唔影響既有 Open/Quit）· Package-manager navigation entries (additive).
-    private const int IDM_DISCOVER = 10, IDM_UPDATES = 11, IDM_INSTALLED = 12;
+    private const int IDM_DISCOVER = 10, IDM_UPDATES = 11, IDM_INSTALLED = 12, IDM_POWERDISPLAY = 13;
     private const uint TPM_RIGHTBUTTON = 0x0002, TPM_RETURNCMD = 0x0100;
     private const uint MF_STRING = 0x0, MF_SEPARATOR = 0x800;
 
@@ -196,6 +196,8 @@ public static class TrayService
         AppendMenu(menu, MF_STRING, IDM_DISCOVER, Loc.I.Pick("Discover packages · 搜尋安裝", "搜尋安裝 · Discover packages"));
         AppendMenu(menu, MF_STRING, IDM_UPDATES, upLabel);
         AppendMenu(menu, MF_STRING, IDM_INSTALLED, Loc.I.Pick("Installed packages · 已安裝", "已安裝 · Installed packages"));
+        if (PowerDisplayService.Enabled && PowerDisplayService.ShowTrayMenuItem)
+            AppendMenu(menu, MF_STRING, IDM_POWERDISPLAY, Loc.I.Pick("Power Display · 顯示器控制", "顯示器控制 · Power Display"));
         AppendMenu(menu, MF_SEPARATOR, 0, "");
 
         AppendMenu(menu, MF_STRING, IDM_QUIT, "Quit · 結束");
@@ -208,19 +210,20 @@ public static class TrayService
         {
             case IDM_OPEN: _onOpen?.Invoke(); break;
             case IDM_QUIT: _onQuit?.Invoke(); break;
-            case IDM_DISCOVER: NavigateToPackages(); break;
-            case IDM_UPDATES: NavigateToPackages(); break;
-            case IDM_INSTALLED: NavigateToPackages(); break;
+            case IDM_DISCOVER: NavigateToPackages(PackageManagerViewTarget.Discover); break;
+            case IDM_UPDATES: NavigateToPackages(PackageManagerViewTarget.Updates); break;
+            case IDM_INSTALLED: NavigateToPackages(PackageManagerViewTarget.Installed); break;
+            case IDM_POWERDISPLAY: PowerDisplayService.ShowCompactPanel(); break;
         }
     }
 
-    /// <summary>顯示視窗並導覽去套件管理模組（ADDITIVE）· Show the window then navigate to the package-manager module.</summary>
-    private static void NavigateToPackages()
+    /// <summary>顯示視窗並導覽去指定套件管理檢視（ADDITIVE）· Show the window then navigate to a specific Package Manager view.</summary>
+    private static void NavigateToPackages(PackageManagerViewTarget target)
     {
         try
         {
             _onOpen?.Invoke();
-            Navigator.GoToModule?.Invoke("module.packages");
+            Navigator.GoToModule?.Invoke(PackageManagerViewRouting.NavigationKey(target));
         }
         catch { /* navigation is best-effort */ }
     }

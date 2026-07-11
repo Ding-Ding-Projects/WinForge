@@ -29,6 +29,7 @@ await RunAsyncCase("conflicting package operations serialize", ConflictingOperat
 await RunAsyncCase("cancel all never starts queued work", CancelAllIsAtomic);
 await RunAsyncCase("operation output is bounded and redacted", OutputIsBoundedAndRedacted);
 await RunAsyncCase("cleanup timeout remains a failure", CleanupTimeoutRemainsFailure);
+Run("tray view deep-link routing", TrayViewDeepLinkRouting);
 if (failures.Count == 0) { Console.WriteLine($"PASS {passed}/{passed} package-manager core tests"); return 0; }
 foreach (var failure in failures) Console.Error.WriteLine(failure);
 Console.Error.WriteLine($"FAIL {failures.Count}/{passed + failures.Count} package-manager core tests");
@@ -43,6 +44,26 @@ async Task RunAsyncCase(string name, Func<Task> test)
 {
     try { await test(); passed++; Console.WriteLine($"PASS {name}"); }
     catch (Exception ex) { failures.Add($"FAIL {name}: {ex.Message}"); }
+}
+
+static void TrayViewDeepLinkRouting()
+{
+    var cases = new[]
+    {
+        (PackageManagerViewTarget.Discover, "discover", 0),
+        (PackageManagerViewTarget.Updates, "updates", 1),
+        (PackageManagerViewTarget.Installed, "installed", 2),
+    };
+
+    foreach (var (target, fragment, index) in cases)
+    {
+        Equal($"module.packages#{fragment}", PackageManagerViewRouting.NavigationKey(target), "navigation key");
+        Assert(PackageManagerViewRouting.TryGetViewIndex(fragment.ToUpperInvariant(), out var actual), "fragment did not parse");
+        Equal(index, actual, "view index");
+    }
+
+    Assert(!PackageManagerViewRouting.TryGetViewIndex("operations", out _), "unsupported view was accepted");
+    Assert(!PackageManagerViewRouting.TryGetViewIndex(null, out _), "empty view was accepted");
 }
 
 static void RoundTrip(string format)
