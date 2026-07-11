@@ -34,11 +34,11 @@ public static class CommandPaletteService
     private const string KeyDockPins = "cmdpal.dock.pins";
 
     // ===================== Provider identity · 提供者識別 =====================
-    public enum Provider { Apps, Modules, Files, Clipboard, Calculator, TimeDate, Settings, Services, Terminal, Run, System, Web }
+    public enum Provider { Apps, Windows, Modules, Files, Clipboard, Calculator, TimeDate, Settings, Services, Terminal, Run, System, Web }
 
     public static IReadOnlyList<Provider> AllProviders { get; } = new[]
     {
-        Provider.Apps, Provider.Modules, Provider.Files, Provider.Clipboard,
+        Provider.Apps, Provider.Windows, Provider.Modules, Provider.Files, Provider.Clipboard,
         Provider.Calculator, Provider.TimeDate, Provider.Settings, Provider.Services, Provider.Terminal,
         Provider.Run, Provider.System, Provider.Web,
     };
@@ -47,6 +47,7 @@ public static class CommandPaletteService
     public static (string En, string Zh) ProviderName(Provider p) => p switch
     {
         Provider.Apps => ("Installed apps", "已安裝程式"),
+        Provider.Windows => ("Open windows", "已開啟視窗"),
         Provider.Modules => ("WinForge modules", "WinForge 模組"),
         Provider.Files => ("Files & folders", "檔案與資料夾"),
         Provider.Clipboard => ("Clipboard history", "剪貼簿記錄"),
@@ -337,6 +338,7 @@ public static class CommandPaletteService
 
         if (IsProviderEnabled(Provider.Calculator)) AddCalculator(query, results);
         if (IsProviderEnabled(Provider.Apps)) AddApps(query, results);
+        if (IsProviderEnabled(Provider.Windows)) AddOpenWindows(query, results);
         if (IsProviderEnabled(Provider.Modules)) AddModules(query, results);
         if (IsProviderEnabled(Provider.Files)) AddFiles(query, results);
         if (IsProviderEnabled(Provider.Clipboard)) AddClipboard(query, results);
@@ -612,6 +614,42 @@ public static class CommandPaletteService
             || token.EndsWith(".cpl", StringComparison.OrdinalIgnoreCase)) return true;
         if (token.Contains('\\') || token.Contains('/')) return File.Exists(Environment.ExpandEnvironmentVariables(token));
         return false;
+    }
+
+    // ----- Window Walker · 視窗切換器 -----
+    private static void AddOpenWindows(string query, List<CommandPaletteResult> list)
+    {
+        var raw = query.Trim();
+        bool mode = raw.Equals("window", StringComparison.OrdinalIgnoreCase)
+            || raw.Equals("windows", StringComparison.OrdinalIgnoreCase)
+            || raw.Equals("win", StringComparison.OrdinalIgnoreCase)
+            || raw.StartsWith("window ", StringComparison.OrdinalIgnoreCase)
+            || raw.StartsWith("windows ", StringComparison.OrdinalIgnoreCase)
+            || raw.StartsWith("win ", StringComparison.OrdinalIgnoreCase);
+        if (!mode) return;
+
+        string needle = raw.StartsWith("windows", StringComparison.OrdinalIgnoreCase) ? raw.Substring("windows".Length).Trim()
+            : raw.StartsWith("window", StringComparison.OrdinalIgnoreCase) ? raw.Substring("window".Length).Trim()
+            : raw.Substring("win".Length).Trim();
+        int rank = 0;
+        foreach (var window in WindowWalkerService.List())
+        {
+            double score = string.IsNullOrWhiteSpace(needle) ? 88 - rank
+                : Math.Max(Fuzzy(needle, window.Title), Fuzzy(needle, window.ProcessName));
+            if (score <= 0) { rank++; continue; }
+            list.Add(new CommandPaletteResult
+            {
+                Title = window.Title,
+                Subtitle = Loc.I.Pick($"{window.ProcessName} · Press Enter to switch to this window",
+                    $"{window.ProcessName} · 按 Enter 切換到呢個視窗"),
+                Glyph = ((char)0xE7F4).ToString(),
+                ProviderTag = Loc.I.Pick("Window", "視窗"),
+                Score = 145 + score * 0.15,
+                Invoke = () => { WindowWalkerService.Activate(window.Handle); return true; },
+            });
+            rank++;
+            if (rank >= 32) break;
+        }
     }
 
     // ----- Files & folders · 檔案與資料夾 -----
