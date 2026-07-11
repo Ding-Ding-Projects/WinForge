@@ -20,6 +20,7 @@ public sealed partial class ClipboardModule : Page
     private static readonly string GlyphImage = ((char)0xEB9F).ToString();
     private static readonly string GlyphFiles = ((char)0xE8B7).ToString();
     private static readonly string GlyphCopy = ((char)0xE8C8).ToString();
+    private static readonly string GlyphPin = ((char)0xE718).ToString();
     private static readonly string GlyphDelete = ((char)0xE74D).ToString();
     private static readonly string GlyphQr = ((char)0xED14).ToString();      // QR code glyph
     private static readonly string GlyphPlain = ((char)0xE8E9).ToString();   // "paste as plain" (Font)
@@ -122,6 +123,21 @@ public sealed partial class ClipboardModule : Page
         ToolTipService.SetToolTip(copyBtn, P("Copy back", "複製返"));
         copyBtn.Click += (_, _) => { ClipboardService.CopyBack(item); Notify(InfoBarSeverity.Success, P("Copied to clipboard", "已複製到剪貼簿"), ""); };
         actions.Children.Add(copyBtn);
+
+        var pinBtn = new Button
+        {
+            Padding = new Thickness(8, 3, 8, 3),
+            Content = new FontIcon { Glyph = GlyphPin, FontSize = 12 },
+        };
+        ToolTipService.SetToolTip(pinBtn, item.Pinned ? P("Unpin", "取消釘選") : P("Pin", "釘選"));
+        pinBtn.Click += (_, _) =>
+        {
+            ClipboardService.TogglePin(item);
+            Notify(InfoBarSeverity.Success,
+                item.Pinned ? P("Pinned", "已釘選") : P("Unpinned", "已取消釘選"),
+                "");
+        };
+        actions.Children.Add(pinBtn);
 
         // Text & file items get "paste as plain text" + "make QR" (encode the text/paths locally).
         if (item.Kind == ClipKind.Text || item.Kind == ClipKind.Files)

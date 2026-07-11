@@ -18,6 +18,7 @@ public enum ClipKind { Text, Image, Files }
 public sealed class ClipItem
 {
     public ClipKind Kind { get; set; }
+    public bool Pinned { get; set; }
     public string Text { get; set; } = "";
     public string ImagePath { get; set; } = "";
     public List<string> Files { get; set; } = new();
@@ -266,15 +267,21 @@ public static class ClipboardService
 
     private static void Add(ClipItem item)
     {
-        History.Insert(0, item);
-        while (History.Count > MaxItems)
-        {
-            var drop = History[History.Count - 1];
-            History.RemoveAt(History.Count - 1);
-            TryDeleteImage(drop);
-        }
+        History.Insert(History.Count(i => i.Pinned), item);
+        TrimToLimit();
         SaveAndGitCommitAsync($"capture {item.Kind} {item.Time}");
         Changed?.Invoke();
+    }
+
+    private static void TrimToLimit()
+    {
+        while (History.Count > MaxItems)
+        {
+            var drop = History.LastOrDefault(i => !i.Pinned);
+            if (drop is null) break;
+            History.Remove(drop);
+            TryDeleteImage(drop);
+        }
     }
 
     /// <summary>Put an item back on the clipboard.</summary>
@@ -355,6 +362,21 @@ public static class ClipboardService
         TryDeleteImage(item);
         SaveAndGitCommitAsync("remove item");
         Changed?.Invoke();
+    }
+
+    public static void TogglePin(ClipItem item)
+    {
+        if (item is null || !History.Contains(item)) return;
+        try
+        {
+            var makePinned = !item.Pinned;
+            History.Remove(item);
+            item.Pinned = makePinned;
+            History.Insert(makePinned ? 0 : History.Count(i => i.Pinned), item);
+            SaveAndGitCommitAsync(makePinned ? "pin item" : "unpin item");
+            Changed?.Invoke();
+        }
+        catch { }
     }
 
     public static void Clear()
