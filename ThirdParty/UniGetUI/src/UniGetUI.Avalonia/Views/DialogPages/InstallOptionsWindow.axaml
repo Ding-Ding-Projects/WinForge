@@ -1,0 +1,62 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:automation="clr-namespace:Avalonia.Automation;assembly=Avalonia.Controls"
+        xmlns:vm="using:UniGetUI.Avalonia.ViewModels"
+        xmlns:dialogs="using:UniGetUI.Avalonia.Views.DialogPages"
+        xmlns:chrome="using:Avalonia.Controls.Chrome"
+        x:Class="UniGetUI.Avalonia.Views.InstallOptionsWindow"
+        x:DataType="vm:InstallOptionsViewModel"
+        Width="680" MinWidth="500"
+        SizeToContent="Height"
+        CanResize="False"
+        Background="{DynamicResource AppDialogBackground}"
+        WindowStartupLocation="CenterOwner"
+        Title="">
+
+    <Window.KeyBindings>
+        <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveCommand}"/>
+        <KeyBinding Gesture="Meta+S" Command="{Binding SaveCommand}"/>
+    </Window.KeyBindings>
+
+    <Window.Styles>
+        <!-- Extended client area adds a full-screen caption button; hide it so only the
+             standard window buttons remain (matches the Manage-ignored-updates window). -->
+        <Style Selector=":is(Control)[(chrome|WindowDecorationProperties.ElementRole)=FullScreenButton]">
+            <Setter Property="IsVisible" Value="False"/>
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="Auto,Auto">
+
+        <!-- Draggable title-bar strip: the client area is extended over the OS title bar,
+             so this restores window dragging (the ScrollViewer below would otherwise eat it). -->
+        <Border Grid.Row="0" Height="32" Background="Transparent"
+                PointerPressed="TitleBar_PointerPressed"/>
+
+        <ScrollViewer Grid.Row="1"
+                      MaxHeight="820"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Margin="16,4,16,16" Spacing="12">
+
+            <dialogs:InstallOptionsControl x:Name="OptionsControl"/>
+
+            <!-- ── Buttons ── -->
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                <Button x:Name="SaveButton"
+                        Content="{Binding SaveLabel}"
+                        automation:AutomationProperties.AcceleratorKey="Ctrl+S"
+                        Padding="12,5" CornerRadius="4"
+                        HorizontalAlignment="Left"
+                        Command="{Binding SaveCommand}"/>
+                <Button x:Name="ProceedButton"
+                        Grid.Column="1"
+                        Content="{Binding ProceedButtonLabel}"
+                        Padding="12,5" CornerRadius="4"
+                        Command="{Binding ProceedCommand}"/>
+            </Grid>
+
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Window>

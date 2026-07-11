@@ -1,0 +1,485 @@
+using Microsoft.Management.Deployment;
+using Microsoft.Win32;
+using UniGetUI.Core.Logging;
+using UniGetUI.Core.SettingsEngine;
+using UniGetUI.Core.Tools;
+using UniGetUI.PackageEngine.Classes.Manager.BaseProviders;
+using UniGetUI.PackageEngine.Enums;
+using UniGetUI.PackageEngine.Interfaces;
+using UniGetUI.PackageEngine.PackageClasses;
+using Architecture = UniGetUI.PackageEngine.Enums.Architecture;
+using InstallOptions = UniGetUI.PackageEngine.Serializable.InstallOptions;
+
+namespace UniGetUI.PackageEngine.Managers.WingetManager;
+
+internal sealed class WinGetPkgOperationHelper : BasePkgOperationHelper
+{
+    public static string GetIdNamePiece(IPackage package)
+    {
+        if (!package.Id.EndsWith("…"))
+            return $"--id \"{package.Id.TrimEnd('…')}\" --exact";
+
+        if (!package.Name.EndsWith("…"))
+            return $"--name \"{package.Name}\" --exact";
+
+        return $"--id \"{package.Id.TrimEnd('…')}\"";
+    }
+
+    public WinGetPkgOperationHelper(WinGet manager)
+        : base(manager) { }
+
+    protected override IReadOnlyList<string> _getOperationParameters(
+        IPackage package,
+        InstallOptions options,
+        OperationType operation
+    )
+    {
+        // Pinget 0.4.x does not accept --accept-source-agreements, --disable-interactivity,
+        // or --proxy on any verb; --accept-package-agreements, --force, --location, and
+        // --interactive are accepted on install/uninstall but rejected on upgrade.
+        bool usePinget =
+            ((WinGet)Manager).SelectedCliToolKind == WinGetCliToolKind.BundledPinget;
+
+        List<string> parameters =
+        [
+            operation switch
+            {
+                OperationType.Install => Manager.Properties.InstallVerb,
+                OperationType.Update => Manager.Properties.UpdateVerb,
+                OperationType.Uninstall => Manager.Properties.UninstallVerb,
+                _ => throw new InvalidDataException("Invalid package operation"),
+            },
+        ];
+
+        parameters.AddRange(GetIdNamePiece(package).Split(" "));
+        if (!package.Source.IsVirtualManager)
+        {
+            parameters.AddRange(["--source", package.Source.Name]);
+        }
+        if (!usePinget)
+        {
+            parameters.AddRange(["--accept-source-agreements", "--disable-interactivity"]);
+        }
+
+        // package.OverridenInstallationOptions.Scope is meaningless in WinGet packages. Default is unspecified, hence the _ => [].
+        // WinGet_DropArchAndScope is set after an "update not applicable" failure to retry without the scope/architecture constraints.
+        if (!package.OverridenOptions.WinGet_DropArchAndScope)
+        {
+            parameters.AddRange(
+                (package.OverridenOptions.Scope ?? options.InstallationScope) switch
+                {
+                    PackageScope.User => ["--scope", "user"],
+                    PackageScope.Machine => ["--scope", "machine"],
+                    _ => [],
+                }
+            );
+        }
+
+        if (
+            operation is OperationType.Uninstall
+            && package.VersionString != "Unknown"
+            && package.OverridenOptions.WinGet_SpecifyVersion is not false
+        )
+        {
+            parameters.AddRange(["--version", $"\"{package.VersionString}\""]);
+        }
+        else if (operation is OperationType.Install && options.Version != "")
+        {
+            parameters.AddRange(["--version", $"\"{options.Version}\""]);
+        }
+
+        if (usePinget && operation is OperationType.Update)
+        {
+            // pinget upgrade only supports --silent (no --interactive).
+            parameters.Add("--silent");
+        }
+        else
+        {
+            parameters.Add(options.InteractiveInstallation ? "--interactive" : "--silent");
+        }
+
+        if (operation is OperationType.Update)
+        {
+            if (package.Name.Contains("64-bit") || package.Id.ToLower().Contains("x64"))
+            {
+                options.Architecture = Architecture.x64;
+            }
+            else if (package.Name.Contains("32-bit") || package.Id.ToLower().Contains("x86"))
+            {
+                options.Architecture = Architecture.x86;
+            }
+            parameters.Add("--include-unknown");
+
+            if (!usePinget)
+            {
+                // For portable packages, always preserve the actual current install
+                // location read from the registry. A stale CustomInstallLocation in the
+                // saved InstallOptions would otherwise leave --location off and cause
+                // WinGet to uninstall the portable from its custom path and reinstall to
+                // the default portable root, silently deleting the original directory.
+                var detectedLocation = TryGetPortableInstallLocation(package);
+                if (detectedLocation is not null)
+                {
+                    parameters.AddRange(["--location", $"\"{detectedLocation}\""]);
+                }
+                else if (
+                    options.CustomInstallLocation != ""
+                    && Settings.Get(Settings.K.WinGetForceLocationOnUpdate)
+                )
+                {
+                    parameters.AddRange(["--location", $"\"{options.CustomInstallLocation}\""]);
+                }
+            }
+        }
+        else if (operation is OperationType.Install)
+        {
+            if (options.CustomInstallLocation != "")
+                parameters.AddRange(["--location", $"\"{options.CustomInstallLocation}\""]);
+        }
+
+        if (operation is not OperationType.Uninstall)
+        {
+            // pinget upgrade does not accept --accept-package-agreements or --force.
+            if (!(usePinget && operation is OperationType.Update))
+            {
+                parameters.AddRange(["--accept-package-agreements", "--force"]);
+            }
+
+            if (options.SkipHashCheck)
+                parameters.Add("--ignore-security-hash");
+
+            if (!package.OverridenOptions.WinGet_DropArchAndScope)
+            {
+                parameters.AddRange(
+                    options.Architecture switch
+                    {
+                        Architecture.x86 => ["--architecture", "x86"],
+                        Architecture.x64 => ["--architecture", "x64"],
+                        Architecture.arm64 => ["--architecture", "arm64"],
+                        _ => [],
+                    }
+                );
+            }
+        }
+
+        try
+        {
+            var installOptions = NativePackageHandler.GetInstallationOptions(
+                package,
+                options,
+                operation
+            );
+            if (
+                installOptions?.ElevationRequirement
+                is ElevationRequirement.ElevationRequired
+                    or ElevationRequirement.ElevatesSelf
+            )
+            {
+                Logger.Info(
+                    $"WinGet package {package.Id} requires elevation, forcing administrator rights..."
+                );
+                package.OverridenOptions.RunAsAdministrator = true;
+            }
+            else if (
+                installOptions?.ElevationRequirement is ElevationRequirement.ElevationProhibited
+            )
+            {
+                if (CoreTools.IsAdministrator())
+                    throw new UnauthorizedAccessException(
+                        CoreTools.Translate(
+                            "This package cannot be installed from an elevated context."
+                        )
+                            + CoreTools.Translate(
+                                "Please run UniGetUI as a regular user and try again."
+                            )
+                    );
+
+                if (options.RunAsAdministrator)
+                    throw new UnauthorizedAccessException(
+                        CoreTools.Translate(
+                            "This package cannot be installed from an elevated context."
+                        )
+                            + CoreTools.Translate(
+                                "Please check the installation options for this package and try again"
+                            )
+                    );
+
+                package.OverridenOptions.RunAsAdministrator = false;
+            }
+            else if (
+                installOptions?.Scope is PackageInstallerScope.System /* or PackageInstallerScope.Unknown*/
+            )
+            {
+                Logger.Info(
+                    $"WinGet package {package.Id} is installed on a system-wide scope, forcing administrator rights..."
+                );
+                package.OverridenOptions.RunAsAdministrator = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            if (ex is UnauthorizedAccessException)
+                throw;
+
+            Logger.Error("Recovered from fatal WinGet exception:");
+            Logger.Error(ex);
+        }
+
+        if (!usePinget)
+        {
+            parameters.Add(WinGet.GetProxyArgument());
+        }
+
+        parameters.AddRange(
+            operation switch
+            {
+                OperationType.Update => options.CustomParameters_Update,
+                OperationType.Uninstall => options.CustomParameters_Uninstall,
+                _ => options.CustomParameters_Install,
+            }
+        );
+        return parameters;
+    }
+
+    protected override OperationVeredict _getOperationResult(
+        IPackage package,
+        OperationType operation,
+        IReadOnlyList<string> processOutput,
+        int returnCode
+    )
+    {
+        // See https://github.com/microsoft/winget-cli/blob/master/doc/windows/package-manager/winget/returnCodes.md for reference
+        uint uintCode = (uint)returnCode;
+
+        if (uintCode is 0x8A150109)
+        { // TODO: Restart required to finish installation
+            if (operation is OperationType.Update or OperationType.Install)
+                MarkUpgradeAsDone(package);
+            return OperationVeredict.Success;
+        }
+
+        if (uintCode is 0x8A150077 or 0x8A15010C or 0x8A150005)
+        { // At some point, the user clicked cancel or Ctrl+C
+            return OperationVeredict.Canceled;
+        }
+
+        if (
+            operation is OperationType.Uninstall
+            && uintCode is 0x8A150017
+            && package.OverridenOptions.WinGet_SpecifyVersion is not false
+        )
+        { // No manifest found matching criteria
+            package.OverridenOptions.WinGet_SpecifyVersion = false;
+            return OperationVeredict.AutoRetry;
+        }
+
+        if (uintCode is 0x8A150011)
+        { // TODO: Integrity failed
+            return OperationVeredict.Failure;
+        }
+
+        // WinGet (CLI/COM) reports "not applicable" as 0x8A15002B; bundled pinget instead exits
+        // non-zero with "No applicable installer found" in its output.
+        bool pingetReportedNotApplicable =
+            ((WinGet)Manager).SelectedCliToolKind is WinGetCliToolKind.BundledPinget
+            && returnCode != 0
+            && processOutput.Any(line =>
+                line.Contains("No applicable installer found", StringComparison.OrdinalIgnoreCase)
+            );
+
+        if (uintCode is 0x8A15002B || pingetReportedNotApplicable)
+        { // The update is not applicable to the platform
+            // The scope/architecture we forced may exclude the only installer the package ships
+            // (e.g. forcing --architecture x64 on a package that only has an x86 installer). Retry
+            // once letting the package manager pick freely, matching what the CLI does by default.
+            if (operation is OperationType.Update && !package.OverridenOptions.WinGet_DropArchAndScope)
+            {
+                var options = InstallOptionsFactory.LoadApplicable(package);
+                bool hasScope =
+                    (package.OverridenOptions.Scope ?? options.InstallationScope)
+                    is PackageScope.User or PackageScope.Machine;
+                bool hasArch =
+                    options.Architecture is Architecture.x86 or Architecture.x64 or Architecture.arm64;
+
+                if (hasScope || hasArch)
+                {
+                    Logger.Warn(
+                        $"Update for {package.Id} reported as not applicable; retrying without the scope/architecture constraints"
+                    );
+                    package.OverridenOptions.WinGet_DropArchAndScope = true;
+                    return OperationVeredict.AutoRetry;
+                }
+            }
+
+            Logger.Warn(
+                $"Update for {package.Id} is not applicable to this system, even without scope/architecture constraints"
+            );
+            return OperationVeredict.Failure;
+        }
+
+        if (uintCode is 0x8A15010D or 0x8A15004F or 0x8A15010E)
+        { // Application is already installed
+            if (operation is OperationType.Update or OperationType.Install)
+                MarkUpgradeAsDone(package);
+            return OperationVeredict.Success;
+        }
+
+        if (returnCode is 0)
+        { // Operation succeeded
+            if (operation is OperationType.Update or OperationType.Install)
+                MarkUpgradeAsDone(package);
+            return OperationVeredict.Success;
+        }
+
+        if (
+            uintCode is 0x8A150056
+            && package.OverridenOptions.RunAsAdministrator is not false
+            && !CoreTools.IsAdministrator()
+        )
+        { // Installer can't run elevated, but this condition hasn't been forced on UniGetUI
+            package.OverridenOptions.RunAsAdministrator = false;
+            return OperationVeredict.AutoRetry;
+        }
+
+        if (
+            (uintCode is 0x8A150019 or 0x80073D28)
+            && package.OverridenOptions.RunAsAdministrator is not true
+        )
+        { // Installer needs to run elevated, handle autoelevation
+            // Code 0x80073D28 was added after https://github.com/Devolutions/UniGetUI/issues/3093
+            package.OverridenOptions.RunAsAdministrator = true;
+            return OperationVeredict.AutoRetry;
+        }
+
+        if (
+            operation is OperationType.Uninstall
+            && (uintCode is 0x8A150030)
+            && package.OverridenOptions.RunAsAdministrator is not true
+        )
+        { // Sometimes, when uninstalling, error code 0x8A150030 can be caused by missing permissions.
+            package.OverridenOptions.RunAsAdministrator = true;
+            return OperationVeredict.AutoRetry;
+        }
+
+        return OperationVeredict.Failure;
+    }
+
+    private static void MarkUpgradeAsDone(IPackage package)
+    {
+        var options = InstallOptionsFactory.LoadApplicable(package);
+        string version;
+        if (package.IsUpgradable)
+            version = package.NewVersionString;
+        else if (options.Version != "")
+            version = options.Version;
+        else
+            version = package.VersionString;
+        Settings.SetDictionaryItem<string, string>(
+            Settings.K.WinGetAlreadyUpgradedPackages,
+            package.Id,
+            version
+        );
+    }
+
+    public static bool UpdateAlreadyInstalled(IPackage package)
+    {
+        return Settings.GetDictionaryItem<string, string>(
+                Settings.K.WinGetAlreadyUpgradedPackages,
+                package.Id
+            ) == package.NewVersionString;
+    }
+
+    public static void ClearUpgradeMark(IPackage package)
+    {
+        Settings.RemoveDictionaryKey<string, string>(
+            Settings.K.WinGetAlreadyUpgradedPackages,
+            package.Id
+        );
+    }
+
+    // One-shot suppression: hide a just-upgraded package once (bridges CLI index lag), then clear
+    // the mark so a still-outdated package reappears next scan instead of forever (issue #5042).
+    public static bool ConsumeAlreadyUpgradedSuppression(IPackage package)
+    {
+        if (!UpdateAlreadyInstalled(package))
+            return false;
+
+        ClearUpgradeMark(package);
+        return true;
+    }
+
+    public static string GetLastInstalledVersion(string id)
+    {
+        var val = Settings.GetDictionaryItem<string, string>(
+            Settings.K.WinGetAlreadyUpgradedPackages,
+            id
+        );
+        if (val is null || val == "")
+            val = "Unknown";
+        return val;
+    }
+
+    /// <summary>
+    /// For portable WinGet packages, reads the current install location from the Windows registry
+    /// ARP entry (written by WinGet at install time). Returns null if the package is not portable
+    /// or the location cannot be determined.
+    /// </summary>
+    private static string? TryGetPortableInstallLocation(IPackage package)
+    {
+        try
+        {
+            foreach (
+                var hive in new RegistryKey[] { Registry.CurrentUser, Registry.LocalMachine }
+            )
+            {
+                using var uninstallKey = hive.OpenSubKey(
+                    @"Software\Microsoft\Windows\CurrentVersion\Uninstall"
+                );
+                if (uninstallKey is null)
+                    continue;
+
+                foreach (var name in uninstallKey.GetSubKeyNames())
+                {
+                    using var entry = uninstallKey.OpenSubKey(name);
+                    if (entry is null)
+                        continue;
+
+                    if (
+                        entry.GetValue("WinGetPackageIdentifier") is not string pkgId
+                        || !string.Equals(pkgId, package.Id, StringComparison.OrdinalIgnoreCase)
+                    )
+                        continue;
+
+                    if (
+                        entry.GetValue("WinGetInstallerType") is not string installerType
+                        || !string.Equals(
+                            installerType,
+                            "portable",
+                            StringComparison.OrdinalIgnoreCase
+                        )
+                    )
+                        return null;
+
+                    if (
+                        entry.GetValue("InstallLocation") is string location
+                        && location.Length > 0
+                    )
+                    {
+                        Logger.Info(
+                            $"Auto-detected portable install location for {package.Id}: {location}"
+                        );
+                        return location;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn(
+                $"Failed to auto-detect portable install location for {package.Id}: {ex.Message}"
+            );
+        }
+
+        return null;
+    }
+}

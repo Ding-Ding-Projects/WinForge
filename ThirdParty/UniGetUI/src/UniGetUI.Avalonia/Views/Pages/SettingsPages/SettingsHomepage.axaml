@@ -1,0 +1,96 @@
+<UserControl x:Class="UniGetUI.Avalonia.Views.Pages.SettingsPages.SettingsHomepage"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:UniGetUI.Avalonia.ViewModels.Pages.SettingsPages"
+             xmlns:settings="using:UniGetUI.Avalonia.Views.Controls.Settings"
+             xmlns:t="using:UniGetUI.Avalonia.MarkupExtensions"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             x:DataType="vm:SettingsHomepageViewModel">
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Orientation="Vertical" Margin="0,8">
+
+            <!-- ── General ─────────────────────────────────────────────── -->
+            <settings:SettingsPageButton CornerRadius="8"
+                Icon="Settings"
+                Text="{t:Translate General preferences}"
+                UnderText="{t:Translate Text='Language, theme and other miscellaneous preferences'}"
+                Command="{Binding NavigateToGeneralCommand}"/>
+
+            <Border Height="16"/>
+
+            <!-- ── Interface + Notifications ──────────────────────────── -->
+            <settings:SettingsPageButton CornerRadius="8,8,0,0"
+                Icon="Interactive"
+                Text="{t:Translate User interface preferences}"
+                UnderText="{t:Translate Text='Application theme, startup page, package icons, clear successful installs automatically'}"
+                Command="{Binding NavigateToInterfaceCommand}"/>
+            <settings:SettingsPageButton BorderThickness="1,0,1,1"
+                CornerRadius="0,0,8,8"
+                Icon="Megaphone"
+                Text="{t:Translate Notification preferences}"
+                UnderText="{t:Translate Show notifications on different events}"
+                Command="{Binding NavigateToNotificationsCommand}"/>
+
+            <Border Height="16"/>
+
+            <!-- ── Administrator ──────────────────────────────────────── -->
+            <settings:SettingsPageButton CornerRadius="8"
+                Icon="UAC"
+                Text="{t:Translate Administrator rights and other dangerous settings}"
+                UnderText="{t:Translate Text='Reduce UAC prompts, elevate installations by default, unlock certain dangerous features, etc.'}"
+                Command="{Binding NavigateToAdministratorCommand}"/>
+
+            <Border Height="16"/>
+
+            <!-- ── Operations + Updates ───────────────────────────────── -->
+            <settings:SettingsPageButton CornerRadius="8,8,0,0"
+                Icon="Package"
+                Text="{t:Translate Package operation preferences}"
+                UnderText="{t:Translate Text='Change how UniGetUI checks and installs available updates for your packages'}"
+                Command="{Binding NavigateToOperationsCommand}"/>
+            <settings:SettingsPageButton BorderThickness="1,0,1,1"
+                CornerRadius="0,0,8,8"
+                Icon="Update"
+                Text="{t:Translate Package update preferences}"
+                UnderText="{t:Translate Text='Update check frequency, automatically install updates, etc.'}"
+                Command="{Binding NavigateToUpdatesCommand}"/>
+
+            <Border Height="16"/>
+
+            <!-- ── Backup ─────────────────────────────────────────────── -->
+            <settings:SettingsPageButton CornerRadius="8"
+                Icon="Disk"
+                Text="{t:Translate Package backup}"
+                UnderText="{t:Translate Automatically save a list of all your installed packages to easily restore them.}"
+                Command="{Binding NavigateToBackupCommand}"/>
+
+            <Border Height="16"/>
+
+            <!-- ── Managers ───────────────────────────────────────────── -->
+            <settings:SettingsPageButton CornerRadius="8"
+                Icon="ClipboardList"
+                Text="{t:Translate Package manager preferences}"
+                UnderText="{t:Translate Text='Enable and disable package managers, change default install options, etc.'}"
+                Command="{Binding NavigateToManagersCommand}"/>
+
+            <Border Height="16"/>
+
+            <!-- ── Internet + Experimental ────────────────────────────── -->
+            <settings:SettingsPageButton CornerRadius="8,8,0,0"
+                Icon="Search"
+                Text="{t:Translate Internet connection settings}"
+                UnderText="{t:Translate Text='Proxy settings, etc.'}"
+                Command="{Binding NavigateToInternetCommand}"/>
+            <settings:SettingsPageButton x:Name="ExperimentalButton"
+                BorderThickness="1,0,1,1"
+                CornerRadius="0,0,8,8"
+                Icon="Experimental"
+                Text="{t:Translate Experimental settings and developer options}"
+                Command="{Binding NavigateToExperimentalCommand}"/>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

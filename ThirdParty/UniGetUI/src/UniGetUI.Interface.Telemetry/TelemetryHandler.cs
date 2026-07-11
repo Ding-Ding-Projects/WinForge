@@ -1,0 +1,452 @@
+using System.Collections.Concurrent;
+using System.Net.Http.Headers;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
+using UniGetUI.Core.Data;
+using UniGetUI.Core.Language;
+using UniGetUI.Core.Logging;
+using UniGetUI.Core.SettingsEngine;
+using UniGetUI.Core.Tools;
+using UniGetUI.PackageEngine;
+using UniGetUI.PackageEngine.Enums;
+using UniGetUI.PackageEngine.Interfaces;
+
+namespace UniGetUI.Interface.Telemetry;
+
+public enum TEL_InstallReferral
+{
+    DIRECT_SEARCH,
+    FROM_BUNDLE,
+    ALREADY_INSTALLED,
+}
+
+public enum TEL_OP_RESULT
+{
+    SUCCESS,
+    FAILED,
+    CANCELED,
+}
+
+public static class TelemetryHandler
+{
+    private const string OpenSearchUrl = "https://telemetry2.devolutions.net:9200";
+    private static string _openSearchUsername = "";
+    private static string _openSearchPassword = "";
+    private static bool _credentialsWarningLogged;
+    internal static Func<HttpRequestMessage, Task<HttpResponseMessage>>? TestSendAsyncOverride;
+
+    public static void Configure(string username, string password)
+    {
+        _openSearchUsername = username;
+        _openSearchPassword = password;
+    }
+
+    private static bool CredentialsConfigured()
+    {
+        if (!string.IsNullOrEmpty(_openSearchUsername)
+            && !_openSearchUsername.EndsWith("_UNSET")
+            && !string.IsNullOrEmpty(_openSearchPassword)
+            && !_openSearchPassword.EndsWith("_UNSET"))
+            return true;
+
+        if (!_credentialsWarningLogged)
+        {
+            Logger.Warn("[Telemetry] OpenSearch credentials are not configured — telemetry is disabled for this build.");
+            _credentialsWarningLogged = true;
+        }
+
+        return false;
+    }
+
+    // Index names — to be created on the OpenSearch server
+    private const string IndexActivity = "unigetui_activity_events";
+    private const string IndexPackage = "unigetui_package_events";
+    private const string IndexBundle = "unigetui_bundle_events";
+
+#if DEBUG
+    private const string IndexPrefix = "dev-";
+#else
+    private const string IndexPrefix = "";
+#endif
+
+    private static readonly HttpClient _httpClient = CreateHttpClient();
+    private static readonly ConcurrentQueue<UniGetUIPackageEvent> _pendingPackageEvents = new();
+    private static readonly Settings.K[] SettingsToSend =
+    [
+        Settings.K.DisableAutoUpdateWingetUI,
+        Settings.K.EnableUniGetUIBeta,
+        Settings.K.DisableSystemTray,
+        Settings.K.DisableNotifications,
+        Settings.K.DisableAutoCheckforUpdates,
+        Settings.K.AutomaticallyUpdatePackages,
+        Settings.K.AskToDeleteNewDesktopShortcuts,
+        Settings.K.EnablePackageBackup_LOCAL,
+        Settings.K.DoCacheAdminRights,
+        Settings.K.DoCacheAdminRightsForBatches,
+    ];
+
+    // -------------------------------------------------------------------------
+
+    private static HttpClient CreateHttpClient()
+    {
+        var httpClient = new HttpClient(CoreTools.GenericHttpClientParameters)
+        {
+            Timeout = TimeSpan.FromSeconds(30),
+        };
+        httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(CoreData.UserAgentString);
+        return httpClient;
+    }
+
+    public static async Task InitializeAsync()
+    {
+        try
+        {
+            // Bail out before waiting for internet or gathering any data when telemetry
+            // can't be sent — opted out, or this build has no OpenSearch credentials
+            // (every from-source/community build). Only the official build proceeds.
+            if (Settings.Get(Settings.K.DisableTelemetry) || !CredentialsConfigured())
+                return;
+
+            await CoreTools.WaitForInternetConnection();
+
+            string[] enabledManagers = PEInterface.Managers
+                .Where(m => m.IsEnabled())
+                .Select(m => m.Name)
+                .ToArray();
+
+            string[] foundManagers = PEInterface.Managers
+                .Where(m => m.IsEnabled() && m.Status.Found)
+                .Select(m => m.Name)
+                .ToArray();
+
+            var ev = new UniGetUIActivityEvent
+            {
+                InstallID = GetRandomizedId(),
+                Locale = LanguageEngine.SelectedLocale,
+                EnabledManagers = enabledManagers,
+                FoundManagers = foundManagers,
+                ActiveSettings = ComputeActiveSettingsBitmask(),
+                Application = BuildApplicationInfo(),
+                Platform = BuildPlatformInfo(),
+            };
+
+            await PostToOpenSearchAsync(IndexActivity, ev, TelemetrySerializerContext.Trimming.UniGetUIActivityEvent);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error("[Telemetry] Hard crash in InitializeAsync");
+            Logger.Error(ex);
+        }
+    }
+
+    internal static int ComputeActiveSettingsBitmask()
+    {
+        int settingsMagicValue = 0;
+        int mask = 0x1;
+        foreach (var setting in SettingsToSend)
+        {
+            bool enabled = Settings.Get(
+                key: setting,
+                invert: Settings.ResolveKey(setting).StartsWith("Disable"));
+
+            if (enabled)
+                settingsMagicValue |= mask;
+            mask <<= 1;
+
+            if (mask == 0x1)
+                throw new OverflowException();
+        }
+        foreach (var sp in new[] { "SP1", "SP2" })
+        {
+            bool enabled = sp switch
+            {
+                "SP1" => File.Exists("ForceUniGetUIPortable"),
+                "SP2" => CoreData.WasDaemon,
+                _ => throw new NotImplementedException(),
+            };
+
+            if (enabled)
+                settingsMagicValue |= mask;
+            mask <<= 1;
+
+            if (mask == 0x1)
+                throw new OverflowException();
+        }
+
+        return settingsMagicValue;
+    }
+
+    internal static void ResetTestState()
+    {
+        _openSearchUsername = "";
+        _openSearchPassword = "";
+        _credentialsWarningLogged = false;
+        TestSendAsyncOverride = null;
+        while (_pendingPackageEvents.TryDequeue(out _)) { }
+    }
+
+    // -------------------------------------------------------------------------
+
+    public static void InstallPackage(
+        IPackage package,
+        TEL_OP_RESULT status,
+        TEL_InstallReferral source
+    ) => EnqueuePackageEvent(package, "install", status, source.ToString());
+
+    public static void UpdatePackage(IPackage package, TEL_OP_RESULT status) =>
+        EnqueuePackageEvent(package, "update", status);
+
+    public static void DownloadPackage(
+        IPackage package,
+        TEL_OP_RESULT status,
+        TEL_InstallReferral source
+    ) => EnqueuePackageEvent(package, "download", status, source.ToString());
+
+    public static void UninstallPackage(IPackage package, TEL_OP_RESULT status) =>
+        EnqueuePackageEvent(package, "uninstall", status);
+
+    public static void PackageDetails(IPackage package, string eventSource) =>
+        EnqueuePackageEvent(package, "details", eventSource: eventSource);
+
+    private static void EnqueuePackageEvent(
+        IPackage package,
+        string operation,
+        TEL_OP_RESULT? result = null,
+        string? eventSource = null)
+    {
+        if (result is null && eventSource is null)
+            throw new ArgumentException("result and eventSource cannot both be null");
+        // Skip enqueuing entirely when telemetry can't be sent, so events don't
+        // accumulate only to be drained-and-discarded at flush time.
+        if (Settings.Get(Settings.K.DisableTelemetry) || !CredentialsConfigured())
+            return;
+
+        _pendingPackageEvents.Enqueue(new UniGetUIPackageEvent
+        {
+            InstallID = GetRandomizedId(),
+            Locale = LanguageEngine.SelectedLocale,
+            Application = BuildApplicationInfo(),
+            Platform = BuildPlatformInfo(),
+            Operation = operation,
+            PackageId = package.Id,
+            ManagerName = package.Manager.Name,
+            SourceName = package.Source.Name,
+            OperationResult = result?.ToString(),
+            EventSource = eventSource,
+        });
+    }
+
+    /// <summary>
+    /// Drains the pending package-event queue and sends everything in a single
+    /// bulk request. Called from QueueDrained event subscribers and on app shutdown.
+    /// </summary>
+    public static async Task FlushPackageEventsAsync()
+    {
+        if (Settings.Get(Settings.K.DisableTelemetry) || !CredentialsConfigured())
+            return;
+
+        if (_pendingPackageEvents.IsEmpty)
+            return;
+
+        var batch = new List<UniGetUIPackageEvent>();
+        while (_pendingPackageEvents.TryDequeue(out UniGetUIPackageEvent? ev))
+            batch.Add(ev);
+
+        if (batch.Count > 0)
+            await PostBulkPackageEventsAsync(batch);
+    }
+
+    private static async Task PostBulkPackageEventsAsync(IReadOnlyList<UniGetUIPackageEvent> events)
+    {
+        if (!CredentialsConfigured())
+            return;
+
+        try
+        {
+            await CoreTools.WaitForInternetConnection();
+
+            string fullIndex = IndexPrefix + IndexPackage;
+
+            var sb = new StringBuilder();
+            foreach (UniGetUIPackageEvent ev in events)
+            {
+                sb.Append("{\"index\":{}}\n");
+                sb.Append(JsonSerializer.Serialize(ev, TelemetrySerializerContext.BulkTrimming.UniGetUIPackageEvent));
+                sb.Append('\n');
+            }
+
+            string credentials = Convert.ToBase64String(
+                Encoding.UTF8.GetBytes($"{_openSearchUsername}:{_openSearchPassword}"));
+
+            using var content = new StringContent(sb.ToString(), Encoding.UTF8, "application/x-ndjson");
+            using var request = new HttpRequestMessage(HttpMethod.Post, $"{OpenSearchUrl}/{fullIndex}/_bulk")
+            {
+                Content = content,
+            };
+            request.Headers.Authorization = new AuthenticationHeaderValue("Basic", credentials);
+
+            using HttpResponseMessage response = TestSendAsyncOverride is { } sendAsync
+                ? await sendAsync(request)
+                : await _httpClient.SendAsync(request);
+
+            if (response.IsSuccessStatusCode)
+                Logger.Debug($"[Telemetry] Sent {events.Count} package event(s) to {fullIndex} (bulk)");
+            else
+                Logger.Warn($"[Telemetry] Bulk {fullIndex} returned {(int)response.StatusCode}");
+        }
+        catch (Exception ex)
+        {
+            Logger.Error("[Telemetry] Hard crash posting bulk package events");
+            Logger.Error(ex);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+
+    public static void ImportBundle(BundleFormatType type) =>
+        _ = TrackBundleEventAsync("import", type.ToString());
+
+    public static void ExportBundle(BundleFormatType type) =>
+        _ = TrackBundleEventAsync("export", type.ToString());
+
+    public static void ExportBatch() =>
+        _ = TrackBundleEventAsync("export", "PS1_SCRIPT");
+
+    private static async Task TrackBundleEventAsync(string operation, string bundleType)
+    {
+        try
+        {
+            if (Settings.Get(Settings.K.DisableTelemetry) || !CredentialsConfigured())
+                return;
+
+            await CoreTools.WaitForInternetConnection();
+
+            var ev = new UniGetUIBundleEvent
+            {
+                InstallID = GetRandomizedId(),
+                Locale = LanguageEngine.SelectedLocale,
+                Application = BuildApplicationInfo(),
+                Platform = BuildPlatformInfo(),
+                Operation = operation,
+                BundleType = bundleType,
+            };
+
+            await PostToOpenSearchAsync(IndexBundle, ev, TelemetrySerializerContext.Trimming.UniGetUIBundleEvent);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error($"[Telemetry] Hard crash in TrackBundleEventAsync ({operation})");
+            Logger.Error(ex);
+        }
+    }
+
+    // ─── OpenSearch HTTP ──────────────────────────────────────────────────────
+
+    private static async Task PostToOpenSearchAsync<T>(string indexName, T eventData, JsonTypeInfo<T> typeInfo)
+    {
+        if (!CredentialsConfigured())
+            return;
+
+        try
+        {
+            string fullIndex = IndexPrefix + indexName;
+            string json = JsonSerializer.Serialize(eventData, typeInfo);
+
+            string credentials = Convert.ToBase64String(
+                Encoding.UTF8.GetBytes($"{_openSearchUsername}:{_openSearchPassword}"));
+
+            using var content = new StringContent(json, Encoding.UTF8, "application/json");
+            using var request = new HttpRequestMessage(HttpMethod.Post, $"{OpenSearchUrl}/{fullIndex}/_doc")
+            {
+                Content = content,
+            };
+            request.Headers.Authorization = new AuthenticationHeaderValue("Basic", credentials);
+
+            using HttpResponseMessage response = TestSendAsyncOverride is { } sendAsync
+                ? await sendAsync(request)
+                : await _httpClient.SendAsync(request);
+
+            if (response.IsSuccessStatusCode)
+                Logger.Debug($"[Telemetry] Sent to {fullIndex}");
+            else
+                Logger.Warn($"[Telemetry] {fullIndex} returned {(int)response.StatusCode}");
+        }
+        catch (Exception ex)
+        {
+            Logger.Error($"[Telemetry] Hard crash posting to {indexName}");
+            Logger.Error(ex);
+        }
+    }
+
+    // ─── Helpers ─────────────────────────────────────────────────────────────
+
+    private static string GetRandomizedId()
+    {
+        string id = Settings.GetValue(Settings.K.TelemetryClientToken);
+        if (id.Length != 64)
+        {
+            id = CoreTools.RandomString(64);
+            Settings.SetValue(Settings.K.TelemetryClientToken, id);
+        }
+        return id;
+    }
+
+    private static TelemetryApplicationInfo BuildApplicationInfo() =>
+        new()
+        {
+            Name = "UniGetUI",
+            Version = CoreData.VersionName,
+            DataSource = "NotApplicable",
+            Pricing = "Free",
+            Language = LanguageEngine.SelectedLocale,
+            ArchitectureType = RuntimeInformation.ProcessArchitecture.ToString(),
+        };
+
+    // Every field here is constant for the process lifetime, so build it once and
+    // reuse the instance across all events (including each doc in a bulk flush).
+    // The value is only ever read (serialized), never mutated, so sharing is safe;
+    // a benign race just builds it twice with identical results.
+    private static TelemetryPlatformInfo? _platformInfo;
+
+    private static TelemetryPlatformInfo BuildPlatformInfo() =>
+        _platformInfo ??= new()
+        {
+            Name = GetPlatformName(),
+            Version = Environment.OSVersion.VersionString,
+            Architecture = RuntimeInformation.OSArchitecture.ToString(),
+        };
+
+    private static string GetPlatformName()
+    {
+        if (OperatingSystem.IsWindows()) return "Windows";
+        if (OperatingSystem.IsMacOS()) return "Mac";
+        return "Linux";
+    }
+}
+
+// Source-generated JSON context — required for AOT/trimmed builds (WinUI).
+// Reflection-based serialization is disabled in that configuration.
+[JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
+[JsonSerializable(typeof(UniGetUIActivityEvent))]
+[JsonSerializable(typeof(UniGetUIPackageEvent))]
+[JsonSerializable(typeof(UniGetUIBundleEvent))]
+internal partial class TelemetrySerializerContext : JsonSerializerContext
+{
+    internal static readonly TelemetrySerializerContext Trimming =
+        new(new JsonSerializerOptions(SerializationHelpers.DefaultOptions)
+        {
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        });
+
+    // Compact (non-indented) variant required for NDJSON bulk payloads:
+    // OpenSearch _bulk API requires each document to be on a single line.
+    internal static readonly TelemetrySerializerContext BulkTrimming =
+        new(new JsonSerializerOptions(SerializationHelpers.DefaultOptions)
+        {
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+            WriteIndented = false,
+        });
+}

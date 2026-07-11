@@ -1,0 +1,896 @@
+name: Build and Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (required, e.g. 2026.1.0)'
+        required: true
+      draft-release:
+        description: 'Create the GitHub Release as a draft'
+        required: true
+        type: boolean
+        default: false
+      skip-publish:
+        description: 'Skip publishing to GitHub Releases'
+        required: true
+        type: boolean
+        default: false
+      dry-run:
+        description: 'Dry run (simulate without publishing)'
+        required: true
+        type: boolean
+        default: true
+
+jobs:
+  preflight:
+    name: Preflight
+    runs-on: ubuntu-latest
+    outputs:
+      package-env: ${{ steps.info.outputs.package-env }}
+      package-version: ${{ steps.info.outputs.package-version }}
+      onedrive-version: ${{ steps.info.outputs.onedrive-version }}
+      draft-release: ${{ steps.info.outputs.draft-release }}
+      skip-publish: ${{ steps.info.outputs.skip-publish }}
+      dry-run: ${{ steps.info.outputs.dry-run }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Resolve build parameters
+        id: info
+        shell: pwsh
+        run: |
+          $IsProductionBranch = @('main', 'master') -contains '${{ github.ref_name }}'
+
+          try { $DraftRelease = [System.Boolean]::Parse('${{ inputs.draft-release }}') } catch { $DraftRelease = $false }
+          try { $SkipPublish = [System.Boolean]::Parse('${{ inputs.skip-publish }}') } catch { $SkipPublish = $false }
+          try { $DryRun = [System.Boolean]::Parse('${{ inputs.dry-run }}') } catch { $DryRun = $true }
+
+          $PackageEnv = if ($IsProductionBranch) {
+            "publish-prod"
+          } else {
+            "publish-test"
+          }
+
+          if (-Not $IsProductionBranch) {
+            $DryRun = $true # force dry run when not on main/master branch
+          }
+
+          if (-Not $SkipPublish -And $PackageEnv -ne 'publish-prod') {
+            $DryRun = $true # force dry run when publishing outside production environment
+          }
+
+          $PackageVersion = '${{ inputs.version }}'
+          if ([string]::IsNullOrWhiteSpace($PackageVersion)) {
+            throw "The workflow_dispatch version input is required."
+          }
+
+          echo "package-env=$PackageEnv" >> $Env:GITHUB_OUTPUT
+          $OneDriveVersion = "$PackageVersion.0"
+
+          echo "package-version=$PackageVersion" >> $Env:GITHUB_OUTPUT
+          echo "onedrive-version=$OneDriveVersion" >> $Env:GITHUB_OUTPUT
+          echo "draft-release=$($DraftRelease.ToString().ToLower())" >> $Env:GITHUB_OUTPUT
+          echo "skip-publish=$($SkipPublish.ToString().ToLower())" >> $Env:GITHUB_OUTPUT
+          echo "dry-run=$($DryRun.ToString().ToLower())" >> $Env:GITHUB_OUTPUT
+
+          echo "::notice::Environment: $PackageEnv"
+          echo "::notice::Version: $PackageVersion"
+          echo "::notice::DraftRelease: $DraftRelease"
+          echo "::notice::DryRun: $DryRun"
+
+  build:
+    name: Build & Sign (${{ matrix.platform }})
+    runs-on: windows-latest
+    needs: [preflight]
+    environment: ${{ needs.preflight.outputs.package-env }}
+    permissions:
+      contents: read
+    env:
+      UNIGETUI_GITHUB_CLIENT_ID: ${{ secrets.UNIGETUI_GITHUB_CLIENT_ID }}
+      UNIGETUI_GITHUB_CLIENT_SECRET: ${{ secrets.UNIGETUI_GITHUB_CLIENT_SECRET }}
+      UNIGETUI_OPENSEARCH_USERNAME: ${{ secrets.UNIGETUI_OPENSEARCH_USERNAME }}
+      UNIGETUI_OPENSEARCH_PASSWORD: ${{ secrets.UNIGETUI_OPENSEARCH_PASSWORD }}
+      NUGET_PACKAGES: ${{ github.workspace }}\.nuget\packages
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [x64, arm64]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Validate GitHub OAuth secrets
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:UNIGETUI_GITHUB_CLIENT_ID)) {
+            throw "UNIGETUI_GITHUB_CLIENT_ID is not configured for this build environment."
+          }
+
+          if ([string]::IsNullOrWhiteSpace($env:UNIGETUI_GITHUB_CLIENT_SECRET)) {
+            throw "UNIGETUI_GITHUB_CLIENT_SECRET is not configured for this build environment."
+          }
+
+          Write-Host "::notice::GitHub OAuth secrets are configured for this build."
+
+      - name: Install .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.NUGET_PACKAGES }}
+          key: ${{ runner.os }}-nuget-${{ hashFiles('global.json', 'src/**/*.csproj', 'src/**/*.props', 'src/**/*.targets', 'src/**/*.sln', 'src/**/*.slnx') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Install Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.x'
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          choco install innosetup -y --no-progress
+          echo "C:\Program Files (x86)\Inno Setup 6" >> $Env:GITHUB_PATH
+
+      - name: Install code-signing tools
+        shell: pwsh
+        run: |
+          dotnet tool install --global AzureSignTool
+          Install-Module -Name Devolutions.Authenticode -Force
+
+          # Trust test code-signing CA
+          $TestCertsUrl = "https://raw.githubusercontent.com/Devolutions/devolutions-authenticode/master/data/certs"
+          Invoke-WebRequest -Uri "$TestCertsUrl/authenticode-test-ca.crt" -OutFile ".\authenticode-test-ca.crt"
+          Import-Certificate -FilePath ".\authenticode-test-ca.crt" -CertStoreLocation "cert:\LocalMachine\Root"
+          Remove-Item ".\authenticode-test-ca.crt" -ErrorAction SilentlyContinue | Out-Null
+
+      - name: Set version
+        shell: pwsh
+        run: |
+          $PackageVersion = '${{ needs.preflight.outputs.package-version }}'
+          .\scripts\set-version.ps1 -Version $PackageVersion
+
+      - name: Restore dependencies
+        working-directory: src
+        run: dotnet restore UniGetUI.Windows.slnx
+
+      - name: Run tests
+        working-directory: src
+        shell: pwsh
+        run: |
+          dotnet build-server shutdown
+          # Retry once to handle flaky tests (e.g. TaskRecyclerTests uses Random)
+          dotnet test UniGetUI.Windows.slnx --no-restore --verbosity q --nologo /p:Platform=x64 /p:UseSharedCompilation=false /m:1
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "::warning::First test run failed, retrying..."
+            dotnet build-server shutdown
+            dotnet test UniGetUI.Windows.slnx --no-restore --verbosity q --nologo /p:Platform=x64 /p:UseSharedCompilation=false /m:1
+            if ($LASTEXITCODE -ne 0) { exit 1 }
+          }
+
+      - name: Publish
+        shell: pwsh
+        run: |
+          $Platform = '${{ matrix.platform }}'
+          $TargetFramework = (
+            dotnet msbuild src/UniGetUI.Avalonia/UniGetUI.Avalonia.csproj `
+              /nologo `
+              -getProperty:TargetFramework `
+              /p:Configuration=Release `
+              /p:Platform=$Platform `
+              /p:RuntimeIdentifier=win-$Platform |
+              Select-Object -Last 1
+          ).Trim()
+
+          if ([string]::IsNullOrWhiteSpace($TargetFramework)) {
+            throw "Could not resolve the Avalonia target framework from MSBuild"
+          }
+
+          dotnet publish src/UniGetUI.Avalonia/UniGetUI.Avalonia.csproj `
+            /noLogo `
+            /p:Configuration=Release `
+            /p:Platform=$Platform `
+            /p:RuntimeIdentifier=win-$Platform `
+            /p:PublishProfile=Win-$Platform-NativeAot `
+            /p:UseSharedCompilation=false `
+            /p:BuildInParallel=false `
+            /m:1 `
+            -v m
+          if ($LASTEXITCODE -ne 0) { throw "dotnet publish Avalonia failed" }
+
+          # Stage binaries
+          $PublishDir = "src/UniGetUI.Avalonia/bin/$Platform/Release/$TargetFramework/win-$Platform/publish"
+          if (Test-Path "unigetui_bin") { Remove-Item "unigetui_bin" -Recurse -Force }
+          New-Item "unigetui_bin" -ItemType Directory | Out-Null
+          Get-ChildItem $PublishDir | Move-Item -Destination "unigetui_bin" -Force
+
+          if (-not (Test-Path "unigetui_bin/UniGetUI.exe")) {
+            throw "Windows app host was not produced at unigetui_bin/UniGetUI.exe"
+          }
+
+          $MaxShippedPdbSizeBytes = 1MB
+          $PdbsToRemove = Get-ChildItem "unigetui_bin" -Filter "*.pdb" -File -Recurse | Where-Object {
+            $_.Length -gt $MaxShippedPdbSizeBytes
+          }
+
+          if ($PdbsToRemove.Count -gt 0) {
+            $RemovedPdbBytes = ($PdbsToRemove | Measure-Object -Property Length -Sum).Sum
+            $PdbsToRemove | Remove-Item -Force
+            Write-Host ("Removed {0} oversized PDBs above {1:N2} MiB ({2:N2} MiB total)." -f $PdbsToRemove.Count, ($MaxShippedPdbSizeBytes / 1MB), ($RemovedPdbBytes / 1MB))
+          }
+
+      - name: Code-sign binaries
+        if: ${{ fromJSON(needs.preflight.outputs.dry-run) == false }}
+        shell: pwsh
+        run: |
+          $ListPath = Join-Path $PWD "signing-files.txt"
+          $files = Get-ChildItem "unigetui_bin" -Recurse -Include "*.exe", "*.dll" | Where-Object {
+            (Get-AuthenticodeSignature $_.FullName).Status -eq "NotSigned"
+          }
+          $files.FullName | Set-Content $ListPath
+          Write-Host "Signing list contains $($files.Count) files."
+
+          .\scripts\sign.ps1 `
+            -FileListPath $ListPath `
+            -AzureTenantId '${{ secrets.AZURE_TENANT_ID }}' `
+            -KeyVaultUrl '${{ secrets.CODE_SIGNING_KEYVAULT_URL }}' `
+            -ClientId '${{ secrets.CODE_SIGNING_CLIENT_ID }}' `
+            -ClientSecret '${{ secrets.CODE_SIGNING_CLIENT_SECRET }}' `
+            -CertificateName '${{ secrets.CODE_SIGNING_CERTIFICATE_NAME }}' `
+            -TimestampServer '${{ vars.CODE_SIGNING_TIMESTAMP_SERVER }}'
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $Platform = '${{ matrix.platform }}'
+          $OutputDir = Join-Path $PWD "output"
+          New-Item $OutputDir -ItemType Directory -ErrorAction SilentlyContinue | Out-Null
+
+          .\scripts\refresh-integrity-tree.ps1 -Path $PWD/unigetui_bin -FailOnUnexpectedFiles
+
+          # Configure Inno Setup to use AzureSignTool
+          $IssPath = "UniGetUI.iss"
+
+          # Build the installer (signing of the installer itself happens in the next step)
+          # Temporarily remove SignTool line so ISCC doesn't try to sign during build
+          $issContent = Get-Content $IssPath -Raw
+
+          try {
+            $issContentNoSign = $issContent -Replace '(?m)^SignTool=.*$', '; SignTool=azsign (disabled for CI, signed separately)'
+            $issContentNoSign = $issContentNoSign -Replace '(?m)^SignedUninstaller=yes', 'SignedUninstaller=no'
+            Set-Content $IssPath $issContentNoSign -NoNewline
+
+            $InstallerBaseName = "UniGetUI.Installer.$Platform"
+            $IsccArgs = @($IssPath, "/F$InstallerBaseName", "/O$OutputDir")
+            if ([System.Boolean]::Parse('${{ needs.preflight.outputs.dry-run }}') -eq $false) {
+              Write-Host "Using lzma/ultra64 installer compression for release build."
+              $IsccArgs = @('/DInstallerCompression=lzma/ultra64') + $IsccArgs
+            }
+
+            & ISCC.exe @IsccArgs
+            if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed with exit code $LASTEXITCODE" }
+          }
+          finally {
+            Set-Content $IssPath $issContent -NoNewline
+          }
+
+      - name: Stage output
+        shell: pwsh
+        run: |
+          $Platform = '${{ matrix.platform }}'
+          New-Item "output" -ItemType Directory -ErrorAction SilentlyContinue | Out-Null
+
+          .\scripts\refresh-integrity-tree.ps1 -Path $PWD/unigetui_bin -FailOnUnexpectedFiles
+
+          # Zip
+          Compress-Archive -Path "unigetui_bin/*" -DestinationPath "output/UniGetUI.$Platform.zip" -CompressionLevel Optimal
+
+          # Installer is created in output during the previous step
+
+      - name: Capture artifact sizes
+        shell: pwsh
+        run: |
+          $Platform = '${{ matrix.platform }}'
+          $SizesFile = "output/sizes.$Platform.json"
+          $UncompressedSize = (Get-ChildItem "unigetui_bin" -Recurse -File | Measure-Object -Property Length -Sum).Sum
+          $Artifacts = Get-ChildItem "output" -File | Where-Object { $_.Name -ne "sizes.$Platform.json" } | ForEach-Object {
+            @{ Name = $_.Name; SizeBytes = $_.Length }
+          }
+          $Report = @{
+            Platform = $Platform
+            RuntimeIdentifier = "win-$Platform"
+            UncompressedSizeBytes = $UncompressedSize
+            Artifacts = $Artifacts
+            Timestamp = [DateTimeOffset]::UtcNow.ToString("o")
+          }
+          $Report | ConvertTo-Json -Depth 4 | Set-Content $SizesFile -Encoding UTF8
+          Write-Host "Artifact sizes saved to $SizesFile"
+          Get-Content $SizesFile
+
+      - name: Code-sign installer
+        if: ${{ fromJSON(needs.preflight.outputs.dry-run) == false }}
+        shell: pwsh
+        run: |
+          $Platform = '${{ matrix.platform }}'
+          .\scripts\sign.ps1 `
+            -InstallerPath "output/UniGetUI.Installer.$Platform.exe" `
+            -AzureTenantId '${{ secrets.AZURE_TENANT_ID }}' `
+            -KeyVaultUrl '${{ secrets.CODE_SIGNING_KEYVAULT_URL }}' `
+            -ClientId '${{ secrets.CODE_SIGNING_CLIENT_ID }}' `
+            -ClientSecret '${{ secrets.CODE_SIGNING_CLIENT_SECRET }}' `
+            -CertificateName '${{ secrets.CODE_SIGNING_CERTIFICATE_NAME }}' `
+            -TimestampServer '${{ vars.CODE_SIGNING_TIMESTAMP_SERVER }}'
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: UniGetUI-release-${{ matrix.platform }}
+          path: output/*
+
+      - name: Cleanup
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item "unigetui_bin" -Recurse -Force -ErrorAction SilentlyContinue
+
+  build-avalonia:
+    name: Build (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    needs: [preflight]
+    environment: ${{ needs.preflight.outputs.package-env }}
+    permissions:
+      contents: read
+    env:
+      UNIGETUI_GITHUB_CLIENT_ID: ${{ secrets.UNIGETUI_GITHUB_CLIENT_ID }}
+      UNIGETUI_GITHUB_CLIENT_SECRET: ${{ secrets.UNIGETUI_GITHUB_CLIENT_SECRET }}
+      UNIGETUI_OPENSEARCH_USERNAME: ${{ secrets.UNIGETUI_OPENSEARCH_USERNAME }}
+      UNIGETUI_OPENSEARCH_PASSWORD: ${{ secrets.UNIGETUI_OPENSEARCH_PASSWORD }}
+      NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
+      SIGNING_IDENTITY: 'Developer ID Application: Devolutions inc.'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            name: macos-arm64
+            runtime: osx-arm64
+            publish_profile: osx-arm64-NativeAot
+          - os: macos-latest
+            name: macos-x64
+            runtime: osx-x64
+            publish_profile: osx-x64-NativeAot
+          - os: ubuntu-latest
+            name: linux-x64
+            runtime: linux-x64
+            publish_profile: linux-x64-NativeAot
+          - os: ubuntu-latest
+            name: linux-arm64
+            runtime: linux-arm64
+            publish_profile: linux-arm64-NativeAot
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.NUGET_PACKAGES }}
+          key: ${{ runner.os }}-nuget-${{ hashFiles('global.json', 'src/**/*.csproj', 'src/**/*.props', 'src/**/*.targets', 'src/**/*.sln', 'src/**/*.slnx') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Install Linux arm64 NativeAOT toolchain
+        if: matrix.runtime == 'linux-arm64'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          . /etc/os-release
+          sudo dpkg --add-architecture arm64
+
+          # Keep the runner's default Ubuntu feeds bound to amd64, then add the
+          # Ubuntu Ports arm64 feed that provides the target CRT and zlib objects.
+          if compgen -G "/etc/apt/sources.list.d/*.sources" > /dev/null; then
+            for source in /etc/apt/sources.list.d/*.sources; do
+              if ! grep -q '^Architectures:' "$source"; then
+                sudo sed -i '/^Types: deb$/a Architectures: amd64' "$source"
+              fi
+            done
+          fi
+
+          if [ -f /etc/apt/sources.list ]; then
+            sudo sed -i -E '/^deb /s/^deb /deb [arch=amd64] /' /etc/apt/sources.list
+          fi
+
+          sudo tee /etc/apt/sources.list.d/ubuntu-arm64.sources >/dev/null <<EOF
+          Types: deb
+          URIs: http://ports.ubuntu.com/ubuntu-ports/
+          Suites: ${VERSION_CODENAME} ${VERSION_CODENAME}-updates ${VERSION_CODENAME}-backports
+          Components: main restricted universe multiverse
+          Architectures: arm64
+          Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+
+          Types: deb
+          URIs: http://ports.ubuntu.com/ubuntu-ports/
+          Suites: ${VERSION_CODENAME}-security
+          Components: main restricted universe multiverse
+          Architectures: arm64
+          Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+          EOF
+
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            clang \
+            llvm \
+            binutils-aarch64-linux-gnu \
+            gcc-aarch64-linux-gnu \
+            zlib1g-dev:arm64
+
+      - name: Set version
+        shell: pwsh
+        run: |
+          $PackageVersion = '${{ needs.preflight.outputs.package-version }}'
+          ./scripts/set-version.ps1 -Version $PackageVersion
+
+      - name: Restore dependencies
+        working-directory: src
+        run: dotnet restore UniGetUI.Avalonia/UniGetUI.Avalonia.csproj --runtime ${{ matrix.runtime }}
+
+      - name: Publish
+        working-directory: src
+        shell: pwsh
+        run: |
+          $PublishProfile = '${{ matrix.publish_profile }}'
+          $PublishArgs = @(
+            'publish',
+            'UniGetUI.Avalonia/UniGetUI.Avalonia.csproj',
+            '--configuration', 'Release',
+            '--runtime', '${{ matrix.runtime }}',
+            '--self-contained', 'true',
+            '--output', '../bin/${{ matrix.name }}'
+          )
+          if ($PublishProfile) {
+            $PublishArgs += "/p:PublishProfile=$PublishProfile"
+          }
+          dotnet @PublishArgs
+
+      - name: Remove oversized Linux debug symbols
+        if: runner.os == 'Linux'
+        shell: pwsh
+        run: |
+          $PublishDir = "bin/${{ matrix.name }}"
+          $MaxDebugSymbolSizeBytes = 1MB
+          $DebugSymbolsToRemove = @(Get-ChildItem $PublishDir -Include "*.dbg", "*.pdb" -File -Recurse | Where-Object {
+            $_.Length -gt $MaxDebugSymbolSizeBytes
+          })
+
+          if ($DebugSymbolsToRemove.Count -gt 0) {
+            $RemovedDebugSymbolBytes = ($DebugSymbolsToRemove | Measure-Object -Property Length -Sum).Sum
+            $DebugSymbolsToRemove | Remove-Item -Force
+            Write-Host ("Removed {0} oversized Linux debug symbols above {1:N2} MiB ({2:N2} MiB total)." -f $DebugSymbolsToRemove.Count, ($MaxDebugSymbolSizeBytes / 1MB), ($RemovedDebugSymbolBytes / 1MB))
+          }
+
+      - name: Install macOS packaging tools
+        if: runner.os == 'macOS'
+        run: brew install create-dmg
+
+      - name: Check out Devolutions/actions
+        if: ${{ runner.os == 'macOS' && fromJSON(needs.preflight.outputs.dry-run) == false }}
+        uses: actions/checkout@v7
+        with:
+          repository: Devolutions/actions
+          ref: v1
+          token: ${{ secrets.DEVOLUTIONSBOT_TOKEN }}
+          path: ./.github/workflows
+
+      - name: Import Developer ID certificate
+        if: ${{ runner.os == 'macOS' && fromJSON(needs.preflight.outputs.dry-run) == false }}
+        uses: ./.github/workflows/macos-code-sign-setup
+        with:
+          base64_certificate: ${{ secrets.APPLE_APP_DEV_ID_APP_CERTIFICATE }}
+          certificate_password: ${{ secrets.APPLE_APP_DEV_ID_APP_CERTIFICATE_PASSWORD }}
+
+      - name: Package (macOS)
+        if: ${{ runner.os == 'macOS' }}
+        run: |
+          set -euo pipefail
+          VERSION='${{ needs.preflight.outputs.package-version }}'
+          APP_BUNDLE="UniGetUI.app"
+          APP_EXECUTABLE="UniGetUI"
+          DRY_RUN='${{ needs.preflight.outputs.dry-run }}'
+
+          rm -rf "${APP_BUNDLE}" output
+          mkdir -p output
+          mkdir -p "${APP_BUNDLE}/Contents/MacOS"
+          mkdir -p "${APP_BUNDLE}/Contents/Resources"
+
+          cp -R "bin/${{ matrix.name }}/." "${APP_BUNDLE}/Contents/MacOS/"
+          find "${APP_BUNDLE}/Contents/MacOS" -name "*.pdb" -type f -delete
+          chmod +x "${APP_BUNDLE}/Contents/MacOS/${APP_EXECUTABLE}"
+          sed "s|@VERSION@|${VERSION}|g" \
+            scripts/macos/Info.plist \
+            > "${APP_BUNDLE}/Contents/Info.plist"
+          # Compile the appearance-aware app icon (Default/Dark/Tinted/Clear) from the Icon Composer
+          # .icon into the bundle: produces Assets.car + AppIcon.icns. Info.plist already declares
+          # CFBundleIconName=AppIcon, so macOS renders the appearance styles itself (incl. when closed).
+          xcrun actool scripts/macos/AppIcon.icon \
+            --compile "${APP_BUNDLE}/Contents/Resources" \
+            --app-icon AppIcon \
+            --output-partial-info-plist "$(mktemp).plist" \
+            --platform macosx \
+            --minimum-deployment-target 12.0 \
+            --errors --warnings
+          # Static .icns fallback for macOS < 26 (CFBundleIconFile) and the dmg volume icon.
+          cp scripts/macos/UniGetUI.icns "${APP_BUNDLE}/Contents/Resources/"
+
+          if [ "$DRY_RUN" = "false" ]; then
+            ENTITLEMENTS="scripts/macos/Entitlements.plist"
+            find "${APP_BUNDLE}/Contents/MacOS" -type f \! -name "${APP_EXECUTABLE}" -print0 \
+              | while IFS= read -r -d '' f; do
+              codesign --force --timestamp --options runtime \
+                --entitlements "$ENTITLEMENTS" \
+                --sign "$SIGNING_IDENTITY" "$f"
+            done
+            codesign --force --timestamp --options runtime \
+              --entitlements "$ENTITLEMENTS" \
+              --sign "$SIGNING_IDENTITY" "${APP_BUNDLE}"
+            codesign --verify --verbose=2 "${APP_BUNDLE}"
+          else
+            find "${APP_BUNDLE}/Contents/MacOS" -type f | while IFS= read -r f; do
+              codesign --force --sign - "$f" 2>/dev/null || true
+            done
+            codesign --force --sign - "${APP_BUNDLE}"
+          fi
+
+          COPYFILE_DISABLE=1 tar -czf "output/UniGetUI.${{ matrix.name }}.tar.gz" "${APP_BUNDLE}"
+
+          create-dmg \
+            --volname "UniGetUI" \
+            --volicon "scripts/macos/UniGetUI.icns" \
+            --window-pos 200 120 \
+            --window-size 600 400 \
+            --icon-size 128 \
+            --icon "UniGetUI.app" 150 185 \
+            --hide-extension "UniGetUI.app" \
+            --app-drop-link 450 185 \
+            "output/UniGetUI.${{ matrix.name }}.dmg" \
+            "${APP_BUNDLE}"
+
+          test -f "output/UniGetUI.${{ matrix.name }}.tar.gz"
+          test -f "output/UniGetUI.${{ matrix.name }}.dmg"
+
+      - name: Sign DMG
+        if: ${{ runner.os == 'macOS' && fromJSON(needs.preflight.outputs.dry-run) == false }}
+        run: |
+          set -euo pipefail
+          DMG="output/UniGetUI.${{ matrix.name }}.dmg"
+          codesign --force --timestamp --sign "$SIGNING_IDENTITY" "$DMG"
+          codesign --verify --verbose=2 "$DMG"
+
+      - name: Notarize DMG
+        if: ${{ runner.os == 'macOS' && fromJSON(needs.preflight.outputs.dry-run) == false }}
+        uses: ./.github/workflows/macos-notarize
+        timeout-minutes: 15
+        with:
+          apple_password: ${{ secrets.APPLE_BOT_PASSWORD }}
+          package_path: output/UniGetUI.${{ matrix.name }}.dmg
+
+      - name: Install Linux packaging tools
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm
+
+      - name: Package (Linux)
+        if: runner.os == 'Linux'
+        shell: pwsh
+        run: |
+          $Version    = '${{ needs.preflight.outputs.package-version }}'
+          $Parts      = $Version -split '-', 2
+          $BaseVersion = $Parts[0]
+          $Prerelease  = if ($Parts.Count -gt 1) { $Parts[1] } else { $null }
+
+          # deb: use tilde notation for pre-releases (Ubuntu 18.04+ compatible)
+          $DebVersion   = if ($Prerelease) { "${BaseVersion}~${Prerelease}" } else { $Version }
+          # rpm: pre-release encoded in Release/Iteration field (RHEL 8+ / RPM 4.14+)
+          $RpmVersion   = $BaseVersion
+          $RpmIteration = if ($Prerelease) { "0.${Prerelease}" } else { '1' }
+
+          # Map .NET RID -> package arch names
+          $DebArch, $RpmArch = switch ('${{ matrix.runtime }}') {
+            'linux-arm64' { 'arm64',  'aarch64' }
+            default       { 'amd64',  'x86_64'  }
+          }
+
+          New-Item -ItemType Directory -Force -Path output | Out-Null
+
+          # .tar.gz
+          & tar -czf "output/UniGetUI.${{ matrix.name }}.tar.gz" -C "bin/${{ matrix.name }}" .
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
+          # .deb — Ubuntu 18.04+ (glibc 2.27, Debian policy 3.9.6)
+          & ./scripts/package-linux.ps1 `
+              -PackageType  deb `
+              -SourceDir    "bin/${{ matrix.name }}" `
+              -OutputPath   "output/UniGetUI.${{ matrix.name }}.deb" `
+              -Version      $DebVersion `
+              -Architecture $DebArch
+
+          # .rpm — RHEL 8+ (RPM 4.14, glibc 2.28)
+          & ./scripts/package-linux.ps1 `
+              -PackageType  rpm `
+              -SourceDir    "bin/${{ matrix.name }}" `
+              -OutputPath   "output/UniGetUI.${{ matrix.name }}.rpm" `
+              -Version      $RpmVersion `
+              -Iteration    $RpmIteration `
+              -Architecture $RpmArch
+
+      - name: Capture artifact sizes
+        shell: pwsh
+        run: |
+          $Name = '${{ matrix.name }}'
+          $Runtime = '${{ matrix.runtime }}'
+          $SizesFile = "output/sizes.$Name.json"
+          $SourceDir = if ('${{ runner.os }}' -eq 'macOS') { "UniGetUI.app/Contents/MacOS" } else { "bin/$Name" }
+          $UncompressedSize = (Get-ChildItem $SourceDir -Recurse -File -ErrorAction SilentlyContinue | Measure-Object -Property Length -Sum).Sum
+          $Artifacts = Get-ChildItem "output" -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -ne "sizes.$Name.json" } | ForEach-Object {
+            @{ Name = $_.Name; SizeBytes = $_.Length }
+          }
+          $Report = @{
+            Platform = $Name
+            RuntimeIdentifier = $Runtime
+            UncompressedSizeBytes = $UncompressedSize
+            Artifacts = $Artifacts
+            Timestamp = [DateTimeOffset]::UtcNow.ToString("o")
+          }
+          $Report | ConvertTo-Json -Depth 4 | Set-Content $SizesFile -Encoding UTF8
+          Write-Host "Artifact sizes saved to $SizesFile"
+          Get-Content $SizesFile
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: UniGetUI-${{ matrix.name }}
+          path: output/*
+
+  publish:
+    name: Publish GitHub Release
+    runs-on: ubuntu-latest
+    needs: [preflight, build, build-avalonia]
+    if: ${{ fromJSON(needs.preflight.outputs.skip-publish) == false }}
+    environment: ${{ needs.preflight.outputs.package-env }}
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: output
+
+      - name: Add legacy installer filename
+        shell: pwsh
+        working-directory: output
+        run: |
+          $InstallerFiles = Get-ChildItem -Path . -Recurse -File -Filter "UniGetUI.Installer.x64.exe"
+          if (-not $InstallerFiles) {
+            throw "Could not find UniGetUI.Installer.x64.exe in downloaded artifacts"
+          }
+
+          $InstallerFiles | ForEach-Object {
+            $LegacyInstallerPath = Join-Path $_.DirectoryName "UniGetUI.Installer.exe"
+            Copy-Item -Path $_.FullName -Destination $LegacyInstallerPath -Force
+            Write-Host "Created legacy installer alias: $LegacyInstallerPath"
+          }
+
+      - name: Generate consolidated checksums
+        shell: pwsh
+        working-directory: output
+        run: |
+          $ChecksumFile = Join-Path $PWD "checksums.txt"
+          $ChecksumLines = Get-ChildItem -Path . -Recurse -File | Where-Object {
+            $_.Name -notmatch '^checksums(\..+)?\.txt$'
+          } | Sort-Object Name | ForEach-Object {
+            $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash
+            "$hash  $($_.Name)"
+          }
+
+          Set-Content -Path $ChecksumFile -Value $ChecksumLines -Encoding utf8NoBOM
+
+          echo "::group::checksums"
+          Get-Content $ChecksumFile
+          echo "::endgroup::"
+
+      - name: Generate consolidated size report
+        shell: pwsh
+        working-directory: output
+        run: |
+          $SizeFiles = Get-ChildItem -Path . -Recurse -File -Filter "sizes.*.json" | Sort-Object Name
+          if (-not $SizeFiles) {
+            Write-Host "No size files found."
+            return
+          }
+
+          $Rows = foreach ($file in $SizeFiles) {
+            $data = Get-Content $file.FullName -Raw | ConvertFrom-Json
+            $uncompressedMiB = [math]::Round($data.UncompressedSizeBytes / 1MB, 2)
+            foreach ($artifact in $data.Artifacts) {
+              [PSCustomObject]@{
+                Platform = $data.Platform
+                RID = $data.RuntimeIdentifier
+                Artifact = $artifact.Name
+                CompressedMiB = [math]::Round($artifact.SizeBytes / 1MB, 2)
+                UncompressedMiB = $uncompressedMiB
+              }
+            }
+          }
+
+          $SizeReportFile = Join-Path $PWD "sizes.md"
+          $Lines = @("# UniGetUI Release Artifact Sizes", "")
+          $Lines += $Rows | Format-Table -AutoSize | Out-String -Stream | Where-Object { $_.Trim() -ne '' }
+          Set-Content -Path $SizeReportFile -Value $Lines -Encoding utf8NoBOM
+
+          echo "::group::sizes"
+          Get-Content $SizeReportFile
+          echo "::endgroup::"
+
+      - name: Create GitHub Release
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        working-directory: output
+        run: |
+          $PackageVersion = '${{ needs.preflight.outputs.package-version }}'
+          $DraftRelease = [System.Boolean]::Parse('${{ needs.preflight.outputs.draft-release }}')
+          $DryRun = [System.Boolean]::Parse('${{ needs.preflight.outputs.dry-run }}')
+
+          echo "::group::checksums"
+          Get-Content "./checksums.txt"
+          echo "::endgroup::"
+
+          $ReleaseTag = "v$PackageVersion"
+          $ReleaseTitle = "UniGetUI v${PackageVersion}"
+          $Repository = $Env:GITHUB_REPOSITORY
+          $DraftArg = if ($DraftRelease) { '--draft' } else { $null }
+
+          $Files = Get-ChildItem -Path . -Recurse -File | Where-Object {
+            $_.Name -eq 'checksums.txt' -or $_.Name -notmatch '^checksums\..+\.txt$'
+          }
+
+          if ($DryRun) {
+            Write-Host "Dry Run: skipping GitHub release creation!"
+            Write-Host "Would create release $ReleaseTag with title '$ReleaseTitle' (draft=$DraftRelease)"
+            $Files | ForEach-Object { Write-Host "  - $($_.FullName)" }
+          } else {
+            if ($DraftArg) {
+              & gh release create $ReleaseTag --repo $Repository --title $ReleaseTitle $DraftArg $Files.FullName
+            } else {
+              & gh release create $ReleaseTag --repo $Repository --title $ReleaseTitle $Files.FullName
+            }
+          }
+
+      - name: Check out Devolutions/actions
+        if: ${{ fromJSON(needs.preflight.outputs.dry-run) == false }}
+        uses: actions/checkout@v7
+        with:
+          repository: Devolutions/actions
+          ref: v1
+          token: ${{ secrets.DEVOLUTIONSBOT_TOKEN }}
+          path: ./.github/workflows
+
+      - name: Install Devolutions Toolbox
+        if: ${{ fromJSON(needs.preflight.outputs.dry-run) == false }}
+        uses: ./.github/workflows/toolbox-install
+        with:
+          github_token: ${{ secrets.DEVOLUTIONSBOT_TOKEN }}
+
+      - name: Stage files for OneDrive upload
+        if: ${{ fromJSON(needs.preflight.outputs.dry-run) == false }}
+        shell: pwsh
+        run: |
+          $PackageVersion = '${{ needs.preflight.outputs.package-version }}'
+          New-Item -Path "onedrive-staging" -ItemType Directory -Force | Out-Null
+
+          $OneDriveVersion = '${{ needs.preflight.outputs.onedrive-version }}'
+
+          $Mappings = @{
+            "output/UniGetUI-release-x64/UniGetUI.Installer.x64.exe" = "Devolutions.UniGetUI.win-x64.$OneDriveVersion.exe"
+            "output/UniGetUI-release-arm64/UniGetUI.Installer.arm64.exe" = "Devolutions.UniGetUI.win-arm64.$OneDriveVersion.exe"
+            "output/UniGetUI-release-x64/UniGetUI.x64.zip" = "Devolutions.UniGetUI.win-x64.$OneDriveVersion.zip"
+            "output/UniGetUI-release-arm64/UniGetUI.arm64.zip" = "Devolutions.UniGetUI.win-arm64.$OneDriveVersion.zip"
+            "output/UniGetUI-macos-x64/UniGetUI.macos-x64.dmg" = "Devolutions.UniGetUI.macos-x64.$OneDriveVersion.dmg"
+            "output/UniGetUI-macos-arm64/UniGetUI.macos-arm64.dmg" = "Devolutions.UniGetUI.macos-arm64.$OneDriveVersion.dmg"
+            "output/UniGetUI-macos-x64/UniGetUI.macos-x64.tar.gz" = "Devolutions.UniGetUI.macos-x64.$OneDriveVersion.tar.gz"
+            "output/UniGetUI-macos-arm64/UniGetUI.macos-arm64.tar.gz" = "Devolutions.UniGetUI.macos-arm64.$OneDriveVersion.tar.gz"
+            "output/UniGetUI-linux-x64/UniGetUI.linux-x64.deb" = "Devolutions.UniGetUI.linux-x64.$OneDriveVersion.deb"
+            "output/UniGetUI-linux-arm64/UniGetUI.linux-arm64.deb" = "Devolutions.UniGetUI.linux-arm64.$OneDriveVersion.deb"
+            "output/UniGetUI-linux-x64/UniGetUI.linux-x64.rpm" = "Devolutions.UniGetUI.linux-x64.$OneDriveVersion.rpm"
+            "output/UniGetUI-linux-arm64/UniGetUI.linux-arm64.rpm" = "Devolutions.UniGetUI.linux-arm64.$OneDriveVersion.rpm"
+            "output/UniGetUI-linux-x64/UniGetUI.linux-x64.tar.gz" = "Devolutions.UniGetUI.linux-x64.$OneDriveVersion.tar.gz"
+            "output/UniGetUI-linux-arm64/UniGetUI.linux-arm64.tar.gz" = "Devolutions.UniGetUI.linux-arm64.$OneDriveVersion.tar.gz"
+          }
+
+          foreach ($entry in $Mappings.GetEnumerator()) {
+            if (-not (Test-Path $entry.Key)) {
+              throw "File not found: $($entry.Key)"
+            }
+            Copy-Item -Path $entry.Key -Destination "onedrive-staging/$($entry.Value)"
+            Write-Host "Staged: $($entry.Key) -> $($entry.Value)"
+          }
+
+      - name: Upload to OneDrive
+        if: ${{ fromJSON(needs.preflight.outputs.dry-run) == false }}
+        uses: ./.github/workflows/onedrive-upload
+        with:
+          azure_client_id: ${{ secrets.ONEDRIVE_AUTOMATION_CLIENT_ID }}
+          azure_client_secret: ${{ secrets.ONEDRIVE_AUTOMATION_CLIENT_SECRET }}
+          conflict_behavior: replace
+          destination_path: /UniGetUI/${{ needs.preflight.outputs.onedrive-version }}
+          remote: releases
+          source_path: Devolutions.UniGetUI.*
+          working_directory: onedrive-staging
+
+  size-report:
+    name: Consolidated Size Report
+    runs-on: ubuntu-latest
+    needs: [preflight, build, build-avalonia]
+    if: always() && needs.build.result != 'cancelled' && needs.build-avalonia.result != 'cancelled'
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: output
+
+      - name: Generate consolidated size report
+        shell: pwsh
+        working-directory: output
+        run: |
+          $SizeFiles = Get-ChildItem -Path . -Recurse -File -Filter "sizes.*.json" | Sort-Object Name
+          if (-not $SizeFiles) {
+            Write-Host "No size files found."
+            return
+          }
+
+          $Rows = foreach ($file in $SizeFiles) {
+            $data = Get-Content $file.FullName -Raw | ConvertFrom-Json
+            $uncompressedMiB = [math]::Round($data.UncompressedSizeBytes / 1MB, 2)
+            foreach ($artifact in $data.Artifacts) {
+              [PSCustomObject]@{
+                Platform = $data.Platform
+                RID = $data.RuntimeIdentifier
+                Artifact = $artifact.Name
+                CompressedMiB = [math]::Round($artifact.SizeBytes / 1MB, 2)
+                UncompressedMiB = $uncompressedMiB
+              }
+            }
+          }
+
+          $SizeReportFile = Join-Path $PWD "sizes.md"
+          $Lines = @("# UniGetUI Release Artifact Sizes", "")
+          $Lines += $Rows | Format-Table -AutoSize | Out-String -Stream | Where-Object { $_.Trim() -ne '' }
+          Set-Content -Path $SizeReportFile -Value $Lines -Encoding utf8NoBOM
+
+          echo "::group::sizes"
+          Get-Content $SizeReportFile
+          echo "::endgroup::"
+
+      - name: Upload size report
+        uses: actions/upload-artifact@v7
+        with:
+          name: UniGetUI-size-report
+          path: output/sizes.md

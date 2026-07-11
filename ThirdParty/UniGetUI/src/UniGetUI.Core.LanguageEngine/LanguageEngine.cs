@@ -1,0 +1,281 @@
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
+using System.Text;
+using System.Text.Json;
+using Jeffijoe.MessageFormat;
+using UniGetUI.Core.Data;
+using UniGetUI.Core.Logging;
+using UniGetUI.Core.SettingsEngine;
+
+namespace UniGetUI.Core.Language
+{
+    public class LanguageEngine
+    {
+        private static readonly Dictionary<string, string> LocaleAliases = new(StringComparer.OrdinalIgnoreCase)
+        {
+            { "es_MX", "es-MX" },
+            { "tg", "tl" },
+            { "ua", "uk" },
+        };
+
+        private Dictionary<string, string> MainLangDict = [];
+        public static string SelectedLocale = "??";
+
+        [NotNull]
+        public string? Locale { get; private set; }
+
+        private MessageFormatter? Formatter;
+
+        public LanguageEngine(string ForceLanguage = "")
+        {
+            string LangName = Settings.GetValue(Settings.K.PreferredLanguage);
+            if (LangName is "default" or "")
+            {
+                LangName = CultureInfo.CurrentUICulture.ToString().Replace("-", "_");
+                if (string.IsNullOrWhiteSpace(LangName))
+                {
+                    LangName = "en";
+                }
+            }
+            LoadLanguage((ForceLanguage != "") ? ForceLanguage : LangName);
+        }
+
+        /// <summary>
+        /// Loads the specified language into the current instance
+        /// </summary>
+        /// <param name="lang">the language code</param>
+        public void LoadLanguage(string lang)
+        {
+            try
+            {
+                lang = (lang ?? string.Empty).Trim();
+
+                Locale = "en";
+                Locale = ResolveLocale(lang);
+
+                MainLangDict = LoadLanguageFile(Locale);
+                Formatter = new() { Locale = Locale.Replace('_', '-') };
+
+                SelectedLocale = Locale;
+                Logger.Info("Loaded language locale: " + Locale);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Could not load language file \"{lang}\"");
+                Logger.Error(ex);
+
+                // Keep the app functional even if locale resolution fails.
+                Locale = "en";
+                MainLangDict = LoadLanguageFile(Locale);
+                Formatter = new() { Locale = "en" };
+                SelectedLocale = Locale;
+            }
+        }
+
+        private static string ResolveLocale(string lang)
+        {
+            foreach (string candidate in GetLocaleCandidates(lang))
+            {
+                if (LanguageData.LanguageReference.ContainsKey(candidate))
+                {
+                    return candidate;
+                }
+            }
+
+            return "en";
+        }
+
+        private static IEnumerable<string> GetLocaleCandidates(string lang)
+        {
+            HashSet<string> candidates = new(StringComparer.OrdinalIgnoreCase);
+
+            void AddCandidate(string? candidate)
+            {
+                if (!string.IsNullOrWhiteSpace(candidate))
+                {
+                    candidates.Add(candidate.Trim());
+                }
+            }
+
+            string requested = (lang ?? string.Empty).Trim();
+            string underscored = requested.Replace('-', '_');
+            string hyphenated = requested.Replace('_', '-');
+
+            AddCandidate(requested);
+            AddCandidate(underscored);
+            AddCandidate(hyphenated);
+
+            if (LocaleAliases.TryGetValue(requested, out string? requestedAlias))
+            {
+                AddCandidate(requestedAlias);
+            }
+
+            if (LocaleAliases.TryGetValue(underscored, out string? underscoredAlias))
+            {
+                AddCandidate(underscoredAlias);
+            }
+
+            string[] localeSegments = underscored.Split('_', StringSplitOptions.RemoveEmptyEntries);
+            if (localeSegments.Length > 0)
+            {
+                string baseLanguage = localeSegments[0];
+                AddCandidate(baseLanguage);
+
+                if (LocaleAliases.TryGetValue(baseLanguage, out string? baseLanguageAlias))
+                {
+                    AddCandidate(baseLanguageAlias);
+                }
+            }
+
+            return candidates;
+        }
+
+        public Dictionary<string, string> LoadLanguageFile(string LangKey)
+        {
+            try
+            {
+                string BundledLangFileToLoad = Path.Join(
+                    CoreData.UniGetUIExecutableDirectory,
+                    "Assets",
+                    "Languages",
+                    "lang_" + LangKey + ".json"
+                );
+                Dictionary<string, string> LangDict = [];
+
+                if (!File.Exists(BundledLangFileToLoad))
+                {
+                    Logger.Error(
+                        $"Tried to access a non-existing bundled language file! file={BundledLangFileToLoad}"
+                    );
+                }
+                else
+                {
+                    try
+                    {
+                        LangDict = ParseLanguageEntries(
+                            File.ReadAllText(BundledLangFileToLoad),
+                            BundledLangFileToLoad
+                        );
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Warn(
+                            $"Something went wrong when parsing language file {BundledLangFileToLoad}"
+                        );
+                        Logger.Warn(ex);
+                    }
+                }
+
+                return LangDict;
+            }
+            catch (Exception e)
+            {
+                Logger.Error($"LoadLanguageFile Failed for LangKey={LangKey}");
+                Logger.Error(e);
+                return [];
+            }
+        }
+
+        private static Dictionary<string, string> ParseLanguageEntries(
+            string fileContents,
+            string filePath
+        )
+        {
+            Dictionary<string, string> entries = [];
+            HashSet<string> duplicateKeys = [];
+            Utf8JsonReader reader = new(
+                Encoding.UTF8.GetBytes(fileContents),
+                new JsonReaderOptions
+                {
+                    AllowTrailingCommas = true,
+                    CommentHandling = JsonCommentHandling.Skip,
+                }
+            );
+
+            if (!reader.Read() || reader.TokenType != JsonTokenType.StartObject)
+            {
+                throw new JsonException($"Language file {filePath} does not contain a JSON object");
+            }
+
+            while (reader.Read())
+            {
+                if (reader.TokenType == JsonTokenType.EndObject)
+                {
+                    break;
+                }
+
+                if (reader.TokenType != JsonTokenType.PropertyName)
+                {
+                    throw new JsonException(
+                        $"Unexpected token {reader.TokenType} in language file {filePath}"
+                    );
+                }
+
+                string key = reader.GetString() ?? throw new JsonException("Translation key is null");
+                if (!reader.Read())
+                {
+                    throw new JsonException($"Missing translation value for key {key}");
+                }
+
+                using JsonDocument value = JsonDocument.ParseValue(ref reader);
+                string parsedValue = value.RootElement.ValueKind == JsonValueKind.Null
+                    ? ""
+                    : value.RootElement.ToString();
+
+                if (!entries.TryAdd(key, parsedValue))
+                {
+                    duplicateKeys.Add(key);
+                    entries[key] = parsedValue;
+                }
+            }
+
+            if (duplicateKeys.Count > 0)
+            {
+                Logger.Warn(
+                    $"Language file {filePath} contains duplicate keys. Keeping the last value for: {string.Join(", ", duplicateKeys)}"
+                );
+            }
+
+            return entries;
+        }
+
+        public string Translate(string key)
+        {
+            if (key == "WingetUI")
+            {
+                if (
+                    MainLangDict.TryGetValue("formerly WingetUI", out var formerly)
+                    && formerly != ""
+                )
+                {
+                    return "UniGetUI (" + formerly + ")";
+                }
+
+                return "UniGetUI (formerly WingetUI)";
+            }
+
+            if (key == "Formerly known as WingetUI")
+            {
+                return MainLangDict.GetValueOrDefault(key, key);
+            }
+
+            if (key is null or "")
+            {
+                return "";
+            }
+
+            if (MainLangDict.TryGetValue(key, out var value) && value != "")
+            {
+                return value.Replace("WingetUI", "UniGetUI");
+            }
+
+            return key.Replace("WingetUI", "UniGetUI");
+        }
+
+        public string Translate(string key, Dictionary<string, object?> dict)
+        {
+            Formatter ??= new() { Locale = (Locale ?? "en").Replace('_', '-') };
+            return Formatter.FormatMessage(Translate(key), dict);
+        }
+    }
+}

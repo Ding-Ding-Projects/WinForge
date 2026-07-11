@@ -1,0 +1,232 @@
+<UserControl x:Class="UniGetUI.Avalonia.Views.Pages.SettingsPages.InstallOptionsPanel"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:automation="clr-namespace:Avalonia.Automation;assembly=Avalonia.Controls"
+             xmlns:vm="using:UniGetUI.Avalonia.ViewModels.Pages.SettingsPages"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             x:DataType="vm:InstallOptionsPanelViewModel">
+
+    <StackPanel Orientation="Vertical" >
+
+        <!-- Header card: description + Reset + Apply + progress bar -->
+        <Border Classes="settings-card"
+                CornerRadius="8,8,0,0"
+                BorderThickness="1,1,1,0"
+                Padding="16,12"
+                Margin="40,0,40,2">
+            <StackPanel Orientation="Vertical" Spacing="8">
+                <Grid ColumnDefinitions="*,Auto,Auto">
+                    <TextBlock Grid.Column="0"
+                               Text="{Binding HeaderText}"
+                               VerticalAlignment="Center"
+                               FontSize="14"
+                               TextWrapping="Wrap"/>
+                    <Button x:Name="ResetButton"
+                            Grid.Column="1"
+                            Content="{Binding ResetLabel}"
+                            automation:AutomationProperties.Name="{Binding ResetLabel}"
+                            Command="{Binding ResetOptionsCommand}"
+                            IsEnabled="{Binding !IsLoading}"
+                            Margin="4,0"/>
+                    <Button x:Name="ApplyButton"
+                            Grid.Column="2"
+                            Content="{Binding ApplyLabel}"
+                            automation:AutomationProperties.Name="{Binding ApplyLabel}"
+                            Command="{Binding SaveOptionsCommand}"
+                            IsEnabled="{Binding !IsLoading}"
+                            Margin="4,0,0,0"/>
+                </Grid>
+                <ProgressBar IsIndeterminate="{Binding IsLoading}"
+                             IsVisible="{Binding IsLoading}"
+                             Height="4"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Options card: always visible, controls disabled during load -->
+        <Border CornerRadius="0,0,8,8"
+                BorderThickness="1,0,1,1"
+                Classes="settings-card"
+                Margin="40,0"
+                Padding="16,12">
+                <StackPanel Orientation="Vertical" Spacing="8">
+
+                    <!-- Checkboxes: always shown, disabled when not supported -->
+                    <WrapPanel HorizontalAlignment="Center">
+                        <CheckBox IsChecked="{Binding AdminChecked}"
+                                  IsEnabled="{Binding AdminEnabled}"
+                                  IsVisible="{Binding AdminEnabled}"
+                                  Content="{Binding AdminLabel}"
+                                  automation:AutomationProperties.Name="{Binding AdminLabel}"
+                                  Margin="8,0"/>
+                        <CheckBox IsChecked="{Binding InteractiveChecked}"
+                                  IsEnabled="{Binding InteractiveEnabled}"
+                                  Content="{Binding InteractiveLabel}"
+                                  automation:AutomationProperties.Name="{Binding InteractiveLabel}"
+                                  Margin="8,0"/>
+                        <CheckBox IsChecked="{Binding SkipHashChecked}"
+                                  IsEnabled="{Binding SkipHashEnabled}"
+                                  Content="{Binding SkipHashLabel}"
+                                  automation:AutomationProperties.Name="{Binding SkipHashLabel}"
+                                  Margin="8,0"/>
+                        <CheckBox IsChecked="{Binding PreReleaseChecked}"
+                                  IsEnabled="{Binding PreReleaseEnabled}"
+                                  Content="{Binding PreReleaseLabel}"
+                                  automation:AutomationProperties.Name="{Binding PreReleaseLabel}"
+                                  Margin="8,0"/>
+                        <CheckBox IsChecked="{Binding UninstallPreviousChecked}"
+                                  IsEnabled="{Binding UninstallPreviousEnabled}"
+                                  Content="{Binding UninstallPrevLabel}"
+                                  automation:AutomationProperties.Name="{Binding UninstallPrevLabel}"
+                                  Margin="8,0"/>
+                    </WrapPanel>
+
+                    <!-- Architecture: always shown, disabled when not supported -->
+                    <Grid ColumnDefinitions="*,*">
+                        <TextBlock x:Name="ArchLabelBlock"
+                                   Grid.Column="0"
+                                   Text="{Binding ArchLabel}"
+                                   VerticalAlignment="Center"
+                                   FontSize="14"
+                                   Opacity="{Binding ArchOpacity}"/>
+                        <ComboBox Grid.Column="1"
+                                  ItemsSource="{Binding ArchitectureItems}"
+                                  SelectedItem="{Binding SelectedArchitecture}"
+                                  IsEnabled="{Binding ArchitectureEnabled}"
+                                  HorizontalAlignment="Stretch"
+                                  MaxWidth="200"
+                                  automation:AutomationProperties.LabeledBy="{Binding #ArchLabelBlock}"/>
+                    </Grid>
+
+                    <!-- Scope: always shown, disabled when not supported -->
+                    <Grid ColumnDefinitions="*,*">
+                        <TextBlock x:Name="ScopeLabelBlock"
+                                   Grid.Column="0"
+                                   Text="{Binding ScopeLabel}"
+                                   VerticalAlignment="Center"
+                                   FontSize="14"
+                                   Opacity="{Binding ScopeOpacity}"/>
+                        <ComboBox Grid.Column="1"
+                                  ItemsSource="{Binding ScopeItems}"
+                                  SelectedItem="{Binding SelectedScope}"
+                                  IsEnabled="{Binding ScopeEnabled}"
+                                  HorizontalAlignment="Stretch"
+                                  MaxWidth="200"
+                                  automation:AutomationProperties.LabeledBy="{Binding #ScopeLabelBlock}"/>
+                    </Grid>
+
+                    <!-- Location: always shown, select disabled when not supported -->
+                    <Grid ColumnDefinitions="*,Auto,Auto">
+                        <TextBlock Grid.Column="0"
+                                   Text="{Binding LocationLabel}"
+                                   VerticalAlignment="Center"
+                                   FontSize="14"
+                                   Opacity="{Binding LocationOpacity}"/>
+                        <Button x:Name="SelectDirButton"
+                                Grid.Column="1"
+                                Content="{Binding SelectDirLabel}"
+                                automation:AutomationProperties.Name="{Binding SelectDirLabel}"
+                                IsEnabled="{Binding LocationSelectEnabled}"
+                                Margin="4,0"/>
+                        <Button Grid.Column="2"
+                                Content="{Binding ResetDirLabel}"
+                                automation:AutomationProperties.Name="{Binding ResetDirLabel}"
+                                Command="{Binding ResetLocationCommand}"
+                                IsEnabled="{Binding LocationResetEnabled}"/>
+                    </Grid>
+                    <SelectableTextBlock Text="{Binding LocationText}"
+                               FontFamily="Consolas,Cascadia Mono,Menlo,monospace"
+                               FontSize="14"
+                               Opacity="0.6"
+                               TextWrapping="Wrap"/>
+
+                    <!-- CLI disabled warning -->
+                    <TextBlock Text="{Binding CliDisabledLabel}"
+                               IsVisible="{Binding CliDisabledWarningVisible}"
+                               TextWrapping="Wrap"
+                               Margin="0,8,0,0"
+                               Classes="setting-warning-text"/>
+                    <Button IsVisible="{Binding CliDisabledWarningVisible}"
+                            HorizontalAlignment="Center"
+                            Command="{Binding NavigateToAdministratorCommand}"
+                            automation:AutomationProperties.Name="{Binding GoToSecurityLabel}"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Padding="0">
+                        <TextBlock Text="{Binding GoToSecurityLabel}" Classes="hyperlink"
+                                   automation:AutomationProperties.AccessibilityView="Raw"/>
+                    </Button>
+
+                    <!-- CLI arguments: always shown, disabled by security setting -->
+                    <TextBlock Text="{Binding CliArgsHintLabel}"
+                               IsVisible="{Binding CliSectionEnabled}"
+                               TextWrapping="Wrap"
+                               Opacity="0.7"
+                               FontSize="12"
+                               Margin="0,8,0,0"/>
+                    <Grid ColumnDefinitions="*,2*"
+                          RowDefinitions="Auto,Auto,Auto"
+                          RowSpacing="8"
+                          ColumnSpacing="8"
+                          Margin="0,4,0,0">
+                        <TextBlock x:Name="InstallArgsLabelBlock"
+                                   Grid.Row="0" Grid.Column="0"
+                                   Text="{Binding InstallArgsLabel}"
+                                   VerticalAlignment="Center"
+                                   FontSize="14"
+                                   Opacity="{Binding CliOpacity}"/>
+                        <TextBox   Grid.Row="0" Grid.Column="1"
+                                   Text="{Binding CustomInstall}"
+                                   IsEnabled="{Binding CliSectionEnabled}"
+                                   FontFamily="Consolas,Cascadia Mono,Menlo,monospace"
+                                   FontSize="14"
+                                   x:Name="CustomInstallBox"
+                                   automation:AutomationProperties.LabeledBy="{Binding #InstallArgsLabelBlock}"/>
+
+                        <TextBlock x:Name="UpdateArgsLabelBlock"
+                                   Grid.Row="1" Grid.Column="0"
+                                   Text="{Binding UpdateArgsLabel}"
+                                   VerticalAlignment="Center"
+                                   FontSize="14"
+                                   Opacity="{Binding CliOpacity}"/>
+                        <TextBox   Grid.Row="1" Grid.Column="1"
+                                   Text="{Binding CustomUpdate}"
+                                   IsEnabled="{Binding CliSectionEnabled}"
+                                   FontFamily="Consolas,Cascadia Mono,Menlo,monospace"
+                                   FontSize="14"
+                                   x:Name="CustomUpdateBox"
+                                   automation:AutomationProperties.LabeledBy="{Binding #UpdateArgsLabelBlock}"/>
+
+                        <TextBlock x:Name="UninstallArgsLabelBlock"
+                                   Grid.Row="2" Grid.Column="0"
+                                   Text="{Binding UninstallArgsLabel}"
+                                   VerticalAlignment="Center"
+                                   FontSize="14"
+                                   Opacity="{Binding CliOpacity}"/>
+                        <TextBox   Grid.Row="2" Grid.Column="1"
+                                   Text="{Binding CustomUninstall}"
+                                   IsEnabled="{Binding CliSectionEnabled}"
+                                   FontFamily="Consolas,Cascadia Mono,Menlo,monospace"
+                                   FontSize="14"
+                                   x:Name="CustomUninstallBox"
+                                   automation:AutomationProperties.LabeledBy="{Binding #UninstallArgsLabelBlock}"/>
+                    </Grid>
+
+                    <Button IsVisible="{Binding CliSectionEnabled}"
+                            HorizontalAlignment="Left"
+                            Command="{Binding CopyInstallArgsToOthersCommand}"
+                            automation:AutomationProperties.Name="{Binding CopyInstallArgsLabel}"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Padding="0"
+                            Margin="0,4,0,0">
+                        <TextBlock Text="{Binding CopyInstallArgsLabel}" Classes="hyperlink"
+                                   automation:AutomationProperties.AccessibilityView="Raw"/>
+                    </Button>
+
+                </StackPanel>
+            </Border>
+
+    </StackPanel>
+</UserControl>
