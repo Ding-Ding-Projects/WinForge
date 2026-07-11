@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dew Encryption Wiki</title>
+  <style>
+    body { margin: 0; font-family: "Segoe UI", Arial, sans-serif; color: #17212b; background: #f4f7fb; line-height: 1.55; }
+    main { max-width: 980px; margin: 0 auto; padding: 36px 24px; }
+    section { background: #fff; border: 1px solid #c9d3de; border-radius: 12px; padding: 22px; margin: 18px 0; }
+    h1 { margin-top: 0; font-size: 40px; }
+    h2 { margin-top: 0; }
+    code, pre { background: #101820; color: #e6f0f8; border-radius: 8px; }
+    code { padding: 2px 5px; }
+    pre { padding: 16px; overflow-x: auto; }
+    img { width: 100%; border: 1px solid #c9d3de; background: #fff; }
+    a { color: #145f8f; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Dew Encryption Wiki</h1>
+  <p>This page mirrors the GitHub Pages screenshots and explains the current GUI, Explorer, Nautilus, and container-history workflows.</p>
+  <section>
+    <h2>GUI container manager</h2>
+    <p>The <strong>Containers</strong> tab stores encrypted-container profiles, custom background/foreground/accent colors, font family and size, multiple open hooks, multiple close hooks, and Git-backed history snapshots for each container file.</p>
+    <img src="screenshots/gui.svg" alt="Dew Encryption container manager screenshot">
+  </section>
+  <section>
+    <h2>Explorer and Nautilus quick actions</h2>
+    <p>Windows Explorer actions include normal snapshots, folder history, history manager launch, VeraCrypt encryption/decryption, and quick-create encrypted containers. Linux installs matching Nautilus scripts where supported.</p>
+    <img src="screenshots/explorer-menu.svg" alt="Explorer context menu screenshot">
+  </section>
+  <section>
+    <h2>Container history and hooks</h2>
+    <p>Use the GUI buttons or CLI commands to snapshot a container file and run configured open/close automations.</p>
+    <pre>dew-encryption container-history C:\Path\To\Secrets.dew.hc --snapshot
+dew-encryption container-hooks open C:\Path\To\Secrets.dew.hc --mount-path X:\</pre>
+  </section>
+  <p><a href="index.html">Back to the project page</a></p>
+</main>
+</body>
+</html>

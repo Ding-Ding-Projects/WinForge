@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+bin/
+obj/
+.vs/
+
+windows/context-menu/out/
+windows/context-menu/bin/
+windows/context-menu/AppxManifest.xml

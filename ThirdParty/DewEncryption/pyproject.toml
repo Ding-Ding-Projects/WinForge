@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dew-encryption"
+version = "0.1.0"
+description = "Windows Explorer right-click snapshots that commit selected files locally and compress them with 7-Zip."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "codingmachineedge" }]
+keywords = ["windows", "explorer", "git", "7zip", "backup"]
+
+[project.scripts]
+dew-encryption = "dew_encryption.core:main"
+dew-encryption-gui = "dew_encryption.gui:main"
+
+[tool.setuptools]
+packages = ["dew_encryption"]

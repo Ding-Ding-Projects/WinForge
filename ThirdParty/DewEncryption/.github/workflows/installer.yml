@@ -1,0 +1,81 @@
+name: Publish Windows Installer
+
+on:
+  push:
+    branches:
+      - "**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-installer:
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.12"
+
+      - name: Build Windows installer
+        shell: pwsh
+        run: |
+          choco install innosetup --yes --no-progress
+          .\scripts\build-windows-installer.ps1
+
+      - name: Validate and prepare installer
+        id: publish
+        shell: pwsh
+        run: |
+          $expectedFiles = @(
+            "dist\app\dew-encryption.exe",
+            "dist\app\dew-encryption-gui.exe",
+            "dist\installer\DewEncryptionSetup.exe"
+          )
+
+          foreach ($path in $expectedFiles) {
+            if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+              throw "Expected build output was not created: $path"
+            }
+            if ((Get-Item -LiteralPath $path).Length -eq 0) {
+              throw "Build output is empty: $path"
+            }
+          }
+
+          & .\dist\app\dew-encryption.exe --help | Out-Null
+          if ($LASTEXITCODE -ne 0) {
+            throw "Packaged CLI smoke test failed with exit code $LASTEXITCODE."
+          }
+
+          $shortSha = $env:GITHUB_SHA.Substring(0, 12)
+          $assetName = "DewEncryptionSetup-$shortSha.exe"
+          $artifactName = "DewEncryptionSetup-$env:GITHUB_RUN_NUMBER-$env:GITHUB_RUN_ATTEMPT-$shortSha"
+          $publishDirectory = (New-Item -ItemType Directory -Path dist\publish -Force).FullName
+          $assetPath = Join-Path $publishDirectory $assetName
+
+          Copy-Item -LiteralPath dist\installer\DewEncryptionSetup.exe -Destination $assetPath
+          $hash = (Get-FileHash -LiteralPath $assetPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          [IO.File]::WriteAllText(
+            "$assetPath.sha256",
+            "$hash  $assetName`n",
+            [Text.Encoding]::ASCII
+          )
+
+          "artifact_name=$artifactName" >> $env:GITHUB_OUTPUT
+
+      - name: Publish installer artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ steps.publish.outputs.artifact_name }}
+          path: dist/publish/*
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0

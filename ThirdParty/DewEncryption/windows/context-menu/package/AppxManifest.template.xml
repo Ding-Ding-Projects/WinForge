@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:uap10="http://schemas.microsoft.com/appx/manifest/uap/windows10/10"
+  xmlns:desktop4="http://schemas.microsoft.com/appx/manifest/desktop/windows10/4"
+  xmlns:desktop5="http://schemas.microsoft.com/appx/manifest/desktop/windows10/5"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  xmlns:com="http://schemas.microsoft.com/appx/manifest/com/windows10"
+  IgnorableNamespaces="uap uap10 desktop4 desktop5 rescap com">
+  <Identity Name="CodingMachineEdge.DewEncryption.ContextMenu" ProcessorArchitecture="neutral" Publisher="CN=CodingMachineEdge" Version="1.0.0.0" />
+  <Properties>
+    <DisplayName>Dew Encryption</DisplayName>
+    <PublisherDisplayName>codingmachineedge</PublisherDisplayName>
+    <Logo>assets\icons\dew-main.png</Logo>
+    <uap10:AllowExternalContent>true</uap10:AllowExternalContent>
+  </Properties>
+  <Resources>
+    <Resource Language="en-us" />
+  </Resources>
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.22000.0" MaxVersionTested="10.0.26200.0" />
+  </Dependencies>
+  <Capabilities>
+    <rescap:Capability Name="runFullTrust" />
+    <rescap:Capability Name="unvirtualizedResources" />
+  </Capabilities>
+  <Applications>
+    <Application Id="DewEncryption" Executable="{{APP_EXECUTABLE}}" uap10:TrustLevel="mediumIL" uap10:RuntimeBehavior="win32App">
+      <uap:VisualElements AppListEntry="none" DisplayName="Dew Encryption" Description="Dew Encryption" BackgroundColor="transparent" Square150x150Logo="assets\icons\dew-main.png" Square44x44Logo="assets\icons\dew-main.png" />
+      <Extensions>
+        <desktop4:Extension Category="windows.fileExplorerContextMenus">
+          <desktop4:FileExplorerContextMenus>
+            <desktop5:ItemType Type="*">
+              <desktop5:Verb Id="DewEncrypt" Clsid="611F3291-DC8B-47D6-97C0-0D779913B5C6" />
+              <desktop5:Verb Id="DewQuickContainer" Clsid="046033C1-C212-4FDB-B7C6-3E698A56A37A" />
+              <desktop5:Verb Id="DewVeraCryptEncrypt" Clsid="05AAAB86-21D0-4D2F-9031-9C89E0DC5277" />
+              <desktop5:Verb Id="DewDockerUpload" Clsid="F9D7D759-9E6A-4729-ABDA-6AA059B3AA79" />
+            </desktop5:ItemType>
+            <desktop5:ItemType Type="Directory">
+              <desktop5:Verb Id="DewEncrypt" Clsid="611F3291-DC8B-47D6-97C0-0D779913B5C6" />
+              <desktop5:Verb Id="DewHistory" Clsid="B7C50B51-DD33-495C-B595-28AE6E7F7CB6" />
+              <desktop5:Verb Id="DewWatch" Clsid="286364AE-FED7-4648-ACCC-66FF2C85B4EE" />
+              <desktop5:Verb Id="DewQuickContainer" Clsid="046033C1-C212-4FDB-B7C6-3E698A56A37A" />
+              <desktop5:Verb Id="DewVeraCryptEncrypt" Clsid="05AAAB86-21D0-4D2F-9031-9C89E0DC5277" />
+              <desktop5:Verb Id="DewGitCommitPush" Clsid="2A1C6932-5EBC-4E15-86F1-4F611CDC8683" />
+            </desktop5:ItemType>
+            <desktop5:ItemType Type="Directory\Background">
+              <desktop5:Verb Id="DewEncrypt" Clsid="611F3291-DC8B-47D6-97C0-0D779913B5C6" />
+              <desktop5:Verb Id="DewHistory" Clsid="B7C50B51-DD33-495C-B595-28AE6E7F7CB6" />
+              <desktop5:Verb Id="DewWatch" Clsid="286364AE-FED7-4648-ACCC-66FF2C85B4EE" />
+              <desktop5:Verb Id="DewGitCommitPush" Clsid="2A1C6932-5EBC-4E15-86F1-4F611CDC8683" />
+              <desktop5:Verb Id="DewDockerSaveHere" Clsid="427D8DDC-2DDE-4783-BDC5-8804CC0C9E34" />
+            </desktop5:ItemType>
+          </desktop4:FileExplorerContextMenus>
+        </desktop4:Extension>
+        <com:Extension Category="windows.comServer">
+          <com:ComServer>
+            <com:SurrogateServer DisplayName="Dew Encryption context menu">
+              <com:Class Id="611F3291-DC8B-47D6-97C0-0D779913B5C6" Path="{{DLL_PATH}}" ThreadingModel="STA" />
+              <com:Class Id="B7C50B51-DD33-495C-B595-28AE6E7F7CB6" Path="{{DLL_PATH}}" ThreadingModel="STA" />
+              <com:Class Id="286364AE-FED7-4648-ACCC-66FF2C85B4EE" Path="{{DLL_PATH}}" ThreadingModel="STA" />
+              <com:Class Id="046033C1-C212-4FDB-B7C6-3E698A56A37A" Path="{{DLL_PATH}}" ThreadingModel="STA" />
+              <com:Class Id="05AAAB86-21D0-4D2F-9031-9C89E0DC5277" Path="{{DLL_PATH}}" ThreadingModel="STA" />
+              <com:Class Id="2A1C6932-5EBC-4E15-86F1-4F611CDC8683" Path="{{DLL_PATH}}" ThreadingModel="STA" />
+              <com:Class Id="F9D7D759-9E6A-4729-ABDA-6AA059B3AA79" Path="{{DLL_PATH}}" ThreadingModel="STA" />
+              <com:Class Id="427D8DDC-2DDE-4783-BDC5-8804CC0C9E34" Path="{{DLL_PATH}}" ThreadingModel="STA" />
+            </com:SurrogateServer>
+          </com:ComServer>
+        </com:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+</Package>
