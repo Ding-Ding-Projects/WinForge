@@ -314,4 +314,15 @@ public sealed partial class PowerToysExtrasModule : Page
             Info(InfoBarSeverity.Informational, P("Hotkey off", "熱鍵已關"), P("Ctrl+Shift+V works normally again.", "Ctrl+Shift+V 回復正常。"));
         }
     }
+    // ===================== More PowerToys =====================
+
+    private static void OpenModule(string tag) => Navigator.GoToModule?.Invoke(tag);
+
+    private void MoreScreenRuler_Click(object sender, RoutedEventArgs e) => OpenModule("module.screenruler");
+    private void MoreMouseUtils_Click(object sender, RoutedEventArgs e) => OpenModule("module.mouseutils");
+    private void MoreQuickAccent_Click(object sender, RoutedEventArgs e) => OpenModule("module.quickaccent");
+    private void MoreShortcutGuide_Click(object sender, RoutedEventArgs e) => OpenModule("module.shortcutguide");
+    private void MoreTextOcr_Click(object sender, RoutedEventArgs e) => OpenModule("module.textocr");
+    private void MoreAwake_Click(object sender, RoutedEventArgs e) => OpenModule("module.awake");
+    private void MoreColorPicker_Click(object sender, RoutedEventArgs e) => OpenModule("module.colorpicker");
 }
