@@ -88,7 +88,7 @@ public static class RegexCheatService
         E(C_QUANT, C_QUANT_ZH, "*?", "0 or more (lazy / non-greedy).", "0 次或以上（懶惰）。", "<.*?> shortest tag"),
         E(C_QUANT, C_QUANT_ZH, "+?", "1 or more (lazy).", "1 次或以上（懶惰）。", "\".+?\" shortest string"),
         E(C_QUANT, C_QUANT_ZH, "??", "0 or 1 (lazy).", "0 或 1 次（懶惰）。", "a??"),
-        E(C_QUANT, C_QUANT_ZH, "*+", "0 or more (possessive, no backtrack).", "0 次或以上（佔有，唔回溯）。", "a*+"),
+        E(C_QUANT, C_QUANT_ZH, "(?>a*)", "Atomic 0-or-more (the .NET equivalent of possessive a*; .NET does not use *+).", "原子 0 次或以上（.NET 入面等同佔有 a*；.NET 唔用 *+）。", "(?>a*)"),
         E(C_QUANT, C_QUANT_ZH, "{n,m}?", "Between n and m (lazy).", "n 至 m 次（懶惰）。", "\\d{2,4}?"),
 
         // --- Groups & backreferences ---

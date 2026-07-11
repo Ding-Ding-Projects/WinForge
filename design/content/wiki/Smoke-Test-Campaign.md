@@ -1051,5 +1051,18 @@ Randomizer、Screen Recorder 同 Registry Editor pages 都做咗新鮮 15 秒
 capture 仍然唔可用。冇 PNG 產生、檢查、替換或者重用；呢六頁係
 `capture-blocked`，絕對唔係 visual-pass。Batch 10 令而家 process-level launch
 evidence 去到 **323 條 routes 入面頭 250 條**。
+## Regex Cheatsheet & Reactor Settings lifecycle remediation · 正則速查同反應堆設定生命週期修復
+
+**EN —** Source review found two bounded correctness defects. The .NET Regex Cheatsheet had advertised `*+`, which .NET does not parse as a possessive quantifier; it now documents the valid atomic `(?>a*)` equivalent and a pure parser harness compiles that entry plus every ready-made recipe. Reactor Settings had attached an anonymous live-API timer callback on every `Loaded` event and had released its language handler permanently after the first unload. It now attaches one named timer callback in the constructor and uses idempotent named language subscribe/unsubscribe paths across load/unload. No reactor simulation, system linkage, Home Assistant, or real-shutdown behavior changed.
+
+**Focused evidence · 專注證據：** `tests/RegexCheatService.Tests` passed **3/3** and `tests/ReactorSettingsLifecycle.Tests` passed **3/3**. The latter is source-level and headless: it proves one timer attach, no attach from `OnLoaded`, balanced named language subscription, timer stop on unload, and one API refresh per timer event. The Debug x64 solution build passed with **0 errors** (318 existing warnings), and the XAML literal-safety guard passed.
+
+**Launch/capture evidence · 啟動／截圖證據：** Fresh self-contained `regexcheat` and `reactorsettings` 15-second `driver.ps1 -Out` attempts both reached the capture path but failed identically: `CopyFromScreen` was unavailable, the `PrintWindow` fallback produced a uniform frame, and graphics capture was unavailable in this desktop session. No PNG was created, inspected, replaced, or reused; both pages are `capture-blocked`, never visual-pass. Subsequent `-NoCapture` launches passed for both routes without operating controls. The prior Reactor Settings image was removed rather than presented as current evidence.
+
+**粵語 —** 來源審查搵到兩個有範圍嘅正確性問題。.NET Regex Cheatsheet 以前寫咗 `*+`，但 .NET 唔會將佢解析成佔有量詞；而家改為文件寫有效嘅原子 `(?>a*)` 等價寫法，並有純 parser harness 編譯呢個項目同所有現成配方。Reactor Settings 以前每次 `Loaded` 都會加一個匿名 live-API timer callback，而且第一次 unload 後永久解除咗語言 handler。佢而家喺 constructor 只會加一個具名 timer callback，並喺 load/unload 間用 idempotent 具名語言 subscribe/unsubscribe 路徑。冇改反應堆模擬、系統連動、Home Assistant 或真實關機行為。
+
+**專注證據：** `tests/RegexCheatService.Tests` **3/3** 通過，`tests/ReactorSettingsLifecycle.Tests` 都 **3/3** 通過。後者係 source-level 同 headless：佢證明得一個 timer attach、`OnLoaded` 冇 attach、具名語言訂閱平衡、unload 時 timer 會停，同埋每次 timer event 只 refresh 一次 API。Debug x64 solution build 以 **0 errors**（318 個既有 warnings）通過，XAML literal-safety guard 亦通過。
+
+**啟動／截圖證據：** 新鮮 self-contained `regexcheat` 同 `reactorsettings` 15 秒 `driver.ps1 -Out` 嘗試都去到 capture 路徑，但同樣失敗：`CopyFromScreen` 唔可用、`PrintWindow` fallback 產生 uniform frame，而呢個 desktop session 嘅 graphics capture 亦唔可用。冇 PNG 產生、檢查、替換或者重用；兩頁都係 `capture-blocked`，絕對唔係 visual-pass。之後兩個 route 都以 `-NoCapture` 通過，而過程冇操作控制項。之前嘅 Reactor Settings 圖片已移除，唔會當成最新證據展示。
 
 [← Wiki Home](Home.md) · [Developer](Developer.md) · [Screenshots](Screenshots.md)

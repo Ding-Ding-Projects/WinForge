@@ -8,7 +8,13 @@
 
 **粵語 —** 以上全部都喺一個**獨立嘅反應堆設定頁**（反應堆工具列嘅 ⚙ 掣，或 `WinForge.exe --page reactorsettings`），同純模擬控制分開。預設：真實關機 **OFF**、Windows 設定連動 **OFF**、Home Assistant 連動 **OFF**、狀態 API **ON**、自動儲存 **ON**、保持喚醒 **ON**。
 
-![Reactor Settings · 反應堆設定](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-reactorsettings.png)
+**EN —** The page's live status-API indicator now owns one named timer callback for its whole page instance. Every load safely restores the language-change handler; every unload stops the timer and releases that handler. This lifetime repair changes no toggle default and invokes no reactor, Windows-linkage, Home Assistant, or real-shutdown action.
+
+**粵語 —** 呢頁嘅 live status-API 指示器而家喺成個 page instance 只擁有一個具名 timer callback。每次 load 都會安全噉重新訂閱語言變更 handler；每次 unload 都會停 timer 同解除訂閱。呢個生命週期修正唔會改任何開關預設，亦唔會觸發反應堆、Windows 連動、Home Assistant 或真實關機動作。
+
+**Capture status · 截圖狀態：** The fresh 2026-07-11 `reactorsettings` capture attempt is `capture-blocked`: `CopyFromScreen` was unavailable, the `PrintWindow` fallback was uniform, and graphics capture was unavailable. The old image was removed rather than reused as current evidence. A subsequent launch-only check passed without operating a control. · 2026-07-11 新嘅 `reactorsettings` 截圖嘗試係 `capture-blocked`：`CopyFromScreen` 唔可用、`PrintWindow` 後備畫面係 uniform，而 graphics capture 亦唔可用。舊圖片已移除，唔會當成最新證據重用。之後冇操作任何控制項嘅 launch-only check 通過。
+
+See [Regex Cheatsheet & Reactor Settings Lifecycle](RegexCheat-ReactorSettings-Lifecycle.md) for the focused lifecycle proof. · 專注嘅生命週期證明請睇[正則速查同反應堆設定生命週期](RegexCheat-ReactorSettings-Lifecycle.md)。
 
 ---
 

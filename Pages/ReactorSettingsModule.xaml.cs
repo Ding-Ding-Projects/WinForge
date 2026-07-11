@@ -27,6 +27,7 @@ public sealed partial class ReactorSettingsModule : Page
 {
     private readonly DispatcherTimer _liveTimer = new() { Interval = TimeSpan.FromMilliseconds(800) };
     private bool _suppress; // guard so programmatic toggle/combobox updates don't re-fire handlers
+    private bool _languageSubscribed;
     private List<HaEntity> _haLights = new();
     private List<HaEntity> _haSwitches = new();
 
@@ -41,26 +42,48 @@ public sealed partial class ReactorSettingsModule : Page
     public ReactorSettingsModule()
     {
         InitializeComponent();
-        Loc.I.LanguageChanged += OnLanguageChanged;
+        _liveTimer.Tick += OnLiveTimerTick;
+        Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
+    }
 
-        Loaded += async (_, _) =>
-        {
-            LoadState();
-            Render();
-            _liveTimer.Tick += (_, _) => UpdateApiState();
-            _liveTimer.Start();
-            await LoadHaEntitiesAsync();
-        };
-        Unloaded += (_, _) =>
-        {
-            _liveTimer.Stop();
-            Loc.I.LanguageChanged -= OnLanguageChanged;
-        };
+    private async void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        SubscribeLanguage();
+        LoadState();
+        Render();
+        _liveTimer.Start();
+        await LoadHaEntitiesAsync();
+    }
+
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        _liveTimer.Stop();
+        UnsubscribeLanguage();
+    }
+
+    private void SubscribeLanguage()
+    {
+        if (_languageSubscribed) return;
+        Loc.I.LanguageChanged += OnLanguageChanged;
+        _languageSubscribed = true;
+    }
+
+    private void UnsubscribeLanguage()
+    {
+        if (!_languageSubscribed) return;
+        Loc.I.LanguageChanged -= OnLanguageChanged;
+        _languageSubscribed = false;
     }
 
     private string P(string en, string zh) => Loc.I.Pick(en, zh);
 
     private void OnLanguageChanged(object? s, EventArgs e) => Render();
+
+    private void OnLiveTimerTick(object? sender, object e)
+    {
+        UpdateApiState();
+    }
 
     // ============================================================ load current state ====
     private void LoadState()

@@ -116,6 +116,22 @@ Open in-app: `WinForge.exe --page resume`
 
 ![Resume Writer](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-resume.png)
 
+## Regex Cheatsheet · 正則速查
+
+Search the embedded bilingual .NET-regex reference by token, category, description, or example. The possessive-style zero-or-more entry uses the valid .NET atomic equivalent `(?>a*)`; .NET does not accept the `*+` syntax. · 可按 token、分類、說明或者例子搜尋內置嘅雙語 .NET 正則參考。佔有式零次或以上項目用有效嘅 .NET 原子等價寫法 `(?>a*)`；.NET 唔接受 `*+` 語法。
+
+Open in-app: `WinForge.exe --page regexcheat`
+
+Run the parser regression after changing the reference:
+
+```powershell
+dotnet run --project tests/RegexCheatService.Tests -c Debug
+```
+
+**Capture status · 截圖狀態：** The fresh 2026-07-11 `regexcheat` attempt is `capture-blocked`: `CopyFromScreen` was unavailable, the `PrintWindow` fallback was uniform, and graphics capture was unavailable. The route itself passed a subsequent launch-only check; no image is presented as fresh visual verification. · 2026-07-11 新嘅 `regexcheat` 嘗試係 `capture-blocked`：`CopyFromScreen` 唔可用、`PrintWindow` 後備畫面係 uniform，而 graphics capture 亦唔可用。之後 route launch-only check 通過；冇圖片會當成最新視覺驗證。
+
+See [Regex Cheatsheet & Reactor Settings Lifecycle](RegexCheat-ReactorSettings-Lifecycle.md) for the complete, safe test boundary. · 完整、安全嘅測試邊界請睇[正則速查同反應堆設定生命週期](RegexCheat-ReactorSettings-Lifecycle.md)。
+
 ## Settings Store Integrity Regression · 設定儲存完整性回歸測試
 
 **EN —** Run the focused storage regression after changing `SettingsStore`, import/export, or configuration backup behavior. It exercises valid load/write compatibility, atomic backup rotation, truncated/missing-primary recovery, fail-closed ordinary writes, and explicit-import repair.
