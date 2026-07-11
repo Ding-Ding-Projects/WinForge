@@ -679,7 +679,20 @@ public static class CommandPaletteService
     {
         try
         {
-            CopyText(path);
+            if (string.IsNullOrWhiteSpace(path)) return;
+            if (path.StartsWith("shell:AppsFolder\\", StringComparison.OrdinalIgnoreCase))
+            {
+                var psi = new ProcessStartInfo
+                {
+                    FileName = "explorer.exe",
+                    Arguments = path,
+                    UseShellExecute = true,
+                };
+                Process.Start(psi);
+                return;
+            }
+
+            Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
         }
         catch { /* best effort */ }
     }
@@ -688,7 +701,14 @@ public static class CommandPaletteService
     {
         try
         {
-            CopyText($"{file} {args}".Trim());
+            if (string.IsNullOrWhiteSpace(file)) return;
+            var psi = new ProcessStartInfo
+            {
+                FileName = file,
+                Arguments = args ?? "",
+                UseShellExecute = true,
+            };
+            Process.Start(psi);
         }
         catch { /* best effort */ }
     }
