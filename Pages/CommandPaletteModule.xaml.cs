@@ -32,8 +32,8 @@ public sealed partial class CommandPaletteModule : Page
     {
         Header.Title = "Command Palette · 指令面板";
         HeaderBlurb.Text = P(
-            "A global quick-launcher (like PowerToys Run and Command Palette). Press the hotkey anywhere to launch apps, modules, files and Terminal profiles; switch open windows; open saved bookmarks; browse local clipboard history; use time/date; type $display for Windows Settings; or manage services with service start/stop/restart <name>.",
-            "全域快速啟動器（似 PowerToys Run 同 Command Palette）。喺任何地方按熱鍵就可以啟動程式、模組、檔案同終端機設定檔；切換已開啟視窗；開啟已儲存書籤；瀏覽本機剪貼簿記錄；查時間／日期；輸入 $顯示器 開 Windows 設定；或者用 service start／stop／restart <名稱> 管理服務。");
+            "A global quick-launcher (like PowerToys Run and Command Palette). Press the hotkey anywhere to launch apps, modules, files and Terminal profiles; switch open windows; open saved bookmarks or Remote Desktop sessions; browse local clipboard history; use time/date; type $display for Windows Settings; type > followed by an intentional command; or manage services with service start/stop/restart <name>.",
+            "全域快速啟動器（似 PowerToys Run 同 Command Palette）。喺任何地方按熱鍵就可以啟動程式、模組、檔案同終端機設定檔；切換已開啟視窗；開啟已儲存書籤或者遠端桌面工作階段；瀏覽本機剪貼簿記錄；查時間／日期；輸入 $顯示器 開 Windows 設定；輸入 > 再加明確指令；或者用 service start／stop／restart <名稱> 管理服務。");
 
         EnableTitle.Text = P("Enable Command Palette", "啟用指令面板");
         HotkeyLabel.Text = P("Hotkey", "熱鍵");
@@ -48,6 +48,12 @@ public sealed partial class CommandPaletteModule : Page
         BookmarkNameBox.PlaceholderText = P("Name", "名稱");
         BookmarkUrlBox.PlaceholderText = P("https://example.com", "https://example.com");
         BookmarkAddButton.Content = P("Add bookmark", "加入書籤");
+        RemoteDesktopTitle.Text = P("Remote Desktop sessions", "遠端桌面工作階段");
+        RemoteDesktopBlurb.Text = P("Save a name and host or host:port, then type rdp <name> in Command Palette. Credentials are never stored here; Windows Remote Desktop prompts normally.",
+            "儲存名稱同主機或者主機:連接埠，之後喺指令面板輸入 rdp <名稱>。呢度唔會儲存登入資料；Windows 遠端桌面會照常要求登入。");
+        RemoteDesktopNameBox.PlaceholderText = P("Name", "名稱");
+        RemoteDesktopHostBox.PlaceholderText = P("host or host:port", "主機或者主機:連接埠");
+        RemoteDesktopAddButton.Content = P("Add session", "加入工作階段");
         DockTitle.Text = P("Command Palette Dock", "指令面板 Dock");
         DockBlurb.Text = P(
             "Keep a compact launcher on any screen edge. In the palette, press Ctrl+P to pin or unpin the selected result; saved pins stay on the Dock.",
@@ -66,6 +72,7 @@ public sealed partial class CommandPaletteModule : Page
 
         BuildProviders();
         BuildBookmarks();
+        BuildRemoteDesktopProfiles();
         BuildDockSides();
         UpdateStatus();
     }
@@ -149,6 +156,69 @@ public sealed partial class CommandPaletteModule : Page
         BookmarkInfo.Message = message;
         BookmarkInfo.Severity = severity;
         BookmarkInfo.IsOpen = true;
+    }
+
+    private void BuildRemoteDesktopProfiles()
+    {
+        RemoteDesktopPanel.Children.Clear();
+        var profiles = CommandPaletteService.RemoteDesktopProfiles;
+        if (profiles.Count == 0)
+        {
+            RemoteDesktopPanel.Children.Add(new TextBlock
+            {
+                Text = P("No Remote Desktop sessions yet. Add a host above; Windows will handle credentials when you connect.", "未有遠端桌面工作階段。喺上面加入主機；連線嗰陣 Windows 會處理登入資料。"),
+                FontSize = 12,
+                TextWrapping = TextWrapping.Wrap,
+            });
+            return;
+        }
+
+        foreach (var profile in profiles)
+        {
+            var row = new Grid { ColumnSpacing = 8 };
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2, GridUnitType.Star) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(3, GridUnitType.Star) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            row.Children.Add(new TextBlock { Text = profile.Name, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis });
+            var host = new TextBlock { Text = profile.Host, FontSize = 11, Opacity = 0.75, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
+            Grid.SetColumn(host, 1);
+            row.Children.Add(host);
+            var remove = new Button { Content = P("Remove", "移除"), Tag = profile };
+            remove.Click += RemoteDesktopRemove_Click;
+            Grid.SetColumn(remove, 2);
+            row.Children.Add(remove);
+            RemoteDesktopPanel.Children.Add(row);
+        }
+    }
+
+    private void RemoteDesktopAdd_Click(object sender, RoutedEventArgs e)
+    {
+        if (!CommandPaletteService.TryAddRemoteDesktopProfile(RemoteDesktopNameBox.Text, RemoteDesktopHostBox.Text, out var profile))
+        {
+            ShowRemoteDesktopInfo(P("Use a host or host:port without spaces, for example workstation:3389.", "請使用冇空白字元嘅主機或者主機:連接埠，例如 workstation:3389。"), InfoBarSeverity.Error);
+            return;
+        }
+        RemoteDesktopNameBox.Text = "";
+        RemoteDesktopHostBox.Text = "";
+        BuildRemoteDesktopProfiles();
+        ShowRemoteDesktopInfo(P($"Saved {profile.Name}. Credentials stay with Windows Remote Desktop.", $"已儲存 {profile.Name}。登入資料會留喺 Windows 遠端桌面。"), InfoBarSeverity.Success);
+    }
+
+    private void RemoteDesktopRemove_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: CommandPaletteService.RemoteDesktopProfile profile })
+        {
+            CommandPaletteService.RemoveRemoteDesktopProfile(profile);
+            BuildRemoteDesktopProfiles();
+            ShowRemoteDesktopInfo(P($"Removed {profile.Name}.", $"已移除 {profile.Name}。"), InfoBarSeverity.Informational);
+        }
+    }
+
+    private void ShowRemoteDesktopInfo(string message, InfoBarSeverity severity)
+    {
+        RemoteDesktopInfo.Message = message;
+        RemoteDesktopInfo.Severity = severity;
+        RemoteDesktopInfo.IsOpen = true;
     }
 
     private void Sync()
