@@ -385,7 +385,7 @@
 - [x] **Generate QR code from clipboard text/URL** · 由剪貼簿啲字或者網址整個QR碼
   - _Encode locally with the QRCoder NuGet library: QRCodeGenerator.CreateQrCode(text, ECCLevel.Q) then new PngByteQRCode(data).GetGraphic(20). Save the PNG and/or place the bitmap on the clipboard. No network call._
 - [x] **Clipboard history viewer with pin & paste-as-plain** · 睇返剪貼簿歷史，可以釘住同貼純文字
-  - _Enable history first: HKCU\Software\Microsoft\Clipboard value EnableClipboardHistory (REG_DWORD)=1 (or open ms-settings:clipboard). At runtime use Windows.ApplicationModel.DataTransfer.Clipboard.GetHistoryItemsAsync(); re-copy a chosen entry with SetHistoryItemAsContent; 'paste plain' builds a fresh DataPackage with SetText only to drop rich formats._
+  - _Enable history first: HKCU\Software\Microsoft\Clipboard value EnableClipboardHistory (REG_DWORD)=1 (or open ms-settings:clipboard). At runtime use Windows.ApplicationModel.DataTransfer.Clipboard.GetHistoryItemsAsync(); re-copy a chosen entry with SetHistoryItemAsContent; delete one with DeleteItemFromHistory; 'paste plain' builds a fresh DataPackage with SetText only to drop rich formats._
 
 ### Battery & Thermal Dashboard · 🆕 new module / 新模組  (2)
 - [x] **Battery health & wear report** · 睇電池健康同耗損報告 — DONE: new Battery & Thermal module. Live charge/status/runtime via Win32_Battery (EstimatedChargeRemaining/BatteryStatus/EstimatedRunTime); powercfg /batteryreport parsed for DESIGN vs FULL CHARGE CAPACITY → wear %, cycle count, chemistry; powercfg /energy run in-app with error/warning counts. All shown in-app (cards + dialogs), no redirect. Bilingual.

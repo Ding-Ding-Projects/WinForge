@@ -238,7 +238,32 @@ public sealed partial class ClipboardModule : Page
             }
         };
 
-        grid.Children.Add(Col(restoreBtn, 2));
+        var deleteBtn = new Button { Padding = new Thickness(8, 3, 8, 3), Content = new FontIcon { Glyph = GlyphDelete, FontSize = 12 } };
+        ToolTipService.SetToolTip(deleteBtn, P("Delete from history", "由歷史刪除"));
+        deleteBtn.Click += (_, _) =>
+        {
+            try
+            {
+                if (Clipboard.DeleteItemFromHistory(item))
+                {
+                    Notify(InfoBarSeverity.Success, P("Deleted from Windows history", "已由 Windows 歷史刪除"), "");
+                    _ = RefreshNativeHistoryAsync();
+                }
+                else
+                {
+                    Notify(InfoBarSeverity.Warning, P("Could not delete that history item", "刪唔到嗰個歷史項目"), "");
+                }
+            }
+            catch (Exception ex)
+            {
+                Notify(InfoBarSeverity.Error, P("Delete failed", "刪除失敗"), ex.Message);
+            }
+        };
+
+        var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+        buttons.Children.Add(restoreBtn);
+        buttons.Children.Add(deleteBtn);
+        grid.Children.Add(Col(buttons, 2));
 
         return new Border
         {
