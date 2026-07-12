@@ -269,7 +269,7 @@ dotnet publish WinForge.csproj -c Release -p:Platform=x64 -r win-x64 ^
 | **Command Palette · 指令面板** | Global launcher and Run box for apps, calc and system actions. <br> 全域啟動器同執行框，啟動應用程式、計算同系統動作。 | `cmdpalette` |
 | **Color Picker · 螢幕取色** | System-wide color picker with hex/RGB/HSL output. <br> 全系統取色器，輸出 hex／RGB／HSL。 | `colorpicker` |
 | **Screen Ruler · 螢幕間尺** | Measure distances and pixels on screen. <br> 喺螢幕量度距離同像素。 | `screenruler` |
-| **Mouse Utilities · 滑鼠工具** | Find My Mouse, highlighter, crosshairs and pointer jump. <br> 搵滑鼠、點擊標示、十字線同指標跳轉。 | `mouseutils` |
+| **Mouse Utilities · 滑鼠工具** | Find My Mouse, highlighter, crosshairs, pointer jump and CursorWrap. <br> 搵滑鼠、點擊標示、十字線、指標跳轉同游標環繞。 | `mouseutils` |
 | **Mouse & Pointer · 滑鼠與指標** | Adjust pointer speed, acceleration and behaviour. <br> 調整指標速度、加速同行為。 | `mouse` |
 | **Mouse Without Borders · 無界滑鼠** | Share one keyboard and mouse across multiple PCs (software KVM). <br> 跨多部電腦共享一套鍵盤滑鼠（軟件 KVM）。 | `mwb` |
 | **Quick Accent · 快速重音符** | Insert accented and special characters by holding a letter. <br> 揿住字母快速插入重音同特殊字元。 | `quickaccent` |

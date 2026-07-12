@@ -775,7 +775,7 @@ Shipped as a single **PowerToys Extras** module (`module.powertoys` / `--page po
 - [x] **Paste as Plain Text** · 純文字貼上 — one-shot strip-clipboard + Ctrl+Shift+V global low-level-keyboard-hook hotkey (strip then re-inject Ctrl+V). `PlainTextPasteService`.
 
 ### Next PowerToys batches · 之後嘅批次
-- [x] **Find My Mouse / crosshairs** · 搵滑鼠／十字準星 — already shipped in `Pages/MouseUtilsModule.xaml(.cs)` and linked from the PowerToys hub.
+- [x] **Find My Mouse / crosshairs / CursorWrap** · 搵滑鼠／十字準星／游標環繞 — shipped in `Pages/MouseUtilsModule.xaml(.cs)` with active-display wrapping, Ctrl/Shift hold activation, horizontal/vertical modes, and single-monitor pausing; linked from the PowerToys hub.
 - [x] **Screen Ruler** · 螢幕間尺 — already shipped in `Pages/ScreenRulerModule.xaml(.cs)` and linked from the PowerToys hub.
 - [x] **Quick Accent** · 快速重音 — already shipped in `Pages/QuickAccentModule.xaml(.cs)` and linked from the PowerToys hub.
 - [x] **OCR region select** · OCR 區域選取 — already shipped in `Pages/TextOcrModule.xaml(.cs)` via `RegionSelector.PickRegion()` and linked from the PowerToys hub.

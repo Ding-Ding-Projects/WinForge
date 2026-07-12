@@ -147,6 +147,7 @@ public sealed partial class MainWindow : Window
                 StartServiceInBackground("svc: hotkeys", "startup:hotkeys", HotkeyMacroService.StartHotkeys),
                 StartServiceInBackground("svc: zoomit", "startup:zoomit", ZoomItService.StartHotkeys),
                 StartServiceInBackground("svc: quickaccent", "startup:quickaccent", QuickAccentService.Apply),
+                StartServiceInBackground("svc: cursorwrap", "startup:cursorwrap", CursorWrapService.LoadAndSync),
             };
 
             await StartServiceOnUiAsync("svc: clipboard", "startup:clipboard", () => ClipboardService.Start(DispatcherQueue));
@@ -1668,6 +1669,9 @@ public sealed partial class MainWindow : Window
             case "mousehighlighter":
             case "mousejump":
             case "mousecrosshairs":
+            case "cursorwrap":
+            case "cursor-wrap":
+            case "mousewrap":
                 Navigator.GoToModule?.Invoke("module.mouseutils");
                 break;
             case "cmdnotfound":

@@ -379,6 +379,9 @@ Canonical screenshots live in `docs/` and are embedded here through raw GitHub U
 ### Mouse Utilities · 滑鼠工具
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-mouseutils.png)
 
+### CursorWrap · 游標環繞
+![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-cursorwrap.png)
+
 ### Mouse & Pointer · 滑鼠與指標
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-mouse.png)
 

@@ -52,11 +52,17 @@ Open in-app: `WinForge.exe --page screenruler`
 
 ## Mouse Utilities · 滑鼠工具
 
-Find My Mouse, highlighter, crosshairs and pointer jump. · 搵滑鼠、點擊標示、十字線同指標跳轉。
+Find My Mouse, highlighter, crosshairs, pointer jump and CursorWrap. · 搵滑鼠、點擊標示、十字線、指標跳轉同游標環繞。
 
 Open in-app: `WinForge.exe --page mouseutils`
 
 ![Mouse Utilities](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-mouseutils.png)
+
+### CursorWrap · 游標環繞
+
+Wrap the pointer to the opposite outer edge of the active display. Choose always-on, Ctrl-held, or Shift-held activation; horizontal, vertical, or both-direction wrapping; and optionally pause it while only one monitor is connected. · 游標去到使用中顯示器嘅外邊會由對面再出現。可選長開、撳住 Ctrl、或者撳住 Shift 先啟用；亦都可以揀橫向、直向、或者兩個方向環繞，仲可以得一個螢幕時暫停。
+
+![CursorWrap · 游標環繞](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-cursorwrap.png)
 
 ## Mouse & Pointer · 滑鼠與指標
 

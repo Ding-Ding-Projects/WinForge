@@ -33,6 +33,12 @@ WinForge (a.k.a. 視窗調校) is an all-in-one, **fully bilingual (English + �
 ## Docs
 Bilingual wiki under `docs/wiki/` (Home → category pages, generated feature/button references, reactor hub with seven focused pages, manual, test report, and screenshot gallery). Canonical page screenshots live under `docs/`; selected wiki-local assets live under `docs/wiki/images/`.
 
+## Mandatory task completion, docs, screenshots, and Git
+- **Every agent task, however small, ends with a commit and push.** Make an intentional bilingual commit for the task, push its branch, merge it into `main` when the task is complete, push `main`, and delete the merged temporary branch. Never leave completed work only in the working tree.
+- **Documentation is part of every feature or page change.** Before declaring a task complete, update the relevant `README.md`, `docs/wiki/`, `docs/`, and GitHub Pages content under `design/content/wiki/` (plus any generated page/reference content that the change affects). Keep English and Cantonese text consistent with the shipped UI.
+- **Visual changes require fresh evidence.** Launch every changed page with `.agents/skills/run-winforge/driver.ps1`, capture a high-detail current screenshot, inspect it, and replace the old canonical screenshot in `docs/` and any corresponding GitHub Pages/wiki image. Do not retain stale screenshots for a changed page. If capture is blocked, document the exact blocker in the task handoff and do not claim visual verification.
+- **Use a final documentation commit if needed.** If the functional implementation was already committed/pushed before docs or screenshots were refreshed, make and push a second bilingual documentation/screenshot commit; the task is not complete until both code and documentation are on `main`.
+
 ## Gotchas
 - `audioeditor`, `lightswitch`, and `timelens` were fixed after the original Omega audit; if one captures blank via the driver, rerun with a longer `-WaitMs`.
 - `--page <alias>` is reliable; bare `--reactor` can land on the Dashboard if a session was restored.

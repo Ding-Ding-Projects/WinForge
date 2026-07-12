@@ -47,6 +47,7 @@ public sealed partial class MouseUtilsModule : Page
             "原生 PowerToys 式滑鼠小工具 — 搵游標、標示點擊、畫十字線、喺多個螢幕之間跳轉指標。每個都用全域掛鈎加透明穿透覆蓋層運作。");
         Root.Children.Clear();
 
+        Root.Children.Add(BuildCursorWrap());
         Root.Children.Add(BuildFindMyMouse());
         Root.Children.Add(BuildHighlighter());
         Root.Children.Add(BuildCrosshairs());
@@ -207,6 +208,71 @@ public sealed partial class MouseUtilsModule : Page
             Svc.Crosshairs.Color, c => { Svc.Crosshairs.Color = c; Apply(); }));
     }
 
+    // ============================================================ CursorWrap
+    private UIElement BuildCursorWrap()
+    {
+        var body = new StackPanel { Spacing = 10 };
+        body.Children.Add(EnableRow(
+            CursorWrapService.Enabled,
+            on => { CursorWrapService.Enabled = on; RefreshSection(body, BuildCursorWrapSettings, on); }));
+
+        var settings = new StackPanel { Spacing = 10, Visibility = CursorWrapService.Enabled ? Visibility.Visible : Visibility.Collapsed };
+        BuildCursorWrapSettings(settings);
+        body.Children.Add(settings);
+
+        return Section(
+            "\uE7C1",
+            P("CursorWrap", "游標環繞"),
+            P("Reappear at the opposite edge of the active display. CursorWrap follows monitor changes live and leaves shared display edges available for normal cross-screen travel.",
+              "游標去到使用中顯示器外邊會由對面再出現。CursorWrap 會即時跟住螢幕配置變化，兩個螢幕共用嘅邊會保留畀你正常跨屏。"),
+            body);
+    }
+
+    private void BuildCursorWrapSettings(StackPanel s)
+    {
+        s.Children.Clear();
+        s.Children.Add(Combo(
+            P("Activation", "啟用方法"),
+            P("Choose when reaching an outer display edge wraps the pointer.", "選擇幾時游標去到螢幕外邊先環繞。"),
+            new[]
+            {
+                P("Always active", "長開"),
+                P("Only while Ctrl is held", "只喺撳住 Ctrl 時"),
+                P("Only while Shift is held", "只喺撳住 Shift 時"),
+            },
+            (int)CursorWrapService.Activation,
+            i => CursorWrapService.Activation = (CursorWrapActivation)i));
+
+        s.Children.Add(Combo(
+            P("Wrap direction", "環繞方向"),
+            P("Choose the display edges that can wrap the pointer.", "選擇邊幾個顯示器邊緣可以環繞游標。"),
+            new[]
+            {
+                P("Horizontal and vertical", "橫直都環繞"),
+                P("Horizontal only", "只橫向"),
+                P("Vertical only", "只直向"),
+            },
+            (int)CursorWrapService.Mode,
+            i => CursorWrapService.Mode = (CursorWrapMode)i));
+
+        s.Children.Add(ToggleRow(
+            P("Pause on a single monitor", "單一螢幕時暫停"),
+            P("Keep CursorWrap inactive when Windows reports only one connected display.", "Windows 偵測到得一個顯示器時就暫停 CursorWrap。"),
+            CursorWrapService.DisableWhenSingleMonitor,
+            on => CursorWrapService.DisableWhenSingleMonitor = on));
+
+        int monitors = CursorWrapService.MonitorCount;
+        s.Children.Add(new TextBlock
+        {
+            Text = monitors == 1 && CursorWrapService.DisableWhenSingleMonitor
+                ? P("One display detected. CursorWrap will wait until another display is connected.", "而家偵測到一個顯示器。CursorWrap 會等到接駁另一個螢幕先開始。")
+                : P($"{monitors} display(s) detected. Monitor topology is checked continuously while CursorWrap is on.", $"而家偵測到 {monitors} 個顯示器。CursorWrap 開咗之後會持續檢查螢幕配置。"),
+            FontSize = 12,
+            TextWrapping = TextWrapping.Wrap,
+            Foreground = (Brush)Application.Current.Resources["TextFillColorPrimaryBrush"],
+        });
+    }
+
     // ============================================================ Mouse Jump
     private UIElement BuildMouseJump()
     {
@@ -237,7 +303,7 @@ public sealed partial class MouseUtilsModule : Page
                      "撳預覽圖跳轉 · 右擊或 Esc 取消。"),
             FontSize = 12,
             TextWrapping = TextWrapping.Wrap,
-            Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+            Foreground = (Brush)Application.Current.Resources["TextFillColorPrimaryBrush"],
         });
     }
 
@@ -252,12 +318,15 @@ public sealed partial class MouseUtilsModule : Page
         }
     }
 
-    private Border EnableRow(bool current, Action<bool> set)
+    private Border EnableRow(bool current, Action<bool> set) =>
+        ToggleRow(P("Enable", "啟用"), P("Turn this utility on or off.", "開啟或關閉呢個工具。"), current, set);
+
+    private Border ToggleRow(string title, string desc, bool current, Action<bool> set)
     {
         var grid = new Grid();
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        grid.Children.Add(Heading(P("Enable", "啟用"), P("Turn this utility on or off.", "開啟或關閉呢個工具。")));
+        grid.Children.Add(Heading(title, desc));
 
         var sw = new ToggleSwitch { OnContent = "On · 開", OffContent = "Off · 熄", VerticalAlignment = VerticalAlignment.Center };
         _suppress = true; sw.IsOn = current; _suppress = false;
@@ -390,7 +459,7 @@ public sealed partial class MouseUtilsModule : Page
     {
         var p = new StackPanel { Spacing = 1, VerticalAlignment = VerticalAlignment.Center };
         p.Children.Add(new TextBlock { Text = title, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, FontSize = 14, TextWrapping = TextWrapping.Wrap });
-        p.Children.Add(new TextBlock { Text = desc, FontSize = 12, TextWrapping = TextWrapping.Wrap, Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"] });
+        p.Children.Add(new TextBlock { Text = desc, FontSize = 12, TextWrapping = TextWrapping.Wrap, Foreground = (Brush)Application.Current.Resources["TextFillColorPrimaryBrush"] });
         return p;
     }
 
