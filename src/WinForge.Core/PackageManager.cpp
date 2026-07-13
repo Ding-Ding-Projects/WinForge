@@ -732,20 +732,9 @@ namespace winforge::core::packages
                     return Invalid(parsed.error_code);
                 }
             }
-            if (options.kill_before_operation.size() > 128)
+            if (!options.kill_before_operation.empty() || options.force_kill)
             {
-                return Invalid(L"options-too-large");
-            }
-            for (auto const& process : options.kill_before_operation)
-            {
-                if (process.empty() || process.size() > 260
-                    || std::any_of(process.begin(), process.end(), [](wchar_t character)
-                    {
-                        return character == L'\0' || std::iswcntrl(character);
-                    }))
-                {
-                    return Invalid(L"invalid-process-name");
-                }
+                return Invalid(L"process-kill-orchestration-unsupported");
             }
             return Valid();
         }

@@ -7,11 +7,14 @@
 
 #include "CatalogLoader.h"
 #include "microsoft.ui.xaml.window.h"
+#include <winrt/Microsoft.UI.Xaml.Automation.Peers.h>
 
+#include <chrono>
 #include <cwctype>
-#include <array>
+#include <future>
 #include <sstream>
 #include <stdexcept>
+#include <utility>
 
 namespace
 {
@@ -41,6 +44,25 @@ namespace
         return result;
     }
 
+    bool HasNonWhitespace(std::wstring_view value)
+    {
+        return std::any_of(value.begin(), value.end(), [](wchar_t character)
+        {
+            return !std::iswspace(character);
+        });
+    }
+
+    std::wstring TruncateForUi(std::wstring_view value, std::size_t maximum = 1'600)
+    {
+        if (value.size() <= maximum)
+        {
+            return std::wstring(value);
+        }
+        auto result = std::wstring(value.substr(0, maximum));
+        result += L"\n…";
+        return result;
+    }
+
     NavigationViewItem MakeNavigationItem(
         std::wstring_view label,
         std::wstring_view route,
@@ -60,38 +82,6 @@ namespace
         return item;
     }
 
-    struct PackageManagerLabel
-    {
-        std::wstring_view key;
-        std::wstring_view en;
-        std::wstring_view zh;
-    };
-
-    constexpr std::array<PackageManagerLabel, 11> PackageManagerLabels{
-        PackageManagerLabel{ L"winget", L"WinGet", L"WinGet" },
-        PackageManagerLabel{ L"scoop", L"Scoop", L"Scoop" },
-        PackageManagerLabel{ L"choco", L"Chocolatey", L"Chocolatey" },
-        PackageManagerLabel{ L"pip", L"pip", L"pip" },
-        PackageManagerLabel{ L"npm", L"npm", L"npm" },
-        PackageManagerLabel{ L"dotnet", L".NET tools", L".NET 工具" },
-        PackageManagerLabel{ L"psgallery", L"PowerShell Gallery", L"PowerShell Gallery" },
-        PackageManagerLabel{ L"pwsh7", L"PowerShell 7", L"PowerShell 7" },
-        PackageManagerLabel{ L"cargo", L"Cargo", L"Cargo" },
-        PackageManagerLabel{ L"bun", L"Bun", L"Bun" },
-        PackageManagerLabel{ L"vcpkg", L"vcpkg", L"vcpkg" },
-    };
-
-    constexpr std::array<PackageManagerLabel, 9> PackageViewLabels{
-        PackageManagerLabel{ L"discover", L"Discover", L"搜尋安裝" },
-        PackageManagerLabel{ L"updates", L"Updates", L"可更新" },
-        PackageManagerLabel{ L"installed", L"Installed", L"已安裝" },
-        PackageManagerLabel{ L"bundles", L"Bundles", L"套件清單" },
-        PackageManagerLabel{ L"sources", L"Sources", L"來源" },
-        PackageManagerLabel{ L"ignored", L"Ignored", L"已忽略" },
-        PackageManagerLabel{ L"setup", L"Setup", L"設定引擎" },
-        PackageManagerLabel{ L"settings", L"Settings", L"設定" },
-        PackageManagerLabel{ L"operations", L"Operations", L"操作佇列" },
-    };
 }
 
 namespace winrt::WinForge::implementation
@@ -105,6 +95,10 @@ namespace winrt::WinForge::implementation
     {
         InitializeComponent();
         Title(L"WinForge Native · 視窗調校原生版");
+        Closed([this](Windows::Foundation::IInspectable const&, WindowEventArgs const&)
+        {
+            CancelPackageWork();
+        });
 
         try
         {
@@ -245,6 +239,10 @@ namespace winrt::WinForge::implementation
 
     void MainWindow::Navigate(std::wstring_view route, std::wstring_view argument, bool deepLink)
     {
+        if (m_currentRoute == L"module.packages")
+        {
+            CancelPackageWork();
+        }
         auto normalized = winforge::core::NormalizeRouteKey(route);
         if (normalized == L"search")
         {
@@ -384,12 +382,10 @@ namespace winrt::WinForge::implementation
         {
             key.erase(key.begin());
         }
-        for (std::size_t index = 0; index < PackageViewLabels.size(); ++index)
+        auto const view = winforge::core::packages::PackageViewFromFragment(key);
+        if (view)
         {
-            if (key == PackageViewLabels[index].key)
-            {
-                return static_cast<int32_t>(index);
-            }
+            return static_cast<int32_t>(*view);
         }
         return 0;
     }
@@ -397,7 +393,7 @@ namespace winrt::WinForge::implementation
     void MainWindow::PopulatePackageManagerFilters(StackPanel const& panel)
     {
         panel.Children().Clear();
-        for (auto const& manager : PackageManagerLabels)
+        for (auto const& manager : winforge::core::packages::PackageManagers())
         {
             auto key = std::wstring(manager.key);
             if (!m_packageManagersSelected.contains(key))
@@ -407,9 +403,23 @@ namespace winrt::WinForge::implementation
 
             CheckBox filter;
             filter.Content(box_value(ToHString(
-                winforge::core::LocalizedText{ std::wstring(manager.en), std::wstring(manager.zh) }.Pick(m_language))));
+                winforge::core::LocalizedText{
+                    std::wstring(manager.name_en), std::wstring(manager.name_zh) }.Pick(m_language))));
             filter.Tag(box_value(ToHString(key)));
             filter.IsChecked(m_packageManagersSelected[key]);
+            if (m_packageProbeComplete)
+            {
+                auto const available = m_packageManagersAvailable.contains(key) && m_packageManagersAvailable[key];
+                filter.IsEnabled(available);
+                if (!available)
+                {
+                    auto const diagnostic = m_packageProbeDiagnostics.contains(key)
+                        ? m_packageProbeDiagnostics[key]
+                        : std::wstring(L"not available");
+                    ToolTipService::SetToolTip(filter, box_value(ToHString(diagnostic)));
+                    AutomationProperties::SetHelpText(filter, ToHString(diagnostic));
+                }
+            }
             filter.Margin(Thickness{ 0, 0, 14, 0 });
             AutomationProperties::SetAutomationId(
                 filter,
@@ -419,12 +429,26 @@ namespace winrt::WinForge::implementation
                 auto const check = sender.as<CheckBox>();
                 auto const keyValue = unbox_value_or<hstring>(check.Tag(), L"");
                 m_packageManagersSelected[ToWide(keyValue)] = true;
+                if (InvalidatePackageQueryResults())
+                {
+                    AnnouncePackageStatus(
+                        L"Package-manager selection changed. Previous query results were cleared; run the query again.",
+                        L"套件管理器選擇已更改。之前嘅查詢結果已清除；請重新執行查詢。");
+                }
+                RenderPackageManagerView();
             });
             filter.Unchecked([this](Windows::Foundation::IInspectable const& sender, RoutedEventArgs const&)
             {
                 auto const check = sender.as<CheckBox>();
                 auto const keyValue = unbox_value_or<hstring>(check.Tag(), L"");
                 m_packageManagersSelected[ToWide(keyValue)] = false;
+                if (InvalidatePackageQueryResults())
+                {
+                    AnnouncePackageStatus(
+                        L"Package-manager selection changed. Previous query results were cleared; run the query again.",
+                        L"套件管理器選擇已更改。之前嘅查詢結果已清除；請重新執行查詢。");
+                }
+                RenderPackageManagerView();
             });
             panel.Children().Append(filter);
         }
@@ -432,6 +456,9 @@ namespace winrt::WinForge::implementation
 
     void MainWindow::RenderPackageManager()
     {
+        CancelPackageWork();
+        m_packageItems.clear();
+        m_packageRunStates.clear();
         m_packageView = PackageViewFromArgument(m_currentArgument);
 
         auto page = CreatePage(
@@ -446,10 +473,10 @@ namespace winrt::WinForge::implementation
         migration.IsClosable(false);
         migration.Severity(InfoBarSeverity::Informational);
         migration.Title(ToHString(winforge::core::LocalizedText{
-            L"Native Package Manager migration", L"原生套件管理遷移" }.Pick(m_language)));
+            L"Native Package Manager runtime", L"原生套件管理 runtime" }.Pick(m_language)));
         migration.Message(ToHString(winforge::core::LocalizedText{
-            L"This surface is being connected to audited C++ command builders, parsers, a Win32 process runner, and operation tests. Controls are enabled only when their native behavior is available.",
-            L"呢個介面正接駁經審核嘅 C++ 指令建立器、解析器、Win32 process runner 同操作測試；只有原生行為可用嘅控制項先會啟用。" }.Pick(m_language)));
+            L"Availability, discovery, installed-package, update, and source queries run through audited C++ argv builders, parsers, HTTPS transport, and a contained Win32 process runner. Mutations remain locked until the native consent coordinator is proven.",
+            L"可用性、搜尋、已安裝套件、更新同來源查詢，會經審核嘅 C++ argv 建立器、解析器、HTTPS transport 同受控 Win32 process runner 執行；修改操作要等原生同意協調器驗證完成先會解鎖。" }.Pick(m_language)));
         AutomationProperties::SetAutomationId(migration, L"NativePackageManagerMigrationStatus");
         page.Children().Append(migration);
 
@@ -469,11 +496,11 @@ namespace winrt::WinForge::implementation
         managerScroller.HorizontalScrollBarVisibility(ScrollBarVisibility::Auto);
         managerScroller.VerticalScrollMode(ScrollMode::Disabled);
         managerScroller.VerticalScrollBarVisibility(ScrollBarVisibility::Disabled);
-        StackPanel managerFilters;
-        managerFilters.Orientation(Orientation::Horizontal);
-        AutomationProperties::SetAutomationId(managerFilters, L"NativePackageManagerFilters");
-        PopulatePackageManagerFilters(managerFilters);
-        managerScroller.Content(managerFilters);
+        m_packageManagerFilters = StackPanel();
+        m_packageManagerFilters.Orientation(Orientation::Horizontal);
+        AutomationProperties::SetAutomationId(m_packageManagerFilters, L"NativePackageManagerFilters");
+        PopulatePackageManagerFilters(m_packageManagerFilters);
+        managerScroller.Content(m_packageManagerFilters);
         managerCardContent.Children().Append(managerScroller);
         managerCard.Child(managerCardContent);
         page.Children().Append(managerCard);
@@ -485,12 +512,14 @@ namespace winrt::WinForge::implementation
 
         m_packageViewPicker = ComboBox();
         m_packageViewPicker.MinWidth(170);
-        for (auto const& view : PackageViewLabels)
+        for (auto const& view : winforge::core::packages::PackageViews())
         {
             ComboBoxItem item;
             item.Content(box_value(ToHString(
-                winforge::core::LocalizedText{ std::wstring(view.en), std::wstring(view.zh) }.Pick(m_language))));
-            item.Tag(box_value(ToHString(view.key)));
+                winforge::core::LocalizedText{
+                    std::wstring(view.name_en), std::wstring(view.name_zh) }.Pick(m_language))));
+            auto const fragment = winforge::core::packages::PackageViewFragment(view.view);
+            item.Tag(box_value(ToHString(fragment.value_or(L""))));
             m_packageViewPicker.Items().Append(item);
         }
         m_packageViewPicker.SelectedIndex(m_packageView);
@@ -499,7 +528,19 @@ namespace winrt::WinForge::implementation
         {
             auto const selected = m_packageViewPicker.SelectedIndex();
             m_packageView = selected < 0 ? 0 : selected;
+            if (m_packageProbeComplete)
+            {
+                CancelPackageWork();
+            }
+            m_packageItems.clear();
+            m_packageRunStates.clear();
             RenderPackageManagerView();
+            if (m_packageProbeComplete)
+            {
+                AnnouncePackageStatus(
+                    L"Package view changed. Previous query results were cleared; run a fresh read-only query for this view.",
+                    L"套件檢視已更改。之前嘅查詢結果已清除；請為呢個檢視重新執行只讀查詢。");
+            }
         });
         toolbar.Children().Append(m_packageViewPicker);
 
@@ -513,6 +554,19 @@ namespace winrt::WinForge::implementation
         {
             if (m_packageView == 0)
             {
+                StartPackageQuery();
+            }
+        });
+        m_packageSearchBox.TextChanged([this](AutoSuggestBox const&, AutoSuggestBoxTextChangedEventArgs const&)
+        {
+            if (m_packageView == 0)
+            {
+                if (InvalidatePackageQueryResults())
+                {
+                    AnnouncePackageStatus(
+                        L"Search text changed. Previous query results were cleared; choose Search to run the new query.",
+                        L"搜尋文字已更改。之前嘅查詢結果已清除；請揀搜尋執行新查詢。");
+                }
                 RenderPackageManagerView();
             }
         });
@@ -523,7 +577,14 @@ namespace winrt::WinForge::implementation
         AutomationProperties::SetAutomationId(m_packagePrimaryAction, L"NativePackagePrimaryAction");
         m_packagePrimaryAction.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
         {
-            RenderPackageManagerView();
+            if (m_packageView == 6)
+            {
+                StartPackageManagerProbes();
+            }
+            else
+            {
+                StartPackageQuery();
+            }
         });
         toolbar.Children().Append(m_packagePrimaryAction);
 
@@ -564,6 +625,23 @@ namespace winrt::WinForge::implementation
         AutomationProperties::SetAutomationId(m_packageResultsHeader, L"NativePackageResultsHeader");
         page.Children().Append(m_packageResultsHeader);
 
+        auto const initialStatus = winforge::core::LocalizedText{
+            L"Preparing package-engine checks.",
+            L"準備檢查套件引擎。" }.Pick(m_language);
+        m_packageLiveStatus = CreateText(initialStatus, 12.5);
+        m_packageLiveStatus.TextWrapping(TextWrapping::Wrap);
+        m_packageLiveStatus.Opacity(0.82);
+        AutomationProperties::SetAutomationId(m_packageLiveStatus, L"NativePackageLiveStatus");
+        AutomationProperties::SetName(
+            m_packageLiveStatus,
+            ToHString(winforge::core::LocalizedText{
+                L"Package Manager status: Preparing package-engine checks.",
+                L"套件管理狀態：準備檢查套件引擎。" }.Pick(m_language)));
+        AutomationProperties::SetLiveSetting(
+            m_packageLiveStatus,
+            Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite);
+        page.Children().Append(m_packageLiveStatus);
+
         m_packageResults = StackPanel();
         m_packageResults.Spacing(8);
         AutomationProperties::SetAutomationId(m_packageResults, L"NativePackageResults");
@@ -571,6 +649,502 @@ namespace winrt::WinForge::implementation
 
         ShowPage(page);
         RenderPackageManagerView();
+        StartPackageManagerProbes();
+    }
+
+    void MainWindow::CancelPackageWork()
+    {
+        m_packageStopSource.request_stop();
+        m_packageStopSource = std::stop_source{};
+        ++m_packageGeneration;
+        m_packageWorking = false;
+        if (m_packageBusy)
+        {
+            m_packageBusy.IsActive(false);
+        }
+    }
+
+    bool MainWindow::InvalidatePackageQueryResults()
+    {
+        auto const queryInFlight = m_packageWorking && m_packageProbeComplete;
+        auto const invalidated = queryInFlight || !m_packageItems.empty() || !m_packageRunStates.empty();
+        if (queryInFlight)
+        {
+            CancelPackageWork();
+        }
+        m_packageItems.clear();
+        m_packageRunStates.clear();
+        return invalidated;
+    }
+
+    void MainWindow::AnnouncePackageStatus(
+        std::wstring_view en,
+        std::wstring_view zh,
+        bool assertive)
+    {
+        if (!m_packageLiveStatus) return;
+
+        auto const message = winforge::core::LocalizedText{
+            std::wstring(en), std::wstring(zh) }.Pick(m_language);
+        auto const accessibleName = winforge::core::LocalizedText{
+            L"Package Manager status: " + std::wstring(en),
+            L"套件管理狀態：" + std::wstring(zh) }.Pick(m_language);
+        m_packageLiveStatus.Text(ToHString(message));
+        AutomationProperties::SetName(m_packageLiveStatus, ToHString(accessibleName));
+        AutomationProperties::SetLiveSetting(
+            m_packageLiveStatus,
+            assertive
+                ? Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Assertive
+                : Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite);
+
+        try
+        {
+            auto peer = Microsoft::UI::Xaml::Automation::Peers::FrameworkElementAutomationPeer::FromElement(
+                m_packageLiveStatus);
+            if (!peer)
+            {
+                peer = Microsoft::UI::Xaml::Automation::Peers::FrameworkElementAutomationPeer::CreatePeerForElement(
+                    m_packageLiveStatus);
+            }
+            if (peer)
+            {
+                peer.RaiseAutomationEvent(
+                    Microsoft::UI::Xaml::Automation::Peers::AutomationEvents::LiveRegionChanged);
+            }
+        }
+        catch (...)
+        {
+            // Accessibility notification failure must not break the package operation itself.
+        }
+    }
+
+    bool MainWindow::HasSelectedAvailablePackageManager() const
+    {
+        for (auto const& manager : winforge::core::packages::PackageManagers())
+        {
+            auto const key = std::wstring(manager.key);
+            auto const selected = m_packageManagersSelected.find(key);
+            auto const available = m_packageManagersAvailable.find(key);
+            if (selected != m_packageManagersSelected.end() && selected->second &&
+                available != m_packageManagersAvailable.end() && available->second)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void MainWindow::StartPackageManagerProbes()
+    {
+        CancelPackageWork();
+        m_packageProbeComplete = false;
+        m_packageManagersAvailable.clear();
+        m_packageProbeDiagnostics.clear();
+        m_packageItems.clear();
+        m_packageRunStates.clear();
+        m_packageWorking = true;
+        if (m_packageBusy) m_packageBusy.IsActive(true);
+        if (m_packageManagerFilters) PopulatePackageManagerFilters(m_packageManagerFilters);
+        RenderPackageManagerView();
+        AnnouncePackageStatus(
+            L"Checking package engines. Read-only controls will unlock after the checks finish.",
+            L"正在檢查套件引擎。檢查完成之後，只讀控制項先會解鎖。");
+
+        auto const generation = m_packageGeneration;
+        ProbePackageManagersAsync(generation, m_packageStopSource.get_token());
+    }
+
+    void MainWindow::StartPackageQuery()
+    {
+        using winforge::core::packages::PackageAction;
+
+        PackageAction action;
+        switch (m_packageView)
+        {
+        case 0: action = PackageAction::Search; break;
+        case 1: action = PackageAction::Updates; break;
+        case 2: action = PackageAction::Installed; break;
+        case 4: action = PackageAction::Sources; break;
+        default: return;
+        }
+
+        auto query = m_packageSearchBox ? ToWide(m_packageSearchBox.Text()) : std::wstring{};
+        if (action == PackageAction::Search && !HasNonWhitespace(query))
+        {
+            RenderPackageManagerView();
+            return;
+        }
+
+        std::vector<std::wstring> managerKeys;
+        for (auto const& manager : winforge::core::packages::PackageManagers())
+        {
+            auto const key = std::wstring(manager.key);
+            auto const selected = m_packageManagersSelected.find(key);
+            auto const available = m_packageManagersAvailable.find(key);
+            if (selected != m_packageManagersSelected.end() && selected->second &&
+                available != m_packageManagersAvailable.end() && available->second)
+            {
+                managerKeys.push_back(key);
+            }
+        }
+        if (managerKeys.empty())
+        {
+            RenderPackageManagerView();
+            return;
+        }
+
+        CancelPackageWork();
+        m_packageItems.clear();
+        m_packageRunStates.clear();
+        m_packageLastAction = action;
+        m_packageWorking = true;
+        if (m_packageBusy) m_packageBusy.IsActive(true);
+
+        auto const actionLabel = action == PackageAction::Search ? L"search"
+            : action == PackageAction::Updates ? L"updates"
+            : action == PackageAction::Installed ? L"installed"
+            : L"sources";
+        m_packageOperationLog.insert(
+            m_packageOperationLog.begin(),
+            std::wstring(L"Started native ") + actionLabel + L" query across " +
+                std::to_wstring(managerKeys.size()) + L" manager(s). · 已開始原生查詢。");
+        if (m_packageOperationLog.size() > 50) m_packageOperationLog.resize(50);
+        RenderPackageManagerView();
+        AnnouncePackageStatus(
+            L"Package query started. Completion and any engine failures will be announced.",
+            L"套件查詢已開始。完成同任何引擎失敗都會通知。");
+
+        auto const generation = m_packageGeneration;
+        QueryPackageManagersAsync(
+            generation,
+            action,
+            std::move(query),
+            std::move(managerKeys),
+            m_packageStopSource.get_token());
+    }
+
+    void MainWindow::ProbePackageManagersAsync(
+        std::uint64_t generation,
+        std::stop_token cancellationToken)
+    {
+        try
+        {
+            auto lifetime = get_strong();
+            auto dispatcher = Microsoft::UI::Dispatching::DispatcherQueue::GetForCurrentThread();
+            std::vector<std::wstring> managerKeys;
+            for (auto const& manager : winforge::core::packages::PackageManagers())
+            {
+                managerKeys.emplace_back(manager.key);
+            }
+
+            std::thread worker([lifetime, dispatcher, generation, cancellationToken,
+                managerKeys = std::move(managerKeys)]() mutable
+            {
+                std::vector<std::pair<std::wstring, winforge::core::packages::PackageRuntimeResult>> results;
+                try
+                {
+                    std::vector<std::future<std::pair<std::wstring, winforge::core::packages::PackageRuntimeResult>>> probes;
+                    probes.reserve(managerKeys.size());
+                    for (auto const& key : managerKeys)
+                    {
+                        probes.push_back(std::async(std::launch::async, [key, cancellationToken]()
+                        {
+                            winforge::core::packages::PackageRuntimeOptions options;
+                            options.timeout = std::chrono::seconds(20);
+                            options.cancellation_token = cancellationToken;
+                            return std::make_pair(
+                                key,
+                                winforge::core::packages::ProbePackageManager(key, options));
+                        }));
+                    }
+                    results.reserve(probes.size());
+                    for (auto& probe : probes)
+                    {
+                        results.push_back(probe.get());
+                    }
+                }
+                catch (std::exception const& error)
+                {
+                    winforge::core::packages::PackageRuntimeResult failed;
+                    failed.diagnostic = winrt::to_hstring(error.what()).c_str();
+                    results.emplace_back(L"runtime", std::move(failed));
+                }
+                catch (...)
+                {
+                    winforge::core::packages::PackageRuntimeResult failed;
+                    failed.diagnostic = L"unknown native probe failure";
+                    results.emplace_back(L"runtime", std::move(failed));
+                }
+
+                if (cancellationToken.stop_requested()) return;
+                try
+                {
+                    dispatcher.TryEnqueue([lifetime, generation, cancellationToken,
+                        results = std::move(results)]() mutable
+                    {
+                        if (!cancellationToken.stop_requested())
+                            lifetime->CompletePackageManagerProbes(generation, std::move(results));
+                    });
+                }
+                catch (...)
+                {
+                }
+            });
+            worker.detach();
+        }
+        catch (std::exception const& error)
+        {
+            winforge::core::packages::PackageRuntimeResult failed;
+            failed.diagnostic = L"could not start the native package probe worker: ";
+            failed.diagnostic += winrt::to_hstring(error.what()).c_str();
+            CompletePackageManagerProbes(generation, { { L"runtime", std::move(failed) } });
+        }
+        catch (...)
+        {
+            winforge::core::packages::PackageRuntimeResult failed;
+            failed.diagnostic = L"could not start the native package probe worker";
+            CompletePackageManagerProbes(generation, { { L"runtime", std::move(failed) } });
+        }
+    }
+
+    void MainWindow::QueryPackageManagersAsync(
+        std::uint64_t generation,
+        winforge::core::packages::PackageAction action,
+        std::wstring query,
+        std::vector<std::wstring> managerKeys,
+        std::stop_token cancellationToken)
+    {
+        try
+        {
+            auto lifetime = get_strong();
+            auto dispatcher = Microsoft::UI::Dispatching::DispatcherQueue::GetForCurrentThread();
+            std::thread worker([lifetime, dispatcher, generation, action, query = std::move(query),
+                managerKeys = std::move(managerKeys), cancellationToken]() mutable
+            {
+                std::vector<std::pair<std::wstring, winforge::core::packages::PackageRuntimeResult>> results;
+                try
+                {
+                    std::vector<std::future<std::pair<std::wstring, winforge::core::packages::PackageRuntimeResult>>> queries;
+                    queries.reserve(managerKeys.size());
+                    for (auto const& key : managerKeys)
+                    {
+                        queries.push_back(std::async(std::launch::async, [key, action, query, cancellationToken]()
+                        {
+                            winforge::core::packages::PackageRuntimeOptions options;
+                            options.timeout = std::chrono::seconds(45);
+                            options.cancellation_token = cancellationToken;
+                            return std::make_pair(
+                                key,
+                                winforge::core::packages::QueryPackageManager(key, action, query, options));
+                        }));
+                    }
+                    results.reserve(queries.size());
+                    for (auto& managerQuery : queries)
+                    {
+                        results.push_back(managerQuery.get());
+                    }
+                }
+                catch (std::exception const& error)
+                {
+                    winforge::core::packages::PackageRuntimeResult failed;
+                    failed.diagnostic = winrt::to_hstring(error.what()).c_str();
+                    results.emplace_back(L"runtime", std::move(failed));
+                }
+                catch (...)
+                {
+                    winforge::core::packages::PackageRuntimeResult failed;
+                    failed.diagnostic = L"unknown native package query failure";
+                    results.emplace_back(L"runtime", std::move(failed));
+                }
+
+                if (cancellationToken.stop_requested()) return;
+                try
+                {
+                    dispatcher.TryEnqueue([lifetime, generation, action, cancellationToken,
+                        results = std::move(results)]() mutable
+                    {
+                        if (!cancellationToken.stop_requested())
+                            lifetime->CompletePackageQuery(generation, action, std::move(results));
+                    });
+                }
+                catch (...)
+                {
+                }
+            });
+            worker.detach();
+        }
+        catch (std::exception const& error)
+        {
+            winforge::core::packages::PackageRuntimeResult failed;
+            failed.diagnostic = L"could not start the native package query worker: ";
+            failed.diagnostic += winrt::to_hstring(error.what()).c_str();
+            CompletePackageQuery(generation, action, { { L"runtime", std::move(failed) } });
+        }
+        catch (...)
+        {
+            winforge::core::packages::PackageRuntimeResult failed;
+            failed.diagnostic = L"could not start the native package query worker";
+            CompletePackageQuery(generation, action, { { L"runtime", std::move(failed) } });
+        }
+    }
+
+    void MainWindow::CompletePackageManagerProbes(
+        std::uint64_t generation,
+        std::vector<std::pair<std::wstring, winforge::core::packages::PackageRuntimeResult>> results)
+    {
+        if (generation != m_packageGeneration || m_currentRoute != L"module.packages") return;
+
+        m_packageWorking = false;
+        m_packageProbeComplete = true;
+        if (m_packageBusy) m_packageBusy.IsActive(false);
+        m_packageManagersAvailable.clear();
+        m_packageProbeDiagnostics.clear();
+
+        std::size_t availableCount = 0;
+        std::wstring runtimeFailure;
+        for (auto& [key, result] : results)
+        {
+            if (key == L"runtime")
+            {
+                runtimeFailure = std::move(result.diagnostic);
+                continue;
+            }
+            m_packageManagersAvailable[key] = result.success;
+            m_packageProbeDiagnostics[key] = result.success
+                ? std::wstring(L"available · 可用")
+                : (result.diagnostic.empty() ? std::wstring(L"not available · 未可用") : result.diagnostic);
+            if (result.success) ++availableCount;
+        }
+        for (auto const& manager : winforge::core::packages::PackageManagers())
+        {
+            auto const key = std::wstring(manager.key);
+            if (!m_packageManagersAvailable.contains(key))
+            {
+                m_packageManagersAvailable[key] = false;
+                m_packageProbeDiagnostics[key] = runtimeFailure.empty()
+                    ? std::wstring(L"probe did not complete · 探測未完成")
+                    : std::wstring(L"probe worker did not complete · 探測 worker 未完成");
+            }
+        }
+
+        m_packageOperationLog.insert(
+            m_packageOperationLog.begin(),
+            L"Availability probe: " + std::to_wstring(availableCount) + L"/" +
+                std::to_wstring(winforge::core::packages::PackageManagers().size()) +
+                L" managers ready. · 可用性探測完成。");
+        if (m_packageOperationLog.size() > 50) m_packageOperationLog.resize(50);
+        if (m_packageManagerFilters) PopulatePackageManagerFilters(m_packageManagerFilters);
+        RenderPackageManagerView();
+        if (!runtimeFailure.empty())
+        {
+            AnnouncePackageStatus(
+                L"Package-engine checks failed before every probe could complete. Review the setup status and try again.",
+                L"套件引擎檢查喺全部探測完成之前失敗。請檢查設定狀態，再試一次。",
+                true);
+        }
+        else
+        {
+            auto const total = winforge::core::packages::PackageManagers().size();
+            AnnouncePackageStatus(
+                L"Package-engine checks finished. " + std::to_wstring(availableCount) + L" of " +
+                    std::to_wstring(total) + L" engines are available.",
+                L"套件引擎檢查完成。" + std::to_wstring(total) + L" 個引擎之中有 " +
+                    std::to_wstring(availableCount) + L" 個可用。",
+                availableCount == 0);
+        }
+    }
+
+    void MainWindow::CompletePackageQuery(
+        std::uint64_t generation,
+        winforge::core::packages::PackageAction action,
+        std::vector<std::pair<std::wstring, winforge::core::packages::PackageRuntimeResult>> results)
+    {
+        if (generation != m_packageGeneration || m_currentRoute != L"module.packages") return;
+
+        m_packageWorking = false;
+        m_packageLastAction = action;
+        if (m_packageBusy) m_packageBusy.IsActive(false);
+        m_packageItems.clear();
+        m_packageRunStates.clear();
+
+        std::size_t successfulManagers = 0;
+        std::size_t failedManagers = 0;
+        for (auto& [key, result] : results)
+        {
+            PackageManagerRunState state;
+            state.manager_key = key;
+            state.success = result.success;
+            state.parser_supported = result.parser_supported;
+            state.requires_runtime_resolution = result.requires_runtime_resolution;
+            state.package_count = result.success ? result.packages.size() : 0;
+            if (action == winforge::core::packages::PackageAction::Sources)
+            {
+                if (result.success)
+                {
+                    state.output = winforge::core::LocalizedText{
+                        L"Source command completed; raw configuration output is withheld until native secret redaction is proven.",
+                        L"來源指令已完成；原生機密遮罩驗證完成之前，唔會顯示原始設定輸出。" }.Pick(m_language);
+                }
+                else
+                {
+                    state.diagnostic = result.timed_out
+                        ? winforge::core::LocalizedText{
+                            L"Source query timed out. Raw diagnostic output was withheld because secret redaction is not yet proven.",
+                            L"來源查詢逾時。機密遮罩未驗證完成，所以原始診斷輸出已隱藏。" }.Pick(m_language)
+                        : winforge::core::LocalizedText{
+                            L"Source query failed. Raw diagnostic output was withheld because secret redaction is not yet proven.",
+                            L"來源查詢失敗。機密遮罩未驗證完成，所以原始診斷輸出已隱藏。" }.Pick(m_language);
+                }
+            }
+            else
+            {
+                state.diagnostic = std::move(result.diagnostic);
+            }
+            if (state.success)
+            {
+                ++successfulManagers;
+                for (auto& package : result.packages)
+                {
+                    m_packageItems.push_back(std::move(package));
+                }
+            }
+            else
+            {
+                ++failedManagers;
+            }
+            m_packageRunStates.push_back(std::move(state));
+        }
+        std::sort(m_packageItems.begin(), m_packageItems.end(), [](auto const& left, auto const& right)
+        {
+            if (left.manager_key != right.manager_key) return left.manager_key < right.manager_key;
+            if (left.name != right.name) return left.name < right.name;
+            return left.id < right.id;
+        });
+
+        m_packageOperationLog.insert(
+            m_packageOperationLog.begin(),
+            L"Native query completed: " + std::to_wstring(m_packageItems.size()) +
+                L" package row(s), " + std::to_wstring(successfulManagers) + L" manager(s) succeeded. · 原生查詢完成。");
+        if (m_packageOperationLog.size() > 50) m_packageOperationLog.resize(50);
+        RenderPackageManagerView();
+        if (failedManagers != 0)
+        {
+            AnnouncePackageStatus(
+                L"Package query finished with " + std::to_wstring(m_packageItems.size()) +
+                    L" verified results. " + std::to_wstring(failedManagers) +
+                    L" engines failed or still require resolution; review each engine status.",
+                L"套件查詢完成，有 " + std::to_wstring(m_packageItems.size()) +
+                    L" 個已驗證結果。" + std::to_wstring(failedManagers) +
+                    L" 個引擎失敗或者仍然需要解析；請檢查每個引擎狀態。",
+                true);
+        }
+        else
+        {
+            AnnouncePackageStatus(
+                L"Package query finished successfully with " + std::to_wstring(m_packageItems.size()) +
+                    L" results.",
+                L"套件查詢成功完成，有 " + std::to_wstring(m_packageItems.size()) + L" 個結果。");
+        }
     }
 
     void MainWindow::RenderPackageManagerView()
@@ -586,38 +1160,86 @@ namespace winrt::WinForge::implementation
         {
             return winforge::core::LocalizedText{ std::wstring(en), std::wstring(zh) }.Pick(m_language);
         };
-        m_packageSearchBox.IsEnabled(m_packageView == 0);
+        auto appendCard = [this](
+            std::wstring_view title,
+            std::wstring_view body,
+            std::wstring_view automationId,
+            double opacity = 1.0)
+        {
+            Border card;
+            card.Padding(Thickness{ 16 });
+            card.CornerRadius(CornerRadius{ 8 });
+            card.BorderThickness(Thickness{ 1 });
+            card.BorderBrush(Application::Current().Resources().Lookup(
+                box_value(L"CardStrokeColorDefaultBrush")).as<Media::Brush>());
+            card.Background(Application::Current().Resources().Lookup(
+                box_value(L"CardBackgroundFillColorDefaultBrush")).as<Media::Brush>());
+            card.Opacity(opacity);
+
+            StackPanel content;
+            content.Spacing(5);
+            bool automationAssigned = false;
+            if (!title.empty())
+            {
+                auto heading = CreateText(title, 14, true);
+                if (!automationId.empty())
+                {
+                    AutomationProperties::SetAutomationId(heading, ToHString(automationId));
+                    automationAssigned = true;
+                }
+                if (!body.empty()) AutomationProperties::SetHelpText(heading, ToHString(body));
+                content.Children().Append(heading);
+            }
+            if (!body.empty())
+            {
+                auto note = CreateText(body, 12.5);
+                note.TextWrapping(TextWrapping::Wrap);
+                note.IsTextSelectionEnabled(true);
+                if (!automationAssigned && !automationId.empty())
+                    AutomationProperties::SetAutomationId(note, ToHString(automationId));
+                content.Children().Append(note);
+            }
+            card.Child(content);
+            m_packageResults.Children().Append(card);
+        };
+
+        m_packageSearchBox.IsEnabled(m_packageView == 0 && !m_packageWorking);
         m_packagePrimaryAction.Visibility(Visibility::Visible);
         m_packageSecondaryAction.Visibility(Visibility::Collapsed);
         m_packagePrimaryAction.IsEnabled(false);
         m_packageSecondaryAction.IsEnabled(false);
+        if (m_packageBusy) m_packageBusy.IsActive(m_packageWorking);
 
         std::wstring header;
         std::wstring explanation;
+        bool readOnlyQuery = false;
         switch (m_packageView)
         {
         case 0:
             m_packagePrimaryAction.Content(box_value(ToHString(pick(L"Search", L"搜尋"))));
             header = pick(L"Discover packages", L"搜尋套件");
-            explanation = m_packageSearchBox.Text().empty()
-                ? pick(L"Enter a package name or ID. Live cross-manager search is enabled after the native runner and parser gates pass.",
-                    L"輸入套件名稱或者 ID。原生 runner 同解析器閘門通過之後，就會啟用跨管理器即時搜尋。")
-                : pick(L"The query is ready; native execution remains gated while this implementation batch is under test.",
-                    L"搜尋字句已經準備好；呢批實作測試未通過之前，原生執行仍然會鎖住。");
+            explanation = pick(
+                L"Searches every selected, available engine concurrently using validated argv or an allowlisted HTTPS endpoint. Results are read-only while install consent is being ported.",
+                L"會同時搜尋所有已選而且可用嘅引擎，只會用已驗證 argv 或准許清單內 HTTPS endpoint；安裝同意流程移植完成之前，結果保持只讀。");
+            readOnlyQuery = true;
             break;
         case 1:
             m_packagePrimaryAction.Content(box_value(ToHString(pick(L"Refresh", L"重新整理"))));
             m_packageSecondaryAction.Content(box_value(ToHString(pick(L"Update all", L"全部更新"))));
             m_packageSecondaryAction.Visibility(Visibility::Visible);
             header = pick(L"Available updates", L"可用更新");
-            explanation = pick(L"Updates will be enumerated per selected manager and installed only through validated argv command specifications.",
-                L"更新會按已選管理器列出，而且只會經過已驗證 argv 指令規格安裝。");
+            explanation = pick(
+                L"Live update enumeration runs per selected engine. Update buttons remain locked until the native consent and operation coordinator is proven.",
+                L"會按已選引擎即時列出更新；原生同意同操作協調器驗證完成之前，更新按鈕保持鎖住。");
+            readOnlyQuery = true;
             break;
         case 2:
             m_packagePrimaryAction.Content(box_value(ToHString(pick(L"Refresh", L"重新整理"))));
             header = pick(L"Installed packages", L"已安裝套件");
-            explanation = pick(L"Installed-package discovery and uninstall actions are connected after the non-destructive probes pass.",
-                L"非破壞性探測通過之後，就會接駁已安裝套件搜尋同解除安裝動作。");
+            explanation = pick(
+                L"Installed packages are enumerated live. Uninstall remains locked until explicit confirmation, elevation, and cancellation behavior pass their native tests.",
+                L"會即時列出已安裝套件；明確確認、提升權限同取消行為通過原生測試之前，解除安裝保持鎖住。");
+            readOnlyQuery = true;
             break;
         case 3:
             m_packagePrimaryAction.Content(box_value(ToHString(pick(L"Export…", L"匯出…"))));
@@ -630,8 +1252,10 @@ namespace winrt::WinForge::implementation
         case 4:
             m_packagePrimaryAction.Content(box_value(ToHString(pick(L"Refresh", L"重新整理"))));
             header = pick(L"Package sources", L"套件來源");
-            explanation = pick(L"Source listing is read-only by default. Add, remove, and refresh require strict name and credential-free URL validation.",
-                L"來源清單預設只讀；新增、移除同重新整理一定要嚴格驗證名稱同冇帳密嘅 URL。");
+            explanation = pick(
+                L"Source commands run read-only. Raw configuration is withheld until credential redaction is proven; add/remove operations remain disabled.",
+                L"來源指令只讀執行；帳密遮罩驗證完成之前唔會顯示原始設定，新增／移除操作亦保持停用。");
+            readOnlyQuery = true;
             break;
         case 5:
             m_packagePrimaryAction.Content(box_value(ToHString(pick(L"Refresh", L"重新整理"))));
@@ -640,10 +1264,11 @@ namespace winrt::WinForge::implementation
                 L"忽略規則儲存正等緊原生原子式儲存相容測試。");
             break;
         case 6:
-            m_packagePrimaryAction.Content(box_value(ToHString(pick(L"Install all dependencies", L"安裝全部相依"))));
+            m_packagePrimaryAction.Content(box_value(ToHString(pick(L"Probe again", L"再次探測"))));
             header = pick(L"Engine setup", L"引擎設定");
-            explanation = pick(L"Availability probes are non-destructive. Bootstrap installs stay disabled until normal-integrity and operation-coordinator gates pass.",
-                L"可用性探測唔會改動系統；正常 integrity 同操作協調器閘門未通過之前，bootstrap 安裝會保持停用。");
+            explanation = pick(
+                L"Non-destructive version probes show which engines are ready. Bootstrap installs remain disabled until the normal-integrity coordinator is complete.",
+                L"非破壞性版本探測會顯示邊啲引擎可用；正常 integrity 協調器完成之前，bootstrap 安裝保持停用。");
             break;
         case 7:
             m_packagePrimaryAction.Content(box_value(ToHString(pick(L"Open settings", L"開啟設定"))));
@@ -661,18 +1286,221 @@ namespace winrt::WinForge::implementation
             break;
         }
 
-        m_packageResultsHeader.Text(ToHString(header));
-        Border card;
-        card.Padding(Thickness{ 16 });
-        card.CornerRadius(CornerRadius{ 8 });
-        card.BorderThickness(Thickness{ 1 });
-        card.BorderBrush(Application::Current().Resources().Lookup(box_value(L"CardStrokeColorDefaultBrush")).as<Media::Brush>());
-        card.Background(Application::Current().Resources().Lookup(box_value(L"CardBackgroundFillColorDefaultBrush")).as<Media::Brush>());
-        auto note = CreateText(explanation, 13);
-        note.Opacity(0.8);
-        card.Child(note);
-        AutomationProperties::SetAutomationId(card, L"NativePackageViewGate");
-        m_packageResults.Children().Append(card);
+        auto const selectedAvailable = HasSelectedAvailablePackageManager();
+        auto const searchReady = m_packageView != 0 || HasNonWhitespace(ToWide(m_packageSearchBox.Text()));
+        if (readOnlyQuery)
+        {
+            m_packagePrimaryAction.IsEnabled(
+                m_packageProbeComplete && selectedAvailable && searchReady && !m_packageWorking);
+        }
+        else if (m_packageView == 6)
+        {
+            m_packagePrimaryAction.IsEnabled(!m_packageWorking);
+        }
+
+        auto resultHeader = header;
+        if (!m_packageItems.empty())
+        {
+            resultHeader += L" · " + std::to_wstring(m_packageItems.size()) + pick(L" results", L" 個結果");
+        }
+        m_packageResultsHeader.Text(ToHString(resultHeader));
+        appendCard(explanation, {}, L"NativePackageViewSummary", 0.88);
+
+        if (m_packageWorking)
+        {
+            appendCard(
+                pick(L"Native operation in progress", L"原生操作進行中"),
+                pick(L"The page stays responsive while contained processes and HTTPS requests run in the background. Starting another request cancels this generation.",
+                    L"受控 process 同 HTTPS request 喺背景執行期間，頁面會保持流暢；開始另一個要求就會取消今次 generation。"),
+                L"NativePackageWorkingState");
+        }
+        else if (!m_packageProbeComplete)
+        {
+            appendCard(
+                pick(L"Checking package engines", L"檢查套件引擎"),
+                pick(L"Controls unlock only for engines whose non-destructive native probe succeeds.",
+                    L"只有非破壞性原生探測成功嘅引擎先會解鎖控制項。"),
+                L"NativePackageProbePending");
+        }
+
+        if (m_packageView == 6)
+        {
+            for (auto const& manager : winforge::core::packages::PackageManagers())
+            {
+                auto const key = std::wstring(manager.key);
+                auto const label = winforge::core::LocalizedText{
+                    std::wstring(manager.name_en), std::wstring(manager.name_zh) }.Pick(m_language);
+                std::wstring status;
+                if (!m_packageProbeComplete)
+                {
+                    status = pick(L"Probe pending…", L"等候探測…");
+                }
+                else if (m_packageManagersAvailable.contains(key) && m_packageManagersAvailable[key])
+                {
+                    status = pick(L"Available — read-only commands enabled.", L"可用 — 已啟用只讀指令。");
+                }
+                else
+                {
+                    status = m_packageProbeDiagnostics.contains(key)
+                        ? TruncateForUi(m_packageProbeDiagnostics[key], 420)
+                        : pick(L"Not available.", L"未可用。");
+                }
+                appendCard(label, status, L"NativePackageProbe_" + AutomationKey(key));
+            }
+            return;
+        }
+
+        if (m_packageView == 8)
+        {
+            if (m_packageOperationLog.empty())
+            {
+                appendCard(
+                    pick(L"No native operations yet", L"暫時未有原生操作"),
+                    pick(L"Availability probes and read-only queries will appear here. Mutating operation history is not claimed yet.",
+                        L"可用性探測同只讀查詢會喺度顯示；暫時未聲稱有修改操作歷史。"),
+                    L"NativePackageOperationsEmpty");
+            }
+            else
+            {
+                for (std::size_t index = 0; index < m_packageOperationLog.size(); ++index)
+                {
+                    appendCard(
+                        pick(L"Operation event", L"操作事件"),
+                        TruncateForUi(m_packageOperationLog[index], 600),
+                        L"NativePackageOperation_" + std::to_wstring(index));
+                }
+            }
+            return;
+        }
+
+        if (!readOnlyQuery)
+        {
+            appendCard(
+                pick(L"Evidence gate remains closed", L"證據閘門仍然關閉"),
+                explanation,
+                L"NativePackageViewGate");
+            return;
+        }
+
+        for (auto const& state : m_packageRunStates)
+        {
+            auto const* descriptor = winforge::core::packages::FindPackageManager(state.manager_key);
+            auto const title = descriptor
+                ? winforge::core::LocalizedText{
+                    std::wstring(descriptor->name_en), std::wstring(descriptor->name_zh) }.Pick(m_language)
+                : state.manager_key;
+            std::wstring body;
+            if (state.success)
+            {
+                body = state.output.empty()
+                    ? pick(
+                        L"Query completed successfully with " + std::to_wstring(state.package_count) +
+                            (state.package_count == 1 ? L" package row." : L" package rows."),
+                        L"查詢成功完成，有 " + std::to_wstring(state.package_count) + L" 筆套件資料列。")
+                    : state.output;
+            }
+            else
+            {
+                body = state.diagnostic.empty()
+                    ? pick(L"The native query did not complete.", L"原生查詢未完成。")
+                    : state.diagnostic;
+            }
+            if (state.requires_runtime_resolution)
+            {
+                body += pick(L" Additional version resolution is still required.", L" 仲需要額外版本解析。");
+            }
+            appendCard(
+                title,
+                TruncateForUi(body),
+                L"NativePackageManagerState_" + AutomationKey(state.manager_key),
+                state.success ? 0.94 : 1.0);
+        }
+
+        constexpr std::size_t MaximumRenderedPackages = 250;
+        auto const renderCount = std::min(m_packageItems.size(), MaximumRenderedPackages);
+        for (std::size_t index = 0; index < renderCount; ++index)
+        {
+            auto const& package = m_packageItems[index];
+            auto const* descriptor = winforge::core::packages::FindPackageManager(package.manager_key);
+            auto const managerName = descriptor
+                ? winforge::core::LocalizedText{
+                    std::wstring(descriptor->name_en), std::wstring(descriptor->name_zh) }.Pick(m_language)
+                : package.manager_key;
+
+            std::wstringstream metadata;
+            metadata << managerName << L"  ·  " << package.id;
+            if (!package.version.empty()) metadata << L"  ·  " << package.version;
+            if (!package.available_version.empty()) metadata << L"  →  " << package.available_version;
+            if (!package.source.empty()) metadata << L"  ·  " << package.source;
+
+            Border card;
+            card.Padding(Thickness{ 16, 12, 16, 12 });
+            card.CornerRadius(CornerRadius{ 8 });
+            card.BorderThickness(Thickness{ 1 });
+            card.BorderBrush(Application::Current().Resources().Lookup(
+                box_value(L"CardStrokeColorDefaultBrush")).as<Media::Brush>());
+            card.Background(Application::Current().Resources().Lookup(
+                box_value(L"CardBackgroundFillColorDefaultBrush")).as<Media::Brush>());
+
+            StackPanel row;
+            row.Spacing(5);
+            auto packageTitle = CreateText(package.name.empty() ? package.id : package.name, 15, true);
+            AutomationProperties::SetAutomationId(
+                packageTitle,
+                ToHString(L"NativePackageResult_" + AutomationKey(package.manager_key) + L"_" + AutomationKey(package.id)));
+            row.Children().Append(packageTitle);
+            auto details = CreateText(metadata.str(), 12);
+            details.Opacity(0.72);
+            details.IsTextSelectionEnabled(true);
+            row.Children().Append(details);
+
+            Button mutation;
+            auto const actionLabel = m_packageView == 0
+                ? pick(L"Install", L"安裝")
+                : m_packageView == 1
+                    ? pick(L"Update", L"更新")
+                    : pick(L"Uninstall", L"解除安裝");
+            mutation.Content(box_value(ToHString(actionLabel)));
+            mutation.IsEnabled(false);
+            mutation.HorizontalAlignment(HorizontalAlignment::Left);
+            AutomationProperties::SetAutomationId(
+                mutation,
+                ToHString(L"NativePackageMutation_" + AutomationKey(package.manager_key) + L"_" + AutomationKey(package.id)));
+            ToolTipService::SetToolTip(
+                mutation,
+                box_value(ToHString(pick(
+                    L"Locked until native consent and operation coordination pass.",
+                    L"原生同意同操作協調通過驗證之前保持鎖住。"))));
+            row.Children().Append(mutation);
+            card.Child(row);
+            m_packageResults.Children().Append(card);
+        }
+
+        if (m_packageItems.size() > MaximumRenderedPackages)
+        {
+            appendCard(
+                pick(L"Result rendering capped", L"結果顯示設有上限"),
+                pick(L"The native query completed, but this page renders the first 250 rows to protect UI responsiveness.",
+                    L"原生查詢已完成，但為咗保持介面流暢，呢頁只顯示頭 250 筆。"),
+                L"NativePackageResultLimit");
+        }
+        else if (!m_packageWorking && m_packageProbeComplete && m_packageItems.empty() && m_packageRunStates.empty())
+        {
+            appendCard(
+                pick(L"Ready for a read-only query", L"可以開始只讀查詢"),
+                m_packageView == 0
+                    ? pick(L"Enter a package name or ID, then choose Search.", L"輸入套件名稱或者 ID，再揀搜尋。")
+                    : pick(L"Choose Refresh to query the selected available engines.", L"揀重新整理，查詢已選而且可用嘅引擎。"),
+                L"NativePackageReadyState");
+        }
+        else if (!m_packageWorking && !m_packageRunStates.empty() && m_packageItems.empty())
+        {
+            appendCard(
+                pick(L"No package rows returned", L"冇套件資料列"),
+                pick(L"Review the per-engine diagnostics above. A successful empty result is not treated as an error.",
+                    L"請睇上面各引擎診斷；成功但冇結果唔會當成錯誤。"),
+                L"NativePackageEmptyState");
+        }
     }
 
     void MainWindow::RenderAllApps(std::wstring_view query)

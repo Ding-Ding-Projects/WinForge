@@ -8,9 +8,11 @@
 #include "ProcessRunner.h"
 
 #include <windows.h>
+#include <aclapi.h>
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <cstddef>
 #include <limits>
 #include <map>
@@ -124,6 +126,17 @@ namespace winforge::core
             }
         };
 
+        struct LocalFreeDeleter
+        {
+            void operator()(void* value) const noexcept
+            {
+                if (value != nullptr)
+                {
+                    LocalFree(value);
+                }
+            }
+        };
+
         struct CaseInsensitiveLess
         {
             bool operator()(std::wstring const& left, std::wstring const& right) const noexcept
@@ -151,9 +164,58 @@ namespace winforge::core
 
         std::pair<UniqueHandle, UniqueHandle> CreateRedirectPipe()
         {
+            HANDLE rawToken = nullptr;
+            if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &rawToken))
+            {
+                ThrowLastError("OpenProcessToken for pipe ACL failed");
+            }
+            UniqueHandle token{ rawToken };
+            DWORD tokenBytes = 0;
+            GetTokenInformation(rawToken, TokenUser, nullptr, 0, &tokenBytes);
+            if (tokenBytes < sizeof(TOKEN_USER))
+            {
+                ThrowLastError("TokenUser size query for pipe ACL failed");
+            }
+            std::vector<std::byte> tokenStorage(tokenBytes);
+            if (!GetTokenInformation(
+                rawToken, TokenUser, tokenStorage.data(), tokenBytes, &tokenBytes))
+            {
+                ThrowLastError("TokenUser query for pipe ACL failed");
+            }
+            auto const* tokenUser = reinterpret_cast<TOKEN_USER const*>(tokenStorage.data());
+            if (tokenUser->User.Sid == nullptr || !IsValidSid(tokenUser->User.Sid))
+            {
+                throw std::runtime_error("TokenUser returned an invalid SID for pipe ACL");
+            }
+
+            EXPLICIT_ACCESSW access{};
+            access.grfAccessPermissions = GENERIC_ALL;
+            access.grfAccessMode = SET_ACCESS;
+            access.grfInheritance = NO_INHERITANCE;
+            access.Trustee.TrusteeForm = TRUSTEE_IS_SID;
+            access.Trustee.TrusteeType = TRUSTEE_IS_USER;
+            access.Trustee.ptstrName = static_cast<LPWSTR>(tokenUser->User.Sid);
+            PACL rawAcl = nullptr;
+            auto const aclError = SetEntriesInAclW(1, &access, nullptr, &rawAcl);
+            if (aclError != ERROR_SUCCESS)
+            {
+                throw std::system_error(
+                    static_cast<int>(aclError), std::system_category(),
+                    "SetEntriesInAcl for pipe failed");
+            }
+            std::unique_ptr<void, LocalFreeDeleter> acl{ rawAcl };
+
+            SECURITY_DESCRIPTOR descriptor{};
+            if (!InitializeSecurityDescriptor(&descriptor, SECURITY_DESCRIPTOR_REVISION) ||
+                !SetSecurityDescriptorDacl(
+                    &descriptor, TRUE, static_cast<PACL>(acl.get()), FALSE))
+            {
+                ThrowLastError("security descriptor setup for pipe failed");
+            }
             SECURITY_ATTRIBUTES security{};
             security.nLength = sizeof(security);
             security.bInheritHandle = TRUE;
+            security.lpSecurityDescriptor = &descriptor;
 
             HANDLE readHandle = nullptr;
             HANDLE writeHandle = nullptr;
@@ -252,9 +314,14 @@ namespace winforge::core
             return block;
         }
 
-        std::string ReadPipe(HANDLE pipe)
+        std::string ReadPipe(
+            HANDLE pipe,
+            std::size_t maximumBytes,
+            std::atomic_size_t& capturedBytes,
+            HANDLE outputLimitEvent)
         {
             std::string bytes;
+            bytes.reserve((std::min)(maximumBytes, std::size_t{ 64 * 1024 }));
             std::array<char, 16 * 1024> buffer{};
             for (;;)
             {
@@ -272,7 +339,26 @@ namespace winforge::core
                 {
                     break;
                 }
-                bytes.append(buffer.data(), bytesRead);
+                auto accepted = std::size_t{};
+                auto captured = capturedBytes.load(std::memory_order_relaxed);
+                for (;;)
+                {
+                    auto const remaining = maximumBytes - (std::min)(captured, maximumBytes);
+                    accepted = (std::min)(remaining, static_cast<std::size_t>(bytesRead));
+                    if (capturedBytes.compare_exchange_weak(
+                        captured,
+                        captured + accepted,
+                        std::memory_order_relaxed,
+                        std::memory_order_relaxed))
+                    {
+                        break;
+                    }
+                }
+                bytes.append(buffer.data(), accepted);
+                if (accepted != bytesRead)
+                {
+                    SetEvent(outputLimitEvent);
+                }
             }
             return bytes;
         }
@@ -453,6 +539,10 @@ namespace winforge::core
         {
             throw std::invalid_argument("process timeout cannot be negative");
         }
+        if (options.maximumOutputBytes == 0)
+        {
+            throw std::invalid_argument("process output limit must be positive");
+        }
         if (options.workingDirectory)
         {
             ValidateNoNull(*options.workingDirectory, "working directory");
@@ -470,6 +560,11 @@ namespace winforge::core
         if (!cancellationEvent)
         {
             ThrowLastError("CreateEventW failed");
+        }
+        UniqueHandle outputLimitEvent{ CreateEventW(nullptr, TRUE, FALSE, nullptr) };
+        if (!outputLimitEvent)
+        {
+            ThrowLastError("CreateEventW for process output limit failed");
         }
         std::stop_callback cancellationCallback(options.cancellationToken, [&cancellationEvent]
         {
@@ -577,12 +672,21 @@ namespace winforge::core
 
         std::string stdoutBytes;
         std::string stderrBytes;
+        std::atomic_size_t capturedBytes{ 0 };
         std::thread stdoutReader;
         std::thread stderrReader;
         try
         {
-            stdoutReader = std::thread([&] { stdoutBytes = ReadPipe(stdoutRead.get()); });
-            stderrReader = std::thread([&] { stderrBytes = ReadPipe(stderrRead.get()); });
+            stdoutReader = std::thread([&]
+            {
+                stdoutBytes = ReadPipe(
+                    stdoutRead.get(), options.maximumOutputBytes, capturedBytes, outputLimitEvent.get());
+            });
+            stderrReader = std::thread([&]
+            {
+                stderrBytes = ReadPipe(
+                    stderrRead.get(), options.maximumOutputBytes, capturedBytes, outputLimitEvent.get());
+            });
         }
         catch (...)
         {
@@ -607,7 +711,13 @@ namespace winforge::core
         auto const deadline = !hasDeadline || options.timeout >= maximumRemaining
             ? std::chrono::steady_clock::time_point::max()
             : waitStarted + options.timeout;
-        std::array<HANDLE, 2> waitHandles{ process.get(), cancellationEvent.get() };
+        std::array<HANDLE, 3> waitHandles{
+            process.get(), cancellationEvent.get(), outputLimitEvent.get()
+        };
+
+        std::array<HANDLE, 2> controlHandles{
+            cancellationEvent.get(), outputLimitEvent.get()
+        };
         ProcessResult result;
         DWORD waitError = ERROR_SUCCESS;
         bool rootExited = false;
@@ -628,11 +738,17 @@ namespace winforge::core
             else
             {
                 auto const duration = (std::min)(WaitDuration(deadline, hasDeadline), DWORD{ 25 });
-                waitResult = WaitForSingleObject(cancellationEvent.get(), duration);
+                waitResult = WaitForMultipleObjects(
+                    static_cast<DWORD>(controlHandles.size()), controlHandles.data(), FALSE, duration);
             }
 
             if (rootExited)
             {
+                if (WaitForSingleObject(outputLimitEvent.get(), 0) == WAIT_OBJECT_0)
+                {
+                    result.outputLimitExceeded = true;
+                    break;
+                }
                 DWORD activeProcesses = 0;
                 if (!TryGetActiveProcessCount(job.get(), activeProcesses, waitError))
                 {
@@ -650,9 +766,15 @@ namespace winforge::core
             }
 
             auto const cancellationResult = rootExited ? WAIT_OBJECT_0 : WAIT_OBJECT_0 + 1;
+            auto const outputLimitResult = rootExited ? WAIT_OBJECT_0 + 1 : WAIT_OBJECT_0 + 2;
             if (waitResult == cancellationResult)
             {
                 result.cancelled = true;
+                break;
+            }
+            if (waitResult == outputLimitResult)
+            {
+                result.outputLimitExceeded = true;
                 break;
             }
             if (rootExited && waitResult == WAIT_TIMEOUT &&
@@ -678,11 +800,14 @@ namespace winforge::core
             break;
         }
 
-        if (result.cancelled || result.timedOut || waitError != ERROR_SUCCESS)
+        if (result.cancelled || result.timedOut || result.outputLimitExceeded ||
+            waitError != ERROR_SUCCESS)
         {
             auto const terminationCode = result.cancelled
                 ? ERROR_CANCELLED
-                : (result.timedOut ? ERROR_TIMEOUT : waitError);
+                : (result.timedOut
+                    ? ERROR_TIMEOUT
+                    : (result.outputLimitExceeded ? ERROR_BUFFER_OVERFLOW : waitError));
             if (!TerminateJobObject(job.get(), terminationCode))
             {
                 auto const terminationError = GetLastError();
@@ -716,6 +841,12 @@ namespace winforge::core
         job.reset();
         stdoutReader.join();
         stderrReader.join();
+        if (WaitForSingleObject(outputLimitEvent.get(), 0) == WAIT_OBJECT_0)
+        {
+            // The child can exit before reader threads finish draining buffered pipe
+            // data. A late limit signal must still make the result fail closed.
+            result.outputLimitExceeded = true;
+        }
 
         DWORD exitCode = 0;
         if (!GetExitCodeProcess(process.get(), &exitCode))
@@ -729,6 +860,10 @@ namespace winforge::core
         else
         {
             result.exitCode = exitCode;
+        }
+        if (result.outputLimitExceeded)
+        {
+            result.exitCode = static_cast<std::uint32_t>(ERROR_BUFFER_OVERFLOW);
         }
 
         result.standardOutput = DecodeOutput(stdoutBytes);

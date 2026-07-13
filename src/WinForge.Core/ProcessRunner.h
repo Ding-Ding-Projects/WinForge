@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <stop_token>
@@ -24,6 +25,8 @@ namespace winforge::core
         bool inheritEnvironment{ true };
         std::vector<EnvironmentOverride> environmentOverrides;
         std::chrono::milliseconds timeout{ std::chrono::milliseconds::max() };
+        // Aggregate retained bytes across stdout and stderr.
+        std::size_t maximumOutputBytes{ 16u * 1024u * 1024u };
         std::stop_token cancellationToken{};
     };
 
@@ -34,6 +37,7 @@ namespace winforge::core
         std::wstring standardError;
         bool timedOut{ false };
         bool cancelled{ false };
+        bool outputLimitExceeded{ false };
     };
 
     // Implements the quoting convention consumed by CommandLineToArgvW and the

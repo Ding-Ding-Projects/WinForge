@@ -97,7 +97,8 @@ namespace winforge::tests
             std::wstring_view mode,
             std::vector<std::wstring> arguments = {},
             std::chrono::milliseconds timeout = std::chrono::seconds(10),
-            std::stop_token cancellationToken = {})
+            std::stop_token cancellationToken = {},
+            std::size_t maximumOutputBytes = 16u * 1024u * 1024u)
         {
             winforge::core::ProcessOptions options;
             options.executable = CurrentExecutable();
@@ -105,6 +106,7 @@ namespace winforge::tests
             options.arguments.insert(options.arguments.end(), arguments.begin(), arguments.end());
             options.timeout = timeout;
             options.cancellationToken = cancellationToken;
+            options.maximumOutputBytes = maximumOutputBytes;
             return winforge::core::ProcessRunner::Run(options);
         }
 
@@ -205,6 +207,22 @@ namespace winforge::tests
             Sleep(10'000);
             return 0;
         }
+        if (mode == L"large-output")
+        {
+            std::string block(16 * 1024, 'x');
+            for (int index = 0; index < 64; ++index)
+            {
+                WriteBytes(GetStdHandle(STD_OUTPUT_HANDLE), block);
+            }
+            return 0;
+        }
+        if (mode == L"large-both-streams")
+        {
+            std::string block(24 * 1024, 'x');
+            WriteBytes(GetStdHandle(STD_OUTPUT_HANDLE), block);
+            WriteBytes(GetStdHandle(STD_ERROR_HANDLE), block);
+            return 0;
+        }
         if (mode == L"environment-and-directory" && argc == 4)
         {
             std::wstring value(32'768, L'\0');
@@ -284,6 +302,18 @@ namespace winforge::tests
 
         result = RunHelper(L"unicode");
         expect(result.standardOutput == L"粵語輸出 — café 🚀\n", "decodes UTF-8 Unicode output");
+
+        constexpr std::size_t outputLimit = 32u * 1024u;
+        result = RunHelper(L"large-output", {}, 10s, {}, outputLimit);
+        expect(result.outputLimitExceeded && result.standardOutput.size() == outputLimit,
+            "caps verbose child output and reports the containment limit");
+        expect(result.exitCode == static_cast<std::uint32_t>(ERROR_BUFFER_OVERFLOW),
+            "terminates a child that exceeds the output limit");
+
+        result = RunHelper(L"large-both-streams", {}, 10s, {}, outputLimit);
+        expect(result.outputLimitExceeded &&
+            result.standardOutput.size() + result.standardError.size() == outputLimit,
+            "enforces one aggregate output cap across stdout and stderr");
 
         auto const temporaryDirectory = std::filesystem::temp_directory_path().wstring();
         ProcessOptions environmentOptions;

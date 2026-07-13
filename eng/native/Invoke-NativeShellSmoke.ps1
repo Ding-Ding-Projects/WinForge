@@ -190,6 +190,61 @@ Invoke-OwnedRoute -Route 'module.packages#updates' -ExpectedTitle 'Package Manag
     Assert-True -Condition ($header.Current.Name.StartsWith('Available updates', [StringComparison]::Ordinal)) `
         -Name 'Package Manager deep link selects Updates'
 
+    $probeDeadline = [DateTime]::UtcNow.AddMilliseconds([Math]::Max($TimeoutMs, 30000))
+    do {
+        $ready = Find-ByAutomationId -Root $root -AutomationId 'NativePackageReadyState'
+        if ($ready) { break }
+        Start-Sleep -Milliseconds 100
+    } while ([DateTime]::UtcNow -lt $probeDeadline)
+    Assert-True -Condition ([bool]$ready) -Name 'Package Manager completes its live non-destructive engine probes'
+
+    $availableManager = $null
+    foreach ($manager in @('winget', 'scoop', 'choco', 'pip', 'npm', 'dotnet', 'psgallery', 'pwsh7', 'cargo', 'bun', 'vcpkg')) {
+        $filter = Find-ByAutomationId -Root $root -AutomationId "NativePackageManagerFilter_$manager"
+        if (-not $filter -or -not $filter.Current.IsEnabled) { continue }
+        if (-not $availableManager) {
+            $availableManager = $manager
+            continue
+        }
+        $toggle = [System.Windows.Automation.TogglePattern]$filter.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern)
+        if ($toggle.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::On) { $toggle.Toggle() }
+    }
+    if ($availableManager) {
+        Assert-True -Condition $true -Name 'Package Manager unlocks a successfully probed native engine'
+    }
+    else {
+        $lockedPrimary = Wait-ForElement -Root $root -AutomationId 'NativePackagePrimaryAction'
+        Assert-True -Condition (-not $lockedPrimary.Current.IsEnabled) `
+            -Name 'Package Manager keeps every failed or high-integrity engine probe locked'
+    }
+
+    if ($availableManager) {
+        $primary = Wait-ForElement -Root $root -AutomationId 'NativePackagePrimaryAction'
+        $primaryInvoke = [System.Windows.Automation.InvokePattern]$primary.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern)
+        $primaryInvoke.Invoke()
+        $queryDeadline = [DateTime]::UtcNow.AddSeconds(65)
+        $queryCompleted = $false
+        $querySucceeded = $false
+        do {
+            $working = Find-ByAutomationId -Root $root -AutomationId 'NativePackageWorkingState'
+            $managerState = Find-ByAutomationId -Root $root -AutomationId "NativePackageManagerState_$availableManager"
+            if (-not $working -and $managerState) {
+                $queryCompleted = $true
+                $querySucceeded = $managerState.Current.HelpText.StartsWith(
+                    'Query completed successfully', [StringComparison]::Ordinal)
+                break
+            }
+            Start-Sleep -Milliseconds 150
+        } while ([DateTime]::UtcNow -lt $queryDeadline)
+        Assert-True -Condition $queryCompleted -Name 'Package Manager completes a live read-only updates query'
+        Assert-True -Condition $querySucceeded -Name 'Package Manager live updates query reports explicit engine success'
+    }
+    else {
+        $lockedPrimary = Wait-ForElement -Root $root -AutomationId 'NativePackagePrimaryAction'
+        Assert-True -Condition (-not $lockedPrimary.Current.IsEnabled) `
+            -Name 'Package Manager does not start a live external query when no engine passes its safety probe'
+    }
+
     $operations = Wait-ForElement -Root $root -AutomationId 'NativePackageOperationsAction'
     $invoke = [System.Windows.Automation.InvokePattern]$operations.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern)
     $invoke.Invoke()

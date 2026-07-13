@@ -150,6 +150,10 @@ NativeTestCounts RunPackageManagerTests()
     bad_options = valid_options;
     bad_options.pre_install_command = L"Write-Host unsafe";
     expect(ValidateInstallOptions(bad_options).code == L"shell-hooks-unsupported", "argv layer rejects shell hooks");
+    bad_options = valid_options;
+    bad_options.kill_before_operation = { L"example.exe" };
+    expect(ValidateInstallOptions(bad_options).code == L"process-kill-orchestration-unsupported",
+        "argv layer rejects unimplemented process-kill orchestration");
 
     auto source = ResolvePackageSource(L"winget", L"Example.Tool", L"MSStore", PackageAction::Install);
     expect(source && source.resolution->normalized_source == L"msstore"
