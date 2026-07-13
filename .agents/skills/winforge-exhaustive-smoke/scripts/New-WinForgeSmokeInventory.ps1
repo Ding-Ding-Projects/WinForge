@@ -83,6 +83,7 @@ function Get-CSharpMethodBlock {
 $repo = (Resolve-Path -LiteralPath $RepoRoot).Path
 $required = @(
     (Join-Path $repo 'Services\ModuleRegistry.cs'),
+    (Join-Path $repo 'Catalog\Categories.cs'),
     (Join-Path $repo 'MainWindow.xaml.cs'),
     (Join-Path $repo 'MainWindow.xaml')
 )
@@ -112,9 +113,11 @@ else {
 }
 
 $registryPath = Join-Path $repo 'Services\ModuleRegistry.cs'
+$categoriesPath = Join-Path $repo 'Catalog\Categories.cs'
 $mainCodePath = Join-Path $repo 'MainWindow.xaml.cs'
 $mainXamlPath = Join-Path $repo 'MainWindow.xaml'
 $registryText = Get-TextFile $registryPath
+$categoriesText = Get-TextFile $categoriesPath
 $mainCodeText = Get-TextFile $mainCodePath
 $mainXamlText = Get-TextFile $mainXamlPath
 
@@ -130,6 +133,26 @@ foreach ($match in Get-Matches -Text $registryText -Pattern $registryPattern -Op
     }
     $registryByTag[$tag] = $entry
     $registryEntries += $entry
+}
+
+$categoryById = @{}
+$categoryPattern = 'public\s+static\s+readonly\s+AppCategory\s+[A-Za-z0-9_]+\s*=\s*new\(\)\s*\{(?<body>.*?)^\s*\};'
+$categoryOptions = [System.Text.RegularExpressions.RegexOptions]::Singleline -bor [System.Text.RegularExpressions.RegexOptions]::Multiline
+foreach ($match in Get-Matches -Text $categoriesText -Pattern $categoryPattern -Options $categoryOptions) {
+    $body = Get-FirstGroup $match 'body'
+    $idMatch = [regex]::Match($body, 'Id\s*=\s*"(?<id>[^"]+)"')
+    $nameMatch = [regex]::Match($body, 'Name\s*=\s*new\(\s*"(?<en>(?:\\.|[^"])*)"\s*,\s*"(?<zh>(?:\\.|[^"])*)"\s*\)')
+    if (-not $idMatch.Success -or -not $nameMatch.Success) {
+        continue
+    }
+
+    $id = $idMatch.Groups['id'].Value
+    $categoryById[$id] = [pscustomobject]@{
+        id = $id
+        en = [regex]::Unescape($nameMatch.Groups['en'].Value)
+        zh = [regex]::Unescape($nameMatch.Groups['zh'].Value)
+        source = 'Catalog/Categories.cs'
+    }
 }
 
 $typeByTag = @{}
@@ -244,10 +267,76 @@ $shellDialogRoutes = @{
     }
 }
 
+$shellPageTypes = @{
+    'dashboard' = 'DashboardPage'
+    'about' = 'AboutPage'
+    'settings' = 'SettingsPage'
+    'manual' = 'ManualPage'
+    'licenses' = 'LicensesPage'
+}
+$shellNames = @{
+    'dashboard' = 'Dashboard'
+    'about' = 'About'
+    'settings' = 'Settings'
+    'manual' = 'Manual'
+    'licenses' = 'Licenses'
+    'shell.allapps' = 'All Apps'
+}
+$knownShellRoutes = @($shellNames.Keys)
+
+$dynamicRouteFamilies = @(
+    [pscustomobject]@{
+        id = 'search:<query>'
+        kind = 'dynamic-route-family'
+        expectedSurface = 'SearchResultsPage'
+        source = @('MainWindow.xaml.cs', 'Pages/SearchResultsPage.xaml', 'Pages/SearchResultsPage.xaml.cs')
+        initialStatus = 'not-started'
+    },
+    [pscustomobject]@{
+        id = 'manual:<fragment>'
+        kind = 'dynamic-route-family'
+        expectedSurface = 'ManualPage section'
+        source = @('MainWindow.xaml.cs', 'Pages/ManualPage.xaml', 'Pages/ManualPage.xaml.cs')
+        initialStatus = 'not-started'
+    },
+    [pscustomobject]@{
+        id = 'module.<id>#<fragment>'
+        kind = 'dynamic-route-family'
+        expectedSurface = 'Mapped module page with a navigation fragment'
+        source = @('MainWindow.xaml.cs')
+        initialStatus = 'not-started'
+    },
+    [pscustomobject]@{
+        id = 'module.packages#(discover|updates|installed)'
+        kind = 'dynamic-route-family'
+        expectedSurface = 'PackageManagerModule selected view'
+        source = @('MainWindow.xaml.cs', 'Services/PackageManagerViewRouting.cs', 'Pages/PackageManagerModule.xaml.cs')
+        initialStatus = 'not-started'
+    },
+    [pscustomobject]@{
+        id = 'weblogin?url=<uri>'
+        kind = 'dynamic-route-family'
+        expectedSurface = 'WebLoginModule opened at the requested URI'
+        source = @('MainWindow.xaml.cs', 'Pages/WebLoginModule.xaml', 'Pages/WebLoginModule.xaml.cs')
+        initialStatus = 'not-started'
+    }
+)
+
 $routeRecords = @()
-$allRouteTags = @($registryByTag.Keys + $typeByTag.Keys + $navTags | Sort-Object -Unique)
+$allRouteTags = @($registryByTag.Keys + $typeByTag.Keys + $navTags + $categoryById.Keys + $knownShellRoutes | Sort-Object -Unique)
 foreach ($tag in $allRouteTags) {
-    $type = if ($typeByTag.ContainsKey($tag)) { $typeByTag[$tag] } else { $null }
+    $type = if ($typeByTag.ContainsKey($tag)) {
+        $typeByTag[$tag]
+    }
+    elseif ($categoryById.ContainsKey($tag)) {
+        'CategoryPage'
+    }
+    elseif ($shellPageTypes.ContainsKey($tag)) {
+        $shellPageTypes[$tag]
+    }
+    else {
+        $null
+    }
     $xamlInfo = if ($type -and $xamlByClass.ContainsKey($type)) { $xamlByClass[$type] } else { $null }
     $controls = @{}
     $handlers = @()
@@ -267,12 +356,18 @@ foreach ($tag in $allRouteTags) {
     $guessedServicePath = if ($moduleStem) { Join-Path $repo ('Services\' + $moduleStem + 'Service.cs') } else { '' }
     $service = if ($guessedServicePath -and (Test-Path -LiteralPath $guessedServicePath)) { Get-RepoRelativePath -FullPath $guessedServicePath -Root $repo } else { $null }
     $aliases = if ($aliasesByTarget.ContainsKey($tag)) { @($aliasesByTarget[$tag] | Sort-Object -Unique) } else { @() }
+    if ($categoryById.ContainsKey($tag) -and $aliases -notcontains $tag) {
+        $aliases += $tag
+    }
 
     $routingState = @()
     if ($registryByTag.ContainsKey($tag)) { $routingState += 'registry' }
     if ($typeByTag.ContainsKey($tag)) { $routingState += 'mapType' }
     if ($navTags -contains $tag) { $routingState += 'navigation' }
+    if ($categoryById.ContainsKey($tag)) { $routingState += @('categoryCatalog', 'navigation') }
+    if ($tag -eq 'settings') { $routingState += @('shell', 'navigation') }
     if ($aliases.Count -gt 0) { $routingState += 'deepLink' }
+    $routingState = @($routingState | Sort-Object -Unique)
 
     $relatedSource = @(
         'Services/ModuleRegistry.cs',
@@ -287,13 +382,16 @@ foreach ($tag in $allRouteTags) {
     if ($service) {
         $relatedSource += $service
     }
+    if ($categoryById.ContainsKey($tag)) {
+        $relatedSource += 'Catalog/Categories.cs'
+    }
 
     $shellDialog = if ($shellDialogRoutes.ContainsKey($tag)) { $shellDialogRoutes[$tag] } else { $null }
 
     $routeRecords += [pscustomobject]@{
         id = $tag
-        kind = if ($shellDialog) { 'shell-dialog' } elseif ($tag -like 'module.*') { 'module' } else { 'route' }
-        name = if ($registryByTag.ContainsKey($tag)) { $registryByTag[$tag].en } else { $null }
+        kind = if ($shellDialog) { 'shell-dialog' } elseif ($tag -like 'module.*') { 'module' } elseif ($categoryById.ContainsKey($tag)) { 'category' } else { 'route' }
+        name = if ($registryByTag.ContainsKey($tag)) { $registryByTag[$tag].en } elseif ($categoryById.ContainsKey($tag)) { $categoryById[$tag].en } elseif ($shellNames.ContainsKey($tag)) { $shellNames[$tag] } else { $null }
         pageType = $type
         expectedSurface = if ($shellDialog) { $shellDialog.expectedSurface } else { $type }
         launchDisposition = if ($shellDialog) { $shellDialog.detail } else { 'Frame/page route or route-level surface.' }
@@ -306,7 +404,6 @@ foreach ($tag in $allRouteTags) {
     }
 }
 
-$knownShellRoutes = @('dashboard', 'about', 'settings', 'manual', 'licenses', 'shell.allapps')
 $routingIssues = @()
 foreach ($entry in $registryEntries) {
     if (-not $typeByTag.ContainsKey($entry.tag) -and $entry.tag -notin $knownShellRoutes) {
@@ -319,7 +416,7 @@ foreach ($tag in $typeByTag.Keys) {
     }
 }
 foreach ($tag in $navTags) {
-    if (-not $registryByTag.ContainsKey($tag) -and -not $typeByTag.ContainsKey($tag) -and $tag -notin $knownShellRoutes) {
+    if (-not $registryByTag.ContainsKey($tag) -and -not $typeByTag.ContainsKey($tag) -and -not $categoryById.ContainsKey($tag) -and $tag -notin $knownShellRoutes) {
         $routingIssues += [pscustomobject]@{ kind = 'navigation-without-known-route'; tag = $tag; detail = 'Review navigation tag and resolver.' }
     }
 }
@@ -356,7 +453,7 @@ if (Test-Path -LiteralPath $externalAppsPath) {
 }
 
 $sourceExtensions = @('.cs', '.xaml', '.html', '.js', '.css', '.cpp', '.h')
-$excludedDirectoryPattern = '\\(bin|obj|\.git|artifacts|ThirdParty|node_modules)\\'
+$excludedDirectoryPattern = '\\(bin|obj|\.git|artifacts|ThirdParty|node_modules|packages|Generated Files)\\'
 $sourceAudit = @()
 $sourceFiles = @(
     Get-ChildItem -LiteralPath $repo -Recurse -File -ErrorAction SilentlyContinue |
@@ -381,7 +478,8 @@ foreach ($file in $sourceFiles) {
 }
 
 $testProjects = @(
-    Get-ChildItem -LiteralPath (Join-Path $repo 'tests') -Recurse -Filter '*.csproj' -File -ErrorAction SilentlyContinue |
+    Get-ChildItem -LiteralPath (Join-Path $repo 'tests') -Recurse -File -ErrorAction SilentlyContinue |
+        Where-Object { $_.Extension -in @('.csproj', '.vcxproj') } |
         ForEach-Object { Get-RepoRelativePath -FullPath $_.FullName -Root $repo } |
         Sort-Object
 )
@@ -400,7 +498,9 @@ $manifest = [pscustomobject]@{
         registryEntries = $registryEntries.Count
         mapTypeEntries = $typeByTag.Count
         navigationTags = $navTags.Count
+        categoryRoutes = $categoryById.Count
         routes = $routeRecords.Count
+        dynamicRouteFamilies = $dynamicRouteFamilies.Count
         aliases = ($aliasesByTarget.Values | ForEach-Object { $_ } | Sort-Object -Unique).Count
         companions = $companions.Count
         externalApps = $externalApps.Count
@@ -410,6 +510,7 @@ $manifest = [pscustomobject]@{
         wikiPages = $wikiPages.Count
     }
     routes = @($routeRecords | Sort-Object id)
+    dynamicRoutes = @($dynamicRouteFamilies | Sort-Object id)
     routingIssues = @($routingIssues | Sort-Object kind, tag)
     unmappedAliases = @($unmappedAliases | Sort-Object -Unique)
     companions = @($companions | Sort-Object id)
@@ -442,8 +543,10 @@ $summaryLines = @(
     '',
     "| Registry entries | $($manifest.counts.registryEntries) |",
     "| MapType entries | $($manifest.counts.mapTypeEntries) |",
-    "| Navigation tags | $($manifest.counts.navigationTags) |",
-    "| Route records | $($manifest.counts.routes) |",
+    "| Static XAML navigation tags | $($manifest.counts.navigationTags) |",
+    "| Runtime category routes | $($manifest.counts.categoryRoutes) |",
+    "| Fixed base-route records | $($manifest.counts.routes) |",
+    "| Dynamic route families | $($manifest.counts.dynamicRouteFamilies) |",
     "| Deep-link aliases | $($manifest.counts.aliases) |",
     "| Companion specs | $($manifest.counts.companions) |",
     "| External app specs | $($manifest.counts.externalApps) |",
