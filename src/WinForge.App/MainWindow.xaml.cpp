@@ -11,6 +11,7 @@
 
 #include <chrono>
 #include <cwctype>
+#include <array>
 #include <future>
 #include <sstream>
 #include <stdexcept>
@@ -336,6 +337,10 @@ namespace winrt::WinForge::implementation
         {
             RenderPackageManager();
         }
+        else if (module->id == L"module.checkdigit")
+        {
+            RenderCheckDigit();
+        }
         else if (module->id == L"about")
         {
             RenderAbout();
@@ -373,6 +378,243 @@ namespace winrt::WinForge::implementation
         page.Children().Append(CreateRouteButton(L"Inspect Package Manager route · 檢視套件管理路線", L"module.packages"));
         page.Children().Append(CreateRouteButton(L"About the native rewrite · 關於原生重寫", L"about"));
         ShowPage(page);
+    }
+
+    void MainWindow::RenderCheckDigit()
+    {
+        m_checkDigitRendering = true;
+
+        auto page = CreatePage(
+            winforge::core::LocalizedText{
+                L"Check Digit Validator", L"檢查碼驗證器" }.Pick(m_language),
+            winforge::core::LocalizedText{
+                L"Validate a number's check digit or checksum and see the expected value. Handles credit cards (Luhn, with brand detection), book and product barcodes, and bank IBANs.",
+                L"驗證號碼嘅檢查碼／校驗碼，同時顯示應有數值；支援信用卡（Luhn，連卡種識別）、書籍同商品條碼，以及銀行 IBAN。" }.Pick(m_language));
+        page.MaxWidth(820);
+        page.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(page, L"NativeCheckDigitPage");
+
+        InfoBar nativeStatus;
+        nativeStatus.IsOpen(true);
+        nativeStatus.IsClosable(false);
+        nativeStatus.Severity(InfoBarSeverity::Success);
+        nativeStatus.Title(ToHString(winforge::core::LocalizedText{
+            L"Fully native validation", L"全原生驗證" }.Pick(m_language)));
+        nativeStatus.Message(ToHString(winforge::core::LocalizedText{
+            L"All six validators execute locally in standard C++ with bounded incremental mod-97 arithmetic; no CLR, network, process, file, registry, or elevation path is used.",
+            L"六個驗證器全部用標準 C++ 喺本機執行，IBAN 亦用有界增量 mod-97 運算；唔會用 CLR、網絡、process、檔案、registry 或提升權限。" }.Pick(m_language)));
+        AutomationProperties::SetAutomationId(nativeStatus, L"NativeCheckDigitImplementationStatus");
+        page.Children().Append(nativeStatus);
+
+        Border card;
+        card.Padding(Thickness{ 18, 16, 18, 18 });
+        card.CornerRadius(CornerRadius{ 8 });
+        card.BorderThickness(Thickness{ 1 });
+        card.BorderBrush(Application::Current().Resources().Lookup(
+            box_value(L"CardStrokeColorDefaultBrush")).as<Media::Brush>());
+        card.Background(Application::Current().Resources().Lookup(
+            box_value(L"CardBackgroundFillColorDefaultBrush")).as<Media::Brush>());
+
+        StackPanel content;
+        content.Spacing(14);
+
+        auto schemeLabel = CreateText(
+            winforge::core::LocalizedText{ L"Scheme", L"格式" }.Pick(m_language), 14, true);
+        content.Children().Append(schemeLabel);
+
+        m_checkDigitSchemePicker = ComboBox();
+        m_checkDigitSchemePicker.MinWidth(260);
+        m_checkDigitSchemePicker.HorizontalAlignment(HorizontalAlignment::Left);
+        for (auto const& label : std::array<std::wstring, 6>{
+            winforge::core::LocalizedText{ L"Luhn (credit card)", L"Luhn（信用卡）" }.Pick(m_language),
+            L"ISBN-10",
+            L"ISBN-13",
+            L"EAN-13",
+            L"UPC-A",
+            winforge::core::LocalizedText{ L"IBAN (mod-97)", L"IBAN（mod-97）" }.Pick(m_language) })
+        {
+            ComboBoxItem item;
+            item.Content(box_value(ToHString(label)));
+            m_checkDigitSchemePicker.Items().Append(item);
+        }
+        m_checkDigitSchemePicker.SelectedIndex(m_checkDigitScheme);
+        AutomationProperties::SetAutomationId(m_checkDigitSchemePicker, L"NativeCheckDigitScheme");
+        AutomationProperties::SetLabeledBy(m_checkDigitSchemePicker, schemeLabel);
+        AutomationProperties::SetName(
+            m_checkDigitSchemePicker,
+            ToHString(winforge::core::LocalizedText{
+                L"Check digit scheme", L"檢查碼格式" }.Pick(m_language)));
+        m_checkDigitSchemePicker.SelectionChanged(
+            [this](Windows::Foundation::IInspectable const&, SelectionChangedEventArgs const&)
+            {
+                if (m_checkDigitRendering) return;
+                auto const selected = m_checkDigitSchemePicker.SelectedIndex();
+                m_checkDigitScheme = selected < 0 ? 0 : selected;
+                RefreshCheckDigit();
+            });
+        content.Children().Append(m_checkDigitSchemePicker);
+
+        auto inputLabel = CreateText(
+            winforge::core::LocalizedText{ L"Value to check", L"要檢查嘅數值" }.Pick(m_language), 14, true);
+        content.Children().Append(inputLabel);
+
+        m_checkDigitInput = TextBox();
+        m_checkDigitInput.PlaceholderText(ToHString(winforge::core::LocalizedText{
+            L"e.g. 4111 1111 1111 1111", L"例如 4111 1111 1111 1111" }.Pick(m_language)));
+        m_checkDigitInput.Text(ToHString(m_checkDigitValue));
+        m_checkDigitInput.IsSpellCheckEnabled(false);
+        AutomationProperties::SetAutomationId(m_checkDigitInput, L"NativeCheckDigitInput");
+        AutomationProperties::SetLabeledBy(m_checkDigitInput, inputLabel);
+        AutomationProperties::SetName(
+            m_checkDigitInput,
+            ToHString(winforge::core::LocalizedText{
+                L"Value to check", L"要檢查嘅數值" }.Pick(m_language)));
+        m_checkDigitInput.TextChanged([this](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
+        {
+            if (m_checkDigitRendering) return;
+            m_checkDigitValue = ToWide(sender.as<TextBox>().Text());
+            RefreshCheckDigit();
+        });
+        content.Children().Append(m_checkDigitInput);
+
+        m_checkDigitBadge = Border();
+        m_checkDigitBadge.CornerRadius(CornerRadius{ 4 });
+        m_checkDigitBadge.Padding(Thickness{ 12, 5, 12, 5 });
+        m_checkDigitBadge.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(m_checkDigitBadge, L"NativeCheckDigitBadgeContainer");
+
+        m_checkDigitBadgeText = CreateText(L"—", 14, true);
+        m_checkDigitBadgeText.IsTextSelectionEnabled(false);
+        AutomationProperties::SetAutomationId(m_checkDigitBadgeText, L"NativeCheckDigitBadge");
+        m_checkDigitBadge.Child(m_checkDigitBadgeText);
+        content.Children().Append(m_checkDigitBadge);
+
+        m_checkDigitDetail = CreateText(L"", 14);
+        m_checkDigitDetail.Opacity(0.82);
+        AutomationProperties::SetAutomationId(m_checkDigitDetail, L"NativeCheckDigitDetail");
+        content.Children().Append(m_checkDigitDetail);
+
+        m_checkDigitStatus = CreateText(L"", 12.5);
+        m_checkDigitStatus.Opacity(0.82);
+        AutomationProperties::SetAutomationId(m_checkDigitStatus, L"NativeCheckDigitStatus");
+        AutomationProperties::SetLiveSetting(
+            m_checkDigitStatus,
+            Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite);
+        content.Children().Append(m_checkDigitStatus);
+
+        card.Child(content);
+        page.Children().Append(card);
+        ShowPage(page);
+
+        m_checkDigitRendering = false;
+        RefreshCheckDigit();
+    }
+
+    void MainWindow::RefreshCheckDigit()
+    {
+        if (!m_checkDigitBadge || !m_checkDigitBadgeText || !m_checkDigitDetail || !m_checkDigitStatus)
+        {
+            return;
+        }
+
+        auto setBadge = [this](std::wstring_view label, Windows::UI::Color color, double opacity)
+        {
+            Media::SolidColorBrush brush(color);
+            brush.Opacity(opacity);
+            m_checkDigitBadge.Background(brush);
+            m_checkDigitBadgeText.Text(ToHString(label));
+            AutomationProperties::SetName(m_checkDigitBadgeText, ToHString(label));
+        };
+
+        if (!HasNonWhitespace(m_checkDigitValue))
+        {
+            setBadge(L"—", Windows::UI::Color{ 0xFF, 0x80, 0x80, 0x80 }, 0.35);
+            m_checkDigitDetail.Text(L"");
+            AutomationProperties::SetName(m_checkDigitDetail, L"");
+            auto const prompt = winforge::core::LocalizedText{
+                L"Type a value above to check it.", L"喺上面輸入數值嚟檢查。" }.Pick(m_language);
+            AnnounceCheckDigitStatus(prompt);
+            return;
+        }
+
+        using Scheme = winforge::core::checkdigit::Scheme;
+        auto const scheme = [&]()
+        {
+            switch (m_checkDigitScheme)
+            {
+            case 1: return Scheme::Isbn10;
+            case 2: return Scheme::Isbn13;
+            case 3: return Scheme::Ean13;
+            case 4: return Scheme::UpcA;
+            case 5: return Scheme::Iban;
+            default: return Scheme::Luhn;
+            }
+        }();
+        auto const result = winforge::core::checkdigit::Validate(scheme, m_checkDigitValue);
+
+        if (!result.ok)
+        {
+            setBadge(L"—", Windows::UI::Color{ 0xFF, 0x80, 0x80, 0x80 }, 0.35);
+            m_checkDigitDetail.Text(L"");
+            AutomationProperties::SetName(m_checkDigitDetail, L"");
+            auto const diagnostic = winforge::core::LocalizedText{
+                result.detail_en, result.detail_zh }.Pick(m_language);
+            AnnounceCheckDigitStatus(diagnostic);
+            return;
+        }
+
+        auto const badge = result.valid
+            ? winforge::core::LocalizedText{ L"VALID", L"有效" }.Pick(m_language)
+            : winforge::core::LocalizedText{ L"INVALID", L"無效" }.Pick(m_language);
+        setBadge(
+            badge,
+            result.valid
+                ? Windows::UI::Color{ 0xFF, 0x1E, 0x7A, 0x34 }
+                : Windows::UI::Color{ 0xFF, 0x9B, 0x22, 0x26 },
+            1.0);
+
+        auto const detail = winforge::core::LocalizedText{
+            result.detail_en, result.detail_zh }.Pick(m_language);
+        m_checkDigitDetail.Text(ToHString(detail));
+        AutomationProperties::SetName(m_checkDigitDetail, ToHString(detail));
+
+        auto const status = result.valid
+            ? winforge::core::LocalizedText{
+                L"Check digit / checksum matches.", L"檢查碼／校驗碼吻合。" }.Pick(m_language)
+            : winforge::core::LocalizedText{
+                L"Check digit / checksum does NOT match.", L"檢查碼／校驗碼唔吻合。" }.Pick(m_language);
+        AnnounceCheckDigitStatus(status);
+    }
+
+    void MainWindow::AnnounceCheckDigitStatus(std::wstring_view message)
+    {
+        if (!m_checkDigitStatus) return;
+
+        m_checkDigitStatus.Text(ToHString(message));
+        AutomationProperties::SetName(m_checkDigitStatus, ToHString(message));
+        AutomationProperties::SetLiveSetting(
+            m_checkDigitStatus,
+            Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite);
+
+        try
+        {
+            auto peer = Microsoft::UI::Xaml::Automation::Peers::FrameworkElementAutomationPeer::FromElement(
+                m_checkDigitStatus);
+            if (!peer)
+            {
+                peer = Microsoft::UI::Xaml::Automation::Peers::FrameworkElementAutomationPeer::CreatePeerForElement(
+                    m_checkDigitStatus);
+            }
+            if (peer)
+            {
+                peer.RaiseAutomationEvent(
+                    Microsoft::UI::Xaml::Automation::Peers::AutomationEvents::LiveRegionChanged);
+            }
+        }
+        catch (...)
+        {
+            // Accessibility notification failure must not break local validation.
+        }
     }
 
     int32_t MainWindow::PackageViewFromArgument(std::wstring_view argument) const

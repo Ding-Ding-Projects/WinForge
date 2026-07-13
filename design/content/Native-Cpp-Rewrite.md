@@ -25,18 +25,22 @@ The dynamic families are `search:<query>`, `manual:<fragment>`, `module.<id>#<fr
 
 Package Manager is now an honest **in-progress** native port. All nine views and 11 manager filters render; Discover, Updates, and Installed provide read-only result queries, while Sources runs a read-only command probe whose raw configuration and diagnostics are withheld until manager-specific secret redaction is proven. Every mutation plus Bundles, Ignored, Setup bootstrap, Settings, and the real Operations coordinator remains gated. The complete pinned UniGetUI snapshot is provenance and a behavior inventory, not parity or an embedded implementation. · 套件管理而家係如實標示為**進行中**嘅原生移植。全部九個檢視同 11 個管理器篩選都會顯示；Discover、Updates 同 Installed 提供只讀結果查詢，Sources 就執行只讀指令探測，但逐管理器機密遮罩未證實之前會隱藏原始設定同診斷。所有修改操作、Bundles、Ignored、Setup bootstrap、Settings 同真正 Operations 協調器仍然鎖住。完整固定 UniGetUI snapshot 只係來源依據同行為清單，唔係對等或者內嵌實作。
 
+Check Digit Validator is the next genuine native utility slice. Its standard C++ core and native WinUI surface implement live Luhn/card-brand detection, ISBN-10/13, EAN-13, UPC-A, and bounded incremental mod-97 IBAN validation. ISBN-13 requires 978/979; IBAN enforces all 89 SWIFT Release 102 country prefixes, exact lengths, and BBAN character classes before the checksum. `checkdigit`, `luhn`, and `module.checkdigit` all reach the real page; language rerenders preserve state, while localized names, stale-detail clearing, and polite live-region events harden accessibility. Functional evidence passes without CLR or external side effects, but the ledger row remains **in progress** because fresh visual capture is `capture-blocked`. · 檢查碼驗證器係下一批真正原生 utility。標準 C++ core 同原生 WinUI 介面實作即時 Luhn／卡種識別、ISBN-10／13、EAN-13、UPC-A 同有界增量 mod-97 IBAN 驗證。ISBN-13 只接受 978／979；IBAN 會喺 checksum 之前驗證 SWIFT Release 102 全部 89 個國家 prefix、固定長度同 BBAN 字元類別。`checkdigit`、`luhn` 同 `module.checkdigit` 都會開真正頁面；轉語言時會保留狀態，亦加咗本地化名稱、清除舊 detail 同 polite live-region event。功能證據通過，唔用 CLR 或外部副作用，但最新視覺擷取係 `capture-blocked`，所以清單仍然標示**進行中**。
+
 ## Verification · 驗證
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .agents\skills\run-winforge\driver.ps1 -Native -Publish -Page dashboard -NoCapture
 tests\native\WinForge.Core.Tests\bin\x64\Debug\WinForge.Core.Tests.exe
+dotnet run --project tests\CheckDigitCore.Tests\CheckDigitCore.Tests.csproj -c Release
 powershell -ExecutionPolicy Bypass -File eng\native\Test-NativeCatalogParity.ps1
 powershell -ExecutionPolicy Bypass -File eng\native\Invoke-NativeShellSmoke.ps1
 ```
 
 - Debug and Release x64 builds: **0 errors**. · Debug 同 Release x64 建置：**0 errors**。
-- Native core regressions: **160/160 in Debug and 160/160 in Release**, including Package Manager alias-to-view routing. · 原生核心回歸：Debug **160/160**、Release **160/160**，包括套件管理 alias 對應準確檢視。
-- Elevated process-owned shell smoke: **31/31**, including exact Discover/Updates/Installed alias selection. This verifies UI and fail-closed safety behavior, not normal-integrity external queries. · 提權、自有 process shell 冒煙：**31/31**，包括準確揀返 Discover／Updates／Installed alias；呢項驗證 UI 同 fail-closed 安全行為，唔代表正常 integrity 外部查詢。
+- Legacy managed solution compile check: **0 errors** with ignored NuGet restore and native C++ source/generated trees excluded from the SDK item glob. · 舊受控 solution compile check：**0 errors**；SDK item glob 已排除忽略咗嘅 NuGet restore 同原生 C++ source／generated tree。
+- Native core regressions: **208/208 in Debug and 208/208 in Release**, including 48 focused Check Digit cases, official Discover range boundaries, exact independent SWIFT Release 102 fixture parity, Unicode-confusable rejection, and all existing Package Manager/shell coverage; managed-oracle parity passes **24/24**. · 原生核心回歸：Debug **208/208**、Release **208/208**，包括 48 個檢查碼專項案例、官方 Discover range 邊界、獨立 SWIFT Release 102 fixture 精確對等、拒絕 Unicode 混淆字元，同全部原有套件管理／shell 覆蓋；受控基準對等 **24/24** 通過。
+- Elevated process-owned shell smoke: **46/46**, including all six Check Digit schemes, accessibility cleanup, state-preserving localization, every Check Digit alias, and exact Discover/Updates/Installed alias selection. This verifies UI and fail-closed safety behavior, not normal-integrity external queries. · 提權、自有 process shell 冒煙：**46/46**，包括六個檢查碼格式、無障礙清理、轉語言保留狀態、全部檢查碼 alias，同準確揀返 Discover／Updates／Installed alias；呢項驗證 UI 同 fail-closed 安全行為，唔代表正常 integrity 外部查詢。
 - Catalog parity: 346 fixed routes + five dynamic families passed exact id, alias, count, and UTF-8 bilingual checks. · 目錄對等：346 固定路線 + 五組動態路線通過精確 id、alias、數量同 UTF-8 雙語檢查。
 - Foundation Release PE audit: zero COM descriptor and no `coreclr`, `hostfxr`, or `mscoree` import; this is native-binary evidence, not feature-parity evidence. · 基礎 Release PE 審查：COM descriptor 係零，而且冇 `coreclr`、`hostfxr` 或 `mscoree` import；呢項係原生 binary 證據，唔係功能對等證據。
 
@@ -44,9 +48,9 @@ Normal-integrity live external-query evidence remains **blocked**. Even an inter
 
 ## Screenshot status · 截圖狀態
 
-Fresh native Dashboard, All Apps, About, and Package Manager (`module.packages#updates`) captures are blocked in this desktop session. `CopyFromScreen` is unavailable and `PrintWindow` returns a blank/near-uniform WinUI client frame, which the driver now rejects. No blank, stale, synthetic, or managed screenshot was substituted. UI Automation proves launch and behavior, not visual appearance; all four surfaces remain `capture-blocked`.
+Fresh native Dashboard, All Apps, About, Package Manager (`module.packages#updates`), and Check Digit (`checkdigit`) captures are blocked in this desktop session. `CopyFromScreen` is unavailable and `PrintWindow` returns a blank/near-uniform WinUI client frame, which the driver now rejects. No blank, stale, synthetic, or managed screenshot was substituted. UI Automation proves launch and behavior, not visual appearance; all five surfaces remain `capture-blocked`.
 
-呢個 desktop session 擷取唔到最新原生 Dashboard、所有 app、About 同套件管理（`module.packages#updates`）畫面。`CopyFromScreen` 用唔到，而 `PrintWindow` 只回傳空白／接近單色 WinUI client frame，driver 而家會拒絕呢種圖。冇用空白、舊、合成或者受控版截圖頂替。UI Automation 只證明 launch 同 behavior，唔代表視覺通過；四個介面仍然係 `capture-blocked`。
+呢個 desktop session 擷取唔到最新原生 Dashboard、所有 app、About、套件管理（`module.packages#updates`）同檢查碼（`checkdigit`）畫面。`CopyFromScreen` 用唔到，而 `PrintWindow` 只回傳空白／接近單色 WinUI client frame，driver 而家會拒絕呢種圖。冇用空白、舊、合成或者受控版截圖頂替。UI Automation 只證明 launch 同 behavior，唔代表視覺通過；五個介面仍然係 `capture-blocked`。
 
 ## Cutover gate · 切換閘門
 

@@ -1,4 +1,5 @@
 #include "CommandLine.h"
+#include "CheckDigitTests.h"
 #include "Localization.h"
 #include "PackageManagerTests.h"
 #include "PackageRuntime.h"
@@ -156,6 +157,10 @@ int wmain(int argc, wchar_t** argv)
     Expect(rejectedDuplicate, "rejects duplicate canonical route keys");
 
     winforge::tests::RunProcessRunnerTests(Expect);
+
+    auto const checkDigitCounts = RunCheckDigitTests();
+    passed += checkDigitCounts.passed;
+    failed += checkDigitCounts.failed;
 
     auto const package_manager_counts = RunPackageManagerTests();
     passed += package_manager_counts.passed;

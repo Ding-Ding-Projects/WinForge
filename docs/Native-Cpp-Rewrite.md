@@ -49,6 +49,16 @@ This is not Package Manager parity. Package mutation (install, update, and unins
 
 呢個唔係套件管理功能對等。套件變更（安裝、更新同解除安裝）、Bundles、Ignored、Setup、Settings、operation queue、.NET 更新解析同 PyPI metadata hydration 仍然未完成。
 
+### Check Digit parity slice · 檢查碼對等批次
+
+`module.checkdigit` no longer renders the pending page. Its native WinUI surface and standard C++ core cover live Luhn validation with Visa/Amex/Mastercard/Discover detection, ISBN-10 (including `X`), ISBN-13, EAN-13, UPC-A, and IBAN validation plus expected check values. Standards hardening is mirrored in the managed oracle: digit-oriented formats use ASCII digits, ISBN-13 requires an International ISBN Agency 978/979 prefix, and IBAN checks its ASCII country/check header, all 89 registered country prefixes, exact country length, and SWIFT Release 102 BBAN character pattern before incremental mod-97. Input and selected scheme survive English/Cantonese/Bilingual rerenders; `checkdigit`, `luhn`, and `module.checkdigit` all resolve to the real page.
+
+`module.checkdigit` 已經唔再顯示 pending 頁。原生 WinUI 介面同標準 C++ core 覆蓋即時 Luhn 驗證連 Visa／Amex／Mastercard／Discover 卡種識別、ISBN-10（包括 `X`）、ISBN-13、EAN-13、UPC-A，同 IBAN 驗證及應有檢查值。標準加固亦同步到受控基準：數字格式只接受 ASCII 數字、ISBN-13 一定要用 International ISBN Agency 嘅 978／979 開頭，而 IBAN 會喺增量 mod-97 之前先檢查 ASCII 國家／檢查碼、全部 89 個已登記國家 prefix、國家固定長度，同 SWIFT Release 102 BBAN 字元格式。轉英文／粵語／雙語時會保留輸入同已揀格式；`checkdigit`、`luhn` 同 `module.checkdigit` 全部會開真正功能頁。
+
+The behavior, build, test, launch, static-source, no-side-effect, accessibility, and documentation dimensions pass. The route remains **in progress**, not complete, because this desktop session cannot capture a composited WinUI frame; visual evidence is honestly `capture-blocked`.
+
+行為、建置、測試、啟動、靜態來源、無副作用、無障礙同文件維度全部通過。呢條 route 仍然標示**進行中**，唔係完成，因為呢個 desktop session 擷取唔到合成後 WinUI 畫面；視覺證據會如實標示 `capture-blocked`。
+
 `ThirdParty/UniGetUI` is the complete 1,002-file tracked-source snapshot of Devolutions/UniGetUI `main` at commit `21116375c8299d1db38a3c3b4c2eb7e18bc97c4e`, dated 2026-07-10 and preserved under the MIT license. It remains excluded from build and publish output. The snapshot is exact provenance and a behavior reference only—not an embedded runtime, copied product identity, or evidence of parity.
 
 `ThirdParty/UniGetUI` 係 Devolutions/UniGetUI `main` 喺 commit `21116375c8299d1db38a3c3b4c2eb7e18bc97c4e` 嘅完整 1,002 檔 tracked-source snapshot，日期係 2026-07-10，並按 MIT license 保留；建置同發佈輸出仍然會排除佢。呢份 snapshot 只係精確來源證明同功能參考，唔係內嵌 runtime、複製產品身份，亦唔係對等證據。
@@ -67,6 +77,9 @@ powershell -ExecutionPolicy Bypass -File .agents\skills\run-winforge\driver.ps1 
 # Native unit regressions · 原生單元回歸
 tests\native\WinForge.Core.Tests\bin\x64\Debug\WinForge.Core.Tests.exe
 
+# Managed-oracle parity for the shared standards rules · 受控基準標準規則對等
+dotnet run --project tests\CheckDigitCore.Tests\CheckDigitCore.Tests.csproj -c Release
+
 # Catalog/ledger parity · 目錄／清單對等
 powershell -ExecutionPolicy Bypass -File eng\native\Test-NativeCatalogParity.ps1
 
@@ -79,29 +92,31 @@ Evidence for this batch:
 呢批證據：
 
 - Native Debug and Release x64 solution builds: **0 errors**. · 原生 Debug 同 Release x64 solution build：**0 errors**。
-- Native core regression suite: **160/160 in Debug and 160/160 in Release**, including singular/plural Package Manager alias-to-view routing. · 原生核心回歸套件：Debug **160/160**、Release **160/160**，包括單數／複數套件管理 alias 對應準確檢視。
-- Elevated process-owned shell smoke: **31/31**, including exact `package-discover`, `package-updates`, and `package-installed` view selection. This verifies the elevated UI and safety-lock behavior, not a normal-integrity external query. · 提權、自有 process shell 冒煙：**31/31**，包括 `package-discover`、`package-updates` 同 `package-installed` 準確揀返檢視；呢項證明提權 UI 同安全鎖行為，唔係正常 integrity 外部查詢證據。
+- Legacy managed solution compile check: **0 errors** with the ignored NuGet restore tree and native C++ source/generated tree explicitly excluded from the SDK item glob. · 舊受控 solution compile check：**0 errors**；SDK item glob 已明確排除忽略咗嘅 NuGet restore tree 同原生 C++ source／generated tree。
+- Native core regression suite: **208/208 in Debug and 208/208 in Release**. The 48 focused Check Digit cases cover every scheme, official 16–19-digit Discover range boundaries and adjacent-range exclusion, 978/979 ISBN boundaries, an exact independent 89-row SWIFT Release 102 registry fixture, valid/invalid pairs, expected checks, separators, bounded long input, and malformed ASCII/Unicode-confusable input while retaining all Package Manager and shell regressions. · 原生核心回歸套件：Debug **208/208**、Release **208/208**。48 個檢查碼專項案例涵蓋全部格式、官方 16–19 位 Discover range 邊界同相鄰 range 排除、ISBN 978／979 邊界、獨立而精確嘅 89 行 SWIFT Release 102 registry fixture、有效／無效配對、應有檢查碼、分隔符、有界長輸入，同錯誤 ASCII／Unicode 混淆輸入，亦保留全部套件管理同 shell 回歸。
+- Managed Check Digit oracle parity: **24/24** in Release, including the same Discover boundaries, exact registry fixture, Unicode-confusable regression, standards boundaries, and alphanumeric FR/MT IBAN examples. · 受控檢查碼基準對等：Release **24/24**，包括相同 Discover 邊界、精確 registry fixture、Unicode 混淆字元回歸、標準邊界同 FR／MT 字母數字 IBAN 案例。
+- Elevated process-owned shell smoke: **46/46**. It exercises all six Check Digit schemes through UI Automation, invalid-state handling, localized control names, stale accessible-detail clearing, state-preserving language rerender, all three Check Digit route forms, and the existing exact `package-discover`, `package-updates`, and `package-installed` view selection. Status changes raise a polite live-region event. This verifies the elevated UI and safety-lock behavior, not a normal-integrity external package query. · 提權、自有 process shell 冒煙：**46/46**。會經 UI Automation 實際操作六個檢查碼格式、無效狀態、本地化 control 名稱、清除舊無障礙 detail、轉語言保留狀態、三種檢查碼 route form，同原有 `package-discover`、`package-updates`、`package-installed` 準確檢視；狀態改變會觸發 polite live-region event。呢項證明提權 UI 同安全鎖行為，唔係正常 integrity 外部套件查詢證據。
 - Catalog verifier: 346 fixed routes, five dynamic families, 319 registry records, 22 categories, 346 ledger rows; exact alias sets and UTF-8 Cantonese checks passed. · 目錄驗證：346 固定路線、五組動態路線、319 registry 記錄、22 分類、346 清單項；精確 alias set 同 UTF-8 粵語檢查全部通過。
 - Foundation Release PE audit: the COM Descriptor Directory is zero and the import table contains no `coreclr`, `hostfxr`, or `mscoree`. This proves the current shell binary is native; it does not prove feature parity. · 基礎 Release PE 審查：COM Descriptor Directory 係零，import table 冇 `coreclr`、`hostfxr` 或 `mscoree`。呢項只證明目前 shell binary 係原生，唔代表功能已對等。
 
-The normal-integrity live external-query gate remains **blocked**. The harness launched the exact native executable through an interactive scheduled task configured with `RunLevel=Limited`, then independently inspected the resulting process token. Windows still produced an elevated token, and verification stopped with `candidate smoke token is still elevated`; the harness therefore failed closed before running an external package-manager query. The elevated 31/31 result is not substituted for this missing normal-integrity evidence.
+The normal-integrity live external-query gate remains **blocked**. The harness launched the exact native executable through an interactive scheduled task configured with `RunLevel=Limited`, then independently inspected the resulting process token. Windows still produced an elevated token, and verification stopped with `candidate smoke token is still elevated`; the harness therefore failed closed before running an external package-manager query. The elevated 46/46 result is not substituted for this missing normal-integrity evidence.
 
-正常 integrity 即時外部查詢閘門仍然係**受阻**。harness 用設為 `RunLevel=Limited` 嘅互動式排程工作開啟同一個原生 executable，再獨立檢查實際 process token；Windows 仍然產生提權 token，驗證以 `candidate smoke token is still elevated` 停止，所以 harness 喺執行任何外部套件管理查詢之前已經 fail closed。提權環境嘅 31/31 結果唔會頂替欠缺嘅正常 integrity 證據。
+正常 integrity 即時外部查詢閘門仍然係**受阻**。harness 用設為 `RunLevel=Limited` 嘅互動式排程工作開啟同一個原生 executable，再獨立檢查實際 process token；Windows 仍然產生提權 token，驗證以 `candidate smoke token is still elevated` 停止，所以 harness 喺執行任何外部套件管理查詢之前已經 fail closed。提權環境嘅 46/46 結果唔會頂替欠缺嘅正常 integrity 證據。
 
 ## Visual evidence disposition · 視覺證據處置
 
-Fresh native Dashboard, All Apps, About, and Package Manager (`module.packages#updates`) capture attempts were made with the required repository driver. `CopyFromScreen` was unavailable in this desktop session. `PrintWindow(PW_RENDERFULLCONTENT)` returned a title bar but a blank/near-uniform WinUI client frame, so the improved driver rejected it with:
+Fresh native Dashboard, All Apps, About, Package Manager (`module.packages#updates`), and Check Digit (`checkdigit`) capture attempts were made with the required repository driver. `CopyFromScreen` was unavailable in this desktop session. `PrintWindow(PW_RENDERFULLCONTENT)` returned a title bar but a blank/near-uniform WinUI client frame, so the improved driver rejected it with:
 
-已經用指定 repo driver 重新嘗試擷取原生 Dashboard、所有 app、About 同套件管理（`module.packages#updates`）。呢個 desktop session 用唔到 `CopyFromScreen`；`PrintWindow(PW_RENDERFULLCONTENT)` 雖然有 title bar，但 WinUI client frame 係空白／接近單色，所以改良後 driver 拒絕咗：
+已經用指定 repo driver 重新嘗試擷取原生 Dashboard、所有 app、About、套件管理（`module.packages#updates`）同檢查碼（`checkdigit`）。呢個 desktop session 用唔到 `CopyFromScreen`；`PrintWindow(PW_RENDERFULLCONTENT)` 雖然有 title bar，但 WinUI client frame 係空白／接近單色，所以改良後 driver 拒絕咗：
 
 ```text
 CopyFromScreen is unavailable and the PrintWindow fallback produced a blank or
 near-uniform WinUI client frame; graphics capture is unavailable in this desktop session.
 ```
 
-No blank, stale, synthetic, or managed-app image was retained or substituted. UI Automation independently found the bilingual navigation tree, page titles, migration InfoBar, buttons, All Apps list, the Package Manager nine-view/11-manager read-only surface, and live filter. That is launch/behavior evidence only—not a visual pass. Dashboard, All Apps, About, and native Package Manager remain `capture-blocked` until a real composited frame can be captured and inspected.
+No blank, stale, synthetic, or managed-app image was retained or substituted. UI Automation independently found the bilingual navigation tree, page titles, migration InfoBar, buttons, All Apps list, the Package Manager nine-view/11-manager read-only surface, and the live Check Digit controls/results. That is launch/behavior evidence only—not a visual pass. Dashboard, All Apps, About, native Package Manager, and native Check Digit remain `capture-blocked` until a real composited frame can be captured and inspected.
 
-冇保留或者頂替任何空白、舊、合成、或者受控版圖片。UI Automation 另外搵到雙語導覽樹、page title、遷移 InfoBar、按鈕、所有 app 清單、套件管理九 view／11 manager 唯讀介面同即時篩選。呢啲只係 launch／behavior 證據，唔係 visual pass。Dashboard、所有 app、About 同原生套件管理要等真正 composited frame 擷取兼檢查到，先可以解除 `capture-blocked`。
+冇保留或者頂替任何空白、舊、合成、或者受控版圖片。UI Automation 另外搵到雙語導覽樹、page title、遷移 InfoBar、按鈕、所有 app 清單、套件管理九 view／11 manager 唯讀介面，同即時檢查碼 controls／結果。呢啲只係 launch／behavior 證據，唔係 visual pass。Dashboard、所有 app、About、原生套件管理同原生檢查碼要等真正 composited frame 擷取兼檢查到，先可以解除 `capture-blocked`。
 
 ## Safety and compatibility gates · 安全同相容閘門
 
