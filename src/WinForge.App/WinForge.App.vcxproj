@@ -135,6 +135,7 @@
     <ClInclude Include="..\WinForge.Core\CommandLine.h" />
     <ClInclude Include="..\WinForge.Core\Localization.h" />
     <ClInclude Include="..\WinForge.Core\ModuleRecord.h" />
+    <ClInclude Include="..\WinForge.Core\PackageManager.h" />
     <ClInclude Include="..\WinForge.Core\RouteIndex.h" />
   </ItemGroup>
   <ItemGroup>
@@ -149,6 +150,9 @@
     </ClCompile>
     <ClCompile Include="CatalogLoader.cpp" />
     <ClCompile Include="..\WinForge.Core\CommandLine.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\WinForge.Core\PackageManager.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\WinForge.Core\RouteIndex.cpp">

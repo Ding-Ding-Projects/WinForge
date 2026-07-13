@@ -52,13 +52,17 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="PackageManagerTests.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\CommandLine.cpp" />
+    <ClCompile Include="..\..\..\src\WinForge.Core\PackageManager.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\RouteIndex.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="PackageManagerTests.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\CommandLine.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\Localization.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\ModuleRecord.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\PackageManager.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\RouteIndex.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
