@@ -54,9 +54,11 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="PackageManagerTests.cpp" />
     <ClCompile Include="PackageParsers.Tests.cpp" />
+    <ClCompile Include="ProcessRunnerTests.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\CommandLine.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\PackageManager.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\PackageParsers.cpp" />
+    <ClCompile Include="..\..\..\src\WinForge.Core\ProcessRunner.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\RouteIndex.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -66,7 +68,9 @@
     <ClInclude Include="..\..\..\src\WinForge.Core\ModuleRecord.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\PackageManager.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\PackageParsers.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\ProcessRunner.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\RouteIndex.h" />
+    <ClInclude Include="ProcessRunnerTests.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Fixtures\PackageManagers\*.*" />
