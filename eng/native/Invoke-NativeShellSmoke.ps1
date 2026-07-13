@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path,
+    [string]$RepoRoot,
     [string]$ExecutablePath,
     [int]$TimeoutMs = 10000
 )
@@ -8,6 +8,7 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
+$RepoRoot = if ($RepoRoot) { $RepoRoot } else { Join-Path $PSScriptRoot '..\..' }
 $repo = (Resolve-Path -LiteralPath $RepoRoot).Path
 if (-not $ExecutablePath) {
     $ExecutablePath = Join-Path $repo 'src\WinForge.App\bin\x64\Debug\WinForge.exe'
@@ -164,10 +165,53 @@ Invoke-OwnedRoute -Route 'shell.allapps' -ExpectedTitle 'All Apps' -Inspect {
     Assert-True -Condition ($english -and $dashboard.Current.Name -eq 'Dashboard') -Name 'language picker rerenders navigation in English'
 }
 
+Invoke-OwnedRoute -Route 'module.packages#updates' -ExpectedTitle 'Package Manager' -Inspect {
+    param($root, $title)
+
+    foreach ($id in @(
+        'NativePackageManagerMigrationStatus',
+        'NativePackageViewPicker',
+        'NativePackageSearchBox',
+        'NativePackagePrimaryAction',
+        'NativePackageSecondaryAction',
+        'NativePackageOperationsAction',
+        'NativePackageResultsHeader'
+    )) {
+        Wait-ForElement -Root $root -AutomationId $id | Out-Null
+    }
+    Assert-True -Condition $true -Name 'Package Manager exposes its native control contract'
+
+    foreach ($manager in @('winget', 'scoop', 'choco', 'pip', 'npm', 'dotnet', 'psgallery', 'pwsh7', 'cargo', 'bun', 'vcpkg')) {
+        Wait-ForElement -Root $root -AutomationId "NativePackageManagerFilter_$manager" | Out-Null
+    }
+    Assert-True -Condition $true -Name 'Package Manager exposes all 11 native manager filters'
+
+    $header = Wait-ForElement -Root $root -AutomationId 'NativePackageResultsHeader'
+    Assert-True -Condition ($header.Current.Name.StartsWith('Available updates', [StringComparison]::Ordinal)) `
+        -Name 'Package Manager deep link selects Updates'
+
+    $operations = Wait-ForElement -Root $root -AutomationId 'NativePackageOperationsAction'
+    $invoke = [System.Windows.Automation.InvokePattern]$operations.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern)
+    $invoke.Invoke()
+    $deadline = [DateTime]::UtcNow.AddMilliseconds($TimeoutMs)
+    do {
+        $header = Find-ByAutomationId -Root $root -AutomationId 'NativePackageResultsHeader'
+        if ($header -and $header.Current.Name.StartsWith('Operation queue and history', [StringComparison]::Ordinal)) { break }
+        Start-Sleep -Milliseconds 100
+    } while ([DateTime]::UtcNow -lt $deadline)
+    $operationViewSelected = $header -and `
+        $header.Current.Name.StartsWith('Operation queue and history', [StringComparison]::Ordinal)
+    if (-not $operationViewSelected) {
+        $actualHeader = if ($header) { $header.Current.Name } else { '(missing)' }
+        Write-Host "Package Manager view switch diagnostic: header='$actualHeader'" -ForegroundColor Yellow
+    }
+    Assert-True -Condition $operationViewSelected `
+        -Name 'Package Manager switches among its nine native views'
+}
+
 foreach ($case in @(
     @{ Route = 'about'; Title = 'About WinForge Native' },
     @{ Route = 'settings'; Title = 'Settings' },
-    @{ Route = 'module.packages#updates'; Title = 'Package Manager' },
     @{ Route = 'search:reactor'; Title = 'Search results' },
     @{ Route = 'manual:reactor-safety'; Title = 'Manual' },
     @{ Route = 'weblogin?url=https://example.test'; Title = 'In-App Login' },

@@ -9,6 +9,7 @@
 #include "microsoft.ui.xaml.window.h"
 
 #include <cwctype>
+#include <array>
 #include <sstream>
 #include <stdexcept>
 
@@ -58,6 +59,39 @@ namespace
         }
         return item;
     }
+
+    struct PackageManagerLabel
+    {
+        std::wstring_view key;
+        std::wstring_view en;
+        std::wstring_view zh;
+    };
+
+    constexpr std::array<PackageManagerLabel, 11> PackageManagerLabels{
+        PackageManagerLabel{ L"winget", L"WinGet", L"WinGet" },
+        PackageManagerLabel{ L"scoop", L"Scoop", L"Scoop" },
+        PackageManagerLabel{ L"choco", L"Chocolatey", L"Chocolatey" },
+        PackageManagerLabel{ L"pip", L"pip", L"pip" },
+        PackageManagerLabel{ L"npm", L"npm", L"npm" },
+        PackageManagerLabel{ L"dotnet", L".NET tools", L".NET 工具" },
+        PackageManagerLabel{ L"psgallery", L"PowerShell Gallery", L"PowerShell Gallery" },
+        PackageManagerLabel{ L"pwsh7", L"PowerShell 7", L"PowerShell 7" },
+        PackageManagerLabel{ L"cargo", L"Cargo", L"Cargo" },
+        PackageManagerLabel{ L"bun", L"Bun", L"Bun" },
+        PackageManagerLabel{ L"vcpkg", L"vcpkg", L"vcpkg" },
+    };
+
+    constexpr std::array<PackageManagerLabel, 9> PackageViewLabels{
+        PackageManagerLabel{ L"discover", L"Discover", L"搜尋安裝" },
+        PackageManagerLabel{ L"updates", L"Updates", L"可更新" },
+        PackageManagerLabel{ L"installed", L"Installed", L"已安裝" },
+        PackageManagerLabel{ L"bundles", L"Bundles", L"套件清單" },
+        PackageManagerLabel{ L"sources", L"Sources", L"來源" },
+        PackageManagerLabel{ L"ignored", L"Ignored", L"已忽略" },
+        PackageManagerLabel{ L"setup", L"Setup", L"設定引擎" },
+        PackageManagerLabel{ L"settings", L"Settings", L"設定" },
+        PackageManagerLabel{ L"operations", L"Operations", L"操作佇列" },
+    };
 }
 
 namespace winrt::WinForge::implementation
@@ -300,6 +334,10 @@ namespace winrt::WinForge::implementation
         {
             RenderAllApps();
         }
+        else if (module->id == L"module.packages")
+        {
+            RenderPackageManager();
+        }
         else if (module->id == L"about")
         {
             RenderAbout();
@@ -337,6 +375,304 @@ namespace winrt::WinForge::implementation
         page.Children().Append(CreateRouteButton(L"Inspect Package Manager route · 檢視套件管理路線", L"module.packages"));
         page.Children().Append(CreateRouteButton(L"About the native rewrite · 關於原生重寫", L"about"));
         ShowPage(page);
+    }
+
+    int32_t MainWindow::PackageViewFromArgument(std::wstring_view argument) const
+    {
+        auto key = winforge::core::NormalizeRouteKey(argument);
+        while (!key.empty() && (key.front() == L'#' || key.front() == L'/'))
+        {
+            key.erase(key.begin());
+        }
+        for (std::size_t index = 0; index < PackageViewLabels.size(); ++index)
+        {
+            if (key == PackageViewLabels[index].key)
+            {
+                return static_cast<int32_t>(index);
+            }
+        }
+        return 0;
+    }
+
+    void MainWindow::PopulatePackageManagerFilters(StackPanel const& panel)
+    {
+        panel.Children().Clear();
+        for (auto const& manager : PackageManagerLabels)
+        {
+            auto key = std::wstring(manager.key);
+            if (!m_packageManagersSelected.contains(key))
+            {
+                m_packageManagersSelected.emplace(key, true);
+            }
+
+            CheckBox filter;
+            filter.Content(box_value(ToHString(
+                winforge::core::LocalizedText{ std::wstring(manager.en), std::wstring(manager.zh) }.Pick(m_language))));
+            filter.Tag(box_value(ToHString(key)));
+            filter.IsChecked(m_packageManagersSelected[key]);
+            filter.Margin(Thickness{ 0, 0, 14, 0 });
+            AutomationProperties::SetAutomationId(
+                filter,
+                ToHString(L"NativePackageManagerFilter_" + AutomationKey(key)));
+            filter.Checked([this](Windows::Foundation::IInspectable const& sender, RoutedEventArgs const&)
+            {
+                auto const check = sender.as<CheckBox>();
+                auto const keyValue = unbox_value_or<hstring>(check.Tag(), L"");
+                m_packageManagersSelected[ToWide(keyValue)] = true;
+            });
+            filter.Unchecked([this](Windows::Foundation::IInspectable const& sender, RoutedEventArgs const&)
+            {
+                auto const check = sender.as<CheckBox>();
+                auto const keyValue = unbox_value_or<hstring>(check.Tag(), L"");
+                m_packageManagersSelected[ToWide(keyValue)] = false;
+            });
+            panel.Children().Append(filter);
+        }
+    }
+
+    void MainWindow::RenderPackageManager()
+    {
+        m_packageView = PackageViewFromArgument(m_currentArgument);
+
+        auto page = CreatePage(
+            winforge::core::LocalizedText{ L"Package Manager", L"套件管理" }.Pick(m_language),
+            winforge::core::LocalizedText{
+                L"A genuine native workspace over 11 package engines: discover, update, uninstall, bundle, source, setup, configure, and inspect operations without launching an upstream UI.",
+                L"真正原生嘅 11 引擎套件工作區：搜尋、更新、解除安裝、清單、來源、設定引擎、配置同檢視操作，全程唔會啟動上游 UI。" }.Pick(m_language));
+        AutomationProperties::SetAutomationId(page, L"NativePackageManagerPage");
+
+        InfoBar migration;
+        migration.IsOpen(true);
+        migration.IsClosable(false);
+        migration.Severity(InfoBarSeverity::Informational);
+        migration.Title(ToHString(winforge::core::LocalizedText{
+            L"Native Package Manager migration", L"原生套件管理遷移" }.Pick(m_language)));
+        migration.Message(ToHString(winforge::core::LocalizedText{
+            L"This surface is being connected to audited C++ command builders, parsers, a Win32 process runner, and operation tests. Controls are enabled only when their native behavior is available.",
+            L"呢個介面正接駁經審核嘅 C++ 指令建立器、解析器、Win32 process runner 同操作測試；只有原生行為可用嘅控制項先會啟用。" }.Pick(m_language)));
+        AutomationProperties::SetAutomationId(migration, L"NativePackageManagerMigrationStatus");
+        page.Children().Append(migration);
+
+        Border managerCard;
+        managerCard.Padding(Thickness{ 14, 10, 14, 10 });
+        managerCard.CornerRadius(CornerRadius{ 8 });
+        managerCard.BorderThickness(Thickness{ 1 });
+        managerCard.BorderBrush(Application::Current().Resources().Lookup(box_value(L"CardStrokeColorDefaultBrush")).as<Media::Brush>());
+        managerCard.Background(Application::Current().Resources().Lookup(box_value(L"CardBackgroundFillColorDefaultBrush")).as<Media::Brush>());
+
+        StackPanel managerCardContent;
+        managerCardContent.Spacing(7);
+        managerCardContent.Children().Append(CreateText(
+            winforge::core::LocalizedText{ L"Package managers", L"套件管理器" }.Pick(m_language), 13, true));
+        ScrollViewer managerScroller;
+        managerScroller.HorizontalScrollMode(ScrollMode::Auto);
+        managerScroller.HorizontalScrollBarVisibility(ScrollBarVisibility::Auto);
+        managerScroller.VerticalScrollMode(ScrollMode::Disabled);
+        managerScroller.VerticalScrollBarVisibility(ScrollBarVisibility::Disabled);
+        StackPanel managerFilters;
+        managerFilters.Orientation(Orientation::Horizontal);
+        AutomationProperties::SetAutomationId(managerFilters, L"NativePackageManagerFilters");
+        PopulatePackageManagerFilters(managerFilters);
+        managerScroller.Content(managerFilters);
+        managerCardContent.Children().Append(managerScroller);
+        managerCard.Child(managerCardContent);
+        page.Children().Append(managerCard);
+
+        StackPanel toolbar;
+        toolbar.Orientation(Orientation::Horizontal);
+        toolbar.Spacing(8);
+        AutomationProperties::SetAutomationId(toolbar, L"NativePackageToolbar");
+
+        m_packageViewPicker = ComboBox();
+        m_packageViewPicker.MinWidth(170);
+        for (auto const& view : PackageViewLabels)
+        {
+            ComboBoxItem item;
+            item.Content(box_value(ToHString(
+                winforge::core::LocalizedText{ std::wstring(view.en), std::wstring(view.zh) }.Pick(m_language))));
+            item.Tag(box_value(ToHString(view.key)));
+            m_packageViewPicker.Items().Append(item);
+        }
+        m_packageViewPicker.SelectedIndex(m_packageView);
+        AutomationProperties::SetAutomationId(m_packageViewPicker, L"NativePackageViewPicker");
+        m_packageViewPicker.SelectionChanged([this](Windows::Foundation::IInspectable const&, SelectionChangedEventArgs const&)
+        {
+            auto const selected = m_packageViewPicker.SelectedIndex();
+            m_packageView = selected < 0 ? 0 : selected;
+            RenderPackageManagerView();
+        });
+        toolbar.Children().Append(m_packageViewPicker);
+
+        m_packageSearchBox = AutoSuggestBox();
+        m_packageSearchBox.Width(350);
+        m_packageSearchBox.PlaceholderText(ToHString(winforge::core::LocalizedText{
+            L"Search packages (for example: vscode, vlc, obs)",
+            L"搜尋套件（例如 vscode、vlc、obs）" }.Pick(m_language)));
+        AutomationProperties::SetAutomationId(m_packageSearchBox, L"NativePackageSearchBox");
+        m_packageSearchBox.QuerySubmitted([this](AutoSuggestBox const&, AutoSuggestBoxQuerySubmittedEventArgs const&)
+        {
+            if (m_packageView == 0)
+            {
+                RenderPackageManagerView();
+            }
+        });
+        toolbar.Children().Append(m_packageSearchBox);
+
+        m_packagePrimaryAction = Button();
+        m_packagePrimaryAction.Padding(Thickness{ 14, 8, 14, 8 });
+        AutomationProperties::SetAutomationId(m_packagePrimaryAction, L"NativePackagePrimaryAction");
+        m_packagePrimaryAction.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            RenderPackageManagerView();
+        });
+        toolbar.Children().Append(m_packagePrimaryAction);
+
+        m_packageSecondaryAction = Button();
+        m_packageSecondaryAction.Padding(Thickness{ 14, 8, 14, 8 });
+        AutomationProperties::SetAutomationId(m_packageSecondaryAction, L"NativePackageSecondaryAction");
+        m_packageSecondaryAction.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            RenderPackageManagerView();
+        });
+        toolbar.Children().Append(m_packageSecondaryAction);
+
+        m_packageOperationsAction = Button();
+        m_packageOperationsAction.Content(box_value(ToHString(
+            winforge::core::LocalizedText{ L"Operations", L"操作" }.Pick(m_language))));
+        m_packageOperationsAction.Padding(Thickness{ 14, 8, 14, 8 });
+        AutomationProperties::SetAutomationId(m_packageOperationsAction, L"NativePackageOperationsAction");
+        m_packageOperationsAction.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            m_packageView = 8;
+            if (m_packageViewPicker)
+            {
+                m_packageViewPicker.SelectedIndex(m_packageView);
+            }
+            RenderPackageManagerView();
+        });
+        toolbar.Children().Append(m_packageOperationsAction);
+
+        m_packageBusy = ProgressRing();
+        m_packageBusy.Width(24);
+        m_packageBusy.Height(24);
+        m_packageBusy.IsActive(false);
+        AutomationProperties::SetAutomationId(m_packageBusy, L"NativePackageBusy");
+        toolbar.Children().Append(m_packageBusy);
+        page.Children().Append(toolbar);
+
+        m_packageResultsHeader = CreateText(L"", 14, true);
+        AutomationProperties::SetAutomationId(m_packageResultsHeader, L"NativePackageResultsHeader");
+        page.Children().Append(m_packageResultsHeader);
+
+        m_packageResults = StackPanel();
+        m_packageResults.Spacing(8);
+        AutomationProperties::SetAutomationId(m_packageResults, L"NativePackageResults");
+        page.Children().Append(m_packageResults);
+
+        ShowPage(page);
+        RenderPackageManagerView();
+    }
+
+    void MainWindow::RenderPackageManagerView()
+    {
+        if (!m_packageResults || !m_packageResultsHeader || !m_packagePrimaryAction ||
+            !m_packageSecondaryAction || !m_packageSearchBox)
+        {
+            return;
+        }
+
+        m_packageResults.Children().Clear();
+        auto pick = [this](std::wstring_view en, std::wstring_view zh)
+        {
+            return winforge::core::LocalizedText{ std::wstring(en), std::wstring(zh) }.Pick(m_language);
+        };
+        m_packageSearchBox.IsEnabled(m_packageView == 0);
+        m_packagePrimaryAction.Visibility(Visibility::Visible);
+        m_packageSecondaryAction.Visibility(Visibility::Collapsed);
+        m_packagePrimaryAction.IsEnabled(false);
+        m_packageSecondaryAction.IsEnabled(false);
+
+        std::wstring header;
+        std::wstring explanation;
+        switch (m_packageView)
+        {
+        case 0:
+            m_packagePrimaryAction.Content(box_value(ToHString(pick(L"Search", L"搜尋"))));
+            header = pick(L"Discover packages", L"搜尋套件");
+            explanation = m_packageSearchBox.Text().empty()
+                ? pick(L"Enter a package name or ID. Live cross-manager search is enabled after the native runner and parser gates pass.",
+                    L"輸入套件名稱或者 ID。原生 runner 同解析器閘門通過之後，就會啟用跨管理器即時搜尋。")
+                : pick(L"The query is ready; native execution remains gated while this implementation batch is under test.",
+                    L"搜尋字句已經準備好；呢批實作測試未通過之前，原生執行仍然會鎖住。");
+            break;
+        case 1:
+            m_packagePrimaryAction.Content(box_value(ToHString(pick(L"Refresh", L"重新整理"))));
+            m_packageSecondaryAction.Content(box_value(ToHString(pick(L"Update all", L"全部更新"))));
+            m_packageSecondaryAction.Visibility(Visibility::Visible);
+            header = pick(L"Available updates", L"可用更新");
+            explanation = pick(L"Updates will be enumerated per selected manager and installed only through validated argv command specifications.",
+                L"更新會按已選管理器列出，而且只會經過已驗證 argv 指令規格安裝。");
+            break;
+        case 2:
+            m_packagePrimaryAction.Content(box_value(ToHString(pick(L"Refresh", L"重新整理"))));
+            header = pick(L"Installed packages", L"已安裝套件");
+            explanation = pick(L"Installed-package discovery and uninstall actions are connected after the non-destructive probes pass.",
+                L"非破壞性探測通過之後，就會接駁已安裝套件搜尋同解除安裝動作。");
+            break;
+        case 3:
+            m_packagePrimaryAction.Content(box_value(ToHString(pick(L"Export…", L"匯出…"))));
+            m_packageSecondaryAction.Content(box_value(ToHString(pick(L"Import…", L"匯入…"))));
+            m_packageSecondaryAction.Visibility(Visibility::Visible);
+            header = pick(L"Portable package bundles", L"可攜套件清單");
+            explanation = pick(L"Bundle import/export must preserve source identity and saved options; it is not enabled until format compatibility tests pass.",
+                L"清單匯入／匯出一定要保留來源身份同已儲存選項；格式相容測試通過之前唔會啟用。");
+            break;
+        case 4:
+            m_packagePrimaryAction.Content(box_value(ToHString(pick(L"Refresh", L"重新整理"))));
+            header = pick(L"Package sources", L"套件來源");
+            explanation = pick(L"Source listing is read-only by default. Add, remove, and refresh require strict name and credential-free URL validation.",
+                L"來源清單預設只讀；新增、移除同重新整理一定要嚴格驗證名稱同冇帳密嘅 URL。");
+            break;
+        case 5:
+            m_packagePrimaryAction.Content(box_value(ToHString(pick(L"Refresh", L"重新整理"))));
+            header = pick(L"Ignored, pinned, and snoozed updates", L"已忽略、釘住同暫停嘅更新");
+            explanation = pick(L"Ignore-rule persistence is awaiting native atomic-storage compatibility tests.",
+                L"忽略規則儲存正等緊原生原子式儲存相容測試。");
+            break;
+        case 6:
+            m_packagePrimaryAction.Content(box_value(ToHString(pick(L"Install all dependencies", L"安裝全部相依"))));
+            header = pick(L"Engine setup", L"引擎設定");
+            explanation = pick(L"Availability probes are non-destructive. Bootstrap installs stay disabled until normal-integrity and operation-coordinator gates pass.",
+                L"可用性探測唔會改動系統；正常 integrity 同操作協調器閘門未通過之前，bootstrap 安裝會保持停用。");
+            break;
+        case 7:
+            m_packagePrimaryAction.Content(box_value(ToHString(pick(L"Open settings", L"開啟設定"))));
+            header = pick(L"Package Manager settings", L"套件管理設定");
+            explanation = pick(L"Scheduling, notifications, concurrency, manager paths, proxy secrets, backup, and install defaults will use native persistence and DPAPI.",
+                L"排程、通知、同時操作數、管理器路徑、代理機密、備份同安裝預設會用原生儲存同 DPAPI。");
+            break;
+        default:
+            m_packagePrimaryAction.Content(box_value(ToHString(pick(L"Refresh", L"重新整理"))));
+            m_packageSecondaryAction.Content(box_value(ToHString(pick(L"Clear completed", L"清除已完成"))));
+            m_packageSecondaryAction.Visibility(Visibility::Visible);
+            header = pick(L"Operation queue and history", L"操作佇列同歷史");
+            explanation = pick(L"The native coordinator will show queued, running, completed, failed, cancelled, output, retry, and cancellation state here.",
+                L"原生協調器會喺呢度顯示排隊、執行中、完成、失敗、已取消、輸出、重試同取消狀態。");
+            break;
+        }
+
+        m_packageResultsHeader.Text(ToHString(header));
+        Border card;
+        card.Padding(Thickness{ 16 });
+        card.CornerRadius(CornerRadius{ 8 });
+        card.BorderThickness(Thickness{ 1 });
+        card.BorderBrush(Application::Current().Resources().Lookup(box_value(L"CardStrokeColorDefaultBrush")).as<Media::Brush>());
+        card.Background(Application::Current().Resources().Lookup(box_value(L"CardBackgroundFillColorDefaultBrush")).as<Media::Brush>());
+        auto note = CreateText(explanation, 13);
+        note.Opacity(0.8);
+        card.Child(note);
+        AutomationProperties::SetAutomationId(card, L"NativePackageViewGate");
+        m_packageResults.Children().Append(card);
     }
 
     void MainWindow::RenderAllApps(std::wstring_view query)

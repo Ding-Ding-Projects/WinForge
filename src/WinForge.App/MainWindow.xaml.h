@@ -21,6 +21,16 @@ namespace winrt::WinForge::implementation
         Microsoft::UI::Xaml::Controls::ComboBox m_languagePicker{ nullptr };
         Microsoft::UI::Xaml::Controls::ListView m_allAppsList{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_allAppsCount{ nullptr };
+        Microsoft::UI::Xaml::Controls::ComboBox m_packageViewPicker{ nullptr };
+        Microsoft::UI::Xaml::Controls::AutoSuggestBox m_packageSearchBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::Button m_packagePrimaryAction{ nullptr };
+        Microsoft::UI::Xaml::Controls::Button m_packageSecondaryAction{ nullptr };
+        Microsoft::UI::Xaml::Controls::Button m_packageOperationsAction{ nullptr };
+        Microsoft::UI::Xaml::Controls::ProgressRing m_packageBusy{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_packageResultsHeader{ nullptr };
+        Microsoft::UI::Xaml::Controls::StackPanel m_packageResults{ nullptr };
+        std::unordered_map<std::wstring, bool> m_packageManagersSelected;
+        int32_t m_packageView{ 0 };
         std::wstring m_currentRoute{ L"dashboard" };
         std::wstring m_currentArgument{};
 
@@ -34,6 +44,10 @@ namespace winrt::WinForge::implementation
         void RenderDashboard();
         void RenderAllApps(std::wstring_view query = {});
         void PopulateAllApps(std::wstring_view query);
+        void RenderPackageManager();
+        void RenderPackageManagerView();
+        void PopulatePackageManagerFilters(Microsoft::UI::Xaml::Controls::StackPanel const& panel);
+        [[nodiscard]] int32_t PackageViewFromArgument(std::wstring_view argument) const;
         void RenderSearch(std::wstring_view query);
         void RenderAbout();
         void RenderPending(winforge::core::ModuleRecord const& module);
