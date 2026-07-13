@@ -46,7 +46,9 @@ jobs:
           dotnet-version: '11.0.x'
 
       - name: Restore
-        run: dotnet restore
+        # The repository intentionally has separate managed and native solutions.
+        # Restore the managed publish target explicitly so MSBuild never has to guess.
+        run: dotnet restore WinForge.csproj -p:Platform=x64 -r win-x64
 
       - name: Publish WinForge (self-contained x64)
         shell: pwsh
