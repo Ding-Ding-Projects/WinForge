@@ -46,7 +46,9 @@ jobs:
           dotnet-version: '11.0.x'
 
       - name: Restore · 還原相依性
-        run: dotnet restore
+        # The repository intentionally contains managed and native solution files.
+        # Keep release restore pinned to the shipping managed solution.
+        run: dotnet restore WinForge.sln -p:Platform=x64
 
       - name: Publish self-contained x64 (trimming OFF) · 發佈自包含 x64（關閉裁剪）
         shell: pwsh
