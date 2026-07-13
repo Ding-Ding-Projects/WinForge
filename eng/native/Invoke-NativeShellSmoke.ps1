@@ -165,7 +165,7 @@ Invoke-OwnedRoute -Route 'shell.allapps' -ExpectedTitle 'All Apps' -Inspect {
     Assert-True -Condition ($english -and $dashboard.Current.Name -eq 'Dashboard') -Name 'language picker rerenders navigation in English'
 }
 
-Invoke-OwnedRoute -Route 'module.packages#updates' -ExpectedTitle 'Package Manager' -Inspect {
+Invoke-OwnedRoute -Route 'package-updates' -ExpectedTitle 'Package Manager' -Inspect {
     param($root, $title)
 
     foreach ($id in @(
@@ -188,7 +188,7 @@ Invoke-OwnedRoute -Route 'module.packages#updates' -ExpectedTitle 'Package Manag
 
     $header = Wait-ForElement -Root $root -AutomationId 'NativePackageResultsHeader'
     Assert-True -Condition ($header.Current.Name.StartsWith('Available updates', [StringComparison]::Ordinal)) `
-        -Name 'Package Manager deep link selects Updates'
+        -Name 'Package Manager package-updates alias selects Updates'
 
     $probeDeadline = [DateTime]::UtcNow.AddMilliseconds([Math]::Max($TimeoutMs, 30000))
     do {
@@ -262,6 +262,22 @@ Invoke-OwnedRoute -Route 'module.packages#updates' -ExpectedTitle 'Package Manag
     }
     Assert-True -Condition $operationViewSelected `
         -Name 'Package Manager switches among its nine native views'
+}
+
+Invoke-OwnedRoute -Route 'package-installed' -ExpectedTitle 'Package Manager' -Inspect {
+    param($root, $title)
+
+    $header = Wait-ForElement -Root $root -AutomationId 'NativePackageResultsHeader'
+    Assert-True -Condition ($header.Current.Name.StartsWith('Installed packages', [StringComparison]::Ordinal)) `
+        -Name 'Package Manager package-installed alias selects Installed'
+}
+
+Invoke-OwnedRoute -Route 'package-discover' -ExpectedTitle 'Package Manager' -Inspect {
+    param($root, $title)
+
+    $header = Wait-ForElement -Root $root -AutomationId 'NativePackageResultsHeader'
+    Assert-True -Condition ($header.Current.Name.StartsWith('Discover packages', [StringComparison]::Ordinal)) `
+        -Name 'Package Manager package-discover alias selects Discover'
 }
 
 foreach ($case in @(

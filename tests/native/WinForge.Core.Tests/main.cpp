@@ -74,6 +74,18 @@ int wmain(int argc, wchar_t** argv)
     request = ParseLaunchRequest({ L"WinForge.exe", L"--page=module.packages#updates" });
     Expect(request.route == L"module.packages" && request.argument == L"#updates", "preserves module fragments");
 
+    request = ParseLaunchRequest({ L"WinForge.exe", L"--page", L"package-discover" });
+    Expect(request.route == L"module.packages" && request.argument == L"#discover", "package-discover selects Discover");
+
+    request = ParseLaunchRequest({ L"WinForge.exe", L"--page", L"package-updates" });
+    Expect(request.route == L"module.packages" && request.argument == L"#updates", "package-updates selects Updates");
+
+    request = ParseLaunchRequest({ L"WinForge.exe", L"--page", L"package-installed" });
+    Expect(request.route == L"module.packages" && request.argument == L"#installed", "package-installed selects Installed");
+
+    request = ParseLaunchRequest({ L"WinForge.exe", L"--page=packages-updates" });
+    Expect(request.route == L"module.packages" && request.argument == L"#updates", "plural package view aliases preserve managed routing");
+
     request = ParseLaunchRequest({ L"WinForge.exe", L"--page", L"weblogin?url=https://example.test/path" });
     Expect(request.route == L"weblogin" && request.argument == L"?url=https://example.test/path", "preserves web-login query");
 

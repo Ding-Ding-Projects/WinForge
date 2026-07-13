@@ -50,6 +50,28 @@ namespace
             request.route = request.route.substr(0, colon);
         }
 
+        // The managed Package Manager launch aliases select a view as well as a module.
+        // Catalog aliases only retain the module identity, so preserve the view fragment
+        // here before the native route index resolves the canonical module record.
+        if (request.argument.empty())
+        {
+            if (request.route == L"package-discover" || request.route == L"packages-discover")
+            {
+                request.route = L"module.packages";
+                request.argument = L"#discover";
+            }
+            else if (request.route == L"package-updates" || request.route == L"packages-updates")
+            {
+                request.route = L"module.packages";
+                request.argument = L"#updates";
+            }
+            else if (request.route == L"package-installed" || request.route == L"packages-installed")
+            {
+                request.route = L"module.packages";
+                request.argument = L"#installed";
+            }
+        }
+
         if (request.route.empty())
         {
             request.route = L"dashboard";
