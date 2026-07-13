@@ -103,6 +103,17 @@ Record exact command, exit code, date/time, test count, and relevant log path
 in the ledger. Do not substitute a broad test suite for a focused regression
 test when one exists.
 
+For a campaign closeout, run every headless project through the supplied
+aggregate runner as well:
+
+~~~powershell
+powershell -ExecutionPolicy Bypass -File .agents\skills\winforge-exhaustive-smoke\scripts\Invoke-WinForgeAllTests.ps1 -RepoRoot .
+~~~
+
+It prefers the system x64 `dotnet` host over a workspace-local preview host so
+the repository's net8.0 fixtures execute alongside net11.0 fixtures. It reports
+each project independently and fails only after preserving every failed output.
+
 When a batch includes `monitor`, `battery`, or changes to the
 LibreHardwareMonitor lifecycle, also run the driver-free ownership regression:
 
@@ -162,6 +173,17 @@ batch. Record their result beside the numeric union, including the dialog or
 surface automation IDs used. A changed manifest requires this calculation again;
 an earlier range proof cannot certify newly added routes.
 
+Use the supplied union verifier after generating the final manifest; it checks
+the range math, not the route behavior, so cite the matching batch result logs
+and reports beside its output:
+
+~~~powershell
+powershell -ExecutionPolicy Bypass -File .agents\skills\winforge-exhaustive-smoke\scripts\Test-WinForgeRouteCoverageUnion.ps1 `
+  -ManifestPath artifacts\smoke\final\inventory\manifest.json `
+  -NumericRanges '0-24,25-49' `
+  -SpecialRouteIndex 50 -SpecialRouteId shell.allapps
+~~~
+
 ### Hardware-monitor driver boundary
 
 LibreHardwareMonitor's `Computer.Close()` is the only permitted cleanup path
@@ -218,6 +240,21 @@ For each page/service batch:
    state belongs in code-behind after `InitializeComponent`.
 6. Add findings to the ledger with severity, reproduction, source location,
    owner/status, and retest evidence.
+
+Run the repository-local source-surface guard for a repeatable baseline across
+all pages before closing the campaign:
+
+~~~powershell
+powershell -ExecutionPolicy Bypass -File .agents\skills\winforge-exhaustive-smoke\scripts\Test-WinForgeSourceSurfaceAudit.ps1 -RepoRoot . -Detailed
+~~~
+
+It resolves declared XAML event handlers and direct Button/Tapped action handlers
+against every partial code-behind file, classifies command-bound and
+template-driven controls, checks page-level `Loc.I.LanguageChanged` add/remove
+counts, and reports actionable TODO/FIXME/`NotImplementedException` markers
+without mistaking XAML properties for event handlers. Investigate every reported
+marker; the guard fails for an unresolved handler or unbalanced page-language
+subscription.
 
 ### 5. Fix, retest, and preserve evidence
 
@@ -281,5 +318,14 @@ shell-dialog finding cannot pollute a page-batch result.
   reproduced Markdown TOC CheckBox, Percentage Calculator RadioButton, and
   six-page NumberBox managed defaults; it does not prohibit unproven numeric
   or `IsChecked` literals.
+- [scripts/Test-WinForgeSourceSurfaceAudit.ps1](scripts/Test-WinForgeSourceSurfaceAudit.ps1)
+  validates XAML event-handler and page-language lifecycle wiring across partial
+  code-behind files, and reports actionable implementation markers.
+- [scripts/Invoke-WinForgeAllTests.ps1](scripts/Invoke-WinForgeAllTests.ps1)
+  runs every headless test project through a runtime host that supports both
+  net8.0 and net11.0 fixtures.
+- [scripts/Test-WinForgeRouteCoverageUnion.ps1](scripts/Test-WinForgeRouteCoverageUnion.ps1)
+  verifies that documented numeric smoke-batch ranges exactly cover a manifest,
+  with a separately identified shell/dialog route when needed.
 - [references/coverage-schema.md](references/coverage-schema.md) defines the
   ledger states and required evidence.
