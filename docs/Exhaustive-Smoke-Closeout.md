@@ -87,4 +87,3 @@ dotnet build WinForge.sln -c Debug -p:Platform=x64
 ~~~
 
 Then use Test-WinForgeRouteCoverageUnion.ps1 with the 13 ranges in the table above and run Test-WinForgeShellAllAppsRoute.ps1 after a self-contained publish.
-
