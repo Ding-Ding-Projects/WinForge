@@ -1,5 +1,6 @@
 #include "CommandLine.h"
 #include "Localization.h"
+#include "PackageManagerTests.h"
 #include "RouteIndex.h"
 
 #include <iostream>
@@ -111,6 +112,10 @@ int wmain()
         rejectedDuplicate = true;
     }
     Expect(rejectedDuplicate, "rejects duplicate canonical route keys");
+
+    auto const package_manager_counts = RunPackageManagerTests();
+    passed += package_manager_counts.passed;
+    failed += package_manager_counts.failed;
 
     std::cout << "\n" << passed << " passed, " << failed << " failed\n";
     return failed == 0 ? 0 : 1;
