@@ -5,7 +5,7 @@ description: Build, launch, drive and screenshot the WinForge WinUI 3 desktop ap
 
 # Run WinForge
 
-WinForge is a **.NET (net11.0-windows) WinUI 3 desktop app** (`WinForge.csproj`, 315 registered module pages, flagship nuclear-reactor sim). It is driven by a PowerShell driver — **`.agents/skills/run-winforge/driver.ps1`** — that publishes a self-contained build, deep-links any module page via `WinForge.exe --page <alias>`, and attempts a process-owned live capture (DWM bounds + `Graphics.CopyFromScreen`). Treat an output PNG as visual evidence only after inspecting it. All paths below are relative to the repo root.
+WinForge currently has two side-by-side WinUI 3 implementations: the shipping **.NET 11 managed app** (`WinForge.csproj`) and the in-progress genuine **C++20/C++/WinRT native rewrite** (`WinForge.Native.sln`). The PowerShell driver — **`.agents/skills/run-winforge/driver.ps1`** — can build, deep-link, and capture either executable. Managed remains the default; pass `-Native` for the rewrite. Treat an output PNG as visual evidence only after inspecting it. All paths below are relative to the repo root.
 
 > Why a self-contained publish + self-capture? A plain `dotnet build` produces a **framework-dependent** exe that, with no matching desktop runtime here, just shows a *"You must install or update .NET"* dialog. And the app is **not a Start-menu app**, so desktop/computer-use screenshot tools can't target its window — the driver's process-owned `CopyFromScreen` is the preferred capture path when the desktop session permits it.
 
@@ -19,14 +19,24 @@ dotnet build WinForge.sln -c Debug -p:Platform=x64 -v minimal
 ```
 Builds clean (0 errors). This only *compiles* — it does not produce a runnable exe here (see note above).
 
+Native restore/build (the driver discovers an installed MSVC x64 C++ UWP toolset automatically):
+```powershell
+msbuild WinForge.Native.sln /t:Restore /p:RestorePackagesConfig=true /p:Configuration=Debug /p:Platform=x64
+msbuild WinForge.Native.sln /p:Configuration=Debug /p:Platform=x64
+tests\native\WinForge.Core.Tests\bin\x64\Debug\WinForge.Core.Tests.exe
+powershell -ExecutionPolicy Bypass -File eng\native\Invoke-NativeShellSmoke.ps1
+```
+
 ## Run (agent path) — the driver
 One command builds-if-needed, launches a page, and screenshots it:
 For a non-visual route smoke check in a capture-blocked desktop session, add -NoCapture. It waits for the dedicated process window without foregrounding it, prints launch-only evidence, and cleans up only that process.
 ```bash
 powershell -ExecutionPolicy Bypass -File .agents/skills/run-winforge/driver.ps1 -Page monitor -Out shot.png
+powershell -ExecutionPolicy Bypass -File .agents/skills/run-winforge/driver.ps1 -Native -Page shell.allapps -Out native-allapps.png
 ```
 - `-Page <alias>` — deep-link alias from `MainWindow.ApplyStartPage` (e.g. `dashboard`, `reactor`, `reactorsettings`, `monitor`, `docker`, `torrent`, `proxmox`, `ocr`, `keepass`, `hexeditor`). Use the registered alias for the target module.
 - `-Out <file.png>` — where the screenshot is written (printed as `OK page='…' -> … (WxH)`).
+- `-Native` — use the C++/WinRT rewrite at `src/WinForge.App/bin/x64/Debug/WinForge.exe`; without it, use the managed app.
 - `-Publish` — force a fresh self-contained publish first.
 - `-WaitMs <n>` — render wait before capture (default 12000; raise for heavy pages).
 
@@ -49,7 +59,7 @@ Prints a per-scenario PASS/FAIL table (currently **63/63** across reactor physic
 
 ## Gotchas
 - **Capture must stay process-owned** — the driver launches and cleans up only its own WinForge process; it never terminates or captures another task's instance. If an existing instance intercepts the launch, close only the instance you own or use an isolated desktop session.
-- **Capture can be environment-blocked** — if CopyFromScreen reports an invalid handle, record the exact failure as capture-blocked. A 2026-07-11 audit also showed that `PrintWindow(PW_RENDERFULLCONTENT)` can return an all-black PNG and that `Windows.Graphics.Capture.CreateForWindow` can create an item but deliver no frame even for an owned coloured diagnostic window. Those are not fallbacks: do not reuse a stale image or claim a visual pass; use `-NoCapture` for launch-only evidence.
+- **Capture can be environment-blocked** — if CopyFromScreen reports an invalid handle, record the exact failure as capture-blocked. `PrintWindow(PW_RENDERFULLCONTENT)` can return a blank client surface even when UI Automation proves that the WinUI visual tree is rendered; the driver rejects blank/near-uniform client frames. Do not reuse a stale image or claim a visual pass; use `-NoCapture` plus the native UI Automation smoke harness for launch/behavior evidence.
 - **Framework-dependent build won't run** → it pops a *"install .NET"* dialog. Always run/launch the **self-contained publish** exe (the driver does this).
 - **App not in the Start menu** → computer-use / desktop screenshot tools mask it. The driver captures via `CopyFromScreen` over the DWM extended-frame bounds (attribute `9`) — accurate and shadow-excluded.
 - **`--page` is reliable; bare `--reactor` is not** — with a restored multi-tab session, `--reactor` can land on the Dashboard. Always prefer `--page reactor`.

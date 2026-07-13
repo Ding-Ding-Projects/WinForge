@@ -2,6 +2,8 @@
 
 **Status · 狀態：** Baseline active · 基線已啟動
 
+> **Coverage correction · 覆蓋修正：** The 323-route figures on this historical campaign page describe the exact legacy manifest used for those batches. The corrected current whole-shell contract is **346 fixed routes plus five dynamic route families** because that manifest omitted 22 runtime category routes and Settings. Historical results remain valid only for their recorded subset. · 呢個歷史 campaign 頁面嘅 323-route 數字係當時 batches 所用舊 manifest 嘅準確記錄。修正後目前全 shell 合約係 **346 條固定路線加五組動態路線**，因為嗰份 manifest 漏咗 22 條執行時分類路線同 Settings。歷史結果只對佢記錄嘅子集有效。
+
 **EN —** This page records the repeatable evidence model for whole-app WinForge verification. It is deliberately a coverage ledger, not a marketing feature count: a route is complete only when its applicable routing, build, test, launch, visual, behavior, side-effect, and documentation evidence is recorded.
 
 **粵語 —** 呢一頁記錄點樣可以重複做到成個 WinForge app 驗證。佢係涵蓋證據清單，唔係宣傳用功能數字：每條 route 只有喺適用嘅 routing、build、test、launch、visual、behavior、副作用同文件證據都記錄好先算完成。

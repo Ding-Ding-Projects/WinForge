@@ -12,8 +12,15 @@ on:
     paths-ignore:
       - 'design/**'
       - 'docs/**'
+      - 'src/**'
+      - 'eng/native/**'
+      - 'tests/native/**'
+      - '.agents/**'
+      - '.gitignore'
+      - 'WinForge.Native.sln'
       - '.github/workflows/pages.yml'
       - '.github/workflows/site-data.yml'
+      - '.github/workflows/release.yml'
       - 'tools/regen-site-data.ps1'
       - '**/*.md'
   workflow_dispatch:

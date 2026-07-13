@@ -1,5 +1,7 @@
 # Exhaustive Smoke Campaign Closeout · 完整冒煙測試結案
 
+> **Coverage correction · 覆蓋修正：** This document preserves the completed historical 323-route campaign exactly as tested. A corrected whole-shell extractor later identified **346 fixed routes plus five dynamic route families**: the legacy manifest omitted 22 runtime category routes and Settings. Nothing below is retroactively relabelled as evidence for those omitted routes. · 呢份文件會原樣保留當時已完成同測試嘅 323-route campaign。其後修正嘅全 shell extractor 識別到 **346 條固定路線加五組動態路線**：舊 manifest 漏咗 22 條執行時分類路線同 Settings。下面任何證據都唔會追溯冒充為嗰啲漏咗路線嘅證據。
+
 ## What this closes · 今次結案涵蓋乜
 
 **EN —** This closes the repository’s safe exhaustive smoke baseline: every registered route has current launch evidence, every shell-only route has its own focused verifier, every declared XAML event surface resolves to code, and every headless regression project passes. It does not pretend that a launch or static check performed an unrestricted real-world action on the user’s machine.
