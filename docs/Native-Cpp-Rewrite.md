@@ -78,18 +78,18 @@ Evidence for this batch:
 
 ## Visual evidence disposition · 視覺證據處置
 
-Fresh native Dashboard and About capture attempts were made with the required repository driver. `CopyFromScreen` was unavailable in this desktop session. `PrintWindow(PW_RENDERFULLCONTENT)` returned a title bar but a blank/near-uniform WinUI client frame, so the improved driver rejected it with:
+Fresh native Dashboard, All Apps, About, and Package Manager (`module.packages#updates`) capture attempts were made with the required repository driver. `CopyFromScreen` was unavailable in this desktop session. `PrintWindow(PW_RENDERFULLCONTENT)` returned a title bar but a blank/near-uniform WinUI client frame, so the improved driver rejected it with:
 
-已經用指定 repo driver 重新嘗試擷取原生 Dashboard 同 About。呢個 desktop session 用唔到 `CopyFromScreen`；`PrintWindow(PW_RENDERFULLCONTENT)` 雖然有 title bar，但 WinUI client frame 係空白／接近單色，所以改良後 driver 拒絕咗：
+已經用指定 repo driver 重新嘗試擷取原生 Dashboard、所有 app、About 同套件管理（`module.packages#updates`）。呢個 desktop session 用唔到 `CopyFromScreen`；`PrintWindow(PW_RENDERFULLCONTENT)` 雖然有 title bar，但 WinUI client frame 係空白／接近單色，所以改良後 driver 拒絕咗：
 
 ```text
 CopyFromScreen is unavailable and the PrintWindow fallback produced a blank or
 near-uniform WinUI client frame; graphics capture is unavailable in this desktop session.
 ```
 
-No blank, stale, synthetic, or managed-app image was retained or substituted. UI Automation independently found the bilingual navigation tree, page titles, migration InfoBar, buttons, All Apps list, and live filter, which is launch/behavior evidence only—not a visual pass. Dashboard, All Apps, and About remain `capture-blocked` until a real composited frame can be captured and inspected.
+No blank, stale, synthetic, or managed-app image was retained or substituted. UI Automation independently found the bilingual navigation tree, page titles, migration InfoBar, buttons, All Apps list, Package Manager pending surface, and live filter, which is launch/behavior evidence only—not a visual pass. Dashboard, All Apps, About, and native Package Manager remain `capture-blocked` until a real composited frame can be captured and inspected.
 
-冇保留或者頂替任何空白、舊、合成、或者受控版圖片。UI Automation 另外搵到雙語導覽樹、page title、遷移 InfoBar、按鈕、所有 app 清單同即時篩選；呢啲只係 launch／behavior 證據，唔係 visual pass。Dashboard、所有 app 同 About 要等真正 composited frame 擷取兼檢查到，先可以解除 `capture-blocked`。
+冇保留或者頂替任何空白、舊、合成、或者受控版圖片。UI Automation 另外搵到雙語導覽樹、page title、遷移 InfoBar、按鈕、所有 app 清單、套件管理 pending 介面同即時篩選；呢啲只係 launch／behavior 證據，唔係 visual pass。Dashboard、所有 app、About 同原生套件管理要等真正 composited frame 擷取兼檢查到，先可以解除 `capture-blocked`。
 
 ## Safety and compatibility gates · 安全同相容閘門
 

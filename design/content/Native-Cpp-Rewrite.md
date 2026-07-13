@@ -42,9 +42,9 @@ powershell -ExecutionPolicy Bypass -File eng\native\Invoke-NativeShellSmoke.ps1
 
 ## Screenshot status · 截圖狀態
 
-Fresh native captures are blocked in this desktop session. `CopyFromScreen` is unavailable and `PrintWindow` returns a blank/near-uniform WinUI client frame, which the driver now rejects. No blank, stale, synthetic, or managed screenshot was substituted. UI Automation proves launch and behavior, not visual appearance; Dashboard, All Apps, and About remain `capture-blocked`.
+Fresh native Dashboard, All Apps, About, and Package Manager (`module.packages#updates`) captures are blocked in this desktop session. `CopyFromScreen` is unavailable and `PrintWindow` returns a blank/near-uniform WinUI client frame, which the driver now rejects. No blank, stale, synthetic, or managed screenshot was substituted. UI Automation proves launch and behavior, not visual appearance; all four surfaces remain `capture-blocked`.
 
-呢個 desktop session 擷取唔到最新原生畫面。`CopyFromScreen` 用唔到，而 `PrintWindow` 只回傳空白／接近單色 WinUI client frame，driver 而家會拒絕呢種圖。冇用空白、舊、合成或者受控版截圖頂替。UI Automation 只證明 launch 同 behavior，唔代表視覺通過；Dashboard、所有 app 同 About 仍然係 `capture-blocked`。
+呢個 desktop session 擷取唔到最新原生 Dashboard、所有 app、About 同套件管理（`module.packages#updates`）畫面。`CopyFromScreen` 用唔到，而 `PrintWindow` 只回傳空白／接近單色 WinUI client frame，driver 而家會拒絕呢種圖。冇用空白、舊、合成或者受控版截圖頂替。UI Automation 只證明 launch 同 behavior，唔代表視覺通過；四個介面仍然係 `capture-blocked`。
 
 ## Cutover gate · 切換閘門
 

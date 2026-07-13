@@ -35,9 +35,9 @@ Package Manager is reachable, including `#discover`, `#updates`, and `#installed
 - Catalog/ledger parity: pass · 目錄／清單對等：通過
 - Foundation Release PE audit: zero COM descriptor and no `coreclr`, `hostfxr`, or `mscoree` import; native-binary evidence only, not feature parity. · 基礎 Release PE 審查：COM descriptor 係零，而且冇 `coreclr`、`hostfxr` 或 `mscoree` import；只係原生 binary 證據，唔係功能對等。
 
-Fresh screenshot attempts are `capture-blocked`: `CopyFromScreen` is unavailable and `PrintWindow` produces a blank/near-uniform WinUI client frame. The driver rejects that output; no stale or synthetic image was substituted. UI Automation evidence is not a visual pass.
+Fresh Dashboard, All Apps, About, and Package Manager (`module.packages#updates`) screenshot attempts are `capture-blocked`: `CopyFromScreen` is unavailable and `PrintWindow` produces a blank/near-uniform WinUI client frame. The driver rejects that output; no stale or synthetic image was substituted. UI Automation evidence is not a visual pass.
 
-最新截圖嘗試係 `capture-blocked`：`CopyFromScreen` 用唔到，而 `PrintWindow` 只產生空白／接近單色 WinUI client frame。driver 會拒絕呢種輸出；冇用舊圖或合成圖頂替。UI Automation 證據唔等於 visual pass。
+最新 Dashboard、所有 app、About 同套件管理（`module.packages#updates`）截圖嘗試係 `capture-blocked`：`CopyFromScreen` 用唔到，而 `PrintWindow` 只產生空白／接近單色 WinUI client frame。driver 會拒絕呢種輸出；冇用舊圖或合成圖頂替。UI Automation 證據唔等於 visual pass。
 
 ## Completion gate · 完成閘門
 
