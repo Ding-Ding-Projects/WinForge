@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net11.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>ShellAllAppsRoute.Tests</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Headless source assertions protect the command-line route without opening a dialog. -->
+    <None Include="..\..\MainWindow.xaml.cs" Link="MainWindow.xaml.cs" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

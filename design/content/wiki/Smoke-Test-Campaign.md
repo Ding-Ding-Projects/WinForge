@@ -1172,4 +1172,58 @@ live-run。
 呢個 desktop session graphics capture 唔可用而停止。冇 `textsort-default.png` 產生、
 檢查、替換或者重用：Batch 12 係 `capture-blocked`，絕對唔係 visual-pass。
 
+## Launch-only Batch 13 · 第十三批淨啟動測試
+
+**EN —** Batch 13 completes the registered route inventory. The fresh manifest records
+**323 routes**, **805 aliases**, 1,296 source-review files, 350,519 source lines, 22
+test projects, and no structural routing mismatch. Indices **300–321** (VirtualBox
+through ZoomIt) were run through the local 5-second/15-second protocol: all **22/22**
+were `launch-pass` on the first wait, with no retry or failure. `shell.allapps` is a
+modal shell route rather than a frame page; its focused UI Automation verifier now
+passes and finds `NewTabPickerDialog`, `NewTabPickerSearchBox`, and the selected All
+Apps navigation item without selecting a module.
+
+**Source, safety, and build evidence · 來源、安全同建置證據：** The All Apps verifier
+initially exposed a start-page routing omission: `--page shell.allapps` did not open the
+picker. The startup path now waits for NavigationView load, selects the shell item with
+the selection event suppressed, and awaits one picker invocation. Its source-level
+fixture passes **3/3**. Source review also repaired Unicode-scalar character counting in
+Word Frequency and YAML root-scalar/empty-collection plus escaped-quote comment parsing;
+`tests/StructuredTextTools.Tests` passes **7/7**. A direct review of 40 resolved
+final-route page/service files found no TODO, FIXME, or `NotImplementedException` marker.
+The literal-safety guard passes and the Debug x64 solution build completes with **0
+errors**. No VM/install, feature-flag, voice/VPN, web-login/cloning, registry/Windows,
+packet-capture, Wake-on-LAN, workspace/process, WSL, download, or ZoomIt live action was
+performed.
+
+**Visual evidence · 視覺證據：** Fresh self-contained `virtualbox` and repaired
+`shell.allapps` driver attempts reached WinForge, but `CopyFromScreen` was unavailable
+and the `PrintWindow` fallback produced uniform frames. Graphics capture is unavailable
+in this desktop session. No PNG was created, inspected, replaced, or reused: Batch 13
+is `capture-blocked`, never visual-pass.
+
+**粵語 —** Batch 13 完成已登記嘅 route inventory。新 manifest 有 **323 條 routes**、
+**805 個 aliases**、1,296 個 source-review files、350,519 行 source、22 個 test
+projects，同埋冇 structural routing mismatch。indices **300–321**（VirtualBox 到 ZoomIt）
+用 local 5 秒／15 秒 protocol 跑：全部 **22/22** 第一次 wait 已經 `launch-pass`，冇
+retry 同 failure。`shell.allapps` 係 modal shell route，唔係 frame page；focused UI
+Automation verifier 而家通過，搵到 `NewTabPickerDialog`、`NewTabPickerSearchBox` 同已
+選取嘅 All Apps navigation item，而冇選任何 module。
+
+**來源、安全同建置證據 · Source, safety, and build evidence：** All Apps verifier 最初
+搵到 start-page routing 遺漏：`--page shell.allapps` 冇開 picker。startup path 而家會等
+NavigationView load、選 shell item 時 suppress selection event，再 await 一次 picker
+invocation。source-level fixture **3/3** 通過。來源審查亦修正 Word Frequency Unicode-
+scalar character counting，同 YAML root-scalar／empty-collection 加 escaped-quote comment
+parsing；`tests/StructuredTextTools.Tests` **7/7** 通過。40 個 resolved final-route
+page/service files 嘅 direct review 冇 TODO、FIXME 或 `NotImplementedException` marker。
+literal-safety guard 通過，Debug x64 solution build 以 **0 errors** 完成。冇跑 VM/install、
+feature-flag、voice/VPN、web-login/cloning、registry/Windows、packet-capture、Wake-on-LAN、
+workspace/process、WSL、download 或 ZoomIt live action。
+
+**視覺證據 · Visual evidence：** 新嘅 self-contained `virtualbox` 同修正後
+`shell.allapps` driver 嘗試有去到 WinForge，但 `CopyFromScreen` 唔可用，`PrintWindow`
+fallback 產生 uniform frames。呢個 desktop session graphics capture 唔可用。冇 PNG
+產生、檢查、替換或者重用：Batch 13 係 `capture-blocked`，絕對唔係 visual-pass。
+
 [← Wiki Home](Home.md) · [Developer](Developer.md) · [Screenshots](Screenshots.md)
