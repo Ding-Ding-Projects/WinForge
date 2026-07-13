@@ -137,10 +137,12 @@ public static class WordFreqService
     private static List<string> Characters(string text, bool caseInsensitive)
     {
         var list = new List<string>();
-        foreach (var ch in text)
+        // A C# char is a UTF-16 code unit, not necessarily a user-visible Unicode scalar.
+        // Enumerating chars split astral symbols such as 😀 into two invalid surrogate rows.
+        foreach (var rune in text.EnumerateRunes())
         {
-            if (char.IsWhiteSpace(ch)) continue;
-            string s = ch.ToString();
+            if (Rune.IsWhiteSpace(rune)) continue;
+            string s = rune.ToString();
             if (caseInsensitive) s = s.ToLowerInvariant();
             list.Add(s);
         }

@@ -249,8 +249,13 @@ public static class YamlJsonService
         for (int i = 0; i < s.Length; i++)
         {
             char c = s[i];
-            if (c == '\'' && !inD) inS = !inS;
-            else if (c == '"' && !inS) inD = !inD;
+            if (c == '\'' && !inD)
+            {
+                // YAML escapes a single quote inside a single-quoted scalar as ''.
+                if (inS && i + 1 < s.Length && s[i + 1] == '\'') { i++; continue; }
+                inS = !inS;
+            }
+            else if (c == '"' && !inS && !IsEscapedDoubleQuote(s, i)) inD = !inD;
             else if (c == '#' && !inS && !inD)
             {
                 // '#' starts a comment only at start or after whitespace
@@ -267,7 +272,18 @@ public static class YamlJsonService
         var line = lines[idx];
         if (line.Content.StartsWith("- ") || line.Content == "-")
             return ParseSequence(lines, ref idx, indent);
-        return ParseMapping(lines, ref idx, indent);
+        if (FindColon(line.Content) >= 0)
+            return ParseMapping(lines, ref idx, indent);
+
+        // JsonToYaml emits a bare scalar for a root JSON scalar and {} / [] for
+        // empty root collections. Treat that single line as a document value so
+        // the converter can round-trip its own output instead of forcing it
+        // through the mapping parser.
+        idx++;
+        var scalar = ParseScalar(line.Content);
+        if (idx < lines.Count && lines[idx].Indent >= indent)
+            throw new YamlError($"line {lines[idx].Number}: unexpected content after scalar value");
+        return scalar;
     }
 
     private static JsonNode ParseMapping(List<Line> lines, ref int idx, int indent)
@@ -401,14 +417,25 @@ public static class YamlJsonService
         for (int i = 0; i < s.Length; i++)
         {
             char c = s[i];
-            if (c == '\'' && !inD) inS = !inS;
-            else if (c == '"' && !inS) inD = !inD;
+            if (c == '\'' && !inD)
+            {
+                if (inS && i + 1 < s.Length && s[i + 1] == '\'') { i++; continue; }
+                inS = !inS;
+            }
+            else if (c == '"' && !inS && !IsEscapedDoubleQuote(s, i)) inD = !inD;
             else if (c == ':' && !inS && !inD)
             {
                 if (i + 1 == s.Length || s[i + 1] == ' ') return i;
             }
         }
         return -1;
+    }
+
+    private static bool IsEscapedDoubleQuote(string s, int quoteIndex)
+    {
+        int slashCount = 0;
+        for (int i = quoteIndex - 1; i >= 0 && s[i] == '\\'; i--) slashCount++;
+        return (slashCount & 1) != 0;
     }
 
     private static string Unquote(string s)
