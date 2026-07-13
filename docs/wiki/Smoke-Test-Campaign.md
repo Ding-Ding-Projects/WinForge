@@ -1123,4 +1123,53 @@ clipboard 同 file writes，冇 disposable target 同明確授權下都刻意冇
 產生 uniform frame，然後以 `graphics capture is unavailable in this desktop session` 停止。
 冇 PNG 產生、檢查、替換或者重用。Batch 11 係 `capture-blocked`，絕對唔係 visual-pass。
 
+## Launch-only Batch 12 · 第十二批淨啟動測試
+
+**EN —** Batch 12 covers launchable indices **275–299**: textsort, textstats,
+texttemplate, texttools, textwrap, timelens, timer, timeunit, tomljson, torrent,
+totp, tzplanner, ulid, unicodeinspect, uninstall, unitconvert, unitprice, unixperm,
+urltools, uuidv5, uuidv7, vault-volumes, vertfarm, viaproxy, and videoconference.
+Its generated manifest has **323 routes**, **805 aliases**, 1,294 source-review files,
+350,182 source lines, and no routing or unmapped-alias issue. The local runner used the
+5-second/15-second protocol and recorded **25/25 launch-pass** on the first wait, with
+no retry or failure. Raw ignored evidence remains under `artifacts/smoke/batch12/`.
+
+**Source, safety, and build evidence · 來源、安全同建置證據：** Source review repaired
+Timer’s page-boundary lifecycle: unloading now accumulates and pauses its stopwatch,
+stops all dispatcher timers, clears all three running flags, and uses idempotent named
+language subscribe/unsubscribe paths across reload. `tests/TimerLifecycle.Tests` passes
+**3/3**. The literal-safety guard passes, and the Debug x64 solution build completes
+with **0 errors**. This remains launch/static evidence only: Torrent network/downloads,
+TOTP/clipboard use, uninstall operations, disk/volume actions, permission changes,
+proxy/conference controls, and file or settings writes were not live-executed.
+
+**Visual evidence · 視覺證據：** A fresh self-contained `textsort` driver attempt
+reached the window, but `CopyFromScreen` was unavailable and the `PrintWindow` fallback
+produced a uniform frame. The driver stopped because graphics capture is unavailable in
+this desktop session. No `textsort-default.png` was created, inspected, replaced, or
+reused: Batch 12 is `capture-blocked`, never visual-pass.
+
+**粵語 —** Batch 12 覆蓋可 launch indices **275–299**：textsort、textstats、
+texttemplate、texttools、textwrap、timelens、timer、timeunit、tomljson、torrent、totp、
+tzplanner、ulid、unicodeinspect、uninstall、unitconvert、unitprice、unixperm、urltools、
+uuidv5、uuidv7、vault-volumes、vertfarm、viaproxy 同 videoconference。generated manifest
+有 **323 條 routes**、**805 個 aliases**、1,294 個 source-review files、350,182 行
+source，冇 routing 或 unmapped-alias issue。local runner 用 5 秒／15 秒 protocol，
+第一次 wait 已經記錄 **25/25 launch-pass**，冇 retry 同 failure。raw ignored evidence
+留喺 `artifacts/smoke/batch12/`。
+
+**來源、安全同建置證據 · Source, safety, and build evidence：** 來源審查修正 Timer
+嘅 page-boundary lifecycle：unload 而家會累積同暫停 stopwatch、停晒 dispatcher timers、
+清除三個 running flags，並喺 reload 間用 idempotent named language
+subscribe/unsubscribe。`tests/TimerLifecycle.Tests` **3/3** 通過。literal-safety guard
+通過，Debug x64 solution build 以 **0 errors** 完成。呢個仍然只係 launch／static
+evidence：Torrent 網絡／下載、TOTP／clipboard 使用、uninstall operations、disk／volume
+actions、permission changes、proxy／conference controls，同 file 或 settings writes 都冇
+live-run。
+
+**視覺證據 · Visual evidence：** 新嘅 self-contained `textsort` driver 嘗試有去到
+視窗，但 `CopyFromScreen` 唔可用，`PrintWindow` fallback 產生 uniform frame。driver 因為
+呢個 desktop session graphics capture 唔可用而停止。冇 `textsort-default.png` 產生、
+檢查、替換或者重用：Batch 12 係 `capture-blocked`，絕對唔係 visual-pass。
+
 [← Wiki Home](Home.md) · [Developer](Developer.md) · [Screenshots](Screenshots.md)

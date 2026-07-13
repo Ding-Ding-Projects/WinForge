@@ -231,6 +231,22 @@ scheduled-task、terminal、recovery、OCR、clipboard 同檔案 actions 都冇 
 最新 Short ID capture 因為 CopyFromScreen 唔可用、PrintWindow 又係 uniform 而
 capture-blocked；冇 PNG 發佈或者當成 visual proof。請睇 [Batch 11 證據](docs/Smoke-Launch-Batch-11.md)。
 
+**EN —** Batch 12 extends current process-level evidence through index **299**:
+Text Sort through Video Conference Mute all passed their first five-second launch
+(**25/25**, no retry). Source review repaired Timer’s unload/reload state so it no
+longer appears to run invisibly after navigation; its headless lifecycle fixture passes
+3/3. The literal-safety guard and Debug x64 build pass with 0 errors. A fresh Text Sort
+capture is explicitly `capture-blocked`—CopyFromScreen is unavailable and PrintWindow
+is uniform—so no PNG was added or treated as visual proof. See [Batch 12
+evidence](docs/Smoke-Launch-Batch-12.md).
+
+**粵語 —** Batch 12 將而家嘅 process-level 證據延伸到 index **299**：由文字排序
+到視像會議靜音全部第一次五秒 launch 通過（**25/25**，冇 retry）。來源審查修正咗
+Timer unload/reload state，所以導航後唔會好似喺背景偷偷繼續運行；headless lifecycle
+fixture 係 3/3 通過。literal-safety guard 同 Debug x64 build 都以 0 errors 通過。新嘅
+Text Sort capture 明確係 `capture-blocked`——CopyFromScreen 唔可用而 PrintWindow 係
+uniform——所以冇加 PNG 或者當成 visual proof。請睇 [Batch 12 證據](docs/Smoke-Launch-Batch-12.md)。
+
 ---
 
 **EN —** The XAML startup audit reproduced an HTML Table Convert crash while

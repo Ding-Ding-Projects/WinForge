@@ -169,6 +169,16 @@ Short ID capture 嘗試。頁面視窗有出現，但 `CopyFromScreen` 唔可用
 `PrintWindow` fallback 產生 uniform frame。冇 `shortid-default.png` 儲存、檢查、
 替換或者重用；成個 slice 係 `capture-blocked`，唔係 visual-pass。
 
+**EN —** Batch 12 made a fresh self-contained Text Sort capture attempt before its
+25-route launch-only slice. The window was reached, but `CopyFromScreen` was unavailable
+and the `PrintWindow` fallback produced a uniform frame. No `textsort-default.png` was
+saved, inspected, replaced, or reused; the slice is `capture-blocked`, not visual-pass.
+
+**粵語 —** Batch 12 喺 25-route launch-only slice 之前，為文字排序做咗新嘅
+self-contained capture 嘗試。視窗有去到，但 `CopyFromScreen` 唔可用，而 `PrintWindow`
+fallback 產生 uniform frame。冇 `textsort-default.png` 儲存、檢查、替換或者重用；
+成個 slice 係 `capture-blocked`，唔係 visual-pass。
+
 ## Redaction Rules · 遮蔽規則
 
 **EN —** Before adding screenshots, redact or avoid personal data: Windows usernames, home-folder paths, repo paths outside WinForge, hostnames, IPs that identify private networks, account names, emails, API keys, tokens, session cookies, vault item names, SSH profiles, and real package/source credentials. Use `winforge-shot --redact "x|y|w|h|box|blur|pixelate"` to obscure regions irreversibly; see the [Wiki Screenshot Workflow](Wiki-Screenshot-Workflow.md).
