@@ -1,0 +1,4 @@
+ripgrep v14.1.1:
+    rg.exe
+cargo-edit v0.13.0:
+    cargo-add.exe

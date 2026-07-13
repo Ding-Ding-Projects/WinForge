@@ -53,8 +53,10 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="PackageManagerTests.cpp" />
+    <ClCompile Include="PackageParsers.Tests.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\CommandLine.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\PackageManager.cpp" />
+    <ClCompile Include="..\..\..\src\WinForge.Core\PackageParsers.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\RouteIndex.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -63,7 +65,11 @@
     <ClInclude Include="..\..\..\src\WinForge.Core\Localization.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\ModuleRecord.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\PackageManager.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\PackageParsers.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\RouteIndex.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Fixtures\PackageManagers\*.*" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />

@@ -9,6 +9,8 @@
 #include <utility>
 #include <vector>
 
+int RunPackageParserTests();
+
 namespace
 {
     int passed = 0;
@@ -117,6 +119,7 @@ int wmain()
     passed += package_manager_counts.passed;
     failed += package_manager_counts.failed;
 
-    std::cout << "\n" << passed << " passed, " << failed << " failed\n";
-    return failed == 0 ? 0 : 1;
+    auto const packageParserFailures = RunPackageParserTests();
+    std::cout << "\nCore route/package-manager tests: " << passed << " passed, " << failed << " failed\n";
+    return failed == 0 && packageParserFailures == 0 ? 0 : 1;
 }
