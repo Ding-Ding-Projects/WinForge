@@ -1,5 +1,6 @@
 #include "CommandLine.h"
 #include "Localization.h"
+#include "ProcessRunnerTests.h"
 #include "RouteIndex.h"
 
 #include <iostream>
@@ -28,8 +29,14 @@ namespace
     }
 }
 
-int wmain()
+int wmain(int argc, wchar_t** argv)
 {
+    if (auto const helperResult = winforge::tests::TryRunProcessRunnerHelper(argc, argv);
+        helperResult >= 0)
+    {
+        return helperResult;
+    }
+
     using winforge::core::LanguageMode;
     using winforge::core::LocalizedText;
     using winforge::core::NormalizeRouteKey;
@@ -111,6 +118,8 @@ int wmain()
         rejectedDuplicate = true;
     }
     Expect(rejectedDuplicate, "rejects duplicate canonical route keys");
+
+    winforge::tests::RunProcessRunnerTests(Expect);
 
     std::cout << "\n" << passed << " passed, " << failed << " failed\n";
     return failed == 0 ? 0 : 1;
