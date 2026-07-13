@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path,
+    [string]$RepoRoot,
     [string]$ExecutablePath,
     [int]$TimeoutMs = 10000
 )
@@ -8,6 +8,7 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
+$RepoRoot = if ($RepoRoot) { $RepoRoot } else { Join-Path $PSScriptRoot '..\..' }
 $repo = (Resolve-Path -LiteralPath $RepoRoot).Path
 if (-not $ExecutablePath) {
     $ExecutablePath = Join-Path $repo 'src\WinForge.App\bin\x64\Debug\WinForge.exe'
@@ -164,10 +165,124 @@ Invoke-OwnedRoute -Route 'shell.allapps' -ExpectedTitle 'All Apps' -Inspect {
     Assert-True -Condition ($english -and $dashboard.Current.Name -eq 'Dashboard') -Name 'language picker rerenders navigation in English'
 }
 
+Invoke-OwnedRoute -Route 'package-updates' -ExpectedTitle 'Package Manager' -Inspect {
+    param($root, $title)
+
+    foreach ($id in @(
+        'NativePackageManagerMigrationStatus',
+        'NativePackageViewPicker',
+        'NativePackageSearchBox',
+        'NativePackagePrimaryAction',
+        'NativePackageSecondaryAction',
+        'NativePackageOperationsAction',
+        'NativePackageResultsHeader'
+    )) {
+        Wait-ForElement -Root $root -AutomationId $id | Out-Null
+    }
+    Assert-True -Condition $true -Name 'Package Manager exposes its native control contract'
+
+    foreach ($manager in @('winget', 'scoop', 'choco', 'pip', 'npm', 'dotnet', 'psgallery', 'pwsh7', 'cargo', 'bun', 'vcpkg')) {
+        Wait-ForElement -Root $root -AutomationId "NativePackageManagerFilter_$manager" | Out-Null
+    }
+    Assert-True -Condition $true -Name 'Package Manager exposes all 11 native manager filters'
+
+    $header = Wait-ForElement -Root $root -AutomationId 'NativePackageResultsHeader'
+    Assert-True -Condition ($header.Current.Name.StartsWith('Available updates', [StringComparison]::Ordinal)) `
+        -Name 'Package Manager package-updates alias selects Updates'
+
+    $probeDeadline = [DateTime]::UtcNow.AddMilliseconds([Math]::Max($TimeoutMs, 30000))
+    do {
+        $ready = Find-ByAutomationId -Root $root -AutomationId 'NativePackageReadyState'
+        if ($ready) { break }
+        Start-Sleep -Milliseconds 100
+    } while ([DateTime]::UtcNow -lt $probeDeadline)
+    Assert-True -Condition ([bool]$ready) -Name 'Package Manager completes its live non-destructive engine probes'
+
+    $availableManager = $null
+    foreach ($manager in @('winget', 'scoop', 'choco', 'pip', 'npm', 'dotnet', 'psgallery', 'pwsh7', 'cargo', 'bun', 'vcpkg')) {
+        $filter = Find-ByAutomationId -Root $root -AutomationId "NativePackageManagerFilter_$manager"
+        if (-not $filter -or -not $filter.Current.IsEnabled) { continue }
+        if (-not $availableManager) {
+            $availableManager = $manager
+            continue
+        }
+        $toggle = [System.Windows.Automation.TogglePattern]$filter.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern)
+        if ($toggle.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::On) { $toggle.Toggle() }
+    }
+    if ($availableManager) {
+        Assert-True -Condition $true -Name 'Package Manager unlocks a successfully probed native engine'
+    }
+    else {
+        $lockedPrimary = Wait-ForElement -Root $root -AutomationId 'NativePackagePrimaryAction'
+        Assert-True -Condition (-not $lockedPrimary.Current.IsEnabled) `
+            -Name 'Package Manager keeps every failed or high-integrity engine probe locked'
+    }
+
+    if ($availableManager) {
+        $primary = Wait-ForElement -Root $root -AutomationId 'NativePackagePrimaryAction'
+        $primaryInvoke = [System.Windows.Automation.InvokePattern]$primary.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern)
+        $primaryInvoke.Invoke()
+        $queryDeadline = [DateTime]::UtcNow.AddSeconds(65)
+        $queryCompleted = $false
+        $querySucceeded = $false
+        do {
+            $working = Find-ByAutomationId -Root $root -AutomationId 'NativePackageWorkingState'
+            $managerState = Find-ByAutomationId -Root $root -AutomationId "NativePackageManagerState_$availableManager"
+            if (-not $working -and $managerState) {
+                $queryCompleted = $true
+                $querySucceeded = $managerState.Current.HelpText.StartsWith(
+                    'Query completed successfully', [StringComparison]::Ordinal)
+                break
+            }
+            Start-Sleep -Milliseconds 150
+        } while ([DateTime]::UtcNow -lt $queryDeadline)
+        Assert-True -Condition $queryCompleted -Name 'Package Manager completes a live read-only updates query'
+        Assert-True -Condition $querySucceeded -Name 'Package Manager live updates query reports explicit engine success'
+    }
+    else {
+        $lockedPrimary = Wait-ForElement -Root $root -AutomationId 'NativePackagePrimaryAction'
+        Assert-True -Condition (-not $lockedPrimary.Current.IsEnabled) `
+            -Name 'Package Manager does not start a live external query when no engine passes its safety probe'
+    }
+
+    $operations = Wait-ForElement -Root $root -AutomationId 'NativePackageOperationsAction'
+    $invoke = [System.Windows.Automation.InvokePattern]$operations.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern)
+    $invoke.Invoke()
+    $deadline = [DateTime]::UtcNow.AddMilliseconds($TimeoutMs)
+    do {
+        $header = Find-ByAutomationId -Root $root -AutomationId 'NativePackageResultsHeader'
+        if ($header -and $header.Current.Name.StartsWith('Operation queue and history', [StringComparison]::Ordinal)) { break }
+        Start-Sleep -Milliseconds 100
+    } while ([DateTime]::UtcNow -lt $deadline)
+    $operationViewSelected = $header -and `
+        $header.Current.Name.StartsWith('Operation queue and history', [StringComparison]::Ordinal)
+    if (-not $operationViewSelected) {
+        $actualHeader = if ($header) { $header.Current.Name } else { '(missing)' }
+        Write-Host "Package Manager view switch diagnostic: header='$actualHeader'" -ForegroundColor Yellow
+    }
+    Assert-True -Condition $operationViewSelected `
+        -Name 'Package Manager switches among its nine native views'
+}
+
+Invoke-OwnedRoute -Route 'package-installed' -ExpectedTitle 'Package Manager' -Inspect {
+    param($root, $title)
+
+    $header = Wait-ForElement -Root $root -AutomationId 'NativePackageResultsHeader'
+    Assert-True -Condition ($header.Current.Name.StartsWith('Installed packages', [StringComparison]::Ordinal)) `
+        -Name 'Package Manager package-installed alias selects Installed'
+}
+
+Invoke-OwnedRoute -Route 'package-discover' -ExpectedTitle 'Package Manager' -Inspect {
+    param($root, $title)
+
+    $header = Wait-ForElement -Root $root -AutomationId 'NativePackageResultsHeader'
+    Assert-True -Condition ($header.Current.Name.StartsWith('Discover packages', [StringComparison]::Ordinal)) `
+        -Name 'Package Manager package-discover alias selects Discover'
+}
+
 foreach ($case in @(
     @{ Route = 'about'; Title = 'About WinForge Native' },
     @{ Route = 'settings'; Title = 'Settings' },
-    @{ Route = 'module.packages#updates'; Title = 'Package Manager' },
     @{ Route = 'search:reactor'; Title = 'Search results' },
     @{ Route = 'manual:reactor-safety'; Title = 'Manual' },
     @{ Route = 'weblogin?url=https://example.test'; Title = 'In-App Login' },

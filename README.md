@@ -19,11 +19,25 @@
 
 ## 🧱 Native C++ Rewrite · 原生 C++ 重寫
 
-**EN —** A genuine C++20/C++/WinRT rewrite is now underway beside the shipping managed app. The first foundation batch builds Debug and Release x64 native WinUI 3 shells with 0 errors, inventories **346 fixed routes + five dynamic route families**, and passes **21/21 native core tests** plus **20/20 live shell smoke checks**. Release PE inspection also finds a zero COM descriptor and no `coreclr`, `hostfxr`, or `mscoree` import. This is a migration milestone, not a false full-port claim: unported features display an explicit pending page, and the managed app remains authoritative until every parity row passes.
+**EN —** A genuine C++20/C++/WinRT rewrite is now underway beside the shipping managed app. Debug and Release x64 native WinUI 3 builds finish with 0 errors, the inventory covers **346 fixed routes + five dynamic route families**, the expanded native regression suite passes **160/160 in both Debug and Release**, and the elevated process-owned UI Automation shell passes **31/31**. Release PE inspection also finds a zero COM descriptor and no `coreclr`, `hostfxr`, or `mscoree` import. This is a migration milestone, not a false full-port claim: unported features display an explicit pending page, and the managed app remains authoritative until every parity row passes.
 
-**粵語 —** 真正嘅 C++20／C++/WinRT 重寫而家會同發佈中受控 app 並行。第一批基礎嘅 Debug 同 Release x64 原生 WinUI 3 shell 都以 0 errors 建置，登記 **346 條固定路線 + 五組動態路線**，並通過 **21/21 原生核心測試**同 **20/20 即時 shell 冒煙檢查**。Release PE 審查亦證實 COM descriptor 係零，而且冇 `coreclr`、`hostfxr` 或 `mscoree` import。呢個係遷移里程碑，唔係扮成全功能已移植：未完成功能會顯示明確 pending 頁，而每項對等清單通過之前，受控 app 仍然係權威版本。
+**粵語 —** 真正嘅 C++20／C++/WinRT 重寫而家會同發佈中受控 app 並行。Debug 同 Release x64 原生 WinUI 3 都以 0 errors 建置，清單涵蓋 **346 條固定路線 + 五組動態路線**，擴充後原生回歸喺 Debug 同 Release 都係 **160/160**，而提權、只控制自己 process 嘅 UI Automation shell 亦係 **31/31**。Release PE 審查亦證實 COM descriptor 係零，而且冇 `coreclr`、`hostfxr` 或 `mscoree` import。呢個係遷移里程碑，唔係扮成全功能已移植：未完成功能會顯示明確 pending 頁，而每項對等清單通過之前，受控 app 仍然係權威版本。
 
 See the [full native rewrite record](docs/Native-Cpp-Rewrite.md), [wiki overview](docs/wiki/Native-Cpp-Rewrite.md), and [machine-readable parity ledger](docs/cpp-port-parity.json). · 請睇[完整原生重寫記錄](docs/Native-Cpp-Rewrite.md)、[wiki 概覽](docs/wiki/Native-Cpp-Rewrite.md)同[machine-readable 對等清單](docs/cpp-port-parity.json)。
+
+### Package Manager migration truth · 套件管理遷移實況
+
+**EN —** The **shipping managed .NET Package Manager** remains the production implementation. It has substantial functionality across 11 Windows package engines and nine views: search/install, update and uninstall operations, portable bundles, source management, ignored/pinned/snoozed updates, engine setup, saved settings, scheduling, notifications, and a bounded shared operation queue with history, output, cancellation and retry. The new **C++20/C++/WinRT batch is not a full UniGetUI clone or parity cutover**. It currently provides read-only result queries for **Discover, Updates, and Installed**, plus a read-only **Sources command probe** whose raw configuration and diagnostics are deliberately withheld until manager-specific secret redaction is proven. Bundles, Ignored, Setup bootstrap, Settings, and the real Operations coordinator remain gated; install, update, uninstall, source mutation, and bulk actions are also disabled. Setup availability probes and the transient read-only event log are safety/diagnostic scaffolding, not full view parity.
+
+**粵語 —** **發佈中受控 .NET 套件管理器**仍然係正式版本。佢喺 11 個 Windows 套件引擎同九個檢視提供大量實際功能：搜尋／安裝、更新同解除安裝、可攜清單、來源管理、忽略／釘選／暫停更新、引擎設定、已儲存設定、排程、通知，同有上限嘅共用操作佇列（附歷史、輸出、取消同重試）。新嘅 **C++20／C++/WinRT 批次唔係完整 UniGetUI 複製品，亦未到功能對等切換**；目前只提供**搜尋安裝、可更新同已安裝**嘅只讀結果查詢，另有只讀**來源指令探測**，但逐管理器機密遮罩未證實之前會刻意隱藏原始設定同診斷。套件清單、已忽略、Setup bootstrap、設定同真正操作協調器仍然鎖住；安裝、更新、解除安裝、修改來源同批次動作亦全部停用。Setup 可用性探測同暫時只讀事件記錄只係安全／診斷基礎，唔代表完整檢視對等。
+
+**EN —** Native parser/runtime regressions pass **160/160 in both Debug and Release**, and the process-owned elevated UI Automation smoke passes **31/31**. That elevated smoke verifies routing—including exact Discover/Updates/Installed aliases—controls, fail-closed gates and accessibility, not live external manager execution. The separate normal-integrity live smoke is still externally blocked because Windows returned a token that failed the standard-user proof even for an interactive scheduled task registered with `RunLevel=Limited`; no live-query pass is claimed. Fresh native Package Manager capture is also `capture-blocked`: `CopyFromScreen` is unavailable and `PrintWindow` returns a blank/near-uniform WinUI client frame that the driver rejects. The gallery image below is therefore labelled as a **managed production reference**, never current native visual evidence.
+
+**粵語 —** 原生 parser／runtime regression 喺 Debug 同 Release 都係 **160/160** 通過，而只控制自己 process 嘅提升權限 UI Automation smoke 亦係 **31/31** 通過。提升權限 smoke 驗證導覽（包括 Discover／Updates／Installed 準確 alias）、控制項、fail-closed 閘同無障礙，唔代表真實外部管理器執行。獨立嘅正常權限 live smoke 仍然受外部環境阻擋：即使互動式排程工作已登記做 `RunLevel=Limited`，Windows 回傳嘅 token 仍然未能通過標準使用者證明，所以唔會聲稱 live query 已通過。最新原生套件管理截圖亦係 `capture-blocked`：`CopyFromScreen` 用唔到，而 `PrintWindow` 回傳空白／接近單色嘅 WinUI client frame，driver 會拒絕。所以下面畫廊圖片只係**受控正式版參考**，絕對唔係目前原生版視覺證據。
+
+**EN —** Remaining UniGetUI-informed parity work includes the capability/maintenance model, persisted sorting and view/media actions, durable queue ordering/history, full bundle interoperability and installed detection, secure opt-in consent/elevation, backup and per-manager settings, actionable verb-aware notifications/tray behavior, and authenticated API/CLI/headless/deep-link/widget surfaces. Linux/macOS-only managers are outside this Windows product's scope. The complete MIT-licensed upstream snapshot is vendored for provenance only at `ThirdParty/UniGetUI`, pinned to Devolutions/UniGetUI commit `21116375c8299d1db38a3c3b4c2eb7e18bc97c4e`; upstream UI, IPC and telemetry are excluded from WinForge build and runtime inputs. See [Package Manager · 套件管理](docs/wiki/Package-Manager.md).
+
+**粵語 —** 尚欠嘅 UniGetUI 參考對等工作包括 capability／維護模型、持久化排序同檢視／媒體動作、可保存嘅佇列次序／歷史、完整清單互通同已安裝偵測、安全 opt-in 同意／提升權限、備份同逐管理器設定、可操作兼識別動詞嘅通知／系統匣行為，以及已驗證身份嘅 API／CLI／headless／deep-link／widget 介面。只供 Linux／macOS 嘅管理器唔屬於呢個 Windows 產品範圍。完整 MIT 授權上游快照只作來源依據，存放喺 `ThirdParty/UniGetUI`，固定到 Devolutions/UniGetUI commit `21116375c8299d1db38a3c3b4c2eb7e18bc97c4e`；上游 UI、IPC 同 telemetry 已排除喺 WinForge 建置同執行輸入之外。詳情見[套件管理](docs/wiki/Package-Manager.md)。
 
 ---
 
@@ -36,7 +50,7 @@ See the [full native rewrite record](docs/Native-Cpp-Rewrite.md), [wiki overview
 | | |
 |---|---|
 | **Dashboard · 概覽** — Master search and home overview across every module. Fresh native capture is currently `capture-blocked`; no stale image is substituted. <br> 跨晒所有模組嘅總搜尋同主頁概覽；最新原生擷取目前係 `capture-blocked`，唔會用舊圖頂替。 | ![Nuclear Reactor · 核反應堆](docs/screenshot-reactor.png) <br> **Nuclear Reactor · 核反應堆** — The flagship hyper-realistic PWR control-room simulator. <br> 旗艦超寫實壓水堆控制室模擬器。 |
-| ![Git & GitHub · Git 與 GitHub](docs/screenshot-git.png) <br> **Git & GitHub · Git 與 GitHub** — Multi-repo workbench for git and gh with a chunked uploader. <br> 多儲存庫工作台，操作 git 同 gh，附分塊上傳器。 | ![Package Manager · 套件管理](docs/screenshot-packages.png) <br> **Package Manager · 套件管理** — One front-end over winget, scoop, choco, pip and npm. <br> 統一前端操作 winget、scoop、choco、pip 同 npm。 |
+| ![Git & GitHub · Git 與 GitHub](docs/screenshot-git.png) <br> **Git & GitHub · Git 與 GitHub** — Multi-repo workbench for git and gh with a chunked uploader. <br> 多儲存庫工作台，操作 git 同 gh，附分塊上傳器。 | ![Managed production Package Manager reference · 受控正式版套件管理參考](docs/screenshot-packages.png) <br> **Package Manager · 套件管理 — managed production reference · 受控正式版參考** — This existing image shows the shipping managed UI, not current native visual evidence; fresh native capture is `capture-blocked`. <br> 呢張現有圖片顯示發佈中受控介面，唔係目前原生版視覺證據；最新原生截圖係 `capture-blocked`。 |
 | ![Cloudflare & Tunnel · Cloudflare 與 Tunnel](docs/screenshot-cloudflare.png) <br> **Cloudflare & Tunnel · Cloudflare 與 Tunnel** — Tunnels, DNS routing, Access, DoH and WARP. <br> 隧道、DNS 路由、Access、DoH 同 WARP。 | ![AI Agents · AI 代理](docs/screenshot-aiagents.png) <br> **AI Agents · AI 代理** — Install and launch terminal AI coding agents. <br> 安裝同啟動終端機 AI 編程代理。 |
 | ![Media · 媒體](docs/screenshot-media.png) <br> **Media · 媒體** — ffmpeg-powered video/audio convert, trim and GIF making. <br> 用 ffmpeg 轉檔、剪裁影音同整 GIF。 | ![Settings & Control Panel · 設定與控制台](docs/screenshot-settingshub.png) <br> **Settings & Control Panel · 設定與控制台** — In-app launcher for ms-settings and Control Panel applets. <br> app 內啟動 ms-settings 頁面同控制台小程式。 |
 | ![Clipboard · 剪貼簿](docs/screenshot-clipboard.png) <br> **Clipboard · 剪貼簿** — Richer clipboard history with QR-code generation. <br> 更豐富嘅剪貼簿歷史，附二維碼產生。 | ![Connections · 連線](docs/screenshot-connections.png) <br> **Connections · 連線** — Live TCP/UDP socket list with owning processes. <br> 即時 TCP／UDP 連線清單同擁有程序。 |
@@ -193,17 +207,9 @@ generation cases.
 專注 crypto／clipboard regression 會檢查相同、替換、null、空白文字同 stale-timer
 generation 情況。
 
-**EN —** Package Manager now preserves a selected package or bundle source through
-the command preview, multi-select identity, shared queue and runner. A single
-policy turns only validated manager-specific sources into real flags or trusted
-registry endpoints; an empty source keeps the manager default, no-selector
-uninstall/update paths retain safe source metadata, and local, unknown or unsafe
-source text is rejected before it reaches a command.
+**EN —** In the shipping managed Package Manager, a selected package or bundle source is preserved through the command preview, multi-select identity, shared queue and runner. A single policy turns only validated manager-specific sources into real flags or trusted registry endpoints; an empty source keeps the manager default, no-selector uninstall/update paths retain safe source metadata, and local, unknown or unsafe source text is rejected before it reaches a command. This production behavior has not yet cut over to the read-only C++ batch described above.
 
-**粵語 —** 套件管理器而家會將所揀套件或者清單來源一路保留到指令預覽、多選身份、
-共用佇列同 runner。單一政策只會將已驗證、管理器專用嘅來源變成真實旗標或者可信
-registry endpoint；空白來源會保留管理器預設，冇來源選擇器嘅解除安裝／更新路徑會
-保留安全來源中繼資料，而本機、未知或者唔安全來源文字未到指令之前已經拒絕。
+**粵語 —** 發佈中受控套件管理器會將所揀套件或者清單來源一路保留到指令預覽、多選身份、共用佇列同 runner。單一政策只會將已驗證、管理器專用嘅來源變成真實旗標或者可信 registry endpoint；空白來源會保留管理器預設，冇來源選擇器嘅解除安裝／更新路徑會保留安全來源中繼資料，而本機、未知或者唔安全來源文字未到指令之前已經拒絕。呢套正式版行為仲未切換到上面所講嘅只讀 C++ 批次。
 
 **EN —** The latest checkpoints fixed Base Converter and CSV ⇄ JSON startup
 faults exposed by the route sweep; fresh self-contained `--page baseconvert`
@@ -501,7 +507,7 @@ literal；forced self-contained publish 同新鮮 `--page` retest 全部 6 條 r
 | Module · 模組 | Description · 說明 | `--page` |
 |---|---|---|
 | **Git & GitHub · Git 與 GitHub** | Multi-repo workbench for git and gh operations with a chunked uploader. <br> 多儲存庫工作台，操作 git 同 gh，附分塊上傳器。 | `git` |
-| **Package Manager · 套件管理** | One front-end over winget, scoop, choco, pip, npm and more; tray shortcuts open Discover, Updates, or Installed directly. <br> 統一前端操作 winget、scoop、choco、pip、npm 等；系統匣捷徑可直接開搜尋安裝、可更新或已安裝檢視。 | `packages` · `package-discover` · `package-updates` · `package-installed` |
+| **Package Manager · 套件管理** | Shipping managed workspace over 11 Windows package engines and nine views. The C++ migration currently exposes three read-only result views plus a source-command probe; mutations and the remaining full workflows stay gated. <br> 發佈中受控工作區支援 11 個 Windows 套件引擎同九個檢視；C++ 遷移目前開放三個只讀結果檢視同一個來源指令探測，修改操作同其餘完整流程仍然鎖住。 | `packages` · `package-discover` · `package-updates` · `package-installed` |
 | **Native OSS Clones · 開源原生分頁** | Map of open-source app ideas remade as native C# WinForge tabs. <br> 將開源 app 想法重製成 WinForge 原生 C# 分頁嘅索引。 | `ossapps` |
 | **Cake Factory & Farm · 蛋糕工廠與農場** | HTML5 reactor-powered cake factory game with cow milk provenance, laying-hen egg provenance, supplier delivery lead times, mixed dairy ration, parlor/poultry-house hygiene, an operator-run utility plant, audited ingredient lots, QA lab release, warehouse batch kitting, finite supplies/utilities, timed ingredient factories, vanilla extraction, a carton packaging plant, named byproduct/effluent handling, plant maintenance, manual HACCP gates, customer order dispatch and signed `.cake` files. <br> HTML5 反應堆供電蛋糕工廠遊戲，附牛奶來源、蛋來源、供應商送貨等候時間、混合奶牛飼料、擠奶間／禽舍衛生、操作員運行嘅公用工程廠、已審核原料批號、QA 實驗室放行、倉庫批次備料、有限補給／公用工程、計時原料工廠、雲呢拿萃取、紙盒包裝廠、具名副產物／廢水處理、廠房維修、手動 HACCP 放行關卡、客戶訂單出貨同已簽署 `.cake` 檔。 | `cakefactory` |
 | **Feed Reader · RSS 閱讀器** | Native RSS/Atom reader inspired by QuiteRSS and Fluent Reader. <br> 受 QuiteRSS 同 Fluent Reader 啟發嘅原生 RSS／Atom 閱讀器。 | `rss` |

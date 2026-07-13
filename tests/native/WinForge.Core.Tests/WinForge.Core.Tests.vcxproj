@@ -47,19 +47,37 @@
       <AdditionalOptions>%(AdditionalOptions) /utf-8</AdditionalOptions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Shell32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Advapi32.lib;Shell32.lib;Winhttp.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="PackageManagerTests.cpp" />
+    <ClCompile Include="PackageParsers.Tests.cpp" />
+    <ClCompile Include="PackageRuntimeTests.cpp" />
+    <ClCompile Include="ProcessRunnerTests.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\CommandLine.cpp" />
+    <ClCompile Include="..\..\..\src\WinForge.Core\PackageManager.cpp" />
+    <ClCompile Include="..\..\..\src\WinForge.Core\PackageParsers.cpp" />
+    <ClCompile Include="..\..\..\src\WinForge.Core\PackageRuntime.cpp" />
+    <ClCompile Include="..\..\..\src\WinForge.Core\ProcessRunner.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\RouteIndex.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="PackageManagerTests.h" />
+    <ClInclude Include="PackageRuntimeTests.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\CommandLine.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\Localization.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\ModuleRecord.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\PackageManager.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\PackageParsers.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\PackageRuntime.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\ProcessRunner.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\RouteIndex.h" />
+    <ClInclude Include="ProcessRunnerTests.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Fixtures\PackageManagers\*.*" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />

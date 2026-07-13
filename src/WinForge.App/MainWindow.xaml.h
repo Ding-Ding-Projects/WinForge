@@ -3,7 +3,11 @@
 #include "MainWindow.g.h"
 #include "../WinForge.Core/CommandLine.h"
 #include "../WinForge.Core/ModuleRecord.h"
+#include "../WinForge.Core/PackageRuntime.h"
 #include "../WinForge.Core/RouteIndex.h"
+
+#include <cstdint>
+#include <stop_token>
 
 namespace winrt::WinForge::implementation
 {
@@ -12,6 +16,17 @@ namespace winrt::WinForge::implementation
         MainWindow();
 
     private:
+        struct PackageManagerRunState
+        {
+            std::wstring manager_key;
+            bool success{ false };
+            bool parser_supported{ true };
+            bool requires_runtime_resolution{ false };
+            std::size_t package_count{ 0 };
+            std::wstring output;
+            std::wstring diagnostic;
+        };
+
         winforge::core::LanguageMode m_language{ winforge::core::LanguageMode::Bilingual };
         std::vector<winforge::core::ModuleRecord> m_modules;
         winforge::core::RouteIndex m_routeIndex;
@@ -21,6 +36,29 @@ namespace winrt::WinForge::implementation
         Microsoft::UI::Xaml::Controls::ComboBox m_languagePicker{ nullptr };
         Microsoft::UI::Xaml::Controls::ListView m_allAppsList{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_allAppsCount{ nullptr };
+        Microsoft::UI::Xaml::Controls::ComboBox m_packageViewPicker{ nullptr };
+        Microsoft::UI::Xaml::Controls::AutoSuggestBox m_packageSearchBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::Button m_packagePrimaryAction{ nullptr };
+        Microsoft::UI::Xaml::Controls::Button m_packageSecondaryAction{ nullptr };
+        Microsoft::UI::Xaml::Controls::Button m_packageOperationsAction{ nullptr };
+        Microsoft::UI::Xaml::Controls::ProgressRing m_packageBusy{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_packageResultsHeader{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_packageLiveStatus{ nullptr };
+        Microsoft::UI::Xaml::Controls::StackPanel m_packageResults{ nullptr };
+        Microsoft::UI::Xaml::Controls::StackPanel m_packageManagerFilters{ nullptr };
+        std::unordered_map<std::wstring, bool> m_packageManagersSelected;
+        std::unordered_map<std::wstring, bool> m_packageManagersAvailable;
+        std::unordered_map<std::wstring, std::wstring> m_packageProbeDiagnostics;
+        std::vector<winforge::core::packages::PackageItem> m_packageItems;
+        std::vector<PackageManagerRunState> m_packageRunStates;
+        std::vector<std::wstring> m_packageOperationLog;
+        std::stop_source m_packageStopSource;
+        std::uint64_t m_packageGeneration{ 0 };
+        winforge::core::packages::PackageAction m_packageLastAction{
+            winforge::core::packages::PackageAction::Probe };
+        bool m_packageProbeComplete{ false };
+        bool m_packageWorking{ false };
+        int32_t m_packageView{ 0 };
         std::wstring m_currentRoute{ L"dashboard" };
         std::wstring m_currentArgument{};
 
@@ -34,6 +72,35 @@ namespace winrt::WinForge::implementation
         void RenderDashboard();
         void RenderAllApps(std::wstring_view query = {});
         void PopulateAllApps(std::wstring_view query);
+        void RenderPackageManager();
+        void RenderPackageManagerView();
+        void PopulatePackageManagerFilters(Microsoft::UI::Xaml::Controls::StackPanel const& panel);
+        void CancelPackageWork();
+        [[nodiscard]] bool InvalidatePackageQueryResults();
+        void AnnouncePackageStatus(
+            std::wstring_view en,
+            std::wstring_view zh,
+            bool assertive = false);
+        void StartPackageManagerProbes();
+        void StartPackageQuery();
+        [[nodiscard]] bool HasSelectedAvailablePackageManager() const;
+        void ProbePackageManagersAsync(
+            std::uint64_t generation,
+            std::stop_token cancellationToken);
+        void QueryPackageManagersAsync(
+            std::uint64_t generation,
+            winforge::core::packages::PackageAction action,
+            std::wstring query,
+            std::vector<std::wstring> managerKeys,
+            std::stop_token cancellationToken);
+        void CompletePackageManagerProbes(
+            std::uint64_t generation,
+            std::vector<std::pair<std::wstring, winforge::core::packages::PackageRuntimeResult>> results);
+        void CompletePackageQuery(
+            std::uint64_t generation,
+            winforge::core::packages::PackageAction action,
+            std::vector<std::pair<std::wstring, winforge::core::packages::PackageRuntimeResult>> results);
+        [[nodiscard]] int32_t PackageViewFromArgument(std::wstring_view argument) const;
         void RenderSearch(std::wstring_view query);
         void RenderAbout();
         void RenderPending(winforge::core::ModuleRecord const& module);

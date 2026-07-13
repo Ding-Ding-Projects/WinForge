@@ -1,12 +1,19 @@
 #include "CommandLine.h"
 #include "Localization.h"
+#include "PackageManagerTests.h"
+#include "PackageRuntime.h"
+#include "PackageRuntimeTests.h"
+#include "ProcessRunnerTests.h"
 #include "RouteIndex.h"
 
+#include <chrono>
 #include <iostream>
 #include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
+
+int RunPackageParserTests();
 
 namespace
 {
@@ -28,8 +35,32 @@ namespace
     }
 }
 
-int wmain()
+int wmain(int argc, wchar_t** argv)
 {
+    if (auto const helperResult = winforge::tests::TryRunProcessRunnerHelper(argc, argv);
+        helperResult >= 0)
+    {
+        return helperResult;
+    }
+
+    if (argc == 3 && std::wstring_view(argv[1]) == L"--package-probe")
+    {
+        winforge::core::packages::PackageRuntimeOptions options;
+        options.timeout = std::chrono::seconds(20);
+        auto const started = std::chrono::steady_clock::now();
+        auto const result = winforge::core::packages::ProbePackageManager(argv[2], options);
+        auto const elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - started);
+        std::wcout << L"manager=" << argv[2]
+            << L" success=" << result.success
+            << L" started=" << result.command_started
+            << L" timeout=" << result.timed_out
+            << L" cancelled=" << result.cancelled
+            << L" elapsed_ms=" << elapsed.count()
+            << L" diagnostic=" << result.diagnostic << L'\n';
+        return result.success ? 0 : 2;
+    }
+
     using winforge::core::LanguageMode;
     using winforge::core::LocalizedText;
     using winforge::core::NormalizeRouteKey;
@@ -42,6 +73,18 @@ int wmain()
 
     request = ParseLaunchRequest({ L"WinForge.exe", L"--page=module.packages#updates" });
     Expect(request.route == L"module.packages" && request.argument == L"#updates", "preserves module fragments");
+
+    request = ParseLaunchRequest({ L"WinForge.exe", L"--page", L"package-discover" });
+    Expect(request.route == L"module.packages" && request.argument == L"#discover", "package-discover selects Discover");
+
+    request = ParseLaunchRequest({ L"WinForge.exe", L"--page", L"package-updates" });
+    Expect(request.route == L"module.packages" && request.argument == L"#updates", "package-updates selects Updates");
+
+    request = ParseLaunchRequest({ L"WinForge.exe", L"--page", L"package-installed" });
+    Expect(request.route == L"module.packages" && request.argument == L"#installed", "package-installed selects Installed");
+
+    request = ParseLaunchRequest({ L"WinForge.exe", L"--page=packages-updates" });
+    Expect(request.route == L"module.packages" && request.argument == L"#updates", "plural package view aliases preserve managed routing");
 
     request = ParseLaunchRequest({ L"WinForge.exe", L"--page", L"weblogin?url=https://example.test/path" });
     Expect(request.route == L"weblogin" && request.argument == L"?url=https://example.test/path", "preserves web-login query");
@@ -112,6 +155,17 @@ int wmain()
     }
     Expect(rejectedDuplicate, "rejects duplicate canonical route keys");
 
-    std::cout << "\n" << passed << " passed, " << failed << " failed\n";
-    return failed == 0 ? 0 : 1;
+    winforge::tests::RunProcessRunnerTests(Expect);
+
+    auto const package_manager_counts = RunPackageManagerTests();
+    passed += package_manager_counts.passed;
+    failed += package_manager_counts.failed;
+
+    auto const package_runtime_counts = RunPackageRuntimeTests();
+    passed += package_runtime_counts.passed;
+    failed += package_runtime_counts.failed;
+
+    auto const packageParserFailures = RunPackageParserTests();
+    std::cout << "\nCore route/package-manager tests: " << passed << " passed, " << failed << " failed\n";
+    return failed == 0 && packageParserFailures == 0 ? 0 : 1;
 }

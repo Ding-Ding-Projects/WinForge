@@ -98,7 +98,7 @@
       <AdditionalOptions>%(AdditionalOptions) /bigobj /utf-8</AdditionalOptions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Shell32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Advapi32.lib;Shell32.lib;Winhttp.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
@@ -135,6 +135,10 @@
     <ClInclude Include="..\WinForge.Core\CommandLine.h" />
     <ClInclude Include="..\WinForge.Core\Localization.h" />
     <ClInclude Include="..\WinForge.Core\ModuleRecord.h" />
+    <ClInclude Include="..\WinForge.Core\PackageManager.h" />
+    <ClInclude Include="..\WinForge.Core\PackageParsers.h" />
+    <ClInclude Include="..\WinForge.Core\PackageRuntime.h" />
+    <ClInclude Include="..\WinForge.Core\ProcessRunner.h" />
     <ClInclude Include="..\WinForge.Core\RouteIndex.h" />
   </ItemGroup>
   <ItemGroup>
@@ -149,6 +153,18 @@
     </ClCompile>
     <ClCompile Include="CatalogLoader.cpp" />
     <ClCompile Include="..\WinForge.Core\CommandLine.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\WinForge.Core\PackageManager.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\WinForge.Core\PackageParsers.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\WinForge.Core\PackageRuntime.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\WinForge.Core\ProcessRunner.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\WinForge.Core\RouteIndex.cpp">

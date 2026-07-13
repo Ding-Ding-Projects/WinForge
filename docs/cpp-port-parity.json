@@ -5416,25 +5416,39 @@
                        "kind":  "route",
                        "parentId":  null,
                        "source":  [
-                                      "src/WinForge.App/Resources/modules.json"
+                                      "src/WinForge.App/Resources/modules.json",
+                                      "src/WinForge.App/MainWindow.xaml.cpp",
+                                      "src/WinForge.Core/CommandLine.cpp",
+                                      "src/WinForge.Core/PackageManager.cpp",
+                                      "src/WinForge.Core/PackageParsers.cpp",
+                                      "src/WinForge.Core/PackageRuntime.cpp",
+                                      "src/WinForge.Core/ProcessRunner.cpp",
+                                      "tests/native/WinForge.Core.Tests/PackageManagerTests.cpp",
+                                      "tests/native/WinForge.Core.Tests/PackageParsers.Tests.cpp",
+                                      "tests/native/WinForge.Core.Tests/PackageRuntimeTests.cpp",
+                                      "tests/native/WinForge.Core.Tests/ProcessRunnerTests.cpp",
+                                      "tests/native/WinForge.Core.Tests/main.cpp",
+                                      "eng/native/Invoke-NativeShellSmoke.ps1",
+                                      "eng/native/Invoke-NativePackageManagerLiveSmoke.ps1",
+                                      "ThirdParty/UniGetUI.UPSTREAM.md"
                                   ],
                        "risk":  "stateful",
                        "expected":  "Package Manager · 套件管理 is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
-                       "status":  "not-started",
+                       "status":  "in-progress",
                        "evidence":  {
-                                        "static":  "not-started",
-                                        "build":  "not-started",
-                                        "test":  "not-started",
-                                        "launch":  "not-started",
-                                        "visual":  "not-started",
-                                        "behavior":  "not-started",
+                                        "static":  "static-pass",
+                                        "build":  "build-pass",
+                                        "test":  "test-pass",
+                                        "launch":  "launch-pass",
+                                        "visual":  "capture-blocked",
+                                        "behavior":  "in-progress",
                                         "sideEffect":  "not-started",
-                                        "docs":  "not-started"
+                                        "docs":  "pass"
                                     },
                        "attempts":  [
 
                                     ],
-                       "notes":  "C++ parity evidence has not yet been recorded."
+                       "notes":  "2026-07-13 · IN PROGRESS / 進行中. Native C++ exposes nine views and 11 Windows manager adapters. Discover, Updates, and Installed have read-only result queries; Sources is a read-only command probe that deliberately withholds all raw configuration and diagnostics until manager-specific secret redaction is proven. Argument-vector handling, executable/PATH resolution, HTTP and captured-output bounds, process-token verification, explicit state, fail-closed integrity checks, and accessibility/UI Automation contracts are hardened. Debug and Release core suites each passed 160/160, including singular/plural alias-to-view routing; the elevated process-owned shell passed 31/31, including exact package-discover/package-updates/package-installed view selection; the catalog verifier passed 346 fixed routes, five dynamic families, 319 registry records, and 22 categories; the Release PE audit found no CLR descriptor/import. Normal-integrity live external-query evidence is blocked because even an interactive RunLevel=Limited task launched elevated (`candidate smoke token is still elevated`), so the verifier failed closed before querying. Visual evidence remains capture-blocked: CopyFromScreen is unavailable and PrintWindow returned a blank/near-uniform WinUI client frame. Mutation, Bundles, Ignored, Setup, Settings, queue parity, .NET update resolution, PyPI hydration, and manager-specific source redaction/presentation remain incomplete. The complete 1,002-file Devolutions/UniGetUI main snapshot at 21116375c8299d1db38a3c3b4c2eb7e18bc97c4e (2026-07-10, MIT) is provenance/reference only, excluded from runtime, and not parity evidence. · 原生 C++ 已有九個 view、11 個 Windows manager adapter，Discover／Updates／Installed 只讀結果查詢，同會隱藏全部原始輸出嘅 Sources 指令探測；Debug／Release 160/160 同提權 UI 31/31 通過，準確 alias 亦已驗證，但正常 integrity 外部查詢、視覺證據同逐管理器來源遮罩仍受阻，變更操作及其餘列出功能未完成。UniGetUI snapshot 只係來源／參考，唔代表對等。"
                    },
                    {
                        "id":  "module.packer",
@@ -8722,25 +8736,32 @@
                               "source":  [
                                              "MainWindow.xaml.cs",
                                              "Services/PackageManagerViewRouting.cs",
-                                             "Pages/PackageManagerModule.xaml.cs"
+                                             "Pages/PackageManagerModule.xaml.cs",
+                                             "src/WinForge.App/MainWindow.xaml.cpp",
+                                             "src/WinForge.Core/CommandLine.cpp",
+                                             "src/WinForge.Core/PackageManager.cpp",
+                                             "src/WinForge.Core/PackageRuntime.cpp",
+                                             "tests/native/WinForge.Core.Tests/main.cpp",
+                                             "eng/native/Invoke-NativeShellSmoke.ps1",
+                                             "eng/native/Invoke-NativePackageManagerLiveSmoke.ps1"
                                          ],
                               "risk":  "safe",
                               "expected":  "PackageManagerModule selected view",
-                              "status":  "not-started",
+                              "status":  "in-progress",
                               "evidence":  {
-                                               "static":  "not-started",
-                                               "build":  "not-started",
-                                               "test":  "not-started",
-                                               "launch":  "not-started",
-                                               "visual":  "not-started",
-                                               "behavior":  "not-started",
+                                               "static":  "static-pass",
+                                               "build":  "build-pass",
+                                               "test":  "test-pass",
+                                               "launch":  "launch-pass",
+                                               "visual":  "capture-blocked",
+                                               "behavior":  "in-progress",
                                                "sideEffect":  "not-started",
-                                               "docs":  "not-started"
+                                               "docs":  "pass"
                                            },
                               "attempts":  [
 
                                            ],
-                              "notes":  "C++ parity evidence has not yet been recorded."
+                              "notes":  "2026-07-13 · IN PROGRESS / 進行中. The native shell resolves package-discover, package-updates, and package-installed to the exact Discover, Updates, and Installed views; plural compatibility aliases are covered in the core suite. Debug and Release regression suites each passed 160/160, and the elevated process-owned UI Automation shell passed 31/31, including end-to-end deterministic selection for all three singular aliases and fail-closed elevation behavior. Normal-integrity live external-query evidence remains blocked because Windows returned an elevated token for an interactive RunLevel=Limited task (`candidate smoke token is still elevated`), so no live-query pass is claimed. Fresh native visual evidence remains capture-blocked because CopyFromScreen is unavailable and PrintWindow returned a blank/near-uniform WinUI frame. Query results are read-only; install, update, uninstall, bulk actions, and operation coordination remain gated. · 三條套件 deep link 已準確開到 Discover／Updates／Installed；Debug／Release 160/160 同提權 UI 31/31 通過，單數 alias 全部做過 end-to-end 驗證，但正常 integrity 外部查詢同視覺證據仍受阻，所有修改操作仍然鎖住。"
                           },
                           {
                               "id":  "search:\u003cquery\u003e",
