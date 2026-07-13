@@ -23,7 +23,7 @@ The dynamic families are `search:<query>`, `manual:<fragment>`, `module.<id>#<fr
 - Honest pending pages for unported features; resolving a route does not count as a port. · 未移植功能會顯示 pending 頁；路線開到唔代表已移植。
 - Native parity ledger plus process-owned unit and UI Automation smoke harnesses. · 原生對等清單，同只控制自己 process 嘅單元／UI Automation 冒煙測試。
 
-Package Manager and its three fragments are catalogued but its native behavior remains pending. The pinned UniGetUI snapshot is provenance, not a completed native implementation. · 套件管理同三個 fragment 已入目錄，但原生功能仍然未完成；固定 UniGetUI snapshot 係來源證明，唔係完成咗嘅原生實作。
+Package Manager is now an honest **in-progress** native port. All nine views and 11 manager filters render; Discover, Updates, and Installed provide read-only result queries, while Sources runs a read-only command probe whose raw configuration and diagnostics are withheld until manager-specific secret redaction is proven. Every mutation plus Bundles, Ignored, Setup bootstrap, Settings, and the real Operations coordinator remains gated. The complete pinned UniGetUI snapshot is provenance and a behavior inventory, not parity or an embedded implementation. · 套件管理而家係如實標示為**進行中**嘅原生移植。全部九個檢視同 11 個管理器篩選都會顯示；Discover、Updates 同 Installed 提供只讀結果查詢，Sources 就執行只讀指令探測，但逐管理器機密遮罩未證實之前會隱藏原始設定同診斷。所有修改操作、Bundles、Ignored、Setup bootstrap、Settings 同真正 Operations 協調器仍然鎖住。完整固定 UniGetUI snapshot 只係來源依據同行為清單，唔係對等或者內嵌實作。
 
 ## Verification · 驗證
 
@@ -35,10 +35,12 @@ powershell -ExecutionPolicy Bypass -File eng\native\Invoke-NativeShellSmoke.ps1
 ```
 
 - Debug and Release x64 builds: **0 errors**. · Debug 同 Release x64 建置：**0 errors**。
-- Core regressions: **21 passed, 0 failed**. · 核心回歸：**21 passed, 0 failed**。
-- Live shell smoke: **20 passed, 0 failed**. · 即時 shell 冒煙：**20 passed, 0 failed**。
+- Native core regressions: **160/160 in Debug and 160/160 in Release**, including Package Manager alias-to-view routing. · 原生核心回歸：Debug **160/160**、Release **160/160**，包括套件管理 alias 對應準確檢視。
+- Elevated process-owned shell smoke: **31/31**, including exact Discover/Updates/Installed alias selection. This verifies UI and fail-closed safety behavior, not normal-integrity external queries. · 提權、自有 process shell 冒煙：**31/31**，包括準確揀返 Discover／Updates／Installed alias；呢項驗證 UI 同 fail-closed 安全行為，唔代表正常 integrity 外部查詢。
 - Catalog parity: 346 fixed routes + five dynamic families passed exact id, alias, count, and UTF-8 bilingual checks. · 目錄對等：346 固定路線 + 五組動態路線通過精確 id、alias、數量同 UTF-8 雙語檢查。
 - Foundation Release PE audit: zero COM descriptor and no `coreclr`, `hostfxr`, or `mscoree` import; this is native-binary evidence, not feature-parity evidence. · 基礎 Release PE 審查：COM descriptor 係零，而且冇 `coreclr`、`hostfxr` 或 `mscoree` import；呢項係原生 binary 證據，唔係功能對等證據。
+
+Normal-integrity live external-query evidence remains **blocked**. Even an interactive scheduled task configured with `RunLevel=Limited` received an elevated Windows token, so the verifier stopped at `candidate smoke token is still elevated` before running a package-manager query. No live-query pass is claimed. · 正常 integrity 即時外部查詢證據仍然**受阻**。即使互動式排程工作設為 `RunLevel=Limited`，Windows 仍然回傳提權 token，所以 verifier 喺執行套件管理查詢之前以 `candidate smoke token is still elevated` 停止；唔會聲稱 live query 已通過。
 
 ## Screenshot status · 截圖狀態
 

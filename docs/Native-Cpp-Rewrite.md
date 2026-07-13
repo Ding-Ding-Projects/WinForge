@@ -41,9 +41,17 @@ Four legacy process-launch aliases intentionally collide with canonical category
 - A parity ledger with separate static, build, test, launch, visual, behavior, side-effect, and documentation evidence dimensions. · 對等清單會分開 static、build、test、launch、visual、behavior、副作用同文件證據。
 - Updated driver support for `-Native`, plus process-owned UI Automation smoke testing. · driver 已支援 `-Native`，亦加咗只控制自己 process 嘅 UI Automation 冒煙測試。
 
-Package Manager is catalogued and deep-linkable, including its three fragments, but its native service and controls are still pending. The pinned 1,002-file UniGetUI source snapshot remains provenance and a behavior reference; it is not counted as a native port.
+Package Manager has moved from pending to an honest **in-progress** native C++ port. Its native surface exposes all nine views—Discover, Updates, Installed, Bundles, Sources, Ignored, Setup, Settings, and Operations—and all 11 Windows manager adapters: WinGet, Scoop, Chocolatey, pip, npm, .NET Tool, PowerShell Gallery, PowerShell 7, Cargo, Bun, and vcpkg. Read-only result queries are wired for Discover, Updates, and Installed; Sources runs only a read-only command probe, and its raw configuration and diagnostics are deliberately withheld until manager-specific secret redaction is proven. The runtime preserves the argument vector instead of rebuilding shell strings, constrains executable and `PATH` resolution, bounds HTTP responses and captured output, verifies process tokens, keeps sensitive source data behind the runtime boundary, publishes explicit probe/query state, fails closed for unsafe integrity, and exposes stable accessibility/UI Automation contracts.
 
-套件管理已經入目錄同可以深層連結，三個 fragment 都包括在內，但原生 service 同 controls 仍然未完成。已固定嘅 1,002 檔 UniGetUI source snapshot 只係來源證明同功能參考，唔會當成原生移植完成。
+套件管理已經由 pending 推進到如實標示為**進行中**嘅原生 C++ 移植。原生介面而家有全部九個 view——Discover、Updates、Installed、Bundles、Sources、Ignored、Setup、Settings 同 Operations——亦有全部 11 個 Windows manager adapter：WinGet、Scoop、Chocolatey、pip、npm、.NET Tool、PowerShell Gallery、PowerShell 7、Cargo、Bun 同 vcpkg。Discover、Updates 同 Installed 已經接好只讀結果查詢；Sources 只會執行只讀指令探測，逐管理器機密遮罩未證實之前會刻意隱藏原始設定同診斷。runtime 會保留原本 argument vector，唔會重新拼 shell string；亦會限制 executable 同 `PATH` 解析、為 HTTP response 同擷取輸出設上限、驗證 process token、將敏感來源資料留喺 runtime 邊界之後、清楚發佈 probe／query 狀態、遇到不安全 integrity 就 fail closed，並提供穩定 accessibility／UI Automation contract。
+
+This is not Package Manager parity. Package mutation (install, update, and uninstall), Bundles, Ignored, Setup, Settings, the operation queue, .NET update resolution, and PyPI metadata hydration remain incomplete.
+
+呢個唔係套件管理功能對等。套件變更（安裝、更新同解除安裝）、Bundles、Ignored、Setup、Settings、operation queue、.NET 更新解析同 PyPI metadata hydration 仍然未完成。
+
+`ThirdParty/UniGetUI` is the complete 1,002-file tracked-source snapshot of Devolutions/UniGetUI `main` at commit `21116375c8299d1db38a3c3b4c2eb7e18bc97c4e`, dated 2026-07-10 and preserved under the MIT license. It remains excluded from build and publish output. The snapshot is exact provenance and a behavior reference only—not an embedded runtime, copied product identity, or evidence of parity.
+
+`ThirdParty/UniGetUI` 係 Devolutions/UniGetUI `main` 喺 commit `21116375c8299d1db38a3c3b4c2eb7e18bc97c4e` 嘅完整 1,002 檔 tracked-source snapshot，日期係 2026-07-10，並按 MIT license 保留；建置同發佈輸出仍然會排除佢。呢份 snapshot 只係精確來源證明同功能參考，唔係內嵌 runtime、複製產品身份，亦唔係對等證據。
 
 ## Build and verification · 建置同驗證
 
@@ -71,10 +79,14 @@ Evidence for this batch:
 呢批證據：
 
 - Native Debug and Release x64 solution builds: **0 errors**. · 原生 Debug 同 Release x64 solution build：**0 errors**。
-- Core tests: **21 passed, 0 failed**. · 核心測試：**21 passed, 0 failed**。
-- Live shell smoke: **20 passed, 0 failed**. · 即時 shell 冒煙：**20 passed, 0 failed**。
+- Native core regression suite: **160/160 in Debug and 160/160 in Release**, including singular/plural Package Manager alias-to-view routing. · 原生核心回歸套件：Debug **160/160**、Release **160/160**，包括單數／複數套件管理 alias 對應準確檢視。
+- Elevated process-owned shell smoke: **31/31**, including exact `package-discover`, `package-updates`, and `package-installed` view selection. This verifies the elevated UI and safety-lock behavior, not a normal-integrity external query. · 提權、自有 process shell 冒煙：**31/31**，包括 `package-discover`、`package-updates` 同 `package-installed` 準確揀返檢視；呢項證明提權 UI 同安全鎖行為，唔係正常 integrity 外部查詢證據。
 - Catalog verifier: 346 fixed routes, five dynamic families, 319 registry records, 22 categories, 346 ledger rows; exact alias sets and UTF-8 Cantonese checks passed. · 目錄驗證：346 固定路線、五組動態路線、319 registry 記錄、22 分類、346 清單項；精確 alias set 同 UTF-8 粵語檢查全部通過。
 - Foundation Release PE audit: the COM Descriptor Directory is zero and the import table contains no `coreclr`, `hostfxr`, or `mscoree`. This proves the current shell binary is native; it does not prove feature parity. · 基礎 Release PE 審查：COM Descriptor Directory 係零，import table 冇 `coreclr`、`hostfxr` 或 `mscoree`。呢項只證明目前 shell binary 係原生，唔代表功能已對等。
+
+The normal-integrity live external-query gate remains **blocked**. The harness launched the exact native executable through an interactive scheduled task configured with `RunLevel=Limited`, then independently inspected the resulting process token. Windows still produced an elevated token, and verification stopped with `candidate smoke token is still elevated`; the harness therefore failed closed before running an external package-manager query. The elevated 31/31 result is not substituted for this missing normal-integrity evidence.
+
+正常 integrity 即時外部查詢閘門仍然係**受阻**。harness 用設為 `RunLevel=Limited` 嘅互動式排程工作開啟同一個原生 executable，再獨立檢查實際 process token；Windows 仍然產生提權 token，驗證以 `candidate smoke token is still elevated` 停止，所以 harness 喺執行任何外部套件管理查詢之前已經 fail closed。提權環境嘅 31/31 結果唔會頂替欠缺嘅正常 integrity 證據。
 
 ## Visual evidence disposition · 視覺證據處置
 
@@ -87,9 +99,9 @@ CopyFromScreen is unavailable and the PrintWindow fallback produced a blank or
 near-uniform WinUI client frame; graphics capture is unavailable in this desktop session.
 ```
 
-No blank, stale, synthetic, or managed-app image was retained or substituted. UI Automation independently found the bilingual navigation tree, page titles, migration InfoBar, buttons, All Apps list, Package Manager pending surface, and live filter, which is launch/behavior evidence only—not a visual pass. Dashboard, All Apps, About, and native Package Manager remain `capture-blocked` until a real composited frame can be captured and inspected.
+No blank, stale, synthetic, or managed-app image was retained or substituted. UI Automation independently found the bilingual navigation tree, page titles, migration InfoBar, buttons, All Apps list, the Package Manager nine-view/11-manager read-only surface, and live filter. That is launch/behavior evidence only—not a visual pass. Dashboard, All Apps, About, and native Package Manager remain `capture-blocked` until a real composited frame can be captured and inspected.
 
-冇保留或者頂替任何空白、舊、合成、或者受控版圖片。UI Automation 另外搵到雙語導覽樹、page title、遷移 InfoBar、按鈕、所有 app 清單、套件管理 pending 介面同即時篩選；呢啲只係 launch／behavior 證據，唔係 visual pass。Dashboard、所有 app、About 同原生套件管理要等真正 composited frame 擷取兼檢查到，先可以解除 `capture-blocked`。
+冇保留或者頂替任何空白、舊、合成、或者受控版圖片。UI Automation 另外搵到雙語導覽樹、page title、遷移 InfoBar、按鈕、所有 app 清單、套件管理九 view／11 manager 唯讀介面同即時篩選。呢啲只係 launch／behavior 證據，唔係 visual pass。Dashboard、所有 app、About 同原生套件管理要等真正 composited frame 擷取兼檢查到，先可以解除 `capture-blocked`。
 
 ## Safety and compatibility gates · 安全同相容閘門
 

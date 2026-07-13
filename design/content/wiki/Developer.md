@@ -222,6 +222,6 @@ powershell -ExecutionPolicy Bypass -File eng\native\Test-NativeCatalogParity.ps1
 powershell -ExecutionPolicy Bypass -File eng\native\Invoke-NativeShellSmoke.ps1
 ```
 
-See [Native C++ Rewrite](Native-Cpp-Rewrite.md) for the 346-route + five-family contract, current 21/21 and 20/20 evidence, screenshot blocker, safety invariants, and no-CLR cutover rule. · 346 路線 + 五組動態合約、目前 21/21 同 20/20 證據、截圖阻礙、安全 invariant 同 no-CLR 切換規則，請睇[原生 C++ 重寫](Native-Cpp-Rewrite.md)。
+See [Native C++ Rewrite](Native-Cpp-Rewrite.md) for the 346-route + five-family contract, current Debug/Release 160/160 regressions, elevated 31/31 shell evidence, normal-integrity and screenshot blockers, safety invariants, and no-CLR cutover rule. · 346 路線 + 五組動態合約、目前 Debug／Release 160/160 回歸、提權 31/31 shell 證據、正常 integrity 同截圖阻礙、安全 invariant 同 no-CLR 切換規則，請睇[原生 C++ 重寫](Native-Cpp-Rewrite.md)。
 
 [← Wiki Home](Home.md)
