@@ -179,6 +179,18 @@ self-contained capture 嘗試。視窗有去到，但 `CopyFromScreen` 唔可用
 fallback 產生 uniform frame。冇 `textsort-default.png` 儲存、檢查、替換或者重用；
 成個 slice 係 `capture-blocked`，唔係 visual-pass。
 
+**EN —** Batch 13 made fresh self-contained capture attempts for VirtualBox and the
+repaired All Apps dialog. Both reached WinForge, but `CopyFromScreen` was unavailable
+and `PrintWindow` produced a uniform frame. No `virtualbox-default.png` or
+`shell-allapps-default.png` was saved, inspected, replaced, or reused; these are
+`capture-blocked`, not visual-pass results.
+
+**粵語 —** Batch 13 為 VirtualBox 同修正後嘅 All Apps dialog 做咗新嘅
+self-contained capture 嘗試。兩個都有去到 WinForge，但 `CopyFromScreen` 唔可用，而
+`PrintWindow` 產生 uniform frame。冇 `virtualbox-default.png` 或
+`shell-allapps-default.png` 儲存、檢查、替換或者重用；呢啲係 `capture-blocked`，
+唔係 visual-pass 結果。
+
 ## Redaction Rules · 遮蔽規則
 
 **EN —** Before adding screenshots, redact or avoid personal data: Windows usernames, home-folder paths, repo paths outside WinForge, hostnames, IPs that identify private networks, account names, emails, API keys, tokens, session cookies, vault item names, SSH profiles, and real package/source credentials. Use `winforge-shot --redact "x|y|w|h|box|blur|pixelate"` to obscure regions irreversibly; see the [Wiki Screenshot Workflow](Wiki-Screenshot-Workflow.md).

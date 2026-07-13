@@ -247,6 +247,23 @@ fixture 係 3/3 通過。literal-safety guard 同 Debug x64 build 都以 0 error
 Text Sort capture 明確係 `capture-blocked`——CopyFromScreen 唔可用而 PrintWindow 係
 uniform——所以冇加 PNG 或者當成 visual proof。請睇 [Batch 12 證據](docs/Smoke-Launch-Batch-12.md)。
 
+**EN —** Batch 13 completes current process-level route coverage: indices 300–321
+passed their initial five-second launch (**22/22**, no retry), and the special
+`shell.allapps` modal route passed its UI-Automation check. The sweep repaired the
+missing command-line All Apps route, Unicode-scalar character counting, and YAML root /
+escaped-quote round trips; focused harnesses pass 3/3 and 7/7. The final Debug x64 build
+has 0 errors. Fresh VirtualBox and All Apps screenshot attempts are capture-blocked
+(CopyFromScreen unavailable; PrintWindow uniform), so no PNG is claimed as visual proof.
+See [Batch 13 evidence](docs/Smoke-Launch-Batch-13.md).
+
+**粵語 —** Batch 13 完成而家嘅 process-level route coverage：indices 300–321 第一次
+五秒 launch 通過（**22/22**，冇 retry），特別嘅 `shell.allapps` modal route 都通過
+UI-Automation check。呢輪修正咗 command-line All Apps route 遺漏、Unicode-scalar 字符
+統計，同 YAML root／escaped-quote round trips；focused harnesses 係 3/3 同 7/7 通過。
+最後 Debug x64 build 有 0 errors。新嘅 VirtualBox 同 All Apps 截圖嘗試都係
+capture-blocked（CopyFromScreen 唔可用；PrintWindow uniform），所以冇 PNG 當 visual
+proof。請睇 [Batch 13 證據](docs/Smoke-Launch-Batch-13.md)。
+
 ---
 
 **EN —** The XAML startup audit reproduced an HTML Table Convert crash while

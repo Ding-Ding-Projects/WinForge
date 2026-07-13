@@ -149,6 +149,19 @@ error, attempted fallback, and environment constraint. A route may be
 launch-pass without visual evidence, but it must never be visual-pass.
 Do not invent or retain stale screenshots as replacements.
 
+### 3a. Prove the route-coverage union before calling a campaign complete
+
+At campaign closeout, do not infer full coverage from a sequence of batch names.
+Compare the final manifest's route indices with every batch's result file and
+write the inclusive numeric ranges into the evidence report. Prove that the
+union has no gap or duplicate from index `0` through the final numeric route.
+
+Routes without a launchable alias (for example `shell.allapps`) must have their
+own explicit focused verifier and are not silently counted by a numeric page
+batch. Record their result beside the numeric union, including the dialog or
+surface automation IDs used. A changed manifest requires this calculation again;
+an earlier range proof cannot certify newly added routes.
+
 ### Hardware-monitor driver boundary
 
 LibreHardwareMonitor's `Computer.Close()` is the only permitted cleanup path
