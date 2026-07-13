@@ -51,11 +51,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="CheckDigitTests.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="PackageManagerTests.cpp" />
     <ClCompile Include="PackageParsers.Tests.cpp" />
     <ClCompile Include="PackageRuntimeTests.cpp" />
     <ClCompile Include="ProcessRunnerTests.cpp" />
+    <ClCompile Include="..\..\..\src\WinForge.Core\CheckDigit.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\CommandLine.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\PackageManager.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\PackageParsers.cpp" />
@@ -64,8 +66,10 @@
     <ClCompile Include="..\..\..\src\WinForge.Core\RouteIndex.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CheckDigitTests.h" />
     <ClInclude Include="PackageManagerTests.h" />
     <ClInclude Include="PackageRuntimeTests.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\CheckDigit.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\CommandLine.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\Localization.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\ModuleRecord.h" />
@@ -78,6 +82,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Fixtures\PackageManagers\*.*" />
+    <None Include="..\..\fixtures\iban-registry-release-102.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />

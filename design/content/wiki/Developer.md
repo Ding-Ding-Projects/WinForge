@@ -215,13 +215,19 @@ dotnet run --project tests/KeePassCrypto.Tests -c Debug
 
 **粵語 —** 遷移目標係 `WinForge.Native.sln`：自包含、免封裝 C++20／C++/WinRT WinUI 3 executable。用 repo driver 還原／建置，再跑原生核心、目錄對等同自有 process UI Automation suites。Pending 路線只係導航基礎，絕對唔可以標記做已移植功能。
 
+**EN —** Keep the legacy managed SDK project isolated from the rewrite: `WinForge.csproj` excludes both the ignored NuGet restore tree (`packages/**`) and the native source/generated tree (`src/**`) from its recursive items. Without that boundary, the managed XAML compiler can ingest MSIX property-page XAML or native generated XAML. The regular managed compile check must still finish with zero errors.
+
+**粵語 —** 舊受控 SDK project 要同重寫保持分隔：`WinForge.csproj` 會由遞迴項目排除已忽略嘅 NuGet restore tree（`packages/**`）同原生 source／generated tree（`src/**`）。冇呢條邊界，受控 XAML compiler 可能會錯食 MSIX property-page XAML 或原生 generated XAML。平常受控 compile check 仍然必須以零錯誤完成。
+
 ```powershell
 powershell -ExecutionPolicy Bypass -File .agents\skills\run-winforge\driver.ps1 -Native -Publish -Page dashboard -NoCapture
+dotnet build WinForge.sln -c Debug -p:Platform=x64
 tests\native\WinForge.Core.Tests\bin\x64\Debug\WinForge.Core.Tests.exe
+dotnet run --project tests\CheckDigitCore.Tests\CheckDigitCore.Tests.csproj -c Release
 powershell -ExecutionPolicy Bypass -File eng\native\Test-NativeCatalogParity.ps1
 powershell -ExecutionPolicy Bypass -File eng\native\Invoke-NativeShellSmoke.ps1
 ```
 
-See [Native C++ Rewrite](Native-Cpp-Rewrite.md) for the 346-route + five-family contract, current Debug/Release 160/160 regressions, elevated 31/31 shell evidence, normal-integrity and screenshot blockers, safety invariants, and no-CLR cutover rule. · 346 路線 + 五組動態合約、目前 Debug／Release 160/160 回歸、提權 31/31 shell 證據、正常 integrity 同截圖阻礙、安全 invariant 同 no-CLR 切換規則，請睇[原生 C++ 重寫](Native-Cpp-Rewrite.md)。
+See [Native C++ Rewrite](Native-Cpp-Rewrite.md) for the 346-route + five-family contract, current Debug/Release 208/208 regressions, managed Check Digit 24/24 parity, elevated 46/46 shell evidence, the native Check Digit slice, normal-integrity and screenshot blockers, safety invariants, and no-CLR cutover rule. · 346 路線 + 五組動態合約、目前 Debug／Release 208/208 回歸、受控檢查碼 24/24 對等、提權 46/46 shell 證據、原生檢查碼批次、正常 integrity 同截圖阻礙、安全 invariant 同 no-CLR 切換規則，請睇[原生 C++ 重寫](Native-Cpp-Rewrite.md)。
 
 [← Wiki Home](Home.md)

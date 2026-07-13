@@ -1,6 +1,7 @@
 #pragma once
 
 #include "MainWindow.g.h"
+#include "../WinForge.Core/CheckDigit.h"
 #include "../WinForge.Core/CommandLine.h"
 #include "../WinForge.Core/ModuleRecord.h"
 #include "../WinForge.Core/PackageRuntime.h"
@@ -46,6 +47,12 @@ namespace winrt::WinForge::implementation
         Microsoft::UI::Xaml::Controls::TextBlock m_packageLiveStatus{ nullptr };
         Microsoft::UI::Xaml::Controls::StackPanel m_packageResults{ nullptr };
         Microsoft::UI::Xaml::Controls::StackPanel m_packageManagerFilters{ nullptr };
+        Microsoft::UI::Xaml::Controls::ComboBox m_checkDigitSchemePicker{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_checkDigitInput{ nullptr };
+        Microsoft::UI::Xaml::Controls::Border m_checkDigitBadge{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_checkDigitBadgeText{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_checkDigitDetail{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_checkDigitStatus{ nullptr };
         std::unordered_map<std::wstring, bool> m_packageManagersSelected;
         std::unordered_map<std::wstring, bool> m_packageManagersAvailable;
         std::unordered_map<std::wstring, std::wstring> m_packageProbeDiagnostics;
@@ -59,6 +66,9 @@ namespace winrt::WinForge::implementation
         bool m_packageProbeComplete{ false };
         bool m_packageWorking{ false };
         int32_t m_packageView{ 0 };
+        int32_t m_checkDigitScheme{ 0 };
+        std::wstring m_checkDigitValue{};
+        bool m_checkDigitRendering{ false };
         std::wstring m_currentRoute{ L"dashboard" };
         std::wstring m_currentArgument{};
 
@@ -101,6 +111,9 @@ namespace winrt::WinForge::implementation
             winforge::core::packages::PackageAction action,
             std::vector<std::pair<std::wstring, winforge::core::packages::PackageRuntimeResult>> results);
         [[nodiscard]] int32_t PackageViewFromArgument(std::wstring_view argument) const;
+        void RenderCheckDigit();
+        void RefreshCheckDigit();
+        void AnnounceCheckDigitStatus(std::wstring_view message);
         void RenderSearch(std::wstring_view query);
         void RenderAbout();
         void RenderPending(winforge::core::ModuleRecord const& module);

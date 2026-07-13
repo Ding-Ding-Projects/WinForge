@@ -6,6 +6,10 @@ Canonical screenshots live in `docs/` and are embedded here through raw GitHub U
 
 ## Current Capture Status · 目前擷取狀態
 
+**EN —** On 2026-07-13 the newly native Check Digit Validator was launched through `driver.ps1 -Native -Page checkdigit`; its required fresh capture was attempted again after the standards and accessibility hardening rendered. `CopyFromScreen` was unavailable; the `PrintWindow` fallback produced a blank or near-uniform WinUI client frame and was rejected. The route separately passed all six live UI Automation scheme checks plus localized-name and stale-detail accessibility checks, but that is behavioral—not visual—evidence. No `screenshot-checkdigit.png` was created, replaced, reused, or synthesized; the page is `capture-blocked`.
+
+**粵語 —** 2026-07-13 新完成原生功能嘅檢查碼驗證器已經用 `driver.ps1 -Native -Page checkdigit` 開啟；標準同無障礙加固 render 後亦再次按要求嘗試新截圖。`CopyFromScreen` 用唔到；`PrintWindow` 後備產生空白／接近單色 WinUI client frame，所以已被拒絕。route 另外通過六個格式嘅即時 UI Automation 檢查、本地化名稱同清除舊 detail 無障礙檢查，但嗰啲係行為證據，唔係視覺證據。冇建立、替換、重用或者合成 `screenshot-checkdigit.png`；頁面係 `capture-blocked`。
+
 **EN —** On 2026-07-11, a fresh self-contained Dashboard capture reproduced
 `CopyFromScreen`: `The handle is invalid`. The direct `PrintWindow` fallback
 returned success but its inspected 682×1311 PNG was uniformly

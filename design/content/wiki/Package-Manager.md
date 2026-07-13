@@ -32,8 +32,8 @@ All install, update, uninstall, source, and bulk mutations remain separately gat
 
 ## Evidence and blockers · 證據同阻礙
 
-- Native tests pass **160/160 in Debug and 160/160 in Release**, including singular/plural alias-to-view routing. · 原生測試 Debug **160/160**、Release **160/160** 通過，包括單數／複數 alias 對應準確檢視。
-- The elevated, process-owned UI Automation shell passes **31/31** for routing—including exact Discover/Updates/Installed alias selection—filters, view/state contracts, fail-closed elevation behavior, and accessibility. It does not prove live external queries. · 提權、只控制自己 process 嘅 UI Automation shell **31/31** 通過，涵蓋導覽（包括準確揀返 Discover／Updates／Installed alias）、篩選、檢視／狀態合約、fail-closed 提權行為同無障礙；唔代表真實外部查詢已通過。
+- The expanded native suite passes **208/208 in Debug and 208/208 in Release**. Every prior Package Manager regression remains, including singular/plural alias-to-view routing; the additional checks cover Check Digit. · 擴充後原生套件 Debug **208/208**、Release **208/208** 通過；之前全部套件管理回歸都保留，包括單數／複數 alias 對應準確檢視，新增檢查就覆蓋檢查碼。
+- The elevated, process-owned UI Automation shell passes **46/46**. Every prior Package Manager assertion remains for routing—including exact Discover/Updates/Installed alias selection—filters, view/state contracts, fail-closed elevation behavior, and accessibility; added assertions cover Check Digit accessibility hardening. It does not prove live external queries. · 提權、只控制自己 process 嘅 UI Automation shell **46/46** 通過；之前全部套件管理 assertion 都保留，涵蓋導覽（包括準確揀返 Discover／Updates／Installed alias）、篩選、檢視／狀態合約、fail-closed 提權行為同無障礙，新增 assertion 就覆蓋檢查碼無障礙加固。唔代表真實外部查詢已通過。
 - Normal-integrity live smoke is blocked before package execution: even an interactive `RunLevel=Limited` task received a token that failed the standard-user proof. The harness stopped safely; no live-query pass is claimed. · 正常權限 live smoke 喺套件執行之前受阻：即使互動式工作設為 `RunLevel=Limited`，收到嘅 token 仍然未通過標準使用者證明。harness 已安全停止；唔會聲稱 live query 通過。
 - Native visual evidence remains `capture-blocked` for the exact reason recorded above. · 原生視覺證據仍然因上面記錄嘅確實原因標示為 `capture-blocked`。
 

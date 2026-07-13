@@ -100,6 +100,66 @@ function Wait-ForPageTitle {
     throw "Expected page title prefix '$Prefix', got '$actual'."
 }
 
+function Wait-ForElementNamePrefix {
+    param(
+        [Parameter(Mandatory)]$Root,
+        [Parameter(Mandatory)][string]$AutomationId,
+        [Parameter(Mandatory)][string]$Prefix
+    )
+
+    $deadline = [DateTime]::UtcNow.AddMilliseconds($TimeoutMs)
+    do {
+        $element = Find-ByAutomationId -Root $Root -AutomationId $AutomationId
+        if ($element -and $element.Current.Name.StartsWith($Prefix, [StringComparison]::Ordinal)) {
+            return $element
+        }
+        Start-Sleep -Milliseconds 100
+    } while ([DateTime]::UtcNow -lt $deadline)
+
+    $actual = if ($element) { $element.Current.Name } else { '(missing)' }
+    throw "Expected '$AutomationId' name prefix '$Prefix', got '$actual'."
+}
+
+function Select-ComboItem {
+    param(
+        [Parameter(Mandatory)]$Combo,
+        [Parameter(Mandatory)][string]$Name
+    )
+
+    $expand = [System.Windows.Automation.ExpandCollapsePattern]$Combo.GetCurrentPattern(
+        [System.Windows.Automation.ExpandCollapsePattern]::Pattern)
+    $expand.Expand()
+    $condition = New-Object System.Windows.Automation.PropertyCondition(
+        [System.Windows.Automation.AutomationElement]::NameProperty,
+        $Name)
+    $item = $Combo.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $condition)
+    if (-not $item) { throw "Combo item '$Name' was not found." }
+    $selection = [System.Windows.Automation.SelectionItemPattern]$item.GetCurrentPattern(
+        [System.Windows.Automation.SelectionItemPattern]::Pattern)
+    $selection.Select()
+}
+
+function Select-ComboIndex {
+    param(
+        [Parameter(Mandatory)]$Combo,
+        [Parameter(Mandatory)][int]$Index
+    )
+
+    $expand = [System.Windows.Automation.ExpandCollapsePattern]$Combo.GetCurrentPattern(
+        [System.Windows.Automation.ExpandCollapsePattern]::Pattern)
+    $expand.Expand()
+    $condition = New-Object System.Windows.Automation.PropertyCondition(
+        [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+        [System.Windows.Automation.ControlType]::ListItem)
+    $items = $Combo.FindAll([System.Windows.Automation.TreeScope]::Descendants, $condition)
+    if ($Index -lt 0 -or $Index -ge $items.Count) {
+        throw "Combo index $Index was not found (item count: $($items.Count))."
+    }
+    $selection = [System.Windows.Automation.SelectionItemPattern]$items[$Index].GetCurrentPattern(
+        [System.Windows.Automation.SelectionItemPattern]::Pattern)
+    $selection.Select()
+}
+
 function Invoke-OwnedRoute {
     param(
         [Parameter(Mandatory)][string]$Route,
@@ -163,6 +223,71 @@ Invoke-OwnedRoute -Route 'shell.allapps' -ExpectedTitle 'All Apps' -Inspect {
     }
     $dashboard = Wait-ForElement -Root $root -AutomationId 'NativeNav_dashboard'
     Assert-True -Condition ($english -and $dashboard.Current.Name -eq 'Dashboard') -Name 'language picker rerenders navigation in English'
+}
+
+Invoke-OwnedRoute -Route 'checkdigit' -ExpectedTitle 'Check Digit Validator' -Inspect {
+    param($root, $title)
+
+    foreach ($id in @(
+        'NativeCheckDigitImplementationStatus',
+        'NativeCheckDigitScheme',
+        'NativeCheckDigitInput',
+        'NativeCheckDigitBadge',
+        'NativeCheckDigitDetail',
+        'NativeCheckDigitStatus'
+    )) {
+        Wait-ForElement -Root $root -AutomationId $id | Out-Null
+    }
+    Assert-True -Condition $true -Name 'Check Digit exposes its native control and accessibility contract'
+
+    $scheme = Wait-ForElement -Root $root -AutomationId 'NativeCheckDigitScheme'
+    $input = Wait-ForElement -Root $root -AutomationId 'NativeCheckDigitInput'
+    Assert-True -Condition ($scheme.Current.Name.StartsWith('Check digit scheme', [StringComparison]::Ordinal)) `
+        -Name 'Check Digit scheme picker has a localized accessible name'
+    Assert-True -Condition ($input.Current.Name.StartsWith('Value to check', [StringComparison]::Ordinal)) `
+        -Name 'Check Digit input has a localized accessible name'
+    $value = [System.Windows.Automation.ValuePattern]$input.GetCurrentPattern(
+        [System.Windows.Automation.ValuePattern]::Pattern)
+
+    $cases = @(
+        @{ Index = 0; Label = 'Luhn'; Value = '4111 1111 1111 1111'; Detail = 'Expected last digit: 1' },
+        @{ Index = 1; Label = 'ISBN-10'; Value = '0-306-40615-2'; Detail = 'Expected check: 2' },
+        @{ Index = 2; Label = 'ISBN-13'; Value = '978-0-306-40615-7'; Detail = 'Expected check digit: 7' },
+        @{ Index = 3; Label = 'EAN-13'; Value = '4006381333931'; Detail = 'Expected check digit: 1' },
+        @{ Index = 4; Label = 'UPC-A'; Value = '036000291452'; Detail = 'Expected check digit: 2' },
+        @{ Index = 5; Label = 'IBAN'; Value = 'GB82 WEST 1234 5698 7654 32'; Detail = 'mod-97 = 1' }
+    )
+    foreach ($case in $cases) {
+        Select-ComboIndex -Combo $scheme -Index $case.Index
+        $value.SetValue($case.Value)
+        Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCheckDigitBadge' -Prefix 'VALID' | Out-Null
+        Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCheckDigitDetail' -Prefix $case.Detail | Out-Null
+        Assert-True -Condition $true -Name "Check Digit validates $($case.Label) through the live native UI"
+    }
+
+    Select-ComboIndex -Combo $scheme -Index 0
+    $value.SetValue('4111111111111112')
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCheckDigitBadge' -Prefix 'INVALID' | Out-Null
+    Assert-True -Condition $true -Name 'Check Digit surfaces an invalid checksum without treating it as a parse failure'
+
+    $value.SetValue('4111A')
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCheckDigitStatus' -Prefix 'Digits only for Luhn' | Out-Null
+    $detail = Find-ByAutomationId -Root $root -AutomationId 'NativeCheckDigitDetail'
+    Assert-True -Condition ($detail -and [string]::IsNullOrEmpty($detail.Current.Name)) `
+        -Name 'Check Digit clears stale accessible detail after malformed input'
+
+    Select-ComboIndex -Combo $scheme -Index 5
+    $value.SetValue('GB82 WEST 1234 5698 7654 32')
+    $language = Wait-ForElement -Root $root -AutomationId 'NativeLanguagePicker'
+    Select-ComboItem -Combo $language -Name 'English'
+    Wait-ForPageTitle -Root $root -Prefix 'Check Digit Validator' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCheckDigitBadge' -Prefix 'VALID' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCheckDigitDetail' -Prefix 'mod-97 = 1' | Out-Null
+    Assert-True -Condition $true -Name 'Check Digit preserves scheme, input, and validation across language rerender'
+}
+
+foreach ($alias in @('luhn', 'module.checkdigit')) {
+    Invoke-OwnedRoute -Route $alias -ExpectedTitle 'Check Digit Validator'
 }
 
 Invoke-OwnedRoute -Route 'package-updates' -ExpectedTitle 'Package Manager' -Inspect {

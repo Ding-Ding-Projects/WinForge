@@ -1,7 +1,7 @@
 {
     "schemaVersion":  1,
     "objective":  "Full native C++ rewrite of WinForge with every feature ported, smoke-tested, documented, and visually evidenced.",
-    "generatedAtUtc":  "2026-07-13T06:13:01.6932262Z",
+    "generatedAtUtc":  "2026-07-13T11:21:11.161Z",
     "baselineCommit":  "16b9f9da779b67731eec587737b592d6ec8aa625",
     "baselineCounts":  {
                            "routes":  346,
@@ -1291,25 +1291,40 @@
                        "kind":  "route",
                        "parentId":  null,
                        "source":  [
-                                      "src/WinForge.App/Resources/modules.json"
+                                      "src/WinForge.App/Resources/modules.json",
+                                      "Services/CheckDigitService.cs",
+                                      "WinForge.csproj",
+                                      "src/WinForge.Core/CheckDigit.h",
+                                      "src/WinForge.Core/CheckDigit.cpp",
+                                      "src/WinForge.App/MainWindow.xaml.h",
+                                      "src/WinForge.App/MainWindow.xaml.cpp",
+                                      "src/WinForge.App/WinForge.App.vcxproj",
+                                      "tests/native/WinForge.Core.Tests/CheckDigitTests.h",
+                                      "tests/native/WinForge.Core.Tests/CheckDigitTests.cpp",
+                                      "tests/native/WinForge.Core.Tests/main.cpp",
+                                      "tests/native/WinForge.Core.Tests/WinForge.Core.Tests.vcxproj",
+                                      "tests/CheckDigitCore.Tests/CheckDigitCore.Tests.csproj",
+                                      "tests/CheckDigitCore.Tests/Program.cs",
+                                      "tests/fixtures/iban-registry-release-102.txt",
+                                      "eng/native/Invoke-NativeShellSmoke.ps1"
                                   ],
-                       "risk":  "stateful",
+                       "risk":  "safe",
                        "expected":  "Check Digit Validator · 檢查碼驗證器 is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
-                       "status":  "not-started",
+                       "status":  "in-progress",
                        "evidence":  {
-                                        "static":  "not-started",
-                                        "build":  "not-started",
-                                        "test":  "not-started",
-                                        "launch":  "not-started",
-                                        "visual":  "not-started",
-                                        "behavior":  "not-started",
-                                        "sideEffect":  "not-started",
-                                        "docs":  "not-started"
+                                        "static":  "static-pass",
+                                        "build":  "build-pass",
+                                        "test":  "test-pass",
+                                        "launch":  "launch-pass",
+                                        "visual":  "capture-blocked",
+                                        "behavior":  "behavior-pass",
+                                        "sideEffect":  "not-applicable",
+                                        "docs":  "pass"
                                     },
                        "attempts":  [
 
                                     ],
-                       "notes":  "C++ parity evidence has not yet been recorded."
+                       "notes":  "2026-07-13 · IN PROGRESS / 進行中 solely because visual capture is blocked. The genuine standard-C++ implementation covers Luhn with Visa/Amex/Mastercard/Discover detection, ISBN-10 including X, ISBN-13, EAN-13, UPC-A, and bounded incremental mod-97 IBAN validation. Native and managed-oracle standards now agree on ASCII digits, ISBN-13 prefixes 978/979, and SWIFT IBAN Registry Release 102: 89 registered prefixes, numeric check digits, exact country length, and BBAN character classes are checked before mod-97. An independent pinned 89-row Release 102 fixture is compared exactly in both suites, and Unicode letters that case-fold to ASCII are rejected. Discover labelling follows the official 16–19-digit 60110000–60119999 and 64400000–65899999 ranges and excludes adjacent 6590/UnionPay space. The page distinguishes malformed, valid, and invalid states; reports expected checks; preserves scheme/input/result across English, Cantonese, and bilingual rerenders; gives controls localized accessible names; clears stale accessible detail; raises polite live-region events; and uses no CLR, network, file, registry, process, elevation, persistence, clipboard, or secret side effect. Debug and Release x64 native builds completed with 0 errors; the legacy managed solution compile check also completed with 0 errors after its SDK item glob explicitly excluded the ignored NuGet restore tree and the native source/generated tree; each native aggregate passed 208/208 (48 focused Check Digit cases); the managed-oracle mirror passed 24/24; the process-owned elevated shell passed 46/46, exercising all six schemes, accessibility cleanup, and all aliases; catalog parity passed 346 fixed routes, five dynamic families, 319 records, and 22 categories; source audit resolved 2,858/2,858 handlers with zero actionable markers; and the Release PE has a zero COM descriptor with no coreclr, hostfxr, or mscoree import. The required fresh driver capture was retried after standards/accessibility hardening and failed exactly because CopyFromScreen was unavailable and PrintWindow produced a blank or near-uniform WinUI client frame; no stale, blank, synthetic, or managed screenshot was substituted. · 原生同受控基準已同步 ASCII 數字、ISBN-13 978／979，同 SWIFT Release 102 全部 89 個 IBAN prefix／固定長度／BBAN 類別；兩個套件都會同獨立固定 89 行 Release 102 fixture 精確比較，亦拒絕會 case-fold 做 ASCII 嘅 Unicode 字母；Discover 標籤跟官方 16–19 位 60110000–60119999 同 64400000–65899999 ranges，並排除相鄰 6590／UnionPay 空間；舊受控 solution 亦喺 SDK item glob 排除 NuGet restore 同原生 source／generated tree 後以 0 errors 建置；另有本地化無障礙名稱、清除舊 detail 同 polite live-region event。Debug／Release 208/208、受控基準 24/24、UI Automation 46/46、目錄／來源／PE 審查全部通過。加固後再次嘗試新截圖仍因桌面擷取受阻，所以 route 如實保持進行中，冇用舊圖、空白圖、合成圖或受控版圖片頂替。"
                    },
                    {
                        "id":  "module.ciphers",
@@ -5448,7 +5463,7 @@
                        "attempts":  [
 
                                     ],
-                       "notes":  "2026-07-13 · IN PROGRESS / 進行中. Native C++ exposes nine views and 11 Windows manager adapters. Discover, Updates, and Installed have read-only result queries; Sources is a read-only command probe that deliberately withholds all raw configuration and diagnostics until manager-specific secret redaction is proven. Argument-vector handling, executable/PATH resolution, HTTP and captured-output bounds, process-token verification, explicit state, fail-closed integrity checks, and accessibility/UI Automation contracts are hardened. Debug and Release core suites each passed 160/160, including singular/plural alias-to-view routing; the elevated process-owned shell passed 31/31, including exact package-discover/package-updates/package-installed view selection; the catalog verifier passed 346 fixed routes, five dynamic families, 319 registry records, and 22 categories; the Release PE audit found no CLR descriptor/import. Normal-integrity live external-query evidence is blocked because even an interactive RunLevel=Limited task launched elevated (`candidate smoke token is still elevated`), so the verifier failed closed before querying. Visual evidence remains capture-blocked: CopyFromScreen is unavailable and PrintWindow returned a blank/near-uniform WinUI client frame. Mutation, Bundles, Ignored, Setup, Settings, queue parity, .NET update resolution, PyPI hydration, and manager-specific source redaction/presentation remain incomplete. The complete 1,002-file Devolutions/UniGetUI main snapshot at 21116375c8299d1db38a3c3b4c2eb7e18bc97c4e (2026-07-10, MIT) is provenance/reference only, excluded from runtime, and not parity evidence. · 原生 C++ 已有九個 view、11 個 Windows manager adapter，Discover／Updates／Installed 只讀結果查詢，同會隱藏全部原始輸出嘅 Sources 指令探測；Debug／Release 160/160 同提權 UI 31/31 通過，準確 alias 亦已驗證，但正常 integrity 外部查詢、視覺證據同逐管理器來源遮罩仍受阻，變更操作及其餘列出功能未完成。UniGetUI snapshot 只係來源／參考，唔代表對等。"
+                       "notes":  "2026-07-13 · IN PROGRESS / 進行中. Native C++ exposes nine views and 11 Windows manager adapters. Discover, Updates, and Installed have read-only result queries; Sources is a read-only command probe that deliberately withholds all raw configuration and diagnostics until manager-specific secret redaction is proven. Argument-vector handling, executable/PATH resolution, HTTP and captured-output bounds, process-token verification, explicit state, fail-closed integrity checks, and accessibility/UI Automation contracts are hardened. The expanded Debug and Release aggregates now each pass 208/208, retaining every Package Manager command, parser, runtime, containment, and singular/plural alias assertion while adding the Check Digit slice; the process-owned elevated shell passes 46/46, retaining exact package-discover/package-updates/package-installed view selection and every prior Package Manager UI assertion. The catalog verifier passed 346 fixed routes, five dynamic families, 319 registry records, and 22 categories; the Release PE audit found no CLR descriptor/import. Normal-integrity live external-query evidence is blocked because even an interactive RunLevel=Limited task launched elevated (`candidate smoke token is still elevated`), so the verifier failed closed before querying. Visual evidence remains capture-blocked: CopyFromScreen is unavailable and PrintWindow returned a blank/near-uniform WinUI client frame. Mutation, Bundles, Ignored, Setup, Settings, queue parity, .NET update resolution, PyPI hydration, and manager-specific source redaction/presentation remain incomplete. The complete 1,002-file Devolutions/UniGetUI main snapshot at 21116375c8299d1db38a3c3b4c2eb7e18bc97c4e (2026-07-10, MIT) is provenance/reference only, excluded from runtime, and not parity evidence. · 原生 C++ 已有九個 view、11 個 Windows manager adapter，Discover／Updates／Installed 只讀結果查詢，同會隱藏全部原始輸出嘅 Sources 指令探測；擴充後 Debug／Release 208/208 同提權 UI 46/46 通過，原有套件管理回歸同準確 alias 全部保留，但正常 integrity 外部查詢、視覺證據同逐管理器來源遮罩仍受阻，變更操作及其餘列出功能未完成。UniGetUI snapshot 只係來源／參考，唔代表對等。"
                    },
                    {
                        "id":  "module.packer",
@@ -8761,7 +8776,7 @@
                               "attempts":  [
 
                                            ],
-                              "notes":  "2026-07-13 · IN PROGRESS / 進行中. The native shell resolves package-discover, package-updates, and package-installed to the exact Discover, Updates, and Installed views; plural compatibility aliases are covered in the core suite. Debug and Release regression suites each passed 160/160, and the elevated process-owned UI Automation shell passed 31/31, including end-to-end deterministic selection for all three singular aliases and fail-closed elevation behavior. Normal-integrity live external-query evidence remains blocked because Windows returned an elevated token for an interactive RunLevel=Limited task (`candidate smoke token is still elevated`), so no live-query pass is claimed. Fresh native visual evidence remains capture-blocked because CopyFromScreen is unavailable and PrintWindow returned a blank/near-uniform WinUI frame. Query results are read-only; install, update, uninstall, bulk actions, and operation coordination remain gated. · 三條套件 deep link 已準確開到 Discover／Updates／Installed；Debug／Release 160/160 同提權 UI 31/31 通過，單數 alias 全部做過 end-to-end 驗證，但正常 integrity 外部查詢同視覺證據仍受阻，所有修改操作仍然鎖住。"
+                              "notes":  "2026-07-13 · IN PROGRESS / 進行中. The native shell resolves package-discover, package-updates, and package-installed to the exact Discover, Updates, and Installed views; plural compatibility aliases are covered in the core suite. The expanded Debug and Release regression aggregates each pass 208/208 and retain every package alias assertion; the elevated process-owned UI Automation shell passes 46/46 and retains end-to-end deterministic selection for all three singular aliases plus fail-closed elevation behavior. Added checks belong to Check Digit and do not replace Package Manager evidence. Normal-integrity live external-query evidence remains blocked because Windows returned an elevated token for an interactive RunLevel=Limited task (`candidate smoke token is still elevated`), so no live-query pass is claimed. Fresh native visual evidence remains capture-blocked because CopyFromScreen is unavailable and PrintWindow returned a blank/near-uniform WinUI frame. Query results are read-only; install, update, uninstall, bulk actions, and operation coordination remain gated. · 三條套件 deep link 已準確開到 Discover／Updates／Installed；擴充後 Debug／Release 208/208 同提權 UI 46/46 通過，原有套件 alias 證據全部保留，新增檢查只屬檢查碼；但正常 integrity 外部查詢同視覺證據仍受阻，所有修改操作仍然鎖住。"
                           },
                           {
                               "id":  "search:\u003cquery\u003e",

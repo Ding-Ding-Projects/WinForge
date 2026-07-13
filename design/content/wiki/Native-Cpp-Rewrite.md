@@ -31,11 +31,17 @@ Mutation, Bundles, Ignored, Setup, Settings, the operation queue, .NET update re
 
 套件變更、Bundles、Ignored、Setup、Settings、operation queue、.NET 更新解析同 PyPI metadata hydration 仍然未完成。完整 1,002 檔 UniGetUI `main` snapshot 固定喺 `21116375c8299d1db38a3c3b4c2eb7e18bc97c4e`（2026-07-10，MIT），只係精確來源證明同功能參考；runtime 會排除佢，亦唔係對等證據。
 
+Check Digit Validator is the next real native utility slice. `checkdigit`, `luhn`, and `module.checkdigit` now open a live standard-C++ implementation of Luhn/card-brand detection, ISBN-10/13, EAN-13, UPC-A, and incremental mod-97 IBAN validation. ISBN-13 requires 978/979; IBAN enforces all 89 SWIFT Release 102 country prefixes, exact lengths, and BBAN character classes before checksum evaluation. It preserves input, scheme, and results across language changes, uses no CLR or external side effects, and exposes localized names plus a polite live-region accessibility contract.
+
+檢查碼驗證器係下一批真正原生 utility。`checkdigit`、`luhn` 同 `module.checkdigit` 而家會開即時標準 C++ 實作，支援 Luhn／卡種識別、ISBN-10／13、EAN-13、UPC-A 同增量 mod-97 IBAN 驗證。ISBN-13 只接受 978／979；IBAN 會喺 checksum 之前驗證 SWIFT Release 102 全部 89 個國家 prefix、固定長度同 BBAN 字元類別。轉語言時會保留輸入、格式同結果，唔用 CLR 或外部副作用，亦有本地化名稱同 polite live-region 無障礙合約。
+
+Its functional evidence passes, but the route remains **in progress** because fresh visual capture is `capture-blocked`; no stale or managed screenshot is substituted. · 功能證據全部通過，但最新視覺擷取係 `capture-blocked`，所以 route 仍然標示**進行中**；冇用舊圖或受控版截圖頂替。
+
 ## Evidence · 證據
 
 - Native Debug and Release x64 builds: 0 errors · 原生 Debug 同 Release x64 建置：0 errors
-- Native core tests: Debug 160/160 and Release 160/160, including Package Manager alias-to-view routing · 原生核心測試：Debug 160/160、Release 160/160，包括套件管理 alias 對應準確檢視
-- Elevated process-owned UI Automation shell smoke: 31/31, including exact Discover/Updates/Installed alias selection; this is not normal-integrity external-query evidence. · 提權、自有 process UI Automation shell 冒煙：31/31，包括準確揀返 Discover／Updates／Installed alias；呢個唔係正常 integrity 外部查詢證據。
+- Native core tests: Debug 208/208 and Release 208/208; 48 focused cases cover every Check Digit scheme, official Discover range boundaries, Unicode-confusable rejection, and exact comparison with an independent 89-row SWIFT Release 102 fixture while all prior Package Manager and shell regressions remain green. Managed-oracle parity separately passes 24/24. · 原生核心測試：Debug 208/208、Release 208/208；48 個專項案例涵蓋全部檢查碼格式、官方 Discover range 邊界、拒絕 Unicode 混淆字元，同獨立 89 行 SWIFT Release 102 fixture 精確比較，而之前套件管理同 shell 回歸全部保持綠燈；受控基準對等另外 24/24 通過。
+- Elevated process-owned UI Automation shell smoke: 46/46, including all six Check Digit schemes, invalid/malformed state, localized accessible names, stale-detail cleanup, language-state retention, every Check Digit alias, and exact Discover/Updates/Installed alias selection; this is not normal-integrity external-query evidence. · 提權、自有 process UI Automation shell 冒煙：46/46，包括六個檢查碼格式、無效／格式錯誤狀態、本地化無障礙名稱、清除舊 detail、轉語言保留狀態、全部檢查碼 alias，同準確揀返 Discover／Updates／Installed alias；呢個唔係正常 integrity 外部查詢證據。
 - Catalog/ledger verifier: 346 fixed routes, 5 dynamic families, 319 registry records, and 22 categories · 目錄／清單驗證：346 固定路線、5 組動態路線、319 registry 記錄同 22 分類
 - Foundation Release PE audit: zero COM descriptor and no `coreclr`, `hostfxr`, or `mscoree` import; native-binary evidence only, not feature parity. · 基礎 Release PE 審查：COM descriptor 係零，而且冇 `coreclr`、`hostfxr` 或 `mscoree` import；只係原生 binary 證據，唔係功能對等。
 
@@ -43,9 +49,9 @@ Normal-integrity live external-query evidence is **blocked**: even an interactiv
 
 正常 integrity 即時外部查詢證據仍然**受阻**：就算互動式排程工作設為 `RunLevel=Limited`，同一個原生 executable 開出嚟仍然係提權狀態。獨立 token 驗證以 `candidate smoke token is still elevated` 停止，harness 喺執行外部查詢之前已經 fail closed。
 
-Fresh Dashboard, All Apps, About, and Package Manager (`module.packages#updates`) screenshot attempts remain `capture-blocked`. The exact driver blocker is: `CopyFromScreen is unavailable and the PrintWindow fallback produced a blank or near-uniform WinUI client frame; graphics capture is unavailable in this desktop session.` The output was rejected; no stale or synthetic image was substituted, and UI Automation evidence is not a visual pass.
+Fresh Dashboard, All Apps, About, Package Manager (`module.packages#updates`), and Check Digit (`checkdigit`) screenshot attempts remain `capture-blocked`. The exact driver blocker is: `CopyFromScreen is unavailable and the PrintWindow fallback produced a blank or near-uniform WinUI client frame; graphics capture is unavailable in this desktop session.` The output was rejected; no stale or synthetic image was substituted, and UI Automation evidence is not a visual pass.
 
-最新 Dashboard、所有 app、About 同套件管理（`module.packages#updates`）截圖嘗試仍然係 `capture-blocked`。driver 嘅確實阻礙係：`CopyFromScreen is unavailable and the PrintWindow fallback produced a blank or near-uniform WinUI client frame; graphics capture is unavailable in this desktop session.` 呢個輸出已被拒絕；冇用舊圖或合成圖頂替，而 UI Automation 證據唔等於 visual pass。
+最新 Dashboard、所有 app、About、套件管理（`module.packages#updates`）同檢查碼（`checkdigit`）截圖嘗試仍然係 `capture-blocked`。driver 嘅確實阻礙係：`CopyFromScreen is unavailable and the PrintWindow fallback produced a blank or near-uniform WinUI client frame; graphics capture is unavailable in this desktop session.` 呢個輸出已被拒絕；冇用舊圖或合成圖頂替，而 UI Automation 證據唔等於 visual pass。
 
 ## Completion gate · 完成閘門
 
