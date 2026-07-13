@@ -191,6 +191,17 @@ self-contained capture 嘗試。兩個都有去到 WinForge，但 `CopyFromScree
 `shell-allapps-default.png` 儲存、檢查、替換或者重用；呢啲係 `capture-blocked`，
 唔係 visual-pass 結果。
 
+**EN —** The exhaustive-smoke closeout preserves the same visual boundary across the
+323-route campaign: every fresh driver attempt that reached capture was blocked because
+CopyFromScreen is unavailable and PrintWindow is uniform. No generated, stale, or
+uninspected PNG is promoted to evidence; consult the closeout record for the exact
+route, source, test, and safety coverage behind this capture-blocked status.
+
+**粵語 —** 完整冒煙測試結案喺 323-route campaign 保留同一個視覺界線：每次有去到
+capture 嘅新 driver 嘗試，都因為 CopyFromScreen 唔可用同 PrintWindow uniform 而受阻。
+冇 generated、stale 或未檢查 PNG 會升格為證據；請睇結案記錄入面支援呢個
+capture-blocked status 嘅 route、source、test 同 safety coverage。
+
 ## Redaction Rules · 遮蔽規則
 
 **EN —** Before adding screenshots, redact or avoid personal data: Windows usernames, home-folder paths, repo paths outside WinForge, hostnames, IPs that identify private networks, account names, emails, API keys, tokens, session cookies, vault item names, SSH profiles, and real package/source credentials. Use `winforge-shot --redact "x|y|w|h|box|blur|pixelate"` to obscure regions irreversibly; see the [Wiki Screenshot Workflow](Wiki-Screenshot-Workflow.md).

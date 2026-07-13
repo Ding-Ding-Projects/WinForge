@@ -264,6 +264,17 @@ UI-Automation check。呢輪修正咗 command-line All Apps route 遺漏、Unico
 capture-blocked（CopyFromScreen 唔可用；PrintWindow uniform），所以冇 PNG 當 visual
 proof。請睇 [Batch 13 證據](docs/Smoke-Launch-Batch-13.md)。
 
+**EN —** The [exhaustive smoke closeout](docs/Exhaustive-Smoke-Closeout.md) now
+proves the 323-route union, all 2,858 XAML event mappings, 1,910 direct action
+handlers, and all 23 headless test projects. Screenshot evidence remains honestly
+capture-blocked in this desktop session; stateful and external actions remain
+safe/non-live unless explicitly authorized.
+
+**粵語 —** [完整冒煙測試結案](docs/Exhaustive-Smoke-Closeout.md) 而家證明咗 323-route
+union、全部 2,858 個 XAML event mappings、1,910 個 direct action handlers，同埋全部
+23 個 headless test projects。呢個 desktop session 嘅 screenshot 證據仍然係誠實嘅
+capture-blocked；stateful 同 external actions 冇明確授權下會保持 safe/non-live。
+
 ---
 
 **EN —** The XAML startup audit reproduced an HTML Table Convert crash while

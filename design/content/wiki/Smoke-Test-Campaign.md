@@ -1226,4 +1226,49 @@ workspace/process、WSL、download 或 ZoomIt live action。
 fallback 產生 uniform frames。呢個 desktop session graphics capture 唔可用。冇 PNG
 產生、檢查、替換或者重用：Batch 13 係 `capture-blocked`，絕對唔係 visual-pass。
 
+## Campaign closeout · Campaign 結案
+
+**EN —** The final inventory and the reusable range-union verifier now prove the
+complete smoke routing universe: 323 routes total, with thirteen recorded numeric
+ranges covering indices 0–321 exactly once and the index-322 shell.allapps picker
+verified separately by UI Automation. The final range is 300–321 (22/22 first-attempt
+launch-pass); the All Apps verifier finds NewTabPickerDialog, its search box, and the
+selected shell navigation item without selecting a module.
+
+**Static/control evidence · 靜態／控制證據：** The new source-surface auditor passed
+334 XAML files, 2,858/2,858 event handlers, and 1,910/1,910 direct action handlers,
+with no unresolved handler, page-language subscription mismatch, or actionable
+TODO/FIXME/not-implemented marker. It also records 1,969 action controls, 316 generated
+feature references, and 1,853 generated button references. The aggregate test runner
+passed all 23/23 headless projects, including the reactor 63/63 scenario suite. The
+Debug x64 build and literal-safety guard pass with 0 errors.
+
+**Safety/visual disposition · 安全／視覺處置：** This completes a safe smoke baseline,
+not unapproved real-world side effects. Install/remove, VM/WSL, registry/service,
+network/download, credential, device, destructive-file, and external-app actions were
+not live-run. Fresh screenshots remain capture-blocked: CopyFromScreen is unavailable
+and PrintWindow is uniform, so no stale or synthetic PNG is presented as visual proof.
+See the [closeout record](../Exhaustive-Smoke-Closeout.md).
+
+**粵語 —** 最後 inventory 同可重用 range-union verifier 而家證明完整 smoke routing
+universe：總共 323 條 routes，13 個記錄咗嘅 numeric ranges 準確各一次覆蓋 indices
+0–321，而 index 322 shell.allapps picker 會獨立用 UI Automation 驗證。最後一段係
+300–321（22/22 第一次 launch-pass）；All Apps verifier 搵到 NewTabPickerDialog、
+search box 同已選取嘅 shell navigation item，而冇揀 module。
+
+**靜態／控制證據 · Static/control evidence：** 新嘅 source-surface auditor 通過 334
+個 XAML files、2,858/2,858 個 event handlers、同 1,910/1,910 個 direct action
+handlers，冇 unresolved handler、page-language subscription mismatch 或 actionable
+TODO/FIXME/not-implemented marker。佢亦記錄 1,969 個 action controls、316 個生成嘅
+feature references 同 1,853 個生成嘅 button references。aggregate test runner 全部
+23/23 個 headless projects 通過，包括 reactor 63/63 scenario suite。Debug x64 build
+同 literal-safety guard 都以 0 errors 通過。
+
+**安全／視覺處置 · Safety/visual disposition：** 呢個完成安全 smoke baseline，唔係
+未授權嘅真實 side effects。Install/remove、VM/WSL、registry/service、network/download、
+credential、device、destructive-file 同 external-app actions 都冇 live-run。新截圖仍然
+capture-blocked：CopyFromScreen 唔可用而 PrintWindow 係 uniform，所以冇 stale 或
+synthetic PNG 當 visual proof。請睇 [結案記錄](../Exhaustive-Smoke-Closeout.md)。
+
+
 [← Wiki Home](Home.md) · [Developer](Developer.md) · [Screenshots](Screenshots.md)
