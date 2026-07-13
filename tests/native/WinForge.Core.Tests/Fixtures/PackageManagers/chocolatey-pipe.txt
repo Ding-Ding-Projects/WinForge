@@ -1,0 +1,5 @@
+Chocolatey v2.4.3
+git|2.47.0|2.48.1|false
+same|1.0|1.0|false
+Validation|current version|available version
+broken|1.0

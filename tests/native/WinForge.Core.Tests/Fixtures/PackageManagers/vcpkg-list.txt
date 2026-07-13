@@ -1,0 +1,2 @@
+zlib:x64-windows             1.3.1            A compression library
+fmt:x64-windows              11.0.2           Formatting library

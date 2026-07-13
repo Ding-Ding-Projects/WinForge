@@ -1,0 +1,3 @@
+Package       Installed  Latest
+ripgrep       v14.1.0    v14.1.1
+same          v1.0.0     v1.0.0

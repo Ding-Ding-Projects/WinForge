@@ -8,6 +8,8 @@
 #include <utility>
 #include <vector>
 
+int RunPackageParserTests();
+
 namespace
 {
     int passed = 0;
@@ -112,6 +114,7 @@ int wmain()
     }
     Expect(rejectedDuplicate, "rejects duplicate canonical route keys");
 
-    std::cout << "\n" << passed << " passed, " << failed << " failed\n";
-    return failed == 0 ? 0 : 1;
+    auto const packageParserFailures = RunPackageParserTests();
+    std::cout << "\nCore route/localization tests: " << passed << " passed, " << failed << " failed\n";
+    return failed == 0 && packageParserFailures == 0 ? 0 : 1;
 }
