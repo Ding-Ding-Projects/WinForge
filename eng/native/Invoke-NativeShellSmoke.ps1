@@ -624,6 +624,14 @@ Invoke-OwnedRoute -Route 'package-updates' -ExpectedTitle 'Package Manager' -Ins
     }
     Assert-True -Condition $operationViewSelected `
         -Name 'Package Manager switches among its nine native views'
+    $queueSummary = Wait-ForElement -Root $root -AutomationId 'NativePackageQueueSummary'
+    Assert-True -Condition ($queueSummary.Current.Name.StartsWith('Preview queue policy', [StringComparison]::Ordinal)) `
+        -Name 'Package Manager exposes durable preview queue policy'
+    $operationEntry = Find-ByAutomationId -Root $root -AutomationId 'NativePackageOperation_0'
+    $runLast = Find-ByAutomationId -Root $root -AutomationId 'NativePackageOperationRunLast_0'
+    $retry = Find-ByAutomationId -Root $root -AutomationId 'NativePackageOperationRetry_0'
+    Assert-True -Condition ($null -ne $operationEntry -and $null -ne $runLast -and $null -ne $retry) `
+        -Name 'Package Manager exposes preview queue reorder and retry controls'
 }
 
 Invoke-OwnedRoute -Route 'package-installed' -ExpectedTitle 'Package Manager' -Inspect {
@@ -760,6 +768,9 @@ Invoke-OwnedRoute -Route 'package-operations' -ExpectedTitle 'Package Manager' -
     $header = Wait-ForElement -Root $root -AutomationId 'NativePackageResultsHeader'
     Assert-True -Condition ($header.Current.Name.StartsWith('Operation queue and history', [StringComparison]::Ordinal)) `
         -Name 'Package Manager package-operations alias selects Operations'
+    $queueSummary = Wait-ForElement -Root $root -AutomationId 'NativePackageQueueSummary'
+    Assert-True -Condition ($queueSummary.Current.Name.StartsWith('Preview queue policy', [StringComparison]::Ordinal)) `
+        -Name 'Package Manager package-operations exposes preview queue policy'
 }
 
 Invoke-OwnedRoute -Route 'packages-operations' -ExpectedTitle 'Package Manager' -Inspect {
@@ -768,6 +779,9 @@ Invoke-OwnedRoute -Route 'packages-operations' -ExpectedTitle 'Package Manager' 
     $header = Wait-ForElement -Root $root -AutomationId 'NativePackageResultsHeader'
     Assert-True -Condition ($header.Current.Name.StartsWith('Operation queue and history', [StringComparison]::Ordinal)) `
         -Name 'Package Manager packages-operations alias selects Operations'
+    $queueSummary = Wait-ForElement -Root $root -AutomationId 'NativePackageQueueSummary'
+    Assert-True -Condition ($queueSummary.Current.Name.StartsWith('Preview queue policy', [StringComparison]::Ordinal)) `
+        -Name 'Package Manager packages-operations exposes preview queue policy'
 }
 
 foreach ($case in @(

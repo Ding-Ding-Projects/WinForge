@@ -13,6 +13,7 @@
 #include <winrt/Microsoft.UI.Xaml.Automation.Peers.h>
 
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
 #include <cwctype>
 #include <array>
@@ -1569,13 +1570,66 @@ namespace winrt::WinForge::implementation
                 }
             }
 
-            if (root.HasKey(L"operationLog"))
+            if (root.HasKey(L"operationEntries"))
+            {
+                auto const entries = root.GetNamedArray(L"operationEntries");
+                m_packageOperations.clear();
+                for (auto const& value : entries)
+                {
+                    auto const object = value.GetObject();
+                    PackageOperationEntry entry;
+                    entry.id = object.HasKey(L"id") ? ToWide(object.GetNamedString(L"id")) : std::wstring{};
+                    entry.title = object.HasKey(L"title") ? ToWide(object.GetNamedString(L"title")) : std::wstring{};
+                    entry.details = object.HasKey(L"details") ? ToWide(object.GetNamedString(L"details")) : std::wstring{};
+                    entry.status = object.HasKey(L"status") ? ToWide(object.GetNamedString(L"status")) : std::wstring{};
+                    entry.created_epoch_seconds = object.HasKey(L"created")
+                        ? static_cast<std::int64_t>(object.GetNamedNumber(L"created"))
+                        : 0;
+                    entry.retry_count = object.HasKey(L"retryCount")
+                        ? std::max(0, static_cast<int32_t>(object.GetNamedNumber(L"retryCount")))
+                        : 0;
+                    if (entry.id.empty())
+                    {
+                        entry.id = L"loaded-" + std::to_wstring(m_packageOperationSequence++);
+                    }
+                    if (entry.title.empty())
+                    {
+                        entry.title = L"Operation event";
+                    }
+                    if (entry.status.empty())
+                    {
+                        entry.status = L"Queued preview";
+                    }
+                    if (!entry.details.empty())
+                    {
+                        m_packageOperations.push_back(std::move(entry));
+                    }
+                    if (m_packageOperations.size() >= 50)
+                    {
+                        break;
+                    }
+                }
+            }
+            else if (root.HasKey(L"operationLog"))
             {
                 auto const history = root.GetNamedArray(L"operationLog");
-                m_packageOperationLog.clear();
+                m_packageOperations.clear();
                 for (auto const& value : history)
                 {
-                    m_packageOperationLog.push_back(ToWide(value.GetString()));
+                    PackageOperationEntry entry;
+                    entry.id = L"legacy-" + std::to_wstring(m_packageOperationSequence++);
+                    entry.title = L"Legacy operation event";
+                    entry.details = ToWide(value.GetString());
+                    entry.status = L"Imported legacy history";
+                    entry.created_epoch_seconds = 0;
+                    if (!entry.details.empty())
+                    {
+                        m_packageOperations.push_back(std::move(entry));
+                    }
+                    if (m_packageOperations.size() >= 50)
+                    {
+                        break;
+                    }
                 }
             }
 
@@ -1720,11 +1774,21 @@ namespace winrt::WinForge::implementation
             }
             root.SetNamedValue(L"selectedManagers", selectedManagers);
 
+            winrt::Windows::Data::Json::JsonArray operationEntries;
             winrt::Windows::Data::Json::JsonArray operationLog;
-            for (auto const& entry : m_packageOperationLog)
+            for (auto const& entry : m_packageOperations)
             {
-                operationLog.Append(winrt::Windows::Data::Json::JsonValue::CreateStringValue(ToHString(entry)));
+                winrt::Windows::Data::Json::JsonObject object;
+                object.SetNamedValue(L"id", winrt::Windows::Data::Json::JsonValue::CreateStringValue(ToHString(entry.id)));
+                object.SetNamedValue(L"title", winrt::Windows::Data::Json::JsonValue::CreateStringValue(ToHString(entry.title)));
+                object.SetNamedValue(L"details", winrt::Windows::Data::Json::JsonValue::CreateStringValue(ToHString(entry.details)));
+                object.SetNamedValue(L"status", winrt::Windows::Data::Json::JsonValue::CreateStringValue(ToHString(entry.status)));
+                object.SetNamedValue(L"created", winrt::Windows::Data::Json::JsonValue::CreateNumberValue(static_cast<double>(entry.created_epoch_seconds)));
+                object.SetNamedValue(L"retryCount", winrt::Windows::Data::Json::JsonValue::CreateNumberValue(static_cast<double>(entry.retry_count)));
+                operationEntries.Append(object);
+                operationLog.Append(winrt::Windows::Data::Json::JsonValue::CreateStringValue(ToHString(entry.details)));
             }
+            root.SetNamedValue(L"operationEntries", operationEntries);
             root.SetNamedValue(L"operationLog", operationLog);
 
             winrt::Windows::Data::Json::JsonArray ignoredRules;
@@ -1837,19 +1901,87 @@ namespace winrt::WinForge::implementation
 
     void MainWindow::RecordPackageOperation(std::wstring message)
     {
-        m_packageOperationLog.insert(
-            m_packageOperationLog.begin(),
-            std::move(message));
-        if (m_packageOperationLog.size() > 50)
+        RecordPackageOperation(
+            winforge::core::LocalizedText{ L"Operation event", L"操作事件" }.Pick(m_language),
+            std::move(message),
+            winforge::core::LocalizedText{ L"Queued preview", L"已排隊預覽" }.Pick(m_language));
+    }
+
+    void MainWindow::RecordPackageOperation(
+        std::wstring title,
+        std::wstring details,
+        std::wstring status)
+    {
+        PackageOperationEntry entry;
+        entry.id = L"op-" + std::to_wstring(NowUnixSeconds()) + L"-" +
+            std::to_wstring(m_packageOperationSequence++);
+        entry.title = std::move(title);
+        entry.details = std::move(details);
+        entry.status = std::move(status);
+        entry.created_epoch_seconds = NowUnixSeconds();
+        m_packageOperations.insert(
+            m_packageOperations.begin(),
+            std::move(entry));
+        if (m_packageOperations.size() > 50)
         {
-            m_packageOperationLog.resize(50);
+            m_packageOperations.resize(50);
         }
         SavePackageManagerState();
     }
 
+    void MainWindow::MovePackageOperation(std::size_t index, bool runNext)
+    {
+        if (index >= m_packageOperations.size())
+        {
+            return;
+        }
+        auto entry = std::move(m_packageOperations[index]);
+        m_packageOperations.erase(m_packageOperations.begin() + static_cast<std::ptrdiff_t>(index));
+        entry.status = runNext
+            ? winforge::core::LocalizedText{ L"Queued next preview", L"排下一個預覽" }.Pick(m_language)
+            : winforge::core::LocalizedText{ L"Queued last preview", L"排最後預覽" }.Pick(m_language);
+        if (runNext)
+        {
+            m_packageOperations.insert(m_packageOperations.begin(), std::move(entry));
+        }
+        else
+        {
+            m_packageOperations.push_back(std::move(entry));
+        }
+        SavePackageManagerState();
+        RenderPackageManagerView();
+        AnnouncePackageStatus(
+            runNext
+                ? L"Preview operation moved to the front of the native queue."
+                : L"Preview operation moved to the end of the native queue.",
+            runNext
+                ? L"預覽操作已移到原生佇列最前。"
+                : L"預覽操作已移到原生佇列最後。");
+    }
+
+    void MainWindow::RetryPackageOperation(std::size_t index)
+    {
+        if (index >= m_packageOperations.size())
+        {
+            return;
+        }
+        auto entry = std::move(m_packageOperations[index]);
+        m_packageOperations.erase(m_packageOperations.begin() + static_cast<std::ptrdiff_t>(index));
+        ++entry.retry_count;
+        entry.status = winforge::core::LocalizedText{
+            L"Retry requested; still preview-only",
+            L"已要求重試；仍然只係預覽" }.Pick(m_language);
+        m_packageOperations.insert(m_packageOperations.begin(), std::move(entry));
+        SavePackageManagerState();
+        RenderPackageManagerView();
+        AnnouncePackageStatus(
+            L"Preview operation retry was queued without executing a package command.",
+            L"預覽操作重試已排隊；冇執行套件指令。");
+    }
+
     void MainWindow::ClearPackageOperationLog()
     {
-        m_packageOperationLog.clear();
+        m_packageOperations.clear();
         SavePackageManagerState();
         RenderPackageManagerView();
         AnnouncePackageStatus(
@@ -3606,7 +3738,7 @@ namespace winrt::WinForge::implementation
         }
         else if (m_packageView == 8)
         {
-            m_packageSecondaryAction.IsEnabled(!m_packageWorking && !m_packageOperationLog.empty());
+            m_packageSecondaryAction.IsEnabled(!m_packageWorking && !m_packageOperations.empty());
         }
 
         auto resultHeader = header;
@@ -3663,7 +3795,14 @@ namespace winrt::WinForge::implementation
 
         if (m_packageView == 8)
         {
-            if (m_packageOperationLog.empty())
+            appendCard(
+                pick(L"Preview queue policy", L"預覽佇列政策"),
+                pick(L"Operation entries are durable preview plans. Run next, run last, and retry only reorder or mark the native queue; they do not execute package-manager mutation commands.",
+                    L"操作項目係可保存嘅預覽計劃。「下一個」、「最後執行」同「重試」只會重新排序或者標記原生佇列；唔會執行套件修改指令。"),
+                L"NativePackageQueueSummary",
+                0.9);
+
+            if (m_packageOperations.empty())
             {
                 appendCard(
                     pick(L"No native operations yet", L"暫時未有原生操作"),
@@ -3673,12 +3812,102 @@ namespace winrt::WinForge::implementation
             }
             else
             {
-                for (std::size_t index = 0; index < m_packageOperationLog.size(); ++index)
+                for (std::size_t index = 0; index < m_packageOperations.size(); ++index)
                 {
-                    appendCard(
-                        pick(L"Operation event", L"操作事件"),
-                        TruncateForUi(m_packageOperationLog[index], 600),
-                        L"NativePackageOperation_" + std::to_wstring(index));
+                    auto const& operation = m_packageOperations[index];
+
+                    Border card;
+                    card.Padding(Thickness{ 16, 12, 16, 12 });
+                    card.CornerRadius(CornerRadius{ 8 });
+                    card.BorderThickness(Thickness{ 1 });
+                    card.BorderBrush(Application::Current().Resources().Lookup(
+                        box_value(L"CardStrokeColorDefaultBrush")).as<Media::Brush>());
+                    card.Background(Application::Current().Resources().Lookup(
+                        box_value(L"CardBackgroundFillColorDefaultBrush")).as<Media::Brush>());
+
+                    StackPanel content;
+                    content.Spacing(6);
+
+                    auto title = CreateText(
+                        L"#" + std::to_wstring(index + 1) + L" · " + operation.title,
+                        14,
+                        true);
+                    AutomationProperties::SetAutomationId(
+                        title,
+                        ToHString(L"NativePackageOperation_" + std::to_wstring(index)));
+                    AutomationProperties::SetHelpText(title, ToHString(operation.details));
+                    content.Children().Append(title);
+
+                    std::wstring body = operation.status;
+                    body += L" · created ";
+                    body += FormatRuleTime(operation.created_epoch_seconds);
+                    if (operation.retry_count > 0)
+                    {
+                        body += L" · retry previews: ";
+                        body += std::to_wstring(operation.retry_count);
+                    }
+                    body += L"\n";
+                    body += TruncateForUi(operation.details, 600);
+                    auto details = CreateText(body, 12.5);
+                    details.TextWrapping(TextWrapping::Wrap);
+                    details.IsTextSelectionEnabled(true);
+                    content.Children().Append(details);
+
+                    StackPanel actions;
+                    actions.Orientation(Orientation::Horizontal);
+                    actions.Spacing(8);
+
+                    Button runNext;
+                    runNext.Content(box_value(ToHString(pick(L"Run next", L"下一個"))));
+                    runNext.IsEnabled(index != 0 && !m_packageWorking);
+                    AutomationProperties::SetAutomationId(
+                        runNext,
+                        ToHString(L"NativePackageOperationRunNext_" + std::to_wstring(index)));
+                    AutomationProperties::SetName(
+                        runNext,
+                        ToHString(pick(L"Move preview operation to the front of the queue",
+                            L"將預覽操作移到佇列最前")));
+                    runNext.Click([this, index](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+                    {
+                        MovePackageOperation(index, true);
+                    });
+                    actions.Children().Append(runNext);
+
+                    Button runLast;
+                    runLast.Content(box_value(ToHString(pick(L"Run last", L"最後執行"))));
+                    runLast.IsEnabled(index + 1 < m_packageOperations.size() && !m_packageWorking);
+                    AutomationProperties::SetAutomationId(
+                        runLast,
+                        ToHString(L"NativePackageOperationRunLast_" + std::to_wstring(index)));
+                    AutomationProperties::SetName(
+                        runLast,
+                        ToHString(pick(L"Move preview operation to the end of the queue",
+                            L"將預覽操作移到佇列最後")));
+                    runLast.Click([this, index](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+                    {
+                        MovePackageOperation(index, false);
+                    });
+                    actions.Children().Append(runLast);
+
+                    Button retry;
+                    retry.Content(box_value(ToHString(pick(L"Retry preview", L"重試預覽"))));
+                    retry.IsEnabled(!m_packageWorking);
+                    AutomationProperties::SetAutomationId(
+                        retry,
+                        ToHString(L"NativePackageOperationRetry_" + std::to_wstring(index)));
+                    AutomationProperties::SetName(
+                        retry,
+                        ToHString(pick(L"Queue a preview-only retry without executing the package command",
+                            L"排入只供預覽嘅重試；唔會執行套件指令")));
+                    retry.Click([this, index](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+                    {
+                        RetryPackageOperation(index);
+                    });
+                    actions.Children().Append(retry);
+
+                    content.Children().Append(actions);
+                    card.Child(content);
+                    m_packageResults.Children().Append(card);
                 }
             }
             return;

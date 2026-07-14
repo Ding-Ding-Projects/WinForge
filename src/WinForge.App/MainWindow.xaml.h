@@ -56,6 +56,16 @@ namespace winrt::WinForge::implementation
             std::int64_t until_epoch_seconds{ 0 };
         };
 
+        struct PackageOperationEntry
+        {
+            std::wstring id;
+            std::wstring title;
+            std::wstring details;
+            std::wstring status;
+            std::int64_t created_epoch_seconds{ 0 };
+            int32_t retry_count{ 0 };
+        };
+
         winforge::core::LanguageMode m_language{ winforge::core::LanguageMode::Bilingual };
         std::vector<winforge::core::ModuleRecord> m_modules;
         winforge::core::RouteIndex m_routeIndex;
@@ -95,7 +105,7 @@ namespace winrt::WinForge::implementation
         std::vector<winforge::core::packages::PackageItem> m_packageItems;
         std::vector<winforge::core::packages::PackageItem> m_packageBundleItems;
         std::vector<PackageManagerRunState> m_packageRunStates;
-        std::vector<std::wstring> m_packageOperationLog;
+        std::vector<PackageOperationEntry> m_packageOperations;
         std::vector<PackageIgnoredRule> m_packageIgnoredRules;
         std::vector<PackagePinnedRule> m_packagePinnedRules;
         std::vector<PackageSnoozedRule> m_packageSnoozedRules;
@@ -112,6 +122,7 @@ namespace winrt::WinForge::implementation
         int32_t m_packageSnoozeDays{ 7 };
         std::filesystem::path m_packageStatePath;
         bool m_packageStateApplying{ false };
+        std::uint64_t m_packageOperationSequence{ 0 };
         std::wstring m_packageSearchText{};
         std::wstring m_packageBundleSourcePath{};
         std::wstring m_packageDetailsTarget{};
@@ -145,6 +156,12 @@ namespace winrt::WinForge::implementation
         void ResetPackageManagerState();
         void ApplyPackageSort();
         void RecordPackageOperation(std::wstring message);
+        void RecordPackageOperation(
+            std::wstring title,
+            std::wstring details,
+            std::wstring status);
+        void MovePackageOperation(std::size_t index, bool runNext);
+        void RetryPackageOperation(std::size_t index);
         void ClearPackageOperationLog();
         void PreviewPackageOperation(
             winforge::core::packages::PackageItem const& package,
