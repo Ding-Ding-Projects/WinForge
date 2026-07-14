@@ -67,6 +67,7 @@ namespace winrt::WinForge::implementation
         std::unordered_map<std::wstring, bool> m_packageManagersAvailable;
         std::unordered_map<std::wstring, std::wstring> m_packageProbeDiagnostics;
         std::vector<winforge::core::packages::PackageItem> m_packageItems;
+        std::vector<winforge::core::packages::PackageItem> m_packageBundleItems;
         std::vector<PackageManagerRunState> m_packageRunStates;
         std::vector<std::wstring> m_packageOperationLog;
         std::stop_source m_packageStopSource;
@@ -82,6 +83,7 @@ namespace winrt::WinForge::implementation
         std::filesystem::path m_packageStatePath;
         bool m_packageStateApplying{ false };
         std::wstring m_packageSearchText{};
+        std::wstring m_packageBundleSourcePath{};
         int32_t m_checkDigitScheme{ 0 };
         std::wstring m_checkDigitValue{};
         bool m_checkDigitRendering{ false };
@@ -111,6 +113,12 @@ namespace winrt::WinForge::implementation
         void ResetPackageManagerState();
         void RecordPackageOperation(std::wstring message);
         void ClearPackageOperationLog();
+        [[nodiscard]] std::wstring BundleSnapshotToJson(
+            std::vector<winforge::core::packages::PackageItem> const& items) const;
+        [[nodiscard]] bool LoadBundleSnapshot(std::wstring_view path);
+        [[nodiscard]] bool SaveBundleSnapshot(std::wstring_view path) const;
+        [[nodiscard]] std::wstring PromptBundleOpenPath() const;
+        [[nodiscard]] std::wstring PromptBundleSavePath() const;
         void PopulatePackageManagerFilters(Microsoft::UI::Xaml::Controls::StackPanel const& panel);
         void CancelPackageWork();
         [[nodiscard]] bool InvalidatePackageQueryResults();

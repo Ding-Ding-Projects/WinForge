@@ -26,7 +26,7 @@ C++20／C++/WinRT 遷移會如實標示為**進行中**，唔係完整 UniGetUI 
 | **Settings · 設定** | Gated placeholder. · 鎖住嘅 placeholder。 |
 | **Operations · 操作佇列** | Transient read-only event log only; the real coordinator/history/cancel/reorder/retry workflow remains gated. · 只限暫時只讀事件記錄；真正協調器／歷史／取消／重新排序／重試流程仍然鎖住。 |
 
-All install, update, uninstall, source, and bulk mutations remain separately gated. Native queries use reviewed argument-vector builders, bounded parsers, allowlisted HTTPS endpoints, and a contained Win32 process runner. External manager commands fail closed while WinForge is elevated; no upstream UniGetUI executable or UI is launched.
+All install, update, uninstall, source, and bulk mutations remain separately gated. Bundles now has a native snapshot import/export preview, while the rest of the advanced bundle lifecycle remains gated. Native queries use reviewed argument-vector builders, bounded parsers, allowlisted HTTPS endpoints, and a contained Win32 process runner. External manager commands fail closed while WinForge is elevated; no upstream UniGetUI executable or UI is launched.
 
 所有安裝、更新、解除安裝、來源同批次修改仍然另外鎖住。原生查詢使用經審核嘅 argument-vector builder、有界解析器、准許清單 HTTPS endpoint 同受控 Win32 process runner。WinForge 提升權限時，外部管理器指令會 fail closed；完全唔會啟動上游 UniGetUI executable 或 UI。
 

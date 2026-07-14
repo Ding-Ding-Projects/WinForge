@@ -18,9 +18,12 @@
 #include <filesystem>
 #include <fstream>
 #include <future>
+#include <commdlg.h>
 #include <sstream>
 #include <stdexcept>
 #include <utility>
+
+#pragma comment(lib, "Comdlg32.lib")
 
 namespace
 {
@@ -50,6 +53,38 @@ namespace
         return result;
     }
 
+    std::wstring EscapeJson(std::wstring_view value)
+    {
+        std::wstring escaped;
+        escaped.reserve(value.size() + 8);
+        for (auto const character : value)
+        {
+            switch (character)
+            {
+            case L'\\': escaped += L"\\\\"; break;
+            case L'\"': escaped += L"\\\""; break;
+            case L'\b': escaped += L"\\b"; break;
+            case L'\f': escaped += L"\\f"; break;
+            case L'\n': escaped += L"\\n"; break;
+            case L'\r': escaped += L"\\r"; break;
+            case L'\t': escaped += L"\\t"; break;
+            default:
+                if (character < 0x20)
+                {
+                    wchar_t buffer[7];
+                    swprintf_s(buffer, L"\\u%04x", static_cast<unsigned int>(character));
+                    escaped += buffer;
+                }
+                else
+                {
+                    escaped.push_back(character);
+                }
+                break;
+            }
+        }
+        return escaped;
+    }
+
     std::filesystem::path PackageManagerStatePath()
     {
         std::wstring buffer(32768, L'\0');
@@ -58,6 +93,49 @@ namespace
             ? std::filesystem::path(buffer.substr(0, length))
             : std::filesystem::temp_directory_path();
         return root / L"WinForge" / L"native-package-manager-state.json";
+    }
+
+    std::wstring PromptOpenBundlePath(HWND owner)
+    {
+        wchar_t path[32768]{};
+        static const wchar_t filters[] =
+            L"JSON / UniGetUI bundle (*.json;*.ubundle)\0*.json;*.ubundle\0"
+            L"JSON (*.json)\0*.json\0"
+            L"All files (*.*)\0*.*\0\0";
+        OPENFILENAMEW ofn{};
+        ofn.lStructSize = sizeof(ofn);
+        ofn.hwndOwner = owner;
+        ofn.lpstrFilter = filters;
+        ofn.lpstrFile = path;
+        ofn.nMaxFile = static_cast<DWORD>(std::size(path));
+        ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR;
+        return GetOpenFileNameW(&ofn) ? std::wstring(path) : std::wstring{};
+    }
+
+    std::wstring PromptSaveBundlePath(HWND owner, std::wstring_view suggestedName)
+    {
+        wchar_t path[32768]{};
+        auto const copyCount = std::min<std::size_t>(suggestedName.size(), std::size(path) - 1);
+        std::copy_n(suggestedName.begin(), copyCount, path);
+        path[copyCount] = L'\0';
+        static const wchar_t filters[] =
+            L"JSON / UniGetUI bundle (*.json;*.ubundle)\0*.json;*.ubundle\0"
+            L"JSON (*.json)\0*.json\0"
+            L"All files (*.*)\0*.*\0\0";
+        OPENFILENAMEW ofn{};
+        ofn.lStructSize = sizeof(ofn);
+        ofn.hwndOwner = owner;
+        ofn.lpstrFilter = filters;
+        ofn.nFilterIndex = 1;
+        ofn.lpstrFile = path;
+        ofn.nMaxFile = static_cast<DWORD>(std::size(path));
+        ofn.lpstrDefExt = L"json";
+        ofn.Flags = OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR;
+        if (!GetSaveFileNameW(&ofn))
+        {
+            return {};
+        }
+        return std::wstring(path);
     }
 
     bool HasNonWhitespace(std::wstring_view value)
@@ -1451,6 +1529,115 @@ namespace winrt::WinForge::implementation
             L"套件操作歷史已清除。");
     }
 
+    std::wstring MainWindow::BundleSnapshotToJson(
+        std::vector<winforge::core::packages::PackageItem> const& items) const
+    {
+        std::wstring json = LR"({"export_version":1,"packages":[)";
+        bool first = true;
+        for (auto const& item : items)
+        {
+            if (!first) json += L',';
+            first = false;
+            json += LR"({"Id":")";
+            json += EscapeJson(item.id);
+            json += LR"(","Name":")";
+            json += EscapeJson(item.name);
+            json += LR"(","Version":")";
+            json += EscapeJson(item.version);
+            json += LR"(","Source":")";
+            json += EscapeJson(item.source);
+            json += LR"(","ManagerName":")";
+            json += EscapeJson(item.manager_key);
+            json += L"}";
+        }
+        json += LR"(],"incompatible_packages":[]})";
+        return json;
+    }
+
+    bool MainWindow::SaveBundleSnapshot(std::wstring_view path) const
+    {
+        try
+        {
+            auto const sourceItems = !m_packageBundleItems.empty() ? m_packageBundleItems : m_packageItems;
+            std::ofstream output(std::filesystem::path(path), std::ios::binary | std::ios::trunc);
+            if (!output)
+            {
+                return false;
+            }
+            output << winrt::to_string(BundleSnapshotToJson(sourceItems));
+            return static_cast<bool>(output);
+        }
+        catch (...)
+        {
+            return false;
+        }
+    }
+
+    bool MainWindow::LoadBundleSnapshot(std::wstring_view path)
+    {
+        try
+        {
+            std::ifstream input(std::filesystem::path(path), std::ios::binary);
+            if (!input)
+            {
+                return false;
+            }
+
+            std::ostringstream stream;
+            stream << input.rdbuf();
+            auto json = stream.str();
+            if (json.empty())
+            {
+                return false;
+            }
+
+            auto const root = winrt::Windows::Data::Json::JsonObject::Parse(winrt::to_hstring(json));
+            auto const packages = root.GetNamedArray(L"packages");
+            std::vector<winforge::core::packages::PackageItem> loaded;
+            loaded.reserve(packages.Size());
+            for (auto const& entry : packages)
+            {
+                auto const obj = entry.GetObject();
+                winforge::core::packages::PackageItem item;
+                item.id = ToWide(obj.GetNamedString(L"Id", L""));
+                item.name = ToWide(obj.GetNamedString(L"Name", L""));
+                item.version = ToWide(obj.GetNamedString(L"Version", L""));
+                item.source = ToWide(obj.GetNamedString(L"Source", L""));
+                item.manager_key = ToWide(obj.GetNamedString(L"ManagerName", L""));
+                if (!item.manager_key.empty() && !item.id.empty())
+                {
+                    loaded.push_back(std::move(item));
+                }
+            }
+
+            m_packageBundleItems = std::move(loaded);
+            m_packageBundleSourcePath = std::wstring(path);
+            m_packageView = 3;
+            if (m_packageViewPicker)
+            {
+                m_packageViewPicker.SelectedIndex(m_packageView);
+            }
+            RenderPackageManagerView();
+            SavePackageManagerState();
+            return true;
+        }
+        catch (...)
+        {
+            return false;
+        }
+    }
+
+    std::wstring MainWindow::PromptBundleOpenPath() const
+    {
+        return PromptOpenBundlePath(nullptr);
+    }
+
+    std::wstring MainWindow::PromptBundleSavePath() const
+    {
+        auto const suggested = m_packageBundleItems.empty() ? L"package-bundle.json" : L"package-bundle.ubundle";
+        return PromptSaveBundlePath(nullptr, suggested);
+    }
+
     void MainWindow::RenderPackageManager()
     {
         CancelPackageWork();
@@ -1600,6 +1787,29 @@ namespace winrt::WinForge::implementation
             {
                 StartPackageManagerProbes();
             }
+            else if (m_packageView == 3)
+            {
+                auto const savePath = PromptBundleSavePath();
+                if (!savePath.empty())
+                {
+                    if (SaveBundleSnapshot(savePath))
+                    {
+                        m_packageBundleSourcePath = savePath;
+                        RecordPackageOperation(
+                            L"Exported native bundle snapshot to " + savePath + L". · 已匯出 bundle。");
+                        AnnouncePackageStatus(
+                            L"Bundle snapshot exported.",
+                            L"Bundle 快照已匯出。");
+                    }
+                    else
+                    {
+                        AnnouncePackageStatus(
+                            L"Bundle export failed.",
+                            L"Bundle 匯出失敗。",
+                            true);
+                    }
+                }
+            }
             else if (m_packageView == 7)
             {
                 ResetPackageManagerState();
@@ -1619,6 +1829,28 @@ namespace winrt::WinForge::implementation
             if (m_packageView == 8)
             {
                 ClearPackageOperationLog();
+            }
+            else if (m_packageView == 3)
+            {
+                auto const openPath = PromptBundleOpenPath();
+                if (!openPath.empty())
+                {
+                    if (LoadBundleSnapshot(openPath))
+                    {
+                        RecordPackageOperation(
+                            L"Imported native bundle snapshot from " + openPath + L". · 已匯入 bundle。");
+                        AnnouncePackageStatus(
+                            L"Bundle snapshot imported.",
+                            L"Bundle 快照已匯入。");
+                    }
+                    else
+                    {
+                        AnnouncePackageStatus(
+                            L"Bundle import failed.",
+                            L"Bundle 匯入失敗。",
+                            true);
+                    }
+                }
             }
             else
             {
@@ -2266,12 +2498,13 @@ namespace winrt::WinForge::implementation
             readOnlyQuery = true;
             break;
         case 3:
-            m_packagePrimaryAction.Content(box_value(ToHString(pick(L"Export…", L"匯出…"))));
-            m_packageSecondaryAction.Content(box_value(ToHString(pick(L"Import…", L"匯入…"))));
+            m_packagePrimaryAction.Content(box_value(ToHString(pick(L"Export bundle", L"匯出 bundle"))));
+            m_packageSecondaryAction.Content(box_value(ToHString(pick(L"Import bundle", L"匯入 bundle"))));
             m_packageSecondaryAction.Visibility(Visibility::Visible);
             header = pick(L"Portable package bundles", L"可攜套件清單");
-            explanation = pick(L"Bundle import/export must preserve source identity and saved options; it is not enabled until format compatibility tests pass.",
-                L"清單匯入／匯出一定要保留來源身份同已儲存選項；格式相容測試通過之前唔會啟用。");
+            explanation = pick(
+                L"Native bundle snapshots can now be exported from the current package list and imported back into this tab as a preview.",
+                L"原生 bundle 快照而家可以由目前套件清單匯出，亦可以匯入返嚟呢個分頁做預覽。");
             break;
         case 4:
             m_packagePrimaryAction.Content(box_value(ToHString(pick(L"Refresh", L"重新整理"))));
@@ -2319,7 +2552,7 @@ namespace winrt::WinForge::implementation
             m_packagePrimaryAction.IsEnabled(
                 m_packageProbeComplete && selectedAvailable && searchReady && !m_packageWorking);
         }
-        else if (m_packageView == 6 || m_packageView == 7)
+        else if (m_packageView == 3 || m_packageView == 6 || m_packageView == 7)
         {
             m_packagePrimaryAction.IsEnabled(!m_packageWorking);
         }
@@ -2503,6 +2736,49 @@ namespace winrt::WinForge::implementation
             resetContent.Children().Append(resetButton);
             resetCard.Child(resetContent);
             m_packageResults.Children().Append(resetCard);
+            return;
+        }
+
+        if (m_packageView == 3)
+        {
+            auto const& bundleItems = m_packageBundleItems.empty() ? m_packageItems : m_packageBundleItems;
+            if (m_packageBundleSourcePath.empty())
+            {
+                appendCard(
+                    pick(L"No bundle snapshot loaded", L"未載入 bundle 快照"),
+                    pick(
+                        L"Use Export bundle to save the current package list, or Import bundle to load a native JSON/.ubundle snapshot into this tab.",
+                        L"用「匯出 bundle」可以保存目前套件清單，或者用「匯入 bundle」將原生 JSON／.ubundle 快照載入到呢個分頁。"),
+                    L"NativeBundleEmpty");
+            }
+            else
+            {
+                std::wstring sourceLine = pick(
+                    L"Loaded from " + m_packageBundleSourcePath,
+                    L"由 " + m_packageBundleSourcePath + L" 載入。");
+                appendCard(
+                    pick(L"Loaded bundle snapshot", L"已載入 bundle 快照"),
+                    TruncateForUi(sourceLine),
+                    L"NativeBundleSource");
+            }
+
+            for (std::size_t index = 0; index < bundleItems.size(); ++index)
+            {
+                auto const& package = bundleItems[index];
+                std::wstring metadata = package.manager_key;
+                if (!package.version.empty())
+                {
+                    metadata += L" · " + package.version;
+                }
+                if (!package.source.empty())
+                {
+                    metadata += L" · " + package.source;
+                }
+                appendCard(
+                    package.name.empty() ? package.id : package.name,
+                    package.id + L"\n" + metadata,
+                    L"NativeBundlePackage_" + std::to_wstring(index));
+            }
             return;
         }
 

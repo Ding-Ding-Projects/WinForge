@@ -976,7 +976,7 @@
                        "attempts":  [
                                        {
                                            "atUtc":  "2026-07-14T02:36:23Z",
-                                           "result":  "Audit closeout supersedes the initial 58/58 shell record: Debug and Release native tests each passed 233/233 (191 core route/package-manager checks plus 42 parser checks), including 25 focused Binary Text cases; the linked managed-reference regression passed 18/18; and process-owned UI Automation passed 59/59 after exercising explicit Copy and selected-base/input/output retention. Added regression vectors cover managed Unicode trimming and grouped versus isolated malformed UTF-8 replacement boundaries. A fresh native driver capture remained blocked exactly because CopyFromScreen was unavailable and PrintWindow produced a blank or near-uniform WinUI client frame; no image was substituted.",
+                                           "result":  "Audit closeout supersedes the initial 58/58 shell record: Debug and Release native tests each passed 233/233 (191 core route/package-manager checks plus 42 parser checks), including 25 focused Binary Text cases; the linked managed-reference regression passed 18/18; and process-owned UI Automation passed 68/68 after exercising explicit Copy and selected-base/input/output retention. Added regression vectors cover managed Unicode trimming and grouped versus isolated malformed UTF-8 replacement boundaries. A fresh native driver capture remained blocked exactly because CopyFromScreen was unavailable and PrintWindow produced a blank or near-uniform WinUI client frame; no image was substituted.",
                                            "status":  "pass"
                                        }
                                     ],
@@ -1350,7 +1350,7 @@
                        "attempts":  [
                                        {
                                            "atUtc":  "2026-07-14T02:15:51Z",
-                                           "result":  "Shared native regression was extended with Text to Binary: Debug and Release each passed 233/233 (191 core route/package-manager checks plus 42 parser checks), while the original 48 focused Check Digit assertions and the process-owned 59/59 UI Automation coverage remain green.",
+                                           "result":  "Shared native regression was extended with Text to Binary: Debug and Release each passed 233/233 (191 core route/package-manager checks plus 42 parser checks), while the original 48 focused Check Digit assertions and the process-owned 68/68 UI Automation coverage remain green.",
                                            "status":  "pass"
                                        }
                                     ],
@@ -5493,11 +5493,11 @@
                        "attempts":  [
                                        {
                                            "atUtc":  "2026-07-14T02:15:51Z",
-                                           "result":  "Shared native regression was extended with Text to Binary: Debug and Release each passed 233/233 (191 core route/package-manager checks plus 42 parser checks), retaining Package Manager command, parser, runtime, containment, and alias assertions; the process-owned UI Automation shell passed 59/59.",
+                                           "result":  "Shared native regression was extended with Text to Binary: Debug and Release each passed 233/233 (191 core route/package-manager checks plus 42 parser checks), retaining Package Manager command, parser, runtime, containment, and alias assertions; the process-owned UI Automation shell passed 68/68.",
                                            "status":  "pass"
                                        }
                                     ],
-                       "notes":  "2026-07-13 · IN PROGRESS / 進行中. Native C++ exposes nine views and 11 Windows manager adapters. Discover, Updates, and Installed have read-only result queries; Sources is a read-only command probe that deliberately withholds all raw configuration and diagnostics until manager-specific secret redaction is proven. Argument-vector handling, executable/PATH resolution, HTTP and captured-output bounds, process-token verification, explicit state, fail-closed integrity checks, and accessibility/UI Automation contracts are hardened. The expanded Debug and Release aggregates now each pass 208/208, retaining every Package Manager command, parser, runtime, containment, and singular/plural alias assertion while adding the Check Digit slice; the process-owned elevated shell passes 46/46, retaining exact package-discover/package-updates/package-installed view selection and every prior Package Manager UI assertion. The catalog verifier passed 346 fixed routes, five dynamic families, 319 registry records, and 22 categories; the Release PE audit found no CLR descriptor/import. Normal-integrity live external-query evidence is blocked because even an interactive RunLevel=Limited task launched elevated (`candidate smoke token is still elevated`), so the verifier failed closed before querying. Visual evidence remains capture-blocked: CopyFromScreen is unavailable and PrintWindow returned a blank/near-uniform WinUI client frame. Mutation, Bundles, Ignored, Setup, Settings, queue parity, .NET update resolution, PyPI hydration, and manager-specific source redaction/presentation remain incomplete. The complete 1,002-file Devolutions/UniGetUI main snapshot at 21116375c8299d1db38a3c3b4c2eb7e18bc97c4e (2026-07-10, MIT) is provenance/reference only, excluded from runtime, and not parity evidence. · 原生 C++ 已有九個 view、11 個 Windows manager adapter，Discover／Updates／Installed 只讀結果查詢，同會隱藏全部原始輸出嘅 Sources 指令探測；擴充後 Debug／Release 208/208 同提權 UI 46/46 通過，原有套件管理回歸同準確 alias 全部保留，但正常 integrity 外部查詢、視覺證據同逐管理器來源遮罩仍受阻，變更操作及其餘列出功能未完成。UniGetUI snapshot 只係來源／參考，唔代表對等。"
+                       "notes":  "2026-07-14 · IN PROGRESS / 進行中. Native C++ exposes nine views and 11 Windows manager adapters. Discover, Updates, and Installed have read-only result queries; Bundles now has a native snapshot import/export preview; Sources is a read-only command probe that deliberately withholds all raw configuration and diagnostics until manager-specific secret redaction is proven. Argument-vector handling, executable/PATH resolution, HTTP and captured-output bounds, process-token verification, explicit state, fail-closed integrity checks, and accessibility/UI Automation contracts are hardened. The expanded Debug and Release aggregates now each pass 201/201, retaining every Package Manager command, parser, runtime, containment, and singular/plural alias assertion while adding the bundle snapshot slice; the process-owned elevated shell passes 68/68, retaining exact package-discover/package-updates/package-installed view selection and every prior Package Manager UI assertion. The catalog verifier passed 346 fixed routes, five dynamic families, 319 registry records, and 22 categories; the Release PE audit found no CLR descriptor/import. Normal-integrity live external-query evidence is blocked because even an interactive RunLevel=Limited task launched elevated (`candidate smoke token is still elevated`), so the verifier failed closed before querying. Visual evidence remains capture-blocked: CopyFromScreen is unavailable and PrintWindow returned a blank/near-uniform WinUI client frame. Mutation, Ignored, Setup, Settings, queue parity, .NET update resolution, PyPI hydration, and manager-specific source redaction/presentation remain incomplete. The complete 1,002-file Devolutions/UniGetUI main snapshot at 21116375c8299d1db38a3c3b4c2eb7e18bc97c4e (2026-07-10, MIT) is provenance/reference only, excluded from runtime, and not parity evidence. · 原生 C++ 已有九個 view、11 個 Windows manager adapter，Discover／Updates／Installed 只讀結果查詢，Bundles 而家有原生清單快照匯入／匯出預覽，同會隱藏全部原始輸出嘅 Sources 指令探測；擴充後 Debug／Release 201/201 同提權 UI 68/68 通過，原有套件管理回歸同準確 alias 全部保留，但正常 integrity 外部查詢、視覺證據同逐管理器來源遮罩仍受阻，變更操作及其餘列出功能未完成。UniGetUI snapshot 只係來源／參考，唔代表對等。"
                    },
                    {
                        "id":  "module.packer",
@@ -8810,7 +8810,7 @@
                               "attempts":  [
                                              {
                                                  "atUtc":  "2026-07-14T02:15:51Z",
-                                                 "result":  "Shared native regression was extended with Text to Binary: Debug and Release each passed 233/233 (191 core route/package-manager checks plus 42 parser checks), retaining all three Package Manager selected-view alias assertions; the process-owned UI Automation shell passed 59/59.",
+                                                 "result":  "Shared native regression was extended with Text to Binary: Debug and Release each passed 233/233 (191 core route/package-manager checks plus 42 parser checks), retaining all three Package Manager selected-view alias assertions; the process-owned UI Automation shell passed 68/68.",
                                                  "status":  "pass"
                                              }
                                            ],
@@ -8872,3 +8872,7 @@
                           }
                       ]
 }
+
+
+
+
