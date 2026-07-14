@@ -10,6 +10,10 @@ Canonical screenshots live in `docs/` and are embedded here through raw GitHub U
 
 **粵語 —** 2026-07-13 新完成原生功能嘅檢查碼驗證器已經用 `driver.ps1 -Native -Page checkdigit` 開啟；標準同無障礙加固 render 後亦再次按要求嘗試新截圖。`CopyFromScreen` 用唔到；`PrintWindow` 後備產生空白／接近單色 WinUI client frame，所以已被拒絕。route 另外通過六個格式嘅即時 UI Automation 檢查、本地化名稱同清除舊 detail 無障礙檢查，但嗰啲係行為證據，唔係視覺證據。冇建立、替換、重用或者合成 `screenshot-checkdigit.png`；頁面係 `capture-blocked`。
 
+**EN —** On 2026-07-13 the newly native Text to Binary route was launched through `driver.ps1 -Native -Page binarytext -WaitMs 5000`; its required current capture attempted `CopyFromScreen`, then rejected the blank or near-uniform `PrintWindow` fallback. The exact result was `CopyFromScreen is unavailable and the PrintWindow fallback produced a blank or near-uniform WinUI client frame; graphics capture is unavailable in this desktop session.` No `screenshot-binarytext.png` exists or was created, replaced, reused, or synthesized. The separate 59/59 UI Automation smoke exercised binary and hex conversion, Move output to input, explicit Copy, malformed-code clearing, accessibility, selected-base/input/output language-state retention, and all aliases; that is behavior evidence only. Text to Binary is `capture-blocked`, not visual-pass.
+
+**粵語 —** 2026-07-13 新完成原生功能嘅文字轉二進位 route 已經用 `driver.ps1 -Native -Page binarytext -WaitMs 5000` 開啟；指定嘅最新截圖先試 `CopyFromScreen`，再拒絕空白／接近單色嘅 `PrintWindow` 後備。確實結果係：`CopyFromScreen is unavailable and the PrintWindow fallback produced a blank or near-uniform WinUI client frame; graphics capture is unavailable in this desktop session.` 冇 `screenshot-binarytext.png`，亦冇建立、替換、重用或者合成。獨立 59/59 UI Automation smoke 會操作二進位同十六進位轉換、搬輸出去輸入、明確 Copy、錯誤碼清空、無障礙、轉語言後保留已揀進位／輸入／輸出同全部 alias；嗰啲只係行為證據。文字轉二進位係 `capture-blocked`，唔係 visual-pass。
+
 **EN —** On 2026-07-11, a fresh self-contained Dashboard capture reproduced
 `CopyFromScreen`: `The handle is invalid`. The direct `PrintWindow` fallback
 returned success but its inspected 682×1311 PNG was uniformly

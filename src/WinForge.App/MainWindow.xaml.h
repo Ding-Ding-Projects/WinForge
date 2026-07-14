@@ -1,6 +1,7 @@
 #pragma once
 
 #include "MainWindow.g.h"
+#include "../WinForge.Core/BinaryText.h"
 #include "../WinForge.Core/CheckDigit.h"
 #include "../WinForge.Core/CommandLine.h"
 #include "../WinForge.Core/ModuleRecord.h"
@@ -53,6 +54,10 @@ namespace winrt::WinForge::implementation
         Microsoft::UI::Xaml::Controls::TextBlock m_checkDigitBadgeText{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_checkDigitDetail{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_checkDigitStatus{ nullptr };
+        Microsoft::UI::Xaml::Controls::ComboBox m_binaryTextBasePicker{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_binaryTextInput{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_binaryTextOutput{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_binaryTextStatus{ nullptr };
         std::unordered_map<std::wstring, bool> m_packageManagersSelected;
         std::unordered_map<std::wstring, bool> m_packageManagersAvailable;
         std::unordered_map<std::wstring, std::wstring> m_packageProbeDiagnostics;
@@ -69,6 +74,10 @@ namespace winrt::WinForge::implementation
         int32_t m_checkDigitScheme{ 0 };
         std::wstring m_checkDigitValue{};
         bool m_checkDigitRendering{ false };
+        int32_t m_binaryTextBase{ 0 };
+        std::wstring m_binaryTextInputValue{};
+        std::wstring m_binaryTextOutputValue{};
+        bool m_binaryTextRendering{ false };
         std::wstring m_currentRoute{ L"dashboard" };
         std::wstring m_currentArgument{};
 
@@ -114,6 +123,8 @@ namespace winrt::WinForge::implementation
         void RenderCheckDigit();
         void RefreshCheckDigit();
         void AnnounceCheckDigitStatus(std::wstring_view message);
+        void RenderBinaryText();
+        void AnnounceBinaryTextStatus(std::wstring_view message, bool warning = false);
         void RenderSearch(std::wstring_view query);
         void RenderAbout();
         void RenderPending(winforge::core::ModuleRecord const& module);

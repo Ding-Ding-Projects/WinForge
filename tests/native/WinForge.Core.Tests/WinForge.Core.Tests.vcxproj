@@ -51,12 +51,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="BinaryTextTests.cpp" />
     <ClCompile Include="CheckDigitTests.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="PackageManagerTests.cpp" />
     <ClCompile Include="PackageParsers.Tests.cpp" />
     <ClCompile Include="PackageRuntimeTests.cpp" />
     <ClCompile Include="ProcessRunnerTests.cpp" />
+    <ClCompile Include="..\..\..\src\WinForge.Core\BinaryText.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\CheckDigit.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\CommandLine.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\PackageManager.cpp" />
@@ -66,9 +68,11 @@
     <ClCompile Include="..\..\..\src\WinForge.Core\RouteIndex.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="BinaryTextTests.h" />
     <ClInclude Include="CheckDigitTests.h" />
     <ClInclude Include="PackageManagerTests.h" />
     <ClInclude Include="PackageRuntimeTests.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\BinaryText.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\CheckDigit.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\CommandLine.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\Localization.h" />

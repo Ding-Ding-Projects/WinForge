@@ -120,6 +120,35 @@ function Wait-ForElementNamePrefix {
     throw "Expected '$AutomationId' name prefix '$Prefix', got '$actual'."
 }
 
+function Wait-ForElementValue {
+    param(
+        [Parameter(Mandatory)]$Root,
+        [Parameter(Mandatory)][string]$AutomationId,
+        [Parameter(Mandatory)][AllowEmptyString()][string]$ExpectedValue
+    )
+
+    $deadline = [DateTime]::UtcNow.AddMilliseconds($TimeoutMs)
+    $element = $null
+    do {
+        $element = Find-ByAutomationId -Root $Root -AutomationId $AutomationId
+        if ($element) {
+            $value = [System.Windows.Automation.ValuePattern]$element.GetCurrentPattern(
+                [System.Windows.Automation.ValuePattern]::Pattern)
+            if ($value.Current.Value -eq $ExpectedValue) {
+                return $element
+            }
+        }
+        Start-Sleep -Milliseconds 100
+    } while ([DateTime]::UtcNow -lt $deadline)
+
+    $actual = if ($element) {
+        ([System.Windows.Automation.ValuePattern]$element.GetCurrentPattern(
+            [System.Windows.Automation.ValuePattern]::Pattern)).Current.Value
+    }
+    else { '(missing)' }
+    throw "Expected '$AutomationId' value '$ExpectedValue', got '$actual'."
+}
+
 function Select-ComboItem {
     param(
         [Parameter(Mandatory)]$Combo,
@@ -288,6 +317,100 @@ Invoke-OwnedRoute -Route 'checkdigit' -ExpectedTitle 'Check Digit Validator' -In
 
 foreach ($alias in @('luhn', 'module.checkdigit')) {
     Invoke-OwnedRoute -Route $alias -ExpectedTitle 'Check Digit Validator'
+}
+
+Invoke-OwnedRoute -Route 'binarytext' -ExpectedTitle 'Text to Binary' -Inspect {
+    param($root, $title)
+
+    foreach ($id in @(
+        'NativeBinaryTextImplementationStatus',
+        'NativeBinaryTextBase',
+        'NativeBinaryTextInput',
+        'NativeBinaryTextEncode',
+        'NativeBinaryTextDecode',
+        'NativeBinaryTextSwap',
+        'NativeBinaryTextCopy',
+        'NativeBinaryTextOutput',
+        'NativeBinaryTextStatus'
+    )) {
+        Wait-ForElement -Root $root -AutomationId $id | Out-Null
+    }
+    Assert-True -Condition $true -Name 'Binary Text exposes its native control and accessibility contract'
+
+    $base = Wait-ForElement -Root $root -AutomationId 'NativeBinaryTextBase'
+    $input = Wait-ForElement -Root $root -AutomationId 'NativeBinaryTextInput'
+    $output = Wait-ForElement -Root $root -AutomationId 'NativeBinaryTextOutput'
+    Assert-True -Condition ($base.Current.Name.StartsWith('Numeric base', [StringComparison]::Ordinal)) `
+        -Name 'Binary Text base picker has a localized accessible name'
+    Assert-True -Condition ($input.Current.Name.StartsWith('Binary Text input', [StringComparison]::Ordinal)) `
+        -Name 'Binary Text input has a localized accessible name'
+
+    $inputValue = [System.Windows.Automation.ValuePattern]$input.GetCurrentPattern(
+        [System.Windows.Automation.ValuePattern]::Pattern)
+    $encode = Wait-ForElement -Root $root -AutomationId 'NativeBinaryTextEncode'
+    $encodeInvoke = [System.Windows.Automation.InvokePattern]$encode.GetCurrentPattern(
+        [System.Windows.Automation.InvokePattern]::Pattern)
+    $inputValue.SetValue('Hi')
+    $encodeInvoke.Invoke()
+    Wait-ForElementValue -Root $root -AutomationId 'NativeBinaryTextOutput' -ExpectedValue '01001000 01101001' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeBinaryTextStatus' -Prefix 'Encoded to numeric codes' | Out-Null
+    Assert-True -Condition $true -Name 'Binary Text encodes padded binary bytes through the live native UI'
+
+    Select-ComboIndex -Combo $base -Index 3
+    $inputValue.SetValue('Hi')
+    $encodeInvoke.Invoke()
+    Wait-ForElementValue -Root $root -AutomationId 'NativeBinaryTextOutput' -ExpectedValue '48 69' | Out-Null
+    Assert-True -Condition $true -Name 'Binary Text switches to hexadecimal byte encoding through the live native UI'
+
+    $swap = Wait-ForElement -Root $root -AutomationId 'NativeBinaryTextSwap'
+    ([System.Windows.Automation.InvokePattern]$swap.GetCurrentPattern(
+        [System.Windows.Automation.InvokePattern]::Pattern)).Invoke()
+    Wait-ForElementValue -Root $root -AutomationId 'NativeBinaryTextInput' -ExpectedValue '48 69' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeBinaryTextOutput' -ExpectedValue '' | Out-Null
+    Assert-True -Condition $true -Name 'Binary Text moves output to input and clears stale output'
+
+    $input = Wait-ForElement -Root $root -AutomationId 'NativeBinaryTextInput'
+    $inputValue = [System.Windows.Automation.ValuePattern]$input.GetCurrentPattern(
+        [System.Windows.Automation.ValuePattern]::Pattern)
+    $decode = Wait-ForElement -Root $root -AutomationId 'NativeBinaryTextDecode'
+    $decodeInvoke = [System.Windows.Automation.InvokePattern]$decode.GetCurrentPattern(
+        [System.Windows.Automation.InvokePattern]::Pattern)
+    $inputValue.SetValue('0x48 0X69')
+    $decodeInvoke.Invoke()
+    Wait-ForElementValue -Root $root -AutomationId 'NativeBinaryTextOutput' -ExpectedValue 'Hi' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeBinaryTextStatus' -Prefix 'Decoded back to text' | Out-Null
+    Assert-True -Condition $true -Name 'Binary Text decodes prefixed hexadecimal bytes through the live native UI'
+
+    $copy = Wait-ForElement -Root $root -AutomationId 'NativeBinaryTextCopy'
+    ([System.Windows.Automation.InvokePattern]$copy.GetCurrentPattern(
+        [System.Windows.Automation.InvokePattern]::Pattern)).Invoke()
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeBinaryTextStatus' -Prefix 'Output copied to clipboard' | Out-Null
+    Assert-True -Condition $true -Name 'Binary Text copies output only after the explicit live native action'
+
+    $inputValue.SetValue('GG')
+    $decodeInvoke.Invoke()
+    Wait-ForElementValue -Root $root -AutomationId 'NativeBinaryTextOutput' -ExpectedValue '' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeBinaryTextStatus' -Prefix 'Some codes are not valid' | Out-Null
+    Assert-True -Condition $true -Name 'Binary Text clears stale output after malformed codes'
+
+    $inputValue.SetValue('0x48 0X69')
+    $decodeInvoke.Invoke()
+    Wait-ForElementValue -Root $root -AutomationId 'NativeBinaryTextOutput' -ExpectedValue 'Hi' | Out-Null
+    $language = Wait-ForElement -Root $root -AutomationId 'NativeLanguagePicker'
+    Select-ComboItem -Combo $language -Name 'English'
+    Wait-ForPageTitle -Root $root -Prefix 'Text to Binary' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeBinaryTextInput' -ExpectedValue '0x48 0X69' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeBinaryTextOutput' -ExpectedValue 'Hi' | Out-Null
+    $base = Wait-ForElement -Root $root -AutomationId 'NativeBinaryTextBase'
+    $selection = [System.Windows.Automation.SelectionPattern]$base.GetCurrentPattern(
+        [System.Windows.Automation.SelectionPattern]::Pattern)
+    $selected = $selection.Current.GetSelection()
+    Assert-True -Condition ($selected.Count -eq 1 -and $selected[0].Current.Name -eq 'Hex (base 16)') `
+        -Name 'Binary Text preserves selected base, input, and output across language rerender'
+}
+
+foreach ($alias in @('textbinary', 'module.binarytext')) {
+    Invoke-OwnedRoute -Route $alias -ExpectedTitle 'Text to Binary'
 }
 
 Invoke-OwnedRoute -Route 'package-updates' -ExpectedTitle 'Package Manager' -Inspect {

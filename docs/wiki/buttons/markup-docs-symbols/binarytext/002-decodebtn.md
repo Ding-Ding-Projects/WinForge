@@ -18,3 +18,9 @@
 **EN —** Use this control from the module page shown above. If the handler is blank, the action is represented by binding or template state rather than a direct click handler in XAML.
 
 **粵語 —** 喺上面模組頁面使用呢個控制項。如果處理函式係空白，代表動作可能由 binding 或樣板狀態處理，而唔係 XAML 入面直接寫 click handler。
+
+## Native C++ counterpart · 原生 C++ 對應
+
+**EN —** The native button has automation ID `NativeBinaryTextDecode`. It accepts the documented separators and matching prefixes, decodes locally, and clears output atomically when any code is malformed or outside 0–255 so stale text cannot survive a failed decode.
+
+**粵語 —** 原生按鈕嘅 automation ID 係 `NativeBinaryTextDecode`。佢接受文件列出嘅分隔同配對 prefix、喺本機解碼；任何數字碼格式錯誤或者唔喺 0–255 範圍就會原子式清空輸出，唔會喺失敗解碼後留下舊文字。

@@ -1,3 +1,4 @@
+#include "BinaryTextTests.h"
 #include "CommandLine.h"
 #include "CheckDigitTests.h"
 #include "Localization.h"
@@ -157,6 +158,10 @@ int wmain(int argc, wchar_t** argv)
     Expect(rejectedDuplicate, "rejects duplicate canonical route keys");
 
     winforge::tests::RunProcessRunnerTests(Expect);
+
+    auto const binaryTextCounts = RunBinaryTextTests();
+    passed += binaryTextCounts.passed;
+    failed += binaryTextCounts.failed;
 
     auto const checkDigitCounts = RunCheckDigitTests();
     passed += checkDigitCounts.passed;
