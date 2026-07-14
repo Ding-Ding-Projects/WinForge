@@ -1601,6 +1601,44 @@ namespace winrt::WinForge::implementation
         RenderPackageManagerView();
     }
 
+    void MainWindow::PreviewPackageDetails(
+        winforge::core::packages::PackageItem const& package)
+    {
+        auto const command = winforge::core::packages::BuildDetailsCommand(
+            package.manager_key,
+            package.id);
+        if (!command)
+        {
+            RecordPackageOperation(
+                L"Preview failed for details " + package.id +
+                    L" via " + package.manager_key + L": " + command.error_code +
+                    L". · 詳細資料預覽失敗。");
+            AnnouncePackageStatus(
+                L"Package details preview failed. Review the Operations view for the validation reason.",
+                L"套件詳細資料預覽失敗。請喺操作檢視睇驗證原因。",
+                true);
+        }
+        else
+        {
+            RecordPackageOperation(
+                L"Preview-only details plan for " + package.id +
+                    L" via " + package.manager_key + L": " +
+                    winforge::core::packages::FormatCommandPreview(*command.command) +
+                    L". No package command was executed. · 只建立詳細資料預覽，冇執行套件指令。");
+            AnnouncePackageStatus(
+                L"Package details preview added to Operations. No package command was executed.",
+                L"套件詳細資料預覽已加入操作檢視；冇執行套件指令。");
+        }
+
+        m_packageView = 8;
+        if (m_packageViewPicker)
+        {
+            m_packageViewPicker.SelectedIndex(m_packageView);
+        }
+        SavePackageManagerState();
+        RenderPackageManagerView();
+    }
+
     void MainWindow::PreviewPackageBulkUpdate()
     {
         if (m_packageItems.empty())
@@ -3059,6 +3097,10 @@ namespace winrt::WinForge::implementation
             details.IsTextSelectionEnabled(true);
             row.Children().Append(details);
 
+            StackPanel actions;
+            actions.Orientation(Orientation::Horizontal);
+            actions.Spacing(8);
+
             Button mutation;
             auto const actionLabel = m_packageView == 0
                 ? pick(L"Install", L"安裝")
@@ -3091,7 +3133,34 @@ namespace winrt::WinForge::implementation
             {
                 PreviewPackageOperation(packageCopy, action);
             });
-            row.Children().Append(mutation);
+            actions.Children().Append(mutation);
+
+            Button detailPreview;
+            auto const detailLabel = pick(L"Details", L"詳細資料");
+            detailPreview.Content(box_value(ToHString(detailLabel)));
+            detailPreview.IsEnabled(!m_packageWorking);
+            detailPreview.HorizontalAlignment(HorizontalAlignment::Left);
+            AutomationProperties::SetAutomationId(
+                detailPreview,
+                ToHString(L"NativePackageDetails_" + AutomationKey(package.manager_key) + L"_" + AutomationKey(package.id)));
+            AutomationProperties::SetName(
+                detailPreview,
+                ToHString(detailLabel + L" preview for " + (package.name.empty() ? package.id : package.name)));
+            ToolTipService::SetToolTip(
+                detailPreview,
+                box_value(ToHString(pick(
+                    L"Preview the exact native details argv plan. This does not execute the package command.",
+                    L"預覽準確嘅原生詳細資料 argv 計劃；唔會執行套件指令。"))));
+            auto detailPackageCopy = package;
+            detailPreview.Click([this, detailPackageCopy = std::move(detailPackageCopy)](
+                Windows::Foundation::IInspectable const&,
+                RoutedEventArgs const&)
+            {
+                PreviewPackageDetails(detailPackageCopy);
+            });
+            actions.Children().Append(detailPreview);
+
+            row.Children().Append(actions);
             card.Child(row);
             m_packageResults.Children().Append(card);
         }

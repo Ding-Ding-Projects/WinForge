@@ -119,6 +119,8 @@ namespace winrt::WinForge::implementation
         void PreviewPackageOperation(
             winforge::core::packages::PackageItem const& package,
             winforge::core::packages::PackageAction action);
+        void PreviewPackageDetails(
+            winforge::core::packages::PackageItem const& package);
         void PreviewPackageBulkUpdate();
         [[nodiscard]] std::wstring BundleSnapshotToJson(
             std::vector<winforge::core::packages::PackageItem> const& items) const;

@@ -280,6 +280,10 @@ NativeTestCounts RunPackageManagerTests()
     auto details = BuildDetailsCommand(L"pwsh7", L"Pester");
     expect(details && details.command->arguments[3].find(L"Pester") == std::wstring::npos
         && IsEncodedPowerShellValue(details.command->arguments.back()), "details encode package id outside PowerShell script");
+    expect(details
+        && FormatCommandPreview(*details.command).find(L"pwsh -NoProfile -NonInteractive -Command") == 0
+        && FormatCommandPreview(*details.command).find(L"Pester") == std::wstring::npos,
+        "details previews expose the exact executable and argv while preserving encoded package values");
     auto sources = BuildSourcesCommand(L"cargo");
     expect(sources && sources.command->transport == CommandTransport::StaticText
         && sources.command->static_text == L"crates.io (default registry)", "Cargo sources preserve managed static result");
