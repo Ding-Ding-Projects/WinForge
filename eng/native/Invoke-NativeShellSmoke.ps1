@@ -605,12 +605,28 @@ Invoke-OwnedRoute -Route 'package-bundles' -ExpectedTitle 'Package Manager' -Ins
         -Name 'Package Manager package-bundles alias selects Bundles'
 }
 
+Invoke-OwnedRoute -Route 'packages-bundles' -ExpectedTitle 'Package Manager' -Inspect {
+    param($root, $title)
+
+    $header = Wait-ForElement -Root $root -AutomationId 'NativePackageResultsHeader'
+    Assert-True -Condition ($header.Current.Name.StartsWith('Portable package bundles', [StringComparison]::Ordinal)) `
+        -Name 'Package Manager packages-bundles alias selects Bundles'
+}
+
 Invoke-OwnedRoute -Route 'package-sources' -ExpectedTitle 'Package Manager' -Inspect {
     param($root, $title)
 
     $header = Wait-ForElement -Root $root -AutomationId 'NativePackageResultsHeader'
     Assert-True -Condition ($header.Current.Name.StartsWith('Package sources', [StringComparison]::Ordinal)) `
         -Name 'Package Manager package-sources alias selects Sources'
+}
+
+Invoke-OwnedRoute -Route 'packages-sources' -ExpectedTitle 'Package Manager' -Inspect {
+    param($root, $title)
+
+    $header = Wait-ForElement -Root $root -AutomationId 'NativePackageResultsHeader'
+    Assert-True -Condition ($header.Current.Name.StartsWith('Package sources', [StringComparison]::Ordinal)) `
+        -Name 'Package Manager packages-sources alias selects Sources'
 }
 
 Invoke-OwnedRoute -Route 'package-ignored' -ExpectedTitle 'Package Manager' -Inspect {
@@ -621,12 +637,28 @@ Invoke-OwnedRoute -Route 'package-ignored' -ExpectedTitle 'Package Manager' -Ins
         -Name 'Package Manager package-ignored alias selects Ignored'
 }
 
+Invoke-OwnedRoute -Route 'packages-ignored' -ExpectedTitle 'Package Manager' -Inspect {
+    param($root, $title)
+
+    $header = Wait-ForElement -Root $root -AutomationId 'NativePackageResultsHeader'
+    Assert-True -Condition ($header.Current.Name.StartsWith('Ignored, pinned, and snoozed updates', [StringComparison]::Ordinal)) `
+        -Name 'Package Manager packages-ignored alias selects Ignored'
+}
+
 Invoke-OwnedRoute -Route 'package-setup' -ExpectedTitle 'Package Manager' -Inspect {
     param($root, $title)
 
     $header = Wait-ForElement -Root $root -AutomationId 'NativePackageResultsHeader'
     Assert-True -Condition ($header.Current.Name.StartsWith('Engine setup', [StringComparison]::Ordinal)) `
         -Name 'Package Manager package-setup alias selects Setup'
+}
+
+Invoke-OwnedRoute -Route 'packages-setup' -ExpectedTitle 'Package Manager' -Inspect {
+    param($root, $title)
+
+    $header = Wait-ForElement -Root $root -AutomationId 'NativePackageResultsHeader'
+    Assert-True -Condition ($header.Current.Name.StartsWith('Engine setup', [StringComparison]::Ordinal)) `
+        -Name 'Package Manager packages-setup alias selects Setup'
 }
 
 Invoke-OwnedRoute -Route 'package-settings' -ExpectedTitle 'Package Manager' -Inspect {
@@ -637,12 +669,28 @@ Invoke-OwnedRoute -Route 'package-settings' -ExpectedTitle 'Package Manager' -In
         -Name 'Package Manager package-settings alias selects Settings'
 }
 
+Invoke-OwnedRoute -Route 'packages-settings' -ExpectedTitle 'Package Manager' -Inspect {
+    param($root, $title)
+
+    $summary = Wait-ForElement -Root $root -AutomationId 'NativePackageSettingsSummary'
+    Assert-True -Condition ($summary.Current.Name.StartsWith('Native package-manager state', [StringComparison]::Ordinal)) `
+        -Name 'Package Manager packages-settings alias selects Settings'
+}
+
 Invoke-OwnedRoute -Route 'package-operations' -ExpectedTitle 'Package Manager' -Inspect {
     param($root, $title)
 
     $header = Wait-ForElement -Root $root -AutomationId 'NativePackageResultsHeader'
     Assert-True -Condition ($header.Current.Name.StartsWith('Operation queue and history', [StringComparison]::Ordinal)) `
         -Name 'Package Manager package-operations alias selects Operations'
+}
+
+Invoke-OwnedRoute -Route 'packages-operations' -ExpectedTitle 'Package Manager' -Inspect {
+    param($root, $title)
+
+    $header = Wait-ForElement -Root $root -AutomationId 'NativePackageResultsHeader'
+    Assert-True -Condition ($header.Current.Name.StartsWith('Operation queue and history', [StringComparison]::Ordinal)) `
+        -Name 'Package Manager packages-operations alias selects Operations'
 }
 
 foreach ($case in @(

@@ -43,7 +43,7 @@ Remaining UniGetUI-informed work includes the capability/maintenance/log model; 
 
 ## Deep links and provenance · 深層連結同來源依據
 
-`--page package-discover`, `--page package-updates`, `--page package-installed`, `--page package-bundles`, `--page package-sources`, `--page package-ignored`, `--page package-setup`, `--page package-settings`, `--page package-operations`, and `--page module.packages#bundles` resolve to the matching `module.packages` deep links. Routing is verified, but route availability alone is not parity evidence. · 自動化可用嘅 package-* 指令同 `--page module.packages#bundles` 都會解析去對應嘅 `module.packages` deep link；導覽已驗證，但淨係有 route 唔代表功能對等。
+`package-*` and `packages-*` aliases for discover, updates, installed, bundles, sources, ignored, setup, settings, and operations, plus `--page module.packages#bundles`, resolve to the matching `module.packages` deep links. Routing is verified, but route availability alone is not parity evidence. · `package-*` 同 `packages-*` 呢組別名可用嚟叫 discover、updates、installed、bundles、sources、ignored、setup、settings 同 operations，加埋 `--page module.packages#bundles` 都會解析去對應嘅 `module.packages` deep link；導覽已驗證，但淨係有 route 唔代表功能對等。
 
 The complete 1,002-file tracked [Devolutions/UniGetUI](https://github.com/Devolutions/UniGetUI) tree is vendored at `ThirdParty/UniGetUI`, pinned to upstream `main` commit `21116375c8299d1db38a3c3b4c2eb7e18bc97c4e` (2026-07-10) under the MIT license. `ThirdParty/**` is excluded from WinForge build and publish inputs. The snapshot is exact provenance and a behavior inventory only—not an embedded runtime, copied identity, or parity claim.
 
