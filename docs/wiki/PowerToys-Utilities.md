@@ -62,7 +62,7 @@ Open in-app: `WinForge.exe --page mouseutils`
 
 Wrap the pointer to the opposite outer edge of the active display. Choose always-on, Ctrl-held, or Shift-held activation; horizontal, vertical, or both-direction wrapping; and optionally pause it while only one monitor is connected. · 游標去到使用中顯示器嘅外邊會由對面再出現。可選長開、撳住 Ctrl、或者撳住 Shift 先啟用；亦都可以揀橫向、直向、或者兩個方向環繞，仲可以得一個螢幕時暫停。
 
-![CursorWrap · 游標環繞](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-cursorwrap.png)
+Fresh visual capture for CursorWrap is currently blocked in this desktop session: `CopyFromScreen` is unavailable and the driver rejected the blank / near-uniform fallback, so no current `screenshot-cursorwrap.png` is available yet. · CursorWrap 嘅最新視覺擷取而家喺呢個 desktop session 受阻：`CopyFromScreen` 唔可用，而 driver 拒絕咗空白／接近單色 fallback，所以暫時未有可用嘅 `screenshot-cursorwrap.png`。
 
 ## Mouse & Pointer · 滑鼠與指標
 
