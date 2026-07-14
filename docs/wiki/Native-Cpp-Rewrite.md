@@ -27,6 +27,10 @@ Package Manager is now an honest **in-progress** native C++ port, not a pending 
 
 套件管理而家係如實標示為**進行中**嘅原生 C++ 移植，唔再只係 pending shell，亦未達到對等。佢有九個 view（Discover、Updates、Installed、Bundles、Sources、Ignored、Setup、Settings 同 Operations）、11 個 Windows manager filter，同 Discover、Updates、Installed 嘅原生只讀結果查詢。Sources 只係只讀指令探測：逐管理器機密遮罩未證實之前會刻意隱藏原始設定同診斷。runtime 已加固 argument vector、executable／`PATH` 解析、HTTP 同擷取輸出上限、process token 驗證、明確狀態、fail-closed integrity 檢查，同 accessibility／UI Automation contract。
 
+The package-manager Settings tab is now a real native persistence slice for package-view, search-text, and manager-filter choices. Broader per-manager defaults, backup, and restore stay gated until the remaining settings workflow is ported.
+
+套件管理嘅 Settings tab 而家係真實原生持久化片段，會保存套件檢視、搜尋文字同管理器篩選。更完整逐管理器預設、備份同還原仍然要等剩低嘅 settings workflow 移植完成。
+
 Mutation, Bundles, Ignored, Setup, Settings, the operation queue, .NET update resolution, and PyPI metadata hydration remain incomplete. The complete 1,002-file UniGetUI `main` snapshot at `21116375c8299d1db38a3c3b4c2eb7e18bc97c4e` (2026-07-10, MIT) is exact provenance and a behavior reference only; it is excluded from runtime and is not parity evidence.
 
 套件變更、Bundles、Ignored、Setup、Settings、operation queue、.NET 更新解析同 PyPI metadata hydration 仍然未完成。完整 1,002 檔 UniGetUI `main` snapshot 固定喺 `21116375c8299d1db38a3c3b4c2eb7e18bc97c4e`（2026-07-10，MIT），只係精確來源證明同功能參考；runtime 會排除佢，亦唔係對等證據。

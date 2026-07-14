@@ -10,6 +10,7 @@
 #include "../WinForge.Core/RouteIndex.h"
 
 #include <cstdint>
+#include <filesystem>
 #include <stop_token>
 
 namespace winrt::WinForge::implementation
@@ -75,6 +76,12 @@ namespace winrt::WinForge::implementation
         bool m_packageProbeComplete{ false };
         bool m_packageWorking{ false };
         int32_t m_packageView{ 0 };
+        bool m_packageRememberView{ true };
+        bool m_packageRememberSearch{ true };
+        bool m_packageRememberFilters{ true };
+        std::filesystem::path m_packageStatePath;
+        bool m_packageStateApplying{ false };
+        std::wstring m_packageSearchText{};
         int32_t m_checkDigitScheme{ 0 };
         std::wstring m_checkDigitValue{};
         bool m_checkDigitRendering{ false };
@@ -99,6 +106,9 @@ namespace winrt::WinForge::implementation
         void PopulateAllApps(std::wstring_view query);
         void RenderPackageManager();
         void RenderPackageManagerView();
+        void LoadPackageManagerState();
+        void SavePackageManagerState() const;
+        void ResetPackageManagerState();
         void PopulatePackageManagerFilters(Microsoft::UI::Xaml::Controls::StackPanel const& panel);
         void CancelPackageWork();
         [[nodiscard]] bool InvalidatePackageQueryResults();

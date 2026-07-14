@@ -8,11 +8,15 @@
 #include "CatalogLoader.h"
 #include "microsoft.ui.xaml.window.h"
 #include <winrt/Windows.ApplicationModel.DataTransfer.h>
+#include <winrt/Windows.Data.Json.h>
 #include <winrt/Microsoft.UI.Xaml.Automation.Peers.h>
 
 #include <chrono>
 #include <cwctype>
 #include <array>
+#include <cstdlib>
+#include <filesystem>
+#include <fstream>
 #include <future>
 #include <sstream>
 #include <stdexcept>
@@ -44,6 +48,16 @@ namespace
             result.push_back(std::iswalnum(character) ? character : L'_');
         }
         return result;
+    }
+
+    std::filesystem::path PackageManagerStatePath()
+    {
+        std::wstring buffer(32768, L'\0');
+        auto const length = GetEnvironmentVariableW(L"LOCALAPPDATA", buffer.data(), static_cast<DWORD>(buffer.size()));
+        std::filesystem::path root = (length != 0 && length < buffer.size())
+            ? std::filesystem::path(buffer.substr(0, length))
+            : std::filesystem::temp_directory_path();
+        return root / L"WinForge" / L"native-package-manager-state.json";
     }
 
     bool HasNonWhitespace(std::wstring_view value)
@@ -108,6 +122,8 @@ namespace winrt::WinForge::implementation
             m_modules = winforge::app::LoadModuleCatalog();
             BuildAliasIndex();
             BuildShell();
+            m_packageStatePath = PackageManagerStatePath();
+            LoadPackageManagerState();
 
             auto const request = winforge::core::CurrentProcessLaunchRequest();
             Navigate(request.route, request.argument, true);
@@ -1194,11 +1210,16 @@ namespace winrt::WinForge::implementation
             AutomationProperties::SetAutomationId(
                 filter,
                 ToHString(L"NativePackageManagerFilter_" + AutomationKey(key)));
-            filter.Checked([this](Windows::Foundation::IInspectable const& sender, RoutedEventArgs const&)
+        filter.Checked([this](Windows::Foundation::IInspectable const& sender, RoutedEventArgs const&)
+        {
+            if (m_packageStateApplying)
             {
-                auto const check = sender.as<CheckBox>();
-                auto const keyValue = unbox_value_or<hstring>(check.Tag(), L"");
-                m_packageManagersSelected[ToWide(keyValue)] = true;
+                return;
+            }
+            auto const check = sender.as<CheckBox>();
+            auto const keyValue = unbox_value_or<hstring>(check.Tag(), L"");
+            m_packageManagersSelected[ToWide(keyValue)] = true;
+            SavePackageManagerState();
                 if (InvalidatePackageQueryResults())
                 {
                     AnnouncePackageStatus(
@@ -1207,11 +1228,16 @@ namespace winrt::WinForge::implementation
                 }
                 RenderPackageManagerView();
             });
-            filter.Unchecked([this](Windows::Foundation::IInspectable const& sender, RoutedEventArgs const&)
+        filter.Unchecked([this](Windows::Foundation::IInspectable const& sender, RoutedEventArgs const&)
+        {
+            if (m_packageStateApplying)
             {
-                auto const check = sender.as<CheckBox>();
-                auto const keyValue = unbox_value_or<hstring>(check.Tag(), L"");
-                m_packageManagersSelected[ToWide(keyValue)] = false;
+                return;
+            }
+            auto const check = sender.as<CheckBox>();
+            auto const keyValue = unbox_value_or<hstring>(check.Tag(), L"");
+            m_packageManagersSelected[ToWide(keyValue)] = false;
+            SavePackageManagerState();
                 if (InvalidatePackageQueryResults())
                 {
                     AnnouncePackageStatus(
@@ -1224,12 +1250,178 @@ namespace winrt::WinForge::implementation
         }
     }
 
+    void MainWindow::LoadPackageManagerState()
+    {
+        m_packageRememberView = true;
+        m_packageRememberSearch = true;
+        m_packageRememberFilters = true;
+        m_packageSearchText.clear();
+        m_packageManagersSelected.clear();
+        for (auto const& manager : winforge::core::packages::PackageManagers())
+        {
+            m_packageManagersSelected.emplace(std::wstring(manager.key), true);
+        }
+
+        std::error_code ignored;
+        if (!std::filesystem::is_regular_file(m_packageStatePath, ignored))
+        {
+            return;
+        }
+
+        std::ifstream input(m_packageStatePath, std::ios::binary);
+        if (!input)
+        {
+            return;
+        }
+
+        std::ostringstream stream;
+        stream << input.rdbuf();
+        auto json = stream.str();
+        if (json.empty())
+        {
+            return;
+        }
+
+        try
+        {
+            auto const root = winrt::Windows::Data::Json::JsonObject::Parse(winrt::to_hstring(json));
+            m_packageRememberView = root.GetNamedBoolean(L"rememberView", true);
+            m_packageRememberSearch = root.GetNamedBoolean(L"rememberSearch", true);
+            m_packageRememberFilters = root.GetNamedBoolean(L"rememberFilters", true);
+
+            if (m_packageRememberView)
+            {
+                m_packageView = std::clamp(
+                    static_cast<int32_t>(root.GetNamedNumber(L"view", static_cast<double>(m_packageView))),
+                    0,
+                    8);
+            }
+
+            if (m_packageRememberSearch && root.HasKey(L"search"))
+            {
+                m_packageSearchText = ToWide(root.GetNamedString(L"search"));
+            }
+
+            if (m_packageRememberFilters && root.HasKey(L"selectedManagers"))
+            {
+                for (auto& [key, selected] : m_packageManagersSelected)
+                {
+                    selected = false;
+                }
+
+                auto const selectedManagers = root.GetNamedArray(L"selectedManagers");
+                for (auto const& value : selectedManagers)
+                {
+                    auto const key = ToWide(value.GetString());
+                    auto const found = m_packageManagersSelected.find(key);
+                    if (found != m_packageManagersSelected.end())
+                    {
+                        found->second = true;
+                    }
+                }
+            }
+        }
+        catch (...)
+        {
+            // Package-manager state is a convenience cache; malformed data is ignored.
+        }
+    }
+
+    void MainWindow::SavePackageManagerState() const
+    {
+        try
+        {
+            if (m_packageStatePath.empty())
+            {
+                return;
+            }
+
+            std::error_code ignored;
+            std::filesystem::create_directories(m_packageStatePath.parent_path(), ignored);
+
+            winrt::Windows::Data::Json::JsonObject root;
+            root.SetNamedValue(L"rememberView", winrt::Windows::Data::Json::JsonValue::CreateBooleanValue(m_packageRememberView));
+            root.SetNamedValue(L"rememberSearch", winrt::Windows::Data::Json::JsonValue::CreateBooleanValue(m_packageRememberSearch));
+            root.SetNamedValue(L"rememberFilters", winrt::Windows::Data::Json::JsonValue::CreateBooleanValue(m_packageRememberFilters));
+            root.SetNamedValue(L"view", winrt::Windows::Data::Json::JsonValue::CreateNumberValue(static_cast<double>(m_packageView)));
+            root.SetNamedValue(L"search", winrt::Windows::Data::Json::JsonValue::CreateStringValue(ToHString(m_packageSearchText)));
+
+            winrt::Windows::Data::Json::JsonArray selectedManagers;
+            for (auto const& [key, selected] : m_packageManagersSelected)
+            {
+                if (selected)
+                {
+                    selectedManagers.Append(
+                        winrt::Windows::Data::Json::JsonValue::CreateStringValue(ToHString(key)));
+                }
+            }
+            root.SetNamedValue(L"selectedManagers", selectedManagers);
+
+            std::ofstream output(m_packageStatePath, std::ios::binary | std::ios::trunc);
+            if (!output)
+            {
+                return;
+            }
+
+            output << winrt::to_string(root.Stringify());
+        }
+        catch (...)
+        {
+            // Convenience persistence only; failures must not affect the native shell.
+        }
+    }
+
+    void MainWindow::ResetPackageManagerState()
+    {
+        m_packageStateApplying = true;
+        try
+        {
+            m_packageRememberView = true;
+            m_packageRememberSearch = true;
+            m_packageRememberFilters = true;
+            m_packageView = 0;
+            m_packageSearchText.clear();
+            m_packageManagersSelected.clear();
+            for (auto const& manager : winforge::core::packages::PackageManagers())
+            {
+                m_packageManagersSelected.emplace(std::wstring(manager.key), true);
+            }
+
+            if (m_packageViewPicker)
+            {
+                m_packageViewPicker.SelectedIndex(m_packageView);
+            }
+            if (m_packageSearchBox)
+            {
+                m_packageSearchBox.Text(ToHString(m_packageSearchText));
+            }
+            if (m_packageManagerFilters)
+            {
+                PopulatePackageManagerFilters(m_packageManagerFilters);
+            }
+
+            SavePackageManagerState();
+            RenderPackageManagerView();
+            AnnouncePackageStatus(
+                L"Package-manager state reset to defaults.",
+                L"套件管理狀態已重設做預設值。");
+        }
+        catch (...)
+        {
+        }
+        m_packageStateApplying = false;
+    }
+
     void MainWindow::RenderPackageManager()
     {
         CancelPackageWork();
         m_packageItems.clear();
         m_packageRunStates.clear();
-        m_packageView = PackageViewFromArgument(m_currentArgument);
+        if (!m_currentArgument.empty())
+        {
+            m_packageView = PackageViewFromArgument(m_currentArgument);
+        }
+        m_packageView = std::clamp(m_packageView, 0, 8);
 
         auto page = CreatePage(
             winforge::core::LocalizedText{ L"Package Manager", L"套件管理" }.Pick(m_language),
@@ -1296,8 +1488,13 @@ namespace winrt::WinForge::implementation
         AutomationProperties::SetAutomationId(m_packageViewPicker, L"NativePackageViewPicker");
         m_packageViewPicker.SelectionChanged([this](Windows::Foundation::IInspectable const&, SelectionChangedEventArgs const&)
         {
+            if (m_packageStateApplying)
+            {
+                return;
+            }
             auto const selected = m_packageViewPicker.SelectedIndex();
             m_packageView = selected < 0 ? 0 : selected;
+            SavePackageManagerState();
             if (m_packageProbeComplete)
             {
                 CancelPackageWork();
@@ -1319,9 +1516,16 @@ namespace winrt::WinForge::implementation
         m_packageSearchBox.PlaceholderText(ToHString(winforge::core::LocalizedText{
             L"Search packages (for example: vscode, vlc, obs)",
             L"搜尋套件（例如 vscode、vlc、obs）" }.Pick(m_language)));
+        m_packageSearchBox.Text(ToHString(m_packageSearchText));
         AutomationProperties::SetAutomationId(m_packageSearchBox, L"NativePackageSearchBox");
         m_packageSearchBox.QuerySubmitted([this](AutoSuggestBox const&, AutoSuggestBoxQuerySubmittedEventArgs const&)
         {
+            if (m_packageStateApplying)
+            {
+                return;
+            }
+            m_packageSearchText = ToWide(m_packageSearchBox.Text());
+            SavePackageManagerState();
             if (m_packageView == 0)
             {
                 StartPackageQuery();
@@ -1329,6 +1533,12 @@ namespace winrt::WinForge::implementation
         });
         m_packageSearchBox.TextChanged([this](AutoSuggestBox const&, AutoSuggestBoxTextChangedEventArgs const&)
         {
+            if (m_packageStateApplying)
+            {
+                return;
+            }
+            m_packageSearchText = ToWide(m_packageSearchBox.Text());
+            SavePackageManagerState();
             if (m_packageView == 0)
             {
                 if (InvalidatePackageQueryResults())
@@ -1350,6 +1560,10 @@ namespace winrt::WinForge::implementation
             if (m_packageView == 6)
             {
                 StartPackageManagerProbes();
+            }
+            else if (m_packageView == 7)
+            {
+                ResetPackageManagerState();
             }
             else
             {
@@ -2041,10 +2255,11 @@ namespace winrt::WinForge::implementation
                 L"非破壞性版本探測會顯示邊啲引擎可用；正常 integrity 協調器完成之前，bootstrap 安裝保持停用。");
             break;
         case 7:
-            m_packagePrimaryAction.Content(box_value(ToHString(pick(L"Open settings", L"開啟設定"))));
+            m_packagePrimaryAction.Content(box_value(ToHString(pick(L"Reset state", L"重設狀態"))));
             header = pick(L"Package Manager settings", L"套件管理設定");
-            explanation = pick(L"Scheduling, notifications, concurrency, manager paths, proxy secrets, backup, and install defaults will use native persistence and DPAPI.",
-                L"排程、通知、同時操作數、管理器路徑、代理機密、備份同安裝預設會用原生儲存同 DPAPI。");
+            explanation = pick(
+                L"Package-view, search, and filter preferences now persist in native JSON state. Broader per-manager settings, backup, and restore remain gated.",
+                L"套件檢視、搜尋同篩選偏好而家會保存喺原生 JSON 狀態。更完整嘅逐管理器設定、備份同還原仍然鎖住。");
             break;
         default:
             m_packagePrimaryAction.Content(box_value(ToHString(pick(L"Refresh", L"重新整理"))));
@@ -2063,7 +2278,7 @@ namespace winrt::WinForge::implementation
             m_packagePrimaryAction.IsEnabled(
                 m_packageProbeComplete && selectedAvailable && searchReady && !m_packageWorking);
         }
-        else if (m_packageView == 6)
+        else if (m_packageView == 6 || m_packageView == 7)
         {
             m_packagePrimaryAction.IsEnabled(!m_packageWorking);
         }
@@ -2140,6 +2355,113 @@ namespace winrt::WinForge::implementation
                         L"NativePackageOperation_" + std::to_wstring(index));
                 }
             }
+            return;
+        }
+
+        if (m_packageView == 7)
+        {
+            auto appendToggleCard = [this, &pick, &appendCard](
+                std::wstring_view automationId,
+                std::wstring_view titleEn,
+                std::wstring_view titleZh,
+                std::wstring_view bodyEn,
+                std::wstring_view bodyZh,
+                bool& flag)
+            {
+                Border card;
+                card.Padding(Thickness{ 16 });
+                card.CornerRadius(CornerRadius{ 8 });
+                card.BorderThickness(Thickness{ 1 });
+                card.BorderBrush(Application::Current().Resources().Lookup(
+                    box_value(L"CardStrokeColorDefaultBrush")).as<Media::Brush>());
+                card.Background(Application::Current().Resources().Lookup(
+                    box_value(L"CardBackgroundFillColorDefaultBrush")).as<Media::Brush>());
+
+                StackPanel content;
+                content.Spacing(6);
+
+                ToggleSwitch toggle;
+                toggle.IsOn(flag);
+                toggle.Header(box_value(ToHString(pick(titleEn, titleZh))));
+                AutomationProperties::SetAutomationId(toggle, ToHString(automationId));
+                toggle.Toggled([this, &flag](Windows::Foundation::IInspectable const& sender, RoutedEventArgs const&)
+                {
+                    flag = sender.as<ToggleSwitch>().IsOn();
+                    SavePackageManagerState();
+                    RenderPackageManagerView();
+                });
+                content.Children().Append(toggle);
+
+                auto detail = CreateText(pick(bodyEn, bodyZh), 12.5);
+                detail.TextWrapping(TextWrapping::Wrap);
+                content.Children().Append(detail);
+                card.Child(content);
+                m_packageResults.Children().Append(card);
+            };
+
+            appendCard(
+                pick(L"Native package-manager state", L"原生套件管理狀態"),
+                pick(
+                    L"Package view, search text, and manager filter selections can now be persisted locally in native JSON state.",
+                    L"套件檢視、搜尋文字同管理器篩選而家可以用原生 JSON 狀態喺本機保存。"),
+                L"NativePackageSettingsSummary");
+
+            appendToggleCard(
+                L"NativePackageRememberView",
+                L"Remember package view on launch",
+                L"啟動時記住套件檢視",
+                L"Restore the last package-manager view the next time WinForge opens.",
+                L"下次開啟 WinForge 時會還原上一個套件管理檢視。",
+                m_packageRememberView);
+
+            appendToggleCard(
+                L"NativePackageRememberSearch",
+                L"Remember search text",
+                L"記住搜尋文字",
+                L"Keep the current package search query in the local state file.",
+                L"將而家嘅套件搜尋字串保留喺本機狀態檔。",
+                m_packageRememberSearch);
+
+            appendToggleCard(
+                L"NativePackageRememberFilters",
+                L"Remember manager filters",
+                L"記住管理器篩選",
+                L"Persist which package engines are selected for the next launch.",
+                L"保存下次啟動時揀咗邊啲套件引擎。",
+                m_packageRememberFilters);
+
+            Border resetCard;
+            resetCard.Padding(Thickness{ 16 });
+            resetCard.CornerRadius(CornerRadius{ 8 });
+            resetCard.BorderThickness(Thickness{ 1 });
+            resetCard.BorderBrush(Application::Current().Resources().Lookup(
+                box_value(L"CardStrokeColorDefaultBrush")).as<Media::Brush>());
+            resetCard.Background(Application::Current().Resources().Lookup(
+                box_value(L"CardBackgroundFillColorDefaultBrush")).as<Media::Brush>());
+
+            StackPanel resetContent;
+            resetContent.Spacing(6);
+            resetContent.Children().Append(CreateText(
+                pick(L"Reset persisted package-manager state", L"重設已保存嘅套件管理狀態"),
+                13,
+                true));
+            resetContent.Children().Append(CreateText(
+                pick(
+                    L"Clear the saved view, search text, and manager filter choices, then write a fresh default state file.",
+                    L"清走已保存嘅檢視、搜尋文字同管理器篩選，然後寫入一個新嘅預設狀態檔。"),
+                12.5));
+
+            Button resetButton;
+            resetButton.Content(box_value(ToHString(pick(L"Reset now", L"而家重設"))));
+            resetButton.Padding(Thickness{ 12, 6, 12, 6 });
+            AutomationProperties::SetAutomationId(resetButton, L"NativePackageResetState");
+            resetButton.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+            {
+                ResetPackageManagerState();
+            });
+            resetContent.Children().Append(resetButton);
+            resetCard.Child(resetContent);
+            m_packageResults.Children().Append(resetCard);
             return;
         }
 
