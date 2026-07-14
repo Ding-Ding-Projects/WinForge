@@ -39,6 +39,23 @@ namespace winrt::WinForge::implementation
             std::wstring version;
         };
 
+        struct PackagePinnedRule
+        {
+            std::wstring manager_key;
+            std::wstring package_id;
+            std::wstring package_name;
+            std::wstring version;
+        };
+
+        struct PackageSnoozedRule
+        {
+            std::wstring manager_key;
+            std::wstring package_id;
+            std::wstring package_name;
+            std::wstring version;
+            std::int64_t until_epoch_seconds{ 0 };
+        };
+
         winforge::core::LanguageMode m_language{ winforge::core::LanguageMode::Bilingual };
         std::vector<winforge::core::ModuleRecord> m_modules;
         winforge::core::RouteIndex m_routeIndex;
@@ -80,6 +97,8 @@ namespace winrt::WinForge::implementation
         std::vector<PackageManagerRunState> m_packageRunStates;
         std::vector<std::wstring> m_packageOperationLog;
         std::vector<PackageIgnoredRule> m_packageIgnoredRules;
+        std::vector<PackagePinnedRule> m_packagePinnedRules;
+        std::vector<PackageSnoozedRule> m_packageSnoozedRules;
         std::stop_source m_packageStopSource;
         std::uint64_t m_packageGeneration{ 0 };
         winforge::core::packages::PackageAction m_packageLastAction{
@@ -135,9 +154,21 @@ namespace winrt::WinForge::implementation
             winforge::core::packages::PackageItem const& package);
         void IgnorePackageUpdate(
             winforge::core::packages::PackageItem const& package);
+        void PinPackageUpdate(
+            winforge::core::packages::PackageItem const& package);
+        void SnoozePackageUpdate(
+            winforge::core::packages::PackageItem const& package);
         void RemoveIgnoredPackage(std::wstring managerKey, std::wstring packageId);
-        void ClearIgnoredPackages();
+        void RemovePinnedPackage(std::wstring managerKey, std::wstring packageId, std::wstring version);
+        void RemoveSnoozedPackage(std::wstring managerKey, std::wstring packageId);
+        void ClearPackageUpdateRules();
         [[nodiscard]] bool IsPackageIgnored(
+            winforge::core::packages::PackageItem const& package) const;
+        [[nodiscard]] bool IsPackagePinned(
+            winforge::core::packages::PackageItem const& package) const;
+        [[nodiscard]] bool IsPackageSnoozed(
+            winforge::core::packages::PackageItem const& package) const;
+        [[nodiscard]] bool IsPackageUpdateSuppressed(
             winforge::core::packages::PackageItem const& package) const;
         void PreviewPackageBulkUpdate();
         [[nodiscard]] std::wstring BundleSnapshotToJson(

@@ -168,6 +168,30 @@ function Wait-ForElementValue {
     throw "Expected '$AutomationId' value '$ExpectedValue', got '$actual'."
 }
 
+function Invoke-ElementByAutomationId {
+    param(
+        [Parameter(Mandatory)]$Root,
+        [Parameter(Mandatory)][string]$AutomationId
+    )
+
+    $lastError = $null
+    for ($attempt = 0; $attempt -lt 3; $attempt++) {
+        try {
+            $element = Wait-ForElement -Root $Root -AutomationId $AutomationId
+            $invoke = [System.Windows.Automation.InvokePattern]$element.GetCurrentPattern(
+                [System.Windows.Automation.InvokePattern]::Pattern)
+            $invoke.Invoke()
+            return
+        }
+        catch {
+            $lastError = $_
+            Start-Sleep -Milliseconds 150
+        }
+    }
+
+    throw $lastError
+}
+
 function Select-ComboItem {
     param(
         [Parameter(Mandatory)]$Combo,
@@ -475,16 +499,12 @@ Invoke-OwnedRoute -Route 'caseconvert' -ExpectedTitle 'Case Converter' -Inspect 
     Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCaseConvertStatus' -Prefix '4 word(s) detected.' | Out-Null
     Assert-True -Condition $true -Name 'Case Converter renders all ten forms through the live native UI'
 
-    $copy = Wait-ForElement -Root $root -AutomationId 'NativeCaseConvertCopyCamel'
-    ([System.Windows.Automation.InvokePattern]$copy.GetCurrentPattern(
-        [System.Windows.Automation.InvokePattern]::Pattern)).Invoke()
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeCaseConvertCopyCamel'
     Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCaseConvertStatus' -Prefix 'Output copied to clipboard' | Out-Null
     Assert-True -Condition $true -Name 'Case Converter copies a populated row through the live native UI'
 
     $inputValue.SetValue('')
-    $copy = Wait-ForElement -Root $root -AutomationId 'NativeCaseConvertCopyCamel'
-    ([System.Windows.Automation.InvokePattern]$copy.GetCurrentPattern(
-        [System.Windows.Automation.InvokePattern]::Pattern)).Invoke()
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeCaseConvertCopyCamel'
     Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCaseConvertStatus' -Prefix 'Nothing to copy' | Out-Null
     Wait-ForElementValue -Root $root -AutomationId 'NativeCaseConvertOutputCamel' -ExpectedValue '' | Out-Null
     Assert-True -Condition $true -Name 'Case Converter clears stale values and copies empty rows explicitly'
@@ -664,8 +684,14 @@ Invoke-OwnedRoute -Route 'package-ignored' -ExpectedTitle 'Package Manager' -Ins
     if (-not $state) {
         $state = Find-ByAutomationIdPrefix -Root $root -Prefix 'NativePackageIgnored_'
     }
+    if (-not $state) {
+        $state = Find-ByAutomationIdPrefix -Root $root -Prefix 'NativePackagePinned_'
+    }
+    if (-not $state) {
+        $state = Find-ByAutomationIdPrefix -Root $root -Prefix 'NativePackageSnoozed_'
+    }
     Assert-True -Condition ($null -ne $state) `
-        -Name 'Package Manager package-ignored exposes native ignored-rule state'
+        -Name 'Package Manager package-ignored exposes native update-rule state'
 }
 
 Invoke-OwnedRoute -Route 'packages-ignored' -ExpectedTitle 'Package Manager' -Inspect {
@@ -678,8 +704,14 @@ Invoke-OwnedRoute -Route 'packages-ignored' -ExpectedTitle 'Package Manager' -In
     if (-not $state) {
         $state = Find-ByAutomationIdPrefix -Root $root -Prefix 'NativePackageIgnored_'
     }
+    if (-not $state) {
+        $state = Find-ByAutomationIdPrefix -Root $root -Prefix 'NativePackagePinned_'
+    }
+    if (-not $state) {
+        $state = Find-ByAutomationIdPrefix -Root $root -Prefix 'NativePackageSnoozed_'
+    }
     Assert-True -Condition ($null -ne $state) `
-        -Name 'Package Manager packages-ignored exposes native ignored-rule state'
+        -Name 'Package Manager packages-ignored exposes native update-rule state'
 }
 
 Invoke-OwnedRoute -Route 'package-setup' -ExpectedTitle 'Package Manager' -Inspect {

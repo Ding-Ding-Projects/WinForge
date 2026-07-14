@@ -12,10 +12,12 @@
 #include <winrt/Microsoft.UI.Xaml.Automation.Peers.h>
 
 #include <chrono>
+#include <cstdint>
 #include <cwctype>
 #include <array>
 #include <cstdlib>
 #include <filesystem>
+#include <functional>
 #include <fstream>
 #include <future>
 #include <commdlg.h>
@@ -69,6 +71,37 @@ namespace
         result.push_back(L'\x1f');
         appendNormalized(packageId);
         return result;
+    }
+
+    std::wstring PackageVersionRuleKey(
+        std::wstring_view managerKey,
+        std::wstring_view packageId,
+        std::wstring_view version)
+    {
+        std::wstring result = PackageRuleKey(managerKey, packageId);
+        result.push_back(L'\x1f');
+        for (auto const character : version)
+        {
+            result.push_back(static_cast<wchar_t>(std::towlower(character)));
+        }
+        return result;
+    }
+
+    std::wstring PackageUpdateRuleVersion(
+        winforge::core::packages::PackageItem const& package)
+    {
+        return package.available_version.empty() ? package.version : package.available_version;
+    }
+
+    std::int64_t NowUnixSeconds()
+    {
+        return std::chrono::duration_cast<std::chrono::seconds>(
+            std::chrono::system_clock::now().time_since_epoch()).count();
+    }
+
+    std::wstring FormatRuleTime(std::int64_t epochSeconds)
+    {
+        return std::to_wstring(epochSeconds) + L" UTC epoch seconds";
     }
 
     std::wstring EscapeJson(std::wstring_view value)
@@ -1464,6 +1497,76 @@ namespace winrt::WinForge::implementation
                     m_packageIgnoredRules.push_back(std::move(rule));
                 }
             }
+
+            if (root.HasKey(L"pinnedRules"))
+            {
+                auto const rules = root.GetNamedArray(L"pinnedRules");
+                m_packagePinnedRules.clear();
+                std::unordered_set<std::wstring> seen;
+                for (auto const& value : rules)
+                {
+                    auto const object = value.GetObject();
+                    auto const manager = object.HasKey(L"manager") ? ToWide(object.GetNamedString(L"manager")) : std::wstring{};
+                    auto const packageId = object.HasKey(L"id") ? ToWide(object.GetNamedString(L"id")) : std::wstring{};
+                    auto const version = object.HasKey(L"version") ? ToWide(object.GetNamedString(L"version")) : std::wstring{};
+                    if (version.empty() || !winforge::core::packages::FindPackageManager(manager))
+                    {
+                        continue;
+                    }
+                    auto const validation = winforge::core::packages::ValidatePackageReference(manager, packageId);
+                    if (!validation)
+                    {
+                        continue;
+                    }
+                    auto const key = PackageVersionRuleKey(manager, packageId, version);
+                    if (!seen.insert(key).second)
+                    {
+                        continue;
+                    }
+                    PackagePinnedRule rule;
+                    rule.manager_key = manager;
+                    rule.package_id = packageId;
+                    rule.version = version;
+                    if (object.HasKey(L"name")) rule.package_name = ToWide(object.GetNamedString(L"name"));
+                    m_packagePinnedRules.push_back(std::move(rule));
+                }
+            }
+
+            if (root.HasKey(L"snoozedRules"))
+            {
+                auto const rules = root.GetNamedArray(L"snoozedRules");
+                m_packageSnoozedRules.clear();
+                std::unordered_set<std::wstring> seen;
+                auto const now = NowUnixSeconds();
+                for (auto const& value : rules)
+                {
+                    auto const object = value.GetObject();
+                    auto const manager = object.HasKey(L"manager") ? ToWide(object.GetNamedString(L"manager")) : std::wstring{};
+                    auto const packageId = object.HasKey(L"id") ? ToWide(object.GetNamedString(L"id")) : std::wstring{};
+                    auto const until = object.HasKey(L"until") ? static_cast<std::int64_t>(object.GetNamedNumber(L"until")) : 0;
+                    if (until <= now || !winforge::core::packages::FindPackageManager(manager))
+                    {
+                        continue;
+                    }
+                    auto const validation = winforge::core::packages::ValidatePackageReference(manager, packageId);
+                    if (!validation)
+                    {
+                        continue;
+                    }
+                    auto const key = PackageRuleKey(manager, packageId);
+                    if (!seen.insert(key).second)
+                    {
+                        continue;
+                    }
+                    PackageSnoozedRule rule;
+                    rule.manager_key = manager;
+                    rule.package_id = packageId;
+                    rule.until_epoch_seconds = until;
+                    if (object.HasKey(L"name")) rule.package_name = ToWide(object.GetNamedString(L"name"));
+                    if (object.HasKey(L"version")) rule.version = ToWide(object.GetNamedString(L"version"));
+                    m_packageSnoozedRules.push_back(std::move(rule));
+                }
+            }
         }
         catch (...)
         {
@@ -1521,6 +1624,31 @@ namespace winrt::WinForge::implementation
             }
             root.SetNamedValue(L"ignoredRules", ignoredRules);
 
+            winrt::Windows::Data::Json::JsonArray pinnedRules;
+            for (auto const& rule : m_packagePinnedRules)
+            {
+                winrt::Windows::Data::Json::JsonObject object;
+                object.SetNamedValue(L"manager", winrt::Windows::Data::Json::JsonValue::CreateStringValue(ToHString(rule.manager_key)));
+                object.SetNamedValue(L"id", winrt::Windows::Data::Json::JsonValue::CreateStringValue(ToHString(rule.package_id)));
+                object.SetNamedValue(L"name", winrt::Windows::Data::Json::JsonValue::CreateStringValue(ToHString(rule.package_name)));
+                object.SetNamedValue(L"version", winrt::Windows::Data::Json::JsonValue::CreateStringValue(ToHString(rule.version)));
+                pinnedRules.Append(object);
+            }
+            root.SetNamedValue(L"pinnedRules", pinnedRules);
+
+            winrt::Windows::Data::Json::JsonArray snoozedRules;
+            for (auto const& rule : m_packageSnoozedRules)
+            {
+                winrt::Windows::Data::Json::JsonObject object;
+                object.SetNamedValue(L"manager", winrt::Windows::Data::Json::JsonValue::CreateStringValue(ToHString(rule.manager_key)));
+                object.SetNamedValue(L"id", winrt::Windows::Data::Json::JsonValue::CreateStringValue(ToHString(rule.package_id)));
+                object.SetNamedValue(L"name", winrt::Windows::Data::Json::JsonValue::CreateStringValue(ToHString(rule.package_name)));
+                object.SetNamedValue(L"version", winrt::Windows::Data::Json::JsonValue::CreateStringValue(ToHString(rule.version)));
+                object.SetNamedValue(L"until", winrt::Windows::Data::Json::JsonValue::CreateNumberValue(static_cast<double>(rule.until_epoch_seconds)));
+                snoozedRules.Append(object);
+            }
+            root.SetNamedValue(L"snoozedRules", snoozedRules);
+
             std::ofstream output(m_packageStatePath, std::ios::binary | std::ios::trunc);
             if (!output)
             {
@@ -1547,6 +1675,8 @@ namespace winrt::WinForge::implementation
             m_packageSortMode = 0;
             m_packageSearchText.clear();
             m_packageIgnoredRules.clear();
+            m_packagePinnedRules.clear();
+            m_packageSnoozedRules.clear();
             m_packageManagersSelected.clear();
             for (auto const& manager : winforge::core::packages::PackageManagers())
             {
@@ -1792,6 +1922,45 @@ namespace winrt::WinForge::implementation
             });
     }
 
+    bool MainWindow::IsPackagePinned(
+        winforge::core::packages::PackageItem const& package) const
+    {
+        auto const version = PackageUpdateRuleVersion(package);
+        if (version.empty())
+        {
+            return false;
+        }
+        auto const key = PackageVersionRuleKey(package.manager_key, package.id, version);
+        return std::any_of(
+            m_packagePinnedRules.begin(),
+            m_packagePinnedRules.end(),
+            [&key](PackagePinnedRule const& rule)
+            {
+                return PackageVersionRuleKey(rule.manager_key, rule.package_id, rule.version) == key;
+            });
+    }
+
+    bool MainWindow::IsPackageSnoozed(
+        winforge::core::packages::PackageItem const& package) const
+    {
+        auto const key = PackageRuleKey(package.manager_key, package.id);
+        auto const now = NowUnixSeconds();
+        return std::any_of(
+            m_packageSnoozedRules.begin(),
+            m_packageSnoozedRules.end(),
+            [&key, now](PackageSnoozedRule const& rule)
+            {
+                return rule.until_epoch_seconds > now &&
+                    PackageRuleKey(rule.manager_key, rule.package_id) == key;
+            });
+    }
+
+    bool MainWindow::IsPackageUpdateSuppressed(
+        winforge::core::packages::PackageItem const& package) const
+    {
+        return IsPackageIgnored(package) || IsPackagePinned(package) || IsPackageSnoozed(package);
+    }
+
     void MainWindow::IgnorePackageUpdate(
         winforge::core::packages::PackageItem const& package)
     {
@@ -1828,7 +1997,7 @@ namespace winrt::WinForge::implementation
                 m_packageItems.end(),
                 [this](winforge::core::packages::PackageItem const& item)
                 {
-                    return IsPackageIgnored(item);
+                    return IsPackageUpdateSuppressed(item);
                 }),
             m_packageItems.end());
 
@@ -1842,6 +2011,126 @@ namespace winrt::WinForge::implementation
         AnnouncePackageStatus(
             L"Ignored-update rule saved. Matching update rows are hidden from the current and future Updates results.",
             L"已保存忽略更新規則；相符更新會喺目前同之後嘅更新結果隱藏。");
+    }
+
+    void MainWindow::PinPackageUpdate(
+        winforge::core::packages::PackageItem const& package)
+    {
+        auto const validation = winforge::core::packages::ValidatePackageReference(
+            package.manager_key,
+            package.id);
+        auto const version = PackageUpdateRuleVersion(package);
+        if (!validation || version.empty())
+        {
+            RecordPackageOperation(
+                L"Pin rule was not saved for " + package.id +
+                    L" via " + package.manager_key + L". · 釘選規則未保存。");
+            AnnouncePackageStatus(
+                L"Version pin was not saved because the package reference or update version was incomplete.",
+                L"版本釘選未保存，因為套件參照或者更新版本唔完整。",
+                true);
+            return;
+        }
+
+        if (!IsPackagePinned(package))
+        {
+            PackagePinnedRule rule;
+            rule.manager_key = package.manager_key;
+            rule.package_id = package.id;
+            rule.package_name = package.name.empty() ? package.id : package.name;
+            rule.version = version;
+            m_packagePinnedRules.push_back(std::move(rule));
+        }
+
+        auto const before = m_packageItems.size();
+        m_packageItems.erase(
+            std::remove_if(
+                m_packageItems.begin(),
+                m_packageItems.end(),
+                [this](winforge::core::packages::PackageItem const& item)
+                {
+                    return IsPackageUpdateSuppressed(item);
+                }),
+            m_packageItems.end());
+
+        RecordPackageOperation(
+            L"Pinned update version " + version + L" for " + package.id +
+                L" via " + package.manager_key + L"; hidden " +
+                std::to_wstring(before - m_packageItems.size()) +
+                L" currently loaded update row(s). · 已保存版本釘選。");
+        SavePackageManagerState();
+        RenderPackageManagerView();
+        AnnouncePackageStatus(
+            L"Version pin saved. Matching update-version rows are hidden until the pin is removed.",
+            L"已保存版本釘選；移除之前，相符更新版本會被隱藏。");
+    }
+
+    void MainWindow::SnoozePackageUpdate(
+        winforge::core::packages::PackageItem const& package)
+    {
+        auto const validation = winforge::core::packages::ValidatePackageReference(
+            package.manager_key,
+            package.id);
+        if (!validation)
+        {
+            RecordPackageOperation(
+                L"Snooze rule was not saved for " + package.id +
+                    L" via " + package.manager_key + L": " + validation.code +
+                    L". · 暫停規則未保存。");
+            AnnouncePackageStatus(
+                L"Snooze rule was not saved because the package reference failed validation.",
+                L"暫停規則未保存，因為套件參照未通過驗證。",
+                true);
+            return;
+        }
+
+        auto const until = NowUnixSeconds() + 7 * 24 * 60 * 60;
+        auto const key = PackageRuleKey(package.manager_key, package.id);
+        auto found = std::find_if(
+            m_packageSnoozedRules.begin(),
+            m_packageSnoozedRules.end(),
+            [&key](PackageSnoozedRule const& rule)
+            {
+                return PackageRuleKey(rule.manager_key, rule.package_id) == key;
+            });
+        if (found == m_packageSnoozedRules.end())
+        {
+            PackageSnoozedRule rule;
+            rule.manager_key = package.manager_key;
+            rule.package_id = package.id;
+            rule.package_name = package.name.empty() ? package.id : package.name;
+            rule.version = PackageUpdateRuleVersion(package);
+            rule.until_epoch_seconds = until;
+            m_packageSnoozedRules.push_back(std::move(rule));
+        }
+        else
+        {
+            found->package_name = package.name.empty() ? package.id : package.name;
+            found->version = PackageUpdateRuleVersion(package);
+            found->until_epoch_seconds = until;
+        }
+
+        auto const before = m_packageItems.size();
+        m_packageItems.erase(
+            std::remove_if(
+                m_packageItems.begin(),
+                m_packageItems.end(),
+                [this](winforge::core::packages::PackageItem const& item)
+                {
+                    return IsPackageUpdateSuppressed(item);
+                }),
+            m_packageItems.end());
+
+        RecordPackageOperation(
+            L"Snoozed updates for " + package.id +
+                L" via " + package.manager_key + L" until " + FormatRuleTime(until) +
+                L"; hidden " + std::to_wstring(before - m_packageItems.size()) +
+                L" currently loaded update row(s). · 已保存七日暫停。");
+        SavePackageManagerState();
+        RenderPackageManagerView();
+        AnnouncePackageStatus(
+            L"Seven-day snooze saved. Matching update rows are hidden until the snooze expires or is removed.",
+            L"已保存七日暫停；相符更新會隱藏到暫停到期或者被移除。");
     }
 
     void MainWindow::RemoveIgnoredPackage(std::wstring managerKey, std::wstring packageId)
@@ -1870,18 +2159,72 @@ namespace winrt::WinForge::implementation
             L"忽略更新規則已移除；重新整理更新即可再次顯示相符項目。");
     }
 
-    void MainWindow::ClearIgnoredPackages()
+    void MainWindow::RemovePinnedPackage(std::wstring managerKey, std::wstring packageId, std::wstring version)
     {
-        auto const removed = m_packageIgnoredRules.size();
+        auto const key = PackageVersionRuleKey(managerKey, packageId, version);
+        auto const before = m_packagePinnedRules.size();
+        m_packagePinnedRules.erase(
+            std::remove_if(
+                m_packagePinnedRules.begin(),
+                m_packagePinnedRules.end(),
+                [&key](PackagePinnedRule const& rule)
+                {
+                    return PackageVersionRuleKey(rule.manager_key, rule.package_id, rule.version) == key;
+                }),
+            m_packagePinnedRules.end());
+        if (m_packagePinnedRules.size() != before)
+        {
+            RecordPackageOperation(
+                L"Removed pinned update version " + version + L" for " + packageId +
+                    L" via " + managerKey + L". · 已移除版本釘選。");
+            SavePackageManagerState();
+        }
+        RenderPackageManagerView();
+        AnnouncePackageStatus(
+            L"Version pin removed. Refresh Updates to show matching update-version rows again.",
+            L"版本釘選已移除；重新整理更新即可再次顯示相符版本。");
+    }
+
+    void MainWindow::RemoveSnoozedPackage(std::wstring managerKey, std::wstring packageId)
+    {
+        auto const key = PackageRuleKey(managerKey, packageId);
+        auto const before = m_packageSnoozedRules.size();
+        m_packageSnoozedRules.erase(
+            std::remove_if(
+                m_packageSnoozedRules.begin(),
+                m_packageSnoozedRules.end(),
+                [&key](PackageSnoozedRule const& rule)
+                {
+                    return PackageRuleKey(rule.manager_key, rule.package_id) == key;
+                }),
+            m_packageSnoozedRules.end());
+        if (m_packageSnoozedRules.size() != before)
+        {
+            RecordPackageOperation(
+                L"Removed snoozed-update rule for " + packageId +
+                    L" via " + managerKey + L". · 已移除暫停更新規則。");
+            SavePackageManagerState();
+        }
+        RenderPackageManagerView();
+        AnnouncePackageStatus(
+            L"Snooze removed. Refresh Updates to show matching rows again.",
+            L"暫停已移除；重新整理更新即可再次顯示相符項目。");
+    }
+
+    void MainWindow::ClearPackageUpdateRules()
+    {
+        auto const removed = m_packageIgnoredRules.size() + m_packagePinnedRules.size() + m_packageSnoozedRules.size();
         m_packageIgnoredRules.clear();
+        m_packagePinnedRules.clear();
+        m_packageSnoozedRules.clear();
         RecordPackageOperation(
             L"Cleared " + std::to_wstring(removed) +
-                L" ignored-update rule(s). · 已清除忽略更新規則。");
+                L" update suppression rule(s). · 已清除更新隱藏規則。");
         SavePackageManagerState();
         RenderPackageManagerView();
         AnnouncePackageStatus(
-            L"Ignored-update rules cleared. Refresh Updates to show matching rows again.",
-            L"忽略更新規則已清除；重新整理更新即可再次顯示相符項目。");
+            L"Ignored, pinned, and snoozed update rules cleared. Refresh Updates to show matching rows again.",
+            L"忽略、釘選同暫停更新規則已清除；重新整理更新即可再次顯示相符項目。");
     }
 
     void MainWindow::PreviewPackageBulkUpdate()
@@ -2277,7 +2620,7 @@ namespace winrt::WinForge::implementation
             }
             else if (m_packageView == 5)
             {
-                ClearIgnoredPackages();
+                ClearPackageUpdateRules();
             }
             else if (m_packageView == 7)
             {
@@ -2884,7 +3227,7 @@ namespace winrt::WinForge::implementation
                 for (auto& package : result.packages)
                 {
                     if (action == winforge::core::packages::PackageAction::Updates &&
-                        IsPackageIgnored(package))
+                        IsPackageUpdateSuppressed(package))
                     {
                         ++ignoredRows;
                         continue;
@@ -3066,11 +3409,11 @@ namespace winrt::WinForge::implementation
             readOnlyQuery = true;
             break;
         case 5:
-            m_packagePrimaryAction.Content(box_value(ToHString(pick(L"Clear ignored", L"清除忽略"))));
+            m_packagePrimaryAction.Content(box_value(ToHString(pick(L"Clear rules", L"清除規則"))));
             header = pick(L"Ignored, pinned, and snoozed updates", L"已忽略、釘住同暫停嘅更新");
             explanation = pick(
-                L"Native ignored-update rules are persisted locally and hide matching rows from Updates results. Pin and timed snooze policies remain gated.",
-                L"原生忽略更新規則會本機保存，並喺更新結果隱藏相符資料列；釘選同限時暫停政策仍然鎖住。");
+                L"Native ignore, version-pin, and seven-day snooze rules are persisted locally and hide matching rows from Updates results.",
+                L"原生忽略、版本釘選同七日暫停規則會本機保存，並喺更新結果隱藏相符資料列。");
             break;
         case 6:
             m_packagePrimaryAction.Content(box_value(ToHString(pick(L"Probe again", L"再次探測"))));
@@ -3111,7 +3454,10 @@ namespace winrt::WinForge::implementation
         else if (m_packageView == 3 || m_packageView == 5 || m_packageView == 6 || m_packageView == 7)
         {
             m_packagePrimaryAction.IsEnabled(
-                !m_packageWorking && (m_packageView != 5 || !m_packageIgnoredRules.empty()));
+                !m_packageWorking && (m_packageView != 5 ||
+                    !m_packageIgnoredRules.empty() ||
+                    !m_packagePinnedRules.empty() ||
+                    !m_packageSnoozedRules.empty()));
             if (m_packageView == 3)
             {
                 m_packageSecondaryAction.IsEnabled(!m_packageWorking);
@@ -3199,26 +3545,34 @@ namespace winrt::WinForge::implementation
 
         if (m_packageView == 5)
         {
-            if (m_packageIgnoredRules.empty())
+            if (m_packageIgnoredRules.empty() && m_packagePinnedRules.empty() && m_packageSnoozedRules.empty())
             {
                 appendCard(
-                    pick(L"No ignored updates", L"未有忽略更新"),
+                    pick(L"No pinned, snoozed, or ignored updates", L"未有釘選、暫停或忽略更新"),
                     pick(
-                        L"Run an Updates query, then use Ignore on an update row to persist a local ignore rule.",
-                        L"執行更新查詢，然後喺更新資料列使用「忽略」，即可保存本機忽略規則。"),
+                        L"Run an Updates query, then use Ignore, Pin version, or Snooze 7 days on an update row to persist a local rule.",
+                        L"執行更新查詢，然後喺更新資料列使用「忽略」、「釘選版本」或者「暫停七日」，即可保存本機規則。"),
                     L"NativePackageIgnoredEmpty");
             }
             else
             {
-                for (std::size_t index = 0; index < m_packageIgnoredRules.size(); ++index)
+                auto managerNameFor = [this](std::wstring const& managerKey)
                 {
-                    auto const& rule = m_packageIgnoredRules[index];
-                    auto const* descriptor = winforge::core::packages::FindPackageManager(rule.manager_key);
-                    auto const managerName = descriptor
+                    auto const* descriptor = winforge::core::packages::FindPackageManager(managerKey);
+                    return descriptor
                         ? winforge::core::LocalizedText{
                             std::wstring(descriptor->name_en), std::wstring(descriptor->name_zh) }.Pick(m_language)
-                        : rule.manager_key;
+                        : managerKey;
+                };
 
+                auto appendRuleCard = [this, &pick](
+                    std::wstring titleText,
+                    std::wstring bodyText,
+                    std::wstring automationId,
+                    std::wstring removeAutomationId,
+                    std::wstring removeLabel,
+                    std::function<void()> removeAction)
+                {
                     Border card;
                     card.Padding(Thickness{ 16, 12, 16, 12 });
                     card.CornerRadius(CornerRadius{ 8 });
@@ -3230,36 +3584,98 @@ namespace winrt::WinForge::implementation
 
                     StackPanel content;
                     content.Spacing(6);
-                    auto title = CreateText(rule.package_name.empty() ? rule.package_id : rule.package_name, 14, true);
+                    auto title = CreateText(titleText, 14, true);
                     AutomationProperties::SetAutomationId(
                         title,
-                        ToHString(L"NativePackageIgnored_" + AutomationKey(rule.manager_key) + L"_" + AutomationKey(rule.package_id)));
+                        ToHString(automationId));
                     content.Children().Append(title);
 
-                    std::wstring body = managerName + L"  ·  " + rule.package_id;
-                    if (!rule.version.empty()) body += L"  ·  " + rule.version;
-                    auto detail = CreateText(body, 12.5);
+                    auto detail = CreateText(bodyText, 12.5);
                     detail.TextWrapping(TextWrapping::Wrap);
                     detail.IsTextSelectionEnabled(true);
                     content.Children().Append(detail);
 
                     Button remove;
-                    remove.Content(box_value(ToHString(pick(L"Remove ignore", L"移除忽略"))));
+                    remove.Content(box_value(ToHString(removeLabel)));
                     remove.HorizontalAlignment(HorizontalAlignment::Left);
                     AutomationProperties::SetAutomationId(
                         remove,
-                        ToHString(L"NativePackageRemoveIgnore_" + AutomationKey(rule.manager_key) + L"_" + AutomationKey(rule.package_id)));
-                    auto managerKey = rule.manager_key;
-                    auto packageId = rule.package_id;
-                    remove.Click([this, managerKey = std::move(managerKey), packageId = std::move(packageId)](
+                        ToHString(removeAutomationId));
+                    remove.Click([removeAction = std::move(removeAction)](
                         Windows::Foundation::IInspectable const&,
                         RoutedEventArgs const&)
                     {
-                        RemoveIgnoredPackage(managerKey, packageId);
+                        removeAction();
                     });
                     content.Children().Append(remove);
                     card.Child(content);
                     m_packageResults.Children().Append(card);
+                };
+
+                for (auto const& rule : m_packageIgnoredRules)
+                {
+                    auto const managerName = managerNameFor(rule.manager_key);
+                    std::wstring body = pick(L"Ignore all versions", L"忽略所有版本") +
+                        L"  ·  " + managerName + L"  ·  " + rule.package_id;
+                    if (!rule.version.empty()) body += L"  ·  " + pick(L"Last seen", L"上次見到") + L" " + rule.version;
+                    auto managerKey = rule.manager_key;
+                    auto packageId = rule.package_id;
+                    appendRuleCard(
+                        rule.package_name.empty() ? rule.package_id : rule.package_name,
+                        body,
+                        L"NativePackageIgnored_" + AutomationKey(rule.manager_key) + L"_" + AutomationKey(rule.package_id),
+                        L"NativePackageRemoveIgnore_" + AutomationKey(rule.manager_key) + L"_" + AutomationKey(rule.package_id),
+                        pick(L"Remove ignore", L"移除忽略"),
+                        [this, managerKey = std::move(managerKey), packageId = std::move(packageId)]()
+                        {
+                            RemoveIgnoredPackage(managerKey, packageId);
+                        });
+                }
+
+                for (auto const& rule : m_packagePinnedRules)
+                {
+                    auto const managerName = managerNameFor(rule.manager_key);
+                    auto const body = pick(L"Version pin", L"版本釘選") +
+                        L"  ·  " + managerName + L"  ·  " + rule.package_id + L"  ·  " + rule.version;
+                    auto managerKey = rule.manager_key;
+                    auto packageId = rule.package_id;
+                    auto version = rule.version;
+                    appendRuleCard(
+                        rule.package_name.empty() ? rule.package_id : rule.package_name,
+                        body,
+                        L"NativePackagePinned_" + AutomationKey(rule.manager_key) + L"_" +
+                            AutomationKey(rule.package_id) + L"_" + AutomationKey(rule.version),
+                        L"NativePackageRemovePin_" + AutomationKey(rule.manager_key) + L"_" +
+                            AutomationKey(rule.package_id) + L"_" + AutomationKey(rule.version),
+                        pick(L"Remove pin", L"移除釘選"),
+                        [this,
+                            managerKey = std::move(managerKey),
+                            packageId = std::move(packageId),
+                            version = std::move(version)]()
+                        {
+                            RemovePinnedPackage(managerKey, packageId, version);
+                        });
+                }
+
+                for (auto const& rule : m_packageSnoozedRules)
+                {
+                    auto const managerName = managerNameFor(rule.manager_key);
+                    std::wstring body = pick(L"Snoozed until", L"暫停至") + L" " +
+                        FormatRuleTime(rule.until_epoch_seconds) +
+                        L"  ·  " + managerName + L"  ·  " + rule.package_id;
+                    if (!rule.version.empty()) body += L"  ·  " + rule.version;
+                    auto managerKey = rule.manager_key;
+                    auto packageId = rule.package_id;
+                    appendRuleCard(
+                        rule.package_name.empty() ? rule.package_id : rule.package_name,
+                        body,
+                        L"NativePackageSnoozed_" + AutomationKey(rule.manager_key) + L"_" + AutomationKey(rule.package_id),
+                        L"NativePackageRemoveSnooze_" + AutomationKey(rule.manager_key) + L"_" + AutomationKey(rule.package_id),
+                        pick(L"Remove snooze", L"移除暫停"),
+                        [this, managerKey = std::move(managerKey), packageId = std::move(packageId)]()
+                        {
+                            RemoveSnoozedPackage(managerKey, packageId);
+                        });
                 }
             }
             return;
@@ -3570,6 +3986,54 @@ namespace winrt::WinForge::implementation
                     IgnorePackageUpdate(ignoredPackageCopy);
                 });
                 actions.Children().Append(ignore);
+
+                Button pin;
+                pin.Content(box_value(ToHString(pick(L"Pin version", L"釘選版本"))));
+                pin.IsEnabled(!m_packageWorking);
+                pin.HorizontalAlignment(HorizontalAlignment::Left);
+                AutomationProperties::SetAutomationId(
+                    pin,
+                    ToHString(L"NativePackagePin_" + AutomationKey(package.manager_key) + L"_" + AutomationKey(package.id)));
+                AutomationProperties::SetName(
+                    pin,
+                    ToHString(pick(L"Pin update version for ", L"釘選更新版本：") + (package.name.empty() ? package.id : package.name)));
+                ToolTipService::SetToolTip(
+                    pin,
+                    box_value(ToHString(pick(
+                        L"Persist a local version-pin rule and hide matching update-version rows.",
+                        L"保存本機版本釘選規則，並隱藏相符更新版本資料列。"))));
+                auto pinnedPackageCopy = package;
+                pin.Click([this, pinnedPackageCopy = std::move(pinnedPackageCopy)](
+                    Windows::Foundation::IInspectable const&,
+                    RoutedEventArgs const&)
+                {
+                    PinPackageUpdate(pinnedPackageCopy);
+                });
+                actions.Children().Append(pin);
+
+                Button snooze;
+                snooze.Content(box_value(ToHString(pick(L"Snooze 7 days", L"暫停七日"))));
+                snooze.IsEnabled(!m_packageWorking);
+                snooze.HorizontalAlignment(HorizontalAlignment::Left);
+                AutomationProperties::SetAutomationId(
+                    snooze,
+                    ToHString(L"NativePackageSnooze_" + AutomationKey(package.manager_key) + L"_" + AutomationKey(package.id)));
+                AutomationProperties::SetName(
+                    snooze,
+                    ToHString(pick(L"Snooze update for ", L"暫停更新：") + (package.name.empty() ? package.id : package.name)));
+                ToolTipService::SetToolTip(
+                    snooze,
+                    box_value(ToHString(pick(
+                        L"Persist a local seven-day snooze and hide matching update rows until it expires.",
+                        L"保存本機七日暫停，並喺到期前隱藏相符更新資料列。"))));
+                auto snoozedPackageCopy = package;
+                snooze.Click([this, snoozedPackageCopy = std::move(snoozedPackageCopy)](
+                    Windows::Foundation::IInspectable const&,
+                    RoutedEventArgs const&)
+                {
+                    SnoozePackageUpdate(snoozedPackageCopy);
+                });
+                actions.Children().Append(snooze);
             }
 
             Button detailPreview;
