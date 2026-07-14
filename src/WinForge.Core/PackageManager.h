@@ -228,6 +228,7 @@ namespace winforge::core::packages
         std::wstring_view source,
         PackageAction action,
         InstallOptions const& options = {}) noexcept;
+    [[nodiscard]] std::wstring FormatCommandPreview(CommandSpec const& command);
     [[nodiscard]] CommandBuildResult BuildDetailsCommand(
         std::wstring_view manager_key,
         std::wstring_view package_id) noexcept;

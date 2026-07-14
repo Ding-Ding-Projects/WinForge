@@ -1547,6 +1547,137 @@ namespace winrt::WinForge::implementation
             L"套件操作歷史已清除。");
     }
 
+    void MainWindow::PreviewPackageOperation(
+        winforge::core::packages::PackageItem const& package,
+        winforge::core::packages::PackageAction action)
+    {
+        auto const actionLabel = action == winforge::core::packages::PackageAction::Install ? std::wstring(L"install")
+            : action == winforge::core::packages::PackageAction::Update ? std::wstring(L"update")
+            : std::wstring(L"uninstall");
+        auto const localizedAction = action == winforge::core::packages::PackageAction::Install
+            ? winforge::core::LocalizedText{ L"install", L"安裝" }.Pick(m_language)
+            : action == winforge::core::packages::PackageAction::Update
+                ? winforge::core::LocalizedText{ L"update", L"更新" }.Pick(m_language)
+                : winforge::core::LocalizedText{ L"uninstall", L"解除安裝" }.Pick(m_language);
+
+        auto const command = winforge::core::packages::BuildPackageActionCommand(
+            package.manager_key,
+            package.id,
+            package.source,
+            action);
+        if (!command)
+        {
+            RecordPackageOperation(
+                L"Preview failed for " + actionLabel + L" " + package.id +
+                    L" via " + package.manager_key + L": " + command.error_code +
+                    L". · 操作預覽失敗。");
+            AnnouncePackageStatus(
+                L"Package operation preview failed. Review the Operations view for the validation reason.",
+                L"套件操作預覽失敗。請喺操作檢視睇驗證原因。",
+                true);
+        }
+        else
+        {
+            RecordPackageOperation(
+                L"Preview-only " + actionLabel + L" plan for " + package.id +
+                    L" via " + package.manager_key + L": " +
+                    winforge::core::packages::FormatCommandPreview(*command.command) +
+                    L". No package command was executed. · 只建立操作預覽，冇執行套件指令。");
+            auto const statusEn = std::wstring(L"Package ") + actionLabel +
+                L" preview added to Operations. No package command was executed.";
+            auto const statusZh = std::wstring(L"套件") + localizedAction +
+                L"預覽已加入操作檢視；冇執行套件指令。";
+            AnnouncePackageStatus(
+                statusEn,
+                statusZh);
+        }
+
+        m_packageView = 8;
+        if (m_packageViewPicker)
+        {
+            m_packageViewPicker.SelectedIndex(m_packageView);
+        }
+        SavePackageManagerState();
+        RenderPackageManagerView();
+    }
+
+    void MainWindow::PreviewPackageBulkUpdate()
+    {
+        if (m_packageItems.empty())
+        {
+            AnnouncePackageStatus(
+                L"No update rows are loaded yet; refresh updates before previewing Update all.",
+                L"未載入可更新資料列；預覽全部更新之前請先重新整理更新。",
+                true);
+            return;
+        }
+
+        constexpr std::size_t MaximumPreviewedUpdates = 25;
+        std::size_t previewed = 0;
+        std::size_t failed = 0;
+        RecordPackageOperation(
+            L"Preview-only Update all plan started for " +
+                std::to_wstring(m_packageItems.size()) +
+                L" update row(s). No package command was executed. · 只建立全部更新預覽，冇執行套件指令。");
+
+        for (auto const& package : m_packageItems)
+        {
+            auto const command = winforge::core::packages::BuildPackageActionCommand(
+                package.manager_key,
+                package.id,
+                package.source,
+                winforge::core::packages::PackageAction::Update);
+            if (!command)
+            {
+                ++failed;
+                if (previewed < MaximumPreviewedUpdates)
+                {
+                    RecordPackageOperation(
+                        L"Preview failed for update " + package.id +
+                            L" via " + package.manager_key + L": " + command.error_code +
+                            L". · 更新預覽失敗。");
+                    ++previewed;
+                }
+                continue;
+            }
+
+            if (previewed < MaximumPreviewedUpdates)
+            {
+                RecordPackageOperation(
+                    L"Preview-only update plan for " + package.id +
+                        L" via " + package.manager_key + L": " +
+                        winforge::core::packages::FormatCommandPreview(*command.command) +
+                        L". · 只建立更新預覽。");
+                ++previewed;
+            }
+        }
+        if (m_packageItems.size() > MaximumPreviewedUpdates)
+        {
+            RecordPackageOperation(
+                L"Update-all preview rendered the first " +
+                    std::to_wstring(MaximumPreviewedUpdates) +
+                    L" rows; remaining rows are omitted from the visible history to keep the UI responsive. · 全部更新預覽只顯示頭批資料列。");
+        }
+        if (failed != 0)
+        {
+            RecordPackageOperation(
+                L"Update-all preview had " + std::to_wstring(failed) +
+                    L" validation failure(s). · 全部更新預覽有驗證失敗。");
+        }
+
+        m_packageView = 8;
+        if (m_packageViewPicker)
+        {
+            m_packageViewPicker.SelectedIndex(m_packageView);
+        }
+        SavePackageManagerState();
+        RenderPackageManagerView();
+        AnnouncePackageStatus(
+            L"Update-all preview added to Operations. No package command was executed.",
+            L"全部更新預覽已加入操作檢視；冇執行套件指令。",
+            failed != 0);
+    }
+
     std::wstring MainWindow::BundleSnapshotToJson(
         std::vector<winforge::core::packages::PackageItem> const& items) const
     {
@@ -1876,6 +2007,10 @@ namespace winrt::WinForge::implementation
             if (m_packageView == 8)
             {
                 ClearPackageOperationLog();
+            }
+            else if (m_packageView == 1)
+            {
+                PreviewPackageBulkUpdate();
             }
             else if (m_packageView == 3)
             {
@@ -2593,10 +2728,22 @@ namespace winrt::WinForge::implementation
         {
             m_packagePrimaryAction.IsEnabled(
                 m_packageProbeComplete && selectedAvailable && searchReady && !m_packageWorking);
+            if (m_packageView == 1)
+            {
+                m_packageSecondaryAction.IsEnabled(!m_packageWorking && !m_packageItems.empty());
+            }
         }
         else if (m_packageView == 3 || m_packageView == 6 || m_packageView == 7)
         {
             m_packagePrimaryAction.IsEnabled(!m_packageWorking);
+            if (m_packageView == 3)
+            {
+                m_packageSecondaryAction.IsEnabled(!m_packageWorking);
+            }
+        }
+        else if (m_packageView == 8)
+        {
+            m_packageSecondaryAction.IsEnabled(!m_packageWorking && !m_packageOperationLog.empty());
         }
 
         auto resultHeader = header;
@@ -2657,8 +2804,8 @@ namespace winrt::WinForge::implementation
             {
                 appendCard(
                     pick(L"No native operations yet", L"暫時未有原生操作"),
-                    pick(L"Availability probes and read-only queries will appear here. Mutating operation history is not claimed yet.",
-                        L"可用性探測同只讀查詢會喺度顯示；暫時未聲稱有修改操作歷史。"),
+                    pick(L"Availability probes, read-only queries, and preview-only install/update/uninstall plans will appear here. Mutating operation execution is not claimed yet.",
+                        L"可用性探測、只讀查詢，以及只供預覽嘅安裝／更新／解除安裝計劃會喺度顯示；暫時未聲稱會執行修改操作。"),
                     L"NativePackageOperationsEmpty");
             }
             else
@@ -2919,16 +3066,31 @@ namespace winrt::WinForge::implementation
                     ? pick(L"Update", L"更新")
                     : pick(L"Uninstall", L"解除安裝");
             mutation.Content(box_value(ToHString(actionLabel)));
-            mutation.IsEnabled(false);
+            mutation.IsEnabled(!m_packageWorking);
             mutation.HorizontalAlignment(HorizontalAlignment::Left);
             AutomationProperties::SetAutomationId(
                 mutation,
                 ToHString(L"NativePackageMutation_" + AutomationKey(package.manager_key) + L"_" + AutomationKey(package.id)));
+            AutomationProperties::SetName(
+                mutation,
+                ToHString(actionLabel + L" preview for " + (package.name.empty() ? package.id : package.name)));
             ToolTipService::SetToolTip(
                 mutation,
                 box_value(ToHString(pick(
-                    L"Locked until native consent and operation coordination pass.",
-                    L"原生同意同操作協調通過驗證之前保持鎖住。"))));
+                    L"Preview the exact native argv operation plan. This does not execute the package command.",
+                    L"預覽準確嘅原生 argv 操作計劃；唔會執行套件指令。"))));
+            auto packageCopy = package;
+            auto action = m_packageView == 0
+                ? winforge::core::packages::PackageAction::Install
+                : m_packageView == 1
+                    ? winforge::core::packages::PackageAction::Update
+                    : winforge::core::packages::PackageAction::Uninstall;
+            mutation.Click([this, packageCopy = std::move(packageCopy), action](
+                Windows::Foundation::IInspectable const&,
+                RoutedEventArgs const&)
+            {
+                PreviewPackageOperation(packageCopy, action);
+            });
             row.Children().Append(mutation);
             card.Child(row);
             m_packageResults.Children().Append(card);

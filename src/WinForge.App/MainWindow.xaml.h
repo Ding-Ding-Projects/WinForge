@@ -116,6 +116,10 @@ namespace winrt::WinForge::implementation
         void ApplyPackageSort();
         void RecordPackageOperation(std::wstring message);
         void ClearPackageOperationLog();
+        void PreviewPackageOperation(
+            winforge::core::packages::PackageItem const& package,
+            winforge::core::packages::PackageAction action);
+        void PreviewPackageBulkUpdate();
         [[nodiscard]] std::wstring BundleSnapshotToJson(
             std::vector<winforge::core::packages::PackageItem> const& items) const;
         [[nodiscard]] bool LoadBundleSnapshot(std::wstring_view path);

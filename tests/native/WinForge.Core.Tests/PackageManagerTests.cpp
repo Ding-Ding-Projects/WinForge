@@ -242,6 +242,10 @@ NativeTestCounts RunPackageManagerTests()
         && ContainsSequence(operation.command->arguments, { L"--id", L"Example.Tool" })
         && ContainsSequence(operation.command->arguments, { L"--source", L"msstore" })
         && operation.command->arguments.back() == L"named value", "winget install maps options and source to discrete argv");
+    expect(operation
+        && FormatCommandPreview(*operation.command).find(L"winget install --id Example.Tool") == 0
+        && FormatCommandPreview(*operation.command).find(L"\"named value\"") != std::wstring::npos,
+        "operation previews expose the exact executable and quoted argv without executing");
     expect(!BuildPackageActionCommand(L"winget", L"safe & calc", L"", PackageAction::Install), "operation builder validates package id before building");
     operation_options.custom_args_install = L"--registry https://evil.test";
     expect(BuildPackageActionCommand(L"npm", L"safe-tool", L"npmjs.org", PackageAction::Install, operation_options).error_code

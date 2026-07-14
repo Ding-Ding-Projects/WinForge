@@ -163,6 +163,42 @@ namespace
         return command;
     }
 
+    std::wstring QuotePreviewArgument(std::wstring_view value)
+    {
+        if (value.empty())
+        {
+            return L"\"\"";
+        }
+
+        bool needs_quotes = false;
+        for (auto const character : value)
+        {
+            if (std::iswspace(character) || character == L'"')
+            {
+                needs_quotes = true;
+                break;
+            }
+        }
+        if (!needs_quotes)
+        {
+            return std::wstring(value);
+        }
+
+        std::wstring quoted;
+        quoted.reserve(value.size() + 2);
+        quoted.push_back(L'"');
+        for (auto const character : value)
+        {
+            if (character == L'\\' || character == L'"')
+            {
+                quoted.push_back(L'\\');
+            }
+            quoted.push_back(character);
+        }
+        quoted.push_back(L'"');
+        return quoted;
+    }
+
     std::wstring EncodePowerShellValue(std::wstring_view value)
     {
         constexpr std::string_view alphabet{ "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/" };
@@ -1280,6 +1316,35 @@ namespace winforge::core::packages
         {
             return Failed(L"command-build-failed");
         }
+    }
+
+    std::wstring FormatCommandPreview(CommandSpec const& command)
+    {
+        switch (command.transport)
+        {
+        case CommandTransport::HttpGet:
+            return L"GET " + QuotePreviewArgument(command.request_uri);
+        case CommandTransport::StaticText:
+            return L"[static] " + command.static_text;
+        default:
+            break;
+        }
+
+        std::wstring preview = QuotePreviewArgument(command.executable);
+        for (auto const& argument : command.arguments)
+        {
+            preview += L' ';
+            preview += QuotePreviewArgument(argument);
+        }
+        if (command.working_directory == CommandWorkingDirectory::BunGlobalPackages)
+        {
+            preview += L"  [cwd: Bun global packages]";
+        }
+        if (command.requires_elevation)
+        {
+            preview += L"  [requires elevation]";
+        }
+        return preview;
     }
 
     CommandBuildResult BuildDetailsCommand(
