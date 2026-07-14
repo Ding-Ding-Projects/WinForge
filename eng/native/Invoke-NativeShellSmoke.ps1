@@ -597,6 +597,54 @@ Invoke-OwnedRoute -Route 'package-discover' -ExpectedTitle 'Package Manager' -In
         -Name 'Package Manager package-discover alias selects Discover'
 }
 
+Invoke-OwnedRoute -Route 'package-bundles' -ExpectedTitle 'Package Manager' -Inspect {
+    param($root, $title)
+
+    $header = Wait-ForElement -Root $root -AutomationId 'NativePackageResultsHeader'
+    Assert-True -Condition ($header.Current.Name.StartsWith('Portable package bundles', [StringComparison]::Ordinal)) `
+        -Name 'Package Manager package-bundles alias selects Bundles'
+}
+
+Invoke-OwnedRoute -Route 'package-sources' -ExpectedTitle 'Package Manager' -Inspect {
+    param($root, $title)
+
+    $header = Wait-ForElement -Root $root -AutomationId 'NativePackageResultsHeader'
+    Assert-True -Condition ($header.Current.Name.StartsWith('Package sources', [StringComparison]::Ordinal)) `
+        -Name 'Package Manager package-sources alias selects Sources'
+}
+
+Invoke-OwnedRoute -Route 'package-ignored' -ExpectedTitle 'Package Manager' -Inspect {
+    param($root, $title)
+
+    $header = Wait-ForElement -Root $root -AutomationId 'NativePackageResultsHeader'
+    Assert-True -Condition ($header.Current.Name.StartsWith('Ignored, pinned, and snoozed updates', [StringComparison]::Ordinal)) `
+        -Name 'Package Manager package-ignored alias selects Ignored'
+}
+
+Invoke-OwnedRoute -Route 'package-setup' -ExpectedTitle 'Package Manager' -Inspect {
+    param($root, $title)
+
+    $header = Wait-ForElement -Root $root -AutomationId 'NativePackageResultsHeader'
+    Assert-True -Condition ($header.Current.Name.StartsWith('Engine setup', [StringComparison]::Ordinal)) `
+        -Name 'Package Manager package-setup alias selects Setup'
+}
+
+Invoke-OwnedRoute -Route 'package-settings' -ExpectedTitle 'Package Manager' -Inspect {
+    param($root, $title)
+
+    $summary = Wait-ForElement -Root $root -AutomationId 'NativePackageSettingsSummary'
+    Assert-True -Condition ($summary.Current.Name.StartsWith('Native package-manager state', [StringComparison]::Ordinal)) `
+        -Name 'Package Manager package-settings alias selects Settings'
+}
+
+Invoke-OwnedRoute -Route 'package-operations' -ExpectedTitle 'Package Manager' -Inspect {
+    param($root, $title)
+
+    $header = Wait-ForElement -Root $root -AutomationId 'NativePackageResultsHeader'
+    Assert-True -Condition ($header.Current.Name.StartsWith('Operation queue and history', [StringComparison]::Ordinal)) `
+        -Name 'Package Manager package-operations alias selects Operations'
+}
+
 foreach ($case in @(
     @{ Route = 'about'; Title = 'About WinForge Native' },
     @{ Route = 'settings'; Title = 'Settings' },

@@ -111,6 +111,12 @@ NativeTestCounts RunPackageManagerTests()
     expect(launch.route == L"module.packages" && launch.argument == L"#settings", "settings launch alias deep-links the settings view");
     launch = ParseLaunchRequest(std::vector<std::wstring>{ L"WinForge.exe", L"--page", L"packages-operations" });
     expect(launch.route == L"module.packages" && launch.argument == L"#operations", "plural operations launch alias deep-links the operations view");
+    launch = ParseLaunchRequest(std::vector<std::wstring>{ L"WinForge.exe", L"--page", L"package-sources" });
+    expect(launch.route == L"module.packages" && launch.argument == L"#sources", "sources launch alias deep-links the sources view");
+    launch = ParseLaunchRequest(std::vector<std::wstring>{ L"WinForge.exe", L"--page", L"package-ignored" });
+    expect(launch.route == L"module.packages" && launch.argument == L"#ignored", "ignored launch alias deep-links the ignored view");
+    launch = ParseLaunchRequest(std::vector<std::wstring>{ L"WinForge.exe", L"--page", L"package-setup" });
+    expect(launch.route == L"module.packages" && launch.argument == L"#setup", "setup launch alias deep-links the setup view");
 
     std::array<std::pair<std::wstring_view, std::wstring_view>, 11> const valid_references{
         std::pair{ L"winget", L"Microsoft.PowerToys" },
