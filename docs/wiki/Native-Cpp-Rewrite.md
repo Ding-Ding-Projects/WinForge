@@ -31,6 +31,10 @@ The package-manager Settings tab is now a real native persistence slice for pack
 
 套件管理嘅 Settings tab 而家係真實原生持久化片段，會保存套件檢視、搜尋文字同管理器篩選。更完整逐管理器預設、備份同還原仍然要等剩低嘅 settings workflow 移植完成。
 
+The native Operations tab now persists a recent local history snapshot and lets the user clear it, but the full queued coordinator, retry model, and completed/live mutation parity remain gated.
+
+原生 Operations tab 而家會保存最近本機歷史快照，亦可以清除；但完整排隊協調器、重試模型同完成／即時修改對等仍然鎖住。
+
 Mutation, Bundles, Ignored, Setup, Settings, the operation queue, .NET update resolution, and PyPI metadata hydration remain incomplete. The complete 1,002-file UniGetUI `main` snapshot at `21116375c8299d1db38a3c3b4c2eb7e18bc97c4e` (2026-07-10, MIT) is exact provenance and a behavior reference only; it is excluded from runtime and is not parity evidence.
 
 套件變更、Bundles、Ignored、Setup、Settings、operation queue、.NET 更新解析同 PyPI metadata hydration 仍然未完成。完整 1,002 檔 UniGetUI `main` snapshot 固定喺 `21116375c8299d1db38a3c3b4c2eb7e18bc97c4e`（2026-07-10，MIT），只係精確來源證明同功能參考；runtime 會排除佢，亦唔係對等證據。

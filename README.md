@@ -49,9 +49,9 @@ See the [full native rewrite record](docs/Native-Cpp-Rewrite.md), [wiki overview
 
 **粵語 —** **發佈中受控 .NET 套件管理器**仍然係正式版本。佢喺 11 個 Windows 套件引擎同九個檢視提供大量實際功能：搜尋／安裝、更新同解除安裝、可攜清單、來源管理、忽略／釘選／暫停更新、引擎設定、已儲存設定、排程、通知，同有上限嘅共用操作佇列（附歷史、輸出、取消同重試）。新嘅 **C++20／C++/WinRT 批次唔係完整 UniGetUI 複製品，亦未到功能對等切換**；目前只提供**搜尋安裝、可更新同已安裝**嘅只讀結果查詢，另有只讀**來源指令探測**，但逐管理器機密遮罩未證實之前會刻意隱藏原始設定同診斷。套件清單、已忽略、Setup bootstrap、設定同真正操作協調器仍然鎖住；安裝、更新、解除安裝、修改來源同批次動作亦全部停用。Setup 可用性探測同暫時只讀事件記錄只係安全／診斷基礎，唔代表完整檢視對等。
 
-The package-manager Settings tab now persists package-view, search-text, and manager-filter preferences in native JSON state. The broader per-manager defaults, backup, and restore workflows remain gated.
+The package-manager Settings tab now persists package-view, search-text, and manager-filter preferences in native JSON state, and the Operations tab now keeps a recent local history snapshot with a clear action. The broader per-manager defaults, backup, restore, and full queue-coordinator workflows remain gated.
 
-套件管理嘅 Settings tab 而家會用原生 JSON 狀態保存套件檢視、搜尋文字同管理器篩選偏好。更完整逐管理器預設、備份同還原流程仍然鎖住。
+套件管理嘅 Settings tab 而家會用原生 JSON 狀態保存套件檢視、搜尋文字同管理器篩選偏好，而 Operations tab 亦會保存最近本機歷史快照同提供清除動作。更完整逐管理器預設、備份、還原同完整排隊協調器流程仍然鎖住。
 
 **EN —** The complete native executable passes **233/233 in both Debug and Release** (191 core route/package-manager + 42 parser checks), and the process-owned elevated UI Automation smoke passes **59/59**, retaining every Package Manager assertion while adding Check Digit and Text to Binary coverage. That elevated smoke verifies routing—including exact Discover/Updates/Installed aliases—controls, fail-closed gates and accessibility, not live external manager execution. The separate normal-integrity live smoke is still externally blocked because Windows returned a token that failed the standard-user proof even for an interactive scheduled task registered with `RunLevel=Limited`; no live-query pass is claimed. Fresh native Package Manager capture is also `capture-blocked`: `CopyFromScreen` is unavailable and `PrintWindow` returns a blank/near-uniform WinUI client frame that the driver rejects. The gallery image below is therefore labelled as a **managed production reference**, never current native visual evidence.
 

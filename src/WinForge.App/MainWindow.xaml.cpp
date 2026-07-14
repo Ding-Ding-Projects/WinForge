@@ -1320,6 +1320,16 @@ namespace winrt::WinForge::implementation
                     }
                 }
             }
+
+            if (root.HasKey(L"operationLog"))
+            {
+                auto const history = root.GetNamedArray(L"operationLog");
+                m_packageOperationLog.clear();
+                for (auto const& value : history)
+                {
+                    m_packageOperationLog.push_back(ToWide(value.GetString()));
+                }
+            }
         }
         catch (...)
         {
@@ -1356,6 +1366,13 @@ namespace winrt::WinForge::implementation
                 }
             }
             root.SetNamedValue(L"selectedManagers", selectedManagers);
+
+            winrt::Windows::Data::Json::JsonArray operationLog;
+            for (auto const& entry : m_packageOperationLog)
+            {
+                operationLog.Append(winrt::Windows::Data::Json::JsonValue::CreateStringValue(ToHString(entry)));
+            }
+            root.SetNamedValue(L"operationLog", operationLog);
 
             std::ofstream output(m_packageStatePath, std::ios::binary | std::ios::trunc);
             if (!output)
@@ -1410,6 +1427,28 @@ namespace winrt::WinForge::implementation
         {
         }
         m_packageStateApplying = false;
+    }
+
+    void MainWindow::RecordPackageOperation(std::wstring message)
+    {
+        m_packageOperationLog.insert(
+            m_packageOperationLog.begin(),
+            std::move(message));
+        if (m_packageOperationLog.size() > 50)
+        {
+            m_packageOperationLog.resize(50);
+        }
+        SavePackageManagerState();
+    }
+
+    void MainWindow::ClearPackageOperationLog()
+    {
+        m_packageOperationLog.clear();
+        SavePackageManagerState();
+        RenderPackageManagerView();
+        AnnouncePackageStatus(
+            L"Package operation history cleared.",
+            L"套件操作歷史已清除。");
     }
 
     void MainWindow::RenderPackageManager()
@@ -1577,7 +1616,14 @@ namespace winrt::WinForge::implementation
         AutomationProperties::SetAutomationId(m_packageSecondaryAction, L"NativePackageSecondaryAction");
         m_packageSecondaryAction.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
         {
-            RenderPackageManagerView();
+            if (m_packageView == 8)
+            {
+                ClearPackageOperationLog();
+            }
+            else
+            {
+                RenderPackageManagerView();
+            }
         });
         toolbar.Children().Append(m_packageSecondaryAction);
 
@@ -1788,11 +1834,9 @@ namespace winrt::WinForge::implementation
             : action == PackageAction::Updates ? L"updates"
             : action == PackageAction::Installed ? L"installed"
             : L"sources";
-        m_packageOperationLog.insert(
-            m_packageOperationLog.begin(),
+        RecordPackageOperation(
             std::wstring(L"Started native ") + actionLabel + L" query across " +
                 std::to_wstring(managerKeys.size()) + L" manager(s). · 已開始原生查詢。");
-        if (m_packageOperationLog.size() > 50) m_packageOperationLog.resize(50);
         RenderPackageManagerView();
         AnnouncePackageStatus(
             L"Package query started. Completion and any engine failures will be announced.",
@@ -2011,12 +2055,10 @@ namespace winrt::WinForge::implementation
             }
         }
 
-        m_packageOperationLog.insert(
-            m_packageOperationLog.begin(),
+        RecordPackageOperation(
             L"Availability probe: " + std::to_wstring(availableCount) + L"/" +
                 std::to_wstring(winforge::core::packages::PackageManagers().size()) +
                 L" managers ready. · 可用性探測完成。");
-        if (m_packageOperationLog.size() > 50) m_packageOperationLog.resize(50);
         if (m_packageManagerFilters) PopulatePackageManagerFilters(m_packageManagerFilters);
         RenderPackageManagerView();
         if (!runtimeFailure.empty())
@@ -2105,11 +2147,9 @@ namespace winrt::WinForge::implementation
             return left.id < right.id;
         });
 
-        m_packageOperationLog.insert(
-            m_packageOperationLog.begin(),
+        RecordPackageOperation(
             L"Native query completed: " + std::to_wstring(m_packageItems.size()) +
                 L" package row(s), " + std::to_wstring(successfulManagers) + L" manager(s) succeeded. · 原生查詢完成。");
-        if (m_packageOperationLog.size() > 50) m_packageOperationLog.resize(50);
         RenderPackageManagerView();
         if (failedManagers != 0)
         {
@@ -2263,7 +2303,8 @@ namespace winrt::WinForge::implementation
             break;
         default:
             m_packagePrimaryAction.Content(box_value(ToHString(pick(L"Refresh", L"重新整理"))));
-            m_packageSecondaryAction.Content(box_value(ToHString(pick(L"Clear completed", L"清除已完成"))));
+            m_packageSecondaryAction.Content(box_value(ToHString(
+                m_packageView == 8 ? pick(L"Clear history", L"清除歷史") : pick(L"Clear completed", L"清除已完成"))));
             m_packageSecondaryAction.Visibility(Visibility::Visible);
             header = pick(L"Operation queue and history", L"操作佇列同歷史");
             explanation = pick(L"The native coordinator will show queued, running, completed, failed, cancelled, output, retry, and cancellation state here.",

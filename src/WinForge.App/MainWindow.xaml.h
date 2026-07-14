@@ -109,6 +109,8 @@ namespace winrt::WinForge::implementation
         void LoadPackageManagerState();
         void SavePackageManagerState() const;
         void ResetPackageManagerState();
+        void RecordPackageOperation(std::wstring message);
+        void ClearPackageOperationLog();
         void PopulatePackageManagerFilters(Microsoft::UI::Xaml::Controls::StackPanel const& panel);
         void CancelPackageWork();
         [[nodiscard]] bool InvalidatePackageQueryResults();
