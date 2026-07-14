@@ -70,6 +70,36 @@ namespace
                 request.route = L"module.packages";
                 request.argument = L"#installed";
             }
+            else if (request.route == L"package-bundles" || request.route == L"packages-bundles")
+            {
+                request.route = L"module.packages";
+                request.argument = L"#bundles";
+            }
+            else if (request.route == L"package-sources" || request.route == L"packages-sources")
+            {
+                request.route = L"module.packages";
+                request.argument = L"#sources";
+            }
+            else if (request.route == L"package-ignored" || request.route == L"packages-ignored")
+            {
+                request.route = L"module.packages";
+                request.argument = L"#ignored";
+            }
+            else if (request.route == L"package-setup" || request.route == L"packages-setup")
+            {
+                request.route = L"module.packages";
+                request.argument = L"#setup";
+            }
+            else if (request.route == L"package-settings" || request.route == L"packages-settings")
+            {
+                request.route = L"module.packages";
+                request.argument = L"#settings";
+            }
+            else if (request.route == L"package-operations" || request.route == L"packages-operations")
+            {
+                request.route = L"module.packages";
+                request.argument = L"#operations";
+            }
         }
 
         if (request.route.empty())

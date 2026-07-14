@@ -1,5 +1,6 @@
 #include "PackageManagerTests.h"
 
+#include "CommandLine.h"
 #include "PackageManager.h"
 
 #include <algorithm>
@@ -11,6 +12,7 @@
 namespace
 {
     using namespace winforge::core::packages;
+    using winforge::core::ParseLaunchRequest;
 
     bool Contains(std::vector<std::wstring> const& values, std::wstring_view expected)
     {
@@ -103,6 +105,12 @@ NativeTestCounts RunPackageManagerTests()
     expect(PackageViewFromFragment(L"bundles") == PackageView::Bundles
         && PackageViewFromFragment(L"operations") == PackageView::Operations
         && PackageViewFragment(PackageView::Operations) == L"operations", "extended package view fragments stay round-trippable");
+    auto launch = ParseLaunchRequest(std::vector<std::wstring>{ L"WinForge.exe", L"--page", L"package-bundles" });
+    expect(launch.route == L"module.packages" && launch.argument == L"#bundles", "bundle launch alias deep-links the bundle view");
+    launch = ParseLaunchRequest(std::vector<std::wstring>{ L"WinForge.exe", L"--page=package-settings" });
+    expect(launch.route == L"module.packages" && launch.argument == L"#settings", "settings launch alias deep-links the settings view");
+    launch = ParseLaunchRequest(std::vector<std::wstring>{ L"WinForge.exe", L"--page", L"packages-operations" });
+    expect(launch.route == L"module.packages" && launch.argument == L"#operations", "plural operations launch alias deep-links the operations view");
 
     std::array<std::pair<std::wstring_view, std::wstring_view>, 11> const valid_references{
         std::pair{ L"winget", L"Microsoft.PowerToys" },
