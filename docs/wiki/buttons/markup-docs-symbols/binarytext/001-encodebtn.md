@@ -18,3 +18,9 @@
 **EN —** Use this control from the module page shown above. If the handler is blank, the action is represented by binding or template state rather than a direct click handler in XAML.
 
 **粵語 —** 喺上面模組頁面使用呢個控制項。如果處理函式係空白，代表動作可能由 binding 或樣板狀態處理，而唔係 XAML 入面直接寫 click handler。
+
+## Native C++ counterpart · 原生 C++ 對應
+
+**EN —** The native button has automation ID `NativeBinaryTextEncode`. It converts the current input into selected-base UTF-8 byte codes (binary, decimal, octal, or uppercase hexadecimal) locally in standard C++; it neither launches a process nor writes system state.
+
+**粵語 —** 原生按鈕嘅 automation ID 係 `NativeBinaryTextEncode`。佢會喺本機標準 C++ 將目前輸入轉成已揀進位嘅 UTF-8 位元組碼（二進位、十進位、八進位或者大楷十六進位）；唔會開 process，亦唔會寫系統狀態。

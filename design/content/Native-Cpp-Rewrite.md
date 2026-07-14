@@ -27,20 +27,23 @@ Package Manager is now an honest **in-progress** native port. All nine views and
 
 Check Digit Validator is the next genuine native utility slice. Its standard C++ core and native WinUI surface implement live Luhn/card-brand detection, ISBN-10/13, EAN-13, UPC-A, and bounded incremental mod-97 IBAN validation. ISBN-13 requires 978/979; IBAN enforces all 89 SWIFT Release 102 country prefixes, exact lengths, and BBAN character classes before the checksum. `checkdigit`, `luhn`, and `module.checkdigit` all reach the real page; language rerenders preserve state, while localized names, stale-detail clearing, and polite live-region events harden accessibility. Functional evidence passes without CLR or external side effects, but the ledger row remains **in progress** because fresh visual capture is `capture-blocked`. · 檢查碼驗證器係下一批真正原生 utility。標準 C++ core 同原生 WinUI 介面實作即時 Luhn／卡種識別、ISBN-10／13、EAN-13、UPC-A 同有界增量 mod-97 IBAN 驗證。ISBN-13 只接受 978／979；IBAN 會喺 checksum 之前驗證 SWIFT Release 102 全部 89 個國家 prefix、固定長度同 BBAN 字元類別。`checkdigit`、`luhn` 同 `module.checkdigit` 都會開真正頁面；轉語言時會保留狀態，亦加咗本地化名稱、清除舊 detail 同 polite live-region event。功能證據通過，唔用 CLR 或外部副作用，但最新視覺擷取係 `capture-blocked`，所以清單仍然標示**進行中**。
 
+Text to Binary is the next genuine native utility slice. `binarytext`, `textbinary`, and `module.binarytext` run a standard-C++ UTF-8 byte-code converter for binary, decimal, octal, and uppercase hexadecimal output. It mirrors the managed separators/prefixes and replacement-character behavior, clears output atomically for malformed or out-of-range input, preserves selected base/input/output through language rerenders, exposes localized UI Automation names plus a polite live region, and touches the clipboard only after an explicit Copy. Functional evidence passes, but its ledger row remains **in progress** because fresh visual capture is `capture-blocked`. · 文字轉二進位係下一批真正原生 utility。`binarytext`、`textbinary` 同 `module.binarytext` 會執行標準 C++ UTF-8 位元組碼轉換器，提供二進位、十進位、八進位同大楷十六進位輸出。佢跟受控版分隔／prefix 同替代字元行為；格式錯誤或者超範圍輸入會原子式清空輸出；轉語言時保留已揀進位／輸入／輸出；有本地化 UI Automation 名稱同 polite live region；而且只會喺明確撳 Copy 後先掂剪貼簿。功能證據通過，但最新視覺擷取係 `capture-blocked`，所以清單仍然標示**進行中**。
+
 ## Verification · 驗證
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .agents\skills\run-winforge\driver.ps1 -Native -Publish -Page dashboard -NoCapture
 tests\native\WinForge.Core.Tests\bin\x64\Debug\WinForge.Core.Tests.exe
 dotnet run --project tests\CheckDigitCore.Tests\CheckDigitCore.Tests.csproj -c Release
+dotnet run --project tests\BinaryTextCore.Tests\BinaryTextCore.Tests.csproj -c Release
 powershell -ExecutionPolicy Bypass -File eng\native\Test-NativeCatalogParity.ps1
 powershell -ExecutionPolicy Bypass -File eng\native\Invoke-NativeShellSmoke.ps1
 ```
 
 - Debug and Release x64 builds: **0 errors**. · Debug 同 Release x64 建置：**0 errors**。
 - Legacy managed solution compile check: **0 errors** with ignored NuGet restore and native C++ source/generated trees excluded from the SDK item glob. · 舊受控 solution compile check：**0 errors**；SDK item glob 已排除忽略咗嘅 NuGet restore 同原生 C++ source／generated tree。
-- Native core regressions: **208/208 in Debug and 208/208 in Release**, including 48 focused Check Digit cases, official Discover range boundaries, exact independent SWIFT Release 102 fixture parity, Unicode-confusable rejection, and all existing Package Manager/shell coverage; managed-oracle parity passes **24/24**. · 原生核心回歸：Debug **208/208**、Release **208/208**，包括 48 個檢查碼專項案例、官方 Discover range 邊界、獨立 SWIFT Release 102 fixture 精確對等、拒絕 Unicode 混淆字元，同全部原有套件管理／shell 覆蓋；受控基準對等 **24/24** 通過。
-- Elevated process-owned shell smoke: **46/46**, including all six Check Digit schemes, accessibility cleanup, state-preserving localization, every Check Digit alias, and exact Discover/Updates/Installed alias selection. This verifies UI and fail-closed safety behavior, not normal-integrity external queries. · 提權、自有 process shell 冒煙：**46/46**，包括六個檢查碼格式、無障礙清理、轉語言保留狀態、全部檢查碼 alias，同準確揀返 Discover／Updates／Installed alias；呢項驗證 UI 同 fail-closed 安全行為，唔代表正常 integrity 外部查詢。
+- Native test executable: **233/233 in Debug and 233/233 in Release** (191 core route/package-manager checks plus 42 parser checks), retaining every Package Manager/shell regression plus 48 focused Check Digit and 25 focused Text to Binary cases. Linked managed-reference regressions pass Check Digit **24/24** and Text to Binary **18/18**; they are reference tests, not an automated native-vs-managed process comparison. · 原生測試 executable：Debug **233/233**、Release **233/233**（191 個 core route／package-manager 檢查加 42 個 parser 檢查），保留全部套件管理／shell 回歸，再加 48 個檢查碼同 25 個文字轉二進位專項案例。連結嘅受控參考回歸通過檢查碼 **24/24** 同文字轉二進位 **18/18**；佢哋係參考測試，唔係自動原生對受控 process 比較。
+- Elevated process-owned shell smoke: **59/59**, retaining Package Manager and Check Digit coverage while adding every Text to Binary action, explicit Copy, error-clear behavior, selected-base/input/output language-state retention, accessibility contract, and all aliases. This verifies UI and fail-closed safety behavior, not normal-integrity external queries. · 提權、自有 process shell 冒煙：**59/59**，保留套件管理同檢查碼覆蓋，再加入文字轉二進位全部動作、明確 Copy、錯誤清空行為、轉語言後保留已揀進位／輸入／輸出、無障礙合約同全部 alias。呢項驗證 UI 同 fail-closed 安全行為，唔代表正常 integrity 外部查詢。
 - Catalog parity: 346 fixed routes + five dynamic families passed exact id, alias, count, and UTF-8 bilingual checks. · 目錄對等：346 固定路線 + 五組動態路線通過精確 id、alias、數量同 UTF-8 雙語檢查。
 - Foundation Release PE audit: zero COM descriptor and no `coreclr`, `hostfxr`, or `mscoree` import; this is native-binary evidence, not feature-parity evidence. · 基礎 Release PE 審查：COM descriptor 係零，而且冇 `coreclr`、`hostfxr` 或 `mscoree` import；呢項係原生 binary 證據，唔係功能對等證據。
 
@@ -48,9 +51,9 @@ Normal-integrity live external-query evidence remains **blocked**. Even an inter
 
 ## Screenshot status · 截圖狀態
 
-Fresh native Dashboard, All Apps, About, Package Manager (`module.packages#updates`), and Check Digit (`checkdigit`) captures are blocked in this desktop session. `CopyFromScreen` is unavailable and `PrintWindow` returns a blank/near-uniform WinUI client frame, which the driver now rejects. No blank, stale, synthetic, or managed screenshot was substituted. UI Automation proves launch and behavior, not visual appearance; all five surfaces remain `capture-blocked`.
+Fresh native Dashboard, All Apps, About, Package Manager (`module.packages#updates`), Check Digit (`checkdigit`), and Text to Binary (`binarytext`) captures are blocked in this desktop session. `CopyFromScreen` is unavailable and `PrintWindow` returns a blank/near-uniform WinUI client frame, which the driver now rejects. No blank, stale, synthetic, or managed screenshot was substituted. UI Automation proves launch and behavior, not visual appearance; all six surfaces remain `capture-blocked`.
 
-呢個 desktop session 擷取唔到最新原生 Dashboard、所有 app、About、套件管理（`module.packages#updates`）同檢查碼（`checkdigit`）畫面。`CopyFromScreen` 用唔到，而 `PrintWindow` 只回傳空白／接近單色 WinUI client frame，driver 而家會拒絕呢種圖。冇用空白、舊、合成或者受控版截圖頂替。UI Automation 只證明 launch 同 behavior，唔代表視覺通過；五個介面仍然係 `capture-blocked`。
+呢個 desktop session 擷取唔到最新原生 Dashboard、所有 app、About、套件管理（`module.packages#updates`）、檢查碼（`checkdigit`）同文字轉二進位（`binarytext`）畫面。`CopyFromScreen` 用唔到，而 `PrintWindow` 只回傳空白／接近單色 WinUI client frame，driver 而家會拒絕呢種圖。冇用空白、舊、合成或者受控版截圖頂替。UI Automation 只證明 launch 同 behavior，唔代表視覺通過；六個介面仍然係 `capture-blocked`。
 
 ## Cutover gate · 切換閘門
 

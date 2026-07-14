@@ -18,3 +18,9 @@
 **EN —** Use this control from the module page shown above. If the handler is blank, the action is represented by binding or template state rather than a direct click handler in XAML.
 
 **粵語 —** 喺上面模組頁面使用呢個控制項。如果處理函式係空白，代表動作可能由 binding 或樣板狀態處理，而唔係 XAML 入面直接寫 click handler。
+
+## Native C++ counterpart · 原生 C++ 對應
+
+**EN —** The native button has automation ID `NativeBinaryTextSwap`. It moves the current native output into input and clears output in one UI update; the state is retained if the operator changes the application language afterward.
+
+**粵語 —** 原生按鈕嘅 automation ID 係 `NativeBinaryTextSwap`。佢會一次 UI 更新將目前原生輸出搬去輸入，同時清空輸出；操作員之後轉 app 語言都會保留呢個狀態。

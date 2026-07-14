@@ -224,10 +224,11 @@ powershell -ExecutionPolicy Bypass -File .agents\skills\run-winforge\driver.ps1 
 dotnet build WinForge.sln -c Debug -p:Platform=x64
 tests\native\WinForge.Core.Tests\bin\x64\Debug\WinForge.Core.Tests.exe
 dotnet run --project tests\CheckDigitCore.Tests\CheckDigitCore.Tests.csproj -c Release
+dotnet run --project tests\BinaryTextCore.Tests\BinaryTextCore.Tests.csproj -c Release
 powershell -ExecutionPolicy Bypass -File eng\native\Test-NativeCatalogParity.ps1
 powershell -ExecutionPolicy Bypass -File eng\native\Invoke-NativeShellSmoke.ps1
 ```
 
-See [Native C++ Rewrite](Native-Cpp-Rewrite.md) for the 346-route + five-family contract, current Debug/Release 208/208 regressions, managed Check Digit 24/24 parity, elevated 46/46 shell evidence, the native Check Digit slice, normal-integrity and screenshot blockers, safety invariants, and no-CLR cutover rule. · 346 路線 + 五組動態合約、目前 Debug／Release 208/208 回歸、受控檢查碼 24/24 對等、提權 46/46 shell 證據、原生檢查碼批次、正常 integrity 同截圖阻礙、安全 invariant 同 no-CLR 切換規則，請睇[原生 C++ 重寫](Native-Cpp-Rewrite.md)。
+See [Native C++ Rewrite](Native-Cpp-Rewrite.md) for the 346-route + five-family contract, current Debug/Release 233/233 native test executable (191 core + 42 parser), linked managed-reference Check Digit 24/24 and Text to Binary 18/18 regressions, elevated 59/59 shell evidence, the two native utility slices, normal-integrity and screenshot blockers, safety invariants, and no-CLR cutover rule. · 346 路線 + 五組動態合約、目前 Debug／Release 233/233 原生測試 executable（191 core + 42 parser）、連結嘅受控參考檢查碼 24/24 同文字轉二進位 18/18 回歸、提權 59/59 shell 證據、兩個原生 utility 批次、正常 integrity 同截圖阻礙、安全 invariant 同 no-CLR 切換規則，請睇[原生 C++ 重寫](Native-Cpp-Rewrite.md)。
 
 [← Wiki Home](Home.md)

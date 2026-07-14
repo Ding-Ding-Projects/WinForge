@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path,
+    [string]$RepoRoot,
     [string]$ManifestPath,
     [string]$CatalogPath,
     [string]$LedgerPath
@@ -9,7 +9,12 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
-$repo = (Resolve-Path -LiteralPath $RepoRoot).Path
+$repo = if ($RepoRoot) {
+    (Resolve-Path -LiteralPath $RepoRoot).Path
+}
+else {
+    (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..\..')).Path
+}
 if (-not $CatalogPath) {
     $CatalogPath = Join-Path $repo 'src\WinForge.App\Resources\modules.json'
 }

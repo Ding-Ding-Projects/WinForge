@@ -7,6 +7,7 @@
 
 #include "CatalogLoader.h"
 #include "microsoft.ui.xaml.window.h"
+#include <winrt/Windows.ApplicationModel.DataTransfer.h>
 #include <winrt/Microsoft.UI.Xaml.Automation.Peers.h>
 
 #include <chrono>
@@ -341,6 +342,10 @@ namespace winrt::WinForge::implementation
         {
             RenderCheckDigit();
         }
+        else if (module->id == L"module.binarytext")
+        {
+            RenderBinaryText();
+        }
         else if (module->id == L"about")
         {
             RenderAbout();
@@ -614,6 +619,298 @@ namespace winrt::WinForge::implementation
         catch (...)
         {
             // Accessibility notification failure must not break local validation.
+        }
+    }
+
+    void MainWindow::RenderBinaryText()
+    {
+        m_binaryTextRendering = true;
+
+        auto page = CreatePage(
+            winforge::core::LocalizedText{
+                L"Text to Binary", L"文字轉二進位" }.Pick(m_language),
+            winforge::core::LocalizedText{
+                L"Turn text into space-separated UTF-8 byte codes and back in binary, decimal, octal, or hexadecimal.",
+                L"將文字轉成用空格分隔嘅 UTF-8 位元組數字碼，又可以喺二進位、十進位、八進位或十六進位轉返文字。" }.Pick(m_language));
+        page.MaxWidth(820);
+        page.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(page, L"NativeBinaryTextPage");
+
+        InfoBar nativeStatus;
+        nativeStatus.IsOpen(true);
+        nativeStatus.IsClosable(false);
+        nativeStatus.Severity(InfoBarSeverity::Success);
+        nativeStatus.Title(ToHString(winforge::core::LocalizedText{
+            L"Fully native UTF-8 conversion", L"全原生 UTF-8 轉換" }.Pick(m_language)));
+        nativeStatus.Message(ToHString(winforge::core::LocalizedText{
+            L"Encoding and decoding run locally in standard C++. Invalid UTF-8 uses replacement characters just like the managed reference; no CLR, network, process, file, registry, or elevation path is used.",
+            L"編碼同解碼全部喺本機標準 C++ 執行；無效 UTF-8 會跟受控版一樣用替代字元，唔會用 CLR、網絡、process、檔案、registry 或提升權限。" }.Pick(m_language)));
+        AutomationProperties::SetAutomationId(nativeStatus, L"NativeBinaryTextImplementationStatus");
+        page.Children().Append(nativeStatus);
+
+        Border card;
+        card.Padding(Thickness{ 18, 16, 18, 18 });
+        card.CornerRadius(CornerRadius{ 8 });
+        card.BorderThickness(Thickness{ 1 });
+        card.BorderBrush(Application::Current().Resources().Lookup(
+            box_value(L"CardStrokeColorDefaultBrush")).as<Media::Brush>());
+        card.Background(Application::Current().Resources().Lookup(
+            box_value(L"CardBackgroundFillColorDefaultBrush")).as<Media::Brush>());
+
+        StackPanel content;
+        content.Spacing(14);
+
+        auto baseLabel = CreateText(
+            winforge::core::LocalizedText{ L"Numeric base", L"數字進位" }.Pick(m_language), 14, true);
+        content.Children().Append(baseLabel);
+
+        m_binaryTextBasePicker = ComboBox();
+        m_binaryTextBasePicker.MinWidth(260);
+        m_binaryTextBasePicker.HorizontalAlignment(HorizontalAlignment::Left);
+        for (auto const& label : std::array<std::wstring, 4>{
+            winforge::core::LocalizedText{ L"Binary (base 2)", L"二進位（2 進）" }.Pick(m_language),
+            winforge::core::LocalizedText{ L"Decimal (base 10)", L"十進位（10 進）" }.Pick(m_language),
+            winforge::core::LocalizedText{ L"Octal (base 8)", L"八進位（8 進）" }.Pick(m_language),
+            winforge::core::LocalizedText{ L"Hex (base 16)", L"十六進位（16 進）" }.Pick(m_language) })
+        {
+            ComboBoxItem item;
+            item.Content(box_value(ToHString(label)));
+            m_binaryTextBasePicker.Items().Append(item);
+        }
+        m_binaryTextBasePicker.SelectedIndex(m_binaryTextBase);
+        AutomationProperties::SetAutomationId(m_binaryTextBasePicker, L"NativeBinaryTextBase");
+        AutomationProperties::SetLabeledBy(m_binaryTextBasePicker, baseLabel);
+        AutomationProperties::SetName(
+            m_binaryTextBasePicker,
+            ToHString(winforge::core::LocalizedText{ L"Numeric base", L"數字進位" }.Pick(m_language)));
+        m_binaryTextBasePicker.SelectionChanged(
+            [this](Windows::Foundation::IInspectable const&, SelectionChangedEventArgs const&)
+            {
+                if (m_binaryTextRendering) return;
+                auto const selected = m_binaryTextBasePicker.SelectedIndex();
+                m_binaryTextBase = selected < 0 ? 0 : selected;
+                AnnounceBinaryTextStatus(winforge::core::LocalizedText{
+                    L"Base changed — choose an action to convert.", L"已轉進位 — 請揀一個動作轉換。" }.Pick(m_language));
+            });
+        content.Children().Append(m_binaryTextBasePicker);
+
+        auto note = CreateText(
+            winforge::core::LocalizedText{
+                L"Codes represent raw UTF-8 bytes (0–255). Binary pads every byte to 8 bits; codes may be separated by spaces, tabs, line breaks, or commas.",
+                L"數字碼代表原始 UTF-8 位元組（0–255）。二進位每個位元組補足 8 個位；各個碼可以用空格、tab、換行或逗號分隔。" }.Pick(m_language),
+            12);
+        note.Opacity(0.78);
+        content.Children().Append(note);
+
+        auto inputLabel = CreateText(
+            winforge::core::LocalizedText{ L"Input", L"輸入" }.Pick(m_language), 14, true);
+        content.Children().Append(inputLabel);
+
+        m_binaryTextInput = TextBox();
+        m_binaryTextInput.Text(ToHString(m_binaryTextInputValue));
+        m_binaryTextInput.AcceptsReturn(true);
+        m_binaryTextInput.TextWrapping(TextWrapping::Wrap);
+        m_binaryTextInput.MinHeight(96);
+        m_binaryTextInput.IsSpellCheckEnabled(false);
+        AutomationProperties::SetAutomationId(m_binaryTextInput, L"NativeBinaryTextInput");
+        AutomationProperties::SetLabeledBy(m_binaryTextInput, inputLabel);
+        AutomationProperties::SetName(
+            m_binaryTextInput,
+            ToHString(winforge::core::LocalizedText{ L"Binary Text input", L"文字轉二進位輸入" }.Pick(m_language)));
+        m_binaryTextInput.TextChanged([this](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
+        {
+            if (m_binaryTextRendering) return;
+            m_binaryTextInputValue = ToWide(sender.as<TextBox>().Text());
+        });
+        content.Children().Append(m_binaryTextInput);
+
+        StackPanel actions;
+        actions.Orientation(Orientation::Horizontal);
+        actions.Spacing(10);
+
+        Button encode;
+        encode.Content(box_value(ToHString(winforge::core::LocalizedText{
+            L"Text → codes", L"文字 → 數字碼" }.Pick(m_language))));
+        encode.Padding(Thickness{ 14, 8, 14, 8 });
+        AutomationProperties::SetAutomationId(encode, L"NativeBinaryTextEncode");
+        AutomationProperties::SetName(encode, ToHString(winforge::core::LocalizedText{
+            L"Encode text to numeric codes", L"將文字編碼成數字碼" }.Pick(m_language)));
+        encode.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            using NumericBase = winforge::core::binarytext::NumericBase;
+            auto const base = m_binaryTextBase == 1 ? NumericBase::Decimal :
+                m_binaryTextBase == 2 ? NumericBase::Octal :
+                m_binaryTextBase == 3 ? NumericBase::Hex : NumericBase::Binary;
+            auto const result = winforge::core::binarytext::Encode(m_binaryTextInputValue, base);
+            if (!result.ok)
+            {
+                m_binaryTextOutputValue.clear();
+                if (m_binaryTextOutput) m_binaryTextOutput.Text(L"");
+                if (m_binaryTextOutput) AutomationProperties::SetHelpText(m_binaryTextOutput, L"");
+                AnnounceBinaryTextStatus(winforge::core::LocalizedText{
+                    L"Could not encode the text.", L"無法編碼呢段文字。" }.Pick(m_language), true);
+                return;
+            }
+            m_binaryTextOutputValue = result.text;
+            if (m_binaryTextOutput) m_binaryTextOutput.Text(ToHString(result.text));
+            if (m_binaryTextOutput) AutomationProperties::SetHelpText(m_binaryTextOutput, ToHString(result.text));
+            AnnounceBinaryTextStatus(winforge::core::LocalizedText{
+                L"Encoded to numeric codes.", L"已編碼成數字碼。" }.Pick(m_language));
+        });
+        actions.Children().Append(encode);
+
+        Button decode;
+        decode.Content(box_value(ToHString(winforge::core::LocalizedText{
+            L"Codes → text", L"數字碼 → 文字" }.Pick(m_language))));
+        decode.Padding(Thickness{ 14, 8, 14, 8 });
+        AutomationProperties::SetAutomationId(decode, L"NativeBinaryTextDecode");
+        AutomationProperties::SetName(decode, ToHString(winforge::core::LocalizedText{
+            L"Decode numeric codes to text", L"將數字碼解碼成文字" }.Pick(m_language)));
+        decode.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            using NumericBase = winforge::core::binarytext::NumericBase;
+            auto const base = m_binaryTextBase == 1 ? NumericBase::Decimal :
+                m_binaryTextBase == 2 ? NumericBase::Octal :
+                m_binaryTextBase == 3 ? NumericBase::Hex : NumericBase::Binary;
+            auto const result = winforge::core::binarytext::Decode(m_binaryTextInputValue, base);
+            if (!result.ok)
+            {
+                m_binaryTextOutputValue.clear();
+                if (m_binaryTextOutput) m_binaryTextOutput.Text(L"");
+                if (m_binaryTextOutput) AutomationProperties::SetHelpText(m_binaryTextOutput, L"");
+                AnnounceBinaryTextStatus(winforge::core::LocalizedText{
+                    L"Some codes are not valid for this base — nothing was decoded.",
+                    L"有啲數字碼喺呢個進位無效 — 冇解碼到。" }.Pick(m_language), true);
+                return;
+            }
+            m_binaryTextOutputValue = result.text;
+            if (m_binaryTextOutput) m_binaryTextOutput.Text(ToHString(result.text));
+            if (m_binaryTextOutput) AutomationProperties::SetHelpText(m_binaryTextOutput, ToHString(result.text));
+            AnnounceBinaryTextStatus(winforge::core::LocalizedText{
+                L"Decoded back to text.", L"已解碼返做文字。" }.Pick(m_language));
+        });
+        actions.Children().Append(decode);
+
+        Button moveOutput;
+        moveOutput.Content(box_value(ToHString(winforge::core::LocalizedText{
+            L"Move output to input", L"將輸出搬去輸入" }.Pick(m_language))));
+        moveOutput.Padding(Thickness{ 14, 8, 14, 8 });
+        AutomationProperties::SetAutomationId(moveOutput, L"NativeBinaryTextSwap");
+        AutomationProperties::SetName(moveOutput, ToHString(winforge::core::LocalizedText{
+            L"Move output to input", L"將輸出搬去輸入" }.Pick(m_language)));
+        moveOutput.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            m_binaryTextRendering = true;
+            m_binaryTextInputValue = m_binaryTextOutputValue;
+            m_binaryTextOutputValue.clear();
+            if (m_binaryTextInput) m_binaryTextInput.Text(ToHString(m_binaryTextInputValue));
+            if (m_binaryTextOutput) m_binaryTextOutput.Text(L"");
+            if (m_binaryTextOutput) AutomationProperties::SetHelpText(m_binaryTextOutput, L"");
+            m_binaryTextRendering = false;
+            AnnounceBinaryTextStatus(winforge::core::LocalizedText{
+                L"Output moved to input.", L"已將輸出搬去輸入。" }.Pick(m_language));
+        });
+        actions.Children().Append(moveOutput);
+
+        Button copy;
+        copy.Content(box_value(ToHString(winforge::core::LocalizedText{
+            L"Copy output", L"複製輸出" }.Pick(m_language))));
+        copy.Padding(Thickness{ 14, 8, 14, 8 });
+        AutomationProperties::SetAutomationId(copy, L"NativeBinaryTextCopy");
+        AutomationProperties::SetName(copy, ToHString(winforge::core::LocalizedText{
+            L"Copy output", L"複製輸出" }.Pick(m_language)));
+        copy.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            if (m_binaryTextOutputValue.empty())
+            {
+                AnnounceBinaryTextStatus(winforge::core::LocalizedText{
+                    L"Nothing to copy.", L"冇嘢可以複製。" }.Pick(m_language), true);
+                return;
+            }
+            try
+            {
+                Windows::ApplicationModel::DataTransfer::DataPackage package;
+                package.RequestedOperation(Windows::ApplicationModel::DataTransfer::DataPackageOperation::Copy);
+                package.SetText(ToHString(m_binaryTextOutputValue));
+                Windows::ApplicationModel::DataTransfer::Clipboard::SetContent(package);
+                AnnounceBinaryTextStatus(winforge::core::LocalizedText{
+                    L"Output copied to clipboard.", L"已將輸出複製去剪貼簿。" }.Pick(m_language));
+            }
+            catch (...)
+            {
+                AnnounceBinaryTextStatus(winforge::core::LocalizedText{
+                    L"Could not access the clipboard.", L"無法存取剪貼簿。" }.Pick(m_language), true);
+            }
+        });
+        actions.Children().Append(copy);
+        content.Children().Append(actions);
+
+        auto outputLabel = CreateText(
+            winforge::core::LocalizedText{ L"Output", L"輸出" }.Pick(m_language), 14, true);
+        content.Children().Append(outputLabel);
+
+        m_binaryTextOutput = TextBox();
+        m_binaryTextOutput.Text(ToHString(m_binaryTextOutputValue));
+        m_binaryTextOutput.AcceptsReturn(true);
+        m_binaryTextOutput.TextWrapping(TextWrapping::Wrap);
+        m_binaryTextOutput.MinHeight(96);
+        m_binaryTextOutput.IsReadOnly(true);
+        m_binaryTextOutput.IsSpellCheckEnabled(false);
+        AutomationProperties::SetAutomationId(m_binaryTextOutput, L"NativeBinaryTextOutput");
+        AutomationProperties::SetLabeledBy(m_binaryTextOutput, outputLabel);
+        AutomationProperties::SetName(
+            m_binaryTextOutput,
+            ToHString(winforge::core::LocalizedText{ L"Binary Text output", L"文字轉二進位輸出" }.Pick(m_language)));
+        AutomationProperties::SetHelpText(m_binaryTextOutput, ToHString(m_binaryTextOutputValue));
+        content.Children().Append(m_binaryTextOutput);
+
+        m_binaryTextStatus = CreateText(L"", 12.5);
+        m_binaryTextStatus.Opacity(0.82);
+        AutomationProperties::SetAutomationId(m_binaryTextStatus, L"NativeBinaryTextStatus");
+        AutomationProperties::SetLiveSetting(
+            m_binaryTextStatus,
+            Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite);
+        content.Children().Append(m_binaryTextStatus);
+
+        card.Child(content);
+        page.Children().Append(card);
+        ShowPage(page);
+
+        m_binaryTextRendering = false;
+        AnnounceBinaryTextStatus(winforge::core::LocalizedText{
+            L"Ready.", L"準備好。" }.Pick(m_language));
+    }
+
+    void MainWindow::AnnounceBinaryTextStatus(std::wstring_view message, bool warning)
+    {
+        if (!m_binaryTextStatus) return;
+
+        m_binaryTextStatus.Text(ToHString(message));
+        m_binaryTextStatus.Foreground(Application::Current().Resources().Lookup(
+            box_value(warning ? L"SystemFillColorCautionBrush" : L"TextFillColorSecondaryBrush")).as<Media::Brush>());
+        AutomationProperties::SetName(m_binaryTextStatus, ToHString(message));
+        AutomationProperties::SetLiveSetting(
+            m_binaryTextStatus,
+            Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite);
+
+        try
+        {
+            auto peer = Microsoft::UI::Xaml::Automation::Peers::FrameworkElementAutomationPeer::FromElement(
+                m_binaryTextStatus);
+            if (!peer)
+            {
+                peer = Microsoft::UI::Xaml::Automation::Peers::FrameworkElementAutomationPeer::CreatePeerForElement(
+                    m_binaryTextStatus);
+            }
+            if (peer)
+            {
+                peer.RaiseAutomationEvent(
+                    Microsoft::UI::Xaml::Automation::Peers::AutomationEvents::LiveRegionChanged);
+            }
+        }
+        catch (...)
+        {
+            // Accessibility notification failure must not break local conversion.
         }
     }
 
