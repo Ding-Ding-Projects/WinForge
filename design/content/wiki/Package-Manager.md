@@ -20,7 +20,7 @@ C++20／C++/WinRT 遷移會如實標示為**進行中**，唔係完整 UniGetUI 
 | **Updates · 可更新** | Read-only enumeration; per-row and Update All mutations remain disabled. · 只讀列出更新；逐列同全部更新操作保持停用。 |
 | **Installed · 已安裝** | Read-only enumeration; uninstall remains disabled. · 只讀列出已安裝套件；解除安裝保持停用。 |
 | **Sources · 來源** | Command probe only: read-only source commands run, but all raw configuration/diagnostics are withheld until manager-specific secret redaction is proven; no source rows are shown and add/remove remains disabled. · 只限指令探測：會執行只讀來源指令，但逐管理器機密遮罩未證實之前會隱藏全部原始設定／診斷；唔會顯示來源資料列，新增／移除保持停用。 |
-| **Bundles · 套件清單** | Gated placeholder. · 鎖住嘅 placeholder。 |
+| **Bundles · 套件清單** | Native bundle snapshot import/export preview is now implemented; full interoperability and parity are still gated. · 原生清單快照匯入／匯出預覽而家已實作；完整互通同對等仍然鎖住。 |
 | **Ignored · 已忽略** | Gated placeholder. · 鎖住嘅 placeholder。 |
 | **Setup · 設定引擎** | Non-destructive availability probes only; bootstrap remains gated. · 只限非破壞性可用性探測；bootstrap 仍然鎖住。 |
 | **Settings · 設定** | Gated placeholder. · 鎖住嘅 placeholder。 |
@@ -43,7 +43,7 @@ Remaining UniGetUI-informed work includes the capability/maintenance/log model; 
 
 ## Deep links and provenance · 深層連結同來源依據
 
-`--page package-discover`, `--page package-updates`, and `--page package-installed` resolve to `module.packages#discover`, `module.packages#updates`, and `module.packages#installed`. Routing is verified, but route availability alone is not parity evidence. · 三條 `--page` 指令會解析去對應 `module.packages` deep link；導覽已驗證，但淨係有 route 唔代表功能對等。
+`--page package-discover`, `--page package-updates`, `--page package-installed`, and `--page module.packages#bundles` resolve to `module.packages#discover`, `module.packages#updates`, `module.packages#installed`, and `module.packages#bundles`. Routing is verified, but route availability alone is not parity evidence. · 三條 `--page` 指令同 `--page module.packages#bundles` 會解析去對應 `module.packages` deep link；導覽已驗證，但淨係有 route 唔代表功能對等。
 
 The complete 1,002-file tracked [Devolutions/UniGetUI](https://github.com/Devolutions/UniGetUI) tree is vendored at `ThirdParty/UniGetUI`, pinned to upstream `main` commit `21116375c8299d1db38a3c3b4c2eb7e18bc97c4e` (2026-07-10) under the MIT license. `ThirdParty/**` is excluded from WinForge build and publish inputs. The snapshot is exact provenance and a behavior inventory only—not an embedded runtime, copied identity, or parity claim.
 

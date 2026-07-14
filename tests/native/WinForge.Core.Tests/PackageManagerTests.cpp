@@ -100,7 +100,9 @@ NativeTestCounts RunPackageManagerTests()
     expect(views.size() == 9 && views[8].view == PackageView::Operations, "all nine package views are registered");
     expect(PackageViewFromFragment(L" UPDATES ") == PackageView::Updates, "supported fragment parsing is case insensitive");
     expect(PackageNavigationKey(PackageView::Installed) == L"module.packages#installed", "deep link builds managed navigation key");
-    expect(!PackageViewFromFragment(L"operations") && !PackageViewFragment(PackageView::Operations), "unsupported managed fragment stays rejected");
+    expect(PackageViewFromFragment(L"bundles") == PackageView::Bundles
+        && PackageViewFromFragment(L"operations") == PackageView::Operations
+        && PackageViewFragment(PackageView::Operations) == L"operations", "extended package view fragments stay round-trippable");
 
     std::array<std::pair<std::wstring_view, std::wstring_view>, 11> const valid_references{
         std::pair{ L"winget", L"Microsoft.PowerToys" },

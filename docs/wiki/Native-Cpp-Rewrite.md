@@ -23,7 +23,7 @@ The native shell implements bilingual routing/localization, Dashboard, About, Se
 
 原生 shell 已實作雙語 routing／本地化、Dashboard、About、Settings 入口、所有 app 搜尋同即時篩選、搜尋、轉語言，同全部固定／動態路線格式。未移植模組路線會顯示如實 pending 頁。
 
-Package Manager is now an honest **in-progress** native C++ port, not a pending shell and not parity. It exposes nine views (Discover, Updates, Installed, Bundles, Sources, Ignored, Setup, Settings, and Operations), filters for 11 Windows managers, and read-only result queries for Discover, Updates, and Installed. Sources is only a read-only command probe: raw configuration and diagnostics are deliberately withheld until manager-specific secret redaction is proven. Its runtime hardens argument-vector handling, executable/`PATH` resolution, HTTP and captured-output bounds, process-token verification, explicit state, fail-closed integrity checks, and accessibility/UI Automation contracts.
+Package Manager is now an honest **in-progress** native C++ port, not a pending shell and not parity. It exposes nine views (Discover, Updates, Installed, Bundles, Sources, Ignored, Setup, Settings, and Operations), filters for 11 Windows managers, and read-only result queries for Discover, Updates, and Installed. Bundles now has a native snapshot import/export preview in the C++ shell, but full interoperability remains gated. Sources is only a read-only command probe: raw configuration and diagnostics are deliberately withheld until manager-specific secret redaction is proven. Its runtime hardens argument-vector handling, executable/`PATH` resolution, HTTP and captured-output bounds, process-token verification, explicit state, fail-closed integrity checks, and accessibility/UI Automation contracts.
 
 套件管理而家係如實標示為**進行中**嘅原生 C++ 移植，唔再只係 pending shell，亦未達到對等。佢有九個 view（Discover、Updates、Installed、Bundles、Sources、Ignored、Setup、Settings 同 Operations）、11 個 Windows manager filter，同 Discover、Updates、Installed 嘅原生只讀結果查詢。Sources 只係只讀指令探測：逐管理器機密遮罩未證實之前會刻意隱藏原始設定同診斷。runtime 已加固 argument vector、executable／`PATH` 解析、HTTP 同擷取輸出上限、process token 驗證、明確狀態、fail-closed integrity 檢查，同 accessibility／UI Automation contract。
 
@@ -35,7 +35,7 @@ The native Operations tab now persists a recent local history snapshot and lets 
 
 原生 Operations tab 而家會保存最近本機歷史快照，亦可以清除；但完整排隊協調器、重試模型同完成／即時修改對等仍然鎖住。
 
-Mutation, Bundles, Ignored, Setup, Settings, the operation queue, .NET update resolution, and PyPI metadata hydration remain incomplete. The complete 1,002-file UniGetUI `main` snapshot at `21116375c8299d1db38a3c3b4c2eb7e18bc97c4e` (2026-07-10, MIT) is exact provenance and a behavior reference only; it is excluded from runtime and is not parity evidence.
+Mutation, Ignored, Setup, Settings, the operation queue, .NET update resolution, and PyPI metadata hydration remain incomplete. Bundles has a native snapshot import/export preview, but full bundle interoperability and parity remain incomplete. The complete 1,002-file UniGetUI `main` snapshot at `21116375c8299d1db38a3c3b4c2eb7e18bc97c4e` (2026-07-10, MIT) is exact provenance and a behavior reference only; it is excluded from runtime and is not parity evidence.
 
 套件變更、Bundles、Ignored、Setup、Settings、operation queue、.NET 更新解析同 PyPI metadata hydration 仍然未完成。完整 1,002 檔 UniGetUI `main` snapshot 固定喺 `21116375c8299d1db38a3c3b4c2eb7e18bc97c4e`（2026-07-10，MIT），只係精確來源證明同功能參考；runtime 會排除佢，亦唔係對等證據。
 
@@ -59,7 +59,7 @@ Normal-integrity live external-query evidence is **blocked**: even an interactiv
 
 正常 integrity 即時外部查詢證據仍然**受阻**：就算互動式排程工作設為 `RunLevel=Limited`，同一個原生 executable 開出嚟仍然係提權狀態。獨立 token 驗證以 `candidate smoke token is still elevated` 停止，harness 喺執行外部查詢之前已經 fail closed。
 
-Fresh Dashboard, All Apps, About, Package Manager (`module.packages#updates`), Check Digit (`checkdigit`), and Text to Binary (`binarytext`) screenshot attempts remain `capture-blocked`. Case Converter has a successful fresh capture at `docs/screenshot-caseconvert.png`. The exact driver blocker for the remaining surfaces is: `CopyFromScreen is unavailable and the PrintWindow fallback produced a blank or near-uniform WinUI client frame; graphics capture is unavailable in this desktop session.` The output was rejected; no stale or synthetic image was substituted, and UI Automation evidence is not a visual pass.
+Fresh Dashboard, All Apps, About, Package Manager (`module.packages#updates` and `module.packages#bundles`), Check Digit (`checkdigit`), and Text to Binary (`binarytext`) screenshot attempts remain `capture-blocked`. Case Converter has a successful fresh capture at `docs/screenshot-caseconvert.png`. The exact driver blocker for the remaining surfaces is: `CopyFromScreen is unavailable and the PrintWindow fallback produced a blank or near-uniform WinUI client frame; graphics capture is unavailable in this desktop session.` The output was rejected; no stale or synthetic image was substituted, and UI Automation evidence is not a visual pass.
 
 最新 Dashboard、所有 app、About、套件管理（`module.packages#updates`）、檢查碼（`checkdigit`）同文字轉二進位（`binarytext`）截圖嘗試仍然係 `capture-blocked`。driver 嘅確實阻礙係：`CopyFromScreen is unavailable and the PrintWindow fallback produced a blank or near-uniform WinUI client frame; graphics capture is unavailable in this desktop session.` 呢個輸出已被拒絕；冇用舊圖或合成圖頂替，而 UI Automation 證據唔等於 visual pass。
 

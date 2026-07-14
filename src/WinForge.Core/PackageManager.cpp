@@ -467,6 +467,12 @@ namespace winforge::core::packages
             if (value == L"discover") return PackageView::Discover;
             if (value == L"updates") return PackageView::Updates;
             if (value == L"installed") return PackageView::Installed;
+            if (value == L"bundle" || value == L"bundles") return PackageView::Bundles;
+            if (value == L"source" || value == L"sources") return PackageView::Sources;
+            if (value == L"ignored") return PackageView::Ignored;
+            if (value == L"setup") return PackageView::Setup;
+            if (value == L"settings") return PackageView::Settings;
+            if (value == L"operations") return PackageView::Operations;
             return std::nullopt;
         }
         catch (...)
@@ -482,6 +488,12 @@ namespace winforge::core::packages
         case PackageView::Discover: return L"discover";
         case PackageView::Updates: return L"updates";
         case PackageView::Installed: return L"installed";
+        case PackageView::Bundles: return L"bundles";
+        case PackageView::Sources: return L"sources";
+        case PackageView::Ignored: return L"ignored";
+        case PackageView::Setup: return L"setup";
+        case PackageView::Settings: return L"settings";
+        case PackageView::Operations: return L"operations";
         default: return std::nullopt;
         }
     }

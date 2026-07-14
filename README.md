@@ -231,18 +231,21 @@ generation cases.
 專注 crypto／clipboard regression 會檢查相同、替換、null、空白文字同 stale-timer
 generation 情況。
 
-**EN —** In the shipping managed Package Manager, a selected package or bundle source is preserved through the command preview, multi-select identity, shared queue and runner. A single policy turns only validated manager-specific sources into real flags or trusted registry endpoints; an empty source keeps the manager default, no-selector uninstall/update paths retain safe source metadata, and local, unknown or unsafe source text is rejected before it reaches a command. This production behavior has not yet cut over to the read-only C++ batch described above.
+**EN —** In the shipping managed Package Manager, a selected package or bundle source is preserved through the command preview, multi-select identity, shared queue and runner. A single policy turns only validated manager-specific sources into real flags or trusted registry endpoints; an empty source keeps the manager default, no-selector uninstall/update paths retain safe source metadata, and local, unknown or unsafe source text is rejected before it reaches a command. The native C++ batch now also exposes a real bundle snapshot import/export preview, but it still is not a full UniGetUI clone or parity cutover.
 
-**粵語 —** 發佈中受控套件管理器會將所揀套件或者清單來源一路保留到指令預覽、多選身份、共用佇列同 runner。單一政策只會將已驗證、管理器專用嘅來源變成真實旗標或者可信 registry endpoint；空白來源會保留管理器預設，冇來源選擇器嘅解除安裝／更新路徑會保留安全來源中繼資料，而本機、未知或者唔安全來源文字未到指令之前已經拒絕。呢套正式版行為仲未切換到上面所講嘅只讀 C++ 批次。
+**粵語 —** 發佈中受控套件管理器會將所揀套件或者清單來源一路保留到指令預覽、多選身份、共用佇列同 runner。單一政策只會將已驗證、管理器專用嘅來源變成真實旗標或者可信 registry endpoint；空白來源會保留管理器預設，冇來源選擇器嘅解除安裝／更新路徑會保留安全來源中繼資料，而本機、未知或者唔安全來源文字未到指令之前已經拒絕。原生 C++ 批次而家亦有真正嘅清單快照匯入／匯出預覽，但仲未係完整 UniGetUI 複製品或者對等切換。
 
 **EN —** The latest checkpoints fixed Base Converter and CSV ⇄ JSON startup
 faults exposed by the route sweep; fresh self-contained `--page baseconvert`
-and `--page csvjson` launches now pass. See the
+and `--page csvjson` launches now pass. The native Package Manager can also be
+deep-linked directly to the bundle snapshot view with
+`--page module.packages#bundles`. See the
 [smoke campaign ledger](docs/wiki/Smoke-Test-Campaign.md) for the exact build,
 launch, retry, and screenshot-blocker evidence.
 
 **粵語 —** 最新 checkpoint 修好 route sweep 搵到嘅進位轉換同 CSV ⇄ JSON 啟動問題；
 新嘅 self-contained `--page baseconvert` 同 `--page csvjson` 而家可以成功開到。
+原生套件管理而家亦可以用 `--page module.packages#bundles` 直接 deep-link 去清單快照視圖。
 確實 build、launch、retry 同截圖阻礙證據請睇
 [冒煙測試清單](docs/wiki/Smoke-Test-Campaign.md)。
 
