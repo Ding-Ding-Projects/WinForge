@@ -5,6 +5,7 @@
 #include "../WinForge.Core/CaseConvert.h"
 #include "../WinForge.Core/CheckDigit.h"
 #include "../WinForge.Core/CommandLine.h"
+#include "../WinForge.Core/GuidGen.h"
 #include "../WinForge.Core/ModuleRecord.h"
 #include "../WinForge.Core/PackageRuntime.h"
 #include "../WinForge.Core/RouteIndex.h"
@@ -99,6 +100,18 @@ namespace winrt::WinForge::implementation
         Microsoft::UI::Xaml::Controls::TextBox m_caseConvertInput{ nullptr };
         Microsoft::UI::Xaml::Controls::StackPanel m_caseConvertRows{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_caseConvertStatus{ nullptr };
+        Microsoft::UI::Xaml::Controls::ComboBox m_guidGenFormatPicker{ nullptr };
+        Microsoft::UI::Xaml::Controls::ToggleSwitch m_guidGenUpperSwitch{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_guidGenGuidBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::NumberBox m_guidGenCountBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_guidGenBulkBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_guidGenUlidBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::NumberBox m_guidGenNanoLengthBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_guidGenNanoBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_guidGenInspectInput{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_guidGenInspectHexBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_guidGenInspectMeta{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_guidGenStatus{ nullptr };
         std::unordered_map<std::wstring, bool> m_packageManagersSelected;
         std::unordered_map<std::wstring, bool> m_packageManagersAvailable;
         std::unordered_map<std::wstring, std::wstring> m_packageProbeDiagnostics;
@@ -136,6 +149,16 @@ namespace winrt::WinForge::implementation
         bool m_binaryTextRendering{ false };
         std::wstring m_caseConvertInputValue{};
         bool m_caseConvertRendering{ false };
+        int32_t m_guidGenFormatIndex{ 0 };
+        bool m_guidGenUpper{ false };
+        int32_t m_guidGenBulkCount{ 10 };
+        int32_t m_guidGenNanoLength{ 21 };
+        std::wstring m_guidGenGuidValue{};
+        std::wstring m_guidGenBulkValue{};
+        std::wstring m_guidGenUlidValue{};
+        std::wstring m_guidGenNanoValue{};
+        std::wstring m_guidGenInspectValue{};
+        bool m_guidGenRendering{ false };
         std::wstring m_currentRoute{ L"dashboard" };
         std::wstring m_currentArgument{};
 
@@ -230,6 +253,13 @@ namespace winrt::WinForge::implementation
         void RenderCaseConvert();
         void RefreshCaseConvert();
         void AnnounceCaseConvertStatus(std::wstring_view message, bool warning = false);
+        void RenderGuidGen();
+        void GenerateGuidValue();
+        void GenerateBulkGuidValues();
+        void GenerateUlidValue();
+        void GenerateNanoIdValue();
+        void RefreshGuidInspector();
+        void AnnounceGuidGenStatus(std::wstring_view message, bool warning = false);
         void RenderSearch(std::wstring_view query);
         void RenderAbout();
         void RenderPending(winforge::core::ModuleRecord const& module);

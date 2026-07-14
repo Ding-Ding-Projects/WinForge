@@ -168,6 +168,51 @@ function Wait-ForElementValue {
     throw "Expected '$AutomationId' value '$ExpectedValue', got '$actual'."
 }
 
+function Wait-ForElementValueWhere {
+    param(
+        [Parameter(Mandatory)]$Root,
+        [Parameter(Mandatory)][string]$AutomationId,
+        [Parameter(Mandatory)][string]$Description,
+        [Parameter(Mandatory)][scriptblock]$Predicate
+    )
+
+    $deadline = [DateTime]::UtcNow.AddMilliseconds($TimeoutMs)
+    $element = $null
+    do {
+        $element = Find-ByAutomationId -Root $Root -AutomationId $AutomationId
+        if ($element) {
+            $value = [System.Windows.Automation.ValuePattern]$element.GetCurrentPattern(
+                [System.Windows.Automation.ValuePattern]::Pattern)
+            if (& $Predicate $value.Current.Value) {
+                return $element
+            }
+        }
+        Start-Sleep -Milliseconds 100
+    } while ([DateTime]::UtcNow -lt $deadline)
+
+    $actual = if ($element) {
+        ([System.Windows.Automation.ValuePattern]$element.GetCurrentPattern(
+            [System.Windows.Automation.ValuePattern]::Pattern)).Current.Value
+    }
+    else { '(missing)' }
+    throw "Expected '$AutomationId' value matching '$Description', got '$actual'."
+}
+
+function Set-ElementValueAndWait {
+    param(
+        [Parameter(Mandatory)]$Root,
+        [Parameter(Mandatory)][string]$AutomationId,
+        [Parameter(Mandatory)][AllowEmptyString()][string]$Value
+    )
+
+    $element = Wait-ForElement -Root $Root -AutomationId $AutomationId
+    $pattern = [System.Windows.Automation.ValuePattern]$element.GetCurrentPattern(
+        [System.Windows.Automation.ValuePattern]::Pattern)
+    $pattern.SetValue($Value)
+    Wait-ForElementValue -Root $Root -AutomationId $AutomationId -ExpectedValue $Value | Out-Null
+    return $element
+}
+
 function Invoke-ElementByAutomationId {
     param(
         [Parameter(Mandatory)]$Root,
@@ -393,14 +438,18 @@ Invoke-OwnedRoute -Route 'binarytext' -ExpectedTitle 'Text to Binary' -Inspect {
     $encode = Wait-ForElement -Root $root -AutomationId 'NativeBinaryTextEncode'
     $encodeInvoke = [System.Windows.Automation.InvokePattern]$encode.GetCurrentPattern(
         [System.Windows.Automation.InvokePattern]::Pattern)
-    $inputValue.SetValue('Hi')
+    $input = Set-ElementValueAndWait -Root $root -AutomationId 'NativeBinaryTextInput' -Value 'Hi'
+    $inputValue = [System.Windows.Automation.ValuePattern]$input.GetCurrentPattern(
+        [System.Windows.Automation.ValuePattern]::Pattern)
     $encodeInvoke.Invoke()
     Wait-ForElementValue -Root $root -AutomationId 'NativeBinaryTextOutput' -ExpectedValue '01001000 01101001' | Out-Null
     Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeBinaryTextStatus' -Prefix 'Encoded to numeric codes' | Out-Null
     Assert-True -Condition $true -Name 'Binary Text encodes padded binary bytes through the live native UI'
 
     Select-ComboIndex -Combo $base -Index 3
-    $inputValue.SetValue('Hi')
+    $input = Set-ElementValueAndWait -Root $root -AutomationId 'NativeBinaryTextInput' -Value 'Hi'
+    $inputValue = [System.Windows.Automation.ValuePattern]$input.GetCurrentPattern(
+        [System.Windows.Automation.ValuePattern]::Pattern)
     $encodeInvoke.Invoke()
     Wait-ForElementValue -Root $root -AutomationId 'NativeBinaryTextOutput' -ExpectedValue '48 69' | Out-Null
     Assert-True -Condition $true -Name 'Binary Text switches to hexadecimal byte encoding through the live native UI'
@@ -418,7 +467,9 @@ Invoke-OwnedRoute -Route 'binarytext' -ExpectedTitle 'Text to Binary' -Inspect {
     $decode = Wait-ForElement -Root $root -AutomationId 'NativeBinaryTextDecode'
     $decodeInvoke = [System.Windows.Automation.InvokePattern]$decode.GetCurrentPattern(
         [System.Windows.Automation.InvokePattern]::Pattern)
-    $inputValue.SetValue('0x48 0X69')
+    $input = Set-ElementValueAndWait -Root $root -AutomationId 'NativeBinaryTextInput' -Value '0x48 0X69'
+    $inputValue = [System.Windows.Automation.ValuePattern]$input.GetCurrentPattern(
+        [System.Windows.Automation.ValuePattern]::Pattern)
     $decodeInvoke.Invoke()
     Wait-ForElementValue -Root $root -AutomationId 'NativeBinaryTextOutput' -ExpectedValue 'Hi' | Out-Null
     Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeBinaryTextStatus' -Prefix 'Decoded back to text' | Out-Null
@@ -430,13 +481,17 @@ Invoke-OwnedRoute -Route 'binarytext' -ExpectedTitle 'Text to Binary' -Inspect {
     Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeBinaryTextStatus' -Prefix 'Output copied to clipboard' | Out-Null
     Assert-True -Condition $true -Name 'Binary Text copies output only after the explicit live native action'
 
-    $inputValue.SetValue('GG')
+    $input = Set-ElementValueAndWait -Root $root -AutomationId 'NativeBinaryTextInput' -Value 'GG'
+    $inputValue = [System.Windows.Automation.ValuePattern]$input.GetCurrentPattern(
+        [System.Windows.Automation.ValuePattern]::Pattern)
     $decodeInvoke.Invoke()
     Wait-ForElementValue -Root $root -AutomationId 'NativeBinaryTextOutput' -ExpectedValue '' | Out-Null
     Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeBinaryTextStatus' -Prefix 'Some codes are not valid' | Out-Null
     Assert-True -Condition $true -Name 'Binary Text clears stale output after malformed codes'
 
-    $inputValue.SetValue('0x48 0X69')
+    $input = Set-ElementValueAndWait -Root $root -AutomationId 'NativeBinaryTextInput' -Value '0x48 0X69'
+    $inputValue = [System.Windows.Automation.ValuePattern]$input.GetCurrentPattern(
+        [System.Windows.Automation.ValuePattern]::Pattern)
     $decodeInvoke.Invoke()
     Wait-ForElementValue -Root $root -AutomationId 'NativeBinaryTextOutput' -ExpectedValue 'Hi' | Out-Null
     $language = Wait-ForElement -Root $root -AutomationId 'NativeLanguagePicker'
@@ -482,9 +537,9 @@ Invoke-OwnedRoute -Route 'caseconvert' -ExpectedTitle 'Case Converter' -Inspect 
     $input = Wait-ForElement -Root $root -AutomationId 'NativeCaseConvertInput'
     Assert-True -Condition ($input.Current.Name.StartsWith('Input text', [StringComparison]::Ordinal)) `
         -Name 'Case Converter input has a localized accessible name'
+    $input = Set-ElementValueAndWait -Root $root -AutomationId 'NativeCaseConvertInput' -Value 'helloWorld42API'
     $inputValue = [System.Windows.Automation.ValuePattern]$input.GetCurrentPattern(
         [System.Windows.Automation.ValuePattern]::Pattern)
-    $inputValue.SetValue('helloWorld42API')
 
     Wait-ForElementValue -Root $root -AutomationId 'NativeCaseConvertOutputCamel' -ExpectedValue 'helloWorld42Api' | Out-Null
     Wait-ForElementValue -Root $root -AutomationId 'NativeCaseConvertOutputPascal' -ExpectedValue 'HelloWorld42Api' | Out-Null
@@ -503,13 +558,15 @@ Invoke-OwnedRoute -Route 'caseconvert' -ExpectedTitle 'Case Converter' -Inspect 
     Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCaseConvertStatus' -Prefix 'Output copied to clipboard' | Out-Null
     Assert-True -Condition $true -Name 'Case Converter copies a populated row through the live native UI'
 
-    $inputValue.SetValue('')
+    $input = Set-ElementValueAndWait -Root $root -AutomationId 'NativeCaseConvertInput' -Value ''
+    $inputValue = [System.Windows.Automation.ValuePattern]$input.GetCurrentPattern(
+        [System.Windows.Automation.ValuePattern]::Pattern)
     Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeCaseConvertCopyCamel'
     Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCaseConvertStatus' -Prefix 'Nothing to copy' | Out-Null
     Wait-ForElementValue -Root $root -AutomationId 'NativeCaseConvertOutputCamel' -ExpectedValue '' | Out-Null
     Assert-True -Condition $true -Name 'Case Converter clears stale values and copies empty rows explicitly'
 
-    $inputValue.SetValue('helloWorld42API')
+    Set-ElementValueAndWait -Root $root -AutomationId 'NativeCaseConvertInput' -Value 'helloWorld42API' | Out-Null
     $language = Wait-ForElement -Root $root -AutomationId 'NativeLanguagePicker'
     Select-ComboItem -Combo $language -Name 'English'
     Wait-ForPageTitle -Root $root -Prefix 'Case Converter' | Out-Null
@@ -519,6 +576,117 @@ Invoke-OwnedRoute -Route 'caseconvert' -ExpectedTitle 'Case Converter' -Inspect 
 
 foreach ($alias in @('caseconvert', 'module.caseconvert')) {
     Invoke-OwnedRoute -Route $alias -ExpectedTitle 'Case Converter'
+}
+
+Invoke-OwnedRoute -Route 'guidgen' -ExpectedTitle 'GUID & ID Generator' -Inspect {
+    param($root, $title)
+
+    foreach ($id in @(
+        'NativeGuidGenImplementationStatus',
+        'NativeGuidGenFormatPicker',
+        'NativeGuidGenUpperSwitch',
+        'NativeGuidGenGuidOutput',
+        'NativeGuidGenGenerateGuid',
+        'NativeGuidGenCopyGuid',
+        'NativeGuidGenBulkCount',
+        'NativeGuidGenGenerateBulk',
+        'NativeGuidGenBulkOutput',
+        'NativeGuidGenUlidOutput',
+        'NativeGuidGenGenerateUlid',
+        'NativeGuidGenNanoLength',
+        'NativeGuidGenNanoOutput',
+        'NativeGuidGenGenerateNano',
+        'NativeGuidGenInspectInput',
+        'NativeGuidGenInspectHex',
+        'NativeGuidGenInspectMeta',
+        'NativeGuidGenStatus'
+    )) {
+        Wait-ForElement -Root $root -AutomationId $id | Out-Null
+    }
+    Assert-True -Condition $true -Name 'GUID Generator exposes its native controls and accessibility contract'
+
+    $format = Wait-ForElement -Root $root -AutomationId 'NativeGuidGenFormatPicker'
+    $upper = Wait-ForElement -Root $root -AutomationId 'NativeGuidGenUpperSwitch'
+    $guid = Wait-ForElement -Root $root -AutomationId 'NativeGuidGenGuidOutput'
+    Assert-True -Condition ($format.Current.Name.StartsWith('GUID format', [StringComparison]::Ordinal)) `
+        -Name 'GUID Generator format picker has a localized accessible name'
+    Assert-True -Condition ($upper.Current.Name.StartsWith('Uppercase GUID output', [StringComparison]::Ordinal)) `
+        -Name 'GUID Generator uppercase switch has a localized accessible name'
+
+    $guidValue = [System.Windows.Automation.ValuePattern]$guid.GetCurrentPattern(
+        [System.Windows.Automation.ValuePattern]::Pattern)
+    Assert-True -Condition ($guidValue.Current.Value -match '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$') `
+        -Name 'GUID Generator creates an initial GUID through the live native UI'
+
+    Select-ComboIndex -Combo $format -Index 1
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeGuidGenGenerateGuid'
+    $guid = Wait-ForElement -Root $root -AutomationId 'NativeGuidGenGuidOutput'
+    $guidValue = [System.Windows.Automation.ValuePattern]$guid.GetCurrentPattern(
+        [System.Windows.Automation.ValuePattern]::Pattern)
+    Assert-True -Condition ($guidValue.Current.Value -match '^[0-9a-f]{32}$') `
+        -Name 'GUID Generator switches to N format through the live native UI'
+
+    $toggle = [System.Windows.Automation.TogglePattern]$upper.GetCurrentPattern(
+        [System.Windows.Automation.TogglePattern]::Pattern)
+    $toggle.Toggle()
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeGuidGenGenerateGuid'
+    $guid = Wait-ForElement -Root $root -AutomationId 'NativeGuidGenGuidOutput'
+    $guidValue = [System.Windows.Automation.ValuePattern]$guid.GetCurrentPattern(
+        [System.Windows.Automation.ValuePattern]::Pattern)
+    Assert-True -Condition ($guidValue.Current.Value -match '^[0-9A-F]{32}$') `
+        -Name 'GUID Generator uppercases generated GUIDs through the live native UI'
+
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeGuidGenGenerateBulk'
+    Wait-ForElementValueWhere -Root $root -AutomationId 'NativeGuidGenBulkOutput' `
+        -Description 'ten uppercase N-format GUID lines' `
+        -Predicate {
+            param($value)
+            return ([regex]::Matches($value, '(^|[\r\n])[0-9A-F]{32}(?=($|[\r\n]))').Count -eq 10)
+        } | Out-Null
+    Assert-True -Condition $true `
+        -Name 'GUID Generator bulk-generates the default count through the live native UI'
+
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeGuidGenGenerateUlid'
+    $ulid = Wait-ForElement -Root $root -AutomationId 'NativeGuidGenUlidOutput'
+    $ulidValue = [System.Windows.Automation.ValuePattern]$ulid.GetCurrentPattern(
+        [System.Windows.Automation.ValuePattern]::Pattern)
+    Assert-True -Condition ($ulidValue.Current.Value -match '^[0-9A-HJKMNP-TV-Z]{26}$') `
+        -Name 'GUID Generator creates a ULID through the live native UI'
+
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeGuidGenGenerateNano'
+    $nano = Wait-ForElement -Root $root -AutomationId 'NativeGuidGenNanoOutput'
+    $nanoValue = [System.Windows.Automation.ValuePattern]$nano.GetCurrentPattern(
+        [System.Windows.Automation.ValuePattern]::Pattern)
+    Assert-True -Condition ($nanoValue.Current.Value -match '^[0-9A-Za-z_-]{21}$') `
+        -Name 'GUID Generator creates a nano-ID through the live native UI'
+
+    $inspect = Wait-ForElement -Root $root -AutomationId 'NativeGuidGenInspectInput'
+    $inspectValue = [System.Windows.Automation.ValuePattern]$inspect.GetCurrentPattern(
+        [System.Windows.Automation.ValuePattern]::Pattern)
+    $inspect = Set-ElementValueAndWait -Root $root -AutomationId 'NativeGuidGenInspectInput' -Value '00112233-4455-6677-8899-aabbccddeeff'
+    $inspectValue = [System.Windows.Automation.ValuePattern]$inspect.GetCurrentPattern(
+        [System.Windows.Automation.ValuePattern]::Pattern)
+    Wait-ForElementValue -Root $root -AutomationId 'NativeGuidGenInspectHex' -ExpectedValue '00 11 22 33 44 55 66 77 88 99 AA BB CC DD EE FF' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeGuidGenInspectMeta' -Prefix 'Version: 6' | Out-Null
+    Assert-True -Condition $true -Name 'GUID Generator inspects GUID bytes and version through the live native UI'
+
+    $inspect = Set-ElementValueAndWait -Root $root -AutomationId 'NativeGuidGenInspectInput' -Value 'not-a-guid'
+    $inspectValue = [System.Windows.Automation.ValuePattern]$inspect.GetCurrentPattern(
+        [System.Windows.Automation.ValuePattern]::Pattern)
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeGuidGenStatus' -Prefix 'That is not a valid GUID' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeGuidGenInspectHex' -ExpectedValue '' | Out-Null
+    Assert-True -Condition $true -Name 'GUID Generator clears stale inspector output after invalid input'
+
+    Set-ElementValueAndWait -Root $root -AutomationId 'NativeGuidGenInspectInput' -Value '00112233-4455-6677-8899-aabbccddeeff' | Out-Null
+    $language = Wait-ForElement -Root $root -AutomationId 'NativeLanguagePicker'
+    Select-ComboItem -Combo $language -Name 'English'
+    Wait-ForPageTitle -Root $root -Prefix 'GUID & ID Generator' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeGuidGenInspectHex' -ExpectedValue '00 11 22 33 44 55 66 77 88 99 AA BB CC DD EE FF' | Out-Null
+    Assert-True -Condition $true -Name 'GUID Generator preserves inspector state across language rerender'
+}
+
+foreach ($alias in @('module.guidgen')) {
+    Invoke-OwnedRoute -Route $alias -ExpectedTitle 'GUID & ID Generator'
 }
 
 Invoke-OwnedRoute -Route 'package-updates' -ExpectedTitle 'Package Manager' -Inspect {

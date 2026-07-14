@@ -1,7 +1,7 @@
 {
     "schemaVersion":  1,
-    "generatedAtUtc":  "2026-07-13T06:13:01.6138429Z",
-    "sourceCommit":  "16b9f9da779b67731eec587737b592d6ec8aa625",
+    "generatedAtUtc":  "2026-07-14T23:46:00.5662106Z",
+    "sourceCommit":  "a587208a04b3e5d4aae7ae9963daee5e4e8c465a",
     "counts":  {
                    "routes":  346,
                    "registryEntries":  319,

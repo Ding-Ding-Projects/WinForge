@@ -13,6 +13,7 @@
 #include <winrt/Microsoft.UI.Xaml.Automation.Peers.h>
 
 #include <chrono>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cwctype>
@@ -132,6 +133,18 @@ namespace
             result.push_back(std::iswalnum(character) ? character : L'_');
         }
         return result;
+    }
+
+    std::wstring GuidFormatFromIndex(int32_t index)
+    {
+        switch (index)
+        {
+        case 1: return L"N";
+        case 2: return L"B";
+        case 3: return L"P";
+        case 4: return L"X";
+        default: return L"D";
+        }
     }
 
     std::wstring PackageRuleKey(std::wstring_view managerKey, std::wstring_view packageId)
@@ -607,6 +620,10 @@ namespace winrt::WinForge::implementation
         else if (module->id == L"module.caseconvert")
         {
             RenderCaseConvert();
+        }
+        else if (module->id == L"module.guidgen")
+        {
+            RenderGuidGen();
         }
         else if (module->id == L"about")
         {
@@ -1400,6 +1417,543 @@ namespace winrt::WinForge::implementation
         catch (...)
         {
             // Accessibility notification failure must not break local conversion.
+        }
+    }
+
+    void MainWindow::RenderGuidGen()
+    {
+        m_guidGenRendering = true;
+
+        auto page = CreatePage(
+            winforge::core::LocalizedText{
+                L"GUID & ID Generator", L"GUID 同 ID 產生器" }.Pick(m_language),
+            winforge::core::LocalizedText{
+                L"Generate GUIDs, time-sortable ULIDs, nano-style URL-safe random IDs, and inspect GUID bytes/version/variant using a native cryptographic random source.",
+                L"用原生加密級隨機源產生 GUID、可按時間排序嘅 ULID、nano 式 URL-safe 隨機 ID，亦可以拆解 GUID 位元組／版本／變體。" }.Pick(m_language));
+        page.MaxWidth(900);
+        page.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(page, L"NativeGuidGenPage");
+
+        InfoBar nativeStatus;
+        nativeStatus.IsOpen(true);
+        nativeStatus.IsClosable(false);
+        nativeStatus.Severity(InfoBarSeverity::Success);
+        nativeStatus.Title(ToHString(winforge::core::LocalizedText{
+            L"Fully native identifier generation", L"全原生識別碼產生" }.Pick(m_language)));
+        nativeStatus.Message(ToHString(winforge::core::LocalizedText{
+            L"GUID, bulk GUID, ULID, nano-ID, inspector, and copy actions run locally in C++ with cryptographic randomness. Clipboard writes only happen after explicit Copy buttons.",
+            L"GUID、批量 GUID、ULID、nano-ID、拆解器同複製動作都喺本機 C++ 執行，並使用加密級隨機；只有明確撳 Copy 先會寫入剪貼簿。" }.Pick(m_language)));
+        AutomationProperties::SetAutomationId(nativeStatus, L"NativeGuidGenImplementationStatus");
+        page.Children().Append(nativeStatus);
+
+        auto makeCard = []()
+        {
+            Border card;
+            card.Padding(Thickness{ 18, 16, 18, 18 });
+            card.CornerRadius(CornerRadius{ 8 });
+            card.BorderThickness(Thickness{ 1 });
+            card.BorderBrush(Application::Current().Resources().Lookup(
+                box_value(L"CardStrokeColorDefaultBrush")).as<Media::Brush>());
+            card.Background(Application::Current().Resources().Lookup(
+                box_value(L"CardBackgroundFillColorDefaultBrush")).as<Media::Brush>());
+            return card;
+        };
+
+        auto copyText = [this](std::wstring value)
+        {
+            try
+            {
+                if (value.empty())
+                {
+                    AnnounceGuidGenStatus(
+                        winforge::core::LocalizedText{ L"Nothing to copy.", L"冇嘢可以複製。" }.Pick(m_language),
+                        true);
+                    return;
+                }
+                Windows::ApplicationModel::DataTransfer::DataPackage package;
+                package.RequestedOperation(Windows::ApplicationModel::DataTransfer::DataPackageOperation::Copy);
+                package.SetText(ToHString(value));
+                Windows::ApplicationModel::DataTransfer::Clipboard::SetContent(package);
+                AnnounceGuidGenStatus(
+                    winforge::core::LocalizedText{ L"Copied to clipboard.", L"已複製到剪貼簿。" }.Pick(m_language));
+            }
+            catch (...)
+            {
+                AnnounceGuidGenStatus(
+                    winforge::core::LocalizedText{ L"Could not access the clipboard.", L"無法存取剪貼簿。" }.Pick(m_language),
+                    true);
+            }
+        };
+
+        Border guidCard = makeCard();
+        StackPanel guidContent;
+        guidContent.Spacing(12);
+        guidContent.Children().Append(CreateText(
+            winforge::core::LocalizedText{ L"GUID", L"GUID" }.Pick(m_language),
+            15,
+            true));
+
+        StackPanel guidOptions;
+        guidOptions.Orientation(Orientation::Horizontal);
+        guidOptions.Spacing(10);
+        guidOptions.VerticalAlignment(VerticalAlignment::Center);
+
+        auto formatLabel = CreateText(
+            winforge::core::LocalizedText{ L"Format", L"格式" }.Pick(m_language),
+            14,
+            true);
+        formatLabel.VerticalAlignment(VerticalAlignment::Center);
+        guidOptions.Children().Append(formatLabel);
+
+        m_guidGenFormatPicker = ComboBox();
+        m_guidGenFormatPicker.MinWidth(230);
+        AutomationProperties::SetAutomationId(m_guidGenFormatPicker, L"NativeGuidGenFormatPicker");
+        AutomationProperties::SetName(m_guidGenFormatPicker, ToHString(winforge::core::LocalizedText{
+            L"GUID format", L"GUID 格式" }.Pick(m_language)));
+        for (auto const& label : {
+            L"D — 32 digits + hyphens",
+            L"N — 32 digits, no hyphens",
+            L"B — {braces}",
+            L"P — (parentheses)",
+            L"X — hex object" })
+        {
+            ComboBoxItem item;
+            item.Content(box_value(label));
+            m_guidGenFormatPicker.Items().Append(item);
+        }
+        m_guidGenFormatPicker.SelectedIndex(m_guidGenFormatIndex);
+        m_guidGenFormatPicker.SelectionChanged([this](Windows::Foundation::IInspectable const& sender, SelectionChangedEventArgs const&)
+        {
+            if (m_guidGenRendering) return;
+            m_guidGenFormatIndex = sender.as<ComboBox>().SelectedIndex();
+            GenerateGuidValue();
+        });
+        guidOptions.Children().Append(m_guidGenFormatPicker);
+
+        m_guidGenUpperSwitch = ToggleSwitch();
+        m_guidGenUpperSwitch.Header(box_value(ToHString(winforge::core::LocalizedText{
+            L"UPPERCASE", L"大階" }.Pick(m_language))));
+        m_guidGenUpperSwitch.OnContent(box_value(ToHString(winforge::core::LocalizedText{ L"On", L"開" }.Pick(m_language))));
+        m_guidGenUpperSwitch.OffContent(box_value(ToHString(winforge::core::LocalizedText{ L"Off", L"關" }.Pick(m_language))));
+        m_guidGenUpperSwitch.IsOn(m_guidGenUpper);
+        AutomationProperties::SetAutomationId(m_guidGenUpperSwitch, L"NativeGuidGenUpperSwitch");
+        AutomationProperties::SetName(m_guidGenUpperSwitch, ToHString(winforge::core::LocalizedText{
+            L"Uppercase GUID output", L"大階 GUID 輸出" }.Pick(m_language)));
+        m_guidGenUpperSwitch.Toggled([this](Windows::Foundation::IInspectable const& sender, RoutedEventArgs const&)
+        {
+            if (m_guidGenRendering) return;
+            m_guidGenUpper = sender.as<ToggleSwitch>().IsOn();
+            GenerateGuidValue();
+        });
+        guidOptions.Children().Append(m_guidGenUpperSwitch);
+        guidContent.Children().Append(guidOptions);
+
+        m_guidGenGuidBox = TextBox();
+        m_guidGenGuidBox.IsReadOnly(true);
+        m_guidGenGuidBox.IsSpellCheckEnabled(false);
+        m_guidGenGuidBox.FontFamily(Media::FontFamily(L"Consolas"));
+        m_guidGenGuidBox.Text(ToHString(m_guidGenGuidValue));
+        AutomationProperties::SetAutomationId(m_guidGenGuidBox, L"NativeGuidGenGuidOutput");
+        AutomationProperties::SetName(m_guidGenGuidBox, ToHString(winforge::core::LocalizedText{
+            L"Generated GUID", L"已產生 GUID" }.Pick(m_language)));
+        guidContent.Children().Append(m_guidGenGuidBox);
+
+        StackPanel guidActions;
+        guidActions.Orientation(Orientation::Horizontal);
+        guidActions.Spacing(8);
+
+        Button guidGenerate;
+        guidGenerate.Content(box_value(ToHString(winforge::core::LocalizedText{ L"Generate", L"產生" }.Pick(m_language))));
+        AutomationProperties::SetAutomationId(guidGenerate, L"NativeGuidGenGenerateGuid");
+        guidGenerate.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&) { GenerateGuidValue(); });
+        guidActions.Children().Append(guidGenerate);
+
+        Button guidCopy;
+        guidCopy.Content(box_value(ToHString(winforge::core::LocalizedText{ L"Copy", L"複製" }.Pick(m_language))));
+        AutomationProperties::SetAutomationId(guidCopy, L"NativeGuidGenCopyGuid");
+        guidCopy.Click([this, copyText](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            copyText(m_guidGenGuidValue);
+        });
+        guidActions.Children().Append(guidCopy);
+        guidContent.Children().Append(guidActions);
+
+        guidCard.Child(guidContent);
+        page.Children().Append(guidCard);
+
+        Border bulkCard = makeCard();
+        StackPanel bulkContent;
+        bulkContent.Spacing(12);
+        bulkContent.Children().Append(CreateText(
+            winforge::core::LocalizedText{ L"Bulk generate", L"批量產生" }.Pick(m_language),
+            15,
+            true));
+
+        StackPanel bulkActions;
+        bulkActions.Orientation(Orientation::Horizontal);
+        bulkActions.Spacing(10);
+        bulkActions.VerticalAlignment(VerticalAlignment::Center);
+        auto countLabel = CreateText(winforge::core::LocalizedText{ L"Count (1–1000)", L"數量（1–1000）" }.Pick(m_language));
+        countLabel.VerticalAlignment(VerticalAlignment::Center);
+        bulkActions.Children().Append(countLabel);
+
+        m_guidGenCountBox = NumberBox();
+        m_guidGenCountBox.Value(m_guidGenBulkCount);
+        m_guidGenCountBox.Minimum(1);
+        m_guidGenCountBox.Maximum(1000);
+        m_guidGenCountBox.SpinButtonPlacementMode(NumberBoxSpinButtonPlacementMode::Inline);
+        m_guidGenCountBox.MinWidth(150);
+        AutomationProperties::SetAutomationId(m_guidGenCountBox, L"NativeGuidGenBulkCount");
+        AutomationProperties::SetName(m_guidGenCountBox, ToHString(winforge::core::LocalizedText{
+            L"Bulk GUID count", L"批量 GUID 數量" }.Pick(m_language)));
+        bulkActions.Children().Append(m_guidGenCountBox);
+
+        Button bulkGenerate;
+        bulkGenerate.Content(box_value(ToHString(winforge::core::LocalizedText{ L"Generate", L"產生" }.Pick(m_language))));
+        AutomationProperties::SetAutomationId(bulkGenerate, L"NativeGuidGenGenerateBulk");
+        bulkGenerate.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            GenerateBulkGuidValues();
+        });
+        bulkActions.Children().Append(bulkGenerate);
+
+        Button bulkCopy;
+        bulkCopy.Content(box_value(ToHString(winforge::core::LocalizedText{ L"Copy all", L"全部複製" }.Pick(m_language))));
+        AutomationProperties::SetAutomationId(bulkCopy, L"NativeGuidGenCopyBulk");
+        bulkCopy.Click([this, copyText](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            copyText(m_guidGenBulkValue);
+        });
+        bulkActions.Children().Append(bulkCopy);
+        bulkContent.Children().Append(bulkActions);
+
+        m_guidGenBulkBox = TextBox();
+        m_guidGenBulkBox.IsReadOnly(true);
+        m_guidGenBulkBox.AcceptsReturn(true);
+        m_guidGenBulkBox.TextWrapping(TextWrapping::NoWrap);
+        m_guidGenBulkBox.FontFamily(Media::FontFamily(L"Consolas"));
+        m_guidGenBulkBox.Height(180);
+        m_guidGenBulkBox.Text(ToHString(m_guidGenBulkValue));
+        AutomationProperties::SetAutomationId(m_guidGenBulkBox, L"NativeGuidGenBulkOutput");
+        AutomationProperties::SetName(m_guidGenBulkBox, ToHString(winforge::core::LocalizedText{
+            L"Bulk GUID output", L"批量 GUID 輸出" }.Pick(m_language)));
+        bulkContent.Children().Append(m_guidGenBulkBox);
+        bulkCard.Child(bulkContent);
+        page.Children().Append(bulkCard);
+
+        Border otherCard = makeCard();
+        StackPanel otherContent;
+        otherContent.Spacing(12);
+        otherContent.Children().Append(CreateText(
+            winforge::core::LocalizedText{ L"ULID & nano-ID", L"ULID 同 nano-ID" }.Pick(m_language),
+            15,
+            true));
+
+        m_guidGenUlidBox = TextBox();
+        m_guidGenUlidBox.IsReadOnly(true);
+        m_guidGenUlidBox.IsSpellCheckEnabled(false);
+        m_guidGenUlidBox.FontFamily(Media::FontFamily(L"Consolas"));
+        m_guidGenUlidBox.Text(ToHString(m_guidGenUlidValue));
+        AutomationProperties::SetAutomationId(m_guidGenUlidBox, L"NativeGuidGenUlidOutput");
+        AutomationProperties::SetName(m_guidGenUlidBox, L"Generated ULID");
+        otherContent.Children().Append(m_guidGenUlidBox);
+
+        StackPanel ulidActions;
+        ulidActions.Orientation(Orientation::Horizontal);
+        ulidActions.Spacing(8);
+        Button ulidGenerate;
+        ulidGenerate.Content(box_value(ToHString(winforge::core::LocalizedText{ L"New ULID", L"新 ULID" }.Pick(m_language))));
+        AutomationProperties::SetAutomationId(ulidGenerate, L"NativeGuidGenGenerateUlid");
+        ulidGenerate.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&) { GenerateUlidValue(); });
+        ulidActions.Children().Append(ulidGenerate);
+        Button ulidCopy;
+        ulidCopy.Content(box_value(ToHString(winforge::core::LocalizedText{ L"Copy", L"複製" }.Pick(m_language))));
+        AutomationProperties::SetAutomationId(ulidCopy, L"NativeGuidGenCopyUlid");
+        ulidCopy.Click([this, copyText](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            copyText(m_guidGenUlidValue);
+        });
+        ulidActions.Children().Append(ulidCopy);
+        otherContent.Children().Append(ulidActions);
+
+        StackPanel nanoLengthRow;
+        nanoLengthRow.Orientation(Orientation::Horizontal);
+        nanoLengthRow.Spacing(10);
+        nanoLengthRow.VerticalAlignment(VerticalAlignment::Center);
+        auto nanoLengthLabel = CreateText(winforge::core::LocalizedText{
+            L"nano-ID length (4–64)", L"nano-ID 長度（4–64）" }.Pick(m_language));
+        nanoLengthLabel.VerticalAlignment(VerticalAlignment::Center);
+        nanoLengthRow.Children().Append(nanoLengthLabel);
+
+        m_guidGenNanoLengthBox = NumberBox();
+        m_guidGenNanoLengthBox.Value(m_guidGenNanoLength);
+        m_guidGenNanoLengthBox.Minimum(4);
+        m_guidGenNanoLengthBox.Maximum(64);
+        m_guidGenNanoLengthBox.SpinButtonPlacementMode(NumberBoxSpinButtonPlacementMode::Inline);
+        m_guidGenNanoLengthBox.MinWidth(150);
+        AutomationProperties::SetAutomationId(m_guidGenNanoLengthBox, L"NativeGuidGenNanoLength");
+        AutomationProperties::SetName(m_guidGenNanoLengthBox, ToHString(winforge::core::LocalizedText{
+            L"nano-ID length", L"nano-ID 長度" }.Pick(m_language)));
+        nanoLengthRow.Children().Append(m_guidGenNanoLengthBox);
+        otherContent.Children().Append(nanoLengthRow);
+
+        m_guidGenNanoBox = TextBox();
+        m_guidGenNanoBox.IsReadOnly(true);
+        m_guidGenNanoBox.IsSpellCheckEnabled(false);
+        m_guidGenNanoBox.FontFamily(Media::FontFamily(L"Consolas"));
+        m_guidGenNanoBox.Text(ToHString(m_guidGenNanoValue));
+        AutomationProperties::SetAutomationId(m_guidGenNanoBox, L"NativeGuidGenNanoOutput");
+        AutomationProperties::SetName(m_guidGenNanoBox, L"Generated nano-ID");
+        otherContent.Children().Append(m_guidGenNanoBox);
+
+        StackPanel nanoActions;
+        nanoActions.Orientation(Orientation::Horizontal);
+        nanoActions.Spacing(8);
+        Button nanoGenerate;
+        nanoGenerate.Content(box_value(ToHString(winforge::core::LocalizedText{ L"New nano-ID", L"新 nano-ID" }.Pick(m_language))));
+        AutomationProperties::SetAutomationId(nanoGenerate, L"NativeGuidGenGenerateNano");
+        nanoGenerate.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&) { GenerateNanoIdValue(); });
+        nanoActions.Children().Append(nanoGenerate);
+        Button nanoCopy;
+        nanoCopy.Content(box_value(ToHString(winforge::core::LocalizedText{ L"Copy", L"複製" }.Pick(m_language))));
+        AutomationProperties::SetAutomationId(nanoCopy, L"NativeGuidGenCopyNano");
+        nanoCopy.Click([this, copyText](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            copyText(m_guidGenNanoValue);
+        });
+        nanoActions.Children().Append(nanoCopy);
+        otherContent.Children().Append(nanoActions);
+
+        otherCard.Child(otherContent);
+        page.Children().Append(otherCard);
+
+        Border inspectCard = makeCard();
+        StackPanel inspectContent;
+        inspectContent.Spacing(12);
+        inspectContent.Children().Append(CreateText(
+            winforge::core::LocalizedText{ L"GUID inspector", L"GUID 拆解器" }.Pick(m_language),
+            15,
+            true));
+
+        m_guidGenInspectInput = TextBox();
+        m_guidGenInspectInput.IsSpellCheckEnabled(false);
+        m_guidGenInspectInput.FontFamily(Media::FontFamily(L"Consolas"));
+        m_guidGenInspectInput.PlaceholderText(ToHString(winforge::core::LocalizedText{
+            L"Paste a GUID to inspect…", L"貼上一個 GUID 嚟拆解…" }.Pick(m_language)));
+        m_guidGenInspectInput.Text(ToHString(m_guidGenInspectValue));
+        AutomationProperties::SetAutomationId(m_guidGenInspectInput, L"NativeGuidGenInspectInput");
+        AutomationProperties::SetName(m_guidGenInspectInput, ToHString(winforge::core::LocalizedText{
+            L"GUID inspector input", L"GUID 拆解器輸入" }.Pick(m_language)));
+        m_guidGenInspectInput.TextChanged([this](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
+        {
+            if (m_guidGenRendering) return;
+            m_guidGenInspectValue = ToWide(sender.as<TextBox>().Text());
+            RefreshGuidInspector();
+        });
+        inspectContent.Children().Append(m_guidGenInspectInput);
+        inspectContent.Children().Append(CreateText(
+            winforge::core::LocalizedText{
+                L"16 bytes (RFC 4122 order)", L"16 位元組（RFC 4122 排序）" }.Pick(m_language),
+            12));
+
+        m_guidGenInspectHexBox = TextBox();
+        m_guidGenInspectHexBox.IsReadOnly(true);
+        m_guidGenInspectHexBox.IsSpellCheckEnabled(false);
+        m_guidGenInspectHexBox.FontFamily(Media::FontFamily(L"Consolas"));
+        AutomationProperties::SetAutomationId(m_guidGenInspectHexBox, L"NativeGuidGenInspectHex");
+        AutomationProperties::SetName(m_guidGenInspectHexBox, ToHString(winforge::core::LocalizedText{
+            L"GUID bytes in RFC 4122 order", L"RFC 4122 排序 GUID 位元組" }.Pick(m_language)));
+        inspectContent.Children().Append(m_guidGenInspectHexBox);
+
+        m_guidGenInspectMeta = CreateText(L"", 13);
+        AutomationProperties::SetAutomationId(m_guidGenInspectMeta, L"NativeGuidGenInspectMeta");
+        inspectContent.Children().Append(m_guidGenInspectMeta);
+        inspectCard.Child(inspectContent);
+        page.Children().Append(inspectCard);
+
+        m_guidGenStatus = CreateText(L"", 12.5);
+        m_guidGenStatus.Opacity(0.82);
+        AutomationProperties::SetAutomationId(m_guidGenStatus, L"NativeGuidGenStatus");
+        AutomationProperties::SetLiveSetting(
+            m_guidGenStatus,
+            Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite);
+        page.Children().Append(m_guidGenStatus);
+
+        ShowPage(page);
+        m_guidGenRendering = false;
+
+        if (m_guidGenGuidValue.empty()) GenerateGuidValue();
+        if (m_guidGenUlidValue.empty()) GenerateUlidValue();
+        if (m_guidGenNanoValue.empty()) GenerateNanoIdValue();
+        RefreshGuidInspector();
+        AnnounceGuidGenStatus(
+            winforge::core::LocalizedText{ L"Native GUID tools ready.", L"原生 GUID 工具已就緒。" }.Pick(m_language));
+    }
+
+    void MainWindow::GenerateGuidValue()
+    {
+        try
+        {
+            m_guidGenGuidValue = winforge::core::guidgen::NewGuid(GuidFormatFromIndex(m_guidGenFormatIndex), m_guidGenUpper);
+            if (m_guidGenGuidBox)
+            {
+                m_guidGenGuidBox.Text(ToHString(m_guidGenGuidValue));
+                AutomationProperties::SetHelpText(m_guidGenGuidBox, ToHString(m_guidGenGuidValue));
+            }
+            AnnounceGuidGenStatus(
+                winforge::core::LocalizedText{ L"Generated a GUID.", L"已產生一個 GUID。" }.Pick(m_language));
+        }
+        catch (...)
+        {
+            AnnounceGuidGenStatus(
+                winforge::core::LocalizedText{ L"Could not generate a GUID.", L"無法產生 GUID。" }.Pick(m_language),
+                true);
+        }
+    }
+
+    void MainWindow::GenerateBulkGuidValues()
+    {
+        try
+        {
+            auto value = m_guidGenCountBox ? m_guidGenCountBox.Value() : static_cast<double>(m_guidGenBulkCount);
+            if (std::isnan(value)) value = static_cast<double>(m_guidGenBulkCount);
+            m_guidGenBulkCount = std::clamp(static_cast<int32_t>(value), 1, 1000);
+            m_guidGenBulkValue = winforge::core::guidgen::BulkGuids(
+                m_guidGenBulkCount,
+                GuidFormatFromIndex(m_guidGenFormatIndex),
+                m_guidGenUpper);
+            if (m_guidGenBulkBox)
+            {
+                m_guidGenBulkBox.Text(ToHString(m_guidGenBulkValue));
+                AutomationProperties::SetHelpText(m_guidGenBulkBox, ToHString(m_guidGenBulkValue));
+            }
+            auto const status = std::to_wstring(m_guidGenBulkCount);
+            AnnounceGuidGenStatus(
+                winforge::core::LocalizedText{
+                    L"Generated " + status + L" GUIDs.",
+                    L"已產生 " + status + L" 個 GUID。" }.Pick(m_language));
+        }
+        catch (...)
+        {
+            AnnounceGuidGenStatus(
+                winforge::core::LocalizedText{ L"Could not bulk-generate GUIDs.", L"無法批量產生 GUID。" }.Pick(m_language),
+                true);
+        }
+    }
+
+    void MainWindow::GenerateUlidValue()
+    {
+        try
+        {
+            m_guidGenUlidValue = winforge::core::guidgen::NewUlid();
+            if (m_guidGenUlidBox)
+            {
+                m_guidGenUlidBox.Text(ToHString(m_guidGenUlidValue));
+                AutomationProperties::SetHelpText(m_guidGenUlidBox, ToHString(m_guidGenUlidValue));
+            }
+            AnnounceGuidGenStatus(
+                winforge::core::LocalizedText{ L"Generated a ULID.", L"已產生一個 ULID。" }.Pick(m_language));
+        }
+        catch (...)
+        {
+            AnnounceGuidGenStatus(
+                winforge::core::LocalizedText{ L"Could not generate a ULID.", L"無法產生 ULID。" }.Pick(m_language),
+                true);
+        }
+    }
+
+    void MainWindow::GenerateNanoIdValue()
+    {
+        try
+        {
+            auto value = m_guidGenNanoLengthBox ? m_guidGenNanoLengthBox.Value() : static_cast<double>(m_guidGenNanoLength);
+            if (std::isnan(value)) value = 21;
+            m_guidGenNanoLength = std::clamp(static_cast<int32_t>(value), 4, 64);
+            m_guidGenNanoValue = winforge::core::guidgen::NewNanoId(m_guidGenNanoLength);
+            if (m_guidGenNanoBox)
+            {
+                m_guidGenNanoBox.Text(ToHString(m_guidGenNanoValue));
+                AutomationProperties::SetHelpText(m_guidGenNanoBox, ToHString(m_guidGenNanoValue));
+            }
+            AnnounceGuidGenStatus(
+                winforge::core::LocalizedText{ L"Generated a nano-ID.", L"已產生一個 nano-ID。" }.Pick(m_language));
+        }
+        catch (...)
+        {
+            AnnounceGuidGenStatus(
+                winforge::core::LocalizedText{ L"Could not generate a nano-ID.", L"無法產生 nano-ID。" }.Pick(m_language),
+                true);
+        }
+    }
+
+    void MainWindow::RefreshGuidInspector()
+    {
+        if (!m_guidGenInspectHexBox || !m_guidGenInspectMeta)
+        {
+            return;
+        }
+
+        if (m_guidGenInspectValue.empty())
+        {
+            m_guidGenInspectHexBox.Text(L"");
+            m_guidGenInspectMeta.Text(L"");
+            return;
+        }
+
+        try
+        {
+            auto const info = winforge::core::guidgen::Inspect(m_guidGenInspectValue);
+            m_guidGenInspectHexBox.Text(ToHString(info.hex));
+            AutomationProperties::SetHelpText(m_guidGenInspectHexBox, ToHString(info.hex));
+            auto const version = std::to_wstring(info.version);
+            auto const meta = winforge::core::LocalizedText{
+                L"Version: " + version + L"    Variant: " + info.variant,
+                L"版本：" + version + L"    變體：" + info.variant }.Pick(m_language);
+            m_guidGenInspectMeta.Text(ToHString(meta));
+            AutomationProperties::SetName(m_guidGenInspectMeta, ToHString(meta));
+            AnnounceGuidGenStatus(
+                winforge::core::LocalizedText{ L"GUID parsed.", L"GUID 已解析。" }.Pick(m_language));
+        }
+        catch (...)
+        {
+            m_guidGenInspectHexBox.Text(L"");
+            m_guidGenInspectMeta.Text(L"");
+            AnnounceGuidGenStatus(
+                winforge::core::LocalizedText{ L"That is not a valid GUID.", L"呢個唔係有效嘅 GUID。" }.Pick(m_language),
+                true);
+        }
+    }
+
+    void MainWindow::AnnounceGuidGenStatus(std::wstring_view message, bool warning)
+    {
+        if (!m_guidGenStatus) return;
+
+        m_guidGenStatus.Text(ToHString(message));
+        m_guidGenStatus.Foreground(Application::Current().Resources().Lookup(
+            box_value(warning ? L"SystemFillColorCautionBrush" : L"TextFillColorSecondaryBrush")).as<Media::Brush>());
+        AutomationProperties::SetName(m_guidGenStatus, ToHString(message));
+        AutomationProperties::SetLiveSetting(
+            m_guidGenStatus,
+            Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite);
+
+        try
+        {
+            auto peer = Microsoft::UI::Xaml::Automation::Peers::FrameworkElementAutomationPeer::FromElement(
+                m_guidGenStatus);
+            if (!peer)
+            {
+                peer = Microsoft::UI::Xaml::Automation::Peers::FrameworkElementAutomationPeer::CreatePeerForElement(
+                    m_guidGenStatus);
+            }
+            if (peer)
+            {
+                peer.RaiseAutomationEvent(
+                    Microsoft::UI::Xaml::Automation::Peers::AutomationEvents::LiveRegionChanged);
+            }
+        }
+        catch (...)
+        {
+            // Accessibility notification failure must not break identifier generation.
         }
     }
 
