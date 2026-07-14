@@ -111,6 +111,11 @@ PackageRuntimeTestCounts RunPackageRuntimeTests()
     Expect(!invalidProbe.success && !invalidProbe.command_started && !invalidProbe.diagnostic.empty(),
         "invalid manager probes fail before process creation");
 
+    auto unsafeDetails = QueryPackageManager(L"winget", PackageAction::Details, L"safe & calc");
+    Expect(!unsafeDetails.success && !unsafeDetails.command_started &&
+        unsafeDetails.diagnostic == L"invalid-package-id",
+        "unsafe details queries fail before process creation");
+
     PackageItem unsafePackage;
     unsafePackage.manager_key = L"winget";
     unsafePackage.id = L"safe & calc";

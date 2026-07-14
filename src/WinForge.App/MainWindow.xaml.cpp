@@ -1639,6 +1639,82 @@ namespace winrt::WinForge::implementation
         RenderPackageManagerView();
     }
 
+    void MainWindow::StartPackageDetailsQuery(
+        winforge::core::packages::PackageItem const& package)
+    {
+        using winforge::core::packages::PackageAction;
+
+        auto const available = m_packageManagersAvailable.find(package.manager_key);
+        if (available == m_packageManagersAvailable.end() || !available->second)
+        {
+            RecordPackageOperation(
+                L"Details query was not started for " + package.id +
+                    L" via " + package.manager_key +
+                    L": manager is not available in the current native probe. · 詳細資料查詢未開始。");
+            AnnouncePackageStatus(
+                L"Package details query was not started because that manager is not available.",
+                L"套件詳細資料查詢未開始，因為該管理器目前未可用。",
+                true);
+            m_packageView = 8;
+            if (m_packageViewPicker)
+            {
+                m_packageViewPicker.SelectedIndex(m_packageView);
+            }
+            SavePackageManagerState();
+            RenderPackageManagerView();
+            return;
+        }
+
+        auto const command = winforge::core::packages::BuildDetailsCommand(
+            package.manager_key,
+            package.id);
+        if (!command)
+        {
+            RecordPackageOperation(
+                L"Details query validation failed for " + package.id +
+                    L" via " + package.manager_key + L": " + command.error_code +
+                    L". · 詳細資料查詢驗證失敗。");
+            AnnouncePackageStatus(
+                L"Package details query failed validation before any command started.",
+                L"套件詳細資料查詢喺任何指令開始之前驗證失敗。",
+                true);
+            m_packageView = 8;
+            if (m_packageViewPicker)
+            {
+                m_packageViewPicker.SelectedIndex(m_packageView);
+            }
+            SavePackageManagerState();
+            RenderPackageManagerView();
+            return;
+        }
+
+        CancelPackageWork();
+        m_packageItems.clear();
+        m_packageRunStates.clear();
+        m_packageLastAction = PackageAction::Details;
+        m_packageDetailsTarget = package.id;
+        m_packageWorking = true;
+        if (m_packageBusy) m_packageBusy.IsActive(true);
+
+        RecordPackageOperation(
+            L"Started read-only details query for " + package.id +
+                L" via " + package.manager_key + L": " +
+                winforge::core::packages::FormatCommandPreview(*command.command) +
+                L". · 已開始只讀詳細資料查詢。");
+        RenderPackageManagerView();
+        AnnouncePackageStatus(
+            L"Package details query started. The bounded command output will render when it finishes.",
+            L"套件詳細資料查詢已開始；有界指令輸出完成後會顯示。");
+
+        auto const generation = m_packageGeneration;
+        QueryPackageManagersAsync(
+            generation,
+            PackageAction::Details,
+            package.id,
+            { package.manager_key },
+            m_packageStopSource.get_token());
+    }
+
     void MainWindow::PreviewPackageBulkUpdate()
     {
         if (m_packageItems.empty())
@@ -1830,6 +1906,8 @@ namespace winrt::WinForge::implementation
         CancelPackageWork();
         m_packageItems.clear();
         m_packageRunStates.clear();
+        m_packageDetailsTarget.clear();
+        m_packageLastAction = winforge::core::packages::PackageAction::Probe;
         if (!m_currentArgument.empty())
         {
             m_packageView = PackageViewFromArgument(m_currentArgument);
@@ -1850,8 +1928,8 @@ namespace winrt::WinForge::implementation
         migration.Title(ToHString(winforge::core::LocalizedText{
             L"Native Package Manager runtime", L"原生套件管理 runtime" }.Pick(m_language)));
         migration.Message(ToHString(winforge::core::LocalizedText{
-            L"Availability, discovery, installed-package, update, and source queries run through audited C++ argv builders, parsers, HTTPS transport, and a contained Win32 process runner. Mutations remain locked until the native consent coordinator is proven.",
-            L"可用性、搜尋、已安裝套件、更新同來源查詢，會經審核嘅 C++ argv 建立器、解析器、HTTPS transport 同受控 Win32 process runner 執行；修改操作要等原生同意協調器驗證完成先會解鎖。" }.Pick(m_language)));
+            L"Availability, discovery, installed-package, update, details, and source queries run through audited C++ argv builders, parsers, HTTPS transport, and a contained Win32 process runner. Mutations remain locked until the native consent coordinator is proven.",
+            L"可用性、搜尋、已安裝套件、更新、詳細資料同來源查詢，會經審核嘅 C++ argv 建立器、解析器、HTTPS transport 同受控 Win32 process runner 執行；修改操作要等原生同意協調器驗證完成先會解鎖。" }.Pick(m_language)));
         AutomationProperties::SetAutomationId(migration, L"NativePackageManagerMigrationStatus");
         page.Children().Append(migration);
 
@@ -1914,6 +1992,8 @@ namespace winrt::WinForge::implementation
             }
             m_packageItems.clear();
             m_packageRunStates.clear();
+            m_packageDetailsTarget.clear();
+            m_packageLastAction = winforge::core::packages::PackageAction::Probe;
             RenderPackageManagerView();
             if (m_packageProbeComplete)
             {
@@ -2156,6 +2236,8 @@ namespace winrt::WinForge::implementation
         }
         m_packageItems.clear();
         m_packageRunStates.clear();
+        m_packageDetailsTarget.clear();
+        m_packageLastAction = winforge::core::packages::PackageAction::Probe;
         return invalidated;
     }
 
@@ -2278,6 +2360,7 @@ namespace winrt::WinForge::implementation
         CancelPackageWork();
         m_packageItems.clear();
         m_packageRunStates.clear();
+        m_packageDetailsTarget.clear();
         m_packageLastAction = action;
         m_packageWorking = true;
         if (m_packageBusy) m_packageBusy.IsActive(true);
@@ -2574,6 +2657,48 @@ namespace winrt::WinForge::implementation
                             L"來源查詢失敗。機密遮罩未驗證完成，所以原始診斷輸出已隱藏。" }.Pick(m_language);
                 }
             }
+            else if (action == winforge::core::packages::PackageAction::Details)
+            {
+                if (result.success)
+                {
+                    std::wstring output = std::move(result.standard_output);
+                    if (!result.standard_error.empty())
+                    {
+                        if (!output.empty()) output += L"\n\n";
+                        output += L"stderr:\n";
+                        output += result.standard_error;
+                    }
+                    if (output.empty())
+                    {
+                        output = winforge::core::LocalizedText{
+                            L"Details command completed without output.",
+                            L"詳細資料指令已完成，但冇輸出。" }.Pick(m_language);
+                    }
+                    if (!m_packageDetailsTarget.empty())
+                    {
+                        output = winforge::core::LocalizedText{
+                            L"Details for " + m_packageDetailsTarget + L":\n\n",
+                            L"「" + m_packageDetailsTarget + L"」詳細資料：\n\n" }.Pick(m_language) + output;
+                    }
+                    state.output = std::move(output);
+                }
+                else
+                {
+                    state.diagnostic = result.timed_out
+                        ? winforge::core::LocalizedText{
+                            L"Details query timed out.",
+                            L"詳細資料查詢逾時。" }.Pick(m_language)
+                        : result.cancelled
+                            ? winforge::core::LocalizedText{
+                                L"Details query was cancelled.",
+                                L"詳細資料查詢已取消。" }.Pick(m_language)
+                            : result.diagnostic.empty()
+                                ? winforge::core::LocalizedText{
+                                    L"Details query failed.",
+                                    L"詳細資料查詢失敗。" }.Pick(m_language)
+                                : std::move(result.diagnostic);
+                }
+            }
             else
             {
                 state.diagnostic = std::move(result.diagnostic);
@@ -2595,26 +2720,48 @@ namespace winrt::WinForge::implementation
         ApplyPackageSort();
 
         RecordPackageOperation(
-            L"Native query completed: " + std::to_wstring(m_packageItems.size()) +
-                L" package row(s), " + std::to_wstring(successfulManagers) + L" manager(s) succeeded. · 原生查詢完成。");
+            action == winforge::core::packages::PackageAction::Details
+                ? L"Native details query completed: " + std::to_wstring(successfulManagers) +
+                    L" manager(s) succeeded. · 原生詳細資料查詢完成。"
+                : L"Native query completed: " + std::to_wstring(m_packageItems.size()) +
+                    L" package row(s), " + std::to_wstring(successfulManagers) + L" manager(s) succeeded. · 原生查詢完成。");
         RenderPackageManagerView();
         if (failedManagers != 0)
         {
-            AnnouncePackageStatus(
-                L"Package query finished with " + std::to_wstring(m_packageItems.size()) +
-                    L" verified results. " + std::to_wstring(failedManagers) +
-                    L" engines failed or still require resolution; review each engine status.",
-                L"套件查詢完成，有 " + std::to_wstring(m_packageItems.size()) +
-                    L" 個已驗證結果。" + std::to_wstring(failedManagers) +
-                    L" 個引擎失敗或者仍然需要解析；請檢查每個引擎狀態。",
-                true);
+            if (action == winforge::core::packages::PackageAction::Details)
+            {
+                AnnouncePackageStatus(
+                    L"Package details query failed or was blocked. Review the engine status card.",
+                    L"套件詳細資料查詢失敗或者受阻；請檢查引擎狀態卡。",
+                    true);
+            }
+            else
+            {
+                AnnouncePackageStatus(
+                    L"Package query finished with " + std::to_wstring(m_packageItems.size()) +
+                        L" verified results. " + std::to_wstring(failedManagers) +
+                        L" engines failed or still require resolution; review each engine status.",
+                    L"套件查詢完成，有 " + std::to_wstring(m_packageItems.size()) +
+                        L" 個已驗證結果。" + std::to_wstring(failedManagers) +
+                        L" 個引擎失敗或者仍然需要解析；請檢查每個引擎狀態。",
+                    true);
+            }
         }
         else
         {
-            AnnouncePackageStatus(
-                L"Package query finished successfully with " + std::to_wstring(m_packageItems.size()) +
-                    L" results.",
-                L"套件查詢成功完成，有 " + std::to_wstring(m_packageItems.size()) + L" 個結果。");
+            if (action == winforge::core::packages::PackageAction::Details)
+            {
+                AnnouncePackageStatus(
+                    L"Package details query finished successfully.",
+                    L"套件詳細資料查詢成功完成。");
+            }
+            else
+            {
+                AnnouncePackageStatus(
+                    L"Package query finished successfully with " + std::to_wstring(m_packageItems.size()) +
+                        L" results.",
+                    L"套件查詢成功完成，有 " + std::to_wstring(m_packageItems.size()) + L" 個結果。");
+            }
         }
     }
 
@@ -3060,6 +3207,10 @@ namespace winrt::WinForge::implementation
         }
 
         constexpr std::size_t MaximumRenderedPackages = 250;
+        if (m_packageLastAction == winforge::core::packages::PackageAction::Details)
+        {
+            return;
+        }
         auto const renderCount = std::min(m_packageItems.size(), MaximumRenderedPackages);
         for (std::size_t index = 0; index < renderCount; ++index)
         {
@@ -3149,14 +3300,14 @@ namespace winrt::WinForge::implementation
             ToolTipService::SetToolTip(
                 detailPreview,
                 box_value(ToHString(pick(
-                    L"Preview the exact native details argv plan. This does not execute the package command.",
-                    L"預覽準確嘅原生詳細資料 argv 計劃；唔會執行套件指令。"))));
+                    L"Run the bounded, read-only native details query for this package. Elevated sessions still fail closed.",
+                    L"執行呢個套件嘅有界、只讀原生詳細資料查詢；提升權限 session 仍然會 fail closed。"))));
             auto detailPackageCopy = package;
             detailPreview.Click([this, detailPackageCopy = std::move(detailPackageCopy)](
                 Windows::Foundation::IInspectable const&,
                 RoutedEventArgs const&)
             {
-                PreviewPackageDetails(detailPackageCopy);
+                StartPackageDetailsQuery(detailPackageCopy);
             });
             actions.Children().Append(detailPreview);
 

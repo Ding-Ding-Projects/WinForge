@@ -85,6 +85,7 @@ namespace winrt::WinForge::implementation
         bool m_packageStateApplying{ false };
         std::wstring m_packageSearchText{};
         std::wstring m_packageBundleSourcePath{};
+        std::wstring m_packageDetailsTarget{};
         int32_t m_packageSortMode{ 0 };
         int32_t m_checkDigitScheme{ 0 };
         std::wstring m_checkDigitValue{};
@@ -120,6 +121,8 @@ namespace winrt::WinForge::implementation
             winforge::core::packages::PackageItem const& package,
             winforge::core::packages::PackageAction action);
         void PreviewPackageDetails(
+            winforge::core::packages::PackageItem const& package);
+        void StartPackageDetailsQuery(
             winforge::core::packages::PackageItem const& package);
         void PreviewPackageBulkUpdate();
         [[nodiscard]] std::wstring BundleSnapshotToJson(
