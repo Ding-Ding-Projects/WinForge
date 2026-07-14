@@ -488,6 +488,7 @@ Invoke-OwnedRoute -Route 'package-updates' -ExpectedTitle 'Package Manager' -Ins
     foreach ($id in @(
         'NativePackageManagerMigrationStatus',
         'NativePackageViewPicker',
+        'NativePackageSortPicker',
         'NativePackageSearchBox',
         'NativePackagePrimaryAction',
         'NativePackageSecondaryAction',
@@ -506,6 +507,11 @@ Invoke-OwnedRoute -Route 'package-updates' -ExpectedTitle 'Package Manager' -Ins
     $header = Wait-ForElement -Root $root -AutomationId 'NativePackageResultsHeader'
     Assert-True -Condition ($header.Current.Name.StartsWith('Available updates', [StringComparison]::Ordinal)) `
         -Name 'Package Manager package-updates alias selects Updates'
+
+    $sortPicker = Wait-ForElement -Root $root -AutomationId 'NativePackageSortPicker'
+    $selection = [System.Windows.Automation.SelectionPattern]$sortPicker.GetCurrentPattern(
+        [System.Windows.Automation.SelectionPattern]::Pattern)
+    Assert-True -Condition ([bool]$selection) -Name 'Package Manager exposes the persistent sort picker'
 
     $probeDeadline = [DateTime]::UtcNow.AddMilliseconds([Math]::Max($TimeoutMs, 30000))
     do {

@@ -128,6 +128,20 @@ NativeTestCounts RunPackageManagerTests()
     launch = ParseLaunchRequest(std::vector<std::wstring>{ L"WinForge.exe", L"--page", L"packages-setup" });
     expect(launch.route == L"module.packages" && launch.argument == L"#setup", "plural setup launch alias deep-links the setup view");
 
+    std::vector<PackageItem> sort_items{
+        { L"Zulu", L"b.id", L"2.0", L"", L"beta", L"winget" },
+        { L"Beta", L"a.id", L"1.0", L"", L"gamma", L"npm" },
+        { L"Alpha", L"c.id", L"3.0", L"", L"alpha", L"scoop" },
+    };
+    SortPackageItems(sort_items, PackageSortMode::Name);
+    expect(sort_items.front().name == L"Alpha" && sort_items.back().name == L"Zulu", "package sorting by name is applied");
+    SortPackageItems(sort_items, PackageSortMode::Source);
+    expect(sort_items.front().source == L"alpha" && sort_items.back().source == L"gamma", "package sorting by source is applied");
+    SortPackageItems(sort_items, PackageSortMode::Id);
+    expect(sort_items.front().id == L"a.id" && sort_items.back().id == L"c.id", "package sorting by id is applied");
+    SortPackageItems(sort_items, PackageSortMode::Manager);
+    expect(sort_items.front().manager_key == L"npm" && sort_items.back().manager_key == L"winget", "package sorting by manager is applied");
+
     std::array<std::pair<std::wstring_view, std::wstring_view>, 11> const valid_references{
         std::pair{ L"winget", L"Microsoft.PowerToys" },
         std::pair{ L"scoop", L"extras/7zip" },

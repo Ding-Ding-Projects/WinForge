@@ -508,6 +508,58 @@ namespace winforge::core::packages
         return std::wstring(L"module.packages#") + std::wstring(*fragment);
     }
 
+    void SortPackageItems(std::vector<PackageItem>& items, PackageSortMode sort_mode) noexcept
+    {
+        auto const by_manager = [](PackageItem const& left, PackageItem const& right)
+        {
+            if (left.manager_key != right.manager_key) return left.manager_key < right.manager_key;
+            if (left.name != right.name) return left.name < right.name;
+            if (left.id != right.id) return left.id < right.id;
+            if (left.source != right.source) return left.source < right.source;
+            return left.version < right.version;
+        };
+        auto const by_name = [](PackageItem const& left, PackageItem const& right)
+        {
+            if (left.name != right.name) return left.name < right.name;
+            if (left.manager_key != right.manager_key) return left.manager_key < right.manager_key;
+            if (left.id != right.id) return left.id < right.id;
+            if (left.source != right.source) return left.source < right.source;
+            return left.version < right.version;
+        };
+        auto const by_source = [](PackageItem const& left, PackageItem const& right)
+        {
+            if (left.source != right.source) return left.source < right.source;
+            if (left.manager_key != right.manager_key) return left.manager_key < right.manager_key;
+            if (left.name != right.name) return left.name < right.name;
+            if (left.id != right.id) return left.id < right.id;
+            return left.version < right.version;
+        };
+        auto const by_id = [](PackageItem const& left, PackageItem const& right)
+        {
+            if (left.id != right.id) return left.id < right.id;
+            if (left.manager_key != right.manager_key) return left.manager_key < right.manager_key;
+            if (left.name != right.name) return left.name < right.name;
+            if (left.source != right.source) return left.source < right.source;
+            return left.version < right.version;
+        };
+
+        switch (sort_mode)
+        {
+        case PackageSortMode::Name:
+            std::stable_sort(items.begin(), items.end(), by_name);
+            break;
+        case PackageSortMode::Source:
+            std::stable_sort(items.begin(), items.end(), by_source);
+            break;
+        case PackageSortMode::Id:
+            std::stable_sort(items.begin(), items.end(), by_id);
+            break;
+        default:
+            std::stable_sort(items.begin(), items.end(), by_manager);
+            break;
+        }
+    }
+
     ValidationResult ValidatePackageReference(
         std::wstring_view manager_key,
         std::wstring_view package_id) noexcept

@@ -1333,6 +1333,7 @@ namespace winrt::WinForge::implementation
         m_packageRememberView = true;
         m_packageRememberSearch = true;
         m_packageRememberFilters = true;
+        m_packageSortMode = 0;
         m_packageSearchText.clear();
         m_packageManagersSelected.clear();
         for (auto const& manager : winforge::core::packages::PackageManagers())
@@ -1366,6 +1367,10 @@ namespace winrt::WinForge::implementation
             m_packageRememberView = root.GetNamedBoolean(L"rememberView", true);
             m_packageRememberSearch = root.GetNamedBoolean(L"rememberSearch", true);
             m_packageRememberFilters = root.GetNamedBoolean(L"rememberFilters", true);
+            m_packageSortMode = std::clamp(
+                static_cast<int32_t>(root.GetNamedNumber(L"sortMode", static_cast<double>(m_packageSortMode))),
+                0,
+                3);
 
             if (m_packageRememberView)
             {
@@ -1431,6 +1436,7 @@ namespace winrt::WinForge::implementation
             root.SetNamedValue(L"rememberView", winrt::Windows::Data::Json::JsonValue::CreateBooleanValue(m_packageRememberView));
             root.SetNamedValue(L"rememberSearch", winrt::Windows::Data::Json::JsonValue::CreateBooleanValue(m_packageRememberSearch));
             root.SetNamedValue(L"rememberFilters", winrt::Windows::Data::Json::JsonValue::CreateBooleanValue(m_packageRememberFilters));
+            root.SetNamedValue(L"sortMode", winrt::Windows::Data::Json::JsonValue::CreateNumberValue(static_cast<double>(m_packageSortMode)));
             root.SetNamedValue(L"view", winrt::Windows::Data::Json::JsonValue::CreateNumberValue(static_cast<double>(m_packageView)));
             root.SetNamedValue(L"search", winrt::Windows::Data::Json::JsonValue::CreateStringValue(ToHString(m_packageSearchText)));
 
@@ -1475,6 +1481,7 @@ namespace winrt::WinForge::implementation
             m_packageRememberSearch = true;
             m_packageRememberFilters = true;
             m_packageView = 0;
+            m_packageSortMode = 0;
             m_packageSearchText.clear();
             m_packageManagersSelected.clear();
             for (auto const& manager : winforge::core::packages::PackageManagers())
@@ -1489,6 +1496,10 @@ namespace winrt::WinForge::implementation
             if (m_packageSearchBox)
             {
                 m_packageSearchBox.Text(ToHString(m_packageSearchText));
+            }
+            if (m_packageSortPicker)
+            {
+                m_packageSortPicker.SelectedIndex(m_packageSortMode);
             }
             if (m_packageManagerFilters)
             {
@@ -1505,6 +1516,13 @@ namespace winrt::WinForge::implementation
         {
         }
         m_packageStateApplying = false;
+    }
+
+    void MainWindow::ApplyPackageSort()
+    {
+        winforge::core::packages::SortPackageItems(
+            m_packageItems,
+            static_cast<winforge::core::packages::PackageSortMode>(m_packageSortMode));
     }
 
     void MainWindow::RecordPackageOperation(std::wstring message)
@@ -1777,6 +1795,35 @@ namespace winrt::WinForge::implementation
             }
         });
         toolbar.Children().Append(m_packageSearchBox);
+
+        m_packageSortPicker = ComboBox();
+        m_packageSortPicker.MinWidth(210);
+        for (auto const& option : std::array{
+            std::pair{ 0, winforge::core::LocalizedText{ L"Sort by manager", L"按管理器排序" } },
+            std::pair{ 1, winforge::core::LocalizedText{ L"Sort by name", L"按名稱排序" } },
+            std::pair{ 2, winforge::core::LocalizedText{ L"Sort by source", L"按來源排序" } },
+            std::pair{ 3, winforge::core::LocalizedText{ L"Sort by ID", L"按 ID 排序" } },
+        })
+        {
+            ComboBoxItem item;
+            item.Content(box_value(ToHString(option.second.Pick(m_language))));
+            item.Tag(box_value(option.first));
+            m_packageSortPicker.Items().Append(item);
+        }
+        m_packageSortPicker.SelectedIndex(m_packageSortMode);
+        AutomationProperties::SetAutomationId(m_packageSortPicker, L"NativePackageSortPicker");
+        m_packageSortPicker.SelectionChanged([this](Windows::Foundation::IInspectable const&, SelectionChangedEventArgs const&)
+        {
+            if (m_packageStateApplying)
+            {
+                return;
+            }
+            m_packageSortMode = std::clamp(m_packageSortPicker.SelectedIndex(), 0, 3);
+            ApplyPackageSort();
+            SavePackageManagerState();
+            RenderPackageManagerView();
+        });
+        toolbar.Children().Append(m_packageSortPicker);
 
         m_packagePrimaryAction = Button();
         m_packagePrimaryAction.Padding(Thickness{ 14, 8, 14, 8 });
@@ -2372,12 +2419,7 @@ namespace winrt::WinForge::implementation
             }
             m_packageRunStates.push_back(std::move(state));
         }
-        std::sort(m_packageItems.begin(), m_packageItems.end(), [](auto const& left, auto const& right)
-        {
-            if (left.manager_key != right.manager_key) return left.manager_key < right.manager_key;
-            if (left.name != right.name) return left.name < right.name;
-            return left.id < right.id;
-        });
+        ApplyPackageSort();
 
         RecordPackageOperation(
             L"Native query completed: " + std::to_wstring(m_packageItems.size()) +
@@ -2741,7 +2783,14 @@ namespace winrt::WinForge::implementation
 
         if (m_packageView == 3)
         {
-            auto const& bundleItems = m_packageBundleItems.empty() ? m_packageItems : m_packageBundleItems;
+            if (m_packageBundleItems.empty())
+            {
+                ApplyPackageSort();
+            }
+            auto bundleItems = m_packageBundleItems.empty() ? m_packageItems : m_packageBundleItems;
+            winforge::core::packages::SortPackageItems(
+                bundleItems,
+                static_cast<winforge::core::packages::PackageSortMode>(m_packageSortMode));
             if (m_packageBundleSourcePath.empty())
             {
                 appendCard(

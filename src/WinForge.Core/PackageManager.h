@@ -60,6 +60,14 @@ namespace winforge::core::packages
         std::wstring manager_key;
     };
 
+    enum class PackageSortMode : std::uint8_t
+    {
+        Manager = 0,
+        Name = 1,
+        Source = 2,
+        Id = 3,
+    };
+
     // Mirrors the managed InstallOptions schema. Pre/post hooks remain represented for bundle
     // compatibility, but this argv-only layer deliberately rejects non-empty shell hooks.
     struct InstallOptions
@@ -195,6 +203,7 @@ namespace winforge::core::packages
     [[nodiscard]] std::optional<PackageView> PackageViewFromFragment(std::wstring_view fragment) noexcept;
     [[nodiscard]] std::optional<std::wstring_view> PackageViewFragment(PackageView view) noexcept;
     [[nodiscard]] std::optional<std::wstring> PackageNavigationKey(PackageView view);
+    void SortPackageItems(std::vector<PackageItem>& items, PackageSortMode sort_mode) noexcept;
 
     [[nodiscard]] ValidationResult ValidatePackageReference(
         std::wstring_view manager_key,

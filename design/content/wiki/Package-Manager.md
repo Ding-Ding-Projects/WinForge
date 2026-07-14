@@ -23,7 +23,7 @@ C++20／C++/WinRT 遷移會如實標示為**進行中**，唔係完整 UniGetUI 
 | **Bundles · 套件清單** | Native bundle snapshot import/export preview is now implemented; full interoperability and parity are still gated. · 原生清單快照匯入／匯出預覽而家已實作；完整互通同對等仍然鎖住。 |
 | **Ignored · 已忽略** | Gated placeholder. · 鎖住嘅 placeholder。 |
 | **Setup · 設定引擎** | Non-destructive availability probes only; bootstrap remains gated. · 只限非破壞性可用性探測；bootstrap 仍然鎖住。 |
-| **Settings · 設定** | Gated placeholder. · 鎖住嘅 placeholder。 |
+| **Settings · 設定** | Native JSON persistence now remembers package view, search text, sort mode, and manager-filter choices; broader per-manager defaults, backup, and restore remain gated. · 原生 JSON 持久化而家會記住套件檢視、搜尋文字、排序模式同管理器篩選；更完整逐管理器預設、備份同還原仍然鎖住。 |
 | **Operations · 操作佇列** | Transient read-only event log only; the real coordinator/history/cancel/reorder/retry workflow remains gated. · 只限暫時只讀事件記錄；真正協調器／歷史／取消／重新排序／重試流程仍然鎖住。 |
 
 All install, update, uninstall, source, and bulk mutations remain separately gated. Bundles now has a native snapshot import/export preview, while the rest of the advanced bundle lifecycle remains gated. Native queries use reviewed argument-vector builders, bounded parsers, allowlisted HTTPS endpoints, and a contained Win32 process runner. External manager commands fail closed while WinForge is elevated; no upstream UniGetUI executable or UI is launched.
@@ -37,7 +37,7 @@ All install, update, uninstall, source, and bulk mutations remain separately gat
 - Normal-integrity live smoke is blocked before package execution: even an interactive `RunLevel=Limited` task received a token that failed the standard-user proof. The harness stopped safely; no live-query pass is claimed. · 正常權限 live smoke 喺套件執行之前受阻：即使互動式工作設為 `RunLevel=Limited`，收到嘅 token 仍然未通過標準使用者證明。harness 已安全停止；唔會聲稱 live query 通過。
 - Native visual evidence remains `capture-blocked` for the exact reason recorded above. · 原生視覺證據仍然因上面記錄嘅確實原因標示為 `capture-blocked`。
 
-Remaining UniGetUI-informed work includes the capability/maintenance/log model; persisted sorting, views, media/share, and open-location actions; durable queue ordering/history/retry; complete bundle/download/installed-detection interoperability; secure opt-in/elevation/batch consent; backup and per-manager settings; actionable notifications/tray commands; and authenticated API/CLI/headless/deep-link/widget surfaces. Linux- and macOS-only managers are outside this Windows product's scope.
+Remaining UniGetUI-informed work includes the capability/maintenance/log model; views, media/share, and open-location actions; durable queue ordering/history/retry; complete bundle/download/installed-detection interoperability; secure opt-in/elevation/batch consent; backup and per-manager settings; actionable notifications/tray commands; and authenticated API/CLI/headless/deep-link/widget surfaces. Linux- and macOS-only managers are outside this Windows product's scope.
 
 尚欠嘅 UniGetUI 參考工作包括 capability／維護／日誌模型；持久化排序、檢視、媒體／分享同開啟位置動作；可保存佇列次序／歷史／重試；完整清單／下載／已安裝偵測互通；安全 opt-in／提升權限／批次同意；備份同逐管理器設定；可操作通知／系統匣指令；以及已驗證身份嘅 API／CLI／headless／deep-link／widget 介面。只供 Linux 同 macOS 嘅管理器唔屬於呢個 Windows 產品範圍。
 

@@ -41,6 +41,7 @@ namespace winrt::WinForge::implementation
         Microsoft::UI::Xaml::Controls::ListView m_allAppsList{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_allAppsCount{ nullptr };
         Microsoft::UI::Xaml::Controls::ComboBox m_packageViewPicker{ nullptr };
+        Microsoft::UI::Xaml::Controls::ComboBox m_packageSortPicker{ nullptr };
         Microsoft::UI::Xaml::Controls::AutoSuggestBox m_packageSearchBox{ nullptr };
         Microsoft::UI::Xaml::Controls::Button m_packagePrimaryAction{ nullptr };
         Microsoft::UI::Xaml::Controls::Button m_packageSecondaryAction{ nullptr };
@@ -84,6 +85,7 @@ namespace winrt::WinForge::implementation
         bool m_packageStateApplying{ false };
         std::wstring m_packageSearchText{};
         std::wstring m_packageBundleSourcePath{};
+        int32_t m_packageSortMode{ 0 };
         int32_t m_checkDigitScheme{ 0 };
         std::wstring m_checkDigitValue{};
         bool m_checkDigitRendering{ false };
@@ -111,6 +113,7 @@ namespace winrt::WinForge::implementation
         void LoadPackageManagerState();
         void SavePackageManagerState() const;
         void ResetPackageManagerState();
+        void ApplyPackageSort();
         void RecordPackageOperation(std::wstring message);
         void ClearPackageOperationLog();
         [[nodiscard]] std::wstring BundleSnapshotToJson(
