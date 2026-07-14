@@ -109,6 +109,7 @@ namespace winrt::WinForge::implementation
         bool m_packageRememberView{ true };
         bool m_packageRememberSearch{ true };
         bool m_packageRememberFilters{ true };
+        int32_t m_packageSnoozeDays{ 7 };
         std::filesystem::path m_packageStatePath;
         bool m_packageStateApplying{ false };
         std::wstring m_packageSearchText{};

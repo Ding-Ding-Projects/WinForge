@@ -21,6 +21,7 @@
 #include <fstream>
 #include <future>
 #include <commdlg.h>
+#include <iterator>
 #include <sstream>
 #include <stdexcept>
 #include <unordered_set>
@@ -102,6 +103,41 @@ namespace
     std::wstring FormatRuleTime(std::int64_t epochSeconds)
     {
         return std::to_wstring(epochSeconds) + L" UTC epoch seconds";
+    }
+
+    int32_t NormalizeSnoozeDays(int32_t days)
+    {
+        constexpr std::array<int32_t, 4> Allowed{ 1, 7, 14, 30 };
+        auto const found = std::find(Allowed.begin(), Allowed.end(), days);
+        return found == Allowed.end() ? 7 : days;
+    }
+
+    int32_t SnoozeDaysIndex(int32_t days)
+    {
+        constexpr std::array<int32_t, 4> Allowed{ 1, 7, 14, 30 };
+        auto const found = std::find(Allowed.begin(), Allowed.end(), NormalizeSnoozeDays(days));
+        return found == Allowed.end()
+            ? 1
+            : static_cast<int32_t>(std::distance(Allowed.begin(), found));
+    }
+
+    int32_t SnoozeDaysFromIndex(int32_t index)
+    {
+        constexpr std::array<int32_t, 4> Allowed{ 1, 7, 14, 30 };
+        if (index < 0 || index >= static_cast<int32_t>(Allowed.size()))
+        {
+            return 7;
+        }
+        return Allowed[static_cast<std::size_t>(index)];
+    }
+
+    std::wstring FormatSnoozeLabel(int32_t days, winforge::core::LanguageMode language)
+    {
+        days = NormalizeSnoozeDays(days);
+        auto const count = std::to_wstring(days);
+        return winforge::core::LocalizedText{
+            L"Snooze " + count + (days == 1 ? L" day" : L" days"),
+            L"暫停 " + count + L" 日" }.Pick(language);
     }
 
     std::wstring EscapeJson(std::wstring_view value)
@@ -1422,6 +1458,8 @@ namespace winrt::WinForge::implementation
                 static_cast<int32_t>(root.GetNamedNumber(L"sortMode", static_cast<double>(m_packageSortMode))),
                 0,
                 3);
+            m_packageSnoozeDays = NormalizeSnoozeDays(
+                static_cast<int32_t>(root.GetNamedNumber(L"snoozeDays", static_cast<double>(m_packageSnoozeDays))));
 
             if (m_packageRememberView)
             {
@@ -1591,6 +1629,7 @@ namespace winrt::WinForge::implementation
             root.SetNamedValue(L"rememberSearch", winrt::Windows::Data::Json::JsonValue::CreateBooleanValue(m_packageRememberSearch));
             root.SetNamedValue(L"rememberFilters", winrt::Windows::Data::Json::JsonValue::CreateBooleanValue(m_packageRememberFilters));
             root.SetNamedValue(L"sortMode", winrt::Windows::Data::Json::JsonValue::CreateNumberValue(static_cast<double>(m_packageSortMode)));
+            root.SetNamedValue(L"snoozeDays", winrt::Windows::Data::Json::JsonValue::CreateNumberValue(static_cast<double>(NormalizeSnoozeDays(m_packageSnoozeDays))));
             root.SetNamedValue(L"view", winrt::Windows::Data::Json::JsonValue::CreateNumberValue(static_cast<double>(m_packageView)));
             root.SetNamedValue(L"search", winrt::Windows::Data::Json::JsonValue::CreateStringValue(ToHString(m_packageSearchText)));
 
@@ -1673,6 +1712,7 @@ namespace winrt::WinForge::implementation
             m_packageRememberFilters = true;
             m_packageView = 0;
             m_packageSortMode = 0;
+            m_packageSnoozeDays = 7;
             m_packageSearchText.clear();
             m_packageIgnoredRules.clear();
             m_packagePinnedRules.clear();
@@ -2084,7 +2124,8 @@ namespace winrt::WinForge::implementation
             return;
         }
 
-        auto const until = NowUnixSeconds() + 7 * 24 * 60 * 60;
+        auto const days = NormalizeSnoozeDays(m_packageSnoozeDays);
+        auto const until = NowUnixSeconds() + static_cast<std::int64_t>(days) * 24 * 60 * 60;
         auto const key = PackageRuleKey(package.manager_key, package.id);
         auto found = std::find_if(
             m_packageSnoozedRules.begin(),
@@ -2122,15 +2163,16 @@ namespace winrt::WinForge::implementation
             m_packageItems.end());
 
         RecordPackageOperation(
-            L"Snoozed updates for " + package.id +
+            L"Snoozed updates for " + package.id + L" for " +
+                std::to_wstring(days) + L" day(s)" +
                 L" via " + package.manager_key + L" until " + FormatRuleTime(until) +
                 L"; hidden " + std::to_wstring(before - m_packageItems.size()) +
-                L" currently loaded update row(s). · 已保存七日暫停。");
+                L" currently loaded update row(s). · 已保存自訂暫停。");
         SavePackageManagerState();
         RenderPackageManagerView();
         AnnouncePackageStatus(
-            L"Seven-day snooze saved. Matching update rows are hidden until the snooze expires or is removed.",
-            L"已保存七日暫停；相符更新會隱藏到暫停到期或者被移除。");
+            L"Update snooze saved. Matching update rows are hidden until the snooze expires or is removed.",
+            L"已保存更新暫停；相符更新會隱藏到暫停到期或者被移除。");
     }
 
     void MainWindow::RemoveIgnoredPackage(std::wstring managerKey, std::wstring packageId)
@@ -3412,8 +3454,8 @@ namespace winrt::WinForge::implementation
             m_packagePrimaryAction.Content(box_value(ToHString(pick(L"Clear rules", L"清除規則"))));
             header = pick(L"Ignored, pinned, and snoozed updates", L"已忽略、釘住同暫停嘅更新");
             explanation = pick(
-                L"Native ignore, version-pin, and seven-day snooze rules are persisted locally and hide matching rows from Updates results.",
-                L"原生忽略、版本釘選同七日暫停規則會本機保存，並喺更新結果隱藏相符資料列。");
+                L"Native ignore, version-pin, and custom-duration snooze rules are persisted locally and hide matching rows from Updates results.",
+                L"原生忽略、版本釘選同自訂時長暫停規則會本機保存，並喺更新結果隱藏相符資料列。");
             break;
         case 6:
             m_packagePrimaryAction.Content(box_value(ToHString(pick(L"Probe again", L"再次探測"))));
@@ -3426,8 +3468,8 @@ namespace winrt::WinForge::implementation
             m_packagePrimaryAction.Content(box_value(ToHString(pick(L"Reset state", L"重設狀態"))));
             header = pick(L"Package Manager settings", L"套件管理設定");
             explanation = pick(
-                L"Package-view, search, and filter preferences now persist in native JSON state. Broader per-manager settings, backup, and restore remain gated.",
-                L"套件檢視、搜尋同篩選偏好而家會保存喺原生 JSON 狀態。更完整嘅逐管理器設定、備份同還原仍然鎖住。");
+                L"Package-view, search, filter, and snooze-duration preferences now persist in native JSON state. Broader per-manager settings, backup, and restore remain gated.",
+                L"套件檢視、搜尋、篩選同暫停時長偏好而家會保存喺原生 JSON 狀態。更完整嘅逐管理器設定、備份同還原仍然鎖住。");
             break;
         default:
             m_packagePrimaryAction.Content(box_value(ToHString(pick(L"Refresh", L"重新整理"))));
@@ -3550,8 +3592,8 @@ namespace winrt::WinForge::implementation
                 appendCard(
                     pick(L"No pinned, snoozed, or ignored updates", L"未有釘選、暫停或忽略更新"),
                     pick(
-                        L"Run an Updates query, then use Ignore, Pin version, or Snooze 7 days on an update row to persist a local rule.",
-                        L"執行更新查詢，然後喺更新資料列使用「忽略」、「釘選版本」或者「暫停七日」，即可保存本機規則。"),
+                        L"Run an Updates query, then use Ignore, Pin version, or Snooze on an update row to persist a local rule.",
+                        L"執行更新查詢，然後喺更新資料列使用「忽略」、「釘選版本」或者「暫停」，即可保存本機規則。"),
                     L"NativePackageIgnoredEmpty");
             }
             else
@@ -3752,6 +3794,57 @@ namespace winrt::WinForge::implementation
                 L"Persist which package engines are selected for the next launch.",
                 L"保存下次啟動時揀咗邊啲套件引擎。",
                 m_packageRememberFilters);
+
+            Border snoozeCard;
+            snoozeCard.Padding(Thickness{ 16 });
+            snoozeCard.CornerRadius(CornerRadius{ 8 });
+            snoozeCard.BorderThickness(Thickness{ 1 });
+            snoozeCard.BorderBrush(Application::Current().Resources().Lookup(
+                box_value(L"CardStrokeColorDefaultBrush")).as<Media::Brush>());
+            snoozeCard.Background(Application::Current().Resources().Lookup(
+                box_value(L"CardBackgroundFillColorDefaultBrush")).as<Media::Brush>());
+
+            StackPanel snoozeContent;
+            snoozeContent.Spacing(6);
+            snoozeContent.Children().Append(CreateText(
+                pick(L"Default update snooze duration", L"預設更新暫停時長"),
+                13,
+                true));
+            snoozeContent.Children().Append(CreateText(
+                pick(
+                    L"Choose how long the Updates row Snooze action hides matching packages. The selected duration is persisted in native JSON and never executes a package-manager command.",
+                    L"選擇「更新」資料列嘅暫停動作會隱藏相符套件幾耐；所選時長會保存喺原生 JSON，亦唔會執行任何套件管理器指令。"),
+                12.5));
+
+            ComboBox snoozePicker;
+            snoozePicker.MinWidth(180);
+            AutomationProperties::SetAutomationId(snoozePicker, L"NativePackageSnoozeDays");
+            AutomationProperties::SetName(
+                snoozePicker,
+                ToHString(pick(L"Default update snooze duration", L"預設更新暫停時長")));
+            for (auto const days : { 1, 7, 14, 30 })
+            {
+                ComboBoxItem item;
+                item.Content(box_value(ToHString(FormatSnoozeLabel(days, m_language))));
+                snoozePicker.Items().Append(item);
+            }
+            m_packageSnoozeDays = NormalizeSnoozeDays(m_packageSnoozeDays);
+            snoozePicker.SelectedIndex(SnoozeDaysIndex(m_packageSnoozeDays));
+            snoozePicker.SelectionChanged([this](
+                Windows::Foundation::IInspectable const& sender,
+                SelectionChangedEventArgs const&)
+            {
+                auto const selected = sender.as<ComboBox>().SelectedIndex();
+                m_packageSnoozeDays = SnoozeDaysFromIndex(selected);
+                SavePackageManagerState();
+                RenderPackageManagerView();
+                AnnouncePackageStatus(
+                    L"Default update snooze duration saved.",
+                    L"預設更新暫停時長已保存。");
+            });
+            snoozeContent.Children().Append(snoozePicker);
+            snoozeCard.Child(snoozeContent);
+            m_packageResults.Children().Append(snoozeCard);
 
             Border resetCard;
             resetCard.Padding(Thickness{ 16 });
@@ -4012,7 +4105,7 @@ namespace winrt::WinForge::implementation
                 actions.Children().Append(pin);
 
                 Button snooze;
-                snooze.Content(box_value(ToHString(pick(L"Snooze 7 days", L"暫停七日"))));
+                snooze.Content(box_value(ToHString(FormatSnoozeLabel(m_packageSnoozeDays, m_language))));
                 snooze.IsEnabled(!m_packageWorking);
                 snooze.HorizontalAlignment(HorizontalAlignment::Left);
                 AutomationProperties::SetAutomationId(
@@ -4024,8 +4117,8 @@ namespace winrt::WinForge::implementation
                 ToolTipService::SetToolTip(
                     snooze,
                     box_value(ToHString(pick(
-                        L"Persist a local seven-day snooze and hide matching update rows until it expires.",
-                        L"保存本機七日暫停，並喺到期前隱藏相符更新資料列。"))));
+                        L"Persist a local snooze using the configured duration and hide matching update rows until it expires.",
+                        L"使用已設定時長保存本機暫停，並喺到期前隱藏相符更新資料列。"))));
                 auto snoozedPackageCopy = package;
                 snooze.Click([this, snoozedPackageCopy = std::move(snoozedPackageCopy)](
                     Windows::Foundation::IInspectable const&,

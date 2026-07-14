@@ -736,6 +736,14 @@ Invoke-OwnedRoute -Route 'package-settings' -ExpectedTitle 'Package Manager' -In
     $summary = Wait-ForElement -Root $root -AutomationId 'NativePackageSettingsSummary'
     Assert-True -Condition ($summary.Current.Name.StartsWith('Native package-manager state', [StringComparison]::Ordinal)) `
         -Name 'Package Manager package-settings alias selects Settings'
+    $snooze = Wait-ForElement -Root $root -AutomationId 'NativePackageSnoozeDays'
+    Assert-True -Condition ($snooze.Current.Name.StartsWith('Default update snooze duration', [StringComparison]::Ordinal)) `
+        -Name 'Package Manager exposes a localized default snooze-duration picker'
+    Select-ComboIndex -Combo $snooze -Index 1
+    $snooze = Wait-ForElement -Root $root -AutomationId 'NativePackageSnoozeDays'
+    Select-ComboIndex -Combo $snooze -Index 2
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativePackageLiveStatus' -Prefix 'Package Manager status: Default update snooze duration saved' | Out-Null
+    Assert-True -Condition $true -Name 'Package Manager saves the custom native snooze duration through UI Automation'
 }
 
 Invoke-OwnedRoute -Route 'packages-settings' -ExpectedTitle 'Package Manager' -Inspect {
