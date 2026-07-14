@@ -29,6 +29,8 @@ Check Digit Validator is the next genuine native utility slice. Its standard C++
 
 Text to Binary is the next genuine native utility slice. `binarytext`, `textbinary`, and `module.binarytext` run a standard-C++ UTF-8 byte-code converter for binary, decimal, octal, and uppercase hexadecimal output. It mirrors the managed separators/prefixes and replacement-character behavior, clears output atomically for malformed or out-of-range input, preserves selected base/input/output through language rerenders, exposes localized UI Automation names plus a polite live region, and touches the clipboard only after an explicit Copy. Functional evidence passes, but its ledger row remains **in progress** because fresh visual capture is `capture-blocked`. · 文字轉二進位係下一批真正原生 utility。`binarytext`、`textbinary` 同 `module.binarytext` 會執行標準 C++ UTF-8 位元組碼轉換器，提供二進位、十進位、八進位同大楷十六進位輸出。佢跟受控版分隔／prefix 同替代字元行為；格式錯誤或者超範圍輸入會原子式清空輸出；轉語言時保留已揀進位／輸入／輸出；有本地化 UI Automation 名稱同 polite live region；而且只會喺明確撳 Copy 後先掂剪貼簿。功能證據通過，但最新視覺擷取係 `capture-blocked`，所以清單仍然標示**進行中**。
 
+Case Converter is now a live native utility slice too. `module.caseconvert` tokenizes separators plus camel/Pascal/digit boundaries and emits ten ordered forms: camelCase, PascalCase, snake_case, kebab-case, CONSTANT_CASE, Title Case, Sentence case, dot.case, path/case, and Train-Case. The page keeps its bilingual input/output layout through language rerenders, loads ICU casing dynamically when available, and exposes stable accessibility IDs for each copy action. Fresh visual evidence was captured successfully and archived at `docs/screenshot-caseconvert.png`. · 大小寫轉換而家都係真正原生 utility。`module.caseconvert` 會按分隔符同 camel／Pascal／數字邊界做 token 化，再輸出十種有序格式：camelCase、PascalCase、snake_case、kebab-case、CONSTANT_CASE、Title Case、Sentence case、dot.case、path/case 同 Train-Case。頁面喺轉語言時會保留雙語輸入／輸出版面，可用時會動態載入 ICU 大小寫處理，並為每個複製動作提供穩定無障礙 ID。最新視覺證據已成功擷取並歸檔為 `docs/screenshot-caseconvert.png`。
+
 ## Verification · 驗證
 
 ```powershell
@@ -51,7 +53,7 @@ Normal-integrity live external-query evidence remains **blocked**. Even an inter
 
 ## Screenshot status · 截圖狀態
 
-Fresh native Dashboard, All Apps, About, Package Manager (`module.packages#updates`), Check Digit (`checkdigit`), and Text to Binary (`binarytext`) captures are blocked in this desktop session. `CopyFromScreen` is unavailable and `PrintWindow` returns a blank/near-uniform WinUI client frame, which the driver now rejects. No blank, stale, synthetic, or managed screenshot was substituted. UI Automation proves launch and behavior, not visual appearance; all six surfaces remain `capture-blocked`.
+Fresh native Dashboard, All Apps, About, Package Manager (`module.packages#updates`), Check Digit (`checkdigit`), and Text to Binary (`binarytext`) captures are blocked in this desktop session. Case Converter has a successful fresh capture at `docs/screenshot-caseconvert.png`. `CopyFromScreen` is unavailable and `PrintWindow` returns a blank/near-uniform WinUI client frame, which the driver now rejects for the remaining surfaces. No blank, stale, synthetic, or managed screenshot was substituted. UI Automation proves launch and behavior, not visual appearance; the blocked surfaces remain `capture-blocked`.
 
 呢個 desktop session 擷取唔到最新原生 Dashboard、所有 app、About、套件管理（`module.packages#updates`）、檢查碼（`checkdigit`）同文字轉二進位（`binarytext`）畫面。`CopyFromScreen` 用唔到，而 `PrintWindow` 只回傳空白／接近單色 WinUI client frame，driver 而家會拒絕呢種圖。冇用空白、舊、合成或者受控版截圖頂替。UI Automation 只證明 launch 同 behavior，唔代表視覺通過；六個介面仍然係 `capture-blocked`。
 

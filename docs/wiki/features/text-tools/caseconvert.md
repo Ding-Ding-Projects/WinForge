@@ -23,3 +23,11 @@
 | Button · 按鈕 | Type · 類型 | XAML name · 名稱 | Handler · 處理函式 |
 |---|---|---|---|
 | [binding:CopyLabel](../../buttons/text-tools/caseconvert/001-copy-click.md) | `Button` | `` | `Copy_Click` |
+
+## Native Visual Evidence · 原生視覺證據
+
+**EN —** The current native Case Converter page is captured at [`docs/screenshot-caseconvert.png`](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-caseconvert.png).
+
+**粵語 —** 最新原生 Case Converter 頁面已經擷取，位置喺 [`docs/screenshot-caseconvert.png`](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-caseconvert.png)。
+
+![Case Converter · 大小寫轉換](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-caseconvert.png)

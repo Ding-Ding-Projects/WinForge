@@ -69,6 +69,16 @@ The functional dimensions pass: 25 focused native cases run within each 233/233 
 
 功能維度全部通過：25 個專項原生案例會包含喺每次 233/233 原生 executable（191 個 core route／package-manager 檢查加 42 個 parser 檢查），連結嘅受控參考回歸係 18/18，而 59/59 即時 shell 會明確操作 Encode、Decode、搬輸出去輸入、Copy、格式錯誤清空、已揀進位／輸入／輸出保留，同全部 alias。呢條 route 只係因為最新 compositor 截圖係 `capture-blocked` 先保持**進行中**。
 
+### Case Converter parity slice · 大小寫轉換對等批次
+
+`module.caseconvert` now opens a real native page instead of the old pending shell. The standard-C++ core tokenizes separators and camel/Pascal/digit boundaries, then emits ten ordered forms: camelCase, PascalCase, snake_case, kebab-case, CONSTANT_CASE, Title Case, Sentence case, dot.case, path/case, and Train-Case. ICU-backed casing is loaded dynamically when available, the page keeps its bilingual input/output layout through language rerenders, and each row has a copy action with stable accessibility IDs.
+
+`module.caseconvert` 而家會開真正原生頁，唔再係舊 pending shell。標準 C++ core 會按分隔符同 camel／Pascal／數字邊界做 token 化，再輸出十種有序格式：camelCase、PascalCase、snake_case、kebab-case、CONSTANT_CASE、Title Case、Sentence case、dot.case、path/case 同 Train-Case。ICU 大小寫處理會喺可用時動態載入，頁面會喺轉語言時保留雙語輸入／輸出版面，而且每一行都有穩定無障礙 ID 嘅複製動作。
+
+Fresh native Case Converter visual evidence was captured successfully and is archived at `docs/screenshot-caseconvert.png`. The live page is the current screenshot reference for this slice.
+
+最新原生 Case Converter 視覺證據已成功擷取，並歸檔為 `docs/screenshot-caseconvert.png`。呢個 live page 就係呢個 slice 目前嘅截圖參考。
+
 `ThirdParty/UniGetUI` is the complete 1,002-file tracked-source snapshot of Devolutions/UniGetUI `main` at commit `21116375c8299d1db38a3c3b4c2eb7e18bc97c4e`, dated 2026-07-10 and preserved under the MIT license. It remains excluded from build and publish output. The snapshot is exact provenance and a behavior reference only—not an embedded runtime, copied product identity, or evidence of parity.
 
 `ThirdParty/UniGetUI` 係 Devolutions/UniGetUI `main` 喺 commit `21116375c8299d1db38a3c3b4c2eb7e18bc97c4e` 嘅完整 1,002 檔 tracked-source snapshot，日期係 2026-07-10，並按 MIT license 保留；建置同發佈輸出仍然會排除佢。呢份 snapshot 只係精確來源證明同功能參考，唔係內嵌 runtime、複製產品身份，亦唔係對等證據。
@@ -117,7 +127,7 @@ The normal-integrity live external-query gate remains **blocked**. The harness l
 
 ## Visual evidence disposition · 視覺證據處置
 
-Fresh native Dashboard, All Apps, About, Package Manager (`module.packages#updates`), Check Digit (`checkdigit`), and Text to Binary (`binarytext`) capture attempts were made with the required repository driver. `CopyFromScreen` was unavailable in this desktop session. `PrintWindow(PW_RENDERFULLCONTENT)` returned a title bar but a blank/near-uniform WinUI client frame, so the improved driver rejected it with:
+Fresh native Dashboard, All Apps, About, Package Manager (`module.packages#updates`), Check Digit (`checkdigit`), and Text to Binary (`binarytext`) capture attempts were made with the required repository driver. Case Converter now has a successful current capture at `docs/screenshot-caseconvert.png`; the remaining changed native surfaces were still blocked in this desktop session. `CopyFromScreen` was unavailable. `PrintWindow(PW_RENDERFULLCONTENT)` returned a title bar but a blank/near-uniform WinUI client frame, so the improved driver rejected it with:
 
 已經用指定 repo driver 重新嘗試擷取原生 Dashboard、所有 app、About、套件管理（`module.packages#updates`）、檢查碼（`checkdigit`）同文字轉二進位（`binarytext`）。呢個 desktop session 用唔到 `CopyFromScreen`；`PrintWindow(PW_RENDERFULLCONTENT)` 雖然有 title bar，但 WinUI client frame 係空白／接近單色，所以改良後 driver 拒絕咗：
 

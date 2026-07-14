@@ -413,6 +413,75 @@ foreach ($alias in @('textbinary', 'module.binarytext')) {
     Invoke-OwnedRoute -Route $alias -ExpectedTitle 'Text to Binary'
 }
 
+Invoke-OwnedRoute -Route 'caseconvert' -ExpectedTitle 'Case Converter' -Inspect {
+    param($root, $title)
+
+    foreach ($id in @(
+        'NativeCaseConvertImplementationStatus',
+        'NativeCaseConvertInput',
+        'NativeCaseConvertStatus',
+        'NativeCaseConvertOutputCamel',
+        'NativeCaseConvertOutputPascal',
+        'NativeCaseConvertOutputSnake',
+        'NativeCaseConvertOutputKebab',
+        'NativeCaseConvertOutputConstant',
+        'NativeCaseConvertOutputTitle',
+        'NativeCaseConvertOutputSentence',
+        'NativeCaseConvertOutputDot',
+        'NativeCaseConvertOutputPath',
+        'NativeCaseConvertOutputTrain',
+        'NativeCaseConvertCopyCamel'
+    )) {
+        Wait-ForElement -Root $root -AutomationId $id | Out-Null
+    }
+    Assert-True -Condition $true -Name 'Case Converter exposes its native control and accessibility contract'
+
+    $input = Wait-ForElement -Root $root -AutomationId 'NativeCaseConvertInput'
+    Assert-True -Condition ($input.Current.Name.StartsWith('Input text', [StringComparison]::Ordinal)) `
+        -Name 'Case Converter input has a localized accessible name'
+    $inputValue = [System.Windows.Automation.ValuePattern]$input.GetCurrentPattern(
+        [System.Windows.Automation.ValuePattern]::Pattern)
+    $inputValue.SetValue('helloWorld42API')
+
+    Wait-ForElementValue -Root $root -AutomationId 'NativeCaseConvertOutputCamel' -ExpectedValue 'helloWorld42Api' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeCaseConvertOutputPascal' -ExpectedValue 'HelloWorld42Api' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeCaseConvertOutputSnake' -ExpectedValue 'hello_world_42_api' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeCaseConvertOutputKebab' -ExpectedValue 'hello-world-42-api' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeCaseConvertOutputConstant' -ExpectedValue 'HELLO_WORLD_42_API' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeCaseConvertOutputTitle' -ExpectedValue 'Hello World 42 Api' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeCaseConvertOutputSentence' -ExpectedValue 'Hello world 42 api' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeCaseConvertOutputDot' -ExpectedValue 'hello.world.42.api' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeCaseConvertOutputPath' -ExpectedValue 'hello/world/42/api' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeCaseConvertOutputTrain' -ExpectedValue 'Hello-World-42-Api' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCaseConvertStatus' -Prefix '4 word(s) detected.' | Out-Null
+    Assert-True -Condition $true -Name 'Case Converter renders all ten forms through the live native UI'
+
+    $copy = Wait-ForElement -Root $root -AutomationId 'NativeCaseConvertCopyCamel'
+    ([System.Windows.Automation.InvokePattern]$copy.GetCurrentPattern(
+        [System.Windows.Automation.InvokePattern]::Pattern)).Invoke()
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCaseConvertStatus' -Prefix 'Output copied to clipboard' | Out-Null
+    Assert-True -Condition $true -Name 'Case Converter copies a populated row through the live native UI'
+
+    $inputValue.SetValue('')
+    $copy = Wait-ForElement -Root $root -AutomationId 'NativeCaseConvertCopyCamel'
+    ([System.Windows.Automation.InvokePattern]$copy.GetCurrentPattern(
+        [System.Windows.Automation.InvokePattern]::Pattern)).Invoke()
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCaseConvertStatus' -Prefix 'Nothing to copy' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeCaseConvertOutputCamel' -ExpectedValue '' | Out-Null
+    Assert-True -Condition $true -Name 'Case Converter clears stale values and copies empty rows explicitly'
+
+    $inputValue.SetValue('helloWorld42API')
+    $language = Wait-ForElement -Root $root -AutomationId 'NativeLanguagePicker'
+    Select-ComboItem -Combo $language -Name 'English'
+    Wait-ForPageTitle -Root $root -Prefix 'Case Converter' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeCaseConvertOutputCamel' -ExpectedValue 'helloWorld42Api' | Out-Null
+    Assert-True -Condition $true -Name 'Case Converter preserves input and outputs across language rerender'
+}
+
+foreach ($alias in @('caseconvert', 'module.caseconvert')) {
+    Invoke-OwnedRoute -Route $alias -ExpectedTitle 'Case Converter'
+}
+
 Invoke-OwnedRoute -Route 'package-updates' -ExpectedTitle 'Package Manager' -Inspect {
     param($root, $title)
 
