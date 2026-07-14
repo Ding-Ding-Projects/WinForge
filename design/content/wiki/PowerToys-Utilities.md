@@ -84,6 +84,8 @@ Open in-app: `WinForge.exe --page mouseutils`
 
 Wrap the pointer to the opposite outer edge of the active display. Choose always-on, Ctrl-held, or Shift-held activation; horizontal, vertical, or both-direction wrapping; and optionally pause it while only one monitor is connected. · 游標去到使用中顯示器嘅外邊會由對面再出現。可選長開、撳住 Ctrl、或者撳住 Shift 先啟用；亦都可以揀橫向、直向、或者兩個方向環繞，仲可以得一個螢幕時暫停。
 
+Fresh visual capture for CursorWrap is currently blocked in this desktop session: `CopyFromScreen` is unavailable and the driver rejected the blank / near-uniform fallback, so no current `screenshot-cursorwrap.png` is available yet. · CursorWrap 嘅最新視覺擷取而家喺呢個 desktop session 受阻：`CopyFromScreen` 唔可用，而 driver 拒絕咗空白／接近單色 fallback，所以暫時未有可用嘅 `screenshot-cursorwrap.png`。
+
 ### Grab and Move · 拖曳移動視窗
 
 Hold Alt (or the Windows key) and left-drag anywhere in a normal window to move it. Optional right-drag resize selects the nearest edge or corner, while exclusions, full-screen-game pausing, Alt-menu suppression, and a live geometry label keep the gesture predictable. · 撳住 Alt（或者 Windows 鍵）之後喺普通視窗任何位置用左鍵拖曳就可以移動。可選右鍵拖曳會揀最近嘅邊或者角縮放；排除清單、全螢幕遊戲暫停、Alt 選單抑制同即時座標標籤令手勢更可預測。

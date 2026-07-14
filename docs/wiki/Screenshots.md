@@ -598,6 +598,11 @@ Fresh capture is pending because the current desktop capture host rejects `CopyF
 ### Mouse Utilities · 滑鼠工具
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-mouseutils.png)
 
+### CursorWrap · 游標環繞
+> Fresh native capture is blocked in this desktop session: `CopyFromScreen` is unavailable and the driver rejected the blank / near-uniform fallback, so no `screenshot-cursorwrap.png` was created or replaced. The feature remains documented through the live Mouse Utilities page and its text entry here.
+
+> 新原生截圖喺呢個 desktop session 受阻：`CopyFromScreen` 唔可用，而 driver 又拒絕咗空白／接近單色 fallback，所以冇建立或者替換 `screenshot-cursorwrap.png`。呢個功能仍然透過即時 Mouse Utilities 頁面同此處文字條目記錄。
+
 ### Mouse & Pointer · 滑鼠與指標
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-mouse.png)
 
