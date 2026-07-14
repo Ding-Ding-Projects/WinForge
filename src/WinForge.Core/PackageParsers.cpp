@@ -14,12 +14,15 @@
 namespace
 {
     using winforge::core::packages::PackageOutputKind;
+    using winforge::core::packages::PackageDetailField;
     using winforge::core::packages::PackageRecord;
 
     constexpr std::size_t MaxInputBytes = 16U * 1024U * 1024U;
     constexpr std::size_t MaxRecords = 10'000U;
     constexpr std::size_t MaxJsonNodes = 250'000U;
     constexpr std::size_t MaxJsonDepth = 64U;
+    constexpr std::size_t MaxDetailFields = 32U;
+    constexpr std::size_t MaxDetailValueBytes = 2'048U;
 
     bool IsSpace(char character) noexcept
     {
@@ -45,6 +48,28 @@ namespace
     {
         value = TrimView(value);
         return std::string(value);
+    }
+
+    std::string CollapseAsciiSpaces(std::string_view value)
+    {
+        std::string result;
+        result.reserve(value.size());
+        bool pendingSpace = false;
+        for (auto const character : value)
+        {
+            if (IsSpace(character) || character == '_' || character == '-')
+            {
+                pendingSpace = !result.empty();
+                continue;
+            }
+            if (pendingSpace)
+            {
+                result.push_back(' ');
+                pendingSpace = false;
+            }
+            result.push_back(character);
+        }
+        return result;
     }
 
     char LowerAscii(char character) noexcept
@@ -90,6 +115,18 @@ namespace
         for (std::size_t start = 0; start + needle.size() <= value.size(); ++start)
         {
             if (EqualsInsensitive(value.substr(start, needle.size()), needle))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool ContainsInsensitiveAny(std::string_view value, std::initializer_list<std::string_view> needles) noexcept
+    {
+        for (auto const needle : needles)
+        {
+            if (ContainsInsensitive(value, needle))
             {
                 return true;
             }
@@ -806,6 +843,157 @@ namespace
             return value->scalar;
         default:
             return {};
+        }
+    }
+
+    std::string ScalarValue(JsonValue const& value)
+    {
+        switch (value.kind)
+        {
+        case JsonKind::String:
+        case JsonKind::Number:
+        case JsonKind::Boolean:
+            return value.scalar;
+        default:
+            return {};
+        }
+    }
+
+    std::string ScalarList(JsonValue const& value)
+    {
+        if (value.kind != JsonKind::Array)
+        {
+            return ScalarValue(value);
+        }
+        std::string result;
+        for (auto const& item : value.array)
+        {
+            auto scalar = TrimCopy(ScalarValue(item));
+            if (scalar.empty())
+            {
+                continue;
+            }
+            if (!result.empty())
+            {
+                result += ", ";
+            }
+            result += scalar;
+            if (result.size() >= MaxDetailValueBytes)
+            {
+                break;
+            }
+        }
+        return result;
+    }
+
+    std::string NormalizeDetailKey(std::string_view key)
+    {
+        auto normalized = CollapseAsciiSpaces(TrimView(key));
+        while (!normalized.empty() && (normalized.back() == ':' || normalized.back() == '='))
+        {
+            normalized.pop_back();
+        }
+        normalized = TrimCopy(normalized);
+        std::transform(normalized.begin(), normalized.end(), normalized.begin(), LowerAscii);
+        return normalized;
+    }
+
+    std::optional<std::string> CanonicalDetailLabel(std::string_view rawKey)
+    {
+        auto const key = NormalizeDetailKey(rawKey);
+        if (key.empty() ||
+            ContainsInsensitiveAny(key, {
+                "token", "password", "secret", "credential", "api key",
+                "private key", "access key", "authorization", "cookie" }))
+        {
+            return std::nullopt;
+        }
+
+        if (key == "name" || key == "package name" || key == "title") return "Name";
+        if (key == "id" || key == "identifier" || key == "package id") return "Package ID";
+        if (key == "version" || key == "installed version" || key == "current version") return "Version";
+        if (key == "available version" || key == "latest" || key == "latest version" || key == "new version" || key == "update version") return "Available version";
+        if (key == "source" || key == "repository source" || key == "bucket") return "Source";
+        if (key == "publisher" || key == "author" || key == "authors" || key == "maintainer" || key == "maintainers") return "Publisher";
+        if (key == "description" || key == "summary" || key == "short description") return "Description";
+        if (key == "homepage" || key == "home page" || key == "website" || key == "project url" || key == "project uri") return "Homepage";
+        if (key == "license" || key == "license url" || key == "license type") return "License";
+        if (key == "repository" || key == "repo" || key == "repository url" || key == "repository uri") return "Repository";
+        if (key == "tags" || key == "tag" || key == "keywords") return "Tags";
+        if (key == "moniker") return "Moniker";
+        if (key == "installer type" || key == "install type") return "Installer type";
+        if (key == "download url" || key == "installer url" || key == "installer uri") return "Download URL";
+        if (key == "sha256" || key == "sha 256" || key == "hash" || key == "installer sha256") return "SHA256";
+        if (key == "release notes" || key == "release notes url" || key == "release notes uri") return "Release notes";
+        return std::nullopt;
+    }
+
+    void AddDetailField(
+        std::vector<PackageDetailField>& fields,
+        std::string_view key,
+        std::string_view value)
+    {
+        if (fields.size() >= MaxDetailFields)
+        {
+            return;
+        }
+        auto label = CanonicalDetailLabel(key);
+        if (!label)
+        {
+            return;
+        }
+        auto trimmed = TrimCopy(value);
+        if (trimmed.empty() || ContainsUnsafeControl(trimmed))
+        {
+            return;
+        }
+        if (trimmed.size() > MaxDetailValueBytes)
+        {
+            trimmed.resize(MaxDetailValueBytes);
+            trimmed += "...";
+        }
+        auto const already = std::any_of(fields.begin(), fields.end(), [&](PackageDetailField const& field)
+        {
+            return EqualsInsensitive(field.label, *label);
+        });
+        if (already)
+        {
+            return;
+        }
+        fields.push_back(PackageDetailField{ std::move(*label), std::move(trimmed) });
+    }
+
+    void AddFoundHeaderDetails(std::vector<PackageDetailField>& fields, std::string_view line)
+    {
+        line = TrimView(line);
+        if (!StartsWithInsensitive(line, "Found "))
+        {
+            return;
+        }
+        line.remove_prefix(6);
+        auto const open = line.rfind('[');
+        auto const close = line.rfind(']');
+        if (open == std::string_view::npos || close == std::string_view::npos || open >= close)
+        {
+            return;
+        }
+        AddDetailField(fields, "Name", TrimView(line.substr(0, open)));
+        AddDetailField(fields, "Package ID", TrimView(line.substr(open + 1, close - open - 1)));
+    }
+
+    void AddJsonDetailFields(std::vector<PackageDetailField>& fields, JsonValue const& object)
+    {
+        if (object.kind != JsonKind::Object)
+        {
+            return;
+        }
+        for (auto const& [key, value] : object.object)
+        {
+            auto scalar = ScalarList(value);
+            if (!scalar.empty())
+            {
+                AddDetailField(fields, key, scalar);
+            }
         }
     }
 
@@ -1891,6 +2079,52 @@ namespace winforge::core::packages
         PackageOutputKind kind) noexcept
     {
         return Guarded(output, [&] { return ParseVcpkgImpl(output, kind); });
+    }
+
+    std::vector<PackageDetailField> ParsePackageDetailsFields(std::string_view output) noexcept
+    {
+        try
+        {
+            std::vector<PackageDetailField> fields;
+            if (output.empty() || output.size() > MaxInputBytes)
+            {
+                return fields;
+            }
+
+            auto stripped = StripAnsi(output);
+            if (auto const root = FindJson(stripped, false, true))
+            {
+                AddJsonDetailFields(fields, *root);
+            }
+
+            ForEachLine(stripped, [&](std::string_view line)
+            {
+                if (fields.size() >= MaxDetailFields)
+                {
+                    return;
+                }
+                line = TrimView(line);
+                if (line.empty())
+                {
+                    return;
+                }
+                AddFoundHeaderDetails(fields, line);
+
+                auto const colon = line.find(':');
+                auto const equals = line.find('=');
+                auto const separator = std::min(colon, equals);
+                if (separator == std::string_view::npos || separator == 0 || separator + 1 >= line.size())
+                {
+                    return;
+                }
+                AddDetailField(fields, line.substr(0, separator), line.substr(separator + 1));
+            });
+            return fields;
+        }
+        catch (...)
+        {
+            return {};
+        }
     }
 
     PackageParseResult ParsePackageOutput(

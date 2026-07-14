@@ -6,6 +6,7 @@
 #endif
 
 #include "CatalogLoader.h"
+#include "../WinForge.Core/PackageParsers.h"
 #include "microsoft.ui.xaml.window.h"
 #include <winrt/Windows.ApplicationModel.DataTransfer.h>
 #include <winrt/Windows.Data.Json.h>
@@ -22,6 +23,7 @@
 #include <future>
 #include <commdlg.h>
 #include <iterator>
+#include <limits>
 #include <sstream>
 #include <stdexcept>
 #include <unordered_set>
@@ -44,6 +46,80 @@ namespace
     std::wstring ToWide(hstring const& value)
     {
         return std::wstring(value.c_str(), value.size());
+    }
+
+    std::string ToUtf8(std::wstring_view value)
+    {
+        if (value.empty())
+        {
+            return {};
+        }
+        if (value.size() > static_cast<std::size_t>(std::numeric_limits<int>::max()))
+        {
+            return {};
+        }
+        auto const length = WideCharToMultiByte(
+            CP_UTF8,
+            WC_ERR_INVALID_CHARS,
+            value.data(),
+            static_cast<int>(value.size()),
+            nullptr,
+            0,
+            nullptr,
+            nullptr);
+        if (length == 0)
+        {
+            return {};
+        }
+        std::string result(length, '\0');
+        WideCharToMultiByte(
+            CP_UTF8,
+            WC_ERR_INVALID_CHARS,
+            value.data(),
+            static_cast<int>(value.size()),
+            result.data(),
+            length,
+            nullptr,
+            nullptr);
+        return result;
+    }
+
+    std::wstring ToWideUtf8(std::string_view value)
+    {
+        if (value.empty())
+        {
+            return {};
+        }
+        if (value.size() > static_cast<std::size_t>(std::numeric_limits<int>::max()))
+        {
+            return {};
+        }
+        auto const length = MultiByteToWideChar(
+            CP_UTF8,
+            MB_ERR_INVALID_CHARS,
+            value.data(),
+            static_cast<int>(value.size()),
+            nullptr,
+            0);
+        if (length == 0)
+        {
+            std::wstring fallback;
+            fallback.reserve(value.size());
+            for (auto const byte : value)
+            {
+                fallback.push_back(static_cast<unsigned char>(byte));
+            }
+            return fallback;
+        }
+        std::wstring result(length, L'\0');
+        MultiByteToWideChar(
+            CP_UTF8,
+            MB_ERR_INVALID_CHARS,
+            value.data(),
+            static_cast<int>(value.size()),
+            result.data(),
+            length);
+        return result;
     }
 
     std::wstring AutomationKey(std::wstring_view value)
@@ -3232,6 +3308,29 @@ namespace winrt::WinForge::implementation
                         output = winforge::core::LocalizedText{
                             L"Details command completed without output.",
                             L"詳細資料指令已完成，但冇輸出。" }.Pick(m_language);
+                    }
+                    else
+                    {
+                        auto const detailFields =
+                            winforge::core::packages::ParsePackageDetailsFields(ToUtf8(output));
+                        if (!detailFields.empty())
+                        {
+                            std::wstring parsed = winforge::core::LocalizedText{
+                                L"Parsed details fields:\n",
+                                L"已解析詳細資料欄位：\n" }.Pick(m_language);
+                            for (auto const& field : detailFields)
+                            {
+                                parsed += L"• ";
+                                parsed += ToWideUtf8(field.label);
+                                parsed += L": ";
+                                parsed += ToWideUtf8(field.value);
+                                parsed += L"\n";
+                            }
+                            parsed += winforge::core::LocalizedText{
+                                L"\nRaw bounded command output:\n\n",
+                                L"\n原始有界指令輸出：\n\n" }.Pick(m_language);
+                            output = parsed + output;
+                        }
                     }
                     if (!m_packageDetailsTarget.empty())
                     {

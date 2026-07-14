@@ -1,5 +1,6 @@
 #include "PackageParsers.h"
 
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -86,6 +87,7 @@ int RunPackageParserTests()
     static_assert(noexcept(ParseChocolatey({}, PackageOutputKind::Installed)));
     static_assert(noexcept(ParsePipJson({}, PackageOutputKind::Installed)));
     static_assert(noexcept(ParseNpmJson({}, PackageOutputKind::Search)));
+    static_assert(noexcept(ParsePackageDetailsFields({})));
 
     auto packages = ParseWingetTable(ReadFixture("winget-table.txt"));
     auto const winget = Find(packages, "7zip.7zip");
@@ -153,6 +155,32 @@ int RunPackageParserTests()
         "PyPI index search de-duplicates, filters, ranks, and caps candidates");
     Expect(ParsePipJson("[{broken]", PackageOutputKind::Installed).empty(),
         "pip malformed JSON fails closed");
+
+    auto details = ParsePackageDetailsFields(
+        "Found Git [Git.Git]\n"
+        "Version: 2.50.1\n"
+        "Publisher: The Git Development Community\n"
+        "Homepage: https://git-scm.com\n"
+        "License: GPL-2.0-only\n"
+        "Password: should-never-render\n");
+    Expect(details.size() == 6
+        && details[0].label == "Name" && details[0].value == "Git"
+        && details[1].label == "Package ID" && details[1].value == "Git.Git",
+        "details parser extracts winget found header and safe key-value fields");
+    Expect(std::none_of(details.begin(), details.end(), [](PackageDetailField const& field)
+        {
+            return field.value == "should-never-render";
+        }), "details parser drops secret-like fields");
+
+    details = ParsePackageDetailsFields(
+        R"({"name":"ripgrep","version":"14.1.1","description":"Search recursively","repository":"https://github.com/BurntSushi/ripgrep","keywords":["grep","search"],"access_token":"nope"})");
+    Expect(details.size() == 5
+        && details[0].label == "Name" && details[0].value == "ripgrep"
+        && details[4].label == "Tags" && details[4].value == "grep, search",
+        "details parser extracts safe JSON scalar and list fields");
+    details = ParsePackageDetailsFields("Name: First\nName: Second\nUnknown: hidden\n");
+    Expect(details.size() == 1 && details[0].value == "First",
+        "details parser de-duplicates canonical labels and ignores unknown fields");
 
     packages = ParseNpmJson(ReadFixture("npm-search-array.txt"), PackageOutputKind::Search);
     Expect(packages.size() == 2 && Find(packages, "@types/node"),

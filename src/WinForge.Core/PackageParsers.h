@@ -32,6 +32,19 @@ namespace winforge::core::packages
         bool operator==(PackageRecord const&) const = default;
     };
 
+    struct PackageDetailField
+    {
+        std::string label;
+        std::string value;
+
+        [[nodiscard]] bool IsValid() const noexcept
+        {
+            return !label.empty() && !value.empty();
+        }
+
+        bool operator==(PackageDetailField const&) const = default;
+    };
+
     // Mirrors the native command planner's post-processing contract without depending on
     // the process-launch layer. Names intentionally match CommandPostProcess.
     enum class PackageParserKind
@@ -120,4 +133,7 @@ namespace winforge::core::packages
         std::string_view managerKey = {},
         std::string_view query = {},
         bool preferLatest = true) noexcept;
+
+    [[nodiscard]] std::vector<PackageDetailField> ParsePackageDetailsFields(
+        std::string_view output) noexcept;
 }
