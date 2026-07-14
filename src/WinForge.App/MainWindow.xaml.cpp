@@ -346,6 +346,10 @@ namespace winrt::WinForge::implementation
         {
             RenderBinaryText();
         }
+        else if (module->id == L"module.caseconvert")
+        {
+            RenderCaseConvert();
+        }
         else if (module->id == L"about")
         {
             RenderAbout();
@@ -901,6 +905,233 @@ namespace winrt::WinForge::implementation
             {
                 peer = Microsoft::UI::Xaml::Automation::Peers::FrameworkElementAutomationPeer::CreatePeerForElement(
                     m_binaryTextStatus);
+            }
+            if (peer)
+            {
+                peer.RaiseAutomationEvent(
+                    Microsoft::UI::Xaml::Automation::Peers::AutomationEvents::LiveRegionChanged);
+            }
+        }
+        catch (...)
+        {
+            // Accessibility notification failure must not break local conversion.
+        }
+    }
+
+    void MainWindow::RenderCaseConvert()
+    {
+        m_caseConvertRendering = true;
+
+        auto page = CreatePage(
+            winforge::core::LocalizedText{
+                L"Case Converter", L"大小寫轉換" }.Pick(m_language),
+            winforge::core::LocalizedText{
+                L"Type any text and see the common naming forms update live: camelCase, PascalCase, snake_case, kebab-case, CONSTANT_CASE, Title Case, Sentence case, dot.case, path/case, and Train-Case.",
+                L"輸入任何文字都會即時轉晒常見命名格式：camelCase、PascalCase、snake_case、kebab-case、CONSTANT_CASE、Title Case、Sentence case、dot.case、path/case 同 Train-Case。" }.Pick(m_language));
+        page.MaxWidth(900);
+        page.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(page, L"NativeCaseConvertPage");
+
+        InfoBar nativeStatus;
+        nativeStatus.IsOpen(true);
+        nativeStatus.IsClosable(false);
+        nativeStatus.Severity(InfoBarSeverity::Success);
+        nativeStatus.Title(ToHString(winforge::core::LocalizedText{
+            L"Fully native naming conversion", L"全原生命名轉換" }.Pick(m_language)));
+        nativeStatus.Message(ToHString(winforge::core::LocalizedText{
+            L"Tokenization, casing, and copy actions run locally in standard C++. The native page keeps the managed split rules, including punctuation boundaries, digit transitions, and invariant casing.",
+            L"分詞、轉寫同複製動作都喺本機用標準 C++ 執行。呢個原生頁會跟返受控版嘅分詞規則，包括標點邊界、數字轉折同 invariant 大小寫。" }.Pick(m_language)));
+        AutomationProperties::SetAutomationId(nativeStatus, L"NativeCaseConvertImplementationStatus");
+        page.Children().Append(nativeStatus);
+
+        Border card;
+        card.Padding(Thickness{ 18, 16, 18, 18 });
+        card.CornerRadius(CornerRadius{ 8 });
+        card.BorderThickness(Thickness{ 1 });
+        card.BorderBrush(Application::Current().Resources().Lookup(
+            box_value(L"CardStrokeColorDefaultBrush")).as<Media::Brush>());
+        card.Background(Application::Current().Resources().Lookup(
+            box_value(L"CardBackgroundFillColorDefaultBrush")).as<Media::Brush>());
+
+        StackPanel content;
+        content.Spacing(14);
+
+        auto inputLabel = CreateText(
+            winforge::core::LocalizedText{ L"Input text", L"輸入文字" }.Pick(m_language), 14, true);
+        content.Children().Append(inputLabel);
+
+        m_caseConvertInput = TextBox();
+        m_caseConvertInput.AcceptsReturn(true);
+        m_caseConvertInput.TextWrapping(TextWrapping::Wrap);
+        m_caseConvertInput.MinHeight(96);
+        m_caseConvertInput.IsSpellCheckEnabled(false);
+        m_caseConvertInput.Text(ToHString(m_caseConvertInputValue));
+        AutomationProperties::SetAutomationId(m_caseConvertInput, L"NativeCaseConvertInput");
+        AutomationProperties::SetLabeledBy(m_caseConvertInput, inputLabel);
+        AutomationProperties::SetName(m_caseConvertInput, ToHString(winforge::core::LocalizedText{
+            L"Input text", L"輸入文字" }.Pick(m_language)));
+        m_caseConvertInput.TextChanged([this](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
+        {
+            if (m_caseConvertRendering) return;
+            m_caseConvertInputValue = ToWide(sender.as<TextBox>().Text());
+            RefreshCaseConvert();
+        });
+        content.Children().Append(m_caseConvertInput);
+
+        m_caseConvertStatus = CreateText(L"", 12.5);
+        m_caseConvertStatus.Opacity(0.82);
+        AutomationProperties::SetAutomationId(m_caseConvertStatus, L"NativeCaseConvertStatus");
+        AutomationProperties::SetLiveSetting(
+            m_caseConvertStatus,
+            Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite);
+        content.Children().Append(m_caseConvertStatus);
+
+        m_caseConvertRows = StackPanel();
+        m_caseConvertRows.Spacing(10);
+        AutomationProperties::SetAutomationId(m_caseConvertRows, L"NativeCaseConvertRows");
+        content.Children().Append(m_caseConvertRows);
+
+        card.Child(content);
+        page.Children().Append(card);
+        ShowPage(page);
+
+        m_caseConvertRendering = false;
+        RefreshCaseConvert();
+    }
+
+    void MainWindow::RefreshCaseConvert()
+    {
+        if (!m_caseConvertRows || !m_caseConvertStatus)
+        {
+            return;
+        }
+
+        auto const forms = winforge::core::caseconvert::AllForms(m_caseConvertInputValue);
+        m_caseConvertRows.Children().Clear();
+
+        struct RowSpec
+        {
+            std::wstring automation;
+        };
+
+        static const std::array<RowSpec, 10> rows{{
+            { L"Camel" },
+            { L"Pascal" },
+            { L"Snake" },
+            { L"Kebab" },
+            { L"Constant" },
+            { L"Title" },
+            { L"Sentence" },
+            { L"Dot" },
+            { L"Path" },
+            { L"Train" },
+        }};
+
+        for (std::size_t index = 0; index < rows.size() && index < forms.size(); ++index)
+        {
+            Border rowCard;
+            rowCard.Padding(Thickness{ 12, 10, 12, 10 });
+            rowCard.CornerRadius(CornerRadius{ 6 });
+            rowCard.BorderThickness(Thickness{ 1 });
+            rowCard.BorderBrush(Application::Current().Resources().Lookup(
+                box_value(L"CardStrokeColorDefaultBrush")).as<Media::Brush>());
+            rowCard.Background(Application::Current().Resources().Lookup(
+                box_value(L"SubtleFillColorSecondaryBrush")).as<Media::Brush>());
+
+            StackPanel row;
+            row.Orientation(Orientation::Horizontal);
+            row.Spacing(10);
+            row.VerticalAlignment(VerticalAlignment::Center);
+
+            auto label = CreateText(
+                winforge::core::LocalizedText{ forms[index].en, forms[index].zh }.Pick(m_language),
+                13.5,
+                true);
+            label.Width(176);
+            label.TextWrapping(TextWrapping::Wrap);
+            label.VerticalAlignment(VerticalAlignment::Center);
+            AutomationProperties::SetAutomationId(
+                label,
+                ToHString(std::wstring(L"NativeCaseConvertLabel") + rows[index].automation));
+            row.Children().Append(label);
+
+            auto value = TextBox();
+            value.Text(ToHString(forms[index].value));
+            value.IsReadOnly(true);
+            value.IsSpellCheckEnabled(false);
+            value.FontFamily(Media::FontFamily(L"Consolas"));
+            value.MinWidth(380);
+            value.VerticalAlignment(VerticalAlignment::Center);
+            AutomationProperties::SetAutomationId(
+                value,
+                ToHString(std::wstring(L"NativeCaseConvertOutput") + rows[index].automation));
+            AutomationProperties::SetName(value, ToHString(forms[index].en));
+            AutomationProperties::SetHelpText(value, ToHString(forms[index].value));
+            row.Children().Append(value);
+
+            auto copy = Button();
+            copy.Content(box_value(L"Copy"));
+            copy.Padding(Thickness{ 14, 8, 14, 8 });
+            AutomationProperties::SetAutomationId(
+                copy,
+                ToHString(std::wstring(L"NativeCaseConvertCopy") + rows[index].automation));
+            AutomationProperties::SetName(copy, ToHString(winforge::core::LocalizedText{
+                L"Copy", L"複製" }.Pick(m_language)));
+            copy.Click([this, valueText = forms[index].value](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+            {
+                try
+                {
+                    Windows::ApplicationModel::DataTransfer::DataPackage package;
+                    package.RequestedOperation(Windows::ApplicationModel::DataTransfer::DataPackageOperation::Copy);
+                    package.SetText(ToHString(valueText));
+                    Windows::ApplicationModel::DataTransfer::Clipboard::SetContent(package);
+                    AnnounceCaseConvertStatus(valueText.empty()
+                        ? winforge::core::LocalizedText{ L"Nothing to copy.", L"冇嘢可以複製。" }.Pick(m_language)
+                        : winforge::core::LocalizedText{ L"Output copied to clipboard.", L"已將結果複製去剪貼簿。" }.Pick(m_language));
+                }
+                catch (...)
+                {
+                    AnnounceCaseConvertStatus(
+                        winforge::core::LocalizedText{ L"Could not access the clipboard.", L"無法存取剪貼簿。" }.Pick(m_language),
+                        true);
+                }
+            });
+            row.Children().Append(copy);
+            Grid::SetColumn(copy, 2);
+
+            rowCard.Child(row);
+            m_caseConvertRows.Children().Append(rowCard);
+        }
+
+        auto const words = winforge::core::caseconvert::Tokenize(m_caseConvertInputValue).size();
+        std::wstring const englishStatus = std::to_wstring(words) + L" word(s) detected.";
+        std::wstring const cantoneseStatus = std::wstring(L"偵測到 ") + std::to_wstring(words) + L" 個字。";
+        auto const status = m_caseConvertInputValue.empty()
+            ? winforge::core::LocalizedText{ L"Type above to see the conversions.", L"喺上面輸入就會見到轉換結果。" }.Pick(m_language)
+            : winforge::core::LocalizedText{ englishStatus, cantoneseStatus }.Pick(m_language);
+        AnnounceCaseConvertStatus(status);
+    }
+
+    void MainWindow::AnnounceCaseConvertStatus(std::wstring_view message, bool warning)
+    {
+        if (!m_caseConvertStatus) return;
+
+        m_caseConvertStatus.Text(ToHString(message));
+        m_caseConvertStatus.Foreground(Application::Current().Resources().Lookup(
+            box_value(warning ? L"SystemFillColorCautionBrush" : L"TextFillColorSecondaryBrush")).as<Media::Brush>());
+        AutomationProperties::SetName(m_caseConvertStatus, ToHString(message));
+        AutomationProperties::SetLiveSetting(
+            m_caseConvertStatus,
+            Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite);
+
+        try
+        {
+            auto peer = Microsoft::UI::Xaml::Automation::Peers::FrameworkElementAutomationPeer::FromElement(
+                m_caseConvertStatus);
+            if (!peer)
+            {
+                peer = Microsoft::UI::Xaml::Automation::Peers::FrameworkElementAutomationPeer::CreatePeerForElement(
+                    m_caseConvertStatus);
             }
             if (peer)
             {

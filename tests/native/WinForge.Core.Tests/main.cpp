@@ -1,4 +1,5 @@
 #include "BinaryTextTests.h"
+#include "CaseConvertTests.h"
 #include "CommandLine.h"
 #include "CheckDigitTests.h"
 #include "Localization.h"
@@ -162,6 +163,10 @@ int wmain(int argc, wchar_t** argv)
     auto const binaryTextCounts = RunBinaryTextTests();
     passed += binaryTextCounts.passed;
     failed += binaryTextCounts.failed;
+
+    auto const caseConvertCounts = RunCaseConvertTests();
+    passed += caseConvertCounts.passed;
+    failed += caseConvertCounts.failed;
 
     auto const checkDigitCounts = RunCheckDigitTests();
     passed += checkDigitCounts.passed;

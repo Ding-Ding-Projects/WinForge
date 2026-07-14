@@ -23,6 +23,12 @@
 
 **粵語 —** 真正嘅 C++20／C++/WinRT 重寫而家會同發佈中受控 app 並行。Debug 同 Release x64 原生 WinUI 3 都以 0 errors 建置，清單涵蓋 **346 條固定路線 + 五組動態路線**，完整原生測試 executable 喺 Debug 同 Release 都係 **233/233**（191 個 core route／package-manager 檢查加 42 個 parser 檢查），而提權、只控制自己 process 嘅 UI Automation shell 亦係 **59/59**。Release PE 審查亦證實 COM descriptor 係零，而且冇 `coreclr`、`hostfxr` 或 `mscoree` import。呢個係遷移里程碑，唔係扮成全功能已移植：未完成功能會顯示明確 pending 頁，而每項對等清單通過之前，受控 app 仍然係權威版本。
 
+### Case Converter native parity · 大小寫轉換原生對等
+
+**EN —** `module.caseconvert` now has a live native implementation that tokenizes separators plus camel/Pascal/digit boundaries and emits ten ordered forms: camelCase, PascalCase, snake_case, kebab-case, CONSTANT_CASE, Title Case, Sentence case, dot.case, path/case, and Train-Case. The page keeps its bilingual input/output layout through language rerenders, loads ICU casing dynamically when available, exposes stable accessibility IDs for each copy action, and has current visual evidence at `docs/screenshot-caseconvert.png`.
+
+**粵語 —** `module.caseconvert` 而家有即時原生實作，會按分隔符同 camel／Pascal／數字邊界做 token 化，再輸出十種有序格式：camelCase、PascalCase、snake_case、kebab-case、CONSTANT_CASE、Title Case、Sentence case、dot.case、path/case 同 Train-Case。頁面喺轉語言時會保留雙語輸入／輸出版面，可用時會動態載入 ICU 大小寫處理，為每個複製動作提供穩定無障礙 ID，最新視覺證據喺 `docs/screenshot-caseconvert.png`。
+
 ### Check Digit native parity · 檢查碼原生對等
 
 **EN —** `module.checkdigit` now has a genuine native C++ implementation for Luhn/card-brand detection, ISBN-10, ISBN-13, EAN-13, UPC-A, and IBAN. ISBN-13 requires its registered 978/979 prefix; IBAN validates ASCII country/check characters, all **89 registered prefixes/formats in SWIFT Registry Release 102**, exact registered length and BBAN classes before bounded incremental mod-97. An independent pinned registry fixture verifies every row, a Unicode-confusable regression prevents case folding from widening accepted input, and Discover labelling uses the official 16–19-digit range boundaries without absorbing adjacent 6590/UnionPay space. Validation is live, bilingual, state-preserving across language changes, reachable through `checkdigit`, `luhn`, and the canonical route, and announced through a polite accessible live region. The 48 focused native cases, 24/24 managed-oracle parity cases, and all six UI schemes pass. Its ledger row remains **in progress only because fresh visual capture is environment-blocked**; no old or managed screenshot is presented as native evidence.

@@ -1241,21 +1241,26 @@
                                   ],
                        "risk":  "stateful",
                        "expected":  "Case Converter · 大小寫轉換 is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
-                       "status":  "not-started",
+                       "status":  "in-progress",
                        "evidence":  {
-                                        "static":  "not-started",
-                                        "build":  "not-started",
-                                        "test":  "not-started",
-                                        "launch":  "not-started",
-                                        "visual":  "not-started",
-                                        "behavior":  "not-started",
-                                        "sideEffect":  "not-started",
-                                        "docs":  "not-started"
+                                        "static":  "pass",
+                                        "build":  "pass",
+                                        "test":  "pass",
+                                        "launch":  "pass",
+                                        "visual":  "pass",
+                                        "behavior":  "pass",
+                                        "sideEffect":  "pass",
+                                        "docs":  "pass"
                                     },
                        "attempts":  [
+                                       {
+                                           "atUtc":  "2026-07-14T03:10:00Z",
+                                           "result":  "Native Case Converter parity slice completed: the standard-C++ core now tokenizes separators plus camel/Pascal/digit boundaries, emits the ten documented forms, passes the focused native and managed-oracle regressions, launches through the native driver, and has fresh visual evidence at docs/screenshot-caseconvert.png.",
+                                           "status":  "pass"
+                                       }
 
                                     ],
-                       "notes":  "C++ parity evidence has not yet been recorded."
+                       "notes":  "2026-07-13 · The native Case Converter route is implemented, tested, launched, and visually captured. The route remains in the overall native-rewrite ledger because the broader cutover is still in progress, but this slice now has complete local evidence and a canonical screenshot. · 原生 Case Converter route 已經完成實作、測試、啟動同視覺擷取。呢條 route 仍然留喺整體原生重寫清單，因為大方向切換仲係進行中，但呢個 slice 已經有完整本地證據同 canonical 截圖。"
                    },
                    {
                        "id":  "module.cementkiln",
