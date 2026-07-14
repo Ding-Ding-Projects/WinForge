@@ -21,6 +21,7 @@
 #include <commdlg.h>
 #include <sstream>
 #include <stdexcept>
+#include <unordered_set>
 #include <utility>
 
 #pragma comment(lib, "Comdlg32.lib")
@@ -50,6 +51,23 @@ namespace
         {
             result.push_back(std::iswalnum(character) ? character : L'_');
         }
+        return result;
+    }
+
+    std::wstring PackageRuleKey(std::wstring_view managerKey, std::wstring_view packageId)
+    {
+        std::wstring result;
+        result.reserve(managerKey.size() + packageId.size() + 1);
+        auto appendNormalized = [&result](std::wstring_view value)
+        {
+            for (auto const character : value)
+            {
+                result.push_back(static_cast<wchar_t>(std::towlower(character)));
+            }
+        };
+        appendNormalized(managerKey);
+        result.push_back(L'\x1f');
+        appendNormalized(packageId);
         return result;
     }
 
@@ -1413,6 +1431,39 @@ namespace winrt::WinForge::implementation
                     m_packageOperationLog.push_back(ToWide(value.GetString()));
                 }
             }
+
+            if (root.HasKey(L"ignoredRules"))
+            {
+                auto const rules = root.GetNamedArray(L"ignoredRules");
+                m_packageIgnoredRules.clear();
+                std::unordered_set<std::wstring> seen;
+                for (auto const& value : rules)
+                {
+                    auto const object = value.GetObject();
+                    auto const manager = object.HasKey(L"manager") ? ToWide(object.GetNamedString(L"manager")) : std::wstring{};
+                    auto const packageId = object.HasKey(L"id") ? ToWide(object.GetNamedString(L"id")) : std::wstring{};
+                    if (!winforge::core::packages::FindPackageManager(manager))
+                    {
+                        continue;
+                    }
+                    auto const validation = winforge::core::packages::ValidatePackageReference(manager, packageId);
+                    if (!validation)
+                    {
+                        continue;
+                    }
+                    auto const key = PackageRuleKey(manager, packageId);
+                    if (!seen.insert(key).second)
+                    {
+                        continue;
+                    }
+                    PackageIgnoredRule rule;
+                    rule.manager_key = manager;
+                    rule.package_id = packageId;
+                    if (object.HasKey(L"name")) rule.package_name = ToWide(object.GetNamedString(L"name"));
+                    if (object.HasKey(L"version")) rule.version = ToWide(object.GetNamedString(L"version"));
+                    m_packageIgnoredRules.push_back(std::move(rule));
+                }
+            }
         }
         catch (...)
         {
@@ -1458,6 +1509,18 @@ namespace winrt::WinForge::implementation
             }
             root.SetNamedValue(L"operationLog", operationLog);
 
+            winrt::Windows::Data::Json::JsonArray ignoredRules;
+            for (auto const& rule : m_packageIgnoredRules)
+            {
+                winrt::Windows::Data::Json::JsonObject object;
+                object.SetNamedValue(L"manager", winrt::Windows::Data::Json::JsonValue::CreateStringValue(ToHString(rule.manager_key)));
+                object.SetNamedValue(L"id", winrt::Windows::Data::Json::JsonValue::CreateStringValue(ToHString(rule.package_id)));
+                object.SetNamedValue(L"name", winrt::Windows::Data::Json::JsonValue::CreateStringValue(ToHString(rule.package_name)));
+                object.SetNamedValue(L"version", winrt::Windows::Data::Json::JsonValue::CreateStringValue(ToHString(rule.version)));
+                ignoredRules.Append(object);
+            }
+            root.SetNamedValue(L"ignoredRules", ignoredRules);
+
             std::ofstream output(m_packageStatePath, std::ios::binary | std::ios::trunc);
             if (!output)
             {
@@ -1483,6 +1546,7 @@ namespace winrt::WinForge::implementation
             m_packageView = 0;
             m_packageSortMode = 0;
             m_packageSearchText.clear();
+            m_packageIgnoredRules.clear();
             m_packageManagersSelected.clear();
             for (auto const& manager : winforge::core::packages::PackageManagers())
             {
@@ -1713,6 +1777,111 @@ namespace winrt::WinForge::implementation
             package.id,
             { package.manager_key },
             m_packageStopSource.get_token());
+    }
+
+    bool MainWindow::IsPackageIgnored(
+        winforge::core::packages::PackageItem const& package) const
+    {
+        auto const key = PackageRuleKey(package.manager_key, package.id);
+        return std::any_of(
+            m_packageIgnoredRules.begin(),
+            m_packageIgnoredRules.end(),
+            [&key](PackageIgnoredRule const& rule)
+            {
+                return PackageRuleKey(rule.manager_key, rule.package_id) == key;
+            });
+    }
+
+    void MainWindow::IgnorePackageUpdate(
+        winforge::core::packages::PackageItem const& package)
+    {
+        auto const validation = winforge::core::packages::ValidatePackageReference(
+            package.manager_key,
+            package.id);
+        if (!validation)
+        {
+            RecordPackageOperation(
+                L"Ignore rule was not saved for " + package.id +
+                    L" via " + package.manager_key + L": " + validation.code +
+                    L". · 忽略規則未保存。");
+            AnnouncePackageStatus(
+                L"Ignore rule was not saved because the package reference failed validation.",
+                L"忽略規則未保存，因為套件參照未通過驗證。",
+                true);
+            return;
+        }
+
+        if (!IsPackageIgnored(package))
+        {
+            PackageIgnoredRule rule;
+            rule.manager_key = package.manager_key;
+            rule.package_id = package.id;
+            rule.package_name = package.name.empty() ? package.id : package.name;
+            rule.version = package.available_version.empty() ? package.version : package.available_version;
+            m_packageIgnoredRules.push_back(std::move(rule));
+        }
+
+        auto const before = m_packageItems.size();
+        m_packageItems.erase(
+            std::remove_if(
+                m_packageItems.begin(),
+                m_packageItems.end(),
+                [this](winforge::core::packages::PackageItem const& item)
+                {
+                    return IsPackageIgnored(item);
+                }),
+            m_packageItems.end());
+
+        RecordPackageOperation(
+            L"Saved ignored-update rule for " + package.id +
+                L" via " + package.manager_key + L"; hidden " +
+                std::to_wstring(before - m_packageItems.size()) +
+                L" currently loaded update row(s). · 已保存忽略更新規則。");
+        SavePackageManagerState();
+        RenderPackageManagerView();
+        AnnouncePackageStatus(
+            L"Ignored-update rule saved. Matching update rows are hidden from the current and future Updates results.",
+            L"已保存忽略更新規則；相符更新會喺目前同之後嘅更新結果隱藏。");
+    }
+
+    void MainWindow::RemoveIgnoredPackage(std::wstring managerKey, std::wstring packageId)
+    {
+        auto const key = PackageRuleKey(managerKey, packageId);
+        auto const before = m_packageIgnoredRules.size();
+        m_packageIgnoredRules.erase(
+            std::remove_if(
+                m_packageIgnoredRules.begin(),
+                m_packageIgnoredRules.end(),
+                [&key](PackageIgnoredRule const& rule)
+                {
+                    return PackageRuleKey(rule.manager_key, rule.package_id) == key;
+                }),
+            m_packageIgnoredRules.end());
+        if (m_packageIgnoredRules.size() != before)
+        {
+            RecordPackageOperation(
+                L"Removed ignored-update rule for " + packageId +
+                    L" via " + managerKey + L". · 已移除忽略更新規則。");
+            SavePackageManagerState();
+        }
+        RenderPackageManagerView();
+        AnnouncePackageStatus(
+            L"Ignored-update rule removed. Refresh Updates to show matching rows again.",
+            L"忽略更新規則已移除；重新整理更新即可再次顯示相符項目。");
+    }
+
+    void MainWindow::ClearIgnoredPackages()
+    {
+        auto const removed = m_packageIgnoredRules.size();
+        m_packageIgnoredRules.clear();
+        RecordPackageOperation(
+            L"Cleared " + std::to_wstring(removed) +
+                L" ignored-update rule(s). · 已清除忽略更新規則。");
+        SavePackageManagerState();
+        RenderPackageManagerView();
+        AnnouncePackageStatus(
+            L"Ignored-update rules cleared. Refresh Updates to show matching rows again.",
+            L"忽略更新規則已清除；重新整理更新即可再次顯示相符項目。");
     }
 
     void MainWindow::PreviewPackageBulkUpdate()
@@ -2105,6 +2274,10 @@ namespace winrt::WinForge::implementation
                             true);
                     }
                 }
+            }
+            else if (m_packageView == 5)
+            {
+                ClearIgnoredPackages();
             }
             else if (m_packageView == 7)
             {
@@ -2630,6 +2803,7 @@ namespace winrt::WinForge::implementation
 
         std::size_t successfulManagers = 0;
         std::size_t failedManagers = 0;
+        std::size_t ignoredRows = 0;
         for (auto& [key, result] : results)
         {
             PackageManagerRunState state;
@@ -2706,10 +2880,19 @@ namespace winrt::WinForge::implementation
             if (state.success)
             {
                 ++successfulManagers;
+                std::size_t visibleRows = 0;
                 for (auto& package : result.packages)
                 {
+                    if (action == winforge::core::packages::PackageAction::Updates &&
+                        IsPackageIgnored(package))
+                    {
+                        ++ignoredRows;
+                        continue;
+                    }
+                    ++visibleRows;
                     m_packageItems.push_back(std::move(package));
                 }
+                state.package_count = visibleRows;
             }
             else
             {
@@ -2725,6 +2908,12 @@ namespace winrt::WinForge::implementation
                     L" manager(s) succeeded. · 原生詳細資料查詢完成。"
                 : L"Native query completed: " + std::to_wstring(m_packageItems.size()) +
                     L" package row(s), " + std::to_wstring(successfulManagers) + L" manager(s) succeeded. · 原生查詢完成。");
+        if (ignoredRows != 0)
+        {
+            RecordPackageOperation(
+                L"Ignored-update filtering hid " + std::to_wstring(ignoredRows) +
+                    L" update row(s). · 忽略更新篩選已隱藏相符資料列。");
+        }
         RenderPackageManagerView();
         if (failedManagers != 0)
         {
@@ -2877,10 +3066,11 @@ namespace winrt::WinForge::implementation
             readOnlyQuery = true;
             break;
         case 5:
-            m_packagePrimaryAction.Content(box_value(ToHString(pick(L"Refresh", L"重新整理"))));
+            m_packagePrimaryAction.Content(box_value(ToHString(pick(L"Clear ignored", L"清除忽略"))));
             header = pick(L"Ignored, pinned, and snoozed updates", L"已忽略、釘住同暫停嘅更新");
-            explanation = pick(L"Ignore-rule persistence is awaiting native atomic-storage compatibility tests.",
-                L"忽略規則儲存正等緊原生原子式儲存相容測試。");
+            explanation = pick(
+                L"Native ignored-update rules are persisted locally and hide matching rows from Updates results. Pin and timed snooze policies remain gated.",
+                L"原生忽略更新規則會本機保存，並喺更新結果隱藏相符資料列；釘選同限時暫停政策仍然鎖住。");
             break;
         case 6:
             m_packagePrimaryAction.Content(box_value(ToHString(pick(L"Probe again", L"再次探測"))));
@@ -2918,9 +3108,10 @@ namespace winrt::WinForge::implementation
                 m_packageSecondaryAction.IsEnabled(!m_packageWorking && !m_packageItems.empty());
             }
         }
-        else if (m_packageView == 3 || m_packageView == 6 || m_packageView == 7)
+        else if (m_packageView == 3 || m_packageView == 5 || m_packageView == 6 || m_packageView == 7)
         {
-            m_packagePrimaryAction.IsEnabled(!m_packageWorking);
+            m_packagePrimaryAction.IsEnabled(
+                !m_packageWorking && (m_packageView != 5 || !m_packageIgnoredRules.empty()));
             if (m_packageView == 3)
             {
                 m_packageSecondaryAction.IsEnabled(!m_packageWorking);
@@ -3001,6 +3192,74 @@ namespace winrt::WinForge::implementation
                         pick(L"Operation event", L"操作事件"),
                         TruncateForUi(m_packageOperationLog[index], 600),
                         L"NativePackageOperation_" + std::to_wstring(index));
+                }
+            }
+            return;
+        }
+
+        if (m_packageView == 5)
+        {
+            if (m_packageIgnoredRules.empty())
+            {
+                appendCard(
+                    pick(L"No ignored updates", L"未有忽略更新"),
+                    pick(
+                        L"Run an Updates query, then use Ignore on an update row to persist a local ignore rule.",
+                        L"執行更新查詢，然後喺更新資料列使用「忽略」，即可保存本機忽略規則。"),
+                    L"NativePackageIgnoredEmpty");
+            }
+            else
+            {
+                for (std::size_t index = 0; index < m_packageIgnoredRules.size(); ++index)
+                {
+                    auto const& rule = m_packageIgnoredRules[index];
+                    auto const* descriptor = winforge::core::packages::FindPackageManager(rule.manager_key);
+                    auto const managerName = descriptor
+                        ? winforge::core::LocalizedText{
+                            std::wstring(descriptor->name_en), std::wstring(descriptor->name_zh) }.Pick(m_language)
+                        : rule.manager_key;
+
+                    Border card;
+                    card.Padding(Thickness{ 16, 12, 16, 12 });
+                    card.CornerRadius(CornerRadius{ 8 });
+                    card.BorderThickness(Thickness{ 1 });
+                    card.BorderBrush(Application::Current().Resources().Lookup(
+                        box_value(L"CardStrokeColorDefaultBrush")).as<Media::Brush>());
+                    card.Background(Application::Current().Resources().Lookup(
+                        box_value(L"CardBackgroundFillColorDefaultBrush")).as<Media::Brush>());
+
+                    StackPanel content;
+                    content.Spacing(6);
+                    auto title = CreateText(rule.package_name.empty() ? rule.package_id : rule.package_name, 14, true);
+                    AutomationProperties::SetAutomationId(
+                        title,
+                        ToHString(L"NativePackageIgnored_" + AutomationKey(rule.manager_key) + L"_" + AutomationKey(rule.package_id)));
+                    content.Children().Append(title);
+
+                    std::wstring body = managerName + L"  ·  " + rule.package_id;
+                    if (!rule.version.empty()) body += L"  ·  " + rule.version;
+                    auto detail = CreateText(body, 12.5);
+                    detail.TextWrapping(TextWrapping::Wrap);
+                    detail.IsTextSelectionEnabled(true);
+                    content.Children().Append(detail);
+
+                    Button remove;
+                    remove.Content(box_value(ToHString(pick(L"Remove ignore", L"移除忽略"))));
+                    remove.HorizontalAlignment(HorizontalAlignment::Left);
+                    AutomationProperties::SetAutomationId(
+                        remove,
+                        ToHString(L"NativePackageRemoveIgnore_" + AutomationKey(rule.manager_key) + L"_" + AutomationKey(rule.package_id)));
+                    auto managerKey = rule.manager_key;
+                    auto packageId = rule.package_id;
+                    remove.Click([this, managerKey = std::move(managerKey), packageId = std::move(packageId)](
+                        Windows::Foundation::IInspectable const&,
+                        RoutedEventArgs const&)
+                    {
+                        RemoveIgnoredPackage(managerKey, packageId);
+                    });
+                    content.Children().Append(remove);
+                    card.Child(content);
+                    m_packageResults.Children().Append(card);
                 }
             }
             return;
@@ -3285,6 +3544,33 @@ namespace winrt::WinForge::implementation
                 PreviewPackageOperation(packageCopy, action);
             });
             actions.Children().Append(mutation);
+
+            if (m_packageView == 1)
+            {
+                Button ignore;
+                ignore.Content(box_value(ToHString(pick(L"Ignore", L"忽略"))));
+                ignore.IsEnabled(!m_packageWorking);
+                ignore.HorizontalAlignment(HorizontalAlignment::Left);
+                AutomationProperties::SetAutomationId(
+                    ignore,
+                    ToHString(L"NativePackageIgnore_" + AutomationKey(package.manager_key) + L"_" + AutomationKey(package.id)));
+                AutomationProperties::SetName(
+                    ignore,
+                    ToHString(pick(L"Ignore update for ", L"忽略更新：") + (package.name.empty() ? package.id : package.name)));
+                ToolTipService::SetToolTip(
+                    ignore,
+                    box_value(ToHString(pick(
+                        L"Persist a local ignored-update rule and hide matching rows from Updates results.",
+                        L"保存本機忽略更新規則，並喺更新結果隱藏相符資料列。"))));
+                auto ignoredPackageCopy = package;
+                ignore.Click([this, ignoredPackageCopy = std::move(ignoredPackageCopy)](
+                    Windows::Foundation::IInspectable const&,
+                    RoutedEventArgs const&)
+                {
+                    IgnorePackageUpdate(ignoredPackageCopy);
+                });
+                actions.Children().Append(ignore);
+            }
 
             Button detailPreview;
             auto const detailLabel = pick(L"Details", L"詳細資料");

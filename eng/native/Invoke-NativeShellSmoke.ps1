@@ -33,6 +33,25 @@ function Find-ByAutomationId {
     return $Root.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $condition)
 }
 
+function Find-ByAutomationIdPrefix {
+    param(
+        [Parameter(Mandatory)]$Root,
+        [Parameter(Mandatory)][string]$Prefix
+    )
+
+    $elements = $Root.FindAll(
+        [System.Windows.Automation.TreeScope]::Descendants,
+        [System.Windows.Automation.Condition]::TrueCondition)
+    foreach ($element in $elements) {
+        $automationId = $element.Current.AutomationId
+        if ($automationId -and $automationId.StartsWith($Prefix, [StringComparison]::Ordinal)) {
+            return $element
+        }
+    }
+
+    return $null
+}
+
 function Wait-ForElement {
     param(
         [Parameter(Mandatory)]$Root,
@@ -641,6 +660,12 @@ Invoke-OwnedRoute -Route 'package-ignored' -ExpectedTitle 'Package Manager' -Ins
     $header = Wait-ForElement -Root $root -AutomationId 'NativePackageResultsHeader'
     Assert-True -Condition ($header.Current.Name.StartsWith('Ignored, pinned, and snoozed updates', [StringComparison]::Ordinal)) `
         -Name 'Package Manager package-ignored alias selects Ignored'
+    $state = Find-ByAutomationId -Root $root -AutomationId 'NativePackageIgnoredEmpty'
+    if (-not $state) {
+        $state = Find-ByAutomationIdPrefix -Root $root -Prefix 'NativePackageIgnored_'
+    }
+    Assert-True -Condition ($null -ne $state) `
+        -Name 'Package Manager package-ignored exposes native ignored-rule state'
 }
 
 Invoke-OwnedRoute -Route 'packages-ignored' -ExpectedTitle 'Package Manager' -Inspect {
@@ -649,6 +674,12 @@ Invoke-OwnedRoute -Route 'packages-ignored' -ExpectedTitle 'Package Manager' -In
     $header = Wait-ForElement -Root $root -AutomationId 'NativePackageResultsHeader'
     Assert-True -Condition ($header.Current.Name.StartsWith('Ignored, pinned, and snoozed updates', [StringComparison]::Ordinal)) `
         -Name 'Package Manager packages-ignored alias selects Ignored'
+    $state = Find-ByAutomationId -Root $root -AutomationId 'NativePackageIgnoredEmpty'
+    if (-not $state) {
+        $state = Find-ByAutomationIdPrefix -Root $root -Prefix 'NativePackageIgnored_'
+    }
+    Assert-True -Condition ($null -ne $state) `
+        -Name 'Package Manager packages-ignored exposes native ignored-rule state'
 }
 
 Invoke-OwnedRoute -Route 'package-setup' -ExpectedTitle 'Package Manager' -Inspect {

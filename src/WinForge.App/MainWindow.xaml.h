@@ -31,6 +31,14 @@ namespace winrt::WinForge::implementation
             std::wstring diagnostic;
         };
 
+        struct PackageIgnoredRule
+        {
+            std::wstring manager_key;
+            std::wstring package_id;
+            std::wstring package_name;
+            std::wstring version;
+        };
+
         winforge::core::LanguageMode m_language{ winforge::core::LanguageMode::Bilingual };
         std::vector<winforge::core::ModuleRecord> m_modules;
         winforge::core::RouteIndex m_routeIndex;
@@ -71,6 +79,7 @@ namespace winrt::WinForge::implementation
         std::vector<winforge::core::packages::PackageItem> m_packageBundleItems;
         std::vector<PackageManagerRunState> m_packageRunStates;
         std::vector<std::wstring> m_packageOperationLog;
+        std::vector<PackageIgnoredRule> m_packageIgnoredRules;
         std::stop_source m_packageStopSource;
         std::uint64_t m_packageGeneration{ 0 };
         winforge::core::packages::PackageAction m_packageLastAction{
@@ -124,6 +133,12 @@ namespace winrt::WinForge::implementation
             winforge::core::packages::PackageItem const& package);
         void StartPackageDetailsQuery(
             winforge::core::packages::PackageItem const& package);
+        void IgnorePackageUpdate(
+            winforge::core::packages::PackageItem const& package);
+        void RemoveIgnoredPackage(std::wstring managerKey, std::wstring packageId);
+        void ClearIgnoredPackages();
+        [[nodiscard]] bool IsPackageIgnored(
+            winforge::core::packages::PackageItem const& package) const;
         void PreviewPackageBulkUpdate();
         [[nodiscard]] std::wstring BundleSnapshotToJson(
             std::vector<winforge::core::packages::PackageItem> const& items) const;
