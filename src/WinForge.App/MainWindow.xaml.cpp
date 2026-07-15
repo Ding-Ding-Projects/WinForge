@@ -3331,19 +3331,41 @@ namespace winrt::WinForge::implementation
         RenderPackageManagerView();
     }
 
+    std::optional<winforge::core::packages::PackageAction> MainWindow::CurrentPackageSelectionAction() const
+    {
+        using winforge::core::packages::PackageAction;
+        switch (m_packageView)
+        {
+        case 0:
+            if (m_packageLastAction == PackageAction::Search) return PackageAction::Install;
+            break;
+        case 1:
+            if (m_packageLastAction == PackageAction::Updates) return PackageAction::Update;
+            break;
+        case 2:
+            if (m_packageLastAction == PackageAction::Installed) return PackageAction::Uninstall;
+            break;
+        default:
+            break;
+        }
+        return std::nullopt;
+    }
+
     void MainWindow::SetPackageSelected(
         winforge::core::packages::PackageItem const& package,
+        winforge::core::packages::PackageAction action,
         bool selected)
     {
-        // Selection is deliberately Discover-only and transient. Query/view
-        // changes clear it, so a preview can never be applied to a stale row.
-        if (m_packageView != 0 ||
-            m_packageLastAction != winforge::core::packages::PackageAction::Search)
+        // Cached selection is deliberately transient. Query and view changes
+        // clear it, and the action must still match the current cached result
+        // set before a late checkbox event can change it.
+        auto const currentAction = CurrentPackageSelectionAction();
+        if (!currentAction || *currentAction != action)
         {
             return;
         }
 
-        auto const key = winforge::core::packages::PackageSelectionKey(package);
+        auto const key = winforge::core::packages::PackageSelectionKey(package, action);
         if (selected)
         {
             m_packageSelectedKeys.insert(key);
@@ -3360,14 +3382,21 @@ namespace winrt::WinForge::implementation
         m_packageSelectedKeys.clear();
     }
 
-    std::vector<winforge::core::packages::PackageItem> MainWindow::SelectedPackageItems() const
+    std::vector<winforge::core::packages::PackageItem> MainWindow::SelectedPackageItems(
+        winforge::core::packages::PackageAction action) const
     {
         std::vector<winforge::core::packages::PackageItem> selected;
+        auto const currentAction = CurrentPackageSelectionAction();
+        if (!currentAction || *currentAction != action)
+        {
+            return selected;
+        }
+
         selected.reserve(m_packageSelectedKeys.size());
         std::unordered_set<std::wstring> seen;
         for (auto const& package : m_packageItems)
         {
-            auto const key = winforge::core::packages::PackageSelectionKey(package);
+            auto const key = winforge::core::packages::PackageSelectionKey(package, action);
             if (m_packageSelectedKeys.contains(key) && seen.insert(key).second)
             {
                 selected.push_back(package);
@@ -3376,27 +3405,62 @@ namespace winrt::WinForge::implementation
         return selected;
     }
 
-    void MainWindow::PreviewSelectedPackageInstalls()
+    void MainWindow::PreviewSelectedPackageOperations(
+        winforge::core::packages::PackageAction action)
     {
-        auto const selected = SelectedPackageItems();
+        auto const currentAction = CurrentPackageSelectionAction();
+        if (!currentAction || *currentAction != action)
+        {
+            ClearPackageSelection();
+            RenderPackageManagerView();
+            AnnouncePackageStatus(
+                L"The selected package preview is no longer available because its cached result view changed.",
+                L"已揀套件預覽已經唔可用，因為快取結果檢視已經改變。",
+                true);
+            return;
+        }
+
+        auto const actionNameEn = action == winforge::core::packages::PackageAction::Install
+            ? std::wstring(L"install")
+            : action == winforge::core::packages::PackageAction::Update
+                ? std::wstring(L"update")
+                : std::wstring(L"uninstall");
+        auto const actionNameZh = action == winforge::core::packages::PackageAction::Install
+            ? std::wstring(L"安裝")
+            : action == winforge::core::packages::PackageAction::Update
+                ? std::wstring(L"更新")
+                : std::wstring(L"解除安裝");
+        auto const sourceViewEn = action == winforge::core::packages::PackageAction::Install
+            ? std::wstring(L"Discover")
+            : action == winforge::core::packages::PackageAction::Update
+                ? std::wstring(L"Updates")
+                : std::wstring(L"Installed");
+        auto const sourceViewZh = action == winforge::core::packages::PackageAction::Install
+            ? std::wstring(L"Discover")
+            : action == winforge::core::packages::PackageAction::Update
+                ? std::wstring(L"更新")
+                : std::wstring(L"已安裝");
+
+        auto const selected = SelectedPackageItems(action);
         if (selected.empty())
         {
             ClearPackageSelection();
             RenderPackageManagerView();
             AnnouncePackageStatus(
-                L"No current Discover rows are selected. Choose one or more cached results first.",
-                L"而家冇已揀嘅 Discover 資料列；請先揀一個或者多個已快取結果。",
+                L"No current " + sourceViewEn + L" rows are selected. Choose one or more cached results first.",
+                L"而家冇已揀嘅 " + sourceViewZh + L" 資料列；請先揀一個或者多個已快取結果。",
                 true);
             return;
         }
 
-        constexpr std::size_t MaximumPreviewedInstalls = 25;
-        auto const previewCount = std::min(selected.size(), MaximumPreviewedInstalls);
+        constexpr std::size_t MaximumPreviewedOperations = 25;
+        auto const previewCount = std::min(selected.size(), MaximumPreviewedOperations);
         std::size_t failed = 0;
         RecordPackageOperation(
-            L"Preview-only install-selected plan started for " +
-                std::to_wstring(selected.size()) +
-                L" Discover package(s). No package command was executed. · 已開始所選安裝預覽，冇執行套件指令。");
+            L"Preview-only " + actionNameEn + L"-selected plan started for " +
+                std::to_wstring(selected.size()) + L" cached " + sourceViewEn +
+                L" package(s). No package command was executed. · 已開始所選" +
+                actionNameZh + L"預覽，冇執行套件指令。");
 
         for (std::size_t index = 0; index < previewCount; ++index)
         {
@@ -3405,29 +3469,31 @@ namespace winrt::WinForge::implementation
                 package.manager_key,
                 package.id,
                 package.source,
-                winforge::core::packages::PackageAction::Install);
+                action);
             if (!command)
             {
                 ++failed;
                 RecordPackageOperation(
-                    L"Preview failed for install " + package.id +
+                    L"Preview failed for " + actionNameEn + L" " + package.id +
                         L" via " + package.manager_key + L": " + command.error_code +
-                        L". · 安裝預覽失敗。");
+                        L". · " + actionNameZh + L"預覽失敗。");
                 continue;
             }
 
             RecordPackageOperation(
-                L"Preview-only install plan for " + package.id +
+                L"Preview-only " + actionNameEn + L" plan for " + package.id +
                     L" via " + package.manager_key + L": " +
                     winforge::core::packages::FormatCommandPreview(*command.command) +
-                    L". No package command was executed. · 只建立安裝預覽，冇執行套件指令。");
+                    L". No package command was executed. · 只建立" +
+                    actionNameZh + L"預覽，冇執行套件指令。");
         }
-        if (selected.size() > MaximumPreviewedInstalls)
+        if (selected.size() > MaximumPreviewedOperations)
         {
             RecordPackageOperation(
-                L"Install-selected preview rendered the first " +
-                    std::to_wstring(MaximumPreviewedInstalls) +
-                    L" rows; remaining selected rows are omitted from the visible history to keep the UI responsive. · 所選安裝預覽只顯示頭批資料列。");
+                actionNameEn + L"-selected preview rendered the first " +
+                    std::to_wstring(MaximumPreviewedOperations) +
+                    L" rows; remaining selected rows are omitted from the visible history to keep the UI responsive. · 所選" +
+                    actionNameZh + L"預覽只顯示頭批資料列。");
         }
 
         ClearPackageSelection();
@@ -3439,8 +3505,8 @@ namespace winrt::WinForge::implementation
         SavePackageManagerState();
         RenderPackageManagerView();
         AnnouncePackageStatus(
-            L"Install-selected preview added to Operations. No package command was executed.",
-            L"所選安裝預覽已加入操作檢視；冇執行套件指令。",
+            actionNameEn + L"-selected preview added to Operations. No package command was executed.",
+            L"所選" + actionNameZh + L"預覽已加入操作檢視；冇執行套件指令。",
             failed != 0);
     }
 
@@ -5225,16 +5291,16 @@ namespace winrt::WinForge::implementation
             m_packageSecondaryAction.Visibility(Visibility::Visible);
             header = pick(L"Available updates", L"可用更新");
             explanation = pick(
-                L"Live update enumeration runs per selected engine. Update buttons remain locked until the native consent and operation coordinator is proven.",
-                L"會按已選引擎即時列出更新；原生同意同操作協調器驗證完成之前，更新按鈕保持鎖住。");
+                L"Live update enumeration runs per selected engine. Cached rows can create exact native update argv previews; executing an update remains locked until the consent and operation coordinator is proven.",
+                L"會按已選引擎即時列出更新；已快取資料列可以建立準確嘅原生更新 argv 預覽；同意同操作協調器驗證完成之前，執行更新保持鎖住。");
             readOnlyQuery = true;
             break;
         case 2:
             m_packagePrimaryAction.Content(box_value(ToHString(pick(L"Refresh", L"重新整理"))));
             header = pick(L"Installed packages", L"已安裝套件");
             explanation = pick(
-                L"Installed packages are enumerated live. Uninstall remains locked until explicit confirmation, elevation, and cancellation behavior pass their native tests.",
-                L"會即時列出已安裝套件；明確確認、提升權限同取消行為通過原生測試之前，解除安裝保持鎖住。");
+                L"Installed packages are enumerated live. Cached rows can create exact native uninstall argv previews; executing an uninstall remains locked until explicit confirmation, elevation, and cancellation behavior pass their native tests.",
+                L"會即時列出已安裝套件；已快取資料列可以建立準確嘅原生解除安裝 argv 預覽；明確確認、提升權限同取消行為通過原生測試之前，執行解除安裝保持鎖住。");
             readOnlyQuery = true;
             break;
         case 3:
@@ -5330,8 +5396,9 @@ namespace winrt::WinForge::implementation
                     m_packageSearchIgnoreSpecialValue });
             visibleItems = &filteredDiscoverItems;
         }
-        auto const selectedDiscoverItems = isCachedDiscoverQuery
-            ? SelectedPackageItems()
+        auto const selectionAction = CurrentPackageSelectionAction();
+        auto const selectedPackageItems = selectionAction
+            ? SelectedPackageItems(*selectionAction)
             : std::vector<winforge::core::packages::PackageItem>{};
 
         auto const discoverSearchModeLabel = [this, &pick]()
@@ -5377,8 +5444,35 @@ namespace winrt::WinForge::implementation
         m_packageResultsHeader.Text(ToHString(resultHeader));
         appendCard(explanation, {}, L"NativePackageViewSummary", 0.88);
 
-        if (isCachedDiscoverQuery && !selectedDiscoverItems.empty())
+        if (selectionAction && !selectedPackageItems.empty())
         {
+            auto const action = *selectionAction;
+            auto const actionNameEn = action == winforge::core::packages::PackageAction::Install
+                ? std::wstring(L"install")
+                : action == winforge::core::packages::PackageAction::Update
+                    ? std::wstring(L"update")
+                    : std::wstring(L"uninstall");
+            auto const actionNameZh = action == winforge::core::packages::PackageAction::Install
+                ? std::wstring(L"安裝")
+                : action == winforge::core::packages::PackageAction::Update
+                    ? std::wstring(L"更新")
+                    : std::wstring(L"解除安裝");
+            auto const viewNameEn = action == winforge::core::packages::PackageAction::Install
+                ? std::wstring(L"Discover")
+                : action == winforge::core::packages::PackageAction::Update
+                    ? std::wstring(L"Updates")
+                    : std::wstring(L"Installed");
+            auto const viewNameZh = action == winforge::core::packages::PackageAction::Install
+                ? std::wstring(L"Discover")
+                : action == winforge::core::packages::PackageAction::Update
+                    ? std::wstring(L"更新")
+                    : std::wstring(L"已安裝");
+            auto const previewAutomationId = action == winforge::core::packages::PackageAction::Install
+                ? std::wstring(L"NativePackageBatchPreviewInstall")
+                : action == winforge::core::packages::PackageAction::Update
+                    ? std::wstring(L"NativePackageBatchPreviewUpdate")
+                    : std::wstring(L"NativePackageBatchPreviewUninstall");
+
             Border selectionCard;
             selectionCard.Padding(Thickness{ 16 });
             selectionCard.CornerRadius(CornerRadius{ 8 });
@@ -5391,8 +5485,8 @@ namespace winrt::WinForge::implementation
             StackPanel selectionContent;
             selectionContent.Spacing(7);
             auto selectionTitle = CreateText(
-                std::to_wstring(selectedDiscoverItems.size()) +
-                    pick(L" Discover result(s) selected", L" 個 Discover 結果已揀"),
+                std::to_wstring(selectedPackageItems.size()) +
+                    pick(L" " + viewNameEn + L" result(s) selected", L" 個" + viewNameZh + L"結果已揀"),
                 14,
                 true);
             AutomationProperties::SetAutomationId(selectionTitle, L"NativePackageBatchSelectionSummary");
@@ -5400,8 +5494,8 @@ namespace winrt::WinForge::implementation
 
             auto selectionNote = CreateText(
                 pick(
-                    L"Preview selected creates only exact native install argv plans in Operations. It never runs a package command, and the selection clears when results or views change.",
-                    L"預覽所選只會喺操作檢視建立準確嘅原生安裝 argv 計劃；絕對唔會執行套件指令，而且結果或者檢視改變時會清除選擇。"),
+                    L"Preview selected creates only exact native " + actionNameEn + L" argv plans in Operations. It never runs a package command, and the selection clears when results or views change.",
+                    L"預覽所選只會喺操作檢視建立準確嘅原生" + actionNameZh + L" argv 計劃；絕對唔會執行套件指令，而且結果或者檢視改變時會清除選擇。"),
                 12.5);
             selectionNote.TextWrapping(TextWrapping::Wrap);
             selectionContent.Children().Append(selectionNote);
@@ -5409,18 +5503,20 @@ namespace winrt::WinForge::implementation
             StackPanel selectionActions;
             selectionActions.Spacing(8);
             Button previewSelected;
-            previewSelected.Content(box_value(ToHString(pick(L"Preview selected install", L"預覽所選安裝"))));
+            previewSelected.Content(box_value(ToHString(pick(
+                L"Preview selected " + actionNameEn,
+                L"預覽所選" + actionNameZh))));
             previewSelected.Padding(Thickness{ 12, 6, 12, 6 });
             previewSelected.IsEnabled(!m_packageWorking);
-            AutomationProperties::SetAutomationId(previewSelected, L"NativePackageBatchPreviewInstall");
+            AutomationProperties::SetAutomationId(previewSelected, ToHString(previewAutomationId));
             AutomationProperties::SetName(
                 previewSelected,
                 ToHString(pick(
-                    L"Preview selected package installs without executing package commands",
-                    L"預覽所選套件安裝，唔會執行套件指令")));
-            previewSelected.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+                    L"Preview selected package " + actionNameEn + L"s without executing package commands",
+                    L"預覽所選套件" + actionNameZh + L"，唔會執行套件指令")));
+            previewSelected.Click([this, action](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
             {
-                PreviewSelectedPackageInstalls();
+                PreviewSelectedPackageOperations(action);
             });
             selectionActions.Children().Append(previewSelected);
 
@@ -5429,13 +5525,13 @@ namespace winrt::WinForge::implementation
             clearSelection.Padding(Thickness{ 12, 6, 12, 6 });
             clearSelection.IsEnabled(!m_packageWorking);
             AutomationProperties::SetAutomationId(clearSelection, L"NativePackageBatchClear");
-            clearSelection.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+            clearSelection.Click([this, viewNameEn, viewNameZh](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
             {
                 ClearPackageSelection();
                 RenderPackageManagerView();
                 AnnouncePackageStatus(
-                    L"Discover package selection cleared. No package command was executed.",
-                    L"Discover 套件選擇已清除；冇執行套件指令。");
+                    viewNameEn + L" package selection cleared. No package command was executed.",
+                    viewNameZh + L"套件選擇已清除；冇執行套件指令。");
             });
             selectionActions.Children().Append(clearSelection);
             selectionContent.Children().Append(selectionActions);
@@ -6028,13 +6124,36 @@ namespace winrt::WinForge::implementation
 
             StackPanel row;
             row.Spacing(5);
-            if (isCachedDiscoverQuery)
+            if (selectionAction)
             {
+                auto const selectionActionValue = *selectionAction;
+                auto const selectionActionNameEn = selectionActionValue == winforge::core::packages::PackageAction::Install
+                    ? std::wstring(L"install")
+                    : selectionActionValue == winforge::core::packages::PackageAction::Update
+                        ? std::wstring(L"update")
+                        : std::wstring(L"uninstall");
+                auto const selectionActionNameZh = selectionActionValue == winforge::core::packages::PackageAction::Install
+                    ? std::wstring(L"安裝")
+                    : selectionActionValue == winforge::core::packages::PackageAction::Update
+                        ? std::wstring(L"更新")
+                        : std::wstring(L"解除安裝");
+                auto const selectionViewEn = selectionActionValue == winforge::core::packages::PackageAction::Install
+                    ? std::wstring(L"Discover")
+                    : selectionActionValue == winforge::core::packages::PackageAction::Update
+                        ? std::wstring(L"Updates")
+                        : std::wstring(L"Installed");
+                auto const selectionViewZh = selectionActionValue == winforge::core::packages::PackageAction::Install
+                    ? std::wstring(L"Discover")
+                    : selectionActionValue == winforge::core::packages::PackageAction::Update
+                        ? std::wstring(L"更新")
+                        : std::wstring(L"已安裝");
                 CheckBox selection;
-                auto const selectionLabel = pick(L"Select for install preview", L"揀嚟預覽安裝");
+                auto const selectionLabel = pick(
+                    L"Select for " + selectionActionNameEn + L" preview",
+                    L"揀嚟預覽" + selectionActionNameZh);
                 selection.Content(box_value(ToHString(selectionLabel)));
                 selection.IsChecked(m_packageSelectedKeys.contains(
-                    winforge::core::packages::PackageSelectionKey(package)));
+                    winforge::core::packages::PackageSelectionKey(package, selectionActionValue)));
                 selection.IsEnabled(!m_packageWorking);
                 AutomationProperties::SetAutomationId(
                     selection,
@@ -6047,20 +6166,22 @@ namespace winrt::WinForge::implementation
                 ToolTipService::SetToolTip(
                     selection,
                     box_value(ToHString(pick(
-                        L"Select this cached Discover result for an install-plan preview. No package command will run.",
-                        L"揀呢個已快取 Discover 結果做安裝計劃預覽；唔會執行套件指令。"))));
+                        L"Select this cached " + selectionViewEn + L" result for a " +
+                            selectionActionNameEn + L"-plan preview. No package command will run.",
+                        L"揀呢個已快取" + selectionViewZh + L"結果做" +
+                            selectionActionNameZh + L"計劃預覽；唔會執行套件指令。"))));
                 auto selectedPackageCopy = package;
-                selection.Checked([this, selectedPackageCopy](
+                selection.Checked([this, selectedPackageCopy, selectionActionValue](
                     Windows::Foundation::IInspectable const&,
                     RoutedEventArgs const&)
                 {
-                    SetPackageSelected(selectedPackageCopy, true);
+                    SetPackageSelected(selectedPackageCopy, selectionActionValue, true);
                 });
-                selection.Unchecked([this, selectedPackageCopy](
+                selection.Unchecked([this, selectedPackageCopy, selectionActionValue](
                     Windows::Foundation::IInspectable const&,
                     RoutedEventArgs const&)
                 {
-                    SetPackageSelected(selectedPackageCopy, false);
+                    SetPackageSelected(selectedPackageCopy, selectionActionValue, false);
                 });
                 row.Children().Append(selection);
             }
