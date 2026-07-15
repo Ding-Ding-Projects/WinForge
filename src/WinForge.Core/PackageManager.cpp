@@ -1,5 +1,7 @@
 #include "PackageManager.h"
 
+#include <Windows.h>
+
 #include <algorithm>
 #include <array>
 #include <cwctype>
@@ -59,6 +61,98 @@ namespace
             return static_cast<wchar_t>(std::towlower(character));
         });
         return result;
+    }
+
+    // The managed oracle uses char.IsLetterOrDigit and ToUpperInvariant for
+    // its Discover filters. Use Windows' supported invariant NLS contract
+    // here instead of the process locale so native filtering is deterministic
+    // across machines and matches the other Unicode-aware native utilities.
+    [[nodiscard]] WORD SearchCharacterType(wchar_t value) noexcept
+    {
+        WORD type{};
+        return GetStringTypeW(CT_CTYPE1, &value, 1, &type) != 0 ? type : 0;
+    }
+
+    [[nodiscard]] bool IsSearchLetterOrDigit(wchar_t value) noexcept
+    {
+        if ((SearchCharacterType(value) & (C1_ALPHA | C1_DIGIT)) != 0)
+        {
+            return true;
+        }
+
+        // Keep managed-oracle coverage stable when the host NLS table predates
+        // these Unicode letters. This is the same compatibility set used by
+        // the Case Converter's invariant word splitter.
+        switch (value)
+        {
+        case static_cast<wchar_t>(0x1C89):
+        case static_cast<wchar_t>(0x1C8A):
+        case static_cast<wchar_t>(0xA7CB):
+        case static_cast<wchar_t>(0xA7CC):
+        case static_cast<wchar_t>(0xA7CD):
+        case static_cast<wchar_t>(0xA7DA):
+        case static_cast<wchar_t>(0xA7DB):
+        case static_cast<wchar_t>(0xA7DC):
+            return true;
+        default:
+            return false;
+        }
+    }
+
+    [[nodiscard]] bool IsSearchWhitespace(wchar_t value) noexcept
+    {
+        return (SearchCharacterType(value) & C1_SPACE) != 0;
+    }
+
+    [[nodiscard]] wchar_t ToUpperInvariantSearchChar(wchar_t value) noexcept
+    {
+        // .NET's char.ToUpperInvariant is a single-char operation. Preserve
+        // characters whose full Unicode uppercase expansion would be wider
+        // than the UTF-16 code unit used by the managed implementation.
+        if (value == static_cast<wchar_t>(0x0131) || value == static_cast<wchar_t>(0x00DF))
+        {
+            return value;
+        }
+
+        wchar_t mapped = value;
+        auto const mappedLength = LCMapStringEx(
+            LOCALE_NAME_INVARIANT,
+            LCMAP_UPPERCASE,
+            &value,
+            1,
+            &mapped,
+            1,
+            nullptr,
+            nullptr,
+            0);
+        return mappedLength == 1 ? mapped : value;
+    }
+
+    [[nodiscard]] std::wstring NormalizeDiscoverSearchText(
+        std::wstring_view value,
+        PackageSearchOptions const& options)
+    {
+        std::wstring normalized;
+        normalized.reserve(value.size());
+        for (auto const character : value)
+        {
+            if (options.ignore_special_characters && !IsSearchLetterOrDigit(character))
+            {
+                continue;
+            }
+            normalized.push_back(options.case_sensitive
+                ? character
+                : ToUpperInvariantSearchChar(character));
+        }
+        return normalized;
+    }
+
+    [[nodiscard]] bool IsWhitespaceOnly(std::wstring_view value) noexcept
+    {
+        return std::all_of(value.begin(), value.end(), [](wchar_t character)
+        {
+            return IsSearchWhitespace(character);
+        });
     }
 
     bool IsAsciiAlphaNumeric(wchar_t value) noexcept
@@ -594,6 +688,64 @@ namespace winforge::core::packages
             std::stable_sort(items.begin(), items.end(), by_manager);
             break;
         }
+    }
+
+    std::vector<PackageItem> FilterDiscoverPackageItems(
+        std::wstring_view query,
+        std::span<PackageItem const> raw_items,
+        PackageSearchOptions options)
+    {
+        // "Similar" deliberately retains the full cached list. This mirrors
+        // the managed UniGetUI-style view, where the package engines decide
+        // which related rows to return and the local filter must not discard
+        // them or trigger another query.
+        if (options.mode == PackageSearchMode::Similar)
+        {
+            return { raw_items.begin(), raw_items.end() };
+        }
+
+        auto const normalized_query = NormalizeDiscoverSearchText(query, options);
+        if (normalized_query.empty() || IsWhitespaceOnly(normalized_query))
+        {
+            return { raw_items.begin(), raw_items.end() };
+        }
+
+        std::vector<PackageItem> filtered;
+        filtered.reserve(raw_items.size());
+        auto const contains = [&normalized_query, &options](std::wstring_view value)
+        {
+            return NormalizeDiscoverSearchText(value, options).find(normalized_query) != std::wstring::npos;
+        };
+        auto const exact = [&normalized_query, &options](std::wstring_view value)
+        {
+            return NormalizeDiscoverSearchText(value, options) == normalized_query;
+        };
+
+        for (auto const& item : raw_items)
+        {
+            bool matches = false;
+            switch (options.mode)
+            {
+            case PackageSearchMode::Name:
+                matches = contains(item.name);
+                break;
+            case PackageSearchMode::Id:
+                matches = contains(item.id);
+                break;
+            case PackageSearchMode::Exact:
+                matches = exact(item.name) || exact(item.id);
+                break;
+            case PackageSearchMode::Both:
+            default:
+                matches = contains(item.name) || contains(item.id);
+                break;
+            }
+            if (matches)
+            {
+                filtered.push_back(item);
+            }
+        }
+        return filtered;
     }
 
     ValidationResult ValidatePackageReference(

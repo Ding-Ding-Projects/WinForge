@@ -81,6 +81,10 @@ namespace winrt::WinForge::implementation
         Microsoft::UI::Xaml::Controls::ComboBox m_packageViewPicker{ nullptr };
         Microsoft::UI::Xaml::Controls::ComboBox m_packageSortPicker{ nullptr };
         Microsoft::UI::Xaml::Controls::AutoSuggestBox m_packageSearchBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::StackPanel m_packageDiscoverFilterPanel{ nullptr };
+        Microsoft::UI::Xaml::Controls::ComboBox m_packageSearchModePicker{ nullptr };
+        Microsoft::UI::Xaml::Controls::ToggleSwitch m_packageSearchCaseSensitive{ nullptr };
+        Microsoft::UI::Xaml::Controls::ToggleSwitch m_packageSearchIgnoreSpecial{ nullptr };
         Microsoft::UI::Xaml::Controls::Button m_packagePrimaryAction{ nullptr };
         Microsoft::UI::Xaml::Controls::Button m_packageSecondaryAction{ nullptr };
         Microsoft::UI::Xaml::Controls::Button m_packageOperationsAction{ nullptr };
@@ -153,6 +157,10 @@ namespace winrt::WinForge::implementation
         bool m_packageStateApplying{ false };
         std::uint64_t m_packageOperationSequence{ 0 };
         std::wstring m_packageSearchText{};
+        winforge::core::packages::PackageSearchMode m_packageSearchMode{
+            winforge::core::packages::PackageSearchMode::Both };
+        bool m_packageSearchCaseSensitiveValue{ false };
+        bool m_packageSearchIgnoreSpecialValue{ false };
         std::wstring m_packageBundleSourcePath{};
         std::wstring m_packageDetailsTarget{};
         int32_t m_packageSortMode{ 0 };

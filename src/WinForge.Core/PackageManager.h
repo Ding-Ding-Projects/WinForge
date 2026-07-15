@@ -68,6 +68,25 @@ namespace winforge::core::packages
         Id = 3,
     };
 
+    // Mirrors PackageManagerModule's UniGetUI-style Discover filters. These
+    // filters only select from a caller-owned cached result list; they never
+    // build a command, start a process, or make a network request.
+    enum class PackageSearchMode : std::uint8_t
+    {
+        Both = 0,
+        Name = 1,
+        Id = 2,
+        Exact = 3,
+        Similar = 4,
+    };
+
+    struct PackageSearchOptions
+    {
+        PackageSearchMode mode{ PackageSearchMode::Both };
+        bool case_sensitive{ false };
+        bool ignore_special_characters{ false };
+    };
+
     // Mirrors the managed InstallOptions schema. Pre/post hooks remain represented for bundle
     // compatibility, but this argv-only layer deliberately rejects non-empty shell hooks.
     struct InstallOptions
@@ -204,6 +223,10 @@ namespace winforge::core::packages
     [[nodiscard]] std::optional<std::wstring_view> PackageViewFragment(PackageView view) noexcept;
     [[nodiscard]] std::optional<std::wstring> PackageNavigationKey(PackageView view);
     void SortPackageItems(std::vector<PackageItem>& items, PackageSortMode sort_mode) noexcept;
+    [[nodiscard]] std::vector<PackageItem> FilterDiscoverPackageItems(
+        std::wstring_view query,
+        std::span<PackageItem const> raw_items,
+        PackageSearchOptions options = {});
 
     [[nodiscard]] ValidationResult ValidatePackageReference(
         std::wstring_view manager_key,

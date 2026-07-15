@@ -142,6 +142,65 @@ NativeTestCounts RunPackageManagerTests()
     SortPackageItems(sort_items, PackageSortMode::Manager);
     expect(sort_items.front().manager_key == L"npm" && sort_items.back().manager_key == L"winget", "package sorting by manager is applied");
 
+    std::vector<PackageItem> const discover_items{
+        { L"Visual Studio Code", L"Microsoft.VisualStudioCode", L"1.99", L"", L"winget", L"winget" },
+        { L"Visual Studio Code Insiders", L"Microsoft.VisualStudioCode.Insiders", L"1.100", L"", L"winget", L"winget" },
+        { L"VLC media player", L"VideoLAN.VLC", L"3.0", L"", L"winget", L"winget" },
+        { L"Foo & Bar", L"example.foo-bar", L"1.0", L"", L"npm", L"npm" },
+    };
+    auto const filtered_ids = [](std::vector<PackageItem> const& items)
+    {
+        std::vector<std::wstring> ids;
+        ids.reserve(items.size());
+        for (auto const& item : items) ids.push_back(item.id);
+        return ids;
+    };
+
+    auto filtered = FilterDiscoverPackageItems(
+        L"studio", discover_items, PackageSearchOptions{ PackageSearchMode::Both });
+    expect(filtered_ids(filtered) == std::vector<std::wstring>{
+        L"Microsoft.VisualStudioCode", L"Microsoft.VisualStudioCode.Insiders" },
+        "Discover Both filter matches names and preserves cached source order");
+
+    filtered = FilterDiscoverPackageItems(
+        L"vlc", discover_items, PackageSearchOptions{ PackageSearchMode::Name });
+    expect(filtered_ids(filtered) == std::vector<std::wstring>{ L"VideoLAN.VLC" },
+        "Discover Name filter does not inspect package ids");
+
+    filtered = FilterDiscoverPackageItems(
+        L"insiders", discover_items, PackageSearchOptions{ PackageSearchMode::Id });
+    expect(filtered_ids(filtered) == std::vector<std::wstring>{ L"Microsoft.VisualStudioCode.Insiders" },
+        "Discover ID filter matches cached package ids");
+
+    filtered = FilterDiscoverPackageItems(
+        L"microsoft.visualstudiocode", discover_items, PackageSearchOptions{ PackageSearchMode::Exact });
+    expect(filtered_ids(filtered) == std::vector<std::wstring>{ L"Microsoft.VisualStudioCode" },
+        "Discover Exact filter uses normalized ordinal equality for names and ids");
+
+    filtered = FilterDiscoverPackageItems(
+        L"not present", discover_items, PackageSearchOptions{ PackageSearchMode::Similar });
+    expect(filtered_ids(filtered) == filtered_ids(discover_items),
+        "Discover Similar filter retains every cached engine result");
+
+    PackageSearchOptions case_sensitive{ PackageSearchMode::Name, true, false };
+    filtered = FilterDiscoverPackageItems(L"vlc", discover_items, case_sensitive);
+    auto const lower_case_misses = filtered.empty();
+    filtered = FilterDiscoverPackageItems(L"VLC", discover_items, case_sensitive);
+    expect(lower_case_misses && filtered_ids(filtered) == std::vector<std::wstring>{ L"VideoLAN.VLC" },
+        "Discover case-sensitive filter preserves uppercase/lowercase distinctions");
+
+    PackageSearchOptions ignore_special{ PackageSearchMode::Name, false, true };
+    filtered = FilterDiscoverPackageItems(L"foobar", discover_items, ignore_special);
+    expect(filtered_ids(filtered) == std::vector<std::wstring>{ L"example.foo-bar" },
+        "Discover ignore-special filter follows managed letter-or-digit normalization");
+
+    filtered = FilterDiscoverPackageItems(L"---", discover_items, ignore_special);
+    expect(filtered_ids(filtered) == filtered_ids(discover_items),
+        "Discover empty normalized query retains all cached rows without a new query");
+    expect(discover_items.front().id == L"Microsoft.VisualStudioCode"
+        && discover_items.back().id == L"example.foo-bar",
+        "Discover filtering never mutates the caller-owned cached result list");
+
     std::array<std::pair<std::wstring_view, std::wstring_view>, 11> const valid_references{
         std::pair{ L"winget", L"Microsoft.PowerToys" },
         std::pair{ L"scoop", L"extras/7zip" },

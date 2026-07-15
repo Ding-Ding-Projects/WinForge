@@ -1048,6 +1048,54 @@ Invoke-OwnedRoute -Route 'package-discover' -ExpectedTitle 'Package Manager' -In
     $header = Wait-ForElement -Root $root -AutomationId 'NativePackageResultsHeader'
     Assert-True -Condition ($header.Current.Name.StartsWith('Discover packages', [StringComparison]::Ordinal)) `
         -Name 'Package Manager package-discover alias selects Discover'
+
+    foreach ($id in @(
+        'NativePackageSearchModePicker',
+        'NativePackageSearchCaseSensitive',
+        'NativePackageSearchIgnoreSpecial'
+    )) {
+        Wait-ForElement -Root $root -AutomationId $id | Out-Null
+    }
+    $discoverFilterControlsFit = Test-HorizontalBoundsWithinWindow -Root $root -Elements @(
+        (Wait-ForElement -Root $root -AutomationId 'NativePackageSearchModePicker'),
+        (Wait-ForElement -Root $root -AutomationId 'NativePackageSearchCaseSensitive'),
+        (Wait-ForElement -Root $root -AutomationId 'NativePackageSearchIgnoreSpecial')
+    )
+    Assert-True -Condition $discoverFilterControlsFit `
+        -Name 'Package Manager Discover filter controls are accessible and horizontally unclipped'
+
+    $mode = Wait-ForElement -Root $root -AutomationId 'NativePackageSearchModePicker'
+    Select-ComboIndex -Combo $mode -Index 3
+    $case = Wait-ForElement -Root $root -AutomationId 'NativePackageSearchCaseSensitive'
+    $caseToggle = [System.Windows.Automation.TogglePattern]$case.GetCurrentPattern(
+        [System.Windows.Automation.TogglePattern]::Pattern)
+    if ($caseToggle.Current.ToggleState -ne [System.Windows.Automation.ToggleState]::On) { $caseToggle.Toggle() }
+    $ignoreSpecial = Wait-ForElement -Root $root -AutomationId 'NativePackageSearchIgnoreSpecial'
+    $ignoreSpecialToggle = [System.Windows.Automation.TogglePattern]$ignoreSpecial.GetCurrentPattern(
+        [System.Windows.Automation.TogglePattern]::Pattern)
+    if ($ignoreSpecialToggle.Current.ToggleState -ne [System.Windows.Automation.ToggleState]::On) { $ignoreSpecialToggle.Toggle() }
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativePackageLiveStatus' `
+        -Prefix 'Package Manager status: Discover filters applied locally' | Out-Null
+    Assert-True -Condition $true `
+        -Name 'Package Manager re-filters cached Discover results without starting another package query'
+
+    $language = Wait-ForElement -Root $root -AutomationId 'NativeLanguagePicker'
+    Select-ComboItem -Combo $language -Name 'English'
+    Wait-ForPageTitle -Root $root -Prefix 'Package Manager' | Out-Null
+    $mode = Wait-ForElement -Root $root -AutomationId 'NativePackageSearchModePicker'
+    $modeSelection = [System.Windows.Automation.SelectionPattern]$mode.GetCurrentPattern(
+        [System.Windows.Automation.SelectionPattern]::Pattern)
+    $selectedMode = $modeSelection.Current.GetSelection()
+    $case = Wait-ForElement -Root $root -AutomationId 'NativePackageSearchCaseSensitive'
+    $caseToggle = [System.Windows.Automation.TogglePattern]$case.GetCurrentPattern(
+        [System.Windows.Automation.TogglePattern]::Pattern)
+    $ignoreSpecial = Wait-ForElement -Root $root -AutomationId 'NativePackageSearchIgnoreSpecial'
+    $ignoreSpecialToggle = [System.Windows.Automation.TogglePattern]$ignoreSpecial.GetCurrentPattern(
+        [System.Windows.Automation.TogglePattern]::Pattern)
+    Assert-True -Condition ($selectedMode.Count -eq 1 -and $selectedMode[0].Current.Name -eq 'Exact match' `
+        -and $caseToggle.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::On `
+        -and $ignoreSpecialToggle.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::On) `
+        -Name 'Package Manager preserves Discover filters across a language rerender'
 }
 
 Invoke-OwnedRoute -Route 'package-bundles' -ExpectedTitle 'Package Manager' -Inspect {

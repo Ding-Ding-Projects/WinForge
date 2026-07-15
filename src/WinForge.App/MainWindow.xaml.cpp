@@ -315,6 +315,27 @@ namespace
         return std::wstring(path);
     }
 
+    bool IsPackageSearchWhitespace(wchar_t character)
+    {
+        WORD type{};
+        return GetStringTypeW(CT_CTYPE1, &character, 1, &type) != 0 && (type & C1_SPACE) != 0;
+    }
+
+    std::wstring TrimPackageSearchText(std::wstring_view value)
+    {
+        auto first = value.begin();
+        auto last = value.end();
+        while (first != last && IsPackageSearchWhitespace(*first))
+        {
+            ++first;
+        }
+        while (last != first && IsPackageSearchWhitespace(*(last - 1)))
+        {
+            --last;
+        }
+        return std::wstring(first, last);
+    }
+
     bool HasNonWhitespace(std::wstring_view value)
     {
         return std::any_of(value.begin(), value.end(), [](wchar_t character)
@@ -2719,6 +2740,9 @@ namespace winrt::WinForge::implementation
         m_packageRememberFilters = true;
         m_packageSortMode = 0;
         m_packageSearchText.clear();
+        m_packageSearchMode = winforge::core::packages::PackageSearchMode::Both;
+        m_packageSearchCaseSensitiveValue = false;
+        m_packageSearchIgnoreSpecialValue = false;
         m_packageManagersSelected.clear();
         for (auto const& manager : winforge::core::packages::PackageManagers())
         {
@@ -2757,6 +2781,23 @@ namespace winrt::WinForge::implementation
                 3);
             m_packageSnoozeDays = NormalizeSnoozeDays(
                 static_cast<int32_t>(root.GetNamedNumber(L"snoozeDays", static_cast<double>(m_packageSnoozeDays))));
+
+            if (m_packageRememberFilters)
+            {
+                auto const searchMode = std::clamp(
+                    static_cast<int32_t>(root.GetNamedNumber(
+                        L"discoverSearchMode",
+                        static_cast<double>(static_cast<int32_t>(m_packageSearchMode)))),
+                    0,
+                    4);
+                m_packageSearchMode = static_cast<winforge::core::packages::PackageSearchMode>(searchMode);
+                m_packageSearchCaseSensitiveValue = root.GetNamedBoolean(
+                    L"discoverSearchCaseSensitive",
+                    false);
+                m_packageSearchIgnoreSpecialValue = root.GetNamedBoolean(
+                    L"discoverSearchIgnoreSpecial",
+                    false);
+            }
 
             if (m_packageRememberView)
             {
@@ -2982,6 +3023,16 @@ namespace winrt::WinForge::implementation
             root.SetNamedValue(L"snoozeDays", winrt::Windows::Data::Json::JsonValue::CreateNumberValue(static_cast<double>(NormalizeSnoozeDays(m_packageSnoozeDays))));
             root.SetNamedValue(L"view", winrt::Windows::Data::Json::JsonValue::CreateNumberValue(static_cast<double>(m_packageView)));
             root.SetNamedValue(L"search", winrt::Windows::Data::Json::JsonValue::CreateStringValue(ToHString(m_packageSearchText)));
+            root.SetNamedValue(
+                L"discoverSearchMode",
+                winrt::Windows::Data::Json::JsonValue::CreateNumberValue(
+                    static_cast<double>(static_cast<int32_t>(m_packageSearchMode))));
+            root.SetNamedValue(
+                L"discoverSearchCaseSensitive",
+                winrt::Windows::Data::Json::JsonValue::CreateBooleanValue(m_packageSearchCaseSensitiveValue));
+            root.SetNamedValue(
+                L"discoverSearchIgnoreSpecial",
+                winrt::Windows::Data::Json::JsonValue::CreateBooleanValue(m_packageSearchIgnoreSpecialValue));
 
             winrt::Windows::Data::Json::JsonArray selectedManagers;
             for (auto const& [key, selected] : m_packageManagersSelected)
@@ -3074,6 +3125,9 @@ namespace winrt::WinForge::implementation
             m_packageSortMode = 0;
             m_packageSnoozeDays = 7;
             m_packageSearchText.clear();
+            m_packageSearchMode = winforge::core::packages::PackageSearchMode::Both;
+            m_packageSearchCaseSensitiveValue = false;
+            m_packageSearchIgnoreSpecialValue = false;
             m_packageIgnoredRules.clear();
             m_packagePinnedRules.clear();
             m_packageSnoozedRules.clear();
@@ -3094,6 +3148,18 @@ namespace winrt::WinForge::implementation
             if (m_packageSortPicker)
             {
                 m_packageSortPicker.SelectedIndex(m_packageSortMode);
+            }
+            if (m_packageSearchModePicker)
+            {
+                m_packageSearchModePicker.SelectedIndex(static_cast<int32_t>(m_packageSearchMode));
+            }
+            if (m_packageSearchCaseSensitive)
+            {
+                m_packageSearchCaseSensitive.IsOn(m_packageSearchCaseSensitiveValue);
+            }
+            if (m_packageSearchIgnoreSpecial)
+            {
+                m_packageSearchIgnoreSpecial.IsOn(m_packageSearchIgnoreSpecialValue);
             }
             if (m_packageManagerFilters)
             {
@@ -4032,6 +4098,134 @@ namespace winrt::WinForge::implementation
         });
         toolbar.Children().Append(m_packageSearchBox);
 
+        // Discover filters operate exclusively over m_packageItems after a
+        // read-only query has completed. They deliberately do not invalidate
+        // results or start another package-manager process/network request.
+        m_packageDiscoverFilterPanel = StackPanel();
+        m_packageDiscoverFilterPanel.Spacing(6);
+        AutomationProperties::SetAutomationId(
+            m_packageDiscoverFilterPanel,
+            L"NativePackageDiscoverSearchOptions");
+        auto const discoverFilterTitle = winforge::core::LocalizedText{
+            L"Discover result filters", L"搜尋結果篩選" }.Pick(m_language);
+        m_packageDiscoverFilterPanel.Children().Append(CreateText(discoverFilterTitle, 13, true));
+        auto discoverFilterNote = CreateText(
+            winforge::core::LocalizedText{
+                L"Applied locally to cached Discover results; changing an option never runs another package query.",
+                L"只會喺已快取嘅搜尋結果本機套用；改選項唔會再執行套件查詢。" }.Pick(m_language),
+            12);
+        discoverFilterNote.TextWrapping(TextWrapping::Wrap);
+        AutomationProperties::SetAutomationId(discoverFilterNote, L"NativePackageDiscoverSearchOptionsNote");
+        m_packageDiscoverFilterPanel.Children().Append(discoverFilterNote);
+
+        m_packageSearchModePicker = ComboBox();
+        m_packageSearchModePicker.MinWidth(250);
+        AutomationProperties::SetAutomationId(m_packageSearchModePicker, L"NativePackageSearchModePicker");
+        AutomationProperties::SetName(
+            m_packageSearchModePicker,
+            ToHString(winforge::core::LocalizedText{ L"Discover search mode", L"搜尋模式" }.Pick(m_language)));
+        for (auto const& option : std::array{
+            std::pair{ winforge::core::packages::PackageSearchMode::Both,
+                winforge::core::LocalizedText{ L"Both name and ID", L"名稱同 ID" } },
+            std::pair{ winforge::core::packages::PackageSearchMode::Name,
+                winforge::core::LocalizedText{ L"Package name", L"套件名稱" } },
+            std::pair{ winforge::core::packages::PackageSearchMode::Id,
+                winforge::core::LocalizedText{ L"Package ID", L"套件 ID" } },
+            std::pair{ winforge::core::packages::PackageSearchMode::Exact,
+                winforge::core::LocalizedText{ L"Exact match", L"完全符合" } },
+            std::pair{ winforge::core::packages::PackageSearchMode::Similar,
+                winforge::core::LocalizedText{ L"Show similar packages", L"顯示相似套件" } },
+        })
+        {
+            ComboBoxItem item;
+            item.Content(box_value(ToHString(option.second.Pick(m_language))));
+            item.Tag(box_value(static_cast<int32_t>(option.first)));
+            m_packageSearchModePicker.Items().Append(item);
+        }
+        m_packageSearchModePicker.SelectedIndex(static_cast<int32_t>(m_packageSearchMode));
+
+        auto reapplyDiscoverFilters = [this]()
+        {
+            auto const visibleItems = winforge::core::packages::FilterDiscoverPackageItems(
+                m_packageSearchText,
+                m_packageItems,
+                winforge::core::packages::PackageSearchOptions{
+                    m_packageSearchMode,
+                    m_packageSearchCaseSensitiveValue,
+                    m_packageSearchIgnoreSpecialValue });
+            auto const visible = std::to_wstring(visibleItems.size());
+            auto const raw = std::to_wstring(m_packageItems.size());
+            SavePackageManagerState();
+            RenderPackageManagerView();
+            AnnouncePackageStatus(
+                L"Discover filters applied locally: " + visible + L" of " + raw +
+                    L" cached results visible. No package query was run.",
+                L"已在本機套用搜尋篩選：" + visible + L"／" + raw +
+                    L" 個已快取結果可見。冇執行套件查詢。");
+        };
+        m_packageSearchModePicker.SelectionChanged([this, reapplyDiscoverFilters](
+            Windows::Foundation::IInspectable const&,
+            SelectionChangedEventArgs const&)
+        {
+            if (m_packageStateApplying)
+            {
+                return;
+            }
+            m_packageSearchMode = static_cast<winforge::core::packages::PackageSearchMode>(
+                std::clamp(m_packageSearchModePicker.SelectedIndex(), 0, 4));
+            reapplyDiscoverFilters();
+        });
+        m_packageDiscoverFilterPanel.Children().Append(m_packageSearchModePicker);
+
+        m_packageSearchCaseSensitive = ToggleSwitch();
+        m_packageSearchCaseSensitive.Header(box_value(ToHString(winforge::core::LocalizedText{
+            L"Distinguish uppercase and lowercase", L"區分大小寫" }.Pick(m_language))));
+        m_packageSearchCaseSensitive.IsOn(m_packageSearchCaseSensitiveValue);
+        AutomationProperties::SetAutomationId(
+            m_packageSearchCaseSensitive,
+            L"NativePackageSearchCaseSensitive");
+        AutomationProperties::SetName(
+            m_packageSearchCaseSensitive,
+            ToHString(winforge::core::LocalizedText{
+                L"Discover search: distinguish uppercase and lowercase", L"搜尋：區分大小寫" }.Pick(m_language)));
+        m_packageSearchCaseSensitive.Toggled([this, reapplyDiscoverFilters](
+            Windows::Foundation::IInspectable const& sender,
+            RoutedEventArgs const&)
+        {
+            if (m_packageStateApplying)
+            {
+                return;
+            }
+            m_packageSearchCaseSensitiveValue = sender.as<ToggleSwitch>().IsOn();
+            reapplyDiscoverFilters();
+        });
+        m_packageDiscoverFilterPanel.Children().Append(m_packageSearchCaseSensitive);
+
+        m_packageSearchIgnoreSpecial = ToggleSwitch();
+        m_packageSearchIgnoreSpecial.Header(box_value(ToHString(winforge::core::LocalizedText{
+            L"Ignore special characters", L"忽略特殊字元" }.Pick(m_language))));
+        m_packageSearchIgnoreSpecial.IsOn(m_packageSearchIgnoreSpecialValue);
+        AutomationProperties::SetAutomationId(
+            m_packageSearchIgnoreSpecial,
+            L"NativePackageSearchIgnoreSpecial");
+        AutomationProperties::SetName(
+            m_packageSearchIgnoreSpecial,
+            ToHString(winforge::core::LocalizedText{
+                L"Discover search: ignore special characters", L"搜尋：忽略特殊字元" }.Pick(m_language)));
+        m_packageSearchIgnoreSpecial.Toggled([this, reapplyDiscoverFilters](
+            Windows::Foundation::IInspectable const& sender,
+            RoutedEventArgs const&)
+        {
+            if (m_packageStateApplying)
+            {
+                return;
+            }
+            m_packageSearchIgnoreSpecialValue = sender.as<ToggleSwitch>().IsOn();
+            reapplyDiscoverFilters();
+        });
+        m_packageDiscoverFilterPanel.Children().Append(m_packageSearchIgnoreSpecial);
+        toolbar.Children().Append(m_packageDiscoverFilterPanel);
+
         m_packageSortPicker = ComboBox();
         m_packageSortPicker.MinWidth(210);
         for (auto const& option : std::array{
@@ -4324,10 +4518,26 @@ namespace winrt::WinForge::implementation
         }
 
         auto query = m_packageSearchBox ? ToWide(m_packageSearchBox.Text()) : std::wstring{};
-        if (action == PackageAction::Search && !HasNonWhitespace(query))
+        if (action == PackageAction::Search)
         {
-            RenderPackageManagerView();
-            return;
+            query = TrimPackageSearchText(query);
+            m_packageSearchText = query;
+            if (m_packageSearchBox && ToWide(m_packageSearchBox.Text()) != query)
+            {
+                m_packageStateApplying = true;
+                m_packageSearchBox.Text(ToHString(query));
+                m_packageStateApplying = false;
+            }
+            SavePackageManagerState();
+            if (query.size() < 2)
+            {
+                RenderPackageManagerView();
+                AnnouncePackageStatus(
+                    L"Enter at least 2 characters before searching.",
+                    L"請輸入最少 2 個字元先搜尋。",
+                    true);
+                return;
+            }
         }
 
         std::vector<std::wstring> managerKeys;
@@ -4851,7 +5061,25 @@ namespace winrt::WinForge::implementation
             m_packageResults.Children().Append(card);
         };
 
-        m_packageSearchBox.IsEnabled(m_packageView == 0 && !m_packageWorking);
+        auto const isDiscoverView = m_packageView == 0;
+        m_packageSearchBox.IsEnabled(isDiscoverView && !m_packageWorking);
+        if (m_packageDiscoverFilterPanel)
+        {
+            m_packageDiscoverFilterPanel.Visibility(
+                isDiscoverView ? Visibility::Visible : Visibility::Collapsed);
+        }
+        if (m_packageSearchModePicker)
+        {
+            m_packageSearchModePicker.IsEnabled(isDiscoverView && !m_packageWorking);
+        }
+        if (m_packageSearchCaseSensitive)
+        {
+            m_packageSearchCaseSensitive.IsEnabled(isDiscoverView && !m_packageWorking);
+        }
+        if (m_packageSearchIgnoreSpecial)
+        {
+            m_packageSearchIgnoreSpecial.IsEnabled(isDiscoverView && !m_packageWorking);
+        }
         m_packagePrimaryAction.Visibility(Visibility::Visible);
         m_packageSecondaryAction.Visibility(Visibility::Collapsed);
         m_packagePrimaryAction.IsEnabled(false);
@@ -4867,8 +5095,8 @@ namespace winrt::WinForge::implementation
             m_packagePrimaryAction.Content(box_value(ToHString(pick(L"Search", L"搜尋"))));
             header = pick(L"Discover packages", L"搜尋套件");
             explanation = pick(
-                L"Searches every selected, available engine concurrently using validated argv or an allowlisted HTTPS endpoint. Results are read-only while install consent is being ported.",
-                L"會同時搜尋所有已選而且可用嘅引擎，只會用已驗證 argv 或准許清單內 HTTPS endpoint；安裝同意流程移植完成之前，結果保持只讀。");
+                L"Searches every selected, available engine concurrently using validated argv or an allowlisted HTTPS endpoint. UniGetUI-style filters then refine only the cached rows; results are read-only while install consent is being ported.",
+                L"會同時搜尋所有已選而且可用嘅引擎，只會用已驗證 argv 或准許清單內 HTTPS endpoint；UniGetUI 式篩選只會整理已快取資料列；安裝同意流程移植完成之前，結果保持只讀。");
             readOnlyQuery = true;
             break;
         case 1:
@@ -4939,7 +5167,8 @@ namespace winrt::WinForge::implementation
         }
 
         auto const selectedAvailable = HasSelectedAvailablePackageManager();
-        auto const searchReady = m_packageView != 0 || HasNonWhitespace(ToWide(m_packageSearchBox.Text()));
+        auto const searchReady = m_packageView != 0 ||
+            TrimPackageSearchText(ToWide(m_packageSearchBox.Text())).size() >= 2;
         if (readOnlyQuery)
         {
             m_packagePrimaryAction.IsEnabled(
@@ -4966,8 +5195,59 @@ namespace winrt::WinForge::implementation
             m_packageSecondaryAction.IsEnabled(!m_packageWorking && !m_packageOperations.empty());
         }
 
+        std::vector<winforge::core::packages::PackageItem> filteredDiscoverItems;
+        std::vector<winforge::core::packages::PackageItem> const* visibleItems = &m_packageItems;
+        auto const isCachedDiscoverQuery = isDiscoverView &&
+            m_packageLastAction == winforge::core::packages::PackageAction::Search;
+        if (isCachedDiscoverQuery)
+        {
+            filteredDiscoverItems = winforge::core::packages::FilterDiscoverPackageItems(
+                m_packageSearchText,
+                m_packageItems,
+                winforge::core::packages::PackageSearchOptions{
+                    m_packageSearchMode,
+                    m_packageSearchCaseSensitiveValue,
+                    m_packageSearchIgnoreSpecialValue });
+            visibleItems = &filteredDiscoverItems;
+        }
+
+        auto const discoverSearchModeLabel = [this, &pick]()
+        {
+            switch (m_packageSearchMode)
+            {
+            case winforge::core::packages::PackageSearchMode::Name:
+                return pick(L"Package name", L"套件名稱");
+            case winforge::core::packages::PackageSearchMode::Id:
+                return pick(L"Package ID", L"套件 ID");
+            case winforge::core::packages::PackageSearchMode::Exact:
+                return pick(L"Exact match", L"完全符合");
+            case winforge::core::packages::PackageSearchMode::Similar:
+                return pick(L"Show similar packages", L"顯示相似套件");
+            case winforge::core::packages::PackageSearchMode::Both:
+            default:
+                return pick(L"Both name and ID", L"名稱同 ID");
+            }
+        };
+
         auto resultHeader = header;
-        if (!m_packageItems.empty())
+        if (isCachedDiscoverQuery && !m_packageItems.empty())
+        {
+            resultHeader += L" · " + std::to_wstring(visibleItems->size());
+            if (visibleItems->size() != m_packageItems.size())
+            {
+                resultHeader += L"/" + std::to_wstring(m_packageItems.size());
+            }
+            resultHeader += pick(L" results · ", L" 個結果 · ") + discoverSearchModeLabel();
+            if (m_packageSearchIgnoreSpecialValue)
+            {
+                resultHeader += pick(L" · ignoring special characters", L" · 忽略特殊字元");
+            }
+            if (m_packageSearchCaseSensitiveValue)
+            {
+                resultHeader += pick(L" · case-sensitive", L" · 區分大小寫");
+            }
+        }
+        else if (!m_packageItems.empty())
         {
             resultHeader += L" · " + std::to_wstring(m_packageItems.size()) + pick(L" results", L" 個結果");
         }
@@ -5320,8 +5600,8 @@ namespace winrt::WinForge::implementation
             appendCard(
                 pick(L"Native package-manager state", L"原生套件管理狀態"),
                 pick(
-                    L"Package view, search text, and manager filter selections can now be persisted locally in native JSON state.",
-                    L"套件檢視、搜尋文字同管理器篩選而家可以用原生 JSON 狀態喺本機保存。"),
+                    L"Package view, search text, manager selections, Discover filters, and snooze duration can now be persisted locally in native JSON state.",
+                    L"套件檢視、搜尋文字、管理器選擇、搜尋篩選同暫停時長而家可以用原生 JSON 狀態喺本機保存。"),
                 L"NativePackageSettingsSummary");
 
             appendToggleCard(
@@ -5342,10 +5622,10 @@ namespace winrt::WinForge::implementation
 
             appendToggleCard(
                 L"NativePackageRememberFilters",
-                L"Remember manager filters",
-                L"記住管理器篩選",
-                L"Persist which package engines are selected for the next launch.",
-                L"保存下次啟動時揀咗邊啲套件引擎。",
+                L"Remember manager and Discover filters",
+                L"記住管理器同搜尋篩選",
+                L"Persist selected package engines plus the Discover mode and toggle choices for the next launch.",
+                L"保存下次啟動時揀咗邊啲套件引擎，同埋搜尋模式同切換選項。",
                 m_packageRememberFilters);
 
             Border snoozeCard;
@@ -5416,8 +5696,8 @@ namespace winrt::WinForge::implementation
                 true));
             resetContent.Children().Append(CreateText(
                 pick(
-                    L"Clear the saved view, search text, and manager filter choices, then write a fresh default state file.",
-                    L"清走已保存嘅檢視、搜尋文字同管理器篩選，然後寫入一個新嘅預設狀態檔。"),
+                    L"Clear the saved view, search text, manager selections, and Discover filter choices, then write a fresh default state file.",
+                    L"清走已保存嘅檢視、搜尋文字、管理器選擇同搜尋篩選，然後寫入一個新嘅預設狀態檔。"),
                 12.5));
 
             Button resetButton;
@@ -5532,10 +5812,10 @@ namespace winrt::WinForge::implementation
         {
             return;
         }
-        auto const renderCount = std::min(m_packageItems.size(), MaximumRenderedPackages);
+        auto const renderCount = std::min(visibleItems->size(), MaximumRenderedPackages);
         for (std::size_t index = 0; index < renderCount; ++index)
         {
-            auto const& package = m_packageItems[index];
+            auto const& package = (*visibleItems)[index];
             auto const* descriptor = winforge::core::packages::FindPackageManager(package.manager_key);
             auto const managerName = descriptor
                 ? winforge::core::LocalizedText{
@@ -5712,13 +5992,23 @@ namespace winrt::WinForge::implementation
             m_packageResults.Children().Append(card);
         }
 
-        if (m_packageItems.size() > MaximumRenderedPackages)
+        if (visibleItems->size() > MaximumRenderedPackages)
         {
             appendCard(
                 pick(L"Result rendering capped", L"結果顯示設有上限"),
-                pick(L"The native query completed, but this page renders the first 250 rows to protect UI responsiveness.",
-                    L"原生查詢已完成，但為咗保持介面流暢，呢頁只顯示頭 250 筆。"),
+                pick(L"The native query completed, but this page renders the first 250 visible rows to protect UI responsiveness.",
+                    L"原生查詢已完成，但為咗保持介面流暢，呢頁只顯示頭 250 筆可見資料列。"),
                 L"NativePackageResultLimit");
+        }
+        else if (!m_packageWorking && m_packageProbeComplete && isCachedDiscoverQuery &&
+            !m_packageItems.empty() && visibleItems->empty())
+        {
+            appendCard(
+                pick(L"No packages match the current Discover filters", L"冇套件符合目前搜尋篩選"),
+                pick(
+                    L"The raw Discover results are still cached. Change the local mode or toggles to reveal them without running another package query.",
+                    L"原始搜尋結果仍然已快取；改本機模式或者切換按鈕即可重新顯示，唔使再執行套件查詢。"),
+                L"NativePackageDiscoverFilterEmpty");
         }
         else if (!m_packageWorking && m_packageProbeComplete && m_packageItems.empty() && m_packageRunStates.empty())
         {
