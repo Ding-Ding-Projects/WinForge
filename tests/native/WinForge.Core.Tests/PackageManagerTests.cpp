@@ -208,8 +208,14 @@ NativeTestCounts RunPackageManagerTests()
     selectedWinget.source = L"winget";
     expect(PackageSelectionKey(selectedStore) == PackageSelectionKey(selectedStoreCanonical)
         && PackageSelectionKey(selectedStore) != PackageSelectionKey(selectedWinget)
-        && PackageSelectionKey(selectedStore) == L"manager=6:winget|id=12:Example.Tool|source=7:msstore",
+        && PackageSelectionKey(selectedStore) == L"manager=6:winget|action=7:install|id=12:Example.Tool|source=7:msstore",
         "Discover selection identity canonicalizes source without collapsing source-distinct rows");
+
+    expect(PackageSelectionKey(selectedStore, PackageAction::Install)
+            != PackageSelectionKey(selectedStore, PackageAction::Update)
+        && PackageSelectionKey(selectedStore, PackageAction::Update)
+            == L"manager=6:winget|action=6:update|id=12:Example.Tool|source=7:msstore",
+        "Cached selection identity scopes a canonical source to its preview action");
 
     PackageItem delimiterBearing{ L"Unsafe cached row", L"a|id=1:b", L"", L"", L"safe & calc", L"winget" };
     auto const delimiterKey = PackageSelectionKey(delimiterBearing);

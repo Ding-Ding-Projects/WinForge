@@ -14,6 +14,7 @@
 
 #include <cstdint>
 #include <filesystem>
+#include <optional>
 #include <stop_token>
 #include <unordered_set>
 
@@ -225,12 +226,15 @@ namespace winrt::WinForge::implementation
         void PreviewPackageOperation(
             winforge::core::packages::PackageItem const& package,
             winforge::core::packages::PackageAction action);
+        [[nodiscard]] std::optional<winforge::core::packages::PackageAction> CurrentPackageSelectionAction() const;
         void SetPackageSelected(
             winforge::core::packages::PackageItem const& package,
+            winforge::core::packages::PackageAction action,
             bool selected);
         void ClearPackageSelection();
-        [[nodiscard]] std::vector<winforge::core::packages::PackageItem> SelectedPackageItems() const;
-        void PreviewSelectedPackageInstalls();
+        [[nodiscard]] std::vector<winforge::core::packages::PackageItem> SelectedPackageItems(
+            winforge::core::packages::PackageAction action) const;
+        void PreviewSelectedPackageOperations(winforge::core::packages::PackageAction action);
         void PreviewPackageDetails(
             winforge::core::packages::PackageItem const& package);
         void StartPackageDetailsQuery(

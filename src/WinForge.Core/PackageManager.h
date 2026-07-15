@@ -228,9 +228,9 @@ namespace winforge::core::packages
         std::span<PackageItem const> raw_items,
         PackageSearchOptions options = {});
     // Stable, delimiter-safe identity for a cached package row selected for a
-    // preview. The source is canonicalized by the same validation policy used
-    // to build an argv plan; invalid source text is represented as "invalid"
-    // and never copied into the key.
+    // preview. The action and source are canonicalized by the same validation
+    // policy used to build an argv plan; invalid source text is represented as
+    // "invalid" and never copied into the key.
     [[nodiscard]] std::wstring PackageSelectionKey(
         PackageItem const& item,
         PackageAction action = PackageAction::Install);

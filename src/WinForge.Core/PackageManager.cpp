@@ -750,12 +750,24 @@ namespace winforge::core::packages
 
     std::wstring PackageSelectionKey(PackageItem const& item, PackageAction action)
     {
-        // Keep native Discover selection aligned with the managed package
-        // coordinator: manager names are canonicalized, package IDs retain
-        // their exact spelling, and a source becomes part of the identity only
-        // after the source policy accepts and normalizes it.
+        // Keep native cached-row selection aligned with the managed package
+        // coordinator: manager names and preview actions are canonicalized,
+        // package IDs retain their exact spelling, and a source becomes part
+        // of the identity only after the source policy accepts and normalizes
+        // it. Including the action prevents a stale Update or Uninstall event
+        // from ever sharing an Install selection identity.
         auto const manager = Lower(item.manager_key);
         auto const packageId = Trim(item.id);
+        auto const actionKey = [action]() noexcept -> std::wstring_view
+        {
+            switch (action)
+            {
+            case PackageAction::Install: return L"install";
+            case PackageAction::Update: return L"update";
+            case PackageAction::Uninstall: return L"uninstall";
+            default: return L"invalid";
+            }
+        }();
         auto const resolved = ResolvePackageSource(manager, packageId, item.source, action);
         auto const source = resolved
             ? resolved.resolution->normalized_source
@@ -765,7 +777,7 @@ namespace winforge::core::packages
         // cached item contains delimiters. Those values remain harmless until
         // the command builder validates them again at the preview boundary.
         std::wstring key;
-        key.reserve(manager.size() + packageId.size() + source.size() + 48);
+        key.reserve(manager.size() + actionKey.size() + packageId.size() + source.size() + 64);
         auto append = [&key](std::wstring_view name, std::wstring_view value)
         {
             if (!key.empty())
@@ -779,6 +791,7 @@ namespace winforge::core::packages
             key += value;
         };
         append(L"manager", manager);
+        append(L"action", actionKey);
         append(L"id", packageId);
         append(L"source", source);
         return key;
