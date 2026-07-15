@@ -25,9 +25,9 @@
 
 ### Case Converter native parity · 大小寫轉換原生對等
 
-**EN —** `module.caseconvert` now has a live native implementation that tokenizes separators plus camel/Pascal/digit boundaries and emits ten ordered forms: camelCase, PascalCase, snake_case, kebab-case, CONSTANT_CASE, Title Case, Sentence case, dot.case, path/case, and Train-Case. The page keeps its bilingual input/output layout through language rerenders, loads ICU casing dynamically when available, exposes stable accessibility IDs for each copy action, and has current visual evidence at `docs/screenshot-caseconvert.png`.
+**EN —** `module.caseconvert` now has a live native implementation that tokenizes separators plus camel/Pascal/digit boundaries and emits ten ordered forms: camelCase, PascalCase, snake_case, kebab-case, CONSTANT_CASE, Title Case, Sentence case, dot.case, path/case, and Train-Case. The page keeps its bilingual input/output layout through language rerenders, uses built-in Windows invariant NLS casing rather than a machine-specific ICU DLL, exposes stable accessibility IDs for each copy action, and has current visual evidence at `docs/screenshot-caseconvert.png`.
 
-**粵語 —** `module.caseconvert` 而家有即時原生實作，會按分隔符同 camel／Pascal／數字邊界做 token 化，再輸出十種有序格式：camelCase、PascalCase、snake_case、kebab-case、CONSTANT_CASE、Title Case、Sentence case、dot.case、path/case 同 Train-Case。頁面喺轉語言時會保留雙語輸入／輸出版面，可用時會動態載入 ICU 大小寫處理，為每個複製動作提供穩定無障礙 ID，最新視覺證據喺 `docs/screenshot-caseconvert.png`。
+**粵語 —** `module.caseconvert` 而家有即時原生實作，會按分隔符同 camel／Pascal／數字邊界做 token 化，再輸出十種有序格式：camelCase、PascalCase、snake_case、kebab-case、CONSTANT_CASE、Title Case、Sentence case、dot.case、path/case 同 Train-Case。頁面喺轉語言時會保留雙語輸入／輸出版面，會用內置 Windows invariant NLS 大小寫處理而唔依賴機器特定 ICU DLL，為每個複製動作提供穩定無障礙 ID，最新視覺證據喺 `docs/screenshot-caseconvert.png`。
 
 ### GUID & ID Generator native parity · GUID 同 ID 產生器原生對等
 

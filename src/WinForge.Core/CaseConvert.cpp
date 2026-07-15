@@ -2,67 +2,36 @@
 
 #include <Windows.h>
 
-#include <array>
-#include <cstdint>
-#include <mutex>
 #include <string>
 #include <string_view>
 #include <vector>
 
 namespace
 {
-    using u_charType_fn = std::int32_t(__cdecl*)(std::int32_t);
-    using u_tolower_fn = std::int32_t(__cdecl*)(std::int32_t);
-    using u_toupper_fn = std::int32_t(__cdecl*)(std::int32_t);
-    using u_isUWhiteSpace_fn = std::uint8_t(__cdecl*)(std::int32_t);
-
-    constexpr std::uint32_t kLetter = 1;
-    constexpr std::uint32_t kLower = 2;
-    constexpr std::uint32_t kTitle = 3;
-    constexpr std::uint32_t kModifier = 4;
-    constexpr std::uint32_t kOther = 5;
-    constexpr std::uint32_t kDigit = 9;
-
-    struct UnicodeApi
+    // Windows' Unicode/NLS APIs are part of the supported OS contract.  Do
+    // not dynamically bind System32's ICU implementation: hosted Windows
+    // images can expose a non-compatible ICU surface, which used to make all
+    // non-empty Case Converter input look like punctuation.
+    [[nodiscard]] WORD CharacterType(wchar_t value)
     {
-        HMODULE module{};
-        u_charType_fn charType{};
-        u_tolower_fn toLower{};
-        u_toupper_fn toUpper{};
-        u_isUWhiteSpace_fn isWhiteSpace{};
-
-        [[nodiscard]] bool Loaded() const noexcept
-        {
-            return charType && toLower && toUpper && isWhiteSpace;
-        }
-    };
-
-    [[nodiscard]] UnicodeApi LoadUnicodeApi()
-    {
-        UnicodeApi api;
-        auto const module = LoadLibraryExW(L"icu.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
-        if (!module)
-        {
-            return api;
-        }
-
-        api.module = module;
-        api.charType = reinterpret_cast<u_charType_fn>(GetProcAddress(module, "u_charType"));
-        api.toLower = reinterpret_cast<u_tolower_fn>(GetProcAddress(module, "u_tolower"));
-        api.toUpper = reinterpret_cast<u_toupper_fn>(GetProcAddress(module, "u_toupper"));
-        api.isWhiteSpace = reinterpret_cast<u_isUWhiteSpace_fn>(GetProcAddress(module, "u_isUWhiteSpace"));
-        if (!api.Loaded())
-        {
-            FreeLibrary(module);
-            api = {};
-        }
-        return api;
+        WORD type{};
+        return GetStringTypeW(CT_CTYPE1, &value, 1, &type) != 0 ? type : 0;
     }
 
-    [[nodiscard]] UnicodeApi const& Unicode()
+    [[nodiscard]] wchar_t MapInvariantChar(wchar_t value, DWORD mapFlags)
     {
-        static const UnicodeApi api = LoadUnicodeApi();
-        return api;
+        wchar_t mapped = value;
+        auto const mappedLength = LCMapStringEx(
+            LOCALE_NAME_INVARIANT,
+            mapFlags,
+            &value,
+            1,
+            &mapped,
+            1,
+            nullptr,
+            nullptr,
+            0);
+        return mappedLength == 1 ? mapped : value;
     }
 
     [[nodiscard]] bool IsExplicitSeparator(wchar_t value)
@@ -74,24 +43,13 @@ namespace
 
     [[nodiscard]] bool IsLetterOrDigit(wchar_t value)
     {
-        auto const code = static_cast<std::int32_t>(static_cast<std::uint16_t>(value));
-        auto const type = Unicode().Loaded()
-            ? static_cast<std::uint32_t>(Unicode().charType(code))
-            : 0u;
-
-        switch (type)
+        if ((CharacterType(value) & (C1_ALPHA | C1_DIGIT)) != 0)
         {
-        case kLetter:
-        case kLower:
-        case kTitle:
-        case kModifier:
-        case kOther:
-        case kDigit:
             return true;
-        default:
-            break;
         }
 
+        // These letters landed after some supported Windows NLS tables. Keep
+        // the managed-oracle coverage stable on older OS builds too.
         switch (value)
         {
         case static_cast<wchar_t>(0x1C89):
@@ -110,10 +68,7 @@ namespace
 
     [[nodiscard]] bool IsDigit(wchar_t value)
     {
-        auto const code = static_cast<std::int32_t>(static_cast<std::uint16_t>(value));
-        return Unicode().Loaded()
-            ? static_cast<std::uint32_t>(Unicode().charType(code)) == kDigit
-            : value >= L'0' && value <= L'9';
+        return (CharacterType(value) & C1_DIGIT) != 0;
     }
 
     [[nodiscard]] bool IsLower(wchar_t value)
@@ -128,10 +83,7 @@ namespace
             break;
         }
 
-        auto const code = static_cast<std::int32_t>(static_cast<std::uint16_t>(value));
-        return Unicode().Loaded()
-            ? static_cast<std::uint32_t>(Unicode().charType(code)) == kLower
-            : value >= L'a' && value <= L'z';
+        return (CharacterType(value) & C1_LOWER) != 0;
     }
 
     [[nodiscard]] bool IsUpper(wchar_t value)
@@ -148,20 +100,17 @@ namespace
             break;
         }
 
-        auto const code = static_cast<std::int32_t>(static_cast<std::uint16_t>(value));
-        return Unicode().Loaded()
-            ? static_cast<std::uint32_t>(Unicode().charType(code)) == kLetter
-            : value >= L'A' && value <= L'Z';
+        return (CharacterType(value) & C1_UPPER) != 0;
     }
 
     [[nodiscard]] bool IsWhiteSpace(wchar_t value)
     {
-        auto const code = static_cast<std::int32_t>(static_cast<std::uint16_t>(value));
-        if (Unicode().Loaded())
+        if ((CharacterType(value) & C1_SPACE) != 0)
         {
-            return Unicode().isWhiteSpace(code) != 0;
+            return true;
         }
 
+        // Match the managed whitespace contract even on an older NLS table.
         return (value >= L'\t' && value <= L'\r') ||
             value == L' ' || value == L'\u0085' || value == L'\u00A0' ||
             value == L'\u1680' || (value >= L'\u2000' && value <= L'\u200A') ||
@@ -176,35 +125,17 @@ namespace
             return value;
         }
 
-        auto const code = static_cast<std::int32_t>(static_cast<std::uint16_t>(value));
-        if (Unicode().Loaded())
-        {
-            return static_cast<wchar_t>(Unicode().toLower(code));
-        }
-        if (value >= L'A' && value <= L'Z')
-        {
-            return static_cast<wchar_t>(value - L'A' + L'a');
-        }
-        return value;
+        return MapInvariantChar(value, LCMAP_LOWERCASE);
     }
 
     [[nodiscard]] wchar_t ToUpperInvariantChar(wchar_t value)
     {
-        if (value == static_cast<wchar_t>(0x0131))
+        if (value == static_cast<wchar_t>(0x0131) || value == static_cast<wchar_t>(0x00DF))
         {
             return value;
         }
 
-        auto const code = static_cast<std::int32_t>(static_cast<std::uint16_t>(value));
-        if (Unicode().Loaded())
-        {
-            return static_cast<wchar_t>(Unicode().toUpper(code));
-        }
-        if (value >= L'a' && value <= L'z')
-        {
-            return static_cast<wchar_t>(value - L'a' + L'A');
-        }
-        return value;
+        return MapInvariantChar(value, LCMAP_UPPERCASE);
     }
 
     [[nodiscard]] std::wstring ToLowerInvariant(std::wstring_view value)

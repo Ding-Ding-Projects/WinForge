@@ -71,9 +71,9 @@ The functional dimensions pass: 25 focused native cases run within each 281/281 
 
 ### Case Converter parity slice · 大小寫轉換對等批次
 
-`module.caseconvert` now opens a real native page instead of the old pending shell. The standard-C++ core tokenizes separators and camel/Pascal/digit boundaries, then emits ten ordered forms: camelCase, PascalCase, snake_case, kebab-case, CONSTANT_CASE, Title Case, Sentence case, dot.case, path/case, and Train-Case. ICU-backed casing is loaded dynamically when available, the page keeps its bilingual input/output layout through language rerenders, and each row has a copy action with stable accessibility IDs.
+`module.caseconvert` now opens a real native page instead of the old pending shell. The standard-C++ core tokenizes separators and camel/Pascal/digit boundaries, then emits ten ordered forms: camelCase, PascalCase, snake_case, kebab-case, CONSTANT_CASE, Title Case, Sentence case, dot.case, path/case, and Train-Case. It uses built-in Windows invariant NLS classification/casing rather than a machine-specific ICU DLL, so the behavior is available on both developer machines and hosted CI; the page keeps its bilingual input/output layout through language rerenders, and each row has a copy action with stable accessibility IDs.
 
-`module.caseconvert` 而家會開真正原生頁，唔再係舊 pending shell。標準 C++ core 會按分隔符同 camel／Pascal／數字邊界做 token 化，再輸出十種有序格式：camelCase、PascalCase、snake_case、kebab-case、CONSTANT_CASE、Title Case、Sentence case、dot.case、path/case 同 Train-Case。ICU 大小寫處理會喺可用時動態載入，頁面會喺轉語言時保留雙語輸入／輸出版面，而且每一行都有穩定無障礙 ID 嘅複製動作。
+`module.caseconvert` 而家會開真正原生頁，唔再係舊 pending shell。標準 C++ core 會按分隔符同 camel／Pascal／數字邊界做 token 化，再輸出十種有序格式：camelCase、PascalCase、snake_case、kebab-case、CONSTANT_CASE、Title Case、Sentence case、dot.case、path/case 同 Train-Case。佢會用內置 Windows invariant NLS 分類／大小寫處理，而唔依賴機器特定 ICU DLL，所以開發機同 hosted CI 都有一致行為；頁面會喺轉語言時保留雙語輸入／輸出版面，而且每一行都有穩定無障礙 ID 嘅複製動作。
 
 Fresh native Case Converter visual evidence was captured successfully and is archived at `docs/screenshot-caseconvert.png`. The live page is the current screenshot reference for this slice.
 
