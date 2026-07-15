@@ -32,8 +32,6 @@
 
 ## Native Visual Evidence · 原生視覺證據
 
-**EN —** The current native Case Converter page is captured at [`docs/screenshot-caseconvert.png`](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-caseconvert.png).
+**EN —** A fresh native Case Converter capture was attempted with the repository driver and a LowLevel headless desktop. The driver rejected its blank/near-uniform `PrintWindow` fallback, and the inspected LowLevel HWND capture showed only a title bar and blank client frame. The stale image was retired; visual evidence is `capture-blocked`, while native tests and UI Automation remain behavioral evidence only.
 
-**粵語 —** 最新原生 Case Converter 頁面已經擷取，位置喺 [`docs/screenshot-caseconvert.png`](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-caseconvert.png)。
-
-![Case Converter · 大小寫轉換](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-caseconvert.png)
+**粵語 —** repository driver 同 LowLevel 無頭 desktop 都重新嘗試過最新原生 Case Converter 擷取。driver 拒絕咗空白／接近單色嘅 `PrintWindow` fallback，而檢查過嘅 LowLevel HWND 擷取只有 title bar 同空白 client frame。舊圖已移除；視覺證據係 `capture-blocked`，原生測試同 UI Automation 只係行為證據。

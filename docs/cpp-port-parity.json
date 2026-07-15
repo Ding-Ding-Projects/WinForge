@@ -1257,20 +1257,20 @@
                                         "build":  "pass",
                                         "test":  "pass",
                                         "launch":  "pass",
-                                        "visual":  "pass",
+                                        "visual":  "capture-blocked",
                                         "behavior":  "pass",
                                         "sideEffect":  "pass",
                                         "docs":  "pass"
                                     },
                        "attempts":  [
                                        {
-                                           "atUtc":  "2026-07-14T03:10:00Z",
-                                           "result":  "Native Case Converter parity slice completed: the standard-C++ core now tokenizes separators plus camel/Pascal/digit boundaries, emits the ten documented forms, passes the focused native and managed-oracle regressions, launches through the native driver, and has fresh visual evidence at docs/screenshot-caseconvert.png.",
-                                           "status":  "pass"
+                                           "atUtc":  "2026-07-15T00:00:00Z",
+                                           "result":  "Native Case Converter parity slice remains functionally complete: the standard-C++ core tokenizes separators plus camel/Pascal/digit boundaries, emits the ten documented forms, and passes focused native regressions. A fresh repository-driver capture and an inspected LowLevel headless-desktop HWND capture both produced a blank or near-uniform WinUI client frame; stale Case Converter screenshots were retired, so visual evidence is capture-blocked.",
+                                           "status":  "capture-blocked"
                                        }
 
                                     ],
-                       "notes":  "2026-07-13 · The native Case Converter route is implemented, tested, launched, and visually captured. The route remains in the overall native-rewrite ledger because the broader cutover is still in progress, but this slice now has complete local evidence and a canonical screenshot. · 原生 Case Converter route 已經完成實作、測試、啟動同視覺擷取。呢條 route 仍然留喺整體原生重寫清單，因為大方向切換仲係進行中，但呢個 slice 已經有完整本地證據同 canonical 截圖。"
+                       "notes":  "2026-07-15 · IN PROGRESS / 進行中 solely because fresh visual capture is blocked. The native Case Converter route is implemented, tested, and launched with behavior evidence from native regressions and UI Automation; the repository driver and LowLevel headless-desktop HWND capture both yielded a blank or near-uniform WinUI client frame, so the stale screenshots were retired rather than reused. · 原生 Case Converter route 已完成實作、測試同啟動；原生回歸同 UI Automation 只提供行為證據。repository driver 同 LowLevel 無頭 desktop HWND 擷取都只得到空白／接近單色 WinUI client frame，所以過時截圖已移除，唔會重用；只因最新視覺擷取受阻而保持進行中。"
                    },
                    {
                        "id":  "module.cementkiln",

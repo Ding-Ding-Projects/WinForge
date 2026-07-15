@@ -10,9 +10,9 @@ Canonical screenshots live in `docs/` and are embedded here through raw GitHub U
 
 **粵語 —** 2026-07-13 新完成原生功能嘅檢查碼驗證器已經用 `driver.ps1 -Native -Page checkdigit` 開啟；標準同無障礙加固 render 後亦再次按要求嘗試新截圖。`CopyFromScreen` 用唔到；`PrintWindow` 後備產生空白／接近單色 WinUI client frame，所以已被拒絕。route 另外通過六個格式嘅即時 UI Automation 檢查、本地化名稱同清除舊 detail 無障礙檢查，但嗰啲係行為證據，唔係視覺證據。冇建立、替換、重用或者合成 `screenshot-checkdigit.png`；頁面係 `capture-blocked`。
 
-**EN —** The native Case Converter route was launched through `driver.ps1 -Native -Page caseconvert`, and it successfully produced the current canonical capture at `docs/screenshot-caseconvert.png`. That image is now the live visual reference for the slice.
+**EN —** On 2026-07-15 the native Case Converter route was retried through `driver.ps1 -Native -Page caseconvert -WaitMs 15000` and a LowLevel headless desktop. `CopyFromScreen` was unavailable; the driver's `PrintWindow` fallback was blank or near-uniform, and the inspected LowLevel HWND capture showed only a title bar and blank client frame. No current PNG was accepted. `screenshot-caseconvert.png` and its wiki-local copy were retired rather than reused; the page is `capture-blocked`.
 
-**粵語 —** 原生 Case Converter route 已經用 `driver.ps1 -Native -Page caseconvert` 開啟，並成功產生目前嘅 canonical 截圖 `docs/screenshot-caseconvert.png`。呢張圖而家就係呢個 slice 嘅 live 視覺參考。
+**粵語 —** 2026-07-15 原生 Case Converter route 重新用 `driver.ps1 -Native -Page caseconvert -WaitMs 15000` 同 LowLevel 無頭 desktop 嘗試。`CopyFromScreen` 用唔到；driver 嘅 `PrintWindow` fallback 係空白／接近單色，而檢查過嘅 LowLevel HWND 擷取只有 title bar 同空白 client frame。冇接受任何最新 PNG。`screenshot-caseconvert.png` 同 wiki 本機副本已移除，唔會重用；頁面係 `capture-blocked`。
 
 **EN —** On 2026-07-13 the newly native Text to Binary route was launched through `driver.ps1 -Native -Page binarytext -WaitMs 5000`; its required current capture attempted `CopyFromScreen`, then rejected the blank or near-uniform `PrintWindow` fallback. The exact result was `CopyFromScreen is unavailable and the PrintWindow fallback produced a blank or near-uniform WinUI client frame; graphics capture is unavailable in this desktop session.` No `screenshot-binarytext.png` exists or was created, replaced, reused, or synthesized. The separate 59/59 UI Automation smoke exercised binary and hex conversion, Move output to input, explicit Copy, malformed-code clearing, accessibility, selected-base/input/output language-state retention, and all aliases; that is behavior evidence only. Text to Binary is `capture-blocked`, not visual-pass.
 
@@ -613,7 +613,7 @@ Fresh capture is pending because the current desktop capture host rejects `CopyF
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-quickaccent.png)
 
 ### Case Converter · 大小寫轉換
-![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-caseconvert.png)
+> Fresh native capture is `capture-blocked`: the repository driver rejected a blank/near-uniform `PrintWindow` client frame, and the inspected LowLevel headless-desktop HWND capture was title-bar-only. The stale Case Converter images were retired rather than reused as visual evidence. · 最新原生擷取係 `capture-blocked`：repository driver 拒絕咗空白／接近單色嘅 `PrintWindow` client frame，而檢查過嘅 LowLevel 無頭 desktop HWND 擷取只有 title bar。過時嘅 Case Converter 圖片已移除，唔會重用做視覺證據。
 
 ### Command Not Found · 搵唔到指令
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-cmdnotfound.png)
