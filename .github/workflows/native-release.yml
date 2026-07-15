@@ -43,14 +43,45 @@ concurrency:
 jobs:
   build-test-package:
     name: Build, smoke test & package native C++ · 建置、煙霧測試同封裝原生 C++
-    runs-on: windows-latest
+    # Pin the VS 2022 image because the native app deliberately targets v143.
+    # `windows-latest` has moved to VS 2026, where that UWP compatibility
+    # toolset is not present by default.
+    runs-on: windows-2022
 
     steps:
       - name: Checkout · 取出原始碼
         uses: actions/checkout@v4
 
+      - name: Provision C++ v143 UWP toolset · 準備 C++ v143 UWP 工具組
+        shell: pwsh
+        run: |
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          $setup = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\setup.exe'
+          if (-not (Test-Path -LiteralPath $vswhere) -or -not (Test-Path -LiteralPath $setup)) {
+            throw 'Visual Studio discovery or installer is unavailable on this runner'
+          }
+
+          $installPath = @(& $vswhere -latest -products * -version '[17.0,18.0)' -requires Microsoft.Component.MSBuild -property installationPath | Select-Object -First 1)[0]
+          if ([string]::IsNullOrWhiteSpace($installPath) -or -not (Test-Path -LiteralPath $installPath)) {
+            throw 'Could not resolve the Visual Studio installation for the native build'
+          }
+          $installPath = $installPath.Trim()
+
+          $toolset = Join-Path $installPath 'MSBuild\Microsoft\VC\v170\Application Type\Windows Store\10.0\Platforms\x64\PlatformToolsets\v143\Toolset.props'
+
+          if (-not (Test-Path -LiteralPath $toolset)) {
+            & $setup modify --installPath $installPath --add Microsoft.VisualStudio.ComponentGroup.UWP.VC --add Microsoft.VisualStudio.Component.Windows11SDK.26100 --quiet --norestart --wait
+            $setupExitCode = $LASTEXITCODE
+            if ($setupExitCode -notin @(0, 3010)) { throw "C++ v143 UWP toolset installation failed with exit code $setupExitCode" }
+          }
+
+          if (-not (Test-Path -LiteralPath $toolset)) { throw "C++ v143 UWP toolset is still missing after provisioning: $toolset" }
+          Write-Host "Using UWP v143 toolset: $toolset"
+
       - name: Set up MSBuild · 設定 MSBuild
         uses: microsoft/setup-msbuild@v2
+        with:
+          vs-version: '[17.0,18.0)'
 
       - name: Restore native NuGet packages · 還原原生 NuGet 套件
         shell: pwsh
