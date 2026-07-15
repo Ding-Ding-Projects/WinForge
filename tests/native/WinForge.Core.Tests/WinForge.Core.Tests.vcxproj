@@ -56,6 +56,7 @@
     <ClCompile Include="CheckDigitTests.cpp" />
     <ClCompile Include="CodecTests.cpp" />
     <ClCompile Include="GuidGenTests.cpp" />
+    <ClCompile Include="RomanNumTests.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="PackageManagerTests.cpp" />
     <ClCompile Include="PackageParsers.Tests.cpp" />
@@ -67,6 +68,7 @@
     <ClCompile Include="..\..\..\src\WinForge.Core\Codec.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\CommandLine.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\GuidGen.cpp" />
+    <ClCompile Include="..\..\..\src\WinForge.Core\RomanNum.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\PackageManager.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\PackageParsers.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\PackageRuntime.cpp" />
@@ -79,6 +81,7 @@
     <ClInclude Include="CheckDigitTests.h" />
     <ClInclude Include="CodecTests.h" />
     <ClInclude Include="GuidGenTests.h" />
+    <ClInclude Include="RomanNumTests.h" />
     <ClInclude Include="PackageManagerTests.h" />
     <ClInclude Include="PackageRuntimeTests.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\BinaryText.h" />
@@ -87,6 +90,7 @@
     <ClInclude Include="..\..\..\src\WinForge.Core\Codec.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\CommandLine.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\GuidGen.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\RomanNum.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\Localization.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\ModuleRecord.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\PackageManager.h" />

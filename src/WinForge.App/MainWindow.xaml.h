@@ -7,6 +7,7 @@
 #include "../WinForge.Core/Codec.h"
 #include "../WinForge.Core/CommandLine.h"
 #include "../WinForge.Core/GuidGen.h"
+#include "../WinForge.Core/RomanNum.h"
 #include "../WinForge.Core/ModuleRecord.h"
 #include "../WinForge.Core/PackageRuntime.h"
 #include "../WinForge.Core/RouteIndex.h"
@@ -117,6 +118,16 @@ namespace winrt::WinForge::implementation
         Microsoft::UI::Xaml::Controls::TextBox m_guidGenInspectHexBox{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_guidGenInspectMeta{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_guidGenStatus{ nullptr };
+        Microsoft::UI::Xaml::Controls::ToggleSwitch m_romanNumExtendedSwitch{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_romanNumNumberInput{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_romanNumRomanOutput{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_romanNumRomanBreakdown{ nullptr };
+        Microsoft::UI::Xaml::Controls::Button m_romanNumCopyRoman{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_romanNumRomanInput{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_romanNumNumberOutput{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_romanNumNumberBreakdown{ nullptr };
+        Microsoft::UI::Xaml::Controls::Button m_romanNumCopyNumber{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_romanNumStatus{ nullptr };
         std::unordered_map<std::wstring, bool> m_packageManagersSelected;
         std::unordered_map<std::wstring, bool> m_packageManagersAvailable;
         std::unordered_map<std::wstring, std::wstring> m_packageProbeDiagnostics;
@@ -168,6 +179,12 @@ namespace winrt::WinForge::implementation
         std::wstring m_guidGenNanoValue{};
         std::wstring m_guidGenInspectValue{};
         bool m_guidGenRendering{ false };
+        bool m_romanNumExtended{ false };
+        std::wstring m_romanNumNumberInputValue{};
+        std::wstring m_romanNumRomanInputValue{};
+        std::wstring m_romanNumRomanOutputValue{};
+        std::wstring m_romanNumNumberOutputValue{};
+        bool m_romanNumRendering{ false };
         std::wstring m_currentRoute{ L"dashboard" };
         std::wstring m_currentArgument{};
 
@@ -271,6 +288,9 @@ namespace winrt::WinForge::implementation
         void GenerateNanoIdValue();
         void RefreshGuidInspector();
         void AnnounceGuidGenStatus(std::wstring_view message, bool warning = false);
+        void RenderRomanNum();
+        void RefreshRomanNum(bool refreshNumber = true, bool refreshRoman = true);
+        void AnnounceRomanNumStatus(std::wstring_view message, bool warning = false);
         void RenderSearch(std::wstring_view query);
         void RenderAbout();
         void RenderPending(winforge::core::ModuleRecord const& module);

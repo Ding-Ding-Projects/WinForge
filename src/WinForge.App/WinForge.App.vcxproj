@@ -138,6 +138,7 @@
     <ClInclude Include="..\WinForge.Core\Codec.h" />
     <ClInclude Include="..\WinForge.Core\CommandLine.h" />
     <ClInclude Include="..\WinForge.Core\GuidGen.h" />
+    <ClInclude Include="..\WinForge.Core\RomanNum.h" />
     <ClInclude Include="..\WinForge.Core\Localization.h" />
     <ClInclude Include="..\WinForge.Core\ModuleRecord.h" />
     <ClInclude Include="..\WinForge.Core\PackageManager.h" />
@@ -173,6 +174,9 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\WinForge.Core\GuidGen.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\WinForge.Core\RomanNum.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\WinForge.Core\PackageManager.cpp">

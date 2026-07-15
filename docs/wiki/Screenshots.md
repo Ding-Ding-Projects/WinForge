@@ -14,6 +14,10 @@ Canonical screenshots live in `docs/` and are embedded here through raw GitHub U
 
 **粵語 —** 2026-07-15 原生 Case Converter route 重新用 `driver.ps1 -Native -Page caseconvert -WaitMs 15000` 同 LowLevel 無頭 desktop 嘗試。`CopyFromScreen` 用唔到；driver 嘅 `PrintWindow` fallback 係空白／接近單色，而檢查過嘅 LowLevel HWND 擷取只有 title bar 同空白 client frame。冇接受任何最新 PNG。`screenshot-caseconvert.png` 同 wiki 本機副本已移除，唔會重用；頁面係 `capture-blocked`。
 
+**EN —** On 2026-07-15 the native Roman Numerals route was launched through `driver.ps1 -Native -Page romannum -WaitMs 15000`. `CopyFromScreen` was unavailable and the driver's `PrintWindow` fallback was blank or near-uniform, so no PNG was accepted. An inspected LowLevel headless-desktop HWND capture likewise showed only the WinForge title bar and a blank client frame. No `screenshot-romannum.png` was created, replaced, reused, or synthesized. The separate 313/313 native tests and 141/141 UI Automation smoke include 17 focused Roman cases and 13 Roman assertions, but those are behavior—not visual—evidence; Roman Numerals is `capture-blocked`.
+
+**粵語 —** 2026-07-15 原生羅馬數字 route 已經用 `driver.ps1 -Native -Page romannum -WaitMs 15000` 開啟。`CopyFromScreen` 用唔到，而 driver 嘅 `PrintWindow` fallback 係空白／接近單色，所以冇接受 PNG。檢查過嘅 LowLevel 無頭 desktop HWND 擷取同樣只有 WinForge title bar 同空白 client frame。冇建立、替換、重用或者合成 `screenshot-romannum.png`。獨立 313/313 原生測試同 141/141 UI Automation smoke 包含 17 個羅馬數字專項案例同 13 個 Roman assertion，但嗰啲係行為而唔係視覺證據；羅馬數字係 `capture-blocked`。
+
 **EN —** On 2026-07-13 the newly native Text to Binary route was launched through `driver.ps1 -Native -Page binarytext -WaitMs 5000`; its required current capture attempted `CopyFromScreen`, then rejected the blank or near-uniform `PrintWindow` fallback. The exact result was `CopyFromScreen is unavailable and the PrintWindow fallback produced a blank or near-uniform WinUI client frame; graphics capture is unavailable in this desktop session.` No `screenshot-binarytext.png` exists or was created, replaced, reused, or synthesized. The separate 59/59 UI Automation smoke exercised binary and hex conversion, Move output to input, explicit Copy, malformed-code clearing, accessibility, selected-base/input/output language-state retention, and all aliases; that is behavior evidence only. Text to Binary is `capture-blocked`, not visual-pass.
 
 **粵語 —** 2026-07-13 新完成原生功能嘅文字轉二進位 route 已經用 `driver.ps1 -Native -Page binarytext -WaitMs 5000` 開啟；指定嘅最新截圖先試 `CopyFromScreen`，再拒絕空白／接近單色嘅 `PrintWindow` 後備。確實結果係：`CopyFromScreen is unavailable and the PrintWindow fallback produced a blank or near-uniform WinUI client frame; graphics capture is unavailable in this desktop session.` 冇 `screenshot-binarytext.png`，亦冇建立、替換、重用或者合成。獨立 59/59 UI Automation smoke 會操作二進位同十六進位轉換、搬輸出去輸入、明確 Copy、錯誤碼清空、無障礙、轉語言後保留已揀進位／輸入／輸出同全部 alias；嗰啲只係行為證據。文字轉二進位係 `capture-blocked`，唔係 visual-pass。
@@ -350,6 +354,9 @@ Fresh capture is pending because the current desktop capture host rejects `CopyF
 
 ### Rich Preview · 豐富預覽
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-richpreview.png)
+
+### Roman Numerals · 羅馬數字
+> Native visual capture is `capture-blocked`: the repository driver rejected its blank/near-uniform frame, and the inspected LowLevel headless capture showed only a title bar and blank client. No substitute image is shown. · 原生視覺擷取係 `capture-blocked`：repository driver 拒絕咗空白／接近單色 frame，而檢查過嘅 LowLevel 無頭擷取只有 title bar 同空白 client；唔會展示替代圖片。
 
 ### OneDrive · OneDrive
 ![](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-onedrive.png)

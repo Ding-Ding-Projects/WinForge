@@ -823,6 +823,97 @@ foreach ($alias in @('module.guidgen')) {
     Invoke-OwnedRoute -Route $alias -ExpectedTitle 'GUID & ID Generator'
 }
 
+Invoke-OwnedRoute -Route 'roman' -ExpectedTitle 'Roman Numerals' -Inspect {
+    param($root, $title)
+
+    foreach ($id in @(
+        'NativeRomanNumImplementationStatus',
+        'NativeRomanNumExtendedSwitch',
+        'NativeRomanNumExtendedNote',
+        'NativeRomanNumNumberInput',
+        'NativeRomanNumRomanOutput',
+        'NativeRomanNumRomanBreakdown',
+        'NativeRomanNumCopyRoman',
+        'NativeRomanNumRomanInput',
+        'NativeRomanNumNumberOutput',
+        'NativeRomanNumNumberBreakdown',
+        'NativeRomanNumCopyNumber',
+        'NativeRomanNumStatus'
+    )) {
+        Wait-ForElement -Root $root -AutomationId $id | Out-Null
+    }
+
+    $romanControlsFit = Test-HorizontalBoundsWithinWindow -Root $root -Elements @(
+        (Wait-ForElement -Root $root -AutomationId 'NativeRomanNumExtendedSwitch'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeRomanNumExtendedNote'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeRomanNumNumberInput'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeRomanNumRomanOutput'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeRomanNumCopyRoman'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeRomanNumRomanInput'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeRomanNumNumberOutput'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeRomanNumCopyNumber'))
+    Assert-True -Condition $romanControlsFit -Name 'Roman Numerals exposes native controls, accessibility, and horizontal clipping safety'
+
+    $numberInput = Wait-ForElement -Root $root -AutomationId 'NativeRomanNumNumberInput'
+    $romanInput = Wait-ForElement -Root $root -AutomationId 'NativeRomanNumRomanInput'
+    $extended = Wait-ForElement -Root $root -AutomationId 'NativeRomanNumExtendedSwitch'
+    Assert-True -Condition ($numberInput.Current.Name.StartsWith('Whole number input', [StringComparison]::Ordinal)) `
+        -Name 'Roman Numerals number input has a localized accessible name'
+    Assert-True -Condition ($romanInput.Current.Name.StartsWith('Roman numeral input', [StringComparison]::Ordinal)) `
+        -Name 'Roman Numerals Roman input has a localized accessible name'
+
+    $numberInput = Set-ElementValueAndWait -Root $root -AutomationId 'NativeRomanNumNumberInput' -Value '1994'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeRomanNumRomanOutput' -ExpectedValue 'MCMXCIV' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeRomanNumRomanBreakdown' -Prefix '1,994 = M + CM + XC + IV' | Out-Null
+    Assert-True -Condition $true -Name 'Roman Numerals converts a standard number through the live native UI'
+
+    $romanInput = Set-ElementValueAndWait -Root $root -AutomationId 'NativeRomanNumRomanInput' -Value 'MCMXCIV'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeRomanNumNumberOutput' -ExpectedValue '1,994' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeRomanNumNumberBreakdown' -Prefix '= M + CM + XC + IV' | Out-Null
+    Assert-True -Condition $true -Name 'Roman Numerals parses canonical input through the live native UI'
+
+    $toggle = [System.Windows.Automation.TogglePattern]$extended.GetCurrentPattern(
+        [System.Windows.Automation.TogglePattern]::Pattern)
+    if ($toggle.Current.ToggleState -ne [System.Windows.Automation.ToggleState]::On) { $toggle.Toggle() }
+    $numberInput = Set-ElementValueAndWait -Root $root -AutomationId 'NativeRomanNumNumberInput' -Value '4000'
+    $fourThousand = "I$([char]0x0305)V$([char]0x0305)"
+    Wait-ForElementValue -Root $root -AutomationId 'NativeRomanNumRomanOutput' -ExpectedValue $fourThousand | Out-Null
+    Assert-True -Condition $true -Name 'Roman Numerals enables canonical vinculum output through the live native UI'
+
+    $romanInput = Set-ElementValueAndWait -Root $root -AutomationId 'NativeRomanNumRomanInput' -Value '(IV)'
+    Wait-ForElementValue -Root $root -AutomationId 'NativeRomanNumNumberOutput' -ExpectedValue '4,000' | Out-Null
+    Assert-True -Condition $true -Name 'Roman Numerals accepts canonical parenthetical vinculum input through the live native UI'
+
+    $romanInput = Set-ElementValueAndWait -Root $root -AutomationId 'NativeRomanNumRomanInput' -Value 'IIII'
+    $placeholderDash = [string][char]0x2014
+    Wait-ForElementValue -Root $root -AutomationId 'NativeRomanNumNumberOutput' -ExpectedValue $placeholderDash | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeRomanNumStatus' -Prefix 'Malformed Roman numeral' | Out-Null
+    Assert-True -Condition $true -Name 'Roman Numerals clears stale number output after malformed input'
+
+    $numberInput = Set-ElementValueAndWait -Root $root -AutomationId 'NativeRomanNumNumberInput' -Value '1994'
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativeRomanNumCopyRoman'
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeRomanNumStatus' -Prefix 'Copied: MCMXCIV' | Out-Null
+    Assert-True -Condition $true -Name 'Roman Numerals copies a populated native result with the managed status contract'
+
+    $romanInput = Set-ElementValueAndWait -Root $root -AutomationId 'NativeRomanNumRomanInput' -Value 'MCMXCIV'
+    $language = Wait-ForElement -Root $root -AutomationId 'NativeLanguagePicker'
+    Select-ComboItem -Combo $language -Name 'English'
+    Wait-ForPageTitle -Root $root -Prefix 'Roman Numerals' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeRomanNumNumberInput' -ExpectedValue '1994' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeRomanNumRomanOutput' -ExpectedValue 'MCMXCIV' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeRomanNumRomanInput' -ExpectedValue 'MCMXCIV' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeRomanNumNumberOutput' -ExpectedValue '1,994' | Out-Null
+    $extended = Wait-ForElement -Root $root -AutomationId 'NativeRomanNumExtendedSwitch'
+    $toggle = [System.Windows.Automation.TogglePattern]$extended.GetCurrentPattern(
+        [System.Windows.Automation.TogglePattern]::Pattern)
+    Assert-True -Condition ($toggle.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::On) `
+        -Name 'Roman Numerals preserves range, inputs, and outputs across language rerender'
+}
+
+foreach ($alias in @('romannum', 'module.romannum')) {
+    Invoke-OwnedRoute -Route $alias -ExpectedTitle 'Roman Numerals'
+}
+
 Invoke-OwnedRoute -Route 'package-updates' -ExpectedTitle 'Package Manager' -Inspect {
     param($root, $title)
 

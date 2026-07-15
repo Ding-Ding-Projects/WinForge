@@ -4,6 +4,7 @@
 #include "CheckDigitTests.h"
 #include "CodecTests.h"
 #include "GuidGenTests.h"
+#include "RomanNumTests.h"
 #include "Localization.h"
 #include "PackageManagerTests.h"
 #include "PackageRuntime.h"
@@ -181,6 +182,10 @@ int wmain(int argc, wchar_t** argv)
     auto const guidGenFailures = winforge::tests::guidgen::RunGuidGenTests();
     passed += 16 - guidGenFailures;
     failed += guidGenFailures;
+
+    auto const romanNumCounts = RunRomanNumTests();
+    passed += romanNumCounts.passed;
+    failed += romanNumCounts.failed;
 
     auto const package_manager_counts = RunPackageManagerTests();
     passed += package_manager_counts.passed;

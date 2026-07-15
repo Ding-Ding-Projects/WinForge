@@ -629,6 +629,10 @@ namespace winrt::WinForge::implementation
         {
             RenderGuidGen();
         }
+        else if (module->id == L"module.romannum")
+        {
+            RenderRomanNum();
+        }
         else if (module->id == L"about")
         {
             RenderAbout();
@@ -1701,6 +1705,384 @@ namespace winrt::WinForge::implementation
         catch (...)
         {
             // Accessibility notification failure must not break local conversion.
+        }
+    }
+
+    void MainWindow::RenderRomanNum()
+    {
+        m_romanNumRendering = true;
+
+        auto page = CreatePage(
+            winforge::core::LocalizedText{ L"Roman Numerals", L"羅馬數字" }.Pick(m_language),
+            winforge::core::LocalizedText{
+                L"Convert whole numbers and canonical Roman numerals in both directions. Standard mode covers 1–3,999; Extended mode reaches 3,999,999 with vinculum overlines.",
+                L"整數同標準羅馬數字可以雙向轉換。標準模式支援 1–3,999；擴充模式用橫線記法可以去到 3,999,999。" }.Pick(m_language));
+        page.MaxWidth(900);
+        page.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(page, L"NativeRomanNumPage");
+
+        InfoBar implementation;
+        implementation.IsOpen(true);
+        implementation.IsClosable(false);
+        implementation.Severity(InfoBarSeverity::Success);
+        implementation.Title(ToHString(winforge::core::LocalizedText{
+            L"Fully native Roman numeral conversion", L"全原生羅馬數字轉換" }.Pick(m_language)));
+        implementation.Message(ToHString(winforge::core::LocalizedText{
+            L"Standard and vinculum conversion, strict canonical validation, parenthetical ×1000 input, and copy actions run locally in standard C++. Clipboard writes require an explicit Copy button.",
+            L"標準同橫線記法轉換、嚴格標準寫法驗證、括號 ×1000 輸入同複製動作都喺本機標準 C++ 執行；一定要明確撳 Copy 先會寫入剪貼簿。" }.Pick(m_language)));
+        AutomationProperties::SetAutomationId(implementation, L"NativeRomanNumImplementationStatus");
+        page.Children().Append(implementation);
+
+        StackPanel range;
+        range.Orientation(Orientation::Vertical);
+        range.Spacing(6);
+        range.HorizontalAlignment(HorizontalAlignment::Stretch);
+        m_romanNumExtendedSwitch = ToggleSwitch();
+        m_romanNumExtendedSwitch.Header(box_value(ToHString(winforge::core::LocalizedText{
+            L"Extended range (vinculum)", L"擴充範圍（橫線記法）" }.Pick(m_language))));
+        m_romanNumExtendedSwitch.OnContent(box_value(ToHString(winforge::core::LocalizedText{ L"On", L"開" }.Pick(m_language))));
+        m_romanNumExtendedSwitch.OffContent(box_value(ToHString(winforge::core::LocalizedText{ L"Off", L"關" }.Pick(m_language))));
+        m_romanNumExtendedSwitch.IsOn(m_romanNumExtended);
+        AutomationProperties::SetAutomationId(m_romanNumExtendedSwitch, L"NativeRomanNumExtendedSwitch");
+        AutomationProperties::SetName(m_romanNumExtendedSwitch, ToHString(winforge::core::LocalizedText{
+            L"Extended vinculum range", L"擴充橫線範圍" }.Pick(m_language)));
+        m_romanNumExtendedSwitch.Toggled([this](Windows::Foundation::IInspectable const& sender, RoutedEventArgs const&)
+        {
+            if (m_romanNumRendering) return;
+            m_romanNumExtended = sender.as<ToggleSwitch>().IsOn();
+            RefreshRomanNum();
+        });
+        range.Children().Append(m_romanNumExtendedSwitch);
+        auto rangeNote = CreateText(winforge::core::LocalizedText{
+            L"A bar over each letter multiplies it by 1,000 (for example, I̅V̅ = 4,000). Input also accepts the canonical (IV) parenthetical form.",
+            L"每個字母上面加橫線即係乘 1,000（例如 I̅V̅ = 4,000）。輸入亦接受標準嘅 (IV) 括號寫法。" }.Pick(m_language), 12);
+        rangeNote.Opacity(0.80);
+        rangeNote.TextWrapping(TextWrapping::Wrap);
+        rangeNote.HorizontalAlignment(HorizontalAlignment::Stretch);
+        rangeNote.MaxWidth(760);
+        AutomationProperties::SetAutomationId(rangeNote, L"NativeRomanNumExtendedNote");
+        range.Children().Append(rangeNote);
+        page.Children().Append(range);
+
+        auto makeCard = []()
+        {
+            Border card;
+            card.Padding(Thickness{ 18, 16, 18, 18 });
+            card.CornerRadius(CornerRadius{ 8 });
+            card.BorderThickness(Thickness{ 1 });
+            card.BorderBrush(Application::Current().Resources().Lookup(
+                box_value(L"CardStrokeColorDefaultBrush")).as<Media::Brush>());
+            card.Background(Application::Current().Resources().Lookup(
+                box_value(L"CardBackgroundFillColorDefaultBrush")).as<Media::Brush>());
+            return card;
+        };
+
+        Border numberCard = makeCard();
+        StackPanel numberContent;
+        numberContent.Spacing(10);
+        numberContent.Children().Append(CreateText(
+            winforge::core::LocalizedText{ L"Number → Roman", L"數字 → 羅馬" }.Pick(m_language), 15, true));
+        auto numberLabel = CreateText(
+            winforge::core::LocalizedText{ L"Whole number", L"整數" }.Pick(m_language), 13.5, true);
+        numberContent.Children().Append(numberLabel);
+        m_romanNumNumberInput = TextBox();
+        m_romanNumNumberInput.Text(ToHString(m_romanNumNumberInputValue));
+        m_romanNumNumberInput.PlaceholderText(ToHString(winforge::core::LocalizedText{
+            L"1994", L"1994" }.Pick(m_language)));
+        AutomationProperties::SetAutomationId(m_romanNumNumberInput, L"NativeRomanNumNumberInput");
+        AutomationProperties::SetLabeledBy(m_romanNumNumberInput, numberLabel);
+        AutomationProperties::SetName(m_romanNumNumberInput, ToHString(winforge::core::LocalizedText{
+            L"Whole number input", L"整數輸入" }.Pick(m_language)));
+        m_romanNumNumberInput.TextChanged([this](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
+        {
+            if (m_romanNumRendering) return;
+            m_romanNumNumberInputValue = ToWide(sender.as<TextBox>().Text());
+            RefreshRomanNum(true, false);
+        });
+        numberContent.Children().Append(m_romanNumNumberInput);
+        auto romanOutputLabel = CreateText(
+            winforge::core::LocalizedText{ L"Roman numeral", L"羅馬數字" }.Pick(m_language), 13.5, true);
+        numberContent.Children().Append(romanOutputLabel);
+        m_romanNumRomanOutput = TextBox();
+        m_romanNumRomanOutput.IsReadOnly(true);
+        m_romanNumRomanOutput.IsSpellCheckEnabled(false);
+        m_romanNumRomanOutput.FontFamily(Media::FontFamily(L"Consolas"));
+        m_romanNumRomanOutput.MinHeight(42);
+        m_romanNumRomanOutput.Text(ToHString(m_romanNumRomanOutputValue));
+        AutomationProperties::SetAutomationId(m_romanNumRomanOutput, L"NativeRomanNumRomanOutput");
+        AutomationProperties::SetLabeledBy(m_romanNumRomanOutput, romanOutputLabel);
+        AutomationProperties::SetName(m_romanNumRomanOutput, ToHString(winforge::core::LocalizedText{
+            L"Roman numeral output", L"羅馬數字輸出" }.Pick(m_language)));
+        numberContent.Children().Append(m_romanNumRomanOutput);
+        m_romanNumCopyRoman = Button();
+        m_romanNumCopyRoman.Content(box_value(ToHString(winforge::core::LocalizedText{ L"Copy Roman numeral", L"複製羅馬數字" }.Pick(m_language))));
+        m_romanNumCopyRoman.HorizontalAlignment(HorizontalAlignment::Left);
+        m_romanNumCopyRoman.IsEnabled(!m_romanNumRomanOutputValue.empty());
+        AutomationProperties::SetAutomationId(m_romanNumCopyRoman, L"NativeRomanNumCopyRoman");
+        AutomationProperties::SetName(m_romanNumCopyRoman, ToHString(winforge::core::LocalizedText{
+            L"Copy Roman numeral", L"複製羅馬數字" }.Pick(m_language)));
+        m_romanNumCopyRoman.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            if (m_romanNumRomanOutputValue.empty())
+            {
+                AnnounceRomanNumStatus(winforge::core::LocalizedText{
+                    L"Nothing to copy.", L"冇嘢可以複製。" }.Pick(m_language), true);
+                return;
+            }
+            try
+            {
+                Windows::ApplicationModel::DataTransfer::DataPackage package;
+                package.RequestedOperation(Windows::ApplicationModel::DataTransfer::DataPackageOperation::Copy);
+                package.SetText(ToHString(m_romanNumRomanOutputValue));
+                Windows::ApplicationModel::DataTransfer::Clipboard::SetContent(package);
+                AnnounceRomanNumStatus(winforge::core::LocalizedText{
+                    L"Copied: " + m_romanNumRomanOutputValue,
+                    L"已複製：" + m_romanNumRomanOutputValue }.Pick(m_language));
+            }
+            catch (...)
+            {
+                AnnounceRomanNumStatus(winforge::core::LocalizedText{
+                    L"Could not access the clipboard.", L"無法存取剪貼簿。" }.Pick(m_language), true);
+            }
+        });
+        numberContent.Children().Append(m_romanNumCopyRoman);
+        m_romanNumRomanBreakdown = CreateText(L"", 12);
+        m_romanNumRomanBreakdown.Opacity(0.80);
+        m_romanNumRomanBreakdown.TextWrapping(TextWrapping::Wrap);
+        AutomationProperties::SetAutomationId(m_romanNumRomanBreakdown, L"NativeRomanNumRomanBreakdown");
+        numberContent.Children().Append(m_romanNumRomanBreakdown);
+        numberCard.Child(numberContent);
+        page.Children().Append(numberCard);
+
+        Border romanCard = makeCard();
+        StackPanel romanContent;
+        romanContent.Spacing(10);
+        romanContent.Children().Append(CreateText(
+            winforge::core::LocalizedText{ L"Roman → Number", L"羅馬 → 數字" }.Pick(m_language), 15, true));
+        auto romanInputLabel = CreateText(
+            winforge::core::LocalizedText{ L"Canonical Roman numeral", L"標準羅馬數字" }.Pick(m_language), 13.5, true);
+        romanContent.Children().Append(romanInputLabel);
+        m_romanNumRomanInput = TextBox();
+        m_romanNumRomanInput.Text(ToHString(m_romanNumRomanInputValue));
+        m_romanNumRomanInput.PlaceholderText(ToHString(winforge::core::LocalizedText{
+            L"MCMXCIV", L"MCMXCIV" }.Pick(m_language)));
+        m_romanNumRomanInput.IsSpellCheckEnabled(false);
+        m_romanNumRomanInput.FontFamily(Media::FontFamily(L"Consolas"));
+        AutomationProperties::SetAutomationId(m_romanNumRomanInput, L"NativeRomanNumRomanInput");
+        AutomationProperties::SetLabeledBy(m_romanNumRomanInput, romanInputLabel);
+        AutomationProperties::SetName(m_romanNumRomanInput, ToHString(winforge::core::LocalizedText{
+            L"Roman numeral input", L"羅馬數字輸入" }.Pick(m_language)));
+        m_romanNumRomanInput.TextChanged([this](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
+        {
+            if (m_romanNumRendering) return;
+            m_romanNumRomanInputValue = ToWide(sender.as<TextBox>().Text());
+            RefreshRomanNum(false, true);
+        });
+        romanContent.Children().Append(m_romanNumRomanInput);
+        auto numberOutputLabel = CreateText(
+            winforge::core::LocalizedText{ L"Whole number", L"整數" }.Pick(m_language), 13.5, true);
+        romanContent.Children().Append(numberOutputLabel);
+        m_romanNumNumberOutput = TextBox();
+        m_romanNumNumberOutput.IsReadOnly(true);
+        m_romanNumNumberOutput.IsSpellCheckEnabled(false);
+        m_romanNumNumberOutput.FontFamily(Media::FontFamily(L"Consolas"));
+        m_romanNumNumberOutput.MinHeight(42);
+        m_romanNumNumberOutput.Text(ToHString(m_romanNumNumberOutputValue));
+        AutomationProperties::SetAutomationId(m_romanNumNumberOutput, L"NativeRomanNumNumberOutput");
+        AutomationProperties::SetLabeledBy(m_romanNumNumberOutput, numberOutputLabel);
+        AutomationProperties::SetName(m_romanNumNumberOutput, ToHString(winforge::core::LocalizedText{
+            L"Whole number output", L"整數輸出" }.Pick(m_language)));
+        romanContent.Children().Append(m_romanNumNumberOutput);
+        m_romanNumCopyNumber = Button();
+        m_romanNumCopyNumber.Content(box_value(ToHString(winforge::core::LocalizedText{ L"Copy number", L"複製數字" }.Pick(m_language))));
+        m_romanNumCopyNumber.HorizontalAlignment(HorizontalAlignment::Left);
+        m_romanNumCopyNumber.IsEnabled(!m_romanNumNumberOutputValue.empty());
+        AutomationProperties::SetAutomationId(m_romanNumCopyNumber, L"NativeRomanNumCopyNumber");
+        AutomationProperties::SetName(m_romanNumCopyNumber, ToHString(winforge::core::LocalizedText{
+            L"Copy whole number", L"複製整數" }.Pick(m_language)));
+        m_romanNumCopyNumber.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            if (m_romanNumNumberOutputValue.empty())
+            {
+                AnnounceRomanNumStatus(winforge::core::LocalizedText{
+                    L"Nothing to copy.", L"冇嘢可以複製。" }.Pick(m_language), true);
+                return;
+            }
+            try
+            {
+                Windows::ApplicationModel::DataTransfer::DataPackage package;
+                package.RequestedOperation(Windows::ApplicationModel::DataTransfer::DataPackageOperation::Copy);
+                package.SetText(ToHString(m_romanNumNumberOutputValue));
+                Windows::ApplicationModel::DataTransfer::Clipboard::SetContent(package);
+                AnnounceRomanNumStatus(winforge::core::LocalizedText{
+                    L"Copied: " + m_romanNumNumberOutputValue,
+                    L"已複製：" + m_romanNumNumberOutputValue }.Pick(m_language));
+            }
+            catch (...)
+            {
+                AnnounceRomanNumStatus(winforge::core::LocalizedText{
+                    L"Could not access the clipboard.", L"無法存取剪貼簿。" }.Pick(m_language), true);
+            }
+        });
+        romanContent.Children().Append(m_romanNumCopyNumber);
+        m_romanNumNumberBreakdown = CreateText(L"", 12);
+        m_romanNumNumberBreakdown.Opacity(0.80);
+        m_romanNumNumberBreakdown.TextWrapping(TextWrapping::Wrap);
+        AutomationProperties::SetAutomationId(m_romanNumNumberBreakdown, L"NativeRomanNumNumberBreakdown");
+        romanContent.Children().Append(m_romanNumNumberBreakdown);
+        romanCard.Child(romanContent);
+        page.Children().Append(romanCard);
+
+        m_romanNumStatus = CreateText(L"", 12.5);
+        m_romanNumStatus.Opacity(0.82);
+        AutomationProperties::SetAutomationId(m_romanNumStatus, L"NativeRomanNumStatus");
+        AutomationProperties::SetLiveSetting(
+            m_romanNumStatus,
+            Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite);
+        page.Children().Append(m_romanNumStatus);
+
+        ShowPage(page);
+        m_romanNumRendering = false;
+        if (HasNonWhitespace(m_romanNumNumberInputValue) || HasNonWhitespace(m_romanNumRomanInputValue))
+        {
+            RefreshRomanNum();
+        }
+        else
+        {
+            AnnounceRomanNumStatus(winforge::core::LocalizedText{
+                L"Native Roman numeral tools ready.", L"原生羅馬數字工具已就緒。" }.Pick(m_language));
+        }
+    }
+
+    void MainWindow::RefreshRomanNum(bool refreshNumber, bool refreshRoman)
+    {
+        if (!m_romanNumStatus) return;
+
+        auto setRomanOutput = [this](std::wstring_view displayed, std::wstring_view breakdown)
+        {
+            if (m_romanNumRomanOutput)
+            {
+                m_romanNumRomanOutput.Text(ToHString(displayed));
+                AutomationProperties::SetHelpText(m_romanNumRomanOutput, ToHString(m_romanNumRomanOutputValue));
+            }
+            if (m_romanNumRomanBreakdown)
+            {
+                m_romanNumRomanBreakdown.Text(ToHString(breakdown));
+                AutomationProperties::SetName(m_romanNumRomanBreakdown, ToHString(breakdown));
+            }
+            if (m_romanNumCopyRoman) m_romanNumCopyRoman.IsEnabled(!m_romanNumRomanOutputValue.empty());
+        };
+        auto setNumberOutput = [this](std::wstring_view displayed, std::wstring_view breakdown)
+        {
+            if (m_romanNumNumberOutput)
+            {
+                m_romanNumNumberOutput.Text(ToHString(displayed));
+                AutomationProperties::SetHelpText(m_romanNumNumberOutput, ToHString(m_romanNumNumberOutputValue));
+            }
+            if (m_romanNumNumberBreakdown)
+            {
+                m_romanNumNumberBreakdown.Text(ToHString(breakdown));
+                AutomationProperties::SetName(m_romanNumNumberBreakdown, ToHString(breakdown));
+            }
+            if (m_romanNumCopyNumber) m_romanNumCopyNumber.IsEnabled(!m_romanNumNumberOutputValue.empty());
+        };
+
+        if (refreshNumber)
+        {
+            if (!HasNonWhitespace(m_romanNumNumberInputValue))
+            {
+                m_romanNumRomanOutputValue.clear();
+                setRomanOutput(L"", L"");
+            }
+            else
+            {
+                std::int64_t value{};
+                if (!winforge::core::romannum::TryParseInteger(m_romanNumNumberInputValue, value))
+                {
+                    m_romanNumRomanOutputValue.clear();
+                    setRomanOutput(L"—", L"");
+                    AnnounceRomanNumStatus(winforge::core::LocalizedText{
+                        L"Enter a whole number.", L"請輸入整數。" }.Pick(m_language), true);
+                }
+                else
+                {
+                    auto const result = winforge::core::romannum::ToRoman(value, m_romanNumExtended);
+                    if (!result.ok)
+                    {
+                        m_romanNumRomanOutputValue.clear();
+                        setRomanOutput(L"—", L"");
+                        AnnounceRomanNumStatus(winforge::core::LocalizedText{
+                            result.reason_en, result.reason_zh }.Pick(m_language), true);
+                    }
+                    else
+                    {
+                        m_romanNumRomanOutputValue = result.roman;
+                        auto const breakdown = winforge::core::romannum::FormatGrouped(value) + L" = " + result.breakdown;
+                        setRomanOutput(m_romanNumRomanOutputValue, breakdown);
+                        AnnounceRomanNumStatus(winforge::core::LocalizedText{
+                            L"Converted number to Roman numeral.", L"已將數字轉做羅馬數字。" }.Pick(m_language));
+                    }
+                }
+            }
+        }
+
+        if (refreshRoman)
+        {
+            if (!HasNonWhitespace(m_romanNumRomanInputValue))
+            {
+                m_romanNumNumberOutputValue.clear();
+                setNumberOutput(L"", L"");
+            }
+            else
+            {
+                auto const result = winforge::core::romannum::ToNumber(m_romanNumRomanInputValue, m_romanNumExtended);
+                if (!result.ok)
+                {
+                    m_romanNumNumberOutputValue.clear();
+                    setNumberOutput(L"—", L"");
+                    AnnounceRomanNumStatus(winforge::core::LocalizedText{
+                        result.reason_en, result.reason_zh }.Pick(m_language), true);
+                }
+                else
+                {
+                    m_romanNumNumberOutputValue = winforge::core::romannum::FormatGrouped(result.value);
+                    auto const breakdown = result.breakdown.empty() ? L"" : L"= " + result.breakdown;
+                    setNumberOutput(m_romanNumNumberOutputValue, breakdown);
+                    AnnounceRomanNumStatus(winforge::core::LocalizedText{
+                        L"Converted Roman numeral to number.", L"已將羅馬數字轉做整數。" }.Pick(m_language));
+                }
+            }
+        }
+    }
+
+    void MainWindow::AnnounceRomanNumStatus(std::wstring_view message, bool warning)
+    {
+        if (!m_romanNumStatus) return;
+        m_romanNumStatus.Text(ToHString(message));
+        m_romanNumStatus.Foreground(Application::Current().Resources().Lookup(
+            box_value(warning ? L"SystemFillColorCautionBrush" : L"TextFillColorSecondaryBrush")).as<Media::Brush>());
+        AutomationProperties::SetName(m_romanNumStatus, ToHString(message));
+        AutomationProperties::SetLiveSetting(
+            m_romanNumStatus,
+            Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite);
+        try
+        {
+            auto peer = Microsoft::UI::Xaml::Automation::Peers::FrameworkElementAutomationPeer::FromElement(
+                m_romanNumStatus);
+            if (!peer)
+            {
+                peer = Microsoft::UI::Xaml::Automation::Peers::FrameworkElementAutomationPeer::CreatePeerForElement(
+                    m_romanNumStatus);
+            }
+            if (peer)
+            {
+                peer.RaiseAutomationEvent(
+                    Microsoft::UI::Xaml::Automation::Peers::AutomationEvents::LiveRegionChanged);
+            }
+        }
+        catch (...)
+        {
+            // Accessibility reporting must never interrupt local conversion.
         }
     }
 

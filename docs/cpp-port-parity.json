@@ -6386,25 +6386,42 @@
                        "kind":  "route",
                        "parentId":  null,
                        "source":  [
-                                      "src/WinForge.App/Resources/modules.json"
+                                      "src/WinForge.App/Resources/modules.json",
+                                      "Services/RomanNumService.cs",
+                                      "Pages/RomanNumModule.xaml",
+                                      "Pages/RomanNumModule.xaml.cs",
+                                      "src/WinForge.Core/RomanNum.h",
+                                      "src/WinForge.Core/RomanNum.cpp",
+                                      "src/WinForge.App/MainWindow.xaml.h",
+                                      "src/WinForge.App/MainWindow.xaml.cpp",
+                                      "src/WinForge.App/WinForge.App.vcxproj",
+                                      "tests/native/WinForge.Core.Tests/RomanNumTests.h",
+                                      "tests/native/WinForge.Core.Tests/RomanNumTests.cpp",
+                                      "tests/native/WinForge.Core.Tests/main.cpp",
+                                      "tests/native/WinForge.Core.Tests/WinForge.Core.Tests.vcxproj",
+                                      "eng/native/Invoke-NativeShellSmoke.ps1"
                                   ],
-                       "risk":  "stateful",
+                       "risk":  "safe",
                        "expected":  "Roman Numerals · 羅馬數字 is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
-                       "status":  "not-started",
+                       "status":  "in-progress",
                        "evidence":  {
-                                        "static":  "not-started",
-                                        "build":  "not-started",
-                                        "test":  "not-started",
-                                        "launch":  "not-started",
-                                        "visual":  "not-started",
-                                        "behavior":  "not-started",
-                                        "sideEffect":  "not-started",
-                                        "docs":  "not-started"
+                                        "static":  "pass",
+                                        "build":  "pass",
+                                        "test":  "pass",
+                                        "launch":  "pass",
+                                        "visual":  "capture-blocked",
+                                        "behavior":  "pass",
+                                        "sideEffect":  "pass",
+                                        "docs":  "pass"
                                     },
                        "attempts":  [
-
+                                        {
+                                            "atUtc":  "2026-07-15T00:00:00Z",
+                                            "result":  "Native Roman Numerals parity slice implemented with a pure standard-C++ bidirectional converter and C++/WinRT page. It preserves standard 1..3999, Extended 1..3,999,999 U+0305 vinculum notation, canonical parenthetical input, strict managed canonical-round-trip rejection, rerender state, explicit clipboard copy, and accessibility IDs. Debug and Release native tests passed 313/313 (including 17 focused Roman cases); process-owned native UI Automation passed 141/141 (including 13 Roman assertions across aliases, standard/extended conversion, parentheses, error clearing, copy status, rerender retention, and clipping). The repository driver and an inspected LowLevel headless-desktop HWND capture both yielded a title bar plus blank/near-uniform WinUI client frame, so no Roman screenshot was accepted or reused.",
+                                            "status":  "capture-blocked"
+                                        }
                                     ],
-                       "notes":  "C++ parity evidence has not yet been recorded."
+                       "notes":  "2026-07-15 · IN PROGRESS / 進行中 solely because fresh visual capture is blocked. Native Roman Numerals is implemented, built, tested, launched, and behaviorally smoke-tested with no side effects except explicit user Copy. The repository driver and inspected LowLevel headless-desktop HWND capture both yielded a title bar plus blank/near-uniform WinUI client frame; no stale, synthetic, or managed screenshot was retained. · 原生羅馬數字已完成實作、建置、測試、啟動同功能冒煙測試，除咗使用者明確 Copy 外冇副作用。只因最新視覺擷取受阻而保持進行中：repository driver 同檢查過嘅 LowLevel 無頭 desktop HWND 擷取都只得到 title bar 加空白／接近單色 WinUI client frame；冇保留舊、合成或者受控版截圖。"
                    },
                    {
                        "id":  "module.rustdesk",
