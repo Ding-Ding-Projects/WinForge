@@ -511,6 +511,140 @@ foreach ($alias in @('textbinary', 'module.binarytext')) {
     Invoke-OwnedRoute -Route $alias -ExpectedTitle 'Text to Binary'
 }
 
+function Test-HorizontalBoundsWithinWindow {
+    param(
+        [Parameter(Mandatory)]$Root,
+        [Parameter(Mandatory)][System.Collections.IEnumerable]$Elements
+    )
+
+    $window = $Root.Current.BoundingRectangle
+    foreach ($element in $Elements) {
+        if (-not $element) { return $false }
+        $rect = $element.Current.BoundingRectangle
+        # A vertically off-screen item is not clipped: the shared page host
+        # intentionally exposes it through its vertical ScrollViewer.  Ask UIA
+        # to bring it into view before taking the horizontal measurement.
+        if ($rect.Width -le 0 -or $rect.Height -le 0) {
+            try {
+                $scrollItem = [System.Windows.Automation.ScrollItemPattern]$element.GetCurrentPattern(
+                    [System.Windows.Automation.ScrollItemPattern]::Pattern)
+                $scrollItem.ScrollIntoView()
+                Start-Sleep -Milliseconds 100
+                $rect = $element.Current.BoundingRectangle
+            }
+            catch {
+                return $false
+            }
+        }
+        if ($rect.Width -le 0 -or $rect.Height -le 0) { return $false }
+        # Vertical overflow is intentionally scrollable.  Horizontal overflow
+        # is the clipping defect this smoke check is designed to catch.
+        if ($rect.Left -lt ($window.Left - 2) -or $rect.Right -gt ($window.Right + 2)) {
+            return $false
+        }
+    }
+
+    return $true
+}
+
+Invoke-OwnedRoute -Route 'base32' -ExpectedTitle 'Base32 / 58 / 85' -Inspect {
+    param($root, $title)
+
+    foreach ($id in @(
+        'NativeCodecImplementationStatus',
+        'NativeCodecPicker',
+        'NativeCodecInput',
+        'NativeCodecEncode',
+        'NativeCodecDecode',
+        'NativeCodecSwap',
+        'NativeCodecCopy',
+        'NativeCodecOutput',
+        'NativeCodecStatus'
+    )) {
+        Wait-ForElement -Root $root -AutomationId $id | Out-Null
+    }
+    $picker = Wait-ForElement -Root $root -AutomationId 'NativeCodecPicker'
+    $input = Wait-ForElement -Root $root -AutomationId 'NativeCodecInput'
+    $output = Wait-ForElement -Root $root -AutomationId 'NativeCodecOutput'
+    $codecControlsFit = Test-HorizontalBoundsWithinWindow -Root $root -Elements @(
+        $picker,
+        $input,
+        $output,
+        (Wait-ForElement -Root $root -AutomationId 'NativeCodecEncode'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeCodecDecode'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeCodecSwap'),
+        (Wait-ForElement -Root $root -AutomationId 'NativeCodecCopy'))
+    Assert-True -Condition $codecControlsFit -Name 'Base32 / 58 / 85 exposes native controls, accessibility, and horizontal clipping safety'
+
+    Assert-True -Condition ($picker.Current.Name.StartsWith('Text codec', [StringComparison]::Ordinal)) `
+        -Name 'Base32 / 58 / 85 picker has a localized accessible name'
+    Assert-True -Condition ($input.Current.Name.StartsWith('Codec input', [StringComparison]::Ordinal)) `
+        -Name 'Base32 / 58 / 85 input has a localized accessible name'
+
+    $encode = Wait-ForElement -Root $root -AutomationId 'NativeCodecEncode'
+    $encodeInvoke = [System.Windows.Automation.InvokePattern]$encode.GetCurrentPattern(
+        [System.Windows.Automation.InvokePattern]::Pattern)
+    $input = Set-ElementValueAndWait -Root $root -AutomationId 'NativeCodecInput' -Value 'foo'
+    $encodeInvoke.Invoke()
+    Wait-ForElementValue -Root $root -AutomationId 'NativeCodecOutput' -ExpectedValue 'MZXW6===' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCodecStatus' -Prefix 'Encoded successfully' | Out-Null
+    Assert-True -Condition $true -Name 'Base32 / 58 / 85 encodes padded RFC 4648 Base32 through the live native UI'
+
+    Select-ComboItem -Combo $picker -Name 'Base58 (Bitcoin)'
+    Set-ElementValueAndWait -Root $root -AutomationId 'NativeCodecInput' -Value 'Hello World!' | Out-Null
+    $encodeInvoke.Invoke()
+    Wait-ForElementValue -Root $root -AutomationId 'NativeCodecOutput' -ExpectedValue '2NEpo7TZRRrLZSi2U' | Out-Null
+    Assert-True -Condition $true -Name 'Base32 / 58 / 85 encodes Bitcoin Base58 through the live native UI'
+
+    Select-ComboItem -Combo $picker -Name 'Ascii85 (Adobe)'
+    Set-ElementValueAndWait -Root $root -AutomationId 'NativeCodecInput' -Value 'Hello' | Out-Null
+    $encodeInvoke.Invoke()
+    Wait-ForElementValue -Root $root -AutomationId 'NativeCodecOutput' -ExpectedValue '<~87cURDZ~>' | Out-Null
+    Assert-True -Condition $true -Name 'Base32 / 58 / 85 encodes Adobe Ascii85 through the live native UI'
+
+    $decode = Wait-ForElement -Root $root -AutomationId 'NativeCodecDecode'
+    $decodeInvoke = [System.Windows.Automation.InvokePattern]$decode.GetCurrentPattern(
+        [System.Windows.Automation.InvokePattern]::Pattern)
+    Set-ElementValueAndWait -Root $root -AutomationId 'NativeCodecInput' -Value '<~87cURDZ~>' | Out-Null
+    $decodeInvoke.Invoke()
+    Wait-ForElementValue -Root $root -AutomationId 'NativeCodecOutput' -ExpectedValue 'Hello' | Out-Null
+    Assert-True -Condition $true -Name 'Base32 / 58 / 85 decodes Adobe Ascii85 through the live native UI'
+
+    $swap = Wait-ForElement -Root $root -AutomationId 'NativeCodecSwap'
+    ([System.Windows.Automation.InvokePattern]$swap.GetCurrentPattern(
+        [System.Windows.Automation.InvokePattern]::Pattern)).Invoke()
+    Wait-ForElementValue -Root $root -AutomationId 'NativeCodecInput' -ExpectedValue 'Hello' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeCodecOutput' -ExpectedValue '' | Out-Null
+    Assert-True -Condition $true -Name 'Base32 / 58 / 85 moves output to input and clears stale output'
+
+    Select-ComboItem -Combo $picker -Name 'Base58 (Bitcoin)'
+    Set-ElementValueAndWait -Root $root -AutomationId 'NativeCodecInput' -Value 'not-valid!' | Out-Null
+    $decodeInvoke.Invoke()
+    Wait-ForElementValue -Root $root -AutomationId 'NativeCodecOutput' -ExpectedValue '' | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativeCodecStatus' -Prefix 'Input is not valid' | Out-Null
+    Assert-True -Condition $true -Name 'Base32 / 58 / 85 clears stale output after malformed codec input'
+
+    Select-ComboItem -Combo $picker -Name 'Base32 (no padding)'
+    Set-ElementValueAndWait -Root $root -AutomationId 'NativeCodecInput' -Value 'foo' | Out-Null
+    $encodeInvoke.Invoke()
+    Wait-ForElementValue -Root $root -AutomationId 'NativeCodecOutput' -ExpectedValue 'MZXW6' | Out-Null
+    $language = Wait-ForElement -Root $root -AutomationId 'NativeLanguagePicker'
+    Select-ComboItem -Combo $language -Name 'English'
+    Wait-ForPageTitle -Root $root -Prefix 'Base32 / 58 / 85' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeCodecInput' -ExpectedValue 'foo' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativeCodecOutput' -ExpectedValue 'MZXW6' | Out-Null
+    $picker = Wait-ForElement -Root $root -AutomationId 'NativeCodecPicker'
+    $selection = [System.Windows.Automation.SelectionPattern]$picker.GetCurrentPattern(
+        [System.Windows.Automation.SelectionPattern]::Pattern)
+    $selected = $selection.Current.GetSelection()
+    Assert-True -Condition ($selected.Count -eq 1 -and $selected[0].Current.Name -eq 'Base32 (no padding)') `
+        -Name 'Base32 / 58 / 85 preserves codec, input, and output across language rerender'
+}
+
+foreach ($alias in @('base58', 'module.base32')) {
+    Invoke-OwnedRoute -Route $alias -ExpectedTitle 'Base32 / 58 / 85'
+}
+
 Invoke-OwnedRoute -Route 'caseconvert' -ExpectedTitle 'Case Converter' -Inspect {
     param($root, $title)
 
@@ -704,7 +838,14 @@ Invoke-OwnedRoute -Route 'package-updates' -ExpectedTitle 'Package Manager' -Ins
     )) {
         Wait-ForElement -Root $root -AutomationId $id | Out-Null
     }
-    Assert-True -Condition $true -Name 'Package Manager exposes its native control contract'
+    $packageControlsFit = Test-HorizontalBoundsWithinWindow -Root $root -Elements @(
+        (Wait-ForElement -Root $root -AutomationId 'NativePackageViewPicker'),
+        (Wait-ForElement -Root $root -AutomationId 'NativePackageSortPicker'),
+        (Wait-ForElement -Root $root -AutomationId 'NativePackageSearchBox'),
+        (Wait-ForElement -Root $root -AutomationId 'NativePackagePrimaryAction'),
+        (Wait-ForElement -Root $root -AutomationId 'NativePackageSecondaryAction'),
+        (Wait-ForElement -Root $root -AutomationId 'NativePackageOperationsAction'))
+    Assert-True -Condition $packageControlsFit -Name 'Package Manager exposes native controls, accessibility, and horizontal clipping safety'
 
     foreach ($manager in @('winget', 'scoop', 'choco', 'pip', 'npm', 'dotnet', 'psgallery', 'pwsh7', 'cargo', 'bun', 'vcpkg')) {
         Wait-ForElement -Root $root -AutomationId "NativePackageManagerFilter_$manager" | Out-Null

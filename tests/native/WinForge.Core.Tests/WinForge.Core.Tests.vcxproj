@@ -54,6 +54,7 @@
     <ClCompile Include="BinaryTextTests.cpp" />
     <ClCompile Include="CaseConvertTests.cpp" />
     <ClCompile Include="CheckDigitTests.cpp" />
+    <ClCompile Include="CodecTests.cpp" />
     <ClCompile Include="GuidGenTests.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="PackageManagerTests.cpp" />
@@ -63,6 +64,7 @@
     <ClCompile Include="..\..\..\src\WinForge.Core\BinaryText.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\CaseConvert.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\CheckDigit.cpp" />
+    <ClCompile Include="..\..\..\src\WinForge.Core\Codec.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\CommandLine.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\GuidGen.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\PackageManager.cpp" />
@@ -75,12 +77,14 @@
     <ClInclude Include="BinaryTextTests.h" />
     <ClInclude Include="CaseConvertTests.h" />
     <ClInclude Include="CheckDigitTests.h" />
+    <ClInclude Include="CodecTests.h" />
     <ClInclude Include="GuidGenTests.h" />
     <ClInclude Include="PackageManagerTests.h" />
     <ClInclude Include="PackageRuntimeTests.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\BinaryText.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\CaseConvert.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\CheckDigit.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\Codec.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\CommandLine.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\GuidGen.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\Localization.h" />

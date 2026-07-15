@@ -135,6 +135,7 @@
     <ClInclude Include="..\WinForge.Core\BinaryText.h" />
     <ClInclude Include="..\WinForge.Core\CaseConvert.h" />
     <ClInclude Include="..\WinForge.Core\CheckDigit.h" />
+    <ClInclude Include="..\WinForge.Core\Codec.h" />
     <ClInclude Include="..\WinForge.Core\CommandLine.h" />
     <ClInclude Include="..\WinForge.Core\GuidGen.h" />
     <ClInclude Include="..\WinForge.Core\Localization.h" />
@@ -163,6 +164,9 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\WinForge.Core\CheckDigit.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\WinForge.Core\Codec.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\WinForge.Core\CommandLine.cpp">

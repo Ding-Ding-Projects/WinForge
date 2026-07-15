@@ -1,6 +1,6 @@
 # Native C++ Rewrite · 原生 C++ 重寫
 
-> Status on 2026-07-14: the first native foundation batch plus several utility slices are runnable and tested, but the whole-product rewrite is **not complete**. The managed WinUI 3 application remains the shipping behavioral reference until every ledger row passes. · 2026-07-14 狀態：第一批原生基礎加幾個 utility 批次已經可以執行同測試，但全產品重寫**未完成**。每一項清單全部通過之前，受控 WinUI 3 app 仍然係發佈同功能行為基準。
+> Status on 2026-07-15: the first native foundation batch plus several utility slices are runnable and tested, but the whole-product rewrite is **not complete**. The managed WinUI 3 application remains the shipping behavioral reference until every ledger row passes. · 2026-07-15 狀態：第一批原生基礎加幾個 utility 批次已經可以執行同測試，但全產品重寫**未完成**。每一項清單全部通過之前，受控 WinUI 3 app 仍然係發佈同功能行為基準。
 
 ## Objective · 目標
 
@@ -89,6 +89,20 @@ The page is reachable through `guidgen` and `module.guidgen`, keeps generated an
 
 頁面可以用 `guidgen` 同 `module.guidgen` 開啟；英文／粵語／雙語重繪時會保留已產生同已檢查值；Generate／Copy／Inspect 控制項有本地化 UI Automation 名稱同穩定 automation ID；只有明確 Copy 動作先會寫剪貼簿。功能證據通過：每次 281/281 原生 executable 都包含 16 個 GUID 專項測試，而 115/115 即時 shell 會操作格式切換、大楷、預設批量產生、ULID、nano-ID、inspector 有效／無效狀態同轉語言保留。最新原生視覺證據仍然係 `capture-blocked`，所以清單項保持**進行中**。
 
+### Base32 / Base58 / Ascii85 parity slice · Base32／Base58／Ascii85 對等批次
+
+`module.base32` now opens a real native page instead of the pending shell. Its standard-C++ codec core encodes and decodes UTF-8 bytes as padded or unpadded RFC 4648 Base32, Bitcoin Base58 with leading-zero preservation, and Adobe Ascii85 with `<~ ~>` markers and the `z` zero shortcut. The C++/WinRT page keeps codec selection, input, and output across English/Cantonese/Bilingual rerenders, exposes stable localized UI Automation IDs, reports malformed input through a polite live region, and writes the clipboard only after explicit Copy. `base32`, `base58`, and `module.base32` all reach the real page.
+
+`module.base32` 而家會開真正原生頁，唔再係 pending shell。標準 C++ codec core 會將 UTF-8 位元組用有填充／無填充 RFC 4648 Base32、保留開頭零位元組嘅 Bitcoin Base58，同有 `<~ ~>` 標記及 `z` 零快捷字元嘅 Adobe Ascii85 編碼／解碼。C++/WinRT 頁面喺英文／粵語／雙語重繪時保留編碼方式、輸入同輸出，有穩定本地化 UI Automation ID，無效輸入會經 polite live region 報告，而剪貼簿只會喺明確 Copy 後先寫入。`base32`、`base58` 同 `module.base32` 全部會開真正頁面。
+
+### Layout and native installer CI · 版面同原生安裝程式 CI
+
+The shared native page host now stretches content to the measured viewport, keeps vertical scrolling enabled, and allows horizontal overflow to scroll instead of clipping. The Package Manager toolbar is vertical at narrow widths, so its search, sort, and action controls remain reachable at 100% scaling. `.github/workflows/native-release.yml` is the hosted native delivery gate: it restores/builds `WinForge.Native.sln` in Release x64, runs native core tests and catalog parity, packages a portable runtime, and compiles `installer/WinForge.Native.iss` into `WinForge-Native-Setup.exe`. The interactive UI Automation smoke remains a mandatory local/elevated gate because hosted service desktops cannot yield trustworthy WinUI composition or accessibility geometry. · 共用原生頁面 host 而家會將內容拉到量度到嘅 viewport，保留垂直捲動，水平溢出會捲動而唔係裁切。套件管理工具列喺窄闊度會改用直向，令搜尋、排序同動作控制喺 100% 縮放仍然可用。`.github/workflows/native-release.yml` 係 hosted 原生交付 gate：Release x64 還原／建置 `WinForge.Native.sln`、執行原生核心測試同目錄對等、封裝可攜 runtime，同用 `installer/WinForge.Native.iss` 編譯 `WinForge-Native-Setup.exe`。互動 UI Automation smoke 仍然係必需嘅本機／提權 gate，因為 hosted service desktop 唔會提供可信嘅 WinUI composition 或無障礙 geometry。
+
+Focused codec tests pass 15/15; the aggregate native executable now passes 296/296 in Debug and Release (250 core route/package-manager/codec checks plus 46 parser checks), and the process-owned UI Automation shell passes 128/128, including accessibility names, encode/decode, swap, malformed-output clearing, alias routing, language-rerender preservation, and horizontal-clipping checks for the codec and Package Manager controls. Fresh native visual capture remains `capture-blocked`: both the required repository driver and the LowLevel MCP off-screen desktop returned a blank/near-uniform WinUI client frame through their `PrintWindow` fallback; no blank, stale, synthetic, or managed image was substituted.
+
+編解碼專項測試係 15/15；完整原生 executable 喺 Debug 同 Release 都係 296/296（250 個 core route／package-manager／codec 檢查加 46 個 parser 檢查），只控制自己 process 嘅 UI Automation shell 係 128/128，涵蓋無障礙名稱、編碼／解碼、對調、錯誤輸出清空、alias routing、轉語言時保留狀態，同 codec／套件管理控制項嘅水平裁切檢查。最新原生視覺擷取仍然係 `capture-blocked`：必需嘅 repository driver 同 LowLevel MCP 離屏 desktop 都經 `PrintWindow` fallback 得到空白／接近單色 WinUI client frame；冇用空白、舊、合成或者受控版圖片頂替。
+
 `ThirdParty/UniGetUI` is the complete 1,002-file tracked-source snapshot of Devolutions/UniGetUI `main` at commit `21116375c8299d1db38a3c3b4c2eb7e18bc97c4e`, dated 2026-07-10 and preserved under the MIT license. It remains excluded from build and publish output. The snapshot is exact provenance and a behavior reference only—not an embedded runtime, copied product identity, or evidence of parity.
 
 `ThirdParty/UniGetUI` 係 Devolutions/UniGetUI `main` 喺 commit `21116375c8299d1db38a3c3b4c2eb7e18bc97c4e` 嘅完整 1,002 檔 tracked-source snapshot，日期係 2026-07-10，並按 MIT license 保留；建置同發佈輸出仍然會排除佢。呢份 snapshot 只係精確來源證明同功能參考，唔係內嵌 runtime、複製產品身份，亦唔係對等證據。
@@ -122,6 +136,8 @@ Evidence for this batch:
 
 呢批證據：
 
+- Current aggregate after the Base32/58/85 slice: native Debug and Release tests **296/296** (250 core route/package-manager/codec checks plus 46 parser checks) and elevated process-owned UI Automation **128/128**. Earlier per-slice totals below remain historical evidence for those slices. · Base32／58／85 批次之後目前整體：原生 Debug／Release 測試 **296/296**（250 個 core route／package-manager／codec 加 46 個 parser）同提權、自有 process UI Automation **128/128**。下面較舊逐批次總數保留作歷史證據。
+
 - Native Debug x64 solution build: **0 warnings, 0 errors**. Native Release x64 solution build: **0 errors** with one environment warning (`ROSLYNCODETASKFACTORYCSHARPCOMPILER CS1668`) for a missing ATL/MFC LIB search path. · 原生 Debug x64 solution build：**0 warnings, 0 errors**。原生 Release x64 solution build：**0 errors**，另有一個環境 warning（`ROSLYNCODETASKFACTORYCSHARPCOMPILER CS1668`），原因係 ATL/MFC LIB 搜尋路徑不存在。
 - Legacy managed solution compile check: **0 errors** with the ignored NuGet restore tree and native C++ source/generated tree explicitly excluded from the SDK item glob. · 舊受控 solution compile check：**0 errors**；SDK item glob 已明確排除忽略咗嘅 NuGet restore tree 同原生 C++ source／generated tree。
 - Native test executable: **281/281 in Debug and 281/281 in Release** (235 core route/package-manager checks plus 46 parser checks). It retains every Package Manager and shell regression, adds safe common Details-field parsing plus unsafe Details-query fail-closed coverage, and keeps the 48 focused Check Digit, 25 focused Text to Binary, 10 Case Converter, and 16 GUID Generator cases green. · 原生測試 executable：Debug **281/281**、Release **281/281**（235 個 core route／package-manager 檢查加 46 個 parser 檢查）。佢保留全部套件管理同 shell 回歸，新增安全常用詳細資料欄位解析同唔安全詳細資料查詢 fail-closed 覆蓋，並保持 48 個檢查碼、25 個文字轉二進位、10 個大小寫轉換同 16 個 GUID 產生器專項案例通過。
@@ -137,7 +153,7 @@ The normal-integrity live external-query gate remains **blocked**. The harness l
 
 ## Visual evidence disposition · 視覺證據處置
 
-Fresh native Dashboard, All Apps, About, Package Manager (`module.packages#updates`, `package-ignored`, `package-settings`, `package-discover`, and the latest `package-operations` preview-queue slice), Check Digit (`checkdigit`), Text to Binary (`binarytext`), and GUID Generator (`guidgen`) capture attempts were made with the required repository driver. The latest GUID Generator driver attempt used `-Native -Page guidgen -Out native-guidgen-driver.png -WaitMs 15000` and failed before accepting a PNG. Case Converter has a successful current capture at `docs/screenshot-caseconvert.png`; the remaining changed native surfaces were still blocked in this desktop session. `CopyFromScreen` was unavailable. `PrintWindow(PW_RENDERFULLCONTENT)` returned a title bar but a blank/near-uniform WinUI client frame, so the improved driver rejected it with:
+Fresh native Dashboard, All Apps, About, Package Manager (`module.packages#updates`, `package-ignored`, `package-settings`, `package-discover`, and the latest `package-operations` preview-queue slice), Check Digit (`checkdigit`), Text to Binary (`binarytext`), Base32 / 58 / 85 (`base32`), and GUID Generator (`guidgen`) capture attempts were made with the required repository driver. The latest GUID Generator driver attempt used `-Native -Page guidgen -Out native-guidgen-driver.png -WaitMs 15000` and failed before accepting a PNG. Case Converter has a successful current capture at `docs/screenshot-caseconvert.png`; the remaining changed native surfaces were still blocked in this desktop session. `CopyFromScreen` was unavailable. `PrintWindow(PW_RENDERFULLCONTENT)` returned a title bar but a blank/near-uniform WinUI client frame, so the improved driver rejected it with:
 
 已經用指定 repo driver 重新嘗試擷取原生 Dashboard、所有 app、About、套件管理（`module.packages#updates`、`package-ignored`、`package-settings`、`package-discover` 同最新 `package-operations` 預覽佇列批次）、檢查碼（`checkdigit`）、文字轉二進位（`binarytext`）同 GUID 產生器（`guidgen`）。最新 GUID 產生器 driver 嘗試使用 `-Native -Page guidgen -Out native-guidgen-driver.png -WaitMs 15000`，並喺接受 PNG 之前失敗。呢個 desktop session 用唔到 `CopyFromScreen`；`PrintWindow(PW_RENDERFULLCONTENT)` 雖然有 title bar，但 WinUI client frame 係空白／接近單色，所以改良後 driver 拒絕咗：
 
@@ -146,9 +162,9 @@ CopyFromScreen is unavailable and the PrintWindow fallback produced a blank or
 near-uniform WinUI client frame; graphics capture is unavailable in this desktop session.
 ```
 
-No blank, stale, synthetic, or managed-app image was retained or substituted. UI Automation independently found the bilingual navigation tree, page titles, migration InfoBar, buttons, All Apps list, the Package Manager nine-view/11-manager surface, live Check Digit controls/results, Text to Binary/Case Converter conversion controls/results, and GUID Generator format/bulk/ULID/nano-ID/inspector controls/results. That is launch/behavior evidence only—not a visual pass. Dashboard, All Apps, About, native Package Manager, native Check Digit, Text to Binary, and GUID Generator remain `capture-blocked` until a real composited frame can be captured and inspected.
+No blank, stale, synthetic, or managed-app image was retained or substituted. UI Automation independently found the bilingual navigation tree, page titles, migration InfoBar, buttons, All Apps list, the Package Manager nine-view/11-manager surface, live Check Digit controls/results, Text to Binary/Case Converter conversion controls/results, Base32 / 58 / 85 codec controls/results, and GUID Generator format/bulk/ULID/nano-ID/inspector controls/results. That is launch/behavior evidence only—not a visual pass. Dashboard, All Apps, About, native Package Manager, native Check Digit, Text to Binary, Base32 / 58 / 85, and GUID Generator remain `capture-blocked` until a real composited frame can be captured and inspected.
 
-冇保留或者頂替任何空白、舊、合成、或者受控版圖片。UI Automation 另外搵到雙語導覽樹、page title、遷移 InfoBar、按鈕、所有 app 清單、套件管理九 view／11 manager 介面、即時檢查碼 controls／結果、文字轉二進位／大小寫轉換 controls／結果，同 GUID 產生器格式／批量／ULID／nano-ID／inspector controls／結果。呢啲只係 launch／behavior 證據，唔係 visual pass。Dashboard、所有 app、About、原生套件管理、原生檢查碼、文字轉二進位同 GUID 產生器要等真正 composited frame 擷取兼檢查到，先可以解除 `capture-blocked`。
+冇保留或者頂替任何空白、舊、合成、或者受控版圖片。UI Automation 另外搵到雙語導覽樹、page title、遷移 InfoBar、按鈕、所有 app 清單、套件管理九 view／11 manager 介面、即時檢查碼 controls／結果、文字轉二進位／大小寫轉換 controls／結果、Base32／58／85 codec controls／結果，同 GUID 產生器格式／批量／ULID／nano-ID／inspector controls／結果。呢啲只係 launch／behavior 證據，唔係 visual pass。Dashboard、所有 app、About、原生套件管理、原生檢查碼、文字轉二進位、Base32／58／85 同 GUID 產生器要等真正 composited frame 擷取兼檢查到，先可以解除 `capture-blocked`。
 
 ## Safety and compatibility gates · 安全同相容閘門
 

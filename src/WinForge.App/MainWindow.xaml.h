@@ -4,6 +4,7 @@
 #include "../WinForge.Core/BinaryText.h"
 #include "../WinForge.Core/CaseConvert.h"
 #include "../WinForge.Core/CheckDigit.h"
+#include "../WinForge.Core/Codec.h"
 #include "../WinForge.Core/CommandLine.h"
 #include "../WinForge.Core/GuidGen.h"
 #include "../WinForge.Core/ModuleRecord.h"
@@ -97,6 +98,10 @@ namespace winrt::WinForge::implementation
         Microsoft::UI::Xaml::Controls::TextBox m_binaryTextInput{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBox m_binaryTextOutput{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_binaryTextStatus{ nullptr };
+        Microsoft::UI::Xaml::Controls::ComboBox m_codecPicker{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_codecInput{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_codecOutput{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_codecStatus{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBox m_caseConvertInput{ nullptr };
         Microsoft::UI::Xaml::Controls::StackPanel m_caseConvertRows{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_caseConvertStatus{ nullptr };
@@ -147,6 +152,10 @@ namespace winrt::WinForge::implementation
         std::wstring m_binaryTextInputValue{};
         std::wstring m_binaryTextOutputValue{};
         bool m_binaryTextRendering{ false };
+        int32_t m_codecEncoding{ 0 };
+        std::wstring m_codecInputValue{};
+        std::wstring m_codecOutputValue{};
+        bool m_codecRendering{ false };
         std::wstring m_caseConvertInputValue{};
         bool m_caseConvertRendering{ false };
         int32_t m_guidGenFormatIndex{ 0 };
@@ -250,6 +259,8 @@ namespace winrt::WinForge::implementation
         void AnnounceCheckDigitStatus(std::wstring_view message);
         void RenderBinaryText();
         void AnnounceBinaryTextStatus(std::wstring_view message, bool warning = false);
+        void RenderCodec();
+        void AnnounceCodecStatus(std::wstring_view message, bool warning = false);
         void RenderCaseConvert();
         void RefreshCaseConvert();
         void AnnounceCaseConvertStatus(std::wstring_view message, bool warning = false);

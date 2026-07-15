@@ -617,6 +617,10 @@ namespace winrt::WinForge::implementation
         {
             RenderBinaryText();
         }
+        else if (module->id == L"module.base32")
+        {
+            RenderCodec();
+        }
         else if (module->id == L"module.caseconvert")
         {
             RenderCaseConvert();
@@ -1190,6 +1194,286 @@ namespace winrt::WinForge::implementation
         catch (...)
         {
             // Accessibility notification failure must not break local conversion.
+        }
+    }
+
+    void MainWindow::RenderCodec()
+    {
+        m_codecRendering = true;
+
+        auto page = CreatePage(
+            winforge::core::LocalizedText{ L"Base32 / 58 / 85", L"Base32 / 58 / 85 編解碼" }.Pick(m_language),
+            winforge::core::LocalizedText{
+                L"Encode or decode UTF-8 text with RFC 4648 Base32, Bitcoin Base58, or Adobe Ascii85.",
+                L"用 RFC 4648 Base32、Bitcoin Base58 或 Adobe Ascii85 編碼／解碼 UTF-8 文字。" }.Pick(m_language));
+        page.MaxWidth(860);
+        page.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(page, L"NativeCodecPage");
+
+        InfoBar nativeStatus;
+        nativeStatus.IsOpen(true);
+        nativeStatus.IsClosable(false);
+        nativeStatus.Severity(InfoBarSeverity::Success);
+        nativeStatus.Title(ToHString(winforge::core::LocalizedText{
+            L"Fully native text codecs", L"全原生文字編解碼" }.Pick(m_language)));
+        nativeStatus.Message(ToHString(winforge::core::LocalizedText{
+            L"Base32, Base58, Ascii85, UTF-8 conversion, and copy actions run locally in standard C++. Invalid input fails atomically; clipboard writes only happen after explicit Copy.",
+            L"Base32、Base58、Ascii85、UTF-8 轉換同複製動作都喺本機標準 C++ 執行；無效輸入會原子式失敗，只有明確 Copy 先會寫剪貼簿。" }.Pick(m_language)));
+        AutomationProperties::SetAutomationId(nativeStatus, L"NativeCodecImplementationStatus");
+        page.Children().Append(nativeStatus);
+
+        Border card;
+        card.Padding(Thickness{ 18, 16, 18, 18 });
+        card.CornerRadius(CornerRadius{ 8 });
+        card.BorderThickness(Thickness{ 1 });
+        card.BorderBrush(Application::Current().Resources().Lookup(
+            box_value(L"CardStrokeColorDefaultBrush")).as<Media::Brush>());
+        card.Background(Application::Current().Resources().Lookup(
+            box_value(L"CardBackgroundFillColorDefaultBrush")).as<Media::Brush>());
+
+        StackPanel content;
+        content.Spacing(14);
+
+        auto codecLabel = CreateText(
+            winforge::core::LocalizedText{ L"Codec", L"編碼方式" }.Pick(m_language), 14, true);
+        content.Children().Append(codecLabel);
+
+        m_codecPicker = ComboBox();
+        m_codecPicker.MinWidth(300);
+        AutomationProperties::SetAutomationId(m_codecPicker, L"NativeCodecPicker");
+        AutomationProperties::SetLabeledBy(m_codecPicker, codecLabel);
+        AutomationProperties::SetName(m_codecPicker, ToHString(winforge::core::LocalizedText{
+            L"Text codec", L"文字編碼方式" }.Pick(m_language)));
+        for (auto const& label : {
+            L"Base32 (RFC 4648, padded)",
+            L"Base32 (no padding)",
+            L"Base58 (Bitcoin)",
+            L"Ascii85 (Adobe)" })
+        {
+            ComboBoxItem item;
+            item.Content(box_value(label));
+            m_codecPicker.Items().Append(item);
+        }
+        m_codecPicker.SelectedIndex(m_codecEncoding);
+        m_codecPicker.SelectionChanged([this](Windows::Foundation::IInspectable const& sender, SelectionChangedEventArgs const&)
+        {
+            if (m_codecRendering) return;
+            auto const selected = sender.as<ComboBox>().SelectedIndex();
+            m_codecEncoding = selected < 0 ? 0 : selected;
+            AnnounceCodecStatus(winforge::core::LocalizedText{
+                L"Codec changed — choose Encode or Decode.", L"已切換編碼方式 — 請揀編碼或者解碼。" }.Pick(m_language));
+        });
+        content.Children().Append(m_codecPicker);
+
+        auto inputLabel = CreateText(
+            winforge::core::LocalizedText{ L"Input", L"輸入" }.Pick(m_language), 14, true);
+        content.Children().Append(inputLabel);
+        m_codecInput = TextBox();
+        m_codecInput.Text(ToHString(m_codecInputValue));
+        m_codecInput.AcceptsReturn(true);
+        m_codecInput.TextWrapping(TextWrapping::Wrap);
+        m_codecInput.MinHeight(110);
+        m_codecInput.IsSpellCheckEnabled(false);
+        AutomationProperties::SetAutomationId(m_codecInput, L"NativeCodecInput");
+        AutomationProperties::SetLabeledBy(m_codecInput, inputLabel);
+        AutomationProperties::SetName(m_codecInput, ToHString(winforge::core::LocalizedText{
+            L"Codec input", L"編解碼輸入" }.Pick(m_language)));
+        m_codecInput.TextChanged([this](Windows::Foundation::IInspectable const& sender, TextChangedEventArgs const&)
+        {
+            if (m_codecRendering) return;
+            m_codecInputValue = ToWide(sender.as<TextBox>().Text());
+        });
+        content.Children().Append(m_codecInput);
+
+        StackPanel actions;
+        actions.Orientation(Orientation::Horizontal);
+        actions.Spacing(9);
+
+        auto selectedEncoding = [this]()
+        {
+            using Encoding = winforge::core::codec::Encoding;
+            switch (m_codecEncoding)
+            {
+            case 1: return Encoding::Base32NoPad;
+            case 2: return Encoding::Base58;
+            case 3: return Encoding::Ascii85;
+            default: return Encoding::Base32;
+            }
+        };
+
+        Button encode;
+        encode.Content(box_value(ToHString(winforge::core::LocalizedText{ L"Encode", L"編碼" }.Pick(m_language))));
+        AutomationProperties::SetAutomationId(encode, L"NativeCodecEncode");
+        AutomationProperties::SetName(encode, ToHString(winforge::core::LocalizedText{
+            L"Encode UTF-8 text", L"編碼 UTF-8 文字" }.Pick(m_language)));
+        encode.Click([this, selectedEncoding](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            // UI Automation's ValuePattern.SetValue and WinUI's TextChanged
+            // notification can cross the dispatcher boundary in either order.
+            // Read the live editor at command time so an explicit Encode never
+            // sees stale state or silently converts an earlier value.
+            if (m_codecInput)
+            {
+                m_codecInputValue = ToWide(m_codecInput.Text());
+            }
+            auto const result = winforge::core::codec::Encode(m_codecInputValue, selectedEncoding());
+            if (!result.ok)
+            {
+                m_codecOutputValue.clear();
+                if (m_codecOutput) m_codecOutput.Text(L"");
+                AnnounceCodecStatus(winforge::core::LocalizedText{
+                    L"Could not encode the input.", L"無法編碼呢段輸入。" }.Pick(m_language), true);
+                return;
+            }
+            m_codecOutputValue = result.text;
+            if (m_codecOutput) m_codecOutput.Text(ToHString(m_codecOutputValue));
+            if (m_codecOutput) AutomationProperties::SetHelpText(m_codecOutput, ToHString(m_codecOutputValue));
+            AnnounceCodecStatus(winforge::core::LocalizedText{
+                L"Encoded successfully.", L"編碼成功。" }.Pick(m_language));
+        });
+        actions.Children().Append(encode);
+
+        Button decode;
+        decode.Content(box_value(ToHString(winforge::core::LocalizedText{ L"Decode", L"解碼" }.Pick(m_language))));
+        AutomationProperties::SetAutomationId(decode, L"NativeCodecDecode");
+        AutomationProperties::SetName(decode, ToHString(winforge::core::LocalizedText{
+            L"Decode codec text", L"解碼編碼文字" }.Pick(m_language)));
+        decode.Click([this, selectedEncoding](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            // Match Encode: command execution is based on the visible editor,
+            // not a deferred TextChanged callback.
+            if (m_codecInput)
+            {
+                m_codecInputValue = ToWide(m_codecInput.Text());
+            }
+            auto const result = winforge::core::codec::Decode(m_codecInputValue, selectedEncoding());
+            if (!result.ok)
+            {
+                m_codecOutputValue.clear();
+                if (m_codecOutput) m_codecOutput.Text(L"");
+                AnnounceCodecStatus(winforge::core::LocalizedText{
+                    L"Input is not valid for this codec.", L"輸入唔係呢種編碼嘅有效格式。" }.Pick(m_language), true);
+                return;
+            }
+            m_codecOutputValue = result.text;
+            if (m_codecOutput) m_codecOutput.Text(ToHString(m_codecOutputValue));
+            if (m_codecOutput) AutomationProperties::SetHelpText(m_codecOutput, ToHString(m_codecOutputValue));
+            AnnounceCodecStatus(winforge::core::LocalizedText{
+                L"Decoded successfully.", L"解碼成功。" }.Pick(m_language));
+        });
+        actions.Children().Append(decode);
+
+        Button swap;
+        swap.Content(box_value(ToHString(winforge::core::LocalizedText{ L"Swap", L"對調" }.Pick(m_language))));
+        AutomationProperties::SetAutomationId(swap, L"NativeCodecSwap");
+        swap.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            m_codecRendering = true;
+            m_codecInputValue = m_codecOutputValue;
+            m_codecOutputValue.clear();
+            if (m_codecInput) m_codecInput.Text(ToHString(m_codecInputValue));
+            if (m_codecOutput) m_codecOutput.Text(L"");
+            m_codecRendering = false;
+            AnnounceCodecStatus(winforge::core::LocalizedText{
+                L"Output moved to input.", L"已將輸出搬去輸入。" }.Pick(m_language));
+        });
+        actions.Children().Append(swap);
+
+        Button copy;
+        copy.Content(box_value(ToHString(winforge::core::LocalizedText{ L"Copy output", L"複製輸出" }.Pick(m_language))));
+        AutomationProperties::SetAutomationId(copy, L"NativeCodecCopy");
+        copy.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+        {
+            if (m_codecOutputValue.empty())
+            {
+                AnnounceCodecStatus(winforge::core::LocalizedText{
+                    L"Nothing to copy.", L"冇嘢可以複製。" }.Pick(m_language), true);
+                return;
+            }
+            try
+            {
+                Windows::ApplicationModel::DataTransfer::DataPackage package;
+                package.RequestedOperation(Windows::ApplicationModel::DataTransfer::DataPackageOperation::Copy);
+                package.SetText(ToHString(m_codecOutputValue));
+                Windows::ApplicationModel::DataTransfer::Clipboard::SetContent(package);
+                AnnounceCodecStatus(winforge::core::LocalizedText{
+                    L"Copied to clipboard.", L"已複製到剪貼簿。" }.Pick(m_language));
+            }
+            catch (...)
+            {
+                AnnounceCodecStatus(winforge::core::LocalizedText{
+                    L"Could not access the clipboard.", L"無法存取剪貼簿。" }.Pick(m_language), true);
+            }
+        });
+        actions.Children().Append(copy);
+        content.Children().Append(actions);
+
+        auto outputLabel = CreateText(
+            winforge::core::LocalizedText{ L"Output", L"輸出" }.Pick(m_language), 14, true);
+        content.Children().Append(outputLabel);
+        m_codecOutput = TextBox();
+        m_codecOutput.IsReadOnly(true);
+        m_codecOutput.AcceptsReturn(true);
+        m_codecOutput.TextWrapping(TextWrapping::Wrap);
+        m_codecOutput.MinHeight(110);
+        m_codecOutput.IsSpellCheckEnabled(false);
+        m_codecOutput.FontFamily(Media::FontFamily(L"Consolas"));
+        m_codecOutput.Text(ToHString(m_codecOutputValue));
+        AutomationProperties::SetAutomationId(m_codecOutput, L"NativeCodecOutput");
+        AutomationProperties::SetLabeledBy(m_codecOutput, outputLabel);
+        AutomationProperties::SetName(m_codecOutput, ToHString(winforge::core::LocalizedText{
+            L"Codec output", L"編解碼輸出" }.Pick(m_language)));
+        AutomationProperties::SetHelpText(m_codecOutput, ToHString(m_codecOutputValue));
+        content.Children().Append(m_codecOutput);
+
+        auto note = CreateText(winforge::core::LocalizedText{
+            L"Base32 is uppercase RFC 4648; Base58 preserves leading zero bytes; Ascii85 uses Adobe <~ ~> markers and the z shortcut.",
+            L"Base32 係大楷 RFC 4648；Base58 會保留開頭零位元組；Ascii85 用 Adobe <~ ~> 標記同 z 快捷字元。" }.Pick(m_language), 12);
+        note.Opacity(0.78);
+        content.Children().Append(note);
+
+        card.Child(content);
+        page.Children().Append(card);
+
+        m_codecStatus = CreateText(L"", 12.5);
+        m_codecStatus.Opacity(0.82);
+        AutomationProperties::SetAutomationId(m_codecStatus, L"NativeCodecStatus");
+        AutomationProperties::SetLiveSetting(
+            m_codecStatus,
+            Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite);
+        page.Children().Append(m_codecStatus);
+
+        ShowPage(page);
+        m_codecRendering = false;
+        AnnounceCodecStatus(winforge::core::LocalizedText{
+            L"Native codec tools ready.", L"原生編解碼工具已就緒。" }.Pick(m_language));
+    }
+
+    void MainWindow::AnnounceCodecStatus(std::wstring_view message, bool warning)
+    {
+        if (!m_codecStatus) return;
+        m_codecStatus.Text(ToHString(message));
+        m_codecStatus.Foreground(Application::Current().Resources().Lookup(
+            box_value(warning ? L"SystemFillColorCautionBrush" : L"TextFillColorSecondaryBrush")).as<Media::Brush>());
+        AutomationProperties::SetName(m_codecStatus, ToHString(message));
+        AutomationProperties::SetLiveSetting(
+            m_codecStatus,
+            Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite);
+        try
+        {
+            auto peer = Microsoft::UI::Xaml::Automation::Peers::FrameworkElementAutomationPeer::FromElement(m_codecStatus);
+            if (!peer)
+            {
+                peer = Microsoft::UI::Xaml::Automation::Peers::FrameworkElementAutomationPeer::CreatePeerForElement(m_codecStatus);
+            }
+            if (peer)
+            {
+                peer.RaiseAutomationEvent(
+                    Microsoft::UI::Xaml::Automation::Peers::AutomationEvents::LiveRegionChanged);
+            }
+        }
+        catch (...)
+        {
         }
     }
 
@@ -3275,7 +3559,12 @@ namespace winrt::WinForge::implementation
         page.Children().Append(managerCard);
 
         StackPanel toolbar;
-        toolbar.Orientation(Orientation::Horizontal);
+        // This toolbar previously packed seven controls into one row.  At
+        // 100% scaling that exceeded the content viewport and clipped the
+        // search box and action buttons.  A vertical, full-width layout keeps
+        // every control reachable without relying on a hidden horizontal
+        // scroll position.
+        toolbar.Orientation(Orientation::Vertical);
         toolbar.Spacing(8);
         AutomationProperties::SetAutomationId(toolbar, L"NativePackageToolbar");
 
@@ -5267,6 +5556,10 @@ namespace winrt::WinForge::implementation
         StackPanel page;
         page.Spacing(14);
         page.Margin(Thickness{ 36, 28, 36, 36 });
+        // Keep every native page inside the measured viewport.  The old shell
+        // let horizontal StackPanels measure at their unconstrained width,
+        // which clipped bilingual labels and action buttons on narrow windows.
+        page.HorizontalAlignment(HorizontalAlignment::Stretch);
         auto heading = CreateText(title, 32, true);
         heading.TextWrapping(TextWrapping::WrapWholeWords);
         AutomationProperties::SetAutomationId(heading, L"NativePageTitle");
@@ -5290,8 +5583,13 @@ namespace winrt::WinForge::implementation
         }
         m_content.Children().Clear();
         ScrollViewer viewer;
-        viewer.HorizontalScrollMode(ScrollMode::Disabled);
-        viewer.HorizontalScrollBarVisibility(ScrollBarVisibility::Disabled);
+        // Horizontal scrolling is an accessibility/overflow escape hatch for
+        // long bilingual strings and dense legacy controls.  Pages still
+        // stretch to the viewport, but content is never silently clipped.
+        viewer.HorizontalScrollMode(ScrollMode::Auto);
+        viewer.HorizontalScrollBarVisibility(ScrollBarVisibility::Auto);
+        viewer.HorizontalContentAlignment(HorizontalAlignment::Stretch);
+        viewer.VerticalContentAlignment(VerticalAlignment::Top);
         viewer.VerticalScrollMode(ScrollMode::Auto);
         viewer.VerticalScrollBarVisibility(ScrollBarVisibility::Auto);
         viewer.Content(element);

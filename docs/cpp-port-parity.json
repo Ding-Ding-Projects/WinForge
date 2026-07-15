@@ -866,25 +866,35 @@
                        "kind":  "route",
                        "parentId":  null,
                        "source":  [
-                                      "src/WinForge.App/Resources/modules.json"
+                                      "src/WinForge.App/Resources/modules.json",
+                                      "src/WinForge.App/MainWindow.xaml.cpp",
+                                      "src/WinForge.App/MainWindow.xaml.h",
+                                      "src/WinForge.Core/Codec.cpp",
+                                      "src/WinForge.Core/Codec.h",
+                                      "tests/native/WinForge.Core.Tests/CodecTests.cpp",
+                                      "tests/native/WinForge.Core.Tests/CodecTests.h",
+                                      "eng/native/Invoke-NativeShellSmoke.ps1"
                                   ],
-                       "risk":  "stateful",
+                       "risk":  "safe",
                        "expected":  "Base32 / 58 / 85 · Base32 / 58 / 85 編解碼 is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
-                       "status":  "not-started",
+                       "status":  "in-progress",
                        "evidence":  {
-                                        "static":  "not-started",
-                                        "build":  "not-started",
-                                        "test":  "not-started",
-                                        "launch":  "not-started",
-                                        "visual":  "not-started",
-                                        "behavior":  "not-started",
-                                        "sideEffect":  "not-started",
-                                        "docs":  "not-started"
+                                        "static":  "pass",
+                                        "build":  "pass",
+                                        "test":  "pass",
+                                        "launch":  "pass",
+                                        "visual":  "capture-blocked",
+                                        "behavior":  "pass",
+                                        "sideEffect":  "pass",
+                                        "docs":  "pass"
                                     },
                        "attempts":  [
-
+                                         {
+                                             "timestamp":  "2026-07-15T00:00:00Z",
+                                             "result":  "Native standard-C++ codec core and C++/WinRT page implemented for Base32 padded/no-pad, Bitcoin Base58, and Adobe Ascii85. Debug and Release builds succeeded; focused codec tests passed 15/15; aggregate native core checks passed 250/250 and parser checks 46/46; process-owned native UI Automation smoke passed 128/128 across base32, base58, and module.base32 aliases, including accessibility names, encode/decode, swap, malformed-input clearing, language-rerender state preservation, and clipping checks for codec/Package Manager controls. Fresh native visual capture remains blocked: CopyFromScreen is unavailable and both its PrintWindow fallback and the LowLevel MCP off-screen desktop capture produced a blank/near-uniform WinUI client frame."
+                                         }
                                     ],
-                       "notes":  "C++ parity evidence has not yet been recorded."
+                       "notes":  "2026-07-15 · IN PROGRESS / 進行中 solely because fresh visual capture is blocked. The native page preserves UTF-8 input/output and codec selection across rerenders, uses explicit Copy-only clipboard access, exposes stable UI Automation IDs plus a polite live status, and has process-owned UI Automation clipping evidence."
                    },
                    {
                        "id":  "module.baseconvert",

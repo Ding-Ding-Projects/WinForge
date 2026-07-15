@@ -2,6 +2,7 @@
 #include "CaseConvertTests.h"
 #include "CommandLine.h"
 #include "CheckDigitTests.h"
+#include "CodecTests.h"
 #include "GuidGenTests.h"
 #include "Localization.h"
 #include "PackageManagerTests.h"
@@ -172,6 +173,10 @@ int wmain(int argc, wchar_t** argv)
     auto const checkDigitCounts = RunCheckDigitTests();
     passed += checkDigitCounts.passed;
     failed += checkDigitCounts.failed;
+
+    auto const codecCounts = winforge::tests::codec::RunCodecTests();
+    passed += codecCounts.passed;
+    failed += codecCounts.failed;
 
     auto const guidGenFailures = winforge::tests::guidgen::RunGuidGenTests();
     passed += 16 - guidGenFailures;
