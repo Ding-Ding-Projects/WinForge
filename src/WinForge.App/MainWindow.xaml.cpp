@@ -2743,6 +2743,7 @@ namespace winrt::WinForge::implementation
         m_packageSearchMode = winforge::core::packages::PackageSearchMode::Both;
         m_packageSearchCaseSensitiveValue = false;
         m_packageSearchIgnoreSpecialValue = false;
+        ClearPackageSelection();
         m_packageManagersSelected.clear();
         for (auto const& manager : winforge::core::packages::PackageManagers())
         {
@@ -3128,6 +3129,7 @@ namespace winrt::WinForge::implementation
             m_packageSearchMode = winforge::core::packages::PackageSearchMode::Both;
             m_packageSearchCaseSensitiveValue = false;
             m_packageSearchIgnoreSpecialValue = false;
+            ClearPackageSelection();
             m_packageIgnoredRules.clear();
             m_packagePinnedRules.clear();
             m_packageSnoozedRules.clear();
@@ -3327,6 +3329,119 @@ namespace winrt::WinForge::implementation
         }
         SavePackageManagerState();
         RenderPackageManagerView();
+    }
+
+    void MainWindow::SetPackageSelected(
+        winforge::core::packages::PackageItem const& package,
+        bool selected)
+    {
+        // Selection is deliberately Discover-only and transient. Query/view
+        // changes clear it, so a preview can never be applied to a stale row.
+        if (m_packageView != 0 ||
+            m_packageLastAction != winforge::core::packages::PackageAction::Search)
+        {
+            return;
+        }
+
+        auto const key = winforge::core::packages::PackageSelectionKey(package);
+        if (selected)
+        {
+            m_packageSelectedKeys.insert(key);
+        }
+        else
+        {
+            m_packageSelectedKeys.erase(key);
+        }
+        RenderPackageManagerView();
+    }
+
+    void MainWindow::ClearPackageSelection()
+    {
+        m_packageSelectedKeys.clear();
+    }
+
+    std::vector<winforge::core::packages::PackageItem> MainWindow::SelectedPackageItems() const
+    {
+        std::vector<winforge::core::packages::PackageItem> selected;
+        selected.reserve(m_packageSelectedKeys.size());
+        std::unordered_set<std::wstring> seen;
+        for (auto const& package : m_packageItems)
+        {
+            auto const key = winforge::core::packages::PackageSelectionKey(package);
+            if (m_packageSelectedKeys.contains(key) && seen.insert(key).second)
+            {
+                selected.push_back(package);
+            }
+        }
+        return selected;
+    }
+
+    void MainWindow::PreviewSelectedPackageInstalls()
+    {
+        auto const selected = SelectedPackageItems();
+        if (selected.empty())
+        {
+            ClearPackageSelection();
+            RenderPackageManagerView();
+            AnnouncePackageStatus(
+                L"No current Discover rows are selected. Choose one or more cached results first.",
+                L"而家冇已揀嘅 Discover 資料列；請先揀一個或者多個已快取結果。",
+                true);
+            return;
+        }
+
+        constexpr std::size_t MaximumPreviewedInstalls = 25;
+        auto const previewCount = std::min(selected.size(), MaximumPreviewedInstalls);
+        std::size_t failed = 0;
+        RecordPackageOperation(
+            L"Preview-only install-selected plan started for " +
+                std::to_wstring(selected.size()) +
+                L" Discover package(s). No package command was executed. · 已開始所選安裝預覽，冇執行套件指令。");
+
+        for (std::size_t index = 0; index < previewCount; ++index)
+        {
+            auto const& package = selected[index];
+            auto const command = winforge::core::packages::BuildPackageActionCommand(
+                package.manager_key,
+                package.id,
+                package.source,
+                winforge::core::packages::PackageAction::Install);
+            if (!command)
+            {
+                ++failed;
+                RecordPackageOperation(
+                    L"Preview failed for install " + package.id +
+                        L" via " + package.manager_key + L": " + command.error_code +
+                        L". · 安裝預覽失敗。");
+                continue;
+            }
+
+            RecordPackageOperation(
+                L"Preview-only install plan for " + package.id +
+                    L" via " + package.manager_key + L": " +
+                    winforge::core::packages::FormatCommandPreview(*command.command) +
+                    L". No package command was executed. · 只建立安裝預覽，冇執行套件指令。");
+        }
+        if (selected.size() > MaximumPreviewedInstalls)
+        {
+            RecordPackageOperation(
+                L"Install-selected preview rendered the first " +
+                    std::to_wstring(MaximumPreviewedInstalls) +
+                    L" rows; remaining selected rows are omitted from the visible history to keep the UI responsive. · 所選安裝預覽只顯示頭批資料列。");
+        }
+
+        ClearPackageSelection();
+        m_packageView = 8;
+        if (m_packageViewPicker)
+        {
+            m_packageViewPicker.SelectedIndex(m_packageView);
+        }
+        SavePackageManagerState();
+        RenderPackageManagerView();
+        AnnouncePackageStatus(
+            L"Install-selected preview added to Operations. No package command was executed.",
+            L"所選安裝預覽已加入操作檢視；冇執行套件指令。",
+            failed != 0);
     }
 
     void MainWindow::PreviewPackageDetails(
@@ -4043,6 +4158,7 @@ namespace winrt::WinForge::implementation
             {
                 CancelPackageWork();
             }
+            ClearPackageSelection();
             m_packageItems.clear();
             m_packageRunStates.clear();
             m_packageDetailsTarget.clear();
@@ -4419,6 +4535,7 @@ namespace winrt::WinForge::implementation
         {
             CancelPackageWork();
         }
+        ClearPackageSelection();
         m_packageItems.clear();
         m_packageRunStates.clear();
         m_packageDetailsTarget.clear();
@@ -4489,6 +4606,7 @@ namespace winrt::WinForge::implementation
         m_packageProbeComplete = false;
         m_packageManagersAvailable.clear();
         m_packageProbeDiagnostics.clear();
+        ClearPackageSelection();
         m_packageItems.clear();
         m_packageRunStates.clear();
         m_packageWorking = true;
@@ -4559,6 +4677,7 @@ namespace winrt::WinForge::implementation
         }
 
         CancelPackageWork();
+        ClearPackageSelection();
         m_packageItems.clear();
         m_packageRunStates.clear();
         m_packageDetailsTarget.clear();
@@ -4826,6 +4945,7 @@ namespace winrt::WinForge::implementation
         m_packageWorking = false;
         m_packageLastAction = action;
         if (m_packageBusy) m_packageBusy.IsActive(false);
+        ClearPackageSelection();
         m_packageItems.clear();
         m_packageRunStates.clear();
 
@@ -5210,6 +5330,9 @@ namespace winrt::WinForge::implementation
                     m_packageSearchIgnoreSpecialValue });
             visibleItems = &filteredDiscoverItems;
         }
+        auto const selectedDiscoverItems = isCachedDiscoverQuery
+            ? SelectedPackageItems()
+            : std::vector<winforge::core::packages::PackageItem>{};
 
         auto const discoverSearchModeLabel = [this, &pick]()
         {
@@ -5253,6 +5376,72 @@ namespace winrt::WinForge::implementation
         }
         m_packageResultsHeader.Text(ToHString(resultHeader));
         appendCard(explanation, {}, L"NativePackageViewSummary", 0.88);
+
+        if (isCachedDiscoverQuery && !selectedDiscoverItems.empty())
+        {
+            Border selectionCard;
+            selectionCard.Padding(Thickness{ 16 });
+            selectionCard.CornerRadius(CornerRadius{ 8 });
+            selectionCard.BorderThickness(Thickness{ 1 });
+            selectionCard.BorderBrush(Application::Current().Resources().Lookup(
+                box_value(L"CardStrokeColorDefaultBrush")).as<Media::Brush>());
+            selectionCard.Background(Application::Current().Resources().Lookup(
+                box_value(L"CardBackgroundFillColorDefaultBrush")).as<Media::Brush>());
+
+            StackPanel selectionContent;
+            selectionContent.Spacing(7);
+            auto selectionTitle = CreateText(
+                std::to_wstring(selectedDiscoverItems.size()) +
+                    pick(L" Discover result(s) selected", L" 個 Discover 結果已揀"),
+                14,
+                true);
+            AutomationProperties::SetAutomationId(selectionTitle, L"NativePackageBatchSelectionSummary");
+            selectionContent.Children().Append(selectionTitle);
+
+            auto selectionNote = CreateText(
+                pick(
+                    L"Preview selected creates only exact native install argv plans in Operations. It never runs a package command, and the selection clears when results or views change.",
+                    L"預覽所選只會喺操作檢視建立準確嘅原生安裝 argv 計劃；絕對唔會執行套件指令，而且結果或者檢視改變時會清除選擇。"),
+                12.5);
+            selectionNote.TextWrapping(TextWrapping::Wrap);
+            selectionContent.Children().Append(selectionNote);
+
+            StackPanel selectionActions;
+            selectionActions.Spacing(8);
+            Button previewSelected;
+            previewSelected.Content(box_value(ToHString(pick(L"Preview selected install", L"預覽所選安裝"))));
+            previewSelected.Padding(Thickness{ 12, 6, 12, 6 });
+            previewSelected.IsEnabled(!m_packageWorking);
+            AutomationProperties::SetAutomationId(previewSelected, L"NativePackageBatchPreviewInstall");
+            AutomationProperties::SetName(
+                previewSelected,
+                ToHString(pick(
+                    L"Preview selected package installs without executing package commands",
+                    L"預覽所選套件安裝，唔會執行套件指令")));
+            previewSelected.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+            {
+                PreviewSelectedPackageInstalls();
+            });
+            selectionActions.Children().Append(previewSelected);
+
+            Button clearSelection;
+            clearSelection.Content(box_value(ToHString(pick(L"Clear selection", L"清除選擇"))));
+            clearSelection.Padding(Thickness{ 12, 6, 12, 6 });
+            clearSelection.IsEnabled(!m_packageWorking);
+            AutomationProperties::SetAutomationId(clearSelection, L"NativePackageBatchClear");
+            clearSelection.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+            {
+                ClearPackageSelection();
+                RenderPackageManagerView();
+                AnnouncePackageStatus(
+                    L"Discover package selection cleared. No package command was executed.",
+                    L"Discover 套件選擇已清除；冇執行套件指令。");
+            });
+            selectionActions.Children().Append(clearSelection);
+            selectionContent.Children().Append(selectionActions);
+            selectionCard.Child(selectionContent);
+            m_packageResults.Children().Append(selectionCard);
+        }
 
         if (m_packageWorking)
         {
@@ -5839,6 +6028,42 @@ namespace winrt::WinForge::implementation
 
             StackPanel row;
             row.Spacing(5);
+            if (isCachedDiscoverQuery)
+            {
+                CheckBox selection;
+                auto const selectionLabel = pick(L"Select for install preview", L"揀嚟預覽安裝");
+                selection.Content(box_value(ToHString(selectionLabel)));
+                selection.IsChecked(m_packageSelectedKeys.contains(
+                    winforge::core::packages::PackageSelectionKey(package)));
+                selection.IsEnabled(!m_packageWorking);
+                AutomationProperties::SetAutomationId(
+                    selection,
+                    ToHString(L"NativePackageSelect_" + std::to_wstring(index)));
+                AutomationProperties::SetName(
+                    selection,
+                    ToHString(selectionLabel + L": " +
+                        (package.name.empty() ? package.id : package.name) +
+                        (package.source.empty() ? L"" : L" · " + package.source)));
+                ToolTipService::SetToolTip(
+                    selection,
+                    box_value(ToHString(pick(
+                        L"Select this cached Discover result for an install-plan preview. No package command will run.",
+                        L"揀呢個已快取 Discover 結果做安裝計劃預覽；唔會執行套件指令。"))));
+                auto selectedPackageCopy = package;
+                selection.Checked([this, selectedPackageCopy](
+                    Windows::Foundation::IInspectable const&,
+                    RoutedEventArgs const&)
+                {
+                    SetPackageSelected(selectedPackageCopy, true);
+                });
+                selection.Unchecked([this, selectedPackageCopy](
+                    Windows::Foundation::IInspectable const&,
+                    RoutedEventArgs const&)
+                {
+                    SetPackageSelected(selectedPackageCopy, false);
+                });
+                row.Children().Append(selection);
+            }
             auto packageTitle = CreateText(package.name.empty() ? package.id : package.name, 15, true);
             AutomationProperties::SetAutomationId(
                 packageTitle,

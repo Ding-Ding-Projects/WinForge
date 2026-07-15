@@ -748,6 +748,42 @@ namespace winforge::core::packages
         return filtered;
     }
 
+    std::wstring PackageSelectionKey(PackageItem const& item, PackageAction action)
+    {
+        // Keep native Discover selection aligned with the managed package
+        // coordinator: manager names are canonicalized, package IDs retain
+        // their exact spelling, and a source becomes part of the identity only
+        // after the source policy accepts and normalizes it.
+        auto const manager = Lower(item.manager_key);
+        auto const packageId = Trim(item.id);
+        auto const resolved = ResolvePackageSource(manager, packageId, item.source, action);
+        auto const source = resolved
+            ? resolved.resolution->normalized_source
+            : std::wstring(L"invalid");
+
+        // Length prefixes make the identity unambiguous even when an invalid
+        // cached item contains delimiters. Those values remain harmless until
+        // the command builder validates them again at the preview boundary.
+        std::wstring key;
+        key.reserve(manager.size() + packageId.size() + source.size() + 48);
+        auto append = [&key](std::wstring_view name, std::wstring_view value)
+        {
+            if (!key.empty())
+            {
+                key += L'|';
+            }
+            key += name;
+            key += L'=';
+            key += std::to_wstring(value.size());
+            key += L':';
+            key += value;
+        };
+        append(L"manager", manager);
+        append(L"id", packageId);
+        append(L"source", source);
+        return key;
+    }
+
     ValidationResult ValidatePackageReference(
         std::wstring_view manager_key,
         std::wstring_view package_id) noexcept

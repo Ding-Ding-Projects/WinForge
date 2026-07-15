@@ -201,6 +201,23 @@ NativeTestCounts RunPackageManagerTests()
         && discover_items.back().id == L"example.foo-bar",
         "Discover filtering never mutates the caller-owned cached result list");
 
+    PackageItem selectedStore{ L"Example Tool", L"Example.Tool", L"1.0", L"", L"MSStore", L" WINGET " };
+    auto selectedStoreCanonical = selectedStore;
+    selectedStoreCanonical.source = L"msstore";
+    auto selectedWinget = selectedStore;
+    selectedWinget.source = L"winget";
+    expect(PackageSelectionKey(selectedStore) == PackageSelectionKey(selectedStoreCanonical)
+        && PackageSelectionKey(selectedStore) != PackageSelectionKey(selectedWinget)
+        && PackageSelectionKey(selectedStore) == L"manager=6:winget|id=12:Example.Tool|source=7:msstore",
+        "Discover selection identity canonicalizes source without collapsing source-distinct rows");
+
+    PackageItem delimiterBearing{ L"Unsafe cached row", L"a|id=1:b", L"", L"", L"safe & calc", L"winget" };
+    auto const delimiterKey = PackageSelectionKey(delimiterBearing);
+    expect(delimiterKey.find(L"|id=8:a|id=1:b|") != std::wstring::npos
+        && delimiterKey.find(L"safe & calc") == std::wstring::npos
+        && delimiterKey != PackageSelectionKey(selectedStore),
+        "Discover selection identity length-prefixes cached delimiters and excludes invalid source text");
+
     std::array<std::pair<std::wstring_view, std::wstring_view>, 11> const valid_references{
         std::pair{ L"winget", L"Microsoft.PowerToys" },
         std::pair{ L"scoop", L"extras/7zip" },

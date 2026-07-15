@@ -1064,16 +1064,22 @@ Invoke-OwnedRoute -Route 'package-discover' -ExpectedTitle 'Package Manager' -In
     Assert-True -Condition $discoverFilterControlsFit `
         -Name 'Package Manager Discover filter controls are accessible and horizontally unclipped'
 
+    # Start from a known *different* state. The package preferences persist
+    # between native processes, so selecting Exact or enabling a toggle only
+    # conditionally would skip the local-filter callback on a second smoke run.
     $mode = Wait-ForElement -Root $root -AutomationId 'NativePackageSearchModePicker'
+    Select-ComboIndex -Combo $mode -Index 0
     Select-ComboIndex -Combo $mode -Index 3
     $case = Wait-ForElement -Root $root -AutomationId 'NativePackageSearchCaseSensitive'
     $caseToggle = [System.Windows.Automation.TogglePattern]$case.GetCurrentPattern(
         [System.Windows.Automation.TogglePattern]::Pattern)
-    if ($caseToggle.Current.ToggleState -ne [System.Windows.Automation.ToggleState]::On) { $caseToggle.Toggle() }
+    if ($caseToggle.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::On) { $caseToggle.Toggle() }
+    $caseToggle.Toggle()
     $ignoreSpecial = Wait-ForElement -Root $root -AutomationId 'NativePackageSearchIgnoreSpecial'
     $ignoreSpecialToggle = [System.Windows.Automation.TogglePattern]$ignoreSpecial.GetCurrentPattern(
         [System.Windows.Automation.TogglePattern]::Pattern)
-    if ($ignoreSpecialToggle.Current.ToggleState -ne [System.Windows.Automation.ToggleState]::On) { $ignoreSpecialToggle.Toggle() }
+    if ($ignoreSpecialToggle.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::On) { $ignoreSpecialToggle.Toggle() }
+    $ignoreSpecialToggle.Toggle()
     Wait-ForElementNamePrefix -Root $root -AutomationId 'NativePackageLiveStatus' `
         -Prefix 'Package Manager status: Discover filters applied locally' | Out-Null
     Assert-True -Condition $true `

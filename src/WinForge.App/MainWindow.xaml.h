@@ -15,6 +15,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <stop_token>
+#include <unordered_set>
 
 namespace winrt::WinForge::implementation
 {
@@ -136,6 +137,7 @@ namespace winrt::WinForge::implementation
         std::unordered_map<std::wstring, bool> m_packageManagersAvailable;
         std::unordered_map<std::wstring, std::wstring> m_packageProbeDiagnostics;
         std::vector<winforge::core::packages::PackageItem> m_packageItems;
+        std::unordered_set<std::wstring> m_packageSelectedKeys;
         std::vector<winforge::core::packages::PackageItem> m_packageBundleItems;
         std::vector<PackageManagerRunState> m_packageRunStates;
         std::vector<PackageOperationEntry> m_packageOperations;
@@ -223,6 +225,12 @@ namespace winrt::WinForge::implementation
         void PreviewPackageOperation(
             winforge::core::packages::PackageItem const& package,
             winforge::core::packages::PackageAction action);
+        void SetPackageSelected(
+            winforge::core::packages::PackageItem const& package,
+            bool selected);
+        void ClearPackageSelection();
+        [[nodiscard]] std::vector<winforge::core::packages::PackageItem> SelectedPackageItems() const;
+        void PreviewSelectedPackageInstalls();
         void PreviewPackageDetails(
             winforge::core::packages::PackageItem const& package);
         void StartPackageDetailsQuery(
