@@ -16,9 +16,9 @@ Unported routes render an explicit native pending page; routing to a page is not
 ## Current evidence · 目前證據
 
 - Debug native build: 0 errors; Release native build: 0 errors. · Debug 原生建置：0 errors；Release 原生建置：0 errors。
-- Native core tests: **355/355** in Debug and **355/355** in Release (309 core route/package-manager checks plus 46 parser checks). · 原生核心測試：Debug **355/355**、Release **355/355**（309 個 core route／package-manager 檢查加 46 個 parser 檢查）。
+- Native core tests: **374/374** in Debug and **374/374** in Release (328 core route/package-manager checks plus 46 parser checks). · 原生核心測試：Debug **374/374**、Release **374/374**（328 個 core route／package-manager 檢查加 46 個 parser 檢查）。
 - Catalog parity: 346 fixed routes, five dynamic families, 319 registry records, 22 categories, and 346 ledger rows. · 目錄對等：346 條固定路線、五組動態家族、319 條 registry 記錄、22 個分類同 346 條 ledger rows。
-- Elevated process-owned UI Automation smoke: **148/148**, covering routing, bilingual accessibility, live controls, and Package Manager clipping checks. · 提權、自有 process UI Automation smoke：**148/148**，涵蓋導覽、雙語無障礙、即時控制同 Package Manager 裁切檢查。
+- Elevated process-owned UI Automation smoke: **164/164**, covering routing, bilingual accessibility, live controls, native regex search/builder, and Package Manager clipping checks. · 提權、自有 process UI Automation smoke：**164/164**，涵蓋導覽、雙語無障礙、即時控制、原生 regex 搜尋／建立器同 Package Manager 裁切檢查。
 
 This is native core/UI and fail-closed evidence, not normal-integrity external package-manager execution proof. · 呢啲係原生 core／UI 同 fail-closed 證據，唔係正常 integrity 外部 Package Manager 執行證明。
 
@@ -30,9 +30,15 @@ One cached Discover, Updates, or Installed row may create a redacted reviewed In
 
 Normal-integrity external query/mutation proof is blocked in this elevated session, and the runtime fails closed. Batch consent, elevation mediation, scheduler/notification integration, full bundle interoperability, Setup/bootstrap, richer manager-specific UX, and broader settings remain pending. · 正常 integrity 外部查詢／修改證明喺呢個提權 session 受阻，而 runtime 會 fail closed。批次確認、提升權限調停、排程／通知整合、完整 Bundle 互通、Setup／bootstrap、豐富逐管理器 UX 同更廣設定仍待完成。
 
+## Native regex search and builder · 原生正規搜尋同建立器
+
+The native Shell catalog, All Apps, and cached Package Discover filter now use bounded PCRE2-16 (UTF/UCP, no JIT, pattern/input/nesting/code-size/match/depth/heap limits, and a 10 ms callout). `module.regextester` is a four-step native builder for flags, safe tokens, grouping/alternation/quantifiers, and match/capture preview before applying to a selected native target. It is not a claim of full .NET regex/replacement parity. · 原生 Shell 目錄、所有 app 同已快取 Package Discover 篩選而家會用有界 PCRE2-16（UTF/UCP、唔用 JIT、pattern／input／nesting／code-size／match／depth／heap 限制同 10 ms callout）。`module.regextester` 係四步原生建立器，處理旗標、安全 token、grouping／alternation／quantifier，同套用去已揀原生目標之前嘅 match／capture 預覽。呢個唔係完整 .NET regex／replacement 對等聲稱。
+
+Discover regex is local cache only: it never reaches argv or HTTPS, external Search is disabled while it is active, and `NativePackageQueryAudit` changes only for a genuine package query. PCRE2 attribution ships in [`THIRD-PARTY-NOTICES.txt`](../../THIRD-PARTY-NOTICES.txt), the portable ZIP, and the native installer. · Discover regex 只限本機快取：絕對唔會傳去 argv 或 HTTPS，啟用時會停用外部 Search，而且 `NativePackageQueryAudit` 只會喺真正套件查詢時改。PCRE2 歸屬會放喺 [`THIRD-PARTY-NOTICES.txt`](../../THIRD-PARTY-NOTICES.txt)、可攜 ZIP 同原生 installer。
+
 ## Visual and accessibility evidence · 視覺同無障礙證據
 
-Changed native pages are launched with the repository driver and the repo-local LowLevel MCP on an isolated headless desktop. For this checkpoint, `CopyFromScreen` was unavailable and every inspected `PrintWindow`/HWND PNG had a blank or near-uniform WinUI client frame. No invalid, stale, synthetic, or managed screenshot is presented as native evidence; changed native pages are `capture-blocked`. The 148/148 UI Automation result remains behavioral/accessibility evidence only. · 改過嘅原生頁面會用 repository driver 同 repo 本機 LowLevel MCP 喺隔離無頭 desktop 開啟。呢個 checkpoint，`CopyFromScreen` 用唔到，而每張檢查過嘅 `PrintWindow`／HWND PNG 都係空白／接近單色 WinUI client frame。冇將無效、舊、合成或者受控截圖當做原生證據；改過原生頁面係 `capture-blocked`。148/148 UI Automation 結果只係行為／無障礙證據。
+On 2026-07-16, the repository driver launched Dashboard, All Apps, Regex Tester, and Package Discover with `-WaitMs 16000`; `CopyFromScreen` was unavailable and each `PrintWindow` fallback was rejected as blank or near-uniform. The repo-local LowLevel MCP isolated desktop separately captured full-window and client-only Regex Tester and Package Discover HWNDs; all inspected client frames were blank. No invalid, stale, synthetic, or managed screenshot is presented as native evidence; changed native pages are `capture-blocked`. The 164/164 UI Automation result remains behavioral/accessibility evidence only. · 2026-07-16，repository driver 用 `-WaitMs 16000` 開啟 Dashboard、所有 app、Regex Tester 同 Package Discover；`CopyFromScreen` 用唔到，而且每個 `PrintWindow` fallback 都因空白／接近單色而拒絕。repo 本機 LowLevel MCP 隔離 desktop 另外擷取完整視窗同只限 client 嘅 Regex Tester 及 Package Discover HWND；全部檢查過嘅 client frame 都係空白。冇將無效、舊、合成或者受控截圖當做原生證據；改過原生頁面係 `capture-blocked`。164/164 UI Automation 結果只係行為／無障礙證據。
 
 ## Completion gate · 完成閘門
 

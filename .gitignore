@@ -29,6 +29,7 @@ artifacts/
 *.nuget.targets
 project.lock.json
 /packages/
+/vcpkg_installed/
 
 # MSIX packaging output
 AppPackages/

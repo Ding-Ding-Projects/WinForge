@@ -2,10 +2,12 @@
 
 #include "CommandLine.h"
 #include "PackageManager.h"
+#include "RegexSearch.h"
 
 #include <algorithm>
 #include <array>
 #include <iostream>
+#include <memory>
 #include <string_view>
 #include <vector>
 
@@ -197,9 +199,42 @@ NativeTestCounts RunPackageManagerTests()
     filtered = FilterDiscoverPackageItems(L"---", discover_items, ignore_special);
     expect(filtered_ids(filtered) == filtered_ids(discover_items),
         "Discover empty normalized query retains all cached rows without a new query");
+
+    auto regexName = winforge::core::regex::SafeRegex::Compile(
+        L"^Visual Studio Code(?: Insiders)?$");
+    expect(regexName.Ok(), "Discover regex name pattern compiles through bounded native PCRE2");
+    std::shared_ptr<winforge::core::regex::SafeRegex const> nameExpression;
+    if (regexName.Ok())
+    {
+        nameExpression = std::make_shared<winforge::core::regex::SafeRegex>(
+            std::move(*regexName.expression));
+    }
+    filtered = FilterDiscoverPackageItems(
+        L"ignored when compiled regex is supplied",
+        discover_items,
+        PackageSearchOptions{ PackageSearchMode::Name, false, false, nameExpression });
+    expect(filtered_ids(filtered) == std::vector<std::wstring>{
+        L"Microsoft.VisualStudioCode", L"Microsoft.VisualStudioCode.Insiders" },
+        "Discover regex Name filtering matches cached names without consuming a remote query string");
+
+    auto regexId = winforge::core::regex::SafeRegex::Compile(L"^VideoLAN\\.VLC$");
+    expect(regexId.Ok(), "Discover regex id pattern compiles");
+    std::shared_ptr<winforge::core::regex::SafeRegex const> idExpression;
+    if (regexId.Ok())
+    {
+        idExpression = std::make_shared<winforge::core::regex::SafeRegex>(
+            std::move(*regexId.expression));
+    }
+    filtered = FilterDiscoverPackageItems(
+        L"",
+        discover_items,
+        PackageSearchOptions{ PackageSearchMode::Exact, false, false, idExpression });
+    expect(filtered_ids(filtered) == std::vector<std::wstring>{ L"VideoLAN.VLC" },
+        "Discover regex Exact filtering performs a full match against individual cached fields");
+
     expect(discover_items.front().id == L"Microsoft.VisualStudioCode"
         && discover_items.back().id == L"example.foo-bar",
-        "Discover filtering never mutates the caller-owned cached result list");
+        "Discover literal and regex filtering never mutates the caller-owned cached result list");
 
     PackageItem selectedStore{ L"Example Tool", L"Example.Tool", L"1.0", L"", L"MSStore", L" WINGET " };
     auto selectedStoreCanonical = selectedStore;

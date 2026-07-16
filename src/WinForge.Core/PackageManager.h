@@ -1,6 +1,9 @@
 #pragma once
 
+#include "RegexSearch.h"
+
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <span>
 #include <string>
@@ -95,6 +98,9 @@ namespace winforge::core::packages
         PackageSearchMode mode{ PackageSearchMode::Both };
         bool case_sensitive{ false };
         bool ignore_special_characters{ false };
+        // Regex is deliberately an already-compiled local cached-result
+        // filter. Package Runtime never receives it or its pattern text.
+        std::shared_ptr<winforge::core::regex::SafeRegex const> regex{};
     };
 
     // Mirrors the managed InstallOptions schema. Pre/post hooks remain represented for bundle

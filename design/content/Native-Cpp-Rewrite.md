@@ -25,6 +25,12 @@ One cached Install, Update, or Uninstall row can be reviewed into `AwaitingConse
 
 This is deliberately incomplete: batch consent, elevation brokering, durable workflow recovery, rich manager-specific details, Setup/bootstrap, broader settings, scheduler/notifications, .NET update resolution, PyPI hydration, and normal-integrity live external-query/mutation evidence remain pending. The pinned UniGetUI source snapshot is provenance and a behavior inventory only; it is excluded from runtime and is not parity evidence. · 呢個有意保留未完成：批次確認、提升權限 broker、持久工作流程復原、豐富逐 manager 詳情、Setup／bootstrap、更廣泛設定、排程／通知、.NET 更新解析、PyPI hydration 同正常 integrity 即時外部查詢／修改證據仍然待辦。固定嘅 UniGetUI 原始碼 snapshot 只係來源同功能清單；已排除 runtime，亦唔係對等證據。
 
+## Native safe regex search and builder · 原生安全正規搜尋同建立器
+
+Native PCRE2-16 now powers Shell catalog search, All Apps, and local cached Package Discover filtering. Patterns are UTF/UCP, bounded by pattern/input/nesting/code-size/match/depth/heap limits and a 10 ms callout, and never use JIT. `module.regextester` is a four-step native builder for flags, safe tokens, groups/alternation/quantifiers, and match/capture preview before applying to Shell, All Apps, cached Discover, or tester-only. This is not a complete .NET regex/replacement parity claim. · 原生 PCRE2-16 而家處理 Shell 目錄搜尋、所有 app 同本機已快取 Package Discover 篩選。模式有 UTF/UCP、pattern／input／nesting／code-size／match／depth／heap 同 10 ms callout 上限，而且絕對唔會用 JIT。`module.regextester` 係四步原生建立器，處理旗標、安全 token、group／alternation／quantifier，同套用前嘅 match／capture 預覽；可以套用去 Shell、所有 app、已快取 Discover 或只限測試器。呢個唔係完整 .NET regex／replacement 對等聲稱。
+
+Package Discover regex is cache-only: it never enters argv or HTTPS, cannot begin a package query, disables remote Search, and has a `NativePackageQueryAudit` epoch that changes only when an actual CLI/HTTPS query begins. PCRE2 attribution ships in `THIRD-PARTY-NOTICES.txt`, the portable ZIP, and the native installer. · Package Discover regex 只限快取：唔會入 argv 或 HTTPS、唔可以開始套件查詢、會停用遠端 Search，而且 `NativePackageQueryAudit` epoch 只會喺真正 CLI／HTTPS 查詢開始時先改。PCRE2 歸屬會放喺 `THIRD-PARTY-NOTICES.txt`、可攜 ZIP 同原生 installer。
+
 ## Native utility slices · 原生 utility 批次
 
 Check Digit, Text to Binary, Case Converter, GUID Generator, Base32/Base58/Ascii85, and Roman Numerals have real native C++ cores and C++/WinRT pages. They retain state across English/Cantonese/Bilingual rerenders, use explicit clipboard actions, and expose stable accessibility IDs. Their individual ledger rows remain in progress until all evidence—including visual evidence—is available. · Check Digit、Text to Binary、Case Converter、GUID Generator、Base32／Base58／Ascii85 同 Roman Numerals 已有真正原生 C++ core 同 C++/WinRT 頁面。佢哋會喺英文／粵語／雙語重繪時保留狀態、用明確 clipboard 動作，同有穩定無障礙 ID。所有證據（包括視覺證據）齊全前，各自 ledger 項仍然係進行中。
@@ -38,9 +44,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File eng\native\Invoke-NativeShel
 ```
 
 - Debug and Release x64 native builds: **0 errors**. · Debug 同 Release x64 原生建置：**0 errors**。
-- Native tests: **355/355** in Debug and Release, including 29 Package Mutation Coordinator cases. · 原生測試：Debug 同 Release 都係 **355/355**，包括 29 個 Package Mutation Coordinator 案例。
+- Native tests: **374/374** in Debug and Release (328 core + 46 parser), including the safe PCRE2 regex/core-builder vectors. · 原生測試：Debug 同 Release 都係 **374/374**（328 個 core + 46 個 parser），包括安全 PCRE2 regex／core-builder vectors。
 - Catalog parity: 346 fixed routes, five dynamic families, 319 registry records, and 22 categories. · 目錄對等：346 條固定路線、五組動態家族、319 條 registry 記錄同 22 個分類。
-- Elevated process-owned UI Automation smoke: **148/148**. It verifies the native UI and fail-closed behavior, not normal-integrity external package activity. · 提權、自有 process UI Automation smoke：**148/148**。佢驗證原生 UI 同 fail-closed 行為，唔係正常 integrity 外部套件活動。
+- Elevated process-owned UI Automation smoke: **164/164**. It verifies the native UI, regex search/builder, and fail-closed behavior, not normal-integrity external package activity. · 提權、自有 process UI Automation smoke：**164/164**。佢驗證原生 UI、regex 搜尋／建立器同 fail-closed 行為，唔係正常 integrity 外部套件活動。
 
 ## Visual evidence · 視覺證據
 

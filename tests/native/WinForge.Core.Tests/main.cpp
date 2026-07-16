@@ -5,6 +5,7 @@
 #include "CodecTests.h"
 #include "GuidGenTests.h"
 #include "RomanNumTests.h"
+#include "RegexSearchTests.h"
 #include "Localization.h"
 #include "PackageManagerTests.h"
 #include "PackageMutationCoordinatorTests.h"
@@ -99,6 +100,10 @@ int wmain(int argc, wchar_t** argv)
     request = ParseLaunchRequest({ L"WinForge.exe", L"--page", L"search:package manager" });
     Expect(request.route == L"search" && request.argument == L"package manager", "parses dynamic search route");
 
+    request = ParseLaunchRequest({ L"WinForge.exe", L"--page", L"search:^(WinForge)?#Native$" });
+    Expect(request.route == L"search" && request.argument == L"^(WinForge)?#Native$",
+        "preserves raw regex search payload casing question and hash");
+
     request = ParseLaunchRequest({ L"WinForge.exe", L"--page", L"manual:reactor-safety" });
     Expect(request.route == L"manual" && request.argument == L"reactor-safety", "parses manual fragment route");
 
@@ -187,6 +192,10 @@ int wmain(int argc, wchar_t** argv)
     auto const romanNumCounts = RunRomanNumTests();
     passed += romanNumCounts.passed;
     failed += romanNumCounts.failed;
+
+    auto const regexSearchCounts = RunRegexSearchTests();
+    passed += regexSearchCounts.passed;
+    failed += regexSearchCounts.failed;
 
     auto const package_manager_counts = RunPackageManagerTests();
     passed += package_manager_counts.passed;

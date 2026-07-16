@@ -34,20 +34,32 @@ namespace
             value = value.substr(1, value.size() - 2);
         }
 
-        auto const query = value.find(L'?');
-        auto const fragment = value.find(L'#');
-        auto split = std::min(
-            query == std::wstring::npos ? value.size() : query,
-            fragment == std::wstring::npos ? value.size() : fragment);
-
-        request.route = winforge::core::NormalizeRouteKey(value.substr(0, split));
-        request.argument = split < value.size() ? value.substr(split) : L"";
-
-        if (request.route.rfind(L"search:", 0) == 0 || request.route.rfind(L"manual:", 0) == 0)
+        // `search:<pattern>` is a dynamic route whose payload can be a
+        // case-sensitive regular expression containing '?' or '#'. Detect
+        // that prefix before normal route/query/fragment splitting so no
+        // normalization or URI-style parsing mutates the user pattern.
+        bool dynamicRoute = false;
+        if (auto const colon = value.find(L':'); colon != std::wstring::npos)
         {
-            auto const colon = request.route.find(L':');
-            request.argument = request.route.substr(colon + 1);
-            request.route = request.route.substr(0, colon);
+            auto const prefix = winforge::core::NormalizeRouteKey(value.substr(0, colon));
+            if (prefix == L"search" || prefix == L"manual")
+            {
+                request.route = prefix;
+                request.argument = value.substr(colon + 1);
+                dynamicRoute = true;
+            }
+        }
+
+        if (!dynamicRoute)
+        {
+            auto const query = value.find(L'?');
+            auto const fragment = value.find(L'#');
+            auto split = std::min(
+                query == std::wstring::npos ? value.size() : query,
+                fragment == std::wstring::npos ? value.size() : fragment);
+
+            request.route = winforge::core::NormalizeRouteKey(value.substr(0, split));
+            request.argument = split < value.size() ? value.substr(split) : L"";
         }
 
         // The managed Package Manager launch aliases select a view as well as a module.

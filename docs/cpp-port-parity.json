@@ -5556,6 +5556,11 @@
                                            "atUtc":  "2026-07-15T23:59:00Z",
                                            "result":  "Native Package Mutation Coordinator added a deliberately narrow individual action path: review one cached Install/Update/Uninstall row into AwaitingConsent, then separately confirm the exact validated argv for serial normal-integrity execution. The in-memory coordinator caps records at 50, times runtime out after five minutes, supports pre-start/running cancellation and fresh-consent retry, cancels all work on Package Manager exit/navigation, rejects elevation/hooks/unsafe input, custom mutation arguments, and oversized reviewed previews, and stores a redacted reviewed argv plus request/lifecycle metadata in memory. It persists one bounded redacted lifecycle event while withholding third-party stdout/stderr/runtime diagnostics. Multi-select and Update all remain preview-only. Debug and Release each passed 355/355 (309 core + 46 parser), including 29 focused coordinator cases; catalog parity passed 346 fixed routes, 5 dynamic families, 319 registry records, 22 categories, and 346 ledger rows; elevated process-owned shell smoke passed 148/148. A persistent LowLevel HTTP MCP isolated desktop launched package-discover, package-updates, and package-installed, but every inspected current native HWND capture had a title bar plus a blank/near-uniform client frame. The required driver failed the same way, so all changed Package Manager views are capture-blocked and no image was accepted. No normal-integrity live external query or mutation was run because the session is elevated and the runtime failed closed.",
                                            "status":  "pass"
+                                       },
+                                       {
+                                           "atUtc":  "2026-07-16T00:00:00Z",
+                                           "result":  "Package Discover gained a bounded PCRE2-16 regex mode that filters only existing cached rows. Regex never reaches argv or HTTPS, remote Search is disabled and guarded, Similar/ignore-special are unavailable, Exact is full-match, and NativePackageQueryAudit remains unchanged unless a genuine query begins. Debug and Release each passed 374/374 (328 core + 46 parser); catalog parity passed 346 fixed routes, five dynamic families, 319 registry entries, 22 categories, and 346 ledger rows; elevated process-owned UI Automation passed 164/164 including cache-only/no-query, invalid-regex retention, and horizontal-bound assertions. Driver and LowLevel isolated-desktop captures were blank/near-uniform, so visual evidence remains capture-blocked.",
+                                           "status":  "capture-blocked"
                                        }
                                       ],
                         "historicalEvidence":  "Earlier bounded Bundle-workspace evidence (326/326 and 146/146) remains in the attempt history only. · 較早有界 Bundle 工作區證據（326/326 同 146/146）只保留喺嘗試歷史。",
@@ -6317,25 +6322,37 @@
                        "kind":  "route",
                        "parentId":  null,
                        "source":  [
-                                      "src/WinForge.App/Resources/modules.json"
+                                      "src/WinForge.App/Resources/modules.json",
+                                      "src/WinForge.Core/RegexSearch.h",
+                                      "src/WinForge.Core/RegexSearch.cpp",
+                                      "src/WinForge.Core/RegexBuilder.h",
+                                      "src/WinForge.Core/RegexBuilder.cpp",
+                                      "src/WinForge.App/MainWindow.xaml.h",
+                                      "src/WinForge.App/MainWindow.xaml.cpp",
+                                      "tests/native/WinForge.Core.Tests/RegexSearchTests.cpp",
+                                      "eng/native/Invoke-NativeShellSmoke.ps1"
                                   ],
                        "risk":  "stateful",
-                       "expected":  "Regex Tester · 正則表達式測試 is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
-                       "status":  "not-started",
+                       "expected":  "Regex Tester & Builder · 正規表示式測試器同建立器 is a bounded native C++ PCRE2-16 wizard, reachable through its registered aliases and able to apply safely to the native Shell, All Apps, cached Package Discover, or tester-only mode.",
+                       "status":  "in-progress",
                        "evidence":  {
-                                        "static":  "not-started",
-                                        "build":  "not-started",
-                                        "test":  "not-started",
-                                        "launch":  "not-started",
-                                        "visual":  "not-started",
-                                        "behavior":  "not-started",
-                                        "sideEffect":  "not-started",
-                                        "docs":  "not-started"
+                                        "static":  "pass",
+                                        "build":  "pass",
+                                        "test":  "pass",
+                                        "launch":  "pass",
+                                        "visual":  "capture-blocked",
+                                        "behavior":  "pass",
+                                        "sideEffect":  "pass",
+                                        "docs":  "pass"
                                     },
                        "attempts":  [
-
+                                        {
+                                            "atUtc":  "2026-07-16T00:00:00Z",
+                                            "result":  "Bounded native PCRE2-16 search and four-step Regex Tester & Builder implemented for Shell catalog search, All Apps, and cached Package Discover. Debug and Release each passed 374/374 (328 core plus 46 parser checks); elevated process-owned UI Automation passed 164/164, including valid/invalid regex, named-capture preview, target apply, cache-only/no-query Package Discover behavior, and horizontal-bound checks. The repository driver and inspected LowLevel MCP isolated-desktop full-window/client captures were blank or near-uniform, so no PNG was accepted.",
+                                            "status":  "capture-blocked"
+                                        }
                                     ],
-                       "notes":  "C++ parity evidence has not yet been recorded."
+                       "notes":  "2026-07-16 · IN PROGRESS / 進行中 solely because visual capture is blocked. The native wizard, bounded PCRE2 core, Shell/All Apps filters, and cache-only Discover filter pass build, core, launch, behavior, accessibility, and no-external-query evidence. It does not claim full managed .NET regex/replacement parity. Driver and LowLevel MCP captures were blank/near-uniform and were discarded. · 原生精靈、有界 PCRE2 core、Shell／所有 app 篩選同只限快取 Discover 篩選已通過建置、核心、啟動、行為、無障礙同冇外部查詢證據；只因視覺擷取受阻而保持進行中。呢個唔聲稱完整受控 .NET regex／replacement 對等；driver 同 LowLevel MCP 擷取係空白／接近單色，已丟棄。"
                    },
                    {
                        "id":  "module.rename",
@@ -8903,25 +8920,33 @@
                               "source":  [
                                              "MainWindow.xaml.cs",
                                              "Pages/SearchResultsPage.xaml",
-                                             "Pages/SearchResultsPage.xaml.cs"
+                                             "Pages/SearchResultsPage.xaml.cs",
+                                             "src/WinForge.Core/CommandLine.cpp",
+                                             "src/WinForge.App/MainWindow.xaml.cpp",
+                                             "src/WinForge.Core/RegexSearch.cpp",
+                                             "eng/native/Invoke-NativeShellSmoke.ps1"
                                          ],
                               "risk":  "safe",
-                              "expected":  "SearchResultsPage",
-                              "status":  "not-started",
+                              "expected":  "Native Search results preserve the raw dynamic payload and, when the Shell regex mode is explicitly enabled, evaluate bounded PCRE2 independently against local catalog metadata.",
+                              "status":  "in-progress",
                               "evidence":  {
-                                               "static":  "not-started",
-                                               "build":  "not-started",
-                                               "test":  "not-started",
-                                               "launch":  "not-started",
-                                               "visual":  "not-started",
-                                               "behavior":  "not-started",
-                                               "sideEffect":  "not-started",
-                                               "docs":  "not-started"
+                                               "static":  "pass",
+                                               "build":  "pass",
+                                               "test":  "pass",
+                                               "launch":  "pass",
+                                               "visual":  "capture-blocked",
+                                               "behavior":  "pass",
+                                               "sideEffect":  "pass",
+                                               "docs":  "pass"
                                            },
                               "attempts":  [
-
+                                              {
+                                                  "atUtc":  "2026-07-16T00:00:00Z",
+                                                  "result":  "Command-line parsing preserves raw search payload casing, question marks, and hashes; Debug and Release each passed 374/374. Elevated UI Automation passed 164/164 including Shell regex search valid/invalid paths. This dynamic route is not an implicit CLI regex flag: regex requires explicit Shell mode selection.",
+                                                  "status":  "capture-blocked"
+                                              }
                                            ],
-                              "notes":  "C++ parity evidence has not yet been recorded."
+                              "notes":  "2026-07-16 · IN PROGRESS / 進行中. Native dynamic search has bounded local PCRE2 behavior when explicitly enabled, but it does not claim full managed SearchResultsPage or .NET regex/replacement parity. Changed-page visual capture is blocked by blank driver and LowLevel frames. · 原生動態搜尋喺明確啟用時有有界本機 PCRE2 行為，但唔聲稱完整受控 SearchResultsPage 或 .NET regex／replacement 對等；改過頁面嘅視覺擷取因 driver 同 LowLevel frame 空白而受阻。"
                           },
                           {
                               "id":  "weblogin?url=\u003curi\u003e",
