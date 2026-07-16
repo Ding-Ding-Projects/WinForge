@@ -1114,6 +1114,135 @@ foreach ($alias in @('module.guidgen')) {
     Invoke-OwnedRoute -Route $alias -ExpectedTitle 'GUID & ID Generator'
 }
 
+Invoke-OwnedRoute -Route 'passgen' -ExpectedTitle 'Password Generator' -Inspect {
+    param($root, $title)
+
+    foreach ($id in @(
+        'NativePassGenImplementationStatus',
+        'NativePassGenMode',
+        'NativePassGenLength',
+        'NativePassGenLower',
+        'NativePassGenUpper',
+        'NativePassGenDigits',
+        'NativePassGenSymbols',
+        'NativePassGenAvoidAmbiguous',
+        'NativePassGenNoRepeats',
+        'NativePassGenCount',
+        'NativePassGenGenerate',
+        'NativePassGenCopy',
+        'NativePassGenEntropy',
+        'NativePassGenEntropyBar',
+        'NativePassGenOutput',
+        'NativePassGenStatus'
+    )) {
+        Wait-ForElement -Root $root -AutomationId $id | Out-Null
+    }
+
+    $passwordControlsFit = Test-HorizontalBoundsWithinWindow -Root $root -Elements @(
+        (Wait-ForElement -Root $root -AutomationId 'NativePassGenMode'),
+        (Wait-ForElement -Root $root -AutomationId 'NativePassGenLength'),
+        (Wait-ForElement -Root $root -AutomationId 'NativePassGenLower'),
+        (Wait-ForElement -Root $root -AutomationId 'NativePassGenUpper'),
+        (Wait-ForElement -Root $root -AutomationId 'NativePassGenDigits'),
+        (Wait-ForElement -Root $root -AutomationId 'NativePassGenSymbols'),
+        (Wait-ForElement -Root $root -AutomationId 'NativePassGenAvoidAmbiguous'),
+        (Wait-ForElement -Root $root -AutomationId 'NativePassGenNoRepeats'),
+        (Wait-ForElement -Root $root -AutomationId 'NativePassGenCount'),
+        (Wait-ForElement -Root $root -AutomationId 'NativePassGenGenerate'),
+        (Wait-ForElement -Root $root -AutomationId 'NativePassGenCopy'),
+        (Wait-ForElement -Root $root -AutomationId 'NativePassGenOutput'))
+    Assert-True -Condition $passwordControlsFit `
+        -Name 'Password Generator exposes native controls, accessibility, and horizontal clipping safety'
+
+    $mode = Wait-ForElement -Root $root -AutomationId 'NativePassGenMode'
+    $length = Wait-ForElement -Root $root -AutomationId 'NativePassGenLength'
+    $output = Wait-ForElement -Root $root -AutomationId 'NativePassGenOutput'
+    Assert-True -Condition ($mode.Current.Name.StartsWith('Generator mode', [StringComparison]::Ordinal)) `
+        -Name 'Password Generator mode picker has a localized accessible name'
+    Assert-True -Condition ($length.Current.Name.StartsWith('Password length', [StringComparison]::Ordinal)) `
+        -Name 'Password Generator length control has a localized accessible name'
+    Assert-True -Condition ($output.Current.Name.StartsWith('Generated password', [StringComparison]::Ordinal)) `
+        -Name 'Password Generator output has a localized accessible name'
+
+    Wait-ForElementValueWhere -Root $root -AutomationId 'NativePassGenOutput' `
+        -Description 'a default sixteen-character password covering every selected class' `
+        -Predicate {
+            param($value)
+            return $value -match '^(?=.{16}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()\-_=+\[\]{};:,.?/]).+$'
+        } | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativePassGenStatus' -Prefix 'Generated 1' | Out-Null
+    Assert-True -Condition $true -Name 'Password Generator emits a secure default password through the live native UI'
+
+    Set-ToggleState -Root $root -AutomationId 'NativePassGenLower' -IsOn $false | Out-Null
+    Set-ToggleState -Root $root -AutomationId 'NativePassGenUpper' -IsOn $false | Out-Null
+    Set-ToggleState -Root $root -AutomationId 'NativePassGenDigits' -IsOn $false | Out-Null
+    Set-ToggleState -Root $root -AutomationId 'NativePassGenSymbols' -IsOn $false | Out-Null
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativePassGenStatus' -Prefix "Can't generate: select at least one character set." | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativePassGenOutput' -ExpectedValue '' | Out-Null
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativePassGenCopy'
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativePassGenStatus' -Prefix 'Nothing to copy yet.' | Out-Null
+    Assert-True -Condition $true -Name 'Password Generator fails closed and leaves the clipboard untouched for invalid empty output'
+
+    Set-ToggleState -Root $root -AutomationId 'NativePassGenLower' -IsOn $true | Out-Null
+    Set-ToggleState -Root $root -AutomationId 'NativePassGenUpper' -IsOn $true | Out-Null
+    Set-ToggleState -Root $root -AutomationId 'NativePassGenDigits' -IsOn $true | Out-Null
+    Set-ToggleState -Root $root -AutomationId 'NativePassGenSymbols' -IsOn $true | Out-Null
+    Set-ToggleState -Root $root -AutomationId 'NativePassGenAvoidAmbiguous' -IsOn $true | Out-Null
+    Set-ToggleState -Root $root -AutomationId 'NativePassGenNoRepeats' -IsOn $true | Out-Null
+    Wait-ForElementValueWhere -Root $root -AutomationId 'NativePassGenOutput' `
+        -Description 'a unique password without ambiguous glyphs' `
+        -Predicate {
+            param($value)
+            if ($value.Length -ne 16 -or $value -cmatch '[O0Il1|]') { return $false }
+            return (($value.ToCharArray() | Sort-Object -Unique).Count -eq 16)
+        } | Out-Null
+    Assert-True -Condition $true -Name 'Password Generator honors no-repeat and avoid-ambiguous controls through the live native UI'
+
+    Select-ComboIndex -Combo $mode -Index 1
+    Wait-ForElement -Root $root -AutomationId 'NativePassGenWordCount' | Out-Null
+    Wait-ForElement -Root $root -AutomationId 'NativePassGenSeparator' | Out-Null
+    Wait-ForElement -Root $root -AutomationId 'NativePassGenCapitalize' | Out-Null
+    Wait-ForElement -Root $root -AutomationId 'NativePassGenAppendDigit' | Out-Null
+    Set-ToggleState -Root $root -AutomationId 'NativePassGenCapitalize' -IsOn $true | Out-Null
+    Set-ToggleState -Root $root -AutomationId 'NativePassGenAppendDigit' -IsOn $true | Out-Null
+    $separator = Wait-ForElement -Root $root -AutomationId 'NativePassGenSeparator'
+    Select-ComboIndex -Combo $separator -Index 3
+    Wait-ForElementValueWhere -Root $root -AutomationId 'NativePassGenOutput' `
+        -Description 'a four-word capitalized underscore passphrase with an appended digit' `
+        -Predicate {
+            param($value)
+            return $value -match '^(?:[A-Z][a-z]{3}_){3}[A-Z][a-z]{3}\d$'
+        } | Out-Null
+    $passphraseControlsFit = Test-HorizontalBoundsWithinWindow -Root $root -Elements @(
+        (Wait-ForElement -Root $root -AutomationId 'NativePassGenMode'),
+        (Wait-ForElement -Root $root -AutomationId 'NativePassGenWordCount'),
+        (Wait-ForElement -Root $root -AutomationId 'NativePassGenSeparator'),
+        (Wait-ForElement -Root $root -AutomationId 'NativePassGenCapitalize'),
+        (Wait-ForElement -Root $root -AutomationId 'NativePassGenAppendDigit'),
+        (Wait-ForElement -Root $root -AutomationId 'NativePassGenCount'),
+        (Wait-ForElement -Root $root -AutomationId 'NativePassGenGenerate'),
+        (Wait-ForElement -Root $root -AutomationId 'NativePassGenCopy'),
+        (Wait-ForElement -Root $root -AutomationId 'NativePassGenOutput'))
+    Assert-True -Condition $passphraseControlsFit `
+        -Name 'Password Generator keeps passphrase controls inside horizontal bounds'
+    Assert-True -Condition $true -Name 'Password Generator builds a configured passphrase through the live native UI'
+
+    Invoke-ElementByAutomationId -Root $root -AutomationId 'NativePassGenCopy'
+    Wait-ForElementNamePrefix -Root $root -AutomationId 'NativePassGenStatus' -Prefix 'Copied to clipboard.' | Out-Null
+    Assert-True -Condition $true -Name 'Password Generator writes to the clipboard only after explicit Copy'
+
+    $beforeLanguage = (Get-EditableValuePattern -Element (Wait-ForElement -Root $root -AutomationId 'NativePassGenOutput')).Current.Value
+    $language = Wait-ForElement -Root $root -AutomationId 'NativeLanguagePicker'
+    Select-ComboItem -Combo $language -Name 'English'
+    Wait-ForPageTitle -Root $root -Prefix 'Password Generator' | Out-Null
+    Wait-ForElementValue -Root $root -AutomationId 'NativePassGenOutput' -ExpectedValue $beforeLanguage | Out-Null
+    Assert-True -Condition $true -Name 'Password Generator preserves configured output across language rerender'
+}
+
+foreach ($alias in @('passgen', 'password', 'module.passgen')) {
+    Invoke-OwnedRoute -Route $alias -ExpectedTitle 'Password Generator'
+}
+
 Invoke-OwnedRoute -Route 'uuidv7' -ExpectedTitle 'UUID v7' -Inspect {
     param($root, $title)
 

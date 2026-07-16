@@ -843,6 +843,10 @@ namespace winrt::WinForge::implementation
         {
             RenderGuidGen();
         }
+        else if (module->id == L"module.passgen")
+        {
+            RenderPassGen();
+        }
         else if (module->id == L"module.uuidv7")
         {
             RenderUuidV7();
@@ -2842,6 +2846,577 @@ namespace winrt::WinForge::implementation
         catch (...)
         {
             // Accessibility notification failure must not break identifier generation.
+        }
+    }
+
+    void MainWindow::RenderPassGen()
+    {
+        m_passGenRendering = true;
+
+        auto page = CreatePage(
+            winforge::core::LocalizedText{
+                L"Password Generator", L"密碼產生器" }.Pick(m_language),
+            winforge::core::LocalizedText{
+                L"Create strong random passwords or memorable passphrases. All randomness comes from the OS cryptographic RNG and nothing leaves this PC.",
+                L"整強勁嘅隨機密碼或者易記嘅通行短語。所有隨機數都係用系統嘅加密級隨機產生器，完全唔會離開部電腦。" }.Pick(m_language));
+        page.MaxWidth(900);
+        page.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(page, L"NativePassGenPage");
+
+        InfoBar nativeStatus;
+        nativeStatus.IsOpen(true);
+        nativeStatus.IsClosable(false);
+        nativeStatus.Severity(InfoBarSeverity::Success);
+        nativeStatus.Title(ToHString(winforge::core::LocalizedText{
+            L"Fully native password and passphrase generation", L"全原生密碼同通行短語產生" }.Pick(m_language)));
+        nativeStatus.Message(ToHString(winforge::core::LocalizedText{
+            L"C++ uses BCrypt cryptographic randomness and rejection-sampled ranges. Passwords stay local; the clipboard changes only after an explicit Copy action.",
+            L"C++ 使用 BCrypt 加密級隨機同 rejection-sampled 範圍。密碼會留喺本機；只有明確撳 Copy 先會改剪貼簿。" }.Pick(m_language)));
+        AutomationProperties::SetAutomationId(nativeStatus, L"NativePassGenImplementationStatus");
+        page.Children().Append(nativeStatus);
+
+        auto makeCard = []()
+        {
+            Border card;
+            card.Padding(Thickness{ 18, 16, 18, 18 });
+            card.CornerRadius(CornerRadius{ 8 });
+            card.BorderThickness(Thickness{ 1 });
+            card.BorderBrush(Application::Current().Resources().Lookup(
+                box_value(L"CardStrokeColorDefaultBrush")).as<Media::Brush>());
+            card.Background(Application::Current().Resources().Lookup(
+                box_value(L"CardBackgroundFillColorDefaultBrush")).as<Media::Brush>());
+            return card;
+        };
+
+        Border modeCard = makeCard();
+        StackPanel modeContent;
+        modeContent.Spacing(8);
+        auto const modeLabel = CreateText(
+            winforge::core::LocalizedText{ L"Mode", L"模式" }.Pick(m_language), 14, true);
+        modeContent.Children().Append(modeLabel);
+        m_passGenMode = ComboBox();
+        m_passGenMode.Items().Append(box_value(ToHString(winforge::core::LocalizedText{
+            L"Password", L"密碼" }.Pick(m_language))));
+        m_passGenMode.Items().Append(box_value(ToHString(winforge::core::LocalizedText{
+            L"Passphrase", L"通行短語" }.Pick(m_language))));
+        m_passGenMode.SelectedIndex(m_passGenPassphrase ? 1 : 0);
+        m_passGenMode.MinWidth(220);
+        m_passGenMode.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(m_passGenMode, L"NativePassGenMode");
+        AutomationProperties::SetName(m_passGenMode, ToHString(winforge::core::LocalizedText{
+            L"Generator mode", L"產生器模式" }.Pick(m_language)));
+        AutomationProperties::SetLabeledBy(m_passGenMode, modeLabel);
+        m_passGenMode.SelectionChanged([this](Windows::Foundation::IInspectable const& sender, SelectionChangedEventArgs const&)
+        {
+            if (m_passGenRendering) return;
+            m_passGenPassphrase = sender.as<ComboBox>().SelectedIndex() == 1;
+            m_passGenOutputValue.clear();
+            m_passGenStatusValue.clear();
+            RenderPassGen();
+        });
+        modeContent.Children().Append(m_passGenMode);
+        modeCard.Child(modeContent);
+        page.Children().Append(modeCard);
+
+        if (!m_passGenPassphrase)
+        {
+            Border passwordCard = makeCard();
+            StackPanel passwordContent;
+            passwordContent.Spacing(10);
+            passwordContent.Children().Append(CreateText(
+                winforge::core::LocalizedText{ L"Password options", L"密碼選項" }.Pick(m_language), 15, true));
+
+            auto const lengthLabel = CreateText(
+                winforge::core::LocalizedText{ L"Length (4–128)", L"長度（4–128）" }.Pick(m_language));
+            passwordContent.Children().Append(lengthLabel);
+            m_passGenLengthBox = NumberBox();
+            m_passGenLengthBox.Minimum(4);
+            m_passGenLengthBox.Maximum(128);
+            m_passGenLengthBox.Value(m_passGenLength);
+            m_passGenLengthBox.SpinButtonPlacementMode(NumberBoxSpinButtonPlacementMode::Inline);
+            m_passGenLengthBox.MinWidth(180);
+            m_passGenLengthBox.HorizontalAlignment(HorizontalAlignment::Left);
+            AutomationProperties::SetAutomationId(m_passGenLengthBox, L"NativePassGenLength");
+            AutomationProperties::SetName(m_passGenLengthBox, ToHString(winforge::core::LocalizedText{
+                L"Password length", L"密碼長度" }.Pick(m_language)));
+            AutomationProperties::SetLabeledBy(m_passGenLengthBox, lengthLabel);
+            m_passGenLengthBox.ValueChanged([this](NumberBox const& sender, NumberBoxValueChangedEventArgs const&)
+            {
+                if (m_passGenRendering) return;
+                auto value = sender.Value();
+                if (std::isnan(value)) value = 16;
+                m_passGenLength = std::clamp(static_cast<int32_t>(value), 4, 128);
+                RegeneratePassGen();
+            });
+            passwordContent.Children().Append(m_passGenLengthBox);
+
+            auto makeCheck = [this, &passwordContent](
+                CheckBox& box,
+                bool value,
+                std::wstring_view label,
+                std::wstring_view accessibleName,
+                std::wstring_view automationId)
+            {
+                box = CheckBox();
+                box.Content(box_value(ToHString(label)));
+                box.IsChecked(value);
+                AutomationProperties::SetAutomationId(box, ToHString(automationId));
+                AutomationProperties::SetName(box, ToHString(accessibleName));
+                passwordContent.Children().Append(box);
+            };
+            makeCheck(
+                m_passGenLower,
+                m_passGenLowerEnabled,
+                winforge::core::LocalizedText{ L"Lowercase (a–z)", L"細楷字母（a–z）" }.Pick(m_language),
+                winforge::core::LocalizedText{ L"Include lowercase letters", L"包括細楷字母" }.Pick(m_language),
+                L"NativePassGenLower");
+            makeCheck(
+                m_passGenUpper,
+                m_passGenUpperEnabled,
+                winforge::core::LocalizedText{ L"UPPERCASE (A–Z)", L"大楷字母（A–Z）" }.Pick(m_language),
+                winforge::core::LocalizedText{ L"Include uppercase letters", L"包括大楷字母" }.Pick(m_language),
+                L"NativePassGenUpper");
+            makeCheck(
+                m_passGenDigits,
+                m_passGenDigitsEnabled,
+                winforge::core::LocalizedText{ L"Digits (0–9)", L"數字（0–9）" }.Pick(m_language),
+                winforge::core::LocalizedText{ L"Include digits", L"包括數字" }.Pick(m_language),
+                L"NativePassGenDigits");
+            makeCheck(
+                m_passGenSymbols,
+                m_passGenSymbolsEnabled,
+                winforge::core::LocalizedText{ L"Symbols (!@#…)", L"符號（!@#…）" }.Pick(m_language),
+                winforge::core::LocalizedText{ L"Include symbols", L"包括符號" }.Pick(m_language),
+                L"NativePassGenSymbols");
+
+            auto updatePasswordOptions = [this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+            {
+                if (m_passGenRendering) return;
+                auto const valueOf = [](CheckBox const& box)
+                {
+                    auto const value = box.IsChecked();
+                    return value && value.Value();
+                };
+                m_passGenLowerEnabled = valueOf(m_passGenLower);
+                m_passGenUpperEnabled = valueOf(m_passGenUpper);
+                m_passGenDigitsEnabled = valueOf(m_passGenDigits);
+                m_passGenSymbolsEnabled = valueOf(m_passGenSymbols);
+                RegeneratePassGen();
+            };
+            for (auto box : { m_passGenLower, m_passGenUpper, m_passGenDigits, m_passGenSymbols })
+            {
+                box.Checked(updatePasswordOptions);
+                box.Unchecked(updatePasswordOptions);
+            }
+
+            m_passGenAvoidAmbiguous = ToggleSwitch();
+            m_passGenAvoidAmbiguous.Header(box_value(ToHString(winforge::core::LocalizedText{
+                L"Avoid ambiguous characters (O 0 I l 1 |)", L"避開易撈亂嘅字元（O 0 I l 1 |）" }.Pick(m_language))));
+            m_passGenAvoidAmbiguous.OnContent(box_value(ToHString(winforge::core::LocalizedText{ L"On", L"開" }.Pick(m_language))));
+            m_passGenAvoidAmbiguous.OffContent(box_value(ToHString(winforge::core::LocalizedText{ L"Off", L"關" }.Pick(m_language))));
+            m_passGenAvoidAmbiguous.IsOn(m_passGenAvoidAmbiguousEnabled);
+            AutomationProperties::SetAutomationId(m_passGenAvoidAmbiguous, L"NativePassGenAvoidAmbiguous");
+            AutomationProperties::SetName(m_passGenAvoidAmbiguous, ToHString(winforge::core::LocalizedText{
+                L"Avoid ambiguous password characters", L"避開易撈亂密碼字元" }.Pick(m_language)));
+            m_passGenAvoidAmbiguous.Toggled([this](Windows::Foundation::IInspectable const& sender, RoutedEventArgs const&)
+            {
+                if (m_passGenRendering) return;
+                m_passGenAvoidAmbiguousEnabled = sender.as<ToggleSwitch>().IsOn();
+                RegeneratePassGen();
+            });
+            passwordContent.Children().Append(m_passGenAvoidAmbiguous);
+
+            m_passGenNoRepeats = ToggleSwitch();
+            m_passGenNoRepeats.Header(box_value(ToHString(winforge::core::LocalizedText{
+                L"No repeated characters", L"唔好有重複字元" }.Pick(m_language))));
+            m_passGenNoRepeats.OnContent(box_value(ToHString(winforge::core::LocalizedText{ L"On", L"開" }.Pick(m_language))));
+            m_passGenNoRepeats.OffContent(box_value(ToHString(winforge::core::LocalizedText{ L"Off", L"關" }.Pick(m_language))));
+            m_passGenNoRepeats.IsOn(m_passGenNoRepeatsEnabled);
+            AutomationProperties::SetAutomationId(m_passGenNoRepeats, L"NativePassGenNoRepeats");
+            AutomationProperties::SetName(m_passGenNoRepeats, ToHString(winforge::core::LocalizedText{
+                L"Do not repeat password characters", L"唔好重複密碼字元" }.Pick(m_language)));
+            m_passGenNoRepeats.Toggled([this](Windows::Foundation::IInspectable const& sender, RoutedEventArgs const&)
+            {
+                if (m_passGenRendering) return;
+                m_passGenNoRepeatsEnabled = sender.as<ToggleSwitch>().IsOn();
+                RegeneratePassGen();
+            });
+            passwordContent.Children().Append(m_passGenNoRepeats);
+
+            passwordCard.Child(passwordContent);
+            page.Children().Append(passwordCard);
+        }
+        else
+        {
+            Border passphraseCard = makeCard();
+            StackPanel passphraseContent;
+            passphraseContent.Spacing(10);
+            passphraseContent.Children().Append(CreateText(
+                winforge::core::LocalizedText{ L"Passphrase options", L"通行短語選項" }.Pick(m_language), 15, true));
+            passphraseContent.Children().Append(CreateText(
+                winforge::core::LocalizedText{
+                    L"Dictionary: " + std::to_wstring(winforge::core::passgen::DictionarySize()) + L" common English words.",
+                    L"字典：" + std::to_wstring(winforge::core::passgen::DictionarySize()) + L" 個常用英文字。" }.Pick(m_language),
+                12));
+
+            auto const wordCountLabel = CreateText(
+                winforge::core::LocalizedText{ L"Word count (3–10)", L"字數（3–10）" }.Pick(m_language));
+            passphraseContent.Children().Append(wordCountLabel);
+            m_passGenWordCountBox = NumberBox();
+            m_passGenWordCountBox.Minimum(3);
+            m_passGenWordCountBox.Maximum(10);
+            m_passGenWordCountBox.Value(m_passGenWordCount);
+            m_passGenWordCountBox.SpinButtonPlacementMode(NumberBoxSpinButtonPlacementMode::Inline);
+            m_passGenWordCountBox.MinWidth(180);
+            m_passGenWordCountBox.HorizontalAlignment(HorizontalAlignment::Left);
+            AutomationProperties::SetAutomationId(m_passGenWordCountBox, L"NativePassGenWordCount");
+            AutomationProperties::SetName(m_passGenWordCountBox, ToHString(winforge::core::LocalizedText{
+                L"Passphrase word count", L"通行短語字數" }.Pick(m_language)));
+            AutomationProperties::SetLabeledBy(m_passGenWordCountBox, wordCountLabel);
+            m_passGenWordCountBox.ValueChanged([this](NumberBox const& sender, NumberBoxValueChangedEventArgs const&)
+            {
+                if (m_passGenRendering) return;
+                auto value = sender.Value();
+                if (std::isnan(value)) value = 4;
+                m_passGenWordCount = std::clamp(static_cast<int32_t>(value), 3, 10);
+                RegeneratePassGen();
+            });
+            passphraseContent.Children().Append(m_passGenWordCountBox);
+
+            auto const separatorLabel = CreateText(
+                winforge::core::LocalizedText{ L"Separator", L"分隔符" }.Pick(m_language));
+            passphraseContent.Children().Append(separatorLabel);
+            m_passGenSeparator = ComboBox();
+            for (auto const& item : std::array<winforge::core::LocalizedText, 4>{
+                winforge::core::LocalizedText{ L"Hyphen  -", L"連字號  -" },
+                winforge::core::LocalizedText{ L"Dot  .", L"句號  ." },
+                winforge::core::LocalizedText{ L"Space", L"空格" },
+                winforge::core::LocalizedText{ L"Underscore  _", L"底線  _" } })
+            {
+                m_passGenSeparator.Items().Append(box_value(ToHString(item.Pick(m_language))));
+            }
+            m_passGenSeparator.SelectedIndex(std::clamp(m_passGenSeparatorIndex, 0, 3));
+            m_passGenSeparator.MinWidth(220);
+            m_passGenSeparator.HorizontalAlignment(HorizontalAlignment::Left);
+            AutomationProperties::SetAutomationId(m_passGenSeparator, L"NativePassGenSeparator");
+            AutomationProperties::SetName(m_passGenSeparator, ToHString(winforge::core::LocalizedText{
+                L"Passphrase separator", L"通行短語分隔符" }.Pick(m_language)));
+            AutomationProperties::SetLabeledBy(m_passGenSeparator, separatorLabel);
+            m_passGenSeparator.SelectionChanged([this](Windows::Foundation::IInspectable const& sender, SelectionChangedEventArgs const&)
+            {
+                if (m_passGenRendering) return;
+                m_passGenSeparatorIndex = std::clamp(sender.as<ComboBox>().SelectedIndex(), 0, 3);
+                RegeneratePassGen();
+            });
+            passphraseContent.Children().Append(m_passGenSeparator);
+
+            m_passGenCapitalize = ToggleSwitch();
+            m_passGenCapitalize.Header(box_value(ToHString(winforge::core::LocalizedText{
+                L"Capitalize each word", L"每個字首字母大楷" }.Pick(m_language))));
+            m_passGenCapitalize.OnContent(box_value(ToHString(winforge::core::LocalizedText{ L"On", L"開" }.Pick(m_language))));
+            m_passGenCapitalize.OffContent(box_value(ToHString(winforge::core::LocalizedText{ L"Off", L"關" }.Pick(m_language))));
+            m_passGenCapitalize.IsOn(m_passGenCapitalizeEnabled);
+            AutomationProperties::SetAutomationId(m_passGenCapitalize, L"NativePassGenCapitalize");
+            AutomationProperties::SetName(m_passGenCapitalize, ToHString(winforge::core::LocalizedText{
+                L"Capitalize every passphrase word", L"每個通行短語字首字母大楷" }.Pick(m_language)));
+            m_passGenCapitalize.Toggled([this](Windows::Foundation::IInspectable const& sender, RoutedEventArgs const&)
+            {
+                if (m_passGenRendering) return;
+                m_passGenCapitalizeEnabled = sender.as<ToggleSwitch>().IsOn();
+                RegeneratePassGen();
+            });
+            passphraseContent.Children().Append(m_passGenCapitalize);
+
+            m_passGenAppendDigit = ToggleSwitch();
+            m_passGenAppendDigit.Header(box_value(ToHString(winforge::core::LocalizedText{
+                L"Append a random digit", L"尾加一個隨機數字" }.Pick(m_language))));
+            m_passGenAppendDigit.OnContent(box_value(ToHString(winforge::core::LocalizedText{ L"On", L"開" }.Pick(m_language))));
+            m_passGenAppendDigit.OffContent(box_value(ToHString(winforge::core::LocalizedText{ L"Off", L"關" }.Pick(m_language))));
+            m_passGenAppendDigit.IsOn(m_passGenAppendDigitEnabled);
+            AutomationProperties::SetAutomationId(m_passGenAppendDigit, L"NativePassGenAppendDigit");
+            AutomationProperties::SetName(m_passGenAppendDigit, ToHString(winforge::core::LocalizedText{
+                L"Append a random passphrase digit", L"尾加隨機通行短語數字" }.Pick(m_language)));
+            m_passGenAppendDigit.Toggled([this](Windows::Foundation::IInspectable const& sender, RoutedEventArgs const&)
+            {
+                if (m_passGenRendering) return;
+                m_passGenAppendDigitEnabled = sender.as<ToggleSwitch>().IsOn();
+                RegeneratePassGen();
+            });
+            passphraseContent.Children().Append(m_passGenAppendDigit);
+
+            passphraseCard.Child(passphraseContent);
+            page.Children().Append(passphraseCard);
+        }
+
+        Border resultCard = makeCard();
+        StackPanel resultContent;
+        resultContent.Spacing(10);
+        auto const countLabel = CreateText(
+            winforge::core::LocalizedText{ L"How many (1–100)", L"產生幾多個（1–100）" }.Pick(m_language));
+        resultContent.Children().Append(countLabel);
+        m_passGenCountBox = NumberBox();
+        m_passGenCountBox.Minimum(1);
+        m_passGenCountBox.Maximum(100);
+        m_passGenCountBox.Value(m_passGenCount);
+        m_passGenCountBox.SpinButtonPlacementMode(NumberBoxSpinButtonPlacementMode::Inline);
+        m_passGenCountBox.MinWidth(180);
+        m_passGenCountBox.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(m_passGenCountBox, L"NativePassGenCount");
+        AutomationProperties::SetName(m_passGenCountBox, ToHString(winforge::core::LocalizedText{
+            L"Number of generated values", L"產生數量" }.Pick(m_language)));
+        AutomationProperties::SetLabeledBy(m_passGenCountBox, countLabel);
+        resultContent.Children().Append(m_passGenCountBox);
+
+        Button generate;
+        generate.Content(box_value(ToHString(winforge::core::LocalizedText{ L"Generate", L"產生" }.Pick(m_language))));
+        generate.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(generate, L"NativePassGenGenerate");
+        AutomationProperties::SetName(generate, ToHString(winforge::core::LocalizedText{
+            L"Generate secure password or passphrase", L"產生安全密碼或者通行短語" }.Pick(m_language)));
+        generate.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&) { RegeneratePassGen(); });
+        resultContent.Children().Append(generate);
+
+        Button copy;
+        copy.Content(box_value(ToHString(winforge::core::LocalizedText{ L"Copy", L"複製" }.Pick(m_language))));
+        copy.HorizontalAlignment(HorizontalAlignment::Left);
+        AutomationProperties::SetAutomationId(copy, L"NativePassGenCopy");
+        AutomationProperties::SetName(copy, ToHString(winforge::core::LocalizedText{
+            L"Copy generated password or passphrase", L"複製產生咗嘅密碼或者通行短語" }.Pick(m_language)));
+        copy.Click([this](Windows::Foundation::IInspectable const&, RoutedEventArgs const&) { CopyPassGenOutput(); });
+        resultContent.Children().Append(copy);
+
+        m_passGenEntropy = CreateText(L"", 12);
+        m_passGenEntropy.Opacity(0.82);
+        AutomationProperties::SetAutomationId(m_passGenEntropy, L"NativePassGenEntropy");
+        resultContent.Children().Append(m_passGenEntropy);
+        m_passGenEntropyBar = ProgressBar();
+        m_passGenEntropyBar.Minimum(0);
+        m_passGenEntropyBar.Maximum(128);
+        AutomationProperties::SetAutomationId(m_passGenEntropyBar, L"NativePassGenEntropyBar");
+        AutomationProperties::SetName(m_passGenEntropyBar, ToHString(winforge::core::LocalizedText{
+            L"Estimated password entropy", L"估計密碼熵值" }.Pick(m_language)));
+        resultContent.Children().Append(m_passGenEntropyBar);
+
+        m_passGenOutput = TextBox();
+        m_passGenOutput.IsReadOnly(true);
+        m_passGenOutput.IsSpellCheckEnabled(false);
+        m_passGenOutput.AcceptsReturn(true);
+        m_passGenOutput.TextWrapping(TextWrapping::Wrap);
+        m_passGenOutput.FontFamily(Media::FontFamily(L"Consolas"));
+        m_passGenOutput.MinHeight(120);
+        m_passGenOutput.Text(ToHString(m_passGenOutputValue));
+        AutomationProperties::SetAutomationId(m_passGenOutput, L"NativePassGenOutput");
+        AutomationProperties::SetName(m_passGenOutput, ToHString(winforge::core::LocalizedText{
+            L"Generated password or passphrase", L"產生咗嘅密碼或者通行短語" }.Pick(m_language)));
+        resultContent.Children().Append(m_passGenOutput);
+
+        m_passGenStatus = CreateText(m_passGenStatusValue, 12);
+        m_passGenStatus.TextWrapping(TextWrapping::Wrap);
+        m_passGenStatus.Opacity(0.82);
+        AutomationProperties::SetAutomationId(m_passGenStatus, L"NativePassGenStatus");
+        AutomationProperties::SetLiveSetting(
+            m_passGenStatus,
+            Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite);
+        resultContent.Children().Append(m_passGenStatus);
+        resultCard.Child(resultContent);
+        page.Children().Append(resultCard);
+
+        ShowPage(page);
+        m_passGenRendering = false;
+        UpdatePassGenEntropy();
+        if (m_passGenOutputValue.empty())
+        {
+            RegeneratePassGen();
+        }
+    }
+
+    void MainWindow::RegeneratePassGen()
+    {
+        if (m_passGenCountBox)
+        {
+            auto value = m_passGenCountBox.Value();
+            if (std::isnan(value)) value = 1;
+            m_passGenCount = std::clamp(static_cast<int32_t>(value), 1, 100);
+        }
+
+        try
+        {
+            winforge::core::passgen::SystemRandomSource source;
+            if (m_passGenPassphrase)
+            {
+                static constexpr std::array<std::wstring_view, 4> Separators{ L"-", L".", L" ", L"_" };
+                auto const separatorIndex = std::clamp(m_passGenSeparatorIndex, 0, 3);
+                winforge::core::passgen::PassphraseOptions options;
+                options.word_count = std::clamp(m_passGenWordCount, 3, 10);
+                options.separator = std::wstring(Separators[separatorIndex]);
+                options.capitalize = m_passGenCapitalizeEnabled;
+                options.append_digit = m_passGenAppendDigitEnabled;
+                m_passGenOutputValue = winforge::core::passgen::JoinLines(
+                    winforge::core::passgen::GeneratePassphraseBatch(options, m_passGenCount, source));
+            }
+            else
+            {
+                winforge::core::passgen::PasswordOptions options;
+                options.length = std::clamp(m_passGenLength, 4, 128);
+                options.lower = m_passGenLowerEnabled;
+                options.upper = m_passGenUpperEnabled;
+                options.digits = m_passGenDigitsEnabled;
+                options.symbols = m_passGenSymbolsEnabled;
+                options.avoid_ambiguous = m_passGenAvoidAmbiguousEnabled;
+                options.no_repeats = m_passGenNoRepeatsEnabled;
+                m_passGenOutputValue = winforge::core::passgen::JoinLines(
+                    winforge::core::passgen::GeneratePasswordBatch(options, m_passGenCount, source));
+            }
+
+            if (m_passGenOutput)
+            {
+                m_passGenOutput.Text(ToHString(m_passGenOutputValue));
+            }
+            AnnouncePassGenStatus(winforge::core::LocalizedText{
+                L"Generated " + std::to_wstring(m_passGenCount) + L" · secure RNG.",
+                L"已產生 " + std::to_wstring(m_passGenCount) + L" 個 · 加密級隨機。" }.Pick(m_language));
+        }
+        catch (winforge::core::passgen::GenerationError const& error)
+        {
+            m_passGenOutputValue.clear();
+            if (m_passGenOutput)
+            {
+                m_passGenOutput.Text(L"");
+            }
+            auto const explanation = [&]() -> std::wstring
+            {
+                switch (error.Code())
+                {
+                case winforge::core::passgen::ErrorCode::NoCharacterSets:
+                    return winforge::core::LocalizedText{ L"select at least one character set.", L"至少要揀一種字元。" }.Pick(m_language);
+                case winforge::core::passgen::ErrorCode::LengthTooShort:
+                    return winforge::core::LocalizedText{ L"length is too short to fit every selected set.", L"長度太短，容納唔到所有揀咗嘅字元類別。" }.Pick(m_language);
+                case winforge::core::passgen::ErrorCode::NoRepeatsPoolTooSmall:
+                    return winforge::core::LocalizedText{ L"no-repeats needs a shorter length or a bigger pool.", L"唔重複模式需要短啲嘅長度或者更大嘅字元池。" }.Pick(m_language);
+                default:
+                    return winforge::core::LocalizedText{ L"the secure generator is unavailable.", L"安全產生器而家用唔到。" }.Pick(m_language);
+                }
+            }();
+            AnnouncePassGenStatus(winforge::core::LocalizedText{
+                L"Can't generate: " + explanation,
+                L"無法產生：" + explanation }.Pick(m_language), true);
+        }
+        catch (...)
+        {
+            m_passGenOutputValue.clear();
+            if (m_passGenOutput)
+            {
+                m_passGenOutput.Text(L"");
+            }
+            AnnouncePassGenStatus(winforge::core::LocalizedText{
+                L"Can't generate: the secure generator is unavailable.",
+                L"無法產生：安全產生器而家用唔到。" }.Pick(m_language), true);
+        }
+
+        UpdatePassGenEntropy();
+    }
+
+    void MainWindow::UpdatePassGenEntropy()
+    {
+        double bits{};
+        if (m_passGenPassphrase)
+        {
+            bits = winforge::core::passgen::PassphraseEntropyBits(
+                std::clamp(m_passGenWordCount, 3, 10),
+                static_cast<int>(winforge::core::passgen::DictionarySize()),
+                m_passGenAppendDigitEnabled);
+        }
+        else
+        {
+            winforge::core::passgen::PasswordOptions options;
+            options.lower = m_passGenLowerEnabled;
+            options.upper = m_passGenUpperEnabled;
+            options.digits = m_passGenDigitsEnabled;
+            options.symbols = m_passGenSymbolsEnabled;
+            options.avoid_ambiguous = m_passGenAvoidAmbiguousEnabled;
+            bits = winforge::core::passgen::PasswordEntropyBits(
+                std::clamp(m_passGenLength, 4, 128),
+                static_cast<int>(winforge::core::passgen::BuildPool(options).size()));
+        }
+
+        auto const rounded = static_cast<int>(std::lround(bits));
+        auto const label = bits < 40.0
+            ? winforge::core::LocalizedText{ L"Weak", L"弱" }.Pick(m_language)
+            : bits < 60.0
+                ? winforge::core::LocalizedText{ L"Fair", L"一般" }.Pick(m_language)
+                : bits < 90.0
+                    ? winforge::core::LocalizedText{ L"Strong", L"強" }.Pick(m_language)
+                    : winforge::core::LocalizedText{ L"Excellent", L"極強" }.Pick(m_language);
+        auto const text = winforge::core::LocalizedText{
+            L"Entropy: ~" + std::to_wstring(rounded) + L" bits · " + label,
+            L"熵值：約 " + std::to_wstring(rounded) + L" 位元 · " + label }.Pick(m_language);
+        if (m_passGenEntropy)
+        {
+            m_passGenEntropy.Text(ToHString(text));
+            AutomationProperties::SetName(m_passGenEntropy, ToHString(text));
+        }
+        if (m_passGenEntropyBar)
+        {
+            m_passGenEntropyBar.Value((std::min)(128.0, bits));
+        }
+    }
+
+    void MainWindow::CopyPassGenOutput()
+    {
+        if (m_passGenOutputValue.empty())
+        {
+            AnnouncePassGenStatus(winforge::core::LocalizedText{
+                L"Nothing to copy yet.", L"未有嘢可以複製。" }.Pick(m_language), true);
+            return;
+        }
+
+        try
+        {
+            Windows::ApplicationModel::DataTransfer::DataPackage package;
+            package.RequestedOperation(Windows::ApplicationModel::DataTransfer::DataPackageOperation::Copy);
+            package.SetText(ToHString(m_passGenOutputValue));
+            Windows::ApplicationModel::DataTransfer::Clipboard::SetContent(package);
+            AnnouncePassGenStatus(winforge::core::LocalizedText{
+                L"Copied to clipboard.", L"已複製到剪貼簿。" }.Pick(m_language));
+        }
+        catch (...)
+        {
+            AnnouncePassGenStatus(winforge::core::LocalizedText{
+                L"Copy failed: clipboard is unavailable.", L"複製失敗：剪貼簿用唔到。" }.Pick(m_language), true);
+        }
+    }
+
+    void MainWindow::AnnouncePassGenStatus(std::wstring_view message, bool warning)
+    {
+        m_passGenStatusValue.assign(message);
+        if (!m_passGenStatus) return;
+
+        m_passGenStatus.Text(ToHString(message));
+        m_passGenStatus.Foreground(Application::Current().Resources().Lookup(
+            box_value(warning ? L"SystemFillColorCautionBrush" : L"TextFillColorSecondaryBrush")).as<Media::Brush>());
+        AutomationProperties::SetName(m_passGenStatus, ToHString(message));
+        AutomationProperties::SetLiveSetting(
+            m_passGenStatus,
+            Microsoft::UI::Xaml::Automation::Peers::AutomationLiveSetting::Polite);
+
+        try
+        {
+            auto peer = Microsoft::UI::Xaml::Automation::Peers::FrameworkElementAutomationPeer::FromElement(
+                m_passGenStatus);
+            if (!peer)
+            {
+                peer = Microsoft::UI::Xaml::Automation::Peers::FrameworkElementAutomationPeer::CreatePeerForElement(
+                    m_passGenStatus);
+            }
+            if (peer)
+            {
+                peer.RaiseAutomationEvent(
+                    Microsoft::UI::Xaml::Automation::Peers::AutomationEvents::LiveRegionChanged);
+            }
+        }
+        catch (...)
+        {
+            // A live-region failure must never interrupt local password generation.
         }
     }
 

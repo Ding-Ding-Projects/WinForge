@@ -139,6 +139,7 @@
     <ClInclude Include="..\WinForge.Core\Codec.h" />
     <ClInclude Include="..\WinForge.Core\CommandLine.h" />
     <ClInclude Include="..\WinForge.Core\GuidGen.h" />
+    <ClInclude Include="..\WinForge.Core\PassGen.h" />
     <ClInclude Include="..\WinForge.Core\RomanNum.h" />
     <ClInclude Include="..\WinForge.Core\UuidV7.h" />
     <ClInclude Include="..\WinForge.Core\RegexSearch.h" />
@@ -180,6 +181,9 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\WinForge.Core\GuidGen.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\WinForge.Core\PassGen.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\WinForge.Core\RomanNum.cpp">

@@ -5607,25 +5607,36 @@
                        "kind":  "route",
                        "parentId":  null,
                        "source":  [
-                                      "src/WinForge.App/Resources/modules.json"
+                                      "src/WinForge.App/Resources/modules.json",
+                                      "src/WinForge.Core/PassGen.h",
+                                      "src/WinForge.Core/PassGen.cpp",
+                                      "src/WinForge.App/MainWindow.xaml.h",
+                                      "src/WinForge.App/MainWindow.xaml.cpp",
+                                      "tests/native/WinForge.Core.Tests/PassGenTests.h",
+                                      "tests/native/WinForge.Core.Tests/PassGenTests.cpp",
+                                      "eng/native/Invoke-NativeShellSmoke.ps1"
                                   ],
                        "risk":  "stateful",
-                       "expected":  "Password Generator · 密碼產生器 is implemented natively in C++, reachable through every registered alias, and behaviorally equivalent to the current WinForge feature.",
-                       "status":  "not-started",
+                       "expected":  "Password Generator · 密碼產生器 is implemented natively in C++, reachable through passgen, password, and the canonical route, with managed-equivalent password/passphrase generation, entropy, language retention, and explicit-copy-only clipboard effects.",
+                       "status":  "in-progress",
                        "evidence":  {
-                                        "static":  "not-started",
-                                        "build":  "not-started",
-                                        "test":  "not-started",
-                                        "launch":  "not-started",
-                                        "visual":  "not-started",
-                                        "behavior":  "not-started",
-                                        "sideEffect":  "not-started",
-                                        "docs":  "not-started"
-                                    },
+                                        "static":  "pass",
+                                        "build":  "pass",
+                                        "test":  "pass",
+                                        "launch":  "pass",
+                                        "visual":  "capture-blocked",
+                                        "behavior":  "pass",
+                                        "sideEffect":  "pass",
+                                        "docs":  "pass"
+                                   },
                        "attempts":  [
-
+                                        {
+                                            "atUtc":  "2026-07-16T19:08:30Z",
+                                            "result":  "Native C++ Password Generator implemented with BCrypt randomness, rejection sampling, selected-class guarantees, ambiguous-character removal, no-repeat enforcement, 252-word configurable passphrases, entropy, explicit copy only, and language-state retention. Debug and Release core tests each passed 368/368, including 14 focused PassGen checks; catalog parity passed 346 fixed routes, five dynamic families, 319 registry records, 22 categories, and 346 ledger rows; elevated process-owned UI Automation passed 200/200, including passwords, passphrases, error/copy policy, rerender, aliases, accessibility, and horizontal bounds. The required driver launched passgen but rejected the blank/near-uniform PrintWindow fallback after CopyFromScreen was unavailable. The requested LowLevel MCP tools were not registered in the active Codex session, so no LowLevel capture is claimed and no invalid or stale image was used.",
+                                            "status":  "capture-blocked"
+                                        }
                                     ],
-                       "notes":  "C++ parity evidence has not yet been recorded."
+                       "notes":  "2026-07-16 · IN PROGRESS / 進行中 solely because fresh visual capture is blocked. The native PassGen core uses Windows BCrypt cryptographic randomness plus unbiased rejection sampling; password mode matches selected-class, ambiguous-character, no-repeat, batch, and entropy behavior, while passphrase mode uses the managed 252-word dictionary with separator/capitalization/trailing-digit options. Clipboard changes require explicit Copy and generation state survives language rerenders. The required driver capture was blank/near-uniform and rejected; requested LowLevel MCP tools were not registered in the active Codex session, so no LowLevel evidence is claimed and no stale, synthetic, or managed image is used. · 2026-07-16 · 進行中，只因最新視覺擷取受阻。原生 PassGen core 用 Windows BCrypt 加密碼學隨機值加無偏 rejection sampling；密碼模式跟足已揀類別、易混淆字元、禁止重複、批次同熵值行為，而通行短語模式用受控版 252 字詞字典，支援分隔符／大寫／尾數字選項。剪貼簿改動要明確 Copy，而已產生狀態會喺轉語言時保留。必需 driver 擷取係空白／接近單色，已拒絕；要求嘅 LowLevel MCP tools 未有登記喺目前 Codex session，所以唔會聲稱有 LowLevel 證據，亦冇用舊、合成或者受控圖片。"
                    },
                    {
                        "id":  "module.passwordstrength",

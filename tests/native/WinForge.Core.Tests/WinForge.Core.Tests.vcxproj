@@ -58,6 +58,7 @@
     <ClCompile Include="CheckDigitTests.cpp" />
     <ClCompile Include="CodecTests.cpp" />
     <ClCompile Include="GuidGenTests.cpp" />
+    <ClCompile Include="PassGenTests.cpp" />
     <ClCompile Include="RomanNumTests.cpp" />
     <ClCompile Include="UuidV7Tests.cpp" />
     <ClCompile Include="RegexSearchTests.cpp" />
@@ -73,6 +74,7 @@
     <ClCompile Include="..\..\..\src\WinForge.Core\Codec.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\CommandLine.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\GuidGen.cpp" />
+    <ClCompile Include="..\..\..\src\WinForge.Core\PassGen.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\RomanNum.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\UuidV7.cpp" />
     <ClCompile Include="..\..\..\src\WinForge.Core\RegexSearch.cpp" />
@@ -90,6 +92,7 @@
     <ClInclude Include="CheckDigitTests.h" />
     <ClInclude Include="CodecTests.h" />
     <ClInclude Include="GuidGenTests.h" />
+    <ClInclude Include="PassGenTests.h" />
     <ClInclude Include="RomanNumTests.h" />
     <ClInclude Include="UuidV7Tests.h" />
     <ClInclude Include="RegexSearchTests.h" />
@@ -102,6 +105,7 @@
     <ClInclude Include="..\..\..\src\WinForge.Core\Codec.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\CommandLine.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\GuidGen.h" />
+    <ClInclude Include="..\..\..\src\WinForge.Core\PassGen.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\RomanNum.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\UuidV7.h" />
     <ClInclude Include="..\..\..\src\WinForge.Core\RegexSearch.h" />

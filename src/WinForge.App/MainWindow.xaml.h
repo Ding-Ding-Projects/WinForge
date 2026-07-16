@@ -7,6 +7,7 @@
 #include "../WinForge.Core/Codec.h"
 #include "../WinForge.Core/CommandLine.h"
 #include "../WinForge.Core/GuidGen.h"
+#include "../WinForge.Core/PassGen.h"
 #include "../WinForge.Core/RomanNum.h"
 #include "../WinForge.Core/UuidV7.h"
 #include "../WinForge.Core/ModuleRecord.h"
@@ -142,6 +143,23 @@ namespace winrt::WinForge::implementation
         Microsoft::UI::Xaml::Controls::TextBox m_guidGenInspectHexBox{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_guidGenInspectMeta{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBlock m_guidGenStatus{ nullptr };
+        Microsoft::UI::Xaml::Controls::ComboBox m_passGenMode{ nullptr };
+        Microsoft::UI::Xaml::Controls::NumberBox m_passGenLengthBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::CheckBox m_passGenLower{ nullptr };
+        Microsoft::UI::Xaml::Controls::CheckBox m_passGenUpper{ nullptr };
+        Microsoft::UI::Xaml::Controls::CheckBox m_passGenDigits{ nullptr };
+        Microsoft::UI::Xaml::Controls::CheckBox m_passGenSymbols{ nullptr };
+        Microsoft::UI::Xaml::Controls::ToggleSwitch m_passGenAvoidAmbiguous{ nullptr };
+        Microsoft::UI::Xaml::Controls::ToggleSwitch m_passGenNoRepeats{ nullptr };
+        Microsoft::UI::Xaml::Controls::NumberBox m_passGenWordCountBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::ComboBox m_passGenSeparator{ nullptr };
+        Microsoft::UI::Xaml::Controls::ToggleSwitch m_passGenCapitalize{ nullptr };
+        Microsoft::UI::Xaml::Controls::ToggleSwitch m_passGenAppendDigit{ nullptr };
+        Microsoft::UI::Xaml::Controls::NumberBox m_passGenCountBox{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_passGenEntropy{ nullptr };
+        Microsoft::UI::Xaml::Controls::ProgressBar m_passGenEntropyBar{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBox m_passGenOutput{ nullptr };
+        Microsoft::UI::Xaml::Controls::TextBlock m_passGenStatus{ nullptr };
         Microsoft::UI::Xaml::Controls::NumberBox m_uuidV7CountBox{ nullptr };
         Microsoft::UI::Xaml::Controls::ToggleSwitch m_uuidV7MonotonicSwitch{ nullptr };
         Microsoft::UI::Xaml::Controls::TextBox m_uuidV7GeneratedOutput{ nullptr };
@@ -231,6 +249,22 @@ namespace winrt::WinForge::implementation
         std::wstring m_guidGenNanoValue{};
         std::wstring m_guidGenInspectValue{};
         bool m_guidGenRendering{ false };
+        bool m_passGenPassphrase{ false };
+        int32_t m_passGenLength{ 16 };
+        bool m_passGenLowerEnabled{ true };
+        bool m_passGenUpperEnabled{ true };
+        bool m_passGenDigitsEnabled{ true };
+        bool m_passGenSymbolsEnabled{ true };
+        bool m_passGenAvoidAmbiguousEnabled{ false };
+        bool m_passGenNoRepeatsEnabled{ false };
+        int32_t m_passGenWordCount{ 4 };
+        int32_t m_passGenSeparatorIndex{ 0 };
+        bool m_passGenCapitalizeEnabled{ false };
+        bool m_passGenAppendDigitEnabled{ false };
+        int32_t m_passGenCount{ 1 };
+        std::wstring m_passGenOutputValue{};
+        std::wstring m_passGenStatusValue{};
+        bool m_passGenRendering{ false };
         int32_t m_uuidV7Count{ 1 };
         bool m_uuidV7Monotonic{ true };
         std::wstring m_uuidV7GeneratedValue{};
@@ -429,6 +463,11 @@ namespace winrt::WinForge::implementation
         void GenerateNanoIdValue();
         void RefreshGuidInspector();
         void AnnounceGuidGenStatus(std::wstring_view message, bool warning = false);
+        void RenderPassGen();
+        void RegeneratePassGen();
+        void UpdatePassGenEntropy();
+        void CopyPassGenOutput();
+        void AnnouncePassGenStatus(std::wstring_view message, bool warning = false);
         void RenderUuidV7();
         void GenerateUuidV7Values();
         void DecodeUuidV7Value();
