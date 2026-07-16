@@ -1,5 +1,8 @@
 using System;
+using System.IO;
 using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using WinForge.Services;
@@ -15,6 +18,7 @@ namespace WinForge.Pages;
 public sealed partial class CommandPaletteModule : Page
 {
     private bool _suppress;
+    private bool _suppressExtensionChanges;
 
     public CommandPaletteModule()
     {
@@ -50,6 +54,12 @@ public sealed partial class CommandPaletteModule : Page
         ProvidersTitle.Text = P("Result providers", "結果提供者");
         ProvidersBlurb.Text = P("Choose which sources contribute results. Disable any you don't want.",
             "揀邊啲來源會貢獻結果。唔想用嘅可以關閉。");
+        ExtensionPacksTitle.Text = P("Extension packs", "擴充套件");
+        ExtensionPacksBlurb.Text = P(
+            "Import a user-managed JSON manifest for safe module, HTTP(S) URL, or copy-text commands. Packs are disabled until you explicitly enable them.",
+            "匯入由用戶管理嘅 JSON 資訊檔，加入安全嘅模組、HTTP(S) 網址或者複製文字指令。擴充套件要你明確啟用先會運作。");
+        ExtensionImportButton.Content = P("Import manifest", "匯入資訊檔");
+        ExtensionTemplateButton.Content = P("Create template", "建立範本");
         BookmarksTitle.Text = P("Bookmarks", "書籤");
         BookmarksBlurb.Text = P("Save web addresses here, then type bookmark <name> in Command Palette. Bookmarks can also be pinned to the Dock with Ctrl+P.",
             "喺呢度儲存網址，之後喺指令面板輸入 bookmark <名稱>。書籤亦都可以用 Ctrl+P 釘選到 Dock。");
@@ -79,6 +89,7 @@ public sealed partial class CommandPaletteModule : Page
         _suppress = false;
 
         BuildProviders();
+        BuildExtensionPacks();
         BuildBookmarks();
         BuildRemoteDesktopProfiles();
         BuildDockSides();
@@ -102,6 +113,146 @@ public sealed partial class CommandPaletteModule : Page
             chk.Unchecked += Provider_Changed;
             ProvidersPanel.Children.Add(chk);
         }
+    }
+
+    private void BuildExtensionPacks()
+    {
+        ExtensionPacksPanel.Children.Clear();
+        var packs = CommandPaletteExtensionService.I.Installed;
+        ExtensionPacksEmptyText.Text = P(
+            "No extension packs are installed. Create a template to begin with a reviewed, safe format.",
+            "未安裝擴充套件。建立範本，就可以由已審視嘅安全格式開始。");
+        ExtensionPacksEmptyText.Visibility = packs.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+
+        _suppressExtensionChanges = true;
+        try
+        {
+            foreach (var pack in packs)
+            {
+                var row = new Grid { ColumnSpacing = 8 };
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+                var details = new StackPanel { Spacing = 2, VerticalAlignment = VerticalAlignment.Center };
+                details.Children.Add(new TextBlock
+                {
+                    Text = P(pack.Name, pack.Zh),
+                    FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+                    TextTrimming = TextTrimming.CharacterEllipsis,
+                });
+                var description = P(pack.Description, pack.ZhDescription);
+                details.Children.Add(new TextBlock
+                {
+                    Text = string.IsNullOrWhiteSpace(description)
+                        ? P($"{pack.Commands.Count} safe command(s) · {pack.Id}", $"{pack.Commands.Count} 個安全指令 · {pack.Id}")
+                        : P($"{description} · {pack.Commands.Count} safe command(s)", $"{description} · {pack.Commands.Count} 個安全指令"),
+                    FontSize = 12,
+                    TextWrapping = TextWrapping.Wrap,
+                });
+                row.Children.Add(details);
+
+                var enabled = new ToggleSwitch
+                {
+                    Header = P("Enabled", "已啟用"),
+                    IsOn = pack.Enabled,
+                    Tag = pack.Id,
+                    VerticalAlignment = VerticalAlignment.Center,
+                };
+                enabled.Toggled += ExtensionEnabled_Toggled;
+                Grid.SetColumn(enabled, 1);
+                row.Children.Add(enabled);
+
+                var remove = new Button { Content = P("Remove", "移除"), Tag = pack.Id, VerticalAlignment = VerticalAlignment.Center };
+                remove.Click += ExtensionRemove_Click;
+                Grid.SetColumn(remove, 2);
+                row.Children.Add(remove);
+                ExtensionPacksPanel.Children.Add(row);
+            }
+        }
+        finally
+        {
+            _suppressExtensionChanges = false;
+        }
+    }
+
+    private async void ExtensionImport_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var source = await FileDialogs.OpenFileAsync(".json");
+            if (string.IsNullOrWhiteSpace(source)) return;
+
+            var result = await Task.Run(() => CommandPaletteExtensionService.I.TryImport(source));
+            if (!result.Success || result.Pack is null)
+            {
+                ShowExtensionInfo(P(
+                    "This manifest could not be imported safely. Check its schema, ids, and declarative command targets.",
+                    "未能安全匯入呢個資訊檔。請檢查 schema、識別碼同宣告式指令目標。"), InfoBarSeverity.Error);
+                return;
+            }
+
+            BuildExtensionPacks();
+            ShowExtensionInfo(P(
+                $"Imported {result.Pack.Name}. It is disabled until you explicitly enable it.",
+                $"已匯入 {result.Pack.Zh}。要你明確啟用後先會運作。"), InfoBarSeverity.Success);
+        }
+        catch
+        {
+            ShowExtensionInfo(P("WinForge could not import that manifest.", "WinForge 未能匯入呢個資訊檔。"), InfoBarSeverity.Error);
+        }
+    }
+
+    private async void ExtensionTemplate_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var path = await FileDialogs.SaveFileAsync("winforge-command-palette-extension.json", ".json");
+            if (string.IsNullOrWhiteSpace(path)) return;
+
+            await File.WriteAllTextAsync(path, CommandPaletteExtensionService.I.CreateManifestTemplate(), new UTF8Encoding(false));
+            ShowExtensionInfo(P("Created a safe extension manifest template.", "已建立安全嘅擴充套件資訊檔範本。"), InfoBarSeverity.Success);
+        }
+        catch
+        {
+            ShowExtensionInfo(P("WinForge could not create the template.", "WinForge 未能建立範本。"), InfoBarSeverity.Error);
+        }
+    }
+
+    private void ExtensionEnabled_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (_suppressExtensionChanges || sender is not ToggleSwitch { Tag: string id } toggle) return;
+        if (!CommandPaletteExtensionService.I.SetEnabled(id, toggle.IsOn))
+        {
+            BuildExtensionPacks();
+            ShowExtensionInfo(P("WinForge could not update that extension pack.", "WinForge 未能更新呢個擴充套件。"), InfoBarSeverity.Error);
+            return;
+        }
+
+        BuildExtensionPacks();
+        ShowExtensionInfo(toggle.IsOn
+            ? P("Extension pack enabled.", "已啟用擴充套件。")
+            : P("Extension pack disabled.", "已停用擴充套件。"), InfoBarSeverity.Informational);
+    }
+
+    private void ExtensionRemove_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string id }) return;
+        if (!CommandPaletteExtensionService.I.TryRemove(id))
+        {
+            ShowExtensionInfo(P("WinForge could not remove that extension pack.", "WinForge 未能移除呢個擴充套件。"), InfoBarSeverity.Error);
+            return;
+        }
+
+        BuildExtensionPacks();
+        ShowExtensionInfo(P("Extension pack removed.", "已移除擴充套件。"), InfoBarSeverity.Informational);
+    }
+
+    private void ShowExtensionInfo(string message, InfoBarSeverity severity)
+    {
+        ExtensionPacksInfo.Message = message;
+        ExtensionPacksInfo.Severity = severity;
+        ExtensionPacksInfo.IsOpen = true;
     }
 
     private void BuildBookmarks()

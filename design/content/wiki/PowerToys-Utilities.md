@@ -191,3 +191,43 @@ Open in-app: `WinForge.exe --page flashcards`
 ![Flashcards](https://raw.githubusercontent.com/codingmachineedge/WinForge/main/docs/screenshot-flashcards.png)
 
 [← Wiki Home](Home.md)
+
+
+## Declarative extension packs · 宣告式擴充套件
+
+Command Palette can import user-managed JSON manifests from `%LOCALAPPDATA%\WinForge\CommandPaletteExtensions`. Each new pack is **disabled by default** and can be enabled, disabled, or removed from the Command Palette module. WinForge validates the schema, pack and command IDs, command counts, targets, and manifest size before storing a private copy.
+
+The initial contract deliberately supports only three safe actions:
+
+- `Module`: opens a registered WinForge `module.*` route.
+- `Url`: opens an absolute `http` or `https` URL.
+- `Copy`: copies bounded text to the clipboard.
+
+The manifest cannot run a process, PowerShell, a script, or unmanaged code. This is a safe extension-pack foundation, not yet a third-party out-of-process extension host with rich pages or forms.
+
+Create a template from the module to obtain a ready-to-edit example:
+
+```json
+{
+  "schema": 1,
+  "id": "example.quick-actions",
+  "name": "Example quick actions",
+  "zh": "示範快速操作",
+  "commands": [
+    {
+      "id": "open-awake",
+      "title": "Open Awake",
+      "zh": "開啟 Awake",
+      "aliases": ["wake"],
+      "action": "Module",
+      "target": "module.awake"
+    }
+  ]
+}
+```
+
+### 宣告式擴充套件
+
+指令面板而家可以匯入由用戶管理嘅 JSON 資訊檔。每個新擴充套件預設都會停用，你可以喺指令面板模組入面明確啟用、停用或者移除。WinForge 會驗證 schema、套件同指令識別碼、指令數量、目標同資訊檔大小，先會儲存自己嘅副本。
+
+第一階段只容許三種安全操作：開啟已註冊嘅 WinForge 模組、開啟 HTTP(S) 網址，或者複製有限長度嘅文字。唔可以執行程序、PowerShell、指令稿或者非受控程式碼。呢個係安全擴充套件基礎，暫時唔係支援豐富頁面／表單嘅第三方跨程序擴充套件主機。

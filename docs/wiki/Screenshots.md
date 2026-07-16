@@ -760,3 +760,14 @@ Fresh capture is pending because the current desktop capture host rejects `CopyF
 
 ### Winaero · Winaero 調校
 ![](images/screenshot-winaero.png)
+
+
+## Command Palette extension packs capture status · 指令面板擴充套件截圖狀態
+
+- Launch-only smoke check: `cmdpalette` started successfully after the extension-pack update.
+- Capture attempt: `CopyFromScreen` was unavailable; the `PrintWindow` fallback produced a uniform frame, so graphics capture is unavailable in this desktop session.
+- No replacement canonical screenshot was published, and no visual inspection is claimed for this update.
+
+- 僅啟動測試：擴充套件更新後，`cmdpalette` 已成功啟動。
+- 截圖嘗試：`CopyFromScreen` 未可用；`PrintWindow` 備援只產生單色畫面，所以呢個桌面工作階段未能擷取圖像。
+- 今次冇發佈替代嘅正式截圖，亦都冇聲稱已做視覺檢查。

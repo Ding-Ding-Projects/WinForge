@@ -42,11 +42,11 @@ public static class CommandPaletteService
     // ===================== Provider identity · 提供者識別 =====================
     public enum CommandPaletteBackdrop { Solid, Mica, Acrylic }
 
-    public enum Provider { Apps, Bookmarks, RemoteDesktop, Performance, Registry, Theme, Windows, Modules, Files, Clipboard, Calculator, TimeDate, Settings, Services, Terminal, Run, System, Web }
+    public enum Provider { Apps, Bookmarks, Extensions, RemoteDesktop, Performance, Registry, Theme, Windows, Modules, Files, Clipboard, Calculator, TimeDate, Settings, Services, Terminal, Run, System, Web }
 
     public static IReadOnlyList<Provider> AllProviders { get; } = new[]
     {
-        Provider.Apps, Provider.Bookmarks, Provider.RemoteDesktop, Provider.Performance, Provider.Registry, Provider.Theme, Provider.Windows, Provider.Modules, Provider.Files, Provider.Clipboard,
+        Provider.Apps, Provider.Bookmarks, Provider.Extensions, Provider.RemoteDesktop, Provider.Performance, Provider.Registry, Provider.Theme, Provider.Windows, Provider.Modules, Provider.Files, Provider.Clipboard,
         Provider.Calculator, Provider.TimeDate, Provider.Settings, Provider.Services, Provider.Terminal,
         Provider.Run, Provider.System, Provider.Web,
     };
@@ -56,6 +56,7 @@ public static class CommandPaletteService
     {
         Provider.Apps => ("Installed apps", "已安裝程式"),
         Provider.Bookmarks => ("Bookmarks", "書籤"),
+        Provider.Extensions => ("Extension packs", "擴充套件"),
         Provider.RemoteDesktop => ("Remote Desktop", "遠端桌面"),
         Provider.Performance => ("Performance metrics", "效能指標"),
         Provider.Registry => ("Registry", "登錄檔"),
@@ -491,6 +492,7 @@ public static class CommandPaletteService
         if (query.Length == 0)
         {
             // Empty query → show a few helpful starting points (recent modules + system actions hint).
+            if (IsProviderEnabled(Provider.Extensions)) results.AddRange(TopExtensionCommands());
             if (IsProviderEnabled(Provider.Modules)) results.AddRange(TopModules());
             return results.Take(MaxResults).ToList();
         }
@@ -498,6 +500,7 @@ public static class CommandPaletteService
         if (IsProviderEnabled(Provider.Calculator)) AddCalculator(query, results);
         if (IsProviderEnabled(Provider.Apps)) AddApps(query, results);
         if (IsProviderEnabled(Provider.Bookmarks)) AddBookmarks(query, results);
+        if (IsProviderEnabled(Provider.Extensions)) AddExtensionCommands(query, results);
         if (IsProviderEnabled(Provider.RemoteDesktop)) AddRemoteDesktopProfiles(query, results);
         if (IsProviderEnabled(Provider.Performance)) AddPerformanceMetrics(query, results);
         if (IsProviderEnabled(Provider.Registry)) AddRegistry(query, results);
@@ -601,6 +604,105 @@ public static class CommandPaletteService
         Score = 1,
         Invoke = () => { try { Navigator.GoToModule?.Invoke(m.Tag); ShowShell(); } catch { } return true; },
     };
+
+    // ----- Declarative extension packs · 宣告式擴充套件 -----
+    private static IEnumerable<CommandPaletteResult> TopExtensionCommands()
+    {
+        foreach (var pack in CommandPaletteExtensionService.I.Installed.Where(pack => pack.Enabled))
+        {
+            foreach (var command in pack.Commands.Take(8))
+            {
+                yield return ExtensionCommandResult(pack, command, 1);
+            }
+        }
+    }
+
+    private static void AddExtensionCommands(string query, List<CommandPaletteResult> list)
+    {
+        var raw = query.Trim();
+        bool extensionMode = raw.Equals("extension", StringComparison.OrdinalIgnoreCase)
+            || raw.Equals("extensions", StringComparison.OrdinalIgnoreCase)
+            || raw.Equals("ext", StringComparison.OrdinalIgnoreCase)
+            || raw.StartsWith("extension ", StringComparison.OrdinalIgnoreCase)
+            || raw.StartsWith("extensions ", StringComparison.OrdinalIgnoreCase)
+            || raw.StartsWith("ext ", StringComparison.OrdinalIgnoreCase)
+            || raw.Equals("擴充", StringComparison.Ordinal)
+            || raw.StartsWith("擴充 ", StringComparison.Ordinal);
+        string needle = raw.StartsWith("extensions ", StringComparison.OrdinalIgnoreCase) ? raw.Substring("extensions".Length).Trim()
+            : raw.StartsWith("extension ", StringComparison.OrdinalIgnoreCase) ? raw.Substring("extension".Length).Trim()
+            : raw.StartsWith("ext ", StringComparison.OrdinalIgnoreCase) ? raw.Substring("ext".Length).Trim()
+            : raw.StartsWith("擴充 ", StringComparison.Ordinal) ? raw.Substring("擴充".Length).Trim()
+            : extensionMode ? string.Empty : raw;
+
+        int rank = 0;
+        foreach (var pack in CommandPaletteExtensionService.I.Installed.Where(pack => pack.Enabled))
+        {
+            foreach (var command in pack.Commands)
+            {
+                double score = string.IsNullOrWhiteSpace(needle) ? 100 - rank : ExtensionScore(needle, pack, command);
+                if (score <= 0)
+                {
+                    rank++;
+                    continue;
+                }
+
+                list.Add(ExtensionCommandResult(pack, command, 160 + score * 0.15));
+                rank++;
+            }
+        }
+    }
+
+    private static double ExtensionScore(string query, CommandPaletteExtensionPack pack, CommandPaletteExtensionCommand command)
+    {
+        double best = Math.Max(Fuzzy(query, command.Title), Fuzzy(query, command.Zh));
+        best = Math.Max(best, Math.Max(Fuzzy(query, pack.Name), Fuzzy(query, pack.Zh)) * 0.8);
+        foreach (var alias in command.Aliases) best = Math.Max(best, Fuzzy(query, alias) * 0.95);
+        foreach (var keyword in command.Keywords) best = Math.Max(best, Fuzzy(query, keyword) * 0.9);
+        return best;
+    }
+
+    private static CommandPaletteResult ExtensionCommandResult(CommandPaletteExtensionPack pack, CommandPaletteExtensionCommand command, double score)
+    {
+        var packName = Loc.I.Pick(pack.Name, pack.Zh);
+        var commandSubtitle = Loc.I.Pick(command.Subtitle, command.ZhSubtitle);
+        return new CommandPaletteResult
+        {
+            Title = $"{command.Title} · {command.Zh}",
+            Subtitle = string.IsNullOrWhiteSpace(commandSubtitle)
+                ? Loc.I.Pick($"From extension pack {packName}", $"來自擴充套件 {packName}")
+                : $"{packName} · {commandSubtitle}",
+            Glyph = command.Glyph,
+            ProviderTag = Loc.I.Pick("Extension pack", "擴充套件"),
+            Score = score,
+            Invoke = () => ExecuteExtensionCommand(command),
+        };
+    }
+
+    private static bool ExecuteExtensionCommand(CommandPaletteExtensionCommand command)
+    {
+        try
+        {
+            switch (command.Action)
+            {
+                case CommandPaletteExtensionAction.Module:
+                    Navigator.GoToModule?.Invoke(command.Target);
+                    ShowShell();
+                    return true;
+                case CommandPaletteExtensionAction.Url:
+                    LaunchPath(command.Target);
+                    return true;
+                case CommandPaletteExtensionAction.Copy:
+                    CopyText(command.Target);
+                    return true;
+                default:
+                    return false;
+            }
+        }
+        catch
+        {
+            return false;
+        }
+    }
 
     // ----- Installed apps (Start Menu .lnk + UWP) · 已安裝程式 -----
     private static List<(string name, string path)>? _appCache;
