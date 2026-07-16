@@ -52,6 +52,22 @@ function Find-ByAutomationIdPrefix {
     return $null
 }
 
+function Wait-ForElementByAutomationIdPrefix {
+    param(
+        [Parameter(Mandatory)]$Root,
+        [Parameter(Mandatory)][string]$Prefix
+    )
+
+    $deadline = [DateTime]::UtcNow.AddMilliseconds($TimeoutMs)
+    do {
+        $element = Find-ByAutomationIdPrefix -Root $Root -Prefix $Prefix
+        if ($element) { return $element }
+        Start-Sleep -Milliseconds 100
+    } while ([DateTime]::UtcNow -lt $deadline)
+
+    throw "Timed out waiting for automation id prefix '$Prefix'."
+}
+
 function Wait-ForElement {
     param(
         [Parameter(Mandatory)]$Root,
@@ -1164,6 +1180,7 @@ Invoke-OwnedRoute -Route 'package-updates' -ExpectedTitle 'Package Manager' -Ins
     Assert-True -Condition ([bool]$ready) -Name 'Package Manager completes its live non-destructive engine probes'
 
     $availableManager = $null
+    $querySucceeded = $false
     foreach ($manager in @('winget', 'scoop', 'choco', 'pip', 'npm', 'dotnet', 'psgallery', 'pwsh7', 'cargo', 'bun', 'vcpkg')) {
         $filter = Find-ByAutomationId -Root $root -AutomationId "NativePackageManagerFilter_$manager"
         if (-not $filter -or -not $filter.Current.IsEnabled) { continue }
@@ -1210,9 +1227,46 @@ Invoke-OwnedRoute -Route 'package-updates' -ExpectedTitle 'Package Manager' -Ins
             -Name 'Package Manager does not start a live external query when no engine passes its safety probe'
     }
 
-    $operations = Wait-ForElement -Root $root -AutomationId 'NativePackageOperationsAction'
-    $invoke = [System.Windows.Automation.InvokePattern]$operations.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern)
-    $invoke.Invoke()
+    # A cached Updates row may not exist on a clean machine. When it does,
+    # exercise only the review step: it must create a visible batch and leave
+    # every command deferred. Do not invoke the confirmation/cancellation UI
+    # in a smoke campaign because that would request a real package mutation.
+    $reviewedBatch = $false
+    if ($querySucceeded) {
+        $selectionToggle = Find-ByAutomationIdPrefix -Root $root -Prefix 'NativePackageSelect_'
+        if ($selectionToggle) {
+            $toggle = [System.Windows.Automation.TogglePattern]$selectionToggle.GetCurrentPattern(
+                [System.Windows.Automation.TogglePattern]::Pattern)
+            if ($toggle.Current.ToggleState -ne [System.Windows.Automation.ToggleState]::On) {
+                $toggle.Toggle()
+            }
+            Wait-ForElement -Root $root -AutomationId 'NativePackageBatchSelectionSummary' | Out-Null
+            Invoke-ElementByAutomationId -Root $root -AutomationId 'NativePackageBatchReviewUpdate'
+
+            $batchCard = Wait-ForElementByAutomationIdPrefix -Root $root -Prefix 'NativePackageMutationBatch_'
+            $batchPreview = Wait-ForElementByAutomationIdPrefix -Root $root -Prefix 'NativePackageMutationBatchPreview_'
+            $batchConfirm = Wait-ForElementByAutomationIdPrefix -Root $root -Prefix 'NativePackageMutationBatchConfirm_'
+            $unexpectedWorking = Find-ByAutomationId -Root $root -AutomationId 'NativePackageWorkingState'
+            $batchControlsFit = Test-HorizontalBoundsWithinWindow -Root $root -Elements @(
+                $batchCard,
+                $batchPreview,
+                $batchConfirm)
+            Assert-True -Condition (-not [bool]$unexpectedWorking) `
+                -Name 'Package Manager batch review keeps package commands deferred before explicit confirmation'
+            Assert-True -Condition $batchControlsFit `
+                -Name 'Package Manager batch review card, argv preview, and confirmation control are horizontally unclipped'
+            $reviewedBatch = $true
+        }
+        else {
+            Write-Host 'Package Manager batch review smoke skipped: the successful Updates query returned no selectable cached row.' -ForegroundColor Yellow
+        }
+    }
+
+    if (-not $reviewedBatch) {
+        $operations = Wait-ForElement -Root $root -AutomationId 'NativePackageOperationsAction'
+        $invoke = [System.Windows.Automation.InvokePattern]$operations.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern)
+        $invoke.Invoke()
+    }
     $deadline = [DateTime]::UtcNow.AddMilliseconds($TimeoutMs)
     do {
         $header = Find-ByAutomationId -Root $root -AutomationId 'NativePackageResultsHeader'
@@ -1233,6 +1287,12 @@ Invoke-OwnedRoute -Route 'package-updates' -ExpectedTitle 'Package Manager' -Ins
     $mutationPolicyFits = Test-HorizontalBoundsWithinWindow -Root $root -Elements @($queueSummary)
     Assert-True -Condition $mutationPolicyFits `
         -Name 'Package Manager mutation-consent policy is accessible and horizontally unclipped'
+    $batchPolicy = Wait-ForElement -Root $root -AutomationId 'NativePackageBatchConsentPolicy'
+    Assert-True -Condition ($batchPolicy.Current.Name.StartsWith('Native batch consent policy', [StringComparison]::Ordinal)) `
+        -Name 'Package Manager exposes atomic batch-consent policy'
+    $batchPolicyFits = Test-HorizontalBoundsWithinWindow -Root $root -Elements @($batchPolicy)
+    Assert-True -Condition $batchPolicyFits `
+        -Name 'Package Manager batch-consent policy is accessible and horizontally unclipped'
     $operationEntry = Find-ByAutomationId -Root $root -AutomationId 'NativePackageOperation_0'
     $runLast = Find-ByAutomationId -Root $root -AutomationId 'NativePackageOperationRunLast_0'
     $retry = Find-ByAutomationId -Root $root -AutomationId 'NativePackageOperationRetry_0'

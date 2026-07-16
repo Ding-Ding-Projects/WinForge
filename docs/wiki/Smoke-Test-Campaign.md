@@ -8,6 +8,12 @@
 
 **粵語 —** 呢一頁記錄點樣可以重複做到成個 WinForge app 驗證。佢係涵蓋證據清單，唔係宣傳用功能數字：每條 route 只有喺適用嘅 routing、build、test、launch、visual、behavior、副作用同文件證據都記錄好先算完成。
 
+## 2026-07-16 Native Package Manager batch evidence · 2026-07-16 原生 Package Manager 批次證據
+
+**EN —** The native Package Manager’s bounded batch-review slice passes the complete Debug and Release suites at **387/387** each (341 core + 46 parser), including **42/42** focused Package Mutation Coordinator checks. Catalog parity passes 346 fixed routes, five dynamic families, 319 registry records, 22 categories, and 346 ledger rows. The elevated process-owned shell UI Automation sweep passes **166/166**; it verifies the static batch-consent policy and horizontal bounds, but did not invoke a live package mutation because the session is elevated and the runtime fails closed. The required native driver attempted `package-discover`, `package-updates`, `package-installed`, and `package-operations` at `-WaitMs 16000`; `CopyFromScreen` was unavailable and `PrintWindow` returned blank/near-uniform frames. LowLevel MCP independently launched and captured all four isolated-desktop HWNDs; inspected full-window and client-only PNGs were blank, so all eight were discarded and visual evidence remains `capture-blocked`.
+
+**粵語 —** 原生 Package Manager 有界批次檢視批次喺完整 Debug 同 Release suite 都通過 **387/387**（341 個 core + 46 個 parser），包括 **42/42** 個 Package Mutation Coordinator 專項檢查。目錄對等通過 346 條固定路線、五組動態家族、319 條 registry 記錄、22 個分類同 346 條 ledger rows。提權、自有 process shell UI Automation sweep 通過 **166/166**；佢驗證靜態批次確認政策同水平邊界，但冇呼叫即時套件修改，因為 session 已提權而 runtime 會 fail closed。必需原生 driver 用 `-WaitMs 16000` 嘗試 `package-discover`、`package-updates`、`package-installed` 同 `package-operations`；`CopyFromScreen` 用唔到，而 `PrintWindow` 回傳空白／接近單色 frame。LowLevel MCP 亦獨立開啟並擷取四個隔離 desktop HWND；檢查過嘅完整視窗同只限 client PNG 都係空白，所以八張全部丟棄，視覺證據仍然係 `capture-blocked`。
+
 ## Baseline Snapshot · 基線快照
 
 Generated on 2026-07-11 from the live source:

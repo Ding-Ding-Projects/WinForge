@@ -8,6 +8,12 @@
 
 **粵語 —** 呢一頁記錄點樣可以重複做到成個 WinForge app 驗證。佢係涵蓋證據清單，唔係宣傳用功能數字：每條 route 只有喺適用嘅 routing、build、test、launch、visual、behavior、副作用同文件證據都記錄好先算完成。
 
+## 2026-07-16 Native Package Manager batch evidence · 2026-07-16 原生 Package Manager 批次證據
+
+**EN —** The bounded native Package Manager batch-review slice passes Debug and Release at **387/387** each (341 core + 46 parser), including **42/42** focused coordinator checks. Catalog parity passes 346 fixed routes, five dynamic families, 319 registry records, 22 categories, and 346 ledger rows; elevated process-owned UI Automation passes **166/166** with static batch-policy and horizontal-bound coverage. No live package mutation ran because this elevated session correctly fails closed. The required driver rejected each changed Package Manager route at `-WaitMs 16000` because `CopyFromScreen` was unavailable and `PrintWindow` was blank/near-uniform. LowLevel MCP independently captured the four isolated-desktop HWNDs; all inspected full-window/client PNGs were blank and discarded, so visual evidence remains `capture-blocked`.
+
+**粵語 —** 有界原生 Package Manager 批次檢視批次喺 Debug 同 Release 都通過 **387/387**（341 個 core + 46 個 parser），包括 **42/42** 個專項協調器檢查。目錄對等通過 346 條固定路線、五組動態家族、319 條 registry 記錄、22 個分類同 346 條 ledger rows；提權、自有 process UI Automation 通過 **166/166**，涵蓋靜態批次政策同水平邊界。因為提權 session 正確 fail closed，冇執行即時套件修改。必需 driver 喺 `-WaitMs 16000` 因為 `CopyFromScreen` 用唔到、`PrintWindow` 空白／接近單色而拒絕每條改過嘅 Package Manager route。LowLevel MCP 亦獨立擷取四個隔離 desktop HWND；全部檢查過嘅完整視窗／client PNG 都係空白兼已丟棄，所以視覺證據仍然係 `capture-blocked`。
+
 ## Baseline Snapshot · 基線快照
 
 Generated on 2026-07-11 from the live source:
