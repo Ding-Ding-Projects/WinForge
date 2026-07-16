@@ -3628,6 +3628,102 @@ namespace winrt::WinForge::implementation
         RenderPackageManagerView();
     }
 
+    void MainWindow::ReviewPackageMutationBatch(
+        std::vector<winforge::core::packages::PackageItem> packages,
+        winforge::core::packages::PackageAction action,
+        std::wstring sourceLabelEn,
+        std::wstring sourceLabelZh)
+    {
+        auto const actionEn = action == winforge::core::packages::PackageAction::Install
+            ? std::wstring(L"install")
+            : action == winforge::core::packages::PackageAction::Update
+                ? std::wstring(L"update")
+                : std::wstring(L"uninstall");
+        auto const actionZh = action == winforge::core::packages::PackageAction::Install
+            ? std::wstring(L"安裝")
+            : action == winforge::core::packages::PackageAction::Update
+                ? std::wstring(L"更新")
+                : std::wstring(L"解除安裝");
+
+        if (packages.empty())
+        {
+            AnnouncePackageStatus(
+                L"No eligible cached package rows are available for batch review.",
+                L"冇合資格嘅快取套件資料列可以做批次檢視。",
+                true);
+            return;
+        }
+
+        // A batch id is intentionally opaque and local-only. Every child keeps
+        // its own unique worker id, while this shared id is the only handle
+        // exposed to the batch confirmation, cancellation, and retry controls.
+        auto const batchId = L"batch-" + std::to_wstring(NowUnixSeconds()) + L"-" +
+            std::to_wstring(m_packageOperationSequence++);
+        winforge::core::packages::PackageMutationBatchRequest request;
+        request.id = batchId;
+        request.requests.reserve(packages.size());
+        for (std::size_t index = 0; index < packages.size(); ++index)
+        {
+            winforge::core::packages::PackageMutationRequest child;
+            child.id = batchId + L"-item-" + std::to_wstring(index + 1);
+            child.package = std::move(packages[index]);
+            child.action = action;
+            request.requests.push_back(std::move(child));
+        }
+
+        auto submission = m_packageMutationCoordinator.SubmitBatch(std::move(request));
+
+        if (submission.accepted)
+        {
+            m_packageView = 8;
+            if (m_packageViewPicker)
+            {
+                m_packageViewPicker.SelectedIndex(m_packageView);
+            }
+            SavePackageManagerState();
+            ClearPackageSelection();
+            AnnouncePackageStatus(
+                L"Reviewed " + std::to_wstring(submission.batch.records.size()) + L" cached " +
+                    sourceLabelEn + L" " + actionEn +
+                    L" command(s). Inspect every redacted argv on the batch card, then use its one explicit Confirm batch execution control to queue them serially.",
+                L"已檢視 " + std::to_wstring(submission.batch.records.size()) + L" 個快取" +
+                    sourceLabelZh + actionZh +
+                    L" 指令。請先喺批次卡檢查每個已遮蔽 argv，再用唯一嘅「確認批次執行」控制串行排隊。");
+        }
+        else if (submission.duplicate)
+        {
+            AnnouncePackageStatus(
+                L"The requested batch overlaps a reviewed, queued, or running package mutation, so no partial batch was retained.",
+                L"要求嘅批次同已檢視、已排隊或者執行中嘅套件修改重疊，所以冇保留任何部分批次。",
+                true);
+        }
+        else
+        {
+            // Batch validation is all-or-nothing. The coordinator intentionally
+            // returns a bounded policy key rather than reflecting arbitrary
+            // cached metadata or external process text into durable history.
+            RecordPackageOperation(
+                L"Native " + actionEn + L" batch review rejected: " + submission.batch.diagnostic +
+                L". No package command was queued. · 原生批次" + actionZh +
+                L"檢視已拒絕；冇排隊套件指令。");
+            if (submission.batch.diagnostic == L"batch-review-capacity-exceeded")
+            {
+                AnnouncePackageStatus(
+                    L"A reviewed batch may contain at most 25 commands. The selection remains unchanged; narrow it and review again so no prefix is silently staged.",
+                    L"已檢視批次最多可以有 25 個指令。選擇保持不變；請縮窄之後再檢視，絕對唔會靜靜地暫存頭一部分。",
+                    true);
+            }
+            else
+            {
+                AnnouncePackageStatus(
+                    L"The package batch was rejected before consent or process execution. Review Operations for the bounded validation reason.",
+                    L"套件批次喺確認或者 process 執行之前已被拒絕。請喺操作檢視睇有界驗證原因。",
+                    true);
+            }
+        }
+        RenderPackageManagerView();
+    }
+
     void MainWindow::ConfirmPackageMutation(std::wstring id)
     {
         if (!m_packageMutationCoordinator.Confirm(id))
@@ -3642,6 +3738,24 @@ namespace winrt::WinForge::implementation
         AnnouncePackageStatus(
             L"Explicit consent recorded. The package command is queued for the serial native worker.",
             L"已記錄明確確認。套件指令已排入原生串行 worker。" );
+        RenderPackageManagerView();
+        StartNextPackageMutation();
+    }
+
+    void MainWindow::ConfirmPackageMutationBatch(std::wstring id)
+    {
+        if (!m_packageMutationCoordinator.ConfirmBatch(id))
+        {
+            AnnouncePackageStatus(
+                L"This reviewed package batch is no longer awaiting one explicit batch confirmation.",
+                L"呢個已檢視套件批次已經唔係等緊一次明確批次確認。",
+                true);
+            RenderPackageManagerView();
+            return;
+        }
+        AnnouncePackageStatus(
+            L"Explicit batch consent recorded. Every reviewed command is queued in its displayed order for the serial native worker.",
+            L"已記錄明確批次確認。每個已檢視指令會按顯示次序排入原生串行 worker。");
         RenderPackageManagerView();
         StartNextPackageMutation();
     }
@@ -3664,6 +3778,24 @@ namespace winrt::WinForge::implementation
         StartNextPackageMutation();
     }
 
+    void MainWindow::CancelPackageMutationBatch(std::wstring id)
+    {
+        if (!m_packageMutationCoordinator.CancelBatch(id))
+        {
+            AnnouncePackageStatus(
+                L"This package batch can no longer be cancelled.",
+                L"呢個套件批次已經唔可以取消。",
+                true);
+            RenderPackageManagerView();
+            return;
+        }
+        AnnouncePackageStatus(
+            L"Batch cancellation was requested. The active command receives a contained stop request and all remaining commands are cancelled before execution.",
+            L"已要求取消批次。執行中指令會收到受控停止要求，所有其餘指令會喺執行之前取消。");
+        RenderPackageManagerView();
+        StartNextPackageMutation();
+    }
+
     void MainWindow::RetryPackageMutation(std::wstring id)
     {
         if (!m_packageMutationCoordinator.Retry(id))
@@ -3678,6 +3810,23 @@ namespace winrt::WinForge::implementation
         AnnouncePackageStatus(
             L"Retry prepared. Fresh explicit consent is required before it can run.",
             L"已準備重試；執行之前需要重新明確確認。" );
+        RenderPackageManagerView();
+    }
+
+    void MainWindow::RetryPackageMutationBatch(std::wstring id)
+    {
+        if (!m_packageMutationCoordinator.RetryBatch(id))
+        {
+            AnnouncePackageStatus(
+                L"This package batch has no failed, timed-out, or cancelled command eligible for retry.",
+                L"呢個套件批次冇失敗、超時或者已取消而可重試嘅指令。",
+                true);
+            RenderPackageManagerView();
+            return;
+        }
+        AnnouncePackageStatus(
+            L"Only unsuccessful package commands returned to batch review. Successful commands will not replay; fresh explicit batch consent is required.",
+            L"只有未成功嘅套件指令會返回批次檢視。成功指令唔會重播，而且需要重新明確批次確認。 ");
         RenderPackageManagerView();
     }
 
@@ -3919,22 +4068,12 @@ namespace winrt::WinForge::implementation
             ClearPackageSelection();
             RenderPackageManagerView();
             AnnouncePackageStatus(
-                L"The selected package preview is no longer available because its cached result view changed.",
-                L"已揀套件預覽已經唔可用，因為快取結果檢視已經改變。",
+                L"The selected package batch review is no longer available because its cached result view changed.",
+                L"已揀套件批次檢視已經唔可用，因為快取結果檢視已經改變。",
                 true);
             return;
         }
 
-        auto const actionNameEn = action == winforge::core::packages::PackageAction::Install
-            ? std::wstring(L"install")
-            : action == winforge::core::packages::PackageAction::Update
-                ? std::wstring(L"update")
-                : std::wstring(L"uninstall");
-        auto const actionNameZh = action == winforge::core::packages::PackageAction::Install
-            ? std::wstring(L"安裝")
-            : action == winforge::core::packages::PackageAction::Update
-                ? std::wstring(L"更新")
-                : std::wstring(L"解除安裝");
         auto const sourceViewEn = action == winforge::core::packages::PackageAction::Install
             ? std::wstring(L"Discover")
             : action == winforge::core::packages::PackageAction::Update
@@ -3958,61 +4097,14 @@ namespace winrt::WinForge::implementation
             return;
         }
 
-        constexpr std::size_t MaximumPreviewedOperations = 25;
-        auto const previewCount = std::min(selected.size(), MaximumPreviewedOperations);
-        std::size_t failed = 0;
-        RecordPackageOperation(
-            L"Preview-only " + actionNameEn + L"-selected plan started for " +
-                std::to_wstring(selected.size()) + L" cached " + sourceViewEn +
-                L" package(s). No package command was executed. · 已開始所選" +
-                actionNameZh + L"預覽，冇執行套件指令。");
-
-        for (std::size_t index = 0; index < previewCount; ++index)
-        {
-            auto const& package = selected[index];
-            auto const command = winforge::core::packages::BuildPackageActionCommand(
-                package.manager_key,
-                package.id,
-                package.source,
-                action);
-            if (!command)
-            {
-                ++failed;
-                RecordPackageOperation(
-                    L"Preview failed for " + actionNameEn + L" " + package.id +
-                        L" via " + package.manager_key + L": " + command.error_code +
-                        L". · " + actionNameZh + L"預覽失敗。");
-                continue;
-            }
-
-            RecordPackageOperation(
-                L"Preview-only " + actionNameEn + L" plan for " + package.id +
-                    L" via " + package.manager_key + L": " +
-                    winforge::core::packages::FormatCommandPreview(*command.command) +
-                    L". No package command was executed. · 只建立" +
-                    actionNameZh + L"預覽，冇執行套件指令。");
-        }
-        if (selected.size() > MaximumPreviewedOperations)
-        {
-            RecordPackageOperation(
-                actionNameEn + L"-selected preview rendered the first " +
-                    std::to_wstring(MaximumPreviewedOperations) +
-                    L" rows; remaining selected rows are omitted from the visible history to keep the UI responsive. · 所選" +
-                    actionNameZh + L"預覽只顯示頭批資料列。");
-        }
-
-        ClearPackageSelection();
-        m_packageView = 8;
-        if (m_packageViewPicker)
-        {
-            m_packageViewPicker.SelectedIndex(m_packageView);
-        }
-        SavePackageManagerState();
-        RenderPackageManagerView();
-        AnnouncePackageStatus(
-            actionNameEn + L"-selected preview added to Operations. No package command was executed.",
-            L"所選" + actionNameZh + L"預覽已加入操作檢視；冇執行套件指令。",
-            failed != 0);
+        // SubmitBatch validates the entire cached selection before retaining a
+        // single command. In particular it refuses a selection over the
+        // visible 25-command capacity instead of silently staging a prefix.
+        ReviewPackageMutationBatch(
+            std::move(selected),
+            action,
+            sourceViewEn,
+            sourceViewZh);
     }
 
     void MainWindow::AddSelectedPackagesToBundle()
@@ -4587,79 +4679,39 @@ namespace winrt::WinForge::implementation
 
     void MainWindow::PreviewPackageBulkUpdate()
     {
-        if (m_packageItems.empty())
+        if (m_packageItems.empty() ||
+            m_packageLastAction != winforge::core::packages::PackageAction::Updates)
         {
             AnnouncePackageStatus(
-                L"No update rows are loaded yet; refresh updates before previewing Update all.",
-                L"未載入可更新資料列；預覽全部更新之前請先重新整理更新。",
+                L"No current update rows are loaded; refresh Updates before reviewing Update all.",
+                L"未載入目前可更新資料列；檢視全部更新之前請先重新整理更新。",
                 true);
             return;
         }
 
-        constexpr std::size_t MaximumPreviewedUpdates = 25;
-        std::size_t previewed = 0;
-        std::size_t failed = 0;
-        RecordPackageOperation(
-            L"Preview-only Update all plan started for " +
-                std::to_wstring(m_packageItems.size()) +
-                L" update row(s). No package command was executed. · 只建立全部更新預覽，冇執行套件指令。");
-
+        std::vector<winforge::core::packages::PackageItem> eligible;
+        eligible.reserve(m_packageItems.size());
         for (auto const& package : m_packageItems)
         {
-            auto const command = winforge::core::packages::BuildPackageActionCommand(
-                package.manager_key,
-                package.id,
-                package.source,
-                winforge::core::packages::PackageAction::Update);
-            if (!command)
+            if (!IsPackageUpdateSuppressed(package))
             {
-                ++failed;
-                if (previewed < MaximumPreviewedUpdates)
-                {
-                    RecordPackageOperation(
-                        L"Preview failed for update " + package.id +
-                            L" via " + package.manager_key + L": " + command.error_code +
-                            L". · 更新預覽失敗。");
-                    ++previewed;
-                }
-                continue;
-            }
-
-            if (previewed < MaximumPreviewedUpdates)
-            {
-                RecordPackageOperation(
-                    L"Preview-only update plan for " + package.id +
-                        L" via " + package.manager_key + L": " +
-                        winforge::core::packages::FormatCommandPreview(*command.command) +
-                        L". · 只建立更新預覽。");
-                ++previewed;
+                eligible.push_back(package);
             }
         }
-        if (m_packageItems.size() > MaximumPreviewedUpdates)
+        if (eligible.empty())
         {
-            RecordPackageOperation(
-                L"Update-all preview rendered the first " +
-                    std::to_wstring(MaximumPreviewedUpdates) +
-                    L" rows; remaining rows are omitted from the visible history to keep the UI responsive. · 全部更新預覽只顯示頭批資料列。");
-        }
-        if (failed != 0)
-        {
-            RecordPackageOperation(
-                L"Update-all preview had " + std::to_wstring(failed) +
-                    L" validation failure(s). · 全部更新預覽有驗證失敗。");
+            AnnouncePackageStatus(
+                L"Every cached update row is currently ignored, pinned, or snoozed; no Update all batch was created.",
+                L"每個快取更新資料列目前都已忽略、釘住或者暫停；冇建立全部更新批次。",
+                true);
+            return;
         }
 
-        m_packageView = 8;
-        if (m_packageViewPicker)
-        {
-            m_packageViewPicker.SelectedIndex(m_packageView);
-        }
-        SavePackageManagerState();
-        RenderPackageManagerView();
-        AnnouncePackageStatus(
-            L"Update-all preview added to Operations. No package command was executed.",
-            L"全部更新預覽已加入操作檢視；冇執行套件指令。",
-            failed != 0);
+        ReviewPackageMutationBatch(
+            std::move(eligible),
+            winforge::core::packages::PackageAction::Update,
+            L"Updates",
+            L"更新");
     }
 
     std::wstring MainWindow::BundleSnapshotToJson(
@@ -6478,12 +6530,12 @@ namespace winrt::WinForge::implementation
             break;
         case 1:
             m_packagePrimaryAction.Content(box_value(ToHString(pick(L"Refresh", L"重新整理"))));
-            m_packageSecondaryAction.Content(box_value(ToHString(pick(L"Update all", L"全部更新"))));
+            m_packageSecondaryAction.Content(box_value(ToHString(pick(L"Review Update all", L"檢視全部更新"))));
             m_packageSecondaryAction.Visibility(Visibility::Visible);
             header = pick(L"Available updates", L"可用更新");
             explanation = pick(
-                L"Live update enumeration runs per selected engine. Each cached row can create a reviewed native update plan requiring its own Confirm execution action; the multi-select Update all path remains preview-only.",
-                L"會按已選引擎即時列出更新；每個已快取資料列都可以建立已檢視原生更新計劃，而且要由自己嘅「確認執行」動作先可以排隊；多選「全部更新」保持只供預覽。");
+                L"Live update enumeration runs per selected engine. Each cached row can create a reviewed native update plan, or Review Update all can atomically stage up to 25 current unsuppressed rows. Every full redacted argv stays visible in Operations and one separate Confirm batch execution control is required before serial queueing.",
+                L"會按已選引擎即時列出更新；每個已快取資料列都可以建立已檢視原生更新計劃，亦可以用「檢視全部更新」原子地暫存最多 25 個目前未隱藏資料列。每個完整已遮蔽 argv 都會喺操作檢視顯示，而且要由另一個「確認批次執行」控制先會串行排隊。");
             readOnlyQuery = true;
             break;
         case 2:
@@ -6712,11 +6764,11 @@ namespace winrt::WinForge::implementation
                 : action == winforge::core::packages::PackageAction::Update
                     ? std::wstring(L"更新")
                     : std::wstring(L"已安裝");
-            auto const previewAutomationId = action == winforge::core::packages::PackageAction::Install
-                ? std::wstring(L"NativePackageBatchPreviewInstall")
+            auto const reviewAutomationId = action == winforge::core::packages::PackageAction::Install
+                ? std::wstring(L"NativePackageBatchReviewInstall")
                 : action == winforge::core::packages::PackageAction::Update
-                    ? std::wstring(L"NativePackageBatchPreviewUpdate")
-                    : std::wstring(L"NativePackageBatchPreviewUninstall");
+                    ? std::wstring(L"NativePackageBatchReviewUpdate")
+                    : std::wstring(L"NativePackageBatchReviewUninstall");
 
             Border selectionCard;
             selectionCard.Padding(Thickness{ 16 });
@@ -6739,31 +6791,36 @@ namespace winrt::WinForge::implementation
 
             auto selectionNote = CreateText(
                 pick(
-                    L"Preview selected creates only exact native " + actionNameEn + L" argv plans in Operations. It never runs a package command, and the selection clears when results or views change.",
-                    L"預覽所選只會喺操作檢視建立準確嘅原生" + actionNameZh + L" argv 計劃；絕對唔會執行套件指令，而且結果或者檢視改變時會清除選擇。"),
+                    L"Review selected atomically validates up to 25 cached rows and shows every full redacted native " + actionNameEn + L" argv in one Operations batch card. It never runs a package command; a later separate Confirm batch execution control is required, and the selection clears only after review succeeds.",
+                    L"檢視所選會原子地驗證最多 25 個快取資料列，並喺一張操作批次卡顯示每個完整已遮蔽原生" + actionNameZh + L" argv。絕對唔會執行套件指令；之後仲要另一個「確認批次執行」控制，而且只會喺檢視成功之後清除選擇。"),
                 12.5);
             selectionNote.TextWrapping(TextWrapping::Wrap);
             selectionContent.Children().Append(selectionNote);
 
             StackPanel selectionActions;
             selectionActions.Spacing(8);
-            Button previewSelected;
-            previewSelected.Content(box_value(ToHString(pick(
-                L"Preview selected " + actionNameEn,
-                L"預覽所選" + actionNameZh))));
-            previewSelected.Padding(Thickness{ 12, 6, 12, 6 });
-            previewSelected.IsEnabled(!m_packageWorking);
-            AutomationProperties::SetAutomationId(previewSelected, ToHString(previewAutomationId));
+            Button reviewSelected;
+            reviewSelected.Content(box_value(ToHString(pick(
+                L"Review selected " + actionNameEn + L" batch",
+                L"檢視所選" + actionNameZh + L"批次"))));
+            reviewSelected.Padding(Thickness{ 12, 6, 12, 6 });
+            reviewSelected.IsEnabled(!m_packageWorking);
+            AutomationProperties::SetAutomationId(reviewSelected, ToHString(reviewAutomationId));
             AutomationProperties::SetName(
-                previewSelected,
+                reviewSelected,
                 ToHString(pick(
-                    L"Preview selected package " + actionNameEn + L"s without executing package commands",
-                    L"預覽所選套件" + actionNameZh + L"，唔會執行套件指令")));
-            previewSelected.Click([this, action](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+                    L"Review selected package " + actionNameEn + L" commands without executing them",
+                    L"檢視所選套件" + actionNameZh + L"指令，唔會執行")));
+            AutomationProperties::SetHelpText(
+                reviewSelected,
+                ToHString(pick(
+                    L"Atomically validates up to 25 cached rows and opens a full reviewed argv batch. A separate explicit batch confirmation is required before any command queues.",
+                    L"會原子地驗證最多 25 個快取資料列，並開啟完整已檢視 argv 批次。任何指令排隊之前，都需要另一個明確批次確認。")));
+            reviewSelected.Click([this, action](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
             {
                 PreviewSelectedPackageOperations(action);
             });
-            selectionActions.Children().Append(previewSelected);
+            selectionActions.Children().Append(reviewSelected);
 
             if (action == winforge::core::packages::PackageAction::Install ||
                 action == winforge::core::packages::PackageAction::Uninstall)
@@ -6858,14 +6915,38 @@ namespace winrt::WinForge::implementation
         if (m_packageView == 8)
         {
             auto const mutationRecords = m_packageMutationCoordinator.Snapshot();
+            auto const mutationBatches = m_packageMutationCoordinator.SnapshotBatches();
+            auto const mutationStateLabel = [&pick](winforge::core::packages::PackageMutationState state)
+            {
+                using State = winforge::core::packages::PackageMutationState;
+                switch (state)
+                {
+                case State::AwaitingConsent: return pick(L"Awaiting explicit consent", L"等緊明確確認");
+                case State::Queued: return pick(L"Queued", L"已排隊");
+                case State::Running: return pick(L"Running", L"執行中");
+                case State::Succeeded: return pick(L"Succeeded", L"已完成");
+                case State::Failed: return pick(L"Failed", L"失敗");
+                case State::Cancelled: return pick(L"Cancelled", L"已取消");
+                case State::TimedOut: return pick(L"Timed out", L"已超時");
+                case State::Rejected: return pick(L"Rejected", L"已拒絕");
+                }
+                return pick(L"Rejected", L"已拒絕");
+            };
             appendCard(
                 pick(L"Native mutation consent policy", L"原生修改確認政策"),
-                pick(L"A package row first creates a redacted reviewed argv plan. A separate Confirm execution control is required to enter the serial normal-integrity queue. The in-memory coordinator keeps that preview with request and lifecycle metadata; a bounded redacted lifecycle event is added to the existing history. Elevation, hooks, unsafe IDs, custom mutation arguments, and overlong previews fail closed. Third-party stdout, stderr, and runtime diagnostics are withheld.",
-                    L"套件資料列會先建立已遮蔽嘅已檢視 argv 計劃。要進入串行正常 integrity 佇列，仲需要另一個「確認執行」控制。記憶體協調器會保留呢個預覽連同要求同生命週期 metadata；現有歷史會加入有界、已遮蔽嘅生命週期事件。提升權限、hooks、唔安全 ID、自訂修改參數同過長預覽都會 fail closed；第三方 stdout、stderr 同執行時診斷絕對唔會保留。"),
+                pick(L"A package row first creates a redacted reviewed argv plan. A selected-row or Update all batch validates every command atomically, caps the visible review at 25 commands, and needs one separate Confirm batch execution control before serial normal-integrity queueing. The in-memory coordinator keeps those previews with request and lifecycle metadata; a bounded redacted lifecycle event is added to the existing history. Elevation, hooks, unsafe IDs, custom mutation arguments, and overlong previews fail closed. Third-party stdout, stderr, and runtime diagnostics are withheld.",
+                    L"套件資料列會先建立已遮蔽嘅已檢視 argv 計劃。所選資料列或者全部更新批次會原子地驗證每個指令、將可見檢視限制喺 25 個指令，而且串行正常 integrity 排隊之前需要一個獨立嘅「確認批次執行」控制。記憶體協調器會保留呢啲預覽連同要求同生命週期 metadata；現有歷史會加入有界、已遮蔽嘅生命週期事件。提升權限、hooks、唔安全 ID、自訂修改參數同過長預覽都會 fail closed；第三方 stdout、stderr 同執行時診斷絕對唔會保留。"),
                 L"NativePackageQueueSummary",
                 0.9);
 
-            if (m_packageOperations.empty() && mutationRecords.empty())
+            appendCard(
+                pick(L"Native batch consent policy", L"原生批次確認政策"),
+                pick(L"A batch card exposes every redacted command preview before it can queue. Confirming it queues the displayed commands together and in order; cancelling stops the active command and cancels the rest. A retry returns only failed, timed-out, or cancelled commands to fresh batch review, never successful commands.",
+                    L"批次卡會喺指令可以排隊之前展示每個已遮蔽指令預覽。確認會一齊而且按次序排入顯示嘅指令；取消會停止執行中指令並取消其餘指令。重試只會將失敗、超時或者已取消指令返回全新批次檢視，成功指令絕對唔會重播。"),
+                L"NativePackageBatchConsentPolicy",
+                0.9);
+
+            if (m_packageOperations.empty() && mutationRecords.empty() && mutationBatches.empty())
             {
                 appendCard(
                     pick(L"No native operations yet", L"暫時未有原生操作"),
@@ -6875,8 +6956,210 @@ namespace winrt::WinForge::implementation
             }
             else
             {
+                for (auto const& batch : mutationBatches)
+                {
+                    auto const batchId = batch.id;
+                    auto const batchKey = AutomationKey(batchId);
+                    auto const hasRetryableChild = std::any_of(
+                        batch.records.begin(),
+                        batch.records.end(),
+                        [](winforge::core::packages::PackageMutationRecord const& record)
+                        {
+                            using State = winforge::core::packages::PackageMutationState;
+                            return record.state == State::Failed ||
+                                record.state == State::TimedOut ||
+                                record.state == State::Cancelled;
+                        });
+
+                    Border card;
+                    card.Padding(Thickness{ 16, 12, 16, 12 });
+                    card.CornerRadius(CornerRadius{ 8 });
+                    card.BorderThickness(Thickness{ 1 });
+                    card.BorderBrush(Application::Current().Resources().Lookup(
+                        box_value(L"CardStrokeColorDefaultBrush")).as<Media::Brush>());
+                    card.Background(Application::Current().Resources().Lookup(
+                        box_value(L"CardBackgroundFillColorDefaultBrush")).as<Media::Brush>());
+
+                    StackPanel content;
+                    content.Spacing(7);
+                    auto title = CreateText(
+                        pick(L"Reviewed batch · ", L"已檢視批次 · ") +
+                            std::to_wstring(batch.records.size()) +
+                            pick(L" package command(s)", L" 個套件指令"),
+                        14,
+                        true);
+                    AutomationProperties::SetAutomationId(
+                        title,
+                        ToHString(L"NativePackageMutationBatch_" + batchKey));
+                    AutomationProperties::SetName(
+                        title,
+                        ToHString(pick(
+                            L"Reviewed package batch with " + std::to_wstring(batch.records.size()) + L" commands",
+                            L"已檢視套件批次，有 " + std::to_wstring(batch.records.size()) + L" 個指令")));
+                    AutomationProperties::SetHelpText(title, ToHString(batch.diagnostic));
+                    content.Children().Append(title);
+
+                    std::wstring summary = mutationStateLabel(batch.state) +
+                        pick(L" · commands: ", L" · 指令：") +
+                        std::to_wstring(batch.records.size());
+                    if (batch.retry_count > 0)
+                    {
+                        summary += pick(L" · retries: ", L" · 重試：") +
+                            std::to_wstring(batch.retry_count);
+                    }
+                    if (batch.cancellation_requested)
+                    {
+                        summary += pick(L" · cancellation requested", L" · 已要求取消");
+                    }
+                    if (!batch.diagnostic.empty())
+                    {
+                        summary += L"\n" + batch.diagnostic;
+                    }
+                    auto details = CreateText(summary, 12.5);
+                    details.TextWrapping(TextWrapping::Wrap);
+                    details.IsTextSelectionEnabled(true);
+                    content.Children().Append(details);
+
+                    auto reviewedHeader = CreateText(
+                        pick(L"Full redacted reviewed commands", L"完整已遮蔽已檢視指令"),
+                        12.5,
+                        true);
+                    content.Children().Append(reviewedHeader);
+
+                    for (std::size_t childIndex = 0; childIndex < batch.records.size(); ++childIndex)
+                    {
+                        auto const& child = batch.records[childIndex];
+                        auto const childActionEn = child.request.action == winforge::core::packages::PackageAction::Install
+                            ? std::wstring(L"Install")
+                            : child.request.action == winforge::core::packages::PackageAction::Update
+                                ? std::wstring(L"Update")
+                                : std::wstring(L"Uninstall");
+                        auto const childActionZh = child.request.action == winforge::core::packages::PackageAction::Install
+                            ? std::wstring(L"安裝")
+                            : child.request.action == winforge::core::packages::PackageAction::Update
+                                ? std::wstring(L"更新")
+                                : std::wstring(L"解除安裝");
+                        auto childLabel = CreateText(
+                            L"#" + std::to_wstring(childIndex + 1) + L" · " +
+                                pick(childActionEn, childActionZh) + L" · " +
+                                child.request.package.manager_key,
+                            12.0,
+                            true);
+                        childLabel.TextWrapping(TextWrapping::Wrap);
+                        content.Children().Append(childLabel);
+
+                        // SubmitBatch rejects overlong previews, so this is the
+                        // complete reviewed/redacted argv rather than a
+                        // truncated UI summary. It remains selectable for
+                        // careful inspection before batch consent.
+                        auto childPreview = CreateText(child.command_preview, 12.5);
+                        childPreview.TextWrapping(TextWrapping::Wrap);
+                        childPreview.IsTextSelectionEnabled(true);
+                        AutomationProperties::SetAutomationId(
+                            childPreview,
+                            ToHString(L"NativePackageMutationBatchPreview_" + batchKey + L"_" +
+                                std::to_wstring(childIndex + 1)));
+                        AutomationProperties::SetName(childPreview, ToHString(child.command_preview));
+                        AutomationProperties::SetHelpText(
+                            childPreview,
+                            ToHString(mutationStateLabel(child.state) + L"\n" + child.diagnostic));
+                        content.Children().Append(childPreview);
+
+                        auto childState = CreateText(
+                            mutationStateLabel(child.state) +
+                                (child.diagnostic.empty() ? std::wstring{} : L" · " + child.diagnostic),
+                            11.5);
+                        childState.TextWrapping(TextWrapping::Wrap);
+                        content.Children().Append(childState);
+                    }
+
+                    StackPanel actions;
+                    // Vertical controls intentionally avoid narrow-window
+                    // clipping, particularly where localized captions grow.
+                    actions.Spacing(8);
+                    using State = winforge::core::packages::PackageMutationState;
+                    if (batch.state == State::AwaitingConsent)
+                    {
+                        Button confirm;
+                        confirm.Content(box_value(ToHString(pick(L"Confirm batch execution", L"確認批次執行"))));
+                        confirm.Padding(Thickness{ 12, 6, 12, 6 });
+                        AutomationProperties::SetAutomationId(
+                            confirm,
+                            ToHString(L"NativePackageMutationBatchConfirm_" + batchKey));
+                        AutomationProperties::SetName(
+                            confirm,
+                            ToHString(pick(
+                                L"Confirm all " + std::to_wstring(batch.records.size()) + L" reviewed package commands in this batch",
+                                L"確認呢個批次全部 " + std::to_wstring(batch.records.size()) + L" 個已檢視套件指令")));
+                        AutomationProperties::SetHelpText(
+                            confirm,
+                            ToHString(pick(
+                                L"Queues every displayed reviewed command together in serial order. It can run only at normal integrity.",
+                                L"會一齊按串行次序排入每個顯示嘅已檢視指令；只可以喺正常 integrity 執行。")));
+                        confirm.Click([this, batchId](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+                        {
+                            ConfirmPackageMutationBatch(batchId);
+                        });
+                        actions.Children().Append(confirm);
+                    }
+                    if (batch.state == State::AwaitingConsent || batch.state == State::Queued || batch.state == State::Running)
+                    {
+                        Button cancel;
+                        cancel.Content(box_value(ToHString(pick(L"Cancel batch", L"取消批次"))));
+                        cancel.Padding(Thickness{ 12, 6, 12, 6 });
+                        AutomationProperties::SetAutomationId(
+                            cancel,
+                            ToHString(L"NativePackageMutationBatchCancel_" + batchKey));
+                        AutomationProperties::SetName(
+                            cancel,
+                            ToHString(pick(L"Cancel this package command batch", L"取消呢個套件指令批次")));
+                        AutomationProperties::SetHelpText(
+                            cancel,
+                            ToHString(pick(
+                                L"Stops an active command through its contained cancellation token and cancels every remaining command before execution.",
+                                L"會用受控取消 token 停止執行中指令，並喺執行之前取消每個其餘指令。")));
+                        cancel.Click([this, batchId](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+                        {
+                            CancelPackageMutationBatch(batchId);
+                        });
+                        actions.Children().Append(cancel);
+                    }
+                    if (hasRetryableChild)
+                    {
+                        Button retry;
+                        retry.Content(box_value(ToHString(pick(L"Review unsuccessful commands again", L"再次檢視未成功指令"))));
+                        retry.Padding(Thickness{ 12, 6, 12, 6 });
+                        AutomationProperties::SetAutomationId(
+                            retry,
+                            ToHString(L"NativePackageMutationBatchRetry_" + batchKey));
+                        AutomationProperties::SetName(
+                            retry,
+                            ToHString(pick(
+                                L"Return only unsuccessful package commands to fresh batch review",
+                                L"只將未成功套件指令返回全新批次檢視")));
+                        retry.Click([this, batchId](Windows::Foundation::IInspectable const&, RoutedEventArgs const&)
+                        {
+                            RetryPackageMutationBatch(batchId);
+                        });
+                        actions.Children().Append(retry);
+                    }
+                    if (actions.Children().Size() > 0)
+                    {
+                        content.Children().Append(actions);
+                    }
+                    card.Child(content);
+                    m_packageResults.Children().Append(card);
+                }
+
                 for (auto const& mutation : mutationRecords)
                 {
+                    // Batch children are surfaced together on their parent card.
+                    // Giving them individual controls would let a caller bypass
+                    // the one explicit, atomic batch-consent contract.
+                    if (!mutation.batch_id.empty())
+                    {
+                        continue;
+                    }
                     auto const actionEn = mutation.request.action == winforge::core::packages::PackageAction::Install
                         ? std::wstring(L"Install")
                         : mutation.request.action == winforge::core::packages::PackageAction::Update
@@ -6887,22 +7170,7 @@ namespace winrt::WinForge::implementation
                         : mutation.request.action == winforge::core::packages::PackageAction::Update
                             ? std::wstring(L"更新")
                             : std::wstring(L"解除安裝");
-                    auto const stateLabel = [&]()
-                    {
-                        using State = winforge::core::packages::PackageMutationState;
-                        switch (mutation.state)
-                        {
-                        case State::AwaitingConsent: return pick(L"Awaiting explicit consent", L"等緊明確確認");
-                        case State::Queued: return pick(L"Queued", L"已排隊");
-                        case State::Running: return pick(L"Running", L"執行中");
-                        case State::Succeeded: return pick(L"Succeeded", L"已完成");
-                        case State::Failed: return pick(L"Failed", L"失敗");
-                        case State::Cancelled: return pick(L"Cancelled", L"已取消");
-                        case State::TimedOut: return pick(L"Timed out", L"已超時");
-                        case State::Rejected: return pick(L"Rejected", L"已拒絕");
-                        }
-                        return pick(L"Rejected", L"已拒絕");
-                    }();
+                    auto const stateLabel = mutationStateLabel(mutation.state);
                     auto const mutationId = mutation.request.id;
 
                     Border card;
@@ -6951,7 +7219,7 @@ namespace winrt::WinForge::implementation
                     content.Children().Append(details);
 
                     StackPanel actions;
-                    actions.Orientation(Orientation::Horizontal);
+                    actions.Orientation(Orientation::Vertical);
                     actions.Spacing(8);
                     using State = winforge::core::packages::PackageMutationState;
                     if (mutation.state == State::AwaitingConsent)
@@ -7072,7 +7340,7 @@ namespace winrt::WinForge::implementation
                     content.Children().Append(details);
 
                     StackPanel actions;
-                    actions.Orientation(Orientation::Horizontal);
+                    actions.Orientation(Orientation::Vertical);
                     actions.Spacing(8);
 
                     Button runNext;
@@ -7678,7 +7946,7 @@ namespace winrt::WinForge::implementation
             row.Children().Append(details);
 
             StackPanel actions;
-            actions.Orientation(Orientation::Horizontal);
+            actions.Orientation(Orientation::Vertical);
             actions.Spacing(8);
 
             Button mutation;

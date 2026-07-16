@@ -301,9 +301,17 @@ namespace winrt::WinForge::implementation
         void RequestPackageMutation(
             winforge::core::packages::PackageItem const& package,
             winforge::core::packages::PackageAction action);
+        void ReviewPackageMutationBatch(
+            std::vector<winforge::core::packages::PackageItem> packages,
+            winforge::core::packages::PackageAction action,
+            std::wstring sourceLabelEn,
+            std::wstring sourceLabelZh);
         void ConfirmPackageMutation(std::wstring id);
+        void ConfirmPackageMutationBatch(std::wstring id);
         void CancelPackageMutation(std::wstring id);
+        void CancelPackageMutationBatch(std::wstring id);
         void RetryPackageMutation(std::wstring id);
+        void RetryPackageMutationBatch(std::wstring id);
         void StartNextPackageMutation();
         [[nodiscard]] std::optional<winforge::core::packages::PackageAction> CurrentPackageSelectionAction() const;
         void SetPackageSelected(

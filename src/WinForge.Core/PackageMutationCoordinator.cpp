@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cwctype>
 #include <exception>
+#include <unordered_set>
 #include <utility>
 
 namespace winforge::core::packages
@@ -177,6 +178,81 @@ namespace winforge::core::packages
             record.diagnostic = std::move(reason);
             return record;
         }
+
+        [[nodiscard]] bool IsBatchRetryableState(PackageMutationState state) noexcept
+        {
+            return state == PackageMutationState::Failed ||
+                state == PackageMutationState::Cancelled ||
+                state == PackageMutationState::TimedOut;
+        }
+
+        [[nodiscard]] PackageMutationState AggregateBatchState(
+            std::vector<PackageMutationRecord> const& records) noexcept
+        {
+            bool hasAwaiting = false;
+            bool hasQueued = false;
+            bool hasRunning = false;
+            bool hasFailed = false;
+            bool hasTimedOut = false;
+            bool hasCancelled = false;
+            bool hasRejected = false;
+            bool hasSucceeded = false;
+
+            for (auto const& record : records)
+            {
+                switch (record.state)
+                {
+                case PackageMutationState::AwaitingConsent: hasAwaiting = true; break;
+                case PackageMutationState::Queued: hasQueued = true; break;
+                case PackageMutationState::Running: hasRunning = true; break;
+                case PackageMutationState::Succeeded: hasSucceeded = true; break;
+                case PackageMutationState::Failed: hasFailed = true; break;
+                case PackageMutationState::Cancelled: hasCancelled = true; break;
+                case PackageMutationState::TimedOut: hasTimedOut = true; break;
+                case PackageMutationState::Rejected: hasRejected = true; break;
+                }
+            }
+
+            // A running or queued child must be visible above a stale terminal
+            // sibling. Awaiting consent is next, which is also the state used
+            // after a retry resets only unsuccessful children for fresh review.
+            if (hasRunning) return PackageMutationState::Running;
+            if (hasQueued) return PackageMutationState::Queued;
+            if (hasAwaiting) return PackageMutationState::AwaitingConsent;
+            if (hasFailed) return PackageMutationState::Failed;
+            if (hasTimedOut) return PackageMutationState::TimedOut;
+            if (hasCancelled) return PackageMutationState::Cancelled;
+            if (hasRejected) return PackageMutationState::Rejected;
+            if (hasSucceeded) return PackageMutationState::Succeeded;
+            return PackageMutationState::Rejected;
+        }
+
+        [[nodiscard]] std::wstring BatchDiagnostic(
+            PackageMutationState state,
+            std::size_t count)
+        {
+            auto const amount = std::to_wstring(count);
+            switch (state)
+            {
+            case PackageMutationState::AwaitingConsent:
+                return L"batch review is complete; explicit consent is required before all " + amount + L" package commands can be queued";
+            case PackageMutationState::Queued:
+                return L"explicit batch consent recorded; package commands are waiting in the serial native queue";
+            case PackageMutationState::Running:
+                return L"batch execution is running serially; cancellation stops the active command and cancels remaining commands";
+            case PackageMutationState::Succeeded:
+                return L"every package command in this batch completed; third-party output was withheld";
+            case PackageMutationState::Failed:
+                return L"one or more package commands failed; only unsuccessful children can return to fresh review";
+            case PackageMutationState::Cancelled:
+                return L"batch cancellation completed; successful children are never replayed implicitly";
+            case PackageMutationState::TimedOut:
+                return L"one or more package commands timed out; only unsuccessful children can return to fresh review";
+            case PackageMutationState::Rejected:
+                return L"batch was rejected before any package command was queued";
+            }
+            return L"batch was rejected before any package command was queued";
+        }
     }
 
     bool IsTerminalPackageMutationState(PackageMutationState state) noexcept
@@ -323,6 +399,139 @@ namespace winforge::core::packages
         return { true, false, std::move(record) };
     }
 
+    PackageMutationBatchSubmission PackageMutationCoordinator::SubmitBatch(
+        PackageMutationBatchRequest batch)
+    {
+        std::scoped_lock lock(m_mutex);
+
+        PackageMutationBatchRecord rejected;
+        rejected.id = batch.id;
+        rejected.state = PackageMutationState::Rejected;
+
+        if (batch.id.empty())
+        {
+            rejected.diagnostic = L"batch-id-is-required";
+            return { false, false, std::move(rejected) };
+        }
+        if (batch.requests.empty())
+        {
+            rejected.diagnostic = L"batch-has-no-package-requests";
+            return { false, false, std::move(rejected) };
+        }
+        if (batch.requests.size() > MaximumPackageMutationBatchRecords)
+        {
+            rejected.diagnostic = L"batch-review-capacity-exceeded";
+            return { false, false, std::move(rejected) };
+        }
+        if (std::any_of(m_records.begin(), m_records.end(), [&batch](PackageMutationRecord const& record)
+        {
+            return record.batch_id == batch.id;
+        }))
+        {
+            rejected.diagnostic = L"duplicate-batch-id";
+            return { false, true, std::move(rejected) };
+        }
+
+        std::unordered_set<std::wstring> requestIds;
+        std::unordered_set<std::wstring> identities;
+        std::vector<PackageMutationRecord> reviewed;
+        reviewed.reserve(batch.requests.size());
+
+        for (std::size_t index = 0; index < batch.requests.size(); ++index)
+        {
+            auto request = std::move(batch.requests[index]);
+            if (request.id.empty())
+            {
+                request.id = batch.id + L"-item-" + std::to_wstring(index + 1);
+            }
+            if (!requestIds.insert(request.id).second || FindLocked(request.id))
+            {
+                rejected.diagnostic = L"duplicate-mutation-id-in-batch";
+                return { false, true, std::move(rejected) };
+            }
+            if (HasUnsupportedMutationCustomArguments(request.install_options))
+            {
+                rejected.diagnostic = L"custom-mutation-arguments-unsupported";
+                return { false, false, std::move(rejected) };
+            }
+            if (!IsMutationAction(request.action))
+            {
+                rejected.diagnostic = L"invalid-mutation-action";
+                return { false, false, std::move(rejected) };
+            }
+
+            auto const built = BuildPackageActionCommand(
+                request.package.manager_key,
+                request.package.id,
+                request.package.source,
+                request.action,
+                request.install_options);
+            if (!built)
+            {
+                rejected.diagnostic = built.error_code;
+                return { false, false, std::move(rejected) };
+            }
+            if (built.command->requires_elevation)
+            {
+                rejected.diagnostic = L"elevated-mutations-are-not-supported";
+                return { false, false, std::move(rejected) };
+            }
+
+            auto const identity = MutationIdentity(request);
+            if (!identities.insert(identity).second)
+            {
+                rejected.diagnostic = L"duplicate-package-identity-in-batch";
+                return { false, true, std::move(rejected) };
+            }
+            auto const activeIdentity = std::find_if(m_records.begin(), m_records.end(), [&identity](PackageMutationRecord const& existing)
+            {
+                return !IsTerminalPackageMutationState(existing.state) &&
+                    MutationIdentity(existing.request) == identity;
+            });
+            if (activeIdentity != m_records.end())
+            {
+                rejected.diagnostic = L"duplicate-package-mutation";
+                return { false, true, std::move(rejected) };
+            }
+
+            auto redactedPreview = RedactPackageMutationTextUnbounded(
+                FormatCommandPreview(*built.command));
+            if (redactedPreview.size() > MaximumPackageMutationOutputTail)
+            {
+                rejected.diagnostic = L"mutation-command-preview-too-long";
+                return { false, false, std::move(rejected) };
+            }
+
+            PackageMutationRecord record;
+            record.request = std::move(request);
+            record.batch_id = batch.id;
+            record.state = PackageMutationState::AwaitingConsent;
+            record.sequence = m_next_sequence + index;
+            record.command_preview = std::move(redactedPreview);
+            record.diagnostic = L"batch review is complete; explicit batch consent is required before this package command can be queued";
+            reviewed.push_back(std::move(record));
+        }
+
+        if (!MakeSpaceForNewRecordsLocked(reviewed.size()))
+        {
+            rejected.diagnostic = L"mutation-queue-capacity-reached";
+            return { false, false, std::move(rejected) };
+        }
+
+        PackageMutationBatchRecord accepted;
+        accepted.id = batch.id;
+        accepted.state = PackageMutationState::AwaitingConsent;
+        accepted.sequence = m_next_sequence;
+        accepted.diagnostic = BatchDiagnostic(accepted.state, reviewed.size());
+        accepted.records = reviewed;
+        m_next_sequence += reviewed.size();
+        for (auto& record : reviewed)
+        {
+            m_records.push_back(std::move(record));
+        }
+        return { true, false, std::move(accepted) };
+    }
+
     bool PackageMutationCoordinator::Confirm(std::wstring_view id)
     {
         std::scoped_lock lock(m_mutex);
@@ -333,6 +542,50 @@ namespace winforge::core::packages
         }
         record->state = PackageMutationState::Queued;
         record->diagnostic = L"explicit consent recorded; waiting for the serial native queue";
+        return true;
+    }
+
+    bool PackageMutationCoordinator::ConfirmBatch(std::wstring_view id)
+    {
+        std::scoped_lock lock(m_mutex);
+        std::vector<PackageMutationRecord*> records;
+        for (auto& record : m_records)
+        {
+            if (record.batch_id == id)
+            {
+                records.push_back(&record);
+            }
+        }
+        bool hasAwaitingConsent = false;
+        if (records.empty() || !std::all_of(records.begin(), records.end(), [&hasAwaitingConsent](PackageMutationRecord const* record)
+        {
+            if (record->state == PackageMutationState::AwaitingConsent)
+            {
+                hasAwaitingConsent = true;
+                return true;
+            }
+            // A retry intentionally leaves successful children terminal so a
+            // fresh batch confirmation can queue only the unsuccessful items.
+            // No successful command is ever replayed merely because another
+            // child needs a retry.
+            return record->state == PackageMutationState::Succeeded;
+        }))
+        {
+            return false;
+        }
+        if (!hasAwaitingConsent)
+        {
+            return false;
+        }
+        for (auto* record : records)
+        {
+            if (record->state != PackageMutationState::AwaitingConsent)
+            {
+                continue;
+            }
+            record->state = PackageMutationState::Queued;
+            record->diagnostic = L"explicit batch consent recorded; waiting for the serial native queue";
+        }
         return true;
     }
 
@@ -359,6 +612,44 @@ namespace winforge::core::packages
         record->diagnostic = L"cancelled before package command execution";
         TrimTerminalHistoryLocked();
         return true;
+    }
+
+    bool PackageMutationCoordinator::CancelBatch(std::wstring_view id)
+    {
+        std::scoped_lock lock(m_mutex);
+        bool found = false;
+        bool cancelled = false;
+        for (auto& record : m_records)
+        {
+            if (record.batch_id != id)
+            {
+                continue;
+            }
+            found = true;
+            if (IsTerminalPackageMutationState(record.state))
+            {
+                continue;
+            }
+
+            cancelled = true;
+            record.cancellation_requested = true;
+            if (record.state == PackageMutationState::Running)
+            {
+                record.diagnostic = L"batch cancellation requested; waiting for the package process to stop";
+                if (m_active_stop_source && m_active_id == record.request.id)
+                {
+                    m_active_stop_source->request_stop();
+                }
+                continue;
+            }
+            record.state = PackageMutationState::Cancelled;
+            record.diagnostic = L"cancelled before package command execution because its reviewed batch was cancelled";
+        }
+        if (found && cancelled)
+        {
+            TrimTerminalHistoryLocked();
+        }
+        return found && cancelled;
     }
 
     bool PackageMutationCoordinator::CancelAll()
@@ -408,6 +699,34 @@ namespace winforge::core::packages
         record->output_tail.clear();
         record->diagnostic = L"retry requires fresh explicit consent";
         return true;
+    }
+
+    bool PackageMutationCoordinator::RetryBatch(std::wstring_view id)
+    {
+        std::scoped_lock lock(m_mutex);
+        bool found = false;
+        bool retryable = false;
+        for (auto& record : m_records)
+        {
+            if (record.batch_id != id)
+            {
+                continue;
+            }
+            found = true;
+            if (!IsBatchRetryableState(record.state))
+            {
+                continue;
+            }
+            retryable = true;
+            record.state = PackageMutationState::AwaitingConsent;
+            ++record.retry_count;
+            record.command_started = false;
+            record.cancellation_requested = false;
+            record.exit_code.reset();
+            record.output_tail.clear();
+            record.diagnostic = L"batch retry requires fresh explicit consent";
+        }
+        return found && retryable;
     }
 
     std::optional<PackageMutationRecord> PackageMutationCoordinator::RunNext(
@@ -529,6 +848,53 @@ namespace winforge::core::packages
         return m_records;
     }
 
+    std::vector<PackageMutationBatchRecord> PackageMutationCoordinator::SnapshotBatches() const
+    {
+        std::scoped_lock lock(m_mutex);
+        std::vector<PackageMutationBatchRecord> batches;
+        for (auto const& record : m_records)
+        {
+            if (record.batch_id.empty())
+            {
+                continue;
+            }
+            auto found = std::find_if(batches.begin(), batches.end(), [&record](PackageMutationBatchRecord const& batch)
+            {
+                return batch.id == record.batch_id;
+            });
+            if (found == batches.end())
+            {
+                PackageMutationBatchRecord batch;
+                batch.id = record.batch_id;
+                batch.sequence = record.sequence;
+                batch.records.push_back(record);
+                batches.push_back(std::move(batch));
+            }
+            else
+            {
+                found->sequence = std::min(found->sequence, record.sequence);
+                found->records.push_back(record);
+            }
+        }
+        for (auto& batch : batches)
+        {
+            batch.state = AggregateBatchState(batch.records);
+            batch.retry_count = 0;
+            batch.cancellation_requested = false;
+            for (auto const& record : batch.records)
+            {
+                batch.retry_count = std::max(batch.retry_count, record.retry_count);
+                batch.cancellation_requested = batch.cancellation_requested || record.cancellation_requested;
+            }
+            batch.diagnostic = BatchDiagnostic(batch.state, batch.records.size());
+        }
+        std::sort(batches.begin(), batches.end(), [](PackageMutationBatchRecord const& left, PackageMutationBatchRecord const& right)
+        {
+            return left.sequence < right.sequence;
+        });
+        return batches;
+    }
+
     bool PackageMutationCoordinator::HasRunnableWork() const
     {
         std::scoped_lock lock(m_mutex);
@@ -559,15 +925,50 @@ namespace winforge::core::packages
 
     bool PackageMutationCoordinator::MakeSpaceForNewRecordLocked()
     {
-        while (m_records.size() >= MaximumPackageMutationRecords)
+        return MakeSpaceForNewRecordsLocked(1);
+    }
+
+    bool PackageMutationCoordinator::MakeSpaceForNewRecordsLocked(std::size_t required)
+    {
+        if (required > MaximumPackageMutationRecords)
         {
-            auto const terminal = std::find_if(m_records.begin(), m_records.end(), [](PackageMutationRecord const& record)
+            return false;
+        }
+        while (m_records.size() + required > MaximumPackageMutationRecords)
+        {
+            auto const terminal = std::find_if(m_records.begin(), m_records.end(), [this](PackageMutationRecord const& record)
             {
-                return IsTerminalPackageMutationState(record.state);
+                if (!IsTerminalPackageMutationState(record.state))
+                {
+                    return false;
+                }
+                if (record.batch_id.empty())
+                {
+                    return true;
+                }
+                // A completed child of a still-active batch is part of the
+                // shared consent/audit surface. Never evict it on its own:
+                // doing so could hide a successful command before an
+                // unsuccessful sibling is retried. A batch reclaims capacity
+                // only once every child is terminal.
+                return std::all_of(m_records.begin(), m_records.end(), [&record](PackageMutationRecord const& candidate)
+                {
+                    return candidate.batch_id != record.batch_id ||
+                        IsTerminalPackageMutationState(candidate.state);
+                });
             });
             if (terminal == m_records.end())
             {
                 return false;
+            }
+            if (!terminal->batch_id.empty())
+            {
+                auto const batchId = terminal->batch_id;
+                std::erase_if(m_records, [&batchId](PackageMutationRecord const& record)
+                {
+                    return record.batch_id == batchId;
+                });
+                continue;
             }
             m_records.erase(terminal);
         }
@@ -576,17 +977,6 @@ namespace winforge::core::packages
 
     void PackageMutationCoordinator::TrimTerminalHistoryLocked()
     {
-        while (m_records.size() > MaximumPackageMutationRecords)
-        {
-            auto const terminal = std::find_if(m_records.begin(), m_records.end(), [](PackageMutationRecord const& record)
-            {
-                return IsTerminalPackageMutationState(record.state);
-            });
-            if (terminal == m_records.end())
-            {
-                return;
-            }
-            m_records.erase(terminal);
-        }
+        static_cast<void>(MakeSpaceForNewRecordsLocked(0));
     }
 }
